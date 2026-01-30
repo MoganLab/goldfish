@@ -41,7 +41,13 @@
           bag bag-unfold bag-member bag-comparator bag->list
           bag-copy list->bag list->bag!
           bag? bag-contains? bag-empty? bag-disjoint?
-          bag-size bag-find bag-count bag-any? bag-every?)
+          bag-size bag-find bag-count bag-any? bag-every?
+          bag=? bag<? bag>? bag<=? bag>=?
+          bag-union bag-intersection bag-difference bag-xor
+          bag-union! bag-intersection! bag-difference! bag-xor!
+          bag-adjoin bag-adjoin! bag-replace bag-replace!
+          bag-delete bag-delete! bag-delete-all bag-delete-all!
+          bag-search!)
   (begin
 
     (define-record-type set-impl
@@ -563,6 +569,10 @@
     (define (check-bag obj)
       (when (not (bag? obj)) (type-error "not a bag" obj)))
 
+    (define (check-same-bag-comparator a b)
+      (if (not (eq? (bag-comparator a) (bag-comparator b)))
+          (value-error "different comparators" a b)))
+
     (define (make-bag/comparator comparator)
       (if (comparator? comparator)
           (%make-bag (make-hash-table comparator) comparator)
@@ -700,6 +710,342 @@
               (bag-entries bag)
               #f)))
         (if found #f #t)))
+
+    (define (bag<=? . bags)
+      (if (null? bags)
+          #t
+          (let loop ((head (car bags)) (tail (cdr bags)))
+            (if (null? tail)
+                #t
+                (let ((next (car tail)))
+                  (and (binary-bag<=? head next)
+                       (loop next (cdr tail))))))))
+
+    (define (bag=? . bags)
+      (if (null? bags)
+          #t
+          (let loop ((head (car bags)) (tail (cdr bags)))
+            (if (null? tail)
+                #t
+                (let ((next (car tail)))
+                  (and (binary-bag=? head next)
+                       (loop next (cdr tail))))))))
+
+    (define (binary-bag=? b1 b2)
+      (check-bag b1)
+      (check-bag b2)
+      (check-same-bag-comparator b1 b2)
+      (let ((e1 (bag-entries b1))
+            (e2 (bag-entries b2)))
+        (and (= (hash-table-size e1) (hash-table-size e2))
+             (call/cc
+              (lambda (return)
+                (hash-table-for-each
+                 (lambda (k count1)
+                   (if (not (= count1 (hash-table-ref/default e2 k 0)))
+                       (return #f)))
+                 e1)
+                #t)))))
+
+    (define (binary-bag<=? b1 b2)
+      (check-bag b1)
+      (check-bag b2)
+      (check-same-bag-comparator b1 b2)
+      (let ((e1 (bag-entries b1))
+            (e2 (bag-entries b2)))
+        (if (> (hash-table-size e1) (hash-table-size e2))
+            #f
+            (call/cc
+             (lambda (return)
+               (hash-table-for-each
+                (lambda (k count1)
+                  (if (not (<= count1 (hash-table-ref/default e2 k 0)))
+                      (return #f)))
+                e1)
+               #t)))))
+
+    (define (bag<? . bags)
+      (if (null? bags)
+          #t
+          (let loop ((head (car bags)) (tail (cdr bags)))
+            (if (null? tail)
+                #t
+                (let ((next (car tail)))
+                  (and (binary-bag<? head next)
+                       (loop next (cdr tail))))))))
+
+    (define (binary-bag<? b1 b2)
+      (check-bag b1)
+      (check-bag b2)
+      (check-same-bag-comparator b1 b2)
+      (call/cc
+       (lambda (return)
+         (let ((e1 (bag-entries b1))
+               (e2 (bag-entries b2)))
+           (let ((smaller-count
+                  (cond
+                   ((< (hash-table-size e1) (hash-table-size e2)) 1)
+                   ((= (hash-table-size e1) (hash-table-size e2)) 0)
+                   (else (return #f)))))
+             (hash-table-for-each
+              (lambda (k count1)
+                (let ((count2 (hash-table-ref/default e2 k 0)))
+                  (if (not (<= count1 count2))
+                      (return #f)
+                      (when (< count1 count2)
+                        (set! smaller-count (+ smaller-count 1))))))
+              e1)
+             (positive? smaller-count))))))
+
+    (define (bag>=? . bags)
+      (if (null? bags)
+          #t
+          (let loop ((head (car bags)) (tail (cdr bags)))
+            (if (null? tail)
+                #t
+                (let ((next (car tail)))
+                  (and (binary-bag<=? next head)
+                       (loop next (cdr tail))))))))
+
+    (define (bag>? . bags)
+      (if (null? bags)
+          #t
+          (let loop ((head (car bags)) (tail (cdr bags)))
+            (if (null? tail)
+                #t
+                (let ((next (car tail)))
+                  (and (binary-bag<? next head)
+                       (loop next (cdr tail))))))))
+
+    (define (bag-union bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b))
+       bags)
+      (let ((result (bag-copy bag1)))
+        (for-each (lambda (b) (bag-union-into! result b)) bags)
+        result))
+
+    (define (bag-union-into! result other)
+      (let ((result-entries (bag-entries result))
+            (other-entries (bag-entries other)))
+        (hash-table-for-each
+         (lambda (k count2)
+           (let ((count1 (hash-table-ref/default result-entries k 0)))
+             (when (> count2 count1)
+               (hash-table-set! result-entries k count2))))
+         other-entries)
+        result))
+
+    (define (bag-intersection bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b))
+       bags)
+      (let ((result (make-bag/comparator (bag-comparator bag1)))
+            (entries1 (bag-entries bag1))
+            (other-entries (map bag-entries bags)))
+        (define (min-count key count1)
+          (let loop ((rest other-entries) (minc count1))
+            (if (null? rest)
+                minc
+                (loop (cdr rest)
+                      (min minc (hash-table-ref/default (car rest) key 0))))))
+        (hash-table-for-each
+         (lambda (k count1)
+           (let ((m (min-count k count1)))
+             (when (> m 0)
+               (hash-table-set! (bag-entries result) k m))))
+         entries1)
+        result))
+
+    (define (bag-difference bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b))
+       bags)
+      (let ((result (make-bag/comparator (bag-comparator bag1)))
+            (entries1 (bag-entries bag1))
+            (other-entries (map bag-entries bags)))
+        (define (sub-count key count1)
+          (let loop ((rest other-entries) (acc count1))
+            (if (null? rest)
+                acc
+                (loop (cdr rest)
+                      (- acc (hash-table-ref/default (car rest) key 0))))))
+        (hash-table-for-each
+         (lambda (k count1)
+           (let ((r (sub-count k count1)))
+             (when (> r 0)
+               (hash-table-set! (bag-entries result) k r))))
+         entries1)
+        result))
+
+    (define (bag-xor bag1 bag2)
+      (check-bag bag1)
+      (check-bag bag2)
+      (check-same-bag-comparator bag1 bag2)
+      (let ((result (make-bag/comparator (bag-comparator bag1)))
+            (e1 (bag-entries bag1))
+            (e2 (bag-entries bag2)))
+        (hash-table-for-each
+         (lambda (k count2)
+           (let ((count1 (hash-table-ref/default e1 k 0)))
+             (when (= count1 0)
+               (hash-table-set! (bag-entries result) k count2))))
+         e2)
+        (hash-table-for-each
+         (lambda (k count1)
+           (let* ((count2 (hash-table-ref/default e2 k 0))
+                  (diff (abs (- count1 count2))))
+             (when (> diff 0)
+               (hash-table-set! (bag-entries result) k diff))))
+         e1)
+        result))
+
+    (define (bag-union! bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b)
+         (bag-union-into! bag1 b))
+       bags)
+      bag1)
+
+    (define (bag-intersection! bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b))
+       bags)
+      (let ((entries1 (bag-entries bag1))
+            (other-entries (map bag-entries bags)))
+        (define (min-count key count1)
+          (let loop ((rest other-entries) (minc count1))
+            (if (null? rest)
+                minc
+                (loop (cdr rest)
+                      (min minc (hash-table-ref/default (car rest) key 0))))))
+        (hash-table-for-each
+         (lambda (k count1)
+           (let ((m (min-count k count1)))
+             (if (> m 0)
+                 (hash-table-set! entries1 k m)
+                 (hash-table-delete! entries1 k))))
+         entries1)
+        bag1))
+
+    (define (bag-difference! bag1 . bags)
+      (check-bag bag1)
+      (for-each
+       (lambda (b)
+         (check-bag b)
+         (check-same-bag-comparator bag1 b))
+       bags)
+      (let ((entries1 (bag-entries bag1))
+            (other-entries (map bag-entries bags)))
+        (define (sub-count key count1)
+          (let loop ((rest other-entries) (acc count1))
+            (if (null? rest)
+                acc
+                (loop (cdr rest)
+                      (- acc (hash-table-ref/default (car rest) key 0))))))
+        (hash-table-for-each
+         (lambda (k count1)
+           (let ((r (sub-count k count1)))
+             (if (> r 0)
+                 (hash-table-set! entries1 k r)
+                 (hash-table-delete! entries1 k))))
+         entries1)
+        bag1))
+
+    (define (bag-xor! bag1 bag2)
+      (check-bag bag1)
+      (check-bag bag2)
+      (check-same-bag-comparator bag1 bag2)
+      (let ((result (bag-xor bag1 bag2)))
+        (set-bag-entries! bag1 (bag-entries result))
+        bag1))
+
+    (define (bag-adjoin! bag . elements)
+      (check-bag bag)
+      (for-each (lambda (x) (bag-increment! bag x 1)) elements)
+      bag)
+
+    (define (bag-adjoin bag . elements)
+      (check-bag bag)
+      (let ((result (bag-copy bag)))
+        (for-each (lambda (x) (bag-increment! result x 1)) elements)
+        result))
+
+    (define (bag-replace! bag element)
+      (check-bag bag)
+      (let ((entries (bag-entries bag)))
+        (when (hash-table-contains? entries element)
+          (let ((count (hash-table-ref/default entries element 0)))
+            (hash-table-delete! entries element)
+            (hash-table-set! entries element count))))
+      bag)
+
+    (define (bag-replace bag element)
+      (check-bag bag)
+      (if (bag-contains? bag element)
+          (let ((result (bag-copy bag)))
+            (bag-replace! result element)
+            result)
+          bag))
+
+    (define (bag-delete! bag . elements)
+      (check-bag bag)
+      (for-each (lambda (x) (bag-decrement! bag x 1)) elements)
+      bag)
+
+    (define (bag-delete bag . elements)
+      (apply bag-delete! (bag-copy bag) elements))
+
+    (define (bag-delete-all! bag element-list)
+      (check-bag bag)
+      (for-each (lambda (x) (bag-decrement! bag x 1)) element-list)
+      bag)
+
+    (define (bag-delete-all bag element-list)
+      (bag-delete-all! (bag-copy bag) element-list))
+
+    (define (bag-search! bag element failure success)
+      (check-bag bag)
+      (let* ((comp (bag-comparator bag))
+             (same? (comparator-equality-predicate comp))
+             (entries (bag-entries bag))
+             (not-found (list 'not-found))
+             (found (call/cc
+                     (lambda (return)
+                       (hash-table-for-each
+                        (lambda (k entry)
+                          (when (same? k element) (return k)))
+                        entries)
+                       not-found))))
+        (if (eq? found not-found)
+            (failure (lambda (obj)
+                       (bag-increment! bag element 1)
+                       (values bag obj))
+                     (lambda (obj)
+                       (values bag obj)))
+            (success found
+                     (lambda (new-element obj)
+                       (bag-decrement! bag found 1)
+                       (bag-increment! bag new-element 1)
+                       (values bag obj))
+                     (lambda (obj)
+                       (bag-decrement! bag found 1)
+                       (values bag obj))))))
 
     ) ; end of begin
   ) ; end of define-library
