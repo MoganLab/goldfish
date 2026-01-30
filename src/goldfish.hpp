@@ -404,25 +404,59 @@ glue_goldfish (s7_scheme* sc) {
              s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
 }
 
+// old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
+//                        NOTE(jinser): use a new name for tai
+// `current-second` impl by g_get-time-of-day now
 static s7_pointer
-f_current_second (s7_scheme* sc, s7_pointer args) {
-  // TODO: use std::chrono::tai_clock::now() when using C++ 20
-  tb_timeval_t tp= {0};
-  tb_gettimeofday (&tp, tb_null);
-  s7_double res= (time_t) tp.tv_sec + (tp.tv_usec / 1000000.0);
-  return s7_make_real (sc, res);
+f_get_time_of_day (s7_scheme* sc, s7_pointer args) {
+  using namespace std::chrono;
+  auto now = time_point_cast<microseconds>(system_clock::now());
+  auto since_epoch = now.time_since_epoch();
+  auto sec = duration_cast<seconds>(since_epoch);
+
+  s7_pointer vs = s7_list(sc, 2,
+                          s7_make_integer(sc, sec.count()),
+                          s7_make_integer(sc, (since_epoch - sec).count()));
+  return s7_values(sc, vs);
+}
+
+static s7_pointer
+f_monotonic_nanosecond (s7_scheme* sc, s7_pointer args) {
+  using namespace std::chrono;
+  auto now = steady_clock::now();
+  auto duration = now.time_since_epoch();
+  auto count = duration_cast<std::chrono::nanoseconds>(duration).count();
+  return s7_make_integer(sc, count);
+}
+
+template<typename Clock>
+constexpr int64_t clock_resolution_ns() {
+  typedef std::chrono::duration<double, std::nano> NS;
+  NS ns = typename Clock::duration(1);
+  return ns.count();
 }
 
 inline void
 glue_scheme_time (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
 
-  const char* s_current_second= "g_current-second";
-  const char* d_current_second= "(g_current-second): () => double, return the "
-                                "current unix timestamp in double";
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_current_second),
-             s7_make_typed_function (sc, s_current_second, f_current_second, 0, 0, false, d_current_second, NULL));
+  const char* s_get_time_of_day= "g_get-time-of-day";
+  const char* d_get_time_of_day= "(g_get-time-of-day): () => (integer, integer), return the "
+                                "current second and microsecond in integer";
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_get_time_of_day),
+             s7_make_typed_function (sc, s_get_time_of_day, f_get_time_of_day, 0, 0, false, d_get_time_of_day, NULL));
+
+  const char* s_monotonic_nanosecond= "g_monotonic-nanosecond";
+  const char* d_monotonic_nanosecond= "(g_monotonic-nanosecond): () => integer, TODO";
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_monotonic_nanosecond),
+             s7_make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false, d_monotonic_nanosecond, NULL));
+
+  s7_define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
+                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::system_clock>()));
+  s7_define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
+                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::steady_clock>()));
 }
+
 
 static s7_pointer
 f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
