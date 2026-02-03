@@ -15,7 +15,4 @@
 ;
 
 (define-library (scheme read)
-  (export read)
-  (begin
-  ) ;begin
-) ;define-library
+  (re-export read))

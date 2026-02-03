@@ -70,7 +70,7 @@
           (scheme case-lambda)
           (srfi srfi-1)
           (rename (liii bitwise)
-                  (ash arithmetic-shift)
+                  (ash bw:arithmetic-shift)
           ) ;rename
   ) ;import
 
@@ -130,6 +130,7 @@
 (define leaf-bitmap-size 32)
 
 (define suffix-mask (- leaf-bitmap-size 1))
+;; TODO: lognot first argument, #<undefined>
 (define prefix-mask (lognot suffix-mask))
 
 ;; In S7 Scheme, all integers are fixnums
@@ -188,7 +189,7 @@
 ) ;define
 
 (define (ibitmap k)
-  (arithmetic-shift 1 (isuffix k))
+  (bw:arithmetic-shift 1 (isuffix k))
 ) ;define
 
 (define (bitmap-delete bitmap key)
@@ -399,7 +400,7 @@
   (let loop ((i 0) (in 0) (out 0))
     (cond ((= i leaf-bitmap-size) (values in out))
           ((bit-set? i bitmap)
-           (let ((bit (arithmetic-shift 1 i)))
+           (let ((bit (bw:arithmetic-shift 1 i)))
              (if (pred (+ prefix i))
                  (loop (+ i 1) (logior in bit) out)
                  (loop (+ i 1) in (logior out bit))
@@ -446,7 +447,7 @@
   (let loop ((i 0) (res 0))
     (cond ((= i leaf-bitmap-size) res)
           ((and (bit-set? i bitmap) (pred (+ prefix i)))
-           (loop (+ i 1) (logior res (arithmetic-shift 1 i)))
+           (loop (+ i 1) (logior res (bw:arithmetic-shift 1 i)))
           ) ;
           (else (loop (+ i 1) res))
     ) ;cond
@@ -505,10 +506,9 @@
        ) ;cond
      ) ;lambda
     ) ;update
-   ) ;
+   ) ;letrec*
    (update trie))
-  ) ;letrec*
-) ;define
+  ) ;define
 
 (define (trie-delete-min trie)
   (letrec
@@ -1264,7 +1264,7 @@
           ((= kp prefix)
            (logand bitmap
                    (- (if inclusive
-                          (arithmetic-shift kb 1)
+                          (bw:arithmetic-shift kb 1)
                           kb)
                       1
                    ) ;-
@@ -1320,7 +1320,7 @@
            (logand bitmap
                    (- (if inclusive
                           kb
-                          (arithmetic-shift kb 1))
+                          (bw:arithmetic-shift kb 1))
                    ) ;-
            ) ;logand
           ) ;
@@ -1401,12 +1401,12 @@
       ((low-mask
          (- (if low-inclusive
                 lb
-                (arithmetic-shift lb 1))
+                (bw:arithmetic-shift lb 1))
          ) ;-
        ) ;low-mask
        (high-mask
          (- (if high-inclusive
-                (arithmetic-shift hb 1)
+                (bw:arithmetic-shift hb 1)
                 hb)
              1)
          ) ;-
@@ -2008,4 +2008,5 @@
   (raw-iset (subtrie> (iset-trie set) k #t))
 ) ;define
 
+) ;begin
 ) ;define-library

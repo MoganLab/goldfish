@@ -15,18 +15,6 @@
 ;
 
 (define-library (scheme eval)
-  (import (scheme base))
-  (export environment eval)
-  (begin
-
-    (define (environment . import-sets)
-      (let ((env (inlet)))
-        (when (not (null? import-sets))
-          (eval (cons 'import import-sets) env)
-        ) ;when
-        env
-      ) ;let
-    ) ;define
-
-  ) ;begin
+  (export (rename interaction-environment environment))
+  (re-export eval)
 ) ;define-library

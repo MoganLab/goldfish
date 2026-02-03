@@ -101,12 +101,14 @@
       ) ;let*
     ) ;define
 
-    (define-macro (stx-deindent v)
-      (if (string? v)
-          `(quote ,(f-deindent v))
-          `(quote ,v)
-      ) ;if
-    ) ;define-macro
+    (define-syntax stx-deindent
+      (lambda (stx)
+        (syntax-case stx ()
+          ((_ v)
+           (let ((val (syntax->datum #'v)))
+             (if (string? val)
+                 (datum->syntax stx (f-deindent val))
+                 #'(quote v))))))
 
     (define deindent stx-deindent)
     (define &-       stx-deindent)
