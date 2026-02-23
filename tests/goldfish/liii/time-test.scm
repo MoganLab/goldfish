@@ -999,11 +999,29 @@ time-utc->time-tai
 time-tai->time-utc
 将 TIME-TAI 时间对象转换为 TIME-UTC 时间对象。
 
+time-utc->time-monotonic
+将 TIME-UTC 时间对象转换为 TIME-MONOTONIC 时间对象。
+
+time-monotonic->time-utc
+将 TIME-MONOTONIC 时间对象转换为 TIME-UTC 时间对象。
+
 time-tai->date
 将 TIME-TAI 时间对象转换为日期对象。
 
 date->time-tai
 将日期对象转换为 TIME-TAI 时间对象。
+
+time-monotonic->date
+将 TIME-MONOTONIC 时间对象转换为日期对象。
+
+date->time-monotonic
+将日期对象转换为 TIME-MONOTONIC 时间对象。
+
+date->julian-day
+将日期对象转换为儒略日。
+
+date->modified-julian-day
+将日期对象转换为修正儒略日。
 
 语法
 ----
@@ -1011,8 +1029,14 @@ date->time-tai
 (date->time-utc date)
 (time-utc->time-tai time-utc)
 (time-tai->time-utc time-tai)
+(time-utc->time-monotonic time-utc)
+(time-monotonic->time-utc time-monotonic)
 (time-tai->date time-tai [tz-offset])
 (date->time-tai date)
+(time-monotonic->date time-monotonic [tz-offset])
+(date->time-monotonic date)
+(date->julian-day date)
+(date->modified-julian-day date)
 
 参数
 ----
@@ -1031,8 +1055,14 @@ time-utc->date : date?
 date->time-utc : time?
 time-utc->time-tai : time?
 time-tai->time-utc : time?
+time-utc->time-monotonic : time?
+time-monotonic->time-utc : time?
 time-tai->date : date?
 date->time-tai : time?
+time-monotonic->date : date?
+date->time-monotonic : time?
+date->julian-day : number?
+date->modified-julian-day : number?
 
 说明
 ----
@@ -1040,8 +1070,14 @@ date->time-tai : time?
 2. date->time-utc 将本地日期按 date 的 zone-offset 转回 UTC 时间。
 3. time-utc->time-tai 根据闰秒表进行转换。
 4. time-tai->time-utc 根据闰秒表进行转换。
-5. time-tai->date 先转为 UTC 再按 tz-offset 生成日期。
-6. date->time-tai 等价于 date->time-utc 后再转 TAI。
+5. time-utc->time-monotonic 直接复用秒/纳秒进行转换。
+6. time-monotonic->time-utc 直接复用秒/纳秒进行转换。
+7. time-tai->date 先转为 UTC 再按 tz-offset 生成日期。
+8. date->time-tai 等价于 date->time-utc 后再转 TAI。
+9. time-monotonic->date 以单调时间的秒/纳秒作为 UTC 秒数进行转换。
+10. date->time-monotonic 使用 date->time-utc 的秒/纳秒构造 TIME-MONOTONIC。
+11. date->julian-day 基于 UTC 时间计算。
+12. date->modified-julian-day 基于 UTC 时间计算。
 
 错误处理
 --------
@@ -1282,6 +1318,29 @@ wrong-type-arg
 (check-catch 'wrong-type-arg
   (time-tai->time-utc (make-time TIME-UTC 0 0)))
 
+;; time-utc->time-monotonic / time-monotonic->time-utc basic
+(let* ((t-utc (make-time TIME-UTC 123456789 42))
+       (t-mon (time-utc->time-monotonic t-utc)))
+  (check (time-type t-mon) => TIME-MONOTONIC)
+  (check (time-second t-mon) => 42)
+  (check (time-nanosecond t-mon) => 123456789)
+  (let ((t-utc2 (time-monotonic->time-utc t-mon)))
+    (check (time-type t-utc2) => TIME-UTC)
+    (check (time-second t-utc2) => 42)
+    (check (time-nanosecond t-utc2) => 123456789)))
+
+;; Roundtrip time-utc->time-monotonic->time-utc
+(let* ((t-utc (make-time TIME-UTC 500000000 -12345))
+       (t-utc2 (time-monotonic->time-utc (time-utc->time-monotonic t-utc))))
+  (check (time-type t-utc2) => TIME-UTC)
+  (check (time-second t-utc2) => -12345)
+  (check (time-nanosecond t-utc2) => 500000000))
+
+(check-catch 'wrong-type-arg
+  (time-utc->time-monotonic (make-time TIME-TAI 0 0)))
+(check-catch 'wrong-type-arg
+  (time-monotonic->time-utc (make-time TIME-UTC 0 0)))
+
 ;; time-tai->date basic (UTC epoch)
 (let* ((t (make-time TIME-TAI 0 10))
        (d (time-tai->date t 0)))
@@ -1320,6 +1379,64 @@ wrong-type-arg
   (time-tai->date (make-time TIME-TAI 0 0) "bad-offset"))
 (check-catch 'wrong-type-arg
   (date->time-tai "not-a-date"))
+
+;; time-monotonic->date basic (UTC epoch)
+(let* ((t (make-time TIME-MONOTONIC 0 0))
+       (d (time-monotonic->date t 0)))
+  (check (date-year d) => 1970)
+  (check (date-month d) => 1)
+  (check (date-day d) => 1)
+  (check (date-hour d) => 0)
+  (check (date-minute d) => 0)
+  (check (date-second d) => 0)
+  (check (date-zone-offset d) => 0))
+
+;; date->time-monotonic basic (UTC epoch via +8 offset)
+(let* ((d (make-date 0 0 0 8 1 1 1970 28800))
+       (t (date->time-monotonic d)))
+  (check (time-type t) => TIME-MONOTONIC)
+  (check (time-second t) => 0)
+  (check (time-nanosecond t) => 0))
+
+;; round-trip date -> time-monotonic -> date with same tz-offset
+(let* ((d1 (make-date 123456789 45 30 14 25 12 2023 28800))
+       (t (date->time-monotonic d1))
+       (d2 (time-monotonic->date t (date-zone-offset d1))))
+  (check (date-year d2) => (date-year d1))
+  (check (date-month d2) => (date-month d1))
+  (check (date-day d2) => (date-day d1))
+  (check (date-hour d2) => (date-hour d1))
+  (check (date-minute d2) => (date-minute d1))
+  (check (date-second d2) => (date-second d1))
+  (check (date-nanosecond d2) => (date-nanosecond d1))
+  (check (date-zone-offset d2) => (date-zone-offset d1)))
+
+;; converter error conditions
+(check-catch 'wrong-type-arg
+  (time-monotonic->date (make-time TIME-UTC 0 0) 0))
+(check-catch 'wrong-type-arg
+  (time-monotonic->date (make-time TIME-MONOTONIC 0 0) "bad-offset"))
+(check-catch 'wrong-type-arg
+  (date->time-monotonic "not-a-date"))
+
+;; date->julian-day / date->modified-julian-day basic (UTC epoch)
+(let ((d (make-date 0 0 0 0 1 1 1970 0)))
+  (check (date->julian-day d) => 4881175/2)
+  (check (date->modified-julian-day d) => 40587))
+
+;; date->julian-day at noon (UTC)
+(let ((d (make-date 0 0 0 12 1 1 1970 0)))
+  (check (date->julian-day d) => 2440588))
+
+;; date->modified-julian-day next day (UTC)
+(let ((d (make-date 0 0 0 0 2 1 1970 0)))
+  (check (date->modified-julian-day d) => 40588))
+
+;; converter error conditions
+(check-catch 'wrong-type-arg
+  (date->julian-day "not-a-date"))
+(check-catch 'wrong-type-arg
+  (date->modified-julian-day "not-a-date"))
 
 ;; ====================
 ;; Date to String/String to Date Converters

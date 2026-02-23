@@ -78,8 +78,11 @@
     date-week-day date-week-number
     ;; Time/Date/Julian Day/Modified Julian Day Converters
     time-utc->time-tai time-tai->time-utc
+    time-utc->time-monotonic time-monotonic->time-utc
     time-utc->date date->time-utc
     time-tai->date date->time-tai 
+    time-monotonic->date date->time-monotonic
+    date->julian-day date->modified-julian-day
     ;; Date to String/String to Date Converters
     date->string string->date)
   (begin
@@ -472,6 +475,23 @@
                  (time-nanosecond time-tai)
                  (priv:tai->utc-seconds (time-second time-tai))))
 
+    (define (time-utc->time-monotonic time-utc)
+      (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
+        (error 'wrong-type-arg "time-utc->time-monotonic: time-utc must be a TIME-UTC object" time-utc))
+      (make-time TIME-MONOTONIC
+                 (time-nanosecond time-utc)
+                 (time-second time-utc)))
+
+    (define (time-monotonic->time-utc time-monotonic)
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->time-utc: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (make-time TIME-UTC
+                 (time-nanosecond time-monotonic)
+                 (time-second time-monotonic)))
+
     (define (priv:days-since-epoch year month day)
       ;; Howard Hinnant's days_from_civil algorithm, inverse of civil-from-days
       (let* ((y (- year (if (<= month 2) 1 0)))
@@ -547,6 +567,35 @@
 
     (define (date->time-tai date)
       (time-utc->time-tai (date->time-utc date)))
+
+    ;; TODO: spec says default tz-offset should be local time zone.
+    ;; We don't have a local tz interface yet, so default is 0 (UTC).
+    (define* (time-monotonic->date time-monotonic (tz-offset 0))
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->date: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (unless (integer? tz-offset)
+        (error 'wrong-type-arg "time-monotonic->date: tz-offset must be an integer" tz-offset))
+      (time-utc->date (time-monotonic->time-utc time-monotonic) tz-offset))
+
+    (define (date->time-monotonic date)
+      (unless (date? date)
+        (error 'wrong-type-arg "date->time-monotonic: date must be a date object" date))
+      (time-utc->time-monotonic (date->time-utc date)))
+
+    (define (date->julian-day date)
+      (unless (date? date)
+        (error 'wrong-type-arg "date->julian-day: date must be a date object" date))
+      (let* ((t (time-utc->time-monotonic (date->time-utc date)))
+             (secs (time-second t))
+             (nsecs (time-nanosecond t))
+             (total-secs (+ secs (/ nsecs priv:NANO))))
+        (+ priv:TAI-EPOCH-IN-JD (/ total-secs priv:SID))))
+
+    (define (date->modified-julian-day date)
+      (- (date->julian-day date) 4800001/2))
 
     ;; ====================
     ;; Date to String/String to Date Converters
