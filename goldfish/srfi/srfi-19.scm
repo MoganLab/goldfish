@@ -70,6 +70,7 @@
     add-duration subtract-duration time-difference
     ;; Current time and clock resolution
     current-date current-julian-day current-time time-resolution
+    local-tz-offset
     ;; Date object and accessors
     make-date date?
     date-nanosecond date-second date-minute date-hour
@@ -343,7 +344,33 @@
 
     ;; ====================
 
-    (define* (current-date (tz-offset 'TODO-GET-LOCAL-TZ-FROM-OS))
+    (define (priv:round-offset-to-minute offset)
+      (let* ((sign (if (negative? offset) -1 1))
+             (abs-off (abs offset))
+             (q (quotient abs-off 60))
+             (r (remainder abs-off 60)))
+        (* sign (if (>= r 30) (+ q 1) q) 60)))
+
+    (define (local-tz-offset)
+      (let ((time-vec (g_datetime-now)))
+        (if (and (vector? time-vec) (= (vector-length time-vec) 7))
+          (let* ((year   (vector-ref time-vec 0))
+                 (month  (vector-ref time-vec 1))
+                 (day    (vector-ref time-vec 2))
+                 (hour   (vector-ref time-vec 3))
+                 (minute (vector-ref time-vec 4))
+                 (second (vector-ref time-vec 5)))
+            (receive (utc-sec utc-usec) (glue:get-time-of-day)
+              (let* ((days (priv:days-since-epoch year month day))
+                     (local-sec (+ (* days priv:SID)
+                                   (* hour 3600)
+                                   (* minute 60)
+                                   second))
+                     (offset (- local-sec utc-sec)))
+                (priv:round-offset-to-minute offset))))
+          0)))
+
+    (define* (current-date (tz-offset (local-tz-offset)))
       (time-utc->date (current-time TIME-UTC) tz-offset))
 
     (define (current-julian-day)
@@ -544,9 +571,8 @@
              (y (if (<= m 2) (+ y 1) y)))
         (values y m d)))
 
-    ;; TODO: spec says default tz-offset should be local time zone.
-    ;; We don't have a local tz interface yet, so default is 0 (UTC).
-    (define* (time-utc->date time-utc (tz-offset 0))
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-utc->date time-utc (tz-offset (local-tz-offset)))
       (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
         (error 'wrong-type-arg "time-utc->date: time-utc must be a TIME-UTC object" time-utc))
       (unless (integer? tz-offset)
@@ -572,9 +598,8 @@
              (utc-sec (- local-sec (date-zone-offset date))))
         (make-time TIME-UTC (date-nanosecond date) utc-sec)))
 
-    ;; TODO: spec says default tz-offset should be local time zone.
-    ;; We don't have a local tz interface yet, so default is 0 (UTC).
-    (define* (time-tai->date time-tai (tz-offset 0))
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-tai->date time-tai (tz-offset (local-tz-offset)))
       (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
         (error 'wrong-type-arg "time-tai->date: time-tai must be a TIME-TAI object" time-tai))
       (unless (integer? tz-offset)
@@ -584,9 +609,8 @@
     (define (date->time-tai date)
       (time-utc->time-tai (date->time-utc date)))
 
-    ;; TODO: spec says default tz-offset should be local time zone.
-    ;; We don't have a local tz interface yet, so default is 0 (UTC).
-    (define* (time-monotonic->date time-monotonic (tz-offset 0))
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-monotonic->date time-monotonic (tz-offset (local-tz-offset)))
       (unless (and (time? time-monotonic)
                    (eq? (time-type time-monotonic) TIME-MONOTONIC))
         (error 'wrong-type-arg
