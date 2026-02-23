@@ -79,6 +79,7 @@
     ;; Time/Date/Julian Day/Modified Julian Day Converters
     time-utc->time-tai time-tai->time-utc
     time-utc->time-monotonic time-monotonic->time-utc
+    time-tai->time-monotonic time-monotonic->time-tai
     time-utc->date date->time-utc
     time-tai->date date->time-tai 
     time-monotonic->date date->time-monotonic
@@ -491,6 +492,21 @@
       (make-time TIME-UTC
                  (time-nanosecond time-monotonic)
                  (time-second time-monotonic)))
+
+    (define (time-tai->time-monotonic time-tai)
+      (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
+        (error 'wrong-type-arg
+               "time-tai->time-monotonic: time-tai must be a TIME-TAI object"
+               time-tai))
+      (time-utc->time-monotonic (time-tai->time-utc time-tai)))
+
+    (define (time-monotonic->time-tai time-monotonic)
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->time-tai: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (time-utc->time-tai (time-monotonic->time-utc time-monotonic)))
 
     (define (priv:days-since-epoch year month day)
       ;; Howard Hinnant's days_from_civil algorithm, inverse of civil-from-days

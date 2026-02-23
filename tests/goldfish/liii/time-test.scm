@@ -1005,6 +1005,12 @@ time-utc->time-monotonic
 time-monotonic->time-utc
 将 TIME-MONOTONIC 时间对象转换为 TIME-UTC 时间对象。
 
+time-tai->time-monotonic
+将 TIME-TAI 时间对象转换为 TIME-MONOTONIC 时间对象。
+
+time-monotonic->time-tai
+将 TIME-MONOTONIC 时间对象转换为 TIME-TAI 时间对象。
+
 time-tai->date
 将 TIME-TAI 时间对象转换为日期对象。
 
@@ -1031,6 +1037,8 @@ date->modified-julian-day
 (time-tai->time-utc time-tai)
 (time-utc->time-monotonic time-utc)
 (time-monotonic->time-utc time-monotonic)
+(time-tai->time-monotonic time-tai)
+(time-monotonic->time-tai time-monotonic)
 (time-tai->date time-tai [tz-offset])
 (date->time-tai date)
 (time-monotonic->date time-monotonic [tz-offset])
@@ -1042,6 +1050,12 @@ date->modified-julian-day
 ----
 time-utc : time?
 必须是 TIME-UTC 类型的时间对象。
+
+time-tai : time?
+必须是 TIME-TAI 类型的时间对象。
+
+time-monotonic : time?
+必须是 TIME-MONOTONIC 类型的时间对象。
 
 tz-offset : integer? (可选)
 时区偏移（秒），默认 0 表示 UTC。
@@ -1057,6 +1071,8 @@ time-utc->time-tai : time?
 time-tai->time-utc : time?
 time-utc->time-monotonic : time?
 time-monotonic->time-utc : time?
+time-tai->time-monotonic : time?
+time-monotonic->time-tai : time?
 time-tai->date : date?
 date->time-tai : time?
 time-monotonic->date : date?
@@ -1072,17 +1088,19 @@ date->modified-julian-day : number?
 4. time-tai->time-utc 根据闰秒表进行转换。
 5. time-utc->time-monotonic 直接复用秒/纳秒进行转换。
 6. time-monotonic->time-utc 直接复用秒/纳秒进行转换。
-7. time-tai->date 先转为 UTC 再按 tz-offset 生成日期。
-8. date->time-tai 等价于 date->time-utc 后再转 TAI。
-9. time-monotonic->date 以单调时间的秒/纳秒作为 UTC 秒数进行转换。
-10. date->time-monotonic 使用 date->time-utc 的秒/纳秒构造 TIME-MONOTONIC。
-11. date->julian-day 基于 UTC 时间计算。
-12. date->modified-julian-day 基于 UTC 时间计算。
+7. time-tai->time-monotonic 先按闰秒表转为 UTC，再复用秒/纳秒构造 TIME-MONOTONIC。
+8. time-monotonic->time-tai 先将单调时间视为 UTC 秒数，再按闰秒表转换为 TAI。
+9. time-tai->date 先转为 UTC 再按 tz-offset 生成日期。
+10. date->time-tai 等价于 date->time-utc 后再转 TAI。
+11. time-monotonic->date 以单调时间的秒/纳秒作为 UTC 秒数进行转换。
+12. date->time-monotonic 使用 date->time-utc 的秒/纳秒构造 TIME-MONOTONIC。
+13. date->julian-day 基于 UTC 时间计算。
+14. date->modified-julian-day 基于 UTC 时间计算。
 
 错误处理
 --------
 wrong-type-arg
-当参数类型不正确，或 time-utc 不是 TIME-UTC 时抛出错误。
+当参数类型不正确，或 time-utc/time-tai/time-monotonic 不是对应类型时抛出错误。
 |#
 
 ;; time-utc->date basic (UTC)
@@ -1336,10 +1354,38 @@ wrong-type-arg
   (check (time-second t-utc2) => -12345)
   (check (time-nanosecond t-utc2) => 500000000))
 
+;; converter error conditions
 (check-catch 'wrong-type-arg
   (time-utc->time-monotonic (make-time TIME-TAI 0 0)))
 (check-catch 'wrong-type-arg
   (time-monotonic->time-utc (make-time TIME-UTC 0 0)))
+
+;; time-tai->time-monotonic basic
+(let* ((t-tai (make-time TIME-TAI 123456789 1483228837))
+       (t-mon (time-tai->time-monotonic t-tai)))
+  (check (time-type t-mon) => TIME-MONOTONIC)
+  (check (time-second t-mon) => 1483228800)
+  (check (time-nanosecond t-mon) => 123456789))
+
+;; time-monotonic->time-tai basic
+(let* ((t-mon (make-time TIME-MONOTONIC 123456789 1483228800))
+       (t-tai (time-monotonic->time-tai t-mon)))
+  (check (time-type t-tai) => TIME-TAI)
+  (check (time-second t-tai) => 1483228837)
+  (check (time-nanosecond t-tai) => 123456789))
+
+;; Roundtrip time-monotonic->time-tai->time-monotonic
+(let* ((t-mon (make-time TIME-MONOTONIC 500000000 -12345))
+       (t-mon2 (time-tai->time-monotonic (time-monotonic->time-tai t-mon))))
+  (check (time-type t-mon2) => TIME-MONOTONIC)
+  (check (time-second t-mon2) => -12345)
+  (check (time-nanosecond t-mon2) => 500000000))
+
+;; converter error conditions
+(check-catch 'wrong-type-arg
+  (time-monotonic->time-tai (make-time TIME-UTC 0 0)))
+(check-catch 'wrong-type-arg
+  (time-tai->time-monotonic (make-time TIME-UTC 0 0)))
 
 ;; time-tai->date basic (UTC epoch)
 (let* ((t (make-time TIME-TAI 0 10))
