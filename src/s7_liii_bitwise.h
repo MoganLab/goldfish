@@ -10,7 +10,6 @@
 #define S7_LIII_BITWISE_H
 
 #include "s7.h"
-#include "s7_scheme_base.h"
 
 #ifdef __cplusplus
 extern "C" {
