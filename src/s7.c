@@ -17480,106 +17480,10 @@ bignum returns that number as a bignum"
 }
 
 
-/* -------------------------------- exp -------------------------------- */
+/* -------------------------------- inexact helpers -------------------------------- */
 #if !HAVE_COMPLEX_NUMBERS
   static s7_pointer no_complex_numbers_string;
 #endif
-
-#define EXP_LIMIT 100.0
-
-#if WITH_GMP
-static s7_pointer exp_1(s7_scheme *sc, s7_double x)
-{
-  mpfr_set_d(sc->mpfr_1, x, MPFR_RNDN);
-  mpfr_exp(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-  return(mpfr_to_big_real(sc, sc->mpfr_1));
-}
-
-static s7_pointer exp_2(s7_scheme *sc, s7_double x, s7_double y)
-{
-  mpc_set_d_d(sc->mpc_1, x, y, MPC_RNDNN);
-  mpc_exp(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-  return(mpc_to_number(sc, sc->mpc_1));
-}
-#endif
-
-static s7_pointer exp_p_p(s7_scheme *sc, s7_pointer x)
-{
-  s7_double z;
-  switch (type(x))
-    {
-    case T_INTEGER:
-      if (integer(x) == 0) return(int_one);                       /* (exp 0) -> 1 */
-      z = (s7_double)integer(x);
-#if WITH_GMP
-      if (fabs(z) > EXP_LIMIT)
-	return(exp_1(sc, z));
-#endif
-      return(make_real(sc, exp(z)));
-
-    case T_RATIO:
-      z = (s7_double)fraction(x);
-#if WITH_GMP
-      if (fabs(z) > EXP_LIMIT)
-	return(exp_1(sc, z));
-#endif
-      return(make_real(sc, exp(z)));
-
-    case T_REAL:
-#if WITH_GMP
-      if (fabs(real(x)) > EXP_LIMIT)
-	return(exp_1(sc, real(x)));
-#endif
-      return(make_real(sc, exp(real(x))));
-
-    case T_COMPLEX:
-#if HAVE_COMPLEX_NUMBERS
-#if WITH_GMP
-      if ((fabs(real_part(x)) > EXP_LIMIT) ||
-	  (fabs(imag_part(x)) > EXP_LIMIT))
-	return(exp_2(sc, real_part(x), imag_part(x)));
-#endif
-      return(c_complex_to_s7(sc, cexp(to_c_complex(x))));
-      /* this is inaccurate for large arguments:
-       *   (exp 0+1e20i) -> -0.66491178990701-0.74692189125949i, not 7.639704044417283004001468027378811228331E-1-6.45251285265780844205811711312523007406E-1i
-       */
-#else
-      out_of_range_error_nr(sc, sc->exp_symbol, int_one, x, no_complex_numbers_string);
-#endif
-
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      mpfr_exp(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      mpfr_exp(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_exp(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_exp(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      if (mpfr_zero_p(mpc_imagref(sc->mpc_1)))
-	return(mpfr_to_big_real(sc, mpc_realref(sc->mpc_1)));
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
-    default:
-      return(method_or_bust_p(sc, x, sc->exp_symbol, a_number_string));
-    }
-}
-
-static s7_pointer g_exp(s7_scheme *sc, s7_pointer args)
-{
-  #define H_exp "(exp z) returns e^z, (exp 1) is 2.718281828459"
-  #define Q_exp sc->pl_nn
-  return(exp_p_p(sc, car(args)));
-}
-
-static s7_double exp_d_d(s7_double x) {return(exp(x));}
-static s7_pointer exp_p_d(s7_scheme *sc, s7_double x) {return(make_real(sc, exp(x)));}
-
 
 /* -------------------------------- log -------------------------------- */
 #if __cplusplus
@@ -99332,7 +99236,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->expt_symbol =                  defun("expt",		expt,			2, 0, false);
   sc->log_symbol =                   defun("log",		log,			1, 1, false);
   sc->ash_symbol =                   defun("ash",		ash,			2, 0, false);
-  sc->exp_symbol =                   defun("exp",		exp,			1, 0, false); set_all_float(sc->exp_symbol);
+  sc->exp_symbol =                   s7_define_typed_function(sc, "exp", g_exp, 1, 0, false, "(exp z) returns e^z, (exp 1) is 2.718281828459", sc->pl_nn); set_all_float(sc->exp_symbol);
   sc->abs_symbol =                   s7_define_typed_function(sc, "abs", g_abs, 1, 0, false, "(abs x) returns the absolute value of the real number x", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)); set_is_translucent(sc->abs_symbol);
   sc->magnitude_symbol =             defun("magnitude",	        magnitude,		1, 0, false); set_all_integer_and_float(sc->magnitude_symbol);
   sc->angle_symbol =                 defun("angle",		angle,			1, 0, false);

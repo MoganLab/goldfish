@@ -38,6 +38,12 @@ s7_pointer tan_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer g_tan(s7_scheme *sc, s7_pointer args);
 s7_double tan_d_d(s7_double x);
 
+/* exp function */
+s7_pointer exp_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_exp(s7_scheme *sc, s7_pointer args);
+s7_pointer exp_p_d(s7_scheme *sc, s7_double x);
+s7_double exp_d_d(s7_double x);
+
 /* asin function */
 s7_pointer asin_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer g_asin(s7_scheme *sc, s7_pointer args);
