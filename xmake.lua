@@ -199,3 +199,4 @@ xpack ("goldfish")
             package:set("basename", "goldfish-$(plat)-$(arch)-v$(version)")
         end
     end)
+
