@@ -154,6 +154,29 @@ s7_pointer g_is_nan(s7_scheme *sc, s7_pointer args)
   return s7_make_boolean(sc, s7_is_nan(sc, s7_car(args)));
 }
 
+/* ---------------------------------------- infinite? ---------------------------------------- */
+bool s7_is_infinite(s7_scheme *sc, s7_pointer x)
+{
+  (void)sc;
+
+  if (s7_is_real(x))
+    {
+      if (s7_is_integer(x) || s7_is_rational(x))
+        return false;
+      return isinf(s7_real(x));
+    }
+  if (s7_is_complex(x))
+    return isinf(s7_real_part(x)) || isinf(s7_imag_part(x));
+  return false;
+}
+
+s7_pointer g_is_infinite(s7_scheme *sc, s7_pointer args)
+{
+  #define H_is_infinite "(infinite? obj) returns #t if obj has an infinite real or imaginary part"
+  #define Q_is_infinite sc->pl_bt
+  return s7_make_boolean(sc, s7_is_infinite(sc, s7_car(args)));
+}
+
 /* -------------------------------- sin -------------------------------- */
 #define SIN_LIMIT 1.0e16
 #define SINH_LIMIT 20.0
