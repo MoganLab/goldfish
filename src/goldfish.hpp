@@ -351,7 +351,7 @@ njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
   }
   if (value.is_number_unsigned ()) {
     unsigned long long v = value.get<unsigned long long> ();
-    if (v > static_cast<unsigned long long> (std::numeric_limits<s7_int>::max ())) {
+    if (v > static_cast<unsigned long long> ((std::numeric_limits<s7_int>::max) ())) {
       return s7_make_real (sc, static_cast<double> (v));
     }
     return s7_make_integer (sc, static_cast<s7_int> (v));
