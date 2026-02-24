@@ -24564,9 +24564,6 @@ sign of 'x' (1 = positive, -1 = negative).  (integer-decode-float 0.0): (0 0 1)"
 }
 
 
-#include "s7_liii_bitwise.c"
-
-
 /* -------------------------------- random-state -------------------------------- */
 /* random numbers.  The simple version used in clm.c is probably adequate, but here I'll use Marsaglia's MWC algorithm.
  *     (random num) -> a number (0..num), if num == 0 return 0, use global default state
@@ -98589,7 +98586,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->random_state_symbol =          defun("random-state",      random_state,	        0, (WITH_GMP) ? 1 : 2, false);
   sc->expt_symbol =                  defun("expt",		expt,			2, 0, false);
   sc->log_symbol =                   s7_define_typed_function(sc, "log", g_log, 1, 1, false, "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3", sc->pcl_n);
-  sc->ash_symbol =                   defun("ash",		ash,			2, 0, false);
+  sc->ash_symbol =                   s7_define_typed_function(sc, "ash", g_ash, 2, 0, false, "(ash i1 i2) returns i1 shifted right or left i2 times, i1 << i2, (ash 1 3) -> 8, (ash 8 -3) -> 1", sc->pcl_i);
   sc->exp_symbol =                   s7_define_typed_function(sc, "exp", g_exp, 1, 0, false, "(exp z) returns e^z, (exp 1) is 2.718281828459", sc->pl_nn); set_all_float(sc->exp_symbol);
   sc->abs_symbol =                   s7_define_typed_function(sc, "abs", g_abs, 1, 0, false, "(abs x) returns the absolute value of the real number x", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)); set_is_translucent(sc->abs_symbol);
   sc->magnitude_symbol =             defun("magnitude",	        magnitude,		1, 0, false); set_all_integer_and_float(sc->magnitude_symbol);
@@ -98611,11 +98608,11 @@ static void init_rootlet(s7_scheme *sc)
   sc->ceiling_symbol =               s7_define_typed_function(sc, "ceiling", g_ceiling, 1, 0, false, "(ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
   sc->truncate_symbol =              defun("truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
   sc->round_symbol =                 defun("round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
-  sc->logand_symbol =                defun("logand",		logand,			0, 0, true);
-  sc->logior_symbol =                defun("logior",		logior,			0, 0, true);
-  sc->logxor_symbol =                defun("logxor",		logxor,			0, 0, true);
-  sc->lognot_symbol =                defun("lognot",		lognot,			1, 0, false);
-  sc->logbit_symbol =                defun("logbit?",		logbit,			2, 0, false);
+  sc->logand_symbol =                s7_define_typed_function(sc, "logand", g_logand, 0, 0, true, "(logand int32_t ...) returns the AND of its integer arguments (the bits that are on in every argument)", sc->pcl_i);
+  sc->logior_symbol =                s7_define_typed_function(sc, "logior", g_logior, 0, 0, true, "(logior int32_t ...) returns the OR of its integer arguments (the bits that are on in any of the arguments)", sc->pcl_i);
+  sc->logxor_symbol =                s7_define_typed_function(sc, "logxor", g_logxor, 0, 0, true, "(logxor int32_t ...) returns the XOR of its integer arguments (the bits that are on in an odd number of the arguments)", sc->pcl_i);
+  sc->lognot_symbol =                s7_define_typed_function(sc, "lognot", g_lognot, 1, 0, false, "(lognot num) returns the negation of num (its complement, the bits that are not on): (lognot 0) -> -1", sc->pcl_i);
+  sc->logbit_symbol =                s7_define_typed_function(sc, "logbit?", g_logbit, 2, 0, false, "(logbit? int index) returns #t if the index-th bit is on in int, otherwise #f.", s7_make_circular_signature(sc, 1, 2, sc->is_boolean_symbol, sc->is_integer_symbol));
   sc->integer_decode_float_symbol =  defun("integer-decode-float", integer_decode_float, 1, 0, false);
   sc->nan_symbol =                   defun("nan",               nan,                    0, 1, false); /* (nan) -> +nan.0, (nan 123) -> +nan.123 */
   sc->nan_payload_symbol =           defun("nan-payload",       nan_payload,            1, 0, false);

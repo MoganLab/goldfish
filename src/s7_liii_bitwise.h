@@ -10,6 +10,7 @@
 #define S7_LIII_BITWISE_H
 
 #include "s7.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,11 +39,19 @@ s7_pointer logand_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_point
 s7_pointer g_lognot(s7_scheme *sc, s7_pointer args);
 s7_int lognot_i_i(s7_int i1);
 
+s7_pointer g_logbit(s7_scheme *sc, s7_pointer args);
+bool logbit_b_7ii(s7_scheme *sc, s7_int i1, s7_int i2);
+bool logbit_b_7pp(s7_scheme *sc, s7_pointer i1, s7_pointer i2);
+
 s7_pointer g_ash(s7_scheme *sc, s7_pointer args);
 s7_int ash_i_7ii(s7_scheme *sc, s7_int i1, s7_int i2);
 s7_pointer g_ash_ii(s7_scheme *sc, s7_pointer args);
 s7_pointer g_ash_ic(s7_scheme *sc, s7_pointer args);
 s7_pointer ash_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr);
+
+s7_int lsh_i_ii_unchecked(s7_int i1, s7_int i2);
+s7_int rsh_i_ii_unchecked(s7_int i1, s7_int i2);
+s7_int rsh_i_i2_direct(s7_int i1, s7_int unused_i2);
 
 #ifdef __cplusplus
 }
