@@ -17486,182 +17486,11 @@ bignum returns that number as a bignum"
 #endif
 
 /* -------------------------------- log -------------------------------- */
-#if __cplusplus
-#define LOG_2 1.4426950408889634074
-#else
-#define LOG_2 1.4426950408889634073599246810018921L /* (/ (log 2.0)) */
-#endif
-
-#if WITH_GMP
-static s7_pointer big_log(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer x = car(args);
-  s7_pointer base = NULL;
-
-  if (!is_number(x))
-    return(method_or_bust(sc, x, sc->log_symbol, args, a_number_string, 1));
-
-  if (is_pair(cdr(args)))
-    {
-      base = cadr(args);
-      if (!is_number(base))
-	return(method_or_bust(sc, base, sc->log_symbol, args, a_number_string, 2));
-    }
-
-  if (is_real(x))
-    {
-      s7_pointer result = any_real_to_mpfr(sc, x, sc->mpfr_1);
-      if (result == real_NaN) return(result);
-      if ((is_positive(sc, x)) &&
-	  ((!base) ||
-	   ((is_real(base)) && (is_positive(sc, base)))))
-	{
-	  if (result) return(result);
-	  mpfr_log(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-	  if (base)
-	    {
-	      result = any_real_to_mpfr(sc, base, sc->mpfr_2);
-	      if (result)
-		return((result == real_infinity) ? real_zero : result);
-	      if (mpfr_zero_p(sc->mpfr_2))
-		out_of_range_error_nr(sc, sc->log_symbol, int_two, base, wrap_string(sc, "can't be zero", 13));
-	      mpfr_log(sc->mpfr_2, sc->mpfr_2, MPFR_RNDN);
-	      mpfr_div(sc->mpfr_1, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	    }
-	  if ((mpfr_integer_p(sc->mpfr_1)) && ((is_rational(x)) && ((!base) || (is_rational(base)))))
-	    return(mpfr_to_integer(sc, sc->mpfr_1));
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	}}
-  if (base)
-    {
-      s7_pointer result = any_number_to_mpc(sc, base, sc->mpc_2);
-      if (result)
-	return((result == real_infinity) ? real_zero : complex_NaN);
-      if (mpc_zero_p(sc->mpc_2))
-	out_of_range_error_nr(sc, sc->log_symbol, int_two, base, wrap_string(sc, "can't be zero", 13));
-    }
-  {
-    s7_pointer result = any_number_to_mpc(sc, x, sc->mpc_1);
-    if (result)
-      {
-	if ((result == real_infinity) && (base) && ((is_negative(sc, x))))
-	  return(make_complex_not_0i(sc, INFINITY, -NAN));
-	return((result == real_NaN) ? complex_NaN : result);
-      }}
-  mpc_log(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-  if (base)
-    {
-      mpc_log(sc->mpc_2, sc->mpc_2, MPC_RNDNN);
-      mpc_div(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-    }
-  if (mpfr_zero_p(mpc_imagref(sc->mpc_1)))
-    return(mpfr_to_big_real(sc, mpc_realref(sc->mpc_1)));
-  return(mpc_to_number(sc, sc->mpc_1));
-}
-#endif
-
 static s7_pointer g_int_log2(s7_scheme *sc, s7_pointer args)
 {
   s7_int ix = integer(car(args));
   s7_double fx = log2((double)ix);
   return(((ix & (ix - 1)) == 0) ? make_integer(sc, (s7_int)s7_round(fx)) : make_real(sc, fx));
-}
-
-static s7_pointer g_log(s7_scheme *sc, s7_pointer args)
-{
-  #define H_log "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3"
-  #define Q_log sc->pcl_n
-
-  const s7_pointer x = car(args);
-
-#if WITH_GMP
-  if (is_big_number(x)) return(big_log(sc, args));
-#endif
-
-  if (!is_number(x))
-    return(method_or_bust(sc, x, sc->log_symbol, args, a_number_string, 1));
-
-  if (is_pair(cdr(args)))
-    {
-      const s7_pointer y = cadr(args);
-      if (!is_number(y))
-	return(method_or_bust(sc, y, sc->log_symbol, args, a_number_string, 2));
-
-#if WITH_GMP
-      if (is_big_number(y)) return(big_log(sc, args));
-#endif
-      if ((is_t_integer(y)) && (integer(y) == 2))
-	{
-	  /* (define (2^n? x) (and (not (zero? x)) (zero? (logand x (- x 1))))) */
-	  if (is_t_integer(x))
-	    {
-	      s7_int ix = integer(x);
-	      if (ix > 0)
-		{
-		  s7_double fx;
-#if (__ANDROID__) || (MS_WINDOWS)
-		  /* just a guess -- log2 gets a warning in gcc 4.3.2, but not in 4.4.4 */
-		  fx = log((double)ix) * LOG_2;
-#else
-		  fx = log2((double)ix);
-#endif
-		  /* (s7_int)fx rounds (log 8 2) to 2 in FreeBSD! */
-		  return(((ix & (ix - 1)) == 0) ? make_integer(sc, (s7_int)s7_round(fx)) : make_real(sc, fx));
-		}}
-	  if ((is_real(x)) &&
-	      (is_positive(sc, x)))
-	    return(make_real(sc, log(s7_real(x)) * LOG_2));
-	  return(c_complex_to_s7(sc, clog(s7_to_c_complex(x)) * LOG_2));
-	}
-
-      if ((is_t_integer(x)) && (integer(x) == 1) && (is_t_integer(y)) && (integer(y) == 1))  /* (log 1 1) -> 0 (this is NaN in the bignum case) */
-	return(int_zero);
-
-      /* (log 1 0) must be 0 since everyone says (expt 0 0) is 1 */
-      if (is_zero(y))
-	{
-	  if ((is_t_integer(y)) && (is_t_integer(x)) && (integer(x) == 1))
-	    return(y);
-	  out_of_range_error_nr(sc, sc->log_symbol, int_two, y, wrap_string(sc, "can't be zero", 13));
-	}
-
-      if ((is_t_real(x)) && (is_NaN(real(x))))
-	return(x);
-      if (is_one(y))                                     /* this used to raise an error, but the bignum case is simpler if we return inf */
-	return((is_one(x)) ? real_zero : real_infinity); /* but (log 1.0 1.0) -> 0.0, currently (log 1/0 1) is inf? */
-
-      if ((is_real(x)) && (is_real(y)) &&
-	  (is_positive(sc, x)) && (is_positive(sc, y)))
-	{
-	  if ((is_rational(x)) && (is_rational(y)))
-	    {
-	      const s7_double result = log(rational_to_double(sc, x)) / log(rational_to_double(sc, y));
-	      const s7_int ires = (s7_int)result;
-	      if (result - ires == 0.0)
-		return(make_integer(sc, ires));   /* (log 8 2) -> 3 or (log 1/8 2) -> -3 */
-	      if (fabs(result) < RATIONALIZE_LIMIT)
-		{
-		  s7_int num, den;
-		  if (c_rationalize(result, sc->default_rationalize_error, &num, &den))
-		      /* && (s7_int_abs(num) < 100) && (s7_int_abs(den) < 100)) *//* why this? */
-		    return(make_simpler_ratio_or_integer(sc, num, den));
-		}
-	      return(make_real(sc, result));
-	    }
-	  return(make_real(sc, log(s7_real(x)) / log(s7_real(y))));
-	}
-      if ((is_t_real(x)) && (is_NaN(real(x))))
-	return(x);
-      if ((is_t_complex(y)) && ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))))
-	return(y);
-      return(c_complex_to_s7(sc, clog(s7_to_c_complex(x)) / clog(s7_to_c_complex(y))));
-    }
-
-  if (!is_real(x))
-    return(c_complex_to_s7(sc, clog(s7_to_c_complex(x))));
-  if (is_positive(sc, x))
-    return(make_real(sc, log(s7_real(x))));
-  return(make_complex_not_0i(sc, log(-s7_real(x)), M_PI));
 }
 
 static s7_pointer log_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
@@ -98072,7 +97901,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->sqrt_symbol), sqrt_p_p);
 #if !WITH_GMP
   s7_set_p_pp_function(sc, global_value(sc->expt_symbol), expt_p_pp);
-  /* same problem affects big_log|logior|logand|logxor|lcm|gcd|rationalize|remainder|modulo -- *_p_* will fail in gmp s7 */
+  /* same problem affects logior|logand|logxor|lcm|gcd|rationalize|remainder|modulo -- *_p_* will fail in gmp s7 */
   s7_set_p_d_function(sc, global_value(sc->ceiling_symbol), ceiling_p_d);
   s7_set_p_d_function(sc, global_value(sc->floor_symbol), floor_p_d);
   s7_set_p_d_function(sc, global_value(sc->truncate_symbol), truncate_p_d);
@@ -99234,7 +99063,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
   sc->random_state_symbol =          defun("random-state",      random_state,	        0, (WITH_GMP) ? 1 : 2, false);
   sc->expt_symbol =                  defun("expt",		expt,			2, 0, false);
-  sc->log_symbol =                   defun("log",		log,			1, 1, false);
+  sc->log_symbol =                   s7_define_typed_function(sc, "log", g_log, 1, 1, false, "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3", sc->pcl_n);
   sc->ash_symbol =                   defun("ash",		ash,			2, 0, false);
   sc->exp_symbol =                   s7_define_typed_function(sc, "exp", g_exp, 1, 0, false, "(exp z) returns e^z, (exp 1) is 2.718281828459", sc->pl_nn); set_all_float(sc->exp_symbol);
   sc->abs_symbol =                   s7_define_typed_function(sc, "abs", g_abs, 1, 0, false, "(abs x) returns the absolute value of the real number x", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)); set_is_translucent(sc->abs_symbol);
