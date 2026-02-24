@@ -376,6 +376,141 @@ s7_double exp_d_d(s7_double x)
   return(exp(x));
 }
 
+/* -------------------------------- log -------------------------------- */
+#if __cplusplus
+  #define LOG_2 1.4426950408889634074
+#else
+  #define LOG_2 1.4426950408889634073599246810018921L /* (/ (log 2.0)) */
+#endif
+
+#define LOG_RATIONALIZE_LIMIT 1.0e12
+#define LOG_RATIONALIZE_ERROR 1.0e-12
+
+static s7_double log_round(s7_double number)
+{
+  return ((number < 0.0) ? ceil(number - 0.5) : floor(number + 0.5));
+}
+
+static bool log_is_positive_real(s7_pointer x)
+{
+  return (s7_is_real(x) && (s7_real(x) > 0.0));
+}
+
+static bool log_is_zero_number(s7_pointer x)
+{
+  if (s7_is_real(x))
+    return (s7_real(x) == 0.0);
+  if (s7_is_complex(x))
+    return ((s7_real_part(x) == 0.0) && (s7_imag_part(x) == 0.0));
+  return false;
+}
+
+static bool log_is_one_number(s7_pointer x)
+{
+  if (s7_is_real(x))
+    return (s7_real(x) == 1.0);
+  if (s7_is_complex(x))
+    return ((s7_real_part(x) == 1.0) && (s7_imag_part(x) == 0.0));
+  return false;
+}
+
+static s7_complex log_to_c_complex(s7_pointer x)
+{
+  if (s7_is_complex(x))
+    return s7_real_part(x) + s7_imag_part(x) * _Complex_I;
+  return s7_real(x) + 0.0 * _Complex_I;
+}
+
+static s7_pointer log_from_c_complex(s7_scheme *sc, s7_complex z)
+{
+  return make_complex_not_0i(sc, creal(z), cimag(z));
+}
+
+s7_pointer g_log(s7_scheme *sc, s7_pointer args)
+{
+  #define H_log "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3"
+  #define Q_log sc->pcl_n
+
+  const s7_pointer x = s7_car(args);
+
+  if (!s7_is_number(x))
+    return s7_wrong_type_arg_error(sc, "log", 1, x, "a number");
+
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      const s7_pointer y = s7_cadr(args);
+      if (!s7_is_number(y))
+        return s7_wrong_type_arg_error(sc, "log", 2, y, "a number");
+
+      if ((s7_is_integer(y)) && (s7_integer(y) == 2))
+        {
+          if (s7_is_integer(x))
+            {
+              s7_int ix = s7_integer(x);
+              if (ix > 0)
+                {
+                  s7_double fx;
+#if (__ANDROID__) || (MS_WINDOWS)
+                  fx = log((double)ix) * LOG_2;
+#else
+                  fx = log2((double)ix);
+#endif
+                  return(((ix & (ix - 1)) == 0) ? s7_make_integer(sc, (s7_int)log_round(fx)) : s7_make_real(sc, fx));
+                }
+            }
+          if (log_is_positive_real(x))
+            return s7_make_real(sc, log(s7_real(x)) * LOG_2);
+          return log_from_c_complex(sc, clog(log_to_c_complex(x)) * LOG_2);
+        }
+
+      if ((s7_is_integer(x)) && (s7_integer(x) == 1) && (s7_is_integer(y)) && (s7_integer(y) == 1))
+        return s7_make_integer(sc, 0);
+
+      if (log_is_zero_number(y))
+        {
+          if ((s7_is_integer(y)) && (s7_is_integer(x)) && (s7_integer(x) == 1))
+            return y;
+          return s7_out_of_range_error(sc, "log", 2, y, "can't be zero");
+        }
+
+      if ((s7_is_real(x)) && (is_NaN(s7_real(x))))
+        return x;
+      if (log_is_one_number(y))
+        return (log_is_one_number(x)) ? s7_make_real(sc, 0.0) : s7_make_real(sc, INFINITY);
+
+      if ((log_is_positive_real(x)) && (log_is_positive_real(y)))
+        {
+          if ((s7_is_rational(x)) && (s7_is_rational(y)))
+            {
+              const s7_double result = log(s7_real(x)) / log(s7_real(y));
+              const s7_int ires = (s7_int)result;
+              if (result - ires == 0.0)
+                return s7_make_integer(sc, ires);
+              if (fabs(result) < LOG_RATIONALIZE_LIMIT)
+                {
+                  s7_pointer rat = s7_rationalize(sc, result, LOG_RATIONALIZE_ERROR);
+                  if (rat != s7_f(sc))
+                    return rat;
+                }
+              return s7_make_real(sc, result);
+            }
+          return s7_make_real(sc, log(s7_real(x)) / log(s7_real(y)));
+        }
+
+      if ((s7_is_real(x)) && (is_NaN(s7_real(x))))
+        return x;
+      if ((s7_is_complex(y)) && ((is_NaN(s7_real_part(y))) || (is_NaN(s7_imag_part(y)))))
+        return y;
+      return log_from_c_complex(sc, clog(log_to_c_complex(x)) / clog(log_to_c_complex(y)));
+    }
+
+  if (!s7_is_real(x))
+    return log_from_c_complex(sc, clog(log_to_c_complex(x)));
+  if (log_is_positive_real(x))
+    return s7_make_real(sc, log(s7_real(x)));
+  return make_complex_not_0i(sc, log(-s7_real(x)), M_PI);
+}
+
 /* -------------------------------- asin -------------------------------- */
 
 static s7_pointer c_asin(s7_scheme *sc, s7_double x)

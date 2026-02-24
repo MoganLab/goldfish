@@ -44,6 +44,9 @@ s7_pointer g_exp(s7_scheme *sc, s7_pointer args);
 s7_pointer exp_p_d(s7_scheme *sc, s7_double x);
 s7_double exp_d_d(s7_double x);
 
+/* log function */
+s7_pointer g_log(s7_scheme *sc, s7_pointer args);
+
 /* asin function */
 s7_pointer asin_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer g_asin(s7_scheme *sc, s7_pointer args);
