@@ -411,6 +411,7 @@
 #include "s7_scheme_base.h"
 #include "s7_scheme_inexact.h"
 #include "s7_scheme_complex.h"
+#include "s7_scheme_file.h"
 #include "s7_liii_bitwise.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
@@ -28367,26 +28368,6 @@ s7_pointer s7_open_input_file(s7_scheme *sc, const char *name, const char *mode)
   return(open_input_file_1(sc, name, mode, "open-input-file"));
 }
 
-static s7_pointer g_open_input_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_open_input_file "(open-input-file filename (mode \"r\")) opens filename for reading"
-  #define Q_open_input_file s7_make_signature(sc, 3, sc->is_input_port_symbol, sc->is_string_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  /* open-input-file can create a new output file if the file to be opened does not exist, and the "a" mode is given */
-  if (!is_string(name))
-    return(method_or_bust(sc, name, sc->open_input_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_pair(cdr(args)))
-    return(open_input_file_1(sc, string_value(name), "r", "open-input-file"));
-  {
-    s7_pointer mode = cadr(args);
-    if (!is_string(mode))
-      return(method_or_bust(sc, mode, sc->open_input_file_symbol, args, wrap_string(sc, "a string (a mode such as \"r\")", 29), 2));
-    /* since scheme allows embedded nulls, dumb stuff is accepted here: (open-input-file file "a\x00b") -- should this be an error? */
-    return(open_input_file_1(sc, string_value(name), string_value(mode), "open-input-file"));
-  }
-}
-
 static void close_stdin(s7_scheme *sc, s7_pointer port) {return;}
 static void close_stdout(s7_scheme *sc, s7_pointer port) {return;}
 static void close_stderr(s7_scheme *sc, s7_pointer port) {return;}
@@ -28507,22 +28488,6 @@ s7_pointer s7_open_output_file(s7_scheme *sc, const char *name, const char *mode
   add_output_port(sc, port);
   return(port);
 }
-
-static s7_pointer g_open_output_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_open_output_file "(open-output-file filename (mode \"w\")) opens filename for writing"
-  #define Q_open_output_file s7_make_signature(sc, 3, sc->is_output_port_symbol, sc->is_string_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(method_or_bust(sc, name, sc->open_output_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_pair(cdr(args)))
-    return(s7_open_output_file(sc, string_value(name), "w"));
-  if (!is_string(cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->open_output_file_symbol, args, wrap_string(sc, "a string (a mode such as \"w\")", 29), 2));
-  return(s7_open_output_file(sc, string_value(name), string_value(cadr(args))));
-}
-
 
 /* -------------------------------- open-input-string -------------------------------- */
 
@@ -30235,25 +30200,6 @@ static s7_pointer g_call_with_input_string(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- call-with-input-file -------------------------------- */
-static s7_pointer g_call_with_input_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_call_with_input_file "(call-with-input-file filename proc) opens filename and calls proc with the input port as its argument"
-  #define Q_call_with_input_file sc->pl_sf
-
-  const s7_pointer str = car(args), proc = cadr(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->call_with_input_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_procedure(proc))
-    if_method_exists_return_value(sc, proc, sc->call_with_input_file_symbol, args);
-  if (!s7_is_aritable(sc, proc, 1))
-    wrong_type_error_nr(sc, sc->call_with_input_file_symbol, 2, proc,
-			wrap_string(sc, "a procedure of one argument (the port)", 38));
-  if ((is_continuation(proc)) || (is_goto(proc)))
-    wrong_type_error_nr(sc, sc->call_with_input_file_symbol, 2, proc, a_normal_procedure_string);
-  return(call_with_input(sc, open_input_file_1(sc, string_value(str), "r", "call-with-input-file"), args));
-}
-
-
 /* -------------------------------- with-input-from-string -------------------------------- */
 static s7_pointer with_input(s7_scheme *sc, s7_pointer port, s7_pointer args)
 {
@@ -30321,28 +30267,6 @@ static s7_pointer g_with_input_from_string(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- with-input-from-file -------------------------------- */
-static s7_pointer g_with_input_from_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_with_input_from_file "(with-input-from-file filename thunk) opens filename as the temporary current-input-port and calls thunk"
-  #define Q_with_input_from_file sc->pl_sf
-
-  const s7_pointer str = car(args), proc = cadr(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->with_input_from_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_thunk(sc, proc))
-    {
-      if (is_any_procedure(proc))        /* i.e. c_function, lambda, macro, etc */
-	{
-	  s7_pointer req_args = wrap_integer(sc, procedure_required_args(sc, proc));
-	  error_nr(sc, sc->wrong_type_arg_symbol,
-		   set_elist_4(sc, wrap_string(sc, "~A requires ~D argument~P, but with-input-from-file's second argument should be a thunk", 87),
-			       proc, req_args, req_args));
-	}
-      else return(method_or_bust(sc, proc, sc->with_input_from_file_symbol, args, a_thunk_string, 2));
-    }
-  return(with_input(sc, open_input_file_1(sc, string_value(str), "r", "with-input-from-file"), args));
-}
-
 static s7_pointer with_string_in(s7_scheme *sc, s7_pointer unused_args)
 {
   const s7_pointer old_port = current_input_port(sc);
@@ -34859,26 +34783,6 @@ static s7_pointer g_call_with_output_string(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- call-with-output-file -------------------------------- */
-static s7_pointer g_call_with_output_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_call_with_output_file "(call-with-output-file filename proc) opens filename and calls proc with the output port as its argument"
-  #define Q_call_with_output_file sc->pl_sf
-
-  const s7_pointer file = car(args), proc = cadr(args);
-  if (!is_string(file))
-    return(method_or_bust(sc, file, sc->call_with_output_file_symbol, args, sc->type_names[T_STRING], 1));
-  if ((!is_any_procedure(proc)) ||
-      (!s7_is_aritable(sc, proc, 1)))
-    return(method_or_bust(sc, proc, sc->call_with_output_file_symbol, args, wrap_string(sc, "a procedure of one argument (the port)", 38), 2));
-  {
-    const s7_pointer port = s7_open_output_file(sc, string_value(file), "w");
-    push_stack(sc, OP_UNWIND_OUTPUT, sc->unused, port); /* #<unused> here is a marker (needed) */
-    push_stack(sc, OP_APPLY, list_1_unchecked(sc, port), proc);
-  }
-  return(sc->F);
-}
-
-
 /* -------------------------------- with-output-to-string -------------------------------- */
 static s7_pointer g_with_output_to_string(s7_scheme *sc, s7_pointer args)
 {
@@ -34912,37 +34816,6 @@ calls thunk, then returns the collected output"
 
 
 /* -------------------------------- with-output-to-file -------------------------------- */
-static s7_pointer g_with_output_to_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_with_output_to_file "(with-output-to-file filename thunk) opens filename as the temporary current-output-port and calls thunk"
-  #define Q_with_output_to_file sc->pl_sf
-
-  const s7_pointer file = car(args), proc = cadr(args);
-  if (!is_string(file))
-    return(method_or_bust(sc, file, sc->with_output_to_file_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_thunk(sc, proc))
-    {
-      if (is_any_procedure(proc))        /* i.e. c_function, lambda, macro, etc */
-	{
-	  s7_pointer req_args = wrap_integer(sc, procedure_required_args(sc, proc));
-	  error_nr(sc, sc->wrong_type_arg_symbol,
-		   set_elist_4(sc, wrap_string(sc, "~A requires ~D argument~P, but with-output-to-file's second argument should be a thunk", 86),
-			       proc, req_args, req_args));
-	}
-      else return(method_or_bust(sc, proc, sc->with_output_to_file_symbol, args, a_thunk_string, 2));
-    }
-  if ((is_continuation(proc)) || (is_goto(proc)))
-    wrong_type_error_nr(sc, sc->with_output_to_file_symbol, 1, proc, a_normal_procedure_string);
-  {
-    const s7_pointer old_output_port = current_output_port(sc);
-    set_current_output_port(sc, s7_open_output_file(sc, string_value(file), "w"));
-    push_stack(sc, OP_UNWIND_OUTPUT, old_output_port, current_output_port(sc));
-  }
-  push_stack(sc, OP_APPLY, sc->nil, proc);
-  return(sc->F);
-}
-
-
 /* -------------------------------- format -------------------------------- */
 static /* inline */ s7_pointer copy_proper_list(s7_scheme *sc, s7_pointer lst);
 
@@ -36019,47 +35892,6 @@ static s7_pointer g_is_directory(s7_scheme *sc, s7_pointer args)
   #define H_is_directory "(directory? str) returns #t if str is the name of a directory"
   #define Q_is_directory s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_string_symbol)
   return(make_boolean(sc, is_directory_b_7p(sc, car(args))));
-}
-
-/* -------------------------------- file-exists? -------------------------------- */
-static bool file_probe(const char *arg)
-{
-#if !MS_WINDOWS
-  return(access(arg, F_OK) == 0);
-#else
-  int32_t fd = open(arg, O_RDONLY, 0);
-  if (fd == -1) return(false);
-  close(fd);
-  return(true);
-#endif
-}
-
-/* -------------------------------- delete-file -------------------------------- */
-static s7_pointer g_delete_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_delete_file "(delete-file filename) deletes the file filename."
-  #define Q_delete_file s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(sole_arg_method_or_bust(sc, name, sc->delete_file_symbol, args, sc->type_names[T_STRING]));
-  if (string_length(name) > 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  s7_int result = unlink((char *)block_data(b));
-	  liberate(sc, b);
-	  if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-	    file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-	  return(make_integer(sc, result));
-	}}
-  {
-    s7_int result = unlink(string_value(name));
-    if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-      file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-    return(make_integer(sc, result));
-  }
 }
 
 /* -------------------------------- system -------------------------------- */
@@ -98147,8 +97979,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->close_input_port_symbol =      defun("close-input-port",   close_input_port,	1, 0, false);
   sc->close_output_port_symbol =     defun("close-output-port",  close_output_port,	1, 0, false);
   sc->flush_output_port_symbol =     defun("flush-output-port",  flush_output_port,	0, 1, false);
-  sc->open_input_file_symbol =       defun("open-input-file",    open_input_file,	1, 1, false);
-  sc->open_output_file_symbol =      defun("open-output-file",   open_output_file,	1, 1, false);
+  sc->open_input_file_symbol =       s7_define_typed_function(sc, "open-input-file", g_open_input_file, 1, 1, false, "(open-input-file filename (mode \"r\")) opens filename for reading", s7_make_signature(sc, 3, sc->is_input_port_symbol, sc->is_string_symbol, sc->is_string_symbol));
+  sc->open_output_file_symbol =      s7_define_typed_function(sc, "open-output-file", g_open_output_file, 1, 1, false, "(open-output-file filename (mode \"w\")) opens filename for writing", s7_make_signature(sc, 3, sc->is_output_port_symbol, sc->is_string_symbol, sc->is_string_symbol));
   sc->open_input_string_symbol =     defun("open-input-string",  open_input_string,	1, 0, false);
   sc->open_output_string_symbol =    defun("open-output-string", open_output_string,	0, 0, false);
   sc->get_output_string_symbol =     defun("get-output-string",  get_output_string,	1, 1, false);
@@ -98183,18 +98015,18 @@ static void init_rootlet(s7_scheme *sc)
   copy_initial_value(sc, sc->read_symbol);
 
   sc->call_with_input_string_symbol =  semisafe_defun("call-with-input-string",  call_with_input_string,  2, 0, false); /* body unsafe if func=read */
-  sc->call_with_input_file_symbol =    semisafe_defun("call-with-input-file",    call_with_input_file,    2, 0, false);
+  sc->call_with_input_file_symbol =    s7_define_typed_function(sc, "call-with-input-file", g_call_with_input_file, 2, 0, false, "(call-with-input-file filename proc) opens filename and calls proc with the input port as its argument", sc->pl_sf);
   sc->with_input_from_string_symbol =  semisafe_defun("with-input-from-string",  with_input_from_string,  2, 0, false);
-  sc->with_input_from_file_symbol =    semisafe_defun("with-input-from-file",    with_input_from_file,    2, 0, false);
+  sc->with_input_from_file_symbol =    s7_define_typed_function(sc, "with-input-from-file", g_with_input_from_file, 2, 0, false, "(with-input-from-file filename thunk) opens filename as the temporary current-input-port and calls thunk", sc->pl_sf);
 
   sc->call_with_output_string_symbol = semisafe_defun("call-with-output-string", call_with_output_string, 1, 0, false);
-  sc->call_with_output_file_symbol =   semisafe_defun("call-with-output-file",   call_with_output_file,   2, 0, false);
+  sc->call_with_output_file_symbol =   s7_define_typed_function(sc, "call-with-output-file", g_call_with_output_file, 2, 0, false, "(call-with-output-file filename proc) opens filename and calls proc with the output port as its argument", sc->pl_sf);
   sc->with_output_to_string_symbol =   semisafe_defun("with-output-to-string",   with_output_to_string,   1, 0, false);
-  sc->with_output_to_file_symbol =     semisafe_defun("with-output-to-file",     with_output_to_file,     2, 0, false);
+  sc->with_output_to_file_symbol =     s7_define_typed_function(sc, "with-output-to-file", g_with_output_to_file, 2, 0, false, "(with-output-to-file filename thunk) opens filename as the temporary current-output-port and calls thunk", sc->pl_sf);
 
 #if WITH_SYSTEM_EXTRAS
   sc->is_directory_symbol =          defun("directory?",	is_directory,		1, 0, false);
-  sc->delete_file_symbol =           defun("delete-file",	delete_file,		1, 0, false);
+  sc->delete_file_symbol =           s7_make_symbol(sc, "delete-file");
   sc->system_symbol =                defun("system",		system,			1, 1, false);
 #if !MS_WINDOWS
   sc->directory_to_list_symbol =     defun("directory->list",   directory_to_list,	1, 0, false);

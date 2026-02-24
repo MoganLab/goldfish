@@ -132,4 +132,53 @@
       (clean-filename filename))) ; after
   test-filenames)
 
+;; open-output-file / open-input-file
+(check
+  (dynamic-wind
+    #f
+    (lambda ()
+      (let ((op (open-output-file test-filename)))
+        (display "abc" op)
+        (close-output-port op))
+      (let ((ip (open-input-file test-filename)))
+        (let ((line (read-line ip)))
+          (close-input-port ip)
+          line)))
+    clean-test-filename)
+  => "abc")
+
+;; call-with-output-file / with-input-from-file
+(check
+  (dynamic-wind
+    #f
+    (lambda ()
+      (call-with-output-file test-filename
+        (lambda (port) (display "xyz" port)))
+      (with-input-from-file test-filename
+        (lambda () (read-line))))
+    clean-test-filename)
+  => "xyz")
+
+;; file-exists? / delete-file
+(check
+  (dynamic-wind
+    #f
+    (lambda ()
+      (with-output-to-file test-filename (lambda () (display "rm")))
+      (check-true (file-exists? test-filename))
+      (delete-file test-filename)
+      (file-exists? test-filename))
+    #f)
+  => #f)
+
+;; error cases
+(check-catch 'type-error (file-exists? 123))
+(check-catch 'type-error (delete-file 123))
+(check-catch 'wrong-type-arg (open-input-file 123))
+(check-catch 'wrong-type-arg (open-output-file 123))
+(check-catch 'wrong-type-arg (call-with-input-file 123 (lambda (p) p)))
+(check-catch 'wrong-type-arg (call-with-output-file 123 (lambda (p) p)))
+(check-catch 'wrong-type-arg (with-input-from-file 123 (lambda () 1)))
+(check-catch 'wrong-type-arg (with-output-to-file 123 (lambda () 1)))
+
 (check-report)
