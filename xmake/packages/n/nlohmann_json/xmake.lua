@@ -4,11 +4,10 @@ package("nlohmann_json")
     set_description("JSON for Modern C++")
     set_license("MIT")
 
-    add_urls("https://github.com/nlohmann/json.git")
-    add_versions("v3.11.3", "v3.11.3")
+    set_sourcedir(path.join(os.scriptdir(), "../../../../3rdparty/nlohmann_json"))
 
     on_install(function (package)
-        os.cp("single_include/nlohmann", package:installdir("include"))
+        os.cp("include/nlohmann", package:installdir("include"))
     end)
 
     on_test(function (package)
