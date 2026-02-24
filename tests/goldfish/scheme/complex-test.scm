@@ -186,4 +186,39 @@ imag-part(z) = y
 (check (imag-part 0+9i) => 9.0)
 (check (imag-part 10+0i) => 0.0)
 
+;; Test complex constructor
+(check (complex 3 0) => 3)
+(check (real-part (complex 3 4)) => 3.0)
+(check (imag-part (complex 3 4)) => 4.0)
+(check (complex 2.5 0.0) => 2.5)
+
+;; Test magnitude
+(check (magnitude 3+4i) => 5.0)
+(check (magnitude -3) => 3)
+(check (magnitude -3.5) => 3.5)
+(check (magnitude 0) => 0)
+
+;; Test angle
+(check (angle 1) => 0)
+(check (angle -1) => 3.141592653589793)
+(check (> (angle 1+1i) 0.78) => #t)
+(check (< (angle 1+1i) 0.79) => #t)
+
+;; Test make-polar
+(check (real-part (make-polar 2 0)) => 2.0)
+(check (imag-part (make-polar 2 0)) => 0.0)
+(check (> (real-part (make-polar 1 1.5707963267948966)) -0.001) => #t)
+(check (< (real-part (make-polar 1 1.5707963267948966)) 0.001) => #t)
+(check (> (imag-part (make-polar 1 1.5707963267948966)) 0.999) => #t)
+
+;; Error handling
+(check-catch 'wrong-type-arg (complex "a" 1))
+(check-catch 'wrong-type-arg (complex 1 "b"))
+(check-catch 'wrong-type-arg (magnitude "x"))
+(check-catch 'wrong-type-arg (angle "x"))
+(check-catch 'wrong-type-arg (make-polar "x" 1))
+(check-catch 'wrong-type-arg (make-polar 1 "x"))
+(check-catch 'wrong-number-of-args (complex 1))
+(check-catch 'wrong-number-of-args (make-polar 1))
+
 (check-report)
