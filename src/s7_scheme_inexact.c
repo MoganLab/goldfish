@@ -321,6 +321,61 @@ s7_double tan_d_d(s7_double x)
   return(tan(x));
 }
 
+/* -------------------------------- exp -------------------------------- */
+
+s7_pointer exp_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 1); /* (exp 0) -> 1 */
+      return s7_make_real(sc, exp((double)iv));
+    }
+
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      return s7_make_real(sc, exp(frac));
+    }
+
+  if (s7_is_real(x))
+    {
+      return s7_make_real(sc, exp(s7_real(x)));
+    }
+
+  if (s7_is_complex(x))
+    {
+#if HAVE_COMPLEX_NUMBERS
+      double r = s7_real_part(x);
+      double i = s7_imag_part(x);
+      s7_complex z = r + i * _Complex_I;
+      s7_complex result = cexp(z);
+      return s7_make_complex(sc, creal(result), cimag(result));
+#else
+      return s7_out_of_range_error(sc, "exp", 1, x, "no complex numbers");
+#endif
+    }
+
+  return s7_wrong_type_arg_error(sc, "exp", 1, x, "a number");
+}
+
+s7_pointer g_exp(s7_scheme *sc, s7_pointer args)
+{
+  #define H_exp "(exp z) returns e^z, (exp 1) is 2.718281828459"
+  #define Q_exp sc->pl_nn
+  return(exp_p_p(sc, s7_car(args)));
+}
+
+s7_pointer exp_p_d(s7_scheme *sc, s7_double x)
+{
+  return(s7_make_real(sc, exp(x)));
+}
+
+s7_double exp_d_d(s7_double x)
+{
+  return(exp(x));
+}
+
 /* -------------------------------- asin -------------------------------- */
 
 static s7_pointer c_asin(s7_scheme *sc, s7_double x)
