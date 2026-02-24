@@ -24442,39 +24442,6 @@ static bool is_nan_b_7p(s7_scheme *sc, s7_pointer x)
 }
 
 
-/* ---------------------------------------- infinite? ---------------------------------------- */
-static bool is_infinite_b_7p(s7_scheme *sc, s7_pointer x)
-{
-  switch (type(x))
-    {
-    case T_INTEGER:
-    case T_RATIO:    return(false);
-    case T_REAL:     return(is_inf(real(x)));
-    case T_COMPLEX:  return((is_inf(real_part(x))) || (is_inf(imag_part(x))));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-    case T_BIG_RATIO: return(false);
-    case T_BIG_REAL:  return(mpfr_inf_p(big_real(x)) != 0);
-    case T_BIG_COMPLEX:
-      return((mpfr_inf_p(mpc_realref(big_complex(x))) != 0) ||
-	     (mpfr_inf_p(mpc_imagref(big_complex(x))) != 0));
-#endif
-    default:
-      if (is_number(x))
-	return(method_or_bust_p(sc, x, sc->is_infinite_symbol, a_number_string) != sc->F);
-    }
-  return(false);
-}
-
-static s7_pointer g_is_infinite(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_infinite "(infinite? obj) returns #t if obj has an infinite real or imaginary part"
-  #define Q_is_infinite sc->pl_bt
-  return(make_boolean(sc, is_infinite_b_7p(sc, car(args))));
-}
-
-
-
 /* ---------------------------------------- zero? ---------------------------------------- */
 
 static bool is_zero(s7_pointer x)
@@ -98036,7 +98003,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_b_p_function(sc, global_value(sc->is_float_vector_symbol), s7_is_float_vector);
   s7_set_b_p_function(sc, global_value(sc->is_gensym_symbol), is_gensym_b_p);
   s7_set_b_p_function(sc, global_value(sc->is_hash_table_symbol), s7_is_hash_table);
-  s7_set_b_7p_function(sc, global_value(sc->is_infinite_symbol), is_infinite_b_7p);
+  s7_set_b_7p_function(sc, global_value(sc->is_infinite_symbol), s7_is_infinite);
   s7_set_b_7p_function(sc, global_value(sc->is_nan_symbol), is_nan_b_7p);
   s7_set_b_p_function(sc, global_value(sc->is_input_port_symbol), is_input_port_b);
   s7_set_b_p_function(sc, global_value(sc->is_integer_symbol), s7_is_integer);
@@ -99038,7 +99005,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_zero_symbol = s7_define_typed_function(sc, "zero?", g_zero, 1, 0, false, "(zero? num) returns #t if the number num is zero", sc->pl_bn);
   sc->is_positive_symbol = s7_define_typed_function(sc, "positive?", g_positive, 1, 0, false, "(positive? num) returns #t if the real number num is positive (greater than 0)", s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_real_symbol));
   sc->is_negative_symbol = s7_define_typed_function(sc, "negative?", g_negative, 1, 0, false, "(negative? num) returns #t if the real number num is negative (less than 0)", s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_real_symbol));
-  sc->is_infinite_symbol =           defun("infinite?",	        is_infinite,		1, 0, false);
+  sc->is_infinite_symbol =           s7_define_typed_function(sc, "infinite?", g_is_infinite, 1, 0, false, "(infinite? obj) returns #t if obj has an infinite real or imaginary part", sc->pl_bt);
   sc->is_nan_symbol = s7_define_typed_function(sc, "nan?", g_is_nan, 1, 0, false, "(nan? obj) returns #t if obj is a NaN", sc->pl_bt);
   sc->complex_symbol =               defun("complex",	        complex,	        2, 0, false);
 
