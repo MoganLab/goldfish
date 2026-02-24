@@ -410,8 +410,8 @@
 #include "s7.h"
 #include "s7_scheme_base.h"
 #include "s7_scheme_inexact.h"
+#include "s7_scheme_complex.h"
 #include "s7_liii_bitwise.h"
-#include "s7_scheme_base.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -16891,73 +16891,6 @@ the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 
 /* (abs|magnitude -9223372036854775808) won't work here */
 
 
-/* -------------------------------- magnitude -------------------------------- */
-static double my_hypot(double x, double y)
-{
-  /* useless: if (x == 0.0) return(fabs(y)); if (y == 0.0) return(fabs(x)); if (is_NaN(x)) return(x); if (is_NaN(y)) return(y); */
-  if ((fabs(x) < 1.0e6) && (fabs(y) < 1.0e6)) /* max error is ca. e-14 */
-    return(sqrt(x * x + y * y));              /* timing diffs: 62 for this form, 107 if just libm's hypot */
-  return(hypot(x, y));                        /* libm's hypot protects against over/underflow */
-}
-
-static s7_pointer magnitude_p_p(s7_scheme *sc, s7_pointer x)
-{
-  if (is_t_complex(x))
-    return(make_real(sc, my_hypot(real_part(x), imag_part(x)))); /* was reversed? 8-Nov-22 */
-
-  switch (type(x))
-    {
-    case T_INTEGER:
-      if (integer(x) < 0)
-	{
-	  if (integer(x) == S7_INT64_MIN) return(mostfix);
-	  /* (magnitude -9223372036854775808) -> -9223372036854775808
-	   *   same thing happens in abs, lcm and gcd: (gcd -9223372036854775808) -> -9223372036854775808
-	   */
-	  return(make_integer(sc, -integer(x)));
-	}
-      return(x);
-    case T_RATIO:
-      return((numerator(x) < 0) ? make_simpler_ratio(sc, -numerator(x), denominator(x)) : x);
-    case T_REAL:
-      if (is_NaN(real(x)))                 /* (magnitude -nan.0) -> +nan.0, not -nan.0 */
-	return((nan_payload(real(x)) > 0) ? x : real_NaN);
-      return((signbit(real(x))) ? make_real(sc, -real(x)) : x);
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-      return(abs_p_p(sc, x));
-    case T_BIG_COMPLEX:
-      mpc_abs(sc->mpfr_1, big_complex(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-#endif
-    default:
-      return(method_or_bust_p(sc, x, sc->magnitude_symbol, a_number_string));
-    }
-}
-
-static s7_pointer g_magnitude(s7_scheme *sc, s7_pointer args)
-{
-  #define H_magnitude "(magnitude z) returns the magnitude of z"
-  #define Q_magnitude s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol)
-  return(magnitude_p_p(sc, car(args)));
-}
-
-static s7_int magnitude_i_i(s7_int x) {return((x < 0) ? (-x) : x);}
-static s7_double magnitude_d_d(s7_double x) {return((signbit(x)) ? (-x) : x);}
-static s7_pointer magnitude_p_z(s7_scheme *sc, s7_pointer z) {return(make_real(sc, my_hypot(real_part(z), imag_part(z))));}
-
-#if 0
-static s7_pointer magnitude_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
-{
-#if !WITH_GMP
-  s7_pointer arg = cadr(expr);
-  if ((is_pair(arg)) && (has_fn(arg)) && (fn_proc(arg) == complex_vector_ref_p_pi))
-    set_fn_direct(arg, complex_vector_ref_p_pi_wrapped);
-#endif
-  return(func);
-}
-#endif
-
 /* -------------------------------- rationalize -------------------------------- */
 #if WITH_GMP
 
@@ -17249,182 +17182,6 @@ static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
 }
 
 
-/* -------------------------------- angle -------------------------------- */
-static s7_pointer g_angle(s7_scheme *sc, s7_pointer args)
-{
-  #define H_angle "(angle z) returns the angle of z"
-  #define Q_angle s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol)
-
-  const s7_pointer x = car(args);  /* (angle inf+infi) -> 0.78539816339745 ? I think this should be -pi < ang <= pi */
-  switch (type(x))
-    {
-    case T_INTEGER: return((integer(x) < 0) ? real_pi : int_zero);
-    case T_RATIO:   return((numerator(x) < 0) ? real_pi : int_zero);
-    case T_COMPLEX: return(make_real(sc, atan2(imag_part(x), real_part(x))));
-
-    case T_REAL:
-      if (is_NaN(real(x))) return(x);
-      return((real(x) < 0.0) ? real_pi : real_zero);
-#if WITH_GMP
-    case T_BIG_INTEGER: return((mpz_cmp_ui(big_integer(x), 0) >= 0) ? int_zero : big_pi(sc));
-    case T_BIG_RATIO:   return((mpq_cmp_ui(big_ratio(x), 0, 1) >= 0) ? int_zero : big_pi(sc));
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x))) return(x);
-      return((mpfr_cmp_d(big_real(x), 0.0) >= 0) ? real_zero : big_pi(sc));
-    case T_BIG_COMPLEX:
-      {
-	s7_pointer new_bgf;
-	new_cell(sc, new_bgf, T_BIG_REAL);
-	big_real_bgf(new_bgf) = alloc_bigflt(sc);
-	add_big_real(sc, new_bgf);
-	mpc_arg(big_real(new_bgf), big_complex(x), MPFR_RNDN);
-	return(new_bgf);
-      }
-#endif
-    default:
-      return(method_or_bust_p(sc, x, sc->angle_symbol, a_number_string));
-    }
-}
-
-static s7_double angle_d_d(s7_double x) {return((is_NaN(x)) ? x : ((x < 0.0) ? M_PI : 0.0));}
-
-
-/* -------------------------------- complex -------------------------------- */
-
-static s7_pointer complex_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
-{
-#if WITH_GMP
-  if ((is_big_number(x)) || (is_big_number(y)))
-    {
-      s7_pointer new_num = NULL; /* placate the compiler */
-      if (!is_real(x))
-	return(method_or_bust(sc, x, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 1));
-      if (!is_real(y))
-	return(method_or_bust(sc, y, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 2));
-
-      switch (type(y))
-	{
-	case T_INTEGER: case T_RATIO: case T_REAL:
-	  {
-	    s7_double iz = s7_real(y);
-	    if (iz == 0.0)                      /* imag-part is 0.0 */
-	      return(x);
-	    new_cell(sc, new_num, T_BIG_COMPLEX);
-	    big_complex_bgc(new_num) = alloc_bigcmp(sc);
-	    mpfr_set_d(mpc_imagref(big_complex(new_num)), iz, MPFR_RNDN);
-	  }
-	  break;
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y))) return(x);
-	  new_cell(sc, new_num, T_BIG_COMPLEX);
-	  big_complex_bgc(new_num) = alloc_bigcmp(sc);
-	  mpfr_set(mpc_imagref(big_complex(new_num)), big_real(y), MPFR_RNDN);
-	  break;
-	case T_BIG_RATIO:
-	  new_cell(sc, new_num, T_BIG_COMPLEX);
-	  big_complex_bgc(new_num) = alloc_bigcmp(sc);
-	  mpfr_set_q(mpc_imagref(big_complex(new_num)), big_ratio(y), MPFR_RNDN);
-	  break;
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0) return(x);
-	  new_cell(sc, new_num, T_BIG_COMPLEX);
-	  big_complex_bgc(new_num) = alloc_bigcmp(sc);
-	  mpfr_set_z(mpc_imagref(big_complex(new_num)), big_integer(y), MPFR_RNDN);
-	  break;
-	}
-      switch (type(x))
-	{
-	case T_INTEGER: case T_RATIO: case T_REAL:
-	  mpfr_set_d(mpc_realref(big_complex(new_num)), s7_real(x), MPFR_RNDN);
-	  break;
-	case T_BIG_REAL:
-	  mpfr_set(mpc_realref(big_complex(new_num)), big_real(x), MPFR_RNDN);
-	  break;
-	case T_BIG_RATIO:
-	  mpfr_set_q(mpc_realref(big_complex(new_num)), big_ratio(x), MPFR_RNDN);
-	  break;
-	case T_BIG_INTEGER:
-	  mpfr_set_z(mpc_realref(big_complex(new_num)), big_integer(x), MPFR_RNDN);
-	  break;
-	}
-      add_big_complex(sc, new_num);
-      return(new_num);
-    }
-#endif
-  if ((is_t_real(x)) && (is_t_real(y))) return((real(y) == 0.0) ? x : make_complex_not_0i(sc, real(x), real(y)));
-  switch (type(y))
-    {
-    case T_INTEGER:
-      switch (type(x))
-	{
-	case T_INTEGER: return((integer(y) == 0) ? x : make_complex_not_0i(sc, (s7_double)integer(x), (s7_double)integer(y)));
-	  /* these int->dbl's are problematic:
-	   *   (complex 9223372036854775807 9007199254740995): 9223372036854776000.0+9007199254740996.0i
-	   * should we raise an error?
-	   */
-	case T_RATIO:  return((integer(y) == 0) ? x : make_complex_not_0i(sc, (s7_double)fraction(x), (s7_double)integer(y)));
-	case T_REAL:   return((integer(y) == 0) ? x : make_complex_not_0i(sc, real(x), (s7_double)integer(y)));
-	default:       return(method_or_bust(sc, x, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 1));
-	}
-    case T_RATIO:
-      switch (type(x))
-	{
-	case T_INTEGER: return(make_complex(sc, (s7_double)integer(x), (s7_double)fraction(y))); /* can fraction be 0.0? */
-	case T_RATIO:   return(make_complex(sc, (s7_double)fraction(x), (s7_double)fraction(y)));
-	case T_REAL:    return(make_complex(sc, real(x), (s7_double)fraction(y)));
-	default:	return(method_or_bust(sc, x, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 1));
-	}
-    case T_REAL:
-      switch (type(x))
-	{
-	case T_INTEGER: return((real(y) == 0.0) ? x : make_complex_not_0i(sc, (s7_double)integer(x), real(y)));
-	case T_RATIO:	return((real(y) == 0.0) ? x : make_complex_not_0i(sc, (s7_double)fraction(x), real(y)));
-	case T_REAL:    return((real(y) == 0.0) ? x : make_complex_not_0i(sc, real(x), real(y)));
-	default:	return(method_or_bust(sc, x, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 1));
-	}
-    default:
-      return(method_or_bust(sc, (is_let(x)) ? x : y, sc->complex_symbol, set_plist_2(sc, x, y), sc->type_names[T_REAL], 2));
-    }
-}
-
-static s7_pointer complex_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
-{
-  if (is_t_real(x))
-    {
-      if (is_t_real(y)) return(wrap_complex(sc, real(x), real(y)));
-      if (is_t_integer(y)) return(wrap_complex(sc, real(x), (s7_double)integer(y)));
-    }
-  else
-    if (is_t_integer(x))
-      {
-	if (is_t_integer(y)) return(wrap_complex(sc, (s7_double)integer(x), (s7_double)integer(y)));
-	if (is_t_real(y)) return(wrap_complex(sc, (s7_double)integer(x), real(y)));
-      }
-  return(complex_p_pp(sc, x, y));
-}
-
-static s7_pointer g_complex(s7_scheme *sc, s7_pointer args)
-{
-  #define H_complex "(complex x1 x2) returns a complex number with real-part x1 and imaginary-part x2"
-  #define Q_complex s7_make_signature(sc, 3, sc->is_number_symbol, sc->is_real_symbol, sc->is_real_symbol)
-  return(complex_p_pp(sc, car(args), cadr(args)));
-}
-
-static s7_pointer g_complex_wrapped(s7_scheme *sc, s7_pointer args) {return(complex_p_pp_wrapped(sc, car(args), cadr(args)));}
-static s7_pointer complex_p_ii_wrapped(s7_scheme *sc, s7_int x, s7_int y) {return(wrap_complex(sc, (s7_double)x, (s7_double)y));} /* tcomplex p_ii_ok */
-static s7_pointer complex_p_dd_wrapped(s7_scheme *sc, s7_double x, s7_double y) {return(wrap_complex(sc, x, y));}
-
-static s7_pointer complex_p_ii(s7_scheme *sc, s7_int x, s7_int y)
-{
-  return((y == 0.0) ? make_integer(sc, x) : make_complex_not_0i(sc, (s7_double)x, (s7_double)y));
-}
-
-static s7_pointer complex_p_dd(s7_scheme *sc, s7_double x, s7_double y)
-{
-  return((y == 0.0) ? make_real(sc, x) : make_complex_not_0i(sc, x, y));
-}
-
-
 /* -------------------------------- bignum -------------------------------- */
 static s7_pointer g_bignum(s7_scheme *sc, s7_pointer args)
 {
@@ -17506,24 +17263,6 @@ static s7_pointer log_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_p
 #endif
   return(func);
 }
-
-#if !WITH_PURE_S7
-static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
-
-static s7_pointer g_make_polar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_polar "(make-polar magnitude angle) returns (complex (* magnitude (cos angle)) (* magnitude (sin angle)))"
-  #define Q_make_polar s7_make_signature(sc, 3, sc->is_number_symbol, sc->is_real_symbol, sc->is_real_symbol)
-  s7_pointer mag = car(args), ang = cadr(args);
-  if (!s7_is_real(mag))
-    return(method_or_bust_pp(sc, mag, sc->make_polar_symbol, mag, ang, sc->type_names[T_REAL], 1));
-  if (!s7_is_real(ang))
-    return(method_or_bust_pp(sc, ang, sc->make_polar_symbol, mag, ang, sc->type_names[T_REAL], 2));
-  return(complex_p_pp(sc, multiply_p_pp(sc, mag, cos_p_p(sc, ang)), multiply_p_pp(sc, mag, sin_p_p(sc, ang))));
-}
-#endif
-
-
 
 /* -------------------------------- sinh -------------------------------- */
 static s7_pointer sinh_p_p(s7_scheme *sc, s7_pointer x)
@@ -24198,48 +23937,6 @@ s7_double s7_real_part(s7_pointer x)
   return(0.0);
 }
 
-static s7_double real_part_d_7p(s7_scheme *sc, s7_pointer x)
-{
-  if (is_number(x)) return(s7_real_part(x));
-  sole_arg_wrong_type_error_nr(sc, sc->real_part_symbol, x, a_number_string);
-#ifdef __TINYC__
-  return(0.0);
-#endif
-}
-
-static s7_pointer real_part_p_p(s7_scheme *sc, s7_pointer x)
-{
-  if (is_t_complex(x)) return(make_real(sc, real_part(x)));
-  switch (type(x))
-    {
-    case T_INTEGER: case T_RATIO: case T_REAL:
-      return(x);
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-      return(x);
-    case T_BIG_COMPLEX:
-      {
-	s7_pointer y;
-	new_cell(sc, y, T_BIG_REAL);
-	big_real_bgf(y) = alloc_bigflt(sc);
-	add_big_real(sc, y);
-	mpc_real(big_real(y), big_complex(x), MPFR_RNDN);
-	return(y);
-      }
-#endif
-    default:
-      return(method_or_bust_p(sc, x, sc->real_part_symbol, a_number_string));
-    }
-}
-
-static s7_pointer g_real_part(s7_scheme *sc, s7_pointer args)
-{
-  #define H_real_part "(real-part num) returns the real part of num"
-  #define Q_real_part s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol)
-  return(real_part_p_p(sc, car(args)));
-}
-
-
 /* ---------------------------------------- imag-part ---------------------------------------- */
 s7_double s7_imag_part(s7_pointer x)
 {
@@ -24251,53 +23948,6 @@ s7_double s7_imag_part(s7_pointer x)
 #endif
   return(0.0);
 }
-
-static s7_double imag_part_d_7p(s7_scheme *sc, s7_pointer x)
-{
-  if (is_number(x)) return(s7_imag_part(x));
-  sole_arg_wrong_type_error_nr(sc, sc->imag_part_symbol, x, a_number_string);
-#ifdef __TINYC__
-  return(0.0);
-#endif
-}
-
-static s7_pointer imag_part_p_p(s7_scheme *sc, s7_pointer x)
-{
-  if (is_t_complex(x)) return(make_real(sc, imag_part(x)));
-  switch (type(x))
-    {
-    case T_INTEGER: case T_RATIO:
-      return(int_zero);
-    case T_REAL:
-      return(real_zero);
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO:
-      return(int_zero);
-    case T_BIG_REAL:
-      return(real_zero);
-    case T_BIG_COMPLEX:
-      {
-	s7_pointer y;
-	new_cell(sc, y, T_BIG_REAL);
-	big_real_bgf(y) = alloc_bigflt(sc);
-	add_big_real(sc, y);
-	mpc_imag(big_real(y), big_complex(x), MPFR_RNDN);
-	return(y);
-      }
-#endif
-    default:
-      return(method_or_bust_p(sc, x, sc->imag_part_symbol, a_number_string));
-    }
-}
-
-static s7_pointer g_imag_part(s7_scheme *sc, s7_pointer args)
-{
-  #define H_imag_part "(imag-part num) returns the imaginary part of num"
-  #define Q_imag_part s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol)
-  /* currently (imag-part +nan.0) -> 0.0 ? it's true but maybe confusing */
-  return(imag_part_p_p(sc, car(args)));
-}
-
 
 /* ---------------------------------------- numerator denominator ---------------------------------------- */
 static s7_int numerator_i_7p(s7_scheme *sc, s7_pointer x)
@@ -98551,8 +98201,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->file_mtime_symbol =            defun("file-mtime",	file_mtime,		1, 0, false);
 #endif
 #endif
-  sc->real_part_symbol =             defun("real-part",	        real_part,		1, 0, false);
-  sc->imag_part_symbol =             defun("imag-part",	        imag_part,		1, 0, false);
+  sc->real_part_symbol =             s7_define_typed_function(sc, "real-part", g_real_part, 1, 0, false, "(real-part num) returns the real part of num", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol));
+  sc->imag_part_symbol =             s7_define_typed_function(sc, "imag-part", g_imag_part, 1, 0, false, "(imag-part num) returns the imaginary part of num", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol));
   sc->numerator_symbol =             defun("numerator",	        numerator,		1, 0, false);
   sc->denominator_symbol =           defun("denominator",	denominator,		1, 0, false);
   sc->is_even_symbol = s7_define_typed_function(sc, "even?", g_even, 1, 0, false, "(even? int) returns #t if the integer int32_t is even", s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_integer_symbol));
@@ -98562,7 +98212,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_negative_symbol = s7_define_typed_function(sc, "negative?", g_negative, 1, 0, false, "(negative? num) returns #t if the real number num is negative (less than 0)", s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_real_symbol));
   sc->is_infinite_symbol =           s7_define_typed_function(sc, "infinite?", g_is_infinite, 1, 0, false, "(infinite? obj) returns #t if obj has an infinite real or imaginary part", sc->pl_bt);
   sc->is_nan_symbol = s7_define_typed_function(sc, "nan?", g_is_nan, 1, 0, false, "(nan? obj) returns #t if obj is a NaN", sc->pl_bt);
-  sc->complex_symbol =               defun("complex",	        complex,	        2, 0, false);
+  sc->complex_symbol =               s7_define_typed_function(sc, "complex", g_complex, 2, 0, false, "(complex x1 x2) returns a complex number with real-part x1 and imaginary-part x2", s7_make_signature(sc, 3, sc->is_number_symbol, sc->is_real_symbol, sc->is_real_symbol));
 
   sc->add_symbol =                   defun("+",		        add,			0, 0, true); set_all_integer_and_float(sc->add_symbol);
   sc->subtract_symbol =              defun("-",		        subtract,		1, 0, true); set_all_integer_and_float(sc->subtract_symbol);
@@ -98589,8 +98239,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->ash_symbol =                   s7_define_typed_function(sc, "ash", g_ash, 2, 0, false, "(ash i1 i2) returns i1 shifted right or left i2 times, i1 << i2, (ash 1 3) -> 8, (ash 8 -3) -> 1", sc->pcl_i);
   sc->exp_symbol =                   s7_define_typed_function(sc, "exp", g_exp, 1, 0, false, "(exp z) returns e^z, (exp 1) is 2.718281828459", sc->pl_nn); set_all_float(sc->exp_symbol);
   sc->abs_symbol =                   s7_define_typed_function(sc, "abs", g_abs, 1, 0, false, "(abs x) returns the absolute value of the real number x", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)); set_is_translucent(sc->abs_symbol);
-  sc->magnitude_symbol =             defun("magnitude",	        magnitude,		1, 0, false); set_all_integer_and_float(sc->magnitude_symbol);
-  sc->angle_symbol =                 defun("angle",		angle,			1, 0, false);
+  sc->magnitude_symbol =             s7_define_typed_function(sc, "magnitude", g_magnitude, 1, 0, false, "(magnitude z) returns the magnitude of z", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol)); set_all_integer_and_float(sc->magnitude_symbol);
+  sc->angle_symbol =                 s7_define_typed_function(sc, "angle", g_angle, 1, 0, false, "(angle z) returns the angle of z", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol));
   sc->sin_symbol =                   s7_define_typed_function(sc, "sin", g_sin, 1, 0, false, "(sin z) returns sin(z)", sc->pl_nn); set_all_float(sc->sin_symbol);
   sc->cos_symbol =                   s7_define_typed_function(sc, "cos", g_cos, 1, 0, false, "(cos z) returns cos(z)", sc->pl_nn); set_all_float(sc->cos_symbol);
   sc->tan_symbol =                   s7_define_typed_function(sc, "tan", g_tan, 1, 0, false, "(tan z) returns tan(z)", sc->pl_nn); set_all_float(sc->tan_symbol);
@@ -98623,7 +98273,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->exact_to_inexact_symbol =      s7_define_typed_function(sc, "exact->inexact", g_exact_to_inexact, 1, 0, false, "(exact->inexact num) converts num to an inexact number; (exact->inexact 3/2) = 1.5", s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_number_symbol));
   sc->is_exact_symbol =              s7_define_typed_function(sc, "exact?", g_exact, 1, 0, false, "(exact? num) returns #t if num is exact (an integer or a ratio)", sc->pl_bn);
   sc->is_inexact_symbol =            s7_define_typed_function(sc, "inexact?", g_inexact, 1, 0, false, "(inexact? num) returns #t if num is inexact (neither an integer nor a ratio)", sc->pl_bn);
-  sc->make_polar_symbol =            defun("make-polar",        make_polar,	        2, 0, false);
+  sc->make_polar_symbol =            s7_define_typed_function(sc, "make-polar", g_make_polar, 2, 0, false, "(make-polar magnitude angle) returns (complex (* magnitude (cos angle)) (* magnitude (sin angle)))", s7_make_signature(sc, 3, sc->is_number_symbol, sc->is_real_symbol, sc->is_real_symbol));
 #endif
   sc->random_state_to_list_symbol =  defun("random-state->list", random_state_to_list,  0, 1, false);
   sc->number_to_string_symbol =      defun("number->string",	number_to_string,	1, 1, false);
