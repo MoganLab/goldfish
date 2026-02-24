@@ -157,7 +157,6 @@ boolean?
 (check-false (ascii-string? "G中"))
 (check-false (ascii-string? #\A))
 
-
 #|
 ascii-control? 
 判断是否为 ASCII 控制字符
@@ -489,7 +488,6 @@ boolean?
 (check-true (ascii-numeric? #\0))
 (check-true (ascii-numeric? #\9))
 (check-false (ascii-numeric? #\a))
-
 
 #|
 ascii-digit-value 
