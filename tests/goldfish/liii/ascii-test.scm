@@ -15,7 +15,7 @@
 ;
 
 (import (liii check)
-        (srfi srfi-175))
+        (liii ascii))
 
 (check-set-mode! 'report-failed)
 
