@@ -412,6 +412,7 @@
 #include "s7_scheme_inexact.h"
 #include "s7_scheme_complex.h"
 #include "s7_liii_bitwise.h"
+#include "s7_liii_string.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -24717,7 +24718,7 @@ static s7_pointer integer_to_char_p_i(s7_scheme *sc, s7_int ind)
 }
 
 
-static uint8_t uppers[256], lowers[256];
+uint8_t uppers[256], lowers[256];
 static void init_uppers(void)
 {
   for (int32_t i = 0; i < 256; i++)
@@ -25667,63 +25668,6 @@ static s7_int string_length_i_7p(s7_scheme *sc, s7_pointer str)
   return(string_length(str));
 }
 #endif
-
-
-/* -------------------------------- string-up|downcase -------------------------------- */
-static s7_pointer g_string_downcase(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_downcase "(string-downcase str) returns the lower case version of str."
-  #define Q_string_downcase sc->pcl_s
-
-  const s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust_p(sc, str, sc->string_downcase_symbol, sc->type_names[T_STRING]));
-  {
-    const s7_int len = string_length(str);
-    const s7_pointer newstr = make_empty_string(sc, len, '\0');
-    const uint8_t *ostr = (const uint8_t *)string_value(str);
-    uint8_t *nstr = (uint8_t *)string_value(newstr);
-
-    if (len >= 128)
-      {
-	s7_int i = len - 1;
-	while (i >= 8)
-	  LOOP_8(nstr[i] = lowers[(uint8_t)ostr[i]]; i--);
-	while (i >= 0) {nstr[i] = lowers[(uint8_t)ostr[i]]; i--;}
-      }
-    else
-      for (s7_int i = 0; i < len; i++) nstr[i] = lowers[(uint8_t)ostr[i]];
-    return(newstr);
-  }
-}
-
-static s7_pointer g_string_upcase(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_upcase "(string-upcase str) returns the upper case version of str."
-  #define Q_string_upcase sc->pcl_s
-
-  const s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust_p(sc, str, sc->string_upcase_symbol, sc->type_names[T_STRING]));
-
-  {
-    const s7_int len = string_length(str);
-    const s7_pointer newstr = make_empty_string(sc, len, '\0');
-    const uint8_t *ostr = (const uint8_t *)string_value(str);
-    uint8_t *nstr = (uint8_t *)string_value(newstr);
-
-    if (len >= 128)
-      {
-	s7_int i = len - 1;
-	while (i >= 8)
-	  LOOP_8(nstr[i] = uppers[(uint8_t)ostr[i]]; i--);
-	while (i >= 0) {nstr[i] = uppers[(uint8_t)ostr[i]]; i--;}
-      }
-    else
-      for (s7_int i = 0; i < len; i++) nstr[i] = uppers[(uint8_t)ostr[i]];
-    return(newstr);
-  }
-}
 
 
 /* -------------------------------- string-ref -------------------------------- */
@@ -98326,8 +98270,12 @@ static void init_rootlet(s7_scheme *sc)
 #endif
   sc->string_copy_symbol =           defun("string-copy",	string_copy,		1, 3, false);
 
-  sc->string_downcase_symbol =       defun("string-downcase",	string_downcase,	1, 0, false);
-  sc->string_upcase_symbol =         defun("string-upcase",	string_upcase,		1, 0, false);
+  sc->string_downcase_symbol =       s7_define_typed_function(sc, "string-downcase", g_string_downcase, 1, 0, false,
+                                                                   "(string-downcase str) returns the lower case version of str.",
+                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
+  sc->string_upcase_symbol =         s7_define_typed_function(sc, "string-upcase", g_string_upcase, 1, 0, false,
+                                                                   "(string-upcase str) returns the upper case version of str.",
+                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
   sc->string_append_symbol =         defun("string-append",	string_append,		0, 0, true);
   sc->substring_symbol =             defun("substring",	        substring,		1, 2, false);
   sc->substring_uncopied_symbol =    defun("substring-uncopied",substring_uncopied,	1, 2, false);
