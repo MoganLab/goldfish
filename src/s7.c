@@ -15737,7 +15737,7 @@ static void resize_strbuf(s7_scheme *sc, s7_int needed_size)
   for (s7_int i = old_size; i < sc->strbuf_size; i++) sc->strbuf[i] = '\0';
 }
 
-static s7_pointer *chars;
+s7_pointer *chars;
 
 static s7_pointer unknown_sharp_constant(s7_scheme *sc, const char *name, s7_pointer port)
 {
@@ -25671,34 +25671,6 @@ static s7_int string_length_i_7p(s7_scheme *sc, s7_pointer str)
 
 
 /* -------------------------------- string-ref -------------------------------- */
-static s7_pointer string_ref_1(s7_scheme *sc, s7_pointer strng, s7_pointer index)
-{
-  char *str;
-  s7_int ind;
-
-  if (!s7_is_integer(index))
-    return(method_or_bust_pp(sc, index, sc->string_ref_symbol, strng, index, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if (ind < 0)
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_negative_string);
-  if (ind >= string_length(strng))
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_too_large_string);
-
-  str = string_value(strng);
-  return(chars[((uint8_t *)str)[ind]]);
-}
-
-static s7_pointer g_string_ref(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_ref "(string-ref str index) returns the character at the index-th element of the string str"
-  #define Q_string_ref s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_string_symbol, sc->is_integer_symbol)
-
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->string_ref_symbol, args, sc->type_names[T_STRING], 1));
-  return(string_ref_1(sc, str, cadr(args)));
-}
-
 static s7_pointer string_ref_p_pi(s7_scheme *sc, s7_pointer str, s7_int index)
 {
   if (!is_string(str))
@@ -25710,9 +25682,17 @@ static s7_pointer string_ref_p_pi(s7_scheme *sc, s7_pointer str, s7_int index)
 
 static s7_pointer string_ref_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer index)
 {
+  s7_int ind;
   if (!is_string(str))
     return(method_or_bust_pp(sc, str, sc->string_ref_symbol, str, index, sc->type_names[T_STRING], 1));
-  return(string_ref_1(sc, str, index));
+  if (!s7_is_integer(index))
+    return(method_or_bust_pp(sc, index, sc->string_ref_symbol, str, index, sc->type_names[T_INTEGER], 2));
+  ind = s7_integer_clamped_if_gmp(sc, index);
+  if (ind < 0)
+    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_negative_string);
+  if (ind >= string_length(str))
+    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_too_large_string);
+  return(chars[((uint8_t *)string_value(str))[ind]]);
 }
 
 static s7_pointer string_ref_p_p0(s7_scheme *sc, s7_pointer str, s7_pointer unused_index)
@@ -25750,33 +25730,6 @@ static s7_pointer string_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer str, s
 
 
 /* -------------------------------- string-set! -------------------------------- */
-static s7_pointer g_string_set(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_set "(string-set! str index chr) sets the index-th element of the string str to the character chr"
-  #define Q_string_set s7_make_signature(sc, 4, sc->is_char_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_char_symbol)
-
-  const s7_pointer strng = car(args), index = cadr(args);
-  s7_int ind;
-
-  if (!is_mutable_string(strng))
-    return(mutable_method_or_bust(sc, strng, sc->string_set_symbol, args, sc->type_names[T_STRING], 1));
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->string_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if (ind < 0)
-    out_of_range_error_nr(sc, sc->string_set_symbol, int_two, index, a_non_negative_integer_string);
-  if (ind >= string_length(strng))
-    out_of_range_error_nr(sc, sc->string_set_symbol, int_two, index, it_is_too_large_string);
-  {
-    char *str = string_value(strng);
-    s7_pointer c = caddr(args);
-    if (!is_character(c))
-      return(method_or_bust(sc, c, sc->string_set_symbol, args, sc->type_names[T_CHARACTER], 3));
-    str[ind] = (char)s7_character(c);
-    return(c);
-  }
-}
-
 static s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr)
 {
   if (!is_string(str))
@@ -98243,8 +98196,12 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_position_symbol =       defun("string-position",	string_position,	2, 1, false);
 
   sc->make_string_symbol =           defun("make-string",	make_string,		1, 1, false);
-  sc->string_ref_symbol =            defun("string-ref",	string_ref,		2, 0, false);
-  sc->string_set_symbol =            defun("string-set!",	string_set,		3, 0, false);
+  sc->string_ref_symbol =            s7_define_typed_function(sc, "string-ref", g_string_ref, 2, 0, false,
+                                                                    "(string-ref str index) returns the character at the index-th element of the string str",
+                                                                    s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_string_symbol, sc->is_integer_symbol));
+  sc->string_set_symbol =            s7_define_typed_function(sc, "string-set!", g_string_set, 3, 0, false,
+                                                                    "(string-set! str index chr) sets the index-th element of the string str to the character chr",
+                                                                    s7_make_signature(sc, 4, sc->is_char_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_char_symbol));
 
   sc->string_eq_symbol =             defun("string=?",		strings_are_equal,	2, 0, true);
   sc->string_lt_symbol =             defun("string<?",		strings_are_less,	2, 0, true);
