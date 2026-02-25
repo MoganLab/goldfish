@@ -27,7 +27,6 @@
           (json-keys ljson-keys))
         (liii njson))
 
-(check-set-mode! 'report-failed)
 
 (define sample-json
   "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
@@ -396,5 +395,5 @@
 (report-bench "键存在(json-contains-key?)" contains-key-count round-count liii-contains-key-ns njson-contains-key-ns)
 (report-bench "获取键(json-keys)" keys-count round-count liii-keys-ns njson-keys-ns)
 
-(newline)
+
 (check-report)
