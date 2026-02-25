@@ -21,6 +21,8 @@
           njson-free
           njson-string->json
           njson-json->string
+          njson-with-json
+          njson-with-value
           njson-ref
           njson-set
           njson-push
@@ -37,6 +39,72 @@
 
     (define (njson? x)
       (g_njson-handle? x))
+
+    (define (njson%%single-binding? x)
+      (and (pair? x)
+           (symbol? (car x))
+           (pair? (cdr x))
+           (null? (cddr x))))
+
+    (define (njson%%binding-list? xs)
+      (and (pair? xs)
+           (let loop ((rest xs))
+             (and (pair? rest)
+                  (njson%%single-binding? (car rest))
+                  (or (null? (cdr rest))
+                      (loop (cdr rest)))))))
+
+    (define (njson%%normalize-bindings binding)
+      (cond
+        ((njson%%single-binding? binding)
+         (list binding))
+        ((njson%%binding-list? binding)
+         binding)
+        (else
+         #f)))
+
+    (define (njson%%json-binding->value-binding binding)
+      (let ((var (car binding))
+            (json-string (cadr binding)))
+        `(,var (njson-string->json ,json-string))))
+
+    (define (njson%%json-bindings->value-bindings bindings)
+      (map njson%%json-binding->value-binding bindings))
+
+    (define (njson%%expand-with-value-bindings bindings body)
+      (if (null? bindings)
+          `(begin ,@body)
+          (let* ((binding (car bindings))
+                 (var (car binding))
+                 (value-expr (cadr binding))
+                 (inner (njson%%expand-with-value-bindings (cdr bindings) body))
+                 (released? (gensym "njson-released?")))
+            `(let ((,var ,value-expr))
+               (if (njson? ,var)
+                   (let ((,released? #f))
+                     (dynamic-wind
+                       (lambda () #f)
+                       (lambda () ,inner)
+                       (lambda ()
+                         (when (not ,released?)
+                           (set! ,released? #t)
+                           ;; Ignore type-error in finalizer so caller can safely free inside body.
+                           (catch 'type-error
+                             (lambda () (njson-free ,var))
+                             (lambda args #f))))))
+                   ,inner)))))
+
+    (define-macro (njson-with-json binding . body)
+      (let ((bindings (njson%%normalize-bindings binding)))
+        (if bindings
+            `(njson-with-value ,(njson%%json-bindings->value-bindings bindings) ,@body)
+            `(type-error "njson-with-json: expected (var json-string) or non-empty ((var json-string) ...)" ',binding))))
+
+    (define-macro (njson-with-value binding . body)
+      (let ((bindings (njson%%normalize-bindings binding)))
+        (if bindings
+            (njson%%expand-with-value-bindings bindings body)
+            `(type-error "njson-with-value: expected (var value) or non-empty ((var value) ...)" ',binding))))
 
     (define (njson-free x)
       (unless (njson? x)

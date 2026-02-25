@@ -31,105 +31,340 @@
 (define sample-json
   "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
 
-;; Functional checks: direct nlohmann::json-handle operations
-(define root (njson-string->json sample-json))
-(check-true (njson? root))
-(check (njson-ref root "name") => "Goldfish")
-(check (njson-ref root "active") => #t)
-(check (njson-ref root "meta" "arch") => "x86_64")
+#|
+njson-with-json
+创建“解析 + 自动释放”的作用域宏。
+
+语法
+----
+(njson-with-json (var json-string) body ...)
+(njson-with-json ((var1 json-string1)
+                  (var2 json-string2)
+                  ...)
+  body ...)
+
+功能
+----
+- 进入作用域前解析 JSON 字符串
+- 支持一次绑定多个 JSON 字符串
+- 退出作用域时自动释放句柄（异常路径也生效）
+|#
+
+(check-catch 'type-error
+  (njson-with-json ((j 1))
+    j))
+(check-catch 'type-error
+  (njson-with-json ()
+    #t))
+
+(define auto-macro-root '())
+(check
+  (njson-with-json ((j sample-json))
+    (set! auto-macro-root j)
+    (njson-ref j "active"))
+  => #t)
+(check-catch 'type-error (njson-ref auto-macro-root "active"))
+
+(define auto-macro-root-multi-a '())
+(define auto-macro-root-multi-b '())
+(check
+  (njson-with-json ((j1 sample-json)
+                    (j2 "{\"env\":\"test\",\"nums\":[10,20]}"))
+    (set! auto-macro-root-multi-a j1)
+    (set! auto-macro-root-multi-b j2)
+    (+ (njson-ref j1 "nums" 0)
+       (njson-ref j2 "nums" 1)))
+  => 21)
+(check-catch 'type-error (njson-ref auto-macro-root-multi-a "active"))
+(check-catch 'type-error (njson-ref auto-macro-root-multi-b "env"))
+
+(define auto-macro-root-multi-on-error '())
+(check-catch 'parse-error
+  (njson-with-json ((j1 sample-json)
+                    (j2 "{name:\"bad\"}"))
+    (set! auto-macro-root-multi-on-error j1)
+    #t))
+(check-catch 'type-error (njson-ref auto-macro-root-multi-on-error "name"))
+
+
+
+#|
+njson-with-value
+统一处理“可能是句柄也可能是标量”的作用域宏。
+
+语法
+----
+(njson-with-value (var value-expr) body ...)
+(njson-with-value ((var1 value-expr1)
+                   (var2 value-expr2)
+                   ...)
+  body ...)
+
+功能
+----
+- value-expr 为句柄时自动释放
+- 支持一次绑定多个 value-expr
+- value-expr 为标量时直接传递
+|#
+
+(check (njson-with-value ((x 7) (y 1)) (+ x y)) => 8)
+(check-catch 'type-error
+  (njson-with-value ()
+    #t))
+
+(define auto-macro-value-multi-a '())
+(define auto-macro-value-multi-b '())
+(check
+  (njson-with-value ((j1 (njson-string->json sample-json))
+                     (j2 (njson-string->json "{\"meta\":{\"os\":\"debian\"}}"))
+                     (x 10))
+    (set! auto-macro-value-multi-a j1)
+    (set! auto-macro-value-multi-b j2)
+    (+ x
+       (njson-ref j1 "nums" 1)
+       (if (string=? (njson-ref j2 "meta" "os") "debian") 1 0)))
+  => 13)
+(check-catch 'type-error (njson-ref auto-macro-value-multi-a "name"))
+(check-catch 'type-error (njson-ref auto-macro-value-multi-b "meta" "os"))
+
+(define auto-macro-value-multi-on-error-a '())
+(define auto-macro-value-multi-on-error-b '())
+(check-catch 'value-error
+  (njson-with-value ((j1 (njson-string->json sample-json))
+                     (j2 (njson-string->json "{\"k\":1}")))
+    (set! auto-macro-value-multi-on-error-a j1)
+    (set! auto-macro-value-multi-on-error-b j2)
+    (value-error "boom in multi njson-with-value")))
+(check-catch 'type-error (njson-ref auto-macro-value-multi-on-error-a "name"))
+(check-catch 'type-error (njson-ref auto-macro-value-multi-on-error-b "k"))
+
+(define auto-macro-meta '())
+(check
+  (njson-with-value ((j (njson-string->json sample-json))
+                     (m (njson-ref j "meta")))
+    (set! auto-macro-meta m)
+    (njson-ref m "os"))
+  => "linux")
+(check-catch 'type-error (njson-ref auto-macro-meta "os"))
+
+(define auto-macro-set '())
+(check
+  (njson-with-value ((j (njson-string->json sample-json))
+                     (j2 (njson-set j "meta" "os" "debian")))
+    (set! auto-macro-set j2)
+    (njson-ref j2 "meta" "os"))
+  => "debian")
+(check-catch 'type-error (njson-ref auto-macro-set "meta" "os"))
+
+(define auto-macro-root-on-error '())
+(check-catch 'value-error
+  (njson-with-json ((j sample-json))
+    (set! auto-macro-root-on-error j)
+    (value-error "boom in njson-with-value")))
+(check-catch 'type-error (njson-ref auto-macro-root-on-error "name"))
+
+(define owned-handle (njson-string->json sample-json))
+(define auto-owned '())
+(check
+  (njson-with-value ((j owned-handle))
+    (set! auto-owned j)
+    (njson-ref j "version"))
+  => "17.11.26")
+(check-catch 'type-error (njson-ref auto-owned "version"))
+
+#|
+njson-string->json / njson?
+验证解析与句柄谓词行为。
+|#
+
+(njson-with-json ((root sample-json))
+  (check-true (njson? root)))
 (check-catch 'parse-error (njson-string->json "{name:\"Goldfish\"}"))
-(check-catch 'type-error (njson-ref root 'meta))
+
+#|
+njson-ref
+验证标量读取、多级路径读取与类型错误。
+|#
+
+(njson-with-json ((root sample-json))
+  (check (njson-ref root "name") => "Goldfish")
+  (check (njson-ref root "active") => #t)
+  (check (njson-ref root "meta" "arch") => "x86_64"))
+(check-catch 'type-error
+  (njson-with-json ((root sample-json))
+    (njson-ref root 'meta)))
+
+#|
+njson-set
+验证函数式更新：新句柄变化，旧句柄保持不变。
+|#
+
+(njson-with-value ((root (njson-string->json sample-json))
+                   (root2 (njson-set root "meta" "os" "debian")))
+  (check (njson-ref root2 "meta" "os") => "debian")
+  (check (njson-ref root "meta" "os") => "linux"))
+
+#|
+njson-push
+验证数组位置插入行为。
+|#
+
+(njson-with-value ((root (njson-string->json sample-json))
+                   (root3 (njson-push root "nums" 5 99)))
+  (check (njson-ref root3 "nums" 5) => 99))
+
+#|
+njson-drop
+验证字段删除行为与旧句柄不变。
+|#
+
+(njson-with-value ((root (njson-string->json sample-json))
+                   (root4 (njson-drop root "active")))
+  (check (njson-ref root4 "active") => '())
+  (check (njson-ref root "active") => #t))
+
+#|
+njson-ref (子结构句柄返回)
+当 ref 命中 object/array 时返回句柄，并可被自动释放。
+|#
+
+(define functional-meta '())
+(njson-with-value ((root (njson-string->json sample-json))
+                   (meta (njson-ref root "meta")))
+  (set! functional-meta meta)
+  (check-true (njson? meta))
+  (check (njson-ref meta "os") => "linux"))
+(check-catch 'type-error (njson-ref functional-meta "os"))
+
+#|
+njson-contains-key? / njson-keys
+验证对象键查询接口。
+|#
+
+(njson-with-value ((root (njson-string->json sample-json))
+                   (root4 (njson-drop root "active")))
+  (check-true (njson-contains-key? root4 "meta"))
+  (check-false (njson-contains-key? root4 "active"))
+  (check-true (> (length (njson-keys root4)) 0)))
+
+#|
+njson-json->string / roundtrip
+验证序列化与反序列化回环。
+|#
+
 (check (njson-json->string 'null) => "null")
 (check-catch 'type-error (njson-json->string 'foo))
 
-(define schema-handle
-  (njson-string->json
-    "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}},\"required\":[\"name\"],\"additionalProperties\":false}"))
-(define schema-instance-ok (njson-string->json "{\"name\":\"Alice\",\"age\":18}"))
-(define schema-instance-bad-type (njson-string->json "{\"name\":\"Alice\",\"age\":\"18\"}"))
-(define schema-instance-bad-missing (njson-string->json "{\"age\":18}"))
-(define schema-instance-bad-extra (njson-string->json "{\"name\":\"Alice\",\"city\":\"HZ\"}"))
-(define schema-instance-name-only (njson-string->json "{\"name\":\"Alice\"}"))
-(define schema-instance-array (njson-string->json "[1,2,3]"))
-(define schema-bad-handle (njson-string->json "{\"type\":\"object\",\"required\":1}"))
-(define schema-bad-non-object (njson-string->json "1"))
-(define schema-array-items-int
-  (njson-string->json "{\"type\":\"array\",\"items\":{\"type\":\"integer\"}}"))
-(define schema-array-ok (njson-string->json "[1,2,3]"))
-(define schema-array-bad (njson-string->json "[1,\"2\",3]"))
-(define schema-scalar-int (njson-string->json "{\"type\":\"integer\"}"))
-(define schema-scalar-null (njson-string->json "{\"type\":\"null\"}"))
+(define functional-roundtrip '())
+(njson-with-value ((root (njson-string->json sample-json))
+                   (root2 (njson-set root "meta" "os" "debian"))
+                   (root3 (njson-push root2 "nums" 5 99))
+                   (root4 (njson-drop root3 "active"))
+                   (roundtrip (njson-string->json (njson-json->string root4))))
+  (set! functional-roundtrip roundtrip)
+  (check (njson-ref roundtrip "meta" "os") => "debian")
+  (check (njson-ref roundtrip "nums" 5) => 99)
+  (check (njson-ref roundtrip "active") => '()))
+(check-catch 'type-error (njson-ref functional-roundtrip "meta" "os"))
+
+#|
+njson-schema-valid?
+验证 JSON Schema 校验接口，包括通过、失败、非法 schema、参数类型错误和已释放句柄。
+
+语法
+----
+(njson-schema-valid? schema-handle instance)
+
+参数
+----
+schema-handle : njson-handle
+  JSON Schema（对象形式）。
+instance : njson-handle | string | number | boolean | 'null
+  被校验的实例。
+
+返回值
+-----
+- #t : 实例满足 schema
+- #f : 实例不满足 schema
+- 抛错 : 参数类型错误、schema 非法或运行时异常
+
+功能
+----
+- object/array/scalar schema 场景验证
+- additionalProperties / required / items 约束验证
+- 非法输入与释放后句柄行为验证
+|#
+
+(define schema-object-json
+  "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}},\"required\":[\"name\"],\"additionalProperties\":false}")
+(define schema-instance-ok-json "{\"name\":\"Alice\",\"age\":18}")
+(define schema-instance-bad-type-json "{\"name\":\"Alice\",\"age\":\"18\"}")
+(define schema-instance-bad-missing-json "{\"age\":18}")
+(define schema-instance-bad-extra-json "{\"name\":\"Alice\",\"city\":\"HZ\"}")
+(define schema-instance-name-only-json "{\"name\":\"Alice\"}")
+(define schema-instance-array-json "[1,2,3]")
+(define schema-bad-handle-json "{\"type\":\"object\",\"required\":1}")
+(define schema-bad-non-object-json "1")
+(define schema-array-items-int-json "{\"type\":\"array\",\"items\":{\"type\":\"integer\"}}")
+(define schema-array-ok-json "[1,2,3]")
+(define schema-array-bad-json "[1,\"2\",3]")
+(define schema-scalar-int-json "{\"type\":\"integer\"}")
+(define schema-scalar-null-json "{\"type\":\"null\"}")
+
+(define (njson-schema-valid-with-json schema-json instance-json)
+  (njson-with-value ((schema (njson-string->json schema-json))
+                     (instance (njson-string->json instance-json)))
+    (njson-schema-valid? schema instance)))
+
+(define (njson-schema-valid-with-schema schema-json instance)
+  (njson-with-value ((schema (njson-string->json schema-json)))
+    (njson-schema-valid? schema instance)))
+
 (define (schema-invalid? thunk)
   (let ((result (catch 'schema-error thunk (lambda args 'schema-error))))
     (or (eq? result 'schema-error)
         (eq? result #f))))
-(check-true (njson-schema-valid? schema-handle schema-instance-ok))
-(check-false (njson-schema-valid? schema-handle schema-instance-bad-type))
-(check-false (njson-schema-valid? schema-handle schema-instance-bad-missing))
-(check-false (njson-schema-valid? schema-handle schema-instance-bad-extra))
-(check-true (njson-schema-valid? schema-handle schema-instance-name-only))
-(check-false (njson-schema-valid? schema-handle schema-instance-array))
-(check-true (njson-schema-valid? schema-array-items-int schema-array-ok))
-(check-false (njson-schema-valid? schema-array-items-int schema-array-bad))
-(check-true (njson-schema-valid? schema-scalar-int 18))
-(check-false (njson-schema-valid? schema-scalar-int "18"))
-(check-true (njson-schema-valid? schema-scalar-null 'null))
-(check-false (njson-schema-valid? schema-scalar-null 0))
-(check-true (schema-invalid? (lambda () (njson-schema-valid? schema-bad-handle schema-instance-ok))))
-(check-true (schema-invalid? (lambda () (njson-schema-valid? schema-bad-non-object schema-instance-ok))))
-(check-catch 'type-error (njson-schema-valid? 'foo schema-instance-ok))
-(check-catch 'type-error (njson-schema-valid? schema-handle 'foo))
-(check-catch 'type-error (njson-schema-valid? schema-handle '(1 2 3)))
+(check-true (njson-schema-valid-with-json schema-object-json schema-instance-ok-json))
+(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-type-json))
+(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-missing-json))
+(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-extra-json))
+(check-true (njson-schema-valid-with-json schema-object-json schema-instance-name-only-json))
+(check-false (njson-schema-valid-with-json schema-object-json schema-instance-array-json))
+(check-true (njson-schema-valid-with-json schema-array-items-int-json schema-array-ok-json))
+(check-false (njson-schema-valid-with-json schema-array-items-int-json schema-array-bad-json))
+(check-true (njson-schema-valid-with-schema schema-scalar-int-json 18))
+(check-false (njson-schema-valid-with-schema schema-scalar-int-json "18"))
+(check-true (njson-schema-valid-with-schema schema-scalar-null-json 'null))
+(check-false (njson-schema-valid-with-schema schema-scalar-null-json 0))
+(check-true (schema-invalid? (lambda () (njson-schema-valid-with-json schema-bad-handle-json schema-instance-ok-json))))
+(check-true (schema-invalid? (lambda () (njson-schema-valid-with-json schema-bad-non-object-json schema-instance-ok-json))))
+(check-catch 'type-error
+  (njson-with-value ((instance (njson-string->json schema-instance-ok-json)))
+    (njson-schema-valid? 'foo instance)))
+(check-catch 'type-error (njson-schema-valid-with-schema schema-object-json 'foo))
+(check-catch 'type-error (njson-schema-valid-with-schema schema-object-json '(1 2 3)))
+(define schema-handle-for-freed-check (njson-string->json schema-object-json))
 (define freed-instance-handle (njson-string->json "{\"name\":\"Bob\"}"))
 (check-true (njson-free freed-instance-handle))
-(check-catch 'type-error (njson-schema-valid? schema-handle freed-instance-handle))
-
-(define root2 (njson-set root "meta" "os" "debian"))
-(check (njson-ref root2 "meta" "os") => "debian")
-(check (njson-ref root "meta" "os") => "linux")
-
-(define root3 (njson-push root2 "nums" 5 99))
-(check (njson-ref root3 "nums" 5) => 99)
-
-(define root4 (njson-drop root3 "active"))
-(check (njson-ref root4 "active") => '())
-
-(define meta (njson-ref root4 "meta"))
-(check-true (njson? meta))
-(check (njson-ref meta "os") => "debian")
-
-(check-true (njson-contains-key? root4 "meta"))
-(check-false (njson-contains-key? root4 "active"))
-(check-true (> (length (njson-keys root4)) 0))
-
-(define roundtrip (njson-string->json (njson-json->string root4)))
-(check (njson-ref roundtrip "meta" "os") => "debian")
-(check (njson-ref roundtrip "nums" 5) => 99)
-
-;; Free handle checks
-(check-true (njson-free schema-instance-ok))
-(check-true (njson-free schema-instance-bad-type))
-(check-true (njson-free schema-instance-bad-missing))
-(check-true (njson-free schema-instance-bad-extra))
-(check-true (njson-free schema-instance-name-only))
-(check-true (njson-free schema-instance-array))
-(check-true (njson-free schema-bad-handle))
-(check-true (njson-free schema-bad-non-object))
-(check-true (njson-free schema-array-items-int))
-(check-true (njson-free schema-array-ok))
-(check-true (njson-free schema-array-bad))
-(check-true (njson-free schema-scalar-int))
-(check-true (njson-free schema-scalar-null))
-(check-true (njson-free schema-handle))
-(check-true (njson-free meta))
-(check-catch 'type-error (njson-ref meta "os"))
-(check-true (njson-free roundtrip))
-(check-true (njson-free root4))
-(check-true (njson-free root3))
-(check-true (njson-free root2))
-(check-true (njson-free root))
+(check-catch 'type-error (njson-schema-valid? schema-handle-for-freed-check freed-instance-handle))
+(check-true (njson-free schema-handle-for-freed-check))
 
 (define sample-json-scm (ljson-string->json sample-json))
+
+#|
+性能基准 (liii json vs njson)
+对解析、序列化、读取、修改、插入、删除、键存在、取键进行中位数对比。
+
+统计口径
+--------
+- 每项基准多轮执行，取中位数（median）
+- 先进行 warmup，降低首轮偏差
+- 输出倍率为 liii-json / njson
+
+说明
+----
+该段基准仍保留手动 free，用于控制基准逻辑与资源生命周期，避免将宏层开销混入对比数据。
+|#
 
 (define bench-top-key-count 600)
 (define bench-array-length 600)
