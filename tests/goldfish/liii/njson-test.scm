@@ -27,6 +27,8 @@
           (json-keys ljson-keys))
         (liii njson))
 
+(check-set-mode! 'report-failed)
+
 (define sample-json
   "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
 
