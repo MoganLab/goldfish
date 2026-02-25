@@ -92,18 +92,11 @@ end
 add_requires("argh v1.3.2")
 
 local NLOHMANN_JSON_VERSION = "v3.11.3"
-if has_config("pin-deps") then
-    add_requires("nlohmann_json " .. NLOHMANN_JSON_VERSION, {system=system})
-else
-    add_requires("nlohmann_json", {system=system})
-end
+    add_requires("nlohmann_json")
+
 
 local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
-if has_config("pin-deps") then
-    add_requires("json_schema_validator " .. JSON_SCHEMA_VALIDATOR_VERSION, {system=system})
-else
-    add_requires("json_schema_validator", {system=system})
-end
+    add_requires("json_schema_validator")
 
 target ("goldfish") do
     set_languages("c++17")
