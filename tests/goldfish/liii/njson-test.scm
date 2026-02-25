@@ -32,20 +32,22 @@
   "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
 
 #|
-let-njson (字符串输入场景)
-统一作用域宏；字符串输入需要显式调用 njson-string->json。
+let-njson
+统一处理“可能是句柄也可能是标量”的作用域宏。
 
 语法
 ----
-(let-njson ((var1 (njson-string->json json-string1))
-            (var2 (njson-string->json json-string2))
-            ...)
+(let-njson (var value-expr) body ...)
+(let-njson ((var1 value-expr1)
+                   (var2 value-expr2)
+                   ...)
   body ...)
 
 功能
 ----
-- 支持一次绑定多个 JSON 字符串解析结果
-- 退出作用域时自动释放句柄（异常路径也生效）
+- value-expr 为句柄时自动释放
+- 支持一次绑定多个 value-expr
+- value-expr 为标量时直接传递
 |#
 
 (check-catch 'type-error
@@ -83,24 +85,7 @@ let-njson (字符串输入场景)
 
 
 
-#|
-let-njson
-统一处理“可能是句柄也可能是标量”的作用域宏。
 
-语法
-----
-(let-njson (var value-expr) body ...)
-(let-njson ((var1 value-expr1)
-                   (var2 value-expr2)
-                   ...)
-  body ...)
-
-功能
-----
-- value-expr 为句柄时自动释放
-- 支持一次绑定多个 value-expr
-- value-expr 为标量时直接传递
-|#
 
 (check (let-njson ((x 7) (y 1)) (+ x y)) => 8)
 (check-catch 'type-error
