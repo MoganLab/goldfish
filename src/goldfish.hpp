@@ -55,6 +55,7 @@
 
 #include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
+#include <nlohmann/json-schema.hpp>
 
 #ifdef GOLDFISH_WITH_REPL
 #include <functional>
@@ -664,6 +665,38 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
   return out;
 }
 
+static s7_pointer
+f_njson_schema_valid_p (s7_scheme* sc, s7_pointer args) {
+  s7_pointer  schema_input = s7_car (args);
+  s7_pointer  instance_input = s7_cadr (args);
+  json        schema_json;
+  json        instance_json;
+  std::string error_msg;
+  if (!scheme_to_njson_scalar_or_handle (sc, schema_input, schema_json, error_msg)) {
+    return njson_error (sc, "type-error", "g_njson-schema-valid?: schema " + error_msg, schema_input);
+  }
+  if (!scheme_to_njson_scalar_or_handle (sc, instance_input, instance_json, error_msg)) {
+    return njson_error (sc, "type-error", "g_njson-schema-valid?: instance " + error_msg, instance_input);
+  }
+
+  nlohmann::json_schema::json_validator validator;
+  try {
+    validator.set_root_schema (schema_json);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "schema-error", "g_njson-schema-valid?: " + std::string (err.what ()), schema_input);
+  }
+
+  nlohmann::json_schema::basic_error_handler err_handler;
+  try {
+    validator.validate (instance_json, err_handler);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "validation-error", "g_njson-schema-valid?: " + std::string (err.what ()), instance_input);
+  }
+  return s7_make_boolean (sc, !static_cast<bool> (err_handler));
+}
+
 inline void
 glue_njson (s7_scheme* sc) {
   const char* parse_name = "g_njson-string->json";
@@ -686,6 +719,8 @@ glue_njson (s7_scheme* sc) {
   const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
   const char* keys_name = "g_njson-keys";
   const char* keys_desc = "(g_njson-keys handle) => (list-of string?)";
+  const char* schema_valid_name = "g_njson-schema-valid?";
+  const char* schema_valid_desc = "(g_njson-schema-valid? schema-handle instance) => boolean?";
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
   glue_define (sc, dump_name, dump_desc, f_njson_json_to_string, 1, 0);
   glue_define (sc, handlep_name, handlep_desc, f_njson_handle_p, 1, 0);
@@ -696,6 +731,7 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, drop_name, drop_desc, f_njson_drop, 2, 32);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
   glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
+  glue_define (sc, schema_valid_name, schema_valid_desc, f_njson_schema_valid_p, 2, 0);
 }
 
 static s7_pointer

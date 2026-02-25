@@ -1,0 +1,26 @@
+{
+  "type": "object",
+  "properties": {
+    "element": {
+      "$ref": "#/$defs/element"
+    },
+    "element2": {
+      "$ref": "#/$defs/element/items/0/$defs/element2"
+    }
+  },
+  "$defs": {
+    "element": {
+      "type": "array",
+      "items": [
+        {
+          "$defs": {
+            "element2": {
+              "type": "string"
+            }
+          },
+          "type": "number"
+        }
+      ]
+    }
+  }
+}

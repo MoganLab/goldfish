@@ -26,10 +26,14 @@
           njson-push
           njson-drop
           njson-contains-key?
-          njson-keys)
+          njson-keys
+          njson-schema-valid?)
   (begin
     (define (njson-null-symbol? x)
       (and (symbol? x) (symbol=? x 'null)))
+
+    (define (njson-json-value? x)
+      (or (njson? x) (string? x) (number? x) (boolean? x) (njson-null-symbol? x)))
 
     (define (njson? x)
       (g_njson-handle? x))
@@ -45,7 +49,7 @@
       (g_njson-string->json json-string))
 
     (define (njson-json->string x)
-      (unless (or (njson? x) (string? x) (number? x) (boolean? x) (njson-null-symbol? x))
+      (unless (njson-json-value? x)
         (type-error "njson-json->string: input must be njson-handle or strict json scalar" x))
       (g_njson-json->string x))
 
@@ -84,6 +88,13 @@
       (unless (njson? json)
         (type-error "njson-keys: json must be njson-handle" json))
       (g_njson-keys json))
+
+    (define (njson-schema-valid? schema instance)
+      (unless (njson? schema)
+        (type-error "njson-schema-valid?: schema must be njson-handle" schema))
+      (unless (njson-json-value? instance)
+        (type-error "njson-schema-valid?: instance must be njson-handle or strict json scalar" instance))
+      (g_njson-schema-valid? schema instance))
 
     ) ; end of begin
   ) ; end of define-library
