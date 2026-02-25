@@ -21,6 +21,7 @@
           njson-free
           njson-string->json
           njson-json->string
+          let-njson
           njson-ref
           njson-set
           njson-push
@@ -37,6 +38,58 @@
 
     (define (njson? x)
       (g_njson-handle? x))
+
+    (define (njson%%single-binding? x)
+      (and (pair? x)
+           (symbol? (car x))
+           (pair? (cdr x))
+           (null? (cddr x))))
+
+    (define (njson%%binding-list? xs)
+      (and (pair? xs)
+           (let loop ((rest xs))
+             (and (pair? rest)
+                  (njson%%single-binding? (car rest))
+                  (or (null? (cdr rest))
+                      (loop (cdr rest)))))))
+
+    (define (njson%%normalize-bindings binding)
+      (cond
+        ((njson%%single-binding? binding)
+         (list binding))
+        ((njson%%binding-list? binding)
+         binding)
+        (else
+         #f)))
+
+    (define (njson%%expand-with-value-bindings bindings body)
+      (if (null? bindings)
+          `(begin ,@body)
+          (let* ((binding (car bindings))
+                 (var (car binding))
+                 (value-expr (cadr binding))
+                 (inner (njson%%expand-with-value-bindings (cdr bindings) body))
+                 (released? (gensym "njson-released?")))
+            `(let ((,var ,value-expr))
+               (if (njson? ,var)
+                   (let ((,released? #f))
+                     (dynamic-wind
+                       (lambda () #f)
+                       (lambda () ,inner)
+                       (lambda ()
+                         (when (not ,released?)
+                           (set! ,released? #t)
+                           ;; Ignore type-error in finalizer so caller can safely free inside body.
+                           (catch 'type-error
+                             (lambda () (njson-free ,var))
+                             (lambda args #f))))))
+                   ,inner)))))
+
+    (define-macro (let-njson binding . body)
+      (let ((bindings (njson%%normalize-bindings binding)))
+        (if bindings
+            (njson%%expand-with-value-bindings bindings body)
+            `(type-error "let-njson: expected (var value) or non-empty ((var value) ...)" ',binding))))
 
     (define (njson-free x)
       (unless (njson? x)
