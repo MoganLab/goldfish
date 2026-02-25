@@ -21,8 +21,7 @@
           njson-free
           njson-string->json
           njson-json->string
-          njson-with-json
-          njson-with-value
+          let-njson
           njson-ref
           njson-set
           njson-push
@@ -63,14 +62,6 @@
         (else
          #f)))
 
-    (define (njson%%json-binding->value-binding binding)
-      (let ((var (car binding))
-            (json-string (cadr binding)))
-        `(,var (njson-string->json ,json-string))))
-
-    (define (njson%%json-bindings->value-bindings bindings)
-      (map njson%%json-binding->value-binding bindings))
-
     (define (njson%%expand-with-value-bindings bindings body)
       (if (null? bindings)
           `(begin ,@body)
@@ -94,17 +85,11 @@
                              (lambda args #f))))))
                    ,inner)))))
 
-    (define-macro (njson-with-json binding . body)
-      (let ((bindings (njson%%normalize-bindings binding)))
-        (if bindings
-            `(njson-with-value ,(njson%%json-bindings->value-bindings bindings) ,@body)
-            `(type-error "njson-with-json: expected (var json-string) or non-empty ((var json-string) ...)" ',binding))))
-
-    (define-macro (njson-with-value binding . body)
+    (define-macro (let-njson binding . body)
       (let ((bindings (njson%%normalize-bindings binding)))
         (if bindings
             (njson%%expand-with-value-bindings bindings body)
-            `(type-error "njson-with-value: expected (var value) or non-empty ((var value) ...)" ',binding))))
+            `(type-error "let-njson: expected (var value) or non-empty ((var value) ...)" ',binding))))
 
     (define (njson-free x)
       (unless (njson? x)
