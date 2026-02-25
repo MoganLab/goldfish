@@ -383,7 +383,7 @@ wrong-type-arg
 
 #|
 bitwise-eqv
-计算两个整数的按位等价操作。
+计算两个整数的按位等价操作（XNOR）。
 
 语法
 ----
@@ -396,24 +396,23 @@ i1, i2 : integer?
 
 返回值
 -----
-boolean?
-返回两个整数按位等价操作的结果。
+integer?
+返回两个整数按位等价操作的结果（整数）。
 
 说明
 ----
 1. 对两个整数的每一位进行等价操作（相同为1，不同为0）
-2. 按位等价操作检查两个整数的所有位是否完全相同
-3. 对于任意整数 i，(bitwise-eqv i i) = #t
+2. bitwise-eqv 等价于 (bitwise-not (bitwise-xor i1 i2))
+3. 对于任意整数 i，(bitwise-eqv i i) = -1 (所有位为1)
 4. 对于任意整数 i1 i2，(bitwise-eqv i1 i2) = (bitwise-eqv i2 i1)
 5. 按位等价操作满足交换律：(bitwise-eqv i1 i2) = (bitwise-eqv i2 i1)
 6. 按位等价操作常用于位模式的比较和验证
-7. 与 bitwise-xor 的关系：当且仅当 (bitwise-xor i1 i2) = 0 时，(bitwise-eqv i1 i2) = #t
 
 实现说明
 --------
 - bitwise-eqv 是 SRFI 151 标准定义的函数，提供标准化的位运算接口
-- 按位等价操作可以理解为 "位相等" 比较
-- 在逻辑上，bitwise-eqv 等价于对 bitwise-xor 的结果取反
+- 按位等价操作返回整数，不是布尔值
+- 在逻辑上，bitwise-eqv 等价于 (bitwise-not (bitwise-xor i1 i2))
 
 错误
 ----
@@ -421,46 +420,31 @@ wrong-type-arg
 当参数不是整数时抛出错误。
 |#
 
-;;; 基本功能测试：按位等价操作
-(check (bitwise-eqv 1 1) => #t)
-(check (bitwise-eqv 1 2) => #f)
-(check (bitwise-eqv -1 -1) => #t)
-(check (bitwise-eqv -1 -2) => #f)
-(check (bitwise-eqv 1 0) => #f)
-(check (bitwise-eqv -1 0) => #f)
-(check (bitwise-eqv #b1010 #b1010) => #t) ; 10 eqv 10 = #t
-(check (bitwise-eqv #b1010 #b0101) => #f) ; 10 eqv 5 = #f
+;;; 基本功能测试：按位等价操作（返回整数）
+(check (bitwise-eqv 0 0) => -1)           ; NOT(XOR(0, 0)) = NOT(0) = -1
+(check (bitwise-eqv -1 -1) => -1)         ; NOT(XOR(-1, -1)) = NOT(0) = -1
+(check (bitwise-eqv 0 -1) => 0)           ; NOT(XOR(0, -1)) = NOT(-1) = 0
+(check (bitwise-eqv -1 0) => 0)           ; NOT(XOR(-1, 0)) = NOT(-1) = 0
 
-;;; 边界值测试
-(check (bitwise-eqv 0 0) => #t)          ; 0 eqv 0 = #t
-(check (bitwise-eqv 0 1) => #f)          ; 0 eqv 1 = #f
-(check (bitwise-eqv 1 0) => #f)          ; 1 eqv 0 = #f
-(check (bitwise-eqv 1 1) => #t)          ; 1 eqv 1 = #t
-(check (bitwise-eqv -1 -1) => #t)        ; -1 eqv -1 = #t
-(check (bitwise-eqv -1 0) => #f)         ; -1 eqv 0 = #f
-(check (bitwise-eqv 0 -1) => #f)         ; 0 eqv -1 = #f
+;;; 与 bitwise-not/bitwise-xor 的关系测试
+(check (bitwise-eqv 5 3) => (bitwise-not (bitwise-xor 5 3)))
+(check (bitwise-eqv 10 10) => (bitwise-not (bitwise-xor 10 10)))
+(check (bitwise-eqv 7 2) => (bitwise-not (bitwise-xor 7 2)))
+(check (bitwise-eqv #b1010 #b0101) => (bitwise-not (bitwise-xor #b1010 #b0101)))
 
 ;;; 数学性质测试
-(check (bitwise-eqv 15 15) => #t)        ; 自反性
+(check (bitwise-eqv 15 15) => -1)         ; 相同数 => 所有位相同 => -1
 (check (bitwise-eqv 7 3) => (bitwise-eqv 3 7)) ; 交换律
-(check (bitwise-eqv 255 255) => #t)      ; 相同数等价
-(check (bitwise-eqv 255 0) => #f)        ; 不同数不等价
+(check (bitwise-eqv 255 255) => -1)       ; 相同数等价
 
 ;;; 二进制表示测试
-(check (bitwise-eqv #b10101010 #b10101010) => #t)  ; 相同位模式
-(check (bitwise-eqv #b10101010 #b01010101) => #f)  ; 相反位模式
-(check (bitwise-eqv #b11110000 #b11110000) => #t)  ; 相同高4位
-(check (bitwise-eqv #b11110000 #b00001111) => #f)  ; 互补位模式
-
-;;; 与 bitwise-xor 的关系测试
-(check (bitwise-eqv 5 3) => (zero? (bitwise-xor 5 3))) ; eqv 检查是否所有位都相同
-(check (bitwise-eqv 10 10) => (zero? (bitwise-xor 10 10))) ; 相同数
-(check (bitwise-eqv 7 2) => (zero? (bitwise-xor 7 2))) ; 不同数
+(check (bitwise-eqv #b1010 #b1010) => -1)    ; 相同位模式 => -1
+(check (bitwise-eqv #b11110000 #b11110000) => -1) ; 相同高4位 => -1
 
 ;;; 特殊值测试
-(check (bitwise-eqv 2147483647 2147483647) => #t) ; 最大32位有符号整数
-(check (bitwise-eqv -2147483648 -2147483648) => #t) ; 最小32位有符号整数
-(check (bitwise-eqv 2147483647 -2147483648) => #f) ; 最大和最小整数
+(check (bitwise-eqv 2147483647 2147483647) => -1)  ; 最大32位有符号整数
+(check (bitwise-eqv -2147483648 -2147483648) => -1) ; 最小32位有符号整数
+(check (bitwise-eqv 2147483647 -2147483648) => (bitwise-not (bitwise-xor 2147483647 -2147483648)))
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
