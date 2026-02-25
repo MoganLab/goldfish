@@ -16,6 +16,7 @@
 
 (import (liii check)
         (liii base)
+        (liii error)
         (rename (liii json)
           (string->json ljson-string->json)
           (json->string ljson-json->string)
