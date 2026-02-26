@@ -31,7 +31,7 @@
           njson-drop!
           njson-contains-key?
           njson-keys
-          njson-schema-valid?)
+          njson-schema-report)
   (begin
     (define (njson-null-symbol? x)
       (and (symbol? x) (symbol=? x 'null)))
@@ -166,12 +166,12 @@
         (type-error "njson-keys: json must be njson-handle" json))
       (g_njson-keys json))
 
-    (define (njson-schema-valid? schema instance)
+    (define (njson-schema-report schema instance)
       (unless (njson? schema)
-        (type-error "njson-schema-valid?: schema must be njson-handle" schema))
+        (type-error "njson-schema-report: schema must be njson-handle" schema))
       (unless (njson-json-value? instance)
-        (type-error "njson-schema-valid?: instance must be njson-handle or strict json scalar" instance))
-      (g_njson-schema-valid? schema instance))
+        (type-error "njson-schema-report: instance must be njson-handle or strict json scalar" instance))
+      (g_njson-schema-report schema instance))
 
     ) ; end of begin
   ) ; end of define-library

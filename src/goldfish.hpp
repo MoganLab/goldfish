@@ -757,18 +757,55 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
   return out;
 }
 
+struct njson_schema_error_entry {
+  std::string instance_path;
+  std::string message;
+  std::string instance_dump;
+};
+
+class njson_collecting_error_handler : public nlohmann::json_schema::error_handler {
+public:
+  std::vector<njson_schema_error_entry> entries;
+
+  void
+  error (const json::json_pointer& ptr, const json& instance, const std::string& message) override {
+    std::string dumped;
+    try {
+      dumped = instance.dump ();
+    }
+    catch (...) {
+      dumped = "<failed-to-dump-instance>";
+    }
+    entries.push_back (njson_schema_error_entry{ptr.to_string (), message, dumped});
+  }
+};
+
 static s7_pointer
-f_njson_schema_valid_p (s7_scheme* sc, s7_pointer args) {
+njson_schema_errors_to_scheme (s7_scheme* sc, const std::vector<njson_schema_error_entry>& errors) {
+  s7_pointer out = s7_nil (sc);
+  for (auto it = errors.rbegin (); it != errors.rend (); ++it) {
+    s7_pointer row = s7_make_hash_table (sc, 3);
+    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance-path"), s7_make_string (sc, it->instance_path.c_str ()));
+    s7_hash_table_set (sc, row, s7_make_symbol (sc, "message"), s7_make_string (sc, it->message.c_str ()));
+    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance"), s7_make_string (sc, it->instance_dump.c_str ()));
+    out = s7_cons (sc, row, out);
+  }
+  return out;
+}
+
+static s7_pointer
+njson_run_schema_validation (s7_scheme* sc, const char* api_name, s7_pointer args,
+                             std::vector<njson_schema_error_entry>& errors_out) {
   s7_pointer  schema_input = s7_car (args);
   s7_pointer  instance_input = s7_cadr (args);
   json        schema_json;
   json        instance_json;
   std::string error_msg;
   if (!scheme_to_njson_scalar_or_handle (sc, schema_input, schema_json, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-schema-valid?: schema " + error_msg, schema_input);
+    return njson_error (sc, "type-error", std::string (api_name) + ": schema " + error_msg, schema_input);
   }
   if (!scheme_to_njson_scalar_or_handle (sc, instance_input, instance_json, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-schema-valid?: instance " + error_msg, instance_input);
+    return njson_error (sc, "type-error", std::string (api_name) + ": instance " + error_msg, instance_input);
   }
 
   nlohmann::json_schema::json_validator validator;
@@ -776,17 +813,33 @@ f_njson_schema_valid_p (s7_scheme* sc, s7_pointer args) {
     validator.set_root_schema (schema_json);
   }
   catch (const std::exception& err) {
-    return njson_error (sc, "schema-error", "g_njson-schema-valid?: " + std::string (err.what ()), schema_input);
+    return njson_error (sc, "schema-error", std::string (api_name) + ": " + std::string (err.what ()), schema_input);
   }
 
-  nlohmann::json_schema::basic_error_handler err_handler;
+  njson_collecting_error_handler err_handler;
   try {
     validator.validate (instance_json, err_handler);
   }
   catch (const std::exception& err) {
-    return njson_error (sc, "validation-error", "g_njson-schema-valid?: " + std::string (err.what ()), instance_input);
+    return njson_error (sc, "validation-error", std::string (api_name) + ": " + std::string (err.what ()), instance_input);
   }
-  return s7_make_boolean (sc, !static_cast<bool> (err_handler));
+  errors_out = std::move (err_handler.entries);
+  return nullptr;
+}
+
+static s7_pointer
+f_njson_schema_report (s7_scheme* sc, s7_pointer args) {
+  std::vector<njson_schema_error_entry> errors;
+  s7_pointer err = njson_run_schema_validation (sc, "g_njson-schema-report", args, errors);
+  if (err) {
+    return err;
+  }
+
+  s7_pointer report = s7_make_hash_table (sc, 3);
+  s7_hash_table_set (sc, report, s7_make_symbol (sc, "valid?"), s7_make_boolean (sc, errors.empty ()));
+  s7_hash_table_set (sc, report, s7_make_symbol (sc, "error-count"), s7_make_integer (sc, static_cast<s7_int> (errors.size ())));
+  s7_hash_table_set (sc, report, s7_make_symbol (sc, "errors"), njson_schema_errors_to_scheme (sc, errors));
+  return report;
 }
 
 inline void
@@ -817,8 +870,8 @@ glue_njson (s7_scheme* sc) {
   const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
   const char* keys_name = "g_njson-keys";
   const char* keys_desc = "(g_njson-keys handle) => (list-of string?)";
-  const char* schema_valid_name = "g_njson-schema-valid?";
-  const char* schema_valid_desc = "(g_njson-schema-valid? schema-handle instance) => boolean?";
+  const char* schema_report_name = "g_njson-schema-report";
+  const char* schema_report_desc = "(g_njson-schema-report schema-handle instance) => hash-table";
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
   glue_define (sc, dump_name, dump_desc, f_njson_json_to_string, 1, 0);
   glue_define (sc, handlep_name, handlep_desc, f_njson_handle_p, 1, 0);
@@ -832,7 +885,7 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, drop_x_name, drop_x_desc, f_njson_drop_x, 2, 32);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
   glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
-  glue_define (sc, schema_valid_name, schema_valid_desc, f_njson_schema_valid_p, 2, 0);
+  glue_define (sc, schema_report_name, schema_report_desc, f_njson_schema_report, 2, 0);
 }
 
 static s7_pointer

@@ -586,12 +586,12 @@ value : njson-handle | string | number | boolean | 'null
 (check-catch 'type-error (njson-ref functional-roundtrip "meta" "os"))
 
 #|
-njson-schema-valid?
-验证 JSON Schema 校验接口，包括通过、失败、非法 schema、参数类型错误和已释放句柄。
+njson-schema-report
+返回结构化校验报告，便于调用方定位失败路径并提取错误消息。
 
 语法
 ----
-(njson-schema-valid? schema-handle instance)
+(njson-schema-report schema-handle instance)
 
 参数
 ----
@@ -602,15 +602,27 @@ instance : njson-handle | string | number | boolean | 'null
 
 返回值
 -----
-- #t : 实例满足 schema
-- #f : 实例不满足 schema
+- hash-table : 校验报告（成功与失败都会返回）
+  顶层字段：
+  - 'valid? : boolean
+    #t 表示通过，#f 表示不通过
+  - 'error-count : integer
+    错误条数
+  - 'errors : list
+    错误列表，每项是 hash-table，字段如下：
+    - 'instance-path : string
+      失败位置（JSON Pointer）
+    - 'message : string
+      失败原因描述
+    - 'instance : string
+      触发失败的实例片段（JSON dump）
 - 抛错 : 参数类型错误、schema 非法或运行时异常
 
 功能
 ----
-- object/array/scalar schema 场景验证
-- additionalProperties / required / items 约束验证
-- 非法输入与释放后句柄行为验证
+- 通过 `'valid?` 字段直接反映校验结论
+- 便于日志记录、错误展示与上层错误映射
+- 可用于断言报告字段稳定性（路径/消息/实例片段）
 |#
 
 (define schema-object-json
@@ -628,43 +640,106 @@ instance : njson-handle | string | number | boolean | 'null
 (define schema-array-bad-json "[1,\"2\",3]")
 (define schema-scalar-int-json "{\"type\":\"integer\"}")
 (define schema-scalar-null-json "{\"type\":\"null\"}")
+(define schema-default-count-json
+  "{\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"default\":7}}}")
+(define schema-empty-object-json "{}")
 
-(define (njson-schema-valid-with-json schema-json instance-json)
+(define (njson-schema-report-with-json schema-json instance-json)
   (let-njson ((schema (njson-string->json schema-json))
                      (instance (njson-string->json instance-json)))
-    (njson-schema-valid? schema instance)))
+    (njson-schema-report schema instance)))
 
-(define (njson-schema-valid-with-schema schema-json instance)
+(define (njson-schema-report-with-schema schema-json instance)
   (let-njson ((schema (njson-string->json schema-json)))
-    (njson-schema-valid? schema instance)))
+    (njson-schema-report schema instance)))
 
-(define (schema-invalid? thunk)
-  (let ((result (catch 'schema-error thunk (lambda args 'schema-error))))
-    (or (eq? result 'schema-error)
-        (eq? result #f))))
-(check-true (njson-schema-valid-with-json schema-object-json schema-instance-ok-json))
-(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-type-json))
-(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-missing-json))
-(check-false (njson-schema-valid-with-json schema-object-json schema-instance-bad-extra-json))
-(check-true (njson-schema-valid-with-json schema-object-json schema-instance-name-only-json))
-(check-false (njson-schema-valid-with-json schema-object-json schema-instance-array-json))
-(check-true (njson-schema-valid-with-json schema-array-items-int-json schema-array-ok-json))
-(check-false (njson-schema-valid-with-json schema-array-items-int-json schema-array-bad-json))
-(check-true (njson-schema-valid-with-schema schema-scalar-int-json 18))
-(check-false (njson-schema-valid-with-schema schema-scalar-int-json "18"))
-(check-true (njson-schema-valid-with-schema schema-scalar-null-json 'null))
-(check-false (njson-schema-valid-with-schema schema-scalar-null-json 0))
-(check-true (schema-invalid? (lambda () (njson-schema-valid-with-json schema-bad-handle-json schema-instance-ok-json))))
-(check-true (schema-invalid? (lambda () (njson-schema-valid-with-json schema-bad-non-object-json schema-instance-ok-json))))
+(define (run-schema-report mode schema-input instance-input)
+  (if (eq? mode 'json)
+      (njson-schema-report-with-json schema-input instance-input)
+      (njson-schema-report-with-schema schema-input instance-input)))
+
+(define (check-schema-report-shape report expected-valid expected-error-count)
+  (check (hash-table-ref report 'valid?) => expected-valid)
+  (check (hash-table-ref report 'error-count) => expected-error-count)
+  (check (length (hash-table-ref report 'errors)) => expected-error-count))
+
+(define (check-schema-report-error error-entry expected-path expected-message expected-instance)
+  (check (hash-table-ref error-entry 'instance-path) => expected-path)
+  (check (hash-table-ref error-entry 'message) => expected-message)
+  (check (hash-table-ref error-entry 'instance) => expected-instance))
+
+(define (check-schema-report-invalid-min-errors report min-error-count)
+  (check (hash-table-ref report 'valid?) => #f)
+  (check-true (>= (hash-table-ref report 'error-count) min-error-count))
+  (check-true (>= (length (hash-table-ref report 'errors)) min-error-count)))
+
+(define (run-schema-report-shape-case case)
+  (let* ((mode (list-ref case 0))
+         (schema-input (list-ref case 1))
+         (instance-input (list-ref case 2))
+         (expected-valid (list-ref case 3))
+         (expected-error-count (list-ref case 4))
+         (report (run-schema-report mode schema-input instance-input)))
+    (check-schema-report-shape report expected-valid expected-error-count)
+    report))
+
+(define (run-schema-report-error-case case)
+  (let* ((schema-json (list-ref case 0))
+         (instance-json (list-ref case 1))
+         (expected-path (list-ref case 2))
+         (expected-message (list-ref case 3))
+         (expected-instance (list-ref case 4))
+         (report (run-schema-report-shape-case (list 'json schema-json instance-json #f 1)))
+         (error-entry (car (hash-table-ref report 'errors))))
+    (check-schema-report-error error-entry expected-path expected-message expected-instance)))
+
+(define schema-report-shape-cases
+  (list
+    (list 'json schema-object-json schema-instance-ok-json #t 0)
+    (list 'json schema-object-json schema-instance-name-only-json #t 0)
+    (list 'json schema-array-items-int-json schema-array-ok-json #t 0)
+    (list 'schema schema-scalar-int-json 18 #t 0)
+    (list 'schema schema-scalar-null-json 'null #t 0)
+    (list 'json schema-default-count-json schema-empty-object-json #t 0)
+    (list 'schema schema-scalar-int-json "18" #f 1)
+    (list 'schema schema-scalar-null-json 0 #f 1)))
+
+(define schema-report-error-cases
+  (list
+    (list schema-object-json schema-instance-bad-type-json
+          "/age"
+          "unexpected instance type"
+          "\"18\"")
+    (list schema-object-json schema-instance-bad-missing-json
+          ""
+          "required property 'name' not found in object"
+          "{\"age\":18}")
+    (list schema-object-json schema-instance-bad-extra-json
+          ""
+          "validation failed for additional property 'city': instance invalid as per false-schema"
+          "{\"city\":\"HZ\",\"name\":\"Alice\"}")
+    (list schema-array-items-int-json schema-array-bad-json
+          "/1"
+          "unexpected instance type"
+          "\"2\"")))
+
+(for-each run-schema-report-shape-case schema-report-shape-cases)
+(for-each run-schema-report-error-case schema-report-error-cases)
+
+(let ((instance-array-report (njson-schema-report-with-json schema-object-json schema-instance-array-json)))
+  (check-schema-report-invalid-min-errors instance-array-report 1))
+
 (check-catch 'type-error
   (let-njson ((instance (njson-string->json schema-instance-ok-json)))
-    (njson-schema-valid? 'foo instance)))
-(check-catch 'type-error (njson-schema-valid-with-schema schema-object-json 'foo))
-(check-catch 'type-error (njson-schema-valid-with-schema schema-object-json '(1 2 3)))
+    (njson-schema-report 'foo instance)))
+(check-catch 'type-error (njson-schema-report-with-schema schema-object-json 'foo))
+(check-catch 'schema-error (njson-schema-report-with-json schema-bad-handle-json schema-instance-ok-json))
+(check-catch 'schema-error (njson-schema-report-with-json schema-bad-non-object-json schema-instance-ok-json))
+
 (define schema-handle-for-freed-check (njson-string->json schema-object-json))
 (define freed-instance-handle (njson-string->json "{\"name\":\"Bob\"}"))
 (check-true (njson-free freed-instance-handle))
-(check-catch 'type-error (njson-schema-valid? schema-handle-for-freed-check freed-instance-handle))
+(check-catch 'type-error (njson-schema-report schema-handle-for-freed-check freed-instance-handle))
 (check-true (njson-free schema-handle-for-freed-check))
 
 
