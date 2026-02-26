@@ -23,6 +23,11 @@
 (define sample-json
   "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
 
+(define (string-list-contains? s xs)
+  (cond ((null? xs) #f)
+        ((string=? s (car xs)) #t)
+        (else (string-list-contains? s (cdr xs)))))
+
 #|
 let-njson
 统一处理“可能是句柄也可能是标量”的作用域宏。
@@ -177,6 +182,16 @@ njson-set
   (check (njson-ref root "meta" "os") => "linux"))
 
 #|
+njson-set!
+验证原地更新：返回同一可用句柄，原句柄内容被修改。
+|#
+
+(let-njson ((root (njson-string->json sample-json)))
+  (check-true (njson? (njson-set! root "meta" "os" "debian")))
+  (check (njson-ref root "meta" "os") => "debian"))
+(check-catch 'type-error (njson-set! 'foo "meta" "os" "debian"))
+
+#|
 njson-push
 验证数组位置插入行为。
 |#
@@ -184,6 +199,16 @@ njson-push
 (let-njson ((root (njson-string->json sample-json))
                    (root3 (njson-push root "nums" 5 99)))
   (check (njson-ref root3 "nums" 5) => 99))
+
+#|
+njson-push!
+验证原地插入：原句柄数组直接变化。
+|#
+
+(let-njson ((root (njson-string->json sample-json)))
+  (njson-push! root "nums" 5 99)
+  (check (njson-ref root "nums" 5) => 99))
+(check-catch 'type-error (njson-push! 'foo "nums" 0 99))
 
 #|
 njson-drop
@@ -194,6 +219,32 @@ njson-drop
                    (root4 (njson-drop root "active")))
   (check (njson-ref root4 "active") => '())
   (check (njson-ref root "active") => #t))
+
+#|
+njson-drop!
+验证原地删除：原句柄对象直接变化。
+|#
+
+(let-njson ((root (njson-string->json sample-json)))
+  (njson-drop! root "active")
+  (check (njson-ref root "active") => '()))
+(check-catch 'type-error (njson-drop! 'foo "active"))
+
+#|
+njson-keys cache refresh with mutable updates
+先命中 keys 缓存，再执行 set!/push!/drop!，确保 keys 结果同步更新。
+|#
+
+(let-njson ((root (njson-string->json sample-json)))
+  (check-true (string-list-contains? "active" (njson-keys root)))
+  (njson-drop! root "active")
+  (check-false (string-list-contains? "active" (njson-keys root)))
+  (njson-push! root "active" #t)
+  (check-true (string-list-contains? "active" (njson-keys root)))
+  (njson-set! root "name" "Goldfish++")
+  (check-true (string-list-contains? "active" (njson-keys root)))
+  (njson-push! root "new-key" 1)
+  (check-true (string-list-contains? "new-key" (njson-keys root))))
 
 #|
 njson-ref (子结构句柄返回)

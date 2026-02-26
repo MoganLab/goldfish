@@ -146,6 +146,30 @@
   (display (safe-ratio liii-ns njson-ns))
   (newline))
 
+(define (report-variant-bench title count rounds lhs-name lhs-ns rhs-name rhs-ns)
+  (display "[基准测试] ")
+  (display title)
+  (display " x")
+  (display count)
+  (display "，轮次=")
+  (display rounds)
+  (display "(取中位数)")
+  (display " ")
+  (display lhs-name)
+  (display "耗时(ns)=")
+  (display lhs-ns)
+  (display " ")
+  (display rhs-name)
+  (display "耗时(ns)=")
+  (display rhs-ns)
+  (display " 倍率(")
+  (display lhs-name)
+  (display "/")
+  (display rhs-name)
+  (display ")=")
+  (display (safe-ratio lhs-ns rhs-ns))
+  (newline))
+
 ;; warmup to reduce first-run bias
 (do ((i 0 (+ i 1)))
     ((= i 20))
@@ -174,6 +198,17 @@
   (let ((h (njson-string->json bench-json)))
     (let ((x (njson-drop h bench-drop-key)))
       (njson-free x))
+    (njson-free h))
+  (let ((h (njson-string->json bench-json)))
+    (njson-set! h bench-ref-key bench-set-value)
+    (njson-free h))
+  (let ((h (njson-string->json bench-json)))
+    (njson-push! h "nums" bench-push-index bench-push-value)
+    (njson-drop! h "nums" bench-push-index)
+    (njson-free h))
+  (let ((h (njson-string->json bench-json)))
+    (njson-set! h bench-drop-key 1)
+    (njson-drop! h bench-drop-key)
     (njson-free h))
   (ljson-contains-key? bench-json-scm bench-ref-key)
   (let ((h (njson-string->json bench-json)))
@@ -259,6 +294,37 @@
     round-count))
 (check-true (njson-free drop-handle))
 
+(define set-x-handle (njson-string->json bench-json))
+(define njson-set!-ns
+  (bench-ns-median
+    (lambda ()
+      (njson-set! set-x-handle bench-ref-key bench-set-value))
+    set-count
+    round-count))
+(check-true (njson-free set-x-handle))
+
+(define push-x-handle (njson-string->json bench-json))
+(define njson-push!-pair-ns
+  (bench-ns-median
+    (lambda ()
+      (njson-push! push-x-handle "nums" bench-push-index bench-push-value)
+      ;; restore array shape to keep each iteration comparable
+      (njson-drop! push-x-handle "nums" bench-push-index))
+    push-count
+    round-count))
+(check-true (njson-free push-x-handle))
+
+(define drop-x-handle (njson-string->json bench-json))
+(define njson-drop!-pair-ns
+  (bench-ns-median
+    (lambda ()
+      ;; restore key first so drop! always executes a real deletion
+      (njson-set! drop-x-handle bench-drop-key 1)
+      (njson-drop! drop-x-handle bench-drop-key))
+    drop-count
+    round-count))
+(check-true (njson-free drop-x-handle))
+
 (define contains-key-handle (njson-string->json bench-json))
 (define liii-contains-key-ns
   (bench-ns-median
@@ -291,6 +357,9 @@
 (check-true (>= njson-push-ns 0))
 (check-true (>= liii-drop-ns 0))
 (check-true (>= njson-drop-ns 0))
+(check-true (>= njson-set!-ns 0))
+(check-true (>= njson-push!-pair-ns 0))
+(check-true (>= njson-drop!-pair-ns 0))
 (check-true (>= liii-contains-key-ns 0))
 (check-true (>= njson-contains-key-ns 0))
 (check-true (>= liii-keys-ns 0))
@@ -308,6 +377,27 @@
 (report-bench "修改(json-set)" set-count round-count liii-set-ns njson-set-ns)
 (report-bench "插入(json-push)" push-count round-count liii-push-ns njson-push-ns)
 (report-bench "删除(json-drop)" drop-count round-count liii-drop-ns njson-drop-ns)
+(report-variant-bench "原地修改对比(liii-set vs njson-set!)"
+                      set-count
+                      round-count
+                      "liii-set"
+                      liii-set-ns
+                      "njson-set!"
+                      njson-set!-ns)
+(report-variant-bench "原地插入对比(liii-push vs njson-push!+drop!)"
+                      push-count
+                      round-count
+                      "liii-push"
+                      liii-push-ns
+                      "njson-push!+drop!"
+                      njson-push!-pair-ns)
+(report-variant-bench "原地删除对比(liii-drop vs njson-set!+drop!)"
+                      drop-count
+                      round-count
+                      "liii-drop"
+                      liii-drop-ns
+                      "njson-set!+drop!"
+                      njson-drop!-pair-ns)
 (report-bench "键存在(json-contains-key?)" contains-key-count round-count liii-contains-key-ns njson-contains-key-ns)
 (report-bench "获取键(json-keys)" keys-count round-count liii-keys-ns njson-keys-ns)
 
