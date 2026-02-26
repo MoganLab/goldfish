@@ -202,7 +202,7 @@ njson-push
 
 #|
 njson-push!
-验证原地插入：原句柄数组直接变化。
+验证原地插入：原句柄直接变化。
 |#
 
 (let-njson ((root (njson-string->json sample-json)))
