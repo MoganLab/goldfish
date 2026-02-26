@@ -1,182 +1,187 @@
+(define (string-join lst . opt)
+  (let ((delim (if (null? opt) " " (car opt))))
+    (if (null? lst)
+        ""
+        (let loop ((l (cdr lst)) (acc (car lst)))
+          (if (null? l)
+              acc
+              (loop (cdr l) (string-append acc delim (car l))))))))
+
+(define (file-exists? path)
+  (if (string? path)
+    (if (not (g_access path 0)) ; F_OK
+      #f
+      (if (g_access path 1) ; R_OK
+          #t
+          (error 'permission-error (string-append "No permission: " path))))
+    (error 'type-error "(file-exists? path): path should be string")))
+
+(define (hash-table-ref/default ht key default)
+  (or (hash-table-ref ht key)
+      (if (procedure? default)
+          (default)
+          default)))
+
+;;; ========== 辅助函数（需在宏定义前定义）==========
+;; 将库名列表转换为点分隔符号，如 '(scheme base) -> 'scheme.base
+(define (library-name->symbol lib-name)
+  (string->symbol
+   (string-join (map (lambda (x)
+                       (cond ((symbol? x) (symbol->string x))
+                             ((number? x) (number->string x))
+                             (else (error "Invalid library name component" x))))
+                     lib-name)
+                ".")))
+
+;; 库名转候选文件名列表（用于查找文件）
+(define (library-name->filenames lib-name)
+  (let ((base (string-join (map (lambda (x)
+                                   (cond ((symbol? x) (symbol->string x))
+                                         ((number? x) (number->string x))
+                                         (else (error "Invalid library name component" x))))
+                                lib-name)
+                           "/")))
+    (list (string-append base ".scm")
+          (string-append base ".sld"))))
+
+;; 文件查找（依赖 *load-path*）
+(define (find-file-in-paths filename)
+  (let loop ((dirs *load-path*))
+    (cond ((null? dirs) #f)
+          ((file-exists? (string-append (car dirs) "/" filename))
+           (string-append (car dirs) "/" filename))
+          (else (loop (cdr dirs))))))
+
+;; 全局注册表：库名 -> 状态（#t 表示已加载，'loading 表示加载中）
+(define *library-registry* (make-hash-table))
+
+(define (load-library-by-name lib-name imp-stx)
+  (let ((status (hash-table-ref/default *library-registry* lib-name #f)))
+    (cond
+      ((eq? status #t) #t)                       ; 已加载，直接返回
+      ((eq? status 'loading)
+       (syntax-error imp-stx
+         (format #f "Circular library dependency detected: ~s" lib-name)))
+      (else
+       ;; 标记为加载中
+       (hash-table-set! *library-registry* lib-name 'loading)
+       ;; 查找文件
+       (let ((candidates (library-name->filenames lib-name)))
+         (let try ((files candidates))
+           (if (null? files)
+               (syntax-error imp-stx
+                 (format #f "Library file not found: ~s (tried ~s)" lib-name candidates))
+               (let ((full (find-file-in-paths (car files))))
+                 (if full
+                     (begin
+                       (display "full: ")
+                       (display full)
+                       (newline)
+                       (load full)                ; 调用普通 load
+                       (hash-table-set! *library-registry* lib-name #t))
+                     (try (cdr files)))))))))))
+
+;; ========== define-library 宏 ==========
 (define-syntax define-library
   (lambda (stx)
-    (define (library-name->symbol name-stx)
-      (let ((name (syntax-object->datum name-stx)))
-        (if (symbol? name)
-            name
-            (string->symbol
-              (let loop ((lst name))
-                (if (null? lst)
-                    ""
-                    (let ((str (let ((x (car lst)))
-                                 (if (symbol? x) (symbol->string x) (number->string x)))))
-                      (if (null? (cdr lst))
-                          str
-                          (string-append str "." (loop (cdr lst)))))))))))
-
-    ;; 辅助函数：从代码块中提取 define/define-syntax 定义的名字
-    (define (extract-defined-names code-list)
-      (let loop ((lst code-list) (acc '()))
-        (if (null? lst)
-            acc
-            (let ((form (syntax-object->datum (car lst))))
-              (cond
-               ((and (pair? form) (memq (car form) '(define define-syntax)))
-                (loop (cdr lst) (cons (if (pair? (cadr form)) (caadr form) (cadr form)) acc)))
-               (else (loop (cdr lst) acc)))))))
-
-    (define (partition-decls decl-context decls exports imports code)
+    (define (parse-library-decls decls exports imports body)
       (syntax-case decls (export import begin)
-        (() (values exports imports (reverse code)))
-        (((export clause ...) . decls)
-         (partition-decls decl-context (syntax decls) (append exports #'(clause ...)) imports code))
-        (((import clause ...) . decls)
-         (let ((processed-imps
-                (map (lambda (imp)
-                       (let ((sym (library-name->symbol imp)))
-                         (datum->syntax-object decl-context sym)))
-                     #'(clause ...))))
-           (partition-decls decl-context (syntax decls) exports (append imports processed-imps) code)))
-        (((begin expr ...) . decls)
-         (partition-decls decl-context (syntax decls) exports imports
-                          (append (reverse #'(expr ...)) code)))
-        ((other . decls)
-         (partition-decls decl-context (syntax decls) exports imports (cons (syntax other) code)))))
+        (() (values exports imports body))
+        (((export exp* ...) . rest)
+         (parse-library-decls (syntax rest)
+                              (append #'(exp* ...) exports)
+                              imports
+                              body))
+        (((import imp* ...) . rest)
+         (begin
+           (for-each (lambda (imp)
+                       (let ((lib-name (syntax->datum imp)))
+                         (load-library-by-name lib-name imp)))
+                     #'(imp* ...))
+           (parse-library-decls (syntax rest)
+                                exports
+                                (append #'(imp* ...) imports)
+                                body)))
+        (((begin expr* ...) . rest)
+         (parse-library-decls (syntax rest)
+                              exports
+                              imports
+                              (append body #'(expr* ...))))))
+    (define (process-exports exports)
+      (let loop ((lst exports) (plain '()) (aliases '()))
+        (if (null? lst)
+            (values (reverse plain) (reverse aliases))
+            (syntax-case (car lst) (rename)
+              ((rename internal external)
+               (loop (cdr lst)
+                     (cons (syntax external) plain)
+                     (cons #'(alias external internal) aliases)))
+              (id
+               (loop (cdr lst)
+                     (cons (syntax id) plain)
+                     aliases))))))
 
     (syntax-case stx ()
-      ((_ name decl ...)
-       (let* ((keyword (syntax-case stx () ((k . _) (syntax k))))
-              (lib-sym (library-name->symbol (syntax name)))
-              (mod-id  (datum->syntax-object keyword lib-sym)))
-         (call-with-values
-           (lambda () (partition-decls keyword #'(decl ...) '() '() '()))
-           (lambda (exports imports code)
-             (newline) (display "============================")
-             (newline) (display "=== define-library start ===") (newline)
-             (newline) (display "exports: ") (display exports) (newline)
-             (newline) (display "imports: ") (display imports) (newline)
-             (newline) (display "--- START OF CODE ---") (newline)
-             (for-each (lambda (form)
-                         (write (syntax-object->datum form))
-                         (newline))
-                       code)
-             (display "--- END OF CODE ---") (newline)
-             (newline) (display "=== define-library end ===")
-             (newline) (display "==========================") (newline)
+      ((_ name decl* ...)
+       (call-with-values
+         (lambda () (parse-library-decls #'(decl* ...) '() '() '()))
+         (lambda (exports imports body)
+           (call-with-values
+             (lambda () (process-exports exports))
+             (lambda (plain-exports aliases)
+               (let ((lib-name (syntax->datum (syntax name)))
+                     (ctx (syntax _)))
+                 (let ((mid (datum->syntax ctx (library-name->symbol lib-name))))
+                   (let ((imp-ids (map (lambda (imp-stx)
+                                         (datum->syntax ctx
+                                                        (library-name->symbol (syntax->datum imp-stx))))
+                                       imports)))
+                     (with-syntax ((mid              mid)
+                                   ((exp-id* ...)    plain-exports)
+                                   ((alias* ...)     aliases)
+                                   ((imp-id* ...)    (reverse imp-ids))
+                                   ((body-expr* ...) body))
+                       ; (display #'(imp-id* ...)) (newline)
+                       #'(module mid (exp-id* ...)
+                           (%primitive-import imp-id* ...)
+                           alias* ...
+                           body-expr* ...)))))))))))))
 
-             ;; 处理导出逻辑
-             (let loop ((exps exports) 
-                        (final-exports '()) 
-                        (rename-aliases '()))
-               (if (null? exps)
-                   (with-syntax ((mid mod-id)
-                                 ((exp-ids ...) final-exports)
-                                 ((aliases ...) rename-aliases)
-                                 ((imp-ids ...) imports)
-                                 ((actual-content ...) code))
-                     ;; 这里的生成不再依赖 psyntax 的 rename 语法
-                     (let ((so (if (null? imports)
-                                 #'(module mid (exp-ids ...)
-                                     aliases ...
-                                     actual-content ...)
-                                 #'(module mid (exp-ids ...)
-                                     (import imp-ids ...)
-                                     aliases ...
-                                     actual-content ...))))
-                       (display "----> ") (display (map syntax->datum so))
-                       (newline)
-                       so))
+(define (string-split str delimiter)
+  (let ((len (string-length str)))
+    (let loop ((i 0) (start 0) (acc '()))
+      (cond
+        ((>= i len)
+         (reverse (if (= start i)
+                      acc
+                      (cons (substring str start i) acc))))
+        ((char=? (string-ref str i) delimiter)
+         (loop (+ i 1) (+ i 1)
+               (cons (substring str start i) acc)))
+        (else
+         (loop (+ i 1) start acc))))))
 
-                   (syntax-case (car exps) (rename)
-                     ((rename internal external)
-                      (loop (cdr exps)
-                            (cons (syntax external) final-exports)
-                            ;; 核心：在内部用 alias 把 external 绑定到 internal
-                            (cons #'(alias external internal) rename-aliases)))
-                     (id
-                      (loop (cdr exps)
-                            (cons (syntax id) final-exports)
-                            rename-aliases))))))))))))
+(define (symbol->library-name sym)
+  (map string->symbol (string-split (symbol->string sym) #\.)))
 
-(define *loaded-libraries* (make-hash-table))
+(define-syntax import
+  (lambda (stx)
+    (define (transform-lib lib)
+      (let ((lib-datum (syntax->datum lib)))
+        ;; imperative, violation of the `map`
+        (load-library-by-name lib-datum lib)
 
-(define (psyntax-load-r7rs filename)
-  (display "p.loading: ") (display filename) (newline)
-  (let ((fn (find-file-in-paths filename)))
-    (unless fn (error "File not found" filename))
-    (or (hash-table-ref *loaded-libraries* fn)
-        (begin
-          (hash-table-set! *loaded-libraries* fn #t)
-          (with-input-from-file fn
-            (lambda ()
-              (let loop ((expr (read)))
-                (unless (eof-object? expr)
-                  (scan-for-imports expr)
+        (display "lib-datum: ")
+        (display (library-name->symbol lib-datum)) ; scheme.base
+        (newline)
 
-                  (let ((expa (sc-expand expr #f #f #f)))
+        (datum->syntax (syntax lib) (library-name->symbol lib-datum))))
 
-                    (display "expr: ") (display expr) (newline)
-                    (display "expa: ") (display expa) (newline)
-                    (newline)
-
-                    ; (display "p.symbols: ") (newline)
-                    ; (hash-table-for-each *symbol-properties*
-                    ;   (lambda (key val)
-                    ;     (display "    ") (display key)
-                    ;     (display " -> ") (display val)
-                    ;     (newline)))
-
-                    (newline)
-                    (%primitive-eval expa (rootlet)))
-                  (loop (read))))))))))
-
-(define (scan-for-imports expr)
-  (cond
-    ((and (pair? expr) (eq? (car expr) 'import))
-     (for-each load-library-by-spec (cdr expr)))
-    ((and (pair? expr) (eq? (car expr) 'define-library))
-     (for-each (lambda (item)
-                 (if (and (pair? item) (eq? (car item) 'import))
-                     (for-each load-library-by-spec (cdr item))))
-               (cddr expr)))))
-
-
-
-
-(define hash-table-for-each
-  (lambda (ht proc)
-    (for-each (lambda (x)
-                (proc (car x) (cdr x)))
-              ht)))
-
-;; 在模块展开时添加调试
-(define (debug-import-resolution import-spec current-module)
-  (display "DEBUG - Resolving import: ") (display import-spec)
-  (display " for module: ") (display current-module) (newline)
-  (newline))
-
-;; 修改 load-library-by-spec 添加调试
-(define (load-library-by-spec spec)
-  (let* ((parts (map (lambda (x)
-                       (if (symbol? x) (symbol->string x) (number->string x)))
-                     spec))
-         (path-str (let loop ((p parts))
-                     (if (null? (cdr p))
-                         (car p)
-                         (string-append (car p) "/" (loop (cdr p))))))
-         (filename (string-append path-str ".scm"))
-         (lib-sym (string->symbol path-str)))  ;; 创建与 define-library 中相同的符号
-    (display "p.symbols for ") (display spec) (display " -> ") (display lib-sym) (newline)
-    (debug-import-resolution spec lib-sym)
-    (psyntax-load-r7rs filename)))
-
-; (define (load-library-by-spec spec)
-;   (let* ((parts (map (lambda (x)
-;                        (if (symbol? x) (symbol->string x) (number->string x)))
-;                      spec))
-;          (path-str (let loop ((p parts))
-;                      (if (null? (cdr p))
-;                          (car p)
-;                          (string-append (car p) "/" (loop (cdr p))))))
-;          (filename (string-append path-str ".scm")))
-;     (psyntax-load-r7rs filename)))
+    (syntax-case stx ()
+      ((_ lib* ...)
+       (with-syntax (((lib-symbol* ...) (map transform-lib #'(lib* ...))))
+         #'(begin
+             (for-each (lambda (sym)
+                         (load-library-by-name (symbol->library-name sym) #f))
+                       '(lib-symbol* ...))
+             (%primitive-import lib-symbol* ...)))))))

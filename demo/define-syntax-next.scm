@@ -2,5 +2,5 @@
   (import (demo define-syntax-def))
   (export ans)
   (begin
-    (define (ans) (+ 0 answer))
+    (define (ans) (+ 1 answer))
     (newline)))

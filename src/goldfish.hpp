@@ -21,6 +21,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <optional>
 #include <s7.h>
 #include <string>
 #include <vector>
@@ -61,8 +62,10 @@
 #define GOLDFISH_VERSION "17.11.23"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
+#define GOLDFISH_PATH_MAX 4096
 
 static std::vector<std::string> command_args= std::vector<std::string> ();
+static s7_pointer global_expander = NULL;
 
 namespace goldfish {
 using std::cerr;
@@ -414,14 +417,211 @@ static s7_pointer goldfish_sanitize_datum(s7_scheme *sc, s7_pointer obj) {
     return obj;
 }
 
-static s7_pointer f_goldfish_read(s7_scheme *sc, s7_pointer args) {
-    s7_pointer port = s7_car(args);
-    if (!s7_is_input_port(sc, port)) {
-        return s7_wrong_type_arg_error(sc, "goldfish-read", 1, port, "an input port");
+static s7_pointer
+goldfish_read(s7_scheme *sc, s7_pointer port) {
+  s7_pointer raw_obj = s7_read(sc, port);
+  if (raw_obj == s7_eof_object(sc)) return raw_obj;
+  return goldfish_sanitize_datum(sc, raw_obj);
+}
+
+static s7_pointer
+f_goldfish_read(s7_scheme *sc, s7_pointer args) {
+  s7_pointer port;
+
+  /* 0 参数：使用 (current-input-port)；1 参数：使用提供的端口 */
+  if (s7_is_null(sc, args)) {
+    port = s7_current_input_port(sc);
+  } else {
+    port = s7_car(args);
+    /* 检查参数过多 */
+    if (!s7_is_null(sc, s7_cdr(args))) {
+      return s7_error(sc, s7_make_symbol(sc, "wrong-number-of-args"),
+                      s7_list(sc, 2, s7_make_string(sc, "goldfish-read takes at most 1 argument"), args));
     }
-    s7_pointer raw_obj = s7_read(sc, port);
-    if (raw_obj == s7_eof_object(sc)) return raw_obj;
-    return goldfish_sanitize_datum(sc, raw_obj);
+  }
+
+  if (!s7_is_input_port(sc, port)) {
+    return s7_wrong_type_arg_error(sc, "goldfish-read", 1, port, "an input port");
+  }
+
+  return goldfish_read(sc, port);
+}
+
+inline s7_pointer
+goldfish_eval(s7_scheme *sc, s7_pointer expr, s7_pointer env, const char* file) {
+  if (global_expander != NULL) {
+    /* (expander expr) */
+    auto expanded = s7_call_with_location(
+      sc,
+      global_expander,
+      s7_cons(sc, expr, s7_nil(sc)),
+      "sc-expand",
+      file,
+      0 // TODO(jinser): line information
+    );
+    expr = expanded;
+  }
+
+  return s7_eval(sc, expr, env);
+}
+
+inline s7_pointer
+goldfish_eval_c_string(s7_scheme *sc, const char *str, std::optional<s7_pointer> env = std::nullopt) {
+  auto port = s7_open_input_string(sc, str);
+  auto expr = goldfish_read(sc, port);
+  s7_close_input_port(sc, port);
+  return goldfish_eval(sc, expr, env.value_or(s7_rootlet(sc)), "<eval>");
+}
+
+inline s7_pointer
+goldfish_load(s7_scheme *sc, const char *filename, std::optional<s7_pointer> env = std::nullopt) {
+  s7_pointer port = NULL;
+  char full_path[GOLDFISH_PATH_MAX];
+
+  /* 1. 尝试直接路径（绝对路径或相对当前工作目录） */
+  if (tb_file_access (filename, TB_FILE_MODE_RO)) {
+    port = s7_open_input_file(sc, filename, "r");
+  }
+
+  /* 2. 失败则在 *load-path* 中搜索 */
+  if (!port) {
+    s7_pointer load_path = s7_load_path(sc);  /* 或 s7_name_to_value(sc, "*load-path*") */
+    size_t name_len = strlen(filename);
+
+    if (s7_is_list(sc, load_path)) {
+      for (s7_pointer p = load_path; s7_is_pair(p) && !port; p = s7_cdr(p)) {
+        s7_pointer dir = s7_car(p);
+        if (!s7_is_string(dir)) continue;
+
+        const char *dir_str = s7_string(dir);
+        size_t dir_len = strlen(dir_str);
+
+        /* 长度边界检查 */
+        if (dir_len + name_len + 2 > GOLDFISH_PATH_MAX) continue;
+
+        /* 拼接路径（处理末尾斜杠） */
+        if (dir_len > 0 && dir_str[dir_len - 1] == '/') {
+          snprintf(full_path, sizeof(full_path), "%s%s", dir_str, filename);
+        } else {
+          snprintf(full_path, sizeof(full_path), "%s/%s", dir_str, filename);
+        }
+
+        if (tb_file_access(full_path, TB_FILE_MODE_RO)) {
+          port = s7_open_input_file(sc, full_path, "r");
+        }
+      }
+    }
+  }
+
+  if (!port) {
+    return s7_error(sc, s7_make_symbol(sc, "cannot-open-file"),
+                    s7_list(sc, 2, s7_make_string(sc, "cannot open ~S"), 
+                            s7_make_string(sc, filename)));
+  }
+
+  // 1. 读取所有表达式到列表
+  s7_pointer forms = s7_nil(sc);
+  int count = 0;
+  auto gc_loc = s7_gc_protect(sc, port);
+  while (true) {
+    s7_pointer expr = goldfish_read(sc, port);
+    if (expr == s7_eof_object(sc)) break;
+
+    forms = s7_cons(sc, expr, forms);
+    count++;
+    if (count > 10000) {  // 防御：防止内存耗尽
+      s7_close_input_port(sc, port);
+      return s7_error(sc, s7_make_symbol(sc, "file-too-large"), 
+                     s7_make_string(sc, "too many expressions"));
+    }
+  }
+  s7_close_input_port(sc, port);
+  s7_gc_unprotect_at(sc, gc_loc);
+
+  if (s7_is_null(sc, forms)) return s7_unspecified(sc);  // 空文件
+
+  forms = s7_reverse(sc, forms);  // 恢复顺序
+
+  // 2. 组成 (begin expr1 expr2 ...)
+  s7_pointer wrapped = s7_cons(sc, s7_make_symbol(sc, "begin"), forms);
+
+  // 3. 一次性展开并求值（利用你已有的 goldfish_eval，它会调用 sc-expand）
+  return goldfish_eval(sc, wrapped, env.value_or(s7_rootlet(sc)), s7_port_filename(sc, port));
+}
+
+
+inline s7_pointer
+f_goldfish_eval(s7_scheme *sc, s7_pointer args) {
+  if (s7_is_null(sc, args)) {
+    return s7_error(sc, s7_make_symbol(sc, "wrong-number-of-args"),
+                    s7_list(sc, 2, s7_make_string(sc, "g_goldfish-eval requires at least 1 argument"), args));
+  }
+
+  s7_pointer expr = s7_car(args);
+  s7_pointer env = s7_curlet(sc);
+
+  if (!s7_is_null(sc, s7_cdr(args))) {
+    env = s7_cadr(args);
+    if (!s7_is_let(env)) {
+      return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+                      s7_list(sc, 2, s7_make_string(sc, "environment must be a let"), env));
+    }
+  }
+
+  return goldfish_eval(sc, expr, env, "eval");
+}
+
+inline s7_pointer
+f_goldfish_eval_string(s7_scheme *sc, s7_pointer args) {
+  if (s7_is_null(sc, args)) {
+    return s7_error(sc, s7_make_symbol(sc, "wrong-number-of-args"),
+                   s7_list(sc, 2, s7_make_string(sc, "g_goldfish-eval-string requires at least 1 argument"), args));
+  }
+  
+  s7_pointer str = s7_car(args);
+  if (!s7_is_string(str)) {
+    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+                   s7_list(sc, 2, s7_make_string(sc, "argument must be a string"), str));
+  }
+  auto c_str = s7_string(str);
+
+  s7_pointer env = s7_curlet(sc);
+  if (!s7_is_null(sc, s7_cdr(args))) {
+    env = s7_cadr(args);
+    if (!s7_is_let(env)) {
+      return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+                     s7_list(sc, 2, s7_make_string(sc, "environment must be a let"), env));
+    }
+  }
+
+  return goldfish_eval_c_string(sc, c_str, env);
+}
+
+inline s7_pointer
+f_goldfish_load(s7_scheme *sc, s7_pointer args) {
+  if (s7_is_null(sc, args)) {
+    return s7_error(sc, s7_make_symbol(sc, "wrong-number-of-args"),
+                    s7_list(sc, 2, s7_make_string(sc, "g_goldfish-load requires at least 1 argument"), args));
+  }
+
+  s7_pointer filename_arg = s7_car(args);
+  if (!s7_is_string(filename_arg)) {
+    return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+                    s7_list(sc, 2, s7_make_string(sc, "filename must be a string"), filename_arg));
+  }
+
+  const char *filename = s7_string(filename_arg);
+  s7_pointer env = s7_rootlet(sc);
+
+  if (!s7_is_null(sc, s7_cdr(args))) {
+    env = s7_cadr(args);
+    if (!s7_is_let(env)) {
+      return s7_error(sc, s7_make_symbol(sc, "wrong-type-arg"),
+                      s7_list(sc, 2, s7_make_string(sc, "environment must be a let"), env));
+    }
+  }
+
+  return goldfish_load(sc, filename, env);
 }
 
 inline void
@@ -433,7 +633,13 @@ glue_goldfish (s7_scheme* sc) {
   const char* s_delete_file= "g_delete-file";
   const char* d_delete_file= "(g_delete-file string) => boolean";
   const char* s_goldfish_read= "g_goldfish-read";
-  const char* d_goldfish_read= "(g_goldfish-read port) => any";
+  const char* d_goldfish_read= "(g_goldfish-read (port (current-input-port))) => any";
+  const char* s_goldfish_eval= "g_goldfish-eval";
+  const char* d_goldfish_eval= "(g_goldfish-eval expr (let (curlet))) => any value with sc-expand support";
+  const char* s_goldfish_eval_string= "g_goldfish-eval-string";
+  const char* d_goldfish_eval_string= "(g_goldfish-eval-string string (let (curlet))) => any";
+  const char* s_goldfish_load= "g_goldfish-load";
+  const char* d_goldfish_load= "(g_goldfish-load filename (let (rootlet))) => any, searches *load-path*";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -442,7 +648,39 @@ glue_goldfish (s7_scheme* sc) {
              s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_goldfish_read),
-             s7_make_typed_function (sc, s_goldfish_read, f_goldfish_read, 1, 0, false, d_goldfish_read, NULL));
+             s7_make_typed_function (sc, s_goldfish_read, f_goldfish_read, 0, 1, false, d_goldfish_read, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_goldfish_eval),
+             s7_make_typed_function (sc, s_goldfish_eval, f_goldfish_eval, 1, 1, false, d_goldfish_eval, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_goldfish_eval_string),
+             s7_make_typed_function (sc, s_goldfish_eval_string, f_goldfish_eval_string, 1, 1, false, d_goldfish_eval_string, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_goldfish_load),
+             s7_make_typed_function (sc, s_goldfish_load, f_goldfish_load, 1, 1, false, d_goldfish_load, NULL));
+}
+
+/* (set-expander! proc)  proc 为 #f 时注销 */
+static s7_pointer
+f_set_expander(s7_scheme *sc, s7_pointer args) {
+  global_expander = s7_car(args);
+  if (s7_is_boolean(global_expander) && !s7_boolean(sc, global_expander))
+    global_expander = NULL;
+  return global_expander;
+}
+
+/* (current-expander) 返回当前注册的 expander 或 #f */
+static s7_pointer
+f_current_expander(s7_scheme *sc, s7_pointer args) {
+  return (global_expander != NULL) ? global_expander : s7_f(sc);
+}
+
+inline void
+glue_expander (s7_scheme* sc) {
+  s7_define_function(sc, "set-expander!", f_set_expander, 1, 0, false,
+                     "(set-expander! proc) register global expander");
+  s7_define_function(sc, "current-expander", f_current_expander, 0, 0, false,
+                     "(current-expander) get current global expander");
 }
 
 static s7_pointer
@@ -1427,6 +1665,7 @@ glue_liii_list (s7_scheme* sc) {
 void
 glue_for_community_edition (s7_scheme* sc) {
   glue_goldfish (sc);
+  glue_expander (sc);
   glue_scheme_time (sc);
   glue_scheme_process_context (sc);
   glue_liii_sys (sc);
@@ -1476,8 +1715,8 @@ display_for_invalid_options (const std::vector<std::string>& invalid_opts) {
 }
 
 static void
-goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
-  s7_pointer result= s7_load (sc, path.c_str ());
+ic_goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
+  s7_pointer result= goldfish_load (sc, path.c_str ());
   if (!result) {
     cerr << "Failed to load " << path << endl;
     exit (-1);
@@ -1488,8 +1727,8 @@ goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
 }
 
 static void
-goldfish_eval_code (s7_scheme* sc, string code) {
-  s7_pointer x= s7_eval_c_string (sc, code.c_str ());
+ic_goldfish_eval_code (s7_scheme* sc, string code) {
+  s7_pointer x= goldfish_eval_c_string (sc, code.c_str ());
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
@@ -1507,20 +1746,20 @@ init_goldfish_scheme (const char* gf_lib) {
 void
 customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_path) {
   if (mode != "s7") {
-    s7_load (sc, boot_file_path);
+    goldfish_load (sc, boot_file_path);
   }
 
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii oop))");
+    // goldfish_eval_c_string (sc, "(import (liii base) (liii error) (liii oop))");
   }
   else if (mode == "scheme") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error))");
+    // goldfish_eval_c_string (sc, "(import (liii base) (liii error))");
   }
   else if (mode == "sicp") {
-    s7_eval_c_string (sc, "(import (scheme base) (srfi sicp))");
+    // goldfish_eval_c_string (sc, "(import (scheme base) (srfi sicp))");
   }
   else if (mode == "r7rs") {
-    s7_eval_c_string (sc, "(import (scheme base))");
+    // goldfish_eval_c_string (sc, "(import (scheme base))");
   }
   else if (mode == "s7") {
   }
@@ -1609,7 +1848,7 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
   s7_pointer old_out_port= s7_set_current_output_port (sc, out_port);
   if (old_err_port != s7_nil (sc)) out_gc_loc= s7_gc_protect (sc, old_out_port);
 
-  s7_pointer result= s7_eval_c_string (sc, code);
+  s7_pointer result= goldfish_eval_c_string (sc, code);
 
   const char* display_out= s7_get_output_string (sc, out_port);
   if (display_out && *display_out) {
@@ -2064,18 +2303,18 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   if (eval_arg) {
     std::string code= eval_arg.str ();
-    goldfish_eval_code (sc, code);
+    ic_goldfish_eval_code (sc, code);
   }
   if (load_arg) {
     std::string file= load_arg.str ();
-    goldfish_eval_file (sc, file, true);
+    ic_goldfish_eval_file (sc, file, true);
   }
 
   // eval only the first file passed as positional argument
   auto& files= cmdl.pos_args ();
   if (files.size () > 1) {
     auto it= files.begin () + 1;
-    goldfish_eval_file (sc, *it, true);
+    ic_goldfish_eval_file (sc, *it, true);
     // 如果有指定文件且没有显示传入 --repl, -i 参数，不进入 repl
     if (repl_flag && !cmdl[{"--repl", "-i"}]) repl_flag= false;
   }
