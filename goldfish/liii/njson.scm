@@ -18,6 +18,13 @@
   (import (liii base)
           (liii error))
   (export njson?
+          njson-null?
+          njson-object?
+          njson-array?
+          njson-string?
+          njson-number?
+          njson-integer?
+          njson-boolean?
           njson-free
           njson-string->json
           njson-json->string
@@ -41,6 +48,27 @@
 
     (define (njson? x)
       (g_njson-handle? x))
+
+    (define (njson-null? x)
+      (g_njson-null? x))
+
+    (define (njson-object? x)
+      (g_njson-object? x))
+
+    (define (njson-array? x)
+      (g_njson-array? x))
+
+    (define (njson-string? x)
+      (g_njson-string? x))
+
+    (define (njson-number? x)
+      (g_njson-number? x))
+
+    (define (njson-integer? x)
+      (g_njson-integer? x))
+
+    (define (njson-boolean? x)
+      (g_njson-boolean? x))
 
     (define (njson%%single-binding? x)
       (and (pair? x)
