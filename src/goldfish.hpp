@@ -565,6 +565,47 @@ f_njson_free (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_njson_size (s7_scheme* sc, s7_pointer args) {
+  s7_pointer  handle = s7_car (args);
+  s7_int      id = 0;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
+    return njson_error (sc, "type-error", "g_njson-size: " + error_msg, handle);
+  }
+
+  const json* root = njson_value_by_id_const (id);
+  if (!root) {
+    return njson_error (sc, "type-error", "g_njson-size: njson handle does not exist (may have been freed)", handle);
+  }
+
+  if (root->is_object () || root->is_array ()) {
+    return s7_make_integer (sc, static_cast<s7_int> (root->size ()));
+  }
+  return s7_make_integer (sc, 0);
+}
+
+static s7_pointer
+f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
+  s7_pointer  handle = s7_car (args);
+  s7_int      id = 0;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
+    return njson_error (sc, "type-error", "g_njson-empty?: " + error_msg, handle);
+  }
+
+  const json* root = njson_value_by_id_const (id);
+  if (!root) {
+    return njson_error (sc, "type-error",
+                        "g_njson-empty?: njson handle does not exist (may have been freed)", handle);
+  }
+
+  if (root->is_object () || root->is_array ()) {
+    return s7_make_boolean (sc, root->empty ());
+  }
+  return s7_t (sc);
+}
+
+static s7_pointer
 f_njson_ref (s7_scheme* sc, s7_pointer args) {
   s7_pointer  handle = s7_car (args);
   s7_int      id = 0;
@@ -941,6 +982,10 @@ glue_njson (s7_scheme* sc) {
   const char* integerp_desc = "(g_njson-integer? x) => boolean?";
   const char* booleanp_name = "g_njson-boolean?";
   const char* booleanp_desc = "(g_njson-boolean? x) => boolean?";
+  const char* size_name = "g_njson-size";
+  const char* size_desc = "(g_njson-size handle) => integer?";
+  const char* emptyp_name = "g_njson-empty?";
+  const char* emptyp_desc = "(g_njson-empty? handle) => boolean?";
   const char* free_name = "g_njson-free";
   const char* free_desc = "(g_njson-free handle) => boolean?";
   const char* ref_name = "g_njson-ref";
@@ -973,6 +1018,8 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, numberp_name, numberp_desc, f_njson_number_p, 1, 0);
   glue_define (sc, integerp_name, integerp_desc, f_njson_integer_p, 1, 0);
   glue_define (sc, booleanp_name, booleanp_desc, f_njson_boolean_p, 1, 0);
+  glue_define (sc, size_name, size_desc, f_njson_size, 1, 0);
+  glue_define (sc, emptyp_name, emptyp_desc, f_njson_empty_p, 1, 0);
   glue_define (sc, free_name, free_desc, f_njson_free, 1, 0);
   glue_define (sc, ref_name, ref_desc, f_njson_ref, 2, 32);
   glue_define (sc, set_name, set_desc, f_njson_set, 3, 32);
