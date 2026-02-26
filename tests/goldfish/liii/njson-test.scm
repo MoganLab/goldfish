@@ -222,6 +222,62 @@ x : any
 (check-false (njson? 1))
 
 #|
+njson-null?/object?/array?/string?/number?/integer?/boolean?
+统一类型谓词接口，支持 njson-handle 与 JSON 标量输入。
+
+语法
+----
+(njson-null? x)
+(njson-object? x)
+(njson-array? x)
+(njson-string? x)
+(njson-number? x)
+(njson-integer? x)
+(njson-boolean? x)
+
+返回值
+-----
+- #t / #f : 是否匹配目标 JSON 类型
+- 抛错 : x 为已释放/非法句柄
+|#
+
+(let-njson ((object-h (njson-string->json "{\"k\":1}"))
+            (array-h (njson-string->json "[1,2]"))
+            (string-h (njson-string->json "\"s\""))
+            (number-h (njson-string->json "3.14"))
+            (integer-h (njson-string->json "7"))
+            (boolean-h (njson-string->json "true"))
+            (null-h (njson-string->json "null")))
+  (check-true (njson-object? object-h))
+  (check-true (njson-array? array-h))
+  (check-true (njson-string? string-h))
+  (check-true (njson-number? number-h))
+  (check-true (njson-number? integer-h))
+  (check-true (njson-integer? integer-h))
+  (check-true (njson-boolean? boolean-h))
+  (check-true (njson-null? null-h))
+  (check-false (njson-array? object-h))
+  (check-false (njson-object? null-h))
+  (check-false (njson-integer? number-h)))
+
+(check-true (njson-string? "hello"))
+(check-true (njson-number? 3.14))
+(check-true (njson-integer? 7))
+(check-true (njson-boolean? #t))
+(check-true (njson-null? 'null))
+(check-false (njson-null? 'foo))
+(check-false (njson-object? "x"))
+(check-false (njson-array? #(1 2 3)))
+(check-false (njson-string? 'foo))
+(check-false (njson-number? 'foo))
+(check-false (njson-integer? 3.14))
+(check-false (njson-boolean? 1))
+
+(define njson-predicate-freed (njson-string->json "{\"k\":1}"))
+(check-true (njson-free njson-predicate-freed))
+(check-catch 'type-error (njson-object? njson-predicate-freed))
+
+#|
 njson-ref
 验证标量读取、多级路径读取与类型错误。
 

@@ -473,6 +473,83 @@ f_njson_handle_p (s7_scheme* sc, s7_pointer args) {
   return s7_make_boolean (sc, is_njson_handle (input));
 }
 
+template <typename HandlePredicate, typename ScalarPredicate>
+static s7_pointer
+njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_name, HandlePredicate handle_pred,
+                                ScalarPredicate scalar_pred) {
+  s7_pointer input = s7_car (args);
+  if (!is_njson_handle (input)) {
+    return s7_make_boolean (sc, scalar_pred (input));
+  }
+
+  s7_int      id = 0;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, input, id, error_msg)) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, input);
+  }
+  const json* value = njson_value_by_id_const (id);
+  if (!value) {
+    return njson_error (sc, "type-error",
+                        std::string (api_name) + ": njson handle does not exist (may have been freed)", input);
+  }
+  return s7_make_boolean (sc, handle_pred (*value));
+}
+
+static s7_pointer
+f_njson_null_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (
+    sc, args, "g_njson-null?", [] (const json& value) { return value.is_null (); }, [] (s7_pointer value) {
+      return s7_is_symbol (value) && strcmp (s7_symbol_name (value), "null") == 0;
+    });
+}
+
+static s7_pointer
+f_njson_object_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (sc, args, "g_njson-object?", [] (const json& value) { return value.is_object (); },
+                                         [] (s7_pointer value) {
+                                           (void) value;
+                                           return false;
+                                         });
+}
+
+static s7_pointer
+f_njson_array_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (sc, args, "g_njson-array?", [] (const json& value) { return value.is_array (); },
+                                         [] (s7_pointer value) {
+                                           (void) value;
+                                           return false;
+                                         });
+}
+
+static s7_pointer
+f_njson_string_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (
+    sc, args, "g_njson-string?", [] (const json& value) { return value.is_string (); },
+    [] (s7_pointer value) { return s7_is_string (value); });
+}
+
+static s7_pointer
+f_njson_number_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (
+    sc, args, "g_njson-number?", [] (const json& value) { return value.is_number (); },
+    [] (s7_pointer value) { return s7_is_number (value); });
+}
+
+static s7_pointer
+f_njson_integer_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (
+    sc, args, "g_njson-integer?",
+    [] (const json& value) { return value.is_number_integer () || value.is_number_unsigned (); },
+    [] (s7_pointer value) { return s7_is_integer (value); });
+}
+
+static s7_pointer
+f_njson_boolean_p (s7_scheme* sc, s7_pointer args) {
+  return njson_run_value_type_predicate (
+    sc, args, "g_njson-boolean?", [] (const json& value) { return value.is_boolean (); },
+    [] (s7_pointer value) { return s7_is_boolean (value); });
+}
+
 static s7_pointer
 f_njson_free (s7_scheme* sc, s7_pointer args) {
   s7_pointer  handle = s7_car (args);
@@ -850,6 +927,20 @@ glue_njson (s7_scheme* sc) {
   const char* dump_desc  = "(g_njson-json->string handle-or-scalar) => strict-json-string";
   const char* handlep_name = "g_njson-handle?";
   const char* handlep_desc = "(g_njson-handle? x) => boolean?";
+  const char* nullp_name = "g_njson-null?";
+  const char* nullp_desc = "(g_njson-null? x) => boolean?";
+  const char* objectp_name = "g_njson-object?";
+  const char* objectp_desc = "(g_njson-object? x) => boolean?";
+  const char* arrayp_name = "g_njson-array?";
+  const char* arrayp_desc = "(g_njson-array? x) => boolean?";
+  const char* stringp_name = "g_njson-string?";
+  const char* stringp_desc = "(g_njson-string? x) => boolean?";
+  const char* numberp_name = "g_njson-number?";
+  const char* numberp_desc = "(g_njson-number? x) => boolean?";
+  const char* integerp_name = "g_njson-integer?";
+  const char* integerp_desc = "(g_njson-integer? x) => boolean?";
+  const char* booleanp_name = "g_njson-boolean?";
+  const char* booleanp_desc = "(g_njson-boolean? x) => boolean?";
   const char* free_name = "g_njson-free";
   const char* free_desc = "(g_njson-free handle) => boolean?";
   const char* ref_name = "g_njson-ref";
@@ -875,6 +966,13 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
   glue_define (sc, dump_name, dump_desc, f_njson_json_to_string, 1, 0);
   glue_define (sc, handlep_name, handlep_desc, f_njson_handle_p, 1, 0);
+  glue_define (sc, nullp_name, nullp_desc, f_njson_null_p, 1, 0);
+  glue_define (sc, objectp_name, objectp_desc, f_njson_object_p, 1, 0);
+  glue_define (sc, arrayp_name, arrayp_desc, f_njson_array_p, 1, 0);
+  glue_define (sc, stringp_name, stringp_desc, f_njson_string_p, 1, 0);
+  glue_define (sc, numberp_name, numberp_desc, f_njson_number_p, 1, 0);
+  glue_define (sc, integerp_name, integerp_desc, f_njson_integer_p, 1, 0);
+  glue_define (sc, booleanp_name, booleanp_desc, f_njson_boolean_p, 1, 0);
   glue_define (sc, free_name, free_desc, f_njson_free, 1, 0);
   glue_define (sc, ref_name, ref_desc, f_njson_ref, 2, 32);
   glue_define (sc, set_name, set_desc, f_njson_set, 3, 32);
