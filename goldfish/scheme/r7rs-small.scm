@@ -147,26 +147,9 @@
                            alias* ...
                            body-expr* ...)))))))))))))
 
-(define (string-split str delimiter)
-  (let ((len (string-length str)))
-    (let loop ((i 0) (start 0) (acc '()))
-      (cond
-        ((>= i len)
-         (reverse (if (= start i)
-                      acc
-                      (cons (substring str start i) acc))))
-        ((char=? (string-ref str i) delimiter)
-         (loop (+ i 1) (+ i 1)
-               (cons (substring str start i) acc)))
-        (else
-         (loop (+ i 1) start acc))))))
-
-(define (symbol->library-name sym)
-  (map string->symbol (string-split (symbol->string sym) #\.)))
-
 (define-syntax import
   (lambda (stx)
-    (define (transform-lib lib)
+    (define (transform-lib _ lib)
       (let ((lib-datum (syntax->datum lib)))
         ;; imperative, violation of the `map`
         (load-library-by-name lib-datum lib)
@@ -175,13 +158,11 @@
         (display (library-name->symbol lib-datum)) ; scheme.base
         (newline)
 
-        (datum->syntax (syntax lib) (library-name->symbol lib-datum))))
+        (datum->syntax _ (library-name->symbol lib-datum))))
 
     (syntax-case stx ()
       ((_ lib* ...)
-       (with-syntax (((lib-symbol* ...) (map transform-lib #'(lib* ...))))
-         #'(begin
-             (for-each (lambda (sym)
-                         (load-library-by-name (symbol->library-name sym) #f))
-                       '(lib-symbol* ...))
-             (%primitive-import lib-symbol* ...)))))))
+       (with-syntax (((lib-symbol* ...)
+                      (map (lambda (lib) (transform-lib (syntax _) lib))
+                           #'(lib* ...))))
+         #'(%primitive-import lib-symbol* ...))))))
