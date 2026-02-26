@@ -551,6 +551,53 @@ key : string
 (check-catch 'type-error (njson-contains-key? 'foo "meta"))
 
 #|
+njson-size / njson-empty?
+获取 JSON 容器大小并判断是否为空。
+
+语法
+----
+(njson-size json)
+(njson-empty? json)
+
+参数
+----
+json : njson-handle
+  待查询的 JSON 句柄。
+
+返回值
+-----
+- njson-size : integer
+  object/array 返回元素个数，其他类型返回 0。
+- njson-empty? : boolean
+  object/array 按容器空判定，其他类型按空容器语义返回 #t。
+- 抛错 : 参数类型错误
+|#
+
+(let-njson ((root (njson-string->json sample-json))
+            (arr (njson-string->json "[1,2,3]"))
+            (empty-obj (njson-string->json "{}"))
+            (empty-arr (njson-string->json "[]"))
+            (scalar (njson-string->json "3.14")))
+  (check (njson-size root) => 6)
+  (check-false (njson-empty? root))
+  (check (njson-size arr) => 3)
+  (check-false (njson-empty? arr))
+  (check (njson-size empty-obj) => 0)
+  (check-true (njson-empty? empty-obj))
+  (check (njson-size empty-arr) => 0)
+  (check-true (njson-empty? empty-arr))
+  (check (njson-size scalar) => 0)
+  (check-true (njson-empty? scalar)))
+
+(check-catch 'type-error (njson-size 'foo))
+(check-catch 'type-error (njson-empty? 'foo))
+
+(define njson-size-freed (njson-string->json "{\"k\":1}"))
+(check-true (njson-free njson-size-freed))
+(check-catch 'type-error (njson-size njson-size-freed))
+(check-catch 'type-error (njson-empty? njson-size-freed))
+
+#|
 njson-keys
 获取对象所有键名列表。
 
@@ -601,6 +648,45 @@ json : njson-handle
     (check-true (string-list-contains? "lazy-key" keys2))
     (check-true (string-list-contains? "name" keys2))))
 (check-catch 'type-error (njson-keys 'foo))
+
+#|
+njson-file->json / njson-json->file
+在文件与 njson 之间读写 JSON 文本。
+
+语法
+----
+(njson-file->json path)
+(njson-json->file path value)
+
+参数
+----
+path : string
+  文件路径。
+value : njson-handle | string | number | boolean | 'null
+  待写入 JSON 值。
+
+返回值
+-----
+- njson-file->json : njson-handle
+- njson-json->file : integer（写入字节数）
+- 抛错 : 参数类型错误、文件不存在或解析失败
+|#
+
+(define njson-io-path
+  (string-append "/tmp/goldfish-njson-io-" (number->string (g_monotonic-nanosecond)) ".json"))
+
+(let-njson ((root (njson-string->json sample-json)))
+  (check-true (> (njson-json->file njson-io-path root) 0))
+  (let-njson ((loaded (njson-file->json njson-io-path)))
+    (check (njson-json->string loaded) => (njson-json->string root))))
+
+(check-true (> (njson-json->file njson-io-path 'null) 0))
+(let-njson ((loaded-null (njson-file->json njson-io-path)))
+  (check-true (njson-null? loaded-null)))
+
+(check-catch 'type-error (njson-file->json 1))
+(check-catch 'type-error (njson-json->file 1 'null))
+(check-catch 'type-error (njson-json->file njson-io-path 'foo))
 
 #|
 njson-json->string

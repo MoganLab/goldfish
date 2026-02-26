@@ -16,7 +16,8 @@
 
 (define-library (liii njson)
   (import (liii base)
-          (liii error))
+          (liii error)
+          (liii path))
   (export njson?
           njson-null?
           njson-object?
@@ -25,9 +26,13 @@
           njson-number?
           njson-integer?
           njson-boolean?
+          njson-size
+          njson-empty?
           njson-free
           njson-string->json
+          njson-file->json
           njson-json->string
+          njson-json->file
           let-njson
           njson-ref
           njson-set
@@ -127,15 +132,37 @@
         (type-error "njson-free: input must be njson-handle" x))
       (g_njson-free x))
 
+    (define (njson-size json)
+      (unless (njson? json)
+        (type-error "njson-size: json must be njson-handle" json))
+      (g_njson-size json))
+
+    (define (njson-empty? json)
+      (unless (njson? json)
+        (type-error "njson-empty?: json must be njson-handle" json))
+      (g_njson-empty? json))
+
     (define (njson-string->json json-string)
       (unless (string? json-string)
         (type-error "njson-string->json: input must be string" json-string))
       (g_njson-string->json json-string))
 
+    (define (njson-file->json path)
+      (unless (string? path)
+        (type-error "njson-file->json: path must be string" path))
+      (njson-string->json (path-read-text path)))
+
     (define (njson-json->string x)
       (unless (njson-json-value? x)
         (type-error "njson-json->string: input must be njson-handle or strict json scalar" x))
       (g_njson-json->string x))
+
+    (define (njson-json->file path x)
+      (unless (string? path)
+        (type-error "njson-json->file: path must be string" path))
+      (unless (njson-json-value? x)
+        (type-error "njson-json->file: input must be njson-handle or strict json scalar" x))
+      (path-write-text path (njson-json->string x)))
 
     (define (njson-ref json key . keys)
       (unless (njson? json)
