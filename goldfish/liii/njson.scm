@@ -24,8 +24,11 @@
           let-njson
           njson-ref
           njson-set
+          njson-set!
           njson-push
+          njson-push!
           njson-drop
+          njson-drop!
           njson-contains-key?
           njson-keys
           njson-schema-valid?)
@@ -119,6 +122,14 @@
         (type-error "njson-set: json must be njson-handle" json))
       (apply g_njson-set (cons json (cons key (cons val keys)))))
 
+    ;; In-place update style:
+    ;; (njson-set! j key value)
+    ;; (njson-set! j k1 k2 ... kn value)
+    (define (njson-set! json key val . keys)
+      (unless (njson? json)
+        (type-error "njson-set!: json must be njson-handle" json))
+      (apply g_njson-set! (cons json (cons key (cons val keys)))))
+
     ;; Same calling style as (liii json):
     ;; (njson-push j key value)
     ;; (njson-push j k1 k2 ... kn value)
@@ -127,10 +138,23 @@
         (type-error "njson-push: json must be njson-handle" json))
       (apply g_njson-push (cons json (cons key (cons val keys)))))
 
+    ;; In-place update style:
+    ;; (njson-push! j key value)
+    ;; (njson-push! j k1 k2 ... kn value)
+    (define (njson-push! json key val . keys)
+      (unless (njson? json)
+        (type-error "njson-push!: json must be njson-handle" json))
+      (apply g_njson-push! (cons json (cons key (cons val keys)))))
+
     (define (njson-drop json key . keys)
       (unless (njson? json)
         (type-error "njson-drop: json must be njson-handle" json))
       (apply g_njson-drop (cons json (cons key keys))))
+
+    (define (njson-drop! json key . keys)
+      (unless (njson? json)
+        (type-error "njson-drop!: json must be njson-handle" json))
+      (apply g_njson-drop! (cons json (cons key keys))))
 
     (define (njson-contains-key? json key)
       (unless (njson? json)
