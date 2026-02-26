@@ -218,11 +218,11 @@ njson_try_get_keys_cache (s7_int id, s7_pointer& out) {
 }
 
 static void
-njson_refresh_keys_cache_if_present (s7_scheme* sc, s7_int id, const json& root) {
+njson_invalidate_keys_cache_if_present (s7_scheme* sc, s7_int id) {
   if (id <= 0) return;
   size_t index = static_cast<size_t> (id);
   if (index >= njson_keys_cache_valid.size () || !njson_keys_cache_valid[index]) return;
-  njson_store_keys_cache (sc, id, njson_build_keys_list (sc, root));
+  njson_clear_keys_cache_slot (sc, id);
 }
 
 static s7_int
@@ -656,7 +656,8 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
     if (err) {
       return err;
     }
-    njson_refresh_keys_cache_if_present (sc, id, *root);
+    // Keep write-path fast: only invalidate; keys will be rebuilt lazily on next njson-keys call.
+    njson_invalidate_keys_cache_if_present (sc, id);
     return handle;
   }
 

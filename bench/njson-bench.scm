@@ -295,6 +295,7 @@
 (check-true (njson-free drop-handle))
 
 (define set-x-handle (njson-string->json bench-json))
+(njson-keys set-x-handle)
 (define njson-set!-ns
   (bench-ns-median
     (lambda ()
@@ -304,6 +305,7 @@
 (check-true (njson-free set-x-handle))
 
 (define push-x-handle (njson-string->json bench-json))
+(njson-keys push-x-handle)
 (define njson-push!-pair-ns
   (bench-ns-median
     (lambda ()
@@ -315,6 +317,7 @@
 (check-true (njson-free push-x-handle))
 
 (define drop-x-handle (njson-string->json bench-json))
+(njson-keys drop-x-handle)
 (define njson-drop!-pair-ns
   (bench-ns-median
     (lambda ()
