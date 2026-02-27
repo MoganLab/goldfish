@@ -1,4 +1,5 @@
-(set! (*s7* 'scheme-version) 'r7rs)
+(unless (defined? 'texmacs-module)
+  (set! (*s7* 'scheme-version) 'r7rs))
 
 (define (file-exists? path)
   (if (string? path)
