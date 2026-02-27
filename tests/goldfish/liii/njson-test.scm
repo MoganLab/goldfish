@@ -17,7 +17,12 @@
 (import (liii check)
         (liii base)
         (liii error)
-        (liii njson))
+        (liii path)
+        (liii njson)
+        (rename (liii json)
+                (string->json ljson-string->json)
+                (json-object? ljson-object?)
+                (json-ref ljson-ref)))
 
 
 (define sample-json
@@ -62,12 +67,12 @@ body ... : expression
 |#
 
 (check-catch 'type-error
-  (let-njson ((j (njson-string->json 1)))
+  (let-njson ((j (string->njson 1)))
     j))
 
 (define auto-macro-root '())
 (check
-  (let-njson ((j (njson-string->json sample-json)))
+  (let-njson ((j (string->njson sample-json)))
     (set! auto-macro-root j)
     (njson-ref j "active"))
   => #t)
@@ -76,8 +81,8 @@ body ... : expression
 (define auto-macro-root-multi-a '())
 (define auto-macro-root-multi-b '())
 (check
-  (let-njson ((j1 (njson-string->json sample-json))
-              (j2 (njson-string->json "{\"env\":\"test\",\"nums\":[10,20]}")))
+  (let-njson ((j1 (string->njson sample-json))
+              (j2 (string->njson "{\"env\":\"test\",\"nums\":[10,20]}")))
     (set! auto-macro-root-multi-a j1)
     (set! auto-macro-root-multi-b j2)
     (+ (njson-ref j1 "nums" 0)
@@ -88,8 +93,8 @@ body ... : expression
 
 (define auto-macro-root-multi-on-error '())
 (check-catch 'parse-error
-  (let-njson ((j1 (njson-string->json sample-json))
-              (j2 (njson-string->json "{name:\"bad\"}")))
+  (let-njson ((j1 (string->njson sample-json))
+              (j2 (string->njson "{name:\"bad\"}")))
     (set! auto-macro-root-multi-on-error j1)
     #t))
 (check-catch 'type-error (njson-ref auto-macro-root-multi-on-error "name"))
@@ -106,8 +111,8 @@ body ... : expression
 (define auto-macro-value-multi-a '())
 (define auto-macro-value-multi-b '())
 (check
-  (let-njson ((j1 (njson-string->json sample-json))
-                     (j2 (njson-string->json "{\"meta\":{\"os\":\"debian\"}}"))
+  (let-njson ((j1 (string->njson sample-json))
+                     (j2 (string->njson "{\"meta\":{\"os\":\"debian\"}}"))
                      (x 10))
     (set! auto-macro-value-multi-a j1)
     (set! auto-macro-value-multi-b j2)
@@ -121,8 +126,8 @@ body ... : expression
 (define auto-macro-value-multi-on-error-a '())
 (define auto-macro-value-multi-on-error-b '())
 (check-catch 'value-error
-  (let-njson ((j1 (njson-string->json sample-json))
-                     (j2 (njson-string->json "{\"k\":1}")))
+  (let-njson ((j1 (string->njson sample-json))
+                     (j2 (string->njson "{\"k\":1}")))
     (set! auto-macro-value-multi-on-error-a j1)
     (set! auto-macro-value-multi-on-error-b j2)
     (value-error "boom in multi let-njson")))
@@ -131,7 +136,7 @@ body ... : expression
 
 (define auto-macro-meta '())
 (check
-  (let-njson ((j (njson-string->json sample-json))
+  (let-njson ((j (string->njson sample-json))
                      (m (njson-ref j "meta")))
     (set! auto-macro-meta m)
     (njson-ref m "os"))
@@ -140,7 +145,7 @@ body ... : expression
 
 (define auto-macro-set '())
 (check
-  (let-njson ((j (njson-string->json sample-json))
+  (let-njson ((j (string->njson sample-json))
                      (j2 (njson-set j "meta" "os" "debian")))
     (set! auto-macro-set j2)
     (njson-ref j2 "meta" "os"))
@@ -149,12 +154,12 @@ body ... : expression
 
 (define auto-macro-root-on-error '())
 (check-catch 'value-error
-  (let-njson ((j (njson-string->json sample-json)))
+  (let-njson ((j (string->njson sample-json)))
     (set! auto-macro-root-on-error j)
     (value-error "boom in let-njson")))
 (check-catch 'type-error (njson-ref auto-macro-root-on-error "name"))
 
-(define owned-handle (njson-string->json sample-json))
+(define owned-handle (string->njson sample-json))
 (define auto-owned '())
 (check
   (let-njson ((j owned-handle))
@@ -164,12 +169,12 @@ body ... : expression
 (check-catch 'type-error (njson-ref auto-owned "version"))
 
 #|
-njson-string->json
+string->njson
 将 JSON 字符串解析为 njson-handle。
 
 语法
 ----
-(njson-string->json json-string)
+(string->njson json-string)
 
 参数
 ----
@@ -187,10 +192,10 @@ json-string : string
 - 与 let-njson 配合可自动管理句柄生命周期
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check (njson-ref root "name") => "Goldfish"))
-(check-catch 'parse-error (njson-string->json "{name:\"Goldfish\"}"))
-(check-catch 'type-error (njson-string->json 1))
+(check-catch 'parse-error (string->njson "{name:\"Goldfish\"}"))
+(check-catch 'type-error (string->njson 1))
 
 #|
 njson?
@@ -216,7 +221,7 @@ x : any
 - 常用于 API 调用前的防御式校验
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check-true (njson? root)))
 (check-false (njson? 'foo))
 (check-false (njson? 1))
@@ -241,13 +246,13 @@ njson-null?/object?/array?/string?/number?/integer?/boolean?
 - 抛错 : x 为已释放/非法句柄
 |#
 
-(let-njson ((object-h (njson-string->json "{\"k\":1}"))
-            (array-h (njson-string->json "[1,2]"))
-            (string-h (njson-string->json "\"s\""))
-            (number-h (njson-string->json "3.14"))
-            (integer-h (njson-string->json "7"))
-            (boolean-h (njson-string->json "true"))
-            (null-h (njson-string->json "null")))
+(let-njson ((object-h (string->njson "{\"k\":1}"))
+            (array-h (string->njson "[1,2]"))
+            (string-h (string->njson "\"s\""))
+            (number-h (string->njson "3.14"))
+            (integer-h (string->njson "7"))
+            (boolean-h (string->njson "true"))
+            (null-h (string->njson "null")))
   (check-true (njson-object? object-h))
   (check-true (njson-array? array-h))
   (check-true (njson-string? string-h))
@@ -273,7 +278,7 @@ njson-null?/object?/array?/string?/number?/integer?/boolean?
 (check-false (njson-integer? 3.14))
 (check-false (njson-boolean? 1))
 
-(define njson-predicate-freed (njson-string->json "{\"k\":1}"))
+(define njson-predicate-freed (string->njson "{\"k\":1}"))
 (check-true (njson-free njson-predicate-freed))
 (check-catch 'type-error (njson-object? njson-predicate-freed))
 
@@ -306,16 +311,16 @@ key / k1..kn : string | integer
 - 命中子 object/array 时返回句柄，可继续链式访问
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check (njson-ref root "name") => "Goldfish")
   (check (njson-ref root "active") => #t)
   (check (njson-ref root "meta" "arch") => "x86_64"))
 (check-catch 'type-error
-  (let-njson ((root (njson-string->json sample-json)))
+  (let-njson ((root (string->njson sample-json)))
     (njson-ref root 'meta)))
 
 (define functional-meta '())
-(let-njson ((root (njson-string->json sample-json))
+(let-njson ((root (string->njson sample-json))
                    (meta (njson-ref root "meta")))
   (set! functional-meta meta)
   (check-true (njson? meta))
@@ -350,7 +355,7 @@ value : njson-handle | string | number | boolean | 'null
 - 支持对象字段与数组位置更新
 |#
 
-(let-njson ((root (njson-string->json sample-json))
+(let-njson ((root (string->njson sample-json))
                    (root2 (njson-set root "meta" "os" "debian")))
   (check (njson-ref root2 "meta" "os") => "debian")
   (check (njson-ref root "meta" "os") => "linux"))
@@ -384,7 +389,7 @@ value : njson-handle | string | number | boolean | 'null
 - 更新后可直接继续在同一句柄上读取
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check-true (njson? (njson-set! root "meta" "os" "debian")))
   (check (njson-ref root "meta" "os") => "debian"))
 (check-catch 'type-error (njson-set! 'foo "meta" "os" "debian"))
@@ -417,7 +422,7 @@ value : njson-handle | string | number | boolean | 'null
 - 对数组可按位置插入元素
 |#
 
-(let-njson ((root (njson-string->json sample-json))
+(let-njson ((root (string->njson sample-json))
                    (root3 (njson-push root "nums" 5 99)))
   (check (njson-ref root3 "nums" 5) => 99))
 (check-catch 'type-error (njson-push 'foo "nums" 0 99))
@@ -450,7 +455,7 @@ value : njson-handle | string | number | boolean | 'null
 - 适合批量构造或热路径更新
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (njson-push! root "nums" 5 99)
   (check (njson-ref root "nums" 5) => 99))
 (check-catch 'type-error (njson-push! 'foo "nums" 0 99))
@@ -481,7 +486,7 @@ key ... : string | integer
 - 保持函数式语义（原句柄可继续使用）
 |#
 
-(let-njson ((root (njson-string->json sample-json))
+(let-njson ((root (string->njson sample-json))
                    (root4 (njson-drop root "active")))
   (check (njson-ref root4 "active") => '())
   (check (njson-ref root "active") => #t))
@@ -513,7 +518,7 @@ key ... : string | integer
 - 适合性能敏感的可变更新场景
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (njson-drop! root "active")
   (check (njson-ref root "active") => '()))
 (check-catch 'type-error (njson-drop! 'foo "active"))
@@ -545,7 +550,7 @@ key : string
 - 常与 njson-ref 搭配进行防御式读取
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check-true (njson-contains-key? root "meta"))
   (check-false (njson-contains-key? root "not-found")))
 (check-catch 'type-error (njson-contains-key? 'foo "meta"))
@@ -573,11 +578,11 @@ json : njson-handle
 - 抛错 : 参数类型错误
 |#
 
-(let-njson ((root (njson-string->json sample-json))
-            (arr (njson-string->json "[1,2,3]"))
-            (empty-obj (njson-string->json "{}"))
-            (empty-arr (njson-string->json "[]"))
-            (scalar (njson-string->json "3.14")))
+(let-njson ((root (string->njson sample-json))
+            (arr (string->njson "[1,2,3]"))
+            (empty-obj (string->njson "{}"))
+            (empty-arr (string->njson "[]"))
+            (scalar (string->njson "3.14")))
   (check (njson-size root) => 6)
   (check-false (njson-empty? root))
   (check (njson-size arr) => 3)
@@ -592,7 +597,7 @@ json : njson-handle
 (check-catch 'type-error (njson-size 'foo))
 (check-catch 'type-error (njson-empty? 'foo))
 
-(define njson-size-freed (njson-string->json "{\"k\":1}"))
+(define njson-size-freed (string->njson "{\"k\":1}"))
 (check-true (njson-free njson-size-freed))
 (check-catch 'type-error (njson-size njson-size-freed))
 (check-catch 'type-error (njson-empty? njson-size-freed))
@@ -622,7 +627,7 @@ json : njson-handle
 - 支持 keys 缓存与写后失效、读时重建
 |#
 
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (check-true (> (length (njson-keys root)) 0))
   (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-drop! root "active")
@@ -633,7 +638,7 @@ json : njson-handle
   (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-push! root "new-key" 1)
   (check-true (string-list-contains? "new-key" (njson-keys root))))
-(let-njson ((root (njson-string->json sample-json)))
+(let-njson ((root (string->njson sample-json)))
   (njson-keys root)
   (njson-drop! root "active")
   (njson-push! root "lazy-key" 1)
@@ -650,51 +655,60 @@ json : njson-handle
 (check-catch 'type-error (njson-keys 'foo))
 
 #|
-njson-file->json / njson-json->file
+file->njson / njson->file
 在文件与 njson 之间读写 JSON 文本。
 
 语法
 ----
-(njson-file->json path)
-(njson-json->file path value)
+(file->njson path)
+(njson->file path value)
 
 参数
 ----
 path : string
   文件路径。
-value : njson-handle | string | number | boolean | 'null
+value : njson-handle 
   待写入 JSON 值。
 
 返回值
 -----
-- njson-file->json : njson-handle
-- njson-json->file : integer（写入字节数）
+- file->njson : njson-handle
+- njson->file : integer（写入字节数）
 - 抛错 : 参数类型错误、文件不存在或解析失败
+
+说明
+----
+- njson->file 会将输出格式化后写入文件（pretty JSON）。
 |#
 
 (define njson-io-path
   (string-append "/tmp/goldfish-njson-io-" (number->string (g_monotonic-nanosecond)) ".json"))
 
-(let-njson ((root (njson-string->json sample-json)))
-  (check-true (> (njson-json->file njson-io-path root) 0))
-  (let-njson ((loaded (njson-file->json njson-io-path)))
-    (check (njson-json->string loaded) => (njson-json->string root))))
+(let-njson ((root (string->njson sample-json)))
+  (check-true (> (njson->file njson-io-path root) 0))
+  (let-njson ((loaded (file->njson njson-io-path)))
+    (check (njson->string loaded) => (njson->string root))))
 
-(check-true (> (njson-json->file njson-io-path 'null) 0))
-(let-njson ((loaded-null (njson-file->json njson-io-path)))
+(let-njson ((compact (string->njson "{\"b\":1,\"a\":2}")))
+  (check-true (> (njson->file njson-io-path compact) 0))
+  (check (path-read-text njson-io-path)
+         => "{\n  \"a\": 2,\n  \"b\": 1\n}"))
+
+(check-true (> (njson->file njson-io-path 'null) 0))
+(let-njson ((loaded-null (file->njson njson-io-path)))
   (check-true (njson-null? loaded-null)))
 
-(check-catch 'type-error (njson-file->json 1))
-(check-catch 'type-error (njson-json->file 1 'null))
-(check-catch 'type-error (njson-json->file njson-io-path 'foo))
+(check-catch 'type-error (file->njson 1))
+(check-catch 'type-error (njson->file 1 'null))
+(check-catch 'type-error (njson->file njson-io-path 'foo))
 
 #|
-njson-json->string
+njson->string
 将 njson-handle 或标量值序列化为 JSON 字符串。
 
 语法
 ----
-(njson-json->string value)
+(njson->string value)
 
 参数
 ----
@@ -709,23 +723,108 @@ value : njson-handle | string | number | boolean | 'null
 功能
 ----
 - 支持句柄与标量统一序列化
-- 可与 njson-string->json 组合完成回环验证
+- 可与 string->njson 组合完成回环验证
 |#
 
-(check (njson-json->string 'null) => "null")
-(check-catch 'type-error (njson-json->string 'foo))
+(check (njson->string 'null) => "null")
+(check-catch 'type-error (njson->string 'foo))
+
+#|
+njson-format-string
+将 JSON 字符串格式化为可读的多行文本。
+
+语法
+----
+(njson-format-string json-string [indent])
+
+参数
+----
+json-string : string
+  待格式化的严格 JSON 文本。
+indent : integer（可选，默认 2）
+  缩进空格数，需 >= 0。
+
+返回值
+-----
+- string : 格式化后的 JSON 文本
+- 抛错 : parse-error / type-error / value-error
+|#
+
+(check (njson-format-string "{\"b\":1,\"a\":{\"k\":2}}")
+       => "{\n  \"a\": {\n    \"k\": 2\n  },\n  \"b\": 1\n}")
+(check (njson-format-string "[1,2,3]" 4)
+       => "[\n    1,\n    2,\n    3\n]")
+(check (njson-format-string "1") => "1")
+
+(check-catch 'parse-error (njson-format-string "{name:1}"))
+(check-catch 'type-error (njson-format-string 1))
+(check-catch 'type-error (njson-format-string "{}" "2"))
+(check-catch 'value-error (njson-format-string "{}" -1))
+(check-catch 'value-error (njson-format-string "{}" 2 4))
 
 (define functional-roundtrip '())
-(let-njson ((root (njson-string->json sample-json))
+(let-njson ((root (string->njson sample-json))
                    (root2 (njson-set root "meta" "os" "debian"))
                    (root3 (njson-push root2 "nums" 5 99))
                    (root4 (njson-drop root3 "active"))
-                   (roundtrip (njson-string->json (njson-json->string root4))))
+                   (roundtrip (string->njson (njson->string root4))))
   (set! functional-roundtrip roundtrip)
   (check (njson-ref roundtrip "meta" "os") => "debian")
   (check (njson-ref roundtrip "nums" 5) => 99)
   (check (njson-ref roundtrip "active") => '()))
 (check-catch 'type-error (njson-ref functional-roundtrip "meta" "os"))
+
+#|
+json->njson / njson->json
+在 liii json 与 njson 之间做双向转换。
+
+语法
+----
+(json->njson value)
+(njson->json value)
+
+参数
+----
+value : any
+  - json->njson: liii json 值（object/array）或 strict json scalar
+  - njson->json: njson-handle 或 strict json scalar
+
+返回值
+-----
+- json->njson : njson-handle
+- njson->json : liii json 值
+- 抛错 : 参数类型错误
+
+功能
+----
+- 用于 `(liii json)` 与 `(liii njson)` 之间互转
+- 便于混合场景在两种 JSON 表示间切换
+|#
+
+(define ljson-bridge-sample (ljson-string->json sample-json))
+(let-njson ((bridge-handle (json->njson ljson-bridge-sample)))
+  (check (njson-ref bridge-handle "name") => "Goldfish")
+  (check (njson-ref bridge-handle "nums" 2) => 3))
+
+(let-njson ((bridge-handle (string->njson sample-json)))
+  (let ((ljson-val (njson->json bridge-handle)))
+    (check-true (ljson-object? ljson-val))
+    (check (ljson-ref ljson-val "name") => "Goldfish")
+    (check (ljson-ref ljson-val "active") => #t)
+    (check (ljson-ref ljson-val "nums" 1) => 2)))
+
+(check (njson->json 'null) => 'null)
+(check (njson->json 7) => 7)
+
+(let-njson ((null-handle (json->njson 'null)))
+  (check-true (njson-null? null-handle)))
+
+(check-catch 'type-error (json->njson 'foo))
+(check-catch 'type-error (njson->json 'foo))
+
+(define njson->json-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free njson->json-freed))
+(check-catch 'type-error (njson->json njson->json-freed))
 
 #|
 njson-schema-report
@@ -787,12 +886,12 @@ instance : njson-handle | string | number | boolean | 'null
 (define schema-empty-object-json "{}")
 
 (define (njson-schema-report-with-json schema-json instance-json)
-  (let-njson ((schema (njson-string->json schema-json))
-                     (instance (njson-string->json instance-json)))
+  (let-njson ((schema (string->njson schema-json))
+                     (instance (string->njson instance-json)))
     (njson-schema-report schema instance)))
 
 (define (njson-schema-report-with-schema schema-json instance)
-  (let-njson ((schema (njson-string->json schema-json)))
+  (let-njson ((schema (string->njson schema-json)))
     (njson-schema-report schema instance)))
 
 (define (run-schema-report mode schema-input instance-input)
@@ -872,14 +971,14 @@ instance : njson-handle | string | number | boolean | 'null
   (check-schema-report-invalid-min-errors instance-array-report 1))
 
 (check-catch 'type-error
-  (let-njson ((instance (njson-string->json schema-instance-ok-json)))
+  (let-njson ((instance (string->njson schema-instance-ok-json)))
     (njson-schema-report 'foo instance)))
 (check-catch 'type-error (njson-schema-report-with-schema schema-object-json 'foo))
 (check-catch 'schema-error (njson-schema-report-with-json schema-bad-handle-json schema-instance-ok-json))
 (check-catch 'schema-error (njson-schema-report-with-json schema-bad-non-object-json schema-instance-ok-json))
 
-(define schema-handle-for-freed-check (njson-string->json schema-object-json))
-(define freed-instance-handle (njson-string->json "{\"name\":\"Bob\"}"))
+(define schema-handle-for-freed-check (string->njson schema-object-json))
+(define freed-instance-handle (string->njson "{\"name\":\"Bob\"}"))
 (check-true (njson-free freed-instance-handle))
 (check-catch 'type-error (njson-schema-report schema-handle-for-freed-check freed-instance-handle))
 (check-true (njson-free schema-handle-for-freed-check))
