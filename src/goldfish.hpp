@@ -468,6 +468,36 @@ f_njson_json_to_string (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_njson_format_string (s7_scheme* sc, s7_pointer args) {
+  s7_pointer input = s7_car (args);
+  if (!s7_is_string (input)) {
+    return njson_error (sc, "type-error", "g_njson-format-string: input must be string", input);
+  }
+
+  s7_int     indent = 2;
+  s7_pointer rest = s7_cdr (args);
+  if (!s7_is_null (sc, rest)) {
+    s7_pointer indent_arg = s7_car (rest);
+    if (!s7_is_integer (indent_arg)) {
+      return njson_error (sc, "type-error", "g_njson-format-string: indent must be integer?", indent_arg);
+    }
+    indent = s7_integer (indent_arg);
+    if (indent < 0) {
+      return njson_error (sc, "value-error", "g_njson-format-string: indent must be >= 0", indent_arg);
+    }
+  }
+
+  try {
+    json parsed = json::parse (s7_string (input));
+    std::string dumped = parsed.dump (static_cast<int> (indent));
+    return s7_make_string (sc, dumped.c_str ());
+  }
+  catch (const json::parse_error& err) {
+    return njson_error (sc, "parse-error", err.what (), input);
+  }
+}
+
+static s7_pointer
 f_njson_handle_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer input = s7_car (args);
   return s7_make_boolean (sc, is_njson_handle (input));
@@ -966,6 +996,8 @@ glue_njson (s7_scheme* sc) {
   const char* parse_desc = "(g_njson-string->json json-string) => njson-handle";
   const char* dump_name  = "g_njson-json->string";
   const char* dump_desc  = "(g_njson-json->string handle-or-scalar) => strict-json-string";
+  const char* format_name = "g_njson-format-string";
+  const char* format_desc = "(g_njson-format-string json-string :optional indent) => strict-json-string";
   const char* handlep_name = "g_njson-handle?";
   const char* handlep_desc = "(g_njson-handle? x) => boolean?";
   const char* nullp_name = "g_njson-null?";
@@ -1010,6 +1042,7 @@ glue_njson (s7_scheme* sc) {
   const char* schema_report_desc = "(g_njson-schema-report schema-handle instance) => hash-table";
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
   glue_define (sc, dump_name, dump_desc, f_njson_json_to_string, 1, 0);
+  glue_define (sc, format_name, format_desc, f_njson_format_string, 1, 1);
   glue_define (sc, handlep_name, handlep_desc, f_njson_handle_p, 1, 0);
   glue_define (sc, nullp_name, nullp_desc, f_njson_null_p, 1, 0);
   glue_define (sc, objectp_name, objectp_desc, f_njson_object_p, 1, 0);

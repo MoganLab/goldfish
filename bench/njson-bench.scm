@@ -174,48 +174,48 @@
 (do ((i 0 (+ i 1)))
     ((= i 20))
   (ljson-string->json bench-json)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-free h))
   (ljson-json->string bench-json-scm)
-  (let ((h (njson-string->json bench-json)))
-    (njson-json->string h)
+  (let ((h (string->njson bench-json)))
+    (njson->string h)
     (njson-free h))
   (ljson-ref bench-json-scm bench-ref-key)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-ref h bench-ref-key)
     (njson-free h))
   (ljson-set bench-json-scm bench-ref-key bench-set-value)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (let ((x (njson-set h bench-ref-key bench-set-value)))
       (njson-free x))
     (njson-free h))
   (ljson-push bench-json-scm "nums" bench-push-index bench-push-value)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (let ((x (njson-push h "nums" bench-push-index bench-push-value)))
       (njson-free x))
     (njson-free h))
   (ljson-drop bench-json-scm bench-drop-key)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (let ((x (njson-drop h bench-drop-key)))
       (njson-free x))
     (njson-free h))
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-set! h bench-ref-key bench-set-value)
     (njson-free h))
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-push! h "nums" bench-push-index bench-push-value)
     (njson-drop! h "nums" bench-push-index)
     (njson-free h))
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-set! h bench-drop-key 1)
     (njson-drop! h bench-drop-key)
     (njson-free h))
   (ljson-contains-key? bench-json-scm bench-ref-key)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-contains-key? h bench-ref-key)
     (njson-free h))
   (ljson-keys bench-json-scm)
-  (let ((h (njson-string->json bench-json)))
+  (let ((h (string->njson bench-json)))
     (njson-keys h)
     (njson-free h)))
 
@@ -235,7 +235,7 @@
 (define njson-parse-ns
   (bench-ns-median
     (lambda ()
-      (let ((h (njson-string->json bench-json)))
+      (let ((h (string->njson bench-json)))
         (njson-free h)))
     parse-count
     round-count))
@@ -243,19 +243,19 @@
 (define liii-stringify-ns
   (bench-ns-median (lambda () (ljson-json->string bench-json-scm)) stringify-count round-count))
 
-(define stringify-handle (njson-string->json bench-json))
+(define stringify-handle (string->njson bench-json))
 (define njson-stringify-ns
-  (bench-ns-median (lambda () (njson-json->string stringify-handle)) stringify-count round-count))
+  (bench-ns-median (lambda () (njson->string stringify-handle)) stringify-count round-count))
 (check-true (njson-free stringify-handle))
 
-(define ref-handle (njson-string->json bench-json))
+(define ref-handle (string->njson bench-json))
 (define liii-ref-ns
   (bench-ns-median (lambda () (ljson-ref bench-json-scm bench-ref-key)) ref-count round-count))
 (define njson-ref-ns
   (bench-ns-median (lambda () (njson-ref ref-handle bench-ref-key)) ref-count round-count))
 (check-true (njson-free ref-handle))
 
-(define set-handle (njson-string->json bench-json))
+(define set-handle (string->njson bench-json))
 (define liii-set-ns
   (bench-ns-median (lambda () (ljson-set bench-json-scm bench-ref-key bench-set-value)) set-count round-count))
 (define njson-set-ns
@@ -267,7 +267,7 @@
     round-count))
 (check-true (njson-free set-handle))
 
-(define push-handle (njson-string->json bench-json))
+(define push-handle (string->njson bench-json))
 (define liii-push-ns
   (bench-ns-median
     (lambda () (ljson-push bench-json-scm "nums" bench-push-index bench-push-value))
@@ -282,7 +282,7 @@
     round-count))
 (check-true (njson-free push-handle))
 
-(define drop-handle (njson-string->json bench-json))
+(define drop-handle (string->njson bench-json))
 (define liii-drop-ns
   (bench-ns-median (lambda () (ljson-drop bench-json-scm bench-drop-key)) drop-count round-count))
 (define njson-drop-ns
@@ -294,7 +294,7 @@
     round-count))
 (check-true (njson-free drop-handle))
 
-(define set-x-handle (njson-string->json bench-json))
+(define set-x-handle (string->njson bench-json))
 (njson-keys set-x-handle)
 (define njson-set!-ns
   (bench-ns-median
@@ -304,7 +304,7 @@
     round-count))
 (check-true (njson-free set-x-handle))
 
-(define push-x-handle (njson-string->json bench-json))
+(define push-x-handle (string->njson bench-json))
 (njson-keys push-x-handle)
 (define njson-push!-pair-ns
   (bench-ns-median
@@ -316,7 +316,7 @@
     round-count))
 (check-true (njson-free push-x-handle))
 
-(define drop-x-handle (njson-string->json bench-json))
+(define drop-x-handle (string->njson bench-json))
 (njson-keys drop-x-handle)
 (define njson-drop!-pair-ns
   (bench-ns-median
@@ -328,7 +328,7 @@
     round-count))
 (check-true (njson-free drop-x-handle))
 
-(define contains-key-handle (njson-string->json bench-json))
+(define contains-key-handle (string->njson bench-json))
 (define liii-contains-key-ns
   (bench-ns-median
     (lambda () (ljson-contains-key? bench-json-scm bench-ref-key))
@@ -341,7 +341,7 @@
     round-count))
 (check-true (njson-free contains-key-handle))
 
-(define keys-handle (njson-string->json bench-json))
+(define keys-handle (string->njson bench-json))
 (define liii-keys-ns
   (bench-ns-median (lambda () (ljson-keys bench-json-scm)) keys-count round-count))
 (define njson-keys-ns
