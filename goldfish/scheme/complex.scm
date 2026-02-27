@@ -24,7 +24,7 @@
           imag-part
           magnitude
           angle)
-  (import (scheme base)))
+  (import (scheme internal)))
 
 ;; Note: These functions are implemented in the underlying S7 scheme engine
 ;; and are made available through the library export mechanism.

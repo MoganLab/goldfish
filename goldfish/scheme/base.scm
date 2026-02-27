@@ -15,7 +15,7 @@
 ;
 
 (define-library (scheme base)
-  (import (scheme core))
+  (import (scheme internal))
   (export
     let-values
     ; R7RS 5: Program Structure
@@ -27,7 +27,7 @@
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
-    list-ref list-set! memq memv member assq assv assoc list-copy
+    list-ref list-set! memq memv member assq assv assoc (rename copy list-copy)
     ; R7RS 6.5: Symbol
     symbol? symbol=? string->symbol symbol->string
     ; R7RS 6.6: Characters
@@ -108,6 +108,64 @@
     (define-macro (define-values vars expression)
       `(if (not (null? ',vars))
            (varlet (curlet) ((lambda ,vars (curlet)) ,expression))))
+    ; (define-syntax define-values
+    ;   (lambda (orig-form)
+    ;     (syntax-case orig-form ()
+    ;       ((_ () expr)
+    ;        ;; XXX Work around the lack of hygienic top-level identifiers
+    ;        (with-syntax (((dummy) (generate-temporaries '(dummy))))
+    ;          #`(define dummy
+    ;              (call-with-values (lambda () expr)
+    ;                (lambda () #f)))))
+    ;       ((_ (var) expr)
+    ;        (identifier? #'var)
+    ;        #`(define var
+    ;            (call-with-values (lambda () expr)
+    ;              (lambda (v) v))))
+    ;       ((_ (var0 ... varn) expr)
+    ;        (and-map identifier? #'(var0 ... varn))
+    ;        ;; XXX Work around the lack of hygienic toplevel identifiers
+    ;        (with-syntax (((dummy) (generate-temporaries '(dummy))))
+    ;          #`(begin
+    ;              ;; Avoid mutating the user-visible variables
+    ;              (define dummy
+    ;                (call-with-values (lambda () expr)
+    ;                  (lambda (var0 ... varn)
+    ;                    (list var0 ... varn))))
+    ;              (define var0
+    ;                (let ((v (car dummy)))
+    ;                  (set! dummy (cdr dummy))
+    ;                  v))
+    ;              ...
+    ;              (define varn
+    ;                (let ((v (car dummy)))
+    ;                  (set! dummy #f)  ; blackhole dummy
+    ;                  v)))))
+    ;       ((_ var expr)
+    ;        (identifier? #'var)
+    ;        #'(define var
+    ;            (call-with-values (lambda () expr)
+    ;              list)))
+    ;       ((_ (var0 ... . varn) expr)
+    ;        (and-map identifier? #'(var0 ... varn))
+    ;        ;; XXX Work around the lack of hygienic toplevel identifiers
+    ;        (with-syntax (((dummy) (generate-temporaries '(dummy))))
+    ;          #`(begin
+    ;              ;; Avoid mutating the user-visible variables
+    ;              (define dummy
+    ;                (call-with-values (lambda () expr)
+    ;                  (lambda (var0 ... . varn)
+    ;                    (list var0 ... varn))))
+    ;              (define var0
+    ;                (let ((v (car dummy)))
+    ;                  (set! dummy (cdr dummy))
+    ;                  v))
+    ;              ...
+    ;              (define varn
+    ;                (let ((v (car dummy)))
+    ;                  (set! dummy #f)  ; blackhole dummy
+    ;                  v))))))))
+
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: r7rs.scm
     (define-macro (define-record-type type make ? . fields)
@@ -575,7 +633,7 @@ wrong-type-arg
     (define (eof-object) (call-with-input-string "" read))
 
     ; 0 clause BSD, from S7 repo r7rs.scm
-    (define list-copy copy)
+    ; (define list-copy copy)
 
     (define (string-copy str . start_end)
       (cond ((null? start_end)

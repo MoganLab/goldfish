@@ -74,9 +74,6 @@
                (let ((full (find-file-in-paths (car files))))
                  (if full
                      (begin
-                       (display "full: ")
-                       (display full)
-                       (newline)
                        (load full)                ; 调用普通 load
                        (hash-table-set! *library-registry* lib-name #t))
                      (try (cdr files)))))))))))
@@ -153,11 +150,6 @@
       (let ((lib-datum (syntax->datum lib)))
         ;; imperative, violation of the `map`
         (load-library-by-name lib-datum lib)
-
-        (display "lib-datum: ")
-        (display (library-name->symbol lib-datum)) ; scheme.base
-        (newline)
-
         (datum->syntax _ (library-name->symbol lib-datum))))
 
     (syntax-case stx ()
