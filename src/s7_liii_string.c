@@ -152,3 +152,17 @@ s7_pointer g_string_set(s7_scheme *sc, s7_pointer args)
   str[ind] = (char)s7_character(c);
   return c;
 }
+
+/* -------------------------------- string-length! -------------------------------- */
+
+s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
+{
+  #define H_string_length "(string-length str) returns the length of the string str"
+  #define Q_string_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
+
+  s7_pointer str = s7_car(args);
+  if (!s7_is_string(str))
+    return method_or_bust(sc, str, "string-length", "a string");
+    
+  return s7_make_integer(sc, s7_string_length(str));
+}

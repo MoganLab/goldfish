@@ -25037,22 +25037,9 @@ static s7_pointer make_string_p_i(s7_scheme *sc, s7_int len)
 
 #if !WITH_PURE_S7
 /* -------------------------------- string-length -------------------------------- */
-static s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_length "(string-length str) returns the length of the string str"
-  #define Q_string_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_length_symbol, args, sc->type_names[T_STRING]));
-  return(make_integer(sc, string_length(str)));
-}
 
-static s7_int string_length_i_7p(s7_scheme *sc, s7_pointer str)
-{
-  if (!is_string(str))
-    return(integer(method_or_bust_p(sc, str, sc->string_length_symbol, sc->type_names[T_STRING])));
-  return(string_length(str));
-}
+
+
 #endif
 
 
@@ -96179,7 +96166,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_pp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_pp);
   s7_set_p_ppp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_ppp);
   s7_set_i_i_function(sc, global_value(sc->integer_length_symbol), integer_length_i_i);
-  s7_set_i_7p_function(sc, global_value(sc->string_length_symbol), string_length_i_7p);
+  // DELETED : s7_set_i_7p_function(sc, global_value(sc->string_length_symbol), string_length_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->vector_length_symbol), vector_length_i_7p);
   s7_set_p_p_function(sc, global_value(sc->vector_to_list_symbol), vector_to_list_p_p);
   s7_set_p_p_function(sc, global_value(sc->string_to_list_symbol), string_to_list_p_p);
