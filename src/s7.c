@@ -6608,6 +6608,22 @@ static s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer metho
   return(find_and_apply_method(sc, obj, method, args));
 }
 
+s7_pointer s7i_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name,
+			      s7_pointer args, const char *type_name, s7_int arg_pos)
+{
+  return(method_or_bust(sc, obj,
+			s7_make_symbol(sc, method_name),
+			args,
+			wrap_string(sc, type_name, safe_strlen(type_name)),
+			(int32_t)arg_pos));
+}
+
+bool s7i_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name,
+			     s7_pointer args, const char *type_name, s7_int arg_pos)
+{
+  return(s7i_method_or_bust(sc, obj, method_name, args, type_name, arg_pos) != sc->F);
+}
+
 static s7_pointer mutable_method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t num)
 {
   if (has_active_methods(sc, obj)) return(find_and_apply_method(sc, obj, method, args));
