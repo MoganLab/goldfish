@@ -33,9 +33,18 @@
         ((string=? s (car xs)) #t)
         (else (string-list-contains? s (cdr xs)))))
 
+(define (capture-key-error-message thunk)
+  (catch 'key-error
+    thunk
+    (lambda args
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload)))
+            (car payload)
+            "")))))
+
 #|
 let-njson
-统一处理“可能是句柄也可能是标量”的作用域宏。
+统一处理“可能是 njson 句柄，也可能是普通标量”的作用域宏。
 
 语法
 ----
@@ -50,20 +59,25 @@ let-njson
 var : symbol
   绑定名。
 value-expr : any
-  待绑定表达式；当结果为 njson-handle 时进入自动释放流程。
+  待绑定表达式；可返回 njson-handle 或普通值。
 body ... : expression
   在绑定作用域内执行的表达式序列。
 
+行为逻辑
+--------
+1. 先求值 `value-expr` 并绑定到 `var`。
+2. 若结果是 njson-handle，则在退出作用域时自动调用 `njson-free` 释放。
+3. 若结果不是句柄，则按普通 `let` 语义传递，不做释放。
+4. 支持多绑定；每个绑定独立判定是否需要自动释放。
+
 返回值
 -----
-- body 最后一个表达式的返回值
-- 抛错 : 绑定语法非法（如空绑定列表）
+- 返回 `body` 最后一个表达式的值。
+- 若 `body` 内抛错，错误会继续向上传播；已绑定的句柄仍会在离开作用域时清理。
 
-功能
+错误
 ----
-- value-expr 为句柄时自动释放
-- 支持一次绑定多个 value-expr
-- value-expr 为标量时直接传递
+- `type-error`：绑定语法非法（例如空绑定列表、不是 `(var expr)` 或 `((var expr) ...)` 结构）。
 |#
 
 (check-catch 'type-error
@@ -181,21 +195,31 @@ string->njson
 json-string : string
   严格 JSON 文本。
 
+行为逻辑
+--------
+1. 校验 `json-string` 必须为字符串。
+2. 使用 nlohmann-json 解析文本。
+3. 解析结果存入 njson 句柄池并返回句柄。
+
 返回值
 -----
-- njson-handle : 解析成功
-- 抛错 : parse-error（语法非法）/ type-error（参数类型非法）
+- `njson-handle`：解析成功时返回的句柄；可用于后续 `njson-ref/set/...`。
 
-功能
+错误
 ----
-- 用于从文本入口构建 njson 句柄
-- 与 let-njson 配合可自动管理句柄生命周期
+- `type-error`：`json-string` 不是字符串。
+- `parse-error`：字符串不是合法 JSON。
 |#
 
 (let-njson ((root (string->njson sample-json)))
   (check (njson-ref root "name") => "Goldfish"))
 (check-catch 'parse-error (string->njson "{name:\"Goldfish\"}"))
 (check-catch 'type-error (string->njson 1))
+
+(define njson-string-free-check (string->njson "{\"x\":1}"))
+(check-true (njson-free njson-string-free-check))
+(check-catch 'type-error (njson-ref njson-string-free-check "x"))
+(check-catch 'type-error (njson-free 'foo))
 
 #|
 njson?
@@ -210,15 +234,19 @@ njson?
 x : any
   任意 Scheme 值。
 
+行为逻辑
+--------
+1. 仅检查结构是否符合 njson 句柄格式（`(njson-handle . id)`）。
+2. 不负责判断该句柄是否已释放；“已释放”通常在具体 API 调用时触发错误。
+
 返回值
 -----
-- #t : x 是 njson-handle
-- #f : x 不是 njson-handle
+- `#t`：`x` 结构上是 njson 句柄。
+- `#f`：`x` 不是 njson 句柄。
 
-功能
+错误
 ----
-- 句柄类型判定
-- 常用于 API 调用前的防御式校验
+- 无（该谓词本身不抛错）。
 |#
 
 (let-njson ((root (string->njson sample-json)))
@@ -240,10 +268,19 @@ njson-null?/object?/array?/string?/number?/integer?/boolean?
 (njson-integer? x)
 (njson-boolean? x)
 
+行为逻辑
+--------
+1. 若 `x` 不是句柄，则按 Scheme 标量语义直接判定。
+2. 若 `x` 是句柄，则读取句柄对应 JSON 值并判定其底层类型。
+3. 对已释放句柄会在访问句柄池时报错。
+
 返回值
 -----
 - #t / #f : 是否匹配目标 JSON 类型
-- 抛错 : x 为已释放/非法句柄
+
+错误
+----
+- `type-error`：`x` 形似句柄但非法，或句柄已释放。
 |#
 
 (let-njson ((object-h (string->njson "{\"k\":1}"))
@@ -284,7 +321,7 @@ njson-null?/object?/array?/string?/number?/integer?/boolean?
 
 #|
 njson-ref
-验证标量读取、多级路径读取与类型错误。
+读取 JSON 中指定路径的值（支持 object/array 多级路径）。
 
 语法
 ----
@@ -298,26 +335,35 @@ json : njson-handle
 key / k1..kn : string | integer
   路径 token。object 层使用 string，array 层使用 integer。
 
+行为逻辑
+--------
+1. 从 `json` 根开始，按路径逐层下钻。
+2. object 层要求 token 为字符串；array 层要求 token 为非负整数。
+3. 路径中任一层不存在时抛 `key-error`。
+4. 命中 object/array 子结构时返回新的 njson-handle；命中标量返回标量。
+
 返回值
 -----
 - 标量值 : string | number | boolean | 'null
 - njson-handle : 命中 object/array 子结构
-- () : 路径不存在
-- 抛错 : 参数类型错误或路径 token 非法
 
-功能
+错误
 ----
-- 支持对象与数组的多级路径读取
-- 命中子 object/array 时返回句柄，可继续链式访问
+- `type-error`：`json` 非句柄或句柄已释放。
+- `key-error`：路径 token 类型与当前层不匹配、路径结构非法、缺少路径参数、路径不存在。
 |#
 
 (let-njson ((root (string->njson sample-json)))
   (check (njson-ref root "name") => "Goldfish")
   (check (njson-ref root "active") => #t)
   (check (njson-ref root "meta" "arch") => "x86_64"))
-(check-catch 'type-error
+(check-catch 'key-error
   (let-njson ((root (string->njson sample-json)))
     (njson-ref root 'meta)))
+(let-njson ((root (string->njson sample-json)))
+  (check (catch 'key-error (lambda () (njson-ref root "not-found")) (lambda args 'key-error)) => 'key-error)
+  (check (catch 'key-error (lambda () (njson-ref root "nums" 999)) (lambda args 'key-error)) => 'key-error)
+  (check (catch 'key-error (lambda () (njson-ref root "name" "x")) (lambda args 'key-error)) => 'key-error))
 
 (define functional-meta '())
 (let-njson ((root (string->njson sample-json))
@@ -329,7 +375,7 @@ key / k1..kn : string | integer
 
 #|
 njson-set
-函数式更新：返回新句柄，不修改原句柄。
+函数式更新（upsert）：返回新句柄，不修改原句柄。
 
 语法
 ----
@@ -340,30 +386,65 @@ njson-set
 json : njson-handle
   待更新的 JSON 句柄。
 key ... : string | integer
-  路径 token，可为多层路径。
+  路径 token，可为多层路径；最后一个 token 表示写入位置。
 value : njson-handle | string | number | boolean | 'null
   写入值。
 
+行为逻辑
+--------
+1. 复制输入句柄对应 JSON，保证函数式语义。
+2. 定位到目标父节点后写入末级 token。
+3. object：若键存在则覆盖，若不存在则新建（upsert）。
+4. array：`idx < size` 覆盖，`idx >= size` 抛错。
+
 返回值
 -----
-- njson-handle : 返回更新后的新句柄
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：包含更新结果的新句柄（与输入不是同一逻辑对象）。
 
-功能
+错误
 ----
-- 保持函数式语义（原句柄不变）
-- 支持对象字段与数组位置更新
+- `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
+- `key-error`：路径 token 非法、路径结构非法、参数个数不合法、数组索引越界（`idx >= size`）。
 |#
 
 (let-njson ((root (string->njson sample-json))
-                   (root2 (njson-set root "meta" "os" "debian")))
+                   (root2 (njson-set root "meta" "os" "debian"))
+                   (root3 (njson-set root "city" "HZ"))
+                   (root4 (njson-set root "nums" 4 99)))
   (check (njson-ref root2 "meta" "os") => "debian")
-  (check (njson-ref root "meta" "os") => "linux"))
+  (check (njson-ref root "meta" "os") => "linux")
+  (check (njson-ref root3 "city") => "HZ")
+  (check-false (njson-contains-key? root "city"))
+  (check (njson-ref root4 "nums" 4) => 99)
+  (check (njson-size (njson-ref root "nums")) => 5))
+
+(let-njson ((root (string->njson sample-json))
+            (root-idx-update (njson-set root "nums" 1 200))
+            (meta (njson-ref root "meta"))
+            (root-handle-value (njson-set root "meta-copy" meta))
+            (root-miss-parent (njson-set root "meta" "missing" "k" 1)))
+  (check (njson-ref root-idx-update "nums" 1) => 200)
+  (check (njson-ref root-handle-value "meta-copy" "os") => "linux")
+  (check-false (njson-contains-key? root "meta-copy"))
+  (let-njson ((meta2 (njson-ref root-miss-parent "meta"))
+              (meta (njson-ref root "meta")))
+    (check-false (njson-contains-key? meta2 "missing"))
+    (check-false (njson-contains-key? meta "missing"))))
+
 (check-catch 'type-error (njson-set 'foo "meta" "os" "debian"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set root 'meta "os" "debian")))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set root "nums" 5 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set root "nums" 999 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check (capture-key-error-message (lambda () (njson-set root "nums" 5 1)))
+         => "g_njson-set: array index out of range (index=5, size=5)"))
 
 #|
 njson-set!
-原地更新：直接修改输入句柄。
+原地更新（upsert）：直接修改输入句柄。
 
 语法
 ----
@@ -374,91 +455,164 @@ njson-set!
 json : njson-handle
   待原地更新的 JSON 句柄。
 key ... : string | integer
-  路径 token，可为多层路径。
+  路径 token，可为多层路径；最后一个 token 表示写入位置。
 value : njson-handle | string | number | boolean | 'null
   写入值。
 
+行为逻辑
+--------
+1. 直接在原句柄对应 JSON 上更新，不做整棵复制。
+2. object：存在则覆盖，不存在则新建（upsert）。
+3. array：`idx < size` 覆盖，`idx >= size` 抛错。
+4. 更新成功后同句柄继续可读，`njson-keys` 缓存会自动失效并在下次读取重建。
+
 返回值
 -----
-- njson-handle : 与输入同一逻辑句柄（已更新）
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：返回原句柄本身（已更新）。
 
-功能
+错误
 ----
-- 避免整棵复制，适合性能敏感路径
-- 更新后可直接继续在同一句柄上读取
+- `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
+- `key-error`：路径 token 非法、路径结构非法、参数个数不合法、数组索引越界（`idx >= size`）。
 |#
 
 (let-njson ((root (string->njson sample-json)))
   (check-true (njson? (njson-set! root "meta" "os" "debian")))
-  (check (njson-ref root "meta" "os") => "debian"))
+  (njson-set! root "city" "HZ")
+  (njson-set! root "nums" 4 99)
+  (check (njson-ref root "meta" "os") => "debian")
+  (check (njson-ref root "city") => "HZ")
+  (check (njson-ref root "nums" 4) => 99))
+
+(let-njson ((root (string->njson sample-json))
+            (meta (njson-ref root "meta")))
+  (njson-set! root "meta-copy" meta)
+  (njson-set! root "meta" "missing" "k" 1)
+  (check (njson-ref root "meta-copy" "arch") => "x86_64")
+  (let-njson ((meta2 (njson-ref root "meta")))
+    (check-false (njson-contains-key? meta2 "missing"))))
+
 (check-catch 'type-error (njson-set! 'foo "meta" "os" "debian"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set! root 'meta "os" "debian")))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set! root "nums" 5 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set! root "nums" 999 1)))
 
 #|
-njson-push
-函数式插入：返回新句柄，原句柄不变。
+njson-append
+数组追加（函数式）：返回新句柄，原句柄不变。
 
 语法
 ----
-(njson-push json key ... value)
+(njson-append json value)
+(njson-append json k1 k2 ... kn value)
 
 参数
 ----
 json : njson-handle
-  待插入的 JSON 句柄。
-key ... : string | integer
-  路径 token，末级通常指向对象键或数组位置。
+  待追加的 JSON 句柄。
+k1..kn : string | integer（可选）
+  指向目标数组的路径；省略时目标为根。
 value : njson-handle | string | number | boolean | 'null
-  插入值。
+  追加值。
+
+行为逻辑
+--------
+1. 复制输入句柄对应 JSON，保证函数式语义。
+2. 若提供路径，先定位目标路径；路径不存在时抛 `key-error`。
+3. 目标必须是 array，否则抛 `key-error`。
+4. 在数组末尾追加 `value`。
 
 返回值
 -----
-- njson-handle : 返回插入后的新句柄
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：追加后的新句柄。
 
-功能
+错误
 ----
-- 对对象可新增键
-- 对数组可按位置插入元素
+- `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
+- `key-error`：缺少 value、路径非法、路径不存在、目标不是数组。
 |#
 
 (let-njson ((root (string->njson sample-json))
-                   (root3 (njson-push root "nums" 5 99)))
-  (check (njson-ref root3 "nums" 5) => 99))
-(check-catch 'type-error (njson-push 'foo "nums" 0 99))
+            (root2 (njson-append root "nums" 99)))
+  (check (njson-ref root2 "nums" 5) => 99)
+  (check (njson-size (njson-ref root "nums")) => 5))
+
+(let-njson ((arr (string->njson "[1,2]"))
+            (arr2 (njson-append arr 3)))
+  (check (njson-ref arr2 2) => 3)
+  (check (njson-size arr) => 2))
+
+(check-catch 'type-error (njson-append 'foo 1))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-append root))
+  (check-catch 'key-error (njson-append root "as"))
+  (check (capture-key-error-message (lambda () (njson-append root "as")))
+         => "g_njson-append: path not found: missing object key 'as'")
+  (check-catch 'key-error (njson-append root "nums"))
+  (check (capture-key-error-message (lambda () (njson-append root "nums")))
+         => "g_njson-append: expected (json [key ...] value)")
+  (check-catch 'key-error (njson-append root "name" 1))
+  (check (capture-key-error-message (lambda () (njson-append root "name" 1)))
+         => "g_njson-append: append target must be array"))
 
 #|
-njson-push!
-原地插入：直接修改输入句柄。
+njson-append!
+数组追加（原地）：直接修改输入句柄。
 
 语法
 ----
-(njson-push! json key ... value)
+(njson-append! json value)
+(njson-append! json k1 k2 ... kn value)
 
 参数
 ----
 json : njson-handle
-  待原地插入的 JSON 句柄。
-key ... : string | integer
-  路径 token，末级通常指向对象键或数组位置。
+  待原地追加的 JSON 句柄。
+k1..kn : string | integer（可选）
+  指向目标数组的路径；省略时目标为根。
 value : njson-handle | string | number | boolean | 'null
-  插入值。
+  追加值。
+
+行为逻辑
+--------
+1. 在输入句柄上原地更新，不做整棵复制。
+2. 若提供路径，先定位目标路径；路径不存在时抛 `key-error`。
+3. 目标必须是 array，否则抛 `key-error`。
+4. 在数组末尾追加 `value`，返回同一个句柄。
 
 返回值
 -----
-- njson-handle : 与输入同一逻辑句柄（已更新）
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：输入句柄本身（已更新）。
 
-功能
+错误
 ----
-- 减少复制与分配成本
-- 适合批量构造或热路径更新
+- `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
+- `key-error`：缺少 value、路径非法、路径不存在、目标不是数组。
 |#
 
 (let-njson ((root (string->njson sample-json)))
-  (njson-push! root "nums" 5 99)
+  (check-true (njson? (njson-append! root "nums" 99)))
   (check (njson-ref root "nums" 5) => 99))
-(check-catch 'type-error (njson-push! 'foo "nums" 0 99))
+
+(let-njson ((arr (string->njson "[1,2]")))
+  (njson-append! arr 3)
+  (check (njson-ref arr 2) => 3))
+
+(check-catch 'type-error (njson-append! 'foo 1))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-append! root))
+  (check-catch 'key-error (njson-append! root "as"))
+  (check (capture-key-error-message (lambda () (njson-append! root "as")))
+         => "g_njson-append!: path not found: missing object key 'as'")
+  (check-catch 'key-error (njson-append! root "nums"))
+  (check (capture-key-error-message (lambda () (njson-append! root "nums")))
+         => "g_njson-append!: expected (json [key ...] value)")
+  (check-catch 'key-error (njson-append! root "name" 1))
+  (check (capture-key-error-message (lambda () (njson-append! root "name" 1)))
+         => "g_njson-append!: append target must be array"))
 
 #|
 njson-drop
@@ -475,22 +629,47 @@ json : njson-handle
 key ... : string | integer
   路径 token，定位待删除目标。
 
+行为逻辑
+--------
+1. 复制输入句柄对应 JSON，确保原句柄不被修改。
+2. 按路径逐层定位到待删除目标的父节点。
+3. object 层使用 string 键删除字段；字段不存在时抛出 `key-error`。
+4. array 层使用非负 integer 索引删除元素；索引越界时抛出 `key-error`。
+5. 删除后返回新句柄；原句柄仍可继续读取原值。
+
 返回值
 -----
-- njson-handle : 返回删除后的新句柄
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：删除结果对应的新句柄（与输入句柄不同）。
 
-功能
+错误
 ----
-- 删除对象字段或数组元素
-- 保持函数式语义（原句柄可继续使用）
+- `type-error`：`json` 非句柄或句柄已释放。
+- `key-error`：路径 token 类型与当前层不匹配、路径结构非法、缺少路径参数，或删除目标不存在。
 |#
 
 (let-njson ((root (string->njson sample-json))
                    (root4 (njson-drop root "active")))
-  (check (njson-ref root4 "active") => '())
+  (check-false (njson-contains-key? root4 "active"))
   (check (njson-ref root "active") => #t))
+
+(let-njson ((arr (string->njson "[10,20,30]"))
+            (arr2 (njson-drop arr 1)))
+  (check (njson-ref arr2 0) => 10)
+  (check (njson-ref arr2 1) => 30)
+  (check (njson-size arr2) => 2)
+  (check (njson-ref arr 1) => 20))
+
 (check-catch 'type-error (njson-drop 'foo "active"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-drop root 'active))
+  (check-catch 'key-error (njson-drop root "not-found"))
+  (check-catch 'key-error (njson-drop root "meta" "not-found"))
+  (check (capture-key-error-message (lambda () (njson-drop root "not-found")))
+         => "g_njson-drop: path not found: missing object key 'not-found'"))
+(let-njson ((arr (string->njson "[10,20,30]")))
+  (check-catch 'key-error (njson-drop arr 3))
+  (check (capture-key-error-message (lambda () (njson-drop arr 3)))
+         => "g_njson-drop: path not found: array index out of range (index=3, size=3)"))
 
 #|
 njson-drop!
@@ -507,21 +686,45 @@ json : njson-handle
 key ... : string | integer
   路径 token，定位待删除目标。
 
+行为逻辑
+--------
+1. 在输入句柄对应 JSON 上直接执行删除，不做整棵复制。
+2. object 层按字符串键删除字段；array 层按非负整数索引删除元素。
+3. 删除目标不存在时抛出 `key-error`。
+4. 删除成功后继续返回并复用同一输入句柄。
+5. 若目标是对象，`njson-keys` 缓存会标记失效并在下次读取时重建。
+
 返回值
 -----
-- njson-handle : 与输入同一逻辑句柄（已更新）
-- 抛错 : 参数类型错误或路径非法
+- `njson-handle`：输入句柄本身（已更新）。
 
-功能
+错误
 ----
-- 删除对象字段或数组元素
-- 适合性能敏感的可变更新场景
+- `type-error`：`json` 非句柄或句柄已释放。
+- `key-error`：路径 token 类型与当前层不匹配、路径结构非法、缺少路径参数，或删除目标不存在。
 |#
 
 (let-njson ((root (string->njson sample-json)))
   (njson-drop! root "active")
-  (check (njson-ref root "active") => '()))
+  (check-false (njson-contains-key? root "active")))
+
+(let-njson ((arr (string->njson "[10,20,30]")))
+  (njson-drop! arr 1)
+  (check (njson-ref arr 0) => 10)
+  (check (njson-ref arr 1) => 30)
+  (check (njson-size arr) => 2))
+
 (check-catch 'type-error (njson-drop! 'foo "active"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-drop! root 'active))
+  (check-catch 'key-error (njson-drop! root "not-found"))
+  (check-catch 'key-error (njson-drop! root "meta" "not-found"))
+  (check (capture-key-error-message (lambda () (njson-drop! root "meta" "not-found")))
+         => "g_njson-drop!: path not found: missing object key 'not-found'"))
+(let-njson ((arr (string->njson "[10,20,30]")))
+  (check-catch 'key-error (njson-drop! arr 3))
+  (check (capture-key-error-message (lambda () (njson-drop! arr 3)))
+         => "g_njson-drop!: path not found: array index out of range (index=3, size=3)"))
 
 #|
 njson-contains-key?
@@ -538,22 +741,42 @@ json : njson-handle
 key : string
   待查询的键名。
 
+行为逻辑
+--------
+1. 校验 `json` 为可用句柄且 `key` 为字符串。
+2. 若句柄指向对象，则检查该键是否存在。
+3. 若句柄不是对象（array/scalar/null），直接返回 `#f`，不抛错。
+
 返回值
 -----
-- #t : 键存在
-- #f : 键不存在或目标不是对象
-- 抛错 : 参数类型错误
+- `#t`：目标为对象且包含 `key`。
+- `#f`：目标不是对象，或对象中不存在该键。
 
-功能
+错误
 ----
-- 用于对象键存在性判断
-- 常与 njson-ref 搭配进行防御式读取
+- `type-error`：`json` 非句柄或句柄已释放。
+- `key-error`：`key` 非字符串（路径键非法）。
 |#
 
 (let-njson ((root (string->njson sample-json)))
   (check-true (njson-contains-key? root "meta"))
   (check-false (njson-contains-key? root "not-found")))
+
+(let-njson ((arr (string->njson "[1,2]"))
+            (scalar (string->njson "1")))
+  (check-false (njson-contains-key? arr "0"))
+  (check-false (njson-contains-key? scalar "x")))
+
 (check-catch 'type-error (njson-contains-key? 'foo "meta"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-contains-key? root 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check (capture-key-error-message (lambda () (njson-contains-key? root 1)))
+         => "g_njson-contains-key?: json object key must be string?"))
+
+(define njson-contains-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-contains-freed))
+(check-catch 'type-error (njson-contains-key? njson-contains-freed "k"))
 
 #|
 njson-size / njson-empty?
@@ -569,13 +792,23 @@ njson-size / njson-empty?
 json : njson-handle
   待查询的 JSON 句柄。
 
+行为逻辑
+--------
+1. `njson-size` 仅对 object/array 返回成员数；其余类型统一视为 0。
+2. `njson-empty?` 以“容器是否有元素”判定空性。
+3. 对 scalar/null，按非容器语义处理：`njson-size => 0`，`njson-empty? => #t`。
+4. 句柄已释放或句柄非法时立即抛错。
+
 返回值
 -----
 - njson-size : integer
-  object/array 返回元素个数，其他类型返回 0。
+  object/array 返回元素个数；其他类型返回 0。
 - njson-empty? : boolean
-  object/array 按容器空判定，其他类型按空容器语义返回 #t。
-- 抛错 : 参数类型错误
+  object/array 按成员数判空；其他类型返回 #t。
+
+错误
+----
+- `type-error`：`json` 非句柄或句柄已释放。
 |#
 
 (let-njson ((root (string->njson sample-json))
@@ -615,16 +848,21 @@ njson-keys
 json : njson-handle
   待读取键集合的 JSON 句柄。
 
+行为逻辑
+--------
+1. 若目标为对象，则返回其所有键名（字符串列表）。
+2. 若目标不是对象（array/scalar/null），返回空表 `()`。
+3. 内部使用键缓存：首次读取构建缓存；对象被 `njson-set!`/`njson-drop!` 修改后标记失效。
+4. 缓存失效后下一次 `njson-keys` 调用会按当前对象内容重建。
+
 返回值
 -----
 - (list string ...) : 对象键列表
 - '() : 目标不是对象或对象为空
-- 抛错 : 参数类型错误
 
-功能
+错误
 ----
-- 提供对象字段枚举能力
-- 支持 keys 缓存与写后失效、读时重建
+- `type-error`：`json` 非句柄或句柄已释放。
 |#
 
 (let-njson ((root (string->njson sample-json)))
@@ -632,16 +870,16 @@ json : njson-handle
   (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-drop! root "active")
   (check-false (string-list-contains? "active" (njson-keys root)))
-  (njson-push! root "active" #t)
+  (njson-set! root "active" #t)
   (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-set! root "name" "Goldfish++")
   (check-true (string-list-contains? "active" (njson-keys root)))
-  (njson-push! root "new-key" 1)
+  (njson-set! root "new-key" 1)
   (check-true (string-list-contains? "new-key" (njson-keys root))))
 (let-njson ((root (string->njson sample-json)))
   (njson-keys root)
   (njson-drop! root "active")
-  (njson-push! root "lazy-key" 1)
+  (njson-set! root "lazy-key" 1)
   (njson-set! root "name" "Goldfish-Lazy")
   (let ((keys (njson-keys root)))
     (check-false (string-list-contains? "active" keys))
@@ -652,7 +890,19 @@ json : njson-handle
     (check-false (string-list-contains? "active" keys2))
     (check-true (string-list-contains? "lazy-key" keys2))
     (check-true (string-list-contains? "name" keys2))))
+
+(let-njson ((arr (string->njson "[1,2]"))
+            (scalar (string->njson "1"))
+            (empty-obj (string->njson "{}")))
+  (check (njson-keys arr) => '())
+  (check (njson-keys scalar) => '())
+  (check (njson-keys empty-obj) => '()))
+
 (check-catch 'type-error (njson-keys 'foo))
+
+(define njson-keys-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-keys-freed))
+(check-catch 'type-error (njson-keys njson-keys-freed))
 
 #|
 file->njson / njson->file
@@ -668,17 +918,25 @@ file->njson / njson->file
 path : string
   文件路径。
 value : njson-handle 
-  待写入 JSON 值。
+  待写入 JSON 值（也可为 strict json scalar）。
+
+行为逻辑
+--------
+1. `file->njson`：读取 `path` 文本并按严格 JSON 解析，成功后返回新句柄。
+2. `njson->file`：先把 `value` 转成 JSON，再以 pretty 格式写入 `path`。
+3. `njson->file` 对对象键会按底层序列化规则输出（当前测试断言为字典序输出）。
+4. `njson->file` 支持写入 scalar（如 `'null`），后续可通过 `file->njson` 回读验证。
 
 返回值
 -----
 - file->njson : njson-handle
 - njson->file : integer（写入字节数）
-- 抛错 : 参数类型错误、文件不存在或解析失败
 
-说明
+错误
 ----
-- njson->file 会将输出格式化后写入文件（pretty JSON）。
+- `type-error`：`path` 类型错误，或 `value` 不是可序列化 JSON 值。
+- `io-error`：文件读写失败（例如路径不可访问）。
+- `parse-error`：`file->njson` 读取到的文件内容不是合法 JSON。
 |#
 
 (define njson-io-path
@@ -698,9 +956,16 @@ value : njson-handle
 (let-njson ((loaded-null (file->njson njson-io-path)))
   (check-true (njson-null? loaded-null)))
 
+(path-write-text njson-io-path "{bad:1}")
+(check-catch 'parse-error (file->njson njson-io-path))
+
 (check-catch 'type-error (file->njson 1))
 (check-catch 'type-error (njson->file 1 'null))
 (check-catch 'type-error (njson->file njson-io-path 'foo))
+
+(define njson-io-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-io-freed))
+(check-catch 'type-error (njson->file njson-io-path njson-io-freed))
 
 #|
 njson->string
@@ -715,19 +980,31 @@ njson->string
 value : njson-handle | string | number | boolean | 'null
   待序列化的输入值。
 
+行为逻辑
+--------
+1. 若 `value` 是句柄，则读取句柄对应 JSON 并生成紧凑字符串。
+2. 若 `value` 是 strict json scalar，则直接按 JSON 语义编码。
+3. 输出是可被 `string->njson` 再次解析的合法 JSON 文本（用于回环）。
+
 返回值
 -----
-- string : 合法 JSON 文本
-- 抛错 : 参数类型错误
+- string : 紧凑 JSON 文本
 
-功能
+错误
 ----
-- 支持句柄与标量统一序列化
-- 可与 string->njson 组合完成回环验证
+- `type-error`：`value` 非句柄且不属于支持的 strict json scalar。
 |#
 
 (check (njson->string 'null) => "null")
+(check (njson->string "x") => "\"x\"")
+(check (njson->string #f) => "false")
+(let-njson ((root (string->njson "{\"b\":1,\"a\":2}")))
+  (check (njson->string root) => "{\"a\":2,\"b\":1}"))
 (check-catch 'type-error (njson->string 'foo))
+
+(define njson-string-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-string-freed))
+(check-catch 'type-error (njson->string njson-string-freed))
 
 #|
 njson-format-string
@@ -744,16 +1021,30 @@ json-string : string
 indent : integer（可选，默认 2）
   缩进空格数，需 >= 0。
 
+行为逻辑
+--------
+1. 先解析 `json-string`；解析成功后再进行 pretty 输出。
+2. `indent` 未传时默认 2；传入时必须是非负整数。
+3. 对对象/数组生成多行缩进文本；对纯标量（如 `"1"`）保持单行。
+4. 该 API 只格式化字符串，不返回句柄。
+
 返回值
 -----
 - string : 格式化后的 JSON 文本
-- 抛错 : parse-error / type-error / value-error
+
+错误
+----
+- `parse-error`：`json-string` 不是合法 JSON。
+- `type-error`：`json-string` 不是字符串，或 `indent` 不是整数。
+- `value-error`：`indent < 0`，或参数个数不合法。
 |#
 
 (check (njson-format-string "{\"b\":1,\"a\":{\"k\":2}}")
        => "{\n  \"a\": {\n    \"k\": 2\n  },\n  \"b\": 1\n}")
 (check (njson-format-string "[1,2,3]" 4)
        => "[\n    1,\n    2,\n    3\n]")
+(check (njson-format-string "{\"a\":1}" 0)
+       => "{\n\"a\": 1\n}")
 (check (njson-format-string "1") => "1")
 
 (check-catch 'parse-error (njson-format-string "{name:1}"))
@@ -765,13 +1056,13 @@ indent : integer（可选，默认 2）
 (define functional-roundtrip '())
 (let-njson ((root (string->njson sample-json))
                    (root2 (njson-set root "meta" "os" "debian"))
-                   (root3 (njson-push root2 "nums" 5 99))
+                   (root3 (njson-append root2 "nums" 99))
                    (root4 (njson-drop root3 "active"))
                    (roundtrip (string->njson (njson->string root4))))
   (set! functional-roundtrip roundtrip)
   (check (njson-ref roundtrip "meta" "os") => "debian")
   (check (njson-ref roundtrip "nums" 5) => 99)
-  (check (njson-ref roundtrip "active") => '()))
+  (check-false (njson-contains-key? roundtrip "active")))
 (check-catch 'type-error (njson-ref functional-roundtrip "meta" "os"))
 
 #|
@@ -789,16 +1080,21 @@ value : any
   - json->njson: liii json 值（object/array）或 strict json scalar
   - njson->json: njson-handle 或 strict json scalar
 
+行为逻辑
+--------
+1. `json->njson`：把 `(liii json)` 的值树转换为 njson 存储，并返回句柄。
+2. `njson->json`：把句柄或 strict scalar 转回 `(liii json)` 可处理的值。
+3. 对 strict scalar（如 `7`、`'null`）两侧都支持直通转换。
+4. 对已释放句柄调用 `njson->json` 会因句柄不可用而报错。
+
 返回值
 -----
 - json->njson : njson-handle
 - njson->json : liii json 值
-- 抛错 : 参数类型错误
 
-功能
+错误
 ----
-- 用于 `(liii json)` 与 `(liii njson)` 之间互转
-- 便于混合场景在两种 JSON 表示间切换
+- `type-error`：输入类型不在支持范围内，或句柄已释放。
 |#
 
 (define ljson-bridge-sample (ljson-string->json sample-json))
@@ -818,6 +1114,16 @@ value : any
 
 (let-njson ((null-handle (json->njson 'null)))
   (check-true (njson-null? null-handle)))
+
+(let-njson ((njson-str (json->njson "abc"))
+            (njson-bool (json->njson #f)))
+  (check-true (njson-string? njson-str))
+  (check (njson->string njson-str) => "\"abc\"")
+  (check (njson->string njson-bool) => "false")
+  (check-true (njson-boolean? njson-bool)))
+
+(check (njson->json "abc") => "abc")
+(check (njson->json #f) => #f)
 
 (check-catch 'type-error (json->njson 'foo))
 (check-catch 'type-error (njson->json 'foo))
@@ -841,6 +1147,15 @@ schema-handle : njson-handle
 instance : njson-handle | string | number | boolean | 'null
   被校验的实例。
 
+行为逻辑
+--------
+1. 校验 `schema-handle` 为可用句柄，且其根值必须是 object schema。
+2. 将 `instance` 规范化为可校验 JSON（支持句柄和 strict scalar）。
+3. 调用底层 JSON Schema 校验器执行校验。
+4. 无论通过或失败，都会返回统一报告结构；失败明细进入 `errors` 列表。
+5. 每条错误包含失败路径、错误描述和触发失败的实例片段字符串。
+6. 对非法 schema（结构不符合规范）不会返回报告，而是直接抛 `schema-error`。
+
 返回值
 -----
 - hash-table : 校验报告（成功与失败都会返回）
@@ -852,18 +1167,17 @@ instance : njson-handle | string | number | boolean | 'null
   - 'errors : list
     错误列表，每项是 hash-table，字段如下：
     - 'instance-path : string
-      失败位置（JSON Pointer）
+      失败位置（JSON Pointer）；根节点失败时通常为空字符串 `""`
     - 'message : string
       失败原因描述
     - 'instance : string
       触发失败的实例片段（JSON dump）
-- 抛错 : 参数类型错误、schema 非法或运行时异常
 
-功能
+错误
 ----
-- 通过 `'valid?` 字段直接反映校验结论
-- 便于日志记录、错误展示与上层错误映射
-- 可用于断言报告字段稳定性（路径/消息/实例片段）
+- `type-error`：`schema-handle` 非句柄、句柄已释放，或 `instance` 类型不支持。
+- `schema-error`：schema 本身非法（例如 keyword 类型不符合规范，或 schema 根不是对象）。
+- 其他运行时错误：底层校验器异常时向上抛出（测试中主要覆盖 `schema-error`）。
 |#
 
 (define schema-object-json
@@ -982,6 +1296,10 @@ instance : njson-handle | string | number | boolean | 'null
 (check-true (njson-free freed-instance-handle))
 (check-catch 'type-error (njson-schema-report schema-handle-for-freed-check freed-instance-handle))
 (check-true (njson-free schema-handle-for-freed-check))
+
+(define freed-schema-handle (string->njson schema-object-json))
+(check-true (njson-free freed-schema-handle))
+(check-catch 'type-error (njson-schema-report freed-schema-handle 1))
 
 
 (check-report)
