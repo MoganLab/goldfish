@@ -276,11 +276,12 @@ collect_path_keys (s7_scheme* sc, s7_pointer list, std::vector<s7_pointer>& out,
   return true;
 }
 
+template <typename JsonPtr>
 static bool
-lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer>& path, const json*& out,
-                   bool& found, std::string& error_msg) {
-  const json* cur = &root;
-  for (size_t i = 0; i < path.size (); i++) {
+njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& path, size_t steps,
+                   JsonPtr& out, std::string& error_msg) {
+  JsonPtr cur = root;
+  for (size_t i = 0; i < steps; i++) {
     s7_pointer key = path[i];
     if (cur->is_object ()) {
       std::string name;
@@ -289,8 +290,8 @@ lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer
       }
       auto it = cur->find (name);
       if (it == cur->end ()) {
-        found = false;
-        return true;
+        error_msg = "path not found: missing object key '" + name + "'";
+        return false;
       }
       cur = &(*it);
     }
@@ -300,65 +301,56 @@ lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer
         return false;
       }
       if (idx >= cur->size ()) {
-        found = false;
-        return true;
+        error_msg = "path not found: array index out of range (index=" + std::to_string (idx)
+                  + ", size=" + std::to_string (cur->size ()) + ")";
+        return false;
       }
       cur = &(*cur)[idx];
     }
     else {
-      found = false;
-      return true;
+      char* key_repr_c = s7_object_to_c_string (sc, key);
+      if (key_repr_c) {
+        std::string key_repr (key_repr_c);
+        free (key_repr_c);
+        if (key_repr.size () >= 2 && key_repr.front () == '"' && key_repr.back () == '"') {
+          key_repr = key_repr.substr (1, key_repr.size () - 2);
+        }
+        error_msg = "path not found: missing object key '" + key_repr + "'";
+      }
+      else {
+        error_msg = "path not found: missing object key '<unknown>'";
+      }
+      return false;
     }
   }
   out = cur;
-  found = true;
   return true;
 }
 
 static bool
+lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer>& path, const json*& out,
+                   std::string& error_msg) {
+  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
+}
+
+static bool
 lookup_path_parent_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& parent,
-                            s7_pointer& last_key, bool& found, std::string& error_msg) {
+                            s7_pointer& last_key, std::string& error_msg) {
   if (path.empty ()) {
     error_msg = "path cannot be empty";
     return false;
   }
 
-  json* cur = &root;
-  for (size_t i = 0; i + 1 < path.size (); i++) {
-    s7_pointer key = path[i];
-    if (cur->is_object ()) {
-      std::string name;
-      if (!scheme_json_key_to_string (sc, key, name, error_msg)) {
-        return false;
-      }
-      auto it = cur->find (name);
-      if (it == cur->end ()) {
-        found = false;
-        return true;
-      }
-      cur = &(*it);
-    }
-    else if (cur->is_array ()) {
-      size_t idx = 0;
-      if (!scheme_json_index (key, idx, error_msg)) {
-        return false;
-      }
-      if (idx >= cur->size ()) {
-        found = false;
-        return true;
-      }
-      cur = &(*cur)[idx];
-    }
-    else {
-      found = false;
-      return true;
-    }
+  if (!njson_lookup_core (sc, &root, path, path.size () - 1, parent, error_msg)) {
+    return false;
   }
-
-  parent = cur;
   last_key = path.back ();
-  found = true;
   return true;
+}
+
+static bool
+lookup_path_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& out, std::string& error_msg) {
+  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
 }
 
 static bool
@@ -646,10 +638,10 @@ f_njson_ref (s7_scheme* sc, s7_pointer args) {
 
   std::vector<s7_pointer> path;
   if (!collect_path_keys (sc, s7_cdr (args), path, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-ref: " + error_msg, handle);
+    return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
   }
   if (path.empty ()) {
-    return njson_error (sc, "value-error", "g_njson-ref: missing key arguments", handle);
+    return njson_error (sc, "key-error", "g_njson-ref: missing key arguments", handle);
   }
 
   const json* root = njson_value_by_id_const (id);
@@ -658,19 +650,15 @@ f_njson_ref (s7_scheme* sc, s7_pointer args) {
   }
 
   const json* found_value = nullptr;
-  bool found = false;
-  if (!lookup_path_const (sc, *root, path, found_value, found, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-ref: " + error_msg, handle);
-  }
-  if (!found) {
-    return s7_nil (sc);
+  if (!lookup_path_const (sc, *root, path, found_value, error_msg)) {
+    return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
   }
   return njson_value_to_scheme_or_handle (sc, *found_value);
 }
 
 enum class njson_update_op {
   set,
-  push,
+  append,
   drop
 };
 
@@ -683,6 +671,9 @@ static const char*
 njson_update_expected_argv (njson_update_op op) {
   if (op == njson_update_op::drop) {
     return "expected (json key ...)";
+  }
+  if (op == njson_update_op::append) {
+    return "expected (json [key ...] value)";
   }
   return "expected (json key ... value)";
 }
@@ -698,12 +689,13 @@ njson_parse_update_request (s7_scheme* sc, s7_pointer args, const char* api_name
 
   std::vector<s7_pointer> tokens;
   if (!collect_path_keys (sc, s7_cdr (args), tokens, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
+    return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
   }
 
   if (njson_update_needs_value (op)) {
-    if (tokens.size () < 2) {
-      return njson_error (sc, "value-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
+    size_t min_tokens = (op == njson_update_op::append) ? 1 : 2;
+    if (tokens.size () < min_tokens) {
+      return njson_error (sc, "key-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
     }
     path.assign (tokens.begin (), tokens.end () - 1);
     s7_pointer value_token = tokens.back ();
@@ -713,7 +705,7 @@ njson_parse_update_request (s7_scheme* sc, s7_pointer args, const char* api_name
   }
   else {
     if (tokens.empty ()) {
-      return njson_error (sc, "value-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
+      return njson_error (sc, "key-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
     }
     path = std::move (tokens);
   }
@@ -723,34 +715,45 @@ njson_parse_update_request (s7_scheme* sc, s7_pointer args, const char* api_name
 static s7_pointer
 njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, const json& value_json,
                             njson_update_op op, const char* api_name, s7_pointer handle) {
+  if (op == njson_update_op::append) {
+    std::string error_msg;
+    json* target = &root;
+    if (!path.empty ()) {
+      if (!lookup_path_mutable (sc, root, path, target, error_msg)) {
+        return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
+      }
+    }
+    if (!target->is_array ()) {
+      return njson_error (sc, "key-error", std::string (api_name) + ": append target must be array", handle);
+    }
+    target->push_back (value_json);
+    return nullptr;
+  }
+
   std::string error_msg;
   json* parent = nullptr;
   s7_pointer last_key = s7_nil (sc);
-  bool found = false;
-  if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, found, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-  if (!found) {
-    return nullptr;
+  if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, error_msg)) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
   }
 
   if (parent->is_object ()) {
     std::string key_name;
     if (!scheme_json_key_to_string (sc, last_key, key_name, error_msg)) {
-      return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, last_key);
+      return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, last_key);
     }
 
     if (op == njson_update_op::set) {
-      auto it = parent->find (key_name);
-      if (it != parent->end ()) {
-        (*parent)[key_name] = value_json;
-      }
-    }
-    else if (op == njson_update_op::push) {
       (*parent)[key_name] = value_json;
     }
     else {
-      parent->erase (key_name);
+      auto it = parent->find (key_name);
+      if (it == parent->end ()) {
+        return njson_error (sc, "key-error",
+                            std::string (api_name) + ": path not found: missing object key '" + key_name + "'",
+                            last_key);
+      }
+      parent->erase (it);
     }
     return nullptr;
   }
@@ -758,27 +761,39 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
   if (parent->is_array ()) {
     size_t idx = 0;
     if (!scheme_json_index (last_key, idx, error_msg)) {
-      return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, last_key);
+      return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, last_key);
     }
 
     if (op == njson_update_op::set) {
       if (idx < parent->size ()) {
         (*parent)[idx] = value_json;
       }
-    }
-    else if (op == njson_update_op::push) {
-      if (idx <= parent->size ()) {
-        parent->insert (parent->begin () + static_cast<json::difference_type> (idx), value_json);
-      }
       else {
-        parent->push_back (value_json);
+        return njson_error (
+          sc, "key-error",
+          std::string (api_name) + ": array index out of range (index=" + std::to_string (idx)
+            + ", size=" + std::to_string (parent->size ()) + ")",
+          last_key);
       }
     }
     else {
       if (idx < parent->size ()) {
         parent->erase (parent->begin () + static_cast<json::difference_type> (idx));
       }
+      else {
+        return njson_error (
+          sc, "key-error",
+          std::string (api_name) + ": path not found: array index out of range (index=" + std::to_string (idx)
+            + ", size=" + std::to_string (parent->size ()) + ")",
+          last_key);
+      }
     }
+    return nullptr;
+  }
+
+  if (op == njson_update_op::drop) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": path not found: cannot drop from non-container value",
+                        last_key);
   }
   return nullptr;
 }
@@ -828,8 +843,13 @@ f_njson_set (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
-f_njson_push (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-push", njson_update_op::push, false);
+f_njson_append (s7_scheme* sc, s7_pointer args) {
+  return njson_run_update (sc, args, "g_njson-append", njson_update_op::append, false);
+}
+
+static s7_pointer
+f_njson_append_x (s7_scheme* sc, s7_pointer args) {
+  return njson_run_update (sc, args, "g_njson-append!", njson_update_op::append, true);
 }
 
 static s7_pointer
@@ -840,11 +860,6 @@ f_njson_drop (s7_scheme* sc, s7_pointer args) {
 static s7_pointer
 f_njson_set_x (s7_scheme* sc, s7_pointer args) {
   return njson_run_update (sc, args, "g_njson-set!", njson_update_op::set, true);
-}
-
-static s7_pointer
-f_njson_push_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-push!", njson_update_op::push, true);
 }
 
 static s7_pointer
@@ -873,7 +888,7 @@ f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
 
   std::string key_name;
   if (!scheme_json_key_to_string (sc, key, key_name, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-contains-key?: " + error_msg, key);
+    return njson_error (sc, "key-error", "g_njson-contains-key?: " + error_msg, key);
   }
   return s7_make_boolean (sc, root->contains (key_name));
 }
@@ -1024,12 +1039,12 @@ glue_njson (s7_scheme* sc) {
   const char* ref_desc = "(g_njson-ref handle key ...) => scalar-or-handle";
   const char* set_name = "g_njson-set";
   const char* set_desc = "(g_njson-set handle key ... value) => new-handle";
+  const char* append_name = "g_njson-append";
+  const char* append_desc = "(g_njson-append handle [key ...] value) => new-handle";
   const char* set_x_name = "g_njson-set!";
   const char* set_x_desc = "(g_njson-set! handle key ... value) => same-handle";
-  const char* push_name = "g_njson-push";
-  const char* push_desc = "(g_njson-push handle key ... value) => new-handle";
-  const char* push_x_name = "g_njson-push!";
-  const char* push_x_desc = "(g_njson-push! handle key ... value) => same-handle";
+  const char* append_x_name = "g_njson-append!";
+  const char* append_x_desc = "(g_njson-append! handle [key ...] value) => same-handle";
   const char* drop_name = "g_njson-drop";
   const char* drop_desc = "(g_njson-drop handle key ...) => new-handle";
   const char* drop_x_name = "g_njson-drop!";
@@ -1056,9 +1071,9 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, free_name, free_desc, f_njson_free, 1, 0);
   glue_define (sc, ref_name, ref_desc, f_njson_ref, 2, 32);
   glue_define (sc, set_name, set_desc, f_njson_set, 3, 32);
+  glue_define (sc, append_name, append_desc, f_njson_append, 2, 32);
   glue_define (sc, set_x_name, set_x_desc, f_njson_set_x, 3, 32);
-  glue_define (sc, push_name, push_desc, f_njson_push, 3, 32);
-  glue_define (sc, push_x_name, push_x_desc, f_njson_push_x, 3, 32);
+  glue_define (sc, append_x_name, append_x_desc, f_njson_append_x, 2, 32);
   glue_define (sc, drop_name, drop_desc, f_njson_drop, 2, 32);
   glue_define (sc, drop_x_name, drop_x_desc, f_njson_drop_x, 2, 32);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);

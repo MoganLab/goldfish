@@ -89,7 +89,8 @@
 (define bench-ref-key (string-append "k" (number->string (quotient bench-top-key-count 2))))
 (define bench-drop-key (string-append "k" (number->string (- bench-top-key-count 1))))
 (define bench-set-value 999999)
-(define bench-push-index (quotient bench-array-length 2))
+(define bench-push-index bench-array-length)
+(define bench-append-drop-index bench-array-length)
 (define bench-push-value 777777)
 
 (define bench-json-scm (ljson-string->json bench-json))
@@ -191,7 +192,7 @@
     (njson-free h))
   (ljson-push bench-json-scm "nums" bench-push-index bench-push-value)
   (let ((h (string->njson bench-json)))
-    (let ((x (njson-push h "nums" bench-push-index bench-push-value)))
+    (let ((x (njson-append h "nums" bench-push-value)))
       (njson-free x))
     (njson-free h))
   (ljson-drop bench-json-scm bench-drop-key)
@@ -203,8 +204,8 @@
     (njson-set! h bench-ref-key bench-set-value)
     (njson-free h))
   (let ((h (string->njson bench-json)))
-    (njson-push! h "nums" bench-push-index bench-push-value)
-    (njson-drop! h "nums" bench-push-index)
+    (njson-append! h "nums" bench-push-value)
+    (njson-drop! h "nums" bench-append-drop-index)
     (njson-free h))
   (let ((h (string->njson bench-json)))
     (njson-set! h bench-drop-key 1)
@@ -273,10 +274,10 @@
     (lambda () (ljson-push bench-json-scm "nums" bench-push-index bench-push-value))
     push-count
     round-count))
-(define njson-push-ns
+(define njson-append-ns
   (bench-ns-median
     (lambda ()
-      (let ((h (njson-push push-handle "nums" bench-push-index bench-push-value)))
+      (let ((h (njson-append push-handle "nums" bench-push-value)))
         (njson-free h)))
     push-count
     round-count))
@@ -306,12 +307,12 @@
 
 (define push-x-handle (string->njson bench-json))
 (njson-keys push-x-handle)
-(define njson-push!-pair-ns
+(define njson-append!-pair-ns
   (bench-ns-median
     (lambda ()
-      (njson-push! push-x-handle "nums" bench-push-index bench-push-value)
+      (njson-append! push-x-handle "nums" bench-push-value)
       ;; restore array shape to keep each iteration comparable
-      (njson-drop! push-x-handle "nums" bench-push-index))
+      (njson-drop! push-x-handle "nums" bench-append-drop-index))
     push-count
     round-count))
 (check-true (njson-free push-x-handle))
@@ -357,11 +358,11 @@
 (check-true (>= liii-set-ns 0))
 (check-true (>= njson-set-ns 0))
 (check-true (>= liii-push-ns 0))
-(check-true (>= njson-push-ns 0))
+(check-true (>= njson-append-ns 0))
 (check-true (>= liii-drop-ns 0))
 (check-true (>= njson-drop-ns 0))
 (check-true (>= njson-set!-ns 0))
-(check-true (>= njson-push!-pair-ns 0))
+(check-true (>= njson-append!-pair-ns 0))
 (check-true (>= njson-drop!-pair-ns 0))
 (check-true (>= liii-contains-key-ns 0))
 (check-true (>= njson-contains-key-ns 0))
@@ -378,7 +379,7 @@
 (report-bench "序列化(json->string)" stringify-count round-count liii-stringify-ns njson-stringify-ns)
 (report-bench "读取(json-ref)" ref-count round-count liii-ref-ns njson-ref-ns)
 (report-bench "修改(json-set)" set-count round-count liii-set-ns njson-set-ns)
-(report-bench "插入(json-push)" push-count round-count liii-push-ns njson-push-ns)
+(report-bench "插入(json-push vs njson-append)" push-count round-count liii-push-ns njson-append-ns)
 (report-bench "删除(json-drop)" drop-count round-count liii-drop-ns njson-drop-ns)
 (report-variant-bench "原地修改对比(liii-set vs njson-set!)"
                       set-count
@@ -387,13 +388,13 @@
                       liii-set-ns
                       "njson-set!"
                       njson-set!-ns)
-(report-variant-bench "原地插入对比(liii-push vs njson-push!+drop!)"
+(report-variant-bench "原地插入对比(liii-push vs njson-append!+drop!)"
                       push-count
                       round-count
                       "liii-push"
                       liii-push-ns
-                      "njson-push!+drop!"
-                      njson-push!-pair-ns)
+                      "njson-append!+drop!"
+                      njson-append!-pair-ns)
 (report-variant-bench "原地删除对比(liii-drop vs njson-set!+drop!)"
                       drop-count
                       round-count
