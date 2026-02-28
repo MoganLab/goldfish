@@ -394,8 +394,9 @@ value : njson-handle | string | number | boolean | 'null
 --------
 1. 复制输入句柄对应 JSON，保证函数式语义。
 2. 定位到目标父节点后写入末级 token。
-3. object：若键存在则覆盖，若不存在则新建（upsert）。
-4. array：`idx < size` 覆盖，`idx >= size` 抛错。
+3. 中间路径必须存在；任一层不存在时抛 `key-error`。
+4. object：若键存在则覆盖，若不存在则新建（upsert）。
+5. array：`idx < size` 覆盖，`idx >= size` 抛错。
 
 返回值
 -----
@@ -404,7 +405,7 @@ value : njson-handle | string | number | boolean | 'null
 错误
 ----
 - `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
-- `key-error`：路径 token 非法、路径结构非法、参数个数不合法、数组索引越界（`idx >= size`）。
+- `key-error`：路径 token 非法、路径结构非法、中间路径不存在、参数个数不合法、数组索引越界（`idx >= size`）。
 |#
 
 (let-njson ((root (string->njson sample-json))
@@ -421,15 +422,10 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json))
             (root-idx-update (njson-set root "nums" 1 200))
             (meta (njson-ref root "meta"))
-            (root-handle-value (njson-set root "meta-copy" meta))
-            (root-miss-parent (njson-set root "meta" "missing" "k" 1)))
+            (root-handle-value (njson-set root "meta-copy" meta)))
   (check (njson-ref root-idx-update "nums" 1) => 200)
   (check (njson-ref root-handle-value "meta-copy" "os") => "linux")
-  (check-false (njson-contains-key? root "meta-copy"))
-  (let-njson ((meta2 (njson-ref root-miss-parent "meta"))
-              (meta (njson-ref root "meta")))
-    (check-false (njson-contains-key? meta2 "missing"))
-    (check-false (njson-contains-key? meta "missing"))))
+  (check-false (njson-contains-key? root "meta-copy")))
 
 (check-catch 'type-error (njson-set 'foo "meta" "os" "debian"))
 (let-njson ((root (string->njson sample-json)))
@@ -438,6 +434,10 @@ value : njson-handle | string | number | boolean | 'null
   (check-catch 'key-error (njson-set root "nums" 5 1)))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root "nums" 999 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set root "meta" "missing" "k" 1))
+  (check (capture-key-error-message (lambda () (njson-set root "meta" "missing" "k" 1)))
+         => "g_njson-set: path not found: missing object key 'missing'"))
 (let-njson ((root (string->njson sample-json)))
   (check (capture-key-error-message (lambda () (njson-set root "nums" 5 1)))
          => "g_njson-set: array index out of range (index=5, size=5)"))
@@ -462,9 +462,10 @@ value : njson-handle | string | number | boolean | 'null
 行为逻辑
 --------
 1. 直接在原句柄对应 JSON 上更新，不做整棵复制。
-2. object：存在则覆盖，不存在则新建（upsert）。
-3. array：`idx < size` 覆盖，`idx >= size` 抛错。
-4. 更新成功后同句柄继续可读，`njson-keys` 缓存会自动失效并在下次读取重建。
+2. 中间路径必须存在；任一层不存在时抛 `key-error`。
+3. object：存在则覆盖，不存在则新建（upsert）。
+4. array：`idx < size` 覆盖，`idx >= size` 抛错。
+5. 更新成功后同句柄继续可读，`njson-keys` 缓存会自动失效并在下次读取重建。
 
 返回值
 -----
@@ -473,7 +474,7 @@ value : njson-handle | string | number | boolean | 'null
 错误
 ----
 - `type-error`：`json` 非句柄、句柄已释放、value 类型非法。
-- `key-error`：路径 token 非法、路径结构非法、参数个数不合法、数组索引越界（`idx >= size`）。
+- `key-error`：路径 token 非法、路径结构非法、中间路径不存在、参数个数不合法、数组索引越界（`idx >= size`）。
 |#
 
 (let-njson ((root (string->njson sample-json)))
@@ -487,16 +488,18 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json))
             (meta (njson-ref root "meta")))
   (njson-set! root "meta-copy" meta)
-  (njson-set! root "meta" "missing" "k" 1)
   (check (njson-ref root "meta-copy" "arch") => "x86_64")
-  (let-njson ((meta2 (njson-ref root "meta")))
-    (check-false (njson-contains-key? meta2 "missing"))))
+  (check-false (njson-contains-key? meta "missing")))
 
 (check-catch 'type-error (njson-set! 'foo "meta" "os" "debian"))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root 'meta "os" "debian")))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "nums" 5 1)))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set! root "meta" "missing" "k" 1))
+  (check (capture-key-error-message (lambda () (njson-set! root "meta" "missing" "k" 1)))
+         => "g_njson-set!: path not found: missing object key 'missing'"))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "nums" 999 1)))
 

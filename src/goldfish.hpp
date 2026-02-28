@@ -276,15 +276,10 @@ collect_path_keys (s7_scheme* sc, s7_pointer list, std::vector<s7_pointer>& out,
   return true;
 }
 
-enum class njson_lookup_missing_policy {
-  error,
-  not_found
-};
-
 template <typename JsonPtr>
 static bool
 njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& path, size_t steps,
-                   njson_lookup_missing_policy missing_policy, JsonPtr& out, bool& found, std::string& error_msg) {
+                   JsonPtr& out, std::string& error_msg) {
   JsonPtr cur = root;
   for (size_t i = 0; i < steps; i++) {
     s7_pointer key = path[i];
@@ -295,10 +290,6 @@ njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& p
       }
       auto it = cur->find (name);
       if (it == cur->end ()) {
-        if (missing_policy == njson_lookup_missing_policy::not_found) {
-          found = false;
-          return true;
-        }
         error_msg = "path not found: missing object key '" + name + "'";
         return false;
       }
@@ -310,10 +301,6 @@ njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& p
         return false;
       }
       if (idx >= cur->size ()) {
-        if (missing_policy == njson_lookup_missing_policy::not_found) {
-          found = false;
-          return true;
-        }
         error_msg = "path not found: array index out of range (index=" + std::to_string (idx)
                   + ", size=" + std::to_string (cur->size ()) + ")";
         return false;
@@ -321,40 +308,30 @@ njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& p
       cur = &(*cur)[idx];
     }
     else {
-      if (missing_policy == njson_lookup_missing_policy::not_found) {
-        found = false;
-        return true;
-      }
       error_msg = "path not found: cannot descend into non-container value";
       return false;
     }
   }
   out = cur;
-  found = true;
   return true;
 }
 
 static bool
 lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer>& path, const json*& out,
                    std::string& error_msg) {
-  bool found = false;
-  return njson_lookup_core (sc, &root, path, path.size (), njson_lookup_missing_policy::error, out, found, error_msg);
+  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
 }
 
 static bool
 lookup_path_parent_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& parent,
-                            s7_pointer& last_key, bool& found, std::string& error_msg) {
+                            s7_pointer& last_key, std::string& error_msg) {
   if (path.empty ()) {
     error_msg = "path cannot be empty";
     return false;
   }
 
-  if (!njson_lookup_core (sc, &root, path, path.size () - 1, njson_lookup_missing_policy::not_found, parent, found,
-                          error_msg)) {
+  if (!njson_lookup_core (sc, &root, path, path.size () - 1, parent, error_msg)) {
     return false;
-  }
-  if (!found) {
-    return true;
   }
   last_key = path.back ();
   return true;
@@ -362,8 +339,7 @@ lookup_path_parent_mutable (s7_scheme* sc, json& root, const std::vector<s7_poin
 
 static bool
 lookup_path_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& out, std::string& error_msg) {
-  bool found = false;
-  return njson_lookup_core (sc, &root, path, path.size (), njson_lookup_missing_policy::error, out, found, error_msg);
+  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
 }
 
 static bool
@@ -746,15 +722,8 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
   std::string error_msg;
   json* parent = nullptr;
   s7_pointer last_key = s7_nil (sc);
-  bool found = false;
-  if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, found, error_msg)) {
+  if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, error_msg)) {
     return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-  if (!found) {
-    if (op == njson_update_op::drop) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": path not found", handle);
-    }
-    return nullptr;
   }
 
   if (parent->is_object ()) {
