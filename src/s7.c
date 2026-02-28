@@ -411,6 +411,7 @@
 #include "s7_scheme_base.h"
 #include "s7_scheme_inexact.h"
 #include "s7_scheme_complex.h"
+#include "s7_scheme_char.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 
@@ -24666,58 +24667,6 @@ static s7_pointer g_add_i_random(s7_scheme *sc, s7_pointer args)
 }
 
 
-/* -------------------------------- char<->integer -------------------------------- */
-static s7_pointer g_char_to_integer(s7_scheme *sc, s7_pointer args)
-{
-  #define H_char_to_integer "(char->integer c) converts the character c to an integer"
-  #define Q_char_to_integer s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_char_symbol)
-
-  if (!is_character(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->char_to_integer_symbol, args, sc->type_names[T_CHARACTER]));
-  return(small_int(character(car(args))));
-}
-
-static s7_int char_to_integer_i_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(integer(method_or_bust_p(sc, c, sc->char_to_integer_symbol, sc->type_names[T_CHARACTER])));
-  return(character(c));
-}
-
-static s7_pointer char_to_integer_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(method_or_bust_p(sc, c, sc->char_to_integer_symbol, sc->type_names[T_CHARACTER]));
-  return(make_integer(sc, character(c)));
-}
-
-static s7_pointer integer_to_char_p_p(s7_scheme *sc, s7_pointer x)
-{
-  s7_int ind;
-  if (!s7_is_integer(x))
-    return(method_or_bust_p(sc, x, sc->integer_to_char_symbol, sc->type_names[T_INTEGER]));
-  ind = s7_integer_clamped_if_gmp(sc, x);
-  if ((ind < 0) || (ind >= NUM_CHARS))
-    sole_arg_out_of_range_error_nr(sc, sc->integer_to_char_symbol, x, wrap_string(sc, "it doesn't fit in an unsigned byte", 34));
-  return(chars[(uint8_t)ind]);
-}
-
-static s7_pointer g_integer_to_char(s7_scheme *sc, s7_pointer args)
-{
-  #define H_integer_to_char "(integer->char i) converts the non-negative integer i to a character"
-  #define Q_integer_to_char s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol)
-  return(integer_to_char_p_p(sc, car(args)));
-}
-
-static s7_pointer integer_to_char_p_i(s7_scheme *sc, s7_int ind)
-{
-  if ((ind < 0) || (ind >= NUM_CHARS))
-    sole_arg_out_of_range_error_nr(sc, sc->integer_to_char_symbol, wrap_integer(sc, ind),
-				   wrap_string(sc, "it doesn't fit in an unsigned byte", 34)); /* int2 s7_out... uses 1 */
-  return(chars[(uint8_t)ind]);
-}
-
-
 uint8_t uppers[256], lowers[256];
 static void init_uppers(void)
 {
@@ -24778,365 +24727,12 @@ static void init_chars(void)
 }
 
 
-/* -------------------------------- char-upcase, char-downcase ----------------------- */
-static s7_pointer char_upcase_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(method_or_bust_p(sc, c, sc->char_upcase_symbol, sc->type_names[T_CHARACTER]));
-  return(chars[upper_character(c)]);
-}
-
-static s7_pointer char_upcase_p_p_unchecked(s7_scheme *unused_sc, s7_pointer c) {return(chars[upper_character(c)]);}
-
-static s7_pointer g_char_upcase(s7_scheme *sc, s7_pointer args)
-{
-  #define H_char_upcase "(char-upcase c) converts the character c to upper case"
-  #define Q_char_upcase sc->pcl_c
-  return(char_upcase_p_p(sc, car(args)));
-}
-
-static s7_pointer g_char_downcase(s7_scheme *sc, s7_pointer args)
-{
-  #define H_char_downcase "(char-downcase c) converts the character c to lower case"
-  #define Q_char_downcase sc->pcl_c
-  if (!is_character(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->char_downcase_symbol, args, sc->type_names[T_CHARACTER]));
-  return(chars[lowers[character(car(args))]]);
-}
-
-
-/* -------------------------------- char-alphabetic? char-numeric? char-whitespace? -------------------------------- */
-static s7_pointer g_is_char_alphabetic(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char_alphabetic "(char-alphabetic? c) returns #t if the character c is alphabetic"
-  #define Q_is_char_alphabetic sc->pl_bc
-  if (!is_character(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->is_char_alphabetic_symbol, args, sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_alphabetic(car(args))));
-  /* isalpha returns #t for (integer->char 226) and others in that range */
-}
-
-static bool is_char_alphabetic_b_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    sole_arg_wrong_type_error_nr(sc, sc->is_char_alphabetic_symbol, c, sc->type_names[T_CHARACTER]);
-    /* return(sole_arg_method_or_bust(sc, c, sc->is_char_alphabetic_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]) != sc->F); */ /* slower? see tmisc */
-  return(is_char_alphabetic(c));
-}
-
-static s7_pointer is_char_alphabetic_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(sole_arg_method_or_bust(sc, c, sc->is_char_alphabetic_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_alphabetic(c)));
-}
-
-static s7_pointer g_is_char_numeric(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char_numeric "(char-numeric? c) returns #t if the character c is a digit"
-  #define Q_is_char_numeric sc->pl_bc
-
-  s7_pointer arg = car(args);
-  if (!is_character(arg))
-    return(sole_arg_method_or_bust(sc, arg, sc->is_char_numeric_symbol, args, sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_numeric(arg)));
-}
-
-static bool is_char_numeric_b_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    sole_arg_wrong_type_error_nr(sc, sc->is_char_numeric_symbol, c, sc->type_names[T_CHARACTER]);
-  /* return(sole_arg_method_or_bust(sc, c, sc->is_char_numeric_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]) != sc->F); */ /* as above */
-  return(is_char_numeric(c));
-}
-
-static s7_pointer is_char_numeric_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(sole_arg_method_or_bust(sc, c, sc->is_char_numeric_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_numeric(c)));
-}
-
-
-static s7_pointer g_is_char_whitespace(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char_whitespace "(char-whitespace? c) returns #t if the character c is non-printing character"
-  #define Q_is_char_whitespace sc->pl_bc
-
-  s7_pointer arg = car(args);
-  if (!is_character(arg))
-    return(sole_arg_method_or_bust(sc, arg, sc->is_char_whitespace_symbol, args, sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_whitespace(arg)));
-}
-
-static bool is_char_whitespace_b_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    sole_arg_wrong_type_error_nr(sc, sc->is_char_whitespace_symbol, c, sc->type_names[T_CHARACTER]);
-  return(is_char_whitespace(c));
-}
-
-static s7_pointer is_char_whitespace_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(sole_arg_method_or_bust(sc, c, sc->is_char_whitespace_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_whitespace(c)));
-}
-
-static s7_pointer is_char_whitespace_p_p_unchecked(s7_scheme *sc, s7_pointer c) {return(make_boolean(sc, is_char_whitespace(c)));}
-
-
-/* -------------------------------- char-upper-case? char-lower-case? -------------------------------- */
-static s7_pointer g_is_char_upper_case(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char_upper_case "(char-upper-case? c) returns #t if the character c is in upper case"
-  #define Q_is_char_upper_case sc->pl_bc
-
-  s7_pointer arg = car(args);
-  if (!is_character(arg))
-    return(sole_arg_method_or_bust(sc, arg, sc->is_char_upper_case_symbol, args, sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_uppercase(arg)));
-}
-
-static bool is_char_upper_case_b_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(sole_arg_method_or_bust(sc, c, sc->is_char_upper_case_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]) != sc->F);
-  return(is_char_uppercase(c));
-}
-
-static s7_pointer g_is_char_lower_case(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char_lower_case "(char-lower-case? c) returns #t if the character c is in lower case"
-  #define Q_is_char_lower_case sc->pl_bc
-
-  s7_pointer arg = car(args);
-  if (!is_character(arg))
-    return(sole_arg_method_or_bust(sc, arg, sc->is_char_lower_case_symbol, args, sc->type_names[T_CHARACTER]));
-  return(make_boolean(sc, is_char_lowercase(arg)));
-}
-
-static bool is_char_lower_case_b_7p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(sole_arg_method_or_bust(sc, c, sc->is_char_lower_case_symbol, set_plist_1(sc, c), sc->type_names[T_CHARACTER]) != sc->F);
-  return(is_char_lowercase(c));
-}
-
-
-/* -------------------------------- char? -------------------------------- */
-static s7_pointer g_is_char(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_char "(char? obj) returns #t if obj is a character"
-  #define Q_is_char sc->pl_bt
-  check_boolean_method(sc, is_character, sc->is_char_symbol, args);
-}
-
-static s7_pointer is_char_p_p(s7_scheme *sc, s7_pointer p) {return((is_character(p)) ? sc->T : sc->F);}
-
 s7_pointer s7_make_character(s7_scheme *sc, uint8_t c) {return(chars[c]);}
 
 bool s7_is_character(s7_pointer c) {return(is_character(c));}
 
 uint8_t s7_character(s7_pointer c) {return(character(c));}
 
-
-/* -------------------------------- char<? char<=? char>? char>=? char=? -------------------------------- */
-static int32_t charcmp(uint8_t c1, uint8_t c2)
-{
-  return((c1 == c2) ? 0 : (c1 < c2) ? -1 : 1);
-  /* not tolower here -- the single case is apparently supposed to be upper case
-   *   this matters in a case like (char-ci<? #\_ #\e) which Guile and Gauche say is #f
-   *   although (char<? #\_ #\e) is #t -- the spec does not say how to interpret this!
-   */
-}
-
-static bool is_character_via_method(s7_scheme *sc, s7_pointer p)
-{
-  if (is_character(p))
-    return(true);
-  if (has_active_methods(sc, p))
-    {
-      s7_pointer func = find_method_with_let(sc, p, sc->is_char_symbol);
-      if (func != sc->undefined)
-	return(is_true(sc, s7_apply_function(sc, func, set_plist_1(sc, p))));
-    }
-  return(false);
-}
-
-static s7_pointer char_with_error_check(s7_scheme *sc, s7_pointer args_left, s7_pointer args, s7_pointer caller)
-{
-  for (s7_pointer chrs = cdr(args_left); is_pair(chrs); chrs = cdr(chrs)) /* before returning #f, check for bad trailing arguments */
-    if (!is_character_via_method(sc, car(chrs)))
-      wrong_type_error_nr(sc, caller, position_of(chrs, args), car(chrs), sc->type_names[T_CHARACTER]);
-  return(sc->F);
-}
-
-static s7_pointer g_char_cmp(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer chr = car(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, sym, args, sc->type_names[T_CHARACTER], 1));
-  for (s7_pointer chrs = cdr(args); is_pair(chrs); chr = car(chrs), chrs = cdr(chrs))
-    {
-      if (!is_character(car(chrs)))
-	return(method_or_bust(sc, car(chrs), sym, set_ulist_1(sc, chr, chrs), sc->type_names[T_CHARACTER], position_of(chrs, args)));
-      if (charcmp(character(chr), character(car(chrs))) != val)
-	return(char_with_error_check(sc, chrs, args, sym));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_char_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer chr = car(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, sym, args, sc->type_names[T_CHARACTER], 1));
-  for (s7_pointer chrs = cdr(args); is_pair(chrs); chr = car(chrs), chrs = cdr(chrs))
-    {
-      if (!is_character(car(chrs)))
-	return(method_or_bust(sc, car(chrs), sym, set_ulist_1(sc, chr, chrs), sc->type_names[T_CHARACTER], position_of(chrs, args)));
-      if (charcmp(character(chr), character(car(chrs))) == val)
-	return(char_with_error_check(sc, chrs, args, sym));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_chars_are_equal(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_equal "(char=? char ...) returns #t if all the character arguments are equal"
-  #define Q_chars_are_equal sc->pcl_bc
-
-  const s7_pointer chr = car(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, sc->char_eq_symbol, args, sc->type_names[T_CHARACTER], 1));
-  for (s7_pointer chrs = cdr(args); is_pair(chrs); chrs = cdr(chrs))
-    {
-      if (!is_character(car(chrs)))
-	return(method_or_bust(sc, car(chrs), sc->char_eq_symbol, set_ulist_1(sc, chr, chrs), sc->type_names[T_CHARACTER], position_of(chrs, args)));
-      if (car(chrs) != chr)
-	return(char_with_error_check(sc, chrs, args, sc->char_eq_symbol));
-    }
-  return(sc->T);
-}
-
-
-static s7_pointer g_chars_are_less(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_less "(char<? char ...) returns #t if all the character arguments are increasing"
-  #define Q_chars_are_less sc->pcl_bc
-  return(g_char_cmp(sc, args, -1, sc->char_lt_symbol));
-}
-
-static s7_pointer g_chars_are_greater(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_greater "(char>? char ...) returns #t if all the character arguments are decreasing"
-  #define Q_chars_are_greater sc->pcl_bc
-  return(g_char_cmp(sc, args, 1, sc->char_gt_symbol));
-}
-
-static s7_pointer g_chars_are_geq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_geq "(char>=? char ...) returns #t if all the character arguments are equal or decreasing"
-  #define Q_chars_are_geq sc->pcl_bc
-  return(g_char_cmp_not(sc, args, -1, sc->char_geq_symbol));
-}
-
-static s7_pointer g_chars_are_leq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_leq "(char<=? char ...) returns #t if all the character arguments are equal or increasing"
-  #define Q_chars_are_leq sc->pcl_bc
-  return(g_char_cmp_not(sc, args, 1, sc->char_leq_symbol));
-}
-
-static s7_pointer g_simple_char_eq(s7_scheme *sc, s7_pointer args) {return(make_boolean(sc, car(args) == cadr(args)));} /* chooser checks types */
-static s7_pointer g_simple_char_eq1(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer c1 = car(args), c2 = cadr(args);
-  if (!is_character(c2)) return(method_or_bust(sc, c2, sc->char_eq_symbol, args, sc->type_names[T_CHARACTER], 2));
-  return(make_boolean(sc, c1 == c2)); /* chars are unique so we can compare pointers */
-}
-static s7_pointer g_simple_char_eq2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer c1 = car(args), c2 = cadr(args);
-  if (!is_character(c1)) return(method_or_bust(sc, c1, sc->char_eq_symbol, args, sc->type_names[T_CHARACTER], 1));
-  return(make_boolean(sc, c1 == c2));
-}
-
-#define check_char2_args(Sc, Caller, C1, C2) \
-  do { \
-      if (!is_character(C1)) return(method_or_bust(Sc, C1, Caller, set_plist_2(Sc, C1, C2), Sc->type_names[T_CHARACTER], 1) != sc->F); \
-      if (!is_character(C2)) return(method_or_bust(Sc, C2, Caller, set_plist_2(Sc, C1, C2), Sc->type_names[T_CHARACTER], 2) != sc->F); \
-     } while (0)
-
-static bool char_lt_b_unchecked(s7_pointer c1, s7_pointer c2) {return(c1 < c2);}
-static bool char_lt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_lt_symbol, c1, c2);
-  return(c1 < c2);
-}
-
-static bool char_leq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(c1 <= c2);}
-static bool char_leq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_leq_symbol, c1, c2);
-  return(c1 <= c2);
-}
-
-static bool char_gt_b_unchecked(s7_pointer c1, s7_pointer c2) {return(c1 > c2);}
-static bool char_gt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_gt_symbol, c1, c2);
-  return(c1 > c2);
-}
-
-static bool char_geq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(c1 >= c2);}
-static bool char_geq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_geq_symbol, c1, c2);
-  return(c1 >= c2);
-}
-
-static bool char_eq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(c1 == c2);}
-
-static bool char_eq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  if (!is_character(c1)) return(method_or_bust(sc, c1, sc->char_eq_symbol, set_plist_2(sc, c1, c2), sc->type_names[T_CHARACTER], 1) != sc->F);
-  if (c1 == c2) return(true);
-  if (!is_character(c2)) return(method_or_bust(sc, c2, sc->char_eq_symbol, set_plist_2(sc, c1, c2), sc->type_names[T_CHARACTER], 2) != sc->F);
-  return(false);
-}
-
-static s7_pointer char_eq_p_pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  if (!is_character(c1)) return(method_or_bust(sc, c1, sc->char_eq_symbol, set_plist_2(sc, c1, c2), sc->type_names[T_CHARACTER], 1));
-  if (c1 == c2) return(sc->T);
-  if (!is_character(c2)) return(method_or_bust(sc, c2, sc->char_eq_symbol, set_plist_2(sc, c1, c2), sc->type_names[T_CHARACTER], 2));
-  return(sc->F);
-}
-
-static s7_pointer g_char_equal_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_character(car(args))) return(method_or_bust(sc, car(args), sc->char_eq_symbol, args, sc->type_names[T_CHARACTER], 1));
-  if (car(args) == cadr(args))
-    return(sc->T);
-  if (!is_character(cadr(args))) return(method_or_bust(sc, cadr(args), sc->char_eq_symbol, args, sc->type_names[T_CHARACTER], 2));
-  return(sc->F);
-}
-
-static s7_pointer g_char_less_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_character(car(args))) return(method_or_bust(sc, car(args), sc->char_lt_symbol, args, sc->type_names[T_CHARACTER], 1));
-  if (!is_character(cadr(args))) return(method_or_bust(sc, cadr(args), sc->char_lt_symbol, args, sc->type_names[T_CHARACTER], 2));
-  return(make_boolean(sc, character(car(args)) < character(cadr(args))));
-}
-
-static s7_pointer g_char_greater_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_character(car(args))) return(method_or_bust(sc, car(args), sc->char_gt_symbol, args, sc->type_names[T_CHARACTER], 1));
-  if (!is_character(cadr(args))) return(method_or_bust(sc, cadr(args), sc->char_gt_symbol, args, sc->type_names[T_CHARACTER], 2));
-  return(make_boolean(sc, character(car(args)) > character(cadr(args))));
-}
 
 static bool returns_char(s7_scheme *sc, s7_pointer arg) {return(argument_type(sc, arg) == sc->is_char_symbol);}
 
@@ -25159,216 +24755,6 @@ static s7_pointer char_equal_chooser(s7_scheme *sc, s7_pointer func, int32_t arg
 static s7_pointer char_less_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)    {return((args == 2) ? sc->char_less_2 : func);}
 static s7_pointer char_greater_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr) {return((args == 2) ? sc->char_greater_2 : func);}
 
-
-/* -------------------------------- char-ci<? char-ci<=? char-ci>? char-ci>=? char-ci=? -------------------------------- */
-#if !WITH_PURE_S7
-static s7_pointer g_char_cmp_ci(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer chr = car(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, sym, args, sc->type_names[T_CHARACTER], 1));
-
-  for (s7_pointer chrs = cdr(args); is_pair(chrs); chr = car(chrs), chrs = cdr(chrs))
-    {
-      if (!is_character(car(chrs)))
-	return(method_or_bust(sc, car(chrs), sym, set_ulist_1(sc, chr, chrs), sc->type_names[T_CHARACTER], position_of(chrs, args)));
-      if (charcmp(upper_character(chr), upper_character(car(chrs))) != val)
-	return(char_with_error_check(sc, chrs, args, sym));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_char_cmp_ci_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer chr = car(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, sym, args, sc->type_names[T_CHARACTER], 1));
-  for (s7_pointer chrs = cdr(args); is_pair(chrs); chr = car(chrs), chrs = cdr(chrs))
-    {
-      if (!is_character(car(chrs)))
-	return(method_or_bust(sc, car(chrs), sym, set_ulist_1(sc, chr, chrs), sc->type_names[T_CHARACTER], position_of(chrs, args)));
-      if (charcmp(upper_character(chr), upper_character(car(chrs))) == val)
-	return(char_with_error_check(sc, chrs, args, sym));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_chars_are_ci_equal(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_ci_equal "(char-ci=? char ...) returns #t if all the character arguments are equal, ignoring case"
-  #define Q_chars_are_ci_equal sc->pcl_bc
-  return(g_char_cmp_ci(sc, args, 0, sc->char_ci_eq_symbol));
-}
-
-static s7_pointer g_chars_are_ci_less(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_ci_less "(char-ci<? char ...) returns #t if all the character arguments are increasing, ignoring case"
-  #define Q_chars_are_ci_less sc->pcl_bc
-  return(g_char_cmp_ci(sc, args, -1, sc->char_ci_lt_symbol));
-}
-
-static s7_pointer g_chars_are_ci_greater(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_ci_greater "(char-ci>? char ...) returns #t if all the character arguments are decreasing, ignoring case"
-  #define Q_chars_are_ci_greater sc->pcl_bc
-  return(g_char_cmp_ci(sc, args, 1, sc->char_ci_gt_symbol));
-}
-
-static s7_pointer g_chars_are_ci_geq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_ci_geq "(char-ci>=? char ...) returns #t if all the character arguments are equal or decreasing, ignoring case"
-  #define Q_chars_are_ci_geq sc->pcl_bc
-  return(g_char_cmp_ci_not(sc, args, -1, sc->char_ci_geq_symbol));
-}
-
-static s7_pointer g_chars_are_ci_leq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_chars_are_ci_leq "(char-ci<=? char ...) returns #t if all the character arguments are equal or increasing, ignoring case"
-  #define Q_chars_are_ci_leq sc->pcl_bc
-  return(g_char_cmp_ci_not(sc, args, 1, sc->char_ci_leq_symbol));
-}
-
-
-static bool char_ci_lt_b_unchecked(s7_pointer c1, s7_pointer c2) {return(upper_character(c1) < upper_character(c2));}
-static bool char_ci_lt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_ci_lt_symbol, c1, c2);
-  return(upper_character(c1) < upper_character(c2));
-}
-
-static bool char_ci_leq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(upper_character(c1) <= upper_character(c2));}
-static bool char_ci_leq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_ci_leq_symbol, c1, c2);
-  return(upper_character(c1) <= upper_character(c2));
-}
-
-static bool char_ci_gt_b_unchecked(s7_pointer c1, s7_pointer c2) {return(upper_character(c1) > upper_character(c2));}
-static bool char_ci_gt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_ci_gt_symbol, c1, c2);
-  return(upper_character(c1) > upper_character(c2));
-}
-
-static bool char_ci_geq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(upper_character(c1) >= upper_character(c2));}
-static bool char_ci_geq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_ci_geq_symbol, c1, c2);
-  return(upper_character(c1) >= upper_character(c2));
-}
-
-static bool char_ci_eq_b_unchecked(s7_pointer c1, s7_pointer c2) {return(upper_character(c1) == upper_character(c2));}
-static bool char_ci_eq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
-{
-  check_char2_args(sc, sc->char_ci_eq_symbol, c1, c2);
-  return(upper_character(c1) == upper_character(c2));
-}
-
-#endif /* not pure s7 */
-
-
-/* -------------------------------- char-position -------------------------------- */
-static s7_pointer g_char_position(s7_scheme *sc, s7_pointer args)
-{
-  #define H_char_position "(char-position char-or-str str (start 0)) returns the position of the first occurrence of char in str, or #f"
-  #define Q_char_position s7_make_signature(sc, 4, \
-                            s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), \
-                            s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_string_symbol), \
-                            sc->is_string_symbol, sc->is_integer_symbol)
-  const char *porig, *pset;
-  s7_int start, pos, len;
-  s7_pointer arg1 = car(args), arg2;
-
-  if ((!is_character(arg1)) && (!is_string(arg1)))
-    return(method_or_bust(sc, arg1, sc->char_position_symbol, args, sc->type_names[T_CHARACTER], 1));
-
-  arg2 = cadr(args);
-  if (!is_string(arg2))
-    return(method_or_bust(sc, arg2, sc->char_position_symbol, args, sc->type_names[T_STRING], 2));
-
-  if (is_pair(cddr(args)))
-    {
-      s7_pointer arg3 = caddr(args);
-      if (!s7_is_integer(arg3))
-	return(method_or_bust(sc, arg3, sc->char_position_symbol, args, sc->type_names[T_INTEGER], 3));
-      start = s7_integer_clamped_if_gmp(sc, arg3);
-      if (start < 0)
-	wrong_type_error_nr(sc, sc->char_position_symbol, 3, arg3, a_non_negative_integer_string);
-    }
-  else start = 0;
-
-  porig = string_value(arg2);
-  len = string_length(arg2);
-  if (start >= len) return(sc->F);
-
-  if (is_character(arg1))
-    {
-      char c = character(arg1);
-      const char *p = strchr((const char *)(porig + start), (int)c); /* use strchrnul in Gnu C to catch embedded null case */
-      return((p) ? make_integer(sc, p - porig) : sc->F);
-    }
-  if (string_length(arg1) == 0)
-    return(sc->F);
-  pset = string_value(arg1);
-
-  pos = strcspn((const char *)(porig + start), (const char *)pset);
-  if ((pos + start) < len)
-    return(make_integer(sc, pos + start));
-
-  /* if the string has an embedded null, we can get erroneous results here --
-   *   perhaps check for null at pos+start?  What about a searched-for string that also has embedded nulls?
-   */
-  return(sc->F);
-}
-
-static s7_pointer char_position_p_ppi(s7_scheme *sc, s7_pointer chr, s7_pointer str, s7_int start)
-{
-  if (!is_string(str))
-    wrong_type_error_nr(sc, sc->char_position_symbol, 2, str, sc->type_names[T_STRING]);
-  if (start < 0)
-    wrong_type_error_nr(sc, sc->char_position_symbol, 3, wrap_integer(sc, start), a_non_negative_integer_string);
-  {
-    const char *p;
-    char c = character(chr);
-    s7_int len = string_length(str);
-    const char *porig = string_value(str);
-    if (start >= len) return(sc->F);
-    p = strchr((const char *)(porig + start), (int)c);
-    if (p) return(make_integer(sc, p - porig));
-  }
-  return(sc->F);
-}
-
-static s7_pointer g_char_position_csi(s7_scheme *sc, s7_pointer args)
-{
-  /* assume char arg1, no end */
-  const char *porig;
-  const char c = character(car(args));
-  const s7_pointer arg2 = cadr(args);
-  s7_int start, len;
-
-  if (!is_string(arg2))
-    return(g_char_position(sc, args));
-
-  len = string_length(arg2); /* can't return #f here if len==0 -- need start error check first */
-  porig = string_value(arg2);
-  if (is_pair(cddr(args)))
-    {
-      const s7_pointer arg3 = caddr(args);
-      if (!s7_is_integer(arg3))
-	return(g_char_position(sc, args));
-      start = s7_integer_clamped_if_gmp(sc, arg3);
-      if (start < 0)
-	wrong_type_error_nr(sc, sc->char_position_symbol, 3, arg3, a_non_negative_integer_string);
-      if (start >= len) return(sc->F);
-    }
-  else start = 0;
-  if (len == 0) return(sc->F);
-  {
-    const char *p = strchr((const char *)(porig + start), (int)c); /* const for g++, see also below */
-    return((p) ? make_integer(sc, p - porig) : sc->F);
-  }
-}
 
 static s7_pointer char_position_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -97900,7 +97286,9 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_complex_symbol =         bool_defun("complex?",         is_complex,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_rational_symbol =        bool_defun("rational?",        is_rational,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_random_state_symbol =    bool_defun("random-state?",    is_random_state,    0, T_RANDOM_STATE, mark_simple_vector, true);
-  sc->is_char_symbol =            bool_defun("char?",	         is_char,	     0, T_CHARACTER,    just_mark_vector,   true);
+  sc->is_char_symbol =            define_bool_function(sc, "char?", g_is_char, 0,
+                                                       "(char? obj) returns #t if obj is a character",
+                                                       sc->pl_bt, T_CHARACTER, just_mark_vector, true, b_is_char_setter);
   sc->is_string_symbol =          bool_defun("string?",	         is_string,	     0, T_STRING,       mark_simple_vector, true);
   sc->is_list_symbol =            bool_defun("list?",	         is_list,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_pair_symbol =            bool_defun("pair?",	         is_pair,	     0, T_PAIR,         mark_vector_1,      false);
@@ -98176,23 +97564,44 @@ static void init_rootlet(s7_scheme *sc)
   sc->number_to_string_symbol =      defun("number->string",	number_to_string,	1, 1, false);
   sc->string_to_number_symbol =      defun("string->number",	string_to_number,	1, 1, false);
 
-  sc->char_upcase_symbol =           defun("char-upcase",	char_upcase,		1, 0, false);
-  sc->char_downcase_symbol =         defun("char-downcase",	char_downcase,		1, 0, false);
-  sc->char_to_integer_symbol =       defun("char->integer",	char_to_integer,	1, 0, false);
-  sc->integer_to_char_symbol =       defun("integer->char",	integer_to_char,	1, 0, false);
+  sc->char_upcase_symbol =           s7_define_typed_function(sc, "char-upcase", g_char_upcase, 1, 0, false,
+                                                              "(char-upcase c) converts the character c to upper case", sc->pcl_c);
+  sc->char_downcase_symbol =         s7_define_typed_function(sc, "char-downcase", g_char_downcase, 1, 0, false,
+                                                              "(char-downcase c) converts the character c to lower case", sc->pcl_c);
+  sc->char_to_integer_symbol =       s7_define_typed_function(sc, "char->integer", g_char_to_integer, 1, 0, false,
+                                                              "(char->integer c) converts the character c to an integer",
+                                                              s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_char_symbol));
+  sc->integer_to_char_symbol =       s7_define_typed_function(sc, "integer->char", g_integer_to_char, 1, 0, false,
+                                                              "(integer->char i) converts the non-negative integer i to a character",
+                                                              s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol));
 
-  sc->is_char_upper_case_symbol =    defun("char-upper-case?",  is_char_upper_case,	1, 0, false);
-  sc->is_char_lower_case_symbol =    defun("char-lower-case?",  is_char_lower_case,	1, 0, false);
-  sc->is_char_alphabetic_symbol =    defun("char-alphabetic?",  is_char_alphabetic,	1, 0, false);
-  sc->is_char_numeric_symbol =       defun("char-numeric?",	is_char_numeric,	1, 0, false);
-  sc->is_char_whitespace_symbol =    defun("char-whitespace?",  is_char_whitespace,	1, 0, false);
+  sc->is_char_upper_case_symbol =    s7_define_typed_function(sc, "char-upper-case?", g_is_char_upper_case, 1, 0, false,
+                                                              "(char-upper-case? c) returns #t if the character c is in upper case", sc->pl_bc);
+  sc->is_char_lower_case_symbol =    s7_define_typed_function(sc, "char-lower-case?", g_is_char_lower_case, 1, 0, false,
+                                                              "(char-lower-case? c) returns #t if the character c is in lower case", sc->pl_bc);
+  sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,
+                                                              "(char-alphabetic? c) returns #t if the character c is alphabetic", sc->pl_bc);
+  sc->is_char_numeric_symbol =       s7_define_typed_function(sc, "char-numeric?", g_is_char_numeric, 1, 0, false,
+                                                              "(char-numeric? c) returns #t if the character c is a digit", sc->pl_bc);
+  sc->is_char_whitespace_symbol =    s7_define_typed_function(sc, "char-whitespace?", g_is_char_whitespace, 1, 0, false,
+                                                              "(char-whitespace? c) returns #t if the character c is non-printing character", sc->pl_bc);
 
-  sc->char_eq_symbol =               defun("char=?",		chars_are_equal,	2, 0, true);
-  sc->char_lt_symbol =               defun("char<?",		chars_are_less,		2, 0, true);
-  sc->char_gt_symbol =               defun("char>?",		chars_are_greater,	2, 0, true);
-  sc->char_leq_symbol =              defun("char<=?",		chars_are_leq,		2, 0, true);
-  sc->char_geq_symbol =              defun("char>=?",		chars_are_geq,		2, 0, true);
-  sc->char_position_symbol =         defun("char-position",	char_position,		2, 1, false);
+  sc->char_eq_symbol =               s7_define_typed_function(sc, "char=?", g_chars_are_equal, 2, 0, true,
+                                                              "(char=? char ...) returns #t if all the character arguments are equal", sc->pcl_bc);
+  sc->char_lt_symbol =               s7_define_typed_function(sc, "char<?", g_chars_are_less, 2, 0, true,
+                                                              "(char<? char ...) returns #t if all the character arguments are increasing", sc->pcl_bc);
+  sc->char_gt_symbol =               s7_define_typed_function(sc, "char>?", g_chars_are_greater, 2, 0, true,
+                                                              "(char>? char ...) returns #t if all the character arguments are decreasing", sc->pcl_bc);
+  sc->char_leq_symbol =              s7_define_typed_function(sc, "char<=?", g_chars_are_leq, 2, 0, true,
+                                                              "(char<=? char ...) returns #t if all the character arguments are equal or increasing", sc->pcl_bc);
+  sc->char_geq_symbol =              s7_define_typed_function(sc, "char>=?", g_chars_are_geq, 2, 0, true,
+                                                              "(char>=? char ...) returns #t if all the character arguments are equal or decreasing", sc->pcl_bc);
+  sc->char_position_symbol =         s7_define_typed_function(sc, "char-position", g_char_position, 2, 1, false,
+                                                              "(char-position char-or-str str (start 0)) returns the position of the first occurrence of char in str, or #f",
+                                                              s7_make_signature(sc, 4,
+                                                                s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol),
+                                                                s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_string_symbol),
+                                                                sc->is_string_symbol, sc->is_integer_symbol));
   sc->string_position_symbol =       defun("string-position",	string_position,	2, 1, false);
 
   sc->make_string_symbol =           defun("make-string",	make_string,		1, 1, false);
@@ -98210,11 +97619,16 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_geq_symbol =            defun("string>=?",	        strings_are_geq,	2, 0, true);
 
 #if !WITH_PURE_S7
-  sc->char_ci_eq_symbol =            defun("char-ci=?",	        chars_are_ci_equal,	2, 0, true);
-  sc->char_ci_lt_symbol =            defun("char-ci<?",	        chars_are_ci_less,	2, 0, true);
-  sc->char_ci_gt_symbol =            defun("char-ci>?",	        chars_are_ci_greater,	2, 0, true);
-  sc->char_ci_leq_symbol =           defun("char-ci<=?",	chars_are_ci_leq,	2, 0, true);
-  sc->char_ci_geq_symbol =           defun("char-ci>=?",	chars_are_ci_geq,	2, 0, true);
+  sc->char_ci_eq_symbol =            s7_define_typed_function(sc, "char-ci=?", g_chars_are_ci_equal, 2, 0, true,
+                                                              "(char-ci=? char ...) returns #t if all the character arguments are equal, ignoring case", sc->pcl_bc);
+  sc->char_ci_lt_symbol =            s7_define_typed_function(sc, "char-ci<?", g_chars_are_ci_less, 2, 0, true,
+                                                              "(char-ci<? char ...) returns #t if all the character arguments are increasing, ignoring case", sc->pcl_bc);
+  sc->char_ci_gt_symbol =            s7_define_typed_function(sc, "char-ci>?", g_chars_are_ci_greater, 2, 0, true,
+                                                              "(char-ci>? char ...) returns #t if all the character arguments are decreasing, ignoring case", sc->pcl_bc);
+  sc->char_ci_leq_symbol =           s7_define_typed_function(sc, "char-ci<=?", g_chars_are_ci_leq, 2, 0, true,
+                                                              "(char-ci<=? char ...) returns #t if all the character arguments are equal or increasing, ignoring case", sc->pcl_bc);
+  sc->char_ci_geq_symbol =           s7_define_typed_function(sc, "char-ci>=?", g_chars_are_ci_geq, 2, 0, true,
+                                                              "(char-ci>=? char ...) returns #t if all the character arguments are equal or decreasing, ignoring case", sc->pcl_bc);
   sc->string_ci_eq_symbol =          defun("string-ci=?",	strings_are_ci_equal,	2, 0, true);
   sc->string_ci_lt_symbol =          defun("string-ci<?",	strings_are_ci_less,	2, 0, true);
   sc->string_ci_gt_symbol =          defun("string-ci>?",	strings_are_ci_greater, 2, 0, true);
@@ -98589,6 +98003,7 @@ s7_scheme *s7_init(void)
       init_int_limits();
       init_small_ints();
       init_uppers();
+      init_scheme_char_tables();
       init_chars();
       init_strings();
       init_fx_function();
