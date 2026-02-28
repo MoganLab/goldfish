@@ -308,7 +308,18 @@ njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& p
       cur = &(*cur)[idx];
     }
     else {
-      error_msg = "path not found: cannot descend into non-container value";
+      char* key_repr_c = s7_object_to_c_string (sc, key);
+      if (key_repr_c) {
+        std::string key_repr (key_repr_c);
+        free (key_repr_c);
+        if (key_repr.size () >= 2 && key_repr.front () == '"' && key_repr.back () == '"') {
+          key_repr = key_repr.substr (1, key_repr.size () - 2);
+        }
+        error_msg = "path not found: missing object key '" + key_repr + "'";
+      }
+      else {
+        error_msg = "path not found: missing object key '<unknown>'";
+      }
       return false;
     }
   }
