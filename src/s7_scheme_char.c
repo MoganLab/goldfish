@@ -7,6 +7,7 @@
  */
 
 #include "s7_scheme_char.h"
+#include "s7_internal_helpers.h"
 #include <ctype.h>
 #include <string.h>
 
@@ -67,23 +68,6 @@ static s7_pointer list2(s7_scheme *sc, s7_pointer a, s7_pointer b)
   return s7_cons(sc, a, s7_cons(sc, b, s7_nil(sc)));
 }
 
-static s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, const char *name,
-                                 s7_pointer args, const char *type_name, s7_int arg_pos)
-{
-  s7_pointer sym = s7_make_symbol(sc, name);
-  s7_pointer func = s7_method(sc, obj, sym);
-  if (func != s7_undefined(sc))
-    return s7_apply_function(sc, func, args);
-  return s7_wrong_type_arg_error(sc, name, arg_pos, obj, type_name);
-}
-
-static bool method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *name,
-                                s7_pointer args, const char *type_name, s7_int arg_pos)
-{
-  s7_pointer result = method_or_bust(sc, obj, name, args, type_name, arg_pos);
-  return (result != s7_f(sc));
-}
-
 static bool is_character_via_method(s7_scheme *sc, s7_pointer p)
 {
   if (s7_is_character(p)) return true;
@@ -118,7 +102,7 @@ s7_pointer g_char_to_integer(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char->integer", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char->integer", args, "a character", 1);
   return s7_make_integer(sc, (s7_int)s7_character(arg));
 }
 
@@ -126,7 +110,7 @@ s7_int char_to_integer_i_7p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
     {
-      s7_pointer result = method_or_bust(sc, c, "char->integer", list1(sc, c), "a character", 1);
+      s7_pointer result = s7i_method_or_bust(sc, c, "char->integer", list1(sc, c), "a character", 1);
       return s7_integer(result);
     }
   return (s7_int)s7_character(c);
@@ -135,7 +119,7 @@ s7_int char_to_integer_i_7p(s7_scheme *sc, s7_pointer c)
 s7_pointer char_to_integer_p_p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char->integer", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust(sc, c, "char->integer", list1(sc, c), "a character", 1);
   return s7_make_integer(sc, (s7_int)s7_character(c));
 }
 
@@ -143,7 +127,7 @@ s7_pointer integer_to_char_p_p(s7_scheme *sc, s7_pointer x)
 {
   s7_int ind;
   if (!s7_is_integer(x))
-    return method_or_bust(sc, x, "integer->char", list1(sc, x), "an integer", 1);
+    return s7i_method_or_bust(sc, x, "integer->char", list1(sc, x), "an integer", 1);
 
   ind = s7_number_to_integer_with_caller(sc, x, "integer->char");
 
@@ -169,7 +153,7 @@ s7_pointer integer_to_char_p_i(s7_scheme *sc, s7_int ind)
 s7_pointer char_upcase_p_p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char-upcase", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust(sc, c, "char-upcase", list1(sc, c), "a character", 1);
   return chars[uppers[s7_character(c)]];
 }
 
@@ -188,7 +172,7 @@ s7_pointer g_char_downcase(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = s7_car(args);
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char-downcase", args, "a character", 1);
+    return s7i_method_or_bust(sc, c, "char-downcase", args, "a character", 1);
   return chars[lowers[s7_character(c)]];
 }
 
@@ -198,7 +182,7 @@ s7_pointer g_is_char_alphabetic(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char-alphabetic?", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char-alphabetic?", args, "a character", 1);
   return s7_make_boolean(sc, char_is_alphabetic[s7_character(arg)]);
 }
 
@@ -215,7 +199,7 @@ bool is_char_alphabetic_b_7p(s7_scheme *sc, s7_pointer c)
 s7_pointer is_char_alphabetic_p_p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char-alphabetic?", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust(sc, c, "char-alphabetic?", list1(sc, c), "a character", 1);
   return s7_make_boolean(sc, char_is_alphabetic[s7_character(c)]);
 }
 
@@ -223,7 +207,7 @@ s7_pointer g_is_char_numeric(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char-numeric?", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char-numeric?", args, "a character", 1);
   return s7_make_boolean(sc, char_is_numeric[s7_character(arg)]);
 }
 
@@ -240,7 +224,7 @@ bool is_char_numeric_b_7p(s7_scheme *sc, s7_pointer c)
 s7_pointer is_char_numeric_p_p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char-numeric?", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust(sc, c, "char-numeric?", list1(sc, c), "a character", 1);
   return s7_make_boolean(sc, char_is_numeric[s7_character(c)]);
 }
 
@@ -248,7 +232,7 @@ s7_pointer g_is_char_whitespace(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char-whitespace?", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char-whitespace?", args, "a character", 1);
   return s7_make_boolean(sc, char_is_whitespace[s7_character(arg)]);
 }
 
@@ -265,7 +249,7 @@ bool is_char_whitespace_b_7p(s7_scheme *sc, s7_pointer c)
 s7_pointer is_char_whitespace_p_p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust(sc, c, "char-whitespace?", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust(sc, c, "char-whitespace?", list1(sc, c), "a character", 1);
   return s7_make_boolean(sc, char_is_whitespace[s7_character(c)]);
 }
 
@@ -280,14 +264,14 @@ s7_pointer g_is_char_upper_case(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char-upper-case?", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char-upper-case?", args, "a character", 1);
   return s7_make_boolean(sc, char_is_uppercase[s7_character(arg)]);
 }
 
 bool is_char_upper_case_b_7p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust_bool(sc, c, "char-upper-case?", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c, "char-upper-case?", list1(sc, c), "a character", 1);
   return char_is_uppercase[s7_character(c)];
 }
 
@@ -295,14 +279,14 @@ s7_pointer g_is_char_lower_case(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer arg = s7_car(args);
   if (!s7_is_character(arg))
-    return method_or_bust(sc, arg, "char-lower-case?", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg, "char-lower-case?", args, "a character", 1);
   return s7_make_boolean(sc, char_is_lowercase[s7_character(arg)]);
 }
 
 bool is_char_lower_case_b_7p(s7_scheme *sc, s7_pointer c)
 {
   if (!s7_is_character(c))
-    return method_or_bust_bool(sc, c, "char-lower-case?", list1(sc, c), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c, "char-lower-case?", list1(sc, c), "a character", 1);
   return char_is_lowercase[s7_character(c)];
 }
 
@@ -331,14 +315,14 @@ static s7_pointer g_char_cmp(s7_scheme *sc, s7_pointer args, int32_t val, const 
 {
   s7_pointer chr = s7_car(args);
   if (!s7_is_character(chr))
-    return method_or_bust(sc, chr, name, args, "a character", 1);
+    return s7i_method_or_bust(sc, chr, name, args, "a character", 1);
 
   s7_int pos = 2;
   for (s7_pointer chrs = s7_cdr(args); s7_is_pair(chrs); chrs = s7_cdr(chrs), pos++)
     {
       s7_pointer cur = s7_car(chrs);
       if (!s7_is_character(cur))
-        return method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
+        return s7i_method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
       if (charcmp(s7_character(chr), s7_character(cur)) != val)
         return char_with_error_check(sc, chrs, pos, name);
       chr = cur;
@@ -350,14 +334,14 @@ static s7_pointer g_char_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, co
 {
   s7_pointer chr = s7_car(args);
   if (!s7_is_character(chr))
-    return method_or_bust(sc, chr, name, args, "a character", 1);
+    return s7i_method_or_bust(sc, chr, name, args, "a character", 1);
 
   s7_int pos = 2;
   for (s7_pointer chrs = s7_cdr(args); s7_is_pair(chrs); chrs = s7_cdr(chrs), pos++)
     {
       s7_pointer cur = s7_car(chrs);
       if (!s7_is_character(cur))
-        return method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
+        return s7i_method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
       if (charcmp(s7_character(chr), s7_character(cur)) == val)
         return char_with_error_check(sc, chrs, pos, name);
       chr = cur;
@@ -369,14 +353,14 @@ s7_pointer g_chars_are_equal(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer chr = s7_car(args);
   if (!s7_is_character(chr))
-    return method_or_bust(sc, chr, "char=?", args, "a character", 1);
+    return s7i_method_or_bust(sc, chr, "char=?", args, "a character", 1);
 
   s7_int pos = 2;
   for (s7_pointer chrs = s7_cdr(args); s7_is_pair(chrs); chrs = s7_cdr(chrs), pos++)
     {
       s7_pointer cur = s7_car(chrs);
       if (!s7_is_character(cur))
-        return method_or_bust(sc, cur, "char=?", s7_cons(sc, chr, chrs), "a character", pos);
+        return s7i_method_or_bust(sc, cur, "char=?", s7_cons(sc, chr, chrs), "a character", pos);
       if (cur != chr)
         return char_with_error_check(sc, chrs, pos, "char=?");
     }
@@ -413,7 +397,7 @@ s7_pointer g_simple_char_eq1(s7_scheme *sc, s7_pointer args)
   s7_pointer c1 = s7_car(args);
   s7_pointer c2 = s7_cadr(args);
   if (!s7_is_character(c2))
-    return method_or_bust(sc, c2, "char=?", args, "a character", 2);
+    return s7i_method_or_bust(sc, c2, "char=?", args, "a character", 2);
   return s7_make_boolean(sc, c1 == c2);
 }
 
@@ -422,7 +406,7 @@ s7_pointer g_simple_char_eq2(s7_scheme *sc, s7_pointer args)
   s7_pointer c1 = s7_car(args);
   s7_pointer c2 = s7_cadr(args);
   if (!s7_is_character(c1))
-    return method_or_bust(sc, c1, "char=?", args, "a character", 1);
+    return s7i_method_or_bust(sc, c1, "char=?", args, "a character", 1);
   return s7_make_boolean(sc, c1 == c2);
 }
 
@@ -434,9 +418,9 @@ bool char_lt_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_lt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char<?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char<?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char<?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char<?", list2(sc, c1, c2), "a character", 2);
   return c1 < c2;
 }
 
@@ -448,9 +432,9 @@ bool char_leq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_leq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char<=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char<=?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char<=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char<=?", list2(sc, c1, c2), "a character", 2);
   return c1 <= c2;
 }
 
@@ -462,9 +446,9 @@ bool char_gt_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_gt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char>?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char>?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char>?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char>?", list2(sc, c1, c2), "a character", 2);
   return c1 > c2;
 }
 
@@ -476,9 +460,9 @@ bool char_geq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_geq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char>=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char>=?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char>=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char>=?", list2(sc, c1, c2), "a character", 2);
   return c1 >= c2;
 }
 
@@ -490,20 +474,20 @@ bool char_eq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_eq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char=?", list2(sc, c1, c2), "a character", 1);
   if (c1 == c2) return true;
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char=?", list2(sc, c1, c2), "a character", 2);
   return false;
 }
 
 s7_pointer char_eq_p_pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust(sc, c1, "char=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust(sc, c1, "char=?", list2(sc, c1, c2), "a character", 1);
   if (c1 == c2) return s7_t(sc);
   if (!s7_is_character(c2))
-    return method_or_bust(sc, c2, "char=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust(sc, c2, "char=?", list2(sc, c1, c2), "a character", 2);
   return s7_f(sc);
 }
 
@@ -512,10 +496,10 @@ s7_pointer g_char_equal_2(s7_scheme *sc, s7_pointer args)
   s7_pointer c1 = s7_car(args);
   s7_pointer c2 = s7_cadr(args);
   if (!s7_is_character(c1))
-    return method_or_bust(sc, c1, "char=?", args, "a character", 1);
+    return s7i_method_or_bust(sc, c1, "char=?", args, "a character", 1);
   if (c1 == c2) return s7_t(sc);
   if (!s7_is_character(c2))
-    return method_or_bust(sc, c2, "char=?", args, "a character", 2);
+    return s7i_method_or_bust(sc, c2, "char=?", args, "a character", 2);
   return s7_f(sc);
 }
 
@@ -524,9 +508,9 @@ s7_pointer g_char_less_2(s7_scheme *sc, s7_pointer args)
   s7_pointer c1 = s7_car(args);
   s7_pointer c2 = s7_cadr(args);
   if (!s7_is_character(c1))
-    return method_or_bust(sc, c1, "char<?", args, "a character", 1);
+    return s7i_method_or_bust(sc, c1, "char<?", args, "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust(sc, c2, "char<?", args, "a character", 2);
+    return s7i_method_or_bust(sc, c2, "char<?", args, "a character", 2);
   return s7_make_boolean(sc, s7_character(c1) < s7_character(c2));
 }
 
@@ -535,9 +519,9 @@ s7_pointer g_char_greater_2(s7_scheme *sc, s7_pointer args)
   s7_pointer c1 = s7_car(args);
   s7_pointer c2 = s7_cadr(args);
   if (!s7_is_character(c1))
-    return method_or_bust(sc, c1, "char>?", args, "a character", 1);
+    return s7i_method_or_bust(sc, c1, "char>?", args, "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust(sc, c2, "char>?", args, "a character", 2);
+    return s7i_method_or_bust(sc, c2, "char>?", args, "a character", 2);
   return s7_make_boolean(sc, s7_character(c1) > s7_character(c2));
 }
 
@@ -548,14 +532,14 @@ static s7_pointer g_char_cmp_ci(s7_scheme *sc, s7_pointer args, int32_t val, con
 {
   s7_pointer chr = s7_car(args);
   if (!s7_is_character(chr))
-    return method_or_bust(sc, chr, name, args, "a character", 1);
+    return s7i_method_or_bust(sc, chr, name, args, "a character", 1);
 
   s7_int pos = 2;
   for (s7_pointer chrs = s7_cdr(args); s7_is_pair(chrs); chrs = s7_cdr(chrs), pos++)
     {
       s7_pointer cur = s7_car(chrs);
       if (!s7_is_character(cur))
-        return method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
+        return s7i_method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
       if (charcmp(uppers[s7_character(chr)], uppers[s7_character(cur)]) != val)
         return char_with_error_check(sc, chrs, pos, name);
       chr = cur;
@@ -567,14 +551,14 @@ static s7_pointer g_char_cmp_ci_not(s7_scheme *sc, s7_pointer args, int32_t val,
 {
   s7_pointer chr = s7_car(args);
   if (!s7_is_character(chr))
-    return method_or_bust(sc, chr, name, args, "a character", 1);
+    return s7i_method_or_bust(sc, chr, name, args, "a character", 1);
 
   s7_int pos = 2;
   for (s7_pointer chrs = s7_cdr(args); s7_is_pair(chrs); chrs = s7_cdr(chrs), pos++)
     {
       s7_pointer cur = s7_car(chrs);
       if (!s7_is_character(cur))
-        return method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
+        return s7i_method_or_bust(sc, cur, name, s7_cons(sc, chr, chrs), "a character", pos);
       if (charcmp(uppers[s7_character(chr)], uppers[s7_character(cur)]) == val)
         return char_with_error_check(sc, chrs, pos, name);
       chr = cur;
@@ -615,9 +599,9 @@ bool char_ci_lt_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_ci_lt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char-ci<?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char-ci<?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char-ci<?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char-ci<?", list2(sc, c1, c2), "a character", 2);
   return uppers[s7_character(c1)] < uppers[s7_character(c2)];
 }
 
@@ -629,9 +613,9 @@ bool char_ci_leq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_ci_leq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char-ci<=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char-ci<=?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char-ci<=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char-ci<=?", list2(sc, c1, c2), "a character", 2);
   return uppers[s7_character(c1)] <= uppers[s7_character(c2)];
 }
 
@@ -643,9 +627,9 @@ bool char_ci_gt_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_ci_gt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char-ci>?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char-ci>?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char-ci>?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char-ci>?", list2(sc, c1, c2), "a character", 2);
   return uppers[s7_character(c1)] > uppers[s7_character(c2)];
 }
 
@@ -657,9 +641,9 @@ bool char_ci_geq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_ci_geq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char-ci>=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char-ci>=?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char-ci>=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char-ci>=?", list2(sc, c1, c2), "a character", 2);
   return uppers[s7_character(c1)] >= uppers[s7_character(c2)];
 }
 
@@ -671,9 +655,9 @@ bool char_ci_eq_b_unchecked(s7_pointer c1, s7_pointer c2)
 bool char_ci_eq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2)
 {
   if (!s7_is_character(c1))
-    return method_or_bust_bool(sc, c1, "char-ci=?", list2(sc, c1, c2), "a character", 1);
+    return s7i_method_or_bust_bool(sc, c1, "char-ci=?", list2(sc, c1, c2), "a character", 1);
   if (!s7_is_character(c2))
-    return method_or_bust_bool(sc, c2, "char-ci=?", list2(sc, c1, c2), "a character", 2);
+    return s7i_method_or_bust_bool(sc, c2, "char-ci=?", list2(sc, c1, c2), "a character", 2);
   return uppers[s7_character(c1)] == uppers[s7_character(c2)];
 }
 
@@ -685,18 +669,18 @@ s7_pointer g_char_position(s7_scheme *sc, s7_pointer args)
 {
   const s7_pointer arg1 = s7_car(args);
   if ((!s7_is_character(arg1)) && (!s7_is_string(arg1)))
-    return method_or_bust(sc, arg1, "char-position", args, "a character", 1);
+    return s7i_method_or_bust(sc, arg1, "char-position", args, "a character", 1);
 
   const s7_pointer arg2 = s7_cadr(args);
   if (!s7_is_string(arg2))
-    return method_or_bust(sc, arg2, "char-position", args, "a string", 2);
+    return s7i_method_or_bust(sc, arg2, "char-position", args, "a string", 2);
 
   s7_int start = 0;
   if (s7_is_pair(s7_cddr(args)))
     {
       const s7_pointer arg3 = s7_caddr(args);
       if (!s7_is_integer(arg3))
-        return method_or_bust(sc, arg3, "char-position", args, "an integer", 3);
+        return s7i_method_or_bust(sc, arg3, "char-position", args, "an integer", 3);
       start = s7_number_to_integer_with_caller(sc, arg3, "char-position");
       if (start < 0)
         return s7_wrong_type_arg_error(sc, "char-position", 3, arg3, "a non-negative integer");
