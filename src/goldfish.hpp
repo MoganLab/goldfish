@@ -798,36 +798,6 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
   return nullptr;
 }
 
-static bool
-njson_is_single_tail_arg (s7_scheme* sc, s7_pointer args) {
-  s7_pointer tail = s7_cdr (args);
-  return s7_is_pair (tail) && s7_is_null (sc, s7_cdr (tail));
-}
-
-static s7_pointer
-njson_maybe_raise_append_single_arg_error (s7_scheme* sc, s7_pointer args, const json& root, const char* api_name) {
-  if (!njson_is_single_tail_arg (sc, args)) {
-    return nullptr;
-  }
-  if (!root.is_object ()) {
-    return nullptr;
-  }
-
-  s7_pointer  token = s7_cadr (args);
-  std::string key_name;
-  std::string error_msg;
-  if (!scheme_json_key_to_string (sc, token, key_name, error_msg)) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, token);
-  }
-
-  if (!root.contains (key_name)) {
-    return njson_error (sc, "key-error",
-                        std::string (api_name) + ": path not found: missing object key '" + key_name + "'", token);
-  }
-
-  return njson_error (sc, "key-error", std::string (api_name) + ": expected (json [key ...] value)", token);
-}
-
 static s7_pointer
 njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_update_op op, bool in_place) {
   s7_pointer handle = s7_nil (sc);
@@ -845,12 +815,6 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
       return njson_error (sc, "type-error",
                           std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
     }
-    if (op == njson_update_op::append && path.empty ()) {
-      err = njson_maybe_raise_append_single_arg_error (sc, args, *root, api_name);
-      if (err) {
-        return err;
-      }
-    }
     err = njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle);
     if (err) {
       return err;
@@ -864,12 +828,6 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
   if (!root) {
     return njson_error (sc, "type-error",
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-  }
-  if (op == njson_update_op::append && path.empty ()) {
-    err = njson_maybe_raise_append_single_arg_error (sc, args, *root, api_name);
-    if (err) {
-      return err;
-    }
   }
   json out = *root;
   err = njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle);
