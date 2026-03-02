@@ -901,6 +901,7 @@ enum class njson_merge_mode {
   deep
 };
 
+
 static void
 njson_merge_object_into (json& target, const json& source, njson_merge_mode mode) {
   for (auto it = source.begin (); it != source.end (); ++it) {
