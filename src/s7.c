@@ -63,6 +63,7 @@
  * ---------------- compile time switches ----------------
  */
 
+#include <stdbool.h>
 #if defined __has_include
 #  if __has_include ("mus-config.h")
 #    include "mus-config.h"
@@ -6683,6 +6684,15 @@ static s7_pointer sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, s7_poin
   return(find_and_apply_method(sc, obj, method, args));
 }
 
+s7_pointer s7i_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name)
+{
+  return(sole_arg_method_or_bust(sc, obj, s7_make_symbol(sc, method_name), args, wrap_string(sc, type_name, safe_strlen(type_name))));
+}
+
+bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name)
+{
+  return s7i_sole_arg_method_or_bust(sc, obj, method_name, args, type_name) != sc->F;
+}
 
 /* -------------------------------- constants -------------------------------- */
 /* #f and #t */
@@ -25053,15 +25063,6 @@ static s7_pointer make_string_p_i(s7_scheme *sc, s7_int len)
 
 #if !WITH_PURE_S7
 /* -------------------------------- string-length -------------------------------- */
-static s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_length "(string-length str) returns the length of the string str"
-  #define Q_string_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_length_symbol, args, sc->type_names[T_STRING]));
-  return(make_integer(sc, string_length(str)));
-}
 
 static s7_int string_length_i_7p(s7_scheme *sc, s7_pointer str)
 {
@@ -97652,7 +97653,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_ci_geq_symbol =         defun("string-ci>=?",	strings_are_ci_geq,	2, 0, true);
   sc->string_fill_symbol =           defun("string-fill!",	string_fill,		2, 2, false);
   sc->list_to_string_symbol =        defun("list->string",	list_to_string,		1, 0, false);
-  sc->string_length_symbol =         defun("string-length",	string_length,		1, 0, false);
+  sc->string_length_symbol =         s7_define_typed_function(sc, "string-length", g_string_length, 1, 0, false, "(string-length str) returns the length of str.", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol));
   sc->string_to_list_symbol =        defun("string->list",	string_to_list,		1, 2, false);
 #endif
   sc->string_copy_symbol =           defun("string-copy",	string_copy,		1, 3, false);

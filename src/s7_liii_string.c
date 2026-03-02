@@ -7,6 +7,8 @@
  */
 
 #include "s7_liii_string.h"
+#include "s7.h"
+#include "s7_internal_helpers.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -151,4 +153,16 @@ s7_pointer g_string_set(s7_scheme *sc, s7_pointer args)
   char *str = (char *)s7_string(strng);
   str[ind] = (char)s7_character(c);
   return c;
+}
+
+/*---------------------------------string-length---------------------------------*/
+
+s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
+{
+  #define H_string_length "(string-length str) returns the length of the string str"
+  #define Q_string_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
+  s7_pointer str = s7_car(args);
+  if (!s7_is_string(str))
+    return(s7i_sole_arg_method_or_bust(sc, str, "string-length", args, "a string"));
+  return(s7_make_integer(sc, s7_string_length(str)));
 }

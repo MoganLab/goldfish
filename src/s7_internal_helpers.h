@@ -19,6 +19,10 @@ s7_pointer s7i_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_
 bool s7i_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name,
                              s7_pointer args, const char *type_name, s7_int arg_pos);
 
+s7_pointer s7i_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name);
+
+bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name);
+
 #ifdef __cplusplus
 }
 #endif

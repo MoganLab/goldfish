@@ -20,6 +20,7 @@ s7_pointer g_string_downcase(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer string_ref_1(s7_scheme *sc, s7_pointer strng, s7_pointer index);
 s7_pointer g_string_set(s7_scheme *sc, s7_pointer args);
+s7_pointer g_string_length(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }
