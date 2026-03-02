@@ -63,7 +63,6 @@
  * ---------------- compile time switches ----------------
  */
 
-#include <stdbool.h>
 #if defined __has_include
 #  if __has_include ("mus-config.h")
 #    include "mus-config.h"
