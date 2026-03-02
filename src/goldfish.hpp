@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <argh.h>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -87,6 +88,7 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
 
 static const char* NJSON_HANDLE_TAG = "njson-handle";
 static std::vector<std::unique_ptr<json>> njson_handle_store = std::vector<std::unique_ptr<json>> (1);
+static std::vector<s7_int> njson_handle_generations = std::vector<s7_int> (1, 0);
 static std::vector<s7_int> njson_handle_free_ids;
 static std::vector<s7_pointer> njson_keys_cache_values = std::vector<s7_pointer> (1, nullptr);
 static std::vector<s7_int> njson_keys_cache_gc_locs = std::vector<s7_int> (1, -1);
@@ -111,28 +113,55 @@ njson_error (s7_scheme* sc, const char* type_name, const std::string& msg, s7_po
 
 static s7_pointer
 make_njson_handle (s7_scheme* sc, s7_int id) {
-  return s7_cons (sc, s7_make_symbol (sc, NJSON_HANDLE_TAG), s7_make_integer (sc, id));
+  s7_int generation = 0;
+  if (id > 0) {
+    size_t index = static_cast<size_t> (id);
+    if (index < njson_handle_generations.size ()) {
+      generation = njson_handle_generations[index];
+    }
+  }
+  return s7_cons (
+    sc, s7_make_symbol (sc, NJSON_HANDLE_TAG), s7_cons (sc, s7_make_integer (sc, id), s7_make_integer (sc, generation)));
 }
 
 static bool
-is_njson_handle (s7_pointer x) {
+is_njson_handle (s7_pointer x, s7_int* id_out = nullptr, s7_int* generation_out = nullptr) {
   if (!s7_is_pair (x)) return false;
   s7_pointer tag = s7_car (x);
-  s7_pointer id  = s7_cdr (x);
+  s7_pointer payload = s7_cdr (x);
   if (!s7_is_symbol (tag)) return false;
   if (strcmp (s7_symbol_name (tag), NJSON_HANDLE_TAG) != 0) return false;
-  return s7_is_integer (id);
+  if (!s7_is_pair (payload)) return false;
+  s7_pointer id = s7_car (payload);
+  s7_pointer generation = s7_cdr (payload);
+  if (!s7_is_integer (id) || !s7_is_integer (generation)) return false;
+  if (id_out) *id_out = s7_integer (id);
+  if (generation_out) *generation_out = s7_integer (generation);
+  return true;
 }
 
 static bool
 extract_njson_handle_id (s7_scheme* sc, s7_pointer handle, s7_int& id, std::string& error_msg) {
-  if (!is_njson_handle (handle)) {
+  s7_int generation = 0;
+  if (!is_njson_handle (handle, &id, &generation)) {
     error_msg = "expected njson handle";
     return false;
   }
-  id = s7_integer (s7_cdr (handle));
   if (id <= 0) {
     error_msg = "invalid njson handle id";
+    return false;
+  }
+  if (generation <= 0) {
+    error_msg = "invalid njson handle generation";
+    return false;
+  }
+  size_t index = static_cast<size_t> (id);
+  if (index >= njson_handle_generations.size ()) {
+    error_msg = "njson handle does not exist (may have been freed)";
+    return false;
+  }
+  if (njson_handle_generations[index] != generation) {
+    error_msg = "njson handle generation mismatch (stale handle)";
     return false;
   }
   if (static_cast<size_t> (id) >= njson_handle_store.size () || !njson_handle_store[static_cast<size_t> (id)]) {
@@ -164,6 +193,13 @@ njson_ensure_keys_cache_size (size_t n) {
     njson_keys_cache_values.resize (n, nullptr);
     njson_keys_cache_gc_locs.resize (n, -1);
     njson_keys_cache_valid.resize (n, false);
+  }
+}
+
+static void
+njson_ensure_generations_size (size_t n) {
+  if (njson_handle_generations.size () < n) {
+    njson_handle_generations.resize (n, 0);
   }
 }
 
@@ -230,12 +266,23 @@ store_njson_value (json&& value) {
   if (!njson_handle_free_ids.empty ()) {
     s7_int id = njson_handle_free_ids.back ();
     njson_handle_free_ids.pop_back ();
-    njson_handle_store[static_cast<size_t> (id)] = std::make_unique<json> (std::move (value));
+    size_t index = static_cast<size_t> (id);
+    njson_ensure_generations_size (index + 1);
+    s7_int generation = njson_handle_generations[index];
+    if (generation <= 0 || generation == (std::numeric_limits<s7_int>::max) ()) {
+      generation = 1;
+    }
+    else {
+      generation += 1;
+    }
+    njson_handle_generations[index] = generation;
+    njson_handle_store[index] = std::make_unique<json> (std::move (value));
     njson_ensure_keys_cache_size (njson_handle_store.size ());
     return id;
   }
 
   njson_handle_store.push_back (std::make_unique<json> (std::move (value)));
+  njson_handle_generations.push_back (1);
   njson_ensure_keys_cache_size (njson_handle_store.size ());
   s7_int id = static_cast<s7_int> (njson_handle_store.size () - 1);
   return id;
@@ -381,9 +428,18 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     out = static_cast<long long> (s7_integer (value));
     return true;
   }
-  if (s7_is_real (value) || s7_is_number (value)) {
-    out = s7_number_to_real (sc, value);
+  if (s7_is_real (value)) {
+    double real_value = s7_number_to_real (sc, value);
+    if (!std::isfinite (real_value)) {
+      error_msg = "number must be finite (NaN/Inf are not valid JSON numbers)";
+      return false;
+    }
+    out = real_value;
     return true;
+  }
+  if (s7_is_number (value)) {
+    error_msg = "number must be real and finite";
+    return false;
   }
   if (s7_is_symbol (value)) {
     const char* symbol_name = s7_symbol_name (value);
@@ -794,6 +850,9 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
   if (op == njson_update_op::drop) {
     return njson_error (sc, "key-error", std::string (api_name) + ": path not found: cannot drop from non-container value",
                         last_key);
+  }
+  if (op == njson_update_op::set) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": set target must be array or object", last_key);
   }
   return nullptr;
 }

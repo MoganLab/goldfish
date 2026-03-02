@@ -42,6 +42,15 @@
             (car payload)
             "")))))
 
+(define (capture-type-error-message thunk)
+  (catch 'type-error
+    thunk
+    (lambda args
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload)))
+            (car payload)
+            "")))))
+
 #|
 let-njson
 统一处理“可能是 njson 句柄，也可能是普通标量”的作用域宏。
@@ -221,6 +230,26 @@ json-string : string
 (check-catch 'type-error (njson-ref njson-string-free-check "x"))
 (check-catch 'type-error (njson-free 'foo))
 
+(define stale-handle-old (string->njson "{\"a\":1}"))
+(check (njson-ref stale-handle-old "a") => 1)
+(check-true (njson-free stale-handle-old))
+(let-njson ((stale-handle-new (string->njson "{\"b\":2}")))
+  (check (njson-ref stale-handle-new "b") => 2)
+  (check-catch 'type-error (njson-ref stale-handle-old "b"))
+  (check-catch 'type-error (njson-free stale-handle-old))
+  ;; stale free must not affect the new handle if id is reused.
+  (check (njson-ref stale-handle-new "b") => 2))
+
+;; Old forged shape `(njson-handle . id)` must be rejected.
+(check-catch 'type-error (njson-ref (cons 'njson-handle 1) "x"))
+;; Forged generation must be rejected.
+(let-njson ((root (string->njson "{\"secret\":42}")))
+  (let* ((payload (cdr root))
+         (id (car payload))
+         (gen (cdr payload))
+         (forged (cons 'njson-handle (cons id (+ gen 1)))))
+    (check-catch 'type-error (njson-ref forged "secret"))))
+
 #|
 njson?
 判断值是否为 njson-handle。
@@ -236,7 +265,7 @@ x : any
 
 行为逻辑
 --------
-1. 仅检查结构是否符合 njson 句柄格式（`(njson-handle . id)`）。
+1. 仅检查结构是否符合 njson 句柄格式（`(njson-handle . (id . generation))`）。
 2. 不负责判断该句柄是否已释放；“已释放”通常在具体 API 调用时触发错误。
 
 返回值
@@ -431,6 +460,12 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root 'meta "os" "debian")))
 (let-njson ((root (string->njson sample-json)))
+  (check-catch 'type-error (njson-set root "score" +nan.0))
+  (check-catch 'type-error (njson-set root "score" +inf.0))
+  (check-catch 'type-error (njson-set root "score" -inf.0))
+  (check (capture-type-error-message (lambda () (njson-set root "score" +nan.0)))
+         => "g_njson-set: number must be finite (NaN/Inf are not valid JSON numbers)"))
+(let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root "nums" 5 1)))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root "nums" 999 1)))
@@ -441,6 +476,14 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json)))
   (check (capture-key-error-message (lambda () (njson-set root "nums" 5 1)))
          => "g_njson-set: array index out of range (index=5, size=5)"))
+(let-njson ((root (string->njson "1")))
+  (check-catch 'key-error (njson-set root "x" 1))
+  (check (capture-key-error-message (lambda () (njson-set root "x" 1)))
+         => "g_njson-set: set target must be array or object"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set root "name" "x" "y"))
+  (check (capture-key-error-message (lambda () (njson-set root "name" "x" "y")))
+         => "g_njson-set: set target must be array or object"))
 
 #|
 njson-set!
@@ -495,6 +538,12 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root 'meta "os" "debian")))
 (let-njson ((root (string->njson sample-json)))
+  (check-catch 'type-error (njson-set! root "score" +nan.0))
+  (check-catch 'type-error (njson-set! root "score" +inf.0))
+  (check-catch 'type-error (njson-set! root "score" -inf.0))
+  (check (capture-type-error-message (lambda () (njson-set! root "score" +nan.0)))
+         => "g_njson-set!: number must be finite (NaN/Inf are not valid JSON numbers)"))
+(let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "nums" 5 1)))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "meta" "missing" "k" 1))
@@ -502,6 +551,14 @@ value : njson-handle | string | number | boolean | 'null
          => "g_njson-set!: path not found: missing object key 'missing'"))
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "nums" 999 1)))
+(let-njson ((root (string->njson "1")))
+  (check-catch 'key-error (njson-set! root "x" 1))
+  (check (capture-key-error-message (lambda () (njson-set! root "x" 1)))
+         => "g_njson-set!: set target must be array or object"))
+(let-njson ((root (string->njson sample-json)))
+  (check-catch 'key-error (njson-set! root "name" "x" "y"))
+  (check (capture-key-error-message (lambda () (njson-set! root "name" "x" "y")))
+         => "g_njson-set!: set target must be array or object"))
 
 #|
 njson-append
@@ -550,6 +607,11 @@ value : njson-handle | string | number | boolean | 'null
 
 (check-catch 'type-error (njson-append 'foo 1))
 (let-njson ((root (string->njson sample-json)))
+  (check-catch 'type-error (njson-append root "nums" +nan.0))
+  (check-catch 'type-error (njson-append root "nums" +inf.0))
+  (check-catch 'type-error (njson-append root "nums" -inf.0))
+  (check (capture-type-error-message (lambda () (njson-append root "nums" +nan.0)))
+         => "g_njson-append: number must be finite (NaN/Inf are not valid JSON numbers)")
   (check-catch 'key-error (njson-append root))
   (check-catch 'key-error (njson-append root "as"))
   (check (capture-key-error-message (lambda () (njson-append root "as")))
@@ -606,6 +668,11 @@ value : njson-handle | string | number | boolean | 'null
 
 (check-catch 'type-error (njson-append! 'foo 1))
 (let-njson ((root (string->njson sample-json)))
+  (check-catch 'type-error (njson-append! root "nums" +nan.0))
+  (check-catch 'type-error (njson-append! root "nums" +inf.0))
+  (check-catch 'type-error (njson-append! root "nums" -inf.0))
+  (check (capture-type-error-message (lambda () (njson-append! root "nums" +nan.0)))
+         => "g_njson-append!: number must be finite (NaN/Inf are not valid JSON numbers)")
   (check-catch 'key-error (njson-append! root))
   (check-catch 'key-error (njson-append! root "as"))
   (check (capture-key-error-message (lambda () (njson-append! root "as")))
@@ -1006,6 +1073,14 @@ value : njson-handle | string | number | boolean | 'null
 (check (njson->string #f) => "false")
 (let-njson ((root (string->njson "{\"b\":1,\"a\":2}")))
   (check (njson->string root) => "{\"a\":2,\"b\":1}"))
+(check-catch 'type-error (njson->string +nan.0))
+(check-catch 'type-error (njson->string +inf.0))
+(check-catch 'type-error (njson->string -inf.0))
+(check-catch 'type-error (njson->string 1+2i))
+(check (capture-type-error-message (lambda () (njson->string +nan.0)))
+       => "g_njson-json->string: number must be finite (NaN/Inf are not valid JSON numbers)")
+(check (capture-type-error-message (lambda () (njson->string 1+2i)))
+       => "g_njson-json->string: number must be real and finite")
 (check-catch 'type-error (njson->string 'foo))
 
 (define njson-string-freed (string->njson "{\"k\":1}"))
