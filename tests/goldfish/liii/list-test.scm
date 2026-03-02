@@ -1245,6 +1245,14 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 (check (fold list '() '(1 2 3) '(a b c)) => '(3 c (2 b (1 a ()))))
 (check-catch 'type-error (fold 0 + '(1 2 3) 'a))
 
+;;; SRFI 1 spec examples for multi-list fold
+(check (fold cons* '() '(a b c) '(1 2 3 4 5)) => '(c 3 b 2 a 1))
+
+;;; Additional multi-list fold tests
+(check (fold + 0 '(1 2 3) '(4 5 6) '(7 8 9)) => 45) ; three lists
+(check (fold cons* '() '(a) '(1)) => '(a 1))         ; single-element lists
+(check (fold + 0 '() '(1 2 3)) => 0)                  ; empty list terminates immediately
+
 (check (fold-right + 0 '(1 2 3 4)) => 10)
 
 (check (fold-right + 0 '()) => 0)
@@ -1262,6 +1270,14 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 (check (fold-right + 0 '(1 2 3 4) '(10 20 30)) => 66)
 (check (fold-right list '() '(1 2 3) '(a b c)) => '(1 a (2 b (3 c ()))))
 (check-catch 'type-error (fold-right 0 + '(1 2 3) 'a))
+
+;;; SRFI 1 spec examples for multi-list fold-right
+(check (fold-right cons* '() '(a b c) '(1 2 3 4 5)) => '(a 1 b 2 c 3))
+
+;;; Additional multi-list fold-right tests
+(check (fold-right + 0 '(1 2 3) '(4 5 6) '(7 8 9)) => 45) ; three lists
+(check (fold-right cons* '() '(a) '(1)) => '(a 1))         ; single-element lists
+(check (fold-right + 0 '() '(1 2 3)) => 0)                  ; empty list terminates immediately
 
 (check (reduce + 0 '(1 2 3 4)) => 10)
 (check (reduce + 0 '()) => 0)
