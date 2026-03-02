@@ -45,7 +45,7 @@ jobs:
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-          key: win-${{ runner.os }}-xmake2.9.9-${{ hashFiles('**/xmake.lua', '.github/workflows/ci-windows.yml') }}
+          key: ${{ runner.os }}-xmake-${{ hashFiles('**/xmake.lua') }}
       - name: config
         run: xmake config --yes -vD
       - name: build
