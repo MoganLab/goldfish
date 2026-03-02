@@ -6374,6 +6374,16 @@ static s7_pointer find_method_with_let(s7_scheme *sc, s7_pointer let, s7_pointer
   return(find_method(sc, let, symbol));
 }
 
+s7_pointer s7i_find_method_with_let(s7_scheme *sc, s7_pointer obj, s7_pointer method)
+{
+  return(find_method_with_let(sc, obj, method));
+}
+
+bool s7i_has_active_methods(s7_scheme *sc, s7_pointer obj)
+{
+  return(has_active_methods(sc, obj));
+}
+
 static s7_pointer find_method_with_c_object(s7_scheme *sc, s7_pointer c_obj, s7_pointer symbol)
 {
   s7_pointer let = c_object_let(c_obj);
@@ -6448,6 +6458,11 @@ static /* Inline */ no_return void wrong_type_error_nr(s7_scheme *sc, s7_pointer
   set_car(p, object_type_name(sc, arg)); p = cdr(p);
   set_car(p, typ);
   error_nr(sc, sc->wrong_type_arg_symbol, sc->wrong_type_arg_info);
+}
+
+void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ)
+{
+  wrong_type_error_nr(sc, caller, arg_num, arg, typ);
 }
 
 s7_pointer s7_wrong_type_arg_error(s7_scheme *sc, const char *caller, s7_int arg_n, s7_pointer arg, const char *descr)
@@ -9304,6 +9319,8 @@ s7_pointer s7_name_to_value(s7_scheme *sc, const char *name) {return(s7_symbol_v
 static s7_pointer nil_string; /* permanent "" */
 /* nil_vector is complicated by the many vector types, and s7test assumes it is mutable! and not eq? to other nil_vectors (watch out for add_vector!) */
 
+s7_pointer s7i_nil_string(void) {return(nil_string);}
+
 static Inline s7_pointer inline_make_string_with_length(s7_scheme *sc, const char *str, s7_int len)
 {
   s7_pointer new_string;
@@ -10301,6 +10318,11 @@ static int32_t position_of(const s7_pointer p, s7_pointer args)
   int32_t i;
   for (i = 1; p != args; i++, args = cdr(args));
   return(i);
+}
+
+s7_int s7i_position_of(const s7_pointer p, s7_pointer args)
+{
+  return((s7_int)position_of(p, args));
 }
 
 static s7_pointer g_varlet(s7_scheme *sc, s7_pointer args)   /* varlet = with-let + define */
@@ -25206,6 +25228,21 @@ static s7_int sequence_length(s7_scheme *sc, s7_pointer seq)
     case T_C_OBJECT:    return(cobj_len(sc, seq));
     default:            return(-1);
     }
+}
+
+bool s7i_is_sequence(s7_pointer p)
+{
+  return(is_sequence(p));
+}
+
+bool s7i_sequence_is_empty(s7_scheme *sc, s7_pointer seq)
+{
+  return(sequence_is_empty(sc, seq));
+}
+
+s7_int s7i_sequence_length(s7_scheme *sc, s7_pointer seq)
+{
+  return(sequence_length(sc, seq));
 }
 
 static s7_pointer s7_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
@@ -49007,6 +49044,11 @@ static s7_pointer s7_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 
 s7_pointer s7_copy(s7_scheme *sc, s7_pointer args) {return(s7_copy_1(sc, sc->copy_symbol, args));}
 #define g_copy s7_copy
+
+s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
+{
+  return(s7_copy_1(sc, caller, args));
+}
 
 
 /* -------------------------------- reverse -------------------------------- */
