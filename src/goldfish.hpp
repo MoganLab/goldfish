@@ -902,22 +902,6 @@ enum class njson_merge_mode {
 };
 
 
-static void
-njson_merge_object_into (json& target, const json& source, njson_merge_mode mode) {
-  for (auto it = source.begin (); it != source.end (); ++it) {
-    const std::string& key = it.key ();
-    const json&        value = it.value ();
-    if (mode == njson_merge_mode::deep) {
-      auto found = target.find (key);
-      if (found != target.end () && found->is_object () && value.is_object ()) {
-        njson_merge_object_into (*found, value, mode);
-        continue;
-      }
-    }
-    target[key] = value;
-  }
-}
-
 static s7_pointer
 njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_merge_mode mode, bool in_place) {
   s7_pointer  handle = s7_car (args);
@@ -934,6 +918,7 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
   if (!source_json.is_object ()) {
     return njson_error (sc, "key-error", std::string (api_name) + ": merge source must be object", source_input);
   }
+  bool merge_objects = (mode == njson_merge_mode::deep);
 
   if (in_place) {
     json* target = njson_value_by_id (id);
@@ -944,7 +929,12 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
     if (!target->is_object ()) {
       return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
     }
-    njson_merge_object_into (*target, source_json, mode);
+    try {
+      target->update (source_json, merge_objects);
+    }
+    catch (const std::exception& err) {
+      return njson_error (sc, "key-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
+    }
     njson_invalidate_keys_cache_if_present (sc, id);
     return handle;
   }
@@ -958,7 +948,12 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
     return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
   }
   json out = *target;
-  njson_merge_object_into (out, source_json, mode);
+  try {
+    out.update (source_json, merge_objects);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
+  }
   return make_njson_handle (sc, store_njson_value (std::move (out)));
 }
 
