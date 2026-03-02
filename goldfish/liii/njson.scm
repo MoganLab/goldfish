@@ -48,6 +48,10 @@
           njson-append
           njson-set!
           njson-append!
+          njson-merge
+          njson-merge!
+          njson-deep-merge
+          njson-deep-merge!
           njson-drop
           njson-drop!
           njson-contains-key?
@@ -247,6 +251,34 @@
       (when (null? args)
         (key-error "njson-append!: expected (json [key ...] value)" json))
       (apply g_njson-append! (cons json args)))
+
+    (define (njson-merge json other)
+      (unless (njson? json)
+        (type-error "njson-merge: json must be njson-handle" json))
+      (unless (njson-json-value? other)
+        (type-error "njson-merge: other must be njson-handle or strict json scalar" other))
+      (g_njson-merge json other))
+
+    (define (njson-merge! json other)
+      (unless (njson? json)
+        (type-error "njson-merge!: json must be njson-handle" json))
+      (unless (njson-json-value? other)
+        (type-error "njson-merge!: other must be njson-handle or strict json scalar" other))
+      (g_njson-merge! json other))
+
+    (define (njson-deep-merge json other)
+      (unless (njson? json)
+        (type-error "njson-deep-merge: json must be njson-handle" json))
+      (unless (njson-json-value? other)
+        (type-error "njson-deep-merge: other must be njson-handle or strict json scalar" other))
+      (g_njson-deep-merge json other))
+
+    (define (njson-deep-merge! json other)
+      (unless (njson? json)
+        (type-error "njson-deep-merge!: json must be njson-handle" json))
+      (unless (njson-json-value? other)
+        (type-error "njson-deep-merge!: other must be njson-handle or strict json scalar" other))
+      (g_njson-deep-merge! json other))
 
     (define (njson-drop json key . keys)
       (unless (njson? json)

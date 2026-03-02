@@ -800,6 +800,137 @@ key ... : string | integer
          => "g_njson-drop!: path not found: array index out of range (index=3, size=3)"))
 
 #|
+njson-merge / njson-merge!
+浅合并对象键：同名键按 source 覆盖；非对象值直接替换，不递归合并。
+
+语法
+----
+(njson-merge json source)
+(njson-merge! json source)
+
+参数
+----
+json : njson-handle（目标，必须为 object）
+source : njson-handle | string | number | boolean | 'null（运行时要求为 object）
+
+返回值
+-----
+- njson-merge  : 新句柄（函数式，不改原句柄）
+- njson-merge! : 原句柄（原地更新）
+
+错误
+----
+- type-error：目标不是可用句柄，或 `source` 类型不是 strict json value。
+- key-error：目标或 source 在 JSON 语义上不是 object。
+|#
+
+(define shallow-merge-base-json
+  "{\"name\":\"base\",\"meta\":{\"x\":1},\"arr\":[1,2]}")
+(define shallow-merge-patch-json
+  "{\"meta\":{\"y\":2},\"arr\":[9],\"extra\":true}")
+
+(let-njson ((base (string->njson shallow-merge-base-json))
+            (patch (string->njson shallow-merge-patch-json))
+            (merged (njson-merge base patch)))
+  (check (njson-ref merged "name") => "base")
+  (check (njson-ref merged "extra") => #t)
+  (check (njson-ref merged "meta" "y") => 2)
+  (check-catch 'key-error (njson-ref merged "meta" "x"))
+  (check (njson-ref merged "arr" 0) => 9)
+  (check (njson-size (njson-ref merged "arr")) => 1)
+  (check (njson-ref base "meta" "x") => 1)
+  (check-false (njson-contains-key? base "extra")))
+
+(let-njson ((base (string->njson shallow-merge-base-json))
+            (patch (string->njson shallow-merge-patch-json)))
+  (check-true (njson? (njson-merge! base patch)))
+  (check (njson-ref base "meta" "y") => 2)
+  (check-catch 'key-error (njson-ref base "meta" "x"))
+  (check (njson-ref base "arr" 0) => 9)
+  (check (njson-size (njson-ref base "arr")) => 1)
+  (check-true (njson-contains-key? base "extra")))
+
+(check-catch 'type-error (njson-merge 'foo 'null))
+(check-catch 'type-error (njson-merge! 'foo 'null))
+(let-njson ((base (string->njson "{\"a\":1}")))
+  (check-catch 'type-error (njson-merge base 'foo))
+  (check-catch 'type-error (njson-merge! base 'foo)))
+(let-njson ((base (string->njson "{\"a\":1}")))
+  (check-catch 'key-error (njson-merge base 1))
+  (check (capture-key-error-message (lambda () (njson-merge base 1)))
+         => "g_njson-merge: merge source must be object"))
+(let-njson ((base (string->njson "1"))
+            (patch (string->njson "{\"a\":1}")))
+  (check-catch 'key-error (njson-merge base patch))
+  (check (capture-key-error-message (lambda () (njson-merge base patch)))
+         => "g_njson-merge: merge target must be object"))
+
+(define njson-merge-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free njson-merge-freed))
+(let-njson ((patch (string->njson "{\"b\":2}")))
+  (check-catch 'type-error (njson-merge njson-merge-freed patch))
+  (check-catch 'type-error (njson-merge! njson-merge-freed patch)))
+
+#|
+njson-deep-merge / njson-deep-merge!
+深合并对象键：仅当同名键两侧都为 object 时递归合并；其余情况由 source 覆盖。
+
+语法
+----
+(njson-deep-merge json source)
+(njson-deep-merge! json source)
+|#
+
+(define deep-merge-base-json
+  "{\"name\":\"base\",\"meta\":{\"x\":1,\"nested\":{\"a\":1}},\"arr\":[1,2],\"override\":{\"k\":1}}")
+(define deep-merge-patch-json
+  "{\"meta\":{\"y\":2,\"nested\":{\"b\":2}},\"arr\":[9],\"override\":0}")
+
+(let-njson ((base (string->njson deep-merge-base-json))
+            (patch (string->njson deep-merge-patch-json))
+            (merged (njson-deep-merge base patch)))
+  (check (njson-ref merged "meta" "x") => 1)
+  (check (njson-ref merged "meta" "y") => 2)
+  (check (njson-ref merged "meta" "nested" "a") => 1)
+  (check (njson-ref merged "meta" "nested" "b") => 2)
+  (check (njson-ref merged "arr" 0) => 9)
+  (check (njson-size (njson-ref merged "arr")) => 1)
+  (check (njson-ref merged "override") => 0)
+  (check-catch 'key-error (njson-ref base "meta" "y"))
+  (check-catch 'key-error (njson-ref base "meta" "nested" "b"))
+  (check (njson-ref base "override" "k") => 1))
+
+(let-njson ((base (string->njson deep-merge-base-json))
+            (patch (string->njson deep-merge-patch-json)))
+  (check-true (njson? (njson-deep-merge! base patch)))
+  (check (njson-ref base "meta" "x") => 1)
+  (check (njson-ref base "meta" "y") => 2)
+  (check (njson-ref base "meta" "nested" "a") => 1)
+  (check (njson-ref base "meta" "nested" "b") => 2)
+  (check (njson-ref base "override") => 0))
+
+(check-catch 'type-error (njson-deep-merge 'foo 'null))
+(check-catch 'type-error (njson-deep-merge! 'foo 'null))
+(let-njson ((base (string->njson "{\"a\":1}")))
+  (check-catch 'type-error (njson-deep-merge base 'foo))
+  (check-catch 'type-error (njson-deep-merge! base 'foo)))
+(let-njson ((base (string->njson "{\"a\":1}")))
+  (check-catch 'key-error (njson-deep-merge base 1))
+  (check (capture-key-error-message (lambda () (njson-deep-merge base 1)))
+         => "g_njson-deep-merge: merge source must be object"))
+(let-njson ((base (string->njson "1"))
+            (patch (string->njson "{\"a\":1}")))
+  (check-catch 'key-error (njson-deep-merge base patch))
+  (check (capture-key-error-message (lambda () (njson-deep-merge base patch)))
+         => "g_njson-deep-merge: merge target must be object"))
+
+(define njson-deep-merge-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free njson-deep-merge-freed))
+(let-njson ((patch (string->njson "{\"b\":2}")))
+  (check-catch 'type-error (njson-deep-merge njson-deep-merge-freed patch))
+  (check-catch 'type-error (njson-deep-merge! njson-deep-merge-freed patch)))
+
+#|
 njson-contains-key?
 检查对象是否包含指定键。
 

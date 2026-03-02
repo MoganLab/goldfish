@@ -896,6 +896,71 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
   return make_njson_handle (sc, store_njson_value (std::move (out)));
 }
 
+enum class njson_merge_mode {
+  shallow,
+  deep
+};
+
+static void
+njson_merge_object_into (json& target, const json& source, njson_merge_mode mode) {
+  for (auto it = source.begin (); it != source.end (); ++it) {
+    const std::string& key = it.key ();
+    const json&        value = it.value ();
+    if (mode == njson_merge_mode::deep) {
+      auto found = target.find (key);
+      if (found != target.end () && found->is_object () && value.is_object ()) {
+        njson_merge_object_into (*found, value, mode);
+        continue;
+      }
+    }
+    target[key] = value;
+  }
+}
+
+static s7_pointer
+njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_merge_mode mode, bool in_place) {
+  s7_pointer  handle = s7_car (args);
+  s7_pointer  source_input = s7_cadr (args);
+  s7_int      id = 0;
+  json        source_json;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
+  }
+  if (!scheme_to_njson_scalar_or_handle (sc, source_input, source_json, error_msg)) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, source_input);
+  }
+  if (!source_json.is_object ()) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": merge source must be object", source_input);
+  }
+
+  if (in_place) {
+    json* target = njson_value_by_id (id);
+    if (!target) {
+      return njson_error (sc, "type-error",
+                          std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+    }
+    if (!target->is_object ()) {
+      return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
+    }
+    njson_merge_object_into (*target, source_json, mode);
+    njson_invalidate_keys_cache_if_present (sc, id);
+    return handle;
+  }
+
+  const json* target = njson_value_by_id_const (id);
+  if (!target) {
+    return njson_error (sc, "type-error",
+                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+  }
+  if (!target->is_object ()) {
+    return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
+  }
+  json out = *target;
+  njson_merge_object_into (out, source_json, mode);
+  return make_njson_handle (sc, store_njson_value (std::move (out)));
+}
+
 static s7_pointer
 f_njson_set (s7_scheme* sc, s7_pointer args) {
   return njson_run_update (sc, args, "g_njson-set", njson_update_op::set, false);
@@ -924,6 +989,26 @@ f_njson_set_x (s7_scheme* sc, s7_pointer args) {
 static s7_pointer
 f_njson_drop_x (s7_scheme* sc, s7_pointer args) {
   return njson_run_update (sc, args, "g_njson-drop!", njson_update_op::drop, true);
+}
+
+static s7_pointer
+f_njson_merge (s7_scheme* sc, s7_pointer args) {
+  return njson_run_merge (sc, args, "g_njson-merge", njson_merge_mode::shallow, false);
+}
+
+static s7_pointer
+f_njson_merge_x (s7_scheme* sc, s7_pointer args) {
+  return njson_run_merge (sc, args, "g_njson-merge!", njson_merge_mode::shallow, true);
+}
+
+static s7_pointer
+f_njson_deep_merge (s7_scheme* sc, s7_pointer args) {
+  return njson_run_merge (sc, args, "g_njson-deep-merge", njson_merge_mode::deep, false);
+}
+
+static s7_pointer
+f_njson_deep_merge_x (s7_scheme* sc, s7_pointer args) {
+  return njson_run_merge (sc, args, "g_njson-deep-merge!", njson_merge_mode::deep, true);
 }
 
 static s7_pointer
@@ -1108,6 +1193,14 @@ glue_njson (s7_scheme* sc) {
   const char* drop_desc = "(g_njson-drop handle key ...) => new-handle";
   const char* drop_x_name = "g_njson-drop!";
   const char* drop_x_desc = "(g_njson-drop! handle key ...) => same-handle";
+  const char* merge_name = "g_njson-merge";
+  const char* merge_desc = "(g_njson-merge handle other-object) => new-handle";
+  const char* merge_x_name = "g_njson-merge!";
+  const char* merge_x_desc = "(g_njson-merge! handle other-object) => same-handle";
+  const char* deep_merge_name = "g_njson-deep-merge";
+  const char* deep_merge_desc = "(g_njson-deep-merge handle other-object) => new-handle";
+  const char* deep_merge_x_name = "g_njson-deep-merge!";
+  const char* deep_merge_x_desc = "(g_njson-deep-merge! handle other-object) => same-handle";
   const char* has_key_name = "g_njson-contains-key?";
   const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
   const char* keys_name = "g_njson-keys";
@@ -1135,6 +1228,10 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, append_x_name, append_x_desc, f_njson_append_x, 2, 32);
   glue_define (sc, drop_name, drop_desc, f_njson_drop, 2, 32);
   glue_define (sc, drop_x_name, drop_x_desc, f_njson_drop_x, 2, 32);
+  glue_define (sc, merge_name, merge_desc, f_njson_merge, 2, 0);
+  glue_define (sc, merge_x_name, merge_x_desc, f_njson_merge_x, 2, 0);
+  glue_define (sc, deep_merge_name, deep_merge_desc, f_njson_deep_merge, 2, 0);
+  glue_define (sc, deep_merge_x_name, deep_merge_x_desc, f_njson_deep_merge_x, 2, 0);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
   glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
   glue_define (sc, schema_report_name, schema_report_desc, f_njson_schema_report, 2, 0);
