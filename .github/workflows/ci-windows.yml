@@ -40,6 +40,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
+      - name: cache xmake packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: win-${{ runner.os }}-xmake2.9.9-${{ hashFiles('**/xmake.lua', '.github/workflows/ci-windows.yml') }}
       - name: config
         run: xmake config --yes -vD
       - name: build
