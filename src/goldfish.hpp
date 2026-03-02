@@ -916,7 +916,7 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
     return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, source_input);
   }
   if (!source_json.is_object ()) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": merge source must be object", source_input);
+    return njson_error (sc, "type-error", std::string (api_name) + ": merge source must be object", source_input);
   }
   bool merge_objects = (mode == njson_merge_mode::deep);
 
@@ -927,13 +927,13 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
                           std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
     }
     if (!target->is_object ()) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
+      return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
     }
     try {
       target->update (source_json, merge_objects);
     }
     catch (const std::exception& err) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
+      return njson_error (sc, "type-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
     }
     njson_invalidate_keys_cache_if_present (sc, id);
     return handle;
@@ -945,14 +945,14 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
   }
   if (!target->is_object ()) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": merge target must be object", handle);
+    return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
   }
   json out = *target;
   try {
     out.update (source_json, merge_objects);
   }
   catch (const std::exception& err) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
   }
   return make_njson_handle (sc, store_njson_value (std::move (out)));
 }
