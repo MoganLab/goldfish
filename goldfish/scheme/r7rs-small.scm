@@ -78,32 +78,103 @@
                        (hash-table-set! *library-registry* lib-name #t))
                      (try (cdr files)))))))))))
 
-;; ========== define-library 宏 ==========
+; (define (expand-import-spec spec-stx ctx)
+;   (define (load-lib lib-stx)
+;     (let ((lib-datum (syntax->datum lib-stx)))
+;       (load-library-by-name lib-datum lib-stx)))
+;
+;   (define (transform spec)
+;     (syntax-case spec (only except add-prefix drop-prefix rename alias)
+;       ((only lib ids ...)
+;        (load-lib (syntax lib))
+;        #`(only #,(transform (syntax lib)) ids ...))
+;       ((except lib ids ...)
+;        (load-lib (syntax lib))
+;        #`(except #,(transform (syntax lib)) ids ...))
+;       ((add-prefix inner prefix)
+;        (load-lib (syntax inner))
+;        #`(add-prefix #,(transform (syntax inner)) prefix))
+;       ((drop-prefix lib prefix)
+;        (load-lib (syntax lib))
+;        #`(drop-prefix #,(transform (syntax lib)) prefix))
+;       ; ((rename inner (old new) ...)
+;       ;  (load-lib (syntax inner))
+;       ;  #`(rename #,(transform (syntax inner)) (old new) ...))
+;       ; ((alias inner (old new) ...)
+;       ;  (load-lib (syntax inner))
+;       ;  #`(alias #,(transform (syntax inner)) (old new) ...))
+;       ((lib ...)
+;        (let ((lib-stx #'(lib ...)))
+;          (load-lib lib-stx)
+;          (datum->syntax ctx (library-name->symbol (syntax->datum lib-stx)))))))
+;
+;   (transform spec-stx))
+
+(define (expand-import-spec spec-stx ctx)
+  (define (load-lib lib-stx)
+    (let ((lib-datum (syntax->datum lib-stx)))
+      (load-library-by-name lib-datum lib-stx)))
+
+  (define (transform spec)
+    (syntax-case spec (only except prefix rename)
+      ((only lib ids ...)
+       (load-lib (syntax lib))
+       #`(only #,(transform (syntax lib)) ids ...))
+
+      ((except lib ids ...)
+       (load-lib (syntax lib))
+       #`(except #,(transform (syntax lib)) ids ...))
+
+      ((prefix lib prefix-id)
+       (load-lib (syntax lib))
+       ;; R7RS prefix -> psyntax add-prefix
+       #`(add-prefix #,(transform (syntax lib)) prefix-id))
+
+      ; ((rename lib (old new) ...) ; error: vector-ref first argument, xxx, is a xxx-type but should be a vector
+      ; ; ((rename lib old+new ...) ; works
+      ;  #'(foo))
+      ((rename lib . rest)
+       (load-lib (syntax lib))
+       (let loop ((pairs (syntax rest)) (renames '()))
+         (syntax-case pairs ()
+           (()
+            #`(rename #,(transform (syntax lib)) #,@(reverse renames)))
+           (((old new) . more)
+            (loop (syntax more) (cons #'(new old) renames))))))
+
+      ((lib ...)
+       (let ((lib-stx #'(lib ...)))
+         (load-lib lib-stx)
+         (datum->syntax ctx (library-name->symbol (syntax->datum lib-stx)))))))
+  (transform spec-stx))
+
 (define-syntax define-library
   (lambda (stx)
-    (define (parse-library-decls decls exports imports body)
+    (define (parse-library-decls decls exports imports body ctx)
       (syntax-case decls (export import begin)
         (() (values exports imports body))
         (((export exp* ...) . rest)
          (parse-library-decls (syntax rest)
                               (append #'(exp* ...) exports)
                               imports
-                              body))
-        (((import imp* ...) . rest)
-         (begin
-           (for-each (lambda (imp)
-                       (let ((lib-name (syntax->datum imp)))
-                         (load-library-by-name lib-name imp)))
-                     #'(imp* ...))
+                              body
+                              ctx))
+        (((import imp-spec* ...) . rest)
+         (let ((transformed
+                (map (lambda (spec)
+                       (expand-import-spec spec ctx))
+                     #'(imp-spec* ...))))
            (parse-library-decls (syntax rest)
                                 exports
-                                (append #'(imp* ...) imports)
-                                body)))
+                                (append transformed imports)
+                                body
+                                ctx)))
         (((begin expr* ...) . rest)
          (parse-library-decls (syntax rest)
                               exports
                               imports
-                              (append body #'(expr* ...))))))
+                              (append body #'(expr* ...))
+                              ctx))))
     (define (process-exports exports)
       (let loop ((lst exports) (plain '()) (aliases '()))
         (if (null? lst)
@@ -121,7 +192,7 @@
     (syntax-case stx ()
       ((_ name decl* ...)
        (call-with-values
-         (lambda () (parse-library-decls #'(decl* ...) '() '() '()))
+         (lambda () (parse-library-decls #'(decl* ...) '() '() '() (syntax _)))
          (lambda (exports imports body)
            (call-with-values
              (lambda () (process-exports exports))
@@ -129,32 +200,21 @@
                (let ((lib-name (syntax->datum (syntax name)))
                      (ctx (syntax _)))
                  (let ((mid (datum->syntax ctx (library-name->symbol lib-name))))
-                   (let ((imp-ids (map (lambda (imp-stx)
-                                         (datum->syntax ctx
-                                                        (library-name->symbol (syntax->datum imp-stx))))
-                                       imports)))
-                     (with-syntax ((mid              mid)
-                                   ((exp-id* ...)    plain-exports)
-                                   ((alias* ...)     aliases)
-                                   ((imp-id* ...)    (reverse imp-ids))
-                                   ((body-expr* ...) body))
-                       ; (display #'(imp-id* ...)) (newline)
-                       #'(module mid (exp-id* ...)
-                           (%primitive-import imp-id* ...)
-                           alias* ...
-                           body-expr* ...)))))))))))))
+                   (with-syntax ((mid                mid)
+                                 ((exp-id* ...)      plain-exports)
+                                 ((alias* ...)       aliases)
+                                 ((import-spec* ...) (reverse imports))
+                                 ((body-expr* ...)   body))
+                     #'(module mid (exp-id* ...)
+                         (%primitive-import import-spec* ...)
+                         alias* ...
+                         body-expr* ...))))))))))))
 
 (define-syntax import
   (lambda (stx)
-    (define (transform-lib _ lib)
-      (let ((lib-datum (syntax->datum lib)))
-        ;; imperative, violation of the `map`
-        (load-library-by-name lib-datum lib)
-        (datum->syntax _ (library-name->symbol lib-datum))))
-
     (syntax-case stx ()
-      ((_ lib* ...)
-       (with-syntax (((lib-symbol* ...)
-                      (map (lambda (lib) (transform-lib (syntax _) lib))
-                           #'(lib* ...))))
-         #'(%primitive-import lib-symbol* ...))))))
+      ((_ spec ...)
+       (with-syntax (((transformed-spec ...)
+                      (map (lambda (s) (expand-import-spec s (syntax _)))
+                           #'(spec ...))))
+         #'(%primitive-import transformed-spec ...))))))

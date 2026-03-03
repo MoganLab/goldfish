@@ -2067,19 +2067,24 @@
      (define id-iface-conflicts
        (lambda (id id.new-marks iface iface.new-marks cls)
          (let ((id.sym (id-sym-name id))
-               (id.marks (join-marks id.new-marks (id-marks id))))
+               (id.marks (join-marks id.new-marks (id-marks id)))
+               (id.label (id-var-name id empty-wrap)))
            (cond
              ((interface-token iface) =>
               (lambda (token)
-                (if (lookup-import-binding-name id.sym id.marks token iface.new-marks)
-                    (cons id cls)
-                    cls)))
+                (let ((found-label (lookup-import-binding-name id.sym id.marks token iface.new-marks)))
+                  (if (and found-label
+                           (not (eq? found-label id.label)))
+                      (cons id cls)
+                      cls))))
              (else
               (vfold (interface-exports iface)
                      (lambda (*id cls)
                        (let ((*id.sym (id-sym-name *id))
-                             (*id.marks (join-marks iface.new-marks (id-marks *id))))
-                         (if (help-bound-id=? *id.sym *id.marks id.sym id.marks)
+                             (*id.marks (join-marks iface.new-marks (id-marks *id)))
+                             (*id.label (id-var-name *id empty-wrap)))
+                         (if (and (help-bound-id=? *id.sym *id.marks id.sym id.marks)
+                                  (not (eq? *id.label id.label)))
                              (cons *id cls)
                              cls)))
                      cls))))))

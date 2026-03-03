@@ -406,8 +406,8 @@ static s7_pointer goldfish_sanitize_datum(s7_scheme *sc, s7_pointer obj) {
             result = s7_make_symbol(sc, "list-values");
         } else if (strstr(str, "#_apply-values") || strcmp(str, "apply-values") == 0) {
             result = s7_make_symbol(sc, "apply-values");
-        } else if (strstr(str, "#_quote") || strcmp(str, "quote") == 0) {
-            result = s7_make_symbol(sc, "quote");
+        } else if (strstr(str, "#_macro") || strcmp(str, "macro") == 0) {
+            result = s7_make_symbol(sc, "macro");
         }
 
         free(str);
