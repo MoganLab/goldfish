@@ -48,6 +48,10 @@
           njson-append
           njson-set!
           njson-append!
+          njson-merge
+          njson-merge!
+          njson-deep-merge
+          njson-deep-merge!
           njson-drop
           njson-drop!
           njson-contains-key?
@@ -247,6 +251,28 @@
       (when (null? args)
         (key-error "njson-append!: expected (json [key ...] value)" json))
       (apply g_njson-append! (cons json args)))
+
+    (define (njson%%check-merge api-name target-json source-json)
+      (unless (njson-object? target-json)
+        (type-error (string-append api-name ": target-json must be njson object-handle") target-json))
+      (unless (njson-object? source-json)
+        (type-error (string-append api-name ": source-json must be njson object-handle") source-json)))
+
+    (define (njson-merge target-json source-json)
+      (njson%%check-merge "njson-merge" target-json source-json)
+      (g_njson-merge target-json source-json))
+
+    (define (njson-merge! target-json source-json)
+      (njson%%check-merge "njson-merge!" target-json source-json)
+      (g_njson-merge! target-json source-json))
+
+    (define (njson-deep-merge target-json source-json)
+      (njson%%check-merge "njson-deep-merge" target-json source-json)
+      (g_njson-deep-merge target-json source-json))
+
+    (define (njson-deep-merge! target-json source-json)
+      (njson%%check-merge "njson-deep-merge!" target-json source-json)
+      (g_njson-deep-merge! target-json source-json))
 
     (define (njson-drop json key . keys)
       (unless (njson? json)
