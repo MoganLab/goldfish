@@ -801,29 +801,29 @@ key ... : string | integer
 
 #|
 njson-merge / njson-merge!
-对象浅合并：同名键由 source 覆盖，不做对象递归合并。
+对象浅合并：同名键由 source-json 覆盖，不做对象递归合并。
 
 语法
 ----
-(njson-merge json source)
-(njson-merge! json source)
+(njson-merge target-json source-json)
+(njson-merge! target-json source-json)
 
 参数
 ----
-json : njson-handle
+target-json : njson-handle
   合并目标句柄；运行时必须指向 object。
-source : njson-handle
+source-json : njson-handle
   合并来源句柄；运行时必须指向 object。
 
 行为逻辑
 --------
-1. 先校验 `json` 与 `source` 都是可用的 njson object-handle。
+1. 先校验 `target-json` 与 `source-json` 都是可用的 njson object-handle。
 2. 仅接受 object <- object 合并；任一侧非 object 直接报错。
 3. 同名键覆盖策略：
    - 标量覆盖标量；
    - array 整体替换；
    - object 也整体替换（不递归）。
-4. `njson-merge` 为函数式：返回新句柄，不修改输入 `json`。
+4. `njson-merge` 为函数式：返回新句柄，不修改输入 `target-json`。
 5. `njson-merge!` 为原地式：直接修改输入句柄并返回原句柄本身。
 6. 原地更新成功后，`njson-keys` 缓存会失效并在后续读取时重建。
 
@@ -835,8 +835,8 @@ source : njson-handle
 错误
 ----
 - `type-error`：
-  - `json` 不是可用的 njson object-handle；
-  - `source` 不是可用的 njson object-handle。
+  - `target-json` 不是可用的 njson object-handle；
+  - `source-json` 不是可用的 njson object-handle。
 |#
 
 (define shallow-merge-base-json
@@ -874,25 +874,25 @@ source : njson-handle
   (check-catch 'type-error (njson-merge base 1))
   (check-catch 'type-error (njson-merge! base 1))
   (check (capture-type-error-message (lambda () (njson-merge base 1)))
-         => "njson-merge: other must be njson object-handle")
+         => "njson-merge: source-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-merge! base 1)))
-         => "njson-merge!: other must be njson object-handle"))
+         => "njson-merge!: source-json must be njson object-handle"))
 (let-njson ((base (string->njson "{\"a\":1}"))
             (patch (string->njson "1")))
   (check-catch 'type-error (njson-merge base patch))
   (check-catch 'type-error (njson-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-merge base patch)))
-         => "njson-merge: other must be njson object-handle")
+         => "njson-merge: source-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-merge! base patch)))
-         => "njson-merge!: other must be njson object-handle"))
+         => "njson-merge!: source-json must be njson object-handle"))
 (let-njson ((base (string->njson "1"))
             (patch (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-merge base patch))
   (check-catch 'type-error (njson-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-merge base patch)))
-         => "njson-merge: json must be njson object-handle")
+         => "njson-merge: target-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-merge! base patch)))
-         => "njson-merge!: json must be njson object-handle"))
+         => "njson-merge!: target-json must be njson object-handle"))
 
 (define njson-merge-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free njson-merge-freed))
@@ -902,26 +902,26 @@ source : njson-handle
 
 #|
 njson-deep-merge / njson-deep-merge!
-对象深合并：同名键两侧都为 object 时递归合并，否则由 source 覆盖。
+对象深合并：同名键两侧都为 object 时递归合并，否则由 source-json 覆盖。
 
 语法
 ----
-(njson-deep-merge json source)
-(njson-deep-merge! json source)
+(njson-deep-merge target-json source-json)
+(njson-deep-merge! target-json source-json)
 
 参数
 ----
-json : njson-handle
+target-json : njson-handle
   合并目标句柄；运行时必须指向 object。
-source : njson-handle
+source-json : njson-handle
   合并来源句柄；运行时必须指向 object。
 
 行为逻辑
 --------
-1. 与浅合并相同，首先要求 `json` 与 `source` 都是可用 njson object-handle，并执行 object <- object 合并。
+1. 与浅合并相同，首先要求 `target-json` 与 `source-json` 都是可用 njson object-handle，并执行 object <- object 合并。
 2. 深合并递归规则：
    - 若同名键在两侧都为 object，则递归合并其子键；
-   - 其他任意组合（array、scalar、null、一侧 object 一侧非 object）均由 source 覆盖。
+   - 其他任意组合（array、scalar、null、一侧 object 一侧非 object）均由 source-json 覆盖。
 3. array 不做逐元素 merge，仍按整体替换处理。
 4. `njson-deep-merge` 为函数式，返回新句柄。
 5. `njson-deep-merge!` 为原地式，返回原句柄并触发 keys 缓存失效。
@@ -934,8 +934,8 @@ source : njson-handle
 错误
 ----
 - `type-error`：
-  - `json` 不是可用的 njson object-handle；
-  - `source` 不是可用的 njson object-handle。
+  - `target-json` 不是可用的 njson object-handle；
+  - `source-json` 不是可用的 njson object-handle。
 |#
 
 (define deep-merge-base-json
@@ -975,25 +975,25 @@ source : njson-handle
   (check-catch 'type-error (njson-deep-merge base 1))
   (check-catch 'type-error (njson-deep-merge! base 1))
   (check (capture-type-error-message (lambda () (njson-deep-merge base 1)))
-         => "njson-deep-merge: other must be njson object-handle")
+         => "njson-deep-merge: source-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-deep-merge! base 1)))
-         => "njson-deep-merge!: other must be njson object-handle"))
+         => "njson-deep-merge!: source-json must be njson object-handle"))
 (let-njson ((base (string->njson "{\"a\":1}"))
             (patch (string->njson "1")))
   (check-catch 'type-error (njson-deep-merge base patch))
   (check-catch 'type-error (njson-deep-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-deep-merge base patch)))
-         => "njson-deep-merge: other must be njson object-handle")
+         => "njson-deep-merge: source-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-deep-merge! base patch)))
-         => "njson-deep-merge!: other must be njson object-handle"))
+         => "njson-deep-merge!: source-json must be njson object-handle"))
 (let-njson ((base (string->njson "1"))
             (patch (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-deep-merge base patch))
   (check-catch 'type-error (njson-deep-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-deep-merge base patch)))
-         => "njson-deep-merge: json must be njson object-handle")
+         => "njson-deep-merge: target-json must be njson object-handle")
   (check (capture-type-error-message (lambda () (njson-deep-merge! base patch)))
-         => "njson-deep-merge!: json must be njson object-handle"))
+         => "njson-deep-merge!: target-json must be njson object-handle"))
 
 (define njson-deep-merge-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free njson-deep-merge-freed))
