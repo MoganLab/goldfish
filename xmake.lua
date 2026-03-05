@@ -116,6 +116,7 @@ target ("goldfish") do
     add_files ("src/s7_liii_string.c", {languages = "c11"})
     add_files ("src/s7_scheme_inexact.c", {languages = "c11"})
     add_files ("src/s7_scheme_base.c", {languages = "c11"})
+    add_files ("src/s7_scheme_file.c", {languages = "c11"})
     add_packages("tbox")
     add_packages("argh")
     add_packages("nlohmann_json")
