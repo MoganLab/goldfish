@@ -414,6 +414,7 @@
 #include "s7_scheme_char.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
+#include "s7_scheme_file.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -35357,47 +35358,7 @@ static s7_pointer g_is_directory(s7_scheme *sc, s7_pointer args)
   return(make_boolean(sc, is_directory_b_7p(sc, car(args))));
 }
 
-/* -------------------------------- file-exists? -------------------------------- */
-static bool file_probe(const char *arg)
-{
-#if !MS_WINDOWS
-  return(access(arg, F_OK) == 0);
-#else
-  int32_t fd = open(arg, O_RDONLY, 0);
-  if (fd == -1) return(false);
-  close(fd);
-  return(true);
-#endif
-}
-
 /* -------------------------------- delete-file -------------------------------- */
-static s7_pointer g_delete_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_delete_file "(delete-file filename) deletes the file filename."
-  #define Q_delete_file s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(sole_arg_method_or_bust(sc, name, sc->delete_file_symbol, args, sc->type_names[T_STRING]));
-  if (string_length(name) > 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  s7_int result = unlink((char *)block_data(b));
-	  liberate(sc, b);
-	  if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-	    file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-	  return(make_integer(sc, result));
-	}}
-  {
-    s7_int result = unlink(string_value(name));
-    if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-      file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-    return(make_integer(sc, result));
-  }
-}
-
 /* -------------------------------- system -------------------------------- */
 static s7_pointer g_system(s7_scheme *sc, s7_pointer args)
 {
@@ -35491,33 +35452,6 @@ static s7_pointer g_directory_to_list(s7_scheme *sc, s7_pointer args)
 }
 
 /* -------------------------------- file-mtime -------------------------------- */
-static s7_pointer g_file_mtime(s7_scheme *sc, s7_pointer args)
-{
-  #define H_file_mtime "(file-mtime file): return the write date of file"
-  #define Q_file_mtime s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-
-  struct stat statbuf;
-  int32_t err;
-  const s7_pointer name = car(args);
-
-  if (!is_string(name))
-    return(sole_arg_method_or_bust(sc, name, sc->file_mtime_symbol, args, sc->type_names[T_STRING]));
-  if (string_length(name) >= 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  err = stat((char *)block_data(b), &statbuf);
-	  liberate(sc, b);
-	  if (err < 0)
-	    file_error_nr(sc, "file-mtime", strerror(errno), string_value(name));
-	  return(make_integer(sc, (s7_int)(statbuf.st_mtime)));
-	}}
-  err = stat(string_value(name), &statbuf);
-  if (err < 0)
-    file_error_nr(sc, "file-mtime", strerror(errno), string_value(name));
-  return(make_integer(sc, (s7_int)(statbuf.st_mtime)));
-}
 #endif /* !ms_windows */
 #endif /* with_system_extras */
 
@@ -35535,26 +35469,6 @@ static s7_pointer g_time(s7_scheme *sc, s7_pointer args)
 #else
   return(minus_one);
 #endif
-}
-
-/* -------------------------------- unlink -------------------------------- */
-static s7_pointer g_unlink(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer arg = car(args);
-  if (!s7_is_string(arg))
-    sole_arg_wrong_type_error_nr(sc, sc->unlink_symbol, arg, sc->type_names[T_STRING]);
-  return(make_integer(sc, (s7_int)unlink((char*)string_value(arg))));
-}
-
-/* -------------------------------- access -------------------------------- */
-static s7_pointer g_access(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer path = car(args), mode = cadr(args);
-  if (!s7_is_string(path))
-    wrong_type_error_nr(sc, sc->access_symbol, 1, path, sc->type_names[T_STRING]);
-  if (!s7_is_integer(mode))
-    wrong_type_error_nr(sc, sc->access_symbol, 2, mode, sc->type_names[T_INTEGER]);
-  return(make_integer(sc, (s7_int)access((char *)string_value(path), (int)integer(mode))));
 }
 #endif
 
