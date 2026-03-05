@@ -414,6 +414,7 @@
 #include "s7_scheme_char.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
+#include "s7_liii_hash_table.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -42488,13 +42489,7 @@ static hash_entry_t *make_hash_entry(s7_scheme *sc, s7_pointer key, s7_pointer v
 /* -------------------------------- hash-table? -------------------------------- */
 bool s7_is_hash_table(s7_pointer p) {return(is_hash_table(p));}
 
-static s7_pointer g_is_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
-  #define Q_is_hash_table sc->pl_bt
-  check_boolean_method(sc, is_hash_table, sc->is_hash_table_symbol, args);
-}
-
+/* g_is_hash_table is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- hash-table-entries -------------------------------- */
 static s7_pointer g_hash_table_entries(s7_scheme *sc, s7_pointer args)
@@ -97355,6 +97350,9 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
   sc->is_int_vector_symbol =      bool_defun("int-vector?",      is_int_vector,	     0, T_INT_VECTOR,   mark_simple_vector, true);
   sc->is_byte_vector_symbol =     bool_defun("byte-vector?",     is_byte_vector,     0, T_BYTE_VECTOR,  mark_simple_vector, true);
+
+  #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
+  #define Q_is_hash_table sc->pl_bt
   sc->is_hash_table_symbol =      bool_defun("hash-table?",      is_hash_table,      0, T_HASH_TABLE,   mark_vector_1,      false);
   sc->is_continuation_symbol =    bool_defun("continuation?",    is_continuation,    0, T_CONTINUATION, mark_vector_1,      false);
   sc->is_procedure_symbol =       bool_defun("procedure?",       is_procedure,	     0, T_FREE,         mark_vector_1,      false);
