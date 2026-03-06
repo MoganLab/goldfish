@@ -507,11 +507,7 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
 }
 
 static s7_pointer
-njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
-  if (value.is_object () || value.is_array ()) {
-    s7_int id = store_njson_value (sc, value);
-    return make_njson_handle (sc, id);
-  }
+njson_scalar_value_to_scheme (s7_scheme* sc, const json& value) {
   if (value.is_null ()) {
     return s7_make_symbol (sc, "null");
   }
@@ -536,6 +532,116 @@ njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
     return s7_make_string (sc, text.c_str ());
   }
   return s7_nil (sc);
+}
+
+enum class njson_scheme_tree_mode {
+  alist_list,
+  hash_vector
+};
+
+static s7_pointer njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode);
+
+static s7_pointer
+njson_object_to_alist_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  // Match (liii json): empty object is '(()) so {} stays distinct from [].
+  if (value.empty ()) {
+    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  }
+  s7_pointer out = s7_nil (sc);
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    const std::string& key = it.key ();
+    s7_pointer key_s7 = s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ()));
+    s7_pointer val_s7 = njson_value_to_scheme_tree (sc, it.value (), mode);
+    out = s7_cons (sc, s7_cons (sc, key_s7, val_s7), out);
+  }
+  return s7_reverse (sc, out);
+}
+
+static s7_pointer
+njson_array_to_list_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_nil (sc);
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    out = s7_cons (sc, njson_value_to_scheme_tree (sc, *it, mode), out);
+  }
+  return s7_reverse (sc, out);
+}
+
+static s7_pointer
+njson_object_to_hash_table_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_make_hash_table (sc, static_cast<s7_int> (value.size ()));
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    const std::string& key = it.key ();
+    s7_hash_table_set (sc, out, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())),
+                       njson_value_to_scheme_tree (sc, it.value (), mode));
+  }
+  return out;
+}
+
+static s7_pointer
+njson_array_to_vector_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_make_vector (sc, static_cast<s7_int> (value.size ()));
+  for (size_t i = 0; i < value.size (); i++) {
+    s7_vector_set (sc, out, static_cast<s7_int> (i), njson_value_to_scheme_tree (sc, value[i], mode));
+  }
+  return out;
+}
+
+static s7_pointer
+njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  if (value.is_object ()) {
+    return (mode == njson_scheme_tree_mode::alist_list) ? njson_object_to_alist_tree (sc, value, mode)
+                                                        : njson_object_to_hash_table_tree (sc, value, mode);
+  }
+  if (value.is_array ()) {
+    return (mode == njson_scheme_tree_mode::alist_list) ? njson_array_to_list_tree (sc, value, mode)
+                                                        : njson_array_to_vector_tree (sc, value, mode);
+  }
+  return njson_scalar_value_to_scheme (sc, value);
+}
+
+enum class njson_structure_root_kind {
+  object,
+  array
+};
+
+static s7_pointer
+njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_name, njson_structure_root_kind root_kind,
+                                njson_scheme_tree_mode mode) {
+  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
+  if (thread_err) {
+    return thread_err;
+  }
+
+  s7_pointer  handle = s7_car (args);
+  s7_int      id = 0;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
+  }
+
+  const json* root = njson_value_by_id_const (sc, id);
+  if (!root) {
+    return njson_error (sc, "type-error",
+                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+  }
+
+  if ((root_kind == njson_structure_root_kind::object) && !root->is_object ()) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be object", handle);
+  }
+  if ((root_kind == njson_structure_root_kind::array) && !root->is_array ()) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be array", handle);
+  }
+
+  return njson_value_to_scheme_tree (sc, *root, mode);
+}
+
+static s7_pointer
+njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
+  if (value.is_object () || value.is_array ()) {
+    s7_int id = store_njson_value (sc, value);
+    return make_njson_handle (sc, id);
+  }
+  return njson_scalar_value_to_scheme (sc, value);
 }
 
 static s7_pointer
@@ -1169,6 +1275,30 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
   return s7_nil (sc);
 }
 
+static s7_pointer
+f_njson_object_to_alist (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-object->alist", njson_structure_root_kind::object,
+                                         njson_scheme_tree_mode::alist_list);
+}
+
+static s7_pointer
+f_njson_object_to_hash_table (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-object->hash-table", njson_structure_root_kind::object,
+                                         njson_scheme_tree_mode::hash_vector);
+}
+
+static s7_pointer
+f_njson_array_to_list (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-array->list", njson_structure_root_kind::array,
+                                         njson_scheme_tree_mode::alist_list);
+}
+
+static s7_pointer
+f_njson_array_to_vector (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-array->vector", njson_structure_root_kind::array,
+                                         njson_scheme_tree_mode::hash_vector);
+}
+
 struct njson_schema_error_entry {
   std::string instance_path;
   std::string message;
@@ -1315,6 +1445,14 @@ glue_njson (s7_scheme* sc) {
   const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
   const char* keys_name = "g_njson-keys";
   const char* keys_desc = "(g_njson-keys handle) => (list-of string?)";
+  const char* object_alist_name = "g_njson-object->alist";
+  const char* object_alist_desc = "(g_njson-object->alist object-handle) => alist";
+  const char* object_hash_name = "g_njson-object->hash-table";
+  const char* object_hash_desc = "(g_njson-object->hash-table object-handle) => hash-table";
+  const char* array_list_name = "g_njson-array->list";
+  const char* array_list_desc = "(g_njson-array->list array-handle) => list";
+  const char* array_vector_name = "g_njson-array->vector";
+  const char* array_vector_desc = "(g_njson-array->vector array-handle) => vector";
   const char* schema_report_name = "g_njson-schema-report";
   const char* schema_report_desc = "(g_njson-schema-report schema-handle instance) => hash-table";
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
@@ -1344,6 +1482,10 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, deep_merge_x_name, deep_merge_x_desc, f_njson_deep_merge_x, 2, 0);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
   glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
+  glue_define (sc, object_alist_name, object_alist_desc, f_njson_object_to_alist, 1, 0);
+  glue_define (sc, object_hash_name, object_hash_desc, f_njson_object_to_hash_table, 1, 0);
+  glue_define (sc, array_list_name, array_list_desc, f_njson_array_to_list, 1, 0);
+  glue_define (sc, array_vector_name, array_vector_desc, f_njson_array_to_vector, 1, 0);
   glue_define (sc, schema_report_name, schema_report_desc, f_njson_schema_report, 2, 0);
 }
 

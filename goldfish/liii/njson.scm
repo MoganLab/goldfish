@@ -42,6 +42,10 @@
           njson->file
           json->njson
           njson->json
+          njson-object->alist
+          njson-object->hash-table
+          njson-array->list
+          njson-array->vector
           let-njson
           njson-ref
           njson-set
@@ -210,6 +214,26 @@
         (type-error "njson->json: input must be njson-handle or strict json scalar" x))
       (let ((wrapped (ljson-string->json (string-append "{\"" njson-bridge-key "\":" (njson->string x) "}"))))
         (ljson-ref wrapped njson-bridge-key)))
+
+    (define (njson-object->alist json)
+      (unless (njson-object? json)
+        (type-error "njson-object->alist: json must be njson object-handle" json))
+      (g_njson-object->alist json))
+
+    (define (njson-object->hash-table json)
+      (unless (njson-object? json)
+        (type-error "njson-object->hash-table: json must be njson object-handle" json))
+      (g_njson-object->hash-table json))
+
+    (define (njson-array->list json)
+      (unless (njson-array? json)
+        (type-error "njson-array->list: json must be njson array-handle" json))
+      (g_njson-array->list json))
+
+    (define (njson-array->vector json)
+      (unless (njson-array? json)
+        (type-error "njson-array->vector: json must be njson array-handle" json))
+      (g_njson-array->vector json))
 
     (define (njson-ref json key . keys)
       (unless (njson? json)
