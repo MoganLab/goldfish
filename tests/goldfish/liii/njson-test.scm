@@ -17,6 +17,7 @@
 (import (liii check)
         (liii base)
         (liii error)
+        (liii hash-table)
         (liii path)
         (liii njson)
         (rename (liii json)
@@ -1475,6 +1476,247 @@ value : any
 (define njson->json-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free njson->json-freed))
 (check-catch 'type-error (njson->json njson->json-freed))
+
+#|
+njson-object->alist
+把 njson object 递归转换为 alist/list 家族的纯 Scheme 结构。
+
+语法
+----
+(njson-object->alist object-json)
+
+参数
+----
+object-json : njson-handle
+  必须是指向 JSON object 的句柄。
+
+行为逻辑
+--------
+1. 根值必须是 object，否则抛 `type-error`。
+2. 递归规则：
+   - object -> `((key . value) ...)`
+   - array -> `(list ...)`
+3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+
+返回值
+-----
+- alist
+
+错误
+----
+- `type-error`：输入不是 object-handle，或句柄已释放。
+|#
+
+(define njson-object->alist-json
+  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}")
+
+(define object-as-alist '())
+(let-njson ((root (string->njson njson-object->alist-json)))
+  (set! object-as-alist (njson-object->alist root))
+  (check (assoc "name" object-as-alist) => '("name" . "Goldfish"))
+  (let ((meta (cdr (assoc "meta" object-as-alist)))
+        (nums (cdr (assoc "nums" object-as-alist))))
+    (check (assoc "os" meta) => '("os" . "linux"))
+    (check (assoc "empty" meta) => '("empty"))
+    (check (car nums) => 1)
+    (check (assoc "deep" (cadr nums)) => '("deep" . #t))
+    (check (caddr nums) => '()))
+  (check (assoc "nil" object-as-alist) => '("nil" . null)))
+(let ((meta (cdr (assoc "meta" object-as-alist))))
+  (check (assoc "os" meta) => '("os" . "linux"))
+  (check (assoc "empty" meta) => '("empty")))
+
+(let-njson ((root (string->njson "{}")))
+  (check (njson-object->alist root) => '()))
+
+(check-catch 'type-error (njson-object->alist 'foo))
+(let-njson ((arr (string->njson "[1]")))
+  (check-catch 'type-error (njson-object->alist arr)))
+(define object->alist-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free object->alist-freed))
+(check-catch 'type-error (njson-object->alist object->alist-freed))
+
+#|
+njson-object->hash-table
+把 njson object 递归转换为 hash-table/vector 家族的纯 Scheme 结构。
+
+语法
+----
+(njson-object->hash-table object-json)
+
+参数
+----
+object-json : njson-handle
+  必须是指向 JSON object 的句柄。
+
+行为逻辑
+--------
+1. 根值必须是 object，否则抛 `type-error`。
+2. 递归规则：
+   - object -> `hash-table`
+   - array -> `vector`
+3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+
+返回值
+-----
+- hash-table
+
+错误
+----
+- `type-error`：输入不是 object-handle，或句柄已释放。
+|#
+
+(define njson-object->hash-table-json
+  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}")
+
+(define object-as-hash-table #f)
+(let-njson ((root (string->njson njson-object->hash-table-json)))
+  (set! object-as-hash-table (njson-object->hash-table root))
+  (check-true (hash-table? object-as-hash-table))
+  (check (hash-table-ref object-as-hash-table "name") => "Goldfish")
+  (let ((meta (hash-table-ref object-as-hash-table "meta"))
+        (nums (hash-table-ref object-as-hash-table "nums")))
+    (check-true (hash-table? meta))
+    (check (hash-table-ref meta "os") => "linux")
+    (check-true (hash-table? (hash-table-ref meta "empty")))
+    (check (hash-table-size (hash-table-ref meta "empty")) => 0)
+    (check-true (vector? nums))
+    (check (vector-ref nums 0) => 1)
+    (check-true (hash-table? (vector-ref nums 1)))
+    (check (hash-table-ref (vector-ref nums 1) "deep") => #t)
+    (check (vector-ref nums 2) => #()))
+  (check (hash-table-ref object-as-hash-table "nil") => 'null))
+(check (hash-table-ref object-as-hash-table "name") => "Goldfish")
+
+(let-njson ((root (string->njson "{}")))
+  (let ((ht (njson-object->hash-table root)))
+    (check-true (hash-table? ht))
+    (check (hash-table-size ht) => 0)))
+
+(check-catch 'type-error (njson-object->hash-table 'foo))
+(let-njson ((scalar (string->njson "1")))
+  (check-catch 'type-error (njson-object->hash-table scalar)))
+(define object->hash-table-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free object->hash-table-freed))
+(check-catch 'type-error (njson-object->hash-table object->hash-table-freed))
+
+#|
+njson-array->list
+把 njson array 递归转换为 list/alist 家族的纯 Scheme 结构。
+
+语法
+----
+(njson-array->list array-json)
+
+参数
+----
+array-json : njson-handle
+  必须是指向 JSON array 的句柄。
+
+行为逻辑
+--------
+1. 根值必须是 array，否则抛 `type-error`。
+2. 递归规则：
+   - array -> `(list ...)`
+   - object -> `((key . value) ...)`
+3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+
+返回值
+-----
+- list
+
+错误
+----
+- `type-error`：输入不是 array-handle，或句柄已释放。
+|#
+
+(define njson-array->list-json
+  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]")
+(define njson-array->list-expected
+  '(1
+    (("name" . "Goldfish") ("tags" . ("a" "b")))
+    (2 (("k" . null)))
+    ()))
+
+(define array-as-list '())
+(let-njson ((root (string->njson njson-array->list-json)))
+  (set! array-as-list (njson-array->list root))
+  (check array-as-list => njson-array->list-expected))
+(check array-as-list => njson-array->list-expected)
+
+(let-njson ((root (string->njson "[]")))
+  (check (njson-array->list root) => '()))
+
+(check-catch 'type-error (njson-array->list 'foo))
+(let-njson ((obj (string->njson "{\"a\":1}")))
+  (check-catch 'type-error (njson-array->list obj)))
+(define array->list-freed (string->njson "[1]"))
+(check-true (njson-free array->list-freed))
+(check-catch 'type-error (njson-array->list array->list-freed))
+
+#|
+njson-array->vector
+把 njson array 递归转换为 vector/hash-table 家族的纯 Scheme 结构。
+
+语法
+----
+(njson-array->vector array-json)
+
+参数
+----
+array-json : njson-handle
+  必须是指向 JSON array 的句柄。
+
+行为逻辑
+--------
+1. 根值必须是 array，否则抛 `type-error`。
+2. 递归规则：
+   - array -> `vector`
+   - object -> `hash-table`
+3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+
+返回值
+-----
+- vector
+
+错误
+----
+- `type-error`：输入不是 array-handle，或句柄已释放。
+|#
+
+(define njson-array->vector-json
+  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]")
+
+(define array-as-vector #())
+(let-njson ((root (string->njson njson-array->vector-json)))
+  (set! array-as-vector (njson-array->vector root))
+  (check-true (vector? array-as-vector))
+  (check (vector-ref array-as-vector 0) => 1)
+  (let ((obj (vector-ref array-as-vector 1))
+        (nested (vector-ref array-as-vector 2)))
+    (check-true (hash-table? obj))
+    (check (hash-table-ref obj "name") => "Goldfish")
+    (check (hash-table-ref obj "tags") => #("a" "b"))
+    (check-true (vector? nested))
+    (check (vector-ref nested 0) => 2)
+    (check-true (hash-table? (vector-ref nested 1)))
+    (check (hash-table-ref (vector-ref nested 1) "k") => 'null))
+  (check (vector-ref array-as-vector 3) => #()))
+(check (vector-ref array-as-vector 0) => 1)
+
+(let-njson ((root (string->njson "[]")))
+  (check (njson-array->vector root) => #()))
+
+(check-catch 'type-error (njson-array->vector 'foo))
+(let-njson ((scalar (string->njson "1")))
+  (check-catch 'type-error (njson-array->vector scalar)))
+(define array->vector-freed (string->njson "[1]"))
+(check-true (njson-free array->vector-freed))
+(check-catch 'type-error (njson-array->vector array->vector-freed))
 
 #|
 njson-schema-report
