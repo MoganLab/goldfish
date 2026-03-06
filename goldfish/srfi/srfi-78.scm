@@ -171,8 +171,8 @@
                                         (car location-info) (cadr location-info) call-stack))))))
           (else (error "unrecognized check:mode" check:mode)))))
 
-    (define-macro (check expr => expected)
-      `(check:proc ',expr (lambda () ,expr) ,expected))
+    (define-syntax-rule (check expr => expected)
+      (check:proc 'expr (lambda () expr) expected))
 
     (define (check-report)
       (if (>= check:mode 1)

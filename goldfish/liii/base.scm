@@ -92,25 +92,34 @@
       `(let ((,name1 ,value1))
          ,@body))
 
-    ; 0 clause BSD, from S7 repo stuff.scm
-    (define-macro (typed-lambda args . body)
-      ; (typed-lambda ((var [type])...) ...)
-      (if (symbol? args)
-          (apply lambda args body)
-          (let ((new-args (copy args)))
-            (do ((p new-args (cdr p)))
-                ((not (pair? p)))
-                (if (pair? (car p))
-                    (set-car! p (caar p))))
-            `(lambda ,new-args
-               ,@(map (lambda (arg)
-                        (if (pair? arg)
-                            `(unless (,(cadr arg) ,(car arg))
+    (define-syntax typed-lambda
+      (lambda (stx)
+        (define (split-args args)
+          ;; args 是语法列表，形如 ((var type) ...) 或 (var ...)
+          (let loop ((args args) (clean '()) (checks '()))
+            (syntax-case args ()
+              (() (values (reverse clean) (reverse checks)))
+              (((var type) . rest)
+               (loop (syntax rest)
+                     (cons (syntax var) clean)
+                     (cons #`(unless (type var)
                                (error 'type-error
-                                 "~S is not ~S~%" ',(car arg) ',(cadr arg)))
-                            (values)))
-                      args)
-               ,@body))))
+                                 "~S is not ~S" 'var 'type))
+                           checks)))
+              ((var . rest)
+               (if (identifier? (syntax var))
+                   (loop (syntax rest) (cons (syntax var) clean) checks)
+                   (syntax-error args "Invalid argument specification"))))))
+        (syntax-case stx ()
+          ((_ args body1 body2 ...)
+           (call-with-values (lambda () (split-args (syntax args)))
+             (lambda (clean-args checks)
+               (with-syntax (((clean ...) clean-args)
+                             ((check ...) checks)
+                             ((body ...) #'(body1 body2 ...)))
+                 #'(lambda (clean ...)
+                     check ...
+                     body ...))))))))
 
     ) ; end of begin
   ) ; end of define-library

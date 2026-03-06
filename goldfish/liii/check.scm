@@ -23,21 +23,17 @@
                   (check-report srfi-78-check-report)))
   (begin
 
-    (define-macro (check-true body)
-      `(check ,body => #t))
+    (define-syntax-rule (check-true body)
+      (check body => #t))
 
-    (define-macro (check-false body)
-      `(check ,body => #f))
+    (define-syntax-rule (check-false body)
+      (check body => #f))
 
-    (define-macro (check-catch error-id body)
-      `(check
-        (catch ,error-id
-          (lambda () ,body)
-          (lambda args ,error-id))
-        => ,error-id))
+    (define-syntax-rule (check-catch error-id body)
+      (check (catch error-id (lambda () body) (lambda args error-id)) => error-id))
 
-    (define-macro (test left right)
-      `(check ,left => ,right))
+    (define-syntax-rule (test left right)
+      (check left => right))
 
     (define (check-report . msg)
       (if (not (null? msg))

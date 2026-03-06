@@ -1,15 +1,22 @@
 (define-syntax define-macro
-  (lambda (x)
-    (syntax-case x ()
-      ((_ (macro . args) body1 body ...)
-       #'(define-macro macro (lambda args body1 body ...)))
-      ((_ macro transformer)
-       #'(define-syntax macro
-            (lambda (y)
-              (syntax-case y ()
-                ((_ . args)
-                 (let ((v (syntax->datum (syntax args))))
-                   (datum->syntax #'_ (apply transformer v)))))))))))
+  (syntax-rules ()
+    ;; 带参数的宏
+    ((_ (name . args) body ...)
+     (define-syntax name
+       (lambda (stx)
+         (syntax-case stx ()
+           ((_ . rest)
+            (let ((transformer (lambda args body ...)))
+              (datum->syntax stx
+                (apply transformer (syntax->datum (syntax rest))))))))))
+    ;; 无参数的宏
+    ((_ name body ...)
+     (define-syntax name
+       (lambda (stx)
+         (syntax-case stx ()
+           (id (identifier? (syntax id))
+               (let ((transformer (lambda () body ...)))
+                 (datum->syntax stx (transformer))))))))))
 
 (define-syntax define-syntax-rule
   (syntax-rules ()

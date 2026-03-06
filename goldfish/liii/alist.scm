@@ -3,7 +3,7 @@
 ;
 
 (define-library (liii alist)
-  (import (liii base) (liii list) (liii error) (scheme case-lambda))
+  (import (liii base) (liii list) (liii error))
   (export alist? alist-cons alist-ref alist-ref/default vector->alist)
   (begin
 
@@ -11,18 +11,23 @@
       (and (list? l) (every pair? l)))
 
     (define alist-ref
-      (case-lambda ((alist key) (alist-ref alist key
-                                           (lambda ()
-                                             (key-error "alist-ref: key not found " key))))
-                   ((alist key thunk) (alist-ref alist key thunk eqv?))
-                   ((alist key thunk =) (let ((value (assoc key alist =)))
-                       (if value (cdr value) (thunk))))))
+      (lambda (alist key . rest)
+        (let ((thunk (if (null? rest)
+                         (lambda () (error 'alist-ref "key not found: ~s" key))
+                         (car rest)))
+              (= (cond ((null? rest) eqv?)
+                       ((null? (cdr rest)) eqv?)
+                       (else (cadr rest)))))
+          (let ((value (assoc key alist =)))
+            (if value (cdr value) (thunk))))))
 
     (define alist-ref/default
-      (case-lambda ((alist key default)
-                    (alist-ref alist key (lambda () default)))
-                   ((alist key default =)
-                    (alist-ref alist key (lambda () default) =))))
+      (lambda (alist key . rest)
+        (if (null? rest)
+            (error 'alist-ref/default "missing default argument")
+            (let ((default (car rest))
+                  (= (if (null? (cdr rest)) eqv? (cadr rest))))
+              (alist-ref alist key (lambda () default) =)))))
 
     ; MIT License
     ; Copyright guenchi (c) 2018 - 2019
