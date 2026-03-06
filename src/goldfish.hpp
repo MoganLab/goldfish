@@ -543,6 +543,10 @@ static s7_pointer njson_value_to_scheme_tree (s7_scheme* sc, const json& value, 
 
 static s7_pointer
 njson_object_to_alist_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  // Match (liii json): empty object is '(()) so {} stays distinct from [].
+  if (value.empty ()) {
+    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  }
   s7_pointer out = s7_nil (sc);
   for (auto it = value.begin (); it != value.end (); ++it) {
     const std::string& key = it.key ();

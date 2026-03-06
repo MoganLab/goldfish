@@ -1496,8 +1496,9 @@ object-json : njson-handle
 2. 递归规则：
    - object -> `((key . value) ...)`
    - array -> `(list ...)`
-3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
-4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+3. 空 object 保持仓库现有 canonical 表示 `'(())`，避免与空 array `()` 混淆。
+4. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+5. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
 
 返回值
 -----
@@ -1518,17 +1519,20 @@ object-json : njson-handle
   (let ((meta (cdr (assoc "meta" object-as-alist)))
         (nums (cdr (assoc "nums" object-as-alist))))
     (check (assoc "os" meta) => '("os" . "linux"))
-    (check (assoc "empty" meta) => '("empty"))
+    (check (assoc "empty" meta) => '("empty" ()))
     (check (car nums) => 1)
     (check (assoc "deep" (cadr nums)) => '("deep" . #t))
     (check (caddr nums) => '()))
   (check (assoc "nil" object-as-alist) => '("nil" . null)))
 (let ((meta (cdr (assoc "meta" object-as-alist))))
   (check (assoc "os" meta) => '("os" . "linux"))
-  (check (assoc "empty" meta) => '("empty")))
+  (check (assoc "empty" meta) => '("empty" ()))
+  (check-true (ljson-object? (cdr (assoc "empty" meta)))))
 
 (let-njson ((root (string->njson "{}")))
-  (check (njson-object->alist root) => '()))
+  (let ((empty-object (njson-object->alist root)))
+    (check empty-object => '(()))
+    (check-true (ljson-object? empty-object))))
 
 (check-catch 'type-error (njson-object->alist 'foo))
 (let-njson ((arr (string->njson "[1]")))
@@ -1621,8 +1625,9 @@ array-json : njson-handle
 2. 递归规则：
    - array -> `(list ...)`
    - object -> `((key . value) ...)`
-3. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
-4. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
+3. 嵌套空 object 保持仓库现有 canonical 表示 `'(())`，避免与空 array `()` 混淆。
+4. 标量直接映射为 Scheme 标量；JSON `null` 映射为 `'null`。
+5. 返回结果是纯 Scheme 值，不依赖 njson 句柄生命周期。
 
 返回值
 -----
@@ -1649,6 +1654,13 @@ array-json : njson-handle
 
 (let-njson ((root (string->njson "[]")))
   (check (njson-array->list root) => '()))
+
+(let-njson ((root (string->njson "[{},[]]")))
+  (let ((shape-list (njson-array->list root)))
+    (check (car shape-list) => '(()))
+    (check (cadr shape-list) => '())
+    (check-true (ljson-object? (car shape-list)))
+    (check (ljson-object? (cadr shape-list)) => #f)))
 
 (check-catch 'type-error (njson-array->list 'foo))
 (let-njson ((obj (string->njson "{\"a\":1}")))
