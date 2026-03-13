@@ -4,12 +4,27 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '3rdparty/**'
+      - 'goldfish/**'
+      - 'src/**'
+      - 'xmake/**'
+      - 'xmake.lua'
+      - '.github/workflows/package.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '3rdparty/**'
+      - 'goldfish/**'
+      - 'src/**'
+      - 'xmake/**'
+      - 'xmake.lua'
+      - '.github/workflows/package.yml'
 
 jobs:
-  build:
+  package-deb:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
 
     steps:
     - name: Checkout
@@ -22,38 +37,34 @@ jobs:
         sudo add-apt-repository ppa:xmake-io/xmake
         sudo apt update
         sudo apt install -y git \
-          curl 7zip unzip curl \
+          curl 7zip unzip \
           gcc g++ \
           devscripts debhelper build-essential \
           xmake # xmake must be installed by apt (dpkg)
 
     - name: git add safe directory
-      run: git config --global --add safe.directory '*'
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
 
     - name: set XMAKE_GLOBALDIR
       run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
 
+    - name: cache packages from xrepo
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
     - name: xmake repo --update
       run: xmake repo --update
 
-    - name: cache packages from xrepo
-      uses: actions/cache@v3
-      with:
-        path: |
-          ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
-
     - name: Config and Build
       run: |
-        sed -i 's|"deb", "rpm", "srpm"|"deb"|g' xmake.lua
-        sed -i 's|set_default(false) -- repl-anchor|set_default(true)|g' xmake.lua
-
-        xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true
+        xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true --yes
         xmake build goldfish
 
     - name: Package
-      run: xmake pack -vyD goldfish
+      run: xmake pack -vyD -f deb goldfish
 
     - name: Create summary table
       run: |
@@ -83,7 +94,66 @@ jobs:
     - name: Upload all package artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: goldfish-packages
+        name: goldfish-deb-packages
         path: tmp/build/xpack/goldfish/*.deb
+        retention-days: 30
+        if-no-files-found: error
+
+  package-windows-zip:
+    runs-on: windows-2025
+    env:
+      XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
+
+    steps:
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.9.9
+
+    - name: git crlf
+      run: git config --global core.autocrlf false
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: cache packages from xrepo
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+    - name: xmake repo --update
+      run: xmake repo --update
+
+    - name: Config and Build
+      run: |
+        xmake config -vyD -o tmp/build -m releasedbg --repl=true --yes
+        xmake build goldfish
+
+    - name: Package
+      run: xmake pack -vyD -f zip goldfish
+
+    - name: Create summary table
+      shell: pwsh
+      run: |
+        $dir = "tmp/build/xpack/goldfish"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Generated package files"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | File | Size |"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|"
+        Get-ChildItem -Path $dir -Filter *.zip | ForEach-Object {
+          $size = "{0:N2} MiB" -f ($_.Length / 1MB)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows ZIP | ``$($_.Name)`` | $size |"
+        }
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*目录: ``$dir``*"
+
+    - name: Upload Windows zip artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: goldfish-windows-zip-packages
+        path: tmp/build/xpack/goldfish/*.zip
         retention-days: 30
         if-no-files-found: error
