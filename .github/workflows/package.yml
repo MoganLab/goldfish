@@ -4,27 +4,15 @@ on:
   push:
     branches:
       - main
-    paths:
-      - '3rdparty/**'
-      - 'goldfish/**'
-      - 'src/**'
-      - 'xmake/**'
-      - 'xmake.lua'
-      - '.github/workflows/package.yml'
   pull_request:
     branches:
       - main
-    paths:
-      - '3rdparty/**'
-      - 'goldfish/**'
-      - 'src/**'
-      - 'xmake/**'
-      - 'xmake.lua'
-      - '.github/workflows/package.yml'
 
 jobs:
-  package-deb:
+  build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
 
     steps:
     - name: Checkout
@@ -37,34 +25,38 @@ jobs:
         sudo add-apt-repository ppa:xmake-io/xmake
         sudo apt update
         sudo apt install -y git \
-          curl 7zip unzip \
+          curl 7zip unzip curl \
           gcc g++ \
           devscripts debhelper build-essential \
           xmake # xmake must be installed by apt (dpkg)
 
     - name: git add safe directory
-      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      run: git config --global --add safe.directory '*'
 
 
     - name: set XMAKE_GLOBALDIR
       run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
 
-    - name: cache packages from xrepo
-      uses: actions/cache@v4
-      with:
-        path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
-
     - name: xmake repo --update
       run: xmake repo --update
 
+    - name: cache packages from xrepo
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
     - name: Config and Build
       run: |
-        xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true --yes
+        sed -i 's|"deb", "rpm", "srpm"|"deb"|g' xmake.lua
+        sed -i 's|set_default(false) -- repl-anchor|set_default(true)|g' xmake.lua
+
+        xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true
         xmake build goldfish
 
     - name: Package
-      run: xmake pack -vyD -f deb goldfish
+      run: xmake pack -vyD goldfish
 
     - name: Create summary table
       run: |
@@ -94,7 +86,7 @@ jobs:
     - name: Upload all package artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: goldfish-deb-packages
+        name: goldfish-packages
         path: tmp/build/xpack/goldfish/*.deb
         retention-days: 30
         if-no-files-found: error
