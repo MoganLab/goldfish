@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
@@ -85,5 +88,64 @@ jobs:
       with:
         name: goldfish-packages
         path: tmp/build/xpack/goldfish/*.deb
+        retention-days: 30
+        if-no-files-found: error
+
+  package-windows-zip:
+    runs-on: windows-2025
+    env:
+      XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
+
+    steps:
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.9.9
+
+    - name: git crlf
+      run: git config --global core.autocrlf false
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: cache packages from xrepo
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+        key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+    - name: xmake repo --update
+      run: xmake repo --update
+
+    - name: Config and Build
+      run: |
+        xmake config -vyD -o tmp/build -m releasedbg --repl=true --yes
+        xmake build goldfish
+
+    - name: Package
+      run: xmake pack -vyD -f zip goldfish
+
+    - name: Create summary table
+      shell: pwsh
+      run: |
+        $dir = "tmp/build/xpack/goldfish"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Generated package files"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | File | Size |"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|"
+        Get-ChildItem -Path $dir -Filter *.zip | ForEach-Object {
+          $size = "{0:N2} MiB" -f ($_.Length / 1MB)
+          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows ZIP | ``$($_.Name)`` | $size |"
+        }
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*目录: ``$dir``*"
+
+    - name: Upload Windows zip artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: goldfish-windows-zip-packages
+        path: tmp/build/xpack/goldfish/*.zip
         retention-days: 30
         if-no-files-found: error
