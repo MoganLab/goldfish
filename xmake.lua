@@ -194,7 +194,11 @@ end
 includes("@builtin/xpack")
 
 xpack ("goldfish")
-    set_formats("deb", "rpm", "srpm")
+    if is_plat("windows") then
+        set_formats("zip")
+    else
+        set_formats("deb", "rpm", "srpm")
+    end
     set_author("Da Shen <da@liii.pro>")
     set_license("Apache-2.0")
     set_title("Goldfish Scheme")
