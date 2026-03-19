@@ -121,31 +121,40 @@ jobs:
 
     - name: Config and Build
       run: |
-        xmake config -vyD -o tmp/build -m releasedbg --repl=true --yes
+        xmake config -vyD -o tmp/build -m release --repl=true --yes
         xmake build goldfish
 
-    - name: Package
-      run: xmake pack -vyD -f zip goldfish
+    - name: Stage package files
+      shell: pwsh
+      run: |
+        $dir = "tmp/build/artifact/goldfish-windows"
+        if (Test-Path $dir) {
+          Remove-Item -Recurse -Force $dir
+        }
+        xmake install -vyD -o $dir goldfish
+        Get-ChildItem -Path $dir -Recurse -Filter *.pdb | Remove-Item -Force
 
     - name: Create summary table
       shell: pwsh
       run: |
-        $dir = "tmp/build/xpack/goldfish"
+        $dir = "tmp/build/artifact/goldfish-windows"
+        $files = Get-ChildItem -Path $dir -Recurse -File
+        $size = "{0:N2} MiB" -f (($files | Measure-Object -Property Length -Sum).Sum / 1MB)
+        $fileCount = ($files | Measure-Object).Count
+        $pdbCount = (Get-ChildItem -Path $dir -Recurse -Filter *.pdb | Measure-Object).Count
+
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Generated package files"
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | File | Size |"
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|"
-        Get-ChildItem -Path $dir -Filter *.zip | ForEach-Object {
-          $size = "{0:N2} MiB" -f ($_.Length / 1MB)
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows ZIP | ``$($_.Name)`` | $size |"
-        }
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | Path | Size | Files | PDB |"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|-------|-----|"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows artifact | ``$dir`` | $size | $fileCount | $pdbCount |"
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*目录: ``$dir``*"
 
-    - name: Upload Windows zip artifacts
+    - name: Upload Windows package artifact
       uses: actions/upload-artifact@v4
       with:
-        name: goldfish-windows-zip-packages
-        path: tmp/build/xpack/goldfish/*.zip
+        name: goldfish-windows-package
+        path: tmp/build/artifact/goldfish-windows
         retention-days: 30
         if-no-files-found: error
