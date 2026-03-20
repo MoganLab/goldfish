@@ -1183,4 +1183,84 @@ boolean?
 (check-true (ascii-string-ci>=? "ABD" "abc"))
 (check-true (ascii-string-ci>=? "abc" "ABC"))
 
+#|
+ascii-left-paren?
+判断是否为 ASCII 左括号
+
+语法
+----
+(ascii-left-paren? x)
+
+参数
+----
+x : char? | integer?
+
+返回值
+----
+boolean?
+
+说明
+----
+判断字符是否为左括号字符 '(' (ASCII 0x28)。
+
+边界行为
+----
+支持字符和整数码点两种输入。
+
+性能边界
+----
+单次判断为常量时间。
+
+错误处理
+----
+类型或范围不匹配时返回 #f。
+|#
+
+(check-true (ascii-left-paren? #\())
+(check-true (ascii-left-paren? #x28))
+(check-false (ascii-left-paren? #\)))
+(check-false (ascii-left-paren? #x29))
+(check-false (ascii-left-paren? #\A))
+(check-false (ascii-left-paren? #\[))
+
+#|
+ascii-right-paren?
+判断是否为 ASCII 右括号
+
+语法
+----
+(ascii-right-paren? x)
+
+参数
+----
+x : char? | integer?
+
+返回值
+----
+boolean?
+
+说明
+----
+判断字符是否为右括号字符 ')' (ASCII 0x29)。
+
+边界行为
+----
+支持字符和整数码点两种输入。
+
+性能边界
+----
+单次判断为常量时间。
+
+错误处理
+----
+类型或范围不匹配时返回 #f。
+|#
+
+(check-true (ascii-right-paren? #\)))
+(check-true (ascii-right-paren? #x29))
+(check-false (ascii-right-paren? #\())
+(check-false (ascii-right-paren? #x28))
+(check-false (ascii-right-paren? #\A))
+(check-false (ascii-right-paren? #\]))
+
 (check-report)
