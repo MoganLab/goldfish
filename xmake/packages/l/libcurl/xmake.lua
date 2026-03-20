@@ -1,14 +1,19 @@
+local function _curl_raw_version(version)
+    return version:gsub("^v", "")
+end
+
 package("libcurl")
     set_homepage("https://curl.haxx.se/")
     set_description("The multiprotocol file transfer library.")
     set_license("MIT")
 
-    set_urls("https://curl.haxx.se/download/curl-$(version).tar.bz2")
+    set_urls("https://curl.haxx.se/download/curl-$(version).tar.bz2",
+        {version = function (version) return _curl_raw_version(version) end})
     add_urls("https://github.com/curl/curl/releases/download/curl-$(version).tar.bz2",
-    {version = function (version)
-        local raw = version:gsub("^v", "")
-        return raw:gsub("%.", "_") .. "/curl-" .. raw
-    end})
+        {version = function (version)
+            local raw = _curl_raw_version(version)
+            return raw:gsub("%.", "_") .. "/curl-" .. raw
+        end})
     add_urls("https://gitee.com/mirrors/curl.git")
     add_versions("v8.11.1", "curl-8_11_1")
 
