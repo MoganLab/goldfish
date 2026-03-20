@@ -254,7 +254,8 @@
 (check ((stack (list 1 2)) :pop!) => (stack (list 2)))
 (check ((stack (list "A" "B" "C" "D" "E")) :pop! :pop! :pop!) => (stack (list "D" "E")))
 (let1 t (stack (list 100))
-  (check-catch 'out-of-range (t :pop! :pop!)))
+  (check-catch 'out-of-range (t :pop! :pop!))
+) ;let1
 
 
 #|
@@ -295,7 +296,8 @@ element : any-type
 |#
 (let1 t (stack (list 1 2 3))
   (check (t :push 1) => (stack (list 1 1 2 3)))
-  (check (t :push 1 :push 1) => (stack (list 1 1 1 2 3))))
+  (check (t :push 1 :push 1) => (stack (list 1 1 1 2 3)))
+) ;let1
 
 
 #|
@@ -337,7 +339,8 @@ element : any-type
 (let1 t (stack (list 1 2 3))
   (check (t :push! 1) => (stack (list 1 1 2 3)))
   (check (t :push! 1 :push! 1) => (stack (list 1 1 1 1 2 3)))
-  (check (t :pop! :push! 2) => (stack (list 2 1 1 1 2 3))))
+  (check (t :pop! :push! 2) => (stack (list 2 1 1 1 2 3)))
+) ;let1
 
 
 #|

@@ -18,7 +18,8 @@
         (scheme base)
         (liii rich-string)
         (liii lang)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -351,7 +352,8 @@ index : integer
 
 ;; 验证字符访问与字符串内容的一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :char-at 0) :make-string) => "h"))
+  (check ((rs :char-at 0) :make-string) => "h")
+) ;let
 
 #|
 rich-string%apply
@@ -417,7 +419,8 @@ index : integer
 
 ;; 验证apply与char-at方法的一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :apply 0) :make-string) => ((rs :char-at 0) :make-string)))
+  (check ((rs :apply 0) :make-string) => ((rs :char-at 0) :make-string))
+) ;let
 
 #|
 rich-string%find
@@ -494,7 +497,8 @@ pred : procedure
 
 ;; 验证查找结果与字符访问的一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check (((rs :find (lambda (c) (c :equals #\w))) :get) :make-string) => "w"))
+  (check (((rs :find (lambda (c) (c :equals #\w))) :get) :make-string) => "w")
+) ;let
 
 #|
 rich-string%find-last
@@ -573,7 +577,8 @@ pred : procedure
 ;; 与find方法的对比测试
 (let ((rs (rich-string :value-of "HeLLo")))
   (check (((rs :find (lambda (c) (c :upper?))) :get) :make-string) => "H")
-  (check (((rs :find-last (lambda (c) (c :upper?))) :get) :make-string) => "L"))
+  (check (((rs :find-last (lambda (c) (c :upper?))) :get) :make-string) => "L")
+) ;let
 
 #|
 rich-string%head
@@ -638,14 +643,16 @@ rich-string%head
 
 ;; 验证字符访问与字符串内容的一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :head) :make-string) => "h"))
+  (check ((rs :head) :make-string) => "h")
+) ;let
 
 ;; 验证不同类型输入的字符访问
 (check (((rich-string :value-of 123) :head) :make-string) => "1")
 
 ;; 验证head与char-at方法的一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :head) :make-string) => ((rs :char-at 0) :make-string)))
+  (check ((rs :head) :make-string) => ((rs :char-at 0) :make-string))
+) ;let
 
 #|
 rich-string%head-option
@@ -711,7 +718,8 @@ rich-string%head-option
 
 ;; 与其他方法的对比测试
 (let ((rs (rich-string :value-of "hello")))
-  (check ((rs :head) :make-string) => (((rs :head-option) :get) :make-string)))
+  (check ((rs :head) :make-string) => (((rs :head-option) :get) :make-string))
+) ;let
 
 ;; option类型操作测试
 (check ((((rich-string :value-of "hello") :head-option) :get-or-else (rich-char #\x)) :make-string) => "h")
@@ -776,11 +784,13 @@ rich-string%last
 
 ;; 与其他方法的对比测试
 (let ((rs (rich-string :value-of "hello")))
-  (check ((rs :last) :make-string) => ((rs :char-at (- (rs :length) 1)) :make-string)))
+  (check ((rs :last) :make-string) => ((rs :char-at (- (rs :length) 1)) :make-string))
+) ;let
 
 ;; 验证字符访问一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :last) :make-string) => "d"))
+  (check ((rs :last) :make-string) => "d")
+) ;let
 
 ;; 不同类型输入测试
 (check (((rich-string :value-of 123) :last) :make-string) => "3")
@@ -849,7 +859,8 @@ rich-string%last-option
 
 ;; 与其他方法的对比测试
 (let ((rs (rich-string :value-of "hello")))
-  (check ((rs :last) :make-string) => (((rs :last-option) :get) :make-string)))
+  (check ((rs :last) :make-string) => (((rs :last-option) :get) :make-string))
+) ;let
 
 ;; option类型操作测试
 (check ((((rich-string :value-of "hello") :last-option) :get-or-else (rich-char #\x)) :make-string) => "o")
@@ -857,7 +868,8 @@ rich-string%last-option
 
 ;; 验证字符访问一致性
 (let ((rs (rich-string :value-of "hello world")))
-  (check (((rs :last-option) :get) :make-string) => "d"))
+  (check (((rs :last-option) :get) :make-string) => "d")
+) ;let
 
 ;; 不同类型输入测试
 (check ((((rich-string :value-of 123) :last-option) :get) :make-string) => "3")
@@ -937,13 +949,15 @@ args : list
 ;; 验证切片内容一致性
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :slice 0 5) :get) => "hello")
-  (check ((rs :slice 6 11) :get) => "world"))
+  (check ((rs :slice 6 11) :get) => "world")
+) ;let
 
 ;; 边界条件验证
 (check (((rich-string :empty) :slice 0 0) :get) => "")
 (let ((rs (rich-string :value-of "a")))
   (check ((rs :slice 0 1) :get) => "a")
-  (check ((rs :slice 0 0) :get) => ""))
+  (check ((rs :slice 0 0) :get) => "")
+) ;let
 
 #|
 rich-string%take
@@ -1018,16 +1032,19 @@ args : list
 ;; 验证提取内容一致性
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :take 5) :get) => "hello")
-  (check ((rs :take 3) :get) => "hel"))
+  (check ((rs :take 3) :get) => "hel")
+) ;let
 
 ;; 边界条件验证
 (let ((rs (rich-string :value-of "a")))
   (check ((rs :take 1) :get) => "a")
-  (check ((rs :take 0) :get) => ""))
+  (check ((rs :take 0) :get) => "")
+) ;let
 
 ;; 与slice方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :take 5) :get) => ((rs :slice 0 5) :get)))
+  (check ((rs :take 5) :get) => ((rs :slice 0 5) :get))
+) ;let
 
 ;; 不同类型输入测试
 (check (((rich-string :value-of 12345) :take 3) :get) => "123")
@@ -1107,21 +1124,25 @@ args : list
 ;; 验证提取内容一致性
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :take-right 5) :get) => "world")
-  (check ((rs :take-right 3) :get) => "rld"))
+  (check ((rs :take-right 3) :get) => "rld")
+) ;let
 
 ;; 边界条件验证
 (let ((rs (rich-string :value-of "a")))
   (check ((rs :take-right 1) :get) => "a")
-  (check ((rs :take-right 0) :get) => ""))
+  (check ((rs :take-right 0) :get) => "")
+) ;let
 
 ;; 与slice方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :take-right 5) :get) => ((rs :slice 6 11) :get)))
+  (check ((rs :take-right 5) :get) => ((rs :slice 6 11) :get))
+) ;let
 
 ;; 与take方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :take 5) :get) => "hello")
-  (check ((rs :take-right 5) :get) => "world"))
+  (check ((rs :take-right 5) :get) => "world")
+) ;let
 
 ;; 不同类型输入测试
 (check (((rich-string :value-of 12345) :take-right 3) :get) => "345")
@@ -1201,21 +1222,25 @@ args : list
 ;; 验证删除内容一致性
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :drop 6) :get) => "world")
-  (check ((rs :drop 3) :get) => "lo world"))
+  (check ((rs :drop 3) :get) => "lo world")
+) ;let
 
 ;; 边界条件验证
 (let ((rs (rich-string :value-of "a")))
   (check ((rs :drop 1) :get) => "")
-  (check ((rs :drop 0) :get) => "a"))
+  (check ((rs :drop 0) :get) => "a")
+) ;let
 
 ;; 与slice方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :drop 6) :get) => ((rs :slice 6 11) :get)))
+  (check ((rs :drop 6) :get) => ((rs :slice 6 11) :get))
+) ;let
 
 ;; 与take方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :take 5) :get) => "hello")
-  (check ((rs :drop 5) :get) => " world"))
+  (check ((rs :drop 5) :get) => " world")
+) ;let
 
 ;; 不同类型输入测试
 (check (((rich-string :value-of 12345) :drop 3) :get) => "45")
@@ -1296,26 +1321,31 @@ args : list
 ;; 验证删除内容一致性
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :drop-right 5) :get) => "hello ")
-  (check ((rs :drop-right 3) :get) => "hello wo"))
+  (check ((rs :drop-right 3) :get) => "hello wo")
+) ;let
 
 ;; 边界条件验证
 (let ((rs (rich-string :value-of "a")))
   (check ((rs :drop-right 1) :get) => "")
-  (check ((rs :drop-right 0) :get) => "a"))
+  (check ((rs :drop-right 0) :get) => "a")
+) ;let
 
 ;; 与slice方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
-  (check ((rs :drop-right 5) :get) => ((rs :slice 0 6) :get)))
+  (check ((rs :drop-right 5) :get) => ((rs :slice 0 6) :get))
+) ;let
 
 ;; 与take-right方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :take-right 5) :get) => "world")
-  (check ((rs :drop-right 5) :get) => "hello "))
+  (check ((rs :drop-right 5) :get) => "hello ")
+) ;let
 
 ;; 与drop方法的对比测试
 (let ((rs (rich-string :value-of "hello world")))
   (check ((rs :drop 5) :get) => " world")
-  (check ((rs :drop-right 5) :get) => "hello "))
+  (check ((rs :drop-right 5) :get) => "hello ")
+) ;let
 
 ;; 不同类型输入测试
 (check (((rich-string :value-of 12345) :drop-right 3) :get) => "12")
@@ -1391,11 +1421,13 @@ rich-string%empty?
 (let ((rs (rich-string :value-of "hello")))
   (check (rs :empty?) => #f)
   ;; 删除所有字符后应该为空
-  (check ((rs :drop 5) :empty?) => #t))
+  (check ((rs :drop 5) :empty?) => #t)
+) ;let
 
 ;; 性能相关测试
 (let ((long-str (rich-string :value-of (make-string 1000 #\a))))
-  (check (long-str :empty?) => #f))
+  (check (long-str :empty?) => #f)
+) ;let
 
 #|
 rich-string%starts-with
@@ -1585,38 +1617,48 @@ rich-string%to-rich-vector
 ;; 基本功能测试
 ;; 普通字符串转换
 (let ((vec ((rich-string :value-of "hello") :to-rich-vector)))
-  (check (vec :length) => 5))
+  (check (vec :length) => 5)
+) ;let
 
 ;; 验证转换后的字符内容
 (let ((vec ((rich-string :value-of "abc") :to-rich-vector)))
   (let ((codes (vec :map (lambda (c) (c :to-integer)) :collect)))
-    (check codes => #(97 98 99))))
+    (check codes => #(97 98 99))
+  ) ;let
+) ;let
 
 ;; 边界条件测试
 ;; 空字符串
 (let ((vec ((rich-string :empty) :to-rich-vector)))
-  (check (vec :empty?) => #t))
+  (check (vec :empty?) => #t)
+) ;let
 
 ;; 单字符字符串
 (let ((vec ((rich-string :value-of "a") :to-rich-vector)))
-  (check (vec :length) => 1))
+  (check (vec :length) => 1)
+) ;let
 
 ;; Unicode字符转换测试
 (let ((vec ((rich-string :value-of "测试") :to-rich-vector)))
-  (check (vec :length) => 2))
+  (check (vec :length) => 2)
+) ;let
 
 ;; 验证转换后的字符类型
 (let ((vec ((rich-string :value-of "test") :to-rich-vector)))
-  (check (vec :forall (lambda (c) (rich-char :is-type-of c))) => #t))
+  (check (vec :forall (lambda (c) (rich-char :is-type-of c))) => #t)
+) ;let
 
 ;; 验证字符顺序
 (let ((vec ((rich-string :value-of "123") :to-rich-vector)))
   (let ((codes (vec :map (lambda (c) (c :to-integer)) :collect)))
-    (check codes => #(49 50 51))))
+    (check codes => #(49 50 51))
+  ) ;let
+) ;let
 
 ;; 混合字符测试
 (let ((vec ((rich-string :value-of "a1B2c3") :to-rich-vector)))
-  (check (vec :length) => 6))
+  (check (vec :length) => 6)
+) ;let
 
 ;; 验证返回类型
 (check (rich-vector :is-type-of ((rich-string :value-of "test") :to-rich-vector)) => #t)
@@ -1691,8 +1733,10 @@ pred : procedure
 (let ((count 0))
   ((rich-string :value-of "Hello") :forall (lambda (c)
     (set! count (+ count 1))
-    (c :lower?)))
-  (check count => 1))  ; 应该在第一个字符'H'处停止
+    (c :lower?))
+  ) ;
+  (check count => 1)  ; 应该在第一个字符'H'处停止
+) ;let
 
 ;; 验证返回类型
 (check (boolean? ((rich-string :value-of "hello") :forall (lambda (c) #t))) => #t)
@@ -1769,8 +1813,10 @@ pred : procedure
 (let ((count 0))
   ((rich-string :value-of "Hello") :exists (lambda (c)
     (set! count (+ count 1))
-    (c :upper?)))
-  (check count => 1))  ; 应该在第一个字符'H'处停止
+    (c :upper?))
+  ) ;
+  (check count => 1)  ; 应该在第一个字符'H'处停止
+) ;let
 
 ;; 验证返回类型
 (check (boolean? ((rich-string :value-of "hello") :exists (lambda (c) #f))) => #t)
@@ -2002,7 +2048,8 @@ f : procedure
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :map (lambda (c) (c :to-upper)))
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%filter
@@ -2077,7 +2124,8 @@ pred : procedure
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "Hello")))
   (original :filter (lambda (c) (c :lower?)))
-  (check (original :get) => "Hello"))
+  (check (original :get) => "Hello")
+) ;let
 
 #|
 rich-string%reverse
@@ -2142,7 +2190,8 @@ rich-string%reverse
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :reverse)
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "abc") :reverse :reverse :get) => "abc")
@@ -2223,8 +2272,10 @@ pred : procedure
 (let ((count 0))
   ((rich-string :value-of "Hello") :index-where (lambda (c)
     (set! count (+ count 1))
-    (c :upper?)))
-  (check count => 1))  ; 应该在第一个字符'H'处停止
+    (c :upper?))
+  ) ;
+  (check count => 1)  ; 应该在第一个字符'H'处停止
+) ;let
 
 #|
 rich-string%count
@@ -2374,7 +2425,8 @@ pred : procedure
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :drop-while (lambda (c) (c :lower?)))
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%+
@@ -2454,7 +2506,8 @@ s : any
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :+ " world")
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%strip-left
@@ -2523,7 +2576,8 @@ rich-string%strip-left
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "  hello")))
   (original :strip-left)
-  (check (original :get) => "  hello"))
+  (check (original :get) => "  hello")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "  hello  ") :strip-left :strip-right :get) => "hello")
@@ -2584,7 +2638,8 @@ rich-string%to-vector
 ;; 验证向量内容
 (let ((vec ((rich-string :value-of "ab") :to-vector)))
   (check ((vector-ref vec 0) :equals #\a) => #t)
-  (check ((vector-ref vec 1) :equals #\b) => #t))
+  (check ((vector-ref vec 1) :equals #\b) => #t)
+) ;let
 
 ;; 混合字符测试
 (check (vector-length ((rich-string :value-of "a1B2c3") :to-vector)) => 6)
@@ -2595,7 +2650,8 @@ rich-string%to-vector
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :to-vector)
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%strip-prefix
@@ -2669,7 +2725,8 @@ prefix : string
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello world")))
   (original :strip-prefix "hello ")
-  (check (original :get) => "hello world"))
+  (check (original :get) => "hello world")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "prefix_suffix") :strip-prefix "prefix_" :get) => "suffix")
@@ -2740,7 +2797,8 @@ rich-string%strip-right
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello  ")))
   (original :strip-right)
-  (check (original :get) => "hello  "))
+  (check (original :get) => "hello  ")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "  hello  ") :strip-left :strip-right :get) => "hello")
@@ -2813,7 +2871,8 @@ rich-string%strip-both
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "  hello  ")))
   (original :strip-both)
-  (check (original :get) => "  hello  "))
+  (check (original :get) => "  hello  ")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "  hello  ") :strip-both :strip-both :get) => "hello")
@@ -2885,7 +2944,8 @@ rich-string%to-string
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :to-string)
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 ;; 链式操作测试
 (check (string-length ((rich-string :value-of "hello") :to-string)) => 5)
@@ -2937,43 +2997,51 @@ f : procedure
 ;; 收集遍历的字符
 (let ((collected '()))
   ((rich-string :value-of "hello") :for-each (lambda (c) (set! collected (cons (c :to-integer) collected))))
-  (check (reverse collected) => '(104 101 108 108 111)))
+  (check (reverse collected) => '(104 101 108 108 111))
+) ;let
 
 ;; 边界条件测试
 ;; 空字符串
 (let ((count 0))
   ((rich-string :empty) :for-each (lambda (c) (set! count (+ count 1))))
-  (check count => 0))
+  (check count => 0)
+) ;let
 
 ;; 单字符字符串
 (let ((char-code #f))
   ((rich-string :value-of "a") :for-each (lambda (c) (set! char-code (c :to-integer))))
-  (check char-code => 97))
+  (check char-code => 97)
+) ;let
 
 ;; Unicode字符测试
 (let ((count 0))
   ((rich-string :value-of "测试") :for-each (lambda (c) (set! count (+ count 1))))
-  (check count => 2))
+  (check count => 2)
+) ;let
 
 ;; 验证过程函数被正确调用
 (let ((count 0))
   ((rich-string :value-of "abc") :for-each (lambda (c) (set! count (+ count 1))))
-  (check count => 3))
+  (check count => 3)
+) ;let
 
 ;; 混合字符测试
 (let ((lower-count 0))
   ((rich-string :value-of "a1B2c3") :for-each (lambda (c) (when (c :lower?) (set! lower-count (+ lower-count 1)))))
-  (check lower-count => 2))
+  (check lower-count => 2)
+) ;let
 
 ;; 验证字符顺序
 (let ((chars '()))
   ((rich-string :value-of "123") :for-each (lambda (c) (set! chars (cons (c :to-integer) chars))))
-  (check (reverse chars) => '(49 50 51)))
+  (check (reverse chars) => '(49 50 51))
+) ;let
 
 ;; 验证副作用操作
 (let ((sum 0))
   ((rich-string :value-of "123") :for-each (lambda (c) (set! sum (+ sum (c :to-integer)))))
-  (check sum => 150))  ; 49 + 50 + 51 = 150
+  (check sum => 150)  ; 49 + 50 + 51 = 150
+) ;let
 
 ;; 验证返回值为未定义
 (check (unspecified? ((rich-string :value-of "test") :for-each (lambda (c) #t))) => #t)
@@ -2982,7 +3050,8 @@ f : procedure
 (let ((original (rich-string :value-of "hello"))
       (count 0))
   (original :for-each (lambda (c) (set! count (+ count 1))))
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%take-while
@@ -3058,7 +3127,8 @@ pred : procedure
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :take-while (lambda (c) (c :lower?)))
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 #|
 rich-string%replace-first
@@ -3137,7 +3207,8 @@ new : string
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello world")))
   (original :replace-first "hello" "hi")
-  (check (original :get) => "hello world"))
+  (check (original :get) => "hello world")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "hello world") :replace-first "hello" "hi" :replace-first "world" "earth" :get) => "hi earth")
@@ -3216,7 +3287,8 @@ new : string
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello world hello")))
   (original :replace "hello" "hi")
-  (check (original :get) => "hello world hello"))
+  (check (original :get) => "hello world hello")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "hello world hello") :replace "hello" "hi" :replace "world" "earth" :get) => "hi earth hi")
@@ -3298,7 +3370,8 @@ char : char (可选，默认为#\space)
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :pad-left 10 #\space)
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "hi") :pad-left 5 #\* :pad-left 8 #\- :get) => "---***hi")
@@ -3381,7 +3454,8 @@ char : char (可选，默认为#\space)
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello")))
   (original :pad-right 10 #\space)
-  (check (original :get) => "hello"))
+  (check (original :get) => "hello")
+) ;let
 
 ;; 链式操作测试
 (check ((rich-string :value-of "hi") :pad-right 5 #\* :pad-right 8 #\- :get) => "hi***---")
@@ -3437,49 +3511,60 @@ delimiter : string
 ;; 基本功能测试
 ;; 使用空格分割
 (check ($ "hello world test" :split " ")
-       => (vector "hello" "world" "test"))
+       => (vector "hello" "world" "test")
+) ;check
 
 ;; 使用逗号分割
 (check ($ "a,b,c" :split ",")
-       => (vector "a" "b" "c"))
+       => (vector "a" "b" "c")
+) ;check
 
 ;; 边界条件测试
 ;; 空字符串
 (check ($ "" :split ",")
-       => (vector ""))
+       => (vector "")
+) ;check
 
 ;; 空分隔符
 (check ($ "hello" :split "")
-       => (vector "h" "e" "l" "l" "o"))
+       => (vector "h" "e" "l" "l" "o")
+) ;check
 
 ;; 未找到分隔符
 (check ($ "hello world" :split ",")
-       => (vector "hello world"))
+       => (vector "hello world")
+) ;check
 
 ;; 字符串以分隔符开头
 (check ($ ",hello,world" :split ",")
-       => (vector "" "hello" "world"))
+       => (vector "" "hello" "world")
+) ;check
 
 ;; 字符串以分隔符结尾
 (check ($ "hello,world," :split ",")
-       => (vector "hello" "world" ""))
+       => (vector "hello" "world" "")
+) ;check
 
 ;; 连续分隔符
 (check ($ "a,,b,,,c" :split ",")
-       => (vector "a" "" "b" "" "" "c"))
+       => (vector "a" "" "b" "" "" "c")
+) ;check
 
 ;; Unicode字符分割测试
 (check ($ "测试,分割,字符串" :split ",")
-       => (vector "测试" "分割" "字符串"))
+       => (vector "测试" "分割" "字符串")
+) ;check
 
 ;; 验证返回类型
 (let ((result ($ "a,b" :split ",")))
-  (check (rich-vector :is-type-of result) => #t))
+  (check (rich-vector :is-type-of result) => #t)
+) ;let
 
 ;; 验证原字符串不变性
 (let ((original (rich-string :value-of "hello,world")))
   (original :split ",")
-  (check (original :get) => "hello,world"))
+  (check (original :get) => "hello,world")
+) ;let
 
 (check ((rich-string :value-of "hi") :pad-right 5 #\* :pad-right 8 #\- :get) => "hi***---")
 

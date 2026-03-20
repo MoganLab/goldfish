@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 (check-set-mode! 'report-failed)
 

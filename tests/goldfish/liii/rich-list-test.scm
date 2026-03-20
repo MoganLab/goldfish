@@ -18,7 +18,8 @@
         (scheme base)
         (liii rich-list)
         (liii lang)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -203,7 +204,8 @@ args : list
       (lst2 (rich-list '(4 5 6))))
   (rich-list :concat lst1 lst2)
   (check (lst1 :collect) => '(1 2 3))
-  (check (lst2 :collect) => '(4 5 6)))
+  (check (lst2 :collect) => '(4 5 6))
+) ;let
 
 #|
 rich-list@fill
@@ -347,13 +349,15 @@ rich-list%collect
 
 ;; 验证返回标准Scheme列表
 (let ((result ($ '(a b c) :collect)))
-  (check (list? result) => #t))
+  (check (list? result) => #t)
+) ;let
 
 ;; 验证列表操作兼容性
 (let ((result ($ '(1 2 3) :collect)))
   (check (car result) => 1)
   (check (cadr result) => 2)
-  (check (cddr result) => '(3)))
+  (check (cddr result) => '(3))
+) ;let
 
 
 #|
@@ -1293,21 +1297,25 @@ f : procedure
 ;; 基本测试 - 副作用操作（使用累加器验证函数执行）
 (let ((counter 0))
   ((rich-list '(1 2 3)) :for-each (lambda (x) (set! counter (+ counter x))))
-  (check counter => 6))
+  (check counter => 6)
+) ;let
 
 (let ((result '()))
   ((rich-list '(a b c)) :for-each (lambda (x) (set! result (cons x result))))
-  (check result => '(c b a)))
+  (check result => '(c b a))
+) ;let
 
 ;; 边界测试 - 空列表
 (let ((counter 0))
   ((rich-list '()) :for-each (lambda (x) (set! counter (+ counter 1))))
-  (check counter => 0))
+  (check counter => 0)
+) ;let
 
 ;; 边界测试 - 单元素列表
 (let ((result '()))
   ((rich-list '(42)) :for-each (lambda (x) (set! result (cons x result))))
-  (check result => '(42)))
+  (check result => '(42))
+) ;let
 
 ;; 边界测试 - 不同类型的元素
 (let ((numbers '())
@@ -1318,21 +1326,29 @@ f : procedure
         (cond
           ((number? x) (set! numbers (cons x numbers)))
           ((string? x) (set! strings (cons x strings)))
-          ((symbol? x) (set! symbols (cons x symbols))))))
+          ((symbol? x) (set! symbols (cons x symbols)))
+        ) ;cond
+      ) ;lambda
+  ) ;
   (check numbers => '(1))
   (check strings => '("hello"))
-  (check symbols => '(world)))
+  (check symbols => '(world))
+) ;let
 
 ;; 链式调用测试 - 在链式操作中使用for-each
 (let ((sum 0))
   (let ((filtered-list ((rich-list '(1 2 3 4 5)) :filter even?)))
     (filtered-list :for-each (lambda (x) (set! sum (+ sum x))))
-    (check sum => 6)))
+    (check sum => 6)
+  ) ;let
+) ;let
 
 (let ((result '()))
   (let ((mapped-list ((rich-list '(1 2 3 4 5)) :map (lambda (x) (* x 2)))))
     (mapped-list :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '(10 8 6 4 2))))
+    (check result => '(10 8 6 4 2))
+  ) ;let
+) ;let
 
 ;; 验证for-each不返回值（主要测试副作用，不检查返回值）
 ;; 注意：for-each主要用于副作用操作，返回值通常未定义
@@ -1430,7 +1446,8 @@ args : list
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :take-right 2)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 
 #|
@@ -1525,7 +1542,8 @@ args : list
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :drop-right 2)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 
 #|
@@ -1626,7 +1644,8 @@ pred : procedure (可选)
   (lst :count)
   (check (lst :collect) => '(1 2 3 4 5))
   (lst :count even?)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 ;; 与%length方法对比测试
 (check ($ '(1 2 3 4 5) :count) => ($ '(1 2 3 4 5) :length))
@@ -1712,7 +1731,8 @@ f : procedure
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :fold-right 0 +)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 
 #|
@@ -1793,7 +1813,8 @@ f : procedure
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :fold 0 +)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 ;; fold和fold-right对比测试
 (check ($ '(1 2 3) :fold '() (lambda (x acc) (cons x acc))) => '(3 2 1))
@@ -1886,7 +1907,8 @@ args : list
 ;; 验证不改变原列表
 (let ((lst (rich-list '(5 2 8 1 9))))
   (lst :sort-with <)
-  (check (lst :collect) => '(5 2 8 1 9)))
+  (check (lst :collect) => '(5 2 8 1 9))
+) ;let
 
 
 #|
@@ -1976,7 +1998,8 @@ args : list
 ;; 验证不改变原列表
 (let ((lst (rich-list '(-5 2 -8 1 9))))
   (lst :sort-by abs)
-  (check (lst :collect) => '(-5 2 -8 1 9)))
+  (check (lst :collect) => '(-5 2 -8 1 9))
+) ;let
 
 
 #|
@@ -2027,25 +2050,29 @@ func : procedure
 (let ((result ($ '(1 2 3 4 5 6)
                :group-by (lambda (x) (if (even? x) 'even 'odd)))))
   (check ((result :get 'even) :get) => '(2 4 6))
-  (check ((result :get 'odd) :get) => '(1 3 5)))
+  (check ((result :get 'odd) :get) => '(1 3 5))
+) ;let
 
 ;; 基本测试 - 按字符串长度分组
 (let ((result ($ '("a" "bb" "ccc" "dd" "e")
                :group-by string-length)))
   (check ((result :get 1) :get) => '("a" "e"))
   (check ((result :get 2) :get) => '("bb" "dd"))
-  (check ((result :get 3) :get) => '("ccc")))
+  (check ((result :get 3) :get) => '("ccc"))
+) ;let
 
 ;; 基本测试 - 按首字母分组
 (let ((result ($ '("apple" "banana" "cherry" "apricot" "blueberry")
                :group-by (lambda (s) (string-ref s 0)))))
   (check ((result :get #\a) :get) => '("apple" "apricot"))
   (check ((result :get #\b) :get) => '("banana" "blueberry"))
-  (check ((result :get #\c) :get) => '("cherry")))
+  (check ((result :get #\c) :get) => '("cherry"))
+) ;let
 
 ;; 边界测试 - 空列表
 (let ((result ($ '() :group-by (lambda (x) x))))
-  (check (result :count (lambda (x) #t)) => 0))
+  (check (result :count (lambda (x) #t)) => 0)
+) ;let
 
 ;; 边界测试 - 每个元素具有不同键值
 (let ((result ($ '(1 2 3 4 5) :group-by (lambda (x) x))))
@@ -2053,31 +2080,37 @@ func : procedure
   (check ((result :get 2) :get) => '(2))
   (check ((result :get 3) :get) => '(3))
   (check ((result :get 4) :get) => '(4))
-  (check ((result :get 5) :get) => '(5)))
+  (check ((result :get 5) :get) => '(5))
+) ;let
 
 ;; 边界测试 - 复杂键值类型
 (let ((result ($ '(1 2 3) :group-by (lambda (x) (list x (* x 2))))))
   (check ((result :get '(1 2)) :get) => '(1))
   (check ((result :get '(2 4)) :get) => '(2))
-  (check ((result :get '(3 6)) :get) => '(3)))
+  (check ((result :get '(3 6)) :get) => '(3))
+) ;let
 
 ;; 链式调用测试
 (let ((result ($ '(1 2 3 4 5 6) :filter even? :group-by (lambda (x) (if (> x 3) 'large 'small)))))
   (check ((result :get 'small) :get) => '(2))
-  (check ((result :get 'large) :get) => '(4 6)))
+  (check ((result :get 'large) :get) => '(4 6))
+) ;let
 
 (let ((result ($ '(1 2 3 4 5) :map (lambda (x) (* x 2)) :group-by (lambda (x) (if (even? x) 'even 'odd)))))
-  (check ((result :get 'even) :get) => '(2 4 6 8 10)))
+  (check ((result :get 'even) :get) => '(2 4 6 8 10))
+) ;let
 
 ;; 验证保持元素顺序
 (let ((result ($ '(3 1 4 1 5 9 2 6) :group-by (lambda (x) (if (even? x) 'even 'odd)))))
   (check ((result :get 'odd) :get) => '(3 1 1 5 9))
-  (check ((result :get 'even) :get) => '(4 2 6)))
+  (check ((result :get 'even) :get) => '(4 2 6))
+) ;let
 
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :group-by even?)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 
 #|
@@ -2184,7 +2217,8 @@ step : integer (可选)
 ;; 验证不改变原列表
 (let ((lst (rich-list '(1 2 3 4 5))))
   (lst :sliding 2)
-  (check (lst :collect) => '(1 2 3 4 5)))
+  (check (lst :collect) => '(1 2 3 4 5))
+) ;let
 
 (check ($ '(1 2 3) :apply 0) => 1)
 (check ($ '(1 2 3) 0) => 1)

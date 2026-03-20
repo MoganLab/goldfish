@@ -53,7 +53,8 @@
   (check (md5-by-file tmp-file) => (md5 ""))
   (check (sha1-by-file tmp-file) => (sha1 ""))
   (check (sha256-by-file tmp-file) => (sha256 ""))
-  (delete-file tmp-file))
+  (delete-file tmp-file)
+) ;let
 
 ;; Large file hash test (local deterministic data, no network dependency)
 (let* ((large-file "tests/resources/hashlib-test-large-local.txt")
@@ -65,7 +66,9 @@
   (check (sha1-by-file large-file) => (sha1 large-content))
   (check (sha256-by-file large-file) => (sha256 large-content))
   (when (path-exists? large-file)
-    (delete-file large-file)))
+    (delete-file large-file)
+  ) ;when
+) ;let*
 
 
 

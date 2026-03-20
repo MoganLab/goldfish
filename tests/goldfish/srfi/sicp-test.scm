@@ -16,13 +16,15 @@
 
 (import (srfi sicp)
         (liii os)
-        (liii check))
+        (liii check)
+) ;import
 
 (display (runtime))
 (newline)
 
 (when (os-linux?)
-  (os-call "sleep 0.01"))
+  (os-call "sleep 0.01")
+) ;when
 
 (display (runtime))
 (newline)

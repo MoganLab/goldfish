@@ -17,14 +17,17 @@
 (import (srfi srfi-78)
         (scheme process-context)
         (srfi srfi-13)
-        (liii os))
+        (liii os)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 ; (check (get-environment-variable "USER") => "da")
 (when (os-linux?)
   (check (string-prefix? "/" (get-environment-variable "HOME"))
-         => #t))
+         => #t
+  ) ;check
+) ;when
 
 ; Test get-environment-variables
 (when (os-linux?)
@@ -34,8 +37,11 @@
     ; Check that it contains HOME with a value starting with "/"
     (let ((home-env (assoc "HOME" envs)))
       (check (pair? home-env) => #t)
-      (check (string-prefix? "/" (cdr home-env)) => #t))
+      (check (string-prefix? "/" (cdr home-env)) => #t)
+    ) ;let
     ; Check that it contains PATH
-    (check (pair? (assoc "PATH" envs)) => #t)))
+    (check (pair? (assoc "PATH" envs)) => #t)
+  ) ;let
+) ;when
 
 (check-report)

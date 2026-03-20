@@ -18,7 +18,8 @@
         (liii base)
         (liii string)
         (srfi srfi-13)
-        (liii error))
+        (liii error)
+) ;import
 
 
 (check-set-mode! 'report-failed)
@@ -230,7 +231,8 @@ type-error 当str不是字符串类型时
 
 ;; 测试大性能字符串的空值验证（性能边界测试）
 (let ((large-str (make-string 1000000 #\A)))
-  (check-false (string-null? large-str)))
+  (check-false (string-null? large-str))
+) ;let
 
 ;; 测试各种边界空字符串
 (check-true (string-null? ""))
@@ -368,11 +370,13 @@ wrong-type-arg 当str不是字符串时
 
 ;; 大型字符串性能边界测试
 (let ((big-string (make-string 5000 #\a)))
-  (check-true (string-every char-alphabetic? big-string)))
+  (check-true (string-every char-alphabetic? big-string))
+) ;let
 
 ;; 早期终止验证测试（性能）
 (let ((mixed-string (string-append (make-string 3000 #\a) "b" (make-string 2000 #\a))))
-  (check-false (string-every #\a mixed-string)))
+  (check-false (string-every #\a mixed-string))
+) ;let
 
 ;; 边界索引测试
 (check-true (string-every char-numeric? "a1b2c" 1 2))  ; 单字符验证
@@ -510,10 +514,14 @@ wrong-type-arg 当str不是字符串时
         char-alphabetic?
         "01c345"
         2
-        7))
-    (lambda args #t))
+        7
+      ) ;string-any
+    ) ;lambda
+    (lambda args #t)
+  ) ;catch
   =>
-  #t)
+  #t
+) ;check
 
 (check
   (catch 'out-of-range
@@ -522,10 +530,14 @@ wrong-type-arg 当str不是字符串时
         char-alphabetic?
         "01c345"
         2
-        1))
-    (lambda args #t))
+        1
+      ) ;string-any
+    ) ;lambda
+    (lambda args #t)
+  ) ;catch
   =>
-  #t)
+  #t
+) ;check
 
 ; Error handling tests for string-any
 (check-catch 'wrong-type-arg (string-any 123 "hello"))
@@ -589,19 +601,27 @@ wrong-type-arg 当str不是字符串时
 
 (check-true
   (equal? (string-copy "MathAgape" 4)
-          (string-copy "MathAgape" 4)))
+          (string-copy "MathAgape" 4)
+  ) ;equal?
+) ;check-true
 
 (check-false
   (eq? (string-copy "MathAgape" 4)
-       (string-copy "MathAgape" 4)))
+       (string-copy "MathAgape" 4)
+  ) ;eq?
+) ;check-false
 
 (check-true
   (equal? (string-copy "MathAgape" 4 9)
-          (string-copy "MathAgape" 4 9)))
+          (string-copy "MathAgape" 4 9)
+  ) ;equal?
+) ;check-true
 
 (check-false
   (eq? (string-copy "MathAgape" 4 9)
-       (string-copy "MathAgape" 4 9)))
+       (string-copy "MathAgape" 4 9)
+  ) ;eq?
+) ;check-false
 
 #|
 string-take
@@ -2430,8 +2450,10 @@ type-error 当str不是字符串类型时
 (check
   (string-map
     (lambda (ch) (integer->char (+ 1 (char->integer ch))))
-    "HAL")
-  => "IBM")
+    "HAL"
+  ) ;string-map
+  => "IBM"
+) ;check
 
 ; Character transformation tests
 (check (string-map (lambda (c) (integer->char (- (char->integer c) 32))) "hello") => "HELLO")
@@ -2469,8 +2491,10 @@ type-error 当str不是字符串类型时
           (lambda (c) 
             (if (even? (char->integer c))
                 char-upcase
-                char-downcase)
-            c)
+                char-downcase
+            ) ;if
+            c
+          ) ;lambda
           "AbCdEf") => "AbCdEf")
 (check (string-map
           (lambda (c)
@@ -2479,7 +2503,11 @@ type-error 当str不是字符串类型时
                   (integer->char (+ val 32))
                   (if (and (>= val 97) (<= val 122))
                       (integer->char (- val 32))
-                      c))))
+                      c
+                  ) ;if
+              ) ;if
+            ) ;let
+          ) ;lambda
           "Hello123World") => "hELLO123wORLD")
 
 
@@ -2518,9 +2546,12 @@ type-error 当str不是字符串类型时
   (let ((lst '()))
     (string-for-each
       (lambda (x) (set! lst (cons (char->integer x) lst)))
-      "12345")
-    lst)
-  => '(53 52 51 50 49))
+      "12345"
+    ) ;string-for-each
+    lst
+  ) ;let
+  => '(53 52 51 50 49)
+) ;check
 
 #|
 string-for-each
@@ -2561,45 +2592,59 @@ type-error 当str不是字符串类型时
 (check
   (let ((result '()))
     (string-for-each (lambda (c) (set! result (cons c result))) "abc")
-    result)
-  => '(#\c #\b #\a))
+    result
+  ) ;let
+  => '(#\c #\b #\a)
+) ;check
 
 (check
   (let ((count 0))
     (string-for-each (lambda (c) (set! count (+ count 1))) "hello")
-    count)
-  => 5)
+    count
+  ) ;let
+  => 5
+) ;check
 
 (check
   (let ((sum 0))
     (string-for-each 
       (lambda (c) (set! sum (+ sum (char->integer c))))
-      "ABC")
-    sum)
-  => 198) ; 65+66+67
+      "ABC"
+    ) ;string-for-each
+    sum
+  ) ;let
+  => 198 ; 65+66+67
+) ;check
 
 ; Empty string handling
 (check
   (let ((result 0))
     (string-for-each (lambda (c) (set! result 999)) "")
-    result)
-  => 0)
+    result
+  ) ;let
+  => 0
+) ;check
 
 ; Single character handling
 (check
   (let ((char-list '()))
     (string-for-each (lambda (c) (set! char-list (cons c char-list))) "X")
-    char-list)
-  => '(#\X))
+    char-list
+  ) ;let
+  => '(#\X)
+) ;check
 
 ; Special character handling
 (check
   (let ((whitespace-count 0))
     (string-for-each
       (lambda (c) (when (char-whitespace? c) (set! whitespace-count (+ whitespace-count 1))))
-      "hello world\n")
-    whitespace-count)
-  => 2)
+      "hello world\n"
+    ) ;string-for-each
+    whitespace-count
+  ) ;let
+  => 2
+) ;check
 
 ; Numeric and alphabetic character handling
 (check
@@ -2609,17 +2654,24 @@ type-error 当str不是字符串类型时
       (lambda (c)
         (if (char-alphabetic? c)
             (set! alphas (cons c alphas))
-            (set! digits (cons c digits))))
-      "a1b2c3")
-    (list (reverse alphas) (reverse digits)))
-  => '((#\a #\b #\c) (#\1 #\2 #\3)))
+            (set! digits (cons c digits))
+        ) ;if
+      ) ;lambda
+      "a1b2c3"
+    ) ;string-for-each
+    (list (reverse alphas) (reverse digits))
+  ) ;let
+  => '((#\a #\b #\c) (#\1 #\2 #\3))
+) ;check
 
 ; Unicode character handling
 (check
   (let ((all-chars '()))
     (string-for-each (lambda (c) (set! all-chars (cons c all-chars))) "中文english")
-    (> (length all-chars) 8))
-  => #t)
+    (> (length all-chars) 8)
+  ) ;let
+  => #t
+) ;check
 
 ; Multiple side effects
 (check
@@ -2628,19 +2680,26 @@ type-error 当str不是字符串类型时
     (string-for-each
       (lambda (c)
         (set! chars (cons c chars))
-        (set! count (+ count 1)))
-      "test")
-    (list (reverse chars) count))
-  => '((#\t #\e #\s #\t) 4))
+        (set! count (+ count 1))
+      ) ;lambda
+      "test"
+    ) ;string-for-each
+    (list (reverse chars) count)
+  ) ;let
+  => '((#\t #\e #\s #\t) 4)
+) ;check
 
 ; String mutation tracking
 (check
   (let ((tracker (make-string 3 #\a)))
     (string-for-each
       (lambda (c) (set! tracker (string-append tracker (string c))))
-      "xyz")
-    (> (string-length tracker) 3))
-  => #t)
+      "xyz"
+    ) ;string-for-each
+    (> (string-length tracker) 3)
+  ) ;let
+  => #t
+) ;check
 
 ; Error handling tests
 (check-catch 'wrong-type-arg (string-for-each 123 "hello"))
@@ -2653,27 +2712,36 @@ type-error 当str不是字符串类型时
   (let ((ascii-sum 0))
     (string-for-each
       (lambda (c) (set! ascii-sum (+ ascii-sum (char->integer c))))
-      "Hello")
-    (>= ascii-sum 500))
-  => #t)
+      "Hello"
+    ) ;string-for-each
+    (>= ascii-sum 500)
+  ) ;let
+  => #t
+) ;check
 
 ; Functional conversion tracking
 (check
   (let ((upper-chars '()))
     (string-for-each
       (lambda (c) (set! upper-chars (cons (char-upcase c) upper-chars)))
-      "abc")
-    (reverse upper-chars))
-  => '(#\A #\B #\C))
+      "abc"
+    ) ;string-for-each
+    (reverse upper-chars)
+  ) ;let
+  => '(#\A #\B #\C)
+) ;check
 
 ; Very long string processing
 (check
   (let ((char-count 0))
     (string-for-each
       (lambda (c) (set! char-count (+ char-count 1)))
-      (make-string 1000 #\x))
-    char-count)
-  => 1000)
+      (make-string 1000 #\x)
+    ) ;string-for-each
+    char-count
+  ) ;let
+  => 1000
+) ;check
 
 ; Mixed content handling
 (check
@@ -2681,34 +2749,48 @@ type-error 当str不是字符串类型时
     (string-for-each
       (lambda (c)
         (when (member c '(#\a #\e #\i #\o #\u #\A #\E #\I #\O #\U))
-          (set! vowel-count (+ vowel-count 1))))
-      "Hello World")
-    vowel-count)
-  => 3)
+          (set! vowel-count (+ vowel-count 1))
+        ) ;when
+      ) ;lambda
+      "Hello World"
+    ) ;string-for-each
+    vowel-count
+  ) ;let
+  => 3
+) ;check
 
 (check
   (let ((lst '()))
     (string-for-each
       (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
-      "12345")
-    lst)
-  => '(5 4 3 2 1))
+      "12345"
+    ) ;string-for-each
+    lst
+  ) ;let
+  => '(5 4 3 2 1)
+) ;check
 
 (check
   (let ((lst '()))
     (string-for-each
       (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
-      "123")
-    lst)
-  => '(3 2 1))
+      "123"
+    ) ;string-for-each
+    lst
+  ) ;let
+  => '(3 2 1)
+) ;check
 
 (check
   (let ((lst '()))
     (string-for-each
       (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
-      "")
-    lst)
-  => '())
+      ""
+    ) ;string-for-each
+    lst
+  ) ;let
+  => '()
+) ;check
 
 (check (string-fold (lambda (c acc) (+ acc 1)) 0 "hello") => 5)
 
@@ -2719,10 +2801,12 @@ type-error 当str不是字符串类型时
 (check (string-fold (lambda (c acc)
                       (if (char=? c #\l)
                           (+ acc 1)
-                          acc))
+                          acc)
+                      ) ;if
                     0
                     "hello")
-       => 2)
+       => 2
+) ;check
 
 (check (string-fold (lambda (c acc) (+ acc 1)) 0 "") => 0)
 
@@ -2751,52 +2835,74 @@ type-error 当str不是字符串类型时
 (check
   (string-for-each-index
     (lambda (i c acc)
-      (cons (list i c) acc))
-    "hello")
-  => '((0 #\h) (1 #\e) (2 #\l) (3 #\l) (4 #\o)))
+      (cons (list i c) acc)
+    ) ;lambda
+    "hello"
+  ) ;string-for-each-index
+  => '((0 #\h) (1 #\e) (2 #\l) (3 #\l) (4 #\o))
+) ;check
 
 (check
   (string-for-each-index
     (lambda (i c acc)
-      (cons (list i c) acc))
-    (substring "hello" 1 4))
-  => '((0 #\e) (1 #\l) (2 #\l)))
+      (cons (list i c) acc)
+    ) ;lambda
+    (substring "hello" 1 4)
+  ) ;string-for-each-index
+  => '((0 #\e) (1 #\l) (2 #\l))
+) ;check
 
 (check
   (list->string
     (reverse
       (string-for-each-index
         (lambda (i c acc)
-          (cons c acc))
-        "hello")))
-  => "olleh")
+          (cons c acc)
+        ) ;lambda
+        "hello"
+      ) ;string-for-each-index
+    ) ;reverse
+  ) ;list->string
+  => "olleh"
+) ;check
 
 (check
   (string-for-each-index
     (lambda (i c acc)
-      (cons (list i c) acc))
-    "")
-  => '())
+      (cons (list i c) acc)
+    ) ;lambda
+    ""
+  ) ;string-for-each-index
+  => '()
+) ;check
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
-   "hello" 6))
+   "hello" 6
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
-   "hello" 0 6))
+   "hello" 0 6
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
-   "hello" 3 2))
+   "hello" 3 2
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'type-error
   (string-for-each-index
    (lambda (i c) (display c))
-   123))
+   123
+  ) ;string-for-each-index
+) ;check-catch
 
 #|
 string-tokenize
@@ -3619,7 +3725,8 @@ type-error 当参数不是字符串类型时。需要两个参数都是字符串
 (let ((original "application.js")
       (modified (string-remove-prefix "application.js" "application")))
   (check-true (equal? modified ".js"))
-  (check-false (eq? original modified)))
+  (check-false (eq? original modified))
+) ;let
 
 (check (string-remove-suffix "aaa" "a") => "aa")
 (check (string-remove-suffix "aaa" "") => "aaa")
@@ -3765,7 +3872,8 @@ type-error 当参数不是字符串类型时。需要两个参数都是字符串
 (let ((original "application.log")
       (modified (string-remove-suffix "application.log" ".log")))
   (check-true (equal? modified "application"))
-  (check-false (eq? original modified)))
+  (check-false (eq? original modified))
+) ;let
 
 (check (format #f "~A" 'hello) => "hello")
 (check (format #f "~S" 'hello) => "hello")
@@ -3785,7 +3893,8 @@ type-error 当参数不是字符串类型时。需要两个参数都是字符串
 
 (check (format #f "~{~C~^ ~}" "hiho") => "h i h o")
 (check (format #f "~{~{~C~^ ~}~^...~}" (list "hiho" "test"))
-       => "h i h o...t e s t")
+       => "h i h o...t e s t"
+) ;check
 
 #|
 string-copy
@@ -3851,7 +3960,8 @@ out-of-range 当start > end时
 
 (let ((original "hello"))
   (check-true (string=? (string-copy original) original))
-  (check-false (eq? (string-copy original) original)))
+  (check-false (eq? (string-copy original) original))
+) ;let
 
 ; Substring copy tests
 (check-true (equal? (string-copy "test123" 0 4) "test"))
@@ -3987,39 +4097,49 @@ out-of-range 当start/end超出字符串索引范围或start > end时
   (string-fold 
     (lambda (c acc) (string-append acc (string c))) 
     "" 
-    "abc")
-  => "abc")
+    "abc"
+  ) ;string-fold
+  => "abc"
+) ;check
 
 (check
   (string-fold-right 
     (lambda (c acc) (string-append acc (string c))) 
     "" 
-    "abc")
-  => "cba")
+    "abc"
+  ) ;string-fold-right
+  => "cba"
+) ;check
 
 ; 统计分析测试
 (check
   (string-fold
     (lambda (c acc) (if (char=? c #\a) (+ acc 1) acc))
     0
-    "banana")
-  => 3)
+    "banana"
+  ) ;string-fold
+  => 3
+) ;check
 
 (check
   (string-fold-right
     (lambda (c acc) (if (char=? c #\l) (+ acc 1) acc))
     0
-    "hello world")
-  => 3)
+    "hello world"
+  ) ;string-fold-right
+  => 3
+) ;check
 
 ; ASCII码累加求和
 (check
   (string-fold (lambda (c total) (+ total (char->integer c))) 0 "AB")
-  => 131) ; 65 + 66
+  => 131 ; 65 + 66
+) ;check
 
 (check
   (string-fold-right (lambda (c total) (+ total (char->integer c))) 0 "AB")
-  => 131) ; 65 + 66
+  => 131 ; 65 + 66
+) ;check
 
 ; 字符过滤 - 数字
 (check
@@ -4027,10 +4147,14 @@ out-of-range 当start/end超出字符串索引范围或start > end时
     (lambda (c acc) 
       (if (char-numeric? c) 
           (cons c acc) 
-          acc))
+          acc
+      ) ;if
+    ) ;lambda
     '()
-    "a1b2c3")
-  => '(#\3 #\2 #\1))
+    "a1b2c3"
+  ) ;string-fold
+  => '(#\3 #\2 #\1)
+) ;check
 
 ; 字符分类统计
 (check
@@ -4038,14 +4162,21 @@ out-of-range 当start/end超出字符串索引范围或start > end时
     (lambda (c counts)
       (cond
         ((char-alphabetic? c) 
-         (list (+ (car counts) 1) (cadr counts) (caddr counts)))
+         (list (+ (car counts) 1) (cadr counts) (caddr counts))
+        ) ;
         ((char-numeric? c) 
-         (list (car counts) (+ (cadr counts) 1) (caddr counts)))
+         (list (car counts) (+ (cadr counts) 1) (caddr counts))
+        ) ;
         (else 
-         (list (car counts) (cadr counts) (+ (caddr counts) 1)))))
+         (list (car counts) (cadr counts) (+ (caddr counts) 1))
+        ) ;else
+      ) ;cond
+    ) ;lambda
     '(0 0 0)  ; letters, digits, others
-    "hello123!")
-  => '(5 3 1))
+    "hello123!"
+  ) ;string-fold
+  => '(5 3 1)
+) ;check
 
 ; start/end 范围参数测试
 (check (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" 1 4) => 3)
@@ -4070,47 +4201,60 @@ out-of-range 当start/end超出字符串索引范围或start > end时
 (check
   (string-fold
     (lambda (c acc) 
-      (+ acc (* (char->integer c) (char->integer c))))
+      (+ acc (* (char->integer c) (char->integer c)))
+    ) ;lambda
     0
-    "AB")
-  => 8581) ; 65² + 66²
+    "AB"
+  ) ;string-fold
+  => 8581 ; 65² + 66²
+) ;check
 
 (check
   (string-fold
     (lambda (c acc)
-      (max acc (char->integer c)))
+      (max acc (char->integer c))
+    ) ;lambda
     0
-    "ABC")
-  => 67) ; max ASCII of A,B,C
+    "ABC"
+  ) ;string-fold
+  => 67 ; max ASCII of A,B,C
+) ;check
 
 ; Unicode字符测试
 (check 
   (string-fold (lambda (c acc) (+ acc 1)) 0 "中文") 
-  => (string-length "中文"))
+  => (string-length "中文")
+) ;check
 
 (check 
   (string-fold-right (lambda (c acc) (+ acc 1)) 0 "测试") 
-  => (string-length "测试"))
+  => (string-length "测试")
+) ;check
 
 ; 反向构建测试
 (check
   (string-fold
     (lambda (c acc) (string-append acc (string (char-upcase c))))
     ""
-    "abc")
-  => "ABC")
+    "abc"
+  ) ;string-fold
+  => "ABC"
+) ;check
 
 (check
   (string-fold-right
     (lambda (c acc) (string-append acc (string (char-downcase c))))
     ""
-    "XYZ")
-  => "zyx")
+    "XYZ"
+  ) ;string-fold-right
+  => "zyx"
+) ;check
 
 ; 多类型累加器 - hand calculation: 104+101+108+108+111 = 532 for "hello"
 (check
   (string-fold (lambda (c acc) (+ acc (char->integer c))) 0 "hello")
-  => 532)
+  => 532
+) ;check
 
 ; === 错误处理测试 ===
 

@@ -16,7 +16,8 @@
 
 (import (liii check)
         (liii option)
-        (liii lang))
+        (liii lang)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -63,7 +64,8 @@ value : any
       (opt3 (option '())))
   (check (opt1 :defined?) => #t)
   (check (opt2 :defined?) => #t)
-  (check (opt3 :empty?) => #t))
+  (check (opt3 :empty?) => #t)
+) ;let
 
 #|
 none
@@ -102,7 +104,8 @@ none
 ;;; 测试none函数
 (let ((opt (none)))
   (check (opt :empty?) => #t)
-  (check (opt :defined?) => #f))
+  (check (opt :defined?) => #f)
+) ;let
 
 #|
 option%get
@@ -143,7 +146,8 @@ option%get
 (let ((opt1 (option 42))
       (opt2 (option "hello")))
   (check (opt1 :get) => 42)
-  (check (opt2 :get) => "hello"))
+  (check (opt2 :get) => "hello")
+) ;let
 
 #|
 option%get-or-else
@@ -187,7 +191,8 @@ default : any
       (opt2 (none)))
   (check (opt1 :get-or-else 0) => 42)
   (check (opt2 :get-or-else 0) => 0)
-  (check (opt2 :get-or-else (lambda () "default")) => "default"))
+  (check (opt2 :get-or-else (lambda () "default")) => "default")
+) ;let
 
 #|
 option%or-else
@@ -234,7 +239,8 @@ args : any
       (opt3 (none)))
   (check ((opt1 :or-else opt2) :get) => 42)
   (check ((opt3 :or-else opt1) :get) => 42)
-  (check ((opt3 :or-else opt2) :get) => 0))
+  (check ((opt3 :or-else opt2) :get) => 0)
+) ;let
 
 
 #|
@@ -283,7 +289,8 @@ option%defined?
   (check (opt1 :defined?) => #t)
   (check (opt2 :defined?) => #t)
   (check (opt3 :defined?) => #t)  ; 包含列表的option返回#t
-  (check (opt4 :defined?) => #f))
+  (check (opt4 :defined?) => #f)
+) ;let
 
 #|
 option%empty?
@@ -334,7 +341,8 @@ option%empty?
   (check (opt2 :empty?) => #f)
   (check (opt3 :empty?) => #f)  ; 包含非空列表的option返回#f
   (check (opt4 :empty?) => #t)  ; 包含空列表的option返回#t（被视为空option）
-  (check (opt5 :empty?) => #t))
+  (check (opt5 :empty?) => #t)
+) ;let
 
 #|
 option%forall
@@ -400,7 +408,8 @@ f : procedure
 
   ;; 测试不同类型的值
   (check (opt1 :forall (lambda (x) (> x 40))) => #t)
-  (check (opt2 :forall (lambda (x) (string=? x "hello"))) => #t))
+  (check (opt2 :forall (lambda (x) (string=? x "hello"))) => #t)
+) ;let
 
 #|
 option%exists
@@ -480,7 +489,8 @@ f : procedure
   (check (opt2 :exists (lambda (x) (string=? x "hello"))) => #t)
   (check (opt3 :exists (lambda (x) (= (length x) 3))) => #t)
   (check (opt4 :exists (lambda (x) (char=? x #\a))) => #t)
-  (check (opt5 :exists (lambda (x) x)) => #t))
+  (check (opt5 :exists (lambda (x) x)) => #t)
+) ;let
 
 #|
 option%contains
@@ -568,7 +578,8 @@ elem : any
   (check (opt3 :contains '(1 2 3)) => #t)  ; 列表相等
   (check (opt4 :contains #\a) => #t)  ; 字符相等
   (check (opt5 :contains #t) => #t)  ; 布尔值相等
-  (check (opt6 :contains 'symbol) => #t))  ; 符号相等
+  (check (opt6 :contains 'symbol) => #t)  ; 符号相等
+) ;let
 
 #|
 option%for-each
@@ -620,43 +631,52 @@ f : procedure
   ;; 测试空option不执行函数
   (let ((executed #f))
     (opt6 :for-each (lambda (x) (set! executed #t)))
-    (check executed => #f))
+    (check executed => #f)
+  ) ;let
 
   ;; 测试非空option执行函数并传递正确的值
   (let ((result '()))
     (opt1 :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '(42)))
+    (check result => '(42))
+  ) ;let
 
   (let ((result '()))
     (opt2 :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '("hello")))
+    (check result => '("hello"))
+  ) ;let
 
   (let ((result '()))
     (opt3 :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '((1 2 3))))
+    (check result => '((1 2 3)))
+  ) ;let
 
   (let ((result '()))
     (opt4 :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '(#\a)))
+    (check result => '(#\a))
+  ) ;let
 
   (let ((result '()))
     (opt5 :for-each (lambda (x) (set! result (cons x result))))
-    (check result => '(#t)))
+    (check result => '(#t))
+  ) ;let
 
   ;; 测试副作用操作（修改外部变量）
   (let ((counter 0))
     (opt1 :for-each (lambda (x) (set! counter (+ counter x))))
-    (check counter => 42))
+    (check counter => 42)
+  ) ;let
 
   (let ((message ""))
     (opt2 :for-each (lambda (x) (set! message (string-append message x))))
-    (check message => "hello"))
+    (check message => "hello")
+  ) ;let
 
   ;; 测试多次调用同一个option
   (let ((sum 0))
     (opt1 :for-each (lambda (x) (set! sum (+ sum x))))
     (opt1 :for-each (lambda (x) (set! sum (+ sum x))))
-    (check sum => 84))
+    (check sum => 84)
+  ) ;let
 
   ;; 测试不同类型的值都能正确处理
   (let ((results '()))
@@ -665,7 +685,9 @@ f : procedure
     (opt3 :for-each (lambda (x) (set! results (cons (list? x) results))))
     (opt4 :for-each (lambda (x) (set! results (cons (char? x) results))))
     (opt5 :for-each (lambda (x) (set! results (cons (boolean? x) results))))
-    (check results => '(#t #t #t #t #t))))
+    (check results => '(#t #t #t #t #t))
+  ) ;let
+) ;let
 
 #|
 option%map
@@ -767,11 +789,13 @@ f : procedure
   ;; 测试原option保持不变
   (let ((original-value (opt1 :get)))
     (opt1 :map (lambda (x) (+ x 100)))
-    (check (opt1 :get) => original-value))
+    (check (opt1 :get) => original-value)
+  ) ;let
 
   (let ((original-value (opt2 :get)))
     (opt2 :map (lambda (x) (string-append x "-modified")))
-    (check (opt2 :get) => original-value))
+    (check (opt2 :get) => original-value)
+  ) ;let
 
   ;; 测试不同类型之间的转换
   (check ((opt1 :map (lambda (x) (string-append "number-" (number->string x)))) :get) => "number-42")
@@ -781,7 +805,8 @@ f : procedure
   ;; 测试边界情况：映射函数返回不同类型
   (check ((opt1 :map (lambda (x) (if (> x 0) "positive" "negative"))) :get) => "positive")
   (check ((opt1 :map (lambda (x) (if (= x 42) #t #f))) :get) => #t)
-  (check ((opt1 :map (lambda (x) (list x x x))) :get) => '(42 42 42)))
+  (check ((opt1 :map (lambda (x) (list x x x))) :get) => '(42 42 42))
+) ;let
 
 
 #|
@@ -892,11 +917,13 @@ f : procedure
   ;; 测试原option保持不变
   (let ((original-value (opt1 :get)))
     (opt1 :flat-map (lambda (x) (option (+ x 100))))
-    (check (opt1 :get) => original-value))
+    (check (opt1 :get) => original-value)
+  ) ;let
 
   (let ((original-value (opt2 :get)))
     (opt2 :flat-map (lambda (x) (option (string-append x "-modified"))))
-    (check (opt2 :get) => original-value))
+    (check (opt2 :get) => original-value)
+  ) ;let
 
   ;; 测试不同类型之间的转换
   (check ((opt1 :flat-map (lambda (x) (option (string-append "number-" (number->string x))))) :get) => "number-42")
@@ -906,7 +933,8 @@ f : procedure
   ;; 测试边界情况：映射函数返回不同类型
   (check ((opt1 :flat-map (lambda (x) (option (if (> x 0) "positive" "negative")))) :get) => "positive")
   (check ((opt1 :flat-map (lambda (x) (option (if (= x 42) #t #f)))) :get) => #t)
-  (check ((opt1 :flat-map (lambda (x) (option (list x x x)))) :get) => '(42 42 42)))
+  (check ((opt1 :flat-map (lambda (x) (option (list x x x)))) :get) => '(42 42 42))
+) ;let
 
 #|
 option%equals
@@ -980,7 +1008,8 @@ other : option
 
   ;; 测试自反性
   (check (opt1 :equals opt1) => #t)
-  (check (opt7 :equals opt7) => #t))
+  (check (opt7 :equals opt7) => #t)
+) ;let
 
 #|
 option%filter
@@ -1110,11 +1139,13 @@ pred : procedure
   ;; 测试原option保持不变
   (let ((original-value (opt1 :get)))
     (opt1 :filter (lambda (x) (> x 0)))
-    (check (opt1 :get) => original-value))
+    (check (opt1 :get) => original-value)
+  ) ;let
 
   (let ((original-value (opt2 :get)))
     (opt2 :filter (lambda (x) (string? x)))
-    (check (opt2 :get) => original-value))
+    (check (opt2 :get) => original-value)
+  ) ;let
 
   ;; 测试边界情况：复杂谓词函数
   (check ((opt1 :filter (lambda (x) (and (number? x) (> x 0) (< x 100)))) :get) => 42)
@@ -1124,7 +1155,8 @@ pred : procedure
   ;; 测试不同类型值的组合条件
   (check ((opt1 :filter (lambda (x) (or (= x 42) (= x 0)))) :get) => 42)
   (check ((opt2 :filter (lambda (x) (or (string=? x "hello") (string=? x "world")))) :get) => "hello")
-  (check ((opt3 :filter (lambda (x) (or (null? x) (= (length x) 3)))) :get) => '(1 2 3)))
+  (check ((opt3 :filter (lambda (x) (or (null? x) (= (length x) 3)))) :get) => '(1 2 3))
+) ;let
 
 
 (check-report)

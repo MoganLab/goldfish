@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii chez))
+        (liii chez)
+) ;import
 
 (check-true (atom? 42))
 

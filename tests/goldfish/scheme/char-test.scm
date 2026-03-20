@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (scheme char))
+        (scheme char)
+) ;import
 
 (check-set-mode! 'report-failed)
 

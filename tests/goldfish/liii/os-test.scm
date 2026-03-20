@@ -22,30 +22,38 @@
         (scheme time)
         (liii base)
         (liii oop)
-        (liii lang))
+        (liii lang)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (when (os-linux?)
-  (check (os-type) => "Linux"))
+  (check (os-type) => "Linux")
+) ;when
 
 (when (os-macos?)
-  (check (os-type) => "Darwin"))
+  (check (os-type) => "Darwin")
+) ;when
 
 (when (os-windows?)
-  (check (os-type) => "Windows"))
+  (check (os-type) => "Windows")
+) ;when
 
 (when (not (os-windows?))
   (let ((t1 (current-second)))
     (os-call "sleep 1")
     (let ((t2 (current-second)))
-      (check (>= (ceiling (- t2 t1)) 1) => #t))))
+      (check (>= (ceiling (- t2 t1)) 1) => #t)
+    ) ;let
+  ) ;let
+) ;when
 
 (when (and (os-linux?) (not (string=? "root" (getlogin))))
   (check-true (access "/root" 'F_OK))
   (check-false (access "/root" 'R_OK))
   (check-false (access "/root" 'W_OK))
-  (check-true (access (executable) 'X_OK)))
+  (check-true (access (executable) 'X_OK))
+) ;when
 
 (check-true (putenv "TEST_VAR" "123"))       ; 设置环境变量
 (check (getenv "TEST_VAR") => "123")         ; 验证设置成功
@@ -65,33 +73,43 @@
 (check (getenv "home" "value does not found") => "value does not found")
 
 (when (os-windows?)
-  (check (string-starts? (os-temp-dir) "C:") => #t))
+  (check (string-starts? (os-temp-dir) "C:") => #t)
+) ;when
 
 (when (os-linux?)
-  (check (os-temp-dir) => "/tmp"))
+  (check (os-temp-dir) => "/tmp")
+) ;when
 
 (when (not (os-windows?))
   (check-catch 'file-exists-error
-    (mkdir "/tmp"))
+    (mkdir "/tmp")
+  ) ;check-catch
   (check (begin
            (let ((test_dir "/tmp/test_124"))
              (when (file-exists? test_dir)
-               (rmdir "/tmp/test_124"))
-             (mkdir "/tmp/test_124")))
-    => #t))
+               (rmdir "/tmp/test_124")
+             ) ;when
+             (mkdir "/tmp/test_124"))
+           ) ;let
+    => #t
+  ) ;check
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试 remove
   (let ((test-file (string-append (os-temp-dir) "/test_remove.txt")))
     ;; 创建临时文件
     (with-output-to-file test-file
-      (lambda () (display "test data")))
+      (lambda () (display "test data"))
+    ) ;with-output-to-file
     ;; 验证文件存在
     (check-true (file-exists? test-file))
     ;; 删除文件
     (check-true (remove test-file))
     ;; 验证文件已删除
-    (check-false (file-exists? test-file))))
+    (check-false (file-exists? test-file))
+  ) ;let
+) ;when
 
 ;; 错误测试
 (check-catch 'type-error (remove 123))               ; path 非字符串
@@ -101,16 +119,20 @@
 (let ((test-dir (string-append (os-temp-dir) (string (os-sep)) "test_dir")))
   ;; 创建临时目录
   (when (not (file-exists? test-dir))
-    (mkdir test-dir))
+    (mkdir test-dir)
+  ) ;when
   ;; 尝试删除目录，应提示使用 rmdir
   (check-catch 'value-error (remove test-dir))
   ;; 清理
   (rmdir test-dir)
   (when (file-exists? test-dir)
-    (display* test-dir " failed to remove \n")))
+    (display* test-dir " failed to remove \n")
+  ) ;when
+) ;let
 
 (when (not (os-windows?))
-  (check (> (vector-length (listdir "/usr")) 0) => #t))
+  (check (> (vector-length (listdir "/usr")) 0) => #t)
+) ;when
 
 (let* ((test-dir (string-append (os-temp-dir) (string (os-sep)) (uuid4)))
        (test-dir2 (string-append test-dir (string (os-sep))))
@@ -124,18 +146,22 @@
   (let1 r (listdir test-dir)
     (check-true ($ r :contains "a"))
     (check-true ($ r :contains "b"))
-    (check-true ($ r :contains "c")))
+    (check-true ($ r :contains "c"))
+  ) ;let1
   (let1 r2 (listdir test-dir2)
     (check-true ($ r2 :contains "a"))
     (check-true ($ r2 :contains "b"))
-    (check-true ($ r2 :contains "c")))
+    (check-true ($ r2 :contains "c"))
+  ) ;let1
   (rmdir dir-a)
   (rmdir dir-b)
   (rmdir dir-c)
-  (rmdir test-dir))
+  (rmdir test-dir)
+) ;let*
 
 (when (os-windows?)
-  (check (> (vector-length (listdir "C:")) 0) => #t))
+  (check (> (vector-length (listdir "C:")) 0) => #t)
+) ;when
 
 (check-false (string-null? (getcwd)))
 

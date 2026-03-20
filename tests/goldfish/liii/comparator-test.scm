@@ -1,6 +1,7 @@
 (import (liii comparator)
         (liii check)
-        (liii base))
+        (liii base)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -19,7 +20,7 @@
   (check-true (<? default-comp 1+2i 2+2i))
   
   (check (comparator-hash default-comp (list 1 2)) => 42)
-  )
+) ;let1
 
 (check-report)
 

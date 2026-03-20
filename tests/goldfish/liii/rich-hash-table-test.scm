@@ -18,7 +18,8 @@
         (scheme base)
         (liii rich-hash-table)
         (liii lang)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 

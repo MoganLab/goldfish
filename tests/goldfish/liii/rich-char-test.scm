@@ -16,7 +16,8 @@
 
 (import (liii rich-char)
         (liii check)
-        (liii lang))
+        (liii lang)
+) ;import
 
 (check-true ((rich-char #x30) :equals (rich-char #x30)))
 (check-false ((rich-char #x31) :equals (rich-char #x30)))
@@ -82,7 +83,8 @@
   (check (char17 :numeric?) => #f)  ;; 缅甸数字
   (check (char18 :numeric?) => #f)  ;; 高棉数字
   (check (char19 :numeric?) => #f)  ;; 蒙古数字
-  (check (char20 :numeric?) => #f))  ;; 非数字字符
+  (check (char20 :numeric?) => #f)  ;; 非数字字符
+) ;let
 ;; 大写字母
 (check-true ($ #\A :upper?))
 (check-true ($ #\Z :upper?))
@@ -150,7 +152,8 @@
   (check (char17 :digit?) => #t)  ;; 缅甸数字
   (check (char18 :digit?) => #t)  ;; 高棉数字
   (check (char19 :digit?) => #t)  ;; 蒙古数字
-  (check (char20 :digit?) => #f))  ;; 非数字字符
+  (check (char20 :digit?) => #f)  ;; 非数字字符
+) ;let
 
 (check ($ #\a :to-upper) => #\A)
 (check ($ #\z :to-upper) => #\Z)

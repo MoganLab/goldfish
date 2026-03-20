@@ -1,5 +1,6 @@
 (import (srfi srfi-9)
-        (srfi srfi-78))
+        (srfi srfi-78)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -7,7 +8,8 @@
   (kons x y)
   pare?
   (x kar set-kar!)
-  (y kdr))
+  (y kdr)
+) ;define-record-type
 
 (check (pare? (kons 1 2)) => #t)
 
@@ -20,15 +22,18 @@
 (check
  (let ((k (kons 1 2)))
    (set-kar! k 3)
-   (kar k))
+   (kar k)
+ ) ;let
  =>
- 3)
+ 3
+) ;check
 
 (define-record-type :person
   (make-person name age)
   person?
   (name get-name set-name!)
-  (age get-age))
+  (age get-age)
+) ;define-record-type
 
 (check (person? (make-person "Da" 3)) => #t)
 (check (get-age (make-person "Da" 3)) => 3)
@@ -36,9 +41,11 @@
 (check
   (let ((da (make-person "Da" 3)))
     (set-name! da "Darcy")
-    (get-name da))
+    (get-name da)
+  ) ;let
   =>
-  "Darcy")
+  "Darcy"
+) ;check
 
 (check-report)
 (if (check-failed?) (exit -1))

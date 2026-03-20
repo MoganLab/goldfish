@@ -15,7 +15,8 @@
 ;
 
 (import (liii pp)
-        (liii check))
+        (liii check)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -50,26 +51,31 @@
 
 ; 测试基本的多行注释格式
 (check (pp-parse "#|x\n|#\n(define x 1)")
-       => "(*PP_MULTI_COMMENT* \"x\" \"\")\n(define x 1)")
+       => "(*PP_MULTI_COMMENT* \"x\" \"\")\n(define x 1)"
+) ;check
        
 ; 测试包含空格的格式  
 (check (pp-parse "#|\n  x  \n|#\n(define x 1)")
-       => "(*PP_MULTI_COMMENT* \"\" \"  x  \" \"\")\n(define x 1)")
+       => "(*PP_MULTI_COMMENT* \"\" \"  x  \" \"\")\n(define x 1)"
+) ;check
 
 ; 测试多行内容
 (check (pp-parse "#|x\nsecond\n|#\n(define x 1)")
-       => "(*PP_MULTI_COMMENT* \"x\" \"second\" \"\")\n(define x 1)")
+       => "(*PP_MULTI_COMMENT* \"x\" \"second\" \"\")\n(define x 1)"
+) ;check
 
 ; 测试空白内容的多行注释
 (check (pp-parse "#|\n\n|#") => "(*PP_MULTI_COMMENT* \"\" \"\" \"\")")
 
 ; 测试 base64 文件中的实际多行注释格式
 (check (pp-parse "#|\nbase64-encode\n将字符串编码为 Base64 格式。\n|#")
-       => "(*PP_MULTI_COMMENT* \"\" \"base64-encode\" \"将字符串编码为 Base64 格式。\" \"\")")
+       => "(*PP_MULTI_COMMENT* \"\" \"base64-encode\" \"将字符串编码为 Base64 格式。\" \"\")"
+) ;check
 
 ; 测试复杂多行注释（包含多个段落）
 (check (pp-parse "#|\nbase64-encode\n将字符串编码为 Base64 格式。\n\n语法\n----\n(base64-encode str)\n|#")
-       => "(*PP_MULTI_COMMENT* \"\" \"base64-encode\" \"将字符串编码为 Base64 格式。\" \"\" \"语法\" \"----\" \"(base64-encode str)\" \"\")")
+       => "(*PP_MULTI_COMMENT* \"\" \"base64-encode\" \"将字符串编码为 Base64 格式。\" \"\" \"语法\" \"----\" \"(base64-encode str)\" \"\")"
+) ;check
 
 ; 测试多行注释边界情况
 (check (pp-parse "#||#") => "(*PP_MULTI_COMMENT* \"\")")
@@ -78,11 +84,13 @@
 
 ; 测试多行注释与代码混合
 (check (pp-parse "#|\n注释内容\n|#\n(define test 1)")
-       => "(*PP_MULTI_COMMENT* \"\" \"注释内容\" \"\")\n(define test 1)")
+       => "(*PP_MULTI_COMMENT* \"\" \"注释内容\" \"\")\n(define test 1)"
+) ;check
 
 ; 测试多行注释中的特殊字符
 (check (pp-parse "#|\n注释()[]{}\n特殊字符!@#$%^&*\n|#")
-       => "(*PP_MULTI_COMMENT* \"\" \"注释()[]{}\" \"特殊字符!@#$%^&*\" \"\")")
+       => "(*PP_MULTI_COMMENT* \"\" \"注释()[]{}\" \"特殊字符!@#$%^&*\" \"\")"
+) ;check
 
 ; pp-post 测试用例：normal -> newline 和 newline -> normal 状态转移
 

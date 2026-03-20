@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii case))
+        (liii case)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -22,7 +23,9 @@
     ((#(#<symbol?> #<...> #<number?>)) 'vectsn)
     ((#(#<...> #<number?>)) 'vectstart)
     ((#(#<string?> #<char-whitespace?> #<...>)) 'vectstr)
-    (else 'oops)))
+    (else 'oops)
+  ) ;case*
+) ;define
 
 (test (scase 3.0) 6.0)
 (test (scase 'pi) 123)
