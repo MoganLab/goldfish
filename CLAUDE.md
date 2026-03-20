@@ -1,10 +1,10 @@
 # Claude Code 工作规则
 
 ## Adhoc测试规则
-在做adhoc测试时，不使用echo命令，也不使用 bin/goldfish -e，而是：
+在做adhoc测试时，不使用echo命令，也不使用 bin/gf -e，而是：
 1. **唯一方法**：直接在 `tests` 目录下的现有测试用例文件中新增测试代码
 2. **禁止**：在 /tmp 目录下新建临时文件来测试
-3. 使用 bin/goldfish tests/... 的方式执行测试
+3. 使用 bin/gf tests/... 的方式执行测试
 
 **重要**：所有测试代码都必须保存在版本控制的测试文件中，便于后续的回归测试和代码审查。
 
@@ -18,13 +18,13 @@ Goldfish 内置了代码格式化工具 `goldfish --fix`，用于自动格式化
 ### 基本用法
 ```bash
 # 格式化单个文件（原地修改）
-bin/goldfish --fix goldfish/liii/os.scm
+bin/gf --fix goldfish/liii/os.scm
 
 # 格式化整个目录（原地修改）
-bin/goldfish --fix goldfish/
+bin/gf --fix goldfish/
 
 # 仅查看格式化结果（不修改文件）
-bin/goldfish --fix-dry-run goldfish/liii/os.scm
+bin/gf --fix-dry-run goldfish/liii/os.scm
 ```
 
 ### 测试步骤中的格式化检查
@@ -34,11 +34,11 @@ bin/goldfish --fix-dry-run goldfish/liii/os.scm
 xmake b goldfish
 
 # 2. 格式化代码
-bin/goldfish --fix goldfish/liii/xxx.scm
-bin/goldfish --fix tests/goldfish/liii/xxx-test.scm
+bin/gf --fix goldfish/liii/xxx.scm
+bin/gf --fix tests/goldfish/liii/xxx-test.scm
 
 # 3. 运行测试
-bin/goldfish tests/goldfish/liii/xxx-test.scm
+bin/gf tests/goldfish/liii/xxx-test.scm
 ```
 
 ## 创建代码合并请求的方法

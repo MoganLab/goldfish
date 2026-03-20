@@ -18,8 +18,8 @@ argv
 -----
 list
 例如：
-> bin/goldfish demo/demo_argv.scm 
-("bin/goldfish" "demo/demo_argv.scm")
+> bin/gf demo/demo_argv.scm
+("bin/gf" "demo/demo_argv.scm")
 返回一个列表，第一个表示的是命令行的命令名；第二个表示的是命令行第一个参数
 
 功能

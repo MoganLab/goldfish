@@ -45,5 +45,5 @@ jobs:
       - name: build
         run: xmake build --yes -vD goldfish
       - name: test
-        run: bin/goldfish tests/test_all.scm
+        run: bin/gf tests/test_all.scm
 
