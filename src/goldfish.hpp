@@ -2504,6 +2504,26 @@ glue_remove_file (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_rename (s7_scheme* sc, s7_pointer args) {
+  const char* src = s7_string (s7_car (args));
+  const char* dst = s7_string (s7_cadr (args));
+  try {
+    fs::rename (src, dst);
+    return s7_make_boolean (sc, true);
+  }
+  catch (const fs::filesystem_error& e) {
+    return s7_make_boolean (sc, false);
+  }
+}
+
+inline void
+glue_rename (s7_scheme* sc) {
+  const char* name= "g_rename";
+  const char* desc= "(g_rename src dst) => boolean, rename file or directory from src to dst";
+  glue_define (sc, name, desc, f_rename, 2, 0);
+}
+
+static s7_pointer
 f_chdir (s7_scheme* sc, s7_pointer args) {
   const char* dir_c= s7_string (s7_car (args));
   return s7_make_boolean (sc, tb_directory_current_set (dir_c));
@@ -2641,6 +2661,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_mkdir (sc);
   glue_rmdir (sc);
   glue_remove_file (sc);
+  glue_rename (sc);
   glue_chdir (sc);
   glue_listdir (sc);
   glue_getlogin (sc);

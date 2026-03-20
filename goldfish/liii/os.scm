@@ -19,7 +19,7 @@
     os-arch os-type os-windows? os-linux? os-macos? os-temp-dir
     os-sep pathsep
     os-call ; system
-    mkdir chdir rmdir remove getenv putenv unsetenv getcwd listdir access getlogin getpid
+    mkdir chdir rmdir remove rename getenv putenv unsetenv getcwd listdir access getlogin getpid
   ) ;export
   (import (scheme process-context)
           (liii base)
@@ -95,7 +95,7 @@
             ((eq? mode 'X_OK) (g_access path 128))
             ((eq? mode 'W_OK) (g_access path 2))
             ((eq? mode 'R_OK) (g_access path 1))
-            (else (error 'value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"))
+            (else (value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"))
       ) ;cond
     ) ;define
 
@@ -111,7 +111,7 @@
     (define (putenv key value)
       (if (and (string? key) (string? value))
           (g_setenv key value)
-          (error 'type-error "(putenv key value): key and value must be strings")
+          (type-error "(putenv key value): key and value must be strings")
       ) ;if
     ) ;define
 
@@ -139,16 +139,36 @@
     (define (remove path)
       (cond
         ((not (string? path))
-         (error 'type-error "(remove path): path must be string")
+         (type-error "(remove path): path must be string")
         ) ;
         ((not (file-exists? path))
-         (error 'file-not-found-error (string-append "File not found: " path))
+         (file-not-found-error (string-append "File not found: " path))
         ) ;
         ((g_isdir path)  ; 检查是否为目录
-         (error 'value-error "Cannot remove a directory (use 'rmdir' instead)")
+         (value-error "Cannot remove a directory (use 'rmdir' instead)")
         ) ;
         (else
          (g_remove-file path)
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (rename src dst)
+      (cond
+        ((not (string? src))
+         (type-error "(rename src dst): src must be string")
+        ) ;
+        ((not (string? dst))
+         (type-error "(rename src dst): dst must be string")
+        ) ;
+        ((not (file-exists? src))
+         (file-not-found-error (string-append "File not found: " src))
+        ) ;
+        ((file-exists? dst)
+         (file-exists-error (string-append "File exists: " dst))
+        ) ;
+        (else
+         (g_rename src dst)
         ) ;else
       ) ;cond
     ) ;define

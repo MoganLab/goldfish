@@ -12,6 +12,35 @@
 - 使用空格进行缩进，而不是制表符
 - 建议缩进宽度为2个空格
 
+## 代码格式化工具
+Goldfish 内置了代码格式化工具 `goldfish --fix`，用于自动格式化 Scheme 代码。
+
+### 基本用法
+```bash
+# 格式化单个文件（原地修改）
+bin/goldfish --fix goldfish/liii/os.scm
+
+# 格式化整个目录（原地修改）
+bin/goldfish --fix goldfish/
+
+# 仅查看格式化结果（不修改文件）
+bin/goldfish --fix-dry-run goldfish/liii/os.scm
+```
+
+### 测试步骤中的格式化检查
+在提交代码前，应使用以下步骤确保代码格式正确：
+```bash
+# 1. 构建
+xmake b goldfish
+
+# 2. 格式化代码
+bin/goldfish --fix goldfish/liii/xxx.scm
+bin/goldfish --fix tests/goldfish/liii/xxx-test.scm
+
+# 3. 运行测试
+bin/goldfish tests/goldfish/liii/xxx-test.scm
+```
+
 ## 创建代码合并请求的方法
 1. 使用 `git push -u origin 分支名` 推送代码
 2. 在 git push 的输出中会显示创建 PR 的链接，例如：
