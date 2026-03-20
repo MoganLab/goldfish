@@ -1,5 +1,5 @@
 (import (liii logging)
-        (liii path))
+        (liii rich-path))
 
 (define log (logging "demo"))
 (log :set-path! (path :temp-dir :/ "demo.log" :to-string))

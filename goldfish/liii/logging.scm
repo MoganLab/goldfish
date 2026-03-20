@@ -16,7 +16,7 @@
 
 (define-library (liii logging)
   (import (liii lang)
-          (liii path)
+          (liii rich-path)
           (liii datetime)
           (liii error)
   ) ;import
@@ -183,4 +183,3 @@
 
     ) ;define-class
   ) ;begin
-
