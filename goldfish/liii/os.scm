@@ -19,7 +19,7 @@
     os-arch os-type os-windows? os-linux? os-macos? os-temp-dir
     os-sep pathsep
     os-call ; system
-    mkdir chdir rmdir remove getenv putenv unsetenv getcwd listdir access getlogin getpid
+    mkdir chdir rmdir remove rename getenv putenv unsetenv getcwd listdir access getlogin getpid
   ) ;export
   (import (scheme process-context)
           (liii base)
@@ -149,6 +149,23 @@
         ) ;
         (else
          (g_remove-file path)
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (rename src dst)
+      (cond
+        ((not (string? src))
+         (error 'type-error "(rename src dst): src must be string")
+        ) ;
+        ((not (string? dst))
+         (error 'type-error "(rename src dst): dst must be string")
+        ) ;
+        ((not (file-exists? src))
+         (error 'file-not-found-error (string-append "File not found: " src))
+        ) ;
+        (else
+         (g_rename src dst)
         ) ;else
       ) ;cond
     ) ;define
