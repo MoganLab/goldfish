@@ -107,17 +107,17 @@ wrong-type-arg
 
 |#
 
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   (check (vector-ref v 0) => 1)
   (check (vector-ref v 1) => 2)
   (check (vector-ref v 2) => 3)
-) ;let1
+) ;let
 
 ;; 边界情况测试
-(let1 v #(a b c d)
+(let ((v #(a b c d)))
   (check (vector-ref v 0) => 'a)  ; 第一个元素
   (check (vector-ref v 3) => 'd) ; 最后一个元素
-) ;let1
+) ;let
 
 ;; 空向量测试
 (check-catch 'out-of-range (vector-ref #() 0))
@@ -126,19 +126,19 @@ wrong-type-arg
 (check (vector-ref #(42) 0) => 42)
 
 ;; 错误处理测试
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   ; 索引超出范围
   (check-catch 'out-of-range (vector-ref v -1))
   (check-catch 'out-of-range (vector-ref v 3))
-) ;let1
+) ;let
 
 ;; 不同类型向量测试
-(let1 v #(1 2.5 "hello" 'symbol #\c #t #f)
+(let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
   (check (vector-ref v 0) => 1)
   (check (vector-ref v 2) => "hello")
   (check (vector-ref v 4) => #\c)
   (check (vector-ref v 6) => #f)
-) ;let1
+) ;let
 
 
 #|
@@ -182,40 +182,40 @@ wrong-type-arg
 |#
 
 ;; 基本功能测试
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   (vector-set! v 1 42)
   (check v => #(1 42 3))
-) ;let1
+) ;let
 
 ;; 边界情况测试
-(let1 v #(a b c d)
+(let ((v #(a b c d)))
   (vector-set! v 0 'x)  ; 修改第一个元素
   (vector-set! v 3 'y)  ; 修改最后一个元素
   (check v => #(x b c y))
-) ;let1
+) ;let
 
 ;; 单元素向量测试
-(let1 v #(42)
+(let ((v #(42)))
   (vector-set! v 0 100)
   (check v => #(100))
-) ;let1
+) ;let
 
 ;; 不同类型值测试
-(let1 v #(1 2 3 4 5)
+(let ((v #(1 2 3 4 5)))
   (vector-set! v 0 "string")
   (vector-set! v 1 3.14)
   (vector-set! v 2 'symbol)
   (vector-set! v 3 #\c)
   (vector-set! v 4 #t)
   (check v => #("string" 3.14 symbol #\c #t))
-) ;let1
+) ;let
 
 ;; 错误处理测试
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   ; 索引超出范围
   (check-catch 'out-of-range (vector-set! v -1 42))
   (check-catch 'out-of-range (vector-set! v 3 42))
-) ;let1
+) ;let
 
 #|
 vector-length
@@ -316,11 +316,11 @@ out-of-range
 (check (vector-length (make-vector 1)) => 1)  ; 长度为1的向量，无初始值
 
 ;; 不同类型初始值测试
-(let1 v (make-vector 5 3.14)
+(let ((v (make-vector 5 3.14)))
   (check (vector-length v) => 5)
   (check (vector-ref v 0) => 3.14)
   (check (vector-ref v 4) => 3.14)
-) ;let1
+) ;let
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (make-vector 'not-a-number))  ; 非数字参数
@@ -456,13 +456,13 @@ wrong-type-arg
 (check (vector->list #(0 1 2 3) 2 4) => '(2 3))  ; 索引2到4
 
 ;; 错误处理测试
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   ; 索引超出范围
   (check-catch 'out-of-range (vector->list v -1))  ; 负索引
   (check-catch 'out-of-range (vector->list v 4))  ; 索引超出长度
   (check-catch 'out-of-range (vector->list v 2 5))  ; 结束索引超出长度
   (check-catch 'out-of-range (vector->list v 3 2))  ; 起始索引大于结束索引
-) ;let1
+) ;let
 
 ;; 类型错误测试
 (check-catch 'wrong-type-arg (vector->list 'not-a-vector))  ; 非向量参数
@@ -549,33 +549,33 @@ wrong-type-arg
 (check (vector-copy #(42) 1) => #())  ; 单元素向量从索引1开始
 
 ;; 不同类型元素测试
-(let1 v #(1 2.5 "hello" 'symbol #\c #t #f)
+(let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
   (check (vector-copy v) => v)  ; 完整复制
   (check (vector-copy v 2 5) => #("hello" 'symbol #\c))  ; 部分复制
-) ;let1
+) ;let
 
 ;; 嵌套结构测试
 (check (vector-copy #((1 2) (3 4))) => #((1 2) (3 4)))  ; 嵌套向量
 (check (vector-copy #((1 2) (3 4)) 1) => #((3 4)))  ; 嵌套向量部分复制
 
 ;; 对象标识测试
-(let1 original #(a b c)
-  (let1 copied (vector-copy original)
+(let ((original #(a b c)))
+  (let ((copied (vector-copy original)))
     (check-true (vector? copied))  ; 是向量
     (check-false (eq? original copied))  ; 不是同一个对象
     (check-true (eqv? (vector-ref original 1) (vector-ref copied 1)))  ; 元素相同
     (check (vector-length copied) => (vector-length original))  ; 长度相同
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 ;; 修改独立性测试
-(let1 original #(1 2 3)
-  (let1 copied (vector-copy original)
+(let ((original #(1 2 3)))
+  (let ((copied (vector-copy original)))
     (vector-set! copied 1 99)  ; 修改副本
     (check original => #(1 2 3))  ; 原始向量不变
     (check copied => #(1 99 3))  ; 副本已修改
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 ;; 更多边界范围测试
 (check (vector-copy #(0 1 2 3) 0 0) => #())  ; 空范围
@@ -589,12 +589,12 @@ wrong-type-arg
 (check-catch 'wrong-type-arg (vector-copy #(1 2 3) 0 'not-a-number))  ; 非数字结束索引
 
 ;; 错误处理测试 - 范围错误
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   (check-catch 'out-of-range (vector-copy v -1))  ; 负起始索引
   (check-catch 'out-of-range (vector-copy v 4))  ; 起始索引超出长度
   (check-catch 'out-of-range (vector-copy v 2 5))  ; 结束索引超出长度
   (check-catch 'out-of-range (vector-copy v 3 2))  ; 起始索引大于结束索引
-) ;let1
+) ;let
 
 (check-true (int-vector? (int-vector 1 2 3)))
 (check-false (int-vector? (vector 1 2 3)))
@@ -1068,106 +1068,106 @@ wrong-type-arg
 ;;; vector-fill! 测试
 
 ;; 基本功能测试
-(let1 v (vector 1 2 3 4)
+(let ((v (vector 1 2 3 4)))
   (vector-fill! v 0)
   (check v => #(0 0 0 0))
-) ;let1
+) ;let
 
-(let1 v (vector 'a 'b 'c 'd)
+(let ((v (vector 'a 'b 'c 'd)))
   (vector-fill! v 'x)
   (check v => #(x x x x))
-) ;let1
+) ;let
 
 ;; 带起始索引的测试
-(let1 v (vector 1 2 3 4)
+(let ((v (vector 1 2 3 4)))
   (vector-fill! v 'a 1)
   (check v => #(1 a a a))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4)
+(let ((v (vector 1 2 3 4)))
   (vector-fill! v #\x 2)
   (check v => #(1 2 #\x #\x))
-) ;let1
+) ;let
 
 ;; 带起始和结束索引的测试
-(let1 v (vector 1 2 3 4)
+(let ((v (vector 1 2 3 4)))
   (vector-fill! v #\x 1 3)
   (check v => #(1 #\x #\x 4))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4)
+(let ((v (vector 1 2 3 4)))
   (vector-fill! v "hello" 0 2)
   (check v => #("hello" "hello" 3 4))
-) ;let1
+) ;let
 
 ;; 空向量测试
-(let1 v (vector)
+(let ((v (vector)))
   (vector-fill! v 42)
   (check v => #())
-) ;let1
+) ;let
 
-(let1 v (vector)
+(let ((v (vector)))
   (vector-fill! v 42 0 0)
   (check v => #())
-) ;let1
+) ;let
 
 ;; 单元素向量测试
-(let1 v (vector 100)
+(let ((v (vector 100)))
   (vector-fill! v 999)
   (check v => #(999))
-) ;let1
+) ;let
 
-(let1 v (vector 100)
+(let ((v (vector 100)))
   (vector-fill! v 999 0 1)
   (check v => #(999))
-) ;let1
+) ;let
 
 ;; 不同类型值测试
-(let1 v (vector 1 2 3 4 5)
+(let ((v (vector 1 2 3 4 5)))
   (vector-fill! v "string")
   (check v => #("string" "string" "string" "string" "string"))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4 5)
+(let ((v (vector 1 2 3 4 5)))
   (vector-fill! v 3.14 1 4)
   (check v => #(1 3.14 3.14 3.14 5))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4 5)
+(let ((v (vector 1 2 3 4 5)))
   (vector-fill! v 'symbol 2 5)
   (check v => #(1 2 symbol symbol symbol))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4 5)
+(let ((v (vector 1 2 3 4 5)))
   (vector-fill! v #\c 3 4)
   (check v => #(1 2 3 #\c 5))
-) ;let1
+) ;let
 
-(let1 v (vector 1 2 3 4 5)
+(let ((v (vector 1 2 3 4 5)))
   (vector-fill! v #t 0 1)
   (check v => #(#t 2 3 4 5))
-) ;let1
+) ;let
 
 ;; 边界范围测试
-(let1 v (vector 0 1 2 3)
+(let ((v (vector 0 1 2 3)))
   (vector-fill! v 99 0 0)  ; 空范围
   (check v => #(0 1 2 3))
-) ;let1
+) ;let
 
-(let1 v (vector 0 1 2 3)
+(let ((v (vector 0 1 2 3)))
   (vector-fill! v 99 2 2)  ; 空范围
   (check v => #(0 1 2 3))
-) ;let1
+) ;let
 
-(let1 v (vector 0 1 2 3)
+(let ((v (vector 0 1 2 3)))
   (vector-fill! v 99 0 1)  ; 第一个元素
   (check v => #(99 1 2 3))
-) ;let1
+) ;let
 
-(let1 v (vector 0 1 2 3)
+(let ((v (vector 0 1 2 3)))
   (vector-fill! v 99 3 4)  ; 最后一个元素
   (check v => #(0 1 2 99))
-) ;let1
+) ;let
 
 ;; 错误处理测试 - 类型错误
 (check-catch 'wrong-type-arg (vector-fill! 'not-a-vector 42))  ; 非向量参数
@@ -1175,12 +1175,12 @@ wrong-type-arg
 (check-catch 'wrong-type-arg (vector-fill! #(1 2 3) 42 0 'not-a-number))  ; 非数字结束索引
 
 ;; 错误处理测试 - 范围错误
-(let1 v #(1 2 3)
+(let ((v #(1 2 3)))
   (check-catch 'out-of-range (vector-fill! v 42 -1))  ; 负起始索引
   (check-catch 'out-of-range (vector-fill! v 42 4))  ; 起始索引超出长度
   (check-catch 'out-of-range (vector-fill! v 42 2 5))  ; 结束索引超出长度
   (check-catch 'out-of-range (vector-fill! v 42 3 2))  ; 起始索引大于结束索引
-) ;let1
+) ;let
 
 #|
 vector-copy!
@@ -1532,25 +1532,25 @@ wrong-type-arg
 (check (vector-append #((1 2)) #((3 4))) => #((1 2) (3 4)))  ; 嵌套向量
 
 ;; 对象标识测试
-(let1 original #(a b c)
-  (let1 appended (vector-append original)
+(let ((original #(a b c)))
+  (let ((appended (vector-append original)))
     (check-true (vector? appended))  ; 是向量
     (check-false (eq? original appended))  ; 不是同一个对象
     (check (vector-length appended) => (vector-length original))  ; 长度相同
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 ;; 修改独立性测试
-(let1 v1 #(1 2 3)
-  (let1 v2 #(4 5 6)
-    (let1 result (vector-append v1 v2)
+(let ((v1 #(1 2 3)))
+  (let ((v2 #(4 5 6)))
+    (let ((result (vector-append v1 v2)))
       (vector-set! result 0 99)  ; 修改结果向量
       (check v1 => #(1 2 3))  ; 原始向量不变
       (check v2 => #(4 5 6))  ; 原始向量不变
       (check result => #(99 2 3 4 5 6))  ; 结果已修改
-    ) ;let1
-  ) ;let1
-) ;let1
+    ) ;let
+  ) ;let
+) ;let
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (vector-append 'not-a-vector))  ; 非向量参数
