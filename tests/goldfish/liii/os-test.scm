@@ -148,7 +148,7 @@
   (check-true (file-exists? dst-file))
   ;; 清理
   (remove dst-file)
-) ;let
+) ;let*
 
 ;; 测试 rename 错误情况
 (check-catch 'type-error (rename 123 "dst"))           ; src 非字符串
@@ -161,9 +161,11 @@
        (dst-dir (string-append temp-dir (string (os-sep)) "test_rename_dir_dst")))
   ;; 创建源目录
   (when (file-exists? src-dir)
-    (rmdir src-dir))
+    (rmdir src-dir)
+  ) ;when
   (when (file-exists? dst-dir)
-    (rmdir dst-dir))
+    (rmdir dst-dir)
+  ) ;when
   (mkdir src-dir)
   ;; 验证源目录存在
   (check-true (file-exists? src-dir))
@@ -175,7 +177,7 @@
   (check-true (file-exists? dst-dir))
   ;; 清理
   (rmdir dst-dir)
-) ;let
+) ;let*
 
 (when (not (os-windows?))
   (check (> (vector-length (listdir "/usr")) 0) => #t)
