@@ -80,9 +80,17 @@ path-value
 (check (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz")
 (check (path->string (path-root)) => "/")
 (check (path->string (path-of-drive #\c)) => "C:\\")
-(check (path->string (path (path "tmp/demo.txt"))) => "tmp/demo.txt")
-(check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp/demo.txt")
-(check (path-to-string (path "tmp/demo.txt")) => "tmp/demo.txt")
+(when (not (os-windows?))
+  (check (path->string (path (path "tmp/demo.txt"))) => "tmp/demo.txt")
+  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp/demo.txt")
+  (check (path-to-string (path "tmp/demo.txt")) => "tmp/demo.txt")
+) ;when
+
+(when (os-windows?)
+  (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
+  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
+  (check (path-to-string (path "tmp/demo.txt")) => "tmp\\demo.txt")
+) ;when
 (check-catch 'type-error (path-of-drive 1))
 
 ;; 元信息测试
