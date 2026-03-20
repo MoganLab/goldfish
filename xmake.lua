@@ -101,6 +101,7 @@ local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
 target ("goldfish") do
     set_languages("c++17")
     set_targetdir("$(projectdir)/bin/")
+    set_basename("gf")
     if is_plat("linux") then
         add_syslinks("stdc++")
     end

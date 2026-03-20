@@ -72,8 +72,8 @@
 
 (define (goldfish-cmd)
   (if (os-windows?)
-    "bin\\goldfish -m r7rs "
-    "bin/goldfish -m r7rs "
+    "bin\\gf -m r7rs "
+    "bin/gf -m r7rs "
   ) ;if
 ) ;define
 
