@@ -33,9 +33,24 @@
   ) ;export
   (import (liii base)
           (liii error)
+          (liii os)
           (prefix (liii rich-path) rich-)
   ) ;import
   (begin
+
+    (define (normalize-string-path value)
+      (if (os-windows?)
+          (string-map (lambda (ch)
+                        (if (char=? ch #\/)
+                            #\\
+                            ch
+                        ) ;if
+                      ) ;lambda
+                      value
+          ) ;string-map
+          value
+      ) ;if
+    ) ;define
 
     (define (path-object? value)
       (rich-path :is-type-of value)
@@ -43,7 +58,7 @@
 
     (define (path->object value func-name)
       (cond ((path-object? value) value)
-            ((string? value) (rich-path value))
+            ((string? value) (rich-path (normalize-string-path value)))
             (else
               (type-error (string-append func-name ": path must be string or path"))
             ) ;else
@@ -52,7 +67,7 @@
 
     (define (path->input-string value func-name)
       (cond ((path-object? value) (value :to-string))
-            ((string? value) value)
+            ((string? value) (normalize-string-path value))
             (else
               (type-error (string-append func-name ": path must be string or path"))
             ) ;else
@@ -197,7 +212,16 @@
     ) ;define
 
     (define (path-parent value)
-      ((path->object value "path-parent") :parent)
+      (let* ((path-value (path->object value "path-parent"))
+             (parent (path-value :parent)))
+        (if (and (os-windows?)
+                 (string=? (parent :to-string) "")
+                 (path-relative? path-value)
+            ) ;and
+            (path ".")
+            parent
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (path-list value)
