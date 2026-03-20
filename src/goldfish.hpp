@@ -21,10 +21,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <sstream>
+#include <stdexcept>
 #include "s7.h"
 #include <string>
 #include <unordered_map>
@@ -82,6 +86,8 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+
+namespace fs = std::filesystem;
 
 using nlohmann::json;
 
@@ -3335,6 +3341,8 @@ display_help () {
   cout << "--eval, -e    \tLoad and evaluate Scheme code from the command line" << endl
        << "\t\t  e.g. -e '(begin (display `Hello) (+ 1 2))'" << endl;
   cout << "--load, -l FILE\tLoad Scheme code from FILE" << endl;
+  cout << "--fix PATH    \tFormat PATH in place (PATH can be a .scm file or directory)" << endl;
+  cout << "--fix-dry-run FILE\tPrint the formatted result for FILE to stdout" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "--repl, -i    \tEnter interactive REPL mode" << endl;
 #else
@@ -3378,10 +3386,281 @@ goldfish_eval_code (s7_scheme* sc, string code) {
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
+struct GoldfixCliOptions {
+  bool   enabled= false;
+  bool   dry_run= false;
+  string path;
+  string error;
+};
+
+static bool
+string_starts_with (const string& value, const string& prefix) {
+  return value.rfind (prefix, 0) == 0;
+}
+
+static GoldfixCliOptions
+parse_goldfix_cli_options (int argc, char** argv) {
+  GoldfixCliOptions opts;
+
+  auto assign_target= [&opts] (bool dry_run, const string& path) {
+    if (path.empty ()) {
+      opts.error= dry_run ? "Error: '--fix-dry-run' requires a non-empty path." : "Error: '--fix' requires a non-empty path.";
+      return;
+    }
+    if (opts.enabled) {
+      opts.error= "Error: '--fix' and '--fix-dry-run' cannot be used together.";
+      return;
+    }
+    opts.enabled= true;
+    opts.dry_run= dry_run;
+    opts.path   = path;
+  };
+
+  for (int i= 1; i < argc && opts.error.empty (); ++i) {
+    string arg= argv[i];
+    if (arg == "--fix" || arg == "--fix-dry-run") {
+      if ((i + 1) >= argc) {
+        opts.error= string ("Error: '") + arg + "' requires a parameter.";
+        break;
+      }
+      assign_target (arg == "--fix-dry-run", argv[++i]);
+      continue;
+    }
+
+    if (string_starts_with (arg, "--fix=")) {
+      assign_target (false, arg.substr (strlen ("--fix=")));
+      continue;
+    }
+
+    if (string_starts_with (arg, "--fix-dry-run=")) {
+      assign_target (true, arg.substr (strlen ("--fix-dry-run=")));
+      continue;
+    }
+  }
+
+  return opts;
+}
+
+static bool
+is_goldfix_option_flag (const string& flag) {
+  return flag == "fix" || flag == "fix-dry-run" || flag == "--fix" || flag == "--fix-dry-run"
+         || string_starts_with (flag, "fix=") || string_starts_with (flag, "fix-dry-run=")
+         || string_starts_with (flag, "--fix=") || string_starts_with (flag, "--fix-dry-run=");
+}
+
+static vector<string>
+filter_invalid_options_for_goldfix (const vector<string>& flags) {
+  vector<string> filtered;
+  for (const auto& flag : flags) {
+    if (!is_goldfix_option_flag (flag)) {
+      filtered.push_back (flag);
+    }
+  }
+  return filtered;
+}
+
+static string
+find_goldfix_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldfix", fs::path (gf_lib).parent_path () / "tools" / "goldfix"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static void
+add_goldfix_load_path_if_present (s7_scheme* sc, const char* gf_lib) {
+  string tool_root= find_goldfix_tool_root (gf_lib);
+  if (!tool_root.empty ()) {
+    s7_add_to_load_path (sc, tool_root.c_str ());
+  }
+}
+
+static string
+current_scheme_error_output (s7_scheme* sc) {
+  const char* errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  if ((errmsg) && (*errmsg)) {
+    return string (errmsg);
+  }
+  return "";
+}
+
+static string
+read_text_file_exact (const fs::path& path) {
+  std::ifstream input (path, std::ios::binary);
+  if (!input.is_open ()) {
+    throw std::runtime_error ("Failed to open file for reading: " + path.string ());
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf ();
+  if (input.bad ()) {
+    throw std::runtime_error ("Failed to read file: " + path.string ());
+  }
+
+  return buffer.str ();
+}
+
+static void
+write_text_file_exact (const fs::path& path, const string& content) {
+  std::ofstream output (path, std::ios::binary | std::ios::trunc);
+  if (!output.is_open ()) {
+    throw std::runtime_error ("Failed to open file for writing: " + path.string ());
+  }
+
+  output.write (content.data (), static_cast<std::streamsize> (content.size ()));
+  if (!output) {
+    throw std::runtime_error ("Failed to write file: " + path.string ());
+  }
+}
+
+static bool
+is_scheme_source_file (const fs::path& path) {
+  return path.has_extension () && path.extension () == ".scm";
+}
+
+static vector<fs::path>
+collect_goldfix_targets (const fs::path& input_path, bool dry_run) {
+  std::error_code ec;
+  if (!fs::exists (input_path, ec)) {
+    throw std::runtime_error ("Path does not exist: " + input_path.string ());
+  }
+
+  if (fs::is_regular_file (input_path, ec)) {
+    return {input_path};
+  }
+
+  if (dry_run) {
+    throw std::runtime_error ("'--fix-dry-run' only supports files.");
+  }
+
+  if (!fs::is_directory (input_path, ec)) {
+    throw std::runtime_error ("Unsupported path: " + input_path.string ());
+  }
+
+  vector<fs::path> files;
+  for (fs::recursive_directory_iterator it (input_path, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
+    if (ec) {
+      throw std::runtime_error ("Failed to walk directory: " + input_path.string ());
+    }
+    if (it->is_regular_file (ec) && is_scheme_source_file (it->path ())) {
+      files.push_back (it->path ());
+    }
+    ec.clear ();
+  }
+
+  std::sort (files.begin (), files.end (), [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  return files;
+}
+
+static s7_pointer
+require_goldfix_fix_content (s7_scheme* sc, const char* gf_lib) {
+  string tool_root= find_goldfix_tool_root (gf_lib);
+  if (tool_root.empty ()) {
+    throw std::runtime_error ("Goldfix module directory does not exist.");
+  }
+
+  s7_add_to_load_path (sc, tool_root.c_str ());
+  s7_eval_c_string (sc, "(import (liii goldfix))");
+  string scheme_error= current_scheme_error_output (sc);
+  if (!scheme_error.empty ()) {
+    throw std::runtime_error ("Failed to import (liii goldfix).");
+  }
+
+  s7_pointer fix_content= s7_name_to_value (sc, "fix-content");
+  if ((!fix_content) || (!s7_is_procedure (fix_content))) {
+    throw std::runtime_error ("Failed to resolve fix-content from (liii goldfix).");
+  }
+
+  return fix_content;
+}
+
+static string
+goldfix_fix_content (s7_scheme* sc, s7_pointer fix_content, const string& content) {
+  s7_pointer result= s7_call (sc, fix_content, s7_list (sc, 1, s7_make_string (sc, content.c_str ())));
+  if (!result || !s7_is_string (result)) {
+    throw std::runtime_error ("(liii goldfix) fix-content did not return a string.");
+  }
+  return string (s7_string (result));
+}
+
+static string
+goldfix_progress_prefix (std::size_t index, std::size_t total) {
+  std::ostringstream out;
+  out << "[" << index << "/" << total << "]";
+  return out.str ();
+}
+
+static int
+goldfish_run_fix_mode (s7_scheme* sc, const char* gf_lib, const GoldfixCliOptions& opts) {
+  try {
+    s7_pointer      fix_content= require_goldfix_fix_content (sc, gf_lib);
+    vector<fs::path> files     = collect_goldfix_targets (fs::path (opts.path), opts.dry_run);
+    std::ostream&    status_out= std::cerr;
+
+    if (opts.dry_run) {
+      if (files.empty ()) {
+        throw std::runtime_error ("No input file provided for '--fix-dry-run'.");
+      }
+      const fs::path& file  = files.front ();
+      string          prefix= goldfix_progress_prefix (1, 1);
+      status_out << prefix << " Processing " << file.string () << std::endl;
+      cout << goldfix_fix_content (sc, fix_content, read_text_file_exact (file));
+      status_out << prefix << " Dry-run complete " << file.string () << std::endl;
+      return current_scheme_error_output (sc).empty () ? 0 : -1;
+    }
+
+    std::size_t changed_count= 0;
+    for (std::size_t i= 0; i < files.size (); ++i) {
+      const fs::path& file  = files[i];
+      string          prefix= goldfix_progress_prefix (i + 1, files.size ());
+      status_out << prefix << " Processing " << file.string () << std::endl;
+
+      try {
+        string original= read_text_file_exact (file);
+        string fixed   = goldfix_fix_content (sc, fix_content, original);
+        if (!current_scheme_error_output (sc).empty ()) {
+          status_out << prefix << " Failed " << file.string () << std::endl;
+          return -1;
+        }
+        if (fixed != original) {
+          write_text_file_exact (file, fixed);
+          ++changed_count;
+          status_out << prefix << " Updated " << file.string () << std::endl;
+        }
+        else {
+          status_out << prefix << " Unchanged " << file.string () << std::endl;
+        }
+      }
+      catch (const std::exception& err) {
+        status_out << prefix << " Failed " << file.string () << ": " << err.what () << std::endl;
+        return 1;
+      }
+    }
+
+    if (fs::is_directory (fs::path (opts.path))) {
+      status_out << "Processed " << files.size () << " .scm file(s), updated " << changed_count << std::endl;
+    }
+    return 0;
+  }
+  catch (const std::exception& err) {
+    cerr << err.what () << endl;
+    return 1;
+  }
+}
+
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
   s7_scheme* sc= s7_init ();
   s7_add_to_load_path (sc, gf_lib);
+  add_goldfix_load_path_if_present (sc, gf_lib);
 
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
@@ -3914,6 +4193,12 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     exit (0);
   }
 
+  GoldfixCliOptions goldfix_opts= parse_goldfix_cli_options (argc, argv);
+  if (!goldfix_opts.error.empty ()) {
+    cerr << goldfix_opts.error << endl;
+    exit (1);
+  }
+
   // --mode / -m: Load the standard library by mode
   std::string mode    = "default";
   auto        mode_arg= cmdl ({"--mode", "-m"});
@@ -3933,8 +4218,12 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
       cmdl[{"--repl", "-i"}] || (cmdl.get_unaccessed_flags ().empty () && cmdl.get_unaccessed_params ().empty ());
 
   // 没有注册为 params 的默认都是 flag，因此只需要检查未访问的 flag
-  if (!cmdl.get_unaccessed_flags ().empty ()) {
-    display_for_invalid_options (cmdl.get_unaccessed_flags ());
+  vector<string> invalid_flags= cmdl.get_unaccessed_flags ();
+  if (goldfix_opts.enabled) {
+    invalid_flags= filter_invalid_options_for_goldfix (invalid_flags);
+  }
+  if (!invalid_flags.empty ()) {
+    display_for_invalid_options (invalid_flags);
     exit (1);
   }
 
@@ -3946,6 +4235,18 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   s7_pointer  old_port= s7_set_current_error_port (sc, s7_open_output_string (sc));
   int         gc_loc  = -1;
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
+
+  if (goldfix_opts.enabled) {
+    int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
+    errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+
+    if ((errmsg) && (*errmsg) && (fix_ret == 0)) return -1;
+    return fix_ret;
+  }
 
   if (eval_arg) {
     std::string code= eval_arg.str ();
