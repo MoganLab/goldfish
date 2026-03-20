@@ -32,7 +32,7 @@
     vector-any vector-every vector-copy vector-copy!
     vector-index vector-index-right vector-skip vector-skip-right vector-partition
     vector-swap! vector-reverse! vector-cumulate reverse-list->vector
-    vector=
+    vector= vector-contains?
     ; Liii Extras
     vector-filter
   ) ;export
@@ -58,6 +58,12 @@
           ) ;if
         ) ;let
       ) ;let*
+    ) ;define
+
+    (define (vector-contains? vec elem . args)
+      (let ((cmp (if (null? args) equal? (car args))))
+        (not (not (vector-index (lambda (x) (cmp x elem)) vec)))
+      ) ;let
     ) ;define
 
 

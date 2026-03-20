@@ -1689,5 +1689,70 @@ wrong-number-of-args
 (check-catch 'wrong-type-arg (vector-for-each 'not-a-proc #(1 2 3)))  ; 非过程参数
 (check-catch 'wrong-type-arg (vector-for-each + 'not-a-vector))  ; 非向量参数
 
+#|
+vector-contains?
+检查向量中是否包含指定元素。
+
+语法
+----
+(vector-contains? vector elem)
+(vector-contains? vector elem compare)
+
+参数
+----
+vector : vector?
+要检查的向量
+
+elem : any?
+要查找的元素
+
+compare : procedure? (可选)
+比较函数，接受两个参数，返回布尔值。默认为 equal?
+
+返回值
+-----
+boolean?
+如果向量中包含指定元素则返回 #t，否则返回 #f
+
+说明
+----
+1. 在向量中查找指定元素
+2. 使用 compare 函数比较元素，默认为 equal?
+3. 如果找到匹配的元素则返回 #t，否则返回 #f
+4. 时间复杂度为 O(n)，其中 n 是向量的长度
+
+错误处理
+--------
+type-error
+当 vector 不是向量或 compare 不是过程时抛出错误。
+
+|#
+
+;;; vector-contains? 测试
+
+;; 基本功能测试
+(check-true (vector-contains? #(1 2 3) 2))  ; 包含元素
+(check-false (vector-contains? #(1 2 3) 4))  ; 不包含元素
+(check-false (vector-contains? #() 1))  ; 空向量
+
+;; 不同类型元素测试
+(check-true (vector-contains? #(a b c) 'b))  ; 符号元素
+(check-true (vector-contains? #("hello" "world") "hello"))  ; 字符串元素
+(check-true (vector-contains? #(#\a #\b #\c) #\b))  ; 字符元素
+
+;; 使用自定义比较函数
+(check-true (vector-contains? #(1 2 3) 2 =))  ; 使用 = 比较
+(check-false (vector-contains? #(1 2 3) 4 =))  ; 使用 = 比较，未找到
+(check-true (vector-contains? #((1 2) (3 4)) '(1 2) equal?))  ; 列表比较
+
+;; 边界情况测试
+(check-true (vector-contains? #(42) 42))  ; 单元素向量，找到
+(check-false (vector-contains? #(42) 0))  ; 单元素向量，未找到
+(check-true (vector-contains? #(1 2 3) 1))  ; 第一个元素
+(check-true (vector-contains? #(1 2 3) 3))  ; 最后一个元素
+
+;; 错误处理测试
+(check-catch 'type-error (vector-contains? 'not-a-vector 1))  ; 非向量参数
+
 (check-report)
 
