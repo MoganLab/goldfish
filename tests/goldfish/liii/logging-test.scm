@@ -2,7 +2,7 @@
         (liii logging)
         (liii string)
         (liii lang)
-        (liii path)
+        (liii rich-path)
         (liii error)
 ) ;import
 

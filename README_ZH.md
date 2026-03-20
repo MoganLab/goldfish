@@ -71,6 +71,7 @@
 | [(liii rich-list)](tests/goldfish/liii/rich-list-test.scm) | 面向`list`的静态方法和实例方法       |
 | [(liii rich-vector)](tests/goldfish/liii/rich-vector-test.scm) | 面向`vector`的静态方法和实例方法 |
 | [(liii rich-hash-table)](tests/goldfish/liii/rich-hash-table-test.scm) | 面向`hash-table`的静态方法和实例方法 |
+| [(liii rich-path)](tests/goldfish/liii/rich-path-test.scm) | 面向`path`的静态方法和实例方法 |
 
 ### 类似Python的标准库
 形如`(liii xyz)`的是金鱼标准库，模仿Python标准库和Scala集合库的函数接口和实现方式，降低用户的学习成本。

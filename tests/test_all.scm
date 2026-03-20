@@ -17,7 +17,7 @@
 (import (liii list)
         (liii string)
         (liii os)
-        (liii path)
+        (liii rich-path)
         (liii lang))
 
 (define enable-http-tests? 
@@ -76,4 +76,3 @@
              (newline))))
   (when (ret-l :exists (compose not zero? cdr))
     (exit -1)))
-

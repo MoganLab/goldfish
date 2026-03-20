@@ -85,6 +85,7 @@ eval_string (const char* code) {
     s7_eval_c_string (wasm_sc, "(load \"liii/option.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/os.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/path.scm\")");
+    s7_eval_c_string (wasm_sc, "(load \"liii/rich-path.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/range.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/rich-char.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/rich-hash-table.scm\")");

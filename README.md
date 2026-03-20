@@ -72,6 +72,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii rich-list)](tests/goldfish/liii/rich-list-test.scm) | boxed list with rich static and instance methods |
 | [(liii rich-vector)](tests/goldfish/liii/rich-vector-test.scm) | boxed vector with rich static and instance methods |
 | [(liii rich-hash-table)](tests/goldfish/liii/rich-hash-table-test.scm) | boxed hash-table with rich static and instance methods |
+| [(liii rich-path)](tests/goldfish/liii/rich-path-test.scm) | boxed path with rich static and instance methods |
 
 ### Python-like standard library
 

@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2024 The Goldfish Scheme Authors
+; Copyright (C) 2026 The Goldfish Scheme Authors
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -16,454 +16,208 @@
 
 (define-library (liii path)
   (export
+    path path-from-string
     path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-bytes path-write-text path-append-text path-touch
-    path
+    path-getsize path-read-text path-read-bytes
+    path-write-text path-append-text path-touch
+    path-root path-of-drive path-from-parts path-from-env
+    path-cwd path-home path-temp-dir
+    path-parts path-type path-drive path-copy
+    path->string path-to-string
+    path-name path-stem path-suffix
+    path-equals? path=?
+    path-absolute? path-relative?
+    path-join path-parent
+    path-list path-list-path
+    path-rmdir path-unlink
   ) ;export
-  (import (liii base) (liii lang) (liii error) (liii vector) (liii string) (liii list)
-          (liii os)
+  (import (liii base)
+          (liii error)
+          (prefix (liii rich-path) rich-)
   ) ;import
   (begin
 
-    (define (path-dir? path)
-      (g_isdir path)
+    (define (path-object? value)
+      (rich-path :is-type-of value)
     ) ;define
 
-    (define (path-file? path)
-      (g_isfile path)
-    ) ;define
-
-    (define (path-exists? path)
-      (file-exists? path)
-    ) ;define
-
-    (define path-getsize
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'")
-          ) ;file-not-found-error
-          (g_path-getsize path)
-        ) ;if
-      ) ;typed-lambda
-    ) ;define
-
-    (define path-read-text
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'")
-          ) ;file-not-found-error
-          (g_path-read-text path)
-        ) ;if
-      ) ;typed-lambda
-    ) ;define
-
-    (define path-read-bytes
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'")
-          ) ;file-not-found-error
-          (g_path-read-bytes path)
-        ) ;if
-      ) ;typed-lambda
-    ) ;define
-
-    (define path-write-text
-      (typed-lambda ((path string?) (content string?))
-        (g_path-write-text path content)
-      ) ;typed-lambda
-    ) ;define
-
-    (define path-append-text
-      (typed-lambda ((path string?) (content string?))
-        (g_path-append-text path content)
-      ) ;typed-lambda
-    ) ;define
-
-    (define (path-touch path)
-      (g_path-touch path)
-    ) ;define
-
-    (define-case-class path ()
-      (define parts #("."))
-      (define type 'posix)
-      (define drive "")
-  
-      (define (%set-parts! v)
-        (if (rich-vector :is-type-of v)
-            (set! parts (v :collect))
-            (set! parts v)
-        ) ;if
-      ) ;define
-  
-      (define (%set-type! s)
-        (set! type s)
-      ) ;define
-  
-      (define (%set-drive! s)
-        (set! drive s)
-      ) ;define
-  
-      (define (%get-parts) parts)
-      (define (%get-type) type)
-      (define (%get-drive) drive)
-  
-      (define (%copy)
-        (let1 p (path)
-          (p :set-parts! parts)
-          (p :set-type! type)
-          (p :set-drive! drive)
-          p
-        ) ;let1
-      ) ;define
-
-
-      (chained-define (@of-drive ch)
-        (when (not (char? ch))
-          (type-error "path@of-drive must take char? as input")
-        ) ;when
-        (let1 r (path)
-          (r :set-type! 'windows)
-          (r :set-drive! ($ ch :to-upper :make-string))
-          (r :set-parts! #())
-          r
-        ) ;let1
-      ) ;chained-define
-
-      (chained-define (@root)
-        (let1 r (path)
-              (r :set-parts! #("/"))
-              r
-        ) ;let1
-      ) ;chained-define
-
-      (chained-define (@from-parts x) 
-        (let1 r (path)
-          (r :set-parts! x)
-          r
-        ) ;let1
-      ) ;chained-define
-
-      (chained-define (@/ x) 
-        (if (path :is-type-of x)
-            (path :root :/ x)
-            (cond ((and (string-ends? x ":") (= (string-length x) 2))
-                   (path :of-drive (x 0)))
-            
-                  ((string=? x "/") (path :root))
-            
-                  (else
-                    (path :from-parts (vector-append (vector (string (os-sep))) (vector x)))
-                  ) ;else
-            ) ;cond
-        ) ;if
-      ) ;chained-define
-
-      (chained-define (@apply s)
-        (cond ((and (or (os-linux?) (os-macos?))
-                    (string-starts? s "/"))
-               (path :/ (@apply ($ s :drop 1 :get))))
-              ((and (os-windows?)
-                    (= (string-length s) 2)
-                    (char=? (s 1) #\:))
-               (path :of-drive (s 0))
-              ) ;
-              ((and (os-windows?) (>= (string-length s) 3)
-                    (char=? (s 1) #\:)
-                    (char=? (s 2) #\\))
-               (path :of-drive (s 0)
-                     :/ (@apply ($ s :drop 3 :get))
-               ) ;path
-              ) ;
-              (else
-               (let loop ((iter s))
-                 (cond ((or (string-null? iter) (string=? iter "."))
-                        (path))
-                 
-                       ((not (char=? (iter 0) (os-sep)))
-                        (path :from-parts ($ iter :split (string (os-sep))))
-                       ) ;
-                 
-                       (else
-                        (loop ($ iter :drop 1 :get))
-                       ) ;else
-                 ) ;cond
-               ) ;let
-              ) ;else
-        ) ;cond
-      ) ;chained-define
-
-      (chained-define (@from-env name)
-        (path (getenv name))
-      ) ;chained-define
-
-      (define (%name)
-        (if (string=? "." ($ parts :last))
-            ""
-            ($ parts :last)
-        ) ;if
-      ) ;define
-
-      (define (%stem)
-        (define last-part-str 
-          (if (> (vector-length parts) 0)
-              (vector-ref parts (- (vector-length parts) 1))
-              ""
-          ) ;if
-        ) ;define
-  
-        (define (drop-suffix str)
-          (let* ((rich-str ($ str))
-                 (rich-splits (rich-str :split "."))  ; 按点分割
-                 (count (rich-splits :count)))  ; 获取分割数量
-            (cond ((<= count 1) str)  ; 无后缀或单一部分
-                  ((string=? str ".") "")  ; 当前目录特殊处理
-                  ((string=? str "..") "..") ; 上级目录特殊处理
-                  ((and (string=? (rich-splits 0) "")  ; 以点开头
-                        (= count 2))  ; 且只有一个点（纯隐藏文件）
-                   str  ; 保留完整文件名
-                  ) ;
-                  (else  ; 正常多后缀情况
-                   (rich-splits :take (- count 1) :make-string ".")
-                  ) ;else
-            ) ;cond
-          ) ;let*
-        ) ;define
-  
-        (drop-suffix (%name))
-      ) ;define
-
-      (define (%suffix)
-        (let* ((name (%name))
-               (rich-str ($ name))
-               (rich-splits (rich-str :split "."))
-               (count (rich-splits :count)))
-          (cond ((<= count 1) "")  ; 无后缀
-                ((string=? name ".") "")  ; 当前目录
-                ((string=? name "..") "") ; 上级目录
-                ((and (string=? (rich-splits 0) "")  ; 以点开头
-                      (= count 2))  ; 且只有一个点（纯隐藏文件）
-                 ""
-                ) ;
-                (else 
-                 (string-append "." (rich-splits :last))  ; 返回最后一部分
-                ) ;else
-          ) ;cond
-        ) ;let*
-      ) ;define
-
-      (define (%equals that)
-        (if (path :is-type-of that)
-            (string=? (%to-string) (that :to-string))
-            #f
-        ) ;if
-      ) ;define
-
-      (define (%file?)
-        (path-file? (%to-string))
-      ) ;define
-
-      (define (%dir?)
-        (path-dir? (%to-string)) 
-      ) ;define
-
-      (define (%absolute?)
-        (case type
-          ((posix) (string-starts? (parts 0) "/"))
-    
-          ((windows) (not ($ drive :empty?)))
-    
-          (else
-            (value-error
-              (string-append "path%absolute?: unknown type" (symbol->string type))
-            ) ;value-error
-          ) ;else
-        ) ;case
-      ) ;define
-
-      (define (%relative)
-        (not (%absolute?))
-      ) ;define
-
-      (define (%exists?)
-        (path-exists? (%to-string))
-      ) ;define
-
-      (define (%to-string)
-        (case type
-          ((posix)
-           (let1 s ($ parts :make-string (string (os-sep)))
-             (if (and (> ($ s :length) 1) (string-starts? s (string (os-sep))))
-                 (string-drop s 1)
-                 s
-             ) ;if
-           ) ;let1
-          ) ;
-          ((windows)
-           (let1 s ($ parts :make-string "\\")
-             (if (string-null? drive)
-                 s
-                 (string-append drive ":\\" s)
-             ) ;if
-           ) ;let1
-          ) ;
-          (else (value-error "path%to-string: unknown type" type))
-        ) ;case
-      ) ;define
-
-      (define (%read-text)
-        (path-read-text (%to-string))
-      ) ;define
-
-      (typed-define (%write-text (content string?))
-        (path-write-text (%to-string) content)
-      ) ;typed-define
-
-      (typed-define (%append-text (content string?))
-        (path-append-text (%to-string) content)
-      ) ;typed-define
-
-      (define (%list)
-        (box (listdir (%to-string)))
-      ) ;define
-
-      (define (%list-path)
-        ((box (listdir (%to-string)))
-         :map (lambda (x) ((%this) :/ x))
-        ) ;
-      ) ;define
-
-      (define (%touch)
-        (path-touch (%to-string))
-      ) ;define
-
-      (chained-define (%/ x)
-        (cond ((string? x)
-               (let1 new-path (%copy)
-                 (new-path :set-parts! (vector-append parts (vector x)))
-                 new-path)
-               ) ;let1
-        
-              ((path :is-type-of x)
-               (cond ((x :absolute?)
-                      (value-error "path to append must not be absolute path: " (x :to-string)))
-                     ((string=? (x :to-string) ".")
-                      (%this)
-                     ) ;
-                     (else (let ((new-path (%copy))
-                                 (x-parts (x :get-parts)))
-                             (if (os-windows?)
-                                 (new-path :set-parts! x-parts)
-                                 (new-path :set-parts! (vector-append (vector (string (os-sep))) x-parts))
-                             ) ;if
-                             new-path)
-                     ) ;else
-               ) ;cond
-              ) ;
-        
-              (else (type-error "only string?, path is allowed"))
-        ) ;cond
-      ) ;chained-define
-
-      (chained-define (%parent)   
-        (define (parts-drop-right parts x)
-          (let1 path-vec ($ parts :drop-right x)
-            (let1 new-path (%copy)
-              (if (path-vec :empty?)
-                  (if (os-windows?)
-                      (new-path :set-parts! #(""))
-                      (new-path :set-parts! #("."))
-                  ) ;if
-                  (new-path :set-parts! (path-vec :append #("")))
-              ) ;if
-              new-path
-            ) ;let1
-          ) ;let1
-        ) ;define
-                
-        (cond
-          ((or (equal? #("/") parts) (equal? #(".") parts))
-           (%this)
-          ) ;
-          ((or (os-macos?) (os-linux?))
-           (let1 last-part (($ parts) :take-right 1 :collect)
-                 (if (equal? last-part #(""))
-                     (parts-drop-right parts 2)
-                     (parts-drop-right parts 1)
-                 ) ;if
-           ) ;let1
-          ) ;
-          ((os-windows?)
-           (if ($ parts :empty?)
-               (%this)
-               (let1 last-part (($ parts) :take-right 1 :collect)
-                 (if (equal? last-part #(""))
-                     (parts-drop-right parts 2)
-                     (parts-drop-right parts 1)
-                 ) ;if
-               ) ;let1
-           ) ;if
-          ) ;
-    
-          (else (??? "Unsupported platform"))
-        ) ;cond
-      ) ;chained-define
-
-      (define (%rmdir)
-        (rmdir (%to-string))
-      ) ;define
-
-      (define* (%unlink (missing-ok #f))  ; 使用define*定义可选参数
-        (let ((path-str (%to-string)))
-          (cond
-            ((file-exists? path-str)  ; 文件存在时总是删除
-             (remove path-str)
-            ) ;
-            (missing-ok  ; 文件不存在时根据missing-ok决定
-             #t         ; missing-ok为#t时静默返回#t
-            ) ;missing-ok
-            (else        ; missing-ok为#f时抛出错误
-             (error 'file-not-found-error 
-                    (string-append "File not found: " path-str)
-             ) ;error
+    (define (path->object value func-name)
+      (cond ((path-object? value) value)
+            ((string? value) (rich-path value))
+            (else
+              (type-error (string-append func-name ": path must be string or path"))
             ) ;else
-          ) ;cond
-        ) ;let
-      ) ;define*
+      ) ;cond
+    ) ;define
 
+    (define (path->input-string value func-name)
+      (cond ((path-object? value) (value :to-string))
+            ((string? value) value)
+            (else
+              (type-error (string-append func-name ": path must be string or path"))
+            ) ;else
+      ) ;cond
+    ) ;define
 
-      (chained-define (@./ x)
-        (let1 p (path x)
-              (if (p :absolute?)
-                  (value-error "path@./: only accecpt relative path")
-                  (path x)
-              ) ;if
-        ) ;let1
-      ) ;chained-define
+    (define* (path (value "."))
+      (if (path-object? value)
+          (value :copy)
+          (path->object value "path")
+      ) ;if
+    ) ;define*
 
-      (chained-define (@cwd)
-        (path (getcwd))
-      ) ;chained-define
+    (define path-from-string path)
 
-      (chained-define (@home)
-        (cond ((or (os-linux?) (os-macos?))
-               (path (getenv "HOME")))
-              ((os-windows?)
-               (path :of-drive ((getenv "HOMEDRIVE") 0)
-                     :/ (path (getenv "HOMEPATH"))
-               ) ;path
-              ) ;
-              (else (value-error "path@home: unknown type"))
-        ) ;cond
-      ) ;chained-define
+    (define (path-dir? value)
+      (rich-path-dir? (path->input-string value "path-dir?"))
+    ) ;define
 
-      (chained-define (@temp-dir)
-        (path (os-temp-dir)))
+    (define (path-file? value)
+      (rich-path-file? (path->input-string value "path-file?"))
+    ) ;define
 
-      ) ;chained-define
+    (define (path-exists? value)
+      (rich-path-exists? (path->input-string value "path-exists?"))
+    ) ;define
 
-    ) ;define-case-class
+    (define (path-getsize value)
+      (rich-path-getsize (path->input-string value "path-getsize"))
+    ) ;define
+
+    (define (path-read-text value)
+      (rich-path-read-text (path->input-string value "path-read-text"))
+    ) ;define
+
+    (define (path-read-bytes value)
+      (rich-path-read-bytes (path->input-string value "path-read-bytes"))
+    ) ;define
+
+    (define (path-write-text value content)
+      (if (not (string? content))
+          (type-error "path-write-text: content must be string")
+          (rich-path-write-text (path->input-string value "path-write-text") content)
+      ) ;if
+    ) ;define
+
+    (define (path-append-text value content)
+      (if (not (string? content))
+          (type-error "path-append-text: content must be string")
+          (rich-path-append-text (path->input-string value "path-append-text") content)
+      ) ;if
+    ) ;define
+
+    (define (path-touch value)
+      (rich-path-touch (path->input-string value "path-touch"))
+    ) ;define
+
+    (define (path-root)
+      (rich-path :root)
+    ) ;define
+
+    (define (path-of-drive ch)
+      (rich-path :of-drive ch)
+    ) ;define
+
+    (define (path-from-parts x)
+      (rich-path :from-parts x)
+    ) ;define
+
+    (define (path-from-env name)
+      (rich-path :from-env name)
+    ) ;define
+
+    (define (path-cwd)
+      (rich-path :cwd)
+    ) ;define
+
+    (define (path-home)
+      (rich-path :home)
+    ) ;define
+
+    (define (path-temp-dir)
+      (rich-path :temp-dir)
+    ) ;define
+
+    (define (path-parts value)
+      ((path->object value "path-parts") :get-parts)
+    ) ;define
+
+    (define (path-type value)
+      ((path->object value "path-type") :get-type)
+    ) ;define
+
+    (define (path-drive value)
+      ((path->object value "path-drive") :get-drive)
+    ) ;define
+
+    (define (path-copy value)
+      ((path->object value "path-copy") :copy)
+    ) ;define
+
+    (define (path->string value)
+      (path->input-string value "path->string")
+    ) ;define
+
+    (define path-to-string path->string)
+
+    (define (path-name value)
+      ((path->object value "path-name") :name)
+    ) ;define
+
+    (define (path-stem value)
+      ((path->object value "path-stem") :stem)
+    ) ;define
+
+    (define (path-suffix value)
+      ((path->object value "path-suffix") :suffix)
+    ) ;define
+
+    (define (path-equals? left right)
+      ((path->object left "path-equals?") :equals (path->object right "path-equals?"))
+    ) ;define
+
+    (define path=? path-equals?)
+
+    (define (path-absolute? value)
+      ((path->object value "path-absolute?") :absolute?)
+    ) ;define
+
+    (define (path-relative? value)
+      ((path->object value "path-relative?") :relative)
+    ) ;define
+
+    (define (path-join base . segments)
+      (let loop ((acc (path->object base "path-join"))
+                 (rest segments))
+        (if (null? rest)
+            acc
+            (loop (acc :/ (car rest)) (cdr rest))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-parent value)
+      ((path->object value "path-parent") :parent)
+    ) ;define
+
+    (define (path-list value)
+      (listdir (path->string value))
+    ) ;define
+
+    (define (path-list-path value)
+      (vector-map
+        (lambda (entry) (path-join (path->object value "path-list-path") entry))
+        (path-list value)
+      ) ;vector-map
+    ) ;define
+
+    (define (path-rmdir value)
+      ((path->object value "path-rmdir") :rmdir)
+    ) ;define
+
+    (define* (path-unlink value (missing-ok #f))
+      ((path->object value "path-unlink") :unlink missing-ok)
+    ) ;define*
+
   ) ;begin
-
+) ;define-library
