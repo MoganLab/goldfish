@@ -17,62 +17,108 @@
 (import (liii list)
         (liii string)
         (liii os)
-        (liii rich-path)
-        (liii lang))
+        (liii path)
+) ;import
 
-(define enable-http-tests? 
+(define enable-http-tests?
   (let ((env-var (getenv "GOLDFISH_TEST_HTTP")))
-    (and env-var (not (equal? env-var "0")))))
+    (and env-var (not (equal? env-var "0")))
+  ) ;let
+) ;define
+
+(define (test-path-join . parts)
+  (let ((sep (string (os-sep))))
+    (let loop ((result "")
+               (rest parts))
+      (if (null? rest)
+        result
+        (let ((part (car rest)))
+          (if (string-null? result)
+            (loop part (cdr rest))
+            (loop (string-append result sep part) (cdr rest))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;let
+) ;define
 
 (define level1-tests
-  ((path :./ "tests" :/ "goldfish" :list-path)
-   :filter (@ _ :dir?)
-   :flat-map (lambda (x) ((x :list-path) :collect))
-   :filter (@ _ :file?)
-   :filter (lambda (x) 
-             (let ((file-path (x :to-string)))
-               (and (not ($ file-path :contains "srfi-78"))
-                    (or enable-http-tests?
-                        (not ($ file-path :contains "http-test"))))))
-   :map (@ _ :to-string)))
+  (let* ((test-root (test-path-join "tests" "goldfish"))
+         (subdirs (filter path-dir? (map (lambda (x) (test-path-join test-root x))
+                                         (listdir test-root)))
+         ) ;subdirs
+         (all-files (flat-map (lambda (dir)
+                                (map (lambda (f) (test-path-join dir f))
+                                     (listdir dir))
+                                ) ;map
+                              subdirs)
+         ) ;all-files
+         (test-files (filter path-file? all-files)))
+    (filter (lambda (file-path)
+              (and (not (string-contains file-path "srfi-78"))
+                   (or enable-http-tests?
+                       (not (string-contains file-path "http-test")))
+                   ) ;or
+              ) ;and
+            test-files
+    ) ;filter
+  ) ;let*
+) ;define
 
 (define (all-tests)
-  level1-tests)
+  level1-tests
+) ;define
 
 (define (goldfish-cmd)
   (if (os-windows?)
     "bin\\goldfish -m r7rs "
-    "bin/goldfish -m r7rs "))
+    "bin/goldfish -m r7rs "
+  ) ;if
+) ;define
 
 (define ESC (string #\escape #\[))
 (define (color code)
   (string-append ESC
                  (number->string code)
-                 "m"))
+                 "m"
+  ) ;string-append
+) ;define
 
 (define GREEN (color 32))
 (define RED   (color 31))
 (define RESET (color 0))
 
-(let1 ret-l ($ ((all-tests)
-                :map (lambda (x) (string-append (goldfish-cmd) x))
-                :fold (list)
-                      (lambda (cmd acc)
-                       (newline)
-                       (display "----------->") (newline)
-                       (display cmd) (newline)
-                       (let1 result (os-call cmd)
-                         (cons (cons cmd result) acc)))))
+(let ((test-results
+       (fold (lambda (test-file acc)
+               (let ((cmd (string-append (goldfish-cmd) test-file)))
+                 (newline)
+                 (display "----------->") (newline)
+                 (display cmd) (newline)
+                 (let ((result (os-call cmd)))
+                   (cons (cons cmd result) acc))
+                 ) ;let
+               ) ;let
+             (list)
+             (all-tests)))
+       ) ;fold
   (newline)
   (display "=== Summary ===") (newline)
-  (ret-l :for-each
-         (lambda (test-result)
-           (let ((test-file (car test-result))
-                 (exit-code (cdr test-result)))
-             (display (string-append "  " test-file " ... "))
-             (if (zero? exit-code)
-                 (display (string-append GREEN "PASS" RESET))
-                 (display (string-append RED   "FAIL" RESET)))
-             (newline))))
-  (when (ret-l :exists (compose not zero? cdr))
-    (exit -1)))
+  (for-each
+   (lambda (test-result)
+     (let ((test-file (car test-result))
+           (exit-code (cdr test-result)))
+       (display (string-append "  " test-file " ... "))
+       (if (zero? exit-code)
+           (display (string-append GREEN "PASS" RESET))
+           (display (string-append RED "FAIL" RESET))
+       ) ;if
+       (newline)
+     ) ;let
+   ) ;lambda
+   test-results
+  ) ;for-each
+  (when (any (lambda (x) (not (zero? (cdr x)))) test-results)
+    (exit -1)
+  ) ;when
+) ;let
