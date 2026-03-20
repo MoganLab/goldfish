@@ -11,7 +11,6 @@
 ## 代码格式规范
 - 使用空格进行缩进，而不是制表符
 - 建议缩进宽度为2个空格
-- 使用 `bin/lint` 检测代码中的括号是否匹配
 
 ## 创建代码合并请求的方法
 1. 使用 `git push -u origin 分支名` 推送代码
@@ -152,4 +151,3 @@
 - [`devel/208_2.md`](devel/208_2.md) - u8-string-length 文档和测试
 - [`devel/208_3.md`](devel/208_3.md) - u8-substring 文档和测试
 - [`devel/208_4.md`](devel/208_4.md) - string->utf8 文档和测试
-

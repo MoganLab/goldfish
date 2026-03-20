@@ -1,7 +1,0 @@
-#!/usr/bin/env elvish
-
-if (== (count $args) 0) {
-  echo "Usage: bin/lint <filename>"
-} else {
-  bin/goldfish tools/lint.scm $args[0]
-}
