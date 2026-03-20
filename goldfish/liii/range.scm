@@ -17,7 +17,8 @@
 (define-library (liii range)
   (import (liii oop) 
           (liii rich-list)
-          (liii error)) 
+          (liii error) 
+  ) ;import
   (export range)
   (begin
 
@@ -25,26 +26,35 @@
       ((start integer?) (end integer?) (step integer? 1) (inclusive? boolean? #f))
 
       (define* (@inclusive start end (step 1))
-        (range start end step #t))
+        (range start end step #t)
+      ) ;define*
 
       (define (check-step)
         (when (zero? step)
-          (value-error "step can't be zero")))
+          (value-error "step can't be zero")
+        ) ;when
+      ) ;define
 
       (define (in-range? x)
         (or (and (> step 0) (if inclusive? (and (<= x end) (>= x start)) (and (< x end) (>= x start))))
-            (and (< step 0) (if inclusive? (and (>= x end) (<= x start)) (and (> x end) (<= x start))))))
+            (and (< step 0) (if inclusive? (and (>= x end) (<= x start)) (and (> x end) (<= x start))))
+        ) ;or
+      ) ;define
 
       (define (not-in-range? x)
         (or (and (> step 0) (or (> x end) (< x start)))
             (and (< step 0) (or (< x end) (> x start)))
-            (and (= x end) (not inclusive?))))
+            (and (= x end) (not inclusive?))
+        ) ;or
+      ) ;define
 
       (define (%empty?)
         (check-step)
         (or (and (> start end) (> step 0))
             (and (< start end) (< step 0))
-            (and (= start end) (not inclusive?))))
+            (and (= start end) (not inclusive?))
+        ) ;or
+      ) ;define
 
       (define (%map map-func)
         (if (%empty?)
@@ -53,14 +63,23 @@
               (if (not-in-range? current)
                   (rich-list (reverse result))
                   (loop (+ current step)
-                        (cons (map-func current) result))))))
+                        (cons (map-func current) result)
+                  ) ;loop
+              ) ;if
+            ) ;let
+        ) ;if
+      ) ;define
 
       (define (%for-each proc)
         (when (not (%empty?))
           (let loop ((current start))
                (when (in-range? current)
                      (proc current)
-                     (loop (+ current step))))))
+                     (loop (+ current step))
+               ) ;when
+          ) ;let
+        ) ;when
+      ) ;define
 
       (define (%filter f)
         (if (%empty?)
@@ -71,7 +90,13 @@
                   (loop (+ i step)
                         (if (f i)
                             (cons i return)
-                            return))))))
+                            return
+                        ) ;if
+                  ) ;loop
+              ) ;if
+            ) ;let
+        ) ;if
+      ) ;define
 
       (define (%contains elem)
         (check-step)
@@ -79,12 +104,15 @@
             #f
             (if (in-range? elem) ;判断是否在范围内
                 (zero? (modulo (- elem start) (abs step)))
-                #f)))
+                #f
+            ) ;if
+        ) ;if
+      ) ;define
 
            
            
 
-      ) ; define-case-cass
-    ) ; begin
-  ) ; define-library
+    ) ;define-case-class
+  ) ;begin
+) ;define-library
 

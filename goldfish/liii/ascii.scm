@@ -54,5 +54,7 @@
           ascii-string-ci<?
           ascii-string-ci>?
           ascii-string-ci<=?
-          ascii-string-ci>=?)
-  (import (srfi srfi-175)))
+          ascii-string-ci>=?
+  ) ;export
+  (import (srfi srfi-175))
+) ;define-library

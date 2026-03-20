@@ -5,27 +5,37 @@
         (liii sys)
 				(liii list)
 				(liii pretty-print)
-				(liii path)) 
+				(liii path) 
+) ;import
 (begin
 
 (define (is-newline? str pos)
-  (char=? (str pos) #\newline))
+  (char=? (str pos) #\newline)
+) ;define
 
 (define (count-newline str pos)
   (let loop ((n 0) (i pos))
     (cond ((>= i (string-length str))
            n)
           ((not (is-newline? str i))
-           n)
+           n
+          ) ;
           (else
-           (loop (+ n 1) (+ i 1))))))
+           (loop (+ n 1) (+ i 1))
+          ) ;else
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (encode-newlines n)
   (cond ((= n 1)
          "\n")
         ((>= n 2)
-         (string-append "\n" (object->string (list '*PP_NEWLINE* n)) "\n"))
-        (else (value-error "encode-newline: n must >= 1, but got" n))))
+         (string-append "\n" (object->string (list '*PP_NEWLINE* n)) "\n")
+        ) ;
+        (else (value-error "encode-newline: n must >= 1, but got" n))
+  ) ;cond
+) ;define
 
 ;; 当前状态：start
 ;; 含义：位置在代码的行首
@@ -37,17 +47,24 @@
              ;; start -> start | #\newline
              (let* ((n (count-newline str pos))
                     (next-pos (+ pos n)))
-               (values 'start next-pos (string-append result (encode-newlines n)))))
+               (values 'start next-pos (string-append result (encode-newlines n))))
+             ) ;let*
             ((char=? (str pos) #\;)
              ;; start -> comment | ;
-             (values 'comment (+ pos 1) result))
+             (values 'comment (+ pos 1) result)
+            ) ;
             ((and (< (+ pos 1) (string-length str))
                   (char=? (str pos) #\#)
                   (char=? (str (+ pos 1)) #\|))
              ;; start -> multi-comment | #|
-             (values 'multi-comment (+ pos 2) result))
+             (values 'multi-comment (+ pos 2) result)
+            ) ;
             (else
-             (values 'normal (+ pos 1) (string-append result (string (str pos))))))))
+             (values 'normal (+ pos 1) (string-append result (string (str pos))))
+            ) ;else
+      ) ;cond
+  ) ;if
+) ;define
 
 ;; 当前状态： normal
 ;; 含义：位置在代码的行中
@@ -57,14 +74,20 @@
     (cond ((< i 0) #f)  ; Start of string, no content found
           ((is-newline? str i) #f)  ; Found start of line, no content found
           ((not (char-whitespace? (str i))) #t)  ; Found non-whitespace content
-          (else (loop (- i 1))))))
+          (else (loop (- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (find-newline-after-comment str comment-pos)
   ;; Find the position of newline after the comment, or end of string
   (let loop ((i comment-pos))
     (cond ((>= i (string-length str)) i)
           ((is-newline? str i) i)
-          (else (loop (+ i 1))))))
+          (else (loop (+ i 1)))
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (next-state-from-normal str pos result)
   ; (display* "normal: " pos result "\n")
@@ -73,7 +96,8 @@
       (cond ((is-newline? str pos)
              (let* ((n (count-newline str pos))
                     (next-pos (+ pos n)))
-               (values 'start next-pos (string-append result (encode-newlines n)))))
+               (values 'start next-pos (string-append result (encode-newlines n))))
+             ) ;let*
             ((char=? (str pos) #\;)
              ;; Check if this is an end-of-line comment by looking for non-whitespace before it
              (if (has-non-whitespace-on-line-before-comment str pos)
@@ -82,16 +106,25 @@
                    (if (and newline-pos (< newline-pos (string-length str)))
                        (let* ((n (count-newline str newline-pos))
                               (next-pos (+ newline-pos n)))
-                         (values 'start next-pos (string-append result (encode-newlines n))))
-                       (values 'end (string-length str) result)))
+                         (values 'start next-pos (string-append result (encode-newlines n)))
+                       ) ;let*
+                       (values 'end (string-length str) result)
+                   ) ;if
+                 ) ;let
                  ;; This is a standalone comment, process normally
-                 (values 'comment (+ pos 1) result)))
+                 (values 'comment (+ pos 1) result)
+             ) ;if
+            ) ;
             ((and (< (+ pos 1) (string-length str))
                   (char=? (str pos) #\#)
                   (char=? (str (+ pos 1)) #\|))
              ;; normal -> multi-comment | #| 
-             (values 'multi-comment (+ pos 2) result))
-            (else (values 'normal (+ pos 1) (string-append result (string (str pos))))))))
+             (values 'multi-comment (+ pos 2) result)
+            ) ;
+            (else (values 'normal (+ pos 1) (string-append result (string (str pos)))))
+      ) ;cond
+  ) ;if
+) ;define
 
 (define (next-state-from-comment str pos result)
   (let loop ((pos pos) (current "") (started? #f) (has-content? #f))
@@ -102,15 +135,22 @@
           ((is-newline? str pos)
            ;; Found newline, comment ends, return to start state
            ;; Let the start state handle the newline to avoid double-processing
-           (values 'start pos (string-append result (object->string (list '*PP_SINGLE_COMMENT* current)))))
+           (values 'start pos (string-append result (object->string (list '*PP_SINGLE_COMMENT* current))))
+          ) ;
           ((not started?)
            ;; Skip leading whitespace after semicolon
            (if (char-whitespace? (str pos))
                (loop (+ pos 1) current #f #f)
-               (loop (+ pos 1) (string-append current (string (str pos))) #t #t)))
+               (loop (+ pos 1) (string-append current (string (str pos))) #t #t)
+           ) ;if
+          ) ;
           (else
            ;; Continue collecting comment content until newline or end
-           (loop (+ pos 1) (string-append current (string (str pos))) #t #t)))))
+           (loop (+ pos 1) (string-append current (string (str pos))) #t #t)
+          ) ;else
+    ) ;cond
+  ) ;let
+) ;define
 
 
 (define (next-state-from-multi-comment str pos result)
@@ -123,13 +163,20 @@
                 (char=? (str (+ pos 1)) #\#))
            ;; Found |#, add accumulated content to result and terminate
            (values 'multi-comment-end (+ pos 2) 
-                   (string-append result (object->string (cons '*PP_MULTI_COMMENT* (reverse (cons current lines)))))))
+                   (string-append result (object->string (cons '*PP_MULTI_COMMENT* (reverse (cons current lines)))))
+           ) ;values
+          ) ;
           ((is-newline? str pos)
            ;; Found newline, add current content to lines and reset current
-           (loop (+ pos 1) "" (cons current lines) (+ pos 1)))
+           (loop (+ pos 1) "" (cons current lines) (+ pos 1))
+          ) ;
           (else
            ;; Continue collecting characters for current line
-           (loop (+ pos 1) (string-append current (string (str pos))) lines line-start)))))
+           (loop (+ pos 1) (string-append current (string (str pos))) lines line-start)
+          ) ;else
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (next-state-from-multi-comment-end str pos result)
   (if (>= pos (string-length str))
@@ -138,13 +185,19 @@
              ;; multi-comment-end -> start | #\newline 
              (let* ((n (count-newline str pos))
                     (next-pos (+ pos n)))
-               (values 'start next-pos (string-append result (encode-newlines n)))))
+               (values 'start next-pos (string-append result (encode-newlines n))))
+             ) ;let*
             ((char-whitespace? (str pos))
              ;; multi-comment-end -> normal | #\whitespace
-             (values 'normal (+ pos 1) result))
+             (values 'normal (+ pos 1) result)
+            ) ;
             (else
              ;; multi-comment-end -> normal | char
-             (values 'normal pos result)))))
+             (values 'normal pos result)
+            ) ;else
+      ) ;cond
+  ) ;if
+) ;define
 
 (define (pp-parse str)
   (let loop ((state 'start) (pos 0) (result ""))
@@ -154,24 +207,38 @@
           ((start)
            (receive (next-state next-pos next-result)
                     (next-state-from-start str pos result)
-             (loop next-state next-pos next-result)))
+             (loop next-state next-pos next-result)
+           ) ;receive
+          ) ;
           ((comment)
            (receive (next-state next-pos next-result)
                     (next-state-from-comment str pos result)
-             (loop next-state next-pos next-result)))
+             (loop next-state next-pos next-result)
+           ) ;receive
+          ) ;
           ((multi-comment)
            (receive (next-state next-pos next-result)
                     (next-state-from-multi-comment str pos result)
-             (loop next-state next-pos next-result)))
+             (loop next-state next-pos next-result)
+           ) ;receive
+          ) ;
           ((multi-comment-end)
            (receive (next-state next-pos next-result)
                     (next-state-from-multi-comment-end str pos result)
-             (loop next-state next-pos next-result)))
+             (loop next-state next-pos next-result)
+           ) ;receive
+          ) ;
           ((end) result)
           (else
            (receive (next-state next-pos next-result)
                     (next-state-from-normal str pos result)
-             (loop next-state next-pos next-result)))))))
+             (loop next-state next-pos next-result)
+           ) ;receive
+          ) ;else
+        ) ;case
+    ) ;if
+  ) ;let
+) ;define
 
 ; 格式化文件相关函数
 
@@ -185,7 +252,13 @@
           (let ((whitespace-match (find-whitespace-line s 0)))
             (if whitespace-match
                 (loop (string-replace-one s whitespace-match) (+ count 1))
-                s))))))
+                s
+            ) ;if
+          ) ;let
+      ) ;if
+    ) ;let
+  ) ;let
+) ;define
 
 (define (find-whitespace-line str start-pos)
   ;; 查找 \n[空格或制表符]+\n 的模式，返回匹配位置或 #f
@@ -197,9 +270,16 @@
                     (and ws-end
                          (< ws-end len)
                          (char=? (string-ref str ws-end) #\newline)
-                         (> ws-end (+ i 1)))))  ;; 确保至少有一个空白字符
-             i)
-            (else (loop (+ i 1)))))))
+                         (> ws-end (+ i 1)))  ;; 确保至少有一个空白字符
+                    ) ;and
+                  ) ;let
+             i
+            ) ;
+            (else (loop (+ i 1)))
+      ) ;cond
+    ) ;let
+  ) ;let
+) ;define
 
 (define (skip-whitespace str pos)
   ;; 跳过连续的空格和制表符，返回第一个非空白字符位置或字符串末尾
@@ -208,8 +288,13 @@
       (cond ((>= i len) i)
             ((or (char=? (string-ref str i) #\space)
                  (char=? (string-ref str i) #\tab))
-             (loop (+ i 1)))
-            (else i)))))
+             (loop (+ i 1))
+            ) ;
+            (else i)
+      ) ;cond
+    ) ;let
+  ) ;let
+) ;define
 
 (define (string-replace-one str match-pos)
   ;; 替换指定位置的 \n[空白]+\n 为 \n\n
@@ -219,11 +304,15 @@
     (string-append
      (substring str 0 match-pos)
      "\n\n"
-     (substring str (+ end-pos 1) (string-length str)))))
+     (substring str (+ end-pos 1) (string-length str))
+    ) ;string-append
+  ) ;let*
+) ;define
 
 (define (pp-post str)
   ;; 后处理只保留清理空行的功能
-  (clean-empty-lines str))
+  (clean-empty-lines str)
+) ;define
 
 (define (format-file filename)
   (let* ((content (path-read-text filename))
@@ -237,31 +326,51 @@
               (cond 
                ((eof-object? expr) 
                 (let ((formatted (get-output-string output)))
-                  (pp-post formatted)))
+                  (pp-post formatted)
+                ) ;let
+               ) ;
                (else 
                 (display (pp expr) output)
                 (newline output)
-                (loop)))))))))
+                (loop)
+               ) ;else
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;let
+    ) ;if
+  ) ;let*
+) ;define
 
 (define (format-single-file filename)
   (let ((formatted (format-file filename)))
     (if formatted
         (begin
           (display formatted)
-          #t)  ; Return success
+          #t  ; Return success
+        ) ;begin
         (begin
           (display (string-append "Error: Failed to format file: " filename "\n"))
-          #f))))  ; Return failure
+          #f  ; Return failure
+        ) ;begin
+    ) ;if
+  ) ;let
+) ;define
 
 (define (format-file-in-place filename)
   (let ((formatted (format-file filename)))
     (if formatted
         (begin
           (path-write-text filename formatted)
-          #t)  ; Return success
+          #t  ; Return success
+        ) ;begin
         (begin
           (display (string-append "Error: Failed to format file: " filename "\n"))
-          #f))))  ; Return failure
+          #f  ; Return failure
+        ) ;begin
+    ) ;if
+  ) ;let
+) ;define
 
 (define (pp-format)
   (let* ((args (argv))
@@ -270,21 +379,33 @@
      ((<= argc 2) 
       (display "Usage: format.scm [-i] <file1> [file2] ...\n")
       (display "  -i  Format files in-place\n")
-      #t)  ; Return success for usage display
+      #t  ; Return success for usage display
+     ) ;
      (else
       (let ((first-arg (and (> argc 2) (list-ref args 2))))
         (if (and first-arg (string=? first-arg "-i"))
             (if (<= argc 3)
                 (begin
                   (display "Error: -i option requires at least one file\n")
-                  #f)  ; Return failure for error
+                  #f  ; Return failure for error
+                ) ;begin
                 (let ((files (list-tail args 3)))  ; Skip program name and -i option
                   (let ((results (map format-file-in-place files)))
                     (if (every (lambda (x) x) results)
                         #t  ; All succeeded
-                        #f)))) ; At least one failed
-            (format-single-file first-arg)))))))
+                        #f ; At least one failed
+                    ) ;if
+                  ) ;let
+                ) ;let
+            ) ;if
+            (format-single-file first-arg)
+        ) ;if
+      ) ;let
+     ) ;else
+    ) ;cond
+  ) ;let*
+) ;define
 
 
-) ; end of begin
-) ; end of define-library
+) ;begin
+) ;define-library
