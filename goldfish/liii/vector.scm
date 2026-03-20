@@ -17,7 +17,8 @@
 (define-library (liii vector)
   (import (srfi srfi-133)
           (srfi srfi-13)
-          (liii base))
+          (liii base)
+  ) ;import
   (export
     ; S7 Scheme built-in
     make-vector vector vector-length vector-ref vector-set! vector->list list->vector
@@ -34,14 +35,15 @@
     vector=
     ; Liii Extras
     vector-filter
-    )
+  ) ;export
   (begin
 
     (define (vector-filter pred vec)
       (let* ((result-list (vector-fold (lambda (elem acc)
                                          (if (pred elem)
                                              (cons elem acc)
-                                             acc))
+                                             acc)
+                                         ) ;if
                                        '()
                                        vec))
              (result-length (length result-list))
@@ -51,9 +53,14 @@
               result-vec
               (begin
                 (vector-set! result-vec i (car lst))
-                (loop (- i 1) (cdr lst)))))))
+                (loop (- i 1) (cdr lst))
+              ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

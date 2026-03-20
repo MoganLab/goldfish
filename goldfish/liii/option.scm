@@ -24,72 +24,100 @@
       (define (%get)
         (if (null? value)
             (value-error "option is empty, cannot get value")
-            value))
+            value
+        ) ;if
+      ) ;define
 
       (define (%get-or-else default)
         (cond ((not (null? value)) value)
               ((and (procedure? default) (not (case-class? default)))
-               (default))
-              (else default)))
+               (default)
+              ) ;
+              (else default)
+        ) ;cond
+      ) ;define
 
       (define (%or-else default . args)
         (when (not (option :is-type-of default))
-          (type-error "The first parameter of option%or-else must be a option case class"))
+          (type-error "The first parameter of option%or-else must be a option case class")
+        ) ;when
   
         (chain-apply args
           (if (null? value)
               default
-              (option value))))
+              (option value)
+          ) ;if
+        ) ;chain-apply
+      ) ;define
 
       (define (%equals that)
         (and (option :is-type-of that)
-             (class=? value (that 'value))))
+             (class=? value (that 'value))
+        ) ;and
+      ) ;define
 
       (define (%defined?) (not (null? value)))
   
       (define (%empty?)
-        (null? value))
+        (null? value)
+      ) ;define
 
       (define (%forall f)
         (if (null? value)
             #f
-            (f value)))
+            (f value)
+        ) ;if
+      ) ;define
 
       (define (%exists f)
         (if (null? value)
             #f
-            (f value)))
+            (f value)
+        ) ;if
+      ) ;define
 
       (define (%contains elem)
         (if (null? value)
             #f
-            (equal? value elem)))
+            (equal? value elem)
+        ) ;if
+      ) ;define
 
       (define (%for-each f)
         (when (not (null? value))
-              (f value)))
+              (f value)
+        ) ;when
+      ) ;define
 
       (define (%map f . args)
         (chain-apply args
           (if (null? value)
               (option '())
-              (option (f value)))))
+              (option (f value))
+          ) ;if
+        ) ;chain-apply
+      ) ;define
 
       (define (%flat-map f . args)
         (chain-apply args
           (if (null? value)
               (option '())
-              (f value))))
+              (f value)
+          ) ;if
+        ) ;chain-apply
+      ) ;define
 
       (define (%filter pred . args)
         (chain-apply args
           (if (or (null? value) (not (pred value)))
               (option '())
-              (option value))))
+              (option value))
+          ) ;if
+        ) ;chain-apply
 
-      )
+      ) ;define
 
     (define (none) (option '()))
 
-    ) ; end of begin
-  ) ; end of define-library
+    ) ;define-final-class
+  ) ;begin

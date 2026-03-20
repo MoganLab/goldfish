@@ -3,7 +3,8 @@
   (import (liii base)
           (liii list)
           (liii string)
-          (liii stack))
+          (liii stack)
+  ) ;import
 
   (begin
 
@@ -15,7 +16,10 @@
         (if (and (not (null? chars)) 
                  (char-whitespace? (car chars)))
             (loop (cdr chars))
-            chars)))
+            chars
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (read-symbol chars)
       (let loop ((chars chars) (result '()))
@@ -24,8 +28,12 @@
           ((or (char-whitespace? (car chars))
                (char=? (car chars) *open-paren*)
                (char=? (car chars) *close-paren*))
-           (values (list->string (reverse result)) chars))
-          (else (loop (cdr chars) (cons (car chars) result))))))
+           (values (list->string (reverse result)) chars)
+          ) ;
+          (else (loop (cdr chars) (cons (car chars) result)))
+        ) ;cond
+      ) ;let
+    ) ;define
 
 #|
 lint-check-brackets
@@ -61,10 +69,15 @@ context: (symbol parent-line parent-col) 或 'anonymous
                  (let ((last-open (br-st :top)))
                    (let ((location (car last-open))
                          (context (cadr last-open)))
-                     (cons 'unmatched (list (list 'unclosed location context)))))))
+                     (cons 'unmatched (list (list 'unclosed location context)))
+                   ) ;let
+                 ) ;let
+             ) ;if
+            ) ;
             
             ((char=? (car chars) #\newline)
-             (loop (+ pos 1) (+ line 1) 1 (cdr chars) br-st sy-st in-string? in-char? #f))
+             (loop (+ pos 1) (+ line 1) 1 (cdr chars) br-st sy-st in-string? in-char? #f)
+            ) ;
             
             ((and (not in-string?) (not in-char?) (char=? (car chars) #\;))
              ;; 跳过注释到行尾
@@ -72,8 +85,12 @@ context: (symbol parent-line parent-col) 或 'anonymous
                (if (or (null? chars) (char=? (car chars) #\newline))
                    (if (null? chars)
                        (loop pos line col chars br-st sy-st in-string? in-char? #f)
-                       (loop (+ pos 1) (+ line 1) 1 (cdr chars) br-st sy-st in-string? in-char? #f))
-                   (skip-comment (cdr chars)))))
+                       (loop (+ pos 1) (+ line 1) 1 (cdr chars) br-st sy-st in-string? in-char? #f)
+                   ) ;if
+                   (skip-comment (cdr chars))
+               ) ;if
+             ) ;let
+            ) ;
 
             ((and (not in-string?) (not in-char?) (char=? (car chars) #\#) 
                  (not (null? (cdr chars))) (char=? (cadr chars) #\|))
@@ -81,13 +98,20 @@ context: (symbol parent-line parent-col) 或 'anonymous
              (let skip-block-comment ((chars (cddr chars)) (line line) (col (+ col 2)))
                (cond
                  ((null? chars)
-                  (loop pos line col chars br-st sy-st in-string? in-char? #f))
+                  (loop pos line col chars br-st sy-st in-string? in-char? #f)
+                 ) ;
                  ((and (not (null? (cdr chars))) (char=? (car chars) #\|) (char=? (cadr chars) #\#))
-                  (loop (+ pos 2) line (+ col 2) (cddr chars) br-st sy-st in-string? in-char? #f))
+                  (loop (+ pos 2) line (+ col 2) (cddr chars) br-st sy-st in-string? in-char? #f)
+                 ) ;
                  ((char=? (car chars) #\newline)
-                  (skip-block-comment (cdr chars) (+ line 1) 1))
+                  (skip-block-comment (cdr chars) (+ line 1) 1)
+                 ) ;
                  (else
-                  (skip-block-comment (cdr chars) line (+ col 1))))))
+                  (skip-block-comment (cdr chars) line (+ col 1))
+                 ) ;else
+               ) ;cond
+             ) ;let
+            ) ;
             
             ((and (not in-string?) (char=? (car chars) #\#))
              ;; Handle # prefixed literals including character literals #\) #\( etc.
@@ -98,21 +122,30 @@ context: (symbol parent-line parent-col) 或 'anonymous
                     ;; Only #\ present, invalid but handle gracefully
                     (loop (+ pos 2) line (+ col 2) (cddr chars) br-st sy-st in-string? in-char? #f)
                     ;; Skip #\ and the following character, even if it's a parenthesis
-                    (loop (+ pos 3) line (+ col 3) (cdddr chars) br-st sy-st in-string? in-char? #f)))
+                    (loop (+ pos 3) line (+ col 3) (cdddr chars) br-st sy-st in-string? in-char? #f)
+                ) ;if
+               ) ;
                (else
                 ;; Handle other # prefixed literals (like #t, #f, etc.)
-                (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f))))
+                (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f)
+               ) ;else
+             ) ;cond
+            ) ;
             
             ((char=? (car chars) #\")
              (cond
                (escaped? (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f))
-               (else (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st (not in-string?) in-char? #f))))
+               (else (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st (not in-string?) in-char? #f))
+             ) ;cond
+            ) ;
             
             ((and in-string? (char=? (car chars) #\\))
-             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? (not escaped?)))
+             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? (not escaped?))
+            ) ;
             
             (in-string?
-             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f))
+             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f)
+            ) ;in-string?
             
             ((char=? (car chars) *open-paren*)
              ;; 查找下一个符号作为这个括号的上下文
@@ -122,23 +155,40 @@ context: (symbol parent-line parent-col) 或 'anonymous
                                (let-values (((symbol next-next-chars) (read-symbol next-chars)))
                                  (if (string-null? symbol)
                                      'anonymous
-                                     `(,symbol ,line ,col)))))
+                                     `(,symbol ,line ,col))
+                                 ) ;if
+                               ) ;let-values
+                    ) ;context
                     (new-br-st (br-st :push (list (list line col) context)))
                     (new-sy-st (if (and (not (eq? context 'anonymous))
                                        (not (null? next-chars)))
                                   (sy-st :push context)
-                                  sy-st)))
-               (loop (+ pos 1) line (+ col 1) (cdr chars) new-br-st new-sy-st in-string? in-char? #f)))
+                                  sy-st))
+                    ) ;new-sy-st
+               (loop (+ pos 1) line (+ col 1) (cdr chars) new-br-st new-sy-st in-string? in-char? #f)
+             ) ;let*
+            ) ;
             
             ((char=? (car chars) *close-paren*)
              (if (= (br-st :size) 0)
                  (let ((context (if (> (sy-st :size) 0) 
                                    (sy-st :top)
                                    'anonymous)))
-                   (cons 'unmatched (list (list 'unmatched-close (list line col) context))))
+                   (cons 'unmatched (list (list 'unmatched-close (list line col) context)))
+                 ) ;let
                  (let ((new-br-st (br-st :pop))
                        (context (cadr (br-st :top))))
-                   (loop (+ pos 1) line (+ col 1) (cdr chars) new-br-st sy-st in-string? in-char? #f))))
+                   (loop (+ pos 1) line (+ col 1) (cdr chars) new-br-st sy-st in-string? in-char? #f)
+                 ) ;let
+             ) ;if
+            ) ;
             
             (else
-             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f))))))))
+             (loop (+ pos 1) line (+ col 1) (cdr chars) br-st sy-st in-string? in-char? #f)
+            ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+  ) ;begin
+) ;define-library
