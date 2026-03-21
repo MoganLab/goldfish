@@ -134,12 +134,12 @@ git clone https://gitee.com/LiiiLabs/goldfish.git
 # git clone https://github.com/LiiiLabs/goldfish.git
 cd goldfish
 xmake b goldfish
-bin/goldfish --version
+bin/gf --version
 ```
 You can also install it to `/opt`:
 ```
 sudo xmake i -o /opt/goldfish --root
-/opt/goldfish/bin/goldfish
+/opt/goldfish/bin/gf
 ```
 For uninstallation, just:
 ```
@@ -147,29 +147,73 @@ sudo rm -rf /opt/goldfish
 ```
 
 ## Commandlinefu
-This section assumes you have executed `xmake b goldfish` sucessfully and `bin/goldfish` is available.
+This section assumes you have executed `xmake b goldfish` sucessfully and `bin/gf` is available.
 
-### Zero Option
-Without any options, it will print the help message:
+### Subcommands
+
+Goldfish Scheme uses subcommands for different operations:
+
+| Subcommand | Description |
+|------------|-------------|
+| `help` | Display help message |
+| `version` | Display version information |
+| `eval CODE` | Evaluate Scheme code |
+| `load FILE` | Load Scheme file and enter REPL |
+| `repl` | Enter interactive REPL mode |
+| `run TARGET` | Run main function from target |
+| `test` | Run tests |
+| `fix PATH` | Format Scheme code |
+| `FILE` | Load and evaluate Scheme file directly |
+
+### Display Help
+Without any command, it will print the help message:
 ```
-> bin/goldfish 
-Goldfish Scheme 17.10.0 by LiiiLabs
---version       display version
--e              -e '(+ 1 2)'
--l FILE         Load the scheme code on path
-FILE            Load the scheme code on path and print the evaluated result
+> bin/gf
+Goldfish Scheme 17.11.30 by LiiiLabs
+
+Commands:
+  help               Display this help message
+  version            Display version
+  eval CODE          Evaluate Scheme code
+  load FILE          Load Scheme code from FILE, then enter REPL
+  ...
 ```
 
-### Version Option
-`--version` will print the Goldfish Scheme version and the underlying S7 Scheme version:
+### Display Version
+`version` subcommand will print the Goldfish Scheme version and the underlying S7 Scheme version:
 ```
-> bin/goldfish --version
-Goldfish Scheme 17.10.0 by LiiiLabs
-based on S7 Scheme 10.11 (2-July-2024)
+> bin/gf version
+Goldfish Scheme 17.11.30 by LiiiLabs
+based on S7 Scheme 11.5 (22-Sep-2025)
+```
+
+### Evaluate Code
+`eval` subcommand helps you evaluate Scheme code on the fly:
+```
+> bin/gf eval "(+ 1 2)"
+3
+> bin/gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+1
+> bin/gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
+```
+
+### Load File
+`load` subcommand helps you load a Scheme file and enter REPL:
+```
+> bin/gf load tests/goldfish/liii/base-test.scm
+; load the file and enter REPL
+```
+
+### Run File Directly
+You can also load and evaluate a Scheme file directly:
+```
+> bin/gf tests/goldfish/liii/base-test.scm
+; *** checks *** : 1973 correct, 0 failed.
 ```
 
 ### Mode Option
-`-m` helps you specify the standard libray mode.
+`-m` or `--mode` helps you specify the standard library mode:
 
 + `default`: `-m default` is the equiv of `-m liii`
 + `liii`: Goldfish Scheme with `(liii oop)`, `(liii base)` and `(liii error)`
@@ -177,50 +221,6 @@ based on S7 Scheme 10.11 (2-July-2024)
 + `sicp`: S7 Scheme with `(scheme base)` and `(srfi sicp)`
 + `r7rs`: S7 Scheme with `(scheme base)`
 + `s7`: S7 Scheme without any extra library
-
-### Other Options
-`-e` helps you evaluate the scheme code on the fly:
-```
-> bin/goldfish -e "(+ 1 2)"
-3
-> bin/goldfish -e "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
-1
-> bin/goldfish -e "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
-("bin/goldfish" "-e" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" 3)
-#\newline
-```
-
-`-l` helps you load the FILE:
-```
-> bin/goldfish -l tests/demo_error.scm 
-
-;car argument, (), is nil but should be a pair
-;    (list)
-;    tests/demo_error.scm, line 1, position: 10
-; (list)
-
-> bin/goldfish -l tests/demo_no_error.scm
-> bin/goldfish -l tests/demo_argv.scm 1 2 3
-("bin/goldfish" "tests/demo_argv.scm" "1" "2" "3")
-```
-
-If no options provided, it will load the FILE and print the eval result:
-```
-> bin/goldfish  tests/demo_no_error.scm 
-tests/demo_no_error.scm => 3
-> bin/goldfish  tests/demo_error.scm 
-
-;car argument, (), is nil but should be a pair
-;    (list)
-;    tests/demo_error.scm, line 1, position: 10
-; (list)
-
-tests/demo_error.scm => wrong-type-arg
-> bin/goldfish tests/demo_argv.scm 1 2 3
-("bin/goldfish" "tests/demo_argv.scm" "1" "2" "3")
-tests/demo_argv.scm => #\newline
-```
-Notice, the FILE and the eval result are separated by ` => `.
 
 
 ## Versioning
