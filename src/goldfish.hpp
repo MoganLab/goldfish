@@ -3365,6 +3365,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  test               Run tests (tests/test_all.scm or all *-test.scm files)" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
@@ -3496,6 +3497,21 @@ static string
 find_goldfix_tool_root (const char* gf_lib) {
   std::error_code ec;
   vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldfix", fs::path (gf_lib).parent_path () / "tools" / "goldfix"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static string
+find_goldtest_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tests" / "goldtest", fs::path (gf_lib).parent_path () / "tests" / "goldtest"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -4452,6 +4468,56 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
     exit (-1);
 #endif
+  }
+
+  // 处理 test 子命令
+  if (command == "test") {
+    // 添加 tests/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
+    string goldtest_root = find_goldtest_tool_root (gf_lib);
+    if (goldtest_root.empty ()) {
+      cerr << "Error: tests/goldtest directory not found." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_add_to_load_path (sc, goldtest_root.c_str ());
+
+    // Load the goldtest.scm file
+    string goldtest_scm = goldtest_root + "/liii/goldtest.scm";
+    s7_pointer load_result = s7_load (sc, goldtest_scm.c_str ());
+    if (!load_result) {
+      cerr << "Error: Failed to load " << goldtest_scm << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cerr << "Error loading goldtest.scm: " << errmsg << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // Get the run-goldtest function
+    s7_pointer run_goldtest = s7_name_to_value (sc, "run-goldtest");
+    if ((!run_goldtest) || (!s7_is_procedure (run_goldtest))) {
+      cerr << "Error: Failed to find run-goldtest function." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_call (sc, run_goldtest, s7_nil (sc));
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
   }
 
   // 处理直接执行文件（以 .scm 结尾或存在的文件）
