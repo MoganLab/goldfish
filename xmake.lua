@@ -144,6 +144,8 @@ target ("goldfish") do
     if is_plat("windows") then
         set_optimize("faster")
         add_cxxflags("/fp:precise")
+        add_cxxflags("/utf-8")
+        add_cflags("/utf-8")
     end
 
     -- only enable REPL if repl option is enabled
