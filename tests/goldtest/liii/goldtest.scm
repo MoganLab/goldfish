@@ -36,7 +36,7 @@
 (define RESET (color 0))
 
 (define (test-path-join . parts)
-  (let* ((sep (string (os-sep))))
+  (let ((sep (string (os-sep))))
     (let loop ((result "")
                (rest parts))
       (if (null? rest)
@@ -53,38 +53,51 @@
 ) ;define
 
 (define (find-test-files dir)
-  (if (path-dir? dir)
-    (let ((entries (listdir dir)))
-      (flat-map
-        (lambda (entry)
-          (let ((full-path (test-path-join dir entry)))
-            (cond
-              ((path-dir? full-path)
-               (find-test-files full-path))
-              ((and (path-file? full-path)
-                    (string-ends? entry "-test.scm"))
-               (list full-path))
-              (else '()))))
-        entries))
-    '()))
+  (let ((files '()))
+    (when (path-dir? dir)
+      (let ((entries (listdir dir)))
+        (for-each
+          (lambda (entry)
+            (let ((full-path (test-path-join dir entry)))
+              (cond
+                ((path-dir? full-path)
+                 (set! files (append files (find-test-files full-path)))
+                ) ;
+                ((and (path-file? full-path)
+                      (string-ends? entry "-test.scm"))
+                 (set! files (cons full-path files))
+                ) ;
+              ) ;cond
+            ) ;let
+          ) ;lambda
+          entries
+        ) ;for-each
+      ) ;let
+    ) ;when
+    files
+  ) ;let
+) ;define
 
 (define (goldfish-cmd)
   (string-append (executable) " -m r7rs ")
 ) ;define
 
 (define (run-test-file test-file)
-  (let* ((cmd (string-append (goldfish-cmd) test-file))
-         (result (begin
-                   (display "----------->") (newline)
-                   (display cmd) (newline)
-                   (os-call cmd))))
-    (cons test-file result))
+  (let ((cmd (string-append (goldfish-cmd) test-file)))
+    (display "----------->") (newline)
+    (display cmd) (newline)
+    (let ((result (os-call cmd)))
+      (cons test-file result)
+    ) ;let
+  ) ;let
 ) ;define
 
 (define (display-summary test-results)
-  (let* ((total (length test-results))
-         (passed (count (lambda (x) (zero? (cdr x))) test-results))
-         (failed (- total passed)))
+  (let ((total (length test-results))
+        (passed (count (lambda (x) (zero? (cdr x))) test-results))
+        (failed (- (length test-results)
+                   (count (lambda (x) (zero? (cdr x))) test-results)))
+        ) ;failed
     (newline)
     (display "=== Test Summary ===") (newline)
     (newline)
@@ -95,35 +108,44 @@
           (display (string-append "  " test-file " ... "))
           (if (zero? exit-code)
             (display (string-append GREEN "PASS" RESET))
-            (display (string-append RED "FAIL" RESET)))
-          (newline)))
-      test-results)
+            (display (string-append RED "FAIL" RESET))
+          ) ;if
+          (newline)
+        ) ;let
+      ) ;lambda
+      test-results
+    ) ;for-each
     (newline)
     (display "=== Summary ===") (newline)
     (display (string-append "  Total:  " (number->string total))) (newline)
     (display (string-append "  " GREEN "Passed: " (number->string passed) RESET)) (newline)
     (when (> failed 0)
-      (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline))
+      (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline)
+    ) ;when
     (newline)
-    failed))
+    failed
+  ) ;let
 ) ;define
 
 (define (run-goldtest)
-  (let* ((test-files (list-sort string<? (find-test-files "tests")))
-         (test-results (if (null? test-files)
-                         '()
-                         (fold (lambda (test-file acc)
-                                 (newline)
-                                 (cons (run-test-file test-file) acc))
-                               (list)
-                               test-files)))
-         (failed (if (null? test-files)
-                   0
-                   (display-summary test-results))))
+  (let ((test-files (list-sort string<? (find-test-files "tests"))))
     (if (null? test-files)
       (begin
         (display (string-append YELLOW "No test files found in tests directory" RESET))
         (newline)
-        (exit 0))
-      (exit (if (> failed 0) -1 0))))
+        (exit 0)
+      ) ;begin
+      (let ((test-results
+              (fold (lambda (test-file acc)
+                      (newline)
+                      (cons (run-test-file test-file) acc))
+                    (list)
+                    test-files))
+              ) ;fold
+        (let ((failed (display-summary test-results)))
+          (exit (if (> failed 0) -1 0))
+        ) ;let
+      ) ;let
+    ) ;if
+  ) ;let
 ) ;define
