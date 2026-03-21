@@ -3365,7 +3365,9 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
-  cout << "  test               Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "  test [options]     Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       --only PATTERN  Run only tests matching PATTERN" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
@@ -4247,12 +4249,13 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 解析 mode 选项
   std::string mode= parse_mode_option (argc, argv);
 
-  // 检查是否是 fix 子命令（它有自己特殊的选项处理）
+  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
   bool is_fix_command= (argc > 1) && (string (argv[1]) == "fix");
+  bool is_test_command= (argc > 1) && (string (argv[1]) == "test");
 
   // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
-  // fix 子命令有自己的选项解析逻辑，这里跳过对 fix 命令选项的检查
-  if (!is_fix_command) {
+  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
+  if (!is_fix_command && !is_test_command) {
     for (int i= 1; i < argc; ++i) {
       string arg= argv[i];
       if (arg.length () > 0 && arg[0] == '-') {

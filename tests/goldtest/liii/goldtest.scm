@@ -16,6 +16,7 @@
 ;
 
 (import (scheme base)
+        (scheme process-context)
         (liii sort)
         (liii list)
         (liii string)
@@ -127,25 +128,64 @@
   ) ;let
 ) ;define
 
-(define (run-goldtest)
-  (let ((test-files (list-sort string<? (find-test-files "tests"))))
-    (if (null? test-files)
-      (begin
-        (display (string-append YELLOW "No test files found in tests directory" RESET))
-        (newline)
-        (exit 0)
-      ) ;begin
-      (let ((test-results
-              (fold (lambda (test-file acc)
-                      (newline)
-                      (cons (run-test-file test-file) acc))
-                    (list)
-                    test-files))
-              ) ;fold
-        (let ((failed (display-summary test-results)))
-          (exit (if (> failed 0) -1 0))
-        ) ;let
-      ) ;let
+(define (parse-only-filter args)
+  (let loop ((remaining args)
+             (filter #f))
+    (if (null? remaining)
+      filter
+      (if (and (equal? (car remaining) "--only")
+               (not (null? (cdr remaining))))
+        (loop (cddr remaining) (cadr remaining))
+        (loop (cdr remaining) filter)
+      ) ;if
     ) ;if
   ) ;let
+) ;define
+
+(define (filter-test-files test-files only-pattern)
+  (if only-pattern
+    (filter (lambda (file) (string-contains file only-pattern)) test-files)
+    test-files
+  ) ;if
+) ;define
+
+(define (run-goldtest)
+  (let* ((args (command-line))
+         (only-pattern (parse-only-filter args))
+         (all-test-files (list-sort string<? (find-test-files "tests")))
+         (test-files (filter-test-files all-test-files only-pattern)))
+    (if (null? test-files)
+      (begin
+        (if only-pattern
+          (begin
+            (display (string-append YELLOW "No test files matching --only " only-pattern RESET))
+            (newline)
+          ) ;begin
+          (begin
+            (display (string-append YELLOW "No test files found in tests directory" RESET))
+            (newline)
+          ) ;begin
+        ) ;if
+        (exit 0)
+      ) ;begin
+      (begin
+        (when only-pattern
+          (display (string-append "Running tests matching: " only-pattern))
+          (newline)
+          (newline)
+        ) ;when
+        (let ((test-results
+                (fold (lambda (test-file acc)
+                        (newline)
+                        (cons (run-test-file test-file) acc))
+                      (list)
+                      test-files))
+                ) ;fold
+          (let ((failed (display-summary test-results)))
+            (exit (if (> failed 0) -1 0))
+          ) ;let
+        ) ;let
+      ) ;begin
+    ) ;if
+  ) ;let*
 ) ;define
