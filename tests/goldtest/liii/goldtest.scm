@@ -58,11 +58,24 @@
   ) ;let
 ) ;define
 
+(define (stacktrace-test-enabled?)
+  (let ((env-var (getenv "GOLDFISH_TEST_STACKTRACE")))
+    (and env-var (not (equal? env-var "0")))
+  ) ;let
+) ;define
+
 (define (should-run-test? entry)
-  (if (string-contains entry "http-test")
-    (http-test-enabled?)
-    #t
-  ) ;if
+  (cond
+    ((string-contains entry "http-test")
+     (http-test-enabled?)
+    ) ;
+    ((string-contains entry "srfi-78-simple-stacktrace")
+     (stacktrace-test-enabled?)
+    ) ;
+    (else
+     #t
+    ) ;else
+  ) ;cond
 ) ;define
 
 (define (find-test-files dir)
