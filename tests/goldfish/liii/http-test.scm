@@ -1,6 +1,7 @@
 (import (liii check)
         (liii http)
         (liii string)
+        (liii os)
         (liii rich-json)
         (only (liii lang) display*)
         (only (liii base) let1)
@@ -8,6 +9,10 @@
 ) ;import
 
 (check-set-mode! 'report-failed)
+
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env) (exit 0))
+) ;let
 
 (let1 r (http-head "https://httpbin.org")
   (check (r 'status-code) => 200)
