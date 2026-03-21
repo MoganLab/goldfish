@@ -219,8 +219,10 @@ xpack ("goldfish")
     add_sourcefiles("(3rdparty/**)")
     on_load(function (package)
         if package:with_source() then
-            package:set("basename", "goldfish-$(plat)-src-v$(version)")
+            package:set("basename", "goldfish-scheme-src-v$(version)")
+        elseif is_plat("windows") then
+            package:set("basename", "goldfish-scheme-$(arch)-v$(version)-win")
         else
-            package:set("basename", "goldfish-$(plat)-$(arch)-v$(version)")
+            package:set("basename", "goldfish-scheme-$(arch)-v$(version)")
         end
     end)
