@@ -3365,7 +3365,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
-  cout << "  test               Run tests (tests/test_all.scm or all *-test.scm files)" << endl;
+  cout << "  test               Run tests (all *-test.scm files under tests/)" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
