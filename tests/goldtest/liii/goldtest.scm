@@ -52,32 +52,6 @@
   ) ;let
 ) ;define
 
-(define (http-test-enabled?)
-  (let ((env-var (getenv "GOLDFISH_TEST_HTTP")))
-    (and env-var (not (equal? env-var "0")))
-  ) ;let
-) ;define
-
-(define (stacktrace-test-enabled?)
-  (let ((env-var (getenv "GOLDFISH_TEST_STACKTRACE")))
-    (and env-var (not (equal? env-var "0")))
-  ) ;let
-) ;define
-
-(define (should-run-test? entry)
-  (cond
-    ((string-contains entry "http-test")
-     (http-test-enabled?)
-    ) ;
-    ((string-contains entry "srfi-78-simple-stacktrace")
-     (stacktrace-test-enabled?)
-    ) ;
-    (else
-     #t
-    ) ;else
-  ) ;cond
-) ;define
-
 (define (find-test-files dir)
   (let ((files '()))
     (when (path-dir? dir)
@@ -90,8 +64,7 @@
                  (set! files (append files (find-test-files full-path)))
                 ) ;
                 ((and (path-file? full-path)
-                      (string-ends? entry "-test.scm")
-                      (should-run-test? entry))
+                      (string-ends? entry "-test.scm"))
                  (set! files (cons full-path files))
                 ) ;
               ) ;cond
