@@ -8,13 +8,8 @@ on:
         required: false
         default: ''
   push:
-    branches:
-      - main
     tags:
       - '*'
-  pull_request:
-    branches:
-      - main
 
 jobs:
   build:
@@ -115,7 +110,7 @@ jobs:
 
     - name: Upload all package artifacts
       uses: actions/upload-artifact@v4
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      if: github.event_name == 'workflow_dispatch'
       with:
         name: goldfish-packages
         path: tmp/build/xpack/goldfish/*.deb
@@ -207,7 +202,7 @@ jobs:
 
     - name: Upload Windows package artifact
       uses: actions/upload-artifact@v4
-      if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      if: github.event_name == 'workflow_dispatch'
       with:
         name: goldfish-windows-package
         path: tmp/build/xpack/goldfish/*.zip
