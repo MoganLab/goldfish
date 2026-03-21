@@ -3365,7 +3365,10 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
-  cout << "  test               Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "  test [options]     Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       --only PATTERN  Run tests matching PATTERN" << endl;
+  cout << "                                         (e.g. json, sicp, list-test.scm)" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
@@ -3511,7 +3514,7 @@ find_goldfix_tool_root (const char* gf_lib) {
 static string
 find_goldtest_tool_root (const char* gf_lib) {
   std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tests" / "goldtest", fs::path (gf_lib).parent_path () / "tests" / "goldtest"};
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -4247,12 +4250,13 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 解析 mode 选项
   std::string mode= parse_mode_option (argc, argv);
 
-  // 检查是否是 fix 子命令（它有自己特殊的选项处理）
+  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
   bool is_fix_command= (argc > 1) && (string (argv[1]) == "fix");
+  bool is_test_command= (argc > 1) && (string (argv[1]) == "test");
 
   // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
-  // fix 子命令有自己的选项解析逻辑，这里跳过对 fix 命令选项的检查
-  if (!is_fix_command) {
+  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
+  if (!is_fix_command && !is_test_command) {
     for (int i= 1; i < argc; ++i) {
       string arg= argv[i];
       if (arg.length () > 0 && arg[0] == '-') {
@@ -4472,10 +4476,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   // 处理 test 子命令
   if (command == "test") {
-    // 添加 tests/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
+    // 添加 tools/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
     string goldtest_root = find_goldtest_tool_root (gf_lib);
     if (goldtest_root.empty ()) {
-      cerr << "Error: tests/goldtest directory not found." << endl;
+      cerr << "Error: tools/goldtest directory not found." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);

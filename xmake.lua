@@ -160,7 +160,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/tools/goldfix/main.scm", {prefixdir = "share/goldfish/tools/goldfix"})
     add_installfiles("$(projectdir)/tools/goldfix/(liii/*.scm)", {prefixdir = "share/goldfish/tools/goldfix"})
-    add_installfiles("$(projectdir)/tools/liii/goldtest.scm", {prefixdir = "share/goldfish/tools/liii"})
+    add_installfiles("$(projectdir)/tools/goldtest/liii/goldtest.scm", {prefixdir = "share/goldfish/tools/goldtest/liii"})
 end
 
 if is_plat("wasm") then
