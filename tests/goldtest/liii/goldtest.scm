@@ -172,7 +172,6 @@
         (when only-pattern
           (display (string-append "Running tests matching: " only-pattern))
           (newline)
-          (newline)
         ) ;when
         (let ((test-results
                 (fold (lambda (test-file acc)
