@@ -3356,22 +3356,24 @@ glue_for_community_edition (s7_scheme* sc) {
 static void
 display_help () {
   cout << "Goldfish Scheme " << GOLDFISH_VERSION << " by LiiiLabs" << endl;
-  cout << "--help, -h    \tDisplay this help message" << endl;
-  cout << "--version, -v \tDisplay version" << endl;
-  cout << "--mode, -m    \tAllowed mode: default, liii, sicp, r7rs, s7" << endl;
-  cout << "--eval, -e    \tLoad and evaluate Scheme code from the command line" << endl
-       << "\t\t  e.g. -e '(begin (display `Hello) (+ 1 2))'" << endl;
-  cout << "--load, -l FILE\tLoad Scheme code from FILE" << endl;
-  cout << "--fix PATH    \tFormat PATH in place (PATH can be a .scm file or directory)" << endl;
-  cout << "--fix-dry-run FILE\tPrint the formatted result for FILE to stdout" << endl;
+  cout << endl;
+  cout << "Commands:" << endl;
+  cout << "  help               Display this help message" << endl;
+  cout << "  version            Display version" << endl;
+  cout << "  eval CODE          Evaluate Scheme code" << endl;
+  cout << "  load FILE          Load Scheme code from FILE, then enter REPL" << endl;
+  cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       --dry-run  Print formatted result to stdout" << endl;
 #ifdef GOLDFISH_WITH_REPL
-  cout << "--repl, -i    \tEnter interactive REPL mode" << endl;
-#else
-  cout << "--repl, -i    \t*Interactive REPL is not available in this build*" << endl;
+  cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
-  cout << "FILE [FILE...]\tLoad and evaluate Scheme code from one or more files" << endl
-       << "\t\t  (all non-option arguments are treated as files to load)" << endl;
-  cout << endl << "If no FILE is specified, REPL is entered by default (if available)." << endl;
+  cout << "  FILE               Load and evaluate Scheme code from FILE" << endl;
+  cout << endl;
+  cout << "Options:" << endl;
+  cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
+  cout << endl;
+  cout << "If no command is specified, help is displayed by default." << endl;
 }
 
 static void
@@ -3423,40 +3425,52 @@ static GoldfixCliOptions
 parse_goldfix_cli_options (int argc, char** argv) {
   GoldfixCliOptions opts;
 
-  auto assign_target= [&opts] (bool dry_run, const string& path) {
-    if (path.empty ()) {
-      opts.error= dry_run ? "Error: '--fix-dry-run' requires a non-empty path." : "Error: '--fix' requires a non-empty path.";
-      return;
-    }
-    if (opts.enabled) {
-      opts.error= "Error: '--fix' and '--fix-dry-run' cannot be used together.";
-      return;
-    }
-    opts.enabled= true;
-    opts.dry_run= dry_run;
-    opts.path   = path;
-  };
-
-  for (int i= 1; i < argc && opts.error.empty (); ++i) {
+  // Look for 'fix' subcommand
+  int fix_index= -1;
+  for (int i= 1; i < argc; ++i) {
     string arg= argv[i];
-    if (arg == "--fix" || arg == "--fix-dry-run") {
-      if ((i + 1) >= argc) {
-        opts.error= string ("Error: '") + arg + "' requires a parameter.";
-        break;
+    if (arg == "fix") {
+      fix_index= i;
+      break;
+    }
+  }
+
+  if (fix_index == -1) {
+    return opts; // No fix subcommand found
+  }
+
+  opts.enabled= true;
+
+  // Parse options after 'fix' subcommand
+  bool path_set= false;
+  for (int i= fix_index + 1; i < argc; ++i) {
+    string arg= argv[i];
+
+    if (arg == "--dry-run") {
+      if (opts.dry_run) {
+        opts.error= "Error: '--dry-run' can only be specified once.";
+        return opts;
       }
-      assign_target (arg == "--fix-dry-run", argv[++i]);
+      opts.dry_run= true;
       continue;
     }
 
-    if (string_starts_with (arg, "--fix=")) {
-      assign_target (false, arg.substr (strlen ("--fix=")));
+    // Check for options that start with '-' but are not recognized
+    if (arg.length () > 0 && arg[0] == '-') {
+      // This is an unrecognized option, will be caught by invalid flag check
       continue;
     }
 
-    if (string_starts_with (arg, "--fix-dry-run=")) {
-      assign_target (true, arg.substr (strlen ("--fix-dry-run=")));
-      continue;
+    // This should be the PATH argument
+    if (!path_set) {
+      opts.path  = arg;
+      path_set   = true;
     }
+  }
+
+  if (!path_set || opts.path.empty ()) {
+    opts.error= "Error: 'fix' requires a PATH argument.";
+    return opts;
   }
 
   return opts;
@@ -3464,9 +3478,7 @@ parse_goldfix_cli_options (int argc, char** argv) {
 
 static bool
 is_goldfix_option_flag (const string& flag) {
-  return flag == "fix" || flag == "fix-dry-run" || flag == "--fix" || flag == "--fix-dry-run"
-         || string_starts_with (flag, "fix=") || string_starts_with (flag, "fix-dry-run=")
-         || string_starts_with (flag, "--fix=") || string_starts_with (flag, "--fix-dry-run=");
+  return flag == "fix" || flag == "--dry-run" || flag == "dry-run";
 }
 
 static vector<string>
@@ -3558,7 +3570,7 @@ collect_goldfix_targets (const fs::path& input_path, bool dry_run) {
   }
 
   if (dry_run) {
-    throw std::runtime_error ("'--fix-dry-run' only supports files.");
+    throw std::runtime_error ("'fix --dry-run' only supports files.");
   }
 
   if (!fs::is_directory (input_path, ec)) {
@@ -3628,7 +3640,7 @@ goldfish_run_fix_mode (s7_scheme* sc, const char* gf_lib, const GoldfixCliOption
 
     if (opts.dry_run) {
       if (files.empty ()) {
-        throw std::runtime_error ("No input file provided for '--fix-dry-run'.");
+        throw std::runtime_error ("No input file provided for 'fix --dry-run'.");
       }
       const fs::path& file  = files.front ();
       string          prefix= goldfix_progress_prefix (1, 1);
@@ -4181,6 +4193,31 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
 }
 #endif
 
+// Parse command line options including --mode
+static std::string
+parse_mode_option (int argc, char** argv) {
+  std::string mode= "default";
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+    if ((arg == "--mode" || arg == "-m") && (i + 1) < argc) {
+      mode= argv[++i];
+    }
+    else if (arg.rfind ("--mode=", 0) == 0) {
+      mode= arg.substr (7);
+    }
+    else if (arg.rfind ("-m=", 0) == 0) {
+      mode= arg.substr (3);
+    }
+  }
+  return mode;
+}
+
+// Check if an option is valid (for --mode only)
+static bool
+is_valid_global_option (const string& flag) {
+  return flag == "--mode" || flag == "-m" || flag.rfind ("--mode=", 0) == 0 || flag.rfind ("-m=", 0) == 0;
+}
+
 int
 repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string      gf_lib_dir  = find_goldfish_library ();
@@ -4191,64 +4228,74 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 供 goldfish `g_command-line` procedure 查询
   command_args.assign (argv, argv + argc);
 
-  // params: 如 `--mode r7rs` 或 `-m=r7rs`，使用 operator() 取值
-  // flag  : 如 `--mode`      或 `-m`，     使用 operator[] 取存在与否
+  // 解析 mode 选项
+  std::string mode= parse_mode_option (argc, argv);
 
-  const std::vector<std::pair<std::string, std::string>> reg_params_pairs= {
-      {"--mode", "-m"}, {"--eval", "-e"}, {"--load", "-l"}};
+  // 检查是否是 fix 子命令（它有自己特殊的选项处理）
+  bool is_fix_command= (argc > 1) && (string (argv[1]) == "fix");
 
-  // 初始化解析器（使用预定义的向量来注册 params）
-  argh::parser cmdl;
-  for (const auto& fp : reg_params_pairs) {
-    cmdl.add_params ({fp.first.c_str (), fp.second.c_str ()});
+  // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
+  // fix 子命令有自己的选项解析逻辑，这里跳过对 fix 命令选项的检查
+  if (!is_fix_command) {
+    for (int i= 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg.length () > 0 && arg[0] == '-') {
+        if (!is_valid_global_option (arg)) {
+          std::cerr << "Invalid option: " << arg << "\n\n";
+          display_help ();
+          exit (1);
+        }
+      }
+    }
   }
-  cmdl.parse (argc, argv);
 
-  // 只要存在 help 或 version 参数，忽略其他所有参数，打印相应信息后正常退出
-  if (cmdl[{"--help", "-h"}]) {
+  // 如果没有参数，默认显示帮助
+  if (argc <= 1) {
     display_help ();
-    exit (0);
-  }
-  if (cmdl[{"--version", "-v"}]) {
-    display_version ();
-    exit (0);
+    return 0;
   }
 
+  // 查找第一个非选项参数作为命令
+  string command;
+  int    command_index= -1;
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+    if (arg == "--mode" || arg == "-m") {
+      i++; // 跳过 mode 的值
+      continue;
+    }
+    if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+      continue;
+    }
+    // 这不是 mode 选项，那就是命令
+    command      = arg;
+    command_index= i;
+    break;
+  }
+
+  // 如果没有找到命令，显示帮助
+  if (command.empty ()) {
+    display_help ();
+    return 0;
+  }
+
+  // 处理旧版的 --help, -h, --version, -v（为了向后兼容）
+  if (command == "--help" || command == "-h") {
+    display_help ();
+    return 0;
+  }
+  if (command == "--version" || command == "-v") {
+    display_version ();
+    return 0;
+  }
+
+  // 解析 fix 子命令（它有自己的参数解析）
   GoldfixCliOptions goldfix_opts= parse_goldfix_cli_options (argc, argv);
   if (!goldfix_opts.error.empty ()) {
     cerr << goldfix_opts.error << endl;
     exit (1);
   }
 
-  // --mode / -m: Load the standard library by mode
-  std::string mode    = "default";
-  auto        mode_arg= cmdl ({"--mode", "-m"});
-  auto        eval_arg= cmdl ({"--eval", "-e"});
-  auto        load_arg= cmdl ({"--load", "-l"});
-
-  for (const auto& reg_params : reg_params_pairs) {
-    // 使用 operator[] 检查是否是 flag，即非 params
-    if (cmdl[{reg_params.first.c_str (), reg_params.second.c_str ()}]) {
-      std::cerr << "Error: '" << reg_params.first << "' or '" << reg_params.second << "' requires a parameter."
-                << std::endl;
-      exit (1);
-    }
-  }
-
-  auto repl_flag=
-      cmdl[{"--repl", "-i"}] || (cmdl.get_unaccessed_flags ().empty () && cmdl.get_unaccessed_params ().empty ());
-
-  // 没有注册为 params 的默认都是 flag，因此只需要检查未访问的 flag
-  vector<string> invalid_flags= cmdl.get_unaccessed_flags ();
-  if (goldfix_opts.enabled) {
-    invalid_flags= filter_invalid_options_for_goldfix (invalid_flags);
-  }
-  if (!invalid_flags.empty ()) {
-    display_for_invalid_options (invalid_flags);
-    exit (1);
-  }
-
-  if (mode_arg) mode= mode_arg.str ();
   customize_goldfish_by_mode (sc, mode, gf_boot);
 
   // start capture error output
@@ -4257,6 +4304,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   int         gc_loc  = -1;
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
+  // 处理 fix 子命令
   if (goldfix_opts.enabled) {
     int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
     errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
@@ -4269,25 +4317,105 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     return fix_ret;
   }
 
-  if (eval_arg) {
-    std::string code= eval_arg.str ();
+  // 处理 help 子命令
+  if (command == "help") {
+    display_help ();
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 version 子命令
+  if (command == "version") {
+    display_version ();
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 eval 子命令
+  if (command == "eval") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 查找 CODE 参数（跳过 mode 选项，从命令位置之后开始）
+    string code;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      code= arg;
+      break;
+    }
+    if (code.empty ()) {
+      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
     goldfish_eval_code (sc, code);
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if ((errmsg) && (*errmsg)) return -1;
+    return 0;
   }
-  if (load_arg) {
-    std::string file= load_arg.str ();
+
+  // 处理 load 子命令（加载文件后进入 REPL）
+  if (command == "load") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 查找 FILE 参数（跳过 mode 选项，从命令位置之后开始）
+    string file;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      file= arg;
+      break;
+    }
+    if (file.empty ()) {
+      std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 加载文件
     goldfish_eval_file (sc, file, true);
-  }
-
-  // eval only the first file passed as positional argument
-  auto& files= cmdl.pos_args ();
-  if (files.size () > 1) {
-    auto it= files.begin () + 1;
-    goldfish_eval_file (sc, *it, true);
-    // 如果有指定文件且没有显示传入 --repl, -i 参数，不进入 repl
-    if (repl_flag && !cmdl[{"--repl", "-i"}]) repl_flag= false;
-  }
-
-  if (repl_flag) {
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cout << errmsg;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      return -1;
+    }
+    // 加载成功后进入 REPL
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
@@ -4298,21 +4426,55 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     goldfish_repl (sc, mode);
     return 0;
 #else
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
-    // 如果没有指定 --repl, -i，额外打印 help 消息
-    if (!cmdl[{"--repl", "-i"}]) display_help ();
     exit (-1);
 #endif
   }
 
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-  if ((errmsg) && (*errmsg)) cout << errmsg;
+  // 处理 repl 子命令
+  if (command == "repl") {
+#ifdef GOLDFISH_WITH_REPL
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+
+    goldfish_repl (sc, mode);
+    return 0;
+#else
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
+    exit (-1);
+#endif
+  }
+
+  // 处理直接执行文件（以 .scm 结尾或存在的文件）
+  // 检查是否是文件
+  std::error_code ec;
+  if (fs::exists (command, ec) && fs::is_regular_file (command, ec)) {
+    goldfish_eval_file (sc, command, true);
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if ((errmsg) && (*errmsg)) return -1;
+    return 0;
+  }
+
+  // 未知命令
+  std::cerr << "Unknown command: " << command << "\n\n";
+  display_help ();
   s7_close_output_port (sc, s7_current_error_port (sc));
   s7_set_current_error_port (sc, old_port);
   if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-
-  if ((errmsg) && (*errmsg)) return -1;
-  else return 0;
+  return 1;
 }
 
 } // namespace goldfish
