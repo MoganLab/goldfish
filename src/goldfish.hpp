@@ -3367,7 +3367,8 @@ display_help () {
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
   cout << "  test [options]     Run tests (all *-test.scm files under tests/)" << endl;
   cout << "                     Options:" << endl;
-  cout << "                       --only PATTERN  Run only tests matching PATTERN" << endl;
+  cout << "                       --only PATTERN  Run tests matching PATTERN" << endl;
+  cout << "                                         (e.g. json, sicp, list-test.scm)" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
@@ -3513,7 +3514,7 @@ find_goldfix_tool_root (const char* gf_lib) {
 static string
 find_goldtest_tool_root (const char* gf_lib) {
   std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tests" / "goldtest", fs::path (gf_lib).parent_path () / "tests" / "goldtest"};
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -4475,10 +4476,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   // 处理 test 子命令
   if (command == "test") {
-    // 添加 tests/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
+    // 添加 tools/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
     string goldtest_root = find_goldtest_tool_root (gf_lib);
     if (goldtest_root.empty ()) {
-      cerr << "Error: tests/goldtest directory not found." << endl;
+      cerr << "Error: tools/goldtest directory not found." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);

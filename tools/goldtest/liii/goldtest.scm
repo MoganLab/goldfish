@@ -15,124 +15,189 @@
 ; under the License.
 ;
 
-(define-library (liii goldtest)
-  (export run-goldtest)
-  (import (scheme base)
-          (scheme process-context)
-          (liii list)
-          (liii string)
-          (liii os)
-          (liii path))
-  (begin
+(import (scheme base)
+        (scheme process-context)
+        (liii sort)
+        (liii list)
+        (liii string)
+        (liii os)
+        (liii path)
+        (liii sys)
+) ;import
 
-    (define ESC (string #\escape #\[))
+(define ESC (string #\escape #\[))
 
-    (define (color code)
-      (string-append ESC (number->string code) "m"))
+(define (color code)
+  (string-append ESC (number->string code) "m")
+) ;define
 
-    (define GREEN (color 32))
-    (define RED (color 31))
-    (define YELLOW (color 33))
-    (define RESET (color 0))
+(define GREEN (color 32))
+(define RED (color 31))
+(define YELLOW (color 33))
+(define RESET (color 0))
 
-    (define (test-path-join . parts)
-      (let ((sep (string (os-sep))))
-        (let loop ((result "")
-                   (rest parts))
-          (if (null? rest)
-            result
-            (let ((part (car rest)))
-              (if (string-null? result)
-                (loop part (cdr rest))
-                (loop (string-append result sep part) (cdr rest)))))))
+(define (test-path-join . parts)
+  (let ((sep (string (os-sep))))
+    (let loop ((result "")
+               (rest parts))
+      (if (null? rest)
+        result
+        (let ((part (car rest)))
+          (if (string-null? result)
+            (loop part (cdr rest))
+            (loop (string-append result sep part) (cdr rest))
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;let
+) ;define
 
-    (define (find-test-files dir)
-      (let ((files '()))
-        (when (path-dir? dir)
-          (let ((entries (listdir dir)))
-            (for-each
-              (lambda (entry)
-                (let ((full-path (test-path-join dir entry)))
-                  (cond
-                    ((path-dir? full-path)
-                     (set! files (append files (find-test-files full-path))))
-                    ((and (path-file? full-path)
-                          (string-ends-with? entry "-test.scm"))
-                     (set! files (cons full-path files))))))
-              entries)))
-        files))
-
-    (define (goldfish-cmd)
-      (if (os-windows?)
-        "bin\\gf -m r7rs "
-        "bin/gf -m r7rs "))
-
-    (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd) test-file)))
-        (display "----------->") (newline)
-        (display cmd) (newline)
-        (let ((result (os-call cmd)))
-          (cons test-file result))))
-
-    (define (display-summary test-results)
-      (let ((total (length test-results))
-            (passed (count (lambda (x) (zero? (cdr x))) test-results))
-            (failed (- (length test-results)
-                       (count (lambda (x) (zero? (cdr x))) test-results))))
-        (newline)
-        (display "=== Test Summary ===") (newline)
-        (newline)
+(define (find-test-files dir)
+  (let ((files '()))
+    (when (path-dir? dir)
+      (let ((entries (listdir dir)))
         (for-each
-          (lambda (test-result)
-            (let ((test-file (car test-result))
-                  (exit-code (cdr test-result)))
-              (display (string-append "  " test-file " ... "))
-              (if (zero? exit-code)
-                (display (string-append GREEN "PASS" RESET))
-                (display (string-append RED "FAIL" RESET)))
-              (newline)))
-          test-results)
-        (newline)
-        (display "=== Summary ===") (newline)
-        (display (string-append "  Total:  " (number->string total))) (newline)
-        (display (string-append "  " GREEN "Passed: " (number->string passed) RESET)) (newline)
-        (when (> failed 0)
-          (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline))
-        (newline)
-        failed))
+          (lambda (entry)
+            (let ((full-path (test-path-join dir entry)))
+              (cond
+                ((path-dir? full-path)
+                 (set! files (append files (find-test-files full-path)))
+                ) ;
+                ((and (path-file? full-path)
+                      (string-ends? entry "-test.scm"))
+                 (set! files (cons full-path files))
+                ) ;
+              ) ;cond
+            ) ;let
+          ) ;lambda
+          entries
+        ) ;for-each
+      ) ;let
+    ) ;when
+    files
+  ) ;let
+) ;define
 
-    (define (run-goldtest)
-      (let ((test-all-path (test-path-join "tests" "test_all.scm")))
-        (if (path-file? test-all-path)
-          ; 如果存在 test_all.scm，则运行它
+(define (goldfish-cmd)
+  (string-append (executable) " -m r7rs ")
+) ;define
+
+(define (run-test-file test-file)
+  (let ((cmd (string-append (goldfish-cmd) test-file)))
+    (display "----------->") (newline)
+    (display cmd) (newline)
+    (let ((result (os-call cmd)))
+      (cons test-file result)
+    ) ;let
+  ) ;let
+) ;define
+
+(define (display-summary test-results)
+  (let ((total (length test-results))
+        (passed (count (lambda (x) (zero? (cdr x))) test-results))
+        (failed (- (length test-results)
+                   (count (lambda (x) (zero? (cdr x))) test-results)))
+        ) ;failed
+    (newline)
+    (display "=== Test Summary ===") (newline)
+    (newline)
+    (for-each
+      (lambda (test-result)
+        (let ((test-file (car test-result))
+              (exit-code (cdr test-result)))
+          (display (string-append "  " test-file " ... "))
+          (if (zero? exit-code)
+            (display (string-append GREEN "PASS" RESET))
+            (display (string-append RED "FAIL" RESET))
+          ) ;if
+          (newline)
+        ) ;let
+      ) ;lambda
+      test-results
+    ) ;for-each
+    (newline)
+    (display "=== Summary ===") (newline)
+    (display (string-append "  Total:  " (number->string total))) (newline)
+    (display (string-append "  " GREEN "Passed: " (number->string passed) RESET)) (newline)
+    (when (> failed 0)
+      (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline)
+    ) ;when
+    (newline)
+    failed
+  ) ;let
+) ;define
+
+(define (parse-only-filter args)
+  (let loop ((remaining args)
+             (filter #f))
+    (if (null? remaining)
+      filter
+      (if (and (equal? (car remaining) "--only")
+               (not (null? (cdr remaining))))
+        (loop (cddr remaining) (cadr remaining))
+        (loop (cdr remaining) filter)
+      ) ;if
+    ) ;if
+  ) ;let
+) ;define
+
+(define (filter-test-files test-files only-pattern)
+  (if only-pattern
+    (if (string-ends? only-pattern ".scm")
+      ; 如果以 .scm 结尾，直接匹配文件名
+      (filter (lambda (file) (string=? (path-name file) only-pattern)) test-files)
+      ; 否则使用 string-contains 进行模糊匹配
+      (filter (lambda (file) (string-contains file only-pattern)) test-files)
+    ) ;if
+    test-files
+  ) ;if
+) ;define
+
+(define (run-goldtest)
+  (let* ((args (command-line))
+         (only-pattern (parse-only-filter args))
+         (all-test-files (list-sort string<? (find-test-files "tests")))
+         (test-files (filter-test-files all-test-files only-pattern)))
+    (if (null? test-files)
+      (begin
+        (if only-pattern
           (begin
-            (display (string-append YELLOW "Found test_all.scm, running it..." RESET))
+            (display (string-append YELLOW "No test files matching --only " only-pattern RESET))
             (newline)
+          ) ;begin
+          (begin
+            (display (string-append YELLOW "No test files found in tests directory" RESET))
             (newline)
-            (let ((cmd (string-append (goldfish-cmd) test-all-path)))
-              (display cmd) (newline)
-              (let ((result (os-call cmd)))
-                (newline)
-                (display "=== Summary ===") (newline)
-                (display "  test_all.scm ... ")
-                (if (zero? result)
-                  (display (string-append GREEN "PASS" RESET))
-                  (display (string-append RED "FAIL" RESET)))
-                (newline)
-                (exit result))))
-          ; 否则运行所有 xxx-test.scm 文件
-          (let ((test-files (sort (find-test-files "tests") string<?)))
-            (if (null? test-files)
-              (begin
-                (display (string-append YELLOW "No test files found in tests directory" RESET))
-                (newline)
-                (exit 0))
-              (let ((test-results
-                      (fold (lambda (test-file acc)
-                              (newline)
-                              (cons (run-test-file test-file) acc))
-                            (list)
-                            test-files)))
-                (let ((failed (display-summary test-results)))
-                  (exit (if (> failed 0) -1 0)))))))))
-)
+          ) ;begin
+        ) ;if
+        (exit 0)
+      ) ;begin
+      (begin
+        (when only-pattern
+          (if (string-ends? only-pattern ".scm")
+            (begin
+              (display (string-append "Run test with file name: " only-pattern))
+              (newline)
+            ) ;begin
+            (begin
+              (display (string-append "Running tests matching: " only-pattern))
+              (newline)
+            ) ;begin
+          ) ;if
+        ) ;when
+        (let ((test-results
+                (fold (lambda (test-file acc)
+                        (newline)
+                        (cons (run-test-file test-file) acc))
+                      (list)
+                      test-files))
+                ) ;fold
+          (let ((failed (display-summary test-results)))
+            (exit (if (> failed 0) -1 0))
+          ) ;let
+        ) ;let
+      ) ;begin
+    ) ;if
+  ) ;let*
+) ;define
