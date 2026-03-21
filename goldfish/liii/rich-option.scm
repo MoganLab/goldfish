@@ -14,12 +14,12 @@
 ; under the License.
 ;
 
-(define-library (liii option)
+(define-library (liii rich-option)
   (import (liii oop) (liii base))
-  (export option none)
+  (export rich-option rich-none)
   (begin
 
-    (define-final-class option ((value any?))
+    (define-final-class rich-option ((value any?))
 
       (define (%get)
         (if (null? value)
@@ -38,20 +38,20 @@
       ) ;define
 
       (define (%or-else default . args)
-        (when (not (option :is-type-of default))
-          (type-error "The first parameter of option%or-else must be a option case class")
+        (when (not (rich-option :is-type-of default))
+          (type-error "The first parameter of rich-option%or-else must be a rich-option case class")
         ) ;when
-  
+
         (chain-apply args
           (if (null? value)
               default
-              (option value)
+              (rich-option value)
           ) ;if
         ) ;chain-apply
       ) ;define
 
       (define (%equals that)
-        (and (option :is-type-of that)
+        (and (rich-option :is-type-of that)
              (class=? value (that 'value))
         ) ;and
       ) ;define
@@ -92,8 +92,8 @@
       (define (%map f . args)
         (chain-apply args
           (if (null? value)
-              (option '())
-              (option (f value))
+              (rich-option '())
+              (rich-option (f value))
           ) ;if
         ) ;chain-apply
       ) ;define
@@ -101,7 +101,7 @@
       (define (%flat-map f . args)
         (chain-apply args
           (if (null? value)
-              (option '())
+              (rich-option '())
               (f value)
           ) ;if
         ) ;chain-apply
@@ -110,14 +110,14 @@
       (define (%filter pred . args)
         (chain-apply args
           (if (or (null? value) (not (pred value)))
-              (option '())
-              (option value))
+              (rich-option '())
+              (rich-option value))
           ) ;if
         ) ;chain-apply
 
       ) ;define
 
-    (define (none) (option '()))
+    (define (rich-none) (rich-option '()))
 
     ) ;define-final-class
   ) ;begin

@@ -15,7 +15,7 @@
 ;
 
 (define-library (liii rich-hash-table)
-  (import (liii hash-table) (liii oop) (liii option) (srfi srfi-8))
+  (import (liii hash-table) (liii oop) (rename (liii rich-option) (rich-option option) (rich-none none)) (srfi srfi-8))
   (export rich-hash-table)
   (begin
 

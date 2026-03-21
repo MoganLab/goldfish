@@ -20,7 +20,7 @@
           (liii sort)
           (liii hash-table)
           (liii string)
-          (liii option)
+          (rename (liii rich-option) (rich-option option) (rich-none none))
           (srfi srfi-8)
           (liii error)
   ) ;import

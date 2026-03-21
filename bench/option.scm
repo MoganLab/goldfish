@@ -15,7 +15,7 @@
 ;
 
 (import (liii timeit)
-        (liii option)
+        (rename (liii rich-option) (rich-option option) (rich-none none))
         (liii lang))
 
 (define (run-option-benchmarks)

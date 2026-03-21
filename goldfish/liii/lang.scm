@@ -30,7 +30,7 @@
           (only (liii bitwise) bitwise-and bitwise-ior arithmetic-shift)
           (liii error)
           (liii list)
-          (liii option)
+          (rename (liii rich-option) (rich-option option) (rich-none none))
           (liii rich-either)
           (liii rich-list)
           (liii rich-char)

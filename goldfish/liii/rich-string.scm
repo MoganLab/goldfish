@@ -21,6 +21,7 @@
           (liii rich-char)
           (liii rich-vector)
           (liii vector)
+          (rename (liii rich-option) (rich-option option))
   ) ;import
   (export rich-string)
   (begin

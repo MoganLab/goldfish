@@ -15,7 +15,8 @@
 ;
 
 (define-library (liii rich-vector)
-  (import (liii string) (liii hash-table) (liii sort) (liii list) (liii vector) (liii oop) (srfi srfi-8))
+  (import (liii string) (liii hash-table) (liii sort) (liii list) (liii vector) (liii oop) (srfi srfi-8)
+          (rename (liii rich-option) (rich-option option)))
   (export rich-vector)
   (begin
 

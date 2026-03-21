@@ -16,7 +16,7 @@
 
 (import (liii check)
         (liii rich-either)
-        (liii option)
+        (rename (liii rich-option) (rich-option option) (rich-none none))
         (liii lang)
         (liii error)
 ) ;import

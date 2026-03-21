@@ -15,7 +15,8 @@
 ;
 
 (define-library (liii rich-either)
-  (import (liii option) (liii oop) (liii base))
+  (import (rename (liii rich-option) (rich-option option) (rich-none none))
+          (liii oop) (liii base))
   (export rich-either left right)
   (begin
 
