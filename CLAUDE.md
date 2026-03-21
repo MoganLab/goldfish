@@ -13,18 +13,18 @@
 - 建议缩进宽度为2个空格
 
 ## 代码格式化工具
-Goldfish 内置了代码格式化工具 `goldfish --fix`，用于自动格式化 Scheme 代码。
+Goldfish 内置了代码格式化工具 `gf fix`，用于自动格式化 Scheme 代码。
 
 ### 基本用法
 ```bash
 # 格式化单个文件（原地修改）
-bin/gf --fix goldfish/liii/os.scm
+bin/gf fix goldfish/liii/os.scm
 
 # 格式化整个目录（原地修改）
-bin/gf --fix goldfish/
+bin/gf fix goldfish/
 
 # 仅查看格式化结果（不修改文件）
-bin/gf --fix-dry-run goldfish/liii/os.scm
+bin/gf fix --dry-run goldfish/liii/os.scm
 ```
 
 ### 测试步骤中的格式化检查
@@ -34,8 +34,8 @@ bin/gf --fix-dry-run goldfish/liii/os.scm
 xmake b goldfish
 
 # 2. 格式化代码
-bin/gf --fix goldfish/liii/xxx.scm
-bin/gf --fix tests/goldfish/liii/xxx-test.scm
+bin/gf fix goldfish/liii/xxx.scm
+bin/gf fix tests/goldfish/liii/xxx-test.scm
 
 # 3. 运行测试
 bin/gf tests/goldfish/liii/xxx-test.scm
@@ -55,6 +55,20 @@ bin/gf tests/goldfish/liii/xxx-test.scm
 - 如用户输入其他语言（如英文），可临时使用该语言进行交流
 
 ## 其他规则
+
+### define-case-class 使用建议
+`define-case-class` 通过宏实现，有显著的性能开销：
+- 方法调用需要通过字符串匹配和动态查找
+- 每次调用都有额外的运行时开销
+- 不适合高频调用的场景
+
+**使用建议**：
+- 适合手写代码和原型开发
+- **不推荐用于 AI 生成的代码**（AI 可能会过度使用）
+- **不推荐用于生产环境部署**（性能敏感场景）
+
+对于性能敏感的场景，建议使用普通的函数和 record-type 替代。
+
 ### 分支命名规范
 - 分支名格式：`$USER/x_y/descr`
   - `$USER`：当前用户名

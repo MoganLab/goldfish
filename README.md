@@ -45,7 +45,7 @@ With `prime?` provided, filter twin prime numbers in this way:
 (define-case-class person
   ((name string?)
    (age integer?))
-  
+
   (define (%to-string)
     (string-append "I am " name " " (number->string age) " years old!"))
   (define (%greet x)
@@ -56,6 +56,8 @@ With `prime?` provided, filter twin prime numbers in this way:
 (bob :to-string) ; => "I am Bob 21 years old!"
 (bob :greet "Alice") ; => "Hi Alice, I am Bob 21 years old!"
 ```
+
+> **Performance Warning**: `define-case-class` is implemented via macros and has significant performance overhead. It is suitable for hand-written code and prototyping, but **not recommended for AI-generated code or production deployments**.
 
 ## Simplicity is Beauty
 Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 98.

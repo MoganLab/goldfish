@@ -45,7 +45,7 @@
 (define-case-class person
   ((name string?)
    (age integer?))
-  
+
   (define (%to-string)
     (string-append "I am " name " " (number->string age) " years old!"))
   (define (%greet x)
@@ -56,6 +56,8 @@
 (bob :to-string) ; => "I am Bob 21 years old!"
 (bob :greet "Alice") ; => "Hi Alice, I am Bob 21 years old!"
 ```
+
+> **性能警告**：`define-case-class` 通过宏实现，有显著的性能开销。它适合手写代码和原型开发，但**不推荐用于 AI 生成的代码或生产环境部署**。
 
 ## 以简为美
 金鱼Scheme仍旧遵循和 S7 Scheme 一样的简约的原则。目前，它仅依赖于 [S7 Scheme](https://ccrma.stanford.edu/software/s7/) 、[tbox](https://gitee.com/tboox/tbox) 和 C++98 范围内的标准库。
