@@ -3369,6 +3369,11 @@ display_help () {
   cout << "                     Options:" << endl;
   cout << "                       --only PATTERN  Run tests matching PATTERN" << endl;
   cout << "                                         (e.g. json, sicp, list-test.scm)" << endl;
+  cout << "  run TARGET         Run main function from TARGET" << endl;
+  cout << "                     TARGET can be:" << endl;
+  cout << "                       FILE.scm       Load file and run main" << endl;
+  cout << "                       x/y/z.scm      Load file and run main" << endl;
+  cout << "                       module.name    Import (module name) and run main" << endl;
 #ifdef GOLDFISH_WITH_REPL
   cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
@@ -4517,6 +4522,84 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_call (sc, run_goldtest, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 run 子命令
+  if (command == "run") {
+    // 获取 TARGET 参数
+    string target;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      target= arg;
+      break;
+    }
+    if (target.empty ()) {
+      std::cerr << "Error: 'run' requires TARGET argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // 判断类型并处理
+    if (target.find ('/') != string::npos || target.rfind (".scm") == target.length () - 4) {
+      // 包含 / 或以 .scm 结尾，按文件路径处理
+      // 检查文件是否存在
+      std::error_code ec;
+      if (!fs::exists (target, ec) || !fs::is_regular_file (target, ec)) {
+        s7_close_output_port (sc, s7_current_error_port (sc));
+        s7_set_current_error_port (sc, old_port);
+        if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+        std::cerr << "Error: File not found: " << target << std::endl;
+        return 1;
+      }
+      goldfish_eval_file (sc, target, true);
+    }
+    else {
+      // 按模块名处理，例如: liii.string -> (liii string)
+      string import_expr= "(import (" + target + "))";
+      // 将 . 替换为空格
+      for (size_t i= 0; i < import_expr.length (); ++i) {
+        if (import_expr[i] == '.') import_expr[i]= ' ';
+      }
+      s7_eval_c_string (sc, import_expr.c_str ());
+    }
+
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cout << errmsg;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      return 1;
+    }
+
+    // 检查并调用 main 函数
+    s7_pointer main_func= s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      std::cerr << "Error: No main function found in target: " << target << std::endl;
+      return 1;
+    }
+
+    // 调用 main 函数
+    s7_call (sc, main_func, s7_nil (sc));
+
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) cout << errmsg;
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
