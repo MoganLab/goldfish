@@ -4,7 +4,6 @@
         (liii os)
         (liii rich-json)
         (only (liii lang) display*)
-        (only (liii base) let1)
         (liii time)
 ) ;import
 
@@ -14,7 +13,7 @@
   (when (not env) (exit 0))
 ) ;let
 
-(let1 r (http-head "https://httpbin.org")
+(let ((r (http-head "https://httpbin.org")))
   (check (r 'status-code) => 200)
   (check (r 'url) => "https://httpbin.org/")
   (check-true (real? (r 'elapsed)))
@@ -28,28 +27,28 @@
   (check ((r 'headers) "content-type") => "text/html; charset=utf-8")
   (check ((r 'headers) "content-length") => "9593")
   (check-true (http-ok? r))
-) ;let1
+) ;let
 
-(let1 r (http-get "https://httpbin.org")
+(let ((r (http-get "https://httpbin.org")))
   (check (r 'status-code) => 200)
   (check-true (> (string-length (r 'text)) 0))
   (check ((r 'headers) "content-type") => "text/html; charset=utf-8")
-) ;let1
+) ;let
 
-(let1 r (http-get "https://httpbin.org/get"
-                  :params '(("key1" . "value1") ("key2" . "value2")))
+(let ((r (http-get "https://httpbin.org/get"
+                  :params '(("key1" . "value1") ("key2" . "value2")))))
       (check-true (string-contains (r 'text) "value1"))
       (check-true (string-contains (r 'text) "value2"))
       (check (r 'url) => "https://httpbin.org/get?key1=value1&key2=value2")
-) ;let1
+) ;let
 
-(let1 r (http-post "https://httpbin.org/post"
-                  :params '(("key1" . "value1") ("key2" . "value2")))
+(let ((r (http-post "https://httpbin.org/post"
+                  :params '(("key1" . "value1") ("key2" . "value2")))))
       (check-true (string-contains (r 'text) "value1"))
       (check-true (string-contains (r 'text) "value2"))
       (check (r 'status-code) => 200)
       (check (r 'url) => "https://httpbin.org/post?key1=value1&key2=value2")
-) ;let1
+) ;let
 
 (let* ((r (http-post "https://httpbin.org/post"
             :data "This is raw data"))
@@ -84,7 +83,7 @@
 ) ;let
 
 ;; Test streaming GET with JSON endpoint
-(let1 collected '()
+(let ((collected '()))
   (http-stream-get "https://jsonplaceholder.typicode.com/posts/1"
                    (lambda (chunk userdata)
                      (when (> (string-length chunk) 0)
@@ -96,10 +95,10 @@
     (check-true (> (string-length response) 0))
     (check-true (string-contains response "userId"))
   ) ;let
-) ;let1
+) ;let
 
 ;; Test streaming POST with JSON data
-(let1 collected '()
+(let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
                    (lambda (chunk userdata)
                      (when (> (string-length chunk) 0)
@@ -115,10 +114,10 @@
     (check-true (> (string-length response) 0))
     (check-true (string-contains response "streaming-json"))
   ) ;let
-) ;let1
+) ;let
 
 ;; Test streaming POST with plain text
-(let1 collected '()
+(let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
                    (lambda (chunk userdata)
                      (when (> (string-length chunk) 0)
@@ -133,10 +132,10 @@
     (check-true (> (string-length response) 0))
     (check-true (string-contains response "Simple streaming POST test"))
   ) ;let
-) ;let1
+) ;let
 
 ;; Test streaming POST with XML data
-(let1 collected '()
+(let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
                    (lambda (chunk userdata)
                      (when (> (string-length chunk) 0)
@@ -152,10 +151,10 @@
     (check-true (> (string-length response) 0))
     (check-true (string-contains response "stream-xml-test"))
   ) ;let
-) ;let1
+) ;let
 
 ;; Test streaming POST with form data
-(let1 collected '()
+(let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
                    (lambda (chunk userdata)
                      (when (> (string-length chunk) 0)
@@ -171,7 +170,7 @@
     (check-true (> (string-length response) 0))
     (check-true (string-contains response "stream-test"))
   ) ;let
-) ;let1
+) ;let
 
 ;; Async HTTP tests
 

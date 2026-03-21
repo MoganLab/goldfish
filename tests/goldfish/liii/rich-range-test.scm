@@ -14,23 +14,23 @@
 ; under the License.
 ;
 
-(import (liii check) (liii rich-range) (liii base) (liii lang) (liii error))
+(import (liii check) (liii rich-range) (liii rich-list) (liii base) (liii error) (liii lang))
 
 (check-set-mode! 'report-failed)
 
-(let1 r (rich-range :inclusive 1 2)
+(let ((r (rich-range :inclusive 1 2)))
   (check (r 'start) => 1)
   (check (r 'end) => 2)
   (check (r 'step) => 1)
   (check-true (r 'inclusive?))
-) ;let1
+) ;let
 
-(let1 r (rich-range :inclusive 1 3 2)
+(let ((r (rich-range :inclusive 1 3 2)))
   (check (r 'start) => 1)
   (check (r 'end) => 3)
   (check (r 'step) => 2)
   (check-true (r 'inclusive?))
-) ;let1
+) ;let
 
 (check-false ((rich-range :inclusive 1 3) :empty?))
 (check-true ((rich-range :inclusive 3 1) :empty?))
@@ -41,28 +41,28 @@
   (check r2 => (rich-list (list 4 1 0 1)))
 ) ;let*
 
-(let1 r (rich-range 0 10 1 #f)
+(let ((r (rich-range 0 10 1 #f)))
   (check (r :filter even?) => ($ (list 0 2 4 6 8)))
   (check (r :filter (lambda (x) (> x 5))) => ($ (list 6 7 8 9)))
   (check (r :filter (lambda (x) (< x 0))) => ($ (list )))
-) ;let1
+) ;let
 
-(let1 r (rich-range 5 1 -1 #t)
+(let ((r (rich-range 5 1 -1 #t)))
   (check (r :filter odd?) => ($ (list 5 3 1)))
-) ;let1
+) ;let
 
-(let1 r (rich-range 5 1 1 #t)
+(let ((r (rich-range 5 1 1 #t)))
   (check (r :filter odd?) => ($ (list )))
-) ;let1
+) ;let
 
-(let1 r (rich-range -5 -1 1 #t)
+(let ((r (rich-range -5 -1 1 #t)))
   (check (r :filter odd?) => ($ (list -5 -3 -1)))
-) ;let1
+) ;let
 
-(let1 r (rich-range 5 5 -1 #t)
+(let ((r (rich-range 5 5 -1 #t)))
   (check (r :filter odd?) => ($ (list 5)))
   (check (r :filter even?) => ($ (list )))
-) ;let1
+) ;let
 
 (check-false ((rich-range :inclusive 1 3) :contains 4))
 (check-true ((rich-range :inclusive 1 3) :contains 2))
