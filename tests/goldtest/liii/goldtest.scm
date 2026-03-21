@@ -21,6 +21,7 @@
         (liii string)
         (liii os)
         (liii path)
+        (liii sys)
 ) ;import
 
 (define ESC (string #\escape #\[))
@@ -92,10 +93,7 @@
 ) ;define
 
 (define (goldfish-cmd)
-  (if (os-windows?)
-    "bin\\gf -m r7rs "
-    "bin/gf -m r7rs "
-  ) ;if
+  (string-append (executable) " -m r7rs ")
 ) ;define
 
 (define (run-test-file test-file)
