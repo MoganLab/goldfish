@@ -14,19 +14,19 @@
 ; under the License.
 ;
 
-(define-library (liii range)
-  (import (liii oop) 
+(define-library (liii rich-range)
+  (import (liii oop)
           (liii rich-list)
-          (liii error) 
+          (liii error)
   ) ;import
-  (export range)
+  (export rich-range)
   (begin
 
-    (define-case-class range
+    (define-case-class rich-range
       ((start integer?) (end integer?) (step integer? 1) (inclusive? boolean? #f))
 
       (define* (@inclusive start end (step 1))
-        (range start end step #t)
+        (rich-range start end step #t)
       ) ;define*
 
       (define (check-step)
@@ -109,8 +109,8 @@
         ) ;if
       ) ;define
 
-           
-           
+
+
 
     ) ;define-case-class
   ) ;begin

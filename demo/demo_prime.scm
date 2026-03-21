@@ -1,5 +1,5 @@
 (import (scheme time)
-        (liii range)
+        (liii rich-range)
         (liii rich-list)
         (liii lang))
 
@@ -30,8 +30,8 @@
     (display* msg (number->string (- end start)) "\n")))
 
 (let1 n 1073729
-  (timing "R7RS: " (lambda () ((range 1 100) :for-each (lambda (x) (prime1? n)))))
-  (timing "Goldfish: " (lambda () ((range 1 100) :for-each (lambda (x) (prime2? n)))))
+  (timing "R7RS: " (lambda () ((rich-range 1 100) :for-each (lambda (x) (prime1? n)))))
+  (timing "Goldfish: " (lambda () ((rich-range 1 100) :for-each (lambda (x) (prime2? n)))))
   (display* (prime1? n) "\n")
 )
 
