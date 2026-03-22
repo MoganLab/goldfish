@@ -94,6 +94,7 @@
 ;; 布尔值
 
 (check (enum-type? color) => #t)
+(check (enum-type? color-red) => #f)
 (check (enum-type? 'not-a-type) => #f)
 
 ;; enum?
@@ -108,6 +109,7 @@
 ;; 布尔值
 
 (check (enum? color-red) => #t)
+(check (enum? color) => #f)
 (check (enum? 'z) => #f)
 
 ;; enum-type-contains?
