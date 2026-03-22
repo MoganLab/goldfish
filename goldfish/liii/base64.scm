@@ -95,7 +95,7 @@
     ) ;define
 
     (define-constant BASE64_TO_BYTE_V
-      (let1 byte2base64-N (bytevector-length BYTE2BASE64_BV)
+      (let ((byte2base64-N (bytevector-length BYTE2BASE64_BV)))
         (let loop ((i 0)
                    (v (make-vector 256 -1)))
           (if (< i byte2base64-N)
@@ -106,7 +106,7 @@
               v
           ) ;if
         ) ;let
-      ) ;let1
+      ) ;let
     ) ;define-constant
 
     (define (bytevector-base64-decode bv)

@@ -53,7 +53,7 @@
         (when (odd? (length lst))
           (value-error "The length of lst must be even!")
         ) ;when
-        (let1 ht (make-hash-table)
+        (let ((ht (make-hash-table)))
           (let loop ((rest lst))
             (if (null? rest)
                 ht
@@ -63,7 +63,7 @@
                 ) ;begin
             ) ;if
           ) ;let
-        ) ;let1
+        ) ;let
       ) ;typed-lambda
     ) ;define
 
@@ -90,7 +90,7 @@
 
     (define (hash-table-set! ht . rest)
       (assert-hash-table-type ht hash-table-set!)
-      (let1 len (length rest)
+      (let ((len (length rest)))
         (when (or (odd? len) (zero? len))
           (error 'wrong-number-of-args len "but must be even and non-zero")
         ) ;when
@@ -98,12 +98,12 @@
         (when (> len 2)
           (apply hash-table-set! (cons ht (cddr rest)))
         ) ;when
-      ) ;let1
+      ) ;let
     ) ;define
 
     (define (hash-table-delete! ht key . keys)
       (assert-hash-table-type ht hash-table-delete!)
-      (let1 all-keys (cons key keys)
+      (let ((all-keys (cons key keys)))
         (length
          (filter (lambda (x)
                    (if (hash-table-contains? ht x)
@@ -116,7 +116,7 @@
                  all-keys
          ) ;filter
         ) ;length
-      ) ;let1
+      ) ;let
     ) ;define
 
     (define (hash-table-update! ht key value)

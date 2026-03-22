@@ -65,10 +65,10 @@
   (check (parser :get-argument "title") => "My Document")
 ) ;let
 
-(let1 parser (make-argument-parser)
+(let ((parser (make-argument-parser)))
   (check-catch 'type-error (parser :add-argument '((name name))))
   (check-catch 'value-error (parser :add-argument '()))
-) ;let1
+) ;let
 
 (check-report)
 

@@ -23,103 +23,103 @@
 (check ((rich-hash-set :empty) :empty?) => #t)
 
 ;; Test basic operations
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
   (hash-table-set! ht 'c #t)
   (check ((rich-hash-set ht) :size) => 3)
-) ;let1
+) ;let
 
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (check ((rich-hash-set ht) :empty?) => #t)
   (hash-table-set! ht 'a #t)
   (check ((rich-hash-set ht) :empty?) => #f)
-) ;let1
+) ;let
 
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
   (check ((rich-hash-set ht) :contains 'a) => #t)
   (check ((rich-hash-set ht) :contains 'c) => #f)
-) ;let1
+) ;let
 
 ;; Test non-destructive operations
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
-  (let1 s (rich-hash-set ht)
-    (check (s :add-one 'c) => (let1 new-ht (make-hash-table)
+  (let ((s (rich-hash-set ht)))
+    (check (s :add-one 'c) => (let ((new-ht (make-hash-table)))
                                 (hash-table-set! new-ht 'a #t)
                                 (hash-table-set! new-ht 'b #t)
                                 (hash-table-set! new-ht 'c #t)
                                 (rich-hash-set new-ht))
     ) ;check
-    (check (s :add-one 'd) => (let1 new-ht (make-hash-table)
+    (check (s :add-one 'd) => (let ((new-ht (make-hash-table)))
                                 (hash-table-set! new-ht 'a #t)
                                 (hash-table-set! new-ht 'b #t)
                                 (hash-table-set! new-ht 'd #t)
                                 (rich-hash-set new-ht))
     ) ;check
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
-  (let1 s (rich-hash-set ht)
-    (check (s :remove 'a) => (let1 new-ht (make-hash-table)
+  (let ((s (rich-hash-set ht)))
+    (check (s :remove 'a) => (let ((new-ht (make-hash-table)))
                               (hash-table-set! new-ht 'b #t)
                               (rich-hash-set new-ht))
     ) ;check
-    (check (s :remove 'b) => (let1 new-ht (make-hash-table)
+    (check (s :remove 'b) => (let ((new-ht (make-hash-table)))
                               (hash-table-set! new-ht 'a #t)
                               (rich-hash-set new-ht))
     ) ;check
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 ;; Test destructive operations
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
-  (let1 s (rich-hash-set ht)
-    (check (s :add-one! 'c) => (let1 new-ht (make-hash-table)
+  (let ((s (rich-hash-set ht)))
+    (check (s :add-one! 'c) => (let ((new-ht (make-hash-table)))
                                 (hash-table-set! new-ht 'a #t)
                                 (hash-table-set! new-ht 'b #t)
                                 (hash-table-set! new-ht 'c #t)
                                 (rich-hash-set new-ht))
     ) ;check
-    (check (s :add-one! 'd) => (let1 new-ht (make-hash-table)
+    (check (s :add-one! 'd) => (let ((new-ht (make-hash-table)))
                                 (hash-table-set! new-ht 'a #t)
                                 (hash-table-set! new-ht 'b #t)
                                 (hash-table-set! new-ht 'c #t)
                                 (hash-table-set! new-ht 'd #t)
                                 (rich-hash-set new-ht))
     ) ;check
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
-  (let1 s (rich-hash-set ht)
-    (check (s :remove! 'a) => (let1 new-ht (make-hash-table)
+  (let ((s (rich-hash-set ht)))
+    (check (s :remove! 'a) => (let ((new-ht (make-hash-table)))
                                 (hash-table-set! new-ht 'b #t)
                                 (rich-hash-set new-ht))
     ) ;check
-    (check (s :remove! 'b) => (let1 new-ht (make-hash-table)
+    (check (s :remove! 'b) => (let ((new-ht (make-hash-table)))
                                 (rich-hash-set new-ht))
     ) ;check
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
-(let1 ht (make-hash-table)
+(let ((ht (make-hash-table)))
   (hash-table-set! ht 'a #t)
   (hash-table-set! ht 'b #t)
-  (let1 s (rich-hash-set ht)
+  (let ((s (rich-hash-set ht)))
     (check (s :clear!) => (rich-hash-set (make-hash-table)))
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 (check-report)
 

@@ -210,16 +210,16 @@
   (mkdir dir-a)
   (mkdir dir-b)
   (mkdir dir-c)
-  (let1 r (listdir test-dir)
+  (let ((r (listdir test-dir)))
     (check-true ($ r :contains "a"))
     (check-true ($ r :contains "b"))
     (check-true ($ r :contains "c"))
-  ) ;let1
-  (let1 r2 (listdir test-dir2)
+  ) ;let
+  (let ((r2 (listdir test-dir2)))
     (check-true ($ r2 :contains "a"))
     (check-true ($ r2 :contains "b"))
     (check-true ($ r2 :contains "c"))
-  ) ;let1
+  ) ;let
   (rmdir dir-a)
   (rmdir dir-b)
   (rmdir dir-c)

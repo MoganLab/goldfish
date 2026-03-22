@@ -1590,12 +1590,12 @@ wrong-type-arg 如果 clist 不是列表类型。
 (check (alist-cons 'a 1 '()) => '((a . 1)))
 (check (alist-cons 'a 1 '((b . 2))) => '((a . 1) (b . 2)))
 
-(let1 cl (circular-list 1 2 3)
+(let ((cl (circular-list 1 2 3)))
   (check (cl 3) => 1)
   (check (cl 4) => 2)
   (check (cl 5) => 3)
   (check (cl 6) => 1)
-) ;let1
+) ;let
 
 (check-true (circular-list? (circular-list 1 2)))
 (check-true (circular-list? (circular-list 1)))

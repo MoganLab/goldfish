@@ -120,9 +120,9 @@
     ) ;define
 
     (define (os-temp-dir)
-      (let1 temp-dir (g_os-temp-dir)
+      (let ((temp-dir (g_os-temp-dir)))
         (string-remove-suffix temp-dir (string (os-sep)))
-      ) ;let1
+      ) ;let
     ) ;define
 
     (define (mkdir path)

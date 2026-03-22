@@ -59,7 +59,7 @@
           (let loop ((vec1 (car rest))
                      (vec2 (car (cdr rest)))
                      (vrest (cdr (cdr rest))))
-            (let1 rst (compare2vecs elt=? vec1 vec2)
+            (let ((rst (compare2vecs elt=? vec1 vec2)))
               (when (not (boolean? rst))
                 (error 'type-error "elt=> should return bool")
               ) ;when
@@ -70,7 +70,7 @@
                   ) ;if
                   #f
               ) ;if
-            ) ;let1
+            ) ;let
           ) ;let
       ) ;if
     ) ;define
@@ -119,12 +119,12 @@
                      (lhs knil))
             (if (= i len)
                 v-rst
-                (let1 cumu-i (fn lhs (vec i))
+                (let ((cumu-i (fn lhs (vec i))))
                   (begin
                     (vector-set! v-rst i cumu-i)
                     (loop (+ 1 i) cumu-i)
                   ) ;begin
-                ) ;let1
+                ) ;let
             ) ;if
           ) ;let
         ) ;let*

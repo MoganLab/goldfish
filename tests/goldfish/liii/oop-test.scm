@@ -255,7 +255,7 @@ procedure
   ) ;
 ) ;define-case-class
 
-(let1 bob (person :name "Bob" :age 21)
+(let ((bob (person :name "Bob" :age 21)))
   (check (bob 'name) => "Bob")
   (check (bob 'age) => 21)
   (check ((bob :name "hello") 'name) => "hello")
@@ -264,7 +264,7 @@ procedure
   (check-true (bob :is-instance-of 'person))
   (check-true (person :is-type-of bob))
   (check (bob :to-string) => "(person :name \"Bob\" :age 21)")
-) ;let1
+) ;let
 
 (check-catch 'type-error (person 1 21))
 
@@ -293,10 +293,10 @@ procedure
  ;define
 ) ;define-case-class
 
-(let1 bob (jerson "Bob" 21)
+(let ((bob (jerson "Bob" 21)))
   (check (bob :to-string) => "I am Bob 21 years old!")
   (check (bob :greet "Alice") => "Hi Alice, I am Bob 21 years old!")
-) ;let1
+) ;let
 
 (define-case-class anonymous ()
   (define name "")
@@ -309,10 +309,10 @@ procedure
  ;define
 ) ;define-case-class
 
-(let1 p (anonymous)
+(let ((p (anonymous)))
   (p :set-name! "Alice")
   (check (p :get-name) => "Alice")
-) ;let1
+) ;let
 
 (define-case-class my-bool ()
   (define data #t)
@@ -328,7 +328,7 @@ procedure
   (define (%false?) (not (%true?)))
   
   (define (@apply x)
-    (let1 r (my-bool)
+    (let ((r (my-bool)))
       (cond ((eq? x 'true)
              (r :set-true!))
             ((eq? x 'false)
@@ -340,7 +340,7 @@ procedure
             (else (r :set-false!))
       ) ;cond
       r)
-    ) ;let1
+    ) ;let
  ;define
 ) ;define-case-class
 
@@ -363,10 +363,10 @@ procedure
  ;define
 ) ;define-case-class
 
-(let1 hello (test-case-class "hello ")
+(let ((hello (test-case-class "hello ")))
   (check-catch 'value-error (hello :this-is-a-static-method))
   (check (test-case-class :this-is-a-static-method) => (test-case-class "static"))
-) ;let1
+) ;let
 
 (let ()
   (define-case-class person ((name string?) (country string?))
@@ -737,11 +737,11 @@ define-class 是 (liii oop) 模块中用于创建类的宏，它基于 define-ca
     ) ;
     
     (define (@apply name)
-      (let1 r (person)
+      (let ((r (person)))
         (r :set-name! name)
         (r :set-age! 10)
         r
-      ) ;let1
+      ) ;let
     ) ;define
   ) ;define-class
   
@@ -1188,7 +1188,7 @@ procedure
   ) ;
 ) ;define-final-class
 
-(let1 bob (person :name "Bob" :age 21)
+(let ((bob (person :name "Bob" :age 21)))
   (check (bob 'name) => "Bob")
   (check (bob 'age) => 21)
   (check ((bob :name "hello") 'name) => "hello")
@@ -1197,7 +1197,7 @@ procedure
   (check-true (bob :is-instance-of 'person))
   (check-true (person :is-type-of bob))
   (check (bob :to-string) => "(person :name \"Bob\" :age 21)")
-) ;let1
+) ;let
 
 (check-catch 'type-error (person 1 21))
 
@@ -1230,11 +1230,11 @@ procedure
 
 (check-true (procedure? (jerson-object :to-string "name" 21)))
 
-(let1 bob (jerson "Bob" 21)
+(let ((bob (jerson "Bob" 21)))
   (check (bob :to-string) => "I am Bob 21 years old!")
   (check (bob :greet "Alice") => "Hi Alice, I am Bob 21 years old!")
   (check (bob :i-greet "Alice") => "Bob: Hi Alice, I am Bob 21 years old!")
-) ;let1
+) ;let
 
 
 
@@ -1251,10 +1251,10 @@ procedure
  ;define
 ) ;define-final-class
 
-(let1 hello (test-case-class "hello ")
+(let ((hello (test-case-class "hello ")))
   (check-catch 'value-error (hello :this-is-a-static-method))
   (check (test-case-class :this-is-a-static-method) => (test-case-class "static"))
-) ;let1
+) ;let
 
 (check-catch 'syntax-error
   (eval

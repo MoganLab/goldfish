@@ -36,9 +36,9 @@
 ) ;define
 
 (define* (http-head url)
-  (let1 r (g_http-head url)
+  (let ((r (g_http-head url)))
         r
-  ) ;let1
+  ) ;let
 ) ;define*
 
 (define* (http-get url (params '()) (headers '()) (proxy '()))
@@ -48,9 +48,9 @@
   (when (not (alist? proxy))
     (type-error proxy "is not a association list")
   ) ;when
-  (let1 r (g_http-get url params headers proxy)
+  (let ((r (g_http-get url params headers proxy)))
         r
-  ) ;let1
+  ) ;let
 ) ;define*
 
 (define* (http-post url (params '()) (data "") (headers '()) (proxy '()))

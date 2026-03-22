@@ -16,7 +16,7 @@
     (string-append "Run as a duck (" name ")"))
   
   (define (@apply name)
-    (let1 d (duck)
+    (let ((d (duck)))
       (d :set-name! name)
       d))
 )
@@ -28,7 +28,7 @@
     (string-append "Run as a dog (" name ")"))
   
   (define (@apply name)
-    (let1 d (dog)
+    (let ((d (dog)))
       (d :set-name! name)
       d))
 )
