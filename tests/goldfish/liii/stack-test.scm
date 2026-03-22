@@ -253,7 +253,7 @@
 (check ((stack (list 1)) :pop!) => (stack (list)))
 (check ((stack (list 1 2)) :pop!) => (stack (list 2)))
 (check ((stack (list "A" "B" "C" "D" "E")) :pop! :pop! :pop!) => (stack (list "D" "E")))
-(let1 t (stack (list 100))
+(let ((t (stack (list 100))))
   (check-catch 'out-of-range (t :pop! :pop!)))
 
 
@@ -293,7 +293,7 @@ element : any-type
 --------
 支持链式调用，如：(stack :push 1 :push 2 :push 3)
 |#
-(let1 t (stack (list 1 2 3))
+(let ((t (stack (list 1 2 3))))
   (check (t :push 1) => (stack (list 1 1 2 3)))
   (check (t :push 1 :push 1) => (stack (list 1 1 1 2 3))))
 
@@ -334,7 +334,7 @@ element : any-type
 --------
 该方法返回原栈对象本身，支持链式调用，如：(stack :push! 1 :push! 2 :push! 3)
 |#
-(let1 t (stack (list 1 2 3))
+(let ((t (stack (list 1 2 3))))
   (check (t :push! 1) => (stack (list 1 1 2 3)))
   (check (t :push! 1 :push! 1) => (stack (list 1 1 1 1 2 3)))
   (check (t :pop! :push! 2) => (stack (list 2 1 1 1 2 3))))
