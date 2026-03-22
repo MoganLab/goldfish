@@ -1,7 +1,9 @@
 (import (liii base) (liii argparse))
 
-(let1 parser (make-argument-parser)
+(let ((parser (make-argument-parser)))
   (parser :add
-	  '((name . "width") (type . number) (default . 40)))
+	  '((name . "width") (type . number) (default . 40))
+  ) ;parser
   (parser :parse)
-  (display* (parser 'width) "\n"))
+  (display* (parser 'width) "\n")
+) ;let
