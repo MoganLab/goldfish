@@ -16,7 +16,8 @@
 
 (define-library (liii rich-vector)
   (import (liii string) (liii hash-table) (liii sort) (liii list) (liii vector) (liii oop) (srfi srfi-8)
-          (rename (liii rich-option) (rich-option option)))
+          (rename (liii rich-option) (rich-option option))
+  ) ;import
   (export rich-vector)
   (begin
 
@@ -219,74 +220,26 @@
       ) ;define
 
       (define (%take n . args)
-        (define (scala-take data n)
-          (cond
-            ((< n 0) (vector))
-            ((>= n (vector-length data)) data)
-            (else
-              (let ((new-vec (make-vector n)))
-                (do ((i 0 (+ i 1)))
-                    ((>= i n) new-vec)
-                    (vector-set! new-vec i (vector-ref data i))
-                ) ;do
-              ) ;let
-            ) ;else
-          ) ;cond
-        ) ;define
-  
         (chain-apply args
-          (rich-vector (scala-take data n))
+          (rich-vector (vector-take data n))
         ) ;chain-apply
       ) ;define
 
       (define (%take-right n . args)
-        (define (scala-take-right data n)
-          (let ((len (vector-length data)))
-            (cond
-              ((< n 0) (vector))
-              ((>= n len) data)
-              (else
-                (let ((new-vec (make-vector n)))
-                  (do ((i (- len n) (+ i 1))
-                       (j 0 (+ j 1)))
-                      ((>= j n) new-vec)
-                      (vector-set! new-vec j (vector-ref data i))
-                  ) ;do
-                ) ;let
-              ) ;else
-            ) ;cond
-          ) ;let
-        ) ;define
-
         (chain-apply args
-          (rich-vector (scala-take-right data n))
+          (rich-vector (vector-take-right data n))
         ) ;chain-apply
       ) ;define
 
       (define (%drop n . args)
-        (define (scala-drop data n)
-          (cond
-            ((< n 0) data)
-            ((>= n (vector-length data)) (vector))
-            (else (vector-copy data n))
-          ) ;cond
-        ) ;define
         (chain-apply args
-          (rich-vector (scala-drop data n))
+          (rich-vector (vector-drop data n))
         ) ;chain-apply
       ) ;define
 
       (define (%drop-right n . args)
-        (define (scala-drop-right data n)
-          (cond
-            ((< n 0) data)
-            ((>= n (vector-length data)) (vector))
-            (else (vector-copy data 0 (- (vector-length data) n)))
-          ) ;cond
-        ) ;define
-  
         (chain-apply args
-          (rich-vector (scala-drop-right data n))
+          (rich-vector (vector-drop-right data n))
         ) ;chain-apply
       ) ;define
 

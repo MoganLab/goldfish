@@ -19,6 +19,7 @@
         (liii vector)
         (liii cut)
         (liii base)
+        (liii error)
         (only (scheme base) let-values)
 ) ;import
 
@@ -1753,6 +1754,115 @@ type-error
 
 ;; 错误处理测试
 (check-catch 'type-error (vector-contains? 'not-a-vector 1))  ; 非向量参数
+
+#|
+vector-take
+Scala风格的vector-take函数，对越界情况容忍。
+
+语法
+----
+(vector-take vec n)
+
+参数
+----
+vec : vector?
+源向量，从中提取元素。
+
+n : integer?
+要提取的元素数量。
+
+返回值
+------
+vector
+包含指定数量元素的新向量，从原向量的开头开始计数。
+
+说明
+----
+- 当n < 0时，返回空向量
+- 当n >= 向量长度时，返回原向量
+- 否则返回前n个元素
+|#
+
+; 基本功能测试
+(check (vector-take #(1 2 3 4 5) 3) => #(1 2 3))
+(check (vector-take #(1 2 3 4 5) 0) => #())
+(check (vector-take #(1 2 3 4 5) 5) => #(1 2 3 4 5))
+
+; 边界容忍测试
+(check (vector-take #(1 2 3) -1) => #())
+(check (vector-take #(1 2 3) 10) => #(1 2 3))
+
+; 空向量测试
+(check (vector-take #() 0) => #())
+(check (vector-take #() 5) => #())
+
+; 错误处理测试
+(check-catch 'type-error (vector-take "not a vector" 2))
+(check-catch 'type-error (vector-take #(1 2 3) "not a number"))
+
+#|
+vector-drop
+Scala风格的vector-drop函数，对越界情况容忍。
+|#
+
+; 基本功能测试
+(check (vector-drop #(1 2 3 4 5) 3) => #(4 5))
+(check (vector-drop #(1 2 3 4 5) 0) => #(1 2 3 4 5))
+(check (vector-drop #(1 2 3 4 5) 5) => #())
+
+; 边界容忍测试
+(check (vector-drop #(1 2 3) -1) => #(1 2 3))
+(check (vector-drop #(1 2 3) 10) => #())
+
+; 空向量测试
+(check (vector-drop #() 0) => #())
+(check (vector-drop #() 5) => #())
+
+; 错误处理测试
+(check-catch 'type-error (vector-drop "not a vector" 2))
+(check-catch 'type-error (vector-drop #(1 2 3) "not a number"))
+
+#|
+vector-take-right
+Scala风格的vector-take-right函数，对越界情况容忍。
+|#
+
+; 基本功能测试
+(check (vector-take-right #(1 2 3 4 5) 3) => #(3 4 5))
+(check (vector-take-right #(1 2 3 4 5) 0) => #())
+(check (vector-take-right #(1 2 3 4 5) 5) => #(1 2 3 4 5))
+
+; 边界容忍测试
+(check (vector-take-right #(1 2 3) -1) => #())
+(check (vector-take-right #(1 2 3) 10) => #(1 2 3))
+
+; 空向量测试
+(check (vector-take-right #() 0) => #())
+
+; 错误处理测试
+(check-catch 'type-error (vector-take-right "not a vector" 2))
+(check-catch 'type-error (vector-take-right #(1 2 3) "not a number"))
+
+#|
+vector-drop-right
+Scala风格的vector-drop-right函数，对越界情况容忍。
+|#
+
+; 基本功能测试
+(check (vector-drop-right #(1 2 3 4 5) 3) => #(1 2))
+(check (vector-drop-right #(1 2 3 4 5) 0) => #(1 2 3 4 5))
+(check (vector-drop-right #(1 2 3 4 5) 5) => #())
+
+; 边界容忍测试
+(check (vector-drop-right #(1 2 3) -1) => #(1 2 3))
+(check (vector-drop-right #(1 2 3) 10) => #())
+
+; 空向量测试
+(check (vector-drop-right #() 0) => #())
+
+; 错误处理测试
+(check-catch 'type-error (vector-drop-right "not a vector" 2))
+(check-catch 'type-error (vector-drop-right #(1 2 3) "not a number"))
 
 (check-report)
 

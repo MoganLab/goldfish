@@ -42,6 +42,8 @@
     flat-map
     list-null? list-not-null? not-null-list?
     length=? length>? length>=? flatten
+    ; Scala-style take/drop with boundary tolerance
+    list-take list-drop list-take-right list-drop-right
   ) ;export
   (import (srfi srfi-1)
           (srfi srfi-13)
@@ -85,6 +87,58 @@
     ) ;define
 
     (define flat-map append-map)
+
+    (define (list-take lst n)
+      (unless (list? lst)
+        (type-error "list-take: first argument must be a list" lst)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "list-take: second argument must be an integer" n)
+      ) ;unless
+      (cond ((< n 0) '())
+            ((>= n (length lst)) lst)
+            (else (take lst n))
+      ) ;cond
+    ) ;define
+
+    (define (list-drop lst n)
+      (unless (list? lst)
+        (type-error "list-drop: first argument must be a list" lst)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "list-drop: second argument must be an integer" n)
+      ) ;unless
+      (cond ((< n 0) lst)
+            ((>= n (length lst)) '())
+            (else (drop lst n))
+      ) ;cond
+    ) ;define
+
+    (define (list-take-right lst n)
+      (unless (list? lst)
+        (type-error "list-take-right: first argument must be a list" lst)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "list-take-right: second argument must be an integer" n)
+      ) ;unless
+      (cond ((< n 0) '())
+            ((>= n (length lst)) lst)
+            (else (take-right lst n))
+      ) ;cond
+    ) ;define
+
+    (define (list-drop-right lst n)
+      (unless (list? lst)
+        (type-error "list-drop-right: first argument must be a list" lst)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "list-drop-right: second argument must be an integer" n)
+      ) ;unless
+      (cond ((< n 0) lst)
+            ((>= n (length lst)) '())
+            (else (drop-right lst n))
+      ) ;cond
+    ) ;define
 
     (define (not-null-list? l)
       (cond ((pair? l)

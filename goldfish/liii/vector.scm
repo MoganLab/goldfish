@@ -34,7 +34,9 @@
     vector-swap! vector-reverse! vector-cumulate reverse-list->vector
     vector= vector-contains?
     ; Liii Extras
-    vector-filter
+    vector-filter vector-contains?
+    ; Scala-style take/drop with boundary tolerance
+    vector-take vector-drop vector-take-right vector-drop-right
   ) ;export
   (begin
 
@@ -66,6 +68,65 @@
       ) ;let
     ) ;define
 
+    (define (vector-take vec n)
+      (unless (vector? vec)
+        (type-error "vector-take: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-take: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) (vector))
+              ((>= n len) vec)
+              (else (vector-copy vec 0 n))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-drop vec n)
+      (unless (vector? vec)
+        (type-error "vector-drop: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-drop: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) vec)
+              ((>= n len) (vector))
+              (else (vector-copy vec n))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-take-right vec n)
+      (unless (vector? vec)
+        (type-error "vector-take-right: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-take-right: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) (vector))
+              ((>= n len) vec)
+              (else (vector-copy vec (- len n)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-drop-right vec n)
+      (unless (vector? vec)
+        (type-error "vector-drop-right: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-drop-right: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) vec)
+              ((>= n len) (vector))
+              (else (vector-copy vec 0 (- len n)))
+        ) ;cond
+      ) ;let
+    ) ;define
 
   ) ;begin
 ) ;define-library

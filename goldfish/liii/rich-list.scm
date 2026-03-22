@@ -224,121 +224,25 @@
     
       (define (%take x . args)
         (chain-apply args
-          (begin 
-            (define (scala-take data n)
-              (unless (list? data) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-take '(data n) 'data "list" (object->string data)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-              (unless (integer? n) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-take '(data n) 'n "integer" (object->string n)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-      
-              (cond ((< n 0) '())
-                    ((>= n (length data)) data)
-                    (else (take data n))
-              ) ;cond
-            ) ;define
-    
-            (rich-list (scala-take data x))
-          ) ;begin
+          (rich-list (list-take data x))
         ) ;chain-apply
       ) ;define
 
       (define (%drop x . args)
         (chain-apply args
-          (begin 
-            (define (scala-drop data n)
-              (unless (list? data) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-drop '(data n) 'data "list" (object->string data)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-              (unless (integer? n) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-drop '(data n) 'n "integer" (object->string n)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-      
-              (cond ((< n 0) data)
-                    ((>= n (length data)) '())
-                    (else (drop data n))
-              ) ;cond
-            ) ;define
-    
-            (rich-list (scala-drop data x))
-          ) ;begin
+          (rich-list (list-drop data x))
         ) ;chain-apply
       ) ;define
 
       (define (%take-right x . args)
         (chain-apply args
-          (begin 
-            (define (scala-take-right data n)
-              (unless (list? data) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-take-right '(data n) 'data "list" (object->string data)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-              (unless (integer? n) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-take-right '(data n) 'n "integer" (object->string n)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-      
-              (cond ((< n 0) '())
-                    ((>= n (length data)) data)
-                    (else (take-right data n))
-              ) ;cond
-            ) ;define
-    
-            (rich-list (scala-take-right data x))
-          ) ;begin
+          (rich-list (list-take-right data x))
         ) ;chain-apply
       ) ;define
 
       (define (%drop-right x . args)
         (chain-apply args
-          (begin 
-            (define (scala-drop-right data n)
-              (unless (list? data) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-drop-right '(data n) 'data "list" (object->string data)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-              (unless (integer? n) 
-                (type-error 
-                  (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    scala-drop-right '(data n) 'n "integer" (object->string n)
-                  ) ;format
-                ) ;type-error
-              ) ;unless
-      
-              (cond ((< n 0) data)
-                    ((>= n (length data)) '())
-                    (else (drop-right data n))
-              ) ;cond
-            ) ;define
-    
-            (rich-list (scala-drop-right data x))
-          ) ;begin
+          (rich-list (list-drop-right data x))
         ) ;chain-apply
       ) ;define
 

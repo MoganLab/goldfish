@@ -1735,4 +1735,143 @@ type-error 当 depth 参数既不是整数也不是 'deepest 符号时抛出。
 (check-catch 'type-error (flatten '((a) () (b ()) () (c)) 'a))
 (check-catch 'type-error (flatten '((a) () (b ()) () (c)) (make-vector 1 1)))
 
+#|
+list-take
+Scala风格的take函数，对越界情况容忍。
+
+语法
+----
+(list-take lst n)
+
+参数
+----
+lst : list?
+源列表，从中提取元素。
+
+n : integer?
+要提取的元素数量。
+
+返回值
+------
+list
+包含指定数量元素的新列表，从原列表的开头开始计数。
+
+说明
+----
+与SRFI-1的take不同，list-take对越界情况容忍：
+- 当n < 0时，返回空列表
+- 当n >= 列表长度时，返回原列表
+- 否则返回前n个元素
+
+错误处理
+--------
+type-error 当lst不是列表或n不是整数时抛出。
+|#
+
+; 基本功能测试
+(check (list-take '(1 2 3 4 5) 3) => '(1 2 3))
+(check (list-take '(1 2 3 4 5) 0) => '())
+(check (list-take '(1 2 3 4 5) 5) => '(1 2 3 4 5))
+
+; 边界容忍测试（与take的主要区别）
+(check (list-take '(1 2 3) -1) => '())
+(check (list-take '(1 2 3) 10) => '(1 2 3))
+
+; 空列表测试
+(check (list-take '() 0) => '())
+(check (list-take '() 5) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-take "not a list" 2))
+(check-catch 'type-error (list-take '(1 2 3) "not a number"))
+
+#|
+list-drop
+Scala风格的drop函数，对越界情况容忍。
+
+语法
+----
+(list-drop lst n)
+
+说明
+----
+与SRFI-1的drop不同，list-drop对越界情况容忍：
+- 当n < 0时，返回原列表
+- 当n >= 列表长度时，返回空列表
+- 否则返回去掉前n个元素后的列表
+|#
+
+; 基本功能测试
+(check (list-drop '(1 2 3 4 5) 3) => '(4 5))
+(check (list-drop '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (list-drop '(1 2 3 4 5) 5) => '())
+
+; 边界容忍测试
+(check (list-drop '(1 2 3) -1) => '(1 2 3))
+(check (list-drop '(1 2 3) 10) => '())
+
+; 空列表测试
+(check (list-drop '() 0) => '())
+(check (list-drop '() 5) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-drop "not a list" 2))
+(check-catch 'type-error (list-drop '(1 2 3) "not a number"))
+
+#|
+list-take-right
+Scala风格的take-right函数，对越界情况容忍。
+
+说明
+----
+与SRFI-1的take-right不同，list-take-right对越界情况容忍：
+- 当n < 0时，返回空列表
+- 当n >= 列表长度时，返回原列表
+- 否则返回后n个元素
+|#
+
+; 基本功能测试
+(check (list-take-right '(1 2 3 4 5) 3) => '(3 4 5))
+(check (list-take-right '(1 2 3 4 5) 0) => '())
+(check (list-take-right '(1 2 3 4 5) 5) => '(1 2 3 4 5))
+
+; 边界容忍测试
+(check (list-take-right '(1 2 3) -1) => '())
+(check (list-take-right '(1 2 3) 10) => '(1 2 3))
+
+; 空列表测试
+(check (list-take-right '() 0) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-take-right "not a list" 2))
+(check-catch 'type-error (list-take-right '(1 2 3) "not a number"))
+
+#|
+list-drop-right
+Scala风格的drop-right函数，对越界情况容忍。
+
+说明
+----
+与SRFI-1的drop-right不同，list-drop-right对越界情况容忍：
+- 当n < 0时，返回原列表
+- 当n >= 列表长度时，返回空列表
+- 否则返回去掉后n个元素后的列表
+|#
+
+; 基本功能测试
+(check (list-drop-right '(1 2 3 4 5) 3) => '(1 2))
+(check (list-drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (list-drop-right '(1 2 3 4 5) 5) => '())
+
+; 边界容忍测试
+(check (list-drop-right '(1 2 3) -1) => '(1 2 3))
+(check (list-drop-right '(1 2 3) 10) => '())
+
+; 空列表测试
+(check (list-drop-right '() 0) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-drop-right "not a list" 2))
+(check-catch 'type-error (list-drop-right '(1 2 3) "not a number"))
+
 (check-report)
