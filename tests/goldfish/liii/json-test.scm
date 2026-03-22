@@ -171,7 +171,7 @@ JSON数据对象。
 - 对于数组、null、布尔值等非对象类型，返回空列表
 |#
 
-(let1 j '((bob . ((age . 18) (sex . male))))
+(let ((j '((bob . ((age . 18) (sex . male))))))
   (check (json-keys j) => '(bob))
   (check (json-keys (json-ref j 'bob)) => '(age sex)))
 
@@ -211,12 +211,12 @@ key1, key2, ... : symbol | string | number | boolean
 (check (json-ref bob-j 'alice 'age) => '())
 (check (json-ref bob-j 'bob 'name) => "Bob")
 
-(let1 j '((bob . ((age . 18) (sex . male))))
-  (check (json-null? (json-ref j 'alice)) => #f) 
+(let ((j '((bob . ((age . 18) (sex . male))))))
+  (check (json-null? (json-ref j 'alice)) => #f)
   (check (null? (json-ref j 'alice)) => #t)      ; 确认为 Scheme 空列表
   (check (json-null? (json-ref j 'bob)) => #f))
 
-(let1 j '((alice . ((age . 18) (sex . male))))
+(let ((j '((alice . ((age . 18) (sex . male))))))
   (check (json-null? (json-ref j 'alice)) => #f)
   (check (null? (json-ref j 'bob)) => #t))
 
@@ -247,7 +247,7 @@ key : symbol | string | number | boolean
 - 对于非对象类型JSON，总是返回#f
 |#
 
-(let1 j '((bob . ((age . 18) (sex . male))))
+(let ((j '((bob . ((age . 18) (sex . male))))))
   (check-false (json-contains-key? j 'alice))
   (check-true (json-contains-key? j 'bob))
   (check-false (json-contains-key? j 'age))
@@ -256,7 +256,7 @@ key : symbol | string | number | boolean
 
 (check-false (json-contains-key? (string->json "{}") "a"))
 
-(let1 j #(1 2 3)
+(let ((j #(1 2 3)))
   (check (json->string j) => "[1,2,3]"))
 
 (check (string->json "{a:{b:1,c:2}}") => '((a . ((b . 1) (c . 2)))))
@@ -814,11 +814,11 @@ transform-fn : function
   (check (json-reduce json 'name (lambda (k v) v))
          => #()))
 
-(let1 json '((person . ((name . "Alice")
-                        (age . 25)
-                        (address . ((city . "Wonderland")
-                                    (zip . "12345"))))))
-  (let1 updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))
+(let ((json '((person . ((name . "Alice")
+                         (age . 25)
+                         (address . ((city . "Wonderland")
+                                     (zip . "12345"))))))))
+  (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))))
     (check (json-ref updated-json 'person 'address 'city) => "WONDERLAND")))
 
 
@@ -954,11 +954,11 @@ predicate-fn : function (lambda (key) ...)
                (age . 25)
                (address . ((city . "Wonderland")
                            (zip . "12345"))))))
-  (let1 j1 (json-drop json (lambda (k) (equal? k 'city)))
+  (let ((j1 (json-drop json (lambda (k) (equal? k 'city)))))
     (check (json-ref j1 'address 'city) => "Wonderland")) ; city在address下，顶层drop不影响
-  (let1 j2 (json-drop json (lambda (k) (equal? k 'name)))
+  (let ((j2 (json-drop json (lambda (k) (equal? k 'name)))))
     (check (json-ref j2 'name) => '()))
-  (let1 j3 (json-drop json 'address (lambda (k) (equal? k 'city)))
+  (let ((j3 (json-drop json 'address (lambda (k) (equal? k 'city)))))
     (check (json-ref j3 'address 'city) => '())))
 
 (let* ((j0 '((name . "Alice") (age . 25) (city . "Wonderland")))
@@ -1000,11 +1000,11 @@ predicate-fn : function (lambda (key) ...)
 
 
 
-(let1 json '((person . ((name . "Alice")
-                        (age . 25)
-                        (address . ((city . "Wonderland")
-                                    (zip . "12345"))))))
-  (let1 updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))
+(let ((json '((person . ((name . "Alice")
+                         (age . 25)
+                         (address . ((city . "Wonderland")
+                                     (zip . "12345"))))))))
+  (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))))
     (check (json-ref updated-json 'person 'address 'city) => "WONDERLAND")))
 
 
