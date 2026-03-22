@@ -23,16 +23,21 @@
         (rename (liii json)
                 (string->json ljson-string->json)
                 (json-object? ljson-object?)
-                (json-ref ljson-ref)))
+                (json-ref ljson-ref)
+        ) ;rename
+) ;import
 
 
 (define sample-json
-  "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}")
+  "{\"name\":\"Goldfish\",\"version\":\"17.11.26\",\"active\":true,\"score\":3.14,\"nums\":[1,2,3,4,5],\"meta\":{\"arch\":\"x86_64\",\"os\":\"linux\"}}"
+) ;define
 
 (define (string-list-contains? s xs)
   (cond ((null? xs) #f)
         ((string=? s (car xs)) #t)
-        (else (string-list-contains? s (cdr xs)))))
+        (else (string-list-contains? s (cdr xs)))
+  ) ;cond
+) ;define
 
 (define (capture-key-error-message thunk)
   (catch 'key-error
@@ -41,7 +46,12 @@
       (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
         (if (and (pair? payload) (string? (car payload)))
             (car payload)
-            "")))))
+            ""
+        ) ;if
+      ) ;let
+    ) ;lambda
+  ) ;catch
+) ;define
 
 (define (capture-type-error-message thunk)
   (catch 'type-error
@@ -50,7 +60,12 @@
       (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
         (if (and (pair? payload) (string? (car payload)))
             (car payload)
-            "")))))
+            ""
+        ) ;if
+      ) ;let
+    ) ;lambda
+  ) ;catch
+) ;define
 
 #|
 let-njson
@@ -92,14 +107,18 @@ body ... : expression
 
 (check-catch 'type-error
   (let-njson ((j (string->njson 1)))
-    j))
+    j
+  ) ;let-njson
+) ;check-catch
 
 (define auto-macro-root '())
 (check
   (let-njson ((j (string->njson sample-json)))
     (set! auto-macro-root j)
-    (njson-ref j "active"))
-  => #t)
+    (njson-ref j "active")
+  ) ;let-njson
+  => #t
+) ;check
 (check-catch 'type-error (njson-ref auto-macro-root "active"))
 
 (define auto-macro-root-multi-a '())
@@ -110,8 +129,11 @@ body ... : expression
     (set! auto-macro-root-multi-a j1)
     (set! auto-macro-root-multi-b j2)
     (+ (njson-ref j1 "nums" 0)
-       (njson-ref j2 "nums" 1)))
-  => 21)
+       (njson-ref j2 "nums" 1)
+    ) ;+
+  ) ;let-njson
+  => 21
+) ;check
 (check-catch 'type-error (njson-ref auto-macro-root-multi-a "active"))
 (check-catch 'type-error (njson-ref auto-macro-root-multi-b "env"))
 
@@ -120,7 +142,9 @@ body ... : expression
   (let-njson ((j1 (string->njson sample-json))
               (j2 (string->njson "{name:\"bad\"}")))
     (set! auto-macro-root-multi-on-error j1)
-    #t))
+    #t
+  ) ;let-njson
+) ;check-catch
 (check-catch 'type-error (njson-ref auto-macro-root-multi-on-error "name"))
 
 
@@ -130,7 +154,9 @@ body ... : expression
 (check (let-njson ((x 7) (y 1)) (+ x y)) => 8)
 (check-catch 'type-error
   (let-njson ()
-    #t))
+    #t
+  ) ;let-njson
+) ;check-catch
 
 (define auto-macro-value-multi-a '())
 (define auto-macro-value-multi-b '())
@@ -142,8 +168,11 @@ body ... : expression
     (set! auto-macro-value-multi-b j2)
     (+ x
        (njson-ref j1 "nums" 1)
-       (if (string=? (njson-ref j2 "meta" "os") "debian") 1 0)))
-  => 13)
+       (if (string=? (njson-ref j2 "meta" "os") "debian") 1 0)
+    ) ;+
+  ) ;let-njson
+  => 13
+) ;check
 (check-catch 'type-error (njson-ref auto-macro-value-multi-a "name"))
 (check-catch 'type-error (njson-ref auto-macro-value-multi-b "meta" "os"))
 
@@ -154,7 +183,9 @@ body ... : expression
                      (j2 (string->njson "{\"k\":1}")))
     (set! auto-macro-value-multi-on-error-a j1)
     (set! auto-macro-value-multi-on-error-b j2)
-    (value-error "boom in multi let-njson")))
+    (value-error "boom in multi let-njson")
+  ) ;let-njson
+) ;check-catch
 (check-catch 'type-error (njson-ref auto-macro-value-multi-on-error-a "name"))
 (check-catch 'type-error (njson-ref auto-macro-value-multi-on-error-b "k"))
 
@@ -163,8 +194,10 @@ body ... : expression
   (let-njson ((j (string->njson sample-json))
                      (m (njson-ref j "meta")))
     (set! auto-macro-meta m)
-    (njson-ref m "os"))
-  => "linux")
+    (njson-ref m "os")
+  ) ;let-njson
+  => "linux"
+) ;check
 (check-catch 'type-error (njson-ref auto-macro-meta "os"))
 
 (define auto-macro-set '())
@@ -172,15 +205,19 @@ body ... : expression
   (let-njson ((j (string->njson sample-json))
                      (j2 (njson-set j "meta" "os" "debian")))
     (set! auto-macro-set j2)
-    (njson-ref j2 "meta" "os"))
-  => "debian")
+    (njson-ref j2 "meta" "os")
+  ) ;let-njson
+  => "debian"
+) ;check
 (check-catch 'type-error (njson-ref auto-macro-set "meta" "os"))
 
 (define auto-macro-root-on-error '())
 (check-catch 'value-error
   (let-njson ((j (string->njson sample-json)))
     (set! auto-macro-root-on-error j)
-    (value-error "boom in let-njson")))
+    (value-error "boom in let-njson")
+  ) ;let-njson
+) ;check-catch
 (check-catch 'type-error (njson-ref auto-macro-root-on-error "name"))
 
 (define owned-handle (string->njson sample-json))
@@ -188,8 +225,10 @@ body ... : expression
 (check
   (let-njson ((j owned-handle))
     (set! auto-owned j)
-    (njson-ref j "version"))
-  => "17.11.26")
+    (njson-ref j "version")
+  ) ;let-njson
+  => "17.11.26"
+) ;check
 (check-catch 'type-error (njson-ref auto-owned "version"))
 
 #|
@@ -222,7 +261,8 @@ json-string : string
 |#
 
 (let-njson ((root (string->njson sample-json)))
-  (check (njson-ref root "name") => "Goldfish"))
+  (check (njson-ref root "name") => "Goldfish")
+) ;let-njson
 (check-catch 'parse-error (string->njson "{name:\"Goldfish\"}"))
 (check-catch 'type-error (string->njson 1))
 
@@ -239,7 +279,8 @@ json-string : string
   (check-catch 'type-error (njson-ref stale-handle-old "b"))
   (check-catch 'type-error (njson-free stale-handle-old))
   ;; stale free must not affect the new handle if id is reused.
-  (check (njson-ref stale-handle-new "b") => 2))
+  (check (njson-ref stale-handle-new "b") => 2)
+) ;let-njson
 
 ;; Old forged shape `(njson-handle . id)` must be rejected.
 (check-catch 'type-error (njson-ref (cons 'njson-handle 1) "x"))
@@ -249,7 +290,9 @@ json-string : string
          (id (car payload))
          (gen (cdr payload))
          (forged (cons 'njson-handle (cons id (+ gen 1)))))
-    (check-catch 'type-error (njson-ref forged "secret"))))
+    (check-catch 'type-error (njson-ref forged "secret"))
+  ) ;let*
+) ;let-njson
 
 #|
 njson?
@@ -280,7 +323,8 @@ x : any
 |#
 
 (let-njson ((root (string->njson sample-json)))
-  (check-true (njson? root)))
+  (check-true (njson? root))
+) ;let-njson
 (check-false (njson? 'foo))
 (check-false (njson? 1))
 
@@ -330,7 +374,8 @@ njson-null?/object?/array?/string?/number?/integer?/boolean?
   (check-true (njson-null? null-h))
   (check-false (njson-array? object-h))
   (check-false (njson-object? null-h))
-  (check-false (njson-integer? number-h)))
+  (check-false (njson-integer? number-h))
+) ;let-njson
 
 (check-true (njson-string? "hello"))
 (check-true (njson-number? 3.14))
@@ -386,21 +431,26 @@ key / k1..kn : string | integer
 (let-njson ((root (string->njson sample-json)))
   (check (njson-ref root "name") => "Goldfish")
   (check (njson-ref root "active") => #t)
-  (check (njson-ref root "meta" "arch") => "x86_64"))
+  (check (njson-ref root "meta" "arch") => "x86_64")
+) ;let-njson
 (check-catch 'key-error
   (let-njson ((root (string->njson sample-json)))
-    (njson-ref root 'meta)))
+    (njson-ref root 'meta)
+  ) ;let-njson
+) ;check-catch
 (let-njson ((root (string->njson sample-json)))
   (check (catch 'key-error (lambda () (njson-ref root "not-found")) (lambda args 'key-error)) => 'key-error)
   (check (catch 'key-error (lambda () (njson-ref root "nums" 999)) (lambda args 'key-error)) => 'key-error)
-  (check (catch 'key-error (lambda () (njson-ref root "name" "x")) (lambda args 'key-error)) => 'key-error))
+  (check (catch 'key-error (lambda () (njson-ref root "name" "x")) (lambda args 'key-error)) => 'key-error)
+) ;let-njson
 
 (define functional-meta '())
 (let-njson ((root (string->njson sample-json))
                    (meta (njson-ref root "meta")))
   (set! functional-meta meta)
   (check-true (njson? meta))
-  (check (njson-ref meta "os") => "linux"))
+  (check (njson-ref meta "os") => "linux")
+) ;let-njson
 (check-catch 'type-error (njson-ref functional-meta "os"))
 
 #|
@@ -447,7 +497,8 @@ value : njson-handle | string | number | boolean | 'null
   (check (njson-ref root3 "city") => "HZ")
   (check-false (njson-contains-key? root "city"))
   (check (njson-ref root4 "nums" 4) => 99)
-  (check (njson-size (njson-ref root "nums")) => 5))
+  (check (njson-size (njson-ref root "nums")) => 5)
+) ;let-njson
 
 (let-njson ((root (string->njson sample-json))
             (root-idx-update (njson-set root "nums" 1 200))
@@ -455,36 +506,50 @@ value : njson-handle | string | number | boolean | 'null
             (root-handle-value (njson-set root "meta-copy" meta)))
   (check (njson-ref root-idx-update "nums" 1) => 200)
   (check (njson-ref root-handle-value "meta-copy" "os") => "linux")
-  (check-false (njson-contains-key? root "meta-copy")))
+  (check-false (njson-contains-key? root "meta-copy"))
+) ;let-njson
 
 (check-catch 'type-error (njson-set 'foo "meta" "os" "debian"))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set root 'meta "os" "debian")))
+  (check-catch 'key-error (njson-set root 'meta "os" "debian"))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'type-error (njson-set root "score" +nan.0))
   (check-catch 'type-error (njson-set root "score" +inf.0))
   (check-catch 'type-error (njson-set root "score" -inf.0))
   (check (capture-type-error-message (lambda () (njson-set root "score" +nan.0)))
-         => "g_njson-set: number must be finite (NaN/Inf are not valid JSON numbers)"))
+         => "g_njson-set: number must be finite (NaN/Inf are not valid JSON numbers)"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set root "nums" 5 1)))
+  (check-catch 'key-error (njson-set root "nums" 5 1))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set root "nums" 999 1)))
+  (check-catch 'key-error (njson-set root "nums" 999 1))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root "meta" "missing" "k" 1))
   (check (capture-key-error-message (lambda () (njson-set root "meta" "missing" "k" 1)))
-         => "g_njson-set: path not found: missing object key 'missing'"))
+         => "g_njson-set: path not found: missing object key 'missing'"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check (capture-key-error-message (lambda () (njson-set root "nums" 5 1)))
-         => "g_njson-set: array index out of range (index=5, size=5)"))
+         => "g_njson-set: array index out of range (index=5, size=5)"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson "1")))
   (check-catch 'key-error (njson-set root "x" 1))
   (check (capture-key-error-message (lambda () (njson-set root "x" 1)))
-         => "g_njson-set: set target must be array or object"))
+         => "g_njson-set: set target must be array or object"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set root "name" "x" "y"))
   (check (capture-key-error-message (lambda () (njson-set root "name" "x" "y")))
-         => "g_njson-set: set target must be array or object"))
+         => "g_njson-set: set target must be array or object"
+  ) ;check
+) ;let-njson
 
 #|
 njson-set!
@@ -527,39 +592,52 @@ value : njson-handle | string | number | boolean | 'null
   (njson-set! root "nums" 4 99)
   (check (njson-ref root "meta" "os") => "debian")
   (check (njson-ref root "city") => "HZ")
-  (check (njson-ref root "nums" 4) => 99))
+  (check (njson-ref root "nums" 4) => 99)
+) ;let-njson
 
 (let-njson ((root (string->njson sample-json))
             (meta (njson-ref root "meta")))
   (njson-set! root "meta-copy" meta)
   (check (njson-ref root "meta-copy" "arch") => "x86_64")
-  (check-false (njson-contains-key? meta "missing")))
+  (check-false (njson-contains-key? meta "missing"))
+) ;let-njson
 
 (check-catch 'type-error (njson-set! 'foo "meta" "os" "debian"))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set! root 'meta "os" "debian")))
+  (check-catch 'key-error (njson-set! root 'meta "os" "debian"))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'type-error (njson-set! root "score" +nan.0))
   (check-catch 'type-error (njson-set! root "score" +inf.0))
   (check-catch 'type-error (njson-set! root "score" -inf.0))
   (check (capture-type-error-message (lambda () (njson-set! root "score" +nan.0)))
-         => "g_njson-set!: number must be finite (NaN/Inf are not valid JSON numbers)"))
+         => "g_njson-set!: number must be finite (NaN/Inf are not valid JSON numbers)"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set! root "nums" 5 1)))
+  (check-catch 'key-error (njson-set! root "nums" 5 1))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "meta" "missing" "k" 1))
   (check (capture-key-error-message (lambda () (njson-set! root "meta" "missing" "k" 1)))
-         => "g_njson-set!: path not found: missing object key 'missing'"))
+         => "g_njson-set!: path not found: missing object key 'missing'"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-set! root "nums" 999 1)))
+  (check-catch 'key-error (njson-set! root "nums" 999 1))
+) ;let-njson
 (let-njson ((root (string->njson "1")))
   (check-catch 'key-error (njson-set! root "x" 1))
   (check (capture-key-error-message (lambda () (njson-set! root "x" 1)))
-         => "g_njson-set!: set target must be array or object"))
+         => "g_njson-set!: set target must be array or object"
+  ) ;check
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check-catch 'key-error (njson-set! root "name" "x" "y"))
   (check (capture-key-error-message (lambda () (njson-set! root "name" "x" "y")))
-         => "g_njson-set!: set target must be array or object"))
+         => "g_njson-set!: set target must be array or object"
+  ) ;check
+) ;let-njson
 
 #|
 njson-append
@@ -599,12 +677,14 @@ value : njson-handle | string | number | boolean | 'null
 (let-njson ((root (string->njson sample-json))
             (root2 (njson-append root "nums" 99)))
   (check (njson-ref root2 "nums" 5) => 99)
-  (check (njson-size (njson-ref root "nums")) => 5))
+  (check (njson-size (njson-ref root "nums")) => 5)
+) ;let-njson
 
 (let-njson ((arr (string->njson "[1,2]"))
             (arr2 (njson-append arr 3)))
   (check (njson-ref arr2 2) => 3)
-  (check (njson-size arr) => 2))
+  (check (njson-size arr) => 2)
+) ;let-njson
 
 (check-catch 'type-error (njson-append 'foo 1))
 (let-njson ((root (string->njson sample-json)))
@@ -612,17 +692,22 @@ value : njson-handle | string | number | boolean | 'null
   (check-catch 'type-error (njson-append root "nums" +inf.0))
   (check-catch 'type-error (njson-append root "nums" -inf.0))
   (check (capture-type-error-message (lambda () (njson-append root "nums" +nan.0)))
-         => "g_njson-append: number must be finite (NaN/Inf are not valid JSON numbers)")
+         => "g_njson-append: number must be finite (NaN/Inf are not valid JSON numbers)"
+  ) ;check
   (check-catch 'key-error (njson-append root))
   (check-catch 'key-error (njson-append root "as"))
   (check (capture-key-error-message (lambda () (njson-append root "as")))
-         => "g_njson-append: append target must be array")
+         => "g_njson-append: append target must be array"
+  ) ;check
   (check-catch 'key-error (njson-append root "nums"))
   (check (capture-key-error-message (lambda () (njson-append root "nums")))
-         => "g_njson-append: append target must be array")
+         => "g_njson-append: append target must be array"
+  ) ;check
   (check-catch 'key-error (njson-append root "name" 1))
   (check (capture-key-error-message (lambda () (njson-append root "name" 1)))
-         => "g_njson-append: append target must be array"))
+         => "g_njson-append: append target must be array"
+  ) ;check
+) ;let-njson
 
 #|
 njson-append!
@@ -661,11 +746,13 @@ value : njson-handle | string | number | boolean | 'null
 
 (let-njson ((root (string->njson sample-json)))
   (check-true (njson? (njson-append! root "nums" 99)))
-  (check (njson-ref root "nums" 5) => 99))
+  (check (njson-ref root "nums" 5) => 99)
+) ;let-njson
 
 (let-njson ((arr (string->njson "[1,2]")))
   (njson-append! arr 3)
-  (check (njson-ref arr 2) => 3))
+  (check (njson-ref arr 2) => 3)
+) ;let-njson
 
 (check-catch 'type-error (njson-append! 'foo 1))
 (let-njson ((root (string->njson sample-json)))
@@ -673,17 +760,22 @@ value : njson-handle | string | number | boolean | 'null
   (check-catch 'type-error (njson-append! root "nums" +inf.0))
   (check-catch 'type-error (njson-append! root "nums" -inf.0))
   (check (capture-type-error-message (lambda () (njson-append! root "nums" +nan.0)))
-         => "g_njson-append!: number must be finite (NaN/Inf are not valid JSON numbers)")
+         => "g_njson-append!: number must be finite (NaN/Inf are not valid JSON numbers)"
+  ) ;check
   (check-catch 'key-error (njson-append! root))
   (check-catch 'key-error (njson-append! root "as"))
   (check (capture-key-error-message (lambda () (njson-append! root "as")))
-         => "g_njson-append!: append target must be array")
+         => "g_njson-append!: append target must be array"
+  ) ;check
   (check-catch 'key-error (njson-append! root "nums"))
   (check (capture-key-error-message (lambda () (njson-append! root "nums")))
-         => "g_njson-append!: append target must be array")
+         => "g_njson-append!: append target must be array"
+  ) ;check
   (check-catch 'key-error (njson-append! root "name" 1))
   (check (capture-key-error-message (lambda () (njson-append! root "name" 1)))
-         => "g_njson-append!: append target must be array"))
+         => "g_njson-append!: append target must be array"
+  ) ;check
+) ;let-njson
 
 #|
 njson-drop
@@ -721,14 +813,16 @@ key ... : string | integer
 (let-njson ((root (string->njson sample-json))
                    (root4 (njson-drop root "active")))
   (check-false (njson-contains-key? root4 "active"))
-  (check (njson-ref root "active") => #t))
+  (check (njson-ref root "active") => #t)
+) ;let-njson
 
 (let-njson ((arr (string->njson "[10,20,30]"))
             (arr2 (njson-drop arr 1)))
   (check (njson-ref arr2 0) => 10)
   (check (njson-ref arr2 1) => 30)
   (check (njson-size arr2) => 2)
-  (check (njson-ref arr 1) => 20))
+  (check (njson-ref arr 1) => 20)
+) ;let-njson
 
 (check-catch 'type-error (njson-drop 'foo "active"))
 (let-njson ((root (string->njson sample-json)))
@@ -737,13 +831,18 @@ key ... : string | integer
   (check-catch 'key-error (njson-drop root "meta" "not-found"))
   (check-catch 'key-error (njson-drop root "name" "as" "as"))
   (check (capture-key-error-message (lambda () (njson-drop root "not-found")))
-         => "g_njson-drop: path not found: missing object key 'not-found'")
+         => "g_njson-drop: path not found: missing object key 'not-found'"
+  ) ;check
   (check (capture-key-error-message (lambda () (njson-drop root "name" "as" "as")))
-         => "g_njson-drop: path not found: missing object key 'as'"))
+         => "g_njson-drop: path not found: missing object key 'as'"
+  ) ;check
+) ;let-njson
 (let-njson ((arr (string->njson "[10,20,30]")))
   (check-catch 'key-error (njson-drop arr 3))
   (check (capture-key-error-message (lambda () (njson-drop arr 3)))
-         => "g_njson-drop: path not found: array index out of range (index=3, size=3)"))
+         => "g_njson-drop: path not found: array index out of range (index=3, size=3)"
+  ) ;check
+) ;let-njson
 
 #|
 njson-drop!
@@ -780,13 +879,15 @@ key ... : string | integer
 
 (let-njson ((root (string->njson sample-json)))
   (njson-drop! root "active")
-  (check-false (njson-contains-key? root "active")))
+  (check-false (njson-contains-key? root "active"))
+) ;let-njson
 
 (let-njson ((arr (string->njson "[10,20,30]")))
   (njson-drop! arr 1)
   (check (njson-ref arr 0) => 10)
   (check (njson-ref arr 1) => 30)
-  (check (njson-size arr) => 2))
+  (check (njson-size arr) => 2)
+) ;let-njson
 
 (check-catch 'type-error (njson-drop! 'foo "active"))
 (let-njson ((root (string->njson sample-json)))
@@ -794,11 +895,15 @@ key ... : string | integer
   (check-catch 'key-error (njson-drop! root "not-found"))
   (check-catch 'key-error (njson-drop! root "meta" "not-found"))
   (check (capture-key-error-message (lambda () (njson-drop! root "meta" "not-found")))
-         => "g_njson-drop!: path not found: missing object key 'not-found'"))
+         => "g_njson-drop!: path not found: missing object key 'not-found'"
+  ) ;check
+) ;let-njson
 (let-njson ((arr (string->njson "[10,20,30]")))
   (check-catch 'key-error (njson-drop! arr 3))
   (check (capture-key-error-message (lambda () (njson-drop! arr 3)))
-         => "g_njson-drop!: path not found: array index out of range (index=3, size=3)"))
+         => "g_njson-drop!: path not found: array index out of range (index=3, size=3)"
+  ) ;check
+) ;let-njson
 
 #|
 njson-merge / njson-merge!
@@ -841,9 +946,11 @@ source-json : njson-handle
 |#
 
 (define shallow-merge-base-json
-  "{\"name\":\"base\",\"meta\":{\"x\":1},\"arr\":[1,2]}")
+  "{\"name\":\"base\",\"meta\":{\"x\":1},\"arr\":[1,2]}"
+) ;define
 (define shallow-merge-patch-json
-  "{\"meta\":{\"y\":2},\"arr\":[9],\"extra\":true}")
+  "{\"meta\":{\"y\":2},\"arr\":[9],\"extra\":true}"
+) ;define
 
 (let-njson ((base (string->njson shallow-merge-base-json))
             (patch (string->njson shallow-merge-patch-json))
@@ -855,7 +962,8 @@ source-json : njson-handle
   (check (njson-ref merged "arr" 0) => 9)
   (check (njson-size (njson-ref merged "arr")) => 1)
   (check (njson-ref base "meta" "x") => 1)
-  (check-false (njson-contains-key? base "extra")))
+  (check-false (njson-contains-key? base "extra"))
+) ;let-njson
 
 (let-njson ((base (string->njson shallow-merge-base-json))
             (patch (string->njson shallow-merge-patch-json)))
@@ -864,7 +972,8 @@ source-json : njson-handle
   (check-catch 'key-error (njson-ref base "meta" "x"))
   (check (njson-ref base "arr" 0) => 9)
   (check (njson-size (njson-ref base "arr")) => 1)
-  (check-true (njson-contains-key? base "extra")))
+  (check-true (njson-contains-key? base "extra"))
+) ;let-njson
 
 ;; In-place merge should invalidate njson-keys cache.
 (let-njson ((base (string->njson "{\"k\":1,\"left\":true}"))
@@ -874,18 +983,22 @@ source-json : njson-handle
   (check-true (njson? (njson-merge! base patch)))
   (let ((keys (njson-keys base)))
     (check-true (string-list-contains? "k" keys))
-    (check-true (string-list-contains? "new-key" keys)))
-  (check (njson-ref base "k") => 9))
+    (check-true (string-list-contains? "new-key" keys))
+  ) ;let
+  (check (njson-ref base "k") => 9)
+) ;let-njson
 
 ;; Same source/target handle should be stable.
 (let-njson ((base (string->njson "{\"a\":1,\"nested\":{\"x\":2}}"))
             (merged (njson-merge base base)))
   (check (njson->string merged) => (njson->string base))
-  (check (njson-ref base "nested" "x") => 2))
+  (check (njson-ref base "nested" "x") => 2)
+) ;let-njson
 (let-njson ((base (string->njson "{\"a\":1,\"nested\":{\"x\":2}}")))
   (check-true (njson? (njson-merge! base base)))
   (check (njson-ref base "a") => 1)
-  (check (njson-ref base "nested" "x") => 2))
+  (check (njson-ref base "nested" "x") => 2)
+) ;let-njson
 
 ;; Conflict policy is fixed: shallow merge replaces object values entirely.
 (let-njson ((base (string->njson "{\"k\":{\"a\":1},\"arr\":[1,2]}"))
@@ -894,42 +1007,54 @@ source-json : njson-handle
   (check-catch 'key-error (njson-ref merged "k" "a"))
   (check (njson-ref merged "k" "b") => 2)
   (check (njson-size (njson-ref merged "arr")) => 2)
-  (check (njson-ref merged "arr" 1) => 8))
+  (check (njson-ref merged "arr" 1) => 8)
+) ;let-njson
 
 (check-catch 'type-error (njson-merge 'foo 'null))
 (check-catch 'type-error (njson-merge! 'foo 'null))
 (let-njson ((base (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-merge base 'foo))
-  (check-catch 'type-error (njson-merge! base 'foo)))
+  (check-catch 'type-error (njson-merge! base 'foo))
+) ;let-njson
 (let-njson ((base (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-merge base 1))
   (check-catch 'type-error (njson-merge! base 1))
   (check (capture-type-error-message (lambda () (njson-merge base 1)))
-         => "njson-merge: source-json must be njson object-handle")
+         => "njson-merge: source-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-merge! base 1)))
-         => "njson-merge!: source-json must be njson object-handle"))
+         => "njson-merge!: source-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 (let-njson ((base (string->njson "{\"a\":1}"))
             (patch (string->njson "1")))
   (check-catch 'type-error (njson-merge base patch))
   (check-catch 'type-error (njson-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-merge base patch)))
-         => "njson-merge: source-json must be njson object-handle")
+         => "njson-merge: source-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-merge! base patch)))
-         => "njson-merge!: source-json must be njson object-handle"))
+         => "njson-merge!: source-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 (let-njson ((base (string->njson "1"))
             (patch (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-merge base patch))
   (check-catch 'type-error (njson-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-merge base patch)))
-         => "njson-merge: target-json must be njson object-handle")
+         => "njson-merge: target-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-merge! base patch)))
-         => "njson-merge!: target-json must be njson object-handle"))
+         => "njson-merge!: target-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 
 (define njson-merge-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free njson-merge-freed))
 (let-njson ((patch (string->njson "{\"b\":2}")))
   (check-catch 'type-error (njson-merge njson-merge-freed patch))
-  (check-catch 'type-error (njson-merge! njson-merge-freed patch)))
+  (check-catch 'type-error (njson-merge! njson-merge-freed patch))
+) ;let-njson
 
 #|
 njson-deep-merge / njson-deep-merge!
@@ -970,9 +1095,11 @@ source-json : njson-handle
 |#
 
 (define deep-merge-base-json
-  "{\"name\":\"base\",\"meta\":{\"x\":1,\"nested\":{\"a\":1}},\"arr\":[1,2],\"override\":{\"k\":1}}")
+  "{\"name\":\"base\",\"meta\":{\"x\":1,\"nested\":{\"a\":1}},\"arr\":[1,2],\"override\":{\"k\":1}}"
+) ;define
 (define deep-merge-patch-json
-  "{\"meta\":{\"y\":2,\"nested\":{\"b\":2}},\"arr\":[9],\"override\":0}")
+  "{\"meta\":{\"y\":2,\"nested\":{\"b\":2}},\"arr\":[9],\"override\":0}"
+) ;define
 
 (let-njson ((base (string->njson deep-merge-base-json))
             (patch (string->njson deep-merge-patch-json))
@@ -986,7 +1113,8 @@ source-json : njson-handle
   (check (njson-ref merged "override") => 0)
   (check-catch 'key-error (njson-ref base "meta" "y"))
   (check-catch 'key-error (njson-ref base "meta" "nested" "b"))
-  (check (njson-ref base "override" "k") => 1))
+  (check (njson-ref base "override" "k") => 1)
+) ;let-njson
 
 (let-njson ((base (string->njson deep-merge-base-json))
             (patch (string->njson deep-merge-patch-json)))
@@ -995,7 +1123,8 @@ source-json : njson-handle
   (check (njson-ref base "meta" "y") => 2)
   (check (njson-ref base "meta" "nested" "a") => 1)
   (check (njson-ref base "meta" "nested" "b") => 2)
-  (check (njson-ref base "override") => 0))
+  (check (njson-ref base "override") => 0)
+) ;let-njson
 
 ;; In-place deep-merge should invalidate njson-keys cache.
 (let-njson ((base (string->njson "{\"meta\":{\"x\":1}}"))
@@ -1005,19 +1134,23 @@ source-json : njson-handle
   (check-true (njson? (njson-deep-merge! base patch)))
   (let ((keys (njson-keys base)))
     (check-true (string-list-contains? "meta" keys))
-    (check-true (string-list-contains? "new-top" keys)))
+    (check-true (string-list-contains? "new-top" keys))
+  ) ;let
   (check (njson-ref base "meta" "x") => 1)
-  (check (njson-ref base "meta" "y") => 2))
+  (check (njson-ref base "meta" "y") => 2)
+) ;let-njson
 
 ;; Same source/target handle should be stable.
 (let-njson ((base (string->njson "{\"meta\":{\"x\":1,\"nested\":{\"k\":1}}}"))
             (merged (njson-deep-merge base base)))
   (check (njson->string merged) => (njson->string base))
-  (check (njson-ref base "meta" "nested" "k") => 1))
+  (check (njson-ref base "meta" "nested" "k") => 1)
+) ;let-njson
 (let-njson ((base (string->njson "{\"meta\":{\"x\":1,\"nested\":{\"k\":1}}}")))
   (check-true (njson? (njson-deep-merge! base base)))
   (check (njson-ref base "meta" "x") => 1)
-  (check (njson-ref base "meta" "nested" "k") => 1))
+  (check (njson-ref base "meta" "nested" "k") => 1)
+) ;let-njson
 
 ;; Conflict policy is fixed: deep merge recurses only for object-vs-object.
 (let-njson ((base (string->njson "{\"k\":{\"a\":1},\"arr\":[1,2]}"))
@@ -1026,42 +1159,54 @@ source-json : njson-handle
   (check (njson-ref merged "k" "a") => 1)
   (check (njson-ref merged "k" "b") => 2)
   (check (njson-size (njson-ref merged "arr")) => 2)
-  (check (njson-ref merged "arr" 0) => 9))
+  (check (njson-ref merged "arr" 0) => 9)
+) ;let-njson
 
 (check-catch 'type-error (njson-deep-merge 'foo 'null))
 (check-catch 'type-error (njson-deep-merge! 'foo 'null))
 (let-njson ((base (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-deep-merge base 'foo))
-  (check-catch 'type-error (njson-deep-merge! base 'foo)))
+  (check-catch 'type-error (njson-deep-merge! base 'foo))
+) ;let-njson
 (let-njson ((base (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-deep-merge base 1))
   (check-catch 'type-error (njson-deep-merge! base 1))
   (check (capture-type-error-message (lambda () (njson-deep-merge base 1)))
-         => "njson-deep-merge: source-json must be njson object-handle")
+         => "njson-deep-merge: source-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-deep-merge! base 1)))
-         => "njson-deep-merge!: source-json must be njson object-handle"))
+         => "njson-deep-merge!: source-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 (let-njson ((base (string->njson "{\"a\":1}"))
             (patch (string->njson "1")))
   (check-catch 'type-error (njson-deep-merge base patch))
   (check-catch 'type-error (njson-deep-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-deep-merge base patch)))
-         => "njson-deep-merge: source-json must be njson object-handle")
+         => "njson-deep-merge: source-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-deep-merge! base patch)))
-         => "njson-deep-merge!: source-json must be njson object-handle"))
+         => "njson-deep-merge!: source-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 (let-njson ((base (string->njson "1"))
             (patch (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-deep-merge base patch))
   (check-catch 'type-error (njson-deep-merge! base patch))
   (check (capture-type-error-message (lambda () (njson-deep-merge base patch)))
-         => "njson-deep-merge: target-json must be njson object-handle")
+         => "njson-deep-merge: target-json must be njson object-handle"
+  ) ;check
   (check (capture-type-error-message (lambda () (njson-deep-merge! base patch)))
-         => "njson-deep-merge!: target-json must be njson object-handle"))
+         => "njson-deep-merge!: target-json must be njson object-handle"
+  ) ;check
+) ;let-njson
 
 (define njson-deep-merge-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free njson-deep-merge-freed))
 (let-njson ((patch (string->njson "{\"b\":2}")))
   (check-catch 'type-error (njson-deep-merge njson-deep-merge-freed patch))
-  (check-catch 'type-error (njson-deep-merge! njson-deep-merge-freed patch)))
+  (check-catch 'type-error (njson-deep-merge! njson-deep-merge-freed patch))
+) ;let-njson
 
 #|
 njson-contains-key?
@@ -1097,19 +1242,24 @@ key : string
 
 (let-njson ((root (string->njson sample-json)))
   (check-true (njson-contains-key? root "meta"))
-  (check-false (njson-contains-key? root "not-found")))
+  (check-false (njson-contains-key? root "not-found"))
+) ;let-njson
 
 (let-njson ((arr (string->njson "[1,2]"))
             (scalar (string->njson "1")))
   (check-false (njson-contains-key? arr "0"))
-  (check-false (njson-contains-key? scalar "x")))
+  (check-false (njson-contains-key? scalar "x"))
+) ;let-njson
 
 (check-catch 'type-error (njson-contains-key? 'foo "meta"))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error (njson-contains-key? root 1)))
+  (check-catch 'key-error (njson-contains-key? root 1))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (check (capture-key-error-message (lambda () (njson-contains-key? root 1)))
-         => "g_njson-contains-key?: json object key must be string?"))
+         => "g_njson-contains-key?: json object key must be string?"
+  ) ;check
+) ;let-njson
 
 (define njson-contains-freed (string->njson "{\"k\":1}"))
 (check-true (njson-free njson-contains-freed))
@@ -1162,7 +1312,8 @@ json : njson-handle
   (check (njson-size empty-arr) => 0)
   (check-true (njson-empty? empty-arr))
   (check (njson-size scalar) => 0)
-  (check-true (njson-empty? scalar)))
+  (check-true (njson-empty? scalar))
+) ;let-njson
 
 (check-catch 'type-error (njson-size 'foo))
 (check-catch 'type-error (njson-empty? 'foo))
@@ -1212,7 +1363,8 @@ json : njson-handle
   (njson-set! root "name" "Goldfish++")
   (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-set! root "new-key" 1)
-  (check-true (string-list-contains? "new-key" (njson-keys root))))
+  (check-true (string-list-contains? "new-key" (njson-keys root)))
+) ;let-njson
 (let-njson ((root (string->njson sample-json)))
   (njson-keys root)
   (njson-drop! root "active")
@@ -1221,19 +1373,23 @@ json : njson-handle
   (let ((keys (njson-keys root)))
     (check-false (string-list-contains? "active" keys))
     (check-true (string-list-contains? "lazy-key" keys))
-    (check-true (string-list-contains? "name" keys)))
+    (check-true (string-list-contains? "name" keys))
+  ) ;let
   ;; Second read should remain consistent.
   (let ((keys2 (njson-keys root)))
     (check-false (string-list-contains? "active" keys2))
     (check-true (string-list-contains? "lazy-key" keys2))
-    (check-true (string-list-contains? "name" keys2))))
+    (check-true (string-list-contains? "name" keys2))
+  ) ;let
+) ;let-njson
 
 (let-njson ((arr (string->njson "[1,2]"))
             (scalar (string->njson "1"))
             (empty-obj (string->njson "{}")))
   (check (njson-keys arr) => '())
   (check (njson-keys scalar) => '())
-  (check (njson-keys empty-obj) => '()))
+  (check (njson-keys empty-obj) => '())
+) ;let-njson
 
 (check-catch 'type-error (njson-keys 'foo))
 
@@ -1277,21 +1433,27 @@ value : njson-handle
 |#
 
 (define njson-io-path
-  (string-append "/tmp/goldfish-njson-io-" (number->string (g_monotonic-nanosecond)) ".json"))
+  (string-append "/tmp/goldfish-njson-io-" (number->string (g_monotonic-nanosecond)) ".json")
+) ;define
 
 (let-njson ((root (string->njson sample-json)))
   (check-true (> (njson->file njson-io-path root) 0))
   (let-njson ((loaded (file->njson njson-io-path)))
-    (check (njson->string loaded) => (njson->string root))))
+    (check (njson->string loaded) => (njson->string root))
+  ) ;let-njson
+) ;let-njson
 
 (let-njson ((compact (string->njson "{\"b\":1,\"a\":2}")))
   (check-true (> (njson->file njson-io-path compact) 0))
   (check (path-read-text njson-io-path)
-         => "{\n  \"a\": 2,\n  \"b\": 1\n}"))
+         => "{\n  \"a\": 2,\n  \"b\": 1\n}"
+  ) ;check
+) ;let-njson
 
 (check-true (> (njson->file njson-io-path 'null) 0))
 (let-njson ((loaded-null (file->njson njson-io-path)))
-  (check-true (njson-null? loaded-null)))
+  (check-true (njson-null? loaded-null))
+) ;let-njson
 
 (path-write-text njson-io-path "{bad:1}")
 (check-catch 'parse-error (file->njson njson-io-path))
@@ -1336,15 +1498,18 @@ value : njson-handle | string | number | boolean | 'null
 (check (njson->string "x") => "\"x\"")
 (check (njson->string #f) => "false")
 (let-njson ((root (string->njson "{\"b\":1,\"a\":2}")))
-  (check (njson->string root) => "{\"a\":2,\"b\":1}"))
+  (check (njson->string root) => "{\"a\":2,\"b\":1}")
+) ;let-njson
 (check-catch 'type-error (njson->string +nan.0))
 (check-catch 'type-error (njson->string +inf.0))
 (check-catch 'type-error (njson->string -inf.0))
 (check-catch 'type-error (njson->string 1+2i))
 (check (capture-type-error-message (lambda () (njson->string +nan.0)))
-       => "g_njson-json->string: number must be finite (NaN/Inf are not valid JSON numbers)")
+       => "g_njson-json->string: number must be finite (NaN/Inf are not valid JSON numbers)"
+) ;check
 (check (capture-type-error-message (lambda () (njson->string 1+2i)))
-       => "g_njson-json->string: number must be real and finite")
+       => "g_njson-json->string: number must be real and finite"
+) ;check
 (check-catch 'type-error (njson->string 'foo))
 
 (define njson-string-freed (string->njson "{\"k\":1}"))
@@ -1385,11 +1550,14 @@ indent : integer（可选，默认 2）
 |#
 
 (check (njson-format-string "{\"b\":1,\"a\":{\"k\":2}}")
-       => "{\n  \"a\": {\n    \"k\": 2\n  },\n  \"b\": 1\n}")
+       => "{\n  \"a\": {\n    \"k\": 2\n  },\n  \"b\": 1\n}"
+) ;check
 (check (njson-format-string "[1,2,3]" 4)
-       => "[\n    1,\n    2,\n    3\n]")
+       => "[\n    1,\n    2,\n    3\n]"
+) ;check
 (check (njson-format-string "{\"a\":1}" 0)
-       => "{\n\"a\": 1\n}")
+       => "{\n\"a\": 1\n}"
+) ;check
 (check (njson-format-string "1") => "1")
 
 (check-catch 'parse-error (njson-format-string "{name:1}"))
@@ -1407,7 +1575,8 @@ indent : integer（可选，默认 2）
   (set! functional-roundtrip roundtrip)
   (check (njson-ref roundtrip "meta" "os") => "debian")
   (check (njson-ref roundtrip "nums" 5) => 99)
-  (check-false (njson-contains-key? roundtrip "active")))
+  (check-false (njson-contains-key? roundtrip "active"))
+) ;let-njson
 (check-catch 'type-error (njson-ref functional-roundtrip "meta" "os"))
 
 #|
@@ -1445,27 +1614,32 @@ value : any
 (define ljson-bridge-sample (ljson-string->json sample-json))
 (let-njson ((bridge-handle (json->njson ljson-bridge-sample)))
   (check (njson-ref bridge-handle "name") => "Goldfish")
-  (check (njson-ref bridge-handle "nums" 2) => 3))
+  (check (njson-ref bridge-handle "nums" 2) => 3)
+) ;let-njson
 
 (let-njson ((bridge-handle (string->njson sample-json)))
   (let ((ljson-val (njson->json bridge-handle)))
     (check-true (ljson-object? ljson-val))
     (check (ljson-ref ljson-val "name") => "Goldfish")
     (check (ljson-ref ljson-val "active") => #t)
-    (check (ljson-ref ljson-val "nums" 1) => 2)))
+    (check (ljson-ref ljson-val "nums" 1) => 2)
+  ) ;let
+) ;let-njson
 
 (check (njson->json 'null) => 'null)
 (check (njson->json 7) => 7)
 
 (let-njson ((null-handle (json->njson 'null)))
-  (check-true (njson-null? null-handle)))
+  (check-true (njson-null? null-handle))
+) ;let-njson
 
 (let-njson ((njson-str (json->njson "abc"))
             (njson-bool (json->njson #f)))
   (check-true (njson-string? njson-str))
   (check (njson->string njson-str) => "\"abc\"")
   (check (njson->string njson-bool) => "false")
-  (check-true (njson-boolean? njson-bool)))
+  (check-true (njson-boolean? njson-bool))
+) ;let-njson
 
 (check (njson->json "abc") => "abc")
 (check (njson->json #f) => #f)
@@ -1510,7 +1684,8 @@ object-json : njson-handle
 |#
 
 (define njson-object->alist-json
-  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}")
+  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}"
+) ;define
 
 (define object-as-alist '())
 (let-njson ((root (string->njson njson-object->alist-json)))
@@ -1522,21 +1697,27 @@ object-json : njson-handle
     (check (assoc "empty" meta) => '("empty" ()))
     (check (car nums) => 1)
     (check (assoc "deep" (cadr nums)) => '("deep" . #t))
-    (check (caddr nums) => '()))
-  (check (assoc "nil" object-as-alist) => '("nil" . null)))
+    (check (caddr nums) => '())
+  ) ;let
+  (check (assoc "nil" object-as-alist) => '("nil" . null))
+) ;let-njson
 (let ((meta (cdr (assoc "meta" object-as-alist))))
   (check (assoc "os" meta) => '("os" . "linux"))
   (check (assoc "empty" meta) => '("empty" ()))
-  (check-true (ljson-object? (cdr (assoc "empty" meta)))))
+  (check-true (ljson-object? (cdr (assoc "empty" meta))))
+) ;let
 
 (let-njson ((root (string->njson "{}")))
   (let ((empty-object (njson-object->alist root)))
     (check empty-object => '(()))
-    (check-true (ljson-object? empty-object))))
+    (check-true (ljson-object? empty-object))
+  ) ;let
+) ;let-njson
 
 (check-catch 'type-error (njson-object->alist 'foo))
 (let-njson ((arr (string->njson "[1]")))
-  (check-catch 'type-error (njson-object->alist arr)))
+  (check-catch 'type-error (njson-object->alist arr))
+) ;let-njson
 (define object->alist-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free object->alist-freed))
 (check-catch 'type-error (njson-object->alist object->alist-freed))
@@ -1573,7 +1754,8 @@ object-json : njson-handle
 |#
 
 (define njson-object->hash-table-json
-  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}")
+  "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}"
+) ;define
 
 (define object-as-hash-table #f)
 (let-njson ((root (string->njson njson-object->hash-table-json)))
@@ -1590,18 +1772,23 @@ object-json : njson-handle
     (check (vector-ref nums 0) => 1)
     (check-true (hash-table? (vector-ref nums 1)))
     (check (hash-table-ref (vector-ref nums 1) "deep") => #t)
-    (check (vector-ref nums 2) => #()))
-  (check (hash-table-ref object-as-hash-table "nil") => 'null))
+    (check (vector-ref nums 2) => #())
+  ) ;let
+  (check (hash-table-ref object-as-hash-table "nil") => 'null)
+) ;let-njson
 (check (hash-table-ref object-as-hash-table "name") => "Goldfish")
 
 (let-njson ((root (string->njson "{}")))
   (let ((ht (njson-object->hash-table root)))
     (check-true (hash-table? ht))
-    (check (hash-table-size ht) => 0)))
+    (check (hash-table-size ht) => 0)
+  ) ;let
+) ;let-njson
 
 (check-catch 'type-error (njson-object->hash-table 'foo))
 (let-njson ((scalar (string->njson "1")))
-  (check-catch 'type-error (njson-object->hash-table scalar)))
+  (check-catch 'type-error (njson-object->hash-table scalar))
+) ;let-njson
 (define object->hash-table-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free object->hash-table-freed))
 (check-catch 'type-error (njson-object->hash-table object->hash-table-freed))
@@ -1639,32 +1826,39 @@ array-json : njson-handle
 |#
 
 (define njson-array->list-json
-  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]")
+  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]"
+) ;define
 (define njson-array->list-expected
   '(1
     (("name" . "Goldfish") ("tags" . ("a" "b")))
     (2 (("k" . null)))
-    ()))
+    ())
+) ;define
 
 (define array-as-list '())
 (let-njson ((root (string->njson njson-array->list-json)))
   (set! array-as-list (njson-array->list root))
-  (check array-as-list => njson-array->list-expected))
+  (check array-as-list => njson-array->list-expected)
+) ;let-njson
 (check array-as-list => njson-array->list-expected)
 
 (let-njson ((root (string->njson "[]")))
-  (check (njson-array->list root) => '()))
+  (check (njson-array->list root) => '())
+) ;let-njson
 
 (let-njson ((root (string->njson "[{},[]]")))
   (let ((shape-list (njson-array->list root)))
     (check (car shape-list) => '(()))
     (check (cadr shape-list) => '())
     (check-true (ljson-object? (car shape-list)))
-    (check (ljson-object? (cadr shape-list)) => #f)))
+    (check (ljson-object? (cadr shape-list)) => #f)
+  ) ;let
+) ;let-njson
 
 (check-catch 'type-error (njson-array->list 'foo))
 (let-njson ((obj (string->njson "{\"a\":1}")))
-  (check-catch 'type-error (njson-array->list obj)))
+  (check-catch 'type-error (njson-array->list obj))
+) ;let-njson
 (define array->list-freed (string->njson "[1]"))
 (check-true (njson-free array->list-freed))
 (check-catch 'type-error (njson-array->list array->list-freed))
@@ -1701,7 +1895,8 @@ array-json : njson-handle
 |#
 
 (define njson-array->vector-json
-  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]")
+  "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]"
+) ;define
 
 (define array-as-vector #())
 (let-njson ((root (string->njson njson-array->vector-json)))
@@ -1716,16 +1911,20 @@ array-json : njson-handle
     (check-true (vector? nested))
     (check (vector-ref nested 0) => 2)
     (check-true (hash-table? (vector-ref nested 1)))
-    (check (hash-table-ref (vector-ref nested 1) "k") => 'null))
-  (check (vector-ref array-as-vector 3) => #()))
+    (check (hash-table-ref (vector-ref nested 1) "k") => 'null)
+  ) ;let
+  (check (vector-ref array-as-vector 3) => #())
+) ;let-njson
 (check (vector-ref array-as-vector 0) => 1)
 
 (let-njson ((root (string->njson "[]")))
-  (check (njson-array->vector root) => #()))
+  (check (njson-array->vector root) => #())
+) ;let-njson
 
 (check-catch 'type-error (njson-array->vector 'foo))
 (let-njson ((scalar (string->njson "1")))
-  (check-catch 'type-error (njson-array->vector scalar)))
+  (check-catch 'type-error (njson-array->vector scalar))
+) ;let-njson
 (define array->vector-freed (string->njson "[1]"))
 (check-true (njson-free array->vector-freed))
 (check-catch 'type-error (njson-array->vector array->vector-freed))
@@ -1779,7 +1978,8 @@ instance : njson-handle | string | number | boolean | 'null
 |#
 
 (define schema-object-json
-  "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}},\"required\":[\"name\"],\"additionalProperties\":false}")
+  "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}},\"required\":[\"name\"],\"additionalProperties\":false}"
+) ;define
 (define schema-instance-ok-json "{\"name\":\"Alice\",\"age\":18}")
 (define schema-instance-bad-type-json "{\"name\":\"Alice\",\"age\":\"18\"}")
 (define schema-instance-bad-missing-json "{\"age\":18}")
@@ -1794,37 +1994,47 @@ instance : njson-handle | string | number | boolean | 'null
 (define schema-scalar-int-json "{\"type\":\"integer\"}")
 (define schema-scalar-null-json "{\"type\":\"null\"}")
 (define schema-default-count-json
-  "{\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"default\":7}}}")
+  "{\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"default\":7}}}"
+) ;define
 (define schema-empty-object-json "{}")
 
 (define (njson-schema-report-with-json schema-json instance-json)
   (let-njson ((schema (string->njson schema-json))
                      (instance (string->njson instance-json)))
-    (njson-schema-report schema instance)))
+    (njson-schema-report schema instance)
+  ) ;let-njson
+) ;define
 
 (define (njson-schema-report-with-schema schema-json instance)
   (let-njson ((schema (string->njson schema-json)))
-    (njson-schema-report schema instance)))
+    (njson-schema-report schema instance)
+  ) ;let-njson
+) ;define
 
 (define (run-schema-report mode schema-input instance-input)
   (if (eq? mode 'json)
       (njson-schema-report-with-json schema-input instance-input)
-      (njson-schema-report-with-schema schema-input instance-input)))
+      (njson-schema-report-with-schema schema-input instance-input)
+  ) ;if
+) ;define
 
 (define (check-schema-report-shape report expected-valid expected-error-count)
   (check (hash-table-ref report 'valid?) => expected-valid)
   (check (hash-table-ref report 'error-count) => expected-error-count)
-  (check (length (hash-table-ref report 'errors)) => expected-error-count))
+  (check (length (hash-table-ref report 'errors)) => expected-error-count)
+) ;define
 
 (define (check-schema-report-error error-entry expected-path expected-message expected-instance)
   (check (hash-table-ref error-entry 'instance-path) => expected-path)
   (check (hash-table-ref error-entry 'message) => expected-message)
-  (check (hash-table-ref error-entry 'instance) => expected-instance))
+  (check (hash-table-ref error-entry 'instance) => expected-instance)
+) ;define
 
 (define (check-schema-report-invalid-min-errors report min-error-count)
   (check (hash-table-ref report 'valid?) => #f)
   (check-true (>= (hash-table-ref report 'error-count) min-error-count))
-  (check-true (>= (length (hash-table-ref report 'errors)) min-error-count)))
+  (check-true (>= (length (hash-table-ref report 'errors)) min-error-count))
+) ;define
 
 (define (run-schema-report-shape-case case)
   (let* ((mode (list-ref case 0))
@@ -1834,7 +2044,9 @@ instance : njson-handle | string | number | boolean | 'null
          (expected-error-count (list-ref case 4))
          (report (run-schema-report mode schema-input instance-input)))
     (check-schema-report-shape report expected-valid expected-error-count)
-    report))
+    report
+  ) ;let*
+) ;define
 
 (define (run-schema-report-error-case case)
   (let* ((schema-json (list-ref case 0))
@@ -1844,7 +2056,9 @@ instance : njson-handle | string | number | boolean | 'null
          (expected-instance (list-ref case 4))
          (report (run-schema-report-shape-case (list 'json schema-json instance-json #f 1)))
          (error-entry (car (hash-table-ref report 'errors))))
-    (check-schema-report-error error-entry expected-path expected-message expected-instance)))
+    (check-schema-report-error error-entry expected-path expected-message expected-instance)
+  ) ;let*
+) ;define
 
 (define schema-report-shape-cases
   (list
@@ -1855,36 +2069,47 @@ instance : njson-handle | string | number | boolean | 'null
     (list 'schema schema-scalar-null-json 'null #t 0)
     (list 'json schema-default-count-json schema-empty-object-json #t 0)
     (list 'schema schema-scalar-int-json "18" #f 1)
-    (list 'schema schema-scalar-null-json 0 #f 1)))
+    (list 'schema schema-scalar-null-json 0 #f 1)
+  ) ;list
+) ;define
 
 (define schema-report-error-cases
   (list
     (list schema-object-json schema-instance-bad-type-json
           "/age"
           "unexpected instance type"
-          "\"18\"")
+          "\"18\""
+    ) ;list
     (list schema-object-json schema-instance-bad-missing-json
           ""
           "required property 'name' not found in object"
-          "{\"age\":18}")
+          "{\"age\":18}"
+    ) ;list
     (list schema-object-json schema-instance-bad-extra-json
           ""
           "validation failed for additional property 'city': instance invalid as per false-schema"
-          "{\"city\":\"HZ\",\"name\":\"Alice\"}")
+          "{\"city\":\"HZ\",\"name\":\"Alice\"}"
+    ) ;list
     (list schema-array-items-int-json schema-array-bad-json
           "/1"
           "unexpected instance type"
-          "\"2\"")))
+          "\"2\""
+    ) ;list
+  ) ;list
+) ;define
 
 (for-each run-schema-report-shape-case schema-report-shape-cases)
 (for-each run-schema-report-error-case schema-report-error-cases)
 
 (let ((instance-array-report (njson-schema-report-with-json schema-object-json schema-instance-array-json)))
-  (check-schema-report-invalid-min-errors instance-array-report 1))
+  (check-schema-report-invalid-min-errors instance-array-report 1)
+) ;let
 
 (check-catch 'type-error
   (let-njson ((instance (string->njson schema-instance-ok-json)))
-    (njson-schema-report 'foo instance)))
+    (njson-schema-report 'foo instance)
+  ) ;let-njson
+) ;check-catch
 (check-catch 'type-error (njson-schema-report-with-schema schema-object-json 'foo))
 (check-catch 'schema-error (njson-schema-report-with-json schema-bad-handle-json schema-instance-ok-json))
 (check-catch 'schema-error (njson-schema-report-with-json schema-bad-non-object-json schema-instance-ok-json))

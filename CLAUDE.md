@@ -1,17 +1,45 @@
 # Claude Code 工作规则
 
 ## Adhoc测试规则
-在做adhoc测试时，不使用echo命令，也不使用 bin/goldfish -e，而是：
+在做adhoc测试时，不使用echo命令，也不使用 bin/gf -e，而是：
 1. **唯一方法**：直接在 `tests` 目录下的现有测试用例文件中新增测试代码
 2. **禁止**：在 /tmp 目录下新建临时文件来测试
-3. 使用 bin/goldfish tests/... 的方式执行测试
+3. 使用 bin/gf tests/... 的方式执行测试
 
 **重要**：所有测试代码都必须保存在版本控制的测试文件中，便于后续的回归测试和代码审查。
 
 ## 代码格式规范
 - 使用空格进行缩进，而不是制表符
 - 建议缩进宽度为2个空格
-- 使用 `bin/lint` 检测代码中的括号是否匹配
+
+## 代码格式化工具
+Goldfish 内置了代码格式化工具 `gf fix`，用于自动格式化 Scheme 代码。
+
+### 基本用法
+```bash
+# 格式化单个文件（原地修改）
+bin/gf fix goldfish/liii/os.scm
+
+# 格式化整个目录（原地修改）
+bin/gf fix goldfish/
+
+# 仅查看格式化结果（不修改文件）
+bin/gf fix --dry-run goldfish/liii/os.scm
+```
+
+### 测试步骤中的格式化检查
+在提交代码前，应使用以下步骤确保代码格式正确：
+```bash
+# 1. 构建
+xmake b goldfish
+
+# 2. 格式化代码
+bin/gf fix goldfish/liii/xxx.scm
+bin/gf fix tests/goldfish/liii/xxx-test.scm
+
+# 3. 运行测试
+bin/gf tests/goldfish/liii/xxx-test.scm
+```
 
 ## 创建代码合并请求的方法
 1. 使用 `git push -u origin 分支名` 推送代码
@@ -27,6 +55,20 @@
 - 如用户输入其他语言（如英文），可临时使用该语言进行交流
 
 ## 其他规则
+
+### define-case-class 使用建议
+`define-case-class` 通过宏实现，有显著的性能开销：
+- 方法调用需要通过字符串匹配和动态查找
+- 每次调用都有额外的运行时开销
+- 不适合高频调用的场景
+
+**使用建议**：
+- 适合手写代码和原型开发
+- **不推荐用于 AI 生成的代码**（AI 可能会过度使用）
+- **不推荐用于生产环境部署**（性能敏感场景）
+
+对于性能敏感的场景，建议使用普通的函数和 record-type 替代。
+
 ### 分支命名规范
 - 分支名格式：`$USER/x_y/descr`
   - `$USER`：当前用户名
@@ -152,4 +194,3 @@
 - [`devel/208_2.md`](devel/208_2.md) - u8-string-length 文档和测试
 - [`devel/208_3.md`](devel/208_3.md) - u8-substring 文档和测试
 - [`devel/208_4.md`](devel/208_4.md) - string->utf8 文档和测试
-

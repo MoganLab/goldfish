@@ -2,26 +2,33 @@
 
 ;; 测试基础功能
 (define (test-basic-function)
-  (+ 1 2))
+  (+ 1 2)
+) ;define
 
 ;; 深度调用链测试
 (define (level-3)
-  (check 1 => 2))  ; 应该失败
+  (check 1 => 2)  ; 应该失败
+) ;define
 
 (define (level-2)
-  (level-3))
+  (level-3)
+) ;define
 
 (define (level-1)
-  (level-2))
+  (level-2)
+) ;define
 
 ;; 嵌套测试
 (define (test-nested-failure)
   (let ((x 5))
-    (check x => 10)))  ; 应该失败
+    (check x => 10)  ; 应该失败
+  ) ;let
+) ;define
 
 ;; 错误类型测试
 (define (test-error-propagation)
-  (check (car '()) => 'nil))  ; 应该捕获空列表错误
+  (check (car '()) => 'nil)  ; 应该捕获空列表错误
+) ;define
 
 ;; 文件位置测试
 (display "=== 测试1: 基础调用 ===")

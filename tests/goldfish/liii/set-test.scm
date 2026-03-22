@@ -19,7 +19,8 @@
         (liii check)
         (liii set)
         (srfi srfi-128)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -174,7 +175,8 @@ set : set
 |#
 (let ((copy (set-copy s-1-2)))
   (check-true (set=? s-1-2 copy))
-  (check-false (eq? s-1-2 copy))) ; Ensure new instance
+  (check-false (eq? s-1-2 copy)) ; Ensure new instance
+) ;let
 (check-true (set-empty? (set-copy s-empty)))
 (check-catch 'type-error (set-copy "not a set"))
 
@@ -213,7 +215,8 @@ comparator : comparator
                (lambda (x) x) 
                (lambda (x) (+ x 1)) 
                0 
-               comp))
+               comp)
+) ;define
 (check-true (set-contains? s-10 0))
 (check-true (set-contains? s-10 9))
 (check-false (set-contains? s-10 10))
@@ -481,7 +484,10 @@ set1, set2, ... : set
 (define (range n)
   (let loop ((i 0) (acc '()))
     (if (= i n) (reverse acc)
-        (loop (+ i 1) (cons i acc)))))
+        (loop (+ i 1) (cons i acc))
+    ) ;if
+  ) ;let
+) ;define
 
 (define big-n 1000000)
 (define big-list (range big-n))
@@ -674,7 +680,8 @@ failure : procedure
 
 ;; 测试多个元素满足谓词的情况（返回任意一个）
 (let ((res (set-find (lambda (x) (> x 0)) s-1-2 (lambda () 'not-found))))
-  (check-true (or (= res 1) (= res 2))))
+  (check-true (or (= res 1) (= res 2)))
+) ;let
 
 ;; 测试类型错误
 (check-catch 'type-error (set-find (lambda (x) #t) "not a set" (lambda () #f)))
@@ -757,7 +764,8 @@ default : any
 ;; 测试通过比较器相等但对象不同的情况
 ;; 构造一个大小写不敏感的字符串集合
 (define (my-string-ci-hash s)
-  (string-hash (string-map char-downcase s)))
+  (string-hash (string-map char-downcase s))
+) ;define
 (define string-ci-comparator (make-comparator string? string-ci=? string-ci<? my-string-ci-hash))
 (define s-str-ci (list->set-with-comparator string-ci-comparator '("Apple" "Banana")))
 
@@ -811,15 +819,21 @@ continuation 的效果：
   (lambda ()
     (set-search! s-search-1 3
       (lambda (insert ignore)
-        (insert 'payload))
+        (insert 'payload)
+      ) ;lambda
       (lambda (found update remove)
-        (error "unexpected success"))))
+        (error "unexpected success")
+      ) ;lambda
+    ) ;set-search!
+  ) ;lambda
   (lambda (result obj)
     (check-true (eq? result s-search-1))
     (check (set-size s-search-1) => 3)
     (check-true (set-contains? s-search-1 3))
     (check-false (set-contains? s-search-1 'payload))
-    (check obj => 'payload)))
+    (check obj => 'payload)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试 set-search! 忽略
 (define s-search-2 (set 1 2))
@@ -827,14 +841,20 @@ continuation 的效果：
   (lambda ()
     (set-search! s-search-2 3
       (lambda (insert ignore)
-        (ignore 'ignored))
+        (ignore 'ignored)
+      ) ;lambda
       (lambda (found update remove)
-        (error "unexpected success"))))
+        (error "unexpected success")
+      ) ;lambda
+    ) ;set-search!
+  ) ;lambda
   (lambda (result obj)
     (check-true (eq? result s-search-2))
     (check (set-size s-search-2) => 2)
     (check-false (set-contains? s-search-2 3))
-    (check obj => 'ignored)))
+    (check obj => 'ignored)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试 set-search! 更新（equals 但 not eq?）
 (define s-search-ci (list->set-with-comparator string-ci-comparator '("Apple" "Banana")))
@@ -842,15 +862,21 @@ continuation 的效果：
   (lambda ()
     (set-search! s-search-ci "apple"
       (lambda (insert ignore)
-        (error "unexpected failure"))
+        (error "unexpected failure")
+      ) ;lambda
       (lambda (found update remove)
         (check found => "Apple")
-        (update "apple" 'updated))))
+        (update "apple" 'updated)
+      ) ;lambda
+    ) ;set-search!
+  ) ;lambda
   (lambda (result obj)
     (check-true (eq? result s-search-ci))
     (check (set-size s-search-ci) => 2)
     (check (set-member s-search-ci "apple" 'not-found) => "apple")
-    (check obj => 'updated)))
+    (check obj => 'updated)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试 set-search! 删除
 (define s-search-3 (set 1 2 3))
@@ -858,20 +884,28 @@ continuation 的效果：
   (lambda ()
     (set-search! s-search-3 2
       (lambda (insert ignore)
-        (error "unexpected failure"))
+        (error "unexpected failure")
+      ) ;lambda
       (lambda (found update remove)
-        (remove 'removed))))
+        (remove 'removed)
+      ) ;lambda
+    ) ;set-search!
+  ) ;lambda
   (lambda (result obj)
     (check-true (eq? result s-search-3))
     (check (set-size s-search-3) => 2)
     (check-false (set-contains? s-search-3 2))
-    (check obj => 'removed)))
+    (check obj => 'removed)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试类型错误
 (check-catch 'type-error
   (set-search! "not a set" 1
     (lambda (insert ignore) (ignore 'x))
-    (lambda (found update remove) (remove 'x))))
+    (lambda (found update remove) (remove 'x))
+  ) ;set-search!
+) ;check-catch
 
 #|
 set-map
@@ -1196,14 +1230,18 @@ set : set
     (check-true (set-contains? no 1))
     (check-true (set-contains? no 3))
     (check-true (set-contains? s-partition-1 2)) ; 原 set 不变
-    (check-true (set-contains? s-partition-1 4))))
+    (check-true (set-contains? s-partition-1 4))
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试空集合
 (call-with-values
   (lambda () (set-partition even? s-empty))
   (lambda (yes no)
     (check (set-size yes) => 0)
-    (check (set-size no) => 0)))
+    (check (set-size no) => 0)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试类型错误
 (check-catch 'type-error (set-partition even? "not a set"))
@@ -1240,7 +1278,9 @@ set : set
     (check-true (set-contains? yes 2))
     (check-true (set-contains? yes 4))
     (check-true (set-contains? no 1))
-    (check-true (set-contains? no 3))))
+    (check-true (set-contains? no 3))
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试空集合
 (define s-partition-empty (set-copy s-empty))
@@ -1248,7 +1288,9 @@ set : set
   (lambda () (set-partition! even? s-partition-empty))
   (lambda (yes no)
     (check (set-size yes) => 0)
-    (check (set-size no) => 0)))
+    (check (set-size no) => 0)
+  ) ;lambda
+) ;call-with-values
 
 ;; 测试类型错误
 (check-catch 'type-error (set-partition! even? "not a set"))

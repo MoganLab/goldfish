@@ -16,7 +16,8 @@
 
 (import (liii check)
         (scheme inexact)
-        (liii os))
+        (liii os)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -336,7 +337,8 @@ wrong-number-of-args
 
 ;; 错误处理测试
 (when (not (os-windows?))
-  (check (exp 1+2i) => -1.1312043837568135+2.4717266720048188i))
+  (check (exp 1+2i) => -1.1312043837568135+2.4717266720048188i)
+) ;when
 
 (check-catch 'wrong-type-arg (exp "hello"))
 (check-catch 'wrong-number-of-args (exp))
@@ -468,7 +470,8 @@ wrong-number-of-args
 
 ;; 复数测试
 (when (not (os-windows?))
-  (check (sin 1+2i) => 3.165778513216168+1.9596010414216063i))
+  (check (sin 1+2i) => 3.165778513216168+1.9596010414216063i)
+) ;when
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (sin "hello"))
@@ -530,7 +533,8 @@ wrong-number-of-args
 
 ;； 复数测试
 (when (not (os-windows?))
-  (check (cos 1+2i) => 2.0327230070196656-3.0518977991518i))
+  (check (cos 1+2i) => 2.0327230070196656-3.0518977991518i)
+) ;when
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (cos "hello"))
@@ -778,7 +782,8 @@ wrong-number-of-args
 
 ;; 复数测试
 (when (not (os-windows?))
-  (check (atan 1+2i) => 1.3389725222944935+0.40235947810852507i))
+  (check (atan 1+2i) => 1.3389725222944935+0.40235947810852507i)
+) ;when
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (atan "hello"))

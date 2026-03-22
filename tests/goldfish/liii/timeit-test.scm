@@ -17,7 +17,8 @@
 (import (liii check)
         (liii timeit)
         (liii time)
-        (liii base))
+        (liii base)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -79,14 +80,17 @@ type-error
                       (lambda () #t)
                       1000)))
   (check (number? result) => #t)
-  (check (>= result 0) => #t))
+  (check (>= result 0) => #t)
+) ;let
 
 ; Test timeit with setup function
 (let ((counter 0))
   (timeit (lambda () (set! counter (+ counter 1)))
           (lambda () (set! counter 0))
-          100)
-  (check (= counter 100) => #t))
+          100
+  ) ;timeit
+  (check (= counter 100) => #t)
+) ;let
 
 ; Test timeit with different number of iterations
 (let ((result1 (timeit (lambda () (* 2 3))
@@ -94,59 +98,70 @@ type-error
                        100))
       (result2 (timeit (lambda () (* 2 3))
                        (lambda () #t)
-                       1000)))
+                       1000))
+      ) ;result2
   (check (number? result1) => #t)
   (check (number? result2) => #t)
-  (check (>= result2 result1) => #t))
+  (check (>= result2 result1) => #t)
+) ;let
 
 ; Test timeit with empty setup
 (let ((result (timeit (lambda () (display ""))
                       (lambda () #t)
                       10)))
   (check (number? result) => #t)
-  (check (>= result 0) => #t))
+  (check (>= result 0) => #t)
+) ;let
 
 ; Test timeit with complex setup
 (let ((lst '()))
   (timeit (lambda () (set! lst (cons 'x lst)))
           (lambda () (set! lst (make-list 100 'a)))
-          50)
-  (check (= (length lst) 150) => #t))
+          50
+  ) ;timeit
+  (check (= (length lst) 150) => #t)
+) ;let
 
 ; Test error handling - invalid number parameter
 (check-catch 'type-error (timeit (lambda () #t)
                                  (lambda () #t)
-                                 'invalid))
+                                 'invalid)
+) ;check-catch
 
 ; Test error handling - invalid stmt parameter
 (check-catch 'type-error (timeit 'not-a-lambda
                                  (lambda () #t)
-                                 100))
+                                 100)
+) ;check-catch
 
 ; Test error handling - invalid setup parameter
 (check-catch 'type-error (timeit (lambda () #t)
                                  'not-a-lambda
-                                 100))
+                                 100)
+) ;check-catch
 
 ; Test timeit with sleep to verify timing accuracy
 (let ((result (timeit (lambda () (sleep 0.1))
                       (lambda () #t)
                       1)))
   (check (number? result) => #t)
-  (check (>= result 0.09) => #t))  ; Should be at least 0.09 seconds
+  (check (>= result 0.09) => #t)  ; Should be at least 0.09 seconds
+) ;let
 
 ; Test timeit with multiple sleep iterations
 (let ((result (timeit (lambda () (sleep 0.01))
                       (lambda () #t)
                       5)))
   (check (number? result) => #t)
-  (check (>= result 0.04) => #t))  ; Should be at least 0.04 seconds (5 * 0.01)
+  (check (>= result 0.04) => #t)  ; Should be at least 0.04 seconds (5 * 0.01)
+) ;let
 
 ; Test timeit with very short sleep
 (let ((result (timeit (lambda () (sleep 0.001))
                       (lambda () #t)
                       10)))
   (check (number? result) => #t)
-  (check (>= result 0.005) => #t))  ; Should be at least 0.005 seconds (10 * 0.001)
+  (check (>= result 0.005) => #t)  ; Should be at least 0.005 seconds (10 * 0.001)
+) ;let
 
 (check-report)

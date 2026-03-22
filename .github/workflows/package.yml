@@ -1,12 +1,15 @@
 name: XPack Build
 
 on:
+  workflow_dispatch:
+    inputs:
+      manual_version:
+        description: 'Set version manually (e.g. 1.2.3)'
+        required: false
+        default: ''
   push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    tags:
+      - '*'
 
 jobs:
   build:
@@ -33,6 +36,28 @@ jobs:
     - name: git add safe directory
       run: git config --global --add safe.directory '*'
 
+    - name: Determine Version
+      id: get_version
+      run: |
+        REF_NAME="${{ github.ref }}"
+        MANUAL_VER="${{ inputs.manual_version }}"
+        if [ -n "$MANUAL_VER" ]; then
+          RAW_VERSION="$MANUAL_VER"
+        elif [[ "$REF_NAME" == refs/tags/* ]]; then
+          RAW_VERSION=${REF_NAME#refs/tags/}
+          RAW_VERSION=${RAW_VERSION//\//}
+        else
+          RAW_VERSION=$(date +%Y.%m.%d)
+        fi
+        if [[ "$RAW_VERSION" == v* ]]; then
+          CLEAN_VERSION=${RAW_VERSION#v}
+        else
+          CLEAN_VERSION="$RAW_VERSION"
+        fi
+        echo "VERSION_TAG=$RAW_VERSION" >> $GITHUB_ENV
+        echo "VERSION_NUM=$CLEAN_VERSION" >> $GITHUB_ENV
+        echo "Version tag: $RAW_VERSION"
+        echo "Version num: $CLEAN_VERSION"
 
     - name: set XMAKE_GLOBALDIR
       run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
@@ -85,11 +110,20 @@ jobs:
 
     - name: Upload all package artifacts
       uses: actions/upload-artifact@v4
+      if: github.event_name == 'workflow_dispatch'
       with:
         name: goldfish-packages
         path: tmp/build/xpack/goldfish/*.deb
         retention-days: 30
         if-no-files-found: error
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        prerelease: true
+        files: |
+          tmp/build/xpack/goldfish/*.deb
 
   package-windows-zip:
     runs-on: windows-2025
@@ -110,6 +144,29 @@ jobs:
       with:
         fetch-depth: 1
 
+    - name: Determine Version
+      shell: pwsh
+      run: |
+        $refName = "${{ github.ref }}"
+        $manualVer = "${{ inputs.manual_version }}"
+        if ($manualVer) {
+          $rawVersion = $manualVer
+        } elseif ($refName -match '^refs/tags/') {
+          $rawVersion = $refName -replace '^refs/tags/', ''
+          $rawVersion = $rawVersion -replace '/', ''
+        } else {
+          $rawVersion = Get-Date -Format "yyyy.MM.dd"
+        }
+        if ($rawVersion -match '^v') {
+          $cleanVersion = $rawVersion.Substring(1)
+        } else {
+          $cleanVersion = $rawVersion
+        }
+        Add-Content -Path $env:GITHUB_ENV -Value "VERSION_TAG=$rawVersion"
+        Add-Content -Path $env:GITHUB_ENV -Value "VERSION_NUM=$cleanVersion"
+        Write-Host "Version tag: $rawVersion"
+        Write-Host "Version num: $cleanVersion"
+
     - name: cache packages from xrepo
       uses: actions/cache@v4
       with:
@@ -121,31 +178,41 @@ jobs:
 
     - name: Config and Build
       run: |
-        xmake config -vyD -o tmp/build -m releasedbg --repl=true --yes
+        xmake config -vyD -o tmp/build -m release --repl=true --yes
         xmake build goldfish
 
     - name: Package
-      run: xmake pack -vyD -f zip goldfish
+      run: xmake pack -vyD goldfish
 
     - name: Create summary table
       shell: pwsh
       run: |
         $dir = "tmp/build/xpack/goldfish"
+        $files = Get-ChildItem -Path $dir -Recurse -File
+        $size = "{0:N2} MiB" -f (($files | Measure-Object -Property Length -Sum).Sum / 1MB)
+        $fileCount = ($files | Measure-Object).Count
+
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "## Generated package files"
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | File | Size |"
-        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|"
-        Get-ChildItem -Path $dir -Filter *.zip | ForEach-Object {
-          $size = "{0:N2} MiB" -f ($_.Length / 1MB)
-          Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows ZIP | ``$($_.Name)`` | $size |"
-        }
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Type | Path | Size | Files |"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "|------|------|------|-------|"
+        Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "| Windows artifact | ``$dir`` | $size | $fileCount |"
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value ""
         Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "*目录: ``$dir``*"
 
-    - name: Upload Windows zip artifacts
+    - name: Upload Windows package artifact
       uses: actions/upload-artifact@v4
+      if: github.event_name == 'workflow_dispatch'
       with:
-        name: goldfish-windows-zip-packages
+        name: goldfish-windows-package
         path: tmp/build/xpack/goldfish/*.zip
         retention-days: 30
         if-no-files-found: error
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        prerelease: true
+        files: |
+          tmp/build/xpack/goldfish/*.zip

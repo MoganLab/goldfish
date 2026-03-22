@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (liii datetime))
+        (liii datetime)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -99,10 +100,12 @@ boolean
 
 |#
 (let ((now (datetime :now)))
-  (check-true (datetime :is-type-of now)))
+  (check-true (datetime :is-type-of now))
+) ;let
 
 (let ((not-date "2025-01-01"))
-  (check-false (datetime :is-type-of not-date)))
+  (check-false (datetime :is-type-of not-date))
+) ;let
 
 #|
 datetime@now
@@ -142,7 +145,8 @@ datetime@now
   (check-true (<= 0 (now 'hour) 23))
   (check-true (<= 0 (now 'minute) 59))
   (check-true (<= 0 (now 'second) 59))
-  (check-true (<= 0 (now 'micro-second) 999999)))
+  (check-true (<= 0 (now 'micro-second) 999999))
+) ;let
 
 ;; Test microsecond functionality
 (let ((dt1 (datetime :now))
@@ -151,7 +155,8 @@ datetime@now
   (check-true (integer? (dt1 'micro-second)))
   (check-true (integer? (dt2 'micro-second)))
   (check-true (<= 0 (dt1 'micro-second) 999999))
-  (check-true (<= 0 (dt2 'micro-second) 999999)))
+  (check-true (<= 0 (dt2 'micro-second) 999999))
+) ;let
 
 
 #|
@@ -191,16 +196,20 @@ datetime%to-string
 |#
 
 (check ((datetime :year 2025 :month 1 :day 1) :to-string)
-  => "2025-01-01 00:00:00")
+  => "2025-01-01 00:00:00"
+) ;check
 
 (check ((datetime :year 2025 :month 1 :day 1 :micro-second 111111) :to-string)
-  => "2025-01-01 00:00:00.111111")
+  => "2025-01-01 00:00:00.111111"
+) ;check
 
 (check ((datetime :year 2025 :month 1 :day 1 :micro-second 1) :to-string)
-  => "2025-01-01 00:00:00.000001")
+  => "2025-01-01 00:00:00.000001"
+) ;check
 
 (check ((datetime :year 2025 :month 1 :day 1 :micro-second 999999) :to-string)
-  => "2025-01-01 00:00:00.999999")
+  => "2025-01-01 00:00:00.999999"
+) ;check
 
 
 #|
@@ -240,58 +249,75 @@ days=0 时返回原日期副本
 
 ;; Test plus-days with positive days
 (check ((datetime :year 2024 :month 1 :day 1) :plus-days 10) 
-  => (datetime :year 2024 :month 1 :day 11))
+  => (datetime :year 2024 :month 1 :day 11)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 31) :plus-days 1) 
-  => (datetime :year 2024 :month 2 :day 1))
+  => (datetime :year 2024 :month 2 :day 1)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 1) :plus-days 31) 
-  => (datetime :year 2024 :month 2 :day 1))
+  => (datetime :year 2024 :month 2 :day 1)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 28) :plus-days 1) 
-  => (datetime :year 2024 :month 2 :day 29)) ; 2024 is a leap year
+  => (datetime :year 2024 :month 2 :day 29) ; 2024 is a leap year
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 29) :plus-days 1) 
-  => (datetime :year 2024 :month 3 :day 1))
+  => (datetime :year 2024 :month 3 :day 1)
+) ;check
 
 (check ((datetime :year 2023 :month 2 :day 28) :plus-days 1) 
-  => (datetime :year 2023 :month 3 :day 1)) ; 2023 is not a leap year
+  => (datetime :year 2023 :month 3 :day 1) ; 2023 is not a leap year
+) ;check
 
 (check ((datetime :year 2024 :month 12 :day 31) :plus-days 1) 
-  => (datetime :year 2025 :month 1 :day 1))
+  => (datetime :year 2025 :month 1 :day 1)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 1) :plus-days 366) 
-  => (datetime :year 2025 :month 1 :day 1)) ; 2024 is a leap year
+  => (datetime :year 2025 :month 1 :day 1) ; 2024 is a leap year
+) ;check
 
 ;; Test plus-days with negative days
 (check ((datetime :year 2024 :month 1 :day 11) :plus-days -10) 
-  => (datetime :year 2024 :month 1 :day 1))
+  => (datetime :year 2024 :month 1 :day 1)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 1) :plus-days -1) 
-  => (datetime :year 2024 :month 1 :day 31))
+  => (datetime :year 2024 :month 1 :day 31)
+) ;check
 
 (check ((datetime :year 2024 :month 3 :day 1) :plus-days -1) 
-  => (datetime :year 2024 :month 2 :day 29))  ; 2024 is a leap year
+  => (datetime :year 2024 :month 2 :day 29)  ; 2024 is a leap year
+) ;check
 
 (check ((datetime :year 2023 :month 3 :day 1) :plus-days -1) 
-  => (datetime :year 2023 :month 2 :day 28))  ; 2023 is not a leap year
+  => (datetime :year 2023 :month 2 :day 28)  ; 2023 is not a leap year
+) ;check
 
 (check ((datetime :year 2025 :month 1 :day 1) :plus-days -1) 
-  => (datetime :year 2024 :month 12 :day 31))
+  => (datetime :year 2024 :month 12 :day 31)
+) ;check
 
 (check ((datetime :year 2025 :month 1 :day 1) :plus-days -365) 
-  => (datetime :year 2024 :month 1 :day 2)) ; 2024 is a leap year
+  => (datetime :year 2024 :month 1 :day 2) ; 2024 is a leap year
+) ;check
 
 ;; Test plus-days with zero
 (check ((datetime :year 2024 :month 1 :day 1) :plus-days 0) 
-  => (datetime :year 2024 :month 1 :day 1))
+  => (datetime :year 2024 :month 1 :day 1)
+) ;check
 
 ;; Test preserving time components
 (let ((dt (datetime :year 2024 :month 1 :day 1 
             :hour 12 :minute 30 :second 45 :micro-second 123456)))
   (check (dt :plus-days 10) 
     => (datetime :year 2024 :month 1 :day 11 
-         :hour 12 :minute 30 :second 45 :micro-second 123456)))
+         :hour 12 :minute 30 :second 45 :micro-second 123456)
+  ) ;check
+) ;let
 
 
 #|
@@ -331,57 +357,73 @@ months=0 时返回原日期副本
 
 ;; Test plus-months with positive months
 (check ((datetime :year 2024 :month 1 :day 15) :plus-months 1) 
-  => (datetime :year 2024 :month 2 :day 15))
+  => (datetime :year 2024 :month 2 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 12 :day 15) :plus-months 1) 
-  => (datetime :year 2025 :month 1 :day 15))
+  => (datetime :year 2025 :month 1 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 15) :plus-months 12) 
-  => (datetime :year 2025 :month 1 :day 15))
+  => (datetime :year 2025 :month 1 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 15) :plus-months 24) 
-  => (datetime :year 2026 :month 1 :day 15))
+  => (datetime :year 2026 :month 1 :day 15)
+) ;check
 
 ;; Test date adjustment for month end dates
 (check ((datetime :year 2024 :month 1 :day 31) :plus-months 1) 
-  => (datetime :year 2024 :month 2 :day 29)) ; Feb 2024 has 29 days (leap year)
+  => (datetime :year 2024 :month 2 :day 29) ; Feb 2024 has 29 days (leap year)
+) ;check
 
 (check ((datetime :year 2023 :month 1 :day 31) :plus-months 1) 
-  => (datetime :year 2023 :month 2 :day 28)) ; Feb 2023 has 28 days (non-leap year)
+  => (datetime :year 2023 :month 2 :day 28) ; Feb 2023 has 28 days (non-leap year)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 31) :plus-months 2) 
-  => (datetime :year 2024 :month 3 :day 31)) ; March has 31 days
+  => (datetime :year 2024 :month 3 :day 31) ; March has 31 days
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 31) :plus-months 3) 
-  => (datetime :year 2024 :month 4 :day 30)) ; April has 30 days
+  => (datetime :year 2024 :month 4 :day 30) ; April has 30 days
+) ;check
 
 ;; Test plus-months with negative months
 (check ((datetime :year 2024 :month 3 :day 15) :plus-months -1) 
-  => (datetime :year 2024 :month 2 :day 15))
+  => (datetime :year 2024 :month 2 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 1 :day 15) :plus-months -1) 
-  => (datetime :year 2023 :month 12 :day 15))
+  => (datetime :year 2023 :month 12 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 12 :day 15) :plus-months -12) 
-  => (datetime :year 2023 :month 12 :day 15))
+  => (datetime :year 2023 :month 12 :day 15)
+) ;check
 
 ;; Test date adjustment for month end dates with negative months
 (check ((datetime :year 2024 :month 3 :day 31) :plus-months -1) 
-  => (datetime :year 2024 :month 2 :day 29)) ; Feb 2024 has 29 days (leap year)
+  => (datetime :year 2024 :month 2 :day 29) ; Feb 2024 has 29 days (leap year)
+) ;check
 
 (check ((datetime :year 2023 :month 3 :day 31) :plus-months -1) 
-  => (datetime :year 2023 :month 2 :day 28)) ; Feb 2023 has 28 days (non-leap year)
+  => (datetime :year 2023 :month 2 :day 28) ; Feb 2023 has 28 days (non-leap year)
+) ;check
 
 ;; Test plus-months with zero
 (check ((datetime :year 2024 :month 1 :day 15) :plus-months 0) 
-  => (datetime :year 2024 :month 1 :day 15))
+  => (datetime :year 2024 :month 1 :day 15)
+) ;check
 
 ;; Test preserving time components
 (let ((dt (datetime :year 2024 :month 1 :day 15 
             :hour 12 :minute 30 :second 45 :micro-second 123456)))
   (check (dt :plus-months 1) 
     => (datetime :year 2024 :month 2 :day 15 
-         :hour 12 :minute 30 :second 45 :micro-second 123456)))
+         :hour 12 :minute 30 :second 45 :micro-second 123456)
+  ) ;check
+) ;let
 
 
 #|
@@ -417,40 +459,51 @@ years=0 时返回原日期副本。
 
 ;; Test plus-years with positive years
 (check ((datetime :year 2024 :month 1 :day 15) :plus-years 1) 
-  => (datetime :year 2025 :month 1 :day 15))
+  => (datetime :year 2025 :month 1 :day 15)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 29) :plus-years 1) 
-  => (datetime :year 2025 :month 2 :day 28))
+  => (datetime :year 2025 :month 2 :day 28)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 29) :plus-years 1) 
-  => (datetime :year 2025 :month 2 :day 28)) ; Feb 29 -> Feb 28 (non-leap year)
+  => (datetime :year 2025 :month 2 :day 28) ; Feb 29 -> Feb 28 (non-leap year)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 29) :plus-years 4) 
-  => (datetime :year 2028 :month 2 :day 29)) ; Feb 29 -> Feb 29 (leap year)
+  => (datetime :year 2028 :month 2 :day 29) ; Feb 29 -> Feb 29 (leap year)
+) ;check
 
 (check ((datetime :year 2024 :month 2 :day 29) :plus-years 100) 
-  => (datetime :year 2124 :month 2 :day 29)) ; 2124 is also a leap year
+  => (datetime :year 2124 :month 2 :day 29) ; 2124 is also a leap year
+) ;check
 
 ;; Test plus-years with negative years
 (check ((datetime :year 2025 :month 1 :day 15) :plus-years -1) 
-  => (datetime :year 2024 :month 1 :day 15))
+  => (datetime :year 2024 :month 1 :day 15)
+) ;check
 
 (check ((datetime :year 2025 :month 2 :day 28) :plus-years -1) 
-  => (datetime :year 2024 :month 2 :day 28))
+  => (datetime :year 2024 :month 2 :day 28)
+) ;check
 
 (check ((datetime :year 2025 :month 2 :day 28) :plus-years -5) 
-  => (datetime :year 2020 :month 2 :day 28)) ; 2020 is a leap year
+  => (datetime :year 2020 :month 2 :day 28) ; 2020 is a leap year
+) ;check
 
 ;; Test plus-years with zero
 (check ((datetime :year 2024 :month 1 :day 15) :plus-years 0) 
-  => (datetime :year 2024 :month 1 :day 15))
+  => (datetime :year 2024 :month 1 :day 15)
+) ;check
 
 ;; Test preserving time components
 (let ((dt (datetime :year 2024 :month 1 :day 15 
             :hour 12 :minute 30 :second 45 :micro-second 123456)))
   (check (dt :plus-years 1) 
     => (datetime :year 2025 :month 1 :day 15 
-         :hour 12 :minute 30 :second 45 :micro-second 123456)))
+         :hour 12 :minute 30 :second 45 :micro-second 123456)
+  ) ;check
+) ;let
 
 
 #|
@@ -484,7 +537,8 @@ date@now
   (check-true (date :is-type-of today))
   (check-true (>= (today 'year) 2023))
   (check-true (<= 1 (today 'month) 12))
-  (check-true (<= 1 (today 'day) 31)))
+  (check-true (<= 1 (today 'day) 31))
+) ;let
 
 
 #|
@@ -518,16 +572,20 @@ string
 
 |#
 (check ((date :year 2025 :month 1 :day 1) :to-string)
-  => "2025-01-01")
+  => "2025-01-01"
+) ;check
 
 (check ((date :year 2025 :month 12 :day 1) :to-string)
-  => "2025-12-01")
+  => "2025-12-01"
+) ;check
 
 (check ((date :year 2025 :month 3 :day 4) :to-string)
-  => "2025-03-04")
+  => "2025-03-04"
+) ;check
 
 (check ((date :year 2025 :month 4 :day 12) :to-string)
-  => "2025-04-12")
+  => "2025-04-12"
+) ;check
 
 
 #|
@@ -667,17 +725,21 @@ date
   (check ((dt :to-date) 'year) => 2024)
   (check ((dt :to-date) 'month) => 1)
   (check ((dt :to-date) 'day) => 15)
-  (check ((dt :to-date) :to-string) => "2024-01-15"))
+  (check ((dt :to-date) :to-string) => "2024-01-15")
+) ;let
 
 ;; Test edge cases for datetime%to-date
 (let ((dt-edge (datetime :year 2024 :month 2 :day 29 :hour 23 :minute 59 :second 59)))
-  (check ((dt-edge :to-date) :to-string) => "2024-02-29")) ; leap year Feb 29
+  (check ((dt-edge :to-date) :to-string) => "2024-02-29") ; leap year Feb 29
+) ;let
 
 (let ((dt-min (datetime :year 1 :month 1 :day 1)))
-  (check ((dt-min :to-date) :to-string) => "1-01-01"))
+  (check ((dt-min :to-date) :to-string) => "1-01-01")
+) ;let
 
 (let ((dt-max (datetime :year 9999 :month 12 :day 31)))
-  (check ((dt-max :to-date) :to-string) => "9999-12-31"))
+  (check ((dt-max :to-date) :to-string) => "9999-12-31")
+) ;let
 
 #|
 datetime%format
@@ -725,19 +787,25 @@ value-error
 (let ((dt (datetime :year 2024 :month 1 :day 15 
                     :hour 14 :minute 30 :second 45 :micro-second 123456)))
   (check (dt :format "yyyy-MM-dd HH:mm:ss.SSS") 
-    => "2024-01-15 14:30:45.123")
+    => "2024-01-15 14:30:45.123"
+  ) ;check
   
   (check (dt :format "yyyy-MM-dd") 
-    => "2024-01-15")
+    => "2024-01-15"
+  ) ;check
     
   (check (dt :format "HH:mm:ss") 
-    => "14:30:45")
+    => "14:30:45"
+  ) ;check
     
   (check (dt :format "yyyy年MM月dd日 HH时mm分ss秒") 
-    => "2024年01月15日 14时30分45秒")
+    => "2024年01月15日 14时30分45秒"
+  ) ;check
     
   (check ((datetime :year 2024 :month 3 :day 4 :hour 2 :minute 5 :second 6) :format "dd/MM/yyyy HH:mm")
-    => "04/03/2024 02:05"))
+    => "04/03/2024 02:05"
+  ) ;check
+) ;let
 
 ;; Test format validation - should throw value-error for invalid formats
 (let ((dt (datetime :year 2024 :month 1 :day 15)))
@@ -749,7 +817,8 @@ value-error
   (check (dt :format "yyyy") => "2024")
   (check (dt :format "MM") => "01")
   (check (dt :format "dd") => "15")
-  (check (dt :format "SSS") => "000"))
+  (check (dt :format "SSS") => "000")
+) ;let
 
 ;; Test date%format functionality
 (let ((test-date (date :year 2024 :month 1 :day 15)))
@@ -758,7 +827,8 @@ value-error
   (check (test-date :format "dd-MM-yyyy") => "15-01-2024")
   (check (test-date :format "yyyyMMdd") => "20240115")
   (check-catch 'value-error (test-date :format "invalid"))
-  (check-catch 'value-error (test-date :format "HH:mm:ss"))) ; time formats not supported in date
+  (check-catch 'value-error (test-date :format "HH:mm:ss")) ; time formats not supported in date
+) ;let
 
 
 #|
@@ -792,7 +862,8 @@ datetime
 ;; Test date%to-datetime functionality
 (let ((test-date (date :year 2024 :month 1 :day 15))
       (expected-datetime (datetime :year 2024 :month 1 :day 15 
-                                   :hour 0 :minute 0 :second 0 :micro-second 0)))
+                                   :hour 0 :minute 0 :second 0 :micro-second 0))
+      ) ;expected-datetime
   (check (test-date :to-datetime) => expected-datetime)
   
   (let ((result (test-date :to-datetime)))
@@ -802,14 +873,18 @@ datetime
     (check (result 'hour) => 0)
     (check (result 'minute) => 0)
     (check (result 'second) => 0)
-    (check (result 'micro-second) => 0))
+    (check (result 'micro-second) => 0)
+  ) ;let
   
   ;; Test with different dates
   (check ((date :year 2000 :month 2 :day 29) :to-datetime) 
-    => (datetime :year 2000 :month 2 :day 29 :hour 0 :minute 0 :second 0 :micro-second 0))
+    => (datetime :year 2000 :month 2 :day 29 :hour 0 :minute 0 :second 0 :micro-second 0)
+  ) ;check
     
   (check ((date :year 2025 :month 12 :day 31) :to-datetime) 
-    => (datetime :year 2025 :month 12 :day 31 :hour 0 :minute 0 :second 0 :micro-second 0)))
+    => (datetime :year 2025 :month 12 :day 31 :hour 0 :minute 0 :second 0 :micro-second 0)
+  ) ;check
+) ;let
 
 
 #|
@@ -855,7 +930,8 @@ value-error
   (check (test-date :format "dd-MM-yyyy") => "15-01-2024")
   (check (test-date :format "yyyyMMdd") => "20240115")
   (check-catch 'value-error (test-date :format "invalid"))
-  (check-catch 'value-error (test-date :format "HH:mm:ss"))) ; time formats not supported in date
+  (check-catch 'value-error (test-date :format "HH:mm:ss")) ; time formats not supported in date
+) ;let
 
 #|
 date%weekday

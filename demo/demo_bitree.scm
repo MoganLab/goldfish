@@ -36,7 +36,7 @@
 (check ((bitree :leaf "1") :to-string) => "(1)")
 
 ; 测试非叶子节点
-(let1 t (bitree "3" (bitree :leaf "1") (bitree :leaf "2"))
+(let ((t (bitree "3" (bitree :leaf "1") (bitree :leaf "2"))))
   (check (t :leaf?) => #f)
   (check (t :to-string) => "(3 (1) (2))"))
 

@@ -1,4 +1,4 @@
-set_version ("17.11.29")
+set_version ("17.11.32")
 
 -- mode
 set_allowedmodes("releasedbg", "release", "debug", "profile")
@@ -21,7 +21,7 @@ option_end()
 
 option("repl")
     set_description("Enable REPL (isocline) support")
-    set_default(false) -- repl-anchor
+    set_default(true)
     set_values(false, true)
 option_end()
 
@@ -101,6 +101,7 @@ local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
 target ("goldfish") do
     set_languages("c++17")
     set_targetdir("$(projectdir)/bin/")
+    set_basename("gf")
     if is_plat("linux") then
         add_syslinks("stdc++")
     end
@@ -143,6 +144,8 @@ target ("goldfish") do
     if is_plat("windows") then
         set_optimize("faster")
         add_cxxflags("/fp:precise")
+        add_cxxflags("/utf-8")
+        add_cflags("/utf-8")
     end
 
     -- only enable REPL if repl option is enabled
@@ -155,6 +158,9 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/tools/goldfix/main.scm", {prefixdir = "share/goldfish/tools/goldfix"})
+    add_installfiles("$(projectdir)/tools/goldfix/(liii/*.scm)", {prefixdir = "share/goldfish/tools/goldfix"})
+    add_installfiles("$(projectdir)/tools/goldtest/liii/goldtest.scm", {prefixdir = "share/goldfish/tools/goldtest/liii"})
 end
 
 if is_plat("wasm") then
@@ -209,11 +215,14 @@ xpack ("goldfish")
     add_sourcefiles("xmake.lua")
     add_sourcefiles("(src/**)")
     add_sourcefiles("(goldfish/**)")
+    add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")
     on_load(function (package)
         if package:with_source() then
-            package:set("basename", "goldfish-$(plat)-src-v$(version)")
+            package:set("basename", "goldfish-scheme-src-v$(version)")
+        elseif is_plat("windows") then
+            package:set("basename", "goldfish-scheme-$(arch)-v$(version)-win")
         else
-            package:set("basename", "goldfish-$(plat)-$(arch)-v$(version)")
+            package:set("basename", "goldfish-scheme-$(arch)-v$(version)")
         end
     end)

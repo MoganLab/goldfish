@@ -2,8 +2,9 @@
         (liii logging)
         (liii string)
         (liii lang)
-        (liii path)
-        (liii error))
+        (liii rich-path)
+        (liii error)
+) ;import
 
 ;; Test set-path! with path object support
 (let ((log (logging "test-path-support")))
@@ -15,28 +16,34 @@
   ;; Test with path object
   (let ((p (path :temp-dir :/ "test-path-object.log")))
     (log :set-path! p)
-    (check (log :get-log-path) => (p :to-string))))
+    (check (log :get-log-path) => (p :to-string))
+  ) ;let
+) ;let
 
 (check-catch 'type-error ((logging "app") :set-level! "invalid level"))
 (check-catch 'value-error ((logging "app") :set-level! 60))
 (let* ((logging-get-rich-level (logging "get-rich-level")))
  (logging-get-rich-level :set-level! ($ 50))
- (check (logging-get-rich-level :get-level) => "CRITICAL"))
+ (check (logging-get-rich-level :get-level) => "CRITICAL")
+) ;let*
 
 ;; Test @apply: Verify that the same logger instance is returned for the same name
 (let ((logger1 (logging "test-module"))
       (logger2 (logging "test-module")))
-  (check-true (eq? logger1 logger2)))
+  (check-true (eq? logger1 logger2))
+) ;let
 
 ;; Test @apply: Verify that different logger instances are returned for different names
 (let ((logger1 (logging "module-a"))
       (logger2 (logging "module-b")))
-  (check-false (eq? logger1 logger2)))
+  (check-false (eq? logger1 logger2))
+) ;let
 
 (check ((logging "app") :get-level) => "WARNING")
 (let* ((logging-get-level (logging "app-get-level")))
   (logging-get-level :set-level! 50)
-  (check (logging-get-level :get-level) => "CRITICAL"))
+  (check (logging-get-level :get-level) => "CRITICAL")
+) ;let*
 
 (check-false ((logging "app") :debug?))
 
@@ -63,7 +70,8 @@
   ;; Test with Unicode characters in rich-string
   (define unicode-msg ($ "用户: " :+ "admin" :+ " 登录成功 ✓"))
   (define log-output3 (log :error unicode-msg))
-  (check-true (string-contains log-output3 " 登录成功 ✓"))) 
+  (check-true (string-contains log-output3 " 登录成功 ✓")) 
+) ;let
 
 ;; Test that debug logging doesn't happen when level is too high
 (let ((log (logging "high-level")))
@@ -81,6 +89,7 @@
   ;; These should produce output
   (check-true (string-contains (log :warning "This warning should appear") "This warning should appear"))
   (check-true (string-contains (log :error "This error should appear") "This error should appear"))
-  (check-true (string-contains (log :critical "This critical message should appear") "This critical message should appear")))
+  (check-true (string-contains (log :critical "This critical message should appear") "This critical message should appear"))
+) ;let
 
 (check-report)

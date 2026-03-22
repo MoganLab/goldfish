@@ -22,30 +22,38 @@
         (scheme time)
         (liii base)
         (liii oop)
-        (liii lang))
+        (liii lang)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (when (os-linux?)
-  (check (os-type) => "Linux"))
+  (check (os-type) => "Linux")
+) ;when
 
 (when (os-macos?)
-  (check (os-type) => "Darwin"))
+  (check (os-type) => "Darwin")
+) ;when
 
 (when (os-windows?)
-  (check (os-type) => "Windows"))
+  (check (os-type) => "Windows")
+) ;when
 
 (when (not (os-windows?))
   (let ((t1 (current-second)))
     (os-call "sleep 1")
     (let ((t2 (current-second)))
-      (check (>= (ceiling (- t2 t1)) 1) => #t))))
+      (check (>= (ceiling (- t2 t1)) 1) => #t)
+    ) ;let
+  ) ;let
+) ;when
 
 (when (and (os-linux?) (not (string=? "root" (getlogin))))
   (check-true (access "/root" 'F_OK))
   (check-false (access "/root" 'R_OK))
   (check-false (access "/root" 'W_OK))
-  (check-true (access (executable) 'X_OK)))
+  (check-true (access (executable) 'X_OK))
+) ;when
 
 (check-true (putenv "TEST_VAR" "123"))       ; 设置环境变量
 (check (getenv "TEST_VAR") => "123")         ; 验证设置成功
@@ -65,33 +73,43 @@
 (check (getenv "home" "value does not found") => "value does not found")
 
 (when (os-windows?)
-  (check (string-starts? (os-temp-dir) "C:") => #t))
+  (check (string-starts? (os-temp-dir) "C:") => #t)
+) ;when
 
 (when (os-linux?)
-  (check (os-temp-dir) => "/tmp"))
+  (check (os-temp-dir) => "/tmp")
+) ;when
 
 (when (not (os-windows?))
   (check-catch 'file-exists-error
-    (mkdir "/tmp"))
+    (mkdir "/tmp")
+  ) ;check-catch
   (check (begin
            (let ((test_dir "/tmp/test_124"))
              (when (file-exists? test_dir)
-               (rmdir "/tmp/test_124"))
-             (mkdir "/tmp/test_124")))
-    => #t))
+               (rmdir "/tmp/test_124")
+             ) ;when
+             (mkdir "/tmp/test_124"))
+           ) ;let
+    => #t
+  ) ;check
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试 remove
   (let ((test-file (string-append (os-temp-dir) "/test_remove.txt")))
     ;; 创建临时文件
     (with-output-to-file test-file
-      (lambda () (display "test data")))
+      (lambda () (display "test data"))
+    ) ;with-output-to-file
     ;; 验证文件存在
     (check-true (file-exists? test-file))
     ;; 删除文件
     (check-true (remove test-file))
     ;; 验证文件已删除
-    (check-false (file-exists? test-file))))
+    (check-false (file-exists? test-file))
+  ) ;let
+) ;when
 
 ;; 错误测试
 (check-catch 'type-error (remove 123))               ; path 非字符串
@@ -101,16 +119,87 @@
 (let ((test-dir (string-append (os-temp-dir) (string (os-sep)) "test_dir")))
   ;; 创建临时目录
   (when (not (file-exists? test-dir))
-    (mkdir test-dir))
+    (mkdir test-dir)
+  ) ;when
   ;; 尝试删除目录，应提示使用 rmdir
   (check-catch 'value-error (remove test-dir))
   ;; 清理
   (rmdir test-dir)
   (when (file-exists? test-dir)
-    (display* test-dir " failed to remove \n")))
+    (display* test-dir " failed to remove \n")
+  ) ;when
+) ;let
+
+;; 测试 rename 函数
+(let* ((temp-dir (os-temp-dir))
+       (src-file (string-append temp-dir (string (os-sep)) "test_rename_src.txt"))
+       (dst-file (string-append temp-dir (string (os-sep)) "test_rename_dst.txt")))
+  ;; 创建源文件
+  (with-output-to-file src-file
+    (lambda () (display "test data for rename"))
+  ) ;with-output-to-file
+  ;; 验证源文件存在
+  (check-true (file-exists? src-file))
+  ;; 重命名文件
+  (check-true (rename src-file dst-file))
+  ;; 验证源文件不存在
+  (check-false (file-exists? src-file))
+  ;; 验证目标文件存在
+  (check-true (file-exists? dst-file))
+  ;; 清理
+  (remove dst-file)
+) ;let*
+
+;; 测试 rename 错误情况
+(check-catch 'type-error (rename 123 "dst"))           ; src 非字符串
+(check-catch 'type-error (rename "src" 123))           ; dst 非字符串
+(check-catch 'file-not-found-error (rename "/nonexistent/file.txt" "dst.txt")) ; 源文件不存在
+
+;; 测试 rename 目标文件已存在
+(let* ((temp-dir (os-temp-dir))
+       (src-file (string-append temp-dir (string (os-sep)) "test_rename_src2.txt"))
+       (dst-file (string-append temp-dir (string (os-sep)) "test_rename_dst2.txt")))
+  ;; 创建源文件和目标文件
+  (with-output-to-file src-file
+    (lambda () (display "source content"))
+  ) ;with-output-to-file
+  (with-output-to-file dst-file
+    (lambda () (display "destination content"))
+  ) ;with-output-to-file
+  ;; 目标文件已存在时应抛出 file-exists-error
+  (check-catch 'file-exists-error (rename src-file dst-file))
+  ;; 清理
+  (remove src-file)
+  (remove dst-file)
+) ;let*
+
+;; 测试目录重命名
+(let* ((temp-dir (os-temp-dir))
+       (src-dir (string-append temp-dir (string (os-sep)) "test_rename_dir_src"))
+       (dst-dir (string-append temp-dir (string (os-sep)) "test_rename_dir_dst")))
+  ;; 创建源目录
+  (when (file-exists? src-dir)
+    (rmdir src-dir)
+  ) ;when
+  (when (file-exists? dst-dir)
+    (rmdir dst-dir)
+  ) ;when
+  (mkdir src-dir)
+  ;; 验证源目录存在
+  (check-true (file-exists? src-dir))
+  ;; 重命名目录
+  (check-true (rename src-dir dst-dir))
+  ;; 验证源目录不存在
+  (check-false (file-exists? src-dir))
+  ;; 验证目标目录存在
+  (check-true (file-exists? dst-dir))
+  ;; 清理
+  (rmdir dst-dir)
+) ;let*
 
 (when (not (os-windows?))
-  (check (> (vector-length (listdir "/usr")) 0) => #t))
+  (check (> (vector-length (listdir "/usr")) 0) => #t)
+) ;when
 
 (let* ((test-dir (string-append (os-temp-dir) (string (os-sep)) (uuid4)))
        (test-dir2 (string-append test-dir (string (os-sep))))
@@ -121,21 +210,25 @@
   (mkdir dir-a)
   (mkdir dir-b)
   (mkdir dir-c)
-  (let1 r (listdir test-dir)
+  (let ((r (listdir test-dir)))
     (check-true ($ r :contains "a"))
     (check-true ($ r :contains "b"))
-    (check-true ($ r :contains "c")))
-  (let1 r2 (listdir test-dir2)
+    (check-true ($ r :contains "c"))
+  ) ;let
+  (let ((r2 (listdir test-dir2)))
     (check-true ($ r2 :contains "a"))
     (check-true ($ r2 :contains "b"))
-    (check-true ($ r2 :contains "c")))
+    (check-true ($ r2 :contains "c"))
+  ) ;let
   (rmdir dir-a)
   (rmdir dir-b)
   (rmdir dir-c)
-  (rmdir test-dir))
+  (rmdir test-dir)
+) ;let*
 
 (when (os-windows?)
-  (check (> (vector-length (listdir "C:")) 0) => #t))
+  (check (> (vector-length (listdir "C:")) 0) => #t)
+) ;when
 
 (check-false (string-null? (getcwd)))
 

@@ -16,7 +16,8 @@
 
 (import (liii list)
         (liii check)
-        (scheme case-lambda))
+        (scheme case-lambda)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -25,7 +26,9 @@
     (() "zero args")
     ((x) (+ x x))
     ((x y) (+ x y))
-    ((x y . rest) (reduce + 0 (cons x (cons y rest))))))
+    ((x y . rest) (reduce + 0 (cons x (cons y rest))))
+  ) ;case-lambda
+) ;define
 
 (check ((my-func)) => "zero args")
 (check ((my-func) 2) => 4)

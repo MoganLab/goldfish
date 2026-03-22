@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (liii cut))
+        (liii cut)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -38,14 +39,16 @@
        (f (cut <> (set! a 2))))
   (check a => 1)
   (check (f (lambda (x) x)) => 2)
-  (check a => 2))
+  (check a => 2)
+) ;let*
 
 (let* ((a 1)
        (f (cute <> (set! a 2))))
   (check a => 2)
   (set! a 1)
   (check (f (lambda (x) x)) => 2)
-  (check a => 1))
+  (check a => 1)
+) ;let*
 
 (check-report)
 

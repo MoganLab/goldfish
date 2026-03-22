@@ -8,6 +8,9 @@ build/
 bin/goldfish
 bin/goldfish_repl
 bin/goldfish.*
+bin/gf
+bin/gf.exe
+bin/gf.*
 bin/http
 bin/http.exe
 repl/goldfish_repl_wasm.data

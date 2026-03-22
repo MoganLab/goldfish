@@ -1,4 +1,4 @@
-(import (liii oop) (liii option2) (liii option) (liii error) (liii check))
+(import (liii oop) (liii option2) (rename (liii rich-option) (rich-option option) (rich-none none)) (liii error) (liii check))
 
 (check-true ((option 1) :defined?))
 (check ((option 1) :get) => 1)

@@ -16,9 +16,10 @@
 
 (import (liii check)
         (liii rich-either)
-        (liii option)
+        (rename (liii rich-option) (rich-option option) (rich-none none))
         (liii lang)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 (define either rich-either)
@@ -128,7 +129,8 @@ any
   ;; Right 返回自身
   (check ((right-val :or-else backup) :get) => 1)
   ;; Left 返回备选方案
-  (check ((left-val :or-else backup) :get) => 2))
+  (check ((left-val :or-else backup) :get) => 2)
+) ;let
 
 ;; 测试 %get-or-else
 (check ((right 42) :get-or-else 0) => 42)
@@ -163,16 +165,19 @@ zero : any
 |#
 ;; Right 且满足条件时返回自身
 (let ((r (right 10)))
-  (check ((r :filter-or-else (lambda (x) (> x 5)) 0) :get) => 10))
+  (check ((r :filter-or-else (lambda (x) (> x 5)) 0) :get) => 10)
+) ;let
 
 ;; Right 但不满足条件时返回 left
 (let ((r (right 3)))
   (check-true ((r :filter-or-else (lambda (x) (> x 5)) 0) :left?))
-  (check ((r :filter-or-else (lambda (x) (> x 5)) 0) :get) => 0))
+  (check ((r :filter-or-else (lambda (x) (> x 5)) 0) :get) => 0)
+) ;let
 
 ;; Left 时返回自身
 (let ((l (left "error")))
-  (check ((l :filter-or-else (lambda (x) #t) 0) :get) => "error"))
+  (check ((l :filter-or-else (lambda (x) #t) 0) :get) => "error")
+) ;let
 
 ;; ==========================================
 ;; 4. contains 测试
@@ -219,11 +224,14 @@ Left 类型总是返回 #f。
   ;; Right 执行副作用
   (begin
     (right-val :for-each (lambda (x) (set! counter (+ counter x))))
-    (check counter => 5))
+    (check counter => 5)
+  ) ;begin
   ;; Left 不执行副作用
   (begin
     (left-val :for-each (lambda (x) (set! counter (+ counter 10))))
-    (check counter => 5)))
+    (check counter => 5)
+  ) ;begin
+) ;let
 
 ;; ==========================================
 ;; 6. to-option 测试
@@ -246,11 +254,13 @@ option
 ;; Right 转换为 defined option
 (let ((opt ((right 42) :to-option)))
   (check-true (opt :defined?))
-  (check (opt :get) => 42))
+  (check (opt :get) => 42)
+) ;let
 
 ;; Left 转换为 empty option
 (let ((opt ((left "error") :to-option)))
-  (check-true (opt :empty?)))
+  (check-true (opt :empty?))
+) ;let
 
 ;; ==========================================
 ;; 7. map 测试
@@ -273,11 +283,13 @@ option
 ;; 对 Right 应用 map
 (let ((result ((right 5) :map (lambda (x) (* x 2)))))
   (check-true (result :right?))
-  (check (result :get) => 10))
+  (check (result :get) => 10)
+) ;let
 
 ;; 对 Left 应用 map 返回自身
 (let ((l (left "error")))
-  (check ((l :map (lambda (x) (string-append "Mapped: " x))) :get) => "error"))
+  (check ((l :map (lambda (x) (string-append "Mapped: " x))) :get) => "error")
+) ;let
 
 ;; ==========================================
 ;; 8. flat-map 测试
@@ -299,11 +311,13 @@ option
 ;; 对 Right 应用 flat-map
 (let ((result ((right 5) :flat-map (lambda (x) (right (* x 2))))))
   (check-true (result :right?))
-  (check (result :get) => 10))
+  (check (result :get) => 10)
+) ;let
 
 ;; 对 Left 应用 flat-map 返回自身
 (let ((l (left "error")))
-  (check ((l :flat-map (lambda (x) (right (string-length x)))) :get) => "error"))
+  (check ((l :flat-map (lambda (x) (right (string-length x)))) :get) => "error")
+) ;let
 
 ;; ==========================================
 ;; 9. forall 和 exists 测试
@@ -386,13 +400,15 @@ option
        (val2 (val1 :map (lambda (x) (+ x 5)))) ;; Right 15
        (val3 (val2 :flat-map (lambda (x) (right (* x 2)))))) ;; Right 30
   (check-true (val3 :right?))
-  (check (val3 :get) => 30))
+  (check (val3 :get) => 30)
+) ;let*
 
 ;; 测试错误处理流程
 (let* ((error-val (left "network error"))
        ;; 下面的 map 不应执行，因为输入已经是 Left
        (mapped-error (error-val :map (lambda (x) (string-append "Error: " x)))))
   (check-true (mapped-error :left?))
-  (check (mapped-error :get) => "network error"))
+  (check (mapped-error :get) => "network error")
+) ;let*
 
 (check-report)

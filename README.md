@@ -45,7 +45,7 @@ With `prime?` provided, filter twin prime numbers in this way:
 (define-case-class person
   ((name string?)
    (age integer?))
-  
+
   (define (%to-string)
     (string-append "I am " name " " (number->string age) " years old!"))
   (define (%greet x)
@@ -56,6 +56,8 @@ With `prime?` provided, filter twin prime numbers in this way:
 (bob :to-string) ; => "I am Bob 21 years old!"
 (bob :greet "Alice") ; => "Hi Alice, I am Bob 21 years old!"
 ```
+
+> **Performance Warning**: `define-case-class` is implemented via macros and has significant performance overhead. It is suitable for hand-written code and prototyping, but **not recommended for AI-generated code or production deployments**.
 
 ## Simplicity is Beauty
 Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 98.
@@ -72,6 +74,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii rich-list)](tests/goldfish/liii/rich-list-test.scm) | boxed list with rich static and instance methods |
 | [(liii rich-vector)](tests/goldfish/liii/rich-vector-test.scm) | boxed vector with rich static and instance methods |
 | [(liii rich-hash-table)](tests/goldfish/liii/rich-hash-table-test.scm) | boxed hash-table with rich static and instance methods |
+| [(liii rich-path)](tests/goldfish/liii/rich-path-test.scm) | boxed path with rich static and instance methods |
 
 ### Python-like standard library
 
@@ -89,6 +92,8 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
 | [(liii os)](goldfish/liii/os.scm)                 | Library looks like Python os module  | `getenv`, `mkdir`                                                |
 | [(liii path)](goldfish/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
+| [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
+| [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4`                                                          |
 
 
@@ -106,6 +111,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | `(srfi srfi-125)` | Part     | Hash Table                   |
 | `(srfi srfi-133)` | Part     | Vector                       |
 | `(srfi srfi-151)` | Part     | Bitwise Operations           |
+| `(srfi srfi-196)` | Complete | Range Library                |
 | `(srfi srfi-216)` | Part     | SICP                         |
 
 ### R7RS Standard Libraries
@@ -133,12 +139,12 @@ git clone https://gitee.com/LiiiLabs/goldfish.git
 # git clone https://github.com/LiiiLabs/goldfish.git
 cd goldfish
 xmake b goldfish
-bin/goldfish --version
+bin/gf --version
 ```
 You can also install it to `/opt`:
 ```
 sudo xmake i -o /opt/goldfish --root
-/opt/goldfish/bin/goldfish
+/opt/goldfish/bin/gf
 ```
 For uninstallation, just:
 ```
@@ -146,29 +152,73 @@ sudo rm -rf /opt/goldfish
 ```
 
 ## Commandlinefu
-This section assumes you have executed `xmake b goldfish` sucessfully and `bin/goldfish` is available.
+This section assumes you have executed `xmake b goldfish` sucessfully and `bin/gf` is available.
 
-### Zero Option
-Without any options, it will print the help message:
+### Subcommands
+
+Goldfish Scheme uses subcommands for different operations:
+
+| Subcommand | Description |
+|------------|-------------|
+| `help` | Display help message |
+| `version` | Display version information |
+| `eval CODE` | Evaluate Scheme code |
+| `load FILE` | Load Scheme file and enter REPL |
+| `repl` | Enter interactive REPL mode |
+| `run TARGET` | Run main function from target |
+| `test` | Run tests |
+| `fix PATH` | Format Scheme code |
+| `FILE` | Load and evaluate Scheme file directly |
+
+### Display Help
+Without any command, it will print the help message:
 ```
-> bin/goldfish 
-Goldfish Scheme 17.10.0 by LiiiLabs
---version       display version
--e              -e '(+ 1 2)'
--l FILE         Load the scheme code on path
-FILE            Load the scheme code on path and print the evaluated result
+> bin/gf
+Goldfish Scheme 17.11.32 by LiiiLabs
+
+Commands:
+  help               Display this help message
+  version            Display version
+  eval CODE          Evaluate Scheme code
+  load FILE          Load Scheme code from FILE, then enter REPL
+  ...
 ```
 
-### Version Option
-`--version` will print the Goldfish Scheme version and the underlying S7 Scheme version:
+### Display Version
+`version` subcommand will print the Goldfish Scheme version and the underlying S7 Scheme version:
 ```
-> bin/goldfish --version
-Goldfish Scheme 17.10.0 by LiiiLabs
-based on S7 Scheme 10.11 (2-July-2024)
+> bin/gf version
+Goldfish Scheme 17.11.32 by LiiiLabs
+based on S7 Scheme 11.5 (22-Sep-2025)
+```
+
+### Evaluate Code
+`eval` subcommand helps you evaluate Scheme code on the fly:
+```
+> bin/gf eval "(+ 1 2)"
+3
+> bin/gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+1
+> bin/gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
+```
+
+### Load File
+`load` subcommand helps you load a Scheme file and enter REPL:
+```
+> bin/gf load tests/goldfish/liii/base-test.scm
+; load the file and enter REPL
+```
+
+### Run File Directly
+You can also load and evaluate a Scheme file directly:
+```
+> bin/gf tests/goldfish/liii/base-test.scm
+; *** checks *** : 1973 correct, 0 failed.
 ```
 
 ### Mode Option
-`-m` helps you specify the standard libray mode.
+`-m` or `--mode` helps you specify the standard library mode:
 
 + `default`: `-m default` is the equiv of `-m liii`
 + `liii`: Goldfish Scheme with `(liii oop)`, `(liii base)` and `(liii error)`
@@ -176,50 +226,6 @@ based on S7 Scheme 10.11 (2-July-2024)
 + `sicp`: S7 Scheme with `(scheme base)` and `(srfi sicp)`
 + `r7rs`: S7 Scheme with `(scheme base)`
 + `s7`: S7 Scheme without any extra library
-
-### Other Options
-`-e` helps you evaluate the scheme code on the fly:
-```
-> bin/goldfish -e "(+ 1 2)"
-3
-> bin/goldfish -e "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
-1
-> bin/goldfish -e "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
-("bin/goldfish" "-e" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" 3)
-#\newline
-```
-
-`-l` helps you load the FILE:
-```
-> bin/goldfish -l tests/demo_error.scm 
-
-;car argument, (), is nil but should be a pair
-;    (list)
-;    tests/demo_error.scm, line 1, position: 10
-; (list)
-
-> bin/goldfish -l tests/demo_no_error.scm
-> bin/goldfish -l tests/demo_argv.scm 1 2 3
-("bin/goldfish" "tests/demo_argv.scm" "1" "2" "3")
-```
-
-If no options provided, it will load the FILE and print the eval result:
-```
-> bin/goldfish  tests/demo_no_error.scm 
-tests/demo_no_error.scm => 3
-> bin/goldfish  tests/demo_error.scm 
-
-;car argument, (), is nil but should be a pair
-;    (list)
-;    tests/demo_error.scm, line 1, position: 10
-; (list)
-
-tests/demo_error.scm => wrong-type-arg
-> bin/goldfish tests/demo_argv.scm 1 2 3
-("bin/goldfish" "tests/demo_argv.scm" "1" "2" "3")
-tests/demo_argv.scm => #\newline
-```
-Notice, the FILE and the eval result are separated by ` => `.
 
 
 ## Versioning

@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (liii uuid))
+        (liii uuid)
+) ;import
 
 (check-set-mode! 'report-failed)
 

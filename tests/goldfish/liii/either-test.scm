@@ -16,7 +16,8 @@
 
 (import (liii check)
         (liii error)
-        (liii either))
+        (liii either)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -55,7 +56,8 @@ either-left? / either-right?
   (check-true (either-left? left-val))
   (check-false (either-right? left-val))
   (check-true (either-right? right-val))
-  (check-false (either-left? right-val)))
+  (check-false (either-left? right-val))
+) ;let
 
 ;; 边界情况测试：非 Pair 不是 Either
 (check-false (either-left? '()))
@@ -78,7 +80,9 @@ Functor 映射操作。
   ;; 对右值应用 map 应该应用函数
   (let ((result (either-map (lambda (x) (* x 2)) right-val)))
     (check-true (either-right? result))
-    (check (to-right result) => 10)))
+    (check (to-right result) => 10)
+  ) ;let
+) ;let
 
 #|
 either-for-each
@@ -92,7 +96,8 @@ either-for-each
   (check counter => 0)
   ;; 对右值应用 for-each 执行
   (either-for-each (lambda (x) (set! counter (+ counter x))) right-val)
-  (check counter => 5))
+  (check counter => 5)
+) ;let
 
 
 ;; ==========================================
@@ -114,7 +119,8 @@ Either 级别的备选方案。
       (backup (from-right 2))
       (fail (from-left 0)))
   (check (to-right (either-or-else main backup)) => 1)
-  (check (to-right (either-or-else fail backup)) => 2))
+  (check (to-right (either-or-else fail backup)) => 2)
+) ;let
 
 
 ;; ==========================================
@@ -145,12 +151,15 @@ either-filter-or-else
   ;; 2. Right 但不满足条件 -> 变为 Left("err")
   (let ((res (either-filter-or-else even? "Must be even" r11)))
     (check-true (either-left? res))
-    (check (to-left res) => "Must be even"))
+    (check (to-left res) => "Must be even")
+  ) ;let
   
   ;; 3. Left -> 保持原样 (忽略条件)
   (let ((res-l (either-filter-or-else even? "Must be even" l)))
     (check-true (either-left? res-l))
-    (check (to-left res-l) => "orig")))
+    (check (to-left res-l) => "orig")
+  ) ;let
+) ;let
 
 #|
 either-contains
@@ -208,14 +217,16 @@ Left 总是返回 #f。
        (val2 (either-map (lambda (x) (+ x 5)) val1))     ;; Right 15
        (val3 (either-map (lambda (x) (* x 2)) val2)))    ;; Right 30
   (check-true (either-right? val3))
-  (check (to-right val3) => 30))
+  (check (to-right val3) => 30)
+) ;let*
 
 ;; 测试错误处理流程 (验证短路特性)
 (let* ((error-val (from-left "network error"))
        ;; 下面的 map 不应执行，因为输入已经是 Left
        (mapped-error (either-map (lambda (x) (string-append "Error: " x)) error-val)))
   (check-true (either-left? mapped-error))
-  (check (to-left mapped-error) => "network error"))
+  (check (to-left mapped-error) => "network error")
+) ;let*
 
 
 

@@ -5,8 +5,8 @@
 
 (import (liii http)
         (liii sys)
-        (only (liii base) let1)
-        (liii time))
+        (liii time)
+) ;import
 
 (display "=== Goldfish Scheme Async HTTP Demo ===\n\n")
 
@@ -26,19 +26,23 @@
     (display "\n  [Callback] Async GET completed!\n")
     (display (string-append "  Status: " (number->string (response 'status-code)) "\n"))
     (display (string-append "  URL: " (response 'url) "\n"))
-    (display (string-append "  Elapsed: " (number->string (response 'elapsed)) " seconds\n"))))
+    (display (string-append "  Elapsed: " (number->string (response 'elapsed)) " seconds\n"))
+  ) ;lambda
+) ;http-async-get
 
 ;; 请求立即返回，不阻塞
 (display (string-append "Request initiated immediately (elapsed: " 
                         (number->string (- (current-second) start-time))
-                        "s)\n"))
+                        "s)\n")
+) ;display
 
 ;; 等待请求完成（这会阻塞直到所有异步请求完成）
 (display "Waiting for async request to complete...\n")
 (http-wait-all 10)  ; 最多等待 10 秒
 (display (string-append "Total elapsed time: " 
                         (number->string (- (current-second) start-time))
-                        "s\n\n"))
+                        "s\n\n")
+) ;display
 
 ;; ---------------------------------------------------------
 ;; Demo 2: 多个并发异步请求
@@ -50,7 +54,8 @@
 (define completed-count 0)
 (define urls '("https://httpbin.org/delay/1"
                "https://httpbin.org/delay/1"
-               "https://httpbin.org/delay/1"))
+               "https://httpbin.org/delay/1")
+) ;define
 
 (for-each
   (lambda (url)
@@ -58,13 +63,19 @@
       (lambda (response)
         (set! completed-count (+ completed-count 1))
         (display (string-append "  [Callback #" (number->string completed-count) 
-                                "] Completed: " (response 'url) "\n")))))
-  urls)
+                                "] Completed: " (response 'url) "\n")
+        ) ;display
+      ) ;lambda
+    ) ;http-async-get
+  ) ;lambda
+  urls
+) ;for-each
 
 ;; 所有请求立即返回（不等待）
 (display (string-append "All 3 requests initiated (elapsed: "
                         (number->string (- (current-second) concurrent-start))
-                        "s)\n"))
+                        "s)\n")
+) ;display
 
 ;; 等待所有请求完成
 (display "Waiting for all requests to complete...\n")
@@ -72,10 +83,13 @@
 
 (let ((total-time (- (current-second) concurrent-start)))
   (display (string-append "All 3 requests completed in: " 
-                          (number->string total-time) "s\n"))
+                          (number->string total-time) "s\n")
+  ) ;display
   (if (< total-time 2.5)
       (display "  -> Requests were executed concurrently! (sequential would take ~3s)\n\n")
-      (display "  -> Note: Network latency may vary\n\n")))
+      (display "  -> Note: Network latency may vary\n\n")
+  ) ;if
+) ;let
 
 ;; ---------------------------------------------------------
 ;; Demo 3: 使用 http-poll 非阻塞检查
@@ -90,7 +104,10 @@
   (lambda (response)
     (display (string-append "  [Callback] Request completed after "
                             (number->string poll-count)
-                            " polls\n"))))
+                            " polls\n")
+    ) ;display
+  ) ;lambda
+) ;http-async-get
 
 ;; 使用 http-poll 非阻塞检查
 (let loop ((pending #t))
@@ -99,16 +116,24 @@
     (let ((executed (http-poll)))
       (if (> executed 0)
           (display (string-append "  Poll #" (number->string poll-count) 
-                                  ": callback executed\n"))
+                                  ": callback executed\n")
+          ) ;display
           (begin
             (display (string-append "  Poll #" (number->string poll-count) 
-                                    ": no completion yet\n"))
+                                    ": no completion yet\n")
+            ) ;display
             (sleep 0.1)  ; 等待 100ms
-            (loop #t))))))
+            (loop #t)
+          ) ;begin
+      ) ;if
+    ) ;let
+  ) ;when
+) ;let
 
 (display (string-append "Completed using polling in: "
                         (number->string (- (current-second) poll-start))
-                        "s\n\n"))
+                        "s\n\n")
+) ;display
 
 ;; ---------------------------------------------------------
 ;; Demo 4: 异步 POST 请求
@@ -118,11 +143,13 @@
 (http-async-post "https://httpbin.org/post"
   (lambda (response)
     (display "  [Callback] POST request completed!\n")
-    (display (string-append "  Status: " (number->string (response 'status-code)) "\n")))
+    (display (string-append "  Status: " (number->string (response 'status-code)) "\n"))
+  ) ;lambda
   '()                                    ; params
   "{\"message\": \"Hello from Goldfish Scheme\"}"  ; body
   '(("Content-Type" . "application/json"))   ; headers
-  '())                                   ; proxy
+  '()                                   ; proxy
+) ;http-async-post
 
 (http-wait-all 10)
 (display "POST demo completed.\n\n")
@@ -158,12 +185,16 @@
     (http-async-get (string-append "https://httpbin.org/delay/2?req=" (number->string i))
       (lambda (r)
         (set! completed (+ completed 1))
-        (display (string-append "#" (number->string completed) " ")))))
+        (display (string-append "#" (number->string completed) " "))
+      ) ;lambda
+    ) ;http-async-get
+  ) ;do
   
   (display "Done!\n")
   (display (string-append "Setup time: " 
                           (number->string (- (current-second) start))
-                          "s\n\n"))
+                          "s\n\n")
+  ) ;display
   
   ;; 等待完成
   (display "Waiting... ")
@@ -177,7 +208,12 @@
     (if (< total 10)
         (begin
           (display "\n✓ 验证通过：真正的异步并发！\n")
-          (display (string-append "  并发度: ~" (number->string (round (/ (* n 2) total))) "x\n")))
+          (display (string-append "  并发度: ~" (number->string (round (/ (* n 2) total))) "x\n"))
+        ) ;begin
         (begin
           (display "\n✗ 可能是同步执行\n")
-          (display (string-append "  预期: <5s, 实际: " (number->string total) "s\n"))))))
+          (display (string-append "  预期: <5s, 实际: " (number->string total) "s\n"))
+        ) ;begin
+    ) ;if
+  ) ;let
+) ;let

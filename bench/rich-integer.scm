@@ -41,7 +41,7 @@
   (lambda (msg . args)
     (let ((env (funclet rint)))
       (varlet env 'data x)
-      (let1 r (case msg
+      (let ((r (case msg
                 ((:to-string)
                  ((env '%to-string)))
                 ((:to-rich-string)

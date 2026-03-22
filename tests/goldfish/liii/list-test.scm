@@ -18,7 +18,8 @@
         (liii check)
         (liii cut)
         (liii base)
-        (only (srfi srfi-1) delete-duplicates))
+        (only (srfi srfi-1) delete-duplicates)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -286,7 +287,8 @@ wrong-number-of-args 当没有提供参数时抛出。
   (check (cl 3) => 1)  ; Should cycle back to first element
   (check (cl 4) => 2)
   (check (cl 5) => 3)
-  (check (cl 6) => 1))
+  (check (cl 6) => 1)
+) ;let
 
 ; Test with different data types
 (check-true (circular-list? (circular-list 'a)))
@@ -298,14 +300,16 @@ wrong-number-of-args 当没有提供参数时抛出。
 (let ((single (circular-list 'x)))
   (check (single 0) => 'x)
   (check (single 1) => 'x)
-  (check (single 100) => 'x))  ; Always return the same element
+  (check (single 100) => 'x)  ; Always return the same element
+) ;let
 
 ; Test nested structures
 (let ((nested (circular-list '(1 2) '(3) '(4 5 6))))
   (check (nested 0) => '(1 2))
   (check (nested 1) => '(3))
   (check (nested 2) => '(4 5 6))
-  (check (nested 3) => '(1 2)))
+  (check (nested 3) => '(1 2))
+) ;let
 
 ; Error handling tests
 (check-catch 'wrong-number-of-args (circular-list))
@@ -382,7 +386,8 @@ proper list是指一个符合R7RS规范的传统列表结构，满足以下条�
 ; 循环列表测试
 (let ((lst (list 1 2 3)))
   (set-cdr! (last-pair lst) lst)
-  (check-false (proper-list? lst))) ; 手动创建循环列表
+  (check-false (proper-list? lst)) ; 手动创建循环列表
+) ;let
 
 #|
 dotted-list?
@@ -477,7 +482,8 @@ dotted list是指不符合proper list规范但也不是循环列表的列表结�
 ; 循环列表测试（应返回#f）
 (let ((lst (list 1 2 3)))
   (set-cdr! (last-pair lst) lst)
-  (check-false (dotted-list? lst))) ; 手动创建循环列表
+  (check-false (dotted-list? lst)) ; 手动创建循环列表
+) ;let
 
 ; 深层嵌套测试
 (check-true (dotted-list? '(a (b . c) . d)))
@@ -734,19 +740,23 @@ drop和take互为补操作：(take lst k) + (drop lst k) = lst
 (let ((lst (iota 10)))
   (check (drop lst 0) => '(0 1 2 3 4 5 6 7 8 9))
   (check (drop lst 5) => '(5 6 7 8 9))
-  (check (drop lst 10) => '()))
+  (check (drop lst 10) => '())
+) ;let
 
 ; 与take的对称性测试
 (let ((lst '(1 2 3 4 5 6 7 8 9 10)))
   (define (symmetry-test lst k)
     (let ((take-part (take lst k))
           (drop-part (drop lst k)))
-      (append take-part drop-part)))
+      (append take-part drop-part)
+    ) ;let
+  ) ;define
   
   (check (symmetry-test lst 0) => lst)
   (check (symmetry-test lst 3) => lst)
   (check (symmetry-test lst 10) => lst)
-  (check (symmetry-test lst 5) => lst))
+  (check (symmetry-test lst 5) => lst)
+) ;let
 
 ; 错误条件测试  
 (check-catch 'out-of-range (drop '(1 2 3 4) 5))
@@ -921,12 +931,15 @@ drop-right 严格按照SRFI-1规范实现，处理各种边界情况和错误条
   (define (symmetry-test lst k)
     (let ((drop-part (drop-right lst k))
           (take-part (take-right lst k)))
-      (append drop-part take-part)))
+      (append drop-part take-part)
+    ) ;let
+  ) ;define
   
   (check (symmetry-test lst 0) => lst)
   (check (symmetry-test lst 3) => lst)
   (check (symmetry-test lst 10) => lst)
-  (check (symmetry-test lst 5) => lst))
+  (check (symmetry-test lst 5) => lst)
+) ;let
 
 ; 各种数据类型测试
 (check (drop-right '("a" "b" "c" "d") 2) => '("a" "b"))
@@ -1209,7 +1222,8 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 ; === 链式操作与组合测试 ===
 (let ((paired (zip '(1 2 3) '(a b c))))
   (check (map car paired) => '(1 2 3))            ; 提取第一列表元素
-  (check (map cadr paired) => '(a b c)))          ; 提取第二列表元素
+  (check (map cadr paired) => '(a b c))          ; 提取第二列表元素
+) ;let
 
 ; === 错误处理与边界条件测试 ===
 ; 单参数测试（被认为是对应列表自身的特殊用例）
@@ -1221,7 +1235,9 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
   (let ((result (zip lst1 lst2)))
     (check (length result) => 100)                ; 验证结果长度
     (check (car (list-ref result 0)) => 0)        ; 验证第一个配对
-    (check (cadr (list-ref result 99)) => 199))) ; 验证最后一个配对
+    (check (cadr (list-ref result 99)) => 199) ; 验证最后一个配对
+  ) ;let
+) ;let
 
 ; === 嵌套结构测试 ===
 (check (zip '((1 2) (3 4)) '((a b) (c d))) => '(((1 2) (a b)) ((3 4) (c d))))
@@ -1237,8 +1253,10 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 (check
   (fold (lambda (x count) (if (symbol? x) (+ count 1) count))
         0
-        '(a b 1 2 3 4))
-  => 2)
+        '(a b 1 2 3 4)
+  ) ;fold
+  => 2
+) ;check
 
 (check (fold + 0 '(1 2 3) '(4 5 6)) => 21)
 (check (fold + 0 '(1 2 3 4) '(10 20 30)) => 66)
@@ -1252,9 +1270,11 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 (check
   (fold-right (lambda (x count) (if (symbol? x) (+ count 1) count))
     0
-    '(a b 1 2 3 4))
+    '(a b 1 2 3 4)
+  ) ;fold-right
   =>
-  2)
+  2
+) ;check
 
 (check (fold-right cons () '(1 2 3 4)) => '(1 2 3 4))
 
@@ -1271,49 +1291,59 @@ wrong-type-arg 当任何参数不是列表类型时可能抛出
 (check-catch 'wrong-type-arg 
   (reduce (lambda (x count) (if (symbol? x) (+ count 1) count))
           0
-          '(a b 1 2 3 4)))
+          '(a b 1 2 3 4)
+  ) ;reduce
+) ;check-catch
 
 (check (reduce-right + 0 '(1 2 3 4)) => 10)
 
 (check (reduce-right + 0 '()) => 0)
 
 (check (reduce-right cons () '(1 2 3 4))
-       => '(1 2 3 . 4) )
+       => '(1 2 3 . 4)
+) ;check
 
 (check
   (reduce-right (lambda (x count) (if (symbol? x) (+ count 1) count))
     0
-    '(a b 1 2 3 4))
-  => 6)
+    '(a b 1 2 3 4)
+  ) ;reduce-right
+  => 6
+) ;check
 
 (let* ((proc (lambda (x) (list x (* x 2))))
        (input '(1 2 3))
        (expected '(1 2 2 4 3 6)))
-  (check (append-map proc input) => expected))
+  (check (append-map proc input) => expected)
+) ;let*
 
 (let* ((proc (lambda (x y) (list (+ x y) (- x y))))
        (list1 '(5 8 10))
        (list2 '(3 2 7))
        (expected '(8 2 10 6 17 3)))
-  (check (append-map proc list1 list2) => expected))
+  (check (append-map proc list1 list2) => expected)
+) ;let*
 
 (check (append-map (lambda (x y) (list x y)) '(1) '()) => '())
 
 (let* ((proc (lambda (x) (if (even? x) (list x) '())))
        (input '(1 2 3 4))
        (expected '(2 4)))
-  (check (append-map proc input) => expected))
+  (check (append-map proc input) => expected)
+) ;let*
 
 (let* ((proc (lambda (x y) (list (cons x y))))
        (list1 '(a b c))
        (list2 '(1 2))
        (expected '((a . 1) (b . 2))))
-  (check (append-map proc list1 list2) => expected))
+  (check (append-map proc list1 list2) => expected)
+) ;let*
 
 (let* ((proc (lambda (x) (list (list x) (list (* x 2)))))
        (input '(5))
        (expected '( (5) (10) )))
-  (check (append-map proc input) => expected))
+  (check (append-map proc input) => expected)
+) ;let*
 
 #|
 filter
@@ -1405,13 +1435,15 @@ filter函数遍历输入列表并对每个元素应用谓词函数，收集所�
 
 ; 大列表测试
 (let ((numbers (iota 100)))
-  (check (filter (lambda (x) (= (modulo x 10) 0)) numbers) => '(0 10 20 30 40 50 60 70 80 90)))
+  (check (filter (lambda (x) (= (modulo x 10) 0)) numbers) => '(0 10 20 30 40 50 60 70 80 90))
+) ;let
 
 ; 性能测试 - 大列表处理
 (let ((large-list (make-list 1000 5)))
   (check (length (filter (lambda (x) #t) large-list)) => 1000)
   (check (length (filter (lambda (x) (> x 0)) large-list)) => 1000)
-  (check (length (filter (lambda (x) (> x 5)) large-list)) => 0))
+  (check (length (filter (lambda (x) (> x 5)) large-list)) => 0)
+) ;let
 
 ; 错误处理测试 - 观察filter当前的行为模式
 ; 在当前实现中，filter可能没有严格的参数类型检查
@@ -1419,7 +1451,8 @@ filter函数遍历输入列表并对每个元素应用谓词函数，收集所�
 
 (check
   (partition symbol? '(one 2 3 four five 6))
-  => (cons '(five four one) '(6 3 2)))
+  => (cons '(five four one) '(6 3 2))
+) ;check
 
 (check (remove even? '(-2 -1 0 1 2)) => '(-1 1))
 
@@ -1463,19 +1496,23 @@ wrong-type-arg 如果 clist 不是列表类型。
 (check (take-while even? '()) => '())
 
 (check (take-while (lambda (x) #t) '(1 2 3))
-  => '(1 2 3))
+  => '(1 2 3)
+) ;check
 
 (check
   (take-while (lambda (x) #f) '(1 2 3))
-  => '())
+  => '()
+) ;check
 
 (check
   (take-while (lambda (x) (not (= x 1))) '(1 2 3))
-  => '())
+  => '()
+) ;check
 
 (check
   (take-while (lambda (x) (< x 3)) '(1 2 3 0))
-  => '(1 2))
+  => '(1 2)
+) ;check
 
 (check (drop-while even? '()) => '())
 
@@ -1485,7 +1522,8 @@ wrong-type-arg 如果 clist 不是列表类型。
 
 (check
   (drop-while (lambda (x) (not (= x 1))) '(1 2 3))
-  => '(1 2 3))
+  => '(1 2 3)
+) ;check
 
 (check (list-index even? '(3 1 4 1 5 9)) => 2)
 (check (list-index even? '()) => #f)
@@ -1504,19 +1542,24 @@ wrong-type-arg 如果 clist 不是列表类型。
 (check (delete 0 (list 1 2 3 4)) => (list 1 2 3 4))
 
 (check (delete #\a (list #\a #\b #\c) char=?)
-       => (list #\b #\c))
+       => (list #\b #\c)
+) ;check
 
 (check (delete #\a (list #\a #\b #\c) (lambda (x y) #f))
-       => (list #\a #\b #\c))
+       => (list #\a #\b #\c)
+) ;check
 
 (check (delete 1 (list )) => (list ))
 
 (check
   (catch 'wrong-type-arg
     (lambda ()
-      (check (delete 1 (list 1 2 3 4) 'not-pred) => 1))
-    (lambda args #t))
-  => #t)
+      (check (delete 1 (list 1 2 3 4) 'not-pred) => 1)
+    ) ;lambda
+    (lambda args #t)
+  ) ;catch
+  => #t
+) ;check
 
 (check (delete-duplicates (list 1 1 2 3)) => (list 1 2 3))
 (check (delete-duplicates (list 1 2 3)) => (list 1 2 3))
@@ -1525,28 +1568,34 @@ wrong-type-arg 如果 clist 不是列表类型。
 (check (delete-duplicates (list )) => (list ))
 
 (check (delete-duplicates (list 1 1 2 3) (lambda (x y) #f))
-       => (list 1 1 2 3))
+       => (list 1 1 2 3)
+) ;check
 
 (check (delete-duplicates '(1 -2 3 2 -1) (lambda (x y) (= (abs x) (abs y))))
-       => (list 1 -2 3))
+       => (list 1 -2 3)
+) ;check
 
 (check
   (catch 'wrong-type-arg
     (lambda
       ()
-      (check (delete-duplicates (list 1 1 2 3) 'not-pred) => 1))
-    (lambda args #t))
-  => #t)
+      (check (delete-duplicates (list 1 1 2 3) 'not-pred) => 1)
+    ) ;lambda
+    (lambda args #t)
+  ) ;catch
+  => #t
+) ;check
 
 
 (check (alist-cons 'a 1 '()) => '((a . 1)))
 (check (alist-cons 'a 1 '((b . 2))) => '((a . 1) (b . 2)))
 
-(let1 cl (circular-list 1 2 3)
+(let ((cl (circular-list 1 2 3)))
   (check (cl 3) => 1)
   (check (cl 4) => 2)
   (check (cl 5) => 3)
-  (check (cl 6) => 1))
+  (check (cl 6) => 1)
+) ;let
 
 (check-true (circular-list? (circular-list 1 2)))
 (check-true (circular-list? (circular-list 1)))
@@ -1554,7 +1603,8 @@ wrong-type-arg 如果 clist 不是列表类型。
 (let* ((l (list 1 2 3))
        (end (last-pair l)))
   (set-cdr! end (cdr l))
-  (check-true (circular-list? l)))
+  (check-true (circular-list? l))
+) ;let*
 
 (check-false (circular-list? (list 1 2)))
 
@@ -1587,7 +1637,8 @@ wrong-type-arg 如果 clist 不是列表类型。
 
 (check (flat-map (lambda (x) (list x x))
                  (list 1 2 3))
-  => (list 1 1 2 2 3 3))
+  => (list 1 1 2 2 3 3)
+) ;check
 
 (check-catch 'type-error (flat-map 1 (list 1 2 3)))
 
@@ -1683,5 +1734,144 @@ type-error 当 depth 参数既不是整数也不是 'deepest 符号时抛出。
 ; error depth flatten
 (check-catch 'type-error (flatten '((a) () (b ()) () (c)) 'a))
 (check-catch 'type-error (flatten '((a) () (b ()) () (c)) (make-vector 1 1)))
+
+#|
+list-take
+Scala风格的take函数，对越界情况容忍。
+
+语法
+----
+(list-take lst n)
+
+参数
+----
+lst : list?
+源列表，从中提取元素。
+
+n : integer?
+要提取的元素数量。
+
+返回值
+------
+list
+包含指定数量元素的新列表，从原列表的开头开始计数。
+
+说明
+----
+与SRFI-1的take不同，list-take对越界情况容忍：
+- 当n < 0时，返回空列表
+- 当n >= 列表长度时，返回原列表
+- 否则返回前n个元素
+
+错误处理
+--------
+type-error 当lst不是列表或n不是整数时抛出。
+|#
+
+; 基本功能测试
+(check (list-take '(1 2 3 4 5) 3) => '(1 2 3))
+(check (list-take '(1 2 3 4 5) 0) => '())
+(check (list-take '(1 2 3 4 5) 5) => '(1 2 3 4 5))
+
+; 边界容忍测试（与take的主要区别）
+(check (list-take '(1 2 3) -1) => '())
+(check (list-take '(1 2 3) 10) => '(1 2 3))
+
+; 空列表测试
+(check (list-take '() 0) => '())
+(check (list-take '() 5) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-take "not a list" 2))
+(check-catch 'type-error (list-take '(1 2 3) "not a number"))
+
+#|
+list-drop
+Scala风格的drop函数，对越界情况容忍。
+
+语法
+----
+(list-drop lst n)
+
+说明
+----
+与SRFI-1的drop不同，list-drop对越界情况容忍：
+- 当n < 0时，返回原列表
+- 当n >= 列表长度时，返回空列表
+- 否则返回去掉前n个元素后的列表
+|#
+
+; 基本功能测试
+(check (list-drop '(1 2 3 4 5) 3) => '(4 5))
+(check (list-drop '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (list-drop '(1 2 3 4 5) 5) => '())
+
+; 边界容忍测试
+(check (list-drop '(1 2 3) -1) => '(1 2 3))
+(check (list-drop '(1 2 3) 10) => '())
+
+; 空列表测试
+(check (list-drop '() 0) => '())
+(check (list-drop '() 5) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-drop "not a list" 2))
+(check-catch 'type-error (list-drop '(1 2 3) "not a number"))
+
+#|
+list-take-right
+Scala风格的take-right函数，对越界情况容忍。
+
+说明
+----
+与SRFI-1的take-right不同，list-take-right对越界情况容忍：
+- 当n < 0时，返回空列表
+- 当n >= 列表长度时，返回原列表
+- 否则返回后n个元素
+|#
+
+; 基本功能测试
+(check (list-take-right '(1 2 3 4 5) 3) => '(3 4 5))
+(check (list-take-right '(1 2 3 4 5) 0) => '())
+(check (list-take-right '(1 2 3 4 5) 5) => '(1 2 3 4 5))
+
+; 边界容忍测试
+(check (list-take-right '(1 2 3) -1) => '())
+(check (list-take-right '(1 2 3) 10) => '(1 2 3))
+
+; 空列表测试
+(check (list-take-right '() 0) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-take-right "not a list" 2))
+(check-catch 'type-error (list-take-right '(1 2 3) "not a number"))
+
+#|
+list-drop-right
+Scala风格的drop-right函数，对越界情况容忍。
+
+说明
+----
+与SRFI-1的drop-right不同，list-drop-right对越界情况容忍：
+- 当n < 0时，返回原列表
+- 当n >= 列表长度时，返回空列表
+- 否则返回去掉后n个元素后的列表
+|#
+
+; 基本功能测试
+(check (list-drop-right '(1 2 3 4 5) 3) => '(1 2))
+(check (list-drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (list-drop-right '(1 2 3 4 5) 5) => '())
+
+; 边界容忍测试
+(check (list-drop-right '(1 2 3) -1) => '(1 2 3))
+(check (list-drop-right '(1 2 3) 10) => '())
+
+; 空列表测试
+(check (list-drop-right '() 0) => '())
+
+; 错误处理测试
+(check-catch 'type-error (list-drop-right "not a list" 2))
+(check-catch 'type-error (list-drop-right '(1 2 3) "not a number"))
 
 (check-report)

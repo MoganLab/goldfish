@@ -17,7 +17,8 @@
 ;;; Test cases for (scheme complex) library - real-part function
 
 (import (liii check)
-        (scheme complex))
+        (scheme complex)
+) ;import
 
 (check-set-mode! 'report-failed)
 

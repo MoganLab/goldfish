@@ -15,7 +15,8 @@
 ;
 
 (import (liii check)
-        (liii bitwise))
+        (liii bitwise)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -162,21 +163,28 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-and "string" 1))  ; 字符串参数
+             (bitwise-and "string" 1)  ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-and 1 'symbol))   ; 符号参数
+             (bitwise-and 1 'symbol)   ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-and 3.14 2))      ; 浮点数参数
+             (bitwise-and 3.14 2)      ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-and #\a 1))       ; 字符参数
+             (bitwise-and #\a 1)       ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-and '(1 2) 3))    ; 列表参数
+             (bitwise-and '(1 2) 3)    ; 列表参数
+) ;check-catch
 
 ;;; 多参数错误处理测试
 (check-catch 'wrong-type-arg
-             (bitwise-and 1 2 3 "four"))  ; 第四个参数不是整数
+             (bitwise-and 1 2 3 "four")  ; 第四个参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-and 1 2 "three" 4))  ; 第三个参数不是整数
+             (bitwise-and 1 2 "three" 4)  ; 第三个参数不是整数
+) ;check-catch
 
 #|
 bitwise-ior
@@ -264,21 +272,28 @@ type-error
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-ior "string" 1))  ; 字符串参数
+             (bitwise-ior "string" 1)  ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-ior 1 'symbol))   ; 符号参数
+             (bitwise-ior 1 'symbol)   ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-ior 3.14 2))      ; 浮点数参数
+             (bitwise-ior 3.14 2)      ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-ior #\a 1))       ; 字符参数
+             (bitwise-ior #\a 1)       ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-ior '(1 2) 3))    ; 列表参数
+             (bitwise-ior '(1 2) 3)    ; 列表参数
+) ;check-catch
 
 ;;; 多参数错误处理测试
 (check-catch 'wrong-type-arg
-             (bitwise-ior 1 2 3 "four"))  ; 第四个参数不是整数
+             (bitwise-ior 1 2 3 "four")  ; 第四个参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-ior 1 2 "three" 4))  ; 第三个参数不是整数
+             (bitwise-ior 1 2 "three" 4)  ; 第三个参数不是整数
+) ;check-catch
 
 #|
 bitwise-xor
@@ -365,21 +380,28 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-xor "string" 1))  ; 字符串参数
+             (bitwise-xor "string" 1)  ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-xor 1 'symbol))   ; 符号参数
+             (bitwise-xor 1 'symbol)   ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-xor 3.14 2))      ; 浮点数参数
+             (bitwise-xor 3.14 2)      ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-xor #\a 1))       ; 字符参数
+             (bitwise-xor #\a 1)       ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-xor '(1 2) 3))    ; 列表参数
+             (bitwise-xor '(1 2) 3)    ; 列表参数
+) ;check-catch
 
 ;;; 多参数错误处理测试
 (check-catch 'wrong-type-arg
-             (bitwise-xor 1 2 3 "four"))  ; 第四个参数不是整数
+             (bitwise-xor 1 2 3 "four")  ; 第四个参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-xor 1 2 "three" 4))  ; 第三个参数不是整数
+             (bitwise-xor 1 2 "three" 4)  ; 第三个参数不是整数
+) ;check-catch
 
 #|
 bitwise-eqv
@@ -448,15 +470,20 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-eqv "string" 1))  ; 字符串参数
+             (bitwise-eqv "string" 1)  ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv 1 'symbol))   ; 符号参数
+             (bitwise-eqv 1 'symbol)   ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv 3.14 2))      ; 浮点数参数
+             (bitwise-eqv 3.14 2)      ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv #\a 1))       ; 字符参数
+             (bitwise-eqv #\a 1)       ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv '(1 2) 3))    ; 列表参数
+             (bitwise-eqv '(1 2) 3)    ; 列表参数
+) ;check-catch
 
 #|
 bitwise-or
@@ -943,15 +970,20 @@ wrong-number-of-args
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (integer-length "string"))  ; 字符串参数
+             (integer-length "string")  ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length 'symbol))   ; 符号参数
+             (integer-length 'symbol)   ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length 3.14))      ; 浮点数参数
+             (integer-length 3.14)      ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length #\a))       ; 字符参数
+             (integer-length #\a)       ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length '(1 2)))    ; 列表参数
+             (integer-length '(1 2))    ; 列表参数
+) ;check-catch
 
 ;;; 基本功能测试：bitwise-if 按位条件选择操作
 (check (bitwise-if 3 1 8) => 9)  ; #b011 #001 #100 => #101
@@ -1011,23 +1043,31 @@ wrong-number-of-args
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-if "string" 1 2))  ; 掩码参数不是整数
+             (bitwise-if "string" 1 2)  ; 掩码参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-if 1 "string" 2))  ; i1参数不是整数
+             (bitwise-if 1 "string" 2)  ; i1参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-if 1 2 "string"))  ; i2参数不是整数
+             (bitwise-if 1 2 "string")  ; i2参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-if 1.5 2 3))       ; 浮点数参数
+             (bitwise-if 1.5 2 3)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-if #\a 2 3))       ; 字符参数
+             (bitwise-if #\a 2 3)       ; 字符参数
+) ;check-catch
 
 ;;; 错误处理测试 - wrong-number-of-args
 (check-catch 'wrong-number-of-args
-             (bitwise-if 1))             ; 参数太少
+             (bitwise-if 1)             ; 参数太少
+) ;check-catch
 (check-catch 'wrong-number-of-args
-             (bitwise-if 1 2))           ; 参数太少
+             (bitwise-if 1 2)           ; 参数太少
+) ;check-catch
 (check-catch 'wrong-number-of-args
-             (bitwise-if 1 2 3 4))       ; 参数太多
+             (bitwise-if 1 2 3 4)       ; 参数太多
+) ;check-catch
 
 #|
 bit-set?
@@ -1128,27 +1168,37 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-set? "string" 1))  ; 索引参数不是整数
+             (bit-set? "string" 1)  ; 索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-set? 1 "string"))  ; 整数参数不是整数
+             (bit-set? 1 "string")  ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-set? 3.14 2))      ; 浮点数索引参数
+             (bit-set? 3.14 2)      ; 浮点数索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-set? 1 3.14))      ; 浮点数整数参数
+             (bit-set? 1 3.14)      ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-set? #\a 1))       ; 字符索引参数
+             (bit-set? #\a 1)       ; 字符索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-set? 1 #\a))       ; 字符整数参数
+             (bit-set? 1 #\a)       ; 字符整数参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 (check-catch 'out-of-range
-             (bit-set? -1 1))        ; 索引不能为负数
+             (bit-set? -1 1)        ; 索引不能为负数
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-set? 64 1))        ; 索引不能超过63
+             (bit-set? 64 1)        ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-set? 100 1))       ; 索引不能超过63
+             (bit-set? 100 1)       ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-set? -100 1))      ; 索引不能为负数
+             (bit-set? -100 1)      ; 索引不能为负数
+) ;check-catch
 
 #|
 copy-bit
@@ -1243,25 +1293,34 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (copy-bit "string" 1 #t))   ; 索引参数不是整数
+             (copy-bit "string" 1 #t)   ; 索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 "string" #t))   ; 整数参数不是整数
+             (copy-bit 1 "string" #t)   ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 3.14 2 #t))       ; 浮点数索引参数
+             (copy-bit 3.14 2 #t)       ; 浮点数索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 3.14 #t))       ; 浮点数整数参数
+             (copy-bit 1 3.14 #t)       ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit #\a 1 #t))        ; 字符索引参数
+             (copy-bit #\a 1 #t)        ; 字符索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 #\a #t))        ; 字符整数参数
+             (copy-bit 1 #\a #t)        ; 字符整数参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 (check-catch 'out-of-range
-             (copy-bit 64 -1 #f))        ; 索引不能超过63
+             (copy-bit 64 -1 #f)        ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (copy-bit 10000 -1 #f))     ; 索引不能超过63
+             (copy-bit 10000 -1 #f)     ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (copy-bit -1 1 #t))         ; 索引不能为负数
+             (copy-bit -1 1 #t)         ; 索引不能为负数
+) ;check-catch
 
 #|
 bit-swap
@@ -1341,27 +1400,37 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-swap "string" 0 1))    ; 整数参数不是整数
+             (bit-swap "string" 0 1)    ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-swap 1 "string" 2))    ; 索引参数不是整数
+             (bit-swap 1 "string" 2)    ; 索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-swap 1 2 "string"))    ; 索引参数不是整数
+             (bit-swap 1 2 "string")    ; 索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-swap 3.14 0 1))        ; 浮点数参数
+             (bit-swap 3.14 0 1)        ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-swap 1 3.14 2))        ; 浮点数索引参数
+             (bit-swap 1 3.14 2)        ; 浮点数索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-swap 1 2 3.14))        ; 浮点数索引参数
+             (bit-swap 1 2 3.14)        ; 浮点数索引参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 (check-catch 'out-of-range
-             (bit-swap 64 0 1))          ; 索引不能超过63
+             (bit-swap 64 0 1)          ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-swap -1 1 3))          ; 索引不能为负数
+             (bit-swap -1 1 3)          ; 索引不能为负数
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-swap 1 64 2))          ; 索引不能超过63
+             (bit-swap 1 64 2)          ; 索引不能超过63
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-swap 1 -1 2))          ; 索引不能为负数
+             (bit-swap 1 -1 2)          ; 索引不能为负数
+) ;check-catch
 
 #|
 any-bit-set?
@@ -1447,21 +1516,29 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (any-bit-set? "string" 1))   ; test-bits 参数不是整数
+             (any-bit-set? "string" 1)   ; test-bits 参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? 1 "string"))   ; n 参数不是整数
+             (any-bit-set? 1 "string")   ; n 参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? 3.14 2))       ; 浮点数参数
+             (any-bit-set? 3.14 2)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? 1 3.14))       ; 浮点数参数
+             (any-bit-set? 1 3.14)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? #\a 1))        ; 字符参数
+             (any-bit-set? #\a 1)        ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? 1 #\a))        ; 字符参数
+             (any-bit-set? 1 #\a)        ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? '(1 2) 3))     ; 列表参数
+             (any-bit-set? '(1 2) 3)     ; 列表参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (any-bit-set? 1 '(2 3)))     ; 列表参数
+             (any-bit-set? 1 '(2 3))     ; 列表参数
+) ;check-catch
 
 #|
 every-bit-set?
@@ -1557,21 +1634,29 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (every-bit-set? "string" 1))   ; test-bits 参数不是整数
+             (every-bit-set? "string" 1)   ; test-bits 参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? 1 "string"))   ; n 参数不是整数
+             (every-bit-set? 1 "string")   ; n 参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? 3.14 2))       ; 浮点数参数
+             (every-bit-set? 3.14 2)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? 1 3.14))       ; 浮点数参数
+             (every-bit-set? 1 3.14)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? #\a 1))        ; 字符参数
+             (every-bit-set? #\a 1)        ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? 1 #\a))        ; 字符参数
+             (every-bit-set? 1 #\a)        ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? '(1 2) 3))     ; 列表参数
+             (every-bit-set? '(1 2) 3)     ; 列表参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (every-bit-set? 1 '(2 3)))     ; 列表参数
+             (every-bit-set? 1 '(2 3))     ; 列表参数
+) ;check-catch
 
 #|
 first-set-bit
@@ -1658,15 +1743,20 @@ wrong-type-arg
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (first-set-bit "string"))   ; 字符串参数
+             (first-set-bit "string")   ; 字符串参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (first-set-bit 'symbol))    ; 符号参数
+             (first-set-bit 'symbol)    ; 符号参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (first-set-bit 3.14))       ; 浮点数参数
+             (first-set-bit 3.14)       ; 浮点数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (first-set-bit #\a))        ; 字符参数
+             (first-set-bit #\a)        ; 字符参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (first-set-bit '(1 2)))     ; 列表参数
+             (first-set-bit '(1 2))     ; 列表参数
+) ;check-catch
 
 #|
 bit-field
@@ -1731,13 +1821,15 @@ out-of-range
 ;;; 边界值测试
 ;;; 注意：S7 Scheme 的 bit-field 实现有特殊规则
 (check-catch 'out-of-range
-             (bit-field 0 0 1))         ; 0的所有位都是0，但 start >= integer-length 会抛出错误
+             (bit-field 0 0 1)         ; 0的所有位都是0，但 start >= integer-length 会抛出错误
+) ;check-catch
 (check (bit-field -1 0 1) => 1)         ; -1的所有位都是1，第0位是1
 ;;; S7 Scheme 的 bit-field 对 -1 的处理与标准不同
 ;;; (check (bit-field -1 0 8) => 255)   ; 这个测试会失败，因为 S7 返回 1
 (check (bit-field 1 0 1) => 1)          ; 1的第0位是1
 (check-catch 'out-of-range
-             (bit-field 1 1 2))         ; 1的 integer-length 为 1，start >= 1 会抛出错误
+             (bit-field 1 1 2)         ; 1的 integer-length 为 1，start >= 1 会抛出错误
+) ;check-catch
 ;;; (check-catch 'out-of-range
 ;;;              (bit-field 2 1 2))         ; 这个测试会失败，S7 返回 1
 
@@ -1774,22 +1866,27 @@ out-of-range
 ;;; 超出整数长度测试
 ;;; 注意：S7 Scheme 的 bit-field 对超出范围的处理会抛出错误
 (check-catch 'out-of-range
-             (bit-field 1 32 64))       ; 超出整数长度的部分会抛出错误
+             (bit-field 1 32 64)       ; 超出整数长度的部分会抛出错误
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-field 255 8 16))      ; 255只有8位，超出部分会抛出错误
+             (bit-field 255 8 16)      ; 255只有8位，超出部分会抛出错误
+) ;check-catch
 (check-catch 'out-of-range
-             (bit-field 65535 16 32))   ; 65535只有16位，超出部分会抛出错误
+             (bit-field 65535 16 32)   ; 65535只有16位，超出部分会抛出错误
+) ;check-catch
 
 ;;; 错误处理测试 - wrong-type-arg
 ;;; 注意：S7 Scheme 的错误类型可能与标准不同
 (check-catch 'wrong-type-arg
-             (bit-field "string" 0 4))  ; 整数参数不是整数
+             (bit-field "string" 0 4)  ; 整数参数不是整数
+) ;check-catch
 ;;; (check-catch 'wrong-type-arg
 ;;;              (bit-field 1 "string" 4))  ; 这个测试会失败，错误类型不同
 ;;; (check-catch 'wrong-type-arg
 ;;;              (bit-field 1 0 "string"))  ; 这个测试会失败，错误类型不同
 (check-catch 'wrong-type-arg
-             (bit-field 3.14 0 4))      ; 浮点数整数参数
+             (bit-field 3.14 0 4)      ; 浮点数整数参数
+) ;check-catch
 ;;; (check-catch 'wrong-type-arg
 ;;;              (bit-field 1 3.14 4))      ; 这个测试会失败，错误类型不同
 ;;; (check-catch 'wrong-type-arg
@@ -1798,7 +1895,8 @@ out-of-range
 ;;; 错误处理测试 - out-of-range
 ;;; 注意：S7 Scheme 的 bit-field 对某些边界情况不会抛出错误
 (check-catch 'out-of-range
-             (bit-field #x100000000000000000000000000000000 128 129))       ; start 超过64位整数范围
+             (bit-field #x100000000000000000000000000000000 128 129)       ; start 超过64位整数范围
+) ;check-catch
 ;;; 以下情况 S7 Scheme 不会抛出 out-of-range 错误：
 ;;; (check-catch 'out-of-range
 ;;;              (bit-field 1 -1 4))        ; 起始索引为负数，但 S7 返回正常值
@@ -1951,23 +2049,30 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-any? "string" 0 4))   ; 整数参数不是整数
+             (bit-field-any? "string" 0 4)   ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-any? 1 "string" 4))   ; 起始索引参数不是整数
+             (bit-field-any? 1 "string" 4)   ; 起始索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-any? 1 0 "string"))   ; 结束索引参数不是整数
+             (bit-field-any? 1 0 "string")   ; 结束索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-any? 3.14 0 4))       ; 浮点数整数参数
+             (bit-field-any? 3.14 0 4)       ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-any? 1 3.14 4))       ; 浮点数起始索引参数
+             (bit-field-any? 1 3.14 4)       ; 浮点数起始索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-any? 1 0 3.14))       ; 浮点数结束索引参数
+             (bit-field-any? 1 0 3.14)       ; 浮点数结束索引参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 ;;; 注意：S7 Scheme 的 bit-field-any? 实现与 SRFI 151 标准有所不同
 ;;; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-any? 1 0 64))         ; 结束索引不能超过63
+             (bit-field-any? 1 0 64)         ; 结束索引不能超过63
+) ;check-catch
 
 ;;; 其他边界情况不会抛出错误，而是返回正常值
 (check (bit-field-any? 1 -1 4) => #t)         ; 负起始索引返回正常值
@@ -2027,23 +2132,30 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-every? "string" 0 4))   ; 整数参数不是整数
+             (bit-field-every? "string" 0 4)   ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 "string" 4))   ; 起始索引参数不是整数
+             (bit-field-every? 1 "string" 4)   ; 起始索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 0 "string"))   ; 结束索引参数不是整数
+             (bit-field-every? 1 0 "string")   ; 结束索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 3.14 0 4))       ; 浮点数整数参数
+             (bit-field-every? 3.14 0 4)       ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 3.14 4))       ; 浮点数起始索引参数
+             (bit-field-every? 1 3.14 4)       ; 浮点数起始索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 0 3.14))       ; 浮点数结束索引参数
+             (bit-field-every? 1 0 3.14)       ; 浮点数结束索引参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 ;;; 注意：S7 Scheme 的 bit-field-every? 实现与 SRFI 151 标准有所不同
 ;;; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-every? 1 0 64))         ; 结束索引不能超过63
+             (bit-field-every? 1 0 64)         ; 结束索引不能超过63
+) ;check-catch
 
 ;;; 其他边界情况不会抛出错误，而是返回正常值
 ;;; 注意：S7 Scheme 的 bit-field-every? 对边界情况返回 #f
@@ -2153,23 +2265,30 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-clear "string" 0 4))       ; 整数参数不是整数
+             (bit-field-clear "string" 0 4)       ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 "string" 4))       ; 起始索引参数不是整数
+             (bit-field-clear 1 "string" 4)       ; 起始索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 0 "string"))       ; 结束索引参数不是整数
+             (bit-field-clear 1 0 "string")       ; 结束索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 3.14 0 4))           ; 浮点数整数参数
+             (bit-field-clear 3.14 0 4)           ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 3.14 4))           ; 浮点数起始索引参数
+             (bit-field-clear 1 3.14 4)           ; 浮点数起始索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 0 3.14))           ; 浮点数结束索引参数
+             (bit-field-clear 1 0 3.14)           ; 浮点数结束索引参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 ;;; 注意：S7 Scheme 的 bit-field-clear 实现与 SRFI 151 标准有所不同
 ;;; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-clear 1 0 64))             ; 结束索引不能超过63
+             (bit-field-clear 1 0 64)             ; 结束索引不能超过63
+) ;check-catch
 
 ;;; 其他边界情况不会抛出错误，而是返回正常值
 ;;; 注意：S7 Scheme 的 bit-field-clear 对边界情况的处理与标准不同
@@ -2279,23 +2398,30 @@ out-of-range
 
 ;;; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-set "string" 0 4))       ; 整数参数不是整数
+             (bit-field-set "string" 0 4)       ; 整数参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-set 1 "string" 4))       ; 起始索引参数不是整数
+             (bit-field-set 1 "string" 4)       ; 起始索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-set 1 0 "string"))       ; 结束索引参数不是整数
+             (bit-field-set 1 0 "string")       ; 结束索引参数不是整数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-set 3.14 0 4))           ; 浮点数整数参数
+             (bit-field-set 3.14 0 4)           ; 浮点数整数参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-set 1 3.14 4))           ; 浮点数起始索引参数
+             (bit-field-set 1 3.14 4)           ; 浮点数起始索引参数
+) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-set 1 0 3.14))           ; 浮点数结束索引参数
+             (bit-field-set 1 0 3.14)           ; 浮点数结束索引参数
+) ;check-catch
 
 ;;; 错误处理测试 - out-of-range
 ;;; 注意：S7 Scheme 的 bit-field-set 实现与 SRFI 151 标准有所不同
 ;;; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-set 1 0 64))             ; 结束索引不能超过63
+             (bit-field-set 1 0 64)             ; 结束索引不能超过63
+) ;check-catch
 
 ;;; 其他边界情况不会抛出错误，而是返回正常值
 ;;; 注意：S7 Scheme 的 bit-field-set 对边界情况的处理与标准不同

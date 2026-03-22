@@ -118,7 +118,7 @@ rich-json%keys
 
 
 
-(let1 j (rich-json '((bob . ((age . 18) (sex . male)))))
+(let ((j (rich-json '((bob . ((age . 18) (sex . male)))))))
   (check (j :keys) => '(bob))
   (check ((j 'bob) :keys) => '(age sex)))
 
@@ -156,10 +156,10 @@ key1, key2, ... : symbol | string | number | boolean
 (check (bob-j 'alice 'age) => (rich-json :null))
 (check (bob-j 'bob 'name) => (rich-json "Bob"))
 
-(let1 j (rich-json '((bob . ((age . 18) (sex . male)))))
+(let ((j (rich-json '((bob . ((age . 18) (sex . male)))))))
   (check ((j 'alice) :null?) => #t)
   (check ((j 'bob) :null?) => #f))
-(let1 j (rich-json '((alice . ((age . 18) (sex . male)))))
+(let ((j (rich-json '((alice . ((age . 18) (sex . male)))))))
   (check ((j 'alice) :null?) => #f)
   (check ((j 'bob) :null?) => #t))
 
@@ -190,13 +190,13 @@ key : symbol | string | number | boolean
 - 对于非对象类型JSON，总是返回#f
 |#
 
-(let1 j (rich-json '((bob . ((age . 18) (sex . male)))))
+(let ((j (rich-json '((bob . ((age . 18) (sex . male)))))))
   (check-false (j :contains-key? 'alice))
   (check-true (j :contains-key? 'bob))
   (check-false (j :contains-key? 'age))
   (check-false (j :contains-key? 'sex)))
 
-(let1 j (rich-json #(1 2 3))
+(let ((j (rich-json #(1 2 3))))
   (check (j :to-string) => "[1,2,3]"))
 
 (check (rich-json '((a (b . 1) (c . 2)))) => (rich-json :parse "{a:{b:1,c:2}}"))
@@ -841,11 +841,11 @@ predicate-fn : function
                (age . 25)
                (address . ((city . "Wonderland")
                            (zip . "12345"))))))
-  (let1 j1 (json-drop json (lambda (k) (equal? k 'city)))
+  (let ((j1 (json-drop json (lambda (k) (equal? k 'city)))))
     (check (json-ref* j1 'address 'city) => "Wonderland"))
-  (let1 j2 (json-drop json (lambda (k) (equal? k 'name)))
+  (let ((j2 (json-drop json (lambda (k) (equal? k 'name)))))
     (check (json-ref* j2 'name) => '()))
-  (let1 j3 (json-drop* json 'address (lambda (k) (equal? k 'city)))
+  (let ((j3 (json-drop* json 'address (lambda (k) (equal? k 'city)))))
     (check (json-ref* j3 'address 'city) => '())))
 
 #|
@@ -1005,11 +1005,11 @@ transform-fn : function
   (check (json-reduce json 'name (lambda (k v) v))
          => #()))
 
-(let1 json '((person . ((name . "Alice")
-                        (age . 25)
-                        (address . ((city . "Wonderland")
-                                    (zip . "12345"))))))
-  (let1 updated-json (json-reduce* json 'person 'address 'city (lambda (x y) (string-upcase y)))
+(let ((json '((person . ((name . "Alice")
+                         (age . 25)
+                         (address . ((city . "Wonderland")
+                                     (zip . "12345"))))))))
+  (let ((updated-json (json-reduce* json 'person 'address 'city (lambda (x y) (string-upcase y)))))
     (check (json-ref* updated-json 'person 'address 'city) => "WONDERLAND")))
 
 

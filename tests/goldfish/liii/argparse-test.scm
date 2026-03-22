@@ -16,48 +16,59 @@
 
 (import (liii check)
         (liii argparse)
-        (liii base))
+        (liii base)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (let ((parser (make-argument-parser)))
-  (parser 'add-argument
-    '((name . "name") (type . string) (short . "n") (default . "anonymous")))
+  (parser :add-argument
+    '((name . "name") (type . string) (short . "n") (default . "anonymous"))
+  ) ;parser
   (check (parser 'name) => "anonymous")
-  (parser 'parse-args '("--name" "john"))
-  (check (parser 'name) => "john"))
+  (parser :parse-args '("--name" "john"))
+  (check (parser 'name) => "john")
+) ;let
 
 (let ((parser (make-argument-parser)))
-  (parser 'add-argument
-    '((name . "width") (type . number) (short . "width") (default . 80)))
+  (parser :add-argument
+    '((name . "width") (type . number) (short . "width") (default . 80))
+  ) ;parser
 
-  (check (parser 'get-argument "width") => 80)
+  (check (parser :get-argument "width") => 80)
 
-  (parser 'parse-args '("--width" "100"))
-  (check (parser 'get-argument "width") => 100)
+  (parser :parse-args '("--width" "100"))
+  (check (parser :get-argument "width") => 100)
   (check (parser 'width) => 100)
 
-  (parser 'parse-args '("-width" "60"))
-  (check (parser 'width) => 60))
+  (parser :parse-args '("-width" "60"))
+  (check (parser 'width) => 60)
+) ;let
 
 (let ((parser (make-argument-parser)))
-  (parser 'add-argument
-    '((name . "height") (type . number) (default . 60)))  ; without short name
-  (parser 'parse-args '("--height" "120"))
-  (check (parser 'get-argument "height") => 120))
+  (parser :add-argument
+    '((name . "height") (type . number) (default . 60))  ; without short name
+  ) ;parser
+  (parser :parse-args '("--height" "120"))
+  (check (parser :get-argument "height") => 120)
+) ;let
 
 (let ((parser (make-argument-parser)))
-  (parser 'add-argument
-    '((name . "width") (type . number) (short . "w") (default . 80)))
-  (parser 'add-argument 
-    '((name . "title") (type . string) (default . "Untitled")))
-  (parser 'parse-args '("-w" "100" "--title" "My Document"))
-  (check (parser 'get-argument "width") => 100)
-  (check (parser 'get-argument "title") => "My Document"))
+  (parser :add-argument
+    '((name . "width") (type . number) (short . "w") (default . 80))
+  ) ;parser
+  (parser :add-argument
+    '((name . "title") (type . string) (default . "Untitled"))
+  ) ;parser
+  (parser :parse-args '("-w" "100" "--title" "My Document"))
+  (check (parser :get-argument "width") => 100)
+  (check (parser :get-argument "title") => "My Document")
+) ;let
 
-(let1 parser (make-argument-parser)
-  (check-catch 'type-error (parser 'add-argument '((name name))))
-  (check-catch 'value-error (parser 'add-argument '())))
+(let ((parser (make-argument-parser)))
+  (check-catch 'type-error (parser :add-argument '((name name))))
+  (check-catch 'value-error (parser :add-argument '()))
+) ;let
 
 (check-report)
 

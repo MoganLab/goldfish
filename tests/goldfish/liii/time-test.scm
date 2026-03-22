@@ -19,7 +19,8 @@
         (scheme time)
         (liii base)
         (srfi srfi-1)
-        (srfi srfi-19))
+        (srfi srfi-19)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -60,12 +61,16 @@ type-error
 (let ((t1 (current-second)))
   (sleep 1)
   (let ((t2 (current-second)))
-    (check (>= (ceiling (- t2 t1)) 1) => #t)))
+    (check (>= (ceiling (- t2 t1)) 1) => #t)
+  ) ;let
+) ;let
 
 (let ((t1 (current-second)))
   (sleep 0.5)
   (let ((t2 (current-second)))
-    (check (>= (ceiling (- t2 t1)) 0) => #t)))
+    (check (>= (ceiling (- t2 t1)) 0) => #t)
+  ) ;let
+) ;let
 
 (check-catch 'type-error (sleep 'not-a-number))
 
@@ -105,7 +110,8 @@ number?
 
 (let ((t1 (current-second)))
   (check (number? t1) => #t)
-  (check (>= t1 0) => #t))
+  (check (>= t1 0) => #t)
+) ;let
 
 
 #|
@@ -142,7 +148,8 @@ integer?
 |#
 (let ((j1 (current-jiffy)))
   (check (integer? j1) => #t)
-  (check (>= j1 0) => #t))
+  (check (>= j1 0) => #t)
+) ;let
 
 
 #|
@@ -217,7 +224,8 @@ TIME-DURATION TIME-MONOTONIC TIME-PROCESS TIME-TAI TIME-THREAD TIME-UTC
 ;; Ensure all constants are distinct
 (let ((constants (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS
                        TIME-TAI TIME-THREAD TIME-UTC)))
-  (check-true (= (length constants) (length (delete-duplicates constants)))))
+  (check-true (= (length constants) (length (delete-duplicates constants))))
+) ;let
 
 ;; ====================
 ;; Time object and accessors
@@ -337,7 +345,8 @@ wrong-type-arg
 
   (check (time-type t3) => TIME-TAI)
   (check (time-nanosecond t3) => 0)
-  (check (time-second t3) => -1234567890))
+  (check (time-second t3) => -1234567890)
+) ;let
 
 #|
 time-difference
@@ -370,27 +379,33 @@ wrong-type-arg
        (d  (time-difference t1 t2)))
   (check (time-type d) => TIME-DURATION)
   (check (time-second d) => 1)
-  (check (time-nanosecond d) => 100000100))
+  (check (time-nanosecond d) => 100000100)
+) ;let*
 
 ;; Test negative duration normalization
 (let* ((t1 (make-time TIME-UTC 100 5))
        (t2 (make-time TIME-UTC 900000000 5))
        (d  (time-difference t1 t2)))
   (check (time-second d) => -1)
-  (check (time-nanosecond d) => 100000100))
+  (check (time-nanosecond d) => 100000100)
+) ;let*
 
 ;; Test zero difference
 (let* ((t1 (make-time TIME-UTC 123456789 42))
        (d  (time-difference t1 t1)))
   (check (time-second d) => 0)
-  (check (time-nanosecond d) => 0))
+  (check (time-nanosecond d) => 0)
+) ;let*
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg
   (time-difference (make-time TIME-UTC 0 0)
-                   (make-time TIME-TAI 0 0)))
+                   (make-time TIME-TAI 0 0)
+  ) ;time-difference
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-difference "not-time" (make-time TIME-UTC 0 0)))
+  (time-difference "not-time" (make-time TIME-UTC 0 0))
+) ;check-catch
 
 #|
 add-duration subtract-duration
@@ -427,7 +442,8 @@ wrong-type-arg
   (check (time-second t3) => 5)
   (check (time-nanosecond t3) => 100)
   (check (time-second t4) => 3)
-  (check (time-nanosecond t4) => 900000000))
+  (check (time-nanosecond t4) => 900000000)
+) ;let*
 
 ;; Test negative duration normalization
 (let* ((t1 (make-time TIME-UTC 100 5))
@@ -435,17 +451,21 @@ wrong-type-arg
        (d  (time-difference t1 t2))
        (t3 (add-duration t2 d)))
   (check (time-second t3) => 5)
-  (check (time-nanosecond t3) => 100))
+  (check (time-nanosecond t3) => 100)
+) ;let*
 
 ;; Test error conditions
 (let ((d (time-difference (make-time TIME-UTC 0 1)
                           (make-time TIME-UTC 0 0))))
   (check-catch 'wrong-type-arg (add-duration "not-time" d))
   (check-catch 'wrong-type-arg (add-duration (make-time TIME-UTC 0 0)
-                                             (make-time TIME-UTC 0 0)))
+                                             (make-time TIME-UTC 0 0))
+  ) ;check-catch
   (check-catch 'wrong-type-arg (subtract-duration "not-time" d))
   (check-catch 'wrong-type-arg (subtract-duration (make-time TIME-UTC 0 0)
-                                                  (make-time TIME-UTC 0 0))))
+                                                  (make-time TIME-UTC 0 0))
+  ) ;check-catch
+) ;let
 
 #|
 time<=? time<? time=? time>=? time>?
@@ -487,14 +507,18 @@ wrong-type-arg
   (check (time>? t4 t3) => #t)
   (check (time>=? t4 t3) => #t)
   (check (time<? t3 t1) => #f)
-  (check (time>? t1 t4) => #f))
+  (check (time>? t1 t4) => #f)
+) ;let*
 
 ;; Test comparison error conditions
 (check-catch 'wrong-type-arg
   (time<? (make-time TIME-UTC 0 0)
-          (make-time TIME-TAI 0 0)))
+          (make-time TIME-TAI 0 0)
+  ) ;time<?
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time=? "not-time" (make-time TIME-UTC 0 0)))
+  (time=? "not-time" (make-time TIME-UTC 0 0))
+) ;check-catch
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg (time-type "not-a-time"))
@@ -544,7 +568,8 @@ wrong-type-arg
 
   (check (time-type t) => TIME-MONOTONIC)
   (check (time-nanosecond t) => 555555555)
-  (check (time-second t) => 1234567890))
+  (check (time-second t) => 1234567890)
+) ;let
 
 ;; Test error conditions for set-time-*!
 (let ((t (make-time TIME-UTC 0 0)))
@@ -552,7 +577,8 @@ wrong-type-arg
   ;; no check
   (check (set-time-type! t 'invalid-type) => 'invalid-type)
   (check-catch 'wrong-type-arg (set-time-nanosecond! "not-a-time" 0))
-  (check-catch 'wrong-type-arg (set-time-second! "not-a-time" 0)))
+  (check-catch 'wrong-type-arg (set-time-second! "not-a-time" 0))
+) ;let
 
 
 #|
@@ -590,7 +616,8 @@ wrong-type-arg
   (check-false (eq? original copied))
   ;; Modify original and ensure copy is unchanged
   (set-time-nanosecond! original 999999999)
-  (check (time-nanosecond copied) => 777777777))
+  (check (time-nanosecond copied) => 777777777)
+) ;let*
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg (copy-time "not-a-time"))
@@ -643,14 +670,18 @@ wrong-type-arg
 ;; Check that nanoseconds are in valid range
 (let ((t (current-time)))
   (check-true (>= (time-nanosecond t) 0))
-  (check-true (<= (time-nanosecond t) 999999999)))
+  (check-true (<= (time-nanosecond t) 999999999))
+) ;let
 
 ;; Test monotonic time increases
 (let ((t1 (current-time TIME-MONOTONIC))
       (t2 (current-time TIME-MONOTONIC)))
   (check-true (or (> (time-second t2) (time-second t1))
                   (and (= (time-second t2) (time-second t1))
-                       (>= (time-nanosecond t2) (time-nanosecond t1))))))
+                       (>= (time-nanosecond t2) (time-nanosecond t1)))
+                  ) ;and
+  ) ;check-true
+) ;let
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg (current-time 'invalid-type))
@@ -838,7 +869,8 @@ wrong-type-arg
   (check (date-day d) => 25)
   (check (date-month d) => 12)
   (check (date-year d) => 2023)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let
 
 ;; Test with different values
 (let ((d (make-date 999999999 59 59 23 31 1 2000 -14400)))
@@ -849,7 +881,8 @@ wrong-type-arg
   (check (date-day d) => 31)
   (check (date-month d) => 1)
   (check (date-year d) => 2000)
-  (check (date-zone-offset d) => -14400))
+  (check (date-zone-offset d) => -14400)
+) ;let
 
 #|
 date-year-day
@@ -887,7 +920,8 @@ value-error
   (check (date-year-day d2) => 60)
   (check (date-year-day d3) => 61)
   (check (date-year-day d4) => 365)
-  (check (date-year-day d5) => 366))
+  (check (date-year-day d5) => 366)
+) ;let
 
 ;; Test date-year-day error conditions
 (check-catch 'wrong-type-arg (date-year-day "not-a-date"))
@@ -924,7 +958,8 @@ wrong-type-arg
       (d3 (make-date 0 0 0 0 29 2 2024 0))) ; 2024-02-29 Thu
   (check (date-week-day d1) => 4)
   (check (date-week-day d2) => 1)
-  (check (date-week-day d3) => 4))
+  (check (date-week-day d3) => 4)
+) ;let
 
 ;; Test date-week-day error conditions
 (check-catch 'wrong-type-arg (date-week-day "not-a-date"))
@@ -966,7 +1001,8 @@ wrong-type-arg
   (check (date-week-number d2 0) => 1)
   (check (date-week-number d3 1) => 0)
   (check (date-week-number d4 1) => 1)
-  (check (date-week-number d5 1) => 52))
+  (check (date-week-number d5 1) => 52)
+) ;let
 
 ;; Test date-week-number error conditions
 (check-catch 'wrong-type-arg (date-week-number "not-a-date" 0))
@@ -1112,7 +1148,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 0))
+  (check (date-zone-offset d) => 0)
+) ;let*
 
 ;; time-utc->date with positive tz offset (+8)
 (let* ((t (make-time TIME-UTC 0 0))
@@ -1123,7 +1160,8 @@ wrong-type-arg
   (check (date-hour d) => 8)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; time-utc->date default tz-offset (local)
 (let* ((t (make-time TIME-UTC 0 0))
@@ -1137,7 +1175,8 @@ wrong-type-arg
   (check (date-hour d1) => (date-hour d2))
   (check (date-minute d1) => (date-minute d2))
   (check (date-second d1) => (date-second d2))
-  (check (date-nanosecond d1) => (date-nanosecond d2)))
+  (check (date-nanosecond d1) => (date-nanosecond d2))
+) ;let*
 
 ;; time-utc->date boundary: 2024-02-28 16:00 UTC -> 2024-02-29 00:00 (UTC+8)
 (let* ((t (date->time-utc (make-date 0 0 0 16 28 2 2024 0)))
@@ -1148,7 +1187,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; time-utc->date boundary: 2023-02-28 16:00 UTC -> 2023-03-01 00:00 (UTC+8)
 (let* ((t (date->time-utc (make-date 0 0 0 16 28 2 2023 0)))
@@ -1159,7 +1199,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; time-utc->date with negative tz offset (-1 hour)
 (let* ((t (make-time TIME-UTC 0 0))
@@ -1170,7 +1211,8 @@ wrong-type-arg
   (check (date-hour d) => 23)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => -3600))
+  (check (date-zone-offset d) => -3600)
+) ;let*
 
 ;; time-utc->date before 1970
 (let* ((t (make-time TIME-UTC 0 -1))
@@ -1180,7 +1222,8 @@ wrong-type-arg
   (check (date-day d) => 31)
   (check (date-hour d) => 23)
   (check (date-minute d) => 59)
-  (check (date-second d) => 59))
+  (check (date-second d) => 59)
+) ;let*
 
 ;; time-utc->date negative day boundaries
 (let* ((t (make-time TIME-UTC 0 -86400))
@@ -1190,7 +1233,8 @@ wrong-type-arg
   (check (date-day d) => 31)
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
-  (check (date-second d) => 0))
+  (check (date-second d) => 0)
+) ;let*
 
 (let* ((t (make-time TIME-UTC 0 -86401))
        (d (time-utc->date t 0)))
@@ -1199,14 +1243,16 @@ wrong-type-arg
   (check (date-day d) => 30)
   (check (date-hour d) => 23)
   (check (date-minute d) => 59)
-  (check (date-second d) => 59))
+  (check (date-second d) => 59)
+) ;let*
 
 ;; date->time-utc basic
 (let* ((d (make-date 0 0 0 8 1 1 1970 28800))
        (t (date->time-utc d)))
   (check (time-type t) => TIME-UTC)
   (check (time-second t) => 0)
-  (check (time-nanosecond t) => 0))
+  (check (time-nanosecond t) => 0)
+) ;let*
 
 ;; round-trip date -> time -> date with same tz-offset
 (let* ((d1 (make-date 123456789 45 30 14 25 12 2023 28800))
@@ -1219,7 +1265,8 @@ wrong-type-arg
   (check (date-minute d2) => (date-minute d1))
   (check (date-second d2) => (date-second d1))
   (check (date-nanosecond d2) => (date-nanosecond d1))
-  (check (date-zone-offset d2) => (date-zone-offset d1)))
+  (check (date-zone-offset d2) => (date-zone-offset d1))
+) ;let*
 
 ;; 2000-02-29 leap day round-trip (UTC)
 (let* ((d1 (make-date 0 0 0 0 29 2 2000 0))
@@ -1227,7 +1274,8 @@ wrong-type-arg
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 2000)
   (check (date-month d2) => 2)
-  (check (date-day d2) => 29))
+  (check (date-day d2) => 29)
+) ;let*
 
 ;; additional leap year boundary cases (UTC)
 (let* ((d1 (make-date 0 0 0 0 28 2 1900 0)) ; 1900 is not a leap year
@@ -1235,71 +1283,84 @@ wrong-type-arg
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 1900)
   (check (date-month d2) => 2)
-  (check (date-day d2) => 28))
+  (check (date-day d2) => 28)
+) ;let*
 
 (let* ((d1 (make-date 0 0 0 0 1 3 1900 0))
        (t (date->time-utc d1))
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 1900)
   (check (date-month d2) => 3)
-  (check (date-day d2) => 1))
+  (check (date-day d2) => 1)
+) ;let*
 
 (let* ((d1 (make-date 0 0 0 0 29 2 2004 0)) ; regular leap year
        (t (date->time-utc d1))
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 2004)
   (check (date-month d2) => 2)
-  (check (date-day d2) => 29))
+  (check (date-day d2) => 29)
+) ;let*
 
 (let* ((d1 (make-date 0 0 0 0 28 2 2100 0)) ; 2100 is not a leap year
        (t (date->time-utc d1))
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 2100)
   (check (date-month d2) => 2)
-  (check (date-day d2) => 28))
+  (check (date-day d2) => 28)
+) ;let*
 
 (let* ((d1 (make-date 0 0 0 0 1 3 2100 0))
        (t (date->time-utc d1))
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 2100)
   (check (date-month d2) => 3)
-  (check (date-day d2) => 1))
+  (check (date-day d2) => 1)
+) ;let*
 
 (let* ((d1 (make-date 0 0 0 0 29 2 2400 0)) ; 2400 is a leap year
        (t (date->time-utc d1))
        (d2 (time-utc->date t 0)))
   (check (date-year d2) => 2400)
   (check (date-month d2) => 2)
-  (check (date-day d2) => 29))
+  (check (date-day d2) => 29)
+) ;let*
 
 ;; time-utc -> date -> time-utc round-trip cases
 (let* ((t1 (make-time TIME-UTC 0 0))
        (d (time-utc->date t1))
        (t2 (date->time-utc d)))
-  (check-true (time=? t1 t2)))
+  (check-true (time=? t1 t2))
+) ;let*
 
 (let* ((t1 (make-time TIME-UTC 123456789 98765))
        (d (time-utc->date t1))
        (t2 (date->time-utc d)))
-  (check-true (time=? t1 t2)))
+  (check-true (time=? t1 t2))
+) ;let*
 
 (let* ((t1 (make-time TIME-UTC 500000000 -12345))
        (d (time-utc->date t1))
        (t2 (date->time-utc d)))
-  (check-true (time=? t1 t2)))
+  (check-true (time=? t1 t2))
+) ;let*
 
 (let* ((t1 (make-time TIME-UTC 0 1704067200))
        (d (time-utc->date t1))
        (t2 (date->time-utc d)))
-  (check-true (time=? t1 t2)))
+  (check-true (time=? t1 t2))
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-utc->date (make-time TIME-TAI 0 0) 0))
+  (time-utc->date (make-time TIME-TAI 0 0) 0)
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-utc->date (make-time TIME-UTC 0 0) "bad-offset"))
+  (time-utc->date (make-time TIME-UTC 0 0) "bad-offset")
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (date->time-utc "not-a-date"))
+  (date->time-utc "not-a-date")
+) ;check-catch
 
 ;; time-utc->time-tai / time-tai->time-utc basic
 (let* ((t-utc (make-time TIME-UTC 123456789 1483228800))
@@ -1310,7 +1371,9 @@ wrong-type-arg
   (let ((t-utc2 (time-tai->time-utc t-tai)))
     (check (time-type t-utc2) => TIME-UTC)
     (check (time-second t-utc2) => 1483228800)
-    (check (time-nanosecond t-utc2) => 123456789)))
+    (check (time-nanosecond t-utc2) => 123456789)
+  ) ;let
+) ;let*
 
 ;; Boundary: exactly at leap second effective instant (2017-01-01 00:00:00 UTC)
 (let* ((t-utc (make-time TIME-UTC 0 1483228800))
@@ -1321,7 +1384,9 @@ wrong-type-arg
   (let ((t-utc2 (time-tai->time-utc t-tai)))
     (check (time-type t-utc2) => TIME-UTC)
     (check (time-second t-utc2) => 1483228800)
-    (check (time-nanosecond t-utc2) => 0)))
+    (check (time-nanosecond t-utc2) => 0)
+  ) ;let
+) ;let*
 
 ;; Boundary: just before leap second effective instant
 (let* ((t-utc (make-time TIME-UTC 999999999 1483228799))
@@ -1332,7 +1397,9 @@ wrong-type-arg
   (let ((t-utc2 (time-tai->time-utc t-tai)))
     (check (time-type t-utc2) => TIME-UTC)
     (check (time-second t-utc2) => 1483228799)
-    (check (time-nanosecond t-utc2) => 999999999)))
+    (check (time-nanosecond t-utc2) => 999999999)
+  ) ;let
+) ;let*
 
 ;; Boundary: pre-1972 base offset (UTC epoch)
 (let* ((t-utc (make-time TIME-UTC 0 0))
@@ -1343,34 +1410,41 @@ wrong-type-arg
   (let ((t-utc2 (time-tai->time-utc t-tai)))
     (check (time-type t-utc2) => TIME-UTC)
     (check (time-second t-utc2) => 0)
-    (check (time-nanosecond t-utc2) => 0)))
+    (check (time-nanosecond t-utc2) => 0)
+  ) ;let
+) ;let*
 
 ;; Roundtrip time-utc->time-tai->time-utc
 (let* ((t-utc (make-time TIME-UTC 500000000 1435708800)) ; 2015-07-01
        (t-utc2 (time-tai->time-utc (time-utc->time-tai t-utc))))
   (check (time-type t-utc2) => TIME-UTC)
   (check (time-second t-utc2) => 1435708800)
-  (check (time-nanosecond t-utc2) => 500000000))
+  (check (time-nanosecond t-utc2) => 500000000)
+) ;let*
 
 ;; Roundtrip time-tai->time-utc->time-tai
 (let* ((t-tai (make-time TIME-TAI 250000000 1483228837)) ; 2017-01-01
        (t-tai2 (time-utc->time-tai (time-tai->time-utc t-tai))))
   (check (time-type t-tai2) => TIME-TAI)
   (check (time-second t-tai2) => 1483228837)
-  (check (time-nanosecond t-tai2) => 250000000))
+  (check (time-nanosecond t-tai2) => 250000000)
+) ;let*
 
 ;; time-utc->time-tai pre-1972 uses base offset 10
 (let* ((t-utc (make-time TIME-UTC 0 0))
        (t-tai (time-utc->time-tai t-utc)))
   (check (time-second t-tai) => 10)
   (check (time-nanosecond t-tai) => 0)
-  (check (time-second (time-tai->time-utc t-tai)) => 0))
+  (check (time-second (time-tai->time-utc t-tai)) => 0)
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-utc->time-tai (make-time TIME-TAI 0 0)))
+  (time-utc->time-tai (make-time TIME-TAI 0 0))
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-tai->time-utc (make-time TIME-UTC 0 0)))
+  (time-tai->time-utc (make-time TIME-UTC 0 0))
+) ;check-catch
 
 ;; time-utc->time-monotonic / time-monotonic->time-utc basic
 (let* ((t-utc (make-time TIME-UTC 123456789 42))
@@ -1381,47 +1455,57 @@ wrong-type-arg
   (let ((t-utc2 (time-monotonic->time-utc t-mon)))
     (check (time-type t-utc2) => TIME-UTC)
     (check (time-second t-utc2) => 42)
-    (check (time-nanosecond t-utc2) => 123456789)))
+    (check (time-nanosecond t-utc2) => 123456789)
+  ) ;let
+) ;let*
 
 ;; Roundtrip time-utc->time-monotonic->time-utc
 (let* ((t-utc (make-time TIME-UTC 500000000 -12345))
        (t-utc2 (time-monotonic->time-utc (time-utc->time-monotonic t-utc))))
   (check (time-type t-utc2) => TIME-UTC)
   (check (time-second t-utc2) => -12345)
-  (check (time-nanosecond t-utc2) => 500000000))
+  (check (time-nanosecond t-utc2) => 500000000)
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-utc->time-monotonic (make-time TIME-TAI 0 0)))
+  (time-utc->time-monotonic (make-time TIME-TAI 0 0))
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-monotonic->time-utc (make-time TIME-UTC 0 0)))
+  (time-monotonic->time-utc (make-time TIME-UTC 0 0))
+) ;check-catch
 
 ;; time-tai->time-monotonic basic
 (let* ((t-tai (make-time TIME-TAI 123456789 1483228837))
        (t-mon (time-tai->time-monotonic t-tai)))
   (check (time-type t-mon) => TIME-MONOTONIC)
   (check (time-second t-mon) => 1483228800)
-  (check (time-nanosecond t-mon) => 123456789))
+  (check (time-nanosecond t-mon) => 123456789)
+) ;let*
 
 ;; time-monotonic->time-tai basic
 (let* ((t-mon (make-time TIME-MONOTONIC 123456789 1483228800))
        (t-tai (time-monotonic->time-tai t-mon)))
   (check (time-type t-tai) => TIME-TAI)
   (check (time-second t-tai) => 1483228837)
-  (check (time-nanosecond t-tai) => 123456789))
+  (check (time-nanosecond t-tai) => 123456789)
+) ;let*
 
 ;; Roundtrip time-monotonic->time-tai->time-monotonic
 (let* ((t-mon (make-time TIME-MONOTONIC 500000000 -12345))
        (t-mon2 (time-tai->time-monotonic (time-monotonic->time-tai t-mon))))
   (check (time-type t-mon2) => TIME-MONOTONIC)
   (check (time-second t-mon2) => -12345)
-  (check (time-nanosecond t-mon2) => 500000000))
+  (check (time-nanosecond t-mon2) => 500000000)
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-monotonic->time-tai (make-time TIME-UTC 0 0)))
+  (time-monotonic->time-tai (make-time TIME-UTC 0 0))
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-tai->time-monotonic (make-time TIME-UTC 0 0)))
+  (time-tai->time-monotonic (make-time TIME-UTC 0 0))
+) ;check-catch
 
 ;; time-tai->date basic (UTC epoch)
 (let* ((t (make-time TIME-TAI 0 10))
@@ -1432,7 +1516,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 0))
+  (check (date-zone-offset d) => 0)
+) ;let*
 
 ;; time-tai->date default tz-offset (local)
 (let* ((t (make-time TIME-TAI 0 10))
@@ -1446,7 +1531,8 @@ wrong-type-arg
   (check (date-hour d1) => (date-hour d2))
   (check (date-minute d1) => (date-minute d2))
   (check (date-second d1) => (date-second d2))
-  (check (date-nanosecond d1) => (date-nanosecond d2)))
+  (check (date-nanosecond d1) => (date-nanosecond d2))
+) ;let*
 
 ;; time-tai->date boundary: 2024-02-28 16:00 UTC -> 2024-02-29 00:00 (UTC+8)
 (let* ((t-utc (date->time-utc (make-date 0 0 0 16 28 2 2024 0)))
@@ -1458,7 +1544,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; time-tai->date boundary: 2023-02-28 16:00 UTC -> 2023-03-01 00:00 (UTC+8)
 (let* ((t-utc (date->time-utc (make-date 0 0 0 16 28 2 2023 0)))
@@ -1470,14 +1557,16 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; date->time-tai basic (UTC epoch)
 (let* ((d (make-date 0 0 0 0 1 1 1970 0))
        (t (date->time-tai d)))
   (check (time-type t) => TIME-TAI)
   (check (time-second t) => 10)
-  (check (time-nanosecond t) => 0))
+  (check (time-nanosecond t) => 0)
+) ;let*
 
 ;; round-trip date -> time-tai -> date with same tz-offset
 (let* ((d1 (make-date 123456789 45 30 14 25 12 2023 28800))
@@ -1490,15 +1579,19 @@ wrong-type-arg
   (check (date-minute d2) => (date-minute d1))
   (check (date-second d2) => (date-second d1))
   (check (date-nanosecond d2) => (date-nanosecond d1))
-  (check (date-zone-offset d2) => (date-zone-offset d1)))
+  (check (date-zone-offset d2) => (date-zone-offset d1))
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-tai->date (make-time TIME-UTC 0 0) 0))
+  (time-tai->date (make-time TIME-UTC 0 0) 0)
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-tai->date (make-time TIME-TAI 0 0) "bad-offset"))
+  (time-tai->date (make-time TIME-TAI 0 0) "bad-offset")
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (date->time-tai "not-a-date"))
+  (date->time-tai "not-a-date")
+) ;check-catch
 
 ;; time-monotonic->date basic (UTC epoch)
 (let* ((t (make-time TIME-MONOTONIC 0 0))
@@ -1509,7 +1602,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 0))
+  (check (date-zone-offset d) => 0)
+) ;let*
 
 ;; time-monotonic->date default tz-offset (local)
 (let* ((t (make-time TIME-MONOTONIC 0 0))
@@ -1523,7 +1617,8 @@ wrong-type-arg
   (check (date-hour d1) => (date-hour d2))
   (check (date-minute d1) => (date-minute d2))
   (check (date-second d1) => (date-second d2))
-  (check (date-nanosecond d1) => (date-nanosecond d2)))
+  (check (date-nanosecond d1) => (date-nanosecond d2))
+) ;let*
 
 ;; time-monotonic->date boundary: 2024-02-28 16:00 UTC -> 2024-02-29 00:00 (UTC+8)
 (let* ((t-utc (date->time-utc (make-date 0 0 0 16 28 2 2024 0)))
@@ -1535,7 +1630,8 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; time-monotonic->date boundary: 2023-02-28 16:00 UTC -> 2023-03-01 00:00 (UTC+8)
 (let* ((t-utc (date->time-utc (make-date 0 0 0 16 28 2 2023 0)))
@@ -1547,14 +1643,16 @@ wrong-type-arg
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 28800))
+  (check (date-zone-offset d) => 28800)
+) ;let*
 
 ;; date->time-monotonic basic (UTC epoch via +8 offset)
 (let* ((d (make-date 0 0 0 8 1 1 1970 28800))
        (t (date->time-monotonic d)))
   (check (time-type t) => TIME-MONOTONIC)
   (check (time-second t) => 0)
-  (check (time-nanosecond t) => 0))
+  (check (time-nanosecond t) => 0)
+) ;let*
 
 ;; round-trip date -> time-monotonic -> date with same tz-offset
 (let* ((d1 (make-date 123456789 45 30 14 25 12 2023 28800))
@@ -1567,34 +1665,43 @@ wrong-type-arg
   (check (date-minute d2) => (date-minute d1))
   (check (date-second d2) => (date-second d1))
   (check (date-nanosecond d2) => (date-nanosecond d1))
-  (check (date-zone-offset d2) => (date-zone-offset d1)))
+  (check (date-zone-offset d2) => (date-zone-offset d1))
+) ;let*
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (time-monotonic->date (make-time TIME-UTC 0 0) 0))
+  (time-monotonic->date (make-time TIME-UTC 0 0) 0)
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-monotonic->date (make-time TIME-MONOTONIC 0 0) "bad-offset"))
+  (time-monotonic->date (make-time TIME-MONOTONIC 0 0) "bad-offset")
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (date->time-monotonic "not-a-date"))
+  (date->time-monotonic "not-a-date")
+) ;check-catch
 
 ;; date->julian-day / date->modified-julian-day basic (UTC epoch)
 (let ((d (make-date 0 0 0 0 1 1 1970 0)))
   (check (date->julian-day d) => 4881175/2)
-  (check (date->modified-julian-day d) => 40587))
+  (check (date->modified-julian-day d) => 40587)
+) ;let
 
 ;; date->julian-day at noon (UTC)
 (let ((d (make-date 0 0 0 12 1 1 1970 0)))
-  (check (date->julian-day d) => 2440588))
+  (check (date->julian-day d) => 2440588)
+) ;let
 
 ;; date->modified-julian-day next day (UTC)
 (let ((d (make-date 0 0 0 0 2 1 1970 0)))
-  (check (date->modified-julian-day d) => 40588))
+  (check (date->modified-julian-day d) => 40588)
+) ;let
 
 ;; converter error conditions
 (check-catch 'wrong-type-arg
-  (date->julian-day "not-a-date"))
+  (date->julian-day "not-a-date")
+) ;check-catch
 (check-catch 'wrong-type-arg
-  (date->modified-julian-day "not-a-date"))
+  (date->modified-julian-day "not-a-date")
+) ;check-catch
 
 ;; ====================
 ;; Date to String/String to Date Converters
@@ -1649,7 +1756,8 @@ string?
 (let ((d (make-date 0 0 0 0 1 1 1970 0)))  ; Unix epoch in UTC
   (check (date->string d)            => "Thu Jan 01 00:00:00Z 1970")
   (check (date->string d "~Y-~m-~d") => "1970-01-01")
-  (check (date->string d "~H:~M:~S") => "00:00:00"))
+  (check (date->string d "~H:~M:~S") => "00:00:00")
+) ;let
 
 ;; Test with different dates
 (let ((d1 (make-date 500000000 30 15 9 4 7 1776 0))          ; US Independence
@@ -1657,7 +1765,8 @@ string?
       (d3 (make-date 999999999 59 59 23 31 12 1999 -18000))) ; Y2K in UTC-5
   (check (date->string d1)                             => "Thu Jul 04 09:15:30Z 1776")
   (check (date->string d2 "~Y-~m-~d ~H:~M:~S")         => "2023-12-25 14:30:45")
-  (check (date->string d3 "~A, ~B ~d, ~Y ~I:~M:~S ~p") => "Friday, December 31, 1999 11:59:59 PM"))
+  (check (date->string d3 "~A, ~B ~d, ~Y ~I:~M:~S ~p") => "Friday, December 31, 1999 11:59:59 PM")
+) ;let
 
 ;; Test format specifiers
 (let ((d (make-date 123456789 45 30 14 25 12 2023 28800)))
@@ -1671,13 +1780,15 @@ string?
   (check (date->string d "Date: ~Y/~m/~d Time: ~H:~M") => "Date: 2023/12/25 Time: 14:30")
 
   ;; Test CJK
-  (check (date->string d "~Y年，第~V週。~H시~M분") => "2023年，第52週。14시30분"))
+  (check (date->string d "~Y年，第~V週。~H시~M분") => "2023年，第52週。14시30분")
+) ;let
 
 ;; Test error conditions
 (let ((d (make-date 0 0 0 0 1 1 1970 0)))
   (check-catch 'wrong-type-arg (date->string "not-a-date"))
   (check-catch 'wrong-type-arg (date->string d 123))  ; format-string not a string
-  (check-catch 'wrong-type-arg (date->string d 'symbol)))
+  (check-catch 'wrong-type-arg (date->string d 'symbol))
+) ;let
 
 #|
 string->date
@@ -1728,7 +1839,8 @@ value-error
   (check (date-minute d2) => 30)
   (check (date-second d2) => 45)
   (check (date-zone-offset d2) => 28800)
-  (check (date->string d2 fmt) => s))
+  (check (date->string d2 fmt) => s)
+) ;let*
 
 (let* ((d (make-date 0 59 59 23 31 12 1999 0))
        (fmt "~A, ~B ~d, ~Y ~I:~M:~S ~p")
@@ -1741,7 +1853,8 @@ value-error
   (check (date-minute d2) => 59)
   (check (date-second d2) => 59)
   (check (date-zone-offset d2) => 0)
-  (check (date->string d2 fmt) => s))
+  (check (date->string d2 fmt) => s)
+) ;let*
 
 ;; Test string->date
 (let* ((s "2023-12-25 14:30:45")
@@ -1751,7 +1864,8 @@ value-error
   (check (date-day d) => 25)
   (check (date-hour d) => 14)
   (check (date-minute d) => 30)
-  (check (date-second d) => 45))
+  (check (date-second d) => 45)
+) ;let*
 
 (let* ((s "Friday, December 31, 1999 11:59:59 PM")
        (d (string->date s "~A, ~B ~d, ~Y ~I:~M:~S ~p")))
@@ -1760,7 +1874,8 @@ value-error
   (check (date-day d) => 31)
   (check (date-hour d) => 23)
   (check (date-minute d) => 59)
-  (check (date-second d) => 59))
+  (check (date-second d) => 59)
+) ;let*
 
 (let* ((s "1970-01-01T00:00:00Z")
        (d (string->date s "~4")))
@@ -1770,12 +1885,14 @@ value-error
   (check (date-hour d) => 0)
   (check (date-minute d) => 0)
   (check (date-second d) => 0)
-  (check (date-zone-offset d) => 0))
+  (check (date-zone-offset d) => 0)
+) ;let*
 
 (let* ((s "2023-12-25 14:30:45.123456789")
        (d (string->date s "~Y-~m-~d ~H:~M:~f")))
   (check (date-second d) => 45)
-  (check (date-nanosecond d) => 123456789))
+  (check (date-nanosecond d) => 123456789)
+) ;let*
 
 ;; Test string->date error conditions
 (check-catch 'wrong-type-arg (string->date 1 "~Y"))
@@ -1827,7 +1944,8 @@ wrong-type-arg
   (check (date-day d) => (date-day d2))
   (check (date-hour d) => (date-hour d2))
   (check (date-minute d) => (date-minute d2))
-  (check (date-second d) => (date-second d2)))
+  (check (date-second d) => (date-second d2))
+) ;let*
 
 ;; current-date fixed date (Beijing, UTC+8)
 ;; (let ((d (current-date 28800)))

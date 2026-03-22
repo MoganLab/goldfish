@@ -16,7 +16,8 @@
 
 (import (liii check)
         (liii unicode)
-        (liii base))
+        (liii base)
+) ;import
 
 (check-set-mode! 'report-failed)
 

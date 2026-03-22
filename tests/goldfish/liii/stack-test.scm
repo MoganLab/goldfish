@@ -295,7 +295,8 @@ element : any-type
 |#
 (let ((t (stack (list 1 2 3))))
   (check (t :push 1) => (stack (list 1 1 2 3)))
-  (check (t :push 1 :push 1) => (stack (list 1 1 1 2 3))))
+  (check (t :push 1 :push 1) => (stack (list 1 1 1 2 3)))
+) ;let1
 
 
 #|
@@ -337,7 +338,8 @@ element : any-type
 (let ((t (stack (list 1 2 3))))
   (check (t :push! 1) => (stack (list 1 1 2 3)))
   (check (t :push! 1 :push! 1) => (stack (list 1 1 1 1 2 3)))
-  (check (t :pop! :push! 2) => (stack (list 2 1 1 1 2 3))))
+  (check (t :pop! :push! 2) => (stack (list 2 1 1 1 2 3)))
+) ;let1
 
 
 #|

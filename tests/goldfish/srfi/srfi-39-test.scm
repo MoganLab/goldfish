@@ -15,7 +15,8 @@
 ;
 
 (import (srfi srfi-78)
-        (srfi srfi-39))
+        (srfi srfi-39)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -25,9 +26,11 @@
 
 (check
   (parameterize ((mp "new value"))
-    (mp))
+    (mp)
+  ) ;parameterize
   =>
-  "new value")
+  "new value"
+) ;check
 
 (check (mp) => "initial value")
 
