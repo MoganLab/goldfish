@@ -4255,32 +4255,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 解析 mode 选项
   std::string mode= parse_mode_option (argc, argv);
 
-  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
-  bool is_fix_command= (argc > 1) && (string (argv[1]) == "fix");
-  bool is_test_command= (argc > 1) && (string (argv[1]) == "test");
-
-  // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
-  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
-  if (!is_fix_command && !is_test_command) {
-    for (int i= 1; i < argc; ++i) {
-      string arg= argv[i];
-      if (arg.length () > 0 && arg[0] == '-') {
-        if (!is_valid_global_option (arg)) {
-          std::cerr << "Invalid option: " << arg << "\n\n";
-          display_help ();
-          exit (1);
-        }
-      }
-    }
-  }
-
-  // 如果没有参数，默认显示帮助
-  if (argc <= 1) {
-    display_help ();
-    return 0;
-  }
-
-  // 查找第一个非选项参数作为命令
+  // 查找第一个非选项参数作为命令（跳过 mode 选项）
   string command;
   int    command_index= -1;
   for (int i= 1; i < argc; ++i) {
@@ -4298,8 +4273,29 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     break;
   }
 
-  // 如果没有找到命令，显示帮助
-  if (command.empty ()) {
+  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
+  bool is_fix_command= (command == "fix");
+  bool is_test_command= (command == "test");
+
+  // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
+  // 只检查命令之前的选项，命令之后的参数属于脚本
+  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
+  if (!is_fix_command && !is_test_command) {
+    int limit= (command_index > 0) ? command_index : argc;
+    for (int i= 1; i < limit; ++i) {
+      string arg= argv[i];
+      if (arg.length () > 0 && arg[0] == '-') {
+        if (!is_valid_global_option (arg)) {
+          std::cerr << "Invalid option: " << arg << "\n\n";
+          display_help ();
+          exit (1);
+        }
+      }
+    }
+  }
+
+  // 如果没有找到命令或没有参数，显示帮助
+  if (argc <= 1 || command.empty ()) {
     display_help ();
     return 0;
   }
