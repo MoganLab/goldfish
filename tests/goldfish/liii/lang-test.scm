@@ -16,7 +16,7 @@
 
 (import (liii check)
         (liii lang)
-        (only (liii base) let1 identity)
+        (only (liii base) identity)
         (liii cut)
         (liii case)
         (liii error)
@@ -73,9 +73,9 @@
   => "hello world\n"
 ) ;check
 
-(let1 bob (person "Bob" 21)
+(let ((bob (person "Bob" 21)))
   (check (object->string bob) => "(person :name \"Bob\" :age 21)")
-) ;let1
+) ;let
 
 (check (object->string 42) => "42")
 (check (object->string "hello") => "\"hello\"")
@@ -186,20 +186,20 @@
 (check ((left "error") :get-or-else 2) => 2)
 (check ((left "error") :get-or-else ($ 2)) => ($ 2))
 
-(let1 r ((right 12) :filter-or-else (lambda (x) (> x 10)) -1)
+(let ((r ((right 12) :filter-or-else (lambda (x) (> x 10)) -1)))
   (check-true (r :right?))
   (check (r :get) => 12)
-) ;let1
+) ;let
 
-(let1 r ((right 7) :filter-or-else (lambda (x) (> x 10)) -1)
+(let ((r ((right 7) :filter-or-else (lambda (x) (> x 10)) -1)))
   (check-true (r :left?))
   (check (r :get) => -1)
-) ;let1
+) ;let
 
-(let1 r ((left 7) :filter-or-else (lambda (x) #f) -1)
+(let ((r ((left 7) :filter-or-else (lambda (x) #f) -1)))
   (check-true (r :left?))
   (check (r :get) => 7)
-) ;let1
+) ;let
 
 (check-true ((right 1) :contains 1))
 (check-false ((left "error") :contains 1))
@@ -219,15 +219,15 @@
   (check-catch 'value-error ((e2 :to-option) :get))
 ) ;let
 
-(let1 r ((right 1) :map (lambda (x) (+ x 1)))
+(let ((r ((right 1) :map (lambda (x) (+ x 1)))))
   (check-true (r :right?))
   (check (r :get-or-else 0) => 2)
-) ;let1
+) ;let
 
-(let1 r ((right 1) :flat-map (lambda (x) (right (+ x 1))))
+(let ((r ((right 1) :flat-map (lambda (x) (right (+ x 1))))))
   (check-true (r :right?))
   (check (r :get-or-else 0) => 2)
-) ;let1
+) ;let
 
 (check-true ((left "error") :forall even?))
 (check-true ((right 42) :forall even?))
@@ -308,7 +308,7 @@
 (check ($ (vector 1 2 3) :last-option) => (option 3))
 (check (array :empty :last-option) => (none))
 
-(let1 vec (array #(1 2 3 4 5))
+(let ((vec (array #(1 2 3 4 5))))
   (check (vec :slice 0 2) => ($ #(1 2)))
   (check (vec :slice -1 2) => ($ #(1 2)))
   (check (vec :slice 2 -1) => ($ #()))
@@ -317,7 +317,7 @@
   (check (vec :slice -1 10) => ($ #(1 2 3 4 5)))
   (check (vec :slice 4 10) => ($ #(5)))
   (check (vec :slice 2 4) => ($ #(3 4)))
-) ;let1
+) ;let
 
 (check-true ($ (vector) :empty?))
 (check-false ($ #(1 2 3) :empty?))
@@ -337,34 +337,34 @@
   (check (empty-vec :forall (lambda (x) (> x 0))) => #t)
 ) ;let
 
-(let1 vec (rich-vector #(1 2 3))
+(let ((vec (rich-vector #(1 2 3))))
   (check-true (vec :contains 1))
   (check-false (vec :contains 4))
-) ;let1
+) ;let
 
-(let1 vec (rich-vector #("/" "tmp" "/"))
+(let ((vec (rich-vector #("/" "tmp" "/"))))
   (check-true (vec :contains "tmp"))
   (check-true (vec :contains "/"))
   (check-false (vec :contains "tmpxx"))
-) ;let1
+) ;let
 
-(let1 vec (array #(1 2 3 4 5))
+(let ((vec (array #(1 2 3 4 5))))
   (check (vec :map (lambda (x) (vector x x))) => #(#(1 1) #(2 2) #(3 3) #(4 4) #(5 5)))
-) ;let1
+) ;let
 
 ;; 测试符号
-(let1 vec (array #("a" ";" "." "?" "["))
+(let ((vec (array #("a" ";" "." "?" "["))))
   (check (vec :map (lambda (x) (vector x x))) => #(#("a" "a") #(";" ";") #("." ".") #("?" "?") #("[" "[")))
-) ;let1
+) ;let
 
 ;; 混合测试
-(let1 vec (array #("a" ";" "?" "[" -1 5))
+(let ((vec (array #("a" ";" "?" "[" -1 5))))
   (check (vec :map (lambda (x) (vector x x))) => #(#("a" "a") #(";" ";") #("?" "?") #("[" "[") #(-1 -1) #(5 5)))
-) ;let1
+) ;let
 
-(let1 vec (array #(1 2 3 4 5))
+(let ((vec (array #(1 2 3 4 5))))
   (check (vec :flat-map (lambda (x) (vector x x))) => #(1 1 2 2 3 3 4 4 5 5))
-) ;let1
+) ;let
 
 (let ((vec (rich-vector #(1 2 3 4 5))))
   (check (vec :reverse :collect) => #(5 4 3 2 1))
@@ -608,18 +608,18 @@
   (check (vec :to-string) => "#(#\\t #\\e #\\s #\\t #\\1 #\\2 #\\3 #\\space #\\你 #\\好)")
 ) ;let
 
-(let1 v ($ #(1 2 3))
+(let ((v ($ #(1 2 3))))
   (check (v :count) => 3)
   (check (v :count (cut > <> 1)) => 2)
   (check (v :make-string) => "123")
   (check (v :make-string " ") => "1 2 3")
   (check (v :make-string "[" "," "]") => "[1,2,3]")
-  
+
   (check-catch 'wrong-number-of-args (v :make-string "[" ","))
   (check-catch 'type-error (v :make-string 123 "," "]"))
   (check-catch 'type-error (v :make-string "[" 123 "]"))
   (check-catch 'type-error (v :make-string "[" "," 123))
-) ;let1
+) ;let
 
 (check ($ #("a" "b" "c") :make-string) => "abc")
 
@@ -632,12 +632,12 @@
   (check ((vec :to-rich-list) :collect) => '(1 2 3))
 ) ;let
 
-(let1 v ($ #(1 2 3))
+(let ((v ($ #(1 2 3))))
   (v :set! 0 2)
   (check (v 0) => 2)
   (check-catch 'index-error (v -1))
   (check-catch 'index-error (v 3))
-) ;let1
+) ;let
 
 (check-catch 'index-error (array :empty :set! 0 1))
 
@@ -653,75 +653,75 @@
 (check (rich-hash-table :empty) => ($ (hash-table)))
 (check (rich-hash-table :empty :collect) => (hash-table))
 
-(let1 ht ($ (hash-table 'a 1 'b 2 'c 3))
+(let ((ht ($ (hash-table 'a 1 'b 2 'c 3))))
   (check (ht :find (lambda (k v) (and (symbol? k) (even? v)))) => (option (cons 'b 2)))
   (check ((ht :find (lambda (k v) (> v 4))) :empty?) => #t)
-) ;let1
+) ;let
 
-(let1 ht ($ (hash-table 'a 1 'b 2 'c 3))
+(let ((ht ($ (hash-table 'a 1 'b 2 'c 3))))
   (check ((ht :get 'a) :get) => 1)
   (check ((ht :get 'd) :empty?) => #t)
-) ;let1
+) ;let
 
-(let1 ht1 ($ (hash-table 'a 1 'b 2 'c 3))
-  (let1 ht2 (ht1 :remove 'b)
+(let ((ht1 ($ (hash-table 'a 1 'b 2 'c 3))))
+  (let ((ht2 (ht1 :remove 'b)))
     (check-true  (ht1 :contains 'b))
     (check-false (ht2 :contains 'b))
     (check ((ht2 :get 'c) :get) => 3)
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
-(let1 ht3 ($ (hash-table 'x 9 'y 8))
+(let ((ht3 ($ (hash-table 'x 9 'y 8))))
   (ht3 :remove! 'x)
   (check-false (ht3 :contains 'x))
   (check ((ht3 :get 'y) :get) => 8)
-) ;let1
+) ;let
 
-(let1 ht ($ (hash-table 'a 1 'b 2 'c 3))
+(let ((ht ($ (hash-table 'a 1 'b 2 'c 3))))
   (check-true (ht :contains 'a))
   (check-false (ht :contains 'd))
-) ;let1
+) ;let
 
-(let1 ht ($ (hash-table 'a 5 'b 8 'c 10 'd 12))
-  (check (ht :forall (lambda (k v) (> v 4)))         => #t)  
-  (check (ht :forall (lambda (k v) (< v 13)))        => #t)  
-  (check (ht :forall (lambda (k v) (even? v)))       => #f)  
-  
-  (check (ht :forall (lambda (k v)                 
-                       (and (symbol? k) (> v 4))))        => #t)  
+(let ((ht ($ (hash-table 'a 5 'b 8 'c 10 'd 12))))
+  (check (ht :forall (lambda (k v) (> v 4)))         => #t)
+  (check (ht :forall (lambda (k v) (< v 13)))        => #t)
+  (check (ht :forall (lambda (k v) (even? v)))       => #f)
 
-  (check (ht :forall (lambda (k v)                 
-                       (symbol? k)))                      => #t)  
-  
-  (check (ht :forall (lambda (k v) (eq? k v)))       => #f)  
-) ;let1
+  (check (ht :forall (lambda (k v)
+                       (and (symbol? k) (> v 4))))        => #t)
 
-(let1 ht-empty ($ (hash-table))
+  (check (ht :forall (lambda (k v)
+                       (symbol? k)))                      => #t)
+
+  (check (ht :forall (lambda (k v) (eq? k v)))       => #f)
+) ;let
+
+(let ((ht-empty ($ (hash-table))))
   (check (ht-empty :forall (lambda (k v) (string? v))) => #t)
-) ;let1
+) ;let
 
-(let1 ht-mixed ($ (hash-table 'id 10 'score 85 3.14 "pi"))
-  (check (ht-mixed :forall (lambda (k v) (number? v))) => #f) 
-  (check (ht-mixed :forall (lambda (k v) (and (integer? v) (even? v)))) => #f) 
-) ;let1
+(let ((ht-mixed ($ (hash-table 'id 10 'score 85 3.14 "pi"))))
+  (check (ht-mixed :forall (lambda (k v) (number? v))) => #f)
+  (check (ht-mixed :forall (lambda (k v) (and (integer? v) (even? v)))) => #f)
+) ;let
 
-(let1 ht-fail ($ (hash-table 'valid 42 'invalid "string"))
-  (check (ht-fail :forall (lambda (k v) (number? v)))    => #f) 
+(let ((ht-fail ($ (hash-table 'valid 42 'invalid "string"))))
+  (check (ht-fail :forall (lambda (k v) (number? v)))    => #f)
 
-  (check (ht-fail :forall (lambda (k v) 
+  (check (ht-fail :forall (lambda (k v)
                             (and (symbol? k) (number? v) (positive? v)))) => #f)
  ;check
-) ;let1
+) ;let
 
 ;; nested hash table test
-(let1 ht-nested ($ (hash-table 
-                    'a ($ (hash-table 'x 10)) 
-                    'b ($ (hash-table 'y 20))))
-  (check (ht-nested :forall 
-           (lambda (k sub-ht) 
+(let ((ht-nested ($ (hash-table
+                    'a ($ (hash-table 'x 10))
+                    'b ($ (hash-table 'y 20))))))
+  (check (ht-nested :forall
+           (lambda (k sub-ht)
              (sub-ht :forall (lambda (k v) (> v 9))))) => #t)
  ;check
-) ;let1
+) ;let
 
 (let ((ht ($ (hash-table 'a 1 'b "2" 'c 3))))
   (check (ht :exists (lambda (k v) (string? v))) => #t)
@@ -735,14 +735,14 @@
   (check (ht :exists (lambda (k v) #t)) => #f)
 ) ;let
 
-(let1 ht ($ (hash-table 'a 1 'b 2 'c 3))
-  (let1 r (ht :map (lambda (k v) (values k (+ v 1)))
-              :collect)
+(let ((ht ($ (hash-table 'a 1 'b 2 'c 3))))
+  (let ((r (ht :map (lambda (k v) (values k (+ v 1)))
+              :collect)))
     (check (r 'a) => 2)
     (check (r 'b) => 3)
     (check (r 'c) => 4)
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
       
 (define ht 
   ($ (hash-table 'a 2 'b 5 'c 8 'd 10 'e 1 'f "test" 'g -2))
@@ -791,11 +791,11 @@
   (check total => 342)                          
 ) ;let*
 
-(let1 ht ($ (hash-table 'a 1 'b 2 'c 3))
-  (let1 r (ht :filter (lambda (k v) (even? v)) :collect)
+(let ((ht ($ (hash-table 'a 1 'b 2 'c 3))))
+  (let ((r (ht :filter (lambda (k v) (even? v)) :collect)))
     (check r => (hash-table 'b 2))
-  ) ;let1
-) ;let1
+  ) ;let
+) ;let
 
 (check-report)
 
