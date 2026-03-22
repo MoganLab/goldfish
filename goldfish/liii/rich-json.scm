@@ -39,21 +39,21 @@
   ) ;define
   
   (typed-define (%get-string (key any?) (default string?))
-    (let1 r (json-ref data key)
+    (let ((r (json-ref data key)))
       (if (string? r) r default)
-    ) ;let1
+    ) ;let
   ) ;typed-define
   
   (typed-define (%get-number (key any?) (default number?))
-    (let1 r (json-ref data key)
+    (let ((r (json-ref data key)))
       (if (number? r) r default)
-    ) ;let1
+    ) ;let
   ) ;typed-define
 
   (typed-define (%get-boolean (key any?) (default boolean?))
-    (let1 r (json-ref data key)
+    (let ((r (json-ref data key)))
       (if (boolean? r) r default)
-    ) ;let1
+    ) ;let
   ) ;typed-define
   
   (define (%keys)
