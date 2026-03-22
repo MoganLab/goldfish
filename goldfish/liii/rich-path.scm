@@ -111,12 +111,12 @@
       (define (%get-drive) drive)
   
       (define (%copy)
-        (let1 p (path)
+        (let ((p (path)))
           (p :set-parts! parts)
           (p :set-type! type)
           (p :set-drive! drive)
           p
-        ) ;let1
+        ) ;let
       ) ;define
 
 
@@ -124,26 +124,26 @@
         (when (not (char? ch))
           (type-error "path@of-drive must take char? as input")
         ) ;when
-        (let1 r (path)
+        (let ((r (path)))
           (r :set-type! 'windows)
           (r :set-drive! ($ ch :to-upper :make-string))
           (r :set-parts! #())
           r
-        ) ;let1
+        ) ;let
       ) ;chained-define
 
       (chained-define (@root)
-        (let1 r (path)
+        (let ((r (path)))
               (r :set-parts! #("/"))
               r
-        ) ;let1
+        ) ;let
       ) ;chained-define
 
-      (chained-define (@from-parts x) 
-        (let1 r (path)
+      (chained-define (@from-parts x)
+        (let ((r (path)))
           (r :set-parts! x)
           r
-        ) ;let1
+        ) ;let
       ) ;chained-define
 
       (chained-define (@/ x) 
@@ -294,20 +294,20 @@
       (define (%to-string)
         (case type
           ((posix)
-           (let1 s ($ parts :make-string (string (os-sep)))
+           (let ((s ($ parts :make-string (string (os-sep)))))
              (if (and (> ($ s :length) 1) (string-starts? s (string (os-sep))))
                  (string-drop s 1)
                  s
              ) ;if
-           ) ;let1
+           ) ;let
           ) ;
           ((windows)
-           (let1 s ($ parts :make-string "\\")
+           (let ((s ($ parts :make-string "\\")))
              (if (string-null? drive)
                  s
                  (string-append drive ":\\" s)
              ) ;if
-           ) ;let1
+           ) ;let
           ) ;
           (else (value-error "path%to-string: unknown type" type))
         ) ;case
@@ -341,10 +341,10 @@
 
       (chained-define (%/ x)
         (cond ((string? x)
-               (let1 new-path (%copy)
+               (let ((new-path (%copy)))
                  (new-path :set-parts! (vector-append parts (vector x)))
                  new-path)
-               ) ;let1
+               ) ;let
         
               ((path :is-type-of x)
                (cond ((x :absolute?)
@@ -367,10 +367,10 @@
         ) ;cond
       ) ;chained-define
 
-      (chained-define (%parent)   
+      (chained-define (%parent)
         (define (parts-drop-right parts x)
-          (let1 path-vec ($ parts :drop-right x)
-            (let1 new-path (%copy)
+          (let ((path-vec ($ parts :drop-right x)))
+            (let ((new-path (%copy)))
               (if (path-vec :empty?)
                   (if (os-windows?)
                       (new-path :set-parts! #(""))
@@ -379,8 +379,8 @@
                   (new-path :set-parts! (path-vec :append #("")))
               ) ;if
               new-path
-            ) ;let1
-          ) ;let1
+            ) ;let
+          ) ;let
         ) ;define
                 
         (cond
@@ -388,22 +388,22 @@
            (%this)
           ) ;
           ((or (os-macos?) (os-linux?))
-           (let1 last-part (($ parts) :take-right 1 :collect)
+           (let ((last-part (($ parts) :take-right 1 :collect)))
                  (if (equal? last-part #(""))
                      (parts-drop-right parts 2)
                      (parts-drop-right parts 1)
                  ) ;if
-           ) ;let1
+           ) ;let
           ) ;
           ((os-windows?)
            (if ($ parts :empty?)
                (%this)
-               (let1 last-part (($ parts) :take-right 1 :collect)
+               (let ((last-part (($ parts) :take-right 1 :collect)))
                  (if (equal? last-part #(""))
                      (parts-drop-right parts 2)
                      (parts-drop-right parts 1)
                  ) ;if
-               ) ;let1
+               ) ;let
            ) ;if
           ) ;
     
@@ -435,12 +435,12 @@
 
 
       (chained-define (@./ x)
-        (let1 p (path x)
+        (let ((p (path x)))
               (if (p :absolute?)
                   (value-error "path@./: only accecpt relative path")
                   (path x)
               ) ;if
-        ) ;let1
+        ) ;let
       ) ;chained-define
 
       (chained-define (@cwd)

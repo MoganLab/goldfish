@@ -18,7 +18,8 @@
         (liii check)
         (liii os)
         (liii string)
-        (liii base))
+        (liii base)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -67,10 +68,12 @@ path : 文件路径（string类型）
 
 ;; 文件测试（不是目录）
 (when (or (os-linux?) (os-macos?))
-  (check (path-dir? "/etc/passwd") => #f))
+  (check (path-dir? "/etc/passwd") => #f)
+) ;when
 
 (when (os-windows?)
-  (check (path-dir? "C:\\Windows\\System32\\drivers\\etc\\hosts") => #f))
+  (check (path-dir? "C:\\Windows\\System32\\drivers\\etc\\hosts") => #f)
+) ;when
 
 (when (not (os-windows?))
   ;; 根目录测试
@@ -84,13 +87,14 @@ path : 文件路径（string类型）
   (check (path-dir? "/not/a/real/path") => #f)
   ;; 相对路径测试
   (check-true (path-dir? (os-temp-dir)))
-  )
+) ;when
 
 (when (os-windows?)
   ;; 根目录测试
   (check (path-dir? "C:/") => #t)
   (when (path-exists? "D:/")
-    (check (path-dir? "D:/") => #t))
+    (check (path-dir? "D:/") => #t)
+  ) ;when
   ;; 常用目录测试
   (check (path-dir? "C:/Windows") => #t)
   (check (path-dir? "C:/Program Files") => #t)
@@ -99,7 +103,8 @@ path : 文件路径（string类型）
   (check (path-dir? "Z:/definitely/not/exist") => #f)
   ;; 大小写测试
   (check (path-dir? "C:/WINDOWS") => #t)
-  (check (path-dir? "c:/windows") => #t))
+  (check (path-dir? "c:/windows") => #t)
+) ;when
 
 #|
 path-file?
@@ -153,11 +158,13 @@ path : 文件路径（string类型）
 (when (or (os-linux?) (os-macos?))
   (check (path-file? "/etc/passwd") => #t)
   (check (path-file? "/etc/hosts") => #t)
-  (check (path-file? "/usr/bin/env") => #t))
+  (check (path-file? "/usr/bin/env") => #t)
+) ;when
 
 (when (os-windows?)
   (check (path-file? "C:/Windows/System32/drivers/etc/hosts") => #t)
-  (check (path-file? "C:/Windows/win.ini") => #t))
+  (check (path-file? "C:/Windows/win.ini") => #t)
+) ;when
 
 (when (not (os-windows?))
   ;; 根目录测试（不是文件）
@@ -170,7 +177,8 @@ path : 文件路径（string类型）
   (check (path-file? "/no_such_file.txt") => #f)
   (check (path-file? "/not/a/real/file") => #f)
   ;; 相对路径测试
-  (check (path-file? (os-temp-dir)) => #f)) ; temp-dir是目录
+  (check (path-file? (os-temp-dir)) => #f) ; temp-dir是目录
+) ;when
 
 (when (os-windows?)
   ;; 根目录测试
@@ -184,26 +192,30 @@ path : 文件路径（string类型）
   (check (path-file? "Z:/definitely/not/exist") => #f)
   ;; 大小写测试
   (check (path-file? "C:/WINDOWS/explorer.exe") => #t)
-  (check (path-file? "c:/windows/explorer.exe") => #t))
+  (check (path-file? "c:/windows/explorer.exe") => #t)
+) ;when
 
 ;; 测试临时文件
 (let ((test-file (string-append (os-temp-dir) "/test_path_file.txt")))
   ;; Ensure file doesn't exist initially
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; 测试不存在的文件
   (check (path-file? test-file) => #f)
   
   ;; 创建文件
   (with-output-to-file test-file
-    (lambda () (display "test content for path-file?")))
+    (lambda () (display "test content for path-file?"))
+  ) ;with-output-to-file
   
   ;; 测试存在的文件
   (check-true (path-file? test-file))
   
   ;; 清理
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; 测试真实文件
 (when (or (os-linux?) (os-macos?))
@@ -211,13 +223,16 @@ path : 文件路径（string类型）
     
     ;; 创建真实文件
     (with-output-to-file real-file
-      (lambda () (display "real content")))
+      (lambda () (display "real content"))
+    ) ;with-output-to-file
     
     ;; 测试真实文件
     (check (path-file? real-file) => #t)
     
     ;; 清理
-    (delete-file real-file)))
+    (delete-file real-file)
+  ) ;let
+) ;when
 
 #|
 path-read-bytes
@@ -262,15 +277,20 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
     ;; 创建二进制文件
     (call-with-output-file test-binary-file
       (lambda (port)
-        (write test-data port)))
+        (write test-data port)
+      ) ;lambda
+    ) ;call-with-output-file
     
     ;; 测试读取二进制数据
     (let ((read-bytes (path-read-bytes test-binary-file)))
       (check-true (bytevector? read-bytes))
-      (check-true (> (bytevector-length read-bytes) 0)))
+      (check-true (> (bytevector-length read-bytes) 0))
+    ) ;let
     
     ;; 清理
-    (delete-file test-binary-file)))
+    (delete-file test-binary-file)
+  ) ;let
+) ;let
 
 ;; 测试空二进制文件
 (let ((empty-file (string-append (os-temp-dir) (string (os-sep)) "empty_binary.dat")))
@@ -279,10 +299,12 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
   
   ;; 测试读取空文件
   (let ((empty-bytes (path-read-bytes empty-file)))
-    (check (bytevector-length empty-bytes) => 0))
+    (check (bytevector-length empty-bytes) => 0)
+  ) ;let
   
   ;; 清理
-  (delete-file empty-file))
+  (delete-file empty-file)
+) ;let
 
 ;; 测试中文文件名二进制读取
 (let ((chinese-binary (string-append (os-temp-dir) (string (os-sep)) "中文_测试数据.bin")))
@@ -293,10 +315,13 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
     ;; 测试中文文件名读取
     (let ((read-chinese (path-read-bytes chinese-binary)))
       (check-true (bytevector? read-chinese))
-      (check-true (> (bytevector-length read-chinese) 0)))
+      (check-true (> (bytevector-length read-chinese) 0))
+    ) ;let
     
     ;; 清理
-    (delete-file chinese-binary)))
+    (delete-file chinese-binary)
+  ) ;let
+) ;let
 
 ;; 测试与path-read-text的对比
 (let ((comparison-file (string-append (os-temp-dir) (string (os-sep)) "comparison_test.dat")))
@@ -307,13 +332,18 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
     (let ((binary-data (path-read-bytes comparison-file)))
       (check-true (bytevector? binary-data))
       (let ((text-from-binary (utf8->string binary-data)))
-        (check (string=? text-from-binary text-data) => #t)))
+        (check (string=? text-from-binary text-data) => #t)
+      ) ;let
+    ) ;let
     
     ;; 测试文本读取作为对比
     (let ((text-data-verify (path-read-text comparison-file)))
-      (check (string=? text-data text-data-verify) => #t))
+      (check (string=? text-data text-data-verify) => #t)
+    ) ;let
     
-    (delete-file comparison-file)))
+    (delete-file comparison-file)
+  ) ;let
+) ;let
 
 ; Test for path-read-bytes
 (let ((file-name "binary-test.dat")
@@ -331,9 +361,11 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
     ; Check that it has the correct length
     (check (bytevector-length read-content) => (string-length file-content))
     ; Check that the content matches when converted back to string
-    (check (utf8->string read-content) => file-content))
+    (check (utf8->string read-content) => file-content)
+  ) ;let
   
-  (delete-file file-path))
+  (delete-file file-path)
+) ;let
 
 
 ;; 测试错误处理
@@ -362,7 +394,8 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
   (check (path-read-text file-path) => (string-append initial-content append-content))
   
   ;; 清理
-  (delete-file file-path))
+  (delete-file file-path)
+) ;let
 
 ;; 测试追加到不存在的文件
 (let ((file-name "append-new-file.txt")
@@ -372,22 +405,26 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
   
   ;; 确保文件不存在
   (when (file-exists? file-path)
-    (delete-file file-path))
+    (delete-file file-path)
+  ) ;when
   
   ;; 追加到不存在的文件
   (path-append-text file-path content)
   
   ;; 验证内容
   (when (or (os-macos?) (os-linux?))
-    (check (path-read-text file-path) => content))
+    (check (path-read-text file-path) => content)
+  ) ;when
   
   ;; 清理
-  (delete-file file-path))
+  (delete-file file-path)
+) ;let
 
 (let ((test-file (string-append (os-temp-dir) "/test_touch.txt")))
   ;; Ensure file doesn't exist initially
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; Test creating new file
   (check-true (path-touch test-file))
@@ -396,10 +433,12 @@ path-read-bytes用于从指定路径的文件中读取二进制数据，并以by
   ;; Test updating existing file
   (let ((old-size (path-getsize test-file)))
     (check-true (path-touch test-file))
-    (check (>= (path-getsize test-file) old-size) => #t))
+    (check (>= (path-getsize test-file) old-size) => #t)
+  ) ;let
   
   ;; Clean up
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 (check ((path) :get-type) => 'posix)
 (check ((path) :get-parts) => #("."))
@@ -495,7 +534,8 @@ boolean
 (let ((test-file (string-append (os-temp-dir) (string (os-sep)) "test_path_touch_basic.txt")))
   ;; 确保文件不存在
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; 测试创建新文件
   (check (path-touch test-file) => #t)
@@ -504,13 +544,15 @@ boolean
   (check (path-getsize test-file) => 0) ; 空文件
   
   ;; 清理
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; 测试更新现有文件时间戳
 (let ((test-file (string-append (os-temp-dir) (string (os-sep)) "test_path_touch_update.txt")))
   ;; 确保文件不存在
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; 创建文件并写入内容
   (path-write-text test-file "test content")
@@ -524,16 +566,19 @@ boolean
     (check (path-getsize test-file) => original-size)
     
     ;; 验证文件仍然存在
-    (check (path-exists? test-file) => #t))
+    (check (path-exists? test-file) => #t)
+  ) ;let
   
   ;; 清理
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; 测试目录时间戳更新
 (let ((test-dir (string-append (os-temp-dir) (string (os-sep)) "test_path_touch_dir")))
   ;; 确保目录存在
   (when (not (file-exists? test-dir))
-    (mkdir test-dir))
+    (mkdir test-dir)
+  ) ;when
   
   ;; 测试更新目录时间戳
   (check (path-touch test-dir) => #t)
@@ -541,39 +586,45 @@ boolean
   (check (path-dir? test-dir) => #t)
   
   ;; 清理
-  (rmdir test-dir))
+  (rmdir test-dir)
+) ;let
 
 ;; 测试特殊文件名支持
 (let ((special-file (string-append (os-temp-dir) (string (os-sep)) "path-touch-special_中文#.txt")))
   ;; 确保文件不存在
   (when (file-exists? special-file)
-    (delete-file special-file))
+    (delete-file special-file)
+  ) ;when
   
   ;; 测试特殊文件名创建
   (check (path-touch special-file) => #t)
   (check (file-exists? special-file) => #t)
   
   ;; 清理
-  (delete-file special-file))
+  (delete-file special-file)
+) ;let
 
 ;; 测试相对路径创建
 (let ((relative-file "./test_relative_path_touch.txt"))
   ;; 确保文件不存在
   (when (file-exists? relative-file)
-    (delete-file relative-file))
+    (delete-file relative-file)
+  ) ;when
   
   ;; 测试相对路径创建
   (check (path-touch relative-file) => #t)
   (check (file-exists? relative-file) => #t)
   
   ;; 清理
-  (delete-file relative-file))
+  (delete-file relative-file)
+) ;let
 
 ;; 测试重复调用行为
 (let ((repeat-file (string-append (os-temp-dir) (string (os-sep)) "test_repeat_path_touch.txt")))
   ;; 确保文件不存在
   (when (file-exists? repeat-file)
-    (delete-file repeat-file))
+    (delete-file repeat-file)
+  ) ;when
   
   ;; 多次调用不应导致错误
   (check (path-touch repeat-file) => #t)
@@ -583,7 +634,8 @@ boolean
   (check (path-getsize repeat-file) => 0)
   
   ;; 清理
-  (delete-file repeat-file))
+  (delete-file repeat-file)
+) ;let
 
 
 #|
@@ -622,29 +674,36 @@ type-error
 (when (or (os-macos?) (os-linux?))
   (check (path :from-parts #("/" "tmp")) => (path :/ "tmp"))
   (check (path :from-parts #("/" "tmp" "test")) => (path :/ "tmp" :/ "test"))
-  (check (path :from-parts #("/", "tmp") :to-string) => "/tmp"))
+  (check (path :from-parts #("/", "tmp") :to-string) => "/tmp")
+) ;when
 
 (when (os-windows?)
-  (check (path :/ "C:" :to-string) => "C:\\"))
+  (check (path :/ "C:" :to-string) => "C:\\")
+) ;when
 
 (when (not (os-windows?))
-  (check (path :/ "root" :to-string) => "/root"))
+  (check (path :/ "root" :to-string) => "/root")
+) ;when
 
 (when (os-windows?)
   (check (path "a\\b") => (path :./ "a" :/ "b"))
   (check (path "C:\\") => (path :of-drive #\C))
-  (check (path "C:\\Users") => (path :of-drive #\C :/ "Users")))
+  (check (path "C:\\Users") => (path :of-drive #\C :/ "Users"))
+) ;when
 
 (when (or (os-linux?) (os-macos?))
   (check (path "a/b") => (path :./ "a" :/ "b"))
   (check (path "/tmp") => (path :/ "tmp"))
-  (check (path "/tmp/tmp2") => (path :/ "tmp" :/ "tmp2")))
+  (check (path "/tmp/tmp2") => (path :/ "tmp" :/ "tmp2"))
+) ;when
 
 (when (os-linux?)
-  (check (path :from-env "HOME" :to-string) => (path :home :to-string)))
+  (check (path :from-env "HOME" :to-string) => (path :home :to-string))
+) ;when
 
 (when (os-windows?)
-  (check (path :from-env "USERPROFILE" :to-string) => (path :home :to-string)))
+  (check (path :from-env "USERPROFILE" :to-string) => (path :home :to-string))
+) ;when
 
 #|
 path%name
@@ -704,7 +763,8 @@ string
 (check (path ".." :name) => "..")  ; 上级目录
 
 (when (or (os-macos?) (os-linux?))
-  (check (path "/path/to/file.txt" :name) => "file.txt"))
+  (check (path "/path/to/file.txt" :name) => "file.txt")
+) ;when
 
 #|
 path%stem
@@ -774,7 +834,8 @@ string
 (when (or (os-linux?) (os-macos?))
   (check (path "/usr/bin/file.txt" :stem) => "file")
   (check (path "/path/to/archive.tar.gz" :stem) => "archive.tar")
-  (check (path "/home/user/.hidden" :stem) => ".hidden"))  
+  (check (path "/home/user/.hidden" :stem) => ".hidden")  
+) ;when
 
 #|
 path%suffix
@@ -866,7 +927,8 @@ boolean
   (chdir "/tmp")
   (mkdir "tmpxxxx") 
   (check-false (path :from-parts #("/" "tmp" "/" "tmpxxxx") :file?))
-  (rmdir "tmpxxxx"))
+  (rmdir "tmpxxxx")
+) ;when
 
 (when (or (os-linux?) (os-macos?))
   (check-false (path :/ "tmp" :file?))
@@ -876,7 +938,9 @@ boolean
   (let ((test-file (path "test_path_file.txt")))
     (test-file :write-text "test content")
     (check-true (test-file :file?))
-    (test-file :unlink)))
+    (test-file :unlink)
+  ) ;let
+) ;when
 
 (when (os-windows?)
   ;; 基本文件检测
@@ -887,7 +951,8 @@ boolean
   (check-false (path :from-parts #("C:" "Windows") :file?))
   
   ;; 不存在的文件
-  (check-false (path :from-parts #("C:" "Windows" "InvalidFile.txt") :file?)))
+  (check-false (path :from-parts #("C:" "Windows" "InvalidFile.txt") :file?))
+) ;when
 
 #|
 path%dir?
@@ -924,7 +989,8 @@ boolean
   (chdir "/tmp")
   (mkdir "tmpxxxx")
   (check-true (path :from-parts #("/" "tmp" "/" "tmpxxxx" "") :dir?))
-  (rmdir "tmpxxxx"))
+  (rmdir "tmpxxxx")
+) ;when
 
 (when (os-windows?)
   ;; 基本目录检测
@@ -941,16 +1007,20 @@ boolean
   (check-true (path :from-parts #("C:" "Program Files") :dir?))
   
   ;; 特殊目录（需存在）
-  (check-true (path :from-parts #("C:" "Windows" "System32") :dir?)))
+  (check-true (path :from-parts #("C:" "Windows" "System32") :dir?))
+) ;when
 
 (when (or (os-linux?) (os-macos?))
-  (check-true (path :/ "tmp" :exists?)))
+  (check-true (path :/ "tmp" :exists?))
+) ;when
 
 (when (not (os-windows?))
-  (check (path :/ "etc" :/ "passwd" :to-string) => "/etc/passwd"))
+  (check (path :/ "etc" :/ "passwd" :to-string) => "/etc/passwd")
+) ;when
 
 (when (os-windows?)
-  (check (path :of-drive #\C :to-string) => "C:\\"))
+  (check (path :of-drive #\C :to-string) => "C:\\")
+) ;when
 
 #|
 path-exists?
@@ -1009,11 +1079,13 @@ boolean
 ;; 文件存在性测试
 (when (or (os-linux?) (os-macos?))
   (check-true (path-exists? "/etc/passwd"))
-  (check-true (path-exists? "/usr/bin/env")))
+  (check-true (path-exists? "/usr/bin/env"))
+) ;when
 
 (when (os-windows?)
   (check-true (path-exists? "C:\\Windows\\System32\\drivers\\etc\\hosts"))
-  (check-true (path-exists? "C:\\Windows\\System32\\ntoskrnl.exe")))
+  (check-true (path-exists? "C:\\Windows\\System32\\ntoskrnl.exe"))
+) ;when
 
 ;; 目录存在性测试
 (when (not (os-windows?))
@@ -1022,7 +1094,8 @@ boolean
   ;; 系统目录测试
   (check-true (path-exists? "/etc"))
   (check-true (path-exists? "/var"))
-  (check-true (path-exists? "/tmp")))
+  (check-true (path-exists? "/tmp"))
+) ;when
 
 (when (os-windows?)
   ;; 盘符根目录测试
@@ -1030,18 +1103,21 @@ boolean
   (check-true (path-exists? "C:\\"))
   ;; 系统目录测试
   (check-true (path-exists? "C:/Windows"))
-  (check-true (path-exists? "C:\\Program Files")))
+  (check-true (path-exists? "C:\\Program Files"))
+) ;when
 
 ;; 不存在的路径测试
 (when (not (os-windows?))
   (check (path-exists? "/no_such_file") => #f)
   (check (path-exists? "/not/a/real/path") => #f)
-  (check (path-exists? "/tmp/nonexistent.txt") => #f))
+  (check (path-exists? "/tmp/nonexistent.txt") => #f)
+) ;when
 
 (when (os-windows?)
   (check (path-exists? "C:\\no_such_file") => #f)
   (check (path-exists? "C:\\Windows\\InvalidPath") => #f)
-  (check (path-exists? "Z:\\not_a_drive") => #f))
+  (check (path-exists? "Z:\\not_a_drive") => #f)
+) ;when
 
 ;; 相对路径测试
 (let ((temp-dir (os-temp-dir)))
@@ -1049,7 +1125,9 @@ boolean
     ;; 创建临时文件
     (when (not (file-exists? test-file))
       (with-output-to-file test-file
-        (lambda () (display "test content"))))
+        (lambda () (display "test content"))
+      ) ;with-output-to-file
+    ) ;when
     
     ;; 测试文件存在性
     (check-true (path-exists? test-file))
@@ -1059,13 +1137,17 @@ boolean
     
     ;; 清理
     (when (file-exists? test-file)
-      (delete-file test-file))))
+      (delete-file test-file)
+    ) ;when
+  ) ;let
+) ;let
 
 ;; 临时文件和目录测试
 (let ((temp-file (path :temp-dir :/ "test_exists.txt")))
   ;; 确保文件不存在
   (when (temp-file :exists?)
-    (temp-file :unlink))
+    (temp-file :unlink)
+  ) ;when
   
   ;; 测试文件不存在
   (check-false (path-exists? (temp-file :to-string)))
@@ -1080,37 +1162,44 @@ boolean
   (check-true (path-exists? ((path :temp-dir) :to-string)))
   
   ;; 清理
-  (temp-file :unlink))
+  (temp-file :unlink)
+) ;let
 
 ;; 大小写敏感性和空白字符测试
 (when (os-windows?)
   (check-true (path-exists? "C:/windows"))
-  (check-true (path-exists? "c:/WINDOWS")))
+  (check-true (path-exists? "c:/WINDOWS"))
+) ;when
 
 ;; 空字符和特殊字符测试
 (check (path-exists? "#\null") => #f)
 (when (not (os-windows?))
-  (check (path-exists? "  ") => #f))  ; 空白字符
+  (check (path-exists? "  ") => #f)  ; 空白字符
+) ;when
 
 ;; TODO: 在Windows上，空字符串和空白字符串都返回 #t
 (when (os-windows?)
-  (check (path-exists? " ") => #t))
+  (check (path-exists? " ") => #t)
+) ;when
 
 
 ;; 方法链式调用测试 (path对象的%exists?方法)
 (check-true ((path ".") :exists?))
 (check-true ((path "..") :exists?))
 (when (or (os-linux?) (os-macos?))
-  (check-true ((path :/ "etc") :exists?)))
+  (check-true ((path :/ "etc") :exists?))
+) ;when
 
 (when (or (os-linux?) (os-macos?))
-  (check-false ((path :/ "nonexistent") :exists?)))
+  (check-false ((path :/ "nonexistent") :exists?))
+) ;when
 
 ;; path-exists? 与其他函数配合使用测试
 (let ((test-file "test_combined_usage.txt"))
   ;; 确保文件不存在
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; 结合path-exists?进行条件操作
   (check-false (path-exists? test-file))
@@ -1123,12 +1212,14 @@ boolean
   (check-true (>= (path-getsize test-file) 0))
   
   ;; 清理
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; Windows专用路径分隔符测试
 (when (os-windows?)
   (check-true (path-exists? "C:\\"))
-  (check-true (path-exists? "C:\\Users")))
+  (check-true (path-exists? "C:\\Users"))
+) ;when
 
 ;; path%append-text 测试
 (let ((p (path :temp-dir :/ "append_test.txt")))
@@ -1138,15 +1229,18 @@ boolean
   ;; 测试追加到新文件
   (p :append-text "First line\n")
   (when (or (os-linux?) (os-macos?))
-    (check (p :read-text) => "First line\n"))
+    (check (p :read-text) => "First line\n")
+  ) ;when
   
   ;; 测试追加到已有文件
   (p :append-text "Second line\n")
   (when (or (os-linux?) (os-macos?))
-    (check (p :read-text) => "First line\nSecond line\n"))
+    (check (p :read-text) => "First line\nSecond line\n")
+  ) ;when
   
   ;; 清理
-  (p :unlink))
+  (p :unlink)
+) ;let
 
 (let ((p (path :temp-dir :/ "append_test.txt"))
       (p-windows (path :temp-dir :/ "append_test_windows.txt")))
@@ -1157,17 +1251,21 @@ boolean
   (p :append-text "Line 1\n")
   (p-windows :append-text "Line 1\r\n")
   (when (or (os-linux?) (os-macos?))
-    (check (p :read-text) => "Line 1\n"))
+    (check (p :read-text) => "Line 1\n")
+  ) ;when
   (when (os-windows?)
-    (check (p-windows :read-text) => "Line 1\r\n"))
+    (check (p-windows :read-text) => "Line 1\r\n")
+  ) ;when
   
   ;; 清理
   (p :unlink)
-  (p-windows :unlink))
+  (p-windows :unlink)
+) ;let
 
 (when (not (os-windows?))
   (check (path :/ "etc" :/ "host" :to-string) => "/etc/host")
-  (check (path :/ (path "a/b")) => (path "/a/b")))
+  (check (path :/ (path "a/b")) => (path "/a/b"))
+) ;when
 
 (check-catch 'value-error (path :/ (path "/a/b")))
 
@@ -1178,25 +1276,30 @@ boolean
   (check (path "/tmp/test" :parent :parent :to-string) => "/")
   (check (path "tmp/test" :parent :to-string) => "tmp/")
   (check (path "tmp" :parent :to-string) => ".")
-  (check (path "tmp" :parent :parent :to-string) => "."))
+  (check (path "tmp" :parent :parent :to-string) => ".")
+) ;when
 
 (when (os-windows?)
   (check (path "C:" :parent :to-string) => "C:\\")
   (check (path "C:\\Users" :parent :to-string) => "C:\\")
-  (check (path "a\\b" :parent :to-string) => "a\\"))
+  (check (path "a\\b" :parent :to-string) => "a\\")
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试删除文件
   (let ((test-file (string-append (os-temp-dir) "/test_delete.txt")))
     ;; 创建临时文件
     (with-output-to-file test-file
-      (lambda () (display "test data")))
+      (lambda () (display "test data"))
+    ) ;with-output-to-file
     ;; 验证文件存在
     (check-true (file-exists? test-file))
     ;; 删除文件（使用 remove）
     (check-true (remove test-file))
     ;; 验证文件已删除
-    (check-false (file-exists? test-file))))
+    (check-false (file-exists? test-file))
+  ) ;let
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试删除目录
@@ -1208,52 +1311,68 @@ boolean
     ;; 删除目录（使用 rmdir）
     (check-true (rmdir test-dir))
     ;; 验证目录已删除
-    (check-false (file-exists? test-dir))))
+    (check-false (file-exists? test-dir))
+  ) ;let
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试 path 对象的 :unlink 和 :rmdir
   (let ((test-file (string-append (os-temp-dir) "/test_path_unlink.txt")))
     (with-output-to-file test-file
-      (lambda () (display "test data")))
+      (lambda () (display "test data"))
+    ) ;with-output-to-file
     (check-true ((path test-file) :unlink))
-    (check-false (file-exists? test-file))))
+    (check-false (file-exists? test-file))
+  ) ;let
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   (let ((test-dir (string-append (os-temp-dir) "/test_path_rmdir")))
     (mkdir test-dir)
     (check-true ((path test-dir) :rmdir))
-    (check-false (file-exists? test-dir))))
+    (check-false (file-exists? test-dir))
+  ) ;let
+) ;when
 
 (when (or (os-macos?) (os-linux?))
   ;; 测试各种调用方式
   (let ((test-file "/tmp/test_unlink.txt"))
     ;; 默认行为 (missing-ok=#f)
     (check-catch 'file-not-found-error
-                 ((path test-file) :unlink))
+                 ((path test-file) :unlink)
+    ) ;check-catch
   
     ;; 显式指定 missing-ok=#t
     (check-true ((path test-file) :unlink #t))
   
     ;; 文件存在时的测试
     (with-output-to-file test-file
-      (lambda () (display "test")))
+      (lambda () (display "test"))
+    ) ;with-output-to-file
     (check-true ((path test-file) :unlink))
-    (check-false (file-exists? test-file))))
+    (check-false (file-exists? test-file))
+  ) ;let
+) ;when
 
 (check (path :./ "a" :to-string) => "a")
 
 (when (not (os-windows?))
-  (check (path :./ "a" :/ "b" :/ "c" :to-string) => "a/b/c"))
+  (check (path :./ "a" :/ "b" :/ "c" :to-string) => "a/b/c")
+) ;when
 
 (when (or (os-linux?) (os-macos?))
-  (check-true (path :cwd :dir?)))
+  (check-true (path :cwd :dir?))
+) ;when
 
 (when (or (os-linux?) (os-macos?))
-  (check ((path :home) :to-string) => (getenv "HOME")))
+  (check ((path :home) :to-string) => (getenv "HOME"))
+) ;when
 
 (when (os-windows?)
   (check (path :home)
-   =>    (path :/ (getenv "HOMEDRIVE") :/ "Users" :/ (getenv "USERNAME"))))
+   =>    (path :/ (getenv "HOMEDRIVE") :/ "Users" :/ (getenv "USERNAME"))
+  ) ;check
+) ;when
 
 
 #|
@@ -1291,7 +1410,7 @@ path@tempdir
 |#
 
 ;; 测试 path@tempdir 方法（path:temp-dir）
-(let1 temp-path (path :temp-dir)
+(let ((temp-path (path :temp-dir)))
   ;; 验证返回的是 path 对象
   (check-true (path :is-type-of temp-path))
 
@@ -1304,16 +1423,19 @@ path@tempdir
 
   ;; 验证在不同平台下的基本特征
   (when (os-windows?)
-    (check-true (string-starts? (temp-path :to-string) "C:\\")))
+    (check-true (string-starts? (temp-path :to-string) "C:\\"))
+  ) ;when
 
   (when (or (os-linux?) (os-macos?))
-    (check-true (string-starts? (temp-path :to-string) "/")))
+    (check-true (string-starts? (temp-path :to-string) "/"))
+  ) ;when
 
   ;; 验证可以进行文件操作
   (let ((test-file (temp-path :/ "path_temp_dir_test.txt")))
     ;; 确保文件不存在
     (when (test-file :exists?)
-      (test-file :unlink))
+      (test-file :unlink)
+    ) ;when
     
     ;; 测试创建文件
     (test-file :write-text "test content")
@@ -1321,20 +1443,26 @@ path@tempdir
     (check (test-file :read-text) => "test content")
     
     ;; 清理
-    (test-file :unlink))
+    (test-file :unlink)
+  ) ;let
 
   ;; 验证临时目录内部路径构造正确
   (let ((subdir (temp-path :/ "test_sub_directory")))
     ;; 验证路径构造
     (when (or (os-linux?) (os-macos?))
-      (check (subdir :to-string) => (string-append (os-temp-dir) "/test_sub_directory")))
+      (check (subdir :to-string) => (string-append (os-temp-dir) "/test_sub_directory"))
+    ) ;when
     
     (when (os-windows?)
-      (check (subdir :to-string) => (string-append (os-temp-dir) "\\test_sub_directory"))))
+      (check (subdir :to-string) => (string-append (os-temp-dir) "\\test_sub_directory"))
+    ) ;when
+  ) ;let
   
   ;; 验证相对路径操作  
   (let ((rel-path (path "relative")))
-    (check-false (rel-path :absolute?))))
+    (check-false (rel-path :absolute?))
+  ) ;let
+) ;let
 
 #|
 path-getsize
@@ -1387,13 +1515,15 @@ integer
 ;; 基本功能测试
 (check-true (> (path-getsize "/") 0))
 (when (not (os-windows?))
-  (check-true (> (path-getsize "/etc/hosts") 0)))
+  (check-true (> (path-getsize "/etc/hosts") 0))
+) ;when
 
 ;; 路径对象方法测试
 (let ((temp-file (path :temp-dir :/ "test_getsize.txt")))
   ;; 确保文件不存在
   (when (temp-file :exists?)
-    (temp-file :unlink))
+    (temp-file :unlink)
+  ) ;when
   
   ;; 测试空文件
   (temp-file :write-text "")
@@ -1412,34 +1542,42 @@ integer
   (check (path-getsize (temp-file :to-string)) => 12)
   
   ;; 清理
-  (temp-file :unlink))
+  (temp-file :unlink)
+) ;let
 
 ;; 测试文件不存在错误
 (check-catch 'file-not-found-error
-  (path-getsize "/nonexistent/path/file.txt"))
+  (path-getsize "/nonexistent/path/file.txt")
+) ;check-catch
 
 ;; 测试现有文件大小
 (when (or (os-linux?) (os-macos?))
-  (check-true (> (path-getsize "/etc/passwd") 0)))
+  (check-true (> (path-getsize "/etc/passwd") 0))
+) ;when
 
 (when (os-windows?)
-  (check-true (> (path-getsize "C:\\Windows\\System32\\drivers\\etc\\hosts") 0)))
+  (check-true (> (path-getsize "C:\\Windows\\System32\\drivers\\etc\\hosts") 0))
+) ;when
 
 ;; 目录大小测试
 (when (or (os-linux?) (os-macos?))
-  (check-true (> (path-getsize "/tmp") 0)))
+  (check-true (> (path-getsize "/tmp") 0))
+) ;when
 
 ;; 相对路径测试
 (let ((rel-file "test_rel.txt"))
   (when (file-exists? rel-file)
-    (delete-file rel-file))
+    (delete-file rel-file)
+  ) ;when
   
   (with-output-to-file rel-file
-    (lambda () (display "temporary file for testing")))
+    (lambda () (display "temporary file for testing"))
+  ) ;with-output-to-file
   
   (check (path-getsize rel-file) => 26)
   
-  (delete-file rel-file))
+  (delete-file rel-file)
+) ;let
 
 ;; 测试可以基于临时目录创建文件
 (let ((temp-file (path :temp-dir :/ "test_file.txt")))
@@ -1451,7 +1589,8 @@ integer
   (check-true (temp-file :file?))
   
   ;; 清理
-  (temp-file :unlink))
+  (temp-file :unlink)
+) ;let
 
 #|
 path%absolute?
@@ -1524,7 +1663,8 @@ boolean
 
 (when (not (os-windows?))
   (check-true ((path :/ "file.txt") :absolute?)) ; Unix/Linux风格绝对路径
-  (check-true ((path :/ "/tmp") :absolute?)))    ; 根目录路径
+  (check-true ((path :/ "/tmp") :absolute?))    ; 根目录路径
+) ;when
 
 ;; Windows风格绝对路径测试
 (check-true ((path :of-drive #\C) :absolute?)) ; C盘根目录
@@ -1537,14 +1677,16 @@ boolean
   (check-true ((path :/ "usr" :/ "bin") :absolute?))
   (check-true ((path :/ "home" :/ "user" :/ "documents") :absolute?))
   (check-true ((path :/ "") :absolute?)) ; 根目录本身是绝对的
-  (check-true ((path :/ ".") :absolute?))) ; "当前目录" 形式的绝对路径
+  (check-true ((path :/ ".") :absolute?)) ; "当前目录" 形式的绝对路径
+) ;when
 
 ;; Windows风格绝对路径（在Windows系统上测试）
 (when (os-windows?)
   (check-true ((path "C:\\Windows") :absolute?))
   (check-true ((path "D:\\data\\file.txt") :absolute?))
   (check-true ((path "C:\\Program Files") :absolute?))
-  (check-true ((path :of-drive #\Z :/ "projects") :absolute?)))
+  (check-true ((path :of-drive #\Z :/ "projects") :absolute?))
+) ;when
 
 ;; 相对路径测试
 (check-false ((path :./ "file.txt") :absolute?))        ; 当前目录相对路径
@@ -1559,50 +1701,63 @@ boolean
 ;; 空路径和各种边界情况测试
 (check-false ((path "") :absolute?))                    ; 空字符串路径
 (let ((empty-path (path)))          ; 创建空path对象
-  (check-false (empty-path :absolute?)))
+  (check-false (empty-path :absolute?))
+) ;let
 
 ;; 路径嵌套中的绝对路径测试
 (when (or (os-linux?) (os-macos?))
   (check-true ((path :/ "tmp" :/ "subdir") :absolute?))
-  (check-true ((path :/ "var" :/ "log" :/ "syslog") :absolute?)))
+  (check-true ((path :/ "var" :/ "log" :/ "syslog") :absolute?))
+) ;when
 
 ;; 绝对路径链式操作验证
 (when (or (os-linux?) (os-macos?))
   (let ((abs-path (path :/ "usr" :/ "local" :/ "bin")))
     (check-true (abs-path :absolute?))
-    (check-true ((abs-path :parent) :absolute?)))) ; 绝对路径的父目录也是绝对
+    (check-true ((abs-path :parent) :absolute?)) ; 绝对路径的父目录也是绝对
+  ) ;let
+) ;when
 
 ;; Windows相对路径测试
 (when (os-windows?)
   (check-false ((path "file.txt") :absolute?))
   (check-false ((path "subdir\\file.txt") :absolute?))
-  (check-false ((path "..\\parent\\file.txt") :absolute?)))
+  (check-false ((path "..\\parent\\file.txt") :absolute?))
+) ;when
 
 ;; 跨平台路径构建测试
 (let ((user-path (path :home :/ "documents" :/ "file.txt")))
-  (check-true (user-path :absolute?))) ; home目录产生的路径是绝对的
+  (check-true (user-path :absolute?)) ; home目录产生的路径是绝对的
+) ;let
 
 ;; 从环境中获取的路径测试
 (when (or (os-linux?) (os-macos?))
   (let ((env-path (path :from-env "HOME")))
-    (check-true (env-path :absolute?))))
+    (check-true (env-path :absolute?))
+  ) ;let
+) ;when
 
 (when (os-windows?)
   (let ((env-path (path :from-env "USERPROFILE")))
-    (check-true (env-path :absolute?))))
+    (check-true (env-path :absolute?))
+  ) ;let
+) ;when
 
 ;; 临时目录测试
 (let ((temp-file (path :temp-dir :/ "test_file.txt")))
-  (check-true (temp-file :absolute?))) ; 临时目录产生的路径也是绝对的
+  (check-true (temp-file :absolute?)) ; 临时目录产生的路径也是绝对的
+) ;let
 
 ;; 绝对路径与相对路径的对比测试
 (let ((abs-path ((path :home) :to-string))
       (rel-path "file.txt"))
   ;; 通过字符串验证绝对性
   (when (or (os-linux?) (os-macos?))
-    (check-true (string-starts? abs-path "/")))
+    (check-true (string-starts? abs-path "/"))
+  ) ;when
   
-  (check-false (string-starts? rel-path "/")))
+  (check-false (string-starts? rel-path "/"))
+) ;let
 
 (check-false ((path) :absolute?))
 (check (path :/ "C:" :get-type) => 'windows)
@@ -1663,7 +1818,8 @@ string
 (let ((test-file (path :temp-dir :/ "test_read_text.txt")))
   ;; 确保文件不存在
   (when (test-file :exists?)
-    (test-file :unlink))
+    (test-file :unlink)
+  ) ;when
   
   ;; 创建测试文件
   (test-file :write-text "Hello, World!")
@@ -1672,13 +1828,15 @@ string
   (check (test-file :read-text) => "Hello, World!")
   
   ;; 清理
-  (test-file :unlink))
+  (test-file :unlink)
+) ;let
 
 ;; 测试读取空文件
 (let ((empty-file (path :temp-dir :/ "empty.txt")))
   ;; 确保文件不存在
   (when (empty-file :exists?)
-    (empty-file :unlink))
+    (empty-file :unlink)
+  ) ;when
   
   ;; 创建空文件
   (empty-file :write-text "")
@@ -1687,13 +1845,15 @@ string
   (check (empty-file :read-text) => "")
   
   ;; 清理
-  (empty-file :unlink))
+  (empty-file :unlink)
+) ;let
 
 ;; 测试读取中文文本
 (let ((chinese-file (path :temp-dir :/ "zh_cn.txt")))
   ;; 确保文件不存在
   (when (chinese-file :exists?)
-    (chinese-file :unlink))
+    (chinese-file :unlink)
+  ) ;when
   
   ;; 创建中文内容文件
   (chinese-file :write-text "你好，世界！\n这是一段中文测试文本。")
@@ -1702,36 +1862,43 @@ string
   (check (chinese-file :read-text) => "你好，世界！\n这是一段中文测试文本。")
   
   ;; 清理
-  (chinese-file :unlink))
+  (chinese-file :unlink)
+) ;let
 
 ;; 测试路径对象的read-text与path-read-text等价性
 (let ((test-file (string-append (os-temp-dir) "/equiv_test.txt")))
   (when (file-exists? test-file)
-    (delete-file test-file))
+    (delete-file test-file)
+  ) ;when
   
   ;; 使用字符串路径设置内容
   (path-write-text test-file "Comparison test")
   
   ;; 验证path对象read-text与path-read-text结果相同
   (let ((path-obj (path test-file)))
-    (check (path-obj :read-text) => (path-read-text test-file)))
+    (check (path-obj :read-text) => (path-read-text test-file))
+  ) ;let
   
   ;; 清理
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; 测试文件不存在时的错误处理
 (let ((nonexistent-file (path :temp-dir :/ "not_exists.txt")))
   (when (nonexistent-file :exists?)
-    (nonexistent-file :unlink))
+    (nonexistent-file :unlink)
+  ) ;when
   
   ;; 验证错误抛出
-  (check-catch 'file-not-found-error (nonexistent-file :read-text)))
+  (check-catch 'file-not-found-error (nonexistent-file :read-text))
+) ;let
 
 ;; 测试大文件读取
 (let ((big-file (path :temp-dir :/ "large_test.txt"))
       (large-content (make-string 10000 #\a)))
   (when (big-file :exists?)
-    (big-file :unlink))
+    (big-file :unlink)
+  ) ;when
   
   ;; 创建大文件
   (big-file :write-text large-content)
@@ -1739,15 +1906,18 @@ string
   ;; 读取大文件并验证内容完整性
   (let ((read-content (big-file :read-text)))
     (check (string-length read-content) => 10000)
-    (check (string=? read-content large-content) => #t))
+    (check (string=? read-content large-content) => #t)
+  ) ;let
   
   ;; 清理
-  (big-file :unlink))
+  (big-file :unlink)
+) ;let
 
 ;; 测试跨路径分隔符兼容性
 (let ((unix-file (path :temp-dir :/ "unix_style.txt")))
   (when (unix-file :exists?)
-    (unix-file :unlink))
+    (unix-file :unlink)
+  ) ;when
   
   ;; 创建Unix风格路径文件
   (unix-file :write-text "Unix style path test")
@@ -1756,17 +1926,21 @@ string
   (check (unix-file :read-text) => "Unix style path test")
   
   ;; 清理
-  (unix-file :unlink))
+  (unix-file :unlink)
+) ;let
 
 ;; 测试多层路径对象的读取
 (let ((deep-file (path :temp-dir :/ "depth" :/ "nested" :/ "deep.txt")))
   (when (deep-file :exists?)
-    (deep-file :unlink))
+    (deep-file :unlink)
+  ) ;when
   
   ;; 确保目录存在
   (let ((dir (path :temp-dir :/ "depth" :/ "nested")))
     (when (not (dir :exists?))
-      (mkdir (dir :to-string))))
+      (mkdir (dir :to-string))
+    ) ;when
+  ) ;let
   
   ;; 创建文件并写入内容
   (deep-file :write-text "Deeply nested file content")
@@ -1775,7 +1949,8 @@ string
   (check (deep-file :read-text) => "Deeply nested file content")
   
   ;; 清理
-  (deep-file :unlink))
+  (deep-file :unlink)
+) ;let
 
 (let ((file-name "中文文件名.txt")
       (file-content "你好，世界！"))
@@ -1783,7 +1958,8 @@ string
   (define file-path (string-append temp-dir (string (os-sep)) file-name))
   (path-write-text file-path file-content)
   (check (path-read-text file-path) => file-content)
-  (delete-file file-path))
+  (delete-file file-path)
+) ;let
 
 #|
 path%touch
@@ -1845,7 +2021,8 @@ boolean
 (let ((temp-file (path :temp-dir :/ "test_touch_basic.txt")))
   ;; 确保文件不存在
   (when (temp-file :exists?)
-    (temp-file :unlink))
+    (temp-file :unlink)
+  ) ;when
   
   ;; 测试创建新文件
   (check-true (temp-file :touch))
@@ -1854,13 +2031,15 @@ boolean
   (check (temp-file :read-text) => "") ; 空文件
   
   ;; 清理
-  (temp-file :unlink))
+  (temp-file :unlink)
+) ;let
 
 ;; 测试更新现有文件时间戳
 (let ((temp-file (path :temp-dir :/ "test_touch_update.txt")))
   ;; 确保文件不存在
   (when (temp-file :exists?)
-    (temp-file :unlink))
+    (temp-file :unlink)
+  ) ;when
   
   ;; 创建文件并写入内容
   (temp-file :write-text "initial content")
@@ -1876,16 +2055,19 @@ boolean
     
     ;; 验证文件仍然存在
     (check-true (temp-file :exists?))
-    (check-true (temp-file :file?))))
+    (check-true (temp-file :file?)))
+  ) ;let
   
   ;; 清理
-  (temp-file :unlink))
+  (temp-file :unlink)
+) ;let
 
 ;; 测试目录时间戳更新
 (let ((temp-dir (path :temp-dir :/ "test_touch_dir")))
   ;; 确保目录存在
   (when (not (temp-dir :exists?))
-    (mkdir (temp-dir :to-string)))
+    (mkdir (temp-dir :to-string))
+  ) ;when
   
   ;; 测试更新目录时间戳
   (check-true (temp-dir :touch))
@@ -1894,7 +2076,9 @@ boolean
   
   ;; 清理空目录
   (when (temp-dir :exists?)
-    (rmdir (temp-dir :to-string))))
+    (rmdir (temp-dir :to-string))
+  ) ;when
+) ;let
 
 ;; 测试多级路径文件创建
 (let ((deep-file (path :temp-dir :/ "level1" :/ "level2" :/ "deep_touch.txt")))
@@ -1902,9 +2086,12 @@ boolean
   (let ((parent-dir (path :temp-dir :/ "level1" :/ "level2"))
         (grandparent-dir (path :temp-dir :/ "level1")))
     (when (not (grandparent-dir :exists?))
-      (mkdir (grandparent-dir :to-string)))
+      (mkdir (grandparent-dir :to-string))
+    ) ;when
     (when (not (parent-dir :exists?))
-      (mkdir (parent-dir :to-string)))) ; 创建多级目录
+      (mkdir (parent-dir :to-string)) ; 创建多级目录
+    ) ;when
+  ) ;let
   
   ;; 测试创建多级路径文件
   (check-true (deep-file :touch))
@@ -1913,71 +2100,84 @@ boolean
   
   ;; 清理多级目录和文件
   (when (deep-file :exists?)
-    (deep-file :unlink))
+    (deep-file :unlink)
+  ) ;when
   (let ((dir1 (path :temp-dir :/ "level1" :/ "level2"))
         (dir2 (path :temp-dir :/ "level1")))
     (when (dir1 :exists?) (rmdir (dir1 :to-string)))
-    (when (dir2 :exists?) (rmdir (dir2 :to-string)))))
+    (when (dir2 :exists?) (rmdir (dir2 :to-string)))
+  ) ;let
+) ;let
 
 ;; 测试特殊文件名中的touch
 (let ((special-file (path :temp-dir :/ "test-file.name with spaces&special#.txt")))
   ;; 确保文件不存在
   (when (special-file :exists?)
-    (special-file :unlink))
+    (special-file :unlink)
+  ) ;when
   
   ;; 测试特殊文件名创建
   (check-true (special-file :touch))
   (check-true (special-file :exists?))
   
   ;; 清理
-  (special-file :unlink))
+  (special-file :unlink)
+) ;let
 
 ;; 测试中文文件名创建
 (let ((chinese-file (path :temp-dir :/ "触摸测试.txt")))
   ;; 确保文件不存在
   (when (chinese-file :exists?)
-    (chinese-file :unlink))
+    (chinese-file :unlink)
+  ) ;when
   
   ;; 测试中文文件名创建
   (check-true (chinese-file :touch))
   (check-true (chinese-file :exists?))
   
   ;; 清理
-  (chinese-file :unlink))
+  (chinese-file :unlink)
+) ;let
 
 
 ;; 测试相对路径touch
 (let ((rel-file (path :./ "test_relative_touch.txt")))
   ;; 确保文件不存在
   (when (rel-file :exists?)
-    (rel-file :unlink))
+    (rel-file :unlink)
+  ) ;when
   
   ;; 测试相对路径创建
   (check-true (rel-file :touch))
   (check-true (rel-file :exists?))
   
   ;; 清理
-  (rel-file :unlink))
+  (rel-file :unlink)
+) ;let
 
 ;; 测试绝对路径创建
 (when (or (os-linux?) (os-macos?))
   (let ((abs-file (path :/ "tmp" :/ "test_absolute_touch.txt")))
     ;; 确保文件不存在
     (when (abs-file :exists?)
-      (abs-file :unlink))
+      (abs-file :unlink)
+    ) ;when
     
     ;; 测试绝对路径创建
     (check-true (abs-file :touch))
     (check-true (abs-file :exists?))
     
     ;; 清理
-    (abs-file :unlink)))
+    (abs-file :unlink)
+  ) ;let
+) ;when
 
 ;; 测试重复touch同一文件
 (let ((repeat-file (path :temp-dir :/ "test_repeat_touch.txt")))
   ;; 确保文件不存在
   (when (repeat-file :exists?)
-    (repeat-file :unlink))
+    (repeat-file :unlink)
+  ) ;when
   
   ;; 多次执行touch
   (check-true (repeat-file :touch))
@@ -1987,13 +2187,15 @@ boolean
   (check (repeat-file :read-text) => "") ; 内容保持为空
   
   ;; 清理
-  (repeat-file :unlink))
+  (repeat-file :unlink)
+) ;let
 
 ;; 测试touch与证明存在性结合
 (let ((exist-test-file (path :temp-dir :/ "test_exist_touch.txt")))
   ;; 确保文件不存在
   (when (exist-test-file :exists?)
-    (exist-test-file :unlink))
+    (exist-test-file :unlink)
+  ) ;when
   
   ;; 初始状态检查
   (check-false (exist-test-file :exists?))
@@ -2011,21 +2213,25 @@ boolean
   (check (exist-test-file :read-text) => "test content")
   
   ;; 清理
-  (exist-test-file :unlink))
+  (exist-test-file :unlink)
+) ;let
 
-(let1 test-file (string-append (os-temp-dir) (string (os-sep)) "test_touch.txt")
+(let ((test-file (string-append (os-temp-dir) (string (os-sep)) "test_touch.txt")))
   ;; Ensure file doesn't exist initially
   (when (file-exists? test-file)
-    (delete-file test-file))
-  
+    (delete-file test-file)
+  ) ;when
+
   ;; Test creating new file with path object
-  (let1 p (path test-file)
+  (let ((p (path test-file)))
     (check-false (p :exists?))
     (check-true (p :touch))
-    (check-true (p :exists?)))
-  
+    (check-true (p :exists?))
+  ) ;let
+
   ;; Clean up
-  (delete-file test-file))
+  (delete-file test-file)
+) ;let
 
 ;; Test with very long path
 (let ((long-name (make-string 200 #\x))
@@ -2033,16 +2239,20 @@ boolean
   (let ((p (path temp-dir :/ long-name)))
     (check-true (p :touch))
     (check-true (p :exists?))
-    (p :unlink)))
+    (p :unlink)
+  ) ;let
+) ;let
 
 
 (when (not (os-windows?))
   (check-true (> (path-getsize "/") 0))
-  (check-true (> (path-getsize "/etc/hosts") 0)))
+  (check-true (> (path-getsize "/etc/hosts") 0))
+) ;when
 
 (when (os-windows?)
   (check-true (> (path-getsize "C:") 0))
   (check-true (> (path-getsize "C:/Windows") 0))
-  (check-true (> (path-getsize "C:\\Windows\\System32\\drivers\\etc\\hosts") 0)))
+  (check-true (> (path-getsize "C:\\Windows\\System32\\drivers\\etc\\hosts") 0))
+) ;when
 
 (check-report)
