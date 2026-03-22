@@ -159,12 +159,12 @@
       (let ((args-ht (make-hash-table)))
         (lambda (command . args)
           (case command
-            ((add) (%add-argument args-ht args))
-            ((add-argument) (%add-argument args-ht args))
-            ((get) (%get-argument args-ht args))
-            ((get-argument) (%get-argument args-ht args))
-            ((parse) (%parse-args args-ht args))
-            ((parse-args) (%parse-args args-ht args))
+            ((:add) (%add-argument args-ht args))
+            ((:add-argument) (%add-argument args-ht args))
+            ((:get) (%get-argument args-ht args))
+            ((:get-argument) (%get-argument args-ht args))
+            ((:parse) (%parse-args args-ht args))
+            ((:parse-args) (%parse-args args-ht args))
             (else
              (if (and (null? args) (symbol? command))
                  (%get-argument args-ht (list (symbol->string command)))
