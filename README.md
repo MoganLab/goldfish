@@ -151,6 +151,17 @@ For uninstallation, just:
 sudo rm -rf /opt/goldfish
 ```
 
+### macOS
+Here are commandlines to build it on macOS:
+```
+brew tap MoganLab/goldfish
+brew install goldfish
+```
+For uninstallation, just:
+```
+brew uninstall goldfish
+```
+
 ## Commandlinefu
 This section assumes you have executed `xmake b goldfish` sucessfully and `bin/gf` is available.
 

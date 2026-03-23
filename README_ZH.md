@@ -152,6 +152,22 @@ sudo xmake i -o /opt/goldfish --root
 sudo rm -rf /opt/goldfish
 ```
 
+### macOS 安装
+在 macOS 上，推荐使用 Homebrew 进行安装：
+```
+# 添加 Goldfish 的 Tap 仓库
+brew tap MoganLab/goldfish
+
+# 安装 Goldfish
+brew install goldfish
+```
+
+卸载
+如果需要卸载，请执行：
+```
+brew uninstall goldfish
+```
+
 ## 命令行技巧
 本节假设您已成功执行 `xmake b goldfish` 并且 `bin/gf` 可用。
 
