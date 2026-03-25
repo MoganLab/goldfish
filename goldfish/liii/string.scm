@@ -33,7 +33,7 @@
     string-reverse
     string-tokenize
     ; Liii extras
-    string-starts? string-ends?
+    string-starts? string-contains? string-ends?
     string-remove-prefix string-remove-suffix
   ) ;export
   (import (srfi srfi-13)
@@ -47,6 +47,12 @@
           (string-prefix? prefix str)
           (type-error "string-starts? parameter is not a string")
       ) ;if
+    ) ;define
+
+    (define string-contains?
+      (typed-lambda ((str string?) (sub-str string?))
+        (string-contains str sub-str)
+      ) ;typed-lambda
     ) ;define
 
     (define (string-ends? str suffix)
@@ -76,4 +82,3 @@
 
   ) ;begin
 ) ;define-library
-
