@@ -86,7 +86,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii case)](goldfish/liii/case.scm)             | Pattern matching                     | `case*`                                                          |
 | [(liii list)](goldfish/liii/list.scm)             | List Library                         | `list-view`, `fold`                                              |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
-| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-join`                                                    |
+| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-join`, `string-contains?`                               |
 | [(liii vector)](goldfish/liii/vector.scm)         | Vector Library                       | `vector-index`                                                   |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
 | [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
