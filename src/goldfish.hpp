@@ -3381,6 +3381,8 @@ display_help () {
   cout << endl;
   cout << "Options:" << endl;
   cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
+  cout << "  -I DIR             Prepend DIR to library search path" << endl;
+  cout << "  -A DIR             Append DIR to library search path" << endl;
   cout << endl;
   cout << "If no command is specified, help is displayed by default." << endl;
 }
@@ -4217,7 +4219,15 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
 }
 #endif
 
-// Parse command line options including --mode
+struct StartupCliOptions {
+  string         mode= "default";
+  vector<string> prepend_dirs;
+  vector<string> append_dirs;
+  string         command;
+  int            command_index= -1;
+  string         error;
+};
+
 static std::string
 parse_mode_option (int argc, char** argv) {
   std::string mode= "default";
@@ -4236,10 +4246,224 @@ parse_mode_option (int argc, char** argv) {
   return mode;
 }
 
-// Check if an option is valid (for --mode only)
 static bool
-is_valid_global_option (const string& flag) {
-  return flag == "--mode" || flag == "-m" || flag.rfind ("--mode=", 0) == 0 || flag.rfind ("-m=", 0) == 0;
+is_legacy_cli_command (const string& arg) {
+  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v";
+}
+
+static string
+normalize_load_path_dir (const string& raw_dir) {
+  fs::path path (raw_dir);
+  string   normalized= path.lexically_normal ().string ();
+  return normalized.empty () ? raw_dir : normalized;
+}
+
+static bool
+load_path_directory_exists (const string& raw_dir) {
+  std::error_code ec;
+  fs::path        path (normalize_load_path_dir (raw_dir));
+  return fs::exists (path, ec) && fs::is_directory (path, ec);
+}
+
+static bool
+append_unique_string (vector<string>& items, const string& raw_item) {
+  string item= normalize_load_path_dir (raw_item);
+  if (item.empty ()) return false;
+  if (std::find (items.begin (), items.end (), item) != items.end ()) return false;
+  items.push_back (item);
+  return true;
+}
+
+static bool
+is_plugin_name_part (const string& value) {
+  if (value.empty ()) return false;
+  return std::all_of (value.begin (), value.end (), [] (unsigned char ch) { return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'); });
+}
+
+static bool
+is_auto_goldfish_plugin_dir_name (const string& name) {
+  size_t dash_pos= name.find ('-');
+  if (dash_pos == string::npos || dash_pos == 0 || dash_pos == name.length () - 1) {
+    return false;
+  }
+  if (name.find ('-', dash_pos + 1) != string::npos) {
+    return false;
+  }
+  return is_plugin_name_part (name.substr (0, dash_pos)) && is_plugin_name_part (name.substr (dash_pos + 1));
+}
+
+static bool
+directory_contains_scheme_sources (const fs::path& dir) {
+  std::error_code ec;
+  for (fs::recursive_directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
+    if (ec) {
+      ec.clear ();
+      continue;
+    }
+    if (it->is_regular_file (ec) && it->path ().extension () == ".scm") {
+      return true;
+    }
+    ec.clear ();
+  }
+  return false;
+}
+
+static vector<string>
+discover_auto_goldfish_library_dirs () {
+  vector<string> dirs;
+  const char*    home= getenv ("HOME");
+  if ((!home) || (!*home)) {
+    return dirs;
+  }
+
+  std::error_code ec;
+  fs::path        root= fs::path (home) / ".local" / "goldfish";
+  if (!fs::exists (root, ec) || !fs::is_directory (root, ec)) {
+    return dirs;
+  }
+
+  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+    if (ec) {
+      ec.clear ();
+      continue;
+    }
+    if (!it->is_directory (ec)) {
+      ec.clear ();
+      continue;
+    }
+
+    string name= it->path ().filename ().string ();
+    if (!is_auto_goldfish_plugin_dir_name (name)) {
+      ec.clear ();
+      continue;
+    }
+    if (!directory_contains_scheme_sources (it->path ())) {
+      ec.clear ();
+      continue;
+    }
+
+    append_unique_string (dirs, it->path ().string ());
+    ec.clear ();
+  }
+
+  std::sort (dirs.begin (), dirs.end ());
+  return dirs;
+}
+
+static vector<string>
+current_load_path_entries (s7_scheme* sc) {
+  vector<string> entries;
+  for (s7_pointer rest= s7_load_path (sc); s7_is_pair (rest); rest= s7_cdr (rest)) {
+    s7_pointer entry= s7_car (rest);
+    if (s7_is_string (entry)) {
+      append_unique_string (entries, string (s7_string (entry)));
+    }
+  }
+  return entries;
+}
+
+static void
+set_load_path_entries (s7_scheme* sc, const vector<string>& entries) {
+  s7_pointer list= s7_nil (sc);
+  for (auto it= entries.rbegin (); it != entries.rend (); ++it) {
+    list= s7_cons (sc, s7_make_string (sc, it->c_str ()), list);
+  }
+  s7_symbol_set_value (sc, s7_make_symbol (sc, "*load-path*"), list);
+}
+
+static void
+prepend_load_path_entries (s7_scheme* sc, const vector<string>& prepend_dirs) {
+  vector<string> seen= current_load_path_entries (sc);
+  for (auto it= prepend_dirs.rbegin (); it != prepend_dirs.rend (); ++it) {
+    string dir= normalize_load_path_dir (*it);
+    if (dir.empty ()) continue;
+    if (std::find (seen.begin (), seen.end (), dir) != seen.end ()) continue;
+    s7_add_to_load_path (sc, dir.c_str ());
+    seen.insert (seen.begin (), dir);
+  }
+}
+
+static void
+append_load_path_entries (s7_scheme* sc, const vector<string>& append_dirs) {
+  vector<string> entries= current_load_path_entries (sc);
+  bool           changed= false;
+  for (const auto& raw_dir : append_dirs) {
+    string dir= normalize_load_path_dir (raw_dir);
+    if (dir.empty ()) continue;
+    if (std::find (entries.begin (), entries.end (), dir) != entries.end ()) continue;
+    entries.push_back (dir);
+    changed= true;
+  }
+  if (changed) {
+    set_load_path_entries (sc, entries);
+  }
+}
+
+static StartupCliOptions
+parse_startup_cli_options (int argc, char** argv) {
+  StartupCliOptions opts;
+
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+
+    if (arg == "--mode" || arg == "-m") {
+      if ((i + 1) >= argc) {
+        opts.error= "Error: '--mode' requires a MODE argument.";
+        return opts;
+      }
+      opts.mode= argv[++i];
+      continue;
+    }
+    if (arg.rfind ("--mode=", 0) == 0) {
+      opts.mode= arg.substr (7);
+      continue;
+    }
+    if (arg.rfind ("-m=", 0) == 0) {
+      opts.mode= arg.substr (3);
+      continue;
+    }
+
+    if (arg == "-I" || arg == "-A") {
+      if ((i + 1) >= argc) {
+        opts.error= "Error: '" + arg + "' requires a DIRECTORY argument.";
+        return opts;
+      }
+      string dir= argv[++i];
+      if (!load_path_directory_exists (dir)) {
+        opts.error= "Error: directory does not exist: " + dir;
+        return opts;
+      }
+      if (arg == "-I") {
+        append_unique_string (opts.prepend_dirs, dir);
+      }
+      else {
+        append_unique_string (opts.append_dirs, dir);
+      }
+      continue;
+    }
+
+    if (is_legacy_cli_command (arg) || arg.empty () || arg[0] != '-') {
+      opts.command      = arg;
+      opts.command_index= i;
+      break;
+    }
+
+    opts.error= "Invalid option: " + arg;
+    return opts;
+  }
+
+  return opts;
+}
+
+static void
+apply_startup_load_path_options (s7_scheme* sc, const StartupCliOptions& opts) {
+  vector<string> prepend_dirs= opts.prepend_dirs;
+  for (const auto& dir : discover_auto_goldfish_library_dirs ()) {
+    append_unique_string (prepend_dirs, dir);
+  }
+  prepend_load_path_entries (sc, prepend_dirs);
+  append_load_path_entries (sc, opts.append_dirs);
 }
 
 int
@@ -4252,47 +4476,16 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 供 goldfish `g_command-line` procedure 查询
   command_args.assign (argv, argv + argc);
 
-  // 解析 mode 选项
-  std::string mode= parse_mode_option (argc, argv);
-
-  // 查找第一个非选项参数作为命令（跳过 mode 选项）
-  string command;
-  int    command_index= -1;
-  for (int i= 1; i < argc; ++i) {
-    string arg= argv[i];
-    if (arg == "--mode" || arg == "-m") {
-      i++; // 跳过 mode 的值
-      continue;
-    }
-    if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
-      continue;
-    }
-    // 这不是 mode 选项，那就是命令
-    command      = arg;
-    command_index= i;
-    break;
+  StartupCliOptions startup_opts= parse_startup_cli_options (argc, argv);
+  if (!startup_opts.error.empty ()) {
+    std::cerr << startup_opts.error << "\n\n";
+    display_help ();
+    exit (1);
   }
 
-  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
-  bool is_fix_command= (command == "fix");
-  bool is_test_command= (command == "test");
-
-  // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
-  // 只检查命令之前的选项，命令之后的参数属于脚本
-  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
-  if (!is_fix_command && !is_test_command) {
-    int limit= (command_index > 0) ? command_index : argc;
-    for (int i= 1; i < limit; ++i) {
-      string arg= argv[i];
-      if (arg.length () > 0 && arg[0] == '-') {
-        if (!is_valid_global_option (arg)) {
-          std::cerr << "Invalid option: " << arg << "\n\n";
-          display_help ();
-          exit (1);
-        }
-      }
-    }
-  }
+  string command      = startup_opts.command;
+  int    command_index= startup_opts.command_index;
+  string mode         = parse_mode_option (argc, argv);
 
   // 如果没有找到命令或没有参数，显示帮助
   if (argc <= 1 || command.empty ()) {
@@ -4317,6 +4510,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     exit (1);
   }
 
+  apply_startup_load_path_options (sc, startup_opts);
   customize_goldfish_by_mode (sc, mode, gf_boot);
 
   // start capture error output

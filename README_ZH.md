@@ -244,6 +244,19 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 + `r7rs`: 预加载 `(scheme base)` 的 S7 Scheme
 + `s7`: 无额外库加载的 S7 Scheme
 
+### 库搜索路径
+Goldfish 启动时也支持额外的库搜索目录：
+
++ `-I DIR`：将 `DIR` 前置到库搜索路径
++ `-A DIR`：将 `DIR` 追加到库搜索路径
+
+例如：
+```bash
+bin/gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+```
+
+启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
+
 ## 版本命名规则
 金鱼Scheme `x.y.z` 表示它使用的是 tbox 版本 `x`，基于 S7 Scheme `y`，而 `z` 是补丁版本。例如，金鱼Scheme 的第二个版本是 `17.10.1`，表示它使用`tbox 1.7.x`，基于 `S7 Scheme 10.x`，补丁版本是 `1`。
 

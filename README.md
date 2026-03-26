@@ -238,6 +238,19 @@ You can also load and evaluate a Scheme file directly:
 + `r7rs`: S7 Scheme with `(scheme base)`
 + `s7`: S7 Scheme without any extra library
 
+### Library Search Path
+Goldfish also supports extra library search directories during startup:
+
++ `-I DIR`: prepend `DIR` to the library search path
++ `-A DIR`: append `DIR` to the library search path
+
+For example:
+```bash
+bin/gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+```
+
+On startup, Goldfish also automatically prepends each directory under `~/.local/goldfish/` whose name matches `xxx-yyy` and which contains at least one `.scm` file.
+
 
 ## Versioning
 Goldfish Scheme x.y.z means that it is using the tbox x, based on S7 Scheme y, and z is the patch version. To clarify, the second version of Goldfish Scheme is `17.10.1`, it means that it is using `tbox 1.7.x`, based on `S7 Scheme 10.x`, the patch version is `1`.
