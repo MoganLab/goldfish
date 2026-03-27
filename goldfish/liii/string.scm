@@ -34,7 +34,7 @@
     string-tokenize
     ; Liii extras
     string-starts? string-contains? string-ends?
-    string-replace
+    string-split string-replace
     string-remove-prefix string-remove-suffix
   ) ;export
   (import (except (srfi srfi-13) string-replace)
@@ -54,6 +54,57 @@
       (typed-lambda ((str string?) (sub-str string?))
         (string-contains str sub-str)
       ) ;typed-lambda
+    ) ;define
+
+    (define (string-split str sep)
+      (define (split-characters input)
+        (let ((input-len (utf8-string-length input)))
+          (let loop ((i 0)
+                     (parts '()))
+            (if (= i input-len)
+                (reverse parts)
+                (loop (+ i 1)
+                      (cons (u8-substring input i (+ i 1))
+                            parts
+                      ) ;cons
+                ) ;loop
+            ) ;if
+          ) ;let loop
+        ) ;let
+      ) ;define
+
+      (when (not (string? str))
+        (type-error "string-split: first parameter must be string")
+      ) ;when
+
+      (let* ((sep-str (cond ((string? sep) sep)
+                            ((char? sep) (string sep))
+                            (else (type-error "string-split: second parameter must be string or char"))
+                      ) ;cond
+             )
+             (str-len (string-length str))
+             (sep-len (string-length sep-str)))
+        (if (zero? sep-len)
+            (split-characters str)
+            (let loop ((search-start 0)
+                       (parts '()))
+              (let ((next-pos (string-position sep-str str search-start)))
+                (if next-pos
+                    (loop (+ next-pos sep-len)
+                          (cons (substring str search-start next-pos)
+                                parts
+                          ) ;cons
+                    ) ;loop
+                    (reverse
+                      (cons (substring str search-start str-len)
+                            parts
+                      ) ;cons
+                    ) ;reverse
+                ) ;if
+              ) ;let
+            ) ;let loop
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define string-replace
