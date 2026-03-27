@@ -1,376 +1,304 @@
 (define-library (liii goldfix)
   (import (scheme base))
   (import (liii sys))
-  (import (liii string))
-  (import (liii error))
-  (import (liii goldfix-scheme))
-  (import (liii goldfix-lint))
-  (import (liii goldfix-paren))
-  (import (liii goldfix-file))
-  (import (liii goldfix-env))
-  (import (liii list))
   (export main)
-  (export fix-content)
+  (export count-content-paren-issues)
 
   (begin
-    ;; 读取文件原始内容，保留文件末尾换行
-    (define (read-file-exact-content file-path)
+    (define (char-literal-delimiter? ch)
+      (or (char-whitespace? ch)
+          (char=? ch #\()
+          (char=? ch #\))
+          (char=? ch #\")
+          (char=? ch #\;)
+      ) ;or
+    ) ;define
+
+    (define (skip-char-literal-index content start)
+      (let ((len (string-length content)))
+        (if (>= (+ start 2) len)
+          len
+          (let loop ((i (+ start 3)))
+            (if (or (>= i len)
+                    (char-literal-delimiter? (string-ref content i)))
+              i
+              (loop (+ i 1))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (read-file-content file-path)
       (call-with-input-file file-path
         (lambda (port)
-          (let loop ((chars '()))
-            (let ((ch (read-char port)))
-              (if (eof-object? ch)
-                (list->string (reverse chars))
-                (loop (cons ch chars))
-              ) ;if
-            ) ;let
+          (let loop ((lines '()) (line (read-line port)))
+            (if (eof-object? line)
+              (let ((lst (reverse lines)))
+                (if (null? lst)
+                  ""
+                  (let join-loop ((rest (cdr lst)) (result (car lst)))
+                    (if (null? rest)
+                      result
+                      (join-loop (cdr rest) (string-append result "\n" (car rest)))
+                    ) ;if
+                  ) ;let
+                ) ;if
+              ) ;let
+              (loop (cons line lines) (read-line port))
+            ) ;if
           ) ;let
         ) ;lambda
       ) ;call-with-input-file
     ) ;define
 
-    ;; 检查内容是否能被 reader 完整读入
-    (define (content-readable? content)
-      (guard (ex (else #f))
-        (let ((readable? #f))
-          (call-with-input-string content
-            (lambda (port)
-              (let loop ()
-                (let ((form (read port)))
-                  (if (eof-object? form)
-                    (set! readable? #t)
-                    (loop)
-                  ) ;if
-                ) ;let
-              ) ;let
-            ) ;lambda
-          ) ;call-with-input-string
-          readable?
-        ) ;let
-      ) ;guard
-    ) ;define
-
-    ;; 内容健康的最低标准：括号整体平衡
-    (define (content-healthy? lines)
-      (check-lines-balanced lines)
-    ) ;define
-
-    (define (right-tag-line? line)
-      (let ((trimmed (string-trim line)))
-        (and (not (string-null? trimmed))
-             (char=? (string-ref trimmed 0) #\))
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (filler-token? token)
-      (or (string=? token "end")
-          (string=? token "of")
-          (string=? token "the")
-          (string=? token "internal")
-      ) ;or
-    ) ;define
-
-    (define (preferred-tag-from-tokens tokens)
-      (let ((meaningful (filter (lambda (token)
-                                  (not (filler-token? token)))
-                                tokens)))
-        (cond
-          ((null? meaningful) "")
-          ((null? (cdr meaningful)) (car meaningful))
-          (else
-           (let loop ((rest meaningful))
-             (cond
-               ((null? rest)
-                (car (reverse meaningful))
-               ) ;
-               ((or (string-index (car rest) #\-)
-                    (string-index (car rest) #\*))
-                (car rest)
-               ) ;
-               (else
-                (loop (cdr rest))
-               ) ;else
-             ) ;cond
-           ) ;let
-          ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    (define (canonicalize-right-tag-line line)
-      (if (not (right-tag-line? line))
-        line
-        (let* ((trimmed (string-trim line))
-               (col (- (string-length line) (string-length trimmed)))
-               (indent (make-string col #\space))
-               (tokens (extract-identifier-tokens trimmed))
-               (tag (preferred-tag-from-tokens tokens)))
-          (if (string-null? tag)
-            (string-append indent ") ;")
-            (string-append indent ") ;" tag)
-          ) ;if
-        ) ;let*
-      ) ;if
-    ) ;define
-
-    (define (line-ends-with-rparen? line)
-      (let ((trimmed (string-trim-right line)))
-        (and (not (string-null? trimmed))
-             (char=? (string-ref trimmed (- (string-length trimmed) 1)) #\))
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (repairable-semicolon-right-tag-line? line previous-line env-tags)
-      (let ((trimmed (string-trim line)))
-        (and previous-line
-             (line-ends-with-rparen? previous-line)
-             (not (string-null? trimmed))
-             (char=? (string-ref trimmed 0) #\;)
-             (or (= (string-length trimmed) 1)
-                 (not (char=? (string-ref trimmed 1) #\;))
-             ) ;or
-             (let ((tag (preferred-tag-from-tokens
-                          (extract-identifier-tokens
-                            (substring trimmed 1 (string-length trimmed)))))
-                          ) ;extract-identifier-tokens
-               (and (not (string-null? tag))
-                    (member tag env-tags)
-               ) ;and
-             ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (canonicalize-right-tag-lines lines)
-      (let ((env-tags (map env-tag (scan-environments lines))))
-        (let loop ((remaining lines)
+    (define (count-content-paren-issues content)
+      (let ((len (string-length content)))
+        (let loop ((i 0)
+                   (balance 0)
+                   (extra-right-parens 0)
                    (block-depth 0)
                    (in-string #f)
                    (escape-next #f)
-                   (previous-line #f)
-                   (result '()))
-          (if (null? remaining)
-            (reverse result)
-            (let* ((line (car remaining))
-                   (trimmed (string-trim line))
-                   (normalized
-                    (cond
-                      ((or (> block-depth 0) in-string escape-next)
-                       line
-                      ) ;
-                      ((right-tag-line? line)
-                       (canonicalize-right-tag-line line)
-                      ) ;
-                      ((repairable-semicolon-right-tag-line? line previous-line env-tags)
-                       (let* ((col (- (string-length line) (string-length trimmed)))
-                              (indent (make-string col #\space))
-                              (tag (preferred-tag-from-tokens
-                                     (extract-identifier-tokens
-                                       (substring trimmed 1 (string-length trimmed))))
-                                     ) ;extract-identifier-tokens
-                              ) ;tag
-                         (if (string-null? tag)
-                           (string-append indent ") ;")
-                           (string-append indent ") ;" tag)
-                         ) ;if
-                       ) ;let*
-                      ) ;
-                      (else
-                       line)
-                      ) ;else
-                    ) ;cond
-                   ) ;normalized
-              (let-values (((_paren-counts next-block-depth next-in-string next-escape-next)
-                            (count-parens-with-state normalized
-                                                     block-depth
-                                                     in-string
-                                                     escape-next)
-                            ) ;count-parens-with-state
-              ) ;let-values
-                (loop (cdr remaining)
-                      next-block-depth
-                      next-in-string
-                      next-escape-next
-                      normalized
-                      (cons normalized result)
-                ) ;loop
-            ) ;let*
+                   (in-line-comment #f))
+          (if (>= i len)
+            (cons extra-right-parens balance)
+            (let ((ch (string-ref content i)))
+              (cond
+                (in-line-comment
+                 (if (char=? ch #\newline)
+                   (loop (+ i 1)
+                         balance
+                         extra-right-parens
+                         block-depth
+                         in-string
+                         #f
+                         #f
+                   ) ;loop
+                   (loop (+ i 1)
+                         balance
+                         extra-right-parens
+                         block-depth
+                         in-string
+                         #f
+                         #t
+                   ) ;loop
+                 ) ;if
+                ) ;in-line-comment
+
+                (escape-next
+                 (loop (+ i 1)
+                       balance
+                       extra-right-parens
+                       block-depth
+                       in-string
+                       #f
+                       #f
+                 ) ;loop
+                ) ;escape-next
+
+                ((> block-depth 0)
+                 (cond
+                   ((and (< (+ i 1) len)
+                         (char=? ch #\#)
+                         (char=? (string-ref content (+ i 1)) #\|))
+                    (loop (+ i 2)
+                          balance
+                          extra-right-parens
+                          (+ block-depth 1)
+                          in-string
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((and (< (+ i 1) len)
+                         (char=? ch #\|)
+                         (char=? (string-ref content (+ i 1)) #\#))
+                    (loop (+ i 2)
+                          balance
+                          extra-right-parens
+                          (- block-depth 1)
+                          in-string
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   (else
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          in-string
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;else
+                 ) ;cond
+                ) ;block-depth
+
+                (in-string
+                 (cond
+                   ((char=? ch #\\)
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #t
+                          #t
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((char=? ch #\")
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #f
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   (else
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #t
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;else
+                 ) ;cond
+                ) ;in-string
+
+                (else
+                 (cond
+                   ((and (< (+ i 1) len)
+                         (char=? ch #\#)
+                         (char=? (string-ref content (+ i 1)) #\|))
+                    (loop (+ i 2)
+                          balance
+                          extra-right-parens
+                          (+ block-depth 1)
+                          #f
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((and (< (+ i 1) len)
+                         (char=? ch #\#)
+                         (char=? (string-ref content (+ i 1)) #\\))
+                    (loop (skip-char-literal-index content i)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #f
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((char=? ch #\")
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #t
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((char=? ch #\;)
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #f
+                          #f
+                          #t
+                    ) ;loop
+                   ) ;
+                   ((char=? ch #\()
+                    (loop (+ i 1)
+                          (+ balance 1)
+                          extra-right-parens
+                          block-depth
+                          #f
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;
+                   ((char=? ch #\))
+                    (if (> balance 0)
+                      (loop (+ i 1)
+                            (- balance 1)
+                            extra-right-parens
+                            block-depth
+                            #f
+                            #f
+                            #f
+                      ) ;loop
+                      (loop (+ i 1)
+                            0
+                            (+ extra-right-parens 1)
+                            block-depth
+                            #f
+                            #f
+                            #f
+                      ) ;loop
+                    ) ;if
+                   ) ;
+                   (else
+                    (loop (+ i 1)
+                          balance
+                          extra-right-parens
+                          block-depth
+                          #f
+                          #f
+                          #f
+                    ) ;loop
+                   ) ;else
+                 ) ;cond
+                ) ;else
+              ) ;cond
+            ) ;let
           ) ;if
         ) ;let
       ) ;let
     ) ;define
-  ) ;begin
 
-    (define (same-env-origin? a b)
-      (and (string=? (env-tag a) (env-tag b))
-           (= (env-lparen-line a) (env-lparen-line b))
-           (= (env-lparen-col a) (env-lparen-col b))
-      ) ;and
-    ) ;define
-
-    (define (find-corresponding-env env envs)
-      (let loop ((rest envs))
-        (if (null? rest)
-          #f
-          (if (same-env-origin? env (car rest))
-            (car rest)
-            (loop (cdr rest))
-          ) ;if
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (insert-remaining-right-tags lines reference-lines)
-      (let* ((envs (scan-environments lines))
-             (reference-envs (scan-environments reference-lines))
-             (to-insert
-               (filter (lambda (env)
-                         (let ((ref-env (find-corresponding-env env reference-envs)))
-                           (and ref-env
-                                (env-rparen-line ref-env))
-                           ) ;and
-                         ) ;let
-                       (sort-envs-for-insertion envs lines)
-               ) ;filter
-             ) ;to-insert
-             (original-total (length lines)))
-        (let loop ((remaining to-insert)
-                   (current-lines lines))
-          (if (null? remaining)
-            current-lines
-            (let* ((env (car remaining))
-                   (raw-pos (find-insert-position env envs original-total current-lines))
-                   (pos (cond
-                          ((number? raw-pos) raw-pos)
-                          ((number? (env-lparen-line env)) (env-lparen-line env))
-                          (else 0))
-                   ) ;pos
-                   (tag-line (make-right-tag-line env))
-                   (new-lines (insert-line-at current-lines pos tag-line)))
-              (env-set-rparen-line! env (+ pos 1))
-              (loop (cdr remaining) new-lines)
-            ) ;let*
-          ) ;if
-        ) ;let
+    (define (display-file-paren-issues file-path)
+      (let* ((counts (count-content-paren-issues (read-file-content file-path)))
+             (extra-right-parens (car counts))
+             (missing-right-parens (cdr counts)))
+        (display file-path)
+        (display ": extra-right-parens=")
+        (display extra-right-parens)
+        (display ", missing-right-parens=")
+        (display missing-right-parens)
+        (newline)
       ) ;let*
     ) ;define
 
-    (define (first-healthy-lines candidates)
-      (let loop ((rest candidates))
-        (if (null? rest)
-          #f
-          (if (content-healthy? (car rest))
-            (car rest)
-            (loop (cdr rest))
-          ) ;if
-        ) ;if
-      ) ;let
-    ) ;define
-
-    ;; 运行核心修复流程，返回修复后的行列表
-    (define (run-goldfix-lines lines)
-      (let* (;; 插入右标记
-             (lines-with-right-tags (insert-single-line-of-right-tag lines))
-             (envs2 (scan-environments lines-with-right-tags))
-             ;; 移除无主右括号行
-             (cleaned-lines (remove-orphan-right-paren-lines lines-with-right-tags envs2))
-             (envs3 (scan-environments cleaned-lines))
-             ;; 修复每行括号
-             (fixed-lines (fix-env-parens cleaned-lines envs3))
-             ;; 收尾补回仍未闭合但已经可安全定位的 env（例如被中间阶段误删的顶层右标记）
-             (completed-lines (insert-remaining-right-tags fixed-lines lines-with-right-tags))
-             (best-lines (or (first-healthy-lines
-                               (list completed-lines
-                                     fixed-lines
-                                     cleaned-lines
-                                     lines-with-right-tags)
-                               ) ;list
-                             lines))
-             (canonical-lines (canonicalize-right-tag-lines best-lines))
-             ) ;best-lines
-        (if (content-healthy? canonical-lines)
-          canonical-lines
-          best-lines
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    ;; 运行完整修复流程：
-    ;; - 即使原内容已经平衡，也照常规范化显式右标记
-    ;; - 每轮都会基于最新内容继续修复，直到结果稳定或达到轮次上限
-    (define (fix-content content)
-      (let loop ((current-content content)
-                 (remaining-rounds 4))
-        (let* ((lines (string->lines current-content))
-               (fixed-lines (run-goldfix-lines lines))
-               (fixed-content (lines->string fixed-lines)))
-          (if (or (= remaining-rounds 1)
-                  (string=? fixed-content current-content))
-            fixed-content
-            (loop fixed-content (- remaining-rounds 1))
-          ) ;if
-        ) ;let*
-      ) ;let
-    ) ;define
-
-    (define (run-goldfix file-path)
-      (display (fix-content (read-file-exact-content file-path)))
-    ) ;define
-
-    ;; 原地更新文件
-    (define (update-file-in-place file-path content)
-      (with-output-to-file file-path
-        (lambda ()
-          (display content)
-        ) ;lambda
-      ) ;with-output-to-file
-    ) ;define
-
-    ;; 运行goldfix并返回字符串（用于原地更新）
-    (define (run-goldfix-to-string file-path)
-      (fix-content (read-file-exact-content file-path))
-    ) ;define
-
-    ;; 主入口函数
     (define (main)
       (let ((args (cddr (argv))))
         (cond
-          ;; 没有参数
           ((null? args)
-           (display "错误: 缺少文件参数")
+           (display "Error: missing file path")
            (newline)
-           (display "用法: goldfix [-i|--in-place] <file.scm>")
-           (newline)
-           (display "  -i, --in-place  原地更新文件（默认输出到stdout）")
+           (display "Usage: goldfix <PATH>")
            (newline)
           ) ;
-          
-          ;; 有 -i 或 --in-place 参数
-          ((or (string=? (car args) "-i")
-               (string=? (car args) "--in-place"))
-           (if (null? (cdr args))
-             (begin
-               (display "错误: 缺少文件参数")
-               (newline)
-             ) ;begin
-             (let* ((file-path (cadr args))
-                    (content (run-goldfix-to-string file-path)))
-               (update-file-in-place file-path content)
-               (display "文件已更新: ")
-               (display file-path)
-               (newline)
-             ) ;let*
-           ) ;if
+
+          ((not (null? (cdr args)))
+           (display "Error: only one file path is supported")
+           (newline)
           ) ;
-          
-          ;; 默认：输出到stdout
+
           (else
-           (run-goldfix (car args))
+           (display-file-paren-issues (car args))
           ) ;else
         ) ;cond
       ) ;let
     ) ;define
-) ;define-library
+  ) ;begin
 ) ;define-library

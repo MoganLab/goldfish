@@ -184,7 +184,7 @@ brew uninstall goldfish
 | `repl` | 进入交互式 REPL 模式 |
 | `run TARGET` | 从目标运行 main 函数 |
 | `test` | 运行测试 |
-| `fix PATH` | 格式化 Scheme 代码 |
+| `fix PATH` | 检查 Scheme 代码中的括号不匹配 |
 | `FILE` | 直接加载并求值 Scheme 文件 |
 
 ### 显示帮助

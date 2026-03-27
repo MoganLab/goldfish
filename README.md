@@ -178,7 +178,7 @@ Goldfish Scheme uses subcommands for different operations:
 | `repl` | Enter interactive REPL mode |
 | `run TARGET` | Run main function from target |
 | `test` | Run tests |
-| `fix PATH` | Format Scheme code |
+| `fix PATH` | Check unmatched parentheses in Scheme code |
 | `FILE` | Load and evaluate Scheme file directly |
 
 ### Display Help
