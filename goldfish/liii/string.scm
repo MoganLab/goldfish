@@ -34,9 +34,10 @@
     string-tokenize
     ; Liii extras
     string-starts? string-contains? string-ends?
+    string-replace
     string-remove-prefix string-remove-suffix
   ) ;export
-  (import (srfi srfi-13)
+  (import (except (srfi srfi-13) string-replace)
           (liii base)
           (liii error)
   ) ;import
@@ -52,6 +53,41 @@
     (define string-contains?
       (typed-lambda ((str string?) (sub-str string?))
         (string-contains str sub-str)
+      ) ;typed-lambda
+    ) ;define
+
+    (define string-replace
+      (typed-lambda ((str string?) (old string?) (new string?))
+        (let ((str-len (string-length str))
+              (old-len (string-length old)))
+          (if (zero? old-len)
+              (string-copy str)
+              (let loop ((search-start 0)
+                         (parts '()))
+                (let ((next-pos (string-position old str search-start)))
+                  (if next-pos
+                      (loop (+ next-pos old-len)
+                            (cons new
+                                  (cons (substring str search-start next-pos)
+                                        parts
+                                  ) ;cons
+                            ) ;cons
+                      ) ;loop
+                      (if (null? parts)
+                          (string-copy str)
+                          (apply string-append
+                                 (reverse
+                                   (cons (substring str search-start str-len)
+                                         parts
+                                   ) ;cons
+                                 ) ;reverse
+                          ) ;apply
+                      ) ;if
+                  ) ;if
+                ) ;let
+              ) ;let loop
+          ) ;if
+        ) ;let
       ) ;typed-lambda
     ) ;define
 

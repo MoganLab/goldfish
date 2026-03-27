@@ -3917,6 +3917,76 @@ type-error 当参数不是字符串类型时。需要两个参数都是字符串
   (check-false (eq? original modified))
 ) ;let
 
+#|
+string-replace
+按从左到右、非重叠的方式替换字符串中的所有匹配子串。
+
+语法
+----
+(string-replace str old new)
+
+参数
+----
+str : string?
+要处理的源字符串。
+
+old : string?
+要被查找并替换的子字符串。
+
+new : string?
+用于替换的新字符串。
+
+返回值
+----
+string
+返回一个新的字符串，其中str里所有 old 的非重叠匹配都被替换为 new。
+
+注意
+----
+- 这是一个更符合日常编码直觉的 replace：默认替换全部匹配。
+- 替换过程按原字符串从左到右扫描，不会重复扫描刚刚插入的 new。
+- 当 old 为空字符串时，返回 str 的副本，不做插入。
+- 如果没有匹配，返回原内容的副本。
+
+错误处理
+----
+type-error 当任一参数不是字符串类型时
+wrong-number-of-args 当参数数量不正确时
+|#
+
+; 基本功能测试
+(check (string-replace "hello world hello" "hello" "hi") => "hi world hi")
+(check (string-replace "banana" "na" "N") => "baNN")
+
+; 边界条件测试
+(check (string-replace "" "hello" "hi") => "")
+(check (string-replace "hello world" "test" "hi") => "hello world")
+(check (string-replace "hello" "" "x") => "hello")
+(check (string-replace "hello world hello" "hello" "") => " world ")
+
+; 非重叠、从左到右扫描
+(check (string-replace "aaaa" "aa" "b") => "bb")
+(check (string-replace "aaa" "a" "aa") => "aaaaaa")
+
+; Unicode 支持
+(check (string-replace "测试测试字符串" "测试" "实验") => "实验实验字符串")
+(check (string-replace "你好，世界" "世界" "Goldfish") => "你好，Goldfish")
+
+; 返回副本而不是原对象
+(let ((original "hello world")
+      (modified (string-replace "hello world" "test" "hi")))
+  (check-true (equal? modified "hello world"))
+  (check-false (eq? original modified))
+) ;let
+
+; 错误处理测试
+(check-catch 'type-error (string-replace 123 "a" "b"))
+(check-catch 'type-error (string-replace "abc" 123 "b"))
+(check-catch 'type-error (string-replace "abc" "a" 123))
+(check-catch 'wrong-number-of-args (string-replace))
+(check-catch 'wrong-number-of-args (string-replace "abc" "a"))
+(check-catch 'wrong-number-of-args (string-replace "abc" "a" "b" "c"))
+
 (check (format #f "~A" 'hello) => "hello")
 (check (format #f "~S" 'hello) => "hello")
 (check (format #f "~S" "hello") => "\"hello\"")
