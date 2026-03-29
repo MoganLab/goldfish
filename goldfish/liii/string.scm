@@ -107,49 +107,78 @@
       ) ;let*
     ) ;define
 
-    (define string-replace
-      (typed-lambda ((str string?) (old string?) (new string?))
+    (define (string-replace str old new . rest)
+      ; 参数数量检查
+      (when (> (length rest) 1)
+        (error 'wrong-number-of-args "string-replace: too many arguments"))
+      ; 参数类型检查
+      (unless (string? str) (type-error "string-replace: str must be a string"))
+      (unless (string? old) (type-error "string-replace: old must be a string"))
+      (unless (string? new) (type-error "string-replace: new must be a string"))
+      (let ((count (if (null? rest) -1 (car rest))))
+        (unless (integer? count) (type-error "string-replace: count must be an integer"))
         (let ((str-len (string-length str))
               (old-len (string-length old)))
-          (if (zero? old-len)
-              ; Python 兼容行为: 空 pattern 时在每个字符之间插入 new
-              (if (zero? str-len)
-                  new  ; 空字符串 + 空 pattern = new
-                  (let loop ((i 0)
-                             (acc (list new)))
-                    (if (= i str-len)
-                        (apply string-append (reverse acc))
+          (cond
+            ; count = 0 时不替换
+            ((zero? count) (string-copy str))
+            ; 空 pattern 时在每个字符之间插入 new
+            ((zero? old-len)
+             (if (zero? str-len)
+                 new  ; 空字符串 + 空 pattern = new
+                 (let* ((max-inserts (+ str-len 1))
+                        (remaining (if (negative? count) max-inserts (min count max-inserts))))
+                   (let loop ((i 0)
+                              (acc '())
+                              (r remaining))
+                     (cond
+                       ((and (= i str-len) (> r 0))
+                        ; 字符已用完，但还有剩余的 count，添加末尾 new
+                        (apply string-append (reverse (cons new acc))))
+                       ((= i str-len)
+                        ; 字符已用完，没有剩余 count
+                        (apply string-append (reverse acc)))
+                       ((zero? r)
+                        ; count 用完，添加剩余字符
+                        (apply string-append (reverse (cons (substring str i str-len) acc))))
+                       (else
                         (loop (+ i 1)
-                              (cons new
-                                    (cons (substring str i (+ i 1))
-                                          acc))))))
-              (let loop ((search-start 0)
-                         (parts '()))
-                (let ((next-pos (string-position old str search-start)))
-                  (if next-pos
-                      (loop (+ next-pos old-len)
-                            (cons new
-                                  (cons (substring str search-start next-pos)
-                                        parts
-                                  ) ;cons
-                            ) ;cons
-                      ) ;loop
-                      (if (null? parts)
-                          (string-copy str)
-                          (apply string-append
-                                 (reverse
-                                   (cons (substring str search-start str-len)
+                              (cons (substring str i (+ i 1)) (cons new acc))
+                              (- r 1))))))))
+            ; 正常替换逻辑
+            (else
+             (let ((remaining (if (negative? count) -1 count)))
+               (let loop ((search-start 0)
+                          (parts '())
+                          (r remaining))
+                 (let ((next-pos (string-position old str search-start)))
+                   (if (and next-pos (not (zero? r)))
+                       (loop (+ next-pos old-len)
+                             (cons new
+                                   (cons (substring str search-start next-pos)
                                          parts
                                    ) ;cons
-                                 ) ;reverse
-                          ) ;apply
-                      ) ;if
-                  ) ;if
-                ) ;let
-              ) ;let loop
-          ) ;if
+                             ) ;cons
+                             (- r 1)
+                       ) ;loop
+                       (if (null? parts)
+                           (string-copy str)
+                           (apply string-append
+                                  (reverse
+                                    (cons (substring str search-start str-len)
+                                          parts
+                                    ) ;cons
+                                  ) ;reverse
+                           ) ;apply
+                       ) ;if
+                   ) ;if
+                 ) ;let
+               ) ;let loop
+             ) ;let remaining
+            ) ;else
+          ) ;cond
         ) ;let
-      ) ;typed-lambda
+      ) ;let
     ) ;define
 
     (define (string-ends? str suffix)

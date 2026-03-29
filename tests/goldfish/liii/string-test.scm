@@ -4116,9 +4116,10 @@ wrong-number-of-args 当参数数量不正确时
 (check-catch 'type-error (string-replace 123 "a" "b"))
 (check-catch 'type-error (string-replace "abc" 123 "b"))
 (check-catch 'type-error (string-replace "abc" "a" 123))
+(check-catch 'type-error (string-replace "abc" "a" "b" "c"))  ; count 必须是整数
 (check-catch 'wrong-number-of-args (string-replace))
 (check-catch 'wrong-number-of-args (string-replace "abc" "a"))
-(check-catch 'wrong-number-of-args (string-replace "abc" "a" "b" "c"))
+(check-catch 'wrong-number-of-args (string-replace "abc" "a" "b" 1 "extra"))  ; 参数过多
 
 (check (format #f "~A" 'hello) => "hello")
 (check (format #f "~S" 'hello) => "hello")
