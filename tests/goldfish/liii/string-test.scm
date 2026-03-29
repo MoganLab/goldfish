@@ -3008,6 +3008,40 @@ wrong-number-of-args 当参数数量不正确时
 (check (string-split "你好，世界，Goldfish" "，") => '("你好" "世界" "Goldfish"))
 (check (string-split "name=goldfish&lang=scheme" "&") => '("name=goldfish" "lang=scheme"))
 
+; === 以下测试用例与 Python str.split() 保持一致 ===
+
+; 单字符字符串
+(check (string-split "a" ",") => '("a"))
+(check (string-split "x" "x") => '("" ""))
+
+; 多字符分隔符边界情况
+(check (string-split "abc" "bc") => '("a" ""))
+(check (string-split "abc" "abc") => '("" ""))
+(check (string-split "hello world" " world") => '("hello" ""))
+(check (string-split "a--b--c" "--") => '("a" "b" "c"))
+
+; 更多连续分隔符场景
+(check (string-split "a,,,b" ",") => '("a" "" "" "b"))
+(check (string-split ",," ",") => '("" "" ""))
+
+; 分隔符重复出现（重叠匹配）- Python 不会重叠匹配
+(check (string-split "aaa" "a") => '("" "" "" ""))
+(check (string-split "aba" "a") => '("" "b" ""))
+(check (string-split "aaaa" "aa") => '("" "" ""))
+(check (string-split "aaa" "aa") => '("" "a"))
+
+; 更多特殊字符场景
+(check (string-split "a\tb\t" "\t") => '("a" "b" ""))
+(check (string-split "a\nb" "\n") => '("a" "b"))
+(check (string-split "line1\nline2" "\n") => '("line1" "line2"))
+
+; 路径/URL 场景
+(check (string-split "/usr/local/bin" "/") => '("" "usr" "local" "bin"))
+(check (string-split "key=val;key2=val2" ";") => '("key=val" "key2=val2"))
+(check (string-split "file.txt" ".") => '("file" "txt"))
+(check (string-split ".hidden" ".") => '("" "hidden"))
+(check (string-split "." ".") => '("" ""))
+
 ; 错误处理测试
 (check-catch 'type-error (string-split 123 ","))
 (check-catch 'type-error (string-split "abc" 123))
@@ -4014,7 +4048,7 @@ string
 ----
 - 这是一个更符合日常编码直觉的 replace：默认替换全部匹配。
 - 替换过程按原字符串从左到右扫描，不会重复扫描刚刚插入的 new。
-- 当 old 为空字符串时，返回 str 的副本，不做插入。
+- 当 old 为空字符串时，在每个字符之间插入 new（Python 兼容行为）。
 - 如果没有匹配，返回原内容的副本。
 
 错误处理
@@ -4030,8 +4064,10 @@ wrong-number-of-args 当参数数量不正确时
 ; 边界条件测试
 (check (string-replace "" "hello" "hi") => "")
 (check (string-replace "hello world" "test" "hi") => "hello world")
-(check (string-replace "hello" "" "x") => "hello")
+(check (string-replace "hello" "" "x") => "xhxexlxlxox")  ; Python 兼容: 空pattern在字符间插入
+(check (string-replace "" "" "x") => "x")  ; Python 兼容: 空串+空pattern=new
 (check (string-replace "hello world hello" "hello" "") => " world ")
+(check (string-replace "hello" "l" "") => "heo")  ; 删除匹配字符
 
 ; 非重叠、从左到右扫描
 (check (string-replace "aaaa" "aa" "b") => "bb")
@@ -4040,6 +4076,34 @@ wrong-number-of-args 当参数数量不正确时
 ; Unicode 支持
 (check (string-replace "测试测试字符串" "测试" "实验") => "实验实验字符串")
 (check (string-replace "你好，世界" "世界" "Goldfish") => "你好，Goldfish")
+(check (string-replace "你好世界" "世界" "") => "你好")  ; Unicode 删除
+(check (string-replace "hello😀world😀" "😀" "!") => "hello!world!")  ; Emoji
+
+; 特殊字符测试
+(check (string-replace "hello world" " " "_") => "hello_world")
+(check (string-replace "a\nb\nc" "\n" "") => "abc")  ; 换行符
+(check (string-replace "a\tb" "\t" "    ") => "a    b")  ; 制表符
+
+; 边界位置测试
+(check (string-replace "hello" "he" "X") => "Xllo")  ; 开头匹配
+(check (string-replace "hello" "lo" "X") => "helX")  ; 结尾匹配
+(check (string-replace "hello" "hello" "world") => "world")  ; 整串匹配
+(check (string-replace "hello" "l" "l") => "hello")  ; 替换为相同内容
+
+; 连续匹配测试
+(check (string-replace "ababab" "ab" "X") => "XXX")
+(check (string-replace "aaa" "a" "") => "")  ; 全部删除
+
+; pattern 长度相关
+(check (string-replace "hi" "hello" "world") => "hi")  ; pattern 比原串长
+(check (string-replace "hello" "hello" "world") => "world")  ; pattern 等于原串
+
+; 大小写敏感测试
+(check (string-replace "Hello" "h" "H") => "Hello")  ; H != h
+(check (string-replace "Hello" "H" "h") => "hello")
+
+; 数字字符串测试
+(check (string-replace "123123" "12" "X") => "X3X3")
 
 ; 返回副本而不是原对象
 (let ((original "hello world")

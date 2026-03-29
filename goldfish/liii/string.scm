@@ -112,7 +112,17 @@
         (let ((str-len (string-length str))
               (old-len (string-length old)))
           (if (zero? old-len)
-              (string-copy str)
+              ; Python 兼容行为: 空 pattern 时在每个字符之间插入 new
+              (if (zero? str-len)
+                  new  ; 空字符串 + 空 pattern = new
+                  (let loop ((i 0)
+                             (acc (list new)))
+                    (if (= i str-len)
+                        (apply string-append (reverse acc))
+                        (loop (+ i 1)
+                              (cons new
+                                    (cons (substring str i (+ i 1))
+                                          acc))))))
               (let loop ((search-start 0)
                          (parts '()))
                 (let ((next-pos (string-position old str search-start)))
