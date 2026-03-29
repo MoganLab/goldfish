@@ -56,6 +56,25 @@ bin/gf tests/goldfish/liii/xxx-test.scm
 
 ## 其他规则
 
+### 测试文件协议头规范
+测试文件（位于 `tests/` 目录下的 `.scm` 文件）的协议声明方式：
+- **测试文件的协议仍旧是 Apache License 2.0**，与项目其他文件保持一致
+- **文件头部不放置协议文本**：为节省上下文 token，测试文件头部直接从 `(import ...)` 开始
+- 代码实现文件（`goldfish/` 目录下）仍需保留完整的 Apache 协议头
+
+示例：
+```scheme
+;; 测试文件直接从 import 开始（无协议头），但协议仍是 Apache
+(import (liii check)
+        (liii string))
+
+;; 实现文件保留完整协议头
+;;
+;; Copyright (C) 2024 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 ...
+```
+
 ### define-case-class 使用建议
 `define-case-class` 通过宏实现，有显著的性能开销：
 - 方法调用需要通过字符串匹配和动态查找
