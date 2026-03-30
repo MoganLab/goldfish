@@ -1,5 +1,7 @@
 (import (liii check)
-        (liii string))
+        (liii base)
+        (liii string)
+) ;import
 
 ;; string-map
 ;; 将给定过程应用于字符串的每个字符，并返回新字符串，包含将过程应用于每个字符的结果。
@@ -50,9 +52,9 @@
   (string-map
     (lambda (ch) (integer->char (+ 1 (char->integer ch))))
     "HAL"
-  )
+  ) ;string-map
   => "IBM"
-)
+) ;check
 
 ; Character transformation tests
 (check (string-map (lambda (c) (integer->char (- (char->integer c) 32))) "hello") => "HELLO")
@@ -91,9 +93,9 @@
             (if (even? (char->integer c))
                 char-upcase
                 char-downcase
-            )
+            ) ;if
             c
-          )
+          ) ;lambda
           "AbCdEf") => "AbCdEf")
 (check (string-map
           (lambda (c)
@@ -103,10 +105,10 @@
                   (if (and (>= val 97) (<= val 122))
                       (integer->char (- val 32))
                       c
-                  )
-              )
-            )
-          )
+                  ) ;if
+              ) ;if
+            ) ;let
+          ) ;lambda
           "Hello123World") => "hELLO123wORLD")
 
 
