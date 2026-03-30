@@ -3365,10 +3365,13 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
-  cout << "  test [options]     Run tests (all *-test.scm files under tests/)" << endl;
-  cout << "                     Options:" << endl;
-  cout << "                       --only PATTERN  Run tests matching PATTERN" << endl;
-  cout << "                                         (e.g. json, sicp, list-test.scm)" << endl;
+  cout << "  test [PATTERN]     Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "                     PATTERN can be:" << endl;
+  cout << "                       (none)          Run all tests" << endl;
+  cout << "                       FILE.scm        Run specific test file" << endl;
+  cout << "                       DIR/            Run tests in directory" << endl;
+  cout << "                       name-test.scm   Match by file name" << endl;
+  cout << "                       substring       Match by path substring" << endl;
   cout << "  run TARGET         Run main function from TARGET" << endl;
   cout << "                     TARGET can be:" << endl;
   cout << "                       FILE.scm       Load file and run main" << endl;
@@ -4682,11 +4685,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_add_to_load_path (sc, goldtest_root.c_str ());
 
-    // Load the goldtest.scm file
-    string goldtest_scm = goldtest_root + "/liii/goldtest.scm";
-    s7_pointer load_result = s7_load (sc, goldtest_scm.c_str ());
-    if (!load_result) {
-      cerr << "Error: Failed to load " << goldtest_scm << endl;
+    // Import (liii goldtest) module
+    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldtest))");
+    if (!import_result) {
+      cerr << "Error: Failed to import (liii goldtest) module." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4694,23 +4696,23 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cerr << "Error loading goldtest.scm: " << errmsg << endl;
+      cerr << "Error importing (liii goldtest): " << errmsg << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
 
-    // Get the run-goldtest function
-    s7_pointer run_goldtest = s7_name_to_value (sc, "run-goldtest");
-    if ((!run_goldtest) || (!s7_is_procedure (run_goldtest))) {
-      cerr << "Error: Failed to find run-goldtest function." << endl;
+    // Get and call the main function from (liii goldtest)
+    s7_pointer main_func = s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      cerr << "Error: Failed to find main function in (liii goldtest)." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
-    s7_call (sc, run_goldtest, s7_nil (sc));
+    s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) cout << errmsg;
     s7_close_output_port (sc, s7_current_error_port (sc));
