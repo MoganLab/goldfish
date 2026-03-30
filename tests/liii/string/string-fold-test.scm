@@ -1,5 +1,8 @@
 (import (liii check)
-        (liii string))
+        (liii error)
+        (liii string)
+        (srfi srfi-13)
+) ;import
 
 ;; string-fold
 ;; 通过从左到右的顺序遍历字符串字符，将给定过程应用于每个字符和累加器值。
@@ -60,9 +63,9 @@
     (lambda (c acc) (string-append acc (string c)))
     ""
     "abc"
-  )
+  ) ;string-fold
   => "abc"
-)
+) ;check
 
 ;; 统计分析测试
 (check
@@ -70,15 +73,15 @@
     (lambda (c acc) (if (char=? c #\a) (+ acc 1) acc))
     0
     "banana"
-  )
+  ) ;string-fold
   => 3
-)
+) ;check
 
 ;; ASCII码累加求和
 (check
   (string-fold (lambda (c total) (+ total (char->integer c))) 0 "AB")
   => 131 ; 65 + 66
-)
+) ;check
 
 ;; 字符过滤 - 数字
 (check
@@ -87,13 +90,13 @@
       (if (char-numeric? c)
           (cons c acc)
           acc
-      )
-    )
+      ) ;if
+    ) ;lambda
     '()
     "a1b2c3"
-  )
+  ) ;string-fold
   => '(#\3 #\2 #\1)
-)
+) ;check
 
 ;; 字符分类统计
 (check
@@ -102,20 +105,20 @@
       (cond
         ((char-alphabetic? c)
          (list (+ (car counts) 1) (cadr counts) (caddr counts))
-        )
+        ) ;
         ((char-numeric? c)
          (list (car counts) (+ (cadr counts) 1) (caddr counts))
-        )
+        ) ;
         (else
          (list (car counts) (cadr counts) (+ (caddr counts) 1))
-        )
-      )
-    )
+        ) ;else
+      ) ;cond
+    ) ;lambda
     '(0 0 0)  ; letters, digits, others
     "hello123!"
-  )
+  ) ;string-fold
   => '(5 3 1)
-)
+) ;check
 
 ;; start/end 范围参数测试
 (check (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" 1 4) => 3)
@@ -135,29 +138,29 @@
   (string-fold
     (lambda (c acc)
       (+ acc (* (char->integer c) (char->integer c)))
-    )
+    ) ;lambda
     0
     "AB"
-  )
+  ) ;string-fold
   => 8581 ; 65² + 66²
-)
+) ;check
 
 (check
   (string-fold
     (lambda (c acc)
       (max acc (char->integer c))
-    )
+    ) ;lambda
     0
     "ABC"
-  )
+  ) ;string-fold
   => 67 ; max ASCII of A,B,C
-)
+) ;check
 
 ;; Unicode字符测试
 (check
   (string-fold (lambda (c acc) (+ acc 1)) 0 "中文")
   => (string-length "中文")
-)
+) ;check
 
 ;; 反向构建测试
 (check
@@ -165,15 +168,15 @@
     (lambda (c acc) (string-append acc (string (char-upcase c))))
     ""
     "abc"
-  )
+  ) ;string-fold
   => "ABC"
-)
+) ;check
 
 ;; 多类型累加器 - hand calculation: 104+101+108+108+111 = 532 for "hello"
 (check
   (string-fold (lambda (c acc) (+ acc (char->integer c))) 0 "hello")
   => 532
-)
+) ;check
 
 ;; === 错误处理测试 ===
 

@@ -1,5 +1,8 @@
 (import (liii check)
-        (liii string))
+        (liii error)
+        (liii string)
+        (srfi srfi-13)
+)
 
 ;; string-fold-right
 ;; 通过从右到左的顺序遍历字符串字符，将给定过程应用于每个字符和累加器值。

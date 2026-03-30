@@ -1,5 +1,8 @@
 (import (liii check)
-        (liii string))
+        (liii error)
+        (liii string)
+        (srfi srfi-13)
+)
 
 ;; string-count
 ;; 统计字符串中满足指定条件的字符数量。
