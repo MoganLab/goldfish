@@ -2,7 +2,7 @@
         (liii error)
         (liii string)
         (srfi srfi-13)
-)
+) ;import
 
 ;; string-fold-right
 ;; 通过从右到左的顺序遍历字符串字符，将给定过程应用于每个字符和累加器值。
@@ -64,9 +64,9 @@
     (lambda (c acc) (string-append acc (string c)))
     ""
     "abc"
-  )
+  ) ;string-fold-right
   => "cba"
-)
+) ;check
 
 ;; 统计分析测试
 (check
@@ -74,15 +74,15 @@
     (lambda (c acc) (if (char=? c #\l) (+ acc 1) acc))
     0
     "hello world"
-  )
+  ) ;string-fold-right
   => 3
-)
+) ;check
 
 ;; ASCII码累加求和
 (check
   (string-fold-right (lambda (c total) (+ total (char->integer c))) 0 "AB")
   => 131 ; 65 + 66
-)
+) ;check
 
 ;; start/end 范围参数测试
 (check (string-fold-right (lambda (c acc) (+ acc 1)) 0 "hello" 1 4) => 3)
@@ -101,7 +101,7 @@
 (check
   (string-fold-right (lambda (c acc) (+ acc 1)) 0 "测试")
   => (string-length "测试")
-)
+) ;check
 
 ;; 反向构建测试
 (check
@@ -109,9 +109,9 @@
     (lambda (c acc) (string-append acc (string (char-downcase c))))
     ""
     "XYZ"
-  )
+  ) ;string-fold-right
   => "zyx"
-)
+) ;check
 
 ;; === 错误处理测试 ===
 

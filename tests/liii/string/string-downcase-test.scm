@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-downcase
 ;; 将字符串转换为其小写等价形式。

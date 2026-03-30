@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-for-each-index
 ;; 遍历字符串的每个字符及其索引位置。
@@ -44,21 +45,21 @@
   (string-for-each-index
     (lambda (i c acc)
       (cons (list i c) acc)
-    )
+    ) ;lambda
     "hello"
-  )
+  ) ;string-for-each-index
   => '((0 #\h) (1 #\e) (2 #\l) (3 #\l) (4 #\o))
-)
+) ;check
 
 (check
   (string-for-each-index
     (lambda (i c acc)
       (cons (list i c) acc)
-    )
+    ) ;lambda
     (substring "hello" 1 4)
-  )
+  ) ;string-for-each-index
   => '((0 #\e) (1 #\l) (2 #\l))
-)
+) ;check
 
 (check
   (list->string
@@ -66,50 +67,50 @@
       (string-for-each-index
         (lambda (i c acc)
           (cons c acc)
-        )
+        ) ;lambda
         "hello"
-      )
-    )
-  )
+      ) ;string-for-each-index
+    ) ;reverse
+  ) ;list->string
   => "olleh"
-)
+) ;check
 
 (check
   (string-for-each-index
     (lambda (i c acc)
       (cons (list i c) acc)
-    )
+    ) ;lambda
     ""
-  )
+  ) ;string-for-each-index
   => '()
-)
+) ;check
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
    "hello" 6
-  )
-)
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
    "hello" 0 6
-  )
-)
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'out-of-range
   (string-for-each-index
    (lambda (i c) (display c))
    "hello" 3 2
-  )
-)
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-catch 'type-error
   (string-for-each-index
    (lambda (i c) (display c))
    123
-  )
-)
+  ) ;string-for-each-index
+) ;check-catch
 
 (check-report)

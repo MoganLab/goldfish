@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-replace
 ;; 按从左到右、非重叠的方式替换字符串中的所有匹配子串。
@@ -93,7 +94,7 @@
       (modified (string-replace "hello world" "test" "hi")))
   (check-true (equal? modified "hello world"))
   (check-false (eq? original modified))
-) ;;let
+) ;let
 
 ;; count 参数测试
 ;; count = 1, 2, 0 的基本用法

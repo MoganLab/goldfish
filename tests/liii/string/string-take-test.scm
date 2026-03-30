@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-take
 ;; 从字符串开头提取指定数量的字符。

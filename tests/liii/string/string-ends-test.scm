@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-ends?
 ;; 检查字符串是否以指定后缀结束。

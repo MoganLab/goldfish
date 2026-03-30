@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-contains?
 ;; 检查字符串是否包含指定子串。

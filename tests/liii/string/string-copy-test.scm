@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-copy
 ;; 创建字符串的副本，支持可选的开始和结束位置参数进行子串拷贝。
@@ -62,7 +63,7 @@
 (let ((original "hello"))
   (check-true (string=? (string-copy original) original))
   (check-false (eq? (string-copy original) original))
-)
+) ;let
 
 ; Substring copy tests
 (check-true (equal? (string-copy "test123" 0 4) "test"))

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-upcase
 ;; 将字符串中的所有小写字母转化为大写字母。

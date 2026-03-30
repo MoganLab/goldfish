@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-remove-prefix
 ;; 如果字符串以指定前缀开始，则移除该前缀；否则返回原字符串。
@@ -183,6 +184,6 @@
       (modified (string-remove-prefix "application.js" "application")))
   (check-true (equal? modified ".js"))
   (check-false (eq? original modified))
-)
+) ;let
 
 (check-report)

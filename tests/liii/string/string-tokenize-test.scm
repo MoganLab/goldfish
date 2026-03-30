@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-tokenize
 ;; 将字符串按指定分隔符分割成多个子字符串（标记化）。

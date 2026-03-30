@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-remove-suffix
 ;; 如果字符串以指定后缀结束，则移除该后缀；否则返回原字符串。
@@ -144,6 +145,6 @@
       (modified (string-remove-suffix "application.log" ".log")))
   (check-true (equal? modified "application"))
   (check-false (eq? original modified))
-)
+) ;let
 
 (check-report)
