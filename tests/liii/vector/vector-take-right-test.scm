@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii error)
         (liii vector))
 
 (check-set-mode! 'report-failed)
