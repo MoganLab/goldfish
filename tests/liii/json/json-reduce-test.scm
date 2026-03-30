@@ -75,16 +75,19 @@
 (let* ((j0 '((user . ((profile . ((contact . ((email . "alice@example.com")
                                               (phone . "123-456-7890")))))))))
        (j1 (json-reduce j0 'user 'profile 'contact 'email
-                        (lambda (k v) (string-append v ".verified")))))
+                        (lambda (k v) (string-append v ".verified"))))
+       ) ;j1
   (check (json-ref j1 'user 'profile 'contact 'email) => "alice@example.com.verified")
 ) ;let*
 
 (let* ((j0 '((user . ((data . ((scores . #(85 90 78 92 88))
                                (settings . ((notifications . #t)
-                                            (theme . "dark")))))))))
+                                            (theme . "dark"))))))))
+                               ) ;settings
        (j1 (json-reduce j0 'user 'data
                         (lambda (k) (equal? k 'scores))
-                        (lambda (k v) (vector-map (lambda (score) (+ score 5)) v)))))
+                        (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))))
+       ) ;j1
   (check (json-ref j1 'user 'data 'scores) => #(90 95 83 97 93))
   (check (json-ref j1 'user 'data 'settings 'theme) => "dark")
 ) ;let*
@@ -93,7 +96,8 @@
                                   (age . 25)
                                   (scores . #(85 90 78))))))))
        (j1 (json-reduce j0 'user 'profile 'scores
-                        (lambda (k v) (vector-map (lambda (score) (+ score 5)) v)))))
+                        (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))))
+       ) ;j1
   (check (json-ref j1 'user 'profile 'scores) => #(90 95 83))
   (check (json-ref j1 'user 'profile 'name) => "Alice")
 ) ;let*
@@ -109,7 +113,8 @@
 (let ((json '((person . ((name . "Alice")
                          (age . 25)
                          (address . ((city . "Wonderland")
-                                     (zip . "12345"))))))))
+                                     (zip . "12345")))))))
+                         ) ;address
   (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))))
     (check (json-ref updated-json 'person 'address 'city) => "WONDERLAND")
   ) ;let

@@ -51,7 +51,8 @@
 (check (json-string-escape "\\") => "\"\\\\\"")
 (check (json-string-escape "ABC") => "\"ABC\"")
 (check (json-string-escape "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+=")
-       => "\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+=\"")
+       => "\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+=\""
+) ;check
 (check (json-string-escape "SGVsbG8gV29ybGQ=") => "\"SGVsbG8gV29ybGQ=\"")
 (check (json-string-escape "VGhpcyBpcyBhIHRlc3Q=") => "\"VGhpcyBpcyBhIHRlc3Q=\"")
 (check (json-string-escape "QWxhZGRpbjpvcGVuIHNlc2FtZQ==") => "\"QWxhZGRpbjpvcGVuIHNlc2FtZQ==\"")
@@ -73,9 +74,11 @@
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+="
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+="
           "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+="
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567")))
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567"))
+        ) ;string-append
   (check (json-string-escape large-base64)
-         => (string-append "\"" large-base64 "\""))
+         => (string-append "\"" large-base64 "\"")
+  ) ;check
 ) ;let
 
 (check (json-string-escape "Hello123+=") => "\"Hello123+=\"")
@@ -84,17 +87,20 @@
 
 (let ((threshold-base64 (make-string 1000 #\A)))
   (check (json-string-escape threshold-base64)
-         => (string-append "\"" threshold-base64 "\""))
+         => (string-append "\"" threshold-base64 "\"")
+  ) ;check
 ) ;let
 
 (let ((large-base64-1001 (string-append (make-string 1001 #\A))))
   (check (json-string-escape large-base64-1001)
-         => (string-append "\"" large-base64-1001 "\""))
+         => (string-append "\"" large-base64-1001 "\"")
+  ) ;check
 ) ;let
 
 (let ((mixed-large (string-append "Quote\"InFirst100" (make-string 990 #\A))))
   (check (json-string-escape mixed-large)
-         => (string-append "\"Quote\\\"InFirst100" (make-string 990 #\A) "\""))
+         => (string-append "\"Quote\\\"InFirst100" (make-string 990 #\A) "\"")
+  ) ;check
 ) ;let
 
 (check (json-string-escape "1234567890") => "\"1234567890\"")
