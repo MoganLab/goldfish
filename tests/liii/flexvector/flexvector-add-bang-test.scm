@@ -29,4 +29,19 @@
   (flexvector-add! fv 0 'a)
   (check (flexvector-ref fv 0) => 'a))
 
+(let ((fv (flexvector 'a 'c)))
+  (flexvector-add! fv 1 'b)
+  (check (flexvector-length fv) => 3)
+  (check (flexvector->list fv) => '(a b c)))
+
+(let ((fv (flexvector 'a 'b)))
+  (flexvector-add! fv 2 'c)
+  (check (flexvector-length fv) => 3)
+  (check (flexvector->list fv) => '(a b c)))
+
+(let ((fv (flexvector 'a)))
+  (flexvector-add! fv 1 'b 'c 'd)
+  (check (flexvector-length fv) => 4)
+  (check (flexvector->list fv) => '(a b c d)))
+
 (check-report)

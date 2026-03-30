@@ -29,4 +29,11 @@
   (check (flexvector-ref fv 0) => 'a)
 ) ;let
 
+(let ((fv (flexvector 'x 'y 'z)))
+  (flexvector-add-back! fv 'w)
+  (check (flexvector-length fv) => 4)
+  (check (flexvector-ref fv 3) => 'w)
+  (check (flexvector->list fv) => '(x y z w))
+) ;let
+
 (check-report)
