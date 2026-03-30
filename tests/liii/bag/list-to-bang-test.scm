@@ -4,26 +4,24 @@
 
 (check-set-mode! 'report-failed)
 
-#|
-list->bag!
-将列表元素并入 bag（可变操作）。
+;; list->bag! 函数测试
+;;
+;; 语法
+;; ----
+;; (list->bag! bag list)
+;;
+;; 参数
+;; ----
+;; bag : bag
+;; 目标 bag。
+;;
+;; list : list
+;; 要并入的元素列表。
+;;
+;; 返回值
+;; ------
+;; 返回修改后的 bag（与传入的 bag 是同一个对象）。
 
-语法
-----
-(list->bag! bag list)
-
-参数
-----
-bag : bag
-目标 bag。
-
-list : list
-要并入的元素列表。
-
-返回值
-------
-返回修改后的 bag（与传入的 bag 是同一个对象）。
-|#
 (define b-list-merge (bag 1 2))
 (define b-list-merge-result (list->bag! b-list-merge '(2 3 3)))
 (check-true (eq? b-list-merge-result b-list-merge))

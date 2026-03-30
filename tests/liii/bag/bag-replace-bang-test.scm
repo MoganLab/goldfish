@@ -4,6 +4,24 @@
 
 (check-set-mode! 'report-failed)
 
+;; bag-replace! 函数测试
+;;
+;; 语法
+;; ----
+;; (bag-replace! bag element)
+;;
+;; 参数
+;; ----
+;; bag : bag
+;; 目标 bag。
+;;
+;; element : any
+;; 用于替换的元素（按 comparator 等价判断）。
+;;
+;; 返回值
+;; -----
+;; 就地修改原 bag，并返回修改后的 bag（破坏性）。
+
 (let* ((s1 "hello")
        (s2 (string-copy s1))
        (b (bag s1)))

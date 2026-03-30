@@ -8,35 +8,33 @@
 (define b-empty (bag))
 (define comp (bag-comparator b-empty))
 
-#|
-bag-unfold
-使用 unfold 模式创建 bag。
+;; bag-unfold 函数测试
+;;
+;; 语法
+;; ----
+;; (bag-unfold stop? mapper successor seed comparator)
+;;
+;; 参数
+;; ----
+;; stop? : procedure
+;; 停止谓词。接收当前种子，返回布尔值。
+;;
+;; mapper : procedure
+;; 映射函数。接收当前种子，返回要添加到 bag 的元素。
+;;
+;; successor : procedure
+;; 后继函数。接收当前种子，返回下一个种子。
+;;
+;; seed : any
+;; 初始种子。
+;;
+;; comparator : comparator
+;; 比较器。
+;;
+;; 返回值
+;; -----
+;; 返回由 unfold 生成的 bag。
 
-语法
-----
-(bag-unfold stop? mapper successor seed comparator)
-
-参数
-----
-stop? : procedure
-停止谓词。接收当前种子，返回布尔值。
-
-mapper : procedure
-映射函数。接收当前种子，返回要添加到 bag 的元素。
-
-successor : procedure
-后继函数。接收当前种子，返回下一个种子。
-
-seed : any
-初始种子。
-
-comparator : comparator
-比较器。
-
-返回值
------
-返回由 unfold 生成的 bag。
-|#
 (define b-unfold
   (bag-unfold (lambda (n) (> n 3))
               (lambda (n) n)

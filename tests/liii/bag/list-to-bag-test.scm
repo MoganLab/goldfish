@@ -8,23 +8,21 @@
 (define b-empty (bag))
 (define comp (bag-comparator b-empty))
 
-#|
-list->bag
-将列表转换为 bag。
+;; list->bag 函数测试
+;;
+;; 语法
+;; ----
+;; (list->bag list)
+;;
+;; 参数
+;; ----
+;; list : list
+;; 要转换的列表。
+;;
+;; 返回值
+;; -----
+;; 返回包含列表中所有元素的 bag（使用默认比较器，重复元素保留）。
 
-语法
-----
-(list->bag list)
-
-参数
-----
-list : list
-要转换的列表。
-
-返回值
------
-返回包含列表中所有元素的 bag（使用默认比较器，重复元素保留）。
-|#
 (define b-list-1 (list->bag '(1 2 2 3)))
 (check-true (bag? b-list-1))
 (check-true (eq? (bag-comparator b-list-1) comp))

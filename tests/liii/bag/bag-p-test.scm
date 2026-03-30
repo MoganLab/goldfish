@@ -8,23 +8,21 @@
 (define b-empty (bag))
 (define b-1-2 (bag 1 2 2))
 
-#|
-bag?
-判断是否为 bag。
+;; bag? 函数测试
+;;
+;; 语法
+;; ----
+;; (bag? obj)
+;;
+;; 参数
+;; ----
+;; obj : any
+;; 要检查的对象。
+;;
+;; 返回值
+;; -----
+;; 如果 obj 是 bag，返回 #t；否则返回 #f。
 
-语法
-----
-(bag? obj)
-
-参数
-----
-obj : any
-要检查的对象。
-
-返回值
------
-如果 obj 是 bag，返回 #t；否则返回 #f。
-|#
 (check-true (bag? b-empty))
 (check-true (bag? b-1-2))
 (check-false (bag? "not a bag"))

@@ -4,6 +4,24 @@
 
 (check-set-mode! 'report-failed)
 
+;; bag-delete! 函数测试
+;;
+;; 语法
+;; ----
+;; (bag-delete! bag element ...)
+;;
+;; 参数
+;; ----
+;; bag : bag
+;; 目标 bag。
+;;
+;; element ... : any
+;; 要删除的元素，每个元素只删除一个实例。
+;;
+;; 返回值
+;; -----
+;; 就地修改原 bag，并返回修改后的 bag（破坏性）。
+
 (let ((b (bag 1 2 2 3)))
   (bag-delete! b 2 3)
   (check (bag-size b) => 2)

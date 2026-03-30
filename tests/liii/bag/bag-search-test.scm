@@ -4,32 +4,30 @@
 
 (check-set-mode! 'report-failed)
 
-#|
-bag-search!
-搜索并根据成功/失败分支更新 bag。
+;; bag-search! 函数测试
+;;
+;; 语法
+;; ----
+;; (bag-search! bag element failure success)
+;;
+;; 参数
+;; ----
+;; bag : bag
+;; 目标 bag。
+;;
+;; element : any
+;; 要查找的元素（按 comparator 等价判断）。
+;;
+;; failure : procedure
+;; 未命中时调用，签名：(lambda (insert ignore) ...)
+;;
+;; success : procedure
+;; 命中时调用，签名：(lambda (element update remove) ...)
+;;
+;; 返回值
+;; -----
+;; 返回 (values bag obj)，具体 obj 由 failure/success 回调决定。
 
-语法
-----
-(bag-search! bag element failure success)
-
-参数
-----
-bag : bag
-目标 bag。
-
-element : any
-要查找的元素（按 comparator 等价判断）。
-
-failure : procedure
-未命中时调用，签名：(lambda (insert ignore) ...)
-
-success : procedure
-命中时调用，签名：(lambda (element update remove) ...)
-
-返回值
------
-返回 (values bag obj)，具体 obj 由 failure/success 回调决定。
-|#
 (let ((yam (bag #\y #\a #\m)))
   (define (failure/insert insert ignore)
     (insert 1))

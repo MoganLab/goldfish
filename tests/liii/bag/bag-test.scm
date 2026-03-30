@@ -8,23 +8,21 @@
 (define b-empty (bag))
 (define comp (bag-comparator b-empty))
 
-#|
-bag
-创建一个新的 bag。
+;; bag 函数测试
+;;
+;; 语法
+;; ----
+;; (bag element ...)
+;;
+;; 参数
+;; ----
+;; element ... : any
+;; 初始元素。
+;;
+;; 返回值
+;; -----
+;; 返回包含指定元素的 bag。
 
-语法
-----
-(bag element ...)
-
-参数
-----
-element ... : any
-初始元素。
-
-返回值
------
-返回包含指定元素的 bag。
-|#
 (define b-1-2 (bag 1 2 2))
 (define b-list (bag->list b-1-2))
 (check (bag-member b-1-2 1 #f) => 1)

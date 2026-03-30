@@ -7,26 +7,24 @@
 ;; Data Setup
 (define b-empty (bag))
 
-#|
-bag-disjoint?
-判断两个 bag 是否不相交。
+;; bag-disjoint? 函数测试
+;;
+;; 语法
+;; ----
+;; (bag-disjoint? bag1 bag2)
+;;
+;; 参数
+;; ----
+;; bag1 : bag
+;; 第一个 bag。
+;;
+;; bag2 : bag
+;; 第二个 bag。
+;;
+;; 返回值
+;; -----
+;; 如果两个 bag 没有相等元素，返回 #t；否则返回 #f。
 
-语法
-----
-(bag-disjoint? bag1 bag2)
-
-参数
-----
-bag1 : bag
-第一个 bag。
-
-bag2 : bag
-第二个 bag。
-
-返回值
------
-如果两个 bag 没有相等元素，返回 #t；否则返回 #f。
-|#
 (check-true (bag-disjoint? (bag 1 1) (bag 2 2)))
 (check-false (bag-disjoint? (bag 1 1) (bag 1 2)))
 (check-true (bag-disjoint? b-empty (bag 1)))
