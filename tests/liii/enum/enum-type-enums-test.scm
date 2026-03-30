@@ -1,11 +1,13 @@
 (import (liii check)
         (liii enum)
-        (srfi srfi-1))
+        (srfi srfi-1)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define color-names
-  '(red tangerine orange yellow green cyan blue violet))
+  '(red tangerine orange yellow green cyan blue violet)
+) ;define
 
 (define color (make-enum-type color-names))
 

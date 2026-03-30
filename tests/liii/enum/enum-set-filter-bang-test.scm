@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii enum))
+        (liii enum)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define color-names
-  '(red tangerine orange yellow green cyan blue violet))
+  '(red tangerine orange yellow green cyan blue violet)
+) ;define
 
 (define color (make-enum-type color-names))
 
@@ -47,6 +49,6 @@
 (let ((filtered (enum-set-filter! (lambda (e) (enum=? e color-red)) (enum-set-copy color-set))))
   (check (enum-set-size filtered) => 1)
   (check (enum-set-contains? filtered color-red) => #t)
-)
+) ;let
 
 (check-report)

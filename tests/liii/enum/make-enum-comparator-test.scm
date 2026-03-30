@@ -1,6 +1,7 @@
 (import (liii check)
         (liii enum)
-        (srfi srfi-128))
+        (srfi srfi-128)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -9,7 +10,8 @@
     (funghi "mushrooms")
     (bianca "ricotta and mozzarella")
     (chicago "deep-dish")
-    (hawaiian "pineapple and ham")))
+    (hawaiian "pineapple and ham"))
+) ;define
 
 (define pizza (make-enum-type pizza-descriptions))
 

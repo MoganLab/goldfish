@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii enum))
+        (liii enum)
+) ;import
 
 (check-set-mode! 'report-failed)
 

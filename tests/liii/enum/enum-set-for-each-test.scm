@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii enum))
+        (liii enum)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define color-names
-  '(red tangerine orange yellow green cyan blue violet))
+  '(red tangerine orange yellow green cyan blue violet)
+) ;define
 
 (define color (make-enum-type color-names))
 
@@ -46,6 +48,7 @@
          (enum-set-for-each (lambda (_) (set! n (+ n 1))) color-set)
          n)
        =>
-       (length color-names))
+       (length color-names)
+) ;check
 
 (check-report)

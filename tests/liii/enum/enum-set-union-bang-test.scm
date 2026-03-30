@@ -1,11 +1,13 @@
 (import (liii check)
         (liii enum)
-        (srfi srfi-1))
+        (srfi srfi-1)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define color-names
-  '(red tangerine orange yellow green cyan blue violet))
+  '(red tangerine orange yellow green cyan blue violet)
+) ;define
 
 (define color (make-enum-type color-names))
 
@@ -15,16 +17,23 @@
   (list->enum-set color
                   (map (lambda (name)
                          (enum-name->enum color name))
-                       (take color-names 3))))
+                       (take color-names 3)
+                  ) ;map
+  ) ;list->enum-set
+) ;define
 
 (define reddish-complement
   (list->enum-set color
                   (map (lambda (name)
                          (enum-name->enum color name))
-                       (drop color-names 3))))
+                       (drop color-names 3)
+                  ) ;map
+  ) ;list->enum-set
+) ;define
 
 (define (fresh-sets proc eset1 eset2)
-  (proc (enum-set-copy eset1) (enum-set-copy eset2)))
+  (proc (enum-set-copy eset1) (enum-set-copy eset2))
+) ;define
 
 ;; enum-set-union!
 ;; 线性更新地计算并集。

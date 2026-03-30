@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii enum))
+        (liii enum)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -37,6 +38,8 @@
   (check (enum-set-every? (lambda (e) (eqv? (enum-name e) (enum-value e)))
                           us-traffic-light)
          =>
-         #t))
+         #t
+  ) ;check
+) ;let*
 
 (check-report)

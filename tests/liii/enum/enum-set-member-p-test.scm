@@ -1,11 +1,13 @@
 (import (liii check)
         (liii enum)
-        (srfi srfi-1))
+        (srfi srfi-1)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define color-names
-  '(red tangerine orange yellow green cyan blue violet))
+  '(red tangerine orange yellow green cyan blue violet)
+) ;define
 
 (define color (make-enum-type color-names))
 
@@ -13,7 +15,10 @@
   (list->enum-set color
                   (map (lambda (name)
                          (enum-name->enum color name))
-                       (take color-names 3))))
+                       (take color-names 3)
+                  ) ;map
+  ) ;list->enum-set
+) ;define
 
 ;; enum-set-member?
 ;; 判断符号是否是 enum-set 的成员名称。
