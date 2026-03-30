@@ -38,26 +38,11 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
-
 ;;; 精简测试：bitwise-andc1 按位与非操作
 (check (bitwise-andc1 11 26) => 16)
 (check (bitwise-andc1 5 3) => 2)
 (check (bitwise-andc1 #b1100 #b1010) => 2)
 (check (bitwise-andc1 0 15) => 15)
-
-(check (bitwise-andc2 11 26) => 1)
-(check (bitwise-andc2 5 3) => 4)
-(check (bitwise-andc2 #b1100 #b1010) => 4)
-(check (bitwise-andc2 0 15) => 0)
-(check (bitwise-andc2 15 0) => 15)
-(check (bitwise-andc2 7 1) => 6)
-
-(check (arithmetic-shift #b10 -1) => #b1) ; 2 >> 1 = 1
-(check (arithmetic-shift #b10 1) => #b100) ; 2 << 1 = 4
-(check (arithmetic-shift #b1000 -2) => #b10) ; 8 >> 2 = 2
-(check (arithmetic-shift #b1000 2) => #b100000)
-(check (arithmetic-shift #b10000000000000000 -3) => #b10000000000000)
-(check (arithmetic-shift #b1000000000000000 3) => #b1000000000000000000)
 
 
 (check-report)

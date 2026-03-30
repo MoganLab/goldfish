@@ -37,6 +37,13 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
+;;; 精简测试：bitwise-andc2 按位与非操作
+(check (bitwise-andc2 11 26) => 1)
+(check (bitwise-andc2 5 3) => 4)
+(check (bitwise-andc2 #b1100 #b1010) => 4)
+(check (bitwise-andc2 0 15) => 0)
+(check (bitwise-andc2 15 0) => 15)
+(check (bitwise-andc2 7 1) => 6)
 
 
 (check-report)

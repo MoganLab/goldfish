@@ -40,6 +40,13 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
+;;; 精简测试：arithmetic-shift 算术移位操作
+(check (arithmetic-shift #b10 -1) => #b1) ; 2 >> 1 = 1
+(check (arithmetic-shift #b10 1) => #b100) ; 2 << 1 = 4
+(check (arithmetic-shift #b1000 -2) => #b10) ; 8 >> 2 = 2
+(check (arithmetic-shift #b1000 2) => #b100000)
+(check (arithmetic-shift #b10000000000000000 -3) => #b10000000000000)
+(check (arithmetic-shift #b1000000000000000 3) => #b1000000000000000000)
 
 
 (check-report)
