@@ -23,7 +23,7 @@
     path-root path-of-drive path-from-parts path-from-env
     path-cwd path-home path-temp-dir
     path-parts path-type path-drive path-copy
-    path->string path-to-string
+    path->string
     path-name path-stem path-suffix
     path-equals? path=?
     path-absolute? path-relative?
@@ -172,8 +172,6 @@
     (define (path->string value)
       (path->input-string value "path->string")
     ) ;define
-
-    (define path-to-string path->string)
 
     (define (path-name value)
       ((path->object value "path-name") :name)
