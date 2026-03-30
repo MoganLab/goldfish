@@ -57,31 +57,6 @@
 ;; wrong-number-of-args
 ;; 当参数数量不是3个时抛出错误。
 
-
-(check (integer-length 0) => 0)
-(check (integer-length 1) => 1)     ; 1
-(check (integer-length 3) => 2)     ; 11
-(check (integer-length 4) => 3)     ; 100
-(check (integer-length -5) => 3)    ; -101 (长度为3)
-(check (integer-length #xFFFF) => 16) ; 16位二进制
-
-;;; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-             (integer-length "string")  ; 字符串参数
-) ;check-catch
-(check-catch 'wrong-type-arg
-             (integer-length 'symbol)   ; 符号参数
-) ;check-catch
-(check-catch 'wrong-type-arg
-             (integer-length 3.14)      ; 浮点数参数
-) ;check-catch
-(check-catch 'wrong-type-arg
-             (integer-length #\a)       ; 字符参数
-) ;check-catch
-(check-catch 'wrong-type-arg
-             (integer-length '(1 2))    ; 列表参数
-) ;check-catch
-
 ;;; 基本功能测试：bitwise-if 按位条件选择操作
 (check (bitwise-if 3 1 8) => 9)  ; #b011 #001 #100 => #101
 (check (bitwise-if 3 8 1) => 0)  ; #011 #100 #001 => #000
