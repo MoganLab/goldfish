@@ -1,5 +1,6 @@
 (import (liii base64)
         (liii check)
+        (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
