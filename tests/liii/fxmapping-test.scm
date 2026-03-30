@@ -40,6 +40,7 @@
 ;;; 4. Updaters（更新器）
 ;;; --------------------------------------------------------
 ;;; - fxmapping-adjoin                   : 添加键值对（不覆盖）
+;;; - fxmapping-adjoin/combinator        : 添加键值对，带合并函数
 ;;; - fxmapping-set                      : 设置键值对（覆盖）
 ;;; - fxmapping-adjust                   : 调整指定键的值
 ;;; - fxmapping-delete                   : 删除指定键
@@ -82,12 +83,18 @@
 ;;; 8. Comparison（比较）
 ;;; --------------------------------------------------------
 ;;; - fxmapping=?                        : 比较映射是否相等
+;;; - fxmapping<?                        : 是否为真子集
+;;; - fxmapping>?                        : 是否为真超集
+;;; - fxmapping<=?                       : 是否为子集
+;;; - fxmapping>=?                       : 是否为超集
 ;;;
 ;;; --------------------------------------------------------
 ;;; 9. Set theory operations（集合操作）
 ;;; --------------------------------------------------------
 ;;; - fxmapping-union                    : 并集
+;;; - fxmapping-union/combinator         : 并集，带合并函数
 ;;; - fxmapping-intersection             : 交集
+;;; - fxmapping-intersection/combinator  : 交集，带合并函数
 ;;; - fxmapping-difference               : 差集
 ;;; - fxmapping-xor                      : 对称差集
 ;;;
