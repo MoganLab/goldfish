@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-pad
 ;; 在字符串左侧填充字符以达到指定长度。

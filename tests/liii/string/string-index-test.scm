@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-index
 ;; 在字符串中查找指定字符或满足条件的第一个字符的位置。

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-trim
 ;; 从字符串开头移除指定的字符/空白字符。

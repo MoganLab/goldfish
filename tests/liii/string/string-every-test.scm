@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-every
 ;; 检查字符串中的每个字符是否都满足给定的条件。

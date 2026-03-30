@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii string))
+        (liii string)
+) ;import
 
 ;; string-take-right
 ;; 从字符串末尾提取指定数量的字符。
