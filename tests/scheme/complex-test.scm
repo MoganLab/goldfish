@@ -1,18 +1,17 @@
-(import (liii check)
-        (scheme complex)
-) ;import
+;;
+;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
 
-(check-set-mode! 'report-failed)
-
-;; 本文件为 (scheme complex) 的入口说明文件
-;; 实际测试用例位于 tests/scheme/complex/ 目录下
-
-;; 导入所有子模块测试
-(load "tests/scheme/complex/real-part-test.scm")
-(load "tests/scheme/complex/imag-part-test.scm")
-(load "tests/scheme/complex/angle-test.scm")
-(load "tests/scheme/complex/magnitude-test.scm")
-(load "tests/scheme/complex/make-polar-test.scm")
-(load "tests/scheme/complex/make-rectangular-test.scm")
-
-(check-report)
+;; (scheme complex) 中相关的测试用例都在 tests/scheme/complex 目录中
