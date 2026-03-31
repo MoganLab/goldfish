@@ -20,6 +20,7 @@
           (liii golddoc-library)
           (liii njson)
           (liii path)
+          (liii set)
           (liii string)
   ) ;import
   (export index-entry->library-query
@@ -163,34 +164,32 @@
     ) ;define
 
     (define (visible-function-names)
-      (let loop ((entries (load-function-index))
-                 (visible '()))
-        (if (null? entries)
-            visible
-            (let* ((entry (car entries))
-                   (function-name (car entry))
-                   (library-entries (cdr entry))
-                   (has-visible-library?
-                     (let visible-loop ((remaining library-entries))
-                       (and (not (null? remaining))
-                            (or (let ((library-query (index-entry->library-query (car remaining))))
-                                  (and library-query
-                                       (visible-library-query? library-query))
-                                ) ;let
-                                (visible-loop (cdr remaining))
-                            ) ;or
-                       ) ;and
-                     ) ;let
-                   ))
-              (loop (cdr entries)
-                    (if (and has-visible-library?
-                             (not (member function-name visible)))
-                        (append visible (list function-name))
-                        visible
-                    ) ;if
-              ) ;loop
-            ) ;let*
-        ) ;if
+      (let ((visible (set)))
+        (let loop ((entries (load-function-index)))
+          (if (null? entries)
+              (set->list visible)
+              (let* ((entry (car entries))
+                     (function-name (car entry))
+                     (library-entries (cdr entry))
+                     (has-visible-library?
+                       (let visible-loop ((remaining library-entries))
+                         (and (not (null? remaining))
+                              (or (let ((library-query (index-entry->library-query (car remaining))))
+                                    (and library-query
+                                         (visible-library-query? library-query))
+                                  ) ;let
+                                  (visible-loop (cdr remaining))
+                              ) ;or
+                         ) ;and
+                       ) ;let
+                     ))
+                (when (and has-visible-library?
+                           (not (set-contains? visible function-name)))
+                  (set-adjoin! visible function-name))
+                (loop (cdr entries))
+              ) ;let*
+          ) ;if
+        ) ;let loop
       ) ;let
     ) ;define
 
