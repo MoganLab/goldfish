@@ -231,8 +231,8 @@
           (set-list-queue-last-pair! queue new-first)
         ) ;when
         (set-list-queue-first-pair! queue new-first)
+      ) ;let*
     ) ;define
-) ;define-library
 
     (define (list-queue-add-back! queue element)
       (%ensure-list-queue "list-queue-add-back!" queue)
@@ -256,7 +256,7 @@
         ) ;when
         (set-list-queue-first-pair! queue new-first)
         element
-    ) ;define
+      ) ;let*
     ) ;define
 
     (define (list-queue-remove-back! queue)
@@ -271,7 +271,7 @@
         ) ;if
         (set-list-queue-last-pair! queue new-last)
         element
-    ) ;define
+      ) ;let*
     ) ;define
 
     (define (list-queue-remove-all! queue)
@@ -351,7 +351,7 @@
               (loop (cdr queues) result)
             ) ;begin
         ) ;if
-    ) ;define
+      ) ;let
     ) ;define
 
     (define (list-queue-map proc queue)
