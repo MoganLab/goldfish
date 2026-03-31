@@ -103,37 +103,26 @@
     ) ;define
 
     (define (function-doc-path library-query exported-name)
-      (let ((parts (parse-library-query library-query)))
-        (if (not parts)
-            #f
-            (let ((group (car parts))
-                  (library (cdr parts)))
-              (if (excluded-test-group? group)
-                  #f
-                  (let ((load-root (find-visible-library-root library-query)))
-                    (if (not load-root)
-                        #f
-                        (let ((tests-root (find-tests-root-for-load-root load-root)))
-                          (if (not tests-root)
-                              #f
-                              (let ((candidate (path->string (path-join tests-root
-                                                                       group
-                                                                       library
-                                                                       (string-append (exported-name->test-stem exported-name)
-                                                                                      "-test.scm")))))
-                                (if (path-file? candidate)
-                                    candidate
-                                    #f
-                                ) ;if
-                              ) ;let
-                          ) ;if
-                        ) ;let
-                    ) ;if
-                  ) ;if
-              ) ;let
-            ) ;if
-        ) ;if
-      ) ;let
+      (let* ((parts (parse-library-query library-query))
+             (group (and parts (car parts)))
+             (library (and parts (cdr parts)))
+             (load-root (and parts
+                             (not (excluded-test-group? group))
+                             (find-visible-library-root library-query)))
+             (tests-root (and load-root
+                              (find-tests-root-for-load-root load-root)))
+             (candidate (and tests-root
+                             (path->string
+                               (path-join tests-root
+                                          group
+                                          library
+                                          (string-append (exported-name->test-stem exported-name)
+                                                         "-test.scm"))))))
+        (and candidate
+             (path-file? candidate)
+             candidate
+        ) ;and
+      ) ;let*
     ) ;define
 
   ) ;begin
