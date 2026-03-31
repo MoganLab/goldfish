@@ -57,6 +57,9 @@
   (check (path-dir? "C:/") => #t)
   (check (path-dir? "C:/Windows") => #t)
   (check (path-dir? "C:/Program Files") => #t)
+  ;; 使用正斜杠的相对路径测试
+  (check (path-dir? "tests/liii/path") => #t)
+  (check (path-dir? "goldfish/liii") => #t)
   ;; 不存在目录测试
   (check (path-dir? "C:/no_such_dir/") => #f)
   (check (path-dir? "Z:/definitely/not/exist") => #f)

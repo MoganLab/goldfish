@@ -171,8 +171,9 @@
                 ((or (string-starts? arg "-m=") (string-starts? arg "--mode="))
                  (loop (cdr remaining) #f)
                 ) ;
-                ;; 包含 / 的路径
-                ((string-contains arg "/")
+                ;; 包含路径分隔符的路径 (/ 或 Windows 的 \)
+                ((or (string-contains arg "/")
+                     (and (os-windows?) (string-contains arg "\\")))
                  (cond
                    ((path-file? arg) (cons 'file arg))
                    ((path-dir? arg) (cons 'dir arg))
@@ -203,7 +204,12 @@
         ) ;
         ((dir)
          ;; 返回该目录下的所有测试文件
-         (filter (lambda (file) (string-starts? file arg-value)) test-files)
+         ;; 在 Windows 上，将用户输入的正斜杠转换为反斜杠以匹配文件路径
+         (let ((dir-pattern (if (os-windows?)
+                                (string-replace arg-value "/" "\\")
+                                arg-value)))
+           (filter (lambda (file) (string-starts? file dir-pattern)) test-files)
+         ) ;let
         ) ;
         ((filename)
          ;; 精确匹配文件名
