@@ -16,7 +16,6 @@
 
 (import (liii timeit)
         (liii rich-either)
-        (liii lang)
         (liii base))
 
 (define (benchmark-either-operations)

@@ -2,7 +2,6 @@
         (liii base)
         (liii list)
         (liii case)
-        (liii lang)
         (liii error)
         (liii os))
 

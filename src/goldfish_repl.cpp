@@ -64,7 +64,6 @@ eval_string (const char* code) {
     // 自动加载所有 goldfish/liii/*.scm
     s7_eval_c_string (wasm_sc, "(load \"liii/alist.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/argparse.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/array-buffer.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/base.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/base64.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/bitwise.scm\")");
@@ -73,28 +72,12 @@ eval_string (const char* code) {
     s7_eval_c_string (wasm_sc, "(load \"liii/chez.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/comparator.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/cut.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/datetime.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/either.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-either.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/error.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/hash-table.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/lang.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/list.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/logging.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/oop.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/option.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/os.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/path.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-path.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/range.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-char.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-hash-table.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-list.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-string.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/rich-vector.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/set.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/sort.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"liii/stack.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/string.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/sys.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"liii/uuid.scm\")");
@@ -120,7 +103,6 @@ eval_string (const char* code) {
   }
   s7_eval_c_string (wasm_sc, "(import (liii base))");
   s7_eval_c_string (wasm_sc, "(import (liii error))");
-  s7_eval_c_string (wasm_sc, "(import (liii oop))");
   OutputCatcher out_catcher (std::cout);
   OutputCatcher err_catcher (std::cerr);
   int           status= 0;

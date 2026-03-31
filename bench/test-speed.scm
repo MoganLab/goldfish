@@ -16,7 +16,6 @@
 
 (import (scheme base)
         (scheme time) ; For current-jiffy (or your Scheme's equivalent)
-        (liii lang)
         (liii string)
         (liii vector)
         (liii list))
