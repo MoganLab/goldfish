@@ -17,6 +17,7 @@
 (define-library (liii golddoc-cli)
   (import (scheme base)
           (liii golddoc-args)
+          (liii golddoc-fuzzy)
           (liii golddoc-function)
           (liii golddoc-index)
           (liii golddoc-index-build)
@@ -42,6 +43,48 @@
       ) ;let
     ) ;define
 
+    (define (display-build-json-hint)
+      (stderr-line "Hint: run `gf doc --build-json` to build function index.")
+    ) ;define
+
+    (define (display-function-suggestions function-name suggestions)
+      (let ((port (current-error-port)))
+        (display (string-append "No exact match for function: " function-name) port)
+        (newline port)
+        (display "Did you mean:" port)
+        (newline port)
+        (for-each
+          (lambda (suggestion)
+            (display "  " port)
+            (display suggestion port)
+            (newline port)
+          ) ;lambda
+          suggestions
+        ) ;for-each
+      ) ;let
+    ) ;define
+
+    (define (display-library-function-suggestions library-query function-name suggestions)
+      (let ((port (current-error-port)))
+        (display (string-append "No exact match for function: "
+                                function-name
+                                " in library: "
+                                library-query)
+                 port)
+        (newline port)
+        (display "Did you mean:" port)
+        (newline port)
+        (for-each
+          (lambda (suggestion)
+            (display "  " port)
+            (display suggestion port)
+            (newline port)
+          ) ;lambda
+          suggestions
+        ) ;for-each
+      ) ;let
+    ) ;define
+
     (define (display-library-choices function-name library-queries)
       (let ((port (current-error-port)))
         (display (string-append "Function is implemented in multiple visible libraries: " function-name) port)
@@ -61,8 +104,22 @@
       (let ((library-queries (visible-libraries-for-function function-name)))
         (cond
           ((null? library-queries)
-           (stderr-line (string-append "Error: function not found in *load-path*: " function-name))
-           1
+           (let ((suggestions (suggest-visible-functions function-name)))
+             (if (null? suggestions)
+                 (begin
+                   (stderr-line (string-append "Error: function not found in *load-path*: " function-name))
+                   (if (null? (find-function-index-paths))
+                       (display-build-json-hint)
+                       #f
+                   ) ;if
+                   1
+                 ) ;begin
+                 (begin
+                   (display-function-suggestions function-name suggestions)
+                   1
+                 ) ;begin
+             ) ;if
+           ) ;let
           ) ;
           ((null? (cdr library-queries))
            (let ((doc-path (function-doc-path (car library-queries) function-name)))
@@ -133,10 +190,25 @@
                ((not visible-library-root)
                 (let ((fallback-libraries (visible-libraries-for-function query)))
                   (if (null? fallback-libraries)
-                      (begin
-                        (stderr-line (string-append "Error: library not found in *load-path*: " query))
-                        1
-                      ) ;begin
+                      (if (null? (find-function-index-paths))
+                          (begin
+                            (stderr-line (string-append "Error: function index not found for query: " query))
+                            (display-build-json-hint)
+                            1
+                          ) ;begin
+                          (let ((suggestions (suggest-visible-functions query)))
+                            (if (null? suggestions)
+                                (begin
+                                  (stderr-line (string-append "Error: library not found in *load-path*: " query))
+                                  1
+                                ) ;begin
+                                (begin
+                                  (display-function-suggestions query suggestions)
+                                  1
+                                ) ;begin
+                            ) ;if
+                          ) ;let
+                      ) ;if
                       (run-function-query query)
                   ) ;if
                 ) ;let
@@ -172,12 +244,22 @@
                 1
                ) ;
                (else
-                (stderr-line (string-append "Error: documentation file not found for function: "
-                                            exported-name
-                                            " in library: "
-                                            library-query)
-                ) ;stderr-line
-                1
+                (let ((suggestions (suggest-library-functions library-query exported-name)))
+                  (if (null? suggestions)
+                      (begin
+                        (stderr-line (string-append "Error: documentation file not found for function: "
+                                                    exported-name
+                                                    " in library: "
+                                                    library-query)
+                        ) ;stderr-line
+                        1
+                      ) ;begin
+                      (begin
+                        (display-library-function-suggestions library-query exported-name suggestions)
+                        1
+                      ) ;begin
+                  ) ;if
+                ) ;let
                ) ;else
              ) ;cond
           ) ;let*

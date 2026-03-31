@@ -1,0 +1,155 @@
+;
+; Copyright (C) 2026 The Goldfish Scheme Authors
+;
+; Licensed under the Apache License, Version 2.0 (the "License");
+; you may not use this file except in compliance with the License.
+; You may obtain a copy of the License at
+;
+; http://www.apache.org/licenses/LICENSE-2.0
+;
+; Unless required by applicable law or agreed to in writing, software
+; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+; License for the specific language governing permissions and limitations
+; under the License.
+;
+
+(define-library (liii golddoc-fuzzy)
+  (import (scheme base)
+          (liii golddoc-function)
+          (liii golddoc-index)
+          (liii sort)
+          (liii string)
+  ) ;import
+  (export max-fuzzy-edit-distance
+          bounded-levenshtein-distance
+          suggest-candidates
+          suggest-library-functions
+          suggest-visible-functions
+  ) ;export
+  (begin
+
+    (define max-fuzzy-edit-distance 2)
+
+    (define (unique-strings strings)
+      (let loop ((remaining strings)
+                 (result '()))
+        (if (null? remaining)
+            (reverse result)
+            (let ((value (car remaining)))
+              (loop (cdr remaining)
+                    (if (and (string? value)
+                             (not (member value result)))
+                        (cons value result)
+                        result
+                    ) ;if
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (bounded-levenshtein-distance left right)
+      (let* ((left-length (string-length left))
+             (right-length (string-length right))
+             (length-gap (abs (- left-length right-length))))
+        (if (> length-gap max-fuzzy-edit-distance)
+            #f
+            (let ((prev (make-vector (+ right-length 1) 0))
+                  (curr (make-vector (+ right-length 1) 0)))
+              (let init-loop ((index 0))
+                (if (<= index right-length)
+                    (begin
+                      (vector-set! prev index index)
+                      (init-loop (+ index 1))
+                    ) ;begin
+                    (let row-loop ((left-index 1)
+                                   (prev-row prev)
+                                   (curr-row curr))
+                      (if (> left-index left-length)
+                          (let ((distance (vector-ref prev-row right-length)))
+                            (if (<= distance max-fuzzy-edit-distance)
+                                distance
+                                #f
+                            ) ;if
+                          ) ;let
+                          (begin
+                            (vector-set! curr-row 0 left-index)
+                            (let ((row-min left-index))
+                              (let column-loop ((right-index 1)
+                                                (current-min row-min))
+                                (if (> right-index right-length)
+                                    (if (> current-min max-fuzzy-edit-distance)
+                                        #f
+                                        (row-loop (+ left-index 1) curr-row prev-row)
+                                    ) ;if
+                                    (let* ((cost (if (char=? (string-ref left (- left-index 1))
+                                                             (string-ref right (- right-index 1)))
+                                                     0
+                                                     1
+                                                 ) ;if
+                                           )
+                                           (deletion (+ (vector-ref prev-row right-index) 1))
+                                           (insertion (+ (vector-ref curr-row (- right-index 1)) 1))
+                                           (substitution (+ (vector-ref prev-row (- right-index 1)) cost))
+                                           (distance (min deletion insertion substitution))
+                                           (next-min (min current-min distance)))
+                                      (vector-set! curr-row right-index distance)
+                                      (column-loop (+ right-index 1) next-min)
+                                    ) ;let*
+                                ) ;if
+                              ) ;let
+                            ) ;let
+                          ) ;begin
+                      ) ;if
+                    ) ;let
+                ) ;if
+              ) ;let
+            ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (edit-distance-matches query candidates)
+      (let loop ((remaining (unique-strings candidates))
+                 (matches '()))
+        (if (null? remaining)
+            (map car
+                 (list-sort (lambda (left right)
+                              (if (= (cdr left) (cdr right))
+                                  (string<? (car left) (car right))
+                                  (< (cdr left) (cdr right))
+                              ) ;if
+                            ) ;lambda
+                            matches)
+            ) ;map
+            (let* ((candidate (car remaining))
+                   (distance (and (not (string=? candidate query))
+                                  (bounded-levenshtein-distance query candidate))))
+              (loop (cdr remaining)
+                    (if distance
+                        (cons (cons candidate distance) matches)
+                        matches
+                    ) ;if
+              ) ;loop
+            ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (suggest-candidates query candidates)
+      (edit-distance-matches query candidates)
+    ) ;define
+
+    (define (suggest-library-functions library-query function-name)
+      (suggest-candidates function-name
+                          (library-documented-functions library-query))
+    ) ;define
+
+    (define (suggest-visible-functions function-name)
+      (suggest-candidates function-name
+                          (visible-function-names))
+    ) ;define
+
+  ) ;begin
+) ;define-library

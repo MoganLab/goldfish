@@ -23,6 +23,7 @@
           (liii string)
   ) ;import
   (export exported-name->test-stem
+          library-documented-functions
           function-doc-path
   ) ;export
   (begin
@@ -115,6 +116,24 @@
       ) ;let
     ) ;define
 
+    (define (test-file-documented-function-name path)
+      (let* ((lines (string-split (path-read-text path) "\n"))
+             (file-stem (string-remove-suffix (path-stem path) "-test")))
+        (let loop ((remaining lines))
+          (and (not (null? remaining))
+               (let ((candidate (comment-line->candidate (car remaining))))
+                 (if (and candidate
+                          (or (string=? (exported-name->test-stem candidate) file-stem)
+                              (file-documents-function? path candidate)))
+                     candidate
+                     (loop (cdr remaining))
+                 ) ;if
+               ) ;let
+          ) ;and
+        ) ;let
+      ) ;let*
+    ) ;define
+
     (define (find-function-doc-by-scan library-dir exported-name)
       (if (not (path-dir? library-dir))
           #f
@@ -132,6 +151,43 @@
             ) ;and
           ) ;let
       ) ;if
+    ) ;define
+
+    (define (library-documented-functions library-query)
+      (let* ((parts (parse-library-query library-query))
+             (group (and parts (car parts)))
+             (load-root (and parts
+                             (not (excluded-test-group? group))
+                             (find-visible-library-root library-query)))
+             (tests-root (and load-root
+                              (find-tests-root-for-load-root load-root)))
+             (library-dir (and tests-root
+                               (path->string (path-join tests-root group (cdr parts))))))
+        (if (not (and library-dir (path-dir? library-dir)))
+            '()
+            (let loop ((entries (vector->list (listdir library-dir)))
+                       (functions '()))
+              (if (null? entries)
+                  functions
+                  (let ((entry-name (car entries)))
+                    (if (string-ends? entry-name "-test.scm")
+                        (let* ((test-file (path->string (path-join library-dir entry-name)))
+                               (function-name (test-file-documented-function-name test-file)))
+                          (loop (cdr entries)
+                                (if (and function-name
+                                         (not (member function-name functions)))
+                                    (append functions (list function-name))
+                                    functions
+                                ) ;if
+                          ) ;loop
+                        ) ;let*
+                        (loop (cdr entries) functions)
+                    ) ;if
+                  ) ;let
+              ) ;if
+            ) ;let
+        ) ;if
+      ) ;let*
     ) ;define
 
     (define (pure-operator->stem name)
