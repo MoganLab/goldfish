@@ -34,12 +34,19 @@
     ) ;define
 
     (define (display-usage)
-      (let ((port (current-error-port)))
+      (let ((port (current-output-port)))
         (display "Usage:" port) (newline port)
         (display "  gf doc ORG/LIB" port) (newline port)
         (display "  gf doc ORG/LIB FUNC" port) (newline port)
         (display "  gf doc FUNC" port) (newline port)
         (display "  gf doc --build-json" port) (newline port)
+        (newline port)
+        (display "Examples:" port) (newline port)
+        (display "  gf doc liii/path              # 显示 liii/path 库的完整文档" port) (newline port)
+        (display "  gf doc liii/path \"path?\"      # 显示 liii/path 库中 path? 函数的文档和用例" port) (newline port)
+        (display "  gf doc \"path-join\"            # 在所有可见库中搜索 path-join 函数并显示其文档" port) (newline port)
+        (display "  gf doc \"string-spli\"          # 模糊匹配，提示 string-split 等相似函数" port) (newline port)
+        (display "  gf doc --build-json           # 重新构建函数索引（首次使用或测试文件变更后执行）" port) (newline port)
       ) ;let
     ) ;define
 
@@ -269,7 +276,7 @@
           ) ;
           (else
            (display-usage)
-           1
+           0
           ) ;else
         ) ;case
       ) ;let
