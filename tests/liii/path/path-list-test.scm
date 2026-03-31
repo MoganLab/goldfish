@@ -2,17 +2,10 @@
         (liii path)
         (liii string)
         (liii os)
+        (liii vector)
 ) ;import
 
 (check-set-mode! 'report-failed)
-
-;; 辅助函数
-(define (string-list-contains? target xs)
-  (cond ((null? xs) #f)
-        ((string=? target (car xs)) #t)
-        (else (string-list-contains? target (cdr xs)))
-  ) ;cond
-) ;define
 
 ;; path-list
 ;; 列出目录中的文件名。
@@ -55,8 +48,8 @@
   (path-write-text list-file-b "b")
 
   (check-true (vector? (path-list list-dir)))
-  (check-true (string-list-contains? "child-a.txt" (vector->list (path-list list-dir))))
-  (check-true (string-list-contains? "child-b.txt" (vector->list (path-list list-dir))))
+  (check-true (vector-contains? (path-list list-dir) "child-a.txt"))
+  (check-true (vector-contains? (path-list list-dir) "child-b.txt"))
 
   ;; 清理
   (delete-file (path->string list-file-a))
