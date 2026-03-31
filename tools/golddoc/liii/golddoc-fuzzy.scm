@@ -49,6 +49,45 @@
       ) ;let
     ) ;define
 
+    (define (initialize-distance-row! row right-length)
+      (let loop ((index 0))
+        (if (> index right-length)
+            row
+            (begin
+              (vector-set! row index index)
+              (loop (+ index 1))
+            ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (distance-cost left right left-index right-index)
+      (if (char=? (string-ref left (- left-index 1))
+                  (string-ref right (- right-index 1)))
+          0
+          1
+      ) ;if
+    ) ;define
+
+    (define (fill-distance-row! left right left-index right-length prev-row curr-row)
+      (vector-set! curr-row 0 left-index)
+      (let column-loop ((right-index 1)
+                        (row-min left-index))
+        (if (> right-index right-length)
+            row-min
+            (let* ((cost (distance-cost left right left-index right-index))
+                   (deletion (+ (vector-ref prev-row right-index) 1))
+                   (insertion (+ (vector-ref curr-row (- right-index 1)) 1))
+                   (substitution (+ (vector-ref prev-row (- right-index 1)) cost))
+                   (distance (min deletion insertion substitution))
+                   (next-min (min row-min distance)))
+              (vector-set! curr-row right-index distance)
+              (column-loop (+ right-index 1) next-min)
+            ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (bounded-levenshtein-distance left right)
       (let* ((left-length (string-length left))
              (right-length (string-length right))
@@ -57,51 +96,25 @@
             #f
             (let ((prev (make-vector (+ right-length 1) 0))
                   (curr (make-vector (+ right-length 1) 0)))
-              (let init-loop ((index 0))
-                (if (<= index right-length)
-                    (begin
-                      (vector-set! prev index index)
-                      (init-loop (+ index 1))
-                    ) ;begin
-                    (let row-loop ((left-index 1)
-                                   (prev-row prev)
-                                   (curr-row curr))
-                      (if (> left-index left-length)
-                          (let ((distance (vector-ref prev-row right-length)))
-                            (if (<= distance max-fuzzy-edit-distance)
-                                distance
-                                #f
-                            ) ;if
-                          ) ;let
-                          (begin
-                            (vector-set! curr-row 0 left-index)
-                            (let ((row-min left-index))
-                              (let column-loop ((right-index 1)
-                                                (current-min row-min))
-                                (if (> right-index right-length)
-                                    (if (> current-min max-fuzzy-edit-distance)
-                                        #f
-                                        (row-loop (+ left-index 1) curr-row prev-row)
-                                    ) ;if
-                                    (let* ((cost (if (char=? (string-ref left (- left-index 1))
-                                                             (string-ref right (- right-index 1)))
-                                                     0
-                                                     1
-                                                 ) ;if
-                                           )
-                                           (deletion (+ (vector-ref prev-row right-index) 1))
-                                           (insertion (+ (vector-ref curr-row (- right-index 1)) 1))
-                                           (substitution (+ (vector-ref prev-row (- right-index 1)) cost))
-                                           (distance (min deletion insertion substitution))
-                                           (next-min (min current-min distance)))
-                                      (vector-set! curr-row right-index distance)
-                                      (column-loop (+ right-index 1) next-min)
-                                    ) ;let*
-                                ) ;if
-                              ) ;let
-                            ) ;let
-                          ) ;begin
-                      ) ;if
+              (initialize-distance-row! prev right-length)
+              (let row-loop ((left-index 1)
+                             (prev-row prev)
+                             (curr-row curr))
+                (if (> left-index left-length)
+                    (let ((distance (vector-ref prev-row right-length)))
+                      (and (<= distance max-fuzzy-edit-distance)
+                           distance
+                      ) ;and
+                    ) ;let
+                    (let ((row-min (fill-distance-row! left
+                                                       right
+                                                       left-index
+                                                       right-length
+                                                       prev-row
+                                                       curr-row)))
+                      (and (<= row-min max-fuzzy-edit-distance)
+                           (row-loop (+ left-index 1) curr-row prev-row)
+                      ) ;and
                     ) ;let
                 ) ;if
               ) ;let
