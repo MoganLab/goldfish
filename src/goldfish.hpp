@@ -3525,6 +3525,21 @@ find_goldfix_tool_root (const char* gf_lib) {
 }
 
 static string
+find_goldeval_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldeval", fs::path (gf_lib).parent_path () / "tools" / "goldeval"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static string
 find_goldtest_tool_root (const char* gf_lib) {
   std::error_code ec;
   vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
@@ -4573,34 +4588,78 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   // 处理 eval 子命令
   if (command == "eval") {
-    if (argc < command_index + 1) {
-      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+    // 添加 tools/goldeval 目录到 load path (用于加载 (liii goldeval) 模块)
+    string goldeval_root = find_goldeval_tool_root (gf_lib);
+    if (goldeval_root.empty ()) {
+      cerr << "Error: tools/goldeval directory not found." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
-    // 查找 CODE 参数（跳过 mode 选项，从命令位置之后开始）
-    string code;
-    for (int i= command_index + 1; i < argc; ++i) {
-      string arg= argv[i];
-      if (arg == "--mode" || arg == "-m") {
-        i++; // skip mode value
-        continue;
-      }
-      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
-        continue;
-      }
-      code= arg;
-      break;
-    }
-    if (code.empty ()) {
-      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+    s7_add_to_load_path (sc, goldeval_root.c_str ());
+
+    // Import (liii goldeval) module
+    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldeval))");
+    if (!import_result) {
+      cerr << "Error: Failed to import (liii goldeval) module." << endl;
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cerr << "Error importing (liii goldeval): " << errmsg << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // Get and call the main function from (liii goldeval)
+    s7_pointer main_func = s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      cerr << "Error: Failed to find main function in (liii goldeval)." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // Call main function to get the code to evaluate
+    s7_pointer code_result = s7_call (sc, main_func, s7_nil (sc));
+    if (!code_result) {
+      cerr << "Error: Failed to get code from (liii goldeval) main function." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // Check if code_result is #f (no code provided)
+    if (code_result == s7_f (sc)) {
+      // Scheme code has already printed usage information
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      _exit (1);
+    }
+
+    // Convert result to string (the code to evaluate)
+    // code_result is a Scheme string, use s7_string to extract it
+    const char* code_str = s7_string (code_result);
+    if (!code_str) {
+      cerr << "Error: Failed to convert code to string." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    string code (code_str);
+
+    // Evaluate the code
     goldfish_eval_code (sc, code);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) cout << errmsg;
