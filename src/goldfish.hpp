@@ -3365,6 +3365,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  doc ORG/LIB        Display exact library documentation from tests/" << endl;
   cout << "  test [PATTERN]     Run tests (all *-test.scm files under tests/)" << endl;
   cout << "                     PATTERN can be:" << endl;
   cout << "                       (none)          Run all tests" << endl;
@@ -3525,6 +3526,21 @@ static string
 find_goldtest_tool_root (const char* gf_lib) {
   std::error_code ec;
   vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static string
+find_golddoc_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "golddoc", fs::path (gf_lib).parent_path () / "tools" / "golddoc"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -4712,12 +4728,64 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
-    s7_call (sc, main_func, s7_nil (sc));
+    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) cout << errmsg;
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if (s7_is_integer (result)) {
+      return static_cast<int> (s7_integer (result));
+    }
+    return 0;
+  }
+
+  // 处理 doc 子命令
+  if (command == "doc") {
+    string golddoc_root = find_golddoc_tool_root (gf_lib);
+    if (golddoc_root.empty ()) {
+      cerr << "Error: tools/golddoc directory not found." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_add_to_load_path (sc, golddoc_root.c_str ());
+
+    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii golddoc))");
+    if (!import_result) {
+      cerr << "Error: Failed to import (liii golddoc) module." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cerr << "Error importing (liii golddoc): " << errmsg << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    s7_pointer main_func = s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      cerr << "Error: Failed to find main function in (liii golddoc)." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if (s7_is_integer (result)) {
+      return static_cast<int> (s7_integer (result));
+    }
     return 0;
   }
 

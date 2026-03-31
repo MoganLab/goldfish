@@ -161,6 +161,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/tools/goldfix/main.scm", {prefixdir = "share/goldfish/tools/goldfix"})
     add_installfiles("$(projectdir)/tools/goldfix/(liii/*.scm)", {prefixdir = "share/goldfish/tools/goldfix"})
     add_installfiles("$(projectdir)/tools/goldtest/liii/goldtest.scm", {prefixdir = "share/goldfish/tools/goldtest/liii"})
+    add_installfiles("$(projectdir)/tools/golddoc/(liii/*.scm)", {prefixdir = "share/goldfish/tools/golddoc"})
 end
 
 if is_plat("wasm") then
