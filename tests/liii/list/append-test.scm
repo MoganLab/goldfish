@@ -81,4 +81,21 @@
 (check (append '(1) '(2) '(3) '(4) '(5)) => '(1 2 3 4 5))
 (check (append '(a b) '() '(c) '() '(d e)) => '(a b c d e))
 
+; Bug 复现测试：使用 append 构建长列表时结构损坏问题
+; 测试：使用 map + member（原始场景）
+(let* ((entries (map (lambda (i) (cons (number->string i) (list "lib"))) (iota 600)))
+       (result
+         (let loop ((entries entries)
+                    (visible '()))
+           (if (null? entries)
+               visible
+               (let* ((entry (car entries))
+                      (function-name (car entry)))
+                 (loop (cdr entries)
+                       (if (not (member function-name visible))
+                           (append visible (list function-name))
+                           visible)))))))
+  (check-true (list? result))
+  (check (length result) => 600))
+
 (check-report)
