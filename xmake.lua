@@ -162,6 +162,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/tools/goldfix/(liii/*.scm)", {prefixdir = "share/goldfish/tools/goldfix"})
     add_installfiles("$(projectdir)/tools/goldtest/liii/goldtest.scm", {prefixdir = "share/goldfish/tools/goldtest/liii"})
     add_installfiles("$(projectdir)/tools/golddoc/(liii/*.scm)", {prefixdir = "share/goldfish/tools/golddoc"})
+    add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
 end
 
 if is_plat("wasm") then
@@ -216,6 +217,7 @@ xpack ("goldfish")
     add_sourcefiles("xmake.lua")
     add_sourcefiles("(src/**)")
     add_sourcefiles("(goldfish/**)")
+    add_sourcefiles("(tests/**)")
     add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")
     on_load(function (package)
