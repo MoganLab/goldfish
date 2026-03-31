@@ -4,6 +4,7 @@
 
 (import (liii check)
         (liii golddoc)
+        (liii os)
         (liii path)
 ) ;import
 
@@ -41,22 +42,63 @@
   ) ;let
 ) ;define
 
+(define (cleanup-load-index-fixture base-root)
+  (let ((load-root (path-join base-root "goldfish"))
+        (tests-root (path-join base-root "tests")))
+    (path-unlink (path-join tests-root "function-library-index.json") #t)
+    (if (path-dir? tests-root)
+        (path-rmdir tests-root)
+        #f
+    ) ;if
+    (if (path-dir? load-root)
+        (path-rmdir load-root)
+        #f
+    ) ;if
+    (if (path-dir? base-root)
+        (path-rmdir base-root)
+        #f
+    ) ;if
+  ) ;let
+) ;define
+
 (check (index-entry->library-query "(liii string)") => "liii/string")
 (check (index-entry->library-query "(scheme char)") => "scheme/char")
 (check (index-entry->library-query "(bad)") => #f)
 (check (index-entry->library-query 1) => #f)
 
-(let ((index-paths (find-function-index-paths)))
-  (check-true (pair? index-paths))
-  (check-true (contains-function-index-path? index-paths))
-) ;let
-
-(let ((index (load-function-index)))
-  (check (cdr (assoc "string-split" index)) => '("(liii string)"))
-  (check (cdr (assoc "+" index)) => '("(liii base)"))
-  (check (cdr (assoc "char-ci=?" index)) => '("(scheme char)"))
-  (check (cdr (assoc "option=?" index)) => '("(liii option)"))
-  (check (cdr (assoc "alist->fxmapping" index)) => '("(liii fxmapping)"))
-) ;let
+(let* ((base-root (path-join (path-temp-dir)
+                             (string-append "golddoc-load-index-"
+                                            (number->string (getpid)))))
+       (load-root (path-join base-root "goldfish"))
+       (tests-root (path-join base-root "tests"))
+       (index-path (path-join tests-root "function-library-index.json"))
+       (old-load-path *load-path*))
+  (cleanup-load-index-fixture base-root)
+  (mkdir (path->string base-root))
+  (mkdir (path->string load-root))
+  (mkdir (path->string tests-root))
+  (dynamic-wind
+    (lambda ()
+      (set! *load-path* (list (path->string load-root)))
+    ) ;lambda
+    (lambda ()
+      (check (find-function-index-paths) => '())
+      (check (load-function-index) => '())
+      (path-write-text index-path
+                       "{\"sample-func\":[\"(liii sample)\"],\"shared-func\":[\"(scheme base)\",\"(liii sample)\"]}")
+      (let ((index-paths (find-function-index-paths))
+            (index (load-function-index)))
+        (check-true (pair? index-paths))
+        (check-true (contains-function-index-path? index-paths))
+        (check (cdr (assoc "sample-func" index)) => '("(liii sample)"))
+        (check (cdr (assoc "shared-func" index)) => '("(scheme base)" "(liii sample)"))
+      ) ;let
+    ) ;lambda
+    (lambda ()
+      (set! *load-path* old-load-path)
+      (cleanup-load-index-fixture base-root)
+    ) ;lambda
+  ) ;dynamic-wind
+) ;let*
 
 (check-report)

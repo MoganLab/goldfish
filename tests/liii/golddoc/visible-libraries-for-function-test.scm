@@ -62,14 +62,6 @@
   ) ;let
 ) ;define
 
-(check (visible-libraries-for-function "string-split") => '("liii/string"))
-(check (visible-libraries-for-function "+") => '("liii/base"))
-(check (visible-libraries-for-function "char-ci=?") => '("scheme/char"))
-(check (visible-libraries-for-function "option=?") => '("liii/option"))
-(check (visible-libraries-for-function "alist->fxmapping/combinator") => '("liii/fxmapping"))
-(check (visible-libraries-for-function "remove") => '("liii/list" "liii/os"))
-(check (visible-libraries-for-function "function-that-does-not-exist") => '())
-
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-visible-libraries-"
                                             (number->string (getpid)))))
@@ -91,13 +83,15 @@
                    "(define-library (liii bar) (export) (import (scheme base)) (begin))")
   (path-write-text (path-join srfi-root "1.scm")
                    "(define-library (srfi 1) (export) (import (scheme base)) (begin))")
-  (path-write-text index-path
-                   "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}")
   (dynamic-wind
     (lambda ()
       (set! *load-path* (list (path->string load-root)))
     ) ;lambda
     (lambda ()
+      (check (visible-libraries-for-function "unique-func") => '())
+      (check (visible-libraries-for-function "shared-func") => '())
+      (path-write-text index-path
+                       "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}")
       (check (visible-libraries-for-function "unique-func") => '("liii/foo"))
       (check (visible-libraries-for-function "shared-func") => '("liii/foo" "liii/bar"))
       (check (visible-libraries-for-function "missing-func") => '())
