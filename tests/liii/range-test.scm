@@ -4,15 +4,11 @@
 ;; 与 (liii list) 的 iota 不同：
 ;;   - iota 立即生成完整列表，占用 O(n) 内存
 ;;   - range 惰性求值，占用 O(1) 内存，支持随机访问和切片操作
-;;
-;; 查看函数文档示例：
-;;   bin/gf doc liii/range "range?"
-;;   bin/gf doc liii/range "numeric-range"
 
+;; ==== 常见用法示例 ====
 (import (liii range))
 
 ;; 示例1：循环迭代
-;; 仅用于展示循环场景；涉及状态修改应使用 range-fold（见示例2）
 (range-for-each
   (lambda (x) (display x) (newline))
   (numeric-range 0 5)                ; 输出: 0 1 2 3 4
@@ -27,7 +23,11 @@
 (define r (numeric-range 0 100))
 (range->list (range-take-right r 3)) ; => (97 98 99)
 
-;; ==================== 函数分类索引 ====================
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc liii/range "range?"
+;;   bin/gf doc liii/range "numeric-range"
+
+;; ==== 函数分类索引 ====
 
 ;; 一、构造函数
 ;; 用于创建 range 对象的函数
