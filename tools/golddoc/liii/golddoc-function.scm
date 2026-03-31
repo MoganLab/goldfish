@@ -92,11 +92,12 @@
                       ) ;
                       (else
                        (loop (+ index 1)
-                             (cons (string (string-ref name index)) parts))
+                             (cons (string (string-ref name index)) parts)
+                       ) ;loop
                       ) ;else
                     ) ;cond
                 ) ;if
-              ) ;let loop
+              ) ;let
             ) ;let
         ) ;if
       ) ;let
@@ -108,16 +109,22 @@
              (library (and parts (cdr parts)))
              (load-root (and parts
                              (not (excluded-test-group? group))
-                             (find-visible-library-root library-query)))
+                             (find-visible-library-root library-query))
+             ) ;load-root
              (tests-root (and load-root
-                              (find-tests-root-for-load-root load-root)))
+                              (find-tests-root-for-load-root load-root))
+             ) ;tests-root
              (candidate (and tests-root
                              (path->string
                                (path-join tests-root
                                           group
                                           library
                                           (string-append (exported-name->test-stem exported-name)
-                                                         "-test.scm"))))))
+                                                         "-test.scm"))
+                                          ) ;string-append
+                               ) ;path-join
+                             ) ;path->string
+             ) ;candidate
         (and candidate
              (path-file? candidate)
              candidate

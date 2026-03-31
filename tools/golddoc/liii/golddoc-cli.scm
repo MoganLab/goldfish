@@ -59,7 +59,7 @@
                (doc-path
                 (display (path-read-text doc-path))
                 0
-               ) ;
+               ) ;doc-path
                ((not (find-visible-library-root query))
                 (stderr-line (string-append "Error: library not found in *load-path*: " query))
                 1
@@ -89,7 +89,7 @@
                (doc-path
                 (display (path-read-text doc-path))
                 0
-               ) ;
+               ) ;doc-path
                ((not (find-visible-library-root library-query))
                 (stderr-line (string-append "Error: library not found in *load-path*: " library-query))
                 1
@@ -98,7 +98,8 @@
                 (stderr-line (string-append "Error: documentation file not found for function: "
                                             exported-name
                                             " in library: "
-                                            library-query))
+                                            library-query)
+                ) ;stderr-line
                 1
                ) ;else
              ) ;cond

@@ -62,7 +62,7 @@
               (cond
                 (skip-next
                  (loop (cdr remaining) #f filtered)
-                ) ;
+                ) ;skip-next
                 ((string=? arg "doc")
                  (loop (cdr remaining) #f filtered)
                 ) ;
