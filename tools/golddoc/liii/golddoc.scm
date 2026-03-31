@@ -19,6 +19,8 @@
           (liii golddoc-args)
           (liii golddoc-library)
           (liii golddoc-function)
+          (liii golddoc-index)
+          (liii golddoc-index-build)
           (liii golddoc-cli)
   ) ;import
   (export parse-doc-args
@@ -30,6 +32,11 @@
           library-doc-path
           exported-name->test-stem
           function-doc-path
+          index-entry->library-query
+          find-function-index-paths
+          load-function-index
+          visible-libraries-for-function
+          build-function-indexes!
           run-golddoc
           main
   ) ;export

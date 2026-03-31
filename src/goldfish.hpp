@@ -3366,6 +3366,8 @@ display_help () {
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
   cout << "  doc ORG/LIB        Display exact library documentation from tests/" << endl;
+  cout << "  doc FUNC           Display exact function documentation from tests/" << endl;
+  cout << "  doc --build-json   Rebuild function-library-index.json under tests/" << endl;
   cout << "  test [PATTERN]     Run tests (all *-test.scm files under tests/)" << endl;
   cout << "                     PATTERN can be:" << endl;
   cout << "                       (none)          Run all tests" << endl;

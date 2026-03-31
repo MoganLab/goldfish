@@ -54,6 +54,12 @@
   (check (path-name doc-path) => "njson-set-bang-test.scm")
 ) ;let
 
+(let ((doc-path (function-doc-path "liii/base" "truncate/")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "truncate-slash-test.scm")
+) ;let
+
 (let ((doc-path (function-doc-path "liii/hash-table" "hash-table-update!/default")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
@@ -64,6 +70,24 @@
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
   (check (path-name doc-path) => "char-ci-eq-p-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/option" "option=?")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "option-equal-p-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/fxmapping" "alist->fxmapping")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "alist-fxmapping-test.scm")
+) ;let
+
+(let ((doc-path (function-doc-path "liii/flexvector" "flexvector-append-map/index")))
+  (check-true (string? doc-path))
+  (check-true (path-file? doc-path))
+  (check (path-name doc-path) => "flexvector-append-map-index-test.scm")
 ) ;let
 
 (check (function-doc-path "liii/string" "not-a-real-function") => #f)

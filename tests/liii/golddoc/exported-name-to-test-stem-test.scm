@@ -33,6 +33,7 @@
 (check (exported-name->test-stem "string-split") => "string-split")
 (check (exported-name->test-stem "string->list") => "string-to-list")
 (check (exported-name->test-stem "njson-set!") => "njson-set-bang")
+(check (exported-name->test-stem "truncate/") => "truncate-slash")
 (check (exported-name->test-stem "hash-table-update!/default") => "hash-table-update-bang-slash-default")
 (check (exported-name->test-stem "trie-ref*") => "trie-ref-star")
 (check (exported-name->test-stem "char-ci=?") => "char-ci-eq-p")

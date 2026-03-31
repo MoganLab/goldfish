@@ -27,6 +27,18 @@
   ) ;export
   (begin
 
+    (define (trim-trailing-separators value)
+      (let loop ((current value))
+        (if (and (> (string-length current) 1)
+                 (or (string-ends? current "/")
+                     (string-ends? current "\\"))
+            ) ;and
+            (loop (substring current 0 (- (string-length current) 1)))
+            current
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (excluded-test-group? group)
       (or (string=? group "srfi")
           (string=? group "goldfish")
@@ -62,8 +74,11 @@
     (define (find-tests-root-for-load-root load-root)
       (if (not (string? load-root))
           #f
-          (let ((direct-root (path->string (path-join load-root "tests")))
-                (sibling-root (path->string (path-join (path-parent load-root) "tests"))))
+          (let* ((normalized-load-root (trim-trailing-separators load-root))
+                 (normalized-parent (trim-trailing-separators
+                                      (path->string (path-parent normalized-load-root))))
+                 (direct-root (path->string (path-join normalized-load-root "tests")))
+                 (sibling-root (path->string (path-join normalized-parent "tests"))))
             (cond
               ((path-dir? direct-root) direct-root)
               ((path-dir? sibling-root) sibling-root)

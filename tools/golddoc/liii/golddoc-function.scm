@@ -18,6 +18,7 @@
   (import (scheme base)
           (liii golddoc-args)
           (liii golddoc-library)
+          (liii os)
           (liii path)
           (liii string)
   ) ;import
@@ -25,6 +26,113 @@
           function-doc-path
   ) ;export
   (begin
+
+    (define golddoc-section-headings
+      '("语法" "参数" "返回值" "描述" "说明" "注意" "错误处理" "示例")
+    ) ;define
+
+    (define (strip-leading-semicolons value)
+      (let ((value-length (string-length value)))
+        (let loop ((index 0))
+          (if (or (>= index value-length)
+                  (not (char=? (string-ref value index) #\;)))
+              (substring value index value-length)
+              (loop (+ index 1))
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (divider-line? value)
+      (let ((value-length (string-length value)))
+        (and (> value-length 1)
+             (let loop ((index 0))
+               (if (>= index value-length)
+                   #t
+                   (and (char=? (string-ref value index) #\-)
+                        (loop (+ index 1))
+                   ) ;and
+               ) ;if
+             ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (comment-line->body line)
+      (let ((trimmed (string-trim line)))
+        (and (string-starts? trimmed ";")
+             (let ((body (string-trim (strip-leading-semicolons trimmed))))
+               (and (not (string-null? body))
+                    body
+               ) ;and
+             ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (comment-line->candidate line)
+      (let ((body (comment-line->body line)))
+        (and body
+             (not (member body golddoc-section-headings))
+             (not (divider-line? body))
+             (not (string-starts? body "Copyright"))
+             (not (string-starts? body "Licensed under"))
+             (not (string-starts? body "http://"))
+             (not (string-starts? body "添加 tools/"))
+             (let ((normalized (if (string-ends? body "函数测试")
+                                   (string-trim-right
+                                     (substring body
+                                                0
+                                                (- (string-length body)
+                                                   (string-length "函数测试")))
+                                   ) ;string-trim-right
+                                   body
+                               ) ;if
+                   ))
+               (and (not (string-null? normalized))
+                    normalized
+               ) ;and
+             ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (file-documents-function? path exported-name)
+      (let loop ((lines (string-split (path-read-text path) "\n")))
+        (and (not (null? lines))
+             (let ((body (comment-line->body (car lines)))
+                   (candidate (comment-line->candidate (car lines))))
+               (or (and candidate
+                        (string=? candidate exported-name))
+                   (and body
+                        (or (string=? body (string-append "(" exported-name ")"))
+                            (string-starts? body (string-append "(" exported-name " ")))
+                   ) ;and
+                   (loop (cdr lines))
+               ) ;or
+             ) ;let
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (find-function-doc-by-scan library-dir exported-name)
+      (if (not (path-dir? library-dir))
+          #f
+          (let loop ((entries (vector->list (listdir library-dir))))
+            (and (not (null? entries))
+                 (let* ((entry-name (car entries))
+                        (entry-path (path->string (path-join library-dir entry-name))))
+                   (if (and (path-file? entry-path)
+                            (string-ends? entry-name "-test.scm")
+                            (file-documents-function? entry-path exported-name))
+                       entry-path
+                       (loop (cdr entries))
+                   ) ;if
+                 ) ;let*
+            ) ;and
+          ) ;let
+      ) ;if
+    ) ;define
 
     (define (pure-operator->stem name)
       (cond
@@ -61,7 +169,12 @@
                     (apply string-append (reverse parts))
                     (cond
                       ((string-starts-at? name index "->")
-                       (loop (+ index 2) (cons "-to-" parts))
+                       (loop (+ index 2)
+                             (cons (if (= (+ index 2) name-length)
+                                       "-to"
+                                       "-to-")
+                                   parts)
+                       ) ;loop
                       ) ;
                       ((string-starts-at? name index ">=")
                        (loop (+ index 2) (cons "-ge" parts))
@@ -76,7 +189,12 @@
                        (loop (+ index 1) (cons "-bang" parts))
                       ) ;
                       ((char=? (string-ref name index) #\/)
-                       (loop (+ index 1) (cons "-slash-" parts))
+                       (loop (+ index 1)
+                             (cons (if (= (+ index 1) name-length)
+                                       "-slash"
+                                       "-slash-")
+                                   parts)
+                       ) ;loop
                       ) ;
                       ((char=? (string-ref name index) #\*)
                        (loop (+ index 1) (cons "-star" parts))
@@ -114,6 +232,9 @@
              (tests-root (and load-root
                               (find-tests-root-for-load-root load-root))
              ) ;tests-root
+             (library-dir (and tests-root
+                               (path->string (path-join tests-root group library)))
+             ) ;library-dir
              (candidate (and tests-root
                              (path->string
                                (path-join tests-root
@@ -125,10 +246,15 @@
                                ) ;path-join
                              ) ;path->string
              ) ;candidate
-        (and candidate
-             (path-file? candidate)
-             candidate
-        ) ;and
+        (cond
+          ((and candidate (path-file? candidate))
+           candidate
+          ) ;
+          (library-dir
+           (find-function-doc-by-scan library-dir exported-name)
+          ) ;
+          (else #f)
+        ) ;cond
       ) ;let*
     ) ;define
 

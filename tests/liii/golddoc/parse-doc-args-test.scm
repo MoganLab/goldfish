@@ -51,6 +51,18 @@
   => '(function "string-split")
 ) ;check
 
+(check (parse-doc-args '("bin/gf" "doc" "--build-json"))
+  => '(build-json)
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "truncate/"))
+  => '(function "truncate/")
+) ;check
+
+(check (parse-doc-args '("bin/gf" "doc" "alist->fxmapping/combinator"))
+  => '(library "alist->fxmapping/combinator")
+) ;check
+
 (check (parse-doc-args '("bin/gf" "doc"))
   => '(invalid)
 ) ;check

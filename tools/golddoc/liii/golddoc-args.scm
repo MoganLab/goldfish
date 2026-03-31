@@ -36,14 +36,18 @@
          '(invalid)
         ) ;
         ((and (= (length filtered) 1)
-              (library-query? (car filtered)))
+              (string=? (car filtered) "--build-json"))
+         '(build-json)
+        ) ;
+        ((and (= (length filtered) 1)
+              (parse-library-query (car filtered)))
          (list 'library (car filtered))
         ) ;
         ((= (length filtered) 1)
          (list 'function (car filtered))
         ) ;
         ((and (= (length filtered) 2)
-              (library-query? (car filtered)))
+              (parse-library-query (car filtered)))
          (list 'library-function (car filtered) (cadr filtered))
         ) ;
         (else

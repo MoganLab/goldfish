@@ -18,6 +18,8 @@
   (import (scheme base)
           (liii golddoc-args)
           (liii golddoc-function)
+          (liii golddoc-index)
+          (liii golddoc-index-build)
           (liii golddoc-library)
           (liii path)
           (liii sys)
@@ -34,19 +36,87 @@
       (let ((port (current-error-port)))
         (display "Usage:" port) (newline port)
         (display "  gf doc ORG/LIB" port) (newline port)
-        (display "  gf doc ORG/LIB FUNC    (not implemented yet)" port) (newline port)
-        (display "  gf doc FUNC            (not implemented yet)" port) (newline port)
+        (display "  gf doc ORG/LIB FUNC" port) (newline port)
+        (display "  gf doc FUNC" port) (newline port)
+        (display "  gf doc --build-json" port) (newline port)
+      ) ;let
+    ) ;define
+
+    (define (display-library-choices function-name library-queries)
+      (let ((port (current-error-port)))
+        (display (string-append "Function is implemented in multiple visible libraries: " function-name) port)
+        (newline port)
+        (for-each
+          (lambda (library-query)
+            (display "  " port)
+            (display library-query port)
+            (newline port)
+          ) ;lambda
+          library-queries
+        ) ;for-each
+      ) ;let
+    ) ;define
+
+    (define (run-function-query function-name)
+      (let ((library-queries (visible-libraries-for-function function-name)))
+        (cond
+          ((null? library-queries)
+           (stderr-line (string-append "Error: function not found in *load-path*: " function-name))
+           1
+          ) ;
+          ((null? (cdr library-queries))
+           (let ((doc-path (function-doc-path (car library-queries) function-name)))
+             (if doc-path
+                 (begin
+                   (display (path-read-text doc-path))
+                   0
+                 ) ;begin
+                 (begin
+                   (stderr-line (string-append "Error: documentation file not found for function: " function-name))
+                   1
+                 ) ;begin
+             ) ;if
+           ) ;let
+          ) ;
+          (else
+           (display-library-choices function-name library-queries)
+           1
+          ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
     (define (run-golddoc)
       (let ((parsed (parse-doc-args (argv))))
         (case (car parsed)
+          ((build-json)
+           (let ((built-paths (build-function-indexes!)))
+             (if (null? built-paths)
+                 (begin
+                   (stderr-line "Error: no buildable tests roots found in *load-path*.")
+                   1
+                 ) ;begin
+                 (begin
+                   (for-each
+                     (lambda (built-path)
+                       (display "Built function index: ")
+                       (display built-path)
+                       (newline)
+                     ) ;lambda
+                     built-paths
+                   ) ;for-each
+                   0
+                 ) ;begin
+             ) ;if
+           ) ;let
+          ) ;
           ((library)
            (let* ((query (cadr parsed))
                   (parts (parse-library-query query))
                   (group (and parts (car parts)))
-                  (doc-path (library-doc-path query)))
+                  (doc-path (library-doc-path query))
+                  (visible-library-root (and parts
+                                             (find-visible-library-root query))))
              (cond
                ((not parts)
                 (display-usage)
@@ -60,9 +130,16 @@
                 (display (path-read-text doc-path))
                 0
                ) ;doc-path
-               ((not (find-visible-library-root query))
-                (stderr-line (string-append "Error: library not found in *load-path*: " query))
-                1
+               ((not visible-library-root)
+                (let ((fallback-libraries (visible-libraries-for-function query)))
+                  (if (null? fallback-libraries)
+                      (begin
+                        (stderr-line (string-append "Error: library not found in *load-path*: " query))
+                        1
+                      ) ;begin
+                      (run-function-query query)
+                  ) ;if
+                ) ;let
                ) ;
                (else
                 (stderr-line (string-append "Error: documentation file not found for library: " query))
@@ -103,11 +180,10 @@
                 1
                ) ;else
              ) ;cond
-           ) ;let*
+          ) ;let*
           ) ;
           ((function)
-           (stderr-line "Error: function documentation queries are not implemented yet.")
-           1
+           (run-function-query (cadr parsed))
           ) ;
           (else
            (display-usage)
