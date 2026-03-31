@@ -2,8 +2,7 @@
         (liii os)
         (liii uuid)
         (liii base)
-        (liii oop)
-        (liii lang)
+        (liii vector)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -45,14 +44,14 @@
   (mkdir dir-b)
   (mkdir dir-c)
   (let ((r (listdir test-dir)))
-    (check-true ($ r :contains "a"))
-    (check-true ($ r :contains "b"))
-    (check-true ($ r :contains "c"))
+    (check-true (vector-contains? r "a"))
+    (check-true (vector-contains? r "b"))
+    (check-true (vector-contains? r "c"))
   ) ;let
   (let ((r2 (listdir test-dir2)))
-    (check-true ($ r2 :contains "a"))
-    (check-true ($ r2 :contains "b"))
-    (check-true ($ r2 :contains "c"))
+    (check-true (vector-contains? r2 "a"))
+    (check-true (vector-contains? r2 "b"))
+    (check-true (vector-contains? r2 "c"))
   ) ;let
   (rmdir dir-a)
   (rmdir dir-b)

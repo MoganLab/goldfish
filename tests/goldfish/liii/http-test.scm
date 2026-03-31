@@ -2,8 +2,7 @@
         (liii http)
         (liii string)
         (liii os)
-        (liii rich-json)
-        (only (liii lang) display*)
+        (liii json)
         (liii time)
 ) ;import
 
@@ -53,9 +52,9 @@
 (let* ((r (http-post "https://httpbin.org/post"
             :data "This is raw data"))
        (json (string->json (r 'text))))
-  (display* (r 'text) "\n")
-  (display* json "\n")
-  (display* (json->string json) "\n")
+  (display (r 'text)) (newline)
+  (display json) (newline)
+  (display (json->string json)) (newline)
   (check (r 'status-code) => 200)
   (check (json-ref json "data") => "This is raw data")
 ) ;let*
