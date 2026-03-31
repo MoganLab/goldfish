@@ -46,7 +46,8 @@
                       (if (and (string? load-root)
                                (path-file? (path-join load-root
                                                       group
-                                                      (string-append library ".scm"))))
+                                                      (string-append library ".scm")))
+                               ) ;path-file?
                           load-root
                           (loop (cdr roots))
                       ) ;if
@@ -97,9 +98,9 @@
                           ) ;if
                         ) ;let
                     ) ;if
-                  ) ;if
-              ) ;let
-            ) ;if
+                  ) ;let
+              ) ;if
+            ) ;let
         ) ;if
       ) ;let
     ) ;define

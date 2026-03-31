@@ -18,6 +18,7 @@
   (import (scheme base)
           (liii golddoc-args)
           (liii golddoc-library)
+          (liii golddoc-function)
           (liii golddoc-cli)
   ) ;import
   (export parse-doc-args
@@ -27,6 +28,8 @@
           find-visible-library-root
           find-tests-root-for-load-root
           library-doc-path
+          exported-name->test-stem
+          function-doc-path
           run-golddoc
           main
   ) ;export
