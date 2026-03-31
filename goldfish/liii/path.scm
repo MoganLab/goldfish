@@ -35,6 +35,7 @@
           (liii error)
           (liii os)
           (liii string)
+          (liii vector)
           (scheme base)
   ) ;import
   (begin
@@ -47,26 +48,6 @@
       (type path-record-type path-record-set-type!)
       (drive path-record-drive path-record-set-drive!)
     ) ;define-record-type
-
-    (define (vector-copy v)
-      (let ((len (vector-length v)))
-        (let ((new (make-vector len)))
-          (let loop ((i 0))
-            (if (< i len)
-              (begin
-                (vector-set! new i (vector-ref v i))
-                (loop (+ i 1))
-              ) ;begin
-              new
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (vector-empty? v)
-      (= (vector-length v) 0)
-    ) ;define
 
     (define (string-split-vec str sep)
       (let loop ((chars (string->list str))
