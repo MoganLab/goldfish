@@ -1,5 +1,5 @@
 (import (liii check)
-        (srfi srfi-196)
+        (liii range)
 ) ;import
 
 (check-set-mode! 'report-failed)
