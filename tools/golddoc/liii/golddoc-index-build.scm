@@ -67,14 +67,20 @@
     ) ;define
 
     (define (comment-line->body line)
-      (let ((trimmed (string-trim line)))
-        (and (string-starts? trimmed ";")
-             (let ((body (string-trim (strip-leading-semicolons trimmed))))
-               (and (not (string-null? body))
-                    body
-               ) ;and
-             ) ;let
-        ) ;and
+      ;; 去除 Windows 行尾符 \r\n 中的 \r
+      (let ((line-clean (if (and (> (string-length line) 0)
+                                 (char=? (string-ref line (- (string-length line) 1)) #\return))
+                            (substring line 0 (- (string-length line) 1))
+                            line)))
+        (let ((trimmed (string-trim line-clean)))
+          (and (string-starts? trimmed ";")
+               (let ((body (string-trim (strip-leading-semicolons trimmed))))
+                 (and (not (string-null? body))
+                      body
+                 ) ;and
+               ) ;let
+          ) ;and
+        ) ;let
       ) ;let
     ) ;define
 
@@ -240,9 +246,14 @@
 
     (define (build-function-index-at! tests-root)
       (let ((index-path (path->string (path-join tests-root "function-library-index.json"))))
-        (let-njson ((index-json (json->njson (index->json-value (build-index-for-tests-root tests-root)))))
-          (njson->file index-path index-json)
-        ) ;let-njson
+        (let* ((raw-index (build-index-for-tests-root tests-root))
+               (json-value (index->json-value raw-index))
+               ;; 当索引为空时，使用空对象 '(()) 代替空列表
+               (normalized-json-value (if (null? json-value) '(()) json-value)))
+          (let-njson ((index-json (json->njson normalized-json-value)))
+            (njson->file index-path index-json)
+          ) ;let-njson
+        ) ;let*
         index-path
       ) ;let
     ) ;define
