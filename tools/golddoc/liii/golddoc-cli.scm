@@ -17,6 +17,7 @@
 (define-library (liii golddoc-cli)
   (import (scheme base)
           (liii golddoc-args)
+          (liii golddoc-function)
           (liii golddoc-library)
           (liii path)
           (liii sys)
@@ -71,8 +72,37 @@
            ) ;let*
           ) ;
           ((library-function)
-           (stderr-line "Error: function documentation queries are not implemented yet.")
-           1
+           (let* ((library-query (cadr parsed))
+                  (exported-name (caddr parsed))
+                  (parts (parse-library-query library-query))
+                  (group (and parts (car parts)))
+                  (doc-path (function-doc-path library-query exported-name)))
+             (cond
+               ((not parts)
+                (display-usage)
+                1
+               ) ;
+               ((excluded-test-group? group)
+                (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet."))
+                1
+               ) ;
+               (doc-path
+                (display (path-read-text doc-path))
+                0
+               ) ;
+               ((not (find-visible-library-root library-query))
+                (stderr-line (string-append "Error: library not found in *load-path*: " library-query))
+                1
+               ) ;
+               (else
+                (stderr-line (string-append "Error: documentation file not found for function: "
+                                            exported-name
+                                            " in library: "
+                                            library-query))
+                1
+               ) ;else
+             ) ;cond
+           ) ;let*
           ) ;
           ((function)
            (stderr-line "Error: function documentation queries are not implemented yet.")
