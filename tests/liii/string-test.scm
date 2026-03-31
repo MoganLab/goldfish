@@ -14,4 +14,4 @@
 ;; under the License.
 ;;
 
-;; (liii fxmapping) 中相关的测试用例都在 tests/liii/fxmapping 目录中
+;; (liii string) 中相关的测试用例都在 tests/liii/string 目录中

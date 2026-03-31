@@ -14,4 +14,4 @@
 ;; under the License.
 ;;
 
-;; (liii fxmapping) 中相关的测试用例都在 tests/liii/fxmapping 目录中
+;; (liii goldtest) 中相关的测试用例都在 tests/liii/goldtest 目录中
