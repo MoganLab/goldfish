@@ -1,17 +1,34 @@
+;; (liii hashlib) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; hashlib 提供常见摘要算法的字符串和文件接口。
+;; 适合校验下载文件、生成缓存键、检测内容变化和生成指纹。
 
-;; (liii hashlib) 中相关的测试用例都在 tests/liii/hashlib 目录中
+;; ==== 常见用法示例 ====
+(import (liii hashlib))
+
+;; 示例1：计算字符串的 MD5 摘要
+(md5 "goldfish")
+
+;; 示例2：计算字符串的 SHA-1 摘要
+(sha1 "goldfish")
+
+;; 示例3：计算字符串的 SHA-256 摘要
+(sha256 "goldfish")
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc liii/hashlib "md5"
+;;   bin/gf doc liii/hashlib "sha256-by-file"
+
+;; ==== 函数分类索引 ====
+
+;; 一、字符串摘要
+;; 用于对字符串内容计算摘要值的函数
+;;   md5             - 计算字符串的 MD5 摘要
+;;   sha1            - 计算字符串的 SHA-1 摘要
+;;   sha256          - 计算字符串的 SHA-256 摘要
+
+;; 二、文件摘要
+;; 用于对文件内容计算摘要值的函数
+;;   md5-by-file     - 计算文件的 MD5 摘要
+;;   sha1-by-file    - 计算文件的 SHA-1 摘要
+;;   sha256-by-file  - 计算文件的 SHA-256 摘要
