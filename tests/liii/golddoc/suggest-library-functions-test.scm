@@ -95,6 +95,9 @@
       (set! *load-path* (list (path->string load-root)))
     ) ;lambda
     (lambda ()
+      (check (suggest-library-functions "liii/demo" "string-spl")
+        => '("string-splat" "string-split")
+      ) ;check
       (check (suggest-library-functions "liii/demo" "string-splst")
         => '("string-splat" "string-split" "string-spilt")
       ) ;check

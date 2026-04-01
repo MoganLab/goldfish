@@ -86,6 +86,9 @@
       (set! *load-path* (list (path->string load-root)))
     ) ;lambda
     (lambda ()
+      (check (suggest-visible-functions "string-spl")
+        => '("string-splat" "string-split")
+      ) ;check
       (check (suggest-visible-functions "string-splst")
         => '("string-splat" "string-split" "string-spilt")
       ) ;check
