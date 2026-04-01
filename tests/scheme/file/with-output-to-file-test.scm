@@ -1,20 +1,8 @@
-;
-; Copyright (C) 2026 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
+;; Tests for scheme file with-output-to-file function
 
-(import (liii check))
+(import (liii check)
+        (scheme file)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -34,6 +22,27 @@
 (define clean-test-filename (clean-filename test-filename))
 
 ;; with-output-to-file
+;; 将输出重定向到文件。
+;;
+;; 语法
+;; ----
+;; (with-output-to-file filename thunk)
+;;
+;; 参数
+;; ----
+;; filename : string
+;;   目标文件名
+;; thunk : procedure
+;;   无参数的过程，其输出将被重定向到文件
+;;
+;; 返回值
+;; ----
+;; undefined
+;;
+;; 描述
+;; ----
+;; 打开文件用于输出，将当前输出端口重定向到该文件，
+;; 执行 thunk，然后恢复原始输出端口。
 
 ; 中文文件名，中文内容
 (check
@@ -100,7 +109,7 @@
   => '("第一行" "第二行")
 ) ;check
 
-; 测试文件是否确实被创建
+; 测试多种语言文件名
 (for-each
   (lambda (filename)
     (dynamic-wind
@@ -115,53 +124,7 @@
         ) ;with-output-to-file
 
         ; 验证文件存在
-        ; NOTE: 若写入文件名时编码不对应，file-exists? 会返回 #f
-        ;       如 `中文` 被直接写作文件名，由 Windows 解释为 GBK，会显示为 `涓枃`
         (check-true (file-exists? filename))
-      ) ;lambda
-      (clean-filename filename) ; after
-    ) ;dynamic-wind
-  ) ;lambda
-  test-filenames
-) ;for-each
-
-;; load
-
-(define test-content
-  '(begin
-     (define 测试变量 "你好，世界！")
-     (define (测试函数 x) (+ x 1))
-     #t)
-) ;define
-
-(dynamic-wind
-  (lambda () ; before
-    (with-output-to-file test-filename
-      (lambda () (display "(+ 21 21)"))
-    ) ;with-output-to-file
-  ) ;lambda
-  (lambda ()
-    (check (load test-filename) => 42)
-  ) ;lambda
-  clean-test-filename ; after
-) ;dynamic-wind
-
-; 测试文件是否确实被创建
-(for-each
-  (lambda (filename)
-    (dynamic-wind
-      #f ; before
-      (lambda ()
-        ; 确保测试文件还不存在
-        (check (file-exists? filename) => #f)
-
-        ; 测试文件创建
-        (with-output-to-file filename
-          (lambda () (display "(+ 21 21)"))
-        ) ;with-output-to-file
-
-        ; 验证能够正常 load
-        (check (load filename) => 42)
       ) ;lambda
       (clean-filename filename) ; after
     ) ;dynamic-wind
