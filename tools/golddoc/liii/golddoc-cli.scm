@@ -33,6 +33,51 @@
       (newline (current-error-port))
     ) ;define
 
+    (define (golddoc-command-name)
+      (let ((name (path-name (executable))))
+        (if (= (string-length name) 0)
+            "gf"
+            name
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (shell-double-quote value)
+      (let loop ((chars (string->list value))
+                 (parts '()))
+        (if (null? chars)
+            (string-append "\""
+                           (apply string-append (reverse parts))
+                           "\"")
+            (let ((ch (car chars)))
+              (loop (cdr chars)
+                    (cond
+                      ((char=? ch #\\) (cons "\\\\" parts))
+                      ((char=? ch #\") (cons "\\\"" parts))
+                      ((char=? ch #\$) (cons "\\$" parts))
+                      ((char=? ch #\`) (cons "\\`" parts))
+                      (else (cons (string ch) parts))
+                    ) ;cond
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (function-doc-command function-name)
+      (string-append (golddoc-command-name)
+                     " doc "
+                     (shell-double-quote function-name))
+    ) ;define
+
+    (define (library-function-doc-command library-query function-name)
+      (string-append (golddoc-command-name)
+                     " doc "
+                     library-query
+                     " "
+                     (shell-double-quote function-name))
+    ) ;define
+
     (define (display-usage)
       (let ((port (current-output-port)))
         (display "Usage:" port) (newline port)
@@ -58,12 +103,12 @@
       (let ((port (current-error-port)))
         (display (string-append "No exact match for function: " function-name) port)
         (newline port)
-        (display "Did you mean:" port)
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each
           (lambda (suggestion)
             (display "  " port)
-            (display suggestion port)
+            (display (function-doc-command suggestion) port)
             (newline port)
           ) ;lambda
           suggestions
@@ -79,12 +124,12 @@
                                 library-query)
                  port)
         (newline port)
-        (display "Did you mean:" port)
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each
           (lambda (suggestion)
             (display "  " port)
-            (display suggestion port)
+            (display (library-function-doc-command library-query suggestion) port)
             (newline port)
           ) ;lambda
           suggestions
