@@ -1,17 +1,51 @@
+;; (scheme char) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; char 提供字符大小写转换、字符类别判断和大小写无关比较等能力。
+;; 它适合词法分析、文本规范化和基于字符属性的处理逻辑。
 
-;; (scheme char) 中相关的测试用例都在 tests/scheme/char 目录中
+;; ==== 常见用法示例 ====
+(import (scheme char))
+
+;; 示例1：进行字符大小写转换
+(char-upcase #\a) ; => #\A
+(char-downcase #\Z) ; => #\z
+
+;; 示例2：判断字符类别
+(char-alphabetic? #\A) ; => #t
+(char-whitespace? #\space) ; => #t
+
+;; 示例3：做大小写无关比较和数字值转换
+(char-ci=? #\a #\A) ; => #t
+(digit-value #\7) ; => 7
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc scheme/char "char-upcase"
+;;   bin/gf doc scheme/char "char-ci=?"
+
+;; ==== 函数分类索引 ====
+
+;; 一、大小写转换函数
+;; 用于在不同字符大小写之间转换的函数
+;;   char-upcase        - 将字符转换为大写
+;;   char-downcase      - 将字符转换为小写
+;;   char-foldcase      - 将字符转换为大小写无关的折叠形式
+
+;; 二、字符类别判定
+;; 用于判断字符属性的函数
+;;   char-upper-case?   - 判断是否为大写字符
+;;   char-lower-case?   - 判断是否为小写字符
+;;   char-numeric?      - 判断是否为数字字符
+;;   char-alphabetic?   - 判断是否为字母字符
+;;   char-whitespace?   - 判断是否为空白字符
+
+;; 三、大小写无关比较
+;; 用于进行大小写无关字符比较的函数
+;;   char-ci=?          - 判断两个字符是否大小写无关相等
+;;   char-ci<?          - 判断两个字符是否大小写无关小于
+;;   char-ci>?          - 判断两个字符是否大小写无关大于
+;;   char-ci<=?         - 判断两个字符是否大小写无关小于等于
+;;   char-ci>=?         - 判断两个字符是否大小写无关大于等于
+
+;; 四、数字转换函数
+;; 用于把字符转换为对应数字值的函数
+;;   digit-value        - 获取数字字符对应的数值
