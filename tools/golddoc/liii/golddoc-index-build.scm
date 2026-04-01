@@ -16,7 +16,7 @@
 
 (define-library (liii golddoc-index-build)
   (import (scheme base)
-          (liii golddoc-function)
+          (scheme read)
           (liii golddoc-library)
           (liii njson)
           (liii os)
@@ -27,10 +27,6 @@
   (export build-function-indexes!)
   (begin
 
-    (define golddoc-section-headings
-      '("语法" "参数" "返回值" "描述" "说明" "注意" "错误处理" "示例")
-    ) ;define
-
     (define (append-unique-string strings value)
       (if (or (not (string? value))
               (member value strings))
@@ -39,112 +35,30 @@
       ) ;if
     ) ;define
 
-    (define (strip-leading-semicolons value)
-      (let ((value-length (string-length value)))
-        (let loop ((index 0))
-          (if (or (>= index value-length)
-                  (not (char=? (string-ref value index) #\;)))
-              (substring value index value-length)
-              (loop (+ index 1))
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (divider-line? value)
-      (let ((value-length (string-length value)))
-        (and (> value-length 1)
-             (let loop ((index 0))
-               (if (>= index value-length)
-                   #t
-                   (and (char=? (string-ref value index) #\-)
-                        (loop (+ index 1))
-                   ) ;and
-               ) ;if
-             ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (comment-line->body line)
-      ;; 去除 Windows 行尾符 \r\n 中的 \r
-      (let ((line-clean (if (and (> (string-length line) 0)
-                                 (char=? (string-ref line (- (string-length line) 1)) #\return))
-                            (substring line 0 (- (string-length line) 1))
-                            line)))
-        (let ((trimmed (string-trim line-clean)))
-          (and (string-starts? trimmed ";")
-               (let ((body (string-trim (strip-leading-semicolons trimmed))))
-                 (and (not (string-null? body))
-                      body
-                 ) ;and
-               ) ;let
-          ) ;and
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (comment-line->candidate line)
-      (let ((body (comment-line->body line)))
-        (and body
-             (not (member body golddoc-section-headings))
-             (not (divider-line? body))
-             (not (string-starts? body "Copyright"))
-             (not (string-starts? body "Licensed under"))
-             (not (string-starts? body "http://"))
-             (not (string-starts? body "添加 tools/"))
-             (let ((normalized (if (string-ends? body "函数测试")
-                                   (string-trim-right
-                                     (substring body
-                                                0
-                                                (- (string-length body)
-                                                   (string-length "函数测试")))
-                                   ) ;string-trim-right
-                                   body
-                               ) ;if
-                   ))
-               (and (not (string-null? normalized))
-                    normalized
-               ) ;and
-             ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (syntax-documents-candidate? lines candidate)
-      (let loop ((remaining lines))
-        (and (not (null? remaining))
-             (let ((body (comment-line->body (car remaining))))
-               (or (and body
-                        (or (string=? body (string-append "(" candidate ")"))
-                            (string-starts? body (string-append "(" candidate " ")))
-                   ) ;and
-                   (loop (cdr remaining))
-               ) ;or
-             ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
     (define (supported-test-group? group)
       (not (excluded-test-group? group))
     ) ;define
 
-    (define (find-buildable-tests-roots)
+    (define (find-buildable-index-targets)
       (let loop ((roots *load-path*)
-                 (tests-roots '()))
+                 (tests-roots '())
+                 (targets '()))
         (if (null? roots)
-            tests-roots
+            targets
             (let* ((load-root (car roots))
                    (tests-root (and (string? load-root)
                                     (find-tests-root-for-load-root load-root))))
-              (loop (cdr roots)
-                    (if (and tests-root
-                             (not (member tests-root tests-roots)))
+              (if (and tests-root
+                       (not (member tests-root tests-roots)))
+                  (loop (cdr roots)
                         (append tests-roots (list tests-root))
+                        (append targets (list (cons load-root tests-root)))
+                  ) ;loop
+                  (loop (cdr roots)
                         tests-roots
-                    ) ;if
-              ) ;loop
+                        targets
+                  ) ;loop
+              ) ;if
             ) ;let*
         ) ;if
       ) ;let
@@ -154,24 +68,6 @@
       (list-sort string<? (vector->list (listdir dir)))
     ) ;define
 
-    (define (documented-function-name test-file)
-      (let* ((lines (string-split (path-read-text test-file) "\n"))
-             (file-stem (string-remove-suffix (path-stem test-file) "-test")))
-        (let loop ((remaining lines))
-          (and (not (null? remaining))
-               (let ((candidate (comment-line->candidate (car remaining))))
-                 (if (and candidate
-                          (or (string=? (exported-name->test-stem candidate) file-stem)
-                              (syntax-documents-candidate? lines candidate)))
-                     candidate
-                     (loop (cdr remaining))
-                 ) ;if
-               ) ;let
-          ) ;and
-        ) ;let
-      ) ;let*
-    ) ;define
-
     (define (index-add! index function-name library-entry)
       (let ((cell (assoc function-name index)))
         (if cell
@@ -179,6 +75,17 @@
             (set! index (append index (list (cons function-name (list library-entry)))))
         ) ;if
         index
+      ) ;let
+    ) ;define
+
+    (define (index-add-exported-functions index library-entry exported-functions)
+      (let loop ((remaining exported-functions)
+                 (result index))
+        (if (null? remaining)
+            result
+            (loop (cdr remaining)
+                  (index-add! result (car remaining) library-entry))
+        ) ;if
       ) ;let
     ) ;define
 
@@ -193,34 +100,153 @@
       ) ;map
     ) ;define
 
-    (define (build-index-for-tests-root tests-root)
+    (define (library-form? form)
+      (and (pair? form)
+           (eq? (car form) 'define-library)
+           (pair? (cdr form))
+      ) ;and
+    ) ;define
+
+    (define (export-form? form)
+      (and (pair? form)
+           (eq? (car form) 'export)
+      ) ;and
+    ) ;define
+
+    (define (library-name-part->string value)
+      (cond
+        ((symbol? value)
+         (symbol->string value)
+        ) ;
+        ((number? value)
+         (number->string value)
+        ) ;
+        (else
+         #f
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (library-name->entry library-name)
+      (if (not (and (list? library-name)
+                    (= (length library-name) 2)))
+          #f
+          (let* ((group (library-name-part->string (car library-name)))
+                 (library (library-name-part->string (cadr library-name))))
+            (and group
+                 library
+                 (supported-test-group? group)
+                 (string-append "(" group " " library ")")
+            ) ;and
+          ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (rename-export-spec? value)
+      (and (pair? value)
+           (eq? (car value) 'rename)
+           (= (length value) 3)
+      ) ;and
+    ) ;define
+
+    (define (export-spec->name spec)
+      (cond
+        ((symbol? spec)
+         (symbol->string spec)
+        ) ;
+        ((rename-export-spec? spec)
+         (library-name-part->string (caddr spec))
+        ) ;
+        (else
+         #f
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (export-form-names form)
+      (let loop ((remaining (cdr form))
+                 (names '()))
+        (if (null? remaining)
+            names
+            (let ((name (export-spec->name (car remaining))))
+              (loop (cdr remaining)
+                    (if name
+                        (append-unique-string names name)
+                        names
+                    ) ;if
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (define-library-exported-names form)
+      (let loop ((remaining (cddr form))
+                 (names '()))
+        (if (null? remaining)
+            names
+            (let ((declaration (car remaining)))
+              (loop (cdr remaining)
+                    (if (export-form? declaration)
+                        (let export-loop ((exports (export-form-names declaration))
+                                          (result names))
+                          (if (null? exports)
+                              result
+                              (export-loop (cdr exports)
+                                           (append-unique-string result (car exports)))
+                          ) ;if
+                        ) ;let
+                        names
+                    ) ;if
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (index-add-library-form index form)
+      (if (not (library-form? form))
+          index
+          (let ((library-entry (library-name->entry (cadr form))))
+            (if library-entry
+                (index-add-exported-functions index
+                                              library-entry
+                                              (define-library-exported-names form))
+                index
+            ) ;if
+          ) ;let
+      ) ;if
+    ) ;define
+
+    (define (index-add-source-file index library-file)
+      (call-with-input-file
+        library-file
+        (lambda (port)
+          (let loop ((result index))
+            (let ((form (read port)))
+              (if (eof-object? form)
+                  result
+                  (loop (index-add-library-form result form))
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;lambda
+      ) ;call-with-input-file
+    ) ;define
+
+    (define (build-index-for-load-root load-root)
       (let ((index '()))
         (for-each
           (lambda (group-name)
-            (let ((group-dir (path->string (path-join tests-root group-name))))
+            (let ((group-dir (path->string (path-join load-root group-name))))
               (if (and (path-dir? group-dir)
                        (supported-test-group? group-name))
                   (for-each
-                    (lambda (library-name)
-                      (let ((library-dir (path->string (path-join group-dir library-name))))
-                        (if (path-dir? library-dir)
-                            (for-each
-                              (lambda (entry-name)
-                                (if (string-ends? entry-name "-test.scm")
-                                    (let* ((test-file (path->string (path-join library-dir entry-name)))
-                                           (function-name (documented-function-name test-file)))
-                                      (if function-name
-                                          (set! index
-                                                (index-add! index
-                                                            function-name
-                                                            (string-append "(" group-name " " library-name ")"))
-                                          ) ;set!
-                                      ) ;if
-                                    ) ;let*
-                                ) ;if
-                              ) ;lambda
-                              (sorted-dir-entries library-dir)
-                            ) ;for-each
+                    (lambda (entry-name)
+                      (let ((source-file (path->string (path-join group-dir entry-name))))
+                        (if (and (path-file? source-file)
+                                 (string-ends? entry-name ".scm"))
+                            (set! index (index-add-source-file index source-file))
                         ) ;if
                       ) ;let
                     ) ;lambda
@@ -229,7 +255,7 @@
               ) ;if
             ) ;let
           ) ;lambda
-          (sorted-dir-entries tests-root)
+          (sorted-dir-entries load-root)
         ) ;for-each
         (sorted-index index)
       ) ;let
@@ -244,9 +270,9 @@
       ) ;map
     ) ;define
 
-    (define (build-function-index-at! tests-root)
+    (define (build-function-index-at! load-root tests-root)
       (let ((index-path (path->string (path-join tests-root "function-library-index.json"))))
-        (let* ((raw-index (build-index-for-tests-root tests-root))
+        (let* ((raw-index (build-index-for-load-root load-root))
                (json-value (index->json-value raw-index))
                ;; 当索引为空时，使用空对象 '(()) 代替空列表
                (normalized-json-value (if (null? json-value) '(()) json-value)))
@@ -259,14 +285,18 @@
     ) ;define
 
     (define (build-function-indexes!)
-      (let loop ((tests-roots (find-buildable-tests-roots))
+      (let loop ((targets (find-buildable-index-targets))
                  (built-paths '()))
-        (if (null? tests-roots)
+        (if (null? targets)
             built-paths
-            (loop (cdr tests-roots)
-                  (append built-paths
-                          (list (build-function-index-at! (car tests-roots))))
-            ) ;loop
+            (let* ((target (car targets))
+                   (load-root (car target))
+                   (tests-root (cdr target)))
+              (loop (cdr targets)
+                    (append built-paths
+                            (list (build-function-index-at! load-root tests-root)))
+              ) ;loop
+            ) ;let*
         ) ;if
       ) ;let
     ) ;define
