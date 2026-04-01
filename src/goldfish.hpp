@@ -3462,6 +3462,36 @@ goldfish_extract_scheme_path_from_error (const string& errmsg) {
 }
 
 static string
+goldfish_extract_unbound_function_name_from_error (const string& errmsg) {
+  const string prefix= "unbound variable ";
+  size_t       start = errmsg.find (prefix);
+  if (start == string::npos) {
+    return "";
+  }
+
+  start += prefix.size ();
+  size_t end= start;
+  while (end < errmsg.size ()) {
+    unsigned char ch= static_cast<unsigned char> (errmsg[end]);
+    if (std::isspace (ch) || ch == '(' || ch == ')' || ch == ';') {
+      break;
+    }
+    ++end;
+  }
+
+  if (end == start) {
+    return "";
+  }
+
+  string function_name= errmsg.substr (start, end - start);
+  if (errmsg.find ("in (" + function_name, end) == string::npos) {
+    return "";
+  }
+
+  return function_name;
+}
+
+static string
 goldfish_format_scheme_error_message (const char* errmsg) {
   if ((!errmsg) || (!*errmsg)) {
     return "";
@@ -3487,10 +3517,30 @@ goldfish_format_scheme_error_message (const char* errmsg) {
   return formatted;
 }
 
+static string
+goldfish_append_doc_hint_if_needed (const string& errmsg) {
+  if (errmsg.find ("Hint: try `") != string::npos) {
+    return errmsg;
+  }
+
+  string function_name= goldfish_extract_unbound_function_name_from_error (errmsg);
+  if (function_name.empty ()) {
+    return errmsg;
+  }
+
+  string formatted= errmsg;
+  if ((!formatted.empty ()) && (formatted.back () != '\n')) {
+    formatted += '\n';
+  }
+  formatted += "Hint: try `" + goldfish_cli_program_name () + " doc \"" + function_name +
+               "\"` to look up related documentation.\n";
+  return formatted;
+}
+
 static void
 goldfish_print_scheme_error_message (const char* errmsg) {
   if ((errmsg) && (*errmsg)) {
-    cout << goldfish_format_scheme_error_message (errmsg);
+    cout << goldfish_append_doc_hint_if_needed (goldfish_format_scheme_error_message (errmsg));
   }
 }
 
