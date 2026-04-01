@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -16,12 +17,19 @@
 ;; 要检查的对象。
 ;;
 ;; 返回值
-;; -----
+;; ----
+;; boolean
 ;; 如果 obj 是 flexvector，返回 #t；否则返回 #f。
 ;;
+;; 描述
+;; ----
+;; 类型谓词，用于判断给定对象是否为 flexvector 类型。
+
 (check-true (flexvector? (flexvector)))
 (check-false (flexvector? '()))
 (check-false (flexvector? "not a flexvector"))
 (check-false (flexvector? 42))
+(check-false (flexvector? #(1 2 3)))
+(check-false (flexvector? '(1 2 3)))
 
 (check-report)

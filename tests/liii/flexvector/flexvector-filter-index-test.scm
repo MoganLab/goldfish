@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -13,6 +14,8 @@
 (let ((fv (flexvector 10 20 30)))
   (check (flexvector->vector
            (flexvector-filter/index (lambda (i x) (not (= i 1))) fv))
-         => #(10 30)))
+         => #(10 30)
+  ) ;check
+) ;let
 
 (check-report)

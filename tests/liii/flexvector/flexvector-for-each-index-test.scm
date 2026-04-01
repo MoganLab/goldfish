@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -15,7 +16,9 @@
       (res '()))
   (flexvector-for-each/index
     (lambda (i x) (set! res (cons (+ x (* i 2)) res)))
-    fv)
-  (check res => '(34 22 10)))
+    fv
+  ) ;flexvector-for-each/index
+  (check res => '(34 22 10))
+) ;let
 
 (check-report)

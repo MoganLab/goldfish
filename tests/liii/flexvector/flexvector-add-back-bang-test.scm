@@ -5,7 +5,7 @@
 (check-set-mode! 'report-failed)
 
 ;; flexvector-add-back!
-;; 向可变长向量后端添加元素。
+;; 在可变长向量尾部添加元素。
 ;;
 ;; 语法
 ;; ----
@@ -20,20 +20,23 @@
 ;; 要添加的元素。
 ;;
 ;; 返回值
-;; -----
+;; ----
+;; flexvector
 ;; 返回修改后的 flexvector。
 ;;
+;; 描述
+;; ----
+;; 在向量末尾追加一个或多个元素，这是最常用的添加操作。
+
 (let ((fv (flexvector)))
   (flexvector-add-back! fv 'a)
   (check (flexvector-length fv) => 1)
   (check (flexvector-ref fv 0) => 'a)
 ) ;let
 
-(let ((fv (flexvector 'x 'y 'z)))
-  (flexvector-add-back! fv 'w)
-  (check (flexvector-length fv) => 4)
-  (check (flexvector-ref fv 3) => 'w)
-  (check (flexvector->list fv) => '(x y z w))
+(let ((fv (flexvector 1 2)))
+  (flexvector-add-back! fv 3 4)
+  (check (flexvector->list fv) => '(1 2 3 4))
 ) ;let
 
 (check-report)

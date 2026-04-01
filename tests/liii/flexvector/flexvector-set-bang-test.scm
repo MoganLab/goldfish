@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -22,11 +23,24 @@
 ;; 新值。
 ;;
 ;; 返回值
-;; -----
+;; ----
+;; any
 ;; 返回原来的值。
 ;;
+;; 错误处理
+;; ----
+;; bounds-error
+;; 当索引越界时抛出。
+
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-set! fv 1 'd) => 'b)
-  (check (flexvector-ref fv 1) => 'd))
+  (check (flexvector-ref fv 1) => 'd)
+  (check (flexvector->list fv) => '(a d c))
+) ;let
+
+(let ((fv (flexvector 10 20 30)))
+  (flexvector-set! fv 0 100)
+  (check (flexvector-ref fv 0) => 100)
+) ;let
 
 (check-report)
