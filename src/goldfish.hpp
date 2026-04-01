@@ -3422,7 +3422,8 @@ goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
 
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
-  s7_pointer x= s7_eval_c_string (sc, code.c_str ());
+  string wrapped_code = "(begin " + code + " )";
+  s7_pointer x= s7_eval_c_string (sc, wrapped_code.c_str ());
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
