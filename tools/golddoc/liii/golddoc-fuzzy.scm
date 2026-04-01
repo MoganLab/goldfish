@@ -150,8 +150,31 @@
       ) ;let
     ) ;define
 
+    (define (prefix-matches query candidates)
+      (let loop ((remaining (unique-strings candidates))
+                 (matches '()))
+        (if (null? remaining)
+            (list-sort string<? matches)
+            (let ((candidate (car remaining)))
+              (loop (cdr remaining)
+                    (if (and (not (string=? candidate query))
+                             (string-starts? candidate query))
+                        (cons candidate matches)
+                        matches
+                    ) ;if
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (suggest-candidates query candidates)
-      (edit-distance-matches query candidates)
+      (let ((prefixes (prefix-matches query candidates)))
+        (if (null? prefixes)
+            (edit-distance-matches query candidates)
+            prefixes
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (suggest-library-functions library-query function-name)

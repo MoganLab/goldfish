@@ -23,15 +23,26 @@
 ;; 返回值
 ;; ----
 ;; list?
-;; 返回所有编辑距离小于等于 `2` 的候选函数名列表。
+;; 如果存在前缀匹配，则只返回所有前缀匹配的候选函数名列表；
+;; 否则返回所有编辑距离小于等于 `2` 的候选函数名列表。
 ;;
 ;; 描述
 ;; ----
 ;; 结果排序规则为：
-;; 1. 先按编辑距离升序；
-;; 2. 距离相同时按函数名字典序升序；
-;; 3. 重复候选只保留一份；
-;; 4. 与查询完全相等的候选不会出现在结果中。
+;; 1. 先去重；
+;; 2. 与查询完全相等的候选不会出现在结果中；
+;; 3. 如果存在前缀匹配，只返回前缀匹配，并按函数名字典序升序；
+;; 4. 如果不存在前缀匹配，再按编辑距离升序；
+;; 5. 距离相同时按函数名字典序升序。
+
+(check (suggest-candidates "string-spl"
+                           '("string-spilt"
+                             "string-split"
+                             "string-splat"
+                             "string-split"
+                             "hash-table"))
+  => '("string-splat" "string-split")
+) ;check
 
 (check (suggest-candidates "string-splst"
                            '("string-spilt"
@@ -45,6 +56,11 @@
 (check (suggest-candidates "string-split"
                            '("string-split" "string-spilt" "string-splat"))
   => '("string-splat" "string-spilt")
+) ;check
+
+(check (suggest-candidates "string-split"
+                           '("string-split" "string-splits" "string-spilt"))
+  => '("string-splits")
 ) ;check
 
 (check (suggest-candidates "string-splst" '("hash-table" "vector-map"))
