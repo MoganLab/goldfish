@@ -1,17 +1,31 @@
+;; (scheme eval) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; eval 提供动态构造求值环境和在指定环境中执行表达式的能力。
+;; 它适合 REPL、脚本引擎、DSL 和需要增量求值的运行时场景。
 
-;; (scheme eval) 中相关的测试用例都在 tests/scheme/eval 目录中
+;; ==== 常见用法示例 ====
+(import (scheme eval))
+
+;; 示例1：创建一个只导入 `(scheme base)` 的求值环境
+(define env (environment '(scheme base)))
+
+;; 示例2：在指定环境中对表达式求值
+(eval '(+ 1 2) env) ; => 3
+
+;; 示例3：使用 import set 变换定制可见名字
+(eval '(base-square 4)
+      (environment '(prefix (scheme base) base-))) ; => 16
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc scheme/eval "environment"
+;;   bin/gf doc scheme/eval "eval"
+
+;; ==== 函数分类索引 ====
+
+;; 一、环境构造函数
+;; 用于创建可供动态求值使用环境的函数
+;;   environment        - 根据 import set 构造新的求值环境
+
+;; 二、表达式求值函数
+;; 用于在指定环境中执行表达式的函数
+;;   eval               - 在给定环境中对表达式求值

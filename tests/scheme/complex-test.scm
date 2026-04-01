@@ -1,17 +1,39 @@
+;; (scheme complex) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; complex 提供复数构造、实部虚部访问、模长和辐角计算等能力。
+;; 它适合信号处理、几何计算和需要极坐标表示的数值场景。
 
-;; (scheme complex) 中相关的测试用例都在 tests/scheme/complex 目录中
+;; ==== 常见用法示例 ====
+(import (scheme complex))
+
+;; 示例1：构造一个直角坐标形式的复数
+(define z (make-rectangular 3 4))
+(real-part z) ; => 3
+(imag-part z) ; => 4
+
+;; 示例2：读取复数的模长
+(magnitude z) ; => 5.0
+
+;; 示例3：使用极坐标构造复数
+(real-part (make-polar 2 0)) ; => 2.0
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc scheme/complex "make-rectangular"
+;;   bin/gf doc scheme/complex "magnitude"
+
+;; ==== 函数分类索引 ====
+
+;; 一、构造函数
+;; 用于创建复数的函数
+;;   make-rectangular   - 通过实部和虚部创建复数
+;;   make-polar         - 通过模长和辐角创建复数
+
+;; 二、分量访问
+;; 用于读取复数分量的函数
+;;   real-part          - 获取实部
+;;   imag-part          - 获取虚部
+
+;; 三、极坐标属性
+;; 用于读取复数模长和角度的函数
+;;   magnitude          - 获取复数的模
+;;   angle              - 获取复数的辐角

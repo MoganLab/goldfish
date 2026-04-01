@@ -1,17 +1,45 @@
+;; (scheme inexact) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; inexact 提供主要面向浮点和非精确数值的数学函数与状态判断。
+;; 它适合三角函数、指数对数运算，以及 `inf.0` / `nan.0` 等特殊值处理。
 
-;; (scheme inexact) 中相关的测试用例都在 tests/scheme/inexact 目录中
+;; ==== 常见用法示例 ====
+(import (scheme inexact))
+
+;; 示例1：计算平方根
+(sqrt 9) ; => 3
+
+;; 示例2：判断一个数值是否有限
+(finite? +inf.0) ; => #f
+
+;; 示例3：执行常见三角函数和指数运算
+(cos 0.0) ; => 1.0
+(exp 1.0)
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc scheme/inexact "sqrt"
+;;   bin/gf doc scheme/inexact "finite?"
+
+;; ==== 函数分类索引 ====
+
+;; 一、三角函数
+;; 用于进行角度相关计算的函数
+;;   acos              - 反余弦
+;;   asin              - 反正弦
+;;   atan              - 反正切
+;;   cos               - 余弦
+;;   sin               - 正弦
+;;   tan               - 正切
+
+;; 二、指数与根号函数
+;; 用于进行指数、对数和平方根计算的函数
+;;   exp               - 指数函数
+;;   log               - 对数函数
+;;   sqrt              - 平方根函数，负实数可返回复数
+;;   s7-sqrt           - 底层 s7 的原始平方根函数
+
+;; 三、特殊值判断
+;; 用于判断数值是否为有限值、无穷或 NaN 的函数
+;;   finite?           - 判断数值是否有限
+;;   infinite?         - 判断数值是否为无穷大
+;;   nan?              - 判断数值是否为 NaN
