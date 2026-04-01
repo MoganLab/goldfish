@@ -1,17 +1,39 @@
+;; (liii trie) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; trie 是一类按键路径逐层索引的树形结构，适合前缀匹配和分层键查找。
+;; 它常用于词典树、命令补全和分段路径映射。
 
-;; (liii trie) 中相关的测试用例都在 tests/liii/trie 目录中
+;; ==== 常见用法示例 ====
+(import (liii trie))
+
+;; 示例1：创建空 trie
+(define t (make-trie))
+
+;; 示例2：按路径插入值
+(trie-insert! t '(g o l d) 'fish)
+
+;; 示例3：按路径读取值并导出为列表
+(trie-ref t '(g o l d)) ; => fish
+(trie->list t) ; => 将 trie 转成嵌套列表表示
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc liii/trie "make-trie"
+;;   bin/gf doc liii/trie "trie-insert!"
+
+;; ==== 函数分类索引 ====
+
+;; 一、构造与判定
+;; 用于创建和判断 trie 的函数
+;;   make-trie        - 创建空 trie
+;;   trie?            - 判断对象是否为 trie
+
+;; 二、插入与查找
+;; 用于按路径写入和读取 trie 的函数
+;;   trie-insert!     - 原地插入路径和值
+;;   trie-ref         - 按完整路径读取值
+;;   trie-ref*        - 按路径读取子 trie 或值
+;;   trie-value       - 读取当前节点保存的值
+
+;; 三、转换函数
+;; 用于把 trie 导出为普通结构的函数
+;;   trie->list       - 将 trie 转换成列表表示

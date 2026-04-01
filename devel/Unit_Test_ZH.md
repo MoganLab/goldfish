@@ -45,37 +45,161 @@ tests/liii/hash-table/hash-table-update-bang-slash-default-test.scm
 
 ## 顶层入口文件写法
 
-顶层入口文件只负责说明，不写实际断言。
+顶层入口文件不再只是一个纯注释 stub，而应当写成“模块说明 + 用法示例 + 函数分类索引”的入口文件。
+
+可以把它理解为这个库在 `tests/` 目录下的“模块导览页”。
+
+它的职责是：
+
+- 用几句话说明这个库是什么、适合做什么
+- 给出 1 到 3 个最常见、最能代表该库风格的用法示例
+- 告诉读者如何用 `gf doc` 继续查看具体函数文档
+- 用分类索引列出该库的主要导出函数，方便快速导航
+
+它的职责不是：
+
+- 承担具体函数的断言测试
+- 代替 `tests/<group>/<library>/` 目录下的细粒度测试文件
+- 把整个库的所有导出都在这里做一遍 `check`
 
 约定如下：
 
 - 文件名固定为 `<library>-test.scm`
-- 文件内容保持为说明 stub
+- 文件主题是“模块说明入口”，而不是“单函数测试文件”
+- 可以写 `import`
+- 可以写少量示例代码
+- 可以写少量辅助 `define`，用于支撑示例
+- 可以写函数分类索引
 - 不写 `check`
 - 不写 `check-report`
-- 不在这里放具体函数测试
+- 不在这里放具体函数断言测试
+- 不把多个独立函数的测试逻辑堆在这个文件里
 
-推荐样式：
+换句话说，顶层入口文件允许“可执行示例”，但不允许“测试断言”。
+
+### 建议结构
+
+建议按下面这个顺序组织内容：
+
+1. 文件开头用一行标题说明这个模块是什么
+2. 用几行文字说明该模块的核心用途、与相近库的区别，或使用场景
+3. 写 `==== 常见用法示例 ====`
+4. `import` 被说明的库
+5. 放 1 到 3 个短小、稳定、代表性强的示例
+6. 写 `==== 如何查看函数的文档和用例 ====`
+7. 给出一两条 `bin/gf doc ...` 示例命令
+8. 写 `==== 函数分类索引 ====`
+9. 按类别罗列该模块的主要函数
+
+### 推荐样式
+
+推荐直接参考 [tests/liii/range-test.scm](/home/wumo/work/work/goldfish/tests/liii/range-test.scm) 这种模式：
 
 ```scheme
+;; (<namespace> <library>) 模块函数分类索引
 ;;
-;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
-;;
-;; Licensed under the Apache License, Version 2.0 (the "License");
-;; you may not use this file except in compliance with the License.
-;; You may obtain a copy of the License at
-;;
-;; http://www.apache.org/licenses/LICENSE-2.0
-;;
-;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-;; License for the specific language governing permissions and limitations
-;; under the License.
-;;
+;; 一两段简短说明：
+;; 这个库解决什么问题、有哪些特点、与相近库有什么差别。
+;; 如果有特别典型的设计点，可以在这里点明。
 
-;; (<namespace> <library>) 中相关的测试用例都在 tests/<group>/<library> 目录中
+;; ==== 常见用法示例 ====
+(import (<namespace> <library>))
+
+;; 示例1：最常见的基本用法
+;; ...
+
+;; 示例2：稍微体现模块特性的用法
+;; ...
+
+;; ==== 如何查看函数的文档和用例 ====
+;;   bin/gf doc <namespace>/<library> "function-name"
+
+;; ==== 函数分类索引 ====
+;;
+;; 一、某一类函数
+;;   foo        - 简短说明
+;;   foo?       - 简短说明
+;;
+;; 二、另一类函数
+;;   bar        - 简短说明
+;;   bar-baz    - 简短说明
 ```
+
+### 参考实例说明
+
+[tests/liii/range-test.scm](/home/wumo/work/work/goldfish/tests/liii/range-test.scm) 当前体现的模式是：
+
+- 文件标题直接写成“模块函数分类索引”
+- 开头先简要说明 `range` 的定位，以及它和 `iota` 这类相近能力的区别
+- 接着给出几个最典型的示例，如遍历、折叠、切片
+- 再给出 `gf doc` 的调用方式
+- 最后按“构造函数、谓词函数、属性访问、元素访问、子范围操作、遍历操作、过滤操作、类型转换”等类别列出函数
+
+这种写法的优点是：
+
+- 新读者打开文件就能知道模块用途
+- 不必先跳到子目录，先有一个总览
+- 文档入口、用法示例和函数导航在一个地方集中呈现
+
+### 示例代码该怎么把握尺度
+
+顶层入口文件中的示例代码应当是“文档示例”，不是“测试断言”。
+
+因此建议遵循这些原则：
+
+- 示例数量少而精，通常 1 到 3 个就够
+- 示例应当稳定、可重复、可读
+- 示例尽量选择最常见的使用方式
+- 可以用注释标出期望结果，例如 `; => 55`
+- 可以有少量输出，但不要制造大量噪音
+- 可以有少量辅助定义，例如 `define r`
+- 避免依赖网络、随机数、当前时间、外部文件状态或复杂环境
+- 避免长时间运行、死循环或重副作用逻辑
+
+### 明确禁止的内容
+
+虽然顶层入口文件现在允许写示例，但以下内容仍然不应该出现在这里：
+
+- `check`
+- `check-true`
+- `check-false`
+- `check-catch`
+- `check-report`
+- 为了测试某个具体函数而写的一整组断言
+- 大量局部测试夹具和复杂辅助逻辑
+- 将多个独立 API 的真实测试混在这个文件里
+
+一旦代码的目的已经从“说明如何使用”变成“验证行为是否正确”，它就应该移到 `tests/<group>/<library>/` 下对应的单个测试文件中。
+
+### 什么时候适合这样写
+
+以下类型的库尤其适合这种顶层入口模式：
+
+- 导出函数较多，需要按类别浏览的库
+- 有明确使用风格或心智模型的库
+- 容易让读者和相邻库混淆，需要先说明区别的库
+- 有代表性工作流，适合用短示例展示的库
+
+例如：
+
+- `(liii range)`
+- `(liii bag)`
+- `(liii alist)`
+- `(liii hash-table)`
+
+### 和子目录中的单个测试文件怎么分工
+
+可以把分工理解为：
+
+- 顶层入口文件负责“告诉你这个库是什么、怎么开始用、有哪些函数”
+- 子目录中的 `*-test.scm` 文件负责“验证某个具体函数或语法入口的行为是否正确”
+
+二者不能互相替代。
+
+如果某个库同时有“模块导览文件”和“同名过程测试文件”，这是完全允许的。例如：
+
+- `tests/liii/bag-test.scm` 负责 `(liii bag)` 的总览、示例和分类索引
+- `tests/liii/bag/bag-test.scm` 负责过程 `bag` 的具体断言测试
 
 ## 单个测试文件放哪
 
