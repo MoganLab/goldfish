@@ -37,24 +37,6 @@
     (define default-check-approx-rel-tol 1e-12)
     (define default-check-approx-abs-tol 1e-12)
 
-    (define (check-approximate? actual expected rel-tol abs-tol)
-      (and (number? actual)
-           (number? expected)
-           (number? rel-tol)
-           (number? abs-tol)
-           (or (= actual expected)
-               (let* ((difference (abs (- actual expected)))
-                      (relative-tolerance (abs rel-tol))
-                      (absolute-tolerance (abs abs-tol))
-                      (scale (max (abs actual) (abs expected)))
-                      (limit (max absolute-tolerance
-                                  (* relative-tolerance scale))))
-                 (<= difference limit)
-               ) ;let*
-           ) ;or
-      ) ;and
-    ) ;define
-
     (define (parse-check-approx-options options)
       (let loop ((remaining options)
                  (rel-tol default-check-approx-rel-tol)
@@ -82,13 +64,26 @@
     (define-macro (check-approx expr => expected . options)
       (let* ((parsed (parse-check-approx-options options))
              (rel-tol (car parsed))
-             (abs-tol (cdr parsed))
-             (approximate? check-approximate?))
+             (abs-tol (cdr parsed)))
         `(check:proc ',expr
                      (lambda () ,expr)
                      ,expected
                      (lambda (actual expected)
-                       (,approximate? actual expected ,rel-tol ,abs-tol)
+                       (and (number? actual)
+                            (number? expected)
+                            (number? ,rel-tol)
+                            (number? ,abs-tol)
+                            (or (= actual expected)
+                                (let* ((difference (abs (- actual expected)))
+                                       (relative-tolerance (abs ,rel-tol))
+                                       (absolute-tolerance (abs ,abs-tol))
+                                       (scale (max (abs actual) (abs expected)))
+                                       (limit (max absolute-tolerance
+                                                   (* relative-tolerance scale))))
+                                  (<= difference limit)
+                                ) ;let*
+                            ) ;or
+                       ) ;and
                      ) ;lambda
         ) ;quasiquote
       ) ;let*
