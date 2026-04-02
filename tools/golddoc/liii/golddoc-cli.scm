@@ -70,6 +70,27 @@
                      (shell-double-quote function-name))
     ) ;define
 
+    (define (library-doc-command library-query)
+      (string-append (golddoc-command-name)
+                     " doc "
+                     library-query)
+    ) ;define
+
+    (define (library-source-command library-query)
+      (string-append (golddoc-command-name)
+                     " source "
+                     library-query)
+    ) ;define
+
+    (define (library-query->display-name library-query)
+      (let ((parts (parse-library-query library-query)))
+        (if parts
+            (string-append "(" (car parts) " " (cdr parts) ")")
+            library-query
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (library-function-doc-command library-query function-name)
       (string-append (golddoc-command-name)
                      " doc "
@@ -152,6 +173,70 @@
       ) ;let
     ) ;define
 
+    (define (display-exported-without-docs function-name library-queries)
+      (let ((port (current-error-port)))
+        (display (string-append "Function " function-name " is exported in:") port)
+        (newline port)
+        (for-each
+          (lambda (library-query)
+            (display "  " port)
+            (display (library-query->display-name library-query) port)
+            (newline port)
+          ) ;lambda
+          library-queries
+        ) ;for-each
+        (display "No documentation and test cases available." port)
+        (newline port)
+        (display "Try one of these commands:" port)
+        (newline port)
+        (for-each
+          (lambda (library-query)
+            (display "  " port)
+            (display (library-doc-command library-query) port)
+            (newline port)
+            (display "  " port)
+            (display (library-source-command library-query) port)
+            (newline port)
+          ) ;lambda
+          library-queries
+        ) ;for-each
+      ) ;let
+    ) ;define
+
+    (define (display-library-without-docs library-query)
+      (let ((port (current-error-port)))
+        (display (string-append "Library "
+                                (library-query->display-name library-query)
+                                " exists.")
+                 port)
+        (newline port)
+        (display "No documentation and test cases available." port)
+        (newline port)
+        (display "Try one of these commands:" port)
+        (newline port)
+        (display "  " port)
+        (display (library-source-command library-query) port)
+        (newline port)
+      ) ;let
+    ) ;define
+
+    (define (documented-library-queries function-name library-queries)
+      (let loop ((remaining library-queries)
+                 (documented '()))
+        (if (null? remaining)
+            documented
+            (let ((library-query (car remaining)))
+              (loop (cdr remaining)
+                    (if (function-doc-path library-query function-name)
+                        (append documented (list library-query))
+                        documented
+                    ) ;if
+              ) ;loop
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (run-function-query function-name)
       (let ((library-queries (visible-libraries-for-function function-name)))
         (cond
@@ -173,23 +258,23 @@
              ) ;if
            ) ;let
           ) ;
-          ((null? (cdr library-queries))
-           (let ((doc-path (function-doc-path (car library-queries) function-name)))
-             (if doc-path
-                 (begin
-                   (display (path-read-text doc-path))
-                   0
-                 ) ;begin
-                 (begin
-                   (stderr-line (string-append "Error: documentation file not found for function: " function-name))
-                   1
-                 ) ;begin
-             ) ;if
-           ) ;let
-          ) ;
           (else
-           (display-library-choices function-name library-queries)
-           1
+           (let ((documented-queries (documented-library-queries function-name library-queries)))
+             (cond
+               ((null? documented-queries)
+                (display-exported-without-docs function-name library-queries)
+                1
+               ) ;
+               ((null? (cdr library-queries))
+                (display (path-read-text (function-doc-path (car library-queries) function-name)))
+                0
+               ) ;
+               (else
+                (display-library-choices function-name library-queries)
+                1
+               ) ;else
+             ) ;cond
+           ) ;let
           ) ;else
         ) ;cond
       ) ;let
@@ -263,10 +348,10 @@
                       ) ;if
                       (run-function-query query)
                   ) ;if
-                ) ;let
+               ) ;let
                ) ;
                (else
-                (stderr-line (string-append "Error: documentation file not found for library: " query))
+                (display-library-without-docs query)
                 1
                ) ;else
              ) ;cond
@@ -296,22 +381,29 @@
                 1
                ) ;
                (else
-                (let ((suggestions (suggest-library-functions library-query exported-name)))
-                  (if (null? suggestions)
-                      (begin
-                        (stderr-line (string-append "Error: documentation file not found for function: "
-                                                    exported-name
-                                                    " in library: "
-                                                    library-query)
-                        ) ;stderr-line
-                        1
-                      ) ;begin
-                      (begin
-                        (display-library-function-suggestions library-query exported-name suggestions)
-                        1
-                      ) ;begin
-                  ) ;if
-                ) ;let
+                (if (member library-query
+                            (visible-libraries-for-function exported-name))
+                    (begin
+                      (display-exported-without-docs exported-name (list library-query))
+                      1
+                    ) ;begin
+                    (let ((suggestions (suggest-library-functions library-query exported-name)))
+                      (if (null? suggestions)
+                          (begin
+                            (stderr-line (string-append "Error: documentation file not found for function: "
+                                                        exported-name
+                                                        " in library: "
+                                                        library-query)
+                            ) ;stderr-line
+                            1
+                          ) ;begin
+                          (begin
+                            (display-library-function-suggestions library-query exported-name suggestions)
+                            1
+                          ) ;begin
+                      ) ;if
+                    ) ;let
+                ) ;if
                ) ;else
              ) ;cond
           ) ;let*
