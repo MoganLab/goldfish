@@ -13,6 +13,12 @@
 ;; 语法
 ;; ----
 ;; (check-report [msg])
+;;
+;; 使用场景
+;; ----
+;; 1. 在测试文件末尾输出本轮测试汇总。
+;; 2. 让 CI 或脚本通过退出码感知失败。
+;; 3. 在汇总前附带一段简短前缀说明。
 
 (define (run-shell-command command)
   (os-call (string-append "sh -c \"" command "\""))

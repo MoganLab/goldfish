@@ -17,7 +17,7 @@
 (define-library (liii check)
   (export test check check-approx check-set-mode! check:proc
     check-catch check-report check-failed?
-    check-true check-false check-float
+    check-true check-false
   ) ;export
   (import (srfi srfi-78)
           (rename (srfi srfi-78)
@@ -128,10 +128,5 @@
       (srfi-78-check-report)
       (if (check-failed?) (exit -1))
     ) ;define
-
-    (define* (check-float a b (epsilon 1e-10))
-      (check-approximate? a b 0.0 epsilon)
-    ) ;define*
-
   ) ;begin
 ) ;define-library

@@ -17,6 +17,12 @@
 ;; ----
 ;; mode : symbol?
 ;; 支持 `'off`、`'summary`、`'report-failed`、`'report`。
+;;
+;; 使用场景
+;; ----
+;; 1. 在 CI 中只保留摘要输出，减少噪声。
+;; 2. 在调试阶段打开详细输出，方便定位失败断言。
+;; 3. 在不同测试文件中切换合适的报告策略。
 
 (check-set-mode! 'off)
 (check:proc 'ignored-in-off-mode
