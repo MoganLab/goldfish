@@ -4,16 +4,36 @@
 ;; 它基于 SRFI-78，提供基础断言、异常断言、结果汇总，以及浮点近似断言。
 
 ;; ==== 常见用法示例 ====
-(import (liii check))
-
-;; 示例1：普通断言
+;;
+;; 示例1：`summary` 模式
+;; 适合 CI 或批量运行测试时只看汇总结果。
+;;
+;; (import (liii check))
+;; (check-set-mode! 'summary)
 ;; (check (+ 1 2) => 3)
-
-;; 示例2：布尔断言
 ;; (check-true (number? 42))
-
-;; 示例3：浮点近似断言
 ;; (check-approx (+ 0.1 0.2) => 0.3 :rel-tol 1e-12 :abs-tol 1e-12)
+;; (check-report)
+;;
+;; 示例2：`report-failed` 模式
+;; 适合日常开发时只输出失败断言，减少噪声。
+;;
+;; (import (liii check))
+;; (check-set-mode! 'report-failed)
+;; (check (string-length "goldfish") => 8)
+;; (check-false (null? '(a b)))
+;; (check-catch 'wrong-type-arg (car 123))
+;; (check-report)
+;;
+;; 示例3：`report` 模式
+;; 适合调试时查看每条断言的执行结果。
+;;
+;; (import (liii check))
+;; (check-set-mode! 'report)
+;; (check '(a b c) => '(a b c))
+;; (test (boolean? #t) #t)
+;; (check-false (zero? 1))
+;; (check-report)
 
 ;; ==== 使用场景 ====
 ;;
@@ -50,6 +70,3 @@
 ;;   check-set-mode!  - 设置测试输出模式
 ;;   check-report     - 输出测试汇总并在失败时退出
 ;;   check-failed?    - 判断当前是否存在失败用例
-
-;; 三、底层接口
-;;   check:proc       - SRFI-78 底层断言过程

@@ -21,9 +21,7 @@
 
 (check-false (check-failed?))
 
-(check:proc 'check-failed-probe
-            (lambda () 1)
-            2)
+(check 1 => 2)
 
 (check-true (check-failed?))
 
