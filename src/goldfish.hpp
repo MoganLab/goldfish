@@ -3677,7 +3677,7 @@ goldfish_append_doc_hint_if_needed (s7_scheme* sc, const string& errmsg) {
 
   if (library_queries.empty ()) {
     formatted += "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) +
-                 "` .\n";
+                 "`\n";
     formatted += "`" + goldfish_cli_program_name () + " doc` may show similarly named functions when there is no exact match.\n";
     formatted += "If it finds nothing similar, try searching the codebase with `git grep "
                  + goldfish_shell_double_quote (function_name)

@@ -99,7 +99,7 @@
               (repl-output (path-read-text repl-output-path)))
           (check-true (string-contains? unknown-output "unbound variable foo in (foo 1)"))
           (check-true (string-contains? unknown-output
-                                        "Hint: try `gf doc \"foo\"` to look up related documentation."))
+                                        "Hint: try `gf doc \"foo\"`"))
           (check-true (string-contains? unknown-output
                                         "`gf doc` may show similarly named functions when there is no exact match."))
           (check-true (string-contains? unknown-output
