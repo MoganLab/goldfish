@@ -4,7 +4,7 @@
 (check-set-mode! 'report-failed)
 
 ;; flexvector->vector
-;; 可变长向量转换为向量。
+;; 将 flexvector 转换为普通向量（vector）。时间复杂度 O(n)。
 ;;
 ;; 语法
 ;; ----
@@ -12,7 +12,59 @@
 ;; (flexvector->vector fv start)
 ;; (flexvector->vector fv start end)
 ;;
+;; 参数
+;; ----
+;; fv : flexvector
+;;   源向量。
+;;
+;; start : exact-nonnegative-integer (可选，默认 0)
+;;   起始索引（包含）。
+;;
+;; end : exact-nonnegative-integer (可选，默认长度)
+;;   结束索引（不包含）。
+;;
+;; 返回值
+;; -----
+;; 返回新的 vector，包含指定范围的元素。
+;;
+;; 另见
+;; ----
+;; vector->flexvector - 向量转 flexvector
+
+;; 基本转换
 (let ((fv (flexvector 1 2 3)))
   (check (flexvector->vector fv) => #(1 2 3)))
+
+;; 空向量
+(let ((fv (flexvector)))
+  (check (flexvector->vector fv) => #()))
+
+;; 从指定位置转换
+(let ((fv (flexvector 1 2 3 4 5)))
+  (check (flexvector->vector fv 2) => #(3 4 5)))
+
+;; 转换区间 [start, end)
+(let ((fv (flexvector 1 2 3 4 5)))
+  (check (flexvector->vector fv 1 4) => #(2 3 4)))
+
+;; 边界测试：空区间
+(let ((fv (flexvector 1 2 3)))
+  (check (flexvector->vector fv 0 0) => #())
+  (check (flexvector->vector fv 3 3) => #()))
+
+;; 单元素
+(let ((fv (flexvector 'only)))
+  (check (flexvector->vector fv) => #(only)))
+
+;; 往返测试
+(let ((vec #(a b c d e)))
+  (check (flexvector->vector (vector->flexvector vec)) => vec))
+
+;; 修改原向量不影响已转换的 vector
+(let ((fv (flexvector 1 2 3))
+      (vec #f))
+  (set! vec (flexvector->vector fv))
+  (flexvector-set! fv 0 999)
+  (check vec => #(1 2 3)))
 
 (check-report)
