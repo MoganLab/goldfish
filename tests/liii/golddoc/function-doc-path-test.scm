@@ -42,7 +42,7 @@
   (check (path-name doc-path) => "string-split-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/base" "+")))
+(let ((doc-path (function-doc-path "scheme/base" "+")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
   (check (path-name doc-path) => "plus-test.scm")
@@ -54,7 +54,7 @@
   (check (path-name doc-path) => "njson-set-bang-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/base" "truncate/")))
+(let ((doc-path (function-doc-path "scheme/base" "truncate/")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
   (check (path-name doc-path) => "truncate-slash-test.scm")
