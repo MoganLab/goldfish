@@ -159,7 +159,7 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ### 模式选项
 `-m` 或 `--mode` 帮助您指定标准库模式：
 
-+ `default`: `-m default` 等价于 `-m liii`
++ `default`: `-m default` 等价于 `-m r7rs`
 + `liii`: 预加载 `(liii base)`、`(liii error)` 和 `(liii string)` 的 Goldfish Scheme
 + `scheme`: 预加载 `(liii base)` 和 `(liii error)` 的 Goldfish Scheme
 + `sicp`: 预加载 `(scheme base)` 和 `(srfi sicp)` 的 S7 Scheme

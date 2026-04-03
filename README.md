@@ -4,7 +4,7 @@
 Goldfish Scheme is a Scheme interpreter with the following features:
 + R7RS-small compatible
 + Python-like versatile standard library
-+ AI Coding friendly with `gf fix` and intuitive CLI
++ AI Coding friendly
 + Small and fast
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
@@ -154,7 +154,7 @@ You can also load and evaluate a Scheme file directly:
 ### Mode Option
 `-m` or `--mode` helps you specify the standard library mode:
 
-+ `default`: `-m default` is the equiv of `-m liii`
++ `default`: `-m default` is the equiv of `-m r7rs`
 + `liii`: Goldfish Scheme with `(liii base)`, `(liii error)` and `(liii string)`
 + `scheme`: Goldfish Scheme with `(liii base)` and `(liii error)`
 + `sicp`: S7 Scheme with `(scheme base)` and `(srfi sicp)`
