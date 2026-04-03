@@ -3391,9 +3391,13 @@ display_help () {
   cout << "  doc ORG/LIB FUNC   Show the function doc/test file for FUNC under a specific library" << endl;
   cout << "                     Best when you already know the library, or the name is ambiguous" << endl;
   cout << "                     Example: gf doc liii/path \"path-read-text\"" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
+  cout << "                     This preserves symbols such as ! ? > < and keeps FUNC as one shell argument" << endl;
   cout << "  doc FUNC           Search visible libraries for exported FUNC, then show its doc/test file" << endl;
   cout << "                     If multiple libraries export it, candidates are listed" << endl;
   cout << "                     Example: gf doc \"string-split\"" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
+  cout << "                     This keeps shell-sensitive symbols intact and makes it clear FUNC is one argument" << endl;
   cout << "  doc --build-json   Rebuild tests/function-library-index.json for global gf doc FUNC lookup" << endl;
   cout << "                     Needed by function-name search and fuzzy suggestions" << endl;
   cout << "                     Run this after changing exports, or before packaging" << endl;
