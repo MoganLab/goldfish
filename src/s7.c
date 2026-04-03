@@ -28935,21 +28935,42 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
       port_file_number(port) = remember_file_name(sc, (local_file_name) ? local_file_name : filename);
       if (local_file_name) free(local_file_name);
       set_loader_port(port);
-      /* 跳过 shebang 行：如果文件以 #! 开头，跳过第一行 */
-      if (is_string_port(port) &&
-          port_data_size(port) >= 2 &&
-          port_data(port)[0] == '#' &&
-          port_data(port)[1] == '!')
+      if ((is_string_port(port)) &&
+          (port_data_size(port) >= 2) &&
+          (port_data(port)[0] == '#') &&
+          (port_data(port)[1] == '!'))
         {
           uint8_t *data = port_data(port);
           s7_int pos = 0;
           while (pos < port_data_size(port) && data[pos] != '\n')
             pos++;
-          if (pos < port_data_size(port))  /* 找到换行符，跳过它 */
+          if (pos < port_data_size(port))
             port_position(port) = pos + 1;
-          else  /* 没有换行符，文件只有 shebang 行 */
-            port_position(port) = port_data_size(port);
+          else port_position(port) = port_data_size(port);
         }
+      else
+        if (is_file_port(port))
+          {
+            int32_t c0 = fgetc(port_file(port));
+            if (c0 != EOF)
+              {
+                int32_t c1 = fgetc(port_file(port));
+                if ((c0 == '#') &&
+                    (c1 == '!'))
+                  {
+                    int32_t c;
+                    while (((c = fgetc(port_file(port))) != EOF) &&
+                           (c != '\n'))
+                      {}
+                  }
+                else
+                  {
+                    if (c1 != EOF)
+                      ungetc(c1, port_file(port));
+                    ungetc(c0, port_file(port));
+                  }
+              }
+          }
       push_input_port(sc, port);
       return(port);
     }
