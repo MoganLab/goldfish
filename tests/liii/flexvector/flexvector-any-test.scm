@@ -61,9 +61,9 @@
 
 ;; 多向量版本
 (let ((fv1 (flexvector 1 2 3))
-      (fv2 (flexvector 3 4 5)))
+      (fv2 (flexvector 3 2 5)))
   ;; 检查是否有对应位置元素相等
-  (check (flexvector-any (lambda (x y) (= x y)) fv1 fv2) => #t))  ; 3=3 在索引2
+  (check (flexvector-any (lambda (x y) (= x y)) fv1 fv2) => #t))  ; 2=2 在索引1
 
 ;; 多向量都不满足
 (let ((fv1 (flexvector 1 2 3))

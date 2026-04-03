@@ -58,10 +58,9 @@
 ;; 多向量版本
 (let ((fv1 (flexvector 1 2 3 4))
       (fv2 (flexvector 10 20 30 1)))
-  ;; 统计对应位置 fv1 < fv2 的数量
-  (check (flexvector-count (lambda (x y) (< x y)) fv1 fv2) => 3))  ; 1<10, 2<20, 3<30, 4<1? no
+  (check (flexvector-count (lambda (x y) (< x y)) fv1 fv2) => 3))
 
-;; 多向量长度不同取最短
+;; 多向量长度不同
 (let ((fv1 (flexvector 1 2 3 4))
       (fv2 (flexvector 10 20)))
   (check (flexvector-count (lambda (x y) (< x y)) fv1 fv2) => 2))

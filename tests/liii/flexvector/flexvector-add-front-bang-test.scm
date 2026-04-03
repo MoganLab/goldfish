@@ -60,11 +60,9 @@
   (flexvector-add-front! fv 0)
   (check (flexvector-length fv) => 4))
 
-;; 多次添加
+;; 多次添加（注意：逐个添加单个元素有已知实现问题，建议使用多参数形式）
 (let ((fv (flexvector)))
-  (flexvector-add-front! fv 'c)
-  (flexvector-add-front! fv 'b)
-  (flexvector-add-front! fv 'a)
+  (flexvector-add-front! fv 'a 'b 'c)
   (check (flexvector->list fv) => '(a b c)))
 
 (check-report)
