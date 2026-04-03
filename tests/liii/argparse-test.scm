@@ -1,18 +1,32 @@
-;
-; Copyright (C) 2024 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
+;; (liii argparse) 模块测试文件
+;;
+;; argparse 用于解析命令行参数，支持长选项（--name）、短选项（-n）和默认值。
+;;
+;; 注意：argparse 库的函数需要搭配使用（先创建解析器、添加参数、解析参数、获取值），
+;; 因此整个库的所有函数测试都在本文件中，而不是每个函数单独一个测试文件。
+
+;; ==== 函数分类索引 ====
+
+;; 一、解析器创建
+;; 用于创建命令行参数解析器的函数
+;;   make-argument-parser  - 创建一个新的参数解析器实例
+
+;; 二、参数定义
+;; 用于向解析器添加参数选项
+;;   :add-argument         - 添加一个参数定义（也可用 :add）
+;;                         - 参数: '((name . "argname") (type . string/number) (short . "s") (default . value))
+
+;; 三、参数解析
+;; 用于解析命令行参数
+;;   :parse-args           - 解析参数列表（也可用 :parse）
+;;                         - 不传参数时默认使用 (cddr (argv))
+
+;; 四、参数获取
+;; 用于获取解析后的参数值
+;;   :get-argument         - 按名称获取参数值（也可用 :get）
+;;   直接调用语法         - (parser 'argname) 快捷获取参数值
+
+;; ==== 单元测试 ====
 
 (import (liii check)
         (liii argparse)
