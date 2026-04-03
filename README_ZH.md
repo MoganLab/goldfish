@@ -9,15 +9,6 @@
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
-## 示例代码
-### 具名参数
-``` scheme
-(define* (person (name "Bob") (age 21))
-  (string-append name ": " (number->string age)))
-
-(person :name "Alice" :age 3)
-```
-
 ## 以简为美
 金鱼Scheme仍旧遵循和 S7 Scheme 一样的简约的原则。目前，它仅依赖于 [S7 Scheme](https://ccrma.stanford.edu/software/s7/) 、[tbox](https://gitee.com/tboox/tbox) 和 C++98 范围内的标准库。
 
@@ -99,7 +90,7 @@ brew uninstall goldfish
 ```
 
 ## 命令行技巧
-本节假设您已成功执行 `xmake b goldfish` 并且 `bin/gf` 可用。
+如果您手动从源码编译，可以在 `bin/gf` 找到可执行文件。
 
 ### 子命令
 
@@ -120,7 +111,7 @@ brew uninstall goldfish
 ### 显示帮助
 不带任何命令时，将打印帮助信息：
 ```
-> bin/gf
+> gf
 Goldfish Scheme 17.11.37 by LiiiLabs
 
 Commands:
@@ -134,7 +125,7 @@ Commands:
 ### 显示版本
 `version` 子命令将打印 金鱼Scheme 版本和底层 S7 Scheme 版本：
 ```
-> bin/gf version
+> gf version
 Goldfish Scheme 17.11.37 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
@@ -142,25 +133,25 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ### 求值代码
 `eval` 子命令帮助您即时求值 Scheme 代码：
 ```
-> bin/gf eval "(+ 1 2)"
+> gf eval "(+ 1 2)"
 3
-> bin/gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+> gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
 1
-> bin/gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+> gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
 ("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
 ```
 
 ### 加载文件
 `load` 子命令帮助您加载 Scheme 文件并进入 REPL：
 ```
-> bin/gf load tests/goldfish/liii/base-test.scm
+> gf load tests/goldfish/liii/base-test.scm
 ; 加载文件并进入 REPL
 ```
 
 ### 直接运行文件
 您也可以直接加载并求值 Scheme 文件：
 ```
-> bin/gf tests/goldfish/liii/base-test.scm
+> gf tests/goldfish/liii/base-test.scm
 ; *** checks *** : 1973 correct, 0 failed.
 ```
 
@@ -182,7 +173,7 @@ Goldfish 启动时也支持额外的库搜索目录：
 
 例如：
 ```bash
-bin/gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
 ```
 
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。

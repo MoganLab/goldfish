@@ -9,15 +9,6 @@ Goldfish Scheme is a Scheme interpreter with the following features:
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
-## Demo Code
-### Named parameter
-``` scheme
-(define* (person (name "Bob") (age 21))
-  (string-append name ": " (number->string age)))
-
-(person :name "Alice" :age 3)
-```
-
 ## Simplicity is Beauty
 Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 98.
 
@@ -94,7 +85,7 @@ brew uninstall goldfish
 ```
 
 ## Commandlinefu
-This section assumes you have executed `xmake b goldfish` sucessfully and `bin/gf` is available.
+If you build from source manually, you can find the executable at `bin/gf`.
 
 ### Subcommands
 
@@ -115,7 +106,7 @@ Goldfish Scheme uses subcommands for different operations:
 ### Display Help
 Without any command, it will print the help message:
 ```
-> bin/gf
+> gf
 Goldfish Scheme 17.11.37 by LiiiLabs
 
 Commands:
@@ -129,7 +120,7 @@ Commands:
 ### Display Version
 `version` subcommand will print the Goldfish Scheme version and the underlying S7 Scheme version:
 ```
-> bin/gf version
+> gf version
 Goldfish Scheme 17.11.37 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
@@ -137,25 +128,25 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ### Evaluate Code
 `eval` subcommand helps you evaluate Scheme code on the fly:
 ```
-> bin/gf eval "(+ 1 2)"
+> gf eval "(+ 1 2)"
 3
-> bin/gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+> gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
 1
-> bin/gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+> gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
 ("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
 ```
 
 ### Load File
 `load` subcommand helps you load a Scheme file and enter REPL:
 ```
-> bin/gf load tests/goldfish/liii/base-test.scm
+> gf load tests/goldfish/liii/base-test.scm
 ; load the file and enter REPL
 ```
 
 ### Run File Directly
 You can also load and evaluate a Scheme file directly:
 ```
-> bin/gf tests/goldfish/liii/base-test.scm
+> gf tests/goldfish/liii/base-test.scm
 ; *** checks *** : 1973 correct, 0 failed.
 ```
 
@@ -177,7 +168,7 @@ Goldfish also supports extra library search directories during startup:
 
 For example:
 ```bash
-bin/gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
 ```
 
 On startup, Goldfish also automatically prepends each directory under `~/.local/goldfish/` whose name matches `xxx-yyy` and which contains at least one `.scm` file.
