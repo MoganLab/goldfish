@@ -34,6 +34,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii path)](goldfish/liii/path.scm)             | Path Library                         | `path-dir?`, `path-file?`                                        |
 | [(liii range)](goldfish/liii/range.scm)           | Range Library                        | `numeric-range`, `iota`                                          |
 | [(liii option)](goldfish/liii/option.scm)         | Option Type Library                  | `option?`, `option-map`, `option-flatten`                        |
+| [(liii either)](goldfish/liii/either.scm)         | Either Type Library                  | `left?`, `right?`, `either-map`                                  |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4`                                                          |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
 | [(liii json)](goldfish/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
