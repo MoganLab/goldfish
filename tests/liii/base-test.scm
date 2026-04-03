@@ -89,5 +89,4 @@
 ;;   compose              - 组合多个函数
 ;;   identity             - 原样返回输入值
 ;;   any?                 - 判断是否存在真值
-;;   let1                 - 单绑定 let 语法糖
 ;;   typed-lambda         - 带类型标注的 lambda 语法
