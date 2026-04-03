@@ -1,26 +1,9 @@
-;; (liii argparse) 模块函数分类索引
+;; (liii argparse) 模块测试文件
 ;;
 ;; argparse 用于解析命令行参数，支持长选项（--name）、短选项（-n）和默认值。
-
-;; ==== 常见用法示例 ====
-(import (liii argparse))
-
-;; 示例1：创建一个解析器并添加字符串参数
-(define parser (make-argument-parser))
-(parser :add-argument '((name . "name") (type . string) (short . "n") (default . "anonymous")))
-(parser :parse-args '("--name" "john"))
-(parser 'name) ; => "john"
-
-;; 示例2：添加数值类型参数
-(define parser2 (make-argument-parser))
-(parser2 :add-argument '((name . "width") (type . number) (short . "w") (default . 80)))
-(parser2 :parse-args '("-w" "100"))
-(parser2 'width) ; => 100
-
-;; 示例3：使用 :get-argument 获取参数值
-(define parser3 (make-argument-parser))
-(parser3 :add-argument '((name . "title") (type . string) (default . "Untitled")))
-(parser3 :get-argument "title") ; => "Untitled"
+;;
+;; 注意：argparse 库的函数需要搭配使用（先创建解析器、添加参数、解析参数、获取值），
+;; 因此整个库的所有函数测试都在本文件中，而不是每个函数单独一个测试文件。
 
 ;; ==== 函数分类索引 ====
 
