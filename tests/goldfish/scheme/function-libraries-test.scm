@@ -1,0 +1,118 @@
+;
+; Copyright (C) 2026 The Goldfish Scheme Authors
+;
+; Licensed under the Apache License, Version 2.0 (the "License");
+; you may not use this file except in compliance with the License.
+; You may obtain a copy of the License at
+;
+; http://www.apache.org/licenses/LICENSE-2.0
+;
+; Unless required by applicable law or agreed to in writing, software
+; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+; License for the specific language governing permissions and limitations
+; under the License.
+;
+
+(import (liii check)
+        (liii os)
+        (liii path)
+        (liii string)
+) ;import
+
+(check-set-mode! 'report-failed)
+
+(define (cleanup-function-libraries-fixture base-root)
+  (let ((load-root (path-join base-root "goldfish"))
+        (hidden-root (path-join base-root "hidden-goldfish")))
+    (path-unlink (path-join load-root "liii" "alpha.scm") #t)
+    (path-unlink (path-join load-root "custom" "beta.scm") #t)
+    (path-unlink (path-join load-root "srfi" "1.scm") #t)
+    (path-unlink (path-join hidden-root "liii" "missing.scm") #t)
+    (if (path-dir? (path-join load-root "liii"))
+        (path-rmdir (path-join load-root "liii"))
+        #f
+    ) ;if
+    (if (path-dir? (path-join load-root "custom"))
+        (path-rmdir (path-join load-root "custom"))
+        #f
+    ) ;if
+    (if (path-dir? (path-join load-root "srfi"))
+        (path-rmdir (path-join load-root "srfi"))
+        #f
+    ) ;if
+    (if (path-dir? (path-join hidden-root "liii"))
+        (path-rmdir (path-join hidden-root "liii"))
+        #f
+    ) ;if
+    (if (path-dir? hidden-root)
+        (path-rmdir hidden-root)
+        #f
+    ) ;if
+    (if (path-dir? load-root)
+        (path-rmdir load-root)
+        #f
+    ) ;if
+    (if (path-dir? base-root)
+        (path-rmdir base-root)
+        #f
+    ) ;if
+  ) ;let
+) ;define
+
+(let* ((base-root (path-join (path-temp-dir)
+                             (string-append "goldfish-function-libraries-"
+                                            (number->string (getpid)))))
+       (load-root (path-join base-root "goldfish"))
+       (hidden-root (path-join base-root "hidden-goldfish"))
+       (liii-root (path-join load-root "liii"))
+       (custom-root (path-join load-root "custom"))
+       (srfi-root (path-join load-root "srfi"))
+       (hidden-liii-root (path-join hidden-root "liii"))
+       (old-load-path *load-path*))
+  (cleanup-function-libraries-fixture base-root)
+  (mkdir (path->string base-root))
+  (mkdir (path->string load-root))
+  (mkdir (path->string hidden-root))
+  (mkdir (path->string liii-root))
+  (mkdir (path->string custom-root))
+  (mkdir (path->string srfi-root))
+  (mkdir (path->string hidden-liii-root))
+  (path-write-text
+    (path-join liii-root "alpha.scm")
+    "(define-library (liii alpha)\n  (export unique-func shared-func duplicate-func)\n  (import (scheme base))\n  (begin))\n"
+  ) ;path-write-text
+  (path-write-text
+    (path-join custom-root "beta.scm")
+    "(define-library (custom beta)\n  (export shared-func (rename beta-hidden renamed-func))\n  (import (scheme base))\n  (begin (define beta-hidden 1))\n)\n"
+  ) ;path-write-text
+  (path-write-text
+    (path-join srfi-root "1.scm")
+    "(define-library (srfi 1)\n  (export fold)\n  (import (scheme base))\n  (begin))\n"
+  ) ;path-write-text
+  (path-write-text
+    (path-join hidden-liii-root "missing.scm")
+    "(define-library (liii missing)\n  (export invisible-func)\n  (import (scheme base))\n  (begin))\n"
+  ) ;path-write-text
+  (dynamic-wind
+    (lambda ()
+      (set! *load-path* (list (path->string load-root)))
+    ) ;lambda
+    (lambda ()
+      (check (g_function-libraries "unique-func") => '((liii alpha)))
+      (check (g_function-libraries "shared-func") => '((custom beta) (liii alpha)))
+      (check (g_function-libraries "fold") => '((srfi 1)))
+      (check (g_function-libraries "renamed-func") => '((custom beta)))
+      (check (g_function-libraries "invisible-func") => '())
+      (check (g_function-libraries "missing-func") => '())
+      (check (g_function-libraries "duplicate-func") => '((liii alpha)))
+      (check-catch 'type-error (g_function-libraries 1))
+    ) ;lambda
+    (lambda ()
+      (set! *load-path* old-load-path)
+      (cleanup-function-libraries-fixture base-root)
+    ) ;lambda
+  ) ;dynamic-wind
+) ;let*
+
+(check-report)
