@@ -28,6 +28,15 @@
 ;;
 ;; 重要：标签捕获的值在结果中通过 #<label>（不带冒号）来引用
 
+;; ========== 性能与使用注意事项 ==========
+
+;; 注意1：case* 是宏展开，模式在编译时处理
+;; 注意2：复杂的嵌套模式可能影响编译时间
+;; 注意3：标签绑定使用哈希表存储，查找时间为 O(1)
+;; 注意4：省略号匹配会创建新列表，注意内存使用
+;; 注意5：在结果中引用标签时，必须使用 #<label> 语法（不带冒号）
+
+
 ;; ==== 函数分类索引 ====
 ;;
 ;; 一、模式匹配宏
@@ -148,20 +157,6 @@
          (else 'unknown))
   => 'odd)
 
-;; ========== 省略号匹配测试 ==========
-
-;; 省略号在末尾：匹配开头任意数量 + 最后一个
-;; (check (case* '(1 2 3 4 5)
-;;          (((#<...> last)) last)
-;;          (else 'none))
-;;   => 5)
-
-;; 带标签的省略号捕获 - 结果中用 #<nums>
-;; (check (case* '(1 2 3 4)
-;;          (((#<nums:...> last)) #<nums>)
-;;          (else '()))
-;;   => '(1 2 3))
-
 ;; ========== 向量模式匹配测试 ==========
 
 ;; 基本向量匹配
@@ -229,7 +224,7 @@
   (case* expr
     (((lambda (#<args:...>) #<body:>)) 'lambda)
     (((if #<cond:> #<then:> #<else:>)) 'conditional)
-    (((#<op:symbol?>) #<args:...>) 'application)
+    (((#<op:symbol?> #<args:...>)) 'application)
     ((#<x:integer?>) 'integer-literal)
     ((#<x:symbol?>) 'variable)
     (else 'unknown)))
@@ -237,9 +232,9 @@
 (check (expr-type '(lambda (x) x)) => 'lambda)
 (check (expr-type '(if a b c)) => 'conditional)
 (check (expr-type '(+)) => 'application)
-; (check (expr-type 42) => 'integer-literal)
-; (check (expr-type 'variable) => 'variable)
-; (check (expr-type #(1 2 3)) => 'unknown)
+(check (expr-type 42) => 'integer-literal)
+(check (expr-type 'variable) => 'variable)
+(check (expr-type #(1 2 3)) => 'unknown)
 
 ;; 3. 列表解构
 (define (list-info lst)
@@ -304,17 +299,5 @@
 (check (if-expr? '(if (> x 0) x (- x)))
   => '(if-expr (> x 0) x (- x)))
 (check (if-expr? '(if flag then)) => #f)   ; 缺少 else 分支
-
-;; ========== 性能与使用注意事项 ==========
-
-;; 注意1：case* 是宏展开，模式在编译时处理
-;; 注意2：复杂的嵌套模式可能影响编译时间
-;; 注意3：标签绑定使用哈希表存储，查找时间为 O(1)
-;; 注意4：省略号匹配会创建新列表，注意内存使用
-;; 注意5：在结果中引用标签时，必须使用 #<label> 语法（不带冒号）
-
-;; 显示测试完成信息
-(display "=== case* module tests completed ===")
-(newline)
 
 (check-report)
