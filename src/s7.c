@@ -28935,6 +28935,21 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
       port_file_number(port) = remember_file_name(sc, (local_file_name) ? local_file_name : filename);
       if (local_file_name) free(local_file_name);
       set_loader_port(port);
+      /* 跳过 shebang 行：如果文件以 #! 开头，跳过第一行 */
+      if (is_string_port(port) &&
+          port_data_size(port) >= 2 &&
+          port_data(port)[0] == '#' &&
+          port_data(port)[1] == '!')
+        {
+          uint8_t *data = port_data(port);
+          s7_int pos = 0;
+          while (pos < port_data_size(port) && data[pos] != '\n')
+            pos++;
+          if (pos < port_data_size(port))  /* 找到换行符，跳过它 */
+            port_position(port) = pos + 1;
+          else  /* 没有换行符，文件只有 shebang 行 */
+            port_position(port) = port_data_size(port);
+        }
       push_input_port(sc, port);
       return(port);
     }
