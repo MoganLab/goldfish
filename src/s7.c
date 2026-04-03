@@ -26937,7 +26937,7 @@ static s7_pointer stdin_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
     }
   if (fgets(sc->read_line_buf, sc->read_line_buf_size, stdin))
     return(s7_make_string(sc, sc->read_line_buf)); /* fgets adds the trailing '\0' */
-  return(nil_string);
+  return(eof_object);
 }
 
 static s7_pointer file_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
