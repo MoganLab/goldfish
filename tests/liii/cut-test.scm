@@ -32,7 +32,7 @@
 ;;   ((cut <> 1 <...>) + 2 3)  => 6
 ;;
 ;; 示例5：将占位符作为函数位置
-;;   ((cut <> 'arg) procedure?)  => 检查 'arg 是否是过程
+;;   ((cut <> 'arg) procedure?)  => #f  (procedure? 对符号返回 #f)
 
 ;; ==== cut vs cute 的区别 ====
 ;;
