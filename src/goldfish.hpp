@@ -4547,9 +4547,16 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
   ic_style_def ("symbol", "cyan");
 
   ic_printf ("[b gold]Goldfish Scheme[/] [b plum]%s[/] by LiiiLabs\n"
-             "[i]Based on S7 Scheme %s [dim](%s)[/][/]\n"
-             "[b]Mode:[/] [b]%s[/]\n\n",
-             GOLDFISH_VERSION, S7_VERSION, S7_DATE, mode.c_str ());
+             "[i]Based on S7 Scheme %s [dim](%s)[/][/]\n",
+             GOLDFISH_VERSION, S7_VERSION, S7_DATE);
+  // Display mode info; liii mode shows extra imported libraries
+  if (mode == "liii" || mode == "default") {
+    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (liii base) (liii error) (liii string) compared to r7rs)\n\n",
+               mode.c_str ());
+  }
+  else {
+    ic_printf ("[b]Mode:[/] [b]%s[/]\n\n", mode.c_str ());
+  }
   ic_printf ("- Type ',quit' or ',q' to quit. (or use [kbd]ctrl-d[/]).\n"
              "- Type ',help' for REPL commands help.\n"
              "- Press [kbd]F1[/] for help on editing commands.\n"
@@ -4599,8 +4606,8 @@ struct StartupCliOptions {
 };
 
 static std::string
-parse_mode_option (int argc, char** argv) {
-  std::string mode= "default";
+parse_mode_option (int argc, char** argv, const std::string& default_mode= "default") {
+  std::string mode= default_mode;
   for (int i= 1; i < argc; ++i) {
     string arg= argv[i];
     if ((arg == "--mode" || arg == "-m") && (i + 1) < argc) {
@@ -5107,13 +5114,21 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
-  string mode         = parse_mode_option (argc, argv);
 
   // 如果没有找到命令或没有参数，显示帮助
   if (argc <= 1 || command.empty ()) {
     display_help ();
     return 0;
   }
+
+  // 根据命令类型确定默认模式：
+  // - repl/load 命令默认使用 liii 模式
+  // - 其他命令（eval, run, 直接执行脚本）默认使用 r7rs 模式
+  string default_mode= "r7rs";
+  if (command == "repl" || command == "load") {
+    default_mode= "liii";
+  }
+  string mode= parse_mode_option (argc, argv, default_mode);
 
   // 处理旧版的 --help, -h, --version, -v（为了向后兼容）
   if (command == "--help" || command == "-h") {

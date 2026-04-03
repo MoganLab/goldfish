@@ -3,61 +3,11 @@
 
 金鱼Scheme 是一个 Scheme 解释器，具有以下特性：
 + 兼容 R7RS-small 标准
-+ 提供类似 Scala 的函数式集合库
 + 提供类似 Python 的功能丰富的标准库
++ AI 编程友好
 + 小巧且快速
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
-
-## 示例代码
-### 具名参数
-``` scheme
-(define* (person (name "Bob") (age 21))
-  (string-append name ": " (number->string age)))
-
-(person :name "Alice" :age 3)
-```
-### Unicode支持
-``` scheme
-(import (liii lang))
-
-($ "你好，世界" 0) ; => 你
-($ "你好，世界" 4) ; => 界
-($ "你好，世界" :length) ; => 5
-```
-
-### 函数式数据管道
-![](r7rs_vs_goldfish.png)
-
-在`prime?`已提供的情况下，用如下方法过滤出1到100的孪生质数（致敬张益唐）：
-``` scheme
-(import (liii lang))
-
-(($ 1 :to 100)
- :filter prime?
- :filter (lambda (x) (prime? (+ x 2)))
- :map (lambda (x) (cons x (+ x 2)))
- :collect)
-```
-
-### 类似Scala的case class
-``` scheme
-(define-case-class person
-  ((name string?)
-   (age integer?))
-
-  (define (%to-string)
-    (string-append "I am " name " " (number->string age) " years old!"))
-  (define (%greet x)
-    (string-append "Hi " x ", " (%to-string))))
-
-(define bob (person "Bob" 21))
-
-(bob :to-string) ; => "I am Bob 21 years old!"
-(bob :greet "Alice") ; => "Hi Alice, I am Bob 21 years old!"
-```
-
-> **性能警告**：`define-case-class` 通过宏实现，有显著的性能开销。它适合手写代码和原型开发，但**不推荐用于 AI 生成的代码或生产环境部署**。
 
 ## 以简为美
 金鱼Scheme仍旧遵循和 S7 Scheme 一样的简约的原则。目前，它仅依赖于 [S7 Scheme](https://ccrma.stanford.edu/software/s7/) 、[tbox](https://gitee.com/tboox/tbox) 和 C++98 范围内的标准库。
@@ -65,22 +15,11 @@
 与 S7 Scheme 类似，[src/goldfish.hpp](src/goldfish.hpp) 和 [src/goldfish.cpp](src/goldfish.cpp) 是构建金鱼Scheme解释器二进制文件所需的唯一关键源代码。
 
 ## 标准库
-### 类似Scala的集合
-| 库                                                         | 描述                               |
-|------------------------------------------------------------|------------------------------------|
-| [(liii rich-char)](tests/goldfish/liii/rich-char-test.scm) | 面向`char`的静态方法和实例方法       |
-| [(liii rich-string)](tests/goldfish/liii/rich-string-test.scm) | 面向`string`的静态方法和实例方法 |
-| [(liii rich-list)](tests/goldfish/liii/rich-list-test.scm) | 面向`list`的静态方法和实例方法       |
-| [(liii rich-vector)](tests/goldfish/liii/rich-vector-test.scm) | 面向`vector`的静态方法和实例方法 |
-| [(liii rich-hash-table)](tests/goldfish/liii/rich-hash-table-test.scm) | 面向`hash-table`的静态方法和实例方法 |
-| [(liii rich-path)](tests/goldfish/liii/rich-path-test.scm) | 面向`path`的静态方法和实例方法 |
-
 ### 类似Python的标准库
-形如`(liii xyz)`的是金鱼标准库，模仿Python标准库和Scala集合库的函数接口和实现方式，降低用户的学习成本。
+形如`(liii xyz)`的是金鱼标准库，模仿Python标准库的函数接口和实现方式，降低用户的学习成本。
 
 | 库                                                | 描述                            | 示例函数                                                           |
 | ------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
-| [(liii lang)](goldfish/liii/lang.scm)             | 类似Scala的集合库               | `box`支持一致的函数式集合库, `rich-char`和`rich-string`支持Unicode |
 | [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `==`, `!=`, `display*`                                             |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
 | [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
@@ -95,7 +34,10 @@
 | [(liii path)](goldfish/liii/path.scm)             | 路径函数库                      | `path-dir?`, `path-file?`                                          |
 | [(liii range)](goldfish/liii/range.scm)           | 范围库                          | `numeric-range`, `iota`                                            |
 | [(liii option)](goldfish/liii/option.scm)         | Option 类型库                   | `option?`, `option-map`, `option-flatten`                          |
+| [(liii either)](goldfish/liii/either.scm)         | Either 类型库（左值/右值）      | `left?`, `right?`, `either-map`                                    |
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4`                                                            |
+| [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
+| [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
 
 ### SRFI
 
@@ -132,26 +74,6 @@
 
 以下是分步构建和安装指南。
 
-### GNU/Linux
-以下是在 Debian bookworm 上构建的命令：
-```
-sudo apt install xmake git unzip curl g++
-git clone https://gitee.com/LiiiLabs/goldfish.git
-# git clone https://github.com/LiiiLabs/goldfish.git
-cd goldfish
-xmake b goldfish
-bin/gf --version
-```
-您也可以将其安装到 `/opt`：
-```
-sudo xmake i -o /opt/goldfish --root
-/opt/goldfish/bin/gf
-```
-卸载时只需：
-```
-sudo rm -rf /opt/goldfish
-```
-
 ### macOS 安装
 在 macOS 上，推荐使用 Homebrew 进行安装：
 ```
@@ -169,7 +91,7 @@ brew uninstall goldfish
 ```
 
 ## 命令行技巧
-本节假设您已成功执行 `xmake b goldfish` 并且 `bin/gf` 可用。
+如果您手动从源码编译，可以在 `bin/gf` 找到可执行文件。
 
 ### 子命令
 
@@ -190,7 +112,7 @@ brew uninstall goldfish
 ### 显示帮助
 不带任何命令时，将打印帮助信息：
 ```
-> bin/gf
+> gf
 Goldfish Scheme 17.11.37 by LiiiLabs
 
 Commands:
@@ -204,7 +126,7 @@ Commands:
 ### 显示版本
 `version` 子命令将打印 金鱼Scheme 版本和底层 S7 Scheme 版本：
 ```
-> bin/gf version
+> gf version
 Goldfish Scheme 17.11.37 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
@@ -212,33 +134,33 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ### 求值代码
 `eval` 子命令帮助您即时求值 Scheme 代码：
 ```
-> bin/gf eval "(+ 1 2)"
+> gf eval "(+ 1 2)"
 3
-> bin/gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+> gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
 1
-> bin/gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+> gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
 ("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
 ```
 
 ### 加载文件
 `load` 子命令帮助您加载 Scheme 文件并进入 REPL：
 ```
-> bin/gf load tests/goldfish/liii/base-test.scm
+> gf load tests/goldfish/liii/base-test.scm
 ; 加载文件并进入 REPL
 ```
 
 ### 直接运行文件
 您也可以直接加载并求值 Scheme 文件：
 ```
-> bin/gf tests/goldfish/liii/base-test.scm
+> gf tests/goldfish/liii/base-test.scm
 ; *** checks *** : 1973 correct, 0 failed.
 ```
 
 ### 模式选项
 `-m` 或 `--mode` 帮助您指定标准库模式：
 
-+ `default`: `-m default` 等价于 `-m liii`
-+ `liii`: 预加载 `(liii oop)`、`(liii base)` 和 `(liii error)` 的 Goldfish Scheme
++ `default`: `-m default` 等价于 `-m r7rs`
++ `liii`: 预加载 `(liii base)`、`(liii error)` 和 `(liii string)` 的 Goldfish Scheme
 + `scheme`: 预加载 `(liii base)` 和 `(liii error)` 的 Goldfish Scheme
 + `sicp`: 预加载 `(scheme base)` 和 `(srfi sicp)` 的 S7 Scheme
 + `r7rs`: 预加载 `(scheme base)` 的 S7 Scheme
@@ -252,7 +174,7 @@ Goldfish 启动时也支持额外的库搜索目录：
 
 例如：
 ```bash
-bin/gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
 ```
 
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
