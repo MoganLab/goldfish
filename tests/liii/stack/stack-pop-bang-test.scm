@@ -2,6 +2,35 @@
         (liii stack)
 ) ;import
 
+;; stack-pop!
+;; 从栈顶弹出元素。
+;;
+;; 语法
+;; ----
+;; (stack-pop! stack)
+;;
+;; 参数
+;; ----
+;; stack : stack?
+;; 要操作的栈，必须非空
+;;
+;; 返回值
+;; ----
+;; any
+;; 返回被弹出的栈顶元素
+;;
+;; 说明
+;; ----
+;; stack-pop! 是栈的核心修改操作，移除并返回栈顶元素。
+;; 该操作会修改原栈，时间复杂度为 O(1)。
+;; 弹出后，下一个元素成为新的栈顶。
+;; 对空栈执行 pop 操作会导致错误。
+;;
+;; 错误处理
+;; ----
+;; type-error 当参数不是栈时
+;; stack-pop! 当栈为空时
+
 ; Test stack-pop! returns top element
 (let ((s (stack 1 2 3)))
   (check (stack-pop! s) => 1)
@@ -42,5 +71,10 @@
   (check (stack-pop! s) => 'second)
   (check (stack-pop! s) => 'first)
 ) ;let
+
+; Error handling tests
+(check-catch 'type-error (stack-pop! 'not-a-stack))
+
+(check-catch 'value-error (stack-pop! (make-stack)))
 
 (check-report)

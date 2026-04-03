@@ -2,6 +2,36 @@
         (liii stack)
 ) ;import
 
+;; stack-push!
+;; 将元素压入栈顶。
+;;
+;; 语法
+;; ----
+;; (stack-push! stack elem)
+;;
+;; 参数
+;; ----
+;; stack : stack?
+;; 要操作的栈
+;;
+;; elem : any
+;; 要压入栈顶的元素
+;;
+;; 返回值
+;; ----
+;; stack?
+;; 返回修改后的栈（便于链式调用）
+;;
+;; 说明
+;; ----
+;; stack-push! 是栈的核心修改操作，将新元素添加到栈顶。
+;; 该操作会修改原栈，时间复杂度为 O(1)。
+;; 新元素成为栈顶，原有元素依次下移。
+;;
+;; 错误处理
+;; ----
+;; type-error 当第一个参数不是栈时
+
 ; Test stack-push! on empty stack
 (let ((s (make-stack)))
   (stack-push! s 1)
@@ -38,5 +68,8 @@
   (stack-push! s 'symbol)
   (check (stack-top s) => 'symbol)
 ) ;let
+
+; Error handling test
+(check-catch 'type-error (stack-push! 'not-a-stack 1))
 
 (check-report)
