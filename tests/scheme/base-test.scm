@@ -90,3 +90,44 @@
 ;;   identity             - 原样返回输入值
 ;;   any?                 - 判断是否存在真值
 ;;   typed-lambda         - 带类型标注的 lambda 语法
+
+
+;; 六、序对操作
+;;   pair?        - 判断是否为序对
+;;   car          - 获取序对的 car 部分
+;;   cdr          - 获取序对的 cdr 部分
+;;   set-car!     - 修改序对的 car 部分
+;;   set-cdr!     - 修改序对的 cdr 部分
+;;   caar         - 获取 car 的 car
+;;   cadr         - 获取 car 的 cdr
+;;   cddr         - 获取 cdr 的 cdr
+
+;; 七、列表判断
+;;   null?        - 判断是否为空列表
+;;   list?        - 判断是否为列表
+
+;; 八、列表构造
+;;   make-list    - 创建指定长度的列表
+;;   list         - 创建列表
+;;   cons         - 构造序对
+
+;; 九、列表查询
+;;   length       - 获取列表长度
+;;   append       - 连接多个列表
+;;   reverse      - 反转列表
+
+;; 十、列表选择
+;;   list-tail    - 获取列表尾部
+;;   list-ref     - 获取指定索引的元素
+;;   list-set!    - 修改指定索引的元素
+;;   memq         - 按 eq? 查找元素
+;;   memv         - 按 eqv? 查找元素
+;;   member       - 按 equal? 查找元素
+
+;; 十一、关联列表
+;;   assq         - 按 eq? 在关联列表中查找
+;;   assv         - 按 eqv? 在关联列表中查找
+;;   assoc        - 按 equal? 在关联列表中查找
+
+;; 十二、列表复制
+;;   list-copy    - 复制列表
