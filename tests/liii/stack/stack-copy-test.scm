@@ -2,6 +2,33 @@
         (liii stack)
 ) ;import
 
+;; stack-copy
+;; 复制栈。
+;;
+;; 语法
+;; ----
+;; (stack-copy s)
+;;
+;; 参数
+;; ----
+;; s : stack?
+;; 要复制的栈
+;;
+;; 返回值
+;; ----
+;; stack?
+;; 原栈的浅拷贝，修改新栈不会影响原栈
+;;
+;; 说明
+;; ----
+;; stack-copy 创建一个新的栈，包含与原栈相同的元素。
+;; 返回的栈是独立的，对其修改不会影响原栈。
+;; 注意这是浅拷贝，栈中的元素本身不会被复制。
+;;
+;; 错误处理
+;; ----
+;; type-error 当参数不是栈时
+
 ; Test stack-copy with empty stack
 (let ((s (make-stack)))
   (let ((copy (stack-copy s)))
@@ -51,5 +78,8 @@
     (check (stack-pop! copy) => 'first)
   ) ;let
 ) ;let
+
+; Error handling test
+(check-catch 'type-error (stack-copy 'not-a-stack))
 
 (check-report)
