@@ -155,7 +155,7 @@ You can also load and evaluate a Scheme file directly:
 `-m` or `--mode` helps you specify the standard library mode:
 
 + `default`: `-m default` is the equiv of `-m liii`
-+ `liii`: Goldfish Scheme with `(liii base)` and `(liii error)`
++ `liii`: Goldfish Scheme with `(liii base)`, `(liii error)` and `(liii string)`
 + `scheme`: Goldfish Scheme with `(liii base)` and `(liii error)`
 + `sicp`: S7 Scheme with `(scheme base)` and `(srfi sicp)`
 + `r7rs`: S7 Scheme with `(scheme base)`
