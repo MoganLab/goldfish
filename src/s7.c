@@ -28256,6 +28256,20 @@ static s7_pointer input_port_if_not_loading(s7_scheme *sc)
   return(sc->standard_input);
 }
 
+/* Export helper functions for s7_scheme_base.c */
+const char *s7i_an_input_port_string(void) {return("an input port");}
+const char *s7i_a_boolean_string(void) {return("a boolean");}
+
+s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc)
+{
+  return(input_port_if_not_loading(sc));
+}
+
+s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
+{
+  return(port_read_line(port)(sc, port, with_eol));
+}
+
 
 /* -------------------------------- read-char -------------------------------- */
 s7_pointer s7_read_char(s7_scheme *sc, s7_pointer port)
@@ -28447,33 +28461,12 @@ static s7_pointer g_write_byte(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- read-line -------------------------------- */
-static s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)
-{
-  #define H_read_line "(read-line port (with-eol #f)) returns the next line from port, or #<eof>. \
+/* g_read_line is now implemented in s7_scheme_base.c */
+#define H_read_line "(read-line port (with-eol #f)) returns the next line from port, or #<eof>. \
 If 'with-eol' is not #f, read-line includes the trailing end-of-line character."
-  #define Q_read_line s7_make_signature(sc, 3, \
+#define Q_read_line s7_make_signature(sc, 3, \
                         s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_eof_object_symbol), \
                         sc->is_input_port_symbol, sc->is_boolean_symbol)
-  s7_pointer port;
-  bool with_eol = false;
-  if (is_pair(args))
-    {
-      port = car(args);
-      if (!is_input_port(port))
-	return(method_or_bust(sc, port, sc->read_line_symbol, args, an_input_port_string, 1));
-      if (is_pair(cdr(args)))
-	{
-	  with_eol = (cadr(args) == sc->T); /* sig says boolean? so insist on #t, else we get stuff like (read-line port (c-pointer 0)) */
-	  if ((!with_eol) && (cadr(args) != sc->F))
-	    wrong_type_error_nr(sc, sc->read_line_symbol, 2, cadr(args), a_boolean_string);
-	}}
-  else
-    {
-      port = input_port_if_not_loading(sc);
-      if (!port) return(eof_object);
-    }
-  return(port_read_line(port)(sc, port, with_eol));
-}
 
 static s7_pointer read_line_p_pp(s7_scheme *sc, s7_pointer port, s7_pointer with_eol)
 {
