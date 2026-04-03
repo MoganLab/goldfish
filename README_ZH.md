@@ -4,6 +4,7 @@
 金鱼Scheme 是一个 Scheme 解释器，具有以下特性：
 + 兼容 R7RS-small 标准
 + 提供类似 Python 的功能丰富的标准库
++ AI 编程友好
 + 小巧且快速
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">

@@ -4,6 +4,7 @@
 Goldfish Scheme is a Scheme interpreter with the following features:
 + R7RS-small compatible
 + Python-like versatile standard library
++ AI Coding friendly with `gf fix` and intuitive CLI
 + Small and fast
 
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
