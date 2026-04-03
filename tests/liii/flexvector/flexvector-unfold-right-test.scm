@@ -57,7 +57,7 @@
 
 ;; 递减序列
 (let ((result (flexvector->list
-                (flexvector-unfold-right (lambda (n) (= n 0))
+                (flexvector-unfold-right (lambda (n) (< n 0))
                                          (lambda (n) n)
                                          (lambda (n) (- n 1))
                                          5))))

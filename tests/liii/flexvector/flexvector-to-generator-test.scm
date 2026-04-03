@@ -42,13 +42,13 @@
   (check (gen) => 'only)
   (check (eof-object? (gen)) => #t))
 
-;; 修改原向量后生成器行为不变
+;; 修改原向量后生成器行为
 (let ((fv (flexvector 1 2 3))
       (gen #f))
   (set! gen (flexvector->generator fv))
   (check (gen) => 1)
   (flexvector-set! fv 1 999)  ; 修改原向量
-  (check (gen) => 2)           ; 生成器继续从原位置
+  (check (gen) => 999)         ; 生成器反映修改后的值
   (check (gen) => 3))
 
 ;; 用于遍历

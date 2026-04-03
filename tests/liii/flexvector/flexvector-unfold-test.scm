@@ -44,7 +44,7 @@
 
 ;; 生成列表
 (let ((result (flexvector->list
-                (flexvector-unfold (lambda (n) (= n 0))
+                (flexvector-unfold (lambda (n) (< n 0))
                                    (lambda (n) n)
                                    (lambda (n) (- n 1))
                                    5))))
