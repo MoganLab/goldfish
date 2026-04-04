@@ -4,7 +4,7 @@
 (check-set-mode! 'report-failed)
 
 ;; case
-;; 测试 case 分支表达式。
+;; case 是 R7RS 定义的多分支条件选择表达式，根据 key 值匹配不同的子句执行。
 ;;
 ;; 说明
 ;; ----
