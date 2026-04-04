@@ -1,6 +1,6 @@
-(import (liii check)
-        (scheme file)
-        (scheme base))
+(import (liii check))
+(import (scheme file))
+(import (scheme base))
 
 ;; 测试 read-line 基本功能
 ;; read-line 函数从输入端口读取一行文本，返回不包含换行符的字符串
