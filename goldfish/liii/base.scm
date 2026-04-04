@@ -61,6 +61,8 @@
     and-let*
     ; SRFI-8
     receive
+    ; S7 extensions
+    define*
     ; Extra routines
     loose-car loose-cdr compose identity any?
     ; Extra structure

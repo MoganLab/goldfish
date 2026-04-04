@@ -49,8 +49,10 @@
   (and-let* ((a 1)
              (b (+ a 2))
              (c (* b 2)))
-    (+ a b c))
-  => 10)
+    (+ a b c)
+  ) ;and-let*
+  => 10
+) ;check
 
 ;; 短路测试 - 第二个条件为假，不会执行第三个
 (check
@@ -58,8 +60,11 @@
     (and-let* ((x 1)
                (y #f)
                (z (begin (set! evaluated #t) 3)))
-      'body)
-    evaluated)
-  => #f)
+      'body
+    ) ;and-let*
+    evaluated
+  ) ;let
+  => #f
+) ;check
 
 (check-report)

@@ -1,5 +1,5 @@
 (import (liii check))
-(import (scheme base))
+(import (liii base))
 
 (check-set-mode! 'report-failed)
 
@@ -52,7 +52,8 @@
 
 ;; 参数默认值可以引用之前的参数
 (define* (g a (b a) (k (* a b)))
-  (list a b k))
+  (list a b k)
+) ;define*
 
 (check (g 3 4) => '(3 4 12))
 
@@ -61,7 +62,8 @@
 
 ;; 混合使用位置和关键字参数
 (define* (f x (y 10) (z 20))
-  (+ x y z))
+  (+ x y z)
+) ;define*
 
 (check (f 1) => 31)
 (check (f 1 2) => 23)
