@@ -2,6 +2,7 @@
         (liii base)
         (liii error)
         (liii path)
+        (liii time)
         (liii njson)
 ) ;import
 
@@ -36,7 +37,12 @@
 ;; 文件内容不是合法 JSON 时抛出。
 
 (define file-to-njson-path
-  (string-append "/tmp/goldfish-njson-file-to-" (number->string (g_monotonic-nanosecond)) ".json")
+  (path->string (path-join (path-temp-dir)
+                           (string-append "goldfish-njson-file-to-"
+                                          (number->string (current-jiffy))
+                                          ".json")
+                           ) ;string-append
+  ) ;path->string
 ) ;define
 
 (path-write-text file-to-njson-path "{\"name\":\"Goldfish\",\"active\":true,\"nums\":[1,2,3]}")

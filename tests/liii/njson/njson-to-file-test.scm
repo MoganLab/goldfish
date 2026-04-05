@@ -2,6 +2,7 @@
         (liii base)
         (liii error)
         (liii path)
+        (liii time)
         (liii njson)
 ) ;import
 
@@ -36,7 +37,12 @@
 ;; path 不是字符串或 value 不可序列化时抛出。
 
 (define njson-to-file-path
-  (string-append "/tmp/goldfish-njson-to-file-" (number->string (g_monotonic-nanosecond)) ".json")
+  (path->string (path-join (path-temp-dir)
+                           (string-append "goldfish-njson-to-file-"
+                                          (number->string (current-jiffy))
+                                          ".json")
+                           ) ;string-append
+  ) ;path->string
 ) ;define
 
 (let-njson ((root (string->njson "{\"b\":1,\"a\":2}")))
