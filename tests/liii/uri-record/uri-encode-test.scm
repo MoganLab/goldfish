@@ -27,8 +27,9 @@
 (check (uri-encode "a=b") => "a%3Db")
 (check (uri-encode "a&b") => "a%26b")
 
-;; 中文字符编码（如果支持）
-;; (check (uri-encode "中文") => "%E4%B8%AD%E6%96%87")
+;; 中文字符编码（UTF-8）
+(check (uri-encode "中文") => "%E4%B8%AD%E6%96%87")
+(check (uri-encode "中") => "%E4%B8%AD")
 
 ;; 错误处理
 (check-catch 'type-error (uri-encode 123))

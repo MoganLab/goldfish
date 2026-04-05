@@ -22,6 +22,7 @@
           (liii string)
           (liii list)
           (liii error)
+          (liii unicode)
           (liii uri-parse)
   ) ;import
 
@@ -126,6 +127,13 @@
       (string-contains UNRESERVED_CHARS (string c))
     ) ;define
 
+    ;; 检查字节是否在不编码字符集中（用于UTF-8编码）
+    (define (unreserved-byte? b)
+      (and (>= b 0) (<= b 127)
+           (string-contains UNRESERVED_CHARS (string (integer->char b)))
+      ) ;and
+    ) ;define
+
     ;; 十六进制数字转字符
     (define (hex-digit n)
       (if (< n 10)
@@ -152,23 +160,35 @@
       ) ;let
     ) ;define
 
-    ;; 对字符串进行百分比编码
+    ;; 辅助函数：遍历字节向量并构建结果列表
+    (define (bytevector-fold-encode bv encode-fn)
+      (let ((len (bytevector-length bv)))
+        (let loop ((i 0) (result '()))
+          (if (>= i len)
+            (list->string (reverse result))
+            (loop (+ i 1) (encode-fn (bytevector-u8-ref bv i) result))
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 对字符串进行百分比编码（UTF-8 编码）
     (define (uri-encode str)
       (if (not (string? str))
         (type-error "uri-encode: expected string")
-        (let loop ((chars (string->list str)) (result '()))
-          (if (null? chars)
-            (list->string (reverse result))
-            (let ((c (car chars)))
-              (if (unreserved-char? c)
-                (loop (cdr chars) (cons c result))
-                (let ((hi (hex-digit (quotient (char->integer c) 16)))
-                      (lo (hex-digit (remainder (char->integer c) 16))))
-                  (loop (cdr chars) (cons lo (cons hi (cons #\% result))))
+        (let ((bv (string->utf8 str)))
+          (bytevector-fold-encode
+            bv
+            (lambda (b result)
+              (if (unreserved-byte? b)
+                (cons (integer->char b) result)
+                (let ((hi (hex-digit (quotient b 16)))
+                      (lo (hex-digit (remainder b 16))))
+                  (cons lo (cons hi (cons #\% result)))
                 ) ;let
               ) ;if
-            ) ;let
-          ) ;if
+            ) ;lambda
+          ) ;bytevector-fold-encode
         ) ;let
       ) ;if
     ) ;define
@@ -209,30 +229,30 @@
       ) ;if
     ) ;define
 
-    ;; 路径编码（保留斜杠）
+    ;; 路径编码（保留斜杠，UTF-8 编码）
     (define (uri-encode-path path)
       (if (not (string? path))
         (error "uri-encode-path: expected string")
-        (let loop ((chars (string->list path)) (result '()))
-          (if (null? chars)
-            (list->string (reverse result))
-            (let ((c (car chars)))
+        (let ((bv (string->utf8 path)))
+          (bytevector-fold-encode
+            bv
+            (lambda (b result)
               (cond
-                ((char=? c #\/)
-                 (loop (cdr chars) (cons c result))
+                ((= b 47)  ;; #\/ = 47
+                 (cons #\/ result)
                 ) ;
-                ((unreserved-char? c)
-                 (loop (cdr chars) (cons c result))
+                ((unreserved-byte? b)
+                 (cons (integer->char b) result)
                 ) ;
                 (else
-                  (let ((hi (hex-digit (quotient (char->integer c) 16)))
-                        (lo (hex-digit (remainder (char->integer c) 16))))
-                    (loop (cdr chars) (cons lo (cons hi (cons #\% result))))
+                  (let ((hi (hex-digit (quotient b 16)))
+                        (lo (hex-digit (remainder b 16))))
+                    (cons lo (cons hi (cons #\% result)))
                   ) ;let
                 ) ;else
               ) ;cond
-            ) ;let
-          ) ;if
+            ) ;lambda
+          ) ;bytevector-fold-encode
         ) ;let
       ) ;if
     ) ;define
@@ -258,12 +278,12 @@
                      (cons pair "")
                    ) ;if
                  ) ;let
-               ) ;lambda
-            pairs
           ) ;map
+            pairs
         ) ;let
       ) ;if
     ) ;define
+  ) ;begin
 
     ;; alist 转为查询字符串
     (define (alist->query-string alist)
@@ -275,13 +295,13 @@
                    (string-append (car pair) "=" (uri-encode (cdr pair)))
                    (car pair)
                  ) ;if
-               ) ;lambda
-               alist
           ) ;map
-          "&"
+               alist
         ) ;string-join
+          "&"
       ) ;if
     ) ;define
+) ;define-library
 
     ;;; ---------- 访问器函数 ----------
     ;; scheme 访问器
