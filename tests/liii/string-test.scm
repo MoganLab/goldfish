@@ -15,18 +15,6 @@
 ;; - Liii 扩展: string-starts?, string-ends?, string-contains?, string-split, string-replace,
 ;;             string-remove-prefix, string-remove-suffix
 
-;; ==== 常见用法示例 ====
-(import (liii string))
-
-;; 示例1：判断字符串是否以某个前缀开头
-(string-starts? "goldfish" "gold") ; => #t
-
-;; 示例2：把字符串按分隔符切分
-(string-split "a,b,c" ",") ; => ("a" "b" "c")
-
-;; 示例3：去掉字符串两端空白
-(string-trim "  hello  ") ; => "hello"
-
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/string "string-split"
 ;;   bin/gf doc liii/string "string-trim"

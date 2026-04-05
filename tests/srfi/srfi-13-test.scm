@@ -4,25 +4,6 @@
 ;; 它包含了字符串谓词、构造器、选择器、比较、裁剪、查找、删除、替换、过滤、折叠等功能。
 ;; 本实现基于 SRFI-13 标准规范。
 
-;; ==== 常见用法示例 ====
-(import (srfi srfi-13))
-
-;; 示例1：判断字符串是否为空
-(string-null? "") ; => #t
-(string-null? "hello") ; => #f
-
-;; 示例2：连接字符串列表
-(string-join '("a" "b" "c") ",") ; => "a,b,c"
-
-;; 示例3：取字符串前n个字符
-(string-take "hello" 2) ; => "he"
-;; 示例4：去掉字符串左侧空白
-(string-trim "  hello  ") ; => "hello  "
-(string-trim "  hello  ") ; => "hello"
-
-;; 示例5：查找子串位置
-(string-contains "hello world" "world") ; => #t
-
 ;; ==== 如何查看函数的文档和用例 ====
 ;;
 ;; 注意：目前只有以下两个函数的测试文档位于 tests/srfi/srfi-13/ 目录：
