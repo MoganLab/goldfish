@@ -16,8 +16,8 @@
 
 ;; 示例3：取字符串前n个字符
 (string-take "hello" 2) ; => "he"
-
-;; 示例4：去掉字符串两端空白
+;; 示例4：去掉字符串左侧空白
+(string-trim "  hello  ") ; => "hello  "
 (string-trim "  hello  ") ; => "hello"
 
 ;; 示例5：查找子串位置
