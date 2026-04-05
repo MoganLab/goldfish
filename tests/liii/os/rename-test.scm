@@ -34,6 +34,10 @@
 ;;
 ;; file-exists-error
 ;; 当目标文件已存在时抛出错误。
+;;
+;; 相关函数
+;; ----
+;; gf doc liii/path "path-rename"
 
 ;;; 测试文件重命名
 (let* ((temp-dir (os-temp-dir))
