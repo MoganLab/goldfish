@@ -40,8 +40,7 @@
     ) ;define
 
     (define (excluded-test-group? group)
-      (or (string=? group "srfi")
-          (string=? group "goldfish")
+      (or (string=? group "goldfish")
       ) ;or
     ) ;define
 

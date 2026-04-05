@@ -29,10 +29,10 @@
 ;;
 ;; 描述
 ;; ----
-;; 该函数只处理当前 *load-path* 中可见的库，并且会排除 `srfi` 与
-;; `goldfish` 目录下的测试文档。
+;; 该函数只处理当前 *load-path* 中可见的库，并且会排除 `goldfish`
+;; 目录下的测试文档。
 
-(check (excluded-test-group? "srfi") => #t)
+(check (excluded-test-group? "srfi") => #f)
 (check (excluded-test-group? "goldfish") => #t)
 (check (excluded-test-group? "liii") => #f)
 
@@ -53,7 +53,6 @@
 ) ;let
 
 (check (library-doc-path "liii/not-a-real-library") => #f)
-(check (library-doc-path "srfi/1") => #f)
 (check (library-doc-path "goldfish/liii/http") => #f)
 
 (check-report)

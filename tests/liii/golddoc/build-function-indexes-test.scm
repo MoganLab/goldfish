@@ -114,7 +114,7 @@
         (check (visible-libraries-for-function "beta-search!") => '("custom/beta"))
         (check (visible-libraries-for-function "beta-extra") => '("custom/beta"))
         (check (visible-libraries-for-function "shared-value") => '("custom/gamma" "liii/alpha"))
-        (check (visible-libraries-for-function "skip-me") => '())
+        (check (visible-libraries-for-function "skip-me") => '("srfi/1"))
         (check (visible-libraries-for-function "placeholder") => '())
       ) ;let
     ) ;lambda

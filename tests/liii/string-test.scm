@@ -2,22 +2,26 @@
 ;;
 ;; string 提供常见字符串查询、切片、变换、折叠和分词能力。
 ;; 它补齐了 Goldfish 在文本处理上的高频接口，适合命令行、配置和轻量解析场景。
-
-;; ==== 常见用法示例 ====
-(import (liii string))
-
-;; 示例1：判断字符串是否以某个前缀开头
-(string-starts? "goldfish" "gold") ; => #t
-
-;; 示例2：把字符串按分隔符切分
-(string-split "a,b,c" ",") ; => ("a" "b" "c")
-
-;; 示例3：去掉字符串两端空白
-(string-trim "  hello  ") ; => "hello"
+;;
+;; 本模块导出的函数来源于：
+;; - (scheme base): string-copy, string-for-each, string-map, string?, string-ref, string-length
+;; - (srfi srfi-13): string-null?, string-join, string-every, string-any, string-take,
+;;                   string-take-right, string-drop, string-drop-right, string-pad,
+;;                   string-pad-right, string-trim, string-trim-right, string-trim-both,
+;;                   string-index, string-index-right, string-skip, string-skip-right,
+;;                   string-contains, string-count, string-upcase, string-downcase,
+;;                   string-fold, string-fold-right, string-for-each-index, string-reverse,
+;;                   string-tokenize
+;; - Liii 扩展: string-starts?, string-ends?, string-contains?, string-split, string-replace,
+;;             string-remove-prefix, string-remove-suffix
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/string "string-split"
 ;;   bin/gf doc liii/string "string-trim"
+;;
+;; 相关库文档：
+;;   bin/gf doc srfi/srfi-13   - 查看 SRFI-13 字符串库
+;;   bin/gf doc scheme/base    - 查看 scheme base 库
 
 ;; ==== 函数分类索引 ====
 
@@ -69,8 +73,13 @@
 
 ;; 五、前后缀与匹配
 ;; 用于判断前后缀和统计匹配区间的函数
-;;   string-starts?       - 判断是否以指定前缀开头
-;;   string-ends?         - 判断是否以指定后缀结尾
+;;   string-starts?       - 判断是否以指定前缀开头（推荐）
+;;   string-ends?         - 判断是否以指定后缀结尾（推荐）
 ;;   string-skip          - 跳过前方满足条件的字符
 ;;   string-skip-right    - 从右侧跳过满足条件的字符
 ;;   string-count         - 统计满足条件的字符个数
+;;
+;; 注意：string-starts? 和 string-ends? 比 string-prefix? 和 string-suffix? 更推荐使用，
+;; 因为参数顺序更直观：源字符串始终在前，模式在后。
+;;   (string-starts? "goldfish" "gold")  ; 直观：检查 "goldfish" 是否以 "gold" 开头
+;;   (string-prefix? "gold" "goldfish")  ; 不直观：参数顺序相反

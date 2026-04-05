@@ -27,7 +27,10 @@
 ;; 符合SRFI-13标准规范的字符串后缀检查功能。
 ;;
 ;; 建议使用 `string-ends?` 函数代替 `string-suffix?`。
-;; `string-ends?` 提供更友好的函数签名和更好的用户体验。
+;; `string-ends?` 提供更友好的函数签名（源字符串在前，后缀在后）：
+;;   (string-ends? "goldfish" "fish")  ; 直观
+;;   (string-suffix? "fish" "goldfish")  ; 参数顺序相反
+;; 使用 `gf doc liii/string "string-ends?"` 查看其文档和用例。
 ;;
 ;; 空字符串作为suffix时总是返回#t，因为任何字符串都以空字符串结束。
 ;; 当suffix长度大于源字符串长度时，string-suffix?返回#f。

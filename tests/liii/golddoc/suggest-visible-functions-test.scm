@@ -93,7 +93,7 @@
         => '("string-splat" "string-split" "string-spilt")
       ) ;check
       (check (suggest-visible-functions "srfi-onle")
-        => '()
+        => '("srfi-only")
       ) ;check
     ) ;lambda
     (lambda ()

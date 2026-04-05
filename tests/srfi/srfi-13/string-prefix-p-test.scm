@@ -27,6 +27,12 @@
 ;; 字符串前缀匹配是指检查指定的前缀字符串是否与源字符串的开头完全一致。
 ;; 符合SRFI-13标准规范的字符串前缀检查功能。
 ;;
+;; 建议使用 `string-starts?` 函数代替 `string-prefix?`。
+;; `string-starts?` 提供更友好的函数签名（源字符串在前，前缀在后）：
+;;   (string-starts? "goldfish" "gold")  ; 直观
+;;   (string-prefix? "gold" "goldfish")  ; 参数顺序相反
+;; 使用 `gf doc liii/string "string-starts?"` 查看其文档和用例。
+;;
 ;; 空字符串作为prefix时总是返回#t，因为任何字符串都以空字符串开始。
 ;; 当prefix长度大于源字符串长度时，string-prefix?返回#f。
 ;; 该函数区分大小写，"Hello"不会匹配"hello"作为前缀。

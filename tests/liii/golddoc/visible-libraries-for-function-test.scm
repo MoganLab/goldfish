@@ -93,7 +93,7 @@
       (path-write-text index-path
                        "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}")
       (check (visible-libraries-for-function "unique-func") => '("liii/foo"))
-      (check (visible-libraries-for-function "shared-func") => '("liii/foo" "liii/bar"))
+      (check (visible-libraries-for-function "shared-func") => '("liii/foo" "liii/bar" "srfi/1"))
       (check (visible-libraries-for-function "missing-func") => '())
     ) ;lambda
     (lambda ()
