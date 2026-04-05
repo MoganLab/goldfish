@@ -33,47 +33,46 @@
 ;; ----
 ;; gf doc liii/os "rename"
 
-;; 清理测试目录
-(when (path-file? "tmp/rename-test-src.txt")
-  (path-unlink "tmp/rename-test-src.txt")
-) ;when
-(when (path-file? "tmp/rename-test-dst.txt")
-  (path-unlink "tmp/rename-test-dst.txt")
-) ;when
-(when (path-dir? "tmp/rename-test-dir1")
-  (path-rmdir "tmp/rename-test-dir1")
-) ;when
-(when (path-dir? "tmp/rename-test-dir2")
-  (path-rmdir "tmp/rename-test-dir2")
-) ;when
+(let* ((temp-dir (path-temp-dir))
+       (src-file (path-join temp-dir "rename-test-src.txt"))
+       (dst-file (path-join temp-dir "rename-test-dst.txt"))
+       (dst2-file (path-join temp-dir "rename-test-dst2.txt"))
+       (nonexistent-file (path-join temp-dir "nonexistent.txt")))
 
-;; 测试1: 重命名文件
-(path-touch "tmp/rename-test-src.txt")
-(check-true (path-rename "tmp/rename-test-src.txt" "tmp/rename-test-dst.txt"))
-(check-false (path-exists? "tmp/rename-test-src.txt"))
-(check-true (path-file? "tmp/rename-test-dst.txt"))
+  ;; 清理可能存在的旧测试文件
+  (when (path-file? src-file)
+    (path-unlink src-file))
+  (when (path-file? dst-file)
+    (path-unlink dst-file))
+  (when (path-file? dst2-file)
+    (path-unlink dst2-file))
 
-;; 测试2: 使用 path 对象重命名文件
-(path-touch "tmp/rename-test-src.txt")
-(check-true (path-rename (path "tmp/rename-test-src.txt") (path "tmp/rename-test-dst2.txt")))
-(check-false (path-exists? "tmp/rename-test-src.txt"))
-(check-true (path-file? "tmp/rename-test-dst2.txt"))
-(path-unlink "tmp/rename-test-dst2.txt")
+  ;; 测试1: 重命名文件
+  (path-touch src-file)
+  (check-true (path-rename src-file dst-file))
+  (check-false (path-exists? src-file))
+  (check-true (path-file? dst-file))
 
-;; 测试3: 源文件不存在时抛出错误
-(check-catch 'file-not-found-error
-             (path-rename "tmp/nonexistent.txt" "tmp/dst.txt")
-) ;check-catch
+  ;; 测试2: 使用 path 对象重命名文件
+  (path-touch src-file)
+  (check-true (path-rename (path src-file) (path dst2-file)))
+  (check-false (path-exists? src-file))
+  (check-true (path-file? dst2-file))
+  (path-unlink dst2-file)
 
-;; 测试4: 目标文件已存在时抛出错误
-(path-touch "tmp/rename-test-src.txt")
-(path-touch "tmp/rename-test-dst.txt")
-(check-catch 'file-exists-error
-             (path-rename "tmp/rename-test-src.txt" "tmp/rename-test-dst.txt")
-) ;check-catch
+  ;; 测试3: 源文件不存在时抛出错误
+  (check-catch 'file-not-found-error
+               (path-rename nonexistent-file dst-file))
 
-;; 清理
-(path-unlink "tmp/rename-test-src.txt")
-(path-unlink "tmp/rename-test-dst.txt")
+  ;; 测试4: 目标文件已存在时抛出错误
+  (path-touch src-file)
+  (path-touch dst-file)
+  (check-catch 'file-exists-error
+               (path-rename src-file dst-file))
+
+  ;; 清理
+  (path-unlink src-file)
+  (path-unlink dst-file)
+)
 
 (check-report)
