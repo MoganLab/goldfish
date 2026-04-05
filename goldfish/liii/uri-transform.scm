@@ -54,7 +54,8 @@
                     (uri-netloc-raw uri-obj)
                     (uri-path-raw uri-obj)
                     (uri-query-raw uri-obj)
-                    (uri-fragment-raw uri-obj))
+                    (uri-fragment-raw uri-obj)
+      ) ;make-uri-raw
     ) ;define
 
     (define (uri-with-host uri-obj new-host)
@@ -63,10 +64,12 @@
                       (build-netloc (list-ref netloc-parts 0)
                                     (list-ref netloc-parts 1)
                                     new-host
-                                    (list-ref netloc-parts 3))
+                                    (list-ref netloc-parts 3)
+                      ) ;build-netloc
                       (uri-path-raw uri-obj)
                       (uri-query-raw uri-obj)
-                      (uri-fragment-raw uri-obj))
+                      (uri-fragment-raw uri-obj)
+        ) ;make-uri-raw
       ) ;let
     ) ;define
 
@@ -76,10 +79,12 @@
                       (build-netloc (list-ref netloc-parts 0)
                                     (list-ref netloc-parts 1)
                                     (list-ref netloc-parts 2)
-                                    new-port)
+                                    new-port
+                      ) ;build-netloc
                       (uri-path-raw uri-obj)
                       (uri-query-raw uri-obj)
-                      (uri-fragment-raw uri-obj))
+                      (uri-fragment-raw uri-obj)
+        ) ;make-uri-raw
       ) ;let
     ) ;define
 
@@ -88,7 +93,8 @@
                     (uri-netloc-raw uri-obj)
                     new-path
                     (uri-query-raw uri-obj)
-                    (uri-fragment-raw uri-obj))
+                    (uri-fragment-raw uri-obj)
+      ) ;make-uri-raw
     ) ;define
 
     (define (uri-with-fragment uri-obj new-fragment)
@@ -96,7 +102,8 @@
                     (uri-netloc-raw uri-obj)
                     (uri-path-raw uri-obj)
                     (uri-query-raw uri-obj)
-                    new-fragment)
+                    new-fragment
+      ) ;make-uri-raw
     ) ;define
 
     ;; query 更新函数
@@ -106,13 +113,15 @@
                       (uri-netloc-raw uri-obj)
                       (uri-path-raw uri-obj)
                       new-query
-                      (uri-fragment-raw uri-obj))
+                      (uri-fragment-raw uri-obj)
+        ) ;make-uri-raw
       ) ;let
     ) ;define
 
     (define (uri-extend-query uri-obj alist)
       (uri-update-query uri-obj
-                        (lambda (q) (append q alist)))
+                        (lambda (q) (append q alist))
+      ) ;uri-update-query
     ) ;define
 
     (define (uri-without-query uri-obj)
@@ -122,7 +131,9 @@
     (define (uri-without-query-param uri-obj key)
       (uri-update-query uri-obj
                         (lambda (q)
-                          (filter (lambda (p) (not (string=? (car p) key))) q)))
+                          (filter (lambda (p) (not (string=? (car p) key))) q)
+                        ) ;lambda
+      ) ;uri-update-query
     ) ;define
 
     ;; 路径操作函数
@@ -133,7 +144,9 @@
                        (string-append (if (string-ends? current-path "/")
                                          current-path
                                          (string-append current-path "/"))
-                                     new-segments))
+                                     new-segments
+                       ) ;string-append
+        ) ;uri-with-path
       ) ;let
     ) ;define
 
@@ -142,7 +155,10 @@
         (uri-with-path uri-obj
                        (if (and parent (not (string=? parent "")))
                          (string-append parent "/" new-name)
-                         new-name)))
+                         new-name
+                       ) ;if
+        ) ;uri-with-path
+      ) ;let
     ) ;define
 
     (define (uri-with-suffix uri-obj new-suffix)
@@ -152,8 +168,13 @@
             (uri-with-name uri-obj
                            (if dot-pos
                              (string-append (substring name 0 dot-pos) "." new-suffix)
-                             (string-append name "." new-suffix))))
-          uri-obj))
+                             (string-append name "." new-suffix)
+                           ) ;if
+            ) ;uri-with-name
+          ) ;let
+          uri-obj
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; URI 合并（RFC 3986）
@@ -169,25 +190,39 @@
             ;; 相对路径
             (uri-with-path base-uri
                            (normalize-path
-                             (string-append (uri-parent base-uri) "/" ref-path))))
+                             (string-append (uri-parent base-uri) "/" ref-path)
+                           ) ;normalize-path
+            ) ;uri-with-path
+          ) ;if
         ) ;if
       ) ;let
     ) ;define
 
     ;; 路径归一化
     (define (normalize-path path)
-      (let ((segments (string-split path "/")))
+      (let ((segments (string-split path "/"))
+            (absolute? (and (> (string-length path) 0)
+                            (char=? (string-ref path 0) #\/)))
+            ) ;absolute?
         (let loop ((segs segments) (result '()))
           (if (null? segs)
             (if (null? result)
               "/"
-              (string-join (reverse result) "/"))
+              (let ((normalized (string-join (reverse result) "/")))
+                (if absolute?
+                  (string-append "/" normalized)
+                  normalized
+                ) ;if
+              ) ;let
+            ) ;if
             (cond
               ((string=? (car segs) "") (loop (cdr segs) result))
               ((string=? (car segs) ".") (loop (cdr segs) result))
               ((string=? (car segs) "..")
-               (loop (cdr segs) (if (null? result) result (cdr result))))
-              (else (loop (cdr segs) (cons (car segs) result))))
+               (loop (cdr segs) (if (null? result) result (cdr result)))
+              ) ;
+              (else (loop (cdr segs) (cons (car segs) result)))
+            ) ;cond
           ) ;if
         ) ;let
       ) ;let
