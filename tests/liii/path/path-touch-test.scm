@@ -15,12 +15,11 @@
 ;; 返回值
 ;; -----
 ;; boolean
-;; 返回 #t 表示操作成功完成。
+;; 返回 #t 表示操作成功完成，返回 #f 表示操作失败。
 ;;
-;; 描述
+;; 说明
 ;; ----
-;; path-touch 是 rich-path 中文件触碰能力的函数式版本，
-;; 用于创建空文件或更新现有文件/目录的时间戳。
+;; path-touch 不会自动创建父目录。如果父目录不存在，返回 #f。
 
 ;; 创建新空文件测试
 (let ((touch-file (path-join (path-temp-dir) "path-touch-basic.txt")))
