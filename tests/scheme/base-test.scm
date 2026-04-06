@@ -11,6 +11,14 @@
 ;; 查看扩展库的完整文档：
 ;;   bin/gf doc liii/base
 
+;; ==== 查看函数文档 ====
+;; 使用以下命令查看函数文档和测试用例：
+;;   bin/gf doc scheme/base "函数名"
+;;
+;; 特殊说明：
+;;   - 函数 "/" 在 Windows/Git Bash 中需使用 "//"：
+;;     bin/gf doc "//"
+;;
 ;; ==== 函数分类索引 ====
 
 ;; 一、数值运算 (R7RS 6.2 Numbers)
@@ -37,11 +45,17 @@
 ;;   round                - 四舍五入
 ;;   exact                - 转换为精确数
 ;;   inexact              - 转换为非精确数
+;;   rationalize          - 有理数近似
 ;;   exact-integer-sqrt   - 精确整数平方根
 ;;   numerator            - 有理数分子
 ;;   denominator          - 有理数分母
 ;;   number->string       - 数字转字符串
 ;;   string->number       - 字符串转数字
+;;   square               - 平方
+;;   floor-quotient       - 向下取整的商
+;;   floor-remainder      - 向下取整的余数
+;;   floor/               - 向下取整除法（返回商和余数）
+;;   truncate/            - 截断除法（返回商和余数）
 
 ;; 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 ;;   number?              - 是否为数值

@@ -24,15 +24,9 @@
     let-values
     ; R7RS 5: Program Structure
     define-values define-record-type lambda case cond if
-    ; R7RS 6.2: Numbers
-    + - * / abs square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
-    round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo exact-integer-sqrt
-    quotient remainder rationalize numerator denominator
-    zero? positive? negative? odd? even?
-    complex? real? rational? integer? exact? inexact? exact-integer?
-    number? number->string string->number
-    ; R7RS 6.3: Booleans
-    boolean=? boolean? not
+    ; R7RS 6.2: Numbers (从 scheme base 继承)
+    ; R7RS 6.3: Booleans (从 scheme base 继承)
+    not
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail

@@ -20,9 +20,19 @@
     ; R7RS 5: Program Structure
     define-values define-record-type
     ; R7RS 6.2: Numbers
+    ; - 比较和算术
+    = < > <= >=
+    + - * / abs
+    ; - 数值函数
     square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
-    round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo boolean=? exact-integer-sqrt
-    numerator denominator exact-integer? number->string string->number
+    round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo quotient remainder
+    numerator denominator rationalize exact-integer-sqrt
+    number->string string->number
+    ; - 类型判断
+    number? complex? real? rational? integer? exact? inexact? exact-integer?
+    positive? negative? zero? odd? even?
+    ; R7RS 6.3: Booleans
+    boolean=? boolean?
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
