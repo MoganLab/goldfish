@@ -27,7 +27,7 @@
 ;; 一、基本谓词与访问
 ;; 用于判断和读取字符串内容的函数
 ;;   string-null?         - 判断字符串是否为空
-;;   string-contains      - 查找子串位置
+;;   string-contains      - 判断是否包含子串（推荐使用 string-contains?）
 ;;   string-contains?     - 判断是否包含子串
 ;;   string-index         - 查找满足条件的首个位置
 ;;   string-index-right   - 从右侧查找满足条件的位置

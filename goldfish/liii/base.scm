@@ -26,6 +26,15 @@
     receive
     ; S7 extensions
     define*
+    procedure-source
+    procedure-arglist
+    arity
+    defined?
+    ; Keywords
+    keyword?
+    string->keyword
+    symbol->keyword
+    keyword->symbol
     ; Extra routines
     loose-car
     loose-cdr

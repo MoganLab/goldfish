@@ -19,12 +19,14 @@
 ;;
 ;; 返回值
 ;; ----
-;; integer or #f
-;; 如果str包含sub-str返回起始位置索引，否则返回#f。
+;; boolean
+;; 如果str包含sub-str返回#t，否则返回#f。
 ;;
 ;; 注意
 ;; ----
-;; 空字符串作为sub-str时总是返回0。
+;; 推荐使用 string-contains?，其参数顺序和命名更符合直觉。
+;; 查看 string-contains? 的完整文档：gf doc "string-contains?"
+;; 空字符串作为sub-str时总是返回#t。
 
 (check-true (string-contains "0123456789" "3"))
 (check-true (string-contains "0123456789" "34"))

@@ -19,6 +19,14 @@
 
 ;; 三、S7 扩展
 ;;   define*              - 带默认参数和可选参数的 define
+;;   procedure-source     - 获取过程的源代码定义
+;;   procedure-arglist    - 获取过程的参数列表
+;;   arity                - 获取过程可接受的参数数量范围
+;;   defined?             - 检查符号是否已定义
+;;   keyword?             - 判断是否为关键字
+;;   string->keyword      - 字符串转关键字
+;;   symbol->keyword      - 符号转关键字
+;;   keyword->symbol      - 关键字转符号
 
 ;; 四、实用工具函数
 ;;   square               - 计算平方
