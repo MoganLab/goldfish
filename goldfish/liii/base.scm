@@ -25,8 +25,7 @@
     ; R7RS 5: Program Structure
     define-values define-record-type lambda case cond if
     ; R7RS 6.4: list (从 scheme base 继承)
-    ; R7RS 6.5: Symbol
-    symbol? symbol=? eq? eqv? equal? string->symbol symbol->string
+    ; R7RS 6.5: Symbol (从 scheme base 继承)
     ; R7RS 6.6: Characters
     char? char=? char<? char>? char<=? char>=? char->integer integer->char digit-value
     ; R7RS 6.7: String (其余函数从 scheme base 继承)
