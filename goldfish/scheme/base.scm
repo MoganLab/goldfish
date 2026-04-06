@@ -40,7 +40,7 @@
     ; R7RS 6.5: Symbol
     symbol? symbol=? string->symbol symbol->string
     ; R7RS 6.6: Characters
-    digit-value
+    char? char=? char<? char>? char<=? char>=? char->integer integer->char
     ; R7RS 6.7: String
     string? make-string string string-length string-ref string-set!
     string-copy string-append substring string-fill!
