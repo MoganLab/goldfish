@@ -19,6 +19,8 @@
     let-values
     ; R7RS 5: Program Structure
     define-values define-record-type
+    ; R7RS 6.1: Equivalence predicates
+    eq? eqv? equal?
     ; R7RS 6.2: Numbers
     ; - 比较和算术
     = < > <= >=
