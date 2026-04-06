@@ -1,5 +1,4 @@
 (import (liii check))
-(import (liii list))
 (import (scheme base))
 
 (check-set-mode! 'report-failed)
