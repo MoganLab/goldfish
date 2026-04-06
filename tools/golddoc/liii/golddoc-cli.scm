@@ -190,10 +190,12 @@
       (let ((port (current-error-port)))
         (display (string-append "Function is implemented in multiple visible libraries: " function-name) port)
         (newline port)
+        (display "Try one of these commands:" port)
+        (newline port)
         (for-each
           (lambda (library-query)
             (display "  " port)
-            (display library-query port)
+            (display (library-function-doc-command library-query function-name) port)
             (newline port)
           ) ;lambda
           library-queries
@@ -265,6 +267,18 @@
       ) ;let
     ) ;define
 
+    (define (display-doc-with-source library-query function-name)
+      (let ((doc-path (function-doc-path library-query function-name)))
+        (display (path-read-text doc-path))
+        (newline)
+        (display ";; 来自: gf doc ")
+        (display library-query)
+        (display " ")
+        (write function-name)
+        (newline)
+      ) ;let
+    ) ;define
+
     (define (run-function-query function-name)
       (let ((library-queries (visible-libraries-for-function function-name)))
         (cond
@@ -293,13 +307,26 @@
                 (display-exported-without-docs function-name library-queries)
                 1
                ) ;
-               ((null? (cdr library-queries))
-                (display (path-read-text (function-doc-path (car library-queries) function-name)))
+               ((null? (cdr documented-queries))
+                (display-doc-with-source (car documented-queries) function-name)
                 0
                ) ;
                (else
-                (display-library-choices function-name library-queries)
-                1
+                (display-doc-with-source (car documented-queries) function-name)
+                (newline)
+                (display ";; 该函数在其他库中也有实现:" (current-error-port))
+                (newline (current-error-port))
+                (for-each
+                  (lambda (library-query)
+                    (display ";;   gf doc " (current-error-port))
+                    (display library-query (current-error-port))
+                    (display " " (current-error-port))
+                    (write function-name (current-error-port))
+                    (newline (current-error-port))
+                  ) ;lambda
+                  (cdr documented-queries)
+                ) ;for-each
+                0
                ) ;else
              ) ;cond
            ) ;let
