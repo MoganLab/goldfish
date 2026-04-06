@@ -47,7 +47,9 @@
     string->list list->string
     string=? string<? string>? string<=? string>=?
     ; R7RS 6.8: Vector
-    vector->string string->vector vector-copy vector-copy! vector-fill!
+    vector? make-vector vector vector-length vector-ref vector-set!
+    vector->list list->vector vector->string string->vector
+    vector-copy vector-copy! vector-fill! vector-append
     ; R7RS 6.9: Bytevectors
     bytevector? make-bytevector bytevector bytevector-length bytevector-u8-ref
     bytevector-u8-set! bytevector-copy bytevector-append
