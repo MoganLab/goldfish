@@ -32,7 +32,7 @@
     number? complex? real? rational? integer? exact? inexact? exact-integer?
     positive? negative? zero? odd? even?
     ; R7RS 6.3: Booleans
-    boolean=? boolean?
+    not boolean=? boolean?
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
