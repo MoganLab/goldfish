@@ -4,7 +4,6 @@
 ;; 它补齐了 Goldfish 在文本处理上的高频接口，适合命令行、配置和轻量解析场景。
 ;;
 ;; 本模块导出的函数来源于：
-;; - (scheme base): string-copy, string-for-each, string-map, string?, string-ref, string-length
 ;; - (srfi srfi-13): string-null?, string-join, string-every, string-any, string-take,
 ;;                   string-take-right, string-drop, string-drop-right, string-pad,
 ;;                   string-pad-right, string-trim, string-trim-right, string-trim-both,
@@ -27,10 +26,6 @@
 
 ;; 一、基本谓词与访问
 ;; 用于判断和读取字符串内容的函数
-;;   string?              - 判断对象是否为字符串
-;;   string-ref           - 按索引读取字符
-;;   string-length        - 获取字符串长度
-;;   string-copy          - 复制字符串
 ;;   string-null?         - 判断字符串是否为空
 ;;   string-contains      - 查找子串位置
 ;;   string-contains?     - 判断是否包含子串
@@ -63,8 +58,6 @@
 
 ;; 四、迭代与归约
 ;; 用于遍历、映射和折叠字符串的函数
-;;   string-map           - 映射字符
-;;   string-for-each      - 遍历字符
 ;;   string-for-each-index - 带索引遍历字符
 ;;   string-fold          - 左折叠
 ;;   string-fold-right    - 右折叠

@@ -13,7 +13,7 @@
 
 ;; ==== 函数分类索引 ====
 
-;; 一、数值运算
+;; 一、数值运算 (R7RS 6.2 Numbers)
 ;;   +                    - 加法
 ;;   -                    - 减法/取负
 ;;   *                    - 乘法
@@ -43,7 +43,7 @@
 ;;   number->string       - 数字转字符串
 ;;   string->number       - 字符串转数字
 
-;; 二、类型判断
+;; 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 ;;   number?              - 是否为数值
 ;;   integer?             - 是否为整数
 ;;   real?                - 是否为实数
@@ -75,7 +75,7 @@
 ;;   file-error?          - 是否为文件错误
 ;;   read-error?          - 是否为读取错误
 
-;; 三、序对与列表操作
+;; 三、序对与列表操作 (R7RS 6.4 Pairs and lists)
 ;;   cons                 - 构造序对
 ;;   car                  - 取序对首部
 ;;   cdr                  - 取序对尾部
@@ -100,19 +100,12 @@
 ;;   assv                 - 按 eqv? 在关联列表中查找
 ;;   assoc                - 按 equal? 在关联列表中查找
 
-;; 四、符号与字符串
+;; 四、符号 (R7RS 6.5 Symbols)
 ;;   symbol->string       - 符号转字符串
 ;;   string->symbol       - 字符串转符号
 ;;   symbol=?             - 符号相等判断
-;;   make-string          - 创建字符串
-;;   string               - 构造字符串
-;;   string-length        - 字符串长度
-;;   string-ref           - 按索引取字符
-;;   string-set!          - 按索引设置字符
-;;   string=?             - 字符串相等
-;;   string-ci=?          - 字符串相等（忽略大小写）
-;;   string-copy          - 复制字符串
-;;   string-map           - 字符串映射
+
+;; 五、字符 (R7RS 6.6 Characters)
 ;;   digit-value          - 字符数字值
 ;;   char->integer        - 字符转整数
 ;;   integer->char        - 整数转字符
@@ -123,23 +116,52 @@
 ;;   char<=?              - 字符小于等于
 ;;   char>=?              - 字符大于等于
 
-;; 五、向量与字节向量
+;; 六、字符串 (R7RS 6.7 Strings)
+;;   string?              - 是否为字符串
+;;   make-string          - 创建指定长度字符串
+;;   string               - 将字符列表转为字符串
+;;   string-length        - 字符串长度
+;;   string-ref           - 按索引取字符
+;;   string-set!          - 按索引设置字符
+;;   string-copy          - 复制字符串
+;;   string-append        - 连接多个字符串
+;;   substring            - 提取子字符串
+;;   string-fill!         - 用字符填充字符串
+;;   string->list         - 字符串转字符列表
+;;   list->string         - 字符列表转字符串
+;;   string=?             - 字符串相等比较
+;;   string<?             - 字符串小于比较
+;;   string>?             - 字符串大于比较
+;;   string<=?            - 字符串小于等于比较
+;;   string>=?            - 字符串大于等于比较
+
+;; 七、向量 (R7RS 6.8 Vectors)
 ;;   make-vector          - 创建向量
 ;;   vector               - 构造向量
 ;;   vector-length        - 向量长度
 ;;   vector-ref           - 按索引取向量元素
 ;;   vector-set!          - 按索引设置向量元素
 ;;   vector-map           - 向量映射
+;;   vector->string       - 向量转字符串
+;;   string->vector       - 字符串转向量
+;;   vector-copy          - 复制向量
+;;   vector-copy!         - 复制向量到另一向量
+;;   vector-fill!         - 填充向量
+
+;; 八、字节向量 (R7RS 6.9 Bytevectors)
 ;;   make-bytevector      - 创建字节向量
 ;;   bytevector           - 构造字节向量
 ;;   bytevector-length    - 字节向量长度
 ;;   bytevector-u8-ref    - 按索引取字节
 ;;   bytevector-u8-set!   - 按索引设置字节
 ;;   bytevector-copy      - 复制字节向量
+;;   bytevector-append    - 连接字节向量
 ;;   utf8->string         - UTF-8 转字符串
 ;;   string->utf8         - 字符串转 UTF-8
+;;   utf8-string-length   - UTF-8 字符串长度
+;;   bytevector-advance-utf8 - UTF-8 字节向量前进
 
-;; 六、控制流
+;; 九、控制流 (R7RS 4.2 Derived conditionals + 4.2 Binding constructs)
 ;;   if                   - 条件分支
 ;;   cond                 - 多条件分支
 ;;   case                 - 模式匹配分支
@@ -158,14 +180,14 @@
 ;;   define-record-type   - 定义记录类型
 ;;   begin                - 顺序执行
 
-;; 七、等价判断
+;; 十、等价判断 (R7RS 6.1 Equivalence predicates)
 ;;   eq?                  - 相同对象判断
 ;;   eqv?                 - 等价判断
 ;;   equal?               - 结构相等判断
 ;;   not                  - 逻辑非
 ;;   boolean=?            - 布尔值相等
 
-;; 八、I/O 操作
+;; 十一、I/O 操作 (R7RS 6.13 Input and output)
 ;;   call-with-port       - 端口过程调用
 ;;   open-input-string    - 打开字符串输入端口
 ;;   open-output-string   - 打开字符串输出端口
@@ -175,7 +197,7 @@
 ;;   read-line            - 读取一行
 ;;   write                - 写入对象
 
-;; 九、异常处理
+;; 十二、异常处理 (R7RS 6.11 Exceptions)
 ;;   raise                - 抛出异常
 ;;   guard                - 捕获并处理异常
 ;;   error                - 报错

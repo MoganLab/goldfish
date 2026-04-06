@@ -32,7 +32,10 @@
     ; R7RS 6.6: Characters
     digit-value
     ; R7RS 6.7: String
-    string-copy
+    string? make-string string string-length string-ref string-set!
+    string-copy string-append substring string-fill!
+    string->list list->string
+    string=? string<? string>? string<=? string>=?
     ; R7RS 6.8: Vector
     vector->string string->vector vector-copy vector-copy! vector-fill!
     ; R7RS 6.9: Bytevectors

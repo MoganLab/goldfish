@@ -41,8 +41,8 @@
     symbol? symbol=? eq? eqv? equal? string->symbol symbol->string
     ; R7RS 6.6: Characters
     char? char=? char<? char>? char<=? char>=? char->integer integer->char digit-value
-    ; R7RS 6.7: String
-    string? make-string string=? string-ci=? string-length string-ref string-set! string-copy
+    ; R7RS 6.7: String (其余函数从 scheme base 继承)
+    string-ci=?
     ; R7RS 6.8 Vector
     vector->string string->vector vector-copy vector-copy! vector-fill! vector-append
     ; R7RS 6.9 Bytevectors
