@@ -1,4 +1,4 @@
-set_version ("17.11.39")
+set_version ("17.11.40")
 
 -- mode
 set_allowedmodes("releasedbg", "release", "debug", "profile")
