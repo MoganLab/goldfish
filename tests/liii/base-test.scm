@@ -23,6 +23,9 @@
 ;;   procedure-arglist    - 获取过程的参数列表
 ;;   arity                - 获取过程可接受的参数数量范围
 ;;   defined?             - 检查符号是否已定义
+;;   object->string      - 将对象转换为字符串表示
+;;   eval-string          - 将字符串作为 Scheme 代码求值
+;;   signature            - 获取函数的类型签名
 ;;   keyword?             - 判断是否为关键字
 ;;   string->keyword      - 字符串转关键字
 ;;   symbol->keyword      - 符号转关键字

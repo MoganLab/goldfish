@@ -30,6 +30,9 @@
     procedure-arglist
     arity
     defined?
+    object->string
+    eval-string
+    signature
     ; Keywords
     keyword?
     string->keyword
