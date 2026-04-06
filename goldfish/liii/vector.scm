@@ -33,6 +33,18 @@
     vector-filter vector-contains?
     ; Scala-style take/drop with boundary tolerance
     vector-take vector-drop vector-take-right vector-drop-right
+    ; int-vector 函数 (s7 内置)
+    int-vector int-vector?
+    make-int-vector
+    int-vector-ref int-vector-set!
+    ; complex-vector 函数 (s7 内置)
+    complex-vector complex-vector?
+    make-complex-vector
+    complex-vector-ref complex-vector-set!
+    ; float-vector 函数 (s7 内置)
+    float-vector float-vector?
+    make-float-vector
+    float-vector-ref float-vector-set!
   ) ;export
   (begin
 
