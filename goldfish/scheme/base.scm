@@ -39,8 +39,7 @@
     list-ref list-set! memq memv member assq assv assoc list-copy map
     ; R7RS 6.5: Symbol
     symbol? symbol=? string->symbol symbol->string
-    ; R7RS 6.6: Characters
-    digit-value
+    ; R7RS 6.6: Characters (在 scheme char 中定义)
     ; R7RS 6.7: String
     string? make-string string string-length string-ref string-set!
     string-copy string-append substring string-fill!
