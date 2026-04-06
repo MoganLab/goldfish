@@ -24,13 +24,7 @@
     let-values
     ; R7RS 5: Program Structure
     define-values define-record-type lambda case cond if
-    ; R7RS 6.2: Numbers (从 scheme base 继承)
-    ; R7RS 6.3: Booleans (从 scheme base 继承)
-    not
-    ; R7RS 6.4: list
-    pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
-    null? list? make-list list length append reverse list-tail
-    list-ref list-set! memq memv member assq assv assoc list-copy map
+    ; R7RS 6.4: list (从 scheme base 继承)
     ; R7RS 6.5: Symbol
     symbol? symbol=? eq? eqv? equal? string->symbol symbol->string
     ; R7RS 6.6: Characters
