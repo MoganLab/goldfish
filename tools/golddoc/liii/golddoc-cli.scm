@@ -16,6 +16,7 @@
 
 (define-library (liii golddoc-cli)
   (import (scheme base)
+          (scheme eval)
           (liii golddoc-args)
           (liii golddoc-fuzzy)
           (liii golddoc-function)
@@ -48,7 +49,8 @@
         (if (null? chars)
             (string-append "\""
                            (apply string-append (reverse parts))
-                           "\"")
+                           "\""
+            ) ;string-append
             (let ((ch (car chars)))
               (loop (cdr chars)
                     (cond
@@ -67,19 +69,22 @@
     (define (function-doc-command function-name)
       (string-append (golddoc-command-name)
                      " doc "
-                     (shell-double-quote function-name))
+                     (shell-double-quote function-name)
+      ) ;string-append
     ) ;define
 
     (define (library-doc-command library-query)
       (string-append (golddoc-command-name)
                      " doc "
-                     library-query)
+                     library-query
+      ) ;string-append
     ) ;define
 
     (define (library-source-command library-query)
       (string-append (golddoc-command-name)
                      " source "
-                     library-query)
+                     library-query
+      ) ;string-append
     ) ;define
 
     (define (library-query->display-name library-query)
@@ -96,7 +101,8 @@
                      " doc "
                      library-query
                      " "
-                     (shell-double-quote function-name))
+                     (shell-double-quote function-name)
+      ) ;string-append
     ) ;define
 
     (define (display-usage)
@@ -171,7 +177,8 @@
                                 function-name
                                 " in library: "
                                 library-query)
-                 port)
+                 port
+        ) ;display
         (newline port)
         (display "Try one of these commands:" port)
         (newline port)
@@ -238,7 +245,8 @@
         (display (string-append "Library "
                                 (library-query->display-name library-query)
                                 " exists.")
-                 port)
+                 port
+        ) ;display
         (newline port)
         (display "No documentation and test cases available." port)
         (newline port)
@@ -248,6 +256,136 @@
         (display (library-source-command library-query) port)
         (newline port)
       ) ;let
+    ) ;define
+
+    (define (handle-build-json)
+      (let ((built-paths (build-function-indexes!)))
+        (if (null? built-paths)
+            (begin
+              (stderr-line "Error: no buildable tests roots found in *load-path*.")
+              1
+            ) ;begin
+            (begin
+              (for-each
+                (lambda (built-path)
+                  (display "Built function index: ")
+                  (display built-path)
+                  (newline)
+                ) ;lambda
+                built-paths
+              ) ;for-each
+              0
+            ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (handle-library query)
+      (let* ((parts (parse-library-query query))
+             (group (and parts (car parts)))
+             (doc-path (library-doc-path query))
+             (visible-library-root (and parts
+                                        (find-visible-library-root query)))
+             ) ;visible-library-root
+        (cond
+          ((not parts)
+           (display-usage)
+           1
+          ) ;
+          ((excluded-test-group? group)
+           (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet."))
+           1
+          ) ;
+          (doc-path
+           (display (path-read-text doc-path))
+           0
+          ) ;doc-path
+          ((not visible-library-root)
+           (let ((fallback-libraries (visible-libraries-for-function query)))
+             (if (null? fallback-libraries)
+                 (if (null? (find-function-index-paths))
+                     (begin
+                       (stderr-line (string-append "Error: function index not found for query: " query))
+                       (display-build-json-hint)
+                       1
+                     ) ;begin
+                     (let ((suggestions (suggest-visible-functions query)))
+                       (if (null? suggestions)
+                           (begin
+                             (stderr-line (string-append "Error: library not found in *load-path*: " query))
+                             1
+                           ) ;begin
+                           (begin
+                             (display-function-suggestions query suggestions)
+                             1
+                           ) ;begin
+                       ) ;if
+                     ) ;let
+                 ) ;if
+                 (run-function-query query)
+             ) ;if
+          ) ;
+        ) ;cond
+          (else
+           (display-library-without-docs query)
+           1
+          ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (handle-library-function library-query exported-name)
+      (let* ((parts (parse-library-query library-query))
+             (group (and parts (car parts)))
+             (doc-path (function-doc-path library-query exported-name)))
+        (cond
+          ((not parts)
+           (display-usage)
+           1
+          ) ;
+          ((excluded-test-group? group)
+           (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet."))
+           1
+          ) ;
+          (doc-path
+           (display (path-read-text doc-path))
+           0
+          ) ;doc-path
+          ((not (find-visible-library-root library-query))
+           (stderr-line (string-append "Error: library not found in *load-path*: " library-query))
+           1
+          ) ;
+          (else
+           (if (member library-query
+                       (visible-libraries-for-function exported-name))
+               (begin
+                 (display-exported-without-docs exported-name (list library-query))
+                 1
+               ) ;begin
+               (let ((suggestions (suggest-library-functions library-query exported-name)))
+                 (if (null? suggestions)
+                     (begin
+                       (stderr-line (string-append "Error: documentation file not found for function: "
+                                                   exported-name
+                                                   " in library: "
+                                                   library-query)
+                       ) ;stderr-line
+                       1
+                     ) ;begin
+                     (begin
+                       (display-library-function-suggestions library-query exported-name suggestions)
+                       1
+                     ) ;begin
+                 ) ;if
+               ) ;let
+           ) ;if
+          ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    (define (handle-function function-name)
+      (run-function-query function-name)
     ) ;define
 
     (define (documented-library-queries function-name library-queries)
@@ -267,8 +405,36 @@
       ) ;let
     ) ;define
 
+    (define (library-query->import-set library-query)
+      ;; 将 "liii/base" 转换为 (liii base) 形式的 import set
+      (let ((parts (parse-library-query library-query)))
+        (if parts
+            (list (string->symbol (car parts)) (string->symbol (cdr parts)))
+            #f
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (display-doc-with-source library-query function-name)
       (let ((doc-path (function-doc-path library-query function-name)))
+        ;; 显示源代码（如果有的话）
+        (let ((import-set (library-query->import-set library-query)))
+          (when import-set
+            (let ((env (environment import-set)))
+              (let ((func (eval (string->symbol function-name) env)))
+                (let ((source (procedure-source func)))
+                  (when (and source (not (null? source)))
+                    (display ";; 源代码:")
+                    (newline)
+                    (write source)
+                    (newline)
+                    (newline)
+                  ) ;when
+                ) ;let
+              ) ;let
+            ) ;let
+          ) ;when
+        ) ;let
         (display (path-read-text doc-path))
         (newline)
         (display ";; 来自: gf doc ")
@@ -339,132 +505,16 @@
       (let ((parsed (parse-doc-args (argv))))
         (case (car parsed)
           ((build-json)
-           (let ((built-paths (build-function-indexes!)))
-             (if (null? built-paths)
-                 (begin
-                   (stderr-line "Error: no buildable tests roots found in *load-path*.")
-                   1
-                 ) ;begin
-                 (begin
-                   (for-each
-                     (lambda (built-path)
-                       (display "Built function index: ")
-                       (display built-path)
-                       (newline)
-                     ) ;lambda
-                     built-paths
-                   ) ;for-each
-                   0
-                 ) ;begin
-             ) ;if
-           ) ;let
+           (handle-build-json)
           ) ;
           ((library)
-           (let* ((query (cadr parsed))
-                  (parts (parse-library-query query))
-                  (group (and parts (car parts)))
-                  (doc-path (library-doc-path query))
-                  (visible-library-root (and parts
-                                             (find-visible-library-root query))))
-             (cond
-               ((not parts)
-                (display-usage)
-                1
-               ) ;
-               ((excluded-test-group? group)
-                (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet."))
-                1
-               ) ;
-               (doc-path
-                (display (path-read-text doc-path))
-                0
-               ) ;doc-path
-               ((not visible-library-root)
-                (let ((fallback-libraries (visible-libraries-for-function query)))
-                  (if (null? fallback-libraries)
-                      (if (null? (find-function-index-paths))
-                          (begin
-                            (stderr-line (string-append "Error: function index not found for query: " query))
-                            (display-build-json-hint)
-                            1
-                          ) ;begin
-                          (let ((suggestions (suggest-visible-functions query)))
-                            (if (null? suggestions)
-                                (begin
-                                  (stderr-line (string-append "Error: library not found in *load-path*: " query))
-                                  1
-                                ) ;begin
-                                (begin
-                                  (display-function-suggestions query suggestions)
-                                  1
-                                ) ;begin
-                            ) ;if
-                          ) ;let
-                      ) ;if
-                      (run-function-query query)
-                  ) ;if
-               ) ;let
-               ) ;
-               (else
-                (display-library-without-docs query)
-                1
-               ) ;else
-             ) ;cond
-           ) ;let*
+           (handle-library (cadr parsed))
           ) ;
           ((library-function)
-           (let* ((library-query (cadr parsed))
-                  (exported-name (caddr parsed))
-                  (parts (parse-library-query library-query))
-                  (group (and parts (car parts)))
-                  (doc-path (function-doc-path library-query exported-name)))
-             (cond
-               ((not parts)
-                (display-usage)
-                1
-               ) ;
-               ((excluded-test-group? group)
-                (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet."))
-                1
-               ) ;
-               (doc-path
-                (display (path-read-text doc-path))
-                0
-               ) ;doc-path
-               ((not (find-visible-library-root library-query))
-                (stderr-line (string-append "Error: library not found in *load-path*: " library-query))
-                1
-               ) ;
-               (else
-                (if (member library-query
-                            (visible-libraries-for-function exported-name))
-                    (begin
-                      (display-exported-without-docs exported-name (list library-query))
-                      1
-                    ) ;begin
-                    (let ((suggestions (suggest-library-functions library-query exported-name)))
-                      (if (null? suggestions)
-                          (begin
-                            (stderr-line (string-append "Error: documentation file not found for function: "
-                                                        exported-name
-                                                        " in library: "
-                                                        library-query)
-                            ) ;stderr-line
-                            1
-                          ) ;begin
-                          (begin
-                            (display-library-function-suggestions library-query exported-name suggestions)
-                            1
-                          ) ;begin
-                      ) ;if
-                    ) ;let
-                ) ;if
-               ) ;else
-             ) ;cond
-          ) ;let*
+           (handle-library-function (cadr parsed) (caddr parsed))
           ) ;
           ((function)
-           (run-function-query (cadr parsed))
+           (handle-function (cadr parsed))
           ) ;
           (else
            (display-usage)
