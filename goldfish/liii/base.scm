@@ -20,23 +20,6 @@
           (srfi srfi-8)
   ) ;import
   (export
-    ; (scheme base) defined by R7RS
-    let-values
-    ; R7RS 5: Program Structure
-    define-values define-record-type lambda case cond if
-    ; R7RS 6.8 Vector (从 scheme base 继承)
-    ; R7RS 6.9 Bytevectors
-    bytevector? make-bytevector bytevector bytevector-length bytevector-u8-ref
-    bytevector-u8-set! bytevector-copy bytevector-append
-    utf8->string string->utf8 utf8-string-length u8-substring bytevector-advance-utf8
-    ; Input and Output
-    call-with-port port? binary-port? textual-port? input-port-open? output-port-open?
-    open-binary-input-file open-binary-output-file close-port eof-object
-    open-input-string open-output-string get-output-string read write
-    ; Control flow
-    string-map vector-map string-for-each vector-for-each and
-    ; Exception
-    raise guard read-error? file-error?
     ; SRFI-2
     and-let*
     ; SRFI-8
@@ -44,7 +27,11 @@
     ; S7 extensions
     define*
     ; Extra routines
-    loose-car loose-cdr compose identity any?
+    loose-car
+    loose-cdr
+    compose
+    identity
+    any?
     ; Extra structure
     typed-lambda
   ) ;export
