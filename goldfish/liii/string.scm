@@ -34,8 +34,10 @@
     string-remove-prefix string-remove-suffix
   ) ;export
   (import (except (srfi srfi-13) string-replace)
+          (scheme base)
           (liii base)
           (liii error)
+          (liii unicode)
   ) ;import
   (begin
 
@@ -60,7 +62,7 @@
             (if (= i input-len)
                 (reverse parts)
                 (loop (+ i 1)
-                      (cons (u8-substring input i (+ i 1))
+                      (cons (utf8-substring input i (+ i 1))
                             parts
                       ) ;cons
                 ) ;loop

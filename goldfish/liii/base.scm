@@ -37,10 +37,6 @@
   ) ;export
   (begin
 
-    (define* (u8-substring str (start 0) (end #t))
-      (utf8->string (string->utf8 str start end))
-    ) ;define*
-
     (define (loose-car pair-or-empty)
       (if (eq? '() pair-or-empty)
           '()
