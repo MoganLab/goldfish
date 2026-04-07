@@ -544,7 +544,7 @@ bool
 |#
 
 (let ()
-  (define gen (let ((tokens '((num . 100) (id . x)))))
+  (define gen (let ((tokens '((num . 100) (id . x))))
                 (lambda ()
                   (if (null? tokens)
                       (values #f #f)
@@ -580,7 +580,7 @@ token 类型标识符，或 #f 表示输入结束
 |#
 
 (let ()
-  (define gen (let ((tokens '((num . 100)))))
+  (define gen (let ((tokens '((num . 100))))
                 (lambda ()
                   (if (null? tokens)
                       (values #f #f)
@@ -616,7 +616,7 @@ token 的语义值，或 #f 表示输入结束
 |#
 
 (let ()
-  (define gen (let ((tokens '((num . 100)))))
+  (define gen (let ((tokens '((num . 100))))
                 (lambda ()
                   (if (null? tokens)
                       (values #f #f)
