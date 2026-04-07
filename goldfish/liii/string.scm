@@ -79,7 +79,7 @@
                             ((char? sep) (string sep))
                             (else (type-error "string-split: second parameter must be string or char"))
                       ) ;cond
-             )
+             ) ;
              (str-len (string-length str))
              (sep-len (string-length sep-str)))
         (if (zero? sep-len)
