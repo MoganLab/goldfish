@@ -36,10 +36,10 @@
 ;; ----
 ;; 无。
 
-(define bob-pp '((bob . ((age . 18)
+(define bob-pp '((bob . ((age . 18))))
                          (sex . male)
                          (name . "Bob")
-                         (empty . null)))) ;define
+                         (empty . null) ;define
 ) ;define
 
 (check-true (json-null? 'null))

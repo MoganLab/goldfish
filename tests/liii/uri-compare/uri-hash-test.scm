@@ -39,8 +39,9 @@
 (check (> (uri-hash u5) (uri-hash u1)) => #t)
 
 ;; 复杂 URI
-(define u6 (make-uri-raw "https" "user@host:8080" "/path/to/file"
-                        '(("key1" . "val1") ("key2" . "val2")) "frag"))
+(define u6 (make-uri-raw "https" "user@host:8080" "/path/to/file")
+                        '(("key1" . "val1") ("key2" . "val2")) "frag"
+) ;define
 (check (number? (uri-hash u6)) => #t)
 (check (>= (uri-hash u6) 0) => #t)
 

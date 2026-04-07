@@ -24,19 +24,21 @@
 (check (uri-path u1) => "")
 
 ;; 带路径
-(define u2 (uri-build :scheme "http"
+(define u2 (uri-build :scheme "http")
                       :host "api.example.com"
-                      :path "/v1/users"))
+                      :path "/v1/users"
+) ;define
 (check (uri-scheme u2) => "http")
 (check (uri-host u2) => "api.example.com")
 (check (uri-path u2) => "/v1/users")
 
 ;; 带端口和认证
-(define u3 (uri-build :scheme "https"
+(define u3 (uri-build :scheme "https")
                       :user "admin"
                       :password "secret"
                       :host "db.example.com"
-                      :port 5432))
+                      :port 5432
+) ;define
 (check (uri-scheme u3) => "https")
 (check (uri-user u3) => "admin")
 (check (uri-password u3) => "secret")
@@ -44,11 +46,12 @@
 (check (uri-explicit-port u3) => 5432)
 
 ;; 带查询和 fragment
-(define u4 (uri-build :scheme "https"
+(define u4 (uri-build :scheme "https")
                       :host "search.com"
                       :path "/query"
                       :query '(("q" . "hello") ("page" . "1"))
-                      :fragment "results"))
+                      :fragment "results"
+) ;define
 (check (uri-host u4) => "search.com")
 (check (uri-path u4) => "/query")
 (check (uri-query-ref u4 "q") => "hello")
@@ -56,14 +59,15 @@
 (check (uri-fragment u4) => "results")
 
 ;; 完整构建
-(define u5 (uri-build :scheme "https"
+(define u5 (uri-build :scheme "https")
                       :user "user"
                       :password "pass"
                       :host "api.example.com"
                       :port 8443
                       :path "/v2/resource"
                       :query '(("id" . "123") ("format" . "json"))
-                      :fragment "section"))
+                      :fragment "section"
+) ;define
 (check (uri-scheme u5) => "https")
 (check (uri-user u5) => "user")
 (check (uri-password u5) => "pass")

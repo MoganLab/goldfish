@@ -56,37 +56,43 @@
 (check (case* 'yes
          ((yes no) 'boolean)
          (else 'unknown))
-  => 'boolean)
+  => 'boolean
+) ;check
 
 (check (case* 'no
          ((yes no) 'boolean)
          (else 'unknown))
-  => 'boolean)
+  => 'boolean
+) ;check
 
 (check (case* 'maybe
          ((yes no) 'boolean)
          (else 'unknown))
-  => 'unknown)
+  => 'unknown
+) ;check
 
 ;; 数字匹配
 (check (case* 42
          ((1 2 3) 'small)
          ((42 100) 'big)
          (else 'other))
-  => 'big)
+  => 'big
+) ;check
 
 ;; 字符串匹配
 (check (case* "hello"
          (("hi" "hello") 'greeting)
          (else 'other))
-  => 'greeting)
+  => 'greeting
+) ;check
 
 ;; 混合类型匹配
 (check (case* 3.14
          ((1 2 3) 'integer)
          ((3.14 2.71) 'float)
          (else 'other))
-  => 'float)
+  => 'float
+) ;check
 
 ;; ========== 列表字面量模式匹配测试 ==========
 
@@ -94,14 +100,16 @@
 (check (case* '(1 2 3)
          (((1 2 3)) 'matched)
          (else 'not-matched))
-  => 'matched)
+  => 'matched
+) ;check
 
 ;; 不匹配的情况
 (check (case* '(1 2 3)
          (((1 2)) 'two)
          (((1 2 3)) 'three)
          (else 'other))
-  => 'three)
+  => 'three
+) ;check
 
 ;; ========== 标签绑定测试 ==========
 
@@ -109,7 +117,8 @@
 (check (case* '(1 2)
          (((#<x:> #<y:>)) (+ #<x> #<y>))
          (else 0))
-  => 3)
+  => 3
+) ;check
 
 ;; 在结果中使用标签 - 标签引用语法 #<label>
 ;; 注意：'#<label> 中的引号 ' 是 quote 的简写，表示返回符号本身
@@ -117,13 +126,15 @@
 (check (case* '(hello world)
          (((#<first:> #<second:>)) (list '#<second> '#<first>))
          (else '()))
-  => '(world hello))
+  => '(world hello)
+) ;check
 
 ;; 标签值比较
 (check (case* '(5 5)
          (((#<x:> #<y:>)) (if (= #<x> #<y>) 'same 'different))
          (else 'unknown))
-  => 'same)
+  => 'same
+) ;check
 
 ;; ========== 谓词匹配测试 ==========
 
@@ -132,32 +143,37 @@
          ((#<integer?>) 'integer)
          ((#<string?>) 'string)
          (else 'other))
-  => 'integer)
+  => 'integer
+) ;check
 
 (check (case* "hello"
          ((#<integer?>) 'integer)
          ((#<string?>) 'string)
          (else 'other))
-  => 'string)
+  => 'string
+) ;check
 
 ;; 带标签的谓词匹配 - 使用 #<label:predicate?> 语法，结果中用 #<label>
 (check (case* 42
          ((#<x:integer?>) (* #<x> 2))
          (else 0))
-  => 84)
+  => 84
+) ;check
 
 ;; 自定义谓词函数
 (check (case* 10
          ((#<even?>) 'even)
          ((#<odd?>) 'odd)
          (else 'unknown))
-  => 'even)
+  => 'even
+) ;check
 
 (check (case* 7
          ((#<even?>) 'even)
          ((#<odd?>) 'odd)
          (else 'unknown))
-  => 'odd)
+  => 'odd
+) ;check
 
 ;; ========== 向量模式匹配测试 ==========
 
@@ -165,13 +181,15 @@
 (check (case* #(1 2 3)
          ((#(1 2 3)) 'matched)
          (else 'no))
-  => 'matched)
+  => 'matched
+) ;check
 
 ;; 向量中的标签捕获
 (check (case* #(10 20 30)
          ((#(#<x:> 20 #<y:>)) (list #<x> #<y>))
          (else '()))
-  => '(10 30))
+  => '(10 30)
+) ;check
 
 ;; ========== else 子句测试 ==========
 
@@ -180,7 +198,8 @@
          ((a b c) 'abc)
          ((x y z) 'xyz)
          (else 'default))
-  => 'default)
+  => 'default
+) ;check
 
 ;; ========== 边界情况测试 ==========
 
@@ -188,19 +207,22 @@
 (check (case* '()
          ((()) 'empty)
          (else 'not-empty))
-  => 'empty)
+  => 'empty
+) ;check
 
 ;; 单元素列表
 (check (case* '(only)
          ((#<x:>) '#<x>)
          (else 'none))
-  => '(only))
+  => '(only)
+) ;check
 
 ;; 单元素向量
 (check (case* #(42)
          ((#(42)) 'forty-two)
          (else 'none))
-  => 'forty-two)
+  => 'forty-two
+) ;check
 
 ;; ========== 实际应用示例测试 ==========
 
@@ -226,7 +248,9 @@
     (((* 1 #<x:>)) '#<x>)                    ; (* 1 x) => x
     (((* #<x:> 1)) '#<x>)                    ; (* x 1) => x
     (((* 0 #<...>)) 0)                       ; (* 0 ...) => 0
-    (else expr)))
+    (else expr)
+  ) ;case*
+) ;define
 
 (check (simplify '(+ 0 x)) => 'x)
 (check (simplify '(+ x 0)) => 'x)
@@ -262,7 +286,9 @@
     (((#<op:symbol?> #<args:...>)) 'application)
     ((#<x:integer?>) 'integer-literal)
     ((#<x:symbol?>) 'variable)
-    (else 'unknown)))
+    (else 'unknown)
+  ) ;case*
+) ;define
 
 (check (expr-type '(lambda (x) x)) => 'lambda)
 (check (expr-type '(if a b c)) => 'conditional)
@@ -297,7 +323,9 @@
     ((()) 'empty)
     (((#<x:>)) (list 'single '#<x>))
     (((#<a:> #<b:> #<rest:...>)) (list 'multiple #<a> #<b> #<rest>))
-    (else 'other)))
+    (else 'other)
+  ) ;case*
+) ;define
 
 (check (list-info '()) => 'empty)
 (check (list-info '(one)) => '(single one))
@@ -311,7 +339,9 @@
     (((- #<a:integer?> #<b:integer?>)) (- #<a> #<b>))
     (((#<op:> #<args:...>)) (list 'unhandled-op '#<op> #<args>))
     ((#<x:integer?>) #<x>)
-    (else 'invalid)))
+    (else 'invalid)
+  ) ;case*
+) ;define
 
 (check (calc '(+ 3 4)) => 7)
 (check (calc '(- 10 3)) => 7)
@@ -322,8 +352,11 @@
 (define (validate-user data)
   (case* data
     (((user (name #<n:string?>) (age #<a:integer?>)))
-     (and (> #<a> 0) (< #<a> 150)))
-    (else #f)))
+     (and (> #<a> 0) (< #<a> 150))
+    ) ;
+    (else #f)
+  ) ;case*
+) ;define
 
 (check (validate-user '(user (name "Alice") (age 30))) => #t)
 (check (validate-user '(user (name "Bob") (age 200))) => #f)
@@ -336,8 +369,11 @@
 (define (binop-expr? expr)
   (case* expr
     (((#<op:symbol?> #<left:> #<right:>))
-     (list 'binop '#<op> '#<left> '#<right>))
-    (else #f)))
+     (list 'binop '#<op> '#<left> '#<right>)
+    ) ;
+    (else #f)
+  ) ;case*
+) ;define
 
 (check (binop-expr? '(+ 1 2)) => '(binop + 1 2))
 (check (binop-expr? '(* x y)) => '(binop * x y))
@@ -347,12 +383,15 @@
 ;; 匹配 if 表达式
 (define (if-expr? expr)
   (case* expr
-    (((if #<cond:> #<then:> #<else:>))
-     (list 'if-expr '#<cond> '#<then> '#<else>))
-    (else #f)))
+    ((if #<cond:> #<then:> #<else:>))
+     (list 'if-expr '#<cond> '#<then> '#<else>)
+  ) ;case*
+    (else #f)
+) ;define
 
 (check (if-expr? '(if (> x 0) x (- x)))
-  => '(if-expr (> x 0) x (- x)))
+  => '(if-expr (> x 0) x (- x))
+) ;check
 (check (if-expr? '(if flag then)) => #f)   ; 缺少 else 分支
 
 (check-report)
