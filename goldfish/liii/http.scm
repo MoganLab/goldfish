@@ -50,6 +50,27 @@
   value
 ) ;define
 
+(define (http-require-boolean who field value)
+  (when (not (boolean? value))
+    (type-error (string-append who ": " field " must be boolean") value)
+  ) ;when
+  value
+) ;define
+
+(define (http-optional-string who field value)
+  (if value
+    (http-require-string who field value)
+    #f
+  ) ;if
+) ;define
+
+(define (http-optional-procedure who field value)
+  (if value
+    (http-require-procedure who field value)
+    #f
+  ) ;if
+) ;define
+
 (define (http-scalar->string who field value)
   (cond ((string? value) value)
         ((symbol? value) (symbol->string value))
@@ -205,14 +226,22 @@
   ) ;let
 ) ;define*
 
-(define* (http-get url (params '()) (headers '()) (proxy '()))
+(define* (http-get url (params '()) (headers '()) (proxy '())
+                   (output-file #f) (stream #f) (callback #f) (userdata '()))
   (let* ((url (http-require-string "http-get" "url" url))
          (params (http-normalize-string-alist "http-get" "params" params))
          (headers (http-normalize-string-alist "http-get" "headers" headers))
          (proxy (http-normalize-string-alist "http-get" "proxy" proxy))
-         (r (g_http-get url params headers proxy)))
+         (output-file (http-optional-string "http-get" "output-file" output-file))
+         (stream (http-require-boolean "http-get" "stream" stream))
+         (callback (http-optional-procedure "http-get" "callback" callback)))
+    (when (and stream (not output-file) (not callback))
+      (value-error "http-get: stream requires callback or output-file")
+    ) ;when
+    (let ((r (g_http-get url params headers proxy output-file callback userdata)))
         r
-  ) ;let
+    ) ;let
+  ) ;let*
 ) ;define*
 
 (define* (http-post url (params '()) (data "") (headers '()) (proxy '()) (files '()))

@@ -1,7 +1,8 @@
 ;; (liii http) 模块函数分类索引
 ;;
 ;; liii http 提供同步、流式和异步三种 HTTP 客户端 API，基于 cpr 库实现。
-;; 支持 GET/POST/HEAD 请求；其中 http-post 支持通过 :files 上传文件。
+;; 支持 GET/POST/HEAD 请求；其中 http-get 支持通过 :output-file 或 :stream 流式下载，
+;; http-post 支持通过 :files 上传文件。
 
 ;; ==== 常见用法示例 ====
 (import (liii http)
@@ -12,6 +13,17 @@
 ;; (let ((r (http-get "https://api.example.com/data")))
 ;;   (display (r 'status-code))  ; 200
 ;;   (display (r 'text)))         ; 响应体
+
+;; 示例1.1：直接下载到本地文件
+;; (http-get "https://example.com/archive.tar.gz"
+;;           :output-file "/tmp/archive.tar.gz")
+
+;; 示例1.2：流式处理下载内容
+;; (http-get "https://example.com/events"
+;;           :stream #t
+;;           :callback (lambda (chunk userdata)
+;;                       (display chunk)
+;;                       #t))
 
 ;; 示例2：带查询参数的 POST 请求
 ;; (http-post "https://api.example.com/submit"
@@ -39,7 +51,7 @@
 ;;
 ;; 一、同步 HTTP 请求
 ;;   http-head            - 发送 HEAD 请求，获取响应头
-;;   http-get             - 发送 GET 请求
+;;   http-get             - 发送 GET 请求，也支持通过 :output-file / :stream 流式下载
 ;;   http-post            - 发送 POST 请求，也支持通过 :files 上传文件
 ;;
 ;; 二、响应处理
