@@ -1,7 +1,7 @@
 ;;; Goldfix Env Right Tag 模块
 ;;; 右标记匹配与浮动候选选择
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-env-right-tag)

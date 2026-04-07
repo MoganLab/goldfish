@@ -1,6 +1,6 @@
 ;;; Goldfix - 列表工具模块
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-list)

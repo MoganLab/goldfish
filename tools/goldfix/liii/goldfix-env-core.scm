@@ -1,7 +1,7 @@
 ;;; Goldfix Env Core 模块
 ;;; Environment 记录类型与基础树操作
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-env-core)

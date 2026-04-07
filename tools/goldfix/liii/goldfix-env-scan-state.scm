@@ -1,7 +1,7 @@
 ;;; Goldfix Env Scan State 模块
 ;;; Environment 扫描状态推进原语
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-env-scan-state)

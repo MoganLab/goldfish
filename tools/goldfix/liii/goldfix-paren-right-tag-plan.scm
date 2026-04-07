@@ -191,7 +191,8 @@
                         (count-parens-with-state (car remaining)
                                                  block-depth
                                                  in-string
-                                                 escape-next)))
+                                                 escape-next))
+                        ) ;count-parens-with-state
             (let ((lparen-count (car paren-counts))
                   (rparen-count (cdr paren-counts)))
               (if (= line-num target-line)
@@ -228,9 +229,9 @@
                        (> close-line lparen-line)
                   ) ;and
                 ) ;let*
-              ) 
+              ) ;
               details
-      ) ;filter 
+      ) ;filter
     ) ;define
 
     (define (sort-details-for-actual-close details)

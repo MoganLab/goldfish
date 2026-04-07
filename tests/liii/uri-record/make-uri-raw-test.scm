@@ -39,7 +39,8 @@
 
 ;; 完整组件
 (define u (make-uri-raw "https" "user@example.com:8080" "/path/to/file"
-                        '(("a" . "1") ("b" . "2")) "section"))
+                        '(("a" . "1") ("b" . "2")) "section")
+) ;define
 (check (uri-scheme-raw u) => "https")
 (check (uri-netloc-raw u) => "user@example.com:8080")
 (check (uri-path-raw u) => "/path/to/file")

@@ -39,7 +39,7 @@
 (define bob-pp '((bob . ((age . 18)
                          (sex . male)
                          (name . "Bob")
-                         (empty . null)))) ;define
+                         (empty . null))))
 ) ;define
 
 (check-true (json-null? 'null))

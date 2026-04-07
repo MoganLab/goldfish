@@ -9,6 +9,7 @@
   (import (liii goldfix-paren))
   (import (liii goldfix-file))
   (import (liii goldfix-env))
+  (import (liii goldfix-line-scan))
   (import (liii goldfix-list))
   (import (liii list))
   (export main)
@@ -124,6 +125,37 @@
       ) ;let
     ) ;define
 
+    (define (inline-right-tag-comment? comment-part)
+      (and (not (string-null? comment-part))
+           (not (char-whitespace? (string-ref comment-part 0)))
+      ) ;and
+    ) ;define
+
+    (define (strip-inline-right-tag-comment line env-tags)
+      (let* ((comment-start (line-comment-start-index line))
+             (len (string-length line)))
+        (if (or (= comment-start len)
+                (= comment-start 0))
+          line
+          (let* ((code-part (string-trim-right (substring line 0 comment-start)))
+                 (comment-part (substring line (+ comment-start 1) len))
+                 (tag (preferred-tag-from-tokens
+                        (extract-identifier-tokens comment-part)))
+                 ) ;tag
+            (if (and (not (string-null? code-part))
+                     (line-ends-with-rparen? code-part)
+                     (not (right-tag-line? line))
+                     (inline-right-tag-comment? comment-part)
+                     (not (string-null? tag))
+                     (member tag env-tags))
+              code-part
+              line
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let*
+    ) ;define
+
     (define (repairable-semicolon-right-tag-line? line previous-line env-tags)
       (let ((trimmed (string-trim line)))
         (and previous-line
@@ -131,7 +163,8 @@
              (not (string-null? trimmed))
              (char=? (string-ref trimmed 0) #\;)
              (or (= (string-length trimmed) 1)
-                 (not (char=? (string-ref trimmed 1) #\;))
+                 (and (not (char=? (string-ref trimmed 1) #\;))
+                      (not (char-whitespace? (string-ref trimmed 1))))
              ) ;or
              (let ((tag (preferred-tag-from-tokens
                           (extract-identifier-tokens
@@ -145,17 +178,38 @@
       ) ;let
     ) ;define
 
+    (define (case-pattern-keyword-line? line)
+      (let ((trimmed (string-trim line)))
+        (and (> (string-length trimmed) 3)
+             (char=? (string-ref trimmed 0) #\()
+             (char=? (string-ref trimmed 1) #\()
+             (char=? (string-ref trimmed 2) #\()
+             (repairable-missing-open-tag?
+               (extract-tag (substring trimmed 2 (string-length trimmed)))
+             ) ;repairable-missing-open-tag?
+        ) ;and
+      ) ;let
+    ) ;define
+
     (define (canonicalize-right-tag-lines lines)
-      (let ((env-tags (map env-tag (scan-environments lines))))
+      (let* ((env-tags (map env-tag (scan-environments lines)))
+             (normalized-inline-comments
+               (map (lambda (line)
+                      (strip-inline-right-tag-comment line env-tags))
+                    lines
+               ) ;map
+             ) ;normalized-inline-comments
+             (normalized-env-tags (map env-tag (scan-environments normalized-inline-comments))))
         (let loop ((remaining lines)
+                   (normalized-remaining normalized-inline-comments)
                    (block-depth 0)
                    (in-string #f)
                    (escape-next #f)
                    (previous-line #f)
                    (result '()))
-          (if (null? remaining)
+          (if (null? normalized-remaining)
             (reverse result)
-            (let* ((line (car remaining))
+            (let* ((line (car normalized-remaining))
                    (trimmed (string-trim line))
                    (normalized
                     (cond
@@ -165,7 +219,7 @@
                       ((right-tag-line? line)
                        (canonicalize-right-tag-line line)
                       ) ;
-                      ((repairable-semicolon-right-tag-line? line previous-line env-tags)
+                      ((repairable-semicolon-right-tag-line? line previous-line normalized-env-tags)
                        (let* ((col (- (string-length line) (string-length trimmed)))
                               (indent (make-string col #\space))
                               (tag (preferred-tag-from-tokens
@@ -192,6 +246,7 @@
                             ) ;count-parens-with-state
               ) ;let-values
                 (loop (cdr remaining)
+                      (cdr normalized-remaining)
                       next-block-depth
                       next-in-string
                       next-escape-next
@@ -201,7 +256,7 @@
             ) ;let*
           ) ;if
         ) ;let
-      ) ;let
+      ) ;let*
     ) ;define
   ) ;begin
 
@@ -291,6 +346,27 @@
       ) ;or
     ) ;define
 
+    (define (define-function-header-line? line)
+      (let* ((trimmed (string-trim line))
+             (len (string-length trimmed)))
+        (and (> len 8)
+             (char=? (string-ref trimmed 0) #\()
+             (string=? (extract-tag trimmed) "define")
+             (let loop ((i 7))
+               (cond
+                 ((>= i len) #f)
+                 ((char-whitespace? (string-ref trimmed i))
+                  (loop (+ i 1))
+                 ) ;
+                 (else
+                  (char=? (string-ref trimmed i) #\()
+                 ) ;else
+               ) ;cond
+             ) ;let
+        ) ;and
+      ) ;let*
+    ) ;define
+
     (define (repair-excess-leading-open-paren lines)
       (map (lambda (line)
              (let* ((trimmed (string-trim line))
@@ -306,6 +382,9 @@
                (if (and (> (string-length trimmed) 1)
                         (char=? (string-ref trimmed 0) #\()
                         (char=? (string-ref trimmed 1) #\()
+                        (or (= (string-length trimmed) 2)
+                            (not (char=? (string-ref trimmed 2) #\())
+                        ) ;or
                         first-token
                         (repairable-missing-open-tag? first-token)
                         (= net-open-count 1)
@@ -377,7 +456,8 @@
                 (let* ((line-idx (- lparen-line 1))
                        (line (list-ref current-lines line-idx))
                        (net-open-count (line-net-open-count line)))
-                  (if (> net-open-count 1)
+                  (if (and (> net-open-count 1)
+                           (define-function-header-line? line))
                     (let* ((fixed-line (add-rparens-by-diff line (- net-open-count 1)))
                            (new-lines (list-set current-lines line-idx fixed-line)))
                       (loop (cdr remaining) new-lines)

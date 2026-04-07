@@ -1,7 +1,7 @@
 ;;; Goldfix Scheme 模块
 ;;; 共享的 Scheme 词法辅助函数
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-scheme)
