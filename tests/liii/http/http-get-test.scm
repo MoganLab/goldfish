@@ -5,6 +5,11 @@
         (scheme file)
 ) ;import
 
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env) (exit 0))
+) ;let
+
 (check-set-mode! 'report-failed)
 
 (define (binary-file-size path)
@@ -27,10 +32,7 @@
   ) ;let
 ) ;define
 
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
-) ;let
+
 
 ;; http-get
 ;; 发送 HTTP GET 请求，返回响应对象。

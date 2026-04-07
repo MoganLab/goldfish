@@ -2,7 +2,13 @@
         (liii http)
         (liii string)
         (liii json)
+        (liii os)
 ) ;import
+
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env) (exit 0))
+) ;let
 
 (check-set-mode! 'report-failed)
 
@@ -55,6 +61,8 @@
 ;; 5. 当 data 非空且未指定 headers 时，默认 Content-Type 为 text/plain。
 
 (define simpletex-api-key "你的api-key")
+
+
 
 ;; 带查询参数的 POST 请求
 (let ((r (http-post "https://httpbin.org/post"
