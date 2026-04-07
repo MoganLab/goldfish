@@ -1,0 +1,1 @@
+Goldfish multipart upload fixture.
