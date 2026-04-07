@@ -81,11 +81,22 @@ jobs:
           ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
         key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
 
+    - name: Fetch xmake deb template
+      run: |
+        TEMPLATE_ROOT=/usr/share/xmake/scripts/xpack/deb/debian
+        BASE_URL=https://raw.githubusercontent.com/xmake-io/xmake/v2.9.9/xmake/scripts/xpack/deb/debian
+
+        mkdir -p "$TEMPLATE_ROOT/source"
+        curl -fsSL "$BASE_URL/README.Debian" -o "$TEMPLATE_ROOT/README.Debian"
+        curl -fsSL "$BASE_URL/changelog" -o "$TEMPLATE_ROOT/changelog"
+        curl -fsSL "$BASE_URL/control" -o "$TEMPLATE_ROOT/control"
+        curl -fsSL "$BASE_URL/copyright" -o "$TEMPLATE_ROOT/copyright"
+        curl -fsSL "$BASE_URL/rules" -o "$TEMPLATE_ROOT/rules"
+        curl -fsSL "$BASE_URL/source/format" -o "$TEMPLATE_ROOT/source/format"
+        chmod +x "$TEMPLATE_ROOT/rules"
+
     - name: Config and Build
       run: |
-        sed -i 's|"deb", "rpm", "srpm"|"deb"|g' xmake.lua
-        sed -i 's|set_default(false) -- repl-anchor|set_default(true)|g' xmake.lua
-
         xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true
         xmake build goldfish
 
@@ -93,7 +104,7 @@ jobs:
       run: ./bin/gf doc --build-json
 
     - name: Package
-      run: xmake pack -vyD goldfish
+      run: xmake pack -f deb -vyD goldfish
 
     - name: Create summary table
       run: |
