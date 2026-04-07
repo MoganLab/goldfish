@@ -7,6 +7,7 @@
 (define-library (liii goldfix-env-core)
   (import (scheme base))
   (import (liii goldfix-comment))
+  (import (liii goldfix-lint))
 
   (export make-env)
   (export env?)
@@ -33,6 +34,7 @@
   (export paren-node-col)
   (export paren-node-env)
   (export paren-node-detail)
+  (export paren-node-tag)
 
   (export find-open-parent-by-col)
   (export add-child!)
@@ -66,13 +68,23 @@
     ) ;define-record-type
 
     (define-record-type paren-node
-      (make-paren-node line col env detail)
+      (make-raw-paren-node line col env detail tag)
       paren-node?
       (line paren-node-line)
       (col paren-node-col)
       (env paren-node-env)
       (detail paren-node-detail)
+      (tag paren-node-tag)
     ) ;define-record-type
+
+    (define (make-paren-node line col env detail . args)
+      (make-raw-paren-node line
+                           col
+                           env
+                           detail
+                           (if (null? args) "" (car args))
+      ) ;make-raw-paren-node
+    ) ;define
 
     ;; 对每行首个 form，优先按缩进找父环境。
     ;; 这样当上一段代码缺少右括号时，像 (else 这类回到更浅缩进的 sibling
@@ -110,6 +122,13 @@
       ) ;let
     ) ;define
 
+    (define (line-net-open-count line)
+      (let-values (((paren-counts _block-depth _in-string _escape-next)
+                    (count-parens-with-state line 0 #f #f)))
+        (- (car paren-counts) (cdr paren-counts))
+      ) ;let-values
+    ) ;define
+
     ;; 当新行的第一个 form 回到更浅或同级缩进时，
     ;; 将更深层的未闭合环境视作在上一有效行结束。
     (define (unwind-stack-before-col lines stack col line-num)
@@ -136,6 +155,15 @@
                  ;; 否则后续真实的 ) 会错误地继续向外层 env 泄漏。
                  ((not detail)
                   (loop (cdr rest) (cons node pending-raw))
+                 ) ;
+                 ;; 如果上一有效行就是当前 env 的起始行，且该行净 open 数仍为正，
+                 ;; 说明这个 env 在本行还没真正闭合，不能因为出现同级 sibling
+                 ;; 就把它提前判定为“单行 env”。
+                 ((and (= node-col col)
+                       (paren-node-env node)
+                       (= (env-lparen-line (paren-node-env node)) close-line)
+                       (> (line-net-open-count (list-ref lines (- close-line 1))) 0))
+                  (append (reverse pending-raw) rest)
                  ) ;
                  ((< node-col col)
                   (append (reverse pending-raw) rest)

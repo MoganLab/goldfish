@@ -2,7 +2,7 @@
   (import (scheme base))
   (import (liii goldfix-env))
   (import (liii goldfix-lint))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-line))
   (import (liii goldfix-paren-core))
   (import (liii list))
@@ -139,7 +139,7 @@
                 ((char-whitespace? ch)
                  (loop (+ i 1) prefixed?)
                 ) ;
-                ((and (= i col) (char=? ch LPAREN))
+                ((and (= i col) (ascii-left-paren? ch))
                  prefixed?
                 ) ;
                 ((char=? ch #\')
@@ -191,9 +191,7 @@
                         (count-parens-with-state (car remaining)
                                                  block-depth
                                                  in-string
-                                                 escape-next)
-                        ) ;count-parens-with-state
-          ) ;let-values
+                                                 escape-next)))
             (let ((lparen-count (car paren-counts))
                   (rparen-count (cdr paren-counts)))
               (if (= line-num target-line)
@@ -206,10 +204,10 @@
                 ) ;loop
               ) ;if
             ) ;let
+          ) ;let-values
         ) ;if
       ) ;let
     ) ;define
-  ) ;begin
 
     (define (env-depth env)
       (let loop ((current env) (depth 0))
@@ -230,10 +228,10 @@
                        (> close-line lparen-line)
                   ) ;and
                 ) ;let*
-      ) ;filter
+              ) 
               details
+      ) ;filter 
     ) ;define
-) ;define-library
 
     (define (sort-details-for-actual-close details)
       (merge-sort-list

@@ -6,7 +6,7 @@
 
 (define-library (liii goldfix-scheme)
   (import (scheme base))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
 
   ;; ---------- 导出接口 ----------
   (export char-identifier?)
@@ -76,8 +76,8 @@
 
     (define (char-literal-delimiter? ch)
       (or (char-whitespace? ch)
-          (char=? ch LPAREN)
-          (char=? ch RPAREN)
+          (ascii-left-paren? ch)
+          (ascii-right-paren? ch)
           (char=? ch #\")
           (char=? ch #\;)
       ) ;or
@@ -118,7 +118,7 @@
                    (loop (+ i 1))
                  ) ;if
                 ) ;
-                ((char=? ch LPAREN)
+                ((ascii-left-paren? ch)
                  i
                 ) ;
                 (else

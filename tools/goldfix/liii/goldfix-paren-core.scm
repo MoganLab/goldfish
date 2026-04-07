@@ -1,9 +1,9 @@
 (define-library (liii goldfix-paren-core)
   (import (scheme base))
   (import (liii string))
+  (import (liii ascii))
   (import (liii goldfix-env))
   (import (liii goldfix-lint))
-  (import (liii goldfix-constant))
   (import (liii goldfix-line))
   (import (liii goldfix-list))
   (import (liii list))
@@ -150,7 +150,7 @@
       (let ((line (list-ref lines line-index)))
         (let ((trimmed (string-trim line)))
           (if (or (string-null? trimmed)
-                  (not (char=? (string-ref trimmed 0) LPAREN)))
+                  (not (ascii-left-paren? (string-ref trimmed 0))))
             #f
             (let ((line-num (+ line-index 1)))
               (let loop ((remaining envs))
@@ -176,7 +176,7 @@
       (if (<= count 0)
         line
         (let ((trimmed (string-trim-right line)))
-          (string-append trimmed (make-string count RPAREN))
+          (string-append trimmed (make-string count #\)))
         ) ;let
       ) ;if
     ) ;define
@@ -284,11 +284,21 @@
       ) ;let
     ) ;define
 
-    (define (collect-rparen-line-flags envs total-lines)
+    (define (collect-rparen-line-flags envs claimed-rparen-lines total-lines)
       (let ((flags (make-vector total-lines #f)))
         (let loop ((rest envs))
           (if (null? rest)
-            flags
+            (let loop-claims ((remaining-claims claimed-rparen-lines))
+              (if (null? remaining-claims)
+                flags
+                (let ((line-num (car remaining-claims)))
+                  (when (and line-num (>= line-num 1) (<= line-num total-lines))
+                    (vector-set! flags (- line-num 1) #t)
+                  ) ;when
+                  (loop-claims (cdr remaining-claims))
+                ) ;let
+              ) ;if
+            ) ;let
             (let ((rline (env-rparen-line (car rest))))
               (when (and rline (>= rline 1) (<= rline total-lines))
                 (vector-set! flags (- rline 1) #t)
@@ -328,7 +338,7 @@
                   ((char=? ch #\;)
                    #f
                   ) ;
-                  ((char=? ch RPAREN)
+                  ((ascii-right-paren? ch)
                    #t
                   ) ;
                   (else
@@ -342,10 +352,72 @@
       ) ;if
     ) ;define
 
+    (define (would-cause-imbalance-if-removed? result line remaining-lines block-depth in-string escape-next)
+      ;; 检查删除当前行后，文件的括号是否仍然保持平衡
+      ;; 策略：计算删除后的最终平衡，如果不为0或中间出现负数，则不能删除
+      (let-values (((paren-counts _bd _is _en)
+                    (count-parens-with-state line block-depth in-string escape-next)))
+        (let ((lparen-count (car paren-counts))
+              (rparen-count (cdr paren-counts)))
+          ;; 计算已处理行的累计平衡
+          (let loop-result ((remaining-result (reverse result))
+                           (balance 0))
+            (if (null? remaining-result)
+              ;; 跳过当前行，检查剩余行
+              (let loop-remaining ((remaining-rest remaining-lines)
+                                  (current-balance balance)
+                                  (bd block-depth)
+                                  (is in-string)
+                                  (en escape-next))
+                (if (null? remaining-rest)
+                  ;; 删除当前行后的最终平衡
+                  ;; 应该等于：已处理 + 剩余 - 当前行的贡献
+                  ;; = balance + current-balance - (lparen-count - rparen-count)
+                  ;; = current-balance - lparen-count + rparen-count
+                  (let ((final-balance current-balance))
+                    ;; 如果最终平衡不为 0，说明删除会导致不平衡
+                    (not (= final-balance 0))
+                  ) ;let
+                  (let-values (((counts next-bd next-is next-en)
+                                (count-parens-with-state (car remaining-rest) bd is en)))
+                    (let ((new-balance (+ current-balance (- (car counts) (cdr counts)))))
+                      (if (< new-balance 0)
+                        ;; 中间出现负平衡，不能删除
+                        #t
+                        (loop-remaining (cdr remaining-rest)
+                                       new-balance
+                                       next-bd
+                                       next-is
+                                       next-en)
+                        ) ;if
+                    ) ;let
+                  ) ;let-values
+                ) ;if
+              ) ;let loop-remaining
+              (let-values (((counts _bd _is _en)
+                            (count-parens-with-state (car remaining-result) 0 #f #f)))
+                (let ((new-balance (+ balance (- (car counts) (cdr counts)))))
+                  (if (< new-balance 0)
+                    ;; 已处理行出现负平衡，不能删除
+                    #t
+                    (loop-result (cdr remaining-result) new-balance)
+                    ) ;if
+                ) ;let
+              ) ;let-values
+            ) ;if
+          ) ;let loop-result
+        ) ;let
+      ) ;let-values
+    ) ;define
+
     (define (remove-orphan-right-paren-lines lines envs)
       (let* ((line-count (length lines))
              (line-vec (list->vector lines))
-             (rparen-flags (collect-rparen-line-flags envs line-count)))
+             ;; env-rparen-line 只覆盖真正建了 env 的 form。
+             ;; 像 (string-map (lambda ...)) 里的 ) ;lambda 这类 raw tagged close，
+             ;; 需要额外依赖扫描阶段记录下来的显式右括号认领行。
+             (claimed-rparen-lines (scan-claimed-rparen-lines lines))
+             (rparen-flags (collect-rparen-line-flags envs claimed-rparen-lines line-count)))
         (let loop ((i 0)
                    (block-depth 0)
                    (in-string #f)
@@ -361,11 +433,26 @@
                                                      escape-next)
                             ) ;count-parens-with-state
               ) ;let-values
+                ;; 获取剩余行列表（从 i+1 到结尾）
+                (let ((remaining-lines (let loop-remaining ((idx (+ i 1)) (acc '()))
+                                         (if (>= idx line-count)
+                                           (reverse acc)
+                                           (loop-remaining (+ idx 1)
+                                                          (cons (vector-ref line-vec idx) acc))
+                                           ) ;if
+                                         ) ;let loop-remaining
+                                       )) ;remaining-lines
                 (if (and (line-starts-with-rparen-in-code? line
                                                            block-depth
                                                            in-string
                                                            escape-next)
-                         (not (vector-ref rparen-flags i)))
+                         (not (vector-ref rparen-flags i))
+                         (not (would-cause-imbalance-if-removed? result
+                                                          line
+                                                          remaining-lines
+                                                          block-depth
+                                                          in-string
+                                                          escape-next)))
                   (loop (+ i 1)
                         next-block-depth
                         next-in-string
@@ -379,6 +466,7 @@
                         (cons line result)
                   ) ;loop
                 ) ;if
+              ) ;let
             ) ;let
           ) ;if
         ) ;let

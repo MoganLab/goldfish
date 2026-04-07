@@ -8,7 +8,7 @@
   (import (scheme base))
   (import (liii error))
   (import (liii string))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-line-scan))
 
   (export line-starts-with-rparen?)
@@ -24,7 +24,7 @@
     (define (line-starts-with-rparen? line)
       (let ((trimmed (string-trim line)))
         (and (not (string-null? trimmed))
-             (char=? (string-ref trimmed 0) RPAREN)
+             (ascii-right-paren? (string-ref trimmed 0))
         ) ;and
       ) ;let
     ) ;define
@@ -36,7 +36,7 @@
     (define (line-is-formatted-right-tag? line)
       (let ((trimmed (string-trim line)))
         (and (not (string-null? trimmed))
-             (char=? (string-ref trimmed 0) RPAREN)
+             (ascii-right-paren? (string-ref trimmed 0))
              (let ((len (string-length trimmed)))
                (let loop ((i 1))
                  (cond
