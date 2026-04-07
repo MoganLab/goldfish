@@ -11,8 +11,9 @@
 
 (define r
   (http-get download-url
+            :stream #t
             :output-file output-file
-            :callback (lambda (chunk userdata)
+            :callback (lambda (chunk)
                         (set! total-bytes (+ total-bytes (string-length chunk)))
                         #t)))
 
@@ -21,8 +22,8 @@
     (lambda (port)
       (read-string 120 port))))
 
-(display "status: ")
-(write (r 'status-code))
+(display "stream-result-undefined?: ")
+(write (undefined? r))
 (newline)
 
 (display "file: ")

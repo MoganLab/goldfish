@@ -16,14 +16,13 @@
 ;;
 ;; 语法
 ;; ----
-;; (http-stream-post url callback :userdata userdata :params params
+;; (http-stream-post url callback :params params
 ;;                   :data data :headers headers :proxy proxy)
 ;;
 ;; 参数
 ;; ----
 ;; url      : string          - 请求的目标 URL
-;; callback : procedure       - 回调函数 (lambda (chunk userdata) ...)
-;; userdata : any (可选)      - 传递给回调的用户数据
+;; callback : procedure       - 回调函数 (lambda (chunk) ...)
 ;; params   : alist (可选)    - 查询参数列表
 ;; data     : string (可选)   - 请求体数据
 ;; headers  : alist (可选)    - 请求头列表
@@ -40,7 +39,7 @@
 ;; 测试流式 POST 与 JSON 数据
 (let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
-                   (lambda (chunk userdata)
+                   (lambda (chunk)
                      (when (> (string-length chunk) 0)
                        (set! collected (cons chunk collected))
                      ) ;when
@@ -58,7 +57,7 @@
 ;; 测试流式 POST 与纯文本
 (let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
-                   (lambda (chunk userdata)
+                   (lambda (chunk)
                      (when (> (string-length chunk) 0)
                        (set! collected (cons chunk collected))
                      ) ;when
@@ -74,7 +73,7 @@
 ;; 测试流式 POST 与 XML 数据
 (let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
-                   (lambda (chunk userdata)
+                   (lambda (chunk)
                      (when (> (string-length chunk) 0)
                        (set! collected (cons chunk collected))
                      ) ;when
@@ -91,7 +90,7 @@
 ;; 测试流式 POST 与表单数据
 (let ((collected '()))
   (http-stream-post "https://httpbin.org/post"
-                   (lambda (chunk userdata)
+                   (lambda (chunk)
                      (when (> (string-length chunk) 0)
                        (set! collected (cons chunk collected))
                      ) ;when

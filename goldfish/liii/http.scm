@@ -227,16 +227,59 @@
 ) ;define*
 
 (define* (http-get url (params '()) (headers '()) (proxy '())
-                   (output-file #f) (callback #f) (userdata '()))
+                   (output-file #f) (stream #f) (callback #f))
   (let* ((url (http-require-string "http-get" "url" url))
          (params (http-normalize-string-alist "http-get" "params" params))
          (headers (http-normalize-string-alist "http-get" "headers" headers))
          (proxy (http-normalize-string-alist "http-get" "proxy" proxy))
          (output-file (http-optional-string "http-get" "output-file" output-file))
+         (stream (http-require-boolean "http-get" "stream" stream))
          (callback (http-optional-procedure "http-get" "callback" callback)))
-    (let ((r (g_http-get url params headers proxy output-file callback userdata)))
-        r
-    ) ;let
+    (cond ((not stream)
+           (g_http-get url params headers proxy)
+          )
+          ((not (null? headers))
+           (value-error "http-get: stream mode does not support headers")
+          )
+          ((and (not output-file) (not callback))
+           (value-error "http-get: stream mode requires output-file or callback")
+          )
+          (else
+            (let ((stream-callback
+                    (lambda (chunk)
+                      (if callback
+                        (let ((ret (callback chunk)))
+                          (if (boolean? ret) ret #t)
+                        ) ;let
+                        #t
+                      ) ;if
+                    ) ;lambda
+                  ))
+              (if output-file
+                (let ((port (open-binary-output-file output-file)))
+                  (dynamic-wind
+                    (lambda () #f)
+                    (lambda ()
+                      (http-stream-get
+                        url
+                        (lambda (chunk)
+                          (write-string chunk port)
+                          (stream-callback chunk)
+                        ) ;lambda
+                        :params params
+                        :proxy proxy
+                      ) ;http-stream-get
+                    ) ;lambda
+                    (lambda ()
+                      (close-port port)
+                    ) ;lambda
+                  ) ;dynamic-wind
+                ) ;let
+                (http-stream-get url stream-callback :params params :proxy proxy)
+              ) ;if
+            ) ;let
+          ) ;else
+    ) ;cond
   ) ;let*
 ) ;define*
 
@@ -270,16 +313,24 @@
 
 ;; Streaming API wrapper functions
 
-(define* (http-stream-get url callback (userdata '()) (params '()) (proxy '()))
+(define* (http-stream-get url callback (params '()) (proxy '()))
   (let ((url (http-require-string "http-stream-get" "url" url))
         (callback (http-require-procedure "http-stream-get" "callback" callback))
         (params (http-normalize-string-alist "http-stream-get" "params" params))
         (proxy (http-normalize-string-alist "http-stream-get" "proxy" proxy)))
-    (g_http-stream-get url params proxy userdata callback)
+    (g_http-stream-get
+      url
+      params
+      proxy
+      #f
+      (lambda (chunk userdata)
+        (callback chunk)
+      ) ;lambda
+    ) ;g_http-stream-get
   ) ;let
 ) ;define*
 
-(define* (http-stream-post url callback (userdata '()) (params '()) (data "") (headers '()) (proxy '()))
+(define* (http-stream-post url callback (params '()) (data "") (headers '()) (proxy '()))
   (let* ((url (http-require-string "http-stream-post" "url" url))
          (callback (http-require-procedure "http-stream-post" "callback" callback))
          (params (http-normalize-string-alist "http-stream-post" "params" params))
@@ -287,8 +338,31 @@
          (headers (http-normalize-string-alist "http-stream-post" "headers" headers))
          (proxy (http-normalize-string-alist "http-stream-post" "proxy" proxy)))
     (cond ((and (> (string-length data) 0) (null? headers))
-           (g_http-stream-post url params data '(("Content-Type" . "text/plain")) proxy userdata callback))
-          (else (g_http-stream-post url params data headers proxy userdata callback))
+           (g_http-stream-post
+             url
+             params
+             data
+             '(("Content-Type" . "text/plain"))
+             proxy
+             #f
+             (lambda (chunk userdata)
+               (callback chunk)
+             ) ;lambda
+           ) ;g_http-stream-post
+          )
+          (else
+            (g_http-stream-post
+              url
+              params
+              data
+              headers
+              proxy
+              #f
+              (lambda (chunk userdata)
+                (callback chunk)
+              ) ;lambda
+            ) ;g_http-stream-post
+          )
     ) ;cond
   ) ;let*
 ) ;define*

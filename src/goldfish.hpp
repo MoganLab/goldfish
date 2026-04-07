@@ -1666,14 +1666,9 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   s7_pointer params= s7_cadr (args);
   s7_pointer headers= s7_caddr (args);
   s7_pointer proxy= s7_cadddr (args);
-  s7_pointer output_file = s7_car (s7_cddddr (args));
-  s7_pointer callback = s7_cadr (s7_cddddr (args));
-  s7_pointer userdata = s7_list_ref (sc, args, 6);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header cpr_headers = to_cpr_headers (sc, headers);
   cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-  const bool has_output_file = s7_is_string (output_file);
-  const bool has_callback = s7_is_procedure (callback);
 
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
@@ -1683,63 +1678,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     session.SetProxies(cpr_proxies);
   }
 
-  if (!has_output_file && !has_callback) {
-    return response2hashtable (sc, session.Get ());
-  }
-
-  std::ofstream output_stream;
-  bool write_failed = false;
-  if (has_output_file) {
-    output_stream.open (s7_string (output_file), std::ios::binary | std::ios::trunc);
-    if (!output_stream.is_open ()) {
-      return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                       s7_list (sc, 2,
-                                s7_make_string (sc, "http-get: unable to open output file"),
-                                output_file));
-    }
-  }
-
-  int callback_gc_loc = -1;
-  int userdata_gc_loc = -1;
-  if (has_callback) {
-    callback_gc_loc = s7_gc_protect (sc, callback);
-    userdata_gc_loc = s7_gc_protect (sc, userdata);
-  }
-
-  cpr::Response r = session.Download (cpr::WriteCallback {[&](const std::string_view& data, intptr_t) -> bool {
-    if (has_output_file) {
-      output_stream.write (data.data (), static_cast<std::streamsize> (data.size ()));
-      if (!output_stream.good ()) {
-        write_failed = true;
-        return false;
-      }
-    }
-
-    if (has_callback) {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), static_cast<s7_int> (data.length ()));
-      s7_pointer callback_args = s7_cons (sc, data_str, s7_cons (sc, userdata, s7_nil (sc)));
-      s7_pointer ret = s7_call (sc, callback, callback_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
-      }
-    }
-
-    return true;
-  }});
-
-  if (callback_gc_loc != -1) s7_gc_unprotect_at (sc, callback_gc_loc);
-  if (userdata_gc_loc != -1) s7_gc_unprotect_at (sc, userdata_gc_loc);
-
-  if (has_output_file) {
-    output_stream.close ();
-    if (write_failed) {
-      return s7_error (sc, s7_make_symbol (sc, "os-error"),
-                       s7_list (sc, 2,
-                                s7_make_string (sc, "http-get: failed to write output file"),
-                                output_file));
-    }
-  }
-
+  cpr::Response r= session.Get ();
   return response2hashtable (sc, r);
 }
 
@@ -1747,8 +1686,8 @@ inline void
 glue_http_get (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
   const char* s_http_get= "g_http-get";
-  const char* d_http_get= "(g_http-get url params headers proxy output-file callback userdata) => hash-table?";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 7, 0, false, d_http_get, NULL);
+  const char* d_http_get= "(g_http-get url params headers proxy) => hash-table?";
+  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 4, 0, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -1813,7 +1752,10 @@ f_http_stream_get (s7_scheme* sc, s7_pointer args) {
   }
 
   session.SetWriteCallback(cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t cpr_userdata) -> bool {
+    // Retrieve userdata from intptr_t
     s7_pointer userdata_ptr = (s7_pointer)cpr_userdata;
+
+    // Call the scheme callback inline
     s7_pointer data_str = s7_make_string_with_length(sc, data.data(), data.length());
     s7_pointer args = s7_cons(sc, data_str, s7_cons(sc, userdata_ptr, s7_nil(sc)));
 
@@ -1821,7 +1763,8 @@ f_http_stream_get (s7_scheme* sc, s7_pointer args) {
     if (s7_is_boolean(ret)) {
       return s7_boolean(sc, ret);
     }
-    return true;
+
+    return true; // Continue receiving
   }, reinterpret_cast<intptr_t>(userdata)});
 
   try {
@@ -1867,8 +1810,15 @@ f_http_stream_post (s7_scheme* sc, s7_pointer args) {
     session.SetProxies (cpr_proxies);
   }
 
+
+  // Store userdata in s7 managed memory to prevent GC
+  s7_pointer userdata_loc = s7_make_c_pointer(sc, (void*)userdata);
+
   session.SetWriteCallback(cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t cpr_userdata) -> bool {
+    // Retrieve userdata from intptr_t
     s7_pointer userdata_ptr = (s7_pointer)cpr_userdata;
+
+    // Call the scheme callback inline
     s7_pointer data_str = s7_make_string_with_length(sc, data.data(), data.length());
     s7_pointer args = s7_cons(sc, data_str, s7_cons(sc, userdata_ptr, s7_nil(sc)));
 
@@ -1876,7 +1826,8 @@ f_http_stream_post (s7_scheme* sc, s7_pointer args) {
     if (s7_is_boolean(ret)) {
       return s7_boolean(sc, ret);
     }
-    return true;
+
+    return true; // Continue receiving
   }, reinterpret_cast<intptr_t>(userdata)});
 
   try {
