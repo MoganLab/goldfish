@@ -2,15 +2,11 @@
         (liii http)
         (liii string)
         (liii json)
-        (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
-) ;let
+
 
 ;; http-post
 ;; 发送 HTTP POST 请求，返回响应对象。
@@ -52,6 +48,8 @@
 ;;    - files 用作文件字段
 ;; 3. 文件上传由 http-post 本身处理，不再提供单独的 multipart POST API
 ;; 4. 当 data 非空且未指定 headers 时，默认 Content-Type 为 text/plain。
+
+(define simpletex-api-key "你的api-key")
 
 ;; 带查询参数的 POST 请求
 (let ((r (http-post "https://httpbin.org/post"
@@ -103,5 +101,22 @@
   (http-post "https://httpbin.org/post"
     :files '(("upload" . ((filename . "fixture.txt")))))
 ) ;check-catch
+
+;; 直接调用 SimpleTex 官方公式识别接口
+(if (or (= (string-length simpletex-api-key) 0)
+        (string=? simpletex-api-key "你的api-key"))
+    (display "SKIP SimpleTex OCR integration: fill simpletex-api-key in this test file to enable live API assertions.\n")
+    (let* ((r (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
+                :headers `(("token" . ,simpletex-api-key))
+                :files '(("file" . ((file . "tests/resources/simpletex-formula-a2-b2.png")
+                                    (filename . "simpletex-formula-a2-b2.png")
+                                    (content-type . "image/png"))))))
+           (json (string->json (r 'text))))
+      (check (r 'status-code) => 200)
+      (check (json-ref json "status") => #t)
+      (check-true (string? (json-ref json "res" "latex")))
+      (check-true (> (string-length (json-ref json "res" "latex")) 0))
+    ) ;let*
+) ;if
 
 (check-report)
