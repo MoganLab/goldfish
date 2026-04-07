@@ -31,9 +31,6 @@
 ;; (http-async-get "https://api.example.com/2" callback)
 ;; (http-wait-all 30)  ; 等待所有请求完成，超时30秒
 
-;; 示例5：第三方 API 集成测试
-;;   tests/liii/http/http-multipart-post-test.scm
-;;   该文件也包含如何用 http-multipart-post 调用 SimpleTex 公式识别接口的示例。
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/http "function-name"
