@@ -1666,6 +1666,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   s7_pointer params= s7_cadr (args);
   s7_pointer headers= s7_caddr (args);
   s7_pointer proxy= s7_cadddr (args);
+  s7_pointer callback= s7_car (s7_cddddr (args));
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header cpr_headers = to_cpr_headers (sc, headers);
   cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
@@ -1678,6 +1679,27 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
     session.SetProxies(cpr_proxies);
   }
 
+  if (s7_is_procedure (callback)) {
+    session.SetWriteCallback (cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t) -> bool {
+      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
+      s7_pointer call_args = s7_cons (sc, data_str, s7_nil (sc));
+
+      s7_pointer ret = s7_call (sc, callback, call_args);
+      if (s7_is_boolean (ret)) {
+        return s7_boolean (sc, ret);
+      }
+
+      return true;
+    }});
+
+    try {
+      cpr::Response response = session.Get ();
+    } catch (const std::exception& e) {
+      return s7_make_integer (sc, 500);
+    }
+    return s7_undefined (sc);
+  }
+
   cpr::Response r= session.Get ();
   return response2hashtable (sc, r);
 }
@@ -1686,8 +1708,8 @@ inline void
 glue_http_get (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
   const char* s_http_get= "g_http-get";
-  const char* d_http_get= "(g_http-get url params headers proxy) => hash-table?";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 4, 0, false, d_http_get, NULL);
+  const char* d_http_get= "(g_http-get url params headers proxy callback) => hash-table? | undefined";
+  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 0, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -1731,57 +1753,6 @@ glue_http_post (s7_scheme* sc) {
   const char* doc= "(g_http-post url params body-or-data headers proxy files) => hash-table?";
   auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 6, 0, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
-}
-
-static s7_pointer
-f_http_stream_get (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string (s7_car (args));
-  s7_pointer params = s7_cadr (args);
-  s7_pointer proxy = s7_caddr (args);
-  s7_pointer userdata = s7_cadddr (args);
-  s7_pointer callback = s7_car(s7_cddddr(args));
-
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session.SetProxies (cpr_proxies);
-  }
-
-  session.SetWriteCallback(cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t cpr_userdata) -> bool {
-    // Retrieve userdata from intptr_t
-    s7_pointer userdata_ptr = (s7_pointer)cpr_userdata;
-
-    // Call the scheme callback inline
-    s7_pointer data_str = s7_make_string_with_length(sc, data.data(), data.length());
-    s7_pointer args = s7_cons(sc, data_str, s7_cons(sc, userdata_ptr, s7_nil(sc)));
-
-    s7_pointer ret = s7_call(sc, callback, args);
-    if (s7_is_boolean(ret)) {
-      return s7_boolean(sc, ret);
-    }
-
-    return true; // Continue receiving
-  }, reinterpret_cast<intptr_t>(userdata)});
-
-  try {
-    cpr::Response response = session.Get();
-  } catch (const std::exception& e) {
-    return s7_make_integer(sc, 500); // Error case
-  }
-  return s7_undefined(sc);
-}
-
-inline void
-glue_http_stream_get (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-  const char* s_stream_get = "g_http-stream-get";
-  const char* d_stream_get = "(g_http-stream-get url params proxy userdata callback) => undefined";
-  auto func_stream_get = s7_make_typed_function (sc, s_stream_get, f_http_stream_get, 5, 0, false, d_stream_get, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_stream_get), func_stream_get);
 }
 
 static s7_pointer
@@ -1857,7 +1828,6 @@ glue_http (s7_scheme* sc) {
 
 inline void
 glue_http_stream (s7_scheme* sc) {
-  glue_http_stream_get(sc);
   glue_http_stream_post(sc);
 }
 

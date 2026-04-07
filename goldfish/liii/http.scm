@@ -9,7 +9,7 @@
         (liii error)
 ) ;import
 (export http-head http-get http-post http-ok?
-        http-stream-get http-stream-post
+        http-stream-post
         http-async-get http-async-post http-async-head http-poll http-wait-all
 ) ;export
 (begin
@@ -236,10 +236,7 @@
          (stream (http-require-boolean "http-get" "stream" stream))
          (callback (http-optional-procedure "http-get" "callback" callback)))
     (cond ((not stream)
-           (g_http-get url params headers proxy)
-          )
-          ((not (null? headers))
-           (value-error "http-get: stream mode does not support headers")
+           (g_http-get url params headers proxy #f)
           )
           ((and (not output-file) (not callback))
            (value-error "http-get: stream mode requires output-file or callback")
@@ -260,22 +257,23 @@
                   (dynamic-wind
                     (lambda () #f)
                     (lambda ()
-                      (http-stream-get
+                      (g_http-get
                         url
+                        params
+                        headers
+                        proxy
                         (lambda (chunk)
                           (write-string chunk port)
                           (stream-callback chunk)
                         ) ;lambda
-                        :params params
-                        :proxy proxy
-                      ) ;http-stream-get
+                      ) ;g_http-get
                     ) ;lambda
                     (lambda ()
                       (close-port port)
                     ) ;lambda
                   ) ;dynamic-wind
                 ) ;let
-                (http-stream-get url stream-callback :params params :proxy proxy)
+                (g_http-get url params headers proxy stream-callback)
               ) ;if
             ) ;let
           ) ;else
@@ -312,23 +310,6 @@
 ) ;define*
 
 ;; Streaming API wrapper functions
-
-(define* (http-stream-get url callback (params '()) (proxy '()))
-  (let ((url (http-require-string "http-stream-get" "url" url))
-        (callback (http-require-procedure "http-stream-get" "callback" callback))
-        (params (http-normalize-string-alist "http-stream-get" "params" params))
-        (proxy (http-normalize-string-alist "http-stream-get" "proxy" proxy)))
-    (g_http-stream-get
-      url
-      params
-      proxy
-      #f
-      (lambda (chunk userdata)
-        (callback chunk)
-      ) ;lambda
-    ) ;g_http-stream-get
-  ) ;let
-) ;define*
 
 (define* (http-stream-post url callback (params '()) (data "") (headers '()) (proxy '()))
   (let* ((url (http-require-string "http-stream-post" "url" url))

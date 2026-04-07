@@ -47,7 +47,7 @@
 ;; headers : alist (可选)    - 请求头列表
 ;; proxy      : alist (可选)    - 代理配置
 ;; output-file: string (可选)   - stream 模式下将响应体按 chunk 写入本地文件
-;; stream     : boolean (可选)  - 启用基于 http-stream-get 的简单流式模式
+;; stream     : boolean (可选)  - 启用简单流式模式
 ;; callback   : procedure (可选)- 按 chunk 处理响应体 (lambda (chunk) ...)
 ;;
 ;; 返回值
@@ -58,8 +58,8 @@
 ;; 描述
 ;; ----
 ;; GET 请求用于从服务器获取资源。查询参数会自动编码并附加到 URL。
-;; 当 :stream 为 #t 时，会在 Scheme 层通过 http-stream-get 处理响应体。
-;; 这个简单流式模式不再返回 response-object，也不支持 headers。
+;; 当 :stream 为 #t 时，会在 Scheme 层按 chunk 处理响应体。
+;; 这个简单流式模式不再返回 response-object。
 
 ;; 基本 GET 请求
 (let ((r (http-get "https://httpbin.org")))
@@ -92,6 +92,27 @@
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
       (check-true (string-contains body "stream"))
+    ) ;let
+  ) ;let
+) ;let
+
+;; 通过 :stream #t + :headers 流式处理响应体
+(let ((collected '()))
+  (let ((r (http-get "https://httpbin.org/headers"
+                     :stream #t
+                     :headers '(("X-Goldfish-Test" . "stream-get"))
+                     :callback (lambda (chunk)
+                                 (when (> (string-length chunk) 0)
+                                   (set! collected (cons chunk collected))
+                                 ) ;when
+                                 #t
+                               ) ;lambda
+           )))
+    (check-true (undefined? r))
+    (check-true (> (length collected) 0))
+    (let ((body (string-join (reverse collected) "")))
+      (check-true (string-contains body "X-Goldfish-Test"))
+      (check-true (string-contains body "stream-get"))
     ) ;let
   ) ;let
 ) ;let

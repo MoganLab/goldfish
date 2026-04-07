@@ -1,7 +1,7 @@
 ;; (liii http) 模块函数分类索引
 ;;
 ;; liii http 提供同步、流式和异步三种 HTTP 客户端 API，基于 cpr 库实现。
-;; 支持 GET/POST/HEAD 请求；其中 http-get 在 :stream #t 时可通过 http-stream-get 做简单流式下载，
+;; 支持 GET/POST/HEAD 请求；其中 http-get 在 :stream #t 时可做简单流式下载，
 ;; http-post 支持通过 :files 上传文件。
 
 ;; ==== 常见用法示例 ====
@@ -59,7 +59,6 @@
 ;;   http-ok?     - 检查响应是否成功（2xx状态码）
 ;;
 ;; 三、流式 HTTP 请求
-;;   http-stream-get   - 流式 GET，通过回调处理数据块
 ;;   http-stream-post  - 流式 POST，通过回调处理数据块
 ;;
 ;; 四、异步 HTTP 请求
