@@ -12,25 +12,32 @@ on:
       - '*'
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    container: debian:bookworm
+    env:
+      XMAKE_ROOT: y
+      DEBIAN_FRONTEND: noninteractive
     strategy:
       fail-fast: true
 
     steps:
+    - name: Install Dependencies
+      run: |
+        apt-get update
+        apt-get install -y \
+          git \
+          curl \
+          7zip \
+          unzip \
+          ca-certificates \
+          build-essential \
+          devscripts \
+          debhelper
+
     - name: Checkout
       uses: actions/checkout@v4
       with:
         fetch-depth: 1
-
-    - name: Install Dependencies
-      run: |
-        sudo add-apt-repository ppa:xmake-io/xmake
-        sudo apt update
-        sudo apt install -y git \
-          curl 7zip unzip curl \
-          gcc g++ \
-          devscripts debhelper build-essential \
-          xmake # xmake must be installed by apt (dpkg)
 
     - name: git add safe directory
       run: git config --global --add safe.directory '*'
@@ -60,6 +67,12 @@ jobs:
 
     - name: set XMAKE_GLOBALDIR
       run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v2.9.9
+        actions-cache-folder: '.xmake-cache'
 
     - name: xmake repo --update
       run: xmake repo --update
