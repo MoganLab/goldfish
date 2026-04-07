@@ -5,12 +5,12 @@
         (scheme file)
 ) ;import
 
-(check-set-mode! 'report-failed)
-
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
   (when (not env) (exit 0))
 ) ;let
+
+(check-set-mode! 'report-failed)
 
 (define (binary-file-size path)
   (let ((port (open-binary-input-file path)))
