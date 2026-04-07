@@ -7,9 +7,9 @@
 (import (liii hash-table)
         (liii alist)
         (liii error)
+        (scheme file)
 ) ;import
 (export http-head http-get http-post http-ok?
-        http-stream-post
         http-async-get http-async-post http-async-head http-poll http-wait-all
 ) ;export
 (begin
@@ -281,70 +281,76 @@
   ) ;let*
 ) ;define*
 
-(define* (http-post url (params '()) (data "") (headers '()) (proxy '()) (files '()))
+(define* (http-post url (params '()) (data "") (headers '()) (proxy '()) (files '())
+                    (output-file #f) (stream #f) (callback #f))
   (let* ((url (http-require-string "http-post" "url" url))
          (params (http-normalize-string-alist "http-post" "params" params))
          (headers (http-normalize-string-alist "http-post" "headers" headers))
          (proxy (http-normalize-string-alist "http-post" "proxy" proxy))
-         (files (http-normalize-files "http-post" files)))
-    (cond ((null? files)
-           (let ((data (http-require-string "http-post" "data" data)))
-             (cond ((and (> (string-length data) 0) (null? headers))
-                    (g_http-post url params data '(("Content-Type" . "text/plain")) proxy '()))
-                   (else (g_http-post url params data headers proxy '()))
-             ) ;cond
-           ) ;let
-          )
-          (else
-            (g_http-post
-              url
-              params
-              (http-normalize-post-form-data "http-post" data)
-              headers
-              proxy
-              files
-            ) ;g_http-post
-          ) ;else
-    ) ;cond
-  ) ;cond
-) ;define*
-
-;; Streaming API wrapper functions
-
-(define* (http-stream-post url callback (params '()) (data "") (headers '()) (proxy '()))
-  (let* ((url (http-require-string "http-stream-post" "url" url))
-         (callback (http-require-procedure "http-stream-post" "callback" callback))
-         (params (http-normalize-string-alist "http-stream-post" "params" params))
-         (data (http-require-string "http-stream-post" "data" data))
-         (headers (http-normalize-string-alist "http-stream-post" "headers" headers))
-         (proxy (http-normalize-string-alist "http-stream-post" "proxy" proxy)))
-    (cond ((and (> (string-length data) 0) (null? headers))
-           (g_http-stream-post
-             url
-             params
-             data
-             '(("Content-Type" . "text/plain"))
-             proxy
-             #f
-             (lambda (chunk userdata)
-               (callback chunk)
-             ) ;lambda
-           ) ;g_http-stream-post
-          )
-          (else
-            (g_http-stream-post
-              url
-              params
-              data
-              headers
-              proxy
-              #f
-              (lambda (chunk userdata)
-                (callback chunk)
-              ) ;lambda
-            ) ;g_http-stream-post
-          )
-    ) ;cond
+         (files (http-normalize-files "http-post" files))
+         (output-file (http-optional-string "http-post" "output-file" output-file))
+         (stream (http-require-boolean "http-post" "stream" stream))
+         (callback (http-optional-procedure "http-post" "callback" callback)))
+    (let* ((body-or-data
+             (if (null? files)
+               (http-require-string "http-post" "data" data)
+               (http-normalize-post-form-data "http-post" data)
+             ) ;if
+           )
+           (headers
+             (if (and (null? files)
+                      (> (string-length body-or-data) 0)
+                      (null? headers))
+               '(("Content-Type" . "text/plain"))
+               headers
+             ) ;if
+           ))
+      (cond ((not stream)
+             (g_http-post url params body-or-data headers proxy files #f)
+            )
+            ((and (not output-file) (not callback))
+             (value-error "http-post: stream mode requires output-file or callback")
+            )
+            (else
+              (let ((stream-callback
+                      (lambda (chunk)
+                        (if callback
+                          (let ((ret (callback chunk)))
+                            (if (boolean? ret) ret #t)
+                          ) ;let
+                          #t
+                        ) ;if
+                      ) ;lambda
+                    ))
+                (if output-file
+                  (let ((port (open-binary-output-file output-file)))
+                    (dynamic-wind
+                      (lambda () #f)
+                      (lambda ()
+                        (g_http-post
+                          url
+                          params
+                          body-or-data
+                          headers
+                          proxy
+                          files
+                          (lambda (chunk)
+                            (write-string chunk port)
+                            (stream-callback chunk)
+                          ) ;lambda
+                        ) ;g_http-post
+                      ) ;lambda
+                      (lambda ()
+                        (close-port port)
+                      ) ;lambda
+                    ) ;dynamic-wind
+                  ) ;let
+                  (g_http-post url params body-or-data headers proxy files stream-callback)
+                ) ;if
+              ) ;let
+            ) ;else
+      ) ;cond
+    ) ;let*
   ) ;let*
 ) ;define*
 
