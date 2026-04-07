@@ -1,7 +1,8 @@
 ;; (liii http) 模块函数分类索引
 ;;
 ;; liii http 提供同步、流式和异步三种 HTTP 客户端 API，基于 cpr 库实现。
-;; 支持 GET/POST/HEAD 请求；其中 http-post 支持通过 :files 上传文件。
+;; 支持 GET/POST/HEAD 请求；其中 http-get 在 :stream #t 时可做简单流式下载，
+;; http-post 支持通过 :files 上传文件。
 
 ;; ==== 常见用法示例 ====
 (import (liii http)
@@ -12,6 +13,18 @@
 ;; (let ((r (http-get "https://api.example.com/data")))
 ;;   (display (r 'status-code))  ; 200
 ;;   (display (r 'text)))         ; 响应体
+
+;; 示例1.1：直接下载到本地文件
+;; (http-get "https://example.com/archive.tar.gz"
+;;           :stream #t
+;;           :output-file "/tmp/archive.tar.gz")
+
+;; 示例1.2：通过 :callback 按 chunk 处理下载内容
+;; (http-get "https://example.com/events"
+;;           :stream #t
+;;           :callback (lambda (chunk)
+;;                       (display chunk)
+;;                       #t))
 
 ;; 示例2：带查询参数的 POST 请求
 ;; (http-post "https://api.example.com/submit"
@@ -39,14 +52,13 @@
 ;;
 ;; 一、同步 HTTP 请求
 ;;   http-head            - 发送 HEAD 请求，获取响应头
-;;   http-get             - 发送 GET 请求
+;;   http-get             - 发送 GET 请求；:stream #t 时也支持简单流式下载
 ;;   http-post            - 发送 POST 请求，也支持通过 :files 上传文件
 ;;
 ;; 二、响应处理
 ;;   http-ok?     - 检查响应是否成功（2xx状态码）
 ;;
 ;; 三、流式 HTTP 请求
-;;   http-stream-get   - 流式 GET，通过回调处理数据块
 ;;   http-stream-post  - 流式 POST，通过回调处理数据块
 ;;
 ;; 四、异步 HTTP 请求
