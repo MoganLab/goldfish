@@ -7,7 +7,7 @@
 (import (liii hash-table)
         (liii alist)
 ) ;import
-(export http-head http-get http-post http-ok?
+(export http-head http-get http-post http-multipart-post http-ok?
         http-stream-get http-stream-post
         http-async-get http-async-post http-async-head http-poll http-wait-all
 ) ;export
@@ -61,6 +61,22 @@
          (g_http-post url params data '(("Content-Type" . "text/plain")) proxy))
         (else (g_http-post url params data headers proxy))
   ) ;cond
+) ;define*
+
+(define* (http-multipart-post url parts (params '()) (headers '()) (proxy '()))
+  (when (not (list? parts))
+    (type-error parts "is not a list")
+  ) ;when
+  (when (not (alist? params))
+    (type-error params "is not a association list")
+  ) ;when
+  (when (not (alist? headers))
+    (type-error headers "is not a association list")
+  ) ;when
+  (when (not (alist? proxy))
+    (type-error proxy "is not a association list")
+  ) ;when
+  (g_http-multipart-post url parts params headers proxy)
 ) ;define*
 
 ;; Streaming API wrapper functions
@@ -148,4 +164,3 @@
 
 ) ;begin
 ) ;define-library
-
