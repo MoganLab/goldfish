@@ -23,6 +23,7 @@ jobs:
     steps:
     - name: Install Dependencies
       run: |
+        echo 'deb http://deb.debian.org/debian bookworm-backports main' > /etc/apt/sources.list.d/backports.list
         apt-get update
         apt-get install -y \
           git \
@@ -33,6 +34,7 @@ jobs:
           build-essential \
           devscripts \
           debhelper
+        apt-get install -y -t bookworm-backports xmake
 
     - name: Checkout
       uses: actions/checkout@v4
@@ -68,11 +70,6 @@ jobs:
     - name: set XMAKE_GLOBALDIR
       run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
 
-    - name: Setup xmake
-      uses: xmake-io/github-action-setup-xmake@v1
-      with:
-        xmake-version: v2.9.9
-        actions-cache-folder: '.xmake-cache'
 
     - name: xmake repo --update
       run: xmake repo --update
