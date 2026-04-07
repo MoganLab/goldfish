@@ -56,6 +56,11 @@
 
 (define simpletex-api-key "你的api-key")
 
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env) (exit 0))
+) ;let
+
 ;; 带查询参数的 POST 请求
 (let ((r (http-post "https://httpbin.org/post"
                    :params '(("key1" . "value1") ("key2" . "value2")))))

@@ -7,6 +7,11 @@
 
 (check-set-mode! 'report-failed)
 
+;; 环境检查
+(let ((env (getenv "GOLDFISH_TEST_HTTP")))
+  (when (not env) (exit 0))
+) ;let
+
 (define (binary-file-size path)
   (let ((port (open-binary-input-file path)))
     (dynamic-wind
@@ -27,10 +32,7 @@
   ) ;let
 ) ;define
 
-;; 环境检查
-(let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
-) ;let
+
 
 ;; http-get
 ;; 发送 HTTP GET 请求，返回响应对象。
