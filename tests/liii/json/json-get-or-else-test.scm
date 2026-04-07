@@ -41,7 +41,7 @@
 (define bob-j
   '((bob . ((age . 18)
             (sex . male)
-            (name . "Bob")))) ;define
+            (name . "Bob"))))
 ) ;define
 
 (check (json-get-or-else 'null bob-j) => bob-j)

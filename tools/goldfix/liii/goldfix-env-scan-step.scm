@@ -1,7 +1,7 @@
 ;;; Goldfix Env Scan Step 模块
 ;;; Environment 扫描分发逻辑
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-env-scan-step)

@@ -76,7 +76,7 @@
                          (filter (lambda (detail)
                                    (detail-needs-structural-insert? detail current-lines details))
                                  details
-                         ) ;filter     
+                         ) ;filter
                        )))
         (let loop ((remaining to-insert) (updated-lines current-lines))
           (if (null? remaining)

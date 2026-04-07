@@ -1,7 +1,7 @@
 ;;; Goldfix Comment 模块
 ;;; 注释/字符串相关的行级辅助函数
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-comment)

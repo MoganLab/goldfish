@@ -1,7 +1,7 @@
 ;;; Goldfix Env Tag 模块
 ;;; 标签提取与右标记文本生成
 ;;;
-;;; Copyright (c) 2024 Liii Network
+;;; Copyright (c) 2026 Liii Network
 ;;; All Rights Reserved
 
 (define-library (liii goldfix-env-tag)

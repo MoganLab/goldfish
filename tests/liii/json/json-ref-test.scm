@@ -43,7 +43,7 @@
 (define bob-j
   '((bob . ((age . 18)
             (sex . male)
-            (name . "Bob")))) ;define
+            (name . "Bob"))))
 ) ;define
 
 (check (json-ref bob-j 'bob 'age) => 18)
