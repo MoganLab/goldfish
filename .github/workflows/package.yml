@@ -99,7 +99,7 @@ jobs:
     - name: Config and Build
       run: |
         sed -i 's|"deb", "rpm", "srpm"|"deb"|g' xmake.lua
-        sed -i '/set_formats("deb", "rpm", "srpm")/a\        set_specfile(".tmp/xpack-deb-template/debian")' xmake.lua
+        sed -i '/set_formats("deb")/a\        set_specfile(".tmp/xpack-deb-template/debian")' xmake.lua
         sed -i 's|set_default(false) -- repl-anchor|set_default(true)|g' xmake.lua
         xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true
         xmake build goldfish
