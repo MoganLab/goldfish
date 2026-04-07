@@ -44,6 +44,11 @@
     :headers '(("token" . #f)))
 ) ;check-catch
 
+(check-catch 'value-error
+  (http-multipart-post "https://httpbin.org/post"
+    '(((file . "tests/resources/http-upload.txt"))))
+) ;check-catch
+
 (let* ((r (http-multipart-post "https://httpbin.org/post"
             '(((name . "meta") (value . "multipart-value"))
               ((name . "upload")
