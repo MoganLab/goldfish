@@ -227,17 +227,13 @@
 ) ;define*
 
 (define* (http-get url (params '()) (headers '()) (proxy '())
-                   (output-file #f) (stream #f) (callback #f) (userdata '()))
+                   (output-file #f) (callback #f) (userdata '()))
   (let* ((url (http-require-string "http-get" "url" url))
          (params (http-normalize-string-alist "http-get" "params" params))
          (headers (http-normalize-string-alist "http-get" "headers" headers))
          (proxy (http-normalize-string-alist "http-get" "proxy" proxy))
          (output-file (http-optional-string "http-get" "output-file" output-file))
-         (stream (http-require-boolean "http-get" "stream" stream))
          (callback (http-optional-procedure "http-get" "callback" callback)))
-    (when (and stream (not output-file) (not callback))
-      (value-error "http-get: stream requires callback or output-file")
-    ) ;when
     (let ((r (g_http-get url params headers proxy output-file callback userdata)))
         r
     ) ;let
