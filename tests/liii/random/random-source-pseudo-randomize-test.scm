@@ -42,8 +42,8 @@
   (let ((state1 (random-source-state-ref s1))
         (state2 (random-source-state-ref s2)))
     (check (equal? state1 state2) => #t)
-  )
-)
+  ) ;let
+) ;let
 
 ; 不同索引产生不同状态
 (let ((s (make-random-source)))
@@ -52,9 +52,9 @@
     (random-source-pseudo-randomize! s 1 2)
     (let ((state2 (random-source-state-ref s)))
       (check (not (equal? state1 state2)) => #t)
-    )
-  )
-)
+    ) ;let
+  ) ;let
+) ;let
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-source-pseudo-randomize! 'not-a-source 0 0))
@@ -64,6 +64,6 @@
   (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 0 -1))
   (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 3.14 0))
   (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 0 3.14))
-)
+) ;let
 
 (check-report)

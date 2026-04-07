@@ -34,11 +34,14 @@
        (unlink-file-b (path-join unlink-dir "child-b.txt")))
   ;; 清理
   (when (path-exists? unlink-file-a)
-    (delete-file (path->string unlink-file-a)))
+    (delete-file (path->string unlink-file-a))
+  ) ;when
   (when (path-exists? unlink-file-b)
-    (delete-file (path->string unlink-file-b)))
+    (delete-file (path->string unlink-file-b))
+  ) ;when
   (when (path-exists? unlink-dir)
-    (rmdir (path->string unlink-dir)))
+    (rmdir (path->string unlink-dir))
+  ) ;when
   ;; 创建
   (mkdir (path->string unlink-dir))
   (path-write-text unlink-file-a "a")

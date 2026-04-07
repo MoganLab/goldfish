@@ -1,6 +1,7 @@
 (import (liii check)
         (liii vector)
-        (only (scheme base) let-values))
+        (only (scheme base) let-values)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -40,7 +41,8 @@
 
 (define (vector-partition->list pred v)
   (let-values (((ret cnt) (vector-partition pred v)))
-    (list ret cnt))
+    (list ret cnt)
+  ) ;let-values
 ) ;define
 
 (check (vector-partition->list even? #()) => '(#() 0))

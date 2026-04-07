@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -33,32 +34,38 @@
 ;; 基本交换
 (let ((fv (flexvector 10 20 30)))
   (flexvector-swap! fv 0 2)
-  (check (flexvector->list fv) => '(30 20 10)))
+  (check (flexvector->list fv) => '(30 20 10))
+) ;let
 
 ;; 交换相邻元素
 (let ((fv (flexvector 'a 'b 'c 'd)))
   (flexvector-swap! fv 1 2)
-  (check (flexvector->list fv) => '(a c b d)))
+  (check (flexvector->list fv) => '(a c b d))
+) ;let
 
 ;; 交换同一个位置（无变化）
 (let ((fv (flexvector 1 2 3)))
   (flexvector-swap! fv 1 1)
-  (check (flexvector->list fv) => '(1 2 3)))
+  (check (flexvector->list fv) => '(1 2 3))
+) ;let
 
 ;; 多次交换
 (let ((fv (flexvector 1 2 3 4)))
   (flexvector-swap! fv 0 3)
   (flexvector-swap! fv 1 2)
-  (check (flexvector->list fv) => '(4 3 2 1)))
+  (check (flexvector->list fv) => '(4 3 2 1))
+) ;let
 
 ;; 双元素向量
 (let ((fv (flexvector 'x 'y)))
   (flexvector-swap! fv 0 1)
-  (check (flexvector->list fv) => '(y x)))
+  (check (flexvector->list fv) => '(y x))
+) ;let
 
 ;; 交换首尾
 (let ((fv (flexvector 1 2 3 4 5)))
   (flexvector-swap! fv 0 4)
-  (check (flexvector->list fv) => '(5 2 3 4 1)))
+  (check (flexvector->list fv) => '(5 2 3 4 1))
+) ;let
 
 (check-report)

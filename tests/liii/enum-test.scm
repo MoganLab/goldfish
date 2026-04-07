@@ -15,7 +15,8 @@
 
 ;; 示例3：把枚举值放入 enum-set 再做成员判断
 (enum-set-contains? (enum-set Color (enum-name->enum Color 'red))
-                    (enum-name->enum Color 'red)) ; => #t
+                    (enum-name->enum Color 'red) ; => #t
+) ;enum-set-contains?
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/enum "make-enum-type"

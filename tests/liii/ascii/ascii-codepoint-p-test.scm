@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-codepoint?
 ;; 判断对象是否为 ASCII 码点。

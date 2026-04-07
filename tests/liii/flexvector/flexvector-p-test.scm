@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -45,6 +46,7 @@
 (let ((fv (flexvector 1 2)))
   (check-true (flexvector? fv))
   (flexvector-add-back! fv 3)
-  (check-true (flexvector? fv)))
+  (check-true (flexvector? fv))
+) ;let
 
 (check-report)

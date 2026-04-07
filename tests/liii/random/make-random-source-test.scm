@@ -29,7 +29,7 @@
       (s2 (make-random-source)))
   (check (random-source? s1) => #t)
   (check (random-source? s2) => #t)
-)
+) ;let
 
 ; 多个随机源独立
 (let ((s1 (make-random-source))
@@ -40,8 +40,8 @@
           (r2 (rand2 1000000)))
       (check (integer? r1) => #t)
       (check (integer? r2) => #t)
-    )
-  )
-)
+    ) ;let
+  ) ;let
+) ;let
 
 (check-report)

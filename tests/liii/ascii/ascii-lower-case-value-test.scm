@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-lower-case-value
 ;; 将 ASCII 小写字母映射为数值。

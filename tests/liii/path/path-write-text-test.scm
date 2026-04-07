@@ -31,7 +31,8 @@
 ;; 基本写入测试
 (let ((write-file (path-join (path-temp-dir) "path-write-text-basic.txt")))
   (when (path-exists? write-file)
-    (delete-file (path->string write-file)))
+    (delete-file (path->string write-file))
+  ) ;when
   (path-write-text write-file "test content")
   (check (path-read-text write-file) => "test content")
   ;; 覆盖写入
@@ -43,7 +44,8 @@
 ;; 写入空字符串
 (let ((empty-file (path-join (path-temp-dir) "path-write-text-empty.txt")))
   (when (path-exists? empty-file)
-    (delete-file (path->string empty-file)))
+    (delete-file (path->string empty-file))
+  ) ;when
   (path-write-text empty-file "")
   (check (path-read-text empty-file) => "")
   (check (path-getsize empty-file) => 0)
@@ -55,11 +57,14 @@
        (nested-dir (path-join base-dir "nested"))
        (deep-file (path-join nested-dir "deep.txt")))
   (when (path-exists? deep-file)
-    (delete-file (path->string deep-file)))
+    (delete-file (path->string deep-file))
+  ) ;when
   (when (path-exists? nested-dir)
-    (rmdir (path->string nested-dir)))
+    (rmdir (path->string nested-dir))
+  ) ;when
   (when (path-exists? base-dir)
-    (rmdir (path->string base-dir)))
+    (rmdir (path->string base-dir))
+  ) ;when
   (mkdir (path->string base-dir))
   (mkdir (path->string nested-dir))
   (path-write-text deep-file "Deeply nested file content")

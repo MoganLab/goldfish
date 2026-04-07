@@ -37,7 +37,8 @@
 (let ((s (make-stack))
       (count 0))
   (stack-for-each (lambda (x) (set! count (+ count 1))) s)
-  (check count => 0))
+  (check count => 0)
+) ;let
 
 ; Test stack-for-each on single element
 (let ((s (stack 1))

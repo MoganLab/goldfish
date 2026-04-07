@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -41,11 +42,13 @@
 
 (let ((v (float-vector)))
   (check (vector-length v) => 0)
-  (check-true (float-vector? v)))
+  (check-true (float-vector? v))
+) ;let
 
 (let ((v (float-vector 3.14)))
   (check (vector-length v) => 1)
   (check-true (float-vector? v))
-  (check (float-vector-ref v 0) => 3.14))
+  (check (float-vector-ref v 0) => 3.14)
+) ;let
 
 (check-report)

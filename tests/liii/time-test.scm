@@ -5,7 +5,8 @@
 
 ;; ==== 常见用法示例 ====
 (import (liii time)
-        (srfi srfi-19))
+        (srfi srfi-19)
+) ;import
 
 ;; 示例1：读取系统 jiffy 精度
 (jiffies-per-second)

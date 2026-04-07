@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii queue))
+        (liii queue)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -9,22 +10,28 @@
   (let ((z (list-queue-append! x y)))
     (check (list-queue-list z) => '(1 2 3 4 5))
     ;; 第一个队列被修改
-    (check (list-queue-list x) => '(1 2 3 4 5))))
+    (check (list-queue-list x) => '(1 2 3 4 5))
+  ) ;let
+) ;let
 
 ;; 空参数
 (let ((q (list-queue-append!)))
-  (check (list-queue-empty? q) => #t))
+  (check (list-queue-empty? q) => #t)
+) ;let
 
 ;; 单个队列
 (let ((q (list-queue 1 2 3)))
   (let ((z (list-queue-append! q)))
-    (check (eq? z q) => #t)))
+    (check (eq? z q) => #t)
+  ) ;let
+) ;let
 
 ;; 多个队列
 (let ((q1 (list-queue 1))
       (q2 (list-queue 2))
       (q3 (list-queue 3)))
   (list-queue-append! q1 q2 q3)
-  (check (list-queue-list q1) => '(1 2 3)))
+  (check (list-queue-list q1) => '(1 2 3))
+) ;let
 
 (check-report)

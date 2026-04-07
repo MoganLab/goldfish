@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -15,6 +16,7 @@
 (let ((to (flexvector 1 2 3 4 5))
       (from (flexvector 20 30 40)))
   (flexvector-reverse-copy! to 1 from)
-  (check (flexvector->list to) => '(1 40 30 20 5)))
+  (check (flexvector->list to) => '(1 40 30 20 5))
+) ;let
 
 (check-report)

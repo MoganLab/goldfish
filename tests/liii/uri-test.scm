@@ -108,7 +108,9 @@
 (define api-uri
   (uri-extend-query
     (uri-join-path base-uri "users" "123")
-    '(("fields" . "name,email") ("include" . "profile"))))
+    '(("fields" . "name,email") ("include" . "profile"))
+  ) ;uri-extend-query
+) ;define
 (uri->string api-uri)
 ; => "https://api.example.com/v1/users/123?fields=name%2Cemail&include=profile"
 
@@ -125,7 +127,8 @@
 ;; 示例5：分页 API 请求构造
 (define list-api (string->uri "https://api.example.com/items"))
 (define page-2
-  (uri-extend-query list-api '(("page" . "2") ("limit" . "20"))))
+  (uri-extend-query list-api '(("page" . "2") ("limit" . "20")))
+) ;define
 (uri->string page-2)
 ; => "https://api.example.com/items?page=2&limit=20"
 
@@ -141,5 +144,6 @@
 
 ;; 示例8：URI 相等比较（忽略默认端口差异）
 (uri=? (string->uri "https://example.com/")
-       (string->uri "https://example.com:443/"))
+       (string->uri "https://example.com:443/")
+) ;uri=?
 ; => #t

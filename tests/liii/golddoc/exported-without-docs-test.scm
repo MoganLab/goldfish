@@ -51,7 +51,8 @@
 (when (not (os-windows?))
   (let* ((base-root (path-join (path-temp-dir)
                                (string-append "golddoc-exported-without-docs-"
-                                              (number->string (getpid)))))
+                                              (number->string (getpid))))
+                               ) ;string-append
          (load-root (path-join base-root "goldfish"))
          (liii-root (path-join load-root "liii"))
          (custom-root (path-join load-root "custom"))
@@ -87,43 +88,59 @@
                                           (path->string load-root)
                                           " doc exported-missing > "
                                           (path->string global-output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (run-shell-command (string-append (executable)
                                           " -I "
                                           (path->string load-root)
                                           " doc liii/demo exported-missing > "
                                           (path->string library-output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (let ((global-output (path-read-text global-output-path))
               (library-output (path-read-text library-output-path)))
           (check-true (string-contains? global-output
-                                        "Function exported-missing is exported in:"))
+                                        "Function exported-missing is exported in:")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        "  (liii demo)"))
+                                        "  (liii demo)")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        "  (custom other)"))
+                                        "  (custom other)")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        "No documentation and test cases available."))
+                                        "No documentation and test cases available.")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        "Try one of these commands:"))
+                                        "Try one of these commands:")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " doc liii/demo")))
+                                        (string-append command-name " doc liii/demo"))
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " source liii/demo")))
+                                        (string-append command-name " source liii/demo"))
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " doc custom/other")))
+                                        (string-append command-name " doc custom/other"))
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " source custom/other")))
+                                        (string-append command-name " source custom/other"))
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        "Function exported-missing is exported in:"))
+                                        "Function exported-missing is exported in:")
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        "  (liii demo)"))
+                                        "  (liii demo)")
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        "No documentation and test cases available."))
+                                        "No documentation and test cases available.")
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        (string-append command-name " doc liii/demo")))
+                                        (string-append command-name " doc liii/demo"))
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        (string-append command-name " source liii/demo")))
+                                        (string-append command-name " source liii/demo"))
+          ) ;check-true
         ) ;let
       ) ;lambda
       (lambda ()

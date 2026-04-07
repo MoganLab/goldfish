@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -37,27 +38,32 @@
   (check (flexvector-remove! fv 1) => 'b)
   (check (flexvector-length fv) => 2)
   (check (flexvector-ref fv 0) => 'a)
-  (check (flexvector-ref fv 1) => 'c))
+  (check (flexvector-ref fv 1) => 'c)
+) ;let
 
 ;; 移除第一个元素
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-remove! fv 0) => 'a)
-  (check (flexvector->list fv) => '(b c)))
+  (check (flexvector->list fv) => '(b c))
+) ;let
 
 ;; 移除最后一个元素
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-remove! fv 2) => 'c)
-  (check (flexvector->list fv) => '(a b)))
+  (check (flexvector->list fv) => '(a b))
+) ;let
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
   (check (flexvector-remove! fv 0) => 'only)
-  (check (flexvector-empty? fv) => #t))
+  (check (flexvector-empty? fv) => #t)
+) ;let
 
 ;; 移除后继续操作
 (let ((fv (flexvector 'a 'b 'c 'd 'e)))
   (flexvector-remove! fv 2)  ; 移除 'c
   (flexvector-add-back! fv 'x)
-  (check (flexvector->list fv) => '(a b d e x)))
+  (check (flexvector->list fv) => '(a b d e x))
+) ;let
 
 (check-report)

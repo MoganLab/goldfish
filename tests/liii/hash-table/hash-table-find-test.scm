@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii hash-table))
+        (liii hash-table)
+) ;import
 
 (check-set-mode! 'report-failed)
 

@@ -70,8 +70,9 @@
 
 (let ((result (alist-cons 'step3 "final"
                           (alist-cons 'step2 "process"
-                                     (alist-cons 'step1 "start" '()))))
-      )
+                                     (alist-cons 'step1 "start" '())))
+                          ) ;alist-cons
+      ) ;
   (check result => '((step3 . "final") (step2 . "process") (step1 . "start")))
 ) ;let
 

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -35,40 +36,48 @@
 (let ((fv (flexvector 10 20 30))
       (res '()))
   (flexvector-for-each (lambda (x) (set! res (cons x res))) fv)
-  (check res => '(30 20 10)))
+  (check res => '(30 20 10))
+) ;let
 
 ;; 遍历顺序是索引顺序
 (let ((fv (flexvector 'a 'b 'c))
       (res '()))
   (flexvector-for-each (lambda (x) (set! res (cons x res))) fv)
-  (check res => '(c b a)))
+  (check res => '(c b a))
+) ;let
 
 ;; 空向量（不执行）
 (let ((count 0))
   (flexvector-for-each (lambda (x) (set! count (+ count 1))) (flexvector))
-  (check count => 0))
+  (check count => 0)
+) ;let
 
 ;; 单元素
 (let ((fv (flexvector 'only))
       (res #f))
   (flexvector-for-each (lambda (x) (set! res x)) fv)
-  (check res => 'only))
+  (check res => 'only)
+) ;let
 
 ;; 多向量遍历（同时遍历多个向量）
 (let ((fv1 (flexvector 1 2 3))
       (fv2 (flexvector 10 20 30))
       (sums '()))
   (flexvector-for-each (lambda (x y) (set! sums (cons (+ x y) sums)))
-                       fv1 fv2)
-  (check sums => '(33 22 11)))
+                       fv1 fv2
+  ) ;flexvector-for-each
+  (check sums => '(33 22 11))
+) ;let
 
 ;; 多向量长度不同取最短
 (let ((fv1 (flexvector 1 2 3 4))
       (fv2 (flexvector 10 20))
       (count 0))
   (flexvector-for-each (lambda (x y) (set! count (+ count 1)))
-                       fv1 fv2)
-  (check count => 2))
+                       fv1 fv2
+  ) ;flexvector-for-each
+  (check count => 2)
+) ;let
 
 ;; 三向量遍历
 (let ((fv1 (flexvector 1 2))
@@ -76,7 +85,9 @@
       (fv3 (flexvector 100 200))
       (res '()))
   (flexvector-for-each (lambda (x y z) (set! res (cons (+ x y z) res)))
-                       fv1 fv2 fv3)
-  (check res => '(222 111)))
+                       fv1 fv2 fv3
+  ) ;flexvector-for-each
+  (check res => '(222 111))
+) ;let
 
 (check-report)

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -42,12 +43,14 @@
 (let ((fv (flexvector)))
   (check-true (flexvector-empty? fv))
   (flexvector-add-back! fv 'x)
-  (check-false (flexvector-empty? fv)))
+  (check-false (flexvector-empty? fv))
+) ;let
 
 ;; 删除后变为空
 (let ((fv (flexvector 'a)))
   (check-false (flexvector-empty? fv))
   (flexvector-remove-back! fv)
-  (check-true (flexvector-empty? fv)))
+  (check-true (flexvector-empty? fv))
+) ;let
 
 (check-report)

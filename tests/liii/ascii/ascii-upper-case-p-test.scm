@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-upper-case?
 ;; 判断是否为 ASCII 大写字母。

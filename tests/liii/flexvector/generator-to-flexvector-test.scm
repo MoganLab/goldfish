@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -43,41 +44,60 @@
     (if (pair? genlist)
       (let ((value (car genlist)))
         (set! genlist (cdr genlist))
-        value)
-      (eof-object)))
+        value
+      ) ;let
+      (eof-object)
+    ) ;if
+  ) ;define
   (check (flexvector->list (generator->flexvector mock-generator))
-         => '(a b c)))
+         => '(a b c)
+  ) ;check
+) ;let
 
 ;; 空生成器
 (let ((gen (lambda () (eof-object))))
   (check (flexvector->vector (generator->flexvector gen))
-         => #()))
+         => #()
+  ) ;check
+) ;let
 
 ;; 单元素
 (let ((gen (let ((called #f))
              (lambda ()
                (if called
                  (eof-object)
-                 (begin (set! called #t) 'only))))))
+                 (begin (set! called #t) 'only))))
+               ) ;if
+             ) ;lambda
   (check (flexvector->list (generator->flexvector gen))
-         => '(only)))
+         => '(only)
+  ) ;check
+) ;let
 
 ;; 计数器生成器
 (let ((counter (let ((n 0))
                  (lambda ()
                    (if (< n 5)
                      (begin (set! n (+ n 1)) n)
-                     (eof-object))))))
+                     (eof-object))))
+                   ) ;if
+                 ) ;lambda
   (check (flexvector->list (generator->flexvector counter))
-         => '(1 2 3 4 5)))
+         => '(1 2 3 4 5)
+  ) ;check
+) ;let
 
 ;; 递减生成器
 (let ((gen (let ((n 10))
              (lambda ()
                (if (< n 0)
                  (eof-object)
-                 (begin (set! n (- n 2)) (+ n 2)))))))
+                 (begin (set! n (- n 2)) (+ n 2)))))
+               ) ;if
+             ) ;lambda
   (check (flexvector->list (generator->flexvector gen))
-         => '(10 8 6 4 2 0)))
+         => '(10 8 6 4 2 0)
+  ) ;check
+) ;let
 
 (check-report)

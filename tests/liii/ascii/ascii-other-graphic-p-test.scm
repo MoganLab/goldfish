@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-other-graphic?
 ;; 判断是否为可见的非字母数字 ASCII 图形字符。

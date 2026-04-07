@@ -62,7 +62,8 @@
 
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-visible-suggestions-"
-                                            (number->string (getpid)))))
+                                            (number->string (getpid))))
+                             ) ;string-append
        (load-root (path-join base-root "goldfish"))
        (liii-root (path-join load-root "liii"))
        (srfi-root (path-join load-root "srfi"))
@@ -76,11 +77,14 @@
   (mkdir (path->string srfi-root))
   (mkdir (path->string tests-root))
   (path-write-text (path-join liii-root "demo.scm")
-                   "(define-library (liii demo) (export) (import (scheme base)) (begin))")
+                   "(define-library (liii demo) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (path-write-text (path-join srfi-root "1.scm")
-                   "(define-library (srfi 1) (export) (import (scheme base)) (begin))")
+                   "(define-library (srfi 1) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (path-write-text index-path
-                   "{\"string-split\":[\"(liii demo)\"],\"string-splat\":[\"(liii demo)\"],\"string-spilt\":[\"(liii demo)\"],\"srfi-only\":[\"(srfi 1)\"]}")
+                   "{\"string-split\":[\"(liii demo)\"],\"string-splat\":[\"(liii demo)\"],\"string-spilt\":[\"(liii demo)\"],\"srfi-only\":[\"(srfi 1)\"]}"
+  ) ;path-write-text
   (dynamic-wind
     (lambda ()
       (set! *load-path* (list (path->string load-root)))

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -29,26 +30,31 @@
 
 ;; 基本测试
 (let ((fv (flexvector 'a 'b 'c)))
-  (check (flexvector-back fv) => 'c))
+  (check (flexvector-back fv) => 'c)
+) ;let
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-back fv) => 'only))
+  (check (flexvector-back fv) => 'only)
+) ;let
 
 ;; 添加元素后更新
 (let ((fv (flexvector 'a)))
   (flexvector-add-back! fv 'b)
   (flexvector-add-back! fv 'c)
-  (check (flexvector-back fv) => 'c))
+  (check (flexvector-back fv) => 'c)
+) ;let
 
 ;; 移除后更新
 (let ((fv (flexvector 'a 'b 'c)))
   (flexvector-remove-back! fv)
-  (check (flexvector-back fv) => 'b))
+  (check (flexvector-back fv) => 'b)
+) ;let
 
 ;; 多元素追加后的最后一个
 (let ((fv (flexvector 1)))
   (flexvector-add-back! fv 2 3 4)
-  (check (flexvector-back fv) => 4))
+  (check (flexvector-back fv) => 4)
+) ;let
 
 (check-report)

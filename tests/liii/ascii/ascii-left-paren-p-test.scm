@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-left-paren?
 ;; 判断是否为 ASCII 左括号。

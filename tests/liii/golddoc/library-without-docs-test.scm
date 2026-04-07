@@ -44,7 +44,8 @@
 (when (not (os-windows?))
   (let* ((base-root (path-join (path-temp-dir)
                                (string-append "golddoc-library-without-docs-"
-                                              (number->string (getpid)))))
+                                              (number->string (getpid))))
+                               ) ;string-append
          (load-root (path-join base-root "goldfish"))
          (liii-root (path-join load-root "liii"))
          (output-path (path-join base-root "library.log"))
@@ -67,16 +68,21 @@
                                           (path->string load-root)
                                           " doc liii/demo > "
                                           (path->string output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (let ((output (path-read-text output-path)))
           (check-true (string-contains? output
-                                        "Library (liii demo) exists."))
+                                        "Library (liii demo) exists.")
+          ) ;check-true
           (check-true (string-contains? output
-                                        "No documentation and test cases available."))
+                                        "No documentation and test cases available.")
+          ) ;check-true
           (check-true (string-contains? output
-                                        "Try one of these commands:"))
+                                        "Try one of these commands:")
+          ) ;check-true
           (check-true (string-contains? output
-                                        (string-append command-name " source liii/demo")))
+                                        (string-append command-name " source liii/demo"))
+          ) ;check-true
         ) ;let
       ) ;lambda
       (lambda ()

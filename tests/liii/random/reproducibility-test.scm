@@ -26,12 +26,12 @@
             (check (= r1 r1b) => #t)
             (check (= r2 r2b) => #t)
             (check (= r3 r3b) => #t)
-          )
-        )
-      )
-    )
-  )
-)
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let
 
 ; 相同伪随机化索引产生相同序列
 (let ((s1 (make-random-source))
@@ -43,8 +43,8 @@
     (let ((r1 (rand1 1000))
           (r2 (rand2 1000)))
       (check (= r1 r2) => #t)
-    )
-  )
-)
+    ) ;let
+  ) ;let
+) ;let
 
 (check-report)

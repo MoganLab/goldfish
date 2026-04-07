@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-alphabetic?
 ;; 判断是否为 ASCII 字母。

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-string?
 ;; 判断字符串是否全部由 ASCII 字符组成。

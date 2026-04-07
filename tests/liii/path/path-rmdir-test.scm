@@ -27,9 +27,11 @@
        (file-in-dir (path-join rmdir-test-dir "file.txt")))
   ;; 清理残留
   (when (path-exists? file-in-dir)
-    (delete-file (path->string file-in-dir)))
+    (delete-file (path->string file-in-dir))
+  ) ;when
   (when (path-exists? rmdir-test-dir)
-    (rmdir (path->string rmdir-test-dir)))
+    (rmdir (path->string rmdir-test-dir))
+  ) ;when
   ;; 创建目录和文件
   (mkdir (path->string rmdir-test-dir))
   (path-write-text file-in-dir "content")

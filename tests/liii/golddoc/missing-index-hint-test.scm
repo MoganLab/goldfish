@@ -25,9 +25,12 @@
          (output-path (path-join (path-temp-dir)
                                  (string-append "golddoc-missing-index-"
                                                 (number->string (getpid))
-                                                ".log")))
+                                                ".log")
+                                 ) ;string-append
+         ) ;output-path
          (saved-index-text (and (path-file? index-path)
-                                (path-read-text index-path))))
+                                (path-read-text index-path)))
+         ) ;saved-index-text
     (path-unlink output-path #t)
     (dynamic-wind
       (lambda ()
@@ -40,12 +43,15 @@
         (run-shell-command (string-append (executable)
                                           " doc 'alist->fxmapping/combinator' > "
                                           (path->string output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (let ((output (path-read-text output-path)))
           (check-true (string-contains? output
-                                        "Error: function index not found for query: alist->fxmapping/combinator"))
+                                        "Error: function index not found for query: alist->fxmapping/combinator")
+          ) ;check-true
           (check-true (string-contains? output
-                                        "Hint: run `gf doc --build-json` to build function index."))
+                                        "Hint: run `gf doc --build-json` to build function index.")
+          ) ;check-true
         ) ;let
       ) ;lambda
       (lambda ()

@@ -126,9 +126,11 @@
 
 ; Special escape character handling
 (check (string-map (lambda (c) #\newline) "test") =>
-"\n\n\n\n")
+"\n\n\n\n"
+) ;check
 (check (string-map (lambda (c) (integer->char 10)) "abc") =>
-"\n\n\n")
+"\n\n\n"
+) ;check
 
 ; Error handling tests
 (check-catch 'wrong-type-arg (string-map 123 "hello"))

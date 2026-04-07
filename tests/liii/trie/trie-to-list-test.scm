@@ -38,8 +38,9 @@
   (check (list-sort! < (trie->list trie))
          => '(((#\h ((#\i () again)
                      (#\e ((#\y () there)
-                           (#\l ((#\l ((#\o () world)))))))))))
-         ) ;check
+                           (#\l ((#\l ((#\o () world))))))))))
+                     ) ;e
+  ) ;check
 ) ;let
 
 (let ((trie (make-trie)))
@@ -48,7 +49,7 @@
   (check (trie->list trie)
          => '(((#\t ((#\e ((#\s ((#\t () other-value))))))))
              root-value)
-         ) ;check
+  ) ;check
 ) ;let
 
 (check-report)

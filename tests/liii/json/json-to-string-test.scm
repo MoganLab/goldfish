@@ -50,16 +50,18 @@
 (check (json->string '(("scores" . #(85 90 95)))) => "{\"scores\":[85,90,95]}")
 (check (json->string '(("user" . (("name" . "Dave")
                                    ("tags" . #("admin" "editor"))))))
-       => "{\"user\":{\"name\":\"Dave\",\"tags\":[\"admin\",\"editor\"]}}")
+       => "{\"user\":{\"name\":\"Dave\",\"tags\":[\"admin\",\"editor\"]}}"
+) ;check
 (check (json->string '(("text" . "Line1\nLine2"))) => "{\"text\":\"Line1\\nLine2\"}")
 (check (json->string #("He said \"Hello\"")) => "[\"He said \\\"Hello\\\"\"]")
 
 (check
   (json->string
     `(("messages" . #((("role" . "user") ("content" . #(1 2 3)))
-                      (("role" . "user") ("content" . "中文"))))))
+                      (("role" . "user") ("content" . "中文")))))
+  ) ;json->string
   => "{\"messages\":[{\"role\":\"user\",\"content\":[1,2,3]},{\"role\":\"user\",\"content\":\"中文\"}]}"
-)
+) ;check
 
 (check
   (json->string
@@ -69,9 +71,10 @@
           (("text" . "2") ("type" . "text"))
         )))
         (("role" . "user") ("content" . "中文"))
-      ))))
+      )))
+  ) ;json->string
   => "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"1\",\"type\":\"text\"},{\"text\":\"2\",\"type\":\"text\"}]},{\"role\":\"user\",\"content\":\"中文\"}]}"
-)
+) ;check
 
 (define sample-j
   '((user . ((id . 1001)
@@ -82,10 +85,11 @@
              (profile . ((age . 21)
                          (height . 168.5)
                          (hobbies . #("music" "reading"))))))
-    (scores . #(98 87 93)))) ;define
+    (scores . #(98 87 93))) ;define
+) ;define
 
 (check (json->string sample-j)
   => "{user:{id:1001,name:\"Alice\",active:true,email:null,tags:[\"dev\",\"scheme\",\"json\"],profile:{age:21,height:168.5,hobbies:[\"music\",\"reading\"]}},scores:[98,87,93]}"
-)
+) ;check
 
 (check-report)

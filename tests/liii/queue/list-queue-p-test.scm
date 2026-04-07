@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii queue))
+        (liii queue)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -19,6 +20,7 @@
 
 ;; 复制后的队列仍然是队列
 (let ((q (list-queue-copy (list-queue 1 2 3))))
-  (check (list-queue? q) => #t))
+  (check (list-queue? q) => #t)
+) ;let
 
 (check-report)

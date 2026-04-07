@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,13 +45,16 @@
   (flexvector-add-back! fv 'c)
   (check (flexvector-length fv) => 3)
   (flexvector-remove-back! fv)
-  (check (flexvector-length fv) => 2))
+  (check (flexvector-length fv) => 2)
+) ;let
 
 ;; 大量元素测试（测试扩容机制）
 (let ((fv (flexvector)))
   (do ((i 0 (+ i 1)))
       ((= i 100))
-    (flexvector-add-back! fv i))
-  (check (flexvector-length fv) => 100))
+    (flexvector-add-back! fv i)
+  ) ;do
+  (check (flexvector-length fv) => 100)
+) ;let
 
 (check-report)

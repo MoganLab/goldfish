@@ -29,7 +29,8 @@
 (let ((sep (string (os-sep))))
   ;; path-parent 测试
   (check (path->string (path-parent (path "tmp/demo.txt")))
-         => (string-append "tmp" sep))
+         => (string-append "tmp" sep)
+  ) ;check
   (check (path->string (path-parent (path "tmp"))) => ".")
   (check (path->string (path-parent (path ""))) => ".")
 

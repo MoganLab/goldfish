@@ -40,7 +40,8 @@
                           (make-time TIME-UTC 0 0))))
   (check-catch 'wrong-type-arg (subtract-duration "not-time" d))
   (check-catch 'wrong-type-arg (subtract-duration (make-time TIME-UTC 0 0)
-                                                  (make-time TIME-UTC 0 0)))
+                                                  (make-time TIME-UTC 0 0))
+  ) ;check-catch
 ) ;let
 
 (check-report)

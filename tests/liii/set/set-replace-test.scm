@@ -51,7 +51,9 @@
 ;; Test replacing equals but not eq? element
 (define string-ci-comparator
   (make-comparator string? string-ci=? string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))))
+    (lambda (s) (string-hash (string-map char-downcase s)))
+  ) ;make-comparator
+) ;define
 (define s-str-ci-2 (list->set-with-comparator string-ci-comparator '("Apple" "Banana")))
 (check (set-member s-str-ci-2 "apple" 'not-found) => "Apple")
 

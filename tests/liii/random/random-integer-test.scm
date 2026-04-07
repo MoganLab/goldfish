@@ -36,7 +36,7 @@
   (check (exact? r) => #t)
   (check (>= r 0) => #t)
   (check (< r 10) => #t)
-)
+) ;let
 
 ; 范围边界测试
 (check (>= (random-integer 1) 0) => #t)
@@ -46,7 +46,7 @@
 (let ((r (random-integer 100)))
   (check (>= r 0) => #t)
   (check (< r 100) => #t)
-)
+) ;let
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-integer 0))

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -54,7 +55,9 @@
 (check (eqv? my-vector (vector-copy #(0 1 2 3))) => #f)
 (check-true
   (eqv? (vector-ref my-vector 2)
-        (vector-ref (vector-copy #(0 1 2 3)) 2)))
+        (vector-ref (vector-copy #(0 1 2 3)) 2)
+  ) ;eqv?
+) ;check-true
 
 (check (vector-copy #(0 1 2 3) 1 1) => #())
 (check (vector-copy #(0 1 2 3) 1 2) => #(1))

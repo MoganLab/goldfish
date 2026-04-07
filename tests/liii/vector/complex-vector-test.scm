@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -38,10 +39,12 @@
 
 (let ((v (complex-vector)))
   (check (vector-length v) => 0)
-  (check-true (complex-vector? v)))
+  (check-true (complex-vector? v))
+) ;let
 
 (let ((v (complex-vector 1+2i)))
   (check (vector-length v) => 1)
-  (check-true (complex-vector? v)))
+  (check-true (complex-vector? v))
+) ;let
 
 (check-report)

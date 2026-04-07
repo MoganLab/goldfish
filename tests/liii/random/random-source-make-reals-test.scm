@@ -39,7 +39,7 @@
 (let* ((s (make-random-source))
        (rand-real (random-source-make-reals s)))
   (check (procedure? rand-real) => #t)
-)
+) ;let*
 
 ; 生成器工作正常
 (let* ((s (make-random-source))
@@ -48,8 +48,8 @@
     (check (real? r) => #t)
     (check (> r 0) => #t)
     (check (< r 1) => #t)
-  )
-)
+  ) ;let
+) ;let*
 
 ; 带 unit 参数
 (let* ((s (make-random-source))
@@ -58,8 +58,8 @@
     (check (real? r) => #t)
     (check (> r 0) => #t)
     (check (< r 1) => #t)
-  )
-)
+  ) ;let
+) ;let*
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-source-make-reals 'not-a-source))
@@ -68,6 +68,6 @@
   (check-catch 'wrong-type-arg (random-source-make-reals s 0))
   (check-catch 'wrong-type-arg (random-source-make-reals s 1))
   (check-catch 'wrong-type-arg (random-source-make-reals s -0.5))
-)
+) ;let
 
 (check-report)
