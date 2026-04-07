@@ -8,7 +8,7 @@
         (liii alist)
         (liii error)
 ) ;import
-(export http-head http-get http-post http-multipart-post http-ok?
+(export http-head http-get http-post http-ok?
         http-stream-get http-stream-post
         http-async-get http-async-post http-async-head http-poll http-wait-all
 ) ;export
@@ -86,10 +86,6 @@
   ) ;map
 ) ;define
 
-(define http-multipart-part-keys
-  '("name" "value" "file" "filename" "content-type")
-) ;define
-
 (define (http-normalize-part-key who key)
   (cond ((string? key) key)
         ((symbol? key) (symbol->string key))
@@ -102,33 +98,8 @@
   ) ;cond
 ) ;define
 
-(define (http-normalize-multipart-entry who entry)
-  (when (not (pair? entry))
-    (type-error (string-append who ": multipart part entries must be key/value pairs") entry)
-  ) ;when
-  (when (pair? (cdr entry))
-    (type-error (string-append who ": multipart part entries must be key/value pairs") entry)
-  ) ;when
-  (let* ((key (http-normalize-part-key who (car entry)))
-         (value (cdr entry)))
-    (when (not (member key http-multipart-part-keys string=?))
-      (value-error (string-append who ": multipart part contains unsupported key") key)
-    ) ;when
-    (cond ((or (string=? key "file")
-               (string=? key "filename")
-               (string=? key "content-type"))
-           (when (not (string? value))
-             (type-error (string-append who ": multipart part " key " must be string") value)
-           ) ;when
-           (cons key value)
-          ) ;cond
-          (else
-            (cons key
-                  (http-scalar->string who (string-append "multipart part " key) value)
-            ) ;cons
-          ) ;else
-    ) ;cond
-  ) ;let*
+(define http-file-spec-keys
+  '("file" "filename" "content-type")
 ) ;define
 
 (define (http-part-ref part key)
@@ -137,45 +108,95 @@
   ) ;let
 ) ;define
 
-(define (http-normalize-multipart-part who part)
-  (when (not (alist? part))
-    (type-error (string-append who ": multipart part must be an association list") part)
+(define (http-normalize-file-spec-entry who entry)
+  (when (not (pair? entry))
+    (type-error (string-append who ": files entries must be key/value pairs") entry)
   ) ;when
-  (let* ((normalized (map (lambda (entry)
-                            (http-normalize-multipart-entry who entry)
-                          ) ;lambda
-                          part
-                     ) ;map
-         )
-         (name (http-part-ref normalized "name"))
-         (value (http-part-ref normalized "value"))
-         (file (http-part-ref normalized "file")))
-    (when (or (not name) (= (string-length name) 0))
-      (value-error (string-append who ": multipart part requires a non-empty name") part)
+  (when (pair? (cdr entry))
+    (type-error (string-append who ": files entries must be key/value pairs") entry)
+  ) ;when
+  (let* ((key (http-normalize-part-key who (car entry)))
+         (value (cdr entry)))
+    (when (not (member key http-file-spec-keys string=?))
+      (value-error (string-append who ": file spec contains unsupported key") key)
     ) ;when
-    (when (or (and value file)
-              (and (not value) (not file)))
-      (value-error (string-append who ": multipart part must contain exactly one of value or file") part)
+    (when (not (string? value))
+      (type-error (string-append who ": file spec " key " must be string") value)
     ) ;when
-    (when (and file (not (file-exists? file)))
-      (value-error (string-append who ": multipart part file does not exist") file)
-    ) ;when
-    normalized
+    (cons key value)
   ) ;let*
 ) ;define
 
-(define (http-normalize-multipart-parts who parts)
-  (when (not (list? parts))
-    (type-error (string-append who ": parts must be a list") parts)
+(define (http-normalize-file-entry who entry)
+  (when (not (pair? entry))
+    (type-error (string-append who ": files must be an association list") entry)
   ) ;when
-  (when (null? parts)
-    (value-error (string-append who ": parts must not be empty") parts)
+  (let* ((name (http-scalar->string who "files key" (car entry)))
+         (spec (cdr entry)))
+    (cond ((string? spec)
+           (when (not (file-exists? spec))
+             (value-error (string-append who ": file does not exist") spec)
+           ) ;when
+           `((name . ,name)
+             (file . ,spec))
+          ) ;cond
+          ((alist? spec)
+           (let* ((normalized-spec (map (lambda (item)
+                                          (http-normalize-file-spec-entry who item)
+                                        ) ;lambda
+                                        spec
+                                   ) ;map
+                  )
+                  (file (http-part-ref normalized-spec "file"))
+                  (filename (http-part-ref normalized-spec "filename"))
+                  (content-type (http-part-ref normalized-spec "content-type")))
+             (when (not file)
+               (value-error (string-append who ": file spec requires a file path") spec)
+             ) ;when
+             (when (not (file-exists? file))
+               (value-error (string-append who ": file does not exist") file)
+             ) ;when
+             (append `((name . ,name)
+                       (file . ,file))
+                     (if filename `((filename . ,filename)) '())
+                     (if content-type `((content-type . ,content-type)) '())
+             ) ;append
+           ) ;let*
+          ) ;cond
+          (else
+            (type-error
+              (string-append who ": files value must be a path string or file spec alist")
+              spec
+            ) ;type-error
+          ) ;else
+    ) ;cond
+  ) ;let*
+) ;define
+
+(define (http-normalize-files who files)
+  (when (not (alist? files))
+    (type-error (string-append who ": files must be an association list") files)
   ) ;when
-  (map (lambda (part)
-         (http-normalize-multipart-part who part)
+  (map (lambda (entry)
+         (http-normalize-file-entry who entry)
        ) ;lambda
-       parts
+       files
   ) ;map
+) ;define
+
+(define (http-normalize-post-form-data who data)
+  (cond ((null? data) '())
+        ((and (string? data) (= (string-length data) 0)) '())
+        ((alist? data)
+         (http-normalize-string-alist who "data" data)
+        ) ;cond
+        (else
+          (type-error
+            (string-append who ": data must be an association list when files is provided")
+            data
+          ) ;type-error
+        ) ;else
+  ) ;cond
 ) ;define
 
 (define* (http-head url)
@@ -194,27 +215,32 @@
   ) ;let
 ) ;define*
 
-(define* (http-post url (params '()) (data "") (headers '()) (proxy '()))
+(define* (http-post url (params '()) (data "") (headers '()) (proxy '()) (files '()))
   (let* ((url (http-require-string "http-post" "url" url))
          (params (http-normalize-string-alist "http-post" "params" params))
-         (data (http-require-string "http-post" "data" data))
          (headers (http-normalize-string-alist "http-post" "headers" headers))
-         (proxy (http-normalize-string-alist "http-post" "proxy" proxy)))
-    (cond ((and (> (string-length data) 0) (null? headers))
-           (g_http-post url params data '(("Content-Type" . "text/plain")) proxy))
-          (else (g_http-post url params data headers proxy))
+         (proxy (http-normalize-string-alist "http-post" "proxy" proxy))
+         (files (http-normalize-files "http-post" files)))
+    (cond ((null? files)
+           (let ((data (http-require-string "http-post" "data" data)))
+             (cond ((and (> (string-length data) 0) (null? headers))
+                    (g_http-post url params data '(("Content-Type" . "text/plain")) proxy '()))
+                   (else (g_http-post url params data headers proxy '()))
+             ) ;cond
+           ) ;let
+          )
+          (else
+            (g_http-post
+              url
+              params
+              (http-normalize-post-form-data "http-post" data)
+              headers
+              proxy
+              files
+            ) ;g_http-post
+          ) ;else
     ) ;cond
   ) ;cond
-) ;define*
-
-(define* (http-multipart-post url parts (params '()) (headers '()) (proxy '()))
-  (let ((url (http-require-string "http-multipart-post" "url" url))
-        (parts (http-normalize-multipart-parts "http-multipart-post" parts))
-        (params (http-normalize-string-alist "http-multipart-post" "params" params))
-        (headers (http-normalize-string-alist "http-multipart-post" "headers" headers))
-        (proxy (http-normalize-string-alist "http-multipart-post" "proxy" proxy)))
-    (g_http-multipart-post url parts params headers proxy)
-  ) ;let
 ) ;define*
 
 ;; Streaming API wrapper functions

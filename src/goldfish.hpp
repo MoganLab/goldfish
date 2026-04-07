@@ -1579,7 +1579,10 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
   s7_pointer iter = part_spec;
   while (!s7_is_null (sc, iter)) {
     s7_pointer entry = s7_car (iter);
-    const char* key = s7_string (s7_car (entry));
+    s7_pointer raw_key = s7_car (entry);
+    const char* key = s7_is_symbol (raw_key)
+                      ? s7_symbol_name (raw_key)
+                      : s7_string (raw_key);
     const char* raw_value = s7_string (s7_cdr (entry));
 
     if (strcmp (key, "name") == 0) {
@@ -1611,14 +1614,31 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
   return cpr::Part (name, value, content_type);
 }
 
-static cpr::Multipart
-to_cpr_multipart (s7_scheme* sc, s7_pointer args) {
-  std::vector<cpr::Part> parts;
-  s7_pointer iter = args;
+static void
+append_cpr_multipart_file_parts (s7_scheme* sc, s7_pointer files, std::vector<cpr::Part>& parts) {
+  s7_pointer iter = files;
   while (!s7_is_null (sc, iter)) {
     parts.push_back (to_cpr_multipart_part (sc, s7_car (iter)));
     iter = s7_cdr (iter);
   }
+}
+
+static void
+append_cpr_multipart_form_parts (s7_scheme* sc, s7_pointer data, std::vector<cpr::Part>& parts) {
+  s7_pointer iter = data;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair = s7_car (iter);
+    parts.push_back (cpr::Part (s7_string (s7_car (pair)),
+                                s7_string (s7_cdr (pair))));
+    iter = s7_cdr (iter);
+  }
+}
+
+static cpr::Multipart
+to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
+  std::vector<cpr::Part> parts;
+  append_cpr_multipart_form_parts (sc, data, parts);
+  append_cpr_multipart_file_parts (sc, files, parts);
   return cpr::Multipart (parts);
 }
 
@@ -1675,10 +1695,10 @@ static s7_pointer
 f_http_post (s7_scheme* sc, s7_pointer args) {
   const char* url= s7_string (s7_car (args));
   s7_pointer params= s7_cadr (args);
-  const char* body= s7_string (s7_caddr (args));
-  cpr::Body cpr_body= cpr::Body (body);
+  s7_pointer body_or_data = s7_caddr (args);
   s7_pointer headers= s7_cadddr (args);
   s7_pointer proxy= s7_car (s7_cddddr (args));
+  s7_pointer files= s7_cadr (s7_cddddr (args));
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header cpr_headers = to_cpr_headers (sc, headers);
   cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
@@ -1686,10 +1706,18 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
-  session.SetBody (cpr_body);
   session.SetHeader (cpr_headers);
   if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
     session.SetProxies(cpr_proxies);
+  }
+
+  if (s7_is_list(sc, files) && !s7_is_null(sc, files)) {
+    session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
+  }
+  else {
+    const char* body= s7_string (body_or_data);
+    cpr::Body cpr_body= cpr::Body (body);
+    session.SetBody (cpr_body);
   }
 
   cpr::Response r= session.Post ();
@@ -1700,43 +1728,9 @@ inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
   const char* name= "g_http-post";
-  const char* doc= "(g_http-post url params body headers proxy) => hash-table?";
-  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 5, 0, false, doc, NULL);
+  const char* doc= "(g_http-post url params body-or-data headers proxy files) => hash-table?";
+  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 6, 0, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
-}
-
-static s7_pointer
-f_http_multipart_post (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string (s7_car (args));
-  s7_pointer parts = s7_cadr (args);
-  s7_pointer params = s7_caddr (args);
-  s7_pointer headers = s7_cadddr (args);
-  s7_pointer proxy = s7_car (s7_cddddr (args));
-  cpr::Multipart cpr_multipart = to_cpr_multipart (sc, parts);
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetHeader (cpr_headers);
-  session.SetMultipart (cpr_multipart);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
-    session.SetProxies (cpr_proxies);
-  }
-
-  cpr::Response r = session.Post ();
-  return response2hashtable (sc, r);
-}
-
-inline void
-glue_http_multipart_post (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet (sc);
-  const char* name = "g_http-multipart-post";
-  const char* doc = "(g_http-multipart-post url parts params headers proxy) => hash-table?";
-  auto func = s7_make_typed_function (sc, name, f_http_multipart_post, 5, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 
 static s7_pointer
@@ -1859,7 +1853,6 @@ glue_http (s7_scheme* sc) {
   glue_http_head (sc);
   glue_http_get (sc);
   glue_http_post (sc);
-  glue_http_multipart_post (sc);
 }
 
 inline void
