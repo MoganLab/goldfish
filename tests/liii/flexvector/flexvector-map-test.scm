@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -34,41 +35,53 @@
 ;; 基本映射
 (let ((fv (flexvector 10 20 30)))
   (check (flexvector->vector (flexvector-map (lambda (x) (* x 10)) fv))
-         => #(100 200 300))
+         => #(100 200 300)
+  ) ;check
   ;; 原向量不变
-  (check (flexvector->vector fv) => #(10 20 30)))
+  (check (flexvector->vector fv) => #(10 20 30))
+) ;let
 
 ;; 映射到不同类型
 (let ((fv (flexvector 1 2 3)))
   (check (flexvector->list (flexvector-map number->string fv))
-         => '("1" "2" "3")))
+         => '("1" "2" "3")
+  ) ;check
+) ;let
 
 ;; 空向量
 (check (flexvector->vector (flexvector-map (lambda (x) (* x 2)) (flexvector)))
-       => #())
+       => #()
+) ;check
 
 ;; 多向量映射（元素对位操作）
 (let ((fv1 (flexvector 1 2 3))
       (fv2 (flexvector 10 20 30)))
   (check (flexvector->vector (flexvector-map + fv1 fv2))
-         => #(11 22 33)))
+         => #(11 22 33)
+  ) ;check
+) ;let
 
 ;; 多向量长度不同时，结果长度与第一个向量相同
 ;; 超出其他向量长度的位置保持原值
 (let ((fv1 (flexvector 1 2 3 4))
       (fv2 (flexvector 10 20)))
   (check (flexvector->vector (flexvector-map * fv1 fv2))
-         => #(10 40 3 4)))
+         => #(10 40 3 4)
+  ) ;check
+) ;let
 
 ;; 三向量映射
 (let ((fv1 (flexvector 1 2))
       (fv2 (flexvector 10 20))
       (fv3 (flexvector 100 200)))
   (check (flexvector->vector (flexvector-map + fv1 fv2 fv3))
-         => #(111 222)))
+         => #(111 222)
+  ) ;check
+) ;let
 
 ;; 返回新对象
 (let ((fv (flexvector 1 2 3)))
-  (check (eq? fv (flexvector-map (lambda (x) x) fv)) => #f))
+  (check (eq? fv (flexvector-map (lambda (x) x) fv)) => #f)
+) ;let
 
 (check-report)

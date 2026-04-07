@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -49,23 +50,29 @@
     ;; 修改拷贝不影响原向量
     (flexvector-set! copy 0 'x)
     (check (flexvector-ref fv 0) => 1)
-    (check (flexvector-ref copy 0) => 'x)))
+    (check (flexvector-ref copy 0) => 'x)
+  ) ;let
+) ;let
 
 ;; 从指定位置拷贝到末尾
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector (flexvector-copy fv 2)) => #(3 4 5)))
+  (check (flexvector->vector (flexvector-copy fv 2)) => #(3 4 5))
+) ;let
 
 ;; 拷贝区间 [start, end)
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector (flexvector-copy fv 1 4)) => #(2 3 4)))
+  (check (flexvector->vector (flexvector-copy fv 1 4)) => #(2 3 4))
+) ;let
 
 ;; 边界测试：空区间
 (let ((fv (flexvector 1 2 3)))
   (check (flexvector->vector (flexvector-copy fv 0 0)) => #())
-  (check (flexvector->vector (flexvector-copy fv 3 3)) => #()))
+  (check (flexvector->vector (flexvector-copy fv 3 3)) => #())
+) ;let
 
 ;; 单元素区间
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->vector (flexvector-copy fv 1 2)) => #(2)))
+  (check (flexvector->vector (flexvector-copy fv 1 2)) => #(2))
+) ;let
 
 (check-report)

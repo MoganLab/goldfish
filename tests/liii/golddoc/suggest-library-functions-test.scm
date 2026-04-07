@@ -68,7 +68,8 @@
 
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-library-suggestions-"
-                                            (number->string (getpid)))))
+                                            (number->string (getpid))))
+                             ) ;string-append
        (load-root (path-join base-root "goldfish"))
        (liii-root (path-join load-root "liii"))
        (tests-root (path-join base-root "tests"))
@@ -83,13 +84,17 @@
   (mkdir (path->string group-root))
   (mkdir (path->string library-root))
   (path-write-text (path-join liii-root "demo.scm")
-                   "(define-library (liii demo) (export) (import (scheme base)) (begin))")
+                   "(define-library (liii demo) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (path-write-text (path-join library-root "string-split-test.scm")
-                   ";; string-split\n(check-report)\n")
+                   ";; string-split\n(check-report)\n"
+  ) ;path-write-text
   (path-write-text (path-join library-root "string-splat-test.scm")
-                   ";; string-splat\n(check-report)\n")
+                   ";; string-splat\n(check-report)\n"
+  ) ;path-write-text
   (path-write-text (path-join library-root "string-spilt-test.scm")
-                   ";; string-spilt\n(check-report)\n")
+                   ";; string-spilt\n(check-report)\n"
+  ) ;path-write-text
   (dynamic-wind
     (lambda ()
       (set! *load-path* (list (path->string load-root)))

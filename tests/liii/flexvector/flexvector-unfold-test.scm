@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -39,47 +40,59 @@
          (flexvector-unfold (lambda (x) (> x 10))
                             (lambda (x) (* x x))
                             (lambda (x) (+ x 1))
-                            1))
-       => #(1 4 9 16 25 36 49 64 81 100))
+                            1)
+         ) ;flexvector-unfold
+       => #(1 4 9 16 25 36 49 64 81 100)
+) ;check
 
 ;; 生成列表
 (let ((result (flexvector->list
                 (flexvector-unfold (lambda (n) (< n 0))
                                    (lambda (n) n)
                                    (lambda (n) (- n 1))
-                                   5))))
-  (check result => '(5 4 3 2 1 0)))
+                                   5)))
+                ) ;flexvector-unfold
+  (check result => '(5 4 3 2 1 0))
+) ;let
 
 ;; 斐波那契数列
 (let ((result (flexvector->list
                 (flexvector-unfold (lambda (p) (> (car p) 100))
                                    (lambda (p) (car p))
                                    (lambda (p) (list (cadr p) (+ (car p) (cadr p))))
-                                   '(1 1)))))
-  (check result => '(1 1 2 3 5 8 13 21 34 55 89)))
+                                   '(1 1))))
+                ) ;flexvector-unfold
+  (check result => '(1 1 2 3 5 8 13 21 34 55 89))
+) ;let
 
 ;; 空结果
 (check (flexvector->vector
          (flexvector-unfold (lambda (x) #t)
                             (lambda (x) x)
                             (lambda (x) x)
-                            'seed))
-       => #())
+                            'seed)
+         ) ;flexvector-unfold
+       => #()
+) ;check
 
 ;; 单元素
 (check (flexvector->vector
          (flexvector-unfold (lambda (x) (> x 0))
                             (lambda (x) x)
                             (lambda (x) (+ x 1))
-                            0))
-       => #(0))
+                            0)
+         ) ;flexvector-unfold
+       => #(0)
+) ;check
 
 ;; 使用字符串状态
 (check (flexvector->vector
          (flexvector-unfold (lambda (s) (string=? s ""))
                             (lambda (s) (string-ref s 0))
                             (lambda (s) (substring s 1 (string-length s)))
-                            "hello"))
-       => #(#\h #\e #\l #\l #\o))
+                            "hello")
+         ) ;flexvector-unfold
+       => #(#\h #\e #\l #\l #\o)
+) ;check
 
 (check-report)

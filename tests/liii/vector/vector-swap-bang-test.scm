@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -51,6 +52,7 @@
 (check my-vector => #(3 1 2 0))
 
 (check-catch 'out-of-range
-  (vector-swap! my-vector 1 (vector-length my-vector)))
+  (vector-swap! my-vector 1 (vector-length my-vector))
+) ;check-catch
 
 (check-report)

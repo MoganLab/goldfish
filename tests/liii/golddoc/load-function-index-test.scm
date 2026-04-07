@@ -68,7 +68,8 @@
 
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-load-index-"
-                                            (number->string (getpid)))))
+                                            (number->string (getpid))))
+                             ) ;string-append
        (load-root (path-join base-root "goldfish"))
        (tests-root (path-join base-root "tests"))
        (index-path (path-join tests-root "function-library-index.json"))
@@ -85,7 +86,8 @@
       (check (find-function-index-paths) => '())
       (check (load-function-index) => '())
       (path-write-text index-path
-                       "{\"sample-func\":[\"(liii sample)\"],\"shared-func\":[\"(scheme base)\",\"(liii sample)\"]}")
+                       "{\"sample-func\":[\"(liii sample)\"],\"shared-func\":[\"(scheme base)\",\"(liii sample)\"]}"
+      ) ;path-write-text
       (let ((index-paths (find-function-index-paths))
             (index (load-function-index)))
         (check-true (pair? index-paths))

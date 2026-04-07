@@ -113,9 +113,11 @@
             (http-post "https://httpbin.org/post"
                       :stream #t
                       :data "Simple streaming POST test"
-                      :output-file output-file)
+                      :output-file output-file
+            ) ;http-post
           ) ;begin
-       ))
+       )
+       ) ;r
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
   (let ((body (call-with-input-file output-file
@@ -142,7 +144,8 @@
   (check (json-ref json "form" "meta") => "multipart-value")
   (check (json-ref json "files" "upload") => "Goldfish multipart upload fixture.\n")
   (check-true (string-contains (json-ref json "headers" "Content-Type")
-                               "multipart/form-data"))
+                               "multipart/form-data")
+  ) ;check-true
 ) ;let*
 
 ;; 通过 :stream #t 流式处理 multipart POST 响应
@@ -175,18 +178,21 @@
   (http-post "https://httpbin.org/post"
     :data '(("meta" . "invalid-header-test"))
     :files '(("upload" . "tests/resources/http-upload.txt"))
-    :headers '(("token" . #f)))
+    :headers '(("token" . #f))
+  ) ;http-post
 ) ;check-catch
 
 (check-catch 'type-error
   (http-post "https://httpbin.org/post"
     :data "raw body is not allowed with files"
-    :files '(("upload" . "tests/resources/http-upload.txt")))
+    :files '(("upload" . "tests/resources/http-upload.txt"))
+  ) ;http-post
 ) ;check-catch
 
 (check-catch 'value-error
   (http-post "https://httpbin.org/post"
-    :files '(("upload" . ((filename . "fixture.txt")))))
+    :files '(("upload" . ((filename . "fixture.txt"))))
+  ) ;http-post
 ) ;check-catch
 
 ;; 直接调用 SimpleTex 官方公式识别接口

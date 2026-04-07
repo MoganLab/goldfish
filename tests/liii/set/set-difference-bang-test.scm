@@ -52,7 +52,9 @@
 ;; Test element source (using case-insensitive comparator)
 (define string-ci-comparator
   (make-comparator string? string-ci=? string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))))
+    (lambda (s) (string-hash (string-map char-downcase s)))
+  ) ;make-comparator
+) ;define
 (define s-diff!-ci-1 (list->set-with-comparator string-ci-comparator '("Apple" "Banana")))
 (define s-diff!-ci-2 (list->set-with-comparator string-ci-comparator '("apple")))
 (set-difference! s-diff!-ci-1 s-diff!-ci-2)

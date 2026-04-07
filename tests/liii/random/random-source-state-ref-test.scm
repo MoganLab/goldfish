@@ -36,8 +36,8 @@
     (check (pair? state) => #t)
     (check (eq? (car state) 'random-source-state) => #t)
     (check (= (length state) 3) => #t)
-  )
-)
+  ) ;let
+) ;let
 
 ; 状态在生成随机数后变化
 (let ((s (make-random-source)))
@@ -46,10 +46,10 @@
       (rand-int 100)
       (let ((state2 (random-source-state-ref s)))
         (check (not (equal? state1 state2)) => #t)
-      )
-    )
-  )
-)
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-source-state-ref 'not-a-source))

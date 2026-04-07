@@ -192,6 +192,8 @@ gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
 ## 许可证
 金鱼Scheme 根据 Apache 2.0 许可证授权，一些源自 S7 Scheme 和 SRFI 的代码片段已在相关源文件中明确声明。
 
+`(liii goldfix)` 的版权归 Liii Network 所有。
+
 ## 引用
 
 读者可以用以下的BibTeX代码来引用我们的工作.

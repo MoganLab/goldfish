@@ -70,7 +70,8 @@
 
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-build-index-"
-                                            (number->string (getpid)))))
+                                            (number->string (getpid))))
+                             ) ;string-append
        (load-root (path-join base-root "goldfish"))
        (tests-root (path-join base-root "tests"))
        (old-load-path *load-path*))

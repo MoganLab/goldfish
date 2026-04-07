@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -40,14 +41,17 @@
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-ref fv 0) => 'a)
   (check (flexvector-ref fv 1) => 'b)
-  (check (flexvector-ref fv 2) => 'c))
+  (check (flexvector-ref fv 2) => 'c)
+) ;let
 
 ;; 边界测试：单元素
 (let ((fv (flexvector 'only)))
-  (check (flexvector-ref fv 0) => 'only))
+  (check (flexvector-ref fv 0) => 'only)
+) ;let
 
 ;; 边界测试：索引计算
 (let ((fv (flexvector 10 20 30 40 50)))
-  (check (flexvector-ref fv (- (flexvector-length fv) 1)) => 50))
+  (check (flexvector-ref fv (- (flexvector-length fv) 1)) => 50)
+) ;let
 
 (check-report)

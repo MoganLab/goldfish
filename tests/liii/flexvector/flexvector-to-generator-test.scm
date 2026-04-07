@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -31,16 +32,19 @@
   (check (gen) => 'c)
   (check (eof-object? (gen)) => #t)
   ;; 继续调用仍返回 eof
-  (check (eof-object? (gen)) => #t))
+  (check (eof-object? (gen)) => #t)
+) ;let
 
 ;; 空向量
 (let ((gen (flexvector->generator (flexvector))))
-  (check (eof-object? (gen)) => #t))
+  (check (eof-object? (gen)) => #t)
+) ;let
 
 ;; 单元素
 (let ((gen (flexvector->generator (flexvector 'only))))
   (check (gen) => 'only)
-  (check (eof-object? (gen)) => #t))
+  (check (eof-object? (gen)) => #t)
+) ;let
 
 ;; 修改原向量后生成器行为
 (let ((fv (flexvector 1 2 3))
@@ -49,7 +53,8 @@
   (check (gen) => 1)
   (flexvector-set! fv 1 999)  ; 修改原向量
   (check (gen) => 999)         ; 生成器反映修改后的值
-  (check (gen) => 3))
+  (check (gen) => 3)
+) ;let
 
 ;; 用于遍历
 (let ((fv (flexvector 10 20 30))
@@ -61,7 +66,11 @@
       sum
       (begin
         (set! sum (+ sum val))
-        (loop (gen)))))
-  (check sum => 60))
+        (loop (gen))
+      ) ;begin
+    ) ;if
+  ) ;let
+  (check sum => 60)
+) ;let
 
 (check-report)

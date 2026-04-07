@@ -1,6 +1,7 @@
 (import (liii check)
         (liii bag)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -26,7 +27,8 @@
   (define b2 (bag-adjoin b 2 3))
   (check (bag-size b) => 3)
   (check (bag-size b2) => 5)
-  (check (bag-count (lambda (x) (= x 2)) b2) => 3))
+  (check (bag-count (lambda (x) (= x 2)) b2) => 3)
+) ;let
 (check-catch 'type-error (bag-adjoin "not a bag" 1))
 
 (check-report)

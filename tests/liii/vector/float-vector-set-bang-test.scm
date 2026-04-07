@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -46,23 +47,27 @@
   (float-vector-set! v 0 100.0)
   (check (float-vector-ref v 0) => 100.0)
   (check (float-vector-ref v 1) => 2.0)
-  (check (float-vector-ref v 2) => 3.0))
+  (check (float-vector-ref v 2) => 3.0)
+) ;let
 
 (let ((v (make-float-vector 5 0.0)))
   (float-vector-set! v 2 42.0)
   (check (float-vector-ref v 2) => 42.0)
   (float-vector-set! v 4 -1.5)
-  (check (float-vector-ref v 4) => -1.5))
+  (check (float-vector-ref v 4) => -1.5)
+) ;let
 
 (let ((v (float-vector 10.0 20.0 30.0)))
   (float-vector-set! v 1 999)
   (check (float-vector-ref v 1) => 999.0)
-  (check v => #r(10.0 999.0 30.0)))
+  (check v => #r(10.0 999.0 30.0))
+) ;let
 
 (let ((v (float-vector 1.0 2.0)))
   (check-catch 'wrong-type-arg (float-vector-set! v 0 'not-a-number))
   (check-catch 'out-of-range (float-vector-set! v 5 100.0))
-  (check-catch 'out-of-range (float-vector-set! v -1 100.0)))
+  (check-catch 'out-of-range (float-vector-set! v -1 100.0))
+) ;let
 
 (check-catch 'wrong-type-arg (float-vector-set! (vector 1.0 2.0 3.0) 0 100.0))
 

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -48,36 +49,44 @@
       (cmp (lambda (char1 char2)
              (cond ((char<? char1 char2) -1)
                    ((char=? char1 char2) 0)
-                   (else 1)))))
+                   (else 1)))
+             ) ;cond
+      ) ;cmp
   ;; 查找不同位置
   (check (flexvector-binary-search fv #\d cmp) => 3)  ; 中间
   (check (flexvector-binary-search fv #\a cmp) => 0)  ; 开头
   (check (flexvector-binary-search fv #\j cmp) => 9)  ; 结尾
   ;; 没找到
-  (check (flexvector-binary-search fv #\k cmp) => #f))
+  (check (flexvector-binary-search fv #\k cmp) => #f)
+) ;let
 
 ;; 指定区间查找
 (let ((fv (flexvector #\a #\b #\c #\d #\e #\f #\g #\h #\i #\j))
       (cmp (lambda (char1 char2)
              (cond ((char<? char1 char2) -1)
                    ((char=? char1 char2) 0)
-                   (else 1)))))
+                   (else 1)))
+             ) ;cond
+      ) ;cmp
   ;; 在 [2, 6) 中查找
   (check (flexvector-binary-search fv #\f cmp 2 6) => 5)
   ;; 在 [1, 5) 中查找 #\f（不在范围内）
-  (check (flexvector-binary-search fv #\f cmp 1 5) => #f))
+  (check (flexvector-binary-search fv #\f cmp 1 5) => #f)
+) ;let
 
 ;; 数字查找
 (let ((fv (flexvector 10 20 30 40 50)))
   (check (flexvector-binary-search fv 30 -) => 2)
   (check (flexvector-binary-search fv 10 -) => 0)
   (check (flexvector-binary-search fv 50 -) => 4)
-  (check (flexvector-binary-search fv 25 -) => #f))
+  (check (flexvector-binary-search fv 25 -) => #f)
+) ;let
 
 ;; 单元素
 (let ((fv (flexvector 42)))
   (check (flexvector-binary-search fv 42 -) => 0)
-  (check (flexvector-binary-search fv 0 -) => #f))
+  (check (flexvector-binary-search fv 0 -) => #f)
+) ;let
 
 ;; 空向量
 (check (flexvector-binary-search (flexvector) 'x (lambda (a b) 0)) => #f)

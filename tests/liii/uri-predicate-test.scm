@@ -4,7 +4,7 @@
 
 (import (liii uri-record)
         (liii uri-predicate)
-)
+) ;import
 
 ;; ==== 常见用法示例 ====
 

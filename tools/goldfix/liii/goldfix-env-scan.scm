@@ -11,6 +11,7 @@
 
   (export scan-environment-details)
   (export scan-environments)
+  (export scan-claimed-rparen-lines)
 
   (begin
     (define (apply-scan-detail-rparen! detail)
@@ -40,19 +41,22 @@
                  (in-string #f)
                  (escape-next #f)
                  (envs '())
-                 (details '()))
+                 (details '())
+                 (claimed-rparen-lines '()))
         (if (null? remaining)
           (let ((ordered-envs (reverse envs))
-                (ordered-details (reverse details)))
+                (ordered-details (reverse details))
+                (ordered-claimed-rparen-lines (reverse claimed-rparen-lines)))
             (for-each apply-scan-detail-rparen! ordered-details)
-            (values ordered-envs ordered-details)
+            (values ordered-envs ordered-details ordered-claimed-rparen-lines)
           ) ;let
           (let-values (((new-stack
                          new-block-depth
                          new-in-string
                          new-escape-next
                          new-envs
-                         new-details)
+                         new-details
+                         new-claimed-rparen-lines)
                         (scan-line (car remaining)
                                    lines
                                    line-num
@@ -61,7 +65,8 @@
                                    in-string
                                    escape-next
                                    envs
-                                   details))
+                                   details
+                                   claimed-rparen-lines))
                         ) ;scan-line
             (loop (cdr remaining)
                   (+ line-num 1)
@@ -71,6 +76,7 @@
                   new-escape-next
                   new-envs
                   new-details
+                  new-claimed-rparen-lines
             ) ;loop
           ) ;let-values
         ) ;if
@@ -78,14 +84,20 @@
     ) ;define
 
     (define (scan-environment-details lines)
-      (let-values (((_envs details) (scan-source lines)))
+      (let-values (((_envs details _claimed-rparen-lines) (scan-source lines)))
         details
       ) ;let-values
     ) ;define
 
     (define (scan-environments lines)
-      (let-values (((envs _details) (scan-source lines)))
+      (let-values (((envs _details _claimed-rparen-lines) (scan-source lines)))
         envs
+      ) ;let-values
+    ) ;define
+
+    (define (scan-claimed-rparen-lines lines)
+      (let-values (((_envs _details claimed-rparen-lines) (scan-source lines)))
+        claimed-rparen-lines
       ) ;let-values
     ) ;define
 

@@ -5,9 +5,6 @@
 
   ;; ---------- 导出接口 ----------
   (export read-file-lines)
-  (export read-file-content)
-  (export read-file-string)
-  
   (export string->lines)
   (export lines->string)
 
@@ -54,38 +51,6 @@
         ) ;call-with-input-file
       ) ;let
     ) ;define
-
-    ;; 读取文件内容为字符串
-    ;; 输入: file-path - 文件路径
-    ;; 输出: 文件内容字符串（保持原文件的换行符，不额外添加）
-    (define (read-file-content file-path)
-      (call-with-input-file file-path
-        (lambda (port)
-          (let loop ((lines '()) (line (read-line port)))
-            (if (eof-object? line)
-              ;; 将行列表合并为字符串
-              (let ((lst (reverse lines)))
-                (if (null? lst)
-                  ""
-                  ;; 使用 string-join 方式：用 "\n" 连接所有行，不额外添加末尾换行符
-                  (let join-loop ((rest (cdr lst)) (result (car lst)))
-                    (if (null? rest)
-                      result
-                      (join-loop (cdr rest) (string-append result "\n" (car rest)))
-                    ) ;if
-                  ) ;let
-                ) ;if
-              ) ;let
-              (loop (cons line lines) (read-line port))
-            ) ;if
-          ) ;let
-        ) ;lambda
-      ) ;call-with-input-file
-    ) ;define
-
-    ;; read-file-string 是 read-file-content 的别名
-    (define read-file-string read-file-content)
-
 
     ;; 将字符串分割为行列表
     ;; 输入: str - 字符串

@@ -21,9 +21,10 @@
           (if (eof-object? chunk)
             n
             (loop (read-string 8192 port)
-                  (+ n (string-length chunk)))
+                  (+ n (string-length chunk))
+            ) ;loop
           ) ;if
-        ) ;let loop
+        ) ;let
       ) ;lambda
       (lambda ()
         (close-port port)
@@ -127,9 +128,11 @@
             ) ;when
             (http-get "https://jsonplaceholder.typicode.com/posts/1"
                       :stream #t
-                      :output-file output-file)
+                      :output-file output-file
+            ) ;http-get
           ) ;begin
-       ))
+       )
+       ) ;r
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
   (let ((body (call-with-input-file output-file
@@ -169,9 +172,11 @@
             ) ;when
             (http-get "https://proof.ovh.net/files/1Mb.dat"
                       :stream #t
-                      :output-file output-file)
+                      :output-file output-file
+            ) ;http-get
           ) ;begin
-       ))
+       )
+       ) ;r
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
   (check (binary-file-size output-file) => 1048576)
@@ -196,7 +201,8 @@
                                 ) ;lambda
             ) ;http-get
           ) ;begin
-       ))
+       )
+       ) ;r
   (check-true (undefined? r))
   (check-true (> chunks 0))
   (check callback-bytes => 1048576)

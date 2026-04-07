@@ -8,7 +8,7 @@
   (import (scheme base))
   (import (liii string))
   (import (liii goldfix-comment))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-env-core))
 
   (export find-implicit-right-tag-target)
@@ -20,7 +20,7 @@
     (define (line-rparen-col line)
       (let ((trimmed (string-trim line)))
         (if (or (string-null? trimmed)
-                (not (char=? (string-ref trimmed 0) RPAREN)))
+                (not (ascii-right-paren? (string-ref trimmed 0))))
           #f
           (- (string-length line) (string-length trimmed))
         ) ;if
@@ -194,25 +194,38 @@
           ((null? rest)
            #f
           ) ;
-          ((let* ((node (car rest))
-                  (detail (paren-node-detail node))
-                  (env (paren-node-env node)))
-             (and detail
-                  (= (env-lparen-col env) col)
-                  (string=? (env-tag env) tag)
-             ) ;and
-          ) ;
-           (let ((detail (paren-node-detail (car rest))))
-             (env-detail-set-close-line! detail line-num)
-             (env-detail-set-explicit-rparen-line! detail line-num)
-             (list-tail stack (+ depth 1))
-           ) ;let
-        ) ;cond
           (else
-           (loop (cdr rest) (+ depth 1))
+           (let* ((node (car rest))
+                  (detail (paren-node-detail node))
+                  (env (paren-node-env node))
+                  (raw-tag (paren-node-tag node)))
+             (cond
+               ((and detail
+                     (= (env-lparen-col env) col)
+                     (string=? (env-tag env) tag)
+                ) ;and
+                (env-detail-set-close-line! detail line-num)
+                (env-detail-set-explicit-rparen-line! detail line-num)
+                (list-tail stack (+ depth 1))
+               ) ;
+               ;; 对同一行里的嵌套 form（如 (string-map (lambda ...))），
+               ;; 我们不会为 lambda 建 env-detail，但右标记仍应先消费掉这个裸括号节点，
+               ;; 不能误把外层 string-map 提前弹出。
+               ((and (not detail)
+                     (= (paren-node-col node) col)
+                     (not (string-null? raw-tag))
+                     (string=? raw-tag tag)
+                ) ;and
+                (list-tail stack (+ depth 1))
+               ) ;
+               (else
+                (loop (cdr rest) (+ depth 1))
+               ) ;else
+             ) ;cond
+           ) ;let*
           ) ;else
+        ) ;cond
       ) ;let
-    ) ;define
     ) ;define
 
     (define (pop-open-right-tag-target stack col line-num)

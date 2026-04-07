@@ -1,6 +1,7 @@
 (import (liii check)
         (liii list)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-upper-case-value
 ;; 将 ASCII 大写字母映射为数值。

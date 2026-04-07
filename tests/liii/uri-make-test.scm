@@ -4,7 +4,7 @@
 
 (import (liii uri-record)
         (liii uri-make)
-)
+) ;import
 
 ;; ==== 常见用法示例 ====
 
@@ -15,7 +15,8 @@
 (uri-build :scheme "https"
            :host "example.com"
            :path "/api/v1"
-           :query '(("key" . "value")))
+           :query '(("key" . "value"))
+) ;uri-build
 
 ;; 示例3：string->uri 别名
 (string->uri "http://test.com/")

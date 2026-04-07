@@ -3,11 +3,13 @@
   (import (liii sys))
   (import (liii string))
   (import (liii error))
+  (import (liii ascii))
   (import (liii goldfix-scheme))
   (import (liii goldfix-lint))
   (import (liii goldfix-paren))
   (import (liii goldfix-file))
   (import (liii goldfix-env))
+  (import (liii goldfix-list))
   (import (liii list))
   (export main)
   (export fix-content)
@@ -58,7 +60,7 @@
     (define (right-tag-line? line)
       (let ((trimmed (string-trim line)))
         (and (not (string-null? trimmed))
-             (char=? (string-ref trimmed 0) #\))
+             (ascii-right-paren? (string-ref trimmed 0))
         ) ;and
       ) ;let
     ) ;define
@@ -269,10 +271,133 @@
       ) ;let
     ) ;define
 
+    (define (line-net-open-count line)
+      (let-values (((paren-counts _block-depth _in-string _escape-next)
+                    (count-parens-with-state line 0 #f #f)))
+        (- (car paren-counts) (cdr paren-counts))
+      ) ;let-values
+    ) ;define
+
+    (define (repairable-missing-open-tag? tag)
+      (or (string=? tag "define")
+          (string=? tag "define-library")
+          (string=? tag "let")
+          (string=? tag "let*")
+          (string=? tag "letrec")
+          (string=? tag "lambda")
+          (string=? tag "if")
+          (string=? tag "cond")
+          (string=? tag "begin")
+      ) ;or
+    ) ;define
+
+    (define (repair-excess-leading-open-paren lines)
+      (map (lambda (line)
+             (let* ((trimmed (string-trim line))
+                    (indent-len (- (string-length line) (string-length trimmed)))
+                    (indent (substring line 0 indent-len))
+                    (without-one-open (if (> (string-length trimmed) 1)
+                                        (substring trimmed 1 (string-length trimmed))
+                                        "")
+                    ) ;without-one-open
+                    (tokens (extract-identifier-tokens without-one-open))
+                    (first-token (if (null? tokens) #f (car tokens)))
+                    (net-open-count (line-net-open-count line)))
+               (if (and (> (string-length trimmed) 1)
+                        (char=? (string-ref trimmed 0) #\()
+                        (char=? (string-ref trimmed 1) #\()
+                        first-token
+                        (repairable-missing-open-tag? first-token)
+                        (= net-open-count 1)
+                        (not (string-index trimmed #\;)))
+                 (string-append indent without-one-open)
+                 line
+               ) ;if
+             ) ;let*
+           ) ;lambda
+           lines
+      ) ;map
+    ) ;define
+
+    ;; 如果累计余额会跌到负数，说明当前行尾部出现了真正多余的右括号。
+    ;; 这里只修剪尾部那部分多余的 )，避免碰到中间仍有后续代码的场景。
+    (define (trim-excess-trailing-rparens lines)
+      (let loop ((remaining lines)
+                 (accum 0)
+                 (result '()))
+        (if (null? remaining)
+          (reverse result)
+          (let* ((line (car remaining))
+                 (diff (line-net-open-count line))
+                 (new-accum (+ accum diff)))
+            (if (< new-accum 0)
+              (let* ((remove-count (- 0 new-accum))
+                     (trimmed-line (remove-rparens-from-right-by-diff line remove-count)))
+                (if (right-tag-line? line)
+                  ;; 显式 right tag 先保留给后续结构修复阶段处理，
+                  ;; 不要在 define header 预处理里提前删除。
+                  (loop (cdr remaining)
+                        0
+                        (cons line result)
+                  ) ;loop
+                  (loop (cdr remaining)
+                        0
+                        (cons trimmed-line result)
+                  ) ;loop
+                ) ;if
+              ) ;let*
+              (loop (cdr remaining)
+                    new-accum
+                    (cons line result)
+              ) ;loop
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 多行 define 的头部应只留下外层 define 自身未闭合的一个左括号。
+    ;; 若头部净 open 数大于 1，通常表示函数签名缺少了一个 )。
+    (define (repair-define-header-lines lines)
+      (let* ((normalized-lines (trim-excess-trailing-rparens
+                                 (repair-excess-leading-open-paren lines))
+                                 ) ;trim-excess-trailing-rparens
+             (details (scan-environment-details normalized-lines)))
+        (let loop ((remaining details)
+                   (current-lines normalized-lines))
+          (if (null? remaining)
+            current-lines
+            (let* ((detail (car remaining))
+                   (env (env-detail-env detail))
+                   (lparen-line (env-lparen-line env))
+                   (rparen-line (env-rparen-line env)))
+              (if (and (string=? (env-tag env) "define")
+                       rparen-line
+                       (> rparen-line lparen-line))
+                (let* ((line-idx (- lparen-line 1))
+                       (line (list-ref current-lines line-idx))
+                       (net-open-count (line-net-open-count line)))
+                  (if (> net-open-count 1)
+                    (let* ((fixed-line (add-rparens-by-diff line (- net-open-count 1)))
+                           (new-lines (list-set current-lines line-idx fixed-line)))
+                      (loop (cdr remaining) new-lines)
+                    ) ;let*
+                    (loop (cdr remaining) current-lines)
+                  ) ;if
+                ) ;let*
+                (loop (cdr remaining) current-lines)
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
     ;; 运行核心修复流程，返回修复后的行列表
     (define (run-goldfix-lines lines)
-      (let* (;; 插入右标记
-             (lines-with-right-tags (insert-single-line-of-right-tag lines))
+      (let* ((prepared-lines (repair-define-header-lines lines))
+             ;; 插入右标记
+             (lines-with-right-tags (insert-single-line-of-right-tag prepared-lines))
              (envs2 (scan-environments lines-with-right-tags))
              ;; 移除无主右括号行
              (cleaned-lines (remove-orphan-right-paren-lines lines-with-right-tags envs2))
@@ -287,7 +412,7 @@
                                      cleaned-lines
                                      lines-with-right-tags)
                                ) ;list
-                             lines))
+                             prepared-lines))
              (canonical-lines (canonicalize-right-tag-lines best-lines))
              ) ;best-lines
         (if (content-healthy? canonical-lines)

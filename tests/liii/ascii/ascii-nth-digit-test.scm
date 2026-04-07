@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-nth-digit
 ;; 将数值映射为 ASCII 数字字符。

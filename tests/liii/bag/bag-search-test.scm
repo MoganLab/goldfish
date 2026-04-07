@@ -1,6 +1,7 @@
 (import (liii check)
         (liii bag)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -30,34 +31,47 @@
 
 (let ((yam (bag #\y #\a #\m)))
   (define (failure/insert insert ignore)
-    (insert 1))
+    (insert 1)
+  ) ;define
   (define (failure/ignore insert ignore)
-    (ignore 2))
+    (ignore 2)
+  ) ;define
   (define (success/update element update remove)
-    (update #\b 3))
+    (update #\b 3)
+  ) ;define
   (define (success/remove element update remove)
-    (remove 4))
+    (remove 4)
+  ) ;define
 
   (call-with-values
     (lambda () (bag-search! (bag-copy yam) #\! failure/insert error))
     (lambda (b obj)
       (check-true (bag-contains? b #\!))
-      (check obj => 1)))
+      (check obj => 1)
+    ) ;lambda
+  ) ;call-with-values
   (call-with-values
     (lambda () (bag-search! (bag-copy yam) #\! failure/ignore error))
     (lambda (b obj)
       (check-false (bag-contains? b #\!))
-      (check obj => 2)))
+      (check obj => 2)
+    ) ;lambda
+  ) ;call-with-values
   (call-with-values
     (lambda () (bag-search! (bag-copy yam) #\y error success/update))
     (lambda (b obj)
       (check-true (bag-contains? b #\b))
       (check-false (bag-contains? b #\y))
-      (check obj => 3)))
+      (check obj => 3)
+    ) ;lambda
+  ) ;call-with-values
   (call-with-values
     (lambda () (bag-search! (bag-copy yam) #\a error success/remove))
     (lambda (b obj)
       (check-false (bag-contains? b #\a))
-      (check obj => 4))))
+      (check obj => 4)
+    ) ;lambda
+  ) ;call-with-values
+) ;let
 
 (check-report)

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,7 +45,8 @@
 
 (let ((v (make-complex-vector 3)))
   (check (vector-length v) => 3)
-  (check-true (complex-vector? v)))
+  (check-true (complex-vector? v))
+) ;let
 
 (check-catch 'wrong-type-arg (make-complex-vector 'not-a-number))
 (check-catch 'wrong-type-arg (make-complex-vector 3 'not-a-complex))

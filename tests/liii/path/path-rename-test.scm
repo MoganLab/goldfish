@@ -41,11 +41,14 @@
 
   ;; 清理可能存在的旧测试文件
   (when (path-file? src-file)
-    (path-unlink src-file))
+    (path-unlink src-file)
+  ) ;when
   (when (path-file? dst-file)
-    (path-unlink dst-file))
+    (path-unlink dst-file)
+  ) ;when
   (when (path-file? dst2-file)
-    (path-unlink dst2-file))
+    (path-unlink dst2-file)
+  ) ;when
 
   ;; 测试1: 重命名文件
   (path-touch src-file)
@@ -62,17 +65,19 @@
 
   ;; 测试3: 源文件不存在时抛出错误
   (check-catch 'file-not-found-error
-               (path-rename nonexistent-file dst-file))
+               (path-rename nonexistent-file dst-file)
+  ) ;check-catch
 
   ;; 测试4: 目标文件已存在时抛出错误
   (path-touch src-file)
   (path-touch dst-file)
   (check-catch 'file-exists-error
-               (path-rename src-file dst-file))
+               (path-rename src-file dst-file)
+  ) ;check-catch
 
   ;; 清理
   (path-unlink src-file)
   (path-unlink dst-file)
-)
+) ;let*
 
 (check-report)

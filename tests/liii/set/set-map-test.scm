@@ -41,7 +41,9 @@
 (define comp (set-element-comparator s-empty))
 (define string-ci-comparator
   (make-comparator string? string-ci=? string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))))
+    (lambda (s) (string-hash (string-map char-downcase s)))
+  ) ;make-comparator
+) ;define
 
 ;; Test basic mapping
 (define s-map-1 (set 1 2 3))

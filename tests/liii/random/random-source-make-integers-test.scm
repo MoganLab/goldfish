@@ -35,7 +35,7 @@
 (let* ((s (make-random-source))
        (rand-int (random-source-make-integers s)))
   (check (procedure? rand-int) => #t)
-)
+) ;let*
 
 ; 生成器工作正常
 (let* ((s (make-random-source))
@@ -44,8 +44,8 @@
     (check (integer? r) => #t)
     (check (>= r 0) => #t)
     (check (< r 100) => #t)
-  )
-)
+  ) ;let
+) ;let*
 
 ; 多次调用
 (let* ((s (make-random-source))
@@ -56,8 +56,8 @@
     (check (integer? r1) => #t)
     (check (integer? r2) => #t)
     (check (integer? r3) => #t)
-  )
-)
+  ) ;let
+) ;let*
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-source-make-integers 'not-a-source))

@@ -64,7 +64,8 @@
 
 (let* ((base-root (path-join (path-temp-dir)
                              (string-append "golddoc-visible-libraries-"
-                                            (number->string (getpid)))))
+                                            (number->string (getpid))))
+                             ) ;string-append
        (load-root (path-join base-root "goldfish"))
        (liii-root (path-join load-root "liii"))
        (srfi-root (path-join load-root "srfi"))
@@ -78,11 +79,14 @@
   (mkdir (path->string srfi-root))
   (mkdir (path->string tests-root))
   (path-write-text (path-join liii-root "foo.scm")
-                   "(define-library (liii foo) (export) (import (scheme base)) (begin))")
+                   "(define-library (liii foo) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (path-write-text (path-join liii-root "bar.scm")
-                   "(define-library (liii bar) (export) (import (scheme base)) (begin))")
+                   "(define-library (liii bar) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (path-write-text (path-join srfi-root "1.scm")
-                   "(define-library (srfi 1) (export) (import (scheme base)) (begin))")
+                   "(define-library (srfi 1) (export) (import (scheme base)) (begin))"
+  ) ;path-write-text
   (dynamic-wind
     (lambda ()
       (set! *load-path* (list (path->string load-root)))
@@ -91,7 +95,8 @@
       (check (visible-libraries-for-function "unique-func") => '())
       (check (visible-libraries-for-function "shared-func") => '())
       (path-write-text index-path
-                       "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}")
+                       "{\"shared-func\":[\"(liii foo)\",\"(liii bar)\",\"(srfi 1)\"],\"unique-func\":[\"(liii foo)\"]}"
+      ) ;path-write-text
       (check (visible-libraries-for-function "unique-func") => '("liii/foo"))
       (check (visible-libraries-for-function "shared-func") => '("liii/foo" "liii/bar" "srfi/1"))
       (check (visible-libraries-for-function "missing-func") => '())

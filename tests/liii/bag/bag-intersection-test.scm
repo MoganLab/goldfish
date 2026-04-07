@@ -1,6 +1,7 @@
 (import (liii check)
         (liii bag)
-        (liii error))
+        (liii error)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -23,6 +24,7 @@
        (b2 (bag 'a 'b 'b 'c))
        (i (bag-intersection b1 b2)))
   (check (bag-count (lambda (x) (eq? x 'a)) i) => 1)
-  (check (bag-count (lambda (x) (eq? x 'b)) i) => 1))
+  (check (bag-count (lambda (x) (eq? x 'b)) i) => 1)
+) ;let*
 
 (check-report)

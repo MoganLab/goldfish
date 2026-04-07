@@ -187,6 +187,8 @@ Goldfish Scheme is implemented to overcome the defects of [S7 Scheme](https://cc
 ## License
 Goldfish Scheme is licensed under Apache 2.0, some of the code snippets which are derived from the S7 Scheme repo and SRFI have been explicitly claimed in the related source files.
 
+The copyright of `(liii goldfix)` belongs to Liii Network.
+
 
 ## Citation
 

@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -38,31 +39,37 @@
   (flexvector-add-front! fv 'b)
   (check (flexvector-ref fv 0) => 'b)
   (check (flexvector-ref fv 1) => 'a)
-  (check (flexvector->list fv) => '(b a)))
+  (check (flexvector->list fv) => '(b a))
+) ;let
 
 ;; 多个元素
 (let ((fv (flexvector 'x)))
   (flexvector-add-front! fv 'a 'b 'c)
-  (check (flexvector->list fv) => '(a b c x)))
+  (check (flexvector->list fv) => '(a b c x))
+) ;let
 
 ;; 添加到空向量
 (let ((fv (flexvector)))
   (flexvector-add-front! fv 'first)
-  (check (flexvector->list fv) => '(first)))
+  (check (flexvector->list fv) => '(first))
+) ;let
 
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2)))
-  (check (eq? (flexvector-add-front! fv 0) fv) => #t))
+  (check (eq? (flexvector-add-front! fv 0) fv) => #t)
+) ;let
 
 ;; 长度变化
 (let ((fv (flexvector 1 2 3)))
   (check (flexvector-length fv) => 3)
   (flexvector-add-front! fv 0)
-  (check (flexvector-length fv) => 4))
+  (check (flexvector-length fv) => 4)
+) ;let
 
 ;; 多次添加（注意：逐个添加单个元素有已知实现问题，建议使用多参数形式）
 (let ((fv (flexvector)))
   (flexvector-add-front! fv 'a 'b 'c)
-  (check (flexvector->list fv) => '(a b c)))
+  (check (flexvector->list fv) => '(a b c))
+) ;let
 
 (check-report)

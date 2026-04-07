@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii queue))
+        (liii queue)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -7,24 +8,28 @@
 (let ((q (list-queue 1 2 3))
       (sum 0))
   (list-queue-for-each (lambda (x) (set! sum (+ sum x))) q)
-  (check sum => 6))
+  (check sum => 6)
+) ;let
 
 ;; 空队列
 (let ((q (list-queue))
       (count 0))
   (list-queue-for-each (lambda (x) (set! count (+ count 1))) q)
-  (check count => 0))
+  (check count => 0)
+) ;let
 
 ;; 单元素队列
 (let ((q (list-queue 42))
       (val 0))
   (list-queue-for-each (lambda (x) (set! val x)) q)
-  (check val => 42))
+  (check val => 42)
+) ;let
 
 ;; 收集元素
 (let ((q (list-queue 'a 'b 'c))
       (result '()))
   (list-queue-for-each (lambda (x) (set! result (cons x result))) q)
-  (check result => '(c b a)))
+  (check result => '(c b a))
+) ;let
 
 (check-report)

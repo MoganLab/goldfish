@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-graphic->control
 ;; 将 ASCII 图形字符映射为控制字符。

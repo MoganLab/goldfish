@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -32,16 +33,19 @@
 ;; 单元素
 (let ((fv (list->flexvector '(only))))
   (check (flexvector-length fv) => 1)
-  (check (flexvector-ref fv 0) => 'only))
+  (check (flexvector-ref fv 0) => 'only)
+) ;let
 
 ;; 大量元素（测试内部容量分配）
 (let* ((lst (iota 20))
        (fv (list->flexvector lst)))
   (check (flexvector-length fv) => 20)
-  (check (flexvector->list fv) => lst))
+  (check (flexvector->list fv) => lst)
+) ;let*
 
 ;; 往返测试
 (let ((lst '(1 2 3 4 5)))
-  (check (flexvector->list (list->flexvector lst)) => lst))
+  (check (flexvector->list (list->flexvector lst)) => lst)
+) ;let
 
 (check-report)

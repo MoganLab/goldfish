@@ -56,7 +56,8 @@
 (when (not (os-windows?))
   (let* ((base-root (path-join (path-temp-dir)
                                (string-append "golddoc-suggestion-command-"
-                                              (number->string (getpid)))))
+                                              (number->string (getpid))))
+                               ) ;string-append
          (load-root (path-join base-root "goldfish"))
          (liii-root (path-join load-root "liii"))
          (tests-root (path-join base-root "tests"))
@@ -74,13 +75,17 @@
     (mkdir (path->string group-root))
     (mkdir (path->string library-root))
     (path-write-text (path-join liii-root "demo.scm")
-                     "(define-library (liii demo) (export) (import (scheme base)) (begin))")
+                     "(define-library (liii demo) (export) (import (scheme base)) (begin))"
+    ) ;path-write-text
     (path-write-text (path-join library-root "demo-prefix-string-test.scm")
-                     ";; demo-prefix-string\n(check-report)\n")
+                     ";; demo-prefix-string\n(check-report)\n"
+    ) ;path-write-text
     (path-write-text (path-join library-root "demo-prefix-stringify-test.scm")
-                     ";; demo-prefix-stringify\n(check-report)\n")
+                     ";; demo-prefix-stringify\n(check-report)\n"
+    ) ;path-write-text
     (path-write-text index-path
-                     "{\"demo-prefix-string\":[\"(liii demo)\"],\"demo-prefix-stringify\":[\"(liii demo)\"]}")
+                     "{\"demo-prefix-string\":[\"(liii demo)\"],\"demo-prefix-stringify\":[\"(liii demo)\"]}"
+    ) ;path-write-text
     (dynamic-wind
       (lambda ()
         (path-unlink global-output-path #t)
@@ -92,27 +97,35 @@
                                           (path->string load-root)
                                           " doc demo-prefix-str > "
                                           (path->string global-output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (run-shell-command (string-append (executable)
                                           " -I "
                                           (path->string load-root)
                                           " doc liii/demo demo-prefix-str > "
                                           (path->string library-output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (let ((global-output (path-read-text global-output-path))
               (library-output (path-read-text library-output-path)))
           (check-true (string-contains? global-output
-                                        "Try one of these commands:"))
+                                        "Try one of these commands:")
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " doc \"demo-prefix-string\"")))
+                                        (string-append command-name " doc \"demo-prefix-string\""))
+          ) ;check-true
           (check-true (string-contains? global-output
-                                        (string-append command-name " doc \"demo-prefix-stringify\"")))
+                                        (string-append command-name " doc \"demo-prefix-stringify\""))
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        "Try one of these commands:"))
+                                        "Try one of these commands:")
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        (string-append command-name " doc liii/demo \"demo-prefix-string\"")))
+                                        (string-append command-name " doc liii/demo \"demo-prefix-string\""))
+          ) ;check-true
           (check-true (string-contains? library-output
-                                        (string-append command-name " doc liii/demo \"demo-prefix-stringify\"")))
+                                        (string-append command-name " doc liii/demo \"demo-prefix-stringify\""))
+          ) ;check-true
         ) ;let
       ) ;lambda
       (lambda ()

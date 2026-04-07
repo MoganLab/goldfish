@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -37,17 +38,20 @@
   (check (flexvector-remove-back! fv) => 'a)
   ;; 现在为空
   (check (flexvector-empty? fv) => #t)
-  (check (flexvector-length fv) => 0))
+  (check (flexvector-length fv) => 0)
+) ;let
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
   (check (flexvector-remove-back! fv) => 'only)
-  (check (flexvector-empty? fv) => #t))
+  (check (flexvector-empty? fv) => #t)
+) ;let
 
 ;; 添加后再移除
 (let ((fv (flexvector 1 2)))
   (flexvector-add-back! fv 3)
   (check (flexvector-remove-back! fv) => 3)
-  (check (flexvector->list fv) => '(1 2)))
+  (check (flexvector->list fv) => '(1 2))
+) ;let
 
 (check-report)

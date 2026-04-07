@@ -29,18 +29,18 @@
   (check (real? r) => #t)
   (check (> r 0) => #t)
   (check (< r 1) => #t)
-)
+) ;let
 
 ; 多次调用返回不同值
 (let ((r1 (random-real))
       (r2 (random-real)))
   (check (not (= r1 r2)) => #t)
-)
+) ;let
 
 ; 范围验证
 (let ((r (random-real)))
   (check (>= r 0.0) => #t)
   (check (<= r 1.0) => #t)
-)
+) ;let
 
 (check-report)

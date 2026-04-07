@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii hash-table))
+        (liii hash-table)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -38,8 +39,10 @@
 (let ((cnt 0))
   (hash-table-for-each
     (lambda (k v)
-      (set! cnt (+ cnt v)))
-    (hash-table 'a 1 'b 2 'c 3))
+      (set! cnt (+ cnt v))
+    ) ;lambda
+    (hash-table 'a 1 'b 2 'c 3)
+  ) ;hash-table-for-each
   (check cnt => 6)
 ) ;let
 

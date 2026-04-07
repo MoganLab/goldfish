@@ -38,7 +38,8 @@
 (when (not (os-windows?))
   (let* ((base-root (path-join (path-temp-dir)
                                (string-append "goldsource-command-"
-                                              (number->string (getpid)))))
+                                              (number->string (getpid))))
+                               ) ;string-append
          (load-root (path-join base-root "goldfish"))
          (liii-root (path-join load-root "liii"))
          (source-path (path-join liii-root "demo.scm"))
@@ -61,16 +62,19 @@
                                           (path->string load-root)
                                           " source liii/demo > "
                                           (path->string output-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (run-shell-command (string-append (executable)
                                           " -I "
                                           (path->string load-root)
                                           " source liii/missing > "
                                           (path->string error-path)
-                                          " 2>&1"))
+                                          " 2>&1")
+        ) ;run-shell-command
         (check (path-read-text output-path) => expected-source)
         (check-true (string-contains? (path-read-text error-path)
-                                      "Error: library not found in *load-path*: liii/missing"))
+                                      "Error: library not found in *load-path*: liii/missing")
+        ) ;check-true
       ) ;lambda
       (lambda ()
         (path-unlink output-path #t)

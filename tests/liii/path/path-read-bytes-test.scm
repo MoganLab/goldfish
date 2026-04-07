@@ -29,7 +29,8 @@
 ;; 基本二进制文件测试
 (let ((binary-file (path-join (path-temp-dir) "path-read-bytes-basic.dat")))
   (when (path-exists? binary-file)
-    (delete-file (path->string binary-file)))
+    (delete-file (path->string binary-file))
+  ) ;when
   (path-write-text binary-file "Hello, binary world!")
   (let ((read-content (path-read-bytes binary-file)))
     (check-true (bytevector? read-content))
@@ -42,7 +43,8 @@
 ;; 空二进制文件测试
 (let ((empty-file (path-join (path-temp-dir) "path-read-bytes-empty.dat")))
   (when (path-exists? empty-file)
-    (delete-file (path->string empty-file)))
+    (delete-file (path->string empty-file))
+  ) ;when
   (path-write-text empty-file "")
   (let ((empty-bytes (path-read-bytes empty-file)))
     (check (bytevector-length empty-bytes) => 0)
@@ -53,7 +55,8 @@
 ;; 中文文件名二进制读取测试
 (let ((chinese-binary (path-join (path-temp-dir) "中文_测试数据.bin")))
   (when (path-exists? chinese-binary)
-    (delete-file (path->string chinese-binary)))
+    (delete-file (path->string chinese-binary))
+  ) ;when
   (path-write-text chinese-binary "\x01\x02\x03\x04\x05")
   (let ((read-chinese (path-read-bytes chinese-binary)))
     (check-true (bytevector? read-chinese))
@@ -65,7 +68,8 @@
 ;; 与 path-read-text 的对比测试
 (let ((comparison-file (path-join (path-temp-dir) "path-read-bytes-comparison.dat")))
   (when (path-exists? comparison-file)
-    (delete-file (path->string comparison-file)))
+    (delete-file (path->string comparison-file))
+  ) ;when
   (path-write-text comparison-file "Hello, World!测试")
   (let ((binary-data (path-read-bytes comparison-file)))
     (check-true (bytevector? binary-data))

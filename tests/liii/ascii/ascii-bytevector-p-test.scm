@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-bytevector?
 ;; 判断字节向量是否全部由 ASCII 字节组成。

@@ -1,6 +1,7 @@
 (define-library (liii goldfix-paren-right-tag-insert)
   (import (scheme base))
   (import (liii goldfix-env))
+  (import (liii goldfix-line))
   (import (liii goldfix-lint))
   (import (liii goldfix-list))
   (import (liii goldfix-paren-core))
@@ -74,9 +75,9 @@
       (let ((to-insert (sort-details-for-structural-insert
                          (filter (lambda (detail)
                                    (detail-needs-structural-insert? detail current-lines details))
-                                 details))
-                         ) ;filter
-      ) ;let
+                                 details
+                         ) ;filter     
+                       )))
         (let loop ((remaining to-insert) (updated-lines current-lines))
           (if (null? remaining)
             updated-lines
@@ -86,9 +87,20 @@
                    (tag-line (make-right-tag-line env))
                    (closed-line-idx (- close-line 1))
                    (closed-line (list-ref updated-lines closed-line-idx))
-                   (shifted-line (remove-rparens-from-right-by-diff closed-line 1))
-                   (shifted-lines (list-set updated-lines closed-line-idx shifted-line))
-                   (new-lines (insert-line-at shifted-lines close-line tag-line)))
+                   (trailing-unmatched-count
+                    (line-trailing-unmatched-rparen-count closed-line)
+                   ) ;trailing-unmatched-count
+                   (new-lines
+                    (if (and (line-starts-with-rparen? closed-line)
+                             (= trailing-unmatched-count 1))
+                      (list-set updated-lines closed-line-idx tag-line)
+                      (let* ((shifted-line (remove-rparens-from-right-by-diff closed-line 1))
+                             (shifted-lines (list-set updated-lines closed-line-idx shifted-line)))
+                        (insert-line-at shifted-lines close-line tag-line)
+                      ) ;let*
+                    ) ;if
+                   ) ;new-lines
+                   )
               (loop (cdr remaining) new-lines)
             ) ;let*
           ) ;if
@@ -133,5 +145,5 @@
       ) ;let*
     ) ;define
 
-) ;define-library
+  ) ;begin
 ) ;define-library

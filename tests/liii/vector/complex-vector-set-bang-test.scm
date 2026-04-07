@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,19 +45,23 @@
 
 (let ((v (complex-vector 1+2i 3+4i)))
   (complex-vector-set! v 0 100+200i)
-  (check-true (number? (complex-vector-ref v 0))))
+  (check-true (number? (complex-vector-ref v 0)))
+) ;let
 
 (let ((v (make-complex-vector 5)))
   (complex-vector-set! v 2 3.14+2.71i)
-  (check-true (number? (complex-vector-ref v 2))))
+  (check-true (number? (complex-vector-ref v 2)))
+) ;let
 
 (let ((v (complex-vector 1.0+1.0i 2.0+2.0i)))
-  (check-true (complex-vector? v)))
+  (check-true (complex-vector? v))
+) ;let
 
 (let ((v (complex-vector 1+2i 3+4i)))
   (check-catch 'wrong-type-arg (complex-vector-set! v 0 'not-a-complex))
   (check-catch 'out-of-range (complex-vector-set! v 5 1+2i))
-  (check-catch 'out-of-range (complex-vector-set! v -1 1+2i)))
+  (check-catch 'out-of-range (complex-vector-set! v -1 1+2i))
+) ;let
 
 (check-catch 'wrong-type-arg (complex-vector-set! (vector 1+2i 3+4i) 0 5+6i))
 (check-catch 'wrong-type-arg (complex-vector-set! (int-vector 1 2) 0 3+4i))

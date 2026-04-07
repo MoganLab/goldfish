@@ -30,7 +30,7 @@
 ; 随机源测试
 (let ((s (make-random-source)))
   (check (random-source? s) => #t)
-)
+) ;let
 
 ; 非随机源测试
 (check (random-source? 'not-a-source) => #f)

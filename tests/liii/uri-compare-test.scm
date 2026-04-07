@@ -4,17 +4,19 @@
 
 (import (liii uri-record)
         (liii uri-compare)
-)
+) ;import
 
 ;; ==== 常见用法示例 ====
 
 ;; 示例1：URI 相等比较
 (uri=? (make-uri-raw "https" "example.com" "/" '() #f)
-       (make-uri-raw "https" "example.com" "/" '() #f))  ; => #t
+       (make-uri-raw "https" "example.com" "/" '() #f)  ; => #t
+) ;uri=?
 
 ;; 示例2：URI 字典序比较
 (uri<? (make-uri-raw "http" "a.com" "/" '() #f)
-       (make-uri-raw "http" "b.com" "/" '() #f))  ; => #t
+       (make-uri-raw "http" "b.com" "/" '() #f)  ; => #t
+) ;uri<?
 
 ;; 示例3：URI 哈希值
 (uri-hash (make-uri-raw "https" "example.com" "/path" '() #f))

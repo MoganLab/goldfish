@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -44,11 +45,13 @@
 (let ((fv (make-flexvector 100 'x)))
   (check (flexvector-length fv) => 100)
   (check (flexvector-ref fv 0) => 'x)
-  (check (flexvector-ref fv 99) => 'x))
+  (check (flexvector-ref fv 99) => 'x)
+) ;let
 
 ;; 修改后行为
 (let ((fv (make-flexvector 3 'a)))
   (flexvector-set! fv 1 'b)
-  (check (flexvector->vector fv) => #(a b a)))
+  (check (flexvector->vector fv) => #(a b a))
+) ;let
 
 (check-report)

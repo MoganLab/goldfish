@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii flexvector))
+        (liii flexvector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -33,38 +34,46 @@
 
 ;; 基本转换
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->vector fv) => #(1 2 3)))
+  (check (flexvector->vector fv) => #(1 2 3))
+) ;let
 
 ;; 空向量
 (let ((fv (flexvector)))
-  (check (flexvector->vector fv) => #()))
+  (check (flexvector->vector fv) => #())
+) ;let
 
 ;; 从指定位置转换
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector fv 2) => #(3 4 5)))
+  (check (flexvector->vector fv 2) => #(3 4 5))
+) ;let
 
 ;; 转换区间 [start, end)
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector fv 1 4) => #(2 3 4)))
+  (check (flexvector->vector fv 1 4) => #(2 3 4))
+) ;let
 
 ;; 边界测试：空区间
 (let ((fv (flexvector 1 2 3)))
   (check (flexvector->vector fv 0 0) => #())
-  (check (flexvector->vector fv 3 3) => #()))
+  (check (flexvector->vector fv 3 3) => #())
+) ;let
 
 ;; 单元素
 (let ((fv (flexvector 'only)))
-  (check (flexvector->vector fv) => #(only)))
+  (check (flexvector->vector fv) => #(only))
+) ;let
 
 ;; 往返测试
 (let ((vec #(a b c d e)))
-  (check (flexvector->vector (vector->flexvector vec)) => vec))
+  (check (flexvector->vector (vector->flexvector vec)) => vec)
+) ;let
 
 ;; 修改原向量不影响已转换的 vector
 (let ((fv (flexvector 1 2 3))
       (vec #f))
   (set! vec (flexvector->vector fv))
   (flexvector-set! fv 0 999)
-  (check vec => #(1 2 3)))
+  (check vec => #(1 2 3))
+) ;let
 
 (check-report)

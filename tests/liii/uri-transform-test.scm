@@ -5,7 +5,7 @@
 (import (liii uri-record)
         (liii uri-transform)
         (liii uri-convert)
-)
+) ;import
 
 ;; ==== 常见用法示例 ====
 
@@ -14,7 +14,8 @@
 
 ;; 示例2：更新查询参数
 (uri-extend-query (make-uri-raw "https" "api.com" "/" '() #f)
-                  '(("page" . "1") ("limit" . "10")))
+                  '(("page" . "1") ("limit" . "10"))
+) ;uri-extend-query
 
 ;; 示例3：URI 转字符串
 (uri->string (make-uri-raw "https" "example.com" "/path" '(("a" . "1")) "frag"))

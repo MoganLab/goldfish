@@ -24,7 +24,8 @@
 ;; 创建新空文件测试
 (let ((touch-file (path-join (path-temp-dir) "path-touch-basic.txt")))
   (when (path-exists? touch-file)
-    (delete-file (path->string touch-file)))
+    (delete-file (path->string touch-file))
+  ) ;when
   (check-false (path-exists? touch-file))
   (check-true (path-touch touch-file))
   (check-true (path-exists? touch-file))
@@ -36,7 +37,8 @@
 ;; 更新现有文件时间戳测试
 (let ((touch-file (path-join (path-temp-dir) "path-touch-update.txt")))
   (when (path-exists? touch-file)
-    (delete-file (path->string touch-file)))
+    (delete-file (path->string touch-file))
+  ) ;when
   (path-write-text touch-file "keep")
   (check-true (path-touch touch-file))
   (check (path-read-text touch-file) => "keep")
@@ -46,7 +48,8 @@
 ;; 目录时间戳测试
 (let ((touch-dir (path-join (path-temp-dir) "path-touch-dir")))
   (when (path-exists? touch-dir)
-    (rmdir (path->string touch-dir)))
+    (rmdir (path->string touch-dir))
+  ) ;when
   (mkdir (path->string touch-dir))
   (check-true (path-touch touch-dir))
   (check-true (path-dir? touch-dir))
@@ -56,7 +59,8 @@
 ;; 特殊文件名测试
 (let ((special-file (path-join (path-temp-dir) "path-touch-special_中文#.txt")))
   (when (path-exists? special-file)
-    (delete-file (path->string special-file)))
+    (delete-file (path->string special-file))
+  ) ;when
   (check-true (path-touch special-file))
   (check-true (path-exists? special-file))
   (delete-file (path->string special-file))
@@ -65,7 +69,8 @@
 ;; 相对路径与重复调用测试
 (let ((relative-file (path "path-touch-relative.txt")))
   (when (path-exists? relative-file)
-    (delete-file (path->string relative-file)))
+    (delete-file (path->string relative-file))
+  ) ;when
   (check-true (path-touch relative-file))
   (check-true (path-touch relative-file))
   (check-true (path-touch relative-file))

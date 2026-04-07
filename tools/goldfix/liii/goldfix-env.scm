@@ -27,6 +27,7 @@
   ;; 扫描环境相关函数
   (export scan-environments)
   (export scan-environment-details)
+  (export scan-claimed-rparen-lines)
   (export env-detail?)
   (export env-detail-env)
   (export env-detail-close-line)

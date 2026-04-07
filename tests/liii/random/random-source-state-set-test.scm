@@ -37,10 +37,10 @@
       (random-source-state-set! s saved-state)
       (let ((reset-state (random-source-state-ref s)))
         (check (equal? saved-state reset-state) => #t)
-      )
-    )
-  )
-)
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let
 
 ; 错误处理
 (check-catch 'wrong-type-arg (random-source-state-set! 'not-a-source '(random-source-state 0 0)))
@@ -49,6 +49,6 @@
   (check-catch 'wrong-type-arg (random-source-state-set! s 'invalid-state))
   (check-catch 'wrong-type-arg (random-source-state-set! s '(not-the-right-tag 0 0)))
   (check-catch 'wrong-type-arg (random-source-state-set! s '(random-source-state)))
-)
+) ;let
 
 (check-report)

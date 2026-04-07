@@ -7,7 +7,7 @@
 (define-library (liii goldfix-line-scan)
   (import (scheme base))
   (import (liii string))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-scheme))
 
   (export countable-rparen-indices)
@@ -133,7 +133,7 @@
                    ((char=? ch #\;)
                     (reverse indices)
                    ) ;
-                   ((char=? ch RPAREN)
+                   ((ascii-right-paren? ch)
                     (loop (+ i 1)
                           (cons i indices)
                           block-depth
@@ -408,7 +408,7 @@
                    ((char=? ch #\;)
                     (reverse indices)
                    ) ;
-                   ((char=? ch LPAREN)
+                   ((ascii-left-paren? ch)
                     (loop (+ i 1)
                           indices
                           (+ open-count 1)
@@ -417,7 +417,7 @@
                           #f
                     ) ;loop
                    ) ;
-                   ((char=? ch RPAREN)
+                   ((ascii-right-paren? ch)
                     (if (> open-count 0)
                       (loop (+ i 1)
                             indices

@@ -7,7 +7,7 @@
 (define-library (liii goldfix-env-tag)
   (import (scheme base))
   (import (liii string))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-scheme))
   (import (liii goldfix-env-core))
 
@@ -29,22 +29,23 @@
               ) ;
               ((and start
                     (or (char-whitespace? (string-ref line i))
-                        (char=? (string-ref line i) LPAREN)
-                        (char=? (string-ref line i) RPAREN))
-               ) ;or
-               (substring line start i)
+                        (ascii-left-paren? (string-ref line i))
+                        (ascii-right-paren? (string-ref line i))
+                    ) ;or
               ) ;
+               (substring line start i)
+            ) ;cond
               ((and (not start) (not (char-whitespace? (string-ref line i))))
                (loop (+ i 1) i)
               ) ;
               (else
                (loop (+ i 1) start)
               ) ;else
-            ) ;cond
           ) ;let
         ) ;let
       ) ;if
     ) ;define
+  ) ;begin
 
     (define (filler-token? token)
       (or (string=? token "end")
@@ -93,14 +94,14 @@
     (define (extract-tag line)
       (let ((trimmed (string-trim line)))
         (if (or (string-null? trimmed)
-                (not (char=? (string-ref trimmed 0) LPAREN)))
+                (not (ascii-left-paren? (string-ref trimmed 0))))
           ""
           (let ((len (string-length trimmed)))
             (let loop ((i 1) (start #f) (end #f))
               (cond
                 (end
                  (substring trimmed start end)
-                ) ;
+                ) ;end
                 ((>= i len)
                  (if start
                    (substring trimmed start len)
@@ -110,7 +111,7 @@
                 ((and (not start) (char-whitespace? (string-ref trimmed i)))
                  (loop (+ i 1) start end)
                 ) ;
-                ((and (not start) (char=? (string-ref trimmed i) LPAREN))
+                ((and (not start) (ascii-left-paren? (string-ref trimmed i)))
                  ""
                 ) ;
                 ((and (not start) (char-identifier? (string-ref trimmed i)))
@@ -135,7 +136,7 @@
     (define (extract-right-tag line)
       (let ((trimmed (string-trim line)))
         (if (or (string-null? trimmed)
-                (not (char=? (string-ref trimmed 0) RPAREN)))
+                (not (ascii-right-paren? (string-ref trimmed 0))))
           ""
           (let ((len (string-length trimmed)))
             (let loop ((i 1))
@@ -171,5 +172,5 @@
       ) ;let
     ) ;define
 
-  ) ;begin
+) ;define-library
 ) ;define-library

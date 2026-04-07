@@ -2,7 +2,7 @@
   (import (scheme base))
   (import (liii error))
   (import (liii string))
-  (import (liii goldfix-constant))
+  (import (liii ascii))
   (import (liii goldfix-file))
   (import (liii goldfix-scheme))
   (export paren-match?
@@ -152,7 +152,7 @@
                             #f
                     ) ;values
                    ) ;
-                   ((char=? ch LPAREN)
+                   ((ascii-left-paren? ch)
                     (loop (+ i 1)
                           (+ lparen-count 1)
                           rparen-count
@@ -161,7 +161,7 @@
                           #f
                     ) ;loop
                    ) ;
-                   ((char=? ch RPAREN)
+                   ((ascii-right-paren? ch)
                     (loop (+ i 1)
                           lparen-count
                           (+ rparen-count 1)

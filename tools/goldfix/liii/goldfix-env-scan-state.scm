@@ -6,7 +6,6 @@
 
 (define-library (liii goldfix-env-scan-state)
   (import (scheme base))
-  (import (liii goldfix-constant))
   (import (liii goldfix-scheme))
   (import (liii goldfix-env-tag))
   (import (liii goldfix-env-core))
@@ -22,21 +21,47 @@
   (export scan-line-bare-lparen-step)
 
   (begin
-    (define (scan-line-return stack block-depth in-string escape-next envs details)
-      (values stack block-depth in-string escape-next envs details)
+    (define (record-explicit-rparen-line claimed-rparen-lines line-num)
+      (if (and (pair? claimed-rparen-lines)
+               (= (car claimed-rparen-lines) line-num))
+        claimed-rparen-lines
+        (cons line-num claimed-rparen-lines)
+      ) ;if
     ) ;define
 
-    (define (finish-scan-line line-num stack block-depth in-string escape-next envs details line-kind lparen-count rparen-count first-rparen-detail)
-      (when (and (eq? line-kind 'rparen)
-                 (= lparen-count 0)
-                 (= rparen-count 1)
-                 first-rparen-detail)
-        (env-detail-set-explicit-rparen-line! first-rparen-detail line-num)
-      ) ;when
-      (scan-line-return stack block-depth in-string escape-next envs details)
+    (define (scan-line-return stack block-depth in-string escape-next envs details claimed-rparen-lines)
+      (values stack block-depth in-string escape-next envs details claimed-rparen-lines)
     ) ;define
 
-    (define (scan-line-open-form line lines len line-num i stack block-depth in-string envs details lparen-count rparen-count first-rparen-detail)
+    (define (finish-scan-line line-num stack block-depth in-string escape-next envs details claimed-rparen-lines line-kind lparen-count rparen-count first-rparen-detail)
+      (let ((next-claimed-rparen-lines
+              (if (and (eq? line-kind 'rparen)
+                       (= lparen-count 0)
+                       (= rparen-count 1)
+                       first-rparen-detail)
+                (record-explicit-rparen-line claimed-rparen-lines line-num)
+                claimed-rparen-lines
+              ) ;if
+            ) ;next-claimed-rparen-lines
+      ) ;let
+        (when (and (eq? line-kind 'rparen)
+                   (= lparen-count 0)
+                   (= rparen-count 1)
+                   first-rparen-detail)
+          (env-detail-set-explicit-rparen-line! first-rparen-detail line-num)
+        ) ;when
+        (scan-line-return stack
+                          block-depth
+                          in-string
+                          escape-next
+                          envs
+                          details
+                          next-claimed-rparen-lines
+        ) ;scan-line-return
+    ) ;define
+  ) ;begin
+
+    (define (scan-line-open-form line lines len line-num i stack block-depth in-string envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (let* ((open-index (prefixed-open-index line i))
              (trimmed (substring line open-index len))
              (tag (extract-tag trimmed))
@@ -53,6 +78,7 @@
                 'lparen
                 (cons env envs)
                 (cons detail details)
+                claimed-rparen-lines
                 (+ lparen-count 1)
                 rparen-count
                 first-rparen-detail
@@ -60,7 +86,7 @@
       ) ;let*
     ) ;define
 
-    (define (scan-line-atom-form line lines len line-num i stack block-depth in-string envs details lparen-count rparen-count first-rparen-detail)
+    (define (scan-line-atom-form line lines len line-num i stack block-depth in-string envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (let* ((trimmed (substring line i len))
              (tag (extract-first-token trimmed))
              (effective-stack (unwind-stack-before-col lines stack i line-num))
@@ -76,6 +102,7 @@
                 'atom
                 (cons env envs)
                 details
+                claimed-rparen-lines
                 lparen-count
                 rparen-count
                 first-rparen-detail
@@ -83,7 +110,7 @@
       ) ;let*
     ) ;define
 
-    (define (scan-line-close-rparen i line-num stack block-depth in-string line-kind envs details lparen-count rparen-count first-rparen-detail)
+    (define (scan-line-close-rparen i line-num stack block-depth in-string line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (let ((new-rparen-count (+ rparen-count 1)))
         (if (null? stack)
           (values (+ i 1)
@@ -94,6 +121,7 @@
                   line-kind
                   envs
                   details
+                  claimed-rparen-lines
                   lparen-count
                   new-rparen-count
                   first-rparen-detail
@@ -118,6 +146,7 @@
                     line-kind
                     envs
                     details
+                    claimed-rparen-lines
                     lparen-count
                     new-rparen-count
                     candidate-detail
@@ -127,7 +156,7 @@
       ) ;let
     ) ;define
 
-    (define (scan-line-state i stack block-depth in-string escape-next line-kind envs details lparen-count rparen-count first-rparen-detail)
+    (define (scan-line-state i stack block-depth in-string escape-next line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (values i
               stack
               block-depth
@@ -136,13 +165,14 @@
               line-kind
               envs
               details
+              claimed-rparen-lines
               lparen-count
               rparen-count
               first-rparen-detail
       ) ;values
     ) ;define
 
-    (define (scan-line-block-comment-step line len i ch stack block-depth in-string line-kind envs details lparen-count rparen-count first-rparen-detail)
+    (define (scan-line-block-comment-step line len i ch stack block-depth in-string line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (cond
         ((and (< (+ i 1) len)
               (char=? ch #\#)
@@ -155,6 +185,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -171,6 +202,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -185,6 +217,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -193,7 +226,7 @@
       ) ;cond
     ) ;define
 
-    (define (scan-line-string-step i ch stack block-depth line-kind envs details lparen-count rparen-count first-rparen-detail)
+    (define (scan-line-string-step i ch stack block-depth line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (cond
         ((char=? ch #\\)
          (scan-line-state (+ i 1)
@@ -204,6 +237,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -218,6 +252,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -232,6 +267,7 @@
                           line-kind
                           envs
                           details
+                          claimed-rparen-lines
                           lparen-count
                           rparen-count
                           first-rparen-detail
@@ -240,20 +276,23 @@
       ) ;cond
     ) ;define
 
-    (define (scan-line-bare-lparen-step i line-num stack block-depth in-string line-kind envs details lparen-count rparen-count first-rparen-detail)
-      (scan-line-state (+ i 1)
-                       (cons (make-paren-node line-num i #f #f) stack)
-                       block-depth
-                       in-string
-                       #f
-                       line-kind
-                       envs
-                       details
-                       (+ lparen-count 1)
-                       rparen-count
-                       first-rparen-detail
-      ) ;scan-line-state
+    (define (scan-line-bare-lparen-step line len i line-num stack block-depth in-string line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
+      (let ((raw-tag (extract-tag (substring line i len))))
+        (scan-line-state (+ i 1)
+                         (cons (make-paren-node line-num i #f #f raw-tag) stack)
+                         block-depth
+                         in-string
+                         #f
+                         line-kind
+                         envs
+                         details
+                         claimed-rparen-lines
+                         (+ lparen-count 1)
+                         rparen-count
+                         first-rparen-detail
+        ) ;scan-line-state
+      ) ;let
     ) ;define
 
-  ) ;begin
+) ;define-library
 ) ;define-library

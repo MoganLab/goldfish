@@ -1,6 +1,7 @@
 (import (liii check)
         (liii list)
-        (liii vector))
+        (liii vector)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -40,28 +41,37 @@
   (let ((lst (make-list 5)))
     (vector-for-each
       (lambda (i) (list-set! lst i (* i i)))
-      #(0 1 2 3 4))
-    lst)
+      #(0 1 2 3 4)
+    ) ;vector-for-each
+    lst
+  ) ;let
   =>
-  '(0 1 4 9 16))
+  '(0 1 4 9 16)
+) ;check
 
 (check
   (let ((lst (make-list 5)))
     (vector-for-each
       (lambda (i) (list-set! lst i (* i i)))
-      #(0 1 2))
-    lst)
+      #(0 1 2)
+    ) ;vector-for-each
+    lst
+  ) ;let
   =>
-  '(0 1 4 #f #f))
+  '(0 1 4 #f #f)
+) ;check
 
 (check
   (let ((lst (make-list 5)))
     (vector-for-each
       (lambda (i) (list-set! lst i (* i i)))
-      #())
-    lst)
+      #()
+    ) ;vector-for-each
+    lst
+  ) ;let
   =>
-  '(#f #f #f #f #f))
+  '(#f #f #f #f #f)
+) ;check
 
 (let ((sum 0))
   (vector-for-each (lambda (x) (set! sum (+ sum x))) #(1 2 3))
@@ -77,7 +87,8 @@
   (vector-for-each
     (lambda (x y) (set! result (cons (cons x y) result)))
     #(a b c)
-    #(1 2 3))
+    #(1 2 3)
+  ) ;vector-for-each
   (check result => '((c . 3) (b . 2) (a . 1)))
 ) ;let
 

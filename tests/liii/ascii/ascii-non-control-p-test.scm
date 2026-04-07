@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii ascii))
+        (liii ascii)
+) ;import
 
 ;; ascii-non-control?
 ;; 判断是否为 ASCII 非控制字符。
