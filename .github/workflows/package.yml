@@ -83,7 +83,7 @@ jobs:
 
     - name: Fetch xmake deb template
       run: |
-        TEMPLATE_ROOT=/usr/share/xmake/scripts/xpack/deb/debian
+        TEMPLATE_ROOT=.tmp/xpack-deb-template/debian
         BASE_URL=https://raw.githubusercontent.com/xmake-io/xmake/v2.9.9/xmake/scripts/xpack/deb/debian
 
         mkdir -p "$TEMPLATE_ROOT/source"
@@ -93,10 +93,12 @@ jobs:
         curl -fsSL "$BASE_URL/copyright" -o "$TEMPLATE_ROOT/copyright"
         curl -fsSL "$BASE_URL/rules" -o "$TEMPLATE_ROOT/rules"
         curl -fsSL "$BASE_URL/source/format" -o "$TEMPLATE_ROOT/source/format"
+        sed -i '2a export XMAKE_ROOT=y' "$TEMPLATE_ROOT/rules"
         chmod +x "$TEMPLATE_ROOT/rules"
 
     - name: Config and Build
       run: |
+        sed -i '/set_formats("deb", "rpm", "srpm")/a\        set_specfile(".tmp/xpack-deb-template/debian")' xmake.lua
         xmake config -vyD --policies=build.ccache -o tmp/build -m releasedbg --repl=true
         xmake build goldfish
 
