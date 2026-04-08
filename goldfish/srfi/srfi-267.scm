@@ -28,7 +28,7 @@
 ;;    in Scheme raw string discussions
 
 (define-library (srfi srfi-267)
-  (import (only (srfi srfi-13) string-contains))
+  (import (only (srfi srfi-13) string-contains string-suffix?))
   (export raw-string-read-error?
           raw-string-write-error?
           read-raw-string
@@ -64,16 +64,6 @@
       ) ;throw
     ) ;define
 
-    (define (string-suffix? str suffix)
-      (let ((str-len (string-length str))
-            (suffix-len (string-length suffix)))
-        (and (<= suffix-len str-len)
-             (string=? (substring str (- str-len suffix-len) str-len)
-                       suffix)
-        ) ;and
-      ) ;let
-    ) ;define
-
     (define (valid-delimiter? delimiter)
       (and (string? delimiter)
            (not (string-contains delimiter "\""))
@@ -91,7 +81,7 @@
            (let ((needle (string-append "\"" delimiter "\""))
                  (suffix (string-append "\"" delimiter)))
              (and (not (string-contains str needle))
-                  (not (string-suffix? str suffix))
+                  (not (string-suffix? suffix str))
              ) ;and
            ) ;let
       ) ;and
