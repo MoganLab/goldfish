@@ -114,6 +114,8 @@ Commands:
   help               Display this help message
   version            Display version
   eval CODE          Evaluate Scheme code
+                     Example: gf eval '(+ 1 2)'
+                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
   load FILE          Load Scheme code from FILE, then enter REPL
   ...
 ```
@@ -127,13 +129,13 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### Evaluate Code
-`eval` subcommand helps you evaluate Scheme code on the fly:
+`eval` subcommand helps you evaluate Scheme code on the fly. Use single quotes around `CODE` in the shell so double quotes inside Scheme strings usually do not need escaping:
 ```
-> gf eval "(+ 1 2)"
+> gf eval '(+ 1 2)'
 3
-> gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+> gf eval '(begin (import (srfi srfi-1)) (first (list 1 2 3)))'
 1
-> gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+> gf eval '(begin (import (liii sys)) (display (argv)) (newline))' 1 2 3
 ("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
 ```
 
@@ -169,7 +171,7 @@ Goldfish also supports extra library search directories during startup:
 
 For example:
 ```bash
-gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+gf -I ~/.local/goldfish/liii-goldfix eval '(begin (import (liii goldfix)) (quote ok))'
 ```
 
 On startup, Goldfish also automatically prepends each directory under `~/.local/goldfish/` whose name matches `xxx-yyy` and which contains at least one `.scm` file.

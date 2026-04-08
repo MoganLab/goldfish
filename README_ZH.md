@@ -119,6 +119,8 @@ Commands:
   help               Display this help message
   version            Display version
   eval CODE          Evaluate Scheme code
+                     Example: gf eval '(+ 1 2)'
+                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
   load FILE          Load Scheme code from FILE, then enter REPL
   ...
 ```
@@ -132,13 +134,13 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### 求值代码
-`eval` 子命令帮助您即时求值 Scheme 代码：
+`eval` 子命令帮助您即时求值 Scheme 代码。Shell 中建议用单引号包住 `CODE`，这样 Scheme 字符串里的双引号通常不用转义：
 ```
-> gf eval "(+ 1 2)"
+> gf eval '(+ 1 2)'
 3
-> gf eval "(begin (import (srfi srfi-1)) (first (list 1 2 3)))"
+> gf eval '(begin (import (srfi srfi-1)) (first (list 1 2 3)))'
 1
-> gf eval "(begin (import (liii sys)) (display (argv)) (newline))" 1 2 3
+> gf eval '(begin (import (liii sys)) (display (argv)) (newline))' 1 2 3
 ("bin/gf" "eval" "(begin (import (liii sys)) (display (argv)) (newline))" "1" "2" "3")
 ```
 
@@ -174,7 +176,7 @@ Goldfish 启动时也支持额外的库搜索目录：
 
 例如：
 ```bash
-gf -I ~/.local/goldfish/liii-goldfix eval "(begin (import (liii goldfix)) 'ok)"
+gf -I ~/.local/goldfish/liii-goldfix eval '(begin (import (liii goldfix)) (quote ok))'
 ```
 
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
