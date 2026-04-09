@@ -11,6 +11,25 @@
   (export insert-single-line-of-right-tag)
 
   (begin
+    (define (same-env-origin? a b)
+      (and (string=? (env-tag a) (env-tag b))
+           (= (env-lparen-line a) (env-lparen-line b))
+           (= (env-lparen-col a) (env-lparen-col b))
+      ) ;and
+    ) ;define
+
+    (define (env-blocked? env blocked-envs)
+      (let loop ((rest blocked-envs))
+        (if (null? rest)
+          #f
+          (if (same-env-origin? env (car rest))
+            #t
+            (loop (cdr rest))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (choose-next-env candidates current-envs total-lines current-lines)
       (define (safe-pos env)
         (let ((raw-pos (find-insert-position env current-envs total-lines current-lines)))
@@ -72,12 +91,7 @@
     ) ;define
 
     (define (insert-structural-right-tags current-lines details)
-      (let ((to-insert (sort-details-for-structural-insert
-                         (filter (lambda (detail)
-                                   (detail-needs-structural-insert? detail current-lines details))
-                                 details
-                         ) ;filter
-                       )))
+      (let ((to-insert (collect-structural-insert-details details current-lines)))
         (let loop ((remaining to-insert) (updated-lines current-lines))
           (if (null? remaining)
             updated-lines
@@ -114,11 +128,14 @@
              (structurally-tagged-lines (insert-structural-right-tags rewritten-lines initial-details)))
         (if (check-lines-balanced lines)
           structurally-tagged-lines
-          (let loop ((current-lines structurally-tagged-lines))
+          (let loop ((current-lines structurally-tagged-lines)
+                     (last-inserted-env #f)
+                     (blocked-envs '()))
             (let* ((current-envs (scan-environments current-lines))
                    (remaining
                     (filter (lambda (env)
-                              (and (not (env-in-prefixed-context? env current-lines))
+                              (and (not (env-blocked? env blocked-envs))
+                                   (not (env-in-prefixed-context? env current-lines))
                                    (env-needs-right-tag? env current-lines))
                               ) ;and
                             current-envs
@@ -136,7 +153,14 @@
                        ) ;pos
                        (tag-line (make-right-tag-line env))
                        (new-lines (insert-line-at current-lines pos tag-line)))
-                  (loop new-lines)
+                  (if (and last-inserted-env
+                           (same-env-origin? env last-inserted-env))
+                    (loop current-lines
+                          last-inserted-env
+                          (cons env blocked-envs)
+                    ) ;loop
+                    (loop new-lines env blocked-envs)
+                  ) ;if
                 ) ;let*
               ) ;if
             ) ;let*

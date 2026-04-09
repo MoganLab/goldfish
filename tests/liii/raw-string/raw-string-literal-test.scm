@@ -52,19 +52,22 @@ string""
 (check
  #""
     no whitespace stripping""
- => "\n    no whitespace stripping")
+ => "\n    no whitespace stripping"
+) ;check
 
 (check
  #""
     no whitespace stripping
   ""
- => "\n    no whitespace stripping\n  ")
+ => "\n    no whitespace stripping\n  "
+) ;check
 
 (check
  #""
   注释 ;; comment
   ""
- => "\n  注释 ;; comment\n  ")
+ => "\n  注释 ;; comment\n  "
+) ;check
 
 (check
  #"HTML"

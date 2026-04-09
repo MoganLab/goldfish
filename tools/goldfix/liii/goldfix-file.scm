@@ -56,52 +56,17 @@
     ;; 输入: str - 字符串
     ;; 输出: 行列表（每行不含换行符）
     (define (string->lines str)
-      (let ((len (string-length str)))
-        (let loop ((start 0) (lines '()))
-          (if (> start len)
-            (reverse lines)
-            (if (= start len)
-              ;; 字符串末尾，如果最后一个字符是换行符，产生一个空行
-              (if (and (not (null? lines))
-                       (> len 0)
-                       (char=? (string-ref str (- len 1)) #\newline))
-                (reverse (cons "" lines))
-                (reverse lines)
-              ) ;if
-              (let ((pos (string-index str #\newline start)))
-                (if pos
-                  (loop (+ pos 1) (cons (substring str start pos) lines))
-                  (loop (+ len 1) (cons (substring str start len) lines))
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;if
-        ) ;let
-      ) ;let
+      (if (string-null? str)
+        '()
+        (string-split str #\newline)
+      ) ;if
     ) ;define
 
     ;; 将行列表合并为字符串
     ;; 输入: lines - 行列表
     ;; 输出: 合并后的字符串
     (define (lines->string lines)
-      (if (null? lines)
-        ""
-        (let loop ((rest (cdr lines)) (result (car lines)))
-          (if (null? rest)
-            result
-            (let ((next-line (car rest)))
-              (if (and (null? (cdr rest)) (string=? next-line ""))
-                ;; 最后一行是空字符串，表示原始字符串以换行符结尾
-                ;; 添加一个换行符表示文件末尾的换行符
-                (string-append result "\n")
-                (loop (cdr rest)
-                      (string-append result "\n" next-line)
-                ) ;loop
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;if
+      (string-join lines "\n")
     ) ;define
 
   ) ;begin

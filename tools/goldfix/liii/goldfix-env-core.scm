@@ -52,12 +52,15 @@
       (rparen-line env-rparen-line env-set-rparen-line!)
     ) ;define-record-type
 
-    (define (make-env tag lparen-line lparen-col parent)
+    (define* (make-env tag
+                       (lparen-line (error "make-env requires :lparen-line"))
+                       (lparen-col (error "make-env requires :lparen-col"))
+                       (parent #f))
       (let ((env (make-raw-env tag lparen-line lparen-col parent)))
         (env-set-children! env '())
         env
       ) ;let
-    ) ;define
+    ) ;define*
 
     (define-record-type env-detail
       (make-env-detail env close-line explicit-rparen-line)

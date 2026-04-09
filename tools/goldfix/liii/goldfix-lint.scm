@@ -27,160 +27,62 @@
                    (in-string in-string)
                    (escape-next escape-next))
           (if (>= i len)
-            (values (cons lparen-count rparen-count)
-                    block-depth
-                    in-string
-                    #f
-            ) ;values
+            (let-values (((next-block-depth next-in-string next-escape-next)
+                          (advance-lex-state-at-line-break block-depth
+                                                           in-string
+                                                           escape-next)))
+              (values (cons lparen-count rparen-count)
+                      next-block-depth
+                      next-in-string
+                      next-escape-next
+              ) ;values
+            ) ;let-values
             (let ((ch (string-ref line i)))
-              (cond
-                (escape-next
-                 (loop (+ i 1)
-                       lparen-count
-                       rparen-count
-                       block-depth
-                       in-string
-                       #f
-                 ) ;loop
-                ) ;escape-next
-
-                ((> block-depth 0)
-                 (cond
-                   ((and (< (+ i 1) len)
-                         (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
-                    (loop (+ i 2)
-                          lparen-count
-                          rparen-count
-                          (+ block-depth 1)
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   ((and (< (+ i 1) len)
-                         (char=? ch #\|)
-                         (char=? (string-ref line (+ i 1)) #\#))
-                    (loop (+ i 2)
-                          lparen-count
-                          rparen-count
-                          (- block-depth 1)
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   (else
-                    (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;else
-                 ) ;cond
-                ) ;
-
-                (in-string
-                 (cond
-                   ((char=? ch #\\)
-                    (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          #t
-                          #t
-                    ) ;loop
-                   ) ;
-                   ((char=? ch #\")
-                    (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          #f
-                          #f
-                    ) ;loop
-                   ) ;
-                   (else
-                    (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          #t
-                          #f
-                    ) ;loop
-                   ) ;else
-                 ) ;cond
-                ) ;in-string
-
-                (else
-                 (cond
-                   ((and (< (+ i 1) len)
-                         (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
-                    (loop (+ i 2)
-                          lparen-count
-                          rparen-count
-                          (+ block-depth 1)
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   ((and (< (+ i 1) len)
-                         (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\\))
-                    (loop (skip-char-literal-index line i)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   ((char=? ch #\")
-                    (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          #t
-                          #f
-                    ) ;loop
-                   ) ;
-                   ((char=? ch #\;)
-                    (values (cons lparen-count rparen-count)
-                            block-depth
-                            in-string
-                            #f
-                    ) ;values
-                   ) ;
-                   ((ascii-left-paren? ch)
-                    (loop (+ i 1)
-                          (+ lparen-count 1)
-                          rparen-count
-                          block-depth
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   ((ascii-right-paren? ch)
-                    (loop (+ i 1)
-                          lparen-count
-                          (+ rparen-count 1)
-                          block-depth
-                          in-string
-                          #f
-                    ) ;loop
-                   ) ;
-                   (else
-                   (loop (+ i 1)
-                          lparen-count
-                          rparen-count
-                          block-depth
-                          in-string
-                          #f)
+              (let-values (((next-i next-block-depth next-in-string next-escape-next mode)
+                            (advance-lex-state line
+                                               i
+                                               block-depth
+                                               in-string
+                                               escape-next)))
+                (cond
+                  ((eq? mode 'line-comment)
+                   (let-values (((after-block-depth after-in-string after-escape-next)
+                                 (advance-lex-state-at-line-break next-block-depth
+                                                                  next-in-string
+                                                                  next-escape-next)))
+                     (values (cons lparen-count rparen-count)
+                             after-block-depth
+                             after-in-string
+                             after-escape-next
+                     ) ;values
+                   ) ;let-values
+                  ) ;
+                  ((eq? mode 'code-char)
+                   (loop next-i
+                         (if (ascii-left-paren? ch)
+                           (+ lparen-count 1)
+                           lparen-count
+                         ) ;if
+                         (if (ascii-right-paren? ch)
+                           (+ rparen-count 1)
+                           rparen-count
+                         ) ;if
+                         next-block-depth
+                         next-in-string
+                         next-escape-next
                    ) ;loop
-                 ) ;cond
-                ) ;else
-              ) ;cond
+                  ) ;
+                  (else
+                   (loop next-i
+                         lparen-count
+                         rparen-count
+                         next-block-depth
+                         next-in-string
+                         next-escape-next
+                   ) ;loop
+                  ) ;else
+                ) ;cond
+              ) ;let-values
             ) ;let
           ) ;if
         ) ;let
@@ -246,9 +148,60 @@
       (when (< start-line 1)
         (value-error "(liii goldfix-lint) paren-match?: start-line must be >= 1, got ~A" start-line)
       ) ;when
-      ;; 读取文件并检查
-      (let ((lines (read-file-lines file-path start-line end-line)))
-        (check-lines-balanced lines)
+      ;; 按文件真实上下文扫描到 end-line，确保起始状态正确。
+      (let ((lines (read-file-lines file-path)))
+        (let loop ((remaining lines)
+                   (line-num 1)
+                   (balance 0)
+                   (range-start-balance #f)
+                   (block-depth 0)
+                   (in-string #f)
+                   (escape-next #f))
+          (cond
+            ((null? remaining)
+             #f
+            ) ;
+            (else
+             (let ((current-range-start-balance
+                    (if (= line-num start-line)
+                      balance
+                      range-start-balance
+                    ) ;if
+                  ))
+               (let-values (((paren-counts next-block-depth next-in-string next-escape-next)
+                             (count-parens-with-state (car remaining)
+                                                      block-depth
+                                                      in-string
+                                                      escape-next)))
+                 (let* ((lparen-count (car paren-counts))
+                        (rparen-count (cdr paren-counts))
+                        (new-balance (+ balance lparen-count (- rparen-count))))
+                   (cond
+                     ((< new-balance 0)
+                      #f
+                     ) ;
+                     ((= line-num end-line)
+                      (and current-range-start-balance
+                           (= new-balance current-range-start-balance)
+                      ) ;and
+                     ) ;
+                     (else
+                      (loop (cdr remaining)
+                            (+ line-num 1)
+                            new-balance
+                            current-range-start-balance
+                            next-block-depth
+                            next-in-string
+                            next-escape-next
+                      ) ;loop
+                     ) ;else
+                   ) ;cond
+                 ) ;let*
+               ) ;let-values
+             ) ;let
+            ) ;else
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
 

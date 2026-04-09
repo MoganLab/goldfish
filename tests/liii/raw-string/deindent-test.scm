@@ -33,27 +33,33 @@
 
 (check
  (deindent "\n  第一行\n  第二行\n  第三行\n  ")
- => "第一行\n第二行\n第三行")
+ => "第一行\n第二行\n第三行"
+) ;check
 
 (check
  (deindent "\n  外层\n    内层1\n      更内层\n    内层2\n  外层结束\n  ")
- => "外层\n  内层1\n    更内层\n  内层2\n外层结束")
+ => "外层\n  内层1\n    更内层\n  内层2\n外层结束"
+) ;check
 
 (check
  (deindent "\n  第一行\n\n  第三行（上下有空行）\n\n  第五行（上有空行）\n  ")
- => "第一行\n\n第三行（上下有空行）\n\n第五行（上有空行）")
+ => "第一行\n\n第三行（上下有空行）\n\n第五行（上有空行）"
+) ;check
 
 (check
  (deindent "\n  行尾有空格   \n  行尾有多个空格     \n  正常行\n  ")
- => "行尾有空格   \n行尾有多个空格     \n正常行")
+ => "行尾有空格   \n行尾有多个空格     \n正常行"
+) ;check
 
 (check
  (deindent "\n    这行前面有0个空格后面也有4个空格    \n    这行前面有0个空格\n      这行前面有2个空格\n  ")
- => "  这行前面有0个空格后面也有4个空格    \n  这行前面有0个空格\n    这行前面有2个空格")
+ => "  这行前面有0个空格后面也有4个空格    \n  这行前面有0个空格\n    这行前面有2个空格"
+) ;check
 
 (check
  (deindent "\n\n  ")
- => "")
+ => ""
+) ;check
 
 (check-catch 'value-error (deindent "第一行\n  "))
 (check-catch 'value-error (deindent "\n"))

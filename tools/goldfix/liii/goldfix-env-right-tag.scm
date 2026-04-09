@@ -63,6 +63,33 @@
       ) ;let
     ) ;define
 
+    (define (indented-body-between? lines start-line end-line env-col)
+      (let loop ((line-num start-line)
+                 (seen-body? #f))
+        (if (> line-num end-line)
+          seen-body?
+          (let* ((line (list-ref lines (- line-num 1)))
+                 (trimmed (string-trim line)))
+            (cond
+              ((blank-or-comment-line? line)
+               (loop (+ line-num 1) seen-body?)
+              ) ;
+              ((and (line-rparen-col line)
+                    (> (line-rparen-col line) env-col))
+               (loop (+ line-num 1) seen-body?)
+              ) ;
+              ((> (- (string-length line) (string-length trimmed)) env-col)
+               (loop (+ line-num 1) #t)
+              ) ;
+              (else
+               #f
+              ) ;else
+            ) ;cond
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (better-floating-candidate? a b)
       (let ((a-close (env-detail-close-line a))
             (b-close (env-detail-close-line b))
@@ -114,14 +141,14 @@
                      (or (not best)
                          (better-floating-candidate? detail best)
                      ) ;or
-            ) ;if
+                ) ;
               (loop (cdr rest) detail)
               (loop (cdr rest) best)
+            ) ;if
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
-  ) ;begin
 
     (define (find-tagged-floating-right-tag-candidate lines details line-num col tag)
       (let loop ((rest details) (best #f))
@@ -135,22 +162,24 @@
                  (lparen-col (env-lparen-col env)))
             (if (and close-line
                      (not explicit-line)
-                     (> close-line lparen-line)
+                     (>= close-line lparen-line)
                      (< close-line line-num)
                      (string=? (env-tag env) tag)
                      (<= lparen-col col)
-                     (blank-or-comment-only-between? lines (+ close-line 1) (- line-num 1) lparen-col)
+                     (or (blank-or-comment-only-between? lines (+ close-line 1) (- line-num 1) lparen-col)
+                         (indented-body-between? lines (+ close-line 1) (- line-num 1) lparen-col)
+                     ) ;or
                      (or (not best)
                          (better-tagged-floating-candidate? detail best)
                      ) ;or
-            ) ;if
+                ) ;
               (loop (cdr rest) detail)
               (loop (cdr rest) best)
+            ) ;if
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
-) ;define-library
 
     (define (find-implicit-right-tag-target lines details line-num col)
       (let loop ((rest details) (best #f))
@@ -254,26 +283,6 @@
           (pop-by-match (lambda (env-col) (<= env-col col)))
           stack
       ) ;or
-    ) ;define
-
-    ;; 目前 attach-floating-right-tags! 仍保留在这里，便于后续在扫描后阶段直接复用。
-    (define (attach-floating-right-tags! lines details)
-      (let loop ((line-num 1) (remaining lines))
-        (when (not (null? remaining))
-          (let* ((line (car remaining))
-                 (col (line-rparen-col line)))
-            (when (and col
-                       (not (detail-explicit-at-line? details line-num)))
-              (let ((candidate (find-floating-right-tag-candidate lines details line-num col)))
-                (when candidate
-                  (env-detail-set-explicit-rparen-line! candidate line-num)
-                ) ;when
-              ) ;let
-            ) ;when
-            (loop (+ line-num 1) (cdr remaining))
-          ) ;let*
-        ) ;when
-      ) ;let
     ) ;define
 
   ) ;begin

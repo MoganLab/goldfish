@@ -11,7 +11,7 @@
   (export env-needs-right-tag?)
   (export detail-needs-rewrite?)
   (export env-in-prefixed-context?)
-  (export detail-needs-structural-insert?)
+  (export collect-structural-insert-details)
   (export sort-details-for-structural-insert)
 
   (begin
@@ -179,37 +179,6 @@
       ) ;let
     ) ;define
 
-    (define (line-net-close-count lines target-line)
-      (let loop ((remaining lines)
-                 (line-num 1)
-                 (block-depth 0)
-                 (in-string #f)
-                 (escape-next #f))
-        (if (null? remaining)
-          0
-          (let-values (((paren-counts next-block-depth next-in-string next-escape-next)
-                        (count-parens-with-state (car remaining)
-                                                 block-depth
-                                                 in-string
-                                                 escape-next))
-                        ) ;count-parens-with-state
-            (let ((lparen-count (car paren-counts))
-                  (rparen-count (cdr paren-counts)))
-              (if (= line-num target-line)
-                (max 0 (- rparen-count lparen-count))
-                (loop (cdr remaining)
-                      (+ line-num 1)
-                      next-block-depth
-                      next-in-string
-                      next-escape-next
-                ) ;loop
-              ) ;if
-            ) ;let
-          ) ;let-values
-        ) ;if
-      ) ;let
-    ) ;define
-
     (define (env-depth env)
       (let loop ((current env) (depth 0))
         (if (not current)
@@ -217,21 +186,6 @@
           (loop (env-parent current) (+ depth 1))
         ) ;if
       ) ;let
-    ) ;define
-
-    (define (details-closing-at-line details target-line)
-      (filter (lambda (detail)
-                (let* ((env (env-detail-env detail))
-                       (close-line (env-detail-close-line detail))
-                       (lparen-line (env-lparen-line env)))
-                  (and close-line
-                       (= close-line target-line)
-                       (> close-line lparen-line)
-                  ) ;and
-                ) ;let*
-              ) ;
-              details
-      ) ;filter
     ) ;define
 
     (define (sort-details-for-actual-close details)
@@ -256,25 +210,77 @@
       ) ;merge-sort-list
     ) ;define
 
-    (define (detail-selected-for-structural-insert? detail lines details)
-      (let* ((close-line (env-detail-close-line detail))
-             (available (line-net-close-count lines close-line))
-             (closing-details (sort-details-for-actual-close
-                                (details-closing-at-line details close-line)))
-             ) ;closing-details
-        (let loop ((rest closing-details) (remaining available))
-          (if (or (null? rest) (<= remaining 0))
-            #f
-            (if (eq? (car rest) detail)
-              #t
-              (loop (cdr rest) (- remaining 1))
-            ) ;if
+    (define (build-line-net-close-counts lines)
+      (let ((counts (make-vector (length lines) 0)))
+        (let loop ((remaining lines)
+                   (line-index 0)
+                   (block-depth 0)
+                   (in-string #f)
+                   (escape-next #f))
+          (if (null? remaining)
+            counts
+            (let-values (((paren-counts next-block-depth next-in-string next-escape-next)
+                          (count-parens-with-state (car remaining)
+                                                   block-depth
+                                                   in-string
+                                                   escape-next))
+                          ) ;count-parens-with-state
+              (let ((lparen-count (car paren-counts))
+                    (rparen-count (cdr paren-counts)))
+                (vector-set! counts
+                             line-index
+                             (max 0 (- rparen-count lparen-count)))
+                (loop (cdr remaining)
+                      (+ line-index 1)
+                      next-block-depth
+                      next-in-string
+                      next-escape-next
+                ) ;loop
+              ) ;let
+            ) ;let-values
           ) ;if
         ) ;let
-      ) ;let*
+      ) ;let
     ) ;define
 
-    (define (detail-needs-structural-insert? detail lines details)
+    (define (group-details-by-close-line details total-lines)
+      (let ((groups (make-vector total-lines '())))
+        (let loop ((remaining details))
+          (if (null? remaining)
+            groups
+            (let* ((detail (car remaining))
+                   (env (env-detail-env detail))
+                   (close-line (env-detail-close-line detail)))
+              (when (and close-line
+                         (>= close-line 1)
+                         (<= close-line total-lines)
+                         (> close-line (env-lparen-line env)))
+                (vector-set! groups
+                             (- close-line 1)
+                             (cons detail (vector-ref groups (- close-line 1))))
+              ) ;when
+              (loop (cdr remaining))
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (take-first lst count)
+      (let loop ((remaining lst)
+                 (n count)
+                 (result '()))
+        (if (or (<= n 0) (null? remaining))
+          (reverse result)
+          (loop (cdr remaining)
+                (- n 1)
+                (cons (car remaining) result)
+          ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (detail-needs-structural-insert/preselected? detail lines line-net-close-counts)
       (let* ((env (env-detail-env detail))
              (close-line (env-detail-close-line detail))
              (explicit-line (env-detail-explicit-rparen-line detail))
@@ -283,7 +289,7 @@
                                    (list-ref lines (- close-line 1)))
              ) ;close-line-text
              (net-close-count (and close-line
-                                   (line-net-close-count lines close-line))
+                                   (vector-ref line-net-close-counts (- close-line 1)))
              ) ;net-close-count
              (trailing-unmatched-count (and close-line-text
                                             (line-trailing-unmatched-rparen-count close-line-text)))
@@ -294,7 +300,6 @@
              (not (env-in-prefixed-context? env lines))
              (> net-close-count 0)
              (>= trailing-unmatched-count net-close-count)
-             (detail-selected-for-structural-insert? detail lines details)
         ) ;and
       ) ;let*
     ) ;define
@@ -339,6 +344,39 @@
           ) ;let*
         ) ;lambda
       ) ;merge-sort-list
+    ) ;define
+
+    (define (collect-structural-insert-details details lines)
+      (let* ((line-net-close-counts (build-line-net-close-counts lines))
+             (details-by-close-line (group-details-by-close-line details (length lines)))
+             (selected-details
+              (let loop ((line-index 0)
+                         (result '()))
+                (if (>= line-index (vector-length line-net-close-counts))
+                  result
+                  (let* ((available (vector-ref line-net-close-counts line-index))
+                         (closing-details
+                          (sort-details-for-actual-close
+                            (vector-ref details-by-close-line line-index)))
+                         (selected (take-first closing-details available)))
+                    (loop (+ line-index 1)
+                          (append selected result))
+                  ) ;let*
+                ) ;if
+              ) ;let
+             ) ;selected-details
+             (to-insert
+              (filter (lambda (detail)
+                        (detail-needs-structural-insert/preselected?
+                          detail
+                          lines
+                          line-net-close-counts))
+                      selected-details
+              ) ;filter
+             ) ;to-insert
+             )
+        (sort-details-for-structural-insert to-insert)
+      ) ;let*
     ) ;define
 
   ) ;begin

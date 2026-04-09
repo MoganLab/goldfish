@@ -15,7 +15,8 @@
   SELECT *
   FROM users
   WHERE active = TRUE
-  "")
+  ""
+) ;&-
 ;; => "SELECT *\nFROM users\nWHERE active = TRUE"
 
 ;; 示例3：为任意字符串生成合适的 delimiter

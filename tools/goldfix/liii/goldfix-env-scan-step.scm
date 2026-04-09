@@ -71,8 +71,7 @@
                                           (not (string-null? tag))
                                           (find-tagged-floating-right-tag-candidate lines details line-num col tag))
              ) ;tagged-floating-target
-             (implicit-target (and (string-null? tag)
-                                   (find-implicit-right-tag-target lines details line-num col)))
+             (implicit-target (find-implicit-right-tag-target lines details line-num col))
              ) ;implicit-target
         (define (claim-current-line)
           (cons line-num claimed-rparen-lines)
@@ -227,8 +226,7 @@
                           first-rparen-detail
          ) ;scan-line-state
         ) ;
-        ((and (not line-kind)
-              (< (+ i 1) len)
+        ((and (< (+ i 1) len)
               (char=? ch #\#)
               (char=? (string-ref line (+ i 1)) #\\))
          (scan-line-state (skip-char-literal-index line i)
