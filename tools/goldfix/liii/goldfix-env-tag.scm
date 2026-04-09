@@ -14,6 +14,7 @@
   (export extract-first-token)
   (export extract-tag)
   (export extract-right-tag)
+  (export count-envs-by-tag)
   (export make-right-tag-line)
 
   (begin
@@ -32,38 +33,28 @@
                         (ascii-left-paren? (string-ref line i))
                         (ascii-right-paren? (string-ref line i))
                     ) ;or
-              ) ;
+               )
                (substring line start i)
-            ) ;cond
+              ) ;
               ((and (not start) (not (char-whitespace? (string-ref line i))))
                (loop (+ i 1) i)
               ) ;
               (else
                (loop (+ i 1) start)
               ) ;else
+            ) ;cond
           ) ;let
         ) ;let
       ) ;if
     ) ;define
-  ) ;begin
 
-    (define (filler-token? token)
-      (or (string=? token "end")
-          (string=? token "of")
-          (string=? token "the")
-          (string=? token "internal")
-      ) ;or
-    ) ;define
 
     (define (preferred-tag-from-tokens tokens)
       (let ((meaningful
              (let loop ((rest tokens) (result '()))
                (if (null? rest)
                  (reverse result)
-                 (if (filler-token? (car rest))
-                   (loop (cdr rest) result)
-                   (loop (cdr rest) (cons (car rest) result))
-                 ) ;if
+                 (loop (cdr rest) (cons (car rest) result))
                ) ;if
              ) ;let
             )) ;meaningful
@@ -159,7 +150,20 @@
       ) ;let
     ) ;define
 
-    ;; 生成右标记行内容
+    (define (count-envs-by-tag envs tag)
+      (let loop ((rest envs) (count 0))
+        (if (null? rest)
+          count
+          (loop (cdr rest)
+                (if (string=? (env-tag (car rest)) tag)
+                  (+ count 1)
+                  count
+                ) ;if
+          ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (make-right-tag-line env)
       (let ((col (env-lparen-col env))
             (tag (env-tag env)))
@@ -172,5 +176,5 @@
       ) ;let
     ) ;define
 
-) ;define-library
+  ) ;begin
 ) ;define-library

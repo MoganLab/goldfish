@@ -39,7 +39,8 @@
           generate-delimiter
           write-raw-string
           deindent
-          &-)
+          &-
+  ) ;export
   (begin
     (define (string-split-lines str)
       (let ((len (string-length str)))

@@ -6,6 +6,8 @@
 
 (define-library (liii goldfix-env-scan)
   (import (scheme base))
+  (import (liii string))
+  (import (liii ascii))
   (import (liii goldfix-env-core))
   (import (liii goldfix-env-scan-step))
 
@@ -14,12 +16,39 @@
   (export scan-claimed-rparen-lines)
 
   (begin
-    (define (apply-scan-detail-rparen! detail)
+    (define (env-has-indented-body-before-explicit-rparen? env explicit-line lines)
+      (let ((start-line (+ (env-lparen-line env) 1))
+            (env-col (env-lparen-col env)))
+        (let loop ((line-num start-line))
+          (if (>= line-num explicit-line)
+            #f
+            (let* ((line (list-ref lines (- line-num 1)))
+                   (trimmed (string-trim line))
+                   (col (- (string-length line) (string-length trimmed))))
+              (if (or (string=? trimmed "")
+                      (char=? (string-ref trimmed 0) #\;)
+                      (ascii-right-paren? (string-ref trimmed 0)))
+                (loop (+ line-num 1))
+                (> col env-col)
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (apply-scan-detail-rparen! detail lines)
       (let* ((env (env-detail-env detail))
              (close-line (env-detail-close-line detail))
              (explicit-line (env-detail-explicit-rparen-line detail))
              (lparen-line (env-lparen-line env)))
         (cond
+          ((and close-line
+                (= close-line lparen-line)
+                explicit-line
+                (env-has-indented-body-before-explicit-rparen? env explicit-line lines))
+           (env-set-rparen-line! env explicit-line)
+          ) ;
           ((and close-line (= close-line lparen-line))
            (env-set-rparen-line! env close-line)
           ) ;
@@ -47,7 +76,10 @@
           (let ((ordered-envs (reverse envs))
                 (ordered-details (reverse details))
                 (ordered-claimed-rparen-lines (reverse claimed-rparen-lines)))
-            (for-each apply-scan-detail-rparen! ordered-details)
+            (for-each (lambda (detail)
+                        (apply-scan-detail-rparen! detail lines))
+                      ordered-details
+            ) ;for-each
             (values ordered-envs ordered-details ordered-claimed-rparen-lines)
           ) ;let
           (let-values (((new-stack

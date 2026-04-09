@@ -66,18 +66,9 @@
       ) ;let
     ) ;define
 
-    (define (filler-token? token)
-      (or (string=? token "end")
-          (string=? token "of")
-          (string=? token "the")
-          (string=? token "internal")
-      ) ;or
-    ) ;define
 
     (define (preferred-tag-from-tokens tokens)
-      (let ((meaningful (filter (lambda (token)
-                                  (not (filler-token? token)))
-                                tokens)))
+      (let ((meaningful tokens))
         (cond
           ((null? meaningful) "")
           ((null? (cdr meaningful)) (car meaningful))
@@ -164,7 +155,8 @@
              (char=? (string-ref trimmed 0) #\;)
              (or (= (string-length trimmed) 1)
                  (and (not (char=? (string-ref trimmed 1) #\;))
-                      (not (char-whitespace? (string-ref trimmed 1))))
+                      (not (char-whitespace? (string-ref trimmed 1)))
+                 ) ;and
              ) ;or
              (let ((tag (preferred-tag-from-tokens
                           (extract-identifier-tokens
@@ -174,19 +166,6 @@
                     (member tag env-tags)
                ) ;and
              ) ;let
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (case-pattern-keyword-line? line)
-      (let ((trimmed (string-trim line)))
-        (and (> (string-length trimmed) 3)
-             (char=? (string-ref trimmed 0) #\()
-             (char=? (string-ref trimmed 1) #\()
-             (char=? (string-ref trimmed 2) #\()
-             (repairable-missing-open-tag?
-               (extract-tag (substring trimmed 2 (string-length trimmed)))
-             ) ;repairable-missing-open-tag?
         ) ;and
       ) ;let
     ) ;define
@@ -234,10 +213,11 @@
                        ) ;let*
                       ) ;
                       (else
-                       line)
+                       line
                       ) ;else
                     ) ;cond
                    ) ;normalized
+                  ) ;
               (let-values (((_paren-counts next-block-depth next-in-string next-escape-next)
                             (count-parens-with-state normalized
                                                      block-depth
@@ -253,12 +233,12 @@
                       normalized
                       (cons normalized result)
                 ) ;loop
+            ) ;
             ) ;let*
           ) ;if
         ) ;let
       ) ;let*
     ) ;define
-  ) ;begin
 
     (define (same-env-origin? a b)
       (and (string=? (env-tag a) (env-tag b))
@@ -333,19 +313,6 @@
       ) ;let-values
     ) ;define
 
-    (define (repairable-missing-open-tag? tag)
-      (or (string=? tag "define")
-          (string=? tag "define-library")
-          (string=? tag "let")
-          (string=? tag "let*")
-          (string=? tag "letrec")
-          (string=? tag "lambda")
-          (string=? tag "if")
-          (string=? tag "cond")
-          (string=? tag "begin")
-      ) ;or
-    ) ;define
-
     (define (define-function-header-line? line)
       (let* ((trimmed (string-trim line))
              (len (string-length trimmed)))
@@ -365,37 +332,6 @@
              ) ;let
         ) ;and
       ) ;let*
-    ) ;define
-
-    (define (repair-excess-leading-open-paren lines)
-      (map (lambda (line)
-             (let* ((trimmed (string-trim line))
-                    (indent-len (- (string-length line) (string-length trimmed)))
-                    (indent (substring line 0 indent-len))
-                    (without-one-open (if (> (string-length trimmed) 1)
-                                        (substring trimmed 1 (string-length trimmed))
-                                        "")
-                    ) ;without-one-open
-                    (tokens (extract-identifier-tokens without-one-open))
-                    (first-token (if (null? tokens) #f (car tokens)))
-                    (net-open-count (line-net-open-count line)))
-               (if (and (> (string-length trimmed) 1)
-                        (char=? (string-ref trimmed 0) #\()
-                        (char=? (string-ref trimmed 1) #\()
-                        (or (= (string-length trimmed) 2)
-                            (not (char=? (string-ref trimmed 2) #\())
-                        ) ;or
-                        first-token
-                        (repairable-missing-open-tag? first-token)
-                        (= net-open-count 1)
-                        (not (string-index trimmed #\;)))
-                 (string-append indent without-one-open)
-                 line
-               ) ;if
-             ) ;let*
-           ) ;lambda
-           lines
-      ) ;map
     ) ;define
 
     ;; 如果累计余额会跌到负数，说明当前行尾部出现了真正多余的右括号。
@@ -438,9 +374,7 @@
     ;; 多行 define 的头部应只留下外层 define 自身未闭合的一个左括号。
     ;; 若头部净 open 数大于 1，通常表示函数签名缺少了一个 )。
     (define (repair-define-header-lines lines)
-      (let* ((normalized-lines (trim-excess-trailing-rparens
-                                 (repair-excess-leading-open-paren lines))
-                                 ) ;trim-excess-trailing-rparens
+      (let* ((normalized-lines (trim-excess-trailing-rparens lines))
              (details (scan-environment-details normalized-lines)))
         (let loop ((remaining details)
                    (current-lines normalized-lines))
@@ -577,5 +511,6 @@
         ) ;cond
       ) ;let
     ) ;define
-) ;define-library
+
+  ) ;begin
 ) ;define-library

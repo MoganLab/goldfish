@@ -6,7 +6,7 @@
   (import (liii goldfix-lint))
   (import (liii goldfix-line))
   (import (liii goldfix-list))
-  (import (liii list))
+  (import (only (liii list) filter find))
 
   (export env-end-line)
   (export find-next-sibling)
@@ -43,7 +43,7 @@
           (if (null? candidates)
             #f
             (let ((min-line (list-min candidates env-lparen-line)))
-              (find-first (lambda (e) (= (env-lparen-line e) min-line)) candidates)
+              (find (lambda (e) (= (env-lparen-line e) min-line)) candidates)
             ) ;let
           ) ;if
         ) ;let
@@ -389,11 +389,11 @@
                                        next-bd
                                        next-is
                                        next-en)
-                        ) ;if
+                        ) ;loop-remaining
                     ) ;let
                   ) ;let-values
                 ) ;if
-              ) ;let loop-remaining
+              ) ;let
               (let-values (((counts _bd _is _en)
                             (count-parens-with-state (car remaining-result) 0 #f #f)))
                 (let ((new-balance (+ balance (- (car counts) (cdr counts)))))
@@ -401,11 +401,11 @@
                     ;; 已处理行出现负平衡，不能删除
                     #t
                     (loop-result (cdr remaining-result) new-balance)
-                    ) ;if
+                  ) ;if
                 ) ;let
               ) ;let-values
             ) ;if
-          ) ;let loop-result
+          ) ;let
         ) ;let
       ) ;let-values
     ) ;define
@@ -439,9 +439,10 @@
                                            (reverse acc)
                                            (loop-remaining (+ idx 1)
                                                           (cons (vector-ref line-vec idx) acc))
-                                           ) ;if
-                                         ) ;let loop-remaining
-                                       )) ;remaining-lines
+                                           ) ;loop-remaining
+                                         ) ;if
+                                       ) ;remaining-lines
+                ) ;let
                 (if (and (line-starts-with-rparen-in-code? line
                                                            block-depth
                                                            in-string
@@ -452,7 +453,8 @@
                                                           remaining-lines
                                                           block-depth
                                                           in-string
-                                                          escape-next)))
+                                                          escape-next))
+                         ) ;not
                   (loop (+ i 1)
                         next-block-depth
                         next-in-string

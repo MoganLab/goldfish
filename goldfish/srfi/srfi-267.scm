@@ -35,20 +35,23 @@
           read-raw-string-after-prefix
           can-delimit?
           generate-delimiter
-          write-raw-string)
+          write-raw-string
+  ) ;export
   (begin
 
     (define (raw-string-read-error? obj)
       (or (eq? obj 'raw-string-read-error)
           (and (pair? obj)
-               (eq? (car obj) 'raw-string-read-error))
+               (eq? (car obj) 'raw-string-read-error)
+          ) ;and
       ) ;or
     ) ;define
 
     (define (raw-string-write-error? obj)
       (or (eq? obj 'raw-string-write-error)
           (and (pair? obj)
-               (eq? (car obj) 'raw-string-write-error))
+               (eq? (car obj) 'raw-string-write-error)
+          ) ;and
       ) ;or
     ) ;define
 
@@ -109,7 +112,8 @@
             (if (eof-object? ch)
                 (raise-raw-string-read-error
                  "unexpected end of input while reading raw string"
-                 where)
+                 where
+                ) ;raise-raw-string-read-error
                 ch
             ) ;if
           ) ;let
@@ -162,7 +166,8 @@
       (when (or (= (string-length prefix-fragment) 0)
                 (not (char=? #\" (string-ref prefix-fragment 0))))
         (raise-raw-string-read-error
-         "raw string prefix must begin with a double quote")
+         "raw string prefix must begin with a double quote"
+        ) ;raise-raw-string-read-error
       ) ;when
       (let ((prefix-out (open-output-string)))
         (display prefix-fragment prefix-out)
@@ -171,12 +176,14 @@
             (cond
               ((eof-object? ch)
                (raise-raw-string-read-error
-                "unexpected end of input while reading raw string delimiter")
-              ) ;case eof
+                "unexpected end of input while reading raw string delimiter"
+               ) ;raise-raw-string-read-error
+              ) ;
               ((char=? ch #\")
                (read-raw-body (string-append (get-output-string prefix-out) "\"")
-                              port)
-              ) ;case quote
+                              port
+               ) ;read-raw-body
+              ) ;
               (else
                (write-char ch prefix-out)
                (loop)
@@ -209,13 +216,15 @@
           (when (or (eof-object? hash)
                     (not (char=? hash #\#)))
             (raise-raw-string-read-error
-             "expected raw string to start with #\"")
+             "expected raw string to start with #\""
+            ) ;raise-raw-string-read-error
           ) ;when
           (let ((quote (read-char port)))
             (when (or (eof-object? quote)
                       (not (char=? quote #\")))
               (raise-raw-string-read-error
-               "expected raw string to start with #\"")
+               "expected raw string to start with #\""
+              ) ;raise-raw-string-read-error
             ) ;when
             (read-raw-string-after-prefix port)
           ) ;let
@@ -239,7 +248,8 @@
         (when (not (can-delimit? str delimiter))
           (raise-raw-string-write-error
            "delimiter cannot represent the given string"
-           delimiter)
+           delimiter
+          ) ;raise-raw-string-write-error
         ) ;when
         (display "#\"" port)
         (display delimiter port)

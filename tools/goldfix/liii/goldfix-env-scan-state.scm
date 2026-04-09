@@ -67,7 +67,11 @@
              (tag (extract-tag trimmed))
              (effective-stack (unwind-stack-before-col lines stack open-index line-num))
              (parent (find-open-parent-by-col effective-stack open-index))
-             (env (make-env tag line-num open-index parent))
+             (env (make-env tag
+                            :lparen-line line-num
+                            :lparen-col open-index
+                            :parent parent)
+             ) ;env
              (detail (make-env-detail env #f #f)))
         (add-child! parent env)
         (values (+ open-index 1)
@@ -91,7 +95,11 @@
              (tag (extract-first-token trimmed))
              (effective-stack (unwind-stack-before-col lines stack i line-num))
              (parent (find-open-parent-by-col effective-stack i))
-             (env (make-env tag line-num i parent)))
+             (env (make-env tag
+                            :lparen-line line-num
+                            :lparen-col i
+                            :parent parent))
+             ) ;env
         (add-child! parent env)
         (env-set-rparen-line! env line-num)
         (values i

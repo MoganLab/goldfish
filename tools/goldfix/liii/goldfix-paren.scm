@@ -28,7 +28,6 @@
   (export line-is-multi-line-start?)
   (export fix-env-parens)
   (export get-multi-line-envs)
-  (export find-first)
   (export remove-rparens-from-right-by-diff)
   (export add-rparens-by-diff)
 ) ;define-library
