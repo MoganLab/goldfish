@@ -171,7 +171,7 @@
                    balance
                    range-start-balance
                  ) ;if
-               ) ;
+                ) ;current-range-start-balance
                ) ;
                (let-values (((paren-counts next-block-depth next-in-string next-escape-next)
                              (count-parens-with-state (car remaining)

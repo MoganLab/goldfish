@@ -215,7 +215,8 @@
            (cond
              ((and (< (+ i 1) len)
                    (char=? ch #\#)
-                   (char=? (string-ref line (+ i 1)) #\|))
+                   (char=? (string-ref line (+ i 1)) #\|)
+              ) ;and
               (values (+ i 2)
                       (+ block-depth 1)
                       in-string
@@ -225,7 +226,8 @@
              ) ;
              ((and (< (+ i 1) len)
                    (char=? ch #\|)
-                   (char=? (string-ref line (+ i 1)) #\#))
+                   (char=? (string-ref line (+ i 1)) #\#)
+              ) ;and
               (values (+ i 2)
                       (- block-depth 1)
                       in-string
@@ -285,7 +287,8 @@
            (cond
              ((and (< (+ i 1) len)
                    (char=? ch #\#)
-                   (char=? (string-ref line (+ i 1)) #\|))
+                   (char=? (string-ref line (+ i 1)) #\|)
+              ) ;and
               (values (+ i 2)
                       (+ block-depth 1)
                       in-string
@@ -295,7 +298,8 @@
              ) ;
              ((and (< (+ i 1) len)
                    (char=? ch #\#)
-                   (char=? (string-ref line (+ i 1)) #\\))
+                   (char=? (string-ref line (+ i 1)) #\\)
+              ) ;and
               (values (skip-char-literal-index line i)
                       block-depth
                       in-string
@@ -305,7 +309,8 @@
              ) ;
              ((and (< (+ i 1) len)
                    (char=? ch #\#)
-                   (char=? (string-ref line (+ i 1)) #\"))
+                   (char=? (string-ref line (+ i 1)) #\")
+              ) ;and
               (values (+ i 2)
                       block-depth
                       (make-raw-string-delimiter-state "")

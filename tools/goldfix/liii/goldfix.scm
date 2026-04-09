@@ -82,7 +82,8 @@
                 (car (reverse meaningful))
                ) ;
                ((or (string-index (car rest) #\-)
-                    (string-index (car rest) #\*))
+                    (string-index (car rest) #\*)
+                ) ;or
                 (car rest)
                ) ;
                (else
@@ -171,7 +172,7 @@
                       (substring trimmed 1 (string-length trimmed)))
                     ) ;extract-identifier-tokens
                   ) ;preferred-tag-from-tokens
-               ) ;
+                ) ;tag
                (and (not (string-null? tag))
                     (member tag env-tags)
                ) ;and
@@ -181,29 +182,19 @@
     ) ;define
 
     (define (canonicalize-right-tag-lines lines)
-      (let*
-        ((env-tags (map env-tag (scan-environments lines)))
-         (normalized-inline-comments
-           (map
-             (lambda (line)
-               (strip-inline-right-tag-comment line env-tags)
-             ) ;lambda
-             lines
-           ) ;map
-         ) ;normalized-inline-comments
-         (normalized-env-tags (map env-tag (scan-environments normalized-inline-comments)))
-        ) ;
+      (let ((env-tags (map env-tag (scan-environments lines))))
         (let loop ((remaining lines)
-                   (normalized-remaining normalized-inline-comments)
                    (block-depth 0)
                    (in-string #f)
                    (escape-next #f)
                    (previous-line #f)
                    (result '()))
-          (if (null? normalized-remaining)
+          (if (null? remaining)
             (reverse result)
             (let*
-              ((line (car normalized-remaining))
+              ((line
+                 (strip-inline-right-tag-comment (car remaining) env-tags)
+               ) ;line
                (trimmed (string-trim line))
                (normalized
                 (cond
@@ -213,7 +204,7 @@
                   ((right-tag-line? line)
                    (canonicalize-right-tag-line line)
                   ) ;
-                  ((repairable-semicolon-right-tag-line? line previous-line normalized-env-tags)
+                  ((repairable-semicolon-right-tag-line? line previous-line env-tags)
                    (let*
                      ((col (- (string-length line) (string-length trimmed)))
                       (indent (make-string col #\space))
@@ -245,7 +236,6 @@
                             ) ;count-parens-with-state
               ) ;let-values
                 (loop (cdr remaining)
-                      (cdr normalized-remaining)
                       next-block-depth
                       next-in-string
                       next-escape-next
@@ -256,7 +246,7 @@
             ) ;let*
           ) ;if
         ) ;let
-      ) ;let*
+      ) ;let
     ) ;define
 
     (define (same-env-origin? a b)
@@ -351,6 +341,13 @@
       ) ;let*
     ) ;define
 
+    (define (line-start-state-in-code? state)
+      (and (= (line-start-state-block-depth state) 0)
+           (not (line-start-state-in-string state))
+           (not (line-start-state-escape-next state))
+      ) ;and
+    ) ;define
+
     ;; 如果累计余额会跌到负数，说明当前行尾部出现了真正多余的右括号。
     ;; 这里只修剪尾部那部分多余的 )，避免碰到中间仍有后续代码的场景。
     (define (trim-excess-trailing-rparens lines)
@@ -404,34 +401,28 @@
     ;; 若头部净 open 数大于 1，通常表示函数签名缺少了一个 )。
     (define (repair-define-header-lines lines)
       (let* ((normalized-lines (trim-excess-trailing-rparens lines))
-             (line-start-states (compute-line-start-states normalized-lines))
-             (details (scan-environment-details normalized-lines)))
-        (let loop ((remaining details)
-                   (current-lines normalized-lines))
-          (if (null? remaining)
-            current-lines
-            (let* ((detail (car remaining))
-                   (env (env-detail-env detail))
-                   (lparen-line (env-lparen-line env))
-                   (rparen-line (env-rparen-line env)))
-              (if (and (string=? (env-tag env) "define")
-                       rparen-line
-                       (> rparen-line lparen-line))
-                (let* ((line-idx (- lparen-line 1))
-                       (line (list-ref current-lines line-idx))
-                       (line-state (list-ref line-start-states line-idx))
-                       (net-open-count (line-net-open-count-at-state line line-state)))
-                  (if (and (> net-open-count 1)
-                           (define-function-header-line? line))
-                    (let* ((fixed-line (add-rparens-by-diff line (- net-open-count 1)))
-                           (new-lines (list-set current-lines line-idx fixed-line)))
-                      (loop (cdr remaining) new-lines)
-                    ) ;let*
-                    (loop (cdr remaining) current-lines)
+             (line-start-states (list->vector (compute-line-start-states normalized-lines)))
+             (lines-vec (list->vector normalized-lines))
+             (line-count (vector-length lines-vec)))
+        (let loop ((line-idx 0))
+          (if (>= line-idx line-count)
+            (vector->list lines-vec)
+            (let* ((line (vector-ref lines-vec line-idx))
+                   (line-state (vector-ref line-start-states line-idx)))
+              (if (and (line-start-state-in-code? line-state)
+                       (define-function-header-line? line))
+                (let ((net-open-count (line-net-open-count-at-state line line-state)))
+                  (if (> net-open-count 1)
+                    (vector-set! lines-vec
+                                 line-idx
+                                 (add-rparens-by-diff line (- net-open-count 1))
+                    ) ;vector-set!
+                    #f
                   ) ;if
-                ) ;let*
-                (loop (cdr remaining) current-lines)
+                ) ;let
+                #f
               ) ;if
+              (loop (+ line-idx 1))
             ) ;let*
           ) ;if
         ) ;let
@@ -441,27 +432,48 @@
     ;; 运行核心修复流程，返回修复后的行列表
     (define (run-goldfix-lines lines)
       (let*
-        ((prepared-lines (repair-define-header-lines lines))
-         (normalized-lines (normalize-multi-open-lines prepared-lines))
+        ((prepared-lines
+           (repair-define-header-lines lines)
+         ) ;prepared-lines
+         (normalized-lines
+           (normalize-multi-open-lines prepared-lines)
+         ) ;normalized-lines
          ;; 插入右标记
-         (lines-with-right-tags (insert-single-line-of-right-tag normalized-lines))
-         (envs2 (scan-environments lines-with-right-tags))
+         (lines-with-right-tags
+           (insert-single-line-of-right-tag normalized-lines)
+         ) ;lines-with-right-tags
+         (envs2
+           (scan-environments lines-with-right-tags)
+         ) ;envs2
          ;; 移除无主右括号行
-         (cleaned-lines (remove-orphan-right-paren-lines lines-with-right-tags envs2))
-         (envs3 (scan-environments cleaned-lines))
+         (cleaned-lines
+           (remove-orphan-right-paren-lines lines-with-right-tags envs2)
+         ) ;cleaned-lines
+         (envs3
+           (scan-environments cleaned-lines)
+         ) ;envs3
          ;; 修复每行括号
-         (fixed-lines (fix-env-parens cleaned-lines envs3))
+         (fixed-lines
+           (fix-env-parens cleaned-lines envs3)
+         ) ;fixed-lines
          ;; 收尾补回仍未闭合但已经可安全定位的 env（例如被中间阶段误删的顶层右标记）
-         (completed-lines (insert-remaining-right-tags fixed-lines lines-with-right-tags))
-         (best-lines (or (first-healthy-lines
-                           (list completed-lines
-                                 fixed-lines
-                                 cleaned-lines
-                                 lines-with-right-tags)
-                           ) ;list
-                         normalized-lines))
-         (canonical-lines (canonicalize-right-tag-lines best-lines))
+         (completed-lines
+           (insert-remaining-right-tags fixed-lines lines-with-right-tags)
+         ) ;completed-lines
+         (best-lines
+           (or (first-healthy-lines
+                 (list completed-lines
+                       fixed-lines
+                       cleaned-lines
+                       lines-with-right-tags)
+                 ) ;list
+               normalized-lines
+           ) ;or
          ) ;best-lines
+         (canonical-lines
+           (canonicalize-right-tag-lines best-lines)
+         ) ;canonical-lines
+        ) ;
         (if (content-healthy? canonical-lines)
           canonical-lines
           best-lines
@@ -475,9 +487,17 @@
     (define (fix-content content)
       (let loop ((current-content content)
                  (remaining-rounds 4))
-        (let* ((lines (string->lines current-content))
-               (fixed-lines (run-goldfix-lines lines))
-               (fixed-content (lines->string fixed-lines)))
+        (let*
+          ((lines
+             (string->lines current-content)
+           ) ;lines
+           (fixed-lines
+             (run-goldfix-lines lines)
+           ) ;fixed-lines
+           (fixed-content
+             (lines->string fixed-lines)
+           ) ;fixed-content
+          ) ;
           (if (or (= remaining-rounds 1)
                   (string=? fixed-content current-content))
             fixed-content
@@ -521,7 +541,8 @@
           
           ;; 有 -i 或 --in-place 参数
           ((or (string=? (car args) "-i")
-               (string=? (car args) "--in-place"))
+               (string=? (car args) "--in-place")
+           ) ;or
            (if (null? (cdr args))
              (begin
                (display "错误: 缺少文件参数")

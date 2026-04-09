@@ -97,7 +97,8 @@
         (cond
           ((null? rest) #f)
           ((and (paren-node-env (car rest))
-                (< (env-lparen-col (paren-node-env (car rest))) col))
+                (< (env-lparen-col (paren-node-env (car rest))) col)
+           ) ;and
            (paren-node-env (car rest))
           ) ;
           (else
@@ -165,7 +166,8 @@
                  ((and (= node-col col)
                        (paren-node-env node)
                        (= (env-lparen-line (paren-node-env node)) close-line)
-                       (> (line-net-open-count (list-ref lines (- close-line 1))) 0))
+                       (> (line-net-open-count (list-ref lines (- close-line 1))) 0)
+                  ) ;and
                   (append (reverse pending-raw) rest)
                  ) ;
                  ((< node-col col)

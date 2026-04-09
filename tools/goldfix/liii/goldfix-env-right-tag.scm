@@ -75,7 +75,8 @@
                (loop (+ line-num 1) seen-body?)
               ) ;
               ((and (line-rparen-col line)
-                    (> (line-rparen-col line) env-col))
+                    (> (line-rparen-col line) env-col)
+               ) ;and
                (loop (+ line-num 1) seen-body?)
               ) ;
               ((> (- (string-length line) (string-length trimmed)) env-col)
@@ -265,7 +266,8 @@
              #f
             ) ;
             ((and (paren-node-detail (car rest))
-                  (pred (env-lparen-col (paren-node-env (car rest)))))
+                  (pred (env-lparen-col (paren-node-env (car rest))))
+             ) ;and
              (let ((detail (paren-node-detail (car rest))))
                (env-detail-set-close-line! detail line-num)
                (env-detail-set-explicit-rparen-line! detail line-num)

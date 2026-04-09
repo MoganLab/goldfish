@@ -17,6 +17,24 @@
   (export scan-line)
 
   (begin
+    (define (leading-anonymous-followup-open-index line start)
+      (let ((open-index (prefixed-open-index line start)))
+        (and open-index
+             (let ((len (string-length line)))
+               (let loop ((i (+ open-index 1)))
+                 (and (< i len)
+                      (if (char-whitespace? (string-ref line i))
+                        (loop (+ i 1))
+                        (char-identifier? (string-ref line i))
+                      ) ;if
+                 ) ;and
+               ) ;let
+             ) ;let
+             open-index
+        ) ;and
+      ) ;let
+    ) ;define
+
     (define (close-top-stack-node stack line-num)
       (if (null? stack)
         stack
@@ -147,9 +165,27 @@
 
     (define (scan-line-code-step line lines len line-num i ch stack block-depth in-string line-kind envs details claimed-rparen-lines lparen-count rparen-count first-rparen-detail)
       (cond
+        ((and (eq? line-kind 'leading-anonymous)
+              (not (leading-anonymous-followup-open-index line i))
+         ) ;and
+         (scan-line-state i
+                          stack
+                          block-depth
+                          in-string
+                          #f
+                          'lparen
+                          envs
+                          details
+                          claimed-rparen-lines
+                          lparen-count
+                          rparen-count
+                          first-rparen-detail
+         ) ;scan-line-state
+        ) ;
         ((and (< (+ i 1) len)
               (char=? ch #\#)
-              (char=? (string-ref line (+ i 1)) #\|))
+              (char=? (string-ref line (+ i 1)) #\|)
+         ) ;and
          (scan-line-state (+ i 2)
                           stack
                           (+ block-depth 1)
@@ -194,8 +230,12 @@
                           first-rparen-detail
          ) ;scan-line-state
         ) ;
-        ((and (not line-kind)
-              (prefixed-open-index line i))
+        ((or (and (not line-kind)
+                  (prefixed-open-index line i))
+             (and (eq? line-kind 'leading-anonymous)
+                  (leading-anonymous-followup-open-index line i)
+             ) ;and
+         ) ;or
          (scan-line-open-form line
                               lines
                               len
@@ -229,7 +269,8 @@
         ) ;
         ((and (< (+ i 1) len)
               (char=? ch #\#)
-              (char=? (string-ref line (+ i 1)) #\\))
+              (char=? (string-ref line (+ i 1)) #\\)
+         ) ;and
          (scan-line-state (skip-char-literal-index line i)
                           stack
                           block-depth
@@ -246,7 +287,8 @@
         ) ;
         ((and (< (+ i 1) len)
               (char=? ch #\#)
-              (char=? (string-ref line (+ i 1)) #\"))
+              (char=? (string-ref line (+ i 1)) #\")
+         ) ;and
          (scan-line-state (+ i 2)
                           stack
                           block-depth
