@@ -97,7 +97,10 @@
                 block-depth
                 in-string
                 #f
-                'lparen
+                (if (string-null? tag)
+                  'leading-anonymous
+                  'lparen
+                ) ;if
                 (cons env envs)
                 (cons detail details)
                 claimed-rparen-lines
@@ -207,7 +210,8 @@
       (cond
         ((and (< (+ i 1) len)
               (char=? ch #\#)
-              (char=? (string-ref line (+ i 1)) #\|))
+              (char=? (string-ref line (+ i 1)) #\|)
+         ) ;and
          (scan-line-state (+ i 2)
                           stack
                           (+ block-depth 1)
@@ -224,7 +228,8 @@
         ) ;
         ((and (< (+ i 1) len)
               (char=? ch #\|)
-              (char=? (string-ref line (+ i 1)) #\#))
+              (char=? (string-ref line (+ i 1)) #\#)
+         ) ;and
          (scan-line-state (+ i 2)
                           stack
                           (- block-depth 1)

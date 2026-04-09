@@ -47,12 +47,14 @@
       (define (extract-params params-l)
         (cond ((null-list? params-l) (list "" 'infix))
               ((and (= (length params-l) 1)
-                    (string? (car params-l)))
+                    (string? (car params-l))
+               ) ;and
                (list (car params-l) 'infix)
               ) ;
               ((and (= (length params-l) 2)
                     (string? (first params-l))
-                    (symbol? (second params-l)))
+                    (symbol? (second params-l))
+               ) ;and
                params-l
               ) ;
               ((> (length params-l) 2)
@@ -231,12 +233,13 @@
                            ) ;type-error
                           ) ;else
                            ) ;type-error
-        ) ;
+         ) ;predicate
         (let*
           ((start (if (and (> (length opt) 1)
                            (number? (cadr opt)))
                       (cadr opt)
-                      0))
+                      0)
+           ) ;start
            (end (if (and (> (length opt) 2)
                          (number? (caddr opt)))
                     (caddr opt)
@@ -267,12 +270,13 @@
                            ) ;type-error
                           ) ;else
                            ) ;type-error
-        ) ;
+         ) ;predicate
         (let*
           ((start (if (and (> (length opt) 1)
                            (number? (cadr opt)))
                       (cadr opt)
-                      0))
+                      0)
+           ) ;start
            (end (if (and (> (length opt) 2)
                          (number? (caddr opt)))
                     (caddr opt)
@@ -302,12 +306,13 @@
                            ) ;type-error
                           ) ;else
                            ) ;type-error
-        ) ;
+         ) ;predicate
         (let*
           ((start (if (and (> (length opt) 1)
                            (number? (cadr opt)))
                       (cadr opt)
-                      0))
+                      0)
+           ) ;start
            (end (if (and (> (length opt) 2)
                          (number? (caddr opt)))
                     (caddr opt)

@@ -71,7 +71,7 @@
             ) ;if
           ) ;lambda
             ) ;if
-  ) ;
+   ) ;gen
   (check (flexvector->list (generator->flexvector gen))
          => '(only)
   ) ;check
@@ -87,7 +87,7 @@
                 ) ;if
               ) ;lambda
                 ) ;if
-  ) ;
+   ) ;counter
   (check (flexvector->list (generator->flexvector counter))
          => '(1 2 3 4 5)
   ) ;check
@@ -103,7 +103,7 @@
             ) ;if
           ) ;lambda
             ) ;if
-  ) ;
+   ) ;gen
   (check (flexvector->list (generator->flexvector gen))
          => '(10 8 6 4 2 0)
   ) ;check

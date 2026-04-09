@@ -729,7 +729,8 @@
            ((apply pred?
                    i
                    (vector-ref v i)
-                   (map (lambda (fv) (flexvector-ref fv i)) fvs))
+                   (map (lambda (fv) (flexvector-ref fv i)) fvs)
+            ) ;apply
              (when (not (= i j)) (vector-set! v j (vector-ref v i)))
              (lp (+ i 1) (+ j 1))
            ) ;
@@ -908,7 +909,7 @@
                     (flexvector-ref fv i)
                     (map (lambda (v) (flexvector-ref v i)) o))
              ) ;apply
-          ) ;
+           ) ;x
           (if (= i (- len 1))
               x
               (and x (lp (+ i 1)))

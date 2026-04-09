@@ -87,34 +87,99 @@
       ) ;if
     ) ;define
 
-    (define (sort-envs-for-insertion envs lines)
-      (let ((missing (collect-envs-needing-right-tags envs lines)))
-        (define (has-next-sibling? env)
-          (find-next-sibling env envs)
-        ) ;define
-        (merge-sort-list
-          missing
-          (lambda (a b)
-            (let ((a-has-next (has-next-sibling? a))
-                  (b-has-next (has-next-sibling? b)))
-              (cond
-                ((and (not a-has-next) b-has-next) #t)
-                ((and a-has-next (not b-has-next)) #f)
-                ((and a-has-next b-has-next)
-                 (or (> (env-lparen-col a) (env-lparen-col b))
-                     (and (= (env-lparen-col a) (env-lparen-col b))
-                          (> (env-lparen-line a) (env-lparen-line b))
-                     ) ;and
-                 ) ;or
-                ) ;
-                (else
-                 (< (env-lparen-col a) (env-lparen-col b))
-                ) ;else
-              ) ;cond
-            ) ;let
-          ) ;lambda
-        ) ;merge-sort-list
+    (define (parent-max-line parent parent-max-lines)
+      (let loop ((rest parent-max-lines))
+        (if (null? rest)
+          #f
+          (if (eq? parent (caar rest))
+            (cdar rest)
+            (loop (cdr rest))
+          ) ;if
+        ) ;if
       ) ;let
+    ) ;define
+
+    (define (collect-parent-max-lines envs)
+      (let loop ((remaining envs)
+                 (result '()))
+        (if (null? remaining)
+          result
+          (let* ((env (car remaining))
+                 (parent (env-parent env))
+                 (line (env-lparen-line env))
+                 (current-max (parent-max-line parent result))
+                ) ;
+            (if (and current-max (>= current-max line))
+              (loop (cdr remaining) result)
+              (loop (cdr remaining)
+                    (cons (cons parent line)
+                          (let prune ((rest result))
+                            (if (null? rest)
+                              '()
+                              (if (eq? parent (caar rest))
+                                (prune (cdr rest))
+                                (cons (car rest) (prune (cdr rest)))
+                              ) ;if
+                            ) ;if
+                          ) ;let
+                    ) ;cons
+              ) ;loop
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (env-has-next-sibling? env parent-max-lines)
+      (let ((max-line (parent-max-line (env-parent env) parent-max-lines)))
+        (and max-line
+             (< (env-lparen-line env) max-line)
+        ) ;and
+      ) ;let
+    ) ;define
+
+    (define (sort-envs-for-insertion envs lines)
+      (map car
+           (let*
+             ((missing (collect-envs-needing-right-tags envs lines))
+              (parent-max-lines (collect-parent-max-lines envs))
+              (decorated-missing
+                (map
+                  (lambda (env)
+                    (cons env
+                          (env-has-next-sibling? env parent-max-lines)
+                    ) ;cons
+                  ) ;lambda
+                  missing
+                ) ;map
+              ) ;decorated-missing
+             ) ;
+             (merge-sort-list
+               decorated-missing
+               (lambda (a b)
+                 (let ((a-env (car a))
+                       (b-env (car b))
+                       (a-has-next (cdr a))
+                       (b-has-next (cdr b)))
+                   (cond
+                     ((and (not a-has-next) b-has-next) #t)
+                     ((and a-has-next (not b-has-next)) #f)
+                     ((and a-has-next b-has-next)
+                      (or (> (env-lparen-col a-env) (env-lparen-col b-env))
+                          (and (= (env-lparen-col a-env) (env-lparen-col b-env))
+                               (> (env-lparen-line a-env) (env-lparen-line b-env))
+                          ) ;and
+                      ) ;or
+                     ) ;
+                     (else
+                      (< (env-lparen-col a-env) (env-lparen-col b-env))
+                     ) ;else
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
+             ) ;merge-sort-list
+           ) ;let*
+      ) ;map
     ) ;define
 
     (define (detail-needs-rewrite? detail current-lines)

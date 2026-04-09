@@ -75,7 +75,7 @@
                             (alist-cons 'step1 "start" '())
                  ) ;alist-cons
      ) ;alist-cons
-                 ) ;alist-cons
+   ) ;result
   ) ;
   (check result => '((step3 . "final") (step2 . "process") (step1 . "start")))
 ) ;let

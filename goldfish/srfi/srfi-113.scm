@@ -973,7 +973,7 @@
            (bag-entries bag)
            #f)
           ) ;hash-table-find
-        ) ;
+         ) ;found
         (if found #t #f)
       ) ;let
     ) ;define
@@ -987,7 +987,7 @@
            (bag-entries bag)
            #f)
           ) ;hash-table-find
-        ) ;
+         ) ;found
         (if found #f #t)
       ) ;let
     ) ;define
@@ -1104,7 +1104,7 @@
                 ((= (hash-table-size e1) (hash-table-size e2)) 0)
                 (else (return #f)))
                ) ;cond
-             ) ;
+              ) ;smaller-count
              (hash-table-for-each
               (lambda (k count1)
                 (let ((count2 (hash-table-ref/default e2 k 0)))

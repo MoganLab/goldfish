@@ -73,7 +73,7 @@
                                (number->string (getpid))
                 ) ;string-append
      ) ;path-join
-                ) ;string-append
+   ) ;base-root
    (load-root (path-join base-root "goldfish"))
    (tests-root (path-join base-root "tests"))
    (index-path (path-join tests-root "function-library-index.json"))

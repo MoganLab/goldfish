@@ -705,7 +705,8 @@
                           (else (parse-sequence simple)))
          ) ;
          ((or (char? simple)
-           (not simple))
+           (not simple)
+          ) ;or
           (parse-base-token simple)
          ) ;
          ((null? simple)
@@ -797,7 +798,7 @@
               (map (lambda (name) '()) binding-names)
               child-bindings)
              ) ;fold
-          ) ;
+           ) ;seed
           (map cons binding-names seed)
         ) ;let
       ) ;define
@@ -922,7 +923,8 @@
                                          (error "Ill-formed rule entry" entry)
                                         ) ;if
                                         (cons (car entry) (parse-simple (cadr entry))))
-                                   table)))
+                                   table))
+           ) ;compiled-table
           ) ;
           (lambda (goal)
            (if (not (assq goal table))

@@ -33,7 +33,7 @@
                         (ascii-left-paren? (string-ref line i))
                         (ascii-right-paren? (string-ref line i))
                     ) ;or
-               ) ;
+               ) ;and
                (substring line start i)
               ) ;
               ((and (not start) (not (char-whitespace? (string-ref line i))))
@@ -70,7 +70,8 @@
                 (car (reverse meaningful))
                ) ;
                ((or (string-index (car rest) #\-)
-                    (string-index (car rest) #\*))
+                    (string-index (car rest) #\*)
+                ) ;or
                 (car rest)
                ) ;
                (else
@@ -112,7 +113,8 @@
                 ) ;
                 ((and start
                       (not end)
-                      (not (char-identifier? (string-ref trimmed i))))
+                      (not (char-identifier? (string-ref trimmed i)))
+                 ) ;and
                  (loop (+ i 1) start i)
                 ) ;
                 (else

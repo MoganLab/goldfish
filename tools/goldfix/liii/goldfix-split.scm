@@ -5,11 +5,28 @@
   (import (liii goldfix-env))
   (import (liii goldfix-lint))
   (import (liii goldfix-line-scan))
+  (import (liii goldfix-split-cond))
   (import (liii goldfix-scheme))
 
   (export normalize-multi-open-lines)
 
   (begin
+    (define (normalize-restart-index changed-pass-index)
+      (cond
+        ;; binding 的拆分会继续暴露新的 binding 行，直接回到 binding 本身
+        ((= changed-pass-index 1) 1)
+        ;; map/filter -> lambda 的拆分只会继续暴露后续 nested-lambda
+        ((= changed-pass-index 2) 2)
+        ;; case 头部拆开后，下一步主要是 clause/body 级别的拆分
+        ((= changed-pass-index 3) 4)
+        ;; clause body 被拆到新行后，可能露出 let/map/filter/case 等更早阶段
+        ((= changed-pass-index 4) 1)
+        ;; let header 换行主要会继续影响外层 let header，本阶段自收敛即可
+        ((= changed-pass-index 5) 5)
+        (else 1)
+      ) ;cond
+    ) ;define
+
     (define (let-family-tag? tag)
       (or (string=? tag "let")
           (string=? tag "let*")
@@ -47,40 +64,6 @@
     (define (nested-lambda-parent-tag? tag)
       (or (string=? tag "map")
           (string=? tag "filter")
-      ) ;or
-    ) ;define
-
-    (define (case-family-tag? tag)
-      (or (string=? tag "case")
-          (string=? tag "case*")
-      ) ;or
-    ) ;define
-
-    (define (conditional-parent-tag? tag)
-      (or (string=? tag "cond")
-          (case-family-tag? tag)
-      ) ;or
-    ) ;define
-
-    (define (clause-body-forbidden-tag? tag)
-      (or (string-null? tag)
-          (string=? tag "if")
-          (string=? tag "cond")
-          (string=? tag "and")
-          (string=? tag "or")
-          (string=? tag "lambda")
-          (string=? tag "begin")
-          (string=? tag "define")
-          (string=? tag "define-library")
-          (string=? tag "when")
-          (string=? tag "unless")
-          (string=? tag "case")
-          (string=? tag "case*")
-          (string=? tag "guard")
-          (string=? tag "do")
-          (string=? tag "delay")
-          (string=? tag "delay-force")
-          (string=? tag "parameterize")
       ) ;or
     ) ;define
 
@@ -228,6 +211,12 @@
       (cadddr plan)
     ) ;define
 
+    (define (scope-covers-entire-env? scope)
+      (or (eq? scope 'env)
+          (eq? scope 'env-selective)
+      ) ;or
+    ) ;define
+
     (define (binding-plan-from-open-index line binding-open-index)
       (let ((tag-range (open-form-tag-range line binding-open-index)))
         (if (not tag-range)
@@ -312,183 +301,6 @@
       ) ;if
     ) ;define
 
-    (define (skip-form-prefix-markers line start)
-      (let ((len (string-length line)))
-        (let loop ((i (skip-inline-whitespace line start)))
-          (if (>= i len)
-            i
-            (let ((ch (string-ref line i)))
-              (cond
-                ((char=? ch #\')
-                 (loop (+ i 1))
-                ) ;
-                ((char=? ch #\`)
-                 (loop (+ i 1))
-                ) ;
-                ((char=? ch #\,)
-                 (if (and (< (+ i 1) len)
-                          (char=? (string-ref line (+ i 1)) #\@))
-                   (loop (+ i 2))
-                   (loop (+ i 1))
-                 ) ;if
-                ) ;
-                (else
-                 i
-                ) ;else
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (atom-form-end-index line start)
-      (let ((len (string-length line)))
-        (let loop ((i start))
-          (if (>= i len)
-            i
-            (let ((ch (string-ref line i)))
-              (if (or (char-whitespace? ch)
-                      (char=? ch LEFT_PAREN)
-                      (char=? ch RIGHT_PAREN)
-                      (char=? ch #\;))
-                i
-                (loop (+ i 1))
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (list-form-end-index line start)
-      (let ((len (string-length line)))
-        (let loop ((i start)
-                   (depth 0)
-                   (block-depth 0)
-                   (in-string #f)
-                   (escape-next #f))
-          (if (>= i len)
-            #f
-            (let ((ch (string-ref line i)))
-              (let-values (((next-i next-block-depth next-in-string next-escape-next mode)
-                            (advance-lex-state
-                              line
-                              i
-                              block-depth
-                              in-string
-                              escape-next
-                            ) ;advance-lex-state
-                            )) ;states
-                (let
-                  ((next-depth
-                     (if (eq? mode 'code-char)
-                       (cond
-                         ((char=? ch LEFT_PAREN)
-                          (+ depth 1)
-                         ) ;
-                         ((char=? ch RIGHT_PAREN)
-                          (- depth 1)
-                         ) ;
-                         (else
-                          depth
-                         ) ;else
-                       ) ;cond
-                       depth
-                     ) ;if
-                   ) ;next-depth
-                  ) ;
-                  (cond
-                    ((and (eq? mode 'line-comment)
-                          (> next-depth 0))
-                     #f
-                    ) ;
-                    ((and (> depth 0)
-                          (= next-depth 0))
-                     next-i
-                    ) ;
-                    (else
-                     (loop next-i
-                           next-depth
-                           next-block-depth
-                           next-in-string
-                           next-escape-next
-                     ) ;loop
-                    ) ;else
-                  ) ;cond
-                ) ;let
-              ) ;let-values
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (form-end-index line start)
-      (let* ((len (string-length line))
-             (form-start (skip-form-prefix-markers line start)))
-        (if (>= form-start len)
-          #f
-          (if (char=? (string-ref line form-start) LEFT_PAREN)
-            (list-form-end-index line form-start)
-            (atom-form-end-index line form-start)
-          ) ;if
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (clause-body-open-index line clause-open)
-      (let* ((len (string-length line))
-             (first-form-start (skip-form-prefix-markers line (+ clause-open 1))))
-        (if (>= first-form-start len)
-          #f
-          (let ((first-form-end (form-end-index line first-form-start)))
-            (if (not first-form-end)
-              #f
-              (let ((body-start (skip-inline-whitespace line first-form-end)))
-                (if (or (>= body-start len)
-                        (not (char=? (string-ref line body-start)
-                                     LEFT_PAREN))
-                        ) ;not
-                  #f
-                  (let
-                    ((body-tag
-                       (extract-tag
-                         (substring line body-start len))
-                       ) ;extract-tag
-                    ) ;
-                    (and (not (clause-body-forbidden-tag? body-tag))
-                         (form-continues-after-line? line body-start)
-                         body-start
-                    ) ;and
-                  ) ;let
-                ) ;if
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (case-inline-clause-open-index env line)
-      (let* ((len (string-length line))
-             (head-end (env-head-end-index line env)))
-        (if (not head-end)
-          #f
-          (let ((expr-start (skip-form-prefix-markers line head-end)))
-            (if (>= expr-start len)
-              #f
-              (let ((expr-end (form-end-index line expr-start)))
-                (and expr-end
-                     (direct-child-open-index line expr-end)
-                ) ;and
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
     (define (env-spans-multiple-lines? env)
       (or (not (env-rparen-line env))
           (> (env-rparen-line env) (env-lparen-line env))
@@ -562,73 +374,6 @@
       ) ;if
     ) ;define
 
-    (define (case-inline-clause-split-plan env line _remaining-lines)
-      (if (or (not (case-family-tag? (env-tag env)))
-              (not (line-comment-free? line)))
-        #f
-        (let ((clause-open (case-inline-clause-open-index env line)))
-          (if (and clause-open
-                   (clause-body-open-index line clause-open))
-            (make-split-plan
-              line
-              clause-open
-              (+ (env-lparen-col env) 2)
-              'child
-            ) ;make-split-plan
-            #f
-          ) ;if
-        ) ;let
-      ) ;if
-    ) ;define
-
-    (define (conditional-clause-env? env line)
-      (let ((parent (env-parent env)))
-        (and parent
-             (conditional-parent-tag? (env-tag parent))
-             (= (env-lparen-col env) (line-leading-space-count line))
-        ) ;and
-      ) ;let
-    ) ;define
-
-    (define (conditional-clause-split-plan env line _remaining-lines)
-      (if (not (line-comment-free? line))
-        #f
-        (cond
-          ((string=? (env-tag env) "cond")
-           (let*
-             ((head-end (env-head-end-index line env))
-              (clause-open
-                (and head-end
-                     (direct-child-open-index line head-end)
-                ) ;and
-              ) ;clause-open
-              (body-open
-                (and clause-open
-                     (clause-body-open-index line clause-open)
-                ) ;and
-              ) ;body-open
-             ) ;
-             (and body-open
-                  (make-split-plan line body-open (+ clause-open 1) 'child)
-             ) ;and
-           ) ;let*
-          ) ;
-          ((conditional-clause-env? env line)
-           (let* ((clause-open (env-lparen-col env))
-                  (body-open (clause-body-open-index line clause-open))
-                 ) ;let*
-             (and body-open
-                  (make-split-plan line body-open (+ clause-open 1) 'child)
-             ) ;and
-           ) ;let*
-          ) ;
-          (else
-           #f
-          ) ;else
-        ) ;cond
-      ) ;if
-    ) ;define
-
     (define (subtree-follow-line-count lines start-index)
       (let-values (((counts block-depth in-string escape-next)
                     (count-parens-with-state
@@ -675,7 +420,7 @@
     ) ;define
 
     (define (plan-follow-line-count plan env remaining-lines)
-      (if (eq? (split-plan-scope plan) 'env)
+      (if (scope-covers-entire-env? (split-plan-scope plan))
         (subtree-follow-line-count remaining-lines (env-lparen-col env))
         (subtree-follow-line-count remaining-lines (split-plan-start-index plan))
       ) ;if
@@ -745,137 +490,204 @@
       ) ;map
     ) ;define
 
-    (define (apply-split-pass lines collect-plan)
-      (let ((envs (scan-environments lines)))
-        (let loop ((remaining-lines lines)
-                   (remaining-envs envs)
-                   (line-num 1)
-                   (block-depth 0)
-                   (in-string #f)
-                   (escape-next #f)
-                   (result '()))
-          (if (null? remaining-lines)
-            (reverse result)
-            (let*
-              ((line (car remaining-lines))
-               (line-env (and (pair? remaining-envs)
-                              (= (env-lparen-line (car remaining-envs)) line-num)
-                              (car remaining-envs))
-               ) ;line-env
-               (plan (and line-env
-                          (line-starts-in-code? block-depth in-string escape-next)
-                          (collect-plan line-env line remaining-lines))
-               ) ;plan
-              ) ;
-              (if plan
-                (let*
-                  ((follow-count
-                     (plan-follow-line-count
-                       plan
-                       line-env
-                       remaining-lines
-                     ) ;plan-follow-line-count
-                   ) ;follow-count
-                   (consumed-count (+ follow-count 1))
-                   (next-line-num (+ line-num consumed-count))
-                  ) ;
-                  (let-values (((consumed-lines rest-lines)
-                                (take-lines remaining-lines consumed-count)))
-                    (let-values (((next-block-depth next-in-string next-escape-next)
-                                  (advance-lex-state-through-lines
-                                    consumed-lines
-                                    block-depth
-                                    in-string
-                                    escape-next
-                                  ) ;advance-lex-state-through-lines
-                                 )
-                                ) ;states
-                      (let*
-                        ((shifted-follow-lines
+    (define (shift-lines-indentation-selectively lines delta threshold)
+      (map
+        (lambda (line)
+          (if (>= (line-leading-space-count line) threshold)
+            (shift-line-indentation line delta)
+            line
+          ) ;if
+        ) ;lambda
+        lines
+      ) ;map
+    ) ;define
+
+    (define (rewrite-split-pass lines envs collect-plan)
+      (let loop ((remaining-lines lines)
+                 (remaining-envs envs)
+                 (line-num 1)
+                 (block-depth 0)
+                 (in-string #f)
+                 (escape-next #f)
+                 (result '())
+                 (changed? #f))
+        (if (null? remaining-lines)
+          (if changed?
+            (values (reverse result) #t)
+            (values lines #f)
+          ) ;if
+          (let*
+            ((line (car remaining-lines))
+             (line-env (and (pair? remaining-envs)
+                            (= (env-lparen-line (car remaining-envs)) line-num)
+                            (car remaining-envs))
+             ) ;line-env
+             (plan (and line-env
+                        (line-starts-in-code? block-depth in-string escape-next)
+                        (collect-plan line-env line remaining-lines))
+             ) ;plan
+            ) ;
+            (if plan
+              (let*
+                ((follow-count
+                   (plan-follow-line-count
+                     plan
+                     line-env
+                     remaining-lines
+                   ) ;plan-follow-line-count
+                 ) ;follow-count
+                 (consumed-count (+ follow-count 1))
+                 (next-line-num (+ line-num consumed-count))
+                ) ;
+                (let-values (((consumed-lines rest-lines)
+                              (take-lines remaining-lines consumed-count)))
+                  (let-values (((next-block-depth next-in-string next-escape-next)
+                                (advance-lex-state-through-lines
+                                  consumed-lines
+                                  block-depth
+                                  in-string
+                                  escape-next
+                                ) ;advance-lex-state-through-lines
+                               )
+                              ) ;states
+                    (let*
+                      ((shifted-follow-lines
+                         (if (eq? (split-plan-scope plan) 'env-selective)
+                           (shift-lines-indentation-selectively
+                             (cdr consumed-lines)
+                             (split-plan-indent-delta plan)
+                             (split-plan-start-index plan)
+                           ) ;shift-lines-indentation-selectively
                            (shift-lines-indentation
                              (cdr consumed-lines)
                              (split-plan-indent-delta plan)
                            ) ;shift-lines-indentation
-                         ) ;shifted-follow-lines
-                         (emitted-lines
-                           (append (split-plan-lines plan)
-                                   shifted-follow-lines
-                           ) ;append
-                         ) ;emitted-lines
-                         (next-envs
-                           (drop-envs-before-line remaining-envs next-line-num)
-                         ) ;next-envs
-                        ) ;
-                        (loop rest-lines
-                              next-envs
-                              next-line-num
-                              next-block-depth
-                              next-in-string
-                              next-escape-next
-                              (prepend-lines result emitted-lines)
-                        ) ;loop
-                      ) ;let*
-                    ) ;let-values
+                         ) ;if
+                       ) ;shifted-follow-lines
+                       (emitted-lines
+                         (append (split-plan-lines plan)
+                                 shifted-follow-lines
+                         ) ;append
+                       ) ;emitted-lines
+                       (next-envs
+                         (drop-envs-before-line remaining-envs next-line-num)
+                       ) ;next-envs
+                      ) ;
+                      (loop rest-lines
+                            next-envs
+                            next-line-num
+                            next-block-depth
+                            next-in-string
+                            next-escape-next
+                            (prepend-lines result emitted-lines)
+                            #t
+                      ) ;loop
+                    ) ;let*
                   ) ;let-values
-                ) ;let*
-                (let-values (((_counts next-block-depth next-in-string next-escape-next)
-                              (count-parens-with-state
-                                line
-                                block-depth
-                                in-string
-                                escape-next
-                              ) ;count-parens-with-state
-                              )) ;counts
-                  (loop (cdr remaining-lines)
-                        (drop-envs-before-line remaining-envs (+ line-num 1))
-                        (+ line-num 1)
-                        next-block-depth
-                        next-in-string
-                        next-escape-next
-                        (cons line result)
-                  ) ;loop
                 ) ;let-values
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
+              ) ;let*
+              (let-values (((_counts next-block-depth next-in-string next-escape-next)
+                            (count-parens-with-state
+                              line
+                              block-depth
+                              in-string
+                              escape-next
+                            ) ;count-parens-with-state
+                            )) ;counts
+                (loop (cdr remaining-lines)
+                      (drop-envs-before-line remaining-envs (+ line-num 1))
+                      (+ line-num 1)
+                      next-block-depth
+                      next-in-string
+                      next-escape-next
+                      (cons line result)
+                      changed?
+                ) ;loop
+              ) ;let-values
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (apply-split-pass lines cached-envs collect-plan)
+      (let
+        ((envs
+           (if cached-envs
+             cached-envs
+             (scan-environments lines)
+           ) ;if
+         ) ;envs
+        ) ;
+        (call-with-values
+          (lambda ()
+            (rewrite-split-pass lines envs collect-plan)
+          ) ;lambda
+          (lambda (next-lines changed?)
+            (values next-lines
+                    (if changed? #f envs)
+                    changed?
+            ) ;values
+          ) ;lambda
+        ) ;call-with-values
       ) ;let
     ) ;define
 
     (define (normalize-multi-open-lines lines)
-      (let loop ((current-lines lines)
-                 (remaining-rounds 4))
-        (let*
-          ((binding-split-result
-             (apply-split-pass current-lines collect-binding-split-plan))
-           (nested-split-result
-             (apply-split-pass binding-split-result nested-lambda-split-plan)
-           ) ;nested-split-result
-           (case-head-split-result
-             (apply-split-pass
-               nested-split-result
-               case-inline-clause-split-plan
-             ) ;apply-split-pass
-           ) ;case-head-split-result
-           (conditional-clause-split-result
-             (apply-split-pass
-               case-head-split-result
-               conditional-clause-split-plan
-             ) ;apply-split-pass
-           ) ;conditional-clause-split-result
-           (binding-list-header-split-result
-             (apply-split-pass
-               conditional-clause-split-result
-               binding-list-header-split-plan
-             ) ;apply-split-pass
-           ) ;binding-list-header-split-result
-          ) ;
-          (if (or (= remaining-rounds 1)
-                  (equal? binding-list-header-split-result current-lines))
-            binding-list-header-split-result
-            (loop binding-list-header-split-result (- remaining-rounds 1))
+      (let
+        ((pass-order
+           (list (list 1 "binding" collect-binding-split-plan)
+                 (list 2 "nested-lambda" nested-lambda-split-plan)
+                 (list 3 "case-inline-clause" case-inline-clause-split-plan)
+                 (list 4 "conditional-clause" conditional-clause-split-plan)
+                 (list 5 "binding-list-header" binding-list-header-split-plan)
+           ) ;list
+         ) ;pass-order
+        ) ;
+        ;; 不同 pass 之间的“新机会”传播方向并不相同，
+        ;; 改动后只回跳到最早可能重新受影响的阶段，而不是一律回到开头。
+        (let loop ((current-lines lines)
+                   (current-envs #f)
+                   (remaining-steps 20)
+                   (remaining-passes pass-order))
+          (if (or (= remaining-steps 0)
+                  (null? remaining-passes))
+            current-lines
+            (let* ((pass (car remaining-passes))
+                   (pass-position (car pass))
+                   (collect-plan (caddr pass))
+                   ) ;collect-plan
+              (call-with-values
+                (lambda ()
+                  (apply-split-pass
+                    current-lines
+                    current-envs
+                    collect-plan
+                  ) ;apply-split-pass
+                ) ;lambda
+                (lambda (next-lines next-envs changed?)
+                  (if changed?
+                    (loop next-lines
+                          #f
+                          (- remaining-steps 1)
+                          (list-tail pass-order
+                                     (- (normalize-restart-index
+                                          pass-position)
+                                        1
+                                     ) ;-
+                          ) ;list-tail
+                    ) ;loop
+                    (loop next-lines
+                          next-envs
+                          (- remaining-steps 1)
+                          (cdr remaining-passes)
+                    ) ;loop
+                  ) ;if
+                ) ;lambda
+              ) ;call-with-values
+            ) ;let*
           ) ;if
-        ) ;let*
+        ) ;let
       ) ;let
     ) ;define
   ) ;begin

@@ -42,7 +42,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           (+ block-depth 1)
@@ -52,7 +53,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\|)
-                         (char=? (string-ref line (+ i 1)) #\#))
+                         (char=? (string-ref line (+ i 1)) #\#)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           (- block-depth 1)
@@ -104,7 +106,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           (+ block-depth 1)
@@ -114,7 +117,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\\))
+                         (char=? (string-ref line (+ i 1)) #\\)
+                    ) ;and
                     (loop (skip-char-literal-index line i)
                           indices
                           block-depth
@@ -182,7 +186,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           (+ block-depth 1)
                           in-string
@@ -191,7 +196,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\|)
-                         (char=? (string-ref line (+ i 1)) #\#))
+                         (char=? (string-ref line (+ i 1)) #\#)
+                    ) ;and
                     (loop (+ i 2)
                           (- block-depth 1)
                           in-string
@@ -238,7 +244,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           (+ block-depth 1)
                           in-string
@@ -247,7 +254,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\\))
+                         (char=? (string-ref line (+ i 1)) #\\)
+                    ) ;and
                     (loop (skip-char-literal-index line i)
                           block-depth
                           in-string
@@ -308,7 +316,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           open-count
@@ -319,7 +328,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\|)
-                         (char=? (string-ref line (+ i 1)) #\#))
+                         (char=? (string-ref line (+ i 1)) #\#)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           open-count
@@ -376,7 +386,8 @@
                  (cond
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\|))
+                         (char=? (string-ref line (+ i 1)) #\|)
+                    ) ;and
                     (loop (+ i 2)
                           indices
                           open-count
@@ -387,7 +398,8 @@
                    ) ;
                    ((and (< (+ i 1) len)
                          (char=? ch #\#)
-                         (char=? (string-ref line (+ i 1)) #\\))
+                         (char=? (string-ref line (+ i 1)) #\\)
+                    ) ;and
                     (loop (skip-char-literal-index line i)
                           indices
                           open-count
@@ -466,7 +478,8 @@
                  (loop (- i 1) remaining count)
                 ) ;
                 ((and (pair? remaining)
-                      (= i (car remaining)))
+                      (= i (car remaining))
+                 ) ;and
                  (loop (- i 1)
                        (cdr remaining)
                        (+ count 1)

@@ -708,7 +708,8 @@
           (cond
             ((< i 0) eset)
             ((and (bits-ref vec i)
-                  (not (pred (%enum-ordinal->enum-no-assert type i))))
+                  (not (pred (%enum-ordinal->enum-no-assert type i)))
+             ) ;and
              (bits-set! vec i #f)
              (loop (- i 1))
             ) ;
@@ -729,7 +730,8 @@
           (cond
             ((< i 0) eset)
             ((and (bits-ref vec i)
-                  (pred (%enum-ordinal->enum-no-assert type i)))
+                  (pred (%enum-ordinal->enum-no-assert type i))
+             ) ;and
              (bits-set! vec i #f)
              (loop (- i 1))
             ) ;

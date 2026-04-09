@@ -24,8 +24,9 @@
       (let
         ((case*-labels (lambda (label)
                          (let ((labels ((funclet ((funclet 'case*) 'case*-helper)) 'labels)))
-                           (labels (symbol->string label)))) ; if ellipsis, this has been quoted by case*
+                           (labels (symbol->string label))) ; if ellipsis, this has been quoted by case*
                          ) ;let
+         ) ;case*-labels
 
          (case*-match?
            (lambda* (matchee pattern (e (curlet)))
@@ -156,40 +157,41 @@
                         ) ;else
                       ) ;cond
 
-                      (cond ((= pos 0)
-                             (if ellipsis-label
-                               (set! (labels ellipsis-label) 
-                                     (list 'quote (copy sel (make-list (- sel-len new-pat-len))))
-                               ) ;set!
-                             ) ;if
-                             (values (subvector sel (max 0 (- sel-len new-pat-len)) sel-len) ; was new-pat-len (max 0 (- sel-len new-pat-len))
-                               (subvector pat 1 (+ new-pat-len 1))                     ;     new-pat-len 1
-                               (or (not func) 
-                                 (func (cadr (labels ellipsis-label))))
-                               ) ;or
-                             ) ;values
+                      (cond
+                        ((= pos 0)
+                         (if ellipsis-label
+                           (set! (labels ellipsis-label) 
+                                 (list 'quote (copy sel (make-list (- sel-len new-pat-len))))
+                           ) ;set!
+                         ) ;if
+                         (values (subvector sel (max 0 (- sel-len new-pat-len)) sel-len) ; was new-pat-len (max 0 (- sel-len new-pat-len))
+                           (subvector pat 1 (+ new-pat-len 1))                     ;     new-pat-len 1
+                           (or (not func) 
+                             (func (cadr (labels ellipsis-label))))
+                           ) ;or
+                         ) ;values
 
                         ((= pos new-pat-len)
                          (if ellipsis-label
                            (set! (labels ellipsis-label) 
-                                 (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
+                             (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
                            ) ;set!
                          ) ;if
                          (values (subvector sel 0 new-pat-len)
                            (subvector pat 0 new-pat-len)
                            (or (not func) 
-                             (func (cadr (labels ellipsis-label)))
+                         (func (cadr (labels ellipsis-label)))
                            ) ;or
                          ) ;values
                         ) ;
 
                         (else
                          (let ((new-pat (make-vector new-pat-len))
-                               (new-sel (make-vector new-pat-len)))
+                           (new-sel (make-vector new-pat-len)))
                            (if ellipsis-label
-                             (set! (labels ellipsis-label) 
-                               (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
-                             ) ;set!
+                         (set! (labels ellipsis-label) 
+                           (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
+                         ) ;set!
                            ) ;if
                            (copy pat new-pat 0 pos)
                            (copy pat (subvector new-pat pos new-pat-len) (+ pos 1))       ; (- new-pat-len pos) pos)   copy: (+ pos 1))
@@ -197,9 +199,9 @@
                            (copy sel (subvector new-sel pos new-pat-len) (- sel-len pos))
                            ; (- new-pat-len pos) pos)  copy: (- sel-len pos))
                            (values new-sel new-pat
-                             (or (not func) 
-                               (cadr (func (labels ellipsis-label)))
-                             ) ;or
+                         (or (not func) 
+                           (cadr (func (labels ellipsis-label)))
+                         ) ;or
                            ) ;values
                          ) ;let
                         ) ;else
@@ -410,11 +412,13 @@
 
               (when (find-labelled-pattern body) ; if labelled, remake the body substituting the labelled-exprs for the labels
                 (set! body (let pair-builder ((tree body))
-                             (cond ((undefined? tree)
-                                    (let ((label (let ((str (object->string tree)))
-                                                   (substring str 2 (- (length str) 1)))))
-                                      (or (labels label) tree))
-                                    ) ;let
+                             (cond
+                               ((undefined? tree)
+                                (let ((label (let ((str (object->string tree)))
+                                               (substring str 2 (- (length str) 1)))))
+                                  (or (labels label) tree)
+                                ) ;let
+                               ) ;
 
                                ((pair? tree)
                                 (cons (pair-builder (car tree))

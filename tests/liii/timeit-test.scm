@@ -82,7 +82,7 @@ type-error
              (lambda () #t)
              1000)
      ) ;timeit
-  ) ;
+   ) ;result
   (check (number? result) => #t)
   (check (>= result 0) => #t)
 ) ;let
@@ -101,8 +101,9 @@ type-error
   ((result1
      (timeit (lambda () (* 2 3))
              (lambda () #t)
-             100)
+             100
      ) ;timeit
+   ) ;result1
    (result2
      (timeit (lambda () (* 2 3))
              (lambda () #t)
@@ -121,7 +122,7 @@ type-error
              (lambda () #t)
              10)
      ) ;timeit
-  ) ;
+   ) ;result
   (check (number? result) => #t)
   (check (>= result 0) => #t)
 ) ;let
@@ -160,7 +161,7 @@ type-error
              (lambda () #t)
              1)
      ) ;timeit
-  ) ;
+   ) ;result
   (check (number? result) => #t)
   (check (>= result 0.09) => #t)  ; Should be at least 0.09 seconds
 ) ;let
@@ -172,7 +173,7 @@ type-error
              (lambda () #t)
              5)
      ) ;timeit
-  ) ;
+   ) ;result
   (check (number? result) => #t)
   (check (>= result 0.04) => #t)  ; Should be at least 0.04 seconds (5 * 0.01)
 ) ;let
@@ -184,7 +185,7 @@ type-error
              (lambda () #t)
              10)
      ) ;timeit
-  ) ;
+   ) ;result
   (check (number? result) => #t)
   (check (>= result 0.005) => #t)  ; Should be at least 0.005 seconds (10 * 0.001)
 ) ;let

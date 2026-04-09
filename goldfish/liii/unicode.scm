@@ -132,7 +132,7 @@
                      (ash (bitwise-and byte2 #b00111111) 6)
                      (bitwise-and byte3 #b00111111))
                     ) ;bitwise-ior
-                 ) ;
+                  ) ;codepoint
                  (when (or (<= #xD800 codepoint #xDFFF)
                            (and (= first-byte #xE0) (< codepoint #x0800))
                            (and (= first-byte #xED) (>= codepoint #xD800)))
@@ -161,7 +161,7 @@
                      (ash (bitwise-and byte3 #b00111111) 6)
                      (bitwise-and byte4 #b00111111))
                     ) ;bitwise-ior
-                 ) ;
+                  ) ;codepoint
                  (when (or (< codepoint #x10000)
                            (> codepoint #x10FFFF)
                            (and (= first-byte #xF0) (< codepoint #x10000))
@@ -315,7 +315,7 @@
                     (+ (ash (- first-codepoint #xD800) 10)
                        (- second-codepoint #xDC00))
                     ) ;+
-                 ) ;
+                  ) ;codepoint-prime
                  (+ codepoint-prime #x10000)
                ) ;let
              ) ;let*
@@ -413,7 +413,7 @@
                     (+ (ash (- first-codepoint #xD800) 10)
                        (- second-codepoint #xDC00))
                     ) ;+
-                 ) ;
+                  ) ;codepoint-prime
                  (+ codepoint-prime #x10000)
                ) ;let
              ) ;let*

@@ -55,7 +55,7 @@
                         (substring str 0 slash-pos)
                         str
                      ) ;if
-               ) ;netloc
+             ) ;netloc
              (path (if slash-pos
                       (substring str slash-pos
                                 (or question-pos

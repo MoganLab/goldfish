@@ -77,7 +77,7 @@
      (http-get "https://httpbin.org/get"
               :params '(("key1" . "value1") ("key2" . "value2")))
      ) ;http-get
-  ) ;
+   ) ;r
   (check-true (string-contains (r 'text) "value1"))
   (check-true (string-contains (r 'text) "value2"))
   (check (r 'url) => "https://httpbin.org/get?key1=value1&key2=value2")
@@ -98,7 +98,7 @@
                            ) ;lambda
        ) ;
        ) ;http-get
-    ) ;
+     ) ;r
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
@@ -122,7 +122,7 @@
                            ) ;lambda
        ) ;
        ) ;http-get
-    ) ;
+     ) ;r
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
@@ -155,7 +155,7 @@
            (read-string 4096 port)
          ) ;lambda
        ) ;call-with-input-file
-     ) ;
+     ) ;body
     ) ;
     (check-true (string-contains body "\"userId\""))
   ) ;let
@@ -177,7 +177,7 @@
                            ) ;lambda
        ) ;
        ) ;http-get
-    ) ;
+     ) ;r
     (check-true (undefined? r))
     (check-true (> chunks 0))
     (check total-bytes => 102400)

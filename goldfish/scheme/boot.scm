@@ -63,7 +63,7 @@
                              ) ;begin
                          ) ;if
                              ) ;begin
-        ) ;
+         ) ;lib-filename
         (when (not (defined? (symbol (object->string (car libs)))))
           ;(display "Loading ") (display lib-filename) (newline)
           (load lib-filename)

@@ -78,8 +78,9 @@
   ((j0 '((person . ((name . "Alice")
                     (age . 25)
                     (address . ((city . "Wonderland")
-                                (zip . "12345"))))))
+                                (zip . "12345")))))
                     ) ;address
+   ) ;j0
    (j1 (json-set j0 'person 'address 'city "Newland"))
   ) ;
   (check (json-ref j1 'person 'address 'city) => "Newland")

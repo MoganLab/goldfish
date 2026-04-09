@@ -30,7 +30,7 @@
                                  (fxmapping 0 10 1 20)
                                  (fxmapping 1 5 2 30))
      ) ;fxmapping-union/combinator
-  ) ;
+   ) ;union
   (check (fxmapping-ref union 0 (lambda () 'not-found)) => 10)
   (check (fxmapping-ref union 1 (lambda () 'not-found)) => 25)
   (check (fxmapping-ref union 2 (lambda () 'not-found)) => 30)

@@ -122,8 +122,9 @@
 (let*
   ((g
      (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
-                  (*) (num . 4)))
+                  (*) (num . 4))
      ) ;generator
+   ) ;g
    (expected (* (+ 2 3) 4))
    (r (calc (base-generator->results g)))
   ) ;
@@ -154,8 +155,9 @@
        '((begin) (id . ans) (:=) (num . 42)
                  (oparen) (num . 2) (+) (id . ans) (cparen)
                  (^) (num . 3)
-         (end)))
+         (end))
      ) ;generator
+   ) ;g
    (expected (begin (define ans 42)
                     (expt (+ 2 ans)
                           3)
@@ -172,8 +174,9 @@
   ((g
      (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
                   (^)
-                  (oparen) (num . 1) (+) (num . 1) (cparen)))
+                  (oparen) (num . 1) (+) (num . 1) (cparen))
      ) ;generator
+   ) ;g
    (expected (expt (+ 2 3) (+ 1 1)))
    (r (calc (base-generator->results g)))
   ) ;
@@ -187,8 +190,9 @@
      (generator '((begin) (id . a) (:=) (num . 10)
                   (id . b) (:=) (num . 20)
                   (id . a) (*) (id . b)
-                  (end)))
+                  (end))
      ) ;generator
+   ) ;g
    (expected (begin (define a 10) (define b 20) (* a b)))
    (r (calc (base-generator->results g)))
   ) ;

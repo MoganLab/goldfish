@@ -45,7 +45,7 @@
                ) ;lambda
                envs)
              ) ;filter
-          ) ;
+           ) ;candidates
           (if (null? candidates)
             #f
             (let ((min-line (list-min candidates env-lparen-line)))
@@ -73,7 +73,7 @@
                 ) ;
                 (else total-lines))
               ) ;cond
-            ) ;
+             ) ;bound
             (if (number? bound) bound total-lines)
         ) ;let
       ) ;if
@@ -332,12 +332,14 @@
                   ) ;
                   ((and (< (+ i 1) len)
                         (char=? ch #\#)
-                        (char=? (string-ref line (+ i 1)) #\|))
+                        (char=? (string-ref line (+ i 1)) #\|)
+                   ) ;and
                    #f
                   ) ;
                   ((and (< (+ i 1) len)
                         (char=? ch #\#)
-                        (char=? (string-ref line (+ i 1)) #\\))
+                        (char=? (string-ref line (+ i 1)) #\\)
+                   ) ;and
                    #f
                   ) ;
                   ((char=? ch #\")
@@ -451,7 +453,7 @@
                                         ) ;loop-remaining
                                       ) ;if
                                     ) ;remaining-lines
-                  ) ;
+                   ) ;remaining-lines
                 (if (and (line-starts-with-rparen-in-code? line
                                                            block-depth
                                                            in-string

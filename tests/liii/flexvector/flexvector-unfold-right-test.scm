@@ -54,7 +54,7 @@
                           1
        ) ;flexvector-unfold
      ) ;flexvector->vector
-       ) ;flexvector-unfold
+   ) ;unfold-result
    (unfold-right-result
      (flexvector->vector
        (flexvector-unfold-right (lambda (x) (> x 5))
@@ -79,7 +79,7 @@
                                 5)
        ) ;flexvector-unfold-right
      ) ;flexvector->list
-  ) ;
+   ) ;result
   (check result => '(0 1 2 3 4 5))
 ) ;let
 

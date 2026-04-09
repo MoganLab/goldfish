@@ -47,7 +47,8 @@
           ((and close-line
                 (= close-line lparen-line)
                 explicit-line
-                (env-has-indented-body-before-explicit-rparen? env explicit-line lines))
+                (env-has-indented-body-before-explicit-rparen? env explicit-line lines)
+           ) ;and
            (env-set-rparen-line! env explicit-line)
           ) ;
           ((and close-line (= close-line lparen-line))

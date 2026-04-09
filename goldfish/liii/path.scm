@@ -398,7 +398,8 @@
               ((string=? name ".") "")
               ((string=? name "..") "..")
               ((and (string=? (car splits) "")
-                    (= count 2))
+                    (= count 2)
+               ) ;and
                name
               ) ;
               (else
@@ -431,7 +432,8 @@
               ((string=? name ".") "")
               ((string=? name "..") "")
               ((and (string=? (car splits) "")
-                    (= count 2))
+                    (= count 2)
+               ) ;and
                ""
               ) ;
               (else
@@ -474,7 +476,7 @@
                  (substring s 0 (- (string-length s) 1))
                  s)
                ) ;if
-            ) ;
+             ) ;s-trimmed
             (let loop ((i (- (string-length s-trimmed) 1)))
               (cond
                 ((< i 0)

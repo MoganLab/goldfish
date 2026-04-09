@@ -70,7 +70,7 @@
      (http-post "https://httpbin.org/post"
                :params '(("key1" . "value1") ("key2" . "value2")))
      ) ;http-post
-  ) ;
+   ) ;r
   (check-true (string-contains (r 'text) "value1"))
   (check-true (string-contains (r 'text) "value2"))
   (check (r 'status-code) => 200)
@@ -81,8 +81,9 @@
 (let*
   ((r
      (http-post "https://httpbin.org/post"
-       :data "This is raw data")
+       :data "This is raw data"
      ) ;http-post
+   ) ;r
    (json (string->json (r 'text)))
   ) ;
   (check (r 'status-code) => 200)
@@ -106,7 +107,7 @@
                            ) ;lambda
        ) ;
        ) ;http-post
-    ) ;
+     ) ;r
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
@@ -140,7 +141,7 @@
            (read-string 4096 port)
          ) ;lambda
        ) ;call-with-input-file
-     ) ;
+     ) ;body
     ) ;
     (check-true (string-contains body "Simple streaming POST test"))
   ) ;let
@@ -155,8 +156,9 @@
        :files '(("upload" . ((file . "tests/resources/http-upload.txt")
                              (filename . "fixture.txt")
                              (content-type . "text/plain"))))
-       :params '(("kind" . "multipart")))
+       :params '(("kind" . "multipart"))
      ) ;http-post
+   ) ;r
    (json (string->json (r 'text)))
   ) ;
   (check (r 'status-code) => 200)
@@ -189,7 +191,7 @@
                            ) ;lambda
        ) ;
        ) ;http-post
-    ) ;
+     ) ;r
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
@@ -231,8 +233,9 @@
            :headers `(("token" . ,simpletex-api-key))
            :files '(("file" . ((file . "tests/resources/simpletex-formula-a2-b2.png")
                                (filename . "simpletex-formula-a2-b2.png")
-                               (content-type . "image/png")))))
+                               (content-type . "image/png"))))
          ) ;http-post
+       ) ;r
        (json (string->json (r 'text)))
       ) ;
       (check (r 'status-code) => 200)

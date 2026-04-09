@@ -30,7 +30,7 @@
                                         (fxmapping 0 10 1 20 2 30)
                                         (fxmapping 1 5 2 15 3 40))
      ) ;fxmapping-intersection/combinator
-  ) ;
+   ) ;intersection
   (check-false (fxmapping-contains? intersection 0))
   (check (fxmapping-ref intersection 1 (lambda () 'not-found)) => 25)
   (check (fxmapping-ref intersection 2 (lambda () 'not-found)) => 45)

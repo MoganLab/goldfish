@@ -52,7 +52,7 @@
            (address . ((city . "Wonderland")
                        (zip . "12345"))))
            ) ;address
-  ) ;
+   ) ;json
   (let ((updated-json (json-drop json 'address 'city)))
     (check (json-ref updated-json 'address 'city) => '())
   ) ;let
@@ -64,7 +64,7 @@
            (address . ((city . "Wonderland")
                        (zip . "12345"))))
            ) ;address
-  ) ;
+   ) ;json
   (let ((j1 (json-drop json (lambda (k) (equal? k 'city)))))
     (check (json-ref j1 'address 'city) => "Wonderland")
   ) ;let
