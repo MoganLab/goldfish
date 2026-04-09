@@ -74,7 +74,8 @@
 
 (let*
   ((j0 '((user . ((profile . ((contact . ((email . "alice@example.com")
-                                          (phone . "123-456-7890")))))))))
+                                          (phone . "123-456-7890"))))))))
+   ) ;j0
    (j1
      (json-reduce j0 'user 'profile 'contact 'email
                   (lambda (k v) (string-append v ".verified")))
@@ -86,8 +87,9 @@
 (let*
   ((j0 '((user . ((data . ((scores . #(85 90 78 92 88))
                            (settings . ((notifications . #t)
-                                        (theme . "dark"))))))))
+                                        (theme . "dark")))))))
                            ) ;settings
+   ) ;j0
    (j1
      (json-reduce j0 'user 'data
                   (lambda (k) (equal? k 'scores))
@@ -101,7 +103,8 @@
 (let*
   ((j0 '((user . ((profile . ((name . "Alice")
                               (age . 25)
-                              (scores . #(85 90 78))))))))
+                              (scores . #(85 90 78)))))))
+   ) ;j0
    (j1
      (json-reduce j0 'user 'profile 'scores
                   (lambda (k v) (vector-map (lambda (score) (+ score 5)) v)))
@@ -125,7 +128,7 @@
                       (address . ((city . "Wonderland")
                                   (zip . "12345"))))))
                       ) ;address
-  ) ;
+   ) ;json
   (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))))
     (check (json-ref updated-json 'person 'address 'city) => "WONDERLAND")
   ) ;let

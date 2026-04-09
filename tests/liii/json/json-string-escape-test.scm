@@ -77,7 +77,7 @@
        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+="
        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567")
      ) ;string-append
-  ) ;
+   ) ;large-base64
   (check (json-string-escape large-base64)
          => (string-append "\"" large-base64 "\"")
   ) ;check

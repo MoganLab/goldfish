@@ -185,7 +185,8 @@
                      (let lp ((i 0))
                        (cond ((= i la) #t)
                              ((not (equal (range-ref ra i)
-                                          (range-ref rb i)))
+                                          (range-ref rb i))
+                              ) ;not
                               #f
                              ) ;
                              (else (lp (+ i 1)))

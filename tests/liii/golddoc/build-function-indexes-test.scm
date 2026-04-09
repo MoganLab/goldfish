@@ -75,7 +75,7 @@
                                (number->string (getpid))
                 ) ;string-append
      ) ;path-join
-                ) ;string-append
+   ) ;base-root
    (load-root (path-join base-root "goldfish"))
    (tests-root (path-join base-root "tests"))
    (old-load-path *load-path*)

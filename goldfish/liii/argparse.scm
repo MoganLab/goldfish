@@ -118,40 +118,41 @@
         (if (null? args)
             args-ht
             (let ((arg (car args)))
-              (cond ((long-form? arg)
-                     (let* ((name (substring arg 2))
-                            (found (hash-table-ref args-ht name)))
-                       (if found
-                           (if (null? (cdr args))
-                               (error "Missing value for argument" name)
-                               (begin
-                                 (let ((value (convert-value (cadr args) (cadr found))))
-                                   (set-car! (cddddr found) value)
-                                 ) ;let
-                                 (loop (cddr args))
-                               ) ;begin
-                           ) ;if
-                           (value-error (string-append "Unknown option: --" name)))
+              (cond
+                ((long-form? arg)
+                 (let* ((name (substring arg 2))
+                        (found (hash-table-ref args-ht name)))
+                   (if found
+                       (if (null? (cdr args))
+                           (error "Missing value for argument" name)
+                           (begin
+                             (let ((value (convert-value (cadr args) (cadr found))))
+                               (set-car! (cddddr found) value)
+                             ) ;let
+                             (loop (cddr args))
+                           ) ;begin
                        ) ;if
-                     ) ;let*
-                    ((short-form? arg)
-                     (let* ((name (substring arg 1))
-                            (found (hash-table-ref args-ht name)))
-                       (if found
-                           (if (null? (cdr args))
-                               (error "Missing value for argument" name)
-                               (begin
-                                 (let ((value (convert-value (cadr args) (cadr found))))
-                                   (set-car! (cddddr found) value)
-                                 ) ;let
-                                 (loop (cddr args))
-                               ) ;begin
-                           ) ;if
-                           (value-error (string-append "Unknown option: -" name))
+                       (value-error (string-append "Unknown option: --" name)))
+                   ) ;if
+                 ) ;let*
+                ((short-form? arg)
+                 (let* ((name (substring arg 1))
+                        (found (hash-table-ref args-ht name)))
+                   (if found
+                       (if (null? (cdr args))
+                           (error "Missing value for argument" name)
+                           (begin
+                             (let ((value (convert-value (cadr args) (cadr found))))
+                               (set-car! (cddddr found) value)
+                             ) ;let
+                             (loop (cddr args))
+                           ) ;begin
                        ) ;if
-                     ) ;let*
-                    ) ;
-                    (else (loop (cdr args)))
+                       (value-error (string-append "Unknown option: -" name))
+                   ) ;if
+                 ) ;let*
+                ) ;
+                (else (loop (cdr args)))
               ) ;cond
             ) ;let
         ) ;if

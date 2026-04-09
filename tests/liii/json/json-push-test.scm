@@ -56,8 +56,9 @@
   ((j0 '((person . ((name . "Alice")
                     (age . 25)
                     (address . ((city . "Oldland")
-                                (zip . "12345"))))))
+                                (zip . "12345")))))
                     ) ;address
+   ) ;j0
    (j1 (json-push j0 'person 'address 'street "Main St"))
   ) ;
   (check (json-ref j1 'person 'address 'street) => "Main St")

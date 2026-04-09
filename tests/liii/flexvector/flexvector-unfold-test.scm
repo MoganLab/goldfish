@@ -55,7 +55,7 @@
                           5)
        ) ;flexvector-unfold
      ) ;flexvector->list
-  ) ;
+   ) ;result
   (check result => '(5 4 3 2 1 0))
 ) ;let
 
@@ -69,7 +69,7 @@
                           '(1 1))
        ) ;flexvector-unfold
      ) ;flexvector->list
-  ) ;
+   ) ;result
   (check result => '(1 1 2 3 5 8 13 21 34 55 89))
 ) ;let
 

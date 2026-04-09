@@ -683,15 +683,16 @@
              ;; 调整值：补偿 1-based 和 周日归属
              (adjusted (+ (date-year-day date) jan1-wday -2))
              (raw-week (+ (floor-quotient adjusted 7) offset)))
-        (cond ((zero? raw-week)
-               (priv:date-week-number-iso 
-                (make-date 0 0 0 0 31 12 (- year 1) 0)))
+        (cond
+          ((zero? raw-week)
+           (priv:date-week-number-iso 
+            (make-date 0 0 0 0 31 12 (- year 1) 0)))
 
-              ((and (= raw-week 53)
-                    (<= (priv:week-day 1 1 (+ year 1)) 4))
-               1)
+          ((and (= raw-week 53)
+                (<= (priv:week-day 1 1 (+ year 1)) 4))
+           1)
 
-              (else raw-week))))
+          (else raw-week))))
 
     (define (priv:last-n-digits i n)
       (modulo i (expt 10 n)))

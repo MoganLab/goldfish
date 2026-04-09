@@ -159,7 +159,7 @@
                                     (+ (* (- code-point #xD800) #x400)
                                        (- next-code-point #xDC00) #x10000)  ; 计算码点
                                     ) ;+
-                                 ) ;
+                                  ) ;surrogate-code-point
                                  (values (utf8->string (codepoint->utf8 surrogate-code-point)) 12)
                                ) ;let
                                ;; 不满足代理对条件，仅对第一个 \u 进行转换

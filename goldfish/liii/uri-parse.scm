@@ -42,7 +42,7 @@
                          ) ;let
                          (cons #f netloc-str)
                        ) ;if
-                 ) ;user+host
+           ) ;user+host
            (user-part (car user+host))
            (host-part (cdr user+host))
            (user (if user-part

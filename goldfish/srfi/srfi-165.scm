@@ -182,7 +182,8 @@
                       (rest (cdr vars)))
                   (cond
                    ((and (pair? v) (pair? (cdr v)) (pair? (cddr v))
-                         (string=? (caddr v) "immutable"))
+                         (string=? (caddr v) "immutable")
+                    ) ;and
                     (let ((var (car v))
                           (default (cadr v)))
                       (process-vars rest (+ n 1)
@@ -315,7 +316,7 @@
                      (or (computation-environment-ref env default-computation)
                          (error "not a computation" computation)))
                      ) ;or
-        ) ;
+         ) ;coerce
         ((coerce computation) env)
       ) ;let
     ) ;define

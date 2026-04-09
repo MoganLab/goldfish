@@ -13,7 +13,7 @@
        (lambda (x) (+ x 1))
        0)
      ) ;list-queue-unfold
-  ) ;
+   ) ;q
   ;; unfold: 递归结束后从头部添加，所以第一个元素最后被添加，保持正向顺序
   (check (list-queue-list q) => '(0 2 4 6))
 ) ;let
@@ -29,7 +29,7 @@
          0
          q0)
        ) ;list-queue-unfold
-    ) ;
+     ) ;q
     (check (list-queue-list q) => '(0 2 4 6 8))
   ) ;let
 ) ;let
@@ -43,7 +43,7 @@
        (lambda (x) (+ x 1))
        1)
      ) ;list-queue-unfold
-  ) ;
+   ) ;q
   (check (list-queue-empty? q) => #t)
 ) ;let
 

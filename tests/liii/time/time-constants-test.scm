@@ -40,7 +40,7 @@
      (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS
            TIME-TAI TIME-THREAD TIME-UTC)
      ) ;list
-  ) ;
+   ) ;constants
   (check-true (= (length constants) (length (delete-duplicates constants))))
 ) ;let
 
