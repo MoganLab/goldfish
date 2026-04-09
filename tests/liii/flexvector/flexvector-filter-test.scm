@@ -33,8 +33,10 @@
 
 ;; 基本过滤
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector->vector
-           (flexvector-filter (lambda (x) (< x 25)) fv))
+  (check
+    (flexvector->vector
+      (flexvector-filter (lambda (x) (< x 25)) fv)
+    ) ;flexvector->vector
          => #(10 20)
   ) ;check
   ;; 原向量不变
@@ -43,24 +45,30 @@
 
 ;; 过滤出偶数
 (let ((fv (flexvector 1 2 3 4 5 6)))
-  (check (flexvector->list
-           (flexvector-filter even? fv))
+  (check
+    (flexvector->list
+      (flexvector-filter even? fv)
+    ) ;flexvector->list
          => '(2 4 6)
   ) ;check
 ) ;let
 
 ;; 全部满足
 (let ((fv (flexvector 2 4 6)))
-  (check (flexvector->vector
-           (flexvector-filter even? fv))
+  (check
+    (flexvector->vector
+      (flexvector-filter even? fv)
+    ) ;flexvector->vector
          => #(2 4 6)
   ) ;check
 ) ;let
 
 ;; 全部不满足
 (let ((fv (flexvector 1 3 5)))
-  (check (flexvector->vector
-           (flexvector-filter even? fv))
+  (check
+    (flexvector->vector
+      (flexvector-filter even? fv)
+    ) ;flexvector->vector
          => #()
   ) ;check
 ) ;let
@@ -73,16 +81,20 @@
 
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector->vector
-           (flexvector-filter (lambda (x) (= x 42)) fv))
+  (check
+    (flexvector->vector
+      (flexvector-filter (lambda (x) (= x 42)) fv)
+    ) ;flexvector->vector
          => #(42)
   ) ;check
 ) ;let
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector->vector
-           (flexvector-filter (lambda (x) (= x 0)) fv))
+  (check
+    (flexvector->vector
+      (flexvector-filter (lambda (x) (= x 0)) fv)
+    ) ;flexvector->vector
          => #()
   ) ;check
 ) ;let
@@ -90,8 +102,10 @@
 ;; 多向量过滤
 (let ((fv1 (flexvector 1 2 3 4))
       (fv2 (flexvector 10 20 30 40)))
-  (check (flexvector->vector
-           (flexvector-filter (lambda (x y) (< (+ x y) 35)) fv1 fv2))
+  (check
+    (flexvector->vector
+      (flexvector-filter (lambda (x y) (< (+ x y) 35)) fv1 fv2)
+    ) ;flexvector->vector
          => #(1 2 3)  ; 1+10=11<35, 2+20=22<35, 3+30=33<35, 4+40=44>=35
   ) ;check
 ) ;let

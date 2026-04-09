@@ -66,14 +66,19 @@
 (check (index-entry->library-query "(bad)") => #f)
 (check (index-entry->library-query 1) => #f)
 
-(let* ((base-root (path-join (path-temp-dir)
-                             (string-append "golddoc-load-index-"
-                                            (number->string (getpid))))
-                             ) ;string-append
-       (load-root (path-join base-root "goldfish"))
-       (tests-root (path-join base-root "tests"))
-       (index-path (path-join tests-root "function-library-index.json"))
-       (old-load-path *load-path*))
+(let*
+  ((base-root
+     (path-join (path-temp-dir)
+                (string-append "golddoc-load-index-"
+                               (number->string (getpid))
+                ) ;string-append
+     ) ;path-join
+                ) ;string-append
+   (load-root (path-join base-root "goldfish"))
+   (tests-root (path-join base-root "tests"))
+   (index-path (path-join tests-root "function-library-index.json"))
+   (old-load-path *load-path*)
+  ) ;
   (cleanup-load-index-fixture base-root)
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))

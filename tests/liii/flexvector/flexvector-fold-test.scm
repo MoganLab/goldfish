@@ -80,9 +80,11 @@
 
 ;; 使用字符串累积
 (let ((fv (flexvector #\a #\b #\c)))
-  (check (flexvector-fold (lambda (acc ch) (string-append acc (string ch)))
-                          ""
-                          fv)
+  (check
+    (flexvector-fold (lambda (acc ch) (string-append acc (string ch)))
+                     ""
+                     fv
+    ) ;flexvector-fold
          => "abc"
   ) ;check
 ) ;let

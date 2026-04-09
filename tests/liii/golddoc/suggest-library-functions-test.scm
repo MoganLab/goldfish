@@ -66,16 +66,21 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                             (string-append "golddoc-library-suggestions-"
-                                            (number->string (getpid))))
-                             ) ;string-append
-       (load-root (path-join base-root "goldfish"))
-       (liii-root (path-join load-root "liii"))
-       (tests-root (path-join base-root "tests"))
-       (group-root (path-join tests-root "liii"))
-       (library-root (path-join group-root "demo"))
-       (old-load-path *load-path*))
+(let*
+  ((base-root
+     (path-join (path-temp-dir)
+                (string-append "golddoc-library-suggestions-"
+                               (number->string (getpid))
+                ) ;string-append
+     ) ;path-join
+                ) ;string-append
+   (load-root (path-join base-root "goldfish"))
+   (liii-root (path-join load-root "liii"))
+   (tests-root (path-join base-root "tests"))
+   (group-root (path-join tests-root "liii"))
+   (library-root (path-join group-root "demo"))
+   (old-load-path *load-path*)
+  ) ;
   (cleanup-library-suggestion-fixture base-root)
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))

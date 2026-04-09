@@ -46,21 +46,25 @@
   ) ;let
 ) ;let*
 
-(let* ((json '((name . "Alice")
-               (age . 25)
-               (address . ((city . "Wonderland")
-                           (zip . "12345")))))
-               ) ;address
+(let*
+  ((json '((name . "Alice")
+           (age . 25)
+           (address . ((city . "Wonderland")
+                       (zip . "12345"))))
+           ) ;address
+  ) ;
   (let ((updated-json (json-drop json 'address 'city)))
     (check (json-ref updated-json 'address 'city) => '())
   ) ;let
 ) ;let*
 
-(let* ((json '((name . "Alice")
-               (age . 25)
-               (address . ((city . "Wonderland")
-                           (zip . "12345")))))
-               ) ;address
+(let*
+  ((json '((name . "Alice")
+           (age . 25)
+           (address . ((city . "Wonderland")
+                       (zip . "12345"))))
+           ) ;address
+  ) ;
   (let ((j1 (json-drop json (lambda (k) (equal? k 'city)))))
     (check (json-ref j1 'address 'city) => "Wonderland")
   ) ;let

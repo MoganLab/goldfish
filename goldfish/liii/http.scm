@@ -100,10 +100,11 @@
   (when (not (alist? entries))
     (type-error (string-append who ": " field " must be an association list") entries)
   ) ;when
-  (map (lambda (entry)
-         (http-normalize-string-alist-entry who field entry)
-       ) ;lambda
-       entries
+  (map
+    (lambda (entry)
+      (http-normalize-string-alist-entry who field entry)
+    ) ;lambda
+    entries
   ) ;map
 ) ;define
 
@@ -162,15 +163,19 @@
              (file . ,spec))
           ) ;cond
           ((alist? spec)
-           (let* ((normalized-spec (map (lambda (item)
-                                          (http-normalize-file-spec-entry who item)
-                                        ) ;lambda
-                                        spec
-                                   ) ;map
-                  )
-                  (file (http-part-ref normalized-spec "file"))
-                  (filename (http-part-ref normalized-spec "filename"))
-                  (content-type (http-part-ref normalized-spec "content-type")))
+           (let*
+             ((normalized-spec
+                (map
+                  (lambda (item)
+                    (http-normalize-file-spec-entry who item)
+                  ) ;lambda
+                  spec
+                ) ;map
+              ) ;
+              (file (http-part-ref normalized-spec "file"))
+              (filename (http-part-ref normalized-spec "filename"))
+              (content-type (http-part-ref normalized-spec "content-type"))
+             ) ;
              (when (not file)
                (value-error (string-append who ": file spec requires a file path") spec)
              ) ;when
@@ -198,10 +203,11 @@
   (when (not (alist? files))
     (type-error (string-append who ": files must be an association list") files)
   ) ;when
-  (map (lambda (entry)
-         (http-normalize-file-entry who entry)
-       ) ;lambda
-       files
+  (map
+    (lambda (entry)
+      (http-normalize-file-entry who entry)
+    ) ;lambda
+    files
   ) ;map
 ) ;define
 
@@ -237,21 +243,23 @@
          (callback (http-optional-procedure "http-get" "callback" callback)))
     (cond ((not stream)
            (g_http-get url params headers proxy #f)
-          )
+          ) ;
           ((and (not output-file) (not callback))
            (value-error "http-get: stream mode requires output-file or callback")
           ) ;
           (else
-            (let ((stream-callback
-                    (lambda (chunk)
-                      (if callback
-                        (let ((ret (callback chunk)))
-                          (if (boolean? ret) ret #t)
-                        ) ;let
-                        #t
-                      ) ;if
-                    ) ;lambda
-                  ))
+            (let
+              ((stream-callback
+                 (lambda (chunk)
+                   (if callback
+                     (let ((ret (callback chunk)))
+                       (if (boolean? ret) ret #t)
+                     ) ;let
+                     #t
+                   ) ;if
+                 ) ;lambda
+               ) ;
+              ) ;
               (if output-file
                 (let ((port (open-binary-output-file output-file)))
                   (dynamic-wind
@@ -291,38 +299,41 @@
          (output-file (http-optional-string "http-post" "output-file" output-file))
          (stream (http-require-boolean "http-post" "stream" stream))
          (callback (http-optional-procedure "http-post" "callback" callback)))
-    (let* ((body-or-data
-             (if (null? files)
-               (http-require-string "http-post" "data" data)
-               (http-normalize-post-form-data "http-post" data)
-             ) ;if
-           )
-           (headers
-             (if (and (null? files)
-                      (> (string-length body-or-data) 0)
-                      (null? headers))
-               '(("Content-Type" . "text/plain"))
-               headers
-             ) ;if
-           )
-           ) ;headers
+    (let*
+      ((body-or-data
+         (if (null? files)
+           (http-require-string "http-post" "data" data)
+           (http-normalize-post-form-data "http-post" data)
+         ) ;if
+       ) ;
+       (headers
+         (if (and (null? files)
+                  (> (string-length body-or-data) 0)
+                  (null? headers))
+           '(("Content-Type" . "text/plain"))
+           headers
+         ) ;if
+       ) ;headers
+      ) ;
       (cond ((not stream)
              (g_http-post url params body-or-data headers proxy files #f)
-            )
+            ) ;
             ((and (not output-file) (not callback))
              (value-error "http-post: stream mode requires output-file or callback")
             ) ;
             (else
-              (let ((stream-callback
-                      (lambda (chunk)
-                        (if callback
-                          (let ((ret (callback chunk)))
-                            (if (boolean? ret) ret #t)
-                          ) ;let
-                          #t
-                        ) ;if
-                      ) ;lambda
-                    ))
+              (let
+                ((stream-callback
+                   (lambda (chunk)
+                     (if callback
+                       (let ((ret (callback chunk)))
+                         (if (boolean? ret) ret #t)
+                       ) ;let
+                       #t
+                     ) ;if
+                   ) ;lambda
+                 ) ;
+                ) ;
                 (if output-file
                   (let ((port (open-binary-output-file output-file)))
                     (dynamic-wind

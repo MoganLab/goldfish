@@ -15,9 +15,11 @@
 
 (define reddish
   (list->enum-set color
-                  (map (lambda (name)
-                         (enum-name->enum color name))
-                       (take color-names 3)
+                  (map
+                    (lambda (name)
+                      (enum-name->enum color name)
+                    ) ;lambda
+                    (take color-names 3)
                   ) ;map
   ) ;list->enum-set
 ) ;define

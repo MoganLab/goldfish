@@ -109,16 +109,20 @@
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: r7rs.scm
     (define-macro (define-record-type type make ? . fields)
-      (let ((obj (gensym))
-            (typ (gensym)) ; this means each call on this macro makes a new type
-            (args (map (lambda (field)
-                         (values (list 'quote (car field))
-                                 (let ((par (memq (car field) (cdr make))))
-                                   (and (pair? par) (car par)))
-                                 ) ;let
-                         ) ;values
-                       fields))
-            ) ;args
+      (let
+        ((obj (gensym))
+         (typ (gensym)) ; this means each call on this macro makes a new type
+         (args
+           (map
+             (lambda (field)
+               (values (list 'quote (car field))
+                       (let ((par (memq (car field) (cdr make))))
+                         (and (pair? par) (car par)))
+                       ) ;let
+               ) ;values
+             fields)
+           ) ;map
+         ) ;args
         `(begin
            (define (,? ,obj)
              (and (let? ,obj)
@@ -405,8 +409,10 @@ wrong-type-arg
             ((null? (cddr args))
              (lcm2 (car args) (cadr args))
             ) ;
-            (else (apply lcm (cons (lcm (car args) (cadr args))
-                                   (cddr args)))
+            (else
+             (apply lcm (cons (lcm (car args) (cadr args))
+                              (cddr args))
+             ) ;apply
             ) ;else
       ) ;cond
     ) ;define
@@ -657,14 +663,15 @@ wrong-type-arg
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results) 
-              (catch #t 
-                (lambda () 
-                  ,@body) 
-                (lambda (type info)
-                  (if (pair? (*s7* 'catches))
-                      (lambda () (apply throw type info))
-                      (car info))))))
+      `(let
+         ((,(car results)
+           (catch #t 
+             (lambda () 
+               ,@body) 
+             (lambda (type info)
+               (if (pair? (*s7* 'catches))
+                   (lambda () (apply throw type info))
+                   (car info))))))
          (cond ,@(cdr results)
                (else 
                 (if (procedure? ,(car results)) 

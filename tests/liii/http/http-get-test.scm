@@ -72,8 +72,12 @@
 ) ;let
 
 ;; 带查询参数的 GET 请求
-(let ((r (http-get "https://httpbin.org/get"
-                  :params '(("key1" . "value1") ("key2" . "value2")))))
+(let
+  ((r
+     (http-get "https://httpbin.org/get"
+              :params '(("key1" . "value1") ("key2" . "value2")))
+     ) ;http-get
+  ) ;
   (check-true (string-contains (r 'text) "value1"))
   (check-true (string-contains (r 'text) "value2"))
   (check (r 'url) => "https://httpbin.org/get?key1=value1&key2=value2")
@@ -81,16 +85,20 @@
 
 ;; 通过 :stream #t + :callback 流式处理响应体
 (let ((collected '()))
-  (let ((r (http-get "https://httpbin.org/get"
-                     :stream #t
-                     :params '(("download" . "stream"))
-                     :callback (lambda (chunk)
-                                 (when (> (string-length chunk) 0)
-                                   (set! collected (cons chunk collected))
-                                 ) ;when
-                                 #t
-                               ) ;lambda
-           )))
+  (let
+    ((r
+       (http-get "https://httpbin.org/get"
+                 :stream #t
+                 :params '(("download" . "stream"))
+                 :callback (lambda (chunk)
+                             (when (> (string-length chunk) 0)
+                               (set! collected (cons chunk collected))
+                             ) ;when
+                             #t
+                           ) ;lambda
+       ) ;
+       ) ;http-get
+    ) ;
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
@@ -101,16 +109,20 @@
 
 ;; 通过 :stream #t + :headers 流式处理响应体
 (let ((collected '()))
-  (let ((r (http-get "https://httpbin.org/headers"
-                     :stream #t
-                     :headers '(("X-Goldfish-Test" . "stream-get"))
-                     :callback (lambda (chunk)
-                                 (when (> (string-length chunk) 0)
-                                   (set! collected (cons chunk collected))
-                                 ) ;when
-                                 #t
-                               ) ;lambda
-           )))
+  (let
+    ((r
+       (http-get "https://httpbin.org/headers"
+                 :stream #t
+                 :headers '(("X-Goldfish-Test" . "stream-get"))
+                 :callback (lambda (chunk)
+                             (when (> (string-length chunk) 0)
+                               (set! collected (cons chunk collected))
+                             ) ;when
+                             #t
+                           ) ;lambda
+       ) ;
+       ) ;http-get
+    ) ;
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((body (string-join (reverse collected) "")))
@@ -121,26 +133,30 @@
 ) ;let
 
 ;; 通过 :stream #t + :output-file 将响应体按 chunk 写入本地文件
-(let* ((output-file "/tmp/goldfish-http-get-download.txt")
-       (r (begin
-            (when (file-exists? output-file)
-              (delete-file output-file)
-            ) ;when
-            (http-get "https://jsonplaceholder.typicode.com/posts/1"
-                      :stream #t
-                      :output-file output-file
-            ) ;http-get
-          ) ;begin
-       )
-       ) ;r
+(let*
+  ((output-file "/tmp/goldfish-http-get-download.txt")
+   (r (begin
+        (when (file-exists? output-file)
+          (delete-file output-file)
+        ) ;when
+        (http-get "https://jsonplaceholder.typicode.com/posts/1"
+                  :stream #t
+                  :output-file output-file
+        ) ;http-get
+      ) ;begin
+   ) ;r
+  ) ;
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
-  (let ((body (call-with-input-file output-file
-                (lambda (port)
-                  (read-string 4096 port)
-                ) ;lambda
-              ) ;call-with-input-file
-        ))
+  (let
+    ((body
+       (call-with-input-file output-file
+         (lambda (port)
+           (read-string 4096 port)
+         ) ;lambda
+       ) ;call-with-input-file
+     ) ;
+    ) ;
     (check-true (string-contains body "\"userId\""))
   ) ;let
   (delete-file output-file)
@@ -149,15 +165,19 @@
 ;; 通过 :stream #t + :callback 下载较大的流式响应（100KB），验证 chunk 累计长度
 (let ((total-bytes 0)
       (chunks 0))
-  (let ((r (http-get "https://httpbin.org/stream-bytes/102400"
-                     :stream #t
-                     :params '(("chunk_size" . "8192") ("seed" . "3"))
-                     :callback (lambda (chunk)
-                                 (set! chunks (+ chunks 1))
-                                 (set! total-bytes (+ total-bytes (string-length chunk)))
-                                 #t
-                               ) ;lambda
-           )))
+  (let
+    ((r
+       (http-get "https://httpbin.org/stream-bytes/102400"
+                 :stream #t
+                 :params '(("chunk_size" . "8192") ("seed" . "3"))
+                 :callback (lambda (chunk)
+                             (set! chunks (+ chunks 1))
+                             (set! total-bytes (+ total-bytes (string-length chunk)))
+                             #t
+                           ) ;lambda
+       ) ;
+       ) ;http-get
+    ) ;
     (check-true (undefined? r))
     (check-true (> chunks 0))
     (check total-bytes => 102400)
@@ -165,18 +185,19 @@
 ) ;let
 
 ;; 通过 :stream #t + :output-file 下载 1MB 文件到本地，验证最终文件大小
-(let* ((output-file "/tmp/goldfish-http-get-large-1m.dat")
-       (r (begin
-            (when (file-exists? output-file)
-              (delete-file output-file)
-            ) ;when
-            (http-get "https://proof.ovh.net/files/1Mb.dat"
-                      :stream #t
-                      :output-file output-file
-            ) ;http-get
-          ) ;begin
-       )
-       ) ;r
+(let*
+  ((output-file "/tmp/goldfish-http-get-large-1m.dat")
+   (r (begin
+        (when (file-exists? output-file)
+          (delete-file output-file)
+        ) ;when
+        (http-get "https://proof.ovh.net/files/1Mb.dat"
+                  :stream #t
+                  :output-file output-file
+        ) ;http-get
+      ) ;begin
+   ) ;r
+  ) ;
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
   (check (binary-file-size output-file) => 1048576)
@@ -184,25 +205,26 @@
 ) ;let*
 
 ;; 下载 1MB 文件时同时落盘并通过回调统计字节数
-(let* ((output-file "/tmp/goldfish-http-get-large-1m-stream.dat")
-       (callback-bytes 0)
-       (chunks 0)
-       (r (begin
-            (when (file-exists? output-file)
-              (delete-file output-file)
-            ) ;when
-            (http-get "https://proof.ovh.net/files/1Mb.dat"
-                      :stream #t
-                      :output-file output-file
-                      :callback (lambda (chunk)
-                                  (set! chunks (+ chunks 1))
-                                  (set! callback-bytes (+ callback-bytes (string-length chunk)))
-                                  #t
-                                ) ;lambda
-            ) ;http-get
-          ) ;begin
-       )
-       ) ;r
+(let*
+  ((output-file "/tmp/goldfish-http-get-large-1m-stream.dat")
+   (callback-bytes 0)
+   (chunks 0)
+   (r (begin
+        (when (file-exists? output-file)
+          (delete-file output-file)
+        ) ;when
+        (http-get "https://proof.ovh.net/files/1Mb.dat"
+                  :stream #t
+                  :output-file output-file
+                  :callback (lambda (chunk)
+                              (set! chunks (+ chunks 1))
+                              (set! callback-bytes (+ callback-bytes (string-length chunk)))
+                              #t
+                            ) ;lambda
+        ) ;http-get
+      ) ;begin
+   ) ;r
+  ) ;
   (check-true (undefined? r))
   (check-true (> chunks 0))
   (check callback-bytes => 1048576)

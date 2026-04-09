@@ -52,12 +52,14 @@
   (check (json-ref j1 "person" "city") => "Wonderland")
 ) ;let*
 
-(let* ((j0 '((person . ((name . "Alice")
-                        (age . 25)
-                        (address . ((city . "Oldland")
-                                    (zip . "12345"))))))
-                        ) ;address
-       (j1 (json-push j0 'person 'address 'street "Main St")))
+(let*
+  ((j0 '((person . ((name . "Alice")
+                    (age . 25)
+                    (address . ((city . "Oldland")
+                                (zip . "12345"))))))
+                    ) ;address
+   (j1 (json-push j0 'person 'address 'street "Main St"))
+  ) ;
   (check (json-ref j1 'person 'address 'street) => "Main St")
 ) ;let*
 

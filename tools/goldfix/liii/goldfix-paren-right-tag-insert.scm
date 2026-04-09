@@ -95,26 +95,27 @@
         (let loop ((remaining to-insert) (updated-lines current-lines))
           (if (null? remaining)
             updated-lines
-            (let* ((detail (car remaining))
-                   (env (env-detail-env detail))
-                   (close-line (env-detail-close-line detail))
-                   (tag-line (make-right-tag-line env))
-                   (closed-line-idx (- close-line 1))
-                   (closed-line (list-ref updated-lines closed-line-idx))
-                   (trailing-unmatched-count
-                    (line-trailing-unmatched-rparen-count closed-line)
-                   ) ;trailing-unmatched-count
-                   (new-lines
-                    (if (and (line-starts-with-rparen? closed-line)
-                             (= trailing-unmatched-count 1))
-                      (list-set updated-lines closed-line-idx tag-line)
-                      (let* ((shifted-line (remove-rparens-from-right-by-diff closed-line 1))
-                             (shifted-lines (list-set updated-lines closed-line-idx shifted-line)))
-                        (insert-line-at shifted-lines close-line tag-line)
-                      ) ;let*
-                    ) ;if
-                   ) ;new-lines
-                   )
+            (let*
+              ((detail (car remaining))
+               (env (env-detail-env detail))
+               (close-line (env-detail-close-line detail))
+               (tag-line (make-right-tag-line env))
+               (closed-line-idx (- close-line 1))
+               (closed-line (list-ref updated-lines closed-line-idx))
+               (trailing-unmatched-count
+                (line-trailing-unmatched-rparen-count closed-line)
+               ) ;trailing-unmatched-count
+               (new-lines
+                (if (and (line-starts-with-rparen? closed-line)
+                         (= trailing-unmatched-count 1))
+                  (list-set updated-lines closed-line-idx tag-line)
+                  (let* ((shifted-line (remove-rparens-from-right-by-diff closed-line 1))
+                         (shifted-lines (list-set updated-lines closed-line-idx shifted-line)))
+                    (insert-line-at shifted-lines close-line tag-line)
+                  ) ;let*
+                ) ;if
+               ) ;new-lines
+              ) ;
               (loop (cdr remaining) new-lines)
             ) ;let*
           ) ;if
@@ -131,28 +132,34 @@
           (let loop ((current-lines structurally-tagged-lines)
                      (last-inserted-env #f)
                      (blocked-envs '()))
-            (let* ((current-envs (scan-environments current-lines))
-                   (remaining
-                    (filter (lambda (env)
-                              (and (not (env-blocked? env blocked-envs))
-                                   (not (env-in-prefixed-context? env current-lines))
-                                   (env-needs-right-tag? env current-lines))
-                              ) ;and
-                            current-envs
-                    ) ;filter
-                   ) ;remaining
-                   (total-lines (length current-lines)))
+            (let*
+              ((current-envs (scan-environments current-lines))
+               (remaining
+                (filter
+                  (lambda (env)
+                    (and (not (env-blocked? env blocked-envs))
+                         (not (env-in-prefixed-context? env current-lines))
+                         (env-needs-right-tag? env current-lines)
+                    ) ;and
+                  ) ;lambda
+                  current-envs
+                ) ;filter
+               ) ;remaining
+               (total-lines (length current-lines))
+              ) ;
               (if (null? remaining)
                 current-lines
-                (let* ((env (choose-next-env remaining current-envs total-lines current-lines))
-                       (raw-pos (find-insert-position env current-envs total-lines current-lines))
-                       (pos (cond
-                              ((number? raw-pos) raw-pos)
-                              ((number? (env-lparen-line env)) (env-lparen-line env))
-                              (else 0))
-                       ) ;pos
-                       (tag-line (make-right-tag-line env))
-                       (new-lines (insert-line-at current-lines pos tag-line)))
+                (let*
+                  ((env (choose-next-env remaining current-envs total-lines current-lines))
+                   (raw-pos (find-insert-position env current-envs total-lines current-lines))
+                   (pos (cond
+                          ((number? raw-pos) raw-pos)
+                          ((number? (env-lparen-line env)) (env-lparen-line env))
+                          (else 0))
+                   ) ;pos
+                   (tag-line (make-right-tag-line env))
+                   (new-lines (insert-line-at current-lines pos tag-line))
+                  ) ;
                   (if (and last-inserted-env
                            (same-env-origin? env last-inserted-env))
                     (loop current-lines

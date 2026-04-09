@@ -16,11 +16,13 @@
     ;;       end-line - 结束行号（可选，1-based，默认为文件末尾）
     ;; 输出: 行列表（每行不含换行符）
     (define (read-file-lines file-path . args)
-      (let ((start-line (if (null? args) 1 (car args)))
-            (end-line (if (or (null? args) (null? (cdr args)))
-                          +inf.0
-                          (cadr args)))
-            ) ;end-line
+      (let
+        ((start-line (if (null? args) 1 (car args)))
+         (end-line (if (or (null? args) (null? (cdr args)))
+                       +inf.0
+                       (cadr args))
+         ) ;end-line
+        ) ;
         (call-with-input-file file-path
           (lambda (port)
             (let loop ((lines '())

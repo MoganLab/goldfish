@@ -47,7 +47,8 @@
 (check
  #""multiline
 string""
- => "multiline\nstring")
+ => "multiline\nstring"
+) ;check
 
 (check
  #""
@@ -79,7 +80,8 @@ string""
   </body>
 </html>
   "HTML"
- => "\n<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  ")
+ => "\n<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
+) ;check
 
 (check
  #"HTML"<!DOCTYPE html>
@@ -90,7 +92,8 @@ string""
   </body>
 </html>
   "HTML"
- => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  ")
+ => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
+) ;check
 
 (check
  #"HTML"<!DOCTYPE html>
@@ -100,7 +103,8 @@ string""
     <p>这里有很多"引号"</p>
   </body>
 </html>"HTML"
- => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>")
+ => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>"
+) ;check
 
 (check #"tag with space"hello"tag with space" => "hello")
 (check #"(())"value"(())" => "value")

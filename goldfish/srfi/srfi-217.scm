@@ -1010,8 +1010,10 @@
   (let accum ((siz 0) (t trie))
     (cond ((not t) siz)
           ((leaf? t) (+ siz (bit-count (leaf-bitmap t))))
-          (else (accum (accum siz (branch-left t))
-                       (branch-right t))
+          (else
+           (accum (accum siz (branch-left t))
+                  (branch-right t)
+           ) ;accum
           ) ;else
     ) ;cond
   ) ;let
@@ -1365,9 +1367,11 @@
               ((and (positive? a) (positive? b))
                (interval (branch-left trie))
               ) ;
-              (else (trie-union
-                     (subtrie> (branch-right trie) a low-inclusive)
-                     (subtrie< (branch-left trie) b high-inclusive))
+              (else
+               (trie-union
+                (subtrie> (branch-right trie) a low-inclusive)
+                (subtrie< (branch-left trie) b high-inclusive)
+               ) ;trie-union
               ) ;else
         ) ;cond
         (interval trie)
@@ -1380,14 +1384,19 @@
         (lb (ibitmap low))
         (hp (iprefix high))
         (hb (ibitmap high)))
-    (let ((low-mask (- (if low-inclusive
-                           lb
-                           (arithmetic-shift lb 1))))
-          (high-mask (- (if high-inclusive
-                            (arithmetic-shift hb 1)
-                            hb)
-                         1))
-          ) ;high-mask
+    (let
+      ((low-mask
+         (- (if low-inclusive
+                lb
+                (arithmetic-shift lb 1)))
+         ) ;-
+       (high-mask
+         (- (if high-inclusive
+                (arithmetic-shift hb 1)
+                hb)
+             1)
+         ) ;-
+       ) ;high-mask
       (cond ((< prefix hp)
              (cond ((< prefix lp) 0)
                    ((> prefix lp) bitmap)
@@ -1780,11 +1789,13 @@
 
 (define (iset=? set1 set2 . sets)
   (assume (iset? set1))
-  (let ((iset-eq1 (lambda (set)
-                    (assume (iset? set))
-                    (or (eqv? set1 set)
-                        (trie=? (iset-trie set1) (iset-trie set)))))
-                    ) ;or
+  (let
+    ((iset-eq1 (lambda (set)
+                 (assume (iset? set))
+                 (or (eqv? set1 set)
+                     (trie=? (iset-trie set1) (iset-trie set))))
+                 ) ;or
+    ) ;
     (and (iset-eq1 set2)
          (or (null? sets)
              (every iset-eq1 sets)

@@ -47,9 +47,11 @@
   (check (hash-table-find (lambda (k v) (= v 4)) ht 'not-found) => 'not-found)
   (check (hash-table-find (lambda (k v) (eq? k 'b)) ht 'not-found) => 2)
   (check (hash-table-find (lambda (k v) (eq? k 'd)) ht 'not-found) => 'not-found)
-  (check (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
-                          ht
-                          (lambda () 'not-found))
+  (check
+    (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
+                     ht
+                     (lambda () 'not-found)
+    ) ;hash-table-find
          => 2
   ) ;check
 ) ;let

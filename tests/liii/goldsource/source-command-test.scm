@@ -36,16 +36,21 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((base-root (path-join (path-temp-dir)
-                               (string-append "goldsource-command-"
-                                              (number->string (getpid))))
-                               ) ;string-append
-         (load-root (path-join base-root "goldfish"))
-         (liii-root (path-join load-root "liii"))
-         (source-path (path-join liii-root "demo.scm"))
-         (output-path (path-join base-root "source.log"))
-         (error-path (path-join base-root "missing.log"))
-         (expected-source "(define-library (liii demo)\n  (export demo-value)\n  (import (scheme base))\n  (begin\n    (define demo-value 42)\n  ) ;begin\n) ;define-library\n"))
+  (let*
+    ((base-root
+       (path-join (path-temp-dir)
+                  (string-append "goldsource-command-"
+                                 (number->string (getpid))
+                  ) ;string-append
+       ) ;path-join
+                  ) ;string-append
+     (load-root (path-join base-root "goldfish"))
+     (liii-root (path-join load-root "liii"))
+     (source-path (path-join liii-root "demo.scm"))
+     (output-path (path-join base-root "source.log"))
+     (error-path (path-join base-root "missing.log"))
+     (expected-source "(define-library (liii demo)\n  (export demo-value)\n  (import (scheme base))\n  (begin\n    (define demo-value 42)\n  ) ;begin\n) ;define-library\n")
+    ) ;
     (cleanup-source-command-fixture base-root)
     (mkdir (path->string base-root))
     (mkdir (path->string load-root))

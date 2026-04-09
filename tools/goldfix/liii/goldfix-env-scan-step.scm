@@ -60,19 +60,20 @@
     ) ;define
 
     (define (scan-leading-right-tag-line line lines line-num stack block-depth in-string escape-next envs details claimed-rparen-lines)
-      (let* ((trimmed-line (string-trim line))
-             (col (- (string-length line) (string-length trimmed-line)))
-             (leading-rparen-count (count-leading-rparens line))
-             (tag (extract-right-tag line))
-             (tagged-open-stack (and (not (string-null? tag))
-                                     (pop-open-right-tag-target-by-tag stack tag col line-num))
-             ) ;tagged-open-stack
-             (tagged-floating-target (and (not tagged-open-stack)
-                                          (not (string-null? tag))
-                                          (find-tagged-floating-right-tag-candidate lines details line-num col tag))
-             ) ;tagged-floating-target
-             (implicit-target (find-implicit-right-tag-target lines details line-num col))
-             ) ;implicit-target
+      (let*
+        ((trimmed-line (string-trim line))
+         (col (- (string-length line) (string-length trimmed-line)))
+         (leading-rparen-count (count-leading-rparens line))
+         (tag (extract-right-tag line))
+         (tagged-open-stack (and (not (string-null? tag))
+                                 (pop-open-right-tag-target-by-tag stack tag col line-num))
+         ) ;tagged-open-stack
+         (tagged-floating-target (and (not tagged-open-stack)
+                                      (not (string-null? tag))
+                                      (find-tagged-floating-right-tag-candidate lines details line-num col tag))
+         ) ;tagged-floating-target
+         (implicit-target (find-implicit-right-tag-target lines details line-num col))
+        ) ;
         (define (claim-current-line)
           (cons line-num claimed-rparen-lines)
         ) ;define
@@ -243,6 +244,23 @@
                           first-rparen-detail
          ) ;scan-line-state
         ) ;
+        ((and (< (+ i 1) len)
+              (char=? ch #\#)
+              (char=? (string-ref line (+ i 1)) #\"))
+         (scan-line-state (+ i 2)
+                          stack
+                          block-depth
+                          (make-raw-string-delimiter-state "")
+                          #f
+                          line-kind
+                          envs
+                          details
+                          claimed-rparen-lines
+                          lparen-count
+                          rparen-count
+                          first-rparen-detail
+         ) ;scan-line-state
+        ) ;
         ((and (not line-kind))
          (scan-line-atom-form line
                               lines
@@ -357,7 +375,8 @@
                      (rparen-count 0)
                      (first-rparen-detail #f))
             (if (>= i len)
-              (finish-scan-line line-num
+              (finish-scan-line line
+                                line-num
                                 stack
                                 block-depth
                                 in-string
@@ -425,6 +444,26 @@
                                                      rparen-count
                                                      first-rparen-detail
                        ) ;scan-line-block-comment-step
+                     ) ;lambda
+                     continue-with
+                   ) ;call-with-values
+                  ) ;
+                  ((raw-string-state? in-string)
+                   (call-with-values
+                     (lambda ()
+                       (scan-line-raw-string-step line
+                                                  i
+                                                  stack
+                                                  block-depth
+                                                  in-string
+                                                  line-kind
+                                                  envs
+                                                  details
+                                                  claimed-rparen-lines
+                                                  lparen-count
+                                                  rparen-count
+                                                  first-rparen-detail
+                       ) ;scan-line-raw-string-step
                      ) ;lambda
                      continue-with
                    ) ;call-with-values

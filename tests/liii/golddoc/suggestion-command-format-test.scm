@@ -54,19 +54,24 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((base-root (path-join (path-temp-dir)
-                               (string-append "golddoc-suggestion-command-"
-                                              (number->string (getpid))))
-                               ) ;string-append
-         (load-root (path-join base-root "goldfish"))
-         (liii-root (path-join load-root "liii"))
-         (tests-root (path-join base-root "tests"))
-         (group-root (path-join tests-root "liii"))
-         (library-root (path-join group-root "demo"))
-         (index-path (path-join tests-root "function-library-index.json"))
-         (global-output-path (path-join base-root "global.log"))
-         (library-output-path (path-join base-root "library.log"))
-         (command-name (path-name (executable))))
+  (let*
+    ((base-root
+       (path-join (path-temp-dir)
+                  (string-append "golddoc-suggestion-command-"
+                                 (number->string (getpid))
+                  ) ;string-append
+       ) ;path-join
+                  ) ;string-append
+     (load-root (path-join base-root "goldfish"))
+     (liii-root (path-join load-root "liii"))
+     (tests-root (path-join base-root "tests"))
+     (group-root (path-join tests-root "liii"))
+     (library-root (path-join group-root "demo"))
+     (index-path (path-join tests-root "function-library-index.json"))
+     (global-output-path (path-join base-root "global.log"))
+     (library-output-path (path-join base-root "library.log"))
+     (command-name (path-name (executable)))
+    ) ;
     (cleanup-suggestion-command-fixture base-root)
     (mkdir (path->string base-root))
     (mkdir (path->string load-root))
@@ -108,23 +113,35 @@
         ) ;run-shell-command
         (let ((global-output (path-read-text global-output-path))
               (library-output (path-read-text library-output-path)))
-          (check-true (string-contains? global-output
-                                        "Try one of these commands:")
+          (check-true
+            (string-contains? global-output
+                              "Try one of these commands:"
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? global-output
-                                        (string-append command-name " doc \"demo-prefix-string\""))
+          (check-true
+            (string-contains? global-output
+                              (string-append command-name " doc \"demo-prefix-string\"")
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? global-output
-                                        (string-append command-name " doc \"demo-prefix-stringify\""))
+          (check-true
+            (string-contains? global-output
+                              (string-append command-name " doc \"demo-prefix-stringify\"")
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? library-output
-                                        "Try one of these commands:")
+          (check-true
+            (string-contains? library-output
+                              "Try one of these commands:"
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? library-output
-                                        (string-append command-name " doc liii/demo \"demo-prefix-string\""))
+          (check-true
+            (string-contains? library-output
+                              (string-append command-name " doc liii/demo \"demo-prefix-string\"")
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? library-output
-                                        (string-append command-name " doc liii/demo \"demo-prefix-stringify\""))
+          (check-true
+            (string-contains? library-output
+                              (string-append command-name " doc liii/demo \"demo-prefix-stringify\"")
+            ) ;string-contains?
           ) ;check-true
         ) ;let
       ) ;lambda

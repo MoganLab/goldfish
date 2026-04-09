@@ -8,6 +8,7 @@
   (import (scheme base))
   (import (liii string))
   (import (liii ascii))
+  (import (liii goldfix-scheme))
   (import (liii goldfix-env-core))
   (import (liii goldfix-env-scan-step))
 
@@ -100,16 +101,25 @@
                                    details
                                    claimed-rparen-lines))
                         ) ;scan-line
-            (loop (cdr remaining)
-                  (+ line-num 1)
-                  new-stack
-                  new-block-depth
-                  new-in-string
-                  new-escape-next
-                  new-envs
-                  new-details
-                  new-claimed-rparen-lines
-            ) ;loop
+            (let-values (((carry-block-depth
+                           carry-in-string
+                           carry-escape-next)
+                          (advance-lex-state-at-line-break new-block-depth
+                                                           new-in-string
+                                                           new-escape-next)
+                          ) ;advance-lex-state-at-line-break
+                         ) ;
+              (loop (cdr remaining)
+                    (+ line-num 1)
+                    new-stack
+                    carry-block-depth
+                    carry-in-string
+                    carry-escape-next
+                    new-envs
+                    new-details
+                    new-claimed-rparen-lines
+              ) ;loop
+            ) ;let-values
           ) ;let-values
         ) ;if
       ) ;let

@@ -54,10 +54,12 @@
 
 ;; 累积字符串
 (let ((fv (flexvector #\h #\e #\l #\l #\o)))
-  (check (flexvector->vector (flexvector-cumulate (lambda (acc ch)
-                                                    (string-append acc (string ch)))
-                                                  ""
-                                                  fv))
+  (check
+    (flexvector->vector (flexvector-cumulate (lambda (acc ch)
+                                               (string-append acc (string ch)))
+                                             ""
+                                             fv)
+    ) ;flexvector->vector
          => #("h" "he" "hel" "hell" "hello")
   ) ;check
 ) ;let

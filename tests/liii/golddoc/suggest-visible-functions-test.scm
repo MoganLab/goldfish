@@ -60,16 +60,21 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                             (string-append "golddoc-visible-suggestions-"
-                                            (number->string (getpid))))
-                             ) ;string-append
-       (load-root (path-join base-root "goldfish"))
-       (liii-root (path-join load-root "liii"))
-       (srfi-root (path-join load-root "srfi"))
-       (tests-root (path-join base-root "tests"))
-       (index-path (path-join tests-root "function-library-index.json"))
-       (old-load-path *load-path*))
+(let*
+  ((base-root
+     (path-join (path-temp-dir)
+                (string-append "golddoc-visible-suggestions-"
+                               (number->string (getpid))
+                ) ;string-append
+     ) ;path-join
+                ) ;string-append
+   (load-root (path-join base-root "goldfish"))
+   (liii-root (path-join load-root "liii"))
+   (srfi-root (path-join load-root "srfi"))
+   (tests-root (path-join base-root "tests"))
+   (index-path (path-join tests-root "function-library-index.json"))
+   (old-load-path *load-path*)
+  ) ;
   (cleanup-visible-suggestion-fixture base-root)
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))

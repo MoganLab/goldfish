@@ -42,14 +42,19 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((base-root (path-join (path-temp-dir)
-                               (string-append "golddoc-library-without-docs-"
-                                              (number->string (getpid))))
-                               ) ;string-append
-         (load-root (path-join base-root "goldfish"))
-         (liii-root (path-join load-root "liii"))
-         (output-path (path-join base-root "library.log"))
-         (command-name (path-name (executable))))
+  (let*
+    ((base-root
+       (path-join (path-temp-dir)
+                  (string-append "golddoc-library-without-docs-"
+                                 (number->string (getpid))
+                  ) ;string-append
+       ) ;path-join
+                  ) ;string-append
+     (load-root (path-join base-root "goldfish"))
+     (liii-root (path-join load-root "liii"))
+     (output-path (path-join base-root "library.log"))
+     (command-name (path-name (executable)))
+    ) ;
     (cleanup-library-without-docs-fixture base-root)
     (mkdir (path->string base-root))
     (mkdir (path->string load-root))
@@ -71,17 +76,25 @@
                                           " 2>&1")
         ) ;run-shell-command
         (let ((output (path-read-text output-path)))
-          (check-true (string-contains? output
-                                        "Library (liii demo) exists.")
+          (check-true
+            (string-contains? output
+                              "Library (liii demo) exists."
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? output
-                                        "No documentation and test cases available.")
+          (check-true
+            (string-contains? output
+                              "No documentation and test cases available."
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? output
-                                        "Try one of these commands:")
+          (check-true
+            (string-contains? output
+                              "Try one of these commands:"
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? output
-                                        (string-append command-name " source liii/demo"))
+          (check-true
+            (string-contains? output
+                              (string-append command-name " source liii/demo")
+            ) ;string-contains?
           ) ;check-true
         ) ;let
       ) ;lambda

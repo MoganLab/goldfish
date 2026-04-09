@@ -46,22 +46,30 @@
 ) ;check
 
 ;; 生成列表
-(let ((result (flexvector->list
-                (flexvector-unfold (lambda (n) (< n 0))
-                                   (lambda (n) n)
-                                   (lambda (n) (- n 1))
-                                   5)))
-                ) ;flexvector-unfold
+(let
+  ((result
+     (flexvector->list
+       (flexvector-unfold (lambda (n) (< n 0))
+                          (lambda (n) n)
+                          (lambda (n) (- n 1))
+                          5)
+       ) ;flexvector-unfold
+     ) ;flexvector->list
+  ) ;
   (check result => '(5 4 3 2 1 0))
 ) ;let
 
 ;; 斐波那契数列
-(let ((result (flexvector->list
-                (flexvector-unfold (lambda (p) (> (car p) 100))
-                                   (lambda (p) (car p))
-                                   (lambda (p) (list (cadr p) (+ (car p) (cadr p))))
-                                   '(1 1))))
-                ) ;flexvector-unfold
+(let
+  ((result
+     (flexvector->list
+       (flexvector-unfold (lambda (p) (> (car p) 100))
+                          (lambda (p) (car p))
+                          (lambda (p) (list (cadr p) (+ (car p) (cadr p))))
+                          '(1 1))
+       ) ;flexvector-unfold
+     ) ;flexvector->list
+  ) ;
   (check result => '(1 1 2 3 5 8 13 21 34 55 89))
 ) ;let
 

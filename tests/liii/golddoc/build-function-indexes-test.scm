@@ -68,13 +68,18 @@
   ) ;let
 ) ;define
 
-(let* ((base-root (path-join (path-temp-dir)
-                             (string-append "golddoc-build-index-"
-                                            (number->string (getpid))))
-                             ) ;string-append
-       (load-root (path-join base-root "goldfish"))
-       (tests-root (path-join base-root "tests"))
-       (old-load-path *load-path*))
+(let*
+  ((base-root
+     (path-join (path-temp-dir)
+                (string-append "golddoc-build-index-"
+                               (number->string (getpid))
+                ) ;string-append
+     ) ;path-join
+                ) ;string-append
+   (load-root (path-join base-root "goldfish"))
+   (tests-root (path-join base-root "tests"))
+   (old-load-path *load-path*)
+  ) ;
   (cleanup-build-index-fixture base-root)
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))
