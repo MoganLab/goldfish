@@ -35,11 +35,17 @@
     (define (find-next-sibling env envs)
       (let ((parent (env-parent env))
             (current-line (env-lparen-line env)))
-        (let ((candidates (filter (lambda (e)
-                                    (and (eq? (env-parent e) parent)
-                                         (> (env-lparen-line e) current-line))
-                                    ) ;and
-                                  envs)))
+        (let
+          ((candidates
+             (filter
+               (lambda (e)
+                 (and (eq? (env-parent e) parent)
+                      (> (env-lparen-line e) current-line)
+                 ) ;and
+               ) ;lambda
+               envs)
+             ) ;filter
+          ) ;
           (if (null? candidates)
             #f
             (let ((min-line (list-min candidates env-lparen-line)))
@@ -55,18 +61,19 @@
         total-lines
         (let ((parent-next (find-next-sibling parent envs))
               (parent-rline (env-rparen-line parent)))
-          (let ((bound
-                 (cond
-                   (parent-rline parent-rline)
-                   ((and parent-next (env-rparen-line parent-next))
-                    (env-rparen-line parent-next)
-                   ) ;
-                   ((and parent-next (env-lparen-line parent-next))
-                    (env-lparen-line parent-next)
-                   ) ;
-                   (else total-lines))
-                 ) ;cond
-          ) ;let
+          (let
+            ((bound
+              (cond
+                (parent-rline parent-rline)
+                ((and parent-next (env-rparen-line parent-next))
+                 (env-rparen-line parent-next)
+                ) ;
+                ((and parent-next (env-lparen-line parent-next))
+                 (env-lparen-line parent-next)
+                ) ;
+                (else total-lines))
+              ) ;cond
+            ) ;
             (if (number? bound) bound total-lines)
         ) ;let
       ) ;if
@@ -182,15 +189,16 @@
     ) ;define
 
     (define (get-multi-line-envs envs)
-      (filter (lambda (e)
-                (let ((rline (env-rparen-line e))
-                      (lline (env-lparen-line e)))
-                  (and rline lline (not (= rline lline)))
-                ) ;let
+      (filter
+        (lambda (e)
+          (let ((rline (env-rparen-line e))
+                (lline (env-lparen-line e)))
+            (and rline lline (not (= rline lline)))
+          ) ;let
+        ) ;lambda
+        envs
       ) ;filter
-              envs
     ) ;define
-) ;define-library
 
     (define (fix-single-env! lines-vec m n)
       (let loop ((i m)
@@ -434,15 +442,16 @@
                             ) ;count-parens-with-state
               ) ;let-values
                 ;; 获取剩余行列表（从 i+1 到结尾）
-                (let ((remaining-lines (let loop-remaining ((idx (+ i 1)) (acc '()))
-                                         (if (>= idx line-count)
-                                           (reverse acc)
-                                           (loop-remaining (+ idx 1)
-                                                          (cons (vector-ref line-vec idx) acc))
-                                           ) ;loop-remaining
-                                         ) ;if
-                                       ) ;remaining-lines
-                ) ;let
+                (let
+                  ((remaining-lines (let loop-remaining ((idx (+ i 1)) (acc '()))
+                                      (if (>= idx line-count)
+                                        (reverse acc)
+                                        (loop-remaining (+ idx 1)
+                                                       (cons (vector-ref line-vec idx) acc))
+                                        ) ;loop-remaining
+                                      ) ;if
+                                    ) ;remaining-lines
+                  ) ;
                 (if (and (line-starts-with-rparen-in-code? line
                                                            block-depth
                                                            in-string

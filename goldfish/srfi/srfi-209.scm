@@ -508,11 +508,13 @@
         (lambda (names)
           (list->enum-set
             type
-            (map (lambda (sym)
-                   (or (enum-name->enum type sym)
-                       (error "invalid enum name" sym))
-                   ) ;or
-                 names
+            (map
+              (lambda (sym)
+                (or (enum-name->enum type sym)
+                    (error "invalid enum name" sym)
+                ) ;or
+              ) ;lambda
+              names
             ) ;map
           ) ;list->enum-set
         ) ;lambda

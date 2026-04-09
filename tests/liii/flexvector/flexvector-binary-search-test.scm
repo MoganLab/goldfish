@@ -45,13 +45,14 @@
 ;; flexvector-index - 线性查找
 
 ;; 基本二分查找
-(let ((fv (flexvector #\a #\b #\c #\d #\e #\f #\g #\h #\i #\j))
-      (cmp (lambda (char1 char2)
-             (cond ((char<? char1 char2) -1)
-                   ((char=? char1 char2) 0)
-                   (else 1)))
-             ) ;cond
-      ) ;cmp
+(let
+  ((fv (flexvector #\a #\b #\c #\d #\e #\f #\g #\h #\i #\j))
+   (cmp (lambda (char1 char2)
+          (cond ((char<? char1 char2) -1)
+                ((char=? char1 char2) 0)
+                (else 1)))
+          ) ;cond
+   ) ;cmp
   ;; 查找不同位置
   (check (flexvector-binary-search fv #\d cmp) => 3)  ; 中间
   (check (flexvector-binary-search fv #\a cmp) => 0)  ; 开头
@@ -61,13 +62,14 @@
 ) ;let
 
 ;; 指定区间查找
-(let ((fv (flexvector #\a #\b #\c #\d #\e #\f #\g #\h #\i #\j))
-      (cmp (lambda (char1 char2)
-             (cond ((char<? char1 char2) -1)
-                   ((char=? char1 char2) 0)
-                   (else 1)))
-             ) ;cond
-      ) ;cmp
+(let
+  ((fv (flexvector #\a #\b #\c #\d #\e #\f #\g #\h #\i #\j))
+   (cmp (lambda (char1 char2)
+          (cond ((char<? char1 char2) -1)
+                ((char=? char1 char2) 0)
+                (else 1)))
+          ) ;cond
+   ) ;cmp
   ;; 在 [2, 6) 中查找
   (check (flexvector-binary-search fv #\f cmp 2 6) => 5)
   ;; 在 [1, 5) 中查找 #\f（不在范围内）

@@ -21,16 +21,19 @@
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((index-path (path-join "tests" "function-library-index.json"))
-         (output-path (path-join (path-temp-dir)
-                                 (string-append "golddoc-missing-index-"
-                                                (number->string (getpid))
-                                                ".log")
-                                 ) ;string-append
-         ) ;output-path
-         (saved-index-text (and (path-file? index-path)
-                                (path-read-text index-path)))
-         ) ;saved-index-text
+  (let*
+    ((index-path (path-join "tests" "function-library-index.json"))
+     (output-path
+       (path-join (path-temp-dir)
+                  (string-append "golddoc-missing-index-"
+                                 (number->string (getpid))
+                                 ".log")
+                  ) ;string-append
+     ) ;output-path
+     (saved-index-text (and (path-file? index-path)
+                            (path-read-text index-path))
+     ) ;saved-index-text
+    ) ;
     (path-unlink output-path #t)
     (dynamic-wind
       (lambda ()
@@ -46,11 +49,15 @@
                                           " 2>&1")
         ) ;run-shell-command
         (let ((output (path-read-text output-path)))
-          (check-true (string-contains? output
-                                        "Error: function index not found for query: alist->fxmapping/combinator")
+          (check-true
+            (string-contains? output
+                              "Error: function index not found for query: alist->fxmapping/combinator"
+            ) ;string-contains?
           ) ;check-true
-          (check-true (string-contains? output
-                                        "Hint: run `gf doc --build-json` to build function index.")
+          (check-true
+            (string-contains? output
+                              "Hint: run `gf doc --build-json` to build function index."
+            ) ;string-contains?
           ) ;check-true
         ) ;let
       ) ;lambda

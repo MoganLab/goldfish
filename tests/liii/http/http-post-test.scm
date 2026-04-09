@@ -65,8 +65,12 @@
 
 
 ;; 带查询参数的 POST 请求
-(let ((r (http-post "https://httpbin.org/post"
-                   :params '(("key1" . "value1") ("key2" . "value2")))))
+(let
+  ((r
+     (http-post "https://httpbin.org/post"
+               :params '(("key1" . "value1") ("key2" . "value2")))
+     ) ;http-post
+  ) ;
   (check-true (string-contains (r 'text) "value1"))
   (check-true (string-contains (r 'text) "value2"))
   (check (r 'status-code) => 200)
@@ -74,27 +78,35 @@
 ) ;let
 
 ;; 带原始数据的 POST 请求
-(let* ((r (http-post "https://httpbin.org/post"
-            :data "This is raw data"))
-       (json (string->json (r 'text))))
+(let*
+  ((r
+     (http-post "https://httpbin.org/post"
+       :data "This is raw data")
+     ) ;http-post
+   (json (string->json (r 'text)))
+  ) ;
   (check (r 'status-code) => 200)
   (check (json-ref json "data") => "This is raw data")
 ) ;let*
 
 ;; 通过 :stream #t + :callback 流式处理 POST 响应
 (let ((collected '()))
-  (let ((r (http-post "https://httpbin.org/post"
-                     :stream #t
-                     :params '(("param1" . "value1"))
-                     :data "{\"test\": \"streaming-json\"}"
-                     :headers '(("Content-Type" . "application/json"))
-                     :callback (lambda (chunk)
-                                 (when (> (string-length chunk) 0)
-                                   (set! collected (cons chunk collected))
-                                 ) ;when
-                                 #t
-                               ) ;lambda
-           )))
+  (let
+    ((r
+       (http-post "https://httpbin.org/post"
+                 :stream #t
+                 :params '(("param1" . "value1"))
+                 :data "{\"test\": \"streaming-json\"}"
+                 :headers '(("Content-Type" . "application/json"))
+                 :callback (lambda (chunk)
+                             (when (> (string-length chunk) 0)
+                               (set! collected (cons chunk collected))
+                             ) ;when
+                             #t
+                           ) ;lambda
+       ) ;
+       ) ;http-post
+    ) ;
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
@@ -105,65 +117,79 @@
 ) ;let
 
 ;; 通过 :stream #t + :output-file 将 POST 响应按 chunk 写入本地文件
-(let* ((output-file "/tmp/goldfish-http-post-download.txt")
-       (r (begin
-            (when (file-exists? output-file)
-              (delete-file output-file)
-            ) ;when
-            (http-post "https://httpbin.org/post"
-                      :stream #t
-                      :data "Simple streaming POST test"
-                      :output-file output-file
-            ) ;http-post
-          ) ;begin
-       )
-       ) ;r
+(let*
+  ((output-file "/tmp/goldfish-http-post-download.txt")
+   (r (begin
+        (when (file-exists? output-file)
+          (delete-file output-file)
+        ) ;when
+        (http-post "https://httpbin.org/post"
+                  :stream #t
+                  :data "Simple streaming POST test"
+                  :output-file output-file
+        ) ;http-post
+      ) ;begin
+   ) ;r
+  ) ;
   (check-true (undefined? r))
   (check-true (file-exists? output-file))
-  (let ((body (call-with-input-file output-file
-                (lambda (port)
-                  (read-string 4096 port)
-                ) ;lambda
-              ) ;call-with-input-file
-        ))
+  (let
+    ((body
+       (call-with-input-file output-file
+         (lambda (port)
+           (read-string 4096 port)
+         ) ;lambda
+       ) ;call-with-input-file
+     ) ;
+    ) ;
     (check-true (string-contains body "Simple streaming POST test"))
   ) ;let
   (delete-file output-file)
 ) ;let*
 
 ;; 带文件上传的 POST 请求
-(let* ((r (http-post "https://httpbin.org/post"
-            :data '(("meta" . "multipart-value"))
-            :files '(("upload" . ((file . "tests/resources/http-upload.txt")
-                                  (filename . "fixture.txt")
-                                  (content-type . "text/plain"))))
-            :params '(("kind" . "multipart"))))
-       (json (string->json (r 'text))))
+(let*
+  ((r
+     (http-post "https://httpbin.org/post"
+       :data '(("meta" . "multipart-value"))
+       :files '(("upload" . ((file . "tests/resources/http-upload.txt")
+                             (filename . "fixture.txt")
+                             (content-type . "text/plain"))))
+       :params '(("kind" . "multipart")))
+     ) ;http-post
+   (json (string->json (r 'text)))
+  ) ;
   (check (r 'status-code) => 200)
   (check (r 'url) => "https://httpbin.org/post?kind=multipart")
   (check (json-ref json "form" "meta") => "multipart-value")
   (check (json-ref json "files" "upload") => "Goldfish multipart upload fixture.\n")
-  (check-true (string-contains (json-ref json "headers" "Content-Type")
-                               "multipart/form-data")
+  (check-true
+    (string-contains (json-ref json "headers" "Content-Type")
+                     "multipart/form-data"
+    ) ;string-contains
   ) ;check-true
 ) ;let*
 
 ;; 通过 :stream #t 流式处理 multipart POST 响应
 (let ((collected '()))
-  (let ((r (http-post "https://httpbin.org/post"
-                     :stream #t
-                     :data '(("meta" . "multipart-value"))
-                     :files '(("upload" . ((file . "tests/resources/http-upload.txt")
-                                           (filename . "fixture.txt")
-                                           (content-type . "text/plain"))))
-                     :params '(("kind" . "multipart-stream"))
-                     :callback (lambda (chunk)
-                                 (when (> (string-length chunk) 0)
-                                   (set! collected (cons chunk collected))
-                                 ) ;when
-                                 #t
-                               ) ;lambda
-           )))
+  (let
+    ((r
+       (http-post "https://httpbin.org/post"
+                 :stream #t
+                 :data '(("meta" . "multipart-value"))
+                 :files '(("upload" . ((file . "tests/resources/http-upload.txt")
+                                       (filename . "fixture.txt")
+                                       (content-type . "text/plain"))))
+                 :params '(("kind" . "multipart-stream"))
+                 :callback (lambda (chunk)
+                             (when (> (string-length chunk) 0)
+                               (set! collected (cons chunk collected))
+                             ) ;when
+                             #t
+                           ) ;lambda
+       ) ;
+       ) ;http-post
+    ) ;
     (check-true (undefined? r))
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
@@ -199,12 +225,16 @@
 (if (or (= (string-length simpletex-api-key) 0)
         (string=? simpletex-api-key "你的api-key"))
     (display "SKIP SimpleTex OCR integration: fill simpletex-api-key in this test file to enable live API assertions.\n")
-    (let* ((r (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
-                :headers `(("token" . ,simpletex-api-key))
-                :files '(("file" . ((file . "tests/resources/simpletex-formula-a2-b2.png")
-                                    (filename . "simpletex-formula-a2-b2.png")
-                                    (content-type . "image/png"))))))
-           (json (string->json (r 'text))))
+    (let*
+      ((r
+         (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
+           :headers `(("token" . ,simpletex-api-key))
+           :files '(("file" . ((file . "tests/resources/simpletex-formula-a2-b2.png")
+                               (filename . "simpletex-formula-a2-b2.png")
+                               (content-type . "image/png")))))
+         ) ;http-post
+       (json (string->json (r 'text)))
+      ) ;
       (check (r 'status-code) => 200)
       (check (json-ref json "status") => #t)
       (check-true (string? (json-ref json "res" "latex")))

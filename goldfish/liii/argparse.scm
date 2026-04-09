@@ -51,16 +51,19 @@
     ) ;define
 
     (define (%add-argument args-ht args)
-      (let* ((options (car args))
-             (name (alist-ref options 'name
-                              (lambda ()
-                                (value-error "name is required for an option"))
-                              ) ;lambda
-             ) ;name
-             (type (alist-ref/default options 'type 'string))
-             (short-name (alist-ref/default options 'short #f))
-             (default (alist-ref/default options 'default #f))
-             (arg-record (make-arg-record name type short-name default)))
+      (let*
+        ((options (car args))
+         (name
+           (alist-ref options 'name
+                      (lambda ()
+                        (value-error "name is required for an option"))
+                      ) ;lambda
+         ) ;name
+         (type (alist-ref/default options 'type 'string))
+         (short-name (alist-ref/default options 'short #f))
+         (default (alist-ref/default options 'default #f))
+         (arg-record (make-arg-record name type short-name default))
+        ) ;
         (unless (string? name)
           (type-error "name of the argument must be string")
         ) ;unless

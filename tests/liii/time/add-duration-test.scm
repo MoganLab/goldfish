@@ -49,8 +49,12 @@
 ) ;let*
 
 ;; Test error conditions
-(let ((d (time-difference (make-time TIME-UTC 0 1)
-                          (make-time TIME-UTC 0 0))))
+(let
+  ((d
+     (time-difference (make-time TIME-UTC 0 1)
+                      (make-time TIME-UTC 0 0))
+     ) ;time-difference
+  ) ;
   (check-catch 'wrong-type-arg (add-duration "not-time" d))
   (check-catch 'wrong-type-arg (add-duration (make-time TIME-UTC 0 0)
                                              (make-time TIME-UTC 0 0))

@@ -45,30 +45,41 @@
 ) ;check
 
 ;; 与 unfold 对比
-(let* ((unfold-result (flexvector->vector
-                        (flexvector-unfold (lambda (x) (> x 5))
-                                           (lambda (x) x)
-                                           (lambda (x) (+ x 1))
-                                           1))
-                        ) ;flexvector-unfold
-       (unfold-right-result (flexvector->vector
-                              (flexvector-unfold-right (lambda (x) (> x 5))
-                                                       (lambda (x) x)
-                                                       (lambda (x) (+ x 1))
-                                                       1))
-                              ) ;flexvector-unfold-right
-       ) ;unfold-right-result
+(let*
+  ((unfold-result
+     (flexvector->vector
+       (flexvector-unfold (lambda (x) (> x 5))
+                          (lambda (x) x)
+                          (lambda (x) (+ x 1))
+                          1
+       ) ;flexvector-unfold
+     ) ;flexvector->vector
+       ) ;flexvector-unfold
+   (unfold-right-result
+     (flexvector->vector
+       (flexvector-unfold-right (lambda (x) (> x 5))
+                                (lambda (x) x)
+                                (lambda (x) (+ x 1))
+                                1
+       ) ;flexvector-unfold-right
+     ) ;flexvector->vector
+   ) ;unfold-right-result
+  ) ;
   (check unfold-result => #(1 2 3 4 5))
   (check unfold-right-result => #(5 4 3 2 1))
 ) ;let*
 
 ;; 递减序列
-(let ((result (flexvector->list
-                (flexvector-unfold-right (lambda (n) (< n 0))
-                                         (lambda (n) n)
-                                         (lambda (n) (- n 1))
-                                         5)))
-                ) ;flexvector-unfold-right
+(let
+  ((result
+     (flexvector->list
+       (flexvector-unfold-right (lambda (n) (< n 0))
+                                (lambda (n) n)
+                                (lambda (n) (- n 1))
+                                5)
+       ) ;flexvector-unfold-right
+     ) ;flexvector->list
+  ) ;
   (check result => '(0 1 2 3 4 5))
 ) ;let
 

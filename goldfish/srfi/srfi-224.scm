@@ -468,12 +468,13 @@
       0
       (let lp ((n 0) (t trie) (kont values))
         (cond ((leaf? t) (kont (+ n 1)))
-              (else (lp n
-                        (branch-left t)
-                        (lambda (m)
-                          (lp m (branch-right t) kont)
-                        ) ;lambda
-                    )
+              (else
+               (lp n
+                   (branch-left t)
+                   (lambda (m)
+                     (lp m (branch-right t) kont)
+                   ) ;lambda
+               ) ;lp
               ) ;else
         ) ;cond
       ) ;let
@@ -1312,14 +1313,17 @@
 (define (fxmapping=? comp fxmap1 fxmap2 . fxmaps)
   (assume (comparator? comp))
   (assume (fxmapping? fxmap1))
-  (let ((fxmap-eq1 (lambda (fxmap)
-                     (assume (fxmapping? fxmap))
-                     (or (eqv? fxmap1 fxmap)
-                         (trie=? comp
-                                 (fxmapping-trie fxmap1)
-                                 (fxmapping-trie fxmap))))
-                         ) ;trie=?
-                     ) ;or
+  (let
+    ((fxmap-eq1 (lambda (fxmap)
+                  (assume (fxmapping? fxmap))
+                  (or (eqv? fxmap1 fxmap)
+                      (trie=? comp
+                              (fxmapping-trie fxmap1)
+                              (fxmapping-trie fxmap))
+                      ) ;trie=?
+                  ) ;or
+                      ) ;trie=?
+    ) ;
     (and (fxmap-eq1 fxmap2)
          (or (null? fxmaps)
              (every fxmap-eq1 fxmaps)

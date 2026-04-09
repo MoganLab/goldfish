@@ -221,24 +221,29 @@
     ) ;define
 
     (define (string-trim str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
-                             ((procedure? (car opt)) (car opt))
-                             (else
-                              (type-error "Invalid second argument: expected character or predicate"
-                                          (car opt))))
-                              ) ;type-error
-                             ) ;else
-        (let* ((start (if (and (> (length opt) 1)
-                               (number? (cadr opt)))
-                          (cadr opt)
-                          0))
-               (end (if (and (> (length opt) 2)
-                             (number? (caddr opt)))
-                        (caddr opt)
-                        (string-length str))
-               ) ;end
-               (str (substring str start end)))
+      (let
+        ((predicate (cond ((null? opt) char-whitespace?)
+                          ((char? (car opt)) (lambda (c) (char=? c (car opt))))
+                          ((procedure? (car opt)) (car opt))
+                          (else
+                           (type-error "Invalid second argument: expected character or predicate"
+                                       (car opt))
+                           ) ;type-error
+                          ) ;else
+                           ) ;type-error
+        ) ;
+        (let*
+          ((start (if (and (> (length opt) 1)
+                           (number? (cadr opt)))
+                      (cadr opt)
+                      0))
+           (end (if (and (> (length opt) 2)
+                         (number? (caddr opt)))
+                    (caddr opt)
+                    (string-length str))
+           ) ;end
+           (str (substring str start end))
+          ) ;
           (let loop ((i 0)
                      (len (string-length str)))
             (if (or (>= i len)
@@ -252,24 +257,29 @@
     ) ;define
 
     (define (string-trim-right str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
-                             ((procedure? (car opt)) (car opt))
-                             (else
-                              (type-error "Invalid second argument: expected character or predicate"
-                                          (car opt))))
-                              ) ;type-error
-                             ) ;else
-        (let* ((start (if (and (> (length opt) 1)
-                               (number? (cadr opt)))
-                          (cadr opt)
-                          0))
-               (end (if (and (> (length opt) 2)
-                             (number? (caddr opt)))
-                        (caddr opt)
-                        (string-length str))
-               ) ;end
-               (str (substring str start end)))
+      (let
+        ((predicate (cond ((null? opt) char-whitespace?)
+                          ((char? (car opt)) (lambda (c) (char=? c (car opt))))
+                          ((procedure? (car opt)) (car opt))
+                          (else
+                           (type-error "Invalid second argument: expected character or predicate"
+                                       (car opt))
+                           ) ;type-error
+                          ) ;else
+                           ) ;type-error
+        ) ;
+        (let*
+          ((start (if (and (> (length opt) 1)
+                           (number? (cadr opt)))
+                      (cadr opt)
+                      0))
+           (end (if (and (> (length opt) 2)
+                         (number? (caddr opt)))
+                    (caddr opt)
+                    (string-length str))
+           ) ;end
+           (str (substring str start end))
+          ) ;
           (let loop ((j (- (string-length str) 1)))
             (if (or (< j 0)
                     (not (predicate (string-ref str j))))
@@ -282,24 +292,29 @@
     ) ;define
 
     (define (string-trim-both str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
-                             ((procedure? (car opt)) (car opt))
-                             (else
-                              (type-error "Invalid second argument: expected character or predicate"
-                                          (car opt))))
-                              ) ;type-error
-                             ) ;else
-        (let* ((start (if (and (> (length opt) 1)
-                               (number? (cadr opt)))
-                          (cadr opt)
-                          0))
-               (end (if (and (> (length opt) 2)
-                             (number? (caddr opt)))
-                        (caddr opt)
-                        (string-length str))
-               ) ;end
-               (str (substring str start end)))
+      (let
+        ((predicate (cond ((null? opt) char-whitespace?)
+                          ((char? (car opt)) (lambda (c) (char=? c (car opt))))
+                          ((procedure? (car opt)) (car opt))
+                          (else
+                           (type-error "Invalid second argument: expected character or predicate"
+                                       (car opt))
+                           ) ;type-error
+                          ) ;else
+                           ) ;type-error
+        ) ;
+        (let*
+          ((start (if (and (> (length opt) 1)
+                           (number? (cadr opt)))
+                      (cadr opt)
+                      0))
+           (end (if (and (> (length opt) 2)
+                         (number? (caddr opt)))
+                    (caddr opt)
+                    (string-length str))
+           ) ;end
+           (str (substring str start end))
+          ) ;
           (let loop-left ((i 0)
                           (len (string-length str)))
             (if (or (>= i len)

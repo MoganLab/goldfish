@@ -74,12 +74,14 @@
   (check (json-ref j1 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 '((person . ((name . "Alice")
-                        (age . 25)
-                        (address . ((city . "Wonderland")
-                                    (zip . "12345"))))))
-                        ) ;address
-       (j1 (json-set j0 'person 'address 'city "Newland")))
+(let*
+  ((j0 '((person . ((name . "Alice")
+                    (age . 25)
+                    (address . ((city . "Wonderland")
+                                (zip . "12345"))))))
+                    ) ;address
+   (j1 (json-set j0 'person 'address 'city "Newland"))
+  ) ;
   (check (json-ref j1 'person 'address 'city) => "Newland")
 ) ;let*
 

@@ -34,14 +34,18 @@
 ;; 非哈希表输入时由底层实现报错。
 
 (let ((ht (make-hash-table)))
-  (check (call-with-values (lambda () (hash-table-entries ht))
-                           (lambda (ks vs) (list ks vs)))
+  (check
+    (call-with-values (lambda () (hash-table-entries ht))
+                      (lambda (ks vs) (list ks vs))
+    ) ;call-with-values
          => (list (list ) (list ))
   ) ;check
 
   (hash-table-set! ht 'k1 'v1)
-  (check (call-with-values (lambda () (hash-table-entries ht))
-                           (lambda (ks vs) (list ks vs)))
+  (check
+    (call-with-values (lambda () (hash-table-entries ht))
+                      (lambda (ks vs) (list ks vs))
+    ) ;call-with-values
          => (list (list 'k1) (list 'v1))
   ) ;check
 ) ;let

@@ -33,7 +33,7 @@
                         (ascii-left-paren? (string-ref line i))
                         (ascii-right-paren? (string-ref line i))
                     ) ;or
-               )
+               ) ;
                (substring line start i)
               ) ;
               ((and (not start) (not (char-whitespace? (string-ref line i))))
@@ -50,14 +50,16 @@
 
 
     (define (preferred-tag-from-tokens tokens)
-      (let ((meaningful
-             (let loop ((rest tokens) (result '()))
-               (if (null? rest)
-                 (reverse result)
-                 (loop (cdr rest) (cons (car rest) result))
-               ) ;if
-             ) ;let
-            )) ;meaningful
+      (let
+        ((meaningful
+          (let loop ((rest tokens) (result '()))
+            (if (null? rest)
+              (reverse result)
+              (loop (cdr rest) (cons (car rest) result))
+            ) ;if
+          ) ;let
+         ) ;meaningful
+        ) ;
         (cond
           ((null? meaningful) "")
           ((null? (cdr meaningful)) (car meaningful))

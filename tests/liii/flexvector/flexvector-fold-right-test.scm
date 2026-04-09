@@ -91,9 +91,11 @@
 
 ;; 连接字符串（保持顺序）(参数顺序为 element acc)
 (let ((fv (flexvector #\h #\e #\l #\l #\o)))
-  (check (flexvector-fold-right (lambda (ch acc) (string-append (string ch) acc))
-                                ""
-                                fv)
+  (check
+    (flexvector-fold-right (lambda (ch acc) (string-append (string ch) acc))
+                           ""
+                           fv
+    ) ;flexvector-fold-right
          => "hello"
   ) ;check
 ) ;let

@@ -30,7 +30,8 @@
             (let-values (((next-block-depth next-in-string next-escape-next)
                           (advance-lex-state-at-line-break block-depth
                                                            in-string
-                                                           escape-next)))
+                                                           escape-next))
+                          ) ;advance-lex-state-at-line-break
               (values (cons lparen-count rparen-count)
                       next-block-depth
                       next-in-string
@@ -43,13 +44,15 @@
                                                i
                                                block-depth
                                                in-string
-                                               escape-next)))
+                                               escape-next))
+                            ) ;advance-lex-state
                 (cond
                   ((eq? mode 'line-comment)
                    (let-values (((after-block-depth after-in-string after-escape-next)
                                  (advance-lex-state-at-line-break next-block-depth
                                                                   next-in-string
-                                                                  next-escape-next)))
+                                                                  next-escape-next))
+                                 ) ;advance-lex-state-at-line-break
                      (values (cons lparen-count rparen-count)
                              after-block-depth
                              after-in-string
@@ -162,17 +165,20 @@
              #f
             ) ;
             (else
-             (let ((current-range-start-balance
-                    (if (= line-num start-line)
-                      balance
-                      range-start-balance
-                    ) ;if
-                  ))
+             (let
+               ((current-range-start-balance
+                 (if (= line-num start-line)
+                   balance
+                   range-start-balance
+                 ) ;if
+               ) ;
+               ) ;
                (let-values (((paren-counts next-block-depth next-in-string next-escape-next)
                              (count-parens-with-state (car remaining)
                                                       block-depth
                                                       in-string
-                                                      escape-next)))
+                                                      escape-next))
+                             ) ;count-parens-with-state
                  (let* ((lparen-count (car paren-counts))
                         (rparen-count (cdr paren-counts))
                         (new-balance (+ balance lparen-count (- rparen-count))))

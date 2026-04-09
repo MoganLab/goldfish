@@ -76,9 +76,13 @@ type-error
 |#
 
 ; Test basic timeit functionality
-(let ((result (timeit (lambda () (+ 1 2))
-                      (lambda () #t)
-                      1000)))
+(let
+  ((result
+     (timeit (lambda () (+ 1 2))
+             (lambda () #t)
+             1000)
+     ) ;timeit
+  ) ;
   (check (number? result) => #t)
   (check (>= result 0) => #t)
 ) ;let
@@ -93,22 +97,31 @@ type-error
 ) ;let
 
 ; Test timeit with different number of iterations
-(let ((result1 (timeit (lambda () (* 2 3))
-                       (lambda () #t)
-                       100))
-      (result2 (timeit (lambda () (* 2 3))
-                       (lambda () #t)
-                       1000))
-      ) ;result2
+(let
+  ((result1
+     (timeit (lambda () (* 2 3))
+             (lambda () #t)
+             100)
+     ) ;timeit
+   (result2
+     (timeit (lambda () (* 2 3))
+             (lambda () #t)
+             1000)
+     ) ;timeit
+   ) ;result2
   (check (number? result1) => #t)
   (check (number? result2) => #t)
   (check (>= result2 result1) => #t)
 ) ;let
 
 ; Test timeit with empty setup
-(let ((result (timeit (lambda () (display ""))
-                      (lambda () #t)
-                      10)))
+(let
+  ((result
+     (timeit (lambda () (display ""))
+             (lambda () #t)
+             10)
+     ) ;timeit
+  ) ;
   (check (number? result) => #t)
   (check (>= result 0) => #t)
 ) ;let
@@ -141,25 +154,37 @@ type-error
 ) ;check-catch
 
 ; Test timeit with sleep to verify timing accuracy
-(let ((result (timeit (lambda () (sleep 0.1))
-                      (lambda () #t)
-                      1)))
+(let
+  ((result
+     (timeit (lambda () (sleep 0.1))
+             (lambda () #t)
+             1)
+     ) ;timeit
+  ) ;
   (check (number? result) => #t)
   (check (>= result 0.09) => #t)  ; Should be at least 0.09 seconds
 ) ;let
 
 ; Test timeit with multiple sleep iterations
-(let ((result (timeit (lambda () (sleep 0.01))
-                      (lambda () #t)
-                      5)))
+(let
+  ((result
+     (timeit (lambda () (sleep 0.01))
+             (lambda () #t)
+             5)
+     ) ;timeit
+  ) ;
   (check (number? result) => #t)
   (check (>= result 0.04) => #t)  ; Should be at least 0.04 seconds (5 * 0.01)
 ) ;let
 
 ; Test timeit with very short sleep
-(let ((result (timeit (lambda () (sleep 0.001))
-                      (lambda () #t)
-                      10)))
+(let
+  ((result
+     (timeit (lambda () (sleep 0.001))
+             (lambda () #t)
+             10)
+     ) ;timeit
+  ) ;
   (check (number? result) => #t)
   (check (>= result 0.005) => #t)  ; Should be at least 0.005 seconds (10 * 0.001)
 ) ;let

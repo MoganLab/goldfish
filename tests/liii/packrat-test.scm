@@ -119,10 +119,14 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-(let* ((g (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
-                       (*) (num . 4))))
-       (expected (* (+ 2 3) 4))
-       (r (calc (base-generator->results g))))
+(let*
+  ((g
+     (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
+                  (*) (num . 4)))
+     ) ;generator
+   (expected (* (+ 2 3) 4))
+   (r (calc (base-generator->results g)))
+  ) ;
   (check-true (parse-result-successful? r))
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
@@ -144,38 +148,50 @@
 ) ;let*
 (hash-table-clear! calc-env)
 
-(let* ((g (generator
-            '((begin) (id . ans) (:=) (num . 42)
-                      (oparen) (num . 2) (+) (id . ans) (cparen)
-                      (^) (num . 3)
-              (end))))
-       (expected (begin (define ans 42)
-                        (expt (+ 2 ans)
-                              3)
-                        ) ;expt
-       ) ;expected
-       (r (calc (base-generator->results g))))
+(let*
+  ((g
+     (generator
+       '((begin) (id . ans) (:=) (num . 42)
+                 (oparen) (num . 2) (+) (id . ans) (cparen)
+                 (^) (num . 3)
+         (end)))
+     ) ;generator
+   (expected (begin (define ans 42)
+                    (expt (+ 2 ans)
+                          3)
+                    ) ;expt
+   ) ;expected
+   (r (calc (base-generator->results g)))
+  ) ;
   (check-true (parse-result-successful? r))
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
 (hash-table-clear! calc-env)
 
-(let* ((g (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
-                       (^)
-                       (oparen) (num . 1) (+) (num . 1) (cparen))))
-       (expected (expt (+ 2 3) (+ 1 1)))
-       (r (calc (base-generator->results g))))
+(let*
+  ((g
+     (generator '((oparen) (num . 2) (+) (num . 3) (cparen)
+                  (^)
+                  (oparen) (num . 1) (+) (num . 1) (cparen)))
+     ) ;generator
+   (expected (expt (+ 2 3) (+ 1 1)))
+   (r (calc (base-generator->results g)))
+  ) ;
   (check-true (parse-result-successful? r))
   (check (parse-result-semantic-value r) => expected)
 ) ;let*
 (hash-table-clear! calc-env)
 
-(let* ((g (generator '((begin) (id . a) (:=) (num . 10)
-                       (id . b) (:=) (num . 20)
-                       (id . a) (*) (id . b)
-                       (end))))
-       (expected (begin (define a 10) (define b 20) (* a b)))
-       (r (calc (base-generator->results g))))
+(let*
+  ((g
+     (generator '((begin) (id . a) (:=) (num . 10)
+                  (id . b) (:=) (num . 20)
+                  (id . a) (*) (id . b)
+                  (end)))
+     ) ;generator
+   (expected (begin (define a 10) (define b 20) (* a b)))
+   (r (calc (base-generator->results g)))
+  ) ;
   (check-true (parse-result-successful? r))
   (check (parse-result-semantic-value r) => expected)
 ) ;let*

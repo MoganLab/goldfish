@@ -61,11 +61,15 @@
 
   (let ((listed-paths (path-list-path list-dir)))
     (check-true (vector? listed-paths))
-    (check-true (string-list-contains? (path->string list-file-a)
-                                       (path-vector->string-list listed-paths))
+    (check-true
+      (string-list-contains? (path->string list-file-a)
+                             (path-vector->string-list listed-paths)
+      ) ;string-list-contains?
     ) ;check-true
-    (check-true (string-list-contains? (path->string list-file-b)
-                                       (path-vector->string-list listed-paths))
+    (check-true
+      (string-list-contains? (path->string list-file-b)
+                             (path-vector->string-list listed-paths)
+      ) ;string-list-contains?
     ) ;check-true
   ) ;let
 

@@ -229,7 +229,8 @@
                     (rparen-count (cdr paren-counts)))
                 (vector-set! counts
                              line-index
-                             (max 0 (- rparen-count lparen-count)))
+                             (max 0 (- rparen-count lparen-count))
+                ) ;vector-set!
                 (loop (cdr remaining)
                       (+ line-index 1)
                       next-block-depth
@@ -257,7 +258,8 @@
                          (> close-line (env-lparen-line env)))
                 (vector-set! groups
                              (- close-line 1)
-                             (cons detail (vector-ref groups (- close-line 1))))
+                             (cons detail (vector-ref groups (- close-line 1)))
+                ) ;vector-set!
               ) ;when
               (loop (cdr remaining))
             ) ;let*
@@ -281,19 +283,21 @@
     ) ;define
 
     (define (detail-needs-structural-insert/preselected? detail lines line-net-close-counts)
-      (let* ((env (env-detail-env detail))
-             (close-line (env-detail-close-line detail))
-             (explicit-line (env-detail-explicit-rparen-line detail))
-             (lparen-line (env-lparen-line env))
-             (close-line-text (and close-line
-                                   (list-ref lines (- close-line 1)))
-             ) ;close-line-text
-             (net-close-count (and close-line
-                                   (vector-ref line-net-close-counts (- close-line 1)))
-             ) ;net-close-count
-             (trailing-unmatched-count (and close-line-text
-                                            (line-trailing-unmatched-rparen-count close-line-text)))
-             ) ;trailing-unmatched-count
+      (let*
+        ((env (env-detail-env detail))
+         (close-line (env-detail-close-line detail))
+         (explicit-line (env-detail-explicit-rparen-line detail))
+         (lparen-line (env-lparen-line env))
+         (close-line-text (and close-line
+                               (list-ref lines (- close-line 1)))
+         ) ;close-line-text
+         (net-close-count (and close-line
+                               (vector-ref line-net-close-counts (- close-line 1)))
+         ) ;net-close-count
+         (trailing-unmatched-count (and close-line-text
+                                        (line-trailing-unmatched-rparen-count close-line-text))
+         ) ;trailing-unmatched-count
+        ) ;
         (and close-line
              (> close-line lparen-line)
              (not explicit-line)
@@ -347,34 +351,43 @@
     ) ;define
 
     (define (collect-structural-insert-details details lines)
-      (let* ((line-net-close-counts (build-line-net-close-counts lines))
-             (details-by-close-line (group-details-by-close-line details (length lines)))
-             (selected-details
-              (let loop ((line-index 0)
-                         (result '()))
-                (if (>= line-index (vector-length line-net-close-counts))
-                  result
-                  (let* ((available (vector-ref line-net-close-counts line-index))
-                         (closing-details
-                          (sort-details-for-actual-close
-                            (vector-ref details-by-close-line line-index)))
-                         (selected (take-first closing-details available)))
-                    (loop (+ line-index 1)
-                          (append selected result))
-                  ) ;let*
-                ) ;if
-              ) ;let
-             ) ;selected-details
-             (to-insert
-              (filter (lambda (detail)
-                        (detail-needs-structural-insert/preselected?
-                          detail
-                          lines
-                          line-net-close-counts))
-                      selected-details
-              ) ;filter
-             ) ;to-insert
-             )
+      (let*
+        ((line-net-close-counts (build-line-net-close-counts lines))
+         (details-by-close-line (group-details-by-close-line details (length lines)))
+         (selected-details
+          (let loop ((line-index 0)
+                     (result '()))
+            (if (>= line-index (vector-length line-net-close-counts))
+              result
+              (let*
+                ((available (vector-ref line-net-close-counts line-index))
+                 (closing-details
+                  (sort-details-for-actual-close
+                    (vector-ref details-by-close-line line-index)
+                  ) ;sort-details-for-actual-close
+                 ) ;closing-details
+                 (selected (take-first closing-details available))
+                ) ;
+                (loop (+ line-index 1)
+                      (append selected result)
+                ) ;loop
+              ) ;let*
+            ) ;if
+          ) ;let
+         ) ;selected-details
+         (to-insert
+          (filter
+            (lambda (detail)
+              (detail-needs-structural-insert/preselected?
+                detail
+                lines
+                line-net-close-counts
+              ) ;detail-needs-structural-insert/preselected?
+            ) ;lambda
+            selected-details
+          ) ;filter
+         ) ;to-insert
+        ) ;
         (sort-details-for-structural-insert to-insert)
       ) ;let*
     ) ;define

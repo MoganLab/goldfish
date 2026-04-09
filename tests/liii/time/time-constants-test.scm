@@ -35,8 +35,12 @@
 (check-true (symbol? TIME-UTC))
 
 ;; Ensure all constants are distinct
-(let ((constants (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS
-                       TIME-TAI TIME-THREAD TIME-UTC)))
+(let
+  ((constants
+     (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS
+           TIME-TAI TIME-THREAD TIME-UTC)
+     ) ;list
+  ) ;
   (check-true (= (length constants) (length (delete-duplicates constants))))
 ) ;let
 

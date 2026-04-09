@@ -95,7 +95,8 @@
           ) ;make-raw-string-body-state
           (make-raw-string-delimiter-state
             (string-append (raw-string-state-delimiter state)
-                           (string ch))
+                           (string ch)
+            ) ;string-append
           ) ;make-raw-string-delimiter-state
         ) ;if
         (let* ((delimiter (raw-string-state-delimiter state))
@@ -209,7 +210,7 @@
                    #f
                    'skip-char
            ) ;values
-          ) ;
+          ) ;escape-next
           ((> block-depth 0)
            (cond
              ((and (< (+ i 1) len)
@@ -352,7 +353,8 @@
            (values block-depth
                    (make-raw-string-delimiter-state
                      (string-append (raw-string-state-delimiter in-string)
-                                    (string #\newline))
+                                    (string #\newline)
+                     ) ;string-append
                    ) ;make-raw-string-delimiter-state
                    #f
            ) ;values

@@ -24,9 +24,13 @@
 ;; 返回只包含在所有映射中都存在的键的新 fxmapping。
 ;; 对于重复键，使用 combiner 合并值。
 ;;
-(let ((intersection (fxmapping-intersection/combinator (lambda (k v1 v2) (+ v1 v2))
-                                                       (fxmapping 0 10 1 20 2 30)
-                                                       (fxmapping 1 5 2 15 3 40))))
+(let
+  ((intersection
+     (fxmapping-intersection/combinator (lambda (k v1 v2) (+ v1 v2))
+                                        (fxmapping 0 10 1 20 2 30)
+                                        (fxmapping 1 5 2 15 3 40))
+     ) ;fxmapping-intersection/combinator
+  ) ;
   (check-false (fxmapping-contains? intersection 0))
   (check (fxmapping-ref intersection 1 (lambda () 'not-found)) => 25)
   (check (fxmapping-ref intersection 2 (lambda () 'not-found)) => 45)
