@@ -22,9 +22,10 @@
       ((and (>= status-code 400) (< status-code 500))
        (error 'http-error
          (string-append (number->string status-code)
-                        " Client Error: " reason " for url: " url)
+                        " Client Error: " reason " for url: " url
          ) ;string-append
        ) ;error
+      ) ;
       ((and (>= status-code 500) (< status-code 600))
        (error 'http-error
          (string-append (number->string status-code)
