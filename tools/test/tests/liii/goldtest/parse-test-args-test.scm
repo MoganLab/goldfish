@@ -7,6 +7,7 @@
         (liii path)
         (liii sys)
         (liii list)
+        (liii os)
         (liii goldtest)
 ) ;import
 
@@ -65,9 +66,10 @@
 
 ;; ===== 场景3: 存在的目录路径 =====
 ;; 路径包含 / 且 path-dir? 返回 #t -> type='dir
+;; 注意：返回的路径是绝对路径（基于当前工作目录）
 (check (parse-test-args '("bin/gf" "tests/liii/"))
   => (if (path-dir? "tests/liii/")
-         '(dir . "tests/liii/")
+         (cons 'dir (path-join (getcwd) "tests/liii/"))
          ;; 如果目录不存在，按 pattern 处理
          '(pattern . "tests/liii/"))
 ) ;check
