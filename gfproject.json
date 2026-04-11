@@ -39,6 +39,8 @@
       }
     },
     "test": {
+      "organization": "liii",
+      "module": "goldtest",
       "description": {
         "en_US": "Run tests (all *-test.scm files under tests/)",
         "zh_CN": "运行测试（tests/ 下的所有 *-test.scm 文件）"

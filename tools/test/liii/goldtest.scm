@@ -174,11 +174,15 @@
                 ;; 包含路径分隔符的路径 (/ 或 Windows 的 \)
                 ((or (string-contains arg "/")
                      (and (os-windows?) (string-contains arg "\\")))
-                 (cond
-                   ((path-file? arg) (cons 'file arg))
-                   ((path-dir? arg) (cons 'dir arg))
-                   (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
-                 ) ;cond
+                 (let ((abs-path (if (path-absolute? arg)
+                                     arg
+                                     (path-join (getcwd) arg))))
+                   (cond
+                     ((path-file? abs-path) (cons 'file abs-path))
+                     ((path-dir? abs-path) (cons 'dir abs-path))
+                     (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
+                   ) ;cond
+                 ) ;let
                 ) ;
                 ;; 以 .scm 结尾的文件名
                 ((string-ends? arg ".scm")
@@ -199,8 +203,8 @@
       ;; 根据参数类型过滤测试文件
       (case arg-type
         ((file)
-         ;; 直接返回单个文件
-         (if (member arg-value test-files) (list arg-value) '())
+         ;; 直接返回单个文件（已经在 parse-test-args 中验证存在）
+         (list arg-value)
         ) ;
         ((dir)
          ;; 返回该目录下的所有测试文件
@@ -289,9 +293,27 @@
       ) ;let*
     ) ;define
     
+    (define (show-help)
+      ;; 显示帮助信息
+      (display "gf test - Goldfish Scheme Test Runner")
+      (newline) (newline)
+      (display "Usage:") (newline)
+      (display "  gf test [PATH|PATTERN]") (newline) (newline)
+      (display "Examples:") (newline)
+      (display "  gf test                    Run all tests") (newline)
+      (display "  gf test tests/liii/string  Run tests in directory") (newline)
+      (display "  gf test string-test.scm    Run specific test file") (newline)
+      (display "  gf test string             Run tests matching pattern") (newline)
+    ) ;define
+
     (define (main)
       ;; 程序入口点
-      (run-goldtest)
+      (let ((args (command-line)))
+        (if (or (member "--help" args) (member "-h" args))
+            (begin (show-help) (exit 0))
+            (run-goldtest)
+        ) ;if
+      ) ;let
     ) ;define
 
   ) ;begin

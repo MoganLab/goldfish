@@ -3865,22 +3865,6 @@ find_goldfix_tool_root (const char* gf_lib) {
 
   return "";
 }
-
-static string
-find_goldtest_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
-
-  for (const auto& candidate : candidates) {
-    if (fs::is_directory (candidate, ec)) {
-      return candidate.string ();
-    }
-    ec.clear ();
-  }
-
-  return "";
-}
-
 static string
 find_golddoc_tool_root (const char* gf_lib) {
   std::error_code ec;
@@ -3976,8 +3960,13 @@ load_gfproject_config (const char* gf_lib) {
 static string
 find_tool_root_by_command (const char* gf_lib, const string& command) {
   std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / command,
-                                fs::path (gf_lib).parent_path () / "tools" / command};
+  fs::path        cwd= fs::current_path (ec);
+  vector<fs::path> candidates;
+  if (!ec) {
+    candidates.push_back (cwd / "tools" / command);
+  }
+  candidates.push_back (fs::path (gf_lib) / "tools" / command);
+  candidates.push_back (fs::path (gf_lib).parent_path () / "tools" / command);
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -5463,57 +5452,6 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 #endif
   }
 
-  // 处理 test 子命令
-  if (command == "test") {
-    // 添加 tools/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
-    string goldtest_root = find_goldtest_tool_root (gf_lib);
-    if (goldtest_root.empty ()) {
-      cerr << "Error: tools/goldtest directory not found." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_add_to_load_path (sc, goldtest_root.c_str ());
-
-    // Import (liii goldtest) module
-    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldtest))");
-    if (!import_result) {
-      cerr << "Error: Failed to import (liii goldtest) module." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) {
-      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii goldtest):", errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-
-    // Get and call the main function from (liii goldtest)
-    s7_pointer main_func = s7_name_to_value (sc, "main");
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
-      cerr << "Error: Failed to find main function in (liii goldtest)." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    if (s7_is_integer (result)) {
-      return static_cast<int> (s7_integer (result));
-    }
-    return 0;
-  }
   // 处理 run 子命令
   if (command == "run") {
     // 获取 TARGET 参数

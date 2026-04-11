@@ -91,9 +91,6 @@
       (display "Goldfish Scheme ")
       (display (version))
       (display " by LiiiLabs")
-      (newline)
-      (display "based on S7 Scheme ")
-      (display (s7-version))
       (newline))
 
     (define (display-command-line cmd desc . extra-lines)
