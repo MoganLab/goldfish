@@ -252,8 +252,67 @@
       ) ;case
     ) ;define
     
+    (define (check-and-switch-to-target args)
+      ;; 检查是否需要切换到 target 目录
+      ;; 如果第一个非选项参数是目录，且该目录下有 tests 子目录，则切换
+      ;; 返回切换后的新参数列表（如果切换了，需要去掉 target 参数）
+      (let loop ((remaining (cdr args))  ; 跳过可执行文件路径
+                 (skip-next #f)
+                 (found-target #f))
+        (cond
+          ;; 没有更多参数
+          ((null? remaining)
+           (if found-target
+             (let ((target found-target))
+               (if (path-dir? target)
+                 (let ((tests-dir (path-join target "tests")))
+                   (if (path-dir? tests-dir)
+                     (begin
+                       (chdir target)
+                       ;; 切换目录后，需要重新构建参数列表，去掉 target
+                       (cons (car args) (delete target (cdr args)))
+                     ) ;begin
+                     args
+                   ) ;if
+                 ) ;if
+                 args
+               ) ;if
+             ) ;let
+             args
+           ) ;if
+          ) ;null?
+          ;; 跳过选项值
+          (skip-next
+           (loop (cdr remaining) #f found-target)
+          ) ;skip-next
+          ;; 跳过 test 命令本身
+          ((equal? (car remaining) "test")
+           (loop (cdr remaining) #f found-target)
+          ) ;test
+          ;; 跳过 -m/--mode 及其值
+          ((or (equal? (car remaining) "-m") (equal? (car remaining) "--mode"))
+           (loop (cddr remaining) #f found-target)
+          ) ;-m/--mode
+          ;; 跳过 -m=.../--mode=... 格式
+          ((or (string-starts? (car remaining) "-m=")
+               (string-starts? (car remaining) "--mode="))
+           (loop (cdr remaining) #f found-target)
+          ) ;-m=...
+          ;; 找到 target（第一个非选项参数）
+          ((not found-target)
+           (loop (cdr remaining) #f (car remaining))
+          ) ;not found-target
+          ;; 其他参数，继续
+          (else
+           (loop (cdr remaining) #f found-target)
+          ) ;else
+        ) ;cond
+      ) ;let loop
+    ) ;define
+
     (define (run-goldtest)
-      (let* ((args (command-line))
+      (let* ((raw-args (command-line))
+             (args (check-and-switch-to-target raw-args))
              (parsed (parse-test-args args))
              (arg-type (car parsed))
              (arg-value (cdr parsed))
@@ -298,12 +357,15 @@
       (display "gf test - Goldfish Scheme Test Runner")
       (newline) (newline)
       (display "Usage:") (newline)
-      (display "  gf test [PATH|PATTERN]") (newline) (newline)
+      (display "  gf test [TARGET] [PATH|PATTERN]") (newline) (newline)
       (display "Examples:") (newline)
       (display "  gf test                    Run all tests") (newline)
+      (display "  gf test tools/doc          Run tests in target directory") (newline)
       (display "  gf test tests/liii/string  Run tests in directory") (newline)
       (display "  gf test string-test.scm    Run specific test file") (newline)
-      (display "  gf test string             Run tests matching pattern") (newline)
+      (display "  gf test string             Run tests matching pattern") (newline) (newline)
+      (display "Target:") (newline)
+      (display "  If TARGET/tests exists, switch to TARGET before running tests") (newline)
     ) ;define
 
     (define (main)
