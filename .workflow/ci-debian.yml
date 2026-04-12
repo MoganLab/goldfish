@@ -48,7 +48,7 @@ stages:
         command:
           - bash .workflow/ustc_debian822_setup.sh
           - apt-get update
-          - apt-get install -y xmake git 7zip unzip curl g++
+          - apt-get install -y xmake git 7zip unzip curl g++ pkg-config
           - apt install -y -t bookworm-backports libtbox-dev
           - xmake repo --update
           - sed -i '/github\.com/d' xmake/packages/s/s7/xmake.lua

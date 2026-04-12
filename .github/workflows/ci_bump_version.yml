@@ -10,11 +10,14 @@ on:
 jobs:
   bump:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      workflows: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PAT_TOKEN }} # 需要一个具有写权限的个人访问令牌
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Get current version
         run: |

@@ -35,7 +35,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt-get update
-          apt-get install -y git 7zip unzip curl build-essential
+          apt-get install -y git 7zip unzip curl build-essential pkg-config
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
