@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '新版本号 (当前版本是 17.11.47)'
+        description: '新版本号'
         required: true
 
 jobs:
@@ -40,9 +40,6 @@ jobs:
           # Update xmake.lua
           sed -i "s/^set_version (\"[^\"]*\")/set_version (\"${{ env.NEW_VERSION }}\")/" xmake.lua
 
-          # Update ci_bump_version.yml description
-          sed -i 's/当前版本是 [0-9]\+\.[0-9]\+\.[0-9]\+/当前版本是 ${{ env.NEW_VERSION }}/' .github/workflows/ci_bump_version.yml
-          
           # Update src/goldfish.hpp
           sed -i "s/#define GOLDFISH_VERSION \"[^\"]*\"/#define GOLDFISH_VERSION \"${{ env.NEW_VERSION }}\"/" src/goldfish.hpp
           
