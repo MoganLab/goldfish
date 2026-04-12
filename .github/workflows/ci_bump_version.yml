@@ -7,10 +7,6 @@ on:
         description: '新版本号 (当前版本是 17.11.47)'
         required: true
 
-permissions:
-  contents: write
-  workflows: write
-
 jobs:
   bump:
     runs-on: ubuntu-latest
@@ -18,7 +14,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.PAT_TOKEN }} # 需要一个具有写权限的个人访问令牌
 
       - name: Get current version
         run: |
