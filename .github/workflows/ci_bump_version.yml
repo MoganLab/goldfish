@@ -7,12 +7,13 @@ on:
         description: '新版本号 (当前版本是 17.11.47)'
         required: true
 
+permissions:
+  contents: write
+  workflows: write
+
 jobs:
   bump:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      workflows: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
