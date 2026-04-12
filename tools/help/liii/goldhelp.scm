@@ -35,24 +35,37 @@
   ) ;export
   (begin
 
-    (define (find-gfproject-path local?)
-      "Search for gfproject.json - local or in gf_lib"
+    (define (find-gfproject-path kind)
+      "Search for gfproject.json - 'local or 'lib"
       (let ((cwd (getcwd)))
-        (if local?
-            (if cwd
-                (let ((test-path (path->string (path-join (path cwd) (path "gfproject.json")))))
-                  (if (file-exists? test-path)
-                      test-path
+        (cond
+         ((eq? kind 'local)
+          (if cwd
+              (let ((test-path (path->string (path-join (path cwd) (path "gfproject.json")))))
+                (if (file-exists? test-path)
+                    test-path
+                    #f))
+              #f))
+         ((eq? kind 'lib)
+          ;; First try GF_LIB environment variable
+          (let ((gf-lib (getenv "GF_LIB")))
+            (if gf-lib
+                (let ((lib-path (path->string (path-join (path gf-lib) (path "gfproject.json")))))
+                  (if (file-exists? lib-path)
+                      lib-path
                       #f))
-                #f)
-            ;; lib path - use GF_LIB environment variable or parent directory
-            (let ((gf-lib (getenv "GF_LIB")))
-              (if gf-lib
-                  (let ((lib-path (path->string (path-join (path gf-lib) (path "gfproject.json")))))
-                    (if (file-exists? lib-path)
-                        lib-path
-                        #f))
-                  #f)))))
+                ;; Fallback: search from executable location upward
+                (let ((exe-path (executable)))
+                  (if exe-path
+                      (let search ((dir (path-dirname (path exe-path))))
+                        (if dir
+                            (let ((gfproject-path (path->string (path-join dir (path "gfproject.json")))))
+                              (if (file-exists? gfproject-path)
+                                  gfproject-path
+                                  (search (path-dirname dir))))
+                            #f))
+                      #f)))))
+         (else #f))))
 
     (define (json-merge-tools lib-tools local-tools)
       "Merge two tools JSON objects, local takes precedence (except 'help')"
@@ -72,8 +85,8 @@
 
     (define (load-gfproject)
       "Load and merge gfproject.json from local and lib, local takes precedence"
-      (let ((local-path (find-gfproject-path #t))
-            (lib-path (find-gfproject-path #f)))
+      (let ((local-path (find-gfproject-path 'local))
+            (lib-path (find-gfproject-path 'lib)))
         (let ((lib-config (if lib-path
                               (let ((content (path-read-text lib-path)))
                                 (string->json content))
