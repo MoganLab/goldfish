@@ -5361,14 +5361,24 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   }
 
   // 处理动态注册的工具（从 gfproject.json 加载）
+  // 注意："help" 命令始终使用内部实现，不从 gfproject.json 加载
   json gfproject_config = load_gfproject_config (gf_lib);
-  if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
+  if (command != "help" && gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
     int tool_ret = goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
     if (tool_ret != -1) {
       // Tool was found and executed (or failed with an error)
       return tool_ret;
     }
     // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
+  }
+
+  // 处理 help 命令（始终使用内部实现）
+  if (command == "help") {
+    display_help ();
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
   }
 
   // 处理 eval 子命令
