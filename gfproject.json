@@ -33,8 +33,6 @@
       }
     },
     "fix": {
-      "organization": "liii",
-      "module": "goldfix",
       "description": {
         "en_US": "Format PATH (PATH can be a .scm file or directory)",
         "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"

@@ -69,19 +69,29 @@
 
     (define (json-merge-tools lib-tools local-tools)
       "Merge two tools JSON objects, local takes precedence (except 'help')"
-      (if (json-null? lib-tools)
-          (if (json-null? local-tools)
-              (make-json)
-              local-tools)
-          (if (json-null? local-tools)
-              lib-tools
-              (let ((merged lib-tools))
-                (for-each
-                 (lambda (key)
-                   (when (not (string=? key "help")) ;; "help" is never merged
-                     (json-set! merged key (json-ref local-tools key))))
-                 (json-keys local-tools))
-                merged))))
+      (cond
+       ((json-null? lib-tools)
+        (if (json-null? local-tools)
+            (make-json)
+            local-tools))
+       ((json-null? local-tools)
+        lib-tools)
+       (else
+        ;; Start with lib tools as base, then add local tools (except "help")
+        (let ((merged (make-json)))
+          ;; Add lib tools (except "help")
+          (for-each
+           (lambda (key)
+             (when (not (string=? key "help"))
+               (json-set! merged key (json-ref lib-tools key))))
+           (json-keys lib-tools))
+          ;; Add local tools (except "help"), overwriting lib values
+          (for-each
+           (lambda (key)
+             (when (not (string=? key "help"))
+               (json-set! merged key (json-ref local-tools key))))
+           (json-keys local-tools))
+          merged)))))
 
     (define (load-gfproject)
       "Load and merge gfproject.json from local and lib, local takes precedence"
