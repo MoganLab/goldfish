@@ -4035,13 +4035,9 @@ goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command,
   json tool_config= config["tools"][command];
 
   // Check if tool has implementation (organization and module)
+  // If not complete, fall back to internal implementation (return -1)
   if (!tool_config.contains ("organization") || !tool_config.contains ("module")) {
-    cerr << "Error: Tool '" << command << "' is not fully implemented (missing organization or module)."
-         << endl;
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    return 1;
+    return -1; // Fall back to internal implementation
   }
 
   string org     = tool_config["organization"];
@@ -4049,11 +4045,7 @@ goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command,
   string tool_root= find_tool_root_by_command (gf_lib, command);
 
   if (tool_root.empty ()) {
-    cerr << "Error: tools/" << command << "/" << org << " directory not found." << endl;
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    return 1;
+    return -1; // Fall back to internal implementation
   }
 
   s7_add_to_load_path (sc, tool_root.c_str ());
