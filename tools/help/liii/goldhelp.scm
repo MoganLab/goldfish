@@ -35,23 +35,56 @@
   ) ;export
   (begin
 
-    (define (find-gfproject-path)
-      "Search for gfproject.json in current directory"
+    (define (find-gfproject-path local?)
+      "Search for gfproject.json - local or in gf_lib"
       (let ((cwd (getcwd)))
-        (if cwd
-            (let ((test-path (path->string (path-join (path cwd) (path "gfproject.json")))))
-              (if (file-exists? test-path)
-                  test-path
-                  #f))
-            #f)))
+        (if local?
+            (if cwd
+                (let ((test-path (path->string (path-join (path cwd) (path "gfproject.json")))))
+                  (if (file-exists? test-path)
+                      test-path
+                      #f))
+                #f)
+            ;; lib path - use GF_LIB environment variable or parent directory
+            (let ((gf-lib (getenv "GF_LIB")))
+              (if gf-lib
+                  (let ((lib-path (path->string (path-join (path gf-lib) (path "gfproject.json")))))
+                    (if (file-exists? lib-path)
+                        lib-path
+                        #f))
+                  #f)))))
+
+    (define (json-merge-tools lib-tools local-tools)
+      "Merge two tools JSON objects, local takes precedence (except 'help')"
+      (if (json-null? lib-tools)
+          (if (json-null? local-tools)
+              (make-json)
+              local-tools)
+          (if (json-null? local-tools)
+              lib-tools
+              (let ((merged lib-tools))
+                (for-each
+                 (lambda (key)
+                   (when (not (string=? key "help")) ;; "help" is never merged
+                     (json-set! merged key (json-ref local-tools key))))
+                 (json-keys local-tools))
+                merged))))
 
     (define (load-gfproject)
-      "Load and parse gfproject.json, return tools object"
-      (let ((path (find-gfproject-path)))
-        (if path
-            (let ((content (path-read-text path)))
-              (string->json content))
-            (string->json "{}"))))
+      "Load and merge gfproject.json from local and lib, local takes precedence"
+      (let ((local-path (find-gfproject-path #t))
+            (lib-path (find-gfproject-path #f)))
+        (let ((lib-config (if lib-path
+                              (let ((content (path-read-text lib-path)))
+                                (string->json content))
+                              (make-json)))
+              (local-config (if local-path
+                                (let ((content (path-read-text local-path)))
+                                  (string->json content))
+                                (make-json))))
+          (let ((lib-tools (json-ref lib-config "tools"))
+                (local-tools (json-ref local-config "tools")))
+            (json-merge-tools lib-tools local-tools)))))
 
     (define (get-tool-description tools tool-name lang)
       "Get description for a tool in specified language"

@@ -3940,21 +3940,67 @@ find_gfproject_json (const char* gf_lib) {
 
 static json
 load_gfproject_config (const char* gf_lib) {
-  fs::path config_path= find_gfproject_json (gf_lib);
-  if (config_path.empty ()) {
+  // Find both gfproject.json files if they exist
+  std::error_code ec;
+  fs::path cwd= fs::current_path (ec);
+  fs::path local_path= cwd / "gfproject.json";
+  bool local_exists= !ec && fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec);
+
+  fs::path lib_path= fs::path (gf_lib) / "gfproject.json";
+  bool lib_exists= fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec);
+
+  // If neither exists, return empty object
+  if (!local_exists && !lib_exists) {
     return json::object ();
   }
-  try {
-    std::ifstream file (config_path);
-    if (!file.is_open ()) {
-      return json::object ();
+
+  // Start with lib config as base (only tools section will be merged)
+  json merged= json::object ();
+  json lib_tools= json::object ();
+  if (lib_exists) {
+    try {
+      std::ifstream lib_file (lib_path);
+      if (lib_file.is_open ()) {
+        json lib_config;
+        lib_file >> lib_config;
+        if (lib_config.contains ("tools")) {
+          lib_tools= lib_config["tools"];
+        }
+      }
+    } catch (...) {
+      // Ignore parse errors for lib config
     }
-    json config;
-    file >> config;
-    return config;
-  } catch (...) {
-    return json::object ();
   }
+
+  // Get local tools (local takes precedence)
+  json local_tools= json::object ();
+  if (local_exists) {
+    try {
+      std::ifstream local_file (local_path);
+      if (local_file.is_open ()) {
+        json local_config;
+        local_file >> local_config;
+        if (local_config.contains ("tools")) {
+          local_tools= local_config["tools"];
+        }
+      }
+    } catch (...) {
+      // Ignore parse errors for local config
+    }
+  }
+
+  // Merge tools: lib as base, local overrides (except "help" which is always internal)
+  json merged_tools= lib_tools;
+  for (auto& [key, value] : local_tools.items ()) {
+    // "help" tool is never merged - always use internal implementation
+    if (key == "help") {
+      continue;
+    }
+    merged_tools[key]= value;
+  }
+  merged["tools"]= merged_tools;
+
+  return merged;
 }
 
 static string
