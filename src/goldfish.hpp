@@ -4231,6 +4231,7 @@ goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command,
   return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg,
                                         old_port, gc_loc, allow_builtin_fallback);
 }
+
 static string
 find_tool_root_by_command (const char* gf_lib, const string& command) {
   std::error_code ec;
