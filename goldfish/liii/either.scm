@@ -20,7 +20,7 @@
           from-right to-right
           either?             ; 导出通用判断函数
           either-left? either-right?
-          either-map either-for-each
+          either-map either-flat-map either-for-each
           either-get-or-else
           either-or-else
           either-filter-or-else
@@ -118,6 +118,18 @@
       ) ;unless
       (if (either-right? either)
           (from-right (f (car either)))
+          either
+      ) ;if
+    ) ;define
+
+    ;; 扁平映射函数：如果 either 是右值，则应用返回 Either 的函数 f
+    (define (either-flat-map f either)
+      (check-either either "either-flat-map")
+      (unless (procedure? f)
+        (type-error (format #f "In function either-flat-map: argument *f* must be *procedure*! **Got ~a**" f))
+      ) ;unless
+      (if (either-right? either)
+          (f (to-right either))
           either
       ) ;if
     ) ;define
