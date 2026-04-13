@@ -35,23 +35,9 @@
   ) ;export
   (begin
 
-    (define (find-gfproject-path)
-      "Search for gfproject.json in current directory"
-      (let ((cwd (getcwd)))
-        (if cwd
-            (let ((test-path (path->string (path-join (path cwd) (path "gfproject.json")))))
-              (if (file-exists? test-path)
-                  test-path
-                  #f))
-            #f)))
-
     (define (load-gfproject)
-      "Load and parse gfproject.json, return tools object"
-      (let ((path (find-gfproject-path)))
-        (if path
-            (let ((content (path-read-text path)))
-              (string->json content))
-            (string->json "{}"))))
+      "Load merged gfproject.json via C++ glue"
+      (string->json (g_gfproject-load-config)))
 
     (define (get-tool-description tools tool-name lang)
       "Get description for a tool in specified language"
