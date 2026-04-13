@@ -38,6 +38,7 @@
 ;; 三、高阶操作
 ;; 用于映射、遍历和过滤 Either 的函数
 ;;   either-map         - 仅对 Right 中的值进行映射
+;;   either-flat-map    - 对 Right 执行返回 Either 的链式操作
 ;;   either-for-each    - 仅对 Right 中的值执行副作用
 ;;   either-filter-or-else - 不满足条件时回退到 Left
 ;;   either-contains?   - 判断 Right 中的值是否满足目标
