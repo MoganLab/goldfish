@@ -129,7 +129,10 @@
         (type-error (format #f "In function either-flat-map: argument *f* must be *procedure*! **Got ~a**" f))
       ) ;unless
       (if (either-right? either)
-          (f (to-right either))
+          (let ((result (f (to-right either))))
+            (check-either result "either-flat-map: return value of f must be an Either")
+            result
+          ) ;let
           either
       ) ;if
     ) ;define
