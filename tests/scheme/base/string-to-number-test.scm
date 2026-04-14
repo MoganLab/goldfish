@@ -58,6 +58,7 @@
 (check (string->number "0.0") => 0.0)
 (check (string->number "-0.123") => -0.123)
 (check (string->number "1.23e10") => 1.23e10)
+(check (= (string->number "0.00123") (string->number "1.23e-3")) => #t)
 (check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)

@@ -16160,204 +16160,47 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
       return(0.0);
     }
 #endif
-  str = ipart;
-  if ((int_len + exponent) > max_len)
-    {
-      /*  12341234.56789e12                   12341234567889999872.0              1.234123456789e+19
-       * -1234567890123456789.0              -1234567890123456768.0              -1.2345678901235e+18
-       *  12345678901234567890.0              12345678901234567168.0              1.2345678901235e+19
-       *  123.456e30                          123456000000000012741097792995328.0 1.23456e+32
-       *  12345678901234567890.0e12           12345678901234569054409354903552.0  1.2345678901235e+31
-       *  1.234567890123456789012e30          1234567890123456849145940148224.0   1.2345678901235e+30
-       *  1e20                                100000000000000000000.0             1e+20
-       *  1234567890123456789.0               1234567890123456768.0               1.2345678901235e+18
-       *  123.456e16                          1234560000000000000.0               1.23456e+18
-       *  98765432101234567890987654321.0e-5  987654321012345728401408.0          9.8765432101235e+23
-       *  98765432101234567890987654321.0e-10 9876543210123456512.0               9.8765432101235e+18
-       *  0.00000000000000001234e20           1234.0
-       *  0.000000000000000000000000001234e30 1234.0
-       *  0.0000000000000000000000000000000000001234e40 1234.0
-       *  0.000000000012345678909876543210e15 12345.678909877
-       *  0e1000                              0.0
-       */
+  {
+    const int32_t total_len = int_len + frac_len;
+    int32_t first_sig = -1, last_sig = -1, kept_digits = 0;
+    int32_t effective_exponent, significant_digits;
 
-      for (int32_t i = 0; i < max_len; i++)
-	{
-	  dig = digits[(int32_t)(*str++)];
-	  if (dig < radix)
-	    int_part = dig + (int_part * radix);
-	  else break;
-	}
-
-      /* if the exponent is huge, check for 0 int_part and frac_part before complaining (0e1000 or 0.0e1000)
-       */
-      if ((int_part == 0) &&
-	  (exponent > max_len))
-	{
-	  /* if frac_part is also 0, return 0.0 */
-	  if (frac_len == 0) return(0.0);
-	  str = fpart;
-	  while ((dig = digits[(int32_t)(*str++)]) < radix)
-	    frac_part = dig + (frac_part * radix);
-	  if (frac_part == 0) return(0.0);
-#if WITH_GMP
-	  (*overflow) = true;
-#endif
-	}
-#if WITH_GMP
-      (*overflow) = ((int_part > 0) || (exponent > 20));    /* .1e310 is a tricky case */
-#endif
-      if (int_part != 0) /* 0.<310 zeros here>1e310 for example -- pow (via dpow) thinks it has to be too big, returns Nan,
-			  *   then Nan * 0 -> Nan and the NaN propagates
-			  */
-	{
-	  if (int_len <= max_len)
-	    dval = int_part * dpow(radix, exponent);
-	  else dval = int_part * dpow(radix, exponent + int_len - max_len);
-	}
-      else dval = 0.0;
-
-      /* shift by exponent, but if int_len > max_len then we assumed (see below) int_len - max_len 0's on the left */
-      /*   using int_to_int or table lookups here instead of pow did not make any difference in speed */
-
-      if (int_len < max_len)
-	{
-	  str = fpart;
-	  for (int32_t k = 0; (frac_len > 0) && (k < exponent); k += max_len)
-	    {
-	      int32_t flen = (frac_len > max_len) ? max_len : frac_len; /* ? */
-	      frac_len -= max_len;
-	      frac_part = 0;
-	      for (int32_t i = 0; i < flen; i++)
-		frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-	      if (frac_part != 0)                                /* same pow->NaN problem as above can occur here */
-		dval += frac_part * dpow(radix, exponent - flen - k);
-	    }}
-      else
-	/* some of the fraction is in the integer part before the negative exponent shifts it over */
-	if (int_len > max_len)
+    for (int32_t i = 0; i < total_len; i++)
+      {
+	dig = (i < int_len) ? digits[(uint8_t)(ipart[i])] : digits[(uint8_t)(fpart[i - int_len])];
+	if (dig != 0)
 	  {
-	    int32_t ilen = int_len - max_len;                          /* we read these above */
-	    /* str should be at the last digit we read */
-	    if (ilen > max_len)
-	      ilen = max_len;
-	    for (int32_t i = 0; i < ilen; i++)
-	      frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-	    dval += frac_part * dpow(radix, exponent - ilen);
+	    if (first_sig < 0)
+	      first_sig = i;
+	    last_sig = i;
 	  }
-      return(sign * dval);
-    }
+      }
 
-  /* int_len + exponent <= max_len */
-  if (int_len <= max_len)
-    {
-      int32_t int_exponent = exponent;
-      /* a better algorithm (since the inaccuracies are in the radix^exponent portion):
-       *   strip off leading zeros and possible sign,
-       *   strip off digits beyond max_len, then remove any trailing zeros.
-       *     (maybe fiddle with the lowest order digit here for rounding, but I doubt it matters)
-       *   read digits until end of number or max_len reached, ignoring the decimal point
-       *   get exponent and use it and decimal point location to position the current result integer
-       * this always combines the same integer and the same exponent no matter how the number is expressed.
-       */
-      if (int_len > 0)
-	{
-	  const char *iend = (const char *)(str + int_len - 1);
-	  while ((*iend == '0') && (iend != str)) {iend--; int_exponent++;}
-	  while (str <= iend)
-	    int_part = digits[(int32_t)(*str++)] + (int_part * radix);
-	}
-      dval = (int_exponent == 0) ? (s7_double)int_part : int_part * dpow(radix, int_exponent);
-    }
-  else
-    {
-      int32_t flen, len = int_len + exponent;
-      s7_int frpart = 0;
+    if (first_sig < 0)
+      return((sign < 0) ? -0.0 : 0.0);
 
-      /* 98765432101234567890987654321.0e-20    987654321.012346
-       * 98765432101234567890987654321.0e-29    0.98765432101235
-       * 98765432101234567890987654321.0e-30    0.098765432101235
-       * 98765432101234567890987654321.0e-28    9.8765432101235
-       */
-      for (int32_t i = 0; i < len; i++)
-	int_part = digits[(int32_t)(*str++)] + (int_part * radix);
-      flen = -exponent;
-      if (flen > max_len)
-	flen = max_len;
-      for (int32_t i = 0; i < flen; i++)
-	frpart = digits[(int32_t)(*str++)] + (frpart * radix);
-      if (len <= 0)
-	dval = int_part + frpart * dpow(radix, len - flen);
-      else dval = int_part + frpart * dpow(radix, -flen);
-    }
+    effective_exponent = exponent - frac_len + (total_len - 1 - last_sig);
+    significant_digits = last_sig - first_sig + 1;
 
-  if (frac_len > 0)
-    {
-      str = fpart;
-      if (frac_len <= max_len)
-	{
-	  /* splitting out base 10 case saves very little here */
-	  /* this ignores trailing zeros, so that 0.3 equals 0.300 */
-	  const char *fend = (const char *)(str + frac_len - 1);
+    for (int32_t i = first_sig; (i <= last_sig) && (kept_digits < max_len); i++)
+      {
+	dig = (i < int_len) ? digits[(uint8_t)(ipart[i])] : digits[(uint8_t)(fpart[i - int_len])];
+	int_part = dig + (int_part * radix);
+	kept_digits++;
+      }
 
-	  while ((*fend == '0') && (fend != str)) {fend--; frac_len--;} /* (= .6 0.6000) */
-	  if ((frac_len & 1) == 0)
-	    {
-	      while (str <= fend)
-		{
-		  frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-		  frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-		}}
-	  else
-	    while (str <= fend)
-	      frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-
-	  dval += frac_part * dpow(radix, exponent - frac_len);
-
-	  /* 0.6:    frac:    6, exp: 0.10000000000000000555, val: 0.60000000000000008882
-	   * 0.60:   frac:   60, exp: 0.01000000000000000021, val: 0.59999999999999997780
-	   * 0.6000: frac: 6000, exp: 0.00010000000000000000, val: 0.59999999999999997780
-	   * (= 0.6 0.60): #f
-	   * (= #i3/5 0.6): #f
-	   * so (string->number (number->string num)) == num only if both num's are the same text (or you get lucky)
-	   * (= 0.6 6e-1): #t ; but not 60e-2
-	   * to fix the 0.60 case, we need to ignore trailing post-dot zeros.
-	   */
-	}
-      else
-	{
-	  if (exponent <= 0)
-	    {
-	      for (int32_t i = 0; i < max_len; i++)
-		frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-
-	      dval += frac_part * dpow(radix, exponent - max_len);
-	    }
-	  else
-	    {
-	      /* 1.0123456789876543210e1         10.12345678987654373771
-	       * 1.0123456789876543210e10        10123456789.87654304504394531250
-	       * 0.000000010000000000000000e10   100.0
-	       * 0.000000010000000000000000000000000000000000000e10 100.0
-	       * 0.000000012222222222222222222222222222222222222e10 122.22222222222222
-	       * 0.000000012222222222222222222222222222222222222e17 1222222222.222222
-	       */
-	      int_part = 0;
-	      for (int32_t i = 0; i < exponent; i++)
-		int_part = digits[(int32_t)(*str++)] + (int_part * radix);
-	      frac_len -= exponent;
-	      if (frac_len > max_len)
-		frac_len = max_len;
-	      for (int32_t i = 0; i < frac_len; i++)
-		frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-	      dval += int_part + frac_part * dpow(radix, -frac_len);
-	    }}}
+    effective_exponent += significant_digits - kept_digits;
 #if WITH_GMP
-  if ((int_part == 0) &&
-      (frac_part == 0))
-    return(0.0);
-  (*overflow) = ((frac_len - exponent) > max_len);
+    (*overflow) = ((effective_exponent > max_len) ||
+		   ((significant_digits + effective_exponent) > max_len));
 #endif
+    {
+      long_double ldval = (long_double)int_part;
+      if (effective_exponent != 0)
+	ldval *= powl((long_double)radix, (long_double)effective_exponent);
+      dval = (s7_double)ldval;
+    }
+  }
   return(sign * dval);
 }
 
