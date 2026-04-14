@@ -173,10 +173,12 @@
 
     (define (display-library-function-suggestions library-query function-name suggestions)
       (let ((port (current-error-port)))
-        (display (string-append "No exact match for function: "
-                                function-name
-                                " in library: "
-                                library-query)
+        (display
+          (string-append "No exact match for function: "
+                         function-name
+                         " in library: "
+                         library-query
+          ) ;string-append
                  port
         ) ;display
         (newline port)
@@ -242,9 +244,11 @@
 
     (define (display-library-without-docs library-query)
       (let ((port (current-error-port)))
-        (display (string-append "Library "
-                                (library-query->display-name library-query)
-                                " exists.")
+        (display
+          (string-append "Library "
+                         (library-query->display-name library-query)
+                         " exists."
+          ) ;string-append
                  port
         ) ;display
         (newline port)
@@ -281,12 +285,14 @@
     ) ;define
 
     (define (handle-library query)
-      (let* ((parts (parse-library-query query))
-             (group (and parts (car parts)))
-             (doc-path (library-doc-path query))
-             (visible-library-root (and parts
-                                        (find-visible-library-root query)))
-             ) ;visible-library-root
+      (let*
+        ((parts (parse-library-query query))
+         (group (and parts (car parts)))
+         (doc-path (library-doc-path query))
+         (visible-library-root (and parts
+                                    (find-visible-library-root query))
+         ) ;visible-library-root
+        ) ;
         (cond
           ((not parts)
            (display-usage)
@@ -324,7 +330,7 @@
                  ) ;if
                  (run-function-query query)
              ) ;if
-          ) ;
+           ) ;let
         ) ;cond
           (else
            (display-library-without-docs query)
@@ -422,7 +428,10 @@
           (when import-set
             (let ((env (environment import-set)))
               (let ((func (eval (string->symbol function-name) env)))
-                (let ((source (procedure-source func)))
+                ;; 使用 guard 捕获 procedure-source 的错误
+                ;; 某些语法形式（如 define*）会导致 procedure-source 报错
+                (let ((source (guard (ex (else #f))
+                               (procedure-source func))))
                   (when (and source (not (null? source)))
                     (display ";; 源代码:")
                     (newline)
