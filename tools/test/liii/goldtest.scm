@@ -28,6 +28,7 @@
   (export parse-test-args
           filter-test-files
           find-test-files
+          failed-test-files
           run-goldtest
           main
   ) ;export
@@ -100,10 +101,18 @@
         ) ;let
       ) ;let
     ) ;define
+
+    (define (failed-test-files test-results)
+      (map car
+           (filter (lambda (test-result)
+                     (not (zero? (cdr test-result))))
+                   test-results))
+    ) ;define
     
     (define (display-summary test-results)
       (let ((total (length test-results))
             (passed (count (lambda (x) (zero? (cdr x))) test-results))
+            (failed-files (failed-test-files test-results))
             (failed (- (length test-results)
                        (count (lambda (x) (zero? (cdr x))) test-results)))
             ) ;failed
@@ -130,6 +139,13 @@
         (display (string-append "  " GREEN "Passed: " (number->string passed) RESET)) (newline)
         (when (> failed 0)
           (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline)
+          (display "  Failed Test Files:") (newline)
+          (for-each
+            (lambda (test-file)
+              (display (string-append "    " test-file)) (newline)
+            ) ;lambda
+            failed-files
+          ) ;for-each
         ) ;when
         (newline)
         failed

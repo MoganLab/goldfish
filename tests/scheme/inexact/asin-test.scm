@@ -54,7 +54,7 @@
 (check (asin 0.000001) => 1.0000000000001666e-6)
 
 ;; 有理数测试
-(check (asin 2/3) => 0.7297276562269664)
+(check (asin 2/3) => 0.7297276562269663)
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (asin "hello"))
