@@ -71,6 +71,7 @@
 (check (number->string 0.0) => "0.0")
 (check (number->string -0.123) => "-0.123")
 (check (number->string 1.23e10) => "1.23e+10")
+(check (number->string 0.00123) => "0.00123")
 (check (number->string 1.23e-3) => "0.00123")
 
 ;; 复数转换测试
