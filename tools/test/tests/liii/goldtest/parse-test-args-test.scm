@@ -74,6 +74,12 @@
          '(pattern . "tests/liii/"))
 ) ;check
 
+(check (parse-test-args '("bin/gf" "tests/liii"))
+  => (if (path-dir? "tests/liii")
+         '(dir . "tests/liii")
+         '(pattern . "tests/liii"))
+) ;check
+
 ;; ===== 场景4: 不存在的路径 =====
 ;; 路径包含 / 但既不是文件也不是目录 -> type='pattern
 (check (parse-test-args '("bin/gf" "nonexistent/path/test.scm"))
