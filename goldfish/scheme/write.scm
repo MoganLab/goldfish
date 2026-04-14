@@ -15,13 +15,8 @@
 ;
 
 (define-library (scheme write)
-  (export display write write-shared write-simple newline write-char)
-  (begin
-
-    ; s7 does not currently expose separate built-ins for these two names.
-    (define write-simple write)
-
-    (define write-shared write)
-
-  ) ;begin
+  (re-export display write newline write-char)
+  ; s7 does not currently expose separate built-ins for these two names.
+  (export (rename write write-simple)
+          (rename write write-shared))
 ) ;define-library

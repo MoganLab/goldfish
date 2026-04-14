@@ -14,7 +14,7 @@
 (define-library (srfi srfi-1)
   (import (liii error) (liii base))
   ; SRFI 1: Constructors
-  (export circular-list iota list-copy xcons cons*)
+  (export circular-list (rename iota iota) list-copy xcons cons*)
   ; SRFI 1: Predicates
   (export circular-list? null-list? proper-list? dotted-list?)
   ; SRFI 1: Selectors

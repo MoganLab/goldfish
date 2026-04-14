@@ -44,7 +44,7 @@
     ) ;define-record-type
 
     ;;; Helper function: return the last pair of a list
-    (define (last-pair ls)
+    (define (last-pair* ls)
       (if (null? (cdr ls))
         ls
         (last-pair (cdr ls))
@@ -81,7 +81,7 @@
       (if (null? rest)
         (if (null? list-arg)
           (raw-make-list-queue '() '())
-          (raw-make-list-queue list-arg (last-pair list-arg))
+          (raw-make-list-queue list-arg (last-pair* list-arg))
         ) ;if
         (raw-make-list-queue list-arg (car rest))
       ) ;if
@@ -191,7 +191,7 @@
           (set-first! list-queue first-list)
           (if (null? first-list)
             (set-last! list-queue '())
-            (set-last! list-queue (last-pair first-list))
+            (set-last! list-queue (last-pair* first-list))
           ) ;if
         ) ;begin
         (begin

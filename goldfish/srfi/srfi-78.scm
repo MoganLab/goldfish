@@ -61,9 +61,6 @@
       ) ;set!
     ) ;define
 
-
-    (check-set-mode! 'report)
-
     (define check:correct 0)
     (define check:failed '())
 
@@ -218,9 +215,8 @@
       ) ;let
     ) ;define*
 
-    (define-macro (check expr => expected)
-      `(check:proc ',expr (lambda () ,expr) ,expected)
-    ) ;define-macro
+    (define-syntax-rule (check expr => expected)
+      (check:proc 'expr (lambda () expr) expected))
 
     (define (check-report)
       (if (>= check:mode 1)
@@ -236,6 +232,8 @@
       ) ;if
     ) ;define
 
+
+    (check-set-mode! 'report)
   ) ;begin
 ) ;define-library
 

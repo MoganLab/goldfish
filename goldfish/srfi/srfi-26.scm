@@ -16,76 +16,52 @@
 
 (define-library (srfi srfi-26)
   (export cut cute)
-  (import (liii list)
-          (liii error)
-  ) ;import
   (begin
 
-    (define-macro (cut . paras)
-      (letrec*
-        ((slot? (lambda (x) (equal? '<> x)))
-         (more-slot? (lambda (x) (equal? '<...> x)))
-         (slots (filter slot? paras))
-         (more-slots (filter more-slot? paras))
-         (xs (map (lambda (x) (gensym)) slots))
-         (rest (gensym))
-         (parse
-           (lambda (xs paras)
-             (cond
-               ((null? paras) paras)
-               ((not (list? paras)) paras)
-               ((more-slot? (car paras)) `(,rest ,@(parse xs (cdr paras))))
-               ((slot? (car paras)) `(,(car xs) ,@(parse (cdr xs) (cdr paras))))
-               (else `(,(car paras) ,@(parse xs (cdr paras))))
-             ) ;cond
-           ) ;lambda
-         ) ;parse
-        ) ;
-        (cond
-          ((null? more-slots)
-           `(lambda ,xs ,(parse xs paras))
-          ) ;
-          (else
-            (when
-              (or (> (length more-slots) 1)
-                  (not (more-slot? (last paras)))
-              ) ;or
-              (error 'syntax-error "<...> must be the last parameter of cut")
-            ) ;when
-            (let ((parsed (parse xs paras)))
-              `(lambda (,@xs . ,rest) (apply ,@parsed))
-            ) ;let
-          ) ;else
-        ) ;cond
-      ) ;letrec*
-    ) ;define-macro
+    ;; Reference implementation of SRFI-26 using syntax-rules
+    ;; Based on the SRFI-26 reference implementation by Sebastian Egner
 
-    (define-macro (cute . paras)
-      (letrec*
-        ((slot? (lambda (x) (equal? '<> x)))
-         (more-slot? (lambda (x) (equal? '<...> x)))
-         (exprs (filter (lambda (x) (not (or (slot? x) (more-slot? x))))
-                        paras)
-         ) ;exprs
-         (xs (map (lambda (x) (gensym)) exprs))
-         (lets (map list xs exprs))
-         (parse
-           (lambda (xs paras)
-             (cond
-               ((null? paras) paras)
-               ((not (list? paras)) paras)
-               ((not (or (slot? (car paras)) (more-slot? (car paras))))
-                `(,(car xs) ,@(parse (cdr xs) (cdr paras)))
-               ) ;
-               (else `(,(car paras) ,@(parse xs (cdr paras))))
-             ) ;cond
-           ) ;lambda
-         ) ;parse
-        ) ;
-        `(let ,lets (cut ,@(parse xs paras)))
-      ) ;letrec*
-    ) ;define-macro
+    ;; Internal helper: cut with accumulated slots
+    (define-syntax %cut-internal
+      (syntax-rules (<> <...>)
+        ;; no more arguments - generate lambda
+        ((_ (slot-name ...) (proc arg ...))
+         (lambda (slot-name ...) (proc arg ...)))
+        ;; <...> at end - generate lambda with rest arg
+        ((_ (slot-name ...) (proc arg ...) <...>)
+         (lambda (slot-name ... . rest-slot) (apply proc arg ... rest-slot)))
+        ;; <> slot - add a new slot variable
+        ((_ (slot-name ...) (proc arg ...) <> . remaining)
+         (%cut-internal (slot-name ... x) (proc arg ... x) . remaining))
+        ;; non-slot argument
+        ((_ (slot-name ...) (proc arg ...) val . remaining)
+         (%cut-internal (slot-name ...) (proc arg ... val) . remaining))))
 
-  ) ;begin
-) ;define-library
+    (define-syntax cut
+      (syntax-rules ()
+        ((_ . args)
+         (%cut-internal () () . args))))
 
+    ;; Internal helper: cute with accumulated slots and evaluations
+    (define-syntax %cute-internal
+      (syntax-rules (<> <...>)
+        ;; no more arguments - generate let + lambda
+        ((_ (slot-name ...) (eval-bind ...) (proc arg ...))
+         (let (eval-bind ...) (lambda (slot-name ...) (proc arg ...))))
+        ;; <...> at end
+        ((_ (slot-name ...) (eval-bind ...) (proc arg ...) <...>)
+         (let (eval-bind ...) (lambda (slot-name ... . rest-slot) (apply proc arg ... rest-slot))))
+        ;; <> slot
+        ((_ (slot-name ...) (eval-bind ...) (proc arg ...) <> . remaining)
+         (%cute-internal (slot-name ... x) (eval-bind ...) (proc arg ... x) . remaining))
+        ;; non-slot - evaluate and bind
+        ((_ (slot-name ...) (eval-bind ...) (proc arg ...) val . remaining)
+         (%cute-internal (slot-name ...) (eval-bind ... (t val)) (proc arg ... t) . remaining))))
+
+    (define-syntax cute
+      (syntax-rules ()
+        ((_ . args)
+         (%cute-internal () () () . args))))
+
+    ) ; end of begin
+  ) ; end of library

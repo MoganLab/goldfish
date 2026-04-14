@@ -18,14 +18,13 @@
 ;;; Complex number operations
 
 (define-library (scheme complex)
-  (export make-rectangular
-          make-polar
-          real-part
-          imag-part
-          magnitude
-          angle
+  (export (rename make-rectangular make-rectangular)
+          (rename make-polar       make-polar)
+          (rename real-part        real-part)
+          (rename imag-part        imag-part)
+          (rename magnitude        magnitude)
+          (rename angle            angle)
   ) ;export
-  (import (scheme base))
 ) ;define-library
 
 ;; Note: These functions are implemented in the underlying S7 scheme engine

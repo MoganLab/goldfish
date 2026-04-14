@@ -1,0 +1,88 @@
+# Psyntax TODO
+
+### SRFI checklist
+
+- [x] sicp.scm
+- [x] srfi-125.scm
+- [x] srfi-133.scm
+- [x] srfi-158.scm
+- [x] srfi-175.scm
+- [x] srfi-1.scm
+- [x] srfi-216.scm
+- [x] srfi-267.scm
+- [x] srfi-2.scm
+- [x] srfi-8.scm
+- [x] srfi-113.scm
+- [x] srfi-128.scm
+- [x] srfi-13.scm
+- [ ] srfi-165.scm
+- [x] srfi-196.scm
+- [x] srfi-209.scm
+- [ ] srfi-217.scm
+- [x] srfi-26.scm
+- [x] srfi-39.scm
+- [x] srfi-9.scm
+- [x] srfi-117.scm
+- [x] srfi-132.scm
+- [x] srfi-151.scm
+- [x] srfi-16.scm
+- [x] srfi-19.scm
+- [x] srfi-214.scm
+- [ ] srfi-224.scm
+- [ ] srfi-27.scm
+- [x] srfi-78.scm
+
+
+### Liii checklist
+
+- [x] alist.scm
+- [x] base.scm
+- [x] cut.scm
+- [ ] fxmapping.scm
+- [ ] json.scm
+- [ ] packrat.scm
+- [ ] raw-string.scm
+- [x] sys.scm
+- [x] unicode.scm
+- [ ] uri-predicate.scm
+- [ ] vector.scm
+- [x] argparse.scm
+- [x] bitwise.scm
+- [x] either.scm
+- [x] hashlib.scm
+- [x] list.scm
+- [ ] path.scm
+- [ ] set.scm
+- [x] timeit.scm
+- [ ] uri-compare.scm
+- [ ] uri-record.scm
+- [x] ascii.scm
+- [ ] check.scm
+- [x] enum.scm
+- [x] hash-table.scm
+- [ ] njson.scm
+- [x] queue.scm
+- [x] sort.scm
+- [x] time.scm
+- [ ] uri-convert.scm
+- [ ] uri.scm
+- [ ] bag.scm
+- [x] chez.scm
+- [x] error.scm
+- [ ] http.scm
+- [x] option.scm
+- [ ] random.scm
+- [ ] stack.scm
+- [ ] tree.scm
+- [ ] uri-make.scm
+- [ ] uri-transform.scm
+- [ ] base64.scm
+- [x] comparator.scm
+- [x] flexvector.scm
+- [ ] iset.scm
+- [x] os.scm
+- [x] range.scm
+- [x] string.scm
+- [x] trie.scm
+- [ ] uri-parse.scm
+- [x] uuid.scm

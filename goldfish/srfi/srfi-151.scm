@@ -45,22 +45,15 @@
 
     (define bit-count
       (typed-lambda ((i integer?))
-        (define (bit-count-positive i)
-          (let loop ((n i)
-                     (cnt 0))
-            (if (= n 0)
-                cnt
-                (loop (logand n (- n 1)) (+ cnt 1))
-            ) ;if
-          ) ;let
-        ) ;define
-
-        (cond ((zero? i) 0)
-              ((positive? i) (bit-count-positive i))
-              (else (bit-count-positive (lognot i)))
-        ) ;cond
-      ) ;typed-lambda
-    ) ;define
+        (let ((bit-count-positive
+                  (lambda (i)
+                    (let loop ((n i) (cnt 0))
+                      (if (= n 0)
+                          cnt
+                          (loop (logand n (- n 1)) (+ cnt 1)))))))
+          (cond ((zero? i) 0)
+                ((positive? i) (bit-count-positive i))
+                (else (bit-count-positive (lognot i)))))))
 
     (define (bitwise-orc1 i j)
       (bitwise-ior (bitwise-not i) j)

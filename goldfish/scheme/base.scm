@@ -15,10 +15,7 @@
 ;
 
 (define-library (scheme base)
-  (export
-    let-values
-    ; R7RS 5: Program Structure
-    define-values define-record-type
+  (re-export
     ; R7RS 6.1: Equivalence predicates
     eq? eqv? equal?
     ; R7RS 6.2: Numbers
@@ -26,129 +23,193 @@
     = < > <= >=
     + - * / abs
     ; - 数值函数
-    square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
-    round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo quotient remainder
-    numerator denominator rationalize exact-integer-sqrt
+    gcd quotient remainder
+    numerator denominator rationalize
     number->string string->number
     ; - 类型判断
-    number? complex? real? rational? integer? exact? inexact? exact-integer?
+    number? complex? real? rational? integer? exact? inexact?
     positive? negative? zero? odd? even?
     ; R7RS 6.3: Booleans
-    not boolean=? boolean?
+    not boolean?
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
-    list-ref list-set! memq memv member assq assv assoc list-copy map
+    list-ref list-set! memq memv member assq assv assoc
     ; R7RS 6.5: Symbol
-    symbol? symbol=? string->symbol symbol->string
+    symbol? string->symbol symbol->string
     ; R7RS 6.6: Characters
     char? char=? char<? char>? char<=? char>=? char->integer integer->char
     ; R7RS 6.7: String
     string? make-string string string-length string-ref string-set!
-    string-copy string-append substring string-fill!
+    string-append substring string-fill!
     string->list list->string
     string=? string<? string>? string<=? string>=?
     ; R7RS 6.8: Vector
     vector? make-vector vector vector-length vector-ref vector-set!
-    vector->list list->vector vector->string string->vector
-    vector-copy vector-copy! vector-fill! vector-append
+    vector->list list->vector
+    vector-append
+    open-output-string open-input-string get-output-string
+  ) ;re-export
+  (export
+    let-values
+    ; R7RS 5: Program Structure
+    define-values define-record-type
+    %define-record-fields %define-record-field
+
+    exact inexact max min
+    s7-floor floor floor/
+    s7-ceiling ceiling
+    s7-round round
+    s7-lcm lcm
+    s7-truncate truncate truncate/
+    floor-quotient floor-remainder modulo square
+    exact-integer-sqrt
+    exact-integer? boolean=? symbol=?
     ; R7RS 6.9: Bytevectors
     bytevector? make-bytevector bytevector bytevector-length bytevector-u8-ref
     bytevector-u8-set! bytevector-copy bytevector-append
     utf8->string string->utf8 utf8-string-length bytevector-advance-utf8
-    ; Input and Output
-    call-with-port port? binary-port? textual-port? input-port-open? output-port-open?
-    open-binary-input-file open-binary-output-file close-port eof-object
-    ; Control flow
-    string-map vector-map string-for-each vector-for-each
+ 
     ; Exception
     raise guard read-error? file-error?
+    ; Input and Output
+    call-with-port port? binary-port? textual-port? input-port-open? output-port-open?
+    (rename open-input-file  open-binary-input-file)
+    (rename open-output-file open-binary-output-file)
+    close-port eof-object
+
+    string-copy
+    ; Control flow
+    string-map vector-map string-for-each vector-for-each
+
+    vector-copy vector-copy! vector-fill! vector->string string->vector
+
+    (rename copy list-copy)
   ) ;export
   (begin
 
     ; 0-clause BSD
     ; Bill Schottstaedt
     ; from S7 source repo: r7rs.scm
-    (define-macro (let-values vars . body)
-      (if (and (pair? vars)
-               (pair? (car vars))
-               (null? (cdar vars)))
-          `((lambda ,(caar vars)
-              ,@body)
-            ,(cadar vars))
-          `(with-let
-            (apply sublet (curlet)
-              (list
-                ,@(map
-                   (lambda (v)
-                     `((lambda ,(car v)
-                         (values ,@(map (lambda (name)
-                                          (values (symbol->keyword name) name))
-                                     (let args->proper-list ((args (car v)))
-                                       (cond
-                                         ((symbol? args)
-                                          (list args))
-                                         ((not (pair? args))
-                                          args)
-                                         ((pair? (car args))
-                                          (cons (caar args)
-                                                (args->proper-list (cdr args))))
-                                         (else
-                                          (cons (car args)
-                                                (args->proper-list (cdr args)))))))))
-                       ,(cadr v)))
-                   vars)))
-            ,@body)
-      ) ;if
-    ) ;define-macro
+    (define-syntax let-values
+      (lambda (x)
+        (syntax-case x ()
+          ((_ ((binds exp)) b0 b1 ...)
+           (syntax (call-with-values (lambda () exp)
+                     (lambda binds b0 b1 ...))))
+          ((_ (clause ...) b0 b1 ...)
+           (let lp ((clauses (syntax (clause ...)))
+                    (ids '())
+                    (tmps '()))
+             (if (null? clauses)
+                 (with-syntax (((id ...) ids)
+                               ((tmp ...) tmps))
+                   (syntax (let ((id tmp) ...)
+                             b0 b1 ...)))
+                 (syntax-case (car clauses) ()
+                   (((var ...) exp)
+                    (with-syntax (((new-tmp ...) (generate-temporaries
+                                                  (syntax (var ...))))
+                                  ((id ...) ids)
+                                  ((tmp ...) tmps))
+                      (with-syntax ((inner (lp (cdr clauses)
+                                               (syntax (var ... id ...))
+                                               (syntax (new-tmp ... tmp ...)))))
+                        (syntax (call-with-values (lambda () exp)
+                                  (lambda (new-tmp ...) inner))))))
+                   ((vars exp)
+                    (with-syntax ((((new-var . new-tmp) ...)
+                                   (let lp ((vars (syntax vars)))
+                                     (syntax-case vars ()
+                                       ((id . rest)
+                                        (acons (syntax id)
+                                               (car
+                                                (generate-temporaries (syntax (id))))
+                                               (lp (syntax rest))))
+                                       (id (acons (syntax id)
+                                                  (car
+                                                   (generate-temporaries (syntax (id))))
+                                                  '())))))
+                                  ((id ...) ids)
+                                  ((tmp ...) tmps))
+                      (with-syntax ((inner (lp (cdr clauses)
+                                               (syntax (new-var ... id ...))
+                                               (syntax (new-tmp ... tmp ...))))
+                                    (args (let lp ((tmps (syntax (new-tmp ...))))
+                                            (syntax-case tmps ()
+                                              ((id) (syntax id))
+                                              ((id . rest) (cons (syntax id)
+                                                                 (lp (syntax rest))))))))
+                        (syntax (call-with-values (lambda () exp)
+                                  (lambda args inner)))))))))))))
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: s7test.scm
-    (define-macro (define-values vars expression)
-      `(if (not (null? ',vars))
-           (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
-    ) ;define-macro
+    (define-syntax define-values
+      (lambda (stx)
+        (syntax-case stx ()
+          ((_ () expr)
+           (with-syntax (((dummy) (generate-temporaries '(dummy))))
+             #'(define dummy (call-with-values (lambda () expr) (lambda () (if #f #f))))))
+          ((_ (var) expr)
+           #'(define var (call-with-values (lambda () expr) (lambda (v) v))))
+          ((_ (var ...) expr)
+           (with-syntax (((tmp ...) (generate-temporaries #'(var ...))))
+             #'(begin
+                 (define var (if #f #f)) ...
+                 (call-with-values (lambda () expr)
+                   (lambda (tmp ...)
+                     (set! var tmp) ...))))))))
 
-    ; 0-clause BSD by Bill Schottstaedt from S7 source repo: r7rs.scm
-    (define-macro (define-record-type type make ? . fields)
-      (let
-        ((obj (gensym))
-         (typ (gensym)) ; this means each call on this macro makes a new type
-         (args
-           (map
-             (lambda (field)
-               (values (list 'quote (car field))
-                       (let ((par (memq (car field) (cdr make))))
-                         (and (pair? par) (car par)))
-                       ) ;let
-               ) ;values
-             fields)
-           ) ;map
-         ) ;args
-        `(begin
-           (define (,? ,obj)
-             (and (let? ,obj)
-                  (eq? (let-ref ,obj ',typ) ',type)))
-       
-           (define ,make 
-             (inlet ',typ ',type ,@args))
+    (define-syntax define-record-type
+      (lambda (stx)
+        (syntax-case stx ()
+          ((_ type-name (make-name field-var ...) pred-name field-spec ...)
+           (with-syntax (((field-index ...)
+                          (let loop ((specs #'(field-spec ...))
+                                     (idx 1)
+                                     (acc '()))
+                            (if (null? specs)
+                                (reverse acc)
+                                (loop (cdr specs) (+ idx 1) (cons idx acc))))))
+             #'(begin
+                 (define type-tag (list 'type-name))
+                 (define (pred-name obj)
+                   (and (vector? obj)
+                        (> (vector-length obj) 0)
+                        (eq? (vector-ref obj 0) type-tag)))
+                 (define (make-name field-var ...)
+                   (vector type-tag field-var ...))
+                 (%define-record-fields type-tag pred-name
+                   ((field-spec field-index) ...))
+                 (define type-name type-tag)))))))
 
-           ,@(map
-              (lambda (field)
-                (when (pair? field)
-                  (if (null? (cdr field))
-                      (values)
-                      (if (null? (cddr field))
-                          `(define (,(cadr field) ,obj)
-                             (let-ref ,obj ',(car field)))
-                          `(begin
-                             (define (,(cadr field) ,obj)
-                               (let-ref ,obj ',(car field)))
-                             (define (,(caddr field) ,obj val)
-                               (let-set! ,obj ',(car field) val)))))))
-              fields)
-           ',type)
-      ) ;let
-    ) ;define-macro
+    (define-syntax %define-record-fields
+      (syntax-rules ()
+        ((_ type-tag pred-name ((spec idx) ...))
+         (begin (%define-record-field type-tag pred-name spec idx) ...))))
+
+    (define-syntax %define-record-field
+      (syntax-rules ()
+        ;; (field)
+        ((_ type-tag pred-name (field) idx)
+         (begin))
+        ;; (field getter)
+        ((_ type-tag pred-name (field getter) idx)
+         (define (getter obj)
+           (if (pred-name obj)
+               (vector-ref obj idx)
+               (error 'getter "invalid record type"))))
+        ;; (field getter setter)
+        ((_ type-tag pred-name (field getter setter) idx)
+         (begin
+           (define (getter obj)
+             (if (pred-name obj)
+                 (vector-ref obj idx)
+                 (error 'getter "invalid record type")))
+           (define (setter obj val)
+             (if (pred-name obj)
+                 (vector-set! obj idx val)
+                 (error 'setter "invalid record type")))))))
 
     (define exact inexact->exact)
 
@@ -665,22 +726,22 @@ wrong-type-arg
       (apply throw #t args)
     ) ;define
 
-    (define-macro (guard results . body)
-      `(let
-         ((,(car results)
-           (catch #t 
-             (lambda () 
-               ,@body) 
-             (lambda (type info)
-               (if (pair? (*s7* 'catches))
-                   (lambda () (apply throw type info))
-                   (car info))))))
-         (cond ,@(cdr results)
-               (else 
-                (if (procedure? ,(car results)) 
-                    (,(car results))
-                    ,(car results)))))
-    ) ;define-macro
+    (define-syntax guard
+      (lambda (stx)
+        (syntax-case stx ()
+          ((_ (var clause ...) body ...)
+           #'(let ((var
+                    (catch #t
+                      (lambda () body ...)
+                      (lambda (type info)
+                        (if (pair? (*s7* 'catches))
+                            (lambda () (apply throw type info))
+                            (car info))))))
+               (cond clause ...
+                     (else
+                      (if (procedure? var)
+                          (var)
+                          var))))))))
 
     (define (read-error? obj) (eq? (car obj) 'read-error))
 
@@ -710,10 +771,10 @@ wrong-type-arg
       ) ;if
     ) ;define
 
-    (define (eof-object) #<eof>)
+    (define (eof-object) (call-with-input-string "" read))
 
     ; 0 clause BSD, from S7 repo r7rs.scm
-    (define list-copy copy)
+    ; (define list-copy copy)
 
     (define (string-copy str . start_end)
       (cond

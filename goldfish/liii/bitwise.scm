@@ -17,7 +17,7 @@
 (define-library (liii bitwise)
   (import (srfi srfi-151) (liii error))
   ; S7 built-in
-  (export lognot logand logior logxor ash)
+  (re-export lognot logand logior logxor ash)
   ; from (srfi srfi-151)
   (export bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-eqv bitwise-or bitwise-nor
           bitwise-nand bit-count bitwise-orc1 bitwise-orc2 bitwise-andc1 bitwise-andc2

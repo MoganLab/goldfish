@@ -16,6 +16,10 @@
 
 (define-library (liii string)
   (export
+    ; S7 built-in
+    (rename string? string?) (rename string-ref string-ref) (rename string-length string-length)
+    ; from (scheme base)
+    string-copy string-for-each string-map
     ; from (srfi srfi-13)
     string-null? string-join
     string-every string-any

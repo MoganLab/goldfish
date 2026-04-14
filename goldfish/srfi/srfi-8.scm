@@ -18,11 +18,12 @@
   (export receive)              
   (begin
 
-    (define-macro (receive formals expression . body)
-      `(call-with-values
-        (lambda () (values ,expression))
-        (lambda ,formals ,@body))
-    ) ;define-macro
+    (define-syntax receive
+      (syntax-rules ()
+        ((_ formals expression body ...)
+         (call-with-values
+           (lambda () (values expression))
+           (lambda formals body ...)))))
 
   ) ;begin
 ) ;define-library
