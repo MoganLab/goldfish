@@ -172,18 +172,18 @@
                  (loop (cdr remaining) #f)
                 ) ;
                 ;; 包含路径分隔符的路径 (/ 或 Windows 的 \)
-                ((or (string-contains arg "/")
-                     (and (os-windows?) (string-contains arg "\\")))
-                 (let ((abs-path (if (path-absolute? arg)
-                                     arg
-                                     (path-join (getcwd) arg))))
-                   (cond
-                     ((path-file? abs-path) (cons 'file abs-path))
-                     ((path-dir? abs-path) (cons 'dir abs-path))
-                     (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
-                   ) ;cond
-                 ) ;let
-                ) ;
+                 ((or (string-contains arg "/")
+                      (and (os-windows?) (string-contains arg "\\")))
+                  (let ((abs-path (if (path-absolute? arg)
+                                      arg
+                                      (path-join (getcwd) arg))))
+                    (cond
+                      ((path-file? abs-path) (cons 'file arg))  ; 保留原始路径（可能是相对路径）
+                      ((path-dir? abs-path) (cons 'dir arg))    ; 保留原始路径（可能是相对路径）
+                      (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
+                    ) ;cond
+                  ) ;let
+                 ) ;
                 ;; 以 .scm 结尾的文件名
                 ((string-ends? arg ".scm")
                  (cons 'filename arg)
@@ -254,8 +254,10 @@
     
     (define (check-and-switch-to-target args)
       ;; 检查是否需要切换到 target 目录
-      ;; 如果第一个非选项参数是目录，且该目录下有 tests 子目录，则切换
-      ;; 返回切换后的新参数列表（如果切换了，需要去掉 target 参数）
+      ;; 规则：
+      ;; 1. 如果第一个非选项参数是目录，且该目录下有 tests 子目录，则切换
+      ;; 2. 如果参数路径以 /tests 或 /tests/ 结尾，提取父目录作为 target 并切换
+      ;; 返回切换后的新参数列表（如果切换了，需要去掉或修改 target 参数）
       (let loop ((remaining (cdr args))  ; 跳过可执行文件路径
                  (skip-next #f)
                  (found-target #f))
@@ -264,19 +266,40 @@
           ((null? remaining)
            (if found-target
              (let ((target found-target))
-               (if (path-dir? target)
-                 (let ((tests-dir (path-join target "tests")))
-                   (if (path-dir? tests-dir)
-                     (begin
-                       (chdir target)
-                       ;; 切换目录后，需要重新构建参数列表，去掉 target
-                       (cons (car args) (delete target (cdr args)))
-                     ) ;begin
-                     args
-                   ) ;if
-                 ) ;if
-                 args
-               ) ;if
+                (cond
+                  ;; 情况1: 路径包含 tests/（如 tools/doc/tests/liii/golddoc/）
+                  ;; 查找 /tests/ 在路径中的位置
+                  ((let ((tests-marker "/tests/"))
+                     (and (>= (string-length target) (string-length tests-marker))
+                          (let loop ((i 0))
+                            (cond
+                              ((> i (- (string-length target) (string-length tests-marker))) #f)
+                              ((string=? (substring target i (+ i (string-length tests-marker))) tests-marker) i)
+                              (else (loop (+ i 1)))))))
+                   (let* ((tests-marker "/tests/")
+                          (tests-pos (let loop ((i 0))
+                                       (cond
+                                         ((> i (- (string-length target) (string-length tests-marker))) #f)
+                                         ((string=? (substring target i (+ i (string-length tests-marker))) tests-marker) i)
+                                         (else (loop (+ i 1))))))
+                          (parent (substring target 0 tests-pos))
+                          (tests-path (substring target (+ tests-pos 1))))
+                     (if (and (> (string-length parent) 0) (path-dir? parent))
+                       (begin
+                         (chdir parent)
+                         ;; 切换目录后，将参数改为 tests/...（相对路径）
+                         (cons (car args)
+                               (map (lambda (arg)
+                                      (if (equal? arg target) tests-path arg))
+                                    (cdr args)))
+                       ) ;begin
+                        args
+                     ) ;if
+                   ) ;let*
+                  ) ;case1
+                  ;; 其他情况，不切换目录（不再支持 TARGET 模式）
+                  (else args)
+               ) ;cond
              ) ;let
              args
            ) ;if
@@ -357,15 +380,16 @@
       (display "gf test - Goldfish Scheme Test Runner")
       (newline) (newline)
       (display "Usage:") (newline)
-      (display "  gf test [TARGET] [PATH|PATTERN]") (newline) (newline)
+      (display "  gf test [PATH|PATTERN]") (newline) (newline)
       (display "Examples:") (newline)
-      (display "  gf test                    Run all tests") (newline)
-      (display "  gf test tools/doc          Run tests in target directory") (newline)
-      (display "  gf test tests/liii/string  Run tests in directory") (newline)
-      (display "  gf test string-test.scm    Run specific test file") (newline)
-      (display "  gf test string             Run tests matching pattern") (newline) (newline)
-      (display "Target:") (newline)
-      (display "  If TARGET/tests exists, switch to TARGET before running tests") (newline)
+      (display "  gf test                          Run all tests") (newline)
+      (display "  gf test tools/doc/tests/         Run tests in directory") (newline)
+      (display "  gf test tests/liii/string/       Run tests in directory") (newline)
+      (display "  gf test string-test.scm          Run specific test file") (newline)
+      (display "  gf test string                   Run tests matching pattern") (newline) (newline)
+      (display "Note:") (newline)
+      (display "  If path contains /tests/, it will switch to parent directory") (newline)
+      (display "  e.g., gf test tools/doc/tests/  =>  cd tools/doc && gf test tests/") (newline)
     ) ;define
 
     (define (main)
