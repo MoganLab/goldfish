@@ -68,7 +68,9 @@
 ) ;let
 
 
-(let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
+(let ((v #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
+      ) ;v
+     ) ;
   (check (vector-ref v 0) => 1)
   (check (vector-ref v 2) => "hello")
   (check (vector-ref v 4) => #\c)

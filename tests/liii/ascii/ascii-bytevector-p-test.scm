@@ -32,7 +32,7 @@
 ;; 非字节向量输入返回 #f
 
 
-(check-true (ascii-bytevector? #u()))
+(check-true (ascii-bytevector? #u8()))
 (check-true (ascii-bytevector? #u8(0 65 127))
 ) ;check-true
 (check-false (ascii-bytevector? #u8(0 128))

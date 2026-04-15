@@ -60,11 +60,11 @@
   #(1 2 3)
 ) ;check
 (check (vector-append #(1 2.5)
-         #("hello" 'symbol)
+         #("hello" (#_quote symbol))
          #(#\c #t #f)
        ) ;vector-append
   =>
-  #(1 2.5 "hello" 'symbol #\c #t #f)
+  #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
 ) ;check
 (check (vector-append #((1 2)) #((3 4)))
   =>

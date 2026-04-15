@@ -104,11 +104,13 @@
 (check (vector-copy #(42) 1) => #())
 
 
-(let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
+(let ((v #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
+      ) ;v
+     ) ;
   (check (vector-copy v) => v)
   (check (vector-copy v 2 5)
     =>
-    #("hello" 'symbol #\c)
+    #("hello" (#_quote symbol) #\c)
   ) ;check
 ) ;let
 

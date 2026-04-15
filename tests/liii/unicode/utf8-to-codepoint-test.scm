@@ -119,7 +119,7 @@
 
 ;; 错误处理
 (check-catch 'value-error
-  (utf8->codepoint #u())
+  (utf8->codepoint #u8())
 ) ;check-catch
 (check-catch 'value-error
   (utf8->codepoint #u8(128))
