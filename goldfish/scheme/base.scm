@@ -128,10 +128,8 @@
            (define (,? ,obj)
              (and (let? ,obj)
                   (eq? (let-ref ,obj ',typ) ',type)))
-       
            (define ,make 
              (inlet ',typ ',type ,@args))
-
            ,@(map
               (lambda (field)
                 (when (pair? field)
