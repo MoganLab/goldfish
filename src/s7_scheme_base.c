@@ -32,6 +32,13 @@ static bool is_inf(s7_double x)
 #define INT64_TO_DOUBLE_LIMIT (1LL << 53)               /* 2^53 */
 #define RATIONALIZE_LIMIT 1.0e12
 
+static s7_int wrap_uint64_to_s7_int(uint64_t bits)
+{
+  s7_int result;
+  memcpy(&result, &bits, sizeof(result));
+  return result;
+}
+
 /* -------------------------------- floor -------------------------------- */
 
 s7_pointer floor_p_p(s7_scheme *sc, s7_pointer x)
@@ -608,13 +615,14 @@ static const uint8_t s7_digit_table[256] = {
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-/* Convert string to integer with radix support
- * Returns the integer value and sets *overflow if result overflows s7_int
+/* Convert string to integer with radix support.
+ * In the current non-GMP build, integers wrap to s7_int the same way as the
+ * stable gf reader.
  */
 s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
 {
   bool negative = false;
-  s7_int new_int = 0;
+  uint64_t new_int = 0;
   int32_t dig;
   const char *tmp = str;
 
@@ -634,39 +642,13 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
     {
       dig = s7_digit_table[(uint8_t)(*tmp++)];
       if (dig >= radix) break;
-
-      /* Check for overflow before multiplying */
-      if (new_int > (S7_INT64_MAX / radix))
-        {
-          if ((radix == 16) &&
-              (s7_digit_table[(uint8_t)(*tmp)] >= radix))
-            {
-              /* Preserve s7's 64-bit two's-complement reader behavior for #xffff... forms. */
-              new_int -= 576460752303423488LL;
-              new_int *= radix;
-              new_int += dig;
-              new_int -= 9223372036854775807LL;
-              return new_int - 1;
-            }
-          *overflow = true;
-          return negative ? S7_INT64_MIN : S7_INT64_MAX;
-        }
-      new_int = new_int * radix;
-
-      /* Check for overflow before adding */
-      if (new_int > (S7_INT64_MAX - dig))
-        {
-          if ((radix == 10) &&
-              (strncmp(str, "-9223372036854775808", 20) == 0) &&
-              (s7_digit_table[(uint8_t)(*tmp++)] > 9))
-            return S7_INT64_MIN;
-          *overflow = true;
-          return negative ? S7_INT64_MIN : S7_INT64_MAX;
-        }
-      new_int = new_int + dig;
+      new_int = (new_int * (uint64_t)radix) + (uint64_t)dig;
     }
 
-  return negative ? -new_int : new_int;
+  if (negative)
+    new_int = (uint64_t)(0 - new_int);
+
+  return wrap_uint64_to_s7_int(new_int);
 }
 
 /* String to double conversion with radix support.

@@ -65,6 +65,8 @@
 (check (= (string->number (number->string 0.0014142136802445852))
           0.0014142136802445852)
   => #t)
+(check (string->number "12345678901234567890") => -6101065172474983726)
+(check (string->number "-9223372036854775809") => 9223372036854775807)
 (check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)
