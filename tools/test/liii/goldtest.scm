@@ -28,6 +28,8 @@
   (export parse-test-args
           filter-test-files
           find-test-files
+          failed-test-files
+          split-tests-target
           run-goldtest
           main
   ) ;export
@@ -100,10 +102,18 @@
         ) ;let
       ) ;let
     ) ;define
+
+    (define (failed-test-files test-results)
+      (map car
+           (filter (lambda (test-result)
+                     (not (zero? (cdr test-result))))
+                   test-results))
+    ) ;define
     
     (define (display-summary test-results)
       (let ((total (length test-results))
             (passed (count (lambda (x) (zero? (cdr x))) test-results))
+            (failed-files (failed-test-files test-results))
             (failed (- (length test-results)
                        (count (lambda (x) (zero? (cdr x))) test-results)))
             ) ;failed
@@ -130,6 +140,13 @@
         (display (string-append "  " GREEN "Passed: " (number->string passed) RESET)) (newline)
         (when (> failed 0)
           (display (string-append "  " RED "Failed: " (number->string failed) RESET)) (newline)
+          (display "  Failed Test Files:") (newline)
+          (for-each
+            (lambda (test-file)
+              (display (string-append "    " test-file)) (newline)
+            ) ;lambda
+            failed-files
+          ) ;for-each
         ) ;when
         (newline)
         failed
@@ -251,6 +268,41 @@
         ) ;
       ) ;case
     ) ;define
+
+    (define (split-tests-target target)
+      ;; 将 .../tests 或 .../tests/... 路径拆成父目录和相对 tests 路径
+      (let ((marker-length 6)) ; "/tests" or "\tests"
+        (let loop ((i 0))
+          (cond
+            ((> i (- (string-length target) marker-length))
+             #f
+            ) ;
+            ((and (or (string=? (substring target i (+ i marker-length)) "/tests")
+                      (string=? (substring target i (+ i marker-length)) "\\tests"))
+                  (or (= (+ i marker-length) (string-length target))
+                      (char=? (string-ref target (+ i marker-length)) #\/)
+                      (char=? (string-ref target (+ i marker-length)) #\\)))
+             (let ((parent (substring target 0 i))
+                   (next-pos (+ i marker-length)))
+               (if (> (string-length parent) 0)
+                 (let ((tests-path (substring target (+ i 1))))
+                   (if (= next-pos (string-length target))
+                     (cons parent
+                           (string-append tests-path (string (string-ref target i))))
+                     (cons parent tests-path)
+                   ) ;if
+                 ) ;let
+                 #f
+               ) ;if
+             ) ;let
+            ) ;
+            (else
+             (loop (+ i 1))
+            ) ;else
+          ) ;cond
+        ) ;let loop
+      ) ;let
+    ) ;define
     
     (define (check-and-switch-to-target args)
       ;; 检查是否需要切换到 target 目录
@@ -265,41 +317,25 @@
           ;; 没有更多参数
           ((null? remaining)
            (if found-target
-             (let ((target found-target))
-                (cond
-                  ;; 情况1: 路径包含 tests/（如 tools/doc/tests/liii/golddoc/）
-                  ;; 查找 /tests/ 在路径中的位置
-                  ((let ((tests-marker "/tests/"))
-                     (and (>= (string-length target) (string-length tests-marker))
-                          (let loop ((i 0))
-                            (cond
-                              ((> i (- (string-length target) (string-length tests-marker))) #f)
-                              ((string=? (substring target i (+ i (string-length tests-marker))) tests-marker) i)
-                              (else (loop (+ i 1)))))))
-                   (let* ((tests-marker "/tests/")
-                          (tests-pos (let loop ((i 0))
-                                       (cond
-                                         ((> i (- (string-length target) (string-length tests-marker))) #f)
-                                         ((string=? (substring target i (+ i (string-length tests-marker))) tests-marker) i)
-                                         (else (loop (+ i 1))))))
-                          (parent (substring target 0 tests-pos))
-                          (tests-path (substring target (+ tests-pos 1))))
-                     (if (and (> (string-length parent) 0) (path-dir? parent))
-                       (begin
-                         (chdir parent)
-                         ;; 切换目录后，将参数改为 tests/...（相对路径）
-                         (cons (car args)
-                               (map (lambda (arg)
-                                      (if (equal? arg target) tests-path arg))
-                                    (cdr args)))
-                       ) ;begin
-                        args
-                     ) ;if
-                   ) ;let*
-                  ) ;case1
-                  ;; 其他情况，不切换目录（不再支持 TARGET 模式）
-                  (else args)
-               ) ;cond
+             (let* ((target found-target)
+                    (tests-target (split-tests-target target)))
+               (if tests-target
+                 (let ((parent (car tests-target))
+                       (tests-path (cdr tests-target)))
+                   (if (path-dir? parent)
+                     (begin
+                       (chdir parent)
+                       ;; 切换目录后，将参数改为 tests/...（相对路径）
+                       (cons (car args)
+                             (map (lambda (arg)
+                                    (if (equal? arg target) tests-path arg))
+                                  (cdr args)))
+                     ) ;begin
+                     args
+                   ) ;if
+                 ) ;let
+                 args
+               ) ;if
              ) ;let
              args
            ) ;if

@@ -57,10 +57,20 @@
 (check (string->number "123.456") => 123.456)
 (check (string->number "0.0") => 0.0)
 (check (string->number "-0.123") => -0.123)
+(check (= (string->number "0.3") (string->number "3e-1")) => #t)
+(check (= (string->number "-0.3") (string->number "-3e-1")) => #t)
 (check (string->number "1.23e10") => 1.23e10)
+(check (= (string->number "0.00123") (string->number "1.23e-3")) => #t)
+(check (= (string->number "-0.00123") (string->number "-1.23e-3")) => #t)
+(check (= (string->number (number->string 0.0014142136802445852))
+          0.0014142136802445852)
+  => #t)
+(check (string->number "12345678901234567890") => -6101065172474983726)
+(check (string->number "-9223372036854775809") => 9223372036854775807)
 (check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
 (check (string->number "1e5") => 100000.0)
 (check (string->number "1e-5") => 0.00001)
+(check (string->number "-1e-5") => -0.00001)
 
 ;; 有理数解析测试
 (check (string->number "1/2") => 1/2)
@@ -99,6 +109,8 @@
 (check (string->number "0" 16) => 0)
 (check (string->number "-80" 16) => -128)
 (check (string->number "1111111111" 2) => 1023)
+(check (string->number "8000000000000000" 16) => -9223372036854775808)
+(check (string->number "ffffffffffffffff" 16) => -1)
 
 ;; 十六进制测试
 (check (string->number "FF" 16) => 255)
