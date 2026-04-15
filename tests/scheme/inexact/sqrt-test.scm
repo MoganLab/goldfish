@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme inexact)
-) ;import
-
+(import (liii check) (scheme inexact))
 (check-set-mode! 'report-failed)
-
 ;; sqrt
 ;; 计算给定数值的平方根。
 ;;
@@ -48,40 +44,46 @@
 ;; 当参数不是数值时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
-
 ;; sqrt 基本测试
 (check (sqrt 9) => 3)
 (check (sqrt 25.0) => 5.0)
 (check (sqrt 9/4) => 3/2)
-(check (< (abs (- (sqrt 2.0) 1.4142135623730951)) 1e-10) => #t)
-
+(check (< (abs (- (sqrt 2.0) 1.4142135623730951))
+         1e-10
+       ) ;<
+  =>
+  #t
+) ;check
 ;; sqrt 负数测试
 (check (sqrt -1.0) => 0.0+1.0i)
 (check (sqrt -1) => 0.0+1.0i)
 (check (sqrt -4.0) => 0.0+2.0i)
 (check (sqrt -4) => 0.0+2.0i)
 (check (sqrt -2.25) => 0.0+1.5i)
-
 ;; sqrt 边界测试
 (check (sqrt 0) => 0)
 (check (sqrt 0.0) => 0.0)
 (check (sqrt 1) => 1)
 (check (sqrt 1.0) => 1.0)
-
 ;; sqrt 精度测试
 (check (exact? (sqrt 4)) => #t)
 (check (exact? (sqrt 4.0)) => #f)
 (check (exact? (sqrt -1)) => #f)
 (check (exact? (sqrt -1.0)) => #f)
-
 ;; sqrt 大型数值测试
 (check (sqrt 10000) => 100)
 (check (sqrt 1000000.0) => 1000.0)
-
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (sqrt "hello"))
-(check-catch 'wrong-type-arg (sqrt 'symbol))
-(check-catch 'wrong-number-of-args (sqrt))
-(check-catch 'wrong-number-of-args (sqrt 1 2))
-
+(check-catch 'wrong-type-arg
+  (sqrt "hello")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (sqrt 'symbol)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (sqrt)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (sqrt 1 2)
+) ;check-catch
 (check-report)

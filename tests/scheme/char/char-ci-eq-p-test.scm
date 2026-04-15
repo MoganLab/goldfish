@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; char-ci=?
 ;; 按大小写不敏感的方式比较字符是否相等。
 ;;
@@ -36,7 +32,6 @@
 ;;
 ;; wrong-number-of-args
 ;; 至少需要两个参数，否则会抛出异常
-
 ;; 基本功能测试
 (check (char-ci=? #\a #\A) => #t)
 (check (char-ci=? #\A #\a) => #t)
@@ -44,52 +39,63 @@
 (check (char-ci=? #\Z #\z) => #t)
 (check (char-ci=? #\b #\B) => #t)
 (check (char-ci=? #\B #\b) => #t)
-
 ;; 大小写一致测试
 (check (char-ci=? #\a #\a) => #t)
 (check (char-ci=? #\A #\A) => #t)
 (check (char-ci=? #\1 #\1) => #t)
-
 ;; 不同大小写混合测试
 (check (char-ci=? #\a #\b) => #f)
 (check (char-ci=? #\a #\B) => #f)
 (check (char-ci=? #\A #\b) => #f)
 (check (char-ci=? #\A #\z) => #f)
 (check (char-ci=? #\Z #\a) => #f)
-
 ;; 多参数测试
 (check (char-ci=? #\a #\a #\A) => #t)
 (check (char-ci=? #\A #\a #\a) => #t)
-(check (char-ci=? #\z #\Z #\z #\Z) => #t)
+(check (char-ci=? #\z #\Z #\z #\Z)
+  =>
+  #t
+) ;check
 (check (char-ci=? #\a #\b #\A) => #f)
 (check (char-ci=? #\A #\B #\a) => #f)
-
 ;; 数字字符测试（char-ci不影响数字）
 (check (char-ci=? #\0 #\0) => #t)
 (check (char-ci=? #\1 #\1) => #t)
 (check (char-ci=? #\1 #\2) => #f)
-
 ;; 特殊字符测试
-(check (char-ci=? #\space #\space) => #t)
-(check (char-ci=? #\newline #\newline) => #t)
+(check (char-ci=? #\space #\space)
+  =>
+  #t
+) ;check
+(check (char-ci=? #\newline #\newline)
+  =>
+  #t
+) ;check
 (check (char-ci=? #\! #\!) => #t)
 (check (char-ci=? #\! #\@) => #f)
-
 ;; 大小写转换边界测试
-(check (char-ci=? #\a #\A #\b #\B) => #f)
+(check (char-ci=? #\a #\A #\b #\B)
+  =>
+  #f
+) ;check
 (check (char-ci=? #\A #\a #\A) => #t)
 (check (char-ci=? #\m #\M #\m) => #t)
 (check (char-ci=? #\M #\m #\M) => #t)
-
 ;; 边界字符测试
 (check (char-ci=? #\0 #\a) => #f)
 (check (char-ci=? #\A #\z) => #f)
 (check (char-ci=? #\Z #\a) => #f)
-
 ;; 错误处理测试
-(check-catch 'type-error (char-ci=? 1 #\A))
-(check-catch 'type-error (char-ci=? #\A 'symbol))
-(check-catch 'wrong-number-of-args (char-ci=?))
-(check-catch 'wrong-number-of-args (char-ci=? #\A))
-
+(check-catch 'type-error
+  (char-ci=? 1 #\A)
+) ;check-catch
+(check-catch 'type-error
+  (char-ci=? #\A 'symbol)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (char-ci=?)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (char-ci=? #\A)
+) ;check-catch
 (check-report)

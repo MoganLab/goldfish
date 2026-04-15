@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme complex)
-) ;import
-
+(import (liii check) (scheme complex))
 (check-set-mode! 'report-failed)
-
 ;; make-rectangular
 ;; 按直角坐标构造复数。
 ;;
@@ -34,16 +30,28 @@
 ;; --------
 ;; wrong-type-arg 当参数不是实数类型时抛出错误。
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
-
 ;; Test make-rectangular
 (check (make-rectangular 3 0) => 3)
-(check (make-rectangular 2.5 0.0) => 2.5)
-(check (real-part (make-rectangular 3 4)) => 3.0)
-(check (imag-part (make-rectangular 3 4)) => 4.0)
-
+(check (make-rectangular 2.5 0.0)
+  =>
+  2.5
+) ;check
+(check (real-part (make-rectangular 3 4))
+  =>
+  3.0
+) ;check
+(check (imag-part (make-rectangular 3 4))
+  =>
+  4.0
+) ;check
 ;; Error handling
-(check-catch 'wrong-type-arg (make-rectangular "x" 1))
-(check-catch 'wrong-type-arg (make-rectangular 1 "x"))
-(check-catch 'wrong-number-of-args (make-rectangular 1))
-
+(check-catch 'wrong-type-arg
+  (make-rectangular "x" 1)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-rectangular 1 "x")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (make-rectangular 1)
+) ;check-catch
 (check-report)

@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; define-record-type
 ;; 定义一个新的记录类型，类似于其他语言中的结构体或类。
 ;;
@@ -44,55 +42,65 @@
 ;; - 类型判断函数：用于判断是否为该类型的实例
 ;; - 访问函数：用于读取字段值
 ;; - 修改函数（可选）：用于修改字段值
-
 ;; 基础记录类型定义
 (define-record-type :pare
   (kons x y)
   pare?
   (x kar set-kar!)
-  (y kdr))
-
+  (y kdr)
+) ;define-record-type
 ;; 类型判断测试
 (check (pare? (kons 1 2)) => #t)
 (check (pare? (cons 1 2)) => #f)
-
 ;; 访问器测试
 (check (kar (kons 1 2)) => 1)
 (check (kdr (kons 1 2)) => 2)
-
 ;; 修改器测试
-(check
-  (let ((k (kons 1 2)))
-    (set-kar! k 3)
-    (kar k))
-  => 3)
-
+(check (let ((k (kons 1 2)))
+         (set-kar! k 3)
+         (kar k)
+       ) ;let
+  =>
+  3
+) ;check
 ;; 更实用的记录类型 - 人员信息
 (define-record-type :person
   (make-person name age)
   person?
   (name get-name set-name!)
-  (age get-age))
-
-(check (person? (make-person "Da" 3)) => #t)
-(check (get-age (make-person "Da" 3)) => 3)
-(check (get-name (make-person "Da" 3)) => "Da")
-
+  (age get-age)
+) ;define-record-type
+(check (person? (make-person "Da" 3))
+  =>
+  #t
+) ;check
+(check (get-age (make-person "Da" 3))
+  =>
+  3
+) ;check
+(check (get-name (make-person "Da" 3))
+  =>
+  "Da"
+) ;check
 ;; 使用修改器
-(check
-  (let ((da (make-person "Da" 3)))
-    (set-name! da "Darcy")
-    (get-name da))
-  => "Darcy")
-
+(check (let ((da (make-person "Da" 3)))
+         (set-name! da "Darcy")
+         (get-name da)
+       ) ;let
+  =>
+  "Darcy"
+) ;check
 ;; 不可变字段尝试修改会导致错误
 ;; (set-age! da 4) 会报错，因为 age 没有定义修改器
-
 ;; 创建多个实例
 (let ((p1 (make-person "Alice" 25))
-      (p2 (make-person "Bob" 30)))
+      (p2 (make-person "Bob" 30))
+     ) ;
   (check (get-name p1) => "Alice")
   (check (get-name p2) => "Bob")
-  (check (+ (get-age p1) (get-age p2)) => 55))
-
+  (check (+ (get-age p1) (get-age p2))
+    =>
+    55
+  ) ;check
+) ;let
 (check-report)

@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; gcd
 ;; 用于计算给定整数的最大公约数。
 ;;
@@ -30,20 +28,17 @@
 ;; ----
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
-
 (check (gcd) => 0)
 (check (gcd 0) => 0)
 (check (gcd 1) => 1)
 (check (gcd 2) => 2)
 (check (gcd -1) => 1)
-
 (check (gcd 0 1) => 1)
 (check (gcd 1 0) => 1)
 (check (gcd 1 2) => 1)
 (check (gcd 1 10) => 1)
 (check (gcd 2 10) => 2)
 (check (gcd -2 10) => 2)
-
 (check (gcd 2 3 4) => 1)
 (check (gcd 2 4 8) => 2)
 (check (gcd -2 4 8) => 2)
@@ -58,12 +53,18 @@
 (check (gcd 15 0) => 15)
 (check (gcd -6 8) => 2)
 (check (gcd 12 -9) => 3)
-
 (check-catch 'wrong-type-arg (gcd 1.5))
 (check-catch 'wrong-type-arg (gcd 2.3))
-(check-catch 'wrong-type-arg (gcd 1+i))
-(check-catch 'wrong-type-arg (gcd 'hello))
-(check-catch 'wrong-type-arg (gcd 1 2+i 3))
-(check-catch 'wrong-type-arg (gcd 1.5 2.5))
-
+(check-catch 'wrong-type-arg
+  (gcd 1.0+1.0i)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (gcd 'hello)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (gcd 1 2.0+1.0i 3)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (gcd 1.5 2.5)
+) ;check-catch
 (check-report)

@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; integer->char
 ;; 将整数码点转换为对应的字符。
 ;;
@@ -33,7 +31,6 @@
 ;; 当参数不是整数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
-
 ;; integer->char 基本测试
 (check (integer->char 65) => #\A)
 (check (integer->char 97) => #\a)
@@ -42,39 +39,57 @@
 (check (integer->char 10) => #\newline)
 (check (integer->char 32) => #\space)
 (check (integer->char 9) => #\tab)
-
 ;; 大写和小写字符
 (check (integer->char 65) => #\A)
 (check (integer->char 90) => #\Z)
 (check (integer->char 97) => #\a)
 (check (integer->char 122) => #\z)
-
 ;; 数字字符
 (check (integer->char 48) => #\0)
 (check (integer->char 49) => #\1)
 (check (integer->char 57) => #\9)
-
 ;; 特殊字符测试
 (check (integer->char 33) => #\!)
 (check (integer->char 64) => #\@)
 (check (integer->char 35) => #\#)
-
 ;; 边界测试
 (check (integer->char 0) => #\null)
 (check (integer->char 126) => #\~)
-
 ;; 反向验证
-(check (integer->char (char->integer #\A)) => #\A)
-(check (integer->char (char->integer #\a)) => #\a)
-(check (integer->char (char->integer #\0)) => #\0)
-(check (char->integer (integer->char 65)) => 65)
-(check (char->integer (integer->char 97)) => 97)
-
+(check (integer->char (char->integer #\A))
+  =>
+  #\A
+) ;check
+(check (integer->char (char->integer #\a))
+  =>
+  #\a
+) ;check
+(check (integer->char (char->integer #\0))
+  =>
+  #\0
+) ;check
+(check (char->integer (integer->char 65))
+  =>
+  65
+) ;check
+(check (char->integer (integer->char 97))
+  =>
+  97
+) ;check
 ;; 错误处理测试
-(check-catch 'out-of-range (integer->char -1))
-(check-catch 'out-of-range (integer->char 256))
-(check-catch 'wrong-type-arg (integer->char 65.0))
-(check-catch 'wrong-number-of-args (integer->char))
-(check-catch 'wrong-number-of-args (integer->char 65 66))  
-
+(check-catch 'out-of-range
+  (integer->char -1)
+) ;check-catch
+(check-catch 'out-of-range
+  (integer->char 256)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (integer->char 65.0)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (integer->char)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (integer->char 65 66)
+) ;check-catch
 (check-report)

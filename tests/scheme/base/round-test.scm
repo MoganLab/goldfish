@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; round
 ;; round用于返回最接近给定数的整数。
 ;;
@@ -38,7 +36,6 @@
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
-
 (check (round 1.1) => 1.0)
 (check (round 1.5) => 2.0)
 (check (round 1) => 1)
@@ -47,31 +44,30 @@
 (check (round -1) => -1)
 (check (round -1.2) => -1.0)
 (check (round -1.5) => -2.0)
-
 ;; 测试四舍五入到最近的整数
 (check (round 0) => 0)
 (check (round 0.4) => 0.0)
-(check (round 0.5) => 0.0)      ; 0.5 -> 0 (IEEE 754向偶数取整)
+(check (round 0.5) => 0.0)
 (check (round 0.6) => 1.0)
 (check (round 1.4) => 1.0)
-(check (round 1.5) => 2.0)      ; 1.5 -> 2
+(check (round 1.5) => 2.0)
 (check (round 1.6) => 2.0)
-(check (round 2.5) => 2.0)      ; 2.5 -> 2 (IEEE 754向偶数取整)
-(check (round 3.5) => 4.0)      ; 3.5 -> 4
-
+(check (round 2.5) => 2.0)
+(check (round 3.5) => 4.0)
 ;; 测试负数情况
 (check (round -0.4) => 0.0)
-(check (round -0.5) => -0.0)    ; -0.5 -> -0.0 (IEEE 754向偶数取整)
+(check (round -0.5) => -0.0)
 (check (round -0.6) => -1.0)
 (check (round -1.4) => -1.0)
-(check (round -1.5) => -2.0)    ; -1.5 -> -2
-(check (round -2.5) => -2.0)    ; -2.5 -> -2 (IEEE 754向偶数取整)
-(check (round -3.5) => -4.0)    ; -3.5 -> -4
-
+(check (round -1.5) => -2.0)
+(check (round -2.5) => -2.0)
+(check (round -3.5) => -4.0)
 ;; 测试整数边界
 (check (round 2147483647) => 2147483647)
-(check (round -2147483648) => -2147483648)
-
+(check (round -2147483648)
+  =>
+  -2147483648
+) ;check
 ;; 测试有理数情况
 (check (round 1/3) => 0)
 (check (round 2/3) => 1)
@@ -79,12 +75,20 @@
 (check (round -1/3) => 0)
 (check (round -2/3) => -1)
 (check (round -3/4) => -1)
-
 ;; 测试错误情况
-(check-catch 'wrong-type-arg (round "not a number"))
-(check-catch 'wrong-type-arg (round 'symbol))
-(check-catch 'wrong-type-arg (round 1+2i))  ; 复数目前不支持
-(check-catch 'wrong-number-of-args (round))
-(check-catch 'wrong-number-of-args (round 1 2))
-
+(check-catch 'wrong-type-arg
+  (round "not a number")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (round 'symbol)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (round 1.0+2.0i)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (round)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (round 1 2)
+) ;check-catch
 (check-report)
