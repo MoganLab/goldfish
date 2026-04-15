@@ -19,44 +19,44 @@
 (check (fix-string (&- #""
                       (define a 1
                       (define b 2)
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (define a 1)
              (define b 2)
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check (fix-string (&- #""
                       (begin
                         (display "x"
                         (newline))
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (begin
                (display "x")
                (newline))
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check (fix-string (&- #""
                       (begin
                         (display "x"
                       ) ;begin
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (begin
                (display "x")
              ) ;begin
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check (fix-string "(define x 1))")
@@ -66,15 +66,15 @@
                       (begin
                         (display "x"))
                         (newline))
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (begin
                (display "x")
                (newline))
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check (fix-string "(display \")\") ; )")
@@ -89,8 +89,8 @@
                           (define (foo x)
                             (+ x 1)
                       ;; trailing comment
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (define-library (liii base)
@@ -98,8 +98,8 @@
                  (define (foo x)
                    (+ x 1))))
              ;; trailing comment
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check (fix-string (&- #""
@@ -107,16 +107,16 @@
                           #f
                           #t
                       ) ;if
-                      ""
-               ) ;&-
+                      "")
+                ;&-
        )
        => (&- #""
              (if (or (>= 1 4) (not (char=? #\a #\()))
                  #f
                  #t
              ) ;if
-             ""
-      ) ;&-
+             "")
+       ;&-
 )
 
 (check-report)
