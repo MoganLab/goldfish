@@ -136,7 +136,7 @@
   (bytevector-u8-ref #u8(1 2 3) 1.5)
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-u8-ref #u() 0)
+  (bytevector-u8-ref #u8() 0)
 ) ;check-catch
 (check-catch 'out-of-range
   (bytevector-u8-ref #u8(1 2 3) -1)
@@ -148,7 +148,7 @@
   (bytevector-u8-ref #u8(1 2 3) 1 3)
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-u8-ref #u() 0)
+  (bytevector-u8-ref #u8() 0)
 ) ;check-catch
 (check-catch 'wrong-number-of-args
   (bytevector-u8-ref #u8(1 2 3))

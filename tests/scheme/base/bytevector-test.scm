@@ -30,7 +30,7 @@
 ;; wrong-type-arg
 ;; 当任何参数不是在0-255范围内的整数时抛出错误。
 ;; bytevector 基本测试
-(check (bytevector) => #u())
+(check (bytevector) => #u8())
 (check (bytevector 255) => #u8(255))
 (check (bytevector 1 2 3 4)
   =>
@@ -45,7 +45,7 @@
 (check (bytevector 255) => #u8(255))
 (check (bytevector 0 255) => #u8(0 255))
 ;; 不同长度测试
-(check (bytevector) => #u())
+(check (bytevector) => #u8())
 (check (bytevector 15) => #u8(15))
 (check (bytevector 85 170)
   =>

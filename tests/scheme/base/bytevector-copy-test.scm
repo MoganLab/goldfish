@@ -35,7 +35,7 @@
 ;; wrong-number-of-args
 ;; 参数数量不正确时抛出错误。
 ;; bytevector-copy 基本测试
-(check (bytevector-copy #u()) => #u())
+(check (bytevector-copy #u8()) => #u8())
 (check (bytevector-copy #u8(1 2 3))
   =>
   #u8(1 2 3)
@@ -60,7 +60,7 @@
 ;; 边界测试
 (check (bytevector-copy #u8(50 100 150) 0 0)
   =>
-  #u()
+  #u8()
 ) ;check
 (check (bytevector-copy #u8(50 100 150) 0 1)
   =>
@@ -104,15 +104,15 @@
 (check-catch 'out-of-range
   (bytevector-copy #u8(1 2 3) 2 1)
 ) ;check-catch
-(check (bytevector-append #u() #u())
+(check (bytevector-append #u8() #u8())
   =>
-  #u()
+  #u8()
 ) ;check
-(check (bytevector-append #u() #u8(1))
+(check (bytevector-append #u8() #u8(1))
   =>
   #u8(1)
 ) ;check
-(check (bytevector-append #u8(1) #u())
+(check (bytevector-append #u8(1) #u8())
   =>
   #u8(1)
 ) ;check

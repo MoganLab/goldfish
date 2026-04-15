@@ -36,7 +36,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
 ;; make-bytevector 基本测试
-(check (make-bytevector 0) => #u())
+(check (make-bytevector 0) => #u8())
 (check (make-bytevector 1) => #u8(0))
 (check (make-bytevector 3)
   =>
@@ -51,7 +51,7 @@
   #u8(255 255)
 ) ;check
 ;; 不同长度测试
-(check (make-bytevector 0 0) => #u())
+(check (make-bytevector 0 0) => #u8())
 (check (make-bytevector 1 128)
   =>
   #u8(128)
@@ -61,7 +61,7 @@
   #u8(99 99 99 99 99 99 99 99 99 99)
 ) ;check
 ;; 边界条件测试
-(check (make-bytevector 0) => #u())
+(check (make-bytevector 0) => #u8())
 (check (make-bytevector 1 0) => #u8(0))
 (check (make-bytevector 1 255)
   =>

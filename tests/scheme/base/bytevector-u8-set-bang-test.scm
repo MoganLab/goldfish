@@ -44,7 +44,7 @@
 ) ;let
 ;; 错误处理测试
 (check-catch 'out-of-range
-  (bytevector-u8-set! #u() 0 5)
+  (bytevector-u8-set! #u8() 0 5)
 ) ;check-catch
 (check-catch 'out-of-range
   (bytevector-u8-set! #u8(1 2 3) -1 5)
