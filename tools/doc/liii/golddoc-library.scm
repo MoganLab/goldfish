@@ -16,105 +16,129 @@
 
 (define-library (liii golddoc-library)
   (import (scheme base)
-          (liii golddoc-args)
-          (liii path)
-          (liii string)
+    (liii golddoc-args)
+    (liii path)
+    (liii string)
   ) ;import
   (export excluded-test-group?
-          find-visible-library-root
-          find-tests-root-for-load-root
-          library-doc-path
+    find-visible-library-root
+    find-tests-root-for-load-root
+    library-doc-path
   ) ;export
   (begin
 
     (define (trim-trailing-separators value)
-      (let loop ((current value))
+      (let loop
+        ((current value))
         (if (and (> (string-length current) 1)
-                 (or (string-ends? current "/")
-                     (string-ends? current "\\"))
+              (or (string-ends? current "/")
+                (string-ends? current "\\")
+              ) ;or
             ) ;and
-            (loop (substring current 0 (- (string-length current) 1)))
-            current
+          (loop (substring current
+                  0
+                  (- (string-length current) 1)
+                ) ;substring
+          ) ;loop
+          current
         ) ;if
       ) ;let
     ) ;define
 
     (define (excluded-test-group? group)
-      (or (string=? group "goldfish")
-      ) ;or
+      (or (string=? group "goldfish"))
     ) ;define
 
     (define (find-visible-library-root query)
       (let ((parts (parse-library-query query)))
         (if (not parts)
-            #f
-            (let ((group (car parts))
-                  (library (cdr parts)))
-              (let loop ((roots *load-path*))
-                (if (null? roots)
-                    #f
-                    (let ((load-root (car roots)))
-                      (if (and (string? load-root)
-                               (path-file? (path-join load-root
-                                                      group
-                                                      (string-append library ".scm")))
-                               ) ;path-file?
-                          load-root
-                          (loop (cdr roots))
-                      ) ;if
-                    ) ;let
-                ) ;if
-              ) ;let
+          #f
+          (let ((group (car parts))
+                (library (cdr parts))
+               ) ;
+            (let loop
+              ((roots *load-path*))
+              (if (null? roots)
+                #f
+                (let ((load-root (car roots)))
+                  (if (and (string? load-root)
+                        (path-file? (path-join load-root
+                                      group
+                                      (string-append library ".scm")
+                                    ) ;path-join
+                        ) ;path-file?
+                      ) ;and
+                    load-root
+                    (loop (cdr roots))
+                  ) ;if
+                ) ;let
+              ) ;if
             ) ;let
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
 
-    (define (find-tests-root-for-load-root load-root)
+    (define (find-tests-root-for-load-root load-root
+            ) ;find-tests-root-for-load-root
       (if (not (string? load-root))
-          #f
-          (let* ((normalized-load-root (trim-trailing-separators load-root))
-                 (normalized-parent (trim-trailing-separators
-                                      (path->string (path-parent normalized-load-root))))
-                 (direct-root (path->string (path-join normalized-load-root "tests")))
-                 (sibling-root (path->string (path-join normalized-parent "tests"))))
-            (cond
-              ((path-dir? direct-root) direct-root)
-              ((path-dir? sibling-root) sibling-root)
-              (else #f)
-            ) ;cond
-          ) ;let
+        #f
+        (let* ((normalized-load-root (trim-trailing-separators load-root)
+               ) ;normalized-load-root
+               (normalized-parent (trim-trailing-separators (path->string (path-parent normalized-load-root)
+                                                            ) ;path->string
+                                  ) ;trim-trailing-separators
+               ) ;normalized-parent
+               (direct-root (path->string (path-join normalized-load-root "tests")
+                            ) ;path->string
+               ) ;direct-root
+               (sibling-root (path->string (path-join normalized-parent "tests")
+                             ) ;path->string
+               ) ;sibling-root
+              ) ;
+          (cond ((path-dir? direct-root) direct-root)
+                ((path-dir? sibling-root) sibling-root)
+                (else #f)
+          ) ;cond
+        ) ;let*
       ) ;if
     ) ;define
 
     (define (library-doc-path query)
       (let ((parts (parse-library-query query)))
         (if (not parts)
-            #f
-            (let ((group (car parts))
-                  (library (cdr parts)))
-              (if (excluded-test-group? group)
+          #f
+          (let ((group (car parts))
+                (library (cdr parts))
+               ) ;
+            (if (excluded-test-group? group)
+              #f
+              (let ((load-root (find-visible-library-root query)
+                    ) ;load-root
+                   ) ;
+                (if (not load-root)
                   #f
-                  (let ((load-root (find-visible-library-root query)))
-                    (if (not load-root)
-                        #f
-                        (let ((tests-root (find-tests-root-for-load-root load-root)))
-                          (if (not tests-root)
-                              #f
-                              (let ((candidate (path->string (path-join tests-root
-                                                                       group
-                                                                       (string-append library "-test.scm")))))
-                                (if (path-file? candidate)
-                                    candidate
-                                    #f
-                                ) ;if
-                              ) ;let
-                          ) ;if
-                        ) ;let
+                  (let ((tests-root (find-tests-root-for-load-root load-root
+                                    ) ;find-tests-root-for-load-root
+                        ) ;tests-root
+                       ) ;
+                    (if (not tests-root)
+                      #f
+                      (let ((candidate (path->string (path-join tests-root
+                                                       group
+                                                       (string-append library "-test.scm")
+                                                     ) ;path-join
+                                       ) ;path->string
+                            ) ;candidate
+                           ) ;
+                        (if (path-file? candidate) candidate #f)
+                      ) ;let
                     ) ;if
                   ) ;let
-              ) ;if
-            ) ;let
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
         ) ;if
       ) ;let
     ) ;define

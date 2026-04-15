@@ -1,11 +1,13 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path*
+  (cons "tools/golddoc" *load-path*)
+) ;set!
 
 (import (liii check)
-        (liii golddoc)
-        (liii path)
-        (liii string)
+  (liii golddoc)
+  (liii path)
+  (liii string)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -32,27 +34,64 @@
 ;; 该函数只处理当前 *load-path* 中可见的库，并且会排除 `goldfish`
 ;; 目录下的测试文档。
 
-(check (excluded-test-group? "srfi") => #f)
-(check (excluded-test-group? "goldfish") => #t)
-(check (excluded-test-group? "liii") => #f)
+(check (excluded-test-group? "srfi")
+  =>
+  #f
+) ;check
+(check (excluded-test-group? "goldfish")
+  =>
+  #t
+) ;check
+(check (excluded-test-group? "liii")
+  =>
+  #f
+) ;check
 
-(let ((load-root (find-visible-library-root "liii/string")))
+(let ((load-root (find-visible-library-root "liii/string"
+                 ) ;find-visible-library-root
+      ) ;load-root
+     ) ;
   (check-true (string? load-root))
-  (check-true (path-file? (path-join load-root "liii" "string.scm")))
-  (let ((tests-root (find-tests-root-for-load-root load-root)))
+  (check-true (path-file? (path-join load-root
+                            "liii"
+                            "string.scm"
+                          ) ;path-join
+              ) ;path-file?
+  ) ;check-true
+  (let ((tests-root (find-tests-root-for-load-root load-root
+                    ) ;find-tests-root-for-load-root
+        ) ;tests-root
+       ) ;
     (check-true (string? tests-root))
     (check-true (path-dir? tests-root))
-    (check-true (path-file? (path-join tests-root "liii" "string-test.scm")))
+    (check-true (path-file? (path-join tests-root
+                              "liii"
+                              "string-test.scm"
+                            ) ;path-join
+                ) ;path-file?
+    ) ;check-true
   ) ;let
 ) ;let
 
-(let ((doc-path (library-doc-path "liii/string")))
+(let ((doc-path (library-doc-path "liii/string")
+      ) ;doc-path
+     ) ;
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "string-test.scm")
+  (check (path-name doc-path)
+    =>
+    "string-test.scm"
+  ) ;check
 ) ;let
 
-(check (library-doc-path "liii/not-a-real-library") => #f)
-(check (library-doc-path "goldfish/liii/http") => #f)
+(check (library-doc-path "liii/not-a-real-library"
+       ) ;library-doc-path
+  =>
+  #f
+) ;check
+(check (library-doc-path "goldfish/liii/http")
+  =>
+  #f
+) ;check
 
 (check-report)

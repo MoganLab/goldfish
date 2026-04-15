@@ -16,37 +16,37 @@
 
 (define-library (liii golddoc)
   (import (scheme base)
-          (liii golddoc-args)
-          (liii golddoc-library)
-          (liii golddoc-function)
-          (liii golddoc-index)
-          (liii golddoc-index-build)
-          (liii golddoc-fuzzy)
-          (liii golddoc-cli)
+    (liii golddoc-args)
+    (liii golddoc-library)
+    (liii golddoc-function)
+    (liii golddoc-index)
+    (liii golddoc-index-build)
+    (liii golddoc-fuzzy)
+    (liii golddoc-cli)
   ) ;import
   (export parse-doc-args
-          library-query?
-          parse-library-query
-          excluded-test-group?
-          find-visible-library-root
-          find-tests-root-for-load-root
-          library-doc-path
-          exported-name->test-stem
-          library-documented-functions
-          function-doc-path
-          index-entry->library-query
-          find-function-index-paths
-          load-function-index
-          visible-function-names
-          visible-libraries-for-function
-          build-function-indexes!
-          max-fuzzy-edit-distance
-          bounded-levenshtein-distance
-          suggest-candidates
-          suggest-library-functions
-          suggest-visible-functions
-          run-golddoc
-          main
+    library-query?
+    parse-library-query
+    excluded-test-group?
+    find-visible-library-root
+    find-tests-root-for-load-root
+    library-doc-path
+    exported-name->test-stem
+    library-documented-functions
+    function-doc-path
+    index-entry->library-query
+    find-function-index-paths
+    load-function-index
+    visible-function-names
+    visible-libraries-for-function
+    build-function-indexes!
+    max-fuzzy-edit-distance
+    bounded-levenshtein-distance
+    suggest-candidates
+    suggest-library-functions
+    suggest-visible-functions
+    run-golddoc
+    main
   ) ;export
   (begin
 
