@@ -152,13 +152,12 @@
   (check (atom-value result) => 'x)
   (check (atom-depth result) => 0))
 
-;; 测试 quote list '(x y) - 这会读取为 (#_quote (x y))
-;; quote 形式整个作为一个 env，没有 children
+;; 非法的多参数 quote 不应被识别成 quote 特殊形式
 (let ((result (scan '(quote x y))))
   (check (env? result) => #t)
   (check (env-tag-name result) => "quote")
   (check (env-depth result) => 0)
-  (check (vector-length (env-children result)) => 0)  ; quote 形式没有 children
+  (check (vector-length (env-children result)) => 2)
   (check (env-value result) => '(quote x y)))
 
 ;; 测试语法关键字 #_quote 作为 tag-name
