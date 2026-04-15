@@ -105,17 +105,20 @@
   (check (read port) => #(a "b" c))
 ) ;let
 ;; u8 vector (bytevector) 读取测试
-(let ((port (open-input-string "#u8(1 2 3)")))
-  (check (read port) => #u8(1 2 3))
+(let ((port (open-input-string "#u8(1 2 3)"))
+     ) ;
+  (check (read port) => #u(1 2 3))
 ) ;let
-(let ((port (open-input-string "#u8(0 255 127)")))
-  (check (read port) => #u8(0 255 127))
+(let ((port (open-input-string "#u8(0 255 127)")
+      ) ;port
+     ) ;
+  (check (read port) => #u(0 255 127))
 ) ;let
 (let ((port (open-input-string "#u8()")))
-  (check (read port) => #u8())
+  (check (read port) => #u())
 ) ;let
 (let ((port (open-input-string "#u(1 2 3)")))
-  (check (read port) => #u8(1 2 3))
+  (check (read port) => #u(1 2 3))
 ) ;let
 ;; 引号语法测试
 (let ((port (open-input-string "'hello")))
@@ -156,12 +159,10 @@
   (check (read port) => '(#t #f #t))
 ) ;let
 ;; 混合类型列表测试
-(let
-  ((port
-     (open-input-string "(1 \"two\" 'three 4.0)"
-     ) ;open-input-string
-   ) ;port
-  ) ;
+(let ((port (open-input-string "(1 \"two\" 'three 4.0)"
+            ) ;open-input-string
+      ) ;port
+     ) ;
   (check (read port)
     =>
     '(1 "two" 'three 4.0)
@@ -185,12 +186,10 @@
   (check (eof-object? (read port)) => #t)
 ) ;let
 ;; 注释处理测试（如果支持）
-(let
-  ((port
-     (open-input-string "123 ; this is a comment\n456"
-     ) ;open-input-string
-   ) ;port
-  ) ;
+(let ((port (open-input-string "123 ; this is a comment\n456"
+            ) ;open-input-string
+      ) ;port
+     ) ;
   (check (read port) => 123)
   (check (read port) => 456)
 ) ;let
@@ -212,23 +211,19 @@
 ;; 与write联动测试
 (let ((output-port (open-output-string)))
   (write '(1 2 3) output-port)
-  (let
-    ((input-port
-       (open-input-string (get-output-string output-port)
-       ) ;open-input-string
-     ) ;input-port
-    ) ;
+  (let ((input-port (open-input-string (get-output-string output-port)
+                    ) ;open-input-string
+        ) ;input-port
+       ) ;
     (check (read input-port) => '(1 2 3))
   ) ;let
 ) ;let
 (let ((output-port (open-output-string)))
   (write "hello world" output-port)
-  (let
-    ((input-port
-       (open-input-string (get-output-string output-port)
-       ) ;open-input-string
-     ) ;input-port
-    ) ;
+  (let ((input-port (open-input-string (get-output-string output-port)
+                    ) ;open-input-string
+        ) ;input-port
+       ) ;
     (check (read input-port)
       =>
       "hello world"
@@ -237,12 +232,10 @@
 ) ;let
 (let ((output-port (open-output-string)))
   (write 123.456 output-port)
-  (let
-    ((input-port
-       (open-input-string (get-output-string output-port)
-       ) ;open-input-string
-     ) ;input-port
-    ) ;
+  (let ((input-port (open-input-string (get-output-string output-port)
+                    ) ;open-input-string
+        ) ;input-port
+       ) ;
     (check (read input-port) => 123.456)
   ) ;let
 ) ;let
@@ -250,21 +243,17 @@
 ;; (let ((port (open-input-string "(1 2")))
 ;;   (check-catch 'read-error (read port)))
 ;; 大数字测试
-(let
-  ((port
-     (open-input-string "12345678901234567890"
-     ) ;open-input-string
-   ) ;port
-  ) ;
+(let ((port (open-input-string "12345678901234567890"
+            ) ;open-input-string
+      ) ;port
+     ) ;
   (check-true (number? (read port)))
 ) ;let
 ;; 特殊符号测试
-(let
-  ((port
-     (open-input-string "hello-world hello_world hello.world"
-     ) ;open-input-string
-   ) ;port
-  ) ;
+(let ((port (open-input-string "hello-world hello_world hello.world"
+            ) ;open-input-string
+      ) ;port
+     ) ;
   (check (read port) => 'hello-world)
   (check (read port) => 'hello_world)
   (check (read port) => 'hello.world)
