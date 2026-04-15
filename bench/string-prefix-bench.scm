@@ -35,7 +35,7 @@
 ;;
 ;; KEY INSIGHTS:
 ;; - Massive performance gains for long prefix matching scenarios (13-32x faster)
-;; - Consistent moderate improvements for short strings (1.2-1.7x faster)  
+;; - Consistent moderate improvements for short strings (1.2-1.7x faster)
 ;; - Best optimization occurs when the entire prefix needs to be compared
 ;; - Minimal overhead for edge cases (prefix longer than string)
 ;;
@@ -48,167 +48,288 @@
 ;; ==================================================================================
 
 (import (scheme base)
-        (scheme time)
-        (srfi srfi-13))
+  (scheme time)
+  (srfi srfi-13)
+) ;import
 
 ;; --- Original string-prefix? implementation (character-by-character comparison) ---
 (define (string-prefix?-original prefix str)
   (let* ((prefix-len (string-length prefix))
-         (str-len (string-length str)))
+         (str-len (string-length str))
+        ) ;
     (and (<= prefix-len str-len)
-         (let loop ((i 0))
-           (or (= i prefix-len)
-               (and (char=? (string-ref prefix i)
-                            (string-ref str i))
-                    (loop (+ i 1))))))))
+      (let loop
+        ((i 0))
+        (or (= i prefix-len)
+          (and (char=? (string-ref prefix i)
+                 (string-ref str i)
+               ) ;char=?
+            (loop (+ i 1))
+          ) ;and
+        ) ;or
+      ) ;let
+    ) ;and
+  ) ;let*
+) ;define
 
 ;; --- Optimized string-prefix? implementation (using substring) ---
 (define (string-prefix?-optimized prefix str)
   (let* ((prefix-len (string-length prefix))
-         (str-len (string-length str)))
+         (str-len (string-length str))
+        ) ;
     (and (<= prefix-len str-len)
-         (string=? prefix (substring str 0 prefix-len)))))
+      (string=? prefix
+        (substring str 0 prefix-len)
+      ) ;string=?
+    ) ;and
+  ) ;let*
+) ;define
 
 ;; --- Performance Test Harness ---
 (define (time-thunk thunk)
   (let* ((start (current-jiffy))
          (val (thunk))
-         (end (current-jiffy)))
-    (values val (- end start))))
+         (end (current-jiffy))
+        ) ;
+    (values val (- end start))
+  ) ;let*
+) ;define
 
-(define (run-test-for-function desc func prefix str num-iterations)
-  (display "  Testing: ") (display desc) (newline)
-  (let ((total-time 0)
-        (sample-result #f))
+(define (run-test-for-function desc
+          func
+          prefix
+          str
+          num-iterations
+        ) ;run-test-for-function
+  (display "  Testing: ")
+  (display desc)
+  (newline)
+  (let ((total-time 0) (sample-result #f))
     (do ((i 0 (+ i 1)))
-        ((= i num-iterations))
-      (let-values (((result elapsed-time) (time-thunk (lambda () (func prefix str)))))
-        (set! total-time (+ total-time elapsed-time))
-        (if (= i 0) (set! sample-result result))))
-    
-    (display "    Result: ") (display sample-result) (newline)
-    (display "    Total time: ") (display total-time) (display " jiffies for ") (display num-iterations) (display " iterations") (newline)
-    (display "    Average time: ") (display (if (> num-iterations 0) (/ total-time num-iterations) 0)) (display " jiffies/iteration") (newline)
-    (newline)))
+      ((= i num-iterations))
+      (let-values (((result elapsed-time)
+                    (time-thunk (lambda () (func prefix str))
+                    ) ;time-thunk
+                   ) ;
+                  ) ;
+        (set! total-time
+          (+ total-time elapsed-time)
+        ) ;set!
+        (if (= i 0) (set! sample-result result))
+      ) ;let-values
+    ) ;do
 
-(define (execute-test-case case-name prefix str num-iterations)
-  (display "Test Case: ") (display case-name) (newline)
-  (display "  Prefix: \"") (display prefix) (display "\"") (newline)
-  (display "  String: \"") (display (if (> (string-length str) 50) 
-                                        (string-append (substring str 0 47) "...")
-                                        str)) 
-           (display "\" (length: ") (display (string-length str)) (display ")") (newline)
-  
-  (run-test-for-function "Original (char-by-char)" string-prefix?-original prefix str num-iterations)
-  (run-test-for-function "Optimized (substring)" string-prefix?-optimized prefix str num-iterations)
-  (run-test-for-function "SRFI-13 current" string-prefix? prefix str num-iterations)
-  
-  (newline))
+    (display "    Result: ")
+    (display sample-result)
+    (newline)
+    (display "    Total time: ")
+    (display total-time)
+    (display " jiffies for ")
+    (display num-iterations)
+    (display " iterations")
+    (newline)
+    (display "    Average time: ")
+    (display (if (> num-iterations 0)
+               (/ total-time num-iterations)
+               0
+             ) ;if
+    ) ;display
+    (display " jiffies/iteration")
+    (newline)
+    (newline)
+  ) ;let
+) ;define
+
+(define (execute-test-case case-name
+          prefix
+          str
+          num-iterations
+        ) ;execute-test-case
+  (display "Test Case: ")
+  (display case-name)
+  (newline)
+  (display "  Prefix: \"")
+  (display prefix)
+  (display "\"")
+  (newline)
+  (display "  String: \"")
+  (display (if (> (string-length str) 50)
+             (string-append (substring str 0 47)
+               "..."
+             ) ;string-append
+             str
+           ) ;if
+  ) ;display
+  (display "\" (length: ")
+  (display (string-length str))
+  (display ")")
+  (newline)
+
+  (run-test-for-function "Original (char-by-char)"
+    string-prefix?-original
+    prefix
+    str
+    num-iterations
+  ) ;run-test-for-function
+  (run-test-for-function "Optimized (substring)"
+    string-prefix?-optimized
+    prefix
+    str
+    num-iterations
+  ) ;run-test-for-function
+  (run-test-for-function "SRFI-13 current"
+    string-prefix?
+    prefix
+    str
+    num-iterations
+  ) ;run-test-for-function
+
+  (newline)
+) ;define
 
 ;; --- Test Data Generation ---
 (define (make-test-string length char)
-  (make-string length char))
+  (make-string length char)
+) ;define
 
 (define (make-mixed-string length)
-  (list->string
-    (map (lambda (i) 
-           (integer->char (+ (char->integer #\a) (modulo i 26))))
-         (iota length))))
+  (list->string (map (lambda (i)
+                       (integer->char (+ (char->integer #\a) (modulo i 26))
+                       ) ;integer->char
+                     ) ;lambda
+                  (iota length)
+                ) ;map
+  ) ;list->string
+) ;define
 
 ;; Simple iota implementation if not available
 (define (iota count . rest)
   (let ((start (if (null? rest) 0 (car rest)))
-        (step (if (or (null? rest) (null? (cdr rest))) 1 (cadr rest))))
-    (let loop ((i 0) (result '()))
+        (step (if (or (null? rest) (null? (cdr rest)))
+                1
+                (cadr rest)
+              ) ;if
+        ) ;step
+       ) ;
+    (let loop
+      ((i 0) (result '()))
       (if (>= i count)
-          (reverse result)
-          (loop (+ i 1) (cons (+ start (* i step)) result))))))
+        (reverse result)
+        (loop (+ i 1)
+          (cons (+ start (* i step)) result)
+        ) ;loop
+      ) ;if
+    ) ;let
+  ) ;let
+) ;define
 
 ;; --- Main Test Execution ---
 (define (run-all-tests . num-iterations-arg)
-  (let ((num-iterations (if (and (pair? num-iterations-arg) 
-                                 (integer? (car num-iterations-arg)) 
-                                 (> (car num-iterations-arg) 0))
-                            (car num-iterations-arg)
-                            100000))) ; Default iterations
+  (let ((num-iterations (if (and (pair? num-iterations-arg)
+                              (integer? (car num-iterations-arg))
+                              (> (car num-iterations-arg) 0)
+                            ) ;and
+                          (car num-iterations-arg)
+                          100000
+                        ) ;if
+        ) ;num-iterations
+       ) ;
 
-    (display "Starting performance tests for string-prefix? implementations...") (newline)
-    (display "Using ") (display num-iterations) (display " iterations per test case.") (newline)
+    (display "Starting performance tests for string-prefix? implementations..."
+    ) ;display
+    (newline)
+    (display "Using ")
+    (display num-iterations)
+    (display " iterations per test case.")
+    (newline)
     (newline)
 
     ;; Test 1: Short prefix, short string
-    (execute-test-case
-      "Short prefix, short string (match)"
+    (execute-test-case "Short prefix, short string (match)"
       "he"
       "hello"
-      num-iterations)
+      num-iterations
+    ) ;execute-test-case
 
     ;; Test 2: Short prefix, short string (no match)
-    (execute-test-case
-      "Short prefix, short string (no match)"
-      "hi" 
+    (execute-test-case "Short prefix, short string (no match)"
+      "hi"
       "hello"
-      num-iterations)
+      num-iterations
+    ) ;execute-test-case
 
     ;; Test 3: Empty prefix
-    (execute-test-case
-      "Empty prefix"
+    (execute-test-case "Empty prefix"
       ""
       "hello world"
-      num-iterations)
+      num-iterations
+    ) ;execute-test-case
 
     ;; Test 4: Long prefix, long string (match)
     (let ((long-string (make-mixed-string 1000)))
-      (execute-test-case
-        "Long prefix, long string (match)"
+      (execute-test-case "Long prefix, long string (match)"
         (substring long-string 0 100)
         long-string
-        num-iterations))
+        num-iterations
+      ) ;execute-test-case
+    ) ;let
 
     ;; Test 5: Long prefix, long string (no match - differs at start)
     (let ((long-string (make-mixed-string 1000)))
-      (execute-test-case
-        "Long prefix, long string (no match - differs at start)"
+      (execute-test-case "Long prefix, long string (no match - differs at start)"
         "xyz"
         long-string
-        num-iterations))
+        num-iterations
+      ) ;execute-test-case
+    ) ;let
 
     ;; Test 6: Long prefix, long string (no match - differs at end)
     (let* ((long-string (make-mixed-string 1000))
-           (almost-prefix (string-append (substring long-string 0 99) "X")))
-      (execute-test-case
-        "Long prefix, long string (no match - differs at end)"
+           (almost-prefix (string-append (substring long-string 0 99)
+                            "X"
+                          ) ;string-append
+           ) ;almost-prefix
+          ) ;
+      (execute-test-case "Long prefix, long string (no match - differs at end)"
         almost-prefix
         long-string
-        num-iterations))
+        num-iterations
+      ) ;execute-test-case
+    ) ;let*
 
     ;; Test 7: Very long strings
-    (let ((very-long-string (make-mixed-string 10000)))
-      (execute-test-case
-        "Very long prefix, very long string (match)"
+    (let ((very-long-string (make-mixed-string 10000)
+          ) ;very-long-string
+         ) ;
+      (execute-test-case "Very long prefix, very long string (match)"
         (substring very-long-string 0 1000)
         very-long-string
-        (/ num-iterations 10))) ; Fewer iterations for very long strings
+        (/ num-iterations 10)
+      ) ;execute-test-case
+    ) ;let
 
     ;; Test 8: Pathological case - prefix same length as string
-    (execute-test-case
-      "Prefix same length as string (match)"
+    (execute-test-case "Prefix same length as string (match)"
       "hello"
       "hello"
-      num-iterations)
+      num-iterations
+    ) ;execute-test-case
 
     ;; Test 9: Prefix longer than string
-    (execute-test-case
-      "Prefix longer than string"
+    (execute-test-case "Prefix longer than string"
       "hello world"
       "hello"
-      num-iterations)
+      num-iterations
+    ) ;execute-test-case
 
-    (display "Performance tests completed.") (newline)))
+    (display "Performance tests completed.")
+    (newline)
+  ) ;let
+) ;define
 
 ;; To run the tests, call:
 ;; (run-all-tests)
 ;; or with custom iteration count:
 ;; (run-all-tests 50000)
 
-(run-all-tests) 
+(run-all-tests)
