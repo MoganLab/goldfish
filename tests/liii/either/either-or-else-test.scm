@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,11 +39,22 @@
 
 (let ((main (from-right 1))
       (backup (from-right 2))
-      (fail (from-left 0)))
-  (check (to-right (either-or-else main backup)) => 1)
-  (check (to-right (either-or-else fail backup)) => 2)
+      (fail (from-left 0))
+     ) ;
+  (check (to-right (either-or-else main backup))
+    =>
+    1
+  ) ;check
+  (check (to-right (either-or-else fail backup))
+    =>
+    2
+  ) ;check
 ) ;let
 
-(check-catch 'type-error (either-or-else "not-either" (from-right 1)))
+(check-catch 'type-error
+  (either-or-else "not-either"
+    (from-right 1)
+  ) ;either-or-else
+) ;check-catch
 
 (check-report)

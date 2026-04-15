@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -35,12 +35,19 @@
 ;; type-error 当输入不是 Either 时
 ;; value-error 当输入是 Right 时
 
-(check (to-left (from-left "error message")) => "error message")
+(check (to-left (from-left "error message"))
+  =>
+  "error message"
+) ;check
 (check (to-left (from-left 42)) => 42)
 (check (to-left (from-left '())) => '())
 
-(check-catch 'type-error (to-left "not-either"))
+(check-catch 'type-error
+  (to-left "not-either")
+) ;check-catch
 (check-catch 'type-error (to-left 123))
-(check-catch 'value-error (to-left (from-right "I am Right")))
+(check-catch 'value-error
+  (to-left (from-right "I am Right"))
+) ;check-catch
 
 (check-report)

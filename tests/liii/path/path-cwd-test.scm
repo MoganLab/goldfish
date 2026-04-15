@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii path)
-        (liii os)
-        (liii base)
+  (liii path)
+  (liii os)
+  (liii base)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -23,7 +23,10 @@
 ;; (path->string (path-cwd)) => (getcwd)
 ;; (path-absolute? (path-cwd)) => #t
 
-(check (path->string (path-cwd)) => (getcwd))
+(check (path->string (path-cwd))
+  =>
+  (getcwd)
+) ;check
 (check-true (path-absolute? (path-cwd)))
 
 (check-report)

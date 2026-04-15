@@ -1,6 +1,6 @@
 (import (liii base64)
-        (liii check)
-        (liii error)
+  (liii check)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -41,10 +41,21 @@
 (check (base64-encode "f") => "Zg==")
 (check (base64-encode "fo") => "Zm8=")
 (check (base64-encode "foo") => "Zm9v")
-(check (base64-encode "foob") => "Zm9vYg==")
-(check (base64-encode "fooba") => "Zm9vYmE=")
-(check (base64-encode "foobar") => "Zm9vYmFy")
+(check (base64-encode "foob")
+  =>
+  "Zm9vYg=="
+) ;check
+(check (base64-encode "fooba")
+  =>
+  "Zm9vYmE="
+) ;check
+(check (base64-encode "foobar")
+  =>
+  "Zm9vYmFy"
+) ;check
 
-(check-catch 'type-error (base64-encode 1))
+(check-catch 'type-error
+  (base64-encode 1)
+) ;check-catch
 
 (check-report)

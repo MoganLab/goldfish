@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii path)
-) ;import
+(import (liii check) (liii path))
 
 (check-set-mode! 'report-failed)
 
@@ -25,6 +23,10 @@
 ;; ----
 ;; (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz"
 
-(check (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz")
+(check (path->string (path-from-string "archive.tar.gz")
+       ) ;path->string
+  =>
+  "archive.tar.gz"
+) ;check
 
 (check-report)

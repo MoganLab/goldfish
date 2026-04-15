@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -40,7 +40,9 @@
 
 ;; 临时目录测试
 (check-true (path-dir? (path-temp-dir)))
-(check-true (path-dir? (path->string (path-temp-dir))))
+(check-true (path-dir? (path->string (path-temp-dir))
+            ) ;path-dir?
+) ;check-true
 
 (when (not (os-windows?))
   ;; 根目录与常用目录测试
@@ -49,20 +51,38 @@
   (check (path-dir? "/etc") => #t)
   ;; 不存在目录测试
   (check (path-dir? "/no_such_dir") => #f)
-  (check (path-dir? "/not/a/real/path") => #f)
+  (check (path-dir? "/not/a/real/path")
+    =>
+    #f
+  ) ;check
 ) ;when
 
 (when (os-windows?)
   ;; 根目录与常用目录测试
   (check (path-dir? "C:/") => #t)
   (check (path-dir? "C:/Windows") => #t)
-  (check (path-dir? "C:/Program Files") => #t)
+  (check (path-dir? "C:/Program Files")
+    =>
+    #t
+  ) ;check
   ;; 使用正斜杠的相对路径测试
-  (check (path-dir? "tests/liii/path") => #t)
-  (check (path-dir? "goldfish/liii") => #t)
+  (check (path-dir? "tests/liii/path")
+    =>
+    #t
+  ) ;check
+  (check (path-dir? "goldfish/liii")
+    =>
+    #t
+  ) ;check
   ;; 不存在目录测试
-  (check (path-dir? "C:/no_such_dir/") => #f)
-  (check (path-dir? "Z:/definitely/not/exist") => #f)
+  (check (path-dir? "C:/no_such_dir/")
+    =>
+    #f
+  ) ;check
+  (check (path-dir? "Z:/definitely/not/exist")
+    =>
+    #f
+  ) ;check
 ) ;when
 
 (check-report)

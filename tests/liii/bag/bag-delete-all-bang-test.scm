@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -26,7 +26,10 @@
 (let ((b (bag 1 2 2 2 3)))
   (bag-delete-all! b '(2 2 3))
   (check (bag-size b) => 2)
-  (check (bag-count (lambda (x) (= x 2)) b) => 1)
+  (check (bag-count (lambda (x) (= x 2)) b)
+    =>
+    1
+  ) ;check
 ) ;let
 
 (check-report)

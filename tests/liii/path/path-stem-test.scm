@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -26,14 +26,33 @@
 ;; ----
 ;; 对于多后缀文件，只去除最后一个扩展名。
 
-(check (path-stem (path "file.txt")) => "file")
-(check (path-stem (path "archive.tar.gz")) => "archive.tar")
-(check (path-stem (path ".hidden")) => ".hidden")
-(check (path-stem (path "noext")) => "noext")
+(check (path-stem (path "file.txt"))
+  =>
+  "file"
+) ;check
+(check (path-stem (path "archive.tar.gz"))
+  =>
+  "archive.tar"
+) ;check
+(check (path-stem (path ".hidden"))
+  =>
+  ".hidden"
+) ;check
+(check (path-stem (path "noext"))
+  =>
+  "noext"
+) ;check
 (check (path-stem (path "")) => "")
 (check (path-stem (path ".")) => "")
 (check (path-stem (path "..")) => "..")
-(check (path-stem (path "config.yaml.bak")) => "config.yaml")
-(check (path-stem (path "test-file.name-with-dots.txt")) => "test-file.name-with-dots")
+(check (path-stem (path "config.yaml.bak"))
+  =>
+  "config.yaml"
+) ;check
+(check (path-stem (path "test-file.name-with-dots.txt")
+       ) ;path-stem
+  =>
+  "test-file.name-with-dots"
+) ;check
 
 (check-report)

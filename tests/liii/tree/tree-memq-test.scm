@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii tree)
-) ;import
+(import (liii check) (liii tree))
 
 (check-set-mode! 'report-failed)
 

@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -23,8 +23,12 @@
 ;; (path-absolute? (path-temp-dir)) => #t
 ;; (path-dir? (path-temp-dir)) => #t
 
-(check (path->string (path-temp-dir)) => (os-temp-dir))
-(check-true (path-absolute? (path-temp-dir)))
+(check (path->string (path-temp-dir))
+  =>
+  (os-temp-dir)
+) ;check
+(check-true (path-absolute? (path-temp-dir))
+) ;check-true
 (check-true (path-dir? (path-temp-dir)))
 
 (check-report)

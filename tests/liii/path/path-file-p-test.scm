@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -36,7 +36,9 @@
 
 (when (os-windows?)
   (check (path-file? "C:/") => #f)
-  (check-true (path-file? "C:/Windows/System32/drivers/etc/hosts"))
+  (check-true (path-file? "C:/Windows/System32/drivers/etc/hosts"
+              ) ;path-file?
+  ) ;check-true
   (check (path-file? "C:/Windows") => #f)
 ) ;when
 

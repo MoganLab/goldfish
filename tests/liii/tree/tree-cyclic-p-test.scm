@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii tree)
-) ;import
+(import (liii check) (liii tree))
 
 (check-set-mode! 'report-failed)
 
@@ -36,7 +34,10 @@
 ;; 嵌套循环结构
 (let ((inner (list 'a 'b)))
   (set-cdr! (cdr inner) inner)
-  (check (tree-cyclic? (list 'x inner)) => #t)
+  (check (tree-cyclic? (list 'x inner))
+    =>
+    #t
+  ) ;check
 ) ;let
 
 (check-report)

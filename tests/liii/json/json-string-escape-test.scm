@@ -211,7 +211,6 @@
     102
   ) ;check
 ) ;let
-
 (check (json-string-escape "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
        ) ;json-string-escape
   =>

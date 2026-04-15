@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii either)
-) ;import
+(import (liii check) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -35,7 +33,8 @@
 ;; 无
 
 (let ((left-val (from-left "error"))
-      (right-val (from-right "success")))
+      (right-val (from-right "success"))
+     ) ;
   (check-false (either-right? left-val))
   (check-true (either-right? right-val))
 ) ;let

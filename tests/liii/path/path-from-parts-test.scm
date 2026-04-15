@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,12 +27,27 @@
 ;; (path->string (path-from-parts #("/" "tmp" "demo.txt"))) => "/tmp/demo.txt"
 
 (when (not (os-windows?))
-  (check (path->string (path-from-parts #("/" "tmp" "demo.txt"))) => "/tmp/demo.txt")
-  (check (path-parts (path-from-parts #("/" "tmp" "demo.txt"))) => #("/" "tmp" "demo.txt"))
+  (check (path->string (path-from-parts #("/" "tmp" "demo.txt")
+                       ) ;path-from-parts
+         ) ;path->string
+    =>
+    "/tmp/demo.txt"
+  ) ;check
+  (check (path-parts (path-from-parts #("/" "tmp" "demo.txt")
+                     ) ;path-from-parts
+         ) ;path-parts
+    =>
+    #("/" "tmp" "demo.txt")
+  ) ;check
 ) ;when
 
 (when (os-windows?)
-  (check (path->string (path-from-parts #("C:" "tmp" "demo.txt"))) => "C:\\tmp\\demo.txt")
+  (check (path->string (path-from-parts #("C:" "tmp" "demo.txt")
+                       ) ;path-from-parts
+         ) ;path->string
+    =>
+    "C:\\tmp\\demo.txt"
+  ) ;check
 ) ;when
 
 (check-report)

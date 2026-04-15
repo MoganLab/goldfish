@@ -1,6 +1,4 @@
-(import (liii base64)
-        (liii check)
-) ;import
+(import (liii base64) (liii check))
 
 (check-set-mode! 'report-failed)
 
@@ -37,8 +35,17 @@
 (check (base64-decode "Zg==") => "f")
 (check (base64-decode "Zm8=") => "fo")
 (check (base64-decode "Zm9v") => "foo")
-(check (base64-decode "Zm9vYg==") => "foob")
-(check (base64-decode "Zm9vYmE=") => "fooba")
-(check (base64-decode "Zm9vYmFy") => "foobar")
+(check (base64-decode "Zm9vYg==")
+  =>
+  "foob"
+) ;check
+(check (base64-decode "Zm9vYmE=")
+  =>
+  "fooba"
+) ;check
+(check (base64-decode "Zm9vYmFy")
+  =>
+  "foobar"
+) ;check
 
 (check-report)

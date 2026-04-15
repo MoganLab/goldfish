@@ -58,7 +58,7 @@
 (check (vector->list #(1 2.5 "hello" 'symbol #\c #t #f)
        ) ;vector->list
   =>
-  '(1 2.5 "hello" 'symbol #\c #t #f)
+  '(1 2.5 "hello" (#_quote symbol) #\c #t #f)
 ) ;check
 (check (vector->list #((1 2) (3 4)))
   =>

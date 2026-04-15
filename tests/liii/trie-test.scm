@@ -13,8 +13,8 @@
 (trie-insert! t '(g o l d) 'fish)
 
 ;; 示例3：按路径读取值并导出为列表
-(trie-ref t '(g o l d)) ; => fish
-(trie->list t) ; => 将 trie 转成嵌套列表表示
+(trie-ref t '(g o l d))
+(trie->list t)
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/trie "make-trie"

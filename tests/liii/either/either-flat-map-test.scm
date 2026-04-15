@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -38,28 +38,62 @@
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
 
 (let ((left-val (from-left "error"))
-      (right-val (from-right 5)))
-  (check (to-left (either-flat-map (lambda (x) (from-right (* x 2))) left-val)) => "error")
-  (let ((result (either-flat-map (lambda (x) (from-right (* x 2))) right-val)))
+      (right-val (from-right 5))
+     ) ;
+  (check (to-left (either-flat-map (lambda (x) (from-right (* x 2)))
+                    left-val
+                  ) ;either-flat-map
+         ) ;to-left
+    =>
+    "error"
+  ) ;check
+  (let ((result (either-flat-map (lambda (x) (from-right (* x 2)))
+                  right-val
+                ) ;either-flat-map
+        ) ;result
+       ) ;
     (check-true (either-right? result))
     (check (to-right result) => 10)
   ) ;let
 ) ;let
 
 (let* ((val1 (from-right 10))
-       (val2 (either-flat-map (lambda (x) (from-right (+ x 5))) val1))
-       (val3 (either-flat-map (lambda (x) (from-right (* x 2))) val2)))
+       (val2 (either-flat-map (lambda (x) (from-right (+ x 5)))
+               val1
+             ) ;either-flat-map
+       ) ;val2
+       (val3 (either-flat-map (lambda (x) (from-right (* x 2)))
+               val2
+             ) ;either-flat-map
+       ) ;val3
+      ) ;
   (check-true (either-right? val3))
   (check (to-right val3) => 30)
 ) ;let*
 
-(let ((result (either-flat-map (lambda (x) (from-left (string-append "bad: " (number->string x))))
-                               (from-right 7))))
+(let ((result (either-flat-map (lambda (x)
+                                 (from-left (string-append "bad: "
+                                              (number->string x)
+                                            ) ;string-append
+                                 ) ;from-left
+                               ) ;lambda
+                (from-right 7)
+              ) ;either-flat-map
+      ) ;result
+     ) ;
   (check-true (either-left? result))
   (check (to-left result) => "bad: 7")
 ) ;let
 
-(check-catch 'type-error (either-flat-map (lambda (x) (from-right x)) "not-either"))
-(check-catch 'type-error (either-flat-map "not-a-proc" (from-right 10)))
+(check-catch 'type-error
+  (either-flat-map (lambda (x) (from-right x))
+    "not-either"
+  ) ;either-flat-map
+) ;check-catch
+(check-catch 'type-error
+  (either-flat-map "not-a-proc"
+    (from-right 10)
+  ) ;either-flat-map
+) ;check-catch
 
 (check-report)

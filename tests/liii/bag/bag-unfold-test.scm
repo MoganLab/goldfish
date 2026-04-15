@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -38,46 +38,56 @@
 
 (define b-unfold
   (bag-unfold (lambda (n) (> n 3))
-              (lambda (n) n)
-              (lambda (n) (+ n 1))
-              1
-              comp
+    (lambda (n) n)
+    (lambda (n) (+ n 1))
+    1
+    comp
   ) ;bag-unfold
 ) ;define
 (check (bag-member b-unfold 1 #f) => 1)
 (check (bag-member b-unfold 2 #f) => 2)
 (check (bag-member b-unfold 3 #f) => 3)
-(check (bag-member b-unfold 4 'no) => 'no)
-(check-true (eq? (bag-comparator b-unfold) comp))
+(check (bag-member b-unfold 4 'no)
+  =>
+  'no
+) ;check
+(check-true (eq? (bag-comparator b-unfold) comp)
+) ;check-true
 (check-catch 'type-error
-             (bag-unfold (lambda (n) #t)
-                         (lambda (n) n)
-                         (lambda (n) n)
-                         0
-                         "not a comparator"
-             ) ;bag-unfold
+  (bag-unfold (lambda (n) #t)
+    (lambda (n) n)
+    (lambda (n) n)
+    0
+    "not a comparator"
+  ) ;bag-unfold
 ) ;check-catch
 
 ;; stop? 立即为真，返回空 bag
 (define b-unfold-empty
   (bag-unfold (lambda (n) #t)
-              (lambda (n) n)
-              (lambda (n) n)
-              0
-              comp
+    (lambda (n) n)
+    (lambda (n) n)
+    0
+    comp
   ) ;bag-unfold
 ) ;define
-(check (bag-member b-unfold-empty 1 'none) => 'none)
+(check (bag-member b-unfold-empty 1 'none)
+  =>
+  'none
+) ;check
 
 ;; mapper 返回常量，重复元素也应能命中
 (define b-unfold-dup
   (bag-unfold (lambda (n) (> n 2))
-              (lambda (n) 'x)
-              (lambda (n) (+ n 1))
-              0
-              comp
+    (lambda (n) 'x)
+    (lambda (n) (+ n 1))
+    0
+    comp
   ) ;bag-unfold
 ) ;define
-(check (bag-member b-unfold-dup 'x #f) => 'x)
+(check (bag-member b-unfold-dup 'x #f)
+  =>
+  'x
+) ;check
 
 (check-report)

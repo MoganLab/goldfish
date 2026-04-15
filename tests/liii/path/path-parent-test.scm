@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -28,22 +28,55 @@
 
 (let ((sep (string (os-sep))))
   ;; path-parent 测试
-  (check (path->string (path-parent (path "tmp/demo.txt")))
-         => (string-append "tmp" sep)
+  (check (path->string (path-parent (path "tmp/demo.txt"))
+         ) ;path->string
+    =>
+    (string-append "tmp" sep)
   ) ;check
-  (check (path->string (path-parent (path "tmp"))) => ".")
-  (check (path->string (path-parent (path ""))) => ".")
+  (check (path->string (path-parent (path "tmp"))
+         ) ;path->string
+    =>
+    "."
+  ) ;check
+  (check (path->string (path-parent (path "")))
+    =>
+    "."
+  ) ;check
 
   (when (not (os-windows?))
-    (check (path->string (path-parent (path-root))) => "/")
-    (check (path->string (path-parent (path "/tmp/"))) => "/")
-    (check (path->string (path-parent (path "/tmp/demo.txt"))) => "/tmp/")
-    (check (path->string (path-parent (path-parent (path "/tmp/demo.txt")))) => "/")
+    (check (path->string (path-parent (path-root)))
+      =>
+      "/"
+    ) ;check
+    (check (path->string (path-parent (path "/tmp/"))
+           ) ;path->string
+      =>
+      "/"
+    ) ;check
+    (check (path->string (path-parent (path "/tmp/demo.txt"))
+           ) ;path->string
+      =>
+      "/tmp/"
+    ) ;check
+    (check (path->string (path-parent (path-parent (path "/tmp/demo.txt"))
+                         ) ;path-parent
+           ) ;path->string
+      =>
+      "/"
+    ) ;check
   ) ;when
 
   (when (os-windows?)
-    (check (path->string (path-parent (path "C:\\Users"))) => "C:\\")
-    (check (path->string (path-parent (path "a\\b"))) => "a\\")
+    (check (path->string (path-parent (path "C:\\Users"))
+           ) ;path->string
+      =>
+      "C:\\"
+    ) ;check
+    (check (path->string (path-parent (path "a\\b"))
+           ) ;path->string
+      =>
+      "a\\"
+    ) ;check
   ) ;when
 ) ;let
 

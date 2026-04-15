@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -21,11 +21,18 @@
 ;; ----
 ;; (path->string (path-root)) => "/"
 
-(check (path->string (path-root)) => "/")
-(check (path-type (path-root)) => 'posix)
+(check (path->string (path-root))
+  =>
+  "/"
+) ;check
+(check (path-type (path-root))
+  =>
+  'posix
+) ;check
 
 (when (not (os-windows?))
-  (check-true (path-absolute? (path-root)))
+  (check-true (path-absolute? (path-root))
+  ) ;check-true
 ) ;when
 
 (check-report)

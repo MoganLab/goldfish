@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -30,17 +30,35 @@
 
 (let ((sep (string (os-sep))))
   ;; path-join 测试
-  (check (path->string (path-join (path "tmp") "demo.txt"))
-         => (string-append "tmp" sep "demo.txt")
+  (check (path->string (path-join (path "tmp") "demo.txt")
+         ) ;path->string
+    =>
+    (string-append "tmp" sep "demo.txt")
   ) ;check
-  (check (path->string (path-join (path "tmp") "a" "b" "c.txt"))
-         => (string-append "tmp" sep "a" sep "b" sep "c.txt")
+  (check (path->string (path-join (path "tmp") "a" "b" "c.txt")
+         ) ;path->string
+    =>
+    (string-append "tmp"
+      sep
+      "a"
+      sep
+      "b"
+      sep
+      "c.txt"
+    ) ;string-append
   ) ;check
 
   (when (not (os-windows?))
-    (check (path->string (path-join (path-root) "tmp" "demo.txt")) => "/tmp/demo.txt")
-    (check-true (path-equals? (path-join (path-root) (path "tmp/demo.txt"))
-                              (path "/tmp/demo.txt"))
+    (check (path->string (path-join (path-root) "tmp" "demo.txt")
+           ) ;path->string
+      =>
+      "/tmp/demo.txt"
+    ) ;check
+    (check-true (path-equals? (path-join (path-root)
+                                (path "tmp/demo.txt")
+                              ) ;path-join
+                  (path "/tmp/demo.txt")
+                ) ;path-equals?
     ) ;check-true
   ) ;when
 ) ;let

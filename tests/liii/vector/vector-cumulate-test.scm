@@ -78,7 +78,7 @@
 ) ;check-catch
 (check (vector-cumulate (lambda (x y) (+ x 2))
          0
-         '#('a 'b 'c)
+         '#((#_quote a) (#_quote b) (#_quote c))
        ) ;vector-cumulate
   =>
   #(2 4 6)

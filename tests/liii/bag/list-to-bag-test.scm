@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -26,9 +26,15 @@
 
 (define b-list-1 (list->bag '(1 2 2 3)))
 (check-true (bag? b-list-1))
-(check-true (eq? (bag-comparator b-list-1) comp))
+(check-true (eq? (bag-comparator b-list-1) comp)
+) ;check-true
 (check (bag-size b-list-1) => 4)
-(check (bag-count (lambda (x) (= x 2)) b-list-1) => 2)
+(check (bag-count (lambda (x) (= x 2))
+         b-list-1
+       ) ;bag-count
+  =>
+  2
+) ;check
 (define b-list-empty (list->bag '()))
 (check-true (bag-empty? b-list-empty))
 

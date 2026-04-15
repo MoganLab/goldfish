@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -22,7 +22,11 @@
 ;; path-touch 不会自动创建父目录。如果父目录不存在，返回 #f。
 
 ;; 创建新空文件测试
-(let ((touch-file (path-join (path-temp-dir) "path-touch-basic.txt")))
+(let ((touch-file (path-join (path-temp-dir)
+                    "path-touch-basic.txt"
+                  ) ;path-join
+      ) ;touch-file
+     ) ;
   (when (path-exists? touch-file)
     (delete-file (path->string touch-file))
   ) ;when
@@ -35,18 +39,29 @@
 ) ;let
 
 ;; 更新现有文件时间戳测试
-(let ((touch-file (path-join (path-temp-dir) "path-touch-update.txt")))
+(let ((touch-file (path-join (path-temp-dir)
+                    "path-touch-update.txt"
+                  ) ;path-join
+      ) ;touch-file
+     ) ;
   (when (path-exists? touch-file)
     (delete-file (path->string touch-file))
   ) ;when
   (path-write-text touch-file "keep")
   (check-true (path-touch touch-file))
-  (check (path-read-text touch-file) => "keep")
+  (check (path-read-text touch-file)
+    =>
+    "keep"
+  ) ;check
   (delete-file (path->string touch-file))
 ) ;let
 
 ;; 目录时间戳测试
-(let ((touch-dir (path-join (path-temp-dir) "path-touch-dir")))
+(let ((touch-dir (path-join (path-temp-dir)
+                   "path-touch-dir"
+                 ) ;path-join
+      ) ;touch-dir
+     ) ;
   (when (path-exists? touch-dir)
     (rmdir (path->string touch-dir))
   ) ;when
@@ -57,25 +72,36 @@
 ) ;let
 
 ;; 特殊文件名测试
-(let ((special-file (path-join (path-temp-dir) "path-touch-special_中文#.txt")))
+(let ((special-file (path-join (path-temp-dir)
+                      "path-touch-special_中文#.txt"
+                    ) ;path-join
+      ) ;special-file
+     ) ;
   (when (path-exists? special-file)
-    (delete-file (path->string special-file))
+    (delete-file (path->string special-file)
+    ) ;delete-file
   ) ;when
   (check-true (path-touch special-file))
   (check-true (path-exists? special-file))
-  (delete-file (path->string special-file))
+  (delete-file (path->string special-file)
+  ) ;delete-file
 ) ;let
 
 ;; 相对路径与重复调用测试
-(let ((relative-file (path "path-touch-relative.txt")))
+(let ((relative-file (path "path-touch-relative.txt")
+      ) ;relative-file
+     ) ;
   (when (path-exists? relative-file)
-    (delete-file (path->string relative-file))
+    (delete-file (path->string relative-file)
+    ) ;delete-file
   ) ;when
   (check-true (path-touch relative-file))
   (check-true (path-touch relative-file))
   (check-true (path-touch relative-file))
-  (check-true (path-exists? relative-file))
-  (delete-file (path->string relative-file))
+  (check-true (path-exists? relative-file)
+  ) ;check-true
+  (delete-file (path->string relative-file)
+  ) ;delete-file
 ) ;let
 
 (check-report)

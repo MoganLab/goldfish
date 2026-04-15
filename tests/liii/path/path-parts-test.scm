@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -23,11 +23,22 @@
 ;; 返回包含路径各部分的字符串向量。
 
 (check (path-parts (path)) => #("."))
-(check (path-parts (path-root)) => #("/"))
-(check (path-parts (path-of-drive #\c)) => #())
+(check (path-parts (path-root))
+  =>
+  #("/")
+) ;check
+(check (path-parts (path-of-drive #\c))
+  =>
+  #()
+) ;check
 
 (when (not (os-windows?))
-  (check (path-parts (path-from-parts #("/" "tmp" "demo.txt"))) => #("/" "tmp" "demo.txt"))
+  (check (path-parts (path-from-parts #("/" "tmp" "demo.txt")
+                     ) ;path-from-parts
+         ) ;path-parts
+    =>
+    #("/" "tmp" "demo.txt")
+  ) ;check
 ) ;when
 
 (check-report)

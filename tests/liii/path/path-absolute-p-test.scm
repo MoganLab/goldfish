@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -29,17 +29,25 @@
 ;; 基本绝对/相对路径测试
 (check-false (path-absolute? (path)))
 (check-false (path-absolute? (path "")))
-(check-false (path-absolute? (path "relative.txt")))
-(check-true (path-absolute? (path-of-drive #\C)))
+(check-false (path-absolute? (path "relative.txt"))
+) ;check-false
+(check-true (path-absolute? (path-of-drive #\C))
+) ;check-true
 
 (when (not (os-windows?))
-  (check-true (path-absolute? (path-root)))
-  (check-true (path-absolute? (path-join (path-root) "tmp")))
-  (check-true (path-absolute? (path "/tmp/demo.txt")))
+  (check-true (path-absolute? (path-root))
+  ) ;check-true
+  (check-true (path-absolute? (path-join (path-root) "tmp")
+              ) ;path-absolute?
+  ) ;check-true
+  (check-true (path-absolute? (path "/tmp/demo.txt"))
+  ) ;check-true
 ) ;when
 
-(check-true (path-absolute? (path-home)))
-(check-true (path-absolute? (path-temp-dir)))
+(check-true (path-absolute? (path-home))
+) ;check-true
+(check-true (path-absolute? (path-temp-dir))
+) ;check-true
 (check-true (path-absolute? (path-cwd)))
 
 (check-report)
