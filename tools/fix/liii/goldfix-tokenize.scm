@@ -179,7 +179,7 @@
            (let ((first (fix-line-first-code-token line)))
              (and first
                   (= (fix-token-offset token)
-                     (fix-token-offset first)))))))
+                     (fix-token-offset first))))))
 
     (define (tokenize source)
       (let ((len (string-length source))
@@ -303,9 +303,9 @@
         (let loop ((pos 0)
                    (starts '(0)))
           (if (>= pos len)
-              (build-lines source tokens starts)
+              (build-lines source tokens (reverse starts))
               (if (char=? (string-ref source pos) #\newline)
-                  (loop (+ pos 1) (append starts (list (+ pos 1))))
-                  (loop (+ pos 1) starts)))))
+                  (loop (+ pos 1) (cons (+ pos 1) starts))
+                  (loop (+ pos 1) starts))))))
   ) ;begin
 ) ;define-library
