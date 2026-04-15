@@ -66,6 +66,17 @@
 (check (format-string "'(a b . c)")
        => "'(a b . c)\n")
 
+;; bare syntax object 不应导致 formatter 崩溃
+(check (format-string "#_quote")
+       => "#_quote\n")
+
+;; quasiquote 内部形式应该还原为 ` , ,@ 语法
+(check (format-string "`(a ,b)")
+       => "`(a ,b)\n")
+
+(check (format-string "`(a ,@b)")
+       => "`(a ,@b)\n")
+
 ;; 测试长列表不会被截断为 ...
 ;; 这是修复 (*s7* 'print-length) 截断问题的回归测试
 (check (format-string "(check (assoc 'key50 '((key1 . val1) (key2 . val2) (key3 . val3) (key4 . val4) (key5 . val5) (key6 . val6) (key7 . val7) (key8 . val8) (key9 . val9) (key10 . val10) (key11 . val11) (key12 . val12) (key13 . val13) (key14 . val14) (key15 . val15) (key16 . val16) (key17 . val17) (key18 . val18) (key19 . val19) (key20 . val20) (key21 . val21) (key22 . val22) (key23 . val23) (key24 . val24) (key25 . val25) (key26 . val26) (key27 . val27) (key28 . val28) (key29 . val29) (key30 . val30) (key31 . val31) (key32 . val32) (key33 . val33) (key34 . val34) (key35 . val35) (key36 . val36) (key37 . val37) (key38 . val38) (key39 . val39) (key40 . val40) (key41 . val41) (key42 . val42) (key43 . val43) (key44 . val44) (key45 . val45) (key46 . val46) (key47 . val47) (key48 . val48) (key49 . val49) (key50 . val50))) => '(key50 . val50))")

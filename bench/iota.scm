@@ -1,5 +1,5 @@
 ;;; IOTA 函数性能基准测试
-;;; Copyright (C) 2024 The Goldfish Scheme Authors
+;;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;; 比较三个实现版本的性能差异
 
 (import (scheme time)

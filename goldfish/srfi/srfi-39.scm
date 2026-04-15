@@ -1,6 +1,6 @@
-; 0-clause BSD
-; Bill Schottstaedt
-; from S7 source repo: r7rs.scm
+;; 0-clause BSD
+;; Bill Schottstaedt
+;; from S7 source repo: r7rs.scm
 
 (define-library (srfi srfi-39)
   (export make-parameter parameterize)
