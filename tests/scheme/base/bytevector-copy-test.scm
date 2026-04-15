@@ -36,50 +36,53 @@
 ;; 参数数量不正确时抛出错误。
 ;; bytevector-copy 基本测试
 (check (bytevector-copy #u()) => #u())
-(check (bytevector-copy #u(1 2 3))
+(check (bytevector-copy #u8(1 2 3))
   =>
-  #u(1 2 3)
+  #u8(1 2 3)
 ) ;check
-(check (bytevector-copy #u(255 0 128))
+(check (bytevector-copy #u8(255 0 128))
   =>
-  #u(255 0 128)
+  #u8(255 0 128)
 ) ;check
 ;; 段复制测试
-(check (bytevector-copy #u(1 2 3 4 5) 0 3)
+(check (bytevector-copy #u8(1 2 3 4 5) 0 3)
   =>
-  #u(1 2 3)
+  #u8(1 2 3)
 ) ;check
-(check (bytevector-copy #u(1 2 3 4 5) 1 4)
+(check (bytevector-copy #u8(1 2 3 4 5) 1 4)
   =>
-  #u(2 3 4)
+  #u8(2 3 4)
 ) ;check
-(check (bytevector-copy #u(1 2 3 4 5) 2)
+(check (bytevector-copy #u8(1 2 3 4 5) 2)
   =>
-  #u(3 4 5)
+  #u8(3 4 5)
 ) ;check
 ;; 边界测试
-(check (bytevector-copy #u(50 100 150) 0 0)
+(check (bytevector-copy #u8(50 100 150) 0 0)
   =>
   #u()
 ) ;check
-(check (bytevector-copy #u(50 100 150) 0 1)
+(check (bytevector-copy #u8(50 100 150) 0 1)
   =>
-  #u(50)
+  #u8(50)
 ) ;check
-(check (bytevector-copy #u(50 100 150) 2 3)
+(check (bytevector-copy #u8(50 100 150) 2 3)
   =>
-  #u(150)
+  #u8(150)
 ) ;check
 ;; 完整范围
-(check (bytevector-copy #u(10 20 30 40 50) 0 5)
+(check (bytevector-copy #u8(10 20 30 40 50)
+         0
+         5
+       ) ;bytevector-copy
   =>
-  #u(10 20 30 40 50)
+  #u8(10 20 30 40 50)
 ) ;check
 ;; 独立对象测试
 (let ((bv (bytevector 1 2 3 4 5)))
   (check (bytevector-copy bv 1 4)
     =>
-    #u(2 3 4)
+    #u8(2 3 4)
   ) ;check
 ) ;let
 ;; 错误处理
@@ -90,27 +93,27 @@
   (bytevector-copy "hello")
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-copy #u(1 2 3) -1)
+  (bytevector-copy #u8(1 2 3) -1)
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-copy #u(1 2 3) 4)
+  (bytevector-copy #u8(1 2 3) 4)
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-copy #u(1 2 3) 0 5)
+  (bytevector-copy #u8(1 2 3) 0 5)
 ) ;check-catch
 (check-catch 'out-of-range
-  (bytevector-copy #u(1 2 3) 2 1)
+  (bytevector-copy #u8(1 2 3) 2 1)
 ) ;check-catch
 (check (bytevector-append #u() #u())
   =>
   #u()
 ) ;check
-(check (bytevector-append #u() #u(1))
+(check (bytevector-append #u() #u8(1))
   =>
-  #u(1)
+  #u8(1)
 ) ;check
-(check (bytevector-append #u(1) #u())
+(check (bytevector-append #u8(1) #u())
   =>
-  #u(1)
+  #u8(1)
 ) ;check
 (check-report)

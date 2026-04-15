@@ -274,9 +274,9 @@
   =>
   #(1 2 3)
 ) ;check
-(check (cadr '(#t #u(255 128) #f))
+(check (cadr '(#t #u8(255 128) #f))
   =>
-  #u(255 128)
+  #u8(255 128)
 ) ;check
 ;; 边界测试集4：Unicode边界测试
 (check (cadr '("特殊&符号" "正常字符串")

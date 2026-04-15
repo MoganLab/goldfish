@@ -107,18 +107,18 @@
 ;; u8 vector (bytevector) 读取测试
 (let ((port (open-input-string "#u8(1 2 3)"))
      ) ;
-  (check (read port) => #u(1 2 3))
+  (check (read port) => #u8(1 2 3))
 ) ;let
 (let ((port (open-input-string "#u8(0 255 127)")
       ) ;port
      ) ;
-  (check (read port) => #u(0 255 127))
+  (check (read port) => #u8(0 255 127))
 ) ;let
 (let ((port (open-input-string "#u8()")))
   (check (read port) => #u())
 ) ;let
 (let ((port (open-input-string "#u(1 2 3)")))
-  (check (read port) => #u(1 2 3))
+  (check (read port) => #u8(1 2 3))
 ) ;let
 ;; 引号语法测试
 (let ((port (open-input-string "'hello")))
