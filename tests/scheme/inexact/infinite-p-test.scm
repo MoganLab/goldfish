@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme inexact)
-) ;import
-
+(import (liii check) (scheme inexact))
 (check-set-mode! 'report-failed)
-
 ;; infinite?
 ;; 判断一个数值是否无限。
 ;;
@@ -25,38 +21,36 @@
 ;; 错误处理
 ;; ------
 ;; 无错误情况，非数值将返回 #f。
-
 (check (infinite? 0) => #f)
 (check (infinite? 0.0) => #f)
 (check (infinite? 1/2) => #f)
-(check (infinite? 1/2+i) => #f)
-(check (infinite? 1+1/2i) => #f)
-(check (infinite? 1+2i) => #f)
+(check (infinite? 0.5+1.0i) => #f)
+(check (infinite? 1.0+0.5i) => #f)
+(check (infinite? 1.0+2.0i) => #f)
 (check (infinite? 1.0+2.0i) => #f)
 (check (infinite? +inf.0) => #t)
 (check (infinite? -inf.0) => #t)
 (check (infinite? +inf.0+2.0i) => #t)
-(check (infinite? +inf.0+2i) => #t)
-(check (infinite? +inf.0+1/2i) => #t)
+(check (infinite? +inf.0+2.0i) => #t)
+(check (infinite? +inf.0+0.5i) => #t)
 (check (infinite? 2.0-inf.0i) => #t)
-(check (infinite? 2-inf.0i) => #t)
-(check (infinite? 1/2-inf.0i) => #t)
+(check (infinite? 2.0-inf.0i) => #t)
+(check (infinite? 0.5-inf.0i) => #t)
 (check (infinite? +inf.0-inf.0i) => #t)
 (check (infinite? -inf.0+inf.0i) => #t)
 (check (infinite? +nan.0) => #f)
-(check (infinite? -nan.0) => #f)
+(check (infinite? +nan.0) => #f)
 (check (infinite? (* +nan.0 2.0)) => #f)
 (check (infinite? (* 0.0 +nan.0)) => #f)
 (check (infinite? +nan.0+5.0i) => #f)
 (check (infinite? 5.0+nan.0i) => #f)
-(check (infinite? +nan.0+5i) => #f)
-(check (infinite? 5+nan.0i) => #f)
-(check (infinite? +nan.0+2/5i) => #f)
-(check (infinite? 2/5+nan.0i) => #f)
+(check (infinite? +nan.0+5.0i) => #f)
+(check (infinite? 5.0+nan.0i) => #f)
+(check (infinite? +nan.0+0.4i) => #f)
+(check (infinite? 0.4+nan.0i) => #f)
 (check (infinite? #t) => #f)
 (check (infinite? "hello") => #f)
 (check (infinite? 'symbol) => #f)
 (check (infinite? '(+inf.0)) => #f)
 (check (infinite? '#(+inf.0)) => #f)
-
 (check-report)

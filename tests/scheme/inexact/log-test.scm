@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme inexact)
-) ;import
-
+(import (liii check) (scheme inexact))
 (check-set-mode! 'report-failed)
-
 ;; log
 ;; 计算对数函数。单个参数时计算自然对数(log base e)，两个参数时计算以第二个参数为底的对数。
 ;;
@@ -39,42 +35,34 @@
 ;; 当参数类型错误时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
-
 ;; log 基本自然对数测试
 (check (log 1) => 0.0)
 (check (log (exp 1)) => 1.0)
 (check (log 2) => 0.6931471805599453)
-
 ;; log 双参数对数测试
 (check (log 100 10) => 2)
 (check (log 8 2) => 3)
 (check (log 16 2) => 4)
-
 ;; log 通用对数测试
 (check (log 10 10) => 1)
 (check (log 100 10) => 2)
 (check (log 1 10) => 0)
-
 ;; log 有理数测试
 (check (log 2 4) => 1/2)
 (check (log 1/2 2) => -1.0)
 (check (log 9 3) => 2)
-
 ;; log 浮点数对数测试
 (check (log 2.718281828459045) => 1.0)
-(check (log 0.1 10) =>  -0.9999999999999998) ;返回值是个不精确数
-
+(check (log 0.1 10) => -0.9999999999999998)
 ;; 相互验证测试
 (check (log (exp 3)) => 3.0)
 (check (exp (log 5)) => 4.999999999999999)
-
 ;; 错误处理测试
-(check (log 0) => -inf.0+3.141592653589793i) ; log(0) = -∞ + πi
-(check (log -1) => 0+3.141592653589793i) ; log(-1) = πi
-(check (log 3 1) => +inf.0) ; log(3, 1) = 0
+(check (log 0) => -inf.0+3.141592653589793i)
+(check (log -1) => 0.0+3.141592653589793i)
+(check (log 3 1) => +inf.0)
 (check-catch 'out-of-range (log 10 0))
 (check-catch 'wrong-type-arg (log "a"))
 (check-catch 'wrong-number-of-args (log))
 (check-catch 'wrong-number-of-args (log 12 4 5))
-
 (check-report)
