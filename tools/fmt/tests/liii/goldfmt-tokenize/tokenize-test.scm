@@ -18,7 +18,7 @@
   (check (list? tokens) => #t)
   (check (length tokens) => 1)
   (check (caar tokens) => 'comment)
-  (check (cdar tokens) => "这是一个注释"))
+  (check (cdar tokens) => " 这是一个注释"))
 
 ;; 测试 tokenize：空注释
 (let ((tokens (tokenize ";;")))
@@ -31,8 +31,8 @@
 (let ((tokens (tokenize ";; 注释1\n;; 注释2\n;; 注释3")))
   (check (list? tokens) => #t)
   (check (length tokens) => 3)
-  (check (cdar tokens) => "注释1")
-  (check (cdadr tokens) => "注释2")
+  (check (cdar tokens) => " 注释1")
+  (check (cdadr tokens) => " 注释2")
   (check (car (caddr tokens)) => 'comment))
 
 ;; 测试 tokenize：代码和注释混合
@@ -41,6 +41,7 @@
   (check (length tokens) => 3)
   (check (caar tokens) => 'code)
   (check (caadr tokens) => 'comment)
+  (check (cdadr tokens) => " 注释")
   (check (caaddr tokens) => 'code))
 
 ;; 测试 tokenize：字符串中的分号不应被视为注释
@@ -71,6 +72,30 @@
 (let ((tokens (tokenize "  ;; 前面有空格的注释  ")))
   (check (list? tokens) => #t)
   (check (length tokens) => 1)
-  (check (cdar tokens) => "前面有空格的注释"))
+  (check (cdar tokens) => " 前面有空格的注释"))
+
+;; 测试 tokenize：注释内容中保留空格
+(let ((tokens (tokenize ";;   前面有多个空格")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 1)
+  (check (cdar tokens) => "   前面有多个空格"))
+
+;; 测试 tokenize：注释内容中尾部空格被移除
+(let ((tokens (tokenize ";; 尾部有空格   ")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 1)
+  (check (cdar tokens) => " 尾部有空格"))
+
+;; 测试 tokenize：只有 ;; 没有内容
+(let ((tokens (tokenize ";;")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 1)
+  (check (cdar tokens) => ""))
+
+;; 测试 tokenize：;; 后只有一个空格
+(let ((tokens (tokenize ";; " )))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 1)
+  (check (cdar tokens) => " "))
 
 (check-report)

@@ -301,10 +301,12 @@
     ;;; 辅助函数：提取注释内容
     ;;; 输入: 一行文本和注释开始位置
     ;;; 返回: 注释内容（不含 ;; 前缀）
+    ;;; 保留前导空格，移除尾部空格；如果只有空格则保留原样
     (define (extract-comment-content line comment-pos)
-      (string-trim-both 
-        (substring line (+ comment-pos 2))
-      ) ;string-trim-both
+      (let ((raw-content (substring line (+ comment-pos 2))))
+        (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) raw-content)
+            raw-content
+            (string-trim-right raw-content)))
     ) ;define
     
     ;;; 辅助函数：将注释内容转义为可在字符串中使用的形式

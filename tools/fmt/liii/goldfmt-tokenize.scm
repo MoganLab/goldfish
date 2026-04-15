@@ -170,33 +170,30 @@
                     ) ;
                     
                      ((and (char=? c #\;) (char=? next-c #\;))
-                       (if (and (not (string-null? current-line))
-                                (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) current-line)))
-                           (set! tokens (cons (cons 'code current-line) tokens))
-                       ) ;if
-                       (let
-                         ((comment-content
-                           (string-trim-both 
-                             (substring content (+ i 2) 
-                                       (let ((newline-pos (string-index content #\newline i)))
-                                         (or newline-pos len)
-                                       ) ;let
-                             ) ;substring
-                           ) ;string-trim-both
-                          ) ;comment-content
-                         ) ;
-                         (set! tokens (cons (cons 'comment comment-content) tokens))
-                       ) ;let
-                       (let ((newline-pos (string-index content #\newline i)))
-                         (if newline-pos
-                             (begin
-                               (set! current-line "")
-                               (process-char (+ newline-pos 1))
-                             ) ;begin
-                             (reverse tokens)
-                         ) ;if
-                       ) ;let
-                     ) ;
+                        (if (and (not (string-null? current-line))
+                                 (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) current-line)))
+                            (set! tokens (cons (cons 'code current-line) tokens))
+                        ) ;if
+                          (let*
+                           ((comment-start (+ i 2))
+                            (newline-pos (string-index content #\newline i))
+                            (comment-end (or newline-pos len))
+                            (raw-content (substring content comment-start comment-end))
+                            (trimmed-content
+                              (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) raw-content)
+                                  raw-content
+                                  (string-trim-right raw-content)))
+                            ) ;let*
+                           (set! tokens (cons (cons 'comment trimmed-content) tokens))
+                          (if newline-pos
+                              (begin
+                                (set! current-line "")
+                                (process-char (+ newline-pos 1))
+                              ) ;begin
+                              (reverse tokens)
+                          ) ;if
+                        ) ;let*
+                      ) ;
                      
                      ((char=? c #\newline)
                       (if (and (not (string-null? current-line))

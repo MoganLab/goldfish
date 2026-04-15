@@ -106,10 +106,10 @@
     ) ;define
 
     (define (format-comment-content content)
-      (if (string=? content "")
-          ";;"
-          (string-append ";; " content)
-      ) ;if
+      (if (or (string=? content "")
+              (char=? (string-ref content 0) #\space))
+          (string-append ";;" content)
+          (string-append ";; " content))
     ) ;define
 
     (define (contains-comment? node)
