@@ -1,15 +1,15 @@
-; SRFI-1 list-processing library                      -*- Scheme -*-
-; Reference implementation
-;
-; SPDX-License-Identifier: MIT
-;
-; Copyright (c) 1998, 1999 by Olin Shivers. You may do as you please with
-; this code as long as you do not remove this copyright notice or
-; hold me liable for its use. Please send bug reports to shivers@ai.mit.edu.
-; -Olin
-;
-; Copyright (c) 2024 The Goldfish Scheme Authors
-; Follow the same License as the original one
+;; SRFI-1 list-processing library                      -*- Scheme -*-
+;; Reference implementation
+;;
+;; SPDX-License-Identifier: MIT
+;;
+;; Copyright (c) 1998, 1999 by Olin Shivers. You may do as you please with
+;; this code as long as you do not remove this copyright notice or
+;; hold me liable for its use. Please send bug reports to shivers@ai.mit.edu.
+;; -Olin
+;;
+;; Copyright (c) 2024 The Goldfish Scheme Authors
+;; Follow the same License as the original one
 
 (define-library (srfi srfi-1)
   (import (liii error) (liii base))
