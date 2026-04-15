@@ -280,12 +280,7 @@
   ) ;display
   (let* ((r (http-post "https://server.simpletex.cn/api/latex_ocr_turbo"
               :headers
-              (#_list-values
-               (<list*>
-                (#_list-values "token")
-                simpletex-api-key
-               ) ;
-              ) ;
+              '(("token" . simpletex-api-key))
               :files
               '(("file" (file . "tests/resources/simpletex-formula-a2-b2.png") (filename . "simpletex-formula-a2-b2.png") (content-type . "image/png")))
             ) ;http-post

@@ -42,11 +42,7 @@
 ;; ----
 ;; type-error 当 json 不是 JSON 对象或数组时。
 
-(let* ((j0 (#_list-values
-            (<list*> (#_list-values 'age) 18)
-            (<list*> (#_list-values 'sex) 'male)
-           ) ;
-       ) ;j0
+(let* ((j0 '((age . 18) (sex . male)))
        (j1 (json-set j0 'age 19))
        (j2 (json-set j0 'age 'null))
       ) ;
@@ -55,11 +51,7 @@
   (check (json-ref j2 'age) => 'null)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (<list*> (#_list-values "age") 18)
-            (<list*> (#_list-values "sex") 'male)
-           ) ;
-       ) ;j0
+(let* ((j0 '(("age" . 18) ("sex" . male)))
        (j1 (json-set j0 "age" 19))
       ) ;
   (check (json-ref j1 "age") => 19)
@@ -124,24 +116,14 @@
   (check (json-ref j1 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (<list*> (#_list-values 'age) 18)
-            (<list*> (#_list-values 'sex) 'male)
-           ) ;
-       ) ;j0
+(let* ((j0 '((age . 18) (sex . male)))
        (j1 20)
        (j2 (json-set j0 'age j1))
       ) ;
   (check (json-ref j2 'age) => 20)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 26)
        (j2 (json-set j0 'person 'age j1))
@@ -149,19 +131,9 @@
   (check (json-ref j2 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
-       (j1 (#_list-values
-            (<list*> (#_list-values 'name) "Bob")
-            (<list*> (#_list-values 'age) 30)
-           ) ;
-       ) ;j1
+       (j1 '((name . "Bob") (age . 30)))
        (j2 (json-set j0 'person j1))
       ) ;
   (check (json-ref j2 'person 'name)
@@ -171,24 +143,9 @@
   (check (json-ref j2 'person 'age) => 30)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
-       (j1 (#_list-values
-            (#_list-values
-              'address
-              (<list*>
-               (#_list-values 'city)
-               "Wonderland"
-              ) ;
-              (<list*> (#_list-values 'zip) "12345")
-            ) ;
-           ) ;
+       (j1 '((address (city . "Wonderland") (zip . "12345")))
        ) ;j1
        (j2 (json-set j0 'person j1))
       ) ;
@@ -202,13 +159,7 @@
   ) ;check
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 "Wonderland")
        (j2 (json-set (json-push j0 'person 'city j1)
@@ -225,13 +176,7 @@
   (check (json-ref j2 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 'null)
        (j2 (json-set j0 'person 'age j1))

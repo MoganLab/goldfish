@@ -113,13 +113,7 @@
   (check (json-ref j1 'flags #t) => "yes")
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 "Wonderland")
        (j2 (json-push j0 'person 'city j1))
@@ -130,21 +124,9 @@
   ) ;check
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
-       (j1 (#_list-values
-            (<list*>
-             (#_list-values 'city)
-             "Wonderland"
-            ) ;
-            (<list*> (#_list-values 'zip) "12345")
-           ) ;
+       (j1 '((city . "Wonderland") (zip . "12345"))
        ) ;j1
        (j2 (json-push j0 'person 'address j1))
       ) ;
@@ -158,13 +140,7 @@
   ) ;check
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 'true)
        (j2 (json-push j0 'person 'active j1))
@@ -175,13 +151,7 @@
   ) ;check
 ) ;let*
 
-(let* ((j0 (#_list-values
-            (#_list-values
-              'person
-              (<list*> (#_list-values 'name) "Alice")
-              (<list*> (#_list-values 'age) 25)
-            ) ;
-           ) ;
+(let* ((j0 '((person (name . "Alice") (age . 25)))
        ) ;j0
        (j1 #(1 2 3))
        (j2 (json-push j0 'person 'scores j1))
