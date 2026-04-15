@@ -22,7 +22,7 @@
 ;; 示例3：为任意字符串生成合适的 delimiter
 (define s "<p>\"quoted\"</p>")
 (define d (generate-delimiter s))
-(can-delimit? s d) ; => #t
+(can-delimit? s d)
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/raw-string "deindent"

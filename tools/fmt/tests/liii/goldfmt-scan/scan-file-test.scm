@@ -103,4 +103,20 @@
       (check (raw-string-literal-value literal)
              => "\n  ;; not a comment\n  SELECT 1\n  "))))
 
+;; 测试 006_05.scm：空 delimiter 的 raw string 结束后，后续注释不应丢失
+(let ((results (scan-file (resource-file "006_05.scm"))))
+  (check (vector? results) => #t)
+  (check (vector-length results) => 4)
+  (let ((first (vector-ref results 0))
+        (second (vector-ref results 1))
+        (third (vector-ref results 2))
+        (fourth (vector-ref results 3)))
+    (check (env-tag-name first) => "define")
+    (check (env-tag-name second) => "*comment*")
+    (check (env-tag-name third) => "define")
+    (check (env-tag-name fourth) => "*newline*")
+    (let ((content (vector-ref (env-children second) 0)))
+      (check (atom? content) => #t)
+      (check (atom-value content) => " raw string 后的注释"))))
+
 (check-report)

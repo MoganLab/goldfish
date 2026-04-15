@@ -1,5 +1,4 @@
-(import (liii check)
-        (srfi srfi-13))
+(import (liii check) (srfi srfi-13))
 
 ;; string-suffix?
 ;; 检查字符串是否以指定后缀结束。
@@ -43,78 +42,204 @@
 ;; ----
 ;; type-error 当任一参数不是字符串类型时抛出。
 
-; string-suffix? 基本功能验证测试
-(check (string-suffix? "" "hello") => #t)
-(check (string-suffix? "o" "hello") => #t)
-(check (string-suffix? "lo" "hello") => #t)
-(check (string-suffix? "llo" "hello") => #t)
-(check (string-suffix? "ello" "hello") => #t)
-(check (string-suffix? "hello" "hello") => #t)
-(check (string-suffix? "123" "test123") => #t)
+(check (string-suffix? "" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "o" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "lo" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "llo" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "ello" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "hello" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "123" "test123")
+  =>
+  #t
+) ;check
 (check (string-suffix? "" "") => #t)
 (check (string-suffix? "a" "a") => #t)
-(check (string-suffix? "abc" "abc") => #t)
+(check (string-suffix? "abc" "abc")
+  =>
+  #t
+) ;check
 
-; 边界条件和特殊情况测试
 (check (string-suffix? "b" "ab") => #t)
 (check (string-suffix? "" "a") => #t)
 (check (string-suffix? "" "") => #t)
 (check (string-suffix? "a" "a") => #t)
 (check (string-suffix? "ab" "a") => #f)
-(check (string-suffix? "short-right" "long-suffix-long") => #f)
+(check (string-suffix? "short-right"
+         "long-suffix-long"
+       ) ;string-suffix?
+  =>
+  #f
+) ;check
 
-; 复杂场景和Unicode支持测试
-(check (string-suffix? "文" "中文") => #t)
-(check (string-suffix? "测试" "中文测试") => #t)
-(check (string-suffix? "code" "unicode") => #t)
-(check (string-suffix? "🎉" "🌟🎉") => #t)
-(check (string-suffix? "123abc" "中文123abc") => #t)
-(check (string-suffix? "边界处理" "测试多功能边界处理") => #t)
+(check (string-suffix? "文" "中文")
+  =>
+  #t
+) ;check
+(check (string-suffix? "测试" "中文测试")
+  =>
+  #t
+) ;check
+(check (string-suffix? "code" "unicode")
+  =>
+  #t
+) ;check
+(check (string-suffix? "🎉" "🌟🎉")
+  =>
+  #t
+) ;check
+(check (string-suffix? "123abc" "中文123abc")
+  =>
+  #t
+) ;check
+(check (string-suffix? "边界处理"
+         "测试多功能边界处理"
+       ) ;string-suffix?
+  =>
+  #t
+) ;check
 
-; 字符串与自身关系测试
-(check (string-suffix? "hello" "hello") => #t)
-(check (string-suffix? "world" "world") => #t)
-(check (string-suffix? "完整测试" "完整测试") => #t)
+(check (string-suffix? "hello" "hello")
+  =>
+  #t
+) ;check
+(check (string-suffix? "world" "world")
+  =>
+  #t
+) ;check
+(check (string-suffix? "完整测试"
+         "完整测试"
+       ) ;string-suffix?
+  =>
+  #t
+) ;check
 
-; 空字符串作为字符串参数测试
 (check (string-suffix? "" "") => #t)
 (check (string-suffix? "a" "") => #f)
-(check (string-suffix? "hello" "") => #f)
+(check (string-suffix? "hello" "")
+  =>
+  #f
+) ;check
 
-; 长后缀与短字符串对比测试
-(check (string-suffix? "longer-than-original" "short") => #f)
-(check (string-suffix? "versity" "university") => #t)
-(check (string-suffix? "ing" "testing") => #t)
+(check (string-suffix? "longer-than-original"
+         "short"
+       ) ;string-suffix?
+  =>
+  #f
+) ;check
+(check (string-suffix? "versity" "university")
+  =>
+  #t
+) ;check
+(check (string-suffix? "ing" "testing")
+  =>
+  #t
+) ;check
 
-; 大小写敏感验证测试
-(check (string-suffix? "Test" "hello Test") => #t)
-(check (string-suffix? "test" "hello Test") => #f)
-(check (string-suffix? "TEST" "test") => #f)
-(check (string-suffix? "大写" "测试中文字符大写") => #t)
-(check (string-suffix? "小" "全部字符小") => #t)
+(check (string-suffix? "Test" "hello Test")
+  =>
+  #t
+) ;check
+(check (string-suffix? "test" "hello Test")
+  =>
+  #f
+) ;check
+(check (string-suffix? "TEST" "test")
+  =>
+  #f
+) ;check
+(check (string-suffix? "大写"
+         "测试中文字符大写"
+       ) ;string-suffix?
+  =>
+  #t
+) ;check
+(check (string-suffix? "小" "全部字符小")
+  =>
+  #t
+) ;check
 
-; 特殊字符和模式测试
-(check (string-suffix? "_file" "_hidden_file") => #t)
-(check (string-suffix? "/path" "filedir/path") => #t)
-(check (string-suffix? " multiple" "with multiple spaces multiple") => #t)
+(check (string-suffix? "_file" "_hidden_file")
+  =>
+  #t
+) ;check
+(check (string-suffix? "/path" "filedir/path")
+  =>
+  #t
+) ;check
+(check (string-suffix? " multiple"
+         "with multiple spaces multiple"
+       ) ;string-suffix?
+  =>
+  #t
+) ;check
 
-; 哨兵值和边界值测试
-(check (string-suffix? "" "single-char") => #t)
-(check (string-suffix? "🙂" "🙂") => #t)
-(check (string-suffix? "b⚡c" "testb⚡c") => #t)
+(check (string-suffix? "" "single-char")
+  =>
+  #t
+) ;check
+(check (string-suffix? "🙂" "🙂")
+  =>
+  #t
+) ;check
+(check (string-suffix? "b⚡c" "testb⚡c")
+  =>
+  #t
+) ;check
 
-; 文件扩展名模拟测试
-(check (string-suffix? ".txt" "document.txt") => #t)
-(check (string-suffix? ".json" "data.json") => #t)
-(check (string-suffix? ".tmu" "report.tmu") => #t)
-(check (string-suffix? "backup.txt" "file.backup.txt") => #t)
+(check (string-suffix? ".txt" "document.txt")
+  =>
+  #t
+) ;check
+(check (string-suffix? ".json" "data.json")
+  =>
+  #t
+) ;check
+(check (string-suffix? ".tmu" "report.tmu")
+  =>
+  #t
+) ;check
+(check (string-suffix? "backup.txt"
+         "file.backup.txt"
+       ) ;string-suffix?
+  =>
+  #t
+) ;check
 
-; 错误处理 - 类型验证
-(check-catch 'wrong-type-arg (string-suffix? 123 "hello"))
-(check-catch 'wrong-type-arg (string-suffix? "hello" 123))
-(check-catch 'wrong-type-arg (string-suffix? '(a b c) "hello"))
-(check-catch 'wrong-type-arg (string-suffix? "hello" #\c))
-(check-catch 'wrong-type-arg (string-suffix? "hello" 'symbol))
-(check-catch 'wrong-type-arg (string-suffix? '() "hello"))
+(check-catch 'wrong-type-arg
+  (string-suffix? 123 "hello")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-suffix? "hello" 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-suffix? '(a b c) "hello")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-suffix? "hello" #\c)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-suffix? "hello" 'symbol)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-suffix? '() "hello")
+) ;check-catch
 
 (check-report)

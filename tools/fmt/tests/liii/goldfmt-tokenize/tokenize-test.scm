@@ -129,4 +129,13 @@
   (check (length tokens) => 1)
   (check (caar tokens) => 'code))
 
+;; 测试 tokenize：空 delimiter 的 raw string 结束后，后续行注释仍能被识别
+(let ((tokens (tokenize "#\"\"\n  SELECT 1\n  \"\"\n;; 注释\n(define x 1)")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 3)
+  (check (caar tokens) => 'code)
+  (check (caadr tokens) => 'comment)
+  (check (cdadr tokens) => " 注释")
+  (check (caaddr tokens) => 'code))
+
 (check-report)

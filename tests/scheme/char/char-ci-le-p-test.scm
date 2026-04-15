@@ -77,12 +77,10 @@
 (check (char-ci<=? #\@ #\newline) => #f)
 (check (char-ci<=? #\! #\") => #t)
 (check (char-ci<=? #\! #\!) => #t)
-;; 数字字符测试
 (check (char-ci<=? #\0 #\A) => #t)
 (check (char-ci<=? #\9 #\z) => #t)
 (check (char-ci<=? #\A #\a #\Z) => #t)
 (check (char-ci<=? #\Z #\a #\Z) => #f)
-;; 错误处理测试
 (check-catch 'type-error
   (char-ci<=? 1 #\A)
 ) ;check-catch

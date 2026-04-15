@@ -129,9 +129,10 @@
   '(#(5 6))
 ) ;check
 (check (cddr '(+ - * /)) => '(* /))
-(check (cddr '('(a b) '(c d) '(e f)))
+(check (cddr '((#_quote (a b)) (#_quote (c d)) (#_quote (e f)))
+       ) ;cddr
   =>
-  '('(e f))
+  '((#_quote (e f)))
 ) ;check
 ;; 极端边界条件测试
 (check (cddr '((lambda (x) x) (lambda (y) y) (lambda (z) z))

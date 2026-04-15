@@ -112,6 +112,17 @@
                 (in-raw-string
                   (set! current-line (string-append current-line (string c)))
                   (cond
+                    ((and (= (string-length raw-delimiter) 0)
+                          (char=? c #\")
+                          (char=? next-c #\"))
+                     (set! current-line (string-append current-line "\""))
+                     (set! in-raw-string #f)
+                     (set! raw-delimiter "")
+                     (set! raw-delimiter-match 0)
+                     (process-char (+ i 2))
+  ;
+ ;
+                    ) ;
                     ((and (< raw-delimiter-match (string-length raw-delimiter))
                           (char=? c (string-ref raw-delimiter raw-delimiter-match))
                      ) ;and

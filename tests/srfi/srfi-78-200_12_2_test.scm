@@ -7,7 +7,7 @@
 
 ;; 深度调用链测试
 (define (level-3)
-  (check 1 => 2)  ; 应该失败
+  (check 1 => 2)
 ) ;define
 
 (define (level-2)
@@ -21,29 +21,33 @@
 ;; 嵌套测试
 (define (test-nested-failure)
   (let ((x 5))
-    (check x => 10)  ; 应该失败
+    (check x => 10)
   ) ;let
 ) ;define
 
 ;; 错误类型测试
 (define (test-error-propagation)
-  (check (car '()) => 'nil)  ; 应该捕获空列表错误
+  (check (car '()) => 'nil)
 ) ;define
 
 ;; 文件位置测试
-(display "=== 测试1: 基础调用 ===")
+(display "=== 测试1: 基础调用 ==="
+) ;display
 (newline)
-(check (+ 1 1) => 3)  ; 故意失败
+(check (+ 1 1) => 3)
 
-(display "=== 测试2: 嵌套调用 ===")
+(display "=== 测试2: 嵌套调用 ==="
+) ;display
 (newline)
 (test-nested-failure)
 
-(display "=== 测试3: 深度调用链 ===")  
+(display "=== 测试3: 深度调用链 ==="
+) ;display
 (newline)
 (level-1)
 
-(display "=== 测试4: 错误传播 ===")
+(display "=== 测试4: 错误传播 ==="
+) ;display
 (newline)
 (test-error-propagation)
 
@@ -52,5 +56,6 @@
 (check-report)
 
 ;; 验证位置信息正确显示
-(display "验证stacktrace已捕获实际测试位置而非check-report位置")
+(display "验证stacktrace已捕获实际测试位置而非check-report位置"
+) ;display
 (newline)
