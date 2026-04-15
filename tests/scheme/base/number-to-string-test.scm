@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; number->string
 ;; 将数值转换为字符串表示。
 ;;
@@ -41,70 +39,66 @@
 ;; 当进制不在2到16范围内时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2时抛出错误。
-
 ;; 基本整数转换测试
 (check (number->string 123) => "123")
 (check (number->string 0) => "0")
 (check (number->string -456) => "-456")
 (check (number->string 2147483647) => "2147483647")
 (check (number->string -2147483648) => "-2147483648")
-
 ;; 基本进制转换测试
 (check (number->string 123 2) => "1111011")
 (check (number->string 123 8) => "173")
 (check (number->string 255 16) => "ff")
 (check (number->string 255 10) => "255")
-
 ;; 有理数转换测试
 (check (number->string 1/2) => "1/2")
 (check (number->string -1/3) => "-1/3")
 (check (number->string 22/7) => "22/7")
-(check (number->string 0/1) => "0")
-
+(check (number->string 0) => "0")
 ;; 有理数进制转换测试
 (check (number->string 1/2 2) => "1/10")
 (check (number->string 3/4 2) => "11/100")
 (check (number->string 1/3 16) => "1/3")
-
 ;; 浮点数转换测试
 (check (number->string 123.456) => "123.456")
 (check (number->string 0.0) => "0.0")
 (check (number->string -0.123) => "-0.123")
 (check (number->string 0.3) => "0.3")
 (check (number->string -0.3) => "-0.3")
-(check (number->string 1.23e10) => "1.23e+10")
-(check (number->string 3e-1) => "0.3")
-(check (number->string -3e-1) => "-0.3")
+(check (number->string 1.23e+10) => "1.23e+10")
+(check (number->string 0.3) => "0.3")
+(check (number->string -0.3) => "-0.3")
 (check (number->string 0.00123) => "0.00123")
 (check (number->string -0.00123) => "-0.00123")
-(check (number->string 0.0014142136802445852) => "0.0014142136802445852")
-(check (number->string 1.23e-3) => "0.00123")
-(check (number->string -1.23e-3) => "-0.00123")
-(check (number->string 1e-5) => "0.00001")
-(check (number->string -1e-5) => "-0.00001")
-
+(check (number->string 0.0014142136802445852)
+  =>
+  "0.0014142136802445852"
+) ;check
+(check (number->string 0.00123) => "0.00123")
+(check (number->string -0.00123) => "-0.00123")
+(check (number->string 0.00001) => "0.00001")
+(check (number->string -0.00001) => "-0.00001")
 ;; 复数转换测试
-(check (number->string 1+2i) => "1.0+2.0i")
-(check (number->string 0+2i) => "0.0+2.0i")
-(check (number->string -3+4i) => "-3.0+4.0i")
+(check (number->string 1.0+2.0i) => "1.0+2.0i")
+(check (number->string 0.0+2.0i) => "0.0+2.0i")
+(check (number->string -3.0+4.0i) => "-3.0+4.0i")
 (check (number->string 1.5-2.5i) => "1.5-2.5i")
-(check (number->string 0+1i) => "0.0+1.0i")
-(check (number->string 0+0i) => "0.0")
-(check (number->string 1.0+0.0i) => "1.0")
-
+(check (number->string 0.0+1.0i) => "0.0+1.0i")
+(check (number->string 0.0) => "0.0")
+(check (number->string 1.0) => "1.0")
 ;; 边界测试
 (check (number->string 1 2) => "1")
 (check (number->string 0 16) => "0")
 (check (number->string -128 16) => "-80")
 (check (number->string 1023 2) => "1111111111")
-
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (number->string 'not-a-number))
-(check-catch 'wrong-type-arg (number->string 123 'not-a-number))
-(check-catch 'out-of-range (number->string 123 1)) 
+(check-catch 'wrong-type-arg
+  (number->string 123 'not-a-number)
+) ;check-catch
+(check-catch 'out-of-range (number->string 123 1))
 (check-catch 'out-of-range (number->string 123 37))
 (check-catch 'wrong-type-arg (number->string 123 3.5))
 (check-catch 'wrong-number-of-args (number->string))
 (check-catch 'wrong-number-of-args (number->string 123 2 3))
-
 (check-report)

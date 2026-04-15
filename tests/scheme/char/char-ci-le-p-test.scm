@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; char-ci<=?
 ;; 按大小写不敏感的方式比较字符是否小于等于。
 ;;
@@ -35,57 +31,48 @@
 ;;
 ;; wrong-number-of-args
 ;; 至少需要两个参数，否则会抛出异常
-
 ;; 基本功能测试
 (check (char-ci<=? #\a #\B) => #t)
 (check (char-ci<=? #\A #\b) => #t)
-(check (char-ci<=? #\A #\a) => #t)  ; 等大写和小写非严格升序
+(check (char-ci<=? #\A #\a) => #t)
 (check (char-ci<=? #\a #\A) => #t)
-(check (char-ci<=? #\Z #\a) => #f)  ; A-Z在a-z之前大写
+(check (char-ci<=? #\Z #\a) => #f)
 (check (char-ci<=? #\z #\a) => #f)
-
 ;; 大小写一致测试
 (check (char-ci<=? #\a #\b) => #t)
 (check (char-ci<=? #\A #\B) => #t)
-(check (char-ci<=? #\B #\a) => #f)  ; B > a小写
+(check (char-ci<=? #\B #\a) => #f)
 (check (char-ci<=? #\z #\A) => #f)
-
 ;; 相等字符测试（非严格升序）
 (check (char-ci<=? #\a #\A) => #t)
 (check (char-ci<=? #\A #\a) => #t)
 (check (char-ci<=? #\A #\A) => #t)
 (check (char-ci<=? #\a #\a) => #t)
-
 ;; 多参数非严格升序测试
 (check (char-ci<=? #\a #\B #\c #\D) => #t)
-(check (char-ci<=? #\A #\a #\b #\B) => #t)  ; 等大写和小写
+(check (char-ci<=? #\A #\a #\b #\B) => #t)
 (check (char-ci<=? #\A #\A #\B #\b) => #t)
 (check (char-ci<=? #\a #\a #\a) => #t)
 (check (char-ci<=? #\z #\a #\b) => #f)
-
 ;; 字母范围测试
 (check (char-ci<=? #\a #\z) => #t)
 (check (char-ci<=? #\A #\Z) => #t)
 (check (char-ci<=? #\z #\z) => #t)
 (check (char-ci<=? #\0 #\9) => #t)
-
 ;; 特殊字符测试
 (check (char-ci<=? #\space #\newline) => #f)
-(check (char-ci<=? #\tab #\tab) => #t)  ; 相等返回 true
+(check (char-ci<=? #\tab #\tab) => #t)
 (check (char-ci<=? #\@ #\newline) => #f)
 (check (char-ci<=? #\! #\") => #t)
 (check (char-ci<=? #\! #\!) => #t)
-
 ;; 数字字符测试
 (check (char-ci<=? #\0 #\A) => #t)
 (check (char-ci<=? #\9 #\z) => #t)
 (check (char-ci<=? #\A #\a #\Z) => #t)
 (check (char-ci<=? #\Z #\a #\Z) => #f)
-
 ;; 错误处理测试
 (check-catch 'type-error (char-ci<=? 1 #\A))
 (check-catch 'type-error (char-ci<=? #\A 'symbol))
 (check-catch 'wrong-number-of-args (char-ci<=?))
 (check-catch 'wrong-number-of-args (char-ci<=? #\A))
-
 (check-report)

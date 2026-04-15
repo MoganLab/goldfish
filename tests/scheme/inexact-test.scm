@@ -2,44 +2,35 @@
 ;;
 ;; inexact 提供主要面向浮点和非精确数值的数学函数与状态判断。
 ;; 它适合三角函数、指数对数运算，以及 `inf.0` / `nan.0` 等特殊值处理。
-
 ;; ==== 常见用法示例 ====
 (import (scheme inexact))
-
 ;; 示例1：计算平方根
-(sqrt 9) ; => 3
-
+(sqrt 9)
 ;; 示例2：判断一个数值是否有限
-(finite? +inf.0) ; => #f
-
+(finite? +inf.0)
 ;; 示例3：执行常见三角函数和指数运算
-(cos 0.0) ; => 1.0
+(cos 0.0)
 (exp 1.0)
-
 ;; ==== 如何查看函数的文档和用例 ====
-;;   bin/gf doc scheme/inexact "sqrt"
-;;   bin/gf doc scheme/inexact "finite?"
-
+;; bin/gf doc scheme/inexact "sqrt"
+;; bin/gf doc scheme/inexact "finite?"
 ;; ==== 函数分类索引 ====
-
 ;; 一、三角函数
 ;; 用于进行角度相关计算的函数
-;;   acos              - 反余弦
-;;   asin              - 反正弦
-;;   atan              - 反正切
-;;   cos               - 余弦
-;;   sin               - 正弦
-;;   tan               - 正切
-
+;; acos              - 反余弦
+;; asin              - 反正弦
+;; atan              - 反正切
+;; cos               - 余弦
+;; sin               - 正弦
+;; tan               - 正切
 ;; 二、指数与根号函数
 ;; 用于进行指数、对数和平方根计算的函数
-;;   exp               - 指数函数
-;;   log               - 对数函数
-;;   sqrt              - 平方根函数，负实数可返回复数
-;;   s7-sqrt           - 底层 s7 的原始平方根函数
-
+;; exp               - 指数函数
+;; log               - 对数函数
+;; sqrt              - 平方根函数，负实数可返回复数
+;; s7-sqrt           - 底层 s7 的原始平方根函数
 ;; 三、特殊值判断
 ;; 用于判断数值是否为有限值、无穷或 NaN 的函数
-;;   finite?           - 判断数值是否有限
-;;   infinite?         - 判断数值是否为无穷大
-;;   nan?              - 判断数值是否为 NaN
+;; finite?           - 判断数值是否有限
+;; infinite?         - 判断数值是否为无穷大
+;; nan?              - 判断数值是否为 NaN

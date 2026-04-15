@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; string-ci<?
 ;; 按大小写不敏感的方式比较字符串的字典序是否递增。
 ;;
@@ -25,7 +21,6 @@
 ;; ------
 ;; type-error
 ;; 所有参数必须是字符串类型，否则会抛出异常
-
 ;; 基本功能测试
 (check (string-ci<? "abc" "def") => #t)
 (check (string-ci<? "ABC" "def") => #t)
@@ -33,43 +28,35 @@
 (check (string-ci<? "ABC" "DEF") => #t)
 (check (string-ci<? "hello" "world") => #t)
 (check (string-ci<? "HELLO" "world") => #t)
-
 ;; 相同字符串测试（不满足严格小于）
 (check (string-ci<? "hello" "hello") => #f)
 (check (string-ci<? "HELLO" "hello") => #f)
 (check (string-ci<? "hello" "HELLO") => #f)
-
 ;; 大于关系测试
 (check (string-ci<? "def" "abc") => #f)
 (check (string-ci<? "world" "hello") => #f)
-
 ;; 多参数测试
 (check (string-ci<? "a" "b" "c") => #t)
 (check (string-ci<? "A" "B" "C") => #t)
 (check (string-ci<? "a" "B" "c") => #t)
 (check (string-ci<? "a" "a" "b") => #f)
 (check (string-ci<? "c" "b" "a") => #f)
-
 ;; 空字符串测试
 (check (string-ci<? "" "a") => #t)
 (check (string-ci<? "" "abc") => #t)
 (check (string-ci<? "abc" "") => #f)
 (check (string-ci<? "" "") => #f)
-
 ;; 前缀测试
 (check (string-ci<? "abc" "abcd") => #t)
 (check (string-ci<? "ABC" "abcd") => #t)
 (check (string-ci<? "abcd" "abc") => #f)
-
 ;; 混合测试
 (check (string-ci<? "apple" "Banana") => #t)
 (check (string-ci<? "Apple" "banana") => #t)
 (check (string-ci<? "banana" "Apple") => #f)
-
 ;; 错误处理测试
 (check-catch 'type-error (string-ci<? 1 "hello"))
 (check-catch 'type-error (string-ci<? "hello" 'symbol))
 (check-catch 'wrong-number-of-args (string-ci<?))
 (check-catch 'wrong-number-of-args (string-ci<? "hello"))
-
 (check-report)

@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; let
 ;; 创建局部变量绑定。
 ;;
@@ -29,43 +27,32 @@
 ;; -----
 ;; any
 ;; 返回最后一个 body 表达式的结果。
-
 ;; 基础测试 - 单变量绑定
 (check (let ((x 1)) x) => 1)
-
 ;; 多变量绑定
 (check (let ((x 1) (y 2)) (+ x y)) => 3)
-
 ;; 嵌套 let - 内层变量遮蔽外层变量
-(check (let ((x 1))
-         (let ((x 2))
-           x)) => 2)
-
+(check (let ((x 1)) (let ((x 2)) x)) => 2)
 ;; let 中使用条件表达式
-(check (let ((x 1))
-         (if (> x 0)
-             x
-             -x)) => 1)
-
+(check (let ((x 1)) (if (> x 0) x -x)) => 1)
 ;; 命名 let - 实现循环
-(check (let loop ((n 5) (acc 0))
-         (if (zero? n)
-           acc
-           (loop (- n 1) (+ acc n)))) => 15)
-
+(check (let loop
+         ((n 5) (acc 0))
+         (if (zero? n) acc (loop (- n 1) (+ acc n)))
+       ) ;let
+  =>
+  15
+) ;check
 ;; 命名 let - 实现递归
-(check (let factorial ((n 5))
-         (if (= n 1)
-           1
-           (* n (factorial (- n 1))))) => 120)
-
+(check (let factorial
+         ((n 5))
+         (if (= n 1) 1 (* n (factorial (- n 1))))
+       ) ;let
+  =>
+  120
+) ;check
 ;; 多参数命名 let
-(check (let sum ((a 3) (b 4))
-         (+ a b)) => 7)
-
+(check (let sum ((a 3) (b 4)) (+ a b)) => 7)
 ;; 嵌套命名 let
-(check (let outer ((x 2))
-         (let inner ((y 3))
-           (+ x y))) => 5)
-
+(check (let outer ((x 2)) (let inner ((y 3)) (+ x y))) => 5)
 (check-report)

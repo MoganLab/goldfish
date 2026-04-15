@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; char>?
 ;; 按字典序比较字符的大小，判断字符是否按降序排列。
 ;;
@@ -34,56 +32,46 @@
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
-
 ;; char>? 基本测试
 (check (char>? #\B #\A) => #t)
 (check (char>? #\b #\a) => #t)
-(check (char>? #\a #\A) => #t)  ; 小写大于大写
-(check (char>? #\A #\a) => #f)  ; 大写不大于小写
+(check (char>? #\a #\A) => #t)
+(check (char>? #\A #\a) => #f)
 (check (char>? #\9 #\0) => #t)
 (check (char>? #\0 #\9) => #f)
-
 ;; 相等字符测试
 (check (char>? #\A #\A) => #f)
 (check (char>? #\a #\a) => #f)
 (check (char>? #\0 #\0) => #f)
-
 ;; 特殊字符测试
 (check (char>? #\newline #\space) => #f)
 (check (char>? #\space #\tab) => #t)
 (check (char>? #\tab #\newline) => #f)
-
 ;; 多参数降序测试
 (check (char>? #\C #\B #\A) => #t)
 (check (char>? #\c #\b #\a) => #t)
 (check (char>? #\4 #\3 #\2 #\1 #\0) => #t)
 (check (char>? #\% #\$ #\# #\! #\~) => #f)
-
 ;; 多参数非降序测试
 (check (char>? #\B #\A #\B) => #f)
-(check (char>? #\a #\a #\b) => #f)  ; 等号不满足大于关系
+(check (char>? #\a #\a #\b) => #f)
 (check (char>? #\1 #\2 #\3) => #f)
-
 ;; 混合大小写测试
 (check (char>? #\b #\a #\Z) => #t)
 (check (char>? #\z #\a #\Z) => #t)
 (check (char>? #\A #\Z #\a) => #f)
-
 ;; 边界测试
 (check (char>? #\9 #\0) => #t)
 (check (char>? #\Z #\A) => #t)
 (check (char>? #\z #\a) => #t)
-(check (char>? #\~ #\! ) => #t)
-
+(check (char>? #\~ #\!) => #t)
 ;; 数字字符测试
 (check (char>? #\2 #\1) => #t)
 (check (char>? #\5 #\5) => #f)
 (check (char>? #\8 #\9) => #f)
-
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (char>? 1 #\A))
 (check-catch 'wrong-type-arg (char>? #\A 'symbol))
 (check-catch 'wrong-number-of-args (char>?))
 (check-catch 'wrong-number-of-args (char>? #\A))
-
 (check-report)

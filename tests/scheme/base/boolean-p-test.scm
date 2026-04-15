@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; boolean?
 ;; 判断一个对象是否为布尔值。
 ;;
@@ -45,11 +43,9 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
-
 ;; boolean? 基础测试
 (check (boolean? #t) => #t)
 (check (boolean? #f) => #t)
-
 ;; boolean? 非布尔类型测试
 (check (boolean? 0) => #f)
 (check (boolean? 1) => #f)
@@ -65,14 +61,12 @@
 (check (boolean? '(1 2 3)) => #f)
 (check (boolean? '()) => #f)
 (check (boolean? #()) => #f)
-
 ;; boolean? 复杂类型测试
 (check (boolean? (lambda (x) x)) => #f)
 (check (boolean? "string") => #f)
 (check (boolean? 123.456) => #f)
 (check (boolean? #\space) => #f)
 (check (boolean? #\newline) => #f)
-
 ;; boolean? 布尔返回值测试
 (check (boolean? (eq? 1 1)) => #t)
 (check (boolean? (= 1 2)) => #t)
@@ -81,39 +75,33 @@
 (check (boolean? (zero? 0)) => #t)
 (check (boolean? (null? '())) => #t)
 (check (boolean? (null? '(1))) => #t)
-
 ;; boolean? 特殊边界测试
 (check (boolean? #t) => #t)
 (check (boolean? #f) => #t)
 (check (boolean? 'nil) => #f)
 (check (boolean? 't) => #f)
 (check (boolean? 'f) => #f)
-
 ;; boolean? 与布尔运算结合测试
 (check (boolean? (not #t)) => #t)
 (check (boolean? (not #f)) => #t)
-(check (boolean? (not 123)) => #t)  ;; (not 123) => #t
+(check (boolean? (not 123)) => #t)
 (check (boolean? (and #t #f)) => #t)
 (check (boolean? (or #t #f)) => #t)
 (check (boolean? (boolean=? #t #t)) => #t)
-
 ;; 类型判断一致性测试
 (check (boolean? (boolean? #t)) => #t)
 (check (boolean? (boolean? #f)) => #t)
 (check (boolean? (boolean? 123)) => #t)
 (check (boolean? (string? "hello")) => #t)
 (check (boolean? (integer? 42)) => #t)
-
 ;; 边界类型测试
-(check (boolean? 0/1) => #f)
-(check (boolean? 1+2i) => #f)
+(check (boolean? 0) => #f)
+(check (boolean? 1.0+2.0i) => #f)
 (check (boolean? +inf.0) => #f)
 (check (boolean? -inf.0) => #f)
 (check (boolean? +nan.0) => #f)
-
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (boolean?))
 (check-catch 'wrong-number-of-args (boolean? #t #f))
 (check-catch 'wrong-number-of-args (boolean? 1 2 3))
-
 (check-report)

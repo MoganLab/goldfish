@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; numerator
 ;; 返回有理数的分子部分。
 ;;
@@ -25,7 +23,6 @@
 ;; --------
 ;; wrong-type-arg
 ;; 当参数不是有理数时抛出错误。
-
 ;; numerator测试
 (check (numerator 1/2) => 1)
 (check (numerator 4/5) => 4)
@@ -33,13 +30,11 @@
 (check (numerator 5) => 5)
 (check (numerator 0) => 0)
 (check (numerator (inexact->exact 2.5)) => 5)
-
 ;; 补充numerator测试
 (check (numerator 42) => 42)
 (check (numerator -42) => -42)
 (check (numerator 1/3) => 1)
-(check (numerator 10/5) => 2)
-(check (numerator -4/8) => -1)
+(check (numerator 2) => 2)
+(check (numerator -1/2) => -1)
 (check (numerator 0) => 0)
-
 (check-report)

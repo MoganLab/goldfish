@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; get-output-string
 ;; 获取输出端口累积的字符串
 ;;
@@ -25,14 +23,11 @@
 ;; ----
 ;; wrong-type-arg
 ;; 如果 port 参数不是由 open-output-string 创建的端口，抛出错误。
-
 (let ((port (open-output-string)))
   (display "xyz" port)
   (check (get-output-string port) => "xyz")
 ) ;let
-
 (let ((port (open-input-string "ERROR")))
   (check-catch 'wrong-type-arg (get-output-string port))
 ) ;let
-
 (check-report)

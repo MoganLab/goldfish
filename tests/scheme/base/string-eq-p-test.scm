@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; string=?
 ;; 比较两个字符串是否相等。
 ;;
@@ -38,50 +36,40 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
-
 ;; string=? 基本测试
 (check-true (string=? "hello" "hello"))
 (check-true (string=? "" ""))
 (check-true (string=? "a" "a"))
-
 ;; string=? 区分大小写测试
 (check-false (string=? "Hello" "hello"))
 (check-false (string=? "HELLO" "hello"))
 (check-false (string=? "abc" "ABC"))
-
 ;; string=? 不同内容测试
 (check-false (string=? "hello" "world"))
 (check-false (string=? "abc" "def"))
 (check-false (string=? "short" "longer"))
-
 ;; string=? 各种边界情况
 (check-true (string=? "123" "123"))
 (check-true (string=? "!@#$%" "!@#$%"))
 (check-true (string=? "空格 测试" "空格 测试"))
 (check-false (string=? "abc" "abcd"))
 (check-false (string=? "abcd" "abc"))
-
 ;; string=? 特殊字符测试
 (check-true (string=? "\n\t" "\n\t"))
 (check-true (string=? "测试文本" "测试文本"))
 (check-false (string=? "测试" "测试文本"))
 (check-false (string=? "测试文本" "测试"))
-
 ;; string=? 空字符串测试
 (check-true (string=? "" "" ""))
 (check-true (string=? "a" "a" "a"))
-
 ;; string=? 多参数测试
 (check-true (string=? "same" "same" "same"))
 (check-false (string=? "same" "diff" "same"))
 (check-false (string=? "one" "two" "three"))
-
 ;; string=? 二进制和Unicode字符串
 (check-true (string=? "Hello, 世界!" "Hello, 世界!"))
 (check-false (string=? "Hello, 世界!" "Hello, 世界! "))
-
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (string=?))
 (check-catch 'wrong-number-of-args (string=? "hello"))
-
 (check-report)

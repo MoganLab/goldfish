@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; square
 ;; 计算给定数值的平方。
 ;;
@@ -24,7 +22,6 @@
 ;; --------
 ;; wrong-type-arg
 ;; 当参数不是数值时抛出错误。
-
 ;; square测试
 (check (square 2) => 4)
 (check (square 0) => 0)
@@ -36,15 +33,12 @@
 (check (square 2.5) => 6.25)
 (check (square 0.0) => 0.0)
 (check (square 10) => 100)
-(check (square 1+2i) => -3+4i)
+(check (square 1.0+2.0i) => -3.0+4.0i)
 (check-catch 'wrong-type-arg (square "a"))
-
-
 ;; 补充square边界测试
 (check (square 1) => 1)
 (check (square -1) => 1)
 (check (square 1000) => 1000000)
 (check (square 1/100) => 1/10000)
 (check (square 0.001) => 0.000001)
-
 (check-report)

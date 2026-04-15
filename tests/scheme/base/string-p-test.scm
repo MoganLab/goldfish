@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; string?
 ;; 判断给定的对象是否为字符串类型。
 ;;
@@ -30,14 +28,12 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
-
 ;; string? 基本测试
 (check (string? "hello") => #t)
 (check (string? "") => #t)
 (check (string? "世界") => #t)
 (check (string? "123") => #t)
 (check-true (string? "MathAgape"))
-
 ;; 非字符串类型测试
 (check-false (string? 'a-symbol))
 (check-false (string? 123))
@@ -47,14 +43,11 @@
 (check-false (string? '(1 2 3)))
 (check-false (string? #(1 2 3)))
 (check-false (string? 3.14))
-
 ;; 边界情况测试
 (check (string? "\n") => #t)
 (check (string? "\t") => #t)
 (check (string? " ") => #t)
-
 ;; 特殊字符测试
 (check (string? "$$$") => #t)
 (check (string? "中国") => #t)
-
 (check-report)

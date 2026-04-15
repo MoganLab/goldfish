@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; when
 ;; 当条件为真时执行表达式序列。
 ;;
@@ -23,26 +21,23 @@
 ;; any
 ;; 如果条件为真，返回最后一个 body 表达式的结果
 ;; 如果条件为假，返回未指定值（#<unspecified>）
-
 ;; 基础测试 - 条件为真
 (check (when #t 1) => 1)
-
 ;; 基础测试 - 条件为假，返回未指定值
 (check (when #f 1) => #<unspecified>)
-
 ;; 表达式测试 - 条件为真
 (check (when (> 3 1) 1) => 1)
-
 ;; 表达式测试 - 条件为假
 (check (when (> 1 3) 1) => #<unspecified>)
-
 ;; 多表达式测试
-(check
-  (let ((result '()))
-    (when #t
-      (set! result (cons 'a result))
-      (set! result (cons 'b result))
-      result))
-  => '(b a))
-
+(check (let ((result '()))
+         (when #t
+           (set! result (cons 'a result))
+           (set! result (cons 'b result))
+           result
+         ) ;when
+       ) ;let
+  =>
+  '(b a)
+) ;check
 (check-report)

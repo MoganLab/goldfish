@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme complex)
-) ;import
-
+(import (liii check) (scheme complex))
 (check-set-mode! 'report-failed)
-
 ;; make-polar
 ;; 按极坐标构造复数。
 ;;
@@ -38,17 +34,23 @@
 ;; --------
 ;; wrong-type-arg 当参数不是实数类型时抛出错误。
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
-
 ;; Test make-polar
 (check (real-part (make-polar 2 0)) => 2.0)
 (check (imag-part (make-polar 2 0)) => 0.0)
-(check (> (real-part (make-polar 1 1.5707963267948966)) -0.001) => #t)
-(check (< (real-part (make-polar 1 1.5707963267948966)) 0.001) => #t)
-(check (> (imag-part (make-polar 1 1.5707963267948966)) 0.999) => #t)
-
+(check (> (real-part (make-polar 1 1.5707963267948966)) -0.001)
+  =>
+  #t
+) ;check
+(check (< (real-part (make-polar 1 1.5707963267948966)) 0.001)
+  =>
+  #t
+) ;check
+(check (> (imag-part (make-polar 1 1.5707963267948966)) 0.999)
+  =>
+  #t
+) ;check
 ;; Error handling
 (check-catch 'wrong-type-arg (make-polar "x" 1))
 (check-catch 'wrong-type-arg (make-polar 1 "x"))
 (check-catch 'wrong-number-of-args (make-polar 1))
-
 (check-report)
