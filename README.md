@@ -171,7 +171,7 @@ Goldfish also supports extra library search directories during startup:
 
 For example:
 ```bash
-gf -I ~/.local/goldfish/liii-goldfix eval '(begin (import (liii goldfix)) (quote ok))'
+gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote ok))'
 ```
 
 On startup, Goldfish also automatically prepends each directory under `~/.local/goldfish/` whose name matches `xxx-yyy` and which contains at least one `.scm` file.
@@ -188,9 +188,6 @@ Goldfish Scheme is implemented to overcome the defects of [S7 Scheme](https://cc
 
 ## License
 Goldfish Scheme is licensed under Apache 2.0, some of the code snippets which are derived from the S7 Scheme repo and SRFI have been explicitly claimed in the related source files.
-
-The copyright of `(liii goldfix)` belongs to Liii Network.
-
 
 ## Citation
 
