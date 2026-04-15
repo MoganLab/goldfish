@@ -20,6 +20,7 @@
           (liii path)
           (liii string)
           (srfi srfi-13)
+          (liii raw-string)
           (liii goldfmt-scan)
           (liii goldfmt-format))
   (export main
