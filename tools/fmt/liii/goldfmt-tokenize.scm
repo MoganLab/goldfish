@@ -99,19 +99,11 @@
                   (cond
                      ((and (char=? c #\|) (char=? next-c #\#))
                       (set! in-block-comment #f)
-                      (set! current-line "")  ; 清空跨行注释收集的内容
                       (process-char (+ i 2))
   ;
  ;
                      ) ;
-                    ((char=? c #\newline)
-                     (set! current-line (string-append current-line (string c)))
-                     (process-char (+ i 1))
-  ;
- ;
-                    ) ;
                     (else
-                     (set! current-line (string-append current-line (string c)))
                      (process-char (+ i 1))
                     ) ;else
                   ) ;cond

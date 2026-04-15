@@ -18,13 +18,32 @@
   (export scan scan-string scan-file)
   (import (liii base)
           (liii path)
+          (liii raw-string)
           (liii string)
           (liii unicode)
           (liii list)
           (liii goldfmt-record)
+          (rename (liii goldfmt-tokenize)
+                  (tokenize source-tokenize)
+                  (tokens->string source-tokens->string))
   ) ;import
   
   (begin
+    (define (write-to-string value)
+      (let ((port (open-output-string)))
+        (let-temporarily (((*s7* 'print-length) 9223372036854775807))
+          (write value port))
+        (get-output-string port)))
+
+    (define (raw-string-form? datum)
+      (and (pair? datum)
+           (eq? (car datum) '*raw-string*)
+           (pair? (cdr datum))
+           (string? (cadr datum))
+           (pair? (cddr datum))
+           (string? (caddr datum))
+           (null? (cdddr datum))))
+
     ;;; 辅助函数：安全地移除字符串尾部空格
     ;;; 使用 utf8-string-trim-right 正确处理 Unicode 字符
     ;;; 如果内容只有空格，则保留原样
@@ -40,6 +59,7 @@
       (or (symbol? x)
           (number? x)
           (string? x)
+          (raw-string-literal? x)
           (boolean? x)
           (char? x)
           (null? x)
@@ -61,14 +81,18 @@
     ;;; 辅助函数：扫描 datum，带深度参数
     ;;; depth: 当前深度（根节点为 0）
     (define (scan-datum datum depth)
-      (if (atom? datum)
-          ;;; 如果是 atom，创建 atom 记录
-          ;; left-line 和 right-line 使用默认值 0
-          (make-atom :depth depth :value datum)
-          ;;; 如果是 list，需要遍历创建 env
-          (scan-list datum depth)
-      ) ;if
-    ) ;define
+      (cond
+        ((raw-string-form? datum)
+         (make-atom :depth depth
+                    :value (make-raw-string-literal :source (cadr datum)
+                                                   :value (caddr datum))))
+        ((atom? datum)
+         ;;; 如果是 atom，创建 atom 记录
+         ;; left-line 和 right-line 使用默认值 0
+         (make-atom :depth depth :value datum))
+        (else
+         ;;; 如果是 list，需要遍历创建 env
+         (scan-list datum depth)))) ;define
     
     ;;; 辅助函数：判断是否为有效的 tag-name
     ;;; symbol 或 syntax（如 #_quote, #_quasiquote 等）都可以作为 tag
@@ -209,8 +233,163 @@
     ;;; scan-string 函数：从字符串扫描所有顶层表达式
     ;;; 输入 str: Scheme 代码字符串（例如："(+ 1 2) (+ 3 4)"）
     ;;; 返回: 扫描后的 env/atom 记录列表（vector）
+    (define (string-prefix-at? str start prefix)
+      (let ((prefix-len (string-length prefix))
+            (str-len (string-length str)))
+        (and (<= (+ start prefix-len) str-len)
+             (let loop ((i 0))
+               (or (>= i prefix-len)
+                   (and (char=? (string-ref str (+ start i))
+                                (string-ref prefix i))
+                        (loop (+ i 1))))))))
+
+    (define (find-raw-string-literal-end str body-start delimiter)
+      (let ((needle (string-append "\"" delimiter "\""))
+            (str-len (string-length str)))
+        (let loop ((i body-start))
+          (cond
+            ((> (+ i (string-length needle)) str-len) #f)
+            ((string-prefix-at? str i needle)
+             (+ i (string-length needle)))
+            (else
+             (loop (+ i 1)))))))
+
+    (define (read-raw-string-literal-value literal)
+      (let ((value (read (open-input-string literal))))
+        (if (string? value)
+            value
+            (error 'value-error "rewrite-raw-string-literals: expected raw string literal"))))
+
+    (define (rewrite-raw-string-literals source)
+      (let ((len (string-length source)))
+        (let loop ((i 0)
+                   (in-string #f)
+                   (escaped #f)
+                   (in-line-comment #f)
+                   (in-block-comment #f)
+                   (result '()))
+          (if (>= i len)
+              (string-join (reverse result) "")
+              (let ((c (string-ref source i))
+                    (next-c (if (< (+ i 1) len) (string-ref source (+ i 1)) #\nul)))
+                (cond
+                  (in-line-comment
+                   (loop (+ i 1)
+                         #f
+                         #f
+                         (not (char=? c #\newline))
+                         #f
+                         (cons (string c) result)))
+                  (in-block-comment
+                   (if (and (char=? c #\|) (char=? next-c #\#))
+                       (loop (+ i 2)
+                             #f
+                             #f
+                             #f
+                             #f
+                             (cons "|#" (cons (string c) result)))
+                       (loop (+ i 1)
+                             #f
+                             #f
+                             #f
+                             #t
+                             (cons (string c) result))))
+                  (in-string
+                   (cond
+                     (escaped
+                      (loop (+ i 1)
+                            #t
+                            #f
+                            #f
+                            #f
+                            (cons (string c) result)))
+                     ((char=? c #\\)
+                      (loop (+ i 1)
+                            #t
+                            #t
+                            #f
+                            #f
+                            (cons (string c) result)))
+                     ((char=? c #\")
+                      (loop (+ i 1)
+                            #f
+                            #f
+                            #f
+                            #f
+                            (cons (string c) result)))
+                     (else
+                      (loop (+ i 1)
+                            #t
+                            #f
+                            #f
+                            #f
+                            (cons (string c) result)))))
+                  ((and (char=? c #\;) (char=? next-c #\;))
+                   (loop (+ i 2)
+                         #f
+                         #f
+                         #t
+                         #f
+                         (cons ";;" result)))
+                  ((and (char=? c #\#) (char=? next-c #\|))
+                   (loop (+ i 2)
+                         #f
+                         #f
+                         #f
+                         #t
+                         (cons "#|" result)))
+                  ((char=? c #\")
+                   (loop (+ i 1)
+                         #t
+                         #f
+                         #f
+                         #f
+                         (cons (string c) result)))
+                  ((and (char=? c #\#) (char=? next-c #\"))
+                   (let ((delimiter-end (string-index source #\" (+ i 2))))
+                     (if delimiter-end
+                         (let* ((delimiter (substring source (+ i 2) delimiter-end))
+                                (literal-end
+                                  (find-raw-string-literal-end source
+                                                               (+ delimiter-end 1)
+                                                               delimiter)))
+                           (if literal-end
+                               (let* ((literal (substring source i literal-end))
+                                      (value (read-raw-string-literal-value literal))
+                                      (rewritten
+                                        (string-append "(*raw-string* "
+                                                       (write-to-string literal)
+                                                       " "
+                                                       (write-to-string value)
+                                                       ")")))
+                                 (loop literal-end
+                                       #f
+                                       #f
+                                       #f
+                                       #f
+                                       (cons rewritten result)))
+                               (loop (+ i 1)
+                                     #f
+                                     #f
+                                     #f
+                                     #f
+                                     (cons (string c) result))))
+                         (loop (+ i 1)
+                               #f
+                               #f
+                               #f
+                               #f
+                               (cons (string c) result)))))
+                  (else
+                   (loop (+ i 1)
+                         #f
+                         #f
+                         #f
+                         #f
+                         (cons (string c) result)))))))))
+
     (define (scan-string str)
-      (let ((port (open-input-string str)))
+      (let ((port (open-input-string (rewrite-raw-string-literals str))))
         (let loop ((results '()))
           (let ((datum (read port)))
             (if (eof-object? datum)
@@ -424,8 +603,16 @@
     ;;; 返回: 扫描后的 env/atom 记录列表（vector）
     (define (scan-file path)
       (let* ((raw-content (path-read-text path))
-             (tokens (tokenize raw-content))
-             (processed-content (tokens->string tokens)))
+             (tokens
+               (let ((scanned (source-tokenize raw-content)))
+                 (if (and (not (null? scanned))
+                          (> (string-length raw-content) 0)
+                          (char=? (string-ref raw-content
+                                              (- (string-length raw-content) 1))
+                                  #\newline))
+                     (append scanned (list (cons 'newline 1)))
+                     scanned)))
+             (processed-content (source-tokens->string tokens)))
         (scan-string processed-content)
       ) ;let*
     ) ;define

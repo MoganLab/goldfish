@@ -123,4 +123,10 @@
   (check (cdadr tokens) => 1)
   (check (caaddr tokens) => 'code))
 
+;; 测试 tokenize：raw string 中以 ;; 开头的行不是注释
+(let ((tokens (tokenize "(define sql #\"\"\n;; not a comment\n\"\")")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 1)
+  (check (caar tokens) => 'code))
+
 (check-report)
