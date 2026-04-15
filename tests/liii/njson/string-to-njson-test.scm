@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii base)
-        (liii njson)
+  (liii base)
+  (liii njson)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; string->njson
 ;; 将严格 JSON 字符串解析为 njson 句柄。
@@ -33,16 +35,30 @@
 ;; type-error
 ;; 输入不是字符串时抛出。
 
+
 (define string-to-njson-sample
   "{\"name\":\"Goldfish\",\"active\":true,\"nums\":[1,2,3]}"
 ) ;define
 
-(let-njson ((root (string->njson string-to-njson-sample)))
-  (check (njson-ref root "name") => "Goldfish")
-  (check-true (njson-contains-key? root "active"))
+
+(let-njson ((root (string->njson string-to-njson-sample)
+            ) ;root
+           ) ;
+  (check (njson-ref root "name")
+    =>
+    "Goldfish"
+  ) ;check
+  (check-true (njson-contains-key? root "active")
+  ) ;check-true
 ) ;let-njson
 
-(check-catch 'parse-error (string->njson "{name:\"Goldfish\"}"))
-(check-catch 'type-error (string->njson 1))
+
+(check-catch 'parse-error
+  (string->njson "{name:\"Goldfish\"}")
+) ;check-catch
+(check-catch 'type-error
+  (string->njson 1)
+) ;check-catch
+
 
 (check-report)

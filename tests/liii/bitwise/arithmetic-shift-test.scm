@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; arithmetic-shift
 ;; 对整数进行算术移位操作。
@@ -40,13 +40,21 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
-;;; 精简测试：arithmetic-shift 算术移位操作
-(check (arithmetic-shift #b10 -1) => #b1) ; 2 >> 1 = 1
-(check (arithmetic-shift #b10 1) => #b100) ; 2 << 1 = 4
-(check (arithmetic-shift #b1000 -2) => #b10) ; 8 >> 2 = 2
-(check (arithmetic-shift #b1000 2) => #b100000)
-(check (arithmetic-shift #b10000000000000000 -3) => #b10000000000000)
-(check (arithmetic-shift #b1000000000000000 3) => #b1000000000000000000)
+
+;; ; 精简测试：arithmetic-shift 算术移位操作
+(check (arithmetic-shift 2 -1) => 1)
+(check (arithmetic-shift 2 1) => 4)
+(check (arithmetic-shift 8 -2) => 2)
+(check (arithmetic-shift 8 2) => 32)
+(check (arithmetic-shift 65536 -3)
+  =>
+  8192
+) ;check
+(check (arithmetic-shift 32768 3)
+  =>
+  262144
+) ;check
+
 
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-size
 ;; 返回哈希表中的条目数量。
@@ -33,13 +33,31 @@
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
-(check (hash-table-size (make-hash-table)) => 0)
+
+(check (hash-table-size (make-hash-table))
+  =>
+  0
+) ;check
+
 
 (let ((populated-ht (make-hash-table)))
-  (hash-table-set! populated-ht 'key1 'value1)
-  (hash-table-set! populated-ht 'key2 'value2)
-  (hash-table-set! populated-ht 'key3 'value3)
-  (check (hash-table-size populated-ht) => 3)
+  (hash-table-set! populated-ht
+    'key1
+    'value1
+  ) ;hash-table-set!
+  (hash-table-set! populated-ht
+    'key2
+    'value2
+  ) ;hash-table-set!
+  (hash-table-set! populated-ht
+    'key3
+    'value3
+  ) ;hash-table-set!
+  (check (hash-table-size populated-ht)
+    =>
+    3
+  ) ;check
 ) ;let
+
 
 (check-report)

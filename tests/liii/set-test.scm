@@ -3,24 +3,31 @@
 ;; set 提供去重后的集合结构，适合成员测试、去重、集合代数和无序数据聚合。
 ;; 与 bag 不同，set 不保留重复元素的计数。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii set))
 
+
 ;; 示例1：构造一个普通集合
 (define s (set 1 2 3))
-(set-contains? s 2) ; => #t
+(set-contains? s 2)
+
 
 ;; 示例2：读取集合大小
-(set-size s) ; => 3
+(set-size s)
+
 
 ;; 示例3：计算两个集合的并集
-(set->list (set-union s (set 3 4))) ; => 一个包含 1 2 3 4 的列表
+(set->list (set-union s (set 3 4)))
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/set "set"
 ;;   bin/gf doc liii/set "set-union"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、构造函数
 ;; 用于创建和复制集合的函数
@@ -32,6 +39,7 @@
 ;;   set->list               - 转为列表
 ;;   list->set-with-comparator - 使用指定比较器从列表构造集合
 ;;   make-set-with-comparator - 创建带比较器的空集合
+
 
 ;; 二、谓词与访问
 ;; 用于判断集合状态和读取成员的函数
@@ -52,6 +60,7 @@
 ;;   set-count               - 统计满足条件的元素个数
 ;;   set-member              - 返回等值成员
 
+
 ;; 三、遍历与过滤
 ;; 用于遍历、映射和筛选集合的函数
 ;;   set-map                 - 映射集合元素
@@ -64,6 +73,7 @@
 ;;   set-partition           - 拆分为两部分
 ;;   set-partition!          - 原地拆分
 
+
 ;; 四、集合运算
 ;; 用于执行集合代数的函数
 ;;   set-union               - 计算并集
@@ -74,6 +84,7 @@
 ;;   set-intersection!       - 原地计算交集
 ;;   set-difference!         - 原地计算差集
 ;;   set-xor!                - 原地计算对称差
+
 
 ;; 五、更新函数
 ;; 用于增删替换元素的函数

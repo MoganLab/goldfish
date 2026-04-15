@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; length=? 函数测试
 ;;
@@ -30,11 +30,16 @@
 ;; (length=? 4 (list 1 2 3)) => #f
 ;; (length=? 0 (list )) => #t
 
+
 (check-true (length=? 3 (list 1 2 3)))
 (check-false (length=? 2 (list 1 2 3)))
 (check-false (length=? 4 (list 1 2 3)))
 
-(check-true (length=? 0 (list )))
-(check-catch 'value-error (length=? -1 (list )))
+
+(check-true (length=? 0 (list)))
+(check-catch 'value-error
+  (length=? -1 (list))
+) ;check-catch
+
 
 (check-report)

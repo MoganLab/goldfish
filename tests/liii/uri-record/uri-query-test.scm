@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii uri-record)
-) ;import
+(import (liii check) (liii uri-record))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; uri-query
 ;; 获取 URI 的 query（alist 格式）。
@@ -16,12 +16,32 @@
 ;; alist?
 ;;   返回查询参数的关联列表。
 
+
 ;; 有 query
-(define u1 (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f))
-(check (uri-query u1) => '(("a" . "1") ("b" . "2")))
+(define u1
+  (make-uri-raw "https"
+    "example.com"
+    "/"
+    '(("a" . "1") ("b" . "2"))
+    #f
+  ) ;make-uri-raw
+) ;define
+(check (uri-query u1)
+  =>
+  '(("a" . "1") ("b" . "2"))
+) ;check
+
 
 ;; 空 query
-(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u2
+  (make-uri-raw "https"
+    "example.com"
+    "/"
+    '()
+    #f
+  ) ;make-uri-raw
+) ;define
 (check (uri-query u2) => '())
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii random)
-        (liii check)
-) ;import
+(import (liii random) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; random-source-state-ref
 ;; 获取随机源的当前状态。
@@ -30,30 +30,45 @@
 ;; ----
 ;; wrong-type-arg 当 s 不是随机源时抛出。
 
-; 基本功能测试
+
 (let ((s (make-random-source)))
   (let ((state (random-source-state-ref s)))
     (check (pair? state) => #t)
-    (check (eq? (car state) 'random-source-state) => #t)
+    (check (eq? (car state) 'random-source-state)
+      =>
+      #t
+    ) ;check
     (check (= (length state) 3) => #t)
   ) ;let
 ) ;let
 
-; 状态在生成随机数后变化
+
 (let ((s (make-random-source)))
   (let ((state1 (random-source-state-ref s)))
-    (let ((rand-int (random-source-make-integers s)))
+    (let ((rand-int (random-source-make-integers s)
+          ) ;rand-int
+         ) ;
       (rand-int 100)
       (let ((state2 (random-source-state-ref s)))
-        (check (not (equal? state1 state2)) => #t)
+        (check (not (equal? state1 state2))
+          =>
+          #t
+        ) ;check
       ) ;let
     ) ;let
   ) ;let
 ) ;let
 
-; 错误处理
-(check-catch 'wrong-type-arg (random-source-state-ref 'not-a-source))
-(check-catch 'wrong-type-arg (random-source-state-ref 123))
-(check-catch 'wrong-type-arg (random-source-state-ref "string"))
+
+(check-catch 'wrong-type-arg
+  (random-source-state-ref 'not-a-source)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (random-source-state-ref 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (random-source-state-ref "string")
+) ;check-catch
+
 
 (check-report)

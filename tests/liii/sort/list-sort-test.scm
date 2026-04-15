@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-sort
 ;; 对列表进行非破坏性快速排序。
@@ -36,18 +36,40 @@
 ;; ----
 ;; 无
 
-(define test-list '(3 1 4 1 5 9 2 6 5))
-(define sorted-list (list-sort < test-list))
 
-(check-true (list-sorted? < sorted-list))
-(check (length sorted-list) => (length test-list))
-(check sorted-list => '(1 1 2 3 4 5 5 6 9))
-(check (equal? test-list '(3 1 4 1 5 9 2 6 5)) => #t)  ; 确保原列表未被修改
+(define test-list '(3 1 4 1 5 9 2 6 5))
+(define sorted-list
+  (list-sort < test-list)
+) ;define
+
+
+(check-true (list-sorted? < sorted-list)
+) ;check-true
+(check (length sorted-list)
+  =>
+  (length test-list)
+) ;check
+(check sorted-list
+  =>
+  '(1 1 2 3 4 5 5 6 9)
+) ;check
+(check (equal? test-list '(3 1 4 1 5 9 2 6 5))
+  =>
+  #t
+) ;check
+
 
 ;; 边界情况
 (check (list-sort < '()) => '())
 (check (list-sort < '(42)) => '(42))
-(check (list-sort < '(1 2 3 4 5)) => '(1 2 3 4 5))
-(check (list-sort > '(1 2 3 4 5)) => '(5 4 3 2 1))
+(check (list-sort < '(1 2 3 4 5))
+  =>
+  '(1 2 3 4 5)
+) ;check
+(check (list-sort > '(1 2 3 4 5))
+  =>
+  '(5 4 3 2 1)
+) ;check
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; string->vector
 ;; 将字符串转换为字符向量。
@@ -43,13 +43,38 @@
 ;; out-of-range 当start/end超出字符串边界或start大于end时
 ;; wrong-type-arg 当str不是字符串，或start/end不是整数时
 
-(check (string->vector "0123") => (vector #\0 #\1 #\2 #\3))
-(check (string->vector "abc") => (vector #\a #\b #\c))
-(check (string->vector "0123" 0 4) => (vector #\0 #\1 #\2 #\3))
-(check (string->vector "0123" 1) => (vector #\1 #\2 #\3))
-(check (string->vector "0123" 1 4) => (vector #\1 #\2 #\3))
-(check (string->vector "0123" 1 3) => (vector #\1 #\2))
-(check (string->vector "0123" 1 2) => (vector #\1))
-(check-catch 'out-of-range (string->vector "0123" 2 10))
+
+(check (string->vector "0123")
+  =>
+  (vector #\0 #\1 #\2 #\3)
+) ;check
+(check (string->vector "abc")
+  =>
+  (vector #\a #\b #\c)
+) ;check
+(check (string->vector "0123" 0 4)
+  =>
+  (vector #\0 #\1 #\2 #\3)
+) ;check
+(check (string->vector "0123" 1)
+  =>
+  (vector #\1 #\2 #\3)
+) ;check
+(check (string->vector "0123" 1 4)
+  =>
+  (vector #\1 #\2 #\3)
+) ;check
+(check (string->vector "0123" 1 3)
+  =>
+  (vector #\1 #\2)
+) ;check
+(check (string->vector "0123" 1 2)
+  =>
+  (vector #\1)
+) ;check
+(check-catch 'out-of-range
+  (string->vector "0123" 2 10)
+) ;check-catch
+
 
 (check-report)

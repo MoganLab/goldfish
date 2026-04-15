@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (scheme time)
+  (liii time)
+  (scheme time)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; current-second
 ;; 获取当前时间，以秒为单位。
@@ -39,9 +41,11 @@
 ;; ----
 ;; 无
 
+
 (let ((t1 (current-second)))
   (check (number? t1) => #t)
   (check (>= t1 0) => #t)
 ) ;let
+
 
 (check-report)

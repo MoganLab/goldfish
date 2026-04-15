@@ -1,26 +1,33 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
-
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-set-type
 ;; 获取 enum-set 所属的 enum-type。
@@ -51,7 +58,18 @@
 ;; ----
 ;; 无。
 
-(check (eqv? (enum-set-type color-set) color) => #t)
-(check (eqv? (enum-set-type (enum-type->enum-set pizza)) pizza) => #t)
+
+(check (eqv? (enum-set-type color-set) color)
+  =>
+  #t
+) ;check
+(check (eqv? (enum-set-type (enum-type->enum-set pizza)
+             ) ;enum-set-type
+         pizza
+       ) ;eqv?
+  =>
+  #t
+) ;check
+
 
 (check-report)

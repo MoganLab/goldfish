@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-drop-right
 ;; 从 range 末尾删除指定数量的元素。
@@ -32,6 +32,7 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (let ((dropped (range-drop-right r 3)))
     (check (range-length dropped) => 7)
@@ -39,6 +40,7 @@
     (check (range-ref dropped 6) => 6)
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 0 10)))
   (let ((dropped (range-drop-right r 5)))
@@ -48,11 +50,13 @@
   ) ;let
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let ((dropped (range-drop-right r 0)))
     (check (range-length dropped) => 10)
     (check (range-ref dropped 9) => 9)
   ) ;let
 ) ;let
+
 
 (check-report)

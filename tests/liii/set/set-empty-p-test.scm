@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-empty?
 ;; 检查 set 是否为空。
@@ -32,11 +34,16 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 
+
 (check-true (set-empty? s-empty))
 (check-false (set-empty? s-1))
-(check-catch 'type-error (set-empty? "not a set"))
+(check-catch 'type-error
+  (set-empty? "not a set")
+) ;check-catch
+
 
 (check-report)

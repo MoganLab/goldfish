@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; make-float-vector
 ;; 创建指定长度的浮点数向量。
@@ -38,12 +38,25 @@
 ;; ----
 ;; wrong-type-arg 当k不是合法整数或fill不是实数时
 
-(check-true (float-vector? (make-float-vector 0)))
-(check-true (float-vector? (make-float-vector 3)))
-(check (make-float-vector 3 0.0) => #r(0.0 0.0 0.0))
-(check (make-float-vector 3 1.0) => #r(1.0 1.0 1.0))
+
+(check-true (float-vector? (make-float-vector 0))
+) ;check-true
+(check-true (float-vector? (make-float-vector 3))
+) ;check-true
+(check (make-float-vector 3 0.0)
+  =>
+  #r(0.0 0.0 0.0)
+) ;check
+(check (make-float-vector 3 1.0)
+  =>
+  #r(1.0 1.0 1.0)
+) ;check
 (check (make-float-vector 0) => #r())
-(check (vector-length (make-float-vector 5)) => 5)
+(check (vector-length (make-float-vector 5))
+  =>
+  5
+) ;check
+
 
 (let ((v (make-float-vector 5 3.14)))
   (check (vector-length v) => 5)
@@ -51,12 +64,19 @@
   (check (float-vector-ref v 4) => 3.14)
 ) ;let
 
+
 (let ((v (make-float-vector 3 42)))
   (check (float-vector-ref v 0) => 42.0)
   (check (float-vector-ref v 1) => 42.0)
 ) ;let
 
-(check-catch 'wrong-type-arg (make-float-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-float-vector 3 'not-a-number))
+
+(check-catch 'wrong-type-arg
+  (make-float-vector 'not-a-number)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-float-vector 3 'not-a-number)
+) ;check-catch
+
 
 (check-report)

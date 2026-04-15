@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; not-null-list? 函数测试
 ;;
@@ -32,16 +32,23 @@
 ;; (not-null-list? '(a . b)) => #f
 ;; (not-null-list? 1) 抛出 type-error
 
+
 (check (not-null-list? (list 1)) => #t)
-(check (not-null-list? (list 1 2 3)) => #t)
+(check (not-null-list? (list 1 2 3))
+  =>
+  #t
+) ;check
 (check (not-null-list? '(a)) => #t)
 (check (not-null-list? '(a b c)) => #t)
 (check (not-null-list? ()) => #f)
 
-; '(a) is a pair and a list
-; '(a . b) is a pair but not a list
+
 (check (not-null-list? '(a . b)) => #f)
 
-(check-catch 'type-error (not-null-list? 1))
+
+(check-catch 'type-error
+  (not-null-list? 1)
+) ;check-catch
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; circular-list
 ;; 构造一个包含给定元素的循环列表。
@@ -52,12 +52,15 @@
 ;; --------
 ;; wrong-number-of-args 当没有提供参数时抛出。
 
-; Basic circular-list tests
-(check-true (circular-list? (circular-list 1)))
-(check-true (circular-list? (circular-list 1 2)))
-(check-true (circular-list? (circular-list 1 2 3)))
 
-; Test element access in circular list
+(check-true (circular-list? (circular-list 1))
+) ;check-true
+(check-true (circular-list? (circular-list 1 2))
+) ;check-true
+(check-true (circular-list? (circular-list 1 2 3))
+) ;check-true
+
+
 (let ((cl (circular-list 1 2 3)))
   (check (cl 0) => 1)
   (check (cl 1) => 2)
@@ -68,31 +71,42 @@
   (check (cl 6) => 1)
 ) ;let
 
-; Test with different data types
-(check-true (circular-list? (circular-list 'a)))
-(check-true (circular-list? (circular-list 'a 'b 'c)))
-(check-true (circular-list? (circular-list "hello" "world")))
-(check-true (circular-list? (circular-list '(1 2) '(3 4))))
 
-; Test edge case with single element
+(check-true (circular-list? (circular-list 'a))
+) ;check-true
+(check-true (circular-list? (circular-list 'a 'b 'c)
+            ) ;circular-list?
+) ;check-true
+(check-true (circular-list? (circular-list "hello" "world")
+            ) ;circular-list?
+) ;check-true
+(check-true (circular-list? (circular-list '(1 2) '(3 4))
+            ) ;circular-list?
+) ;check-true
+
+
 (let ((single (circular-list 'x)))
   (check (single 0) => 'x)
   (check (single 1) => 'x)
   (check (single 100) => 'x)
 ) ;let
 
-; Test nested structures
-(let ((nested (circular-list '(1 2) '(3) '(4 5 6))))
+
+(let ((nested (circular-list '(1 2) '(3) '(4 5 6))
+      ) ;nested
+     ) ;
   (check (nested 0) => '(1 2))
   (check (nested 1) => '(3))
   (check (nested 2) => '(4 5 6))
   (check (nested 3) => '(1 2))
 ) ;let
 
-; Error handling tests
-(check-catch 'wrong-number-of-args (circular-list))
 
-; Additional circular-list? tests
+(check-catch 'wrong-number-of-args
+  (circular-list)
+) ;check-catch
+
+
 (let ((cl (circular-list 1 2 3)))
   (check (cl 3) => 1)
   (check (cl 4) => 2)
@@ -100,15 +114,21 @@
   (check (cl 6) => 1)
 ) ;let
 
-(check-true (circular-list? (circular-list 1 2)))
-(check-true (circular-list? (circular-list 1)))
 
-(let* ((l (list 1 2 3))
-       (end (last-pair l)))
+(check-true (circular-list? (circular-list 1 2))
+) ;check-true
+(check-true (circular-list? (circular-list 1))
+) ;check-true
+
+
+(let* ((l (list 1 2 3)) (end (last-pair l)))
   (set-cdr! end (cdr l))
   (check-true (circular-list? l))
 ) ;let*
 
-(check-false (circular-list? (list 1 2)))
+
+(check-false (circular-list? (list 1 2))
+) ;check-false
+
 
 (check-report)

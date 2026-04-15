@@ -1,28 +1,37 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-constructor
 ;; 返回一个从名称列表构造 enum-set 的过程。
@@ -53,9 +62,23 @@
 ;; ----
 ;; 无。
 
-(let ((color-con (enum-set-constructor reddish)))
-  (check (eqv? (enum-set-type (color-con '(green))) color) => #t)
-  (check (enum-set=? (color-con color-names) color-set) => #t)
+
+(let ((color-con (enum-set-constructor reddish)
+      ) ;color-con
+     ) ;
+  (check (eqv? (enum-set-type (color-con '(green)))
+           color
+         ) ;eqv?
+    =>
+    #t
+  ) ;check
+  (check (enum-set=? (color-con color-names)
+           color-set
+         ) ;enum-set=?
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 (check-report)

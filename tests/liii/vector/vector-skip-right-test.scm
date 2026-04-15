@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-skip-right
 ;; 从右到左跳过满足谓词的元素，返回首个不满足谓词的索引。
@@ -37,16 +37,63 @@
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时
 
-(check (vector-skip-right even? #(1 2 3 4)) => 2)
-(check (vector-skip-right odd? #(1 3 5 7)) => #f)
-(check (vector-skip-right (lambda (x) (< x 5)) #(1 2 3 4 5)) => 4)
-(check (vector-skip-right (lambda (x) (char=? x #\a)) #(#\a #\a #\b #\c)) => 3)
-(check (vector-skip-right even? #()) => #f)
-(check (vector-skip-right even? #(1)) => 0)
-(check (vector-skip-right odd? #(2)) => 0)
-(check (vector-skip-right (lambda (x) (string=? x "a")) #("a" "a" "b" "c")) => 3)
-(check (vector-skip-right (lambda (x) (eq? x #t)) #(#t #t #f #t)) => 2)
-(check (vector-skip-right (lambda (x) (> x 0)) #(1 2 3 4)) => #f)
-(check (vector-skip-right (lambda (x) (char-alphabetic? x)) #(#\a #\b #\c)) => #f)
+
+(check (vector-skip-right even? #(1 2 3 4))
+  =>
+  2
+) ;check
+(check (vector-skip-right odd? #(1 3 5 7))
+  =>
+  #f
+) ;check
+(check (vector-skip-right (lambda (x) (< x 5))
+         #(1 2 3 4 5)
+       ) ;vector-skip-right
+  =>
+  4
+) ;check
+(check (vector-skip-right (lambda (x) (char=? x #\a))
+         #(#\a #\a #\b #\c)
+       ) ;vector-skip-right
+  =>
+  3
+) ;check
+(check (vector-skip-right even? #())
+  =>
+  #f
+) ;check
+(check (vector-skip-right even? #(1))
+  =>
+  0
+) ;check
+(check (vector-skip-right odd? #(2))
+  =>
+  0
+) ;check
+(check (vector-skip-right (lambda (x) (string=? x "a"))
+         #("a" "a" "b" "c")
+       ) ;vector-skip-right
+  =>
+  3
+) ;check
+(check (vector-skip-right (lambda (x) (eq? x #t))
+         #(#t #t #f #t)
+       ) ;vector-skip-right
+  =>
+  2
+) ;check
+(check (vector-skip-right (lambda (x) (> x 0))
+         #(1 2 3 4)
+       ) ;vector-skip-right
+  =>
+  #f
+) ;check
+(check (vector-skip-right (lambda (x) (char-alphabetic? x))
+         #(#\a #\b #\c)
+       ) ;vector-skip-right
+  =>
+  #f
+) ;check
+
 
 (check-report)

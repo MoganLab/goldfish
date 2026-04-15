@@ -1,30 +1,43 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-blue (enum-name->enum color 'blue))
-
-(define color-set (enum-type->enum-set color))
-
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
 
-(define pizza-chicago (enum-name->enum pizza 'chicago))
+(define color-blue
+  (enum-name->enum color 'blue)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
+
+(define pizza-chicago
+  (enum-name->enum pizza 'chicago)
+) ;define
+
 
 ;; enum-type->enum-set
 ;; 创建包含 enum-type 全部成员的 enum-set。
@@ -55,7 +68,19 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-contains? color-set color-blue) => #t)
-(check (enum-set-contains? (enum-type->enum-set pizza) pizza-chicago) => #t)
+
+(check (enum-set-contains? color-set
+         color-blue
+       ) ;enum-set-contains?
+  =>
+  #t
+) ;check
+(check (enum-set-contains? (enum-type->enum-set pizza)
+         pizza-chicago
+       ) ;enum-set-contains?
+  =>
+  #t
+) ;check
+
 
 (check-report)

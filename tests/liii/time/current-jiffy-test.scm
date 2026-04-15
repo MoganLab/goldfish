@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii time)
-) ;import
+(import (liii check) (liii time))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; current-jiffy
 ;; 获取当前时间的 jiffy 计数。
@@ -38,9 +38,11 @@
 ;; ----
 ;; 无
 
+
 (let ((j1 (current-jiffy)))
   (check (integer? j1) => #t)
   (check (>= j1 0) => #t)
 ) ;let
+
 
 (check-report)

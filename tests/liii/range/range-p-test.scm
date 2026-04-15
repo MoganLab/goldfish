@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range?
 ;; 判断值是否为 range 类型。
@@ -31,11 +31,15 @@
 ;; ----
 ;; 无
 
-(check-true (range? (numeric-range 0 5)))
-(check-true (range? (range 5 (lambda (i) i))))
+
+(check-true (range? (numeric-range 0 5))
+) ;check-true
+(check-true (range? (range 5 (lambda (i) i)))
+) ;check-true
 (check-false (range? "hello"))
 (check-false (range? '(1 2 3)))
 (check-false (range? #(1 2 3)))
 (check-false (range? 42))
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii set)
-) ;import
+(import (liii check) (liii set))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; set
 ;; 创建一个新的 set。
@@ -29,7 +29,9 @@
 ;; ----
 ;; 无异常抛出
 
+
 (check-true (set? (set 1 2 3)))
 (check-true (set-contains? (set 1) 1))
+
 
 (check-report)

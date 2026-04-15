@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table->alist
 ;; 将哈希表转换为交替键值形式的列表。
@@ -33,10 +33,15 @@
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+
 (let ((ht (make-hash-table)))
   (check (hash-table->alist ht) => '())
   (hash-table-set! ht 'k1 'v1)
-  (check (hash-table->alist ht) => '(k1 v1))
+  (check (hash-table->alist ht)
+    =>
+    '(k1 v1)
+  ) ;check
 ) ;let
+
 
 (check-report)

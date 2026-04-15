@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii os)
-) ;import
+(import (liii check) (liii os))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; os-type
 ;; 返回当前操作系统的类型字符串。
@@ -22,17 +22,21 @@
 ;; 2. 在 macOS 系统上返回 "Darwin"
 ;; 3. 在 Windows 系统上返回 "Windows"
 
-;;; 基本功能测试
+
+;; ; 基本功能测试
 (when (os-linux?)
   (check (os-type) => "Linux")
 ) ;when
+
 
 (when (os-macos?)
   (check (os-type) => "Darwin")
 ) ;when
 
+
 (when (os-windows?)
   (check (os-type) => "Windows")
 ) ;when
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; any 函数测试
 ;;
@@ -29,8 +29,13 @@
 ;; (any integer? '(a 3.14 "3")) => #f
 ;; (any integer? '(a 3.14 3)) => #t
 
+
 (check (any integer? '()) => #f)
-(check (any integer? '(a 3.14 "3")) => #f)
+(check (any integer? '(a 3.14 "3"))
+  =>
+  #f
+) ;check
 (check (any integer? '(a 3.14 3)) => #t)
+
 
 (check-report)

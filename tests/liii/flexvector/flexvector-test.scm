@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector
 ;; 创建一个新的可变长向量。
@@ -20,6 +20,10 @@
 ;; -----
 ;; 返回包含指定元素的新 flexvector。
 ;;
-(check (flexvector-length (flexvector 1 2 3)) => 3)
+(check (flexvector-length (flexvector 1 2 3))
+  =>
+  3
+) ;check
+
 
 (check-report)

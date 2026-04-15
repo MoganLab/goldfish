@@ -1,18 +1,18 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
 
+
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-ordinal->value
 ;; 通过序数获取 enum 值。
@@ -46,6 +46,11 @@
 ;; ----
 ;; 原始测试未覆盖错误分支。
 
-(check (enum-ordinal->value pizza 1) => "mushrooms")
+
+(check (enum-ordinal->value pizza 1)
+  =>
+  "mushrooms"
+) ;check
+
 
 (check-report)

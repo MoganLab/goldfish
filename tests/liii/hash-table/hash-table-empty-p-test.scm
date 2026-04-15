@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-empty?
 ;; 判断哈希表是否为空。
@@ -33,11 +33,15 @@
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
-(check-true (hash-table-empty? (make-hash-table)))
+
+(check-true (hash-table-empty? (make-hash-table))
+) ;check-true
+
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'key 'value)
   (check-false (hash-table-empty? ht))
 ) ;let
+
 
 (check-report)

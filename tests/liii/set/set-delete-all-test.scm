@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii set)
-) ;import
+(import (liii check) (liii set))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; set-delete-all
 ;; 返回一个新的 set，其中指定列表中的元素被移除。
@@ -28,13 +28,20 @@
 ;; ----
 ;; (set-delete-all (set 1 2 3) '(1 2)) => 包含 3 的 set
 
+
 (define s-1-2-3 (set 1 2 3))
 
+
 ;; Test basic delete-all
-(define s-del-all (set-delete-all s-1-2-3 '(1 2)))
+(define s-del-all
+  (set-delete-all s-1-2-3 '(1 2))
+) ;define
 (check (set-size s-del-all) => 1)
-(check-false (set-contains? s-del-all 1))
-(check-false (set-contains? s-del-all 2))
+(check-false (set-contains? s-del-all 1)
+) ;check-false
+(check-false (set-contains? s-del-all 2)
+) ;check-false
 (check-true (set-contains? s-del-all 3))
+
 
 (check-report)

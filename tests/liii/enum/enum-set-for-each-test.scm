@@ -1,16 +1,23 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 ;; enum-set-for-each
 ;; 对集合中的每个成员执行过程。
@@ -44,11 +51,16 @@
 ;; ----
 ;; 无。
 
+
 (check (let ((n 0))
-         (enum-set-for-each (lambda (_) (set! n (+ n 1))) color-set)
-         n)
-       =>
-       (length color-names)
+         (enum-set-for-each (lambda (_) (set! n (+ n 1)))
+           color-set
+         ) ;enum-set-for-each
+         n
+       ) ;let
+  =>
+  (length color-names)
 ) ;check
+
 
 (check-report)

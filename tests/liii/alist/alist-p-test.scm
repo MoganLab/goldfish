@@ -1,8 +1,8 @@
-(import (liii alist)
-        (liii check)
-) ;import
+(import (liii alist) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; alist?
 ;; 判断对象是否为关联列表。
@@ -35,10 +35,15 @@
 ;; ----
 ;; 无
 
+
 (check (alist? '()) => #t)
 (check (alist? '((a 1))) => #t)
 (check (alist? '((a . 1))) => #t)
-(check (alist? '((a . 1) (b . 2))) => #t)
+(check (alist? '((a . 1) (b . 2)))
+  =>
+  #t
+) ;check
 (check (alist? '(1 2 3)) => #f)
+
 
 (check-report)

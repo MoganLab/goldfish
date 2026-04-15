@@ -1,26 +1,33 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
-
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-set->list
 ;; 将 enum-set 转换为名称列表。
@@ -51,7 +58,16 @@
 ;; ----
 ;; 无。
 
-(check color-names => (enum-set->list color-set))
-(check (map car pizza-descriptions) => (enum-set->list (enum-type->enum-set pizza)))
+
+(check color-names
+  =>
+  (enum-set->list color-set)
+) ;check
+(check (map car pizza-descriptions)
+  =>
+  (enum-set->list (enum-type->enum-set pizza)
+  ) ;enum-set->list
+) ;check
+
 
 (check-report)

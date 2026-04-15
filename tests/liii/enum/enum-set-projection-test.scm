@@ -1,26 +1,32 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-projection
 ;; 将 enum-set 投影到另一个 enum-type。
@@ -54,6 +60,13 @@
 ;; ----
 ;; 无。
 
-(check (enum-set=? (enum-set-projection color reddish) reddish) => #t)
+
+(check (enum-set=? (enum-set-projection color reddish)
+         reddish
+       ) ;enum-set=?
+  =>
+  #t
+) ;check
+
 
 (check-report)

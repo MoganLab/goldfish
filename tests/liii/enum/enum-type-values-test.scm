@@ -1,25 +1,31 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-type-values
 ;; 获取 enum-type 中所有值。
@@ -50,7 +56,15 @@
 ;; ----
 ;; 无。
 
-(check (map cadr pizza-descriptions) => (enum-type-values pizza))
-(check (iota (enum-type-size color)) => (enum-type-values color))
+
+(check (map cadr pizza-descriptions)
+  =>
+  (enum-type-values pizza)
+) ;check
+(check (iota (enum-type-size color))
+  =>
+  (enum-type-values color)
+) ;check
+
 
 (check-report)

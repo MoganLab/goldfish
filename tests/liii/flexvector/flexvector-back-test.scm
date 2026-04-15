@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-back
 ;; 返回可变长向量的最后一个元素。时间复杂度 O(1)。
@@ -28,15 +28,18 @@
 ;; ----
 ;; flexvector-front - 获取第一个元素
 
+
 ;; 基本测试
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-back fv) => 'c)
 ) ;let
 
+
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
   (check (flexvector-back fv) => 'only)
 ) ;let
+
 
 ;; 添加元素后更新
 (let ((fv (flexvector 'a)))
@@ -45,16 +48,19 @@
   (check (flexvector-back fv) => 'c)
 ) ;let
 
+
 ;; 移除后更新
 (let ((fv (flexvector 'a 'b 'c)))
   (flexvector-remove-back! fv)
   (check (flexvector-back fv) => 'b)
 ) ;let
 
+
 ;; 多元素追加后的最后一个
 (let ((fv (flexvector 1)))
   (flexvector-add-back! fv 2 3 4)
   (check (flexvector-back fv) => 4)
 ) ;let
+
 
 (check-report)

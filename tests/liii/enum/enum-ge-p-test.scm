@@ -1,20 +1,33 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define color-tangerine (enum-name->enum color 'tangerine))
 
-(define color-blue (enum-name->enum color 'blue))
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
+
+
+(define color-tangerine
+  (enum-name->enum color 'tangerine)
+) ;define
+
+
+(define color-blue
+  (enum-name->enum color 'blue)
+) ;define
+
 
 ;; enum>=?
 ;; 判断 enum 的序数是否非递增。
@@ -48,8 +61,22 @@
 ;; ----
 ;; 无。
 
-(check (enum>=? color-blue color-red color-red) => #t)
-(check (enum>=? color-blue color-red color-blue) => #f)
-(check (enum>=? color-tangerine color-red) => #t)
+
+(check (enum>=? color-blue color-red color-red)
+  =>
+  #t
+) ;check
+(check (enum>=? color-blue
+         color-red
+         color-blue
+       ) ;enum>=?
+  =>
+  #f
+) ;check
+(check (enum>=? color-tangerine color-red)
+  =>
+  #t
+) ;check
+
 
 (check-report)

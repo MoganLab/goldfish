@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset-fold
@@ -23,7 +23,14 @@
 ;; iset : iset
 ;; 目标集合。
 ;;
-(check (iset-fold + 0 (iset 2 3 5 7 11)) => 28)
-(check (iset-fold cons '() (iset 2 3 5 7 11)) => '(11 7 5 3 2))
+(check (iset-fold + 0 (iset 2 3 5 7 11))
+  =>
+  28
+) ;check
+(check (iset-fold cons '() (iset 2 3 5 7 11))
+  =>
+  '(11 7 5 3 2)
+) ;check
+
 
 (check-report)

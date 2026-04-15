@@ -1,12 +1,14 @@
 (import (liii check)
-        (liii base)
-        (liii error)
-        (liii path)
-        (liii time)
-        (liii njson)
+  (liii base)
+  (liii error)
+  (liii path)
+  (liii time)
+  (liii njson)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; file->njson
 ;; 从文件读取严格 JSON 文本并解析为 njson 句柄。
@@ -36,25 +38,47 @@
 ;; parse-error
 ;; 文件内容不是合法 JSON 时抛出。
 
+
 (define file-to-njson-path
   (path->string (path-join (path-temp-dir)
-                           (string-append "goldfish-njson-file-to-"
-                                          (number->string (current-jiffy))
-                                          ".json")
-                           ) ;string-append
+                  (string-append "goldfish-njson-file-to-"
+                    (number->string (current-jiffy))
+                    ".json"
+                  ) ;string-append
+                ) ;path-join
   ) ;path->string
 ) ;define
 
-(path-write-text file-to-njson-path "{\"name\":\"Goldfish\",\"active\":true,\"nums\":[1,2,3]}")
 
-(let-njson ((loaded (file->njson file-to-njson-path)))
-  (check (njson-ref loaded "name") => "Goldfish")
-  (check (njson-ref loaded "active") => #t)
+(path-write-text file-to-njson-path
+  "{\"name\":\"Goldfish\",\"active\":true,\"nums\":[1,2,3]}"
+) ;path-write-text
+
+
+(let-njson ((loaded (file->njson file-to-njson-path)
+            ) ;loaded
+           ) ;
+  (check (njson-ref loaded "name")
+    =>
+    "Goldfish"
+  ) ;check
+  (check (njson-ref loaded "active")
+    =>
+    #t
+  ) ;check
   (check (njson-ref loaded "nums" 2) => 3)
 ) ;let-njson
 
-(path-write-text file-to-njson-path "{bad:1}")
-(check-catch 'parse-error (file->njson file-to-njson-path))
-(check-catch 'type-error (file->njson 1))
+
+(path-write-text file-to-njson-path
+  "{bad:1}"
+) ;path-write-text
+(check-catch 'parse-error
+  (file->njson file-to-njson-path)
+) ;check-catch
+(check-catch 'type-error
+  (file->njson 1)
+) ;check-catch
+
 
 (check-report)

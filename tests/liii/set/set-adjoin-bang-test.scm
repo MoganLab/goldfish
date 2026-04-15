@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-adjoin!
 ;; 向 set 中添加一个或多个元素（可变操作）。
@@ -33,7 +35,9 @@
 ;; ----
 ;; (set-adjoin! (set) 1) => 修改后的 set，包含 1
 
+
 (define s-empty (set))
+
 
 ;; Test basic adjoin!
 (define s-mut (set-copy s-empty))
@@ -41,17 +45,23 @@
 (check (set-size s-mut) => 1)
 (check-true (set-contains? s-mut 1))
 
+
 (set-adjoin! s-mut 2 3)
 (check (set-size s-mut) => 3)
 (check-true (set-contains? s-mut 1))
 (check-true (set-contains? s-mut 2))
 (check-true (set-contains? s-mut 3))
 
+
 ;; Test adding existing element
 (set-adjoin! s-mut 1)
 (check (set-size s-mut) => 3)
 
+
 ;; Test type error
-(check-catch 'type-error (set-adjoin! "not a set" 1))
+(check-catch 'type-error
+  (set-adjoin! "not a set" 1)
+) ;check-catch
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; string-range
 ;; 从字符串创建 range。
@@ -33,10 +33,12 @@
 ;; ----
 ;; 无
 
+
 (let ((r (string-range "hello")))
   (check (range-length r) => 5)
   (check (range-ref r 0) => #\h)
   (check (range-ref r 4) => #\o)
 ) ;let
+
 
 (check-report)

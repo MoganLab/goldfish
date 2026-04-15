@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-upper-case-value
 ;; 将 ASCII 大写字母映射为数值。
@@ -38,8 +37,19 @@
 ;; ----
 ;; 非法字符或越界值返回 #f
 
-(check (ascii-upper-case-value #\A 10 26) => 10)
-(check (ascii-upper-case-value #\F 10 16) => 15)
-(check (ascii-upper-case-value #\Q 10 16) => #f)
+
+(check (ascii-upper-case-value #\A 10 26)
+  =>
+  10
+) ;check
+(check (ascii-upper-case-value #\F 10 16)
+  =>
+  15
+) ;check
+(check (ascii-upper-case-value #\Q 10 16)
+  =>
+  #f
+) ;check
+
 
 (check-report)

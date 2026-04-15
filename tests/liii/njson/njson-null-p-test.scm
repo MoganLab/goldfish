@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii base)
-        (liii njson)
+  (liii base)
+  (liii njson)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; njson-null?
 ;; 判断值是否表示 JSON null。
@@ -31,17 +33,27 @@
 ;; type-error
 ;; 非法句柄或已释放句柄时抛出。
 
+
 (let-njson ((null-h (string->njson "null"))
-            (obj-h (string->njson "{\"x\":1}")))
+            (obj-h (string->njson "{\"x\":1}"))
+           ) ;
   (check-true (njson-null? null-h))
   (check-false (njson-null? obj-h))
 ) ;let-njson
 
+
 (check-true (njson-null? 'null))
 (check-false (njson-null? 'foo))
 
-(define njson-null-freed (string->njson "{\"k\":1}"))
-(check-true (njson-free njson-null-freed))
-(check-catch 'type-error (njson-null? njson-null-freed))
+
+(define njson-null-freed
+  (string->njson "{\"k\":1}")
+) ;define
+(check-true (njson-free njson-null-freed)
+) ;check-true
+(check-catch 'type-error
+  (njson-null? njson-null-freed)
+) ;check-catch
+
 
 (check-report)

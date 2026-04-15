@@ -1,37 +1,43 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
 
+
 (define reddish-complement
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (drop color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (drop color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-intersection
 ;; 返回两个集合的交集。
@@ -65,6 +71,14 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-empty? (enum-set-intersection reddish reddish-complement)) => #t)
+
+(check (enum-set-empty? (enum-set-intersection reddish
+                          reddish-complement
+                        ) ;enum-set-intersection
+       ) ;enum-set-empty?
+  =>
+  #t
+) ;check
+
 
 (check-report)

@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii base))
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; object->string
 ;; 将对象转换为字符串表示。
@@ -29,28 +31,57 @@
 ;; string?
 ;; 对象的字符串表示。
 
+
 ;; 测试基本类型
 (check (object->string 42) => "42")
-(check (object->string "hello") => "\"hello\"")
-(check (object->string 'symbol) => "symbol")
+(check (object->string "hello")
+  =>
+  "\"hello\""
+) ;check
+(check (object->string 'symbol)
+  =>
+  "symbol"
+) ;check
 (check (object->string #t) => "#t")
 (check (object->string #f) => "#f")
 
+
 ;; 测试列表
-(check (object->string '(1 2 3)) => "(1 2 3)")
+(check (object->string '(1 2 3))
+  =>
+  "(1 2 3)"
+) ;check
 (check (object->string '()) => "()")
 
+
 ;; 测试向量
-(check (object->string #(1 2 3)) => "#(1 2 3)")
+(check (object->string #(1 2 3))
+  =>
+  "#(1 2 3)"
+) ;check
+
 
 ;; 测试过程
-(check (string? (object->string (lambda (x) x))) => #t)
+(check (string? (object->string (lambda (x) x))
+       ) ;string?
+  =>
+  #t
+) ;check
+
 
 ;; 测试 write 参数为 #f（使用 display 风格）
-(check (object->string "hello" #f) => "hello")
+(check (object->string "hello" #f)
+  =>
+  "hello"
+) ;check
 (check (object->string 42 #f) => "42")
 
+
 ;; 测试嵌套结构
-(check (object->string '(1 (2 3) 4)) => "(1 (2 3) 4)")
+(check (object->string '(1 (2 3) 4))
+  =>
+  "(1 (2 3) 4)"
+) ;check
+
 
 (check-report)

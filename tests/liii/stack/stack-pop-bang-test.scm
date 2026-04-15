@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack-pop!
 ;; 从栈顶弹出元素。
@@ -31,14 +30,14 @@
 ;; type-error 当参数不是栈时
 ;; stack-pop! 当栈为空时
 
-; Test stack-pop! returns top element
+
 (let ((s (stack 1 2 3)))
   (check (stack-pop! s) => 1)
   (check (stack-pop! s) => 2)
   (check (stack-pop! s) => 3)
 ) ;let
 
-; Test stack-pop! modifies stack
+
 (let ((s (stack 1 2 3)))
   (check (stack-size s) => 3)
   (stack-pop! s)
@@ -46,14 +45,14 @@
   (check (stack-top s) => 2)
 ) ;let
 
-; Test stack-pop! all elements
+
 (let ((s (stack 1 2)))
   (stack-pop! s)
   (stack-pop! s)
   (check (stack-empty? s) => #t)
 ) ;let
 
-; Test stack-push! then stack-pop!
+
 (let ((s (make-stack)))
   (stack-push! s 1)
   (stack-push! s 2)
@@ -62,7 +61,7 @@
   (check (stack-empty? s) => #t)
 ) ;let
 
-; Test stack-pop! with LIFO order
+
 (let ((s (make-stack)))
   (stack-push! s 'first)
   (stack-push! s 'second)
@@ -72,9 +71,15 @@
   (check (stack-pop! s) => 'first)
 ) ;let
 
-; Error handling tests
-(check-catch 'type-error (stack-pop! 'not-a-stack))
 
-(check-catch 'value-error (stack-pop! (make-stack)))
+(check-catch 'type-error
+  (stack-pop! 'not-a-stack)
+) ;check-catch
+
+
+(check-catch 'value-error
+  (stack-pop! (make-stack))
+) ;check-catch
+
 
 (check-report)

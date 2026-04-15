@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-first
 ;; 获取 range 的第一个元素。
@@ -33,16 +33,20 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 10 20)))
   (check (range-first r) => 10)
 ) ;let
+
 
 (let ((r (numeric-range 0 10)))
   (check (range-first r) => 0)
 ) ;let
 
+
 (let ((r (vector-range #(a b c d e))))
   (check (range-first r) => 'a)
 ) ;let
+
 
 (check-report)

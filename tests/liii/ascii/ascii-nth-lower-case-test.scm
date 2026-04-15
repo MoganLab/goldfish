@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-nth-lower-case
 ;; 将数值映射为 ASCII 小写字母。
@@ -32,8 +31,10 @@
 ;; ----
 ;; 按过程定义执行映射
 
+
 (check (ascii-nth-lower-case 0) => #\a)
 (check (ascii-nth-lower-case 25) => #\z)
 (check (ascii-nth-lower-case 26) => #\a)
+
 
 (check-report)

@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-mirror-bracket
 ;; 获取括号的镜像字符。
@@ -32,10 +31,21 @@
 ;; ----
 ;; 不可转换输入返回 #f
 
-(check (ascii-mirror-bracket #\() => #\))
-(check (ascii-mirror-bracket #\]) => #\[)
-(check (ascii-mirror-bracket #\>) => #\<)
+
+(check (ascii-mirror-bracket #\()
+  =>
+  #\)
+) ;check
+(check (ascii-mirror-bracket #\])
+  =>
+  #\[
+) ;check
+(check (ascii-mirror-bracket #\>)
+  =>
+  #\<
+) ;check
 (check (ascii-mirror-bracket #\A) => #f)
 (check (ascii-mirror-bracket 40) => 41)
+
 
 (check-report)

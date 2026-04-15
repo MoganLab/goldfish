@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-null? 函数测试
 ;;
@@ -28,6 +28,7 @@
 ;; (list-null? '(a . b)) => #f
 ;; (list-null? 1) => #f
 
+
 (check (list-null? (list 1)) => #f)
 (check (list-null? (list 1 2 3)) => #f)
 (check (list-null? '(a)) => #f)
@@ -35,5 +36,6 @@
 (check (list-null? ()) => #t)
 (check (list-null? '(a . b)) => #f)
 (check (list-null? 1) => #f)
+
 
 (check-report)

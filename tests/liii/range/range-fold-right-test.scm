@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-fold-right
 ;; 对 range 进行右折叠。
@@ -35,20 +35,37 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 1 6)))
-  (check (range-fold-right cons '() r) => '(1 2 3 4 5))
+  (check (range-fold-right cons '() r)
+    =>
+    '(1 2 3 4 5)
+  ) ;check
 ) ;let
+
 
 (let ((r (numeric-range 0 0)))
-  (check (range-fold-right cons '() r) => '())
+  (check (range-fold-right cons '() r)
+    =>
+    '()
+  ) ;check
 ) ;let
 
+
 (let ((r (numeric-range 1 4)))
-  (check (range-fold-right (lambda (x acc) (cons x acc)) '() r) => '(1 2 3))
+  (check (range-fold-right (lambda (x acc) (cons x acc))
+           '()
+           r
+         ) ;range-fold-right
+    =>
+    '(1 2 3)
+  ) ;check
 ) ;let
+
 
 (let ((r (numeric-range 1 6)))
   (check (range-fold-right + 0 r) => 15)
 ) ;let
+
 
 (check-report)

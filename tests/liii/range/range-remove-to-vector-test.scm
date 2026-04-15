@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-remove->vector
 ;; 过滤 range 中不满足谓词的元素，结果为向量。
@@ -32,20 +32,39 @@
 ;; ----
 ;; 无
 
-(let ((r (numeric-range 0 10)))
-  (check (range-remove->vector even? r) => #(1 3 5 7 9))
-) ;let
 
 (let ((r (numeric-range 0 10)))
-  (check (range-remove->vector odd? r) => #(0 2 4 6 8))
+  (check (range-remove->vector even? r)
+    =>
+    #(1 3 5 7 9)
+  ) ;check
 ) ;let
+
+
+(let ((r (numeric-range 0 10)))
+  (check (range-remove->vector odd? r)
+    =>
+    #(0 2 4 6 8)
+  ) ;check
+) ;let
+
 
 (let ((r (numeric-range 0 0)))
-  (check (range-remove->vector even? r) => #())
+  (check (range-remove->vector even? r)
+    =>
+    #()
+  ) ;check
 ) ;let
 
+
 (let ((r (numeric-range 0 5)))
-  (check (range-remove->vector (lambda (x) (> x 2)) r) => #(0 1 2))
+  (check (range-remove->vector (lambda (x) (> x 2))
+           r
+         ) ;range-remove->vector
+    =>
+    #(0 1 2)
+  ) ;check
 ) ;let
+
 
 (check-report)

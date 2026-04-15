@@ -14,6 +14,7 @@
 ;; - Liii 扩展: string-starts?, string-ends?, string-contains?, string-split, string-replace,
 ;;             string-remove-prefix, string-remove-suffix
 
+
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/string "string-split"
 ;;   bin/gf doc liii/string "string-trim"
@@ -22,7 +23,9 @@
 ;;   bin/gf doc srfi/srfi-13   - 查看 SRFI-13 字符串库
 ;;   bin/gf doc scheme/base    - 查看 scheme base 库
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、基本谓词与访问
 ;; 用于判断和读取字符串内容的函数
@@ -31,6 +34,7 @@
 ;;   string-contains?     - 判断是否包含子串
 ;;   string-index         - 查找满足条件的首个位置
 ;;   string-index-right   - 从右侧查找满足条件的位置
+
 
 ;; 二、切片与边界处理
 ;; 用于截取、填充和修整字符串的函数
@@ -46,6 +50,7 @@
 ;;   string-remove-prefix - 移除前缀
 ;;   string-remove-suffix - 移除后缀
 
+
 ;; 三、转换与替换
 ;; 用于变换字符串内容的函数
 ;;   string-upcase        - 转为大写
@@ -56,6 +61,7 @@
 ;;   string-replace       - 替换子串
 ;;   string-tokenize      - 按分隔规则拆分为 token
 
+
 ;; 四、迭代与归约
 ;; 用于遍历、映射和折叠字符串的函数
 ;;   string-for-each-index - 带索引遍历字符
@@ -63,6 +69,7 @@
 ;;   string-fold-right    - 右折叠
 ;;   string-any           - 判断是否存在满足条件的字符
 ;;   string-every         - 判断是否所有字符都满足条件
+
 
 ;; 五、前后缀与匹配
 ;; 用于判断前后缀和统计匹配区间的函数

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-index-right
 ;; 返回最后一个满足谓词的元素索引。
@@ -37,8 +37,19 @@
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时
 
-(check (vector-index-right even? #()) => #f)
-(check (vector-index-right even? #(1 3 5 7 9)) => #f)
-(check (vector-index-right even? #(1 3 4 7 8)) => 4)
+
+(check (vector-index-right even? #())
+  =>
+  #f
+) ;check
+(check (vector-index-right even? #(1 3 5 7 9))
+  =>
+  #f
+) ;check
+(check (vector-index-right even? #(1 3 4 7 8))
+  =>
+  4
+) ;check
+
 
 (check-report)

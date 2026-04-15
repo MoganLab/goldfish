@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-every?
 ;; 检查 set 中是否所有元素都满足谓词。
@@ -40,27 +42,57 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 (define s-1-2 (set 1 2))
 (define s-1-2-3 (set 1 2 3))
 
-(check-true (set-every? (lambda (x) (> x 0)) s-empty))
-(check-true (set-every? (lambda (x) (> x 0)) s-1))
-(check-true (set-every? (lambda (x) (> x 0)) s-1-2))
-(check-true (set-every? (lambda (x) (> x 0)) s-1-2-3))
 
-(check-false (set-every? (lambda (x) (> x 1)) s-1))
-(check-false (set-every? (lambda (x) (> x 1)) s-1-2))
-(check-false (set-every? (lambda (x) (> x 1)) s-1-2-3))
+(check-true (set-every? (lambda (x) (> x 0))
+              s-empty
+            ) ;set-every?
+) ;check-true
+(check-true (set-every? (lambda (x) (> x 0)) s-1)
+) ;check-true
+(check-true (set-every? (lambda (x) (> x 0)) s-1-2)
+) ;check-true
+(check-true (set-every? (lambda (x) (> x 0))
+              s-1-2-3
+            ) ;set-every?
+) ;check-true
 
-(check-true (set-every? (lambda (x) (number? x)) s-1-2-3))
+
+(check-false (set-every? (lambda (x) (> x 1)) s-1)
+) ;check-false
+(check-false (set-every? (lambda (x) (> x 1)) s-1-2)
+) ;check-false
+(check-false (set-every? (lambda (x) (> x 1))
+               s-1-2-3
+             ) ;set-every?
+) ;check-false
+
+
+(check-true (set-every? (lambda (x) (number? x))
+              s-1-2-3
+            ) ;set-every?
+) ;check-true
+
 
 ;; Test boundary cases
-(check-true (set-every? (lambda (x) (odd? x)) s-1))
-(check-false (set-every? (lambda (x) (odd? x)) s-1-2)) ; 2 is even
-(check-false (set-every? (lambda (x) (even? x)) s-1-2)) ; 1 is odd
+(check-true (set-every? (lambda (x) (odd? x)) s-1)
+) ;check-true
+(check-false (set-every? (lambda (x) (odd? x)) s-1-2)
+) ;check-false
+(check-false (set-every? (lambda (x) (even? x))
+               s-1-2
+             ) ;set-every?
+) ;check-false
 
-(check-catch 'type-error (set-every? (lambda (x) #t) "not a set"))
+
+(check-catch 'type-error
+  (set-every? (lambda (x) #t) "not a set")
+) ;check-catch
+
 
 (check-report)

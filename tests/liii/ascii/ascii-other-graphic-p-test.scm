@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-other-graphic?
 ;; 判断是否为可见的非字母数字 ASCII 图形字符。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-other-graphic? #\!))
 (check-true (ascii-other-graphic? #\{))
 (check-false (ascii-other-graphic? #\A))
 (check-false (ascii-other-graphic? #\0))
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-or
 ;; 计算多个整数的按位或操作。
@@ -38,15 +38,27 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 精简测试：bitwise-or 作为 bitwise-ior 的别名
-(check (bitwise-or 5 3) => 7)  ; 5 (101) OR 3 (011) = 7 (111)
-(check (bitwise-or 8 4) => 12) ; 8 (1000) OR 4 (0100) = 12 (1100)
-(check (bitwise-or 1 2 4) => 7) ; 001 | 010 | 100 = 111
 
-;;; 验证 bitwise-or 与 bitwise-ior 功能相同
-(check (bitwise-or 5 3) => (bitwise-ior 5 3))
-(check (bitwise-or 8 4) => (bitwise-ior 8 4))
-(check (bitwise-or 1 2 4) => (bitwise-ior 1 2 4))
+;; ; 精简测试：bitwise-or 作为 bitwise-ior 的别名
+(check (bitwise-or 5 3) => 7)
+(check (bitwise-or 8 4) => 12)
+(check (bitwise-or 1 2 4) => 7)
+
+
+;; ; 验证 bitwise-or 与 bitwise-ior 功能相同
+(check (bitwise-or 5 3)
+  =>
+  (bitwise-ior 5 3)
+) ;check
+(check (bitwise-or 8 4)
+  =>
+  (bitwise-ior 8 4)
+) ;check
+(check (bitwise-or 1 2 4)
+  =>
+  (bitwise-ior 1 2 4)
+) ;check
+
 
 
 (check-report)

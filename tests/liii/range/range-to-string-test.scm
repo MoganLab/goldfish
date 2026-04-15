@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range->string
 ;; 将字符 range 转换为字符串。
@@ -29,16 +29,20 @@
 ;; ----
 ;; 无
 
+
 (let ((r (string-range "hello")))
   (check (range->string r) => "hello")
 ) ;let
+
 
 (let ((r (string-range "")))
   (check (range->string r) => "")
 ) ;let
 
+
 (let ((r (string-range "abc")))
   (check (range->string r) => "abc")
 ) ;let
+
 
 (check-report)

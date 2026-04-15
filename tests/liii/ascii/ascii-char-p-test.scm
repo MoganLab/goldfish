@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-char?
 ;; 判断对象是否为 ASCII 字符。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 非字符输入返回 #f
 
+
 (check-true (ascii-char? #\A))
 (check-true (ascii-char? #\newline))
 (check-false (ascii-char? #\x80))
 (check-false (ascii-char? 65))
+
 
 (check-report)

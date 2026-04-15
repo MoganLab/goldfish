@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack-size
 ;; 获取栈中元素个数。
@@ -28,26 +27,27 @@
 ;; ----
 ;; type-error 当参数不是栈时
 
-; Test stack-size with empty stack
+
 (let ((s (make-stack)))
   (check (stack-size s) => 0)
 ) ;let
 
-; Test stack-size with single element
+
 (let ((s (stack 1)))
   (check (stack-size s) => 1)
 ) ;let
 
-; Test stack-size with multiple elements
+
 (let ((s (stack 1 2 3)))
   (check (stack-size s) => 3)
 ) ;let
+
 
 (let ((s (stack 'a 'b 'c 'd 'e)))
   (check (stack-size s) => 5)
 ) ;let
 
-; Test stack-size after push
+
 (let ((s (make-stack)))
   (check (stack-size s) => 0)
   (stack-push! s 1)
@@ -56,7 +56,7 @@
   (check (stack-size s) => 2)
 ) ;let
 
-; Test stack-size after pop
+
 (let ((s (stack 1 2 3)))
   (check (stack-size s) => 3)
   (stack-pop! s)
@@ -65,7 +65,10 @@
   (check (stack-size s) => 1)
 ) ;let
 
-; Error handling test
-(check-catch 'type-error (stack-size 'not-a-stack))
+
+(check-catch 'type-error
+  (stack-size 'not-a-stack)
+) ;check-catch
+
 
 (check-report)

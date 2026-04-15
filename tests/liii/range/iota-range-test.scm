@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; iota-range
 ;; 创建 iota 序列的 range（类似于 iota 函数）。
@@ -43,11 +43,13 @@
 ;; ----
 ;; 无
 
+
 (let ((r (iota-range 10)))
   (check (range-length r) => 10)
   (check (range-ref r 0) => 0)
   (check (range-ref r 9) => 9)
 ) ;let
+
 
 (let ((r (iota-range 5 10)))
   (check (range-length r) => 5)
@@ -55,11 +57,13 @@
   (check (range-ref r 4) => 14)
 ) ;let
 
+
 (let ((r (iota-range 5 0 2)))
   (check (range-length r) => 5)
   (check (range-ref r 0) => 0)
   (check (range-ref r 1) => 2)
   (check (range-ref r 4) => 8)
 ) ;let
+
 
 (check-report)

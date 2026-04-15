@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table
 ;; 使用交替出现的键和值构造一个新的哈希表。
@@ -33,13 +33,16 @@
 ;; ----
 ;; 参数个数不成对时由底层实现报错。
 
+
 (let ((ht (hash-table)))
   (check (ht 'missing) => #f)
 ) ;let
+
 
 (let ((ht (hash-table 'a 1 'b 2)))
   (check (ht 'a) => 1)
   (check (ht 'b) => 2)
 ) ;let
+
 
 (check-report)

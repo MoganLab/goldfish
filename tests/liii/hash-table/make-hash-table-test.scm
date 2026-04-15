@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii comparator)
-        (liii error)
-        (liii hash-table)
+  (liii comparator)
+  (liii error)
+  (liii hash-table)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; make-hash-table
 ;; 创建一个新的哈希表，可选使用指定的比较器。
@@ -37,21 +39,36 @@
 ;; type-error
 ;; 当参数不是比较器时抛出错误。
 
+
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)
   (check (hash-table-ref ht 'a) => 1)
 ) ;let
 
+
 (let* ((mod10 (lambda (x) (modulo x 10)))
-       (digit=? (lambda (x y) (= (modulo x 10) (modulo y 10))))
-       (comp (make-comparator number? digit=? #f mod10))
-       (ht (make-hash-table comp)))
+       (digit=? (lambda (x y)
+                  (= (modulo x 10) (modulo y 10))
+                ) ;lambda
+       ) ;digit=?
+       (comp (make-comparator number?
+               digit=?
+               #f
+               mod10
+             ) ;make-comparator
+       ) ;comp
+       (ht (make-hash-table comp))
+      ) ;
   (hash-table-set! ht 1 2)
   (hash-table-set! ht 11 3)
   (check (hash-table-ref ht 1) => 3)
   (check (hash-table-ref ht 21) => 3)
 ) ;let*
 
-(check-catch 'type-error (make-hash-table 1))
+
+(check-catch 'type-error
+  (make-hash-table 1)
+) ;check-catch
+
 
 (check-report)

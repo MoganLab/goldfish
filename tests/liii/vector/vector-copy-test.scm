@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-copy
 ;; 创建向量副本，可选复制子区间。
@@ -43,25 +43,58 @@
 ;; out-of-range 当start/end超出向量边界或start大于end时
 ;; wrong-type-arg 当vec不是向量，或start/end不是整数时
 
-(check (vector-copy #(0 1 2 3)) => #(0 1 2 3))
-(check (vector-copy #(0 1 2 3) 1) => #(1 2 3))
-(check (vector-copy #(0 1 2 3) 3) => #(3))
-(check (vector-copy #(0 1 2 3) 4) => #())
 
-(check-catch 'out-of-range (vector-copy #(0 1 2 3) 5))
-(check-catch 'out-of-range (vector-copy #(0 1 2 3) 1 5))
+(check (vector-copy #(0 1 2 3))
+  =>
+  #(0 1 2 3)
+) ;check
+(check (vector-copy #(0 1 2 3) 1)
+  =>
+  #(1 2 3)
+) ;check
+(check (vector-copy #(0 1 2 3) 3)
+  =>
+  #(3)
+) ;check
+(check (vector-copy #(0 1 2 3) 4)
+  =>
+  #()
+) ;check
+
+
+(check-catch 'out-of-range
+  (vector-copy #(0 1 2 3) 5)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy #(0 1 2 3) 1 5)
+) ;check-catch
+
 
 (define my-vector #(0 1 2 3))
-(check (eqv? my-vector (vector-copy #(0 1 2 3))) => #f)
-(check-true
-  (eqv? (vector-ref my-vector 2)
-        (vector-ref (vector-copy #(0 1 2 3)) 2)
-  ) ;eqv?
+(check (eqv? my-vector
+         (vector-copy #(0 1 2 3))
+       ) ;eqv?
+  =>
+  #f
+) ;check
+(check-true (eqv? (vector-ref my-vector 2)
+              (vector-ref (vector-copy #(0 1 2 3)) 2)
+            ) ;eqv?
 ) ;check-true
 
-(check (vector-copy #(0 1 2 3) 1 1) => #())
-(check (vector-copy #(0 1 2 3) 1 2) => #(1))
-(check (vector-copy #(0 1 2 3) 1 4) => #(1 2 3))
+
+(check (vector-copy #(0 1 2 3) 1 1)
+  =>
+  #()
+) ;check
+(check (vector-copy #(0 1 2 3) 1 2)
+  =>
+  #(1)
+) ;check
+(check (vector-copy #(0 1 2 3) 1 4)
+  =>
+  #(1 2 3)
+) ;check
 (check (vector-copy #()) => #())
 (check (vector-copy #() 0) => #())
 (check (vector-copy #() 0 0) => #())
@@ -70,22 +103,41 @@
 (check (vector-copy #(42) 0 1) => #(42))
 (check (vector-copy #(42) 1) => #())
 
+
 (let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
   (check (vector-copy v) => v)
-  (check (vector-copy v 2 5) => #("hello" 'symbol #\c))
+  (check (vector-copy v 2 5)
+    =>
+    #("hello" 'symbol #\c)
+  ) ;check
 ) ;let
 
-(check (vector-copy #((1 2) (3 4))) => #((1 2) (3 4)))
-(check (vector-copy #((1 2) (3 4)) 1) => #((3 4)))
+
+(check (vector-copy #((1 2) (3 4)))
+  =>
+  #((1 2) (3 4))
+) ;check
+(check (vector-copy #((1 2) (3 4)) 1)
+  =>
+  #((3 4))
+) ;check
+
 
 (let ((original #(a b c)))
   (let ((copied (vector-copy original)))
     (check-true (vector? copied))
     (check-false (eq? original copied))
-    (check-true (eqv? (vector-ref original 1) (vector-ref copied 1)))
-    (check (vector-length copied) => (vector-length original))
+    (check-true (eqv? (vector-ref original 1)
+                  (vector-ref copied 1)
+                ) ;eqv?
+    ) ;check-true
+    (check (vector-length copied)
+      =>
+      (vector-length original)
+    ) ;check
   ) ;let
 ) ;let
+
 
 (let ((original #(1 2 3)))
   (let ((copied (vector-copy original)))
@@ -95,20 +147,50 @@
   ) ;let
 ) ;let
 
-(check (vector-copy #(0 1 2 3) 0 0) => #())
-(check (vector-copy #(0 1 2 3) 2 2) => #())
-(check (vector-copy #(0 1 2 3) 0 1) => #(0))
-(check (vector-copy #(0 1 2 3) 3 4) => #(3))
 
-(check-catch 'wrong-type-arg (vector-copy 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-copy #(1 2 3) 'not-a-number))
-(check-catch 'wrong-type-arg (vector-copy #(1 2 3) 0 'not-a-number))
+(check (vector-copy #(0 1 2 3) 0 0)
+  =>
+  #()
+) ;check
+(check (vector-copy #(0 1 2 3) 2 2)
+  =>
+  #()
+) ;check
+(check (vector-copy #(0 1 2 3) 0 1)
+  =>
+  #(0)
+) ;check
+(check (vector-copy #(0 1 2 3) 3 4)
+  =>
+  #(3)
+) ;check
+
+
+(check-catch 'wrong-type-arg
+  (vector-copy 'not-a-vector)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (vector-copy #(1 2 3) 'not-a-number)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (vector-copy #(1 2 3) 0 'not-a-number)
+) ;check-catch
+
 
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range (vector-copy v -1))
-  (check-catch 'out-of-range (vector-copy v 4))
-  (check-catch 'out-of-range (vector-copy v 2 5))
-  (check-catch 'out-of-range (vector-copy v 3 2))
+  (check-catch 'out-of-range
+    (vector-copy v -1)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (vector-copy v 4)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (vector-copy v 2 5)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (vector-copy v 3 2)
+  ) ;check-catch
 ) ;let
+
 
 (check-report)

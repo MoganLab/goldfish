@@ -1,18 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define empty-colors (enum-empty-set color))
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
+
+(define empty-colors
+  (enum-empty-set color)
+) ;define
+
 
 ;; enum-set->enum-list
 ;; 将 enum-set 转换为 enum 列表。
@@ -43,7 +53,16 @@
 ;; ----
 ;; 无。
 
-(check (enum-type-enums color) => (enum-set->enum-list color-set))
-(check (null? (enum-set->enum-list empty-colors)) => #t)
+
+(check (enum-type-enums color)
+  =>
+  (enum-set->enum-list color-set)
+) ;check
+(check (null? (enum-set->enum-list empty-colors)
+       ) ;null?
+  =>
+  #t
+) ;check
+
 
 (check-report)

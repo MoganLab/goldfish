@@ -1,28 +1,37 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-tangerine (enum-name->enum color 'tangerine))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-tangerine
+  (enum-name->enum color 'tangerine)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-delete-all
 ;; 返回移除列表中所有成员的新 enum-set。
@@ -56,8 +65,17 @@
 ;; ----
 ;; 无。
 
-(let ((reddish* (enum-set-delete-all reddish (list color-tangerine))))
-  (check (enum-set<? reddish* reddish) => #t)
+
+(let ((reddish* (enum-set-delete-all reddish
+                  (list color-tangerine)
+                ) ;enum-set-delete-all
+      ) ;reddish*
+     ) ;
+  (check (enum-set<? reddish* reddish)
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 (check-report)

@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii error)
-        (liii set)
-        (srfi srfi-128)
+  (liii error)
+  (liii set)
+  (srfi srfi-128)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-disjoint?
 ;; 检查两个 set 是否不相交（没有共同元素）。
@@ -39,23 +41,46 @@
 ;; value-error
 ;; 当两个 set 的比较器不同时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 (define s-1-2-3 (set 1 2 3))
 (define s-2-3-4 (set 2 3 4))
 (define s-4-5 (set 4 5))
 
-(check-true (set-disjoint? s-1-2-3 s-4-5))
-(check-false (set-disjoint? s-1-2-3 s-2-3-4)) ; share 2, 3
+
+(check-true (set-disjoint? s-1-2-3 s-4-5)
+) ;check-true
+(check-false (set-disjoint? s-1-2-3 s-2-3-4)
+) ;check-false
 (check-true (set-disjoint? s-empty s-1))
 (check-true (set-disjoint? s-1 s-empty))
-(check-true (set-disjoint? s-empty s-empty))
-(check-catch 'type-error (set-disjoint? "not a set" s-1))
-(check-catch 'type-error (set-disjoint? s-1 "not a set"))
+(check-true (set-disjoint? s-empty s-empty)
+) ;check-true
+(check-catch 'type-error
+  (set-disjoint? "not a set" s-1)
+) ;check-catch
+(check-catch 'type-error
+  (set-disjoint? s-1 "not a set")
+) ;check-catch
+
 
 ;; Test comparator mismatch
-(define str-comp (make-comparator string? string=? string<? string-hash))
-(define s-str (list->set-with-comparator str-comp '("apple" "banana")))
-(check-catch 'value-error (set-disjoint? s-1 s-str))
+(define str-comp
+  (make-comparator string?
+    string=?
+    string<?
+    string-hash
+  ) ;make-comparator
+) ;define
+(define s-str
+  (list->set-with-comparator str-comp
+    '("apple" "banana")
+  ) ;list->set-with-comparator
+) ;define
+(check-catch 'value-error
+  (set-disjoint? s-1 s-str)
+) ;check-catch
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-not
 ;; 计算整数的按位取反（补码表示）。
@@ -35,26 +35,37 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 基本功能测试：按位取反操作
+
+;; ; 基本功能测试：按位取反操作
 (check (bitwise-not 0) => -1)
 (check (bitwise-not 1) => -2)
-(check (bitwise-not #b1000) => -9)
+(check (bitwise-not 8) => -9)
 (check (bitwise-not -1) => 0)
 
-;;; 边界值测试
-(check (bitwise-not 2) => -3)     ; #b10 => #b11111101
-(check (bitwise-not -2) => 1)     ; #b11111110 => #b1
-(check (bitwise-not 255) => -256) ; #b11111111 => #b11111111111111111111111100000000
-(check (bitwise-not -256) => 255) ; #b11111111111111111111111100000000 => #b11111111
 
-;;; 二进制表示测试
-(check (bitwise-not #b1010) => -11)   ; #b1010 => #b11110101
-(check (bitwise-not #b0101) => -6)    ; #b0101 => #b11111010
-(check (bitwise-not #b1111) => -16)   ; #b1111 => #b11110000
+;; ; 边界值测试
+(check (bitwise-not 2) => -3)
+(check (bitwise-not -2) => 1)
+(check (bitwise-not 255) => -256)
+(check (bitwise-not -256) => 255)
 
-;;; 特殊值测试
-(check (bitwise-not 2147483647) => -2147483648)  ; 最大32位有符号整数
-(check (bitwise-not -2147483648) => 2147483647)  ; 最小32位有符号整数
+
+;; ; 二进制表示测试
+(check (bitwise-not 10) => -11)
+(check (bitwise-not 5) => -6)
+(check (bitwise-not 15) => -16)
+
+
+;; ; 特殊值测试
+(check (bitwise-not 2147483647)
+  =>
+  -2147483648
+) ;check
+(check (bitwise-not -2147483648)
+  =>
+  2147483647
+) ;check
+
 
 
 (check-report)

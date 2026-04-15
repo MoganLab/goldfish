@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii hash-table)
+  (liii error)
+  (liii hash-table)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-update!
 ;; 直接将哈希表中指定键更新为新值。
@@ -41,13 +43,27 @@
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+
 (let ((ht (make-hash-table)))
   (hash-table-update! ht 'key 'value)
-  (check (hash-table-ref ht 'key) => 'value)
+  (check (hash-table-ref ht 'key)
+    =>
+    'value
+  ) ;check
   (hash-table-update! ht 'key 'value1)
-  (check (hash-table-ref ht 'key) => 'value1)
+  (check (hash-table-ref ht 'key)
+    =>
+    'value1
+  ) ;check
 ) ;let
 
-(check-catch 'type-error (hash-table-update! "not-a-table" 'key 'value))
+
+(check-catch 'type-error
+  (hash-table-update! "not-a-table"
+    'key
+    'value
+  ) ;hash-table-update!
+) ;check-catch
+
 
 (check-report)

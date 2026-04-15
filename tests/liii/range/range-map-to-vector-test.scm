@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-map->vector
 ;; 将映射函数应用于 range 的每个元素，结果收集为向量。
@@ -32,20 +32,45 @@
 ;; ----
 ;; 无
 
-(let ((r (numeric-range 0 5)))
-  (check (range-map->vector (lambda (x) (* x 2)) r) => #(0 2 4 6 8))
-) ;let
 
 (let ((r (numeric-range 0 5)))
-  (check (range-map->vector (lambda (x) (* x x)) r) => #(0 1 4 9 16))
+  (check (range-map->vector (lambda (x) (* x 2))
+           r
+         ) ;range-map->vector
+    =>
+    #(0 2 4 6 8)
+  ) ;check
 ) ;let
+
+
+(let ((r (numeric-range 0 5)))
+  (check (range-map->vector (lambda (x) (* x x))
+           r
+         ) ;range-map->vector
+    =>
+    #(0 1 4 9 16)
+  ) ;check
+) ;let
+
 
 (let ((r (numeric-range 0 0)))
-  (check (range-map->vector (lambda (x) (* x 2)) r) => #())
+  (check (range-map->vector (lambda (x) (* x 2))
+           r
+         ) ;range-map->vector
+    =>
+    #()
+  ) ;check
 ) ;let
 
+
 (let ((r (numeric-range 1 6)))
-  (check (range-map->vector (lambda (x) (+ x 10)) r) => #(11 12 13 14 15))
+  (check (range-map->vector (lambda (x) (+ x 10))
+           r
+         ) ;range-map->vector
+    =>
+    #(11 12 13 14 15)
+  ) ;check
 ) ;let
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-set!
 ;; 设置指定位置的元素，返回原值。时间复杂度 O(1)。
@@ -44,34 +44,51 @@
 ;; (flexvector-set! fv 0 'x)     => 'a
 ;; (flexvector-set! fv 2 'z)     => 'c
 
+
 (let ((fv (flexvector 'a 'b 'c)))
   ;; 返回原值
   (check (flexvector-set! fv 1 'd) => 'b)
   ;; 验证已修改
   (check (flexvector-ref fv 1) => 'd)
   ;; 验证其他元素未变
-  (check (flexvector->list fv) => '(a d c))
+  (check (flexvector->list fv)
+    =>
+    '(a d c)
+  ) ;check
 ) ;let
+
 
 ;; 边界测试：首尾元素
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-set! fv 0 'x) => 'a)
   (check (flexvector-set! fv 2 'z) => 'c)
-  (check (flexvector->list fv) => '(x b z))
+  (check (flexvector->list fv)
+    =>
+    '(x b z)
+  ) ;check
 ) ;let
+
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-set! fv 0 'new) => 'only)
+  (check (flexvector-set! fv 0 'new)
+    =>
+    'only
+  ) ;check
   (check (flexvector-ref fv 0) => 'new)
 ) ;let
+
 
 ;; 多次修改
 (let ((fv (make-flexvector 3 0)))
   (flexvector-set! fv 0 10)
   (flexvector-set! fv 1 20)
   (flexvector-set! fv 2 30)
-  (check (flexvector->vector fv) => #(10 20 30))
+  (check (flexvector->vector fv)
+    =>
+    #(10 20 30)
+  ) ;check
 ) ;let
+
 
 (check-report)

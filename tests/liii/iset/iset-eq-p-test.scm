@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset=?
@@ -13,8 +13,15 @@
 ;; (iset=? iset1 iset2 ...)
 ;;
 (check-true (iset=? (iset) (iset)))
-(check-true (iset=? (iset 1 2 3 4) (iset 2 1 4 3)))
-(check-true (iset=? (iset 1 2 3 4) (iset 2 1 4 3) (iset 3 2 1 4)))
-(check-false (iset=? (iset 1 2 3 4) (iset 2 3 4)))
+(check-true (iset=? (iset 1 2 3 4) (iset 2 1 4 3))
+) ;check-true
+(check-true (iset=? (iset 1 2 3 4)
+              (iset 2 1 4 3)
+              (iset 3 2 1 4)
+            ) ;iset=?
+) ;check-true
+(check-false (iset=? (iset 1 2 3 4) (iset 2 3 4))
+) ;check-false
+
 
 (check-report)

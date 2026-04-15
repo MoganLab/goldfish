@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-eqv
 ;; 计算两个整数的按位等价操作（XNOR）。
@@ -42,48 +42,80 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 基本功能测试：按位等价操作（返回整数）
-(check (bitwise-eqv 0 0) => -1)           ; NOT(XOR(0, 0)) = NOT(0) = -1
-(check (bitwise-eqv -1 -1) => -1)         ; NOT(XOR(-1, -1)) = NOT(0) = -1
-(check (bitwise-eqv 0 -1) => 0)           ; NOT(XOR(0, -1)) = NOT(-1) = 0
-(check (bitwise-eqv -1 0) => 0)           ; NOT(XOR(-1, 0)) = NOT(-1) = 0
 
-;;; 与 bitwise-not/bitwise-xor 的关系测试
-(check (bitwise-eqv 5 3) => (bitwise-not (bitwise-xor 5 3)))
-(check (bitwise-eqv 10 10) => (bitwise-not (bitwise-xor 10 10)))
-(check (bitwise-eqv 7 2) => (bitwise-not (bitwise-xor 7 2)))
-(check (bitwise-eqv #b1010 #b0101) => (bitwise-not (bitwise-xor #b1010 #b0101)))
+;; ; 基本功能测试：按位等价操作（返回整数）
+(check (bitwise-eqv 0 0) => -1)
+(check (bitwise-eqv -1 -1) => -1)
+(check (bitwise-eqv 0 -1) => 0)
+(check (bitwise-eqv -1 0) => 0)
 
-;;; 数学性质测试
-(check (bitwise-eqv 15 15) => -1)         ; 相同数 => 所有位相同 => -1
-(check (bitwise-eqv 7 3) => (bitwise-eqv 3 7)) ; 交换律
-(check (bitwise-eqv 255 255) => -1)       ; 相同数等价
 
-;;; 二进制表示测试
-(check (bitwise-eqv #b1010 #b1010) => -1)    ; 相同位模式 => -1
-(check (bitwise-eqv #b11110000 #b11110000) => -1) ; 相同高4位 => -1
+;; ; 与 bitwise-not/bitwise-xor 的关系测试
+(check (bitwise-eqv 5 3)
+  =>
+  (bitwise-not (bitwise-xor 5 3))
+) ;check
+(check (bitwise-eqv 10 10)
+  =>
+  (bitwise-not (bitwise-xor 10 10))
+) ;check
+(check (bitwise-eqv 7 2)
+  =>
+  (bitwise-not (bitwise-xor 7 2))
+) ;check
+(check (bitwise-eqv 10 5)
+  =>
+  (bitwise-not (bitwise-xor 10 5))
+) ;check
 
-;;; 特殊值测试
-(check (bitwise-eqv 2147483647 2147483647) => -1)  ; 最大32位有符号整数
-(check (bitwise-eqv -2147483648 -2147483648) => -1) ; 最小32位有符号整数
-(check (bitwise-eqv 2147483647 -2147483648) => (bitwise-not (bitwise-xor 2147483647 -2147483648)))
 
-;;; 错误处理测试 - wrong-type-arg
+;; ; 数学性质测试
+(check (bitwise-eqv 15 15) => -1)
+(check (bitwise-eqv 7 3)
+  =>
+  (bitwise-eqv 3 7)
+) ;check
+(check (bitwise-eqv 255 255) => -1)
+
+
+;; ; 二进制表示测试
+(check (bitwise-eqv 10 10) => -1)
+(check (bitwise-eqv 240 240) => -1)
+
+
+;; ; 特殊值测试
+(check (bitwise-eqv 2147483647 2147483647)
+  =>
+  -1
+) ;check
+(check (bitwise-eqv -2147483648 -2147483648)
+  =>
+  -1
+) ;check
+(check (bitwise-eqv 2147483647 -2147483648)
+  =>
+  (bitwise-not (bitwise-xor 2147483647 -2147483648)
+  ) ;bitwise-not
+) ;check
+
+
+;; ; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bitwise-eqv "string" 1)  ; 字符串参数
+  (bitwise-eqv "string" 1)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv 1 'symbol)   ; 符号参数
+  (bitwise-eqv 1 'symbol)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv 3.14 2)      ; 浮点数参数
+  (bitwise-eqv 3.14 2)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv #\a 1)       ; 字符参数
+  (bitwise-eqv #\a 1)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bitwise-eqv '(1 2) 3)    ; 列表参数
+  (bitwise-eqv '(1 2) 3)
 ) ;check-catch
+
 
 
 (check-report)

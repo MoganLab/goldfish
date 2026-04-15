@@ -1,16 +1,23 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 ;; enum-set-copy
 ;; 复制一个 enum-set。
@@ -41,7 +48,19 @@
 ;; ----
 ;; 无。
 
-(check (eqv? color-set (enum-set-copy color-set)) => #f)
-(check (enum-set=? color-set (enum-set-copy color-set)) => #t)
+
+(check (eqv? color-set
+         (enum-set-copy color-set)
+       ) ;eqv?
+  =>
+  #f
+) ;check
+(check (enum-set=? color-set
+         (enum-set-copy color-set)
+       ) ;enum-set=?
+  =>
+  #t
+) ;check
+
 
 (check-report)

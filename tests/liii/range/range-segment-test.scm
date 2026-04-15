@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-segment
 ;; 将 range 分割为固定大小的段。
@@ -32,13 +32,18 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (let ((segs (range-segment r 3)))
     (check (length segs) => 4)
     (check (range-length (car segs)) => 3)
-    (check (range-length (cadddr segs)) => 1)
+    (check (range-length (cadddr segs))
+      =>
+      1
+    ) ;check
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 0 10)))
   (let ((segs (range-segment r 5)))
@@ -48,11 +53,13 @@
   ) ;let
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let ((segs (range-segment r 10)))
     (check (length segs) => 1)
     (check (range-length (car segs)) => 10)
   ) ;let
 ) ;let
+
 
 (check-report)

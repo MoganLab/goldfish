@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; reduce 函数测试
 ;;
@@ -36,16 +36,25 @@
 ;; (reduce + 0 '()) => 0
 ;; (reduce cons () '(1 2 3 4)) => '(4 3 2 . 1)
 
+
 (check (reduce + 0 '(1 2 3 4)) => 10)
 (check (reduce + 0 '()) => 0)
 
-(check (reduce cons () '(1 2 3 4)) => '(4 3 2 . 1))
+
+(check (reduce cons () '(1 2 3 4))
+  =>
+  '(4 3 2 . 1)
+) ;check
+
 
 (check-catch 'wrong-type-arg
-  (reduce (lambda (x count) (if (symbol? x) (+ count 1) count))
-          0
-          '(a b 1 2 3 4)
+  (reduce (lambda (x count)
+            (if (symbol? x) (+ count 1) count)
+          ) ;lambda
+    0
+    '(a b 1 2 3 4)
   ) ;reduce
 ) ;check-catch
+
 
 (check-report)

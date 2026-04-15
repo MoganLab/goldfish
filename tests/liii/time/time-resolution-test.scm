@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; time-resolution
 ;; 获取时钟分辨率。
@@ -24,16 +26,32 @@
 ;; ----
 ;; wrong-type-arg 当clock-type不是有效的时间类型常量时抛出错误。
 
+
 ;; Test time-resolution
-(check-true (integer? (time-resolution)))
-(check-true (integer? (time-resolution TIME-UTC)))
-(check-true (integer? (time-resolution TIME-MONOTONIC)))
-(check-true (integer? (time-resolution TIME-TAI)))
-(check-catch 'wrong-type-arg (time-resolution TIME-THREAD))
-(check-catch 'wrong-type-arg (time-resolution TIME-PROCESS))
-(check-catch 'wrong-type-arg (time-resolution TIME-DURATION))
+(check-true (integer? (time-resolution))
+) ;check-true
+(check-true (integer? (time-resolution TIME-UTC))
+) ;check-true
+(check-true (integer? (time-resolution TIME-MONOTONIC)
+            ) ;integer?
+) ;check-true
+(check-true (integer? (time-resolution TIME-TAI))
+) ;check-true
+(check-catch 'wrong-type-arg
+  (time-resolution TIME-THREAD)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (time-resolution TIME-PROCESS)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (time-resolution TIME-DURATION)
+) ;check-catch
+
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (time-resolution 'invalid-type))
+(check-catch 'wrong-type-arg
+  (time-resolution 'invalid-type)
+) ;check-catch
+
 
 (check-report)

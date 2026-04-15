@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset-member
@@ -27,7 +27,17 @@
 ;; -----
 ;; 如果 element 在 iset 中，返回该元素；否则返回 default。
 ;;
-(check (iset-member (iset 2 3 5 7 11) 7 #f) => 7)
-(check (iset-member (iset 2 3 5 7 11) 4 'failure) => 'failure)
+(check (iset-member (iset 2 3 5 7 11) 7 #f)
+  =>
+  7
+) ;check
+(check (iset-member (iset 2 3 5 7 11)
+         4
+         'failure
+       ) ;iset-member
+  =>
+  'failure
+) ;check
+
 
 (check-report)

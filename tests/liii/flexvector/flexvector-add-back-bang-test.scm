@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-add-back!
 ;; 向可变长向量尾部追加元素。平均时间复杂度 O(1)，扩容时 O(n)。
@@ -45,6 +45,7 @@
 ;; (flexvector-add-back! fv3 'y)
 ;; (flexvector->list fv3)             => (x y)
 
+
 ;; 基本测试
 (let ((fv (flexvector)))
   (flexvector-add-back! fv 'a)
@@ -52,34 +53,48 @@
   (check (flexvector-ref fv 0) => 'a)
 ) ;let
 
+
 ;; 追加到已有元素后
 (let ((fv (flexvector 'x 'y 'z)))
   (flexvector-add-back! fv 'w)
   (check (flexvector-length fv) => 4)
   (check (flexvector-ref fv 3) => 'w)
-  (check (flexvector->list fv) => '(x y z w))
+  (check (flexvector->list fv)
+    =>
+    '(x y z w)
+  ) ;check
 ) ;let
+
 
 ;; 追加多个元素
 (let ((fv (flexvector 1)))
   (flexvector-add-back! fv 2 3 4)
   (check (flexvector-length fv) => 4)
-  (check (flexvector->vector fv) => #(1 2 3 4))
+  (check (flexvector->vector fv)
+    =>
+    #(1 2 3 4)
+  ) ;check
 ) ;let
+
 
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2)))
-  (check (eq? (flexvector-add-back! fv 3) fv) => #t)
+  (check (eq? (flexvector-add-back! fv 3) fv)
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 ;; 测试扩容（初始容量为4，添加超过4个元素触发扩容）
 (let ((fv (flexvector)))
   (do ((i 0 (+ i 1)))
-      ((= i 10))
+    ((= i 10))
     (flexvector-add-back! fv i)
   ) ;do
   (check (flexvector-length fv) => 10)
   (check (flexvector-ref fv 9) => 9)
 ) ;let
+
 
 (check-report)

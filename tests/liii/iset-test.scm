@@ -3,24 +3,31 @@
 ;; iset 是面向整数区间优化的集合结构，适合稠密整数、区间裁剪和范围合并。
 ;; 与通用 set 相比，它更强调整数域上的区间和子集运算。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii iset))
 
+
 ;; 示例1：从整数列表构造一个 iset
 (define s (list->iset '(1 2 3 5 8)))
-(iset-size s) ; => 5
+(iset-size s)
+
 
 ;; 示例2：判断某个整数是否为成员
-(iset-contains? s 5) ; => #t
+(iset-contains? s 5)
+
 
 ;; 示例3：直接创建一个整数区间集合
-(make-range-iset 10 15) ; => 一个包含 10 到 15 的整数集合
+(make-range-iset 10 15)
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/iset "iset"
 ;;   bin/gf doc liii/iset "make-range-iset"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、构造函数
 ;; 用于创建和复制整数集合的函数
@@ -32,6 +39,7 @@
 ;;   list->iset           - 从列表构造 iset
 ;;   list->iset!          - 原地式从列表构造 iset
 
+
 ;; 二、谓词与访问
 ;; 用于判断状态和读取边界元素的函数
 ;;   iset?                - 判断对象是否为 iset
@@ -41,6 +49,7 @@
 ;;   iset-member          - 查找成员值
 ;;   iset-min             - 获取最小值
 ;;   iset-max             - 获取最大值
+
 
 ;; 三、更新函数
 ;; 用于增删成员和边界元素的函数
@@ -56,6 +65,7 @@
 ;;   iset-delete-min!     - 原地删除最小值
 ;;   iset-delete-max      - 删除最大值
 ;;   iset-delete-max!     - 原地删除最大值
+
 
 ;; 四、统计与遍历
 ;; 用于统计、映射和过滤整数集合的函数
@@ -74,6 +84,7 @@
 ;;   iset-remove!         - 原地移除满足条件的成员
 ;;   iset-partition       - 拆分为两部分
 ;;   iset-partition!      - 原地拆分
+
 
 ;; 五、集合与区间运算
 ;; 用于处理整数区间和集合代数的函数

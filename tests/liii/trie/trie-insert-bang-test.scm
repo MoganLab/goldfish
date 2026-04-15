@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii trie)
-) ;import
+(import (liii check) (liii trie))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; trie-insert!
 ;; 向 trie 中插入键值对。
@@ -35,35 +35,84 @@
 ;; (trie-insert! trie (string->list "hello") 'world)
 ;; (trie-ref trie (string->list "hello")) => 'world
 
+
 (let ((trie (make-trie)))
-  (trie-insert! trie (string->list "hello") 'world)
-  (check (trie-ref trie (string->list "hello")) => 'world)
+  (trie-insert! trie
+    (string->list "hello")
+    'world
+  ) ;trie-insert!
+  (check (trie-ref trie (string->list "hello"))
+    =>
+    'world
+  ) ;check
 
   ;; 覆盖原有值
-  (trie-insert! trie (string->list "hello") 'scheme)
-  (check (trie-ref trie (string->list "hello")) => 'scheme)
+  (trie-insert! trie
+    (string->list "hello")
+    'scheme
+  ) ;trie-insert!
+  (check (trie-ref trie (string->list "hello"))
+    =>
+    'scheme
+  ) ;check
 ) ;let
+
 
 (let ((trie (make-trie)))
-  (trie-insert! trie (string->list "hey") 'there)
-  (trie-insert! trie (string->list "hi") 'again)
-  (check (trie-ref trie (string->list "hey")) => 'there)
-  (check (trie-ref trie (string->list "hi")) => 'again)
+  (trie-insert! trie
+    (string->list "hey")
+    'there
+  ) ;trie-insert!
+  (trie-insert! trie
+    (string->list "hi")
+    'again
+  ) ;trie-insert!
+  (check (trie-ref trie (string->list "hey"))
+    =>
+    'there
+  ) ;check
+  (check (trie-ref trie (string->list "hi"))
+    =>
+    'again
+  ) ;check
 ) ;let
+
 
 (let ((trie (make-trie)))
-  (trie-insert! trie (string->list "apple") 'fruit)
-  (trie-insert! trie (string->list "app") 'prefix)
-  (trie-insert! trie (string->list "application") 'software)
+  (trie-insert! trie
+    (string->list "apple")
+    'fruit
+  ) ;trie-insert!
+  (trie-insert! trie
+    (string->list "app")
+    'prefix
+  ) ;trie-insert!
+  (trie-insert! trie
+    (string->list "application")
+    'software
+  ) ;trie-insert!
 
-  (check (trie-ref trie (string->list "app")) => 'prefix)
-  (check (trie-ref trie (string->list "apple")) => 'fruit)
-  (check (trie-ref trie (string->list "application")) => 'software)
+  (check (trie-ref trie (string->list "app"))
+    =>
+    'prefix
+  ) ;check
+  (check (trie-ref trie (string->list "apple"))
+    =>
+    'fruit
+  ) ;check
+  (check (trie-ref trie
+           (string->list "application")
+         ) ;trie-ref
+    =>
+    'software
+  ) ;check
 ) ;let
+
 
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root)
   (check (trie-ref trie '()) => 'root)
 ) ;let
+
 
 (check-report)

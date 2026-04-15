@@ -1,26 +1,39 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define color-set (enum-type->enum-set color))
+
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 (define (constantly obj)
   (lambda _ obj)
 ) ;define
 
+
 (define always (constantly #t))
 
+
 (define never (constantly #f))
+
 
 ;; enum-set-filter
 ;; 返回满足谓词的成员构成的新集合。
@@ -54,8 +67,26 @@
 ;; ----
 ;; 无。
 
-(check (enum-set<? (enum-set-filter (lambda (e) (enum=? e color-red)) color-set) color-set) => #t)
-(check (enum-set=? (enum-set-filter always color-set) color-set) => #t)
-(check (enum-set-empty? (enum-set-filter never color-set)) => #t)
+
+(check (enum-set<? (enum-set-filter (lambda (e) (enum=? e color-red))
+                     color-set
+                   ) ;enum-set-filter
+         color-set
+       ) ;enum-set<?
+  =>
+  #t
+) ;check
+(check (enum-set=? (enum-set-filter always color-set)
+         color-set
+       ) ;enum-set=?
+  =>
+  #t
+) ;check
+(check (enum-set-empty? (enum-set-filter never color-set)
+       ) ;enum-set-empty?
+  =>
+  #t
+) ;check
+
 
 (check-report)

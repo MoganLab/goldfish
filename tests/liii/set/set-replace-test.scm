@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii error)
-        (liii set)
-        (srfi srfi-128)
+  (liii error)
+  (liii set)
+  (srfi srfi-128)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-replace
 ;; 返回一个新的 set，其中指定的元素被替换。
@@ -36,32 +38,66 @@
 ;; ----
 ;; (set-replace (set 1) 1) => 新的 set，包含 1
 
+
 (define s-1 (set 1))
+
 
 ;; Test basic replace
 (define s-replace-1 (set-replace s-1 1))
 (check (set-size s-replace-1) => 1)
-(check-true (set-contains? s-replace-1 1))
-(check-true (set=? s-replace-1 s-1)) ; Content same
-(check-false (eq? s-replace-1 s-1)) ; But should be new set (since replacement logic occurred)
+(check-true (set-contains? s-replace-1 1)
+) ;check-true
+(check-true (set=? s-replace-1 s-1))
+(check-false (eq? s-replace-1 s-1))
+
 
 (define s-replace-2 (set-replace s-1 2))
-(check-true (eq? s-replace-2 s-1)) ; 2 not in set, return original set
+(check-true (eq? s-replace-2 s-1))
+
 
 ;; Test replacing equals but not eq? element
 (define string-ci-comparator
-  (make-comparator string? string-ci=? string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))
+  (make-comparator string?
+    string-ci=?
+    string-ci<?
+    (lambda (s)
+      (string-hash (string-map char-downcase s)
+      ) ;string-hash
+    ) ;lambda
   ) ;make-comparator
 ) ;define
-(define s-str-ci-2 (list->set-with-comparator string-ci-comparator '("Apple" "Banana")))
-(check (set-member s-str-ci-2 "apple" 'not-found) => "Apple")
+(define s-str-ci-2
+  (list->set-with-comparator string-ci-comparator
+    '("Apple" "Banana")
+  ) ;list->set-with-comparator
+) ;define
+(check (set-member s-str-ci-2
+         "apple"
+         'not-found
+       ) ;set-member
+  =>
+  "Apple"
+) ;check
 
-(define s-replace-3 (set-replace s-str-ci-2 "apple"))
-(check (set-member s-replace-3 "apple" 'not-found) => "apple") ; Should be replaced with "apple"
-(check-false (eq? s-replace-3 s-str-ci-2)) ; Should be new set
+
+(define s-replace-3
+  (set-replace s-str-ci-2 "apple")
+) ;define
+(check (set-member s-replace-3
+         "apple"
+         'not-found
+       ) ;set-member
+  =>
+  "apple"
+) ;check
+(check-false (eq? s-replace-3 s-str-ci-2)
+) ;check-false
+
 
 ;; Test type error
-(check-catch 'type-error (set-replace "not a set" 1))
+(check-catch 'type-error
+  (set-replace "not a set" 1)
+) ;check-catch
+
 
 (check-report)

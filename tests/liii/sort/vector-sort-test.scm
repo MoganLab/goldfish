@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-sort
 ;; 对向量进行非破坏性快速排序。
@@ -36,18 +36,39 @@
 ;; ----
 ;; 无
 
-(check-true (vector-sorted? < (vector-sort < #(1 5 1 0 -1 9 2 4 3))))
-(check (vector-sort < #(3 1 4 1 5 9 2 6 5)) => #(1 1 2 3 4 5 5 6 9))
+
+(check-true (vector-sorted? <
+              (vector-sort < #(1 5 1 0 -1 9 2 4 3))
+            ) ;vector-sorted?
+) ;check-true
+(check (vector-sort < #(3 1 4 1 5 9 2 6 5))
+  =>
+  #(1 1 2 3 4 5 5 6 9)
+) ;check
+
 
 ;; 边界情况
 (check (vector-sort < #()) => #())
 (check (vector-sort < #(42)) => #(42))
-(check (vector-sort < #(1 2 3 4 5)) => #(1 2 3 4 5))
-(check (vector-sort > #(1 2 3 4 5)) => #(5 4 3 2 1))
+(check (vector-sort < #(1 2 3 4 5))
+  =>
+  #(1 2 3 4 5)
+) ;check
+(check (vector-sort > #(1 2 3 4 5))
+  =>
+  #(5 4 3 2 1)
+) ;check
+
 
 ;; 确保原向量未被修改
 (define test-vec #(3 1 4 1 5 9 2 6 5))
-(define sorted-vec (vector-sort < test-vec))
-(check (equal? test-vec #(3 1 4 1 5 9 2 6 5)) => #t)
+(define sorted-vec
+  (vector-sort < test-vec)
+) ;define
+(check (equal? test-vec #(3 1 4 1 5 9 2 6 5))
+  =>
+  #t
+) ;check
+
 
 (check-report)

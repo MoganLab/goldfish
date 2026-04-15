@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; make-vector
 ;; 创建指定长度的向量。
@@ -38,13 +38,27 @@
 ;; ----
 ;; wrong-type-arg 当k不是合法整数时
 
-(check (vector-length (make-vector 0)) => 0)
-(check (vector-length (make-vector 3)) => 3)
+
+(check (vector-length (make-vector 0))
+  =>
+  0
+) ;check
+(check (vector-length (make-vector 3))
+  =>
+  3
+) ;check
 (check (make-vector 3 0) => #(0 0 0))
 (check (make-vector 2 'a) => #(a a))
-(check (make-vector 1 "hello") => #("hello"))
+(check (make-vector 1 "hello")
+  =>
+  #("hello")
+) ;check
 (check (make-vector 0) => #())
-(check (vector-length (make-vector 1)) => 1)
+(check (vector-length (make-vector 1))
+  =>
+  1
+) ;check
+
 
 (let ((v (make-vector 5 3.14)))
   (check (vector-length v) => 5)
@@ -52,8 +66,16 @@
   (check (vector-ref v 4) => 3.14)
 ) ;let
 
-(check-catch 'wrong-type-arg (make-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-vector -1))
-(check-catch 'wrong-type-arg (make-vector -1 0))
+
+(check-catch 'wrong-type-arg
+  (make-vector 'not-a-number)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-vector -1)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-vector -1 0)
+) ;check-catch
+
 
 (check-report)

@@ -3,24 +3,33 @@
 ;; ascii 提供面向 ASCII 字符、码点、字节向量和字符串的判定、转换与比较函数。
 ;; 适合协议解析、词法分析、命令行处理和只面向 ASCII 的文本逻辑。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii ascii))
 
+
 ;; 示例1：判断字符是否属于 ASCII 字母
-(ascii-alphabetic? #\A) ; => #t
+(ascii-alphabetic? #\A)
+
 
 ;; 示例2：把 ASCII 字符转换成数值或统一大小写
-(ascii-digit-value #\F 16) ; => 15
-(ascii-downcase #\G) ; => #\g
+(ascii-digit-value #\F 16)
+(ascii-downcase #\G)
+
 
 ;; 示例3：进行大小写无关的字符串比较
-(ascii-string-ci=? "GoldFish" "goldfish") ; => #t
+(ascii-string-ci=? "GoldFish"
+  "goldfish"
+) ;ascii-string-ci=?
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/ascii "ascii-alphabetic?"
 ;;   bin/gf doc liii/ascii "ascii-string-ci=?"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、码点与容器判定
 ;; 用于判断输入是否处于 ASCII 范围内的函数
@@ -28,6 +37,7 @@
 ;;   ascii-bytevector?    - 判断字节向量是否全部为 ASCII
 ;;   ascii-char?          - 判断字符是否在 ASCII 范围内
 ;;   ascii-string?        - 判断字符串是否全部由 ASCII 字符组成
+
 
 ;; 二、字符类别判定
 ;; 用于判断 ASCII 字符类别的函数
@@ -41,6 +51,7 @@
 ;;   ascii-alphabetic?    - 判断是否为字母
 ;;   ascii-alphanumeric?  - 判断是否为字母或数字
 ;;   ascii-numeric?       - 判断是否为数字
+
 
 ;; 三、转换函数
 ;; 用于在字符、数值和辅助符号之间转换的函数
@@ -56,6 +67,7 @@
 ;;   ascii-graphic->control   - 将可视字符映射为控制字符
 ;;   ascii-mirror-bracket     - 获取配对括号
 
+
 ;; 四、比较函数
 ;; 用于进行大小写无关比较的函数
 ;;   ascii-ci=?           - 判断两个字符是否大小写无关相等
@@ -68,6 +80,7 @@
 ;;   ascii-string-ci>?    - 判断两个字符串是否大小写无关大于
 ;;   ascii-string-ci<=?   - 判断两个字符串是否大小写无关小于等于
 ;;   ascii-string-ci>=?   - 判断两个字符串是否大小写无关大于等于
+
 
 ;; 五、括号辅助函数
 ;; 用于判断和处理配对括号的函数

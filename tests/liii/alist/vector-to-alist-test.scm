@@ -1,8 +1,8 @@
-(import (liii alist)
-        (liii check)
-) ;import
+(import (liii alist) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector->alist
 ;; 把向量转换成以索引为键的关联列表。
@@ -34,10 +34,23 @@
 ;; ----
 ;; type-error 当参数不是向量时抛出。
 
+
 (check (vector->alist #()) => '())
-(check (vector->alist #(42)) => '((0 . 42)))
-(check (vector->alist #("a" "b" "c")) => '((0 . "a") (1 . "b") (2 . "c")))
-(check (vector->alist #(#(1 2) #(3 4))) => '((0 . #(1 2)) (1 . #(3 4))))
-(check-catch 'type-error (vector->alist 'not-a-vector))
+(check (vector->alist #(42))
+  =>
+  '((0 . 42))
+) ;check
+(check (vector->alist #("a" "b" "c"))
+  =>
+  '((0 . "a") (1 . "b") (2 . "c"))
+) ;check
+(check (vector->alist #(#(1 2) #(3 4)))
+  =>
+  '((0 . #(1 2)) (1 . #(3 4)))
+) ;check
+(check-catch 'type-error
+  (vector->alist 'not-a-vector)
+) ;check-catch
+
 
 (check-report)

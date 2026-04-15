@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-find
 ;; 查找 set 中满足谓词的元素。
@@ -42,23 +44,69 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 (define s-1-2 (set 1 2))
 (define s-1-2-3 (set 1 2 3))
 
-(check (set-find (lambda (x) (= x 1)) s-1 (lambda () 'not-found)) => 1)
-(check (set-find (lambda (x) (= x 1)) s-1-2 (lambda () 'not-found)) => 1)
-(check (set-find (lambda (x) (= x 2)) s-1-2 (lambda () 'not-found)) => 2)
 
-(check (set-find (lambda (x) (> x 10)) s-1 (lambda () 'not-found)) => 'not-found)
-(check (set-find (lambda (x) (> x 10)) s-empty (lambda () 'not-found)) => 'not-found)
+(check (set-find (lambda (x) (= x 1))
+         s-1
+         (lambda () 'not-found)
+       ) ;set-find
+  =>
+  1
+) ;check
+(check (set-find (lambda (x) (= x 1))
+         s-1-2
+         (lambda () 'not-found)
+       ) ;set-find
+  =>
+  1
+) ;check
+(check (set-find (lambda (x) (= x 2))
+         s-1-2
+         (lambda () 'not-found)
+       ) ;set-find
+  =>
+  2
+) ;check
+
+
+(check (set-find (lambda (x) (> x 10))
+         s-1
+         (lambda () 'not-found)
+       ) ;set-find
+  =>
+  'not-found
+) ;check
+(check (set-find (lambda (x) (> x 10))
+         s-empty
+         (lambda () 'not-found)
+       ) ;set-find
+  =>
+  'not-found
+) ;check
+
 
 ;; Test multiple elements satisfying predicate (returns any one)
-(let ((res (set-find (lambda (x) (> x 0)) s-1-2 (lambda () 'not-found))))
+(let ((res (set-find (lambda (x) (> x 0))
+             s-1-2
+             (lambda () 'not-found)
+           ) ;set-find
+      ) ;res
+     ) ;
   (check-true (or (= res 1) (= res 2)))
 ) ;let
 
-(check-catch 'type-error (set-find (lambda (x) #t) "not a set" (lambda () #f)))
+
+(check-catch 'type-error
+  (set-find (lambda (x) #t)
+    "not a set"
+    (lambda () #f)
+  ) ;set-find
+) ;check-catch
+
 
 (check-report)

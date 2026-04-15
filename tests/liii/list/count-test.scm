@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; count 函数测试
 ;;
@@ -27,6 +27,11 @@
 ;; ----
 ;; (count even? '(3 1 4 1 5 9 2 5 6)) => 3
 
-(check (count even? '(3 1 4 1 5 9 2 5 6)) => 3)
+
+(check (count even? '(3 1 4 1 5 9 2 5 6))
+  =>
+  3
+) ;check
+
 
 (check-report)

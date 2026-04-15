@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii base))
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; and-let*
 ;; 顺序绑定变量，如果任一绑定结果为假则立即返回假，否则执行主体。
@@ -32,39 +34,51 @@
 ;; and-let* 结合了 and 和 let* 的功能，适合用于条件性的变量绑定。
 ;; 它在需要多个条件同时满足时才执行某些操作的场景中非常有用。
 
+
 ;; 基础测试 - 所有条件为真
-(check (and-let* ((hi 3) (ho #t)) (+ hi 1)) => 4)
+(check (and-let* ((hi 3) (ho #t)) (+ hi 1))
+  =>
+  4
+) ;check
+
 
 ;; 基础测试 - 有条件为假，返回假
-(check (and-let* ((hi 3) (ho #f)) (+ hi 1)) => #f)
+(check (and-let* ((hi 3) (ho #f)) (+ hi 1))
+  =>
+  #f
+) ;check
+
 
 ;; 单变量测试
 (check (and-let* ((x 5)) (* x 2)) => 10)
 
+
 ;; 空绑定 - 直接执行 body
 (check (and-let* () 42) => 42)
 
+
 ;; 嵌套表达式
-(check
-  (and-let* ((a 1)
-             (b (+ a 2))
-             (c (* b 2)))
-    (+ a b c)
-  ) ;and-let*
-  => 10
+(check (and-let* ((a 1) (b (+ a 2)) (c (* b 2)))
+         (+ a b c)
+       ) ;and-let*
+  =>
+  10
 ) ;check
 
+
 ;; 短路测试 - 第二个条件为假，不会执行第三个
-(check
-  (let ((evaluated #f))
-    (and-let* ((x 1)
-               (y #f)
-               (z (begin (set! evaluated #t) 3)))
-      'body
-    ) ;and-let*
-    evaluated
-  ) ;let
-  => #f
+(check (let ((evaluated #f))
+         (and-let* ((x 1)
+                    (y #f)
+                    (z (begin (set! evaluated #t) 3))
+                   ) ;
+           'body
+         ) ;and-let*
+         evaluated
+       ) ;let
+  =>
+  #f
 ) ;check
+
 
 (check-report)

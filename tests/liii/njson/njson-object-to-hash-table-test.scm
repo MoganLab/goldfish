@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii base)
-        (liii hash-table)
-        (liii njson)
+  (liii base)
+  (liii hash-table)
+  (liii njson)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; njson-object->hash-table
 ;; 把 njson object 递归转换为 hash-table/vector 家族的纯 Scheme 结构。
@@ -32,30 +34,76 @@
 ;; type-error
 ;; 输入不是 object-handle 或句柄已释放时抛出。
 
+
 (define njson-object->hash-table-json
   "{\"name\":\"Goldfish\",\"meta\":{\"os\":\"linux\",\"empty\":{}},\"nums\":[1,{\"deep\":true},[]],\"nil\":null}"
 ) ;define
 
+
 (define object-as-hash-table #f)
-(let-njson ((root (string->njson njson-object->hash-table-json)))
-  (set! object-as-hash-table (njson-object->hash-table root))
-  (check-true (hash-table? object-as-hash-table))
-  (check (hash-table-ref object-as-hash-table "name") => "Goldfish")
-  (let ((meta (hash-table-ref object-as-hash-table "meta"))
-        (nums (hash-table-ref object-as-hash-table "nums")))
+(let-njson ((root (string->njson njson-object->hash-table-json
+                  ) ;string->njson
+            ) ;root
+           ) ;
+  (set! object-as-hash-table
+    (njson-object->hash-table root)
+  ) ;set!
+  (check-true (hash-table? object-as-hash-table)
+  ) ;check-true
+  (check (hash-table-ref object-as-hash-table
+           "name"
+         ) ;hash-table-ref
+    =>
+    "Goldfish"
+  ) ;check
+  (let ((meta (hash-table-ref object-as-hash-table
+                "meta"
+              ) ;hash-table-ref
+        ) ;meta
+        (nums (hash-table-ref object-as-hash-table
+                "nums"
+              ) ;hash-table-ref
+        ) ;nums
+       ) ;
     (check-true (hash-table? meta))
-    (check (hash-table-ref meta "os") => "linux")
-    (check-true (hash-table? (hash-table-ref meta "empty")))
-    (check (hash-table-size (hash-table-ref meta "empty")) => 0)
+    (check (hash-table-ref meta "os")
+      =>
+      "linux"
+    ) ;check
+    (check-true (hash-table? (hash-table-ref meta "empty")
+                ) ;hash-table?
+    ) ;check-true
+    (check (hash-table-size (hash-table-ref meta "empty")
+           ) ;hash-table-size
+      =>
+      0
+    ) ;check
     (check-true (vector? nums))
     (check (vector-ref nums 0) => 1)
-    (check-true (hash-table? (vector-ref nums 1)))
-    (check (hash-table-ref (vector-ref nums 1) "deep") => #t)
+    (check-true (hash-table? (vector-ref nums 1))
+    ) ;check-true
+    (check (hash-table-ref (vector-ref nums 1)
+             "deep"
+           ) ;hash-table-ref
+      =>
+      #t
+    ) ;check
     (check (vector-ref nums 2) => #())
   ) ;let
-  (check (hash-table-ref object-as-hash-table "nil") => 'null)
+  (check (hash-table-ref object-as-hash-table
+           "nil"
+         ) ;hash-table-ref
+    =>
+    'null
+  ) ;check
 ) ;let-njson
-(check (hash-table-ref object-as-hash-table "name") => "Goldfish")
+(check (hash-table-ref object-as-hash-table
+         "name"
+       ) ;hash-table-ref
+  =>
+  "Goldfish"
+) ;check
+
 
 (let-njson ((root (string->njson "{}")))
   (let ((ht (njson-object->hash-table root)))
@@ -64,12 +112,24 @@
   ) ;let
 ) ;let-njson
 
-(check-catch 'type-error (njson-object->hash-table 'foo))
+
+(check-catch 'type-error
+  (njson-object->hash-table 'foo)
+) ;check-catch
 (let-njson ((scalar (string->njson "1")))
-  (check-catch 'type-error (njson-object->hash-table scalar))
+  (check-catch 'type-error
+    (njson-object->hash-table scalar)
+  ) ;check-catch
 ) ;let-njson
-(define object->hash-table-freed (string->njson "{\"a\":1}"))
-(check-true (njson-free object->hash-table-freed))
-(check-catch 'type-error (njson-object->hash-table object->hash-table-freed))
+(define object->hash-table-freed
+  (string->njson "{\"a\":1}")
+) ;define
+(check-true (njson-free object->hash-table-freed)
+) ;check-true
+(check-catch 'type-error
+  (njson-object->hash-table object->hash-table-freed
+  ) ;njson-object->hash-table
+) ;check-catch
+
 
 (check-report)

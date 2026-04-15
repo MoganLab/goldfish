@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-stable-sort
 ;; 对列表进行非破坏性稳定排序。
@@ -36,14 +36,42 @@
 ;; ----
 ;; 无
 
-(check-true (list-sorted? < (list-stable-sort < '(1 5 1 0 -1 9 2 4 3))))
-(check-true (list-sorted? < (list-stable-sort < '(9 7 5 3 2 8 6 4 1))))
-(check-true (list-sorted? < (list-stable-sort < '())))
-(check-true (list-sorted? < (list-stable-sort < '(42))))
+
+(check-true (list-sorted? <
+              (list-stable-sort <
+                '(1 5 1 0 -1 9 2 4 3)
+              ) ;list-stable-sort
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-stable-sort <
+                '(9 7 5 3 2 8 6 4 1)
+              ) ;list-stable-sort
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-stable-sort < '())
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-stable-sort < '(42))
+            ) ;list-sorted?
+) ;check-true
+
 
 ;; 测试稳定性（相等元素保持相对顺序）
-(define pairs '((1 . a) (2 . b) (1 . c) (3 . d) (2 . e)))
-(define sorted-pairs (list-stable-sort (lambda (x y) (< (car x) (car y))) pairs))
-(check sorted-pairs => '((1 . a) (1 . c) (2 . b) (2 . e) (3 . d)))
+(define pairs
+  '((1 . a) (2 . b) (1 . c) (3 . d) (2 . e))
+) ;define
+(define sorted-pairs
+  (list-stable-sort (lambda (x y) (< (car x) (car y)))
+    pairs
+  ) ;list-stable-sort
+) ;define
+(check sorted-pairs
+  =>
+  '((1 . a) (1 . c) (2 . b) (2 . e) (3 . d))
+) ;check
+
 
 (check-report)

@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; time-second
 ;; 获取时间对象的秒部分。
@@ -30,14 +32,22 @@
 ;; ----
 ;; wrong-type-arg 当参数不是时间对象时抛出错误。
 
-(let ((t1 (make-time TIME-UTC 123456789 987654321))
-      (t2 (make-time TIME-MONOTONIC 999999999 0))
-      (t3 (make-time TIME-TAI 0 -1234567890)))
+
+(let ((t1 (make-time TIME-UTC 123456789 987654321)
+      ) ;t1
+      (t2 (make-time TIME-MONOTONIC 999999999 0)
+      ) ;t2
+      (t3 (make-time TIME-TAI 0 -1234567890))
+     ) ;
   (check (time-second t1) => 987654321)
   (check (time-second t2) => 0)
   (check (time-second t3) => -1234567890)
 ) ;let
 
-(check-catch 'wrong-type-arg (time-second 'symbol))
+
+(check-catch 'wrong-type-arg
+  (time-second 'symbol)
+) ;check-catch
+
 
 (check-report)

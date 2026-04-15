@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; first 函数测试
 ;;
@@ -41,34 +41,45 @@
 ;; (first '(left . right)) => 'left
 ;; (first '(a b c)) => 'a
 
-(check (first '(1 2 3 4 5 6 7 8 9 10)) => 1)
+
+(check (first '(1 2 3 4 5 6 7 8 9 10))
+  =>
+  1
+) ;check
 (check (first '(left . right)) => 'left)
 (check (first '(a b c)) => 'a)
-(check (first '( 42)) => 42)
+(check (first '(42)) => 42)
 
-(check-catch 'wrong-type-arg (first '()))
 
-; 基本功能测试
+(check-catch 'wrong-type-arg
+  (first '())
+) ;check-catch
+
+
 (check (first '(a)) => 'a)
 (check (first '(a b)) => 'a)
 (check (first '(a b c d e)) => 'a)
 
-; 点对结构测试
+
 (check (first '(a . b)) => 'a)
 (check (first '((1 2) 3 4)) => '(1 2))
 
-; 嵌套结构测试
+
 (check (first '((a b) (c d))) => '(a b))
 (check (first '(() a b)) => '())
 
-; 各种数据类型测试
-(check (first '((1 2 3) 4 5)) => '(1 2 3))
+
+(check (first '((1 2 3) 4 5))
+  =>
+  '(1 2 3)
+) ;check
 (check (first '("a" "b" "c")) => "a")
 (check (first '(42 43 44)) => 42)
 (check (first '(#t #f #t)) => #t)
 
-; 混合类型测试
+
 (check (first '(1 "hello" a)) => 1)
 (check (first '(a 1 #t)) => 'a)
+
 
 (check-report)

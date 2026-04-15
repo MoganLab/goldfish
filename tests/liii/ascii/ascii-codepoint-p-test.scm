@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-codepoint?
 ;; 判断对象是否为 ASCII 码点。
@@ -32,10 +31,12 @@
 ;; ----
 ;; 非整数输入返回 #f
 
+
 (check-true (ascii-codepoint? 0))
-(check-true (ascii-codepoint? #x7f))
+(check-true (ascii-codepoint? 127))
 (check-false (ascii-codepoint? -1))
-(check-false (ascii-codepoint? #x80))
+(check-false (ascii-codepoint? 128))
 (check-false (ascii-codepoint? #\A))
+
 
 (check-report)

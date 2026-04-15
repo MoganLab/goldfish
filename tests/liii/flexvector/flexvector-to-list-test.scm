@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector->list
 ;; 将可变长向量转换为列表。时间复杂度 O(n)。
@@ -32,23 +32,40 @@
 ;; ----
 ;; list->flexvector - 列表转向量
 
+
 ;; 基本转换
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->list fv) => '(1 2 3))
+  (check (flexvector->list fv)
+    =>
+    '(1 2 3)
+  ) ;check
 ) ;let
 
+
 ;; 空向量
-(check (flexvector->list (flexvector)) => '())
+(check (flexvector->list (flexvector))
+  =>
+  '()
+) ;check
+
 
 ;; 从指定位置转换
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->list fv 2) => '(3 4 5))
+  (check (flexvector->list fv 2)
+    =>
+    '(3 4 5)
+  ) ;check
 ) ;let
+
 
 ;; 转换区间 [start, end)
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->list fv 1 4) => '(2 3 4))
+  (check (flexvector->list fv 1 4)
+    =>
+    '(2 3 4)
+  ) ;check
 ) ;let
+
 
 ;; 边界测试
 (let ((fv (flexvector 1 2 3)))
@@ -56,14 +73,21 @@
   (check (flexvector->list fv 3 3) => '())
 ) ;let
 
+
 ;; 单元素
 (let ((fv (flexvector 'only)))
   (check (flexvector->list fv) => '(only))
 ) ;let
 
+
 ;; 往返测试
 (let ((lst '(a b c d e)))
-  (check (flexvector->list (list->flexvector lst)) => lst)
+  (check (flexvector->list (list->flexvector lst)
+         ) ;flexvector->list
+    =>
+    lst
+  ) ;check
 ) ;let
+
 
 (check-report)

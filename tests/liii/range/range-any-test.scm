@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-any
 ;; 检查是否存在满足谓词的元素。
@@ -34,17 +34,25 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (check-true (range-any even? r))
-  (check-true (range-any (lambda (x) (> x 8)) r))
-  (check-false (range-any (lambda (x) (> x 10)) r))
-  (check-true (range-any (lambda (x) (= x 0)) r))
-  (check-false (range-any (lambda (x) (< x 0)) r))
+  (check-true (range-any (lambda (x) (> x 8)) r)
+  ) ;check-true
+  (check-false (range-any (lambda (x) (> x 10)) r)
+  ) ;check-false
+  (check-true (range-any (lambda (x) (= x 0)) r)
+  ) ;check-true
+  (check-false (range-any (lambda (x) (< x 0)) r)
+  ) ;check-false
 ) ;let
+
 
 (let ((r (numeric-range 1 10)))
   (check-true (range-any odd? r))
-  (check-false (range-any (lambda (x) (= x 0)) r))
+  (check-false (range-any (lambda (x) (= x 0)) r)
+  ) ;check-false
 ) ;let
+
 
 (check-report)

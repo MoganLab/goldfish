@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-empty?
 ;; 检查向量是否为空。
@@ -34,10 +34,16 @@
 ;; ----
 ;; type-error 当vec不是向量时
 
+
 (check-true (vector-empty? (vector)))
 (check-false (vector-empty? (vector 1)))
 (check-false (vector-empty? #(a b c)))
-(check-false (vector-empty? #(1 2.5 "hello" 'symbol #\c #t #f)))
-(check-catch 'type-error (vector-empty? 1))
+(check-false (vector-empty? #(1 2.5 "hello" 'symbol #\c #t #f)
+             ) ;vector-empty?
+) ;check-false
+(check-catch 'type-error
+  (vector-empty? 1)
+) ;check-catch
+
 
 (check-report)

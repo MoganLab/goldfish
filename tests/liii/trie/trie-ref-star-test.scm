@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii trie)
-) ;import
+(import (liii check) (liii trie))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; trie-ref*
 ;; 从 trie 中查询键对应的直接子节点。
@@ -32,10 +32,20 @@
 ;; ----
 ;; (trie-ref* trie #\h) => 子 trie 或 #f
 
+
 (let ((trie (make-trie)))
-  (check-false (trie-ref* trie (string->list "hey")))
-  (check (trie-ref trie (string->list "hey") 'default) => 'default)
-  (check-false (trie-ref* trie (string->list "hey")))
+  (check-false (trie-ref* trie (string->list "hey"))
+  ) ;check-false
+  (check (trie-ref trie
+           (string->list "hey")
+           'default
+         ) ;trie-ref
+    =>
+    'default
+  ) ;check
+  (check-false (trie-ref* trie (string->list "hey"))
+  ) ;check-false
 ) ;let
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-ref
 ;; 访问可变长向量中的元素。时间复杂度 O(1)。
@@ -38,20 +38,29 @@
 ;; (flexvector-ref fv 0)                      => 10  ; 第一个
 ;; (flexvector-ref fv (- (flexvector-length fv) 1)) => 30  ; 最后一个
 
+
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-ref fv 0) => 'a)
   (check (flexvector-ref fv 1) => 'b)
   (check (flexvector-ref fv 2) => 'c)
 ) ;let
 
+
 ;; 边界测试：单元素
 (let ((fv (flexvector 'only)))
   (check (flexvector-ref fv 0) => 'only)
 ) ;let
 
+
 ;; 边界测试：索引计算
 (let ((fv (flexvector 10 20 30 40 50)))
-  (check (flexvector-ref fv (- (flexvector-length fv) 1)) => 50)
+  (check (flexvector-ref fv
+           (- (flexvector-length fv) 1)
+         ) ;flexvector-ref
+    =>
+    50
+  ) ;check
 ) ;let
+
 
 (check-report)

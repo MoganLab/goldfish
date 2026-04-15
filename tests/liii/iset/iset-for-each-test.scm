@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset-for-each
@@ -25,9 +25,14 @@
 ;; 按递增数值顺序应用 proc。
 ;;
 (check (let ((sum 0))
-         (iset-for-each (lambda (x) (set! sum (+ sum x))) (iset 2 3 5 7 11))
-         sum)
-       => 28
+         (iset-for-each (lambda (x) (set! sum (+ sum x)))
+           (iset 2 3 5 7 11)
+         ) ;iset-for-each
+         sum
+       ) ;let
+  =>
+  28
 ) ;check
+
 
 (check-report)

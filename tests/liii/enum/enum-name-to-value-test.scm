@@ -1,24 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-name->value
 ;; 通过名称获取 enum 的值。
@@ -52,7 +56,15 @@
 ;; ----
 ;; 原始测试未覆盖错误分支。
 
-(check (enum-name->value pizza 'funghi) => "mushrooms")
-(check (enum-name->value color 'blue) => 6)
+
+(check (enum-name->value pizza 'funghi)
+  =>
+  "mushrooms"
+) ;check
+(check (enum-name->value color 'blue)
+  =>
+  6
+) ;check
+
 
 (check-report)

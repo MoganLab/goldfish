@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range=?
 ;; 比较多个 range 是否相等。
@@ -34,16 +34,21 @@
 ;; ----
 ;; 无
 
+
 (let ((r1 (numeric-range 0 5))
       (r2 (numeric-range 0 5))
-      (r3 (numeric-range 1 6)))
+      (r3 (numeric-range 1 6))
+     ) ;
   (check-true (range=? = r1 r2))
   (check-false (range=? = r1 r3))
 ) ;let
 
+
 (let ((r1 (numeric-range 10 20))
-      (r2 (numeric-range 10 21)))
+      (r2 (numeric-range 10 21))
+     ) ;
   (check-false (range=? = r1 r2))
 ) ;let
+
 
 (check-report)

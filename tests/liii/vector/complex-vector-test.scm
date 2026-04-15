@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; complex-vector
 ;; 创建只包含复数元素的专用向量。
@@ -33,18 +33,28 @@
 ;; ----
 ;; wrong-type-arg 当任一参数不是复数时
 
-(check-true (vector? (complex-vector 1+2i 3+4i)))
-(check-true (complex-vector? (complex-vector 1+2i 3+4i)))
-(check-catch 'wrong-type-arg (complex-vector 1+2i 'a))
+
+(check-true (vector? (complex-vector 1.0+2.0i 3.0+4.0i)
+            ) ;vector?
+) ;check-true
+(check-true (complex-vector? (complex-vector 1.0+2.0i 3.0+4.0i)
+            ) ;complex-vector?
+) ;check-true
+(check-catch 'wrong-type-arg
+  (complex-vector 1.0+2.0i 'a)
+) ;check-catch
+
 
 (let ((v (complex-vector)))
   (check (vector-length v) => 0)
   (check-true (complex-vector? v))
 ) ;let
 
-(let ((v (complex-vector 1+2i)))
+
+(let ((v (complex-vector 1.0+2.0i)))
   (check (vector-length v) => 1)
   (check-true (complex-vector? v))
 ) ;let
+
 
 (check-report)

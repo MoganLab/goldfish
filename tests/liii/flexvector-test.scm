@@ -3,23 +3,33 @@
 ;; flexvector 是可变长向量，兼具向量随机访问能力和动态扩缩容能力。
 ;; 适合需要频繁追加、删除、映射和分段处理的顺序容器场景。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii flexvector))
 
+
 ;; 示例1：创建一个可变长向量并访问元素
 (define fv (flexvector 1 2 3))
-(flexvector-length fv) ; => 3
-(flexvector-ref fv 1)  ; => 2
+(flexvector-length fv)
+(flexvector-ref fv 1)
+
 
 ;; 示例2：向 flexvector 末尾追加元素
-(flexvector->list (flexvector-add-back! (flexvector-copy fv) 4)) ; => (1 2 3 4)
+(flexvector->list (flexvector-add-back! (flexvector-copy fv)
+                    4
+                  ) ;flexvector-add-back!
+) ;flexvector->list
+
 
 ;; 示例3：拼接两个 flexvector
-(flexvector->list (flexvector-append fv (flexvector 4 5))) ; => (1 2 3 4 5)
+(flexvector->list (flexvector-append fv (flexvector 4 5))
+) ;flexvector->list
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/flexvector "flexvector"
 ;;   bin/gf doc liii/flexvector "flexvector-append"
+
 
 ;; ==== 复杂度速查表 ====
 ;;
@@ -39,6 +49,7 @@
 ;;
 ;; ==== 函数分类索引 ====
 
+
 ;; 一、构造函数 (Constructors) - O(1) 或 O(n)
 ;; 用于创建和基本访问 flexvector 的函数
 ;;   make-flexvector             - O(n) 创建指定长度的 flexvector
@@ -49,6 +60,7 @@
 ;;   flexvector-front            - O(1) 获取首元素
 ;;   flexvector-back             - O(1) 获取尾元素
 ;;   flexvector-length           - O(1) 获取长度
+
 
 ;; 二、原地修改 (Mutators) - O(1) 或 O(n)
 ;; 用于原地增删改元素的函数
@@ -65,6 +77,7 @@
 ;;   flexvector-swap!            - O(1) 交换两个位置的元素
 ;;   flexvector-reverse!         - O(n) 原地反转
 
+
 ;; 三、复制与类型转换 (Conversion) - O(n)
 ;; 用于复制 flexvector 或在不同容器间转换的函数
 ;;   flexvector-copy             - O(n) 复制 flexvector
@@ -79,6 +92,7 @@
 ;;   reverse-list->flexvector    - O(n) 反向列表转为 flexvector
 ;;   flexvector->string          - O(n) 转为字符串
 ;;   string->flexvector          - O(n) 字符串转为 flexvector
+
 
 ;; 四、遍历与搜索 (Iteration & Search) - O(n) 或 O(log n)
 ;; 用于遍历、统计和查找 flexvector 的函数
@@ -107,6 +121,7 @@
 ;;   flexvector-binary-search    - O(log n) 执行二分搜索（需有序）
 ;;   flexvector-partition        - O(n) 拆分为满足与不满足两部分
 
+
 ;; 五、拼接与展开 (Concatenation & Unfolding) - O(n)
 ;; 用于组合 flexvector 或通过生成器构造 flexvector 的函数
 ;;   flexvector-append           - O(n) 拼接多个 flexvector
@@ -118,6 +133,7 @@
 ;;   flexvector-unfold-right     - O(n) 从右侧 unfold 构造 flexvector
 ;;   flexvector->generator       - O(1) 转为生成器
 ;;   generator->flexvector       - O(n) 生成器转为 flexvector
+
 
 ;; ==== AI 使用建议 ====
 ;;

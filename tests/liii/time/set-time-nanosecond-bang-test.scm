@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-time-nanosecond!
 ;; 设置时间对象的纳秒部分。
@@ -25,16 +27,24 @@
 ;; --------
 ;; wrong-type-arg 当参数类型不正确时抛出错误。
 
+
 (let ((t (make-time TIME-UTC 0 0)))
-  (check (set-time-nanosecond! t 555555555) => 555555555)
+  (check (set-time-nanosecond! t 555555555)
+    =>
+    555555555
+  ) ;check
   (check (time-nanosecond t) => 555555555)
   (check (set-time-nanosecond! t 0) => 0)
   (check (time-nanosecond t) => 0)
 ) ;let
 
+
 ;; Test error conditions
 (let ((t (make-time TIME-UTC 0 0)))
-  (check-catch 'wrong-type-arg (set-time-nanosecond! "not-a-time" 0))
+  (check-catch 'wrong-type-arg
+    (set-time-nanosecond! "not-a-time" 0)
+  ) ;check-catch
 ) ;let
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; last 函数测试
 ;;
@@ -27,12 +27,16 @@
 ;; (last '(a b . c)) => 'b
 ;; (last '(b . c)) => 'b
 
+
 (check (last '(a b c)) => 'c)
 (check (last '(c)) => 'c)
+
 
 (check (last '(a b . c)) => 'b)
 (check (last '(b . c)) => 'b)
 
+
 (check-catch 'wrong-type-arg (last '()))
+
 
 (check-report)

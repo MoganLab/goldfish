@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range->list
 ;; 将 range 转换为列表。
@@ -29,24 +29,36 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 5)))
   (check (range->list r) => '(0 1 2 3 4))
 ) ;let
+
 
 (let ((r (numeric-range 0 0)))
   (check (range->list r) => '())
 ) ;let
 
+
 (let ((r (numeric-range 10 20 2)))
-  (check (range->list r) => '(10 12 14 16 18))
+  (check (range->list r)
+    =>
+    '(10 12 14 16 18)
+  ) ;check
 ) ;let
+
 
 (let ((r (vector-range #(a b c d e))))
   (check (range->list r) => '(a b c d e))
 ) ;let
 
+
 (let ((r (string-range "hello")))
-  (check (range->list r) => '(#\h #\e #\l #\l #\o))
+  (check (range->list r)
+    =>
+    '(#\h #\e #\l #\l #\o)
+  ) ;check
 ) ;let
+
 
 (check-report)

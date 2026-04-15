@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii os)
-) ;import
+(import (liii check) (liii os))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; mkdir
 ;; 创建目录。
@@ -30,7 +30,8 @@
 ;; ----
 ;; 创建单个目录，如果父目录不存在会失败。
 
-;;; 基本功能测试
+
+;; ; 基本功能测试
 (when (not (os-windows?))
   ;; 测试创建已存在的目录会报错
   (check-catch 'file-exists-error
@@ -43,9 +44,11 @@
              (when (file-exists? test_dir)
                (rmdir "/tmp/test_124")
              ) ;when
-             (mkdir "/tmp/test_124"))
+             (mkdir "/tmp/test_124")
            ) ;let
-    => #t
+         ) ;begin
+    =>
+    #t
   ) ;check
 
   ;; 清理
@@ -53,5 +56,6 @@
     (rmdir "/tmp/test_124")
   ) ;when
 ) ;when
+
 
 (check-report)

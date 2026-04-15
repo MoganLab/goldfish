@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; tenth 函数测试
 ;;
@@ -24,6 +24,11 @@
 ;; ----
 ;; (tenth '(1 2 3 4 5 6 7 8 9 10)) => 10
 
-(check (tenth '(1 2 3 4 5 6 7 8 9 10)) => 10)
+
+(check (tenth '(1 2 3 4 5 6 7 8 9 10))
+  =>
+  10
+) ;check
+
 
 (check-report)

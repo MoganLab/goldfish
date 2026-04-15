@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-ref/default
 ;; 读取哈希表中的值；未命中时返回默认值。
@@ -39,11 +39,25 @@
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
+
 (let ((ht (make-hash-table)))
-  (check (hash-table-ref/default ht 'key 'value1) => 'value1)
-  (check (hash-table-ref/default ht 'key (lambda () 3)) => 3)
+  (check (hash-table-ref/default ht 'key 'value1)
+    =>
+    'value1
+  ) ;check
+  (check (hash-table-ref/default ht
+           'key
+           (lambda () 3)
+         ) ;hash-table-ref/default
+    =>
+    3
+  ) ;check
   (hash-table-set! ht 'key 'value)
-  (check (hash-table-ref/default ht 'key 'value1) => 'value)
+  (check (hash-table-ref/default ht 'key 'value1)
+    =>
+    'value
+  ) ;check
 ) ;let
+
 
 (check-report)

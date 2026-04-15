@@ -1,9 +1,11 @@
 (import (liii list)
-        (liii check)
-        (only (srfi srfi-1) delete-duplicates)
+  (liii check)
+  (only (srfi srfi-1) delete-duplicates)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; delete-duplicates 函数测试
 ;;
@@ -31,29 +33,57 @@
 ;; (delete-duplicates (list 1 1 1)) => (list 1)
 ;; (delete-duplicates '(1 -2 3 2 -1) (lambda (x y) (= (abs x) (abs y)))) => (list 1 -2 3)
 
-(check (delete-duplicates (list 1 1 2 3)) => (list 1 2 3))
-(check (delete-duplicates (list 1 2 3)) => (list 1 2 3))
-(check (delete-duplicates (list 1 1 1)) => (list 1))
 
-(check (delete-duplicates (list )) => (list ))
-
-(check (delete-duplicates (list 1 1 2 3) (lambda (x y) #f))
-       => (list 1 1 2 3)
+(check (delete-duplicates (list 1 1 2 3))
+  =>
+  (list 1 2 3)
+) ;check
+(check (delete-duplicates (list 1 2 3))
+  =>
+  (list 1 2 3)
+) ;check
+(check (delete-duplicates (list 1 1 1))
+  =>
+  (list 1)
 ) ;check
 
-(check (delete-duplicates '(1 -2 3 2 -1) (lambda (x y) (= (abs x) (abs y))))
-       => (list 1 -2 3)
+
+(check (delete-duplicates (list))
+  =>
+  (list)
 ) ;check
 
-(check
-  (catch 'wrong-type-arg
-    (lambda
-      ()
-      (check (delete-duplicates (list 1 1 2 3) 'not-pred) => 1)
-    ) ;lambda
-    (lambda args #t)
-  ) ;catch
-  => #t
+
+(check (delete-duplicates (list 1 1 2 3)
+         (lambda (x y) #f)
+       ) ;delete-duplicates
+  =>
+  (list 1 1 2 3)
 ) ;check
+
+
+(check (delete-duplicates '(1 -2 3 2 -1)
+         (lambda (x y) (= (abs x) (abs y)))
+       ) ;delete-duplicates
+  =>
+  (list 1 -2 3)
+) ;check
+
+
+(check (catch 'wrong-type-arg
+         (lambda ()
+           (check (delete-duplicates (list 1 1 2 3)
+                    'not-pred
+                  ) ;delete-duplicates
+             =>
+             1
+           ) ;check
+         ) ;lambda
+         (lambda args #t)
+       ) ;catch
+  =>
+  #t
+) ;check
+
 
 (check-report)

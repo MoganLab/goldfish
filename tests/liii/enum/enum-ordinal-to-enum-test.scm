@@ -1,14 +1,18 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 ;; enum-ordinal->enum
 ;; 通过序数获取 enum。
@@ -42,7 +46,15 @@
 ;; ----
 ;; 无。
 
-(check (enum-name (enum-ordinal->enum color 3)) => 'yellow)
-(check (enum-ordinal->enum color 10) => #f)
+
+(check (enum-name (enum-ordinal->enum color 3))
+  =>
+  'yellow
+) ;check
+(check (enum-ordinal->enum color 10)
+  =>
+  #f
+) ;check
+
 
 (check-report)

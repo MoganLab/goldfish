@@ -1,8 +1,8 @@
-(import (liii chez)
-        (liii check)
-) ;import
+(import (liii chez) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; atom? 函数测试
 ;;
@@ -40,45 +40,46 @@
 ;; (atom? '(a b c)) => #f
 ;; (atom? '()) => #t
 
-; 符号测试
+
 (check-true (atom? 'symbol))
 (check-true (atom? 'a))
 (check-true (atom? '+))
 
-; 数字测试
+
 (check-true (atom? 0))
 (check-true (atom? 42))
 (check-true (atom? -123))
 (check-true (atom? 3.14))
 (check-true (atom? 1/2))
 
-; 字符串测试
+
 (check-true (atom? "hello"))
 (check-true (atom? ""))
 (check-true (atom? "world"))
 
-; 布尔值测试
+
 (check-true (atom? #t))
 (check-true (atom? #f))
 
-; 空列表测试
+
 (check-true (atom? '()))
 
-; 点对测试 - 应该返回 #f
+
 (check-false (atom? '(a . b)))
 (check-false (atom? '(1 2 3)))
 (check-false (atom? '(a b c)))
 
-; 嵌套列表测试 - 应该返回 #f
+
 (check-false (atom? '((a b) (c d))))
 (check-false (atom? '(1 (2 3) 4)))
 
-; 向量为原子
+
 (check-true (atom? #(1 2 3)))
 (check-true (atom? #()))
 
-; 函数为原子
+
 (check-true (atom? atom?))
 (check-true (atom? +))
+
 
 (check-report)

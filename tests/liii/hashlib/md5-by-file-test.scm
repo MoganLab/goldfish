@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii hashlib)
-        (liii path)
+  (liii hashlib)
+  (liii path)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; md5-by-file
 ;; 计算文件的 MD5 哈希值。
@@ -28,20 +30,33 @@
 ;; 2. 适用于大文件，无需一次性将整个文件加载到内存
 ;; 3. 常用于文件完整性校验
 
-;;; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt")
-      (content "hello"))
+
+;; ; 基本功能测试：文件哈希与字符串哈希一致
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
+      ) ;tmp-file
+      (content "hello")
+     ) ;
   (path-write-text tmp-file content)
-  (check (md5-by-file tmp-file) => (md5 content))
+  (check (md5-by-file tmp-file)
+    =>
+    (md5 content)
+  ) ;check
   (delete-file tmp-file)
 ) ;let
 
-;;; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
+
+;; ; 边界测试：空文件
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
+      ) ;tmp-file
+     ) ;
   (path-write-text tmp-file "")
-  (check (md5-by-file tmp-file) => (md5 ""))
+  (check (md5-by-file tmp-file)
+    =>
+    (md5 "")
+  ) ;check
   (delete-file tmp-file)
 ) ;let
+
 
 
 (check-report)

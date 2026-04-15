@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack-for-each
 ;; 遍历栈中每个元素，执行副作用操作。
@@ -33,50 +32,65 @@
 ;; type-error 当 proc 不是过程时
 ;; type-error 当 s 不是栈时
 
-; Test stack-for-each on empty stack
-(let ((s (make-stack))
-      (count 0))
-  (stack-for-each (lambda (x) (set! count (+ count 1))) s)
+
+(let ((s (make-stack)) (count 0))
+  (stack-for-each (lambda (x) (set! count (+ count 1)))
+    s
+  ) ;stack-for-each
   (check count => 0)
 ) ;let
 
-; Test stack-for-each on single element
-(let ((s (stack 1))
-      (sum 0))
-  (stack-for-each (lambda (x) (set! sum (+ sum x))) s)
+
+(let ((s (stack 1)) (sum 0))
+  (stack-for-each (lambda (x) (set! sum (+ sum x)))
+    s
+  ) ;stack-for-each
   (check sum => 1)
 ) ;let
 
-; Test stack-for-each on multiple elements
-(let ((s (stack 1 2 3))
-      (sum 0))
-  (stack-for-each (lambda (x) (set! sum (+ sum x))) s)
+
+(let ((s (stack 1 2 3)) (sum 0))
+  (stack-for-each (lambda (x) (set! sum (+ sum x)))
+    s
+  ) ;stack-for-each
   (check sum => 6)
 ) ;let
 
-; Test stack-for-each processes elements in order
-(let ((s (stack 1 2 3))
-      (lst '()))
-  (stack-for-each (lambda (x) (set! lst (cons x lst))) s)
-  ; Elements are processed from top to bottom
+
+(let ((s (stack 1 2 3)) (lst '()))
+  (stack-for-each (lambda (x) (set! lst (cons x lst)))
+    s
+  ) ;stack-for-each
   (check lst => '(3 2 1))
 ) ;let
 
-; Test stack-for-each doesn't modify stack
+
 (let ((s (stack 1 2 3)))
   (stack-for-each (lambda (x) (* x 2)) s)
   (check (stack->list s) => '(1 2 3))
 ) ;let
 
-; Test stack-for-each with side effects
-(let ((s (stack "a" "b" "c"))
-      (result ""))
-  (stack-for-each (lambda (x) (set! result (string-append result x))) s)
+
+(let ((s (stack "a" "b" "c")) (result ""))
+  (stack-for-each (lambda (x)
+                    (set! result (string-append result x))
+                  ) ;lambda
+    s
+  ) ;stack-for-each
   (check result => "abc")
 ) ;let
 
-; Error handling tests
-(check-catch 'type-error (stack-for-each "not-a-proc" (stack 1 2)))
-(check-catch 'type-error (stack-for-each (lambda (x) x) 'not-a-stack))
+
+(check-catch 'type-error
+  (stack-for-each "not-a-proc"
+    (stack 1 2)
+  ) ;stack-for-each
+) ;check-catch
+(check-catch 'type-error
+  (stack-for-each (lambda (x) x)
+    'not-a-stack
+  ) ;stack-for-each
+) ;check-catch
+
 
 (check-report)

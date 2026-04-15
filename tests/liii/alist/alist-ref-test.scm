@@ -1,8 +1,8 @@
-(import (liii alist)
-        (liii check)
-) ;import
+(import (liii alist) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; alist-ref
 ;; 在关联列表中按键查找对应的值。
@@ -46,10 +46,19 @@
 ;; ----
 ;; key-error 当键不存在且未提供thunk时抛出。
 
+
 (check (alist-ref '((a 1)) 'a) => '(1))
 (check (alist-ref '((a . 1)) 'a) => 1)
-(check-catch 'key-error (alist-ref '(("a" . 1)) "a"))
-(check-catch 'key-error (alist-ref '((a . 1)) 'b))
-(check (alist-ref '((a . 1)) 'b (lambda () 2)) => 2)
+(check-catch 'key-error
+  (alist-ref '(("a" . 1)) "a")
+) ;check-catch
+(check-catch 'key-error
+  (alist-ref '((a . 1)) 'b)
+) ;check-catch
+(check (alist-ref '((a . 1)) 'b (lambda () 2))
+  =>
+  2
+) ;check
+
 
 (check-report)

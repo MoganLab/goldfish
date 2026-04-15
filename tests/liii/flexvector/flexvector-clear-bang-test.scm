@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-clear!
 ;; 清空可变长向量，移除所有元素。时间复杂度 O(1)。
@@ -29,12 +29,14 @@
 ;; flexvector-remove-range! - 移除指定范围
 ;; flexvector-empty? - 检查是否为空
 
+
 ;; 基本测试
 (let ((fv (flexvector 'a 'b 'c)))
   (flexvector-clear! fv)
   (check (flexvector-length fv) => 0)
   (check (flexvector-empty? fv) => #t)
 ) ;let
+
 
 ;; 清空后可以继续使用
 (let ((fv (flexvector 1 2 3)))
@@ -44,11 +46,13 @@
   (check (flexvector->list fv) => '(x y))
 ) ;let
 
+
 ;; 空向量清空（无副作用）
 (let ((fv (flexvector)))
   (flexvector-clear! fv)
   (check (flexvector-empty? fv) => #t)
 ) ;let
+
 
 ;; 单元素清空
 (let ((fv (flexvector 'only)))
@@ -56,10 +60,15 @@
   (check (flexvector-empty? fv) => #t)
 ) ;let
 
+
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2 3)))
-  (check (eq? (flexvector-clear! fv) fv) => #t)
+  (check (eq? (flexvector-clear! fv) fv)
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 ;; 清空后设置
 (let ((fv (flexvector 'a 'b)))
@@ -67,5 +76,6 @@
   (flexvector-add-back! fv 1)
   (check (flexvector-ref fv 0) => 1)
 ) ;let
+
 
 (check-report)

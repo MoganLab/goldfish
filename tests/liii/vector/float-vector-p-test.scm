@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; float-vector?
 ;; 判断对象是否为浮点数向量。
@@ -34,13 +34,22 @@
 ;; ----
 ;; 无
 
-(check-true (float-vector? (float-vector 1.0 2.0 3.0)))
-(check-false (float-vector? (vector 1.0 2.0 3.0)))
-(check-false (float-vector? (int-vector 1 2 3)))
-(check-false (float-vector? (complex-vector 1+2i 3+4i)))
-(check-false (float-vector? 'not-a-vector))
+
+(check-true (float-vector? (float-vector 1.0 2.0 3.0)
+            ) ;float-vector?
+) ;check-true
+(check-false (float-vector? (vector 1.0 2.0 3.0))
+) ;check-false
+(check-false (float-vector? (int-vector 1 2 3))
+) ;check-false
+(check-false (float-vector? (complex-vector 1.0+2.0i 3.0+4.0i)
+             ) ;float-vector?
+) ;check-false
+(check-false (float-vector? 'not-a-vector)
+) ;check-false
 (check-false (float-vector? 42))
 (check-false (float-vector? 3.14))
 (check-false (float-vector? "string"))
+
 
 (check-report)

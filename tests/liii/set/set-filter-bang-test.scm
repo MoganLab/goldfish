@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-filter!
 ;; 可变筛选，返回仅包含满足 predicate 的元素的 set。
@@ -33,23 +35,42 @@
 ;; ----
 ;; (set-filter! odd? (set 1 2 3 4)) => 修改后的 set，仅包含 1, 3
 
+
 (define s-empty (set))
+
 
 ;; Test basic behavior
 (define s-filter-mut (set 1 2 3 4))
-(define s-filter-mut-result (set-filter! odd? s-filter-mut))
-(check-true (eq? s-filter-mut-result s-filter-mut))
+(define s-filter-mut-result
+  (set-filter! odd? s-filter-mut)
+) ;define
+(check-true (eq? s-filter-mut-result s-filter-mut)
+) ;check-true
 (check (set-size s-filter-mut) => 2)
-(check-true (set-contains? s-filter-mut 1))
-(check-true (set-contains? s-filter-mut 3))
-(check-false (set-contains? s-filter-mut 2))
-(check-false (set-contains? s-filter-mut 4))
+(check-true (set-contains? s-filter-mut 1)
+) ;check-true
+(check-true (set-contains? s-filter-mut 3)
+) ;check-true
+(check-false (set-contains? s-filter-mut 2)
+) ;check-false
+(check-false (set-contains? s-filter-mut 4)
+) ;check-false
+
 
 ;; Test empty set
-(define s-filter-mut-empty (set-copy s-empty))
+(define s-filter-mut-empty
+  (set-copy s-empty)
+) ;define
 (set-filter! even? s-filter-mut-empty)
-(check (set-size s-filter-mut-empty) => 0)
+(check (set-size s-filter-mut-empty)
+  =>
+  0
+) ;check
 
-(check-catch 'type-error (set-filter! even? "not a set"))
+
+(check-catch 'type-error
+  (set-filter! even? "not a set")
+) ;check-catch
+
 
 (check-report)

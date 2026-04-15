@@ -3,25 +3,32 @@
 ;; time 组合了 Goldfish 的基础时间接口与 SRFI-19 日期时间能力。
 ;; 既可以做简单休眠和时钟读取，也可以处理时间对象、日期格式化与时区转换。
 
+
 ;; ==== 常见用法示例 ====
-(import (liii time)
-        (srfi srfi-19)
-) ;import
+(import (liii time) (srfi srfi-19))
+
 
 ;; 示例1：读取系统 jiffy 精度
 (jiffies-per-second)
 
+
 ;; 示例2：获取当前时间对象
-(time? (current-time)) ; => #t
+(time? (current-time))
+
 
 ;; 示例3：构造日期并格式化输出
-(date->string (make-date 0 0 0 0 1 1 1970 0) "~Y-~m-~d") ; => "1970-01-01"
+(date->string (make-date 0 0 0 0 1 1 1970 0)
+  "~Y-~m-~d"
+) ;date->string
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/time "sleep"
 ;;   bin/gf doc liii/time "current-time"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、基础时钟接口
 ;; 用于读取当前时钟和休眠的函数
@@ -29,6 +36,7 @@
 ;;   current-second           - 获取当前秒时间戳
 ;;   current-jiffy            - 获取当前 jiffy 计数
 ;;   jiffies-per-second       - 获取每秒 jiffy 数
+
 
 ;; 二、时间对象
 ;; 用于创建和修改 time 对象的函数
@@ -42,6 +50,7 @@
 ;;   set-time-type!           - 原地设置 time 类型
 ;;   set-time-second!         - 原地设置秒部分
 ;;   set-time-nanosecond!     - 原地设置纳秒部分
+
 
 ;; 三、日期对象
 ;; 用于创建和访问 date 对象的函数
@@ -60,6 +69,7 @@
 ;;   date-year-day            - 获取年内第几天
 ;;   date-zone-offset         - 获取时区偏移
 
+
 ;; 四、转换与格式化
 ;; 用于在不同时间表示之间转换的函数
 ;;   date->string             - 日期转字符串
@@ -72,6 +82,7 @@
 ;;   time-monotonic->time-utc - 单调时间转 UTC 时间
 ;;   date->julian-day         - 日期转儒略日
 ;;   date->modified-julian-day - 日期转修正儒略日
+
 
 ;; 五、时间计算与比较
 ;; 用于比较时间对象和计算时间差的函数

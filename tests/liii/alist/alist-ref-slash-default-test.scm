@@ -1,8 +1,8 @@
-(import (liii alist)
-        (liii check)
-) ;import
+(import (liii alist) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; alist-ref/default
 ;; 在关联列表中按键查找值，找不到时返回默认值。
@@ -43,6 +43,11 @@
 ;; ----
 ;; 无
 
-(check (alist-ref/default '((a . 1)) 'b 2) => 2)
+
+(check (alist-ref/default '((a . 1)) 'b 2)
+  =>
+  2
+) ;check
+
 
 (check-report)

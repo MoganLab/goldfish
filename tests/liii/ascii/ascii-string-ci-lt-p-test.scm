@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-string-ci<?
 ;; 按 ASCII 大小写无关规则比较两个字符串是否为小于关系。
@@ -31,6 +30,9 @@
 ;; ----
 ;; 参数类型不匹配时按过程约定报错
 
-(check-true (ascii-string-ci<? "abc" "ABD"))
+
+(check-true (ascii-string-ci<? "abc" "ABD")
+) ;check-true
+
 
 (check-report)

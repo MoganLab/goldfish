@@ -1,23 +1,31 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-128)
+  (liii enum)
+  (srfi srfi-128)
 ) ;import
+
 
 (check-set-mode! 'report-failed)
 
+
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
 
-(define pizza-chicago (enum-name->enum pizza 'chicago))
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
 
-(define pizza-bianca (enum-name->enum pizza 'bianca))
+
+(define pizza-chicago
+  (enum-name->enum pizza 'chicago)
+) ;define
+
+
+(define pizza-bianca
+  (enum-name->enum pizza 'bianca)
+) ;define
+
 
 ;; make-enum-comparator
 ;; 创建用于比较 enum 的 SRFI-128 比较器。
@@ -48,16 +56,71 @@
 ;; ----
 ;; 无。
 
-(define pizza-comparator (make-enum-comparator pizza))
-(check (comparator? pizza-comparator) => #t)
-(check (comparator-ordered? pizza-comparator) => #t)
-(check (comparator-hashable? pizza-comparator) => #t)
-(check (=? pizza-comparator pizza-chicago (enum-name->enum pizza 'chicago)) => #t)
-(check (=? pizza-comparator pizza-bianca pizza-chicago) => #f)
-(check (<? pizza-comparator pizza-bianca pizza-chicago) => #t)
-(check (<? pizza-comparator pizza-bianca pizza-bianca) => #f)
-(check (>? pizza-comparator pizza-chicago pizza-bianca) => #t)
-(check (<=? pizza-comparator pizza-bianca pizza-chicago) => #t)
-(check (>=? pizza-comparator pizza-chicago pizza-bianca) => #t)
+
+(define pizza-comparator
+  (make-enum-comparator pizza)
+) ;define
+(check (comparator? pizza-comparator)
+  =>
+  #t
+) ;check
+(check (comparator-ordered? pizza-comparator)
+  =>
+  #t
+) ;check
+(check (comparator-hashable? pizza-comparator)
+  =>
+  #t
+) ;check
+(check (=? pizza-comparator
+         pizza-chicago
+         (enum-name->enum pizza 'chicago)
+       ) ;=?
+  =>
+  #t
+) ;check
+(check (=? pizza-comparator
+         pizza-bianca
+         pizza-chicago
+       ) ;=?
+  =>
+  #f
+) ;check
+(check (<? pizza-comparator
+         pizza-bianca
+         pizza-chicago
+       ) ;<?
+  =>
+  #t
+) ;check
+(check (<? pizza-comparator
+         pizza-bianca
+         pizza-bianca
+       ) ;<?
+  =>
+  #f
+) ;check
+(check (>? pizza-comparator
+         pizza-chicago
+         pizza-bianca
+       ) ;>?
+  =>
+  #t
+) ;check
+(check (<=? pizza-comparator
+         pizza-bianca
+         pizza-chicago
+       ) ;<=?
+  =>
+  #t
+) ;check
+(check (>=? pizza-comparator
+         pizza-chicago
+         pizza-bianca
+       ) ;>=?
+  =>
+  #t
+) ;check
+
 
 (check-report)

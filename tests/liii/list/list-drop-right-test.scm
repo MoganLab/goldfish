@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-drop-right 函数测试
 ;;
@@ -39,20 +39,42 @@
 ;; (list-drop-right '(1 2 3) -1) => '(1 2 3)
 ;; (list-drop-right '(1 2 3) 10) => '()
 
-; 基本功能测试
-(check (list-drop-right '(1 2 3 4 5) 3) => '(1 2))
-(check (list-drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
-(check (list-drop-right '(1 2 3 4 5) 5) => '())
 
-; 边界容忍测试
-(check (list-drop-right '(1 2 3) -1) => '(1 2 3))
-(check (list-drop-right '(1 2 3) 10) => '())
+(check (list-drop-right '(1 2 3 4 5) 3)
+  =>
+  '(1 2)
+) ;check
+(check (list-drop-right '(1 2 3 4 5) 0)
+  =>
+  '(1 2 3 4 5)
+) ;check
+(check (list-drop-right '(1 2 3 4 5) 5)
+  =>
+  '()
+) ;check
 
-; 空列表测试
+
+(check (list-drop-right '(1 2 3) -1)
+  =>
+  '(1 2 3)
+) ;check
+(check (list-drop-right '(1 2 3) 10)
+  =>
+  '()
+) ;check
+
+
 (check (list-drop-right '() 0) => '())
 
-; 错误处理测试
-(check-catch 'type-error (list-drop-right "not a list" 2))
-(check-catch 'type-error (list-drop-right '(1 2 3) "not a number"))
+
+(check-catch 'type-error
+  (list-drop-right "not a list" 2)
+) ;check-catch
+(check-catch 'type-error
+  (list-drop-right '(1 2 3)
+    "not a number"
+  ) ;list-drop-right
+) ;check-catch
+
 
 (check-report)

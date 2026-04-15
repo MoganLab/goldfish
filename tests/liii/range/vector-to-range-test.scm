@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector->range
 ;; 将向量转换为 range（创建副本）。
@@ -29,20 +29,24 @@
 ;; ----
 ;; 无
 
+
 (let ((r (vector->range #(1 2 3 4 5))))
   (check (range-length r) => 5)
   (check (range->list r) => '(1 2 3 4 5))
 ) ;let
+
 
 (let ((r (vector->range #())))
   (check (range-length r) => 0)
   (check (range->list r) => '())
 ) ;let
 
+
 (let ((r (vector->range #(a b c))))
   (check (range-length r) => 3)
   (check (range-ref r 0) => 'a)
   (check (range-ref r 2) => 'c)
 ) ;let
+
 
 (check-report)

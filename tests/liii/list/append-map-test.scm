@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; append-map 函数测试
 ;;
@@ -32,38 +32,76 @@
 ;; ----
 ;; (append-map (lambda (x) (list x (* x 2))) '(1 2 3)) => '(1 2 2 4 3 6)
 
+
 (let* ((proc (lambda (x) (list x (* x 2))))
        (input '(1 2 3))
-       (expected '(1 2 2 4 3 6)))
-  (check (append-map proc input) => expected)
+       (expected '(1 2 2 4 3 6))
+      ) ;
+  (check (append-map proc input)
+    =>
+    expected
+  ) ;check
 ) ;let*
 
-(let* ((proc (lambda (x y) (list (+ x y) (- x y))))
+
+(let* ((proc (lambda (x y) (list (+ x y) (- x y)))
+       ) ;proc
        (list1 '(5 8 10))
        (list2 '(3 2 7))
-       (expected '(8 2 10 6 17 3)))
-  (check (append-map proc list1 list2) => expected)
+       (expected '(8 2 10 6 17 3))
+      ) ;
+  (check (append-map proc list1 list2)
+    =>
+    expected
+  ) ;check
 ) ;let*
 
-(check (append-map (lambda (x y) (list x y)) '(1) '()) => '())
 
-(let* ((proc (lambda (x) (if (even? x) (list x) '())))
+(check (append-map (lambda (x y) (list x y))
+         '(1)
+         '()
+       ) ;append-map
+  =>
+  '()
+) ;check
+
+
+(let* ((proc (lambda (x) (if (even? x) (list x) '()))
+       ) ;proc
        (input '(1 2 3 4))
-       (expected '(2 4)))
-  (check (append-map proc input) => expected)
+       (expected '(2 4))
+      ) ;
+  (check (append-map proc input)
+    =>
+    expected
+  ) ;check
 ) ;let*
+
 
 (let* ((proc (lambda (x y) (list (cons x y))))
        (list1 '(a b c))
        (list2 '(1 2))
-       (expected '((a . 1) (b . 2))))
-  (check (append-map proc list1 list2) => expected)
+       (expected '((a . 1) (b . 2)))
+      ) ;
+  (check (append-map proc list1 list2)
+    =>
+    expected
+  ) ;check
 ) ;let*
 
-(let* ((proc (lambda (x) (list (list x) (list (* x 2)))))
+
+(let* ((proc (lambda (x)
+               (list (list x) (list (* x 2)))
+             ) ;lambda
+       ) ;proc
        (input '(5))
-       (expected '( (5) (10) )))
-  (check (append-map proc input) => expected)
+       (expected '((5) (10)))
+      ) ;
+  (check (append-map proc input)
+    =>
+    expected
+  ) ;check
 ) ;let*
+
 
 (check-report)

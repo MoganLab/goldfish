@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-nth-upper-case
 ;; 将数值映射为 ASCII 大写字母。
@@ -32,8 +31,10 @@
 ;; ----
 ;; 按过程定义执行映射
 
+
 (check (ascii-nth-upper-case 0) => #\A)
 (check (ascii-nth-upper-case 25) => #\Z)
 (check (ascii-nth-upper-case 26) => #\A)
+
 
 (check-report)

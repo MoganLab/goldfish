@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-take-right
 ;; 从 range 末尾提取指定数量的元素。
@@ -32,6 +32,7 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (let ((taken (range-take-right r 3)))
     (check (range-length taken) => 3)
@@ -39,6 +40,7 @@
     (check (range-ref taken 2) => 9)
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 0 10)))
   (let ((taken (range-take-right r 5)))
@@ -48,10 +50,12 @@
   ) ;let
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let ((taken (range-take-right r 0)))
     (check (range-length taken) => 0)
   ) ;let
 ) ;let
+
 
 (check-report)

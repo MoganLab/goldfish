@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-split-at
 ;; 在指定位置将 range 分割为两部分。
@@ -32,6 +32,7 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (let-values (((left right) (range-split-at r 4)))
     (check (range-length left) => 4)
@@ -41,6 +42,7 @@
   ) ;let-values
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let-values (((left right) (range-split-at r 0)))
     (check (range-length left) => 0)
@@ -49,6 +51,7 @@
   ) ;let-values
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let-values (((left right) (range-split-at r 10)))
     (check (range-length left) => 10)
@@ -56,5 +59,6 @@
     (check (range-ref left 9) => 9)
   ) ;let-values
 ) ;let
+
 
 (check-report)

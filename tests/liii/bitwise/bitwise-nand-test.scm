@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-nand
 ;; 计算两个整数的按位与非操作。
@@ -39,10 +39,12 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 精简测试：bitwise-nand 按位与非操作
-(check (bitwise-nand 1 1) => -2)  ; 1 (001) NAND 1 (001) = -2 (11111110)
-(check (bitwise-nand 3 1) => -2)  ; 3 (011) NAND 1 (001) = -2 (11111110)
-(check (bitwise-nand #b110 #b001) => -1)    ; 6 (110) NAND 1 (001) = -1 (11111111)
+
+;; ; 精简测试：bitwise-nand 按位与非操作
+(check (bitwise-nand 1 1) => -2)
+(check (bitwise-nand 3 1) => -2)
+(check (bitwise-nand 6 1) => -1)
+
 
 
 (check-report)

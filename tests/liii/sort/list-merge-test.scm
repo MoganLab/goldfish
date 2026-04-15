@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-merge
 ;; 合并两个已排序的列表，返回一个新的已排序列表。
@@ -39,35 +39,75 @@
 ;; ----
 ;; 无
 
+
 ;; 基本合并测试
-(check (list-merge < '(1 3 5) '(2 4 6)) => '(1 2 3 4 5 6))
-(check (list-merge < '(1 1 3) '(1 2 4)) => '(1 1 1 2 3 4))
+(check (list-merge < '(1 3 5) '(2 4 6))
+  =>
+  '(1 2 3 4 5 6)
+) ;check
+(check (list-merge < '(1 1 3) '(1 2 4))
+  =>
+  '(1 1 1 2 3 4)
+) ;check
+
 
 ;; 包含空列表的合并
-(check (list-merge < '() '(1 2 3)) => '(1 2 3))
-(check (list-merge < '(1 2 3) '()) => '(1 2 3))
+(check (list-merge < '() '(1 2 3))
+  =>
+  '(1 2 3)
+) ;check
+(check (list-merge < '(1 2 3) '())
+  =>
+  '(1 2 3)
+) ;check
 (check (list-merge < '() '()) => '())
+
 
 ;; 使用 pair 比较函数
 (define (pair-< x y)
   (< (car x) (car y))
 ) ;define
 
+
 (define (pair-full-< x y)
-  (cond
-    ((not (= (car x) (car y))) (< (car x) (car y)))
-    (else (< (cdr y) (cdr x)))
+  (cond ((not (= (car x) (car y)))
+         (< (car x) (car y))
+        ) ;
+        (else (< (cdr y) (cdr x)))
   ) ;cond
 ) ;define
 
-(check-true (list-sorted? pair-< (list-merge pair-< '((1 . 1) (1 . 2) (3 . 1)) '((1 . 3) (2 . 1) (3 . 2) (4 . 1)))))
-(check (list-merge pair-< '((1 . 1) (1 . 2) (3 . 1)) '((1 . 3) (2 . 1) (3 . 2) (4 . 1)))
-       => '((1 . 1) (1 . 2) (1 . 3) (2 . 1) (3 . 1) (3 . 2) (4 . 1))
+
+(check-true (list-sorted? pair-<
+              (list-merge pair-<
+                '((1 . 1) (1 . 2) (3 . 1))
+                '((1 . 3) (2 . 1) (3 . 2) (4 . 1))
+              ) ;list-merge
+            ) ;list-sorted?
+) ;check-true
+(check (list-merge pair-<
+         '((1 . 1) (1 . 2) (3 . 1))
+         '((1 . 3) (2 . 1) (3 . 2) (4 . 1))
+       ) ;list-merge
+  =>
+  '((1 . 1) (1 . 2) (1 . 3) (2 . 1) (3 . 1) (3 . 2) (4 . 1))
 ) ;check
 
-(check-true (list-sorted? pair-full-< (list-merge pair-full-< '((1 . 2) (1 . 1) (3 . 1)) '((1 . 3) (2 . 1) (3 . 2) (4 . 1)))))
-(check (list-merge pair-full-< '((1 . 2) (1 . 1) (3 . 1)) '((1 . 3) (2 . 1) (3 . 2) (4 . 1)))
-       => '((1 . 3) (1 . 2) (1 . 1) (2 . 1) (3 . 2) (3 . 1) (4 . 1))
+
+(check-true (list-sorted? pair-full-<
+              (list-merge pair-full-<
+                '((1 . 2) (1 . 1) (3 . 1))
+                '((1 . 3) (2 . 1) (3 . 2) (4 . 1))
+              ) ;list-merge
+            ) ;list-sorted?
+) ;check-true
+(check (list-merge pair-full-<
+         '((1 . 2) (1 . 1) (3 . 1))
+         '((1 . 3) (2 . 1) (3 . 2) (4 . 1))
+       ) ;list-merge
+  =>
+  '((1 . 3) (1 . 2) (1 . 1) (2 . 1) (3 . 2) (3 . 1) (4 . 1))
 ) ;check
+
 
 (check-report)

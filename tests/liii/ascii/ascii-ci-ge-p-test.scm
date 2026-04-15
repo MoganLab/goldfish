@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-ci>=?
 ;; 按 ASCII 大小写无关规则比较两个字符是否为大于等于关系。
@@ -31,6 +30,8 @@
 ;; ----
 ;; 参数类型不匹配时按过程约定报错
 
+
 (check-true (ascii-ci>=? #\z #\Y))
+
 
 (check-report)

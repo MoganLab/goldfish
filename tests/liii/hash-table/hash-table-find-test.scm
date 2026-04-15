@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-find
 ;; 在哈希表中查找第一个满足条件的键值对，并返回对应的值。
@@ -39,25 +39,60 @@
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)
   (hash-table-set! ht 'b 2)
   (hash-table-set! ht 'c 3)
-  (check (hash-table-find (lambda (k v) (= v 2)) ht 'not-found) => 2)
-  (check (hash-table-find (lambda (k v) (= v 4)) ht 'not-found) => 'not-found)
-  (check (hash-table-find (lambda (k v) (eq? k 'b)) ht 'not-found) => 2)
-  (check (hash-table-find (lambda (k v) (eq? k 'd)) ht 'not-found) => 'not-found)
-  (check
-    (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
-                     ht
-                     (lambda () 'not-found)
-    ) ;hash-table-find
-         => 2
+  (check (hash-table-find (lambda (k v) (= v 2))
+           ht
+           'not-found
+         ) ;hash-table-find
+    =>
+    2
+  ) ;check
+  (check (hash-table-find (lambda (k v) (= v 4))
+           ht
+           'not-found
+         ) ;hash-table-find
+    =>
+    'not-found
+  ) ;check
+  (check (hash-table-find (lambda (k v) (eq? k 'b))
+           ht
+           'not-found
+         ) ;hash-table-find
+    =>
+    2
+  ) ;check
+  (check (hash-table-find (lambda (k v) (eq? k 'd))
+           ht
+           'not-found
+         ) ;hash-table-find
+    =>
+    'not-found
+  ) ;check
+  (check (hash-table-find (lambda (k v)
+                            (and (symbol? k) (even? v))
+                          ) ;lambda
+           ht
+           (lambda () 'not-found)
+         ) ;hash-table-find
+    =>
+    2
   ) ;check
 ) ;let
 
+
 (let ((empty-ht (make-hash-table)))
-  (check (hash-table-find (lambda (k v) #t) empty-ht 'empty) => 'empty)
+  (check (hash-table-find (lambda (k v) #t)
+           empty-ht
+           'empty
+         ) ;hash-table-find
+    =>
+    'empty
+  ) ;check
 ) ;let
+
 
 (check-report)

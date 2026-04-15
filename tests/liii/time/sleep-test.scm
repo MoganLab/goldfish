@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (scheme time)
+  (liii time)
+  (scheme time)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; sleep
 ;; 使当前线程暂停执行指定的秒数。
@@ -33,6 +35,7 @@
 ;; ----
 ;; type-error 当参数不是数值类型时抛出错误。
 
+
 ;; Test sleep function
 (let ((t1 (current-second)))
   (sleep 1)
@@ -41,6 +44,7 @@
   ) ;let
 ) ;let
 
+
 (let ((t1 (current-second)))
   (sleep 0.5)
   (let ((t2 (current-second)))
@@ -48,6 +52,10 @@
   ) ;let
 ) ;let
 
-(check-catch 'type-error (sleep 'not-a-number))
+
+(check-catch 'type-error
+  (sleep 'not-a-number)
+) ;check-catch
+
 
 (check-report)

@@ -1,24 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-min
 ;; 获取 enum-type 中最小的 enum。
@@ -49,7 +53,15 @@
 ;; ----
 ;; 无。
 
-(check (enum-name (enum-min color)) => 'red)
-(check (enum-name (enum-min pizza)) => 'margherita)
+
+(check (enum-name (enum-min color))
+  =>
+  'red
+) ;check
+(check (enum-name (enum-min pizza))
+  =>
+  'margherita
+) ;check
+
 
 (check-report)

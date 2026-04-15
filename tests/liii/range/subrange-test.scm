@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; subrange
 ;; 提取 range 的子范围。
@@ -35,6 +35,7 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (let ((s (subrange r 2 7)))
     (check (range-length s) => 5)
@@ -42,6 +43,7 @@
     (check (range-ref s 4) => 6)
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 0 10)))
   (let ((s (subrange r 0 5)))
@@ -51,6 +53,7 @@
   ) ;let
 ) ;let
 
+
 (let ((r (numeric-range 0 10)))
   (let ((s (subrange r 5 10)))
     (check (range-length s) => 5)
@@ -58,5 +61,6 @@
     (check (range-ref s 4) => 9)
   ) ;let
 ) ;let
+
 
 (check-report)

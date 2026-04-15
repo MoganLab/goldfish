@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii os)
-) ;import
+(import (liii check) (liii os))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; remove
 ;; 删除文件。
@@ -32,10 +32,15 @@
 ;; value-error
 ;; 当尝试删除目录时抛出错误（提示使用 rmdir）。
 
-;;; 基本功能测试
+
+;; ; 基本功能测试
 (when (or (os-macos?) (os-linux?))
   ;; 测试 remove
-  (let ((test-file (string-append (os-temp-dir) "/test_remove.txt")))
+  (let ((test-file (string-append (os-temp-dir)
+                     "/test_remove.txt"
+                   ) ;string-append
+        ) ;test-file
+       ) ;
     ;; 创建临时文件
     (with-output-to-file test-file
       (lambda () (display "test data"))
@@ -49,23 +54,37 @@
   ) ;let
 ) ;when
 
-;;; 错误测试
-(check-catch 'type-error (remove 123))
-(check-catch 'file-not-found-error (remove "/nonexistent/file"))
 
-;;; 测试 remove 对目录的提示
-(let ((test-dir (string-append (os-temp-dir) (string (os-sep)) "test_dir")))
+;; ; 错误测试
+(check-catch 'type-error (remove 123))
+(check-catch 'file-not-found-error
+  (remove "/nonexistent/file")
+) ;check-catch
+
+
+;; ; 测试 remove 对目录的提示
+(let ((test-dir (string-append (os-temp-dir)
+                  (string (os-sep))
+                  "test_dir"
+                ) ;string-append
+      ) ;test-dir
+     ) ;
   ;; 创建临时目录
   (when (not (file-exists? test-dir))
     (mkdir test-dir)
   ) ;when
   ;; 尝试删除目录，应提示使用 rmdir
-  (check-catch 'value-error (remove test-dir))
+  (check-catch 'value-error
+    (remove test-dir)
+  ) ;check-catch
   ;; 清理
   (rmdir test-dir)
   (when (file-exists? test-dir)
-    (display* test-dir " failed to remove \n")
+    (display* test-dir
+      " failed to remove \n"
+    ) ;display*
   ) ;when
 ) ;let
+
 
 (check-report)

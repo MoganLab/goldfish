@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-filter
 ;; 根据谓词筛选向量元素。
@@ -36,10 +36,31 @@
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时
 
-(check (vector-filter even? #(1 2 3 4 5 6)) => #(2 4 6))
-(check (vector-filter (lambda (x) (> x 3)) #(1 2 3 4 5 6)) => #(4 5 6))
-(check (vector-filter (lambda (x) (string? x)) #(1 "a" 2 "b" 3)) => #("a" "b"))
-(check (vector-filter (lambda (x) #t) #()) => #())
-(check (vector-filter (lambda (x) #f) #(1 2 3)) => #())
+
+(check (vector-filter even? #(1 2 3 4 5 6))
+  =>
+  #(2 4 6)
+) ;check
+(check (vector-filter (lambda (x) (> x 3))
+         #(1 2 3 4 5 6)
+       ) ;vector-filter
+  =>
+  #(4 5 6)
+) ;check
+(check (vector-filter (lambda (x) (string? x))
+         #(1 "a" 2 "b" 3)
+       ) ;vector-filter
+  =>
+  #("a" "b")
+) ;check
+(check (vector-filter (lambda (x) #t) #())
+  =>
+  #()
+) ;check
+(check (vector-filter (lambda (x) #f) #(1 2 3))
+  =>
+  #()
+) ;check
+
 
 (check-report)

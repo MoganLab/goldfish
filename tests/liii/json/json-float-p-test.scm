@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; json-float?
 ;; 判断值是否为 JSON 浮点数。
@@ -36,9 +38,10 @@
 ;; ----
 ;; 无。
 
+
 (check-true (json-float? 3.14))
 (check-true (json-float? -0.01))
 (check-false (json-float? 100))
 
-(check-report)
 
+(check-report)

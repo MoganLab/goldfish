@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range-filter->list
 ;; 过滤 range 中满足谓词的元素，结果为列表。
@@ -33,20 +33,49 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
-  (check (range-filter->list even? r) => '(0 2 4 6 8))
-  (check (range-filter->list odd? r) => '(1 3 5 7 9))
-  (check (range-filter->list (lambda (x) (> x 5)) r) => '(6 7 8 9))
-  (check (range-filter->list (lambda (x) (< x 5)) r) => '(0 1 2 3 4))
+  (check (range-filter->list even? r)
+    =>
+    '(0 2 4 6 8)
+  ) ;check
+  (check (range-filter->list odd? r)
+    =>
+    '(1 3 5 7 9)
+  ) ;check
+  (check (range-filter->list (lambda (x) (> x 5))
+           r
+         ) ;range-filter->list
+    =>
+    '(6 7 8 9)
+  ) ;check
+  (check (range-filter->list (lambda (x) (< x 5))
+           r
+         ) ;range-filter->list
+    =>
+    '(0 1 2 3 4)
+  ) ;check
 ) ;let
+
 
 (let ((r (numeric-range 0 0)))
-  (check (range-filter->list even? r) => '())
+  (check (range-filter->list even? r)
+    =>
+    '()
+  ) ;check
 ) ;let
 
+
 (let ((r (numeric-range 0 5)))
-  (check (range-filter->list (lambda (x) #t) r) => '(0 1 2 3 4))
-  (check (range-filter->list (lambda (x) #f) r) => '())
+  (check (range-filter->list (lambda (x) #t) r)
+    =>
+    '(0 1 2 3 4)
+  ) ;check
+  (check (range-filter->list (lambda (x) #f) r)
+    =>
+    '()
+  ) ;check
 ) ;let
+
 
 (check-report)

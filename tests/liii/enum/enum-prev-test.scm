@@ -1,32 +1,48 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
-
-(define color-tangerine (enum-name->enum color 'tangerine))
-
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
 
-(define pizza-chicago (enum-name->enum pizza 'chicago))
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
 
-(define pizza-bianca (enum-name->enum pizza 'bianca))
+
+(define color-tangerine
+  (enum-name->enum color 'tangerine)
+) ;define
+
+
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
+
+(define pizza-chicago
+  (enum-name->enum pizza 'chicago)
+) ;define
+
+
+(define pizza-bianca
+  (enum-name->enum pizza 'bianca)
+) ;define
+
 
 ;; enum-prev
 ;; 获取同一 enum-type 中前一个 enum。
@@ -57,8 +73,23 @@
 ;; ----
 ;; 无。
 
-(check (enum=? (enum-prev color-tangerine) color-red) => #t)
-(check (enum=? (enum-prev pizza-chicago) pizza-bianca) => #t)
-(check (enum-prev (enum-min color)) => #f)
+
+(check (enum=? (enum-prev color-tangerine)
+         color-red
+       ) ;enum=?
+  =>
+  #t
+) ;check
+(check (enum=? (enum-prev pizza-chicago)
+         pizza-bianca
+       ) ;enum=?
+  =>
+  #t
+) ;check
+(check (enum-prev (enum-min color))
+  =>
+  #f
+) ;check
+
 
 (check-report)

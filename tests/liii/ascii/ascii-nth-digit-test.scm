@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-nth-digit
 ;; 将数值映射为 ASCII 数字字符。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 越界序号返回 #f
 
+
 (check (ascii-nth-digit 0) => #\0)
 (check (ascii-nth-digit 9) => #\9)
 (check (ascii-nth-digit -1) => #f)
 (check (ascii-nth-digit 10) => #f)
+
 
 (check-report)
