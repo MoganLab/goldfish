@@ -1,13 +1,15 @@
 (import (liii check)
-        (liii http)
-        (liii os)
+  (liii http)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
+  (when (not env)
+    (exit 0)
+  ) ;when
 ) ;let
 
 ;; http-ok?

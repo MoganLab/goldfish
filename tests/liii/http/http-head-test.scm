@@ -1,13 +1,15 @@
 (import (liii check)
-        (liii http)
-        (liii os)
+  (liii http)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 环境检查：需要设置 GOLDFISH_TEST_HTTP 环境变量才执行测试
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
+  (when (not env)
+    (exit 0)
+  ) ;when
 ) ;let
 
 ;; http-head
@@ -40,17 +42,27 @@
 
 (let ((r (http-head "https://httpbin.org")))
   (check (r 'status-code) => 200)
-  (check (r 'url) => "https://httpbin.org/")
+  (check (r 'url)
+    =>
+    "https://httpbin.org/"
+  ) ;check
   (check-true (real? (r 'elapsed)))
   ;; NOTE: httpbin.org's LB routes to different backends.
   ;;       Some return "OK", others empty string for reason.
   ;;       HTTP/2+ allows omitting reason phrases.
   (check-true (or (equal? (r 'reason) "OK")
-                  (equal? (r 'reason) ""))
+                (equal? (r 'reason) "")
+              ) ;or
   ) ;check-true
   (check (r 'text) => "")
-  (check ((r 'headers) "content-type") => "text/html; charset=utf-8")
-  (check ((r 'headers) "content-length") => "9593")
+  (check ((r 'headers) "content-type")
+    =>
+    "text/html; charset=utf-8"
+  ) ;check
+  (check ((r 'headers) "content-length")
+    =>
+    "9593"
+  ) ;check
 ) ;let
 
 (check-report)

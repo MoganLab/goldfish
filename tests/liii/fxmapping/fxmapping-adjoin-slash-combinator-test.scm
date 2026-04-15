@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -29,13 +27,43 @@
 ;; -----
 ;; 返回新的 fxmapping。如果键已存在，使用 combiner 合并新旧值。
 ;;
-(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a) (lambda (k new old) (list new old)) 0 'b)))
-  (check (fxmapping-ref m 0 (lambda () 'not-found)) => '(b a))
+(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a)
+           (lambda (k new old) (list new old))
+           0
+           'b
+         ) ;fxmapping-adjoin/combinator
+      ) ;m
+     ) ;
+  (check (fxmapping-ref m
+           0
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    '(b a)
+  ) ;check
 ) ;let
 
-(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a) (lambda (k new old) old) 1 'b)))
-  (check (fxmapping-ref m 0 (lambda () 'not-found)) => 'a)
-  (check (fxmapping-ref m 1 (lambda () 'not-found)) => 'b)
+(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a)
+           (lambda (k new old) old)
+           1
+           'b
+         ) ;fxmapping-adjoin/combinator
+      ) ;m
+     ) ;
+  (check (fxmapping-ref m
+           0
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    'a
+  ) ;check
+  (check (fxmapping-ref m
+           1
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    'b
+  ) ;check
 ) ;let
 
 (check-report)

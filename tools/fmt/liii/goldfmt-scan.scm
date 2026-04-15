@@ -34,7 +34,8 @@
           (utf8-string-trim-right str)))
     
     ;;; atom? 辅助函数：判断是否为 Scheme 原子类型
-    ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, eof-object, 以及其他不可解析的对象
+    ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, eof-object,
+    ;;; 以及其他不可解析的对象，还包括 S7 内部 procedure 对象（如 #_list-values）
     (define (atom? x)
       (or (symbol? x)
           (number? x)
@@ -46,6 +47,7 @@
           (eof-object? x)
           (eq? 'undefined? (type-of x))
           (unspecified? x)
+          (procedure? x)
       ) ;or
     ) ;define
     
@@ -97,6 +99,18 @@
       ) ;and
     ) ;define
 
+    ;;; 辅助函数：判断是否为 S7 内部形式（如 #_list-values）
+    ;;; 这些形式是 S7 内部表示，不应该被进一步扫描
+    (define (s7-internal-form? lst)
+      (and (pair? lst)
+           (not (null? lst))
+           (syntax? (car lst))
+           (let ((name (object->string (car lst) #f)))
+             (or (string=? name "#_list-values")
+                 (string=? name "#_list")))
+      ) ;and
+    ) ;define
+
     ;;; 辅助函数：将点对列表转换为普通列表，保留 . 符号
     ;;; 例如：(x y . rest) -> (x y . rest)
     ;;; 返回一个可以被 map 和 list->vector 正确处理的列表
@@ -130,12 +144,23 @@
       (let* ((first (car lst))
              (rest (cdr lst)))
         ;;; 处理 quote 形式：整个作为一个 env，没有 children
-        (if (quote-form? lst)
-            (make-env :tag-name (if (syntax? first) "#_quote" (symbol->string first))
-                      :depth depth
-                      :children (vector)
-                      :value lst
-            ) ;make-env
+        (cond
+          ((quote-form? lst)
+           (make-env :tag-name (if (syntax? first) "#_quote" (symbol->string first))
+                     :depth depth
+                     :children (vector)
+                     :value lst
+           ) ;make-env
+          )
+          ;;; 处理 S7 内部形式：整个作为一个 env，没有 children
+          ((s7-internal-form? lst)
+           (make-env :tag-name (object->string first #f)
+                     :depth depth
+                     :children (vector)
+                     :value lst
+           ) ;make-env
+          )
+          (else
             ;;; 处理点对：使用 dotted-list? 检测点对
             ;;; 点对的第一元素不作为 tag，整个列表作为无 tag env
             (let
@@ -176,7 +201,8 @@
                 ) ;if
               ) ;let*
             ) ;let
-        ) ;if
+          ) ;else
+        ) ;cond
       ) ;let*
     ) ;define
     

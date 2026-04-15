@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,7 +21,23 @@
 ;; -----
 ;; 返回新的 fxmapping，所有值都经过 proc 转换。
 ;;
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3)) 0 (lambda () 'not-found)) => 10)
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3)) 1 (lambda () 'not-found)) => 20)
+(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10))
+                        (fxmapping 0 1 1 2 2 3)
+                      ) ;fxmapping-map
+         0
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  10
+) ;check
+(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10))
+                        (fxmapping 0 1 1 2 2 3)
+                      ) ;fxmapping-map
+         1
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  20
+) ;check
 
 (check-report)

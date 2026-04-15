@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -31,11 +29,23 @@
 ;; 如果找到满足 pred 的键值对，返回 success 的结果（默认为两个值：key 和 value）；
 ;; 否则返回 failure 的结果。
 ;;
-(let-values (((k v) (fxmapping-find (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c) (lambda () (values #f #f)))))
+(let-values (((k v)
+              (fxmapping-find (lambda (k v) (> k 5))
+                (fxmapping 3 'a 7 'b 10 'c)
+                (lambda () (values #f #f))
+              ) ;fxmapping-find
+             ) ;
+            ) ;
   (check k => 7)
   (check v => 'b)
 ) ;let-values
-(let-values (((k v) (fxmapping-find (lambda (k v) (> k 100)) (fxmapping 3 'a 7 'b) (lambda () (values #f #f)))))
+(let-values (((k v)
+              (fxmapping-find (lambda (k v) (> k 100))
+                (fxmapping 3 'a 7 'b)
+                (lambda () (values #f #f))
+              ) ;fxmapping-find
+             ) ;
+            ) ;
   (check k => #f)
 ) ;let-values
 

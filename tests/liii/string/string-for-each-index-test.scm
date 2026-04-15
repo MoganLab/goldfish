@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-for-each-index
 ;; 遍历字符串的每个字符及其索引位置。
@@ -41,75 +39,62 @@
 ;; wrong-type-arg 当str不是字符串类型时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-(check
-  (string-for-each-index
-    (lambda (i c acc)
-      (cons (list i c) acc)
-    ) ;lambda
+(check (string-for-each-index (lambda (i c acc) (cons (list i c) acc))
+         "hello"
+       ) ;string-for-each-index
+  =>
+  '((0 #\h) (1 #\e) (2 #\l) (3 #\l) (4 #\o))
+) ;check
+
+(check (string-for-each-index (lambda (i c acc) (cons (list i c) acc))
+         (substring "hello" 1 4)
+       ) ;string-for-each-index
+  =>
+  '((0 #\e) (1 #\l) (2 #\l))
+) ;check
+
+(check (list->string (reverse (string-for-each-index (lambda (i c acc) (cons c acc))
+                                "hello"
+                              ) ;string-for-each-index
+                     ) ;reverse
+       ) ;list->string
+  =>
+  "olleh"
+) ;check
+
+(check (string-for-each-index (lambda (i c acc) (cons (list i c) acc))
+         ""
+       ) ;string-for-each-index
+  =>
+  '()
+) ;check
+
+(check-catch 'out-of-range
+  (string-for-each-index (lambda (i c) (display c))
     "hello"
-  ) ;string-for-each-index
-  => '((0 #\h) (1 #\e) (2 #\l) (3 #\l) (4 #\o))
-) ;check
-
-(check
-  (string-for-each-index
-    (lambda (i c acc)
-      (cons (list i c) acc)
-    ) ;lambda
-    (substring "hello" 1 4)
-  ) ;string-for-each-index
-  => '((0 #\e) (1 #\l) (2 #\l))
-) ;check
-
-(check
-  (list->string
-    (reverse
-      (string-for-each-index
-        (lambda (i c acc)
-          (cons c acc)
-        ) ;lambda
-        "hello"
-      ) ;string-for-each-index
-    ) ;reverse
-  ) ;list->string
-  => "olleh"
-) ;check
-
-(check
-  (string-for-each-index
-    (lambda (i c acc)
-      (cons (list i c) acc)
-    ) ;lambda
-    ""
-  ) ;string-for-each-index
-  => '()
-) ;check
-
-(check-catch 'out-of-range
-  (string-for-each-index
-   (lambda (i c) (display c))
-   "hello" 6
+    6
   ) ;string-for-each-index
 ) ;check-catch
 
 (check-catch 'out-of-range
-  (string-for-each-index
-   (lambda (i c) (display c))
-   "hello" 0 6
+  (string-for-each-index (lambda (i c) (display c))
+    "hello"
+    0
+    6
   ) ;string-for-each-index
 ) ;check-catch
 
 (check-catch 'out-of-range
-  (string-for-each-index
-   (lambda (i c) (display c))
-   "hello" 3 2
+  (string-for-each-index (lambda (i c) (display c))
+    "hello"
+    3
+    2
   ) ;string-for-each-index
 ) ;check-catch
 
 (check-catch 'type-error
-  (string-for-each-index
-   (lambda (i c) (display c))
-   123
+  (string-for-each-index (lambda (i c) (display c))
+    123
   ) ;string-for-each-index
 ) ;check-catch
 

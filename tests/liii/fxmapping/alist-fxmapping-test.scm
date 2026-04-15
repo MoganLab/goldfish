@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -21,8 +19,22 @@
 ;; 返回包含 alist 中所有键值对的新 fxmapping。
 ;; 如果存在重复键，后面的值会覆盖前面的值。
 ;;
-(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 0 (lambda () 'not-found)) => 'a)
-(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b))) 1 (lambda () 'not-found)) => 'b)
-(check-true (fxmapping-empty? (alist->fxmapping '())))
+(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b)))
+         0
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'a
+) ;check
+(check (fxmapping-ref (alist->fxmapping '((0 . a) (1 . b)))
+         1
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'b
+) ;check
+(check-true (fxmapping-empty? (alist->fxmapping '())
+            ) ;fxmapping-empty?
+) ;check-true
 
 (check-report)

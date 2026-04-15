@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -42,101 +42,156 @@
 ;; ----
 ;; type-error 当 json 不是 JSON 对象或数组时。
 
-(let* ((j0 `((age . 18) (sex . male)))
+(let* ((j0 '((age . 18) (sex . male)))
        (j1 (json-set j0 'age 19))
-       (j2 (json-set j0 'age 'null)))
+       (j2 (json-set j0 'age 'null))
+      ) ;
   (check (json-ref j0 'age) => 18)
   (check (json-ref j1 'age) => 19)
   (check (json-ref j2 'age) => 'null)
 ) ;let*
 
-(let* ((j0 `(("age" . 18) ("sex" . male)))
-       (j1 (json-set j0 "age" 19)))
+(let* ((j0 '(("age" . 18) ("sex" . male)))
+       (j1 (json-set j0 "age" 19))
+      ) ;
   (check (json-ref j1 "age") => 19)
   (check (json-ref j0 "age") => 18)
 ) ;let*
 
 (let* ((j0 #(red green blue))
-       (j1 (json-set j0 0 'black)))
+       (j1 (json-set j0 0 'black))
+      ) ;
   (check j0 => #(red green blue))
   (check j1 => #(black green blue))
 ) ;let*
 
 (let* ((j0 '((bob . 18) (jack . 16)))
        (j1 (json-set j0 #t 3))
-       (j2 (json-set j0 #t (lambda (x) (+ x 1)))))
+       (j2 (json-set j0 #t (lambda (x) (+ x 1)))
+       ) ;j2
+      ) ;
   (check j1 => '((bob . 3) (jack . 3)))
   (check j2 => '((bob . 19) (jack . 17)))
 ) ;let*
 
-(let* ((j0 '((person . ((name . "Alice") (age . 25)))))
-       (j1 (json-set j0 'person 'age 26)))
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
+       (j1 (json-set j0 'person 'age 26))
+      ) ;
   (check (json-ref j1 'person 'age) => 26)
 ) ;let*
 
-(let*
-  ((j0 '((person . ((name . "Alice")
-                    (age . 25)
-                    (address . ((city . "Wonderland")
-                                (zip . "12345")))))
-                    ) ;address
-   ) ;j0
-   (j1 (json-set j0 'person 'address 'city "Newland"))
-  ) ;
-  (check (json-ref j1 'person 'address 'city) => "Newland")
+(let* ((j0 '((person (name . "Alice") (age . 25) (address (city . "Wonderland") (zip . "12345"))))
+       ) ;j0
+       (j1 (json-set j0
+             'person
+             'address
+             'city
+             "Newland"
+           ) ;json-set
+       ) ;j1
+      ) ;
+  (check (json-ref j1 'person 'address 'city)
+    =>
+    "Newland"
+  ) ;check
 ) ;let*
 
 (let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-set j0 'age (lambda (x) (+ x 1)))))
+       (j1 (json-set j0 'age (lambda (x) (+ x 1)))
+       ) ;j1
+      ) ;
   (check (json-ref j1 'age) => 26)
 ) ;let*
 
-(let* ((j0 '((person . ((name . "Alice") (age . 25)))))
-       (j1 (json-set j0 'person 'age (lambda (x) (+ x 1)))))
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
+       (j1 (json-set j0
+             'person
+             'age
+             (lambda (x) (+ x 1))
+           ) ;json-set
+       ) ;j1
+      ) ;
   (check (json-ref j1 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 `((age . 18) (sex . male)))
+(let* ((j0 '((age . 18) (sex . male)))
        (j1 20)
-       (j2 (json-set j0 'age j1)))
+       (j2 (json-set j0 'age j1))
+      ) ;
   (check (json-ref j2 'age) => 20)
 ) ;let*
 
-(let* ((j0 `((person . ((name . "Alice") (age . 25)))))
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
        (j1 26)
-       (j2 (json-set j0 'person 'age j1)))
+       (j2 (json-set j0 'person 'age j1))
+      ) ;
   (check (json-ref j2 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 `((person . ((name . "Alice") (age . 25)))))
-       (j1 `((name . "Bob") (age . 30)))
-       (j2 (json-set j0 'person j1)))
-  (check (json-ref j2 'person 'name) => "Bob")
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
+       (j1 '((name . "Bob") (age . 30)))
+       (j2 (json-set j0 'person j1))
+      ) ;
+  (check (json-ref j2 'person 'name)
+    =>
+    "Bob"
+  ) ;check
   (check (json-ref j2 'person 'age) => 30)
 ) ;let*
 
-(let* ((j0 `((person . ((name . "Alice") (age . 25)))))
-       (j1 `((address . ((city . "Wonderland") (zip . "12345")))))
-       (j2 (json-set j0 'person j1)))
-  (check (json-ref j2 'person 'address 'city) => "Wonderland")
-  (check (json-ref j2 'person 'address 'zip) => "12345")
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
+       (j1 '((address (city . "Wonderland") (zip . "12345")))
+       ) ;j1
+       (j2 (json-set j0 'person j1))
+      ) ;
+  (check (json-ref j2 'person 'address 'city)
+    =>
+    "Wonderland"
+  ) ;check
+  (check (json-ref j2 'person 'address 'zip)
+    =>
+    "12345"
+  ) ;check
 ) ;let*
 
-(let* ((j0 `((person . ((name . "Alice") (age . 25)))))
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
        (j1 "Wonderland")
-       (j2 (json-set (json-push j0 'person 'city j1) 'person 'age 26)))
-  (check (json-ref j2 'person 'city) => "Wonderland")
+       (j2 (json-set (json-push j0 'person 'city j1)
+             'person
+             'age
+             26
+           ) ;json-set
+       ) ;j2
+      ) ;
+  (check (json-ref j2 'person 'city)
+    =>
+    "Wonderland"
+  ) ;check
   (check (json-ref j2 'person 'age) => 26)
 ) ;let*
 
-(let* ((j0 `((person . ((name . "Alice") (age . 25)))))
+(let* ((j0 '((person (name . "Alice") (age . 25)))
+       ) ;j0
        (j1 'null)
-       (j2 (json-set j0 'person 'age j1)))
-  (check (json-ref j2 'person 'age) => 'null)
+       (j2 (json-set j0 'person 'age j1))
+      ) ;
+  (check (json-ref j2 'person 'age)
+    =>
+    'null
+  ) ;check
 ) ;let*
 
-(check-catch 'type-error (json-set "not-a-json" 'key "val"))
-(check-catch 'type-error (json-set 123 'key "val"))
+(check-catch 'type-error
+  (json-set "not-a-json" 'key "val")
+) ;check-catch
+(check-catch 'type-error
+  (json-set 123 'key "val")
+) ;check-catch
 
 (check-report)
-

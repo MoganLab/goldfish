@@ -7,13 +7,13 @@
 (import (liii os))
 
 ;; 示例1：读取当前平台信息
-(os-type) ; => "Linux" / "Darwin" / "Windows"
+(os-type)
 
 ;; 示例2：获取系统临时目录
-(os-temp-dir) ; => 临时目录路径
+(os-temp-dir)
 
 ;; 示例3：读取路径分隔符
-(pathsep) ; => #\: 或 #\;
+(pathsep)
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/os "os-type"

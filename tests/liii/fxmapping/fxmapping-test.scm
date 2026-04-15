@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,10 +21,30 @@
 ;; -----
 ;; 返回包含指定键值对的新 fxmapping。
 ;;
-(check-true (fxmapping? (fxmapping 0 'a 1 'b)))
-(check (fxmapping-ref (fxmapping 0 'a 1 'b) 0 (lambda () 'not-found)) => 'a)
-(check (fxmapping-ref (fxmapping 0 'a 1 'b) 1 (lambda () 'not-found)) => 'b)
-(check (fxmapping-ref (fxmapping 0 'a 1 'b) 2 (lambda () 'not-found)) => 'not-found)
-(check-true (fxmapping-empty? (fxmapping)))
+(check-true (fxmapping? (fxmapping 0 'a 1 'b))
+) ;check-true
+(check (fxmapping-ref (fxmapping 0 'a 1 'b)
+         0
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'a
+) ;check
+(check (fxmapping-ref (fxmapping 0 'a 1 'b)
+         1
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'b
+) ;check
+(check (fxmapping-ref (fxmapping 0 'a 1 'b)
+         2
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  'not-found
+) ;check
+(check-true (fxmapping-empty? (fxmapping))
+) ;check-true
 
 (check-report)

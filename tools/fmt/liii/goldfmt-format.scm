@@ -121,7 +121,9 @@
     (define (make-newlines n)
       (if (<= n 0)
           ""
-          (make-newlines-iter n "")
+          ; n 个空行需要 n 个换行符（但 format-file 用 string-join 在节点间添加 \n）
+          ; 由于 string-join 会在每个节点后添加 \n，这里生成 n-1 个，加上 string-join 的 1 个，共 n 个
+          (make-newlines-iter (- n 1) "")
       ) ;if
     ) ;define
 

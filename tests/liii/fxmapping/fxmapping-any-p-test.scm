@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,7 +21,13 @@
 ;; -----
 ;; 如果存在满足 pred 的键值对，返回 #t；否则返回 #f。
 ;;
-(check-true (fxmapping-any? (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c)))
-(check-false (fxmapping-any? (lambda (k v) (> k 100)) (fxmapping 3 'a 7 'b)))
+(check-true (fxmapping-any? (lambda (k v) (> k 5))
+              (fxmapping 3 'a 7 'b 10 'c)
+            ) ;fxmapping-any?
+) ;check-true
+(check-false (fxmapping-any? (lambda (k v) (> k 100))
+               (fxmapping 3 'a 7 'b)
+             ) ;fxmapping-any?
+) ;check-false
 
 (check-report)

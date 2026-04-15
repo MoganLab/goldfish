@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -42,83 +42,138 @@
 
 (let* ((json '((name . "Alice") (age . 25))))
   (let ((updated-json (json-drop json 'age)))
-    (check (json-ref updated-json 'age) => '())
+    (check (json-ref updated-json 'age)
+      =>
+      '()
+    ) ;check
   ) ;let
 ) ;let*
 
-(let*
-  ((json '((name . "Alice")
-           (age . 25)
-           (address . ((city . "Wonderland")
-                       (zip . "12345"))))
-           ) ;address
-   ) ;json
-  (let ((updated-json (json-drop json 'address 'city)))
-    (check (json-ref updated-json 'address 'city) => '())
+(let* ((json '((name . "Alice") (age . 25) (address (city . "Wonderland") (zip . "12345")))
+       ) ;json
+      ) ;
+  (let ((updated-json (json-drop json 'address 'city)
+        ) ;updated-json
+       ) ;
+    (check (json-ref updated-json 'address 'city)
+      =>
+      '()
+    ) ;check
   ) ;let
 ) ;let*
 
-(let*
-  ((json '((name . "Alice")
-           (age . 25)
-           (address . ((city . "Wonderland")
-                       (zip . "12345"))))
-           ) ;address
-   ) ;json
-  (let ((j1 (json-drop json (lambda (k) (equal? k 'city)))))
-    (check (json-ref j1 'address 'city) => "Wonderland")
+(let* ((json '((name . "Alice") (age . 25) (address (city . "Wonderland") (zip . "12345")))
+       ) ;json
+      ) ;
+  (let ((j1 (json-drop json
+              (lambda (k) (equal? k 'city))
+            ) ;json-drop
+        ) ;j1
+       ) ;
+    (check (json-ref j1 'address 'city)
+      =>
+      "Wonderland"
+    ) ;check
   ) ;let
-  (let ((j2 (json-drop json (lambda (k) (equal? k 'name)))))
+  (let ((j2 (json-drop json
+              (lambda (k) (equal? k 'name))
+            ) ;json-drop
+        ) ;j2
+       ) ;
     (check (json-ref j2 'name) => '())
   ) ;let
-  (let ((j3 (json-drop json 'address (lambda (k) (equal? k 'city)))))
-    (check (json-ref j3 'address 'city) => '())
+  (let ((j3 (json-drop json
+              'address
+              (lambda (k) (equal? k 'city))
+            ) ;json-drop
+        ) ;j3
+       ) ;
+    (check (json-ref j3 'address 'city)
+      =>
+      '()
+    ) ;check
   ) ;let
 ) ;let*
 
-(let* ((j0 '((name . "Alice") (age . 25) (city . "Wonderland")))
-       (j1 (json-drop j0 'age)))
+(let* ((j0 '((name . "Alice") (age . 25) (city . "Wonderland"))
+       ) ;j0
+       (j1 (json-drop j0 'age))
+      ) ;
   (check (json-ref j1 'age) => '())
   (check (json-ref j1 'name) => "Alice")
-  (check (json-ref j1 'city) => "Wonderland")
+  (check (json-ref j1 'city)
+    =>
+    "Wonderland"
+  ) ;check
 ) ;let*
 
-(let* ((j0 '((user . ((profile . ((name . "Alice")
-                                  (age . 25)
-                                  (scores . #(85 90 78))))))))
-       (j1 (json-drop j0 'user 'profile 'scores)))
-  (check (json-ref j1 'user 'profile 'scores) => '())
-  (check (json-ref j1 'user 'profile 'name) => "Alice")
-  (check (json-ref j1 'user 'profile 'age) => 25)
+(let* ((j0 '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78)))))
+       ) ;j0
+       (j1 (json-drop j0 'user 'profile 'scores)
+       ) ;j1
+      ) ;
+  (check (json-ref j1 'user 'profile 'scores)
+    =>
+    '()
+  ) ;check
+  (check (json-ref j1 'user 'profile 'name)
+    =>
+    "Alice"
+  ) ;check
+  (check (json-ref j1 'user 'profile 'age)
+    =>
+    25
+  ) ;check
 ) ;let*
 
 (let* ((j0 '((data . #(1 2 3 4 5))))
-       (j1 (json-drop j0 'data (lambda (k) (and (number? k) (even? k))))))
+       (j1 (json-drop j0
+             'data
+             (lambda (k) (and (number? k) (even? k)))
+           ) ;json-drop
+       ) ;j1
+      ) ;
   (check (json-ref j1 'data) => #(2 4))
 ) ;let*
 
-(let* ((j0 '((settings . (("theme" . "dark")
-                          (notifications . #t)
-                          ("language" . "en")))))
-       (j1 (json-drop j0 'settings (lambda (k) (string? k)))))
-  (check (json-ref j1 'settings "theme") => '())
-  (check (json-ref j1 'settings "language") => '())
+(let* ((j0 '((settings ("theme" . "dark") (notifications . #t) ("language" . "en")))
+       ) ;j0
+       (j1 (json-drop j0
+             'settings
+             (lambda (k) (string? k))
+           ) ;json-drop
+       ) ;j1
+      ) ;
+  (check (json-ref j1 'settings "theme")
+    =>
+    '()
+  ) ;check
+  (check (json-ref j1 'settings "language")
+    =>
+    '()
+  ) ;check
 ) ;let*
 
 (let* ((j0 '((a . 1) (b . 2) (c . 3)))
-       (j1 (json-drop j0 (lambda (k) (member k '(a c))))))
+       (j1 (json-drop j0
+             (lambda (k) (member k '(a c)))
+           ) ;json-drop
+       ) ;j1
+      ) ;
   (check (json-ref j1 'a) => '())
   (check (json-ref j1 'b) => 2)
   (check (json-ref j1 'c) => '())
 ) ;let*
 
-(let* ((j0 #())
-       (j1 (json-drop j0 0)))
+(let* ((j0 #()) (j1 (json-drop j0 0)))
   (check j1 => #())
 ) ;let*
 
-(check-catch 'type-error (json-drop "not-a-json" 'key))
-(check-catch 'type-error (json-drop 123 'key))
+(check-catch 'type-error
+  (json-drop "not-a-json" 'key)
+) ;check-catch
+(check-catch 'type-error
+  (json-drop 123 'key)
+) ;check-catch
 
 (check-report)
-

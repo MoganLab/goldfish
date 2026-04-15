@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-pad-right
 ;; 在字符串右侧填充字符以达到指定长度。
@@ -55,37 +53,107 @@
 ;; out-of-range 当len为负数时
 ;; wrong-type-arg 当str不是字符串类型时
 
-; 基本功能测试
-(check (string-pad-right "abc" 6) => "abc   ")
-(check (string-pad-right "abc" 6 #\0) => "abc000")
-(check (string-pad-right "abcdef" 3) => "abc")
-(check (string-pad-right "abcdef" 3 #\0) => "abc")
-(check (string-pad-right "" 5) => "     ")
-(check (string-pad-right "" 5 #\0) => "00000")
+(check (string-pad-right "abc" 6)
+  =>
+  "abc   "
+) ;check
+(check (string-pad-right "abc" 6 #\0)
+  =>
+  "abc000"
+) ;check
+(check (string-pad-right "abcdef" 3)
+  =>
+  "abc"
+) ;check
+(check (string-pad-right "abcdef" 3 #\0)
+  =>
+  "abc"
+) ;check
+(check (string-pad-right "" 5)
+  =>
+  "     "
+) ;check
+(check (string-pad-right "" 5 #\0)
+  =>
+  "00000"
+) ;check
 (check (string-pad-right "a" 1) => "a")
-(check (string-pad-right "abc" 3) => "abc")
+(check (string-pad-right "abc" 3)
+  =>
+  "abc"
+) ;check
 
-; 边界情况测试
 (check (string-pad-right "abc" 0) => "")
-(check (string-pad-right "abc" 2) => "ab")
-(check (string-pad-right "abc" 1) => "a")
+(check (string-pad-right "abc" 2)
+  =>
+  "ab"
+) ;check
+(check (string-pad-right "abc" 1)
+  =>
+  "a"
+) ;check
 
-; 多字节字符测试
-(check (string-pad-right "中文" 6) => "中文")
+(check (string-pad-right "中文" 6)
+  =>
+  "中文"
+) ;check
 
-; 子字符串范围参数测试
-(check (string-pad-right "HelloWorld" 12 #\!) => "HelloWorld!!")
-(check (string-pad-right "HelloWorld" 7 #\! 0 5) => "Hello!!")
-(check (string-pad-right "HelloWorld" 8 #\! 1 6) => "elloW!!!")
-(check (string-pad-right "HelloWorld" 5 #\x 3 5) => "loxxx")
-(check (string-pad-right "HelloWorld" 0 #\! 3 3) => "")
+(check (string-pad-right "HelloWorld" 12 #\!)
+  =>
+  "HelloWorld!!"
+) ;check
+(check (string-pad-right "HelloWorld"
+         7
+         #\!
+         0
+         5
+       ) ;string-pad-right
+  =>
+  "Hello!!"
+) ;check
+(check (string-pad-right "HelloWorld"
+         8
+         #\!
+         1
+         6
+       ) ;string-pad-right
+  =>
+  "elloW!!!"
+) ;check
+(check (string-pad-right "HelloWorld"
+         5
+         #\x
+         3
+         5
+       ) ;string-pad-right
+  =>
+  "loxxx"
+) ;check
+(check (string-pad-right "HelloWorld"
+         0
+         #\!
+         3
+         3
+       ) ;string-pad-right
+  =>
+  ""
+) ;check
 
-; 多种填充字符测试
-(check (string-pad-right "abc" 10 #\*) => "abc*******")
-(check (string-pad-right "test" 8 #\-) => "test----")
-(check (string-pad-right "123" 7 #\0) => "1230000")
+(check (string-pad-right "abc" 10 #\*)
+  =>
+  "abc*******"
+) ;check
+(check (string-pad-right "test" 8 #\-)
+  =>
+  "test----"
+) ;check
+(check (string-pad-right "123" 7 #\0)
+  =>
+  "1230000"
+) ;check
 
-; 错误处理测试
-(check-catch 'out-of-range (string-pad-right "abc" -1))
+(check-catch 'out-of-range
+  (string-pad-right "abc" -1)
+) ;check-catch
 
 (check-report)

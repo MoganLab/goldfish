@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,15 +39,21 @@
 ;; ----
 ;; 无。
 
-(let ((j '((bob . ((age . 18) (sex . male))))))
-  (check-false (json-contains-key? j 'alice))
+(let ((j '((bob (age . 18) (sex . male)))))
+  (check-false (json-contains-key? j 'alice)
+  ) ;check-false
   (check-true (json-contains-key? j 'bob))
-  (check-false (json-contains-key? j 'age))
-  (check-false (json-contains-key? j 'sex))
+  (check-false (json-contains-key? j 'age)
+  ) ;check-false
+  (check-false (json-contains-key? j 'sex)
+  ) ;check-false
 ) ;let
 
-(check-false (json-contains-key? (string->json "{}") "a"))
-(check-false (json-contains-key? #(1 2 3) 0))
+(check-false (json-contains-key? (string->json "{}")
+               "a"
+             ) ;json-contains-key?
+) ;check-false
+(check-false (json-contains-key? #(1 2 3) 0)
+) ;check-false
 
 (check-report)
-

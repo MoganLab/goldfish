@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-contains
 ;; 检查字符串是否包含指定子串。
@@ -28,8 +26,11 @@
 ;; 查看 string-contains? 的完整文档：gf doc "string-contains?"
 ;; 空字符串作为sub-str时总是返回#t。
 
-(check-true (string-contains "0123456789" "3"))
-(check-true (string-contains "0123456789" "34"))
-(check-false (string-contains "0123456789" "24"))
+(check-true (string-contains "0123456789" "3")
+) ;check-true
+(check-true (string-contains "0123456789" "34")
+) ;check-true
+(check-false (string-contains "0123456789" "24")
+) ;check-false
 
 (check-report)

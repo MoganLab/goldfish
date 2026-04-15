@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -26,6 +24,12 @@
 ;; -----
 ;; 返回最终累积值。
 ;;
-(check (fxmapping-fold-right (lambda (k v acc) (cons k acc)) '() (fxmapping 0 'a 1 'b 2 'c)) => '(0 1 2))
+(check (fxmapping-fold-right (lambda (k v acc) (cons k acc))
+         '()
+         (fxmapping 0 'a 1 'b 2 'c)
+       ) ;fxmapping-fold-right
+  =>
+  '(0 1 2)
+) ;check
 
 (check-report)

@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,9 +21,15 @@
 ;; -----
 ;; 返回两个值：满足 pred 的键值对组成的新映射，和不满足的组成的新映射。
 ;;
-(let-values (((yes no) (fxmapping-partition (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c))))
+(let-values (((yes no)
+              (fxmapping-partition (lambda (k v) (> k 5))
+                (fxmapping 3 'a 7 'b 10 'c)
+              ) ;fxmapping-partition
+             ) ;
+            ) ;
   (check-true (fxmapping-contains? yes 7))
-  (check-false (fxmapping-contains? yes 3))
+  (check-false (fxmapping-contains? yes 3)
+  ) ;check-false
   (check-true (fxmapping-contains? no 3))
   (check-false (fxmapping-contains? no 7))
 ) ;let-values

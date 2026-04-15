@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -21,10 +19,32 @@
 ;; 返回包含所有映射中所有键的新 fxmapping。
 ;; 对于重复键，后面的映射的值优先。
 ;;
-(let ((union (fxmapping-union (fxmapping 0 'a 1 'b) (fxmapping 1 'B 2 'c))))
-  (check (fxmapping-ref union 0 (lambda () 'not-found)) => 'a)
-  (check (fxmapping-ref union 1 (lambda () 'not-found)) => 'B)
-  (check (fxmapping-ref union 2 (lambda () 'not-found)) => 'c)
+(let ((union (fxmapping-union (fxmapping 0 'a 1 'b)
+               (fxmapping 1 'B 2 'c)
+             ) ;fxmapping-union
+      ) ;union
+     ) ;
+  (check (fxmapping-ref union
+           0
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    'a
+  ) ;check
+  (check (fxmapping-ref union
+           1
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    'B
+  ) ;check
+  (check (fxmapping-ref union
+           2
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    'c
+  ) ;check
 ) ;let
 
 (check-report)

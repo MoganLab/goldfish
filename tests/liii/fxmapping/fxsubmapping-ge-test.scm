@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,7 +21,11 @@
 ;; -----
 ;; 返回只包含键大于等于 key 的键值对的新 fxmapping。
 ;;
-(let ((m (fxsubmapping>= (fxmapping 0 'a 1 'b 2 'c 3 'd) 1)))
+(let ((m (fxsubmapping>= (fxmapping 0 'a 1 'b 2 'c 3 'd)
+           1
+         ) ;fxsubmapping>=
+      ) ;m
+     ) ;
   (check-false (fxmapping-contains? m 0))
   (check-true (fxmapping-contains? m 1))
   (check-true (fxmapping-contains? m 2))
