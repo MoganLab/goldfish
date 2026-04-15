@@ -54,7 +54,8 @@
     
     ;;; atom? 辅助函数：判断是否为 Scheme 原子类型
     ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, eof-object,
-    ;;; 以及其他不可解析的对象，还包括 S7 内部 procedure 对象（如 #_list-values）
+    ;;; 以及其他不可解析的对象，还包括 S7 reader syntax 对象（如 #_quote）
+    ;;; 和内部 procedure 对象（如 #_list-values）
     (define (atom? x)
       (or (symbol? x)
           (number? x)
@@ -65,6 +66,7 @@
           (null? x)
           (vector? x)
           (eof-object? x)
+          (syntax? x)
           (eq? 'undefined? (type-of x))
           (unspecified? x)
           (procedure? x)
@@ -75,7 +77,7 @@
     ;;; 输入 datum: s-exp（可以是 atom 或 list）
     ;;; 返回: env 记录或 atom 记录
     (define (scan datum)
-      (scan-datum datum 0)
+      (scan-datum (normalize-datum datum) 0)
     ) ;define
     
     ;;; 辅助函数：扫描 datum，带深度参数
@@ -109,6 +111,20 @@
           (object->string x #f)
       ) ;if
     ) ;define
+
+    (define (procedure-name value)
+      (and (procedure? value)
+           (object->string value #f)
+      ) ;and
+    ) ;define
+
+    (define (procedure-name=? value name)
+      (let ((proc-name (procedure-name value)))
+        (and proc-name
+             (string=? proc-name name)
+        ) ;and
+      ) ;let
+    ) ;define
     
     ;;; 辅助函数：判断是否为 quote 形式：(quote x) 或 (#_quote x)
     (define (quote-form? lst)
@@ -120,7 +136,143 @@
                ) ;and
            ) ;or
            (not (null? (cdr lst)))
+           (null? (cddr lst))
       ) ;and
+    ) ;define
+
+    (define (internal-list-values-form? value)
+      (and (pair? value)
+           (procedure-name=? (car value) "#_list-values")
+      ) ;and
+    ) ;define
+
+    (define (internal-apply-values-form? value)
+      (and (pair? value)
+           (procedure-name=? (car value) "#_apply-values")
+      ) ;and
+    ) ;define
+
+    (define (internal-list-star-form? value)
+      (and (pair? value)
+           (let ((name (procedure-name (car value))))
+             (and name
+                  (or (string=? name "<list*>")
+                      (string=? name "#_list")
+                      (string=? name "list*")
+                  ) ;or
+             ) ;and
+           ) ;let
+      ) ;and
+    ) ;define
+
+    (define (quote-syntax? value)
+      (or (eq? value 'quote)
+          (and (syntax? value)
+               (string=? (object->string value #f) "#_quote")
+          ) ;and
+      ) ;or
+    ) ;define
+
+    (define (internal-quote-builder-form? value)
+      (and (internal-list-values-form? value)
+           (pair? (cdr value))
+           (pair? (cddr value))
+           (null? (cdddr value))
+           (quote-syntax? (cadr value))
+      ) ;and
+    ) ;define
+
+    (define (make-dotted-list head-items tail)
+      (if (null? head-items)
+          tail
+          (cons (car head-items)
+                (make-dotted-list (cdr head-items) tail)
+          ) ;cons
+      ) ;if
+    ) ;define
+
+    (define (normalize-quasiquote-item datum)
+      (cond
+        ((quote-form? datum)
+         (cadr datum)
+        ) ;
+        ((internal-quote-builder-form? datum)
+         (list 'quote
+               (normalize-quasiquote-item (caddr datum))
+         ) ;list
+        ) ;
+        ((internal-list-values-form? datum)
+         (normalize-quasiquote-list datum)
+        ) ;
+        ((internal-list-star-form? datum)
+         (normalize-quasiquote-dotted-list datum)
+        ) ;
+        ((internal-apply-values-form? datum)
+         (list 'unquote-splicing
+               (normalize-datum (cadr datum))
+         ) ;list
+        ) ;
+        (else
+          (list 'unquote (normalize-datum datum))
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (normalize-quasiquote-list datum)
+      (map normalize-quasiquote-item (cdr datum))
+    ) ;define
+
+    (define (normalize-quasiquote-dotted-list datum)
+      (let* ((args (cdr datum))
+             (prefix-form (if (pair? args) (car args) '()))
+             (tail-form (if (pair? (cdr args)) (cadr args) '()))
+             (head-items
+               (cond
+                 ((internal-list-values-form? prefix-form)
+                  (map normalize-quasiquote-item (cdr prefix-form))
+                 ) ;
+                 ((null? prefix-form) '())
+                 (else
+                  (list (normalize-quasiquote-item prefix-form))
+                 ) ;else
+               ) ;cond
+             ) ;head-items
+             (tail (normalize-quasiquote-item tail-form))
+            ) ;let*
+        (make-dotted-list head-items tail)
+      ) ;let*
+    ) ;define
+
+    (define (normalize-datum datum)
+      (cond
+        ((raw-string-form? datum)
+         datum
+        ) ;
+        ((quote-form? datum)
+         datum
+        ) ;
+        ((internal-list-values-form? datum)
+         (list 'quasiquote
+               (normalize-quasiquote-list datum)
+         ) ;list
+        ) ;
+        ((internal-list-star-form? datum)
+         (list 'quasiquote
+               (normalize-quasiquote-dotted-list datum)
+         ) ;list
+        ) ;
+        ((pair? datum)
+         (cons (normalize-datum (car datum))
+               (normalize-datum (cdr datum))
+         ) ;cons
+        ) ;
+        ((vector? datum)
+         (list->vector
+           (map normalize-datum (vector->list datum))
+         ) ;list->vector
+        ) ;
+        (else datum)
+      ) ;cond
     ) ;define
 
     ;;; 辅助函数：判断是否为 S7 内部形式（如 #_list-values）
@@ -394,7 +546,7 @@
           (let ((datum (read port)))
             (if (eof-object? datum)
                 (list->vector (reverse results))
-                (loop (cons (scan-datum datum 0) results))
+                (loop (cons (scan-datum (normalize-datum datum) 0) results))
             ) ;if
           ) ;let
         ) ;let
