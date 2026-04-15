@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; /
 ;; 除法函数，支持整数、浮点数、有理数和复数的除法运算。
 ;;
@@ -34,6 +36,7 @@
 ;; 除数为零时抛出此错误
 ;; wrong-number-of-args
 ;; 提供的参数个数与函数定义时所需的参数个数不匹配
+
 (check (/ 5) => 1/5)
 (check (/ 1) => 1)
 (check (/ -1) => -1)
@@ -48,18 +51,23 @@
 (check (/ 6 4 2) => 3/4)
 (check (/ 6 2 3) => 1)
 (check (/ 120 2 3 4 5) => 1)
+
 (check (/ 10 3) => 10/3)
 (check (/ 1/2 1/3) => 3/2)
 (check (/ 4/5 2/3) => 6/5)
+
 (check (/ 1 1) => 1)
-(check (/ 1.0 1.0) => 1.0)
+(check (/ 1+0i 1+0i) => 1.0)
+
 (check (/ -10 5) => -2)
 (check (/ 10 -5) => -2)
 (check (/ -10 -5) => 2)
+
 (check (/ 5.0 2.0) => 2.5)
 (check (/ 1.0 3.0) => 0.3333333333333333)
 (check (/ 1/2 0.5) => 1.0)
-(check (/ 2 2) => 1)
+(check (/ 4/2 2) => 1)
+
 (check-catch 'division-by-zero (/ 5 0))
 (check-catch 'division-by-zero (/ 1 0 2))
 (check-catch 'division-by-zero (/ 0))
@@ -67,4 +75,5 @@
 (check-catch 'wrong-type-arg (/ "world" 7))
 (check-catch 'wrong-type-arg (/ 5 #t))
 (check-catch 'wrong-number-of-args (/))
+
 (check-report)

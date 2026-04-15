@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; not
 ;; 对单个参数执行逻辑非操作，否定其布尔值。
 ;;
@@ -35,27 +37,34 @@
 ;; 错误处理
 ;; --------
 ;; 无错误情况。
+
 ;; not 基础测试
-(check-false (not #t))
-(check-true (not #f))
+(check-false (not #t))          ; #t取反应返回#f
+(check-true (not #f))           ; #f取反应返回#t
+
 ;; not 真值测试
-(check-false (not 1))
-(check-false (not 0))
-(check-false (not '()))
-(check-false (not 'a))
-(check-false (not "string"))
-(check-false (not #\a))
+(check-false (not 1))           ; 任何非#f值都视为真值
+(check-false (not 0))           ; 0被视为真值
+(check-false (not '()))         ; 空列表被视为真值
+(check-false (not 'a))          ; 符号被视为真值
+(check-false (not "string"))    ; 字符串被视为真值
+(check-false (not #\a))         ; 字符被视为真值
+
 ;; not 边界测试
-(check-true (not #f))
-(check-false (not #t))
+(check-true (not #f))           ; 假值验证
+(check-false (not #t))          ; 真值验证
+
 ;; not 连续取反测试
-(check-true (not (not #t)))
-(check-false (not (not #f)))
-(check-true (not (not #t)))
+(check-true (not (not #t)))     ; 双重否定
+(check-false (not (not #f)))    ; 双重否定
+(check-true (not (not #t)))     ; 再次验证
+
 ;; not 与谓词组合测试
-(check-true (not (= 3 4)))
-(check-false (not (= 3 3)))
+(check-true (not (= 3 4)))      ; 假条件
+(check-false (not (= 3 3)))     ; 真条件
+
 ;; not 实际用途测试
 (check-false (not (list? '(1 2 3))))
 (check-true (not (list? 123)))
+
 (check-report)

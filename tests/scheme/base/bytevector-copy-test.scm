@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; bytevector-copy
 ;; 创建一个新的字节向量，它是现有字节向量的完整或部分副本。
 ;;
@@ -34,35 +36,41 @@
 ;;
 ;; wrong-number-of-args
 ;; 参数数量不正确时抛出错误。
+
 ;; bytevector-copy 基本测试
-(check (bytevector-copy #u()) => #u())
-(check (bytevector-copy #u(1 2 3)) => #u(1 2 3))
-(check (bytevector-copy #u(255 0 128)) => #u(255 0 128))
+(check (bytevector-copy #u8()) => #u8())
+(check (bytevector-copy #u8(1 2 3)) => #u8(1 2 3))
+(check (bytevector-copy #u8(255 0 128)) => #u8(255 0 128))
+
 ;; 段复制测试
-(check (bytevector-copy #u(1 2 3 4 5) 0 3) => #u(1 2 3))
-(check (bytevector-copy #u(1 2 3 4 5) 1 4) => #u(2 3 4))
-(check (bytevector-copy #u(1 2 3 4 5) 2) => #u(3 4 5))
+(check (bytevector-copy #u8(1 2 3 4 5) 0 3) => #u8(1 2 3))
+(check (bytevector-copy #u8(1 2 3 4 5) 1 4) => #u8(2 3 4))
+(check (bytevector-copy #u8(1 2 3 4 5) 2) => #u8(3 4 5))
+
 ;; 边界测试
-(check (bytevector-copy #u(50 100 150) 0 0) => #u())
-(check (bytevector-copy #u(50 100 150) 0 1) => #u(50))
-(check (bytevector-copy #u(50 100 150) 2 3) => #u(150))
+(check (bytevector-copy #u8(50 100 150) 0 0) => #u8())
+(check (bytevector-copy #u8(50 100 150) 0 1) => #u8(50))
+(check (bytevector-copy #u8(50 100 150) 2 3) => #u8(150))
+
 ;; 完整范围
-(check (bytevector-copy #u(10 20 30 40 50) 0 5)
-  =>
-  #u(10 20 30 40 50)
-) ;check
+(check (bytevector-copy #u8(10 20 30 40 50) 0 5) => #u8(10 20 30 40 50))
+
 ;; 独立对象测试
 (let ((bv (bytevector 1 2 3 4 5)))
-  (check (bytevector-copy bv 1 4) => #u(2 3 4))
+  (check (bytevector-copy bv 1 4) => #u8(2 3 4))
 ) ;let
+
 ;; 错误处理
 (check-catch 'wrong-type-arg (bytevector-copy 123))
 (check-catch 'wrong-type-arg (bytevector-copy "hello"))
-(check-catch 'out-of-range (bytevector-copy #u(1 2 3) -1))
-(check-catch 'out-of-range (bytevector-copy #u(1 2 3) 4))
-(check-catch 'out-of-range (bytevector-copy #u(1 2 3) 0 5))
-(check-catch 'out-of-range (bytevector-copy #u(1 2 3) 2 1))
-(check (bytevector-append #u() #u()) => #u())
-(check (bytevector-append #u() #u(1)) => #u(1))
-(check (bytevector-append #u(1) #u()) => #u(1))
+(check-catch 'out-of-range (bytevector-copy #u8(1 2 3) -1))
+(check-catch 'out-of-range (bytevector-copy #u8(1 2 3) 4))
+(check-catch 'out-of-range (bytevector-copy #u8(1 2 3) 0 5))
+(check-catch 'out-of-range (bytevector-copy #u8(1 2 3) 2 1))
+
+
+(check (bytevector-append #u8() #u8()) => #u8())
+(check (bytevector-append #u8() #u8(1)) => #u8(1))
+(check (bytevector-append #u8(1) #u8()) => #u8(1))
+
 (check-report)

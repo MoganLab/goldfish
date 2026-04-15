@@ -1,8 +1,11 @@
-(import (liii check) (scheme file))
+(import (liii check)
+        (scheme file)
+) ;import
+
 (check-set-mode! 'report-failed)
-(define test-file
-  "tests/scheme/file/test-binary-output.bin"
-) ;define
+
+(define test-file "tests/scheme/file/test-binary-output.bin")
+
 ;; 测试 open-binary-output-file
 (let ((port (open-binary-output-file test-file)))
   (check-true (output-port? port))
@@ -10,15 +13,18 @@
   (display "binary output" port)
   (close-port port)
 ) ;let
+
 ;; 验证内容
 (let ((port (open-binary-input-file test-file)))
-  (check (read-string 100 port) => "binary output")
+  (check
+    (read-string 100 port)
+    => "binary output"
+  ) ;check
   (close-port port)
 ) ;let
+
 ;; 测试中文文件名
-(define chinese-file
-  "tests/scheme/file/中文二进制输出.bin"
-) ;define
+(define chinese-file "tests/scheme/file/中文二进制输出.bin")
 (let ((port (open-binary-output-file chinese-file)))
   (check-true (output-port? port))
   (check-true (binary-port? port))
@@ -26,10 +32,15 @@
   (close-port port)
 ) ;let
 (let ((port (open-binary-input-file chinese-file)))
-  (check (read-string 100 port) => "中文输出")
+  (check
+    (read-string 100 port)
+    => "中文输出"
+  ) ;check
   (close-port port)
 ) ;let
 (delete-file chinese-file)
+
 ;; 清理
 (delete-file test-file)
+
 (check-report)

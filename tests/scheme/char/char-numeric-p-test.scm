@@ -1,5 +1,9 @@
-(import (liii check) (scheme char))
+(import (liii check)
+        (scheme char)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; char-numeric?
 ;; 判断字符是否为数字。
 ;;
@@ -27,6 +31,7 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
 ;; 数字范围测试
 (check (char-numeric? #\0) => #t)
 (check (char-numeric? #\1) => #t)
@@ -38,6 +43,7 @@
 (check (char-numeric? #\7) => #t)
 (check (char-numeric? #\8) => #t)
 (check (char-numeric? #\9) => #t)
+
 ;; 非数字字符测试
 (check (char-numeric? #\a) => #f)
 (check (char-numeric? #\A) => #f)
@@ -46,18 +52,22 @@
 (check (char-numeric? #\!) => #f)
 (check (char-numeric? #\@) => #f)
 (check (char-numeric? #\#) => #f)
+
 ;; 特殊字符测试
 (check (char-numeric? #\space) => #f)
 (check (char-numeric? #\newline) => #f)
 (check (char-numeric? #\tab) => #f)
 (check (char-numeric? #\.) => #f)
 (check (char-numeric? #\-) => #f)
+
 ;; 字母与数字边界测试
 (check (char-numeric? #\/) => #f)
 (check (char-numeric? #\:) => #f)
+
 ;; 错误处理测试
 (check-catch 'type-error (char-numeric? 1))
 (check-catch 'type-error (char-numeric? "1"))
 (check-catch 'wrong-number-of-args (char-numeric?))
 (check-catch 'wrong-number-of-args (char-numeric? #\1 #\2))
+
 (check-report)

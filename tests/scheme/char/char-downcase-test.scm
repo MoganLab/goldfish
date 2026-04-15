@@ -1,5 +1,9 @@
-(import (liii check) (scheme char))
+(import (liii check)
+        (scheme char)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; char-downcase
 ;; 将字符转换为小写形式
 ;;
@@ -28,11 +32,15 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
 (check (char-downcase #\A) => #\a)
 (check (char-downcase #\Z) => #\z)
+
 (check (char-downcase #\a) => #\a)
+
 ;; 错误处理测试
 (check-catch 'type-error (char-downcase "A"))
 (check-catch 'type-error (char-downcase 65))
 (check-catch 'type-error (char-downcase 'A))
+
 (check-report)

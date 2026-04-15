@@ -1,5 +1,9 @@
-(import (liii check) (scheme complex))
+(import (liii check)
+        (scheme complex)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; angle
 ;; 返回复数的辐角。
 ;;
@@ -32,12 +36,16 @@
 ;; 错误处理
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+
 ;; Test angle with real numbers
 (check (angle 1) => 0)
 (check (angle -1) => 3.141592653589793)
+
 ;; Test angle with complex numbers
-(check (> (angle 1.0+1.0i) 0.78) => #t)
-(check (< (angle 1.0+1.0i) 0.79) => #t)
+(check (> (angle 1+1i) 0.78) => #t)
+(check (< (angle 1+1i) 0.79) => #t)
+
 ;; Error handling
 (check-catch 'wrong-type-arg (angle "x"))
+
 (check-report)

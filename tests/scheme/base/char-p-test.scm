@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; char?
 ;; 判断对象是否为字符的谓词。
 ;;
@@ -28,6 +30,7 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
+
 ;; char? 基础测试
 (check (char? #\A) => #t)
 (check (char? #\a) => #t)
@@ -37,7 +40,9 @@
 (check (char? 123) => #f)
 (check (char? "A") => #f)
 (check (char? 'a) => #f)
+
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (char?))
 (check-catch 'wrong-number-of-args (char? #\A #\B))
+
 (check-report)

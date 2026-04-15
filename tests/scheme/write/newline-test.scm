@@ -1,5 +1,9 @@
-(import (liii check) (scheme write))
+(import (liii check)
+        (scheme write)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; newline
 ;; 向输出端口写入一个换行符。
 ;;
@@ -21,24 +25,32 @@
 ;; 描述
 ;; ----
 ;; `newline` 常用于组织多行输出，与 `display` 或 `write` 搭配使用。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
+
 (check-true (procedure? newline))
-(check (capture-output (lambda (port) (newline port)))
-  =>
-  "\n"
+
+(check (capture-output
+         (lambda (port)
+           (newline port)
+         ) ;lambda
 ) ;check
-(check (capture-output (lambda (port)
-                         (display "a" port)
-                         (newline port)
-                         (display "b" port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "a\nb"
+       => "\n"
 ) ;check
+
+(check (capture-output
+         (lambda (port)
+           (display "a" port)
+           (newline port)
+           (display "b" port)
+         ) ;lambda
+) ;check
+       => "a\nb"
+) ;check
+
 (check-report)
