@@ -40,10 +40,7 @@
 (check (string->json "{\"name\":\"Bob\",\"age\":21}"
        ) ;string->json
   =>
-  (#_list-values
-   (<list*> (#_list-values "name") "Bob")
-   (<list*> (#_list-values "age") 21)
-  ) ;
+  '(("name" . "Bob") ("age" . 21))
 ) ;check
 (check (string->json "[1,2,3]")
   =>
@@ -83,18 +80,12 @@
 (check (string->json "{\"args\": {}, data: true}"
        ) ;string->json
   =>
-  (#_list-values
-    '("args" ())
-    (<list*> (#_list-values 'data) 'true)
-  ) ;
+  '(("args" ()) (data . true))
 ) ;check
 (check (string->json "{\"args\": {}, data: null}"
        ) ;string->json
   =>
-  (#_list-values
-    '("args" ())
-    (<list*> (#_list-values 'data) 'null)
-  ) ;
+  '(("args" ()) (data . null))
 ) ;check
 (check (string->json "{a:{b:1,c:2}}")
   =>
@@ -103,24 +94,15 @@
 
 (check (string->json "{\"age\":18}")
   =>
-  (#_list-values
-   (<list*> (#_list-values "age") 18)
-  ) ;
+  '(("age" . 18))
 ) ;check
 (check (string->json "{age:18}")
   =>
-  (#_list-values
-   (<list*> (#_list-values 'age) 18)
-  ) ;
+  '((age . 18))
 ) ;check
 (check (string->json "{\"name\":\"中文\"}")
   =>
-  (#_list-values
-   (<list*>
-    (#_list-values "name")
-    "中文"
-   ) ;
-  ) ;
+  '(("name" . "中文"))
 ) ;check
 (check (string->json "{\"name\":\"Alice\\nBob\"}"
        ) ;string->json
