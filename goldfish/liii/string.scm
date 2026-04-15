@@ -21,7 +21,10 @@
     string-every string-any
     string-take string-take-right string-drop string-drop-right
     string-pad string-pad-right
-    string-trim string-trim-right string-trim-both
+    ; 警告: string-trim, string-trim-left, string-trim-right, string-trim-both
+    ; 这些函数在处理 Unicode 字符(如中文)时可能有字节截断问题
+    ; 对于 Unicode 字符串,建议使用 (liii unicode) 中的 utf8-string-trim-* 系列函数
+    string-trim string-trim-left string-trim-right string-trim-both
     string-index string-index-right string-skip string-skip-right
     string-contains string-count
     string-upcase string-downcase
@@ -40,6 +43,12 @@
           (liii unicode)
   ) ;import
   (begin
+
+    ;;; string-trim-left: 从字符串左侧移除空白字符
+    ;;; 基于 SRFI-13 的 string-trim 实现
+    ;;; 警告: 此函数在处理 Unicode 字符(如中文)时可能有字节截断问题
+    ;;; 对于 Unicode 字符串,建议使用 (liii unicode) 中的 utf8-string-trim-left 函数
+    (define string-trim-left string-trim)
 
     (define (string-starts? str prefix)
       (if (and (string? str) (string? prefix))

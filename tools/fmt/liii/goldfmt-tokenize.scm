@@ -18,9 +18,18 @@
   (export tokenize tokens->string escape-string-content)
   (import (liii base)
           (liii string)
+          (liii unicode)
   ) ;import
   
   (begin
+    ;;; 辅助函数：安全地移除字符串尾部空格
+    ;;; 使用 utf8-string-trim-right 正确处理 Unicode 字符
+    ;;; 如果内容只有空格，则保留原样
+    (define (trim-right-spaces str)
+      (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) str)
+          str
+          (utf8-string-trim-right str)))
+    
     ;;; 辅助函数：将注释内容转义为可在 Scheme 字符串中使用的形式
     ;;; 处理双引号和反斜杠
     (define (escape-string-content content)
@@ -178,11 +187,8 @@
                            ((comment-start (+ i 2))
                             (newline-pos (string-index content #\newline i))
                             (comment-end (or newline-pos len))
-                            (raw-content (substring content comment-start comment-end))
-                            (trimmed-content
-                              (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) raw-content)
-                                  raw-content
-                                  (string-trim-right raw-content)))
+                             (raw-content (substring content comment-start comment-end))
+                             (trimmed-content (trim-right-spaces raw-content))
                             ) ;let*
                            (set! tokens (cons (cons 'comment trimmed-content) tokens))
                           (if newline-pos

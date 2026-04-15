@@ -18,7 +18,7 @@
   (export
    ;; UTF-8 函数
    utf8->string string->utf8 utf8-string-length utf8-substring bytevector-advance-utf8
-   codepoint->utf8 utf8->codepoint
+   codepoint->utf8 utf8->codepoint utf8-string-trim-right utf8-string-trim-left utf8-string-trim-both
 
    ;; UTF-16BE 函数
    codepoint->utf16be utf16be->codepoint utf8->utf16be utf16be->utf8 bytevector-utf16be-advance
@@ -44,6 +44,96 @@
     (define* (utf8-substring str (start 0) (end #t))
       (utf8->string (string->utf8 str start end))
     ) ;define*
+
+    ;;; 辅助函数：检查字符是否为空白字符
+    (define (unicode-whitespace? c)
+      (or (char=? c #\space)
+          (char=? c #\tab)
+          (char=? c #\newline)
+          (char=? c #\return)
+          (char=? c #\x00A0)   ; 不换行空格
+          (char=? c #\x2000)   ; en quad
+          (char=? c #\x2001)   ; em quad
+          (char=? c #\x2002)   ; en space
+          (char=? c #\x2003)   ; em space
+          (char=? c #\x2004)   ; 三分之一em空格
+          (char=? c #\x2005)   ; 四分之一em空格
+          (char=? c #\x2006)   ; 六分之一em空格
+          (char=? c #\x2007)   ; 数字空格
+          (char=? c #\x2008)   ; 标点空格
+          (char=? c #\x2009)   ; 薄空格
+          (char=? c #\x200A)   ; 头发空格
+          (char=? c #\x202F)   ; 窄不换行空格
+          (char=? c #\x205F)   ; 中等数学空格
+          (char=? c #\x3000))) ; 表意空格
+
+    ;;; utf8-string-trim-right: 从字符串右侧移除空白字符
+    ;;; 正确处理UTF-8编码的中文字符
+    (define (utf8-string-trim-right str)
+      (unless (string? str)
+        (error 'type-error "utf8-string-trim-right: expected string"))
+
+      (let* ((bv (string->utf8 str))
+             (byte-len (bytevector-length bv)))
+        (if (= byte-len 0)
+            ""
+            (let loop ((byte-pos byte-len))
+              (if (<= byte-pos 0)
+                  ""
+                  (let* ((prev-byte-pos (bytevector-rindex-utf8 bv 0 byte-pos))
+                         (char-bv (bytevector-copy bv prev-byte-pos byte-pos))
+                         (ch (utf8->string char-bv)))
+                    (if (and (= (string-length ch) 1)
+                             (unicode-whitespace? (string-ref ch 0)))
+                        (loop prev-byte-pos)
+                        (if (= byte-pos byte-len)
+                            str
+                            (utf8->string (bytevector-copy bv 0 byte-pos)))))))))
+    ) ;define
+
+    ;;; 辅助函数：从字节向量末尾向前查找UTF-8字符的起始位置
+    (define (bytevector-rindex-utf8 bv start end)
+      (let loop ((pos (- end 1)))
+        (if (< pos start)
+            start
+            (let ((b (bytevector-u8-ref bv pos)))
+              (if (or (<= #x00 b #x7F)      ; 单字节字符
+                      (<= #xC0 b #xFF))     ; 多字节字符的首字节
+                  pos
+                  (loop (- pos 1)))))))
+
+    ;;; utf8-string-trim-left: 从字符串左侧移除空白字符
+    ;;; 正确处理UTF-8编码的中文字符
+    (define (utf8-string-trim-left str)
+      (unless (string? str)
+        (error 'type-error "utf8-string-trim-left: expected string"))
+
+      (let* ((bv (string->utf8 str))
+             (byte-len (bytevector-length bv)))
+        (if (= byte-len 0)
+            ""
+            (let loop ((byte-pos 0))
+              (if (>= byte-pos byte-len)
+                  ""
+                  (let* ((next-byte-pos (bytevector-advance-utf8 bv byte-pos byte-len))
+                         (char-bv (bytevector-copy bv byte-pos next-byte-pos))
+                         (ch (utf8->string char-bv)))
+                    (if (and (= (string-length ch) 1)
+                             (unicode-whitespace? (string-ref ch 0)))
+                        (loop next-byte-pos)
+                        (if (= byte-pos 0)
+                            str
+                            (utf8->string (bytevector-copy bv byte-pos byte-len)))))))))
+    ) ;define
+
+    ;;; utf8-string-trim-both: 从字符串两侧移除空白字符
+    ;;; 正确处理UTF-8编码的中文字符
+    (define (utf8-string-trim-both str)
+      (unless (string? str)
+        (error 'type-error "utf8-string-trim-both: expected string"))
+
+      (utf8-string-trim-right (utf8-string-trim-left str))
+    ) ;define
 
     (define (codepoint->utf8 codepoint)
       (unless (integer? codepoint)

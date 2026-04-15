@@ -19,11 +19,20 @@
   (import (liii base)
           (liii path)
           (liii string)
+          (liii unicode)
           (liii list)
           (liii goldfmt-record)
   ) ;import
   
   (begin
+    ;;; 辅助函数：安全地移除字符串尾部空格
+    ;;; 使用 utf8-string-trim-right 正确处理 Unicode 字符
+    ;;; 如果内容只有空格，则保留原样
+    (define (trim-right-spaces str)
+      (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) str)
+          str
+          (utf8-string-trim-right str)))
+    
     ;;; atom? 辅助函数：判断是否为 Scheme 原子类型
     ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, eof-object, 以及其他不可解析的对象
     (define (atom? x)
@@ -303,10 +312,7 @@
     ;;; 返回: 注释内容（不含 ;; 前缀）
     ;;; 保留前导空格，移除尾部空格；如果只有空格则保留原样
     (define (extract-comment-content line comment-pos)
-      (let ((raw-content (substring line (+ comment-pos 2))))
-        (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) raw-content)
-            raw-content
-            (string-trim-right raw-content)))
+      (trim-right-spaces (substring line (+ comment-pos 2)))
     ) ;define
     
     ;;; 辅助函数：将注释内容转义为可在字符串中使用的形式
