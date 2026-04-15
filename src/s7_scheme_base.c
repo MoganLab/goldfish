@@ -588,16 +588,16 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args)
 /* -------------------------------- string->number helpers -------------------------------- */
 
 /* Simple string to double conversion with radix support.
- * This implementation uses a straightforward algorithm to avoid
+ * This implementation uses integer arithmetic for mantissa to avoid
  * precision issues on different platforms (especially Windows).
  */
 double s7_string_to_double_simple(const char *str, int32_t radix)
 {
   const char *p = str;
   double sign = 1.0;
-  double result = 0.0;
-  double fraction = 0.0;
-  double divisor = 1.0;
+  int64_t mantissa = 0;      /* Use integer for precise digit accumulation */
+  int32_t mantissa_digits = 0;
+  int32_t fraction_digits = 0;
   int32_t exponent = 0;
   bool has_exponent = false;
   bool exp_negative = false;
@@ -653,31 +653,63 @@ double s7_string_to_double_simple(const char *str, int32_t radix)
     if (digit >= radix)
       break;
 
-    if (in_fraction) {
-      fraction = fraction * radix + digit;
-      divisor *= radix;
-    } else {
-      result = result * radix + digit;
+    /* Accumulate mantissa as integer (limited precision) */
+    if (mantissa_digits < 17) {  /* double has ~15-17 decimal digits */
+      mantissa = mantissa * radix + digit;
+      mantissa_digits++;
+      if (in_fraction)
+        fraction_digits++;
+    } else if (!in_fraction) {
+      /* Skip extra integer digits (will be handled by exponent) */
+      exponent++;
     }
     p++;
   }
 
   /* Parse exponent */
   if (has_exponent) {
+    int32_t exp_val = 0;
     while (*p >= '0' && *p <= '9') {
-      exponent = exponent * 10 + (*p - '0');
+      exp_val = exp_val * 10 + (*p - '0');
       p++;
     }
     if (exp_negative)
-      exponent = -exponent;
+      exp_val = -exp_val;
+    exponent += exp_val;
   }
 
-  /* Combine parts */
-  result = result + fraction / divisor;
+  /* Calculate final value: mantissa * 10^(exponent - fraction_digits) */
+  double result = (double)mantissa;
+  int32_t final_exp = exponent - fraction_digits;
 
-  /* Apply exponent */
-  if (exponent != 0) {
-    result *= pow((double)radix, (double)exponent);
+  if (final_exp != 0) {
+    /* Use exponentiation by squaring for power calculation */
+    double base = (double)radix;
+    int32_t exp = final_exp;
+    double factor = 1.0;
+
+    if (exp > 0) {
+      /* Positive exponent: multiply */
+      double pow_val = base;
+      while (exp > 0) {
+        if (exp & 1)
+          factor *= pow_val;
+        pow_val *= pow_val;
+        exp >>= 1;
+      }
+      result *= factor;
+    } else {
+      /* Negative exponent: divide */
+      double pow_val = base;
+      exp = -exp;
+      while (exp > 0) {
+        if (exp & 1)
+          factor *= pow_val;
+        pow_val *= pow_val;
+        exp >>= 1;
+      }
+      result /= factor;
+    }
   }
 
   return sign * result;
