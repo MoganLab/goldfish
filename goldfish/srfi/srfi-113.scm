@@ -214,7 +214,6 @@
       (hash-table-keys (set-hash-table s))
     ) ;define
 
-
     (define (set-size s)
       (check-set s)
       (hash-table-size (set-hash-table s))
