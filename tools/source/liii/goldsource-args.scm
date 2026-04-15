@@ -15,83 +15,84 @@
 ;;
 
 (define-library (liii goldsource-args)
-  (import (scheme base)
-          (liii string)
-  ) ;import
+  (import (scheme base) (liii string))
   (export parse-source-args
-          library-query?
-          parse-library-query
+    library-query?
+    parse-library-query
   ) ;export
   (begin
 
     (define (library-query? value)
       (and (string? value)
-           (string-contains? value "/")
+        (string-contains? value "/")
       ) ;and
     ) ;define
 
     (define (parse-library-query query)
       (if (not (library-query? query))
-          #f
-          (let ((parts (string-split query "/")))
-            (if (and (= (length parts) 2)
-                     (not (string-null? (car parts)))
-                     (not (string-null? (cadr parts))))
-                (cons (car parts) (cadr parts))
-                #f
-            ) ;if
-          ) ;let
+        #f
+        (let ((parts (string-split query "/")))
+          (if (and (= (length parts) 2)
+                (not (string-null? (car parts)))
+                (not (string-null? (cadr parts)))
+              ) ;and
+            (cons (car parts) (cadr parts))
+            #f
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (classify-source-args filtered)
-      (cond
-        ((null? filtered)
-         '(invalid)
-        ) ;
-        ((or (member "--help" filtered)
-             (member "-h" filtered))
-         '(help)
-        ) ;
-        ((and (= (length filtered) 1)
-              (parse-library-query (car filtered)))
-         (list 'library (car filtered))
-        ) ;
-        (else
-         (cons 'invalid filtered)
-        ) ;else
+      (cond ((null? filtered) '(invalid))
+            ((or (member "--help" filtered)
+               (member "-h" filtered)
+             ) ;or
+             '(help)
+            ) ;
+            ((and (= (length filtered) 1)
+               (parse-library-query (car filtered))
+             ) ;and
+             (list 'library (car filtered))
+            ) ;
+            (else (cons 'invalid filtered))
       ) ;cond
     ) ;define
 
     (define (parse-source-args args)
-      (let loop ((remaining (cdr args))
-                 (skip-next #f)
-                 (filtered '()))
+      (let loop
+        ((remaining (cdr args))
+         (skip-next #f)
+         (filtered '())
+        ) ;
         (if (null? remaining)
-            (classify-source-args (reverse filtered))
-            (let ((arg (car remaining)))
-              (cond
-                (skip-next
-                 (loop (cdr remaining) #f filtered)
-                ) ;skip-next
-                ((string=? arg "source")
-                 (loop (cdr remaining) #f filtered)
-                ) ;
-                ((or (string=? arg "-m")
+          (classify-source-args (reverse filtered)
+          ) ;classify-source-args
+          (let ((arg (car remaining)))
+            (cond (skip-next (loop (cdr remaining) #f filtered)
+                  ) ;skip-next
+                  ((string=? arg "source")
+                   (loop (cdr remaining) #f filtered)
+                  ) ;
+                  ((or (string=? arg "-m")
                      (string=? arg "--mode")
                      (string=? arg "-I")
-                     (string=? arg "-A"))
-                 (loop (cdr remaining) #t filtered)
-                ) ;
-                ((or (string-starts? arg "-m=")
-                     (string-starts? arg "--mode="))
-                 (loop (cdr remaining) #f filtered)
-                ) ;
-                (else
-                 (loop (cdr remaining) #f (cons arg filtered))
-                ) ;else
-              ) ;cond
-            ) ;let
+                     (string=? arg "-A")
+                   ) ;or
+                   (loop (cdr remaining) #t filtered)
+                  ) ;
+                  ((or (string-starts? arg "-m=")
+                     (string-starts? arg "--mode=")
+                   ) ;or
+                   (loop (cdr remaining) #f filtered)
+                  ) ;
+                  (else (loop (cdr remaining)
+                          #f
+                          (cons arg filtered)
+                        ) ;loop
+                  ) ;else
+            ) ;cond
+          ) ;let
         ) ;if
       ) ;let
     ) ;define

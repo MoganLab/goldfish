@@ -16,17 +16,17 @@
 
 (define-library (liii goldsource)
   (import (scheme base)
-          (liii goldsource-args)
-          (liii goldsource-library)
-          (liii goldsource-cli)
+    (liii goldsource-args)
+    (liii goldsource-library)
+    (liii goldsource-cli)
   ) ;import
   (export parse-source-args
-          library-query?
-          parse-library-query
-          find-visible-library-root
-          source-library-path
-          run-goldsource
-          main
+    library-query?
+    parse-library-query
+    find-visible-library-root
+    source-library-path
+    run-goldsource
+    main
   ) ;export
   (begin
 
