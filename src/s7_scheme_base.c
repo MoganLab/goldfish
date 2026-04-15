@@ -587,6 +587,72 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args)
 
 /* -------------------------------- string->number helpers -------------------------------- */
 
+/* Digit conversion table for number parsing */
+static const uint8_t s7_digit_table[256] = {
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   255, 255, 255, 255, 255, 255,
+  255, 10,  11,  12,  13,  14,  15,  255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 10,  11,  12,  13,  14,  15,  255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+};
+
+/* Convert string to integer with radix support
+ * Returns the integer value and sets *overflow if result overflows s7_int
+ */
+s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
+{
+  bool negative = false;
+  s7_int new_int = 0;
+  const char *tmp = str;
+
+  *overflow = false;
+
+  if (str[0] == '+')
+    tmp++;
+  else if (str[0] == '-')
+    {
+      negative = true;
+      tmp++;
+    }
+
+  while (*tmp == '0') tmp++;
+
+  while (true)
+    {
+      uint8_t dig = s7_digit_table[(uint8_t)(*tmp++)];
+      if (dig >= (uint8_t)radix) break;
+
+      /* Check for overflow before multiplying */
+      if (new_int > (S7_INT64_MAX / radix))
+        {
+          *overflow = true;
+          return negative ? S7_INT64_MIN : S7_INT64_MAX;
+        }
+      new_int = new_int * radix;
+
+      /* Check for overflow before adding */
+      if (new_int > (S7_INT64_MAX - dig))
+        {
+          *overflow = true;
+          return negative ? S7_INT64_MIN : S7_INT64_MAX;
+        }
+      new_int = new_int + dig;
+    }
+
+  return negative ? -new_int : new_int;
+}
+
 /* Simple string to double conversion with radix support.
  * This implementation uses integer arithmetic for mantissa to avoid
  * precision issues on different platforms (especially Windows).
