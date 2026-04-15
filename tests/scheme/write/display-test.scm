@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme write)
-) ;import
-
+(import (liii check) (scheme write))
 (check-set-mode! 'report-failed)
-
 ;; display
 ;; 将对象按更接近用户阅读的方式写入输出端口。
 ;;
@@ -30,38 +26,28 @@
 ;; 1. `display` 更偏向面向用户的展示输出。
 ;; 2. 对字符串通常不输出双引号。
 ;; 3. 对符号和数字等对象则输出其展示形式。
-
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
-
 (check-true (procedure? display))
-
-(check (capture-output
-         (lambda (port)
-           (display "goldfish" port)
-         ) ;lambda
+(check (capture-output (lambda (port)
+                         (display "goldfish" port)
+                       ) ;lambda
+       ) ;capture-output
+  =>
+  "goldfish"
 ) ;check
-       => "goldfish"
+(check (capture-output (lambda (port) (display 42 port))
+       ) ;capture-output
+  =>
+  "42"
 ) ;check
-
-(check (capture-output
-         (lambda (port)
-           (display 42 port)
-         ) ;lambda
+(check (capture-output (lambda (port) (display 'hello port))
+       ) ;capture-output
+  =>
+  "hello"
 ) ;check
-       => "42"
-) ;check
-
-(check (capture-output
-         (lambda (port)
-           (display 'hello port)
-         ) ;lambda
-) ;check
-       => "hello"
-) ;check
-
 (check-report)

@@ -53,16 +53,32 @@
 (check (log 9 3) => 2)
 ;; log 浮点数对数测试
 (check (log 2.718281828459045) => 1.0)
-(check (log 0.1 10) => -0.9999999999999998)
+(check (log 0.1 10)
+  =>
+  -0.9999999999999998
+) ;check
 ;; 相互验证测试
 (check (log (exp 3)) => 3.0)
-(check (exp (log 5)) => 4.999999999999999)
+(check (exp (log 5))
+  =>
+  4.999999999999999
+) ;check
 ;; 错误处理测试
-(check (log 0) => -inf.0+3.141592653589793i)
-(check (log -1) => 0.0+3.141592653589793i)
+(check (log 0)
+  =>
+  -inf.0+3.141592653589793i
+) ;check
+(check (log -1)
+  =>
+  0.0+3.141592653589793i
+) ;check
 (check (log 3 1) => +inf.0)
 (check-catch 'out-of-range (log 10 0))
 (check-catch 'wrong-type-arg (log "a"))
-(check-catch 'wrong-number-of-args (log))
-(check-catch 'wrong-number-of-args (log 12 4 5))
+(check-catch 'wrong-number-of-args
+  (log)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (log 12 4 5)
+) ;check-catch
 (check-report)

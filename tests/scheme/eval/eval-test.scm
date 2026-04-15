@@ -1,10 +1,8 @@
 (import (liii check)
-        (scheme base)
-        (scheme eval)
+  (scheme base)
+  (scheme eval)
 ) ;import
-
 (check-set-mode! 'report-failed)
-
 ;; eval
 ;; 在指定环境中对 Scheme 表达式求值。
 ;;
@@ -38,18 +36,30 @@
 ;; --------
 ;; unbound-variable
 ;; 当表达式引用环境中不存在的绑定时抛出错误。
-
-(check (eval '(+ 1 2) (environment '(scheme base))) => 3)
-
+(check (eval '(+ 1 2)
+         (environment '(scheme base))
+       ) ;eval
+  =>
+  3
+) ;check
 (let ((env (environment '(scheme base))))
-  (check (eval '(begin (define answer 41) (+ answer 1)) env) => 42)
+  (check (eval '(begin (define answer 41) (+ answer 1))
+           env
+         ) ;eval
+    =>
+    42
+  ) ;check
   (check (eval 'answer env) => 41)
-  (check (eval '(set! answer (+ answer 1)) env) => 42)
+  (check (eval '(set! answer (+ answer 1)) env)
+    =>
+    42
+  ) ;check
   (check (eval 'answer env) => 42)
 ) ;let
-
 (check-catch 'unbound-variable
-             (eval 'x (environment '(only (scheme base) square)))
-)
-
+  (eval 'x
+    (environment '(only (scheme base) square)
+    ) ;environment
+  ) ;eval
+) ;check-catch
 (check-report)

@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme write)
-) ;import
-
+(import (liii check) (scheme write))
 (check-set-mode! 'report-failed)
-
 ;; write-shared
 ;; 在当前实现中，提供与 `write` 一致的兼容输出行为。
 ;;
@@ -29,38 +25,30 @@
 ;; ----
 ;; 当前底层没有独立的 `write-shared` 原生过程，因此这里验证它与 `write`
 ;; 保持一致的现有兼容行为。
-
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
-
 (check-true (procedure? write-shared))
-
-(check (capture-output
-         (lambda (port)
-           (write-shared '(a b) port)
-         ) ;lambda
+(check (capture-output (lambda (port)
+                         (write-shared '(a b) port)
+                       ) ;lambda
+       ) ;capture-output
+  =>
+  "(a b)"
 ) ;check
-       => "(a b)"
+(check (capture-output (lambda (port)
+                         (write-shared "goldfish" port)
+                       ) ;lambda
+       ) ;capture-output
+  =>
+  "\"goldfish\""
 ) ;check
-
-(check (capture-output
-         (lambda (port)
-           (write-shared "goldfish" port)
-         ) ;lambda
+(check (capture-output (lambda (port) (write-shared 456 port))
+       ) ;capture-output
+  =>
+  "456"
 ) ;check
-       => "\"goldfish\""
-) ;check
-
-(check (capture-output
-         (lambda (port)
-           (write-shared 456 port)
-         ) ;lambda
-) ;check
-       => "456"
-) ;check
-
 (check-report)
