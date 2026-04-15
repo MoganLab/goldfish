@@ -26,6 +26,7 @@
           (liii goldfmt-record)
           (liii goldfmt-rule)
           (liii goldfmt-scan)
+          (srfi srfi-13)
   ) ;import
 
   (begin
@@ -746,7 +747,14 @@
     (define (join-top-level pieces)
       (let loop ((rest pieces) (result ""))
         (cond
-          ((null? rest) result)
+          ((null? rest)
+           ; 确保结果以换行符结尾
+           (if (and (not (string=? result ""))
+                    (not (string-suffix? "\n" result)))
+               (string-append result "\n")
+               result
+           ) ;if
+          ) ;
           ((string=? result "") (loop (cdr rest) (car rest)))
           (else
            (loop (cdr rest)
@@ -807,7 +815,11 @@
                      (let ((blank-lines (newline-form-count datum)))
                        (loop (cdr rest)
                              #f
-                             (cons (make-newlines blank-lines) result)))))
+                             (cons (make-newlines blank-lines) result)
+                       ) ;loop
+                     ) ;let
+                 ) ;if
+                ) ;
                 ;
                 ; 处理普通表达式
                 (else

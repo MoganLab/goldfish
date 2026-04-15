@@ -367,9 +367,7 @@
           ) ;lambda
           lines
         ) ;for-each
-        ; 文件末尾的空行也需要保存
-        (when (> blank-line-count 0)
-          (set! tokens (cons (cons 'newline blank-line-count) tokens)))
+        ; 注意：文件末尾的空行不保存，避免格式化后累积空行
         (reverse tokens)
       ) ;let*
     ) ;define

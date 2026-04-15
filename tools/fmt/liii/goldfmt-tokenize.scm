@@ -235,12 +235,9 @@
                                ; 已经有token，统计连续空行
                                (let count-loop ((pos (+ i 1))
                                                 (blank-count (if (blank-line? current-line) 1 0)))
-                                 (if (>= pos len)
-                                     ; 到达文件末尾
-                                     (begin
-                                       (when (> blank-count 0)
-                                         (set! tokens (cons (cons 'newline blank-count) tokens)))
-                                       (reverse tokens))
+                                  (if (>= pos len)
+                                      ; 到达文件末尾 - 不保留末尾空行
+                                      (reverse tokens)
                                      (let ((next-char (string-ref content pos)))
                                        (cond
                                          ; 跳过回车符
