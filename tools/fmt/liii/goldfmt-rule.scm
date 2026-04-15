@@ -27,7 +27,7 @@
           (liii os))
 
   (begin
-    (define max-inline-length 40)
+    (define max-inline-length 60)
     (define node-rules-paths
       '("node-rules.json"
         "../node-rules.json"

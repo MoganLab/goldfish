@@ -35,10 +35,7 @@
 (check (s7-sqrt 9) => 3)
 (check (s7-sqrt 25.0) => 5.0)
 (check (s7-sqrt 9/4) => 3/2)
-(check (< (abs (- (s7-sqrt 2.0) 1.4142135623730951)
-          ) ;abs
-         1e-10
-       ) ;<
+(check (< (abs (- (s7-sqrt 2.0) 1.4142135623730951)) 1e-10)
   =>
   #t
 ) ;check
@@ -51,10 +48,6 @@
 (check (exact? (s7-sqrt 4)) => #t)
 (check (exact? (s7-sqrt 4.0)) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (s7-sqrt "hello")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (s7-sqrt)
-) ;check-catch
+(check-catch 'wrong-type-arg (s7-sqrt "hello"))
+(check-catch 'wrong-number-of-args (s7-sqrt))
 (check-report)
