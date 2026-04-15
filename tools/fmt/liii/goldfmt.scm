@@ -74,15 +74,21 @@
                     (loop (+ i 1)))))))))
     
     ;;; 格式化单个文件（覆盖原文件）
+    ;;; 返回值: 如果文件有变更返回 #t，否则返回 #f
     (define (format-file path-str)
       (let* ((p (path path-str))
+             (original-content (path-read-text p))
              (nodes (scan-file path-str))
              (results '()))
         (let loop ((i 0)
                    (acc '()))
           (if (>= i (vector-length nodes))
               (let ((formatted (string-join (reverse acc) "\n")))
-                (path-write-text p formatted))
+                (if (string=? original-content formatted)
+                    #f  ; 无变更
+                    (begin
+                      (path-write-text p formatted)
+                      #t)))  ; 有变更
               (let ((node (vector-ref nodes i)))
                 (call-with-values
                   (lambda () (format-node node 0))
@@ -99,9 +105,13 @@
                (let ((entry-str (path->string entry)))
                  (if (string-suffix? ".scm" entry-str)
                      (begin
-                       (format-file entry-str)
-                       (display (string-append "已格式化: " entry-str))
-                       (newline)))))
+                       (display (string-append "Processing: " entry-str))
+                       (newline)
+                       (let ((changed? (format-file entry-str)))
+                         (if changed?
+                             (display (string-append "Updated: " entry-str))
+                             (display (string-append "Unchanged: " entry-str)))
+                         (newline))))))
               ((path-dir? entry)
                (format-directory (path->string entry)))))
           entries)))
@@ -139,10 +149,14 @@
            (if dry-run
                (format-file-dry-run path-str)
                (begin
-                 (format-file path-str)
-                 (display (string-append "已格式化: " path-str))
+                 (display (string-append "Processing: " path-str))
                  (newline)
-                 #t)))
+                 (let ((changed? (format-file path-str)))
+                   (if changed?
+                       (display (string-append "Updated: " path-str))
+                       (display (string-append "Unchanged: " path-str)))
+                   (newline)
+                   #t))))
           ; 处理目录（不支持 --dry-run）
           ((path-dir? (path path-str))
            (if dry-run
