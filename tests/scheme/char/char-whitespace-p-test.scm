@@ -1,5 +1,9 @@
-(import (liii check) (scheme char))
+(import (liii check)
+        (scheme char)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; char-whitespace?
 ;; 判断字符是否为空白字符。
 ;;
@@ -27,22 +31,16 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
 ;; 标准空白测试
 (check (char-whitespace? #\space) => #t)
-(check (char-whitespace? #\newline)
-  =>
-  #t
-) ;check
+(check (char-whitespace? #\newline) => #t)
 (check (char-whitespace? #\tab) => #t)
+
 ;; 控制字符测试
-(check (char-whitespace? #\return)
-  =>
-  #t
-) ;check
-(check (char-whitespace? #\backspace)
-  =>
-  #f
-) ;check
+(check (char-whitespace? #\return) => #t)
+(check (char-whitespace? #\backspace) => #f)
+
 ;; 非空白字符测试
 (check (char-whitespace? #\a) => #f)
 (check (char-whitespace? #\A) => #f)
@@ -50,24 +48,20 @@
 (check (char-whitespace? #\9) => #f)
 (check (char-whitespace? #\!) => #f)
 (check (char-whitespace? #\@) => #f)
+
 ;; 特殊边界测试
 (check (char-whitespace? #\0) => #f)
 (check (char-whitespace? #\a) => #f)
+
 ;; 符号
 (check (char-whitespace? #\.) => #f)
 (check (char-whitespace? #\,) => #f)
 (check (char-whitespace? #\;) => #f)
+
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-whitespace? 1)
-) ;check-catch
-(check-catch 'type-error
-  (char-whitespace? " ")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-whitespace?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-whitespace? #\space #\a)
-) ;check-catch
+(check-catch 'type-error (char-whitespace? 1))
+(check-catch 'type-error (char-whitespace? " "))
+(check-catch 'wrong-number-of-args (char-whitespace?))
+(check-catch 'wrong-number-of-args (char-whitespace? #\space #\a))
+
 (check-report)

@@ -1,56 +1,52 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
 
-;;
-;; member
-;; 在列表中搜索指定元素，若存在则返回从该元素开始的子列表，否则返回 #f
-;;
-;; 语法
-;; ----
-;; (member item list)
-;;
-;; 参数
-;; ----
-;; item:any
-;; 待查找的元素（支持任意类型，包括数字、字符串、点对、列表等）。
-;; list:list
-;; 被搜索的列表（可为空列表）。
-;;
-;; 返回值
-;; -----
-;; list
-;; 若 item 在 list 中，返回从第一个匹配项开始直到列表末尾的子列表。
-;; #f
-;; 若未找到或 list 为空，返回 #f。
-;;
-;; 错误
-;; ----
-;; wrong-type-arg
-;; 若 list 不是有效列表（如非列表结构），可能引发类型错误。
-;;
-;; 额外信息
-;; ----
-;; 使用 equal? 进行元素比较（支持复杂类型如字符串 "1"、点对 (1 . 2) 和列表 (1 2)）。
-;; 匹配时返回 原始列表的尾部片段（保留原内存结构），而非复制新列表。
-;;
+#|
+member
+在列表中搜索指定元素，若存在则返回从该元素开始的子列表，否则返回 #f
 
-(check-catch 'wrong-type-arg
-  (member 0 "text")
-) ;check-catch
+语法
+----
+(member item list)
+
+参数
+----
+item:any
+待查找的元素（支持任意类型，包括数字、字符串、点对、列表等）。
+list:list
+被搜索的列表（可为空列表）。
+
+返回值
+-----
+list
+若 item 在 list 中，返回从第一个匹配项开始直到列表末尾的子列表。
+#f
+若未找到或 list 为空，返回 #f。
+
+错误
+----
+wrong-type-arg
+若 list 不是有效列表（如非列表结构），可能引发类型错误。
+
+额外信息
+----
+使用 equal? 进行元素比较（支持复杂类型如字符串 "1"、点对 (1 . 2) 和列表 (1 2)）。
+匹配时返回 原始列表的尾部片段（保留原内存结构），而非复制新列表。
+
+|#
+
+(check-catch 'wrong-type-arg (member 0 "text"))
+
 (check (member 2 '(1 2 3)) => '(2 3))
+
 (check (member 0 '(1 2 3)) => #f)
 (check (member 0 '()) => #f)
-(check (member "1" '(0 "1" 2 3))
-  =>
-  '("1" 2 3)
-) ;check
-(check (member '(1 . 2) '(0 (1 . 2) 3))
-  =>
-  '((1 . 2) 3)
-) ;check
-(check (member '(1 2) '(0 (1 2) 3))
-  =>
-  '((1 2) 3)
-) ;check
+ 
+(check (member "1" '(0 "1" 2 3)) => '("1" 2 3))
+(check (member '(1 . 2) '(0 (1 . 2) 3)) => '((1 . 2) 3))
+(check (member '(1 2) '(0 (1 2) 3)) => '((1 2) 3))
+
+
 (check-report)

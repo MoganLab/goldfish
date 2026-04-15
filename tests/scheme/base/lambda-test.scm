@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii list))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; lambda
 ;; 测试 lambda 表达式、闭包和简单高阶调用。
 ;;
@@ -29,64 +31,35 @@
 ;; 错误处理
 ;; ----
 ;; unbound-variable 当访问未绑定变量时
+
 (check ((lambda (x) (* x x)) 5) => 25)
 (check ((lambda (x) (* x x)) 0) => 0)
 (check ((lambda (x) (* x x)) -3) => 9)
-(check ((lambda (x y) (+ x y)) 3 5)
-  =>
-  8
-) ;check
-(check ((lambda (x y) (* x y)) 4 6)
-  =>
-  24
-) ;check
+
+(check ((lambda (x y) (+ x y)) 3 5) => 8)
+(check ((lambda (x y) (* x y)) 4 6) => 24)
+
 (check ((lambda () 42)) => 42)
-(check ((lambda (x) ((lambda (y) (+ x y)) 5))
-        3
-       ) ;
-  =>
-  8
-) ;check
-(define (apply-function f x)
-  (f x)
-) ;define
-(check (apply-function (lambda (x) (* x x)) 5)
-  =>
-  25
-) ;check
-(check (apply-function (lambda (x) (+ x 1)) 10)
-  =>
-  11
-) ;check
+
+(check ((lambda (x) ((lambda (y) (+ x y)) 5)) 3) => 8)
+
+(define (apply-function f x) (f x))
+(check (apply-function (lambda (x) (* x x)) 5) => 25)
+(check (apply-function (lambda (x) (+ x 1)) 10) => 11)
+
 (define (filter pred lst)
   (cond ((null? lst) '())
-        ((pred (car lst))
-         (cons (car lst) (filter pred (cdr lst)))
-        ) ;
+        ((pred (car lst)) (cons (car lst) (filter pred (cdr lst))))
         (else (filter pred (cdr lst)))
   ) ;cond
 ) ;define
-(let ((create-counter (lambda ()
-                        (let ((count 0))
-                          (lambda ()
-                            (set! count (+ count 1))
-                            count
-                          ) ;lambda
-                        ) ;let
-                      ) ;lambda
-      ) ;create-counter
-     ) ;
-  (let ((counter1 (create-counter))
-        (counter2 (create-counter))
-       ) ;
-    (counter1)
-    (counter1)
-    (counter2)
-    (check (counter1) => 3)
-    (check (counter2) => 2)
+
+(let ((create-counter (lambda () (let ((count 0)) (lambda () (set! count (+ count 1)) count)))))
+  (let ((counter1 (create-counter)) (counter2 (create-counter)))
+    (counter1) (counter1) (counter2) (check (counter1) => 3) (check (counter2) => 2)
   ) ;let
 ) ;let
-(check-catch 'unbound-variable
- ((lambda (x) y) 5)
-) ;check-catch
+
+(check-catch 'unbound-variable ((lambda (x) y) 5))
+
 (check-report)

@@ -1,5 +1,9 @@
-(import (liii check) (scheme read))
+(import (liii check)
+        (scheme read)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; read
 ;; 从当前输入端口或指定输入端口中读取一个完整的 Scheme datum。
 ;;
@@ -11,12 +15,12 @@
 ;; 参数
 ;; ----
 ;; port : input-port? 可选
-;; 输入端口。省略时，从当前输入端口读取。
+;;   输入端口。省略时，从当前输入端口读取。
 ;;
 ;; 返回值
 ;; ----
 ;; any
-;; 读取到的 datum。若输入已结束，则返回 EOF 对象。
+;;   读取到的 datum。若输入已结束，则返回 EOF 对象。
 ;;
 ;; 描述
 ;; ----
@@ -28,59 +32,77 @@
 ;; 错误处理
 ;; --------
 ;; wrong-type-arg
-;; 当 `port` 不是输入端口时抛出。
+;;   当 `port` 不是输入端口时抛出。
 ;; read-error
-;; 当输入不是合法的 Scheme datum 时抛出。
+;;   当输入不是合法的 Scheme datum 时抛出。
+
 (check-true (procedure? read))
+
+; 从当前输入端口读取数字
 (check (with-input-from-string "123"
-         (lambda () (read))
-       ) ;with-input-from-string
-  =>
-  123
+         (lambda ()
+           (read)
+         ) ;lambda
 ) ;check
+       => 123
+) ;check
+
+; 从当前输入端口连续读取多个 datum
 (check (with-input-from-string "1 2"
-         (lambda () (list (read) (read)))
-       ) ;with-input-from-string
-  =>
-  '(1 2)
+         (lambda ()
+           (list (read)
+                 (read)
+           ) ;list
+         ) ;lambda
 ) ;check
+       => '(1 2)
+) ;check
+
+; 读取布尔值
 (check (with-input-from-string "#t"
-         (lambda () (read))
-       ) ;with-input-from-string
-  =>
-  #t
+         (lambda ()
+           (read)
+         ) ;lambda
 ) ;check
-(check (let ((port (open-input-string "\"goldfish\"")
-             ) ;port
-            ) ;
+       => #t
+) ;check
+
+; 读取字符串
+(check (let ((port (open-input-string "\"goldfish\"")))
          (read port)
-       ) ;let
-  =>
-  "goldfish"
 ) ;check
-(check (let ((port (open-input-string "hello-world"))
-            ) ;
+       => "goldfish"
+) ;check
+
+; 读取符号
+(check (let ((port (open-input-string "hello-world")))
          (read port)
-       ) ;let
-  =>
-  'hello-world
 ) ;check
-(check (let ((port (open-input-string "(1 2 (3 4))"))
-            ) ;
+       => 'hello-world
+) ;check
+
+; 读取列表
+(check (let ((port (open-input-string "(1 2 (3 4))")))
          (read port)
-       ) ;let
-  =>
-  '(1 2 (3 4))
 ) ;check
+       => '(1 2 (3 4))
+) ;check
+
+; 读取空列表
 (check (let ((port (open-input-string "()")))
          (read port)
-       ) ;let
-  =>
-  '()
 ) ;check
-(check-true (let ((port (open-input-string "")))
-              (eof-object? (read port))
-            ) ;let
+       => '()
+) ;check
+
+; 空输入返回 EOF 对象
+(check-true
+  (let ((port (open-input-string "")))
+    (eof-object? (read port))
+  ) ;let
 ) ;check-true
+
+; 非输入端口应报错
 (check-catch 'wrong-type-arg (read 123))
+
 (check-report)

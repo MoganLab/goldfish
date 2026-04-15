@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; integer?
 ;; 判断一个对象是否是整数（包括整数）。
 ;;
@@ -21,12 +23,14 @@
 ;; 错误
 ;; ----
 ;; 无错误情况。
-(check-true (integer? 123))
-(check-false (integer? 123.456))
-(check-false (integer? 1/2))
-(check-false (integer? 1.0+2.0i))
-(check-false (integer? "123"))
-(check-false (integer? #t))
-(check-false (integer? 'symbol))
-(check-false (integer? '(1 2 3)))
+
+(check-true (integer? 123))         ; 整数
+(check-false (integer? 123.456))    ; 浮点数
+(check-false (integer? 1/2))        ; 有理数
+(check-false (integer? 1+2i))       ; 复数
+(check-false (integer? "123"))      ; 字符串
+(check-false (integer? #t))         ; 布尔值
+(check-false (integer? 'symbol))    ; 符号
+(check-false (integer? '(1 2 3)))   ; 列表
+
 (check-report)

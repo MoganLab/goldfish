@@ -1,6 +1,8 @@
 (import (liii check))
 (import (scheme base))
+
 (check-set-mode! 'report-failed)
+
 ;; string->number
 ;; 将字符串解析为数值。根据R7RS规范，支持多种数值格式的解析。
 ;;
@@ -35,143 +37,62 @@
 ;; 错误情况
 ;; -------
 ;; 当radix参数超出有效范围（2-16）时，行为未定义（S7中返回#f）。
+
 ;; 基本整数解析测试
 (check (string->number "123") => 123)
 (check (string->number "0") => 0)
 (check (string->number "-456") => -456)
-(check (string->number "2147483647")
-  =>
-  2147483647
-) ;check
-(check (string->number "-2147483648")
-  =>
-  -2147483648
-) ;check
+(check (string->number "2147483647") => 2147483647)
+(check (string->number "-2147483648") => -2147483648)
+
 ;; 基本进制解析测试
-(check (string->number "1111011" 2)
-  =>
-  123
-) ;check
+(check (string->number "1111011" 2) => 123)
 (check (string->number "173" 8) => 123)
 (check (string->number "ff" 16) => 255)
 (check (string->number "255" 10) => 255)
 (check (string->number "10" 2) => 2)
 (check (string->number "77" 8) => 63)
+
 ;; 浮点数解析测试
-(check (string->number "123.456")
-  =>
-  123.456
-) ;check
+(check (string->number "123.456") => 123.456)
 (check (string->number "0.0") => 0.0)
-(check (string->number "-0.123")
-  =>
-  -0.123
-) ;check
-(check (= (string->number "0.3")
-         (string->number "3e-1")
-       ) ;=
-  =>
-  #t
-) ;check
-(check (= (string->number "-0.3")
-         (string->number "-3e-1")
-       ) ;=
-  =>
-  #t
-) ;check
-(check (string->number "1.23e10")
-  =>
-  1.23e+10
-) ;check
-(check (= (string->number "0.00123")
-         (string->number "1.23e-3")
-       ) ;=
-  =>
-  #t
-) ;check
-(check (= (string->number "-0.00123")
-         (string->number "-1.23e-3")
-       ) ;=
-  =>
-  #t
-) ;check
-(check (= (string->number (number->string 0.0014142136802445852)
-          ) ;string->number
-         0.0014142136802445852
-       ) ;=
-  =>
-  #t
-) ;check
-(check (string->number "12345678901234567890")
-  =>
-  -6101065172474983726
-) ;check
-(check (string->number "-9223372036854775809")
-  =>
-  9223372036854775807
-) ;check
-(check-true (< (abs (- (string->number "1.23e-3") 0.00123)
-               ) ;abs
-              1e-10
-            ) ;<
-) ;check-true
-(check (string->number "1e5")
-  =>
-  100000.0
-) ;check
-(check (string->number "1e-5")
-  =>
-  0.00001
-) ;check
-(check (string->number "-1e-5")
-  =>
-  -0.00001
-) ;check
+(check (string->number "-0.123") => -0.123)
+(check (= (string->number "0.3") (string->number "3e-1")) => #t)
+(check (= (string->number "-0.3") (string->number "-3e-1")) => #t)
+(check (string->number "1.23e10") => 1.23e10)
+(check (= (string->number "0.00123") (string->number "1.23e-3")) => #t)
+(check (= (string->number "-0.00123") (string->number "-1.23e-3")) => #t)
+(check (= (string->number (number->string 0.0014142136802445852))
+          0.0014142136802445852)
+  => #t)
+(check (string->number "12345678901234567890") => -6101065172474983726)
+(check (string->number "-9223372036854775809") => 9223372036854775807)
+(check-true (< (abs (- (string->number "1.23e-3") 0.00123)) 1e-10))
+(check (string->number "1e5") => 100000.0)
+(check (string->number "1e-5") => 0.00001)
+(check (string->number "-1e-5") => -0.00001)
+
 ;; 有理数解析测试
 (check (string->number "1/2") => 1/2)
 (check (string->number "-1/3") => -1/3)
 (check (string->number "22/7") => 22/7)
 (check (string->number "0/1") => 0)
-(check (string->number "-22/7")
-  =>
-  -22/7
-) ;check
+(check (string->number "-22/7") => -22/7)
+
 ;; 有理数进制解析测试
 (check (string->number "1/10" 2) => 1/2)
-(check (string->number "11/100" 2)
-  =>
-  3/4
-) ;check
+(check (string->number "11/100" 2) => 3/4)
+
 ;; 复数解析测试
-(check (string->number "1+2i")
-  =>
-  1.0+2.0i
-) ;check
-(check (string->number "0+2i")
-  =>
-  0.0+2.0i
-) ;check
-(check (string->number "-3+4i")
-  =>
-  -3.0+4.0i
-) ;check
-(check (string->number "3.14-2.71i")
-  =>
-  3.14-2.71i
-) ;check
-(check (string->number "0+1i")
-  =>
-  0.0+1.0i
-) ;check
+(check (string->number "1+2i") => 1+2i)
+(check (string->number "0+2i") => 0+2i)
+(check (string->number "-3+4i") => -3+4i)
+(check (string->number "3.14-2.71i") => 3.14-2.71i)
+(check (string->number "0+1i") => 0+1i)
 (check (string->number "0+0i") => 0.0)
-(check (string->number "1.0+0.0i")
-  =>
-  1.0
-) ;check
-(check (string->number "-2.5-1.5i")
-  =>
-  -2.5-1.5i
-) ;check
+(check (string->number "1.0+0.0i") => 1.0)
+(check (string->number "-2.5-1.5i") => -2.5-1.5i)
+
 ;; 无效字符串解析测试（应返回#f）
 (check (string->number "abc") => #f)
 (check (string->number "123abc") => #f)
@@ -182,66 +103,36 @@
 (check (string->number "") => #f)
 (check (string->number "   ") => #f)
 (check (string->number "1 2") => #f)
+
 ;; 边界测试
 (check (string->number "1" 2) => 1)
 (check (string->number "0" 16) => 0)
-(check (string->number "-80" 16)
-  =>
-  -128
-) ;check
-(check (string->number "1111111111" 2)
-  =>
-  1023
-) ;check
-(check (string->number "8000000000000000" 16)
-  =>
-  -9223372036854775808
-) ;check
-(check (string->number "ffffffffffffffff" 16)
-  =>
-  -1
-) ;check
+(check (string->number "-80" 16) => -128)
+(check (string->number "1111111111" 2) => 1023)
+(check (string->number "8000000000000000" 16) => -9223372036854775808)
+(check (string->number "ffffffffffffffff" 16) => -1)
+
 ;; 十六进制测试
 (check (string->number "FF" 16) => 255)
-(check (string->number "-FF" 16)
-  =>
-  -255
-) ;check
+(check (string->number "-FF" 16) => -255)
 (check (string->number "A" 16) => 10)
 (check (string->number "a" 16) => 10)
+
 ;; 错误处理测试（无效进制）
-(check-catch 'out-of-range
-  (string->number "123" 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string->number "123" 17)
-) ;check-catch
-(check-catch 'out-of-range
-  (string->number "123" 0)
-) ;check-catch
-(check-catch 'out-of-range
-  (string->number "123" -1)
-) ;check-catch
+(check-catch 'out-of-range (string->number "123" 1))
+(check-catch 'out-of-range (string->number "123" 17))
+(check-catch 'out-of-range (string->number "123" 0))
+(check-catch 'out-of-range (string->number "123" -1))
+
 ;; 错误参数测试
-(check-catch 'wrong-type-arg
-  (string->number 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->number 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->number #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->number "123" 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->number "123" 3.5)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string->number)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string->number "123" 2 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (string->number 123))
+(check-catch 'wrong-type-arg (string->number 'symbol))
+(check-catch 'wrong-type-arg (string->number #t))
+(check-catch 'wrong-type-arg (string->number "123" 'not-a-number))
+(check-catch 'wrong-type-arg (string->number "123" 3.5))
+(check-catch 'wrong-number-of-args (string->number))
+(check-catch 'wrong-number-of-args (string->number "123" 2 3))
+
+; R7RS Section 6.3 Booleans
+
 (check-report)

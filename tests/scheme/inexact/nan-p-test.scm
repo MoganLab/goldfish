@@ -1,5 +1,9 @@
-(import (liii check) (scheme inexact))
+(import (liii check)
+        (scheme inexact)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; nan?
 ;; 判断一个数值是否为 NaN（Not a Number）。
 ;;
@@ -28,33 +32,37 @@
 ;; 错误处理
 ;; ------
 ;; 无错误情况，非数值将返回 #f。
+
 ;; nan? 基本测试
 (check (nan? +nan.0) => #t)
-(check (nan? +nan.0) => #t)
+(check (nan? -nan.0) => #t)
 (check (nan? +nan.0+5.0i) => #t)
 (check (nan? 5.0+nan.0i) => #t)
-(check (nan? +nan.0+5.0i) => #t)
-(check (nan? 5.0+nan.0i) => #t)
-(check (nan? +nan.0+0.4i) => #t)
-(check (nan? 0.4+nan.0i) => #t)
+(check (nan? +nan.0+5i) => #t)
+(check (nan? 5+nan.0i) => #t)
+(check (nan? +nan.0+2/5i) => #t)
+(check (nan? 2/5+nan.0i) => #t)
+
 ;; nan? 非 NaN 数值测试
 (check (nan? 32) => #f)
 (check (nan? 3.14) => #f)
-(check (nan? 1.0+2.0i) => #f)
+(check (nan? 1+2i) => #f)
 (check (nan? +inf.0) => #f)
 (check (nan? -inf.0) => #f)
 (check (nan? 0) => #f)
 (check (nan? 0.0) => #f)
 (check (nan? 1/2) => #f)
-(check (nan? 0.5+1.0i) => #f)
-(check (nan? 1.0+0.5i) => #f)
+(check (nan? 1/2+i) => #f)
+(check (nan? 1+1/2i) => #f)
 (check (nan? 1.0+2.0i) => #f)
+
 ;; nan? 运算产生的 NaN 测试
 (check (nan? (* +nan.0 2.0)) => #t)
 (check (nan? (* 0.0 +nan.0)) => #t)
 (check (nan? (+ +nan.0 1)) => #t)
 (check (nan? (- +nan.0 0.5)) => #t)
-(check (nan? (sqrt -1.0)) => #f)
+(check (nan? (sqrt -1.0)) => #f)  ; sqrt(-1) = 0+1i，不是 NaN
+
 ;; nan? 非数值类型测试
 (check (nan? #t) => #f)
 (check (nan? #f) => #f)
@@ -65,4 +73,5 @@
 (check (nan? '()) => #f)
 (check (nan? '(1 2 3)) => #f)
 (check (nan? #\a) => #f)
+
 (check-report)

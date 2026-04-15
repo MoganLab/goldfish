@@ -1,5 +1,9 @@
-(import (liii check) (scheme complex))
+(import (liii check)
+        (scheme complex)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; magnitude
 ;; 返回复数的模。
 ;;
@@ -32,14 +36,16 @@
 ;; 错误处理
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+
 ;; Test magnitude with complex numbers
-(check (magnitude 3.0+4.0i) => 5.0)
+(check (magnitude 3+4i) => 5.0)
+
 ;; Test magnitude with real numbers
 (check (magnitude -3) => 3)
 (check (magnitude -3.5) => 3.5)
 (check (magnitude 0) => 0)
+
 ;; Error handling
-(check-catch 'wrong-type-arg
-  (magnitude "x")
-) ;check-catch
+(check-catch 'wrong-type-arg (magnitude "x"))
+
 (check-report)

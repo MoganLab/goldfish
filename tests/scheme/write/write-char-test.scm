@@ -1,5 +1,9 @@
-(import (liii check) (scheme write))
+(import (liii check)
+        (scheme write)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; write-char
 ;; 向输出端口写入一个字符。
 ;;
@@ -25,29 +29,37 @@
 ;; ----
 ;; wrong-type-arg
 ;; 当第一个参数不是字符时抛出。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
+
 (check-true (procedure? write-char))
-(check (capture-output (lambda (port) (write-char #\A port))
-       ) ;capture-output
-  =>
-  "A"
+
+(check (capture-output
+         (lambda (port)
+           (write-char #\A port)
+         ) ;lambda
 ) ;check
-(check (capture-output (lambda (port)
-                         (write-char #\space port)
-                         (write-char #\B port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  " B"
+       => "A"
 ) ;check
+
+(check (capture-output
+         (lambda (port)
+           (write-char #\space port)
+           (write-char #\B port)
+         ) ;lambda
+) ;check
+       => " B"
+) ;check
+
 (check-catch 'wrong-type-arg
   (let ((port (open-output-string)))
     (write-char 1 port)
   ) ;let
 ) ;check-catch
+
 (check-report)

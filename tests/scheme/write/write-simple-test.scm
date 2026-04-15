@@ -1,5 +1,9 @@
-(import (liii check) (scheme write))
+(import (liii check)
+        (scheme write)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; write-simple
 ;; 在当前实现中，提供与 `write` 一致的兼容输出行为。
 ;;
@@ -25,30 +29,38 @@
 ;; ----
 ;; 当前底层没有独立的 `write-simple` 原生过程，因此这里验证它与 `write`
 ;; 保持一致的现有兼容行为。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
+
 (check-true (procedure? write-simple))
-(check (capture-output (lambda (port)
-                         (write-simple '(a b) port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "(a b)"
+
+(check (capture-output
+         (lambda (port)
+           (write-simple '(a b) port)
+         ) ;lambda
 ) ;check
-(check (capture-output (lambda (port)
-                         (write-simple "goldfish" port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "\"goldfish\""
+       => "(a b)"
 ) ;check
-(check (capture-output (lambda (port) (write-simple 123 port))
-       ) ;capture-output
-  =>
-  "123"
+
+(check (capture-output
+         (lambda (port)
+           (write-simple "goldfish" port)
+         ) ;lambda
 ) ;check
+       => "\"goldfish\""
+) ;check
+
+(check (capture-output
+         (lambda (port)
+           (write-simple 123 port)
+         ) ;lambda
+) ;check
+       => "123"
+) ;check
+
 (check-report)

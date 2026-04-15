@@ -1,5 +1,9 @@
-(import (liii check) (scheme char))
+(import (liii check)
+        (scheme char)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; char-upcase
 ;; 将字符转换为大写形式
 ;;
@@ -28,8 +32,10 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
+
 (check (char-upcase #\z) => #\Z)
 (check (char-upcase #\a) => #\A)
+
 (check (char-upcase #\A) => #\A)
 (check (char-upcase #\?) => #\?)
 (check (char-upcase #\$) => #\$)
@@ -42,19 +48,12 @@
 (check (char-upcase #\_) => #\_)
 (check (char-upcase #\?) => #\?)
 (check (char-upcase #\space) => #\space)
-(check (char-upcase #\newline)
-  =>
-  #\newline
-) ;check
+(check (char-upcase #\newline) => #\newline)
 (check (char-upcase #\null) => #\null)
+
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-upcase "a")
-) ;check-catch
-(check-catch 'type-error
-  (char-upcase 65)
-) ;check-catch
-(check-catch 'type-error
-  (char-upcase 'a)
-) ;check-catch
+(check-catch 'type-error (char-upcase "a"))
+(check-catch 'type-error (char-upcase 65))
+(check-catch 'type-error (char-upcase 'a))
+
 (check-report)

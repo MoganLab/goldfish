@@ -1,9 +1,11 @@
 (import (liii check)
-  (scheme base)
-  (scheme eval)
-  (srfi srfi-8)
+        (scheme base)
+        (scheme eval)
+        (srfi srfi-8)
 ) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; environment
 ;; 创建一个由若干 import set 组成的求值环境。
 ;;
@@ -37,43 +39,33 @@
 ;; --------
 ;; type-error
 ;; import-set 不是列表时抛出错误。
+
 (check-true (let? (environment)))
-(check-true (let? (environment '(scheme base)))
-) ;check-true
+(check-true (let? (environment '(scheme base))))
+
 (check (eval '(square 3)
-         (environment '(only (scheme base) square)
-         ) ;environment
-       ) ;eval
-  =>
-  9
+             (environment '(only (scheme base) square)))
+       => 9
 ) ;check
+
 (check (eval '(square 3)
-         (environment '(except (scheme base) vector-copy)
-         ) ;environment
-       ) ;eval
-  =>
-  9
+             (environment '(except (scheme base) vector-copy)))
+       => 9
 ) ;check
+
 (check (eval '(base-square 3)
-         (environment '(prefix (scheme base) base-)
-         ) ;environment
-       ) ;eval
-  =>
-  9
+             (environment '(prefix (scheme base) base-)))
+       => 9
 ) ;check
+
 (check (eval '(sqr 3)
-         (environment '(rename (scheme base) (square sqr))
-         ) ;environment
-       ) ;eval
-  =>
-  9
+             (environment '(rename (scheme base) (square sqr))))
+       => 9
 ) ;check
+
 (check (eval '(receive (a b) (values 1 2) (+ a b))
-         (environment '(scheme base)
-           '(srfi srfi-8)
-         ) ;environment
-       ) ;eval
-  =>
-  3
+             (environment '(scheme base) '(srfi srfi-8)))
+       => 3
 ) ;check
+
 (check-report)

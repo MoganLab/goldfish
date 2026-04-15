@@ -1,5 +1,9 @@
-(import (liii check) (scheme complex))
+(import (liii check)
+        (scheme complex)
+) ;import
+
 (check-set-mode! 'report-failed)
+
 ;; imag-part
 ;; 返回复数的虚部。
 ;;
@@ -34,35 +38,28 @@
 ;; 错误处理
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
+
 ;; Test imag-part with complex numbers
-(check (imag-part (make-rectangular 3 4))
-  =>
-  4.0
-) ;check
-(check (imag-part (make-rectangular -3 4))
-  =>
-  4.0
-) ;check
-(check (imag-part (make-rectangular 3 -4))
-  =>
-  -4.0
-) ;check
-(check (imag-part (make-rectangular -3 -4))
-  =>
-  -4.0
-) ;check
+(check (imag-part (make-rectangular 3 4)) => 4.0)
+(check (imag-part (make-rectangular -3 4)) => 4.0)
+(check (imag-part (make-rectangular 3 -4)) => -4.0)
+(check (imag-part (make-rectangular -3 -4)) => -4.0)
+
 ;; Test imag-part with real numbers
 (check (imag-part 5) => 0)
 (check (imag-part -5) => 0)
 (check (imag-part 0) => 0)
+
 ;; Test imag-part with floating point numbers
 (check (imag-part 3.14) => 0.0)
 (check (imag-part -2.71) => 0.0)
+
 ;; Test imag-part with complex number literals
-(check (imag-part 1.0+2.0i) => 2.0)
-(check (imag-part 3.0-4.0i) => -4.0)
-(check (imag-part -5.0+6.0i) => 6.0)
-(check (imag-part -7.0-8.0i) => -8.0)
-(check (imag-part 0.0+9.0i) => 9.0)
-(check (imag-part 10.0) => 0.0)
+(check (imag-part 1+2i) => 2.0)
+(check (imag-part 3-4i) => -4.0)
+(check (imag-part -5+6i) => 6.0)
+(check (imag-part -7-8i) => -8.0)
+(check (imag-part 0+9i) => 9.0)
+(check (imag-part 10+0i) => 0.0)
+
 (check-report)
