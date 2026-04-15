@@ -330,7 +330,6 @@
       ) ;let
     ) ;define
 
-
     (define (floor-remainder x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error
@@ -344,8 +343,6 @@
       ) ;when
       (modulo x y)
     ) ;define
-
-
 
     (define (truncate/ x y)
       (when (or (not (real? x)) (not (real? y)))
