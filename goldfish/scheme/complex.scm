@@ -14,16 +14,16 @@
 ;; under the License.
 ;;
 
-;;; (scheme complex) library for R7RS
-;;; Complex number operations
+;; ; (scheme complex) library for R7RS
+;; ; Complex number operations
 
 (define-library (scheme complex)
   (export make-rectangular
-          make-polar
-          real-part
-          imag-part
-          magnitude
-          angle
+    make-polar
+    real-part
+    imag-part
+    magnitude
+    angle
   ) ;export
   (import (scheme base))
 ) ;define-library

@@ -14,10 +14,21 @@
 ;; under the License.
 ;;
 
-; The (scheme inexact) library exports procedures which are typically only
-; useful with inexact values
 (define-library (scheme inexact)
-  (export acos asin atan cos exp finite? infinite? log nan? sin sqrt s7-sqrt tan)
+  (export acos
+    asin
+    atan
+    cos
+    exp
+    finite?
+    infinite?
+    log
+    nan?
+    sin
+    sqrt
+    s7-sqrt
+    tan
+  ) ;export
   (begin
 
     (define s7-sqrt sqrt)
@@ -31,11 +42,10 @@
 
     (define (finite? x)
       (and (number? x)
-           (not (infinite? x))
-           (not (nan? x))
+        (not (infinite? x))
+        (not (nan? x))
       ) ;and
     ) ;define
 
   ) ;begin
 ) ;define-library
-
