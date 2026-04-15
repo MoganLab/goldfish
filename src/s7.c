@@ -31451,7 +31451,7 @@ static s7_int print_vector_length(s7_scheme *sc, s7_pointer vect, s7_pointer por
 	port_write_string(port)(sc, "#r(...)", 7, port);
       else
 	if (is_byte_vector(vect))
-	  port_write_string(port)(sc, "#u(...)", 7, port);
+	  port_write_string(port)(sc, "#u8(...)", 8, port);
 	else port_write_string(port)(sc, "#c(...)", 7, port);
   return(-1);
 }
@@ -31739,7 +31739,7 @@ static void byte_vector_to_port(s7_scheme *sc, s7_pointer vect, s7_pointer port,
     {
       s7_int plen;
       const char *str;
-      port_write_string(port)(sc, "#u(", 3, port);
+      port_write_string(port)(sc, "#u8(", 4, port);
       str = integer_to_string(sc, byte_vector(vect, 0), &plen);
       port_write_string(port)(sc, str, plen, port);
       for (s7_int i = 1; i < len; i++)
@@ -31755,7 +31755,7 @@ static void byte_vector_to_port(s7_scheme *sc, s7_pointer vect, s7_pointer port,
   else
     {
       char buf[128];
-      s7_int plen = catstrs_direct(buf, "#u", pos_int_to_str_direct(sc, vector_ndims(vect)), "d", (const char *)NULL);
+      s7_int plen = catstrs_direct(buf, "#u8", pos_int_to_str_direct(sc, vector_ndims(vect)), "d", (const char *)NULL);
       port_write_string(port)(sc, buf, plen, port);
       multivector_to_port(sc, vect, port, len, 0, 0, vector_ndims(vect), p_display, NULL);
     }
@@ -40608,7 +40608,7 @@ static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_byte(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#u(...)", 7), i + 1, src[i], wrap_string(sc, "a byte", 6));
+      wrong_type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
   sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
