@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; char-foldcase
 ;; 执行字符的大小写折叠
 ;;
@@ -31,21 +27,26 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
-
 ;; 基本测试 - char-foldcase 当前实现与 char-downcase 相同
 (check (char-foldcase #\A) => #\a)
 (check (char-foldcase #\Z) => #\z)
 (check (char-foldcase #\a) => #\a)
 (check (char-foldcase #\z) => #\z)
-
 ;; 非字母字符测试
 (check (char-foldcase #\5) => #\5)
-(check (char-foldcase #\space) => #\space)
+(check (char-foldcase #\space)
+  =>
+  #\space
+) ;check
 (check (char-foldcase #\!) => #\!)
-
 ;; 错误处理测试
-(check-catch 'type-error (char-foldcase "A"))
-(check-catch 'type-error (char-foldcase 65))
-(check-catch 'type-error (char-foldcase 'A))
-
+(check-catch 'type-error
+  (char-foldcase "A")
+) ;check-catch
+(check-catch 'type-error
+  (char-foldcase 65)
+) ;check-catch
+(check-catch 'type-error
+  (char-foldcase 'A)
+) ;check-catch
 (check-report)

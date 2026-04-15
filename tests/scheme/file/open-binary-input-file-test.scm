@@ -1,11 +1,8 @@
-(import (liii check)
-        (scheme file)
-) ;import
-
+(import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
-
-(define test-file "tests/scheme/file/test-binary-input.bin")
-
+(define test-file
+  "tests/scheme/file/test-binary-input.bin"
+) ;define
 ;; 创建测试文件（二进制内容）
 (with-output-to-file test-file
   (lambda ()
@@ -13,35 +10,39 @@
     (newline)
   ) ;lambda
 ) ;with-output-to-file
-
 ;; 测试 open-binary-input-file
-(let ((port (open-binary-input-file test-file)))
+(let ((port (open-binary-input-file test-file)
+      ) ;port
+     ) ;
   (check-true (input-port? port))
   (check-true (binary-port? port))
-  (check
-    (read-string 100 port)
-    => "binary content\n"
+  (check (read-string 100 port)
+    =>
+    "binary content\n"
   ) ;check
   (close-port port)
 ) ;let
-
 ;; 测试中文文件名
-(define chinese-file "tests/scheme/file/中文二进制输入.bin")
+(define chinese-file
+  "tests/scheme/file/中文二进制输入.bin"
+) ;define
 (with-output-to-file chinese-file
-  (lambda () (display "中文二进制内容"))
+  (lambda ()
+    (display "中文二进制内容")
+  ) ;lambda
 ) ;with-output-to-file
-(let ((port (open-binary-input-file chinese-file)))
+(let ((port (open-binary-input-file chinese-file)
+      ) ;port
+     ) ;
   (check-true (input-port? port))
   (check-true (binary-port? port))
-  (check
-    (read-string 100 port)
-    => "中文二进制内容"
+  (check (read-string 100 port)
+    =>
+    "中文二进制内容"
   ) ;check
   (close-port port)
 ) ;let
 (delete-file chinese-file)
-
 ;; 清理
 (delete-file test-file)
-
 (check-report)

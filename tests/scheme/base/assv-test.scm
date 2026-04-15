@@ -1,162 +1,428 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
-#|
-assv
-在关联列表中查找键，使用 eqv? 进行比较。
-
-语法
-----
-(assv key alist)
-
-参数
-----
-key : any
-    要查找的键值，可以是符号、数字、字符、布尔值等基本类型对象。
-
-alist : list
-    关联列表，每个元素都是一个配对（pair），其中 car 是键，cdr 是值。
-
-返回值
-----
-list | #f
-    如果在关联列表中找到匹配的键，返回对应的配对；如果未找到匹配项，返回 #f。
-
-描述
-----
-assv 在关联列表中查找第一个键与给定 key 匹配的配对。键的比较使用 eqv? 操作符，
-这意味着可以正确处理数值的等价性（例如整数和浮点数的等价比较）以及字符的精确匹配。
-
-assv 是 R7RS 标准中定义的关联列表操作函数，适用于数值键、字符键或其他.eqv? 可比较的对象。
-
-边界条件
---------
-- 空列表参数：始终返回 #f
-- 单元素列表边界：存在匹配时返回单元素配对
-- 重复键处理：返回第一个匹配值的配对（索引最小值）
-- 数值等价性：整数 42 和浮点数 42.0 会被认为是相同的键
-- 字符匹配：不同字符之间不会匹配，包括大小写敏感
-- 布尔值匹配：#t 和 #f 分别匹配
-- 嵌套结构边界：正确处理嵌套列表作为值的情况
-
-性能特征
---------
-- 时间复杂度：O(n)，其中 n 为关联列表长度，线性遍历
-- 空间复杂度：O(1)，无额外内存消耗
-- 内存共享：成功匹配时共享原始列表内存结构
-- 数值优化：专门优化的数值比较器
-- 字符优化：Unicode字符的专用比较器
-
-数据类型兼容性
--------------
-- **数值类型支持**：
-  - 整数、浮点数、复数、有理数的精确值比较
-  - 跨类型数值比较（整数 42 == 浮点数 42.0）
-  - 边界数值和大整数处理
-- **字符类型全兼容**：
-  - ASCII和Unicode字符的精确匹配
-  - 特殊字符和控制字符支持
-- **布尔类型**：完全支持 #t 和 #f 的精确匹配
-- **符号类型**：支持普通符号和关键字符号
-- **复合对象**：支持列表、向量等作为值存储
-
-与其他关联函数的比较
---------------------
-- **assv vs assq**：assv 使用 eqv?（数值和字符最优），assq 使用 eq?（符号最优）
-- **assv vs assoc**：assv 使用 eqv?（基础类型最优），assoc 使用 equal?（复合对象最优）
-
-应用注意
---------
-- 在数值键查找和字符键查找场景中具有显著性能优势
-- 能够正确处理跨类型的数值匹配（整数 == 浮点数）
-- 适用于配置数据、映射表、环境变量等基础类型键值存储
-- 返回结构支持继续链式操作（cdr、cadr、cdr等）
-
-限制说明
---------
-- 不能用于字符串等复杂类型的值比较
-- 不支持嵌套路径查找，仅限于顶层键值匹配
-- 与 assq 和 assoc 共同组成 R7RS 关联查询的三位一体架构
-|#
-
+;; assv
+;; 在关联列表中查找键，使用 eqv? 进行比较。
+;; 
+;; 语法
+;; ----
+;; (assv key alist)
+;; 
+;; 参数
+;; ----
+;; key : any
+;;     要查找的键值，可以是符号、数字、字符、布尔值等基本类型对象。
+;; 
+;; alist : list
+;;     关联列表，每个元素都是一个配对（pair），其中 car 是键，cdr 是值。
+;; 
+;; 返回值
+;; ----
+;; list | #f
+;;     如果在关联列表中找到匹配的键，返回对应的配对；如果未找到匹配项，返回 #f。
+;; 
+;; 描述
+;; ----
+;; assv 在关联列表中查找第一个键与给定 key 匹配的配对。键的比较使用 eqv? 操作符，
+;; 这意味着可以正确处理数值的等价性（例如整数和浮点数的等价比较）以及字符的精确匹配。
+;; 
+;; assv 是 R7RS 标准中定义的关联列表操作函数，适用于数值键、字符键或其他.eqv? 可比较的对象。
+;; 
+;; 边界条件
+;; --------
+;; - 空列表参数：始终返回 #f
+;; - 单元素列表边界：存在匹配时返回单元素配对
+;; - 重复键处理：返回第一个匹配值的配对（索引最小值）
+;; - 数值等价性：整数 42 和浮点数 42.0 会被认为是相同的键
+;; - 字符匹配：不同字符之间不会匹配，包括大小写敏感
+;; - 布尔值匹配：#t 和 #f 分别匹配
+;; - 嵌套结构边界：正确处理嵌套列表作为值的情况
+;; 
+;; 性能特征
+;; --------
+;; - 时间复杂度：O(n)，其中 n 为关联列表长度，线性遍历
+;; - 空间复杂度：O(1)，无额外内存消耗
+;; - 内存共享：成功匹配时共享原始列表内存结构
+;; - 数值优化：专门优化的数值比较器
+;; - 字符优化：Unicode字符的专用比较器
+;; 
+;; 数据类型兼容性
+;; -------------
+;; - **数值类型支持**：
+;;   - 整数、浮点数、复数、有理数的精确值比较
+;;   - 跨类型数值比较（整数 42 == 浮点数 42.0）
+;;   - 边界数值和大整数处理
+;; - **字符类型全兼容**：
+;;   - ASCII和Unicode字符的精确匹配
+;;   - 特殊字符和控制字符支持
+;; - **布尔类型**：完全支持 #t 和 #f 的精确匹配
+;; - **符号类型**：支持普通符号和关键字符号
+;; - **复合对象**：支持列表、向量等作为值存储
+;; 
+;; 与其他关联函数的比较
+;; --------------------
+;; - **assv vs assq**：assv 使用 eqv?（数值和字符最优），assq 使用 eq?（符号最优）
+;; - **assv vs assoc**：assv 使用 eqv?（基础类型最优），assoc 使用 equal?（复合对象最优）
+;; 
+;; 应用注意
+;; --------
+;; - 在数值键查找和字符键查找场景中具有显著性能优势
+;; - 能够正确处理跨类型的数值匹配（整数 == 浮点数）
+;; - 适用于配置数据、映射表、环境变量等基础类型键值存储
+;; - 返回结构支持继续链式操作（cdr、cadr、cdr等）
+;; 
+;; 限制说明
+;; --------
+;; - 不能用于字符串等复杂类型的值比较
+;; - 不支持嵌套路径查找，仅限于顶层键值匹配
+;; - 与 assq 和 assoc 共同组成 R7RS 关联查询的三位一体架构
+;; assv
+;; 在关联列表中查找键，使用 eqv? 进行比较。
+;; 
+;; 语法
+;; ----
+;; (assv key alist)
+;; 
+;; 参数
+;; ----
+;; key : any
+;;     要查找的键值，可以是符号、数字、字符、布尔值等基本类型对象。
+;; 
+;; alist : list
+;;     关联列表，每个元素都是一个配对（pair），其中 car 是键，cdr 是值。
+;; 
+;; 返回值
+;; ----
+;; list | #f
+;;     如果在关联列表中找到匹配的键，返回对应的配对；如果未找到匹配项，返回 #f。
+;; 
+;; 描述
+;; ----
+;; assv 在关联列表中查找第一个键与给定 key 匹配的配对。键的比较使用 eqv? 操作符，
+;; 这意味着可以正确处理数值的等价性（例如整数和浮点数的等价比较）以及字符的精确匹配。
+;; 
+;; assv 是 R7RS 标准中定义的关联列表操作函数，适用于数值键、字符键或其他.eqv? 可比较的对象。
+;; 
+;; 边界条件
+;; --------
+;; - 空列表参数：始终返回 #f
+;; - 单元素列表边界：存在匹配时返回单元素配对
+;; - 重复键处理：返回第一个匹配值的配对（索引最小值）
+;; - 数值等价性：整数 42 和浮点数 42.0 会被认为是相同的键
+;; - 字符匹配：不同字符之间不会匹配，包括大小写敏感
+;; - 布尔值匹配：#t 和 #f 分别匹配
+;; - 嵌套结构边界：正确处理嵌套列表作为值的情况
+;; 
+;; 性能特征
+;; --------
+;; - 时间复杂度：O(n)，其中 n 为关联列表长度，线性遍历
+;; - 空间复杂度：O(1)，无额外内存消耗
+;; - 内存共享：成功匹配时共享原始列表内存结构
+;; - 数值优化：专门优化的数值比较器
+;; - 字符优化：Unicode字符的专用比较器
+;; 
+;; 数据类型兼容性
+;; -------------
+;; - **数值类型支持**：
+;;   - 整数、浮点数、复数、有理数的精确值比较
+;;   - 跨类型数值比较（整数 42 == 浮点数 42.0）
+;;   - 边界数值和大整数处理
+;; - **字符类型全兼容**：
+;;   - ASCII和Unicode字符的精确匹配
+;;   - 特殊字符和控制字符支持
+;; - **布尔类型**：完全支持 #t 和 #f 的精确匹配
+;; - **符号类型**：支持普通符号和关键字符号
+;; - **复合对象**：支持列表、向量等作为值存储
+;; 
+;; 与其他关联函数的比较
+;; --------------------
+;; - **assv vs assq**：assv 使用 eqv?（数值和字符最优），assq 使用 eq?（符号最优）
+;; - **assv vs assoc**：assv 使用 eqv?（基础类型最优），assoc 使用 equal?（复合对象最优）
+;; 
+;; 应用注意
+;; --------
+;; - 在数值键查找和字符键查找场景中具有显著性能优势
+;; - 能够正确处理跨类型的数值匹配（整数 == 浮点数）
+;; - 适用于配置数据、映射表、环境变量等基础类型键值存储
+;; - 返回结构支持继续链式操作（cdr、cadr、cdr等）
+;; 
+;; 限制说明
+;; --------
+;; - 不能用于字符串等复杂类型的值比较
+;; - 不支持嵌套路径查找，仅限于顶层键值匹配
+;; - 与 assq 和 assoc 共同组成 R7RS 关联查询的三位一体架构
+;; assv
+;; 在关联列表中查找键，使用 eqv? 进行比较。
+;; 
+;; 语法
+;; ----
+;; (assv key alist)
+;; 
+;; 参数
+;; ----
+;; key : any
+;;     要查找的键值，可以是符号、数字、字符、布尔值等基本类型对象。
+;; 
+;; alist : list
+;;     关联列表，每个元素都是一个配对（pair），其中 car 是键，cdr 是值。
+;; 
+;; 返回值
+;; ----
+;; list | #f
+;;     如果在关联列表中找到匹配的键，返回对应的配对；如果未找到匹配项，返回 #f。
+;; 
+;; 描述
+;; ----
+;; assv 在关联列表中查找第一个键与给定 key 匹配的配对。键的比较使用 eqv? 操作符，
+;; 这意味着可以正确处理数值的等价性（例如整数和浮点数的等价比较）以及字符的精确匹配。
+;; 
+;; assv 是 R7RS 标准中定义的关联列表操作函数，适用于数值键、字符键或其他.eqv? 可比较的对象。
+;; 
+;; 边界条件
+;; --------
+;; - 空列表参数：始终返回 #f
+;; - 单元素列表边界：存在匹配时返回单元素配对
+;; - 重复键处理：返回第一个匹配值的配对（索引最小值）
+;; - 数值等价性：整数 42 和浮点数 42.0 会被认为是相同的键
+;; - 字符匹配：不同字符之间不会匹配，包括大小写敏感
+;; - 布尔值匹配：#t 和 #f 分别匹配
+;; - 嵌套结构边界：正确处理嵌套列表作为值的情况
+;; 
+;; 性能特征
+;; --------
+;; - 时间复杂度：O(n)，其中 n 为关联列表长度，线性遍历
+;; - 空间复杂度：O(1)，无额外内存消耗
+;; - 内存共享：成功匹配时共享原始列表内存结构
+;; - 数值优化：专门优化的数值比较器
+;; - 字符优化：Unicode字符的专用比较器
+;; 
+;; 数据类型兼容性
+;; -------------
+;; - **数值类型支持**：
+;;   - 整数、浮点数、复数、有理数的精确值比较
+;;   - 跨类型数值比较（整数 42 == 浮点数 42.0）
+;;   - 边界数值和大整数处理
+;; - **字符类型全兼容**：
+;;   - ASCII和Unicode字符的精确匹配
+;;   - 特殊字符和控制字符支持
+;; - **布尔类型**：完全支持 #t 和 #f 的精确匹配
+;; - **符号类型**：支持普通符号和关键字符号
+;; - **复合对象**：支持列表、向量等作为值存储
+;; 
+;; 与其他关联函数的比较
+;; --------------------
+;; - **assv vs assq**：assv 使用 eqv?（数值和字符最优），assq 使用 eq?（符号最优）
+;; - **assv vs assoc**：assv 使用 eqv?（基础类型最优），assoc 使用 equal?（复合对象最优）
+;; 
+;; 应用注意
+;; --------
+;; - 在数值键查找和字符键查找场景中具有显著性能优势
+;; - 能够正确处理跨类型的数值匹配（整数 == 浮点数）
+;; - 适用于配置数据、映射表、环境变量等基础类型键值存储
+;; - 返回结构支持继续链式操作（cdr、cadr、cdr等）
+;; 
+;; 限制说明
+;; --------
+;; - 不能用于字符串等复杂类型的值比较
+;; - 不支持嵌套路径查找，仅限于顶层键值匹配
+;; - 与 assq 和 assoc 共同组成 R7RS 关联查询的三位一体架构
 ;; assv 基本功能测试
-(check (assv 'a '((a . 1) (b . 2))) => '(a . 1))
-(check (assv 'b '((a . 1) (b . 2))) => '(b . 2))
-(check (assv 'c '((a . 1) (b . 2))) => #f)
-
+(check (assv 'a '((a . 1) (b . 2)))
+  =>
+  '(a . 1)
+) ;check
+(check (assv 'b '((a . 1) (b . 2)))
+  =>
+  '(b . 2)
+) ;check
+(check (assv 'c '((a . 1) (b . 2)))
+  =>
+  #f
+) ;check
 ;; 边界1：空列表边界
 (check (assv 'key '()) => #f)
-
 ;; 边界2：单元素列表边界
 (check (assv 'k '((k . v))) => '(k . v))
 (check (assv 'missing '((k . v))) => #f)
-
 ;; 边界3：数值等价性边界测试
-(check (assv 42 '((42 . "int") (42.0 . "float"))) => '(42 . "int"))
-(check (assv 42.0 '((42 . "int") (42.0 . "float"))) => '(42.0 . "float"))
-(check (assv 3.14 '((1 . a) (3.14 . b) (5 . c))) => '(3.14 . b))
-
+(check (assv 42
+         '((42 . "int") (42.0 . "float"))
+       ) ;assv
+  =>
+  '(42 . "int")
+) ;check
+(check (assv 42.0
+         '((42 . "int") (42.0 . "float"))
+       ) ;assv
+  =>
+  '(42.0 . "float")
+) ;check
+(check (assv 3.14
+         '((1 . a) (3.14 . b) (5 . c))
+       ) ;assv
+  =>
+  '(3.14 . b)
+) ;check
 ;; 边界4：字符精确匹配边界
-(check (assv #\a '((#\a . "lowercase") (#\A . "uppercase"))) => '(#\a . "lowercase"))
-(check (assv #\A '((#\a . "lowercase") (#\A . "uppercase"))) => '(#\A . "uppercase")) 
-(check (assv #\0 '((#\0 . "zero") (#\1 . "one"))) => '(#\0 . "zero"))
-
+(check (assv #\a
+         '((#\a . "lowercase") (#\A . "uppercase"))
+       ) ;assv
+  =>
+  '(#\a . "lowercase")
+) ;check
+(check (assv #\A
+         '((#\a . "lowercase") (#\A . "uppercase"))
+       ) ;assv
+  =>
+  '(#\A . "uppercase")
+) ;check
+(check (assv #\0
+         '((#\0 . "zero") (#\1 . "one"))
+       ) ;assv
+  =>
+  '(#\0 . "zero")
+) ;check
 ;; 边界5：布尔值边界测试
-(check (assv #t '((#t . true) (#f . false))) => '(#t . true))
-(check (assv #f '((#f . false) (#t . true))) => '(#f . false))
-
+(check (assv #t '((#t . true) (#f . false)))
+  =>
+  '(#t . true)
+) ;check
+(check (assv #f '((#f . false) (#t . true)))
+  =>
+  '(#f . false)
+) ;check
 ;; 边界6：重复键处理边界
-(check (assv 42 '((42 . first) (42 . second) (42 . third))) => '(42 . first))
-(check (assv 'sym '((a . 1) (sym . found) (sym . ignored))) => '(sym . found))
-
+(check (assv 42
+         '((42 . first) (42 . second) (42 . third))
+       ) ;assv
+  =>
+  '(42 . first)
+) ;check
+(check (assv 'sym
+         '((a . 1) (sym . found) (sym . ignored))
+       ) ;assv
+  =>
+  '(sym . found)
+) ;check
 ;; 边界7：嵌套结构作为值边界
-(check (assv 'key '((key (1 2 3)) (other . "val"))) => '(key (1 2 3)))
-(check (assv 'list '((key . "val") (list "item") (other . 123))) => '(list "item"))
-
+(check (assv 'key
+         '((key (1 2 3)) (other . "val"))
+       ) ;assv
+  =>
+  '(key (1 2 3))
+) ;check
+(check (assv 'list
+         '((key . "val") (list "item") (other . 123))
+       ) ;assv
+  =>
+  '(list "item")
+) ;check
 ;; 边界8：复杂数据类型边界
-(check (assv #t '((#t enabled #t #f) (#f disabled))) => '(#t enabled #t #f))
-(check (assv 99.9 '((42 . "answer") (99.9 . 100.0) (0 . "zero"))) => '(99.9 . 100.0))
-
+(check (assv #t
+         '((#t enabled #t #f) (#f disabled))
+       ) ;assv
+  =>
+  '(#t enabled #t #f)
+) ;check
+(check (assv 99.9
+         '((42 . "answer") (99.9 . 100.0) (0 . "zero"))
+       ) ;assv
+  =>
+  '(99.9 . 100.0)
+) ;check
 ;; 数值边界测试
-(check (assv 0 '((0 . zero) (1 . one) (-1 . negative))) => '(0 . zero))
-(check (assv -1 '((0 . zero) (-1 . negative) (1 . one))) => '(-1 . negative))
-(check (assv 2147483647 '((2147483647 . int-max) (-2147483648 . int-min))) => '(2147483647 . int-max))
-
+(check (assv 0
+         '((0 . zero) (1 . one) (-1 . negative))
+       ) ;assv
+  =>
+  '(0 . zero)
+) ;check
+(check (assv -1
+         '((0 . zero) (-1 . negative) (1 . one))
+       ) ;assv
+  =>
+  '(-1 . negative)
+) ;check
+(check (assv 2147483647
+         '((2147483647 . int-max) (-2147483648 . int-min))
+       ) ;assv
+  =>
+  '(2147483647 . int-max)
+) ;check
 ;; 浮点数边界测试
-(check (assv 1.0 '((1 "integer") (1.0 "float") (1.1 "larger"))) => '(1.0 "float"))
-(check (assv 0.5 '((0.5 . "exact") (0.51 . "approx"))) => '(0.5 . "exact"))
-
+(check (assv 1.0
+         '((1 "integer") (1.0 "float") (1.1 "larger"))
+       ) ;assv
+  =>
+  '(1.0 "float")
+) ;check
+(check (assv 0.5
+         '((0.5 . "exact") (0.51 . "approx"))
+       ) ;assv
+  =>
+  '(0.5 . "exact")
+) ;check
 ;; 字符集合边界测试
-(check (assv #\newline '((#\newline . "return") (#\tab . "indent"))) => '(#\newline . "return"))
-(check (assv #\space '((#\space . "space") (#\a . "char") (#\z . "last"))) => '(#\space . "space"))
-
+(check (assv #\newline
+         '((#\newline . "return") (#\tab . "indent"))
+       ) ;assv
+  =>
+  '(#\newline . "return")
+) ;check
+(check (assv #\space
+         '((#\space . "space") (#\a . "char") (#\z . "last"))
+       ) ;assv
+  =>
+  '(#\space . "space")
+) ;check
 ;; 过程对象边界测试 - 过程对象需要使用eq?比较，而不是eqv?
 (let ((proc car))
-  (check (assv proc (list (cons car "first") (cons cdr "second"))) => (cons car "first"))
+  (check (assv proc
+           (list (cons car "first")
+             (cons cdr "second")
+           ) ;list
+         ) ;assv
+    =>
+    (cons car "first")
+  ) ;check
 ) ;let
-
 ;; 特殊符号边界测试
-(check (assv :keyword '((:keyword . "special") (sym . "normal"))) => '(:keyword . "special"))
-
+(check (assv :keyword
+         '((:keyword . "special") (sym . "normal"))
+       ) ;assv
+  =>
+  '(:keyword . "special")
+) ;check
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (assv 'key "not-association-list"))
-(check-catch 'wrong-type-arg (assv 'key 123))
-(check-catch 'wrong-type-arg (assv 'key #t))
-
+(check-catch 'wrong-type-arg
+  (assv 'key "not-association-list")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (assv 'key 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (assv 'key #t)
+) ;check-catch
 ;; 参数数量错误测试
-(check-catch 'wrong-number-of-args (assv))
-(check-catch 'wrong-number-of-args (assv 'key))
-(check-catch 'wrong-number-of-args (assv 'key 'list "extra"))
-
+(check-catch 'wrong-number-of-args
+  (assv)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (assv 'key)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (assv 'key 'list "extra")
+) ;check-catch
 ;; 非配对结构边界测试
 (check (assv 'a '((a) (b) (c))) => '(a))
 (check (assv 'b '((a) (b) (c))) => '(b))
-
 ;; 嵌套关联列表边界
-(check (assv 42 '((42 a b c) (foo . bar))) => '(42 a b c))
-(check (assv 'x '((x 1 2 3) (y 4 5 6))) => '(x 1 2 3))
-
-
+(check (assv 42 '((42 a b c) (foo . bar)))
+  =>
+  '(42 a b c)
+) ;check
+(check (assv 'x '((x 1 2 3) (y 4 5 6)))
+  =>
+  '(x 1 2 3)
+) ;check
 (check-report)

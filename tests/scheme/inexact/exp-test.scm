@@ -1,4 +1,7 @@
-(import (liii check) (scheme inexact) (liii os))
+(import (liii check)
+  (scheme inexact)
+  (liii os)
+) ;import
 (check-set-mode! 'report-failed)
 ;; exp
 ;; 计算指数函数 e^n。
@@ -35,8 +38,14 @@
 (check (exp -1) => 0.36787944117144233)
 (check (exp 2) => 7.38905609893065)
 ;; exp 边界测试
-(check (exp 10) => 2.2026465794806718e+4)
-(check (exp -10) => 4.5399929762484854e-5)
+(check (exp 10)
+  =>
+  2.2026465794806718e+4
+) ;check
+(check (exp -10)
+  =>
+  4.5399929762484854e-5
+) ;check
 (check (exp 0.5) => 1.6487212707001282)
 (check (exp -0.5) => 0.6065306597126334)
 ;; 错误处理测试
@@ -46,6 +55,10 @@
     -1.1312043837568135+2.4717266720048188i
   ) ;check
 ) ;when
-(check-catch 'wrong-type-arg (exp "hello"))
-(check-catch 'wrong-number-of-args (exp))
+(check-catch 'wrong-type-arg
+  (exp "hello")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (exp)
+) ;check-catch
 (check-report)

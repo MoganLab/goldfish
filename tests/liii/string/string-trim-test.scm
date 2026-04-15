@@ -42,6 +42,12 @@
 ;; 对于空字符串，始终返回空字符串。
 ;; 当字符串以不匹配的字符开头，或字符串为空字符串时，返回原字符串的副本。
 ;;
+;; Unicode 警告
+;; --------
+;; string-trim, string-trim-left, string-trim-right, string-trim-both
+;; 这些函数在处理 Unicode 字符(如中文)时可能有字节截断问题。
+;; 对于 Unicode 字符串，建议使用 (liii unicode) 中的 utf8-string-trim-* 系列函数。
+;;
 ;; 示例
 ;; ----
 ;; (string-trim "  hello  ") => "hello  "

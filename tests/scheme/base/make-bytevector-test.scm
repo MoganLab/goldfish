@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; make-bytevector
 ;; 创建一个新的字节向量，指定长度和初始值为所有组成字节。
 ;;
@@ -37,36 +35,68 @@
 ;; 当任何参数不正确时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
-
 ;; make-bytevector 基本测试
-(check (make-bytevector 0) => #u8())
-(check (make-bytevector 1) => #u8(0))
-(check (make-bytevector 3) => #u8(0 0 0))
-(check (make-bytevector 5 42) => #u8(42 42 42 42 42))
-(check (make-bytevector 2 255) => #u8(255 255))
-
+(check (make-bytevector 0) => #u())
+(check (make-bytevector 1) => #u(0))
+(check (make-bytevector 3) => #u(0 0 0))
+(check (make-bytevector 5 42)
+  =>
+  #u(42 42 42 42 42)
+) ;check
+(check (make-bytevector 2 255)
+  =>
+  #u(255 255)
+) ;check
 ;; 不同长度测试
-(check (make-bytevector 0 0) => #u8())
-(check (make-bytevector 1 128) => #u8(128))
-(check (make-bytevector 10 99) => #u8(99 99 99 99 99 99 99 99 99 99))
-
+(check (make-bytevector 0 0) => #u())
+(check (make-bytevector 1 128)
+  =>
+  #u(128)
+) ;check
+(check (make-bytevector 10 99)
+  =>
+  #u(99 99 99 99 99 99 99 99 99 99)
+) ;check
 ;; 边界条件测试
-(check (make-bytevector 0) => #u8())
-(check (make-bytevector 1 0) => #u8(0))
-(check (make-bytevector 1 255) => #u8(255))
-
+(check (make-bytevector 0) => #u())
+(check (make-bytevector 1 0) => #u(0))
+(check (make-bytevector 1 255)
+  =>
+  #u(255)
+) ;check
 ;; 特殊值测试
-(check (make-bytevector 4 0) => #u8(0 0 0 0))
-(check (make-bytevector 3 170) => #u8(170 170 170))
-(check (make-bytevector 8 255) => #u8(255 255 255 255 255 255 255 255))
-
+(check (make-bytevector 4 0)
+  =>
+  #u(0 0 0 0)
+) ;check
+(check (make-bytevector 3 170)
+  =>
+  #u(170 170 170)
+) ;check
+(check (make-bytevector 8 255)
+  =>
+  #u(255 255 255 255 255 255 255 255)
+) ;check
 ;; 错误处理测试
-(check-catch 'out-of-range (make-bytevector -5))
-(check-catch 'wrong-type-arg (make-bytevector 3 256))
-(check-catch 'wrong-type-arg (make-bytevector 2 -1))
-(check-catch 'wrong-type-arg (make-bytevector 3.5))
-(check-catch 'wrong-type-arg (make-bytevector "hello"))
-(check-catch 'wrong-number-of-args (make-bytevector))
-(check-catch 'wrong-number-of-args (make-bytevector 1 2 3))
-
+(check-catch 'out-of-range
+  (make-bytevector -5)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-bytevector 3 256)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-bytevector 2 -1)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-bytevector 3.5)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-bytevector "hello")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (make-bytevector)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (make-bytevector 1 2 3)
+) ;check-catch
 (check-report)

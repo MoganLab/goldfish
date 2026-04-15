@@ -1,8 +1,6 @@
 (import (liii check))
 (import (scheme base))
-
 (check-set-mode! 'report-failed)
-
 ;; string-set!
 ;; 修改字符串中指定位置的字符，返回修改后的字符串。在R7RS标准中，string-set!是一个立即执行的变异操作，不会创建新的字符串对象。
 ;;
@@ -41,56 +39,47 @@
 ;;
 ;; wrong-type-arg
 ;; 当string不是字符串、k不是精确整数、char不是字符时抛出错误。
-
 ;; string-set! 基础测试
 (let ((str (string-copy "hello")))
   (string-set! str 1 #\A)
   (check str => "hAllo")
 ) ;let
-
 (let ((str (string-copy "abc")))
   (string-set! str 0 #\X)
   (string-set! str 2 #\Z)
   (check str => "XbZ")
 ) ;let
-
 ;; 修改不同位置测试
 (let ((str (string-copy "123456")))
   (string-set! str 0 #\0)
   (string-set! str 5 #\9)
   (check str => "023459")
 ) ;let
-
 ;; 边界位置测试
 (let ((str (string-copy "a")))
   (string-set! str 0 #\A)
   (check str => "A")
 ) ;let
-
 (let ((str (string-copy "xyz")))
   (string-set! str 0 #\1)
   (string-set! str 1 #\2)
   (string-set! str 2 #\3)
   (check str => "123")
 ) ;let
-
 ;; 特殊字符测试
 (let ((str (string-copy "hello world")))
   (string-set! str 5 #\-)
   (check str => "hello-world")
 ) ;let
-
 (let ((str (string-copy "Test!")))
   (string-set! str 4 #\?)
   (check str => "Test?")
 ) ;let
-
 ;; 数字字符串测试
 (let ((str (string-copy "00000")))
   (string-set! str 2 #\1)
   (check str => "00100")
 ) ;let
-
 ;; 连续多次修改
 (let ((str (string-copy "original")))
   (string-set! str 0 #\O)
@@ -103,7 +92,6 @@
   (string-set! str 7 #\L)
   (check str => "ORIGINAL")
 ) ;let
-
 ;; 测试索引在有效范围内
 (let ((str (string-copy "test")))
   (string-set! str 0 #\T)
@@ -112,30 +100,47 @@
   (string-set! str 3 #\T)
   (check str => "TEST")
 ) ;let
-
 ;; 错误处理测试
 ;; 索引越界测试
 (let ((str (string-copy "abc")))
-  (check-catch 'out-of-range (string-set! str -1 #\x))
-  (check-catch 'out-of-range (string-set! str 3 #\x))
+  (check-catch 'out-of-range
+    (string-set! str -1 #\x)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (string-set! str 3 #\x)
+  ) ;check-catch
 ) ;let
-
 (let ((str (string-copy "")))
-  (check-catch 'out-of-range (string-set! str 0 #\x))
+  (check-catch 'out-of-range
+    (string-set! str 0 #\x)
+  ) ;check-catch
 ) ;let
-
 ;; 类型错误测试
-(check-catch 'wrong-type-arg (string-set! 123 0 #\A))
-(check-catch 'wrong-type-arg (string-set! "hello" 0.5 #\A))
-(check-catch 'wrong-type-arg (string-set! "hello" 0 123))
-(check-catch 'wrong-type-arg (string-set! "hello" 1 "A"))
-
+(check-catch 'wrong-type-arg
+  (string-set! 123 0 #\A)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-set! "hello" 0.5 #\A)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-set! "hello" 0 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-set! "hello" 1 "A")
+) ;check-catch
 ;; 参数数量错误测试
-(check-catch 'wrong-number-of-args (string-set!))
-(check-catch 'wrong-number-of-args (string-set! "hello"))
-(check-catch 'wrong-number-of-args (string-set! "hello" 1))
-(check-catch 'wrong-number-of-args (string-set! "hello" 1 #\a #\b))
-
+(check-catch 'wrong-number-of-args
+  (string-set!)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-set! "hello")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-set! "hello" 1)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-set! "hello" 1 #\a #\b)
+) ;check-catch
 ;; 变量引用一致性测试
 (let ((str1 (string-copy "hello")))
   (let ((str2 str1))
@@ -144,7 +149,6 @@
     (check str2 => "hEllo")
   ) ;let
 ) ;let
-
 ;; 与string-ref结合使用测试
 (let ((str (string-copy "test")))
   (check (string-ref str 0) => #\t)
@@ -152,7 +156,6 @@
   (check (string-ref str 0) => #\T)
   (check str => "Test")
 ) ;let
-
 ;; 复杂字符串修改场景测试
 (let ((str (string-copy "programming")))
   (string-set! str 0 #\P)
@@ -162,5 +165,4 @@
   (check (string-ref str 8) => #\N)
   (check (string-ref str 10) => #\G)
 ) ;let
-
 (check-report)

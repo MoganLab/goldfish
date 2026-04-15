@@ -319,23 +319,37 @@
            (if found-target
              (let* ((target found-target)
                     (tests-target (split-tests-target target)))
-               (if tests-target
-                 (let ((parent (car tests-target))
-                       (tests-path (cdr tests-target)))
-                   (if (path-dir? parent)
-                     (begin
-                       (chdir parent)
-                       ;; 切换目录后，将参数改为 tests/...（相对路径）
-                       (cons (car args)
-                             (map (lambda (arg)
-                                    (if (equal? arg target) tests-path arg))
-                                  (cdr args)))
-                     ) ;begin
-                     args
-                   ) ;if
-                 ) ;let
-                 args
-               ) ;if
+               (cond
+                 ;; 情况 1: 路径包含 /tests/，按原有逻辑处理
+                 (tests-target
+                  (let ((parent (car tests-target))
+                        (tests-path (cdr tests-target)))
+                    (if (path-dir? parent)
+                      (begin
+                        (chdir parent)
+                        ;; 切换目录后，将参数改为 tests/...（相对路径）
+                        (cons (car args)
+                              (map (lambda (arg)
+                                     (if (equal? arg target) tests-path arg))
+                                   (cdr args)))
+                      ) ;begin
+                      args
+                    ) ;if
+                  ) ;let
+                 ) ;tests-target
+                 ;; 情况 2: 目标是目录且包含 tests 子目录
+                 ((and (path-dir? target)
+                       (path-dir? (test-path-join target "tests")))
+                  (chdir target)
+                  ;; 切换目录后，将参数中的 target 替换为 "tests"
+                  (cons (car args)
+                        (map (lambda (arg)
+                               (if (equal? arg target) "tests" arg))
+                             (cdr args)))
+                 ) ;dir with tests
+                 ;; 其他情况，不切换
+                 (else args)
+               ) ;cond
              ) ;let
              args
            ) ;if

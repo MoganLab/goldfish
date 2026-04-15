@@ -2,7 +2,6 @@
 ;;
 ;; R7RS `scheme base` 是 Goldfish Scheme 的核心基础库，
 ;; 提供了 Scheme 语言最基本的数据类型、控制结构和 I/O 操作。
-
 ;; ==== 扩展库 ====
 ;; Goldfish 提供了 `(liii base)` 作为 `scheme base` 的扩展，
 ;; 包含额外的实用函数。如需使用，请导入：
@@ -10,7 +9,6 @@
 ;;
 ;; 查看扩展库的完整文档：
 ;;   bin/gf doc liii/base
-
 ;; ==== 查看函数文档 ====
 ;; 使用以下命令查看函数文档和测试用例：
 ;;   bin/gf doc scheme/base "函数名"
@@ -20,7 +18,6 @@
 ;;     bin/gf doc "//"
 ;;
 ;; ==== 函数分类索引 ====
-
 ;; 一、数值运算 (R7RS 6.2 Numbers)
 ;;   +                    - 加法
 ;;   -                    - 减法/取负
@@ -56,7 +53,6 @@
 ;;   floor-remainder      - 向下取整的余数
 ;;   floor/               - 向下取整除法（返回商和余数）
 ;;   truncate/            - 截断除法（返回商和余数）
-
 ;; 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 ;;   number?              - 是否为数值
 ;;   integer?             - 是否为整数
@@ -88,7 +84,6 @@
 ;;   eof-object?          - 是否为文件结束对象
 ;;   file-error?          - 是否为文件错误
 ;;   read-error?          - 是否为读取错误
-
 ;; 三、序对与列表操作 (R7RS 6.4 Pairs and lists)
 ;;   cons                 - 构造序对
 ;;   car                  - 取序对首部
@@ -113,12 +108,10 @@
 ;;   assq                 - 按 eq? 在关联列表中查找
 ;;   assv                 - 按 eqv? 在关联列表中查找
 ;;   assoc                - 按 equal? 在关联列表中查找
-
 ;; 四、符号 (R7RS 6.5 Symbols)
 ;;   symbol->string       - 符号转字符串
 ;;   string->symbol       - 字符串转符号
 ;;   symbol=?             - 符号相等判断
-
 ;; 五、字符 (R7RS 6.6 Characters)
 ;;   digit-value          - 字符数字值
 ;;   char->integer        - 字符转整数
@@ -129,7 +122,6 @@
 ;;   char>?               - 字符大于
 ;;   char<=?              - 字符小于等于
 ;;   char>=?              - 字符大于等于
-
 ;; 六、字符串 (R7RS 6.7 Strings)
 ;;   string?              - 是否为字符串
 ;;   make-string          - 创建指定长度字符串
@@ -148,7 +140,6 @@
 ;;   string>?             - 字符串大于比较
 ;;   string<=?            - 字符串小于等于比较
 ;;   string>=?            - 字符串大于等于比较
-
 ;; 七、向量 (R7RS 6.8 Vectors)
 ;;   make-vector          - 创建向量
 ;;   vector               - 构造向量
@@ -161,7 +152,6 @@
 ;;   vector-copy          - 复制向量
 ;;   vector-copy!         - 复制向量到另一向量
 ;;   vector-fill!         - 填充向量
-
 ;; 八、字节向量 (R7RS 6.9 Bytevectors)
 ;;   make-bytevector      - 创建字节向量
 ;;   bytevector           - 构造字节向量
@@ -174,7 +164,6 @@
 ;;   string->utf8         - 字符串转 UTF-8
 ;;   utf8-string-length   - UTF-8 字符串长度
 ;;   bytevector-advance-utf8 - UTF-8 字节向量前进
-
 ;; 九、控制流 (R7RS 4.2 Derived conditionals + 4.2 Binding constructs)
 ;;   if                   - 条件分支
 ;;   cond                 - 多条件分支
@@ -193,14 +182,12 @@
 ;;   lambda               - 创建过程
 ;;   define-record-type   - 定义记录类型
 ;;   begin                - 顺序执行
-
 ;; 十、等价判断 (R7RS 6.1 Equivalence predicates)
 ;;   eq?                  - 相同对象判断
 ;;   eqv?                 - 等价判断
 ;;   equal?               - 结构相等判断
 ;;   not                  - 逻辑非
 ;;   boolean=?            - 布尔值相等
-
 ;; 十一、I/O 操作 (R7RS 6.13 Input and output)
 ;;   call-with-port       - 端口过程调用
 ;;   open-input-string    - 打开字符串输入端口
@@ -210,9 +197,7 @@
 ;;   read                 - 读取对象
 ;;   read-line            - 读取一行
 ;;   write                - 写入对象
-
 ;; 十二、异常处理 (R7RS 6.11 Exceptions)
 ;;   raise                - 抛出异常
 ;;   guard                - 捕获并处理异常
 ;;   error                - 报错
-

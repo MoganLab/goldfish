@@ -21,7 +21,7 @@
     string-every string-any
     string-take string-take-right string-drop string-drop-right
     string-pad string-pad-right
-    string-trim string-trim-right string-trim-both
+    string-trim string-trim-left string-trim-right string-trim-both
     string-index string-index-right string-skip string-skip-right
     string-contains string-count
     string-upcase string-downcase
@@ -40,6 +40,10 @@
           (liii unicode)
   ) ;import
   (begin
+
+    ;;; string-trim-left: 从字符串左侧移除空白字符
+    ;;; 基于 SRFI-13 的 string-trim 实现
+    (define string-trim-left string-trim)
 
     (define (string-starts? str prefix)
       (if (and (string? str) (string? prefix))

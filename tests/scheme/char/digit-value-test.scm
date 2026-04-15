@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; digit-value
 ;; 获取数字字符的数值
 ;;
@@ -31,7 +27,6 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符类型，否则会抛出异常
-
 ;; 数字字符测试
 (check (digit-value #\0) => 0)
 (check (digit-value #\1) => 1)
@@ -43,7 +38,6 @@
 (check (digit-value #\7) => 7)
 (check (digit-value #\8) => 8)
 (check (digit-value #\9) => 9)
-
 ;; 非数字字符测试
 (check (digit-value #\a) => #f)
 (check (digit-value #\c) => #f)
@@ -81,5 +75,4 @@
 (check (digit-value #\>) => #f)
 (check (digit-value #\?) => #f)
 (check (digit-value #\/) => #f)
-
 (check-report)

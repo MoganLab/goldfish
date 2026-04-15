@@ -18,9 +18,18 @@
   (export tokenize tokens->string escape-string-content)
   (import (liii base)
           (liii string)
+          (liii unicode)
   ) ;import
   
   (begin
+    ;;; 辅助函数：安全地移除字符串尾部空格
+    ;;; 使用 utf8-string-trim-right 正确处理 Unicode 字符
+    ;;; 如果内容只有空格，则保留原样
+    (define (trim-right-spaces str)
+      (if (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) str)
+          str
+          (utf8-string-trim-right str)))
+    
     ;;; 辅助函数：将注释内容转义为可在 Scheme 字符串中使用的形式
     ;;; 处理双引号和反斜杠
     (define (escape-string-content content)
@@ -62,7 +71,7 @@
               (if (and (not (string-null? current-line))
                        (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab) (char=? c #\newline) (char=? c #\return))) current-line)))
                    (set! tokens (cons (cons 'code current-line) tokens))
-               ) ;if
+              ) ;if
               (reverse tokens)
             ) ;begin
             (let ((c (string-ref content i))
@@ -84,10 +93,12 @@
                       (set! in-block-comment #f)
                       (set! current-line "")  ; 清空跨行注释收集的内容
                       (process-char (+ i 2))
+ ;
                      ) ;
                     ((char=? c #\newline)
                      (set! current-line (string-append current-line (string c)))
                      (process-char (+ i 1))
+ ;
                     ) ;
                     (else
                      (set! current-line (string-append current-line (string c)))
@@ -117,10 +128,12 @@
                          ) ;if
                          (process-char (+ i 1))
                      ) ;if
+ ;
                     ) ;
                     ((char=? c #\newline)
                      (set! raw-delimiter-match 0)
                      (process-char (+ i 1))
+ ;
                     ) ;
                     (else
                      (set! raw-delimiter-match 0)
@@ -134,6 +147,7 @@
                     ((and (char=? c #\#) (char=? next-c #\|))
                      (set! in-block-comment #t)
                      (process-char (+ i 2))
+ ;
                     ) ;
                     
                     ((and (char=? c #\#) (char=? next-c #\"))
@@ -154,43 +168,39 @@
                            ) ;begin
                        ) ;if
                      ) ;let
+ ;
                     ) ;
                     
                     ((char=? c #\")
                      (set! in-string #t)
                      (set! current-line (string-append current-line (string c)))
                      (process-char (+ i 1))
+ ;
                     ) ;
                     
                      ((and (char=? c #\;) (char=? next-c #\;))
-                      (if (and (not (string-null? current-line))
-                               (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) current-line)))
-                          (set! tokens (cons (cons 'code current-line) tokens))
-                      ) ;if
-                     (let
-                       ((comment-content
-                         (string-trim-both 
-                           (substring content (+ i 2) 
-                                     (let ((newline-pos (string-index content #\newline i)))
-                                       (or newline-pos len)
-                                     ) ;let
-                           ) ;substring
-                         ) ;string-trim-both
-                        ) ;comment-content
-                       ) ;
-                       (set! tokens (cons (cons 'comment comment-content) tokens))
-                     ) ;let
-                     (let ((newline-pos (string-index content #\newline i)))
-                       (if newline-pos
-                           (begin
-                             (set! current-line "")
-                             (process-char (+ newline-pos 1))
-                           ) ;begin
-                           (reverse tokens)
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    
+                        (if (and (not (string-null? current-line))
+                                 (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) current-line)))
+                            (set! tokens (cons (cons 'code current-line) tokens))
+                        ) ;if
+                          (let*
+                           ((comment-start (+ i 2))
+                            (newline-pos (string-index content #\newline i))
+                            (comment-end (or newline-pos len))
+                             (raw-content (substring content comment-start comment-end))
+                             (trimmed-content (trim-right-spaces raw-content))
+                            ) ;let*
+                           (set! tokens (cons (cons 'comment trimmed-content) tokens))
+                          (if newline-pos
+                              (begin
+                                (set! current-line "")
+                                (process-char (+ newline-pos 1))
+                              ) ;begin
+                              (reverse tokens)
+                          ) ;if
+                        ) ;let*
+                      ) ;
+                     
                      ((char=? c #\newline)
                       (if (and (not (string-null? current-line))
                                (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab))) current-line)))
@@ -200,6 +210,7 @@
                           ) ;begin
                       ) ;if
                       (process-char (+ i 1))
+ ;
                      ) ;
                     
                      (else
@@ -234,7 +245,7 @@
           ) ;lambda
           tokens
         ) ;map
-         "\n")
+         "\n"
       ) ;string-join
     ) ;define
   ) ;begin

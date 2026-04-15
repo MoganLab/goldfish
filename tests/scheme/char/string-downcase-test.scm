@@ -1,9 +1,5 @@
-(import (liii check)
-        (scheme char)
-) ;import
-
+(import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
 ;; string-downcase
 ;; 将字符串转换为小写形式。
 ;;
@@ -31,37 +27,79 @@
 ;; ------
 ;; type-error
 ;; 参数必须是字符串类型，否则会抛出异常
-
 ;; 基本功能测试
-(check (string-downcase "HELLO") => "hello")
-(check (string-downcase "hello") => "hello")
-(check (string-downcase "Hello") => "hello")
-(check (string-downcase "hElLo") => "hello")
-
+(check (string-downcase "HELLO")
+  =>
+  "hello"
+) ;check
+(check (string-downcase "hello")
+  =>
+  "hello"
+) ;check
+(check (string-downcase "Hello")
+  =>
+  "hello"
+) ;check
+(check (string-downcase "hElLo")
+  =>
+  "hello"
+) ;check
 ;; 空字符串测试
 (check (string-downcase "") => "")
-
 ;; 数字测试
 (check (string-downcase "123") => "123")
-(check (string-downcase "ABC123") => "abc123")
-(check (string-downcase "123ABC") => "123abc")
-
+(check (string-downcase "ABC123")
+  =>
+  "abc123"
+) ;check
+(check (string-downcase "123ABC")
+  =>
+  "123abc"
+) ;check
 ;; 特殊字符测试
-(check (string-downcase "HELLO WORLD") => "hello world")
-(check (string-downcase "HELLO!") => "hello!")
-(check (string-downcase "HELLO@WORLD") => "hello@world")
-(check (string-downcase "HELLO_WORLD") => "hello_world")
-(check (string-downcase "HELLO-WORLD") => "hello-world")
-
+(check (string-downcase "HELLO WORLD")
+  =>
+  "hello world"
+) ;check
+(check (string-downcase "HELLO!")
+  =>
+  "hello!"
+) ;check
+(check (string-downcase "HELLO@WORLD")
+  =>
+  "hello@world"
+) ;check
+(check (string-downcase "HELLO_WORLD")
+  =>
+  "hello_world"
+) ;check
+(check (string-downcase "HELLO-WORLD")
+  =>
+  "hello-world"
+) ;check
 ;; 混合测试
-(check (string-downcase "AbCdEfG123") => "abcdefg123")
-(check (string-downcase "Hello World!") => "hello world!")
-
+(check (string-downcase "AbCdEfG123")
+  =>
+  "abcdefg123"
+) ;check
+(check (string-downcase "Hello World!")
+  =>
+  "hello world!"
+) ;check
 ;; 错误处理测试
-(check-catch 'type-error (string-downcase 123))
-(check-catch 'type-error (string-downcase 'hello))
-(check-catch 'type-error (string-downcase #\a))
-(check-catch 'wrong-number-of-args (string-downcase))
-(check-catch 'wrong-number-of-args (string-downcase "hello" "world"))
-
+(check-catch 'type-error
+  (string-downcase 123)
+) ;check-catch
+(check-catch 'type-error
+  (string-downcase 'hello)
+) ;check-catch
+(check-catch 'type-error
+  (string-downcase #\a)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-downcase)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-downcase "hello" "world")
+) ;check-catch
 (check-report)
