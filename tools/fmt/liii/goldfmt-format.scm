@@ -664,10 +664,38 @@
       ) ;let
     ) ;define
 
+    ;;; 检查表达式是否是 define 形式
+    (define (define-form? datum)
+      (and (pair? datum)
+           (not (null? datum))
+           (eq? (car datum) 'define)))
+
+    ;;; 判断是否需要空行分隔
+    ;;; 如果当前是 define 且不是文件的第一个表达式，则返回 #t
+    (define (needs-blank-line? datum is-first-expr)
+      (and (define-form? datum)
+           (not is-first-expr)))
+
+    ;;; 格式化顶层表达式列表，在需要时插入空行
+    (define (format-top-level datums)
+      (let loop ((rest datums)
+                 (is-first #t)
+                 (result '()))
+        (if (null? rest)
+            (reverse result)
+            (let* ((datum (car rest))
+                   (needs-blank (needs-blank-line? datum is-first))
+                   (formatted (format-datum datum))
+                   (new-result
+                     (if needs-blank
+                         (cons formatted (cons "" result))
+                         (cons formatted result))))
+              (loop (cdr rest) #f new-result)))))
+
     (define (format-string source)
       (let* ((port (open-input-string source))
              (datums (read-all port))
-             (pieces (map format-datum datums)))
+             (pieces (format-top-level datums)))
         (join-top-level pieces)
       ) ;let*
     ) ;define

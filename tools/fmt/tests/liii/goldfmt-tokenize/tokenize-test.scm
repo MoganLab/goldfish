@@ -98,4 +98,29 @@
   (check (length tokens) => 1)
   (check (cdar tokens) => " "))
 
+;; 测试 tokenize：识别单个空行
+(let ((tokens (tokenize "(define x 1)\n\n(define y 2)")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 3)
+  (check (caar tokens) => 'code)
+  (check (caadr tokens) => 'newline)
+  (check (cdadr tokens) => 1)
+  (check (caaddr tokens) => 'code))
+
+;; 测试 tokenize：识别多个连续空行
+(let ((tokens (tokenize "(define x 1)\n\n\n\n(define y 2)")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 3)
+  (check (caadr tokens) => 'newline)
+  (check (cdadr tokens) => 3))
+
+;; 测试 tokenize：注释后的空行
+(let ((tokens (tokenize ";; 注释\n\n(define x 1)")))
+  (check (list? tokens) => #t)
+  (check (length tokens) => 3)
+  (check (caar tokens) => 'comment)
+  (check (caadr tokens) => 'newline)
+  (check (cdadr tokens) => 1)
+  (check (caaddr tokens) => 'code))
+
 (check-report)

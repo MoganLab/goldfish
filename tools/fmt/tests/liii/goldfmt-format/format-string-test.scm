@@ -43,15 +43,17 @@
 
 (check (format-string "(define x 1) (define y 2)")
        => (&- "
-            (define x 1)
-            (define y 2)
-            "))
+             (define x 1)
+
+             (define y 2)
+             "))
 
 (check (format-string "  x\n\n(define y 2)  ")
        => (&- "
-              x
-              (define y 2)
-              "))
+               x
+
+               (define y 2)
+               "))
 
 ;; 测试嵌套 quote 形式 '(quote define)
 ;; '(quote define) 应该保持原样输出，不压缩为 ''define

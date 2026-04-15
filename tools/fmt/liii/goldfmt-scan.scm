@@ -334,51 +334,66 @@
     ) ;define
     
     ;;; Tokenize 函数：将文件内容分解为 token 列表
-    ;;; 每个 token 是 (类型 . 内容) 对，类型可以是 'code 或 'comment
+    ;;; 每个 token 是 (类型 . 内容) 对，类型可以是 'code, 'comment, 或 'newline
+    ;;; 连续空行会被识别为 (newline . n)，其中 n 是空行数量
     (define (tokenize content)
       (let* ((lines (string-split content #\newline))
-             (tokens '()))
-        (for-each 
+             (tokens '())
+             (blank-line-count 0))
+        (for-each
           (lambda (line)
             (let ((comment-pos (comment-line? line)))
-              (if comment-pos
-                  ; 是注释行
-                  (let ((content (extract-comment-content line comment-pos)))
-                    (set! tokens (cons (cons 'comment content) tokens))
-                  ) ;let
-                  ; 是普通代码
-                  (set! tokens (cons (cons 'code line) tokens))
-              ) ;if
+              (cond
+                ; 空行（只有空白字符或空字符串）
+                ((or (string-null? line)
+                     (string-every whitespace-char? line))
+                 (set! blank-line-count (+ blank-line-count 1)))
+                ; 是注释行
+                (comment-pos
+                 ; 先保存之前累积的空行
+                 (when (> blank-line-count 0)
+                   (set! tokens (cons (cons 'newline blank-line-count) tokens))
+                   (set! blank-line-count 0))
+                 (let ((content (extract-comment-content line comment-pos)))
+                   (set! tokens (cons (cons 'comment content) tokens))))
+                ; 是普通代码
+                (else
+                 ; 先保存之前累积的空行
+                 (when (> blank-line-count 0)
+                   (set! tokens (cons (cons 'newline blank-line-count) tokens))
+                   (set! blank-line-count 0))
+                 (set! tokens (cons (cons 'code line) tokens))))
             ) ;let
           ) ;lambda
           lines
         ) ;for-each
+        ; 文件末尾的空行也需要保存
+        (when (> blank-line-count 0)
+          (set! tokens (cons (cons 'newline blank-line-count) tokens)))
         (reverse tokens)
       ) ;let*
     ) ;define
     
     ;;; 辅助函数：将 token 列表重新组装为可读取的字符串
-    ;;; 将注释转换为 (*comment* "内容") 形式
+    ;;; 将注释转换为 (*comment* "内容") 形式，空行转换为 (*newline* n) 形式
     (define (tokens->string tokens)
       (string-join
         (map
           (lambda (token)
             (let ((type (car token))
                   (content (cdr token)))
-              (if (eq? type 'comment)
-                  (string-append "(*comment* \"" 
-                                 (escape-comment-content content)
-                                 "\")"
-                  ) ;string-append
-                  content
-              ) ;if
-            ) ;let
-          ) ;lambda
-          tokens
-        ) ;map
-        "\n"
-      ) ;string-join
-    ) ;define
+              (cond
+                ((eq? type 'comment)
+                 (string-append "(*comment* \""
+                                (escape-comment-content content)
+                                "\")"))
+                ((eq? type 'newline)
+                 (string-append "(*newline* "
+                                (number->string content)
+                                ")"))
+                (else content))))
+          tokens)
+        "\n"))
     
     ;;; scan-file 函数：从文件读取并扫描所有顶层表达式
     ;;; 输入 path: 文件路径字符串
