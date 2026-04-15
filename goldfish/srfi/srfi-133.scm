@@ -136,7 +136,6 @@
       ) ;let
     ) ;define
 
-
     (define vector-cumulate
       (typed-lambda ((fn procedure?) knil (vec vector?))
         (let* ((len (vector-length vec))
