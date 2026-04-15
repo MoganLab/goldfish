@@ -585,6 +585,104 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args)
   return inexact_to_exact_p_p(sc, s7_car(args));
 }
 
+/* -------------------------------- string->number helpers -------------------------------- */
+
+/* Simple string to double conversion with radix support.
+ * This implementation uses a straightforward algorithm to avoid
+ * precision issues on different platforms (especially Windows).
+ */
+double s7_string_to_double_simple(const char *str, int32_t radix)
+{
+  const char *p = str;
+  double sign = 1.0;
+  double result = 0.0;
+  double fraction = 0.0;
+  double divisor = 1.0;
+  int32_t exponent = 0;
+  bool has_exponent = false;
+  bool exp_negative = false;
+  bool in_fraction = false;
+
+  /* Handle sign */
+  if (*p == '-') {
+    sign = -1.0;
+    p++;
+  } else if (*p == '+') {
+    p++;
+  }
+
+  /* Skip leading zeros in integer part */
+  while (*p == '0') p++;
+
+  /* Process digits */
+  while (*p) {
+    char c = *p;
+
+    /* Decimal point */
+    if (c == '.') {
+      in_fraction = true;
+      p++;
+      continue;
+    }
+
+    /* Exponent marker (only in base 10) */
+    if (radix == 10 && (c == 'e' || c == 'E' || c == '@')) {
+      has_exponent = true;
+      p++;
+      /* Handle exponent sign */
+      if (*p == '-') {
+        exp_negative = true;
+        p++;
+      } else if (*p == '+') {
+        p++;
+      }
+      break;
+    }
+
+    /* Convert digit */
+    int32_t digit;
+    if (c >= '0' && c <= '9')
+      digit = c - '0';
+    else if (c >= 'a' && c <= 'f')
+      digit = c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+      digit = c - 'A' + 10;
+    else
+      break;
+
+    if (digit >= radix)
+      break;
+
+    if (in_fraction) {
+      fraction = fraction * radix + digit;
+      divisor *= radix;
+    } else {
+      result = result * radix + digit;
+    }
+    p++;
+  }
+
+  /* Parse exponent */
+  if (has_exponent) {
+    while (*p >= '0' && *p <= '9') {
+      exponent = exponent * 10 + (*p - '0');
+      p++;
+    }
+    if (exp_negative)
+      exponent = -exponent;
+  }
+
+  /* Combine parts */
+  result = result + fraction / divisor;
+
+  /* Apply exponent */
+  if (exponent != 0) {
+    result *= pow((double)radix, (double)exponent);
+  }
+
+  return sign * result;
+}
+
 /* -------------------------------- read-line -------------------------------- */
 
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)

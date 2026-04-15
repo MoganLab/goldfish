@@ -16070,6 +16070,10 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix, 
 static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 #endif
 {
+  /* Use simple implementation for base 10 to avoid precision issues on Windows */
+  if (radix == 10)
+    return s7_string_to_double_simple(ur_str, radix);
+
   /* strtod follows LANG which is not what we want (only "." is decimal point in Scheme).
    *   To overcome LANG in strtod would require screwing around with setlocale which never works.
    *   So we use our own code -- according to valgrind, this function is much faster than strtod.
