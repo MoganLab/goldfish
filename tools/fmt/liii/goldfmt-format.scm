@@ -49,7 +49,7 @@
            ) ;or
            (not (null? (cdr value)))
            (null? (cddr value))
-       ) ;and
+      ) ;and
     ) ;define
 
     ;;; 将 quote 形式转换为字符串：'(quoted-content)
@@ -101,6 +101,36 @@
       ) ;and
     ) ;define
 
+    (define (newline-node? node)
+      (and (env? node)
+           (string=? (env-tag-name node) "*newline*")
+           (= (vector-length (env-children node)) 1)
+           (let ((child (vector-ref (env-children node) 0)))
+             (and (atom? child)
+                  (number? (atom-value child))
+             ) ;and
+           ) ;let
+      ) ;and
+    ) ;define
+
+    (define (newline-count node)
+      (atom-value (vector-ref (env-children node) 0))
+    ) ;define
+
+    (define (make-newlines n)
+      (if (<= n 0)
+          ""
+          (make-newlines-iter n "")
+      ) ;if
+    ) ;define
+
+    (define (make-newlines-iter n acc)
+      (if (<= n 0)
+          acc
+          (make-newlines-iter (- n 1) (string-append acc "\n"))
+      ) ;if
+    ) ;define
+
     (define (comment-content node)
       (atom-value (vector-ref (env-children node) 0))
     ) ;define
@@ -109,7 +139,8 @@
       (if (or (string=? content "")
               (char=? (string-ref content 0) #\space))
           (string-append ";;" content)
-          (string-append ";; " content))
+          (string-append ";; " content)
+      ) ;if
     ) ;define
 
     (define (contains-comment? node)
@@ -136,7 +167,7 @@
            (or (string=? (env-tag-name node) "quote")
                (string=? (env-tag-name node) "#_quote")
            ) ;or
-       ) ;and
+      ) ;and
     ) ;define
 
     ;;; 从 quote env 的 value 中提取被引用的内容
@@ -144,7 +175,9 @@
       (let ((value (env-value node)))
         (if (and (pair? value) (not (null? (cdr value))))
             (cadr value)
-            '()))
+            '()
+        ) ;if
+      ) ;let
     ) ;define
 
 ;;; format-inline 只做单行候选文本计算，不记录位置信息，也不写 writer。
@@ -152,6 +185,11 @@
       (cond
         ((comment-node? node)
          (format-comment-content (comment-content node))
+ ;
+        ) ;
+        ((newline-node? node)
+         ; newline 节点不应该出现在单行中，返回空字符串
+         ""
  ;
         ) ;
         ((atom? node)
@@ -162,9 +200,10 @@
           ; quote 形式：'(content)
           ; 从 env-value 中提取被引用的内容并格式化
           (let ((content (quote-env-content node)))
-            (string-append "'" (format-inline-atom-or-quote content)))
-  ;
-         ) ;
+            (string-append "'" (format-inline-atom-or-quote content))
+          ) ;let
+ ;
+        ) ;
         (else
           (let ((children (env-children node)))
             (let loop ((i 0)
@@ -197,6 +236,7 @@
     (define (can-inline? node)
       (cond
         ((comment-node? node) #t)
+        ((newline-node? node) #f)  ; newline 节点不能内联，需要输出空行
         ((atom? node) #t)
         ((contains-comment? node) #f)
         ((must-inline? (env-tag-name node)) #t)
@@ -291,26 +331,28 @@
                    ) ;if
                  ) ;next-direct-env-count
  ;
+ ;
                 ) ;
-                (if (or (comment-node? child)
-                        (and child-is-env? (not allow-child-env?))
-                        (> next-direct-env-count 1))
-                    (reverse result)
-                    (let* ((separator (child-separator node i))
-                           (child-column (+ column (string-length separator)))
-                           (next-result (cons (cons child child-column) result)))
-                      (if (can-inline? child)
-                          (loop (+ i 1)
-                                (+ child-column
-                                   (string-length (format-inline child))
-                                ) ;+
-                                next-direct-env-count
-                                next-result
-                          ) ;loop
-                          (reverse next-result)
-                      ) ;if
-                    ) ;let*
-                ) ;if
+                 (if (or (comment-node? child)
+                         (newline-node? child)
+                         (and child-is-env? (not allow-child-env?))
+                         (> next-direct-env-count 1))
+                     (reverse result)
+                     (let* ((separator (child-separator node i))
+                            (child-column (+ column (string-length separator)))
+                            (next-result (cons (cons child child-column) result)))
+                       (if (can-inline? child)
+                           (loop (+ i 1)
+                                 (+ child-column
+                                    (string-length (format-inline child))
+                                 ) ;+
+                                 next-direct-env-count
+                                 next-result
+                           ) ;loop
+                           (reverse next-result)
+                       ) ;if
+                     ) ;let*
+                 ) ;if
               ) ;let*
           ) ;if
         ) ;let
@@ -326,6 +368,7 @@
         ((null? selected) #f)
         ((env? (selected-child (car selected)))
          (selected-column (car selected))
+ ;
  ;
         ) ;
         (else (first-selected-env-column (cdr selected)))
@@ -356,9 +399,11 @@
              ) ;if
            ) ;let
  ;
+ ;
           ) ;
           ((eq? strategy 'parent-plus2)
            (+ parent-indent 2)
+ ;
  ;
           ) ;
           (else
@@ -401,6 +446,7 @@
            ) ;if
          ) ;content-indent
  ;
+ ;
         ) ;
         (emit-string! writer (format-comment-content content))
         (positioned-env node
@@ -423,12 +469,14 @@
         ((comment-node? node)
          (emit-comment! node writer column)
  ;
+ ;
         ) ;
         ((atom? node)
          (let ((left-line (writer-line writer)))
            (emit-string! writer (format-inline-atom-or-quote (atom-value node)))
            (positioned-atom node column left-line (writer-line writer))
          ) ;let
+ ;
  ;
         ) ;
         ((quote-env? node)
@@ -446,7 +494,8 @@
             ) ;positioned-env
           ) ;let
   ;
-         ) ;
+ ;
+        ) ;
          (else
           (let ((children (env-children node)))
             (let ((left-line (writer-line writer)))
@@ -474,6 +523,7 @@
                            ) ;emit-inline!
                          ) ;new-child
  ;
+ ;
                         ) ;
                         (loop (+ i 1)
                               (cons new-child new-children)
@@ -484,7 +534,7 @@
               ) ;let
             ) ;let
           ) ;let
-        ) ;else
+         ) ;else
       ) ;cond
     ) ;define
 
@@ -494,13 +544,16 @@
         ((comment-node? node)
          (emit-comment! node writer column)
  ;
+ ;
         ) ;
         ((atom? node)
          (emit-inline! node writer column)
  ;
+ ;
         ) ;
         ((can-inline? node)
          (emit-inline! node writer column)
+ ;
  ;
         ) ;
         (else
@@ -514,23 +567,51 @@
     (define (walk-env! node writer column)
       (let ((env-indent column)
             (left-line (writer-line writer)))
-        (if (quote-env? node)
-            ; quote 形式跨行：'(content)
-            ; 从 env-value 中提取被引用的内容并格式化
-            (let ((content (quote-env-content node)))
-              (emit-string! writer "'")
-              (emit-string! writer (format-inline-atom-or-quote content))
-              (positioned-env node
-                              env-indent
-                              (vector)
-                              left-line
-                              (writer-line writer)
-              ) ;positioned-env
-            ) ;let
-            ; 普通 env
-            (begin
-              (emit-string! writer "(")
-              (emit-string! writer (env-tag-name node))
+        (cond
+          ; newline 节点：输出空行
+          ((newline-node? node)
+           (let
+             ((blank-lines (if (> (vector-length (env-children node)) 0)
+                               (let ((child (vector-ref (env-children node) 0)))
+                                 (if (atom? child)
+                                     (let ((val (atom-value child)))
+                                       (if (number? val) val 1)
+                                     ) ;let
+                                     1
+                                 ) ;if
+                               ) ;let
+                               1)
+              ) ;blank-lines
+ ;
+             ) ;
+             (emit-string! writer (make-newlines blank-lines))
+             (positioned-env node
+                             env-indent
+                             (vector)
+                             left-line
+                             (writer-line writer)
+             ) ;positioned-env
+           ) ;let
+ ;
+          ) ;
+          ; quote 形式跨行：'(content)
+          ((quote-env? node)
+           (let ((content (quote-env-content node)))
+             (emit-string! writer "'")
+             (emit-string! writer (format-inline-atom-or-quote content))
+             (positioned-env node
+                             env-indent
+                             (vector)
+                             left-line
+                             (writer-line writer)
+             ) ;positioned-env
+           ) ;let
+ ;
+          ) ;
+          ; 普通 env
+          (else
+            (emit-string! writer "(")
+            (emit-string! writer (env-tag-name node))
               (let* ((first-column (writer-column writer))
                      (selected (select-first-line-children node first-column))
                      (rest-start (selected-count selected))
@@ -552,6 +633,7 @@
                                   ) ;walk!
                                 ) ;new-child
  ;
+ ;
                                ) ;
                                (loop-selected (cdr items)
                                               (+ index 1)
@@ -563,56 +645,67 @@
                      ) ;let
                    ) ;new-children
  ;
-                  ) ;
-                  (let
-                    ((new-children
-                       (if (< rest-start (vector-length children))
-                           (let ((child-indent
-                                   (next-line-child-indent node env-indent selected rest-start)))
-                             (let loop-rest ((i rest-start)
-                                             (result new-children))
-                               (if (>= i (vector-length children))
-                                   result
-                                   (begin
-                                     (emit-newline! writer)
-                                     (emit-spaces! writer child-indent)
-                                     (let
-                                       ((new-child
-                                          (walk! (vector-ref children i)
-                                                 writer
-                                                 child-indent
-                                          ) ;walk!
-                                        ) ;new-child
  ;
-                                       ) ;
-                                       (loop-rest (+ i 1)
-                                                  (cons new-child result)
-                                       ) ;loop-rest
-                                     ) ;let
-                                   ) ;begin
-                               ) ;if
-                             ) ;let
-                           ) ;let
-                           new-children
-                       ) ;if
-                     ) ;new-children
+                  ) ;
+                   (let
+                     ((new-children
+                        (if (< rest-start (vector-length children))
+                            (let ((child-indent
+                                    (next-line-child-indent node env-indent selected rest-start)))
+                              (let loop-rest ((i rest-start)
+                                              (result new-children))
+                                (if (>= i (vector-length children))
+                                    result
+                                    (let ((child (vector-ref children i)))
+                                      ; 处理 newline 节点：输出空行
+                                      (if (newline-node? child)
+                                          (begin
+                                            (emit-newline! writer)
+                                            (loop-rest (+ i 1) result)
+                                          ) ;begin
+                                          (begin
+                                            (emit-newline! writer)
+                                            (emit-spaces! writer child-indent)
+                                            (let
+                                              ((new-child
+                                                 (walk! child
+                                                        writer
+                                                        child-indent
+                                                 ) ;walk!
+                                               ) ;new-child
+ ;
+                                              ) ;
+                                              (loop-rest (+ i 1)
+                                                         (cons new-child result)
+                                              ) ;loop-rest
+                                            ) ;let
+                                          ) ;begin
+                                      ) ;if
+                                    ) ;let
+                                ) ;if
+                              ) ;let
+                            ) ;let
+                            new-children
+                        ) ;if
+                      ) ;new-children
  ;
                      ) ;
-                     (emit-newline! writer)
-                     (emit-spaces! writer env-indent)
-                     (emit-string! writer ") ;")
-                     (emit-string! writer (env-tag-name node))
-                     (positioned-env node
-                                     env-indent
-                                     (list->vector (reverse new-children))
-                                     left-line
-                                     (writer-line writer)
-                     ) ;positioned-env
+                      (emit-newline! writer)
+                      (emit-spaces! writer env-indent)
+                      (emit-string! writer ") ;")
+                      (emit-string! writer (env-tag-name node))
+                      (positioned-env node
+                                      env-indent
+                                      (list->vector (reverse new-children))
+                                      left-line
+                                      (writer-line writer)
+                      ) ;positioned-env
                    ) ;let
-                 ) ;let
+                ) ;let
+ ;let*
               ) ;let*
-            ) ;begin
-        ) ;if
+          ) ;else
+        ) ;cond
       ) ;let
     ) ;define
   ) ;begin
@@ -668,29 +761,75 @@
     (define (define-form? datum)
       (and (pair? datum)
            (not (null? datum))
-           (eq? (car datum) 'define)))
+           (eq? (car datum) 'define)
+      ) ;and
+    ) ;define
+
+    ;;; 检查表达式是否是 newline 形式：(*newline* n)
+    (define (newline-form? datum)
+      (and (pair? datum)
+           (not (null? datum))
+           (eq? (car datum) '*newline*)
+           (not (null? (cdr datum)))
+           (number? (cadr datum))
+      ) ;and
+    ) ;define
+
+    ;;; 获取 newline 形式的空行数量
+    (define (newline-form-count datum)
+      (cadr datum)
+    ) ;define
 
     ;;; 判断是否需要空行分隔
     ;;; 如果当前是 define 且不是文件的第一个表达式，则返回 #t
     (define (needs-blank-line? datum is-first-expr)
       (and (define-form? datum)
-           (not is-first-expr)))
+           (not is-first-expr)
+      ) ;and
+    ) ;define
 
     ;;; 格式化顶层表达式列表，在需要时插入空行
+    ;;; 处理 (*newline* n) 形式，将其转换为实际空行
     (define (format-top-level datums)
       (let loop ((rest datums)
                  (is-first #t)
                  (result '()))
         (if (null? rest)
             (reverse result)
-            (let* ((datum (car rest))
-                   (needs-blank (needs-blank-line? datum is-first))
-                   (formatted (format-datum datum))
-                   (new-result
-                     (if needs-blank
-                         (cons formatted (cons "" result))
-                         (cons formatted result))))
-              (loop (cdr rest) #f new-result)))))
+            (let ((datum (car rest)))
+              (cond
+                ; 处理 (*newline* n) 形式 - 跳过文件开头的空行
+                ((newline-form? datum)
+                 (if is-first
+                     ; 文件开头的空行，跳过
+                     (loop (cdr rest) #t result)
+                     ; 非文件开头，保留空行
+                     (let ((blank-lines (newline-form-count datum)))
+                       (loop (cdr rest)
+                             #f
+                             (cons (make-newlines blank-lines) result)))))
+                ;
+                ; 处理普通表达式
+                (else
+                 (let*
+                   ((needs-blank (needs-blank-line? datum is-first))
+                    (formatted (format-datum datum))
+                    (new-result
+                      (if needs-blank
+                          (cons formatted (cons "" result))
+                          (cons formatted result)
+                      ) ;if
+                    ) ;new-result
+ ;
+                   ) ;
+                   (loop (cdr rest) #f new-result)
+                 ) ;let*
+                ) ;else
+              ) ;cond
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (format-string source)
       (let* ((port (open-input-string source))
