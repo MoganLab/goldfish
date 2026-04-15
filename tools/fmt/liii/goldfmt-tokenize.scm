@@ -70,15 +70,15 @@
             (in-block-comment #f)
             (in-raw-string #f)
             (raw-delimiter "")
-            (raw-delimiter-match 0))
+            (raw-delimiter-match 0)
       ) ;let
 
       (define (process-char i)
         (if (>= i len)
             (begin
               (if (and (not (string-null? current-line))
-                       (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab) (char=? c #\newline) (char=? c #\return))) current-line))
-                   (set! tokens (cons (cons 'code current-line) tokens)))
+                       (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab) (char=? c #\newline) (char=? c #\return))) current-line)))
+                   (set! tokens (cons (cons 'code current-line) tokens))
               ) ;if
               (reverse tokens)
             ) ;begin
@@ -269,7 +269,7 @@
       ) ;define
 
       (process-char 0))
-     ;define
+    ) ;define
 
     ;;; 辅助函数：将 token 列表重新组装为可读取的字符串
     (define (tokens->string tokens)

@@ -115,8 +115,8 @@
             (passed (count (lambda (x) (zero? (cdr x))) test-results))
             (failed-files (failed-test-files test-results))
             (failed (- (length test-results)
-                       (count (lambda (x) (zero? (cdr x))) test-results))))
-             ;failed
+                       (count (lambda (x) (zero? (cdr x))) test-results)))
+            ) ;failed
         (newline)
         (display "=== Test Summary ===") (newline)
         (newline)
@@ -414,8 +414,8 @@
                             (newline)
                             (cons (run-test-file test-file) acc))
                           (list)
-                          test-files)))
-                     ;fold
+                          test-files))
+                    ) ;fold
               (let ((failed (display-summary test-results)))
                 (exit (if (> failed 0) -1 0))
               ) ;let
