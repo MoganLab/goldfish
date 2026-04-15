@@ -4,9 +4,8 @@
   (begin
 
     (define-macro (and-let* vars . body)
-      `(let () (and ,@(map (lambda (v) `(define ,@v)) vars) (begin ,@body)))
+      `(let ,() (and ,@(map (lambda (v) `(define ,@v)) vars) (begin ,@body)))
     ) ;define-macro
 
   ) ;begin
 ) ;define-library
-
