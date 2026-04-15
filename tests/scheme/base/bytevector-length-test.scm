@@ -31,7 +31,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; bytevector-length 基本测试
-(check (bytevector-length #u()) => 0)
+(check (bytevector-length #u8()) => 0)
 (check (bytevector-length #u8(1)) => 1)
 (check (bytevector-length #u8(1 2 3))
   =>

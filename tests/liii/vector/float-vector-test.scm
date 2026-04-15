@@ -42,11 +42,11 @@
 ) ;check-true
 (check (float-vector 1.0 2.0 3.0)
   =>
-  #r(1.0 2.0 3.0)
+  #(1.0 2.0 3.0)
 ) ;check
 (check (float-vector 1 2 3)
   =>
-  #r(1.0 2.0 3.0)
+  #(1.0 2.0 3.0)
 ) ;check
 (check-catch 'wrong-type-arg
   (float-vector 1.0 2.0 'a)

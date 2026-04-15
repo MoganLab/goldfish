@@ -45,7 +45,7 @@
 (check-true (complex-vector? (make-complex-vector 3)
             ) ;complex-vector?
 ) ;check-true
-(check (make-complex-vector 0) => #c())
+(check (make-complex-vector 0) => #())
 (check (vector-length (make-complex-vector 5))
   =>
   5

@@ -115,7 +115,7 @@
   (check (read port) => #u8(0 255 127))
 ) ;let
 (let ((port (open-input-string "#u8()")))
-  (check (read port) => #u())
+  (check (read port) => #u8())
 ) ;let
 (let ((port (open-input-string "#u(1 2 3)")))
   (check (read port) => #u8(1 2 3))

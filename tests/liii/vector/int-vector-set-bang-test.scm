@@ -62,7 +62,7 @@
 
 (let ((v (int-vector 10 20 30)))
   (int-vector-set! v 1 999)
-  (check v => #i(10 999 30))
+  (check v => #(10 999 30))
 ) ;let
 
 

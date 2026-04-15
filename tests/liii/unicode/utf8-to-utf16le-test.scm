@@ -67,7 +67,7 @@
 
 
 ;; 空字节向量
-(check (utf8->utf16le #u()) => #u())
+(check (utf8->utf16le #u8()) => #u8())
 
 
 ;; 与 utf16le->utf8 互逆操作

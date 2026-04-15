@@ -63,7 +63,7 @@
 (let ((v (float-vector 10.0 20.0 30.0)))
   (float-vector-set! v 1 999)
   (check (float-vector-ref v 1) => 999.0)
-  (check v => #r(10.0 999.0 30.0))
+  (check v => #(10.0 999.0 30.0))
 ) ;let
 
 

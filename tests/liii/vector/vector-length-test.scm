@@ -38,7 +38,7 @@
 (check (vector-length #()) => 0)
 (check (vector-length #(42)) => 1)
 (check (vector-length #(1 2 3)) => 3)
-(check (vector-length #(1 2.5 "hello" 'symbol #\c #t #f)
+(check (vector-length #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
        ) ;vector-length
   =>
   7

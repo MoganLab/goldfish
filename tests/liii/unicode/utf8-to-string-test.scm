@@ -44,7 +44,7 @@
 
 
 ;; 空字节向量
-(check (utf8->string #u()) => "")
+(check (utf8->string #u8()) => "")
 
 
 ;; 2 字节 UTF-8 字符 (U+0080 到 U+07FF)

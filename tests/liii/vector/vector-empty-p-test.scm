@@ -38,7 +38,7 @@
 (check-true (vector-empty? (vector)))
 (check-false (vector-empty? (vector 1)))
 (check-false (vector-empty? #(a b c)))
-(check-false (vector-empty? #(1 2.5 "hello" 'symbol #\c #t #f)
+(check-false (vector-empty? #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
              ) ;vector-empty?
 ) ;check-false
 (check-catch 'type-error

@@ -40,7 +40,7 @@
   =>
   (bytevector 72 101 108 108 111)
 ) ;check
-(check (string->utf8 "") => #u())
+(check (string->utf8 "") => #u8())
 
 
 ;; 多字节字符测试
@@ -80,11 +80,11 @@
 ;; 带 start 和 end 参数的测试
 (check (string->utf8 "Hello" 0 0)
   =>
-  #u()
+  #u8()
 ) ;check
 (check (string->utf8 "Hello" 1 1)
   =>
-  #u()
+  #u8()
 ) ;check
 (check (string->utf8 "Hello" 2 3)
   =>

@@ -45,13 +45,13 @@
 ) ;check-true
 (check (make-float-vector 3 0.0)
   =>
-  #r(0.0 0.0 0.0)
+  #(0.0 0.0 0.0)
 ) ;check
 (check (make-float-vector 3 1.0)
   =>
-  #r(1.0 1.0 1.0)
+  #(1.0 1.0 1.0)
 ) ;check
-(check (make-float-vector 0) => #r())
+(check (make-float-vector 0) => #())
 (check (vector-length (make-float-vector 5))
   =>
   5

@@ -1,4 +1,3 @@
-
 (define-library (liii set)
   (import (rename (srfi srfi-113)
             (set make-set-with-comparator)

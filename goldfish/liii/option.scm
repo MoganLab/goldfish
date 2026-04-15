@@ -1,4 +1,3 @@
-
 (define-library (liii option)
   (import (liii base))
   (export none
@@ -18,7 +17,6 @@
     option-any
   ) ;export
   (begin
-
 
     (define (none)
       (cons #f 'N)

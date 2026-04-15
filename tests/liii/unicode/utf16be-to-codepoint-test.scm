@@ -111,7 +111,7 @@
 
 ;; 错误处理
 (check-catch 'value-error
-  (utf16be->codepoint #u())
+  (utf16be->codepoint #u8())
 ) ;check-catch
 (check-catch 'value-error
   (utf16be->codepoint #u8(0))

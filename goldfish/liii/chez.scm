@@ -1,4 +1,3 @@
-
 (define-library (liii chez)
   (export atom?)
   (begin

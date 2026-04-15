@@ -29,7 +29,7 @@
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
 ;; bytevector? 基本测试
-(check-true (bytevector? #u()))
+(check-true (bytevector? #u8()))
 (check-true (bytevector? #u8(0)))
 (check-true (bytevector? #u8(255)))
 (check-true (bytevector? #u8(1 2 3 4 5))

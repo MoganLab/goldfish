@@ -1,4 +1,3 @@
-
 (define-library (liii sort)
   (export list-sorted?
     vector-sorted?

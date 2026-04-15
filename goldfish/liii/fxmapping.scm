@@ -1,4 +1,3 @@
-
 (define-library (liii fxmapping)
   (import (srfi srfi-224))
   (export

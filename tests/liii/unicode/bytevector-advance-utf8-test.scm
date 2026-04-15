@@ -155,7 +155,7 @@
 
 
 ;; 边界条件测试
-(check (bytevector-advance-utf8 #u() 0)
+(check (bytevector-advance-utf8 #u8() 0)
   =>
   0
 ) ;check

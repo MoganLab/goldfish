@@ -49,13 +49,13 @@
 ) ;check
 (check (make-int-vector 3 0)
   =>
-  #i(0 0 0)
+  #(0 0 0)
 ) ;check
 (check (make-int-vector 3 1)
   =>
-  #i(1 1 1)
+  #(1 1 1)
 ) ;check
-(check (make-int-vector 0) => #i())
+(check (make-int-vector 0) => #())
 (check (vector-length (make-int-vector 5))
   =>
   5

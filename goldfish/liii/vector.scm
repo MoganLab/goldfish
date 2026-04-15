@@ -1,4 +1,3 @@
-
 (define-library (liii vector)
   (import (scheme base)
     (srfi srfi-133)

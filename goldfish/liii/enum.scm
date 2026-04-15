@@ -1,4 +1,3 @@
-
 (define-library (liii enum)
   (import (srfi srfi-209))
   (export enum-type?
