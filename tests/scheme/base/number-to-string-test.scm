@@ -77,6 +77,7 @@
 (check (number->string -3e-1) => "-0.3")
 (check (number->string 0.00123) => "0.00123")
 (check (number->string -0.00123) => "-0.00123")
+(check (number->string 0.0014142136802445852) => "0.0014142136802445852")
 (check (number->string 1.23e-3) => "0.00123")
 (check (number->string -1.23e-3) => "-0.00123")
 (check (number->string 1e-5) => "0.00001")

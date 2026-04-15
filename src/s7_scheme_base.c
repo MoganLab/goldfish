@@ -7,6 +7,7 @@
  */
 
 #include "s7_scheme_base.h"
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
@@ -653,12 +654,47 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
   return negative ? -new_int : new_int;
 }
 
-/* Simple string to double conversion with radix support.
- * This implementation uses integer arithmetic for mantissa to avoid
- * precision issues on different platforms (especially Windows).
+/* String to double conversion with radix support.
+ * Base-10 literals use strtod after normalizing Scheme exponent markers.
+ * Other radices keep the existing integer-based fallback.
  */
 double s7_string_to_double_simple(const char *str, int32_t radix)
 {
+  if (radix == 10)
+    {
+      const char *marker = str;
+
+      while (*marker)
+        {
+          if ((marker != str) &&
+              (((marker[1] >= '0') && (marker[1] <= '9')) ||
+               (marker[1] == '+') ||
+               (marker[1] == '-')) &&
+              ((*marker == '@') ||
+               (*marker == 's') || (*marker == 'S') ||
+               (*marker == 'f') || (*marker == 'F') ||
+               (*marker == 'd') || (*marker == 'D') ||
+               (*marker == 'l') || (*marker == 'L')))
+            {
+              size_t len = strlen(str);
+              char *copy = (char *)malloc(len + 1);
+              double result;
+
+              if (!copy)
+                return strtod(str, NULL);
+
+              memcpy(copy, str, len + 1);
+              copy[marker - str] = 'e';
+              result = strtod(copy, NULL);
+              free(copy);
+              return result;
+            }
+          marker++;
+        }
+
+      return strtod(str, NULL);
+    }
+
   const char *p = str;
   double sign = 1.0;
   int64_t mantissa = 0;      /* Use integer for precise digit accumulation */
