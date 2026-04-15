@@ -222,12 +222,13 @@
            (null? (cdddr datum))))
 
     (define (format-reader-vector datum)
-      (let loop ((i 0)
-                 (pieces '()))
-        (if (>= i (vector-length datum))
-            (string-append "#(" (string-join (reverse pieces) " ") ")")
-            (loop (+ i 1)
-                  (cons (format-reader-datum (vector-ref datum i)) pieces)))))
+      (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
+        (let loop ((i 0)
+                   (pieces '()))
+          (if (>= i (vector-length datum))
+              (string-append prefix (string-join (reverse pieces) " ") ")")
+              (loop (+ i 1)
+                    (cons (format-reader-datum (vector-ref datum i)) pieces))))))
 
     (define (format-reader-pair datum)
       (let loop ((current datum)
@@ -256,7 +257,7 @@
         ((single-arg-symbol-form? datum 'unquote-splicing)
          (string-append ",@" (format-reader-datum (cadr datum))))
         ((pair? datum) (format-reader-pair datum))
-        ((vector? datum) (format-reader-vector datum))
+        ((or (vector? datum) (byte-vector? datum)) (format-reader-vector datum))
         (else (format-atom-value datum))))
 
 ;;; format-inline 只做单行候选文本计算，不记录位置信息，也不写 writer。

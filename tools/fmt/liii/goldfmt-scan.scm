@@ -53,7 +53,7 @@
           (utf8-string-trim-right str)))
     
     ;;; atom? 辅助函数：判断是否为 Scheme 原子类型
-    ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, eof-object,
+    ;;; 原子类型包括：symbol, number, string, boolean, char, 空列表, vector, byte-vector, eof-object,
     ;;; 以及其他不可解析的对象，还包括 S7 reader syntax 对象（如 #_quote）
     ;;; 和内部 procedure 对象（如 #_list-values）
     (define (atom? x)
@@ -65,6 +65,7 @@
           (char? x)
           (null? x)
           (vector? x)
+          (byte-vector? x)
           (eof-object? x)
           (syntax? x)
           (eq? 'undefined? (type-of x))
@@ -261,17 +262,25 @@
                (normalize-quasiquote-dotted-list datum)
          ) ;list
         ) ;
-        ((pair? datum)
-         (cons (normalize-datum (car datum))
-               (normalize-datum (cdr datum))
-         ) ;cons
-        ) ;
-        ((vector? datum)
-         (list->vector
-           (map normalize-datum (vector->list datum))
-         ) ;list->vector
-        ) ;
-        (else datum)
+         ((pair? datum)
+          (cons (normalize-datum (car datum))
+                (normalize-datum (cdr datum))
+          ) ;cons
+         ) ;
+         ((byte-vector? datum)
+          (let ((result (make-byte-vector (vector-length datum) 0)))
+            (let loop ((i 0))
+              (if (>= i (vector-length datum))
+                  result
+                  (begin
+                    (byte-vector-set! result i (normalize-datum (vector-ref datum i)))
+                    (loop (+ i 1)))))))
+         ((vector? datum)
+          (list->vector
+            (map normalize-datum (vector->list datum))
+          ) ;list->vector
+         ) ;
+         (else datum)
       ) ;cond
     ) ;define
 
