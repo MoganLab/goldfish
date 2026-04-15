@@ -1,12 +1,14 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path*
+  (cons "tools/golddoc" *load-path*)
+) ;set!
 
 (import (liii check)
-        (liii os)
-        (liii path)
-        (liii string)
-        (liii sys)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii sys)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -17,55 +19,59 @@
 ;; 而不是误报 library not found。
 
 (define (run-shell-command command)
-  (os-call (string-append "sh -c \"" command "\""))
+  (os-call (string-append "sh -c \"" command "\"")
+  ) ;os-call
 ) ;define
 
 (when (not (os-windows?))
-  (let*
-    ((index-path (path-join "tests" "function-library-index.json"))
-     (output-path
-       (path-join (path-temp-dir)
-                  (string-append "golddoc-missing-index-"
-                                 (number->string (getpid))
-                                 ".log")
-                  ) ;string-append
-     ) ;output-path
-     (saved-index-text (and (path-file? index-path)
-                            (path-read-text index-path))
-     ) ;saved-index-text
-    ) ;
+  (let* ((index-path (path-join "tests"
+                       "function-library-index.json"
+                     ) ;path-join
+         ) ;index-path
+         (output-path (path-join (path-temp-dir)
+                        (string-append "golddoc-missing-index-"
+                          (number->string (getpid))
+                          ".log"
+                        ) ;string-append
+                      ) ;path-join
+         ) ;output-path
+         (saved-index-text (and (path-file? index-path)
+                             (path-read-text index-path)
+                           ) ;and
+         ) ;saved-index-text
+        ) ;
     (path-unlink output-path #t)
-    (dynamic-wind
-      (lambda ()
-        (if saved-index-text
-            (path-unlink index-path #t)
-            #f
-        ) ;if
-      ) ;lambda
+    (dynamic-wind (lambda ()
+                    (if saved-index-text
+                      (path-unlink index-path #t)
+                      #f
+                    ) ;if
+                  ) ;lambda
       (lambda ()
         (run-shell-command (string-append (executable)
-                                          " doc 'alist->fxmapping/combinator' > "
-                                          (path->string output-path)
-                                          " 2>&1")
+                             " doc 'alist->fxmapping/combinator' > "
+                             (path->string output-path)
+                             " 2>&1"
+                           ) ;string-append
         ) ;run-shell-command
         (let ((output (path-read-text output-path)))
-          (check-true
-            (string-contains? output
-                              "Error: function index not found for query: alist->fxmapping/combinator"
-            ) ;string-contains?
+          (check-true (string-contains? output
+                        "Error: function index not found for query: alist->fxmapping/combinator"
+                      ) ;string-contains?
           ) ;check-true
-          (check-true
-            (string-contains? output
-                              "Hint: run `gf doc --build-json` to build function index."
-            ) ;string-contains?
+          (check-true (string-contains? output
+                        "Hint: run `gf doc --build-json` to build function index."
+                      ) ;string-contains?
           ) ;check-true
         ) ;let
       ) ;lambda
       (lambda ()
         (path-unlink output-path #t)
         (if saved-index-text
-            (path-write-text index-path saved-index-text)
-            #f
+          (path-write-text index-path
+            saved-index-text
+          ) ;path-write-text
+          #f
         ) ;if
       ) ;lambda
     ) ;dynamic-wind

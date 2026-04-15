@@ -1,4 +1,3 @@
-
 ;; TODO(jinser): check-error (out of range)
 
 (import (srfi srfi-1)

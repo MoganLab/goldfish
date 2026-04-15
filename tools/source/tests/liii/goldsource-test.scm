@@ -5,12 +5,15 @@
 
 ;; ==== 常见用法示例 ====
 ;; 添加 tools/goldsource 到 load path，以便导入 (liii goldsource)
-(set! *load-path* (cons "tools/goldsource" *load-path*))
+(set! *load-path*
+  (cons "tools/goldsource" *load-path*)
+) ;set!
 
 (import (liii goldsource))
 
 ;; 示例1：解析 gf source 命令行参数
-(parse-source-args '("bin/gf" "source" "liii/string")) ; => '(library "liii/string")
+(parse-source-args '("bin/gf" "source" "liii/string")
+) ;parse-source-args
 
 ;; 示例2：定位可见库的源文件
 (source-library-path "liii/string")

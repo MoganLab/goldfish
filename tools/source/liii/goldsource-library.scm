@@ -16,36 +16,40 @@
 
 (define-library (liii goldsource-library)
   (import (scheme base)
-          (liii goldsource-args)
-          (liii path)
+    (liii goldsource-args)
+    (liii path)
   ) ;import
   (export find-visible-library-root
-          source-library-path
+    source-library-path
   ) ;export
   (begin
 
     (define (find-visible-library-root query)
       (let ((parts (parse-library-query query)))
         (if (not parts)
-            #f
-            (let ((group (car parts))
-                  (library (cdr parts)))
-              (let loop ((roots *load-path*))
-                (if (null? roots)
-                    #f
-                    (let ((load-root (car roots)))
-                      (if (and (string? load-root)
-                               (path-file? (path-join load-root
-                                                      group
-                                                      (string-append library ".scm")))
-                          ) ;and
-                          load-root
-                          (loop (cdr roots))
-                      ) ;if
-                    ) ;let
-                ) ;if
-              ) ;let
+          #f
+          (let ((group (car parts))
+                (library (cdr parts))
+               ) ;
+            (let loop
+              ((roots *load-path*))
+              (if (null? roots)
+                #f
+                (let ((load-root (car roots)))
+                  (if (and (string? load-root)
+                        (path-file? (path-join load-root
+                                      group
+                                      (string-append library ".scm")
+                                    ) ;path-join
+                        ) ;path-file?
+                      ) ;and
+                    load-root
+                    (loop (cdr roots))
+                  ) ;if
+                ) ;let
+              ) ;if
             ) ;let
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
@@ -55,9 +59,16 @@
              (group (and parts (car parts)))
              (library (and parts (cdr parts)))
              (load-root (and parts
-                             (find-visible-library-root query))))
+                          (find-visible-library-root query)
+                        ) ;and
+             ) ;load-root
+            ) ;
         (and load-root
-             (path->string (path-join load-root group (string-append library ".scm")))
+          (path->string (path-join load-root
+                          group
+                          (string-append library ".scm")
+                        ) ;path-join
+          ) ;path->string
         ) ;and
       ) ;let*
     ) ;define

@@ -1,10 +1,10 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+(set! *load-path*
+  (cons "tools/golddoc" *load-path*)
+) ;set!
 
-(import (liii check)
-        (liii golddoc)
-) ;import
+(import (liii check) (liii golddoc))
 
 (check-set-mode! 'report-failed)
 
@@ -32,20 +32,32 @@
 
 (check max-fuzzy-edit-distance => 2)
 
-(check (bounded-levenshtein-distance "string-splst" "string-split")
-  => 1
+(check (bounded-levenshtein-distance "string-splst"
+         "string-split"
+       ) ;bounded-levenshtein-distance
+  =>
+  1
 ) ;check
 
-(check (bounded-levenshtein-distance "string-spilt" "string-split")
-  => 2
+(check (bounded-levenshtein-distance "string-spilt"
+         "string-split"
+       ) ;bounded-levenshtein-distance
+  =>
+  2
 ) ;check
 
-(check (bounded-levenshtein-distance "string-split" "string-split")
-  => 0
+(check (bounded-levenshtein-distance "string-split"
+         "string-split"
+       ) ;bounded-levenshtein-distance
+  =>
+  0
 ) ;check
 
-(check (bounded-levenshtein-distance "string-splst" "hash-table")
-  => #f
+(check (bounded-levenshtein-distance "string-splst"
+         "hash-table"
+       ) ;bounded-levenshtein-distance
+  =>
+  #f
 ) ;check
 
 (check-report)

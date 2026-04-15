@@ -1,4 +1,3 @@
-
 (import (srfi srfi-78) (srfi srfi-39))
 
 (check-set-mode! 'report-failed)

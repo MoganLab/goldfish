@@ -15,15 +15,12 @@
 ;;
 
 (define-library (srfi srfi-8)
-  (export receive)              
+  (export receive)
   (begin
 
     (define-macro (receive formals expression . body)
-      `(call-with-values
-        (lambda () (values ,expression))
-        (lambda ,formals ,@body))
+      `(call-with-values (lambda ,() (values ,expression)) (lambda ,formals ,@body))
     ) ;define-macro
 
   ) ;begin
 ) ;define-library
-
