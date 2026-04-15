@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii error)
-        (liii string)
-        (srfi srfi-13)
+  (liii error)
+  (liii string)
+  (srfi srfi-13)
 ) ;import
 
 ;; string-fold
@@ -49,146 +49,250 @@
 ;; out-of-range 当start/end超出字符串索引范围或start > end时
 
 ;; 基本功能测试 - 空字符串
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "") => 0)
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         ""
+       ) ;string-fold
+  =>
+  0
+) ;check
 
 ;; 基本功能测试 - 简单累加
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "hello") => 5)
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "hello"
+       ) ;string-fold
+  =>
+  5
+) ;check
 
 ;; 字符收集测试
-(check (string-fold cons '() "abc") => '(#\c #\b #\a))
+(check (string-fold cons '() "abc")
+  =>
+  '(#\c #\b #\a)
+) ;check
 
 ;; 内容处理测试 - 字符连接方向验证
-(check
-  (string-fold
-    (lambda (c acc) (string-append acc (string c)))
-    ""
-    "abc"
-  ) ;string-fold
-  => "abc"
+(check (string-fold (lambda (c acc)
+                      (string-append acc (string c))
+                    ) ;lambda
+         ""
+         "abc"
+       ) ;string-fold
+  =>
+  "abc"
 ) ;check
 
 ;; 统计分析测试
-(check
-  (string-fold
-    (lambda (c acc) (if (char=? c #\a) (+ acc 1) acc))
-    0
-    "banana"
-  ) ;string-fold
-  => 3
+(check (string-fold (lambda (c acc)
+                      (if (char=? c #\a) (+ acc 1) acc)
+                    ) ;lambda
+         0
+         "banana"
+       ) ;string-fold
+  =>
+  3
 ) ;check
 
 ;; ASCII码累加求和
-(check
-  (string-fold (lambda (c total) (+ total (char->integer c))) 0 "AB")
-  => 131 ; 65 + 66
+(check (string-fold (lambda (c total)
+                      (+ total (char->integer c))
+                    ) ;lambda
+         0
+         "AB"
+       ) ;string-fold
+  =>
+  131
 ) ;check
 
 ;; 字符过滤 - 数字
-(check
-  (string-fold
-    (lambda (c acc)
-      (if (char-numeric? c)
-          (cons c acc)
-          acc
-      ) ;if
-    ) ;lambda
-    '()
-    "a1b2c3"
-  ) ;string-fold
-  => '(#\3 #\2 #\1)
+(check (string-fold (lambda (c acc)
+                      (if (char-numeric? c) (cons c acc) acc)
+                    ) ;lambda
+         '()
+         "a1b2c3"
+       ) ;string-fold
+  =>
+  '(#\3 #\2 #\1)
 ) ;check
 
 ;; 字符分类统计
-(check
-  (string-fold
-    (lambda (c counts)
-      (cond
-        ((char-alphabetic? c)
-         (list (+ (car counts) 1) (cadr counts) (caddr counts))
-        ) ;
-        ((char-numeric? c)
-         (list (car counts) (+ (cadr counts) 1) (caddr counts))
-        ) ;
-        (else
-         (list (car counts) (cadr counts) (+ (caddr counts) 1))
-        ) ;else
-      ) ;cond
-    ) ;lambda
-    '(0 0 0)  ; letters, digits, others
-    "hello123!"
-  ) ;string-fold
-  => '(5 3 1)
+(check (string-fold (lambda (c counts)
+                      (cond ((char-alphabetic? c)
+                             (list (+ (car counts) 1)
+                               (cadr counts)
+                               (caddr counts)
+                             ) ;list
+                            ) ;
+                            ((char-numeric? c)
+                             (list (car counts)
+                               (+ (cadr counts) 1)
+                               (caddr counts)
+                             ) ;list
+                            ) ;
+                            (else (list (car counts)
+                                    (cadr counts)
+                                    (+ (caddr counts) 1)
+                                  ) ;list
+                            ) ;else
+                      ) ;cond
+                    ) ;lambda
+         '(0 0 0)
+         "hello123!"
+       ) ;string-fold
+  =>
+  '(5 3 1)
 ) ;check
 
 ;; start/end 范围参数测试
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" 1 4) => 3)
-(check (string-fold cons '() "abcdef" 2 5) => '(#\e #\d #\c))
-
-;; 边界条件测试 - single character
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "a") => 1)
-
-;; 边界条件测试 - range equals string length
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "test" 0 4) => 4)
-
-;; 极限空范围测试
-(check (string-fold (lambda (c acc) (+ acc 1)) 0 "test" 2 2) => 0)
-
-;; 复杂lambda计算测试
-(check
-  (string-fold
-    (lambda (c acc)
-      (+ acc (* (char->integer c) (char->integer c)))
-    ) ;lambda
-    0
-    "AB"
-  ) ;string-fold
-  => 8581 ; 65² + 66²
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "hello"
+         1
+         4
+       ) ;string-fold
+  =>
+  3
+) ;check
+(check (string-fold cons '() "abcdef" 2 5)
+  =>
+  '(#\e #\d #\c)
 ) ;check
 
-(check
-  (string-fold
-    (lambda (c acc)
-      (max acc (char->integer c))
-    ) ;lambda
-    0
-    "ABC"
-  ) ;string-fold
-  => 67 ; max ASCII of A,B,C
+;; 边界条件测试 - single character
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "a"
+       ) ;string-fold
+  =>
+  1
+) ;check
+
+;; 边界条件测试 - range equals string length
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "test"
+         0
+         4
+       ) ;string-fold
+  =>
+  4
+) ;check
+
+;; 极限空范围测试
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "test"
+         2
+         2
+       ) ;string-fold
+  =>
+  0
+) ;check
+
+;; 复杂lambda计算测试
+(check (string-fold (lambda (c acc)
+                      (+ acc
+                        (* (char->integer c) (char->integer c))
+                      ) ;+
+                    ) ;lambda
+         0
+         "AB"
+       ) ;string-fold
+  =>
+  8581
+) ;check
+
+(check (string-fold (lambda (c acc)
+                      (max acc (char->integer c))
+                    ) ;lambda
+         0
+         "ABC"
+       ) ;string-fold
+  =>
+  67
 ) ;check
 
 ;; Unicode字符测试
-(check
-  (string-fold (lambda (c acc) (+ acc 1)) 0 "中文")
-  => (string-length "中文")
+(check (string-fold (lambda (c acc) (+ acc 1))
+         0
+         "中文"
+       ) ;string-fold
+  =>
+  (string-length "中文")
 ) ;check
 
 ;; 反向构建测试
-(check
-  (string-fold
-    (lambda (c acc) (string-append acc (string (char-upcase c))))
-    ""
-    "abc"
-  ) ;string-fold
-  => "ABC"
+(check (string-fold (lambda (c acc)
+                      (string-append acc
+                        (string (char-upcase c))
+                      ) ;string-append
+                    ) ;lambda
+         ""
+         "abc"
+       ) ;string-fold
+  =>
+  "ABC"
 ) ;check
 
 ;; 多类型累加器 - hand calculation: 104+101+108+108+111 = 532 for "hello"
-(check
-  (string-fold (lambda (c acc) (+ acc (char->integer c))) 0 "hello")
-  => 532
+(check (string-fold (lambda (c acc)
+                      (+ acc (char->integer c))
+                    ) ;lambda
+         0
+         "hello"
+       ) ;string-fold
+  =>
+  532
 ) ;check
 
 ;; === 错误处理测试 ===
 
 ;; 参数类型错误测试
-(check-catch 'type-error (string-fold 123 0 "hello"))
-(check-catch 'type-error (string-fold (lambda (c acc) (+ acc 1)) 0 123))
-(check-catch 'type-error (string-fold "not-a-proc" 0 "hello"))
+(check-catch 'type-error
+  (string-fold 123 0 "hello")
+) ;check-catch
+(check-catch 'type-error
+  (string-fold (lambda (c acc) (+ acc 1))
+    0
+    123
+  ) ;string-fold
+) ;check-catch
+(check-catch 'type-error
+  (string-fold "not-a-proc" 0 "hello")
+) ;check-catch
 
 ;; 范围越界测试
-(check-catch 'out-of-range (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" -1))
-(check-catch 'out-of-range (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" 0 6))
-(check-catch 'out-of-range (string-fold (lambda (c acc) (+ acc 1)) 0 "hello" 3 2))
-(check-catch 'out-of-range (string-fold (lambda (c acc) (+ acc 1)) 0 "" 1 2))
+(check-catch 'out-of-range
+  (string-fold (lambda (c acc) (+ acc 1))
+    0
+    "hello"
+    -1
+  ) ;string-fold
+) ;check-catch
+(check-catch 'out-of-range
+  (string-fold (lambda (c acc) (+ acc 1))
+    0
+    "hello"
+    0
+    6
+  ) ;string-fold
+) ;check-catch
+(check-catch 'out-of-range
+  (string-fold (lambda (c acc) (+ acc 1))
+    0
+    "hello"
+    3
+    2
+  ) ;string-fold
+) ;check-catch
+(check-catch 'out-of-range
+  (string-fold (lambda (c acc) (+ acc 1))
+    0
+    ""
+    1
+    2
+  ) ;string-fold
+) ;check-catch
 
 (check-report)

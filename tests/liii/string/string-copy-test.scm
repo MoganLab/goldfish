@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-copy
 ;; 创建字符串的副本，支持可选的开始和结束位置参数进行子串拷贝。
@@ -41,50 +39,103 @@
 ;; out-of-range 当start或end超出字符串索引范围时
 ;; out-of-range 当start > end时
 
-; Basic string-copy functionality tests
-(check-true (equal? (string-copy "hello") "hello"))
-(check-true (equal? (string-copy "hello" 1) "ello"))
-(check-true (equal? (string-copy "hello" 1 4) "ell"))
-(check-true (equal? (string-copy "") ""))
-(check-true (equal? (string-copy "中文测试") "中文测试"))
-(check-true (equal? (string-copy "中文测试" 6) "测试"))
-(check-true (equal? (string-copy "中文测试" 0 6) "中文"))
+(check-true (equal? (string-copy "hello") "hello")
+) ;check-true
+(check-true (equal? (string-copy "hello" 1) "ello")
+) ;check-true
+(check-true (equal? (string-copy "hello" 1 4) "ell")
+) ;check-true
+(check-true (equal? (string-copy "") "")
+) ;check-true
+(check-true (equal? (string-copy "中文测试")
+              "中文测试"
+            ) ;equal?
+) ;check-true
+(check-true (equal? (string-copy "中文测试" 6)
+              "测试"
+            ) ;equal?
+) ;check-true
+(check-true (equal? (string-copy "中文测试" 0 6)
+              "中文"
+            ) ;equal?
+) ;check-true
 
-(check-true (equal? (string-copy "hello" 0) "hello"))
-(check-true (equal? (string-copy "hello" 5) ""))
-(check-true (equal? (string-copy "abc" 0 0) ""))
-(check-true (equal? (string-copy "abc" 0 1) "a"))
-(check-true (equal? (string-copy "abc" 0 2) "ab"))
-(check-true (equal? (string-copy "abc" 0 3) "abc"))
+(check-true (equal? (string-copy "hello" 0) "hello")
+) ;check-true
+(check-true (equal? (string-copy "hello" 5) "")
+) ;check-true
+(check-true (equal? (string-copy "abc" 0 0) "")
+) ;check-true
+(check-true (equal? (string-copy "abc" 0 1) "a")
+) ;check-true
+(check-true (equal? (string-copy "abc" 0 2) "ab")
+) ;check-true
+(check-true (equal? (string-copy "abc" 0 3) "abc")
+) ;check-true
 
-; Deep copy verification
-(check-false (eq? (string-copy "hello") "hello"))
+(check-false (eq? (string-copy "hello") "hello")
+) ;check-false
 
 (let ((original "hello"))
-  (check-true (string=? (string-copy original) original))
-  (check-false (eq? (string-copy original) original))
+  (check-true (string=? (string-copy original)
+                original
+              ) ;string=?
+  ) ;check-true
+  (check-false (eq? (string-copy original) original)
+  ) ;check-false
 ) ;let
 
-; Substring copy tests
-(check-true (equal? (string-copy "test123" 0 4) "test"))
-(check-true (equal? (string-copy "test123" 4 7) "123"))
+(check-true (equal? (string-copy "test123" 0 4)
+              "test"
+            ) ;equal?
+) ;check-true
+(check-true (equal? (string-copy "test123" 4 7)
+              "123"
+            ) ;equal?
+) ;check-true
 
-; Unicode and emoji tests
-(check-true (equal? (string-copy "🌟🎉" 0 4) "🌟"))
-(check-true (equal? (string-copy "🌟🎉" 4 8) "🎉"))
+(check-true (equal? (string-copy "🌟🎉" 0 4)
+              "🌟"
+            ) ;equal?
+) ;check-true
+(check-true (equal? (string-copy "🌟🎉" 4 8)
+              "🎉"
+            ) ;equal?
+) ;check-true
 
-; Error handling tests
-(check-catch 'wrong-type-arg (string-copy 123))
-(check-catch 'wrong-type-arg (string-copy 'hello))
-(check-catch 'out-of-range (string-copy "hello" -1))
-(check-catch 'out-of-range (string-copy "hello" 10))
-(check-catch 'out-of-range (string-copy "hello" 0 10))
-(check-catch 'out-of-range (string-copy "" 1))
-(check-catch 'out-of-range (string-copy "hello" 3 2))
-(check-catch 'out-of-range (string-copy "hello" 4 3))
+(check-catch 'wrong-type-arg
+  (string-copy 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-copy 'hello)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "hello" -1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "hello" 10)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "hello" 0 10)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "" 1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "hello" 3 2)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-copy "hello" 4 3)
+) ;check-catch
 
-(check-catch 'wrong-type-arg (string-copy "hello" "a"))
-(check-catch 'wrong-type-arg (string-copy "hello" 1.5))
-(check-catch 'wrong-type-arg (string-copy "hello" 1 4.5))
+(check-catch 'wrong-type-arg
+  (string-copy "hello" "a")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-copy "hello" 1.5)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-copy "hello" 1 4.5)
+) ;check-catch
 
 (check-report)

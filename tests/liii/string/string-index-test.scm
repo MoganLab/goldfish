@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-index
 ;; 在字符串中查找指定字符或满足条件的第一个字符的位置。
@@ -57,90 +55,245 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-; Basic functionality tests
 (check (string-index "hello" #\e) => 1)
 (check (string-index "hello" #\z) => #f)
 (check (string-index "hello" #\l) => 2)
-(check (string-index "hello" #\l 3) => 3)
-(check (string-index "abc123" char-numeric?) => 3)
-(check (string-index "abc123" char-alphabetic?) => 0)
+(check (string-index "hello" #\l 3)
+  =>
+  3
+) ;check
+(check (string-index "abc123" char-numeric?)
+  =>
+  3
+) ;check
+(check (string-index "abc123" char-alphabetic?)
+  =>
+  0
+) ;check
 (check (string-index "" #\x) => #f)
 
-; Character parameter tests
-(check (string-index "0123456789" #\2) => 2)
-(check (string-index "0123456789" #\2 2) => 2)
-(check (string-index "0123456789" #\2 3) => #f)
-(check (string-index "01x3456789" char-alphabetic?) => 2)
+(check (string-index "0123456789" #\2)
+  =>
+  2
+) ;check
+(check (string-index "0123456789" #\2 2)
+  =>
+  2
+) ;check
+(check (string-index "0123456789" #\2 3)
+  =>
+  #f
+) ;check
+(check (string-index "01x3456789"
+         char-alphabetic?
+       ) ;string-index
+  =>
+  2
+) ;check
 
-; Extended comprehensive tests
 (check (string-index "hello" #\h) => 0)
 (check (string-index "hello" #\o) => 4)
-(check (string-index "hello hello" #\space) => 5)
-(check (string-index "hello" #\H) => #f) ; case-sensitive
+(check (string-index "hello hello" #\space)
+  =>
+  5
+) ;check
+(check (string-index "hello" #\H) => #f)
 (check (string-index "" #\a) => #f)
 (check (string-index "a" #\a) => 0)
 (check (string-index "aaaa" #\a) => 0)
-(check (string-index "0123456789" #\0) => 0)
-(check (string-index "0123456789" #\9) => 9)
+(check (string-index "0123456789" #\0)
+  =>
+  0
+) ;check
+(check (string-index "0123456789" #\9)
+  =>
+  9
+) ;check
 
-; Predicate parameter tests
-(check (string-index "0123456789" char-numeric?) => 0)
-(check (string-index "abc123" char-numeric?) => 3)
-(check (string-index "123abc" char-alphabetic?) => 3)
-(check (string-index "Hello123" char-upper-case?) => 0)
-(check (string-index "hello123" char-upper-case?) => #f)
-(check (string-index "123!@#" char-alphabetic?) => #f)
-(check (string-index "hello\n\t " char-whitespace?) => 5)
-(check (string-index "hello" (lambda (c) (char=? c #\l))) => 2)
+(check (string-index "0123456789"
+         char-numeric?
+       ) ;string-index
+  =>
+  0
+) ;check
+(check (string-index "abc123" char-numeric?)
+  =>
+  3
+) ;check
+(check (string-index "123abc" char-alphabetic?)
+  =>
+  3
+) ;check
+(check (string-index "Hello123"
+         char-upper-case?
+       ) ;string-index
+  =>
+  0
+) ;check
+(check (string-index "hello123"
+         char-upper-case?
+       ) ;string-index
+  =>
+  #f
+) ;check
+(check (string-index "123!@#" char-alphabetic?)
+  =>
+  #f
+) ;check
+(check (string-index "hello\n\t "
+         char-whitespace?
+       ) ;string-index
+  =>
+  5
+) ;check
+(check (string-index "hello"
+         (lambda (c) (char=? c #\l))
+       ) ;string-index
+  =>
+  2
+) ;check
 
-; Single character edge cases
 (check (string-index "a" #\a) => 0)
 (check (string-index "a" #\b) => #f)
 (check (string-index " " #\space) => 0)
-(check (string-index "\t" char-whitespace?) => 0)
+(check (string-index "\t" char-whitespace?)
+  =>
+  0
+) ;check
 
-; Start and end parameter tests
-(check (string-index "hello" #\l 0) => 2)
-(check (string-index "hello" #\l 1) => 2)
-(check (string-index "hello" #\l 2) => 2)
-(check (string-index "hello" #\l 3) => 3)
-(check (string-index "hello" #\l 4) => #f)
-(check (string-index "hello" #\l 5) => #f)
-(check (string-index "hello" #\l 0 3) => 2)
-(check (string-index "hello" #\l 0 2) => #f)
-(check (string-index "hello" #\l 1 4) => 2)
-(check (string-index "hello" #\l 2 4) => 2)
-(check (string-index "hello" #\l 3 4) => 3)
-(check (string-index "hello" #\l 3 3) => #f)
+(check (string-index "hello" #\l 0)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 1)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 2)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 3)
+  =>
+  3
+) ;check
+(check (string-index "hello" #\l 4)
+  =>
+  #f
+) ;check
+(check (string-index "hello" #\l 5)
+  =>
+  #f
+) ;check
+(check (string-index "hello" #\l 0 3)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 0 2)
+  =>
+  #f
+) ;check
+(check (string-index "hello" #\l 1 4)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 2 4)
+  =>
+  2
+) ;check
+(check (string-index "hello" #\l 3 4)
+  =>
+  3
+) ;check
+(check (string-index "hello" #\l 3 3)
+  =>
+  #f
+) ;check
 
-; Special characters and edge cases
 (check (string-index "_test" #\_) => 0)
 (check (string-index "a@b" #\@) => 1)
-(check (string-index "hello,world" #\,) => 5)
+(check (string-index "hello,world" #\,)
+  =>
+  5
+) ;check
 (check (string-index "a-b-c" #\-) => 1)
 
-; Complex predicates
-(check (string-index "123abc!@#" (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))) => 0)
-(check (string-index "!@#abc123" (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))) => 3)
-(check (string-index "abc123" char-upper-case?) => #f)
-(check (string-index "ABC123" char-upper-case?) => 0)
-(check (string-index "abcABC" char-upper-case?) => 3)
+(check (string-index "123abc!@#"
+         (lambda (c)
+           (or (char-alphabetic? c)
+             (char-numeric? c)
+           ) ;or
+         ) ;lambda
+       ) ;string-index
+  =>
+  0
+) ;check
+(check (string-index "!@#abc123"
+         (lambda (c)
+           (or (char-alphabetic? c)
+             (char-numeric? c)
+           ) ;or
+         ) ;lambda
+       ) ;string-index
+  =>
+  3
+) ;check
+(check (string-index "abc123" char-upper-case?)
+  =>
+  #f
+) ;check
+(check (string-index "ABC123" char-upper-case?)
+  =>
+  0
+) ;check
+(check (string-index "abcABC" char-upper-case?)
+  =>
+  3
+) ;check
 
-; Empty string and boundary conditions
-(check (string-index "" char-alphabetic?) => #f)
-(check (string-index "" char-numeric?) => #f)
-(check (string-index "abc" char-whitespace?) => #f)
-(check (string-index "12345" char-alphabetic?) => #f)
+(check (string-index "" char-alphabetic?)
+  =>
+  #f
+) ;check
+(check (string-index "" char-numeric?)
+  =>
+  #f
+) ;check
+(check (string-index "abc" char-whitespace?)
+  =>
+  #f
+) ;check
+(check (string-index "12345" char-alphabetic?)
+  =>
+  #f
+) ;check
 
-; Error handling tests
-(check-catch 'wrong-type-arg (string-index 123 #\a))
-(check-catch 'wrong-type-arg (string-index "hello" "a"))
-(check-catch 'wrong-type-arg (string-index "hello" 123))
-(check-catch 'wrong-type-arg (string-index "hello" '(a)))
-(check-catch 'out-of-range (string-index "hello" #\a -1))
-(check-catch 'out-of-range (string-index "hello" #\a 0 6))
-(check-catch 'out-of-range (string-index "hello" #\a 3 2))
-(check-catch 'out-of-range (string-index "" #\a 1))
-(check-catch 'out-of-range (string-index "abc" #\a 5))
+(check-catch 'wrong-type-arg
+  (string-index 123 #\a)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index "hello" "a")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index "hello" 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index "hello" '(a))
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index "hello" #\a -1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index "hello" #\a 0 6)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index "hello" #\a 3 2)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index "" #\a 1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index "abc" #\a 5)
+) ;check-catch
 
 (check-report)

@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -41,30 +41,52 @@
 ;; type-error 当 json 不是 JSON 对象、数组或空列表时。
 
 (define bob-j
-  '((bob . ((age . 18)
-            (sex . male)
-            (name . "Bob"))))
+  '((bob (age . 18) (sex . male) (name . "Bob")))
 ) ;define
 
 (check (json-ref bob-j 'bob 'age) => 18)
-(check (json-ref bob-j 'bob 'sex) => 'male)
+(check (json-ref bob-j 'bob 'sex)
+  =>
+  'male
+) ;check
 (check (json-ref bob-j 'alice) => '())
-(check (json-ref bob-j 'alice 'age) => '())
-(check (json-ref bob-j 'bob 'name) => "Bob")
+(check (json-ref bob-j 'alice 'age)
+  =>
+  '()
+) ;check
+(check (json-ref bob-j 'bob 'name)
+  =>
+  "Bob"
+) ;check
 
-(let ((j '((bob . ((age . 18) (sex . male))))))
-  (check (json-null? (json-ref j 'alice)) => #f)
-  (check (null? (json-ref j 'alice)) => #t)
-  (check (json-null? (json-ref j 'bob)) => #f)
+(let ((j '((bob (age . 18) (sex . male)))))
+  (check (json-null? (json-ref j 'alice))
+    =>
+    #f
+  ) ;check
+  (check (null? (json-ref j 'alice))
+    =>
+    #t
+  ) ;check
+  (check (json-null? (json-ref j 'bob))
+    =>
+    #f
+  ) ;check
 ) ;let
 
-(let ((j '((alice . ((age . 18) (sex . male))))))
-  (check (json-null? (json-ref j 'alice)) => #f)
+(let ((j '((alice (age . 18) (sex . male)))))
+  (check (json-null? (json-ref j 'alice))
+    =>
+    #f
+  ) ;check
   (check (null? (json-ref j 'bob)) => #t)
 ) ;let
 
-(check-catch 'type-error (json-ref "not-a-json" 'key))
-(check-catch 'type-error (json-ref 123 'key))
+(check-catch 'type-error
+  (json-ref "not-a-json" 'key)
+) ;check-catch
+(check-catch 'type-error
+  (json-ref 123 'key)
+) ;check-catch
 
 (check-report)
-

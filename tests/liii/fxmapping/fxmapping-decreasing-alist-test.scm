@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,6 +18,10 @@
 ;; -----
 ;; 返回按键降序排列的关联列表。
 ;;
-(check (fxmapping->decreasing-alist (fxmapping 0 'a 1 'b)) => '((1 . b) (0 . a)))
+(check (fxmapping->decreasing-alist (fxmapping 0 'a 1 'b)
+       ) ;fxmapping->decreasing-alist
+  =>
+  '((1 . b) (0 . a))
+) ;check
 
 (check-report)

@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-every
 ;; 检查字符串中的每个字符是否都满足给定的条件。
@@ -57,73 +55,175 @@
 
 ;; 基本功能测试
 (check-true (string-every #\x "xxxxxx"))
-(check-false (string-every #\x "xxx0xx"))
+(check-false (string-every #\x "xxx0xx")
+) ;check-false
 
-(check-true (string-every char-numeric? "012345"))
-(check-false (string-every char-numeric? "012d45"))
+(check-true (string-every char-numeric? "012345")
+) ;check-true
+(check-false (string-every char-numeric? "012d45")
+) ;check-false
 
-(check-true (string-every char-alphabetic? "abc"))
-(check-false (string-every char-alphabetic? "abc123"))
-(check-true (string-every char-upper-case? "ABC"))
-(check-false (string-every char-upper-case? "AbC"))
+(check-true (string-every char-alphabetic? "abc")
+) ;check-true
+(check-false (string-every char-alphabetic? "abc123")
+) ;check-false
+(check-true (string-every char-upper-case? "ABC")
+) ;check-true
+(check-false (string-every char-upper-case? "AbC")
+) ;check-false
 
-(check-true (string-every char-whitespace? "   "))
-(check-false (string-every char-whitespace? "  a "))
+(check-true (string-every char-whitespace? "   ")
+) ;check-true
+(check-false (string-every char-whitespace? "  a ")
+) ;check-false
 
 (check-true (string-every #\a ""))
-(check-true (string-every char-numeric? ""))
+(check-true (string-every char-numeric? "")
+) ;check-true
 
-(check-catch 'wrong-type-arg (string-every 1 "012345"))
-(check-catch 'wrong-type-arg (string-every #\012345 "012345"))
-(check-catch 'wrong-type-arg (string-every "012345" "012345"))
+(check-catch 'wrong-type-arg
+  (string-every 1 "012345")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-every #\012345 "012345")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-every "012345" "012345")
+) ;check-catch
 
-(check-true (string-every char-numeric? "012345"))
-(check-false (string-every number? "012345"))
+(check-true (string-every char-numeric? "012345")
+) ;check-true
+(check-false (string-every number? "012345")
+) ;check-false
 
-(check-true (string-every char-numeric? "ab2345" 2))
-(check-false (string-every char-numeric? "ab2345" 1))
-(check-false (string-every  char-numeric? "ab234f" 2))
-(check-true (string-every char-numeric? "ab234f" 2 4))
-(check-true (string-every char-numeric? "ab234f" 2 2))
-(check-false (string-every char-numeric? "ab234f" 1 4))
-(check-true (string-every char-numeric? "ab234f" 2 5))
-(check-false (string-every char-numeric? "ab234f" 2 6))
+(check-true (string-every char-numeric? "ab2345" 2)
+) ;check-true
+(check-false (string-every char-numeric? "ab2345" 1)
+) ;check-false
+(check-false (string-every char-numeric? "ab234f" 2)
+) ;check-false
+(check-true (string-every char-numeric?
+              "ab234f"
+              2
+              4
+            ) ;string-every
+) ;check-true
+(check-true (string-every char-numeric?
+              "ab234f"
+              2
+              2
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-numeric?
+               "ab234f"
+               1
+               4
+             ) ;string-every
+) ;check-false
+(check-true (string-every char-numeric?
+              "ab234f"
+              2
+              5
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-numeric?
+               "ab234f"
+               2
+               6
+             ) ;string-every
+) ;check-false
 
-(check-true (string-every #\a "aabbcc" 0 1))
-(check-false (string-every #\a "aabbcc" 1 3))
-(check-true (string-every char-lower-case? "abcABC" 0 3))
-(check-false (string-every char-lower-case? "abcABC" 3 6))
+(check-true (string-every #\a "aabbcc" 0 1)
+) ;check-true
+(check-false (string-every #\a "aabbcc" 1 3)
+) ;check-false
+(check-true (string-every char-lower-case?
+              "abcABC"
+              0
+              3
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-lower-case?
+               "abcABC"
+               3
+               6
+             ) ;string-every
+) ;check-false
 
-(check-catch 'out-of-range (string-every char-numeric? "ab234f" 2 7))
-(check-catch 'out-of-range (string-every char-numeric? "ab234f" 2 1))
+(check-catch 'out-of-range
+  (string-every char-numeric?
+    "ab234f"
+    2
+    7
+  ) ;string-every
+) ;check-catch
+(check-catch 'out-of-range
+  (string-every char-numeric?
+    "ab234f"
+    2
+    1
+  ) ;string-every
+) ;check-catch
 
 ;; 边界测试：空字符串必须返回#t
-(check-true (string-every char-alphabetic? ""))
-(check-true (string-every char-numeric? ""))
-(check-true (string-every char-whitespace? ""))
+(check-true (string-every char-alphabetic? "")
+) ;check-true
+(check-true (string-every char-numeric? "")
+) ;check-true
+(check-true (string-every char-whitespace? "")
+) ;check-true
 
 ;; 单字符边界测试
-(check-true (string-every char-alphabetic? "a"))
-(check-false (string-every char-numeric? "a"))
-(check-true (string-every char-numeric? "9"))
+(check-true (string-every char-alphabetic? "a")
+) ;check-true
+(check-false (string-every char-numeric? "a")
+) ;check-false
+(check-true (string-every char-numeric? "9")
+) ;check-true
 
 ;; 多字节字符测试（中文、emoji和UTF-8边界）
-(check-true (string-every (lambda (c) #t) "一二三")) ; 所有Unicode字符都存在
-(check-true (string-every (lambda (c) #t) "😀😃😄😁")) ; emoji字符处理
-(check-false (string-every char-alphabetic? "ab中文")) ; 中文不是字母字符
+(check-true (string-every (lambda (c) #t)
+              "一二三"
+            ) ;string-every
+) ;check-true
+(check-true (string-every (lambda (c) #t)
+              "😀😃😄😁"
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-alphabetic?
+               "ab中文"
+             ) ;string-every
+) ;check-false
 
 ;; UTF-8边界测试: 空范围始终返回true
-(check-true (string-every char-alphabetic? "abc" 0 0)) ; 零长度范围边界
-(check-false (string-every char-alphabetic? "123abc"))
+(check-true (string-every char-alphabetic?
+              "abc"
+              0
+              0
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-alphabetic? "123abc")
+) ;check-false
 
 ;; 特殊字符边界测试
-(check-true (string-every char-whitespace? "\t\n\r "))
-(check-false (string-every char-numeric? "123\n45"))
-(check-true (string-every (lambda (c) (not (char-whitespace? c))) "!@#$%^"))
+(check-true (string-every char-whitespace?
+              "\t\n\r "
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-numeric? "123\n45")
+) ;check-false
+(check-true (string-every (lambda (c) (not (char-whitespace? c)))
+              "!@#$%^"
+            ) ;string-every
+) ;check-true
 
 ;; 全字符验证边界
-(check-true (string-every (lambda (c) (char<=? #\A c #\Z)) "ABCDEF"))
-(check-false (string-every char-lower-case? "ABCdef"))
+(check-true (string-every (lambda (c) (char<=? #\A c #\Z))
+              "ABCDEF"
+            ) ;string-every
+) ;check-true
+(check-false (string-every char-lower-case? "ABCdef")
+) ;check-false
 
 ;; 谓词为字符时边界测试
 (check-true (string-every #\a ""))
@@ -132,16 +232,27 @@
 
 ;; 大型字符串性能边界测试
 (let ((big-string (make-string 5000 #\a)))
-  (check-true (string-every char-alphabetic? big-string))
+  (check-true (string-every char-alphabetic?
+                big-string
+              ) ;string-every
+  ) ;check-true
 ) ;let
 
 ;; 早期终止验证测试（性能）
-(let ((mixed-string (string-append (make-string 3000 #\a) "b" (make-string 2000 #\a))))
-  (check-false (string-every #\a mixed-string))
+(let ((mixed-string (string-append (make-string 3000 #\a)
+                      "b"
+                      (make-string 2000 #\a)
+                    ) ;string-append
+      ) ;mixed-string
+     ) ;
+  (check-false (string-every #\a mixed-string)
+  ) ;check-false
 ) ;let
 
 ;; 边界索引测试
-(check-true (string-every char-numeric? "a1b2c" 1 2))  ; 单字符验证
-(check-false (string-every char-numeric? "a1234" 0 5))  ; 混合字符测试
+(check-true (string-every char-numeric? "a1b2c" 1 2)
+) ;check-true
+(check-false (string-every char-numeric? "a1234" 0 5)
+) ;check-false
 
 (check-report)

@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-split
 ;; 按指定字符串分隔符精确分割字符串，保留空字段。
@@ -35,72 +33,170 @@
 ;; type-error 当 `sep` 不是字符串或字符时
 ;; wrong-number-of-args 当参数数量不正确时
 
-; 基本功能测试
-(check (string-split "a,b,c" ",") => '("a" "b" "c"))
-(check (string-split "path::to::file" "::") => '("path" "to" "file"))
-(check (string-split "2026-03-27" "-") => '("2026" "03" "27"))
+(check (string-split "a,b,c" ",")
+  =>
+  '("a" "b" "c")
+) ;check
+(check (string-split "path::to::file" "::")
+  =>
+  '("path" "to" "file")
+) ;check
+(check (string-split "2026-03-27" "-")
+  =>
+  '("2026" "03" "27")
+) ;check
 
-; 保留空字段
-(check (string-split "a,,b," ",") => '("a" "" "b" ""))
-(check (string-split ",a,b" ",") => '("" "a" "b"))
-(check (string-split "::a::" "::") => '("" "a" ""))
+(check (string-split "a,,b," ",")
+  =>
+  '("a" "" "b" "")
+) ;check
+(check (string-split ",a,b" ",")
+  =>
+  '("" "a" "b")
+) ;check
+(check (string-split "::a::" "::")
+  =>
+  '("" "a" "")
+) ;check
 
-; 未命中与空字符串
-(check (string-split "abc" ",") => '("abc"))
+(check (string-split "abc" ",")
+  =>
+  '("abc")
+) ;check
 (check (string-split "" ",") => '(""))
 
-; 空分隔符按字符拆分
-(check (string-split "abc" "") => '("a" "b" "c"))
-(check (string-split "中文" "") => '("中" "文"))
+(check (string-split "abc" "")
+  =>
+  '("a" "b" "c")
+) ;check
+(check (string-split "中文" "")
+  =>
+  '("中" "文")
+) ;check
 (check (string-split "" "") => '())
 
-; 兼容字符分隔符
-(check (string-split "1,2,3" #\,) => '("1" "2" "3"))
-(check (string-split "line1\nline2\n" #\newline) => '("line1" "line2" ""))
+(check (string-split "1,2,3" #\,)
+  =>
+  '("1" "2" "3")
+) ;check
+(check (string-split "line1\nline2\n"
+         #\newline
+       ) ;string-split
+  =>
+  '("line1" "line2" "")
+) ;check
 
-; Unicode 与常见 AI Coding 场景
-(check (string-split "你好，世界，Goldfish" "，") => '("你好" "世界" "Goldfish"))
-(check (string-split "name=goldfish&lang=scheme" "&") => '("name=goldfish" "lang=scheme"))
+(check (string-split "你好，世界，Goldfish"
+         "，"
+       ) ;string-split
+  =>
+  '("你好" "世界" "Goldfish")
+) ;check
+(check (string-split "name=goldfish&lang=scheme"
+         "&"
+       ) ;string-split
+  =>
+  '("name=goldfish" "lang=scheme")
+) ;check
 
-; === 以下测试用例与 Python str.split() 保持一致 ===
 
-; 单字符字符串
 (check (string-split "a" ",") => '("a"))
-(check (string-split "x" "x") => '("" ""))
+(check (string-split "x" "x")
+  =>
+  '("" "")
+) ;check
 
-; 多字符分隔符边界情况
-(check (string-split "abc" "bc") => '("a" ""))
-(check (string-split "abc" "abc") => '("" ""))
-(check (string-split "hello world" " world") => '("hello" ""))
-(check (string-split "a--b--c" "--") => '("a" "b" "c"))
+(check (string-split "abc" "bc")
+  =>
+  '("a" "")
+) ;check
+(check (string-split "abc" "abc")
+  =>
+  '("" "")
+) ;check
+(check (string-split "hello world" " world")
+  =>
+  '("hello" "")
+) ;check
+(check (string-split "a--b--c" "--")
+  =>
+  '("a" "b" "c")
+) ;check
 
-; 更多连续分隔符场景
-(check (string-split "a,,,b" ",") => '("a" "" "" "b"))
-(check (string-split ",," ",") => '("" "" ""))
+(check (string-split "a,,,b" ",")
+  =>
+  '("a" "" "" "b")
+) ;check
+(check (string-split ",," ",")
+  =>
+  '("" "" "")
+) ;check
 
-; 分隔符重复出现（重叠匹配）- Python 不会重叠匹配
-(check (string-split "aaa" "a") => '("" "" "" ""))
-(check (string-split "aba" "a") => '("" "b" ""))
-(check (string-split "aaaa" "aa") => '("" "" ""))
-(check (string-split "aaa" "aa") => '("" "a"))
+(check (string-split "aaa" "a")
+  =>
+  '("" "" "" "")
+) ;check
+(check (string-split "aba" "a")
+  =>
+  '("" "b" "")
+) ;check
+(check (string-split "aaaa" "aa")
+  =>
+  '("" "" "")
+) ;check
+(check (string-split "aaa" "aa")
+  =>
+  '("" "a")
+) ;check
 
-; 更多特殊字符场景
-(check (string-split "a\tb\t" "\t") => '("a" "b" ""))
-(check (string-split "a\nb" "\n") => '("a" "b"))
-(check (string-split "line1\nline2" "\n") => '("line1" "line2"))
+(check (string-split "a\tb\t" "\t")
+  =>
+  '("a" "b" "")
+) ;check
+(check (string-split "a\nb" "\n")
+  =>
+  '("a" "b")
+) ;check
+(check (string-split "line1\nline2" "\n")
+  =>
+  '("line1" "line2")
+) ;check
 
-; 路径/URL 场景
-(check (string-split "/usr/local/bin" "/") => '("" "usr" "local" "bin"))
-(check (string-split "key=val;key2=val2" ";") => '("key=val" "key2=val2"))
-(check (string-split "file.txt" ".") => '("file" "txt"))
-(check (string-split ".hidden" ".") => '("" "hidden"))
-(check (string-split "." ".") => '("" ""))
+(check (string-split "/usr/local/bin" "/")
+  =>
+  '("" "usr" "local" "bin")
+) ;check
+(check (string-split "key=val;key2=val2" ";")
+  =>
+  '("key=val" "key2=val2")
+) ;check
+(check (string-split "file.txt" ".")
+  =>
+  '("file" "txt")
+) ;check
+(check (string-split ".hidden" ".")
+  =>
+  '("" "hidden")
+) ;check
+(check (string-split "." ".")
+  =>
+  '("" "")
+) ;check
 
-; 错误处理测试
-(check-catch 'type-error (string-split 123 ","))
-(check-catch 'type-error (string-split "abc" 123))
-(check-catch 'wrong-number-of-args (string-split))
-(check-catch 'wrong-number-of-args (string-split "abc"))
-(check-catch 'wrong-number-of-args (string-split "abc" "," "extra"))
+(check-catch 'type-error
+  (string-split 123 ",")
+) ;check-catch
+(check-catch 'type-error
+  (string-split "abc" 123)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-split)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-split "abc")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-split "abc" "," "extra")
+) ;check-catch
 
 (check-report)

@@ -1,13 +1,15 @@
 (import (liii check)
-        (liii http)
-        (liii os)
+  (liii http)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
+  (when (not env)
+    (exit 0)
+  ) ;when
 ) ;let
 
 ;; http-wait-all
@@ -36,9 +38,7 @@
 
 (let ((completed #f))
   (http-async-get "https://httpbin.org/get"
-    (lambda (response)
-      (set! completed #t)
-    ) ;lambda
+    (lambda (response) (set! completed #t))
   ) ;http-async-get
   (http-wait-all 30)
   (check-true completed)

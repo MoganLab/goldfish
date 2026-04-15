@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-trim-both
 ;; 从字符串开头和末尾同时移除指定的字符/空白字符。
@@ -57,18 +55,73 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-(check (string-trim-both "  hello  ") => "hello")
-(check (string-trim-both "---hello---" #\-) => "hello")
-(check (string-trim-both "123hello123" char-numeric?) => "hello")
+(check (string-trim-both "  hello  ")
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "---hello---" #\-)
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "123hello123"
+         char-numeric?
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
 (check (string-trim-both "   ") => "")
 (check (string-trim-both "") => "")
-(check (string-trim-both "hello" #\-) => "hello")
-(check (string-trim-both "abcABC123" char-upper-case?) => "abcABC123")
-(check (string-trim-both "  hello  " #\space 2 7) => "hello")
-(check (string-trim-both "   hello   " #\space 3) => "hello")
-(check (string-trim-both "   hello   " #\space 3 8) => "hello")
-(check (string-trim-both "---hello---" #\- 3 8) => "hello")
-(check (string-trim-both "123hello123" char-numeric? 3 8) => "hello")
-(check (string-trim-both "123hello123" char-numeric? 3) => "hello")
+(check (string-trim-both "hello" #\-)
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "abcABC123"
+         char-upper-case?
+       ) ;string-trim-both
+  =>
+  "abcABC123"
+) ;check
+(check (string-trim-both "  hello  "
+         #\space
+         2
+         7
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "   hello   "
+         #\space
+         3
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "   hello   "
+         #\space
+         3
+         8
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "---hello---" #\- 3 8)
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "123hello123"
+         char-numeric?
+         3
+         8
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
+(check (string-trim-both "123hello123"
+         char-numeric?
+         3
+       ) ;string-trim-both
+  =>
+  "hello"
+) ;check
 
 (check-report)

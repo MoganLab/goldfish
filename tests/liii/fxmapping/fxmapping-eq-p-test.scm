@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -24,8 +22,21 @@
 ;; 如果所有映射包含相同的键，且对应值通过 comparator 比较相等，返回 #t；
 ;; 否则返回 #f。
 ;;
-(check-true (fxmapping=? eqv? (fxmapping 0 'a) (fxmapping 0 'a)))
-(check-false (fxmapping=? eqv? (fxmapping 0 'a) (fxmapping 0 'b)))
-(check-true (fxmapping=? eqv? (fxmapping 0 'a) (fxmapping 0 'a) (fxmapping 0 'a)))
+(check-true (fxmapping=? eqv?
+              (fxmapping 0 'a)
+              (fxmapping 0 'a)
+            ) ;fxmapping=?
+) ;check-true
+(check-false (fxmapping=? eqv?
+               (fxmapping 0 'a)
+               (fxmapping 0 'b)
+             ) ;fxmapping=?
+) ;check-false
+(check-true (fxmapping=? eqv?
+              (fxmapping 0 'a)
+              (fxmapping 0 'a)
+              (fxmapping 0 'a)
+            ) ;fxmapping=?
+) ;check-true
 
 (check-report)

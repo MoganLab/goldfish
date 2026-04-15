@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-contains?
 ;; 检查字符串是否包含指定子串。
@@ -31,15 +29,27 @@
 ;; ----
 ;; type-error 当参数不是字符串类型时。
 
-(check-true (string-contains? "0123456789" "3"))
-(check-true (string-contains? "0123456789" "34"))
-(check-false (string-contains? "0123456789" "24"))
+(check-true (string-contains? "0123456789" "3")
+) ;check-true
+(check-true (string-contains? "0123456789" "34")
+) ;check-true
+(check-false (string-contains? "0123456789" "24")
+) ;check-false
 (check-true (string-contains? "" ""))
-(check-true (string-contains? "hello" ""))
+(check-true (string-contains? "hello" "")
+) ;check-true
 (check-false (string-contains? "" "a"))
-(check-true (string-contains? "中文测试" "文测"))
-(check-false (string-contains? "Hello" "hello"))
-(check-catch 'type-error (string-contains? 123 "1"))
-(check-catch 'type-error (string-contains? "123" 1))
+(check-true (string-contains? "中文测试"
+              "文测"
+            ) ;string-contains?
+) ;check-true
+(check-false (string-contains? "Hello" "hello")
+) ;check-false
+(check-catch 'type-error
+  (string-contains? 123 "1")
+) ;check-catch
+(check-catch 'type-error
+  (string-contains? "123" 1)
+) ;check-catch
 
 (check-report)

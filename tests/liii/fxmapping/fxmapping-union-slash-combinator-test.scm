@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -24,16 +22,33 @@
 ;; 返回包含所有映射中所有键的新 fxmapping。
 ;; 对于重复键，使用 combiner 合并值。
 ;;
-(let
-  ((union
-     (fxmapping-union/combinator (lambda (k v1 v2) (+ v1 v2))
-                                 (fxmapping 0 10 1 20)
-                                 (fxmapping 1 5 2 30))
-     ) ;fxmapping-union/combinator
-   ) ;union
-  (check (fxmapping-ref union 0 (lambda () 'not-found)) => 10)
-  (check (fxmapping-ref union 1 (lambda () 'not-found)) => 25)
-  (check (fxmapping-ref union 2 (lambda () 'not-found)) => 30)
+(let ((union (fxmapping-union/combinator (lambda (k v1 v2) (+ v1 v2))
+               (fxmapping 0 10 1 20)
+               (fxmapping 1 5 2 30)
+             ) ;fxmapping-union/combinator
+      ) ;union
+     ) ;
+  (check (fxmapping-ref union
+           0
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    10
+  ) ;check
+  (check (fxmapping-ref union
+           1
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    25
+  ) ;check
+  (check (fxmapping-ref union
+           2
+           (lambda () 'not-found)
+         ) ;fxmapping-ref
+    =>
+    30
+  ) ;check
 ) ;let
 
 (check-report)

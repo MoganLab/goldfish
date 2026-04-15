@@ -1,13 +1,15 @@
 (import (liii check)
-        (liii http)
-        (liii os)
+  (liii http)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
+  (when (not env)
+    (exit 0)
+  ) ;when
 ) ;let
 
 ;; http-async-head
@@ -34,8 +36,7 @@
 ;; 异步 HEAD 请求立即返回，不阻塞。请求完成后调用 callback。
 ;; 适合并发检查多个资源的状态。
 
-(let ((head-completed #f)
-      (head-response #f))
+(let ((head-completed #f) (head-response #f))
   (http-async-head "https://httpbin.org"
     (lambda (response)
       (set! head-completed #t)
@@ -44,7 +45,10 @@
   ) ;http-async-head
   (http-wait-all 30)
   (check-true head-completed)
-  (check (head-response 'status-code) => 200)
+  (check (head-response 'status-code)
+    =>
+    200
+  ) ;check
 ) ;let
 
 (check-report)

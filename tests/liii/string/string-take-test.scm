@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-take
 ;; 从字符串开头提取指定数量的字符。
@@ -38,22 +36,54 @@
 ;; out-of-range 当k大于字符串长度或k为负数时
 ;; wrong-type-arg 当str不是字符串类型或k不是整数类型时
 
-(check (string-take "MathAgape" 4) => "Math")
-(check (string-take "MathAgape" 0) => "")
-(check (string-take "MathAgape" 9) => "MathAgape")
+(check (string-take "MathAgape" 4)
+  =>
+  "Math"
+) ;check
+(check (string-take "MathAgape" 0)
+  =>
+  ""
+) ;check
+(check (string-take "MathAgape" 9)
+  =>
+  "MathAgape"
+) ;check
 (check (string-take "" 0) => "")
 (check (string-take "a" 1) => "a")
 (check (string-take "Hello" 1) => "H")
 (check (string-take "abc" 2) => "ab")
-(check (string-take "test123" 4) => "test")
-(check (string-take "中文测试" 6) => "中文")
-(check (string-take "🌟🎉" 4) => "🌟")
-(check-catch 'out-of-range (string-take "MathAgape" 20))
-(check-catch 'out-of-range (string-take "" 1))
-(check-catch 'out-of-range (string-take "Hello" -1))
-(check-catch 'wrong-type-arg (string-take 123 4))
-(check-catch 'wrong-type-arg (string-take "MathAgape" "4"))
-(check-catch 'wrong-type-arg (string-take "MathAgape" 4.5))
-(check-catch 'wrong-type-arg (string-take "MathAgape" 'a))
+(check (string-take "test123" 4)
+  =>
+  "test"
+) ;check
+(check (string-take "中文测试" 6)
+  =>
+  "中文"
+) ;check
+(check (string-take "🌟🎉" 4)
+  =>
+  "🌟"
+) ;check
+(check-catch 'out-of-range
+  (string-take "MathAgape" 20)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-take "" 1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-take "Hello" -1)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-take 123 4)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-take "MathAgape" "4")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-take "MathAgape" 4.5)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-take "MathAgape" 'a)
+) ;check-catch
 
 (check-report)

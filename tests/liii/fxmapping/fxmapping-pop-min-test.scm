@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,7 +18,11 @@
 ;; -----
 ;; 返回三个值：最小的键、关联的值、以及不包含该键值对的新映射。
 ;;
-(let-values (((k v m) (fxmapping-pop-min (fxmapping 0 'a 1 'b))))
+(let-values (((k v m)
+              (fxmapping-pop-min (fxmapping 0 'a 1 'b)
+              ) ;fxmapping-pop-min
+             ) ;
+            ) ;
   (check k => 0)
   (check v => 'a)
   (check-false (fxmapping-contains? m 0))

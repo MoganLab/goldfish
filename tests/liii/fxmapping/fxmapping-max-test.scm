@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,7 +18,11 @@
 ;; -----
 ;; 返回两个值：最大的键和关联的值。
 ;;
-(let-values (((k v) (fxmapping-max (fxmapping 0 'a 1 'b 2 'c))))
+(let-values (((k v)
+              (fxmapping-max (fxmapping 0 'a 1 'b 2 'c)
+              ) ;fxmapping-max
+             ) ;
+            ) ;
   (check k => 2)
   (check v => 'c)
 ) ;let-values

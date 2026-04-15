@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,8 +18,18 @@
 ;; -----
 ;; 返回 fxmap 中键值对的数量。
 ;;
-(check (fxmapping-size (fxmapping)) => 0)
-(check (fxmapping-size (fxmapping 0 'a)) => 1)
-(check (fxmapping-size (fxmapping 0 'a 1 'b 2 'c)) => 3)
+(check (fxmapping-size (fxmapping))
+  =>
+  0
+) ;check
+(check (fxmapping-size (fxmapping 0 'a))
+  =>
+  1
+) ;check
+(check (fxmapping-size (fxmapping 0 'a 1 'b 2 'c)
+       ) ;fxmapping-size
+  =>
+  3
+) ;check
 
 (check-report)

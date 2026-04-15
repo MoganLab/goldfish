@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -43,4 +43,3 @@
 (check-false (json-integer? 1.0))
 
 (check-report)
-

@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -21,8 +19,14 @@
 ;; 返回新的 fxmapping，不包含键最小的键值对。
 ;;
 (let ((m (fxmapping 0 'a 1 'b 2 'c)))
-  (check-false (fxmapping-contains? (fxmapping-delete-min m) 0))
-  (check-true (fxmapping-contains? (fxmapping-delete-min m) 1))
+  (check-false (fxmapping-contains? (fxmapping-delete-min m)
+                 0
+               ) ;fxmapping-contains?
+  ) ;check-false
+  (check-true (fxmapping-contains? (fxmapping-delete-min m)
+                1
+              ) ;fxmapping-contains?
+  ) ;check-true
 ) ;let
 
 (check-report)

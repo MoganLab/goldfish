@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii base)
-        (liii string)
+  (liii base)
+  (liii string)
 ) ;import
 
 ;; string-map
@@ -40,109 +40,278 @@
 ;; wrong-type-arg 当proc不是过程类型时
 ;; type-error 当str不是字符串类型时
 
-; Basic functionality tests
-(check (string-map char-upcase "hello world") => "HELLO WORLD")
-(check (string-map char-downcase "HELLO WORLD") => "hello world")
-(check (string-map char-upcase "") => "")
-(check (string-map char-downcase "") => "")
-(check (string-map identity "test") => "test")
-
-; 原始测试验证
-(check
-  (string-map
-    (lambda (ch) (integer->char (+ 1 (char->integer ch))))
-    "HAL"
-  ) ;string-map
-  => "IBM"
+(check (string-map char-upcase "hello world")
+  =>
+  "HELLO WORLD"
+) ;check
+(check (string-map char-downcase "HELLO WORLD")
+  =>
+  "hello world"
+) ;check
+(check (string-map char-upcase "")
+  =>
+  ""
+) ;check
+(check (string-map char-downcase "")
+  =>
+  ""
+) ;check
+(check (string-map identity "test")
+  =>
+  "test"
 ) ;check
 
-; Character transformation tests
-(check (string-map (lambda (c) (integer->char (- (char->integer c) 32))) "hello") => "HELLO")
-(check (string-map (lambda (c) (integer->char (+ (char->integer c) 32))) "HELLO") => "hello")
-(check (string-map (lambda (c) (if (char=? c #\a) #\A c)) "banana") => "bAnAnA")
-(check (string-map (lambda (c) (if (char-numeric? c) #\X c)) "a1b2c3") => "aXbXcX")
-(check (string-map (lambda (c) (if (char-upper-case? c) #\X #\o)) "HeLLo") => "XoXXo")
-
-; Whitespace and special characters
-(check (string-map (lambda (c) #\.) "absolute") => "........")
-(check (string-map (lambda (c) (if (char-whitespace? c) #\- c)) "hello world") => "hello-world")
-(check (string-map (lambda (c) (if (char-alphabetic? c) #\* c)) "test123") => "****123")
-
-; Unicode characters (verification on byte-level)
-(check (string-map char-upcase "中文english") => "中文ENGLISH")
-(check (string-map (lambda (c) (if (char-alphabetic? c) #\X c)) "abc中文123") => "XXX中文123")
-
-; Empty string handling
-(check (string-map char-upcase "") => "")
-(check (string-map char-downcase "") => "")
-(check (string-map (lambda (c) #\a) "") => "")
-
-; Single character handling
-(check (string-map char-upcase "a") => "A")
-(check (string-map char-downcase "Z") => "z")
-(check (string-map (lambda (c) (integer->char (+ 1 (char->integer c)))) "a") => "b")
-
-; Numeric handling
-(check (string-map (lambda (c) (if (char-numeric? c) #\* c)) "123abc") => "***abc")
-(check (string-map (lambda (c) (integer->char (+ (char->integer c) 1))) "123") => "234")
-(check (string-map (lambda (c) (integer->char (- (char->integer c) 1))) "234") => "123")
-
-; Complex transformations
-(check (string-map
-          (lambda (c)
-            (if (even? (char->integer c))
-                char-upcase
-                char-downcase
-            ) ;if
-            c
-          ) ;lambda
-          "AbCdEf") => "AbCdEf")
-(check (string-map
-          (lambda (c)
-            (let ((val (char->integer c)))
-              (if (and (>= val 65) (<= val 90))
-                  (integer->char (+ val 32))
-                  (if (and (>= val 97) (<= val 122))
-                      (integer->char (- val 32))
-                      c
-                  ) ;if
-              ) ;if
-            ) ;let
-          ) ;lambda
-          "Hello123World") => "hELLO123wORLD")
-
-
-; Mixed case transformations
-(check (string-map (lambda (c) (if (char-lower-case? c) (char-upcase c) (char-downcase c))) "HeLLo") => "hEllO")
-
-; Identity function and no-op transformations
-(check (string-map (lambda (c) c) "hello") => "hello")
-(check (string-map (lambda (c) (if (char=? c #\space) #\space c)) "hello world") => "hello world")
-
-
-; Whitespace preservation
-(check (string-map char-upcase "  hello  world  ") => "  HELLO  WORLD  ")
-(check (string-map (lambda (c) (if (char-whitespace? c) #\_ c)) "  hello  world  ") => "__hello__world__")
-
-; Special escape character handling
-(check (string-map (lambda (c) #\newline) "test") =>
-"\n\n\n\n"
-) ;check
-(check (string-map (lambda (c) (integer->char 10)) "abc") =>
-"\n\n\n"
+(check (string-map (lambda (ch)
+                     (integer->char (+ 1 (char->integer ch)))
+                   ) ;lambda
+         "HAL"
+       ) ;string-map
+  =>
+  "IBM"
 ) ;check
 
-; Error handling tests
-(check-catch 'wrong-type-arg (string-map 123 "hello"))
-(check-catch 'wrong-type-arg (string-map char-upcase 123))
-(check-catch 'wrong-type-arg (string-map "not-function" "hello"))
+(check (string-map (lambda (c)
+                     (integer->char (- (char->integer c) 32))
+                   ) ;lambda
+         "hello"
+       ) ;string-map
+  =>
+  "HELLO"
+) ;check
+(check (string-map (lambda (c)
+                     (integer->char (+ (char->integer c) 32))
+                   ) ;lambda
+         "HELLO"
+       ) ;string-map
+  =>
+  "hello"
+) ;check
+(check (string-map (lambda (c) (if (char=? c #\a) #\A c))
+         "banana"
+       ) ;string-map
+  =>
+  "bAnAnA"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-numeric? c) #\X c)
+                   ) ;lambda
+         "a1b2c3"
+       ) ;string-map
+  =>
+  "aXbXcX"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-upper-case? c) #\X #\o)
+                   ) ;lambda
+         "HeLLo"
+       ) ;string-map
+  =>
+  "XoXXo"
+) ;check
 
-; Long string handling
-(check (string-map char-upcase (make-string 100 #\a)) => (make-string 100 #\A))
-(check (string-map char-downcase (make-string 100 #\Z)) => (make-string 100 #\z))
+(check (string-map (lambda (c) #\.) "absolute")
+  =>
+  "........"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-whitespace? c) #\- c)
+                   ) ;lambda
+         "hello world"
+       ) ;string-map
+  =>
+  "hello-world"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-alphabetic? c) #\* c)
+                   ) ;lambda
+         "test123"
+       ) ;string-map
+  =>
+  "****123"
+) ;check
 
-; Unicode string tests
-(check (string-map char-upcase "cafe latte") => "CAFE LATTE")
-(check (string-map char-downcase "CAFE LATTE") => "cafe latte")
+(check (string-map char-upcase "中文english")
+  =>
+  "中文ENGLISH"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-alphabetic? c) #\X c)
+                   ) ;lambda
+         "abc中文123"
+       ) ;string-map
+  =>
+  "XXX中文123"
+) ;check
+
+(check (string-map char-upcase "")
+  =>
+  ""
+) ;check
+(check (string-map char-downcase "")
+  =>
+  ""
+) ;check
+(check (string-map (lambda (c) #\a) "")
+  =>
+  ""
+) ;check
+
+(check (string-map char-upcase "a")
+  =>
+  "A"
+) ;check
+(check (string-map char-downcase "Z")
+  =>
+  "z"
+) ;check
+(check (string-map (lambda (c)
+                     (integer->char (+ 1 (char->integer c)))
+                   ) ;lambda
+         "a"
+       ) ;string-map
+  =>
+  "b"
+) ;check
+
+(check (string-map (lambda (c)
+                     (if (char-numeric? c) #\* c)
+                   ) ;lambda
+         "123abc"
+       ) ;string-map
+  =>
+  "***abc"
+) ;check
+(check (string-map (lambda (c)
+                     (integer->char (+ (char->integer c) 1))
+                   ) ;lambda
+         "123"
+       ) ;string-map
+  =>
+  "234"
+) ;check
+(check (string-map (lambda (c)
+                     (integer->char (- (char->integer c) 1))
+                   ) ;lambda
+         "234"
+       ) ;string-map
+  =>
+  "123"
+) ;check
+
+(check (string-map (lambda (c)
+                     (if (even? (char->integer c))
+                       char-upcase
+                       char-downcase
+                     ) ;if
+                     c
+                   ) ;lambda
+         "AbCdEf"
+       ) ;string-map
+  =>
+  "AbCdEf"
+) ;check
+(check (string-map (lambda (c)
+                     (let ((val (char->integer c)))
+                       (if (and (>= val 65) (<= val 90))
+                         (integer->char (+ val 32))
+                         (if (and (>= val 97) (<= val 122))
+                           (integer->char (- val 32))
+                           c
+                         ) ;if
+                       ) ;if
+                     ) ;let
+                   ) ;lambda
+         "Hello123World"
+       ) ;string-map
+  =>
+  "hELLO123wORLD"
+) ;check
+
+
+(check (string-map (lambda (c)
+                     (if (char-lower-case? c)
+                       (char-upcase c)
+                       (char-downcase c)
+                     ) ;if
+                   ) ;lambda
+         "HeLLo"
+       ) ;string-map
+  =>
+  "hEllO"
+) ;check
+
+(check (string-map (lambda (c) c) "hello")
+  =>
+  "hello"
+) ;check
+(check (string-map (lambda (c)
+                     (if (char=? c #\space) #\space c)
+                   ) ;lambda
+         "hello world"
+       ) ;string-map
+  =>
+  "hello world"
+) ;check
+
+
+(check (string-map char-upcase
+         "  hello  world  "
+       ) ;string-map
+  =>
+  "  HELLO  WORLD  "
+) ;check
+(check (string-map (lambda (c)
+                     (if (char-whitespace? c) #\_ c)
+                   ) ;lambda
+         "  hello  world  "
+       ) ;string-map
+  =>
+  "__hello__world__"
+) ;check
+
+(check (string-map (lambda (c) #\newline)
+         "test"
+       ) ;string-map
+  =>
+  "\n\n\n\n"
+) ;check
+(check (string-map (lambda (c) (integer->char 10))
+         "abc"
+       ) ;string-map
+  =>
+  "\n\n\n"
+) ;check
+
+(check-catch 'wrong-type-arg
+  (string-map 123 "hello")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-map char-upcase 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-map "not-function" "hello")
+) ;check-catch
+
+(check (string-map char-upcase
+         (make-string 100 #\a)
+       ) ;string-map
+  =>
+  (make-string 100 #\A)
+) ;check
+(check (string-map char-downcase
+         (make-string 100 #\Z)
+       ) ;string-map
+  =>
+  (make-string 100 #\z)
+) ;check
+
+(check (string-map char-upcase "cafe latte")
+  =>
+  "CAFE LATTE"
+) ;check
+(check (string-map char-downcase "CAFE LATTE")
+  =>
+  "cafe latte"
+) ;check
 
 (check-report)

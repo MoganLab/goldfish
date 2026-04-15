@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -30,20 +28,26 @@
 ;; 返回生成的 fxmapping。
 ;;
 (check (fxmapping-ref (fxmapping-unfold (lambda (n) (> n 3))
-                                        (lambda (n) (values n (* n 10)))
-                                        (lambda (n) (+ n 1))
-                                        0)
-                      2
-                      (lambda () 'not-found))
-       => 20
+                        (lambda (n) (values n (* n 10)))
+                        (lambda (n) (+ n 1))
+                        0
+                      ) ;fxmapping-unfold
+         2
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  20
 ) ;check
 (check (fxmapping-ref (fxmapping-unfold (lambda (n) (> n 3))
-                                        (lambda (n) (values n (* n 10)))
-                                        (lambda (n) (+ n 1))
-                                        0)
-                      5
-                      (lambda () #f))
-       => #f
+                        (lambda (n) (values n (* n 10)))
+                        (lambda (n) (+ n 1))
+                        0
+                      ) ;fxmapping-unfold
+         5
+         (lambda () #f)
+       ) ;fxmapping-ref
+  =>
+  #f
 ) ;check
 
 (check-report)

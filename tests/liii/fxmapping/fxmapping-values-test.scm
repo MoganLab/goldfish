@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,6 +18,10 @@
 ;; -----
 ;; 返回按对应键升序排列的值列表。
 ;;
-(check (fxmapping-values (fxmapping 0 'a 1 'b 2 'c)) => '(a b c))
+(check (fxmapping-values (fxmapping 0 'a 1 'b 2 'c)
+       ) ;fxmapping-values
+  =>
+  '(a b c)
+) ;check
 
 (check-report)

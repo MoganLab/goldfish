@@ -1,14 +1,16 @@
 (import (liii check)
-        (liii http)
-        (liii time)
-        (liii os)
+  (liii http)
+  (liii time)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
 
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
-  (when (not env) (exit 0))
+  (when (not env)
+    (exit 0)
+  ) ;when
 ) ;let
 
 ;; http-poll
@@ -31,17 +33,26 @@
 ;; 与 http-wait-all 不同，http-poll 不会等待，只处理当前已完成的请求。
 
 (let ((poll-count 0))
-  (http-async-get "https://httpbin.org/get" (lambda (r) (set! poll-count (+ poll-count 1))))
+  (http-async-get "https://httpbin.org/get"
+    (lambda (r)
+      (set! poll-count (+ poll-count 1))
+    ) ;lambda
+  ) ;http-async-get
   ;; 轮询直到完成
-  (let loop ((pending #t))
+  (let loop
+    ((pending #t))
     (when pending
       (let ((executed (http-poll)))
         (if (> executed 0)
-            (display (string-append "Poll executed " (number->string executed) " callback(s)\n"))
-            (begin
-              (sleep 0.05)
-              (loop #t)
-            ) ;begin
+          (display (string-append "Poll executed "
+                     (number->string executed)
+                     " callback(s)\n"
+                   ) ;string-append
+          ) ;display
+          (begin
+            (sleep 0.05)
+            (loop #t)
+          ) ;begin
         ) ;if
       ) ;let
     ) ;when

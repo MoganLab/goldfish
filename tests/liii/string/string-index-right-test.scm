@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-index-right
 ;; 在字符串中从右向左查找指定字符或满足条件的第一个字符的位置。
@@ -58,85 +56,308 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-; Basic functionality tests
-(check (string-index-right "hello" #\l) => 3)
-(check (string-index-right "hello" #\z) => #f)
-(check (string-index-right "hello" #\l) => 3)
-(check (string-index-right "hello" #\l 0 3) => 2)
-(check (string-index-right "abc123" char-numeric?) => 5)
-(check (string-index-right "abc123" char-alphabetic?) => 2)
-(check (string-index-right "" #\x) => #f)
+(check (string-index-right "hello" #\l)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\z)
+  =>
+  #f
+) ;check
+(check (string-index-right "hello" #\l)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 0 3)
+  =>
+  2
+) ;check
+(check (string-index-right "abc123"
+         char-numeric?
+       ) ;string-index-right
+  =>
+  5
+) ;check
+(check (string-index-right "abc123"
+         char-alphabetic?
+       ) ;string-index-right
+  =>
+  2
+) ;check
+(check (string-index-right "" #\x)
+  =>
+  #f
+) ;check
 
-; Character parameter tests
-(check (string-index-right "0123456789" #\2) => 2)
-(check (string-index-right "0123456789" #\2 0 3) => 2)
-(check (string-index-right "0123456789" #\2 0 2) => #f)
-(check (string-index-right "abccba" #\a) => 5)
-(check (string-index-right "hello world" #\space) => 5)
+(check (string-index-right "0123456789" #\2)
+  =>
+  2
+) ;check
+(check (string-index-right "0123456789"
+         #\2
+         0
+         3
+       ) ;string-index-right
+  =>
+  2
+) ;check
+(check (string-index-right "0123456789"
+         #\2
+         0
+         2
+       ) ;string-index-right
+  =>
+  #f
+) ;check
+(check (string-index-right "abccba" #\a)
+  =>
+  5
+) ;check
+(check (string-index-right "hello world"
+         #\space
+       ) ;string-index-right
+  =>
+  5
+) ;check
 
-; Extended comprehensive tests
-(check (string-index-right "hello" #\h) => 0)
-(check (string-index-right "hello" #\o) => 4)
-(check (string-index-right "hello hello" #\space) => 5)
-(check (string-index-right "hello" #\H) => #f) ; case-sensitive
-(check (string-index-right "" #\a) => #f)
-(check (string-index-right "a" #\a) => 0)
-(check (string-index-right "aaaa" #\a) => 3)
-(check (string-index-right "0123456789" #\0) => 0)
-(check (string-index-right "0123456789" #\9) => 9)
+(check (string-index-right "hello" #\h)
+  =>
+  0
+) ;check
+(check (string-index-right "hello" #\o)
+  =>
+  4
+) ;check
+(check (string-index-right "hello hello"
+         #\space
+       ) ;string-index-right
+  =>
+  5
+) ;check
+(check (string-index-right "hello" #\H)
+  =>
+  #f
+) ;check
+(check (string-index-right "" #\a)
+  =>
+  #f
+) ;check
+(check (string-index-right "a" #\a)
+  =>
+  0
+) ;check
+(check (string-index-right "aaaa" #\a)
+  =>
+  3
+) ;check
+(check (string-index-right "0123456789" #\0)
+  =>
+  0
+) ;check
+(check (string-index-right "0123456789" #\9)
+  =>
+  9
+) ;check
 
-; Predicate parameter tests
-(check (string-index-right "0123456789" char-numeric?) => 9)
-(check (string-index-right "abc123" char-numeric?) => 5)
-(check (string-index-right "123abc" char-alphabetic?) => 5)
-(check (string-index-right "Hello123" char-upper-case?) => 0)
-(check (string-index-right "hello123" char-upper-case?) => #f)
-(check (string-index-right "123!@#" char-alphabetic?) => #f)
-(check (string-index-right "hello\n\t " char-whitespace?) => 7)
-(check (string-index-right "hello" (lambda (c) (char=? c #\l))) => 3)
+(check (string-index-right "0123456789"
+         char-numeric?
+       ) ;string-index-right
+  =>
+  9
+) ;check
+(check (string-index-right "abc123"
+         char-numeric?
+       ) ;string-index-right
+  =>
+  5
+) ;check
+(check (string-index-right "123abc"
+         char-alphabetic?
+       ) ;string-index-right
+  =>
+  5
+) ;check
+(check (string-index-right "Hello123"
+         char-upper-case?
+       ) ;string-index-right
+  =>
+  0
+) ;check
+(check (string-index-right "hello123"
+         char-upper-case?
+       ) ;string-index-right
+  =>
+  #f
+) ;check
+(check (string-index-right "123!@#"
+         char-alphabetic?
+       ) ;string-index-right
+  =>
+  #f
+) ;check
+(check (string-index-right "hello\n\t "
+         char-whitespace?
+       ) ;string-index-right
+  =>
+  7
+) ;check
+(check (string-index-right "hello"
+         (lambda (c) (char=? c #\l))
+       ) ;string-index-right
+  =>
+  3
+) ;check
 
-; Single character edge cases
-(check (string-index-right "a" #\a) => 0)
-(check (string-index-right "a" #\b) => #f)
-(check (string-index-right " " #\space) => 0)
-(check (string-index-right "\t" char-whitespace?) => 0)
+(check (string-index-right "a" #\a)
+  =>
+  0
+) ;check
+(check (string-index-right "a" #\b)
+  =>
+  #f
+) ;check
+(check (string-index-right " " #\space)
+  =>
+  0
+) ;check
+(check (string-index-right "\t"
+         char-whitespace?
+       ) ;string-index-right
+  =>
+  0
+) ;check
 
-; Start and end parameter tests
-(check (string-index-right "hello" #\l 0) => 3)
-(check (string-index-right "hello" #\l 1) => 3)
-(check (string-index-right "hello" #\l 2) => 3)
-(check (string-index-right "hello" #\l 3) => 3)
-(check (string-index-right "hello" #\l 4) => #f)
-(check (string-index-right "hello" #\l 0 3) => 2)
-(check (string-index-right "hello" #\l 0 2) => #f)
-(check (string-index-right "hello" #\l 1 4) => 3)
-(check (string-index-right "hello" #\l 2 4) => 3)
-(check (string-index-right "hello" #\l 3 4) => 3)
-(check (string-index-right "hello" #\l 3 3) => #f)
-(check (string-index-right "hello" #\l 0 1) => #f)
+(check (string-index-right "hello" #\l 0)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 1)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 2)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 3)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 4)
+  =>
+  #f
+) ;check
+(check (string-index-right "hello" #\l 0 3)
+  =>
+  2
+) ;check
+(check (string-index-right "hello" #\l 0 2)
+  =>
+  #f
+) ;check
+(check (string-index-right "hello" #\l 1 4)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 2 4)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 3 4)
+  =>
+  3
+) ;check
+(check (string-index-right "hello" #\l 3 3)
+  =>
+  #f
+) ;check
+(check (string-index-right "hello" #\l 0 1)
+  =>
+  #f
+) ;check
 
-; Special characters and edge cases
-(check (string-index-right "_test" #\_) => 0)
-(check (string-index-right "a@b" #\@) => 1)
-(check (string-index-right "hello,world" #\,) => 5)
-(check (string-index-right "a-b-c" #\-) => 3)
+(check (string-index-right "_test" #\_)
+  =>
+  0
+) ;check
+(check (string-index-right "a@b" #\@)
+  =>
+  1
+) ;check
+(check (string-index-right "hello,world" #\,)
+  =>
+  5
+) ;check
+(check (string-index-right "a-b-c" #\-)
+  =>
+  3
+) ;check
 
-; Complex predicates
-(check (string-index-right "123abc!@#" (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))) => 5)
-(check (string-index-right "!@#abc123" (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))) => 8)
-(check (string-index-right "abc123" char-upper-case?) => #f)
-(check (string-index-right "ABC123" char-upper-case?) => 2)
-(check (string-index-right "abcABC" char-upper-case?) => 5)
+(check (string-index-right "123abc!@#"
+         (lambda (c)
+           (or (char-alphabetic? c)
+             (char-numeric? c)
+           ) ;or
+         ) ;lambda
+       ) ;string-index-right
+  =>
+  5
+) ;check
+(check (string-index-right "!@#abc123"
+         (lambda (c)
+           (or (char-alphabetic? c)
+             (char-numeric? c)
+           ) ;or
+         ) ;lambda
+       ) ;string-index-right
+  =>
+  8
+) ;check
+(check (string-index-right "abc123"
+         char-upper-case?
+       ) ;string-index-right
+  =>
+  #f
+) ;check
+(check (string-index-right "ABC123"
+         char-upper-case?
+       ) ;string-index-right
+  =>
+  2
+) ;check
+(check (string-index-right "abcABC"
+         char-upper-case?
+       ) ;string-index-right
+  =>
+  5
+) ;check
 
-; Error handling tests
-(check-catch 'wrong-type-arg (string-index-right 123 #\a))
-(check-catch 'wrong-type-arg (string-index-right "hello" "a"))
-(check-catch 'wrong-type-arg (string-index-right "hello" 123))
-(check-catch 'wrong-type-arg (string-index-right "hello" '(a)))
-(check-catch 'out-of-range (string-index-right "hello" #\a -1))
-(check-catch 'out-of-range (string-index-right "hello" #\a 0 6))
-(check-catch 'out-of-range (string-index-right "hello" #\a 3 2))
-(check-catch 'out-of-range (string-index-right "" #\a 1))
-(check-catch 'out-of-range (string-index-right "abc" #\a 5))
+(check-catch 'wrong-type-arg
+  (string-index-right 123 #\a)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index-right "hello" "a")
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index-right "hello" 123)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (string-index-right "hello" '(a))
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index-right "hello" #\a -1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index-right "hello" #\a 0 6)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index-right "hello" #\a 3 2)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index-right "" #\a 1)
+) ;check-catch
+(check-catch 'out-of-range
+  (string-index-right "abc" #\a 5)
+) ;check-catch
 
 (check-report)

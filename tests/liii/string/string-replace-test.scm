@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-replace
 ;; 按从左到右、非重叠的方式替换字符串中的所有匹配子串。
@@ -42,100 +40,307 @@
 ;; wrong-number-of-args 当参数数量不正确时
 
 ;; 基本功能测试
-(check (string-replace "hello world hello" "hello" "hi") => "hi world hi")
-(check (string-replace "banana" "na" "N") => "baNN")
+(check (string-replace "hello world hello"
+         "hello"
+         "hi"
+       ) ;string-replace
+  =>
+  "hi world hi"
+) ;check
+(check (string-replace "banana" "na" "N")
+  =>
+  "baNN"
+) ;check
 
 ;; 边界条件测试
-(check (string-replace "" "hello" "hi") => "")
-(check (string-replace "hello world" "test" "hi") => "hello world")
-(check (string-replace "hello" "" "x") => "xhxexlxlxox")  ;; Python 兼容: 空pattern在字符间插入
-(check (string-replace "" "" "x") => "x")  ;; Python 兼容: 空串+空pattern=new
-(check (string-replace "hello world hello" "hello" "") => " world ")
-(check (string-replace "hello" "l" "") => "heo")  ;; 删除匹配字符
+(check (string-replace "" "hello" "hi")
+  =>
+  ""
+) ;check
+(check (string-replace "hello world"
+         "test"
+         "hi"
+       ) ;string-replace
+  =>
+  "hello world"
+) ;check
+(check (string-replace "hello" "" "x")
+  =>
+  "xhxexlxlxox"
+) ;check
+(check (string-replace "" "" "x")
+  =>
+  "x"
+) ;check
+(check (string-replace "hello world hello"
+         "hello"
+         ""
+       ) ;string-replace
+  =>
+  " world "
+) ;check
+(check (string-replace "hello" "l" "")
+  =>
+  "heo"
+) ;check
 
 ;; 非重叠、从左到右扫描
-(check (string-replace "aaaa" "aa" "b") => "bb")
-(check (string-replace "aaa" "a" "aa") => "aaaaaa")
+(check (string-replace "aaaa" "aa" "b")
+  =>
+  "bb"
+) ;check
+(check (string-replace "aaa" "a" "aa")
+  =>
+  "aaaaaa"
+) ;check
 
 ;; Unicode 支持
-(check (string-replace "测试测试字符串" "测试" "实验") => "实验实验字符串")
-(check (string-replace "你好，世界" "世界" "Goldfish") => "你好，Goldfish")
-(check (string-replace "你好世界" "世界" "") => "你好")  ;; Unicode 删除
-(check (string-replace "hello😀world😀" "😀" "!") => "hello!world!")  ;; Emoji
+(check (string-replace "测试测试字符串"
+         "测试"
+         "实验"
+       ) ;string-replace
+  =>
+  "实验实验字符串"
+) ;check
+(check (string-replace "你好，世界"
+         "世界"
+         "Goldfish"
+       ) ;string-replace
+  =>
+  "你好，Goldfish"
+) ;check
+(check (string-replace "你好世界"
+         "世界"
+         ""
+       ) ;string-replace
+  =>
+  "你好"
+) ;check
+(check (string-replace "hello😀world😀"
+         "😀"
+         "!"
+       ) ;string-replace
+  =>
+  "hello!world!"
+) ;check
 
 ;; 特殊字符测试
-(check (string-replace "hello world" " " "_") => "hello_world")
-(check (string-replace "a\nb\nc" "\n" "") => "abc")  ;; 换行符
-(check (string-replace "a\tb" "\t" "    ") => "a    b")  ;; 制表符
+(check (string-replace "hello world" " " "_")
+  =>
+  "hello_world"
+) ;check
+(check (string-replace "a\nb\nc" "\n" "")
+  =>
+  "abc"
+) ;check
+(check (string-replace "a\tb" "\t" "    ")
+  =>
+  "a    b"
+) ;check
 
 ;; 边界位置测试
-(check (string-replace "hello" "he" "X") => "Xllo")  ;; 开头匹配
-(check (string-replace "hello" "lo" "X") => "helX")  ;; 结尾匹配
-(check (string-replace "hello" "hello" "world") => "world")  ;; 整串匹配
-(check (string-replace "hello" "l" "l") => "hello")  ;; 替换为相同内容
+(check (string-replace "hello" "he" "X")
+  =>
+  "Xllo"
+) ;check
+(check (string-replace "hello" "lo" "X")
+  =>
+  "helX"
+) ;check
+(check (string-replace "hello" "hello" "world")
+  =>
+  "world"
+) ;check
+(check (string-replace "hello" "l" "l")
+  =>
+  "hello"
+) ;check
 
 ;; 连续匹配测试
-(check (string-replace "ababab" "ab" "X") => "XXX")
-(check (string-replace "aaa" "a" "") => "")  ;; 全部删除
+(check (string-replace "ababab" "ab" "X")
+  =>
+  "XXX"
+) ;check
+(check (string-replace "aaa" "a" "")
+  =>
+  ""
+) ;check
 
 ;; pattern 长度相关
-(check (string-replace "hi" "hello" "world") => "hi")  ;; pattern 比原串长
-(check (string-replace "hello" "hello" "world") => "world")  ;; pattern 等于原串
+(check (string-replace "hi" "hello" "world")
+  =>
+  "hi"
+) ;check
+(check (string-replace "hello" "hello" "world")
+  =>
+  "world"
+) ;check
 
 ;; 大小写敏感测试
-(check (string-replace "Hello" "h" "H") => "Hello")  ;; H != h
-(check (string-replace "Hello" "H" "h") => "hello")
+(check (string-replace "Hello" "h" "H")
+  =>
+  "Hello"
+) ;check
+(check (string-replace "Hello" "H" "h")
+  =>
+  "hello"
+) ;check
 
 ;; 数字字符串测试
-(check (string-replace "123123" "12" "X") => "X3X3")
+(check (string-replace "123123" "12" "X")
+  =>
+  "X3X3"
+) ;check
 
 ;; 返回副本而不是原对象
 (let ((original "hello world")
-      (modified (string-replace "hello world" "test" "hi")))
-  (check-true (equal? modified "hello world"))
+      (modified (string-replace "hello world"
+                  "test"
+                  "hi"
+                ) ;string-replace
+      ) ;modified
+     ) ;
+  (check-true (equal? modified "hello world")
+  ) ;check-true
   (check-false (eq? original modified))
 ) ;let
 
 ;; count 参数测试
 ;; count = 1, 2, 0 的基本用法
-(check (string-replace "hello hello hello" "hello" "hi" 1) => "hi hello hello")
-(check (string-replace "hello hello hello" "hello" "hi" 2) => "hi hi hello")
-(check (string-replace "hello world" "hello" "hi" 0) => "hello world")
+(check (string-replace "hello hello hello"
+         "hello"
+         "hi"
+         1
+       ) ;string-replace
+  =>
+  "hi hello hello"
+) ;check
+(check (string-replace "hello hello hello"
+         "hello"
+         "hi"
+         2
+       ) ;string-replace
+  =>
+  "hi hi hello"
+) ;check
+(check (string-replace "hello world"
+         "hello"
+         "hi"
+         0
+       ) ;string-replace
+  =>
+  "hello world"
+) ;check
 
 ;; 负数 count（替换所有）
-(check (string-replace "hello hello" "hello" "hi" -1) => "hi hi")
-(check (string-replace "a a a" "a" "b" -100) => "b b b")
+(check (string-replace "hello hello"
+         "hello"
+         "hi"
+         -1
+       ) ;string-replace
+  =>
+  "hi hi"
+) ;check
+(check (string-replace "a a a" "a" "b" -100)
+  =>
+  "b b b"
+) ;check
 
 ;; count 超过实际匹配数
-(check (string-replace "hello hello" "hello" "hi" 10) => "hi hi")
+(check (string-replace "hello hello"
+         "hello"
+         "hi"
+         10
+       ) ;string-replace
+  =>
+  "hi hi"
+) ;check
 
 ;; 从左到右的替换顺序
-(check (string-replace "ababab" "ab" "X" 2) => "XXab")
-(check (string-replace "aaa" "a" "b" 1) => "baa")
-(check (string-replace "aaa" "a" "b" 2) => "bba")
+(check (string-replace "ababab" "ab" "X" 2)
+  =>
+  "XXab"
+) ;check
+(check (string-replace "aaa" "a" "b" 1)
+  =>
+  "baa"
+) ;check
+(check (string-replace "aaa" "a" "b" 2)
+  =>
+  "bba"
+) ;check
 
 ;; 空 pattern 时的 count 行为
-(check (string-replace "hello" "" "-" 1) => "-hello")
-(check (string-replace "hello" "" "-" 2) => "-h-ello")
-(check (string-replace "ab" "" "-" 5) => "-a-b-")
-(check (string-replace "hello" "" "-" 0) => "hello")
-(check (string-replace "ab" "" "-" -1) => "-a-b-")
+(check (string-replace "hello" "" "-" 1)
+  =>
+  "-hello"
+) ;check
+(check (string-replace "hello" "" "-" 2)
+  =>
+  "-h-ello"
+) ;check
+(check (string-replace "ab" "" "-" 5)
+  =>
+  "-a-b-"
+) ;check
+(check (string-replace "hello" "" "-" 0)
+  =>
+  "hello"
+) ;check
+(check (string-replace "ab" "" "-" -1)
+  =>
+  "-a-b-"
+) ;check
 
 ;; 空原串 count 行为
-(check (string-replace "" "" "x" 1) => "x")
-(check (string-replace "" "" "x" 0) => "")
+(check (string-replace "" "" "x" 1)
+  =>
+  "x"
+) ;check
+(check (string-replace "" "" "x" 0)
+  =>
+  ""
+) ;check
 
 ;; 删除 count 行为
-(check (string-replace "hello hello" "hello" "" 1) => " hello")
-(check (string-replace "hello hello" "hello" "" 2) => " ")
+(check (string-replace "hello hello"
+         "hello"
+         ""
+         1
+       ) ;string-replace
+  =>
+  " hello"
+) ;check
+(check (string-replace "hello hello"
+         "hello"
+         ""
+         2
+       ) ;string-replace
+  =>
+  " "
+) ;check
 
 ;; 错误处理测试
-(check-catch 'type-error (string-replace 123 "a" "b"))
-(check-catch 'type-error (string-replace "abc" 123 "b"))
-(check-catch 'type-error (string-replace "abc" "a" 123))
-(check-catch 'type-error (string-replace "abc" "a" "b" "c"))  ;; count 必须是整数
-(check-catch 'wrong-number-of-args (string-replace))
-(check-catch 'wrong-number-of-args (string-replace "abc" "a"))
-(check-catch 'wrong-number-of-args (string-replace "abc" "a" "b" 1 "extra"))  ;; 参数过多
+(check-catch 'type-error
+  (string-replace 123 "a" "b")
+) ;check-catch
+(check-catch 'type-error
+  (string-replace "abc" 123 "b")
+) ;check-catch
+(check-catch 'type-error
+  (string-replace "abc" "a" 123)
+) ;check-catch
+(check-catch 'type-error
+  (string-replace "abc" "a" "b" "c")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-replace)
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-replace "abc" "a")
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (string-replace "abc" "a" "b" 1 "extra")
+) ;check-catch
 
 (check-report)

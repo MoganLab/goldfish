@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii json)
-        (liii base)
-        (liii error)
+  (liii json)
+  (liii base)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -36,12 +36,13 @@
 ;; ----
 ;; 无。
 
-(check-true (json-object? '((name . "Alice"))))
-(check-true (json-object? '((a . 1) (b . 2))))
+(check-true (json-object? '((name . "Alice")))
+) ;check-true
+(check-true (json-object? '((a . 1) (b . 2)))
+) ;check-true
 (check-false (json-object? '()))
 (check-false (json-object? #(1 2)))
 (check-false (json-object? "{}"))
 (check-false (json-object? '(1 2 3)))
 
 (check-report)
-

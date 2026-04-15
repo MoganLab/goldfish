@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -27,6 +25,15 @@
 ;; 返回新的 fxmapping，指定键的值已调整。
 ;; 如果键不存在，返回原映射。
 ;;
-(check (fxmapping-ref (fxmapping-adjust (fxmapping 0 10) 0 (lambda (v) (* v 2))) 0 (lambda () 'not-found)) => 20)
+(check (fxmapping-ref (fxmapping-adjust (fxmapping 0 10)
+                        0
+                        (lambda (v) (* v 2))
+                      ) ;fxmapping-adjust
+         0
+         (lambda () 'not-found)
+       ) ;fxmapping-ref
+  =>
+  20
+) ;check
 
 (check-report)

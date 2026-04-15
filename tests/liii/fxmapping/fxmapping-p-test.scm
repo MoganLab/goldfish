@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -20,7 +18,8 @@
 ;; -----
 ;; 如果 obj 是 fxmapping，返回 #t；否则返回 #f。
 ;;
-(check-true (fxmapping? (fxmapping 0 'a)))
+(check-true (fxmapping? (fxmapping 0 'a))
+) ;check-true
 (check-false (fxmapping? '()))
 (check-false (fxmapping? 42))
 

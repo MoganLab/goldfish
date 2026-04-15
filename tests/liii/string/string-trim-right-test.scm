@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii string)
-) ;import
+(import (liii check) (liii string))
 
 ;; string-trim-right
 ;; 从字符串末尾移除指定的字符/空白字符。
@@ -57,18 +55,77 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-(check (string-trim-right "  hello  ") => "  hello")
-(check (string-trim-right "---hello---" #\-) => "---hello")
-(check (string-trim-right "123hello123" char-numeric?) => "123hello")
+(check (string-trim-right "  hello  ")
+  =>
+  "  hello"
+) ;check
+(check (string-trim-right "---hello---" #\-)
+  =>
+  "---hello"
+) ;check
+(check (string-trim-right "123hello123"
+         char-numeric?
+       ) ;string-trim-right
+  =>
+  "123hello"
+) ;check
 (check (string-trim-right "   ") => "")
 (check (string-trim-right "") => "")
-(check (string-trim-right "hello" #\-) => "hello")
-(check (string-trim-right "abcABC123" char-upper-case?) => "abcABC123")
-(check (string-trim-right "  hello  " #\space 2 7) => "hello")
-(check (string-trim-right "   hello   " #\space 3) => "hello")
-(check (string-trim-right "   hello   " #\space 3 8) => "hello")
-(check (string-trim-right "---hello---" #\- 3 8) => "hello")
-(check (string-trim-right "123hello123" char-numeric? 3 8) => "hello")
-(check (string-trim-right "123hello123" char-numeric? 3) => "hello")
+(check (string-trim-right "hello" #\-)
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "abcABC123"
+         char-upper-case?
+       ) ;string-trim-right
+  =>
+  "abcABC123"
+) ;check
+(check (string-trim-right "  hello  "
+         #\space
+         2
+         7
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "   hello   "
+         #\space
+         3
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "   hello   "
+         #\space
+         3
+         8
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "---hello---"
+         #\-
+         3
+         8
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "123hello123"
+         char-numeric?
+         3
+         8
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
+(check (string-trim-right "123hello123"
+         char-numeric?
+         3
+       ) ;string-trim-right
+  =>
+  "hello"
+) ;check
 
 (check-report)

@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii fxmapping)
-) ;import
+(import (liii check) (liii fxmapping))
 
 (check-set-mode! 'report-failed)
 
@@ -23,6 +21,11 @@
 ;; -----
 ;; 返回 proc 应用于所有键值对的结果列表（按键降序）。
 ;;
-(check (fxmapping-map->list (lambda (k v) (cons k v)) (fxmapping 0 'a 1 'b)) => '((0 . a) (1 . b)))
+(check (fxmapping-map->list (lambda (k v) (cons k v))
+         (fxmapping 0 'a 1 'b)
+       ) ;fxmapping-map->list
+  =>
+  '((0 . a) (1 . b))
+) ;check
 
 (check-report)
