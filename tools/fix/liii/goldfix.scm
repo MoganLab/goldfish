@@ -83,23 +83,41 @@
       (let* ((p (path path-str))
              (source (path-read-text p))
              (repaired (repair-source source)))
-        (path-write-text p repaired)))
+        (if (string=? source repaired)
+            #f  ; 未修改
+            (begin
+              (path-write-text p repaired)
+              #t))))  ; 已修改
 
     (define (fix-directory dir-path)
       (let ((entries (path-list-path (path dir-path))))
-        (vector-for-each
-          (lambda (entry)
-            (cond
-              ((path-file? entry)
-               (let ((entry-str (path->string entry)))
-                 (if (string-suffix? ".scm" entry-str)
-                     (begin
-                       (fix-file entry-str)
-                       (display (string-append "已修正: " entry-str))
-                       (newline)))))
-              ((path-dir? entry)
-               (fix-directory (path->string entry)))))
-          entries)))
+        (let loop ((i 0)
+                   (total 0)
+                   (updated 0))
+          (if (>= i (vector-length entries))
+              (values total updated)
+              (let ((entry (vector-ref entries i)))
+                (cond
+                  ((path-file? entry)
+                   (let ((entry-str (path->string entry)))
+                     (if (string-suffix? ".scm" entry-str)
+                         (begin
+                           (display (string-append "Processing: " entry-str))
+                           (newline)
+                           (if (fix-file entry-str)
+                               (begin
+                                 (display (string-append "  Updated: " entry-str))
+                                 (newline)
+                                 (loop (+ i 1) (+ total 1) (+ updated 1)))
+                               (loop (+ i 1) (+ total 1) updated)))
+                         (loop (+ i 1) total updated))))
+                  ((path-dir? entry)
+                   (call-with-values
+                     (lambda () (fix-directory (path->string entry)))
+                     (lambda (sub-total sub-updated)
+                       (loop (+ i 1) (+ total sub-total) (+ updated sub-updated)))))
+                  (else
+                    (loop (+ i 1) total updated))))))))
 
     (define (main)
       (let* ((args (cddr (argv)))
@@ -110,23 +128,36 @@
           ((or help-flag (string=? path-str ""))
            (display-help)
            #t)
-          ((path-file? (path path-str))
-           (if dry-run
-               (fix-file-dry-run path-str)
-               (begin
-                 (fix-file path-str)
-                 (display (string-append "已修正: " path-str))
-                 (newline)
-                 #t)))
-          ((path-dir? (path path-str))
-           (if dry-run
-               (begin
-                 (display "错误: --dry-run 选项仅支持单个文件")
-                 (newline)
-                 (exit 1))
-               (begin
-                 (fix-directory path-str)
-                 #t)))
+           ((path-file? (path path-str))
+            (if dry-run
+                (fix-file-dry-run path-str)
+                (let ((changed? (fix-file path-str)))
+                  (display (string-append "Processing: " path-str))
+                  (newline)
+                  (if changed?
+                      (begin
+                        (display (string-append "  Updated: " path-str))
+                        (newline))
+                      '())
+                  (display (string-append "Total files processed: 1, Files updated: "
+                                          (if changed? "1" "0")))
+                  (newline)
+                  #t)))
+           ((path-dir? (path path-str))
+            (if dry-run
+                (begin
+                  (display "错误: --dry-run 选项仅支持单个文件")
+                  (newline)
+                  (exit 1))
+                (call-with-values
+                  (lambda () (fix-directory path-str))
+                  (lambda (total updated)
+                    (display (string-append "Total files processed: "
+                                            (number->string total)
+                                            ", Files updated: "
+                                            (number->string updated)))
+                    (newline)
+                    #t))))
           (else
            (display (string-append "错误: 路径不存在 - " path-str))
            (newline)
