@@ -32,18 +32,20 @@
         "zh_CN": "浏览 Goldfish Scheme 库文档"
       }
     },
-    "fix": {
-      "description": {
-        "en_US": "Format PATH (PATH can be a .scm file or directory)",
-        "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"
-      }
-    },
     "fmt": {
       "organization": "liii",
       "module": "goldfmt",
       "description": {
         "en_US": "Format PATH (PATH can be a .scm file or directory)",
         "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"
+      }
+    },
+    "fix": {
+      "organization": "liii",
+      "module": "goldfix",
+      "description": {
+        "en_US": "Fix Scheme parentheses by indentation",
+        "zh_CN": "根据缩进修正 Scheme 括号"
       }
     },
     "test": {

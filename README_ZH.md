@@ -176,7 +176,7 @@ Goldfish 启动时也支持额外的库搜索目录：
 
 例如：
 ```bash
-gf -I ~/.local/goldfish/liii-goldfix eval '(begin (import (liii goldfix)) (quote ok))'
+gf -I ~/.local/goldfish/example-lib eval '(begin (import (example hello)) (quote ok))'
 ```
 
 启动时，Goldfish 还会自动把 `~/.local/goldfish/` 下所有名称匹配 `xxx-yyy` 且至少包含一个 `.scm` 文件的目录前置到库搜索路径中。
@@ -193,8 +193,6 @@ gf -I ~/.local/goldfish/liii-goldfix eval '(begin (import (liii goldfix)) (quote
 
 ## 许可证
 金鱼Scheme 根据 Apache 2.0 许可证授权，一些源自 S7 Scheme 和 SRFI 的代码片段已在相关源文件中明确声明。
-
-`(liii goldfix)` 的版权归 Liii Network 所有。
 
 ## 引用
 
