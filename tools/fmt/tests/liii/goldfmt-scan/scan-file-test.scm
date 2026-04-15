@@ -1,10 +1,20 @@
-(import (liii check))
-(import (liii goldfmt-scan))
-(import (liii goldfmt-record))
-(import (liii path))
-(import (liii vector))
+(import (liii check)
+        (liii goldfmt-scan)
+        (liii goldfmt-record)
+        (liii path)
+        (liii vector)
+        (liii os))
 
 (check-set-mode! 'report-failed)
+
+;; 辅助函数：获取资源文件路径
+;; 优先使用相对于 tools/fmt 的路径，如果不存在则使用绝对路径
+(define (resource-file filename)
+  (let ((local-path (string-append "tests/resources/" filename))
+        (abs-path (string-append "tools/fmt/tests/resources/" filename)))
+    (if (access local-path 'R_OK)
+        local-path
+        abs-path)))
 
 ;; 辅助函数：判断是否为注释节点
 (define (comment-node? node)
@@ -17,7 +27,7 @@
        (string=? (env-tag-name node) "define")))
 
 ;; 测试 006_01.scm：基本注释处理
-(let ((results (scan-file "tools/fmt/tests/resources/006_01.scm")))
+(let ((results (scan-file (resource-file "006_01.scm"))))
   (check (vector? results) => #t)
   (check (vector-length results) => 5)  ; 3个注释 + 2个define
   ;; 使用 vector-count 统计注释数量
@@ -33,7 +43,7 @@
   (check (env-tag-name (vector-ref results 2)) => "*comment*"))
 
 ;; 测试 006_02.scm：跨行注释应该被正确处理（忽略）
-(let ((results (scan-file "tools/fmt/tests/resources/006_02.scm")))
+(let ((results (scan-file (resource-file "006_02.scm"))))
   (check (vector? results) => #t)
   ;; 只有第一个行注释和 define（跨行注释被忽略）
   (let ((comment-count (vector-count comment-node? results))
@@ -43,7 +53,7 @@
   (check (vector-length results) => 2))
 
 ;; 测试 006_03.scm：字符串中的分号不应被视为注释
-(let ((results (scan-file "tools/fmt/tests/resources/006_03.scm")))
+(let ((results (scan-file (resource-file "006_03.scm"))))
   (check (vector? results) => #t)
   ;; 第1个是注释，第2、3个是 define（字符串中的 ;; 不是注释）
   (let ((comment-count (vector-count comment-node? results))
