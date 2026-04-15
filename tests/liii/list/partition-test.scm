@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; partition 函数测试
 ;;
@@ -27,9 +27,13 @@
 ;; ----
 ;; (partition symbol? '(one 2 3 four five 6)) => (cons '(five four one) '(6 3 2))
 
-(check
-  (partition symbol? '(one 2 3 four five 6))
-  => (cons '(five four one) '(6 3 2))
+
+(check (partition symbol?
+         '(one 2 3 four five 6)
+       ) ;partition
+  =>
+  (cons '(five four one) '(6 3 2))
 ) ;check
+
 
 (check-report)

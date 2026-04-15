@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset-delete
@@ -24,7 +24,16 @@
 ;; -----
 ;; 返回一个新的 iset。
 ;;
-(check (iset->list (iset-delete (iset 1 3 5) 3)) => '(1 5))
-(check (iset->list (iset-delete (iset 1 2 3) 4)) => '(1 2 3))
+(check (iset->list (iset-delete (iset 1 3 5) 3)
+       ) ;iset->list
+  =>
+  '(1 5)
+) ;check
+(check (iset->list (iset-delete (iset 1 2 3) 4)
+       ) ;iset->list
+  =>
+  '(1 2 3)
+) ;check
+
 
 (check-report)

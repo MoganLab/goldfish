@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset-find
@@ -27,8 +27,27 @@
 ;; -----
 ;; 返回满足谓词的最小元素，或 failure 的调用结果。
 ;;
-(check (iset-find positive? (iset -1 1) (lambda () #f)) => 1)
-(check (iset-find zero? (iset -1 1) (lambda () #f)) => #f)
-(check (iset-find even? (iset 1 3 5 7 8 9 10) (lambda () #f)) => 8)
+(check (iset-find positive?
+         (iset -1 1)
+         (lambda () #f)
+       ) ;iset-find
+  =>
+  1
+) ;check
+(check (iset-find zero?
+         (iset -1 1)
+         (lambda () #f)
+       ) ;iset-find
+  =>
+  #f
+) ;check
+(check (iset-find even?
+         (iset 1 3 5 7 8 9 10)
+         (lambda () #f)
+       ) ;iset-find
+  =>
+  8
+) ;check
+
 
 (check-report)

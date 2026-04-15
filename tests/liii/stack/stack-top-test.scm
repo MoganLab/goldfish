@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack-top
 ;; 获取栈顶元素。
@@ -30,36 +29,42 @@
 ;; type-error 当参数不是栈时
 ;; value-error 当栈为空时
 
-; Test stack-top with single element
+
 (let ((s (stack 1)))
   (check (stack-top s) => 1)
 ) ;let
 
-; Test stack-top with multiple elements (top is first)
+
 (let ((s (stack 1 2 3)))
   (check (stack-top s) => 1)
 ) ;let
 
-; Test stack-top with different types
+
 (let ((s (stack 'symbol "string" 42)))
   (check (stack-top s) => 'symbol)
 ) ;let
 
-; Test stack-top doesn't modify stack
+
 (let ((s (stack 1 2 3)))
   (check (stack-top s) => 1)
   (check (stack-size s) => 3)
   (check (stack-top s) => 1)
 ) ;let
 
-; Test stack-top with nested list
+
 (let ((s (stack '(1 2) '(3 4))))
   (check (stack-top s) => '(1 2))
 ) ;let
 
-; Error handling tests
-(check-catch 'type-error (stack-top 'not-a-stack))
 
-(check-catch 'value-error (stack-top (make-stack)))
+(check-catch 'type-error
+  (stack-top 'not-a-stack)
+) ;check-catch
+
+
+(check-catch 'value-error
+  (stack-top (make-stack))
+) ;check-catch
+
 
 (check-report)

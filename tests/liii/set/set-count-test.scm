@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-count
 ;; 计算 set 中满足谓词的元素个数。
@@ -35,23 +37,62 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 (define s-1-2 (set 1 2))
 (define s-1-2-3 (set 1 2 3))
 
-(check (set-count (lambda (x) (> x 0)) s-empty) => 0)
-(check (set-count (lambda (x) (> x 0)) s-1) => 1)
-(check (set-count (lambda (x) (> x 0)) s-1-2) => 2)
-(check (set-count (lambda (x) (> x 0)) s-1-2-3) => 3)
 
-(check (set-count (lambda (x) (> x 1)) s-1) => 0)
-(check (set-count (lambda (x) (> x 1)) s-1-2) => 1)
-(check (set-count (lambda (x) (> x 1)) s-1-2-3) => 2)
+(check (set-count (lambda (x) (> x 0)) s-empty)
+  =>
+  0
+) ;check
+(check (set-count (lambda (x) (> x 0)) s-1)
+  =>
+  1
+) ;check
+(check (set-count (lambda (x) (> x 0)) s-1-2)
+  =>
+  2
+) ;check
+(check (set-count (lambda (x) (> x 0)) s-1-2-3)
+  =>
+  3
+) ;check
 
-(check (set-count (lambda (x) (even? x)) s-1-2-3) => 1) ; only 2
-(check (set-count (lambda (x) (odd? x)) s-1-2-3) => 2)  ; 1 and 3
 
-(check-catch 'type-error (set-count (lambda (x) #t) "not a set"))
+(check (set-count (lambda (x) (> x 1)) s-1)
+  =>
+  0
+) ;check
+(check (set-count (lambda (x) (> x 1)) s-1-2)
+  =>
+  1
+) ;check
+(check (set-count (lambda (x) (> x 1)) s-1-2-3)
+  =>
+  2
+) ;check
+
+
+(check (set-count (lambda (x) (even? x))
+         s-1-2-3
+       ) ;set-count
+  =>
+  1
+) ;check
+(check (set-count (lambda (x) (odd? x))
+         s-1-2-3
+       ) ;set-count
+  =>
+  2
+) ;check
+
+
+(check-catch 'type-error
+  (set-count (lambda (x) #t) "not a set")
+) ;check-catch
+
 
 (check-report)

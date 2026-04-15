@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-range
 ;; 从向量创建 range。
@@ -33,10 +33,12 @@
 ;; ----
 ;; 无
 
+
 (let ((r (vector-range #(a b c d e))))
   (check (range-length r) => 5)
   (check (range-ref r 0) => 'a)
   (check (range-ref r 4) => 'e)
 ) ;let
+
 
 (check-report)

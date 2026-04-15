@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-swap!
 ;; 交换向量中两个索引位置的元素。
@@ -39,20 +39,31 @@
 ;; ----
 ;; out-of-range 当i或j超出向量边界时
 
+
 (define my-vector (vector 0 1 2 3))
 (vector-swap! my-vector 1 2)
 (check my-vector => #(0 2 1 3))
+
 
 (define my-vector (vector 0 1 2 3))
 (vector-swap! my-vector 1 1)
 (check my-vector => #(0 1 2 3))
 
+
 (define my-vector (vector 0 1 2 3))
-(vector-swap! my-vector 0 (- (vector-length my-vector) 1))
+(vector-swap! my-vector
+  0
+  (- (vector-length my-vector) 1)
+) ;vector-swap!
 (check my-vector => #(3 1 2 0))
 
+
 (check-catch 'out-of-range
-  (vector-swap! my-vector 1 (vector-length my-vector))
+  (vector-swap! my-vector
+    1
+    (vector-length my-vector)
+  ) ;vector-swap!
 ) ;check-catch
+
 
 (check-report)

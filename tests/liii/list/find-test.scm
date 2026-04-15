@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; find 函数测试
 ;;
@@ -40,10 +40,14 @@
 ;; (find even? '()) => #f
 ;; (find even? '(1 3 5 7 9)) => #f
 
+
 (check (find even? '(3 1 4 1 5 9)) => 4)
+
 
 (check (find even? '()) => #f)
 
+
 (check (find even? '(1 3 5 7 9)) => #f)
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range->generator
 ;; 将 range 转换为生成器函数。
@@ -29,26 +29,29 @@
 ;; ----
 ;; 无
 
-(let ((r (numeric-range 0 5))
-      (result '()))
+
+(let ((r (numeric-range 0 5)) (result '()))
   (let ((g (range->generator r)))
-    (let loop ((v (g)))
+    (let loop
+      ((v (g)))
       (if (eof-object? v)
-          (check result => '(0 1 2 3 4))
-          (begin
-            (set! result (append result (list v)))
-            (loop (g))
-          ) ;begin
+        (check result => '(0 1 2 3 4))
+        (begin
+          (set! result (append result (list v)))
+          (loop (g))
+        ) ;begin
       ) ;if
     ) ;let
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 0 0)))
   (let ((g (range->generator r)))
     (check-true (eof-object? (g)))
   ) ;let
 ) ;let
+
 
 (let ((r (numeric-range 1 4)))
   (let ((g (range->generator r)))
@@ -58,5 +61,6 @@
     (check-true (eof-object? (g)))
   ) ;let
 ) ;let
+
 
 (check-report)

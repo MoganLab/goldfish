@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack-map!
 ;; 对栈中每个元素应用函数，修改原栈。
@@ -33,43 +32,51 @@
 ;; type-error 当 proc 不是过程时
 ;; type-error 当 s 不是栈时
 
-; Test stack-map! on empty stack
+
 (let ((s (make-stack)))
   (stack-map! (lambda (x) (* x 2)) s)
   (check (stack-empty? s) => #t)
 ) ;let
 
-; Test stack-map! on single element
+
 (let ((s (stack 1)))
   (stack-map! (lambda (x) (* x 2)) s)
   (check (stack-top s) => 2)
 ) ;let
 
-; Test stack-map! on multiple elements
+
 (let ((s (stack 1 2 3)))
   (stack-map! (lambda (x) (* x 2)) s)
   (check (stack->list s) => '(2 4 6))
 ) ;let
 
-; Test stack-map! modifies original stack
+
 (let ((s (stack 1 2 3)))
   (stack-map! (lambda (x) (* x 2)) s)
   (check (stack->list s) => '(2 4 6))
 ) ;let
 
-; Test stack-map! returns the stack
+
 (let ((s (stack 1 2 3)))
-  (check (stack-map! (lambda (x) (* x 2)) s) => s)
+  (check (stack-map! (lambda (x) (* x 2)) s)
+    =>
+    s
+  ) ;check
 ) ;let
 
-; Test stack-map! with different function
+
 (let ((s (stack 10 20 30)))
   (stack-map! (lambda (x) (/ x 10)) s)
   (check (stack->list s) => '(1 2 3))
 ) ;let
 
-; Error handling tests
-(check-catch 'type-error (stack-map! "not-a-proc" (stack 1 2)))
-(check-catch 'type-error (stack-map! (lambda (x) x) 'not-a-stack))
+
+(check-catch 'type-error
+  (stack-map! "not-a-proc" (stack 1 2))
+) ;check-catch
+(check-catch 'type-error
+  (stack-map! (lambda (x) x) 'not-a-stack)
+) ;check-catch
+
 
 (check-report)

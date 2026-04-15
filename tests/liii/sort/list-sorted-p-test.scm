@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-sorted?
 ;; 检查列表是否已按指定比较函数排序。
@@ -33,15 +33,30 @@
 ;; ----
 ;; 无
 
-(check-false (list-sorted? < '(1 5 1 0 -1 9 2 4 3)))
-(check-true (list-sorted? < '(1 2 3 4 5)))
+
+(check-false (list-sorted? < '(1 5 1 0 -1 9 2 4 3))
+) ;check-false
+(check-true (list-sorted? < '(1 2 3 4 5))
+) ;check-true
 (check-true (list-sorted? < '()))
 (check-true (list-sorted? < '(42)))
-(check-true (list-sorted? > '(5 4 3 2 1)))
-(check-false (list-sorted? > '(1 2 3 4 5)))
+(check-true (list-sorted? > '(5 4 3 2 1))
+) ;check-true
+(check-false (list-sorted? > '(1 2 3 4 5))
+) ;check-false
+
 
 ;; 配合排序函数使用
-(check-true (list-sorted? < (list-sort < '(1 5 1 0 -1 9 2 4 3))))
-(check-true (list-sorted? < (list-stable-sort < '(1 5 1 0 -1 9 2 4 3))))
+(check-true (list-sorted? <
+              (list-sort < '(1 5 1 0 -1 9 2 4 3))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-stable-sort <
+                '(1 5 1 0 -1 9 2 4 3)
+              ) ;list-stable-sort
+            ) ;list-sorted?
+) ;check-true
+
 
 (check-report)

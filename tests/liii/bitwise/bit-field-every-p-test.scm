@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bit-field-every?
 ;; 检查整数指定位域中是否所有位都被设置（值为1）。
@@ -50,89 +50,118 @@
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
 
-;;; 基本功能测试：检查位域中是否所有位设置
-(check (bit-field-every? #b1011110 1 5) => #t)  ; #b1011110 位域[1,5)中所有位都是1
-(check (bit-field-every? #b1011010 1 5) => #f)  ; #b1011010 位域[1,5)中第3位是0
 
-;;; 边界值测试
-(check (bit-field-every? 0 0 1) => #f)          ; 0的所有位都是0
-(check (bit-field-every? 0 0 8) => #f)          ; 0的所有位都是0
-(check (bit-field-every? -1 0 1) => #t)         ; -1的所有位都是1
-(check (bit-field-every? -1 0 8) => #t)         ; -1的所有位都是1
-(check (bit-field-every? 1 0 1) => #t)          ; 1的第0位是1
-(check (bit-field-every? 1 1 2) => #f)          ; 1的第1位是0
+;; ; 基本功能测试：检查位域中是否所有位设置
+(check (bit-field-every? 94 1 5) => #t)
+(check (bit-field-every? 90 1 5) => #f)
 
-;;; 空位域测试
-(check (bit-field-every? 255 0 0) => #t)        ; 空位域，没有位需要检查（总是返回 #t）
-(check (bit-field-every? 255 5 5) => #t)        ; 空位域，没有位需要检查（总是返回 #t）
-(check (bit-field-every? 0 0 0) => #t)          ; 空位域，没有位需要检查（总是返回 #t）
 
-;;; 二进制表示测试
-(check (bit-field-every? #b10101010 0 4) => #f) ; #b10101010 低4位中第0位是0
-(check (bit-field-every? #b10101010 4 8) => #f) ; #b10101010 高4位中第4位是0
-(check (bit-field-every? #b00001111 0 4) => #t) ; #b00001111 低4位中所有位都是1
-(check (bit-field-every? #b00001111 4 8) => #f) ; #b00001111 高4位都是0
-(check (bit-field-every? #b11110000 0 4) => #f) ; #b11110000 低4位都是0
-(check (bit-field-every? #b11110000 4 8) => #t) ; #b11110000 高4位中所有位都是1
+;; ; 边界值测试
+(check (bit-field-every? 0 0 1) => #f)
+(check (bit-field-every? 0 0 8) => #f)
+(check (bit-field-every? -1 0 1) => #t)
+(check (bit-field-every? -1 0 8) => #t)
+(check (bit-field-every? 1 0 1) => #t)
+(check (bit-field-every? 1 1 2) => #f)
 
-;;; 位域范围测试
-(check (bit-field-every? 255 0 1) => #t)        ; 255的第0位是1
-(check (bit-field-every? 255 0 2) => #t)        ; 255的第0-1位中所有位都是1
-(check (bit-field-every? 255 0 4) => #t)        ; 255的第0-3位中所有位都是1
-(check (bit-field-every? 255 0 8) => #t)        ; 255的第0-7位中所有位都是1
-(check (bit-field-every? 254 0 1) => #f)        ; 254的第0位是0
-(check (bit-field-every? 254 0 2) => #f)        ; 254的第0位是0
-(check (bit-field-every? 254 1 2) => #t)        ; 254的第1位是1
 
-;;; 特殊值测试
-(check (bit-field-every? 2147483647 0 31) => #t) ; 最大32位有符号整数，位域中所有位都是1
-(check (bit-field-every? 2147483647 31 32) => #f) ; 最大32位有符号整数，第31位是0
-(check (bit-field-every? -2147483648 31 32) => #t) ; 最小32位有符号整数，第31位是1
+;; ; 空位域测试
+(check (bit-field-every? 255 0 0) => #t)
+(check (bit-field-every? 255 5 5) => #t)
+(check (bit-field-every? 0 0 0) => #t)
 
-;;; 负整数测试
-(check (bit-field-every? -1 0 8) => #t)         ; -1的所有位都是1
-(check (bit-field-every? -2 0 1) => #f)         ; -2的第0位是0
-(check (bit-field-every? -2 1 2) => #t)         ; -2的第1位是1
-(check (bit-field-every? -3 0 1) => #t)         ; -3的第0位是1
-(check (bit-field-every? -3 1 2) => #f)         ; -3的第1位是0
 
-;;; 与 bit-field-any? 的互补关系测试
-(check (bit-field-every? #b1010 0 4) => (not (bit-field-any? (bitwise-not #b1010) 0 4))) ; 互补关系验证
-(check (bit-field-every? #b0101 0 4) => (not (bit-field-any? (bitwise-not #b0101) 0 4))) ; 互补关系验证
+;; ; 二进制表示测试
+(check (bit-field-every? 170 0 4) => #f)
+(check (bit-field-every? 170 4 8) => #f)
+(check (bit-field-every? 15 0 4) => #t)
+(check (bit-field-every? 15 4 8) => #f)
+(check (bit-field-every? 240 0 4) => #f)
+(check (bit-field-every? 240 4 8) => #t)
 
-;;; 错误处理测试 - wrong-type-arg
+
+;; ; 位域范围测试
+(check (bit-field-every? 255 0 1) => #t)
+(check (bit-field-every? 255 0 2) => #t)
+(check (bit-field-every? 255 0 4) => #t)
+(check (bit-field-every? 255 0 8) => #t)
+(check (bit-field-every? 254 0 1) => #f)
+(check (bit-field-every? 254 0 2) => #f)
+(check (bit-field-every? 254 1 2) => #t)
+
+
+;; ; 特殊值测试
+(check (bit-field-every? 2147483647 0 31)
+  =>
+  #t
+) ;check
+(check (bit-field-every? 2147483647 31 32)
+  =>
+  #f
+) ;check
+(check (bit-field-every? -2147483648 31 32)
+  =>
+  #t
+) ;check
+
+
+;; ; 负整数测试
+(check (bit-field-every? -1 0 8) => #t)
+(check (bit-field-every? -2 0 1) => #f)
+(check (bit-field-every? -2 1 2) => #t)
+(check (bit-field-every? -3 0 1) => #t)
+(check (bit-field-every? -3 1 2) => #f)
+
+
+;; ; 与 bit-field-any? 的互补关系测试
+(check (bit-field-every? 10 0 4)
+  =>
+  (not (bit-field-any? (bitwise-not 10) 0 4)
+  ) ;not
+) ;check
+(check (bit-field-every? 5 0 4)
+  =>
+  (not (bit-field-any? (bitwise-not 5) 0 4)
+  ) ;not
+) ;check
+
+
+;; ; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-every? "string" 0 4)   ; 整数参数不是整数
+  (bit-field-every? "string" 0 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 "string" 4)   ; 起始索引参数不是整数
+  (bit-field-every? 1 "string" 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 0 "string")   ; 结束索引参数不是整数
+  (bit-field-every? 1 0 "string")
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 3.14 0 4)       ; 浮点数整数参数
+  (bit-field-every? 3.14 0 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 3.14 4)       ; 浮点数起始索引参数
+  (bit-field-every? 1 3.14 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-every? 1 0 3.14)       ; 浮点数结束索引参数
+  (bit-field-every? 1 0 3.14)
 ) ;check-catch
 
-;;; 错误处理测试 - out-of-range
-;;; 注意：S7 Scheme 的 bit-field-every? 实现与 SRFI 151 标准有所不同
-;;; 只有结束索引超过63时会抛出 out-of-range 错误
+
+;; ; 错误处理测试 - out-of-range
+;; ; 注意：S7 Scheme 的 bit-field-every? 实现与 SRFI 151 标准有所不同
+;; ; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-every? 1 0 64)         ; 结束索引不能超过63
+  (bit-field-every? 1 0 64)
 ) ;check-catch
 
-;;; 其他边界情况不会抛出错误，而是返回正常值
-;;; 注意：S7 Scheme 的 bit-field-every? 对边界情况返回 #f
-(check (bit-field-every? 1 -1 4) => #f)         ; 负起始索引返回正常值
-(check (bit-field-every? 1 0 -1) => #f)         ; 负结束索引返回正常值
-(check (bit-field-every? 1 64 65) => #f)        ; 大起始索引返回正常值（空位域）
-(check (bit-field-every? 1 5 4) => #f)          ; start > end 返回正常值（空位域）
+
+;; ; 其他边界情况不会抛出错误，而是返回正常值
+;; ; 注意：S7 Scheme 的 bit-field-every? 对边界情况返回 #f
+(check (bit-field-every? 1 -1 4) => #f)
+(check (bit-field-every? 1 0 -1) => #f)
+(check (bit-field-every? 1 64 65) => #f)
+(check (bit-field-every? 1 5 4) => #f)
+
 
 
 (check-report)

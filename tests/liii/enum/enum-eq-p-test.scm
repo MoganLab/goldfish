@@ -1,18 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define color-tangerine (enum-name->enum color 'tangerine))
+
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
+
+
+(define color-tangerine
+  (enum-name->enum color 'tangerine)
+) ;define
+
 
 ;; enum=?
 ;; 判断多个 enum 是否相等。
@@ -46,9 +56,28 @@
 ;; ----
 ;; 无。
 
-(check (enum=? color-red (enum-ordinal->enum color 0)) => #t)
-(check (enum=? color-red color-tangerine) => #f)
-(check (enum=? color-red color-red color-red) => #t)
-(check (enum=? color-red color-red color-tangerine) => #f)
+
+(check (enum=? color-red
+         (enum-ordinal->enum color 0)
+       ) ;enum=?
+  =>
+  #t
+) ;check
+(check (enum=? color-red color-tangerine)
+  =>
+  #f
+) ;check
+(check (enum=? color-red color-red color-red)
+  =>
+  #t
+) ;check
+(check (enum=? color-red
+         color-red
+         color-tangerine
+       ) ;enum=?
+  =>
+  #f
+) ;check
+
 
 (check-report)

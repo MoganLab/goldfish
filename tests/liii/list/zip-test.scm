@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; zip 函数测试
 ;;
@@ -53,58 +53,100 @@
 ;; --------
 ;; wrong-type-arg 当任何参数不是列表类型时可能抛出
 
-; === 基本功能测试 ===
-; 两个列表的标准配对测试
-(check (zip '(1 2 3) '(a b c)) => '((1 a) (2 b) (3 c)))
-(check (zip '(x y z) '(10 20 30)) => '((x 10) (y 20) (z 30)))
 
-; 不同长度列表测试
-(check (zip '(1 2) '(a b c)) => '((1 a) (2 b)))  ; 第二列表更长
-(check (zip '(1 2 3) '(a b)) => '((1 a) (2 b)))  ; 第一列表更长
+(check (zip '(1 2 3) '(a b c))
+  =>
+  '((1 a) (2 b) (3 c))
+) ;check
+(check (zip '(x y z) '(10 20 30))
+  =>
+  '((x 10) (y 20) (z 30))
+) ;check
 
-; === 空列表边界条件测试 ===
-(check (zip '() '(a b)) => '())                  ; 空列表与有内容的列表
-(check (zip '(a b) '()) => '())                  ; 有内容的列表与空列表
-(check (zip '() '()) => '())                      ; 双空列表
-(check (zip '() '() '()) => '())                  ; 三空列表
 
-; === 多列表测试 ===
-(check (zip '(1) '(a) '(x)) => '((1 a x)))       ; 三列表单元素
-(check (zip '(1 2 3) '(a b c) '(x y z)) => '((1 a x) (2 b y) (3 c z)))  ; 三列表多元素
-(check (zip '(1 2) '(a b) '(x y) '(p q)) => '((1 a x p) (2 b y q)))     ; 四列表
+(check (zip '(1 2) '(a b c))
+  =>
+  '((1 a) (2 b))
+) ;check
+(check (zip '(1 2 3) '(a b))
+  =>
+  '((1 a) (2 b))
+) ;check
 
-; === 不同数据类型测试 ===
-(check (zip '(1 2 3) '("a" "b" "c")) => '((1 "a") (2 "b") (3 "c")))  ; 数字与字符串
-(check (zip '(#t #f) '(apple banana)) => '((#t apple) (#f banana)))        ; 布尔符与符号
-(check (zip '("hello" "world") '(42 43)) => '(("hello" 42) ("world" 43))) ; 字符串与数字
-(check (zip '(() (a b)) '((c d) ())) => '((() (c d)) ((a b) ())))         ; 列表与列表
 
-; === 单元素列表测试 ===
-(check (zip '(a) '(1)) => '((a 1)))               ; 单元素配对
-(check (zip '(only)) => '((only)))                ; 单参数（特殊用例，被视为单元素列表）
+(check (zip '() '(a b)) => '())
+(check (zip '(a b) '()) => '())
+(check (zip '() '()) => '())
+(check (zip '() '() '()) => '())
 
-; === 链式操作与组合测试 ===
+
+(check (zip '(1) '(a) '(x))
+  =>
+  '((1 a x))
+) ;check
+(check (zip '(1 2 3) '(a b c) '(x y z))
+  =>
+  '((1 a x) (2 b y) (3 c z))
+) ;check
+(check (zip '(1 2) '(a b) '(x y) '(p q))
+  =>
+  '((1 a x p) (2 b y q))
+) ;check
+
+
+(check (zip '(1 2 3) '("a" "b" "c"))
+  =>
+  '((1 "a") (2 "b") (3 "c"))
+) ;check
+(check (zip '(#t #f) '(apple banana))
+  =>
+  '((#t apple) (#f banana))
+) ;check
+(check (zip '("hello" "world") '(42 43))
+  =>
+  '(("hello" 42) ("world" 43))
+) ;check
+(check (zip '(() (a b)) '((c d) ()))
+  =>
+  '((() (c d)) ((a b) ()))
+) ;check
+
+
+(check (zip '(a) '(1)) => '((a 1)))
+(check (zip '(only)) => '((only)))
+
+
 (let ((paired (zip '(1 2 3) '(a b c))))
-  (check (map car paired) => '(1 2 3))            ; 提取第一列表元素
-  (check (map cadr paired) => '(a b c))          ; 提取第二列表元素
+  (check (map car paired) => '(1 2 3))
+  (check (map cadr paired) => '(a b c))
 ) ;let
 
-; === 错误处理与边界条件测试 ===
-; 单参数测试（被认为是对应列表自身的特殊用例）
-(check (zip '(1 2 3)) => '((1) (2) (3)))         ; 单参数被视为单元素点对
 
-; 大规模数据测试
+(check (zip '(1 2 3)) => '((1) (2) (3)))
+
+
 (let ((lst1 (iota 100))
-      (lst2 (iota 100 100)))
+      (lst2 (iota 100 100))
+     ) ;
   (let ((result (zip lst1 lst2)))
-    (check (length result) => 100)                ; 验证结果长度
-    (check (car (list-ref result 0)) => 0)        ; 验证第一个配对
-    (check (cadr (list-ref result 99)) => 199) ; 验证最后一个配对
+    (check (length result) => 100)
+    (check (car (list-ref result 0)) => 0)
+    (check (cadr (list-ref result 99))
+      =>
+      199
+    ) ;check
   ) ;let
 ) ;let
 
-; === 嵌套结构测试 ===
-(check (zip '((1 2) (3 4)) '((a b) (c d))) => '(((1 2) (a b)) ((3 4) (c d))))
-(check (zip '((a) b (c)) '(1 (2) 3)) => '(((a) 1) (b (2)) ((c) 3)))
+
+(check (zip '((1 2) (3 4)) '((a b) (c d)))
+  =>
+  '(((1 2) (a b)) ((3 4) (c d)))
+) ;check
+(check (zip '((a) b (c)) '(1 (2) 3))
+  =>
+  '(((a) 1) (b (2)) ((c) 3))
+) ;check
+
 
 (check-report)

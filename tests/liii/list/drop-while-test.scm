@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; drop-while 函数测试
 ;;
@@ -29,15 +29,28 @@
 ;; (drop-while (lambda (x) #t) '(1 2 3)) => '()
 ;; (drop-while (lambda (x) #f) '(1 2 3)) => '(1 2 3)
 
+
 (check (drop-while even? '()) => '())
 
-(check (drop-while (lambda (x) #t) '(1 2 3)) => '())
 
-(check (drop-while (lambda (x) #f) '(1 2 3)) => '(1 2 3))
-
-(check
-  (drop-while (lambda (x) (not (= x 1))) '(1 2 3))
-  => '(1 2 3)
+(check (drop-while (lambda (x) #t) '(1 2 3))
+  =>
+  '()
 ) ;check
+
+
+(check (drop-while (lambda (x) #f) '(1 2 3))
+  =>
+  '(1 2 3)
+) ;check
+
+
+(check (drop-while (lambda (x) (not (= x 1)))
+         '(1 2 3)
+       ) ;drop-while
+  =>
+  '(1 2 3)
+) ;check
+
 
 (check-report)

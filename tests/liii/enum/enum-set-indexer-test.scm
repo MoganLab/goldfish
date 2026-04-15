@@ -1,26 +1,32 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-indexer
 ;; 返回将名称映射到序数的过程。
@@ -51,10 +57,12 @@
 ;; ----
 ;; 无。
 
+
 (let ((idx (enum-set-indexer reddish)))
   (check (idx 'red) => 0)
   (check (idx 'green) => 4)
   (check (idx 'margherita) => #f)
 ) ;let
+
 
 (check-report)

@@ -3,22 +3,34 @@
 ;; uri-record 模块定义 URI 记录类型和所有访问器函数。
 ;; 这是 (liii uri) 的基础模块，提供底层的 URI 数据表示。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii uri-record))
 
+
 ;; 示例1：创建原始 URI 记录
-(define u (make-uri-raw "https" "user@example.com:8080" "/path" '(("a" . "1")) "frag"))
+(define u
+  (make-uri-raw "https"
+    "user@example.com:8080"
+    "/path"
+    '(("a" . "1"))
+    "frag"
+  ) ;make-uri-raw
+) ;define
+
 
 ;; 示例2：访问各个字段
-(uri-scheme-raw u)   ; => "https"
-(uri-netloc-raw u)   ; => "user@example.com:8080"
-(uri-path-raw u)     ; => "/path"
-(uri-query-raw u)    ; => '(("a" . "1"))
-(uri-fragment-raw u) ; => "frag"
+(uri-scheme-raw u)
+(uri-netloc-raw u)
+(uri-path-raw u)
+(uri-query-raw u)
+(uri-fragment-raw u)
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/uri-record "make-uri-raw"
 ;;   bin/gf doc liii/uri-record "uri-host"
+
 
 ;; ==== 函数分类索引 ====
 ;;

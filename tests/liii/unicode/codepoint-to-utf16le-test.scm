@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii unicode)
-        (liii base)
+  (liii unicode)
+  (liii base)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; codepoint->utf16le
 ;; 将 Unicode 码点转换为 UTF-16LE 编码的字节向量。
@@ -33,33 +35,95 @@
 ;; value-error 当码点超出 Unicode 范围或处于代理区时。
 ;; type-error 当参数不是整数时。
 
+
 ;; 基本 BMP 字符（2 字节）
-(check (codepoint->utf16le #x0048) => #u8(#x48 #x00))
-(check (codepoint->utf16le #x0041) => #u8(#x41 #x00))
-(check (codepoint->utf16le #x00A4) => #u8(#xA4 #x00))
-(check (codepoint->utf16le #x4E2D) => #u8(#x2D #x4E))
+(check (codepoint->utf16le 72)
+  =>
+  #u8(72 0)
+) ;check
+(check (codepoint->utf16le 65)
+  =>
+  #u8(65 0)
+) ;check
+(check (codepoint->utf16le 164)
+  =>
+  #u8(164 0)
+) ;check
+(check (codepoint->utf16le 20013)
+  =>
+  #u8(45 78)
+) ;check
+
 
 ;; 边界测试
-(check (codepoint->utf16le #x0000) => #u8(#x00 #x00))
-(check (codepoint->utf16le #xFFFF) => #u8(#xFF #xFF))
+(check (codepoint->utf16le 0)
+  =>
+  #u8(0 0)
+) ;check
+(check (codepoint->utf16le 65535)
+  =>
+  #u8(255 255)
+) ;check
+
 
 ;; 代理区外字符（4 字节）
-(check (codepoint->utf16le #x1F44D) => #u8(#x3D #xD8 #x4D #xDC))
-(check (codepoint->utf16le #x1F680) => #u8(#x3D #xD8 #x80 #xDE))
-(check (codepoint->utf16le #x10000) => #u8(#x00 #xD8 #x00 #xDC))
-(check (codepoint->utf16le #x10FFFF) => #u8(#xFF #xDB #xFF #xDF))
+(check (codepoint->utf16le 128077)
+  =>
+  #u8(61 216 77 220)
+) ;check
+(check (codepoint->utf16le 128640)
+  =>
+  #u8(61 216 128 222)
+) ;check
+(check (codepoint->utf16le 65536)
+  =>
+  #u8(0 216 0 220)
+) ;check
+(check (codepoint->utf16le 1114111)
+  =>
+  #u8(255 219 255 223)
+) ;check
+
 
 ;; 与 utf16le->codepoint 互逆操作
-(check (utf16le->codepoint (codepoint->utf16le #x0048)) => #x0048)
-(check (utf16le->codepoint (codepoint->utf16le #x4E2D)) => #x4E2D)
-(check (utf16le->codepoint (codepoint->utf16le #x1F44D)) => #x1F44D)
-(check (utf16le->codepoint (codepoint->utf16le #x10FFFF)) => #x10FFFF)
+(check (utf16le->codepoint (codepoint->utf16le 72)
+       ) ;utf16le->codepoint
+  =>
+  72
+) ;check
+(check (utf16le->codepoint (codepoint->utf16le 20013)
+       ) ;utf16le->codepoint
+  =>
+  20013
+) ;check
+(check (utf16le->codepoint (codepoint->utf16le 128077)
+       ) ;utf16le->codepoint
+  =>
+  128077
+) ;check
+(check (utf16le->codepoint (codepoint->utf16le 1114111)
+       ) ;utf16le->codepoint
+  =>
+  1114111
+) ;check
+
 
 ;; 错误处理
-(check-catch 'value-error (codepoint->utf16le -1))
-(check-catch 'value-error (codepoint->utf16le #x110000))
-(check-catch 'value-error (codepoint->utf16le #xD800))
-(check-catch 'value-error (codepoint->utf16le #xDFFF))
-(check-catch 'type-error (codepoint->utf16le "not-an-integer"))
+(check-catch 'value-error
+  (codepoint->utf16le -1)
+) ;check-catch
+(check-catch 'value-error
+  (codepoint->utf16le 1114112)
+) ;check-catch
+(check-catch 'value-error
+  (codepoint->utf16le 55296)
+) ;check-catch
+(check-catch 'value-error
+  (codepoint->utf16le 57343)
+) ;check-catch
+(check-catch 'type-error
+  (codepoint->utf16le "not-an-integer")
+) ;check-catch
+
 
 (check-report)

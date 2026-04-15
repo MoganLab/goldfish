@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-add!
 ;; 在 flexvector 的指定位置插入元素。时间复杂度 O(n)。
@@ -37,38 +37,56 @@
 ;; flexvector-add-front! - 头部插入
 ;; flexvector-add-back! - 尾部插入
 
+
 ;; 在开头插入
 (let ((fv (flexvector)))
   (flexvector-add! fv 0 'a)
   (check (flexvector-ref fv 0) => 'a)
 ) ;let
 
+
 ;; 在中间插入
 (let ((fv (flexvector 'a 'c)))
   (flexvector-add! fv 1 'b)
   (check (flexvector-length fv) => 3)
-  (check (flexvector->list fv) => '(a b c))
+  (check (flexvector->list fv)
+    =>
+    '(a b c)
+  ) ;check
 ) ;let
+
 
 ;; 在末尾插入
 (let ((fv (flexvector 'a 'b)))
   (flexvector-add! fv 2 'c)
   (check (flexvector-length fv) => 3)
-  (check (flexvector->list fv) => '(a b c))
+  (check (flexvector->list fv)
+    =>
+    '(a b c)
+  ) ;check
 ) ;let
+
 
 ;; 插入多个元素
 (let ((fv (flexvector 'a)))
   (flexvector-add! fv 1 'b 'c 'd)
   (check (flexvector-length fv) => 4)
-  (check (flexvector->list fv) => '(a b c d))
+  (check (flexvector->list fv)
+    =>
+    '(a b c d)
+  ) ;check
 ) ;let
+
 
 ;; 在开头插入多个元素
 (let ((fv (flexvector 'z)))
   (flexvector-add! fv 0 'a 'b 'c)
-  (check (flexvector->list fv) => '(a b c z))
+  (check (flexvector->list fv)
+    =>
+    '(a b c z)
+  ) ;check
 ) ;let
+
 
 ;; 非法 index 测试：index > len
 (check-catch 'value-error
@@ -77,6 +95,7 @@
   ) ;let
 ) ;check-catch
 
+
 ;; 非法 index 测试：index < 0
 (check-catch 'value-error
   (let ((fv (flexvector 'a 'b 'c)))
@@ -84,9 +103,14 @@
   ) ;let
 ) ;check-catch
 
+
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2)))
-  (check (eq? (flexvector-add! fv 1 'x) fv) => #t)
+  (check (eq? (flexvector-add! fv 1 'x) fv)
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 (check-report)

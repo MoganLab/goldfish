@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii unicode)
-        (liii base)
+  (liii unicode)
+  (liii base)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; bytevector-utf16be-advance
 ;; 从指定字节位置前进到下一个 UTF-16BE 字符的起始位置。
@@ -28,45 +30,184 @@
 ;; integer
 ;; 下一个 UTF-16BE 字符的起始字节位置；如果遇到无效序列则返回当前位置。
 
+
 ;; ASCII 字符测试（2字节编码）
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C #x00 #x6C #x00 #x6F) 0) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C #x00 #x6C #x00 #x6F) 2) => 4)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C #x00 #x6C #x00 #x6F) 4) => 6)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C #x00 #x6C #x00 #x6F) 6) => 8)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C #x00 #x6C #x00 #x6F) 8) => 10)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111)
+         2
+       ) ;bytevector-utf16be-advance
+  =>
+  4
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111)
+         4
+       ) ;bytevector-utf16be-advance
+  =>
+  6
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111)
+         6
+       ) ;bytevector-utf16be-advance
+  =>
+  8
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108 0 108 0 111)
+         8
+       ) ;bytevector-utf16be-advance
+  =>
+  10
+) ;check
+
 
 ;; 基本多文种平面字符测试（2字节编码）
-(check (bytevector-utf16be-advance #u8(#x00 #xE4 #x00 #x48) 0) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #xE9 #x00 #x65) 0) => 2)
-(check (bytevector-utf16be-advance #u8(#x4E #x2D #x00 #x48) 0) => 2)
+(check (bytevector-utf16be-advance #u8(0 228 0 72)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 233 0 101)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(78 45 0 72)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+
 
 ;; 辅助平面字符测试（4字节编码，代理对）
-(check (bytevector-utf16be-advance #u8(#xD8 #x3D #xDC #x4D #x00 #x48) 0) => 4)
-(check (bytevector-utf16be-advance #u8(#xD8 #x3D #xDE #x80 #x00 #x65) 0) => 4)
-(check (bytevector-utf16be-advance #u8(#xD8 #x3C #xDF #x89 #x00 #x6C) 0) => 4)
+(check (bytevector-utf16be-advance #u8(216 61 220 77 0 72)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  4
+) ;check
+(check (bytevector-utf16be-advance #u8(216 61 222 128 0 101)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  4
+) ;check
+(check (bytevector-utf16be-advance #u8(216 60 223 137 0 108)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  4
+) ;check
+
 
 ;; 混合字符序列测试
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #xE4 #x4E #x2D #xD8 #x3D #xDC #x4D) 0) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #xE4 #x4E #x2D #xD8 #x3D #xDC #x4D) 2) => 4)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #xE4 #x4E #x2D #xD8 #x3D #xDC #x4D) 4) => 6)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #xE4 #x4E #x2D #xD8 #x3D #xDC #x4D) 6) => 10)
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77)
+         2
+       ) ;bytevector-utf16be-advance
+  =>
+  4
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77)
+         4
+       ) ;bytevector-utf16be-advance
+  =>
+  6
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 228 78 45 216 61 220 77)
+         6
+       ) ;bytevector-utf16be-advance
+  =>
+  10
+) ;check
+
 
 ;; 边界条件测试
-(check (bytevector-utf16be-advance #u8() 0) => 0)
-(check (bytevector-utf16be-advance #u8(#x00 #x48) 0) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #x48) 2) => 2)
+(check (bytevector-utf16be-advance #u() 0)
+  =>
+  0
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72) 0)
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72) 2)
+  =>
+  2
+) ;check
+
 
 ;; 无效 UTF-16BE 序列测试
-(check (bytevector-utf16be-advance #u8(#x00) 0) => 0)
-(check (bytevector-utf16be-advance #u8(#xD8 #x3D) 0) => 0)
-(check (bytevector-utf16be-advance #u8(#xD8 #x3D #xDC) 0) => 0)
-(check (bytevector-utf16be-advance #u8(#xDC #x00 #x00 #x00) 0) => 0)
-(check (bytevector-utf16be-advance #u8(#xD8 #x3D #x00 #x00) 0) => 0)
+(check (bytevector-utf16be-advance #u8(0) 0)
+  =>
+  0
+) ;check
+(check (bytevector-utf16be-advance #u8(216 61)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  0
+) ;check
+(check (bytevector-utf16be-advance #u8(216 61 220)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  0
+) ;check
+(check (bytevector-utf16be-advance #u8(220 0 0 0)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  0
+) ;check
+(check (bytevector-utf16be-advance #u8(216 61 0 0)
+         0
+       ) ;bytevector-utf16be-advance
+  =>
+  0
+) ;check
+
 
 ;; 结束位置参数测试
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C) 0 2) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #x48 #x00 #x65 #x00 #x6C) 0 4) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #xE4 #x00 #x48) 0 2) => 2)
-(check (bytevector-utf16be-advance #u8(#x00 #xE4 #x00 #x48) 0 4) => 2)
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108)
+         0
+         2
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 72 0 101 0 108)
+         0
+         4
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 228 0 72)
+         0
+         2
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+(check (bytevector-utf16be-advance #u8(0 228 0 72)
+         0
+         4
+       ) ;bytevector-utf16be-advance
+  =>
+  2
+) ;check
+
 
 (check-report)

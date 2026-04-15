@@ -1,14 +1,18 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 ;; enum-name->ordinal
 ;; 通过名称获取 enum 的序数。
@@ -42,7 +46,15 @@
 ;; ----
 ;; 原始测试未覆盖错误分支。
 
-(check (enum-name->ordinal color 'red) => 0)
-(check (enum-name->ordinal color 'blue) => 6)
+
+(check (enum-name->ordinal color 'red)
+  =>
+  0
+) ;check
+(check (enum-name->ordinal color 'blue)
+  =>
+  6
+) ;check
+
 
 (check-report)

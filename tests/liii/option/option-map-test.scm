@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii option)
-) ;import
+(import (liii check) (liii option))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; option-map
 ;; 对 option 中的值应用映射函数。
@@ -24,11 +24,23 @@
 ;; - 如果原 option 为空：返回空 option
 ;; - 如果原 option 非空：返回包含 (f value) 的新 option
 
-(let ((opt1 (option 42))
-      (opt2 (none)))
-  (check (option-map (lambda (x) (+ x 1)) opt1) => (option 43))
-  (check (option-map (lambda (x) (+ x 1)) opt2) => (none))
-  (check (option-map (lambda (x) (number->string x)) opt1) => (option "42"))
+
+(let ((opt1 (option 42)) (opt2 (none)))
+  (check (option-map (lambda (x) (+ x 1)) opt1)
+    =>
+    (option 43)
+  ) ;check
+  (check (option-map (lambda (x) (+ x 1)) opt2)
+    =>
+    (none)
+  ) ;check
+  (check (option-map (lambda (x) (number->string x))
+           opt1
+         ) ;option-map
+    =>
+    (option "42")
+  ) ;check
 ) ;let
+
 
 (check-report)

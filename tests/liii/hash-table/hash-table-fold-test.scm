@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-fold
 ;; 以累积器的方式折叠哈希表中的所有键值对。
@@ -39,10 +39,25 @@
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+
 (let ((ht (hash-table 'a 1 'b 2 'c 3)))
-  (check (hash-table-fold (lambda (k v acc) (+ acc v)) 0 ht) => 6)
+  (check (hash-table-fold (lambda (k v acc) (+ acc v))
+           0
+           ht
+         ) ;hash-table-fold
+    =>
+    6
+  ) ;check
 ) ;let
 
-(check (hash-table-fold (lambda (k v acc) (+ acc v)) 10 (hash-table)) => 10)
+
+(check (hash-table-fold (lambda (k v acc) (+ acc v))
+         10
+         (hash-table)
+       ) ;hash-table-fold
+  =>
+  10
+) ;check
+
 
 (check-report)

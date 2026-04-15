@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-lower-case?
 ;; 判断是否为 ASCII 小写字母。
@@ -32,7 +31,9 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-lower-case? #\z))
 (check-false (ascii-lower-case? #\Z))
+
 
 (check-report)

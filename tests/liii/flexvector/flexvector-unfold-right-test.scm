@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-unfold-right
 ;; 通过右展开构造 flexvector。结果与 unfold 相同，但元素顺序相反。时间复杂度 O(n)。
@@ -34,73 +34,78 @@
 ;; ----
 ;; flexvector-unfold - 从左展开
 
+
 ;; 基本右展开：结果与 unfold 相反
-(check (flexvector->vector
-         (flexvector-unfold-right (lambda (x) (> x 10))
-                                  (lambda (x) (* x x))
-                                  (lambda (x) (+ x 1))
-                                  1)
-         ) ;flexvector-unfold-right
-       => #(100 81 64 49 36 25 16 9 4 1)
+(check (flexvector->vector (flexvector-unfold-right (lambda (x) (> x 10))
+                             (lambda (x) (* x x))
+                             (lambda (x) (+ x 1))
+                             1
+                           ) ;flexvector-unfold-right
+       ) ;flexvector->vector
+  =>
+  #(100 81 64 49 36 25 16 9 4 1)
 ) ;check
 
+
 ;; 与 unfold 对比
-(let*
-  ((unfold-result
-     (flexvector->vector
-       (flexvector-unfold (lambda (x) (> x 5))
-                          (lambda (x) x)
-                          (lambda (x) (+ x 1))
-                          1
-       ) ;flexvector-unfold
-     ) ;flexvector->vector
-   ) ;unfold-result
-   (unfold-right-result
-     (flexvector->vector
-       (flexvector-unfold-right (lambda (x) (> x 5))
-                                (lambda (x) x)
-                                (lambda (x) (+ x 1))
-                                1
-       ) ;flexvector-unfold-right
-     ) ;flexvector->vector
-   ) ;unfold-right-result
-  ) ;
+(let* ((unfold-result (flexvector->vector (flexvector-unfold (lambda (x) (> x 5))
+                                            (lambda (x) x)
+                                            (lambda (x) (+ x 1))
+                                            1
+                                          ) ;flexvector-unfold
+                      ) ;flexvector->vector
+       ) ;unfold-result
+       (unfold-right-result (flexvector->vector (flexvector-unfold-right (lambda (x) (> x 5))
+                                                  (lambda (x) x)
+                                                  (lambda (x) (+ x 1))
+                                                  1
+                                                ) ;flexvector-unfold-right
+                            ) ;flexvector->vector
+       ) ;unfold-right-result
+      ) ;
   (check unfold-result => #(1 2 3 4 5))
-  (check unfold-right-result => #(5 4 3 2 1))
+  (check unfold-right-result
+    =>
+    #(5 4 3 2 1)
+  ) ;check
 ) ;let*
 
+
 ;; 递减序列
-(let
-  ((result
-     (flexvector->list
-       (flexvector-unfold-right (lambda (n) (< n 0))
-                                (lambda (n) n)
-                                (lambda (n) (- n 1))
-                                5)
-       ) ;flexvector-unfold-right
-     ) ;flexvector->list
-   ) ;result
+(let ((result (flexvector->list (flexvector-unfold-right (lambda (n) (< n 0))
+                                  (lambda (n) n)
+                                  (lambda (n) (- n 1))
+                                  5
+                                ) ;flexvector-unfold-right
+              ) ;flexvector->list
+      ) ;result
+     ) ;
   (check result => '(0 1 2 3 4 5))
 ) ;let
 
+
 ;; 空结果
-(check (flexvector->vector
-         (flexvector-unfold-right (lambda (x) #t)
-                                  (lambda (x) x)
-                                  (lambda (x) x)
-                                  'seed)
-         ) ;flexvector-unfold-right
-       => #()
+(check (flexvector->vector (flexvector-unfold-right (lambda (x) #t)
+                             (lambda (x) x)
+                             (lambda (x) x)
+                             'seed
+                           ) ;flexvector-unfold-right
+       ) ;flexvector->vector
+  =>
+  #()
 ) ;check
 
+
 ;; 单元素
-(check (flexvector->vector
-         (flexvector-unfold-right (lambda (x) (> x 0))
-                                  (lambda (x) x)
-                                  (lambda (x) (+ x 1))
-                                  0)
-         ) ;flexvector-unfold-right
-       => #(0)
+(check (flexvector->vector (flexvector-unfold-right (lambda (x) (> x 0))
+                             (lambda (x) x)
+                             (lambda (x) (+ x 1))
+                             0
+                           ) ;flexvector-unfold-right
+       ) ;flexvector->vector
+  =>
+  #(0)
 ) ;check
+
 
 (check-report)

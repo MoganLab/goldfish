@@ -30,9 +30,10 @@
 ;; 当参数数量不为1时抛出错误。
 ;; bytevector? 基本测试
 (check-true (bytevector? #u()))
-(check-true (bytevector? #u(0)))
-(check-true (bytevector? #u(255)))
-(check-true (bytevector? #u(1 2 3 4 5)))
+(check-true (bytevector? #u8(0)))
+(check-true (bytevector? #u8(255)))
+(check-true (bytevector? #u8(1 2 3 4 5))
+) ;check-true
 (check-true (bytevector? (bytevector)))
 (check-true (bytevector? (bytevector 1 2 3))
 ) ;check-true
@@ -48,6 +49,6 @@
   (bytevector?)
 ) ;check-catch
 (check-catch 'wrong-number-of-args
-  (bytevector? #u(1 2 3) #u(4 5 6))
+  (bytevector? #u8(1 2 3) #u8(4 5 6))
 ) ;check-catch
 (check-report)

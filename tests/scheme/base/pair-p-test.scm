@@ -206,7 +206,7 @@
 (check-false (pair? length))
 ;; 复杂对象边界测试
 (check-false (pair? #(1 2 3)))
-(check-false (pair? #u(1 2 3)))
+(check-false (pair? #u8(1 2 3)))
 (check-false (pair? (lambda (x) x)))
 (check-false (pair? #<eof>))
 ;; 极端边界测试

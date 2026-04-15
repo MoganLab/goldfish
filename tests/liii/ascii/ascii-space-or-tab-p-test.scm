@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-space-or-tab?
 ;; 判断是否为空格或制表符。
@@ -32,8 +31,12 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
-(check-true (ascii-space-or-tab? #\space))
+
+(check-true (ascii-space-or-tab? #\space)
+) ;check-true
 (check-true (ascii-space-or-tab? #\tab))
-(check-false (ascii-space-or-tab? #\newline))
+(check-false (ascii-space-or-tab? #\newline)
+) ;check-false
+
 
 (check-report)

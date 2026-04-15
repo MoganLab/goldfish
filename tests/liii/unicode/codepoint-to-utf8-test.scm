@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii unicode)
-        (liii base)
+  (liii unicode)
+  (liii base)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; codepoint->utf8
 ;; 将 Unicode 码点转换为 UTF-8 编码的字节向量。
@@ -35,41 +37,108 @@
 ;; value-error 当码点超出 Unicode 范围时。
 ;; type-error 当参数不是整数时。
 
+
 ;; 1 字节编码 (U+0000 到 U+007F)
-(check (codepoint->utf8 #x48) => #u8(#x48))
-(check (codepoint->utf8 #x00) => #u8(#x00))
-(check (codepoint->utf8 #x7F) => #u8(#x7F))
-(check (codepoint->utf8 #x41) => #u8(#x41))
+(check (codepoint->utf8 72) => #u8(72))
+(check (codepoint->utf8 0) => #u8(0))
+(check (codepoint->utf8 127)
+  =>
+  #u8(127)
+) ;check
+(check (codepoint->utf8 65) => #u8(65))
+
 
 ;; 2 字节编码 (U+0080 到 U+07FF)
-(check (codepoint->utf8 #xA4) => #u8(#xC2 #xA4))
-(check (codepoint->utf8 #x080) => #u8(#xC2 #x80))
-(check (codepoint->utf8 #x7FF) => #u8(#xDF #xBF))
+(check (codepoint->utf8 164)
+  =>
+  #u8(194 164)
+) ;check
+(check (codepoint->utf8 128)
+  =>
+  #u8(194 128)
+) ;check
+(check (codepoint->utf8 2047)
+  =>
+  #u8(223 191)
+) ;check
+
 
 ;; 3 字节编码 (U+0800 到 U+FFFF)
-(check (codepoint->utf8 #x4E2D) => #u8(#xE4 #xB8 #xAD))
-(check (codepoint->utf8 #x0800) => #u8(#xE0 #xA0 #x80))
-(check (codepoint->utf8 #xFFFF) => #u8(#xEF #xBF #xBF))
+(check (codepoint->utf8 20013)
+  =>
+  #u8(228 184 173)
+) ;check
+(check (codepoint->utf8 2048)
+  =>
+  #u8(224 160 128)
+) ;check
+(check (codepoint->utf8 65535)
+  =>
+  #u8(239 191 191)
+) ;check
+
 
 ;; 4 字节编码 (U+10000 到 U+10FFFF)
-(check (codepoint->utf8 #x1F44D) => #u8(#xF0 #x9F #x91 #x8D))
-(check (codepoint->utf8 #x10000) => #u8(#xF0 #x90 #x80 #x80))
-(check (codepoint->utf8 #x10FFFF) => #u8(#xF4 #x8F #xBF #xBF))
+(check (codepoint->utf8 128077)
+  =>
+  #u8(240 159 145 141)
+) ;check
+(check (codepoint->utf8 65536)
+  =>
+  #u8(240 144 128 128)
+) ;check
+(check (codepoint->utf8 1114111)
+  =>
+  #u8(244 143 191 191)
+) ;check
+
 
 ;; 常见字符测试
-(check (codepoint->utf8 #x1F680) => #u8(#xF0 #x9F #x9A #x80))
-(check (codepoint->utf8 #x1F389) => #u8(#xF0 #x9F #x8E #x89))
+(check (codepoint->utf8 128640)
+  =>
+  #u8(240 159 154 128)
+) ;check
+(check (codepoint->utf8 127881)
+  =>
+  #u8(240 159 142 137)
+) ;check
+
 
 ;; 与 utf8->codepoint 互逆操作
-(check (utf8->codepoint (codepoint->utf8 #x48)) => #x48)
-(check (utf8->codepoint (codepoint->utf8 #x4E2D)) => #x4E2D)
-(check (utf8->codepoint (codepoint->utf8 #x1F44D)) => #x1F44D)
-(check (utf8->codepoint (codepoint->utf8 #x10FFFF)) => #x10FFFF)
+(check (utf8->codepoint (codepoint->utf8 72))
+  =>
+  72
+) ;check
+(check (utf8->codepoint (codepoint->utf8 20013)
+       ) ;utf8->codepoint
+  =>
+  20013
+) ;check
+(check (utf8->codepoint (codepoint->utf8 128077)
+       ) ;utf8->codepoint
+  =>
+  128077
+) ;check
+(check (utf8->codepoint (codepoint->utf8 1114111)
+       ) ;utf8->codepoint
+  =>
+  1114111
+) ;check
+
 
 ;; 错误处理
-(check-catch 'value-error (codepoint->utf8 -1))
-(check-catch 'value-error (codepoint->utf8 #x110000))
-(check-catch 'type-error (codepoint->utf8 "not-an-integer"))
-(check-catch 'type-error (codepoint->utf8 #\A))
+(check-catch 'value-error
+  (codepoint->utf8 -1)
+) ;check-catch
+(check-catch 'value-error
+  (codepoint->utf8 1114112)
+) ;check-catch
+(check-catch 'type-error
+  (codepoint->utf8 "not-an-integer")
+) ;check-catch
+(check-catch 'type-error
+  (codepoint->utf8 #\A)
+) ;check-catch
+
 
 (check-report)

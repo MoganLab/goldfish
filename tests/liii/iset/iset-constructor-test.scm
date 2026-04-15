@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset
@@ -22,7 +22,11 @@
 ;; 返回包含指定元素的新 iset。
 ;;
 (check-true (iset? (iset 1 2 3)))
-(check (iset->list (iset 2 3 5 7 11)) => '(2 3 5 7 11))
+(check (iset->list (iset 2 3 5 7 11))
+  =>
+  '(2 3 5 7 11)
+) ;check
 (check (iset->list (iset)) => '())
+
 
 (check-report)

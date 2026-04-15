@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range->vector
 ;; 将 range 转换为向量。
@@ -29,20 +29,34 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 5)))
-  (check (range->vector r) => #(0 1 2 3 4))
+  (check (range->vector r)
+    =>
+    #(0 1 2 3 4)
+  ) ;check
 ) ;let
+
 
 (let ((r (numeric-range 0 0)))
   (check (range->vector r) => #())
 ) ;let
 
+
 (let ((r (numeric-range 10 20 2)))
-  (check (range->vector r) => #(10 12 14 16 18))
+  (check (range->vector r)
+    =>
+    #(10 12 14 16 18)
+  ) ;check
 ) ;let
 
+
 (let ((r (vector-range #(a b c d e))))
-  (check (range->vector r) => #(a b c d e))
+  (check (range->vector r)
+    =>
+    #(a b c d e)
+  ) ;check
 ) ;let
+
 
 (check-report)

@@ -31,29 +31,29 @@
 ;; 当任何参数不是在0-255范围内的整数时抛出错误。
 ;; bytevector 基本测试
 (check (bytevector) => #u())
-(check (bytevector 255) => #u(255))
+(check (bytevector 255) => #u8(255))
 (check (bytevector 1 2 3 4)
   =>
-  #u(1 2 3 4)
+  #u8(1 2 3 4)
 ) ;check
 (check (bytevector 10 20 30 40 50)
   =>
-  #u(10 20 30 40 50)
+  #u8(10 20 30 40 50)
 ) ;check
 ;; 边界测试
-(check (bytevector 0) => #u(0))
-(check (bytevector 255) => #u(255))
-(check (bytevector 0 255) => #u(0 255))
+(check (bytevector 0) => #u8(0))
+(check (bytevector 255) => #u8(255))
+(check (bytevector 0 255) => #u8(0 255))
 ;; 不同长度测试
 (check (bytevector) => #u())
-(check (bytevector 15) => #u(15))
+(check (bytevector 15) => #u8(15))
 (check (bytevector 85 170)
   =>
-  #u(85 170)
+  #u8(85 170)
 ) ;check
 (check (bytevector 1 2 3 4 5 6 7 8 9 10)
   =>
-  #u(1 2 3 4 5 6 7 8 9 10)
+  #u8(1 2 3 4 5 6 7 8 9 10)
 ) ;check
 ;; 错误处理测试
 (check-catch 'wrong-type-arg
@@ -66,6 +66,6 @@
   (bytevector 123.0)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-  (bytevector 123 #u(1 2 3))
+  (bytevector 123 #u8(1 2 3))
 ) ;check-catch
 (check-report)

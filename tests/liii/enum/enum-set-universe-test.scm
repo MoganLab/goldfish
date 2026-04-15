@@ -1,28 +1,37 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 (define reddish
   (list->enum-set color
-                  (map
-                    (lambda (name)
-                      (enum-name->enum color name)
-                    ) ;lambda
-                    (take color-names 3)
-                  ) ;map
+    (map (lambda (name)
+           (enum-name->enum color name)
+         ) ;lambda
+      (take color-names 3)
+    ) ;map
   ) ;list->enum-set
 ) ;define
+
 
 ;; enum-set-universe
 ;; 获取包含 enum-type 全部成员的全集。
@@ -53,6 +62,13 @@
 ;; ----
 ;; 无。
 
-(check (enum-set=? color-set (enum-set-universe reddish)) => #t)
+
+(check (enum-set=? color-set
+         (enum-set-universe reddish)
+       ) ;enum-set=?
+  =>
+  #t
+) ;check
+
 
 (check-report)

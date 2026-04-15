@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii base)
-        (liii njson)
+  (liii base)
+  (liii njson)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; njson?
 ;; 判断一个值在结构上是否是 njson 句柄。
@@ -30,12 +32,16 @@
 ;; ----
 ;; 无
 
+
 (let-njson ((root (string->njson "{\"k\":1}")))
   (check-true (njson? root))
 ) ;let-njson
 
+
 (check-false (njson? 'foo))
 (check-false (njson? 1))
-(check-false (njson? '(njson-handle . 1)))
+(check-false (njson? '(njson-handle . 1))
+) ;check-false
+
 
 (check-report)

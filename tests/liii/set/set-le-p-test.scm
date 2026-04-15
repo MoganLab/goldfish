@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii error)
-        (liii set)
-        (srfi srfi-128)
+  (liii error)
+  (liii set)
+  (srfi srfi-128)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set<=?
 ;; 检查一个 set 是否为另一个 set 的子集。
@@ -40,10 +42,12 @@
 ;; value-error
 ;; 当 set 的比较器不同时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
 (define s-1-2 (set 1 2))
 (define s-1-2-3 (set 1 2 3))
+
 
 (check-true (set<=? s-empty s-1))
 (check-true (set<=? s-1 s-1-2))
@@ -51,13 +55,30 @@
 (check-true (set<=? s-1-2 s-1-2))
 (check-false (set<=? s-1-2 s-1))
 ;; Chain
-(check-true (set<=? s-empty s-1 s-1-2 s-1-2-3))
-(check-false (set<=? s-empty s-1-2 s-1)) ; Broken chain
-(check-catch 'type-error (set<=? "not a set" s-1))
+(check-true (set<=? s-empty s-1 s-1-2 s-1-2-3)
+) ;check-true
+(check-false (set<=? s-empty s-1-2 s-1))
+(check-catch 'type-error
+  (set<=? "not a set" s-1)
+) ;check-catch
+
 
 ;; Test comparator mismatch
-(define str-comp (make-comparator string? string=? string<? string-hash))
-(define s-str (list->set-with-comparator str-comp '("apple" "banana")))
-(check-catch 'value-error (set<=? s-1 s-str))
+(define str-comp
+  (make-comparator string?
+    string=?
+    string<?
+    string-hash
+  ) ;make-comparator
+) ;define
+(define s-str
+  (list->set-with-comparator str-comp
+    '("apple" "banana")
+  ) ;list->set-with-comparator
+) ;define
+(check-catch 'value-error
+  (set<=? s-1 s-str)
+) ;check-catch
+
 
 (check-report)

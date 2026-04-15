@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii iset)
-) ;import
+(import (liii check) (liii iset))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;;
 ;; iset?
@@ -26,5 +26,6 @@
 (check-false (iset? '()))
 (check-false (iset? "not a set"))
 (check-false (iset? 42))
+
 
 (check-report)

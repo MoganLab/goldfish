@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; int-vector?
 ;; 判断对象是否为整数向量。
@@ -34,7 +34,11 @@
 ;; ----
 ;; 无
 
-(check-true (int-vector? (int-vector 1 2 3)))
-(check-false (int-vector? (vector 1 2 3)))
+
+(check-true (int-vector? (int-vector 1 2 3))
+) ;check-true
+(check-false (int-vector? (vector 1 2 3))
+) ;check-false
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii set)
-) ;import
+(import (liii check) (liii set))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; set?
 ;; 检查对象是否为 set。
@@ -30,13 +30,16 @@
 ;; ----
 ;; 无异常抛出
 
+
 (define s-empty (set))
 (define s-1 (set 1))
+
 
 (check-true (set? s-empty))
 (check-true (set? s-1))
 (check-false (set? "not a set"))
 (check-false (set? '()))
 (check-false (set? #(1 2 3)))
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; integer-length
 ;; 计算整数二进制表示的最小位数。
@@ -39,29 +39,32 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
-(check (integer-length 0) => 0)
-(check (integer-length 1) => 1)     ; 1
-(check (integer-length 3) => 2)     ; 11
-(check (integer-length 4) => 3)     ; 100
-(check (integer-length -5) => 3)    ; -101 (长度为3)
-(check (integer-length #xFFFF) => 16) ; 16位二进制
 
-;;; 错误处理测试 - wrong-type-arg
+(check (integer-length 0) => 0)
+(check (integer-length 1) => 1)
+(check (integer-length 3) => 2)
+(check (integer-length 4) => 3)
+(check (integer-length -5) => 3)
+(check (integer-length 65535) => 16)
+
+
+;; ; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (integer-length "string")  ; 字符串参数
+  (integer-length "string")
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length 'symbol)   ; 符号参数
+  (integer-length 'symbol)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length 3.14)      ; 浮点数参数
+  (integer-length 3.14)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length #\a)       ; 字符参数
+  (integer-length #\a)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (integer-length '(1 2))    ; 列表参数
+  (integer-length '(1 2))
 ) ;check-catch
+
 
 
 (check-report)

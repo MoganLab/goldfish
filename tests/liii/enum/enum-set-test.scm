@@ -1,20 +1,33 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define color-tangerine (enum-name->enum color 'tangerine))
 
-(define color-blue (enum-name->enum color 'blue))
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
+
+
+(define color-tangerine
+  (enum-name->enum color 'tangerine)
+) ;define
+
+
+(define color-blue
+  (enum-name->enum color 'blue)
+) ;define
+
 
 ;; enum-set
 ;; 创建包含指定 enum 的 enum-set。
@@ -48,7 +61,19 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-contains? (enum-set color color-red color-blue) color-red) => #t)
-(check (enum-set-contains? (enum-set color color-red color-blue) color-tangerine) => #f)
+
+(check (enum-set-contains? (enum-set color color-red color-blue)
+         color-red
+       ) ;enum-set-contains?
+  =>
+  #t
+) ;check
+(check (enum-set-contains? (enum-set color color-red color-blue)
+         color-tangerine
+       ) ;enum-set-contains?
+  =>
+  #f
+) ;check
+
 
 (check-report)

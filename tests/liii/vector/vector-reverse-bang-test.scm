@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-reverse!
 ;; 原地反转向量，可选指定子区间。
@@ -42,42 +42,62 @@
 ;; type-error 当start/end类型不正确时
 ;; out-of-range 当start/end超出向量边界或start大于end时
 
+
 (let ((vec (vector 1 2 3 4)))
   (vector-reverse! vec)
   (check vec => #(4 3 2 1))
 ) ;let
+
 
 (let ((vec (vector 'a 'b 'c 'd)))
   (vector-reverse! vec 1 3)
   (check vec => #(a c b d))
 ) ;let
 
+
 (let ((vec (vector 10 20 30)))
   (vector-reverse! vec 2 2)
   (check vec => #(10 20 30))
 ) ;let
 
-(check-catch 'wrong-number-of-args (vector-reverse! (vector 1 2) 0 2 3))
-(check-catch 'type-error (vector-reverse! (vector 1 2) 'a 2))
-(check-catch 'type-error (vector-reverse! (vector 1 2) 0 'b))
-(check-catch 'out-of-range (vector-reverse! (vector 1 2) -1 2))
-(check-catch 'out-of-range (vector-reverse! (vector 1 2) 0 5))
-(check-catch 'out-of-range (vector-reverse! (vector 1 2) 2 1))
+
+(check-catch 'wrong-number-of-args
+  (vector-reverse! (vector 1 2) 0 2 3)
+) ;check-catch
+(check-catch 'type-error
+  (vector-reverse! (vector 1 2) 'a 2)
+) ;check-catch
+(check-catch 'type-error
+  (vector-reverse! (vector 1 2) 0 'b)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-reverse! (vector 1 2) -1 2)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-reverse! (vector 1 2) 0 5)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-reverse! (vector 1 2) 2 1)
+) ;check-catch
+
 
 (let ((vec (vector)))
   (vector-reverse! vec 0 0)
   (check vec => #())
 ) ;let
 
+
 (let ((vec (vector 100)))
   (vector-reverse! vec)
   (check vec => #(100))
 ) ;let
+
 
 (let ((vec (vector 1 2 3)))
   (vector-reverse! vec)
   (vector-reverse! vec)
   (check vec => #(1 2 3))
 ) ;let
+
 
 (check-report)

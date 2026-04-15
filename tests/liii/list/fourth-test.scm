@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; fourth 函数测试
 ;;
@@ -24,6 +24,8 @@
 ;; ----
 ;; (fourth '(1 2 3 4 5 6)) => 4
 
+
 (check (fourth '(1 2 3 4 5 6)) => 4)
+
 
 (check-report)

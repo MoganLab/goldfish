@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-nor
 ;; 计算两个整数的按位或非操作。
@@ -39,10 +39,12 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 精简测试：bitwise-nor 按位或非操作
-(check (bitwise-nor 2 4) => -7)  ; 2 (010) NOR 4 (100) = -7 (11111001)
-(check (bitwise-nor 3 1) => -4)  ; 3 (011) NOR 1 (001) = -4 (11111100)
-(check (bitwise-nor #b111 #b011) => -8)  ; 7 (111) NOR 3 (011) = -8 (11111000)
+
+;; ; 精简测试：bitwise-nor 按位或非操作
+(check (bitwise-nor 2 4) => -7)
+(check (bitwise-nor 3 1) => -4)
+(check (bitwise-nor 7 3) => -8)
+
 
 
 (check-report)

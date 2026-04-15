@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; iota
 ;; 生成一个等差数列列表。
@@ -39,31 +39,37 @@
 ;; value-error 当count为负数时抛出。
 ;; type-error 当任何参数不是整数时抛出。
 
-; Basic iota tests
+
 (check (iota 3) => (list 0 1 2))
 (check (iota 3 7) => (list 7 8 9))
 (check (iota 2 7 2) => (list 7 9))
 
-; Additional iota edge case tests
+
 (check (iota 0) => '())
 (check (iota 1) => '(0))
 (check (iota 1 5) => '(5))
 (check (iota 1 5 2) => '(5))
 
-; Large count tests
+
 (check (iota 5) => (list 0 1 2 3 4))
 (check (iota 5 1 2) => (list 1 3 5 7 9))
 (check (iota 3 0 -1) => (list 0 -1 -2))
-(check (iota 4 10 -2) => (list 10 8 6 4))
+(check (iota 4 10 -2)
+  =>
+  (list 10 8 6 4)
+) ;check
 
-; Zero step (edge case)
+
 (check (iota 3 7 0) => (list 7 7 7))
 
-; Negative start tests
-(check (iota 3 -5) => (list -5 -4 -3))
-(check (iota 4 -10 2) => (list -10 -8 -6 -4))
 
-; Error handling tests
+(check (iota 3 -5) => (list -5 -4 -3))
+(check (iota 4 -10 2)
+  =>
+  (list -10 -8 -6 -4)
+) ;check
+
+
 (check-catch 'value-error (iota -1))
 (check-catch 'value-error (iota -5))
 (check-catch 'type-error (iota 'a))
@@ -72,5 +78,6 @@
 (check-catch 'type-error (iota 3.5))
 (check-catch 'type-error (iota 3 5.5))
 (check-catch 'type-error (iota 3 2 0.5))
+
 
 (check-report)

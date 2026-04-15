@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii base))
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; loose-cdr
 ;; 宽松地获取列表的剩余部分（cdr）。
@@ -21,21 +23,36 @@
 ;; 如果参数是非空列表，返回除第一个元素外的剩余部分；
 ;; 如果参数是空列表，返回空列表。
 
+
 ;; 测试非空列表
 (check (loose-cdr '(1 2 3)) => '(2 3))
 (check (loose-cdr '(a b c)) => '(b c))
-(check (loose-cdr '("hello" "world")) => '("world"))
+(check (loose-cdr '("hello" "world"))
+  =>
+  '("world")
+) ;check
+
 
 ;; 测试空列表（这是 loose-cdr 的主要用途）
 (check (loose-cdr '()) => '())
 
+
 ;; 测试嵌套列表
-(check (loose-cdr '((1 2) 3 4)) => '(3 4))
+(check (loose-cdr '((1 2) 3 4))
+  =>
+  '(3 4)
+) ;check
+
 
 ;; 测试单元素列表
 (check (loose-cdr '(only)) => '())
 
+
 ;; 测试双元素列表
-(check (loose-cdr '(first second)) => '(second))
+(check (loose-cdr '(first second))
+  =>
+  '(second)
+) ;check
+
 
 (check-report)

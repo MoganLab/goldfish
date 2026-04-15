@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; dotted-list?
 ;; 判断一个对象是否为dotted list。
@@ -43,19 +43,21 @@
 ;; --------
 ;; 无特殊错误处理，任何类型的对象都能接受。
 
-; 基本功能测试
+
 (check-true (dotted-list? 1))
 (check-true (dotted-list? '(1 . 2)))
 (check-true (dotted-list? '(1 2 . 3)))
 
-; 非dotted list测试
-(check-false (dotted-list? (circular-list 1 2 3)))
+
+(check-false (dotted-list? (circular-list 1 2 3))
+) ;check-false
 (check-false (dotted-list? '()))
 (check-false (dotted-list? '(a)))
 (check-false (dotted-list? '(a b)))
-(check-false (dotted-list? '(a b (c d))))
+(check-false (dotted-list? '(a b (c d)))
+) ;check-false
 
-; 各种dotted list测试
+
 (check-true (dotted-list? 'a))
 (check-true (dotted-list? 'symbol))
 (check-true (dotted-list? "string"))
@@ -63,27 +65,32 @@
 (check-true (dotted-list? '(a . b)))
 (check-true (dotted-list? '(a b . c)))
 (check-true (dotted-list? '(a b c . d)))
-(check-true (dotted-list? '(a b c d . e)))
+(check-true (dotted-list? '(a b c d . e))
+) ;check-true
 (check-true (dotted-list? '(() . a)))
 (check-true (dotted-list? '(a () . b)))
-(check-true (dotted-list? '(a b () . c)))
+(check-true (dotted-list? '(a b () . c))
+) ;check-true
 
-; 嵌套dotted list测试
-(check-true (dotted-list? '((a . b) c . d)))
-(check-true (dotted-list? '(a (b . c) . d)))
-(check-true (dotted-list? '(a . (b . c))))
 
-; 边界条件测试
+(check-true (dotted-list? '((a . b) c . d))
+) ;check-true
+(check-true (dotted-list? '(a (b . c) . d))
+) ;check-true
+(check-true (dotted-list? '(a b . c)))
+
+
 (check-false (dotted-list? '(())))
 (check-false (dotted-list? '(a ())))
 (check-false (dotted-list? '(() a b)))
 (check-true (dotted-list? '(a () . b)))
 
-; 复杂结构测试
-(check-true (dotted-list? '(a b c . d)))
-(check-false (dotted-list? '(a b (c . d))))
 
-; 与proper-list?的互补性测试
+(check-true (dotted-list? '(a b c . d)))
+(check-false (dotted-list? '(a b (c . d)))
+) ;check-false
+
+
 (check-false (dotted-list? '()))
 (check-false (dotted-list? '(a)))
 (check-false (dotted-list? '(a b)))
@@ -92,15 +99,18 @@
 (check-true (dotted-list? '(a b . c)))
 (check-true (dotted-list? 'a))
 
-; 循环列表测试（应返回#f）
+
 (let ((lst (list 1 2 3)))
   (set-cdr! (last-pair lst) lst)
   (check-false (dotted-list? lst))
 ) ;let
 
-; 深层嵌套测试
-(check-true (dotted-list? '(a (b . c) . d)))
-(check-false (dotted-list? '((a b) (c d))))
+
+(check-true (dotted-list? '(a (b . c) . d))
+) ;check-true
+(check-false (dotted-list? '((a b) (c d)))
+) ;check-false
 (check-true (dotted-list? '((a b) . c)))
+
 
 (check-report)

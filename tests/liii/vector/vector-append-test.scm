@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-append
 ;; 连接多个向量并返回新向量。
@@ -34,25 +34,55 @@
 ;; ----
 ;; wrong-type-arg 当任一参数不是向量时
 
+
 (check (vector-append) => #())
-(check (vector-append #(1 2 3)) => #(1 2 3))
-(check (vector-append #(1 2) #(3 4)) => #(1 2 3 4))
-(check (vector-append #(a b) #(c d) #(e f)) => #(a b c d e f))
+(check (vector-append #(1 2 3))
+  =>
+  #(1 2 3)
+) ;check
+(check (vector-append #(1 2) #(3 4))
+  =>
+  #(1 2 3 4)
+) ;check
+(check (vector-append #(a b) #(c d) #(e f))
+  =>
+  #(a b c d e f)
+) ;check
 (check (vector-append #()) => #())
 (check (vector-append #() #()) => #())
-(check (vector-append #() #(1) #()) => #(1))
+(check (vector-append #() #(1) #())
+  =>
+  #(1)
+) ;check
 (check (vector-append #(42)) => #(42))
-(check (vector-append #(1) #(2) #(3)) => #(1 2 3))
-(check (vector-append #(1 2.5) #("hello" 'symbol) #(#\c #t #f)) => #(1 2.5 "hello" 'symbol #\c #t #f))
-(check (vector-append #((1 2)) #((3 4))) => #((1 2) (3 4)))
+(check (vector-append #(1) #(2) #(3))
+  =>
+  #(1 2 3)
+) ;check
+(check (vector-append #(1 2.5)
+         #("hello" 'symbol)
+         #(#\c #t #f)
+       ) ;vector-append
+  =>
+  #(1 2.5 "hello" 'symbol #\c #t #f)
+) ;check
+(check (vector-append #((1 2)) #((3 4)))
+  =>
+  #((1 2) (3 4))
+) ;check
+
 
 (let ((original #(a b c)))
   (let ((appended (vector-append original)))
     (check-true (vector? appended))
     (check-false (eq? original appended))
-    (check (vector-length appended) => (vector-length original))
+    (check (vector-length appended)
+      =>
+      (vector-length original)
+    ) ;check
   ) ;let
 ) ;let
+
 
 (let ((v1 #(1 2 3)))
   (let ((v2 #(4 5 6)))
@@ -65,8 +95,16 @@
   ) ;let
 ) ;let
 
-(check-catch 'wrong-type-arg (vector-append 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-append #(1 2) 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-append #(1 2) 3 #(4 5)))
+
+(check-catch 'wrong-type-arg
+  (vector-append 'not-a-vector)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (vector-append #(1 2) 'not-a-vector)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (vector-append #(1 2) 3 #(4 5))
+) ;check-catch
+
 
 (check-report)

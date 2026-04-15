@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-control?
 ;; 判断是否为 ASCII 控制字符。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-control? 0))
-(check-true (ascii-control? #x1f))
-(check-true (ascii-control? #x7f))
-(check-false (ascii-control? #x20))
+(check-true (ascii-control? 31))
+(check-true (ascii-control? 127))
+(check-false (ascii-control? 32))
+
 
 (check-report)

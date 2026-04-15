@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-string?
 ;; 判断字符串是否全部由 ASCII 字符组成。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 非字符串输入返回 #f
 
+
 (check-true (ascii-string? "Goldfish"))
 (check-true (ascii-string? "A\tB\nC"))
 (check-false (ascii-string? "G中"))
 (check-false (ascii-string? #\A))
+
 
 (check-report)

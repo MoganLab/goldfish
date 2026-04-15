@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-any
 ;; 判断向量中是否存在满足谓词的元素。
@@ -37,8 +37,16 @@
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时
 
+
 (check (vector-any even? #()) => #f)
-(check (vector-any even? #(1 3 5 7 9)) => #f)
-(check (vector-any even? #(1 3 4 7 8)) => #t)
+(check (vector-any even? #(1 3 5 7 9))
+  =>
+  #f
+) ;check
+(check (vector-any even? #(1 3 4 7 8))
+  =>
+  #t
+) ;check
+
 
 (check-report)

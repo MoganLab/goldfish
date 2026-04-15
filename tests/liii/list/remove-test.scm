@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; remove 函数测试
 ;;
@@ -31,6 +31,11 @@
 ;; ----
 ;; (remove even? '(-2 -1 0 1 2)) => '(-1 1)
 
-(check (remove even? '(-2 -1 0 1 2)) => '(-1 1))
+
+(check (remove even? '(-2 -1 0 1 2))
+  =>
+  '(-1 1)
+) ;check
+
 
 (check-report)

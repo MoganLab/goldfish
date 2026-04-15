@@ -32,13 +32,16 @@
 ;; 当参数数量不为1时抛出错误。
 ;; bytevector-length 基本测试
 (check (bytevector-length #u()) => 0)
-(check (bytevector-length #u(1)) => 1)
-(check (bytevector-length #u(1 2 3))
+(check (bytevector-length #u8(1)) => 1)
+(check (bytevector-length #u8(1 2 3))
   =>
   3
 ) ;check
-(check (bytevector-length #u(255)) => 1)
-(check (bytevector-length #u(1 2 3 4 5 6 7 8 9 10)
+(check (bytevector-length #u8(255))
+  =>
+  1
+) ;check
+(check (bytevector-length #u8(1 2 3 4 5 6 7 8 9 10)
        ) ;bytevector-length
   =>
   10
@@ -78,6 +81,6 @@
   (bytevector-length)
 ) ;check-catch
 (check-catch 'wrong-number-of-args
-  (bytevector-length #u(1 2 3) #u(4 5))
+  (bytevector-length #u8(1 2 3) #u8(4 5))
 ) ;check-catch
 (check-report)

@@ -1,16 +1,23 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-red (enum-name->enum color 'red))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-red
+  (enum-name->enum color 'red)
+) ;define
+
 
 ;; enum-name
 ;; 获取 enum 的名称。
@@ -41,7 +48,15 @@
 ;; ----
 ;; 无。
 
-(check (enum-name (enum-name->enum color 'red)) => 'red)
-(check (enum-name (enum-ordinal->enum color 0)) => 'red)
+
+(check (enum-name (enum-name->enum color 'red))
+  =>
+  'red
+) ;check
+(check (enum-name (enum-ordinal->enum color 0))
+  =>
+  'red
+) ;check
+
 
 (check-report)

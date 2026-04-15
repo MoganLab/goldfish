@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii unicode)
-        (liii base)
+  (liii unicode)
+  (liii base)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; utf8-substring
 ;; 基于 Unicode 字符位置提取子字符串。
@@ -36,38 +38,101 @@
 ;; ----
 ;; out-of-range 当 start 或 end 超出字符串范围时。
 
+
 ;; 基本 ASCII 测试
-(check (utf8-substring "Hello" 0 5) => "Hello")
-(check (utf8-substring "Hello" 0 2) => "He")
-(check (utf8-substring "Hello" 2 4) => "ll")
-(check (utf8-substring "Hello" 3) => "lo")
-(check (utf8-substring "Hello" 1) => "ello")
+(check (utf8-substring "Hello" 0 5)
+  =>
+  "Hello"
+) ;check
+(check (utf8-substring "Hello" 0 2)
+  =>
+  "He"
+) ;check
+(check (utf8-substring "Hello" 2 4)
+  =>
+  "ll"
+) ;check
+(check (utf8-substring "Hello" 3)
+  =>
+  "lo"
+) ;check
+(check (utf8-substring "Hello" 1)
+  =>
+  "ello"
+) ;check
+
 
 ;; 空字符串
 (check (utf8-substring "" 0 0) => "")
 
+
 ;; 中文字符测试
-(check (utf8-substring "汉字书写" 0 2) => "汉字")
-(check (utf8-substring "汉字书写" 2) => "书写")
-(check (utf8-substring "汉字书写" 1 3) => "字书")
-(check (utf8-substring "你好世界" 0 2) => "你好")
+(check (utf8-substring "汉字书写" 0 2)
+  =>
+  "汉字"
+) ;check
+(check (utf8-substring "汉字书写" 2)
+  =>
+  "书写"
+) ;check
+(check (utf8-substring "汉字书写" 1 3)
+  =>
+  "字书"
+) ;check
+(check (utf8-substring "你好世界" 0 2)
+  =>
+  "你好"
+) ;check
+
 
 ;; 混合字符测试
-(check (utf8-substring "Hello 你好" 0 8) => "Hello 你好")
-(check (utf8-substring "Hello 你好" 6) => "你好")
-(check (utf8-substring "Hello 你好" 0 6) => "Hello ")
+(check (utf8-substring "Hello 你好" 0 8)
+  =>
+  "Hello 你好"
+) ;check
+(check (utf8-substring "Hello 你好" 6)
+  =>
+  "你好"
+) ;check
+(check (utf8-substring "Hello 你好" 0 6)
+  =>
+  "Hello "
+) ;check
+
 
 ;; 表情符号测试
-(check (utf8-substring "👍🚀🎉" 0 2) => "👍🚀")
-(check (utf8-substring "👍🚀🎉" 1) => "🚀🎉")
-(check (utf8-substring "👍🚀🎉" 1 2) => "🚀")
+(check (utf8-substring "👍🚀🎉" 0 2)
+  =>
+  "👍🚀"
+) ;check
+(check (utf8-substring "👍🚀🎉" 1)
+  =>
+  "🚀🎉"
+) ;check
+(check (utf8-substring "👍🚀🎉" 1 2)
+  =>
+  "🚀"
+) ;check
+
 
 ;; 复杂混合测试
-(check (utf8-substring "Hello 👍 World" 0 7) => "Hello 👍")
-(check (utf8-substring "Hello 👍 World" 6 11) => "👍 Wor")
+(check (utf8-substring "Hello 👍 World" 0 7)
+  =>
+  "Hello 👍"
+) ;check
+(check (utf8-substring "Hello 👍 World" 6 11)
+  =>
+  "👍 Wor"
+) ;check
+
 
 ;; 错误处理
-(check-catch 'out-of-range (utf8-substring "Hello" 0 6))
-(check-catch 'out-of-range (utf8-substring "汉字" 0 3))
+(check-catch 'out-of-range
+  (utf8-substring "Hello" 0 6)
+) ;check-catch
+(check-catch 'out-of-range
+  (utf8-substring "汉字" 0 3)
+) ;check-catch
+
 
 (check-report)

@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; stack?
 ;; 检查对象是否为栈。
@@ -25,16 +24,17 @@
 ;; 只有使用 make-stack、stack 或 list->stack 创建的对象返回 #t。
 ;; 列表、向量等其他集合类型返回 #f。
 
-; Test stack? with stack
+
 (let ((s (make-stack)))
   (check (stack? s) => #t)
 ) ;let
+
 
 (let ((s (stack 1 2 3)))
   (check (stack? s) => #t)
 ) ;let
 
-; Test stack? with non-stack values
+
 (check (stack? '()) => #f)
 (check (stack? '(1 2 3)) => #f)
 (check (stack? 42) => #f)
@@ -43,7 +43,11 @@
 (check (stack? 'symbol) => #f)
 (check (stack? (list 1 2 3)) => #f)
 
-; Test that internal record is not exposed
-(check (stack? (list->stack '(1 2 3))) => #t)
+
+(check (stack? (list->stack '(1 2 3)))
+  =>
+  #t
+) ;check
+
 
 (check-report)

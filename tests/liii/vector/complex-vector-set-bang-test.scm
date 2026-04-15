@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; complex-vector-set!
 ;; 设置复数向量中指定位置的元素。
@@ -43,27 +43,51 @@
 ;; wrong-type-arg 当value不是复数时
 ;; out-of-range 当索引越界时
 
-(let ((v (complex-vector 1+2i 3+4i)))
-  (complex-vector-set! v 0 100+200i)
-  (check-true (number? (complex-vector-ref v 0)))
+
+(let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
+  (complex-vector-set! v 0 100.0+200.0i)
+  (check-true (number? (complex-vector-ref v 0))
+  ) ;check-true
 ) ;let
+
 
 (let ((v (make-complex-vector 5)))
   (complex-vector-set! v 2 3.14+2.71i)
-  (check-true (number? (complex-vector-ref v 2)))
+  (check-true (number? (complex-vector-ref v 2))
+  ) ;check-true
 ) ;let
+
 
 (let ((v (complex-vector 1.0+1.0i 2.0+2.0i)))
   (check-true (complex-vector? v))
 ) ;let
 
-(let ((v (complex-vector 1+2i 3+4i)))
-  (check-catch 'wrong-type-arg (complex-vector-set! v 0 'not-a-complex))
-  (check-catch 'out-of-range (complex-vector-set! v 5 1+2i))
-  (check-catch 'out-of-range (complex-vector-set! v -1 1+2i))
+
+(let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
+  (check-catch 'wrong-type-arg
+    (complex-vector-set! v 0 'not-a-complex)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (complex-vector-set! v 5 1.0+2.0i)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (complex-vector-set! v -1 1.0+2.0i)
+  ) ;check-catch
 ) ;let
 
-(check-catch 'wrong-type-arg (complex-vector-set! (vector 1+2i 3+4i) 0 5+6i))
-(check-catch 'wrong-type-arg (complex-vector-set! (int-vector 1 2) 0 3+4i))
+
+(check-catch 'wrong-type-arg
+  (complex-vector-set! (vector 1.0+2.0i 3.0+4.0i)
+    0
+    5.0+6.0i
+  ) ;complex-vector-set!
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (complex-vector-set! (int-vector 1 2)
+    0
+    3.0+4.0i
+  ) ;complex-vector-set!
+) ;check-catch
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-andc2
 ;; 计算两个整数的按位与非操作（第二个参数取反）。
@@ -37,13 +37,15 @@
 ;; wrong-type-arg
 ;; 当参数不是整数时抛出错误。
 
-;;; 精简测试：bitwise-andc2 按位与非操作
+
+;; ; 精简测试：bitwise-andc2 按位与非操作
 (check (bitwise-andc2 11 26) => 1)
 (check (bitwise-andc2 5 3) => 4)
-(check (bitwise-andc2 #b1100 #b1010) => 4)
+(check (bitwise-andc2 12 10) => 4)
 (check (bitwise-andc2 0 15) => 0)
 (check (bitwise-andc2 15 0) => 15)
 (check (bitwise-andc2 7 1) => 6)
+
 
 
 (check-report)

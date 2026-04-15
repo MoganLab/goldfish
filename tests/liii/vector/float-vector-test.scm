@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; float-vector
 ;; 创建只包含浮点数元素的专用向量。
@@ -34,21 +34,36 @@
 ;; ----
 ;; wrong-type-arg 当任一参数不是数字时
 
-(check-true (vector? (float-vector 1.0 2.0 3.0)))
-(check-true (float-vector? (float-vector 1.0 2.0 3.0)))
-(check (float-vector 1.0 2.0 3.0) => #r(1.0 2.0 3.0))
-(check (float-vector 1 2 3) => #r(1.0 2.0 3.0))
-(check-catch 'wrong-type-arg (float-vector 1.0 2.0 'a))
+
+(check-true (vector? (float-vector 1.0 2.0 3.0))
+) ;check-true
+(check-true (float-vector? (float-vector 1.0 2.0 3.0)
+            ) ;float-vector?
+) ;check-true
+(check (float-vector 1.0 2.0 3.0)
+  =>
+  #r(1.0 2.0 3.0)
+) ;check
+(check (float-vector 1 2 3)
+  =>
+  #r(1.0 2.0 3.0)
+) ;check
+(check-catch 'wrong-type-arg
+  (float-vector 1.0 2.0 'a)
+) ;check-catch
+
 
 (let ((v (float-vector)))
   (check (vector-length v) => 0)
   (check-true (float-vector? v))
 ) ;let
 
+
 (let ((v (float-vector 3.14)))
   (check (vector-length v) => 1)
   (check-true (float-vector? v))
   (check (float-vector-ref v 0) => 3.14)
 ) ;let
+
 
 (check-report)

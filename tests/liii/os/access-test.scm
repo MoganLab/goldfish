@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii os)
-        (liii sys)
+  (liii os)
+  (liii sys)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; access
 ;; 检查文件的访问权限。
@@ -30,12 +32,16 @@
 ;; ----
 ;; 检查当前进程对指定文件的访问权限。
 
-;;; 基本功能测试
-(when (and (os-linux?) (not (string=? "root" (getlogin))))
+
+;; ; 基本功能测试
+(when (and (os-linux?)
+        (not (string=? "root" (getlogin)))
+      ) ;and
   (check-true (access "/root" 'F_OK))
   (check-false (access "/root" 'R_OK))
   (check-false (access "/root" 'W_OK))
   (check-true (access (executable) 'X_OK))
 ) ;when
+
 
 (check-report)

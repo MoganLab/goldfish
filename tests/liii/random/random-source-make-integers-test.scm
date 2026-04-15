@@ -1,8 +1,8 @@
-(import (liii random)
-        (liii check)
-) ;import
+(import (liii random) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; random-source-make-integers
 ;; 从随机源创建整数生成器。
@@ -31,15 +31,19 @@
 ;; ----
 ;; wrong-type-arg 当 s 不是随机源时抛出。
 
-; 创建整数生成器
+
 (let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)))
+       (rand-int (random-source-make-integers s)
+       ) ;rand-int
+      ) ;
   (check (procedure? rand-int) => #t)
 ) ;let*
 
-; 生成器工作正常
+
 (let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)))
+       (rand-int (random-source-make-integers s)
+       ) ;rand-int
+      ) ;
   (let ((r (rand-int 100)))
     (check (integer? r) => #t)
     (check (>= r 0) => #t)
@@ -47,19 +51,26 @@
   ) ;let
 ) ;let*
 
-; 多次调用
+
 (let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)))
+       (rand-int (random-source-make-integers s)
+       ) ;rand-int
+      ) ;
   (let ((r1 (rand-int 100))
         (r2 (rand-int 100))
-        (r3 (rand-int 100)))
+        (r3 (rand-int 100))
+       ) ;
     (check (integer? r1) => #t)
     (check (integer? r2) => #t)
     (check (integer? r3) => #t)
   ) ;let
 ) ;let*
 
-; 错误处理
-(check-catch 'wrong-type-arg (random-source-make-integers 'not-a-source))
+
+(check-catch 'wrong-type-arg
+  (random-source-make-integers 'not-a-source
+  ) ;random-source-make-integers
+) ;check-catch
+
 
 (check-report)

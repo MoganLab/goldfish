@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-for-each
 ;; 对 set 中的每个元素应用 proc，忽略返回值。
@@ -29,20 +31,42 @@
 ;; ----
 ;; (set-for-each (lambda (x) (display x)) (set 1 2 3))
 
+
 (define s-empty (set))
+
 
 ;; Test basic behavior
 (define s-foreach (set 1 2 3))
 (define foreach-collected '())
-(set-for-each (lambda (x) (set! foreach-collected (cons x foreach-collected))) s-foreach)
-(check-true (set=? (list->set foreach-collected) s-foreach))
+(set-for-each (lambda (x)
+                (set! foreach-collected
+                  (cons x foreach-collected)
+                ) ;set!
+              ) ;lambda
+  s-foreach
+) ;set-for-each
+(check-true (set=? (list->set foreach-collected)
+              s-foreach
+            ) ;set=?
+) ;check-true
+
 
 ;; Test empty set - no calls triggered
 (define foreach-count 0)
-(set-for-each (lambda (x) (set! foreach-count (+ foreach-count 1))) s-empty)
+(set-for-each (lambda (x)
+                (set! foreach-count (+ foreach-count 1))
+              ) ;lambda
+  s-empty
+) ;set-for-each
 (check (set-size s-empty) => 0)
 (check foreach-count => 0)
 
-(check-catch 'type-error (set-for-each (lambda (x) x) "not a set"))
+
+(check-catch 'type-error
+  (set-for-each (lambda (x) x)
+    "not a set"
+  ) ;set-for-each
+) ;check-catch
+
 
 (check-report)

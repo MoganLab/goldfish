@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-remove-range!
 ;; 移除 flexvector 中指定范围的元素。时间复杂度 O(n)。
@@ -35,17 +35,26 @@
 ;; flexvector-remove! - 移除单个元素
 ;; flexvector-clear! - 清空向量
 
+
 ;; 基本测试：移除中间范围
 (let ((fv (flexvector 'a 'b 'c 'd 'e 'f)))
   (flexvector-remove-range! fv 1 4)
-  (check (flexvector->list fv) => '(a e f))
+  (check (flexvector->list fv)
+    =>
+    '(a e f)
+  ) ;check
 ) ;let
+
 
 ;; 空范围（无变化）
 (let ((fv (flexvector 'a 'b 'c 'd 'e 'f)))
   (flexvector-remove-range! fv 1 1)
-  (check (flexvector->list fv) => '(a b c d e f))
+  (check (flexvector->list fv)
+    =>
+    '(a b c d e f)
+  ) ;check
 ) ;let
+
 
 ;; 移除前缀
 (let ((fv (flexvector 'a 'b 'c 'd)))
@@ -53,11 +62,13 @@
   (check (flexvector->list fv) => '(c d))
 ) ;let
 
+
 ;; 移除后缀
 (let ((fv (flexvector 'a 'b 'c 'd)))
   (flexvector-remove-range! fv 2 4)
   (check (flexvector->list fv) => '(a b))
 ) ;let
+
 
 ;; 移除整个向量
 (let ((fv (flexvector 'a 'b 'c)))
@@ -65,15 +76,23 @@
   (check (flexvector-empty? fv) => #t)
 ) ;let
 
+
 ;; 边界超出
 (let ((fv (flexvector 'a 'b 'c)))
-  (flexvector-remove-range! fv -1 2)  ; start < 0 会被处理为 0
+  (flexvector-remove-range! fv -1 2)
   (check (flexvector->list fv) => '(c))
 ) ;let
 
+
 ;; 返回值是原对象
 (let ((fv (flexvector 'a 'b 'c)))
-  (check (eq? (flexvector-remove-range! fv 0 1) fv) => #t)
+  (check (eq? (flexvector-remove-range! fv 0 1)
+           fv
+         ) ;eq?
+    =>
+    #t
+  ) ;check
 ) ;let
+
 
 (check-report)

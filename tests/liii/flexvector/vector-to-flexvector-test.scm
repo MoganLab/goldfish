@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector->flexvector
 ;; 将普通向量（vector）转换为 flexvector。时间复杂度 O(n)。
@@ -33,46 +33,86 @@
 ;; flexvector->vector - flexvector 转向量
 ;; list->flexvector - 列表转 flexvector
 
+
 ;; 基本转换
-(check (flexvector->vector (vector->flexvector #(1 2 3))) => #(1 2 3))
+(check (flexvector->vector (vector->flexvector #(1 2 3))
+       ) ;flexvector->vector
+  =>
+  #(1 2 3)
+) ;check
+
 
 ;; 空向量
-(check (flexvector->list (vector->flexvector #())) => '())
+(check (flexvector->list (vector->flexvector #())
+       ) ;flexvector->list
+  =>
+  '()
+) ;check
+
 
 ;; 从指定位置转换
 (let ((vec #(1 2 3 4 5)))
-  (check (flexvector->vector (vector->flexvector vec 2)) => #(3 4 5))
+  (check (flexvector->vector (vector->flexvector vec 2)
+         ) ;flexvector->vector
+    =>
+    #(3 4 5)
+  ) ;check
 ) ;let
+
 
 ;; 转换区间 [start, end)
 (let ((vec #(1 2 3 4 5)))
-  (check (flexvector->vector (vector->flexvector vec 1 4)) => #(2 3 4))
+  (check (flexvector->vector (vector->flexvector vec 1 4)
+         ) ;flexvector->vector
+    =>
+    #(2 3 4)
+  ) ;check
 ) ;let
+
 
 ;; 边界测试：空区间
 (let ((vec #(1 2 3)))
-  (check (flexvector->vector (vector->flexvector vec 0 0)) => #())
-  (check (flexvector->vector (vector->flexvector vec 3 3)) => #())
+  (check (flexvector->vector (vector->flexvector vec 0 0)
+         ) ;flexvector->vector
+    =>
+    #()
+  ) ;check
+  (check (flexvector->vector (vector->flexvector vec 3 3)
+         ) ;flexvector->vector
+    =>
+    #()
+  ) ;check
 ) ;let
+
 
 ;; 单元素
 (let ((vec #(only)))
-  (check (flexvector->vector (vector->flexvector vec)) => #(only))
+  (check (flexvector->vector (vector->flexvector vec)
+         ) ;flexvector->vector
+    =>
+    #(only)
+  ) ;check
 ) ;let
+
 
 ;; 往返测试
 (let ((vec #(a b c d e)))
-  (check (flexvector->vector (vector->flexvector vec)) => vec)
+  (check (flexvector->vector (vector->flexvector vec)
+         ) ;flexvector->vector
+    =>
+    vec
+  ) ;check
 ) ;let
 
+
 ;; 转换后可修改
-(let ((vec #(1 2 3))
-      (fv #f))
+(let ((vec #(1 2 3)) (fv #f))
   (set! fv (vector->flexvector vec))
   (flexvector-set! fv 0 999)
   (check (flexvector-ref fv 0) => 999)
   ;; 不影响原 vector
   (check vec => #(1 2 3))
 ) ;let
+
 
 (check-report)

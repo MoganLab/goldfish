@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-length
 ;; 获取向量的长度。
@@ -34,10 +34,18 @@
 ;; ----
 ;; wrong-type-arg 当vec不是向量时
 
+
 (check (vector-length #()) => 0)
 (check (vector-length #(42)) => 1)
 (check (vector-length #(1 2 3)) => 3)
-(check (vector-length #(1 2.5 "hello" 'symbol #\c #t #f)) => 7)
-(check-catch 'wrong-type-arg (vector-length 'not-a-vector))
+(check (vector-length #(1 2.5 "hello" 'symbol #\c #t #f)
+       ) ;vector-length
+  =>
+  7
+) ;check
+(check-catch 'wrong-type-arg
+  (vector-length 'not-a-vector)
+) ;check-catch
+
 
 (check-report)

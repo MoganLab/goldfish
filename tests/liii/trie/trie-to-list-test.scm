@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii sort)
-        (liii trie)
+  (liii sort)
+  (liii trie)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; trie->list
 ;; 将 trie 转换为列表表示。
@@ -26,30 +28,44 @@
 ;; ----
 ;; (trie->list trie) => '(((#\h ...)) root-value)
 
+
 (let ((trie (make-trie)))
   (check (trie->list trie) => '(()))
 ) ;let
 
+
 (let ((trie (make-trie)))
-  (trie-insert! trie (string->list "hello") 'world)
-  (trie-insert! trie (string->list "hey") 'there)
-  (trie-insert! trie (string->list "hi") 'again)
+  (trie-insert! trie
+    (string->list "hello")
+    'world
+  ) ;trie-insert!
+  (trie-insert! trie
+    (string->list "hey")
+    'there
+  ) ;trie-insert!
+  (trie-insert! trie
+    (string->list "hi")
+    'again
+  ) ;trie-insert!
 
   (check (list-sort! < (trie->list trie))
-         => '(((#\h ((#\i () again)
-                     (#\e ((#\y () there)
-                           (#\l ((#\l ((#\o () world))))))))))
-                     ) ;e
+    =>
+    '(((#\h ((#\i () again) (#\e ((#\y () there) (#\l ((#\l ((#\o () world)))))))))))
   ) ;check
 ) ;let
+
 
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root-value)
-  (trie-insert! trie (string->list "test") 'other-value)
+  (trie-insert! trie
+    (string->list "test")
+    'other-value
+  ) ;trie-insert!
   (check (trie->list trie)
-         => '(((#\t ((#\e ((#\s ((#\t () other-value))))))))
-             root-value)
+    =>
+    '(((#\t ((#\e ((#\s ((#\t () other-value)))))))) root-value)
   ) ;check
 ) ;let
+
 
 (check-report)

@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-graphic->control
 ;; 将 ASCII 图形字符映射为控制字符。
@@ -32,11 +31,28 @@
 ;; ----
 ;; 不可转换输入返回 #f
 
-(check (ascii-graphic->control #x40) => #x00)
-(check (ascii-graphic->control #x5f) => #x1f)
-(check (ascii-graphic->control #x3f) => #x7f)
-(check (ascii-graphic->control #\@) => #\nul)
-(check (ascii-graphic->control #\A) => #\x01)
-(check (ascii-graphic->control #x20) => #f)
+
+(check (ascii-graphic->control 64) => 0)
+(check (ascii-graphic->control 95)
+  =>
+  31
+) ;check
+(check (ascii-graphic->control 63)
+  =>
+  127
+) ;check
+(check (ascii-graphic->control #\@)
+  =>
+  #\null
+) ;check
+(check (ascii-graphic->control #\A)
+  =>
+  #\x1
+) ;check
+(check (ascii-graphic->control 32)
+  =>
+  #f
+) ;check
+
 
 (check-report)

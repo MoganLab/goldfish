@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flat-map 函数测试
 ;;
@@ -31,11 +31,18 @@
 ;; ----
 ;; (flat-map (lambda (x) (list x x)) (list 1 2 3)) => (list 1 1 2 2 3 3)
 
+
 (check (flat-map (lambda (x) (list x x))
-                 (list 1 2 3))
-  => (list 1 1 2 2 3 3)
+         (list 1 2 3)
+       ) ;flat-map
+  =>
+  (list 1 1 2 2 3 3)
 ) ;check
 
-(check-catch 'type-error (flat-map 1 (list 1 2 3)))
+
+(check-catch 'type-error
+  (flat-map 1 (list 1 2 3))
+) ;check-catch
+
 
 (check-report)

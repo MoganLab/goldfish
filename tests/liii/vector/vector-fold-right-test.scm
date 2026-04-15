@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-fold-right
 ;; 从右到左折叠向量。
@@ -40,15 +40,55 @@
 ;; ----
 ;; wrong-type-arg 当vec不是向量，或proc不是过程时
 
-(check (vector-fold-right + 0 #(1 2 3 4)) => 10)
-(check (vector-fold-right * 1 #(1 2 3 4)) => 24)
-(check (vector-fold-right (lambda (x acc) (cons x acc)) '() #(1 2 3)) => '(1 2 3))
-(check (vector-fold-right (lambda (x acc) (+ acc (if (even? x) 1 0))) 0 #(1 2 3 4)) => 2)
+
+(check (vector-fold-right + 0 #(1 2 3 4))
+  =>
+  10
+) ;check
+(check (vector-fold-right * 1 #(1 2 3 4))
+  =>
+  24
+) ;check
+(check (vector-fold-right (lambda (x acc) (cons x acc))
+         '()
+         #(1 2 3)
+       ) ;vector-fold-right
+  =>
+  '(1 2 3)
+) ;check
+(check (vector-fold-right (lambda (x acc)
+                            (+ acc (if (even? x) 1 0))
+                          ) ;lambda
+         0
+         #(1 2 3 4)
+       ) ;vector-fold-right
+  =>
+  2
+) ;check
 (check (vector-fold-right + 0 #()) => 0)
 (check (vector-fold-right * 1 #()) => 1)
-(check (vector-fold-right + 0 #(5)) => 5)
-(check (vector-fold-right * 1 #(5)) => 5)
-(check (vector-fold-right string-append "" #("a" "b" "c")) => "abc")
-(check (vector-fold-right (lambda (x acc) (and acc x)) #t #(#t #t #f)) => #f)
+(check (vector-fold-right + 0 #(5))
+  =>
+  5
+) ;check
+(check (vector-fold-right * 1 #(5))
+  =>
+  5
+) ;check
+(check (vector-fold-right string-append
+         ""
+         #("a" "b" "c")
+       ) ;vector-fold-right
+  =>
+  "abc"
+) ;check
+(check (vector-fold-right (lambda (x acc) (and acc x))
+         #t
+         #(#t #t #f)
+       ) ;vector-fold-right
+  =>
+  #f
+) ;check
+
 
 (check-report)

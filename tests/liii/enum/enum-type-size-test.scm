@@ -1,26 +1,33 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+(define color
+  (make-enum-type color-names)
 ) ;define
 
-(define pizza-names (map car pizza-descriptions))
 
-(define pizza (make-enum-type pizza-descriptions))
+(define pizza-descriptions
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+) ;define
+
+
+(define pizza-names
+  (map car pizza-descriptions)
+) ;define
+
+
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
+
 
 ;; enum-type-size
 ;; 获取 enum-type 中 enum 的数量。
@@ -51,7 +58,15 @@
 ;; ----
 ;; 无。
 
-(check (enum-type-size color) => (length color-names))
-(check (enum-type-size pizza) => (length pizza-names))
+
+(check (enum-type-size color)
+  =>
+  (length color-names)
+) ;check
+(check (enum-type-size pizza)
+  =>
+  (length pizza-names)
+) ;check
+
 
 (check-report)

@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-1)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-1)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; TIME-DURATION TIME-MONOTONIC TIME-PROCESS TIME-TAI TIME-THREAD TIME-UTC
 ;; 时间类型常量，用于标识不同类型的时间。
@@ -26,6 +28,7 @@
 ;; TIME-UTC => time-utc
 ;; TIME-TAI => time-tai
 
+
 ;; Test time constants
 (check-true (symbol? TIME-DURATION))
 (check-true (symbol? TIME-MONOTONIC))
@@ -34,14 +37,22 @@
 (check-true (symbol? TIME-THREAD))
 (check-true (symbol? TIME-UTC))
 
+
 ;; Ensure all constants are distinct
-(let
-  ((constants
-     (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS
-           TIME-TAI TIME-THREAD TIME-UTC)
-     ) ;list
-   ) ;constants
-  (check-true (= (length constants) (length (delete-duplicates constants))))
+(let ((constants (list TIME-DURATION
+                   TIME-MONOTONIC
+                   TIME-PROCESS
+                   TIME-TAI
+                   TIME-THREAD
+                   TIME-UTC
+                 ) ;list
+      ) ;constants
+     ) ;
+  (check-true (= (length constants)
+                (length (delete-duplicates constants))
+              ) ;=
+  ) ;check-true
 ) ;let
+
 
 (check-report)

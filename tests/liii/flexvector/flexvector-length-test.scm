@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-length
 ;; 返回可变长向量的元素个数。时间复杂度 O(1)。
@@ -34,10 +34,21 @@
 ;; (flexvector-add-back! fv 'c)
 ;; (flexvector-length fv)                     => 3
 
+
 ;; 基本测试
-(check (flexvector-length (flexvector)) => 0)
-(check (flexvector-length (flexvector 1)) => 1)
-(check (flexvector-length (flexvector 1 2 3)) => 3)
+(check (flexvector-length (flexvector))
+  =>
+  0
+) ;check
+(check (flexvector-length (flexvector 1))
+  =>
+  1
+) ;check
+(check (flexvector-length (flexvector 1 2 3))
+  =>
+  3
+) ;check
+
 
 ;; 验证修改后长度变化
 (let ((fv (flexvector 'a 'b)))
@@ -48,13 +59,15 @@
   (check (flexvector-length fv) => 2)
 ) ;let
 
+
 ;; 大量元素测试（测试扩容机制）
 (let ((fv (flexvector)))
   (do ((i 0 (+ i 1)))
-      ((= i 100))
+    ((= i 100))
     (flexvector-add-back! fv i)
   ) ;do
   (check (flexvector-length fv) => 100)
 ) ;let
+
 
 (check-report)

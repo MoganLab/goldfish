@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-map->list
 ;; 将哈希表中的每个键值对映射为列表元素。
@@ -36,15 +36,27 @@
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+
 (let* ((ht (hash-table 'a 1 'b 2 'c 3))
-       (ks (hash-table-map->list (lambda (k v) k) ht))
-       (vs (hash-table-map->list (lambda (k v) v) ht)))
-  (check-true (not (null? (member 'a ks))))
-  (check-true (not (null? (member 'b ks))))
-  (check-true (not (null? (member 'c ks))))
+       (ks (hash-table-map->list (lambda (k v) k)
+             ht
+           ) ;hash-table-map->list
+       ) ;ks
+       (vs (hash-table-map->list (lambda (k v) v)
+             ht
+           ) ;hash-table-map->list
+       ) ;vs
+      ) ;
+  (check-true (not (null? (member 'a ks)))
+  ) ;check-true
+  (check-true (not (null? (member 'b ks)))
+  ) ;check-true
+  (check-true (not (null? (member 'c ks)))
+  ) ;check-true
   (check-true (not (null? (member 1 vs))))
   (check-true (not (null? (member 2 vs))))
   (check-true (not (null? (member 3 vs))))
 ) ;let*
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-copy!
 ;; 将源向量元素复制到目标向量。
@@ -47,25 +47,56 @@
 ;; ----
 ;; out-of-range 当at/start/end越界、start大于end或目标空间不足时
 
-(define a (vector "a0" "a1" "a2" "a3" "a4"))
-(define b (vector "b0" "b1" "b2" "b3" "b4"))
 
-(check-catch 'out-of-range (vector-copy! b -1 a))
-(check-catch 'out-of-range (vector-copy! b 0 a -1))
-(check-catch 'out-of-range (vector-copy! b 0 a 6))
-(check-catch 'out-of-range (vector-copy! b 0 a 0 6))
-(check-catch 'out-of-range (vector-copy! b 0 a 2 1))
-(check-catch 'out-of-range (vector-copy! b 6 a))
-(check-catch 'out-of-range (vector-copy! b 1 a))
+(define a
+  (vector "a0" "a1" "a2" "a3" "a4")
+) ;define
+(define b
+  (vector "b0" "b1" "b2" "b3" "b4")
+) ;define
 
-(define a (vector "a0" "a1" "a2" "a3" "a4"))
-(define b (vector "b0" "b1" "b2" "b3" "b4"))
+
+(check-catch 'out-of-range
+  (vector-copy! b -1 a)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 0 a -1)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 0 a 6)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 0 a 0 6)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 0 a 2 1)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 6 a)
+) ;check-catch
+(check-catch 'out-of-range
+  (vector-copy! b 1 a)
+) ;check-catch
+
+
+(define a
+  (vector "a0" "a1" "a2" "a3" "a4")
+) ;define
+(define b
+  (vector "b0" "b1" "b2" "b3" "b4")
+) ;define
 (vector-copy! b 0 a 1)
 (check b => #("a1" "a2" "a3" "a4" "b4"))
 
-(define a (vector "a0" "a1" "a2" "a3" "a4"))
-(define b (vector "b0" "b1" "b2" "b3" "b4"))
+
+(define a
+  (vector "a0" "a1" "a2" "a3" "a4")
+) ;define
+(define b
+  (vector "b0" "b1" "b2" "b3" "b4")
+) ;define
 (vector-copy! b 0 a 0 5)
 (check b => #("a0" "a1" "a2" "a3" "a4"))
+
 
 (check-report)

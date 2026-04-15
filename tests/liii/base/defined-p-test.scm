@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii base))
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; defined?
 ;; 检查符号是否在指定环境中已定义（有绑定值）。
@@ -34,61 +36,73 @@
 ;; 注意：与 undefined? 不同，defined? 检查的是符号是否有绑定，
 ;; 而不是值是否为 #<undefined>。
 
+
 ;; 测试未定义的符号
-(check (defined? 'undefined-symbol-xyz) => #f)
+(check (defined? 'undefined-symbol-xyz)
+  =>
+  #f
+) ;check
+
 
 ;; 测试已定义的符号
-(check
-  (let ()
-    (define x 42)
-    (defined? 'x)
-  ) ;let
-  => #t
+(check (let ()
+         (define x 42)
+         (defined? 'x)
+       ) ;let
+  =>
+  #t
 ) ;check
+
 
 ;; 测试内置符号
 (check (defined? '+) => #t)
 (check (defined? 'car) => #t)
 (check (defined? 'lambda) => #t)
 
+
 ;; 测试 let 环境中的符号
-(check
-  (let ((a 1))
-    (defined? 'a)
-  ) ;let
-  => #t
+(check (let ((a 1))
+         (defined? 'a)
+       ) ;let
+  =>
+  #t
 ) ;check
+
 
 ;; 测试在 let 中查找外部符号
-(check
-  (let ((a 1))
-    (defined? '+)
-  ) ;let
-  => #t
+(check (let ((a 1))
+         (defined? '+)
+       ) ;let
+  =>
+  #t
 ) ;check
+
 
 ;; 测试指定 let 参数
-(check
-  (let ((a 1))
-    (defined? 'a (curlet))
-  ) ;let
-  => #t
+(check (let ((a 1))
+         (defined? 'a (curlet))
+       ) ;let
+  =>
+  #t
 ) ;check
+
 
 ;; 测试 ignore-globals 参数
-(check
-  (let ()
-    (defined? '+ (curlet) #t)
-  ) ;let
-  => #f
+(check (let ()
+         (defined? '+ (curlet) #t)
+       ) ;let
+  =>
+  #f
 ) ;check
 
+
 ;; 测试局部变量覆盖
-(check
-  (let ((+ 1))
-    (defined? '+)
-  ) ;let
-  => #t
+(check (let ((+ 1))
+         (defined? '+)
+       ) ;let
+  =>
+  #t
 ) ;check
+
 
 (check-report)

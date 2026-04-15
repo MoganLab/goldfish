@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-downcase
 ;; 将 ASCII 字母转换为小写。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 不需要转换时返回原值
 
+
 (check (ascii-downcase #\A) => #\a)
 (check (ascii-downcase #\a) => #\a)
 (check (ascii-downcase #\?) => #\?)
 (check (ascii-downcase 65) => 97)
+
 
 (check-report)

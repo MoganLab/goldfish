@@ -1,18 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define empty-colors (enum-empty-set color))
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
+
+(define empty-colors
+  (enum-empty-set color)
+) ;define
+
 
 ;; enum-set-map->list
 ;; 对 enum-set 中每个成员应用过程并收集结果。
@@ -46,7 +56,18 @@
 ;; ----
 ;; 无。
 
-(check color-names => (enum-set-map->list enum-name color-set))
-(check (null? (enum-set-map->list enum-name empty-colors)) => #t)
+
+(check color-names
+  =>
+  (enum-set-map->list enum-name color-set)
+) ;check
+(check (null? (enum-set-map->list enum-name
+                empty-colors
+              ) ;enum-set-map->list
+       ) ;null?
+  =>
+  #t
+) ;check
+
 
 (check-report)

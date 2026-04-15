@@ -1,22 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
 
+
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella")
-    (funghi "mushrooms")
-    (bianca "ricotta and mozzarella")
-    (chicago "deep-dish")
-    (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
 ) ;define
 
-(define pizza (make-enum-type pizza-descriptions))
 
-(define pizza-chicago (enum-name->enum pizza 'chicago))
+(define pizza
+  (make-enum-type pizza-descriptions)
+) ;define
 
-(define pizza-bianca (enum-name->enum pizza 'bianca))
+
+(define pizza-chicago
+  (enum-name->enum pizza 'chicago)
+) ;define
+
+
+(define pizza-bianca
+  (enum-name->enum pizza 'bianca)
+) ;define
+
 
 ;; list->enum-set
 ;; 从 enum 列表创建 enum-set。
@@ -50,6 +56,15 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-contains? (list->enum-set pizza (list pizza-chicago pizza-bianca)) pizza-chicago) => #t)
+
+(check (enum-set-contains? (list->enum-set pizza
+                             (list pizza-chicago pizza-bianca)
+                           ) ;list->enum-set
+         pizza-chicago
+       ) ;enum-set-contains?
+  =>
+  #t
+) ;check
+
 
 (check-report)

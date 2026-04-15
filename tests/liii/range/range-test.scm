@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; range
 ;; 使用指定的长度和索引器函数创建 range。
@@ -36,6 +36,7 @@
 ;; ----
 ;; 无
 
+
 (let ((r (range 10 (lambda (i) (* i 2)))))
   (check-true (range? r))
   (check (range-length r) => 10)
@@ -43,5 +44,6 @@
   (check (range-ref r 5) => 10)
   (check (range-ref r 9) => 18)
 ) ;let
+
 
 (check-report)

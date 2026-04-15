@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; every 函数测试
 ;;
@@ -29,8 +29,13 @@
 ;; (every integer? '(a 3.14 3)) => #f
 ;; (every integer? '(1 2 3)) => #t
 
+
 (check (every integer? '()) => #t)
-(check (every integer? '(a 3.14 3)) => #f)
+(check (every integer? '(a 3.14 3))
+  =>
+  #f
+) ;check
 (check (every integer? '(1 2 3)) => #t)
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; make-complex-vector
 ;; 创建指定长度的复数向量。
@@ -38,17 +38,32 @@
 ;; ----
 ;; wrong-type-arg 当k不是合法整数或fill不是复数时
 
-(check-true (complex-vector? (make-complex-vector 0)))
-(check-true (complex-vector? (make-complex-vector 3)))
+
+(check-true (complex-vector? (make-complex-vector 0)
+            ) ;complex-vector?
+) ;check-true
+(check-true (complex-vector? (make-complex-vector 3)
+            ) ;complex-vector?
+) ;check-true
 (check (make-complex-vector 0) => #c())
-(check (vector-length (make-complex-vector 5)) => 5)
+(check (vector-length (make-complex-vector 5))
+  =>
+  5
+) ;check
+
 
 (let ((v (make-complex-vector 3)))
   (check (vector-length v) => 3)
   (check-true (complex-vector? v))
 ) ;let
 
-(check-catch 'wrong-type-arg (make-complex-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-complex-vector 3 'not-a-complex))
+
+(check-catch 'wrong-type-arg
+  (make-complex-vector 'not-a-number)
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (make-complex-vector 3 'not-a-complex)
+) ;check-catch
+
 
 (check-report)

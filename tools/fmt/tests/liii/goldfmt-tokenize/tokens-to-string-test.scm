@@ -57,4 +57,27 @@
   (check (string? str) => #t)
   (check str => "(*comment* \"\")"))
 
+;; 测试 tokens->string：空行 token
+(let ((str (tokens->string '((code . "(define x 1)")
+                             (newline . 1)
+                             (code . "(define y 2)")))))
+  (check (string? str) => #t)
+  (check str => "(define x 1)\n(*newline* 1)\n(define y 2)"))
+
+;; 测试 tokens->string：多个空行
+(let ((str (tokens->string '((code . "(define x 1)")
+                             (newline . 2)
+                             (code . "(define y 2)")))))
+  (check (string? str) => #t)
+  (check str => "(define x 1)\n(*newline* 2)\n(define y 2)"))
+
+;; 测试 tokens->string：代码、注释、空行混合
+(let ((str (tokens->string '((code . "(define x 1)")
+                             (newline . 1)
+                             (comment . "注释")
+                             (newline . 2)
+                             (code . "(define y 2)")))))
+  (check (string? str) => #t)
+  (check str => "(define x 1)\n(*newline* 1)\n(*comment* \"注释\")\n(*newline* 2)\n(define y 2)"))
+
 (check-report)

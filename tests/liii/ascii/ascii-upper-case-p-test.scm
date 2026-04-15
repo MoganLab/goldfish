@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-upper-case?
 ;; 判断是否为 ASCII 大写字母。
@@ -32,7 +31,9 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-upper-case? #\A))
 (check-false (ascii-upper-case? #\a))
+
 
 (check-report)

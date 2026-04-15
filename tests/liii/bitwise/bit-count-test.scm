@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bit-count
 ;; 计算整数中值为1的位数。
@@ -40,12 +40,14 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 精简测试：bit-count 位数计算
-(check (bit-count 0) =>  0)
-(check (bit-count -1) =>  0)
-(check (bit-count 7) =>  3)
-(check (bit-count  13) =>  3)
-(check (bit-count -13) =>  2)
+
+;; ; 精简测试：bit-count 位数计算
+(check (bit-count 0) => 0)
+(check (bit-count -1) => 0)
+(check (bit-count 7) => 3)
+(check (bit-count 13) => 3)
+(check (bit-count -13) => 2)
+
 
 
 (check-report)

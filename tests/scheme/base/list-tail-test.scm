@@ -488,11 +488,11 @@
   =>
   '(#\a "hello" 'symbol)
 ) ;check
-(check (list-tail '(#(1 2) #u(255) (a b) car)
+(check (list-tail '(#(1 2) #u8(255) (a b) car)
          1
        ) ;list-tail
   =>
-  '(#u(255) (a b) car)
+  '(#u8(255) (a b) car)
 ) ;check
 (check (list-tail '(() (()) ((()))) 1)
   =>

@@ -1,16 +1,23 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-set (enum-type->enum-set color))
+(define color
+  (make-enum-type color-names)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 ;; enum-set-fold
 ;; 对集合成员做折叠操作。
@@ -47,11 +54,16 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-fold (lambda (enum lis) (cons (enum-name enum) lis))
-                      '()
-                      color-set)
-       =>
-       (reverse color-names)
+
+(check (enum-set-fold (lambda (enum lis)
+                        (cons (enum-name enum) lis)
+                      ) ;lambda
+         '()
+         color-set
+       ) ;enum-set-fold
+  =>
+  (reverse color-names)
 ) ;check
+
 
 (check-report)

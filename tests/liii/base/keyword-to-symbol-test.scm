@@ -1,7 +1,9 @@
 (import (liii check))
 (import (liii base))
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; keyword->symbol - 将关键字转换为符号
 ;;
@@ -12,15 +14,37 @@
 ;; 说明:
 ;; 将 keyword 转换为普通符号（去掉冒号前缀）
 
+
 (check (keyword->symbol :baz) => 'baz)
-(check (keyword->symbol :hello-world) => 'hello-world)
-(check (symbol? (keyword->symbol :test)) => #t)
-(check (keyword? (keyword->symbol :test)) => #f)
+(check (keyword->symbol :hello-world)
+  =>
+  'hello-world
+) ;check
+(check (symbol? (keyword->symbol :test))
+  =>
+  #t
+) ;check
+(check (keyword? (keyword->symbol :test))
+  =>
+  #f
+) ;check
+
 
 ;; 与 symbol->keyword 的互逆性
-(check (equal? (symbol->keyword (keyword->symbol :ghi)) :ghi) => #t)
+(check (equal? (symbol->keyword (keyword->symbol :ghi))
+         :ghi
+       ) ;equal?
+  =>
+  #t
+) ;check
+
 
 ;; 与 string->keyword 的组合使用
-(check (keyword->symbol (string->keyword "def")) => 'def)
+(check (keyword->symbol (string->keyword "def")
+       ) ;keyword->symbol
+  =>
+  'def
+) ;check
+
 
 (check-report)

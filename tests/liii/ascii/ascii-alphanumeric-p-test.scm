@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-alphanumeric?
 ;; 判断是否为 ASCII 字母或数字。
@@ -32,8 +31,10 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-alphanumeric? #\0))
 (check-true (ascii-alphanumeric? #\G))
 (check-false (ascii-alphanumeric? #\-))
+
 
 (check-report)

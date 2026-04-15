@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii trie)
-) ;import
+(import (liii check) (liii trie))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; trie?
 ;; 判断值是否为 trie 数据结构。
@@ -26,9 +26,11 @@
 ;; (trie? (make-trie)) => #t
 ;; (trie? 'not-a-trie) => #f
 
+
 (check-true (trie? (make-trie)))
 (check-false (trie? 'not-a-trie))
 (check-false (trie? '()))
 (check-false (trie? 123))
+
 
 (check-report)

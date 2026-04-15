@@ -3,26 +3,38 @@
 ;; enum 提供枚举类型、枚举值与枚举集合（enum-set）的完整抽象。
 ;; 适合状态机、有限选项、权限集合和可排序的命名常量。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii enum))
 
+
 ;; 示例1：定义一个枚举类型并按名字取值
-(define Color (make-enum-type '(red green blue)))
-(enum-name (enum-name->enum Color 'green)) ; => green
+(define Color
+  (make-enum-type '(red green blue))
+) ;define
+(enum-name (enum-name->enum Color 'green)
+) ;enum-name
+
 
 ;; 示例2：读取枚举类型的大小
-(enum-type-size Color) ; => 3
+(enum-type-size Color)
+
 
 ;; 示例3：把枚举值放入 enum-set 再做成员判断
-(enum-set-contains? (enum-set Color (enum-name->enum Color 'red))
-                    (enum-name->enum Color 'red) ; => #t
+(enum-set-contains? (enum-set Color
+                      (enum-name->enum Color 'red)
+                    ) ;enum-set
+  (enum-name->enum Color 'red)
 ) ;enum-set-contains?
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/enum "make-enum-type"
 ;;   bin/gf doc liii/enum "enum-set"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、枚举类型与枚举值
 ;; 用于构造枚举类型并访问枚举值的函数
@@ -41,6 +53,7 @@
 ;;   enum-ordinal->name  - 通过序号查找名字
 ;;   enum-ordinal->value - 通过序号查找底层值
 
+
 ;; 二、枚举类型访问与比较
 ;; 用于读取枚举类型信息和比较枚举值的函数
 ;;   enum-type-size      - 获取枚举类型大小
@@ -58,6 +71,7 @@
 ;;   enum-prev           - 获取上一个枚举值
 ;;   make-enum-comparator - 创建枚举比较器
 
+
 ;; 三、枚举集合构造
 ;; 用于创建 enum-set 及其辅助构造器的函数
 ;;   enum-empty-set      - 创建空的枚举集合
@@ -68,6 +82,7 @@
 ;;   enum-set-universe   - 获取 enum-set 的全集
 ;;   enum-set-constructor - 获取 enum-set 构造过程
 ;;   enum-set-indexer    - 获取 enum-set 索引过程
+
 
 ;; 四、枚举集合操作
 ;; 用于判断、遍历和组合 enum-set 的函数

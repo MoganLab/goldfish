@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-index-right
 ;; 从右查找元素索引。
@@ -12,7 +12,13 @@
 ;; (flexvector-index-right pred? fv)
 ;;
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector-index-right (lambda (x) (> x 10)) fv) => 2)
+  (check (flexvector-index-right (lambda (x) (> x 10))
+           fv
+         ) ;flexvector-index-right
+    =>
+    2
+  ) ;check
 ) ;let
+
 
 (check-report)

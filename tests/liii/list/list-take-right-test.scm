@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-take-right 函数测试
 ;;
@@ -39,20 +39,42 @@
 ;; (list-take-right '(1 2 3) -1) => '()
 ;; (list-take-right '(1 2 3) 10) => '(1 2 3)
 
-; 基本功能测试
-(check (list-take-right '(1 2 3 4 5) 3) => '(3 4 5))
-(check (list-take-right '(1 2 3 4 5) 0) => '())
-(check (list-take-right '(1 2 3 4 5) 5) => '(1 2 3 4 5))
 
-; 边界容忍测试
-(check (list-take-right '(1 2 3) -1) => '())
-(check (list-take-right '(1 2 3) 10) => '(1 2 3))
+(check (list-take-right '(1 2 3 4 5) 3)
+  =>
+  '(3 4 5)
+) ;check
+(check (list-take-right '(1 2 3 4 5) 0)
+  =>
+  '()
+) ;check
+(check (list-take-right '(1 2 3 4 5) 5)
+  =>
+  '(1 2 3 4 5)
+) ;check
 
-; 空列表测试
+
+(check (list-take-right '(1 2 3) -1)
+  =>
+  '()
+) ;check
+(check (list-take-right '(1 2 3) 10)
+  =>
+  '(1 2 3)
+) ;check
+
+
 (check (list-take-right '() 0) => '())
 
-; 错误处理测试
-(check-catch 'type-error (list-take-right "not a list" 2))
-(check-catch 'type-error (list-take-right '(1 2 3) "not a number"))
+
+(check-catch 'type-error
+  (list-take-right "not a list" 2)
+) ;check-catch
+(check-catch 'type-error
+  (list-take-right '(1 2 3)
+    "not a number"
+  ) ;list-take-right
+) ;check-catch
+
 
 (check-report)

@@ -109,9 +109,9 @@
   =>
   #(1 2 3)
 ) ;check
-(check (car '(#u(255 128) #u(1 2)))
+(check (car '(#u8(255 128) #u8(1 2)))
   =>
-  #u(255 128)
+  #u8(255 128)
 ) ;check
 ;; Scheme符号和过程边界测试
 (check (car '(procedure? symbol?))

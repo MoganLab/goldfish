@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; time<=?
 ;; 比较第一个时间对象是否小于或等于第二个。
@@ -26,17 +28,23 @@
 ;; --------
 ;; wrong-type-arg 当参数不是时间对象或时间类型不匹配时抛出错误。
 
+
 (let* ((t1 (make-time TIME-UTC 100 5))
        (t2 (make-time TIME-UTC 100 5))
-       (t3 (make-time TIME-UTC 200 5)))
+       (t3 (make-time TIME-UTC 200 5))
+      ) ;
   (check (time<=? t1 t2) => #t)
   (check (time<=? t1 t3) => #t)
   (check (time<=? t3 t1) => #f)
 ) ;let*
 
+
 ;; Test error conditions
 (check-catch 'wrong-type-arg
-  (time<=? (make-time TIME-UTC 0 0) (make-time TIME-TAI 0 0))
+  (time<=? (make-time TIME-UTC 0 0)
+    (make-time TIME-TAI 0 0)
+  ) ;time<=?
 ) ;check-catch
+
 
 (check-report)

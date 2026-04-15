@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-fold
 ;; 对 set 中的每个元素应用 proc，累积结果并返回。
@@ -32,18 +34,46 @@
 ;; ----
 ;; (set-fold (lambda (x acc) (+ x acc)) 0 (set 1 2 3)) => 6
 
+
 (define s-empty (set))
 (define s-1-2 (set 1 2))
 (define s-1-2-3 (set 1 2 3))
 
+
 ;; Test sum
-(check (set-fold (lambda (x acc) (+ x acc)) 0 s-1-2-3) => 6)
-(check (set-fold (lambda (x acc) (+ x acc)) 0 s-empty) => 0)
+(check (set-fold (lambda (x acc) (+ x acc))
+         0
+         s-1-2-3
+       ) ;set-fold
+  =>
+  6
+) ;check
+(check (set-fold (lambda (x acc) (+ x acc))
+         0
+         s-empty
+       ) ;set-fold
+  =>
+  0
+) ;check
+
 
 ;; Test accumulating to list (order not guaranteed)
-(define fold-list (set-fold (lambda (x acc) (cons x acc)) '() s-1-2))
-(check-true (set=? (list->set fold-list) s-1-2))
+(define fold-list
+  (set-fold (lambda (x acc) (cons x acc))
+    '()
+    s-1-2
+  ) ;set-fold
+) ;define
+(check-true (set=? (list->set fold-list) s-1-2)
+) ;check-true
 
-(check-catch 'type-error (set-fold (lambda (x acc) acc) '() "not a set"))
+
+(check-catch 'type-error
+  (set-fold (lambda (x acc) acc)
+    '()
+    "not a set"
+  ) ;set-fold
+) ;check-catch
+
 
 (check-report)

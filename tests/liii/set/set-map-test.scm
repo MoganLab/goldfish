@@ -1,10 +1,12 @@
 (import (liii check)
-        (liii error)
-        (liii set)
-        (srfi srfi-128)
+  (liii error)
+  (liii set)
+  (srfi srfi-128)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-map
 ;; 对 set 中的每个元素应用 proc，并返回一个新 set。
@@ -37,40 +39,92 @@
 ;; ----
 ;; (set-map comp (lambda (x) (+ x 10)) (set 1 2 3)) => 包含 11, 12, 13 的 set
 
+
 (define s-empty (set))
-(define comp (set-element-comparator s-empty))
+(define comp
+  (set-element-comparator s-empty)
+) ;define
 (define string-ci-comparator
-  (make-comparator string? string-ci=? string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))
+  (make-comparator string?
+    string-ci=?
+    string-ci<?
+    (lambda (s)
+      (string-hash (string-map char-downcase s)
+      ) ;string-hash
+    ) ;lambda
   ) ;make-comparator
 ) ;define
 
+
 ;; Test basic mapping
 (define s-map-1 (set 1 2 3))
-(define s-map-2 (set-map comp (lambda (x) (+ x 10)) s-map-1))
+(define s-map-2
+  (set-map comp
+    (lambda (x) (+ x 10))
+    s-map-1
+  ) ;set-map
+) ;define
 (check-true (set? s-map-2))
-(check-true (eq? (set-element-comparator s-map-2) comp))
+(check-true (eq? (set-element-comparator s-map-2)
+              comp
+            ) ;eq?
+) ;check-true
 (check (set-size s-map-2) => 3)
 (check-true (set-contains? s-map-2 11))
 (check-true (set-contains? s-map-2 12))
 (check-true (set-contains? s-map-2 13))
-(check-true (set=? s-map-1 (set 1 2 3))) ; Original set unchanged
+(check-true (set=? s-map-1 (set 1 2 3)))
+
 
 ;; Test deduplication behavior
 (define s-map-dup (set 1 2 3 4 5))
-(define s-map-dup-result (set-map comp (lambda (x) (quotient x 2)) s-map-dup))
+(define s-map-dup-result
+  (set-map comp
+    (lambda (x) (quotient x 2))
+    s-map-dup
+  ) ;set-map
+) ;define
 (check (set-size s-map-dup-result) => 3)
-(check-true (set-contains? s-map-dup-result 0))
-(check-true (set-contains? s-map-dup-result 1))
-(check-true (set-contains? s-map-dup-result 2))
+(check-true (set-contains? s-map-dup-result 0)
+) ;check-true
+(check-true (set-contains? s-map-dup-result 1)
+) ;check-true
+(check-true (set-contains? s-map-dup-result 2)
+) ;check-true
+
 
 ;; Test with different comparator
-(define s-map-sym (list->set-with-comparator (make-eq-comparator) '(foo bar baz)))
-(define s-map-str (set-map string-ci-comparator symbol->string s-map-sym))
-(check (set-member s-map-str "FOO" 'not-found) => "foo")
-(check (set-member s-map-str "BAR" 'not-found) => "bar")
-(check (set-member s-map-str "BAZ" 'not-found) => "baz")
+(define s-map-sym
+  (list->set-with-comparator (make-eq-comparator)
+    '(foo bar baz)
+  ) ;list->set-with-comparator
+) ;define
+(define s-map-str
+  (set-map string-ci-comparator
+    symbol->string
+    s-map-sym
+  ) ;set-map
+) ;define
+(check (set-member s-map-str "FOO" 'not-found)
+  =>
+  "foo"
+) ;check
+(check (set-member s-map-str "BAR" 'not-found)
+  =>
+  "bar"
+) ;check
+(check (set-member s-map-str "BAZ" 'not-found)
+  =>
+  "baz"
+) ;check
 
-(check-catch 'type-error (set-map comp (lambda (x) x) "not a set"))
+
+(check-catch 'type-error
+  (set-map comp
+    (lambda (x) x)
+    "not a set"
+  ) ;set-map
+) ;check-catch
+
 
 (check-report)

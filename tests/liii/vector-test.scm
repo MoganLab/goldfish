@@ -3,23 +3,32 @@
 ;; vector 提供向量构造、切片、查找、过滤和原地更新等常用操作。
 ;; 它适合随机访问密集序列，以及需要保留索引语义的批量数据处理。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii vector))
 
+
 ;; 示例1：截取向量前半段
-(vector->list (vector-take #(1 2 3 4) 2)) ; => (1 2)
+(vector->list (vector-take #(1 2 3 4) 2)
+) ;vector->list
+
 
 ;; 示例2：判断向量中是否包含某个元素
-(vector-contains? #(1 2 3) 2) ; => #t
+(vector-contains? #(1 2 3) 2)
+
 
 ;; 示例3：跳过前一个元素并转回列表
-(vector->list (vector-drop #(1 2 3 4) 1)) ; => (2 3 4)
+(vector->list (vector-drop #(1 2 3 4) 1)
+) ;vector->list
+
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/vector "vector-take"
 ;;   bin/gf doc liii/vector "vector-contains?"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、构造与访问
 ;; 用于创建和读取向量的函数
@@ -31,6 +40,7 @@
 ;;   vector-ref          - 按索引读取元素
 ;;   vector-set!         - 原地设置元素
 
+
 ;; 二、复制与原地修改
 ;; 用于复制和调整向量内容的函数
 ;;   vector-copy         - 复制向量
@@ -39,6 +49,7 @@
 ;;   vector-swap!        - 交换两个位置的元素
 ;;   vector-reverse!     - 原地反转向量
 
+
 ;; 三、切片与过滤
 ;; 用于截取和筛选向量元素的函数
 ;;   vector-take         - 取前 n 个元素
@@ -46,6 +57,7 @@
 ;;   vector-take-right   - 取后 n 个元素
 ;;   vector-drop-right   - 跳过后 n 个元素
 ;;   vector-filter       - 过滤元素
+
 
 ;; 四、搜索与统计
 ;; 用于查找、判断和统计向量内容的函数
@@ -59,6 +71,7 @@
 ;;   vector-any          - 判断是否存在满足条件的元素
 ;;   vector-every        - 判断是否全部满足条件
 ;;   vector-partition    - 拆分为两部分
+
 
 ;; 五、遍历与变换
 ;; 用于映射、折叠和类型转换的函数

@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; proper-list?
 ;; 判断一个对象是否为proper list。
@@ -42,38 +42,41 @@
 ;; --------
 ;; 无特殊错误处理，任何类型的对象都能接受。
 
-; 基本功能测试
+
 (check-true (proper-list? (list 1 2)))
 (check-true (proper-list? '()))
 (check-true (proper-list? '(1 2 3)))
 
-; 非proper list测试
+
 (check-false (proper-list? '(a . b)))
 (check-false (proper-list? '(a b . c)))
-(check-false (proper-list? (circular-list 1 2 3)))
+(check-false (proper-list? (circular-list 1 2 3))
+) ;check-false
 
-; 边界条件测试
-(check-true (proper-list? '(() ()) ))
+
+(check-true (proper-list? '(() ())))
 (check-true (proper-list? '(a)))
 (check-false (proper-list? 1))
 (check-false (proper-list? 'hello))
 (check-false (proper-list? "hello"))
 
-; 复杂结构测试
+
 (check-false (proper-list? '(a b . c)))
 (check-true (proper-list? '(a b (c d))))
 (check-true (proper-list? '(() a b)))
 (check-true (proper-list? '(a b ())))
 
-; 点和dotted list测试
+
 (check-false (proper-list? '(a . b)))
 (check-false (proper-list? '(a b . c)))
-(check-false (proper-list? '(a b c . d)))
+(check-false (proper-list? '(a b c . d))
+) ;check-false
 
-; 循环列表测试
+
 (let ((lst (list 1 2 3)))
   (set-cdr! (last-pair lst) lst)
   (check-false (proper-list? lst))
 ) ;let
+
 
 (check-report)

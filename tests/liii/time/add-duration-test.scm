@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; add-duration
 ;; 将时间间隔加到时间对象。
@@ -29,36 +31,45 @@
 ;; --------
 ;; wrong-type-arg 当参数不是时间对象，或 time-duration 不是 TIME-DURATION 时抛出错误。
 
+
 ;; Test add-duration basic
 (let* ((t1 (make-time TIME-UTC 100 5))
        (t2 (make-time TIME-UTC 900000000 3))
-       (d  (time-difference t1 t2))
-       (t3 (add-duration t2 d)))
+       (d (time-difference t1 t2))
+       (t3 (add-duration t2 d))
+      ) ;
   (check (time-type t3) => TIME-UTC)
   (check (time-second t3) => 5)
   (check (time-nanosecond t3) => 100)
 ) ;let*
 
+
 ;; Test negative duration normalization
 (let* ((t1 (make-time TIME-UTC 100 5))
        (t2 (make-time TIME-UTC 900000000 5))
-       (d  (time-difference t1 t2))
-       (t3 (add-duration t2 d)))
+       (d (time-difference t1 t2))
+       (t3 (add-duration t2 d))
+      ) ;
   (check (time-second t3) => 5)
   (check (time-nanosecond t3) => 100)
 ) ;let*
 
+
 ;; Test error conditions
-(let
-  ((d
-     (time-difference (make-time TIME-UTC 0 1)
-                      (make-time TIME-UTC 0 0))
-     ) ;time-difference
-   ) ;d
-  (check-catch 'wrong-type-arg (add-duration "not-time" d))
-  (check-catch 'wrong-type-arg (add-duration (make-time TIME-UTC 0 0)
-                                             (make-time TIME-UTC 0 0))
+(let ((d (time-difference (make-time TIME-UTC 0 1)
+           (make-time TIME-UTC 0 0)
+         ) ;time-difference
+      ) ;d
+     ) ;
+  (check-catch 'wrong-type-arg
+    (add-duration "not-time" d)
+  ) ;check-catch
+  (check-catch 'wrong-type-arg
+    (add-duration (make-time TIME-UTC 0 0)
+      (make-time TIME-UTC 0 0)
+    ) ;add-duration
   ) ;check-catch
 ) ;let
+
 
 (check-report)

@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-copy
 ;; 复制一个 set。
@@ -35,15 +37,22 @@
 ;; type-error
 ;; 如果参数不是 set，抛出异常。
 
+
 (define s-empty (set))
 (define s-1-2 (set 1 2))
 
+
 (let ((copy (set-copy s-1-2)))
   (check-true (set=? s-1-2 copy))
-  (check-false (eq? s-1-2 copy)) ; Ensure new instance
+  (check-false (eq? s-1-2 copy))
 ) ;let
 
-(check-true (set-empty? (set-copy s-empty)))
-(check-catch 'type-error (set-copy "not a set"))
+
+(check-true (set-empty? (set-copy s-empty))
+) ;check-true
+(check-catch 'type-error
+  (set-copy "not a set")
+) ;check-catch
+
 
 (check-report)

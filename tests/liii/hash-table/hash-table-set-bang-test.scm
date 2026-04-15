@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii hash-table)
+  (liii error)
+  (liii hash-table)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-set!
 ;; 将一个或多个键值对写入哈希表。
@@ -40,6 +42,7 @@
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)
   (check (hash-table-ref ht 'a) => 1)
@@ -48,8 +51,16 @@
   (check (hash-table-ref ht 'b) => 3)
 ) ;let
 
-(check-catch 'wrong-number-of-args (hash-table-set! (make-hash-table)))
-(check-catch 'wrong-number-of-args (hash-table-set! (make-hash-table) 'a))
-(check-catch 'type-error (hash-table-set! "not-a-table" 'a 1))
+
+(check-catch 'wrong-number-of-args
+  (hash-table-set! (make-hash-table))
+) ;check-catch
+(check-catch 'wrong-number-of-args
+  (hash-table-set! (make-hash-table) 'a)
+) ;check-catch
+(check-catch 'type-error
+  (hash-table-set! "not-a-table" 'a 1)
+) ;check-catch
+
 
 (check-report)

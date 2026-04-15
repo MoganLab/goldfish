@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii sort)
-) ;import
+(import (liii check) (liii sort))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; list-sort!
 ;; 对列表进行破坏性快速排序。
@@ -36,16 +36,42 @@
 ;; ----
 ;; 无
 
-(check-true (list-sorted? < (list-sort! < '(1 5 1 0 -1 9 2 4 3))))
-(check-true (list-sorted? < (list-sort! < '(9 7 5 3 2 8 6 4 1))))
-(check-true (list-sorted? < (list-sort! < '())))
-(check-true (list-sorted? < (list-sort! < '(42))))
-(check-true (list-sorted? < (list-sort! < '(1 2 3 4 5))))
-(check-true (list-sorted? < (list-sort! < '(3 1 4 1 5 9 2 6 5 3 5))))
-(check-true (list-sorted? < (list-sort! < '(0 -1 2 -2 3 1))))
-(check-true (list-sorted? < (list-sort! < '(5 -3 0 2 1 -1 4))))
+
+(check-true (list-sorted? <
+              (list-sort! < '(1 5 1 0 -1 9 2 4 3))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-sort! < '(9 7 5 3 2 8 6 4 1))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? < (list-sort! < '()))
+) ;check-true
+(check-true (list-sorted? < (list-sort! < '(42)))
+) ;check-true
+(check-true (list-sorted? <
+              (list-sort! < '(1 2 3 4 5))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-sort! < '(3 1 4 1 5 9 2 6 5 3 5))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-sort! < '(0 -1 2 -2 3 1))
+            ) ;list-sorted?
+) ;check-true
+(check-true (list-sorted? <
+              (list-sort! < '(5 -3 0 2 1 -1 4))
+            ) ;list-sorted?
+) ;check-true
+
 
 ;; 降序排序
-(check-true (list-sorted? > (list-sort! > '(1 5 1 0 -1 9 2 4 3))))
+(check-true (list-sorted? >
+              (list-sort! > '(1 5 1 0 -1 9 2 4 3))
+            ) ;list-sorted?
+) ;check-true
+
 
 (check-report)

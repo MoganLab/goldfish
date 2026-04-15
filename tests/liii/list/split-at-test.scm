@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; split-at 函数测试
 ;;
@@ -55,27 +55,61 @@
 ;; - out-of-range：当k超过列表长度或k为负数时
 ;; - wrong-type-arg：当list不是列表或k不是整数类型时
 
-; 基础功能测试 - 测试split-at正常拆分proper list
-(check (list (split-at '(1 2 3 4 5) 3)) => '((1 2 3) (4 5))) ; 正常拆分位置3
-(check (list (split-at '(1 2 3 4 5) 0)) => '(() (1 2 3 4 5))) ; 边界：k=0应该返回空列表和完整列表
-(check (list (split-at '(1 2 3 4 5) 5)) => '((1 2 3 4 5) ())) ; 边界：k等于列表长度应该返回完整列表和空列表
 
-; 错误处理测试 - 验证不当输入的错误抛出
-(check-catch 'value-error (split-at '(1 2 3 4 5) 10)) ; 超出列表长度应该抛value-error
-(check-catch 'value-error (split-at '(1 2 3 4 5) -1)) ; 负数应该抛value-error
+(check (list (split-at '(1 2 3 4 5) 3))
+  =>
+  '((1 2 3) (4 5))
+) ;check
+(check (list (split-at '(1 2 3 4 5) 0))
+  =>
+  '(() (1 2 3 4 5))
+) ;check
+(check (list (split-at '(1 2 3 4 5) 5))
+  =>
+  '((1 2 3 4 5) ())
+) ;check
 
-; dotted list交互测试 - 验证与点结尾列表的交互
-(check (list (split-at '(1 2 3 4 . 5) 0)) => '(() (1 2 3 4 . 5))) ; 对于dotted list，k=0的情况
-(check (list (split-at '(1 2 3 4 . 5) 3)) => '((1 2 3) (4 . 5))) ; 拆分dotted list到指定位置
-(check (list (split-at '(1 2 3 4 . 5) 4)) => '((1 2 3 4) 5)) ; 拆分dotted list到末尾
 
-; dotted list错误处理
-(check-catch 'value-error (split-at '(1 2 3 4 . 5) 10)) ; 超出dotted list长度
-(check-catch 'value-error (split-at '(1 2 3 4 . 5) -1)) ; 负数对dotted list也不支持
+(check-catch 'value-error
+  (split-at '(1 2 3 4 5) 10)
+) ;check-catch
+(check-catch 'value-error
+  (split-at '(1 2 3 4 5) -1)
+) ;check-catch
 
-; 空列表边界条件测试
-(check (list (split-at '() 0)) => '(() ())) ; 空列表拆分应该返回两个空列表
-(check-catch 'value-error (split-at '() 10)) ; 空列表超出范围应该抛value-error
-(check-catch 'value-error (split-at '() -1)) ; 空列表负数应该抛value-error
+
+(check (list (split-at '(1 2 3 4 . 5) 0))
+  =>
+  '(() (1 2 3 4 . 5))
+) ;check
+(check (list (split-at '(1 2 3 4 . 5) 3))
+  =>
+  '((1 2 3) (4 . 5))
+) ;check
+(check (list (split-at '(1 2 3 4 . 5) 4))
+  =>
+  '((1 2 3 4) 5)
+) ;check
+
+
+(check-catch 'value-error
+  (split-at '(1 2 3 4 . 5) 10)
+) ;check-catch
+(check-catch 'value-error
+  (split-at '(1 2 3 4 . 5) -1)
+) ;check-catch
+
+
+(check (list (split-at '() 0))
+  =>
+  '(() ())
+) ;check
+(check-catch 'value-error
+  (split-at '() 10)
+) ;check-catch
+(check-catch 'value-error
+  (split-at '() -1)
+) ;check-catch
+
 
 (check-report)

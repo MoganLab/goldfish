@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector
 ;; 创建包含指定元素的向量。
@@ -34,10 +34,15 @@
 ;; ----
 ;; 无
 
+
 (check (vector) => #())
 (check (vector 1 2 3) => #(1 2 3))
 (check (vector 'a 'b 'c) => #(a b c))
-(check (vector 1 2.5 "hello" 'symbol #\c #t #f) => #(1 2.5 "hello" symbol #\c #t #f))
+(check (vector 1 2.5 "hello" 'symbol #\c #t #f)
+  =>
+  #(1 2.5 "hello" symbol #\c #t #f)
+) ;check
 (check (vector 42) => #(42))
+
 
 (check-report)

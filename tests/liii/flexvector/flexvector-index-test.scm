@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-index
 ;; 查找第一个满足条件的元素索引。时间复杂度 O(n)。
@@ -31,54 +31,102 @@
 ;; flexvector-skip - 跳过满足条件的元素
 ;; flexvector-binary-search - 二分查找（有序向量）
 
+
 ;; 基本查找
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector-index (lambda (x) (> x 10)) fv) => 1)
+  (check (flexvector-index (lambda (x) (> x 10))
+           fv
+         ) ;flexvector-index
+    =>
+    1
+  ) ;check
 ) ;let
+
 
 ;; 查找第一个满足条件的
 (let ((fv (flexvector 1 3 5 4 2)))
-  (check (flexvector-index even? fv) => 3)  ; 4 是第一个偶数
+  (check (flexvector-index even? fv) => 3)
 ) ;let
+
 
 ;; 没找到返回 #f
 (let ((fv (flexvector 1 3 5)))
-  (check (flexvector-index even? fv) => #f)
+  (check (flexvector-index even? fv)
+    =>
+    #f
+  ) ;check
 ) ;let
 
+
 ;; 空向量
-(check (flexvector-index (lambda (x) #t) (flexvector)) => #f)
+(check (flexvector-index (lambda (x) #t)
+         (flexvector)
+       ) ;flexvector-index
+  =>
+  #f
+) ;check
+
 
 ;; 第一个元素就满足
 (let ((fv (flexvector 2 4 6)))
   (check (flexvector-index even? fv) => 0)
 ) ;let
 
+
 ;; 最后一个元素满足
 (let ((fv (flexvector 1 3 5 7 8)))
   (check (flexvector-index even? fv) => 4)
 ) ;let
 
+
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-index (lambda (x) (= x 42)) fv) => 0)
+  (check (flexvector-index (lambda (x) (= x 42))
+           fv
+         ) ;flexvector-index
+    =>
+    0
+  ) ;check
 ) ;let
+
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-index (lambda (x) (= x 0)) fv) => #f)
+  (check (flexvector-index (lambda (x) (= x 0))
+           fv
+         ) ;flexvector-index
+    =>
+    #f
+  ) ;check
 ) ;let
+
 
 ;; 多向量查找
 (let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 5 3 1)))
-  (check (flexvector-index (lambda (x y) (> x y)) fv1 fv2) => 3)  ; 4>1 在索引3
+      (fv2 (flexvector 10 5 3 1))
+     ) ;
+  (check (flexvector-index (lambda (x y) (> x y))
+           fv1
+           fv2
+         ) ;flexvector-index
+    =>
+    3
+  ) ;check
 ) ;let
+
 
 ;; 多向量没满足
 (let ((fv1 (flexvector 1 2 3))
-      (fv2 (flexvector 10 20 30)))
-  (check (flexvector-index (lambda (x y) (> x y)) fv1 fv2) => #f)
+      (fv2 (flexvector 10 20 30))
+     ) ;
+  (check (flexvector-index (lambda (x y) (> x y))
+           fv1
+           fv2
+         ) ;flexvector-index
+    =>
+    #f
+  ) ;check
 ) ;let
+
 
 (check-report)

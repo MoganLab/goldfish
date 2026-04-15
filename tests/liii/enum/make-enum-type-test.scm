@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; make-enum-type
 ;; 创建一个新的 enum-type。
@@ -33,7 +33,16 @@
 ;; ----
 ;; 无。
 
-(check (enum-type? (make-enum-type '(a b c))) => #t)
-(check (enum-type? (make-enum-type '((a 1) (b 2)))) => #t)
+
+(check (enum-type? (make-enum-type '(a b c)))
+  =>
+  #t
+) ;check
+(check (enum-type? (make-enum-type '((a 1) (b 2)))
+       ) ;enum-type?
+  =>
+  #t
+) ;check
+
 
 (check-report)

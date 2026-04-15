@@ -1,15 +1,21 @@
 (import (liii check)
-        (liii enum)
-        (srfi srfi-1)
+  (liii enum)
+  (srfi srfi-1)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
+
+(define color
+  (make-enum-type color-names)
+) ;define
+
 
 ;; enum-type-enums
 ;; 获取 enum-type 中所有 enum 的列表。
@@ -40,8 +46,21 @@
 ;; ----
 ;; 无。
 
-(check (enum-type-size color) => (length (enum-type-enums color)))
-(check color-names => (map enum-name (enum-type-enums color)))
-(check (iota (enum-type-size color)) => (map enum-ordinal (enum-type-enums color)))
+
+(check (enum-type-size color)
+  =>
+  (length (enum-type-enums color))
+) ;check
+(check color-names
+  =>
+  (map enum-name (enum-type-enums color))
+) ;check
+(check (iota (enum-type-size color))
+  =>
+  (map enum-ordinal
+    (enum-type-enums color)
+  ) ;map
+) ;check
+
 
 (check-report)

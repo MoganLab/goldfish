@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; copy-bit
 ;; 复制特定位的设置到目标整数中。
@@ -48,82 +48,112 @@
 ;; 当位索引超出有效范围（0-63）时抛出错误。
 
 
-;;; 基本功能测试：复制特定位的设置
-(check (copy-bit 0 0 #t) => #b1)         ; 将0的第0位设置为1，结果是 #b1
-(check (copy-bit 2 0 #t) => #b100)       ; 将0的第2位设置为1，结果是 #b100
-(check (copy-bit 2 #b1111 #f) => #b1011) ; 将 #b1111 的第2位设置为0，结果是 #b1011
-(check (copy-bit 62 0 #t) => #x4000000000000000) ; 设置第62位
-(check (copy-bit 63 1 #t) => #x8000000000000001) ; 设置第63位
-(check (copy-bit 63 -1 #f) => #x7FFFFFFFFFFFFFFF) ; 清除第63位
 
-;;; 边界值测试
-(check (copy-bit 0 0 #t) => 1)           ; 0的第0位设置为1
-(check (copy-bit 0 0 #f) => 0)           ; 0的第0位设置为0
-(check (copy-bit 0 1 #f) => 0)           ; 1的第0位设置为0
-(check (copy-bit 0 1 #t) => 1)           ; 1的第0位设置为1
-(check (copy-bit 0 -1 #f) => -2)         ; -1的第0位设置为0
-(check (copy-bit 0 -1 #t) => -1)         ; -1的第0位设置为1
+;; ; 基本功能测试：复制特定位的设置
+(check (copy-bit 0 0 #t) => 1)
+(check (copy-bit 2 0 #t) => 4)
+(check (copy-bit 2 15 #f) => 11)
+(check (copy-bit 62 0 #t)
+  =>
+  4611686018427387904
+) ;check
+(check (copy-bit 63 1 #t)
+  =>
+  -9223372036854775807
+) ;check
+(check (copy-bit 63 -1 #f)
+  =>
+  9223372036854775807
+) ;check
 
-;;; 二进制表示测试
-(check (copy-bit 0 #b1010 #t) => #b1011) ; #b1010 第0位设置为1，结果是 #b1011
-(check (copy-bit 1 #b1010 #f) => #b1000) ; #b1010 第1位设置为0，结果是 #b1000
-(check (copy-bit 2 #b1010 #t) => #b1110) ; #b1010 第2位设置为1，结果是 #b1110
-(check (copy-bit 3 #b1010 #f) => #b0010) ; #b1010 第3位设置为0，结果是 #b0010
-(check (copy-bit 0 #b0101 #f) => #b0100) ; #b0101 第0位设置为0，结果是 #b0100
-(check (copy-bit 1 #b0101 #t) => #b0111) ; #b0101 第1位设置为1，结果是 #b0111
 
-;;; 位索引测试
-(check (copy-bit 0 255 #f) => 254)       ; 255 = #b11111111，第0位设置为0，结果是254
-(check (copy-bit 1 255 #f) => 253)       ; 255 = #b11111111，第1位设置为0，结果是253
-(check (copy-bit 2 255 #f) => 251)       ; 255 = #b11111111，第2位设置为0，结果是251
-(check (copy-bit 3 255 #f) => 247)       ; 255 = #b11111111，第3位设置为0，结果是247
-(check (copy-bit 4 255 #f) => 239)       ; 255 = #b11111111，第4位设置为0，结果是239
-(check (copy-bit 5 255 #f) => 223)       ; 255 = #b11111111，第5位设置为0，结果是223
-(check (copy-bit 6 255 #f) => 191)       ; 255 = #b11111111，第6位设置为0，结果是191
-(check (copy-bit 7 255 #f) => 127)       ; 255 = #b11111111，第7位设置为0，结果是127
+;; ; 边界值测试
+(check (copy-bit 0 0 #t) => 1)
+(check (copy-bit 0 0 #f) => 0)
+(check (copy-bit 0 1 #f) => 0)
+(check (copy-bit 0 1 #t) => 1)
+(check (copy-bit 0 -1 #f) => -2)
+(check (copy-bit 0 -1 #t) => -1)
 
-;;; 特殊值测试
-(check (copy-bit 31 2147483647 #t) => 4294967295) ; 最大32位有符号整数，第31位设置为1，结果是4294967295
-(check (copy-bit 31 -2147483648 #f) => -4294967296) ; 最小32位有符号整数，第31位设置为0，结果是-4294967296
-(check (copy-bit 63 9223372036854775807 #t) => -1) ; 最大64位有符号整数，第63位设置为1，结果是-1
-(check (copy-bit 63 -9223372036854775808 #f) => 0) ; 最小64位有符号整数，第63位设置为0，结果是0
 
-;;; 负整数测试
-(check (copy-bit 0 -2 #t) => -1)         ; -2 = #b11111110，第0位设置为1，结果是-1
-(check (copy-bit 1 -1 #f) => -3)         ; -1 = #b11111111，第1位设置为0，结果是-3
-(check (copy-bit 0 -3 #t) => -3)         ; -3 = #b11111101，第0位设置为1，结果不变
-(check (copy-bit 1 -3 #f) => -3)         ; -3 = #b11111101，第1位设置为0，结果不变
+;; ; 二进制表示测试
+(check (copy-bit 0 10 #t) => 11)
+(check (copy-bit 1 10 #f) => 8)
+(check (copy-bit 2 10 #t) => 14)
+(check (copy-bit 3 10 #f) => 2)
+(check (copy-bit 0 5 #f) => 4)
+(check (copy-bit 1 5 #t) => 7)
 
-;;; 错误处理测试 - wrong-type-arg
+
+;; ; 位索引测试
+(check (copy-bit 0 255 #f) => 254)
+(check (copy-bit 1 255 #f) => 253)
+(check (copy-bit 2 255 #f) => 251)
+(check (copy-bit 3 255 #f) => 247)
+(check (copy-bit 4 255 #f) => 239)
+(check (copy-bit 5 255 #f) => 223)
+(check (copy-bit 6 255 #f) => 191)
+(check (copy-bit 7 255 #f) => 127)
+
+
+;; ; 特殊值测试
+(check (copy-bit 31 2147483647 #t)
+  =>
+  4294967295
+) ;check
+(check (copy-bit 31 -2147483648 #f)
+  =>
+  -4294967296
+) ;check
+(check (copy-bit 63 9223372036854775807 #t)
+  =>
+  -1
+) ;check
+(check (copy-bit 63 -9223372036854775808 #f)
+  =>
+  0
+) ;check
+
+
+;; ; 负整数测试
+(check (copy-bit 0 -2 #t) => -1)
+(check (copy-bit 1 -1 #f) => -3)
+(check (copy-bit 0 -3 #t) => -3)
+(check (copy-bit 1 -3 #f) => -3)
+
+
+;; ; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (copy-bit "string" 1 #t)   ; 索引参数不是整数
+  (copy-bit "string" 1 #t)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 "string" #t)   ; 整数参数不是整数
+  (copy-bit 1 "string" #t)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 3.14 2 #t)       ; 浮点数索引参数
+  (copy-bit 3.14 2 #t)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 3.14 #t)       ; 浮点数整数参数
+  (copy-bit 1 3.14 #t)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit #\a 1 #t)        ; 字符索引参数
+  (copy-bit #\a 1 #t)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (copy-bit 1 #\a #t)        ; 字符整数参数
+  (copy-bit 1 #\a #t)
 ) ;check-catch
 
-;;; 错误处理测试 - out-of-range
+
+;; ; 错误处理测试 - out-of-range
 (check-catch 'out-of-range
-             (copy-bit 64 -1 #f)        ; 索引不能超过63
+  (copy-bit 64 -1 #f)
 ) ;check-catch
 (check-catch 'out-of-range
-             (copy-bit 10000 -1 #f)     ; 索引不能超过63
+  (copy-bit 10000 -1 #f)
 ) ;check-catch
 (check-catch 'out-of-range
-             (copy-bit -1 1 #t)         ; 索引不能为负数
+  (copy-bit -1 1 #t)
 ) ;check-catch
+
 
 
 (check-report)

@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-time-type!
 ;; 设置时间对象的类型。
@@ -25,17 +27,33 @@
 ;; --------
 ;; wrong-type-arg 当参数类型不正确时抛出错误。
 
+
 (let ((t (make-time TIME-UTC 0 0)))
-  (check (set-time-type! t TIME-MONOTONIC) => TIME-MONOTONIC)
+  (check (set-time-type! t TIME-MONOTONIC)
+    =>
+    TIME-MONOTONIC
+  ) ;check
   (check (time-type t) => TIME-MONOTONIC)
-  (check (set-time-type! t TIME-TAI) => TIME-TAI)
+  (check (set-time-type! t TIME-TAI)
+    =>
+    TIME-TAI
+  ) ;check
   (check (time-type t) => TIME-TAI)
 ) ;let
 
+
 ;; Test error conditions
 (let ((t (make-time TIME-UTC 0 0)))
-  (check-catch 'wrong-type-arg (set-time-type! "not-a-time" TIME-MONOTONIC))
-  (check (set-time-type! t 'invalid-type) => 'invalid-type)
+  (check-catch 'wrong-type-arg
+    (set-time-type! "not-a-time"
+      TIME-MONOTONIC
+    ) ;set-time-type!
+  ) ;check-catch
+  (check (set-time-type! t 'invalid-type)
+    =>
+    'invalid-type
+  ) ;check
 ) ;let
+
 
 (check-report)

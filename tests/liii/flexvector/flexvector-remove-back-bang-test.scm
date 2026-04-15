@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector-remove-back!
 ;; 从可变长向量尾部移除一个元素，返回被移除的元素。时间复杂度 O(1)。
@@ -30,28 +30,46 @@
 ;;
 (let ((fv (flexvector 'a 'b 'c)))
   ;; 返回被移除的元素
-  (check (flexvector-remove-back! fv) => 'c)
+  (check (flexvector-remove-back! fv)
+    =>
+    'c
+  ) ;check
   (check (flexvector-length fv) => 2)
   (check (flexvector->list fv) => '(a b))
   ;; 继续移除
-  (check (flexvector-remove-back! fv) => 'b)
-  (check (flexvector-remove-back! fv) => 'a)
+  (check (flexvector-remove-back! fv)
+    =>
+    'b
+  ) ;check
+  (check (flexvector-remove-back! fv)
+    =>
+    'a
+  ) ;check
   ;; 现在为空
   (check (flexvector-empty? fv) => #t)
   (check (flexvector-length fv) => 0)
 ) ;let
 
+
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-remove-back! fv) => 'only)
+  (check (flexvector-remove-back! fv)
+    =>
+    'only
+  ) ;check
   (check (flexvector-empty? fv) => #t)
 ) ;let
+
 
 ;; 添加后再移除
 (let ((fv (flexvector 1 2)))
   (flexvector-add-back! fv 3)
-  (check (flexvector-remove-back! fv) => 3)
+  (check (flexvector-remove-back! fv)
+    =>
+    3
+  ) ;check
   (check (flexvector->list fv) => '(1 2))
 ) ;let
+
 
 (check-report)

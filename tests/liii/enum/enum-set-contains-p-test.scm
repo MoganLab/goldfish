@@ -1,18 +1,28 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 (define color-names
   '(red tangerine orange yellow green cyan blue violet)
 ) ;define
 
-(define color (make-enum-type color-names))
 
-(define color-blue (enum-name->enum color 'blue))
+(define color
+  (make-enum-type color-names)
+) ;define
 
-(define color-set (enum-type->enum-set color))
+
+(define color-blue
+  (enum-name->enum color 'blue)
+) ;define
+
+
+(define color-set
+  (enum-type->enum-set color)
+) ;define
+
 
 ;; enum-set-contains?
 ;; 判断 enum 是否属于 enum-set。
@@ -46,7 +56,21 @@
 ;; ----
 ;; 无。
 
-(check (enum-set-contains? color-set color-blue) => #t)
-(check (enum-set-contains? (enum-set-delete! (enum-set-copy color-set) color-blue) color-blue) => #f)
+
+(check (enum-set-contains? color-set
+         color-blue
+       ) ;enum-set-contains?
+  =>
+  #t
+) ;check
+(check (enum-set-contains? (enum-set-delete! (enum-set-copy color-set)
+                             color-blue
+                           ) ;enum-set-delete!
+         color-blue
+       ) ;enum-set-contains?
+  =>
+  #f
+) ;check
+
 
 (check-report)

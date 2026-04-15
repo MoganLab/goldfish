@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii trie)
-) ;import
+(import (liii check) (liii trie))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; trie-value
 ;; 获取 trie 节点的值列表。
@@ -26,22 +26,38 @@
 ;; (trie-value trie) => '(root-value)
 ;; (trie-value (make-trie)) => '()
 
+
 (let ((trie (make-trie)))
   (check (trie-value trie) => '())
 ) ;let
 
+
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root)
   (check (trie-value trie) => '(root))
-  (trie-insert! trie (string->list "a") 'letter)
+  (trie-insert! trie
+    (string->list "a")
+    'letter
+  ) ;trie-insert!
   (check (trie-value trie) => '(root))
 ) ;let
 
+
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root-value)
-  (check (trie-value trie) => '(root-value))
-  (trie-insert! trie (string->list "test") 'other-value)
-  (check (trie-value trie) => '(root-value))
+  (check (trie-value trie)
+    =>
+    '(root-value)
+  ) ;check
+  (trie-insert! trie
+    (string->list "test")
+    'other-value
+  ) ;trie-insert!
+  (check (trie-value trie)
+    =>
+    '(root-value)
+  ) ;check
 ) ;let
+
 
 (check-report)

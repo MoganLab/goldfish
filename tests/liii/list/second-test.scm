@@ -1,8 +1,8 @@
-(import (liii list)
-        (liii check)
-) ;import
+(import (liii list) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; second 函数测试
 ;;
@@ -24,9 +24,19 @@
 ;; ----
 ;; (second '(1 2 3 4 5 6 7 8 9 10)) => 2
 
-(check (second '(1 2 3 4 5 6 7 8 9 10)) => 2)
 
-(check-catch 'wrong-type-arg (second '(left . right)))
-(check-catch 'wrong-type-arg (second '(1)))
+(check (second '(1 2 3 4 5 6 7 8 9 10))
+  =>
+  2
+) ;check
+
+
+(check-catch 'wrong-type-arg
+  (second '(left . right))
+) ;check-catch
+(check-catch 'wrong-type-arg
+  (second '(1))
+) ;check-catch
+
 
 (check-report)

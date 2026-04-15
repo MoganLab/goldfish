@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii stack)
-) ;import
+(import (liii check) (liii stack))
+
 
 ;; make-stack
 ;; 创建一个新的栈。
@@ -29,14 +28,14 @@
 ;; ----
 ;; type-error 当传入的参数不是列表时
 
-; Test make-stack with no arguments
+
 (let ((s (make-stack)))
   (check (stack? s) => #t)
   (check (stack-empty? s) => #t)
   (check (stack-size s) => 0)
 ) ;let
 
-; Test make-stack with a list
+
 (let ((s (make-stack '(1 2 3))))
   (check (stack? s) => #t)
   (check (stack-empty? s) => #f)
@@ -44,11 +43,12 @@
   (check (stack-top s) => 1)
 ) ;let
 
-; Test make-stack with empty list
+
 (let ((s (make-stack '())))
   (check (stack? s) => #t)
   (check (stack-empty? s) => #t)
   (check (stack-size s) => 0)
 ) ;let
+
 
 (check-report)

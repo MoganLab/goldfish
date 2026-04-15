@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector=
 ;; 使用给定比较函数比较多个向量。
@@ -37,16 +37,45 @@
 ;; ----
 ;; type-error 当elt=?不是过程时
 
+
 (check-true (vector= eq?))
 (check-true (vector= eq? '#(a)))
-(check-true (vector= eq? '#(a b c d) '#(a b c d)))
-(check-false (vector= eq? '#(a b c d) '#(a b d c)))
-(check-false (vector= = '#(1 2 3 4 5) '#(1 2 3 4)))
-(check-true (vector= = '#(1 2 3 4) '#(1 2 3 4)))
-(check-true (vector= equal? '#(1 2 3) '#(1 2 3) '#(1 2 3)))
-(check-false (vector= equal? '#(1 2 3) '#(1 2 3) '#(1 2 3 4)))
-(check-catch 'type-error (vector= 1 (vector (vector 'a)) (vector (vector 'a))))
-(check-true (vector= equal? (vector (vector 'a)) (vector (vector 'a))))
-(check-false (vector= eq? (vector (vector 'a)) (vector (vector 'a))))
+(check-true (vector= eq? '#(a b c d) '#(a b c d))
+) ;check-true
+(check-false (vector= eq? '#(a b c d) '#(a b d c))
+) ;check-false
+(check-false (vector= = '#(1 2 3 4 5) '#(1 2 3 4))
+) ;check-false
+(check-true (vector= = '#(1 2 3 4) '#(1 2 3 4))
+) ;check-true
+(check-true (vector= equal?
+              '#(1 2 3)
+              '#(1 2 3)
+              '#(1 2 3)
+            ) ;vector=
+) ;check-true
+(check-false (vector= equal?
+               '#(1 2 3)
+               '#(1 2 3)
+               '#(1 2 3 4)
+             ) ;vector=
+) ;check-false
+(check-catch 'type-error
+  (vector= 1
+    (vector (vector 'a))
+    (vector (vector 'a))
+  ) ;vector=
+) ;check-catch
+(check-true (vector= equal?
+              (vector (vector 'a))
+              (vector (vector 'a))
+            ) ;vector=
+) ;check-true
+(check-false (vector= eq?
+               (vector (vector 'a))
+               (vector (vector 'a))
+             ) ;vector=
+) ;check-false
+
 
 (check-report)

@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-left-paren?
 ;; 判断是否为 ASCII 左括号。
@@ -32,11 +31,13 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-left-paren? #\())
-(check-true (ascii-left-paren? #x28))
+(check-true (ascii-left-paren? 40))
 (check-false (ascii-left-paren? #\)))
-(check-false (ascii-left-paren? #x29))
+(check-false (ascii-left-paren? 41))
 (check-false (ascii-left-paren? #\A))
 (check-false (ascii-left-paren? #\[))
+
 
 (check-report)

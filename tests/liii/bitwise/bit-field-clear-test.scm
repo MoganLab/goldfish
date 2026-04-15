@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bit-field-clear
 ;; 清除整数中指定位域的所有位（设置为0）。
@@ -53,88 +53,105 @@
 ;; 当位索引超出有效范围（0-63）时抛出错误。
 
 
-;;; 基本功能测试：清除指定位域的所有位
-(check (bit-field-clear #b101010 1 4) => #b100000)  ; #b101010 清除第1-3位，结果是 #b100000
-(check (bit-field-clear #b111111 2 4) => #b110011)  ; #b111111 清除第2-3位，结果是 #b110011
-(check (bit-field-clear #b101010 0 6) => 0)         ; #b101010 清除所有位，结果是 0
-(check (bit-field-clear #b11001100 2 6) => #b11000000) ; #b11001100 清除第2-5位，结果是 #b11000000
 
-;;; 边界值测试
-(check (bit-field-clear 0 0 1) => 0)                ; 0的所有位都是0，清除后仍然是0
-(check (bit-field-clear 0 0 8) => 0)                ; 0的所有位都是0，清除后仍然是0
-(check (bit-field-clear -1 0 1) => -2)              ; -1清除第0位，结果是 -2
-(check (bit-field-clear -1 0 8) => -256)            ; -1清除低8位，结果是 -256
-(check (bit-field-clear 1 0 1) => 0)                ; 1清除第0位，结果是 0
-(check (bit-field-clear 1 1 2) => 1)                ; 1清除第1位，结果不变
+;; ; 基本功能测试：清除指定位域的所有位
+(check (bit-field-clear 42 1 4) => 32)
+(check (bit-field-clear 63 2 4) => 51)
+(check (bit-field-clear 42 0 6) => 0)
+(check (bit-field-clear 204 2 6) => 192)
 
-;;; 空位域测试
-(check (bit-field-clear 255 0 0) => 255)            ; 空位域，返回原数
-(check (bit-field-clear 255 5 5) => 255)            ; 空位域，返回原数
-(check (bit-field-clear 0 0 0) => 0)                ; 空位域，返回原数
 
-;;; 二进制表示测试
-(check (bit-field-clear #b10101010 0 4) => #b10100000) ; #b10101010 清除低4位，结果是 #b10100000
-(check (bit-field-clear #b10101010 4 8) => #b00001010) ; #b10101010 清除高4位，结果是 #b00001010
-(check (bit-field-clear #b00001111 0 4) => #b00000000) ; #b00001111 清除低4位，结果是 #b00000000
-(check (bit-field-clear #b00001111 4 8) => #b00001111) ; #b00001111 清除高4位，结果不变
-(check (bit-field-clear #b11110000 0 4) => #b11110000) ; #b11110000 清除低4位，结果不变
-(check (bit-field-clear #b11110000 4 8) => #b00000000) ; #b11110000 清除高4位，结果是 #b00000000
+;; ; 边界值测试
+(check (bit-field-clear 0 0 1) => 0)
+(check (bit-field-clear 0 0 8) => 0)
+(check (bit-field-clear -1 0 1) => -2)
+(check (bit-field-clear -1 0 8) => -256)
+(check (bit-field-clear 1 0 1) => 0)
+(check (bit-field-clear 1 1 2) => 1)
 
-;;; 位域范围测试
-(check (bit-field-clear 255 0 1) => 254)            ; 255清除第0位，结果是254
-(check (bit-field-clear 255 0 2) => 252)            ; 255清除第0-1位，结果是252
-(check (bit-field-clear 255 0 4) => 240)            ; 255清除第0-3位，结果是240
-(check (bit-field-clear 255 0 8) => 0)              ; 255清除第0-7位，结果是0
-(check (bit-field-clear 255 4 8) => 15)             ; 255清除第4-7位，结果是15
-(check (bit-field-clear 255 6 8) => 63)             ; 255清除第6-7位，结果是63
 
-;;; 特殊值测试
-(check (bit-field-clear 2147483647 0 31) => 0)      ; 最大32位有符号整数，清除所有位，结果是0
-(check (bit-field-clear 2147483647 31 32) => 2147483647) ; 最大32位有符号整数，清除第31位，结果不变
-;;; 注意：S7 Scheme 的 bit-field-clear 对 -2147483648 的处理与标准不同
-;;; (check (bit-field-clear -2147483648 31 32) => 0)    ; 这个测试会失败，S7 返回 -4294967296
+;; ; 空位域测试
+(check (bit-field-clear 255 0 0) => 255)
+(check (bit-field-clear 255 5 5) => 255)
+(check (bit-field-clear 0 0 0) => 0)
 
-;;; 负整数测试
-(check (bit-field-clear -1 0 1) => -2)              ; -1清除第0位，结果是 -2
-(check (bit-field-clear -1 0 8) => -256)            ; -1清除低8位，结果是 -256
-(check (bit-field-clear -2 0 1) => -2)              ; -2清除第0位，结果不变
-(check (bit-field-clear -2 1 2) => -4)              ; -2清除第1位，结果是 -4
-(check (bit-field-clear -3 0 1) => -4)              ; -3清除第0位，结果是 -4
-(check (bit-field-clear -3 1 2) => -3)              ; -3清除第1位，结果不变
 
-;;; 错误处理测试 - wrong-type-arg
+;; ; 二进制表示测试
+(check (bit-field-clear 170 0 4) => 160)
+(check (bit-field-clear 170 4 8) => 10)
+(check (bit-field-clear 15 0 4) => 0)
+(check (bit-field-clear 15 4 8) => 15)
+(check (bit-field-clear 240 0 4) => 240)
+(check (bit-field-clear 240 4 8) => 0)
+
+
+;; ; 位域范围测试
+(check (bit-field-clear 255 0 1) => 254)
+(check (bit-field-clear 255 0 2) => 252)
+(check (bit-field-clear 255 0 4) => 240)
+(check (bit-field-clear 255 0 8) => 0)
+(check (bit-field-clear 255 4 8) => 15)
+(check (bit-field-clear 255 6 8) => 63)
+
+
+;; ; 特殊值测试
+(check (bit-field-clear 2147483647 0 31)
+  =>
+  0
+) ;check
+(check (bit-field-clear 2147483647 31 32)
+  =>
+  2147483647
+) ;check
+;; ; 注意：S7 Scheme 的 bit-field-clear 对 -2147483648 的处理与标准不同
+;; ; (check (bit-field-clear -2147483648 31 32) => 0)    ; 这个测试会失败，S7 返回 -4294967296
+
+
+;; ; 负整数测试
+(check (bit-field-clear -1 0 1) => -2)
+(check (bit-field-clear -1 0 8) => -256)
+(check (bit-field-clear -2 0 1) => -2)
+(check (bit-field-clear -2 1 2) => -4)
+(check (bit-field-clear -3 0 1) => -4)
+(check (bit-field-clear -3 1 2) => -3)
+
+
+;; ; 错误处理测试 - wrong-type-arg
 (check-catch 'wrong-type-arg
-             (bit-field-clear "string" 0 4)       ; 整数参数不是整数
+  (bit-field-clear "string" 0 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 "string" 4)       ; 起始索引参数不是整数
+  (bit-field-clear 1 "string" 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 0 "string")       ; 结束索引参数不是整数
+  (bit-field-clear 1 0 "string")
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 3.14 0 4)           ; 浮点数整数参数
+  (bit-field-clear 3.14 0 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 3.14 4)           ; 浮点数起始索引参数
+  (bit-field-clear 1 3.14 4)
 ) ;check-catch
 (check-catch 'wrong-type-arg
-             (bit-field-clear 1 0 3.14)           ; 浮点数结束索引参数
+  (bit-field-clear 1 0 3.14)
 ) ;check-catch
 
-;;; 错误处理测试 - out-of-range
-;;; 注意：S7 Scheme 的 bit-field-clear 实现与 SRFI 151 标准有所不同
-;;; 只有结束索引超过63时会抛出 out-of-range 错误
+
+;; ; 错误处理测试 - out-of-range
+;; ; 注意：S7 Scheme 的 bit-field-clear 实现与 SRFI 151 标准有所不同
+;; ; 只有结束索引超过63时会抛出 out-of-range 错误
 (check-catch 'out-of-range
-             (bit-field-clear 1 0 64)             ; 结束索引不能超过63
+  (bit-field-clear 1 0 64)
 ) ;check-catch
 
-;;; 其他边界情况不会抛出错误，而是返回正常值
-;;; 注意：S7 Scheme 的 bit-field-clear 对边界情况的处理与标准不同
-;;; (check (bit-field-clear 1 -1 4) => 1)              ; 负起始索引，S7 返回 0
-;;; (check (bit-field-clear 1 0 -1) => 1)              ; 负结束索引，S7 返回 0
-;;; (check (bit-field-clear 1 64 65) => 1)             ; 大起始索引，S7 抛出 out-of-range 错误
-;;; (check (bit-field-clear 1 5 4) => 1)               ; start > end，S7 返回 0
+
+;; ; 其他边界情况不会抛出错误，而是返回正常值
+;; ; 注意：S7 Scheme 的 bit-field-clear 对边界情况的处理与标准不同
+;; ; (check (bit-field-clear 1 -1 4) => 1)              ; 负起始索引，S7 返回 0
+;; ; (check (bit-field-clear 1 0 -1) => 1)              ; 负结束索引，S7 返回 0
+;; ; (check (bit-field-clear 1 64 65) => 1)             ; 大起始索引，S7 抛出 out-of-range 错误
+;; ; (check (bit-field-clear 1 5 4) => 1)               ; start > end，S7 返回 0
+
 
 
 (check-report)

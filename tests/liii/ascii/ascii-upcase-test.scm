@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-upcase
 ;; 将 ASCII 字母转换为大写。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 不需要转换时返回原值
 
+
 (check (ascii-upcase #\a) => #\A)
 (check (ascii-upcase #\A) => #\A)
 (check (ascii-upcase #\?) => #\?)
 (check (ascii-upcase 97) => 65)
+
 
 (check-report)

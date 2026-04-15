@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-for-each
 ;; 逐个遍历哈希表中的键值对并执行副作用过程。
@@ -36,14 +36,13 @@
 ;; ----
 ;; 非哈希表输入或 proc 不是过程时由底层实现报错。
 
+
 (let ((cnt 0))
-  (hash-table-for-each
-    (lambda (k v)
-      (set! cnt (+ cnt v))
-    ) ;lambda
+  (hash-table-for-each (lambda (k v) (set! cnt (+ cnt v)))
     (hash-table 'a 1 'b 2 'c 3)
   ) ;hash-table-for-each
   (check cnt => 6)
 ) ;let
+
 
 (check-report)

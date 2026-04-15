@@ -3,29 +3,42 @@
 ;; njson 提供基于原生 JSON 句柄的高性能 JSON 操作接口。
 ;; 它适合处理大对象、频繁更新和需要 schema 校验的结构化数据。
 
+
 ;; ==== 常见用法示例 ====
 (import (liii njson))
 
+
 ;; 示例1：解析字符串并读取字段
-(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}")))
+(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}"
+                  ) ;string->njson
+            ) ;root
+           ) ;
   (njson-ref root "name")
 ) ;let-njson
 
+
 ;; 示例2：判断对象是否包含某个键
-(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}")))
+(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}"
+                  ) ;string->njson
+            ) ;root
+           ) ;
   (njson-contains-key? root "nums")
 ) ;let-njson
+
 
 ;; 示例3：把原生 JSON 句柄转回普通 JSON 结构
 (let-njson ((root (string->njson "{\"a\":1}")))
   (njson->json root)
 ) ;let-njson
 
+
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/njson "string->njson"
 ;;   bin/gf doc liii/njson "njson-ref"
 
+
 ;; ==== 函数分类索引 ====
+
 
 ;; 一、解析与序列化
 ;; 用于在字符串、文件和 njson 句柄之间转换的函数
@@ -37,6 +50,7 @@
 ;;   json->njson           - 从普通 JSON 结构转换为 njson
 ;;   njson->json           - 从 njson 转回普通 JSON 结构
 ;;   let-njson             - 以绑定形式安全管理 njson 句柄
+
 
 ;; 二、类型与大小
 ;; 用于判断 njson 类型和资源状态的函数
@@ -52,6 +66,7 @@
 ;;   njson-empty?          - 判断对象或数组是否为空
 ;;   njson-free            - 释放原生 JSON 句柄
 
+
 ;; 三、访问与更新
 ;; 用于读取和修改 njson 内容的函数
 ;;   njson-ref             - 按路径读取值
@@ -63,6 +78,7 @@
 ;;   njson-drop!           - 原地删除值
 ;;   njson-contains-key?   - 判断对象是否包含某个键
 ;;   njson-keys            - 获取对象所有键
+
 
 ;; 四、合并、转换与校验
 ;; 用于合并结构、转换容器和校验 schema 的函数

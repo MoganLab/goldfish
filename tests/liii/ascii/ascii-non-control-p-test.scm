@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-non-control?
 ;; 判断是否为 ASCII 非控制字符。
@@ -32,9 +31,11 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
-(check-true (ascii-non-control? #x20))
-(check-true (ascii-non-control? #x7e))
-(check-false (ascii-non-control? #x1f))
-(check-false (ascii-non-control? #x7f))
+
+(check-true (ascii-non-control? 32))
+(check-true (ascii-non-control? 126))
+(check-false (ascii-non-control? 31))
+(check-false (ascii-non-control? 127))
+
 
 (check-report)

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii flexvector)
-) ;import
+(import (liii check) (liii flexvector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; flexvector?
 ;; 检查对象是否为可变长向量（flexvector）。时间复杂度 O(1)。
@@ -27,20 +27,28 @@
 ;; (flexvector? '())                    => #f
 ;; (flexvector? #())                    => #f  ; 普通向量不是 flexvector
 
+
 ;; flexvector 返回 #t
 (check-true (flexvector? (flexvector)))
-(check-true (flexvector? (flexvector 1 2 3)))
-(check-true (flexvector? (make-flexvector 10)))
-(check-true (flexvector? (list->flexvector '(a b c))))
+(check-true (flexvector? (flexvector 1 2 3))
+) ;check-true
+(check-true (flexvector? (make-flexvector 10))
+) ;check-true
+(check-true (flexvector? (list->flexvector '(a b c))
+            ) ;flexvector?
+) ;check-true
+
 
 ;; 非 flexvector 返回 #f
 (check-false (flexvector? '()))
-(check-false (flexvector? #()))           ; 普通向量
-(check-false (flexvector? "not a flexvector"))
+(check-false (flexvector? #()))
+(check-false (flexvector? "not a flexvector")
+) ;check-false
 (check-false (flexvector? 42))
 (check-false (flexvector? #t))
 (check-false (flexvector? 'symbol))
-(check-false (flexvector? '(1 2 3)))      ; 列表
+(check-false (flexvector? '(1 2 3)))
+
 
 ;; 修改后仍然是 flexvector
 (let ((fv (flexvector 1 2)))
@@ -48,5 +56,6 @@
   (flexvector-add-back! fv 3)
   (check-true (flexvector? fv))
 ) ;let
+
 
 (check-report)

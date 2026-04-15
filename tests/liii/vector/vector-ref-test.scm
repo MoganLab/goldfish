@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; vector-ref
 ;; 按索引访问向量中的元素。
@@ -38,24 +38,35 @@
 ;; out-of-range 当k超出向量边界时
 ;; wrong-type-arg 当vec不是向量，或k不是整数时
 
+
 (let ((v #(1 2 3)))
   (check (vector-ref v 0) => 1)
   (check (vector-ref v 1) => 2)
   (check (vector-ref v 2) => 3)
 ) ;let
 
+
 (let ((v #(a b c d)))
   (check (vector-ref v 0) => 'a)
   (check (vector-ref v 3) => 'd)
 ) ;let
 
-(check-catch 'out-of-range (vector-ref #() 0))
+
+(check-catch 'out-of-range
+  (vector-ref #() 0)
+) ;check-catch
 (check (vector-ref #(42) 0) => 42)
 
+
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range (vector-ref v -1))
-  (check-catch 'out-of-range (vector-ref v 3))
+  (check-catch 'out-of-range
+    (vector-ref v -1)
+  ) ;check-catch
+  (check-catch 'out-of-range
+    (vector-ref v 3)
+  ) ;check-catch
 ) ;let
+
 
 (let ((v #(1 2.5 "hello" 'symbol #\c #t #f)))
   (check (vector-ref v 0) => 1)
@@ -63,5 +74,6 @@
   (check (vector-ref v 4) => #\c)
   (check (vector-ref v 6) => #f)
 ) ;let
+
 
 (check-report)

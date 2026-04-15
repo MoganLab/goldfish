@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii unicode)
-        (liii base)
+  (liii unicode)
+  (liii base)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; hexstr->codepoint
 ;; 将十六进制字符串转换为 Unicode 码点。
@@ -32,42 +34,95 @@
 ;; value-error 当字符串为空、格式无效或码点超出范围时。
 ;; type-error 当参数不是字符串时。
 
+
 ;; 基本 ASCII 字符
-(check (hexstr->codepoint "48") => #x48)
-(check (hexstr->codepoint "65") => #x65)
-(check (hexstr->codepoint "6C") => #x6C)
+(check (hexstr->codepoint "48") => 72)
+(check (hexstr->codepoint "65") => 101)
+(check (hexstr->codepoint "6C") => 108)
+
 
 ;; 带前导零的十六进制字符串
-(check (hexstr->codepoint "0048") => #x48)
-(check (hexstr->codepoint "0041") => #x41)
-(check (hexstr->codepoint "007A") => #x7A)
+(check (hexstr->codepoint "0048") => 72)
+(check (hexstr->codepoint "0041") => 65)
+(check (hexstr->codepoint "007A")
+  =>
+  122
+) ;check
+
 
 ;; 中文字符
-(check (hexstr->codepoint "4E2D") => #x4E2D)
-(check (hexstr->codepoint "6587") => #x6587)
+(check (hexstr->codepoint "4E2D")
+  =>
+  20013
+) ;check
+(check (hexstr->codepoint "6587")
+  =>
+  25991
+) ;check
+
 
 ;; 表情符号（辅助平面字符）
-(check (hexstr->codepoint "1F44D") => #x1F44D)
-(check (hexstr->codepoint "1F680") => #x1F680)
-(check (hexstr->codepoint "1F389") => #x1F389)
+(check (hexstr->codepoint "1F44D")
+  =>
+  128077
+) ;check
+(check (hexstr->codepoint "1F680")
+  =>
+  128640
+) ;check
+(check (hexstr->codepoint "1F389")
+  =>
+  127881
+) ;check
+
 
 ;; 边界值
-(check (hexstr->codepoint "0") => #x0)
-(check (hexstr->codepoint "10FFFF") => #x10FFFF)
+(check (hexstr->codepoint "0") => 0)
+(check (hexstr->codepoint "10FFFF")
+  =>
+  1114111
+) ;check
+
 
 ;; 小写字母
-(check (hexstr->codepoint "48") => #x48)
-(check (hexstr->codepoint "4e2d") => #x4E2D)
+(check (hexstr->codepoint "48") => 72)
+(check (hexstr->codepoint "4e2d")
+  =>
+  20013
+) ;check
+
 
 ;; 与 codepoint->hexstr 互逆操作
-(check (hexstr->codepoint (codepoint->hexstr #x48)) => #x48)
-(check (hexstr->codepoint (codepoint->hexstr #x4E2D)) => #x4E2D)
-(check (hexstr->codepoint (codepoint->hexstr #x1F44D)) => #x1F44D)
+(check (hexstr->codepoint (codepoint->hexstr 72)
+       ) ;hexstr->codepoint
+  =>
+  72
+) ;check
+(check (hexstr->codepoint (codepoint->hexstr 20013)
+       ) ;hexstr->codepoint
+  =>
+  20013
+) ;check
+(check (hexstr->codepoint (codepoint->hexstr 128077)
+       ) ;hexstr->codepoint
+  =>
+  128077
+) ;check
+
 
 ;; 错误处理
-(check-catch 'value-error (hexstr->codepoint ""))
-(check-catch 'value-error (hexstr->codepoint "110000"))
-(check-catch 'value-error (hexstr->codepoint "not-hex"))
-(check-catch 'type-error (hexstr->codepoint 123))
+(check-catch 'value-error
+  (hexstr->codepoint "")
+) ;check-catch
+(check-catch 'value-error
+  (hexstr->codepoint "110000")
+) ;check-catch
+(check-catch 'value-error
+  (hexstr->codepoint "not-hex")
+) ;check-catch
+(check-catch 'type-error
+  (hexstr->codepoint 123)
+) ;check-catch
+
 
 (check-report)

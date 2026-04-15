@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii time)
-        (srfi srfi-19)
+  (liii time)
+  (srfi srfi-19)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; time-utc->date
 ;; 将 UTC 时间对象转换为日期对象。
@@ -25,9 +27,11 @@
 ;; --------
 ;; wrong-type-arg 当参数不是时间对象或类型不匹配时抛出错误。
 
+
 ;; time-utc->date basic (UTC)
 (let* ((t (make-time TIME-UTC 0 0))
-       (d (time-utc->date t 0)))
+       (d (time-utc->date t 0))
+      ) ;
   (check (date-year d) => 1970)
   (check (date-month d) => 1)
   (check (date-day d) => 1)
@@ -37,9 +41,11 @@
   (check (date-zone-offset d) => 0)
 ) ;let*
 
+
 ;; time-utc->date with positive tz offset (+8)
 (let* ((t (make-time TIME-UTC 0 0))
-       (d (time-utc->date t 28800)))
+       (d (time-utc->date t 28800))
+      ) ;
   (check (date-year d) => 1970)
   (check (date-month d) => 1)
   (check (date-day d) => 1)
@@ -49,12 +55,16 @@
   (check (date-zone-offset d) => 28800)
 ) ;let*
 
+
 ;; Error conditions
 (check-catch 'wrong-type-arg
-  (time-utc->date (make-time TIME-TAI 0 0) 0)
+  (time-utc->date (make-time TIME-TAI 0 0)
+    0
+  ) ;time-utc->date
 ) ;check-catch
 (check-catch 'wrong-type-arg
   (time-utc->date "not-a-time" 0)
 ) ;check-catch
+
 
 (check-report)

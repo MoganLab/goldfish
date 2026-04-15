@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii hash-table)
+  (liii error)
+  (liii hash-table)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-delete!
 ;; 从哈希表中删除一个或多个键。
@@ -38,17 +40,32 @@
 ;; type-error
 ;; 当 ht 不是哈希表时抛出错误。
 
+
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'key 'value)
-  (check (hash-table-delete! ht 'key) => 1)
+  (check (hash-table-delete! ht 'key)
+    =>
+    1
+  ) ;check
   (check (hash-table-ref ht 'key) => #f)
   (hash-table-set! ht 'key1 'value1)
   (hash-table-set! ht 'key2 'value2)
   (hash-table-set! ht 'key3 'value3)
   (hash-table-set! ht 'key4 'value4)
-  (check (hash-table-delete! ht 'key1 'key2 'key3) => 3)
+  (check (hash-table-delete! ht
+           'key1
+           'key2
+           'key3
+         ) ;hash-table-delete!
+    =>
+    3
+  ) ;check
 ) ;let
 
-(check-catch 'type-error (hash-table-delete! "not-a-table" 'key))
+
+(check-catch 'type-error
+  (hash-table-delete! "not-a-table" 'key)
+) ;check-catch
+
 
 (check-report)

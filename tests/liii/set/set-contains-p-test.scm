@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; set-contains?
 ;; 检查 set 是否包含指定元素。
@@ -35,12 +37,17 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 (define s-empty (set))
 (define s-1 (set 1))
+
 
 (check-true (set-contains? s-1 1))
 (check-false (set-contains? s-1 2))
 (check-false (set-contains? s-empty 1))
-(check-catch 'type-error (set-contains? "not a set" 1))
+(check-catch 'type-error
+  (set-contains? "not a set" 1)
+) ;check-catch
+
 
 (check-report)

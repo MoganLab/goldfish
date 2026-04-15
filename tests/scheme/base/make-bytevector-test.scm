@@ -37,45 +37,48 @@
 ;; 当参数数量不为1或2个时抛出错误。
 ;; make-bytevector 基本测试
 (check (make-bytevector 0) => #u())
-(check (make-bytevector 1) => #u(0))
-(check (make-bytevector 3) => #u(0 0 0))
+(check (make-bytevector 1) => #u8(0))
+(check (make-bytevector 3)
+  =>
+  #u8(0 0 0)
+) ;check
 (check (make-bytevector 5 42)
   =>
-  #u(42 42 42 42 42)
+  #u8(42 42 42 42 42)
 ) ;check
 (check (make-bytevector 2 255)
   =>
-  #u(255 255)
+  #u8(255 255)
 ) ;check
 ;; 不同长度测试
 (check (make-bytevector 0 0) => #u())
 (check (make-bytevector 1 128)
   =>
-  #u(128)
+  #u8(128)
 ) ;check
 (check (make-bytevector 10 99)
   =>
-  #u(99 99 99 99 99 99 99 99 99 99)
+  #u8(99 99 99 99 99 99 99 99 99 99)
 ) ;check
 ;; 边界条件测试
 (check (make-bytevector 0) => #u())
-(check (make-bytevector 1 0) => #u(0))
+(check (make-bytevector 1 0) => #u8(0))
 (check (make-bytevector 1 255)
   =>
-  #u(255)
+  #u8(255)
 ) ;check
 ;; 特殊值测试
 (check (make-bytevector 4 0)
   =>
-  #u(0 0 0 0)
+  #u8(0 0 0 0)
 ) ;check
 (check (make-bytevector 3 170)
   =>
-  #u(170 170 170)
+  #u8(170 170 170)
 ) ;check
 (check (make-bytevector 8 255)
   =>
-  #u(255 255 255 255 255 255 255 255)
+  #u8(255 255 255 255 255 255 255 255)
 ) ;check
 ;; 错误处理测试
 (check-catch 'out-of-range

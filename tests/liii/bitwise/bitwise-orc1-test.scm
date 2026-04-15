@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii bitwise)
-) ;import
+(import (liii check) (liii bitwise))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; bitwise-orc1
 ;; 计算两个整数的按位或非操作（第一个参数取反）。
@@ -39,11 +39,13 @@
 ;; 当参数不是整数时抛出错误。
 
 
-;;; 精简测试：bitwise-orc1 按位或非操作
+
+;; ; 精简测试：bitwise-orc1 按位或非操作
 (check (bitwise-orc1 1 1) => -1)
 (check (bitwise-orc1 3 1) => -3)
 (check (bitwise-orc1 11 26) => -2)
-(check (bitwise-orc1 #b110 #b001) => -7)
+(check (bitwise-orc1 6 1) => -7)
+
 
 
 (check-report)

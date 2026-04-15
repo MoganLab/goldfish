@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-digit-value
 ;; 将 ASCII 数字字符映射为数值。
@@ -35,9 +34,11 @@
 ;; ----
 ;; 非法字符或越界值返回 #f
 
+
 (check (ascii-digit-value #\0 10) => 0)
 (check (ascii-digit-value #\9 10) => 9)
 (check (ascii-digit-value #\9 9) => #f)
 (check (ascii-digit-value #\A 10) => #f)
+
 
 (check-report)

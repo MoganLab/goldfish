@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii range)
-) ;import
+(import (liii check) (liii range))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; numeric-range
 ;; 创建数值范围的 range。
@@ -42,12 +42,14 @@
 ;; ----
 ;; 无
 
+
 (let ((r (numeric-range 0 10)))
   (check-true (range? r))
   (check (range-length r) => 10)
   (check (range-ref r 0) => 0)
   (check (range-ref r 9) => 9)
 ) ;let
+
 
 (let ((r (numeric-range 10 30 2)))
   (check (range-length r) => 10)
@@ -56,10 +58,12 @@
   (check (range-ref r 9) => 28)
 ) ;let
 
+
 (let ((r (numeric-range 5 0 -1)))
   (check (range-length r) => 5)
   (check (range-ref r 0) => 5)
   (check (range-ref r 4) => 1)
 ) ;let
+
 
 (check-report)

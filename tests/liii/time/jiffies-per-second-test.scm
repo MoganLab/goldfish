@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii time)
-) ;import
+(import (liii check) (liii time))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; jiffies-per-second
 ;; 获取每秒钟的 jiffy 数量。
@@ -39,8 +39,16 @@
 ;; ----
 ;; 无
 
+
 (check (jiffies-per-second) => 1000000)
-(check (integer? (jiffies-per-second)) => #t)
-(check (positive? (jiffies-per-second)) => #t)
+(check (integer? (jiffies-per-second))
+  =>
+  #t
+) ;check
+(check (positive? (jiffies-per-second))
+  =>
+  #t
+) ;check
+
 
 (check-report)

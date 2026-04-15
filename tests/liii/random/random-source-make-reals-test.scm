@@ -1,8 +1,8 @@
-(import (liii random)
-        (liii check)
-) ;import
+(import (liii random) (liii check))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; random-source-make-reals
 ;; 从随机源创建实数生成器。
@@ -35,15 +35,17 @@
 ;; ----
 ;; wrong-type-arg 当 s 不是随机源或 unit 无效时抛出。
 
-; 创建实数生成器
+
 (let* ((s (make-random-source))
-       (rand-real (random-source-make-reals s)))
+       (rand-real (random-source-make-reals s))
+      ) ;
   (check (procedure? rand-real) => #t)
 ) ;let*
 
-; 生成器工作正常
+
 (let* ((s (make-random-source))
-       (rand-real (random-source-make-reals s)))
+       (rand-real (random-source-make-reals s))
+      ) ;
   (let ((r (rand-real)))
     (check (real? r) => #t)
     (check (> r 0) => #t)
@@ -51,9 +53,11 @@
   ) ;let
 ) ;let*
 
-; 带 unit 参数
+
 (let* ((s (make-random-source))
-       (rand-real (random-source-make-reals s 0.001)))
+       (rand-real (random-source-make-reals s 0.001)
+       ) ;rand-real
+      ) ;
   (let ((r (rand-real)))
     (check (real? r) => #t)
     (check (> r 0) => #t)
@@ -61,13 +65,23 @@
   ) ;let
 ) ;let*
 
-; 错误处理
-(check-catch 'wrong-type-arg (random-source-make-reals 'not-a-source))
+
+(check-catch 'wrong-type-arg
+  (random-source-make-reals 'not-a-source)
+) ;check-catch
+
 
 (let ((s (make-random-source)))
-  (check-catch 'wrong-type-arg (random-source-make-reals s 0))
-  (check-catch 'wrong-type-arg (random-source-make-reals s 1))
-  (check-catch 'wrong-type-arg (random-source-make-reals s -0.5))
+  (check-catch 'wrong-type-arg
+    (random-source-make-reals s 0)
+  ) ;check-catch
+  (check-catch 'wrong-type-arg
+    (random-source-make-reals s 1)
+  ) ;check-catch
+  (check-catch 'wrong-type-arg
+    (random-source-make-reals s -0.5)
+  ) ;check-catch
 ) ;let
+
 
 (check-report)

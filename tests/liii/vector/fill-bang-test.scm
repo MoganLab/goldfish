@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii vector)
-) ;import
+(import (liii check) (liii vector))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; fill!
 ;; 向量填充别名测试。
@@ -43,12 +43,15 @@
 ;; ----
 ;; 继承vector-fill!的错误处理行为
 
+
 (define my-vector (vector 0 1 2 3 4))
 (fill! my-vector #f)
 (check my-vector => #(#f #f #f #f #f))
 
+
 (define my-vector (vector 0 1 2 3 4))
 (fill! my-vector #f 1 2)
 (check my-vector => #(0 #f 2 3 4))
+
 
 (check-report)

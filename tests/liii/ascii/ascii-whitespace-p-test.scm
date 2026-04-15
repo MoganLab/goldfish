@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-whitespace?
 ;; 判断是否为 ASCII 空白字符。
@@ -32,9 +31,12 @@
 ;; ----
 ;; 类型或范围不匹配时返回 #f
 
+
 (check-true (ascii-whitespace? #\tab))
-(check-true (ascii-whitespace? #\newline))
+(check-true (ascii-whitespace? #\newline)
+) ;check-true
 (check-true (ascii-whitespace? #\space))
 (check-false (ascii-whitespace? #\A))
+
 
 (check-report)

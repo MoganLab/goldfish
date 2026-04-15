@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii os)
-        (scheme time)
+  (liii os)
+  (scheme time)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; os-call
 ;; 执行系统命令。
@@ -21,7 +23,8 @@
 ;; ----
 ;; 执行指定的系统命令并等待其完成。
 
-;;; 基本功能测试
+
+;; ; 基本功能测试
 (when (not (os-windows?))
   (let ((t1 (current-second)))
     (os-call "sleep 1")
@@ -30,5 +33,6 @@
     ) ;let
   ) ;let
 ) ;when
+
 
 (check-report)

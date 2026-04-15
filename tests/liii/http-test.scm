@@ -4,20 +4,22 @@
 ;; 支持 GET/POST/HEAD 请求；其中 http-get 在 :stream #t 时可做简单流式下载，
 ;; http-post 支持通过 :files 上传文件，并在 :stream #t 时按 chunk 处理响应体。
 
+
 ;; ==== 常见用法示例 ====
-(import (liii http)
-        (liii json)
-) ;import
+(import (liii http) (liii json))
+
 
 ;; 示例1：同步 GET 请求
 ;; (let ((r (http-get "https://api.example.com/data")))
 ;;   (display (r 'status-code))  ; 200
 ;;   (display (r 'text)))         ; 响应体
 
+
 ;; 示例1.1：直接下载到本地文件
 ;; (http-get "https://example.com/archive.tar.gz"
 ;;           :stream #t
 ;;           :output-file "/tmp/archive.tar.gz")
+
 
 ;; 示例1.2：通过 :callback 按 chunk 处理下载内容
 ;; (http-get "https://example.com/events"
@@ -26,11 +28,13 @@
 ;;                       (display chunk)
 ;;                       #t))
 
+
 ;; 示例2：带查询参数的 POST 请求
 ;; (http-post "https://api.example.com/submit"
 ;;            :params '(("key" . "value"))
 ;;            :data "{\"name\":\"test\"}"
 ;;            :headers '(("Content-Type" . "application/json")))
+
 
 ;; 示例3：通过 http-post 上传文件
 ;; (http-post "https://api.example.com/upload"
@@ -38,6 +42,7 @@
 ;;   :files '(("artifact" . ((file . "./dist/app.tar.gz")
 ;;                           (filename . "app.tar.gz")
 ;;                           (content-type . "application/gzip")))))
+
 
 ;; 示例3.1：通过 http-post 流式处理响应
 ;; (http-post "https://api.example.com/export"
@@ -48,14 +53,17 @@
 ;;                        (display chunk)
 ;;                        #t))
 
+
 ;; 示例4：异步并发请求
 ;; (http-async-get "https://api.example.com/1" callback)
 ;; (http-async-get "https://api.example.com/2" callback)
 ;; (http-wait-all 30)  ; 等待所有请求完成，超时30秒
 
 
+
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/http "function-name"
+
 
 ;; ==== 函数分类索引 ====
 ;;

@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii enum)
-) ;import
+(import (liii check) (liii enum))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; make-enumeration
 ;; 创建包含所有名称的 enum-set。
@@ -33,15 +33,19 @@
 ;; ----
 ;; 无。
 
+
 (let* ((ds '(red yellow green))
-       (us-traffic-light (make-enumeration ds)))
-  (check
-    (enum-set-every? (lambda (e) (eqv? (enum-name e) (enum-value e)))
-                     us-traffic-light
-    ) ;enum-set-every?
-         =>
-         #t
+       (us-traffic-light (make-enumeration ds))
+      ) ;
+  (check (enum-set-every? (lambda (e)
+                            (eqv? (enum-name e) (enum-value e))
+                          ) ;lambda
+           us-traffic-light
+         ) ;enum-set-every?
+    =>
+    #t
   ) ;check
 ) ;let*
+
 
 (check-report)

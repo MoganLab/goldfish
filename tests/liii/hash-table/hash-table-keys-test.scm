@@ -1,8 +1,8 @@
-(import (liii check)
-        (liii hash-table)
-) ;import
+(import (liii check) (liii hash-table))
+
 
 (check-set-mode! 'report-failed)
+
 
 ;; hash-table-keys
 ;; 返回哈希表中所有键的列表。
@@ -33,11 +33,17 @@
 ;; ----
 ;; 非哈希表输入时由底层实现报错。
 
-(check (hash-table-keys (make-hash-table)) => '())
+
+(check (hash-table-keys (make-hash-table))
+  =>
+  '()
+) ;check
+
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'k1 'v1)
   (check (hash-table-keys ht) => '(k1))
 ) ;let
+
 
 (check-report)

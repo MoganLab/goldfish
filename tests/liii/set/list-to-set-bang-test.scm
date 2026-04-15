@@ -1,9 +1,11 @@
 (import (liii check)
-        (liii error)
-        (liii set)
+  (liii error)
+  (liii set)
 ) ;import
 
+
 (check-set-mode! 'report-failed)
+
 
 ;; list->set!
 ;; 将列表元素并入 set（可变操作）。
@@ -34,22 +36,35 @@
 ;; type-error
 ;; 当 set 参数不是 set 时抛出。
 
+
 ;; 测试 list->set! 基本行为
 (define s-list-merge (set 1 2))
-(define s-list-merge-result (list->set! s-list-merge '(2 3 4)))
-(check-true (eq? s-list-merge-result s-list-merge))
+(define s-list-merge-result
+  (list->set! s-list-merge '(2 3 4))
+) ;define
+(check-true (eq? s-list-merge-result s-list-merge)
+) ;check-true
 (check (set-size s-list-merge) => 4)
-(check-true (set-contains? s-list-merge 1))
-(check-true (set-contains? s-list-merge 2))
-(check-true (set-contains? s-list-merge 3))
-(check-true (set-contains? s-list-merge 4))
+(check-true (set-contains? s-list-merge 1)
+) ;check-true
+(check-true (set-contains? s-list-merge 2)
+) ;check-true
+(check-true (set-contains? s-list-merge 3)
+) ;check-true
+(check-true (set-contains? s-list-merge 4)
+) ;check-true
+
 
 ;; 测试空列表
 (define s-list-empty (set 1 2))
 (list->set! s-list-empty '())
 (check (set-size s-list-empty) => 2)
 
+
 ;; 测试类型错误
-(check-catch 'type-error (list->set! "not a set" '(1 2)))
+(check-catch 'type-error
+  (list->set! "not a set" '(1 2))
+) ;check-catch
+
 
 (check-report)

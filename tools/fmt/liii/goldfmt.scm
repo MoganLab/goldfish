@@ -69,10 +69,16 @@
                 (call-with-values
                   (lambda () (format-node node 0))
                   (lambda (text positioned-node)
-                    (display text)
-                    (newline)
+                    (display (ensure-trailing-newline text))
                     (loop (+ i 1)))))))))
     
+    ;;; 辅助函数：确保字符串以换行符结尾
+    (define (ensure-trailing-newline str)
+      (if (or (string=? str "")
+              (string-suffix? "\n" str))
+          str
+          (string-append str "\n")))
+
     ;;; 格式化单个文件（覆盖原文件）
     ;;; 返回值: 如果文件有变更返回 #t，否则返回 #f
     (define (format-file path-str)
@@ -83,7 +89,8 @@
         (let loop ((i 0)
                    (acc '()))
           (if (>= i (vector-length nodes))
-              (let ((formatted (string-join (reverse acc) "\n")))
+              (let* ((joined (string-join (reverse acc) "\n"))
+                     (formatted (ensure-trailing-newline joined)))
                 (if (string=? original-content formatted)
                     #f  ; 无变更
                     (begin

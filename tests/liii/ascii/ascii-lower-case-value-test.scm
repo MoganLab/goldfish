@@ -1,6 +1,5 @@
-(import (liii check)
-        (liii ascii)
-) ;import
+(import (liii check) (liii ascii))
+
 
 ;; ascii-lower-case-value
 ;; 将 ASCII 小写字母映射为数值。
@@ -38,8 +37,19 @@
 ;; ----
 ;; 非法字符或越界值返回 #f
 
-(check (ascii-lower-case-value #\a 10 26) => 10)
-(check (ascii-lower-case-value #\f 10 16) => 15)
-(check (ascii-lower-case-value #\q 10 16) => #f)
+
+(check (ascii-lower-case-value #\a 10 26)
+  =>
+  10
+) ;check
+(check (ascii-lower-case-value #\f 10 16)
+  =>
+  15
+) ;check
+(check (ascii-lower-case-value #\q 10 16)
+  =>
+  #f
+) ;check
+
 
 (check-report)
