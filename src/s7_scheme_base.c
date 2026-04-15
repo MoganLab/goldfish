@@ -615,6 +615,7 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
 {
   bool negative = false;
   s7_int new_int = 0;
+  int32_t dig;
   const char *tmp = str;
 
   *overflow = false;
@@ -631,12 +632,22 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
 
   while (true)
     {
-      uint8_t dig = s7_digit_table[(uint8_t)(*tmp++)];
-      if (dig >= (uint8_t)radix) break;
+      dig = s7_digit_table[(uint8_t)(*tmp++)];
+      if (dig >= radix) break;
 
       /* Check for overflow before multiplying */
       if (new_int > (S7_INT64_MAX / radix))
         {
+          if ((radix == 16) &&
+              (s7_digit_table[(uint8_t)(*tmp)] >= radix))
+            {
+              /* Preserve s7's 64-bit two's-complement reader behavior for #xffff... forms. */
+              new_int -= 576460752303423488LL;
+              new_int *= radix;
+              new_int += dig;
+              new_int -= 9223372036854775807LL;
+              return new_int - 1;
+            }
           *overflow = true;
           return negative ? S7_INT64_MIN : S7_INT64_MAX;
         }
@@ -645,6 +656,10 @@ s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
       /* Check for overflow before adding */
       if (new_int > (S7_INT64_MAX - dig))
         {
+          if ((radix == 10) &&
+              (strncmp(str, "-9223372036854775808", 20) == 0) &&
+              (s7_digit_table[(uint8_t)(*tmp++)] > 9))
+            return S7_INT64_MIN;
           *overflow = true;
           return negative ? S7_INT64_MIN : S7_INT64_MAX;
         }

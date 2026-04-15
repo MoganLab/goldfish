@@ -107,6 +107,8 @@
 (check (string->number "0" 16) => 0)
 (check (string->number "-80" 16) => -128)
 (check (string->number "1111111111" 2) => 1023)
+(check (string->number "8000000000000000" 16) => -9223372036854775808)
+(check (string->number "ffffffffffffffff" 16) => -1)
 
 ;; 十六进制测试
 (check (string->number "FF" 16) => 255)
