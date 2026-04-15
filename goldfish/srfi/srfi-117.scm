@@ -1,12 +1,12 @@
-; SRFI-117: Mutable Queues based on lists
-; Reference implementation
-;
-; SPDX-FileCopyrightText: 2017 Alex Shinn
-;
-; SPDX-License-Identifier: BSD-3-Clause
-;
-; Copyright (c) 2024 The Goldfish Scheme Authors
-; Follow the same License as the original one
+;; SRFI-117: Mutable Queues based on lists
+;; Reference implementation
+;;
+;; SPDX-FileCopyrightText: 2017 Alex Shinn
+;;
+;; SPDX-License-Identifier: BSD-3-Clause
+;;
+;; Copyright (c) 2024 The Goldfish Scheme Authors
+;; Follow the same License as the original one
 
 (define-library (srfi srfi-117)
   (export
