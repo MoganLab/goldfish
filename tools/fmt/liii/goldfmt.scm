@@ -104,25 +104,37 @@
                     (loop (+ i 1) (cons text acc))))))))) 
     
     ;;; 递归格式化目录
+    ;;; 返回值: (values total updated) - 处理的文件总数和更新的文件数
     (define (format-directory dir-path)
       (let ((entries (path-list-path (path dir-path))))
-        (vector-for-each
-          (lambda (entry)
-            (cond
-              ((path-file? entry)
-               (let ((entry-str (path->string entry)))
-                 (if (string-suffix? ".scm" entry-str)
-                     (begin
-                       (display (string-append "Processing: " entry-str))
-                       (newline)
-                       (let ((changed? (format-file entry-str)))
-                         (if changed?
-                             (display (string-append "Updated: " entry-str))
-                             (display (string-append "Unchanged: " entry-str)))
-                         (newline))))))
-              ((path-dir? entry)
-               (format-directory (path->string entry)))))
-          entries)))
+        (let loop ((i 0)
+                   (total 0)
+                   (updated 0))
+          (if (>= i (vector-length entries))
+              (values total updated)
+              (let ((entry (vector-ref entries i)))
+                (cond
+                  ((path-file? entry)
+                   (let ((entry-str (path->string entry)))
+                      (if (string-suffix? ".scm" entry-str)
+                          (begin
+                            (display (string-append "Processing: " entry-str))
+                            (newline)
+                            (let ((changed? (format-file entry-str)))
+                              (if changed?
+                                  (begin
+                                    (display (string-append "  Updated: " entry-str))
+                                    (newline)
+                                    (loop (+ i 1) (+ total 1) (+ updated 1)))
+                                  (loop (+ i 1) (+ total 1) updated))))
+                          (loop (+ i 1) total updated))))
+                  ((path-dir? entry)
+                   (call-with-values
+                     (lambda () (format-directory (path->string entry)))
+                     (lambda (sub-total sub-updated)
+                       (loop (+ i 1) (+ total sub-total) (+ updated sub-updated)))))
+                  (else
+                    (loop (+ i 1) total updated))))))))
     
     ;;; 检查列表中是否包含某个元素
     (define (contains? lst item)
@@ -152,29 +164,35 @@
           ((or help-flag (string=? path-str ""))
            (display-help)
            #t)
-          ; 处理单个文件
-          ((path-file? (path path-str))
-           (if dry-run
-               (format-file-dry-run path-str)
-               (begin
-                 (display (string-append "Processing: " path-str))
-                 (newline)
-                 (let ((changed? (format-file path-str)))
-                   (if changed?
-                       (display (string-append "Updated: " path-str))
-                       (display (string-append "Unchanged: " path-str)))
+            ; 处理单个文件
+            ((path-file? (path path-str))
+             (if dry-run
+                 (format-file-dry-run path-str)
+                 (begin
+                   (display (string-append "Processing: " path-str))
                    (newline)
-                   #t))))
-          ; 处理目录（不支持 --dry-run）
-          ((path-dir? (path path-str))
-           (if dry-run
-               (begin
-                 (display "错误: --dry-run 选项仅支持单个文件")
-                 (newline)
-                 (exit 1))
-               (begin
-                 (format-directory path-str)
-                 #t)))
+                   (let ((changed? (format-file path-str)))
+                     (if changed?
+                         (begin
+                           (display (string-append "  Updated: " path-str))
+                           (newline))
+                         '())
+                     (display (string-append "Total files processed: 1, Files updated: " (if changed? "1" "0")))
+                     (newline)
+                     #t))))
+           ; 处理目录（不支持 --dry-run）
+           ((path-dir? (path path-str))
+            (if dry-run
+                (begin
+                  (display "错误: --dry-run 选项仅支持单个文件")
+                  (newline)
+                  (exit 1))
+                (call-with-values
+                  (lambda () (format-directory path-str))
+                  (lambda (total updated)
+                    (display (string-append "Total files processed: " (number->string total) ", Files updated: " (number->string updated)))
+                    (newline)
+                    #t))))
           ; 路径不存在
           (else
            (display (string-append "错误: 路径不存在 - " path-str))
