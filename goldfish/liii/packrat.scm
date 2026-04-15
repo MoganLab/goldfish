@@ -376,7 +376,6 @@
       ) ;make-parse-result
     ) ;define
 
-
     (define (parse-results-token-kind results)
       (let ((base (parse-results-base results)))
         (and base (car base))
@@ -447,7 +446,6 @@
         ) ;let
       ) ;lambda
     ) ;define
-
 
     (define (object->external-representation o)
       (let ((s (open-output-string)))
