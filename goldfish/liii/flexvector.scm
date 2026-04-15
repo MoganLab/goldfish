@@ -1,4 +1,3 @@
-
 (define-library (liii flexvector)
   (import (srfi srfi-214))
   (export

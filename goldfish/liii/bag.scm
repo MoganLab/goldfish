@@ -1,4 +1,3 @@
-
 (define-library (liii bag)
   (import (rename (srfi srfi-113)
             (bag make-bag-with-comparator)

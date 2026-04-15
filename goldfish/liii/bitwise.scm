@@ -1,4 +1,3 @@
-
 (define-library (liii bitwise)
   (import (srfi srfi-151) (liii error))
   (export lognot logand logior logxor ash)

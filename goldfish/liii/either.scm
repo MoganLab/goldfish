@@ -1,4 +1,3 @@
-
 (define-library (liii either)
   (import (liii base))
   (export from-left

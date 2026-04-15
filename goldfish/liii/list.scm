@@ -1,4 +1,3 @@
-
 (define-library (liii list)
   (export circular-list
     iota

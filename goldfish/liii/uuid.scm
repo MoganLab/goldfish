@@ -1,4 +1,3 @@
-
 (define-library (liii uuid)
   (export uuid4)
   (begin

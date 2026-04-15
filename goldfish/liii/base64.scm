@@ -1,4 +1,3 @@
-
 (define-library (liii base64)
   (import (liii base) (liii bitwise))
   (export string-base64-encode

@@ -1,4 +1,3 @@
-
 (define-library (liii stack)
   (export make-stack
     stack

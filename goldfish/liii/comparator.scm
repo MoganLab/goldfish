@@ -1,4 +1,3 @@
-
 (define-library (liii comparator)
   (import (srfi srfi-128))
   (export comparator?

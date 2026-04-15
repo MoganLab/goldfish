@@ -1,4 +1,3 @@
-
 (define-library (liii tree)
   (export tree-cyclic?
     tree-leaves

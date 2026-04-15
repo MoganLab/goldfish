@@ -1,4 +1,3 @@
-
 (define-library (liii trie)
 
   (export make-trie

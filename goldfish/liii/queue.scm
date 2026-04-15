@@ -1,4 +1,3 @@
-
 (define-library (liii queue)
   (export make-list-queue
     list-queue

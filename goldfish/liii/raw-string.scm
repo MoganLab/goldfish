@@ -1,4 +1,3 @@
-
 ;; Acknowledgements
 ;;
 ;; This implementation is based on:
