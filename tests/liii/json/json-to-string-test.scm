@@ -103,10 +103,9 @@
 
 
 (check (json->string (#_list-values
-                      (<list*>
-                       (#_list-values "messages")
-                       #((("role" . "user") ("content" . #(1 2 3))) (("role" . "user") ("content" . "中文")))
-                      ) ;
+                       (<list*> (#_list-values "messages")
+                         #((("role" . "user") ("content" . #(1 2 3))) (("role" . "user") ("content" . "中文")))
+                       ) ;<list*>
                      ) ;
        ) ;json->string
   =>
@@ -115,10 +114,9 @@
 
 
 (check (json->string (#_list-values
-                      (<list*>
-                       (#_list-values "messages")
-                       #((("role" . "user") ("content" . #((("text" . "1") ("type" . "text")) (("text" . "2") ("type" . "text"))))) (("role" . "user") ("content" . "中文")))
-                      ) ;
+                       (<list*> (#_list-values "messages")
+                         #((("role" . "user") ("content" . #((("text" . "1") ("type" . "text")) (("text" . "2") ("type" . "text"))))) (("role" . "user") ("content" . "中文")))
+                       ) ;<list*>
                      ) ;
        ) ;json->string
   =>
