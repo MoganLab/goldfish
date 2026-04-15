@@ -1,4 +1,3 @@
-
 (import (liii check) (srfi srfi-267))
 
 (check-set-mode! 'report-failed)
