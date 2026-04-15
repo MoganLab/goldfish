@@ -21,7 +21,7 @@
 (check-catch 'wrong-number-of-args
   (cddr '(1 2) '(3 4))
 ) ;check-catch
-;; cddr边界条件测试补�
+;; cddr边界条件测试补充
 (check (cddr '(a b)) => '())
 (check (cddr '(1 2)) => '())
 (check (cddr '(#t #f)) => '())

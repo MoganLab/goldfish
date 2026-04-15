@@ -19,7 +19,7 @@
 (check-catch 'wrong-number-of-args
   (cdr '(1 2) '(3 4))
 ) ;check-catch
-;; cdr边界条件测试补�
+;; cdr边界条件测试补充
 (check (cdr '(a)) => '())
 (check (cdr '(1)) => '())
 (check (cdr '(#t)) => '())

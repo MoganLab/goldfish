@@ -92,7 +92,7 @@
   (string-set! str 7 #\L)
   (check str => "ORIGINAL")
 ) ;let
-;; 测试索引在有效范围�
+;; 测试索引在有效范围内
 (let ((str (string-copy "test")))
   (string-set! str 0 #\T)
   (string-set! str 1 #\E)

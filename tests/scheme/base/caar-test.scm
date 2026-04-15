@@ -45,7 +45,7 @@
   =>
   1
 ) ;check
-;; 复杂嵌套构�
+;; 复杂嵌套构造
 (let ((nested (cons (cons (cons 1 2) (cons 3 4))
                 (cons 5 6)
               ) ;cons
