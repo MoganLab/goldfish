@@ -163,7 +163,7 @@
           ; 显示帮助
           ((or help-flag (string=? path-str ""))
            (display-help)
-           #t)
+           #t
             ; 处理单个文件
             ((path-file? (path path-str))
              (if dry-run
@@ -192,7 +192,7 @@
                   (lambda (total updated)
                     (display (string-append "Total files processed: " (number->string total) ", Files updated: " (number->string updated)))
                     (newline)
-                    #t))))
+                    #t)))))
           ; 路径不存在
           (else
            (display (string-append "错误: 路径不存在 - " path-str))

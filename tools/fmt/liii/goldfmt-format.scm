@@ -591,14 +591,14 @@
         ) ;
         ((reader-prefix-env? node)
          (let ((left-line (writer-line writer)))
-           (emit-string! writer (format-inline-atom-or-quote (env-value node)))
+           (emit-string! writer (format-inline-atom-or-quote (env-value node))
             (positioned-env node
                             column
                             (vector)
                             left-line
                             (writer-line writer)
-            ) ;positioned-env
-          ) ;let
+            ))) ;positioned-env
+           ;let
   ;
  ;
         ) ;

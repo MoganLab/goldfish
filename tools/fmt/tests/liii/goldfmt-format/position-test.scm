@@ -70,9 +70,9 @@
         (check (atom-left-line (child call-node 0)) => 1)
         (check (atom-right-line (child call-node 0)) => 1)
         (check (atom-indent one) => 9)
-        (check (atom-left-line one) => 1)
+        (check (atom-left-line one) => 1))
       (check (atom-right-line one) => 1))
-    ) ;lambda
+     ;lambda
   ) ;call-with-values
 ) ;let
 

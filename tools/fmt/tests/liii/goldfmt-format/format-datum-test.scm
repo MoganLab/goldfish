@@ -101,14 +101,14 @@
 (check (format-datum '(define (factorial n)
                         (if (= n 0)
                             1
-                            (* n (factorial (- n 1)))))
-                        ) ;if
+                            (* n (factorial (- n 1))))))
+                         ;if
        => (&- #""
                (define (factorial n)
                  (if (= n 0) 1 (* n (factorial (- n 1))))
                ) ;define
-               ""
-               ) ;
+               "")
+                ;
 ) ;check
 
 (check (format-datum '(if (very-long-predicate-name x)
@@ -125,8 +125,8 @@
 
 (check (format-datum '(let ((x (begin
                                   (display "computing")
-                                  (compute-x arg1)))
-                             (y 20))
+                                  (compute-x arg1))
+                             (y 20)))
                          (+ x y)))
        => (&- #""
              (let ((x (begin
@@ -138,8 +138,8 @@
                   ) ;
                (+ x y)
              ) ;let
-             ""
-       ) ;&-
+             "")
+        ;&-
 ) ;check
 
 ;; 阶段1: quote 格式测试
