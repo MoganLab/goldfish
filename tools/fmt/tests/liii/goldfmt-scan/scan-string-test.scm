@@ -180,4 +180,22 @@
     (check (raw-string-literal-value literal)
            => "\n  ;; not a comment\n  SELECT 1\n  ")))
 
+;; bare syntax object 应该被当作 atom，而不是 pair
+(let ((results (scan-string "#_quote")))
+  (check (vector? results) => #t)
+  (check (vector-length results) => 1)
+  (let ((first (vector-ref results 0)))
+    (check (atom? first) => #t)
+    (check (syntax? (atom-value first)) => #t)
+    (check (object->string (atom-value first) #f) => "#_quote")))
+
+;; quasiquote 的内部形式应该被正规化为 reader 语义
+(let ((results (scan-string #"CODE"`(a ,@rest)"CODE")))
+  (check (vector? results) => #t)
+  (check (vector-length results) => 1)
+  (let ((root (vector-ref results 0)))
+    (check (env? root) => #t)
+    (check (env-tag-name root) => "quasiquote")
+    (check (env-value root) => '(quasiquote (a (unquote-splicing rest))))))
+
 (check-report)

@@ -181,4 +181,13 @@
        => "'(quote x)"
 ) ;check
 
+;; quasiquote 内部形式应该还原为 ` , ,@ 语法
+(check (format-datum (read (open-input-string "`(a ,b)")))
+       => "`(a ,b)"
+) ;check
+
+(check (format-datum (read (open-input-string "`(a ,@b)")))
+       => "`(a ,@b)"
+) ;check
+
 (check-report)

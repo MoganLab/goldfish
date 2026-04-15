@@ -51,6 +51,14 @@
           (raw-string-literal-source value)
           (write-to-string value)))
 
+    (define (single-arg-symbol-form? value name)
+      (and (pair? value)
+           (eq? (car value) name)
+           (pair? (cdr value))
+           (null? (cddr value))
+      ) ;and
+    ) ;define
+
     ;;; 检查是否为 quote 形式：(quote x) 或 (#_quote x)
     (define (quote-form? value)
       (and (pair? value)
@@ -81,7 +89,7 @@
     ;;; 注意：这里不处理 quote 形式，因为 quote 形式在 scan 阶段已经被识别为 env
     ;;; 内部的列表 (如 '(quote define) 中的 (quote define)) 应该作为普通列表输出
     (define (format-inline-atom-or-quote value)
-      (format-atom-value value)
+      (format-reader-datum value)
     ) ;define
 
     (define (spaces n)
@@ -185,6 +193,15 @@
       ) ;and
     ) ;define
 
+    (define (reader-prefix-env? node)
+      (and (env? node)
+           (or (string=? (env-tag-name node) "quasiquote")
+               (string=? (env-tag-name node) "unquote")
+               (string=? (env-tag-name node) "unquote-splicing")
+           ) ;or
+      ) ;and
+    ) ;define
+
     ;;; 从 quote env 的 value 中提取被引用的内容
     (define (quote-env-content node)
       (let ((value (env-value node)))
@@ -204,35 +221,42 @@
            (string? (caddr datum))
            (null? (cdddr datum))))
 
-    (define (format-quoted-vector datum)
+    (define (format-reader-vector datum)
       (let loop ((i 0)
                  (pieces '()))
         (if (>= i (vector-length datum))
             (string-append "#(" (string-join (reverse pieces) " ") ")")
             (loop (+ i 1)
-                  (cons (format-quoted-datum (vector-ref datum i)) pieces)))))
+                  (cons (format-reader-datum (vector-ref datum i)) pieces)))))
 
-    (define (format-quoted-pair datum)
+    (define (format-reader-pair datum)
       (let loop ((current datum)
                  (pieces '()))
         (cond
           ((pair? current)
            (loop (cdr current)
-                 (cons (format-quoted-datum (car current)) pieces)))
+                 (cons (format-reader-datum (car current)) pieces)))
           ((null? current)
            (string-append "(" (string-join (reverse pieces) " ") ")"))
           (else
            (string-append "("
                           (string-join (reverse pieces) " ")
                           " . "
-                          (format-quoted-datum current)
+                          (format-reader-datum current)
                           ")")))))
 
-    (define (format-quoted-datum datum)
+    (define (format-reader-datum datum)
       (cond
+        ((raw-string-literal? datum) (raw-string-literal-source datum))
         ((raw-string-datum? datum) (cadr datum))
-        ((pair? datum) (format-quoted-pair datum))
-        ((vector? datum) (format-quoted-vector datum))
+        ((single-arg-symbol-form? datum 'quasiquote)
+         (string-append "`" (format-reader-datum (cadr datum))))
+        ((single-arg-symbol-form? datum 'unquote)
+         (string-append "," (format-reader-datum (cadr datum))))
+        ((single-arg-symbol-form? datum 'unquote-splicing)
+         (string-append ",@" (format-reader-datum (cadr datum))))
+        ((pair? datum) (format-reader-pair datum))
+        ((vector? datum) (format-reader-vector datum))
         (else (format-atom-value datum))))
 
 ;;; format-inline 只做单行候选文本计算，不记录位置信息，也不写 writer。
@@ -255,8 +279,12 @@
           ; quote 形式：'(content)
           ; 从 env-value 中提取被引用的内容并格式化
           (let ((content (quote-env-content node)))
-            (string-append "'" (format-quoted-datum content))
+            (string-append "'" (format-inline-atom-or-quote content))
           ) ;let
+ ;
+        ) ;
+        ((reader-prefix-env? node)
+         (format-inline-atom-or-quote (env-value node))
  ;
         ) ;
         (else
@@ -549,7 +577,20 @@
           (let ((left-line (writer-line writer))
                 (content (quote-env-content node)))
             (emit-string! writer "'")
-            (emit-string! writer (format-quoted-datum content))
+            (emit-string! writer (format-inline-atom-or-quote content))
+            (positioned-env node
+                            column
+                            (vector)
+                            left-line
+                            (writer-line writer)
+            ) ;positioned-env
+          ) ;let
+  ;
+ ;
+        ) ;
+        ((reader-prefix-env? node)
+         (let ((left-line (writer-line writer)))
+           (emit-string! writer (format-inline-atom-or-quote (env-value node)))
             (positioned-env node
                             column
                             (vector)
@@ -662,7 +703,7 @@
           ((quote-env? node)
            (let ((content (quote-env-content node)))
              (emit-string! writer "'")
-             (emit-string! writer (format-quoted-datum content))
+             (emit-string! writer (format-inline-atom-or-quote content))
              (positioned-env node
                              env-indent
                              (vector)
@@ -670,6 +711,16 @@
                              (writer-line writer)
              ) ;positioned-env
            ) ;let
+ ;
+          ) ;
+          ((reader-prefix-env? node)
+           (emit-string! writer (format-inline-atom-or-quote (env-value node)))
+           (positioned-env node
+                           env-indent
+                           (vector)
+                           left-line
+                           (writer-line writer)
+           ) ;positioned-env
  ;
           ) ;
           ; 普通 env
