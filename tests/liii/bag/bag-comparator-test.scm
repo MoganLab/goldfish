@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -25,7 +25,9 @@
 ;; -----
 ;; 返回 bag 使用的 comparator。
 
-(check-true (eq? (bag-comparator b-empty) comp))
-(check-true (eq? (bag-comparator b-1-2) comp))
+(check-true (eq? (bag-comparator b-empty) comp)
+) ;check-true
+(check-true (eq? (bag-comparator b-1-2) comp)
+) ;check-true
 
 (check-report)

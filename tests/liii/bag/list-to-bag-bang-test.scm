@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -24,13 +24,28 @@
 ;; 返回修改后的 bag（与传入的 bag 是同一个对象）。
 
 (define b-list-merge (bag 1 2))
-(define b-list-merge-result (list->bag! b-list-merge '(2 3 3)))
-(check-true (eq? b-list-merge-result b-list-merge))
+(define b-list-merge-result
+  (list->bag! b-list-merge '(2 3 3))
+) ;define
+(check-true (eq? b-list-merge-result b-list-merge)
+) ;check-true
 (check (bag-size b-list-merge) => 5)
-(check (bag-count (lambda (x) (= x 2)) b-list-merge) => 2)
-(check (bag-count (lambda (x) (= x 3)) b-list-merge) => 2)
+(check (bag-count (lambda (x) (= x 2))
+         b-list-merge
+       ) ;bag-count
+  =>
+  2
+) ;check
+(check (bag-count (lambda (x) (= x 3))
+         b-list-merge
+       ) ;bag-count
+  =>
+  2
+) ;check
 (list->bag! b-list-merge '())
 (check (bag-size b-list-merge) => 5)
-(check-catch 'type-error (list->bag! "not a bag" '(1 2)))
+(check-catch 'type-error
+  (list->bag! "not a bag" '(1 2))
+) ;check-catch
 
 (check-report)

@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -22,6 +22,9 @@
 ;; boolean
 ;; 当两个路径值相等时返回 #t，否则返回 #f。
 
-(check-true (path=? (path "tmp/demo.txt") (path-copy (path "tmp/demo.txt"))))
+(check-true (path=? (path "tmp/demo.txt")
+              (path-copy (path "tmp/demo.txt"))
+            ) ;path=?
+) ;check-true
 
 (check-report)

@@ -18,6 +18,7 @@
   (export make-env env? make-atom atom?
           env-tag-name env-depth env-indent env-children env-left-line env-right-line env-value
           atom-depth atom-indent atom-left-line atom-right-line atom-value
+          make-raw-string-literal raw-string-literal? raw-string-literal-source raw-string-literal-value
           good-env? assert-env)
   (import (liii base)
           (liii error))
@@ -65,6 +66,19 @@
       (when (< right-line 0)
         (value-error "make-atom in liii/goldfmt-record: right-line must be non-negative"))
       (%make-atom depth indent left-line right-line value))
+
+    (define-record-type raw-string-literal
+      (%make-raw-string-literal source value)
+      raw-string-literal?
+      (source raw-string-literal-source)
+      (value raw-string-literal-value))
+
+    (define* (make-raw-string-literal (source "") (value ""))
+      (when (not (string? source))
+        (value-error "make-raw-string-literal in liii/goldfmt-record: source must be a string"))
+      (when (not (string? value))
+        (value-error "make-raw-string-literal in liii/goldfmt-record: value must be a string"))
+      (%make-raw-string-literal source value))
 
     ;;; 使用具名参数的构造器
     (define* (make-env (tag-name "") (depth 0) (indent -1) (children (vector)) (left-line 0) (right-line 0) (value #f))

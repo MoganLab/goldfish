@@ -252,13 +252,17 @@
 (check (list-tail '(single) 1) => '())
 (check (list-tail '() 0) => '())
 ;; 各种数据类型边界测试
-(check (list-tail '(42 "text" #t 'symbol) 1)
+(check (list-tail '(42 "text" #t (#_quote symbol))
+         1
+       ) ;list-tail
   =>
-  '("text" #t 'symbol)
+  '("text" #t (#_quote symbol))
 ) ;check
 (check (list-tail '(#	 #
  #
-) 0)
+)
+         0
+       ) ;list-tail
   =>
   '(#	 #
  #
@@ -266,14 +270,21 @@
 ) ;check
 (check (list-tail '(#	 #
  #
-) 2)
+)
+         2
+       ) ;list-tail
   =>
   '(#
 )
 ) ;check
 (check (list-tail '(#	 #
  #
-) 3) => '())
+)
+         3
+       ) ;list-tail
+  =>
+  '()
+) ;check
 ;; 子列表包含嵌套结构测试
 (check (list-tail '((a b) (c d) (e f)) 0)
   =>
@@ -296,11 +307,11 @@
   =>
   '(a b 3 c)
 ) ;check
-(check (list-tail '(#(1 2) 'symbol "string" 3.14)
+(check (list-tail '(#(1 2) (#_quote symbol) "string" 3.14)
          1
        ) ;list-tail
   =>
-  '('symbol "string" 3.14)
+  '((#_quote symbol) "string" 3.14)
 ) ;check
 (check (list-tail '(1 "hello" (nested list) #t 3.14)
          2
@@ -482,17 +493,15 @@
   =>
   '(3.14 1/2 1.0+2.0i)
 ) ;check
-(check (list-tail '(#t #f #\a "hello" 'symbol)
+(check (list-tail '(#t #f #\a "hello" (#_quote symbol))
          2
        ) ;list-tail
   =>
-  '(#\a "hello" 'symbol)
+  '(#\a "hello" (#_quote symbol))
 ) ;check
-(check (list-tail '(#(1 2) #u8(255) (a b) car)
-         1
-       ) ;list-tail
+(check (list-tail '(#(1 2) #(255) (a b) car) 1)
   =>
-  '(#u8(255) (a b) car)
+  '(#(255) (a b) car)
 ) ;check
 (check (list-tail '(() (()) ((()))) 1)
   =>

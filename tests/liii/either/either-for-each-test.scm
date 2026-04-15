@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -39,14 +39,31 @@
 
 (let ((counter 0)
       (left-val (from-left "error"))
-      (right-val (from-right 5)))
-  (either-for-each (lambda (x) (set! counter (+ counter x))) left-val)
+      (right-val (from-right 5))
+     ) ;
+  (either-for-each (lambda (x)
+                     (set! counter (+ counter x))
+                   ) ;lambda
+    left-val
+  ) ;either-for-each
   (check counter => 0)
-  (either-for-each (lambda (x) (set! counter (+ counter x))) right-val)
+  (either-for-each (lambda (x)
+                     (set! counter (+ counter x))
+                   ) ;lambda
+    right-val
+  ) ;either-for-each
   (check counter => 5)
 ) ;let
 
-(check-catch 'type-error (either-for-each (lambda (x) x) "not-either"))
-(check-catch 'type-error (either-for-each "not-a-proc" (from-right 10)))
+(check-catch 'type-error
+  (either-for-each (lambda (x) x)
+    "not-either"
+  ) ;either-for-each
+) ;check-catch
+(check-catch 'type-error
+  (either-for-each "not-a-proc"
+    (from-right 10)
+  ) ;either-for-each
+) ;check-catch
 
 (check-report)

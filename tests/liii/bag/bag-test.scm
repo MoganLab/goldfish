@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -28,9 +28,16 @@
 (define b-list (bag->list b-1-2))
 (check (bag-member b-1-2 1 #f) => 1)
 (check (bag-member b-1-2 2 #f) => 2)
-(check (bag-member b-1-2 3 'none) => 'none)
-(check-true (eq? (bag-comparator b-1-2) comp))
-(check (bag-member b-empty 1 'missing) => 'missing)
+(check (bag-member b-1-2 3 'none)
+  =>
+  'none
+) ;check
+(check-true (eq? (bag-comparator b-1-2) comp)
+) ;check-true
+(check (bag-member b-empty 1 'missing)
+  =>
+  'missing
+) ;check
 
 ;; bag->list should include duplicates
 (check-false (not (member 1 b-list)))
@@ -39,7 +46,10 @@
 
 ;; 不同类型元素也可存入 bag
 (define b-mixed (bag "a" 'a 0))
-(check (bag-member b-mixed "a" #f) => "a")
+(check (bag-member b-mixed "a" #f)
+  =>
+  "a"
+) ;check
 (check (bag-member b-mixed 'a #f) => 'a)
 (check (bag-member b-mixed 0 #f) => 0)
 
@@ -47,6 +57,9 @@
 (define a1 "hello")
 (define a2 (string-copy a1))
 (define b-strings (bag a1))
-(check-true (string=? (bag-member b-strings a2 #f) "hello"))
+(check-true (string=? (bag-member b-strings a2 #f)
+              "hello"
+            ) ;string=?
+) ;check-true
 
 (check-report)

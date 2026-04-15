@@ -274,7 +274,7 @@
   =>
   #(1 2 3)
 ) ;check
-(check (cadr '(#t #u8(255 128) #f))
+(check (cadr '(#t #(255 128) #f))
   =>
   #u8(255 128)
 ) ;check

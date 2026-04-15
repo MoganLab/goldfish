@@ -9,19 +9,18 @@
 (import (liii range))
 
 ;; 示例1：循环迭代
-(range-for-each
-  (lambda (x) (display x) (newline))
-  (numeric-range 0 5)                ; 输出: 0 1 2 3 4
+(range-for-each (lambda (x) (display x) (newline))
+  (numeric-range 0 5)
 ) ;range-for-each
 
 ;; 示例2：循环求和
 ;; range-fold 是处理累加的推荐方式，纯函数无副作用
-(range-fold + 0 (numeric-range 1 11)) ; => 55
+(range-fold + 0 (numeric-range 1 11))
 
 ;; 示例3：切片截取
 ;; 使用 take-right 取末尾元素，体现惰性序列的随机访问能力
 (define r (numeric-range 0 100))
-(range->list (range-take-right r 3)) ; => (97 98 99)
+(range->list (range-take-right r 3))
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/range "range?"

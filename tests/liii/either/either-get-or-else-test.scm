@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -38,9 +38,19 @@
 ;; ----
 ;; type-error 当 either 不是 Either 时
 
-(check (either-get-or-else (from-right 42) 0) => 42)
-(check (either-get-or-else (from-left "error") 0) => 0)
+(check (either-get-or-else (from-right 42) 0)
+  =>
+  42
+) ;check
+(check (either-get-or-else (from-left "error")
+         0
+       ) ;either-get-or-else
+  =>
+  0
+) ;check
 
-(check-catch 'type-error (either-get-or-else "not-either" 0))
+(check-catch 'type-error
+  (either-get-or-else "not-either" 0)
+) ;check-catch
 
 (check-report)

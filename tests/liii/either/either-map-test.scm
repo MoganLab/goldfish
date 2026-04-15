@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -38,28 +38,55 @@
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
 
 (let ((left-val (from-left "error"))
-      (right-val (from-right 5)))
-  (check (to-left (either-map (lambda (x) (* x 2)) left-val)) => "error")
-  (let ((result (either-map (lambda (x) (* x 2)) right-val)))
+      (right-val (from-right 5))
+     ) ;
+  (check (to-left (either-map (lambda (x) (* x 2))
+                    left-val
+                  ) ;either-map
+         ) ;to-left
+    =>
+    "error"
+  ) ;check
+  (let ((result (either-map (lambda (x) (* x 2))
+                  right-val
+                ) ;either-map
+        ) ;result
+       ) ;
     (check-true (either-right? result))
     (check (to-right result) => 10)
   ) ;let
 ) ;let
 
 (let* ((val1 (from-right 10))
-       (val2 (either-map (lambda (x) (+ x 5)) val1))
-       (val3 (either-map (lambda (x) (* x 2)) val2)))
+       (val2 (either-map (lambda (x) (+ x 5)) val1)
+       ) ;val2
+       (val3 (either-map (lambda (x) (* x 2)) val2)
+       ) ;val3
+      ) ;
   (check-true (either-right? val3))
   (check (to-right val3) => 30)
 ) ;let*
 
 (let* ((error-val (from-left "network error"))
-       (mapped-error (either-map (lambda (x) (string-append "Error: " x)) error-val)))
+       (mapped-error (either-map (lambda (x) (string-append "Error: " x))
+                       error-val
+                     ) ;either-map
+       ) ;mapped-error
+      ) ;
   (check-true (either-left? mapped-error))
-  (check (to-left mapped-error) => "network error")
+  (check (to-left mapped-error)
+    =>
+    "network error"
+  ) ;check
 ) ;let*
 
-(check-catch 'type-error (either-map (lambda (x) x) "not-either"))
-(check-catch 'type-error (either-map "not-a-proc" (from-right 10)))
+(check-catch 'type-error
+  (either-map (lambda (x) x) "not-either")
+) ;check-catch
+(check-catch 'type-error
+  (either-map "not-a-proc"
+    (from-right 10)
+  ) ;either-map
+) ;check-catch
 
 (check-report)

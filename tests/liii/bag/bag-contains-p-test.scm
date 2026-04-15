@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -30,6 +30,8 @@
 (check-true (bag-contains? b-1-2 2))
 (check-false (bag-contains? b-1-2 9))
 (check-false (bag-contains? b-empty 1))
-(check-catch 'type-error (bag-contains? "not a bag" 1))
+(check-catch 'type-error
+  (bag-contains? "not a bag" 1)
+) ;check-catch
 
 (check-report)

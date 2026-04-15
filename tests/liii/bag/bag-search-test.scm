@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -43,30 +43,50 @@
     (remove 4)
   ) ;define
 
-  (call-with-values
-    (lambda () (bag-search! (bag-copy yam) #\! failure/insert error))
+  (call-with-values (lambda ()
+                      (bag-search! (bag-copy yam)
+                        #\!
+                        failure/insert
+                        error
+                      ) ;bag-search!
+                    ) ;lambda
     (lambda (b obj)
       (check-true (bag-contains? b #\!))
       (check obj => 1)
     ) ;lambda
   ) ;call-with-values
-  (call-with-values
-    (lambda () (bag-search! (bag-copy yam) #\! failure/ignore error))
+  (call-with-values (lambda ()
+                      (bag-search! (bag-copy yam)
+                        #\!
+                        failure/ignore
+                        error
+                      ) ;bag-search!
+                    ) ;lambda
     (lambda (b obj)
       (check-false (bag-contains? b #\!))
       (check obj => 2)
     ) ;lambda
   ) ;call-with-values
-  (call-with-values
-    (lambda () (bag-search! (bag-copy yam) #\y error success/update))
+  (call-with-values (lambda ()
+                      (bag-search! (bag-copy yam)
+                        #\y
+                        error
+                        success/update
+                      ) ;bag-search!
+                    ) ;lambda
     (lambda (b obj)
       (check-true (bag-contains? b #\b))
       (check-false (bag-contains? b #\y))
       (check obj => 3)
     ) ;lambda
   ) ;call-with-values
-  (call-with-values
-    (lambda () (bag-search! (bag-copy yam) #\a error success/remove))
+  (call-with-values (lambda ()
+                      (bag-search! (bag-copy yam)
+                        #\a
+                        error
+                        success/remove
+                      ) ;bag-search!
+                    ) ;lambda
     (lambda (b obj)
       (check-false (bag-contains? b #\a))
       (check obj => 4)

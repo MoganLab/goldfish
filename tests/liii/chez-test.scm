@@ -6,8 +6,8 @@
 (import (liii chez))
 
 ;; 示例1：判断原子类型
-(atom? 'symbol)  ; => #t
-(atom? '(a b c)) ; => #f
+(atom? 'symbol)
+(atom? '(a b c))
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/chez "atom?"

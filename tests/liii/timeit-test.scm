@@ -1,5 +1,3 @@
-
-
 (import (liii check)
   (liii timeit)
   (liii time)

@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -28,9 +28,12 @@
 ;; 如果 bag 中所有元素都满足 predicate 返回 #t，否则返回 #f。
 ;; 空 bag 返回 #t。
 
-(check-true (bag-every? (lambda (x) (> x 0)) b-1-2))
+(check-true (bag-every? (lambda (x) (> x 0)) b-1-2)
+) ;check-true
 (check-false (bag-every? even? b-1-2))
 (check-true (bag-every? even? b-empty))
-(check-catch 'type-error (bag-every? even? "not a bag"))
+(check-catch 'type-error
+  (bag-every? even? "not a bag")
+) ;check-catch
 
 (check-report)

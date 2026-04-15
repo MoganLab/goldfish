@@ -132,7 +132,10 @@
   =>
   3
 ) ;check
-(check (length '(#t #f 'symbol)) => 3)
+(check (length '(#t #f (#_quote symbol)))
+  =>
+  3
+) ;check
 (check (length '(42 3.14 "string" #t))
   =>
   4

@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -23,8 +23,13 @@
 ;; 返回 #t 表示删除成功。
 
 ;; 目录删除测试
-(let* ((rmdir-test-dir (path-join (path-temp-dir) "path-rmdir-test"))
-       (file-in-dir (path-join rmdir-test-dir "file.txt")))
+(let* ((rmdir-test-dir (path-join (path-temp-dir)
+                         "path-rmdir-test"
+                       ) ;path-join
+       ) ;rmdir-test-dir
+       (file-in-dir (path-join rmdir-test-dir "file.txt")
+       ) ;file-in-dir
+      ) ;
   ;; 清理残留
   (when (path-exists? file-in-dir)
     (delete-file (path->string file-in-dir))
@@ -39,7 +44,8 @@
   (check-true (path-unlink file-in-dir))
   (check-false (path-exists? file-in-dir))
   (check-true (path-rmdir rmdir-test-dir))
-  (check-false (path-exists? rmdir-test-dir))
+  (check-false (path-exists? rmdir-test-dir)
+  ) ;check-false
 ) ;let*
 
 (check-report)

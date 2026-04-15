@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -27,13 +27,32 @@
 ;; 对于多后缀文件，只返回最后一个扩展名。
 ;; 隐藏文件（以点开头的文件名）没有扩展名。
 
-(check (path-suffix (path "file.txt")) => ".txt")
-(check (path-suffix (path "archive.tar.gz")) => ".gz")
-(check (path-suffix (path ".hidden")) => "")
-(check (path-suffix (path "noext")) => "")
+(check (path-suffix (path "file.txt"))
+  =>
+  ".txt"
+) ;check
+(check (path-suffix (path "archive.tar.gz"))
+  =>
+  ".gz"
+) ;check
+(check (path-suffix (path ".hidden"))
+  =>
+  ""
+) ;check
+(check (path-suffix (path "noext"))
+  =>
+  ""
+) ;check
 (check (path-suffix (path "")) => "")
 (check (path-suffix (path ".")) => "")
 (check (path-suffix (path "..")) => "")
-(check (path-suffix (path-join (path-of-drive #\C) "Users" "report.txt")) => ".txt")
+(check (path-suffix (path-join (path-of-drive #\C)
+                      "Users"
+                      "report.txt"
+                    ) ;path-join
+       ) ;path-suffix
+  =>
+  ".txt"
+) ;check
 
 (check-report)

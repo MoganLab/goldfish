@@ -332,7 +332,7 @@
 (let ((lst (list #(1 2 3) #u8(255 128))))
   (list-set! lst 0 #(4 5 6))
   (list-set! lst 1 #u8(100 200))
-  (check lst => '(#(4 5 6) #u8(100 200)))
+  (check lst => '(#(4 5 6) #(100 200)))
 ) ;let
 ;; Unicode字符串元素测试
 (let ((lst (list "中文" "测试" "字符串")

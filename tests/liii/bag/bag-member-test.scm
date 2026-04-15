@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -31,8 +31,16 @@
 ;; 如果 bag 中存在与 element 等价的元素，返回该元素；否则返回 default。
 
 (check (bag-member b-1-2 2 #f) => 2)
-(check (bag-member b-1-2 9 'missing) => 'missing)
-(check-catch 'type-error (bag-member "not a bag" 1 #f))
-(check (bag-member b-empty 1 'none) => 'none)
+(check (bag-member b-1-2 9 'missing)
+  =>
+  'missing
+) ;check
+(check-catch 'type-error
+  (bag-member "not a bag" 1 #f)
+) ;check-catch
+(check (bag-member b-empty 1 'none)
+  =>
+  'none
+) ;check
 
 (check-report)

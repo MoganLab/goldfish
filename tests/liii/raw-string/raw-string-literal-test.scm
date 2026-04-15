@@ -1,6 +1,4 @@
-(import (liii check)
-        (liii raw-string)
-) ;import
+(import (liii check) (liii raw-string))
 
 (check-set-mode! 'report-failed)
 
@@ -42,36 +40,33 @@
 (check #"-"\""-" => "\\\"")
 (check #"-"#"()""-" => "#\"()\"")
 (check #"-"#""a"""-" => "#\"\"a\"\"")
-(check #"-"ends with \""-" => "ends with \\\"")
-
-(check
- #""multiline
+(check #"-"ends with \""-"
+  =>
+  "ends with \\\""
+) ;check
+(check #""multiline
 string""
- => "multiline\nstring"
+  =>
+  "multiline\nstring"
 ) ;check
-
-(check
- #""
+(check #""
     no whitespace stripping""
- => "\n    no whitespace stripping"
+  =>
+  "\n    no whitespace stripping"
 ) ;check
-
-(check
- #""
+(check #""
     no whitespace stripping
   ""
- => "\n    no whitespace stripping\n  "
+  =>
+  "\n    no whitespace stripping\n  "
 ) ;check
-
-(check
- #""
+(check #""
   注释 ;; comment
   ""
- => "\n  注释 ;; comment\n  "
+  =>
+  "\n  注释 ;; comment\n  "
 ) ;check
-
-(check
- #"HTML"
+(check #"HTML"
 <!DOCTYPE html>
 <html>
   <head><title>"测试页面"</title></head>
@@ -80,11 +75,10 @@ string""
   </body>
 </html>
   "HTML"
- => "\n<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
+  =>
+  "\n<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
 ) ;check
-
-(check
- #"HTML"<!DOCTYPE html>
+(check #"HTML"<!DOCTYPE html>
 <html>
   <head><title>"测试页面"</title></head>
   <body>
@@ -92,21 +86,22 @@ string""
   </body>
 </html>
   "HTML"
- => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
+  =>
+  "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>\n  "
 ) ;check
-
-(check
- #"HTML"<!DOCTYPE html>
+(check #"HTML"<!DOCTYPE html>
 <html>
   <head><title>"测试页面"</title></head>
   <body>
     <p>这里有很多"引号"</p>
   </body>
 </html>"HTML"
- => "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>"
+  =>
+  "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>"
 ) ;check
-
-(check #"tag with space"hello"tag with space" => "hello")
+(check #"tag with space"hello"tag with space"
+  =>
+  "hello"
+) ;check
 (check #"(())"value"(())" => "value")
-
 (check-report)

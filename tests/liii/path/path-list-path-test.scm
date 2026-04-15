@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii path)
-        (liii string)
-        (liii os)
+  (liii path)
+  (liii string)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -10,7 +10,8 @@
 (define (string-list-contains? target xs)
   (cond ((null? xs) #f)
         ((string=? target (car xs)) #t)
-        (else (string-list-contains? target (cdr xs)))
+        (else (string-list-contains? target (cdr xs))
+        ) ;else
   ) ;cond
 ) ;define
 
@@ -37,13 +38,20 @@
 
 ;; 辅助函数
 (define (path-vector->string-list xs)
-  (vector->list (vector-map path->string xs))
+  (vector->list (vector-map path->string xs)
+  ) ;vector->list
 ) ;define
 
 ;; 目录列举测试
-(let* ((list-dir (path-join (path-temp-dir) "path-list-path-dir"))
-       (list-file-a (path-join list-dir "child-a.txt"))
-       (list-file-b (path-join list-dir "child-b.txt")))
+(let* ((list-dir (path-join (path-temp-dir)
+                   "path-list-path-dir"
+                 ) ;path-join
+       ) ;list-dir
+       (list-file-a (path-join list-dir "child-a.txt")
+       ) ;list-file-a
+       (list-file-b (path-join list-dir "child-b.txt")
+       ) ;list-file-b
+      ) ;
   ;; 清理
   (when (path-exists? list-file-a)
     (delete-file (path->string list-file-a))
@@ -59,17 +67,16 @@
   (path-write-text list-file-a "a")
   (path-write-text list-file-b "b")
 
-  (let ((listed-paths (path-list-path list-dir)))
+  (let ((listed-paths (path-list-path list-dir))
+       ) ;
     (check-true (vector? listed-paths))
-    (check-true
-      (string-list-contains? (path->string list-file-a)
-                             (path-vector->string-list listed-paths)
-      ) ;string-list-contains?
+    (check-true (string-list-contains? (path->string list-file-a)
+                  (path-vector->string-list listed-paths)
+                ) ;string-list-contains?
     ) ;check-true
-    (check-true
-      (string-list-contains? (path->string list-file-b)
-                             (path-vector->string-list listed-paths)
-      ) ;string-list-contains?
+    (check-true (string-list-contains? (path->string list-file-b)
+                  (path-vector->string-list listed-paths)
+                ) ;string-list-contains?
     ) ;check-true
   ) ;let
 

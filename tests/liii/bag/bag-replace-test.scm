@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii bag)
-        (liii error)
+  (liii bag)
+  (liii error)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -26,9 +26,12 @@
 (let* ((s1 "hello")
        (s2 (string-copy s1))
        (b (bag s1))
-       (b2 (bag-replace b s2)))
-  (check-true (eq? (car (bag->list b)) s1))
-  (check-true (eq? (car (bag->list b2)) s2))
+       (b2 (bag-replace b s2))
+      ) ;
+  (check-true (eq? (car (bag->list b)) s1)
+  ) ;check-true
+  (check-true (eq? (car (bag->list b2)) s2)
+  ) ;check-true
 ) ;let*
 
 (check-report)

@@ -155,21 +155,21 @@
 ) ;let
 ;; 引号语法写入测试
 (let ((port (open-output-string)))
-  (write ''hello port)
+  (write '(#_quote hello) port)
   (check (get-output-string port)
     =>
     "'hello"
   ) ;check
 ) ;let
 (let ((port (open-output-string)))
-  (write ''(1 2 3) port)
+  (write '(#_quote (1 2 3)) port)
   (check (get-output-string port)
     =>
     "'(1 2 3)"
   ) ;check
 ) ;let
 (let ((port (open-output-string)))
-  (write ''hello port)
+  (write '(#_quote hello) port)
   (check (get-output-string port)
     =>
     "'hello"
@@ -212,7 +212,9 @@
 ) ;let
 ;; 混合类型列表写入测试
 (let ((port (open-output-string)))
-  (write '(1 "two" 'three 4.0) port)
+  (write '(1 "two" (#_quote three) 4.0)
+    port
+  ) ;write
   (check (get-output-string port)
     =>
     "(1 \"two\" 'three 4.0)"
@@ -407,7 +409,7 @@
 ) ;let
 ;; 嵌套引号写入测试
 (let ((port (open-output-string)))
-  (write '''hello port)
+  (write '(#_quote (#_quote hello)) port)
   (check (get-output-string port)
     =>
     "''hello"

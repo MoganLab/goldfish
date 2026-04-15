@@ -167,4 +167,17 @@
     ;; 原始值保留在 value 字段
     (check (env-value quote-env) => '(#_quote (quote define)))))
 
+;; 测试 scan-string：raw string 会保留源码字面量
+(let ((results (scan-string "#\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\"")))
+  (check (vector? results) => #t)
+  (check (vector-length results) => 1)
+  (let* ((node (vector-ref results 0))
+         (literal (atom-value node)))
+    (check (atom? node) => #t)
+    (check (raw-string-literal? literal) => #t)
+    (check (raw-string-literal-source literal)
+           => "#\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\"")
+    (check (raw-string-literal-value literal)
+           => "\n  ;; not a comment\n  SELECT 1\n  ")))
+
 (check-report)

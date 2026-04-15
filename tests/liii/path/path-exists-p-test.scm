@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii path)
-        (liii os)
+  (liii path)
+  (liii os)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -29,23 +29,39 @@
 
 ;; 边界情况测试
 (check (path-exists? "") => #f)
-(check (path-exists? "nonexistent") => #f)
+(check (path-exists? "nonexistent")
+  =>
+  #f
+) ;check
 (check (path-exists? "#/null") => #f)
 
 ;; 系统路径测试
 (when (not (os-windows?))
   (check-true (path-exists? "/"))
   (check-true (path-exists? "/etc"))
-  (check-true (path-exists? "/etc/passwd"))
-  (check (path-exists? "/no_such_file") => #f)
-  (check (path-exists? "/not/a/real/path") => #f)
+  (check-true (path-exists? "/etc/passwd")
+  ) ;check-true
+  (check (path-exists? "/no_such_file")
+    =>
+    #f
+  ) ;check
+  (check (path-exists? "/not/a/real/path")
+    =>
+    #f
+  ) ;check
 ) ;when
 
 (when (os-windows?)
   (check-true (path-exists? "C:/"))
   (check-true (path-exists? "C:/Windows"))
-  (check-true (path-exists? "C:\\Windows\\System32\\drivers\\etc\\hosts"))
-  (check (path-exists? "C:\\Windows\\InvalidPath") => #f)
+  (check-true (path-exists? "C:\\Windows\\System32\\drivers\\etc\\hosts"
+              ) ;path-exists?
+  ) ;check-true
+  (check (path-exists? "C:\\Windows\\InvalidPath"
+         ) ;path-exists?
+    =>
+    #f
+  ) ;check
 ) ;when
 
 (check-report)

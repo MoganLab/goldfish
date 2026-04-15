@@ -117,7 +117,8 @@
   '("text" symbol)
 ) ;check
 (check (cdr '(#
-ewline #	ab #\space))
+ewline #	ab #\space)
+       ) ;cdr
   =>
   '(#	ab #\space)
 ) ;check
@@ -127,9 +128,9 @@ ewline #	ab #\space))
   '(#(3 4))
 ) ;check
 (check (cdr '(+ - * /)) => '(- * /))
-(check (cdr '('(a b) '(c d)))
+(check (cdr '((#_quote (a b)) (#_quote (c d))))
   =>
-  '('(c d))
+  '((#_quote (c d)))
 ) ;check
 ;; 极端边界条件测试
 (check (cdr '((lambda (x) x) (lambda (y) y)))

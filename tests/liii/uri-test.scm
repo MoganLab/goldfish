@@ -95,55 +95,75 @@
 ;; ==== 常见用法示例 ====
 
 ;; 示例1：从字符串解析 URI 并访问组件
-(define u1 (string->uri "https://user:pass@api.example.com:8443/v1/users?id=123#profile"))
-(uri-scheme u1)    ; => "https"
-(uri-host u1)      ; => "api.example.com"
-(uri-port u1)      ; => 8443
-(uri-path u1)      ; => "/v1/users"
-(uri-query-ref u1 "id") ; => "123"
-(uri-fragment u1)  ; => "profile"
+(define u1
+  (string->uri "https://user:pass@api.example.com:8443/v1/users?id=123#profile"
+  ) ;string->uri
+) ;define
+(uri-scheme u1)
+(uri-host u1)
+(uri-port u1)
+(uri-path u1)
+(uri-query-ref u1 "id")
+(uri-fragment u1)
 
 ;; 示例2：构造 API 请求 URI
-(define base-uri (string->uri "https://api.example.com/v1"))
+(define base-uri
+  (string->uri "https://api.example.com/v1"
+  ) ;string->uri
+) ;define
 (define api-uri
-  (uri-extend-query
-    (uri-join-path base-uri "users" "123")
+  (uri-extend-query (uri-join-path base-uri "users" "123")
     '(("fields" . "name,email") ("include" . "profile"))
   ) ;uri-extend-query
 ) ;define
 (uri->string api-uri)
-; => "https://api.example.com/v1/users/123?fields=name%2Cemail&include=profile"
 
 ;; 示例3：修改 URI 的 scheme（http 转 https）
-(define insecure (string->uri "http://example.com/path"))
-(define secure (uri-with-scheme insecure "https"))
-(uri->string secure)  ; => "https://example.com/path"
+(define insecure
+  (string->uri "http://example.com/path")
+) ;define
+(define secure
+  (uri-with-scheme insecure "https")
+) ;define
+(uri->string secure)
 
 ;; 示例4：移除敏感信息，生成日志友好的 URI
-(define sensitive (string->uri "https://admin:secret@db.example.com:3306/admin?password=123"))
+(define sensitive
+  (string->uri "https://admin:secret@db.example.com:3306/admin?password=123"
+  ) ;string->uri
+) ;define
 (uri->human-string sensitive)
-; => "https://db.example.com:3306/admin"
 
 ;; 示例5：分页 API 请求构造
-(define list-api (string->uri "https://api.example.com/items"))
+(define list-api
+  (string->uri "https://api.example.com/items"
+  ) ;string->uri
+) ;define
 (define page-2
-  (uri-extend-query list-api '(("page" . "2") ("limit" . "20")))
+  (uri-extend-query list-api
+    '(("page" . "2") ("limit" . "20"))
+  ) ;uri-extend-query
 ) ;define
 (uri->string page-2)
-; => "https://api.example.com/items?page=2&limit=20"
 
 ;; 示例6：合并基础 URI 和相对路径
-(define base (string->uri "https://example.com/docs/api/"))
-(define ref (string->uri "../guide/intro.md"))
+(define base
+  (string->uri "https://example.com/docs/api/"
+  ) ;string->uri
+) ;define
+(define ref
+  (string->uri "../guide/intro.md")
+) ;define
 (uri->string (uri-join base ref))
-; => "https://example.com/docs/guide/intro.md"
 
 ;; 示例7：检查 URI 是否使用默认端口
-(uri-default-port? (string->uri "https://example.com/"))       ; => #t
-(uri-default-port? (string->uri "https://example.com:8443/"))  ; => #f
+(uri-default-port? (string->uri "https://example.com/")
+) ;uri-default-port?
+(uri-default-port? (string->uri "https://example.com:8443/"
+                   ) ;string->uri
+) ;uri-default-port?
 
 ;; 示例8：URI 相等比较（忽略默认端口差异）
 (uri=? (string->uri "https://example.com/")
-       (string->uri "https://example.com:443/")
+  (string->uri "https://example.com:443/")
 ) ;uri=?
-; => #t

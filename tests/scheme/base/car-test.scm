@@ -96,20 +96,20 @@
   '((1 2) 3)
 ) ;check
 (check (car '(() b c)) => '())
-(check (car '('(a b) '(c d)))
+(check (car '((#_quote (a b)) (#_quote (c d))))
   =>
-  ''(a b)
+  '(#_quote (a b))
 ) ;check
-(check (car '('(a b) '(c d)))
+(check (car '((#_quote (a b)) (#_quote (c d))))
   =>
-  ''(a b)
+  '(#_quote (a b))
 ) ;check
 ;; 向量和字节向量作为car值测试
 (check (car '(#(1 2 3) #(4 5)))
   =>
   #(1 2 3)
 ) ;check
-(check (car '(#u8(255 128) #u8(1 2)))
+(check (car '(#(255 128) #(1 2)))
   =>
   #u8(255 128)
 ) ;check
@@ -132,9 +132,10 @@
   "中文"
 ) ;check
 (check (car '("🙂" "🚀")) => "🙂")
-(check (car '((list 'a 'b) 'c))
+(check (car '((list (#_quote a) (#_quote b)) (#_quote c))
+       ) ;car
   =>
-  '(list 'a 'b)
+  '(list (#_quote a) (#_quote b))
 ) ;check
 ;; 函数和过程对象作为car值测试
 (check (car '((lambda (x) (* x x)) (lambda (y) (+ y 1)))

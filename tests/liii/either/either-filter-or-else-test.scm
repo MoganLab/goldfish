@@ -1,6 +1,6 @@
 (import (liii check)
-        (liii error)
-        (liii either)
+  (liii error)
+  (liii either)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -42,21 +42,46 @@
 
 (let ((r10 (from-right 10))
       (r11 (from-right 11))
-      (l (from-left "orig")))
-  (check (to-right (either-filter-or-else even? "err" r10)) => 10)
+      (l (from-left "orig"))
+     ) ;
+  (check (to-right (either-filter-or-else even? "err" r10)
+         ) ;to-right
+    =>
+    10
+  ) ;check
 
-  (let ((res (either-filter-or-else even? "Must be even" r11)))
+  (let ((res (either-filter-or-else even?
+               "Must be even"
+               r11
+             ) ;either-filter-or-else
+        ) ;res
+       ) ;
     (check-true (either-left? res))
     (check (to-left res) => "Must be even")
   ) ;let
 
-  (let ((res-l (either-filter-or-else even? "Must be even" l)))
+  (let ((res-l (either-filter-or-else even?
+                 "Must be even"
+                 l
+               ) ;either-filter-or-else
+        ) ;res-l
+       ) ;
     (check-true (either-left? res-l))
     (check (to-left res-l) => "orig")
   ) ;let
 ) ;let
 
-(check-catch 'type-error (either-filter-or-else even? 0 "not-either"))
-(check-catch 'type-error (either-filter-or-else "not-a-proc" 0 (from-right 10)))
+(check-catch 'type-error
+  (either-filter-or-else even?
+    0
+    "not-either"
+  ) ;either-filter-or-else
+) ;check-catch
+(check-catch 'type-error
+  (either-filter-or-else "not-a-proc"
+    0
+    (from-right 10)
+  ) ;either-filter-or-else
+) ;check-catch
 
 (check-report)
