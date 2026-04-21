@@ -100,20 +100,10 @@
               (else (loop (cdr legacy-paths)))))
           (car paths))))
 
-    (define (read-all-string port)
-      (let loop ((result ""))
-        (let ((chunk (read-string 4096 port)))
-          (if (eof-object? chunk)
-              result
-              (loop (string-append result chunk))))))
-
-    (define (read-file path)
-      (call-with-input-file path read-all-string))
-
     (define (node-rules)
       (if *node-rules*
           *node-rules*
-          (let ((rules (string->json (read-file (find-node-rules-path)))))
+          (let ((rules (string->json (path-read-text (find-node-rules-path)))))
             (set! *node-rules* rules)
             rules)))
 
