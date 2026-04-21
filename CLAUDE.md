@@ -12,18 +12,52 @@
 - 使用空格进行缩进，而不是制表符
 - 建议缩进宽度为2个空格
 
-## 代码格式化工具
-Goldfish 内置了代码格式化工具 `gf fix`，用于自动格式化 Scheme 代码。
+## CLI 工具
 
-### 基本用法
+### gf doc - 文档浏览工具
+`gf doc` 用于浏览 Goldfish Scheme 库的文档和测试用例。
+
+```bash
+# 查看某个库的文档
+bin/gf doc scheme/base
+
+# 查看某个函数的文档
+bin/gf doc substring
+
+# 查看指定库下某个函数的文档
+bin/gf doc scheme/base "substring"
+
+# 重建函数索引（在新增或修改测试文件后执行）
+bin/gf doc --build-json
+```
+
+文档来源是 `tests/` 目录下的 `*-test.scm` 测试文件。为函数添加文档时，只需在对应库的路径下创建 `函数名-test.scm` 测试文件，然后执行 `bin/gf doc --build-json` 更新索引。
+
+### gf fmt - 代码格式化工具
+`gf fmt` 用于自动格式化 Scheme 代码（调整缩进、换行等）。
+
 ```bash
 # 格式化单个文件（原地修改）
-bin/gf fix goldfish/liii/os.scm
+bin/gf fmt goldfish/liii/os.scm
 
 # 格式化整个目录（原地修改）
-bin/gf fix goldfish/
+bin/gf fmt goldfish/
 
 # 仅查看格式化结果（不修改文件）
+bin/gf fmt --dry-run goldfish/liii/os.scm
+```
+
+### gf fix - 括号修正工具
+`gf fix` 用于根据缩进自动修正 Scheme 代码的括号。
+
+```bash
+# 修正单个文件（原地修改）
+bin/gf fix goldfish/liii/os.scm
+
+# 修正整个目录（原地修改）
+bin/gf fix goldfish/
+
+# 仅查看修正结果（不修改文件）
 bin/gf fix --dry-run goldfish/liii/os.scm
 ```
 
@@ -34,8 +68,8 @@ bin/gf fix --dry-run goldfish/liii/os.scm
 xmake b goldfish
 
 # 2. 格式化代码
-bin/gf fix goldfish/liii/xxx.scm
-bin/gf fix tests/goldfish/liii/xxx-test.scm
+bin/gf fmt goldfish/liii/xxx.scm
+bin/gf fmt tests/goldfish/liii/xxx-test.scm
 
 # 3. 运行测试
 bin/gf tests/goldfish/liii/xxx-test.scm

@@ -32,7 +32,13 @@
 ;;
 ;; 描述
 ;; ----
-;; 与 string-substring 不同，utf8-substring 基于 Unicode 字符位置而非字节位置进行提取。
+;; 与 substring 不同，utf8-substring 基于 Unicode 字符位置而非字节位置进行提取。
+;; 对于纯 ASCII 字符串，两者效果相同；对于包含中文、emoji 等多字节字符的字符串，
+;; 应使用 utf8-substring 以避免字符被拆断。
+;;
+;; 相关函数
+;; ----
+;; (scheme base) 中的 substring — R7RS 标准子串提取函数。
 ;;
 ;; 错误处理
 ;; ----
