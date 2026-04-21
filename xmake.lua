@@ -220,6 +220,7 @@ xpack ("goldfish")
     add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")
     add_sourcefiles("gfproject.json")
+    add_sourcefiles("node-rules.json")
     on_load(function (package)
         if package:with_source() then
             package:set("basename", "goldfish-scheme-src-v$(version)")
