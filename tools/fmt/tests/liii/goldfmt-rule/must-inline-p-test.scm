@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -27,6 +28,9 @@
 
 (check (must-inline? "quote") => #f)
 (check (must-inline? "+") => #f)
-(check (must-inline? "unknown-tag") => #f)
+(check (must-inline? "unknown-tag")
+  =>
+  #f
+) ;check
 
 (check-report)

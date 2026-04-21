@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -25,9 +26,24 @@
 ;; 该规则来自 `node-rules.json` 的 neverInlineWhenFirstChildEnv 字段。
 ;; 典型例子是函数形式的 define：`(define (f x) body)`。
 
-(check (never-inline-when-first-child-env? "define") => #t)
-(check (never-inline-when-first-child-env? "define-values") => #t)
-(check (never-inline-when-first-child-env? "+") => #f)
-(check (never-inline-when-first-child-env? "unknown-tag") => #f)
+(check (never-inline-when-first-child-env? "define"
+       ) ;never-inline-when-first-child-env?
+  =>
+  #t
+) ;check
+(check (never-inline-when-first-child-env? "define-values"
+       ) ;never-inline-when-first-child-env?
+  =>
+  #t
+) ;check
+(check (never-inline-when-first-child-env? "+")
+  =>
+  #f
+) ;check
+(check (never-inline-when-first-child-env? "unknown-tag"
+       ) ;never-inline-when-first-child-env?
+  =>
+  #f
+) ;check
 
 (check-report)

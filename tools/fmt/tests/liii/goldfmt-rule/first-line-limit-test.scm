@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -28,6 +29,9 @@
 (check (first-line-limit "begin") => 0)
 (check (first-line-limit "do") => 2)
 (check (first-line-limit "+") => 1)
-(check (first-line-limit "unknown-tag") => 1)
+(check (first-line-limit "unknown-tag")
+  =>
+  1
+) ;check
 
 (check-report)

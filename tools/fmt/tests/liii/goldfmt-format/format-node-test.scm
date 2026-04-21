@@ -1,15 +1,17 @@
 (import (liii check)
-        (liii goldfmt-format)
-        (liii goldfmt-record)
-        (liii goldfmt-scan)
-        (liii raw-string))
+  (liii goldfmt-format)
+  (liii goldfmt-record)
+  (liii goldfmt-scan)
+  (liii raw-string)
+) ;import
 
 (check-set-mode! 'report-failed)
 
 (define (format-node-text node column)
-  (call-with-values
-    (lambda () (format-node node column))
-    (lambda (text new-node) text)))
+  (call-with-values (lambda () (format-node node column))
+    (lambda (text new-node) text)
+  ) ;call-with-values
+) ;define
 
 ;; format-node
 ;; 从指定列开始格式化一个 node。
@@ -46,54 +48,73 @@
 ;;   (lambda () (format-node (scan '(define x 1)) 0))
 ;;   (lambda (text positioned-node) text))
 
-(check (format-node-text (scan '(define x 1)) 0)
-       => "(define x 1)")
+(check (format-node-text (scan '(define x 1))
+         0
+       ) ;format-node-text
+  =>
+  "(define x 1)"
+) ;check
 
-(call-with-values
-  (lambda () (format-node (scan 'answer) 4))
+(call-with-values (lambda ()
+                    (format-node (scan 'answer) 4)
+                  ) ;lambda
   (lambda (text node)
     (check text => "answer")
     (check (atom-indent node) => 4)
     (check (atom-left-line node) => 1)
-    (check (atom-right-line node) => 1)))
+    (check (atom-right-line node) => 1)
+  ) ;lambda
+) ;call-with-values
 
-(call-with-values
-  (lambda () (format-node (scan '(*comment* "hello")) 0))
+(call-with-values (lambda ()
+                    (format-node (scan '(*comment* "hello"))
+                      0
+                    ) ;format-node
+                  ) ;lambda
   (lambda (text node)
     (check text => ";; hello")
     (check (env-indent node) => 0)
     (check (env-left-line node) => 1)
     (check (env-right-line node) => 1)
-    (let ((content (vector-ref (env-children node) 0)))
+    (let ((content (vector-ref (env-children node) 0)
+          ) ;content
+         ) ;
       (check (atom-indent content) => 3)
       (check (atom-left-line content) => 1)
-      (check (atom-right-line content) => 1))))
+      (check (atom-right-line content) => 1)
+    ) ;let
+  ) ;lambda
+) ;call-with-values
 
-(call-with-values
-  (lambda () (format-node (scan '(*comment* "")) 2))
+(call-with-values (lambda ()
+                    (format-node (scan '(*comment* "")) 2)
+                  ) ;lambda
   (lambda (text node)
     (check text => ";;")
     (check (env-indent node) => 2)
-    (let ((content (vector-ref (env-children node) 0)))
-      (check (atom-indent content) => 4))))
+    (let ((content (vector-ref (env-children node) 0)
+          ) ;content
+         ) ;
+      (check (atom-indent content) => 4)
+    ) ;let
+  ) ;lambda
+) ;call-with-values
 
-(check (format-node-text (scan '(begin (display "x") (newline))) 2)
-       => (&- "
-            (begin
-                (display \"x\")
-                (newline)
-              ) ;begin
-            "))
+(check (format-node-text (scan '(begin (display "x") (newline)))
+         2
+       ) ;format-node-text
+  =>
+  (&- "\n            (begin\n                (display \"x\")\n                (newline)\n              ) ;begin\n            "
+  ) ;&-
+) ;check
 
-(check (format-node-text (scan '(if (very-long-predicate-name x)
-                                    (compute-true-branch x)
-                                    (compute-false-branch x)))
-                         4)
-       => (&- "
-            (if (very-long-predicate-name x)
-                  (compute-true-branch x)
-                  (compute-false-branch x)
-                ) ;if
-            "))
+(check (format-node-text (scan '(if (very-long-predicate-name x) (compute-true-branch x) (compute-false-branch x))
+                         ) ;scan
+         4
+       ) ;format-node-text
+  =>
+  (&- "\n            (if (very-long-predicate-name x)\n                  (compute-true-branch x)\n                  (compute-false-branch x)\n                ) ;if\n            "
+  ) ;&-
+) ;check
 
 (check-report)

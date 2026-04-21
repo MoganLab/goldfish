@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-record))
+  (liii goldfmt-record)
+) ;import
 
 ;; env?
 ;; 判断一个值是否为 env 记录。
@@ -25,8 +26,14 @@
 
 ;; 测试 make-env 返回的对象是 env
 (check (env? (make-env)) => #t)
-(check (env? (make-env :tag-name "test")) => #t)
-(check (env? (make-env :depth 1 :indent 2)) => #t)
+(check (env? (make-env :tag-name "test"))
+  =>
+  #t
+) ;check
+(check (env? (make-env :depth 1 :indent 2))
+  =>
+  #t
+) ;check
 
 ;; 测试非 env 对象返回 #f
 (check (env? "string") => #f)

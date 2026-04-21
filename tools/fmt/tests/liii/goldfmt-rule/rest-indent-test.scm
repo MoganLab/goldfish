@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -28,9 +29,21 @@
 ;; 该规则来自 `node-rules.json` 的 restIndent 字段。
 ;; formatter 使用它决定第一行之后的 children 应该如何缩进。
 
-(check (rest-indent "cond") => 'align-to-first-selected-env)
-(check (rest-indent "let") => 'parent-plus2)
-(check (rest-indent "+") => 'by-first-rest-child)
-(check (rest-indent "unknown-tag") => 'by-first-rest-child)
+(check (rest-indent "cond")
+  =>
+  'align-to-first-selected-env
+) ;check
+(check (rest-indent "let")
+  =>
+  'parent-plus2
+) ;check
+(check (rest-indent "+")
+  =>
+  'by-first-rest-child
+) ;check
+(check (rest-indent "unknown-tag")
+  =>
+  'by-first-rest-child
+) ;check
 
 (check-report)

@@ -60,34 +60,166 @@
 (check (env-tag-name (make-env)) => "")
 (check (env-depth (make-env)) => 0)
 (check (env-indent (make-env)) => -1)
-(check (env-children (make-env)) => (vector))
+(check (env-children (make-env))
+  =>
+  (vector)
+) ;check
 (check (env-left-line (make-env)) => 0)
 (check (env-right-line (make-env)) => 0)
 (check (env-value (make-env)) => #f)
 
 ;; 测试指定所有参数
-(check (env-tag-name (make-env :tag-name "if" :depth 1 :indent 2 :children (vector) :left-line 3 :right-line 5)) => "if")
-(check (env-depth (make-env :tag-name "if" :depth 1 :indent 2 :children (vector) :left-line 3 :right-line 5)) => 1)
-(check (env-indent (make-env :tag-name "if" :depth 1 :indent 2 :children (vector) :left-line 3 :right-line 5)) => 2)
-(check (env-left-line (make-env :tag-name "if" :depth 1 :indent 2 :children (vector) :left-line 3 :right-line 5)) => 3)
-(check (env-right-line (make-env :tag-name "if" :depth 1 :indent 2 :children (vector) :left-line 3 :right-line 5)) => 5)
+(check (env-tag-name (make-env :tag-name
+                       "if"
+                       :depth
+                       1
+                       :indent
+                       2
+                       :children
+                       (vector)
+                       :left-line
+                       3
+                       :right-line
+                       5
+                     ) ;make-env
+       ) ;env-tag-name
+  =>
+  "if"
+) ;check
+(check (env-depth (make-env :tag-name
+                    "if"
+                    :depth
+                    1
+                    :indent
+                    2
+                    :children
+                    (vector)
+                    :left-line
+                    3
+                    :right-line
+                    5
+                  ) ;make-env
+       ) ;env-depth
+  =>
+  1
+) ;check
+(check (env-indent (make-env :tag-name
+                     "if"
+                     :depth
+                     1
+                     :indent
+                     2
+                     :children
+                     (vector)
+                     :left-line
+                     3
+                     :right-line
+                     5
+                   ) ;make-env
+       ) ;env-indent
+  =>
+  2
+) ;check
+(check (env-left-line (make-env :tag-name
+                        "if"
+                        :depth
+                        1
+                        :indent
+                        2
+                        :children
+                        (vector)
+                        :left-line
+                        3
+                        :right-line
+                        5
+                      ) ;make-env
+       ) ;env-left-line
+  =>
+  3
+) ;check
+(check (env-right-line (make-env :tag-name
+                         "if"
+                         :depth
+                         1
+                         :indent
+                         2
+                         :children
+                         (vector)
+                         :left-line
+                         3
+                         :right-line
+                         5
+                       ) ;make-env
+       ) ;env-right-line
+  =>
+  5
+) ;check
 
 ;; 测试指定部分参数
-(check (env-tag-name (make-env :tag-name "lambda")) => "lambda")
-(check (env-depth (make-env :depth 5)) => 5)
-(check (env-indent (make-env :indent 4)) => 4)
-(check (env-left-line (make-env :left-line 10)) => 10)
-(check (env-right-line (make-env :right-line 20)) => 20)
-(check (env-value (make-env :value '(define x 1))) => '(define x 1))
+(check (env-tag-name (make-env :tag-name "lambda")
+       ) ;env-tag-name
+  =>
+  "lambda"
+) ;check
+(check (env-depth (make-env :depth 5))
+  =>
+  5
+) ;check
+(check (env-indent (make-env :indent 4))
+  =>
+  4
+) ;check
+(check (env-left-line (make-env :left-line 10))
+  =>
+  10
+) ;check
+(check (env-right-line (make-env :right-line 20)
+       ) ;env-right-line
+  =>
+  20
+) ;check
+(check (env-value (make-env :value '(define x 1))
+       ) ;env-value
+  =>
+  '(define x 1)
+) ;check
 
 ;; 测试空标签
-(check (env-tag-name (make-env :tag-name "")) => "")
+(check (env-tag-name (make-env :tag-name ""))
+  =>
+  ""
+) ;check
 
 ;; 测试带子环境
-(let* ((child (make-env :tag-name "child" :depth 1 :indent 2))
-       (parent (make-env :tag-name "parent" :depth 0 :indent 0 :children (vector child))))
-  (check (vector-length (env-children parent)) => 1)
-  (check (env-tag-name (vector-ref (env-children parent) 0)) => "child"))
+(let* ((child (make-env :tag-name
+                "child"
+                :depth
+                1
+                :indent
+                2
+              ) ;make-env
+       ) ;child
+       (parent (make-env :tag-name
+                 "parent"
+                 :depth
+                 0
+                 :indent
+                 0
+                 :children
+                 (vector child)
+               ) ;make-env
+       ) ;parent
+      ) ;
+  (check (vector-length (env-children parent))
+    =>
+    1
+  ) ;check
+  (check (env-tag-name (vector-ref (env-children parent) 0)
+         ) ;env-tag-name
+    =>
+    "child"
+  ) ;check
+) ;let*
 
 ;; make-atom
 ;; 创建一个 atom 记录对象，用于表示字符串、数字、symbol 等无括号结构。
@@ -127,13 +259,26 @@
 ;; ----
 ;; (make-atom :depth 0 :value 'x)
 
-(let ((a (make-atom :depth 0 :indent 0 :left-line 1 :right-line 1 :value "hello")))
+(let ((a (make-atom :depth
+           0
+           :indent
+           0
+           :left-line
+           1
+           :right-line
+           1
+           :value
+           "hello"
+         ) ;make-atom
+      ) ;a
+     ) ;
   (check (atom-depth a) => 0)
   (check (atom-indent a) => 0)
   (check (atom-left-line a) => 1)
   (check (atom-right-line a) => 1)
   (check (atom-value a) => "hello")
-  (check (atom? a) => #t))
+  (check (atom? a) => #t)
+) ;let
 
 (check-report)
 
