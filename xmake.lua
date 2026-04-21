@@ -159,6 +159,7 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/gfproject.json", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
 end
