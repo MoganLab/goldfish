@@ -1,8 +1,8 @@
 (import (liii check)
-        (liii goldfmt-format)
-        (liii goldfmt-record)
-        (liii goldfmt-scan)
-        (liii raw-string)
+  (liii goldfmt-format)
+  (liii goldfmt-record)
+  (liii goldfmt-scan)
+  (liii raw-string)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -37,8 +37,7 @@
 
 ;; atom：从非 0 列开始输出时，返回的新 atom 记录该列。
 (let ((node (scan 'answer)))
-  (call-with-values
-    (lambda () (format-node node 4))
+  (call-with-values (lambda () (format-node node 4))
     (lambda (text positioned)
       (check text => "answer")
       (check (atom-indent node) => -1)
@@ -46,15 +45,17 @@
       (check (atom-right-line node) => 0)
       (check (atom-indent positioned) => 4)
       (check (atom-left-line positioned) => 1)
-      (check (atom-right-line positioned) => 1)
+      (check (atom-right-line positioned)
+        =>
+        1
+      ) ;check
     ) ;lambda
   ) ;call-with-values
 ) ;let
 
 ;; inline env：父子节点都在同一行时，仍然记录各自的起始列。
 (let ((node (scan '(+ (f x) 1))))
-  (call-with-values
-    (lambda () (format-node node 0))
+  (call-with-values (lambda () (format-node node 0))
     (lambda (text positioned)
       (check text => "(+ (f x) 1)")
       (check (env-indent node) => -1)
@@ -62,16 +63,27 @@
       (check (env-left-line positioned) => 1)
       (check (env-right-line positioned) => 1)
       (let ((call-node (child positioned 0))
-            (one (child positioned 1)))
+            (one (child positioned 1))
+           ) ;
         (check (env-indent call-node) => 3)
         (check (env-left-line call-node) => 1)
         (check (env-right-line call-node) => 1)
-        (check (atom-indent (child call-node 0)) => 6)
-        (check (atom-left-line (child call-node 0)) => 1)
-        (check (atom-right-line (child call-node 0)) => 1)
+        (check (atom-indent (child call-node 0))
+          =>
+          6
+        ) ;check
+        (check (atom-left-line (child call-node 0))
+          =>
+          1
+        ) ;check
+        (check (atom-right-line (child call-node 0))
+          =>
+          1
+        ) ;check
         (check (atom-indent one) => 9)
         (check (atom-left-line one) => 1)
-      (check (atom-right-line one) => 1))
+        (check (atom-right-line one) => 1)
+      ) ;let
     ) ;lambda
   ) ;call-with-values
 ) ;let
@@ -79,26 +91,30 @@
 ;; 函数 define：签名环境在第一行，body 环境另起一行。
 ;; format-node 返回新的 positioned node，原始 scan 结果保持未布局状态。
 (let ((node (scan '(define (f x) (+ x 1)))))
-  (call-with-values
-    (lambda () (format-node node 0))
+  (call-with-values (lambda () (format-node node 0))
     (lambda (text positioned)
-        (check text
-               => (&- #""
+      (check text
+        =>
+        (&- #""
                        (define (f x)
                          (+ x 1)
                        ) ;define
                        ""
-                  ) ;&-
-        ) ;check
+        ) ;&-
+      ) ;check
       (check (env-indent node) => -1)
       (check (env-left-line node) => 0)
       (check (env-right-line node) => 0)
-      (check (env-indent (child node 0)) => -1)
+      (check (env-indent (child node 0))
+        =>
+        -1
+      ) ;check
       (check (env-indent positioned) => 0)
       (check (env-left-line positioned) => 1)
       (check (env-right-line positioned) => 3)
       (let ((signature (child positioned 0))
-            (body (child positioned 1)))
+            (body (child positioned 1))
+           ) ;
         (check (env-indent signature) => 8)
         (check (env-left-line signature) => 1)
         (check (env-right-line signature) => 1)
@@ -106,7 +122,8 @@
         (check (env-left-line body) => 2)
         (check (env-right-line body) => 2)
         (let ((x (child body 0))
-              (one (child body 1)))
+              (one (child body 1))
+             ) ;
           (check (atom-indent x) => 5)
           (check (atom-left-line x) => 2)
           (check (atom-right-line x) => 2)
@@ -120,21 +137,15 @@
 ) ;let
 
 ;; let：bindings 环境在第一行，body 使用 parent+2 缩进。
-(let
-  ((node
-     (scan '(let ((x (begin
-                       (display "computing")
-                       (compute-x arg1)))
-                  (y 20))
-              (+ x y))
-     ) ;scan
-   ) ;node
-  ) ;
-  (call-with-values
-    (lambda () (format-node node 0))
+(let ((node (scan '(let ((x (begin (display "computing") (compute-x arg1))) (y 20)) (+ x y))
+            ) ;scan
+      ) ;node
+     ) ;
+  (call-with-values (lambda () (format-node node 0))
     (lambda (text positioned)
       (check text
-             => (&- #""
+        =>
+        (&- #""
                      (let ((x (begin
                                 (display "computing")
                                 (compute-x arg1)
@@ -145,7 +156,7 @@
                        (+ x y)
                      ) ;let
                      ""
-                ) ;&-
+        ) ;&-
       ) ;check
       (check (env-indent node) => -1)
       (check (env-left-line node) => 0)
@@ -156,7 +167,8 @@
       (let* ((bindings (child positioned 0))
              (binding-x (child bindings 0))
              (begin-node (child binding-x 0))
-             (body (child positioned 1)))
+             (body (child positioned 1))
+            ) ;
         (check (env-indent bindings) => 5)
         (check (env-left-line bindings) => 1)
         (check (env-right-line bindings) => 7)
@@ -175,20 +187,15 @@
 ) ;let
 
 ;; cond：第一个 clause 在第一行，后续 clause 与它对齐。
-(let
-  ((node
-     (scan '(cond ((or (> x 0) (< x 0))
-                   (begin
-                     (display "non-zero")
-                     (quote non-zero)))
-                  (else (quote zero))))
-   ) ;node
-  ) ;
-  (call-with-values
-    (lambda () (format-node node 0))
+(let ((node (scan '(cond ((or (> x 0) (< x 0)) (begin (display "non-zero") (quote non-zero))) (else (quote zero)))
+            ) ;scan
+      ) ;node
+     ) ;
+  (call-with-values (lambda () (format-node node 0))
     (lambda (text positioned)
       (check text
-             => (&- #""
+        =>
+        (&- #""
                      (cond ((or (> x 0) (< x 0))
                             (begin
                               (display "non-zero")
@@ -198,8 +205,8 @@
                            (else 'zero)
                      ) ;cond
                      ""
-                ) ;&-
-      ) ; check
+        ) ;&-
+      ) ;check
       (check (env-indent node) => -1)
       (check (env-left-line node) => 0)
       (check (env-right-line node) => 0)
@@ -209,7 +216,8 @@
       (let* ((clause1 (child positioned 0))
              (or-node (child clause1 0))
              (begin-node (child clause1 1))
-             (clause2 (child positioned 1)))
+             (clause2 (child positioned 1))
+            ) ;
         (check (env-indent clause1) => 6)
         (check (env-left-line clause1) => 1)
         (check (env-right-line clause1) => 6)

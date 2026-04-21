@@ -1,7 +1,7 @@
 (import (liii check)
-        (liii goldfmt-format)
-        (liii goldfmt-record)
-        (liii raw-string)
+  (liii goldfmt-format)
+  (liii goldfmt-record)
+  (liii raw-string)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -34,27 +34,30 @@
 ;; (format-datum '(define x 1)) ; => "(define x 1)"
 
 (check (format-datum '(define x 1))
-       => "(define x 1)"
+  =>
+  "(define x 1)"
 ) ;check
 
-(check (format-datum 'x)
-       => "x"
-) ;check
+(check (format-datum 'x) => "x")
 
 (check (format-datum "hello")
-       => "\"hello\""
+  =>
+  "\"hello\""
 ) ;check
 
 (check (format-datum '#(1 2))
-       => "#(1 2)"
+  =>
+  "#(1 2)"
 ) ;check
 
 (check (format-datum '(*comment* "hello"))
-       => ";; hello"
+  =>
+  ";; hello"
 ) ;check
 
 (check (format-datum '(*comment* ""))
-       => ";;"
+  =>
+  ";;"
 ) ;check
 
 ;; format-datum+node
@@ -80,16 +83,19 @@
 ;; ----
 ;; `format-datum+node` 是 `format-datum` 的信息保留版本，适合测试和后续需要定位信息的功能。
 
-(call-with-values
-  (lambda () (format-datum+node '(define (f x) (+ x 1))))
+(call-with-values (lambda ()
+                    (format-datum+node '(define (f x) (+ x 1))
+                    ) ;format-datum+node
+                  ) ;lambda
   (lambda (text node)
     (check text
-           => (&- #""
+      =>
+      (&- #""
                  (define (f x)
                    (+ x 1)
                  ) ;define
                  ""
-              ) ;&-
+      ) ;&-
     ) ;check
     (check (env-indent node) => 0)
     (check (env-left-line node) => 1)
@@ -98,37 +104,33 @@
 ) ;call-with-values
 
 ;; 由于 max-inline-length=40，这个表达式可以内联
-(check (format-datum '(define (factorial n)
-                        (if (= n 0)
-                            1
-                            (* n (factorial (- n 1)))))
-                        ) ;if
-       => (&- #""
+(check (format-datum '(define (factorial n) (if (= n 0) 1 (* n (factorial (- n 1)))))
+       ) ;format-datum
+  =>
+  (&- #""
                (define (factorial n)
                  (if (= n 0) 1 (* n (factorial (- n 1))))
                ) ;define
                ""
-               ) ;
+  ) ;&-
 ) ;check
 
-(check (format-datum '(if (very-long-predicate-name x)
-                          (compute-true-branch x)
-                          (compute-false-branch x)))
-       => (&- #""
+(check (format-datum '(if (very-long-predicate-name x) (compute-true-branch x) (compute-false-branch x))
+       ) ;format-datum
+  =>
+  (&- #""
             (if (very-long-predicate-name x)
               (compute-true-branch x)
               (compute-false-branch x)
             ) ;if
             ""
-          ) ;&-
+  ) ;&-
 ) ;check
 
-(check (format-datum '(let ((x (begin
-                                  (display "computing")
-                                  (compute-x arg1)))
-                             (y 20))
-                         (+ x y)))
-       => (&- #""
+(check (format-datum '(let ((x (begin (display "computing") (compute-x arg1))) (y 20)) (+ x y))
+       ) ;format-datum
+  =>
+  (&- #""
              (let ((x (begin
                         (display "computing")
                         (compute-x arg1)
@@ -139,33 +141,40 @@
                (+ x y)
              ) ;let
              ""
-       ) ;&-
+  ) ;&-
 ) ;check
 
 ;; 阶段1: quote 格式测试
 ;; 单引号应该输出为 'xxx 形式，而不是 (quote xxx) 或 (#_quote xxx)
 (check (format-datum '(quote x))
-       => "'x"
+  =>
+  "'x"
 ) ;check
 
 (check (format-datum '(quote (a b c)))
-       => "'(a b c)"
+  =>
+  "'(a b c)"
 ) ;check
 
-(check (format-datum '(set! x 'value))
-       => "(set! x 'value)"
+(check (format-datum '(set! x (#_quote value)))
+  =>
+  "(set! x 'value)"
 ) ;check
 
-(check (format-datum '(f 'a 'b))
-       => "(f 'a 'b)"
+(check (format-datum '(f (#_quote a) (#_quote b))
+       ) ;format-datum
+  =>
+  "(f 'a 'b)"
 ) ;check
 
-(check (format-datum ''symbol)
-       => "'symbol"
+(check (format-datum '(#_quote symbol))
+  =>
+  "'symbol"
 ) ;check
 
-(check (format-datum ''(a b c))
-       => "'(a b c)"
+(check (format-datum '(#_quote (a b c)))
+  =>
+  "'(a b c)"
 ) ;check
 
 ;; 测试嵌套 quote 形式 '(quote define)
@@ -173,21 +182,27 @@
 ;; 内部的 (quote define) 是普通列表，不应被压缩
 ;; 所以输出保持为 '(quote define)
 (check (format-datum '(#_quote (quote define)))
-       => "'(quote define)"
+  =>
+  "'(quote define)"
 ) ;check
 
 ;; 测试 '(quote x) 的格式化
 (check (format-datum '(#_quote (quote x)))
-       => "'(quote x)"
+  =>
+  "'(quote x)"
 ) ;check
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法
-(check (format-datum (read (open-input-string "`(a ,b)")))
-       => "`(a ,b)"
+(check (format-datum (read (open-input-string "`(a ,b)"))
+       ) ;format-datum
+  =>
+  "`(a ,b)"
 ) ;check
 
-(check (format-datum (read (open-input-string "`(a ,@b)")))
-       => "`(a ,@b)"
+(check (format-datum (read (open-input-string "`(a ,@b)"))
+       ) ;format-datum
+  =>
+  "`(a ,@b)"
 ) ;check
 
 (check-report)

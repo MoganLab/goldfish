@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -20,13 +21,51 @@
 ;; boolean?
 ;; 返回 #t 表示两个路径有除根目录外的共同祖先。
 
-(check (path-has-common-ancestor? "/a/b/c" "/a/b/d") => #t)
-(check (path-has-common-ancestor? "/a/b/c" "/a/x/y") => #t)
-(check (path-has-common-ancestor? "/a/b/c" "/x/y/z") => #f)
-(check (path-has-common-ancestor? "/usr/local/goldfish/bin/gf" "/usr/local/goldfish/goldfish") => #t)
-(check (path-has-common-ancestor? "/usr/local/goldfish/bin/gf" "/home/da/.local/goldfish/lib") => #f)
-(check (path-has-common-ancestor? "a/b/c" "a/x/y") => #t)
-(check (path-has-common-ancestor? "a/b/c" "x/y/z") => #f)
-(check (path-has-common-ancestor? "/" "/a/b") => #f)
+(check (path-has-common-ancestor? "/a/b/c"
+         "/a/b/d"
+       ) ;path-has-common-ancestor?
+  =>
+  #t
+) ;check
+(check (path-has-common-ancestor? "/a/b/c"
+         "/a/x/y"
+       ) ;path-has-common-ancestor?
+  =>
+  #t
+) ;check
+(check (path-has-common-ancestor? "/a/b/c"
+         "/x/y/z"
+       ) ;path-has-common-ancestor?
+  =>
+  #f
+) ;check
+(check (path-has-common-ancestor? "/usr/local/goldfish/bin/gf"
+         "/usr/local/goldfish/goldfish"
+       ) ;path-has-common-ancestor?
+  =>
+  #t
+) ;check
+(check (path-has-common-ancestor? "/usr/local/goldfish/bin/gf"
+         "/home/da/.local/goldfish/lib"
+       ) ;path-has-common-ancestor?
+  =>
+  #f
+) ;check
+(check (path-has-common-ancestor? "a/b/c"
+         "a/x/y"
+       ) ;path-has-common-ancestor?
+  =>
+  #t
+) ;check
+(check (path-has-common-ancestor? "a/b/c"
+         "x/y/z"
+       ) ;path-has-common-ancestor?
+  =>
+  #f
+) ;check
+(check (path-has-common-ancestor? "/" "/a/b")
+  =>
+  #f
+) ;check
 
 (check-report)

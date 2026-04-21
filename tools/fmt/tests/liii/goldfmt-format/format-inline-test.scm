@@ -1,6 +1,7 @@
 (import (liii check)
-        (liii goldfmt-format)
-        (liii goldfmt-scan))
+  (liii goldfmt-format)
+  (liii goldfmt-scan)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -33,36 +34,58 @@
 ;; (format-inline (scan '(+ x y))) ; => "(+ x y)"
 
 (check (format-inline (scan '(+ x y)))
-       => "(+ x y)")
+  =>
+  "(+ x y)"
+) ;check
 
-(check (format-inline (scan 'x))
-       => "x")
+(check (format-inline (scan 'x)) => "x")
 
 (check (format-inline (scan "hello"))
-       => "\"hello\"")
+  =>
+  "\"hello\""
+) ;check
 
 (check (format-inline (scan #t))
-       => "#t")
+  =>
+  "#t"
+) ;check
 
 (check (format-inline (scan '()))
-       => "()")
+  =>
+  "()"
+) ;check
 
 (check (format-inline (scan '#(1 2)))
-       => "#(1 2)")
+  =>
+  "#(1 2)"
+) ;check
 
 (check (format-inline (scan '((x 1) (y 2))))
-       => "((x 1) (y 2))")
+  =>
+  "((x 1) (y 2))"
+) ;check
 
 (check (format-inline (scan '(quote (1 2 3))))
-       => "'(1 2 3)")
+  =>
+  "'(1 2 3)"
+) ;check
 
-(check (format-inline (scan '(*comment* "hello")))
-       => ";; hello")
+(check (format-inline (scan '(*comment* "hello"))
+       ) ;format-inline
+  =>
+  ";; hello"
+) ;check
 
 (check (format-inline (scan '(*comment* "")))
-       => ";;")
+  =>
+  ";;"
+) ;check
 
-(check (format-inline (scan '(*comment* "包含 \"quote\" 和 \\ slash")))
-       => ";; 包含 \"quote\" 和 \\ slash")
+(check (format-inline (scan '(*comment* "包含 \"quote\" 和 \\ slash")
+                      ) ;scan
+       ) ;format-inline
+  =>
+  ";; 包含 \"quote\" 和 \\ slash"
+) ;check
 
 (check-report)

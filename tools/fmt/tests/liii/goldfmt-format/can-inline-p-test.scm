@@ -1,6 +1,7 @@
 (import (liii check)
-        (liii goldfmt-format)
-        (liii goldfmt-scan))
+  (liii goldfmt-format)
+  (liii goldfmt-scan)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -34,37 +35,85 @@
 ;; (can-inline? (scan '(+ x y)))           ; => #t
 ;; (can-inline? (scan '(define (f x) x))) ; => #f
 
-(check (can-inline? (scan '(+ x y))) => #t)
+(check (can-inline? (scan '(+ x y)))
+  =>
+  #t
+) ;check
 
 (check (can-inline? (scan 'x)) => #t)
 
-(check (can-inline? (scan "hello")) => #t)
+(check (can-inline? (scan "hello"))
+  =>
+  #t
+) ;check
 
-(check (can-inline? (scan '(*comment* "hello"))) => #t)
+(check (can-inline? (scan '(*comment* "hello"))
+       ) ;can-inline?
+  =>
+  #t
+) ;check
 
-(check (can-inline? (scan '(*comment* ""))) => #t)
+(check (can-inline? (scan '(*comment* "")))
+  =>
+  #t
+) ;check
 
 ;; max-inline-length 当前为 40：长度等于 40 时仍可单行。
-(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #t)
+(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+                    ) ;scan
+       ) ;can-inline?
+  =>
+  #t
+) ;check
 
 ;; 超过 max-inline-length 时不能单行。
-(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #f)
+(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+                    ) ;scan
+       ) ;can-inline?
+  =>
+  #f
+) ;check
 
-(check (can-inline? (scan '(unknown a b))) => #t)
+(check (can-inline? (scan '(unknown a b)))
+  =>
+  #t
+) ;check
 
-(check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa))) => #f)
+(check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+                    ) ;scan
+       ) ;can-inline?
+  =>
+  #f
+) ;check
 
-(check (can-inline? (scan '(define x 1))) => #t)
+(check (can-inline? (scan '(define x 1)))
+  =>
+  #t
+) ;check
 
 ;; define 的第一个子节点是函数签名环境时，按规则强制跨行。
-(check (can-inline? (scan '(define (f x) x))) => #f)
+(check (can-inline? (scan '(define (f x) x)))
+  =>
+  #f
+) ;check
 
-(check (can-inline? (scan '(define-values (x) 1))) => #f)
+(check (can-inline? (scan '(define-values (x) 1))
+       ) ;can-inline?
+  =>
+  #f
+) ;check
 
 ;; begin 按规则不能单行。
-(check (can-inline? (scan '(begin x))) => #f)
+(check (can-inline? (scan '(begin x)))
+  =>
+  #f
+) ;check
 
 ;; 包含 comment 的普通 env 需要跨行处理，避免输出成 (begin ;; note x)。
-(check (can-inline? (scan '(begin (*comment* "note") x))) => #f)
+(check (can-inline? (scan '(begin (*comment* "note") x))
+       ) ;can-inline?
+  =>
+  #f
+) ;check
 
 (check-report)

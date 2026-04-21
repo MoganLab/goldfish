@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii goldfmt-rule))
+  (liii goldfmt-rule)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -25,8 +26,18 @@
 ;; 该规则来自 `node-rules.json` 的 allowFirstLineChildEnv 字段。
 ;; 未配置的 tag 会使用 default 规则。
 
-(check (allow-first-line-child-env? "quote") => #f)
-(check (allow-first-line-child-env? "define") => #t)
-(check (allow-first-line-child-env? "unknown-tag") => #t)
+(check (allow-first-line-child-env? "quote")
+  =>
+  #f
+) ;check
+(check (allow-first-line-child-env? "define")
+  =>
+  #t
+) ;check
+(check (allow-first-line-child-env? "unknown-tag"
+       ) ;allow-first-line-child-env?
+  =>
+  #t
+) ;check
 
 (check-report)
