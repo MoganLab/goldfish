@@ -382,7 +382,7 @@
       =>
       "quasiquote"
     ) ;check
-    (check (env-value root) => '`(a ,@rest))
+    (check (env-value root) => '(quasiquote (a (unquote-splicing rest))))
   ) ;let
 ) ;let
 
