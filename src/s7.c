@@ -18586,7 +18586,6 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
 }
 
-#if !WITH_GMP
 static inline s7_pointer multiply_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -18623,8 +18622,8 @@ static s7_pointer multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
     case T_COMPLEX:
       switch (type(y))
 	{
-	case T_INTEGER:	  return(wrap_real_or_complex(sc, real_part(x) * integer(y), imag_part(x) * integer(y)));
-	case T_REAL:	  return(wrap_real_or_complex(sc, real_part(x) * real(y), imag_part(x) * real(y)));
+	case T_INTEGER:	  return(wrap_real_or_complex(sc, real_part(x) * integer(y), real_part(x) * imag_part(y)));
+	case T_REAL:	  return(wrap_real_or_complex(sc, real_part(x) * real(y), imag_part(x) * imag_part(y)));
 	case T_COMPLEX:
 	  {
 	    s7_double r1 = real_part(x), r2 = real_part(y), i1 = imag_part(x), i2 = imag_part(y);
@@ -18632,9 +18631,6 @@ static s7_pointer multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
 	  }}}
   return(multiply_p_pp(sc, x, y));
 }
-#else
-#define multiply_p_pp_wrapped multiply_p_pp
-#endif
 
 static s7_pointer multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
