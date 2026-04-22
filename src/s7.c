@@ -1005,12 +1005,8 @@ typedef struct s7_cell {
     } ctr;
 
     struct {                        /* random-state */
-#if WITH_GMP
-      gmp_randstate_t state;
-#else
       s7_uint seed, carry;
       /* for 64-bit floats we probably need 4 state fields */
-#endif
     } rng;
 
     struct {                        /* additional object types (C) */
