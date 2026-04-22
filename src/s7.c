@@ -41154,7 +41154,6 @@ static hash_entry_t *hash_number_num_eq(s7_scheme *sc, s7_pointer table, s7_poin
 {
   if (is_number(key))
     {
-#if !WITH_GMP
       const hash_map_t map = hash_table_mapper(table)[type(key)];
       if (hash_table_checker(table) == hash_int)    /* surely by far the most common case? only ints */
 	{
@@ -41165,7 +41164,6 @@ static hash_entry_t *hash_number_num_eq(s7_scheme *sc, s7_pointer table, s7_poin
 	      return(entry);
 	}
       else
-#endif
 	return((is_real(key)) ? hash_real_num_eq(sc, table, key) : hash_complex_num_eq(sc, table, key));
     }
   return(sc->unentry);
@@ -46516,10 +46514,8 @@ static s7_pointer copy_to_same_type(s7_scheme *sc, s7_pointer dest, s7_pointer s
       return(dest);
 
     case T_RANDOM_STATE:
-#if !WITH_GMP
       random_seed(dest) = random_seed(source);
       random_carry(dest) = random_carry(source);
-#endif
       return(dest);
 
     case T_C_OBJECT:
@@ -51631,14 +51627,12 @@ static s7_pointer fx_random_i_wrapped(s7_scheme *sc, s7_pointer arg)
 #endif
 }
 
-#if !WITH_GMP
 static s7_pointer fx_add_i_random(s7_scheme *sc, s7_pointer arg)
 {
   s7_int x = integer(cadr(arg));
   s7_int y = opt3_int(cdr(arg)); /* cadadr */
   return(make_integer(sc, x + (s7_int)(y * next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
 }
-#endif
 
 static s7_pointer fx_add_sf(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, lookup(sc, cadr(arg)), real(opt1_con(cdr(arg))), 1));}
 static s7_pointer fx_add_fs(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, lookup(sc, caddr(arg)), real(cadr(arg)), 2));}
@@ -54631,9 +54625,7 @@ static s7_function fx_choose(s7_scheme *sc, const s7_pointer holder, const s7_po
 	{
 	case HOP_SAFE_C_NC: /* includes 0-arg cases, newline/current-input|output-port, [make-]hash-table?, read-line, [float-]vector/list, gensym */
 	  if (cdr(arg) == sc->nil) return((fn_proc(arg) == g_read_char) ? fx_read_char_0 : fx_c_0c);
-#if !WITH_GMP
 	  if (fn_proc(arg) == g_add_i_random) return(fx_add_i_random);
-#endif
 	  if (fn_proc(arg) == g_cons)
 	    {
 	      set_opt1_con(cdr(arg), caddr(arg));
