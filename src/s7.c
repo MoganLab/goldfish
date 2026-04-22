@@ -31493,15 +31493,7 @@ static void number_to_port(s7_scheme *sc, s7_pointer num, s7_pointer port, use_w
   port_write_string(port)(sc, str, nlen, port);
 }
 
-#if WITH_GMP
-static void big_number_to_port(s7_scheme *sc, s7_pointer num, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
-{
-  s7_int nlen = 0;
-  block_t *str = big_number_to_string_with_radix(sc, num, BASE_10, 0, &nlen, use_write);
-  port_write_string(port)(sc, (char *)block_data(str), nlen, port);
-  liberate(sc, str);
-}
-#endif
+
 
 static void syntax_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t unused_use_write, shared_info_t *unused_ci)
 {
