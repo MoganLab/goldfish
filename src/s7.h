@@ -23,13 +23,6 @@ typedef double s7_double;
 #endif
 #endif
 
-#if WITH_GMP
-  /* in g++ these includes need to be outside the extern "C" business */
-  #include <gmp.h>
-  #include <mpfr.h>
-  #include <mpc.h>
-#endif
-
 #if __TINYC__ || _MSC_VER
   /* _MSC_VER should also set HAVE_COMPLEX_NUMBERS to 0 */
   typedef double s7_complex;
@@ -932,22 +925,6 @@ typedef s7_double s7_Double;
 
 
 bool s7_is_bignum(s7_pointer obj);
-#if WITH_GMP
-  mpfr_t *s7_big_real(s7_pointer x);
-  mpz_t  *s7_big_integer(s7_pointer x);
-  mpq_t  *s7_big_ratio(s7_pointer x);
-  mpc_t  *s7_big_complex(s7_pointer x);
-
-  bool s7_is_big_real(s7_pointer x);
-  bool s7_is_big_integer(s7_pointer x);
-  bool s7_is_big_ratio(s7_pointer x);
-  bool s7_is_big_complex(s7_pointer x);
-
-  s7_pointer s7_make_big_real(s7_scheme *sc, mpfr_t *val);
-  s7_pointer s7_make_big_integer(s7_scheme *sc, mpz_t *val);
-  s7_pointer s7_make_big_ratio(s7_scheme *sc, mpq_t *val);
-  s7_pointer s7_make_big_complex(s7_scheme *sc, mpc_t *val);
-#endif
 
 
 /* --------------------------------------------------------------------------------
