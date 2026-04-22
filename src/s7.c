@@ -85417,7 +85417,6 @@ static bool op_tc_if_a_z_if_a_z_la(s7_scheme *sc, s7_pointer code, bool z_first)
       if2_z = (z_first) ? cdr(if2_test) : cdr(cadddr(code));
       la = (z_first) ? cdadr(cadddr(code)) : cdadr(caddr(code));
     }
-#if !WITH_GMP
   if (is_t_integer(slot_value(la_slot)))
     {
       opt_info *o = sc->opts[0];
@@ -85425,30 +85424,29 @@ static bool op_tc_if_a_z_if_a_z_la(s7_scheme *sc, s7_pointer code, bool z_first)
       if (bool_optimize_nw(sc, if1_test))
  	{
 	  opt_info *o1 = sc->opts[sc->pc];
- 	  if (bool_optimize_nw(sc, if2_test))
- 	    {
-	      opt_info *o2 = sc->opts[sc->pc];
- 	      if (int_optimize(sc, la))
- 		{
- 		  s7_pointer val = make_mutable_integer(sc, integer(slot_value(la_slot)));
- 		  slot_set_value(la_slot, val);
- 		  if (tc_and)
-		    while (true)
-		      {
-			if (!q_call(o).fb(o)) {sc->value = sc->F; return(true);}
-			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
-			set_integer(val, q_call(o2).fi(o2));
-		      }
- 		  else
-		    while (true)
-		      {
-			if (q_call(o).fb(o)) {endp = if1_true; break;}
-			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
-			set_integer(val, q_call(o2).fi(o2));
-		      }
- 		  return(op_tc_z(sc, endp));
- 		}}}}
-#endif
+  	  if (bool_optimize_nw(sc, if2_test))
+  	    {
+  	      opt_info *o2 = sc->opts[sc->pc];
+  	      if (int_optimize(sc, la))
+  		{
+  		  s7_pointer val = make_mutable_integer(sc, integer(slot_value(la_slot)));
+  		  slot_set_value(la_slot, val);
+  		  if (tc_and)
+  		    while (true)
+  		      {
+ 			if (!q_call(o).fb(o)) {sc->value = sc->F; return(true);}
+ 			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
+ 			set_integer(val, q_call(o2).fi(o2));
+ 		      }
+  		  else
+  		    while (true)
+  		      {
+ 			if (q_call(o).fb(o)) {endp = if1_true; break;}
+ 			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
+ 			set_integer(val, q_call(o2).fi(o2));
+ 		      }
+  		  return(op_tc_z(sc, endp));
+  		}}}}
   while (true)
     {
       if ((fx_call(sc, if1_test) == sc->F) == tc_and) {if (tc_and) {sc->value = sc->F; return(true);} else {endp = if1_true; break;}}
