@@ -15928,11 +15928,7 @@ static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
   if ((is_NaN(x)) || (is_inf(x)))
     out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), a_normal_real_string); /* was make_real, also below */
   if (fabs(x) > RATIONALIZE_LIMIT)
-#if WITH_GMP
-    return(big_rationalize(sc, set_plist_1(sc, wrap_real(sc, x))));
-#else
     out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), it_is_too_large_string);
-#endif
   return(s7_rationalize(sc, x, sc->default_rationalize_error));
 }
 
@@ -15942,14 +15938,10 @@ static s7_pointer g_bignum(s7_scheme *sc, s7_pointer args)
 {
   #define H_bignum "(bignum val (radix 10)) returns a multiprecision version of the string 'val'. If the argument is a number \
 bignum returns that number as a bignum"
-#if WITH_GMP
-  #define Q_bignum s7_make_signature(sc, 3, sc->is_bignum_symbol, s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_string_symbol), sc->is_integer_symbol)
-#else
   #define Q_bignum s7_make_signature(sc, 3, \
                      s7_make_signature(sc, 2, sc->is_number_symbol, sc->not_symbol), \
                      s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_string_symbol), \
                      sc->is_integer_symbol)
-#endif
 
   s7_pointer num = car(args);
   if (is_number(num))
@@ -15957,39 +15949,13 @@ bignum returns that number as a bignum"
       if (!is_null(cdr(args)))
 	error_nr(sc, make_symbol(sc, "bignum-error", 12),
 		 set_elist_2(sc, wrap_string(sc, "bignum of a number takes only one argument: ~S", 46), args));
-#if WITH_GMP
-      switch (type(num))
-	{
-	case T_INTEGER: return(s7_int_to_big_integer(sc, integer(num)));
-	case T_RATIO:   return(s7_int_to_big_ratio(sc, numerator(num), denominator(num)));
-	case T_REAL:    return(s7_double_to_big_real(sc, real(num)));
-	case T_COMPLEX: return(s7_double_to_big_complex(sc, real_part(num), imag_part(num)));
-	default:        return(num);
-	}
-#else
       return(num);
-#endif
     }
   num = g_string_to_number_1(sc, args, sc->bignum_symbol);
   if (is_false(sc, num))                                    /* (bignum "1/3.0") */
     error_nr(sc, make_symbol(sc, "bignum-error", 12),
 	     set_elist_2(sc, wrap_string(sc, "bignum string argument does not represent a number: ~S", 54), car(args))); /* car(args) to get original */
-#if WITH_GMP
-  switch (type(num))
-    {
-    case T_INTEGER:   return(s7_int_to_big_integer(sc, integer(num)));
-    case T_RATIO:     return(s7_int_to_big_ratio(sc, numerator(num), denominator(num)));
-    case T_COMPLEX:   return(s7_number_to_big_complex(sc, num));
-    case T_REAL:
-      if (is_NaN(real(num))) return(num);
-      return(s7_double_to_big_real(sc, real(num)));
-      /* 9Sep21: this was return(string_to_big_real(sc, string_value(car(args)), (is_pair(cdr(args))) ? s7_integer_clamped_if_gmp(sc, cadr(args)) : 10)); */
-    default:
-      return(num);
-    }
-#else
   return(num);
-#endif
 }
 
 
