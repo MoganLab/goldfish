@@ -7071,61 +7071,7 @@ static void process_continuation(s7_scheme *sc, s7_pointer cc)
 }
 
 
-#if WITH_GMP
-#if ((__GNU_MP_VERSION < 6) || ((__GNU_MP_VERSION == 6) && (__GNU_MP_VERSION_MINOR == 0)))
-static int32_t mpq_cmp_z(const mpq_t op1, const mpz_t op2)
-{
-  mpq_t z;
-  int32_t result;
-  mpq_init(z);
-  mpq_set_z(z, op2);
-  result = mpq_cmp(op1, z);
-  mpq_clear(z);
-  return(result);
-}
-#endif
-
-static s7_int big_integer_to_s7_int(s7_scheme *sc, mpz_t n);
-
-static s7_int s7_integer_clamped_if_gmp(s7_scheme *sc, s7_pointer num)
-{
-  if (is_t_integer(num))
-    return(integer(num));
-  if (is_t_big_integer(num))
-    return(big_integer_to_s7_int(sc, big_integer(num)));
-  return(0);
-}
-
-static void free_big_integer(s7_scheme *sc, s7_pointer num)
-{
-  big_integer_nxt(num) = sc->bigints;
-  sc->bigints = big_integer_bgi(num);
-  big_integer_bgi(num) = NULL;
-}
-
-static void free_big_ratio(s7_scheme *sc, s7_pointer num)
-{
-  big_ratio_nxt(num) = sc->bigrats;
-  sc->bigrats = big_ratio_bgr(num);
-  big_ratio_bgr(num) = NULL;
-}
-
-static void free_big_real(s7_scheme *sc, s7_pointer num)
-{
-  big_real_nxt(num) = sc->bigflts;
-  sc->bigflts = big_real_bgf(num);
-  big_real_bgf(num) = NULL;
-}
-
-static void free_big_complex(s7_scheme *sc, s7_pointer num)
-{
-  big_complex_nxt(num) = sc->bigcmps;
-  sc->bigcmps = big_complex_bgc(num);
-  big_complex_bgc(num) = NULL;
-}
-#else
 #define s7_integer_clamped_if_gmp(Sc, P) integer(P)
-#endif
 
 
 static void free_hash_table(s7_scheme *sc, s7_pointer table);
