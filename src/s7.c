@@ -17253,7 +17253,6 @@ static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointe
   }
 }
 
-#if !WITH_GMP
 static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
   if ((is_t_integer(x)) && (is_t_integer(y)) && (is_t_integer(z)))
@@ -17279,9 +17278,6 @@ static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s
     return(num);
   }
 }
-#else
-#define add_p_ppp_wrapped add_p_ppp
-#endif
 
 
 static s7_pointer g_add(s7_scheme *sc, s7_pointer args)
