@@ -86613,7 +86613,6 @@ static opt_pid_t opinit_if_a_a_opa_laq(s7_scheme *sc, s7_pointer code)
 {
   const s7_pointer caller = rec_call_clause(code);
   const bool la_op = a_is_cadr(caller);
-#if !WITH_GMP
   const s7_pointer c_op = car(caller);
   if ((is_symbol(c_op)) &&
       ((is_slot(global_slot(c_op))) &&
@@ -86645,7 +86644,6 @@ static opt_pid_t opinit_if_a_a_opa_laq(s7_scheme *sc, s7_pointer code)
 			      slot_set_value(slot, sc->rec_val1);
 			      return(opt_int);
 			    }}}}}}}
-#endif
   /* not int: a_op: (lis (cons (car lis) (copy-list-1 (cdr lis)))),
    *         la_op: ((car lis) (copy-list-1 (cdr lis))),
    *         opt3: ((cdr lis))
