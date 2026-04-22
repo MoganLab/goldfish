@@ -13715,12 +13715,6 @@ s7_double s7_number_to_real_with_caller(s7_scheme *sc, s7_pointer x, const char 
     {
     case T_INTEGER:     return((s7_double)integer(x));
     case T_RATIO:       return(fraction(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)big_integer_to_s7_int(sc, big_integer(x)));
-    case T_BIG_RATIO:   return((s7_double)((long_double)big_integer_to_s7_int(sc, mpq_numref(big_ratio(x))) /
-					   (long_double)big_integer_to_s7_int(sc, mpq_denref(big_ratio(x)))));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-#endif
     default:
       sole_arg_wrong_type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), x, sc->type_names[T_REAL]);
     }
@@ -13734,12 +13728,6 @@ s7_double s7_number_to_real_with_location(s7_scheme *sc, s7_pointer x, s7_pointe
     {
     case T_INTEGER:     return((s7_double)integer(x));
     case T_RATIO:       return(fraction(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)big_integer_to_s7_int(sc, big_integer(x)));
-    case T_BIG_RATIO:   return((s7_double)((long_double)big_integer_to_s7_int(sc, mpq_numref(big_ratio(x))) /
-					   (long_double)big_integer_to_s7_int(sc, mpq_denref(big_ratio(x)))));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-#endif
     default:
       sole_arg_wrong_type_error_nr(sc, caller, x, sc->type_names[T_REAL]);
     }
