@@ -84971,7 +84971,6 @@ static bool op_tc_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
   const s7_pointer l2a = cdr(la);
   const s7_pointer l2a_slot = next_slot(la_slot);
   tick_tc(sc, OP_TC_IF_A_Z_L2A);
-#if !WITH_GMP
   if (!no_bool_opt(code))
     {
       sc->pc = 0;
@@ -85059,7 +85058,6 @@ static bool op_tc_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
 		    }}}}
       set_no_bool_opt(code);
     }
-#endif
   tf = fx_proc(if_test);
   if_test = car(if_test);
   if (true_quits)
