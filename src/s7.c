@@ -22783,12 +22783,10 @@ static s7_pointer g_random_1(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer random_p_p(s7_scheme *sc, s7_pointer num)
 {
-#if !WITH_GMP
   if (is_t_integer(num))
     return(make_integer(sc, (s7_int)(integer(num) * next_random(sc->default_random_state))));
   if (is_t_real(num))
     return(make_real(sc, real(num) * next_random(sc->default_random_state)));
-#endif
   return(g_random(sc, set_plist_1(sc, num)));
 }
 
