@@ -32637,17 +32637,7 @@ static format_data_t *open_format_data(s7_scheme *sc)
   return(fdat);
 }
 
-#if WITH_GMP
-static bool is_one_or_big_one(s7_scheme *sc, s7_pointer num)
-{
-  if (!is_big_number(num)) return(is_one(num));
-  if (is_t_big_integer(num)) return(mpz_cmp_ui(big_integer(num), 1) == 0);
-  if (is_t_big_real(num)) return(mpfr_cmp_d(big_real(num), 1.0) == 0);
-  return(false);
-}
-#else
 #define is_one_or_big_one(Sc, Num) is_one(Num)
-#endif
 
 static s7_pointer object_to_list(s7_scheme *sc, s7_pointer obj);
 
