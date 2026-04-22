@@ -15499,9 +15499,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
     char *slash1 = NULL, *slash2 = NULL, *plus = NULL, *ex1 = NULL, *ex2 = NULL;
     bool has_i = false, has_dec_point2 = false;
     int32_t has_plus_or_minus = 0, current_radix;
-#if !WITH_GMP
     bool overflow = false; /* for string_to_integer */
-#endif
     current_radix = radix;  /* current_radix is 10 for the exponent portions, but radix for all the rest */
 
     for ( ; (c = *p) != 0; ++p)
@@ -15654,11 +15652,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
     if (has_i)
       {
-#if !WITH_GMP
 	s7_double rl = 0.0, im = 0.0;
-#else
-	char e1 = 0, e2 = 0;
-#endif
 	s7_pointer result;
 	s7_int len = safe_strlen(q);
 	char ql1, pl1;
