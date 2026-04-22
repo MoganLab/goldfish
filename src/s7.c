@@ -15668,7 +15668,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
 	(*((char *)(plus - 1))) = '\0';
 
-#if !WITH_GMP
 	if ((has_dec_point1) ||
 	    (ex1))  /* (string->number "1100.1+0.11i" 2) -- need to split into 2 honest reals before passing to non-base-10 str->dbl */
 	  rl = string_to_double_with_radix(q, radix);
@@ -15736,9 +15735,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	    (im != 0.0))
 	  im = -im;
 	result = make_complex(sc, rl, im);
-#else
-	result = string_to_either_complex(sc, q, slash1, ex1, has_dec_point1, plus, slash2, ex2, has_dec_point2, radix, has_plus_or_minus);
-#endif
 	/* restore original string */
 	q[len - 1] = ql1;
 	(*((char *)(plus - 1))) = pl1;
@@ -15753,21 +15749,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	if (slash1)  /* not complex, so slash and "." is not a number */
 	  return((want_symbol) ? make_symbol_with_strlen(sc, q) : sc->F);
 
-#if !WITH_GMP
 	result = make_real(sc, string_to_double_with_radix(q, radix));
-#else
-	{
-	  char old_e = 0;
-	  if (ex1)
-	    {
-	      old_e = (*ex1);
-	      (*ex1) = '@';
-	    }
-	  result = string_to_either_real(sc, q, radix);
-	  if (ex1)
-	    (*ex1) = old_e;
-	}
-#endif
 	return(result);
       }
 
