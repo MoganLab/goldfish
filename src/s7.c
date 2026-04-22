@@ -1947,12 +1947,10 @@ static void init_types(void)
   t_ext_p[T_DYNAMIC_WIND] = true;
   t_ext_p[T_CATCH] = true;
   t_ext_p[T_COUNTER] = true;
-#if !WITH_GMP
   t_ext_p[T_BIG_INTEGER] = true;
   t_ext_p[T_BIG_RATIO] = true;
   t_ext_p[T_BIG_REAL] = true;
   t_ext_p[T_BIG_COMPLEX] = true;
-#endif
   /* these cases are errors (null pointer, T_FREE checked by check_nref called by check_ref_exs) */
   t_exs_p[T_STACK] = true;
   t_exs_p[T_DYNAMIC_WIND] = true;
