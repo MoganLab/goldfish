@@ -15169,13 +15169,7 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 	  while ((dig = digits[(int32_t)(*str++)]) < radix)
 	    frac_part = dig + (frac_part * radix);
 	  if (frac_part == 0) return(0.0);
-#if WITH_GMP
-	  (*overflow) = true;
-#endif
 	}
-#if WITH_GMP
-      (*overflow) = ((int_part > 0) || (exponent > 20));    /* .1e310 is a tricky case */
-#endif
       if (int_part != 0) /* 0.<310 zeros here>1e310 for example -- pow (via dpow) thinks it has to be too big, returns Nan,
 			  *   then Nan * 0 -> Nan and the NaN propagates
 			  */
