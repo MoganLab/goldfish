@@ -176,9 +176,6 @@
 
 
 
-#ifndef DEFAULT_BIGNUM_PRECISION
-  #define DEFAULT_BIGNUM_PRECISION 128 /* (*s7* 'bignum-precision) initial value, must be >= 2 */
-#endif
 
 #ifndef WITH_PURE_S7
   #define WITH_PURE_S7 0
@@ -1270,7 +1267,6 @@ struct s7_scheme {
   int32_t big_symbol_set_line, small_symbol_set_line, big_symbol_set_state, small_symbol_set_state, y_line, v_line, x_line, t_line;
   const char *big_symbol_set_func, *small_symbol_set_func;
 #endif
-  int32_t bignum_precision;
   s7_int baffle_ctr, map_call_ctr;
   s7_pointer default_random_state;
 
@@ -4690,7 +4686,7 @@ static bool is_h_optimized(s7_pointer p)
 }
 
 /* if this changes, remember to change lint.scm */
-typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl_bignum_precision, sl_catches, sl_cpu_time, sl_c_types,
+typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl_catches, sl_cpu_time, sl_c_types,
 	      sl_debug, sl_default_hash_table_length, sl_default_random_state, sl_default_rationalize_error, sl_equivalent_float_epsilon,
 	      sl_expansions, sl_filenames, sl_file_names, sl_float_format_precision, sl_free_heap_size, sl_gc_freed, sl_gc_info,
 	      sl_gc_protected_objects, sl_gc_resize_heap_by_4_fraction, sl_gc_resize_heap_fraction, sl_gc_stats, sl_gc_temps_size,
@@ -4704,7 +4700,7 @@ typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl
 	      sl_num_fields} starlet_t;
 
 static const char *starlet_names[sl_num_fields] =
-  {"no-field", "accept-all-keyword-arguments", "autoloading?", "bignum-precision", "catches", "cpu-time", "c-types",
+  {"no-field", "accept-all-keyword-arguments", "autoloading?", "catches", "cpu-time", "c-types",
    "debug", "default-hash-table-length", "default-random-state", "default-rationalize-error", "equivalent-float-epsilon",
    "expansions?", "filenames", "file-names", "float-format-precision", "free-heap-size", "gc-freed", "gc-info",
    "gc-protected-objects", "gc-resize-heap-by-4-fraction", "gc-resize-heap-fraction", "gc-stats", "gc-temps-size",
@@ -15315,14 +15311,14 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
   return(sign * dval);
 }
 
-static s7_pointer make_undefined_bignum(s7_scheme *sc, const char *name)
+static s7_pointer make_undefined_overflow(s7_scheme *sc, const char *name)
 {
   s7_int len = safe_strlen(name) + 16;
   block_t *b = mallocate(sc, len);
   char *buf = (char *)block_data(b);
   s7_pointer result;
-  snprintf(buf, len, "<bignum: %s>", name);
-  result = make_undefined(sc, (const char *)buf); /* 123123123123123123123123123123 -> +inf.0 originally, but now #<bignum: 123123...> */
+  snprintf(buf, len, "<overflow: %s>", name);
+  result = make_undefined(sc, (const char *)buf);
   liberate(sc, b);
   return(result);
 }
@@ -15674,7 +15670,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	      {
 		/* here the overflow could be innocuous if it's in the denominator and the numerator is 0: 0/100000000000000000000000000000000000000 */
 		s7_int den, num = s7_string_to_integer(q, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 		den = s7_string_to_integer(slash1, radix, &overflow);
 		if (den == 0)
 		  rl = NAN;        /* real_part if complex */
@@ -15687,13 +15683,13 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }
 		    else
 		      {
-			if (overflow) return(make_undefined_bignum(sc, q)); /* denominator overflow */
+			if (overflow) return(make_undefined_overflow(sc, q)); /* denominator overflow */
 			rl = (long_double)num / (long_double)den; /* no gmp, so we do what we can */
 		      }}}
 	    else
 	      {
 		rl = (s7_double)s7_string_to_integer(q, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 	      }}
 	if (rl == -0.0) rl = 0.0;
 
@@ -15707,7 +15703,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		/* same as above: 0-0/100000000000000000000000000000000000000i */
 		s7_int den;
 		const s7_int num = s7_string_to_integer(plus, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 		den = s7_string_to_integer(slash2, radix, &overflow);
 		if (den == 0)
 		  im = NAN;
@@ -15720,13 +15716,13 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }
 		    else
 		      {
-			if (overflow) return(make_undefined_bignum(sc, q)); /* denominator overflow */
+			if (overflow) return(make_undefined_overflow(sc, q)); /* denominator overflow */
 			im = (long_double)num / (long_double)den;
 		      }}}
 	    else
 	      {
 		im = (s7_double)s7_string_to_integer(plus, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 	      }}
 	if ((has_plus_or_minus == -1) &&
 	    (im != 0.0))
@@ -15755,13 +15751,13 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
       {
 	s7_int d;
 	const s7_int n = s7_string_to_integer(q, radix, &overflow);
-	if (overflow) return(make_undefined_bignum(sc, q));
+	if (overflow) return(make_undefined_overflow(sc, q));
 	d = s7_string_to_integer(slash1, radix, &overflow);
 
 	if ((n == 0) && (d != 0))                        /* 0/100000000000000000000000000000000000000 */
 	  return(int_zero);
 	if (d == 0) return(real_NaN);                    /* nan.__LINE__ here seems less than optimal */
-	if (overflow) return(make_undefined_bignum(sc, q));
+	if (overflow) return(make_undefined_overflow(sc, q));
 	/* it would be neat to return 1 from 10000000000000000000000000000/10000000000000000000000000000
 	 *   but q is the entire number ('/' included) and slash1 is the stuff after the '/', and every
 	 *   big number comes through here, so there's no clean and safe way to check that q == slash1.
@@ -15771,7 +15767,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
     /* integer */
     {
       s7_int x = s7_string_to_integer(q, radix, &overflow);
-      if (overflow) return(make_undefined_bignum(sc, q));
+      if (overflow) return(make_undefined_overflow(sc, q));
       return(make_integer(sc, x));
     }
   }
@@ -89984,7 +89980,6 @@ static s7_pointer starlet(s7_scheme *sc, s7_int choice)
     {
     case sl_accept_all_keyword_arguments:  return(make_boolean(sc, sc->accept_all_keyword_arguments));
     case sl_autoloading:                   return(make_boolean(sc, sc->is_autoloading));
-    case sl_bignum_precision:              return(make_integer(sc, sc->bignum_precision));
     case sl_catches:                       return(sl_active_catches_to_list(sc));
     case sl_cpu_time:                      return(make_real(sc, (double)clock() / (double)CLOCKS_PER_SEC)); /* cpu, not wall-clock time */
     case sl_c_types:                       return(sl_c_types_to_list(sc));
@@ -90334,16 +90329,6 @@ static s7_pointer sl_set_number_separator(s7_scheme *sc, s7_pointer sym, s7_poin
   return(val);
 }
 
-static s7_pointer sl_set_bignum_precision(s7_scheme *sc, s7_pointer sym, s7_pointer val)
-{
-  s7_int prec = s7_integer_clamped_if_gmp(sc, sl_integer_gt_0(sc, sym, val));
-  if (prec > (1LL << 32)) /* sc->bignum_precision is uint32_t */
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_2(sc, wrap_string(sc, "(set! (*s7* 'bignum-precision) ~S): new value must be less than (ash 1 32) == 4294967296", 88), val));
-  sc->bignum_precision = prec;
-  return(val);
-}
-
 static s7_pointer sl_set_default_hash_table_length(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
   const s7_int iv = s7_integer_clamped_if_gmp(sc, sl_integer_gt_0(sc, sym, val)); /* protect against this being 9223372036854775807, then being used as a hash-table's size */
@@ -90645,7 +90630,6 @@ static s7_pointer starlet_set_1(s7_scheme *sc, s7_pointer sym, s7_pointer val)
     {
     case sl_accept_all_keyword_arguments:  return(sl_set_accept_all_keyword_arguments(sc, sym, val));
     case sl_autoloading:                   return(sl_set_autoloading(sc, sym, val));
-    case sl_bignum_precision:              return(sl_set_bignum_precision(sc, sym, val));
     case sl_catches:                       sl_unsettable_error_nr(sc, sym);
     case sl_cpu_time:                      sl_unsettable_error_nr(sc, sym);
     case sl_c_types:                       sl_unsettable_error_nr(sc, sym);
@@ -93332,7 +93316,6 @@ s7_scheme *s7_init(void)
     random_carry(rs) = 1675393560;
   }
 
-  sc->bignum_precision = DEFAULT_BIGNUM_PRECISION;
   sc->pi_symbol = s7_define_constant(sc, "pi", real_pi);
 
   for (int32_t i = 0; i < 10; i++) sc->singletons[(uint8_t)'0' + i] = small_int(i);
