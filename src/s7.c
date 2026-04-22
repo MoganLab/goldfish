@@ -1808,7 +1808,7 @@ static s7_pointer too_many_arguments_string, not_enough_arguments_string, cant_b
   something_applicable_string, too_many_indices_string, intermediate_too_large_string,
   format_string_1, format_string_2, format_string_3, format_string_4, keyword_value_missing_string;
 
-static bool t_number_p[NUM_TYPES], t_small_real_p[NUM_TYPES], t_rational_p[NUM_TYPES], t_real_p[NUM_TYPES], t_big_number_p[NUM_TYPES];
+static bool t_number_p[NUM_TYPES], t_small_real_p[NUM_TYPES], t_rational_p[NUM_TYPES], t_real_p[NUM_TYPES];
 static bool t_simple_p[NUM_TYPES], t_structure_p[NUM_TYPES], t_immutable_p[NUM_TYPES];
 static bool t_any_macro_p[NUM_TYPES], t_any_closure_p[NUM_TYPES], t_has_closure_let[NUM_TYPES];
 static bool t_mappable_p[NUM_TYPES], t_sequence_p[NUM_TYPES], t_vector_p[NUM_TYPES];
@@ -1843,14 +1843,12 @@ static void init_types(void)
 #endif
     }
   {
-    const int32_t nums[8] = {T_INTEGER, T_RATIO, T_REAL, T_COMPLEX, T_BIG_INTEGER, T_BIG_RATIO, T_BIG_REAL, T_BIG_COMPLEX};
-    for (int32_t i = 0; i < 8; i++) t_number_p[nums[i]] = true;
+    const int32_t nums[4] = {T_INTEGER, T_RATIO, T_REAL, T_COMPLEX};
+    for (int32_t i = 0; i < 4; i++) t_number_p[nums[i]] = true;
   }
 
   t_rational_p[T_INTEGER] = true;
   t_rational_p[T_RATIO] = true;
-  t_rational_p[T_BIG_INTEGER] = true;
-  t_rational_p[T_BIG_RATIO] = true;
 
   t_small_real_p[T_INTEGER] = true;
   t_small_real_p[T_RATIO] = true;
@@ -1859,14 +1857,6 @@ static void init_types(void)
   t_real_p[T_INTEGER] = true;
   t_real_p[T_RATIO] = true;
   t_real_p[T_REAL] = true;
-  t_real_p[T_BIG_INTEGER] = true;
-  t_real_p[T_BIG_RATIO] = true;
-  t_real_p[T_BIG_REAL] = true;
-
-  t_big_number_p[T_BIG_INTEGER] = true;
-  t_big_number_p[T_BIG_RATIO] = true;
-  t_big_number_p[T_BIG_REAL] = true;
-  t_big_number_p[T_BIG_COMPLEX] = true;
 
   {
     const int32_t recs[8] = {T_PAIR, T_VECTOR, T_HASH_TABLE, T_SLOT, T_LET, T_ITERATOR, T_C_OBJECT, T_C_POINTER};
@@ -1940,19 +1930,11 @@ static void init_types(void)
   t_ext_p[T_DYNAMIC_WIND] = true;
   t_ext_p[T_CATCH] = true;
   t_ext_p[T_COUNTER] = true;
-  t_ext_p[T_BIG_INTEGER] = true;
-  t_ext_p[T_BIG_RATIO] = true;
-  t_ext_p[T_BIG_REAL] = true;
-  t_ext_p[T_BIG_COMPLEX] = true;
   /* these cases are errors (null pointer, T_FREE checked by check_nref called by check_ref_exs) */
   t_exs_p[T_STACK] = true;
   t_exs_p[T_DYNAMIC_WIND] = true;
   t_exs_p[T_CATCH] = true;
   t_exs_p[T_COUNTER] = true;
-  t_exs_p[T_BIG_INTEGER] = true;
-  t_exs_p[T_BIG_RATIO] = true;
-  t_exs_p[T_BIG_REAL] = true;
-  t_exs_p[T_BIG_COMPLEX] = true;
 #endif
 }
 
@@ -1997,11 +1979,7 @@ static void init_types(void)
   #define T_App(P) check_ref_app(P,                      __func__, __LINE__)                /* applicable or #f */
   #define T_Arg(P) check_ref_arg(P,                      __func__, __LINE__)                /* closure arg (list, symbol) */
   #define T_BVc(P) check_ref_one(P, T_BYTE_VECTOR,       __func__, __LINE__, "sweep", NULL)
-  #define T_Bgf(P) check_ref_one(P, T_BIG_RATIO,         __func__, __LINE__, "sweep", "free_big_ratio")
-  #define T_Bgi(P) check_ref_one(P, T_BIG_INTEGER,       __func__, __LINE__, "sweep", "free_big_integer")
-  #define T_Bgr(P) check_ref_one(P, T_BIG_REAL,          __func__, __LINE__, "sweep", "free_big_real")
-  #define T_Bgz(P) check_ref_one(P, T_BIG_COMPLEX,       __func__, __LINE__, "sweep", "free_big_complex")
-  #define T_CMac(P) check_ref_one(P, T_C_MACRO,          __func__, __LINE__, NULL, NULL)
+          #define T_CMac(P) check_ref_one(P, T_C_MACRO,          __func__, __LINE__, NULL, NULL)
   #define T_Cat(P) check_ref_one(P, T_CATCH,             __func__, __LINE__, NULL, NULL)
   #define T_CFn(P) check_ref_cfn(P,                      __func__, __LINE__)                /* c-functions (not c-macro) */
   #define T_Chr(P) check_ref_one(P, T_CHARACTER,         __func__, __LINE__, NULL, NULL)
@@ -2134,15 +2112,10 @@ static void init_types(void)
 #define is_small_real(P)               t_small_real_p[type(P)]
 #define is_real(P)                     t_real_p[type(P)]
 #define is_rational(P)                 t_rational_p[type(P)]
-#define is_big_number(p)               t_big_number_p[type(p)]
 #define is_t_integer(p)                (type(p) == T_INTEGER)
 #define is_t_ratio(p)                  (type(p) == T_RATIO)
 #define is_t_real(p)                   (type(p) == T_REAL)
 #define is_t_complex(p)                (type(p) == T_COMPLEX)
-#define is_t_big_integer(p)            (type(p) == T_BIG_INTEGER)
-#define is_t_big_ratio(p)              (type(p) == T_BIG_RATIO)
-#define is_t_big_real(p)               (type(p) == T_BIG_REAL)
-#define is_t_big_complex(p)            (type(p) == T_BIG_COMPLEX)
 
 #define is_boolean(p)                  (type(p) == T_BOOLEAN)
 
@@ -6213,10 +6186,6 @@ static const char *type_name_from_type(int32_t typ, article_t article)
     {
     case T_BACRO:           return((not_articled) ? "bacro"             : "a bacro");
     case T_BACRO_STAR:      return((not_articled) ? "bacro*"            : "a bacro*");
-    case T_BIG_COMPLEX:     return((not_articled) ? "big-complex-number": "a big complex number");
-    case T_BIG_INTEGER:     return((not_articled) ? "big-integer"       : "a big integer");
-    case T_BIG_RATIO:       return((not_articled) ? "big-ratio"         : "a big ratio");
-    case T_BIG_REAL:        return((not_articled) ? "big-real"          : "a big real");
     case T_BOOLEAN:         return("boolean");
     case T_BYTE_VECTOR:     return((not_articled) ? "byte-vector"       : "a byte-vector");
     case T_CATCH:           return((not_articled) ? "catch"             : "a catch");
@@ -7632,10 +7601,6 @@ static void init_mark_functions(void)
 {
   mark_function[T_BACRO]               = mark_closure;
   mark_function[T_BACRO_STAR]          = mark_closure;
-  mark_function[T_BIG_COMPLEX]         = just_mark;
-  mark_function[T_BIG_INTEGER]         = just_mark;
-  mark_function[T_BIG_RATIO]           = just_mark;
-  mark_function[T_BIG_REAL]            = just_mark;
   mark_function[T_BOOLEAN]             = mark_noop;
   mark_function[T_BYTE_VECTOR]         = just_mark;
   mark_function[T_CATCH]               = mark_catch;
@@ -16465,7 +16430,7 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  else d = c_gcd(d, denominator(x));
 	  break;
 
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
+	case T_REAL: case T_COMPLEX:
 	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x, a_rational_string);
 
 	default:
@@ -16538,7 +16503,7 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 	      }}
 	  break;
 
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
+	case T_REAL: case T_COMPLEX:
 	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(nums, args), x, a_rational_string);
 
 	default:
@@ -45452,10 +45417,10 @@ static s7_pointer object_to_let_p_p(s7_scheme *sc, s7_pointer obj)
     case T_INPUT_PORT:
     case T_OUTPUT_PORT:  return(port_to_let(sc, obj));
 
-    case T_INTEGER: case T_BIG_INTEGER: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_integer_symbol));
-    case T_RATIO:   case T_BIG_RATIO:   return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_rational_symbol));
-    case T_REAL:    case T_BIG_REAL:    return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_real_symbol));
-    case T_COMPLEX: case T_BIG_COMPLEX: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_complex_symbol));
+    case T_INTEGER: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_integer_symbol));
+    case T_RATIO:   return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_rational_symbol));
+    case T_REAL:    return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_real_symbol));
+    case T_COMPLEX: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_complex_symbol));
 
     case T_STRING:
       return(internal_inlet(sc, 8, sc->value_symbol, obj,
@@ -48077,10 +48042,6 @@ static void init_typers(s7_scheme *sc)
 {
   sc->type_to_typers[T_BACRO] =               sc->is_macro_symbol;
   sc->type_to_typers[T_BACRO_STAR] =          sc->is_macro_symbol;
-  sc->type_to_typers[T_BIG_COMPLEX] =         sc->is_complex_symbol;
-  sc->type_to_typers[T_BIG_INTEGER] =         sc->is_integer_symbol;
-  sc->type_to_typers[T_BIG_RATIO] =           sc->is_rational_symbol;
-  sc->type_to_typers[T_BIG_REAL] =            sc->is_float_symbol;
   sc->type_to_typers[T_BOOLEAN] =             sc->is_boolean_symbol;
   sc->type_to_typers[T_BYTE_VECTOR] =         sc->is_byte_vector_symbol;
   sc->type_to_typers[T_CATCH] =               sc->F;
