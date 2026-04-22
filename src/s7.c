@@ -16110,22 +16110,6 @@ static s7_pointer asinh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->asinh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      mpfr_asinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      mpfr_asinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_asinh(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_asinh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->asinh_symbol, a_number_string));
     }
@@ -16165,23 +16149,6 @@ static s7_pointer acosh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->acosh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_RATIO:
-      mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_REAL:
-      mpc_set_fr(sc->mpc_1, big_real(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_COMPLEX:
-      mpc_acosh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->acosh_symbol, a_number_string));
     }
