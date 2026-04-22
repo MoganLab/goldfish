@@ -16604,34 +16604,10 @@ static s7_pointer truncate_p_p(s7_scheme *sc, s7_pointer x)
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_nan_string);
 	if (is_inf(z))
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_infinite_string);
-#if WITH_GMP
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	    mpfr_get_z(sc->mpz_1, sc->mpfr_1, MPFR_RNDZ);
-	    return(mpz_to_integer(sc, sc->mpz_1));
-	  }
-#else
 	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_too_large_string);
-#endif
 	return(make_integer(sc, (z > 0.0) ? (s7_int)floor(z) : (s7_int)ceil(z)));
       }
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      return(x);
-    case T_BIG_RATIO:
-      mpz_tdiv_q(sc->mpz_1, mpq_numref(big_ratio(x)), mpq_denref(big_ratio(x)));
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_nan_string);
-      if (mpfr_inf_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_infinite_string);
-      mpfr_get_z(sc->mpz_1, big_real(x), MPFR_RNDZ);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_COMPLEX:
-#endif
     case T_COMPLEX:
       sole_arg_wrong_type_error_nr(sc, sc->truncate_symbol, x, sc->type_names[T_REAL]);
     default:
@@ -16649,7 +16625,6 @@ static s7_pointer g_truncate(s7_scheme *sc, s7_pointer args)
 static s7_int truncate_i_i(s7_int i) {return(i);}
 static s7_pointer truncate_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
 
-#if !WITH_GMP
 static s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
 {
   if (is_NaN(x))
@@ -16662,7 +16637,6 @@ static s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
 }
 
 static s7_pointer truncate_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc, truncate_i_7d(sc, x)));}
-#endif
 
 
 /* -------------------------------- round -------------------------------- */
