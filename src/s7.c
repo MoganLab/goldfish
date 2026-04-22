@@ -838,12 +838,7 @@ typedef struct s7_cell {
 	} complex_value;
       } cz;
 
-#if WITH_GMP
-      bigint *bgi;                /* bignums (integer) */
-      bigrat *bgr;                /*         (ratio) */
-      bigflt *bgf;                /*         (float) */
-      bigcmp *bgc;                /*         (complex) */
-#endif
+
     } number;
 
     struct {                      /* ports */
