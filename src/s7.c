@@ -17978,7 +17978,6 @@ static s7_pointer negate_p_p_wrapped(s7_scheme *sc, s7_pointer x)     /* can't u
   return(negate_p_p(sc, x));
 }
 
-#if !WITH_GMP
 static s7_pointer subtract_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -18022,9 +18021,6 @@ static s7_pointer subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
 	}}
   return(subtract_p_pp(sc, x, y));
 }
-#else
-#define subtract_p_pp_wrapped subtract_p_pp
-#endif
 
 static s7_pointer g_subtract(s7_scheme *sc, s7_pointer args)
 {
