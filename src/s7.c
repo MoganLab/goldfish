@@ -86163,7 +86163,6 @@ static opt_pid_t opinit_if_a_a_opla_laq(s7_scheme *sc, s7_pointer code)
   const s7_pointer call1 = cadr(caller);
   const s7_pointer call2 = caddr(caller);
 
-#if !WITH_GMP
   const s7_pointer c_op = car(caller);
   tick_tc(sc, OP_RECUR_IF_A_A_opLA_LAq);
   if ((is_symbol(c_op)) &&
@@ -86223,7 +86222,6 @@ static opt_pid_t opinit_if_a_a_opla_laq(s7_scheme *sc, s7_pointer code)
 				  slot_set_value(slot, sc->rec_val1);
 				  return(opt_dbl);
 				}}}}}}}}
-#endif
   tick_tc(sc, OP_RECUR_IF_A_A_opLA_LAq);
   sc->rec_bool = a_is_cadr(code);
   sc->rec_fn = fn_proc(caller);
