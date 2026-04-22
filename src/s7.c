@@ -19597,7 +19597,6 @@ static inline s7_int quotient_i_7ii(s7_scheme *sc, s7_int x, s7_int y)
   return(-x); /* (quotient x -1) */
 }
 
-#if !WITH_GMP
 static s7_pointer s7_truncate(s7_scheme *sc, s7_pointer caller, s7_double xf)   /* can't use "truncate" -- it's in unistd.h */
 {
   if (fabs(xf) > QUOTIENT_FLOAT_LIMIT)
@@ -19617,7 +19616,6 @@ static s7_int c_quo_dbl(s7_scheme *sc, s7_double x, s7_double y)
     sole_arg_out_of_range_error_nr(sc, sc->quotient_symbol, wrap_real(sc, xf), it_is_too_large_string);
   return((xf > 0.0) ? (s7_int)floor(xf) : (s7_int)ceil(xf));
 }
-#endif
 
 static s7_int quotient_i_ii_unchecked(s7_int i1, s7_int i2) {return(i1 / i2);} /* i2 > 0 */
 
