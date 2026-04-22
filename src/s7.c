@@ -16407,56 +16407,11 @@ static s7_pointer g_expt(s7_scheme *sc, s7_pointer args)
 {
   #define H_expt "(expt z1 z2) returns z1^z2"
   #define Q_expt sc->pcl_n
-#if WITH_GMP
-  return(big_expt(sc, args));
-  /* big_expt sometimes chooses a different value: g_expt (expt -1 1/3) is -1, but big_expt (expt -1 (bignum 1/3)) is (complex 1/2 (/ (sqrt 3) 2)) */
-#endif
   return(expt_p_pp(sc, car(args), cadr(args)));
 }
 
 
 /* -------------------------------- lcm -------------------------------- */
-#if WITH_GMP
-static s7_pointer big_lcm(s7_scheme *sc, s7_int num, s7_int den, s7_pointer args)
-{
-  mpz_set_si(sc->mpz_3, num);
-  mpz_set_si(sc->mpz_4, den);
-
-  for (s7_pointer x = args; is_pair(x); x = cdr(x))
-    {
-      const s7_pointer rat = car(x);
-      switch (type(rat))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(rat));
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_set_si(sc->mpz_4, 1);
-	  break;
-	case T_RATIO:
-	  mpz_set_si(sc->mpz_1, numerator(rat));
-	  mpz_set_si(sc->mpz_2, denominator(rat));
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_gcd(sc->mpz_4, sc->mpz_4, sc->mpz_2);
-	  break;
-	case T_BIG_INTEGER:
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, big_integer(rat));
-	  mpz_set_si(sc->mpz_4, 1);
-	  break;
-	case T_BIG_RATIO:
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, mpq_numref(big_ratio(rat)));
-	  mpz_gcd(sc->mpz_4, sc->mpz_4, mpq_denref(big_ratio(rat)));
-	  break;
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
-	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(x, args), rat, a_rational_string);
-	default:
-	  return(method_or_bust(sc, rat, sc->lcm_symbol,
-				set_ulist_1(sc, mpz_to_rational(sc, sc->mpz_3, sc->mpz_4), x),
-				a_rational_string, position_of(x, args)));
-	}}
-  return(mpz_to_rational(sc, sc->mpz_3, sc->mpz_4));
-}
-#endif
-
 static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 {
   /* (/ (* m n) (gcd m n)), (lcm a b c) -> (lcm a (lcm b c)) */
@@ -16511,20 +16466,12 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  if (b < 0)
 	    {
 	      if (b == S7_INT64_MIN)
-#if WITH_GMP
-		return(big_lcm(sc, n, d, nums));
-#else
 		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-#endif
 	      b = -b;
 	    }
 #if HAVE_OVERFLOW_CHECKS
 	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))
-#if WITH_GMP
-	    return(big_lcm(sc, n, d, nums));
-#else
 	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, result_is_too_large_string);
-#endif
 	  n = n1;
 #else
 	  n = (n / c_gcd(n, b)) * b;
@@ -16536,20 +16483,12 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  if (b < 0)
 	    {
 	      if (b == S7_INT64_MIN)
-#if WITH_GMP
-		return(big_lcm(sc, n, d, nums));
-#else
 		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-#endif
 	      b = -b;
 	    }
 #if HAVE_OVERFLOW_CHECKS
 	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))  /* (lcm 92233720368547758/3 3005/2) */
-#if WITH_GMP
-	    return(big_lcm(sc, n, d, nums));
-#else
 	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, intermediate_too_large_string);
-#endif
           n = n1;
 #else
 	  n = (n / c_gcd(n, b)) * b;
@@ -16559,12 +16498,6 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  else d = c_gcd(d, denominator(x));
 	  break;
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  d = 1;
-	case T_BIG_RATIO:
-	  return(big_lcm(sc, n, d, nums));
-#endif
 	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
 	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x, a_rational_string);
 
@@ -16579,45 +16512,6 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- gcd -------------------------------- */
-#if WITH_GMP
-static s7_pointer big_gcd(s7_scheme *sc, s7_int num, s7_int den, s7_pointer args)
-{
-  mpz_set_si(sc->mpz_3, num);
-  mpz_set_si(sc->mpz_4, den);
-
-  for (s7_pointer x = args; is_pair(x); x = cdr(x))
-    {
-      const s7_pointer rat = car(x);
-      switch (type(rat))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(rat));
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  break;
-	case T_RATIO:
-	  mpz_set_si(sc->mpz_1, numerator(rat));
-	  mpz_set_si(sc->mpz_2, denominator(rat));
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_lcm(sc->mpz_4, sc->mpz_4, sc->mpz_2);
-	  break;
-	case T_BIG_INTEGER:
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, big_integer(rat));
-	  break;
-	case T_BIG_RATIO:
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, mpq_numref(big_ratio(rat)));
-	  mpz_lcm(sc->mpz_4, sc->mpz_4, mpq_denref(big_ratio(rat)));
-	  break;
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
-	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(x, args), rat, a_rational_string);
-	default:
-	  return(method_or_bust(sc, rat, sc->gcd_symbol,
-				set_ulist_1(sc, mpz_to_rational(sc, sc->mpz_3, sc->mpz_4), x),
-				a_rational_string, position_of(x, args)));
-	}}
-  return(mpz_to_rational(sc, sc->mpz_3, sc->mpz_4));
-}
-#endif
-
 static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 {
   #define H_gcd "(gcd ...) returns the greatest common divisor of its rational arguments"
@@ -16649,14 +16543,10 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 	{
 	case T_INTEGER:
 	  if (integer(x) == S7_INT64_MIN)
-#if WITH_GMP
-	    return(big_gcd(sc, n, d, nums));
-#else
 	  {
 	    if ((n == S7_INT64_MIN) && (is_null(cdr(nums)))) /* gcd is supposed to return a positive integer, but we can't take abs(S7_INT64_MIN) */
 	      sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, it_is_too_large_string);
 	  }
-#endif
 	  n = c_gcd(n, integer(x));
 	  break;
 
@@ -16673,22 +16563,13 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 		const s7_int b = denominator(x);
 #if HAVE_OVERFLOW_CHECKS
 		if (multiply_overflow(d / c_gcd(d, b), b, &dn)) /* (gcd 1/92233720368547758 1/3005) */
-#if WITH_GMP
-		  return(big_gcd(sc, n, d, x));
-#else
 		  sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, intermediate_too_large_string);
-#endif
 		d = dn;
 #else
 		d = (d / c_gcd(d, b)) * b;
 #endif
 	      }}
 	  break;
-
-#if WITH_GMP
-	case T_BIG_INTEGER: case T_BIG_RATIO:
-	  return(big_gcd(sc, n, d, nums));
-#endif
 
 	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
 	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(nums, args), x, a_rational_string);
