@@ -15663,10 +15663,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	/* save original string */
 	ql1 = q[len - 1];
 	pl1 = (*(plus - 1));
-#if WITH_GMP
-	if (ex1) {e1 = *ex1; (*ex1) = '@';} /* for mpfr */
-	if (ex2) {e2 = *ex2; (*ex2) = '@';}
-#endif
 	/* look for cases like 1+i */
 	q[len - 1] = ((q[len - 2] == '+') || (q[len - 2] == '-')) ? '1' : '\0'; /* remove 'i' */
 
@@ -15746,10 +15742,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	/* restore original string */
 	q[len - 1] = ql1;
 	(*((char *)(plus - 1))) = pl1;
-#if WITH_GMP
-	if (ex1) (*ex1) = e1;
-	if (ex2) (*ex2) = e2;
-#endif
 	return(result);
       }
 
