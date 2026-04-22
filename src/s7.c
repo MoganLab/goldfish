@@ -16673,49 +16673,10 @@ static s7_pointer round_p_p(s7_scheme *sc, s7_pointer x)
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_nan_string);
 	if (is_inf(z))
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_infinite_string);
-#if WITH_GMP
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, z, MPFR_RNDN);
-	    mpfr_rint(sc->mpfr_2, sc->mpfr_1, MPFR_RNDN); /* mpfr_roundeven in mpfr 4.0.0 */
-	    mpfr_get_z(sc->mpz_3, sc->mpfr_2, MPFR_RNDN);
-	    return(mpz_to_integer(sc, sc->mpz_3));
-	  }
-#else
 	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_too_large_string);
-#endif
 	return(make_integer(sc, (s7_int)r5rs_round(z)));
       }
-#if WITH_GMP
-      case T_BIG_INTEGER:
-	return(x);
-    case T_BIG_RATIO:
-      {
-	int32_t rnd;
-	mpz_fdiv_qr(sc->mpz_1, sc->mpz_2, mpq_numref(big_ratio(x)), mpq_denref(big_ratio(x)));
-	mpz_mul_ui(sc->mpz_2, sc->mpz_2, 2);
-	rnd = mpz_cmpabs(sc->mpz_2, mpq_denref(big_ratio(x)));
-	mpz_fdiv_q(sc->mpz_2, sc->mpz_2, mpq_denref(big_ratio(x)));
-	if (rnd > 0)
-	  mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-	else
-	  if ((rnd == 0) &&
-	      (mpz_odd_p(sc->mpz_1)))
-	    mpz_add_ui(sc->mpz_1, sc->mpz_1, 1);
-	return(mpz_to_integer(sc, sc->mpz_1));
-      }
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_nan_string);
-      if (mpfr_inf_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_infinite_string);
-      mpfr_set(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      mpfr_rint(sc->mpfr_2, sc->mpfr_1, MPFR_RNDN);
-      mpfr_get_z(sc->mpz_3, sc->mpfr_2, MPFR_RNDN);
-      return(mpz_to_integer(sc, sc->mpz_3));
-    case T_BIG_COMPLEX:
-#endif
     case T_COMPLEX:
       sole_arg_wrong_type_error_nr(sc, sc->round_symbol, x, sc->type_names[T_REAL]);
     default:
@@ -16734,7 +16695,6 @@ static s7_pointer g_round(s7_scheme *sc, s7_pointer args)
 static s7_int round_i_i(s7_int i) {return(i);}
 static s7_pointer round_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
 
-#if !WITH_GMP
 static s7_int round_i_7d(s7_scheme *sc, s7_double z)
 {
   if (is_NaN(z))
@@ -16746,7 +16706,6 @@ static s7_int round_i_7d(s7_scheme *sc, s7_double z)
 }
 
 static s7_pointer round_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc,round_i_7d(sc, x)));}
-#endif
 
 
 /* ---------------------------------------- add ---------------------------------------- */
