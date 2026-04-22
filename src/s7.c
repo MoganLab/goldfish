@@ -3866,12 +3866,8 @@ static int32_t s7_int_digits_by_radix[17];
 
 static void init_int_limits(void)
 {
-#if WITH_GMP
-  #define S7_LOG_INT64_MAX 36.736800
-#else
   /* actually not safe = (log (- (expt 2 63) 1)) and (log (- (expt 2 31) 1)) (using 63 and 31 bits) */
   #define S7_LOG_INT64_MAX 43.668274
-#endif
   s7_int_digits_by_radix[0] = 0;
   s7_int_digits_by_radix[1] = 0;
   for (int32_t i = 2; i < 17; i++)
