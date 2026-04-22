@@ -15755,7 +15755,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
     /* rational */
     if (slash1)
-#if !WITH_GMP
       {
 	s7_int d;
 	const s7_int n = s7_string_to_integer(q, radix, &overflow);
@@ -15772,19 +15771,12 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	 */
 	return(make_ratio(sc, n, d));
       }
-#else
-    return(string_to_either_ratio(sc, q, slash1, radix));
-#endif
     /* integer */
-#if !WITH_GMP
     {
       s7_int x = s7_string_to_integer(q, radix, &overflow);
       if (overflow) return(make_undefined_bignum(sc, q));
       return(make_integer(sc, x));
     }
-#else
-    return(string_to_either_integer(sc, q, radix));
-#endif
   }
 }
 
