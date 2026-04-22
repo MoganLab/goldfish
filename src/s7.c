@@ -32543,11 +32543,9 @@ static void format_number(s7_scheme *sc, format_data_t *fdat, int32_t radix, s7_
       char *tmp, *padtmp;
       block_t *b = NULL;
       s7_int nlen = 0;
-#if !WITH_GMP
       if (radix == 10)
 	tmp = number_to_string_base_10(sc, car(fdat->args), width, precision, float_choice, &nlen, p_write);
       else
-#endif
 	{
 	  b = number_to_string_with_radix(sc, car(fdat->args), radix, width, precision, float_choice, &nlen);
 	  tmp = (char *)block_data(b);
@@ -32562,11 +32560,9 @@ static void format_number(s7_scheme *sc, format_data_t *fdat, int32_t radix, s7_
       char *tmp;
       block_t *b = NULL;
       s7_int nlen = 0;
-#if !WITH_GMP
       if (radix == 10)
 	tmp = number_to_string_base_10(sc, car(fdat->args), width, precision, float_choice, &nlen, p_write);
       else
-#endif
 	{
 	  b = number_to_string_with_radix(sc, car(fdat->args), radix, width, precision, float_choice, &nlen);
 	  tmp = (char *)block_data(b);
