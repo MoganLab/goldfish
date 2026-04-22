@@ -947,7 +947,7 @@ bool s7_is_bignum(s7_pointer obj);
  * 8-Jan-23:  s7_gc_protect_2_via_stack.
  * --------
  * 15-Nov:    s7_make_c_pointer_wrapper_with_type.
- * 17-Mar-23: moved s7_is_bignum declaration outside WITH_GMP.
+ * 17-Mar-23: moved s7_is_bignum declaration outside big number support.
  * --------
  * 9-Nov:     nan, nan-payload, +nan.<int>.
  * 19-Oct:    s7_let_field* synonyms: s7_starlet_ref|set.
@@ -1259,7 +1259,7 @@ bool s7_is_bignum(s7_pointer obj);
  * 29-Jan:    s7_is_bignum and friends.
  * 26-Jan:    added s7_scheme arg to s7_vector_fill.
  * 16-Jan:    s7_is_ulong_long and friends for C pointers in 64-bit situations.
- * 9-Jan-09   multiprecision arithmetic (gmp, mpfr, mpc) on the WITH_GMP switch
+ * 9-Jan-09   multiprecision arithmetic (gmp, mpfr, mpc).
  * --------
  * 29-Dec:    "+" specialization example, s7_apply_function.
  * 3-Dec:     s7_open_output_function.

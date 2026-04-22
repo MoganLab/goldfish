@@ -104,9 +104,6 @@
  * if SIZEOF_VOID_P is not defined, we look for __SIZEOF_POINTER__ instead,
  *   the default is to assume that we're running on a 64-bit machine.
  *
- * To get multiprecision arithmetic, set WITH_GMP to 1.
- *   You'll also need libgmp, libmpfr, and libmpc (version 0.8.0 or later)
- *
  * and we use these predefined macros: __cplusplus, _MSC_VER, __GNUC__, __clang__, __ANDROID__
  *
  * if WITH_SYSTEM_EXTRAS is 1 (default is 1 unless _MSC_VER), various OS and file related functions are included.

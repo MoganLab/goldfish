@@ -20,12 +20,6 @@
 
 add_rules("mode.release", "mode.debug")
 
-option("gmp", {default = false, defines = "WITH_GMP"})
-
-if has_config("gmp") then
-    add_requires("gmp")
-end
-
 target("libs7") do
     set_kind("$(kind)")
     add_defines("WITH_SYSTEM_EXTRAS=0")
@@ -37,13 +31,11 @@ target("libs7") do
     add_files("s7.c")
     add_headerfiles("s7.h")
     add_includedirs(".", {public = true})
-    add_options("gmp")
     if is_plat("windows") then
         set_optimize("faster")
         set_languages("c11")
         add_cxxflags("/fp:precise")
     end
-    add_packages("gmp")
     if is_mode("debug") then
         add_defines("S7_DEBUGGING")
     end
