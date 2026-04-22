@@ -16193,29 +16193,6 @@ static s7_pointer atanh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->atanh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_2, big_integer(x), MPFR_RNDN);
-      goto ATANH_BIG_REAL;
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_2, big_ratio(x), MPFR_RNDN);
-      goto ATANH_BIG_REAL;
-    case T_BIG_REAL:
-      mpfr_set(sc->mpfr_2, big_real(x), MPFR_RNDN);
-    ATANH_BIG_REAL:
-      mpfr_set_ui(sc->mpfr_1, 1, MPFR_RNDN);
-      if (mpfr_cmpabs(sc->mpfr_2, sc->mpfr_1) < 0)
-	{
-	  mpfr_atanh(sc->mpfr_2, sc->mpfr_2, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_2));
-	}
-      mpc_set_fr(sc->mpc_1, sc->mpfr_2, MPC_RNDNN);
-      mpc_atanh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_COMPLEX:
-      mpc_atanh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->atanh_symbol, a_number_string));
     }
