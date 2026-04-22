@@ -85724,7 +85724,6 @@ static bool op_tc_let_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
   set_curlet(sc, inner_let);
   if (!wrappable) gc_protect_via_stack(sc, inner_let);
   let_var = cdr(let_var);
-#if !WITH_GMP
   if (!no_bool_opt(code))
     {
       sc->pc = 0;
@@ -85765,7 +85764,6 @@ static bool op_tc_let_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
 			}}}}}
       set_no_bool_opt(code);
     }
-#endif
   while (fx_call(sc, if_test) == sc->F)
     {
       sc->rec_p1 = fx_call(sc, la);
