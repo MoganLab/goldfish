@@ -6,7 +6,7 @@ package("tbox")
     add_urls("https://gitee.com/tboox/tbox.git")
     add_urls("https://github.com/tboox/tbox.git")
 
-    add_versions("v1.7.7", "v1.7.7")
+    add_versions("v1.8.0", "v1.8.0")
 
     add_configs("micro",      {description = "Compile micro core library for the embed system.", default = false, type = "boolean"})
     add_configs("float",      {description = "Enable or disable the float type.", default = true, type = "boolean"})

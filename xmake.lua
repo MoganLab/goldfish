@@ -60,7 +60,7 @@ end
 
 -- S7 is now included as source files in src/ directory
 
-local TBOX_VERSION = "1.7.7"
+local TBOX_VERSION = "1.8.0"
 if has_config("tbox") then
     add_requires("apt::libtbox-dev", {alias="tbox"})
 else

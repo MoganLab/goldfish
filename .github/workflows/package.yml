@@ -84,7 +84,7 @@ jobs:
     - name: Fetch xmake deb template
       run: |
         TEMPLATE_ROOT=.tmp/xpack-deb-template/debian
-        BASE_URL=https://raw.githubusercontent.com/xmake-io/xmake/v2.9.9/xmake/scripts/xpack/deb/debian
+        BASE_URL=https://raw.githubusercontent.com/xmake-io/xmake/v3.0.8/xmake/scripts/xpack/deb/debian
 
         mkdir -p "$TEMPLATE_ROOT/source"
         curl -fsSL "$BASE_URL/README.Debian" -o "$TEMPLATE_ROOT/README.Debian"
@@ -161,7 +161,7 @@ jobs:
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
       with:
-        xmake-version: v2.9.9
+        xmake-version: v3.0.8
 
     - name: git crlf
       run: git config --global core.autocrlf false

@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: v2.9.9
+          xmake-version: v3.0.8
       - name: update repo
         run: xmake repo -u
       - name: git crlf
