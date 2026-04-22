@@ -14635,16 +14635,12 @@ static s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p)
 {
-#if WITH_GMP
-  return(g_number_to_string(sc, set_plist_1(sc, p)));
-#else
   s7_int nlen = 0;
   char *result;
   if (!is_number(p))
     return(method_or_bust_p(sc, p, sc->number_to_string_symbol, a_number_string));
   result = number_to_string_base_10(sc, p, 0, sc->float_format_precision, 'g', &nlen, p_write);
   return(inline_make_string_with_length(sc, result, nlen));
-#endif
 }
 
 static s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
@@ -14657,9 +14653,6 @@ static s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
 
 static s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base)
 {
-#if WITH_GMP
-  return(g_number_to_string(sc, set_plist_2(sc, num, base)));
-#else
   s7_int nlen = 0, radix;
   block_t *b;
 
@@ -14672,7 +14665,6 @@ static s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointe
     out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
   b = number_to_string_with_radix(sc, num, radix, 0, sc->float_format_precision, 'g', &nlen);
   return(block_to_string(sc, b, nlen));
-#endif
 }
 
 
