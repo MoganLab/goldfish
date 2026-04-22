@@ -1,70 +1,70 @@
-;
-; Copyright (C) 2024 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
+;;
+;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
 
 (define-library (scheme base)
   (export
     let-values
-    ; R7RS 5: Program Structure
+    ;; R7RS 5: Program Structure
     define-values define-record-type
-    ; R7RS 6.2: Numbers
-    ; - 比较和算术
+    ;; R7RS 6.2: Numbers
+    ;; - 比较和算术
     = < > <= >=
     + - * / abs
-    ; - 数值函数
+    ;; - 数值函数
     square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
     round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo quotient remainder
     numerator denominator rationalize exact-integer-sqrt
     number->string string->number
-    ; - 类型判断
+    ;; - 类型判断
     number? complex? real? rational? integer? exact? inexact? exact-integer?
     positive? negative? zero? odd? even?
-    ; R7RS 6.3: Booleans
+    ;; R7RS 6.3: Booleans
     not boolean=? boolean?
-    ; R7RS 6.4: list
+    ;; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
     list-ref list-set! memq memv member assq assv assoc list-copy map
-    ; R7RS 6.5: Symbol
+    ;; R7RS 6.5: Symbol
     symbol? symbol=? string->symbol symbol->string
-    ; R7RS 6.6: Characters
+    ;; R7RS 6.6: Characters
     char? char=? char<? char>? char<=? char>=? char->integer integer->char
-    ; R7RS 6.7: String
+    ;; R7RS 6.7: String
     string? make-string string string-length string-ref string-set!
     string-copy string-append substring string-fill!
     string->list list->string
     string=? string<? string>? string<=? string>=?
-    ; R7RS 6.8: Vector
+    ;; R7RS 6.8: Vector
     vector->string string->vector vector-copy vector-copy! vector-fill!
-    ; R7RS 6.9: Bytevectors
+    ;; R7RS 6.9: Bytevectors
     bytevector? make-bytevector bytevector bytevector-length bytevector-u8-ref
     bytevector-u8-set! bytevector-copy bytevector-append
     utf8->string string->utf8 utf8-string-length bytevector-advance-utf8
-    ; Input and Output
+    ;; Input and Output
     call-with-port port? binary-port? textual-port? input-port-open? output-port-open?
     open-binary-input-file open-binary-output-file close-port eof-object
-    ; Control flow
+    ;; Control flow
     string-map vector-map string-for-each vector-for-each
-    ; Exception
+    ;; Exception
     raise guard read-error? file-error?
   ) ;export
   (begin
 
-    ; 0-clause BSD
-    ; Bill Schottstaedt
-    ; from S7 source repo: r7rs.scm
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define-macro (let-values vars . body)
       (if (and (pair? vars)
                (pair? (car vars))
@@ -595,7 +595,7 @@ wrong-type-arg
     ) ;define*
 
     (define* (string->utf8 str (start 0) (end #t))
-      ; start < end in this case
+      ;; start < end in this case
       (define (string->utf8-sub str start end)
         (let ((bv (string->byte-vector str))
               (N (string-length str)))
@@ -761,18 +761,18 @@ wrong-type-arg
       ) ;if
     ) ;define*
 
-    ; 0-clause BSD
-    ; Bill Schottstaedt
-    ; from S7 source repo: r7rs.scm
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define* (vector->string v (start 0) end) 
       (let ((stop (or end (length v)))) 
         (copy v (make-string (- stop start)) start stop)
       ) ;let
     ) ;define*
 
-    ; 0-clause BSD
-    ; Bill Schottstaedt
-    ; from S7 source repo: r7rs.scm
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define* (string->vector s (start 0) end)
       (let ((stop (or end (length s))))
         (copy s (make-vector (- stop start)) start stop)
