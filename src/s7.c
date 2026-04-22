@@ -177,12 +177,7 @@
 
 /* ---------------- scheme choices ---------------- */
 
-#ifndef WITH_GMP
-  #define WITH_GMP 0
-  /* this includes multiprecision arithmetic for all numeric types and functions, using gmp, mpfr, and mpc
-   * WITH_GMP adds the following functions: bignum and bignum?, and (*s7* 'bignum-precision)
-   */
-#endif
+
 
 #ifndef DEFAULT_BIGNUM_PRECISION
   #define DEFAULT_BIGNUM_PRECISION 128 /* (*s7* 'bignum-precision) initial value, must be >= 2 */
