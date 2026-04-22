@@ -35582,11 +35582,6 @@ static s7_pointer memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_ar
 
 static bool numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  if ((is_big_number(x)) || (is_big_number(y)))
-    return(big_numbers_are_eqv(sc, x, y));
-  if (type(x) != type(y)) return(false);
-#endif
   /* if (type(x) != type(y)) return(false); */   /* (eqv? 1 1.0) -> #f! but assume that we've checked types already */
   /* switch is apparently as expensive as 3-4 if's! so this only loses if every call involves complex numbers? */
   if (is_t_integer(x)) return(integer(x) == integer(y));
