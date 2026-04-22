@@ -22773,13 +22773,11 @@ static s7_pointer g_random_f(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer g_random_1(s7_scheme *sc, s7_pointer args)
 {
-#if !WITH_GMP
   s7_pointer num = car(args), r = sc->default_random_state;
   if (is_t_integer(num))
     return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
   if (is_t_real(num))
     return(make_real(sc, real(num) * next_random(r)));
-#endif
   return(g_random(sc, args));
 }
 
