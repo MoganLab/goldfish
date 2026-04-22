@@ -31735,12 +31735,6 @@ static void init_display_functions(void)
   for (int32_t i = 0; i < 256; i++) display_functions[i] = display_fallback;
   display_functions[T_BACRO] =           macro_to_port;
   display_functions[T_BACRO_STAR] =      macro_to_port;
-#if WITH_GMP
-  display_functions[T_BIG_COMPLEX] =     big_number_to_port;
-  display_functions[T_BIG_INTEGER] =     big_number_to_port;
-  display_functions[T_BIG_RATIO] =       big_number_to_port;
-  display_functions[T_BIG_REAL] =        big_number_to_port;
-#endif
   display_functions[T_BOOLEAN] =         unique_to_port;
   display_functions[T_BYTE_VECTOR] =     byte_vector_to_port;
   display_functions[T_CATCH] =           catch_to_port;
