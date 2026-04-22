@@ -22528,13 +22528,8 @@ void s7_set_default_random_state(s7_scheme *sc, s7_int seed, s7_int carry)
 
 
 /* -------------------------------- random -------------------------------- */
-#if WITH_GMP
-static double next_random(s7_scheme *sc)
-#else
 static double next_random(s7_pointer r)
-#endif
 {
-#if !WITH_GMP
 #if MWC_32
   /* The multiply-with-carry generator for 32-bit integers:
    *        x(n)=a*x(n-1) + carry mod 2^32
@@ -22589,10 +22584,6 @@ static double next_random(s7_pointer r)
 #endif
 
   return(result);
-#else
-  mpfr_urandomb(sc->mpfr_1, random_gmp_state(sc->default_random_state));
-  return(mpfr_get_d(sc->mpfr_1, MPFR_RNDN));
-#endif
 }
 
 static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
