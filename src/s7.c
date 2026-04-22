@@ -22482,23 +22482,19 @@ Pass this as the second argument to 'random' to get a repeatable random number s
 
 static s7_pointer random_state_getter(s7_scheme *sc, s7_pointer r, s7_int loc)
 {
-#if !WITH_GMP
   if (loc == 0) return(make_integer(sc, random_seed(r)));
   if (loc == 1) return(make_integer(sc, random_carry(r)));
-#endif
   return(sc->F);
 }
 
 static s7_pointer random_state_setter(s7_scheme *sc, s7_pointer r, s7_int loc, s7_pointer val)
 {
-#if !WITH_GMP
   if (is_t_integer(val))
     {
       s7_int i = s7_integer_clamped_if_gmp(sc, val);
       if (loc == 0) random_seed(r) = i;
       if (loc == 1) random_carry(r) = i;
     }
-#endif
   return(sc->F);
 }
 
@@ -22521,30 +22517,21 @@ s7_pointer s7_random_state_to_list(s7_scheme *sc, s7_pointer args)
 You can later apply random-state to this list to continue a random number sequence from any point."
   #define Q_random_state_to_list s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_random_state_symbol)
 
-#if WITH_GMP
-  if ((is_pair(args)) &&
-      (!is_random_state(car(args))))
-    return(method_or_bust(sc, car(args), sc->random_state_to_list_symbol, args, a_random_state_object_string, 1));
-  return(sc->nil);
-#else
   s7_pointer r = (is_null(args)) ? sc->default_random_state : car(args);
   if (!is_random_state(r))
     return(method_or_bust(sc, r, sc->random_state_to_list_symbol, args, a_random_state_object_string, 1));
   return(list_2(sc, make_integer(sc, random_seed(r)), make_integer_unchecked(sc, random_carry(r))));
-#endif
 }
 
 #define g_random_state_to_list s7_random_state_to_list
 
 void s7_set_default_random_state(s7_scheme *sc, s7_int seed, s7_int carry)
 {
-#if !WITH_GMP
   s7_pointer rs;
   new_cell(sc, rs, T_RANDOM_STATE);
   random_seed(rs) = (s7_uint)seed;
   random_carry(rs) = (s7_uint)carry;
   sc->default_random_state = rs;
-#endif
 }
 
 
