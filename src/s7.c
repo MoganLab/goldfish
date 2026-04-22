@@ -13739,9 +13739,6 @@ s7_double s7_number_to_real(s7_scheme *sc, s7_pointer x) {return(s7_number_to_re
 s7_int s7_number_to_integer_with_caller(s7_scheme *sc, s7_pointer x, const char *caller)
 {
   if (is_t_integer(x)) return(integer(x));
-#if WITH_GMP
-  if (is_t_big_integer(x)) return(big_integer_to_s7_int(sc, big_integer(x)));
-#endif
   sole_arg_wrong_type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), x, sc->type_names[T_INTEGER]);
   return(0);
 }
@@ -13754,10 +13751,6 @@ s7_int s7_numerator(s7_pointer x)
     {
     case T_INTEGER:     return(integer(x));
     case T_RATIO:       return(numerator(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return(mpz_get_si(big_integer(x))); /* big_integer_to_s7_int but no sc -- no error if out of range */
-    case T_BIG_RATIO:   return(mpz_get_si(mpq_numref(big_ratio(x))));
-#endif
     }
   return(0);
 }
