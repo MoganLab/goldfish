@@ -15874,10 +15874,6 @@ static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
   else
     {
       const s7_pointer ex = cadr(args);
-#if WITH_GMP
-      if (is_big_number(ex))
-	return(big_rationalize(sc, args));
-#endif
       if (!is_real(ex))
 	return(method_or_bust(sc, ex, sc->rationalize_symbol, args, sc->type_names[T_REAL], 2));
       err = real_to_double(sc, ex, "rationalize");
@@ -15910,13 +15906,8 @@ static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
 	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, a_normal_real_string);
 	if (err >= fabs(rat))
 	  return(int_zero);
-#if WITH_GMP
-	if (fabs(rat) > RATIONALIZE_LIMIT)
-	  return(big_rationalize(sc, set_plist_2(sc, x, wrap_real(sc, err))));
-#else
 	if (fabs(rat) > RATIONALIZE_LIMIT)
 	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, it_is_too_large_string);
-#endif
 	if ((fabs(rat) + fabs(err)) < 1.0e-18)
 	  err = 1.0e-18;
 	/* (/ 1.0 most-positive-fixnum) is 1.0842021e-19, so if we let err be less than that,
