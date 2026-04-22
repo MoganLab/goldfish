@@ -15313,18 +15313,11 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 		frac_len = max_len;
 	      for (int32_t i = 0; i < frac_len; i++)
 		frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-	      dval += int_part + frac_part * dpow(radix, -frac_len);
-	    }}}
-#if WITH_GMP
-  if ((int_part == 0) &&
-      (frac_part == 0))
-    return(0.0);
-  (*overflow) = ((frac_len - exponent) > max_len);
-#endif
+      dval += int_part + frac_part * dpow(radix, -frac_len);
+    }}}
   return(sign * dval);
 }
 
-#if !WITH_GMP
 static s7_pointer make_undefined_bignum(s7_scheme *sc, const char *name)
 {
   s7_int len = safe_strlen(name) + 16;
@@ -15336,7 +15329,6 @@ static s7_pointer make_undefined_bignum(s7_scheme *sc, const char *name)
   liberate(sc, b);
   return(result);
 }
-#endif
 
 static s7_pointer nan1_or_bust(s7_scheme *sc, s7_double x, const char *p, const char *q, int32_t radix, bool want_symbol, int32_t offset)
 {
