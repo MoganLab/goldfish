@@ -93686,10 +93686,8 @@ static s7_pointer sl_set_safety(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 static s7_pointer sl_set_default_random_state(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
   if (!is_random_state(val)) starlet_wrong_type_error_nr(sc, sym, val, sc->type_names[T_RANDOM_STATE]);
-#if !WITH_GMP
   random_seed(sc->default_random_state) = random_seed(val);
   random_carry(sc->default_random_state) = random_carry(val);
-#endif
   return(val);
 }
 
@@ -94526,14 +94524,12 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_pp_function(sc, global_value(sc->max_symbol), max_p_pp);
   s7_set_p_pp_function(sc, global_value(sc->min_symbol), min_p_pp);
   s7_set_p_p_function(sc, global_value(sc->sqrt_symbol), sqrt_p_p);
-#if !WITH_GMP
   s7_set_p_pp_function(sc, global_value(sc->expt_symbol), expt_p_pp);
   /* same problem affects logior|logand|logxor|lcm|gcd|rationalize|remainder|modulo -- *_p_* will fail in gmp s7 */
   s7_set_p_d_function(sc, global_value(sc->ceiling_symbol), ceiling_p_d);
   s7_set_p_d_function(sc, global_value(sc->floor_symbol), floor_p_d);
   s7_set_p_d_function(sc, global_value(sc->truncate_symbol), truncate_p_d);
   s7_set_p_d_function(sc, global_value(sc->round_symbol), round_p_d);
-#endif
   s7_set_d_7dd_function(sc, global_value(sc->remainder_symbol), remainder_d_7dd);
   s7_set_i_7ii_function(sc, global_value(sc->remainder_symbol), remainder_i_7ii);
   s7_set_i_7ii_function(sc, global_value(sc->quotient_symbol), quotient_i_7ii);
