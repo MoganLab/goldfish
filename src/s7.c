@@ -1956,12 +1956,10 @@ static void init_types(void)
   t_exs_p[T_DYNAMIC_WIND] = true;
   t_exs_p[T_CATCH] = true;
   t_exs_p[T_COUNTER] = true;
-#if !WITH_GMP
   t_exs_p[T_BIG_INTEGER] = true;
   t_exs_p[T_BIG_RATIO] = true;
   t_exs_p[T_BIG_REAL] = true;
   t_exs_p[T_BIG_COMPLEX] = true;
-#endif
 #endif
 }
 
