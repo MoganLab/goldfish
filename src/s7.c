@@ -17145,7 +17145,6 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
 }
 
-#if !WITH_GMP
 static inline s7_pointer add_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -17218,9 +17217,6 @@ static s7_pointer add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	}}
   return(add_p_pp(sc, x, y));
 }
-#else
-#define add_p_pp_wrapped add_p_pp
-#endif
 
 static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
