@@ -5990,7 +5990,6 @@ static s7_pointer wrap_real(s7_scheme *sc, s7_double x)
   return(wrapped_real);
 }
 
-#if !WITH_GMP
 static s7_pointer wrap_complex(s7_scheme *sc, s7_double rl, s7_double im)
 {
   s7_pointer wrapped_complex = car(sc->complex_wrappers);
@@ -6010,10 +6009,6 @@ static s7_pointer wrap_real_or_complex(s7_scheme *sc, s7_double rl, s7_double im
   if (im == 0.0) return(wrap_real(sc, rl));
   return(wrap_complex(sc, rl, im));
 }
-#else
-#define wrap_complex(Sc, A, B) make_complex(Sc, A, B)
-#define wrap_real_or_complex(Sc, A, B) make_complex(Sc, A, B)
-#endif
 
 static s7_pointer wrap_let(s7_scheme *sc, s7_pointer old_let)
 {
@@ -7182,22 +7177,7 @@ static void sweep(s7_scheme *sc)
       gp->loc = j;
     }
 
-#if WITH_GMP
-  gp = sc->big_integers;
-  process_gc_list(free_big_integer(sc, gc_obj)) /* gc_obj == gp->list[i] */
 
-  gp = sc->big_ratios;
-  process_gc_list(free_big_ratio(sc, gc_obj))
-
-  gp = sc->big_reals;
-  process_gc_list(free_big_real(sc, gc_obj))
-
-  gp = sc->big_complexes;
-  process_gc_list(free_big_complex(sc, gc_obj))
-
-  gp = sc->big_random_states;
-  process_gc_list(gmp_randclear(random_gmp_state(gc_obj)))
-#endif
 }
 
 static void add_to_gc_list(s7_scheme *sc, gc_list_t *gp, s7_pointer p)
@@ -7251,13 +7231,7 @@ static void add_gensym(s7_scheme *sc, s7_pointer p)
 #define add_weak_hash_iterator(sc, p) add_to_gc_list(sc, sc->weak_hash_iterators, p)
 #define add_opt1_func(sc, p) do {if (!opt1_func_listed(p)) add_to_gc_list(sc, sc->opt1_funcs, p); set_opt1_func_listed(p);} while (0) /* called by set_opt1_lambda_add */
 
-#if WITH_GMP
-#define add_big_integer(sc, p)       add_to_gc_list(sc, sc->big_integers, p)
-#define add_big_ratio(sc, p)         add_to_gc_list(sc, sc->big_ratios, p)
-#define add_big_real(sc, p)          add_to_gc_list(sc, sc->big_reals, p)
-#define add_big_complex(sc, p)       add_to_gc_list(sc, sc->big_complexes, p)
-#define add_big_random_state(sc, p)  add_to_gc_list(sc, sc->big_random_states, p)
-#endif
+
 
 static void init_gc_caches(s7_scheme *sc)
 {
