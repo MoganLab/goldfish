@@ -924,7 +924,7 @@ typedef s7_double s7_Double;
 #endif
 
 
-bool s7_is_bignum(s7_pointer obj);
+
 
 
 /* --------------------------------------------------------------------------------

@@ -1286,7 +1286,7 @@ struct s7_scheme {
 
   s7_pointer abs_symbol, acos_symbol, acosh_symbol, add_symbol, angle_symbol, append_symbol, apply_symbol, apply_values_symbol, arity_symbol,
              ash_symbol, asin_symbol, asinh_symbol, assoc_symbol, assq_symbol, assv_symbol, atan_symbol, atanh_symbol, autoload_symbol, autoloader_symbol,
-             bacro_symbol, bacro_star_symbol, bignum_symbol, byte_vector_symbol, byte_vector_ref_symbol, byte_vector_set_symbol, byte_vector_to_string_symbol,
+             bacro_symbol, bacro_star_symbol, byte_vector_symbol, byte_vector_ref_symbol, byte_vector_set_symbol, byte_vector_to_string_symbol,
              c_pointer_symbol, c_pointer_info_symbol, c_pointer_to_list_symbol, c_pointer_type_symbol, c_pointer_weak1_symbol, c_pointer_weak2_symbol,
              caaaar_symbol, caaadr_symbol, caaar_symbol, caadar_symbol, caaddr_symbol, caadr_symbol,
              caar_symbol, cadaar_symbol, cadadr_symbol, cadar_symbol, caddar_symbol, cadddr_symbol, caddr_symbol, cadr_symbol,
@@ -1308,7 +1308,7 @@ struct s7_scheme {
              hash_table_value_typer_symbol, help_symbol, hook_functions_symbol,
              imag_part_symbol, immutable_symbol, inexact_to_exact_symbol, inlet_symbol, int_vector_ref_symbol, int_vector_set_symbol, int_vector_symbol,
              integer_decode_float_symbol, integer_to_char_symbol,
-             is_aritable_symbol, is_bignum_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
+             is_aritable_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
              is_c_object_symbol, c_object_let_symbol, c_object_type_symbol, is_c_pointer_symbol,
              is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_numeric_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
              is_complex_symbol, is_complex_vector_symbol, is_constant_symbol,
@@ -15930,32 +15930,6 @@ static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
 }
 
 
-/* -------------------------------- bignum -------------------------------- */
-static s7_pointer g_bignum(s7_scheme *sc, s7_pointer args)
-{
-  #define H_bignum "(bignum val (radix 10)) returns a multiprecision version of the string 'val'. If the argument is a number \
-bignum returns that number as a bignum"
-  #define Q_bignum s7_make_signature(sc, 3, \
-                     s7_make_signature(sc, 2, sc->is_number_symbol, sc->not_symbol), \
-                     s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_string_symbol), \
-                     sc->is_integer_symbol)
-
-  s7_pointer num = car(args);
-  if (is_number(num))
-    {
-      if (!is_null(cdr(args)))
-	error_nr(sc, make_symbol(sc, "bignum-error", 12),
-		 set_elist_2(sc, wrap_string(sc, "bignum of a number takes only one argument: ~S", 46), args));
-      return(num);
-    }
-  num = g_string_to_number_1(sc, args, sc->bignum_symbol);
-  if (is_false(sc, num))                                    /* (bignum "1/3.0") */
-    error_nr(sc, make_symbol(sc, "bignum-error", 12),
-	     set_elist_2(sc, wrap_string(sc, "bignum string argument does not represent a number: ~S", 54), car(args))); /* car(args) to get original */
-  return(num);
-}
-
-
 /* -------------------------------- inexact helpers -------------------------------- */
 #if !HAVE_COMPLEX_NUMBERS
   static s7_pointer no_complex_numbers_string;
@@ -19828,15 +19802,6 @@ static s7_pointer g_is_number(s7_scheme *sc, s7_pointer args)
   #define H_is_number "(number? obj) returns #t if obj is a number"
   #define Q_is_number sc->pl_bt
   check_boolean_method(sc, is_number, sc->is_number_symbol, args);
-}
-
-bool s7_is_bignum(s7_pointer obj) {return(is_big_number(obj));}
-
-static s7_pointer g_is_bignum(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_bignum "(bignum? obj) returns #t if obj is a multiprecision number."
-  #define Q_is_bignum sc->pl_bt
-  return(make_boolean(sc, is_big_number(car(args))));
 }
 
 static s7_pointer g_is_integer(s7_scheme *sc, s7_pointer args)
@@ -92299,9 +92264,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->pcl_c =  s7_make_circular_signature(sc, 0, 1, sc->is_char_symbol);
 
   sc->values_symbol = make_symbol(sc, "values", 6);
-
-  sc->is_bignum_symbol =             defun("bignum?",           is_bignum,              1, 0, false);
-  sc->bignum_symbol =                defun("bignum",            bignum,                 1, 1, false);
 
   sc->gensym_symbol =                defun("gensym",		gensym,			0, 1, false);
   sc->symbol_table_symbol =          defun("symbol-table",	symbol_table,		0, 0, false);
