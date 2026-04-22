@@ -24300,7 +24300,7 @@ s7_pointer s7_random_state_to_list(s7_scheme *sc, s7_pointer args)
 {
   #define H_random_state_to_list "(random-state->list r) returns the random state object as a list.\
 You can later apply random-state to this list to continue a random number sequence from any point."
-  #define Q_random_state_to_list s7_make_signature(sc, 2, (WITH_GMP) ? sc->is_list_symbol : sc->is_pair_symbol, sc->is_random_state_symbol)
+  #define Q_random_state_to_list s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_random_state_symbol)
 
 #if WITH_GMP
   if ((is_pair(args)) &&
@@ -40003,7 +40003,7 @@ static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer cal
 		  if (typf == global_value(sc->is_integer_symbol))
 		    {
 		      if (!s7_is_integer(fill)) wrong_type_error_nr(sc, caller, 2, fill, sc->type_names[T_INTEGER]);
-		      result_type = (WITH_GMP) ? T_VECTOR : T_INT_VECTOR;
+		      result_type = T_INT_VECTOR;
 		    }
 		  else
 		    if (typf == global_value(sc->is_byte_symbol))
@@ -47968,7 +47968,7 @@ static s7_pointer str_length(s7_scheme *sc, s7_pointer str)   {return(make_integ
 static s7_pointer bv_length(s7_scheme *sc, s7_pointer bv)     {return(make_integer(sc, byte_vector_length(bv)));}
 static s7_pointer h_length(s7_scheme *sc, s7_pointer table)   {return(make_integer(sc, hash_table_size(table)));}
 static s7_pointer iter_length(s7_scheme *sc, s7_pointer iter) {return(s7_length(sc, iterator_sequence(iter)));}
-static s7_pointer rs_length(s7_scheme *sc, s7_pointer rs)     {return((WITH_GMP) ? sc->F : int_two);}
+static s7_pointer rs_length(s7_scheme *sc, s7_pointer rs)     {return(int_two);}
 
 static s7_pointer c_obj_length(s7_scheme *sc, s7_pointer cobj)
 {
@@ -53454,7 +53454,7 @@ static s7_pointer fx_add_ft(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, 
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) return(make_integer(sc, integer(x) + 1)); \
+    if ((is_t_integer(x))) return(make_integer(sc, integer(x) + 1)); \
     return(g_add_x1_1(sc, x, 1)); /* arg=(+ x 1) */ \
   }
 
@@ -53471,7 +53471,7 @@ fx_add_s1_any(fx_add_V1, V_lookup)
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     const s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) \
+    if ((is_t_integer(x))) \
       { \
         if (HAVE_OVERFLOW_CHECKS) \
   	  { \
@@ -53499,7 +53499,7 @@ static s7_pointer fx_add_vu(s7_scheme *sc, s7_pointer arg) {return(add_p_pp(sc, 
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) return(make_integer(sc, integer(x) - 1)); \
+    if ((is_t_integer(x))) return(make_integer(sc, integer(x) - 1)); \
     return(minus_c1(sc, x)); \
   }
 /* overflow check here slows tleft by about 35 out of ca 750, parallel add case does not check
@@ -53520,7 +53520,7 @@ fx_subtract_s1_any(fx_subtract_U1, U_lookup)
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     const s7_pointer x = Lookup(sc, cadr(arg), arg);	\
-    if ((!WITH_GMP) && (is_t_integer(x))) \
+    if ((is_t_integer(x))) \
       { \
         if (HAVE_OVERFLOW_CHECKS) \
   	  { \
@@ -56209,14 +56209,14 @@ static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {retu
 static s7_pointer fx_safe_closure_s_to_sub1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
-  if ((!WITH_GMP) && (is_t_integer(p))) return(make_integer(sc, integer(p) - 1));
+  if ((is_t_integer(p))) return(make_integer(sc, integer(p) - 1));
   return(minus_c1(sc, p));
 }
 
 static s7_pointer fx_safe_closure_s_to_add1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
-  if ((!WITH_GMP) && (is_t_integer(p))) return(make_integer(sc, integer(p) + 1));
+  if ((is_t_integer(p))) return(make_integer(sc, integer(p) + 1));
       /* better but slower: return(add_if_overflow_to_real_or_big_integer(sc, integer(p), 1)) */
   return(g_add_x1_1(sc, p, 1));
 }
@@ -57095,11 +57095,11 @@ static s7_function fx_choose(s7_scheme *sc, const s7_pointer holder, const s7_po
 
 	case HOP_SAFE_C_CA:
 
-	  if ((!WITH_GMP) && (fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
+	  if ((fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
 	  return((fn_proc(arg) == g_cons) ? fx_cons_ca : fx_c_ca);
 
 	case HOP_SAFE_C_SA:
-	  if ((!WITH_GMP) && (fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
+	  if ((fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
 	  if (fn_proc(arg) == g_multiply_2) return(fx_multiply_sa);
 	  if (fn_proc(arg) == g_add_2) return(fx_add_sa);
 	  if (is_global_and_has_func(head, s7_p_pp_function))
@@ -67226,7 +67226,6 @@ static bool float_optimize_1(s7_scheme *sc, s7_pointer form)
   s7_pointer head, s_func, s_slot = NULL;
   s7_int len;
   if (OPT_PRINT) fprintf(stderr, "     float_optimize[%d] %s\n", __LINE__, display(form));
-  if (WITH_GMP) return(false);
 
   if (!is_pair(expr)) /* wrap constants/symbols */
     return_bool(sc, opt_float_not_pair(sc, expr), expr);
@@ -67311,7 +67310,6 @@ static bool int_optimize_1(s7_scheme *sc, s7_pointer form)
   s7_int len;
 
   if (OPT_PRINT) fprintf(stderr, "     int_optimize %s\n", display(form));
-  if (WITH_GMP) return(false);
 
   if (!is_pair(expr)) /* wrap constants/symbols */
     return_bool(sc, opt_int_not_pair(sc, expr), expr);
@@ -67541,7 +67539,6 @@ static bool cell_optimize_1(s7_scheme *sc, s7_pointer form)
 #if OPT_PRINT /* needed due to line arg */
   fprintf(stderr, "     cell_optimize[%d] %s\n", line, display(form));
 #endif
-  if (WITH_GMP) return(false);
   if (!is_pair(expr)) /* wrap constants/symbols */
     return(opt_cell_not_pair(sc, expr));
 
@@ -67728,7 +67725,6 @@ static bool bool_optimize(s7_scheme *sc, s7_pointer expr)
   const int32_t start = sc->pc;
   opt_info *wrapper;
   if (OPT_PRINT) fprintf(stderr, "     bool_optimize %s\n", display(expr));
-  if (WITH_GMP) return(false);
   if (bool_optimize_nw(sc, expr))
     return_true(sc, expr);
   sc->pc = start;
@@ -67762,7 +67758,6 @@ s7_float_function s7_float_optimize(s7_scheme *sc, s7_pointer expr)
 
 static s7_pfunc s7_optimize_1(s7_scheme *sc, s7_pointer expr, bool nv)
 {
-  if (WITH_GMP) return_null(sc, expr);
   if ((!is_pair(expr)) || (no_cell_opt(expr)) || (sc->debug != 0))
     return_null(sc, expr);
   sc->pc = 0;
@@ -76019,11 +76014,11 @@ static s7_pointer check_case(s7_scheme *sc)
       {
 	if (is_fxable(sc, car(code)))
 	  {
-	    pair_set_syntax_op(form, ((!WITH_GMP) && (key_type == T_INTEGER)) ? OP_CASE_A_I_S : OP_CASE_A_G_S);
+	    pair_set_syntax_op(form, ((key_type == T_INTEGER)) ? OP_CASE_A_I_S : OP_CASE_A_G_S);
 	    set_fx_direct(code, fx_choose(sc, code, sc->curlet, let_symbol_is_safe));
 	    if ((is_fx_treeable(cdr(code))) && (curlet_has_slots(sc))) fx_curlet_tree_in(sc, code);
 	  }
-	else pair_set_syntax_op(form, ((!WITH_GMP) && (key_type == T_INTEGER)) ? OP_CASE_P_I_S : OP_CASE_P_G_S);
+	else pair_set_syntax_op(form, ((key_type == T_INTEGER)) ? OP_CASE_P_I_S : OP_CASE_P_G_S);
       }
     else              /* x_e_s */
       if (is_fxable(sc, car(code)))
@@ -76037,7 +76032,7 @@ static s7_pointer check_case(s7_scheme *sc)
   if ((use_fx) && (has_else) && (!has_feed_to))
     {
       const opcode_t op = optimize_op(form);
-      if ((op == OP_CASE_A_E_S) || (op == OP_CASE_A_G_S) || (op == OP_CASE_A_S_G) || ((!WITH_GMP) && (op == OP_CASE_A_I_S)))
+      if ((op == OP_CASE_A_E_S) || (op == OP_CASE_A_G_S) || (op == OP_CASE_A_S_G) || ((op == OP_CASE_A_I_S)))
 	{
 	  pair_set_syntax_op(form,
 			     (op == OP_CASE_A_I_S) ? OP_CASE_A_I_S_A :
@@ -97267,7 +97262,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_input_port_symbol =      bool_defun("input-port?",      is_input_port,	     0, T_INPUT_PORT,   mark_vector_1,      true);
   sc->is_output_port_symbol =     bool_defun("output-port?",     is_output_port,     0, T_OUTPUT_PORT,  mark_simple_vector, true);
   sc->is_eof_object_symbol =      bool_defun("eof-object?",      is_eof_object,	     0, T_EOF,          just_mark_vector,   true);
-  sc->is_integer_symbol =         bool_defun("integer?",         is_integer,	     0, (WITH_GMP) ? T_FREE : T_INTEGER, mark_simple_vector, true);
+  sc->is_integer_symbol =         bool_defun("integer?",         is_integer,	     0, T_INTEGER, mark_simple_vector, true);
   sc->is_byte_symbol =            bool_defun("byte?",	         is_byte,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_number_symbol =          bool_defun("number?",	         is_number,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_real_symbol =            bool_defun("real?",	         is_real,	     0, T_FREE,         mark_simple_vector, true);
@@ -97510,7 +97505,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->lcm_symbol =                   defun("lcm",		lcm,			0, 0, true);
   sc->rationalize_symbol =           defun("rationalize",	rationalize,		1, 1, false);
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
-  sc->random_state_symbol =          defun("random-state",      random_state,	        0, (WITH_GMP) ? 1 : 2, false);
+  sc->random_state_symbol =          defun("random-state",      random_state,	        0, 2, false);
   sc->expt_symbol =                  defun("expt",		expt,			2, 0, false);
   sc->log_symbol =                   s7_define_typed_function(sc, "log", g_log, 1, 1, false, "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3", sc->pcl_n);
   sc->ash_symbol =                   s7_define_typed_function(sc, "ash", g_ash, 2, 0, false, "(ash i1 i2) returns i1 shifted right or left i2 times, i1 << i2, (ash 1 3) -> 8, (ash 8 -3) -> 1", sc->pcl_i);
