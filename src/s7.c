@@ -17169,10 +17169,8 @@ static s7_pointer add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
     {
       if (is_t_integer(y))
 	return(add_if_overflow_to_real_wrapped(sc, integer(x), integer(y)));
-#if !WITH_GMP
       if (is_t_real(y))
 	return(wrap_real(sc, (long_double)integer(x) + real(y)));
-#endif
     }
   else
     if (is_t_real(x))
