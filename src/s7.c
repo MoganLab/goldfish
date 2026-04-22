@@ -74137,7 +74137,6 @@ static s7_pointer check_case(s7_scheme *sc)
   }
 }
 
-#if !WITH_GMP
 static bool op_case_i_s(s7_scheme *sc)
 {
   const s7_pointer selector  = sc->value;
@@ -74181,7 +74180,6 @@ static inline s7_pointer fx_case_a_i_s_a(s7_scheme *sc, s7_pointer code) /* inli
     }
   return(fx_call(sc, opt3_any(cdr(code))));
 }
-#endif
 
 static bool op_case_e_g_1(s7_scheme *sc, const s7_pointer selector, bool ok)
 {
@@ -91779,11 +91777,9 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	G_G: case OP_CASE_G_G: if (op_case_g_g(sc)) goto TOP_NO_POP; goto FEED_TO;
 	case OP_CASE_A_E_S: sc->value = fx_call(sc, cdr(sc->code));
 	case OP_CASE_E_S:   op_case_e_s(sc); goto EVAL;
-#if !WITH_GMP
 	case OP_CASE_P_I_S: push_stack_no_args_direct(sc, OP_CASE_I_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_A_I_S: sc->value = fx_call(sc, cdr(sc->code));
 	case OP_CASE_I_S:   if (op_case_i_s(sc)) continue; goto EVAL;
-#endif
 	case OP_CASE_A_G_S: sc->value = fx_call(sc, cdr(sc->code)); /* this almost never happens? */
 	case OP_CASE_G_S:   op_case_g_s(sc); goto EVAL;
 
@@ -91797,9 +91793,7 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	case OP_CASE_P_E_S: push_stack_no_args_direct(sc, OP_CASE_E_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_P_G_S: push_stack_no_args_direct(sc, OP_CASE_G_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_P_E_G: push_stack_no_args_direct(sc, OP_CASE_E_G); sc->code = cadr(sc->code); goto EVAL;
-#if !WITH_GMP
 	case OP_CASE_A_I_S_A: sc->value = fx_case_a_i_s_a(sc, sc->code); continue;
-#endif
 	case OP_CASE_A_E_S_A: sc->value = fx_case_a_e_s_a(sc, sc->code); continue;
 	case OP_CASE_A_G_S_A: sc->value = fx_case_a_g_s_a(sc, sc->code); continue;
 	case OP_CASE_A_S_G_A: sc->value = fx_case_a_s_g_a(sc, sc->code); continue;
@@ -94109,9 +94103,7 @@ static void init_fx_function(void)
   fx_function[HOP_SAFE_CLOSURE_A_TO_SC] = fx_safe_closure_a_to_sc;
 
   fx_function[OP_COND_NA_NA] = fx_cond_na_na;
-#if !WITH_GMP
   fx_function[OP_CASE_A_I_S_A] = fx_case_a_i_s_a;
-#endif
   fx_function[OP_CASE_A_E_S_A] = fx_case_a_e_s_a;
   fx_function[OP_CASE_A_G_S_A] = fx_case_a_g_s_a;
   fx_function[OP_CASE_A_S_G_A] = fx_case_a_s_g_a;
