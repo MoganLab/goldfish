@@ -87095,7 +87095,6 @@ static opt_pid_t opinit_cond_a_a_a_l2a_lopa_l2aq(s7_scheme *sc, s7_pointer code)
   sc->rec_slot1 = let_slots(sc->curlet);
   sc->rec_slot2 = next_slot(sc->rec_slot1);
 
-#if !WITH_GMP
   if ((is_t_integer(slot_value(sc->rec_slot1))) &&
       (is_t_integer(slot_value(sc->rec_slot2))))
     {
@@ -87142,7 +87141,6 @@ static opt_pid_t opinit_cond_a_a_a_l2a_lopa_l2aq(s7_scheme *sc, s7_pointer code)
 				      sc->rec_fi6 = q_call(sc->rec_a6_o).fi;
 				      return(opt_int_0);
 				    }}}}}}}}}
-#endif
   rec_set_test(sc, cadr(code));
   rec_set_res(sc, cdadr(code));
   {
