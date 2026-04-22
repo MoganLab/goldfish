@@ -94579,7 +94579,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_d_dd_function(sc, global_value(sc->atan_symbol), atan_d_dd);
   s7_set_d_d_function(sc, global_value(sc->tanh_symbol), tanh_d_d);
   s7_set_p_p_function(sc, global_value(sc->exp_symbol), exp_p_p);
-#if !WITH_GMP
   s7_set_i_7ii_function(sc, global_value(sc->ash_symbol), ash_i_7ii);
   s7_set_i_7d_function(sc, global_value(sc->round_symbol), round_i_7d);
   s7_set_i_7d_function(sc, global_value(sc->floor_symbol), floor_i_7d);
@@ -94587,7 +94586,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7p_function(sc, global_value(sc->floor_symbol), floor_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->ceiling_symbol), ceiling_i_7p);
   s7_set_i_7d_function(sc, global_value(sc->truncate_symbol), truncate_i_7d);
-#endif
 
   s7_set_d_d_function(sc, global_value(sc->add_symbol), add_d_d);
   s7_set_d_d_function(sc, global_value(sc->subtract_symbol), subtract_d_d);
