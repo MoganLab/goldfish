@@ -793,20 +793,7 @@ struct opt_info {
 
 #define q_temp(o) o->v[num_vunions - 1]
 
-#if WITH_GMP
-typedef struct bigint {mpz_t n; struct bigint *nxt;} bigint;
-typedef struct bigrat {mpq_t q; struct bigrat *nxt;} bigrat;
-typedef struct bigflt {mpfr_t x; struct bigflt *nxt;} bigflt;
-typedef struct bigcmp {mpc_t z; struct bigcmp *nxt;} bigcmp;
 
-typedef struct {
-  mpfr_t error, ux, x0, x1;
-  mpz_t i, i0, i1, n;
-  mpz_t p0, q0, r, r1, p1, q1, old_p1, old_q1;
-  mpfr_t val, e0, e1, e0p, e1p, old_e0, old_e1, old_e0p;
-  mpq_t q;
-} rat_locals_t;
-#endif
 
 typedef intptr_t opcode_t;
 
