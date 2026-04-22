@@ -15041,11 +15041,7 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 static const char *radstr[17] = {NULL, NULL, "01", "012", "0123", "01234", "012345", "0123456", "01234567", "012345678", "0123456789",
   "0123456789aA", "0123456789aAbB", "0123456789aAbBcC", "0123456789aAbBcCdD", "0123456789aAbBcCdDeE", "0123456789aAbBcCdDeEfF"};
 
-#if WITH_GMP
-static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix, bool *overflow)
-#else
 static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
-#endif
 {
   /* Use simple implementation for base 10 to avoid precision issues on Windows */
   if (radix == 10)
@@ -15133,14 +15129,6 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
        */
     }
 
-#if WITH_GMP
-  /* 9007199254740995.0 */
-  if (int_len + frac_len >= max_len)
-    {
-      (*overflow) = true;
-      return(0.0);
-    }
-#endif
   str = ipart;
   if ((int_len + exponent) > max_len)
     {
