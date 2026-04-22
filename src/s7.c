@@ -22608,7 +22608,6 @@ static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
   num = car(args);
   switch (type(num))
     {
-#if !WITH_GMP
     case T_INTEGER:
       return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
     case T_RATIO:
@@ -22657,50 +22656,6 @@ static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
       /* (x >> 11) * 0x1.0p-53, (1LL << 50) * 0x1.0p-53) -> .125, here "x" is 64 bits, but isn't this int64 related? */
     case T_COMPLEX:
       return(make_complex(sc, real_part(num) * next_random(r), imag_part(num) * next_random(r)));
-#else
-    case T_INTEGER:
-      if (integer(num) == 0) return(int_zero);
-      mpz_set_si(sc->mpz_1, integer(num));
-      mpz_urandomm(sc->mpz_1, random_gmp_state(r), sc->mpz_1);
-      if (integer(num) < 0) mpz_neg(sc->mpz_1, sc->mpz_1);
-      return(make_integer(sc, mpz_get_si(sc->mpz_1)));
-    case T_BIG_INTEGER:
-      if (mpz_cmp_si(big_integer(num), 0) == 0) return(int_zero);
-      mpz_urandomm(sc->mpz_1, random_gmp_state(r), big_integer(num));
-      /* this does not work if num is a negative number -- you get positive results. so check num for sign, and negate result if necessary */
-      if (mpz_cmp_ui(big_integer(num), 0) < 0)
-	mpz_neg(sc->mpz_1, sc->mpz_1);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_RATIO:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-      mpfr_mul_d(sc->mpfr_2, sc->mpfr_1, sc->default_rationalize_error, MPFR_RNDN);
-      return(big_rationalize(sc, set_plist_2(sc, mpfr_to_big_real(sc, sc->mpfr_1), mpfr_to_big_real(sc, sc->mpfr_2))));
-    case T_BIG_RATIO:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, big_ratio(num), MPFR_RNDN);
-      mpfr_mul_d(sc->mpfr_2, sc->mpfr_1, sc->default_rationalize_error, MPFR_RNDN);
-      return(big_rationalize(sc, set_plist_2(sc, mpfr_to_big_real(sc, sc->mpfr_1), mpfr_to_big_real(sc, sc->mpfr_2))));
-    case T_REAL:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul_d(sc->mpfr_1, sc->mpfr_1, real(num), MPFR_RNDN);
-      return(make_real(sc, mpfr_get_d(sc->mpfr_1, MPFR_RNDN)));
-    case T_BIG_REAL:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul(sc->mpfr_1, sc->mpfr_1, big_real(num), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_COMPLEX:
-      mpc_urandom(sc->mpc_1, random_gmp_state(r));
-      mpfr_mul_d(mpc_realref(sc->mpc_1), mpc_realref(sc->mpc_1), real_part(num), MPFR_RNDN);
-      mpfr_mul_d(mpc_imagref(sc->mpc_1), mpc_imagref(sc->mpc_1), imag_part(num), MPFR_RNDN);
-      return(make_complex(sc, mpfr_get_d(mpc_realref(sc->mpc_1), MPFR_RNDN), mpfr_get_d(mpc_imagref(sc->mpc_1), MPFR_RNDN)));
-    case T_BIG_COMPLEX:
-      mpc_urandom(sc->mpc_1, random_gmp_state(r));
-      mpfr_mul(mpc_realref(sc->mpc_1), mpc_realref(sc->mpc_1), mpc_realref(big_complex(num)), MPFR_RNDN);
-      mpfr_mul(mpc_imagref(sc->mpc_1), mpc_imagref(sc->mpc_1), mpc_imagref(big_complex(num)), MPFR_RNDN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust(sc, num, sc->random_symbol, args, a_number_string, 1));
     }
