@@ -68323,12 +68323,10 @@ static void init_choosers(s7_scheme *sc)
   func = set_function_chooser(sc->logxor_symbol, logxor_chooser);
   sc->logxor_2 = make_function_with_class(sc, func, "logxor", g_logxor_2, 2, 0, false);
 
-#if !WITH_GMP
   /* ash */
   func = set_function_chooser(sc->ash_symbol, ash_chooser);
   sc->ash_ii = make_function_with_class(sc, func, "ash", g_ash_ii, 2, 0, false);
   sc->ash_ic = make_function_with_class(sc, func, "ash", g_ash_ic, 2, 0, false);
-#endif
 
   /* random */
   func = set_function_chooser(sc->random_symbol, random_chooser);
