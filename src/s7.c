@@ -34208,10 +34208,6 @@ static s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
     return(method_or_bust(sc, n, sc->make_list_symbol, set_plist_2(sc, n, init), sc->type_names[T_INTEGER], 1));
 
   len = s7_integer_clamped_if_gmp(sc, n);
-#if WITH_GMP
-  if ((len == 0) && (!is_zero(n)))
-    out_of_range_error_nr(sc, sc->make_list_symbol, int_one, n, wrap_string(sc, "big integer is too big for s7_int", 33));
-#endif
   if (len == 0) return(sc->nil);          /* what about (make-list 0 123)? */
   if (len < 0)
     out_of_range_error_nr(sc, sc->make_list_symbol, int_one, n, it_is_negative_string);
