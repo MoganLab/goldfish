@@ -35705,16 +35705,10 @@ static bool numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 static s7_pointer memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 {
   s7_pointer slow = lst;
-#if !WITH_GMP
   uint8_t obj_type = type(obj);
-#endif
   while (true)
     {
-#if WITH_GMP
-      LOOP_4(if ((is_number(car(lst))) && (numbers_are_eqv(sc, obj, car(lst)))) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-#else
       LOOP_4(if ((type(car(lst)) == obj_type) && (numbers_are_eqv(sc, obj, car(lst)))) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-#endif
       slow = cdr(slow);
       if (lst == slow) return(sc->F);
     }
