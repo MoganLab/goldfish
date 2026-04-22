@@ -3801,20 +3801,7 @@ static void begin_temp_1(s7_scheme *sc, s7_pointer p, s7_pointer val, const char
   #define to_c_complex(p)              CMPLX(real_part(p), imag_part(p))
 #endif
 
-#if WITH_GMP
-#define big_integer(p)                 ((T_Bgi(p))->object.number.bgi->n)
-#define big_integer_nxt(p)             (T_Bgi(p))->object.number.bgi->nxt
-#define big_integer_bgi(p)             (T_Bgi(p))->object.number.bgi
-#define big_ratio(p)                   ((T_Bgf(p))->object.number.bgr->q)
-#define big_ratio_nxt(p)               (T_Bgf(p))->object.number.bgr->nxt
-#define big_ratio_bgr(p)               (T_Bgf(p))->object.number.bgr
-#define big_real(p)                    ((T_Bgr(p))->object.number.bgf->x)
-#define big_real_nxt(p)                (T_Bgr(p))->object.number.bgf->nxt
-#define big_real_bgf(p)                (T_Bgr(p))->object.number.bgf
-#define big_complex(p)                 ((T_Bgz(p))->object.number.bgc->z)
-#define big_complex_nxt(p)             (T_Bgz(p))->object.number.bgc->nxt
-#define big_complex_bgc(p)             (T_Bgz(p))->object.number.bgc
-#endif
+
 
 #if S7_DEBUGGING
 const char *display(s7_pointer obj);
