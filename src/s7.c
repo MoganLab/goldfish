@@ -1245,18 +1245,7 @@ struct s7_scheme {
   int32_t num_fdats, safety;
   gc_list_t *strings, *vectors, *input_ports, *output_ports, *input_string_ports, *continuations, *c_objects, *hash_tables;
   gc_list_t *gensyms, *undefineds, *multivectors, *weak_refs, *weak_hash_iterators, *opt1_funcs;
-#if WITH_GMP
-  gc_list_t *big_integers, *big_ratios, *big_reals, *big_complexes, *big_random_states;
-  mpz_t mpz_1, mpz_2, mpz_3, mpz_4;
-  mpq_t mpq_1, mpq_2, mpq_3;
-  mpfr_t mpfr_1, mpfr_2, mpfr_3;
-  mpc_t mpc_1, mpc_2;
-  rat_locals_t *ratloc;
-  bigint *bigints;
-  bigrat *bigrats;
-  bigflt *bigflts;
-  bigcmp *bigcmps;
-#endif
+
   s7_pointer *setters;
   s7_int setters_size, setters_loc;
   s7_pointer *tree_pointers;
