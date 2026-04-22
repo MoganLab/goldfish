@@ -16714,19 +16714,10 @@ static inline s7_pointer add_if_overflow_to_real_or_big_integer(s7_scheme *sc, s
 #if HAVE_OVERFLOW_CHECKS
   s7_int val;
   if (add_overflow(x, y, &val))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, x);
-      mpz_set_si(sc->mpz_2, y);
-      mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-      return(mpz_to_big_integer(sc, sc->mpz_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer add overflow: (+ %" ld64 " %" ld64 ")\n", x, y);
       return(make_real(sc, (long_double)x + (long_double)y));
     }
-#endif
   return(make_integer(sc, val));
 #else
   return(make_integer(sc, x + y));
