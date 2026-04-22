@@ -31409,15 +31409,9 @@ static void random_state_to_port(s7_scheme *sc, s7_pointer rs, s7_pointer port, 
   #define B_BUFSIZE 128
   char buf[B_BUFSIZE];
   int32_t nlen;
-#if WITH_GMP
-  if (use_write == p_readable)
-    nlen = snprintf(buf, B_BUFSIZE, "#<bignum random-state>");
-  else nlen = snprintf(buf, B_BUFSIZE, "#<random-state %p>", rs);
-#else
   if (use_write == p_readable)
     nlen = snprintf(buf, B_BUFSIZE, "(random-state %" PRIu64 " %" PRIu64 ")", random_seed(rs), random_carry(rs));
   else nlen = snprintf(buf, B_BUFSIZE, "#<random-state %" PRIu64 " %" PRIu64 ">", random_seed(rs), random_carry(rs));
-#endif
   port_write_string(port)(sc, buf, clamp_length(nlen, B_BUFSIZE), port);
 }
 
