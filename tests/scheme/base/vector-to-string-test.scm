@@ -37,12 +37,10 @@
   =>
   3
 ) ;check
-(check-catch 'wrong-number-of-args
+(check-catch 'wrong-type-arg
   (vector->string)
 ) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector->string '())
-) ;check-catch
+(check (vector->string '()) => "")
 (check-catch 'wrong-type-arg
   (vector->string #(1 2))
 ) ;check-catch

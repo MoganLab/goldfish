@@ -45,7 +45,7 @@
   =>
   #u8(97 98)
 ) ;check
-(check-catch 'wrong-number-of-args
+(check-catch 'type-error
   (string->utf8)
 ) ;check-catch
 (check-catch 'type-error

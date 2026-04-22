@@ -45,7 +45,7 @@
   (vector-copy! v 0 v 1)
   (check v => #(b c c))
 ) ;let
-(check-catch 'wrong-number-of-args
+(check-catch 'wrong-type-arg
   (vector-copy! #(1) 0)
 ) ;check-catch
 (check-catch 'wrong-type-arg

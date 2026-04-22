@@ -46,12 +46,10 @@
   =>
   "ab"
 ) ;check
-(check-catch 'wrong-number-of-args
+(check-catch 'wrong-type-arg
   (utf8->string)
 ) ;check-catch
-(check-catch 'wrong-type-arg
-  (utf8->string '())
-) ;check-catch
+(check (utf8->string '()) => "")
 (check-catch 'value-error
   (utf8->string #u8(255))
 ) ;check-catch

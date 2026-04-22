@@ -40,14 +40,10 @@
   =>
   #\a
 ) ;check
-(check-catch 'wrong-number-of-args
+(check-catch 'wrong-type-arg
   (string->vector)
 ) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->vector '())
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->vector #(1 2))
-) ;check-catch
+(check (string->vector '()) => #())
+(check (string->vector #(1 2)) => #(1 2))
 
 (check-report)
