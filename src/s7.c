@@ -14620,26 +14620,16 @@ static s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args)
       else return(method_or_bust(sc, base, sc->number_to_string_symbol, args, sc->type_names[T_INTEGER], 2));
       if ((radix < 2) || (radix > 16))
 	out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
-#if WITH_GMP
-      if (!s7_is_bignum(x))
-#endif
-	{
-	  block_t *b = number_to_string_with_radix(sc, x, radix, 0, sc->float_format_precision, 'g', &nlen);
-	  return(block_to_string(sc, b, nlen));
-	}}
-#if WITH_GMP
-  else radix = 10;
-  if (s7_is_bignum(x))
+      {
+	block_t *b = number_to_string_with_radix(sc, x, radix, 0, sc->float_format_precision, 'g', &nlen);
+	return(block_to_string(sc, b, nlen));
+      }}
+  else
     {
-      block_t *b = big_number_to_string_with_radix(sc, x, radix, 0, &nlen, p_write);
-      return(block_to_string(sc, b, nlen));
+      if (is_t_integer(x))
+	result = integer_to_string(sc, integer(x), &nlen);
+      else result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
     }
-  result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
-#else
-  if (is_t_integer(x))
-    result = integer_to_string(sc, integer(x), &nlen);
-  else result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
-#endif
   return(inline_make_string_with_length(sc, result, nlen));
 }
 
