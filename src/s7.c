@@ -13774,20 +13774,6 @@ s7_double s7_real(s7_pointer x)
     {
     case T_RATIO:       return(fraction(x));
     case T_INTEGER:     return((s7_double)integer(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)mpz_get_si(big_integer(x)));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-    case T_BIG_RATIO:
-      {
-	s7_double result;
-	mpfr_t bx;
-	mpfr_init2(bx, DEFAULT_BIGNUM_PRECISION);
-	mpfr_set_q(bx, big_ratio(x), MPFR_RNDN);
-	result = mpfr_get_d(bx, MPFR_RNDN);
-	mpfr_clear(bx);
-	return(result);
-      }
-#endif
     }
   return(0.0);
 }
@@ -14453,16 +14439,6 @@ static block_t *number_to_string_with_radix(s7_scheme *sc, s7_pointer obj, int32
   char *p;
   s7_int len, str_len;
 
-#if WITH_GMP
-  if (s7_is_bignum(obj))
-    return(big_number_to_string_with_radix(sc, obj, radix, width, nlen, p_write));
-  /* this ignores precision because it's way too hard to get the mpfr string to look like
-   *   C's output -- we either have to call mpfr_get_str twice (the first time just to
-   *   find out what the exponent is and how long the string actually is), or we have
-   *   to do messy string manipulations.  So (format #f "",3F" pi) ignores the "3" and
-   *   prints the full string.  And don't even think about mpfr_snprintf!
-   */
-#endif
   if (radix == 10)
     {
       p = number_to_string_base_10(sc, obj, width, precision, float_choice, nlen, p_write);
