@@ -13758,18 +13758,12 @@ s7_int s7_numerator(s7_pointer x)
 s7_int s7_denominator(s7_pointer x)
 {
   if (is_t_ratio(x)) return(denominator(x));
-#if WITH_GMP
-  if (is_t_big_ratio(x)) return(mpz_get_si(mpq_denref(big_ratio(x))));
-#endif
   return(1);
 }
 
 s7_int s7_integer(s7_pointer p)
 {
   if (is_t_integer(p)) return(integer(p));
-#if WITH_GMP
-  if (is_t_big_integer(p)) return(mpz_get_si(big_integer(p)));
-#endif
   return(0);
 }
 
