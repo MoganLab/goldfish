@@ -76,12 +76,23 @@
   =>
   97
 ) ;check
+;; Unicode 字符测试
+(check (integer->char 20013) => #\中)
+(check (integer->char 128031) => #\🐟)
+;; 反向验证 Unicode
+(check (char->integer (integer->char 20013)) => 20013)
+(check (integer->char (char->integer #\中)) => #\中)
 ;; 错误处理测试
 (check-catch 'out-of-range
   (integer->char -1)
 ) ;check-catch
+(check (integer->char 256) => #\x100)
+;; 超出 Unicode 范围测试
 (check-catch 'out-of-range
-  (integer->char 256)
+  (integer->char #x110000)
+) ;check-catch
+(check-catch 'out-of-range
+  (integer->char #x110000)
 ) ;check-catch
 (check-catch 'wrong-type-arg
   (integer->char 65.0)
