@@ -39,5 +39,7 @@
 ;; Test eq? for procedures
 (check-true (eq? car car))
 (check-false (eq? car cdr))
+;; Unicode 字符缓存测试（同一 codepoint 应为同一对象）
+(check-true (eq? #\中 #\x4E2D))
 ;; ; equal?
 (check-report)

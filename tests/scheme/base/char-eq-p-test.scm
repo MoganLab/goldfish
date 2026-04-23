@@ -86,4 +86,28 @@
 (check-catch 'wrong-number-of-args
   (char=? #\A)
 ) ;check-catch
+;; Unicode 字符测试
+(check (char=? #\中 #\中) => #t)
+(check (char=? #\中 #\x4E2D) => #t)
+(check (char=? #\x4E2D #\中) => #t)
+(check (char=? #\🐟 #\🐟) => #t)
+(check (char=? #\🐟 #\x1F41F) => #t)
+;; 不同 Unicode 字符不应相等
+(check (char=? #\中 #\文) => #f)
+(check (char=? #\A #\中) => #f)
+;; 多参数 Unicode 测试
+(check (char=? #\中 #\中 #\中) => #t)
+(check (char=? #\中 #\中 #\文) => #f)
+;; 边界 codepoint 测试
+(check (char=? #\x7F #\x7F) => #t)
+(check (char=? #\x80 #\x80) => #t)
+(check (char=? #\x7FF #\x7FF) => #t)
+(check (char=? #\x800 #\x800) => #t)
+(check (char=? #\xFFFF #\xFFFF) => #t)
+(check (char=? #\x10000 #\x10000) => #t)
+(check (char=? #\x10FFFF #\x10FFFF) => #t)
+;; 相邻 codepoint 不应相等
+(check (char=? #\x80 #\x81) => #f)
+(check (char=? #\x7FF #\x800) => #f)
+(check (char=? #\xFFFF #\x10000) => #f)
 (check-report)

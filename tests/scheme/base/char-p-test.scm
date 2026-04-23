@@ -48,8 +48,16 @@
 (check (char? #\中) => #t)
 (check (char? #\x4E2D) => #t)
 (check (char? #\🐟) => #t)
+(check (char? #\x1F41F) => #t)
+;; 边界 codepoint 测试
+(check (char? #\x7F) => #t)
+(check (char? #\x80) => #t)
+(check (char? #\x7FF) => #t)
+(check (char? #\x800) => #t)
+(check (char? #\xFFFF) => #t)
+(check (char? #\x10000) => #t)
+(check (char? #\x10FFFF) => #t)
+;; 非字符测试
 (check (char? 123) => #f)
 (check (char? "中") => #f)
-;; Unicode 字符缓存测试（同一 codepoint 应为同一对象）
-(check (eq? #\中 #\x4E2D) => #t)
 (check-report)
