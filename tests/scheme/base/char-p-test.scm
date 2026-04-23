@@ -44,4 +44,12 @@
 (check-catch 'wrong-number-of-args
   (char? #\A #\B)
 ) ;check-catch
+;; Unicode 字符测试
+(check (char? #\中) => #t)
+(check (char? #\x4E2D) => #t)
+(check (char? #\🐟) => #t)
+(check (char? 123) => #f)
+(check (char? "中") => #f)
+;; Unicode 字符缓存测试（同一 codepoint 应为同一对象）
+(check (eq? #\中 #\x4E2D) => #t)
 (check-report)
