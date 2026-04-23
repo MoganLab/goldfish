@@ -1398,7 +1398,8 @@
              ) ;middle
              (after (substring/cursors s1
                       end1
-                      (string-length s1)
+                      (string-cursor-char-index (string-cursor-end s1)
+                      ) ;string-cursor-char-index
                     ) ;substring/cursors
              ) ;after
             ) ;
