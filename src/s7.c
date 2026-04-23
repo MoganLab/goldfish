@@ -843,7 +843,7 @@ typedef struct s7_cell {
     } prt;
 
     struct{                       /* characters */
-      uint8_t c, up_c;
+      uint32_t c, up_c;
       int32_t length;
       bool alpha_c, digit_c, space_c, upper_c, lower_c;
       char c_name[12];
@@ -20317,11 +20317,26 @@ static void init_chars(void)
 }
 
 
-s7_pointer s7_make_character(s7_scheme *sc, uint8_t c) {return(chars[c]);}
+s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
+  if (c < 256) return(chars[c]);
+  {
+    s7_pointer cp;
+    new_cell(sc, cp, T_CHARACTER | T_IMMUTABLE);
+    character(cp) = c;
+    upper_character(cp) = c;
+    is_char_alphabetic(cp) = false;
+    is_char_numeric(cp) = false;
+    is_char_whitespace(cp) = false;
+    is_char_uppercase(cp) = false;
+    is_char_lowercase(cp) = false;
+    character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+    return(cp);
+  }
+}
 
 bool s7_is_character(s7_pointer c) {return(is_character(c));}
 
-uint8_t s7_character(s7_pointer c) {return(character(c));}
+uint32_t s7_character(s7_pointer c) {return(character(c));}
 
 
 static bool returns_char(s7_scheme *sc, s7_pointer arg) {return(argument_type(sc, arg) == sc->is_char_symbol);}
