@@ -12,6 +12,10 @@
 #include <string.h>
 #include <wctype.h>
 
+#if defined(__APPLE__)
+#include <CoreFoundation/CoreFoundation.h>
+#endif
+
 extern uint8_t     uppers[256];
 extern uint8_t     lowers[256];
 extern s7_pointer* chars;
@@ -60,31 +64,51 @@ init_scheme_char_tables (void) {
 static bool
 char_is_alphabetic_v (uint32_t cp) {
   if (cp < 256) return char_is_alphabetic[cp];
+#if defined(__APPLE__)
+  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetLetter), cp);
+#else
   return iswalpha ((wint_t) cp) != 0;
+#endif
 }
 
 static bool
 char_is_numeric_v (uint32_t cp) {
   if (cp < 256) return char_is_numeric[cp];
+#if defined(__APPLE__)
+  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetDecimalDigit), cp);
+#else
   return iswdigit ((wint_t) cp) != 0;
+#endif
 }
 
 static bool
 char_is_whitespace_v (uint32_t cp) {
   if (cp < 256) return char_is_whitespace[cp];
+#if defined(__APPLE__)
+  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetWhitespace), cp);
+#else
   return iswspace ((wint_t) cp) != 0;
+#endif
 }
 
 static bool
 char_is_uppercase_v (uint32_t cp) {
   if (cp < 256) return char_is_uppercase[cp];
+#if defined(__APPLE__)
+  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetUppercaseLetter), cp);
+#else
   return iswupper ((wint_t) cp) != 0;
+#endif
 }
 
 static bool
 char_is_lowercase_v (uint32_t cp) {
   if (cp < 256) return char_is_lowercase[cp];
+#if defined(__APPLE__)
+  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetLowercaseLetter), cp);
+#else
   return iswlower ((wint_t) cp) != 0;
+#endif
 }
 
 static s7_pointer

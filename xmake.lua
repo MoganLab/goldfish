@@ -95,6 +95,9 @@ target ("goldfish") do
     if is_plat("linux") then
         add_syslinks("stdc++")
     end
+    if is_plat("macosx") then
+        add_frameworks("CoreFoundation")
+    end
     if is_plat("wasm") then
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
