@@ -44,18 +44,8 @@ option("http")
     set_values(false, true)
 option_end()
 
-option("gmp")
-    set_description("Enable GMP support for S7")
-    set_default(false)
-    set_values(false, true)
-option_end()
-
 if has_config("http") then
     add_requires("cpr")
-end
-
-if has_config("gmp") then
-    add_requires("gmp")
 end
 
 -- S7 is now included as source files in src/ directory
@@ -134,12 +124,6 @@ target ("goldfish") do
     if is_mode("debug") then
         add_defines("S7_DEBUGGING")
     end
-    add_options("gmp")
-    if has_config("gmp") then
-        add_defines("WITH_GMP")
-        add_packages("gmp")
-    end
-
     -- Windows-specific configuration from original 3rdparty/s7/xmake.lua
     if is_plat("windows") then
         set_optimize("faster")
@@ -181,12 +165,6 @@ target("goldfish_repl_wasm")
     if is_mode("debug") then
         add_defines("S7_DEBUGGING")
     end
-    add_options("gmp")
-    if has_config("gmp") then
-        add_defines("WITH_GMP")
-        add_packages("gmp")
-    end
-
     add_ldflags("--preload-file goldfish@/goldfish")
     -- 导出 REPL 相关函数
     add_ldflags("-sEXPORTED_FUNCTIONS=['_eval_string','_get_out','_get_err','_malloc','_free']", {force = true})

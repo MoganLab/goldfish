@@ -4,9 +4,6 @@
   stdenv,
 
   flint3,
-  gmp,
-  libmpc,
-  mpfr,
   notcurses,
   windows,
 
@@ -18,7 +15,6 @@
   writeScript,
 
   static ? false,
-  withGMP ? !static,
   withArb ? !static,
   withNrepl ? if stdenv.hostPlatform.isMinGW then false else true,
 }:
@@ -40,11 +36,6 @@ stdenv.mkDerivation (_finalAttrs: {
 
   buildInputs =
     lib.optional withArb flint3
-    ++ lib.optionals withGMP [
-      gmp
-      mpfr
-      libmpc
-    ]
     ++ lib.optional withNrepl notcurses
     ++ lib.optional hostPlatform.isMinGW windows.pthreads;
 
@@ -58,9 +49,6 @@ stdenv.mkDerivation (_finalAttrs: {
     [
       "-I."
       "-O2"
-    ]
-    ++ lib.optionals withGMP [
-      "-DWITH_GMP"
     ]
     ++ lib.optional static "-static"
   );
@@ -78,11 +66,6 @@ stdenv.mkDerivation (_finalAttrs: {
     ]
     ++ lib.optional (!static && hostPlatform.isMinGW) [ "--out-implib,libs7dll.a" ]
     ++ lib.optional withArb "-lflint"
-    ++ lib.optionals withGMP [
-      "-lgmp"
-      "-lmpfr"
-      "-lmpc"
-    ]
   );
 
   buildPhase = ''
@@ -246,9 +229,9 @@ stdenv.mkDerivation (_finalAttrs: {
       Although it is a descendant of tinyScheme, s7 is closest as a Scheme
       dialect to Guile 1.8. It is expected to be compatible with r5rs and r7rs.
       It has continuations, ratios, complex numbers, macros, keywords,
-      hash-tables, multiprecision arithmetic, generalized `set!`, unicode, and so
-      on. It does not have `syntax-rules` or any of its friends, and it thinks
-      there is no such thing as an inexact integer.
+      hash-tables, generalized `set!`, unicode, and so on. It does not have
+      `syntax-rules` or any of its friends, and it thinks there is no such thing
+      as an inexact integer.
 
       s7 is an extension language of Snd and sndlib, Rick Taube's Common Music
       (commonmusic at sourceforge), Kjetil Matheussen's Radium music editor, and
