@@ -385,6 +385,39 @@
               (cond ((pred (string-ref/cursor s cur))
                      (string-cursor-next s cur))
                     ((string-cursor=? cur start-c)
+                     start-c
+                     (else
+                      (loop (string-cursor-prev s cur)))))))))
+
+    (define (string-skip s pred . maybe-start+end)
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw))
+             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
+             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
+             (end (if (null? rest) char-len (car rest)))
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end)))
+        (let loop ((cur start-c))
+          (if (string-cursor>=? cur end-c)
+              end-c
+              (if (not (pred (string-ref/cursor s cur)))
+                  cur
+                  (loop (string-cursor-next s cur)))))))
+
+    (define (string-skip-right s pred . maybe-start+end)
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw))
+             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
+             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
+             (end (if (null? rest) char-len (car rest)))
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end)))
+        (if (string-cursor=? start-c end-c)
+            start-c
+            (let loop ((cur (string-cursor-prev s end-c)))
+              (cond ((not (pred (string-ref/cursor s cur)))
+                     (string-cursor-next s cur))
+                    ((string-cursor=? cur start-c)
                      start-c)
                     (else
                      (loop (string-cursor-prev s cur))))))))
