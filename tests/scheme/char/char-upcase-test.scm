@@ -57,4 +57,6 @@
 (check-catch 'type-error
   (char-upcase 'a)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-upcase #\中) => #\中)
 (check-report)

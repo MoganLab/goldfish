@@ -15,6 +15,7 @@
 //
 
 #include "goldfish.hpp"
+#include <clocale>
 #include <string>
 
 int
@@ -22,6 +23,7 @@ main (int argc, char** argv) {
 #ifdef TB_CONFIG_OS_WINDOWS
   SetConsoleOutputCP (65001);
 #endif
+  setlocale (LC_ALL, "C.UTF-8");
   std::string gf_lib_dir= goldfish::find_goldfish_library ();
   const char* gf_lib    = gf_lib_dir.c_str ();
   s7_scheme*  sc        = goldfish::init_goldfish_scheme (gf_lib);

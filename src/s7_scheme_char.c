@@ -10,6 +10,7 @@
 #include "s7_internal_helpers.h"
 #include <ctype.h>
 #include <string.h>
+#include <wctype.h>
 
 extern uint8_t     uppers[256];
 extern uint8_t     lowers[256];
@@ -146,13 +147,17 @@ integer_to_char_p_i (s7_scheme* sc, s7_int ind) {
 s7_pointer
 char_upcase_p_p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-upcase", list1 (sc, c), "a character", 1);
-  return chars[uppers[s7_character (c)]];
+  uint32_t cp= s7_character (c);
+  if (cp < 256) return chars[uppers[cp]];
+  return s7_make_character (sc, (uint32_t) towupper ((wint_t) cp));
 }
 
 s7_pointer
 char_upcase_p_p_unchecked (s7_scheme* sc, s7_pointer c) {
   (void) sc;
-  return chars[uppers[s7_character (c)]];
+  uint32_t cp= s7_character (c);
+  if (cp < 256) return chars[uppers[cp]];
+  return s7_make_character (sc, (uint32_t) towupper ((wint_t) cp));
 }
 
 s7_pointer
@@ -164,7 +169,9 @@ s7_pointer
 g_char_downcase (s7_scheme* sc, s7_pointer args) {
   s7_pointer c= s7_car (args);
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-downcase", args, "a character", 1);
-  return chars[lowers[s7_character (c)]];
+  uint32_t cp= s7_character (c);
+  if (cp < 256) return chars[lowers[cp]];
+  return s7_make_character (sc, (uint32_t) towlower ((wint_t) cp));
 }
 
 /* -------------------------------- char-alphabetic? char-numeric? char-whitespace? -------------------------------- */
