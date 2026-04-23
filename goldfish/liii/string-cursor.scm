@@ -354,5 +354,22 @@
                         (+ count 1)
                         count))))))
 
+    ;; ==== Searching ====
+
+    (define (string-index s pred . maybe-start+end)
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw))
+             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
+             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
+             (end (if (null? rest) char-len (car rest)))
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end)))
+        (let loop ((cur start-c))
+          (if (string-cursor>=? cur end-c)
+              end-c
+              (if (pred (string-ref/cursor s cur))
+                  cur
+                  (loop (string-cursor-next s cur)))))))
+
   )
 )
