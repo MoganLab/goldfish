@@ -57,6 +57,36 @@ init_scheme_char_tables (void) {
   }
 }
 
+static bool
+char_is_alphabetic_v (uint32_t cp) {
+  if (cp < 256) return char_is_alphabetic[cp];
+  return iswalpha ((wint_t) cp) != 0;
+}
+
+static bool
+char_is_numeric_v (uint32_t cp) {
+  if (cp < 256) return char_is_numeric[cp];
+  return iswdigit ((wint_t) cp) != 0;
+}
+
+static bool
+char_is_whitespace_v (uint32_t cp) {
+  if (cp < 256) return char_is_whitespace[cp];
+  return iswspace ((wint_t) cp) != 0;
+}
+
+static bool
+char_is_uppercase_v (uint32_t cp) {
+  if (cp < 256) return char_is_uppercase[cp];
+  return iswupper ((wint_t) cp) != 0;
+}
+
+static bool
+char_is_lowercase_v (uint32_t cp) {
+  if (cp < 256) return char_is_lowercase[cp];
+  return iswlower ((wint_t) cp) != 0;
+}
+
 static s7_pointer
 list1 (s7_scheme* sc, s7_pointer a) {
   return s7_cons (sc, a, s7_nil (sc));
@@ -180,7 +210,7 @@ s7_pointer
 g_is_char_alphabetic (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-alphabetic?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_alphabetic[s7_character (arg)]);
+  return s7_make_boolean (sc, char_is_alphabetic_v (s7_character (arg)));
 }
 
 bool
@@ -189,20 +219,20 @@ is_char_alphabetic_b_7p (s7_scheme* sc, s7_pointer c) {
     s7_wrong_type_arg_error (sc, "char-alphabetic?", 1, c, "a character");
     return false;
   }
-  return char_is_alphabetic[s7_character (c)];
+  return char_is_alphabetic_v (s7_character (c));
 }
 
 s7_pointer
 is_char_alphabetic_p_p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-alphabetic?", list1 (sc, c), "a character", 1);
-  return s7_make_boolean (sc, char_is_alphabetic[s7_character (c)]);
+  return s7_make_boolean (sc, char_is_alphabetic_v (s7_character (c)));
 }
 
 s7_pointer
 g_is_char_numeric (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-numeric?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_numeric[s7_character (arg)]);
+  return s7_make_boolean (sc, char_is_numeric_v (s7_character (arg)));
 }
 
 bool
@@ -211,20 +241,20 @@ is_char_numeric_b_7p (s7_scheme* sc, s7_pointer c) {
     s7_wrong_type_arg_error (sc, "char-numeric?", 1, c, "a character");
     return false;
   }
-  return char_is_numeric[s7_character (c)];
+  return char_is_numeric_v (s7_character (c));
 }
 
 s7_pointer
 is_char_numeric_p_p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-numeric?", list1 (sc, c), "a character", 1);
-  return s7_make_boolean (sc, char_is_numeric[s7_character (c)]);
+  return s7_make_boolean (sc, char_is_numeric_v (s7_character (c)));
 }
 
 s7_pointer
 g_is_char_whitespace (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-whitespace?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_whitespace[s7_character (arg)]);
+  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (arg)));
 }
 
 bool
@@ -233,18 +263,18 @@ is_char_whitespace_b_7p (s7_scheme* sc, s7_pointer c) {
     s7_wrong_type_arg_error (sc, "char-whitespace?", 1, c, "a character");
     return false;
   }
-  return char_is_whitespace[s7_character (c)];
+  return char_is_whitespace_v (s7_character (c));
 }
 
 s7_pointer
 is_char_whitespace_p_p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-whitespace?", list1 (sc, c), "a character", 1);
-  return s7_make_boolean (sc, char_is_whitespace[s7_character (c)]);
+  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (c)));
 }
 
 s7_pointer
 is_char_whitespace_p_p_unchecked (s7_scheme* sc, s7_pointer c) {
-  return s7_make_boolean (sc, char_is_whitespace[s7_character (c)]);
+  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (c)));
 }
 
 /* -------------------------------- char-upper-case? char-lower-case? -------------------------------- */
@@ -253,26 +283,26 @@ s7_pointer
 g_is_char_upper_case (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-upper-case?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_uppercase[s7_character (arg)]);
+  return s7_make_boolean (sc, char_is_uppercase_v (s7_character (arg)));
 }
 
 bool
 is_char_upper_case_b_7p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust_bool (sc, c, "char-upper-case?", list1 (sc, c), "a character", 1);
-  return char_is_uppercase[s7_character (c)];
+  return char_is_uppercase_v (s7_character (c));
 }
 
 s7_pointer
 g_is_char_lower_case (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
   if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-lower-case?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_lowercase[s7_character (arg)]);
+  return s7_make_boolean (sc, char_is_lowercase_v (s7_character (arg)));
 }
 
 bool
 is_char_lower_case_b_7p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust_bool (sc, c, "char-lower-case?", list1 (sc, c), "a character", 1);
-  return char_is_lowercase[s7_character (c)];
+  return char_is_lowercase_v (s7_character (c));
 }
 
 /* -------------------------------- char? -------------------------------- */

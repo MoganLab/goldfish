@@ -69,4 +69,6 @@
 (check-catch 'wrong-number-of-args
   (char-lower-case? #\a #\b)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-lower-case? #\中) => #f)
 (check-report)

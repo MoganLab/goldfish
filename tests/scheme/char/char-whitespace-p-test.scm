@@ -70,4 +70,6 @@
 (check-catch 'wrong-number-of-args
   (char-whitespace? #\space #\a)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-whitespace? #\　) => #t)
 (check-report)
