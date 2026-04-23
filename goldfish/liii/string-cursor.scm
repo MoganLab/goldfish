@@ -1289,7 +1289,8 @@
                    ) ;if
              ) ;rest
              (end (if (null? rest)
-                    (string-length final)
+                    (string-cursor-char-index (string-cursor-end final)
+                    ) ;string-cursor-char-index
                     (car rest)
                   ) ;if
              ) ;end

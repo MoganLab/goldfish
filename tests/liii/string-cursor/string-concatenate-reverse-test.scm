@@ -35,4 +35,7 @@
 (check (string-concatenate-reverse '()) => "")
 (check (string-concatenate-reverse '("a" "b" "c") "xyz" 2) => "cbaxy")
 
+;; Unicode 测试
+(check (string-concatenate-reverse '("a" "b") "中文" 1) => "ba中")
+
 (check-report)
