@@ -50,6 +50,13 @@
 ;; out-of-range 当start/end超出字符串索引范围或start > end时
 
 ;; 基本功能测试 - 空字符串
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-fold-right 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-fold-right"
+
 (check (string-fold-right (lambda (c acc) (+ acc 1))
          0
          ""

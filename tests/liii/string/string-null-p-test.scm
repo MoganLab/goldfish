@@ -31,6 +31,12 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-null? 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-null?"
 
 ;; 基本功能测试
 (check-true (string-null? ""))

@@ -33,6 +33,13 @@
 ;; type-error 当 `sep` 不是字符串或字符时
 ;; wrong-number-of-args 当参数数量不正确时
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-split 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-split"
+
 (check (string-split "a,b,c" ",")
   =>
   '("a" "b" "c")

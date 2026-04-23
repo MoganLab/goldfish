@@ -26,6 +26,13 @@
 ;; 查看 string-contains? 的完整文档：gf doc "string-contains?"
 ;; 空字符串作为sub-str时总是返回#t。
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-contains 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-contains"
+
 (check-true (string-contains "0123456789" "3")
 ) ;check-true
 (check-true (string-contains "0123456789" "34")

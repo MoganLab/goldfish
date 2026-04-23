@@ -53,6 +53,13 @@
 ;; out-of-range 当len为负数时
 ;; wrong-type-arg 当str不是字符串类型时
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-pad 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-pad"
+
 (check (string-pad "MathAgape" 15)
   =>
   "      MathAgape"
