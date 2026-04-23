@@ -74,13 +74,13 @@
     string-split
     string-filter
     string-remove
-  )
+  ) ;export
 
   (import (scheme base)
     (liii base)
     (liii error)
     (liii unicode)
-  )
+  ) ;import
 
   (begin
 
@@ -90,104 +90,208 @@
       (make-string-offsets bv positions)
       string-offsets?
       (bv string-offsets-bv)
-      (positions string-offsets-positions))
+      (positions string-offsets-positions)
+    ) ;define-record-type
 
     (define-record-type <string-cursor>
-      (make-string-cursor-raw offsets char-index)
+      (make-string-cursor-raw offsets
+        char-index
+      ) ;make-string-cursor-raw
       string-cursor?
       (offsets string-cursor-offsets)
-      (char-index string-cursor-char-index))
+      (char-index string-cursor-char-index)
+    ) ;define-record-type
 
     ;; Pre-scan a UTF-8 bytevector to generate position vector
     (define (make-string-positions bv)
       (let ((len (bytevector-length bv)))
-        (let loop ((pos 0) (result '(0)))
+        (let loop
+          ((pos 0) (result '(0)))
           (if (>= pos len)
-              (list->vector (reverse result))
-              (let ((next (bytevector-advance-utf8 bv pos len)))
-                (loop next (cons next result)))))))
+            (list->vector (reverse result))
+            (let ((next (bytevector-advance-utf8 bv pos len)
+                  ) ;next
+                 ) ;
+              (loop next (cons next result))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
 
     ;; ==== Cursor operations ====
 
     (define (string-cursor-start str)
       (let* ((bv (string->utf8 str))
-             (off (make-string-offsets bv (make-string-positions bv))))
-        (make-string-cursor-raw off 0)))
+             (off (make-string-offsets bv
+                    (make-string-positions bv)
+                  ) ;make-string-offsets
+             ) ;off
+            ) ;
+        (make-string-cursor-raw off 0)
+      ) ;let*
+    ) ;define
 
     (define (string-cursor-end str)
       (let* ((bv (string->utf8 str))
-             (off (make-string-offsets bv (make-string-positions bv)))
-             (positions (string-offsets-positions off)))
-        (make-string-cursor-raw off (- (vector-length positions) 1))))
+             (off (make-string-offsets bv
+                    (make-string-positions bv)
+                  ) ;make-string-offsets
+             ) ;off
+             (positions (string-offsets-positions off)
+             ) ;positions
+            ) ;
+        (make-string-cursor-raw off
+          (- (vector-length positions) 1)
+        ) ;make-string-cursor-raw
+      ) ;let*
+    ) ;define
 
     (define (string-cursor-next str cursor)
       (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor))
-             (positions (string-offsets-positions off))
-             (max-idx (- (vector-length positions) 1)))
+             (char-idx (string-cursor-char-index cursor)
+             ) ;char-idx
+             (positions (string-offsets-positions off)
+             ) ;positions
+             (max-idx (- (vector-length positions) 1)
+             ) ;max-idx
+            ) ;
         (if (>= char-idx max-idx)
-            (error 'value-error
-              "string-cursor-next: already at end cursor")
-            (make-string-cursor-raw off (+ char-idx 1)))))
+          (error 'value-error
+            "string-cursor-next: already at end cursor"
+          ) ;error
+          (make-string-cursor-raw off
+            (+ char-idx 1)
+          ) ;make-string-cursor-raw
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define (string-cursor-prev str cursor)
       (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor)))
+             (char-idx (string-cursor-char-index cursor)
+             ) ;char-idx
+            ) ;
         (if (<= char-idx 0)
-            (error 'value-error
-              "string-cursor-prev: already at start cursor")
-            (make-string-cursor-raw off (- char-idx 1)))))
+          (error 'value-error
+            "string-cursor-prev: already at start cursor"
+          ) ;error
+          (make-string-cursor-raw off
+            (- char-idx 1)
+          ) ;make-string-cursor-raw
+        ) ;if
+      ) ;let*
+    ) ;define
 
-    (define (string-cursor-forward str cursor nchars)
+    (define (string-cursor-forward str
+              cursor
+              nchars
+            ) ;string-cursor-forward
       (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor))
-             (positions (string-offsets-positions off))
-             (max-idx (- (vector-length positions) 1))
-             (new-idx (+ char-idx nchars)))
+             (char-idx (string-cursor-char-index cursor)
+             ) ;char-idx
+             (positions (string-offsets-positions off)
+             ) ;positions
+             (max-idx (- (vector-length positions) 1)
+             ) ;max-idx
+             (new-idx (+ char-idx nchars))
+            ) ;
         (if (or (< new-idx 0) (> new-idx max-idx))
-            (error 'value-error
-              "string-cursor-forward: result would be invalid cursor")
-            (make-string-cursor-raw off new-idx))))
+          (error 'value-error
+            "string-cursor-forward: result would be invalid cursor"
+          ) ;error
+          (make-string-cursor-raw off new-idx)
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define (string-cursor-back str cursor nchars)
-      (string-cursor-forward str cursor (- nchars)))
+      (string-cursor-forward str
+        cursor
+        (- nchars)
+      ) ;string-cursor-forward
+    ) ;define
 
     (define (string-cursor=? cursor1 cursor2)
       (= (string-cursor-char-index cursor1)
-         (string-cursor-char-index cursor2)))
+        (string-cursor-char-index cursor2)
+      ) ;=
+    ) ;define
 
     (define (string-cursor<? cursor1 cursor2)
       (< (string-cursor-char-index cursor1)
-         (string-cursor-char-index cursor2)))
+        (string-cursor-char-index cursor2)
+      ) ;<
+    ) ;define
 
     (define (string-cursor>? cursor1 cursor2)
       (> (string-cursor-char-index cursor1)
-         (string-cursor-char-index cursor2)))
+        (string-cursor-char-index cursor2)
+      ) ;>
+    ) ;define
 
     (define (string-cursor<=? cursor1 cursor2)
       (<= (string-cursor-char-index cursor1)
-          (string-cursor-char-index cursor2)))
+        (string-cursor-char-index cursor2)
+      ) ;<=
+    ) ;define
 
     (define (string-cursor>=? cursor1 cursor2)
       (>= (string-cursor-char-index cursor1)
-          (string-cursor-char-index cursor2)))
+        (string-cursor-char-index cursor2)
+      ) ;>=
+    ) ;define
 
     (define (string-cursor-diff str start end)
       (- (string-cursor-char-index end)
-         (string-cursor-char-index start)))
+        (string-cursor-char-index start)
+      ) ;-
+    ) ;define
 
     (define (string-cursor->index str cursor)
-      (string-cursor-char-index cursor))
+      (string-cursor-char-index cursor)
+    ) ;define
 
     (define (string-index->cursor str index)
       (let* ((bv (string->utf8 str))
-             (off (make-string-offsets bv (make-string-positions bv)))
-             (positions (string-offsets-positions off))
-             (max-idx (- (vector-length positions) 1)))
+             (off (make-string-offsets bv
+                    (make-string-positions bv)
+                  ) ;make-string-offsets
+             ) ;off
+             (positions (string-offsets-positions off)
+             ) ;positions
+             (max-idx (- (vector-length positions) 1)
+             ) ;max-idx
+            ) ;
         (if (or (< index 0) (> index max-idx))
-            (error 'value-error
-              "string-index->cursor: index out of range")
-            (make-string-cursor-raw off index))))
+          (error 'value-error
+            "string-index->cursor: index out of range"
+          ) ;error
+          (make-string-cursor-raw off index)
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; ==== Helper functions ====
+
+    (define (char->utf8-string ch)
+      (utf8->string (codepoint->utf8 (char->integer ch))
+      ) ;utf8->string
+    ) ;define
+
+    (define (list->utf8-string chars)
+      (let loop
+        ((lst chars) (result ""))
+        (if (null? lst)
+          result
+          (loop (cdr lst)
+            (string-append result
+              (char->utf8-string (car lst))
+            ) ;string-append
+          ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
 
     ;; ==== Selection ====
 
@@ -198,606 +302,1507 @@
              (idx (string-cursor-char-index cursor))
              (start (vector-ref pos idx))
              (end (vector-ref pos (+ idx 1)))
-             (char-bv (bytevector-copy bv start end)))
-        (integer->char (utf8->codepoint char-bv))))
+             (char-bv (bytevector-copy bv start end))
+            ) ;
+        (integer->char (utf8->codepoint char-bv)
+        ) ;integer->char
+      ) ;let*
+    ) ;define
 
     (define (substring/cursors str start end)
       (let* ((start-off (if (string-cursor? start)
-                            (string-cursor-offsets start)
-                            (let ((bv (string->utf8 str)))
-                              (make-string-offsets bv (make-string-positions bv)))))
+                          (string-cursor-offsets start)
+                          (let ((bv (string->utf8 str)))
+                            (make-string-offsets bv
+                              (make-string-positions bv)
+                            ) ;make-string-offsets
+                          ) ;let
+                        ) ;if
+             ) ;start-off
              (end-off (if (string-cursor? end)
-                          (string-cursor-offsets end)
-                          start-off))
-             (pos (string-offsets-positions start-off))
+                        (string-cursor-offsets end)
+                        start-off
+                      ) ;if
+             ) ;end-off
+             (pos (string-offsets-positions start-off)
+             ) ;pos
              (bv (string-offsets-bv start-off))
              (start-idx (if (string-cursor? start)
-                            (string-cursor-char-index start)
-                            start))
+                          (string-cursor-char-index start)
+                          start
+                        ) ;if
+             ) ;start-idx
              (end-idx (if (string-cursor? end)
-                          (string-cursor-char-index end)
-                          end))
+                        (string-cursor-char-index end)
+                        end
+                      ) ;if
+             ) ;end-idx
              (byte-start (vector-ref pos start-idx))
-             (byte-end (vector-ref pos end-idx)))
-        (utf8->string (bytevector-copy bv byte-start byte-end))))
+             (byte-end (vector-ref pos end-idx))
+            ) ;
+        (utf8->string (bytevector-copy bv byte-start byte-end)
+        ) ;utf8->string
+      ) ;let*
+    ) ;define
 
-    (define (string-copy/cursors str . maybe-start+end)
+    (define (string-copy/cursors
+              str
+              .
+              maybe-start+end
+            ) ;
       (let* ((bv (string->utf8 str))
-             (off (make-string-offsets bv (make-string-positions bv)))
-             (positions (string-offsets-positions off))
-             (len (- (vector-length positions) 1)))
+             (off (make-string-offsets bv
+                    (make-string-positions bv)
+                  ) ;make-string-offsets
+             ) ;off
+             (positions (string-offsets-positions off)
+             ) ;positions
+             (len (- (vector-length positions) 1))
+            ) ;
         (if (null? maybe-start+end)
-            (substring/cursors str
-              (make-string-cursor-raw off 0)
-              (make-string-cursor-raw off len))
-            (let ((start (car maybe-start+end))
-                  (rest (cdr maybe-start+end)))
-              (let ((end (if (null? rest) len (car rest))))
-                (substring/cursors str start end))))))
+          (substring/cursors str
+            (make-string-cursor-raw off 0)
+            (make-string-cursor-raw off len)
+          ) ;substring/cursors
+          (let ((start (car maybe-start+end))
+                (rest (cdr maybe-start+end))
+               ) ;
+            (let ((end (if (null? rest) len (car rest))))
+              (substring/cursors str start end)
+            ) ;let
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
 
     ;; ==== String operations ====
 
     (define (string-take str nchars)
-      (let ((end (string-index->cursor str nchars)))
-        (substring/cursors str (string-cursor-start str) end)))
+      (let ((end (string-index->cursor str nchars))
+           ) ;
+        (substring/cursors str
+          (string-cursor-start str)
+          end
+        ) ;substring/cursors
+      ) ;let
+    ) ;define
 
     (define (string-drop str nchars)
-      (let ((start (string-index->cursor str nchars)))
-        (substring/cursors str start (string-cursor-end str))))
+      (let ((start (string-index->cursor str nchars)
+            ) ;start
+           ) ;
+        (substring/cursors str
+          start
+          (string-cursor-end str)
+        ) ;substring/cursors
+      ) ;let
+    ) ;define
 
     (define (string-take-right str nchars)
       (let* ((end (string-cursor-end str))
-             (start (string-cursor-back str end nchars)))
-        (substring/cursors str start end)))
+             (start (string-cursor-back str end nchars)
+             ) ;start
+            ) ;
+        (substring/cursors str start end)
+      ) ;let*
+    ) ;define
 
     (define (string-drop-right str nchars)
       (let* ((end (string-cursor-end str))
-             (new-end (string-cursor-back str end nchars)))
-        (substring/cursors str (string-cursor-start str) new-end)))
+             (new-end (string-cursor-back str end nchars)
+             ) ;new-end
+            ) ;
+        (substring/cursors str
+          (string-cursor-start str)
+          new-end
+        ) ;substring/cursors
+      ) ;let*
+    ) ;define
 
     ;; ==== Predicates ====
 
     (define (string-null? str)
-      (zero? (string-length str)))
+      (zero? (string-length str))
+    ) ;define
 
     (define (string-every pred s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
           (if (string-cursor>=? cur end-c)
-              #t
-              (let ((result (pred (string-ref/cursor s cur))))
-                (if result
-                    (let ((next (string-cursor-next s cur)))
-                      (if (string-cursor>=? next end-c)
-                          result
-                          (loop next)))
-                    #f))))))
+            #t
+            (let ((result (pred (string-ref/cursor s cur))
+                  ) ;result
+                 ) ;
+              (if result
+                (let ((next (string-cursor-next s cur)))
+                  (if (string-cursor>=? next end-c)
+                    result
+                    (loop next)
+                  ) ;if
+                ) ;let
+                #f
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-any pred s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
           (if (string-cursor>=? cur end-c)
-              #f
-              (let ((result (pred (string-ref/cursor s cur))))
-                (if result
-                    result
-                    (loop (string-cursor-next s cur))))))))
+            #f
+            (let ((result (pred (string-ref/cursor s cur))
+                  ) ;result
+                 ) ;
+              (if result
+                result
+                (loop (string-cursor-next s cur))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== Fold and iteration ====
 
-    (define (string-fold kons knil s . maybe-start+end)
-      (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
-             (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((acc knil) (cur start-c))
-          (if (string-cursor>=? cur end-c)
-              acc
-              (loop (kons (string-ref/cursor s cur) acc)
-                    (string-cursor-next s cur))))))
-
-    (define (string-fold-right kons knil s . maybe-start+end)
-      (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
-             (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
-          (if (string-cursor>=? cur end-c)
+    (define (string-fold
+              kons
               knil
-              (kons (string-ref/cursor s cur)
-                    (loop (string-cursor-next s cur)))))))
-
-    (define (string-for-each-cursor proc s . maybe-start+end)
+              s
+              .
+              maybe-start+end
+            ) ;
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((acc knil) (cur start-c))
+          (if (string-cursor>=? cur end-c)
+            acc
+            (loop (kons (string-ref/cursor s cur) acc)
+              (string-cursor-next s cur)
+            ) ;loop
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (string-fold-right
+              kons
+              knil
+              s
+              .
+              maybe-start+end
+            ) ;
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
+          (if (string-cursor>=? cur end-c)
+            knil
+            (kons (string-ref/cursor s cur)
+              (loop (string-cursor-next s cur))
+            ) ;kons
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (string-for-each-cursor
+              proc
+              s
+              .
+              maybe-start+end
+            ) ;
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
           (when (string-cursor<? cur end-c)
             (proc cur)
-            (loop (string-cursor-next s cur))))))
+            (loop (string-cursor-next s cur))
+          ) ;when
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-count pred s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c) (count 0))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c) (count 0))
           (if (string-cursor>=? cur end-c)
-              count
-              (loop (string-cursor-next s cur)
-                    (if (pred (string-ref/cursor s cur))
-                        (+ count 1)
-                        count))))))
+            count
+            (loop (string-cursor-next s cur)
+              (if (pred (string-ref/cursor s cur))
+                (+ count 1)
+                count
+              ) ;if
+            ) ;loop
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== Searching ====
 
     (define (string-index s pred . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
           (if (string-cursor>=? cur end-c)
-              end-c
-              (if (pred (string-ref/cursor s cur))
-                  cur
-                  (loop (string-cursor-next s cur)))))))
+            end-c
+            (if (pred (string-ref/cursor s cur))
+              cur
+              (loop (string-cursor-next s cur))
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-index-right s pred . maybe-start+end)
+    (define (string-index-right
+              s
+              pred
+              .
+              maybe-start+end
+            ) ;
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
+             (end-c (string-index->cursor s end))
+            ) ;
         (if (string-cursor=? start-c end-c)
-            start-c
-            (let loop ((cur (string-cursor-prev s end-c)))
-              (cond ((pred (string-ref/cursor s cur))
-                     (string-cursor-next s cur))
-                    ((string-cursor=? cur start-c)
-                     start-c
-                     (else
-                      (loop (string-cursor-prev s cur)))))))))
+          start-c
+          (let loop
+            ((cur (string-cursor-prev s end-c)))
+            (cond ((pred (string-ref/cursor s cur))
+                   (string-cursor-next s cur)
+                  ) ;
+                  ((string-cursor=? cur start-c) start-c)
+                  (else (loop (string-cursor-prev s cur)))
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define (string-skip s pred . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
-        (let loop ((cur start-c))
+             (end-c (string-index->cursor s end))
+            ) ;
+        (let loop
+          ((cur start-c))
           (if (string-cursor>=? cur end-c)
-              end-c
-              (if (not (pred (string-ref/cursor s cur)))
-                  cur
-                  (loop (string-cursor-next s cur)))))))
+            end-c
+            (if (pred (string-ref/cursor s cur))
+              (loop (string-cursor-next s cur))
+              cur
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-skip-right s pred . maybe-start+end)
+    (define (string-skip-right
+              s
+              pred
+              .
+              maybe-start+end
+            ) ;
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest)))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end)))
+             (end-c (string-index->cursor s end))
+            ) ;
         (if (string-cursor=? start-c end-c)
-            start-c
-             (let loop ((cur (string-cursor-prev s end-c)))
-               (cond ((not (pred (string-ref/cursor s cur)))
-                      (string-cursor-next s cur))
-                     ((string-cursor=? cur start-c)
-                      start-c)
-                     (else
-                      (loop (string-cursor-prev s cur))))))))
+          start-c
+          (let loop
+            ((cur (string-cursor-prev s end-c)))
+            (if (pred (string-ref/cursor s cur))
+              (if (string-cursor=? cur start-c)
+                start-c
+                (loop (string-cursor-prev s cur))
+              ) ;if
+              (string-cursor-next s cur)
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
 
     ;; ==== Trim and Pad ====
 
-    (define* (string-trim s (pred char-whitespace?) (start 0) (end #t))
+    (define* (string-trim s
+               (pred char-whitespace?)
+               (start 0)
+               (end #t)
+             ) ;string-trim
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
              (end-idx (if (eq? end #t) char-len end))
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end-idx)))
-        (let ((trimmed-start (string-skip s pred start end-idx)))
-          (substring/cursors s trimmed-start end-c))))
+             (end-c (string-index->cursor s end-idx))
+            ) ;
+        (let ((trimmed-start (string-skip s pred start end-idx)
+              ) ;trimmed-start
+             ) ;
+          (substring/cursors s
+            trimmed-start
+            end-c
+          ) ;substring/cursors
+        ) ;let
+      ) ;let*
+    ) ;define*
 
-    (define* (string-trim-right s (pred char-whitespace?) (start 0) (end #t))
+    (define* (string-trim-right s
+               (pred char-whitespace?)
+               (start 0)
+               (end #t)
+             ) ;string-trim-right
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
              (end-idx (if (eq? end #t) char-len end))
              (start-c (string-index->cursor s start))
-             (end-c (string-index->cursor s end-idx)))
-        (let ((trimmed-end (string-skip-right s pred start end-idx)))
-          (substring/cursors s start-c trimmed-end))))
+             (end-c (string-index->cursor s end-idx))
+            ) ;
+        (let ((trimmed-end (string-skip-right s pred start end-idx)
+              ) ;trimmed-end
+             ) ;
+          (substring/cursors s
+            start-c
+            trimmed-end
+          ) ;substring/cursors
+        ) ;let
+      ) ;let*
+    ) ;define*
 
-    (define* (string-trim-both s (pred char-whitespace?) (start 0) (end #t))
+    (define* (string-trim-both s
+               (pred char-whitespace?)
+               (start 0)
+               (end #t)
+             ) ;string-trim-both
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (end-idx (if (eq? end #t) char-len end)))
-        (let ((trimmed-start (string-skip s pred start end-idx))
-              (trimmed-end (string-skip-right s pred start end-idx)))
-          (if (string-cursor>=? trimmed-start trimmed-end)
-              ""
-              (substring/cursors s trimmed-start trimmed-end)))))
-
-    (define* (string-pad s len (char #\space) (start 0) (end #t))
-      (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
              (end-idx (if (eq? end #t) char-len end))
-             (sub (substring/cursors s start end-idx))
-             (sub-len (string-cursor-diff sub (string-cursor-start sub) (string-cursor-end sub))))
-        (if (>= sub-len len)
-            (string-take-right sub len)
-            (string-append (make-string (- len sub-len) char) sub))))
+            ) ;
+        (let ((trimmed-start (string-skip s pred start end-idx)
+              ) ;trimmed-start
+              (trimmed-end (string-skip-right s pred start end-idx)
+              ) ;trimmed-end
+             ) ;
+          (if (string-cursor>=? trimmed-start
+                trimmed-end
+              ) ;string-cursor>=?
+            ""
+            (substring/cursors s
+              trimmed-start
+              trimmed-end
+            ) ;substring/cursors
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define*
 
-    (define* (string-pad-right s len (char #\space) (start 0) (end #t))
+    (define* (string-pad s
+               len
+               (char #\space)
+               (start 0)
+               (end #t)
+             ) ;string-pad
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
              (end-idx (if (eq? end #t) char-len end))
-             (sub (substring/cursors s start end-idx))
-             (sub-len (string-cursor-diff sub (string-cursor-start sub) (string-cursor-end sub))))
+             (sub (substring/cursors s start end-idx)
+             ) ;sub
+             (sub-len (string-cursor-diff sub
+                        (string-cursor-start sub)
+                        (string-cursor-end sub)
+                      ) ;string-cursor-diff
+             ) ;sub-len
+            ) ;
         (if (>= sub-len len)
-            (string-take sub len)
-            (string-append sub (make-string (- len sub-len) char)))))
+          (string-take-right sub len)
+          (string-append (make-string (- len sub-len) char)
+            sub
+          ) ;string-append
+        ) ;if
+      ) ;let*
+    ) ;define*
+
+    (define* (string-pad-right s
+               len
+               (char #\space)
+               (start 0)
+               (end #t)
+             ) ;string-pad-right
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (end-idx (if (eq? end #t) char-len end))
+             (sub (substring/cursors s start end-idx)
+             ) ;sub
+             (sub-len (string-cursor-diff sub
+                        (string-cursor-start sub)
+                        (string-cursor-end sub)
+                      ) ;string-cursor-diff
+             ) ;sub-len
+            ) ;
+        (if (>= sub-len len)
+          (string-take sub len)
+          (string-append sub
+            (make-string (- len sub-len) char)
+          ) ;string-append
+        ) ;if
+      ) ;let*
+    ) ;define*
 
     ;; ==== Prefix and Suffix ====
 
-    (define (string-prefix-length s1 s2 . maybe-start+end)
+    (define (string-prefix-length
+              s1
+              s2
+              .
+              maybe-start+end
+            ) ;
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
-        (let loop ((i start1) (j start2) (count 0))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
+        (let loop
+          ((i start1) (j start2) (count 0))
           (if (or (>= i end1) (>= j end2))
+            count
+            (if (char=? (string-ref/cursor s1
+                          (string-index->cursor s1 i)
+                        ) ;string-ref/cursor
+                  (string-ref/cursor s2
+                    (string-index->cursor s2 j)
+                  ) ;string-ref/cursor
+                ) ;char=?
+              (loop (+ i 1) (+ j 1) (+ count 1))
               count
-              (if (char=? (string-ref/cursor s1 (string-index->cursor s1 i))
-                         (string-ref/cursor s2 (string-index->cursor s2 j)))
-                  (loop (+ i 1) (+ j 1) (+ count 1))
-                  count)))))
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-suffix-length s1 s2 . maybe-start+end)
+    (define (string-suffix-length
+              s1
+              s2
+              .
+              maybe-start+end
+            ) ;
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
-        (let loop ((i (- end1 1)) (j (- end2 1)) (count 0))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
+        (let loop
+          ((i (- end1 1))
+           (j (- end2 1))
+           (count 0)
+          ) ;
           (if (or (< i start1) (< j start2))
+            count
+            (if (char=? (string-ref/cursor s1
+                          (string-index->cursor s1 i)
+                        ) ;string-ref/cursor
+                  (string-ref/cursor s2
+                    (string-index->cursor s2 j)
+                  ) ;string-ref/cursor
+                ) ;char=?
+              (loop (- i 1) (- j 1) (+ count 1))
               count
-              (if (char=? (string-ref/cursor s1 (string-index->cursor s1 i))
-                         (string-ref/cursor s2 (string-index->cursor s2 j)))
-                  (loop (- i 1) (- j 1) (+ count 1))
-                  count)))))
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-prefix? s1 s2 . maybe-start+end)
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
         (let ((len1 (- end1 start1)))
           (and (<= len1 (- end2 start2))
-               (= (string-prefix-length s1 s2 start1 end1 start2 end2) len1)))))
+            (= (string-prefix-length s1
+                 s2
+                 start1
+                 end1
+                 start2
+                 end2
+               ) ;string-prefix-length
+              len1
+            ) ;=
+          ) ;and
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-suffix? s1 s2 . maybe-start+end)
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
         (let ((len1 (- end1 start1)))
           (and (<= len1 (- end2 start2))
-               (= (string-suffix-length s1 s2 start1 end1 start2 end2) len1)))))
+            (= (string-suffix-length s1
+                 s2
+                 start1
+                 end1
+                 start2
+                 end2
+               ) ;string-suffix-length
+              len1
+            ) ;=
+          ) ;and
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== Contains ====
 
-    (define (string-contains s1 s2 . maybe-start+end)
+    (define (string-contains
+              s1
+              s2
+              .
+              maybe-start+end
+            ) ;
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
         (let ((s2-len (- end2 start2)))
           (if (zero? s2-len)
-              (string-index->cursor s1 start1)
-              (let loop ((i start1))
-                (if (> (+ i s2-len) end1)
-                    #f
-                    (if (string-prefix? (substring/cursors s1 i (+ i s2-len)) (substring/cursors s2 start2 end2))
-                        (string-index->cursor s1 i)
-                        (loop (+ i 1)))))))))
+            (string-index->cursor s1 start1)
+            (let loop
+              ((i start1))
+              (if (> (+ i s2-len) end1)
+                #f
+                (if (string-prefix? (substring/cursors s1 i (+ i s2-len))
+                      (substring/cursors s2 start2 end2)
+                    ) ;string-prefix?
+                  (string-index->cursor s1 i)
+                  (loop (+ i 1))
+                ) ;if
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-contains-right s1 s2 . maybe-start+end)
+    (define (string-contains-right
+              s1
+              s2
+              .
+              maybe-start+end
+            ) ;
       (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw))
+             (char-len1 (string-cursor-char-index end1-c-raw)
+             ) ;char-len1
              (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start1 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest1 (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end1 (if (null? rest1) char-len1 (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
-             (start2 (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end2 (if (null? rest3) char-len2 (car rest3))))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start1 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start1
+             (rest1 (if (null? maybe-start+end)
+                      '()
+                      (cdr maybe-start+end)
+                    ) ;if
+             ) ;rest1
+             (end1 (if (null? rest1) char-len1 (car rest1))
+             ) ;end1
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
+             (start2 (if (null? rest2) 0 (car rest2))
+             ) ;start2
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end2 (if (null? rest3) char-len2 (car rest3))
+             ) ;end2
+            ) ;
         (let ((s2-len (- end2 start2)))
           (if (zero? s2-len)
-              (string-index->cursor s1 end1)
-              (let loop ((i (- end1 s2-len)))
-                (if (< i start1)
-                    #f
-                    (if (string-prefix? (substring/cursors s1 i (+ i s2-len)) (substring/cursors s2 start2 end2))
-                        (string-index->cursor s1 i)
-                        (loop (- i 1)))))))))
+            (string-index->cursor s1 end1)
+            (let loop
+              ((i (- end1 s2-len)))
+              (if (< i start1)
+                #f
+                (if (string-prefix? (substring/cursors s1 i (+ i s2-len))
+                      (substring/cursors s2 start2 end2)
+                    ) ;string-prefix?
+                  (string-index->cursor s1 i)
+                  (loop (- i 1))
+                ) ;if
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== String manipulation ====
 
     (define (string-reverse s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest))))
-        (let loop ((i start) (result '()))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+            ) ;
+        (let loop
+          ((i start) (result '()))
           (if (>= i end)
-              (list->string result)
-              (loop (+ i 1) (cons (string-ref/cursor s (string-index->cursor s i)) result))))))
+            (list->utf8-string result)
+            (loop (+ i 1)
+              (cons (string-ref/cursor s
+                      (string-index->cursor s i)
+                    ) ;string-ref/cursor
+                result
+              ) ;cons
+            ) ;loop
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-concatenate string-list)
-      (let loop ((lst string-list) (result ""))
+      (let loop
+        ((lst string-list) (result ""))
         (if (null? lst)
-            result
-            (loop (cdr lst) (string-append result (car lst))))))
+          result
+          (loop (cdr lst)
+            (string-append result (car lst))
+          ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
 
-    (define (string-concatenate-reverse string-list . maybe-final+end)
-      (let* ((final (if (null? maybe-final+end) "" (car maybe-final+end)))
-             (rest (if (null? maybe-final+end) '() (cdr maybe-final+end)))
-             (end (if (null? rest) (string-length final) (car rest)))
-             (final-part (substring/cursors final 0 end)))
-        (let loop ((lst (reverse string-list)) (result final-part))
+    (define (string-concatenate-reverse
+              string-list
+              .
+              maybe-final+end
+            ) ;
+      (let* ((final (if (null? maybe-final+end)
+                      ""
+                      (car maybe-final+end)
+                    ) ;if
+             ) ;final
+             (rest (if (null? maybe-final+end)
+                     '()
+                     (cdr maybe-final+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest)
+                    (string-length final)
+                    (car rest)
+                  ) ;if
+             ) ;end
+             (final-part (substring/cursors final 0 end)
+             ) ;final-part
+            ) ;
+        (let loop
+          ((lst (reverse (cons final-part string-list))
+           ) ;lst
+           (result "")
+          ) ;
           (if (null? lst)
-              result
-              (loop (cdr lst) (string-append (car lst) result))))))
+            result
+            (loop (cdr lst)
+              (string-append result (car lst))
+            ) ;loop
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-replicate s from . maybe-to+start+end)
-      (let* ((start (if (null? maybe-to+start+end) 0 (cadr maybe-to+start+end)))
-             (rest1 (if (null? maybe-to+start+end) '() (cddr maybe-to+start+end)))
-             (end (if (null? rest1) (string-length s) (car rest1)))
-             (to (if (null? maybe-to+start+end) (+ from (- end start)) (car maybe-to+start+end)))
+    (define (string-replicate
+              s
+              from
+              .
+              maybe-to+start+end
+            ) ;
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (or (null? maybe-to+start+end)
+                          (null? (cdr maybe-to+start+end))
+                        ) ;or
+                      0
+                      (cadr maybe-to+start+end)
+                    ) ;if
+             ) ;start
+             (rest1 (if (or (null? maybe-to+start+end)
+                          (null? (cdr maybe-to+start+end))
+                        ) ;or
+                      '()
+                      (cddr maybe-to+start+end)
+                    ) ;if
+             ) ;rest1
+             (end (if (null? rest1) char-len (car rest1))
+             ) ;end
+             (to (if (null? maybe-to+start+end)
+                   (+ from (- end start))
+                   (car maybe-to+start+end)
+                 ) ;if
+             ) ;to
              (slen (- end start))
-             (anslen (- to from)))
+             (anslen (- to from))
+            ) ;
         (cond ((zero? anslen) "")
-              ((zero? slen) (error 'value-error "Cannot replicate empty substring"))
-              (else
-               (let loop ((i 0) (result '()))
-                 (if (>= i anslen)
-                     (list->string (reverse result))
-                     (let* ((src-idx (+ start (modulo (+ from i) slen)))
-                            (ch (string-ref/cursor s (string-index->cursor s src-idx))))
-                       (loop (+ i 1) (cons ch result)))))))))
+              ((zero? slen)
+               (error 'value-error
+                 "Cannot replicate empty substring"
+               ) ;error
+              ) ;
+              (else (let loop
+                      ((i 0) (result '()))
+                      (if (>= i anslen)
+                        (list->utf8-string (reverse result))
+                        (let* ((src-idx (+ start (modulo (+ from i) slen))
+                               ) ;src-idx
+                               (ch (string-ref/cursor s
+                                     (string-index->cursor s src-idx)
+                                   ) ;string-ref/cursor
+                               ) ;ch
+                              ) ;
+                          (loop (+ i 1) (cons ch result))
+                        ) ;let*
+                      ) ;if
+                    ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
 
-    (define (string-replace s1 s2 start1 end1 . maybe-start+end)
+    (define (string-replace
+              s1
+              s2
+              start1
+              end1
+              .
+              maybe-start+end
+            ) ;
       (let* ((end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw))
-             (start2 (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end2 (if (null? rest) char-len2 (car rest)))
+             (char-len2 (string-cursor-char-index end2-c-raw)
+             ) ;char-len2
+             (start2 (if (null? maybe-start+end)
+                       0
+                       (car maybe-start+end)
+                     ) ;if
+             ) ;start2
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end2 (if (null? rest) char-len2 (car rest))
+             ) ;end2
              (before (substring/cursors s1 0 start1))
-             (middle (substring/cursors s2 start2 end2))
-             (after (substring/cursors s1 end1 (string-length s1))))
-        (string-append before middle after)))
+             (middle (substring/cursors s2 start2 end2)
+             ) ;middle
+             (after (substring/cursors s1
+                      end1
+                      (string-length s1)
+                    ) ;substring/cursors
+             ) ;after
+            ) ;
+        (string-append before middle after)
+      ) ;let*
+    ) ;define
 
     (define (string-split s delimiter . args)
       (let* ((slen (string-length s))
-             (grammar (if (null? args) 'infix (car args)))
+             (grammar (if (null? args) 'infix (car args))
+             ) ;grammar
              (rest1 (if (null? args) '() (cdr args)))
-             (limit (if (null? rest1) #f (car rest1)))
-             (rest2 (if (null? rest1) '() (cdr rest1)))
+             (limit (if (null? rest1) #f (car rest1))
+             ) ;limit
+             (rest2 (if (null? rest1) '() (cdr rest1))
+             ) ;rest2
              (start (if (null? rest2) 0 (car rest2)))
-             (rest3 (if (null? rest2) '() (cdr rest2)))
-             (end (if (null? rest3) slen (car rest3))))
+             (rest3 (if (null? rest2) '() (cdr rest2))
+             ) ;rest3
+             (end (if (null? rest3) slen (car rest3))
+             ) ;end
+            ) ;
         (cond ((= start end)
                (if (eq? grammar 'strict-infix)
-                   (error 'value-error "empty string cannot be split with strict-infix grammar")
-                   '()))
+                 (error 'value-error
+                   "empty string cannot be split with strict-infix grammar"
+                 ) ;error
+                 '()
+               ) ;if
+              ) ;
               ((string-null? delimiter)
-               (let loop ((i start) (result '()) (n 0))
+               (let loop
+                 ((i start) (result '()) (n 0))
                  (cond ((= i end) (reverse result))
                        ((and limit (>= n limit))
-                        (reverse (cons (substring/cursors s i end) result)))
+                        (reverse (cons (substring/cursors s i end)
+                                   result
+                                 ) ;cons
+                        ) ;reverse
+                       ) ;
                        (else (loop (+ i 1)
-                                  (cons (string (string-ref/cursor s (string-index->cursor s i))) result)
-                                  (+ n 1))))))
-              (else
-               (let ((dlen (string-length delimiter)))
-                 (define (finish r c)
-                   (let ((rest-str (substring/cursors s c end)))
-                     (if (and (eq? grammar 'suffix) (string-null? rest-str))
-                         (reverse r)
-                         (reverse (cons rest-str r)))))
-                 (define (scan r c n)
-                   (if (and limit (>= n limit))
-                       (finish r c)
-                       (let ((i (string-contains s delimiter c end)))
-                         (if i
-                             (let ((fragment (substring/cursors s c (string-cursor->index s i))))
-                               (if (and (= n 0) (eq? grammar 'prefix) (string-null? fragment))
-                                   (scan r (+ (string-cursor->index s i) dlen) (+ n 1))
-                                   (scan (cons fragment r)
-                                         (+ (string-cursor->index s i) dlen)
-                                         (+ n 1))))
-                             (finish r c)))))
-                 (scan '() start 0))))))
+                               (cons (string (string-ref/cursor s
+                                               (string-index->cursor s i)
+                                             ) ;string-ref/cursor
+                                     ) ;string
+                                 result
+                               ) ;cons
+                               (+ n 1)
+                             ) ;loop
+                       ) ;else
+                 ) ;cond
+               ) ;let
+              ) ;
+              (else (let ((dlen (string-length delimiter)))
+                      (define (finish r c)
+                        (let ((rest-str (substring/cursors s c end)))
+                          (if (and (eq? grammar 'suffix)
+                                (string-null? rest-str)
+                              ) ;and
+                            (reverse r)
+                            (reverse (cons rest-str r))
+                          ) ;if
+                        ) ;let
+                      ) ;define
+                      (define (scan r c n)
+                        (if (and limit (>= n limit))
+                          (finish r c)
+                          (let ((i (string-contains s delimiter c end))
+                               ) ;
+                            (if i
+                              (let ((fragment (substring/cursors s
+                                                c
+                                                (string-cursor->index s i)
+                                              ) ;substring/cursors
+                                    ) ;fragment
+                                   ) ;
+                                (if (and (= n 0)
+                                      (eq? grammar 'prefix)
+                                      (string-null? fragment)
+                                    ) ;and
+                                  (scan r
+                                    (+ (string-cursor->index s i) dlen)
+                                    (+ n 1)
+                                  ) ;scan
+                                  (scan (cons fragment r)
+                                    (+ (string-cursor->index s i) dlen)
+                                    (+ n 1)
+                                  ) ;scan
+                                ) ;if
+                              ) ;let
+                              (finish r c)
+                            ) ;if
+                          ) ;let
+                        ) ;if
+                      ) ;define
+                      (scan '() start 0)
+                    ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
 
     (define (string-filter pred s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest))))
-        (let loop ((i start) (result '()))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+            ) ;
+        (let loop
+          ((i start) (result '()))
           (if (>= i end)
-              (list->string (reverse result))
-              (let ((ch (string-ref/cursor s (string-index->cursor s i))))
-                (if (pred ch)
-                    (loop (+ i 1) (cons ch result))
-                    (loop (+ i 1) result)))))))
+            (list->utf8-string (reverse result))
+            (let ((ch (string-ref/cursor s
+                        (string-index->cursor s i)
+                      ) ;string-ref/cursor
+                  ) ;ch
+                 ) ;
+              (if (pred ch)
+                (loop (+ i 1) (cons ch result))
+                (loop (+ i 1) result)
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-remove pred s . maybe-start+end)
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest))))
-        (let loop ((i start) (result '()))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+            ) ;
+        (let loop
+          ((i start) (result '()))
           (if (>= i end)
-              (list->string (reverse result))
-              (let ((ch (string-ref/cursor s (string-index->cursor s i))))
-                (if (pred ch)
-                    (loop (+ i 1) result)
-                    (loop (+ i 1) (cons ch result))))))))
+            (list->utf8-string (reverse result))
+            (let ((ch (string-ref/cursor s
+                        (string-index->cursor s i)
+                      ) ;string-ref/cursor
+                  ) ;ch
+                 ) ;
+              (if (pred ch)
+                (loop (+ i 1) result)
+                (loop (+ i 1) (cons ch result))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== Constructors ====
 
     (define (string-tabulate proc len)
-      (let loop ((i 0) (result '()))
+      (let loop
+        ((i 0) (result '()))
         (if (>= i len)
-            (list->string (reverse result))
-            (loop (+ i 1) (cons (proc i) result)))))
+          (list->utf8-string (reverse result))
+          (loop (+ i 1) (cons (proc i) result))
+        ) ;if
+      ) ;let
+    ) ;define
 
-    (define (string-unfold p f g seed . base+make-final)
-      (let* ((base (if (null? base+make-final) "" (car base+make-final)))
-             (rest (if (null? base+make-final) '() (cdr base+make-final)))
-             (make-final (if (null? rest) (lambda (x) "") (car rest))))
-        (let loop ((seed seed) (result '()))
+    (define (string-unfold
+              p
+              f
+              g
+              seed
+              .
+              base+make-final
+            ) ;
+      (let* ((base (if (null? base+make-final)
+                     ""
+                     (car base+make-final)
+                   ) ;if
+             ) ;base
+             (rest (if (null? base+make-final)
+                     '()
+                     (cdr base+make-final)
+                   ) ;if
+             ) ;rest
+             (make-final (if (null? rest)
+                           (lambda (x) "")
+                           (car rest)
+                         ) ;if
+             ) ;make-final
+            ) ;
+        (let loop
+          ((seed seed) (result '()))
           (if (p seed)
-              (string-append base (list->string (reverse result)) (make-final seed))
-              (loop (g seed) (cons (f seed) result))))))
+            (string-append base
+              (list->utf8-string (reverse result))
+              (make-final seed)
+            ) ;string-append
+            (loop (g seed) (cons (f seed) result))
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string-unfold-right p f g seed . base+make-final)
-      (let* ((base (if (null? base+make-final) "" (car base+make-final)))
-             (rest (if (null? base+make-final) '() (cdr base+make-final)))
-             (make-final (if (null? rest) (lambda (x) "") (car rest))))
-        (let loop ((seed seed) (result '()))
+    (define (string-unfold-right
+              p
+              f
+              g
+              seed
+              .
+              base+make-final
+            ) ;
+      (let* ((base (if (null? base+make-final)
+                     ""
+                     (car base+make-final)
+                   ) ;if
+             ) ;base
+             (rest (if (null? base+make-final)
+                     '()
+                     (cdr base+make-final)
+                   ) ;if
+             ) ;rest
+             (make-final (if (null? rest)
+                           (lambda (x) "")
+                           (car rest)
+                         ) ;if
+             ) ;make-final
+            ) ;
+        (let loop
+          ((seed seed) (result '()))
           (if (p seed)
-              (string-append (make-final seed) (list->string result) base)
-              (loop (g seed) (cons (f seed) result))))))
+            (string-append (make-final seed)
+              (list->utf8-string result)
+              base
+            ) ;string-append
+            (loop (g seed) (cons (f seed) result))
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     ;; ==== Conversion ====
 
-    (define (string->list/cursors s . maybe-start+end)
+    (define (string->list/cursors
+              s
+              .
+              maybe-start+end
+            ) ;
       (let* ((end-c-raw (string-cursor-end s))
-             (char-len (string-cursor-char-index end-c-raw))
-             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
-             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
-             (end (if (null? rest) char-len (car rest))))
-        (let loop ((i start) (result '()))
+             (char-len (string-cursor-char-index end-c-raw)
+             ) ;char-len
+             (start (if (null? maybe-start+end)
+                      0
+                      (car maybe-start+end)
+                    ) ;if
+             ) ;start
+             (rest (if (null? maybe-start+end)
+                     '()
+                     (cdr maybe-start+end)
+                   ) ;if
+             ) ;rest
+             (end (if (null? rest) char-len (car rest))
+             ) ;end
+            ) ;
+        (let loop
+          ((i start) (result '()))
           (if (>= i end)
-              (reverse result)
-              (loop (+ i 1) (cons (string-ref/cursor s (string-index->cursor s i)) result))))))
+            (reverse result)
+            (loop (+ i 1)
+              (cons (string-ref/cursor s
+                      (string-index->cursor s i)
+                    ) ;string-ref/cursor
+                result
+              ) ;cons
+            ) ;loop
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    (define (string->vector/cursors s . maybe-start+end)
-      (list->vector (apply string->list/cursors s maybe-start+end)))
+    (define (string->vector/cursors
+              s
+              .
+              maybe-start+end
+            ) ;
+      (list->vector (apply string->list/cursors
+                      s
+                      maybe-start+end
+                    ) ;apply
+      ) ;list->vector
+    ) ;define
 
     (define (reverse-list->string clist)
-      (list->string (reverse clist)))
+      (list->utf8-string (reverse clist))
+    ) ;define
 
-    (define* (string-join string-list (delimiter " ") (grammar 'infix))
+    (define* (string-join string-list
+               (delimiter " ")
+               (grammar 'infix)
+             ) ;string-join
       (cond ((null? string-list)
              (if (eq? grammar 'strict-infix)
-                 (error 'value-error "string-join: empty list with strict-infix")
-                 ""))
+               (error 'value-error
+                 "string-join: empty list with strict-infix"
+               ) ;error
+               ""
+             ) ;if
+            ) ;
             ((eq? grammar 'infix)
-             (let loop ((lst string-list) (result ""))
+             (let loop
+               ((lst string-list) (result ""))
                (if (null? lst)
-                   result
-                   (if (null? (cdr lst))
-                       (loop (cdr lst) (string-append result (car lst)))
-                       (loop (cdr lst) (string-append result (car lst) delimiter))))))
+                 result
+                 (if (null? (cdr lst))
+                   (loop (cdr lst)
+                     (string-append result (car lst))
+                   ) ;loop
+                   (loop (cdr lst)
+                     (string-append result
+                       (car lst)
+                       delimiter
+                     ) ;string-append
+                   ) ;loop
+                 ) ;if
+               ) ;if
+             ) ;let
+            ) ;
             ((eq? grammar 'strict-infix)
              (if (null? string-list)
-                 (error 'value-error "string-join: empty list with strict-infix")
-                 (let loop ((lst string-list) (result ""))
-                   (if (null? lst)
-                       result
-                       (if (null? (cdr lst))
-                           (loop (cdr lst) (string-append result (car lst)))
-                           (loop (cdr lst) (string-append result (car lst) delimiter)))))))
+               (error 'value-error
+                 "string-join: empty list with strict-infix"
+               ) ;error
+               (let loop
+                 ((lst string-list) (result ""))
+                 (if (null? lst)
+                   result
+                   (if (null? (cdr lst))
+                     (loop (cdr lst)
+                       (string-append result (car lst))
+                     ) ;loop
+                     (loop (cdr lst)
+                       (string-append result
+                         (car lst)
+                         delimiter
+                       ) ;string-append
+                     ) ;loop
+                   ) ;if
+                 ) ;if
+               ) ;let
+             ) ;if
+            ) ;
             ((eq? grammar 'suffix)
-             (let loop ((lst string-list) (result ""))
+             (let loop
+               ((lst string-list) (result ""))
                (if (null? lst)
-                   result
-                   (loop (cdr lst) (string-append result (car lst) delimiter)))))
+                 result
+                 (loop (cdr lst)
+                   (string-append result
+                     (car lst)
+                     delimiter
+                   ) ;string-append
+                 ) ;loop
+               ) ;if
+             ) ;let
+            ) ;
             ((eq? grammar 'prefix)
-             (let loop ((lst string-list) (result ""))
+             (let loop
+               ((lst string-list) (result ""))
                (if (null? lst)
-                   result
-                   (loop (cdr lst) (string-append result delimiter (car lst))))))
-            (else
-             (error 'value-error "string-join: invalid grammar"))))
+                 result
+                 (loop (cdr lst)
+                   (string-append result
+                     delimiter
+                     (car lst)
+                   ) ;string-append
+                 ) ;loop
+               ) ;if
+             ) ;let
+            ) ;
+            (else (error 'value-error
+                    "string-join: invalid grammar"
+                  ) ;error
+            ) ;else
+      ) ;cond
+    ) ;define*
 
-  )
-)
-
+  ) ;begin
+) ;define-library
