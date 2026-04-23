@@ -199,7 +199,7 @@
              (start (vector-ref pos idx))
              (end (vector-ref pos (+ idx 1)))
              (char-bv (bytevector-copy bv start end)))
-        (string-ref (utf8->string char-bv) 0)))
+        (integer->char (utf8->codepoint char-bv))))
 
     (define (substring/cursors str start end)
       (let* ((start-off (if (string-cursor? start)
