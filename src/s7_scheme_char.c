@@ -91,7 +91,7 @@ static s7_pointer char_with_error_check(s7_scheme *sc, s7_pointer args_left, s7_
   return s7_f(sc);
 }
 
-static int32_t charcmp(uint8_t c1, uint8_t c2)
+static int32_t charcmp(uint32_t c1, uint32_t c2)
 {
   return (c1 == c2) ? 0 : (c1 < c2) ? -1 : 1;
 }

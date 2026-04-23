@@ -843,7 +843,7 @@ typedef struct s7_cell {
     } prt;
 
     struct{                       /* characters */
-      uint8_t c, up_c;
+      uint32_t c, up_c;
       int32_t length;
       bool alpha_c, digit_c, space_c, upper_c, lower_c;
       char c_name[12];
@@ -1418,6 +1418,7 @@ struct s7_scheme {
   s7_pointer closed_input_function, closed_output_function;
   s7_pointer vector_set_function, string_set_function, list_set_function, hash_table_set_function, let_set_function, c_object_set_function, last_function;
   s7_pointer wrong_type_arg_info, out_of_range_info, sole_arg_wrong_type_info, sole_arg_out_of_range_info;
+  s7_pointer unicode_chars_table;
 
   #define NUM_SAFE_PRELISTS 8
   #define NUM_SAFE_LISTS 32               /* 36 is the biggest normally (lint.scm), 49 in s7test, 57 in snd-test, > 16 doesn't happen much */
@@ -14979,7 +14980,7 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 	    const char *tmp = (const char *)(name + 2);
 	    int32_t new_int = 0;
 
-	    while ((*tmp) && (happy) && (new_int >= 0) && (new_int < 256))
+	    while ((*tmp) && (happy) && (new_int >= 0) && (new_int < 0x110000))
 	      {
 		int32_t dig = digits[(int32_t)(*tmp++)];
 		if (dig < 16)
@@ -14987,12 +14988,40 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 		else happy = false;
 	      }
 	    if ((happy) &&
-		(new_int < 256) &&
-		(new_int >= 0))
-	      return(chars[new_int]);
+		(new_int >= 0) &&
+		(new_int < 0x110000))
+	      return(s7_make_character(sc, (uint32_t)new_int));
 	  }
 	  break;
-	}}
+	}
+      /* 尝试解析为多字节 UTF-8 字符 */
+      {
+        int32_t nlen = safe_strlen(name);
+        if (nlen >= 3 && nlen <= 5)
+          {
+            uint32_t cp = 0;
+            const uint8_t *u = (const uint8_t *)(name + 1);
+            if (nlen == 3 && (u[0] & 0xE0) == 0xC0 && (u[1] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x1F) << 6) | (u[1] & 0x3F);
+                if (cp >= 0x80)
+                  return(s7_make_character(sc, cp));
+              }
+            else if (nlen == 4 && (u[0] & 0xF0) == 0xE0 && (u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x0F) << 12) | ((u[1] & 0x3F) << 6) | (u[2] & 0x3F);
+                if (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF))
+                  return(s7_make_character(sc, cp));
+              }
+            else if (nlen == 5 && (u[0] & 0xF8) == 0xF0 && (u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80 && (u[3] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x07) << 18) | ((u[1] & 0x3F) << 12) | ((u[2] & 0x3F) << 6) | (u[3] & 0x3F);
+                if (cp >= 0x10000 && cp <= 0x10FFFF)
+                  return(s7_make_character(sc, cp));
+              }
+          }
+      }
+      }
   return(unknown_sharp_constant(sc, name, NULL));
 }
 
@@ -20317,11 +20346,38 @@ static void init_chars(void)
 }
 
 
-s7_pointer s7_make_character(s7_scheme *sc, uint8_t c) {return(chars[c]);}
+s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
+  if (c < 256) return(chars[c]);
+  if (!sc->unicode_chars_table)
+    {
+      sc->unicode_chars_table = s7_make_hash_table(sc, 128);
+      s7_gc_protect(sc, sc->unicode_chars_table);
+    }
+  {
+    s7_pointer key = s7_make_integer(sc, (s7_int)c);
+    s7_pointer val = s7_hash_table_ref(sc, sc->unicode_chars_table, key);
+    if (val != sc->F)
+      return(val);
+    {
+      s7_pointer cp;
+      new_cell(sc, cp, T_CHARACTER | T_IMMUTABLE);
+      character(cp) = c;
+      upper_character(cp) = c;
+      is_char_alphabetic(cp) = false;
+      is_char_numeric(cp) = false;
+      is_char_whitespace(cp) = false;
+      is_char_uppercase(cp) = false;
+      is_char_lowercase(cp) = false;
+      character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
+      return(cp);
+    }
+  }
+}
 
 bool s7_is_character(s7_pointer c) {return(is_character(c));}
 
-uint8_t s7_character(s7_pointer c) {return(character(c));}
+uint32_t s7_character(s7_pointer c) {return(character(c));}
 
 
 static bool returns_char(s7_scheme *sc, s7_pointer arg) {return(argument_type(sc, arg) == sc->is_char_symbol);}

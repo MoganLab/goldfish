@@ -270,8 +270,8 @@ s7_int s7_string_length(s7_pointer str);                                     /* 
 
 
 bool s7_is_character(s7_pointer p);                                          /* (character? p) */
-uint8_t s7_character(s7_pointer p);                                          /* Scheme character -> unsigned C char */
-s7_pointer s7_make_character(s7_scheme *sc, uint8_t c);                      /* unsigned C char -> Scheme character */
+uint32_t s7_character(s7_pointer p);                                          /* Scheme character -> unsigned C char */
+s7_pointer s7_make_character(s7_scheme *sc, uint32_t c);                      /* unsigned C char -> Scheme character */
 
 
 bool s7_is_number(s7_pointer p);                                             /* (number? p) */
