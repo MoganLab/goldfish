@@ -1,0 +1,93 @@
+{
+  "bounded-levenshtein-distance": [
+    "(liii golddoc)",
+    "(liii golddoc-fuzzy)"
+  ],
+  "build-function-indexes!": [
+    "(liii golddoc)",
+    "(liii golddoc-index-build)"
+  ],
+  "excluded-test-group?": [
+    "(liii golddoc)",
+    "(liii golddoc-library)"
+  ],
+  "exported-name->test-stem": [
+    "(liii golddoc)",
+    "(liii golddoc-function)"
+  ],
+  "find-function-index-paths": [
+    "(liii golddoc)",
+    "(liii golddoc-index)"
+  ],
+  "find-tests-root-for-load-root": [
+    "(liii golddoc)",
+    "(liii golddoc-library)"
+  ],
+  "find-visible-library-root": [
+    "(liii golddoc)",
+    "(liii golddoc-library)"
+  ],
+  "function-doc-path": [
+    "(liii golddoc)",
+    "(liii golddoc-function)"
+  ],
+  "index-entry->library-query": [
+    "(liii golddoc)",
+    "(liii golddoc-index)"
+  ],
+  "library-doc-path": [
+    "(liii golddoc)",
+    "(liii golddoc-library)"
+  ],
+  "library-documented-functions": [
+    "(liii golddoc)",
+    "(liii golddoc-function)"
+  ],
+  "library-query?": [
+    "(liii golddoc)",
+    "(liii golddoc-args)"
+  ],
+  "load-function-index": [
+    "(liii golddoc)",
+    "(liii golddoc-index)"
+  ],
+  "main": [
+    "(liii golddoc)"
+  ],
+  "max-fuzzy-edit-distance": [
+    "(liii golddoc)",
+    "(liii golddoc-fuzzy)"
+  ],
+  "parse-doc-args": [
+    "(liii golddoc)",
+    "(liii golddoc-args)"
+  ],
+  "parse-library-query": [
+    "(liii golddoc)",
+    "(liii golddoc-args)"
+  ],
+  "run-golddoc": [
+    "(liii golddoc)",
+    "(liii golddoc-cli)"
+  ],
+  "suggest-candidates": [
+    "(liii golddoc)",
+    "(liii golddoc-fuzzy)"
+  ],
+  "suggest-library-functions": [
+    "(liii golddoc)",
+    "(liii golddoc-fuzzy)"
+  ],
+  "suggest-visible-functions": [
+    "(liii golddoc)",
+    "(liii golddoc-fuzzy)"
+  ],
+  "visible-function-names": [
+    "(liii golddoc)",
+    "(liii golddoc-index)"
+  ],
+  "visible-libraries-for-function": [
+    "(liii golddoc)",
+    "(liii golddoc-index)"
+  ]
+}

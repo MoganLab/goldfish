@@ -148,61 +148,79 @@
     ) ;define
 
     (define (string-cursor-next str cursor)
-      (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor)
-             ) ;char-idx
-             (positions (string-offsets-positions off)
-             ) ;positions
-             (max-idx (- (vector-length positions) 1)
-             ) ;max-idx
-            ) ;
-        (if (>= char-idx max-idx)
-          (error 'value-error
-            "string-cursor-next: already at end cursor"
-          ) ;error
-          (make-string-cursor-raw off
-            (+ char-idx 1)
-          ) ;make-string-cursor-raw
-        ) ;if
-      ) ;let*
+      (let ((c (if (string-cursor? cursor)
+                 cursor
+                 (string-index->cursor str cursor)
+               ) ;if
+            ) ;c
+           ) ;
+        (let* ((off (string-cursor-offsets c))
+               (char-idx (string-cursor-char-index c))
+               (positions (string-offsets-positions off)
+               ) ;positions
+               (max-idx (- (vector-length positions) 1)
+               ) ;max-idx
+              ) ;
+          (if (>= char-idx max-idx)
+            (error 'value-error
+              "string-cursor-next: already at end cursor"
+            ) ;error
+            (make-string-cursor-raw off
+              (+ char-idx 1)
+            ) ;make-string-cursor-raw
+          ) ;if
+        ) ;let*
+      ) ;let
     ) ;define
 
     (define (string-cursor-prev str cursor)
-      (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor)
-             ) ;char-idx
-            ) ;
-        (if (<= char-idx 0)
-          (error 'value-error
-            "string-cursor-prev: already at start cursor"
-          ) ;error
-          (make-string-cursor-raw off
-            (- char-idx 1)
-          ) ;make-string-cursor-raw
-        ) ;if
-      ) ;let*
+      (let ((c (if (string-cursor? cursor)
+                 cursor
+                 (string-index->cursor str cursor)
+               ) ;if
+            ) ;c
+           ) ;
+        (let* ((off (string-cursor-offsets c))
+               (char-idx (string-cursor-char-index c))
+              ) ;
+          (if (<= char-idx 0)
+            (error 'value-error
+              "string-cursor-prev: already at start cursor"
+            ) ;error
+            (make-string-cursor-raw off
+              (- char-idx 1)
+            ) ;make-string-cursor-raw
+          ) ;if
+        ) ;let*
+      ) ;let
     ) ;define
 
     (define (string-cursor-forward str
               cursor
               nchars
             ) ;string-cursor-forward
-      (let* ((off (string-cursor-offsets cursor))
-             (char-idx (string-cursor-char-index cursor)
-             ) ;char-idx
-             (positions (string-offsets-positions off)
-             ) ;positions
-             (max-idx (- (vector-length positions) 1)
-             ) ;max-idx
-             (new-idx (+ char-idx nchars))
-            ) ;
-        (if (or (< new-idx 0) (> new-idx max-idx))
-          (error 'value-error
-            "string-cursor-forward: result would be invalid cursor"
-          ) ;error
-          (make-string-cursor-raw off new-idx)
-        ) ;if
-      ) ;let*
+      (let ((c (if (string-cursor? cursor)
+                 cursor
+                 (string-index->cursor str cursor)
+               ) ;if
+            ) ;c
+           ) ;
+        (let* ((off (string-cursor-offsets c))
+               (char-idx (string-cursor-char-index c))
+               (positions (string-offsets-positions off)
+               ) ;positions
+               (max-idx (- (vector-length positions) 1)
+               ) ;max-idx
+               (new-idx (+ char-idx nchars))
+              ) ;
+          (if (or (< new-idx 0) (> new-idx max-idx))
+            (error 'value-error
+              "string-cursor-forward: result would be invalid cursor"
+            ) ;error
+            (make-string-cursor-raw off new-idx)
+          ) ;if
+        ) ;let*
+      ) ;let
     ) ;define
 
     (define (string-cursor-back str cursor nchars)
@@ -213,63 +231,129 @@
     ) ;define
 
     (define (string-cursor=? cursor1 cursor2)
-      (= (string-cursor-char-index cursor1)
-        (string-cursor-char-index cursor2)
-      ) ;=
+      (let ((idx1 (if (string-cursor? cursor1)
+                    (string-cursor-char-index cursor1)
+                    cursor1
+                  ) ;if
+            ) ;idx1
+            (idx2 (if (string-cursor? cursor2)
+                    (string-cursor-char-index cursor2)
+                    cursor2
+                  ) ;if
+            ) ;idx2
+           ) ;
+        (= idx1 idx2)
+      ) ;let
     ) ;define
 
     (define (string-cursor<? cursor1 cursor2)
-      (< (string-cursor-char-index cursor1)
-        (string-cursor-char-index cursor2)
-      ) ;<
+      (let ((idx1 (if (string-cursor? cursor1)
+                    (string-cursor-char-index cursor1)
+                    cursor1
+                  ) ;if
+            ) ;idx1
+            (idx2 (if (string-cursor? cursor2)
+                    (string-cursor-char-index cursor2)
+                    cursor2
+                  ) ;if
+            ) ;idx2
+           ) ;
+        (< idx1 idx2)
+      ) ;let
     ) ;define
 
     (define (string-cursor>? cursor1 cursor2)
-      (> (string-cursor-char-index cursor1)
-        (string-cursor-char-index cursor2)
-      ) ;>
+      (let ((idx1 (if (string-cursor? cursor1)
+                    (string-cursor-char-index cursor1)
+                    cursor1
+                  ) ;if
+            ) ;idx1
+            (idx2 (if (string-cursor? cursor2)
+                    (string-cursor-char-index cursor2)
+                    cursor2
+                  ) ;if
+            ) ;idx2
+           ) ;
+        (> idx1 idx2)
+      ) ;let
     ) ;define
 
     (define (string-cursor<=? cursor1 cursor2)
-      (<= (string-cursor-char-index cursor1)
-        (string-cursor-char-index cursor2)
-      ) ;<=
+      (let ((idx1 (if (string-cursor? cursor1)
+                    (string-cursor-char-index cursor1)
+                    cursor1
+                  ) ;if
+            ) ;idx1
+            (idx2 (if (string-cursor? cursor2)
+                    (string-cursor-char-index cursor2)
+                    cursor2
+                  ) ;if
+            ) ;idx2
+           ) ;
+        (<= idx1 idx2)
+      ) ;let
     ) ;define
 
     (define (string-cursor>=? cursor1 cursor2)
-      (>= (string-cursor-char-index cursor1)
-        (string-cursor-char-index cursor2)
-      ) ;>=
+      (let ((idx1 (if (string-cursor? cursor1)
+                    (string-cursor-char-index cursor1)
+                    cursor1
+                  ) ;if
+            ) ;idx1
+            (idx2 (if (string-cursor? cursor2)
+                    (string-cursor-char-index cursor2)
+                    cursor2
+                  ) ;if
+            ) ;idx2
+           ) ;
+        (>= idx1 idx2)
+      ) ;let
     ) ;define
 
     (define (string-cursor-diff str start end)
-      (- (string-cursor-char-index end)
-        (string-cursor-char-index start)
-      ) ;-
+      (let ((s-idx (if (string-cursor? start)
+                     (string-cursor-char-index start)
+                     start
+                   ) ;if
+            ) ;s-idx
+            (e-idx (if (string-cursor? end)
+                     (string-cursor-char-index end)
+                     end
+                   ) ;if
+            ) ;e-idx
+           ) ;
+        (- e-idx s-idx)
+      ) ;let
     ) ;define
 
     (define (string-cursor->index str cursor)
-      (string-cursor-char-index cursor)
+      (if (string-cursor? cursor)
+        (string-cursor-char-index cursor)
+        cursor
+      ) ;if
     ) ;define
 
     (define (string-index->cursor str index)
-      (let* ((bv (string->utf8 str))
-             (off (make-string-offsets bv
-                    (make-string-positions bv)
-                  ) ;make-string-offsets
-             ) ;off
-             (positions (string-offsets-positions off)
-             ) ;positions
-             (max-idx (- (vector-length positions) 1)
-             ) ;max-idx
-            ) ;
-        (if (or (< index 0) (> index max-idx))
-          (error 'value-error
-            "string-index->cursor: index out of range"
-          ) ;error
-          (make-string-cursor-raw off index)
-        ) ;if
-      ) ;let*
+      (if (string-cursor? index)
+        index
+        (let* ((bv (string->utf8 str))
+               (off (make-string-offsets bv
+                      (make-string-positions bv)
+                    ) ;make-string-offsets
+               ) ;off
+               (positions (string-offsets-positions off)
+               ) ;positions
+               (max-idx (- (vector-length positions) 1)
+               ) ;max-idx
+              ) ;
+          (if (or (< index 0) (> index max-idx))
+            (error 'value-error
+              "string-index->cursor: index out of range"
+            ) ;error
+            (make-string-cursor-raw off index)
+          ) ;if
+        ) ;let*
+      ) ;if
     ) ;define
 
     ;; ==== Helper functions ====
@@ -296,10 +380,15 @@
     ;; ==== Selection ====
 
     (define (string-ref/cursor str cursor)
-      (let* ((off (string-cursor-offsets cursor))
+      (let* ((c (if (string-cursor? cursor)
+                  cursor
+                  (string-index->cursor str cursor)
+                ) ;if
+             ) ;c
+             (off (string-cursor-offsets c))
              (bv (string-offsets-bv off))
              (pos (string-offsets-positions off))
-             (idx (string-cursor-char-index cursor))
+             (idx (string-cursor-char-index c))
              (start (vector-ref pos idx))
              (end (vector-ref pos (+ idx 1)))
              (char-bv (bytevector-copy bv start end))
