@@ -1044,21 +1044,37 @@
              ) ;rest3
              (end2 (if (null? rest3) char-len2 (car rest3))
              ) ;end2
+             (off1 (string-cursor-offsets end1-c-raw)
+             ) ;off1
+             (pos1 (string-offsets-positions off1))
+             (bv1 (string-offsets-bv off1))
+             (off2 (string-cursor-offsets end2-c-raw)
+             ) ;off2
+             (pos2 (string-offsets-positions off2))
+             (bv2 (string-offsets-bv off2))
             ) ;
         (let loop
           ((i start1) (j start2) (count 0))
           (if (or (>= i end1) (>= j end2))
             count
-            (if (char=? (string-ref/cursor s1
-                          (string-index->cursor s1 i)
-                        ) ;string-ref/cursor
-                  (string-ref/cursor s2
-                    (string-index->cursor s2 j)
-                  ) ;string-ref/cursor
-                ) ;char=?
-              (loop (+ i 1) (+ j 1) (+ count 1))
-              count
-            ) ;if
+            (let* ((b1-start (vector-ref pos1 i))
+                   (b1-end (vector-ref pos1 (+ i 1)))
+                   (ch1 (integer->char (utf8->codepoint (bytevector-copy bv1 b1-start b1-end)
+                                       ) ;utf8->codepoint
+                        ) ;integer->char
+                   ) ;ch1
+                   (b2-start (vector-ref pos2 j))
+                   (b2-end (vector-ref pos2 (+ j 1)))
+                   (ch2 (integer->char (utf8->codepoint (bytevector-copy bv2 b2-start b2-end)
+                                       ) ;utf8->codepoint
+                        ) ;integer->char
+                   ) ;ch2
+                  ) ;
+              (if (char=? ch1 ch2)
+                (loop (+ i 1) (+ j 1) (+ count 1))
+                count
+              ) ;if
+            ) ;let*
           ) ;if
         ) ;let
       ) ;let*
@@ -1096,6 +1112,14 @@
              ) ;rest3
              (end2 (if (null? rest3) char-len2 (car rest3))
              ) ;end2
+             (off1 (string-cursor-offsets end1-c-raw)
+             ) ;off1
+             (pos1 (string-offsets-positions off1))
+             (bv1 (string-offsets-bv off1))
+             (off2 (string-cursor-offsets end2-c-raw)
+             ) ;off2
+             (pos2 (string-offsets-positions off2))
+             (bv2 (string-offsets-bv off2))
             ) ;
         (let loop
           ((i (- end1 1))
@@ -1104,16 +1128,24 @@
           ) ;
           (if (or (< i start1) (< j start2))
             count
-            (if (char=? (string-ref/cursor s1
-                          (string-index->cursor s1 i)
-                        ) ;string-ref/cursor
-                  (string-ref/cursor s2
-                    (string-index->cursor s2 j)
-                  ) ;string-ref/cursor
-                ) ;char=?
-              (loop (- i 1) (- j 1) (+ count 1))
-              count
-            ) ;if
+            (let* ((b1-start (vector-ref pos1 i))
+                   (b1-end (vector-ref pos1 (+ i 1)))
+                   (ch1 (integer->char (utf8->codepoint (bytevector-copy bv1 b1-start b1-end)
+                                       ) ;utf8->codepoint
+                        ) ;integer->char
+                   ) ;ch1
+                   (b2-start (vector-ref pos2 j))
+                   (b2-end (vector-ref pos2 (+ j 1)))
+                   (ch2 (integer->char (utf8->codepoint (bytevector-copy bv2 b2-start b2-end)
+                                       ) ;utf8->codepoint
+                        ) ;integer->char
+                   ) ;ch2
+                  ) ;
+              (if (char=? ch1 ch2)
+                (loop (- i 1) (- j 1) (+ count 1))
+                count
+              ) ;if
+            ) ;let*
           ) ;if
         ) ;let
       ) ;let*
@@ -1249,8 +1281,12 @@
               ((i start1))
               (if (> (+ i s2-len) end1)
                 #f
-                (if (string-prefix? (substring/cursors s1 i (+ i s2-len))
-                      (substring/cursors s2 start2 end2)
+                (if (string-prefix? s1
+                      s2
+                      i
+                      (+ i s2-len)
+                      start2
+                      end2
                     ) ;string-prefix?
                   (string-index->cursor s1 i)
                   (loop (+ i 1))
@@ -1302,8 +1338,12 @@
               ((i (- end1 s2-len)))
               (if (< i start1)
                 #f
-                (if (string-prefix? (substring/cursors s1 i (+ i s2-len))
-                      (substring/cursors s2 start2 end2)
+                (if (string-prefix? s1
+                      s2
+                      i
+                      (+ i s2-len)
+                      start2
+                      end2
                     ) ;string-prefix?
                   (string-index->cursor s1 i)
                   (loop (- i 1))
