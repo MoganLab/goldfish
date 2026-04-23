@@ -358,6 +358,13 @@
 
     ;; ==== Helper functions ====
 
+    (define (cursor->index c)
+      (if (string-cursor? c)
+        (string-cursor-char-index c)
+        c
+      ) ;if
+    ) ;define
+
     (define (char->utf8-string ch)
       (utf8->string (codepoint->utf8 (char->integer ch))
       ) ;utf8->string
@@ -1044,6 +1051,10 @@
              ) ;rest3
              (end2 (if (null? rest3) char-len2 (car rest3))
              ) ;end2
+             (start1-idx (cursor->index start1))
+             (end1-idx (cursor->index end1))
+             (start2-idx (cursor->index start2))
+             (end2-idx (cursor->index end2))
              (off1 (string-cursor-offsets end1-c-raw)
              ) ;off1
              (pos1 (string-offsets-positions off1))
@@ -1054,8 +1065,11 @@
              (bv2 (string-offsets-bv off2))
             ) ;
         (let loop
-          ((i start1) (j start2) (count 0))
-          (if (or (>= i end1) (>= j end2))
+          ((i start1-idx)
+           (j start2-idx)
+           (count 0)
+          ) ;
+          (if (or (>= i end1-idx) (>= j end2-idx))
             count
             (let* ((b1-start (vector-ref pos1 i))
                    (b1-end (vector-ref pos1 (+ i 1)))
@@ -1110,23 +1124,31 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-             (off1 (string-cursor-offsets end1-c-raw)
-             ) ;off1
-             (pos1 (string-offsets-positions off1))
-             (bv1 (string-offsets-bv off1))
-             (off2 (string-cursor-offsets end2-c-raw)
-             ) ;off2
-             (pos2 (string-offsets-positions off2))
-             (bv2 (string-offsets-bv off2))
-            ) ;
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (start1-idx (cursor->index start1)
+              ) ;start1-idx
+              (end1-idx (cursor->index end1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2)
+              ) ;start2-idx
+              (end2-idx (cursor->index end2)
+              ) ;end2-idx
+              (off1 (string-cursor-offsets end1-c-raw)
+              ) ;off1
+              (pos1 (string-offsets-positions off1))
+              (bv1 (string-offsets-bv off1))
+              (off2 (string-cursor-offsets end2-c-raw)
+              ) ;off2
+              (pos2 (string-offsets-positions off2))
+              (bv2 (string-offsets-bv off2)))
+              ;
         (let loop
-          ((i (- end1 1))
-           (j (- end2 1))
+          ((i (- end1-idx 1))
+           (j (- end2-idx 1))
            (count 0)
           ) ;
-          (if (or (< i start1) (< j start2))
+          (if (or (< i start1-idx) (< j start2-idx))
             count
             (let* ((b1-start (vector-ref pos1 i))
                    (b1-end (vector-ref pos1 (+ i 1)))
@@ -1176,24 +1198,32 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-            ) ;
-        (let ((len1 (- end1 start1)))
-          (and (<= len1 (- end2 start2))
-            (= (string-prefix-length s1
-                 s2
-                 start1
-                 end1
-                 start2
-                 end2
-               ) ;string-prefix-length
-              len1
-            ) ;=
-          ) ;and
-        ) ;let
-      ) ;let*
-    ) ;define
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (start1-idx (cursor->index start1)
+              ) ;start1-idx
+              (end1-idx (cursor->index end1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2)
+              ) ;start2-idx
+              (end2-idx (cursor->index end2)
+              )) ;end2-idx
+              ;
+         (let ((len1 (- end1-idx start1-idx)))
+           (and (<= len1 (- end2-idx start2-idx))
+             (= (string-prefix-length s1
+                  s2
+                  start1-idx
+                  end1-idx
+                  start2-idx
+                  end2-idx
+                ) ;string-prefix-length
+               len1
+             ) ;=
+           ) ;and
+         ))) ;let
+        ;let*
+      ;define
 
     (define (string-suffix? s1 s2 . maybe-start+end)
       (let* ((end1-c-raw (string-cursor-end s1))
@@ -1220,24 +1250,32 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-            ) ;
-        (let ((len1 (- end1 start1)))
-          (and (<= len1 (- end2 start2))
-            (= (string-suffix-length s1
-                 s2
-                 start1
-                 end1
-                 start2
-                 end2
-               ) ;string-suffix-length
-              len1
-            ) ;=
-          ) ;and
-        ) ;let
-      ) ;let*
-    ) ;define
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (start1-idx (cursor->index start1)
+              ) ;start1-idx
+              (end1-idx (cursor->index end1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2)
+              ) ;start2-idx
+              (end2-idx (cursor->index end2)
+              )) ;end2-idx
+              ;
+         (let ((len1 (- end1-idx start1-idx)))
+           (and (<= len1 (- end2-idx start2-idx))
+             (= (string-suffix-length s1
+                  s2
+                  start1-idx
+                  end1-idx
+                  start2-idx
+                  end2-idx
+                ) ;string-suffix-length
+               len1
+             ) ;=
+           ) ;and
+         ))) ;let
+        ;let*
+      ;define
 
     ;; ==== Contains ====
 
@@ -1271,32 +1309,40 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-            ) ;
-        (let ((s2-len (- end2 start2)))
-          (if (zero? s2-len)
-            (string-index->cursor s1 start1)
-            (let loop
-              ((i start1))
-              (if (> (+ i s2-len) end1)
-                #f
-                (if (string-prefix? s1
-                      s2
-                      i
-                      (+ i s2-len)
-                      start2
-                      end2
-                    ) ;string-prefix?
-                  (string-index->cursor s1 i)
-                  (loop (+ i 1))
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (start1-idx (cursor->index start1)
+              ) ;start1-idx
+              (end1-idx (cursor->index end1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2)
+              ) ;start2-idx
+              (end2-idx (cursor->index end2)
+              )) ;end2-idx
+              ;
+         (let ((s2-len (- end2-idx start2-idx)))
+           (if (zero? s2-len)
+             (string-index->cursor s1 start1-idx)
+              (let loop
+                ((i start1-idx))
+                (if (> (+ i s2-len) end1-idx)
+                  #f
+                  (if (string-prefix? s1
+                        s2
+                        i
+                        (+ i s2-len)
+                        start2-idx
+                        end2-idx
+                      ) ;string-prefix?
+                    (string-index->cursor s1 i)
+                    (loop (+ i 1))
+                  ) ;if
                 ) ;if
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let*
-    ) ;define
+              ) ;let
+            ) ;if
+          ) ;let
+       ) ;let*
+     ) ;define
 
     (define (string-contains-right
               s1
@@ -1328,32 +1374,40 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-            ) ;
-        (let ((s2-len (- end2 start2)))
-          (if (zero? s2-len)
-            (string-index->cursor s1 end1)
-            (let loop
-              ((i (- end1 s2-len)))
-              (if (< i start1)
-                #f
-                (if (string-prefix? s1
-                      s2
-                      i
-                      (+ i s2-len)
-                      start2
-                      end2
-                    ) ;string-prefix?
-                  (string-index->cursor s1 i)
-                  (loop (- i 1))
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (start1-idx (cursor->index start1)
+              ) ;start1-idx
+              (end1-idx (cursor->index end1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2)
+              ) ;start2-idx
+              (end2-idx (cursor->index end2)
+              )) ;end2-idx
+              ;
+         (let ((s2-len (- end2-idx start2-idx)))
+           (if (zero? s2-len)
+             (string-index->cursor s1 end1-idx)
+              (let loop
+                ((i (- end1-idx s2-len)))
+                (if (< i start1-idx)
+                  #f
+                  (if (string-prefix? s1
+                        s2
+                        i
+                        (+ i s2-len)
+                        start2-idx
+                        end2-idx
+                      ) ;string-prefix?
+                    (string-index->cursor s1 i)
+                    (loop (- i 1))
+                  ) ;if
                 ) ;if
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let*
-    ) ;define
+              ) ;let
+            ) ;if
+          ) ;let
+       ) ;let*
+     ) ;define
 
     ;; ==== String manipulation ====
 
@@ -1371,12 +1425,16 @@
                      (cdr maybe-start+end)
                    ) ;if
              ) ;rest
-             (end (if (null? rest) char-len (car rest))
-             ) ;end
-            ) ;
+              (end (if (null? rest) char-len (car rest))
+              ) ;end
+              (start-idx (cursor->index start)
+              ) ;start-idx
+              (end-idx (cursor->index end)
+              )) ;end-idx
+              ;
         (let loop
-          ((i start) (result '()))
-          (if (>= i end)
+          ((i start-idx) (result '()))
+          (if (>= i end-idx)
             (list->utf8-string result)
             (loop (+ i 1)
               (cons (string-ref/cursor s
@@ -1551,10 +1609,14 @@
              (start (if (null? rest2) 0 (car rest2)))
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
-             (end (if (null? rest3) slen (car rest3))
-             ) ;end
-            ) ;
-        (cond ((= start end)
+              (end (if (null? rest3) slen (car rest3))
+              ) ;end
+              (start-idx (cursor->index start)
+              ) ;start-idx
+              (end-idx (cursor->index end)
+              )) ;end-idx
+              ;
+        (cond ((= start-idx end-idx)
                (if (eq? grammar 'strict-infix)
                  (error 'value-error
                    "empty string cannot be split with strict-infix grammar"
@@ -1562,55 +1624,55 @@
                  '()
                ) ;if
               ) ;
-              ((string-null? delimiter)
-               (let loop
-                 ((i start) (result '()) (n 0))
-                 (cond ((= i end) (reverse result))
-                       ((and limit (>= n limit))
-                        (reverse (cons (substring/cursors s i end)
-                                   result
-                                 ) ;cons
-                        ) ;reverse
-                       ) ;
-                       (else (loop (+ i 1)
-                               (cons (string (string-ref/cursor s
-                                               (string-index->cursor s i)
-                                             ) ;string-ref/cursor
-                                     ) ;string
-                                 result
-                               ) ;cons
-                               (+ n 1)
-                             ) ;loop
-                       ) ;else
-                 ) ;cond
-               ) ;let
-              ) ;
-              (else (let ((dlen (string-cursor-char-index (string-cursor-end delimiter)
-                                ) ;string-cursor-char-index
-                          ) ;dlen
-                         ) ;
-                      (define (finish r c)
-                        (let ((rest-str (substring/cursors s c end)))
-                          (if (and (eq? grammar 'suffix)
-                                (string-null? rest-str)
-                              ) ;and
-                            (reverse r)
-                            (reverse (cons rest-str r))
-                          ) ;if
-                        ) ;let
-                      ) ;define
-                      (define (scan r c n)
-                        (if (and limit (>= n limit))
-                          (finish r c)
-                          (let ((i (string-contains s delimiter c end))
-                               ) ;
-                            (if i
-                              (let ((fragment (substring/cursors s
+               ((string-null? delimiter)
+                (let loop
+                  ((i start-idx) (result '()) (n 0))
+                  (cond ((= i end-idx) (reverse result))
+                        ((and limit (>= n limit))
+                         (reverse (cons (substring/cursors s i end-idx)
+                                    result
+                                  ) ;cons
+                         ) ;reverse
+                        ) ;
+                        (else (loop (+ i 1)
+                                (cons (string (string-ref/cursor s
+                                                (string-index->cursor s i)
+                                              ) ;string-ref/cursor
+                                      ) ;string
+                                  result
+                                ) ;cons
+                                (+ n 1)
+                              ) ;loop
+                        ) ;else
+                  ) ;cond
+                ) ;let
+               ) ;
+               (else (let ((dlen (string-cursor-char-index (string-cursor-end delimiter)
+                                 ) ;string-cursor-char-index
+                           ) ;dlen
+                          ) ;
+                       (define (finish r c)
+                         (let ((rest-str (substring/cursors s c end-idx)))
+                           (if (and (eq? grammar 'suffix)
+                                 (string-null? rest-str)
+                               ) ;and
+                             (reverse r)
+                             (reverse (cons rest-str r))
+                           ) ;if
+                         ) ;let
+                       ) ;define
+                       (define (scan r c n)
+                         (if (and limit (>= n limit))
+                           (finish r c)
+                           (let ((i (string-contains s delimiter c end-idx))
+                                ) ;
+                             (if i
+                               (let ((fragment (substring/cursors s
                                                 c
-                                                (string-cursor->index s i)
-                                              ) ;substring/cursors
+                                                (string-cursor->index s i)))
+                                               ;substring/cursors
                                     ) ;fragment
-                                   ) ;
+                                    ;
                                 (if (and (= n 0)
                                       (eq? grammar 'prefix)
                                       (string-null? fragment)
@@ -1623,16 +1685,16 @@
                                     (+ (string-cursor->index s i) dlen)
                                     (+ n 1)
                                   ) ;scan
-                                ) ;if
-                              ) ;let
-                              (finish r c)
-                            ) ;if
-                          ) ;let
-                        ) ;if
-                      ) ;define
-                      (scan '() start 0)
-                    ) ;let
-              ) ;else
+                                )) ;if
+                               ;let
+                              (finish r c)))))
+                             ;if
+                           ;let
+                         ;if
+                       ;define
+                       (scan '() start-idx 0)))
+                     ;let
+               ;else
         ) ;cond
       ) ;let*
     ) ;define
@@ -1653,6 +1715,11 @@
              ) ;rest
              (end (if (null? rest) char-len (car rest))
              ) ;end
+             (start-idx (cursor->index start)
+             ) ;start-idx
+             (end-idx (cursor->index end)
+             ) ;end-idx
+              ;end
             ) ;
         (let loop
           ((i start) (result '()))
@@ -1689,6 +1756,11 @@
              ) ;rest
              (end (if (null? rest) char-len (car rest))
              ) ;end
+             (start-idx (cursor->index start)
+             ) ;start-idx
+             (end-idx (cursor->index end)
+             ) ;end-idx
+              ;end
             ) ;
         (let loop
           ((i start) (result '()))
