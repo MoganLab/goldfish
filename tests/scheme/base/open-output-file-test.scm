@@ -1,4 +1,5 @@
 (import (liii check))
+(import (liii path))
 (import (scheme base))
 (check-set-mode! 'report-failed)
 ;; open-output-file
@@ -23,9 +24,11 @@
 ;; 1. 如果文件已存在则覆盖
 ;; 2. 使用后应关闭端口
 ;; 3. 返回二进制端口
-(let ((p (open-output-file "tests/scheme/base/open-output-file-tmp.txt")))
-  (check (output-port? p) => #t)
-  (close-output-port p)
+(let ((tmp (path->string (path-join (path-temp-dir) "open-output-file-tmp.txt"))))
+  (let ((p (open-output-file tmp)))
+    (check (output-port? p) => #t)
+    (close-output-port p)
+  ) ;let
 ) ;let
 
 (check-report)
