@@ -93,4 +93,8 @@
 (check-catch 'wrong-number-of-args
   (char-ci<=? #\A)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-ci<=? #\A #\中) => #t)
+(check (char-ci<=? #\中 #\A) => #f)
+(check (char-ci<=? #\中 #\中) => #t)
 (check-report)

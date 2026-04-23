@@ -483,6 +483,12 @@ g_char_greater_2 (s7_scheme* sc, s7_pointer args) {
  */
 #if !WITH_PURE_S7
 
+static uint32_t
+char_to_upper (uint32_t cp) {
+  if (cp < 256) return uppers[cp];
+  return (uint32_t) towupper ((wint_t) cp);
+}
+
 static s7_pointer
 g_char_cmp_ci (s7_scheme* sc, s7_pointer args, int32_t val, const char* name) {
   s7_pointer chr= s7_car (args);
@@ -492,7 +498,7 @@ g_char_cmp_ci (s7_scheme* sc, s7_pointer args, int32_t val, const char* name) {
   for (s7_pointer chrs= s7_cdr (args); s7_is_pair (chrs); chrs= s7_cdr (chrs), pos++) {
     s7_pointer cur= s7_car (chrs);
     if (!s7_is_character (cur)) return s7i_method_or_bust (sc, cur, name, s7_cons (sc, chr, chrs), "a character", pos);
-    if (charcmp (uppers[s7_character (chr)], uppers[s7_character (cur)]) != val)
+    if (charcmp (char_to_upper (s7_character (chr)), char_to_upper (s7_character (cur))) != val)
       return char_with_error_check (sc, chrs, pos, name);
     chr= cur;
   }
@@ -508,7 +514,7 @@ g_char_cmp_ci_not (s7_scheme* sc, s7_pointer args, int32_t val, const char* name
   for (s7_pointer chrs= s7_cdr (args); s7_is_pair (chrs); chrs= s7_cdr (chrs), pos++) {
     s7_pointer cur= s7_car (chrs);
     if (!s7_is_character (cur)) return s7i_method_or_bust (sc, cur, name, s7_cons (sc, chr, chrs), "a character", pos);
-    if (charcmp (uppers[s7_character (chr)], uppers[s7_character (cur)]) == val)
+    if (charcmp (char_to_upper (s7_character (chr)), char_to_upper (s7_character (cur))) == val)
       return char_with_error_check (sc, chrs, pos, name);
     chr= cur;
   }
@@ -542,19 +548,19 @@ g_chars_are_ci_leq (s7_scheme* sc, s7_pointer args) {
 
 bool
 char_ci_lt_b_unchecked (s7_pointer c1, s7_pointer c2) {
-  return uppers[s7_character (c1)] < uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) < char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_lt_b_7pp (s7_scheme* sc, s7_pointer c1, s7_pointer c2) {
   if (!s7_is_character (c1)) return s7i_method_or_bust_bool (sc, c1, "char-ci<?", list2 (sc, c1, c2), "a character", 1);
   if (!s7_is_character (c2)) return s7i_method_or_bust_bool (sc, c2, "char-ci<?", list2 (sc, c1, c2), "a character", 2);
-  return uppers[s7_character (c1)] < uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) < char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_leq_b_unchecked (s7_pointer c1, s7_pointer c2) {
-  return uppers[s7_character (c1)] <= uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) <= char_to_upper (s7_character (c2));
 }
 
 bool
@@ -563,24 +569,24 @@ char_ci_leq_b_7pp (s7_scheme* sc, s7_pointer c1, s7_pointer c2) {
     return s7i_method_or_bust_bool (sc, c1, "char-ci<=?", list2 (sc, c1, c2), "a character", 1);
   if (!s7_is_character (c2))
     return s7i_method_or_bust_bool (sc, c2, "char-ci<=?", list2 (sc, c1, c2), "a character", 2);
-  return uppers[s7_character (c1)] <= uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) <= char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_gt_b_unchecked (s7_pointer c1, s7_pointer c2) {
-  return uppers[s7_character (c1)] > uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) > char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_gt_b_7pp (s7_scheme* sc, s7_pointer c1, s7_pointer c2) {
   if (!s7_is_character (c1)) return s7i_method_or_bust_bool (sc, c1, "char-ci>?", list2 (sc, c1, c2), "a character", 1);
   if (!s7_is_character (c2)) return s7i_method_or_bust_bool (sc, c2, "char-ci>?", list2 (sc, c1, c2), "a character", 2);
-  return uppers[s7_character (c1)] > uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) > char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_geq_b_unchecked (s7_pointer c1, s7_pointer c2) {
-  return uppers[s7_character (c1)] >= uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) >= char_to_upper (s7_character (c2));
 }
 
 bool
@@ -589,19 +595,19 @@ char_ci_geq_b_7pp (s7_scheme* sc, s7_pointer c1, s7_pointer c2) {
     return s7i_method_or_bust_bool (sc, c1, "char-ci>=?", list2 (sc, c1, c2), "a character", 1);
   if (!s7_is_character (c2))
     return s7i_method_or_bust_bool (sc, c2, "char-ci>=?", list2 (sc, c1, c2), "a character", 2);
-  return uppers[s7_character (c1)] >= uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) >= char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_eq_b_unchecked (s7_pointer c1, s7_pointer c2) {
-  return uppers[s7_character (c1)] == uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) == char_to_upper (s7_character (c2));
 }
 
 bool
 char_ci_eq_b_7pp (s7_scheme* sc, s7_pointer c1, s7_pointer c2) {
   if (!s7_is_character (c1)) return s7i_method_or_bust_bool (sc, c1, "char-ci=?", list2 (sc, c1, c2), "a character", 1);
   if (!s7_is_character (c2)) return s7i_method_or_bust_bool (sc, c2, "char-ci=?", list2 (sc, c1, c2), "a character", 2);
-  return uppers[s7_character (c1)] == uppers[s7_character (c2)];
+  return char_to_upper (s7_character (c1)) == char_to_upper (s7_character (c2));
 }
 
 #endif /* !WITH_PURE_S7 */
