@@ -260,8 +260,40 @@
     (define (string-null? str)
       (zero? (string-length str)))
 
-    ;; ==== Placeholder for remaining functions ====
-    ;; These will be implemented in subsequent commits
+    (define (string-every pred s . maybe-start+end)
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw))
+             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
+             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
+             (end (if (null? rest) char-len (car rest)))
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end)))
+        (let loop ((cur start-c))
+          (if (string-cursor>=? cur end-c)
+              #t
+              (let ((result (pred (string-ref/cursor s cur))))
+                (if result
+                    (let ((next (string-cursor-next s cur)))
+                      (if (string-cursor>=? next end-c)
+                          result
+                          (loop next)))
+                    #f))))))
+
+    (define (string-any pred s . maybe-start+end)
+      (let* ((end-c-raw (string-cursor-end s))
+             (char-len (string-cursor-char-index end-c-raw))
+             (start (if (null? maybe-start+end) 0 (car maybe-start+end)))
+             (rest (if (null? maybe-start+end) '() (cdr maybe-start+end)))
+             (end (if (null? rest) char-len (car rest)))
+             (start-c (string-index->cursor s start))
+             (end-c (string-index->cursor s end)))
+        (let loop ((cur start-c))
+          (if (string-cursor>=? cur end-c)
+              #f
+              (let ((result (pred (string-ref/cursor s cur))))
+                (if result
+                    result
+                    (loop (string-cursor-next s cur))))))))
 
   )
 )
