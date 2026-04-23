@@ -1408,7 +1408,9 @@
     ) ;define
 
     (define (string-split s delimiter . args)
-      (let* ((slen (string-length s))
+      (let* ((slen (string-cursor-char-index (string-cursor-end s)
+                   ) ;string-cursor-char-index
+             ) ;slen
              (grammar (if (null? args) 'infix (car args))
              ) ;grammar
              (rest1 (if (null? args) '() (cdr args)))
@@ -1453,7 +1455,10 @@
                  ) ;cond
                ) ;let
               ) ;
-              (else (let ((dlen (string-length delimiter)))
+              (else (let ((dlen (string-cursor-char-index (string-cursor-end delimiter)
+                                ) ;string-cursor-char-index
+                          ) ;dlen
+                         ) ;
                       (define (finish r c)
                         (let ((rest-str (substring/cursors s c end)))
                           (if (and (eq? grammar 'suffix)
