@@ -22442,6 +22442,8 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
   /* (= float int) here can be confusing if the float is the result of (say) (* 4478554083/3166815962 4478554083/3166815962) -- sometimes
    *   the extra low order bits are lost somewhere, so it looks like (= 2.0 2) returning #t.  Maybe the caller should have used eqv?
+   * Mixed ratio/real comparisons follow the same s7_double coercion path used by exact->inexact and the arithmetic operators.
+   * That avoids platform-dependent long double vs double mismatches for values such as 1/3 and 0.3333333333333333.
    */
   if (type(x) == type(y))
     {
@@ -22506,7 +22508,7 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(false);
-	case T_REAL:    return(fraction(x) == real(y));
+	case T_REAL:    return(rational_to_double(sc, x) == real(y));
 	case T_COMPLEX: return(false);
 #if WITH_GMP
 	case T_BIG_INTEGER:
@@ -22530,7 +22532,7 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_INTEGER:
 	  return(real(x) == integer(y));
 	case T_RATIO:
-	  return(real(x) == fraction(y));
+	  return(real(x) == rational_to_double(sc, y));
 	case T_COMPLEX:
 	  return(false);
 #if WITH_GMP
@@ -22816,7 +22818,7 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(fraction(x) < integer(y));
-	case T_REAL:    return(fraction(x) < real(y));
+	case T_REAL:    return(rational_to_double(sc, x) < real(y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
@@ -22833,7 +22835,7 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(real(x) < integer(y));
-	case T_RATIO:	return(real(x) < fraction(y));
+	case T_RATIO:	return(real(x) < rational_to_double(sc, y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  if (is_NaN(real(x))) return(false);
@@ -22991,7 +22993,7 @@ static s7_pointer g_less_xf(s7_scheme *sc, s7_pointer args)
   if (is_t_integer(x))
     return(make_boolean(sc, integer(x) < y));
   if (is_t_ratio(x))
-    return(make_boolean(sc, fraction(x) < y));
+    return(make_boolean(sc, rational_to_double(sc, x) < y));
 #if WITH_GMP
   if (is_t_big_real(x))
     return(make_boolean(sc, mpfr_cmp_d(big_real(x), y) < 0));
@@ -23108,7 +23110,7 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(fraction(x) <= integer(y));
-	case T_REAL:    return(fraction(x) <= real(y));
+	case T_REAL:    return(rational_to_double(sc, x) <= real(y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
@@ -23126,7 +23128,7 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(real(x) <= integer(y));
-	case T_RATIO:	return(real(x) <= fraction(y));
+	case T_RATIO:	return(real(x) <= rational_to_double(sc, y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  if (is_NaN(real(x))) return(false);
@@ -23376,7 +23378,7 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(fraction(x) > integer(y));
-	case T_REAL:    return(fraction(x) > real(y));
+	case T_REAL:    return(rational_to_double(sc, x) > real(y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
@@ -23393,7 +23395,7 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(real(x) > integer(y));
-	case T_RATIO:	return(real(x) > fraction(y));
+	case T_RATIO:	return(real(x) > rational_to_double(sc, y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  if (is_NaN(real(x))) return(false);
@@ -23523,10 +23525,7 @@ static s7_pointer g_greater_xf(s7_scheme *sc, s7_pointer args)
     case T_INTEGER:
       return(make_boolean(sc, integer(x) > y));
     case T_RATIO:
-      /* (> 9223372036854775807/9223372036854775806 1.0) */
-      if (denominator(x) < S7_INT32_MAX) /* y range check was handled in greater_chooser */
-	return(make_boolean(sc, (numerator(x) > (y * denominator(x)))));
-      return(make_boolean(sc, fraction(x) > y));
+      return(make_boolean(sc, rational_to_double(sc, x) > y));
 
 #if WITH_GMP
     case T_BIG_INTEGER:
@@ -23685,7 +23684,7 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(fraction(x) >= integer(y));
-	case T_REAL:    return(fraction(x) >= real(y));
+	case T_REAL:    return(rational_to_double(sc, x) >= real(y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
@@ -23703,7 +23702,7 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER: return(real(x) >= integer(y));
-	case T_RATIO:	return(real(x) >= fraction(y));
+	case T_RATIO:	return(real(x) >= rational_to_double(sc, y));
 #if WITH_GMP
 	case T_BIG_INTEGER:
 	  if (is_NaN(real(x))) return(false);
