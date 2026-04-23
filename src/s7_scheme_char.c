@@ -198,11 +198,32 @@ integer_to_char_p_i (s7_scheme* sc, s7_int ind) {
 
 /* -------------------------------- char-upcase, char-downcase ----------------------- */
 
+#if defined(__APPLE__)
+static uint32_t
+latin1_toupper (uint32_t cp) {
+  if (cp < 128) return (uint32_t) toupper ((int) cp);
+  if ((cp >= 0xE0) && (cp <= 0xF6)) return cp - 32;
+  if ((cp >= 0xF8) && (cp <= 0xFE)) return cp - 32;
+  return cp;
+}
+
+static uint32_t
+latin1_tolower (uint32_t cp) {
+  if (cp < 128) return (uint32_t) tolower ((int) cp);
+  if ((cp >= 0xC0) && (cp <= 0xD6)) return cp + 32;
+  if ((cp >= 0xD8) && (cp <= 0xDE)) return cp + 32;
+  return cp;
+}
+#endif
+
 s7_pointer
 char_upcase_p_p (s7_scheme* sc, s7_pointer c) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-upcase", list1 (sc, c), "a character", 1);
   uint32_t cp= s7_character (c);
   if (cp < 128) return chars[uppers[cp]];
+#if defined(__APPLE__)
+  if (cp < 256) return s7_make_character (sc, latin1_toupper (cp));
+#endif
   return s7_make_character (sc, (uint32_t) towupper ((wint_t) cp));
 }
 
@@ -211,6 +232,9 @@ char_upcase_p_p_unchecked (s7_scheme* sc, s7_pointer c) {
   (void) sc;
   uint32_t cp= s7_character (c);
   if (cp < 128) return chars[uppers[cp]];
+#if defined(__APPLE__)
+  if (cp < 256) return s7_make_character (sc, latin1_toupper (cp));
+#endif
   return s7_make_character (sc, (uint32_t) towupper ((wint_t) cp));
 }
 
@@ -225,6 +249,9 @@ g_char_downcase (s7_scheme* sc, s7_pointer args) {
   if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-downcase", args, "a character", 1);
   uint32_t cp= s7_character (c);
   if (cp < 128) return chars[lowers[cp]];
+#if defined(__APPLE__)
+  if (cp < 256) return s7_make_character (sc, latin1_tolower (cp));
+#endif
   return s7_make_character (sc, (uint32_t) towlower ((wint_t) cp));
 }
 
@@ -539,7 +566,13 @@ g_char_greater_2 (s7_scheme* sc, s7_pointer args) {
 
 static uint32_t
 char_to_upper (uint32_t cp) {
-  if (cp < 256) return uppers[cp];
+  if (cp < 256) {
+#if defined(__APPLE__)
+    return latin1_toupper (cp);
+#else
+    return uppers[cp];
+#endif
+  }
   return (uint32_t) towupper ((wint_t) cp);
 }
 
