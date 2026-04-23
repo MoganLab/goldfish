@@ -68,4 +68,6 @@
 (check-catch 'wrong-number-of-args
   (char-upper-case? #\A #\B)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-upper-case? #\中) => #f)
 (check-report)

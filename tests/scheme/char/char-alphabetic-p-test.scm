@@ -71,4 +71,6 @@
 (check-catch 'wrong-number-of-args
   (char-alphabetic? #\a #\b)
 ) ;check-catch
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-alphabetic? #\中) => #t)
 (check-report)

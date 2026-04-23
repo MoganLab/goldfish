@@ -88,4 +88,8 @@
 (check-catch 'wrong-number-of-args
   (char<? #\A)
 ) ;check-catch
+;; Unicode 字符测试
+(check (char<? #\A #\中) => #t)  ; 65 < 20013
+(check (char<? #\中 #\文) => #t)  ; 20013 < 25991
+(check (char<? #\中 #\中) => #f)
 (check-report)

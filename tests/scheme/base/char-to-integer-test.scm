@@ -64,4 +64,7 @@
 (check-catch 'wrong-number-of-args
   (char->integer #\A #\B)
 ) ;check-catch
+;; Unicode 字符测试
+(check (char->integer #\中) => 20013)
+(check (char->integer #\🐟) => 128031)
 (check-report)

@@ -1,4 +1,5 @@
 (import (liii check))
+(import (liii path))
 (import (scheme base))
 (check-set-mode! 'report-failed)
 ;; with-output-to-file
@@ -25,13 +26,15 @@
 ;; 1. thunk 执行期间当前输出端口指向该文件
 ;; 2. 执行结束后恢复原来的输出端口
 ;; 3. 文件会被覆盖
-(let ((result
-       (with-output-to-file
-         "tests/scheme/base/with-output-to-file-tmp.txt"
-         (lambda () (display "hello") 'done)
-       ) ;with-output-to-file
-      )) ;result
-  (check result => 'done)
+(let ((tmp (path->string (path-join (path-temp-dir) "with-output-to-file-tmp.txt"))))
+  (let ((result
+         (with-output-to-file
+           tmp
+           (lambda () (display "hello") 'done)
+         ) ;with-output-to-file
+        )) ;result
+    (check result => 'done)
+  ) ;let
 ) ;let
 
 (check-report)

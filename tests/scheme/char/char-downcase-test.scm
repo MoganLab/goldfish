@@ -41,4 +41,9 @@
 (check-catch 'type-error
   (char-downcase 'A)
 ) ;check-catch
+;; Latin-1 字符测试（128 <= codepoint < 256）
+(check (char-downcase #\Ä) => #\ä)
+(check (char-downcase #\ä) => #\ä)
+;; Unicode 字符测试（codepoint >= 256）
+(check (char-downcase #\中) => #\中)
 (check-report)
