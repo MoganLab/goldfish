@@ -33,3 +33,4 @@ tests/resources/hashlib-test-large-local.txt
 tests/function-library-index.json
 .claude/settings.local.json
 .codex
+.sisyphus/
