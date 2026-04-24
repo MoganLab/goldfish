@@ -1599,12 +1599,7 @@
     ) ;define
 
     (define (string-concatenate string-list)
-      (let ((bvs (map string->utf8 string-list)))
-        (if (null? bvs)
-          ""
-          (utf8->string (apply bytevector-append bvs))
-        ) ;if
-      ) ;let
+      (apply string-append string-list)
     ) ;define
 
     (define (string-concatenate-reverse
