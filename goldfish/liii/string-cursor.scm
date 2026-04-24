@@ -1598,15 +1598,10 @@
     ) ;define
 
     (define (string-concatenate string-list)
-      (let loop
-        ((lst string-list)
-         (result (string-append ""))
-        ) ;
-        (if (null? lst)
-          result
-          (loop (cdr lst)
-            (string-append result (car lst))
-          ) ;loop
+      (let ((bvs (map string->utf8 string-list)))
+        (if (null? bvs)
+          ""
+          (utf8->string (apply bytevector-append bvs))
         ) ;if
       ) ;let
     ) ;define
