@@ -1854,57 +1854,54 @@
                  ) ;cond
                ) ;let
               ) ;
-              (else (let ((dlen (string-cursor-char-index (string-cursor-end delimiter)
-                                ) ;string-cursor-char-index
-                          ) ;dlen
-                         ) ;
-                      (define (finish r c)
-                        (let ((rest-str (substring/cursors s c end-idx)
-                              ) ;rest-str
-                             ) ;
-                          (if (and (eq? grammar 'suffix)
-                                (string-null? rest-str)
-                              ) ;and
-                            (reverse r)
-                            (reverse (cons rest-str r))
-                          ) ;if
-                        ) ;let
-                      ) ;define
-                      (define (scan r c n)
-                        (if (and limit (>= n limit))
-                          (finish r c)
-                          (let ((i (string-contains s delimiter c end-idx)
-                                ) ;i
-                               ) ;
-                            (if i
-                              (let ((fragment (substring/cursors s
-                                                c
-                                                (string-cursor->index s i)
-                                              ) ;substring/cursors
-                                    ) ;fragment
-                                   ) ;
-                                (if (and (= n 0)
-                                      (eq? grammar 'prefix)
-                                      (string-null? fragment)
-                                    ) ;and
-                                  (scan r
-                                    (+ (string-cursor->index s i) dlen)
-                                    (+ n 1)
-                                  ) ;scan
-                                  (scan (cons fragment r)
-                                    (+ (string-cursor->index s i) dlen)
-                                    (+ n 1)
-                                  ) ;scan
-                                ) ;if
-                              ) ;let
-                              (finish r c)
-                            ) ;if
-                          ) ;let
-                        ) ;if
-                      ) ;define
-                      (scan '() start-idx 0)
-                    ) ;let
-              ) ;else
+               (else (let ((dlen (string-cursor-char-index (string-cursor-end delimiter)
+                                 ) ;string-cursor-char-index
+                           ) ;dlen
+                          ) ;
+                       (define (finish r c)
+                         (let ((rest-str (substring/cursors s c end-c)
+                               ) ;rest-str
+                              ) ;
+                           (if (and (eq? grammar 'suffix)
+                                 (string-null? rest-str)
+                               ) ;and
+                             (reverse r)
+                             (reverse (cons rest-str r))
+                           ) ;if
+                         ) ;let
+                       ) ;define
+                       (define (scan r c n)
+                         (if (and limit (>= n limit))
+                           (finish r c)
+                           (let ((i (string-contains s delimiter c end-c)
+                                 ) ;i
+                                ) ;
+                             (if i
+                               (let ((fragment (substring/cursors s c i)
+                                     ) ;fragment
+                                    ) ;
+                                 (if (and (= n 0)
+                                       (eq? grammar 'prefix)
+                                       (string-null? fragment)
+                                     ) ;and
+                                   (scan r
+                                     (string-cursor-forward s i dlen)
+                                     (+ n 1)
+                                   ) ;scan
+                                   (scan (cons fragment r)
+                                     (string-cursor-forward s i dlen)
+                                     (+ n 1)
+                                   ) ;scan
+                                 ) ;if
+                               ) ;let
+                               (finish r c)
+                             ) ;if
+                           ) ;let
+                         ) ;if
+                       ) ;define
+                       (scan '() start-c 0)
+                     ) ;let
+               ) ;else
         ) ;cond
       ) ;let*
     ) ;define
