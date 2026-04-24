@@ -39,6 +39,7 @@
 ;; ----
 ;; 1. 支持空分隔符，此时按字符分割
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，正确处理 Unicode
+;; 3. 性能：O(n×m)，n 为 s 长度，m 为 delimiter 长度
 
 (check (string-split "a:b:c" ":") => '("a" "b" "c"))
 (check (string-split "abc" "") => '("a" "b" "c"))
@@ -48,4 +49,10 @@
 ;; Unicode 测试
 (check (string-split "中:文:测试" ":") => '("中" "文" "测试"))
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "a,b,c")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s)))
+  (check (string-split s "," 'infix #f start end) => '("a" "b" "c")))
 (check-report)

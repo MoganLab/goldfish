@@ -33,6 +33,7 @@
 ;; 3. suffix：在元素之间和末尾插入分隔符
 ;; 4. prefix：在元素之间和开头插入分隔符
 ;; 5. 与 (liii string) 的区别：(liii string-cursor) 支持 Unicode 字符串
+;; 6. 性能：O(n)，n 为所有字符串总长度
 
 (check (string-join '("a" "b" "c")) => "a b c")
 (check (string-join '("a" "b" "c") ":") => "a:b:c")

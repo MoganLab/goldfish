@@ -3,7 +3,29 @@
 
 (check-set-mode! 'report-failed)
 
-;; string-cursor-end: 返回字符串的post-end cursor
+;; string-cursor-end
+;; 返回字符串的post-end游标。
+;;
+;; 语法
+;; ----
+;; (string-cursor-end s)
+;;
+;; 参数
+;; ----
+;; s : string
+;; 目标字符串
+;;
+;; 返回值
+;; ------
+;; string-cursor?
+;; 指向字符串最后一个字符之后位置的游标
+;;
+;; 说明
+;; ----
+;; 1. 创建游标时会预扫描字符串生成偏移表
+;; 2. 空字符串返回指向位置0的游标
+;; 3. 性能：O(n)，n为字符串字节长度（预扫描一次）
+
 ;; 测试空字符串
 (let ((c (string-cursor-end "")))
   (check (string-cursor? c) => #t)

@@ -40,4 +40,9 @@
 (check (vector-length (string->vector/cursors "中文")) => 2)
 (check (char->integer (vector-ref (string->vector/cursors "中文") 0)) => 20013)
 
+;; 测试使用游标作为 start/end
+(let* ((s "abc")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s)))
+  (check (vector-length (string->vector/cursors s start end)) => 3))
 (check-report)

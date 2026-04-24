@@ -3,7 +3,33 @@
 
 (check-set-mode! 'report-failed)
 
-;; string-cursor-next: 返回下一个cursor
+;; string-cursor-next
+;; 返回下一个cursor。
+;;
+;; 语法
+;; ----
+;; (string-cursor-next str cursor)
+;;
+;; 参数
+;; ----
+;; str : string
+;; 源字符串
+;;
+;; cursor : string-cursor? 或 integer?
+;; 当前游标位置
+;;
+;; 返回值
+;; ------
+;; string-cursor?
+;; 下一个游标位置
+;;
+;; 说明
+;; ----
+;; 1. string-cursor-next 是 SRFI-130 中的游标导航函数
+;; 2. 如果 cursor 是整数，会先转换为游标
+;; 3. 如果已在字符串末尾，会报错
+;; 4. 性能：O(1)
+
 ;; 测试ASCII字符串
 (let* ((start (string-cursor-start "abc"))
        (next1 (string-cursor-next "abc" start))
@@ -36,9 +62,9 @@
   (let ((end (string-cursor-end "a")))
     (string-cursor-next "a" end)))
 
-;; 测试到达start后不能再prev
-(check-catch 'value-error
-  (let ((start (string-cursor-start "a")))
-    (string-cursor-prev "a" start)))
+;; 测试使用整数索引
+(let* ((s "abc")
+       (next (string-cursor-next s 0)))
+  (check (string-cursor->index s next) => 1))
 
 (check-report)

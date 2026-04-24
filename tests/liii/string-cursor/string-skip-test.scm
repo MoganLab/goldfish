@@ -35,6 +35,7 @@
 ;; 1. string-skip 是 string-index 的补集
 ;; 2. 常用于跳过空白字符等场景
 ;; 3. 搜索范围是 [start, end)
+;; 4. 性能：O(n)，n 为字符串字符数
 
 ;; 基本测试
 (let ((s "   abc"))
@@ -62,4 +63,11 @@
 (let ((s "  中文"))
   (check (string-cursor->index s (string-skip s char-whitespace?)) => 2))
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "abc123")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s))
+       (result (string-skip s char-alphabetic? start end)))
+  (check (string-cursor->index s result) => 3))
 (check-report)

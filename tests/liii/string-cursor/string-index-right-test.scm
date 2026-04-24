@@ -36,6 +36,7 @@
 ;; 2. 注意从右向左搜索时，第一个考虑的位置是 (string-cursor-prev s end)
 ;; 3. 返回的是 successor cursor（匹配字符的下一个位置）
 ;; 4. 适用于 ASCII、中文、emoji 等各种 Unicode 字符
+;; 5. 性能：O(n)，n 为字符串字符数
 ;;
 ;; 错误处理
 ;; --------
@@ -69,4 +70,11 @@
   ;; 最右边的字母是 c，索引4（中=0, 文=1, a=2, b=3, c=4），successor是5
   (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 5))
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "abc123")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s))
+       (result (string-index-right s char-alphabetic? start end)))
+  (check (string-cursor->index s result) => 3))
 (check-report)

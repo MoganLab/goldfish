@@ -35,6 +35,7 @@
 ;; 1. 搜索范围是 [start, end)，包含 start，不包含 end
 ;; 2. 结果始终为 cursor，即使 start/end 是整数索引
 ;; 3. 适用于 ASCII、中文、emoji 等各种 Unicode 字符
+;; 4. 性能：O(n)，n 为字符串字符数
 ;;
 ;; 错误处理
 ;; --------
@@ -67,4 +68,11 @@
   ;; 在范围内没有找到
   (check (string-cursor->index s (string-index s char-numeric? 0 3)) => 3))
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "abc123")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s))
+       (result (string-index s char-numeric? start end)))
+  (check (string-cursor->index s result) => 3))
 (check-report)

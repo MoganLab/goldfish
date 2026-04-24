@@ -37,6 +37,7 @@
 ;; 2. 常用于从右侧跳过空白字符等场景
 ;; 3. 搜索范围是 [start, end)
 ;; 4. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，支持 Unicode
+;; 5. 性能：O(n)，n 为字符串字符数
 
 ;; 基本测试 - ASCII
 (let ((s "abc123"))
@@ -67,4 +68,11 @@
   ;; 从右往左，第一个不是空白的是 '文'（索引1），successor 是索引2
   (check (string-cursor->index s (string-skip-right s char-whitespace?)) => 2))
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "abc123")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s))
+       (result (string-skip-right s char-numeric? start end)))
+  (check (string-cursor->index s result) => 3))
 (check-report)

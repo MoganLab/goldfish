@@ -39,4 +39,10 @@
 (check (string-remove char-numeric? "abc123") => "abc")
 (check (string-remove char-numeric? "中文123") => "中文")
 
+
+;; 测试使用游标作为 start/end
+(let* ((s "abc123")
+       (start (string-cursor-start s))
+       (end (string-cursor-end s)))
+  (check (string-remove char-numeric? s start end) => "abc"))
 (check-report)

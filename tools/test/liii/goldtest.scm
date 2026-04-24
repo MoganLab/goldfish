@@ -94,7 +94,7 @@
     ) ;define
     
     (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd) test-file)))
+      (let ((cmd (string-append (goldfish-cmd) "'" test-file "'")))
         (display "----------->") (newline)
         (display cmd) (newline)
         (let ((result (os-call cmd)))
