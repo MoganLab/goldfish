@@ -31,7 +31,7 @@
 ;; 1. string-cursor-back 是 SRFI-130 中的游标导航函数
 ;; 2. 如果 cursor 是整数，会先转换为游标
 ;; 3. 如果移动超出范围，会报错
-;; 4. 性能：O(nchars)
+;; 4. 性能：O(1)
 
 ;; 测试ASCII字符串
 (let* ((end (string-cursor-end "abcdef"))
