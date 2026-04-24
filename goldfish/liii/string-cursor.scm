@@ -1631,18 +1631,15 @@
              (final-part (substring/cursors final 0 end-idx)
              ) ;final-part
             ) ;
-        (let loop
-          ((lst (reverse (cons final-part string-list))
-           ) ;lst
-           (result "")
-          ) ;
-          (if (null? lst)
-            result
-            (loop (cdr lst)
-              (string-append result (car lst))
-            ) ;loop
-          ) ;if
-        ) ;let
+         (let* ((all-strings (reverse (cons final-part string-list))
+                ) ;all-strings
+                (bvs (map string->utf8 all-strings))
+               ) ;
+           (if (null? bvs)
+             ""
+             (utf8->string (apply bytevector-append bvs))
+           ) ;if
+         ) ;let*
       ) ;let*
     ) ;define
 

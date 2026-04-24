@@ -30,7 +30,7 @@
 ;; ----
 ;; 1. 先反转列表顺序，再连接
 ;; 2. 支持可选的 final-string 和 end 参数
-;; 3. 性能：O(n²)，n 为字符串列表长度，因为每次 string-append 都会创建新字符串
+;; 3. 性能：O(n)，n 为所有字符串总字节长度
 
 (check (string-concatenate-reverse '("a" "b" "c")) => "cba")
 (check (string-concatenate-reverse '()) => "")
