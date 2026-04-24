@@ -2159,80 +2159,51 @@
                ""
              ) ;if
             ) ;
-            ((eq? grammar 'infix)
-             (let loop
-               ((lst string-list) (result ""))
-               (if (null? lst)
-                 result
-                 (if (null? (cdr lst))
-                   (loop (cdr lst)
-                     (string-append result (car lst))
-                   ) ;loop
-                   (loop (cdr lst)
-                     (string-append result
-                       (car lst)
-                       delimiter
-                     ) ;string-append
-                   ) ;loop
-                 ) ;if
-               ) ;if
-             ) ;let
+            ((not (memq grammar '(infix strict-infix suffix prefix)))
+             (error 'value-error
+               "string-join: invalid grammar"
+             ) ;error
             ) ;
-            ((eq? grammar 'strict-infix)
-             (if (null? string-list)
-               (error 'value-error
-                 "string-join: empty list with strict-infix"
-               ) ;error
-               (let loop
-                 ((lst string-list) (result ""))
-                 (if (null? lst)
-                   result
-                   (if (null? (cdr lst))
-                     (loop (cdr lst)
-                       (string-append result (car lst))
-                     ) ;loop
-                     (loop (cdr lst)
-                       (string-append result
-                         (car lst)
-                         delimiter
-                       ) ;string-append
-                     ) ;loop
+            (else
+             (let ((del-bv (string->utf8 delimiter))
+                   (str-bvs (map string->utf8 string-list))
+                  ) ;
+               (define (interleave bvs)
+                 (let loop ((lst bvs))
+                   (if (null? lst)
+                     '()
+                     (cond ((or (eq? grammar 'infix)
+                             (eq? grammar 'strict-infix)
+                           ) ;or
+                            (if (null? (cdr lst))
+                              (list (car lst))
+                              (cons (car lst)
+                                (cons del-bv
+                                  (loop (cdr lst))
+                                ) ;cons
+                              ) ;cons
+                            ) ;if
+                           ) ;
+                           ((eq? grammar 'suffix)
+                            (cons (car lst)
+                              (cons del-bv
+                                (loop (cdr lst))
+                              ) ;cons
+                            ) ;cons
+                           ) ;
+                           ((eq? grammar 'prefix)
+                            (cons del-bv
+                              (cons (car lst)
+                                (loop (cdr lst))
+                              ) ;cons
+                            ) ;cons
+                           ) ;
+                     ) ;cond
                    ) ;if
-                 ) ;if
-               ) ;let
-             ) ;if
-            ) ;
-            ((eq? grammar 'suffix)
-             (let loop
-               ((lst string-list) (result ""))
-               (if (null? lst)
-                 result
-                 (loop (cdr lst)
-                   (string-append result
-                     (car lst)
-                     delimiter
-                   ) ;string-append
-                 ) ;loop
-               ) ;if
+                 ) ;let
+               ) ;define
+               (utf8->string (apply bytevector-append (interleave str-bvs)))
              ) ;let
-            ) ;
-            ((eq? grammar 'prefix)
-             (let loop
-               ((lst string-list) (result ""))
-               (if (null? lst)
-                 result
-                 (loop (cdr lst)
-                   (string-append result
-                     delimiter
-                     (car lst)
-                   ) ;string-append
-                 ) ;loop
-               ) ;if
-             ) ;let
-            ) ;
-            (else (error 'value-error
-                    "string-join: invalid grammar"
-                  ) ;error
             ) ;else
       ) ;cond
     ) ;define*
