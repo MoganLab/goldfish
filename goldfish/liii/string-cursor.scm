@@ -427,33 +427,18 @@
     ) ;define
 
     (define (list->utf8-string chars)
-      (let* ((bvs (map (lambda (ch)
-                         (codepoint->utf8 (char->integer ch))
-                       ) ;lambda
-                    chars
-                  ) ;map
+      (let ((bvs (map (lambda (ch)
+                        (codepoint->utf8 (char->integer ch))
+                      ) ;lambda
+                   chars
+                 ) ;map
              ) ;bvs
-             (bytes (fold (lambda (bv acc)
-                            (append acc
-                              (let loop
-                                ((i 0) (result '()))
-                                (if (>= i (bytevector-length bv))
-                                  (reverse result)
-                                  (loop (+ i 1)
-                                    (cons (bytevector-u8-ref bv i) result)
-                                  ) ;loop
-                                ) ;if
-                              ) ;let
-                            ) ;append
-                          ) ;lambda
-                      '()
-                      bvs
-                    ) ;fold
-             ) ;bytes
-             (result (apply bytevector bytes))
             ) ;
-        (utf8->string result)
-      ) ;let*
+        (if (null? bvs)
+          ""
+          (utf8->string (apply bytevector-append bvs))
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; ==== Selection ====
