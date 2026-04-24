@@ -432,8 +432,8 @@
                       ) ;lambda
                    chars
                  ) ;map
-             ) ;bvs
-            ) ;
+              ;bvs
+            )) ;
         (if (null? bvs)
           ""
           (utf8->string (apply bytevector-append bvs))
@@ -748,15 +748,28 @@
              (start-c (string-index->cursor s start))
              (end-c (string-index->cursor s end))
             ) ;
-        (let loop
-          ((cur start-c))
-          (if (string-cursor>=? cur end-c)
-            knil
-            (kons (string-ref/cursor s cur)
-              (loop (string-cursor-next s cur))
-            ) ;kons
-          ) ;if
-        ) ;let
+          ;; Collect chars first to avoid non-tail recursion
+          ;; Result is reversed since we cons during forward traversal
+          (let ((chars (let collect
+                         ((cur start-c) (result '()))
+                         (if (string-cursor>=? cur end-c)
+                           result
+                           (collect (string-cursor-next s cur)
+                             (cons (string-ref/cursor s cur) result)
+                           ) ;collect
+                         ) ;if
+                       ))) ;let
+            ;; Fold from right using iteration on reversed list
+            (let loop
+              ((lst chars) (acc knil))
+              (if (null? lst)
+                acc
+                (loop (cdr lst)
+                  (kons (car lst) acc)
+                ) ;loop
+              ) ;if
+            ) ;let
+          ) ;let
       ) ;let*
     ) ;define
 
@@ -1434,9 +1447,9 @@
             ) ;
       (let* ((start1 (if (null? maybe-start+end)
                         0
-                        (car maybe-start+end)
-                      ) ;if
-              ) ;start1
+                        (car maybe-start+end))
+                       ;if
+               ;start1
               (rest1 (if (null? maybe-start+end)
                        '()
                        (cdr maybe-start+end)
@@ -1452,8 +1465,8 @@
                       ) ;let
                     ) ;if
               ) ;off1
-              (char-len1 (- (vector-length (string-offsets-positions off1)
-                             ) ;vector-length
+              (char-len1 (- (vector-length (string-offsets-positions off1))
+                              ;vector-length
                           1
                          ) ;-
               ) ;char-len1
@@ -1475,8 +1488,8 @@
                       ) ;let
                     ) ;if
               ) ;off2
-              (char-len2 (- (vector-length (string-offsets-positions off2)
-                             ) ;vector-length
+              (char-len2 (- (vector-length (string-offsets-positions off2))
+                              ;vector-length
                           1
                          ) ;-
               ) ;char-len2
@@ -1494,7 +1507,7 @@
               (bv1 (string-offsets-bv off1))
               (pos2 (string-offsets-positions off2))
               (bv2 (string-offsets-bv off2))
-             ) ;
+             )) ;
          (let ((s2-len (- end2-idx start2-idx)))
            (if (zero? s2-len)
              (string-index->cursor s1 start1-idx)
@@ -1520,8 +1533,8 @@
                ) ;if
              ) ;let
            ) ;if
-         ) ;let
-       ) ;let*
+         )) ;let
+        ;let*
     ) ;define
 
     (define (string-contains-right
@@ -1550,8 +1563,8 @@
                      ) ;let
                    ) ;if
              ) ;off1
-             (char-len1 (- (vector-length (string-offsets-positions off1)
-                            ) ;vector-length
+             (char-len1 (- (vector-length (string-offsets-positions off1))
+                             ;vector-length
                          1
                         ) ;-
              ) ;char-len1
@@ -1573,8 +1586,8 @@
                      ) ;let
                    ) ;if
              ) ;off2
-             (char-len2 (- (vector-length (string-offsets-positions off2)
-                            ) ;vector-length
+             (char-len2 (- (vector-length (string-offsets-positions off2))
+                             ;vector-length
                          1
                         ) ;-
              ) ;char-len2
@@ -2195,7 +2208,7 @@
                    (if (null? lst)
                      '()
                      (cond ((or (eq? grammar 'infix)
-                             (eq? grammar 'strict-infix)
+                             (eq? grammar 'strict-infix))
                            ) ;or
                             (if (null? (cdr lst))
                               (list (car lst))
@@ -2205,7 +2218,7 @@
                                 ) ;cons
                               ) ;cons
                             ) ;if
-                           ) ;
+                            ;
                            ((eq? grammar 'suffix)
                             (cons (car lst)
                               (cons del-bv
