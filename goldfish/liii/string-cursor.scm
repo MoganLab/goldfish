@@ -1432,76 +1432,96 @@
               .
               maybe-start+end
             ) ;
-      (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw)
-             ) ;char-len1
-             (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw)
-             ) ;char-len2
-             (start1 (if (null? maybe-start+end)
-                       0
-                       (car maybe-start+end)
+      (let* ((start1 (if (null? maybe-start+end)
+                        0
+                        (car maybe-start+end)
+                      ) ;if
+              ) ;start1
+              (rest1 (if (null? maybe-start+end)
+                       '()
+                       (cdr maybe-start+end)
                      ) ;if
-             ) ;start1
-             (rest1 (if (null? maybe-start+end)
-                      '()
-                      (cdr maybe-start+end)
+              ) ;rest1
+              ;; Reuse cursor offsets to avoid repeated pre-scanning
+              (off1 (if (string-cursor? start1)
+                      (string-cursor-offsets start1)
+                      (let ((bv (string->utf8 s1)))
+                        (make-string-offsets bv
+                          (make-string-positions bv)
+                        ) ;make-string-offsets
+                      ) ;let
                     ) ;if
-             ) ;rest1
-             (end1 (if (null? rest1) char-len1 (car rest1))
-             ) ;end1
-             (rest2 (if (null? rest1) '() (cdr rest1))
-             ) ;rest2
-             (start2 (if (null? rest2) 0 (car rest2))
-             ) ;start2
-             (rest3 (if (null? rest2) '() (cdr rest2))
-             ) ;rest3
-             (end2 (if (null? rest3) char-len2 (car rest3))
-             ) ;end2
-             (_ (validate-start-end start1 end1))
-             (_ (validate-start-end start2 end2))
-             (start1-idx (cursor->index start1))
-             (end1-idx (min (cursor->index end1) char-len1)
-             ) ;end1-idx
-             (start2-idx (cursor->index start2))
-             (end2-idx (min (cursor->index end2) char-len2)
-             ) ;end2-idx
-             (off1 (string-cursor-offsets end1-c-raw)
-             ) ;off1
-             (pos1 (string-offsets-positions off1))
-             (bv1 (string-offsets-bv off1))
-             (off2 (string-cursor-offsets end2-c-raw)
-             ) ;off2
-             (pos2 (string-offsets-positions off2))
-             (bv2 (string-offsets-bv off2))
-            ) ;
-        (let ((s2-len (- end2-idx start2-idx)))
-          (if (zero? s2-len)
-            (string-index->cursor s1 start1-idx)
-            (let loop
-              ((i start1-idx))
-              (if (> (+ i s2-len) end1-idx)
-                #f
-                (if (string-prefix-at? s1
-                      s2
-                      i
-                      start2-idx
-                      end2-idx
-                      off1
-                      pos1
-                      bv1
-                      off2
-                      pos2
-                      bv2
-                    ) ;string-prefix-at?
-                  (string-index->cursor s1 i)
-                  (loop (+ i 1))
-                ) ;if
-              ) ;if
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let*
+              ) ;off1
+              (char-len1 (- (vector-length (string-offsets-positions off1)
+                             ) ;vector-length
+                          1
+                         ) ;-
+              ) ;char-len1
+              (end1 (if (null? rest1) char-len1 (car rest1))
+              ) ;end1
+              (rest2 (if (null? rest1) '() (cdr rest1))
+              ) ;rest2
+              (start2 (if (null? rest2) 0 (car rest2))
+              ) ;start2
+              (rest3 (if (null? rest2) '() (cdr rest2))
+              ) ;rest3
+              ;; Reuse cursor offsets for s2 as well
+              (off2 (if (string-cursor? start2)
+                      (string-cursor-offsets start2)
+                      (let ((bv (string->utf8 s2)))
+                        (make-string-offsets bv
+                          (make-string-positions bv)
+                        ) ;make-string-offsets
+                      ) ;let
+                    ) ;if
+              ) ;off2
+              (char-len2 (- (vector-length (string-offsets-positions off2)
+                             ) ;vector-length
+                          1
+                         ) ;-
+              ) ;char-len2
+              (end2 (if (null? rest3) char-len2 (car rest3))
+              ) ;end2
+              (_ (validate-start-end start1 end1))
+              (_ (validate-start-end start2 end2))
+              (start1-idx (cursor->index start1))
+              (end1-idx (min (cursor->index end1) char-len1)
+              ) ;end1-idx
+              (start2-idx (cursor->index start2))
+              (end2-idx (min (cursor->index end2) char-len2)
+              ) ;end2-idx
+              (pos1 (string-offsets-positions off1))
+              (bv1 (string-offsets-bv off1))
+              (pos2 (string-offsets-positions off2))
+              (bv2 (string-offsets-bv off2))
+             ) ;
+         (let ((s2-len (- end2-idx start2-idx)))
+           (if (zero? s2-len)
+             (string-index->cursor s1 start1-idx)
+             (let loop
+               ((i start1-idx))
+               (if (> (+ i s2-len) end1-idx)
+                 #f
+                 (if (string-prefix-at? s1
+                       s2
+                       i
+                       start2-idx
+                       end2-idx
+                       off1
+                       pos1
+                       bv1
+                       off2
+                       pos2
+                       bv2
+                     ) ;string-prefix-at?
+                   (string-index->cursor s1 i)
+                   (loop (+ i 1))
+                 ) ;if
+               ) ;if
+             ) ;let
+           ) ;if
+         ) ;let
+       ) ;let*
     ) ;define
 
     (define (string-contains-right
@@ -1510,13 +1530,7 @@
               .
               maybe-start+end
             ) ;
-      (let* ((end1-c-raw (string-cursor-end s1))
-             (char-len1 (string-cursor-char-index end1-c-raw)
-             ) ;char-len1
-             (end2-c-raw (string-cursor-end s2))
-             (char-len2 (string-cursor-char-index end2-c-raw)
-             ) ;char-len2
-             (start1 (if (null? maybe-start+end)
+      (let* ((start1 (if (null? maybe-start+end)
                        0
                        (car maybe-start+end)
                      ) ;if
@@ -1526,6 +1540,21 @@
                       (cdr maybe-start+end)
                     ) ;if
              ) ;rest1
+             ;; Reuse cursor offsets to avoid repeated pre-scanning
+             (off1 (if (string-cursor? start1)
+                     (string-cursor-offsets start1)
+                     (let ((bv (string->utf8 s1)))
+                       (make-string-offsets bv
+                         (make-string-positions bv)
+                       ) ;make-string-offsets
+                     ) ;let
+                   ) ;if
+             ) ;off1
+             (char-len1 (- (vector-length (string-offsets-positions off1)
+                            ) ;vector-length
+                         1
+                        ) ;-
+             ) ;char-len1
              (end1 (if (null? rest1) char-len1 (car rest1))
              ) ;end1
              (rest2 (if (null? rest1) '() (cdr rest1))
@@ -1534,6 +1563,21 @@
              ) ;start2
              (rest3 (if (null? rest2) '() (cdr rest2))
              ) ;rest3
+             ;; Reuse cursor offsets for s2 as well
+             (off2 (if (string-cursor? start2)
+                     (string-cursor-offsets start2)
+                     (let ((bv (string->utf8 s2)))
+                       (make-string-offsets bv
+                         (make-string-positions bv)
+                       ) ;make-string-offsets
+                     ) ;let
+                   ) ;if
+             ) ;off2
+             (char-len2 (- (vector-length (string-offsets-positions off2)
+                            ) ;vector-length
+                         1
+                        ) ;-
+             ) ;char-len2
              (end2 (if (null? rest3) char-len2 (car rest3))
              ) ;end2
              (_ (validate-start-end start1 end1))
@@ -1544,12 +1588,8 @@
              (start2-idx (cursor->index start2))
              (end2-idx (min (cursor->index end2) char-len2)
              ) ;end2-idx
-             (off1 (string-cursor-offsets end1-c-raw)
-             ) ;off1
              (pos1 (string-offsets-positions off1))
              (bv1 (string-offsets-bv off1))
-             (off2 (string-cursor-offsets end2-c-raw)
-             ) ;off2
              (pos2 (string-offsets-positions off2))
              (bv2 (string-offsets-bv off2))
             ) ;
