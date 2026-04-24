@@ -2166,40 +2166,40 @@
              (let ((del-bv (string->utf8 delimiter))
                    (str-bvs (map string->utf8 string-list))
                   ) ;
-               (define (interleave bvs)
-                 (let loop ((lst bvs))
-                   (if (null? lst)
-                     '()
-                     (cond ((or (eq? grammar 'infix)
-                             (eq? grammar 'strict-infix))
-                           ) ;or
-                            (if (null? (cdr lst))
-                              (list (car lst))
-                              (cons (car lst)
-                                (cons del-bv
-                                  (loop (cdr lst))
-                                ) ;cons
-                              ) ;cons
-                            ) ;if
-                            ;
-                           ((eq? grammar 'suffix)
-                            (cons (car lst)
-                              (cons del-bv
-                                (loop (cdr lst))
-                              ) ;cons
+                (define (interleave bvs)
+                  (let loop ((lst bvs))
+                    (if (null? lst)
+                      '()
+                      (if (or (eq? grammar 'infix)
+                           (eq? grammar 'strict-infix)
+                         ) ;or
+                        (if (null? (cdr lst))
+                          (list (car lst))
+                          (cons (car lst)
+                            (cons del-bv
+                              (loop (cdr lst))
                             ) ;cons
-                           ) ;
-                           ((eq? grammar 'prefix)
+                          ) ;cons
+                        ) ;if
+                        (if (eq? grammar 'suffix)
+                          (cons (car lst)
+                            (cons del-bv
+                              (loop (cdr lst))
+                            ) ;cons
+                          ) ;cons
+                          (if (eq? grammar 'prefix)
                             (cons del-bv
                               (cons (car lst)
                                 (loop (cdr lst))
                               ) ;cons
                             ) ;cons
-                           ) ;
-                     ) ;cond
-                   ) ;if
-                 ) ;let
-               ) ;define
+                            '()
+                          ) ;if
+                        ) ;if
+                      ) ;if
+                    ) ;if
+                  ) ;let
+                ) ;define
                (utf8->string (apply bytevector-append (interleave str-bvs)))
              ) ;let
             ) ;else
