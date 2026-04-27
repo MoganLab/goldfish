@@ -50,4 +50,18 @@
     (write-char 1 port)
   ) ;let
 ) ;check-catch
+(check (capture-output (lambda (port)
+                         (write-char #\中 port)
+                       ) ;lambda
+       ) ;capture-output
+  =>
+  "中"
+) ;check
+(check (capture-output (lambda (port)
+                         (display #\中 port)
+                       ) ;lambda
+       ) ;capture-output
+  =>
+  "中"
+) ;check
 (check-report)
