@@ -281,10 +281,6 @@
       ) ;let
     ) ;define
 
-    (define (char->utf8-string ch)
-      (utf8->string (codepoint->utf8 (char->integer ch)))
-    ) ;define
-
     (define (list->utf8-string chars)
       (let ((bvs (map (lambda (ch) (codepoint->utf8 (char->integer ch))) chars)))
         (if (null? bvs) "" (utf8->string (apply bytevector-append bvs)))
