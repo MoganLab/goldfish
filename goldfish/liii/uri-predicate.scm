@@ -23,17 +23,14 @@
     (define (uri-absolute? uri-obj)
       (and (uri? uri-obj)
         (uri-scheme-raw uri-obj)
-        (not (string=? (uri-scheme-raw uri-obj) "")
-        ) ;not
+        (not (string=? (uri-scheme-raw uri-obj) ""))
       ) ;and
     ) ;define
 
     ;; 检查是否为相对 URI（无 scheme）
     (define (uri-relative? uri-obj)
       (and (uri? uri-obj)
-        (or (not (uri-scheme-raw uri-obj))
-          (string=? (uri-scheme-raw uri-obj) "")
-        ) ;or
+        (or (not (uri-scheme-raw uri-obj)) (string=? (uri-scheme-raw uri-obj) ""))
       ) ;and
     ) ;define
 
@@ -48,13 +45,9 @@
     (define (uri-default-port? uri-obj)
       (let* ((scheme (uri-scheme-raw uri-obj))
              (explicit-port #f)
-             (default-port (and scheme (uri-default-port scheme))
-             ) ;default-port
+             (default-port (and scheme (uri-default-port scheme)))
             ) ;
-        (and default-port
-          explicit-port
-          (= explicit-port default-port)
-        ) ;and
+        (and default-port explicit-port (= explicit-port default-port))
       ) ;let*
     ) ;define
 

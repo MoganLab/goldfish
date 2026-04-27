@@ -221,6 +221,13 @@
            (string? (caddr datum))
            (null? (cdddr datum))))
 
+    (define (format-marker-datum? datum)
+      (and (pair? datum)
+           (pair? (cdr datum))
+           (null? (cddr datum))
+           (and (eq? (car datum) '*newline*)
+                    (number? (cadr datum)))))
+
     (define (format-reader-vector datum)
       (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
         (let loop ((i 0)
@@ -235,8 +242,10 @@
                  (pieces '()))
         (cond
           ((pair? current)
-           (loop (cdr current)
-                 (cons (format-reader-datum (car current)) pieces)))
+           (if (format-marker-datum? (car current))
+               (loop (cdr current) pieces)
+               (loop (cdr current)
+                     (cons (format-reader-datum (car current)) pieces))))
           ((null? current)
            (string-append "(" (string-join (reverse pieces) " ") ")"))
           (else
