@@ -20368,7 +20368,37 @@ s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
       is_char_whitespace(cp) = false;
       is_char_uppercase(cp) = false;
       is_char_lowercase(cp) = false;
-      character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      if (c < 32 || (c >= 127 && c < 160))
+        character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      else
+        {
+          char buf[12];
+          int len = 2;
+          buf[0] = '#';
+          buf[1] = '\\';
+          if (c < 0x80)
+            buf[len++] = c;
+          else if (c < 0x800)
+            {
+              buf[len++] = 0xC0 | (c >> 6);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else if (c < 0x10000)
+            {
+              buf[len++] = 0xE0 | (c >> 12);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else
+            {
+              buf[len++] = 0xF0 | (c >> 18);
+              buf[len++] = 0x80 | ((c >> 12) & 0x3F);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          character_name_length(cp) = len;
+          memcpy((void *)(&(character_name(cp))), buf, len);
+        }
       s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
       return(cp);
     }
@@ -23916,10 +23946,40 @@ static s7_pointer read_char_chooser(s7_scheme *sc, s7_pointer func, int32_t args
 
 
 /* -------------------------------- write-char -------------------------------- */
+static void port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port)
+{
+  if (c < 0x80)
+    port_write_character(port)(sc, (uint8_t)c, port);
+  else if (c < 0x800)
+    {
+      char buf[2];
+      buf[0] = 0xC0 | (c >> 6);
+      buf[1] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 2, port);
+    }
+  else if (c < 0x10000)
+    {
+      char buf[3];
+      buf[0] = 0xE0 | (c >> 12);
+      buf[1] = 0x80 | ((c >> 6) & 0x3F);
+      buf[2] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 3, port);
+    }
+  else
+    {
+      char buf[4];
+      buf[0] = 0xF0 | (c >> 18);
+      buf[1] = 0x80 | ((c >> 12) & 0x3F);
+      buf[2] = 0x80 | ((c >> 6) & 0x3F);
+      buf[3] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 4, port);
+    }
+}
+
 s7_pointer s7_write_char(s7_scheme *sc, s7_pointer c, s7_pointer port)
 {
   if (port != sc->F)
-    port_write_character(port)(sc, s7_character(c), port);
+    port_write_unicode_char(sc, s7_character(c), port);
   return(c);
 }
 
@@ -23933,7 +23993,7 @@ static s7_pointer write_char_p_pp(s7_scheme *sc, s7_pointer c, s7_pointer port)
       if_method_exists_return_value(sc, port, sc->write_char_symbol, set_mlist_2(sc, c, port));
       wrong_type_error_nr(sc, sc->write_char_symbol, 2, port, an_output_port_or_f_string);
     }
-  port_write_character(port)(sc, s7_character(c), port);
+  port_write_unicode_char(sc, s7_character(c), port);
   return(c);
 }
 
@@ -23942,7 +24002,7 @@ static s7_pointer write_char_p_p(s7_scheme *sc, s7_pointer c)
   if (!is_character(c))
     return(method_or_bust_p(sc, c, sc->write_char_symbol, sc->type_names[T_CHARACTER]));
   if (current_output_port(sc) == sc->F) return(c);
-  port_write_character(current_output_port(sc))(sc, s7_character(c), current_output_port(sc));
+  port_write_unicode_char(sc, s7_character(c), current_output_port(sc));
   return(c);
 }
 
@@ -29052,7 +29112,7 @@ static void syntax_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_w
 static void character_to_port(s7_scheme *sc, s7_pointer c, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
 {
   if (use_write == p_display)
-    port_write_character(port)(sc, character(c), port);
+    port_write_unicode_char(sc, character(c), port);
   else port_write_string(port)(sc, character_name(c), character_name_length(c), port);
 }
 
