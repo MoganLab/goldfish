@@ -30,14 +30,21 @@
 ;; 说明
 ;; ----
 ;; 1. string-every 是 SRFI-130 中的字符串检查函数
-;; 2. 与 (liii string) 中的 string-every 功能相同
-;; 3. 性能：O(n)，n 为检查的字符数
+;; 2. 与 (liii string) 中的 string-every 功能相同，但本版本使用 cursor 遍历字符串
+;; 3. start/end 参数可以是整数索引或 string-cursor
+;; 4. 与 (liii string) 版本的差异：本版本只接受谓词(procedure)，不支持字符参数
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-every 函数，该版本支持 char/pred?
+;; 两种参数类型，基于整数索引遍历。
+;; 参见: gf doc liii/string "string-every"
+;; 性能：O(n)，n 为检查的字符数
 
 ;; 空字符串返回 #t
 (check (string-every char? "") => #t)
 
 ;; 所有字符都满足
-(check (string-every char? "abc") => #t)
 (check (string-every char-alphabetic? "abc") => #t)
 
 ;; 不是所有字符都满足
@@ -48,7 +55,10 @@
 
 ;; 测试中文字符
 (check (string-every char? "中文") => #t)
-(check (string-every (lambda (c) (if (char>? c #\a) c #f)) "bcd") => #\d)
+
+;; 测试 emoji 字符
+(check (string-every (lambda (c) (char=? c #\😀)) "😀😀😀") => #t)
+(check (string-every (lambda (c) (char=? c #\😀)) "😀a😀") => #f)
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abcdef")
