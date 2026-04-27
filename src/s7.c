@@ -397,10 +397,12 @@
 #endif
 
 #include "s7.h"
+#include "s7_internal_helpers.h"
 #include "s7_scheme_base.h"
 #include "s7_scheme_inexact.h"
 #include "s7_scheme_complex.h"
 #include "s7_scheme_char.h"
+#include "s7_scheme_write.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
@@ -22843,62 +22845,6 @@ static void stdout_display(s7_scheme *sc, const char *str, s7_pointer port) {if 
 static void stderr_display(s7_scheme *sc, const char *str, s7_pointer port) {if (str) fputs(str, stderr);}
 
 
-/* -------------------------------- write-string -------------------------------- */
-static s7_pointer g_write_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_string "(write-string str port start end) writes str to port."
-  #define Q_write_string s7_make_circular_signature(sc, 3, 4, \
-                           sc->is_string_symbol, sc->is_string_symbol, \
-                           s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol),\
-                           sc->is_integer_symbol)
-  const s7_pointer str = car(args);
-  s7_pointer port;
-  s7_int start = 0, end;
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->write_string_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer inds = cddr(args);
-      port = cadr(args);
-      if (!is_null(inds))
-	{
-	  s7_pointer p = start_and_end(sc, sc->write_string_symbol, args, 3, inds, &start, &end);
-	  if (p != sc->unused) return(p);
-	}}
-  else port = current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F)
-	{
-	  s7_int len;
-	  if ((start == 0) && (end == string_length(str)))
-	    return(str);
-	  len = (s7_int)(end - start);
-	  return(make_string_with_length(sc, (char *)(string_value(str) + start), len));
-	}
-      if_method_exists_return_value(sc, port, sc->write_string_symbol, args);
-      wrong_type_error_nr(sc, sc->write_string_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port)) wrong_type_error_nr(sc, sc->write_string_symbol, 2, port, an_open_output_port_string);
-  if (start == end) return(str);
-  port_write_string(port)(sc, (char *)(string_value(str) + start), (end - start), port);
-  return(str);
-}
-
-static s7_pointer write_string_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer port)
-{
-  if (!is_string(str))
-    return(method_or_bust_pp(sc, str, sc->write_string_symbol, str, port, sc->type_names[T_STRING], 1));
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(str);
-      return(method_or_bust_pp(sc, port, sc->write_string_symbol, str, port, an_output_port_string, 2));
-    }
-  if (string_length(str) > 0)
-    port_write_string(port)(sc, string_value(str), string_length(str), port);
-  return(str);
-}
 
 
 /* -------- skip to newline readers -------- */
@@ -23976,45 +23922,6 @@ static void port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port)
     }
 }
 
-s7_pointer s7_write_char(s7_scheme *sc, s7_pointer c, s7_pointer port)
-{
-  if (port != sc->F)
-    port_write_unicode_char(sc, s7_character(c), port);
-  return(c);
-}
-
-static s7_pointer write_char_p_pp(s7_scheme *sc, s7_pointer c, s7_pointer port)
-{
-  if (!is_character(c))
-    return(method_or_bust_pp(sc, c, sc->write_char_symbol, c, port, sc->type_names[T_CHARACTER], 1));
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(c);
-      if_method_exists_return_value(sc, port, sc->write_char_symbol, set_mlist_2(sc, c, port));
-      wrong_type_error_nr(sc, sc->write_char_symbol, 2, port, an_output_port_or_f_string);
-    }
-  port_write_unicode_char(sc, s7_character(c), port);
-  return(c);
-}
-
-static s7_pointer write_char_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(method_or_bust_p(sc, c, sc->write_char_symbol, sc->type_names[T_CHARACTER]));
-  if (current_output_port(sc) == sc->F) return(c);
-  port_write_unicode_char(sc, s7_character(c), current_output_port(sc));
-  return(c);
-}
-
-static s7_pointer g_write_char(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_char "(write-char char (port (current-output-port))) writes char to the output port"
-  #define Q_write_char s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  if (is_null(cdr(args)))
-    return(write_char_p_p(sc, car(args)));
-  return(write_char_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
-}
-
 /* (with-output-to-string (lambda () (write-char #\space))) -> " "
  * (with-output-to-string (lambda () (write #\space))) -> "#\\space"
  * (with-output-to-string (lambda () (display #\space))) -> " "
@@ -24084,37 +23991,6 @@ static s7_pointer g_read_byte(s7_scheme *sc, s7_pointer args)
     sole_arg_wrong_type_error_nr(sc, sc->read_byte_symbol, port, an_open_input_port_string);
   c = port_read_character(port)(sc, port);
   return((c == EOF) ? eof_object : small_int(c));
-}
-
-
-/* -------------------------------- write-byte -------------------------------- */
-static s7_pointer g_write_byte(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_byte "(write-byte byte (port (current-output-port))): writes byte to the output port"
-  #define Q_write_byte s7_make_signature(sc, 3, sc->is_byte_symbol, sc->is_byte_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-
-  s7_pointer port;
-  const s7_pointer b = car(args);
-  s7_int val;
-  if (!s7_is_integer(b))
-    return(method_or_bust(sc, b, sc->write_byte_symbol, args, sc->type_names[T_INTEGER], 1));
-
-  val = s7_integer_clamped_if_gmp(sc, b);
-  if ((val < 0) || (val > 255)) /* need to check this before port==#f, else (write-byte most-positive-fixnum #f) is not an error */
-    wrong_type_error_nr(sc, sc->write_byte_symbol, 1, b, an_unsigned_byte_string);
-
-  port = (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(b);
-      if_method_exists_return_value(sc, port, sc->write_byte_symbol, args);
-      wrong_type_error_nr(sc, sc->write_byte_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))          /* avoid reporting caller here as write-char */
-    wrong_type_error_nr(sc, sc->write_byte_symbol, 2, port, an_open_output_port_string);
-
-  port_write_character(port)(sc, (uint8_t)val, port);
-  return(b);
 }
 
 
@@ -29521,6 +29397,50 @@ static inline s7_pointer object_out(s7_scheme *sc, s7_pointer obj, s7_pointer st
   return(obj);
 }
 
+/* -------------------------------- s7i helpers for s7_scheme_write.c -------------------------------- */
+
+bool s7i_port_is_closed(s7_pointer p) { return port_is_closed(p); }
+
+s7_pointer s7i_object_out(s7_scheme *sc, s7_pointer obj, s7_pointer port, s7i_use_write_t choice)
+{
+  return object_out(sc, obj, port, (use_write_t)choice);
+}
+
+void s7i_port_write_character(s7_scheme *sc, uint8_t c, s7_pointer port)
+{
+  port_write_character(port)(sc, c, port);
+}
+
+void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port)
+{
+  port_write_string(port)(sc, str, len, port);
+}
+
+void s7i_port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port)
+{
+  port_write_unicode_char(sc, c, port);
+}
+
+s7_pointer s7i_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end)
+{
+  return start_and_end(sc, caller, args, position, index_args, start, end);
+}
+
+bool s7i_is_unused(s7_scheme *sc, s7_pointer p)
+{
+  return p == sc->unused;
+}
+
+s7_pointer s7i_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name)
+{
+  return method_or_bust_p(sc, obj, s7_make_symbol(sc, method_name), wrap_string(sc, type_name, safe_strlen(type_name)));
+}
+
+s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer x1, s7_pointer x2, const char *type_name, s7_int arg_pos)
+{
+  return method_or_bust_pp(sc, obj, s7_make_symbol(sc, method_name), x1, x2, wrap_string(sc, type_name, safe_strlen(type_name)), (int32_t)arg_pos);
+}
+
 static s7_pointer new_format_port(s7_scheme *sc)
 {
   const s7_int len = FORMAT_PORT_LENGTH;
@@ -29695,90 +29615,7 @@ static s7_pointer g_object_to_string(s7_scheme *sc, s7_pointer args)
 }
 
 
-/* -------------------------------- newline -------------------------------- */
-void s7_newline(s7_scheme *sc, s7_pointer port)
-{
-  if (port != sc->F)
-    port_write_character(port)(sc, (uint8_t)'\n', port);
-}
-
-#define newline_char chars[(uint8_t)'\n']
-
-static s7_pointer g_newline(s7_scheme *sc, s7_pointer args)
-{
-  #define H_newline "(newline (port (current-output-port))) writes a carriage return to the port"
-  #define Q_newline s7_make_signature(sc, 2, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-
-  const s7_pointer port = (is_pair(args)) ? car(args) : current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(newline_char);
-      if_method_exists_return_value(sc, port, sc->newline_symbol, args);
-      sole_arg_wrong_type_error_nr(sc, sc->newline_symbol, port, an_output_port_or_f_string); /* 0 -> "zeroth" */
-    }
-  if (port_is_closed(port))
-    sole_arg_wrong_type_error_nr(sc, sc->newline_symbol, port, an_open_output_port_string);
-  s7_newline(sc, port);
-  return(newline_char);  /* return(sc->unspecified) until 28-Sep-17, but for example (display c) returns c */
-}
-
-static s7_pointer newline_p(s7_scheme *sc)
-{
-  s7_newline(sc, current_output_port(sc));
-  return(newline_char);
-}
-
-static s7_pointer newline_p_p(s7_scheme *sc, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(newline_char);
-      return(method_or_bust_p(sc, port, sc->newline_symbol, an_output_port_string));
-    }
-  s7_newline(sc, port);
-  return(newline_char);
-}
-
-
 /* -------------------------------- write -------------------------------- */
-s7_pointer s7_write(s7_scheme *sc, s7_pointer obj, s7_pointer port)
-{
-  if (port != sc->F)
-    {
-      if (port_is_closed(port))
-	wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_open_output_port_string);
-      object_out(sc, obj, port, p_write);
-    }
-  return(obj);
-}
-
-static s7_pointer write_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(x);
-      if_method_exists_return_value(sc, port, sc->write_symbol, set_mlist_2(sc, x, port));
-      wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))
-    wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_open_output_port_string);
-  return(object_out(sc, x, port, p_write));
-}
-
-static s7_pointer g_write(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write "(write obj (port (current-output-port))) writes (object->string obj) to the output port"
-  #define Q_write s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  if_method_exists_return_value(sc, car(args), sc->write_symbol, args);
-  return(write_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
-}
-
-static s7_pointer write_p_p(s7_scheme *sc, s7_pointer x)
-{
-  return((current_output_port(sc) == sc->F) ? x : object_out(sc, x, current_output_port(sc), p_write));
-}
-
-static s7_pointer g_write_2(s7_scheme *sc, s7_pointer args) {return(write_p_pp(sc, car(args), cadr(args)));}
 
 static s7_pointer write_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -29789,54 +29626,12 @@ static s7_pointer write_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7
 
 
 /* -------------------------------- display -------------------------------- */
-s7_pointer s7_display(s7_scheme *sc, s7_pointer obj, s7_pointer port)
-{
-  if (port != sc->F)
-    {
-      if (port_is_closed(port))
-	wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_open_output_port_string);
-      object_out(sc, obj, port, p_display);
-    }
-  return(obj);
-}
-
-static s7_pointer display_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(x);
-      if_method_exists_return_value(sc, port, sc->display_symbol, set_mlist_2(sc, x, port));
-      wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))
-    wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_open_output_port_string);
-  if_method_exists_return_value(sc, x, sc->display_symbol, set_plist_2(sc, x, port));
-  return(object_out(sc, x, port, p_display));
-}
-
-static s7_pointer g_display(s7_scheme *sc, s7_pointer args)
-{ /* infinite loop: (display (openlet (inlet 'display display))) -- not specific to display of course */
-  #define H_display "(display obj (port (current-output-port))) prints obj"
-  #define Q_display s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  return(display_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
-}
-
-static s7_pointer g_display_2(s7_scheme *sc, s7_pointer args) {return(display_p_pp(sc, car(args), cadr(args)));}
-
-static s7_pointer g_display_f(s7_scheme *unused_sc, s7_pointer args) {return(car(args));}
 
 static s7_pointer display_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
   if (args == 2) /* not check_for_substring_temp(sc, expr) here -- display returns arg so can be immutable if substring_uncopied */
     return((caddr(expr) == sc->F) ? sc->display_f : sc->display_2);
   return(func);
-}
-
-static s7_pointer display_p_p(s7_scheme *sc, s7_pointer x)
-{
-  if (current_output_port(sc) == sc->F) return(x);
-  if_method_exists_return_value(sc, x, sc->display_symbol, set_plist_1(sc, x));
-  return(object_out(sc, x, current_output_port(sc), p_display));
 }
 
 /* display may not be following the spec: (display '("a" #\b)): ("a" #\b), whereas Guile says (a b), in s7 write here == display, Guile write == s7 write */
@@ -92429,15 +92224,15 @@ static void init_rootlet(s7_scheme *sc)
   sc->closed_input_function = s7_make_safe_function(sc, "#<closed-input-function>", g_closed_input_function_port, 2, 0, false, "input-function error"),
   sc->closed_output_function = s7_make_safe_function(sc, "#<closed-output-function>", g_closed_output_function_port, 1, 0, false, "output-function error"),
 
-  sc->newline_symbol =               defun("newline",		newline,		0, 1, false);
-  sc->write_symbol =                 defun("write",		write,			1, 1, false); set_is_translucent(sc->write_symbol);
-  sc->display_symbol =               defun("display",		display,		1, 1, false); set_is_translucent(sc->display_symbol);
+  sc->newline_symbol =               s7_define_typed_function(sc, "newline", g_newline, 0, 1, false, "(newline (port (current-output-port))) writes a carriage return to the port", s7_make_signature(sc, 2, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
+  sc->write_symbol =                 s7_define_typed_function(sc, "write", g_write, 1, 1, false, "(write obj (port (current-output-port))) writes (object->string obj) to the output port", s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))); set_is_translucent(sc->write_symbol);
+  sc->display_symbol =               s7_define_typed_function(sc, "display", g_display, 1, 1, false, "(display obj (port (current-output-port))) prints obj", s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))); set_is_translucent(sc->display_symbol);
   sc->read_char_symbol =             defun("read-char",	        read_char,		0, 1, false);
   sc->peek_char_symbol =             defun("peek-char",	        peek_char,		0, 1, false);
-  sc->write_char_symbol =            defun("write-char",	write_char,		1, 1, false);
-  sc->write_string_symbol =          defun("write-string",	write_string,		1, 3, false);
+  sc->write_char_symbol =            s7_define_typed_function(sc, "write-char", g_write_char, 1, 1, false, "(write-char char (port (current-output-port))) writes char to the output port", s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
+  sc->write_string_symbol =          s7_define_typed_function(sc, "write-string", g_write_string, 1, 3, false, "(write-string str port start end) writes str to port.", s7_make_circular_signature(sc, 3, 4, sc->is_string_symbol, sc->is_string_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol), sc->is_integer_symbol));
   sc->read_byte_symbol =             defun("read-byte",	        read_byte,		0, 1, false);
-  sc->write_byte_symbol =            defun("write-byte",	write_byte,		1, 1, false);
+  sc->write_byte_symbol =            s7_define_typed_function(sc, "write-byte", g_write_byte, 1, 1, false, "(write-byte byte (port (current-output-port))): writes byte to the output port", s7_make_signature(sc, 3, sc->is_byte_symbol, sc->is_byte_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
   sc->read_line_symbol =             defun("read-line",	        read_line,		0, 2, false);
   sc->read_string_symbol =           defun("read-string",	read_string,		1, 1, false);
   sc->read_symbol =                  semisafe_defun("read",	read,			0, 1, false);
