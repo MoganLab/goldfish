@@ -33,7 +33,7 @@
           (liii sys))
 
   (begin
-    (define max-inline-length 40)
+    (define max-inline-length 80)
 
     ;; 兼容：旧的硬编码相对路径，作为 fallback 使用
     (define node-rules-paths
