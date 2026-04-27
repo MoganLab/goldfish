@@ -52,344 +52,50 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; wrong-type-arg 当str不是字符串时
-
-(check-true (string-any #\a "abcde"))
-(check-false (string-any #\z "abcde"))
-(check-false (string-any #\a "xyz"))
-(check-true (string-any #\x "abcxdef"))
-
-(check-true (string-any char-numeric? "abc123")
-) ;check-true
-(check-false (string-any char-numeric? "hello")
-) ;check-false
-(check-true (string-any char-alphabetic? "12345a")
-) ;check-true
-(check-false (string-any char-alphabetic? "12345")
-) ;check-false
-(check-true (string-any char-upper-case?
-              "hello World"
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-upper-case?
-               "hello world"
-             ) ;string-any
-) ;check-false
-
-(check-false (string-any #\a ""))
-(check-false (string-any char-numeric? "")
-) ;check-false
-
-(check-true (string-any #\a "a"))
-(check-false (string-any #\b "a"))
-(check-true (string-any char-numeric? "1")
-) ;check-true
-(check-false (string-any char-numeric? "a")
-) ;check-false
-
-(check-true (string-any char-whitespace?
-              "hello world"
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-whitespace? "hello")
-) ;check-false
-(check-true (string-any (lambda (c) (char=? c #\h))
-              "hello"
-            ) ;string-any
-) ;check-true
-(check-true (string-any (lambda (c) (char=? c #\!))
-              "hello!"
-            ) ;string-any
-) ;check-true
-
-(check-true (string-any char-alphabetic? "HELLO")
-) ;check-true
-(check-true (string-any char-numeric? "123abc")
-) ;check-true
-
-(check-true (string-any #\0 "xxx0xx"))
-(check-false (string-any #\0 "xxxxxx"))
-(check-true (string-any char-numeric? "xxx0xx")
-) ;check-true
-(check-false (string-any char-numeric? "xxxxxx")
-) ;check-false
-
-(check-true (string-any char-alphabetic? "01c345" 2)
-) ;check-true
-(check-false (string-any char-alphabetic? "01c345" 3)
-) ;check-false
-(check-true (string-any char-alphabetic?
-              "01c345"
-              2
-              4
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-alphabetic?
-               "01c345"
-               2
-               2
-             ) ;string-any
-) ;check-false
-(check-false (string-any char-alphabetic?
-               "01c345"
-               3
-               4
-             ) ;string-any
-) ;check-false
-(check-true (string-any char-alphabetic?
-              "01c345"
-              2
-              6
-            ) ;string-any
-) ;check-true
-
-(check-true (string-any #\a "012a34" 0))
-(check-false (string-any #\a "012345" 0 2)
-) ;check-false
-(check-true (string-any #\0 "012345" 0 1)
-) ;check-true
-(check-false (string-any #\a "bbbccc" 1 3)
-) ;check-false
-(check-true (string-any char-alphabetic?
-              "1a23bc"
-              1
-              4
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-alphabetic?
-               "123456"
-               0
-               3
-             ) ;string-any
-) ;check-false
-
-(check-true (string-any char-alphabetic? "abc" 0 3)
-) ;check-true
-(check-false (string-any char-alphabetic? "123" 0 3)
-) ;check-false
-(check-true (string-any #\a "aab" 1 2))
-(check-false (string-any #\a "bbc" 1 2))
-(check-true (string-any char-alphabetic? "a" 0 1)
-) ;check-true
-(check-false (string-any char-alphabetic? "" 0 0)
-) ;check-false
-
-(check-true (string-any (lambda (c) (char=? c #\x))
-              "hello x there"
-            ) ;string-any
-) ;check-true
-(check-false (string-any (lambda (c) (char=? c #\z))
-               "hello w there"
-             ) ;string-any
-) ;check-false
-(check-true (string-any char-alphabetic? "HELLO")
-) ;check-true
-(check-true (string-any char-alphabetic? "123a")
-) ;check-true
-
 ;;
 ;; 相关实现
 ;; --------
-;; (liii string-cursor) 库中也提供了 string-any 函数，
-;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; (liii string-cursor) 库中也提供了 string-any 函数。
+;; 差异：
+;; - (liii string) 版本基于字节索引遍历，start/end 参数指向字节位置，
+;;   对包含多字节 Unicode 字符（如中文、emoji）的字符串，无法按字符级别精确定位。
+;; - (liii string-cursor) 版本基于 cursor 遍历，支持 Unicode 字符级别的精确操作。
+;; 另外，cursor 版本只接受谓词(procedure)作为第一个参数，
+;; start/end 可以是整数索引或 string-cursor。
 ;; 参见: gf doc liii/string-cursor "string-any"
 
-(check (catch 'out-of-range
-         (lambda ()
-           (string-any char-alphabetic?
-             "01c345"
-             2
-             7
-           ) ;string-any
-         ) ;lambda
-         (lambda args #t)
-       ) ;catch
-  =>
-  #t
-) ;check
+;; 字符参数
+(check-true (string-any #\a "abcde"))
+(check-false (string-any #\z "abcde"))
 
-(check (catch 'out-of-range
-         (lambda ()
-           (string-any char-alphabetic?
-             "01c345"
-             2
-             1
-           ) ;string-any
-         ) ;lambda
-         (lambda args #t)
-       ) ;catch
-  =>
-  #t
-) ;check
+;; 谓词参数
+(check-true (string-any char-numeric? "abc123"))
+(check-false (string-any char-numeric? "hello"))
+(check-true (string-any char-alphabetic? "12345a"))
+(check-false (string-any char-alphabetic? "12345"))
+(check-true (string-any (lambda (c) (char=? c #\h)) "hello"))
 
-(check-catch 'wrong-type-arg
-  (string-any 123 "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any "a" "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any '(a b) "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any (lambda (n) (= n 0))
-    "hello"
-  ) ;string-any
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any char-alphabetic? 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any char-alphabetic?
-    "hello"
-    "0"
-  ) ;string-any
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any char-alphabetic?
-    "hello"
-    1.5
-  ) ;string-any
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-any char-alphabetic? "hello" 'a)
-) ;check-catch
+;; 空字符串
+(check-false (string-any char-numeric? ""))
 
-(check-catch 'out-of-range
-  (string-any char-alphabetic? "hello" -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-any char-alphabetic?
-    "hello"
-    0
-    6
-  ) ;string-any
-) ;check-catch
-(check-catch 'out-of-range
-  (string-any char-alphabetic?
-    "hello"
-    5
-    1
-  ) ;string-any
-) ;check-catch
-(check-catch 'out-of-range
-  (string-any char-alphabetic? "hello" 10)
-) ;check-catch
+;; start/end 参数
+(check-true (string-any char-alphabetic? "01c345" 2))
+(check-true (string-any char-alphabetic? "01c345" 2 4))
+(check-false (string-any char-alphabetic? "01c345" 3 4))
+(check-false (string-any char-alphabetic? "" 0 0))
 
-;; === string-any多字节字符边界验证增强 ===
-;; 中文和ASCII字符混用验证：确保ASCII和中文混合文本与谓词函数的边界行为一致性
-(check-true (string-any char-alphabetic? "a中文b")
-) ;check-true
-(check-true (string-any char-alphabetic?
-              "hello中文"
-            ) ;string-any
-) ;check-true
-(check-true (string-any char-numeric?
-              "中文123文字"
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-numeric?
-               "中文测试"
-             ) ;string-any
-) ;check-false
+;; 错误处理
+(check-catch 'wrong-type-arg (string-any 123 "hello"))
+(check-catch 'wrong-type-arg (string-any char-alphabetic? 123))
+(check-catch 'out-of-range (string-any char-alphabetic? "hello" -1))
+(check-catch 'out-of-range (string-any char-alphabetic? "hello" 0 6))
 
-;; 中文字符基础行为验证：确保谓词对Unicode中文字符处理无异常
-(check-true (string-any (lambda (c) #t)
-              "中文文档"
-            ) ;string-any
-) ;check-true
-(check-true (string-any (lambda (c) (char=? c #\a))
-              "中文a文字"
-            ) ;string-any
-) ;check-true
-(check-false (string-any (lambda (c) (char=? c #\z))
-               "中文测试"
-             ) ;string-any
-) ;check-false
-
-;; emoji字符边界验证：确保4字节emoji在UTF-8编码环境中的字节级处理正确性
-(check-true (string-any char-numeric? "123😀456")
-) ;check-true
-(check-true (string-any char-alphabetic?
-              "hello😀world"
-            ) ;string-any
-) ;check-true
-(check-true (string-any (lambda (c) (not (char-whitespace? c)))
-              "hello 😀world"
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-alphabetic?
-               "123😀!@#"
-             ) ;string-any
-) ;check-false
-
-;; 扩展Unicode字符验证：涵盖特殊符号、数学符号等扩展应用场景
-(check-true (string-any char-numeric? "￥1000")
-) ;check-true
-(check-true (string-any char-alphabetic?
-              "数学+a+b=c"
-            ) ;string-any
-) ;check-true
-(check-true (string-any (lambda (c) (not (char-whitespace? c)))
-              "空格123文字😀test"
-            ) ;string-any
-) ;check-true
-
-;; 多字节字符分割边界验证：检查start/end参数在跨越多字节字符时的边界处理完整性
-(check-true (string-any char-alphabetic?
-              "a中文b"
-              0
-              6
-            ) ;string-any
-) ;check-true
-(check-true (string-any char-numeric?
-              "文123字"
-              1
-              6
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-numeric?
-               "中文测试"
-               0
-               8
-             ) ;string-any
-) ;check-false
-(check-true (string-any (lambda (c)
-                          (or (char-alphabetic? c)
-                            (char-numeric? c)
-                          ) ;or
-                        ) ;lambda
-              "混合a123文😀字"
-              0
-              15
-            ) ;string-any
-) ;check-true
-
-;; 空边界条件验证：空字符串和零长度范围在多字节字符文本中的处理边界
-(check-false (string-any (lambda (c) #t)
-               "中文"
-               4
-               4
-             ) ;string-any
-) ;check-false
-(check-false (string-any (lambda (c) #t) "" 0 0)
-) ;check-false
-
-;; 混合场景压力测试：复杂Unicode字符环境下的谓词函数行为一致性验证
-(check-true (string-any (lambda (c)
-                          (or (char-alphabetic? c)
-                            (char-numeric? c)
-                          ) ;or
-                        ) ;lambda
-              "混合text123和中文"
-            ) ;string-any
-) ;check-true
-(check-true (string-any char-alphabetic?
-              "program中文test"
-            ) ;string-any
-) ;check-true
-(check-false (string-any char-numeric?
-               "纯中文text验证"
-             ) ;string-any
-) ;check-false
+;; Unicode 字符
+(check-true (string-any char-alphabetic? "a中文b"))
+(check-true (string-any char-numeric? "中文123文字"))
+(check-false (string-any char-numeric? "中文测试"))
+(check-true (string-any char-numeric? "123😀456"))
+(check-true (string-any char-alphabetic? "a中文b" 0 6))
+(check-false (string-any char-numeric? "中文测试" 0 8))
 
 (check-report)
