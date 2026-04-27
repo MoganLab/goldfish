@@ -8,26 +8,18 @@
       #f
       (if (g_access path 1)
         #t
-        (error 'permission-error
-          (string-append "No permission: " path)
-        ) ;error
+        (error 'permission-error (string-append "No permission: " path))
       ) ;if
     ) ;if
-    (error 'type-error
-      "(file-exists? path): path should be string"
-    ) ;error
+    (error 'type-error "(file-exists? path): path should be string")
   ) ;if
 ) ;define
 
 (define (delete-file path)
   (if (not (string? path))
-    (error 'type-error
-      "(delete-file path): path should be string"
-    ) ;error
+    (error 'type-error "(delete-file path): path should be string")
     (if (not (file-exists? path))
-      (error 'read-error
-        (string-append path " does not exist")
-      ) ;error
+      (error 'read-error (string-append path " does not exist"))
       (g_delete-file path)
     ) ;if
   ) ;if
@@ -41,20 +33,11 @@
   (define (r7rs-import-library-filename libs)
     (when (pair? libs)
       (let ((lib-filename (let loop
-                            ((lib (if (memq (caar libs)
-                                        '(only except prefix rename)
-                                      ) ;memq
-                                    (cadar libs)
-                                    (car libs)
-                                  ) ;if
+                            ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))
                              ) ;lib
                              (name "")
                             ) ;
-                            (set! name
-                              (string-append name
-                                (symbol->string (car lib))
-                              ) ;string-append
-                            ) ;set!
+                            (set! name (string-append name (symbol->string (car lib))))
                             (if (null? (cdr lib))
                               (string-append name ".scm")
                               (begin
@@ -65,13 +48,10 @@
                           ) ;let
             ) ;lib-filename
            ) ;
-        (when (not (defined? (symbol (object->string (car libs)))
-                   ) ;defined?
-              ) ;not
+        (when (not (defined? (symbol (object->string (car libs)))))
           (load lib-filename)
         ) ;when
-        (r7rs-import-library-filename (cdr libs)
-        ) ;r7rs-import-library-filename
+        (r7rs-import-library-filename (cdr libs))
       ) ;let
     ) ;when
   ) ;define

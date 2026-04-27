@@ -9,10 +9,7 @@
     ;; parameters
     ;;   s7 has no built-in parameter objects
     (define* (make-parameter init converter)
-      (let* ((convert (or converter (lambda (x) x)))
-             (old-values ())
-             (value (convert init))
-            ) ;
+      (let* ((convert (or converter (lambda (x) x))) (old-values ()) (value (convert init)))
         (lambda () value)
       ) ;let*
     ) ;define*
