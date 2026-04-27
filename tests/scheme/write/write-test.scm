@@ -33,26 +33,14 @@
   ) ;let
 ) ;define
 (check-true (procedure? write))
-(check (capture-output (lambda (port) (write '(1 2 3) port))
-       ) ;capture-output
-  =>
-  "(1 2 3)"
-) ;check
-(check (capture-output (lambda (port) (write "goldfish" port))
-       ) ;capture-output
+(check (capture-output (lambda (port) (write '(1 2 3) port))) => "(1 2 3)")
+(check (capture-output (lambda (port) (write "goldfish" port)))
   =>
   "\"goldfish\""
 ) ;check
-(check (capture-output (lambda (port)
-                         (write 'hello-world port)
-                       ) ;lambda
-       ) ;capture-output
+(check (capture-output (lambda (port) (write 'hello-world port)))
   =>
   "hello-world"
 ) ;check
-(check (capture-output (lambda (port) (write 42 port))
-       ) ;capture-output
-  =>
-  "42"
-) ;check
+(check (capture-output (lambda (port) (write 42 port))) => "42")
 (check-report)
