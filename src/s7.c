@@ -20368,7 +20368,37 @@ s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
       is_char_whitespace(cp) = false;
       is_char_uppercase(cp) = false;
       is_char_lowercase(cp) = false;
-      character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      if (c < 32 || (c >= 127 && c < 160))
+        character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      else
+        {
+          char buf[12];
+          int len = 2;
+          buf[0] = '#';
+          buf[1] = '\\';
+          if (c < 0x80)
+            buf[len++] = c;
+          else if (c < 0x800)
+            {
+              buf[len++] = 0xC0 | (c >> 6);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else if (c < 0x10000)
+            {
+              buf[len++] = 0xE0 | (c >> 12);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else
+            {
+              buf[len++] = 0xF0 | (c >> 18);
+              buf[len++] = 0x80 | ((c >> 12) & 0x3F);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          character_name_length(cp) = len;
+          memcpy((void *)(&(character_name(cp))), buf, len);
+        }
       s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
       return(cp);
     }

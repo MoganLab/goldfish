@@ -1,5 +1,6 @@
 (import (liii check) (scheme write))
 (check-set-mode! 'report-failed)
+
 ;; write
 ;; 将对象按可读回的 Scheme 表示写入输出端口。
 ;;
@@ -26,21 +27,30 @@
 ;; 1. `write` 面向"可读回"的文本表示。
 ;; 2. 字符串会带双引号。
 ;; 3. 列表、符号等按 Scheme 语法形式输出。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)
     (get-output-string port)
   ) ;let
 ) ;define
+
 (check-true (procedure? write))
+
 (check (capture-output (lambda (port) (write '(1 2 3) port))) => "(1 2 3)")
+
 (check (capture-output (lambda (port) (write "goldfish" port)))
   =>
   "\"goldfish\""
 ) ;check
+
 (check (capture-output (lambda (port) (write 'hello-world port)))
   =>
   "hello-world"
 ) ;check
+
 (check (capture-output (lambda (port) (write 42 port))) => "42")
+
+(check (capture-output (lambda (port) (write #\中 port))) => "#\\中")
+
 (check-report)
