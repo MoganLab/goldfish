@@ -3444,6 +3444,7 @@ display_help () {
   cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
   cout << "  -I DIR             Prepend DIR to library search path" << endl;
   cout << "  -A DIR             Append DIR to library search path" << endl;
+  cout << "  -e CODE            Alias for eval CODE" << endl;
   cout << endl;
   cout << "If no command is specified, help is displayed by default." << endl;
 }
@@ -4713,7 +4714,7 @@ parse_mode_option (int argc, char** argv, const std::string& default_mode= "defa
 
 static bool
 is_legacy_cli_command (const string& arg) {
-  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v";
+  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v" || arg == "-e";
 }
 
 static string
@@ -5206,6 +5207,12 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 如果没有找到命令或没有参数，使用 help 命令
   if (argc <= 1 || command.empty ()) {
     command = "help";
+  }
+  if (command == "-e") {
+    command = "eval";
+    if (command_index >= 0 && command_index < static_cast<int> (command_args.size ())) {
+      command_args[command_index] = "eval";
+    }
   }
 
   // 根据命令类型确定默认模式：

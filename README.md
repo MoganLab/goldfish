@@ -96,7 +96,7 @@ Goldfish Scheme uses subcommands for different operations:
 |------------|-------------|
 | `help` | Display help message |
 | `version` | Display version information |
-| `eval CODE` | Evaluate Scheme code |
+| `eval CODE`, `-e CODE` | Evaluate Scheme code |
 | `load FILE` | Load Scheme file and enter REPL |
 | `repl` | Enter interactive REPL mode |
 | `run TARGET` | Run main function from target |
@@ -129,9 +129,11 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### Evaluate Code
-`eval` subcommand helps you evaluate Scheme code on the fly. Use single quotes around `CODE` in the shell so double quotes inside Scheme strings usually do not need escaping:
+`eval` subcommand, or the `-e` alias, helps you evaluate Scheme code on the fly. Use single quotes around `CODE` in the shell so double quotes inside Scheme strings usually do not need escaping:
 ```
 > gf eval '(+ 1 2)'
+3
+> gf -e '(+ 1 2)'
 3
 > gf eval '(begin (import (srfi srfi-1)) (first (list 1 2 3)))'
 1
