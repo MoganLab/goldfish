@@ -36,6 +36,13 @@
 ;; out-of-range 当k大于字符串长度或k为负数时
 ;; wrong-type-arg 当str不是字符串类型或k不是整数类型时
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-take-right 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-take-right"
+
 (check (string-take-right "MathAgape" 0)
   =>
   ""

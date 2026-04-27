@@ -33,6 +33,10 @@
 ;; 与substring函数不同，string-copy始终返回新的字符串对象，
 ;; 而substring在某些实现中可能会返回源字符串本身（当子串与源字符串相同时）。
 ;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 提供了 string-copy/cursors，支持使用游标参数进行字符串复制。
+;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当str不是字符串类型时

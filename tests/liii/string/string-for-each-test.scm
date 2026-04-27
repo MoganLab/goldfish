@@ -32,6 +32,10 @@
 ;; ----
 ;; wrong-type-arg 当proc不是过程类型时
 ;; type-error 当str不是字符串类型时
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 提供了 string-for-each-cursor，支持使用游标遍历字符串。
 
 (check (let ((result '()))
          (string-for-each (lambda (c)

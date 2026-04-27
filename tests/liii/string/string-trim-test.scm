@@ -61,6 +61,13 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-trim 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-trim"
+
 (check (string-trim "  hello  ")
   =>
   "hello  "

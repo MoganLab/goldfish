@@ -186,6 +186,13 @@
 (check-true (string-any char-alphabetic? "123a")
 ) ;check-true
 
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-any 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-any"
+
 (check (catch 'out-of-range
          (lambda ()
            (string-any char-alphabetic?

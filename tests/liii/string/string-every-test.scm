@@ -52,6 +52,12 @@
 ;; wrong-type-arg 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; wrong-type-arg 当str不是字符串时
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 库中也提供了 string-every 函数，
+;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
+;; 参见: gf doc liii/string-cursor "string-every"
 
 ;; 基本功能测试
 (check-true (string-every #\x "xxxxxx"))
