@@ -101,7 +101,7 @@ brew uninstall goldfish
 |------------|-------------|
 | `help` | 显示帮助信息 |
 | `version` | 显示版本信息 |
-| `eval CODE` | 求值 Scheme 代码 |
+| `eval CODE`, `-e CODE` | 求值 Scheme 代码 |
 | `load FILE` | 加载 Scheme 文件并进入 REPL |
 | `repl` | 进入交互式 REPL 模式 |
 | `run TARGET` | 从目标运行 main 函数 |
@@ -134,9 +134,11 @@ based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
 ### 求值代码
-`eval` 子命令帮助您即时求值 Scheme 代码。Shell 中建议用单引号包住 `CODE`，这样 Scheme 字符串里的双引号通常不用转义：
+`eval` 子命令或 `-e` 别名帮助您即时求值 Scheme 代码。Shell 中建议用单引号包住 `CODE`，这样 Scheme 字符串里的双引号通常不用转义：
 ```
 > gf eval '(+ 1 2)'
+3
+> gf -e '(+ 1 2)'
 3
 > gf eval '(begin (import (srfi srfi-1)) (first (list 1 2 3)))'
 1

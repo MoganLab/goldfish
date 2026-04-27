@@ -210,6 +210,9 @@
         (display-command-line "-A DIR"
           "Append DIR to library search path"
         ) ;display-command-line
+        (display-command-line "-e CODE"
+          "Alias for eval CODE"
+        ) ;display-command-line
         (newline)
         (display "Type 'gf help <command>' for more information on a specific command."
         ) ;display
