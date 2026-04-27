@@ -106,6 +106,7 @@ target ("goldfish") do
     add_files ("src/s7.c", {languages = "c11"})
     add_files ("src/s7_scheme_complex.c", {languages = "c11"})
     add_files ("src/s7_scheme_char.c", {languages = "c11"})
+    add_files ("src/s7_scheme_write.c", {languages = "c11"})
     add_files ("src/s7_liii_bitwise.c", {languages = "c11"})
     add_files ("src/s7_liii_string.c", {languages = "c11"})
     add_files ("src/s7_liii_hash_table.c", {languages = "c11"})
