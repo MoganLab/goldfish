@@ -46,29 +46,42 @@
     (define (json-string-escape str)
       (let ((out (open-output-string)))
         (write-char #\" out)
-        (let loop
-          ((i 0))
-          (if (= i (string-length str))
-            (begin
-              (write-char #\" out)
-              (get-output-string out)
-            ) ;begin
-            (let ((c (string-ref str i)))
-              (case c
-               ((#\") (display "\\\"" out))
-               ((#\\) (display "\\\\" out))
-               ((#\/) (display "\\/" out))
-               ((#\backspace) (display "\\b" out))
-               ((#\xc) (display "\\f" out))
-               ((#\newline) (display "\\n" out))
-               ((#\return) (display "\\r" out))
-               ((#\tab) (display "\\t" out))
-               (else (write-char c out))
-              ) ;case
-              (loop (+ i 1))
-            ) ;let
-          ) ;if
-        ) ;let
+        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+          (let loop
+            ((i 0))
+            (if (>= i len)
+              (begin
+                (write-char #\" out)
+                (get-output-string out)
+              ) ;begin
+              (let ((next (bytevector-advance-utf8 bv i len)))
+                (cond ((= next i) (loop (+ i 1)))
+                      ((= next (+ i 1))
+                       (let ((c (integer->char (bytevector-u8-ref bv i))))
+                         (case c
+                          ((#\") (display "\\\"" out))
+                          ((#\\) (display "\\\\" out))
+                          ((#\/) (display "\\/" out))
+                          ((#\backspace) (display "\\b" out))
+                          ((#\xc) (display "\\f" out))
+                          ((#\newline) (display "\\n" out))
+                          ((#\return) (display "\\r" out))
+                          ((#\tab) (display "\\t" out))
+                          (else (write-char c out))
+                         ) ;case
+                         (loop next)
+                       ) ;let
+                      ) ;
+                      (else
+                        ;; 多字节 UTF-8 字符，直接输出原始字节
+                        (display (copy bv (make-string (- next i)) i next) out)
+                        (loop next)
+                      ) ;else
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let*
       ) ;let
     ) ;define
 
