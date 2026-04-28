@@ -19,6 +19,7 @@
           (liii sys)
           (liii path)
           (liii string)
+          (liii argparse)
           (srfi srfi-13)
           (liii raw-string)
           (liii goldfmt-scan)
@@ -136,67 +137,73 @@
                   (else
                     (loop (+ i 1) total updated))))))))
     
-    ;;; 检查列表中是否包含某个元素
-    (define (contains? lst item)
-      (if (null? lst)
-          #f
-          (or (string=? (car lst) item)
-              (contains? (cdr lst) item))))
-    
-    ;;; 从参数列表中提取非标志参数（位置参数）
-    (define (extract-positional args)
-      (cond
-        ((null? args) "")
-        ((or (string=? (car args) "-h") 
-             (string=? (car args) "--help")
-             (string=? (car args) "--dry-run"))
-         (extract-positional (cdr args)))
-        (else (car args))))
-    
+    (define (make-fmt-arg-parser)
+      (let ((parser (make-argument-parser
+                      '((command . "fmt")
+                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
+                        (skip-prefix-options . ("-m=" "--mode="))
+                        (unknown-options . positional)))))
+        (parser :add-argument
+          '((name . "help") (short . "h") (action . store-true))
+        ) ;parser
+        (parser :add-argument
+          '((name . "dry-run") (action . store-true))
+        ) ;parser
+        parser
+      ) ;let
+    ) ;define
+
+    (define (first-positional parser)
+      (let ((positionals (parser :positionals)))
+        (if (null? positionals) "" (car positionals))
+      ) ;let
+    ) ;define
+
     ;;; 主入口函数
     (define (main)
-      (let* ((args (cddr (argv)))  ; 跳过 "gf" 和 "fmt"
-             (help-flag (or (contains? args "-h") (contains? args "--help")))
-             (dry-run (contains? args "--dry-run"))
-             (path-str (extract-positional args)))
-        (cond
-          ; 显示帮助
-          ((or help-flag (string=? path-str ""))
-           (display-help)
-           #t)
-            ; 处理单个文件
-            ((path-file? (path path-str))
-             (if dry-run
-                 (format-file-dry-run path-str)
-                 (begin
-                   (display (string-append "Processing: " path-str))
-                   (newline)
-                   (let ((changed? (format-file path-str)))
-                     (if changed?
-                         (begin
-                           (display (string-append "  Updated: " path-str))
-                           (newline))
-                         '())
-                     (display (string-append "Total files processed: 1, Files updated: " (if changed? "1" "0")))
+      (let ((parser (make-fmt-arg-parser)))
+        (parser :parse-argv (argv))
+        (let ((help-flag (parser 'help))
+              (dry-run (parser 'dry-run))
+              (path-str (first-positional parser)))
+          (cond
+            ; 显示帮助
+            ((or help-flag (string=? path-str ""))
+             (display-help)
+             #t)
+              ; 处理单个文件
+              ((path-file? (path path-str))
+               (if dry-run
+                   (format-file-dry-run path-str)
+                   (begin
+                     (display (string-append "Processing: " path-str))
                      (newline)
-                     #t))))
-           ; 处理目录（不支持 --dry-run）
-           ((path-dir? (path path-str))
-            (if dry-run
-                (begin
-                  (display "错误: --dry-run 选项仅支持单个文件")
-                  (newline)
-                  (exit 1))
-                (call-with-values
-                  (lambda () (format-directory path-str))
-                  (lambda (total updated)
-                    (display (string-append "Total files processed: " (number->string total) ", Files updated: " (number->string updated)))
+                     (let ((changed? (format-file path-str)))
+                       (if changed?
+                           (begin
+                             (display (string-append "  Updated: " path-str))
+                             (newline))
+                           '())
+                       (display (string-append "Total files processed: 1, Files updated: " (if changed? "1" "0")))
+                       (newline)
+                       #t))))
+             ; 处理目录（不支持 --dry-run）
+             ((path-dir? (path path-str))
+              (if dry-run
+                  (begin
+                    (display "错误: --dry-run 选项仅支持单个文件")
                     (newline)
-                    #t))))
-          ; 路径不存在
-          (else
-           (display (string-append "错误: 路径不存在 - " path-str))
-           (newline)
-           (exit 1)))))
+                    (exit 1))
+                  (call-with-values
+                    (lambda () (format-directory path-str))
+                    (lambda (total updated)
+                      (display (string-append "Total files processed: " (number->string total) ", Files updated: " (number->string updated)))
+                      (newline)
+                      #t))))
+            ; 路径不存在
+            (else
+             (display (string-append "错误: 路径不存在 - " path-str))
+             (newline)
+             (exit 1))))))
   ) ;begin
 ) ;define-library

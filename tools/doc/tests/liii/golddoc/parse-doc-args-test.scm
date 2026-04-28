@@ -90,4 +90,11 @@
   '(invalid "liii/string" "string-split" "extra")
 ) ;check
 
+
+(check (parse-doc-args '("bin/gf" "--mode=liii" "doc" "liii/string")
+       ) ;parse-doc-args
+  =>
+  '(library "liii/string")
+) ;check
+
 (check-report)

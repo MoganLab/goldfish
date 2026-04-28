@@ -17,6 +17,8 @@
 (define-library (liii goldversion)
   (import (scheme base)
           (scheme write)
+          (liii argparse)
+          (liii sys)
   ) ;import
   (export main
           display-version
@@ -32,7 +34,13 @@
 
     (define (main)
       "Main entry point for version command"
-      (display-version))
+      (let ((parser (make-argument-parser
+                      '((command . "version")
+                        (unknown-options . positional)))))
+        (parser :parse-argv (argv))
+        (display-version)
+      ) ;let
+    ) ;define
 
   ) ;begin
 ) ;define-library

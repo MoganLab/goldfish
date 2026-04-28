@@ -154,4 +154,9 @@
          '(pattern . "/tmp/test.scm"))
 ) ;check
 
+
+(check (parse-test-args '("bin/gf" "--mode=liii" "json"))
+  => '(pattern . "json")
+) ;check
+
 (check-report)

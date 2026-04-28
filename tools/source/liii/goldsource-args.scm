@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldsource-args)
-  (import (scheme base) (liii string))
+  (import (scheme base) (liii string) (liii argparse))
   (export parse-source-args
     library-query?
     parse-library-query
@@ -60,40 +60,13 @@
     ) ;define
 
     (define (parse-source-args args)
-      (let loop
-        ((remaining (cdr args))
-         (skip-next #f)
-         (filtered '())
-        ) ;
-        (if (null? remaining)
-          (classify-source-args (reverse filtered)
-          ) ;classify-source-args
-          (let ((arg (car remaining)))
-            (cond (skip-next (loop (cdr remaining) #f filtered)
-                  ) ;skip-next
-                  ((string=? arg "source")
-                   (loop (cdr remaining) #f filtered)
-                  ) ;
-                  ((or (string=? arg "-m")
-                     (string=? arg "--mode")
-                     (string=? arg "-I")
-                     (string=? arg "-A")
-                   ) ;or
-                   (loop (cdr remaining) #t filtered)
-                  ) ;
-                  ((or (string-starts? arg "-m=")
-                     (string-starts? arg "--mode=")
-                   ) ;or
-                   (loop (cdr remaining) #f filtered)
-                  ) ;
-                  (else (loop (cdr remaining)
-                          #f
-                          (cons arg filtered)
-                        ) ;loop
-                  ) ;else
-            ) ;cond
-          ) ;let
-        ) ;if
+      (let ((parser (make-argument-parser
+                      '((command . "source")
+                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
+                        (skip-prefix-options . ("-m=" "--mode="))
+                        (unknown-options . positional)))))
+        (parser :parse-argv args)
+        (classify-source-args (parser :positionals))
       ) ;let
     ) ;define
 
