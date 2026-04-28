@@ -16,6 +16,26 @@
   ) ;let
 ) ;define
 
+(define (remove-tree target)
+  (cond ((path-file? target) (path-unlink target #t))
+        ((path-dir? target)
+         (let ((entries (path-list-path target)))
+           (let loop
+             ((i 0))
+             (if (< i (vector-length entries))
+               (begin
+                 (remove-tree (vector-ref entries i))
+                 (loop (+ i 1))
+               ) ;begin
+               #t
+             ) ;if
+           ) ;let
+         ) ;let
+         (path-rmdir target)
+        ) ;
+  ) ;cond
+) ;define
+
 (define original-cwd (getcwd))
 (define repo-dir
   (path->string (path-join (path-temp-dir)
@@ -24,11 +44,7 @@
   ) ;path->string
 ) ;define
 
-(dynamic-wind (lambda ()
-                (os-call (string-append "rm -rf " repo-dir))
-                (mkdir repo-dir)
-                (chdir repo-dir)
-              ) ;lambda
+(dynamic-wind (lambda () (remove-tree repo-dir) (mkdir repo-dir) (chdir repo-dir))
   (lambda ()
     (must "git init -q")
     (must "git config user.email goldfish-test@example.com")
@@ -61,7 +77,7 @@
 
     (check (changed-scheme-files-since "HEAD" "sub") => '("sub/c.scm"))
   ) ;lambda
-  (lambda () (chdir original-cwd) (os-call (string-append "rm -rf " repo-dir)))
+  (lambda () (chdir original-cwd) (remove-tree repo-dir))
 ) ;dynamic-wind
 
 (check-report)

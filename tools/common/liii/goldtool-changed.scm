@@ -10,7 +10,7 @@
   ) ;export
   (begin
 
-    (define (shell-quote value)
+    (define (posix-shell-quote value)
       (let ((text (if (string? value) value (path->string value))))
         (let loop
           ((chars (string->list text)) (pieces '("'")))
@@ -26,6 +26,16 @@
       ) ;let
     ) ;define
 
+    (define (windows-shell-quote value)
+      (let ((text (if (string? value) value (path->string value))))
+        (string-append "\"" (string-replace text "\"" "\\\"") "\"")
+      ) ;let
+    ) ;define
+
+    (define (shell-quote value)
+      (if (os-windows?) (windows-shell-quote value) (posix-shell-quote value))
+    ) ;define
+
     (define (changed-output-path)
       (path->string (path-join (path-temp-dir)
                       (string-append "goldfish-changed-" (number->string (getpid)) ".txt")
@@ -34,7 +44,7 @@
     ) ;define
 
     (define (run-shell command)
-      (os-call (if (os-windows?) command (string-append "sh -c " (shell-quote command)))
+      (os-call (if (os-windows?) command (string-append "sh -c " (posix-shell-quote command)))
       ) ;os-call
     ) ;define
 
