@@ -196,7 +196,32 @@
                (default-syms (map (lambda (x) (gensym "default")) processed))
                (env-sym (gensym "env"))
               ) ;
-          `(begin ,@(map (lambda (p ds) `(define ,ds ,(cadr p))) processed default-syms) ,@(map (lambda (p ds) `(define ,(car p) (,make-environment-variable (quote ,(car p)) ,ds ,(caddr p) ,(cadddr p)))) processed default-syms) (define (,make-environment) (let ((,env-sym (make-vector ,(+ n 2)))) (,environment-set-global! ,env-sym (make-hash-table variable-comparator)) (,environment-set-local! ,env-sym (#_quote ())) ,@(map (lambda (p ds) `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds))) processed default-syms) ,env-sym)) (define (,run computation) (,execute computation (,make-environment))))
+          `(begin
+             ,@(map (lambda (p ds) `(define ,ds ,(cadr p)))
+                 processed
+                 default-syms)
+             ,@(map (lambda (p ds)
+                      `(define ,(car p)
+                         (,make-environment-variable
+                          (quote ,(car p))
+                          ,ds
+                          ,(caddr p)
+                          ,(cadddr p))))
+                 processed
+                 default-syms)
+             (define (,make-environment)
+               (let ((,env-sym (make-vector ,(+ n 2))))
+                 (,environment-set-global!
+                  ,env-sym
+                  (make-hash-table variable-comparator))
+                 (,environment-set-local! ,env-sym (#_quote ()))
+                 ,@(map (lambda (p ds)
+                          `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds)))
+                     processed
+                     default-syms)
+                 ,env-sym))
+             (define (,run computation)
+               (,execute computation (,make-environment))))
         ) ;let*
       ) ;letrec
     ) ;define-macro
@@ -346,7 +371,14 @@
                (vars (map cadr parsed))
                (tmps (map caddr parsed))
               ) ;
-          `(let ,(map list tmps vars) (computation-bind (computation-ask) (lambda (,env-sym) (let ,(map (lambda (id tmp) `(,id (computation-environment-ref ,env-sym ,tmp))) ids tmps) ,@body))))
+          `(let ,(map list tmps vars)
+             (computation-bind (computation-ask)
+               (lambda (,env-sym)
+                 (let ,(map (lambda (id tmp)
+                              `(,id (computation-environment-ref ,env-sym ,tmp)))
+                         ids
+                         tmps)
+                   ,@body))))
         ) ;let*
       ) ;let
     ) ;define-macro
@@ -357,7 +389,14 @@
               (val-tmps (map (lambda (b) (gensym "val")) bindings))
               (comp-tmps (map (lambda (c) (gensym "comp")) comps))
              ) ;
-          `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps) (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps) (map (lambda (c ct) `(,ct ,c)) comps comp-tmps)) (computation-local (lambda (env) (computation-environment-update env ,@(apply append (map list var-tmps val-tmps)))) (computation-each ,@comp-tmps)))
+          `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps)
+                   (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps)
+                   (map (lambda (c ct) `(,ct ,c)) comps comp-tmps))
+             (computation-local (lambda (env)
+                                  (computation-environment-update env
+                                    ,@(apply append
+                                        (map list var-tmps val-tmps))))
+               (computation-each ,@comp-tmps)))
         ) ;let
       ) ;let
     ) ;define-macro
@@ -367,7 +406,15 @@
             (val-tmps (map (lambda (b) (gensym "val")) bindings))
             (env-sym (gensym "env"))
            ) ;
-        `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps) (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps)) (computation-bind (computation-ask) (lambda (,env-sym) ,@(map (lambda (vt val-t) `(computation-environment-update! ,env-sym ,vt ,val-t)) var-tmps val-tmps) (computation-pure (if #f #f)))))
+        `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps)
+                 (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps))
+           (computation-bind (computation-ask)
+             (lambda (,env-sym)
+               ,@(map (lambda (vt val-t)
+                        `(computation-environment-update! ,env-sym ,vt ,val-t))
+                   var-tmps
+                   val-tmps)
+               (computation-pure (if #f #f)))))
       ) ;let
     ) ;define-macro
 

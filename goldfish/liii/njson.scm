@@ -134,7 +134,18 @@
                (released? (gensym "njson-released?"))
               ) ;
           ;; Ignore type-error in the finalizer so callers can free inside body safely.
-          `(let ((,var ,value-expr)) (if (njson? ,var) (let ((,released? ,#f)) (dynamic-wind (lambda () #f) (lambda ,() ,inner) (lambda ,() (when (not ,released?) (set! ,released? ,#t) (catch (#_quote type-error) (lambda ,() (njson-free ,var)) (lambda args #f)))))) ,inner))
+          `(let ((,var ,value-expr))
+             (if (njson? ,var)
+               (let ((,released? ,#f))
+                 (dynamic-wind (lambda () #f)
+                   (lambda ,() ,inner)
+                   (lambda ,()
+                     (when (not ,released?)
+                       (set! ,released? ,#t)
+                       (catch (#_quote type-error)
+                         (lambda ,() (njson-free ,var))
+                         (lambda args #f))))))
+               ,inner))
         ) ;let*
       ) ;if
     ) ;define
@@ -143,7 +154,8 @@
       (let ((bindings (njson%%normalize-bindings binding)))
         (if bindings
           (njson%%expand-with-value-bindings bindings body)
-          `(type-error ,"let-njson: expected (var value) or non-empty ((var value) ...)" (quote ,binding))
+          `(type-error ,"let-njson: expected (var value) or non-empty ((var value) ...)"
+             (quote ,binding))
         ) ;if
       ) ;let
     ) ;define-macro

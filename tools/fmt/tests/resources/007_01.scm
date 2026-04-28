@@ -1,0 +1,3 @@
+`(begin
+
+  (define ,name ,value))

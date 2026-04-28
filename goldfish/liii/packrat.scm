@@ -371,14 +371,23 @@
     (define-macro (packrat-parser start-nt . nonterminal-defs)
       (letrec ((parse-nonterminal (lambda (nt-def)
                                     (let ((nt (car nt-def)))
-                                      `(define ,nt (lambda (results) (results->result results (quote ,nt) (lambda ,() (,(parse-alternatives nt (cdr nt-def)) results)))))
+                                      `(define ,nt
+                                         (lambda (results)
+                                           (results->result results
+                                             (quote ,nt)
+                                             (lambda ,()
+                                               (,(parse-alternatives nt
+                                                   (cdr nt-def))
+                                                results)))))
                                     ) ;let
                                   ) ;lambda
                ) ;parse-nonterminal
                (parse-alternatives (lambda (nt alts)
                                      (if (null? (cdr alts))
                                        (parse-alternative nt (car alts))
-                                       `(packrat-or ,(parse-alternative nt (car alts)) ,(parse-alternatives nt (cdr alts)))
+                                       `(packrat-or ,(parse-alternative nt
+                                                       (car alts))
+                                          ,(parse-alternatives nt (cdr alts)))
                                      ) ;if
                                    ) ;lambda
                ) ;parse-alternatives
@@ -399,24 +408,42 @@
                                 ;;           (('c) 'ok)))
                                 (case* pattern
                                  ((((! #<fails:...>) #<rest:...>))
-                                  `(packrat-unless (string-append ,"Nonterminal " (symbol->string (quote ,nt)) ," expected to fail " (object->external-representation #<fails>)) ,(parse-pattern nt #t #<fails>) ,(parse-pattern nt body #<rest>))
+                                  `(packrat-unless (string-append ,"Nonterminal "
+                                                     (symbol->string (quote ,nt))
+                                                     ," expected to fail "
+                                                     (object->external-representation #<fails>))
+                                     ,(parse-pattern nt #t #<fails>)
+                                     ,(parse-pattern nt body #<rest>))
                                  ) ;
                                  (((#<var:> <- #<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car (#_quote (#<val>))) (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                                  `(packrat-check-base ,(car (#_quote (#<val>)))
+                                     (lambda (#<var>)
+                                       ,(parse-pattern nt body #<rest>)))
                                  ) ;
                                  (((#<var:> <- ^ #<rest:...>))
-                                  `(lambda (results) (let ((#<var> (parse-results-position results))) (,(parse-pattern nt body #<rest>) results)))
+                                  `(lambda (results)
+                                     (let ((#<var>
+                                            (parse-results-position results)))
+                                       (,(parse-pattern nt body #<rest>)
+                                        results)))
                                  ) ;
                                  (((#<var:> <- #<val:> #<rest:...>))
-                                  `(packrat-check ,(car (#_quote (#<val>))) (lambda (#<var>) ,(parse-pattern nt body #<rest>)))
+                                  `(packrat-check ,(car (#_quote (#<val>)))
+                                     (lambda (#<var>)
+                                       ,(parse-pattern nt body #<rest>)))
                                  ) ;
                                  (((#<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car (#_quote (#<val>))) (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                                  `(packrat-check-base ,(car (#_quote (#<val>)))
+                                     (lambda (dummy)
+                                       ,(parse-pattern nt body #<rest>)))
                                  ) ;
                                  (((#<val:> #<rest:...>))
-                                  `(packrat-check ,(car (#_quote (#<val>))) (lambda (dummy) ,(parse-pattern nt body #<rest>)))
+                                  `(packrat-check ,(car (#_quote (#<val>)))
+                                     (lambda (dummy)
+                                       ,(parse-pattern nt body #<rest>)))
                                  ) ;
-                                 ((() #<>) `(lambda (results) (make-result ,body results)))
+                                 ((() #<>) `(lambda (results)
+                                              (make-result ,body results)))
                                  (else (type-error? 'wrong-type-arg))
                                 ) ;case*
                               ) ;lambda
@@ -438,12 +465,30 @@
     ) ;define
 
     (define-macro (packrat-lambda-alt bindings . body)
-      `(packrat-lambda*-alt succeed fail ,bindings (let ((value (begin ,@body))) (succeed value)))
+      `(packrat-lambda*-alt succeed
+         fail
+         ,bindings
+         (let ((value (begin ,@body))) (succeed value)))
     ) ;define-macro
 
     (define-macro (packrat-lambda*-alt succeed fail bindings . body)
       (let ((bindings-list (cadr bindings)))
-        `(make-packrat-parse-pattern (#_quote ()) (lambda (bindings results ks kf) (let ((,succeed (lambda (value) (ks bindings (make-result value results)))) (,fail (lambda (error-maker . args) (kf (apply error-maker (parse-results-position results) args)))) ,@(map (lambda (binding) `(,binding (cond ((assq (quote ,binding) bindings) => cdr) (else (error ,"Missing binding" (quote ,binding)))))) bindings-list)) ,@body)))
+        `(make-packrat-parse-pattern (#_quote ())
+           (lambda (bindings results ks kf)
+             (let ((,succeed
+                    (lambda (value) (ks bindings (make-result value results))))
+                   (,fail
+                    (lambda (error-maker . args)
+                      (kf (apply error-maker
+                            (parse-results-position results)
+                            args))))
+                   ,@(map (lambda (binding)
+                            `(,binding
+                              (cond ((assq (quote ,binding) bindings) => cdr)
+                                    (else (error ,"Missing binding"
+                                            (quote ,binding))))))
+                       bindings-list))
+               ,@body)))
       ) ;let
     ) ;define-macro
 

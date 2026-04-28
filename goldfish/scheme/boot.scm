@@ -26,14 +26,36 @@
 ) ;define
 
 (define-macro (define-library libname . body)
-  `(define ,(symbol (object->string libname)) (with-let (sublet (unlet) (cons (#_quote import) import) (cons (#_quote *export*) ()) (cons (#_quote export) (define-macro (,(gensym) . names) (#_list-values (#_quote set!) (#_quote *export*) (#_list-values (#_quote append) (#_list-values #_quote names) (#_quote *export*)))))) ,@body (apply inlet (map (lambda (entry) (if (or (member (car entry) (#_quote (*export* export import))) (and (pair? *export*) (not (member (car entry) *export*)))) (values) entry)) (curlet)))))
+  `(define ,(symbol (object->string libname))
+     (with-let (sublet (unlet)
+                 (cons (#_quote import) import)
+                 (cons (#_quote *export*) ())
+                 (cons (#_quote export)
+                   (define-macro (,(gensym) . names)
+                     (#_list-values
+                      (#_quote set!)
+                      (#_quote *export*)
+                      (#_list-values
+                       (#_quote append)
+                       (#_list-values #_quote names)
+                       (#_quote *export*))))))
+       ,@body
+       (apply inlet
+         (map (lambda (entry)
+                (if (or (member (car entry) (#_quote (*export* export import)))
+                      (and (pair? *export*) (not (member (car entry) *export*))))
+                  (values)
+                  entry))
+           (curlet)))))
 ) ;define-macro
 
 (unless (defined? 'r7rs-import-library-filename)
   (define (r7rs-import-library-filename libs)
     (when (pair? libs)
       (let ((lib-filename (let loop
-                            ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))
+                            ((lib (if (memq (caar libs) '(only except
+                                                           prefix
+                                                           rename)) (cadar libs) (car libs))
                              ) ;lib
                              (name "")
                             ) ;
@@ -58,5 +80,55 @@
 ) ;unless
 
 (define-macro (import . libs)
-  `(begin (r7rs-import-library-filename (quote ,libs)) (varlet (curlet) ,@(map (lambda (lib) (case (car lib) ((only) `((lambda (e names) (apply inlet (map (lambda (name) (cons name (e name))) names))) (symbol->value (symbol (object->string (cadr (quote ,lib))))) (cddr (quote ,lib)))) ((except) `((lambda (e names) (apply inlet (map (lambda (entry) (if (member (car entry) names) (values) entry)) e))) (symbol->value (symbol (object->string (cadr (quote ,lib))))) (cddr (quote ,lib)))) ((prefix) `((lambda (e prefx) (apply inlet (map (lambda (entry) (cons (string->symbol (string-append (symbol->string prefx) (symbol->string (car entry)))) (cdr entry))) e))) (symbol->value (symbol (object->string (cadr (quote ,lib))))) (caddr (quote ,lib)))) ((rename) `((lambda (e names) (apply inlet (map (lambda (entry) (let ((info (assoc (car entry) names))) (if info (cons (cadr info) (cdr entry)) entry))) e))) (symbol->value (symbol (object->string (cadr (quote ,lib))))) (cddr (quote ,lib)))) (else `(let ((sym (symbol (object->string (quote ,lib))))) (if (not (defined? sym)) (format () "~A not loaded~%" sym) (symbol->value sym)))))) libs)))
+  `(begin
+     (r7rs-import-library-filename (quote ,libs))
+     (varlet (curlet)
+       ,@(map (lambda (lib)
+                (case (car lib)
+                      ((only)
+                       `((lambda (e names)
+                           (apply inlet
+                             (map (lambda (name) (cons name (e name))) names)))
+                         (symbol->value (symbol (object->string (cadr (quote
+                                                                        ,lib)))))
+                         (cddr (quote ,lib))))
+                      ((except)
+                       `((lambda (e names)
+                           (apply inlet
+                             (map (lambda (entry)
+                                    (if (member (car entry) names)
+                                      (values)
+                                      entry))
+                               e)))
+                         (symbol->value (symbol (object->string (cadr (quote
+                                                                        ,lib)))))
+                         (cddr (quote ,lib))))
+                      ((prefix)
+                       `((lambda (e prefx)
+                           (apply inlet
+                             (map (lambda (entry)
+                                    (cons (string->symbol (string-append (symbol->string prefx)
+                                                            (symbol->string (car entry))))
+                                      (cdr entry)))
+                               e)))
+                         (symbol->value (symbol (object->string (cadr (quote
+                                                                        ,lib)))))
+                         (caddr (quote ,lib))))
+                      ((rename)
+                       `((lambda (e names)
+                           (apply inlet
+                             (map (lambda (entry)
+                                    (let ((info (assoc (car entry) names)))
+                                      (if info
+                                        (cons (cadr info) (cdr entry))
+                                        entry)))
+                               e)))
+                         (symbol->value (symbol (object->string (cadr (quote
+                                                                        ,lib)))))
+                         (cddr (quote ,lib))))
+                      (else `(let ((sym (symbol (object->string (quote ,lib)))))
+                               (if (not (defined? sym))
+                                 (format () "~A not loaded~%" sym)
+                                 (symbol->value sym))))))
+           libs)))
 ) ;define-macro
