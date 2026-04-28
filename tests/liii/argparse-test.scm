@@ -166,6 +166,22 @@
 ) ;let
 
 
+(let ((parser (make-argument-parser
+                '((command . "fmt")
+                  (skip-value-options . ("-m" "--mode" "-I" "-A"))
+                  (skip-prefix-options . ("-m=" "--mode="))
+                  (unknown-options . positional)))))
+  (parser :add-argument
+    '((name . "dry-run") (action . store-true))
+  ) ;parser
+  (parser :parse-argv
+    '("bin/gf" "fmt" "--dryrun" "file.scm")
+  ) ;parser
+  (check (parser 'dry-run) => #f)
+  (check (parser :positionals) => '("--dryrun" "file.scm"))
+) ;let
+
+
 (let ((parser (make-argument-parser)))
   (check-catch 'value-error
     (parser :parse-args '("--bad"))

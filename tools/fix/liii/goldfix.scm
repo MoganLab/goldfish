@@ -161,7 +161,7 @@
                       '((command . "fix")
                         (skip-value-options . ("-m" "--mode" "-I" "-A"))
                         (skip-prefix-options . ("-m=" "--mode="))
-                        (unknown-options . ignore)))))
+                        (unknown-options . positional)))))
         (parser :add-argument
           '((name . "help") (short . "h") (action . store-true))
         ) ;parser
