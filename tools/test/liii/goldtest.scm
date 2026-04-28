@@ -15,6 +15,29 @@
 ;; under the License.
 ;;
 
+(define (%goldtest-common-dirname path-str)
+  (let loop ((i (- (string-length path-str) 1)))
+    (cond ((< i 0) ".")
+          ((or (char=? (string-ref path-str i) #\/)
+               (char=? (string-ref path-str i) #\\))
+           (if (= i 0) "." (substring path-str 0 i))
+          ) ;
+          (else (loop (- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(set! *load-path*
+  (append (list "../common" "tools/common")
+    (map (lambda (root)
+           (string-append (%goldtest-common-dirname root) "/common")
+         ) ;lambda
+      *load-path*
+    ) ;map
+    *load-path*
+  ) ;append
+) ;set!
+
 (define-library (liii goldtest)
   (import (scheme base)
           (scheme process-context)
@@ -22,12 +45,15 @@
           (liii list)
           (liii string)
           (liii argparse)
+          (liii goldtool-changed)
           (liii os)
           (liii path)
           (liii sys)
   ) ;import
   (export parse-test-args
+          parse-test-changed-since
           filter-test-files
+          filter-changed-test-files
           find-test-files
           failed-test-files
           split-tests-target
@@ -155,12 +181,16 @@
     ) ;define
     
     (define (make-test-arg-parser)
-      (make-argument-parser
-        '((command . "test")
-          (skip-value-options . ("-m" "--mode"))
-          (skip-prefix-options . ("-m=" "--mode="))
-          (unknown-options . positional))
-      ) ;make-argument-parser
+      (let ((parser (make-argument-parser
+                      '((command . "test")
+                        (skip-value-options . ("-m" "--mode"))
+                        (skip-prefix-options . ("-m=" "--mode="))
+                        (unknown-options . positional)))))
+        (parser :add-argument
+          '((name . "changed-since") (type . string))
+        ) ;parser
+        parser
+      ) ;let
     ) ;define
 
     (define (classify-test-arg arg)
@@ -210,6 +240,13 @@
         ) ;let
       ) ;let
     ) ;define
+
+    (define (parse-test-changed-since args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (parser 'changed-since)
+      ) ;let
+    ) ;define
     
     (define (filter-test-files test-files arg-type arg-value)
       ;; 根据参数类型过滤测试文件
@@ -240,6 +277,23 @@
          test-files
         ) ;else
       ) ;case
+    ) ;define
+
+    (define (normalize-test-file-path file)
+      (if (os-windows?)
+        (string-replace file "\\" "/")
+        file
+      ) ;if
+    ) ;define
+
+    (define (filter-changed-test-files test-files since)
+      (let ((changed-files (changed-scheme-files-since since)))
+        (filter (lambda (file)
+                  (member (normalize-test-file-path file) changed-files)
+                ) ;lambda
+          test-files
+        ) ;filter
+      ) ;let
     ) ;define
     
     (define (display-filter-info arg-type arg-value)
@@ -359,13 +413,21 @@
           ) ;test
           ;; 跳过 -m/--mode 及其值
           ((or (equal? (car remaining) "-m") (equal? (car remaining) "--mode"))
-           (loop (cddr remaining) #f found-target)
+           (loop (if (null? (cdr remaining)) '() (cddr remaining)) #f found-target)
           ) ;-m/--mode
           ;; 跳过 -m=.../--mode=... 格式
           ((or (string-starts? (car remaining) "-m=")
                (string-starts? (car remaining) "--mode="))
            (loop (cdr remaining) #f found-target)
           ) ;-m=...
+          ;; 跳过 --changed-since 及其值
+          ((equal? (car remaining) "--changed-since")
+           (loop (if (null? (cdr remaining)) '() (cddr remaining)) #f found-target)
+          ) ;--changed-since
+          ;; 跳过 --changed-since=... 格式
+          ((string-starts? (car remaining) "--changed-since=")
+           (loop (cdr remaining) #f found-target)
+          ) ;--changed-since=...
           ;; 找到 target（第一个非选项参数）
           ((not found-target)
            (loop (cdr remaining) #f (car remaining))
@@ -381,28 +443,45 @@
     (define (run-goldtest)
       (let* ((raw-args (command-line))
              (args (check-and-switch-to-target raw-args))
+             (changed-since (parse-test-changed-since args))
              (parsed (parse-test-args args))
              (arg-type (car parsed))
              (arg-value (cdr parsed))
              (all-test-files (list-sort string<? (find-test-files "tests")))
-             (test-files (filter-test-files all-test-files arg-type arg-value)))
+             (filtered-test-files (filter-test-files all-test-files arg-type arg-value))
+             (test-files (if changed-since
+                           (filter-changed-test-files filtered-test-files changed-since)
+                           filtered-test-files
+                         ) ;if
+             ) ;test-files
+            ) ;
         (if (null? test-files)
           (begin
-            (if arg-value
+            (if changed-since
               (begin
-                (display (string-append YELLOW "No test files matching " arg-value RESET))
+                (display (string-append YELLOW "No test files changed since " changed-since RESET))
                 (newline)
               ) ;begin
-              (begin
-                (display (string-append YELLOW "No test files found in tests directory" RESET))
-                (newline)
-              ) ;begin
+              (if arg-value
+                (begin
+                  (display (string-append YELLOW "No test files matching " arg-value RESET))
+                  (newline)
+                ) ;begin
+                (begin
+                  (display (string-append YELLOW "No test files found in tests directory" RESET))
+                  (newline)
+                ) ;begin
+              ) ;if
             ) ;if
             (exit 0)
           ) ;begin
           (begin
             (when arg-value
               (display-filter-info arg-type arg-value)
+            ) ;when
+            (when changed-since
+              (display (string-append "Running changed tests since: " changed-since))
+              (newline)
             ) ;when
             (let ((test-results
                     (fold (lambda (test-file acc)
@@ -425,13 +504,16 @@
       (display "gf test - Goldfish Scheme Test Runner")
       (newline) (newline)
       (display "Usage:") (newline)
-      (display "  gf test [PATH|PATTERN]") (newline) (newline)
+      (display "  gf test [options] [PATH|PATTERN]") (newline) (newline)
+      (display "Options:") (newline)
+      (display "  --changed-since REV              Run tests changed since REV") (newline) (newline)
       (display "Examples:") (newline)
       (display "  gf test                          Run all tests") (newline)
       (display "  gf test tools/doc/tests/         Run tests in directory") (newline)
       (display "  gf test tests/liii/string/       Run tests in directory") (newline)
       (display "  gf test string-test.scm          Run specific test file") (newline)
-      (display "  gf test string                   Run tests matching pattern") (newline) (newline)
+      (display "  gf test string                   Run tests matching pattern") (newline)
+      (display "  gf test --changed-since=HEAD     Run changed test files") (newline) (newline)
       (display "Note:") (newline)
       (display "  If path contains /tests/, it will switch to parent directory") (newline)
       (display "  e.g., gf test tools/doc/tests/  =>  cd tools/doc && gf test tests/") (newline)

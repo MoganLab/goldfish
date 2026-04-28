@@ -159,4 +159,23 @@
   => '(pattern . "json")
 ) ;check
 
+
+;; ===== 场景13: --changed-since 不作为测试目标 =====
+(check (parse-test-args '("bin/gf" "test" "--changed-since=HEAD" "json"))
+  => '(pattern . "json")
+) ;check
+
+(check (parse-test-args '("bin/gf" "test" "--changed-since" "HEAD" "json-test.scm"))
+  => '(filename . "json-test.scm")
+) ;check
+
+(check (parse-test-changed-since '("bin/gf" "test" "--changed-since=HEAD" "json"))
+  => "HEAD"
+) ;check
+
+(check (parse-test-changed-since '("bin/gf" "test" "--changed-since" "HEAD" "json"))
+  => "HEAD"
+) ;check
+
+
 (check-report)
