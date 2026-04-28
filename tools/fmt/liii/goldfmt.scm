@@ -14,12 +14,36 @@
 ;; under the License.
 ;;
 
+(define (%goldfmt-common-dirname path-str)
+  (let loop ((i (- (string-length path-str) 1)))
+    (cond ((< i 0) ".")
+          ((or (char=? (string-ref path-str i) #\/)
+               (char=? (string-ref path-str i) #\\))
+           (if (= i 0) "." (substring path-str 0 i))
+          ) ;
+          (else (loop (- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(set! *load-path*
+  (append (list "../common" "tools/common")
+    (map (lambda (root)
+           (string-append (%goldfmt-common-dirname root) "/common")
+         ) ;lambda
+      *load-path*
+    ) ;map
+    *load-path*
+  ) ;append
+) ;set!
+
 (define-library (liii goldfmt)
   (import (liii base)
           (liii sys)
           (liii path)
           (liii string)
           (liii argparse)
+          (liii goldtool-changed)
           (srfi srfi-13)
           (liii raw-string)
           (liii goldfmt-scan)
@@ -40,7 +64,9 @@
       (newline)
       (display "  -h, --help       显示此帮助文档")
       (newline)
-      (display "      --dry-run    预览模式（仅支持单个文件）")
+      (display "      --dry-run    预览模式（不写回文件；目录路径不支持）")
+      (newline)
+      (display "      --changed-since REV    仅格式化自 REV 以来变更的 .scm 文件")
       (newline)
       (newline)
       (display "Arguments:")
@@ -57,6 +83,10 @@
       (display "  gf fmt file.scm              格式化单个文件")
       (newline)
       (display "  gf fmt --dry-run file.scm    预览格式化结果")
+      (newline)
+      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 .scm 文件")
+      (newline)
+      (display "  gf fmt --dry-run --changed-since=HEAD  预览变更文件的格式化结果")
       (newline)
       (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件")
       (newline))
@@ -104,6 +134,75 @@
                   (lambda (text positioned-node)
                     (loop (+ i 1) (cons text acc))))))))) 
     
+    ;;; 递归格式化指定文件列表
+    ;;; 返回值: (values total updated) - 处理的文件总数和更新的文件数
+    (define (format-file-list files dry-run)
+      (let loop ((remaining files) (total 0) (updated 0))
+        (if (null? remaining)
+          (values total updated)
+          (let ((file (car remaining)))
+            (display (string-append "Processing: " file))
+            (newline)
+            (if dry-run
+              (begin
+                (format-file-dry-run file)
+                (loop (cdr remaining) (+ total 1) updated)
+              ) ;begin
+              (let ((changed? (format-file file)))
+                (if changed?
+                  (begin
+                    (display (string-append "  Updated: " file))
+                    (newline)
+                    (loop (cdr remaining) (+ total 1) (+ updated 1))
+                  ) ;begin
+                  (loop (cdr remaining) (+ total 1) updated)
+                ) ;if
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (format-changed-since since path-str dry-run)
+      (let ((scope (if (string=? path-str "") #f path-str)))
+        (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
+               (display (string-append "错误: 路径不存在 - " scope))
+               (newline)
+               (exit 1)
+              ) ;
+              (else
+               (let ((files (if scope
+                              (changed-scheme-files-since since scope)
+                              (changed-scheme-files-since since)
+                            ) ;if
+                    ) ;files
+                   ) ;
+                 (if (null? files)
+                   (begin
+                     (display (string-append "No changed Scheme files since " since))
+                     (newline)
+                     #t
+                   ) ;begin
+                   (call-with-values (lambda () (format-file-list files dry-run))
+                     (lambda (total updated)
+                       (display (string-append "Total files processed: "
+                                  (number->string total)
+                                  ", Files updated: "
+                                  (number->string updated)
+                                ) ;string-append
+                       ) ;display
+                       (newline)
+                       #t
+                     ) ;lambda
+                   ) ;call-with-values
+                 ) ;if
+               ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
     ;;; 递归格式化目录
     ;;; 返回值: (values total updated) - 处理的文件总数和更新的文件数
     (define (format-directory dir-path)
@@ -149,6 +248,9 @@
         (parser :add-argument
           '((name . "dry-run") (action . store-true))
         ) ;parser
+        (parser :add-argument
+          '((name . "changed-since") (type . string))
+        ) ;parser
         parser
       ) ;let
     ) ;define
@@ -165,10 +267,16 @@
         (parser :parse-argv (argv))
         (let ((help-flag (parser 'help))
               (dry-run (parser 'dry-run))
+              (changed-since (parser 'changed-since))
               (path-str (first-positional parser)))
           (cond
             ; 显示帮助
-            ((or help-flag (string=? path-str ""))
+            (help-flag
+             (display-help)
+             #t)
+            (changed-since
+             (format-changed-since changed-since path-str dry-run))
+            ((string=? path-str "")
              (display-help)
              #t)
               ; 处理单个文件

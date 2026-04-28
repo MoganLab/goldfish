@@ -3,7 +3,7 @@
 ## Usage
 
 ```bash
-gf test [PATH|PATTERN]
+gf test [options] [PATH|PATTERN]
 ```
 
 ## Examples
@@ -25,6 +25,10 @@ gf test tests/liii/json-test.scm
 
 # Run tests matching a pattern
 gf test string
+
+# Run only test files changed since a git revision
+gf test --changed-since=HEAD
+gf test --changed-since=main
 ```
 
 ## Description
@@ -51,6 +55,9 @@ You can filter tests by:
 - **Directory**: `gf test tests/liii/string/` runs all tests in that directory
 - **File**: `gf test string-test.scm` runs a specific test file
 - **Pattern**: `gf test string` runs tests whose path contains "string"
+- **Changed files**: `gf test --changed-since=HEAD` runs changed `*-test.scm` files
+
+`--changed-since` uses `git diff --name-only` and does not include changed dependents.
 
 ## Notes
 
