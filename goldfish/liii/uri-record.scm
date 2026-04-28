@@ -314,7 +314,15 @@
 
     ;; 默认端口映射表（供 uri-port 使用）
     (define DEFAULT-PORTS
-      '(("http" . 80) ("https" . 443) ("ftp" . 21) ("ssh" . 22) ("smtp" . 25) ("dns" . 53) ("pop3" . 110) ("imap" . 143) ("ldap" . 389))
+      '(("http" . 80)
+        ("https" . 443)
+        ("ftp" . 21)
+        ("ssh" . 22)
+        ("smtp" . 25)
+        ("dns" . 53)
+        ("pop3" . 110)
+        ("imap" . 143)
+        ("ldap" . 389))
     ) ;define
 
     ;; 获取 scheme 的默认端口

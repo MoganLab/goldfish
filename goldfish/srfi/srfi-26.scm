@@ -29,8 +29,12 @@
                 (parse (lambda (xs paras)
                          (cond ((null? paras) paras)
                                ((not (list? paras)) paras)
-                               ((more-slot? (car paras)) `(,rest ,@(parse xs (cdr paras))))
-                               ((slot? (car paras)) `(,(car xs) ,@(parse (cdr xs) (cdr paras))))
+                               ((more-slot? (car paras)) `(,rest
+                                                           ,@(parse xs
+                                                               (cdr paras))))
+                               ((slot? (car paras)) `(,(car xs)
+                                                      ,@(parse (cdr xs)
+                                                          (cdr paras))))
                                (else `(,(car paras) ,@(parse xs (cdr paras))))
                          ) ;cond
                        ) ;lambda

@@ -369,7 +369,10 @@
             ) ;case*-helper
            ) ;
         (#_macro (selector . clauses)
-          `(((#_funclet (#_quote case*)) (#_quote case*-helper)) ,selector (quote ,clauses) (#_curlet))
+          `(((#_funclet (#_quote case*)) (#_quote case*-helper))
+            ,selector
+            (quote ,clauses)
+            (#_curlet))
         ) ;#_macro
       ) ;let
     ) ;define

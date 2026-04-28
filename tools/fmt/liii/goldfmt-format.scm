@@ -92,6 +92,10 @@
       (format-reader-datum value)
     ) ;define
 
+    (define (format-inline-atom-or-quote-at value indent)
+      (format-reader-datum-at value indent)
+    ) ;define
+
     (define (spaces n)
       (let loop ((i n) (result ""))
         (if (<= i 0)
@@ -221,44 +225,284 @@
            (string? (caddr datum))
            (null? (cdddr datum))))
 
-    (define (format-reader-vector datum)
+    (define (newline-marker-datum? datum)
+      (and (pair? datum)
+           (eq? (car datum) '*newline*)
+           (pair? (cdr datum))
+           (number? (cadr datum))
+           (null? (cddr datum))))
+
+    (define (reader-newlines count)
+      (let loop ((i (+ count 1))
+                 (result ""))
+        (if (<= i 0)
+            result
+            (loop (- i 1) (string-append result "\n")))))
+
+    (define (reader-datum-contains-newline-marker? datum)
+      (cond
+        ((newline-marker-datum? datum) #t)
+        ((pair? datum)
+         (or (reader-datum-contains-newline-marker? (car datum))
+             (reader-datum-contains-newline-marker? (cdr datum))))
+        ((or (vector? datum) (byte-vector? datum))
+         (let loop ((i 0))
+           (cond
+             ((>= i (vector-length datum)) #f)
+             ((reader-datum-contains-newline-marker? (vector-ref datum i)) #t)
+             (else (loop (+ i 1))))))
+        (else #f)))
+
+    (define (reader-head-name head)
+      (cond
+        ((symbol? head) (symbol->string head))
+        ((syntax? head)
+         (let ((name (object->string head #f)))
+           (if (string=? name "#_quote") "quote" name)))
+        (else "default")))
+
+    (define (reader-rule-head? head)
+      (or (symbol? head)
+          (syntax? head)))
+
+    (define (reader-form-like? datum)
+      (pair? datum))
+
+    (define (reader-format-selected-item item column)
+      (format-reader-datum-at item column))
+
+    (define (reader-selected-item item) (car item))
+    (define (reader-selected-column item) (cadr item))
+    (define (reader-selected-text item) (caddr item))
+
+    (define (reader-select-first-line-items head-name rest start-column)
+      (let ((limit (first-line-limit head-name))
+            (allow-child-env? (allow-first-line-child-env? head-name)))
+        (let loop ((current rest)
+                   (column start-column)
+                   (selected-count 0)
+                   (direct-env-count 0)
+                   (result '()))
+          (if (or (not (pair? current))
+                  (>= selected-count limit)
+                  (newline-marker-datum? (car current)))
+              (reverse result)
+              (let* ((item (car current))
+                     (item-is-env? (reader-form-like? item))
+                     (next-direct-env-count (if item-is-env?
+                                                (+ direct-env-count 1)
+                                                direct-env-count)))
+                (if (or (and item-is-env? (not allow-child-env?))
+                        (> next-direct-env-count 1))
+                    (reverse result)
+                    (let* ((item-column (+ column 1))
+                           (item-text (reader-format-selected-item item item-column))
+                           (next-result (cons (list item item-column item-text) result))
+                           (next-column (+ item-column (string-length item-text))))
+                      (if (string-contains-newline? item-text)
+                          (reverse next-result)
+                          (loop (cdr current)
+                                next-column
+                                (+ selected-count 1)
+                                next-direct-env-count
+                                next-result)))))))))
+
+    (define (reader-skip-selected rest selected)
+      (let loop ((current rest)
+                 (remaining (length selected)))
+        (if (or (<= remaining 0) (not (pair? current)))
+            current
+            (loop (cdr current) (- remaining 1)))))
+
+    (define (reader-first-selected-form-column selected)
+      (cond
+        ((null? selected) #f)
+        ((reader-form-like? (reader-selected-item (car selected)))
+         (reader-selected-column (car selected)))
+        (else (reader-first-selected-form-column (cdr selected)))))
+
+    (define (reader-by-first-rest-child-indent parent-indent rest)
+      (if (and (pair? rest)
+               (reader-form-like? (car rest))
+               (let ((name (reader-head-name (car (car rest)))))
+                 (string=? name "")))
+          (+ parent-indent 1)
+          (+ parent-indent 2)))
+
+    (define (reader-rest-indent head-name parent-indent selected rest)
+      (let ((strategy (rest-indent head-name)))
+        (cond
+          ((eq? strategy 'align-to-first-selected-env)
+           (let ((column (reader-first-selected-form-column selected)))
+             (if column
+                 column
+                 (reader-by-first-rest-child-indent parent-indent rest))))
+          ((eq? strategy 'parent-plus2) (+ parent-indent 2))
+          (else (reader-by-first-rest-child-indent parent-indent rest)))))
+
+    (define (format-reader-vector-inline datum)
       (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
         (let loop ((i 0)
                    (pieces '()))
           (if (>= i (vector-length datum))
               (string-append prefix (string-join (reverse pieces) " ") ")")
               (loop (+ i 1)
-                    (cons (format-reader-datum (vector-ref datum i)) pieces))))))
+                    (cons (format-reader-datum-inline (vector-ref datum i)) pieces))))))
 
-    (define (format-reader-pair datum)
+    (define (reader-vector-prefix datum)
+      (if (byte-vector? datum) "#u8(" "#("))
+
+    (define (format-reader-vector-multiline datum indent)
+      (let* ((prefix (reader-vector-prefix datum))
+             (item-indent (+ indent (string-length prefix))))
+        (let loop ((i 0)
+                   (result prefix)
+                   (prefix-ready? #t))
+          (if (>= i (vector-length datum))
+              (string-append result ")")
+              (let ((item (vector-ref datum i)))
+                (if (newline-marker-datum? item)
+                    (loop (+ i 1)
+                          (string-append result
+                                         (reader-newlines (cadr item))
+                                         (spaces item-indent))
+                          #t)
+                    (loop (+ i 1)
+                          (string-append result
+                                         (if prefix-ready?
+                                             ""
+                                             (string-append "\n" (spaces item-indent)))
+                                         (format-reader-datum-at item item-indent))
+                          #f)))))))
+
+    (define (format-reader-vector-at datum indent)
+      (let ((candidate (format-reader-vector-inline datum)))
+        (if (and (not (reader-datum-contains-newline-marker? datum))
+                 (not (string-contains-newline? candidate))
+                 (<= (+ indent (string-length candidate)) max-inline-length))
+            candidate
+            (format-reader-vector-multiline datum indent))))
+
+    (define (format-reader-vector datum)
+      (format-reader-vector-at datum 0))
+
+    (define (format-reader-pair-inline datum)
       (let loop ((current datum)
                  (pieces '()))
         (cond
           ((pair? current)
            (loop (cdr current)
-                 (cons (format-reader-datum (car current)) pieces)))
+                 (cons (format-reader-datum-inline (car current)) pieces)))
           ((null? current)
            (string-append "(" (string-join (reverse pieces) " ") ")"))
           (else
            (string-append "("
                           (string-join (reverse pieces) " ")
                           " . "
-                          (format-reader-datum current)
+                          (format-reader-datum-inline current)
                           ")")))))
 
-    (define (format-reader-datum datum)
+    (define (reader-append-selected result selected)
+      (let loop ((items selected)
+                 (text result))
+        (if (null? items)
+            text
+            (loop (cdr items)
+                  (string-append text " " (reader-selected-text (car items)))))))
+
+    (define (reader-append-rest current result rest-indent prefix-ready?)
+      (cond
+        ((pair? current)
+         (let ((item (car current)))
+           (if (newline-marker-datum? item)
+               (reader-append-rest (cdr current)
+                                   (string-append result
+                                                  (reader-newlines (cadr item))
+                                                  (spaces rest-indent))
+                                   rest-indent
+                                   #t)
+               (reader-append-rest (cdr current)
+                                   (string-append result
+                                                  (if prefix-ready?
+                                                      ""
+                                                      (string-append "\n" (spaces rest-indent)))
+                                                  (format-reader-datum-at item rest-indent))
+                                   rest-indent
+                                   #f))))
+        ((null? current)
+         (string-append result ")"))
+        (else
+         (string-append result
+                        (if prefix-ready?
+                            ""
+                            (string-append "\n" (spaces rest-indent)))
+                        ". "
+                        (format-reader-datum-at current rest-indent)
+                        ")"))))
+
+    (define (format-reader-pair-multiline datum indent)
+      (if (not (pair? datum))
+          (format-atom-value datum)
+          (let* ((head (car datum))
+                 (head-name (reader-head-name head))
+                 (rule-head? (reader-rule-head? head))
+                 (head-text (if rule-head?
+                                (format-reader-datum-inline head)
+                                (format-reader-datum-at head (+ indent 1))))
+                 (result (string-append "(" head-text))
+                 (head-end-column (+ indent 1 (string-length head-text)))
+                 (rest (cdr datum))
+                 (selected (if rule-head?
+                               (reader-select-first-line-items head-name rest head-end-column)
+                               '()))
+                 (after-selected (reader-skip-selected rest selected))
+                 (with-selected (reader-append-selected result selected))
+                 (body-indent (if rule-head?
+                                  (reader-rest-indent head-name indent selected after-selected)
+                                  (+ indent 1))))
+            (reader-append-rest after-selected with-selected body-indent #f))))
+
+    (define (format-reader-pair-at datum indent)
+      (let ((candidate (format-reader-pair-inline datum)))
+        (if (and (not (reader-datum-contains-newline-marker? datum))
+                 (not (string-contains-newline? candidate))
+                 (<= (+ indent (string-length candidate)) max-inline-length))
+            candidate
+            (format-reader-pair-multiline datum indent))))
+
+    (define (format-reader-pair datum)
+      (format-reader-pair-at datum 0))
+
+    (define (format-reader-datum-inline datum)
       (cond
         ((raw-string-literal? datum) (raw-string-literal-source datum))
         ((raw-string-datum? datum) (cadr datum))
         ((single-arg-symbol-form? datum 'quasiquote)
-         (string-append "`" (format-reader-datum (cadr datum))))
+         (string-append "`" (format-reader-datum-inline (cadr datum))))
         ((single-arg-symbol-form? datum 'unquote)
-         (string-append "," (format-reader-datum (cadr datum))))
+         (string-append "," (format-reader-datum-inline (cadr datum))))
         ((single-arg-symbol-form? datum 'unquote-splicing)
-         (string-append ",@" (format-reader-datum (cadr datum))))
-        ((pair? datum) (format-reader-pair datum))
-        ((or (vector? datum) (byte-vector? datum)) (format-reader-vector datum))
+         (string-append ",@" (format-reader-datum-inline (cadr datum))))
+        ((pair? datum) (format-reader-pair-inline datum))
+        ((or (vector? datum) (byte-vector? datum)) (format-reader-vector-inline datum))
         (else (format-atom-value datum))))
+
+    (define (format-reader-datum-at datum indent)
+      (cond
+        ((raw-string-literal? datum) (raw-string-literal-source datum))
+        ((raw-string-datum? datum) (cadr datum))
+        ((single-arg-symbol-form? datum 'quasiquote)
+         (string-append "`" (format-reader-datum-at (cadr datum) (+ indent 1))))
+        ((single-arg-symbol-form? datum 'unquote)
+         (string-append "," (format-reader-datum-at (cadr datum) (+ indent 1))))
+        ((single-arg-symbol-form? datum 'unquote-splicing)
+         (string-append ",@" (format-reader-datum-at (cadr datum) (+ indent 2))))
+        ((pair? datum) (format-reader-pair-at datum indent))
+        ((or (vector? datum) (byte-vector? datum)) (format-reader-vector-at datum indent))
+        (else (format-atom-value datum))))
+
+    (define (format-reader-datum datum)
+      (format-reader-datum-at datum 0))
 
 ;;; format-inline 只做单行候选文本计算，不记录位置信息，也不写 writer。
     (define (format-inline node)
@@ -578,7 +822,7 @@
           (let ((left-line (writer-line writer))
                 (content (quote-env-content node)))
             (emit-string! writer "'")
-            (emit-string! writer (format-inline-atom-or-quote content))
+            (emit-string! writer (format-inline-atom-or-quote-at content (+ column 1)))
             (positioned-env node
                             column
                             (vector)
@@ -591,7 +835,7 @@
         ) ;
         ((reader-prefix-env? node)
          (let ((left-line (writer-line writer)))
-           (emit-string! writer (format-inline-atom-or-quote (env-value node)))
+           (emit-string! writer (format-inline-atom-or-quote-at (env-value node) column))
             (positioned-env node
                             column
                             (vector)
@@ -704,7 +948,7 @@
           ((quote-env? node)
            (let ((content (quote-env-content node)))
              (emit-string! writer "'")
-             (emit-string! writer (format-inline-atom-or-quote content))
+             (emit-string! writer (format-inline-atom-or-quote-at content (+ env-indent 1)))
              (positioned-env node
                              env-indent
                              (vector)
@@ -715,7 +959,7 @@
  ;
           ) ;
           ((reader-prefix-env? node)
-           (emit-string! writer (format-inline-atom-or-quote (env-value node)))
+           (emit-string! writer (format-inline-atom-or-quote-at (env-value node) env-indent))
            (positioned-env node
                            env-indent
                            (vector)

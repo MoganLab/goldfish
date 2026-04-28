@@ -189,12 +189,33 @@
     (define-macro (let-values vars . body)
       (if (and (pair? vars) (pair? (car vars)) (null? (cdar vars)))
         `((lambda ,(caar vars) ,@body) ,(cadar vars))
-        `(with-let (apply sublet (curlet) (list ,@(map (lambda (v) `((lambda ,(car v) (values ,@(map (lambda (name) (values (symbol->keyword name) name)) (let args->proper-list ((args (car v))) (cond ((symbol? args) (list args)) ((not (pair? args)) args) ((pair? (car args)) (cons (caar args) (args->proper-list (cdr args)))) (else (cons (car args) (args->proper-list (cdr args))))))))) ,(cadr v))) vars))) ,@body)
+        `(with-let (apply sublet
+                     (curlet)
+                     (list ,@(map (lambda (v)
+                                    `((lambda ,(car v)
+                                        (values ,@(map (lambda (name)
+                                                         (values (symbol->keyword name)
+                                                           name))
+                                                    (let args->proper-list
+                                                      ((args (car v)))
+                                                      (cond ((symbol? args)
+                                                             (list args))
+                                                            ((not (pair? args))
+                                                             args)
+                                                            ((pair? (car args))
+                                                             (cons (caar args)
+                                                               (args->proper-list (cdr args))))
+                                                            (else (cons (car args)
+                                                                    (args->proper-list (cdr args)))))))))
+                                      ,(cadr v)))
+                               vars)))
+           ,@body)
       ) ;if
     ) ;define-macro
 
     (define-macro (define-values vars expression)
-      `(if (not (null? (quote ,vars))) (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
+      `(if (not (null? (quote ,vars)))
+         (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
     ) ;define-macro
 
     (define-macro (define-record-type type make ? . fields)
@@ -211,7 +232,24 @@
                   ) ;map
             ) ;args
            ) ;
-        `(begin (define (,? ,obj) (and (let? ,obj) (eq? (let-ref ,obj (quote ,typ)) (quote ,type)))) (define ,make (inlet (quote ,typ) (quote ,type) ,@args)) ,@(map (lambda (field) (when (pair? field) (if (null? (cdr field)) (values) (if (null? (cddr field)) `(define (,(cadr field) ,obj) (let-ref ,obj (quote ,(car field)))) `(begin (define (,(cadr field) ,obj) (let-ref ,obj (quote ,(car field)))) (define (,(caddr field) ,obj val) (let-set! ,obj (quote ,(car field)) val))))))) fields) (quote ,type))
+        `(begin
+           (define (,? ,obj)
+             (and (let? ,obj) (eq? (let-ref ,obj (quote ,typ)) (quote ,type))))
+           (define ,make (inlet (quote ,typ) (quote ,type) ,@args))
+           ,@(map (lambda (field)
+                    (when (pair? field)
+                      (if (null? (cdr field))
+                        (values)
+                        (if (null? (cddr field))
+                          `(define (,(cadr field) ,obj)
+                             (let-ref ,obj (quote ,(car field))))
+                          `(begin
+                             (define (,(cadr field) ,obj)
+                               (let-ref ,obj (quote ,(car field))))
+                             (define (,(caddr field) ,obj val)
+                               (let-set! ,obj (quote ,(car field)) val)))))))
+               fields)
+           (quote ,type))
       ) ;let
     ) ;define-macro
 
@@ -565,7 +603,17 @@
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results) (catch ,#t (lambda ,() ,@body) (lambda (type info) (if (pair? (*s7* (#_quote catches))) (lambda () (apply throw type info)) (car info)))))) (cond ,@(cdr results) (else (if (procedure? ,(car results)) (,(car results)) ,(car results)))))
+      `(let ((,(car results)
+              (catch ,#t
+                (lambda ,() ,@body)
+                (lambda (type info)
+                  (if (pair? (*s7* (#_quote catches)))
+                    (lambda () (apply throw type info))
+                    (car info))))))
+         (cond ,@(cdr results)
+               (else (if (procedure? ,(car results))
+                       (,(car results))
+                       ,(car results)))))
     ) ;define-macro
 
     (define (read-error? obj)
