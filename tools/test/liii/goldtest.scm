@@ -21,6 +21,7 @@
           (liii sort)
           (liii list)
           (liii string)
+          (liii argparse)
           (liii os)
           (liii path)
           (liii sys)
@@ -153,6 +154,41 @@
       ) ;let
     ) ;define
     
+    (define (make-test-arg-parser)
+      (make-argument-parser
+        '((command . "test")
+          (skip-value-options . ("-m" "--mode"))
+          (skip-prefix-options . ("-m=" "--mode="))
+          (unknown-options . positional))
+      ) ;make-argument-parser
+    ) ;define
+
+    (define (classify-test-arg arg)
+      (cond
+        ;; 包含路径分隔符的路径 (/ 或 Windows 的 \)
+        ((or (string-contains arg "/")
+             (and (os-windows?) (string-contains arg "\\")))
+         (let ((abs-path (if (path-absolute? arg)
+                           arg
+                           (path-join (getcwd) arg))))
+           (cond
+             ((path-file? abs-path) (cons 'file arg))  ; 保留原始路径（可能是相对路径）
+             ((path-dir? abs-path) (cons 'dir arg))    ; 保留原始路径（可能是相对路径）
+             (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
+           ) ;cond
+         ) ;let
+        ) ;
+        ;; 以 .scm 结尾的文件名
+        ((string-ends? arg ".scm")
+         (cons 'filename arg)
+        ) ;
+        ;; 其他视为模糊匹配模式
+        (else
+         (cons 'pattern arg)
+        ) ;else
+      ) ;cond
+    ) ;define
+
     (define (parse-test-args args)
       ;; 解析 test 命令的参数
       ;; 规则：
@@ -164,56 +200,15 @@
       ;; 返回值: (type . value)
       ;;   type 可以是: 'file, 'dir, 'filename, 'pattern, #f
       ;; args 的第一个元素是可执行文件路径，需要跳过
-      (if (null? args)
-        (cons #f #f)
-        (let loop ((remaining (cdr args)) ; 跳过第一个参数（可执行文件）
-                   (skip-next #f))        ; 是否跳过下一个参数（模式值）
-          (if (null? remaining)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (let ((positionals (parser :positionals)))
+          (if (null? positionals)
             (cons #f #f)
-            (let ((arg (car remaining)))
-              (cond
-                ;; 如果需要跳过当前参数（作为 -m/--mode 的值）
-                (skip-next
-                 (loop (cdr remaining) #f)
-                ) ;skip-next
-                ;; 跳过 test 命令
-                ((equal? arg "test")
-                 (loop (cdr remaining) #f)
-                ) ;
-                ;; -m 或 --mode 后面需要跳过模式值
-                ((or (equal? arg "-m") (equal? arg "--mode"))
-                 (loop (cdr remaining) #t)
-                ) ;
-                ;; -m=... 或 --mode=... 格式，跳过当前参数
-                ((or (string-starts? arg "-m=") (string-starts? arg "--mode="))
-                 (loop (cdr remaining) #f)
-                ) ;
-                ;; 包含路径分隔符的路径 (/ 或 Windows 的 \)
-                 ((or (string-contains arg "/")
-                      (and (os-windows?) (string-contains arg "\\")))
-                  (let ((abs-path (if (path-absolute? arg)
-                                      arg
-                                      (path-join (getcwd) arg))))
-                    (cond
-                      ((path-file? abs-path) (cons 'file arg))  ; 保留原始路径（可能是相对路径）
-                      ((path-dir? abs-path) (cons 'dir arg))    ; 保留原始路径（可能是相对路径）
-                      (else (cons 'pattern arg)) ; 不存在的路径，按模式匹配
-                    ) ;cond
-                  ) ;let
-                 ) ;
-                ;; 以 .scm 结尾的文件名
-                ((string-ends? arg ".scm")
-                 (cons 'filename arg)
-                ) ;
-                ;; 其他视为模糊匹配模式
-                (else
-                 (cons 'pattern arg)
-                ) ;else
-              ) ;cond
-            ) ;let
+            (classify-test-arg (car positionals))
           ) ;if
         ) ;let
-      ) ;if
+      ) ;let
     ) ;define
     
     (define (filter-test-files test-files arg-type arg-value)
@@ -442,10 +437,22 @@
       (display "  e.g., gf test tools/doc/tests/  =>  cd tools/doc && gf test tests/") (newline)
     ) ;define
 
+    (define (test-help-requested? args)
+      (let ((parser (make-argument-parser
+                      '((command . "test")
+                        (unknown-options . positional)))))
+        (parser :add-argument
+          '((name . "help") (short . "h") (action . store-true))
+        ) ;parser
+        (parser :parse-argv args)
+        (parser 'help)
+      ) ;let
+    ) ;define
+
     (define (main)
       ;; 程序入口点
       (let ((args (command-line)))
-        (if (or (member "--help" args) (member "-h" args))
+        (if (test-help-requested? args)
             (begin (show-help) (exit 0))
             (run-goldtest)
         ) ;if

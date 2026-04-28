@@ -46,4 +46,11 @@
   '(invalid "liii/string" "extra")
 ) ;check
 
+
+(check (parse-source-args '("bin/gf" "--mode=liii" "source" "liii/string")
+       ) ;parse-source-args
+  =>
+  '(library "liii/string")
+) ;check
+
 (check-report)

@@ -119,4 +119,73 @@
 ) ;let
 
 
+(let ((parser (make-argument-parser)))
+  (parser :add-argument
+    '((name . "verbose") (short . "v") (action . store-true))
+  ) ;parser
+  (parser :add-argument
+    '((name . "cache") (action . store-false))
+  ) ;parser
+  (check (parser 'verbose) => #f)
+  (check (parser 'cache) => #t)
+  (parser :parse-args '("--verbose" "--cache"))
+  (check (parser 'verbose) => #t)
+  (check (parser 'cache) => #f)
+) ;let
+
+
+(let ((parser (make-argument-parser)))
+  (parser :add-argument
+    '((name . "width") (type . number) (short . "w") (default . 80))
+  ) ;parser
+  (parser :add-argument
+    '((name . "title") (type . string) (short . "t") (default . "Untitled"))
+  ) ;parser
+  (parser :parse-args
+    '("input.scm" "--width=100" "-t=Doc" "output.scm")
+  ) ;parser
+  (check (parser 'width) => 100)
+  (check (parser 'title) => "Doc")
+  (check (parser :positionals) => '("input.scm" "output.scm"))
+) ;let
+
+
+(let ((parser (make-argument-parser
+                '((command . "fmt")
+                  (skip-value-options . ("-m" "--mode" "-I" "-A"))
+                  (skip-prefix-options . ("-m=" "--mode="))
+                  (unknown-options . ignore)))))
+  (parser :add-argument
+    '((name . "dry-run") (action . store-true))
+  ) ;parser
+  (parser :parse-argv
+    '("bin/gf" "-m" "r7rs" "fmt" "--dry-run" "file.scm")
+  ) ;parser
+  (check (parser 'dry-run) => #t)
+  (check (parser :get-positionals) => '("file.scm"))
+) ;let
+
+
+(let ((parser (make-argument-parser)))
+  (check-catch 'value-error
+    (parser :parse-args '("--bad"))
+  ) ;check-catch
+) ;let
+
+
+(let ((parser (make-argument-parser
+                '((unknown-options . ignore)))))
+  (parser :parse-args '("--bad" "file.scm"))
+  (check (parser :positionals) => '("file.scm"))
+) ;let
+
+
+(let ((parser (make-argument-parser
+                '((unknown-options . positional)))))
+  (parser :parse-args '("--bad" "file.scm"))
+  (check (parser :positionals) => '("--bad" "file.scm"))
+) ;let
+
+
+
 (check-report)

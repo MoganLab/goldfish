@@ -22,6 +22,7 @@
     (liii sort)
     (liii json)
     (liii string)
+    (liii argparse)
     (liii path)
     (liii os)
     (liii error)
@@ -276,13 +277,25 @@
       ) ;let*
     ) ;define
 
+    (define (make-help-arg-parser)
+      (make-argument-parser
+        '((command . "help")
+          (skip-value-options . ("-m" "--mode" "-I" "-A"))
+          (skip-prefix-options . ("-m=" "--mode="))
+          (unknown-options . positional))
+      ) ;make-argument-parser
+    ) ;define
+
     (define (main)
       "Main entry point for help command"
-      (let ((args (command-line)))
-        (if (> (length args) 2)
-          (display-tool-help (list-ref args 2))
-          (display-help)
-        ) ;if
+      (let ((parser (make-help-arg-parser)))
+        (parser :parse-argv (command-line))
+        (let ((positionals (parser :positionals)))
+          (if (null? positionals)
+            (display-help)
+            (display-tool-help (car positionals))
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
