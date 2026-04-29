@@ -203,4 +203,11 @@
   "(display #\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\"\n) ;display\n"
 ) ;check
 
+;; quoted reader datum 中的 multiline vector 不能丢失后续元素
+(check (format-string "(check (f '((\"messages\" . #(((\"role\" . \"user\") (\"content\" . #(((\"text\" . \"1\") (\"type\" . \"text\")) ((\"text\" . \"2\") (\"type\" . \"text\"))))) ((\"role\" . \"user\") (\"content\" . \"中文\")))))) => \"ok\")"
+       ) ;format-string
+  =>
+  "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\")))))\n                       ((\"role\" . \"user\") (\"content\" . \"中文\")))))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
+) ;check
+
 (check-report)

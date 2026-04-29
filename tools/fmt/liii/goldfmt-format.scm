@@ -354,27 +354,34 @@
     (define (reader-vector-prefix datum)
       (if (byte-vector? datum) "#u8(" "#("))
 
+    (define (reader-vector->list datum)
+      (let loop ((i 0)
+                 (result '()))
+        (if (>= i (vector-length datum))
+            (reverse result)
+            (loop (+ i 1)
+                  (cons (vector-ref datum i) result)))))
+
     (define (format-reader-vector-multiline datum indent)
       (let* ((prefix (reader-vector-prefix datum))
              (item-indent (+ indent (string-length prefix))))
-        (let loop ((i 0)
-                   (result prefix)
+        (let loop ((items (reader-vector->list datum))
+                   (pieces (list prefix))
                    (prefix-ready? #t))
-          (if (>= i (vector-length datum))
-              (string-append result ")")
-              (let ((item (vector-ref datum i)))
+          (if (null? items)
+              (apply string-append (reverse (cons ")" pieces)))
+              (let ((item (car items)))
                 (if (newline-marker-datum? item)
-                    (loop (+ i 1)
-                          (string-append result
-                                         (reader-newlines (cadr item))
-                                         (spaces item-indent))
+                    (loop (cdr items)
+                          (cons (spaces item-indent)
+                                (cons (reader-newlines (cadr item)) pieces))
                           #t)
-                    (loop (+ i 1)
-                          (string-append result
-                                         (if prefix-ready?
-                                             ""
-                                             (string-append "\n" (spaces item-indent)))
-                                         (format-reader-datum-at item item-indent))
+                    (loop (cdr items)
+                          (cons (format-reader-datum-at item item-indent)
+                                (if prefix-ready?
+                                    pieces
+                                    (cons (string-append "\n" (spaces item-indent))
+                                          pieces)))
                           #f)))))))
 
     (define (format-reader-vector-at datum indent)
@@ -439,7 +446,7 @@
                             ""
                             (string-append "\n" (spaces rest-indent)))
                         ". "
-                        (format-reader-datum-at current rest-indent)
+                        (format-reader-datum-at current (+ rest-indent 2))
                         ")"))))
 
     (define (format-reader-pair-multiline datum indent)
