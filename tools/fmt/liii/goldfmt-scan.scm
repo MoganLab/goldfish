@@ -70,6 +70,7 @@
           (number? x)
           (string? x)
           (raw-string-literal? x)
+          (char-literal? x)
           (boolean? x)
           (char? x)
           (null? x)
@@ -260,10 +261,17 @@
     (define (normalize-datum datum)
       (cond
         ((raw-string-form? datum)
-         datum
+         (make-raw-string-literal :source (cadr datum)
+                                  :value (caddr datum))
+        ) ;
+        ((char-literal-form? datum)
+         (make-char-literal :source (cadr datum)
+                            :value (caddr datum))
         ) ;
         ((quote-form? datum)
-         datum
+         (list (car datum)
+               (normalize-datum (cadr datum))
+         ) ;list
         ) ;
         ((internal-list-values-form? datum)
          (list 'quasiquote

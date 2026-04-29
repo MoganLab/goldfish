@@ -190,6 +190,12 @@
   "(list #\\x2000 #\\中 #\\space)\n"
 ) ;check
 
+;; quoted char literal 不应泄漏内部 (*char-literal* ...) 表示
+(check (format-string "'((#\\a . lowercase) (#\\space . blank))")
+  =>
+  "'((#\\a . lowercase) (#\\space . blank))\n"
+) ;check
+
 ;; 多行 raw string 可以和左侧函数保留在同一行
 (check (format-string "(display #\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\")"
        ) ;format-string
