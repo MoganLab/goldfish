@@ -44,6 +44,15 @@
            (string? (caddr datum))
            (null? (cdddr datum))))
 
+    (define (char-literal-form? datum)
+      (and (pair? datum)
+           (eq? (car datum) '*char-literal*)
+           (pair? (cdr datum))
+           (string? (cadr datum))
+           (pair? (cddr datum))
+           (char? (caddr datum))
+           (null? (cdddr datum))))
+
     ;;; 辅助函数：安全地移除字符串尾部空格
     ;;; 使用 utf8-string-trim-right 正确处理 Unicode 字符
     ;;; 如果内容只有空格，则保留原样
@@ -89,6 +98,10 @@
          (make-atom :depth depth
                     :value (make-raw-string-literal :source (cadr datum)
                                                    :value (caddr datum))))
+        ((char-literal-form? datum)
+         (make-atom :depth depth
+                    :value (make-char-literal :source (cadr datum)
+                                              :value (caddr datum))))
         ((atom? datum)
          ;;; 如果是 atom，创建 atom 记录
          ;; left-line 和 right-line 使用默认值 0
@@ -421,7 +434,36 @@
             value
             (error 'value-error "rewrite-raw-string-literals: expected raw string literal"))))
 
-    (define (rewrite-raw-string-literals source)
+    (define (reader-delimiter? c)
+      (or (char-whitespace? c)
+          (char=? c #\()
+          (char=? c #\))
+          (char=? c #\[)
+          (char=? c #\])
+          (char=? c #\")
+          (char=? c #\;)
+          (char=? c #\')
+          (char=? c #\`)
+          (char=? c #\,)))
+
+    (define (hex-digit? c)
+      (or (char-numeric? c)
+          (and (char>=? c #\a) (char<=? c #\f))
+          (and (char>=? c #\A) (char<=? c #\F))))
+
+    (define (find-char-literal-end source start)
+      (let ((len (string-length source)))
+        (if (>= start len)
+            #f
+            (let loop ((i (+ start 1)))
+              (if (>= i len)
+                  len
+                  (let ((c (string-ref source i)))
+                    (if (reader-delimiter? c)
+                        i
+                        (loop (+ i 1)))))))))
+
+    (define (rewrite-reader-literals source)
       (let ((len (string-length source)))
         (let loop ((i 0)
                    (in-string #f)
@@ -541,6 +583,36 @@
                                #f
                                #f
                                (cons (string c) result)))))
+                  ((and (char=? c #\#) (char=? next-c #\\))
+                   (let ((literal-end (find-char-literal-end source (+ i 2))))
+                     (if literal-end
+                         (let* ((literal (substring source i literal-end))
+                                (value (read (open-input-string literal)))
+                                (rewritten
+                                  (string-append "(*char-literal* "
+                                                 (write-to-string literal)
+                                                 " "
+                                                 literal
+                                                 ")")))
+                           (if (char? value)
+                               (loop literal-end
+                                     #f
+                                     #f
+                                     #f
+                                     #f
+                                     (cons rewritten result))
+                               (loop (+ i 1)
+                                     #f
+                                     #f
+                                     #f
+                                     #f
+                                     (cons (string c) result))))
+                         (loop (+ i 1)
+                               #f
+                               #f
+                               #f
+                               #f
+                               (cons (string c) result)))))
                   (else
                    (loop (+ i 1)
                          #f
@@ -550,7 +622,7 @@
                          (cons (string c) result)))))))))
 
     (define (scan-string str)
-      (let ((port (open-input-string (rewrite-raw-string-literals str))))
+      (let ((port (open-input-string (rewrite-reader-literals str))))
         (let loop ((results '()))
           (let ((datum (read port)))
             (if (eof-object? datum)

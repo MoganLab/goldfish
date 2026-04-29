@@ -44,9 +44,11 @@
       (let loop
         ((rest chars) (chunks '()))
         (cond ((null? rest)
-               (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks)))))
+               (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks))))
+              ) ;
               ((char? (car rest))
-               (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks)))
+               (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks))
+              ) ;
               (else (error 'type-error "utf8-string: expected char" (car rest)))
         ) ;cond
       ) ;let
