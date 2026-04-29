@@ -67,7 +67,8 @@
             (error 'type-error "utf8-make-string: expected char" c)
           ) ;unless
           (let ((utf8-bv (codepoint->utf8 (char->integer c))))
-            (let loop ((i 0) (result (bytevector)))
+            (let loop
+              ((i 0) (result (bytevector)))
               (if (= i k)
                 (utf8->string result)
                 (loop (+ i 1) (bytevector-append result utf8-bv))
@@ -192,21 +193,25 @@
         (error 'type-error "utf8-string-set!: expected string" str)
       ) ;unless
       (unless (and (integer? index) (>= index 0))
-        (error 'out-of-range "utf8-string-set!: index must be non-negative integer" index)
+        (error 'out-of-range
+          "utf8-string-set!: index must be non-negative integer"
+          index
+        ) ;error
       ) ;unless
       (unless (char? char)
         (error 'type-error "utf8-string-set!: expected char" char)
       ) ;unless
-      (let* ((bv (string->utf8 str)) (byte-len (bytevector-length bv))
+      (let* ((bv (string->utf8 str))
+             (byte-len (bytevector-length bv))
              (char-bv (codepoint->utf8 (char->integer char)))
             ) ;
-        (let loop ((byte-pos 0) (char-index 0))
+        (let loop
+          ((byte-pos 0) (char-index 0))
           (if (>= byte-pos byte-len)
             (error 'out-of-range "utf8-string-set!: index out of range" index)
             (let ((next-byte-pos (bytevector-advance-utf8 bv byte-pos byte-len)))
               (if (= char-index index)
-                (utf8->string (bytevector-append
-                                (bytevector-copy bv 0 byte-pos)
+                (utf8->string (bytevector-append (bytevector-copy bv 0 byte-pos)
                                 char-bv
                                 (bytevector-copy bv next-byte-pos byte-len)
                               ) ;bytevector-append
