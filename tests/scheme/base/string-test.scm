@@ -26,6 +26,7 @@
 (check (string #\a) => "a")
 (check (string #\a #\b #\c) => "abc")
 (check (string #\1 #\2 #\3) => "123")
+(check (string-ref (string #\xFF) 0) => #\xFF)
 (check (string-length (string #\x #\y))
   =>
   2
@@ -36,5 +37,14 @@
 (check-catch 'wrong-type-arg (string 1))
 (check-catch 'wrong-type-arg
   (string "a")
+) ;check-catch
+(check-catch 'out-of-range
+  (string #\x100)
+) ;check-catch
+(check-catch 'out-of-range
+  (string #\中)
+) ;check-catch
+(check-catch 'out-of-range
+  (string #\a #\中)
 ) ;check-catch
 (check-report)

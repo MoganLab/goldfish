@@ -2,6 +2,7 @@
   (export
     ;; UTF-8 函数
     utf8-string
+    utf8-make-string
     utf8->string
     string->utf8
     utf8-string-length
@@ -12,6 +13,7 @@
     utf8-string-trim-right
     utf8-string-trim-left
     utf8-string-trim-both
+    utf8-string-set!
 
     ;; UTF-16BE 函数
     codepoint->utf16be
@@ -52,6 +54,29 @@
               (else (error 'type-error "utf8-string: expected char" (car rest)))
         ) ;cond
       ) ;let
+    ) ;define
+
+    (define (utf8-make-string k . char-opt)
+      (unless (and (integer? k) (>= k 0))
+        (error 'out-of-range "utf8-make-string: length must be non-negative integer" k)
+      ) ;unless
+      (if (zero? k)
+        ""
+        (let ((c (if (null? char-opt) #\space (car char-opt))))
+          (unless (char? c)
+            (error 'type-error "utf8-make-string: expected char" c)
+          ) ;unless
+          (let ((utf8-bv (codepoint->utf8 (char->integer c))))
+            (let loop
+              ((i 0) (result (bytevector)))
+              (if (= i k)
+                (utf8->string result)
+                (loop (+ i 1) (bytevector-append result utf8-bv))
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;if
     ) ;define
 
     (define* (utf8-substring str (start 0) (end #t))
@@ -161,6 +186,42 @@
       ) ;unless
 
       (utf8-string-trim-right (utf8-string-trim-left str))
+    ) ;define
+
+    (define (utf8-string-set! str index char)
+      (unless (string? str)
+        (error 'type-error "utf8-string-set!: expected string" str)
+      ) ;unless
+      (unless (and (integer? index) (>= index 0))
+        (error 'out-of-range
+          "utf8-string-set!: index must be non-negative integer"
+          index
+        ) ;error
+      ) ;unless
+      (unless (char? char)
+        (error 'type-error "utf8-string-set!: expected char" char)
+      ) ;unless
+      (let* ((bv (string->utf8 str))
+             (byte-len (bytevector-length bv))
+             (char-bv (codepoint->utf8 (char->integer char)))
+            ) ;
+        (let loop
+          ((byte-pos 0) (char-index 0))
+          (if (>= byte-pos byte-len)
+            (error 'out-of-range "utf8-string-set!: index out of range" index)
+            (let ((next-byte-pos (bytevector-advance-utf8 bv byte-pos byte-len)))
+              (if (= char-index index)
+                (utf8->string (bytevector-append (bytevector-copy bv 0 byte-pos)
+                                char-bv
+                                (bytevector-copy bv next-byte-pos byte-len)
+                              ) ;bytevector-append
+                ) ;utf8->string
+                (loop next-byte-pos (+ char-index 1))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define (codepoint->utf8 codepoint)

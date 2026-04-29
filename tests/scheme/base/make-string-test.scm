@@ -80,6 +80,9 @@
 (check-catch 'wrong-number-of-args
   (make-string 3 #\a #\b)
 ) ;check-catch
+(check-catch 'out-of-range
+  (make-string 1 #\中)
+) ;check-catch
 (check (string->list "MathAgape")
   =>
   '(#\M #\a #\t #\h #\A #\g #\a #\p #\e)

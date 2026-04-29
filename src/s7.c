@@ -20704,7 +20704,14 @@ static s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
   if (is_null(cdr(args)))
     return(make_empty_string(sc, len, '\0')); /* #\null here means "don't fill/clear" */
   {
-    char fill = s7_character(cadr(args));
+    const s7_pointer c = cadr(args);
+    if (s7_character(c) > 0xFF)
+      {
+        const char *hint = "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters";
+        out_of_range_error_nr(sc, sc->make_string_symbol, int_two, c,
+                              wrap_string(sc, hint, safe_strlen(hint)));
+      }
+    char fill = s7_character(c);
     s7_pointer result = make_empty_string(sc, len, fill);
     if (fill == '\0')
       memclr((void *)string_value(result), (size_t)len);
@@ -20803,6 +20810,12 @@ static s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, 
     wrong_type_error_nr(sc, sc->string_set_symbol, 1, str, sc->type_names[T_STRING]);
   if (!is_character(chr))
     wrong_type_error_nr(sc, sc->string_set_symbol, 2, chr, sc->type_names[T_CHARACTER]);
+  if (s7_character(chr) > 0xFF)
+    {
+      const char *hint = "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters";
+      out_of_range_error_nr(sc, sc->string_set_symbol, int_two, chr,
+                            wrap_string(sc, hint, safe_strlen(hint)));
+    }
   if ((index >= 0) && (index < string_length(str)))
     string_value(str)[index] = s7_character(chr);
   else out_of_range_error_nr(sc, sc->string_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -21698,6 +21711,7 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
   int32_t len;
   s7_pointer chrs, newstr;
   char *str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
 
   /* get length for new string and check arg types */
   for (len = 0, chrs = args; is_pair(chrs); len++, chrs = cdr(chrs))
@@ -21721,7 +21735,11 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		  return(g_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
-	}}
+	}
+      if (s7_character(chr) > 0xFF)
+        out_of_range_error_nr(sc, sym, wrap_integer(sc, len + 1), chr,
+                              wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
+    }
   if (len > sc->max_string_length)
     error_nr(sc, sc->out_of_range_symbol,
 	     set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
@@ -21744,9 +21762,13 @@ static s7_pointer g_string(s7_scheme *sc, s7_pointer args)
 static s7_pointer g_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   /* no multiple values here because no pairs below */
   if (!is_character(c))
     return(method_or_bust(sc, c, sc->string_symbol, args, sc->type_names[T_CHARACTER], 1));
+  if (s7_character(c) > 0xFF)
+    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
+                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
   str = inline_make_empty_string(sc, 1, '\0'); /* can't put character(c) here because null is handled specially */
   string_value(str)[0] = character(c);
   return(str);
@@ -21760,7 +21782,11 @@ static s7_pointer string_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
   s7_pointer str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   if (!is_character(c)) return(g_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
+  if (s7_character(c) > 0xFF)
+    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
+                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
   str = inline_make_empty_string(sc, 1, '\0');
   string_value(str)[0] = character(c);
   return(str);
