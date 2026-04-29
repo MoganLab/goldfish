@@ -3,7 +3,6 @@
     (liii error)
     (liii list)
     (liii string)
-    (liii hash-table)
     (liii alist)
     (liii sys)
   ) ;import
@@ -31,6 +30,12 @@
 
     (define (set-arg-current! record value)
       (set-car! (cddddr record) value)
+    ) ;define
+
+    (define (hash-table-ref/default ht key default)
+      (let ((value (hash-table-ref ht key)))
+        (if value value default)
+      ) ;let
     ) ;define
 
     (define (convert-value value type)
@@ -122,7 +127,8 @@
     ) ;define
 
     (define (string-index-of str ch start)
-      (let loop ((i start))
+      (let loop
+        ((i start))
         (cond ((>= i (string-length str)) #f)
               ((char=? (string-ref str i) ch) i)
               (else (loop (+ i 1)))
@@ -158,7 +164,8 @@
     ) ;define
 
     (define (skip-prefix-option? options arg)
-      (let loop ((prefixes (normalize-list (config-ref options 'skip-prefix-options '()))))
+      (let loop
+        ((prefixes (normalize-list (config-ref options 'skip-prefix-options '()))))
         (cond ((null? prefixes) #f)
               ((string-starts? arg (car prefixes)) #t)
               (else (loop (cdr prefixes)))
@@ -172,9 +179,9 @@
 
     (define (handle-unknown-option options arg positionals)
       (case (unknown-options options)
-       ((ignore) positionals)
-       ((positional) (cons arg positionals))
-       (else (value-error (string-append "Unknown option: " arg)))
+            ((ignore) positionals)
+            ((positional) (cons arg positionals))
+            (else (value-error (string-append "Unknown option: " arg)))
       ) ;case
     ) ;define
 
@@ -187,34 +194,30 @@
             ) ;
         (if found
           (case (arg-action found)
-           ((store-true)
-            (when inline-value
-              (error "Flag does not take a value" name)
-            ) ;when
-            (set-arg-current! found #t)
-            (loop (cdr args) positionals)
-           ) ;
-           ((store-false)
-            (when inline-value
-              (error "Flag does not take a value" name)
-            ) ;when
-            (set-arg-current! found #f)
-            (loop (cdr args) positionals)
-           ) ;
-           (else
-            (let ((value (if inline-value
-                           inline-value
-                           (if (null? (cdr args))
-                             (error "Missing value for argument" name)
-                             (cadr args)
-                           ) ;if
-                         ) ;if
-                  ) ;value
-                 ) ;
-              (set-arg-current! found (convert-value value (cadr found)))
-              (loop (if inline-value (cdr args) (cddr args)) positionals)
-            ) ;let
-           ) ;else
+                ((store-true)
+                 (when inline-value
+                   (error "Flag does not take a value" name)
+                 ) ;when
+                 (set-arg-current! found #t)
+                 (loop (cdr args) positionals)
+                ) ;
+                ((store-false)
+                 (when inline-value
+                   (error "Flag does not take a value" name)
+                 ) ;when
+                 (set-arg-current! found #f)
+                 (loop (cdr args) positionals)
+                ) ;
+                (else (let ((value (if inline-value
+                                     inline-value
+                                     (if (null? (cdr args)) (error "Missing value for argument" name) (cadr args))
+                                   ) ;if
+                            ) ;value
+                           ) ;
+                        (set-arg-current! found (convert-value value (cadr found)))
+                        (loop (if inline-value (cdr args) (cddr args)) positionals)
+                      ) ;let
+                ) ;else
           ) ;case
           (loop (cdr args) (handle-unknown-option options arg positionals))
         ) ;if
@@ -222,25 +225,18 @@
     ) ;define
 
     (define (%parse-args args-ht options raw-args)
-      (let loop ((args raw-args) (positionals '()))
+      (let loop
+        ((args raw-args) (positionals '()))
         (if (null? args)
           (reverse positionals)
           (let ((arg (car args)))
-            (cond ((command-arg? options arg)
-                   (loop (cdr args) positionals)
-                  ) ;
+            (cond ((command-arg? options arg) (loop (cdr args) positionals))
                   ((skip-value-option? options arg)
                    (loop (if (null? (cdr args)) '() (cddr args)) positionals)
                   ) ;
-                  ((skip-prefix-option? options arg)
-                   (loop (cdr args) positionals)
-                  ) ;
-                  ((long-form? arg)
-                   (parse-option args-ht options args 2 positionals loop)
-                  ) ;
-                  ((short-form? arg)
-                   (parse-option args-ht options args 1 positionals loop)
-                  ) ;
+                  ((skip-prefix-option? options arg) (loop (cdr args) positionals))
+                  ((long-form? arg) (parse-option args-ht options args 2 positionals loop))
+                  ((short-form? arg) (parse-option args-ht options args 1 positionals loop))
                   (else (loop (cdr args) (cons arg positionals)))
             ) ;cond
           ) ;let
@@ -254,10 +250,7 @@
 
     (define (%parse-argv args-ht options args)
       (let ((full-argv (retrieve-argv args)))
-        (%parse-args args-ht
-          options
-          (if (null? full-argv) '() (cdr full-argv))
-        ) ;%parse-args
+        (%parse-args args-ht options (if (null? full-argv) '() (cdr full-argv)))
       ) ;let
     ) ;define
 
@@ -272,18 +265,12 @@
            ((:add-argument) (%add-argument args-ht args))
            ((:get) (%get-argument args-ht args))
            ((:get-argument) (%get-argument args-ht args))
-           ((:parse)
-            (set! positionals (%parse-program-args args-ht options args))
-            args-ht
-           ) ;
+           ((:parse) (set! positionals (%parse-program-args args-ht options args)) args-ht)
            ((:parse-args)
             (set! positionals (%parse-program-args args-ht options args))
             args-ht
            ) ;
-           ((:parse-argv)
-            (set! positionals (%parse-argv args-ht options args))
-            args-ht
-           ) ;
+           ((:parse-argv) (set! positionals (%parse-argv args-ht options args)) args-ht)
            ((:positionals) positionals)
            ((:get-positionals) positionals)
            (else (if (and (null? args) (symbol? command))
