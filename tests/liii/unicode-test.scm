@@ -12,6 +12,10 @@
 (codepoint->utf8 20013)
 
 
+;; 示例1.5：把 Unicode char 按 UTF-8 拼接成字符串
+(utf8-string #\中 #\文)
+
+
 ;; 示例2：在字符串和 UTF-8 之间来回转换
 (utf8->string (string->utf8 "你好"))
 
@@ -30,6 +34,7 @@
 
 ;; 一、UTF-8 函数
 ;; 用于处理 UTF-8 编码和码点转换的函数
+;;   utf8-string              - 按 UTF-8 编码拼接 char 为字符串
 ;;   utf8->string              - UTF-8 字节向量转字符串
 ;;   string->utf8              - 字符串转 UTF-8 字节向量
 ;;   utf8-string-length        - 获取 UTF-8 字符串长度

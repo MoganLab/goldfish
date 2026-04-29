@@ -1,6 +1,7 @@
 (define-library (liii unicode)
   (export
     ;; UTF-8 函数
+    utf8-string
     utf8->string
     string->utf8
     utf8-string-length
@@ -38,6 +39,18 @@
   (import (scheme base) (liii base) (liii bitwise) (liii error))
 
   (begin
+
+    (define (utf8-string . chars)
+      (let loop
+        ((rest chars) (chunks '()))
+        (cond ((null? rest)
+               (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks)))))
+              ((char? (car rest))
+               (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks)))
+              (else (error 'type-error "utf8-string: expected char" (car rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
 
     (define* (utf8-substring str (start 0) (end #t))
       (utf8->string (string->utf8 str start end))
