@@ -17,13 +17,7 @@
 
 (check (kdr (kons 1 2)) => 2)
 
-(check (let ((k (kons 1 2)))
-         (set-kar! k 3)
-         (kar k)
-       ) ;let
-  =>
-  3
-) ;check
+(check (let ((k (kons 1 2))) (set-kar! k 3) (kar k)) => 3)
 
 (define-record-type :person
   (make-person name age)
@@ -32,18 +26,9 @@
   (age get-age)
 ) ;define-record-type
 
-(check (person? (make-person "Da" 3))
-  =>
-  #t
-) ;check
-(check (get-age (make-person "Da" 3))
-  =>
-  3
-) ;check
-(check (get-name (make-person "Da" 3))
-  =>
-  "Da"
-) ;check
+(check (person? (make-person "Da" 3)) => #t)
+(check (get-age (make-person "Da" 3)) => 3)
+(check (get-name (make-person "Da" 3)) => "Da")
 (check (let ((da (make-person "Da" 3)))
          (set-name! da "Darcy")
          (get-name da)

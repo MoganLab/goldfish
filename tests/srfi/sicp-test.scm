@@ -1,7 +1,4 @@
-(import (srfi sicp)
-  (liii os)
-  (liii check)
-) ;import
+(import (srfi sicp) (liii os) (liii check))
 
 (display (runtime))
 (newline)

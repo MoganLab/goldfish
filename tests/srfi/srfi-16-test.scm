@@ -1,7 +1,4 @@
-(import (srfi srfi-1)
-  (srfi srfi-16)
-  (srfi srfi-78)
-) ;import
+(import (srfi srfi-1) (srfi srfi-16) (srfi srfi-78))
 
 (check-set-mode! 'report-failed)
 
@@ -10,9 +7,7 @@
    (() "zero args")
    ((x) (+ x x))
    ((x y) (+ x y))
-   ((x y . rest)
-    (reduce + 0 (cons x (cons y rest)))
-   ) ;
+   ((x y . rest) (reduce + 0 (cons x (cons y rest))))
   ) ;case-lambda
 ) ;define
 
