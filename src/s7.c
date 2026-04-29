@@ -20704,7 +20704,14 @@ static s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
   if (is_null(cdr(args)))
     return(make_empty_string(sc, len, '\0')); /* #\null here means "don't fill/clear" */
   {
-    char fill = s7_character(cadr(args));
+    const s7_pointer c = cadr(args);
+    if (s7_character(c) > 0xFF)
+      {
+        const char *hint = "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters";
+        out_of_range_error_nr(sc, sc->make_string_symbol, int_two, c,
+                              wrap_string(sc, hint, safe_strlen(hint)));
+      }
+    char fill = s7_character(c);
     s7_pointer result = make_empty_string(sc, len, fill);
     if (fill == '\0')
       memclr((void *)string_value(result), (size_t)len);
@@ -20803,6 +20810,12 @@ static s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, 
     wrong_type_error_nr(sc, sc->string_set_symbol, 1, str, sc->type_names[T_STRING]);
   if (!is_character(chr))
     wrong_type_error_nr(sc, sc->string_set_symbol, 2, chr, sc->type_names[T_CHARACTER]);
+  if (s7_character(chr) > 0xFF)
+    {
+      const char *hint = "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters";
+      out_of_range_error_nr(sc, sc->string_set_symbol, int_two, chr,
+                            wrap_string(sc, hint, safe_strlen(hint)));
+    }
   if ((index >= 0) && (index < string_length(str)))
     string_value(str)[index] = s7_character(chr);
   else out_of_range_error_nr(sc, sc->string_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
