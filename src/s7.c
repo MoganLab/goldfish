@@ -21681,47 +21681,14 @@ static s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
 /* -------------------------------- string -------------------------------- */
 const char *s7_string(s7_pointer str) {return(string_value(str));}
 
-static int32_t utf8_char_bytes(uint32_t c)
-{
-  if (c < 0x80) return 1;
-  if (c < 0x800) return 2;
-  if (c < 0x10000) return 3;
-  return 4;
-}
-
-static char *utf8_encode_char(char *str, uint32_t c)
-{
-  if (c < 0x80)
-    *str++ = c;
-  else if (c < 0x800)
-    {
-      *str++ = 0xC0 | (c >> 6);
-      *str++ = 0x80 | (c & 0x3F);
-    }
-  else if (c < 0x10000)
-    {
-      *str++ = 0xE0 | (c >> 12);
-      *str++ = 0x80 | ((c >> 6) & 0x3F);
-      *str++ = 0x80 | (c & 0x3F);
-    }
-  else
-    {
-      *str++ = 0xF0 | (c >> 18);
-      *str++ = 0x80 | ((c >> 12) & 0x3F);
-      *str++ = 0x80 | ((c >> 6) & 0x3F);
-      *str++ = 0x80 | (c & 0x3F);
-    }
-  return str;
-}
-
 static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 {
-  int32_t len, byte_len;
+  int32_t len;
   s7_pointer chrs, newstr;
   char *str;
 
   /* get length for new string and check arg types */
-  for (len = 0, byte_len = 0, chrs = args; is_pair(chrs); len++, chrs = cdr(chrs))
+  for (len = 0, chrs = args; is_pair(chrs); len++, chrs = cdr(chrs))
     {
       const s7_pointer chr = car(chrs);
       if (!is_character(chr))
@@ -21734,26 +21701,24 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		  s7_pointer ok_chrs;
 		  if (len == 0)
 		    return(s7_apply_function(sc, func, args));
-		  newstr = make_empty_string(sc, byte_len, '\0');
+		  newstr = make_empty_string(sc, len, '\0');
 		  str = string_value(newstr);
 		  ok_chrs = args;
-		  for (; ok_chrs != chrs; ok_chrs = cdr(ok_chrs))
-		    str = utf8_encode_char(str, character(car(ok_chrs)));
+		  for (int32_t i = 0; ok_chrs != chrs; i++, ok_chrs = cdr(ok_chrs))
+		    str[i] = character(car(ok_chrs));
 		  return(g_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
-	}
-      byte_len += utf8_char_bytes(character(chr));
-    }
-  if (byte_len > sc->max_string_length)
+	}}
+  if (len > sc->max_string_length)
     error_nr(sc, sc->out_of_range_symbol,
 	     set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
-			 sym, wrap_integer(sc, byte_len), wrap_integer(sc, sc->max_string_length)));
-  newstr = inline_make_empty_string(sc, byte_len, '\0');
+			 sym, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
+  newstr = inline_make_empty_string(sc, len, '\0');
   str = string_value(newstr);
   chrs = args;
-  for (; is_pair(chrs); chrs = cdr(chrs))
-    str = utf8_encode_char(str, character(car(chrs)));
+  for (int32_t i = 0; is_pair(chrs); i++, chrs = cdr(chrs))
+    str[i] = character(car(chrs));
   return(newstr);
 }
 
@@ -21767,15 +21732,11 @@ static s7_pointer g_string(s7_scheme *sc, s7_pointer args)
 static s7_pointer g_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
-  uint32_t chr;
-  int32_t byte_len;
   /* no multiple values here because no pairs below */
   if (!is_character(c))
     return(method_or_bust(sc, c, sc->string_symbol, args, sc->type_names[T_CHARACTER], 1));
-  chr = character(c);
-  byte_len = utf8_char_bytes(chr);
-  str = inline_make_empty_string(sc, byte_len, '\0'); /* can't put character(c) here because null is handled specially */
-  utf8_encode_char(string_value(str), chr);
+  str = inline_make_empty_string(sc, 1, '\0'); /* can't put character(c) here because null is handled specially */
+  string_value(str)[0] = character(c);
   return(str);
 }
 
@@ -21787,13 +21748,9 @@ static s7_pointer string_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
   s7_pointer str;
-  uint32_t chr;
-  int32_t byte_len;
   if (!is_character(c)) return(g_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
-  chr = character(c);
-  byte_len = utf8_char_bytes(chr);
-  str = inline_make_empty_string(sc, byte_len, '\0');
-  utf8_encode_char(string_value(str), chr);
+  str = inline_make_empty_string(sc, 1, '\0');
+  string_value(str)[0] = character(c);
   return(str);
 }
 

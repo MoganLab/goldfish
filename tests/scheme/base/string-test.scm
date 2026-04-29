@@ -37,9 +37,4 @@
 (check-catch 'wrong-type-arg
   (string "a")
 ) ;check-catch
-;; UTF-8 字符测试
-(check (string=? (string #\中 #\文) "中文") => #t)
-(check (string-length (string #\中 #\文)) => 6)
-(check (string=? (string #\中) "中") => #t)
-(check (string-length (string #\中)) => 3)
 (check-report)
