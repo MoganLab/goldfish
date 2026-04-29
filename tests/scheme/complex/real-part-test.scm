@@ -35,22 +35,10 @@
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
 ;; Test real-part with complex numbers
-(check (real-part (make-rectangular 3 4))
-  =>
-  3.0
-) ;check
-(check (real-part (make-rectangular -3 4))
-  =>
-  -3.0
-) ;check
-(check (real-part (make-rectangular 3 -4))
-  =>
-  3.0
-) ;check
-(check (real-part (make-rectangular -3 -4))
-  =>
-  -3.0
-) ;check
+(check (real-part (make-rectangular 3 4)) => 3.0)
+(check (real-part (make-rectangular -3 4)) => -3.0)
+(check (real-part (make-rectangular 3 -4)) => 3.0)
+(check (real-part (make-rectangular -3 -4)) => -3.0)
 ;; Test real-part with real numbers
 (check (real-part 5) => 5)
 (check (real-part -5) => -5)

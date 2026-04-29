@@ -40,43 +40,19 @@
 (check (acos 0) => 1.5707963267948966)
 (check (acos 1) => 0)
 (check (acos -1) => 3.141592653589793)
-(check (acos -0.5)
-  =>
-  2.0943951023931957
-) ;check
+(check (acos -0.5) => 2.0943951023931957)
 ;; 特殊值测试
-(check (acos (/ (sqrt 2) 2))
-  =>
-  0.7853981633974483
-) ;check
-(check (acos (/ (sqrt 3) 2))
-  =>
-  0.5235987755982989
-) ;check
+(check (acos (/ (sqrt 2) 2)) => 0.7853981633974483)
+(check (acos (/ (sqrt 3) 2)) => 0.5235987755982989)
 ;; 边界测试
-(check (acos 0.999999)
-  =>
-  0.0014142136802445852
-) ;check
-(check (acos 0.000001)
-  =>
-  1.5707953267948966
-) ;check
-(check (acos -0.999999)
-  =>
-  3.1401784399095485
-) ;check
+(check (acos 0.999999) => 0.0014142136802445852)
+(check (acos 0.000001) => 1.5707953267948966)
+(check (acos -0.999999) => 3.1401784399095485)
 ;; 有理数测试
 (check (acos 3/4) => 0.7227342478134157)
 (check (acos 2/3) => 0.8410686705679303)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (acos "hello")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (acos)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (acos 1 2)
-) ;check-catch
+(check-catch 'wrong-type-arg (acos "hello"))
+(check-catch 'wrong-number-of-args (acos))
+(check-catch 'wrong-number-of-args (acos 1 2))
 (check-report)

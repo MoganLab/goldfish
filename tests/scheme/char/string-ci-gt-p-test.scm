@@ -26,33 +26,15 @@
 (check (string-ci>? "DEF" "abc") => #t)
 (check (string-ci>? "def" "ABC") => #t)
 (check (string-ci>? "DEF" "ABC") => #t)
-(check (string-ci>? "world" "hello")
-  =>
-  #t
-) ;check
-(check (string-ci>? "WORLD" "hello")
-  =>
-  #t
-) ;check
+(check (string-ci>? "world" "hello") => #t)
+(check (string-ci>? "WORLD" "hello") => #t)
 ;; 相同字符串测试（不满足严格大于）
-(check (string-ci>? "hello" "hello")
-  =>
-  #f
-) ;check
-(check (string-ci>? "HELLO" "hello")
-  =>
-  #f
-) ;check
-(check (string-ci>? "hello" "HELLO")
-  =>
-  #f
-) ;check
+(check (string-ci>? "hello" "hello") => #f)
+(check (string-ci>? "HELLO" "hello") => #f)
+(check (string-ci>? "hello" "HELLO") => #f)
 ;; 小于关系测试
 (check (string-ci>? "abc" "def") => #f)
-(check (string-ci>? "hello" "world")
-  =>
-  #f
-) ;check
+(check (string-ci>? "hello" "world") => #f)
 ;; 多参数测试
 (check (string-ci>? "c" "b" "a") => #t)
 (check (string-ci>? "C" "B" "A") => #t)
@@ -69,29 +51,12 @@
 (check (string-ci>? "ABCD" "abc") => #t)
 (check (string-ci>? "abc" "abcd") => #f)
 ;; 混合测试
-(check (string-ci>? "Banana" "apple")
-  =>
-  #t
-) ;check
-(check (string-ci>? "banana" "Apple")
-  =>
-  #t
-) ;check
-(check (string-ci>? "Apple" "banana")
-  =>
-  #f
-) ;check
+(check (string-ci>? "Banana" "apple") => #t)
+(check (string-ci>? "banana" "Apple") => #t)
+(check (string-ci>? "Apple" "banana") => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (string-ci>? 1 "hello")
-) ;check-catch
-(check-catch 'type-error
-  (string-ci>? "hello" 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-ci>?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-ci>? "hello")
-) ;check-catch
+(check-catch 'type-error (string-ci>? 1 "hello"))
+(check-catch 'type-error (string-ci>? "hello" 'symbol))
+(check-catch 'wrong-number-of-args (string-ci>?))
+(check-catch 'wrong-number-of-args (string-ci>? "hello"))
 (check-report)

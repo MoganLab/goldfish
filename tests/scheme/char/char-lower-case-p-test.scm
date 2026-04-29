@@ -43,10 +43,7 @@
 (check (char-lower-case? #\9) => #f)
 (check (char-lower-case? #\!) => #f)
 (check (char-lower-case? #\space) => #f)
-(check (char-lower-case? #\newline)
-  =>
-  #f
-) ;check
+(check (char-lower-case? #\newline) => #f)
 ;; 混合测试
 (check (char-lower-case? #\a) => #t)
 (check (char-lower-case? #\z) => #t)
@@ -57,18 +54,10 @@
 (check (char-lower-case? #\m) => #t)
 (check (char-lower-case? #\M) => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-lower-case? 1)
-) ;check-catch
-(check-catch 'type-error
-  (char-lower-case? "a")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-lower-case?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-lower-case? #\a #\b)
-) ;check-catch
+(check-catch 'type-error (char-lower-case? 1))
+(check-catch 'type-error (char-lower-case? "a"))
+(check-catch 'wrong-number-of-args (char-lower-case?))
+(check-catch 'wrong-number-of-args (char-lower-case? #\a #\b))
 ;; Unicode 字符测试（codepoint >= 256）
 (check (char-lower-case? #\中) => #f)
 (check-report)

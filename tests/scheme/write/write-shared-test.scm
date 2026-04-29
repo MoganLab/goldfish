@@ -32,23 +32,10 @@
   ) ;let
 ) ;define
 (check-true (procedure? write-shared))
-(check (capture-output (lambda (port)
-                         (write-shared '(a b) port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "(a b)"
-) ;check
-(check (capture-output (lambda (port)
-                         (write-shared "goldfish" port)
-                       ) ;lambda
-       ) ;capture-output
+(check (capture-output (lambda (port) (write-shared '(a b) port))) => "(a b)")
+(check (capture-output (lambda (port) (write-shared "goldfish" port)))
   =>
   "\"goldfish\""
 ) ;check
-(check (capture-output (lambda (port) (write-shared 456 port))
-       ) ;capture-output
-  =>
-  "456"
-) ;check
+(check (capture-output (lambda (port) (write-shared 456 port))) => "456")
 (check-report)

@@ -56,16 +56,8 @@
 (check (char-numeric? #\/) => #f)
 (check (char-numeric? #\:) => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-numeric? 1)
-) ;check-catch
-(check-catch 'type-error
-  (char-numeric? "1")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-numeric?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-numeric? #\1 #\2)
-) ;check-catch
+(check-catch 'type-error (char-numeric? 1))
+(check-catch 'type-error (char-numeric? "1"))
+(check-catch 'wrong-number-of-args (char-numeric?))
+(check-catch 'wrong-number-of-args (char-numeric? #\1 #\2))
 (check-report)

@@ -32,23 +32,10 @@
   ) ;let
 ) ;define
 (check-true (procedure? write-simple))
-(check (capture-output (lambda (port)
-                         (write-simple '(a b) port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "(a b)"
-) ;check
-(check (capture-output (lambda (port)
-                         (write-simple "goldfish" port)
-                       ) ;lambda
-       ) ;capture-output
+(check (capture-output (lambda (port) (write-simple '(a b) port))) => "(a b)")
+(check (capture-output (lambda (port) (write-simple "goldfish" port)))
   =>
   "\"goldfish\""
 ) ;check
-(check (capture-output (lambda (port) (write-simple 123 port))
-       ) ;capture-output
-  =>
-  "123"
-) ;check
+(check (capture-output (lambda (port) (write-simple 123 port))) => "123")
 (check-report)

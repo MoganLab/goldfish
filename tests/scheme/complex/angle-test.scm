@@ -39,7 +39,5 @@
 (check (> (angle 1.0+1.0i) 0.78) => #t)
 (check (< (angle 1.0+1.0i) 0.79) => #t)
 ;; Error handling
-(check-catch 'wrong-type-arg
-  (angle "x")
-) ;check-catch
+(check-catch 'wrong-type-arg (angle "x"))
 (check-report)

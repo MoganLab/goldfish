@@ -35,22 +35,10 @@
 ;; --------
 ;; wrong-type-arg 当参数不是数值类型时抛出错误。
 ;; Test imag-part with complex numbers
-(check (imag-part (make-rectangular 3 4))
-  =>
-  4.0
-) ;check
-(check (imag-part (make-rectangular -3 4))
-  =>
-  4.0
-) ;check
-(check (imag-part (make-rectangular 3 -4))
-  =>
-  -4.0
-) ;check
-(check (imag-part (make-rectangular -3 -4))
-  =>
-  -4.0
-) ;check
+(check (imag-part (make-rectangular 3 4)) => 4.0)
+(check (imag-part (make-rectangular -3 4)) => 4.0)
+(check (imag-part (make-rectangular 3 -4)) => -4.0)
+(check (imag-part (make-rectangular -3 -4)) => -4.0)
 ;; Test imag-part with real numbers
 (check (imag-part 5) => 0)
 (check (imag-part -5) => 0)

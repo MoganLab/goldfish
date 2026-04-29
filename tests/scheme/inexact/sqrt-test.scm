@@ -48,12 +48,7 @@
 (check (sqrt 9) => 3)
 (check (sqrt 25.0) => 5.0)
 (check (sqrt 9/4) => 3/2)
-(check (< (abs (- (sqrt 2.0) 1.4142135623730951))
-         1e-10
-       ) ;<
-  =>
-  #t
-) ;check
+(check (< (abs (- (sqrt 2.0) 1.4142135623730951)) 1e-10) => #t)
 ;; sqrt 负数测试
 (check (sqrt -1.0) => 0.0+1.0i)
 (check (sqrt -1) => 0.0+1.0i)
@@ -74,16 +69,8 @@
 (check (sqrt 10000) => 100)
 (check (sqrt 1000000.0) => 1000.0)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (sqrt "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (sqrt 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (sqrt)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (sqrt 1 2)
-) ;check-catch
+(check-catch 'wrong-type-arg (sqrt "hello"))
+(check-catch 'wrong-type-arg (sqrt 'symbol))
+(check-catch 'wrong-number-of-args (sqrt))
+(check-catch 'wrong-number-of-args (sqrt 1 2))
 (check-report)

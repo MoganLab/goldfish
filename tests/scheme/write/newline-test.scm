@@ -28,16 +28,8 @@
   ) ;let
 ) ;define
 (check-true (procedure? newline))
-(check (capture-output (lambda (port) (newline port))
-       ) ;capture-output
-  =>
-  "\n"
-) ;check
-(check (capture-output (lambda (port)
-                         (display "a" port)
-                         (newline port)
-                         (display "b" port)
-                       ) ;lambda
+(check (capture-output (lambda (port) (newline port))) => "\n")
+(check (capture-output (lambda (port) (display "a" port) (newline port) (display "b" port))
        ) ;capture-output
   =>
   "a\nb"
