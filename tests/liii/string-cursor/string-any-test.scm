@@ -33,6 +33,7 @@
 ;; 2. 与 (liii string) 中的 string-any 功能相同，但本版本使用 cursor 遍历字符串
 ;; 3. start/end 参数可以是整数索引或 string-cursor
 ;; 4. 与 (liii string) 版本的差异：本版本只接受谓词(procedure)，不支持字符参数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确遍历和检查
 ;;
 ;; 相关实现
 ;; --------
@@ -60,6 +61,21 @@
 ;; 测试 emoji 字符
 (check (string-any (lambda (c) (char=? c #\😀)) "hello😀world") => #t)
 (check (string-any (lambda (c) (char=? c #\😀)) "hello world") => #f)
+
+;; 测试整数 start/end 范围限制
+(check (string-any char-numeric? "abc123" 0 3) => #f)
+(check (string-any char-numeric? "abc123" 3 6) => #t)
+
+;; 测试 Unicode 字符串的范围限制
+(check (string-any char-numeric? "中文123" 2 5) => #t)
+(check (string-any char-numeric? "中文123" 0 2) => #f)
+
+;; 测试谓词返回非布尔真值（SRFI-130 特性）
+(check (string-any (lambda (c) (if (char-numeric? c) (string c) #f)) "abc123") => "1")
+(check (string-any (lambda (c) (if (char=? c #\中) 'found #f)) "中文测试") => 'found)
+
+;; 测试短路求值：第一个字符满足时立即返回
+(check (string-any char-numeric? "1abc") => #t)
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
