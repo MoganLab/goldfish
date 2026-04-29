@@ -58,10 +58,7 @@
 
 
 (let ((s (stack 1 2 3)))
-  (check (stack-map! (lambda (x) (* x 2)) s)
-    =>
-    s
-  ) ;check
+  (check (stack-map! (lambda (x) (* x 2)) s) => s)
 ) ;let
 
 
@@ -71,12 +68,8 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-map! "not-a-proc" (stack 1 2))
-) ;check-catch
-(check-catch 'type-error
-  (stack-map! (lambda (x) x) 'not-a-stack)
-) ;check-catch
+(check-catch 'type-error (stack-map! "not-a-proc" (stack 1 2)))
+(check-catch 'type-error (stack-map! (lambda (x) x) 'not-a-stack))
 
 
 (check-report)

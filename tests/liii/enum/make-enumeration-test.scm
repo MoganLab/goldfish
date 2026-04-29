@@ -34,12 +34,8 @@
 ;; 无。
 
 
-(let* ((ds '(red yellow green))
-       (us-traffic-light (make-enumeration ds))
-      ) ;
-  (check (enum-set-every? (lambda (e)
-                            (eqv? (enum-name e) (enum-value e))
-                          ) ;lambda
+(let* ((ds '(red yellow green)) (us-traffic-light (make-enumeration ds)))
+  (check (enum-set-every? (lambda (e) (eqv? (enum-name e) (enum-value e)))
            us-traffic-light
          ) ;enum-set-every?
     =>

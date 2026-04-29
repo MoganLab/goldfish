@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii hash-table)
-) ;import
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -46,24 +43,13 @@
 
 (let ((ht (make-hash-table)))
   (hash-table-update! ht 'key 'value)
-  (check (hash-table-ref ht 'key)
-    =>
-    'value
-  ) ;check
+  (check (hash-table-ref ht 'key) => 'value)
   (hash-table-update! ht 'key 'value1)
-  (check (hash-table-ref ht 'key)
-    =>
-    'value1
-  ) ;check
+  (check (hash-table-ref ht 'key) => 'value1)
 ) ;let
 
 
-(check-catch 'type-error
-  (hash-table-update! "not-a-table"
-    'key
-    'value
-  ) ;hash-table-update!
-) ;check-catch
+(check-catch 'type-error (hash-table-update! "not-a-table" 'key 'value))
 
 
 (check-report)

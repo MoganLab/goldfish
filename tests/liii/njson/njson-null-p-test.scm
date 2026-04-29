@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -34,9 +31,7 @@
 ;; 非法句柄或已释放句柄时抛出。
 
 
-(let-njson ((null-h (string->njson "null"))
-            (obj-h (string->njson "{\"x\":1}"))
-           ) ;
+(let-njson ((null-h (string->njson "null")) (obj-h (string->njson "{\"x\":1}")))
   (check-true (njson-null? null-h))
   (check-false (njson-null? obj-h))
 ) ;let-njson
@@ -46,14 +41,9 @@
 (check-false (njson-null? 'foo))
 
 
-(define njson-null-freed
-  (string->njson "{\"k\":1}")
-) ;define
-(check-true (njson-free njson-null-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-null? njson-null-freed)
-) ;check-catch
+(define njson-null-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-null-freed))
+(check-catch 'type-error (njson-null? njson-null-freed))
 
 
 (check-report)

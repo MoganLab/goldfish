@@ -38,13 +38,7 @@
 
 ;; 基本折叠：收集元素（注意顺序是反的，因为是左折叠）
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector-fold (lambda (acc x) (cons x acc))
-           '()
-           fv
-         ) ;flexvector-fold
-    =>
-    '(30 20 10)
-  ) ;check
+  (check (flexvector-fold (lambda (acc x) (cons x acc)) '() fv) => '(30 20 10))
 ) ;let
 
 
@@ -61,62 +55,30 @@
 
 
 ;; 空向量返回初始值
-(check (flexvector-fold + 100 (flexvector))
-  =>
-  100
-) ;check
+(check (flexvector-fold + 100 (flexvector)) => 100)
 
 
 ;; 单元素
 (let ((fv (flexvector 'a)))
-  (check (flexvector-fold (lambda (acc x) (cons x acc))
-           '()
-           fv
-         ) ;flexvector-fold
-    =>
-    '(a)
-  ) ;check
+  (check (flexvector-fold (lambda (acc x) (cons x acc)) '() fv) => '(a))
 ) ;let
 
 
 ;; 多向量折叠
-(let ((fv1 (flexvector 1 2 3))
-      (fv2 (flexvector 10 20 30))
-     ) ;
-  (check (flexvector-fold (lambda (acc x y) (+ acc x y))
-           0
-           fv1
-           fv2
-         ) ;flexvector-fold
-    =>
-    66
-  ) ;check
+(let ((fv1 (flexvector 1 2 3)) (fv2 (flexvector 10 20 30)))
+  (check (flexvector-fold (lambda (acc x y) (+ acc x y)) 0 fv1 fv2) => 66)
 ) ;let
 
 
 ;; 多向量长度不同取最短
-(let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 20))
-     ) ;
-  (check (flexvector-fold (lambda (acc x y) (+ acc (* x y)))
-           0
-           fv1
-           fv2
-         ) ;flexvector-fold
-    =>
-    50
-  ) ;check
+(let ((fv1 (flexvector 1 2 3 4)) (fv2 (flexvector 10 20)))
+  (check (flexvector-fold (lambda (acc x y) (+ acc (* x y))) 0 fv1 fv2) => 50)
 ) ;let
 
 
 ;; 使用字符串累积
 (let ((fv (flexvector #\a #\b #\c)))
-  (check (flexvector-fold (lambda (acc ch)
-                            (string-append acc (string ch))
-                          ) ;lambda
-           ""
-           fv
-         ) ;flexvector-fold
+  (check (flexvector-fold (lambda (acc ch) (string-append acc (string ch))) "" fv)
     =>
     "abc"
   ) ;check

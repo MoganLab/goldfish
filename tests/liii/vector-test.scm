@@ -9,8 +9,7 @@
 
 
 ;; 示例1：截取向量前半段
-(vector->list (vector-take #(1 2 3 4) 2)
-) ;vector->list
+(vector->list (vector-take #(1 2 3 4) 2))
 
 
 ;; 示例2：判断向量中是否包含某个元素
@@ -18,8 +17,7 @@
 
 
 ;; 示例3：跳过前一个元素并转回列表
-(vector->list (vector-drop #(1 2 3 4) 1)
-) ;vector->list
+(vector->list (vector-drop #(1 2 3 4) 1))
 
 
 ;; ==== 如何查看函数的文档和用例 ====

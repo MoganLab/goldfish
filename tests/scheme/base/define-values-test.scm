@@ -53,14 +53,7 @@
   (check (+ a b c d) => 10)
 ) ;let
 ;; 嵌套在 let 中
-(check (let ((result (let ()
-                       (define-values (x y z)
-                         (values 1 2 3)
-                       ) ;define-values
-                       (+ x y z)
-                     ) ;let
-             ) ;result
-            ) ;
+(check (let ((result (let () (define-values (x y z) (values 1 2 3)) (+ x y z))))
          result
        ) ;let
   =>

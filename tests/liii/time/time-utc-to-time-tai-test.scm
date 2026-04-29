@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -28,43 +25,23 @@
 
 
 ;; time-utc->time-tai basic
-(let* ((t-utc (make-time TIME-UTC
-                123456789
-                1483228800
-              ) ;make-time
-       ) ;t-utc
+(let* ((t-utc (make-time TIME-UTC 123456789 1483228800))
        (t-tai (time-utc->time-tai t-utc))
       ) ;
   (check (time-type t-tai) => TIME-TAI)
-  (check (time-second t-tai)
-    =>
-    1483228837
-  ) ;check
-  (check (time-nanosecond t-tai)
-    =>
-    123456789
-  ) ;check
+  (check (time-second t-tai) => 1483228837)
+  (check (time-nanosecond t-tai) => 123456789)
 ) ;let*
 
 
 ;; round-trip
-(let* ((t-utc1 (make-time TIME-UTC
-                 123456789
-                 1483228800
-               ) ;make-time
-       ) ;t-utc1
+(let* ((t-utc1 (make-time TIME-UTC 123456789 1483228800))
        (t-tai (time-utc->time-tai t-utc1))
        (t-utc2 (time-tai->time-utc t-tai))
       ) ;
   (check (time-type t-utc2) => TIME-UTC)
-  (check (time-second t-utc2)
-    =>
-    1483228800
-  ) ;check
-  (check (time-nanosecond t-utc2)
-    =>
-    123456789
-  ) ;check
+  (check (time-second t-utc2) => 1483228800)
+  (check (time-nanosecond t-utc2) => 123456789)
 ) ;let*
 
 

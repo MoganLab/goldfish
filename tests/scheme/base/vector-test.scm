@@ -26,17 +26,8 @@
 (check (vector 'a) => #(a))
 (check (vector 1 2 3) => #(1 2 3))
 (check (vector "a" 'b 3) => #("a" b 3))
-(check (vector #(#\a) #(#\b))
-  =>
-  #(#(#\a) #(#\b))
-) ;check
-(check (vector-length (vector 1 2 3 4))
-  =>
-  4
-) ;check
-(check (vector-ref (vector 'x 'y) 0)
-  =>
-  'x
-) ;check
+(check (vector #(#\a) #(#\b)) => #(#(#\a) #(#\b)))
+(check (vector-length (vector 1 2 3 4)) => 4)
+(check (vector-ref (vector 'x 'y) 0) => 'x)
 
 (check-report)

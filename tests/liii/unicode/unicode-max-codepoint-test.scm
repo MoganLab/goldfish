@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -31,29 +28,18 @@
 
 
 ;; 与边界相关的测试
-(check-true (<= 1114111 unicode-max-codepoint)
-) ;check-true
-(check-true (< unicode-max-codepoint 1114112)
-) ;check-true
+(check-true (<= 1114111 unicode-max-codepoint))
+(check-true (< unicode-max-codepoint 1114112))
 
 
 ;; 验证码点范围
-(check-true (integer? unicode-max-codepoint)
-) ;check-true
-(check-true (positive? unicode-max-codepoint)
-) ;check-true
+(check-true (integer? unicode-max-codepoint))
+(check-true (positive? unicode-max-codepoint))
 
 
 ;; 与函数配合使用
-(check (codepoint->utf8 unicode-max-codepoint)
-  =>
-  #u8(244 143 191 191)
-) ;check
-(check (codepoint->hexstr unicode-max-codepoint
-       ) ;codepoint->hexstr
-  =>
-  "10FFFF"
-) ;check
+(check (codepoint->utf8 unicode-max-codepoint) => #u8(244 143 191 191))
+(check (codepoint->hexstr unicode-max-codepoint) => "10FFFF")
 
 
 (check-report)

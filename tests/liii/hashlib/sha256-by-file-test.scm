@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii hashlib)
-  (liii path)
-) ;import
+(import (liii check) (liii hashlib) (liii path))
 
 
 (check-set-mode! 'report-failed)
@@ -32,50 +29,29 @@
 
 
 ;; ; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
-      ) ;tmp-file
-      (content "hello")
-     ) ;
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt") (content "hello"))
   (path-write-text tmp-file content)
-  (check (sha256-by-file tmp-file)
-    =>
-    (sha256 content)
-  ) ;check
+  (check (sha256-by-file tmp-file) => (sha256 content))
   (delete-file tmp-file)
 ) ;let
 
 
 ;; ; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
-      ) ;tmp-file
-     ) ;
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
   (path-write-text tmp-file "")
-  (check (sha256-by-file tmp-file)
-    =>
-    (sha256 "")
-  ) ;check
+  (check (sha256-by-file tmp-file) => (sha256 ""))
   (delete-file tmp-file)
 ) ;let
 
 
 ;; ; 大文件测试：100MB 文件
-(let* ((large-file "tests/resources/hashlib-test-large-local.txt"
-       ) ;large-file
+(let* ((large-file "tests/resources/hashlib-test-large-local.txt")
        (large-size (* 100 1024 1024))
-       (large-content (make-string large-size #\A)
-       ) ;large-content
+       (large-content (make-string large-size #\A))
       ) ;
-  (path-write-text large-file
-    large-content
-  ) ;path-write-text
-  (check (path-getsize large-file)
-    =>
-    large-size
-  ) ;check
-  (check (sha256-by-file large-file)
-    =>
-    (sha256 large-content)
-  ) ;check
+  (path-write-text large-file large-content)
+  (check (path-getsize large-file) => large-size)
+  (check (sha256-by-file large-file) => (sha256 large-content))
   (when (path-exists? large-file)
     (delete-file large-file)
   ) ;when

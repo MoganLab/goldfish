@@ -30,15 +30,9 @@
 ;; (list-index even? '(1 3 5 7 9)) => #f
 
 
-(check (list-index even? '(3 1 4 1 5 9))
-  =>
-  2
-) ;check
+(check (list-index even? '(3 1 4 1 5 9)) => 2)
 (check (list-index even? '()) => #f)
-(check (list-index even? '(1 3 5 7 9))
-  =>
-  #f
-) ;check
+(check (list-index even? '(1 3 5 7 9)) => #f)
 
 
 (check-report)

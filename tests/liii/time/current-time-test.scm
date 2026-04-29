@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -29,65 +26,35 @@
 
 ;; Test current-time
 (check-true (time? (current-time)))
-(check-true (time? (current-time TIME-UTC))
-) ;check-true
-(check-true (time? (current-time TIME-MONOTONIC))
-) ;check-true
-(check-true (time? (current-time TIME-TAI))
-) ;check-true
-(check-catch 'wrong-type-arg
-  (time? (current-time TIME-THREAD))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time? (current-time TIME-PROCESS))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time? (current-time TIME-DURATION))
-) ;check-catch
+(check-true (time? (current-time TIME-UTC)))
+(check-true (time? (current-time TIME-MONOTONIC)))
+(check-true (time? (current-time TIME-TAI)))
+(check-catch 'wrong-type-arg (time? (current-time TIME-THREAD)))
+(check-catch 'wrong-type-arg (time? (current-time TIME-PROCESS)))
+(check-catch 'wrong-type-arg (time? (current-time TIME-DURATION)))
 
 
 ;; Check that returned times have correct types
-(check (time-type (current-time TIME-UTC))
-  =>
-  TIME-UTC
-) ;check
-(check (time-type (current-time TIME-MONOTONIC)
-       ) ;time-type
-  =>
-  TIME-MONOTONIC
-) ;check
-(check (time-type (current-time TIME-TAI))
-  =>
-  TIME-TAI
-) ;check
-(check-catch 'wrong-type-arg
-  (time-type (current-time TIME-THREAD))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time-type (current-time TIME-PROCESS))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time-type (current-time TIME-DURATION))
-) ;check-catch
+(check (time-type (current-time TIME-UTC)) => TIME-UTC)
+(check (time-type (current-time TIME-MONOTONIC)) => TIME-MONOTONIC)
+(check (time-type (current-time TIME-TAI)) => TIME-TAI)
+(check-catch 'wrong-type-arg (time-type (current-time TIME-THREAD)))
+(check-catch 'wrong-type-arg (time-type (current-time TIME-PROCESS)))
+(check-catch 'wrong-type-arg (time-type (current-time TIME-DURATION)))
 
 
 ;; Check that nanoseconds are in valid range
 (let ((t (current-time)))
   (check-true (>= (time-nanosecond t) 0))
-  (check-true (<= (time-nanosecond t) 999999999)
-  ) ;check-true
+  (check-true (<= (time-nanosecond t) 999999999))
 ) ;let
 
 
 ;; Test monotonic time increases
-(let ((t1 (current-time TIME-MONOTONIC))
-      (t2 (current-time TIME-MONOTONIC))
-     ) ;
+(let ((t1 (current-time TIME-MONOTONIC)) (t2 (current-time TIME-MONOTONIC)))
   (check-true (or (> (time-second t2) (time-second t1))
                 (and (= (time-second t2) (time-second t1))
-                  (>= (time-nanosecond t2)
-                    (time-nanosecond t1)
-                  ) ;>=
+                  (>= (time-nanosecond t2) (time-nanosecond t1))
                 ) ;and
               ) ;or
   ) ;check-true
@@ -95,9 +62,7 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg
-  (current-time 'invalid-type)
-) ;check-catch
+(check-catch 'wrong-type-arg (current-time 'invalid-type))
 
 
 (check-report)

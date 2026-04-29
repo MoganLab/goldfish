@@ -40,49 +40,18 @@
 ;; 3. 当结果接近 0 时，配合 `:abs-tol` 控制误差范围。
 
 
-(check-approx (+ 0.1 0.2)
-  =>
-  0.3
-  :rel-tol
-  1e-12
-  :abs-tol
-  1e-12
-) ;check-approx
-(check-approx 1.000000000001
-  =>
-  1.0
-  :rel-tol
-  2e-12
-  :abs-tol
-  0.0
-) ;check-approx
-(check-approx 1e-13
-  =>
-  0.0
-  :rel-tol
-  0.0
-  :abs-tol
-  1e-12
-) ;check-approx
+(check-approx (+ 0.1 0.2) => 0.3 :rel-tol 1e-12 :abs-tol 1e-12)
+(check-approx 1.000000000001 => 1.0 :rel-tol 2e-12 :abs-tol 0.0)
+(check-approx 1e-13 => 0.0 :rel-tol 0.0 :abs-tol 1e-12)
 
 
 (let ((tolerance 1e-12))
-  (check-approx (+ 0.1 0.2)
-    =>
-    0.3
-    :rel-tol
-    tolerance
-    :abs-tol
-    tolerance
-  ) ;check-approx
+  (check-approx (+ 0.1 0.2) => 0.3 :rel-tol tolerance :abs-tol tolerance)
 ) ;let
 
 
 ;; 默认参数也应可用
-(check-approx (+ 0.1 0.2)
-  =>
-  0.30000000000000004
-) ;check-approx
+(check-approx (+ 0.1 0.2) => 0.30000000000000004)
 
 
 (check-report)

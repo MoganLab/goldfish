@@ -41,19 +41,11 @@
 (check (reduce + 0 '()) => 0)
 
 
-(check (reduce cons () '(1 2 3 4))
-  =>
-  '(4 3 2 . 1)
-) ;check
+(check (reduce cons () '(1 2 3 4)) => '(4 3 2 . 1))
 
 
 (check-catch 'wrong-type-arg
-  (reduce (lambda (x count)
-            (if (symbol? x) (+ count 1) count)
-          ) ;lambda
-    0
-    '(a b 1 2 3 4)
-  ) ;reduce
+  (reduce (lambda (x count) (if (symbol? x) (+ count 1) count)) 0 '(a b 1 2 3 4))
 ) ;check-catch
 
 

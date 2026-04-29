@@ -197,9 +197,7 @@
   ) ;let
 ) ;let
 ;; 测试set-cdr!对不同数据结构的影响
-(let ((pair (cons 'first 'second))
-      (lst (list 'a 'b 'c 'd))
-     ) ;
+(let ((pair (cons 'first 'second)) (lst (list 'a 'b 'c 'd)))
   ;; 修改点对结构
   (set-cdr! pair 'new-tail)
   (check pair => '(first . new-tail))
@@ -209,48 +207,22 @@
 ) ;let
 ;; 测试set-cdr!与cons结合构建动态结构
 (let ((lst (cons 'head 'tail)))
-  (set-cdr! lst
-    (cons 'second-element 'final)
-  ) ;set-cdr!
-  (check lst
-    =>
-    '(head second-element . final)
-  ) ;check
+  (set-cdr! lst (cons 'second-element 'final))
+  (check lst => '(head second-element . final))
 ) ;let
 ;; set-cdr!错误处理测试
-(check-catch 'wrong-type-arg
-  (set-cdr! 123 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-cdr! '() 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-cdr! "string" 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-cdr! #t 'value)
-) ;check-catch
+(check-catch 'wrong-type-arg (set-cdr! 123 'value))
+(check-catch 'wrong-type-arg (set-cdr! '() 'value))
+(check-catch 'wrong-type-arg (set-cdr! "string" 'value))
+(check-catch 'wrong-type-arg (set-cdr! #t 'value))
 ;; 测试参数数量错误
-(check-catch 'wrong-number-of-args
-  (set-cdr! (cons 1 2))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (set-cdr! (cons 1 2) 'a 'b)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (set-cdr!)
-) ;check-catch
+(check-catch 'wrong-number-of-args (set-cdr! (cons 1 2)))
+(check-catch 'wrong-number-of-args (set-cdr! (cons 1 2) 'a 'b))
+(check-catch 'wrong-number-of-args (set-cdr!))
 ;; 测试复杂对象的set-cdr!修改
-(let ((complex-pair (cons (list 'head-structure)
-                      '(tail-structure remaining)
-                    ) ;cons
-      ) ;complex-pair
-     ) ;
+(let ((complex-pair (cons (list 'head-structure) '(tail-structure remaining))))
   (set-cdr! complex-pair 'simple-tail)
-  (check complex-pair
-    =>
-    '((head-structure) . simple-tail)
-  ) ;check
+  (check complex-pair => '((head-structure) . simple-tail))
 ) ;let
 (check (caar '((a . b) . c)) => 'a)
 (check-report)

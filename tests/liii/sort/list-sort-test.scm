@@ -38,38 +38,20 @@
 
 
 (define test-list '(3 1 4 1 5 9 2 6 5))
-(define sorted-list
-  (list-sort < test-list)
-) ;define
+(define sorted-list (list-sort < test-list))
 
 
-(check-true (list-sorted? < sorted-list)
-) ;check-true
-(check (length sorted-list)
-  =>
-  (length test-list)
-) ;check
-(check sorted-list
-  =>
-  '(1 1 2 3 4 5 5 6 9)
-) ;check
-(check (equal? test-list '(3 1 4 1 5 9 2 6 5))
-  =>
-  #t
-) ;check
+(check-true (list-sorted? < sorted-list))
+(check (length sorted-list) => (length test-list))
+(check sorted-list => '(1 1 2 3 4 5 5 6 9))
+(check (equal? test-list '(3 1 4 1 5 9 2 6 5)) => #t)
 
 
 ;; 边界情况
 (check (list-sort < '()) => '())
 (check (list-sort < '(42)) => '(42))
-(check (list-sort < '(1 2 3 4 5))
-  =>
-  '(1 2 3 4 5)
-) ;check
-(check (list-sort > '(1 2 3 4 5))
-  =>
-  '(5 4 3 2 1)
-) ;check
+(check (list-sort < '(1 2 3 4 5)) => '(1 2 3 4 5))
+(check (list-sort > '(1 2 3 4 5)) => '(5 4 3 2 1))
 
 
 (check-report)

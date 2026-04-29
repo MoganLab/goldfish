@@ -19,27 +19,12 @@
 ;; 返回只包含在所有映射中都存在的键的新 fxmapping。
 ;; 对于重复键，后面的映射的值优先。
 ;;
-(let ((intersection (fxmapping-intersection (fxmapping 0 'a 1 'b 2 'c)
-                      (fxmapping 1 'B 2 'C 3 'd)
-                    ) ;fxmapping-intersection
+(let ((intersection (fxmapping-intersection (fxmapping 0 'a 1 'b 2 'c) (fxmapping 1 'B 2 'C 3 'd))
       ) ;intersection
      ) ;
-  (check-false (fxmapping-contains? intersection 0)
-  ) ;check-false
-  (check (fxmapping-ref intersection
-           1
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    'B
-  ) ;check
-  (check (fxmapping-ref intersection
-           2
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    'C
-  ) ;check
+  (check-false (fxmapping-contains? intersection 0))
+  (check (fxmapping-ref intersection 1 (lambda () 'not-found)) => 'B)
+  (check (fxmapping-ref intersection 2 (lambda () 'not-found)) => 'C)
 ) ;let
 
 (check-report)

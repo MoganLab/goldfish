@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -29,23 +26,16 @@
 ;; file-not-found-error 当文件不存在且 missing-ok 为 #f 时。
 
 ;; 文件删除测试
-(let* ((unlink-dir (path-join (path-temp-dir)
-                     "path-unlink-dir"
-                   ) ;path-join
-       ) ;unlink-dir
-       (unlink-file-a (path-join unlink-dir "child-a.txt")
-       ) ;unlink-file-a
-       (unlink-file-b (path-join unlink-dir "child-b.txt")
-       ) ;unlink-file-b
+(let* ((unlink-dir (path-join (path-temp-dir) "path-unlink-dir"))
+       (unlink-file-a (path-join unlink-dir "child-a.txt"))
+       (unlink-file-b (path-join unlink-dir "child-b.txt"))
       ) ;
   ;; 清理
   (when (path-exists? unlink-file-a)
-    (delete-file (path->string unlink-file-a)
-    ) ;delete-file
+    (delete-file (path->string unlink-file-a))
   ) ;when
   (when (path-exists? unlink-file-b)
-    (delete-file (path->string unlink-file-b)
-    ) ;delete-file
+    (delete-file (path->string unlink-file-b))
   ) ;when
   (when (path-exists? unlink-dir)
     (rmdir (path->string unlink-dir))
@@ -57,15 +47,11 @@
 
   ;; 测试删除
   (check-true (path-unlink unlink-file-a))
-  (check-false (path-exists? unlink-file-a)
-  ) ;check-false
+  (check-false (path-exists? unlink-file-a))
 
   ;; missing-ok 测试
-  (check-true (path-unlink unlink-file-a #t)
-  ) ;check-true
-  (check-catch 'file-not-found-error
-    (path-unlink unlink-file-a)
-  ) ;check-catch
+  (check-true (path-unlink unlink-file-a #t))
+  (check-catch 'file-not-found-error (path-unlink unlink-file-a))
 
   ;; 清理
   (check-true (path-unlink unlink-file-b))

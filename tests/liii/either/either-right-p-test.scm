@@ -32,9 +32,7 @@
 ;; ----
 ;; 无
 
-(let ((left-val (from-left "error"))
-      (right-val (from-right "success"))
-     ) ;
+(let ((left-val (from-left "error")) (right-val (from-right "success")))
   (check-false (either-right? left-val))
   (check-true (either-right? right-val))
 ) ;let

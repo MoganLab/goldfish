@@ -23,13 +23,7 @@
 ;; iset : iset
 ;; 目标集合。
 ;;
-(check (iset-fold-right cons
-         '()
-         (iset 2 3 5 7 11)
-       ) ;iset-fold-right
-  =>
-  '(2 3 5 7 11)
-) ;check
+(check (iset-fold-right cons '() (iset 2 3 5 7 11)) => '(2 3 5 7 11))
 
 
 (check-report)

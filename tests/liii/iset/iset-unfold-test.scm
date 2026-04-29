@@ -30,12 +30,7 @@
 ;; -----
 ;; 返回生成的 iset。
 ;;
-(check (iset->list (iset-unfold (lambda (n) (> n 64))
-                     values
-                     (lambda (n) (* n 2))
-                     2
-                   ) ;iset-unfold
-       ) ;iset->list
+(check (iset->list (iset-unfold (lambda (n) (> n 64)) values (lambda (n) (* n 2)) 2))
   =>
   '(2 4 8 16 32 64)
 ) ;check

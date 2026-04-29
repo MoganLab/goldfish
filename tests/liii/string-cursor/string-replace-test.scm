@@ -41,7 +41,10 @@
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符位置操作，支持 Unicode
 ;; 3. 性能：O(n)，n 为涉及的字符串总长度
 
-(check (string-replace "It's easy to code it up in Scheme." "lots of fun" 5 9) => "It's lots of fun to code it up in Scheme.")
+(check (string-replace "It's easy to code it up in Scheme." "lots of fun" 5 9)
+  =>
+  "It's lots of fun to code it up in Scheme."
+) ;check
 (check (string-replace "abcdef" "xyz" 2 4) => "abxyzef")
 
 ;; Unicode 测试
@@ -54,6 +57,8 @@
        (start1 (string-index->cursor s1 2))
        (end1 (string-index->cursor s1 4))
        (start2 (string-cursor-start s2))
-       (end2 (string-cursor-end s2)))
-  (check (string-replace s1 s2 start1 end1 start2 end2) => "abXYZef"))
+       (end2 (string-cursor-end s2))
+      ) ;
+  (check (string-replace s1 s2 start1 end1 start2 end2) => "abXYZef")
+) ;let*
 (check-report)

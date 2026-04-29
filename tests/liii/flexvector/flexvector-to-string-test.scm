@@ -11,11 +11,7 @@
 ;; ----
 ;; (flexvector->string fv)
 ;;
-(check (flexvector->string (flexvector #\a #\b #\c)
-       ) ;flexvector->string
-  =>
-  "abc"
-) ;check
+(check (flexvector->string (flexvector #\a #\b #\c)) => "abc")
 
 
 (check-report)

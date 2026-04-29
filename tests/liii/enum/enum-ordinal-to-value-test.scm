@@ -5,13 +5,15 @@
 
 
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella")
+    (funghi "mushrooms")
+    (bianca "ricotta and mozzarella")
+    (chicago "deep-dish")
+    (hawaiian "pineapple and ham"))
 ) ;define
 
 
-(define pizza
-  (make-enum-type pizza-descriptions)
-) ;define
+(define pizza (make-enum-type pizza-descriptions))
 
 
 ;; enum-ordinal->value
@@ -47,10 +49,7 @@
 ;; 原始测试未覆盖错误分支。
 
 
-(check (enum-ordinal->value pizza 1)
-  =>
-  "mushrooms"
-) ;check
+(check (enum-ordinal->value pizza 1) => "mushrooms")
 
 
 (check-report)

@@ -1,7 +1,5 @@
 (import (liii check)
-  (rename (srfi srfi-78)
-    (check-reset! srfi-78-check-reset!)
-  ) ;rename
+  (rename (srfi srfi-78) (check-reset! srfi-78-check-reset!))
 ) ;import
 
 

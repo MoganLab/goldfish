@@ -31,23 +31,15 @@
 
 
 ;; 空向量
-(check-true (flexvector-empty? (flexvector))
-) ;check-true
-(check-true (flexvector-empty? (make-flexvector 0))
-) ;check-true
-(check-true (flexvector-empty? (list->flexvector '())
-            ) ;flexvector-empty?
-) ;check-true
+(check-true (flexvector-empty? (flexvector)))
+(check-true (flexvector-empty? (make-flexvector 0)))
+(check-true (flexvector-empty? (list->flexvector '())))
 
 
 ;; 非空向量
-(check-false (flexvector-empty? (flexvector 1 2 3))
-) ;check-false
-(check-false (flexvector-empty? (make-flexvector 1))
-) ;check-false
-(check-false (flexvector-empty? (list->flexvector '(a))
-             ) ;flexvector-empty?
-) ;check-false
+(check-false (flexvector-empty? (flexvector 1 2 3)))
+(check-false (flexvector-empty? (make-flexvector 1)))
+(check-false (flexvector-empty? (list->flexvector '(a))))
 
 
 ;; 添加后变为非空

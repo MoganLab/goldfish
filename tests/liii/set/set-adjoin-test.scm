@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,40 +38,27 @@
 
 
 ;; Test basic adjoin
-(define s-adjoin-1
-  (set-adjoin s-empty 1)
-) ;define
+(define s-adjoin-1 (set-adjoin s-empty 1))
 (check (set-size s-adjoin-1) => 1)
-(check-true (set-contains? s-adjoin-1 1)
-) ;check-true
+(check-true (set-contains? s-adjoin-1 1))
 (check-true (set-empty? s-empty))
 
 
-(define s-adjoin-2
-  (set-adjoin (set 1) 2 3)
-) ;define
+(define s-adjoin-2 (set-adjoin (set 1) 2 3))
 (check (set-size s-adjoin-2) => 3)
-(check-true (set-contains? s-adjoin-2 1)
-) ;check-true
-(check-true (set-contains? s-adjoin-2 2)
-) ;check-true
-(check-true (set-contains? s-adjoin-2 3)
-) ;check-true
+(check-true (set-contains? s-adjoin-2 1))
+(check-true (set-contains? s-adjoin-2 2))
+(check-true (set-contains? s-adjoin-2 3))
 
 
 ;; Test adding existing element
-(define s-adjoin-3
-  (set-adjoin (set 1) 1)
-) ;define
+(define s-adjoin-3 (set-adjoin (set 1) 1))
 (check (set-size s-adjoin-3) => 1)
-(check-true (set-contains? s-adjoin-3 1)
-) ;check-true
+(check-true (set-contains? s-adjoin-3 1))
 
 
 ;; Test type error
-(check-catch 'type-error
-  (set-adjoin "not a set" 1)
-) ;check-catch
+(check-catch 'type-error (set-adjoin "not a set" 1))
 
 
 (check-report)

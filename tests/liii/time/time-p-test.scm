@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -36,8 +33,7 @@
 
 
 ;; Test time?
-(check-true (time? (make-time TIME-UTC 0 0))
-) ;check-true
+(check-true (time? (make-time TIME-UTC 0 0)))
 (check-false (time? 123))
 (check-false (time? "string"))
 (check-false (time? 'symbol))

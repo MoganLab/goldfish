@@ -32,16 +32,8 @@
   ) ;let
 ) ;define
 (check-true (procedure? write-char))
-(check (capture-output (lambda (port) (write-char #\A port))
-       ) ;capture-output
-  =>
-  "A"
-) ;check
-(check (capture-output (lambda (port)
-                         (write-char #\space port)
-                         (write-char #\B port)
-                       ) ;lambda
-       ) ;capture-output
+(check (capture-output (lambda (port) (write-char #\A port))) => "A")
+(check (capture-output (lambda (port) (write-char #\space port) (write-char #\B port)))
   =>
   " B"
 ) ;check
@@ -50,18 +42,6 @@
     (write-char 1 port)
   ) ;let
 ) ;check-catch
-(check (capture-output (lambda (port)
-                         (write-char #\中 port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "中"
-) ;check
-(check (capture-output (lambda (port)
-                         (display #\中 port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "中"
-) ;check
+(check (capture-output (lambda (port) (write-char #\中 port))) => "中")
+(check (capture-output (lambda (port) (display #\中 port))) => "中")
 (check-report)

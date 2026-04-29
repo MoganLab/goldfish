@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -24,19 +21,14 @@
 
 ;; 基本相对路径测试
 (check-true (path-relative? (path)))
-(check-true (path-relative? (path "relative.txt"))
-) ;check-true
-(check-false (path-relative? (path-of-drive #\C))
-) ;check-false
+(check-true (path-relative? (path "relative.txt")))
+(check-false (path-relative? (path-of-drive #\C)))
 
 (when (not (os-windows?))
-  (check-false (path-relative? (path "/tmp/demo.txt"))
-  ) ;check-false
+  (check-false (path-relative? (path "/tmp/demo.txt")))
 ) ;when
 
-(check-false (path-relative? (path-home))
-) ;check-false
-(check-false (path-relative? (path-temp-dir))
-) ;check-false
+(check-false (path-relative? (path-home)))
+(check-false (path-relative? (path-temp-dir)))
 
 (check-report)

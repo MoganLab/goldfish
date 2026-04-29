@@ -30,34 +30,23 @@
 ;; 多参数真值情况
 (check-true (and #t #t #t))
 (check (and 1 2 3) => 3)
-(check (and #t "string" 'symbol)
-  =>
-  'symbol
-) ;check
+(check (and #t "string" 'symbol) => 'symbol)
 ;; 多参数假值情况
 (check-false (and #t #f #t))
 (check-false (and #f #t #f))
 (check-false (and #f #f #f))
 ;; 混合类型测试
 (check-true (and 1 '() "non-empty" #t))
-(check-false (and #f '() "non-empty" #t)
-) ;check-false
+(check-false (and #f '() "non-empty" #t))
 (check-false (and 1 '() "non-empty" #f))
 ;; 表达式求值测试
 (check-true (and (> 5 3) (< 5 10)))
 (check-false (and (> 5 3) (> 5 10)))
 ;; 短路求值测试
 (check-catch 'error-name
-  (and (error 'error-name
-         "This should not be evaluated"
-       ) ;error
-    #f
-  ) ;and
+  (and (error 'error-name "This should not be evaluated") #f)
 ) ;check-catch
-(check-false (and #f
-               (error "This should not be evaluated")
-             ) ;and
-) ;check-false
+(check-false (and #f (error "This should not be evaluated")))
 ;; 边缘情况测试
 (check (and 0) => 0)
 (check (and '()) => '())

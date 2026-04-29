@@ -38,8 +38,7 @@
   =>
   "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
 ) ;check
-(check (sha256 "The quick brown fox jumps over the lazy dog"
-       ) ;sha256
+(check (sha256 "The quick brown fox jumps over the lazy dog")
   =>
   "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592"
 ) ;check

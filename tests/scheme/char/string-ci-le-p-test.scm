@@ -26,33 +26,15 @@
 (check (string-ci<=? "ABC" "def") => #t)
 (check (string-ci<=? "abc" "DEF") => #t)
 (check (string-ci<=? "ABC" "DEF") => #t)
-(check (string-ci<=? "hello" "world")
-  =>
-  #t
-) ;check
-(check (string-ci<=? "HELLO" "world")
-  =>
-  #t
-) ;check
+(check (string-ci<=? "hello" "world") => #t)
+(check (string-ci<=? "HELLO" "world") => #t)
 ;; 相等字符串测试
-(check (string-ci<=? "hello" "hello")
-  =>
-  #t
-) ;check
-(check (string-ci<=? "HELLO" "hello")
-  =>
-  #t
-) ;check
-(check (string-ci<=? "hello" "HELLO")
-  =>
-  #t
-) ;check
+(check (string-ci<=? "hello" "hello") => #t)
+(check (string-ci<=? "HELLO" "hello") => #t)
+(check (string-ci<=? "hello" "HELLO") => #t)
 ;; 大于关系测试
 (check (string-ci<=? "def" "abc") => #f)
-(check (string-ci<=? "world" "hello")
-  =>
-  #f
-) ;check
+(check (string-ci<=? "world" "hello") => #f)
 ;; 多参数测试（递增）
 (check (string-ci<=? "a" "b" "c") => #t)
 (check (string-ci<=? "A" "B" "C") => #t)
@@ -69,29 +51,12 @@
 (check (string-ci<=? "" "") => #t)
 (check (string-ci<=? "abc" "") => #f)
 ;; 前缀测试
-(check (string-ci<=? "abc" "abcd")
-  =>
-  #t
-) ;check
-(check (string-ci<=? "ABC" "abcd")
-  =>
-  #t
-) ;check
-(check (string-ci<=? "abcd" "abc")
-  =>
-  #f
-) ;check
+(check (string-ci<=? "abc" "abcd") => #t)
+(check (string-ci<=? "ABC" "abcd") => #t)
+(check (string-ci<=? "abcd" "abc") => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (string-ci<=? 1 "hello")
-) ;check-catch
-(check-catch 'type-error
-  (string-ci<=? "hello" 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-ci<=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-ci<=? "hello")
-) ;check-catch
+(check-catch 'type-error (string-ci<=? 1 "hello"))
+(check-catch 'type-error (string-ci<=? "hello" 'symbol))
+(check-catch 'wrong-number-of-args (string-ci<=?))
+(check-catch 'wrong-number-of-args (string-ci<=? "hello"))
 (check-report)

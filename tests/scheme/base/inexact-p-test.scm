@@ -66,40 +66,23 @@
 (check-false (inexact? (* 1/2 4)))
 (check-true (inexact? (* 0.5 4)))
 ;; 边界测试
-(check-true (inexact? 1.7976931348623157e+308)
-) ;check-true
-(check-true (inexact? 2.2250738585072014e-308)
-) ;check-true
+(check-true (inexact? 1.7976931348623157e+308))
+(check-true (inexact? 2.2250738585072014e-308))
 ;; 错误测试
-(check-catch 'wrong-type-arg
-  (inexact? "not a number")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (inexact? 'symbol)
-) ;check-catch
+(check-catch 'wrong-type-arg (inexact? "not a number"))
+(check-catch 'wrong-type-arg (inexact? 'symbol))
 (let ((zero-int 0))
-  (check-true (and (integer? zero-int)
-                (zero? zero-int)
-              ) ;and
-  ) ;check-true
+  (check-true (and (integer? zero-int) (zero? zero-int)))
 ) ;let
 (let ((zero-exact (- 1/2 1/2)))
-  (check-true (and (exact? zero-exact)
-                (zero? zero-exact)
-              ) ;and
-  ) ;check-true
+  (check-true (and (exact? zero-exact) (zero? zero-exact)))
 ) ;let
 (let ((zero-inexact 0.0))
-  (check-true (and (inexact? zero-inexact)
-                (zero? zero-inexact)
-              ) ;and
-  ) ;check-true
+  (check-true (and (inexact? zero-inexact) (zero? zero-inexact)))
 ) ;let
 (check-false (zero? 1.0+1.0i))
 (check-false (zero? 3))
-(check-catch 'wrong-type-arg
-  (zero? #\A)
-) ;check-catch
+(check-catch 'wrong-type-arg (zero? #\A))
 (check-catch 'wrong-type-arg (zero? #t))
 (check-catch 'wrong-type-arg (zero? #f))
 (check-report)

@@ -37,29 +37,17 @@
 
 
 (let ((r (numeric-range 1 6)))
-  (check (range-fold-right cons '() r)
-    =>
-    '(1 2 3 4 5)
-  ) ;check
+  (check (range-fold-right cons '() r) => '(1 2 3 4 5))
 ) ;let
 
 
 (let ((r (numeric-range 0 0)))
-  (check (range-fold-right cons '() r)
-    =>
-    '()
-  ) ;check
+  (check (range-fold-right cons '() r) => '())
 ) ;let
 
 
 (let ((r (numeric-range 1 4)))
-  (check (range-fold-right (lambda (x acc) (cons x acc))
-           '()
-           r
-         ) ;range-fold-right
-    =>
-    '(1 2 3)
-  ) ;check
+  (check (range-fold-right (lambda (x acc) (cons x acc)) '() r) => '(1 2 3))
 ) ;let
 
 

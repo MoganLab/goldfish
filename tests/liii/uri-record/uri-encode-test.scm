@@ -19,17 +19,11 @@
 
 ;; 无需编码
 (check (uri-encode "hello") => "hello")
-(check (uri-encode "test-file.txt")
-  =>
-  "test-file.txt"
-) ;check
+(check (uri-encode "test-file.txt") => "test-file.txt")
 
 
 ;; 空格编码
-(check (uri-encode "hello world")
-  =>
-  "hello%20world"
-) ;check
+(check (uri-encode "hello world") => "hello%20world")
 
 
 ;; 特殊字符编码
@@ -38,23 +32,13 @@
 
 
 ;; 中文字符编码（UTF-8）
-(check (uri-encode "中文")
-  =>
-  "%E4%B8%AD%E6%96%87"
-) ;check
-(check (uri-encode "中")
-  =>
-  "%E4%B8%AD"
-) ;check
+(check (uri-encode "中文") => "%E4%B8%AD%E6%96%87")
+(check (uri-encode "中") => "%E4%B8%AD")
 
 
 ;; 错误处理
-(check-catch 'type-error
-  (uri-encode 123)
-) ;check-catch
-(check-catch 'type-error
-  (uri-encode '())
-) ;check-catch
+(check-catch 'type-error (uri-encode 123))
+(check-catch 'type-error (uri-encode '()))
 
 
 (check-report)

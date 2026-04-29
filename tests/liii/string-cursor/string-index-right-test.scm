@@ -48,33 +48,43 @@
   ;; 最右边的字母是 c，索引2，successor是索引3
   (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 3)
   ;; 最右边的数字是 3，索引5，successor是索引6（end）
-  (check (string-cursor->index s (string-index-right s char-numeric?)) => 6))
+  (check (string-cursor->index s (string-index-right s char-numeric?)) => 6)
+) ;let
 
 ;; 测试未找到的情况
 (let ((s "abc"))
-  (check (string-cursor->index s (string-index-right s char-numeric?)) => 0))
+  (check (string-cursor->index s (string-index-right s char-numeric?)) => 0)
+) ;let
 
 ;; 测试带 start/end 参数
 (let ((s "abc123"))
   ;; 在 [0, 4) 范围内，最右边的字母是 c（索引2），successor是3
-  (check (string-cursor->index s (string-index-right s char-alphabetic? 0 4)) => 3)
+  (check (string-cursor->index s (string-index-right s char-alphabetic? 0 4))
+    =>
+    3
+  ) ;check
   ;; 在 [3, 6) 范围内，最右边的数字是 3（索引5），successor是6
-  (check (string-cursor->index s (string-index-right s char-numeric? 3 6)) => 6))
+  (check (string-cursor->index s (string-index-right s char-numeric? 3 6)) => 6)
+) ;let
 
 ;; 测试空字符串
 (let ((s ""))
-  (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 0))
+  (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 0)
+) ;let
 
 ;; 测试中文
 (let ((s "中文abc"))
   ;; 最右边的字母是 c，索引4（中=0, 文=1, a=2, b=3, c=4），successor是5
-  (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 5))
+  (check (string-cursor->index s (string-index-right s char-alphabetic?)) => 5)
+) ;let
 
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (result (string-index-right s char-alphabetic? start end)))
-  (check (string-cursor->index s result) => 3))
+       (result (string-index-right s char-alphabetic? start end))
+      ) ;
+  (check (string-cursor->index s result) => 3)
+) ;let*
 (check-report)

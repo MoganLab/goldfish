@@ -41,27 +41,10 @@
 ;; wrong-type-arg 当vec不是向量，或proc不是过程时
 
 
-(check (vector-fold + 0 #(1 2 3 4))
-  =>
-  10
-) ;check
-(check (vector-fold * 1 #(1 2 3 4))
-  =>
-  24
-) ;check
-(check (vector-fold (lambda (x acc) (cons x acc))
-         '()
-         #(1 2 3)
-       ) ;vector-fold
-  =>
-  '(3 2 1)
-) ;check
-(check (vector-fold (lambda (x acc)
-                      (+ acc (if (even? x) 1 0))
-                    ) ;lambda
-         0
-         #(1 2 3 4)
-       ) ;vector-fold
+(check (vector-fold + 0 #(1 2 3 4)) => 10)
+(check (vector-fold * 1 #(1 2 3 4)) => 24)
+(check (vector-fold (lambda (x acc) (cons x acc)) '() #(1 2 3)) => '(3 2 1))
+(check (vector-fold (lambda (x acc) (+ acc (if (even? x) 1 0))) 0 #(1 2 3 4))
   =>
   2
 ) ;check
@@ -69,20 +52,8 @@
 (check (vector-fold * 1 #()) => 1)
 (check (vector-fold + 0 #(5)) => 5)
 (check (vector-fold * 1 #(5)) => 5)
-(check (vector-fold string-append
-         ""
-         #("a" "b" "c")
-       ) ;vector-fold
-  =>
-  "cba"
-) ;check
-(check (vector-fold (lambda (x acc) (and acc x))
-         #t
-         #(#t #t #f)
-       ) ;vector-fold
-  =>
-  #f
-) ;check
+(check (vector-fold string-append "" #("a" "b" "c")) => "cba")
+(check (vector-fold (lambda (x acc) (and acc x)) #t #(#t #t #f)) => #f)
 
 
 (check-report)

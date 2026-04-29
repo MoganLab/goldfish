@@ -22,8 +22,7 @@
 ;; 如果 iset 为空，返回 #t；否则返回 #f。
 ;;
 (check-true (iset-empty? (iset)))
-(check-false (iset-empty? (iset 2 3 5 7 11))
-) ;check-false
+(check-false (iset-empty? (iset 2 3 5 7 11)))
 (check-false (iset-empty? (iset 1)))
 
 

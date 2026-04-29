@@ -1,6 +1,4 @@
-(import (liii check)
-  (liii uri-predicate)
-) ;import
+(import (liii check) (liii uri-predicate))
 
 
 (check-set-mode! 'report-failed)
@@ -21,10 +19,7 @@
 
 ;; 标准 scheme
 (check (uri-default-port "http") => 80)
-(check (uri-default-port "https")
-  =>
-  443
-) ;check
+(check (uri-default-port "https") => 443)
 (check (uri-default-port "ftp") => 21)
 (check (uri-default-port "ssh") => 22)
 (check (uri-default-port "smtp") => 25)
@@ -35,10 +30,7 @@
 
 
 ;; 未知 scheme
-(check (uri-default-port "unknown")
-  =>
-  #f
-) ;check
+(check (uri-default-port "unknown") => #f)
 (check (uri-default-port "xyz") => #f)
 
 

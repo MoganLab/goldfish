@@ -39,7 +39,5 @@
 (check (magnitude -3.5) => 3.5)
 (check (magnitude 0) => 0)
 ;; Error handling
-(check-catch 'wrong-type-arg
-  (magnitude "x")
-) ;check-catch
+(check-catch 'wrong-type-arg (magnitude "x"))
 (check-report)

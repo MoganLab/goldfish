@@ -26,19 +26,11 @@
 
 
 ;; 基本转换
-(check (flexvector->list (list->flexvector '(a b c))
-       ) ;flexvector->list
-  =>
-  '(a b c)
-) ;check
+(check (flexvector->list (list->flexvector '(a b c))) => '(a b c))
 
 
 ;; 空列表
-(check (flexvector->list (list->flexvector '())
-       ) ;flexvector->list
-  =>
-  '()
-) ;check
+(check (flexvector->list (list->flexvector '())) => '())
 
 
 ;; 单元素
@@ -49,9 +41,7 @@
 
 
 ;; 大量元素（测试内部容量分配）
-(let* ((lst (iota 20))
-       (fv (list->flexvector lst))
-      ) ;
+(let* ((lst (iota 20)) (fv (list->flexvector lst)))
   (check (flexvector-length fv) => 20)
   (check (flexvector->list fv) => lst)
 ) ;let*
@@ -59,11 +49,7 @@
 
 ;; 往返测试
 (let ((lst '(1 2 3 4 5)))
-  (check (flexvector->list (list->flexvector lst)
-         ) ;flexvector->list
-    =>
-    lst
-  ) ;check
+  (check (flexvector->list (list->flexvector lst)) => lst)
 ) ;let
 
 

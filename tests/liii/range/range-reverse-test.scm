@@ -32,43 +32,28 @@
 
 (let ((r (numeric-range 0 5)))
   (let ((rev (range-reverse r)))
-    (check (range->list rev)
-      =>
-      '(4 3 2 1 0)
-    ) ;check
+    (check (range->list rev) => '(4 3 2 1 0))
   ) ;let
 ) ;let
 
 
 (let ((r (numeric-range 0 3)))
-  (check (range->list (range-reverse r))
-    =>
-    '(2 1 0)
-  ) ;check
+  (check (range->list (range-reverse r)) => '(2 1 0))
 ) ;let
 
 
 (let ((r (numeric-range 0 1)))
-  (check (range->list (range-reverse r))
-    =>
-    '(0)
-  ) ;check
+  (check (range->list (range-reverse r)) => '(0))
 ) ;let
 
 
 (let ((r (numeric-range 0 0)))
-  (check (range->list (range-reverse r))
-    =>
-    '()
-  ) ;check
+  (check (range->list (range-reverse r)) => '())
 ) ;let
 
 
 (let ((r (vector-range #(a b c d e))))
-  (check (range->list (range-reverse r))
-    =>
-    '(e d c b a)
-  ) ;check
+  (check (range->list (range-reverse r)) => '(e d c b a))
 ) ;let
 
 

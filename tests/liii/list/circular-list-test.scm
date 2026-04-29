@@ -53,12 +53,9 @@
 ;; wrong-number-of-args 当没有提供参数时抛出。
 
 
-(check-true (circular-list? (circular-list 1))
-) ;check-true
-(check-true (circular-list? (circular-list 1 2))
-) ;check-true
-(check-true (circular-list? (circular-list 1 2 3))
-) ;check-true
+(check-true (circular-list? (circular-list 1)))
+(check-true (circular-list? (circular-list 1 2)))
+(check-true (circular-list? (circular-list 1 2 3)))
 
 
 (let ((cl (circular-list 1 2 3)))
@@ -72,17 +69,10 @@
 ) ;let
 
 
-(check-true (circular-list? (circular-list 'a))
-) ;check-true
-(check-true (circular-list? (circular-list 'a 'b 'c)
-            ) ;circular-list?
-) ;check-true
-(check-true (circular-list? (circular-list "hello" "world")
-            ) ;circular-list?
-) ;check-true
-(check-true (circular-list? (circular-list '(1 2) '(3 4))
-            ) ;circular-list?
-) ;check-true
+(check-true (circular-list? (circular-list 'a)))
+(check-true (circular-list? (circular-list 'a 'b 'c)))
+(check-true (circular-list? (circular-list "hello" "world")))
+(check-true (circular-list? (circular-list '(1 2) '(3 4))))
 
 
 (let ((single (circular-list 'x)))
@@ -92,9 +82,7 @@
 ) ;let
 
 
-(let ((nested (circular-list '(1 2) '(3) '(4 5 6))
-      ) ;nested
-     ) ;
+(let ((nested (circular-list '(1 2) '(3) '(4 5 6))))
   (check (nested 0) => '(1 2))
   (check (nested 1) => '(3))
   (check (nested 2) => '(4 5 6))
@@ -102,9 +90,7 @@
 ) ;let
 
 
-(check-catch 'wrong-number-of-args
-  (circular-list)
-) ;check-catch
+(check-catch 'wrong-number-of-args (circular-list))
 
 
 (let ((cl (circular-list 1 2 3)))
@@ -115,10 +101,8 @@
 ) ;let
 
 
-(check-true (circular-list? (circular-list 1 2))
-) ;check-true
-(check-true (circular-list? (circular-list 1))
-) ;check-true
+(check-true (circular-list? (circular-list 1 2)))
+(check-true (circular-list? (circular-list 1)))
 
 
 (let* ((l (list 1 2 3)) (end (last-pair l)))
@@ -127,8 +111,7 @@
 ) ;let*
 
 
-(check-false (circular-list? (list 1 2))
-) ;check-false
+(check-false (circular-list? (list 1 2)))
 
 
 (check-report)

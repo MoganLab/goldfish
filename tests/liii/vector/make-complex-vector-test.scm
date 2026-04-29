@@ -39,17 +39,10 @@
 ;; wrong-type-arg 当k不是合法整数或fill不是复数时
 
 
-(check-true (complex-vector? (make-complex-vector 0)
-            ) ;complex-vector?
-) ;check-true
-(check-true (complex-vector? (make-complex-vector 3)
-            ) ;complex-vector?
-) ;check-true
+(check-true (complex-vector? (make-complex-vector 0)))
+(check-true (complex-vector? (make-complex-vector 3)))
 (check (make-complex-vector 0) => #())
-(check (vector-length (make-complex-vector 5))
-  =>
-  5
-) ;check
+(check (vector-length (make-complex-vector 5)) => 5)
 
 
 (let ((v (make-complex-vector 3)))
@@ -58,12 +51,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (make-complex-vector 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-complex-vector 3 'not-a-complex)
-) ;check-catch
+(check-catch 'wrong-type-arg (make-complex-vector 'not-a-number))
+(check-catch 'wrong-type-arg (make-complex-vector 3 'not-a-complex))
 
 
 (check-report)

@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -48,18 +44,8 @@
   (catch 'key-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
@@ -67,35 +53,19 @@
 
 
 (let-njson ((root (string->njson sample-json)))
-  (check (njson-ref root "name")
-    =>
-    "Goldfish"
-  ) ;check
+  (check (njson-ref root "name") => "Goldfish")
   (check (njson-ref root "active") => #t)
-  (check (njson-ref root "meta" "arch")
-    =>
-    "x86_64"
-  ) ;check
-  (check-true (njson? (njson-ref root "meta"))
-  ) ;check-true
+  (check (njson-ref root "meta" "arch") => "x86_64")
+  (check-true (njson? (njson-ref root "meta")))
 ) ;let-njson
 
 
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error
-    (njson-ref root 'meta)
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-ref root "not-found")
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-ref root "nums" 999)
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-ref root "name" "x")
-  ) ;check-catch
-  (check (capture-key-error-message (lambda () (njson-ref root "not-found"))
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-ref root 'meta))
+  (check-catch 'key-error (njson-ref root "not-found"))
+  (check-catch 'key-error (njson-ref root "nums" 999))
+  (check-catch 'key-error (njson-ref root "name" "x"))
+  (check (capture-key-error-message (lambda () (njson-ref root "not-found")))
     =>
     "g_njson-ref: path not found: missing object key 'not-found'"
   ) ;check
@@ -103,20 +73,14 @@
 
 
 (define functional-meta '())
-(let-njson ((root (string->njson sample-json))
-            (meta (njson-ref root "meta"))
-           ) ;
+(let-njson ((root (string->njson sample-json)) (meta (njson-ref root "meta")))
   (set! functional-meta meta)
   (check (njson-ref meta "os") => "linux")
 ) ;let-njson
-(check-catch 'type-error
-  (njson-ref functional-meta "os")
-) ;check-catch
+(check-catch 'type-error (njson-ref functional-meta "os"))
 
 
-(check-catch 'type-error
-  (njson-ref 'foo "x")
-) ;check-catch
+(check-catch 'type-error (njson-ref 'foo "x"))
 
 
 (check-report)

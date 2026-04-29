@@ -39,14 +39,8 @@
 
 
 (check (vector-every odd? #()) => #t)
-(check (vector-every odd? #(1 3 5 7 9))
-  =>
-  #t
-) ;check
-(check (vector-every odd? #(1 3 4 7 8))
-  =>
-  #f
-) ;check
+(check (vector-every odd? #(1 3 5 7 9)) => #t)
+(check (vector-every odd? #(1 3 4 7 8)) => #f)
 
 
 (check-report)

@@ -92,14 +92,8 @@
 (check (bit-set? 31 2147483647) => #f)
 (check (bit-set? 31 -2147483648) => #t)
 (check (bit-set? 30 -2147483648) => #f)
-(check (bit-set? 62 9223372036854775807)
-  =>
-  #t
-) ;check
-(check (bit-set? 63 9223372036854775807)
-  =>
-  #f
-) ;check
+(check (bit-set? 62 9223372036854775807) => #t)
+(check (bit-set? 63 9223372036854775807) => #f)
 
 
 ;; ; 负整数测试
@@ -114,39 +108,19 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bit-set? "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-set? 1 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-set? 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-set? 1 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-set? #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-set? 1 #\a)
-) ;check-catch
+(check-catch 'wrong-type-arg (bit-set? "string" 1))
+(check-catch 'wrong-type-arg (bit-set? 1 "string"))
+(check-catch 'wrong-type-arg (bit-set? 3.14 2))
+(check-catch 'wrong-type-arg (bit-set? 1 3.14))
+(check-catch 'wrong-type-arg (bit-set? #\a 1))
+(check-catch 'wrong-type-arg (bit-set? 1 #\a))
 
 
 ;; ; 错误处理测试 - out-of-range
-(check-catch 'out-of-range
-  (bit-set? -1 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-set? 64 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-set? 100 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-set? -100 1)
-) ;check-catch
+(check-catch 'out-of-range (bit-set? -1 1))
+(check-catch 'out-of-range (bit-set? 64 1))
+(check-catch 'out-of-range (bit-set? 100 1))
+(check-catch 'out-of-range (bit-set? -100 1))
 
 
 

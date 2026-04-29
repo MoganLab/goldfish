@@ -48,9 +48,7 @@
 
 
 ;; 基础测试 - 带有默认值的可选参数
-(define* (hi a (b 32) (c "hi"))
-  (list a b c)
-) ;define*
+(define* (hi a (b 32) (c "hi")) (list a b c))
 
 
 ;; 只提供必需参数
@@ -66,9 +64,7 @@
 
 
 ;; 参数默认值可以引用之前的参数
-(define* (g a (b a) (k (* a b)))
-  (list a b k)
-) ;define*
+(define* (g a (b a) (k (* a b))) (list a b k))
 
 
 (check (g 3 4) => '(3 4 12))

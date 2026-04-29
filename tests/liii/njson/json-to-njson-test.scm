@@ -41,31 +41,18 @@
 
 
 (define ljson-bridge-sample
-  (ljson-string->json "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}"
-  ) ;ljson-string->json
+  (ljson-string->json "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}")
 ) ;define
-(define ljson-bridge-array
-  (ljson-string->json "[1,2,3]")
-) ;define
+(define ljson-bridge-array (ljson-string->json "[1,2,3]"))
 
 
-(let-njson ((bridge-handle (json->njson ljson-bridge-sample)
-            ) ;bridge-handle
-           ) ;
-  (check (njson-ref bridge-handle "name")
-    =>
-    "Goldfish"
-  ) ;check
-  (check (njson-ref bridge-handle "nums" 2)
-    =>
-    3
-  ) ;check
+(let-njson ((bridge-handle (json->njson ljson-bridge-sample)))
+  (check (njson-ref bridge-handle "name") => "Goldfish")
+  (check (njson-ref bridge-handle "nums" 2) => 3)
 ) ;let-njson
 
 
-(let-njson ((bridge-array (json->njson ljson-bridge-array)
-            ) ;bridge-array
-           ) ;
+(let-njson ((bridge-array (json->njson ljson-bridge-array)))
   (check (njson-ref bridge-array 1) => 2)
 ) ;let-njson
 
@@ -76,24 +63,13 @@
             (bool-handle (json->njson #f))
            ) ;
   (check-true (njson-null? null-handle))
-  (check (njson->string int-handle)
-    =>
-    "7"
-  ) ;check
-  (check (njson->string string-handle)
-    =>
-    "\"abc\""
-  ) ;check
-  (check (njson->string bool-handle)
-    =>
-    "false"
-  ) ;check
+  (check (njson->string int-handle) => "7")
+  (check (njson->string string-handle) => "\"abc\"")
+  (check (njson->string bool-handle) => "false")
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (json->njson 'foo)
-) ;check-catch
+(check-catch 'type-error (json->njson 'foo))
 
 
 (check-report)

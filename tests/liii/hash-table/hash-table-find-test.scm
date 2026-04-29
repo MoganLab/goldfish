@@ -44,37 +44,11 @@
   (hash-table-set! ht 'a 1)
   (hash-table-set! ht 'b 2)
   (hash-table-set! ht 'c 3)
-  (check (hash-table-find (lambda (k v) (= v 2))
-           ht
-           'not-found
-         ) ;hash-table-find
-    =>
-    2
-  ) ;check
-  (check (hash-table-find (lambda (k v) (= v 4))
-           ht
-           'not-found
-         ) ;hash-table-find
-    =>
-    'not-found
-  ) ;check
-  (check (hash-table-find (lambda (k v) (eq? k 'b))
-           ht
-           'not-found
-         ) ;hash-table-find
-    =>
-    2
-  ) ;check
-  (check (hash-table-find (lambda (k v) (eq? k 'd))
-           ht
-           'not-found
-         ) ;hash-table-find
-    =>
-    'not-found
-  ) ;check
-  (check (hash-table-find (lambda (k v)
-                            (and (symbol? k) (even? v))
-                          ) ;lambda
+  (check (hash-table-find (lambda (k v) (= v 2)) ht 'not-found) => 2)
+  (check (hash-table-find (lambda (k v) (= v 4)) ht 'not-found) => 'not-found)
+  (check (hash-table-find (lambda (k v) (eq? k 'b)) ht 'not-found) => 2)
+  (check (hash-table-find (lambda (k v) (eq? k 'd)) ht 'not-found) => 'not-found)
+  (check (hash-table-find (lambda (k v) (and (symbol? k) (even? v)))
            ht
            (lambda () 'not-found)
          ) ;hash-table-find
@@ -85,13 +59,7 @@
 
 
 (let ((empty-ht (make-hash-table)))
-  (check (hash-table-find (lambda (k v) #t)
-           empty-ht
-           'empty
-         ) ;hash-table-find
-    =>
-    'empty
-  ) ;check
+  (check (hash-table-find (lambda (k v) #t) empty-ht 'empty) => 'empty)
 ) ;let
 
 

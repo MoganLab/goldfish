@@ -50,8 +50,7 @@
 
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abc")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-replicate s 0 6 start end) => "abcabc"))
+(let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-replicate s 0 6 start end) => "abcabc")
+) ;let*
 (check-report)

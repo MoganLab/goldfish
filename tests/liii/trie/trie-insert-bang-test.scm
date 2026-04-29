@@ -37,75 +37,31 @@
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "hello")
-    'world
-  ) ;trie-insert!
-  (check (trie-ref trie (string->list "hello"))
-    =>
-    'world
-  ) ;check
+  (trie-insert! trie (string->list "hello") 'world)
+  (check (trie-ref trie (string->list "hello")) => 'world)
 
   ;; 覆盖原有值
-  (trie-insert! trie
-    (string->list "hello")
-    'scheme
-  ) ;trie-insert!
-  (check (trie-ref trie (string->list "hello"))
-    =>
-    'scheme
-  ) ;check
+  (trie-insert! trie (string->list "hello") 'scheme)
+  (check (trie-ref trie (string->list "hello")) => 'scheme)
 ) ;let
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "hey")
-    'there
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "hi")
-    'again
-  ) ;trie-insert!
-  (check (trie-ref trie (string->list "hey"))
-    =>
-    'there
-  ) ;check
-  (check (trie-ref trie (string->list "hi"))
-    =>
-    'again
-  ) ;check
+  (trie-insert! trie (string->list "hey") 'there)
+  (trie-insert! trie (string->list "hi") 'again)
+  (check (trie-ref trie (string->list "hey")) => 'there)
+  (check (trie-ref trie (string->list "hi")) => 'again)
 ) ;let
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "apple")
-    'fruit
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "app")
-    'prefix
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "application")
-    'software
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "apple") 'fruit)
+  (trie-insert! trie (string->list "app") 'prefix)
+  (trie-insert! trie (string->list "application") 'software)
 
-  (check (trie-ref trie (string->list "app"))
-    =>
-    'prefix
-  ) ;check
-  (check (trie-ref trie (string->list "apple"))
-    =>
-    'fruit
-  ) ;check
-  (check (trie-ref trie
-           (string->list "application")
-         ) ;trie-ref
-    =>
-    'software
-  ) ;check
+  (check (trie-ref trie (string->list "app")) => 'prefix)
+  (check (trie-ref trie (string->list "apple")) => 'fruit)
+  (check (trie-ref trie (string->list "application")) => 'software)
 ) ;let
 
 

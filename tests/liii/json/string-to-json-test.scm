@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -37,155 +33,75 @@
 ;; parse-error 当字符串中存在非法转义或非法 Unicode 序列时。
 ;; read-error 当输入不完整时。
 
-(check (string->json "{\"name\":\"Bob\",\"age\":21}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Bob\",\"age\":21}")
   =>
   '(("name" . "Bob") ("age" . 21))
 ) ;check
-(check (string->json "[1,2,3]")
-  =>
-  #(1 2 3)
-) ;check
+(check (string->json "[1,2,3]") => #(1 2 3))
 (check (string->json "[]") => #())
-(check (string->json "[true]")
-  =>
-  #(true)
-) ;check
-(check (string->json "[false]")
-  =>
-  #(false)
-) ;check
-(check (string->json "[{data: 1},{}]")
-  =>
-  #(((data . 1)) (()))
-) ;check
+(check (string->json "[true]") => #(true))
+(check (string->json "[false]") => #(false))
+(check (string->json "[{data: 1},{}]") => #(((data . 1)) (())))
 (check (string->json "{}") => '(()))
-(check (string->json "{args: {}}")
-  =>
-  '((args ()))
-) ;check
-(check (string->json "{\"args\": {}}")
-  =>
-  '(("args" ()))
-) ;check
-(check (string->json "{\"args\": {}, data: 1}")
-  =>
-  '(("args" ()) (data . 1))
-) ;check
-(check (string->json "{\"args\": {}, data: [1,2,3]}"
-       ) ;string->json
+(check (string->json "{args: {}}") => '((args ())))
+(check (string->json "{\"args\": {}}") => '(("args" ())))
+(check (string->json "{\"args\": {}, data: 1}") => '(("args" ()) (data . 1)))
+(check (string->json "{\"args\": {}, data: [1,2,3]}")
   =>
   '(("args" ()) (data . #(1 2 3)))
 ) ;check
-(check (string->json "{\"args\": {}, data: true}"
-       ) ;string->json
+(check (string->json "{\"args\": {}, data: true}")
   =>
   '(("args" ()) (data . true))
 ) ;check
-(check (string->json "{\"args\": {}, data: null}"
-       ) ;string->json
+(check (string->json "{\"args\": {}, data: null}")
   =>
   '(("args" ()) (data . null))
 ) ;check
-(check (string->json "{a:{b:1,c:2}}")
-  =>
-  '((a (b . 1) (c . 2)))
-) ;check
+(check (string->json "{a:{b:1,c:2}}") => '((a (b . 1) (c . 2))))
 
-(check (string->json "{\"age\":18}")
-  =>
-  '(("age" . 18))
-) ;check
-(check (string->json "{age:18}")
-  =>
-  '((age . 18))
-) ;check
-(check (string->json "{\"name\":\"中文\"}")
-  =>
-  '(("name" . "中文"))
-) ;check
-(check (string->json "{\"name\":\"Alice\\nBob\"}"
-       ) ;string->json
+(check (string->json "{\"age\":18}") => '(("age" . 18)))
+(check (string->json "{age:18}") => '((age . 18)))
+(check (string->json "{\"name\":\"中文\"}") => '(("name" . "中文")))
+(check (string->json "{\"name\":\"Alice\\nBob\"}")
   =>
   '(("name" . "Alice\nBob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\tBob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\tBob\"}")
   =>
   '(("name" . "Alice\tBob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\rBob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\rBob\"}")
   =>
   '(("name" . "Alice\rBob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\bBob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\bBob\"}")
   =>
   '(("name" . "Alice\bBob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\fBob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\fBob\"}")
   =>
   '(("name" . "Alice\fBob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\\\Bob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\\\Bob\"}")
   =>
   '(("name" . "Alice\\Bob"))
 ) ;check
-(check (string->json "{\"name\":\"Alice\\/Bob\"}"
-       ) ;string->json
-  =>
-  '(("name" . "Alice/Bob"))
-) ;check
-(check (string->json "{\"name\":\"Alice\\\"Bob\"}"
-       ) ;string->json
+(check (string->json "{\"name\":\"Alice\\/Bob\"}") => '(("name" . "Alice/Bob")))
+(check (string->json "{\"name\":\"Alice\\\"Bob\"}")
   =>
   '(("name" . "Alice\"Bob"))
 ) ;check
-(check (string->json "[\"\\u0041\"]")
-  =>
-  #("A")
-) ;check
-(check (string->json "[\"\\u0041\\u0042\"]")
-  =>
-  #("AB")
-) ;check
-(check (string->json "[\"\\u4E2D\\u6587\"]")
-  =>
-  #("中文")
-) ;check
-(check (string->json "[\"\\uD83D\\uDE00\"]")
-  =>
-  #("😀")
-) ;check
-(check (string->json "{\"name\":\"\\u4E2D\\u6587\"}"
-       ) ;string->json
-  =>
-  '(("name" . "中文"))
-) ;check
-(check (string->json "{\"emoji\":\"\\uD83D\\uDE00\"}"
-       ) ;string->json
-  =>
-  '(("emoji" . "😀"))
-) ;check
-(check-catch 'parse-error
-  (string->json "[\"\\u004G\"]")
-) ;check-catch
-(check-catch 'parse-error
-  (string->json "[\"\\a\"]")
-) ;check-catch
-(check (string->json "")
-  =>
-  (eof-object)
-) ;check
-(check (string->json ".")
-  =>
-  (eof-object)
-) ;check
-(check-catch 'read-error
-  (string->json "[")
-) ;check-catch
+(check (string->json "[\"\\u0041\"]") => #("A"))
+(check (string->json "[\"\\u0041\\u0042\"]") => #("AB"))
+(check (string->json "[\"\\u4E2D\\u6587\"]") => #("中文"))
+(check (string->json "[\"\\uD83D\\uDE00\"]") => #("😀"))
+(check (string->json "{\"name\":\"\\u4E2D\\u6587\"}") => '(("name" . "中文")))
+(check (string->json "{\"emoji\":\"\\uD83D\\uDE00\"}") => '(("emoji" . "😀")))
+(check-catch 'parse-error (string->json "[\"\\u004G\"]"))
+(check-catch 'parse-error (string->json "[\"\\a\"]"))
+(check (string->json "") => (eof-object))
+(check (string->json ".") => (eof-object))
+(check-catch 'read-error (string->json "["))
 
 (check-report)

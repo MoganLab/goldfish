@@ -19,12 +19,8 @@
 
 
 (check-catch 'wrong-type-arg (car 123))
-(check-catch 'wrong-number-of-args
-  (car)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (car '(1 2) '(3 4))
-) ;check-catch
+(check-catch 'wrong-number-of-args (car))
+(check-catch 'wrong-number-of-args (car '(1 2) '(3 4)))
 
 
 (check-report)

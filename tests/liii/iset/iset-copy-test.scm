@@ -20,10 +20,8 @@
 ;; -----
 ;; 返回包含相同元素的新 iset。
 ;;
-(check-true (not (eqv? (iset-copy pos-set) pos-set))
-) ;check-true
-(check-true (iset=? (iset-copy pos-set) pos-set)
-) ;check-true
+(check-true (not (eqv? (iset-copy pos-set) pos-set)))
+(check-true (iset=? (iset-copy pos-set) pos-set))
 
 
 (check-report)

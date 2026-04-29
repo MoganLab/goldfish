@@ -27,10 +27,7 @@
 ;; 测试非空列表
 (check (loose-cdr '(1 2 3)) => '(2 3))
 (check (loose-cdr '(a b c)) => '(b c))
-(check (loose-cdr '("hello" "world"))
-  =>
-  '("world")
-) ;check
+(check (loose-cdr '("hello" "world")) => '("world"))
 
 
 ;; 测试空列表（这是 loose-cdr 的主要用途）
@@ -38,10 +35,7 @@
 
 
 ;; 测试嵌套列表
-(check (loose-cdr '((1 2) 3 4))
-  =>
-  '(3 4)
-) ;check
+(check (loose-cdr '((1 2) 3 4)) => '(3 4))
 
 
 ;; 测试单元素列表
@@ -49,10 +43,7 @@
 
 
 ;; 测试双元素列表
-(check (loose-cdr '(first second))
-  =>
-  '(second)
-) ;check
+(check (loose-cdr '(first second)) => '(second))
 
 
 (check-report)

@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -44,9 +41,7 @@
 
 
 ;; Test date-week-number error conditions
-(check-catch 'wrong-type-arg
-  (date-week-number "not-a-date" 0)
-) ;check-catch
+(check-catch 'wrong-type-arg (date-week-number "not-a-date" 0))
 
 
 (check-report)

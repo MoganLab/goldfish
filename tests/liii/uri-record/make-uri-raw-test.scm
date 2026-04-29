@@ -36,16 +36,7 @@
 
 
 ;; 基本构造
-(check (uri? (make-uri-raw "https"
-               "example.com"
-               "/path"
-               '()
-               #f
-             ) ;make-uri-raw
-       ) ;uri?
-  =>
-  #t
-) ;check
+(check (uri? (make-uri-raw "https" "example.com" "/path" '() #f)) => #t)
 
 
 ;; 完整组件
@@ -58,29 +49,14 @@
   ) ;make-uri-raw
 ) ;define
 (check (uri-scheme-raw u) => "https")
-(check (uri-netloc-raw u)
-  =>
-  "user@example.com:8080"
-) ;check
-(check (uri-path-raw u)
-  =>
-  "/path/to/file"
-) ;check
-(check (uri-query-raw u)
-  =>
-  '(("a" . "1") ("b" . "2"))
-) ;check
-(check (uri-fragment-raw u)
-  =>
-  "section"
-) ;check
+(check (uri-netloc-raw u) => "user@example.com:8080")
+(check (uri-path-raw u) => "/path/to/file")
+(check (uri-query-raw u) => '(("a" . "1") ("b" . "2")))
+(check (uri-fragment-raw u) => "section")
 
 
 ;; 空值处理
-(check (uri? (make-uri-raw #f "" "" '() #f))
-  =>
-  #t
-) ;check
+(check (uri? (make-uri-raw #f "" "" '() #f)) => #t)
 
 
 (check-report)

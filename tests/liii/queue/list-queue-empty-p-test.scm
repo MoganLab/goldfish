@@ -5,18 +5,9 @@
 
 
 ;; list-queue-empty? 基本测试
-(check (list-queue-empty? (list-queue))
-  =>
-  #t
-) ;check
-(check (list-queue-empty? (list-queue 1))
-  =>
-  #f
-) ;check
-(check (list-queue-empty? (list-queue 1 2 3))
-  =>
-  #f
-) ;check
+(check (list-queue-empty? (list-queue)) => #t)
+(check (list-queue-empty? (list-queue 1)) => #f)
+(check (list-queue-empty? (list-queue 1 2 3)) => #f)
 
 
 ;; 移除所有元素后为空

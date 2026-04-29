@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -49,19 +46,12 @@
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-empty? 'foo)
-) ;check-catch
+(check-catch 'type-error (njson-empty? 'foo))
 
 
-(define njson-empty-freed
-  (string->njson "{\"k\":1}")
-) ;define
-(check-true (njson-free njson-empty-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-empty? njson-empty-freed)
-) ;check-catch
+(define njson-empty-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-empty-freed))
+(check-catch 'type-error (njson-empty? njson-empty-freed))
 
 
 (check-report)

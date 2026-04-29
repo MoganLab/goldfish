@@ -35,26 +35,8 @@
   ) ;let
 ) ;define
 (check-true (procedure? display))
-(check (capture-output (lambda (port)
-                         (display "goldfish" port)
-                       ) ;lambda
-       ) ;capture-output
-  =>
-  "goldfish"
-) ;check
-(check (capture-output (lambda (port) (display 42 port))
-       ) ;capture-output
-  =>
-  "42"
-) ;check
-(check (capture-output (lambda (port) (display 'hello port))
-       ) ;capture-output
-  =>
-  "hello"
-) ;check
-(check (capture-output (lambda (port) (display #\中 port))
-       ) ;capture-output
-  =>
-  "中"
-) ;check
+(check (capture-output (lambda (port) (display "goldfish" port))) => "goldfish")
+(check (capture-output (lambda (port) (display 42 port))) => "42")
+(check (capture-output (lambda (port) (display 'hello port))) => "hello")
+(check (capture-output (lambda (port) (display #\中 port))) => "中")
 (check-report)

@@ -37,14 +37,16 @@
 (check (string-fold-right cons '() "abc") => '(#\a #\b #\c))
 
 ;; 字符串拼接测试
-(check (string-fold-right (lambda (c acc) (string-append (string c) acc)) "" "abc") => "abc")
+(check (string-fold-right (lambda (c acc) (string-append (string c) acc)) "" "abc")
+  =>
+  "abc"
+) ;check
 
 ;; 中文测试
 (check (string-fold-right (lambda (c count) (+ count 1)) 0 "中文") => 2)
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abc")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-fold-right (lambda (c count) (+ count 1)) 0 s start end) => 3))
+(let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-fold-right (lambda (c count) (+ count 1)) 0 s start end) => 3)
+) ;let*
 (check-report)

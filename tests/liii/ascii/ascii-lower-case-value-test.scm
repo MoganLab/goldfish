@@ -38,18 +38,9 @@
 ;; 非法字符或越界值返回 #f
 
 
-(check (ascii-lower-case-value #\a 10 26)
-  =>
-  10
-) ;check
-(check (ascii-lower-case-value #\f 10 16)
-  =>
-  15
-) ;check
-(check (ascii-lower-case-value #\q 10 16)
-  =>
-  #f
-) ;check
+(check (ascii-lower-case-value #\a 10 26) => 10)
+(check (ascii-lower-case-value #\f 10 16) => 15)
+(check (ascii-lower-case-value #\q 10 16) => #f)
 
 
 (check-report)

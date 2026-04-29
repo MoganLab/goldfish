@@ -24,18 +24,10 @@
 ;; 如果参数不是整数类型
 (check-true (even? 0))
 (check-false (even? 1))
-(check-catch 'wrong-type-arg
-  (even? 0.0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (even? 1.0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (even? 1.0+1.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (even? #\A)
-) ;check-catch
+(check-catch 'wrong-type-arg (even? 0.0))
+(check-catch 'wrong-type-arg (even? 1.0))
+(check-catch 'wrong-type-arg (even? 1.0+1.0i))
+(check-catch 'wrong-type-arg (even? #\A))
 (check-catch 'wrong-type-arg (even? #t))
 (check-catch 'wrong-type-arg (even? #f))
 (check-report)

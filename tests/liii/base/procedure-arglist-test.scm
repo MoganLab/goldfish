@@ -31,40 +31,23 @@
 
 
 ;; 测试固定参数 lambda
-(check (procedure-arglist (lambda (x y) (+ x y))
-       ) ;procedure-arglist
-  =>
-  '(x y)
-) ;check
+(check (procedure-arglist (lambda (x y) (+ x y))) => '(x y))
 
 
 ;; 测试单参数函数
-(check (procedure-arglist (lambda (x) x))
-  =>
-  '(x)
-) ;check
+(check (procedure-arglist (lambda (x) x)) => '(x))
 
 
 ;; 测试无参数函数 (thunk)
-(check (procedure-arglist (lambda () 42))
-  =>
-  '()
-) ;check
+(check (procedure-arglist (lambda () 42)) => '())
 
 
 ;; 测试变参函数
-(check (procedure-arglist (lambda (x . rest) (cons x rest))
-       ) ;procedure-arglist
-  =>
-  '(x . rest)
-) ;check
+(check (procedure-arglist (lambda (x . rest) (cons x rest))) => '(x . rest))
 
 
 ;; 测试只有 rest 参数的函数
-(check (procedure-arglist (lambda args args))
-  =>
-  'args
-) ;check
+(check (procedure-arglist (lambda args args)) => 'args)
 
 
 ;; 测试 define 定义的函数
@@ -81,9 +64,7 @@
 
 ;; 测试 define* 定义的函数
 (check (let ()
-         (define* (greet name (greeting "Hello"))
-           (string-append greeting " " name)
-         ) ;define*
+         (define* (greet name (greeting "Hello")) (string-append greeting " " name))
          (procedure-arglist greet)
        ) ;let
   =>

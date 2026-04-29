@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -57,9 +54,7 @@
 
 
 ;; Test zero difference
-(let* ((t1 (make-time TIME-UTC 123456789 42))
-       (d (time-difference t1 t1))
-      ) ;
+(let* ((t1 (make-time TIME-UTC 123456789 42)) (d (time-difference t1 t1)))
   (check (time-second d) => 0)
   (check (time-nanosecond d) => 0)
 ) ;let*
@@ -67,14 +62,10 @@
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg
-  (time-difference (make-time TIME-UTC 0 0)
-    (make-time TIME-TAI 0 0)
-  ) ;time-difference
+  (time-difference (make-time TIME-UTC 0 0) (make-time TIME-TAI 0 0))
 ) ;check-catch
 (check-catch 'wrong-type-arg
-  (time-difference "not-time"
-    (make-time TIME-UTC 0 0)
-  ) ;time-difference
+  (time-difference "not-time" (make-time TIME-UTC 0 0))
 ) ;check-catch
 
 

@@ -44,8 +44,7 @@
 
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abcdef")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-reverse s start end) => "fedcba"))
+(let* ((s "abcdef") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-reverse s start end) => "fedcba")
+) ;let*
 (check-report)

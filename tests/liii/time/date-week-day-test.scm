@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -39,9 +36,7 @@
 
 
 ;; Test date-week-day error conditions
-(check-catch 'wrong-type-arg
-  (date-week-day "not-a-date")
-) ;check-catch
+(check-catch 'wrong-type-arg (date-week-day "not-a-date"))
 
 
 (check-report)

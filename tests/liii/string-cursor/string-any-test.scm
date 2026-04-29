@@ -62,8 +62,7 @@
 (check (string-any (lambda (c) (char=? c #\😀)) "hello world") => #f)
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abc123")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-any char-numeric? s start end) => #t))
+(let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-any char-numeric? s start end) => #t)
+) ;let*
 (check-report)

@@ -124,27 +124,15 @@
 ;; list-copy tests
 ;; 基本功能测试
 (check (list-copy '()) => '())
-(check (list-copy '(1 2 3 4 5))
-  =>
-  '(1 2 3 4 5)
-) ;check
-(check (list-copy '(a b c d))
-  =>
-  '(a b c d)
-) ;check
-(check (list-copy '((1 2) (3 4) (5 6)))
-  =>
-  '((1 2) (3 4) (5 6))
-) ;check
+(check (list-copy '(1 2 3 4 5)) => '(1 2 3 4 5))
+(check (list-copy '(a b c d)) => '(a b c d))
+(check (list-copy '((1 2) (3 4) (5 6))) => '((1 2) (3 4) (5 6)))
 ;; 空列表边界条件
 (check (list-copy '()) => '())
 ;; 对象独立性验证 - 确保是浅拷贝
-(check-false (eq? (list-copy '(1 2 3)) '(1 2 3))
-) ;check-false
+(check-false (eq? (list-copy '(1 2 3)) '(1 2 3)))
 ;; 突变隔离测试 - 验证列表节点独立性
-(let ((orig '(a b c))
-      (copy (list-copy '(a b c)))
-     ) ;
+(let ((orig '(a b c)) (copy (list-copy '(a b c))))
   (check orig => copy)
   (check-false (eq? orig copy))
   ;; 验证浅拷贝特性

@@ -118,18 +118,12 @@
 (check-true (list? '(1 (2 (3 (4))))))
 ;; list? 混合类型元素测试
 (check-true (list? '(a 1 "string" #t)))
-(check-true (list? '((list 1 2) (vector 3 4)))
-) ;check-true
+(check-true (list? '((list 1 2) (vector 3 4))))
 ;; list? 点和边界情况
 (check-true (list? '(1 . 2)))
 (check-true (list? '(a b . c)))
 ;; list? 特殊结构测试
-(check-true (list? (let ((x '(1 2 3)))
-                     (set-cdr! (cddr x) x)
-                     x
-                   ) ;let
-            ) ;list?
-) ;check-true
+(check-true (list? (let ((x '(1 2 3))) (set-cdr! (cddr x) x) x)))
 ;; list? 非列表类型测试 - 全面覆盖
 (check-false (list? #t))
 (check-false (list? #f))
@@ -145,10 +139,6 @@
 (check-false (list? 'symbol))
 (check-false (list? #\a))
 ;; list? 错误处理测试
-(check-catch 'wrong-number-of-args
-  (list?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list? #t #f)
-) ;check-catch
+(check-catch 'wrong-number-of-args (list?))
+(check-catch 'wrong-number-of-args (list? #t #f))
 (check-report)

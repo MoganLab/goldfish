@@ -21,25 +21,9 @@
 ;; -----
 ;; 如果 fxmap1 是 fxmap2 的真超集，返回 #t；否则返回 #f。
 ;;
-(check-true (fxmapping>? eqv?
-              (fxmapping 0 'a)
-              (fxmapping)
-            ) ;fxmapping>?
-) ;check-true
-(check-true (fxmapping>? eqv?
-              (fxmapping 0 'a 1 'b)
-              (fxmapping 0 'a)
-            ) ;fxmapping>?
-) ;check-true
-(check-false (fxmapping>? eqv?
-               (fxmapping 0 'a)
-               (fxmapping 0 'a)
-             ) ;fxmapping>?
-) ;check-false
-(check-false (fxmapping>? eqv?
-               (fxmapping 0 'a)
-               (fxmapping 0 'a 1 'b)
-             ) ;fxmapping>?
-) ;check-false
+(check-true (fxmapping>? eqv? (fxmapping 0 'a) (fxmapping)))
+(check-true (fxmapping>? eqv? (fxmapping 0 'a 1 'b) (fxmapping 0 'a)))
+(check-false (fxmapping>? eqv? (fxmapping 0 'a) (fxmapping 0 'a)))
+(check-false (fxmapping>? eqv? (fxmapping 0 'a) (fxmapping 0 'a 1 'b)))
 
 (check-report)

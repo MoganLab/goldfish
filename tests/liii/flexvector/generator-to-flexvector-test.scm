@@ -50,87 +50,43 @@
       (eof-object)
     ) ;if
   ) ;define
-  (check (flexvector->list (generator->flexvector mock-generator)
-         ) ;flexvector->list
-    =>
-    '(a b c)
-  ) ;check
+  (check (flexvector->list (generator->flexvector mock-generator)) => '(a b c))
 ) ;let
 
 
 ;; 空生成器
 (let ((gen (lambda () (eof-object))))
-  (check (flexvector->vector (generator->flexvector gen)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
+  (check (flexvector->vector (generator->flexvector gen)) => #())
 ) ;let
 
 
 ;; 单元素
 (let ((gen (let ((called #f))
-             (lambda ()
-               (if called
-                 (eof-object)
-                 (begin
-                   (set! called #t)
-                   'only
-                 ) ;begin
-               ) ;if
-             ) ;lambda
+             (lambda () (if called (eof-object) (begin (set! called #t) 'only)))
            ) ;let
       ) ;gen
      ) ;
-  (check (flexvector->list (generator->flexvector gen)
-         ) ;flexvector->list
-    =>
-    '(only)
-  ) ;check
+  (check (flexvector->list (generator->flexvector gen)) => '(only))
 ) ;let
 
 
 ;; 计数器生成器
 (let ((counter (let ((n 0))
-                 (lambda ()
-                   (if (< n 5)
-                     (begin
-                       (set! n (+ n 1))
-                       n
-                     ) ;begin
-                     (eof-object)
-                   ) ;if
-                 ) ;lambda
+                 (lambda () (if (< n 5) (begin (set! n (+ n 1)) n) (eof-object)))
                ) ;let
       ) ;counter
      ) ;
-  (check (flexvector->list (generator->flexvector counter)
-         ) ;flexvector->list
-    =>
-    '(1 2 3 4 5)
-  ) ;check
+  (check (flexvector->list (generator->flexvector counter)) => '(1 2 3 4 5))
 ) ;let
 
 
 ;; 递减生成器
 (let ((gen (let ((n 10))
-             (lambda ()
-               (if (< n 0)
-                 (eof-object)
-                 (begin
-                   (set! n (- n 2))
-                   (+ n 2)
-                 ) ;begin
-               ) ;if
-             ) ;lambda
+             (lambda () (if (< n 0) (eof-object) (begin (set! n (- n 2)) (+ n 2))))
            ) ;let
       ) ;gen
      ) ;
-  (check (flexvector->list (generator->flexvector gen)
-         ) ;flexvector->list
-    =>
-    '(10 8 6 4 2 0)
-  ) ;check
+  (check (flexvector->list (generator->flexvector gen)) => '(10 8 6 4 2 0))
 ) ;let
 
 

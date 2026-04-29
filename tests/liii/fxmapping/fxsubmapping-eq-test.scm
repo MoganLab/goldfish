@@ -22,15 +22,10 @@
 ;; 如果 key 存在于 fxmap 中，返回只包含该键值对的映射；
 ;; 否则返回空映射。
 ;;
-(check (fxmapping-ref (fxsubmapping= (fxmapping 0 'a 1 'b) 0)
-         0
-         (lambda () #f)
-       ) ;fxmapping-ref
+(check (fxmapping-ref (fxsubmapping= (fxmapping 0 'a 1 'b) 0) 0 (lambda () #f))
   =>
   'a
 ) ;check
-(check-true (fxmapping-empty? (fxsubmapping= (fxmapping 0 'a 1 'b) 2)
-            ) ;fxmapping-empty?
-) ;check-true
+(check-true (fxmapping-empty? (fxsubmapping= (fxmapping 0 'a 1 'b) 2)))
 
 (check-report)

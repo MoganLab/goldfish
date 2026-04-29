@@ -173,8 +173,7 @@
 (check-true (pair? '(a . b)))
 (check-true (pair? '(a b c)))
 (check-true (pair? (cons 1 2)))
-(check-true (pair? (cons 'a (cons 'b 'c)))
-) ;check-true
+(check-true (pair? (cons 'a (cons 'b 'c))))
 (check-false (pair? 'a))
 (check-false (pair? 123))
 (check-false (pair? "string"))
@@ -188,9 +187,7 @@
 (check-true (pair? '(())))
 ;; 嵌套深度边界测试
 (check-true (pair? '((((a))))))
-(check-true (pair? (cons 'a (cons 'b (cons 'c '())))
-            ) ;pair?
-) ;check-true
+(check-true (pair? (cons 'a (cons 'b (cons 'c '())))))
 (check-true (pair? '(a b (c d (e)))))
 ;; 数据类型兼容性边界测试
 (check-false (pair? 42))
@@ -213,13 +210,11 @@
 (check-true (pair? (cons '() '())))
 (check-true (pair? (cons #t #f)))
 (check-true (pair? (cons 42 "string")))
-(check-true (pair? (cons (cons 1 2) (cons 3 4)))
-) ;check-true
+(check-true (pair? (cons (cons 1 2) (cons 3 4))))
 ;; 构造器多样化测试
 (check-true (pair? (list 1 2)))
 (check-true (pair? (append '(1) '(2))))
-(check-true (pair? (cons 'a (list 'b 'c)))
-) ;check-true
+(check-true (pair? (cons 'a (list 'b 'c))))
 ;; 结构性边界验证
 (check-false (pair? 'a))
 (check-false (pair? 1000000))

@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -28,30 +25,17 @@
 
 
 ;; Test time-resolution
-(check-true (integer? (time-resolution))
-) ;check-true
-(check-true (integer? (time-resolution TIME-UTC))
-) ;check-true
-(check-true (integer? (time-resolution TIME-MONOTONIC)
-            ) ;integer?
-) ;check-true
-(check-true (integer? (time-resolution TIME-TAI))
-) ;check-true
-(check-catch 'wrong-type-arg
-  (time-resolution TIME-THREAD)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time-resolution TIME-PROCESS)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time-resolution TIME-DURATION)
-) ;check-catch
+(check-true (integer? (time-resolution)))
+(check-true (integer? (time-resolution TIME-UTC)))
+(check-true (integer? (time-resolution TIME-MONOTONIC)))
+(check-true (integer? (time-resolution TIME-TAI)))
+(check-catch 'wrong-type-arg (time-resolution TIME-THREAD))
+(check-catch 'wrong-type-arg (time-resolution TIME-PROCESS))
+(check-catch 'wrong-type-arg (time-resolution TIME-DURATION))
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg
-  (time-resolution 'invalid-type)
-) ;check-catch
+(check-catch 'wrong-type-arg (time-resolution 'invalid-type))
 
 
 (check-report)

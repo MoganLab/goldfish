@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-  (liii base)
-) ;import
+(import (liii check) (liii path) (liii os) (liii base))
 
 (check-set-mode! 'report-failed)
 
@@ -24,14 +20,10 @@
 ;; (path-absolute? (path-home)) => #t
 
 (when (not (os-windows?))
-  (check (path->string (path-home))
-    =>
-    (getenv "HOME")
-  ) ;check
+  (check (path->string (path-home)) => (getenv "HOME"))
 ) ;when
 
-(check-true (path-absolute? (path-home))
-) ;check-true
+(check-true (path-absolute? (path-home)))
 
 (when (os-windows?)
   (check-true (path-exists? (path-home)))

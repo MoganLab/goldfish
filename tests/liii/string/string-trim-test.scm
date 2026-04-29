@@ -68,62 +68,18 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-trim"
 
-(check (string-trim "  hello  ")
-  =>
-  "hello  "
-) ;check
-(check (string-trim "---hello---" #\-)
-  =>
-  "hello---"
-) ;check
-(check (string-trim "123hello123"
-         char-numeric?
-       ) ;string-trim
-  =>
-  "hello123"
-) ;check
+(check (string-trim "  hello  ") => "hello  ")
+(check (string-trim "---hello---" #\-) => "hello---")
+(check (string-trim "123hello123" char-numeric?) => "hello123")
 (check (string-trim "   ") => "")
 (check (string-trim "") => "")
-(check (string-trim "hello" #\-)
-  =>
-  "hello"
-) ;check
-(check (string-trim "abcABC123"
-         char-upper-case?
-       ) ;string-trim
-  =>
-  "abcABC123"
-) ;check
-(check (string-trim "  hello  " #\space 2 7)
-  =>
-  "hello"
-) ;check
-(check (string-trim "   hello   " #\space 3)
-  =>
-  "hello   "
-) ;check
-(check (string-trim "   hello   " #\space 3 8)
-  =>
-  "hello"
-) ;check
-(check (string-trim "---hello---" #\- 3 8)
-  =>
-  "hello"
-) ;check
-(check (string-trim "123hello123"
-         char-numeric?
-         3
-         8
-       ) ;string-trim
-  =>
-  "hello"
-) ;check
-(check (string-trim "123hello123"
-         char-numeric?
-         3
-       ) ;string-trim
-  =>
-  "hello123"
-) ;check
+(check (string-trim "hello" #\-) => "hello")
+(check (string-trim "abcABC123" char-upper-case?) => "abcABC123")
+(check (string-trim "  hello  " #\space 2 7) => "hello")
+(check (string-trim "   hello   " #\space 3) => "hello   ")
+(check (string-trim "   hello   " #\space 3 8) => "hello")
+(check (string-trim "---hello---" #\- 3 8) => "hello")
+(check (string-trim "123hello123" char-numeric? 3 8) => "hello")
+(check (string-trim "123hello123" char-numeric? 3) => "hello123")
 
 (check-report)

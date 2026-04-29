@@ -13,10 +13,7 @@
 
 ;; 单元素队列
 (let ((q (list-queue 42)))
-  (check (list-queue-remove-back! q)
-    =>
-    42
-  ) ;check
+  (check (list-queue-remove-back! q) => 42)
   (check (list-queue-empty? q) => #t)
 ) ;let
 
@@ -39,9 +36,7 @@
 
 
 ;; 空队列报错
-(check-catch 'wrong-type-arg
-  (list-queue-remove-back! (list-queue))
-) ;check-catch
+(check-catch 'wrong-type-arg (list-queue-remove-back! (list-queue)))
 
 
 (check-report)

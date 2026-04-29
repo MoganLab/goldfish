@@ -32,10 +32,7 @@
 ;; (remove even? '(-2 -1 0 1 2)) => '(-1 1)
 
 
-(check (remove even? '(-2 -1 0 1 2))
-  =>
-  '(-1 1)
-) ;check
+(check (remove even? '(-2 -1 0 1 2)) => '(-1 1))
 
 
 (check-report)

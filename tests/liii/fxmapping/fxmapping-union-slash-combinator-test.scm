@@ -28,27 +28,9 @@
              ) ;fxmapping-union/combinator
       ) ;union
      ) ;
-  (check (fxmapping-ref union
-           0
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    10
-  ) ;check
-  (check (fxmapping-ref union
-           1
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    25
-  ) ;check
-  (check (fxmapping-ref union
-           2
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    30
-  ) ;check
+  (check (fxmapping-ref union 0 (lambda () 'not-found)) => 10)
+  (check (fxmapping-ref union 1 (lambda () 'not-found)) => 25)
+  (check (fxmapping-ref union 2 (lambda () 'not-found)) => 30)
 ) ;let
 
 (check-report)

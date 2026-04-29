@@ -63,308 +63,86 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-index-right"
 
-(check (string-index-right "hello" #\l)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\z)
-  =>
-  #f
-) ;check
-(check (string-index-right "hello" #\l)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 0 3)
-  =>
-  2
-) ;check
-(check (string-index-right "abc123"
-         char-numeric?
-       ) ;string-index-right
-  =>
-  5
-) ;check
-(check (string-index-right "abc123"
-         char-alphabetic?
-       ) ;string-index-right
-  =>
-  2
-) ;check
-(check (string-index-right "" #\x)
-  =>
-  #f
-) ;check
+(check (string-index-right "hello" #\l) => 3)
+(check (string-index-right "hello" #\z) => #f)
+(check (string-index-right "hello" #\l) => 3)
+(check (string-index-right "hello" #\l 0 3) => 2)
+(check (string-index-right "abc123" char-numeric?) => 5)
+(check (string-index-right "abc123" char-alphabetic?) => 2)
+(check (string-index-right "" #\x) => #f)
 
-(check (string-index-right "0123456789" #\2)
-  =>
-  2
-) ;check
-(check (string-index-right "0123456789"
-         #\2
-         0
-         3
-       ) ;string-index-right
-  =>
-  2
-) ;check
-(check (string-index-right "0123456789"
-         #\2
-         0
-         2
-       ) ;string-index-right
-  =>
-  #f
-) ;check
-(check (string-index-right "abccba" #\a)
-  =>
-  5
-) ;check
-(check (string-index-right "hello world"
-         #\space
-       ) ;string-index-right
-  =>
-  5
-) ;check
+(check (string-index-right "0123456789" #\2) => 2)
+(check (string-index-right "0123456789" #\2 0 3) => 2)
+(check (string-index-right "0123456789" #\2 0 2) => #f)
+(check (string-index-right "abccba" #\a) => 5)
+(check (string-index-right "hello world" #\space) => 5)
 
-(check (string-index-right "hello" #\h)
-  =>
-  0
-) ;check
-(check (string-index-right "hello" #\o)
-  =>
-  4
-) ;check
-(check (string-index-right "hello hello"
-         #\space
-       ) ;string-index-right
-  =>
-  5
-) ;check
-(check (string-index-right "hello" #\H)
-  =>
-  #f
-) ;check
-(check (string-index-right "" #\a)
-  =>
-  #f
-) ;check
-(check (string-index-right "a" #\a)
-  =>
-  0
-) ;check
-(check (string-index-right "aaaa" #\a)
-  =>
-  3
-) ;check
-(check (string-index-right "0123456789" #\0)
-  =>
-  0
-) ;check
-(check (string-index-right "0123456789" #\9)
-  =>
-  9
-) ;check
+(check (string-index-right "hello" #\h) => 0)
+(check (string-index-right "hello" #\o) => 4)
+(check (string-index-right "hello hello" #\space) => 5)
+(check (string-index-right "hello" #\H) => #f)
+(check (string-index-right "" #\a) => #f)
+(check (string-index-right "a" #\a) => 0)
+(check (string-index-right "aaaa" #\a) => 3)
+(check (string-index-right "0123456789" #\0) => 0)
+(check (string-index-right "0123456789" #\9) => 9)
 
-(check (string-index-right "0123456789"
-         char-numeric?
-       ) ;string-index-right
-  =>
-  9
-) ;check
-(check (string-index-right "abc123"
-         char-numeric?
-       ) ;string-index-right
-  =>
-  5
-) ;check
-(check (string-index-right "123abc"
-         char-alphabetic?
-       ) ;string-index-right
-  =>
-  5
-) ;check
-(check (string-index-right "Hello123"
-         char-upper-case?
-       ) ;string-index-right
-  =>
-  0
-) ;check
-(check (string-index-right "hello123"
-         char-upper-case?
-       ) ;string-index-right
-  =>
-  #f
-) ;check
-(check (string-index-right "123!@#"
-         char-alphabetic?
-       ) ;string-index-right
-  =>
-  #f
-) ;check
-(check (string-index-right "hello\n\t "
-         char-whitespace?
-       ) ;string-index-right
-  =>
-  7
-) ;check
-(check (string-index-right "hello"
-         (lambda (c) (char=? c #\l))
-       ) ;string-index-right
-  =>
-  3
-) ;check
+(check (string-index-right "0123456789" char-numeric?) => 9)
+(check (string-index-right "abc123" char-numeric?) => 5)
+(check (string-index-right "123abc" char-alphabetic?) => 5)
+(check (string-index-right "Hello123" char-upper-case?) => 0)
+(check (string-index-right "hello123" char-upper-case?) => #f)
+(check (string-index-right "123!@#" char-alphabetic?) => #f)
+(check (string-index-right "hello\n\t " char-whitespace?) => 7)
+(check (string-index-right "hello" (lambda (c) (char=? c #\l))) => 3)
 
-(check (string-index-right "a" #\a)
-  =>
-  0
-) ;check
-(check (string-index-right "a" #\b)
-  =>
-  #f
-) ;check
-(check (string-index-right " " #\space)
-  =>
-  0
-) ;check
-(check (string-index-right "\t"
-         char-whitespace?
-       ) ;string-index-right
-  =>
-  0
-) ;check
+(check (string-index-right "a" #\a) => 0)
+(check (string-index-right "a" #\b) => #f)
+(check (string-index-right " " #\space) => 0)
+(check (string-index-right "\t" char-whitespace?) => 0)
 
-(check (string-index-right "hello" #\l 0)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 1)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 2)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 3)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 4)
-  =>
-  #f
-) ;check
-(check (string-index-right "hello" #\l 0 3)
-  =>
-  2
-) ;check
-(check (string-index-right "hello" #\l 0 2)
-  =>
-  #f
-) ;check
-(check (string-index-right "hello" #\l 1 4)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 2 4)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 3 4)
-  =>
-  3
-) ;check
-(check (string-index-right "hello" #\l 3 3)
-  =>
-  #f
-) ;check
-(check (string-index-right "hello" #\l 0 1)
-  =>
-  #f
-) ;check
+(check (string-index-right "hello" #\l 0) => 3)
+(check (string-index-right "hello" #\l 1) => 3)
+(check (string-index-right "hello" #\l 2) => 3)
+(check (string-index-right "hello" #\l 3) => 3)
+(check (string-index-right "hello" #\l 4) => #f)
+(check (string-index-right "hello" #\l 0 3) => 2)
+(check (string-index-right "hello" #\l 0 2) => #f)
+(check (string-index-right "hello" #\l 1 4) => 3)
+(check (string-index-right "hello" #\l 2 4) => 3)
+(check (string-index-right "hello" #\l 3 4) => 3)
+(check (string-index-right "hello" #\l 3 3) => #f)
+(check (string-index-right "hello" #\l 0 1) => #f)
 
-(check (string-index-right "_test" #\_)
-  =>
-  0
-) ;check
-(check (string-index-right "a@b" #\@)
-  =>
-  1
-) ;check
-(check (string-index-right "hello,world" #\,)
-  =>
-  5
-) ;check
-(check (string-index-right "a-b-c" #\-)
-  =>
-  3
-) ;check
+(check (string-index-right "_test" #\_) => 0)
+(check (string-index-right "a@b" #\@) => 1)
+(check (string-index-right "hello,world" #\,) => 5)
+(check (string-index-right "a-b-c" #\-) => 3)
 
 (check (string-index-right "123abc!@#"
-         (lambda (c)
-           (or (char-alphabetic? c)
-             (char-numeric? c)
-           ) ;or
-         ) ;lambda
+         (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
        ) ;string-index-right
   =>
   5
 ) ;check
 (check (string-index-right "!@#abc123"
-         (lambda (c)
-           (or (char-alphabetic? c)
-             (char-numeric? c)
-           ) ;or
-         ) ;lambda
+         (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
        ) ;string-index-right
   =>
   8
 ) ;check
-(check (string-index-right "abc123"
-         char-upper-case?
-       ) ;string-index-right
-  =>
-  #f
-) ;check
-(check (string-index-right "ABC123"
-         char-upper-case?
-       ) ;string-index-right
-  =>
-  2
-) ;check
-(check (string-index-right "abcABC"
-         char-upper-case?
-       ) ;string-index-right
-  =>
-  5
-) ;check
+(check (string-index-right "abc123" char-upper-case?) => #f)
+(check (string-index-right "ABC123" char-upper-case?) => 2)
+(check (string-index-right "abcABC" char-upper-case?) => 5)
 
-(check-catch 'wrong-type-arg
-  (string-index-right 123 #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-index-right "hello" "a")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-index-right "hello" 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-index-right "hello" '(a))
-) ;check-catch
-(check-catch 'out-of-range
-  (string-index-right "hello" #\a -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-index-right "hello" #\a 0 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-index-right "hello" #\a 3 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-index-right "" #\a 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-index-right "abc" #\a 5)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-index-right 123 #\a))
+(check-catch 'wrong-type-arg (string-index-right "hello" "a"))
+(check-catch 'wrong-type-arg (string-index-right "hello" 123))
+(check-catch 'wrong-type-arg (string-index-right "hello" '(a)))
+(check-catch 'out-of-range (string-index-right "hello" #\a -1))
+(check-catch 'out-of-range (string-index-right "hello" #\a 0 6))
+(check-catch 'out-of-range (string-index-right "hello" #\a 3 2))
+(check-catch 'out-of-range (string-index-right "" #\a 1))
+(check-catch 'out-of-range (string-index-right "abc" #\a 5))
 
 (check-report)

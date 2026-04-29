@@ -21,9 +21,7 @@
 ;; -----
 ;; 返回 proc 应用于所有键值对的结果列表（按键降序）。
 ;;
-(check (fxmapping-map->list (lambda (k v) (cons k v))
-         (fxmapping 0 'a 1 'b)
-       ) ;fxmapping-map->list
+(check (fxmapping-map->list (lambda (k v) (cons k v)) (fxmapping 0 'a 1 'b))
   =>
   '((0 . a) (1 . b))
 ) ;check

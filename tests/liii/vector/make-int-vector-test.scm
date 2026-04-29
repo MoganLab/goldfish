@@ -39,27 +39,12 @@
 ;; wrong-type-arg 当k不是合法整数时
 
 
-(check (int-vector? (make-int-vector 0))
-  =>
-  #t
-) ;check
-(check (int-vector? (make-int-vector 3))
-  =>
-  #t
-) ;check
-(check (make-int-vector 3 0)
-  =>
-  #(0 0 0)
-) ;check
-(check (make-int-vector 3 1)
-  =>
-  #(1 1 1)
-) ;check
+(check (int-vector? (make-int-vector 0)) => #t)
+(check (int-vector? (make-int-vector 3)) => #t)
+(check (make-int-vector 3 0) => #(0 0 0))
+(check (make-int-vector 3 1) => #(1 1 1))
 (check (make-int-vector 0) => #())
-(check (vector-length (make-int-vector 5))
-  =>
-  5
-) ;check
+(check (vector-length (make-int-vector 5)) => 5)
 
 
 (let ((v (make-int-vector 5 42)))
@@ -69,12 +54,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (make-int-vector 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-int-vector 3 'not-an-integer)
-) ;check-catch
+(check-catch 'wrong-type-arg (make-int-vector 'not-a-number))
+(check-catch 'wrong-type-arg (make-int-vector 3 'not-an-integer))
 
 
 (check-report)

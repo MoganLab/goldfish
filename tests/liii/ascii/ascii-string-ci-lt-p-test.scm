@@ -31,8 +31,7 @@
 ;; 参数类型不匹配时按过程约定报错
 
 
-(check-true (ascii-string-ci<? "abc" "ABD")
-) ;check-true
+(check-true (ascii-string-ci<? "abc" "ABD"))
 
 
 (check-report)

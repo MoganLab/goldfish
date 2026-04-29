@@ -34,36 +34,37 @@
 (let* ((s "abcdef")
        (c0 (string-index->cursor s 0))
        (c3 (string-index->cursor s 3))
-       (c6 (string-index->cursor s 6)))
+       (c6 (string-index->cursor s 6))
+      ) ;
   (check (string-cursor? c0) => #t)
   (check (string-cursor->index s c0) => 0)
   (check (string-cursor->index s c3) => 3)
-  (check (string-cursor->index s c6) => 6))
+  (check (string-cursor->index s c6) => 6)
+) ;let*
 
 ;; 测试中文字符串
-(let* ((s "中文测试")
-       (c2 (string-index->cursor s 2)))
-  (check (string-cursor->index s c2) => 2))
+(let* ((s "中文测试") (c2 (string-index->cursor s 2)))
+  (check (string-cursor->index s c2) => 2)
+) ;let*
 
 ;; 测试emoji字符串
-(let* ((s "🎉🎊")
-       (c1 (string-index->cursor s 1)))
-  (check (string-cursor->index s c1) => 1))
+(let* ((s "🎉🎊") (c1 (string-index->cursor s 1)))
+  (check (string-cursor->index s c1) => 1)
+) ;let*
 
 ;; 测试越界检查
-(check-catch 'value-error
-  (string-index->cursor "abc" 4))
+(check-catch 'value-error (string-index->cursor "abc" 4))
 
-(check-catch 'value-error
-  (string-index->cursor "abc" -1))
+(check-catch 'value-error (string-index->cursor "abc" -1))
 
 
 ;; 测试传入游标直接返回
 (let ((c (string-cursor-start "abc")))
-  (check (string-cursor=? (string-index->cursor "abc" c) c) => #t))
+  (check (string-cursor=? (string-index->cursor "abc" c) c) => #t)
+) ;let
 ;; 测试传入游标直接返回
-(let* ((s "abc")
-       (c (string-cursor-start s)))
-  (check (string-cursor=? c (string-index->cursor s c)) => #t))
+(let* ((s "abc") (c (string-cursor-start s)))
+  (check (string-cursor=? c (string-index->cursor s c)) => #t)
+) ;let*
 
 (check-report)

@@ -34,8 +34,7 @@
 ;; 非哈希表输入时由底层实现报错。
 
 
-(check-true (hash-table-empty? (make-hash-table))
-) ;check-true
+(check-true (hash-table-empty? (make-hash-table)))
 
 
 (let ((ht (make-hash-table)))

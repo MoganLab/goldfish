@@ -9,27 +9,19 @@
 
 
 ;; 示例1：解析字符串并读取字段
-(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}"
-                  ) ;string->njson
-            ) ;root
-           ) ;
+(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}")))
   (njson-ref root "name")
 ) ;let-njson
 
 
 ;; 示例2：判断对象是否包含某个键
-(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}"
-                  ) ;string->njson
-            ) ;root
-           ) ;
+(let-njson ((root (string->njson "{\"name\":\"Goldfish\",\"nums\":[1,2,3]}")))
   (njson-contains-key? root "nums")
 ) ;let-njson
 
 
 ;; 示例3：把原生 JSON 句柄转回普通 JSON 结构
-(let-njson ((root (string->njson "{\"a\":1}")))
-  (njson->json root)
-) ;let-njson
+(let-njson ((root (string->njson "{\"a\":1}"))) (njson->json root))
 
 
 ;; ==== 如何查看函数的文档和用例 ====

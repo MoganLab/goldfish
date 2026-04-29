@@ -5,15 +5,9 @@
 
 
 ;; list-queue? 基本测试
-(check (list-queue? (list-queue 1 2 3))
-  =>
-  #t
-) ;check
+(check (list-queue? (list-queue 1 2 3)) => #t)
 (check (list-queue? (list-queue)) => #t)
-(check (list-queue? (make-list-queue '(1 2 3)))
-  =>
-  #t
-) ;check
+(check (list-queue? (make-list-queue '(1 2 3))) => #t)
 
 
 ;; 非队列类型
@@ -27,8 +21,7 @@
 
 
 ;; 复制后的队列仍然是队列
-(let ((q (list-queue-copy (list-queue 1 2 3)))
-     ) ;
+(let ((q (list-queue-copy (list-queue 1 2 3))))
   (check (list-queue? q) => #t)
 ) ;let
 

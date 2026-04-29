@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -35,58 +31,38 @@
 ;; 绑定语法非法或空绑定列表时抛出。
 
 
-(check-catch 'type-error
-  (let-njson ((j (string->njson 1))) j)
-) ;check-catch
+(check-catch 'type-error (let-njson ((j (string->njson 1))) j))
 
 
 (define let-njson-cleanup '())
-(check (let-njson ((j (string->njson "{\"name\":\"Goldfish\"}"
-                      ) ;string->njson
-                   ) ;j
-                  ) ;
+(check (let-njson ((j (string->njson "{\"name\":\"Goldfish\"}")))
          (set! let-njson-cleanup j)
          (njson-ref j "name")
        ) ;let-njson
   =>
   "Goldfish"
 ) ;check
-(check-catch 'type-error
-  (njson-ref let-njson-cleanup "name")
-) ;check-catch
+(check-catch 'type-error (njson-ref let-njson-cleanup "name"))
 
 
 (define let-njson-multi-a '())
 (define let-njson-multi-b '())
-(check (let-njson ((j1 (string->njson "{\"a\":1}"))
-                   (j2 (string->njson "{\"b\":2}"))
-                  ) ;
+(check (let-njson ((j1 (string->njson "{\"a\":1}")) (j2 (string->njson "{\"b\":2}")))
          (set! let-njson-multi-a j1)
          (set! let-njson-multi-b j2)
-         (+ (njson-ref j1 "a")
-           (njson-ref j2 "b")
-         ) ;+
+         (+ (njson-ref j1 "a") (njson-ref j2 "b"))
        ) ;let-njson
   =>
   3
 ) ;check
-(check-catch 'type-error
-  (njson-ref let-njson-multi-a "a")
-) ;check-catch
-(check-catch 'type-error
-  (njson-ref let-njson-multi-b "b")
-) ;check-catch
+(check-catch 'type-error (njson-ref let-njson-multi-a "a"))
+(check-catch 'type-error (njson-ref let-njson-multi-b "b"))
 
 
-(check (let-njson ((x 7) (y 5)) (+ x y))
-  =>
-  12
-) ;check
+(check (let-njson ((x 7) (y 5)) (+ x y)) => 12)
 
 
-(check-catch 'type-error
-  (let-njson () #t)
-) ;check-catch
+(check-catch 'type-error (let-njson () #t))
 
 
 (check-report)

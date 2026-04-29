@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -40,22 +37,13 @@
 
 
 ;; ASCII 字符串
-(check (utf8-string-length "Hello")
-  =>
-  5
-) ;check
+(check (utf8-string-length "Hello") => 5)
 (check (utf8-string-length "H") => 1)
 
 
 ;; 中文字符（每个字符 3 字节，但 1 个码点）
-(check (utf8-string-length "你好")
-  =>
-  2
-) ;check
-(check (utf8-string-length "汉字书写")
-  =>
-  4
-) ;check
+(check (utf8-string-length "你好") => 2)
+(check (utf8-string-length "汉字书写") => 4)
 
 
 ;; 表情符号（每个 4 字节，但 1 个码点）
@@ -65,38 +53,16 @@
 
 
 ;; 混合字符
-(check (utf8-string-length "Hello 你好")
-  =>
-  8
-) ;check
-(check (utf8-string-length "Hello 👍 World")
-  =>
-  13
-) ;check
-(check (utf8-string-length "你好 🚀 测试"
-       ) ;utf8-string-length
-  =>
-  7
-) ;check
-(check (utf8-string-length "👍🚀🎉")
-  =>
-  3
-) ;check
+(check (utf8-string-length "Hello 你好") => 8)
+(check (utf8-string-length "Hello 👍 World") => 13)
+(check (utf8-string-length "你好 🚀 测试") => 7)
+(check (utf8-string-length "👍🚀🎉") => 3)
 
 
 ;; 与 string-length 的区别验证
-(check-true (> (string-length "中")
-              (utf8-string-length "中")
-            ) ;>
-) ;check-true
-(check-true (> (string-length "👍")
-              (utf8-string-length "👍")
-            ) ;>
-) ;check-true
-(check-true (= (string-length "Hello")
-              (utf8-string-length "Hello")
-            ) ;=
-) ;check-true
+(check-true (> (string-length "中") (utf8-string-length "中")))
+(check-true (> (string-length "👍") (utf8-string-length "👍")))
+(check-true (= (string-length "Hello") (utf8-string-length "Hello")))
 
 
 (check-report)

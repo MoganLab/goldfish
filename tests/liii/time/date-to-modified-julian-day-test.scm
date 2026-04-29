@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -29,19 +26,11 @@
 
 ;; date->modified-julian-day basic (UTC epoch)
 (let ((d (make-date 0 0 0 0 1 1 1970 0)))
-  (check (date->modified-julian-day d)
-    =>
-    40587
-  ) ;check
+  (check (date->modified-julian-day d) => 40587)
 
   ;; With different dates
   (let ((d1 (make-date 0 0 0 0 1 1 2000 0)))
-    (check (> (date->modified-julian-day d1)
-             (date->modified-julian-day d)
-           ) ;>
-      =>
-      #t
-    ) ;check
+    (check (> (date->modified-julian-day d1) (date->modified-julian-day d)) => #t)
   ) ;let
 ) ;let
 

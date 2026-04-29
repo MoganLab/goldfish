@@ -55,13 +55,7 @@
 
 
 (let ((r (numeric-range 1 4)))
-  (check (range-fold (lambda (acc x) (cons x acc))
-           '()
-           r
-         ) ;range-fold
-    =>
-    '(3 2 1)
-  ) ;check
+  (check (range-fold (lambda (acc x) (cons x acc)) '() r) => '(3 2 1))
 ) ;let
 
 

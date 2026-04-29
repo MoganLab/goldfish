@@ -35,20 +35,14 @@
 (check-false (or #f #f #f))
 ;; 混合类型测试 - 返回第一个真值
 (check (or 1 '() "non-empty" #t) => 1)
-(check (or #f '() "non-empty" #t)
-  =>
-  '()
-) ;check
+(check (or #f '() "non-empty" #t) => '())
 (check (or #f #f 2 #t) => 2)
 ;; 表达式求值测试
 (check-true (or (> 5 3) (< 5 10)))
 (check-true (or (> 5 3) (> 5 10)))
 (check-false (or (< 5 3) (> 5 10)))
 ;; 短路求值测试 - 一旦遇到真值就停止求值
-(check-true (or #t
-              (error "This should not be evaluated")
-            ) ;or
-) ;check-true
+(check-true (or #t (error "This should not be evaluated")))
 ;; 返回第一个真值
 (check (or #f 1) => 1)
 (check (or #f #f 2) => 2)

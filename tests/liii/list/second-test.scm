@@ -25,18 +25,11 @@
 ;; (second '(1 2 3 4 5 6 7 8 9 10)) => 2
 
 
-(check (second '(1 2 3 4 5 6 7 8 9 10))
-  =>
-  2
-) ;check
+(check (second '(1 2 3 4 5 6 7 8 9 10)) => 2)
 
 
-(check-catch 'wrong-type-arg
-  (second '(left . right))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (second '(1))
-) ;check-catch
+(check-catch 'wrong-type-arg (second '(left . right)))
+(check-catch 'wrong-type-arg (second '(1)))
 
 
 (check-report)

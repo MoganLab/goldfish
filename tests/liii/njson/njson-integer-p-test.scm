@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -49,14 +46,9 @@
 (check-false (njson-integer? 'foo))
 
 
-(define njson-integer-freed
-  (string->njson "1")
-) ;define
-(check-true (njson-free njson-integer-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-integer? njson-integer-freed)
-) ;check-catch
+(define njson-integer-freed (string->njson "1"))
+(check-true (njson-free njson-integer-freed))
+(check-catch 'type-error (njson-integer? njson-integer-freed))
 
 
 (check-report)

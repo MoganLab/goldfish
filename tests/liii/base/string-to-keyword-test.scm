@@ -15,22 +15,9 @@
 ;; 将普通字符串转换为 keyword 类型，结果以冒号开头
 
 
-(check (equal? (string->keyword "hello")
-         :hello
-       ) ;equal?
-  =>
-  #t
-) ;check
-(check (equal? (string->keyword "foo-bar")
-         :foo-bar
-       ) ;equal?
-  =>
-  #t
-) ;check
-(check (keyword? (string->keyword "test"))
-  =>
-  #t
-) ;check
+(check (equal? (string->keyword "hello") :hello) => #t)
+(check (equal? (string->keyword "foo-bar") :foo-bar) => #t)
+(check (keyword? (string->keyword "test")) => #t)
 
 
 (check-report)

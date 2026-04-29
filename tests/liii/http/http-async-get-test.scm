@@ -1,9 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii string)
-  (liii time)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii string) (liii time) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -40,56 +35,29 @@
 ;; 多个异步请求可并发执行。
 
 ;; 测试异步 GET 请求
-(let ((async-completed #f)
-      (async-response #f)
-     ) ;
+(let ((async-completed #f) (async-response #f))
   (http-async-get "https://httpbin.org/get"
-    (lambda (response)
-      (set! async-completed #t)
-      (set! async-response response)
-    ) ;lambda
+    (lambda (response) (set! async-completed #t) (set! async-response response))
   ) ;http-async-get
   (http-wait-all 30)
   (check-true async-completed)
-  (check (async-response 'status-code)
-    =>
-    200
-  ) ;check
-  (check-true (string-contains (async-response 'text)
-                "httpbin.org"
-              ) ;string-contains
-  ) ;check-true
+  (check (async-response 'status-code) => 200)
+  (check-true (string-contains (async-response 'text) "httpbin.org"))
 ) ;let
 
 ;; 测试多个并发异步请求
-(let ((completed-count 0)
-      (start-time (current-second))
-     ) ;
+(let ((completed-count 0) (start-time (current-second)))
   (http-async-get "https://httpbin.org/delay/1"
-    (lambda (r)
-      (set! completed-count
-        (+ completed-count 1)
-      ) ;set!
-    ) ;lambda
+    (lambda (r) (set! completed-count (+ completed-count 1)))
   ) ;http-async-get
   (http-async-get "https://httpbin.org/delay/1"
-    (lambda (r)
-      (set! completed-count
-        (+ completed-count 1)
-      ) ;set!
-    ) ;lambda
+    (lambda (r) (set! completed-count (+ completed-count 1)))
   ) ;http-async-get
   (http-async-get "https://httpbin.org/delay/1"
-    (lambda (r)
-      (set! completed-count
-        (+ completed-count 1)
-      ) ;set!
-    ) ;lambda
+    (lambda (r) (set! completed-count (+ completed-count 1)))
   ) ;http-async-get
   (http-wait-all 30)
-  (let ((elapsed (- (current-second) start-time)
-        ) ;elapsed
-       ) ;
+  (let ((elapsed (- (current-second) start-time)))
     ;; All 3 requests should complete in ~1s (concurrent), not ~3s (sequential)
     (check completed-count => 3)
     ;; Allow some tolerance for network latency

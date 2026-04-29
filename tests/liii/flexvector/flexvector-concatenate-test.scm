@@ -11,10 +11,7 @@
 ;; ----
 ;; (flexvector-concatenate list)
 ;;
-(check (flexvector->vector (flexvector-concatenate (list (flexvector 10 20)
-                                                     (flexvector)
-                                                     (flexvector 30 40)
-                                                   ) ;list
+(check (flexvector->vector (flexvector-concatenate (list (flexvector 10 20) (flexvector) (flexvector 30 40))
                            ) ;flexvector-concatenate
        ) ;flexvector->vector
   =>

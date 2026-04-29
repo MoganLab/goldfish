@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -42,27 +39,15 @@
 
 (let ((r (http-head "https://httpbin.org")))
   (check (r 'status-code) => 200)
-  (check (r 'url)
-    =>
-    "https://httpbin.org/"
-  ) ;check
+  (check (r 'url) => "https://httpbin.org/")
   (check-true (real? (r 'elapsed)))
   ;; NOTE: httpbin.org's LB routes to different backends.
   ;;       Some return "OK", others empty string for reason.
   ;;       HTTP/2+ allows omitting reason phrases.
-  (check-true (or (equal? (r 'reason) "OK")
-                (equal? (r 'reason) "")
-              ) ;or
-  ) ;check-true
+  (check-true (or (equal? (r 'reason) "OK") (equal? (r 'reason) "")))
   (check (r 'text) => "")
-  (check ((r 'headers) "content-type")
-    =>
-    "text/html; charset=utf-8"
-  ) ;check
-  (check ((r 'headers) "content-length")
-    =>
-    "9593"
-  ) ;check
+  (check ((r 'headers) "content-type") => "text/html; charset=utf-8")
+  (check ((r 'headers) "content-length") => "9593")
 ) ;let
 
 (check-report)

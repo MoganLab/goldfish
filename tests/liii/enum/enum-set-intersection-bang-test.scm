@@ -1,48 +1,31 @@
-(import (liii check)
-  (liii enum)
-  (srfi srfi-1)
-) ;import
+(import (liii check) (liii enum) (srfi srfi-1))
 
 
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
 (define reddish
   (list->enum-set color
-    (map (lambda (name)
-           (enum-name->enum color name)
-         ) ;lambda
-      (take color-names 3)
-    ) ;map
+    (map (lambda (name) (enum-name->enum color name)) (take color-names 3))
   ) ;list->enum-set
 ) ;define
 
 
 (define reddish-complement
   (list->enum-set color
-    (map (lambda (name)
-           (enum-name->enum color name)
-         ) ;lambda
-      (drop color-names 3)
-    ) ;map
+    (map (lambda (name) (enum-name->enum color name)) (drop color-names 3))
   ) ;list->enum-set
 ) ;define
 
 
 (define (fresh-sets proc eset1 eset2)
-  (proc (enum-set-copy eset1)
-    (enum-set-copy eset2)
-  ) ;proc
+  (proc (enum-set-copy eset1) (enum-set-copy eset2))
 ) ;define
 
 
@@ -79,11 +62,7 @@
 ;; 无。
 
 
-(check (enum-set-empty? (fresh-sets enum-set-intersection!
-                          reddish
-                          reddish-complement
-                        ) ;fresh-sets
-       ) ;enum-set-empty?
+(check (enum-set-empty? (fresh-sets enum-set-intersection! reddish reddish-complement))
   =>
   #t
 ) ;check

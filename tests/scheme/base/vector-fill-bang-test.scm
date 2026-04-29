@@ -43,17 +43,9 @@
   (vector-fill! v 'y 0 2)
   (check v => #(y y))
 ) ;let
-(check-catch 'wrong-number-of-args
-  (vector-fill! #(1))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-fill! "abc" 'x)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-fill! #(a) 'x 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-fill! #(a) 'x -1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector-fill! #(1)))
+(check-catch 'wrong-type-arg (vector-fill! "abc" 'x))
+(check-catch 'out-of-range (vector-fill! #(a) 'x 2))
+(check-catch 'out-of-range (vector-fill! #(a) 'x -1))
 
 (check-report)

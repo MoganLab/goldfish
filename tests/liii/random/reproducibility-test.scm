@@ -13,24 +13,12 @@
 
 
 (let ((s (make-random-source)))
-  (let ((saved-state (random-source-state-ref s)
-        ) ;saved-state
-       ) ;
-    (let ((rand-int (random-source-make-integers s)
-          ) ;rand-int
-         ) ;
-      (let ((r1 (rand-int 100))
-            (r2 (rand-int 100))
-            (r3 (rand-int 100))
-           ) ;
+  (let ((saved-state (random-source-state-ref s)))
+    (let ((rand-int (random-source-make-integers s)))
+      (let ((r1 (rand-int 100)) (r2 (rand-int 100)) (r3 (rand-int 100)))
         (random-source-state-set! s saved-state)
-        (let ((rand-int2 (random-source-make-integers s)
-              ) ;rand-int2
-             ) ;
-          (let ((r1b (rand-int2 100))
-                (r2b (rand-int2 100))
-                (r3b (rand-int2 100))
-               ) ;
+        (let ((rand-int2 (random-source-make-integers s)))
+          (let ((r1b (rand-int2 100)) (r2b (rand-int2 100)) (r3b (rand-int2 100)))
             (check (= r1 r1b) => #t)
             (check (= r2 r2b) => #t)
             (check (= r3 r3b) => #t)
@@ -42,17 +30,9 @@
 ) ;let
 
 
-(let ((s1 (make-random-source))
-      (s2 (make-random-source))
-     ) ;
-  (random-source-pseudo-randomize! s1
-    5
-    10
-  ) ;random-source-pseudo-randomize!
-  (random-source-pseudo-randomize! s2
-    5
-    10
-  ) ;random-source-pseudo-randomize!
+(let ((s1 (make-random-source)) (s2 (make-random-source)))
+  (random-source-pseudo-randomize! s1 5 10)
+  (random-source-pseudo-randomize! s2 5 10)
   (let ((rand1 (random-source-make-integers s1))
         (rand2 (random-source-make-integers s2))
        ) ;

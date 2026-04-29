@@ -29,30 +29,12 @@
 ;; 3. ASCII 字符编码为单字节
 (check (string->utf8 "") => #u8())
 (check (string->utf8 "a") => #u8(97))
-(check (string->utf8 "Hello")
-  =>
-  #u8(72 101 108 108 111)
-) ;check
-(check (string->utf8 "世界")
-  =>
-  #u8(228 184 150 231 149 140)
-) ;check
-(check (string->utf8 "abc" 1)
-  =>
-  #u8(98 99)
-) ;check
-(check (string->utf8 "abc" 0 2)
-  =>
-  #u8(97 98)
-) ;check
-(check-catch 'type-error
-  (string->utf8)
-) ;check-catch
-(check-catch 'type-error
-  (string->utf8 '())
-) ;check-catch
-(check-catch 'out-of-range
-  (string->utf8 "abc" -1)
-) ;check-catch
+(check (string->utf8 "Hello") => #u8(72 101 108 108 111))
+(check (string->utf8 "世界") => #u8(228 184 150 231 149 140))
+(check (string->utf8 "abc" 1) => #u8(98 99))
+(check (string->utf8 "abc" 0 2) => #u8(97 98))
+(check-catch 'type-error (string->utf8))
+(check-catch 'type-error (string->utf8 '()))
+(check-catch 'out-of-range (string->utf8 "abc" -1))
 
 (check-report)

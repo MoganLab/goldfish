@@ -34,19 +34,10 @@
 (check (char-foldcase #\z) => #\z)
 ;; 非字母字符测试
 (check (char-foldcase #\5) => #\5)
-(check (char-foldcase #\space)
-  =>
-  #\space
-) ;check
+(check (char-foldcase #\space) => #\space)
 (check (char-foldcase #\!) => #\!)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-foldcase "A")
-) ;check-catch
-(check-catch 'type-error
-  (char-foldcase 65)
-) ;check-catch
-(check-catch 'type-error
-  (char-foldcase 'A)
-) ;check-catch
+(check-catch 'type-error (char-foldcase "A"))
+(check-catch 'type-error (char-foldcase 65))
+(check-catch 'type-error (char-foldcase 'A))
 (check-report)

@@ -64,10 +64,7 @@
 (check (round -3.5) => -4.0)
 ;; 测试整数边界
 (check (round 2147483647) => 2147483647)
-(check (round -2147483648)
-  =>
-  -2147483648
-) ;check
+(check (round -2147483648) => -2147483648)
 ;; 测试有理数情况
 (check (round 1/3) => 0)
 (check (round 2/3) => 1)
@@ -76,19 +73,9 @@
 (check (round -2/3) => -1)
 (check (round -3/4) => -1)
 ;; 测试错误情况
-(check-catch 'wrong-type-arg
-  (round "not a number")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (round 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (round 1.0+2.0i)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (round)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (round 1 2)
-) ;check-catch
+(check-catch 'wrong-type-arg (round "not a number"))
+(check-catch 'wrong-type-arg (round 'symbol))
+(check-catch 'wrong-type-arg (round 1.0+2.0i))
+(check-catch 'wrong-number-of-args (round))
+(check-catch 'wrong-number-of-args (round 1 2))
 (check-report)

@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -48,11 +45,8 @@
 ) ;let
 
 
-(check-true (set-empty? (set-copy s-empty))
-) ;check-true
-(check-catch 'type-error
-  (set-copy "not a set")
-) ;check-catch
+(check-true (set-empty? (set-copy s-empty)))
+(check-catch 'type-error (set-copy "not a set"))
 
 
 (check-report)

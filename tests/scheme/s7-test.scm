@@ -78,47 +78,12 @@
 ;; - 在相同作用域内重新定义常量会抛出错误
 ;; - 常量定义是词法作用域的，不会影响外部作用域的同名变量
 ;; - 可以使用 constant? 函数检查符号是否为常量
-(check (let ()
-         (define-constant PI 3.14159)
-         PI
-       ) ;let
-  =>
-  3.14159
-) ;check
-(check (let ()
-         (define-constant GREETING "Hello")
-         GREETING
-       ) ;let
-  =>
-  "Hello"
-) ;check
-(check (let ()
-         (define-constant ANSWER 42)
-         ANSWER
-       ) ;let
-  =>
-  42
-) ;check
-(check (let ()
-         (define-constant (square x) (* x x))
-         (square 5)
-       ) ;let
-  =>
-  25
-) ;check
-(check (let ()
-         (define-constant (add x y) (+ x y))
-         (add 3 4)
-       ) ;let
-  =>
-  7
-) ;check
-(check-catch 'immutable-error
-  (let ()
-    (define-constant X 1)
-    (set! X 2)
-  ) ;let
-) ;check-catch
+(check (let () (define-constant PI 3.14159) PI) => 3.14159)
+(check (let () (define-constant GREETING "Hello") GREETING) => "Hello")
+(check (let () (define-constant ANSWER 42) ANSWER) => 42)
+(check (let () (define-constant (square x) (* x x)) (square 5)) => 25)
+(check (let () (define-constant (add x y) (+ x y)) (add 3 4)) => 7)
+(check-catch 'immutable-error (let () (define-constant X 1) (set! X 2)))
 (check-catch 'immutable-error
   (let ()
     (define-constant Y "test")
@@ -131,52 +96,23 @@
     (set! func (lambda (x) (+ x 1)))
   ) ;let
 ) ;check-catch
+(check (let () (define-constant TEST-CONST 123) (constant? 'TEST-CONST)) => #t)
+(check (let () (define TEST-VAR 456) (constant? 'TEST-VAR)) => #f)
+(check-catch 'syntax-error (define-constant))
+(check-catch 'syntax-error (define-constant NAME))
 (check (let ()
-         (define-constant TEST-CONST 123)
-         (constant? 'TEST-CONST)
-       ) ;let
-  =>
-  #t
-) ;check
-(check (let ()
-         (define TEST-VAR 456)
-         (constant? 'TEST-VAR)
-       ) ;let
-  =>
-  #f
-) ;check
-(check-catch 'syntax-error
-  (define-constant)
-) ;check-catch
-(check-catch 'syntax-error
-  (define-constant NAME)
-) ;check-catch
-(check (let ()
-         (define-constant (factorial n)
-           (if (<= n 1)
-             1
-             (* n (factorial (- n 1)))
-           ) ;if
-         ) ;define-constant
+         (define-constant (factorial n) (if (<= n 1) 1 (* n (factorial (- n 1)))))
          (factorial 5)
        ) ;let
   =>
   120
 ) ;check
 (check (let ()
-         (define-constant (make-adder x)
-           (lambda (y) (+ x y))
-         ) ;define-constant
+         (define-constant (make-adder x) (lambda (y) (+ x y)))
          ((make-adder 10) 5)
        ) ;let
   =>
   15
 ) ;check
-(check (let ((x 1))
-         (define-constant y 2)
-         (+ x y)
-       ) ;let
-  =>
-  3
-) ;check
+(check (let ((x 1)) (define-constant y 2) (+ x y)) => 3)
 (check-report)

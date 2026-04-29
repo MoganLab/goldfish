@@ -50,13 +50,14 @@
 (check (string-trim-both "xxabcxx" (lambda (c) (char=? c #\x)) 2 5) => "abc")
 
 ;; 测试使用游标作为 start/end
-(let* ((s "  abc  ")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-trim-both s char-whitespace? start end) => "abc"))
+(let* ((s "  abc  ") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-trim-both s char-whitespace? start end) => "abc")
+) ;let*
 
 ;; 测试混合类型报错
-(check-catch 'type-error (string-trim-both "abc" char-whitespace? 0 (string-cursor-end "abc")))
+(check-catch 'type-error
+  (string-trim-both "abc" char-whitespace? 0 (string-cursor-end "abc"))
+) ;check-catch
 
 ;; 测试 start > end 报错
 (check-catch 'value-error (string-trim-both "abc" char-whitespace? 2 1))

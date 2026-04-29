@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -28,18 +25,11 @@
 (let ((copy (bag-copy b-1-2)))
   (check-true (bag? copy))
   (check-false (eq? copy b-1-2))
-  (check-true (eq? (bag-comparator copy) comp)
-  ) ;check-true
+  (check-true (eq? (bag-comparator copy) comp))
   (check (bag-size copy) => 3)
-  (check (bag-count (lambda (x) (= x 2)) copy)
-    =>
-    2
-  ) ;check
+  (check (bag-count (lambda (x) (= x 2)) copy) => 2)
 ) ;let
-(check-true (bag-empty? (bag-copy b-empty))
-) ;check-true
-(check-catch 'type-error
-  (bag-copy "not a bag")
-) ;check-catch
+(check-true (bag-empty? (bag-copy b-empty)))
+(check-catch 'type-error (bag-copy "not a bag"))
 
 (check-report)

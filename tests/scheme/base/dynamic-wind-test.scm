@@ -28,26 +28,24 @@
 ;; 2. 即使 thunk 抛出异常，after 也会执行
 ;; 3. 常用于资源管理
 (let ((log '()))
-  (dynamic-wind
-    (lambda () (set! log (cons 'before log)))
+  (dynamic-wind (lambda () (set! log (cons 'before log)))
     (lambda () (set! log (cons 'thunk log)) 'result)
     (lambda () (set! log (cons 'after log)))
   ) ;dynamic-wind
   (check (reverse log) => '(before thunk after))
 ) ;let
 (let ((log '()))
-  (check
-    (catch #t
-      (lambda ()
-        (dynamic-wind
-          (lambda () (set! log (cons 'before log)))
-          (lambda () (error 'test-error))
-          (lambda () (set! log (cons 'after log)))
-        ) ;dynamic-wind
-      ) ;lambda
-      (lambda args 'caught)
-    ) ;catch
-    => 'caught
+  (check (catch #t
+           (lambda ()
+             (dynamic-wind (lambda () (set! log (cons 'before log)))
+               (lambda () (error 'test-error))
+               (lambda () (set! log (cons 'after log)))
+             ) ;dynamic-wind
+           ) ;lambda
+           (lambda args 'caught)
+         ) ;catch
+    =>
+    'caught
   ) ;check
   (check (reverse log) => '(before after))
 ) ;let

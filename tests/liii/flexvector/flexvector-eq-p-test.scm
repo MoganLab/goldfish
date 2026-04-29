@@ -32,32 +32,16 @@
 
 
 ;; 相等的向量
-(check-true (flexvector=? eq?
-              (flexvector 'a 'b)
-              (flexvector 'a 'b)
-            ) ;flexvector=?
-) ;check-true
-(check-true (flexvector=? =
-              (flexvector 1 2 3)
-              (flexvector 1 2 3)
-            ) ;flexvector=?
-) ;check-true
+(check-true (flexvector=? eq? (flexvector 'a 'b) (flexvector 'a 'b)))
+(check-true (flexvector=? = (flexvector 1 2 3) (flexvector 1 2 3)))
 
 
 ;; 顺序不同不相等
-(check-false (flexvector=? eq?
-               (flexvector 'a 'b)
-               (flexvector 'b 'a)
-             ) ;flexvector=?
-) ;check-false
+(check-false (flexvector=? eq? (flexvector 'a 'b) (flexvector 'b 'a)))
 
 
 ;; 长度不同不相等
-(check-false (flexvector=? =
-               (flexvector 1 2 3 4 5)
-               (flexvector 1 2 3 4)
-             ) ;flexvector=?
-) ;check-false
+(check-false (flexvector=? = (flexvector 1 2 3 4 5) (flexvector 1 2 3 4)))
 
 
 ;; 空参数返回 #t
@@ -65,65 +49,31 @@
 
 
 ;; 单参数返回 #t
-(check-true (flexvector=? eq? (flexvector 'a))
-) ;check-true
+(check-true (flexvector=? eq? (flexvector 'a)))
 
 
 ;; 多向量比较
-(check-true (flexvector=? =
-              (flexvector 1 2)
-              (flexvector 1 2)
-              (flexvector 1 2)
-            ) ;flexvector=?
-) ;check-true
-(check-false (flexvector=? =
-               (flexvector 1 2)
-               (flexvector 1 2)
-               (flexvector 1 3)
-             ) ;flexvector=?
+(check-true (flexvector=? = (flexvector 1 2) (flexvector 1 2) (flexvector 1 2)))
+(check-false (flexvector=? = (flexvector 1 2) (flexvector 1 2) (flexvector 1 3))
 ) ;check-false
 
 
 ;; 空向量相等
-(check-true (flexvector=? eq?
-              (flexvector)
-              (flexvector)
-            ) ;flexvector=?
-) ;check-true
+(check-true (flexvector=? eq? (flexvector) (flexvector)))
 
 
 ;; 使用不同比较函数
-(check-true (flexvector=? =
-              (flexvector 1 2 3)
-              (flexvector 1 2 3)
-            ) ;flexvector=?
-) ;check-true
-(check-false (flexvector=? =
-               (flexvector 1 2 3)
-               (flexvector 1 2 4)
-             ) ;flexvector=?
-) ;check-false
+(check-true (flexvector=? = (flexvector 1 2 3) (flexvector 1 2 3)))
+(check-false (flexvector=? = (flexvector 1 2 3) (flexvector 1 2 4)))
 
 
 ;; 字符比较
-(check-true (flexvector=? char=?
-              (flexvector #\a #\b)
-              (flexvector #\a #\b)
-            ) ;flexvector=?
-) ;check-true
-(check-false (flexvector=? char=?
-               (flexvector #\a #\b)
-               (flexvector #\A #\B)
-             ) ;flexvector=?
-) ;check-false
+(check-true (flexvector=? char=? (flexvector #\a #\b) (flexvector #\a #\b)))
+(check-false (flexvector=? char=? (flexvector #\a #\b) (flexvector #\A #\B)))
 
 
 ;; 字符串比较（使用 equal?）
-(check-true (flexvector=? equal?
-              (flexvector "a" "b")
-              (flexvector "a" "b")
-            ) ;flexvector=?
-) ;check-true
+(check-true (flexvector=? equal? (flexvector "a" "b") (flexvector "a" "b")))
 
 
 (check-report)

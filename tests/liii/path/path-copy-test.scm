@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -23,24 +20,13 @@
 ;; 返回一个新的路径值副本。
 
 (when (not (os-windows?))
-  (check (path->string (path-copy (path "tmp/demo.txt"))
-         ) ;path->string
-    =>
-    "tmp/demo.txt"
-  ) ;check
+  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp/demo.txt")
 ) ;when
 
 (when (os-windows?)
-  (check (path->string (path-copy (path "tmp/demo.txt"))
-         ) ;path->string
-    =>
-    "tmp\\demo.txt"
-  ) ;check
+  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
 ) ;when
 
-(check-true (path=? (path "tmp/demo.txt")
-              (path-copy (path "tmp/demo.txt"))
-            ) ;path=?
-) ;check-true
+(check-true (path=? (path "tmp/demo.txt") (path-copy (path "tmp/demo.txt"))))
 
 (check-report)

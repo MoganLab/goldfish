@@ -1,7 +1,4 @@
-(import (liii check)
-        (liii unicode)
-        (scheme base)
-) ;import
+(import (liii check) (liii unicode) (scheme base))
 
 (check-set-mode! 'report-failed)
 
@@ -64,19 +61,9 @@
   (check str => "abc")
 ) ;let
 ;; 错误处理测试
-(check-catch 'type-error
-  (utf8-string-set! 123 0 #\a)
-) ;check-catch
-(check-catch 'out-of-range
-  (utf8-string-set! "abc" -1 #\a)
-) ;check-catch
-(check-catch 'out-of-range
-  (utf8-string-set! "abc" 3 #\a)
-) ;check-catch
-(check-catch 'type-error
-  (utf8-string-set! "abc" 0 "a")
-) ;check-catch
-(check-catch 'out-of-range
-  (utf8-string-set! "" 0 #\a)
-) ;check-catch
+(check-catch 'type-error (utf8-string-set! 123 0 #\a))
+(check-catch 'out-of-range (utf8-string-set! "abc" -1 #\a))
+(check-catch 'out-of-range (utf8-string-set! "abc" 3 #\a))
+(check-catch 'type-error (utf8-string-set! "abc" 0 "a"))
+(check-catch 'out-of-range (utf8-string-set! "" 0 #\a))
 (check-report)

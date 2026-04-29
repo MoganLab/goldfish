@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -44,55 +41,22 @@
 (define s-1-2-3 (set 1 2 3))
 
 
-(check (set-count (lambda (x) (> x 0)) s-empty)
-  =>
-  0
-) ;check
-(check (set-count (lambda (x) (> x 0)) s-1)
-  =>
-  1
-) ;check
-(check (set-count (lambda (x) (> x 0)) s-1-2)
-  =>
-  2
-) ;check
-(check (set-count (lambda (x) (> x 0)) s-1-2-3)
-  =>
-  3
-) ;check
+(check (set-count (lambda (x) (> x 0)) s-empty) => 0)
+(check (set-count (lambda (x) (> x 0)) s-1) => 1)
+(check (set-count (lambda (x) (> x 0)) s-1-2) => 2)
+(check (set-count (lambda (x) (> x 0)) s-1-2-3) => 3)
 
 
-(check (set-count (lambda (x) (> x 1)) s-1)
-  =>
-  0
-) ;check
-(check (set-count (lambda (x) (> x 1)) s-1-2)
-  =>
-  1
-) ;check
-(check (set-count (lambda (x) (> x 1)) s-1-2-3)
-  =>
-  2
-) ;check
+(check (set-count (lambda (x) (> x 1)) s-1) => 0)
+(check (set-count (lambda (x) (> x 1)) s-1-2) => 1)
+(check (set-count (lambda (x) (> x 1)) s-1-2-3) => 2)
 
 
-(check (set-count (lambda (x) (even? x))
-         s-1-2-3
-       ) ;set-count
-  =>
-  1
-) ;check
-(check (set-count (lambda (x) (odd? x))
-         s-1-2-3
-       ) ;set-count
-  =>
-  2
-) ;check
+(check (set-count (lambda (x) (even? x)) s-1-2-3) => 1)
+(check (set-count (lambda (x) (odd? x)) s-1-2-3) => 2)
 
 
-(check-catch 'type-error
-  (set-count (lambda (x) #t) "not a set")
-) ;check-catch
+(check-catch 'type-error (set-count (lambda (x) #t) "not a set"))
 
 
 (check-report)

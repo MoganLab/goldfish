@@ -49,18 +49,9 @@
 (check (char-ci<=? #\A #\A) => #t)
 (check (char-ci<=? #\a #\a) => #t)
 ;; 多参数非严格升序测试
-(check (char-ci<=? #\a #\B #\c #\D)
-  =>
-  #t
-) ;check
-(check (char-ci<=? #\A #\a #\b #\B)
-  =>
-  #t
-) ;check
-(check (char-ci<=? #\A #\A #\B #\b)
-  =>
-  #t
-) ;check
+(check (char-ci<=? #\a #\B #\c #\D) => #t)
+(check (char-ci<=? #\A #\a #\b #\B) => #t)
+(check (char-ci<=? #\A #\A #\B #\b) => #t)
 (check (char-ci<=? #\a #\a #\a) => #t)
 (check (char-ci<=? #\z #\a #\b) => #f)
 ;; 字母范围测试
@@ -69,10 +60,7 @@
 (check (char-ci<=? #\z #\z) => #t)
 (check (char-ci<=? #\0 #\9) => #t)
 ;; 特殊字符测试
-(check (char-ci<=? #\space #\newline)
-  =>
-  #f
-) ;check
+(check (char-ci<=? #\space #\newline) => #f)
 (check (char-ci<=? #\tab #\tab) => #t)
 (check (char-ci<=? #\@ #\newline) => #f)
 (check (char-ci<=? #\! #\") => #t)
@@ -81,19 +69,10 @@
 (check (char-ci<=? #\9 #\z) => #t)
 (check (char-ci<=? #\A #\a #\Z) => #t)
 (check (char-ci<=? #\Z #\a #\Z) => #f)
-(check-catch 'type-error
-  (char-ci<=? 1 #\A)
-) ;check-catch
-(check-catch 'type-error
-  (char-ci<=? #\A 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-ci<=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-ci<=? #\A)
-) ;check-catch
-;; Unicode 字符测试（codepoint >= 256）
+(check-catch 'type-error (char-ci<=? 1 #\A))
+(check-catch 'type-error (char-ci<=? #\A 'symbol))
+(check-catch 'wrong-number-of-args (char-ci<=?))
+(check-catch 'wrong-number-of-args (char-ci<=? #\A))
 (check (char-ci<=? #\A #\中) => #t)
 (check (char-ci<=? #\中 #\A) => #f)
 (check (char-ci<=? #\中 #\中) => #t)

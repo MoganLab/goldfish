@@ -28,11 +28,7 @@
 (check (vector? "abc") => #f)
 (check (vector? 123) => #f)
 (check (vector? 'vector) => #f)
-(check-catch 'wrong-number-of-args
-  (vector?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (vector? 1 2)
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector?))
+(check-catch 'wrong-number-of-args (vector? 1 2))
 
 (check-report)

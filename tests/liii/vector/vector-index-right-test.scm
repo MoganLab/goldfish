@@ -38,18 +38,9 @@
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时
 
 
-(check (vector-index-right even? #())
-  =>
-  #f
-) ;check
-(check (vector-index-right even? #(1 3 5 7 9))
-  =>
-  #f
-) ;check
-(check (vector-index-right even? #(1 3 4 7 8))
-  =>
-  4
-) ;check
+(check (vector-index-right even? #()) => #f)
+(check (vector-index-right even? #(1 3 5 7 9)) => #f)
+(check (vector-index-right even? #(1 3 4 7 8)) => 4)
 
 
 (check-report)

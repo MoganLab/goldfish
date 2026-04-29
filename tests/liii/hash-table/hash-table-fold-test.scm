@@ -41,23 +41,11 @@
 
 
 (let ((ht (hash-table 'a 1 'b 2 'c 3)))
-  (check (hash-table-fold (lambda (k v acc) (+ acc v))
-           0
-           ht
-         ) ;hash-table-fold
-    =>
-    6
-  ) ;check
+  (check (hash-table-fold (lambda (k v acc) (+ acc v)) 0 ht) => 6)
 ) ;let
 
 
-(check (hash-table-fold (lambda (k v acc) (+ acc v))
-         10
-         (hash-table)
-       ) ;hash-table-fold
-  =>
-  10
-) ;check
+(check (hash-table-fold (lambda (k v acc) (+ acc v)) 10 (hash-table)) => 10)
 
 
 (check-report)

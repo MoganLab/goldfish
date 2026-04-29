@@ -30,22 +30,13 @@
 
 
 (let ((s (make-random-source)))
-  (let ((saved-state (random-source-state-ref s)
-        ) ;saved-state
-       ) ;
-    (let ((rand-int (random-source-make-integers s)
-          ) ;rand-int
-         ) ;
+  (let ((saved-state (random-source-state-ref s)))
+    (let ((rand-int (random-source-make-integers s)))
       (rand-int 100)
       (rand-int 100)
       (random-source-state-set! s saved-state)
-      (let ((reset-state (random-source-state-ref s)
-            ) ;reset-state
-           ) ;
-        (check (equal? saved-state reset-state)
-          =>
-          #t
-        ) ;check
+      (let ((reset-state (random-source-state-ref s)))
+        (check (equal? saved-state reset-state) => #t)
       ) ;let
     ) ;let
   ) ;let
@@ -53,27 +44,17 @@
 
 
 (check-catch 'wrong-type-arg
-  (random-source-state-set! 'not-a-source
-    '(random-source-state 0 0)
-  ) ;random-source-state-set!
+  (random-source-state-set! 'not-a-source '(random-source-state 0 0))
 ) ;check-catch
 
 
 (let ((s (make-random-source)))
+  (check-catch 'wrong-type-arg (random-source-state-set! s 'invalid-state))
   (check-catch 'wrong-type-arg
-    (random-source-state-set! s
-      'invalid-state
-    ) ;random-source-state-set!
+    (random-source-state-set! s '(not-the-right-tag 0 0))
   ) ;check-catch
   (check-catch 'wrong-type-arg
-    (random-source-state-set! s
-      '(not-the-right-tag 0 0)
-    ) ;random-source-state-set!
-  ) ;check-catch
-  (check-catch 'wrong-type-arg
-    (random-source-state-set! s
-      '(random-source-state)
-    ) ;random-source-state-set!
+    (random-source-state-set! s '(random-source-state))
   ) ;check-catch
 ) ;let
 

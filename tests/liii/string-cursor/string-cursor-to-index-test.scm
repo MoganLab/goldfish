@@ -33,26 +33,29 @@
 (let* ((s "abcdef")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (mid (string-index->cursor s 3)))
+       (mid (string-index->cursor s 3))
+      ) ;
   (check (string-cursor->index s start) => 0)
   (check (string-cursor->index s end) => 6)
-  (check (string-cursor->index s mid) => 3))
+  (check (string-cursor->index s mid) => 3)
+) ;let*
 
 ;; 测试使用整数索引（直接返回）
 (check (string-cursor->index "abc" 2) => 2)
 
 ;; 测试中文字符串
-(let* ((s "中文测试")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
+(let* ((s "中文测试") (start (string-cursor-start s)) (end (string-cursor-end s)))
   (check (string-cursor->index s start) => 0)
-  (check (string-cursor->index s end) => 4))
+  (check (string-cursor->index s end) => 4)
+) ;let*
 
 ;; 测试emoji字符串
 (let* ((s "🎉🎊")
        (start (string-cursor-start s))
-       (c1 (string-cursor-next s start)))
+       (c1 (string-cursor-next s start))
+      ) ;
   (check (string-cursor->index s start) => 0)
-  (check (string-cursor->index s c1) => 1))
+  (check (string-cursor->index s c1) => 1)
+) ;let*
 
 (check-report)

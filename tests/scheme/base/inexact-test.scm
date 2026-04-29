@@ -37,16 +37,8 @@
 (check (inexact 1.0) => 1.0)
 (check (inexact 1.5) => 1.5)
 (check (inexact 0.0) => 0.0)
-(check-catch 'wrong-number-of-args
-  (inexact)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (inexact 1 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (inexact 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (inexact "hello")
-) ;check-catch
+(check-catch 'wrong-number-of-args (inexact))
+(check-catch 'wrong-number-of-args (inexact 1 2))
+(check-catch 'wrong-type-arg (inexact 'a))
+(check-catch 'wrong-type-arg (inexact "hello"))
 (check-report)

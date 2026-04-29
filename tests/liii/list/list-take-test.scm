@@ -45,37 +45,21 @@
 ;; (list-take '(1 2 3) 10) => '(1 2 3)
 
 
-(check (list-take '(1 2 3 4 5) 3)
-  =>
-  '(1 2 3)
-) ;check
-(check (list-take '(1 2 3 4 5) 0)
-  =>
-  '()
-) ;check
-(check (list-take '(1 2 3 4 5) 5)
-  =>
-  '(1 2 3 4 5)
-) ;check
+(check (list-take '(1 2 3 4 5) 3) => '(1 2 3))
+(check (list-take '(1 2 3 4 5) 0) => '())
+(check (list-take '(1 2 3 4 5) 5) => '(1 2 3 4 5))
 
 
 (check (list-take '(1 2 3) -1) => '())
-(check (list-take '(1 2 3) 10)
-  =>
-  '(1 2 3)
-) ;check
+(check (list-take '(1 2 3) 10) => '(1 2 3))
 
 
 (check (list-take '() 0) => '())
 (check (list-take '() 5) => '())
 
 
-(check-catch 'type-error
-  (list-take "not a list" 2)
-) ;check-catch
-(check-catch 'type-error
-  (list-take '(1 2 3) "not a number")
-) ;check-catch
+(check-catch 'type-error (list-take "not a list" 2))
+(check-catch 'type-error (list-take '(1 2 3) "not a number"))
 
 
 (check-report)

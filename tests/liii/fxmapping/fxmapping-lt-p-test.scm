@@ -22,30 +22,10 @@
 ;; 如果 fxmap1 是 fxmap2 的真子集（键是子集且值通过 comparator 相等），返回 #t；
 ;; 否则返回 #f。
 ;;
-(check-true (fxmapping<? eqv?
-              (fxmapping)
-              (fxmapping 0 'a)
-            ) ;fxmapping<?
-) ;check-true
-(check-true (fxmapping<? eqv?
-              (fxmapping 0 'a)
-              (fxmapping 0 'a 1 'b)
-            ) ;fxmapping<?
-) ;check-true
-(check-false (fxmapping<? eqv?
-               (fxmapping 0 'a)
-               (fxmapping 0 'a)
-             ) ;fxmapping<?
-) ;check-false
-(check-false (fxmapping<? eqv?
-               (fxmapping 0 'a 1 'b)
-               (fxmapping 0 'a)
-             ) ;fxmapping<?
-) ;check-false
-(check-false (fxmapping<? eqv?
-               (fxmapping 0 'a)
-               (fxmapping 0 'b)
-             ) ;fxmapping<?
-) ;check-false
+(check-true (fxmapping<? eqv? (fxmapping) (fxmapping 0 'a)))
+(check-true (fxmapping<? eqv? (fxmapping 0 'a) (fxmapping 0 'a 1 'b)))
+(check-false (fxmapping<? eqv? (fxmapping 0 'a) (fxmapping 0 'a)))
+(check-false (fxmapping<? eqv? (fxmapping 0 'a 1 'b) (fxmapping 0 'a)))
+(check-false (fxmapping<? eqv? (fxmapping 0 'a) (fxmapping 0 'b)))
 
 (check-report)

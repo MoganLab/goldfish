@@ -4,24 +4,16 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-set
-  (enum-type->enum-set color)
-) ;define
+(define color-set (enum-type->enum-set color))
 
 
-(define empty-colors
-  (enum-empty-set color)
-) ;define
+(define empty-colors (enum-empty-set color))
 
 
 ;; enum-set-size
@@ -54,14 +46,8 @@
 ;; 无。
 
 
-(check (enum-set-size color-set)
-  =>
-  (length color-names)
-) ;check
-(check (enum-set-size empty-colors)
-  =>
-  0
-) ;check
+(check (enum-set-size color-set) => (length color-names))
+(check (enum-set-size empty-colors) => 0)
 
 
 (check-report)

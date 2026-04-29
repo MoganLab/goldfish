@@ -28,18 +28,8 @@
 ;; 错误处理
 ;; ----
 ;; 按命中子句中表达式自身规则处理
-(check (cond ((> 3 2) ((lambda () 3)))
-             (else ((lambda () 2)))
-       ) ;cond
-  =>
-  3
-) ;check
-(check (cond ((< 3 2) ((lambda () 3)))
-             (else ((lambda () 2)))
-       ) ;cond
-  =>
-  2
-) ;check
+(check (cond ((> 3 2) ((lambda () 3))) (else ((lambda () 2)))) => 3)
+(check (cond ((< 3 2) ((lambda () 3))) (else ((lambda () 2)))) => 2)
 (check (cond ((> 3 2) 3) (else 2)) => 3)
 (check (cond ((< 3 2) 3) (else 2)) => 2)
 (check (cond ((and (> 3 1) (< 3 4)) 'true-branch)
@@ -54,21 +44,7 @@
   =>
   'false-branch
 ) ;check
-(check (cond (2 => (lambda (n) (* n 2)))
-       ) ;cond
-  =>
-  4
-) ;check
-(check (cond (#f => (lambda (n) (* n 2)))
-             (else 'no-match)
-       ) ;cond
-  =>
-  'no-match
-) ;check
-(check (cond (3 => (lambda (n) (* n 2)))
-             (else 'no-match)
-       ) ;cond
-  =>
-  6
-) ;check
+(check (cond (2 => (lambda (n) (* n 2)))) => 4)
+(check (cond (#f => (lambda (n) (* n 2))) (else 'no-match)) => 'no-match)
+(check (cond (3 => (lambda (n) (* n 2))) (else 'no-match)) => 6)
 (check-report)

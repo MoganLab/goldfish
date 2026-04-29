@@ -18,11 +18,7 @@
 ;; -----
 ;; 返回两个值：最大的键和关联的值。
 ;;
-(let-values (((k v)
-              (fxmapping-max (fxmapping 0 'a 1 'b 2 'c)
-              ) ;fxmapping-max
-             ) ;
-            ) ;
+(let-values (((k v) (fxmapping-max (fxmapping 0 'a 1 'b 2 'c))))
   (check k => 2)
   (check v => 'c)
 ) ;let-values

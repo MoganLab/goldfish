@@ -9,9 +9,7 @@
 (import (liii range))
 
 ;; 示例1：循环迭代
-(range-for-each (lambda (x) (display x) (newline))
-  (numeric-range 0 5)
-) ;range-for-each
+(range-for-each (lambda (x) (display x) (newline)) (numeric-range 0 5))
 
 ;; 示例2：循环求和
 ;; range-fold 是处理累加的推荐方式，纯函数无副作用

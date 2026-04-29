@@ -32,26 +32,11 @@
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
 ;; Test make-rectangular
 (check (make-rectangular 3 0) => 3)
-(check (make-rectangular 2.5 0.0)
-  =>
-  2.5
-) ;check
-(check (real-part (make-rectangular 3 4))
-  =>
-  3.0
-) ;check
-(check (imag-part (make-rectangular 3 4))
-  =>
-  4.0
-) ;check
+(check (make-rectangular 2.5 0.0) => 2.5)
+(check (real-part (make-rectangular 3 4)) => 3.0)
+(check (imag-part (make-rectangular 3 4)) => 4.0)
 ;; Error handling
-(check-catch 'wrong-type-arg
-  (make-rectangular "x" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-rectangular 1 "x")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (make-rectangular 1)
-) ;check-catch
+(check-catch 'wrong-type-arg (make-rectangular "x" 1))
+(check-catch 'wrong-type-arg (make-rectangular 1 "x"))
+(check-catch 'wrong-number-of-args (make-rectangular 1))
 (check-report)

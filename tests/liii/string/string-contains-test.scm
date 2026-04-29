@@ -33,11 +33,8 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-contains"
 
-(check-true (string-contains "0123456789" "3")
-) ;check-true
-(check-true (string-contains "0123456789" "34")
-) ;check-true
-(check-false (string-contains "0123456789" "24")
-) ;check-false
+(check-true (string-contains "0123456789" "3"))
+(check-true (string-contains "0123456789" "34"))
+(check-false (string-contains "0123456789" "24"))
 
 (check-report)

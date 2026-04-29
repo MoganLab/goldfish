@@ -34,12 +34,7 @@
 
 ;; 基本查找
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector-index (lambda (x) (> x 10))
-           fv
-         ) ;flexvector-index
-    =>
-    1
-  ) ;check
+  (check (flexvector-index (lambda (x) (> x 10)) fv) => 1)
 ) ;let
 
 
@@ -51,20 +46,12 @@
 
 ;; 没找到返回 #f
 (let ((fv (flexvector 1 3 5)))
-  (check (flexvector-index even? fv)
-    =>
-    #f
-  ) ;check
+  (check (flexvector-index even? fv) => #f)
 ) ;let
 
 
 ;; 空向量
-(check (flexvector-index (lambda (x) #t)
-         (flexvector)
-       ) ;flexvector-index
-  =>
-  #f
-) ;check
+(check (flexvector-index (lambda (x) #t) (flexvector)) => #f)
 
 
 ;; 第一个元素就满足
@@ -81,51 +68,25 @@
 
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-index (lambda (x) (= x 42))
-           fv
-         ) ;flexvector-index
-    =>
-    0
-  ) ;check
+  (check (flexvector-index (lambda (x) (= x 42)) fv) => 0)
 ) ;let
 
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-index (lambda (x) (= x 0))
-           fv
-         ) ;flexvector-index
-    =>
-    #f
-  ) ;check
+  (check (flexvector-index (lambda (x) (= x 0)) fv) => #f)
 ) ;let
 
 
 ;; 多向量查找
-(let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 5 3 1))
-     ) ;
-  (check (flexvector-index (lambda (x y) (> x y))
-           fv1
-           fv2
-         ) ;flexvector-index
-    =>
-    3
-  ) ;check
+(let ((fv1 (flexvector 1 2 3 4)) (fv2 (flexvector 10 5 3 1)))
+  (check (flexvector-index (lambda (x y) (> x y)) fv1 fv2) => 3)
 ) ;let
 
 
 ;; 多向量没满足
-(let ((fv1 (flexvector 1 2 3))
-      (fv2 (flexvector 10 20 30))
-     ) ;
-  (check (flexvector-index (lambda (x y) (> x y))
-           fv1
-           fv2
-         ) ;flexvector-index
-    =>
-    #f
-  ) ;check
+(let ((fv1 (flexvector 1 2 3)) (fv2 (flexvector 10 20 30)))
+  (check (flexvector-index (lambda (x y) (> x y)) fv1 fv2) => #f)
 ) ;let
 
 

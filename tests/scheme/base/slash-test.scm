@@ -43,10 +43,7 @@
 (check (/ 4/3) => 3/4)
 (check (/ 10 2) => 5)
 (check (/ 3 4) => 3/4)
-(check (< (abs (- (/ 1.2 0.3) 4.0)) 1e-15)
-  =>
-  #t
-) ;check
+(check (< (abs (- (/ 1.2 0.3) 4.0)) 1e-15) => #t)
 (check (/ 2/3 1/3) => 2)
 (check (/ 6 4 2) => 3/4)
 (check (/ 6 2 3) => 1)
@@ -60,23 +57,14 @@
 (check (/ 10 -5) => -2)
 (check (/ -10 -5) => 2)
 (check (/ 5.0 2.0) => 2.5)
-(check (/ 1.0 3.0)
-  =>
-  0.3333333333333333
-) ;check
+(check (/ 1.0 3.0) => 0.3333333333333333)
 (check (/ 1/2 0.5) => 1.0)
 (check (/ 2 2) => 1)
 (check-catch 'division-by-zero (/ 5 0))
-(check-catch 'division-by-zero
-  (/ 1 0 2)
-) ;check-catch
+(check-catch 'division-by-zero (/ 1 0 2))
 (check-catch 'division-by-zero (/ 0))
-(check-catch 'wrong-type-arg
-  (/ 'hello 7)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (/ "world" 7)
-) ;check-catch
+(check-catch 'wrong-type-arg (/ 'hello 7))
+(check-catch 'wrong-type-arg (/ "world" 7))
 (check-catch 'wrong-type-arg (/ 5 #t))
 (check-catch 'wrong-number-of-args (/))
 (check-report)

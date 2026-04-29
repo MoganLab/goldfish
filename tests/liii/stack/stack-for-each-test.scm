@@ -34,33 +34,25 @@
 
 
 (let ((s (make-stack)) (count 0))
-  (stack-for-each (lambda (x) (set! count (+ count 1)))
-    s
-  ) ;stack-for-each
+  (stack-for-each (lambda (x) (set! count (+ count 1))) s)
   (check count => 0)
 ) ;let
 
 
 (let ((s (stack 1)) (sum 0))
-  (stack-for-each (lambda (x) (set! sum (+ sum x)))
-    s
-  ) ;stack-for-each
+  (stack-for-each (lambda (x) (set! sum (+ sum x))) s)
   (check sum => 1)
 ) ;let
 
 
 (let ((s (stack 1 2 3)) (sum 0))
-  (stack-for-each (lambda (x) (set! sum (+ sum x)))
-    s
-  ) ;stack-for-each
+  (stack-for-each (lambda (x) (set! sum (+ sum x))) s)
   (check sum => 6)
 ) ;let
 
 
 (let ((s (stack 1 2 3)) (lst '()))
-  (stack-for-each (lambda (x) (set! lst (cons x lst)))
-    s
-  ) ;stack-for-each
+  (stack-for-each (lambda (x) (set! lst (cons x lst))) s)
   (check lst => '(3 2 1))
 ) ;let
 
@@ -72,25 +64,13 @@
 
 
 (let ((s (stack "a" "b" "c")) (result ""))
-  (stack-for-each (lambda (x)
-                    (set! result (string-append result x))
-                  ) ;lambda
-    s
-  ) ;stack-for-each
+  (stack-for-each (lambda (x) (set! result (string-append result x))) s)
   (check result => "abc")
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-for-each "not-a-proc"
-    (stack 1 2)
-  ) ;stack-for-each
-) ;check-catch
-(check-catch 'type-error
-  (stack-for-each (lambda (x) x)
-    'not-a-stack
-  ) ;stack-for-each
-) ;check-catch
+(check-catch 'type-error (stack-for-each "not-a-proc" (stack 1 2)))
+(check-catch 'type-error (stack-for-each (lambda (x) x) 'not-a-stack))
 
 
 (check-report)

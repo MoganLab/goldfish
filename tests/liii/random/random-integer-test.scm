@@ -49,18 +49,10 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (random-integer 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-integer -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-integer 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-integer 'not-a-number)
-) ;check-catch
+(check-catch 'wrong-type-arg (random-integer 0))
+(check-catch 'wrong-type-arg (random-integer -1))
+(check-catch 'wrong-type-arg (random-integer 3.14))
+(check-catch 'wrong-type-arg (random-integer 'not-a-number))
 
 
 (check-report)

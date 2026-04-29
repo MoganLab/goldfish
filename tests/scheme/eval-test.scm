@@ -5,16 +5,11 @@
 ;; ==== 常见用法示例 ====
 (import (scheme eval))
 ;; 示例1：创建一个只导入 `(scheme base)` 的求值环境
-(define env
-  (environment '(scheme base))
-) ;define
+(define env (environment '(scheme base)))
 ;; 示例2：在指定环境中对表达式求值
 (eval '(+ 1 2) env)
 ;; 示例3：使用 import set 变换定制可见名字
-(eval '(base-square 4)
-  (environment '(prefix (scheme base) base-)
-  ) ;environment
-) ;eval
+(eval '(base-square 4) (environment '(prefix (scheme base) base-)))
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc scheme/eval "environment"
 ;;   bin/gf doc scheme/eval "eval"

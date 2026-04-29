@@ -49,21 +49,11 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (integer-length "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (integer-length 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (integer-length 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (integer-length #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (integer-length '(1 2))
-) ;check-catch
+(check-catch 'wrong-type-arg (integer-length "string"))
+(check-catch 'wrong-type-arg (integer-length 'symbol))
+(check-catch 'wrong-type-arg (integer-length 3.14))
+(check-catch 'wrong-type-arg (integer-length #\a))
+(check-catch 'wrong-type-arg (integer-length '(1 2)))
 
 
 

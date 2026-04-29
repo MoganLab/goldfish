@@ -38,11 +38,7 @@
 ;; (liii string-cursor) 提供了 string-for-each-cursor，支持使用游标遍历字符串。
 
 (check (let ((result '()))
-         (string-for-each (lambda (c)
-                            (set! result (cons c result))
-                          ) ;lambda
-           "abc"
-         ) ;string-for-each
+         (string-for-each (lambda (c) (set! result (cons c result))) "abc")
          result
        ) ;let
   =>
@@ -50,9 +46,7 @@
 ) ;check
 
 (check (let ((count 0))
-         (string-for-each (lambda (c) (set! count (+ count 1)))
-           "hello"
-         ) ;string-for-each
+         (string-for-each (lambda (c) (set! count (+ count 1))) "hello")
          count
        ) ;let
   =>
@@ -60,11 +54,7 @@
 ) ;check
 
 (check (let ((sum 0))
-         (string-for-each (lambda (c)
-                            (set! sum (+ sum (char->integer c)))
-                          ) ;lambda
-           "ABC"
-         ) ;string-for-each
+         (string-for-each (lambda (c) (set! sum (+ sum (char->integer c)))) "ABC")
          sum
        ) ;let
   =>
@@ -72,9 +62,7 @@
 ) ;check
 
 (check (let ((result 0))
-         (string-for-each (lambda (c) (set! result 999))
-           ""
-         ) ;string-for-each
+         (string-for-each (lambda (c) (set! result 999)) "")
          result
        ) ;let
   =>
@@ -82,11 +70,7 @@
 ) ;check
 
 (check (let ((char-list '()))
-         (string-for-each (lambda (c)
-                            (set! char-list (cons c char-list))
-                          ) ;lambda
-           "X"
-         ) ;string-for-each
+         (string-for-each (lambda (c) (set! char-list (cons c char-list))) "X")
          char-list
        ) ;let
   =>
@@ -96,9 +80,7 @@
 (check (let ((whitespace-count 0))
          (string-for-each (lambda (c)
                             (when (char-whitespace? c)
-                              (set! whitespace-count
-                                (+ whitespace-count 1)
-                              ) ;set!
+                              (set! whitespace-count (+ whitespace-count 1))
                             ) ;when
                           ) ;lambda
            "hello world\n"
@@ -125,9 +107,7 @@
 ) ;check
 
 (check (let ((all-chars '()))
-         (string-for-each (lambda (c)
-                            (set! all-chars (cons c all-chars))
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! all-chars (cons c all-chars)))
            "中文english"
          ) ;string-for-each
          (> (length all-chars) 8)
@@ -137,10 +117,7 @@
 ) ;check
 
 (check (let ((chars '()) (count 0))
-         (string-for-each (lambda (c)
-                            (set! chars (cons c chars))
-                            (set! count (+ count 1))
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! chars (cons c chars)) (set! count (+ count 1)))
            "test"
          ) ;string-for-each
          (list (reverse chars) count)
@@ -150,11 +127,7 @@
 ) ;check
 
 (check (let ((tracker (make-string 3 #\a)))
-         (string-for-each (lambda (c)
-                            (set! tracker
-                              (string-append tracker (string c))
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! tracker (string-append tracker (string c))))
            "xyz"
          ) ;string-for-each
          (> (string-length tracker) 3)
@@ -163,25 +136,13 @@
   #t
 ) ;check
 
-(check-catch 'wrong-type-arg
-  (string-for-each 123 "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-for-each (lambda (x) x) 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-for-each "not-function" "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-for-each char-upcase 123)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-for-each 123 "hello"))
+(check-catch 'wrong-type-arg (string-for-each (lambda (x) x) 123))
+(check-catch 'wrong-type-arg (string-for-each "not-function" "hello"))
+(check-catch 'wrong-type-arg (string-for-each char-upcase 123))
 
 (check (let ((ascii-sum 0))
-         (string-for-each (lambda (c)
-                            (set! ascii-sum
-                              (+ ascii-sum (char->integer c))
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! ascii-sum (+ ascii-sum (char->integer c))))
            "Hello"
          ) ;string-for-each
          (>= ascii-sum 500)
@@ -191,11 +152,7 @@
 ) ;check
 
 (check (let ((upper-chars '()))
-         (string-for-each (lambda (c)
-                            (set! upper-chars
-                              (cons (char-upcase c) upper-chars)
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! upper-chars (cons (char-upcase c) upper-chars)))
            "abc"
          ) ;string-for-each
          (reverse upper-chars)
@@ -205,9 +162,7 @@
 ) ;check
 
 (check (let ((char-count 0))
-         (string-for-each (lambda (c)
-                            (set! char-count (+ char-count 1))
-                          ) ;lambda
+         (string-for-each (lambda (c) (set! char-count (+ char-count 1)))
            (make-string 1000 #\x)
          ) ;string-for-each
          char-count
@@ -218,9 +173,16 @@
 
 (check (let ((vowel-count 0))
          (string-for-each (lambda (c)
-                            (when (member c
-                                    '(#\a #\e #\i #\o #\u #\A #\E #\I #\O #\U)
-                                  ) ;member
+                            (when (member c '(#\a
+                                              #\e
+                                              #\i
+                                              #\o
+                                              #\u
+                                              #\A
+                                              #\E
+                                              #\I
+                                              #\O
+                                              #\U))
                               (set! vowel-count (+ vowel-count 1))
                             ) ;when
                           ) ;lambda
@@ -233,15 +195,7 @@
 ) ;check
 
 (check (let ((lst '()))
-         (string-for-each (lambda (x)
-                            (set! lst
-                              (cons (- (char->integer x)
-                                      (char->integer #\0)
-                                    ) ;-
-                                lst
-                              ) ;cons
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
            "12345"
          ) ;string-for-each
          lst
@@ -251,15 +205,7 @@
 ) ;check
 
 (check (let ((lst '()))
-         (string-for-each (lambda (x)
-                            (set! lst
-                              (cons (- (char->integer x)
-                                      (char->integer #\0)
-                                    ) ;-
-                                lst
-                              ) ;cons
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
            "123"
          ) ;string-for-each
          lst
@@ -269,15 +215,7 @@
 ) ;check
 
 (check (let ((lst '()))
-         (string-for-each (lambda (x)
-                            (set! lst
-                              (cons (- (char->integer x)
-                                      (char->integer #\0)
-                                    ) ;-
-                                lst
-                              ) ;cons
-                            ) ;set!
-                          ) ;lambda
+         (string-for-each (lambda (x) (set! lst (cons (- (char->integer x) (char->integer #\0)) lst)))
            ""
          ) ;string-for-each
          lst

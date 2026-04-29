@@ -32,12 +32,7 @@
 
 ;; 基本测试
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector-count (lambda (x) (< x 25))
-           fv
-         ) ;flexvector-count
-    =>
-    2
-  ) ;check
+  (check (flexvector-count (lambda (x) (< x 25)) fv) => 2)
 ) ;let
 
 
@@ -60,61 +55,30 @@
 
 
 ;; 空向量
-(check (flexvector-count (lambda (x) #t)
-         (flexvector)
-       ) ;flexvector-count
-  =>
-  0
-) ;check
+(check (flexvector-count (lambda (x) #t) (flexvector)) => 0)
 
 
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-count (lambda (x) (= x 42))
-           fv
-         ) ;flexvector-count
-    =>
-    1
-  ) ;check
+  (check (flexvector-count (lambda (x) (= x 42)) fv) => 1)
 ) ;let
 
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-count (lambda (x) (= x 0))
-           fv
-         ) ;flexvector-count
-    =>
-    0
-  ) ;check
+  (check (flexvector-count (lambda (x) (= x 0)) fv) => 0)
 ) ;let
 
 
 ;; 多向量版本
-(let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 20 30 1))
-     ) ;
-  (check (flexvector-count (lambda (x y) (< x y))
-           fv1
-           fv2
-         ) ;flexvector-count
-    =>
-    3
-  ) ;check
+(let ((fv1 (flexvector 1 2 3 4)) (fv2 (flexvector 10 20 30 1)))
+  (check (flexvector-count (lambda (x y) (< x y)) fv1 fv2) => 3)
 ) ;let
 
 
 ;; 多向量长度不同
-(let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 20))
-     ) ;
-  (check (flexvector-count (lambda (x y) (< x y))
-           fv1
-           fv2
-         ) ;flexvector-count
-    =>
-    2
-  ) ;check
+(let ((fv1 (flexvector 1 2 3 4)) (fv2 (flexvector 10 20)))
+  (check (flexvector-count (lambda (x y) (< x y)) fv1 fv2) => 2)
 ) ;let
 
 

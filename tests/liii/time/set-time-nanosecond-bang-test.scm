@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -29,10 +26,7 @@
 
 
 (let ((t (make-time TIME-UTC 0 0)))
-  (check (set-time-nanosecond! t 555555555)
-    =>
-    555555555
-  ) ;check
+  (check (set-time-nanosecond! t 555555555) => 555555555)
   (check (time-nanosecond t) => 555555555)
   (check (set-time-nanosecond! t 0) => 0)
   (check (time-nanosecond t) => 0)
@@ -41,9 +35,7 @@
 
 ;; Test error conditions
 (let ((t (make-time TIME-UTC 0 0)))
-  (check-catch 'wrong-type-arg
-    (set-time-nanosecond! "not-a-time" 0)
-  ) ;check-catch
+  (check-catch 'wrong-type-arg (set-time-nanosecond! "not-a-time" 0))
 ) ;let
 
 

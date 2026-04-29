@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -46,18 +42,8 @@
   (catch 'key-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
@@ -65,48 +51,30 @@
 
 
 (let-njson ((root (string->njson sample-json)))
-  (check-true (njson-contains-key? root "meta")
-  ) ;check-true
-  (check-false (njson-contains-key? root "not-found")
-  ) ;check-false
+  (check-true (njson-contains-key? root "meta"))
+  (check-false (njson-contains-key? root "not-found"))
 ) ;let-njson
 
 
-(let-njson ((arr (string->njson "[1,2]"))
-            (scalar (string->njson "1"))
-           ) ;
-  (check-false (njson-contains-key? arr "0")
-  ) ;check-false
-  (check-false (njson-contains-key? scalar "x")
-  ) ;check-false
+(let-njson ((arr (string->njson "[1,2]")) (scalar (string->njson "1")))
+  (check-false (njson-contains-key? arr "0"))
+  (check-false (njson-contains-key? scalar "x"))
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-contains-key? 'foo "meta")
-) ;check-catch
+(check-catch 'type-error (njson-contains-key? 'foo "meta"))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error
-    (njson-contains-key? root 1)
-  ) ;check-catch
-  (check (capture-key-error-message (lambda () (njson-contains-key? root 1))
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-contains-key? root 1))
+  (check (capture-key-error-message (lambda () (njson-contains-key? root 1)))
     =>
     "g_njson-contains-key?: json object key must be string?"
   ) ;check
 ) ;let-njson
 
 
-(define njson-contains-freed
-  (string->njson "{\"k\":1}")
-) ;define
-(check-true (njson-free njson-contains-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-contains-key? njson-contains-freed
-    "k"
-  ) ;njson-contains-key?
-) ;check-catch
+(define njson-contains-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-contains-freed))
+(check-catch 'type-error (njson-contains-key? njson-contains-freed "k"))
 
 
 (check-report)

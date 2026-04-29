@@ -34,29 +34,14 @@
 ;; 非哈希表输入时由底层实现报错。
 
 
-(check (hash-table-size (make-hash-table))
-  =>
-  0
-) ;check
+(check (hash-table-size (make-hash-table)) => 0)
 
 
 (let ((populated-ht (make-hash-table)))
-  (hash-table-set! populated-ht
-    'key1
-    'value1
-  ) ;hash-table-set!
-  (hash-table-set! populated-ht
-    'key2
-    'value2
-  ) ;hash-table-set!
-  (hash-table-set! populated-ht
-    'key3
-    'value3
-  ) ;hash-table-set!
-  (check (hash-table-size populated-ht)
-    =>
-    3
-  ) ;check
+  (hash-table-set! populated-ht 'key1 'value1)
+  (hash-table-set! populated-ht 'key2 'value2)
+  (hash-table-set! populated-ht 'key3 'value3)
+  (check (hash-table-size populated-ht) => 3)
 ) ;let
 
 

@@ -66,9 +66,7 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-size 'not-a-stack)
-) ;check-catch
+(check-catch 'type-error (stack-size 'not-a-stack))
 
 
 (check-report)

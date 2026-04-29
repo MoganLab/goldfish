@@ -21,18 +21,14 @@
 ;; -----
 ;; 返回新的 fxmapping，所有值都经过 proc 转换。
 ;;
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10))
-                        (fxmapping 0 1 1 2 2 3)
-                      ) ;fxmapping-map
+(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
          0
          (lambda () 'not-found)
        ) ;fxmapping-ref
   =>
   10
 ) ;check
-(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10))
-                        (fxmapping 0 1 1 2 2 3)
-                      ) ;fxmapping-map
+(check (fxmapping-ref (fxmapping-map (lambda (k v) (* v 10)) (fxmapping 0 1 1 2 2 3))
          1
          (lambda () 'not-found)
        ) ;fxmapping-ref

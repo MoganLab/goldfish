@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii vector)
-  (only (scheme base) let-values)
-) ;import
+(import (liii check) (liii vector) (only (scheme base) let-values))
 
 
 (check-set-mode! 'report-failed)
@@ -49,22 +46,9 @@
 ) ;define
 
 
-(check (vector-partition->list even? #())
-  =>
-  '(#() 0)
-) ;check
-(check (vector-partition->list even?
-         #(1 3 5 7 9)
-       ) ;vector-partition->list
-  =>
-  '(#(1 3 5 7 9) 0)
-) ;check
-(check (vector-partition->list even?
-         #(1 3 4 7 8)
-       ) ;vector-partition->list
-  =>
-  '(#(4 8 1 3 7) 2)
-) ;check
+(check (vector-partition->list even? #()) => '(#() 0))
+(check (vector-partition->list even? #(1 3 5 7 9)) => '(#(1 3 5 7 9) 0))
+(check (vector-partition->list even? #(1 3 4 7 8)) => '(#(4 8 1 3 7) 2))
 
 
 (check-report)

@@ -15,15 +15,11 @@
 
 
 ;; 示例2：向 flexvector 末尾追加元素
-(flexvector->list (flexvector-add-back! (flexvector-copy fv)
-                    4
-                  ) ;flexvector-add-back!
-) ;flexvector->list
+(flexvector->list (flexvector-add-back! (flexvector-copy fv) 4))
 
 
 ;; 示例3：拼接两个 flexvector
-(flexvector->list (flexvector-append fv (flexvector 4 5))
-) ;flexvector->list
+(flexvector->list (flexvector-append fv (flexvector 4 5)))
 
 
 ;; ==== 如何查看函数的文档和用例 ====

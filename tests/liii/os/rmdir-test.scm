@@ -28,11 +28,7 @@
 
 ;; ; 基本功能测试
 (let* ((temp-dir (os-temp-dir))
-       (test-dir (string-append temp-dir
-                   (string (os-sep))
-                   "test_rmdir_dir"
-                 ) ;string-append
-       ) ;test-dir
+       (test-dir (string-append temp-dir (string (os-sep)) "test_rmdir_dir"))
       ) ;
   ;; 确保测试目录不存在
   (when (file-exists? test-dir)

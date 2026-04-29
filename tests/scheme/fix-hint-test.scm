@@ -1,37 +1,21 @@
-(import (liii check)
-  (liii os)
-  (liii path)
-  (liii string)
-  (liii sys)
-) ;import
+(import (liii check) (liii os) (liii path) (liii string) (liii sys))
 (check-set-mode! 'report-failed)
 (define (run-shell-command command)
-  (os-call (string-append "sh -c \"" command "\"")
-  ) ;os-call
+  (os-call (string-append "sh -c \"" command "\""))
 ) ;define
 (when (not (os-windows?))
   (let* ((bad-file (path-join (path-temp-dir)
-                     (string-append "gf-fix-hint-"
-                       (number->string (getpid))
-                       ".scm"
-                     ) ;string-append
+                     (string-append "gf-fix-hint-" (number->string (getpid)) ".scm")
                    ) ;path-join
          ) ;bad-file
          (output-path (path-join (path-temp-dir)
-                        (string-append "gf-fix-hint-"
-                          (number->string (getpid))
-                          ".log"
-                        ) ;string-append
+                        (string-append "gf-fix-hint-" (number->string (getpid)) ".log")
                       ) ;path-join
          ) ;output-path
         ) ;
     (path-unlink bad-file #t)
     (path-unlink output-path #t)
-    (dynamic-wind (lambda ()
-                    (path-write-text bad-file
-                      "(define x 1))\n"
-                    ) ;path-write-text
-                  ) ;lambda
+    (dynamic-wind (lambda () (path-write-text bad-file "(define x 1))\n"))
       (lambda ()
         (check (not (= (run-shell-command (string-append (executable)
                                             " "
@@ -54,18 +38,11 @@
                         ) ;string-append
               ) ;fix-hint
              ) ;
-          (check-true (string-contains? output
-                        "unexpected close paren"
-                      ) ;string-contains?
-          ) ;check-true
-          (check-true (string-contains? output fix-hint)
-          ) ;check-true
+          (check-true (string-contains? output "unexpected close paren"))
+          (check-true (string-contains? output fix-hint))
         ) ;let
       ) ;lambda
-      (lambda ()
-        (path-unlink bad-file #t)
-        (path-unlink output-path #t)
-      ) ;lambda
+      (lambda () (path-unlink bad-file #t) (path-unlink output-path #t))
     ) ;dynamic-wind
   ) ;let*
 ) ;when

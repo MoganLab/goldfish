@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii comparator)
-  (liii error)
-  (liii hash-table)
-) ;import
+(import (liii check) (liii comparator) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -47,16 +43,8 @@
 
 
 (let* ((mod10 (lambda (x) (modulo x 10)))
-       (digit=? (lambda (x y)
-                  (= (modulo x 10) (modulo y 10))
-                ) ;lambda
-       ) ;digit=?
-       (comp (make-comparator number?
-               digit=?
-               #f
-               mod10
-             ) ;make-comparator
-       ) ;comp
+       (digit=? (lambda (x y) (= (modulo x 10) (modulo y 10))))
+       (comp (make-comparator number? digit=? #f mod10))
        (ht (make-hash-table comp))
       ) ;
   (hash-table-set! ht 1 2)
@@ -66,9 +54,7 @@
 ) ;let*
 
 
-(check-catch 'type-error
-  (make-hash-table 1)
-) ;check-catch
+(check-catch 'type-error (make-hash-table 1))
 
 
 (check-report)

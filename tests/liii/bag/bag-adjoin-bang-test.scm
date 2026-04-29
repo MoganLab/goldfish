@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -27,8 +24,6 @@
   (bag-adjoin! b 2 3)
   (check (bag-size b) => 5)
 ) ;let
-(check-catch 'type-error
-  (bag-adjoin! "not a bag" 1)
-) ;check-catch
+(check-catch 'type-error (bag-adjoin! "not a bag" 1))
 
 (check-report)

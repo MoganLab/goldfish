@@ -21,23 +21,8 @@
 ;; -----
 ;; 返回新的 fxmapping，不包含指定的键。
 ;;
-(check-false (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b)
-                                    0
-                                  ) ;fxmapping-delete
-               0
-             ) ;fxmapping-contains?
-) ;check-false
-(check-true (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b)
-                                   0
-                                 ) ;fxmapping-delete
-              1
-            ) ;fxmapping-contains?
-) ;check-true
-(check-true (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b)
-                                   2
-                                 ) ;fxmapping-delete
-              0
-            ) ;fxmapping-contains?
-) ;check-true
+(check-false (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b) 0) 0))
+(check-true (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b) 0) 1))
+(check-true (fxmapping-contains? (fxmapping-delete (fxmapping 0 'a 1 'b) 2) 0))
 
 (check-report)

@@ -68,14 +68,8 @@
 
 ;; ; 数学性质测试
 (check (bitwise-xor 15 15) => 0)
-(check (bitwise-xor 7 3)
-  =>
-  (bitwise-xor 3 7)
-) ;check
-(check (bitwise-xor 15 (bitwise-xor 7 3))
-  =>
-  (bitwise-xor (bitwise-xor 15 7) 3)
-) ;check
+(check (bitwise-xor 7 3) => (bitwise-xor 3 7))
+(check (bitwise-xor 15 (bitwise-xor 7 3)) => (bitwise-xor (bitwise-xor 15 7) 3))
 (check (bitwise-xor 255 0) => 255)
 (check (bitwise-xor 255 -1) => -256)
 
@@ -94,45 +88,22 @@
 
 
 ;; ; 特殊值测试
-(check (bitwise-xor 2147483647 2147483647)
-  =>
-  0
-) ;check
-(check (bitwise-xor -2147483648 -2147483648)
-  =>
-  0
-) ;check
-(check (bitwise-xor 2147483647 -2147483648)
-  =>
-  -1
-) ;check
+(check (bitwise-xor 2147483647 2147483647) => 0)
+(check (bitwise-xor -2147483648 -2147483648) => 0)
+(check (bitwise-xor 2147483647 -2147483648) => -1)
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bitwise-xor "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-xor 1 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-xor 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-xor #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-xor '(1 2) 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-xor "string" 1))
+(check-catch 'wrong-type-arg (bitwise-xor 1 'symbol))
+(check-catch 'wrong-type-arg (bitwise-xor 3.14 2))
+(check-catch 'wrong-type-arg (bitwise-xor #\a 1))
+(check-catch 'wrong-type-arg (bitwise-xor '(1 2) 3))
 
 
 ;; ; 多参数错误处理测试
-(check-catch 'wrong-type-arg
-  (bitwise-xor 1 2 3 "four")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-xor 1 2 "three" 4)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-xor 1 2 3 "four"))
+(check-catch 'wrong-type-arg (bitwise-xor 1 2 "three" 4))
 
 
 

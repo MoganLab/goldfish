@@ -35,10 +35,8 @@
 ;; 无
 
 
-(check-true (int-vector? (int-vector 1 2 3))
-) ;check-true
-(check-false (int-vector? (vector 1 2 3))
-) ;check-false
+(check-true (int-vector? (int-vector 1 2 3)))
+(check-false (int-vector? (vector 1 2 3)))
 
 
 (check-report)

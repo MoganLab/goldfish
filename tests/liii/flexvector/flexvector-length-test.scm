@@ -36,18 +36,9 @@
 
 
 ;; 基本测试
-(check (flexvector-length (flexvector))
-  =>
-  0
-) ;check
-(check (flexvector-length (flexvector 1))
-  =>
-  1
-) ;check
-(check (flexvector-length (flexvector 1 2 3))
-  =>
-  3
-) ;check
+(check (flexvector-length (flexvector)) => 0)
+(check (flexvector-length (flexvector 1)) => 1)
+(check (flexvector-length (flexvector 1 2 3)) => 3)
 
 
 ;; 验证修改后长度变化

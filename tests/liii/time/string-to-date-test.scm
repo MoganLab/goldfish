@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -30,9 +27,7 @@
 
 
 ;; Test string->date basic
-(let* ((s "2023-12-25 14:30:45")
-       (d (string->date s "~Y-~m-~d ~H:~M:~S"))
-      ) ;
+(let* ((s "2023-12-25 14:30:45") (d (string->date s "~Y-~m-~d ~H:~M:~S")))
   (check (date-year d) => 2023)
   (check (date-month d) => 12)
   (check (date-day d) => 25)
@@ -43,8 +38,7 @@
 
 
 ;; Roundtrip date->string -> string->date
-(let* ((d (make-date 0 45 30 14 25 12 2023 28800)
-       ) ;d
+(let* ((d (make-date 0 45 30 14 25 12 2023 28800))
        (fmt "~Y-~m-~d ~H:~M:~S~z")
        (s (date->string d fmt))
        (d2 (string->date s fmt))
@@ -61,15 +55,9 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg
-  (string->date 1 "~Y")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->date "2020" 123)
-) ;check-catch
-(check-catch 'value-error
-  (string->date "2020-01-01" "~Y/~m/~d")
-) ;check-catch
+(check-catch 'wrong-type-arg (string->date 1 "~Y"))
+(check-catch 'wrong-type-arg (string->date "2020" 123))
+(check-catch 'value-error (string->date "2020-01-01" "~Y/~m/~d"))
 
 
 (check-report)

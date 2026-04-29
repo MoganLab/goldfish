@@ -30,20 +30,15 @@
 
 ;; flexvector 返回 #t
 (check-true (flexvector? (flexvector)))
-(check-true (flexvector? (flexvector 1 2 3))
-) ;check-true
-(check-true (flexvector? (make-flexvector 10))
-) ;check-true
-(check-true (flexvector? (list->flexvector '(a b c))
-            ) ;flexvector?
-) ;check-true
+(check-true (flexvector? (flexvector 1 2 3)))
+(check-true (flexvector? (make-flexvector 10)))
+(check-true (flexvector? (list->flexvector '(a b c))))
 
 
 ;; 非 flexvector 返回 #f
 (check-false (flexvector? '()))
 (check-false (flexvector? #()))
-(check-false (flexvector? "not a flexvector")
-) ;check-false
+(check-false (flexvector? "not a flexvector"))
 (check-false (flexvector? 42))
 (check-false (flexvector? #t))
 (check-false (flexvector? 'symbol))

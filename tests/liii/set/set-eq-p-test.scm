@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -53,30 +49,15 @@
 (check-false (set=? s-1 s-empty))
 (check-false (set=? s-1 s-1-2))
 ;; Multiple arguments
-(check-true (set=? s-1 (set 1) (list->set '(1)))
-) ;check-true
+(check-true (set=? s-1 (set 1) (list->set '(1))))
 (check-false (set=? s-1 s-1 s-empty))
-(check-catch 'type-error
-  (set=? "not a set" s-1)
-) ;check-catch
+(check-catch 'type-error (set=? "not a set" s-1))
 
 
 ;; Test comparator mismatch
-(define str-comp
-  (make-comparator string?
-    string=?
-    string<?
-    string-hash
-  ) ;make-comparator
-) ;define
-(define s-str
-  (list->set-with-comparator str-comp
-    '("apple" "banana")
-  ) ;list->set-with-comparator
-) ;define
-(check-catch 'value-error
-  (set=? s-1 s-str)
-) ;check-catch
+(define str-comp (make-comparator string? string=? string<? string-hash))
+(define s-str (list->set-with-comparator str-comp '("apple" "banana")))
+(check-catch 'value-error (set=? s-1 s-str))
 
 
 (check-report)

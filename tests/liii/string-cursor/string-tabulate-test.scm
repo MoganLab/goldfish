@@ -31,6 +31,11 @@
 
 (check (string-tabulate (lambda (i) (integer->char (+ i 65))) 3) => "ABC")
 (check (string-tabulate (lambda (i) #\a) 0) => "")
-(check (string-tabulate (lambda (i) (string-ref/cursor "中文" (string-index->cursor "中文" i))) 2) => "中文")
+(check (string-tabulate (lambda (i) (string-ref/cursor "中文" (string-index->cursor "中文" i)))
+         2
+       ) ;string-tabulate
+  =>
+  "中文"
+) ;check
 
 (check-report)

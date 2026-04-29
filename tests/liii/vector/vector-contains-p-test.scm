@@ -42,37 +42,20 @@
 ;; type-error 当vec不是向量，或compare不是过程时
 
 
-(check-true (vector-contains? #(1 2 3) 2)
-) ;check-true
-(check-false (vector-contains? #(1 2 3) 4)
-) ;check-false
+(check-true (vector-contains? #(1 2 3) 2))
+(check-false (vector-contains? #(1 2 3) 4))
 (check-false (vector-contains? #() 1))
-(check-true (vector-contains? #(a b c) 'b)
-) ;check-true
-(check-true (vector-contains? #("hello" "world")
-              "hello"
-            ) ;vector-contains?
-) ;check-true
-(check-true (vector-contains? #(#\a #\b #\c) #\b)
-) ;check-true
-(check-true (vector-contains? #(1 2 3) 2 =)
-) ;check-true
-(check-false (vector-contains? #(1 2 3) 4 =)
-) ;check-false
-(check-true (vector-contains? #((1 2) (3 4))
-              '(1 2)
-              equal?
-            ) ;vector-contains?
-) ;check-true
+(check-true (vector-contains? #(a b c) 'b))
+(check-true (vector-contains? #("hello" "world") "hello"))
+(check-true (vector-contains? #(#\a #\b #\c) #\b))
+(check-true (vector-contains? #(1 2 3) 2 =))
+(check-false (vector-contains? #(1 2 3) 4 =))
+(check-true (vector-contains? #((1 2) (3 4)) '(1 2) equal?))
 (check-true (vector-contains? #(42) 42))
 (check-false (vector-contains? #(42) 0))
-(check-true (vector-contains? #(1 2 3) 1)
-) ;check-true
-(check-true (vector-contains? #(1 2 3) 3)
-) ;check-true
-(check-catch 'type-error
-  (vector-contains? 'not-a-vector 1)
-) ;check-catch
+(check-true (vector-contains? #(1 2 3) 1))
+(check-true (vector-contains? #(1 2 3) 3))
+(check-catch 'type-error (vector-contains? 'not-a-vector 1))
 
 
 (check-report)

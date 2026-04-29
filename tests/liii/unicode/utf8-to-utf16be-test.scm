@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -31,10 +28,7 @@
 
 
 ;; ASCII 字符
-(check (utf8->utf16be #u8(72))
-  =>
-  #u8(0 72)
-) ;check
+(check (utf8->utf16be #u8(72)) => #u8(0 72))
 (check (utf8->utf16be #u8(72 101 108 108 111))
   =>
   #u8(0 72 0 101 0 108 0 108 0 111)
@@ -42,28 +36,16 @@
 
 
 ;; 2 字节 UTF-8 -> 2 字节 UTF-16BE
-(check (utf8->utf16be #u8(195 164))
-  =>
-  #u8(0 228)
-) ;check
+(check (utf8->utf16be #u8(195 164)) => #u8(0 228))
 
 
 ;; 3 字节 UTF-8 -> 2 字节 UTF-16BE
-(check (utf8->utf16be #u8(228 184 173))
-  =>
-  #u8(78 45)
-) ;check
+(check (utf8->utf16be #u8(228 184 173)) => #u8(78 45))
 
 
 ;; 4 字节 UTF-8 -> 4 字节 UTF-16BE（代理对）
-(check (utf8->utf16be #u8(240 159 145 141))
-  =>
-  #u8(216 61 220 77)
-) ;check
-(check (utf8->utf16be #u8(240 159 154 128))
-  =>
-  #u8(216 61 222 128)
-) ;check
+(check (utf8->utf16be #u8(240 159 145 141)) => #u8(216 61 220 77))
+(check (utf8->utf16be #u8(240 159 154 128)) => #u8(216 61 222 128))
 
 
 ;; 空字节向量
@@ -71,30 +53,14 @@
 
 
 ;; 与 utf16be->utf8 互逆操作
-(check (utf8->utf16be (utf16be->utf8 #u8(0 72))
-       ) ;utf8->utf16be
-  =>
-  #u8(0 72)
-) ;check
-(check (utf8->utf16be (utf16be->utf8 #u8(78 45))
-       ) ;utf8->utf16be
-  =>
-  #u8(78 45)
-) ;check
-(check (utf8->utf16be (utf16be->utf8 #u8(216 61 220 77))
-       ) ;utf8->utf16be
-  =>
-  #u8(216 61 220 77)
-) ;check
+(check (utf8->utf16be (utf16be->utf8 #u8(0 72))) => #u8(0 72))
+(check (utf8->utf16be (utf16be->utf8 #u8(78 45))) => #u8(78 45))
+(check (utf8->utf16be (utf16be->utf8 #u8(216 61 220 77))) => #u8(216 61 220 77))
 
 
 ;; 错误处理
-(check-catch 'value-error
-  (utf8->utf16be #u8(255))
-) ;check-catch
-(check-catch 'type-error
-  (utf8->utf16be "not-a-bytevector")
-) ;check-catch
+(check-catch 'value-error (utf8->utf16be #u8(255)))
+(check-catch 'type-error (utf8->utf16be "not-a-bytevector"))
 
 
 (check-report)

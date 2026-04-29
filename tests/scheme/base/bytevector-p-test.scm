@@ -32,23 +32,16 @@
 (check-true (bytevector? #u8()))
 (check-true (bytevector? #u8(0)))
 (check-true (bytevector? #u8(255)))
-(check-true (bytevector? #u8(1 2 3 4 5))
-) ;check-true
+(check-true (bytevector? #u8(1 2 3 4 5)))
 (check-true (bytevector? (bytevector)))
-(check-true (bytevector? (bytevector 1 2 3))
-) ;check-true
+(check-true (bytevector? (bytevector 1 2 3)))
 ;; 类型判别测试
-(check-true (bytevector? (bytevector 5 15 25))
-) ;check-true
+(check-true (bytevector? (bytevector 5 15 25)))
 (check-false (bytevector? 123))
 (check-false (bytevector? "hello"))
 (check-false (bytevector? "list"))
 (check-false (bytevector? 'symbol))
 ;; 错误处理测试
-(check-catch 'wrong-number-of-args
-  (bytevector?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (bytevector? #u8(1 2 3) #u8(4 5 6))
-) ;check-catch
+(check-catch 'wrong-number-of-args (bytevector?))
+(check-catch 'wrong-number-of-args (bytevector? #u8(1 2 3) #u8(4 5 6)))
 (check-report)

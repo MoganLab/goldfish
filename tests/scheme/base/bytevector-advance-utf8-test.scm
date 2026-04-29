@@ -35,26 +35,12 @@
 (check (bytevector-advance-utf8 #u8(97 98 99) 1) => 2)
 (check (bytevector-advance-utf8 #u8(97 98 99) 2) => 3)
 (check (bytevector-advance-utf8 #u8(97 98 99) 3) => 3)
-(check (bytevector-advance-utf8 #u8(228 184 150 231 149 140) 0)
-  => 3
-) ;check
-(check (bytevector-advance-utf8 #u8(228 184 150 231 149 140) 3)
-  => 6
-) ;check
-(check (bytevector-advance-utf8 #u8(240 159 152 128) 0)
-  => 4
-) ;check
-(check (bytevector-advance-utf8 #u8(228 184) 0)
-  => 0
-) ;check
-(check (bytevector-advance-utf8 #u8(255) 0)
-  => 0
-) ;check
-(check (bytevector-advance-utf8 #u8(97 98) 0 1)
-  => 1
-) ;check
-(check (bytevector-advance-utf8 #u8(97 98) 1 1)
-  => 1
-) ;check
+(check (bytevector-advance-utf8 #u8(228 184 150 231 149 140) 0) => 3)
+(check (bytevector-advance-utf8 #u8(228 184 150 231 149 140) 3) => 6)
+(check (bytevector-advance-utf8 #u8(240 159 152 128) 0) => 4)
+(check (bytevector-advance-utf8 #u8(228 184) 0) => 0)
+(check (bytevector-advance-utf8 #u8(255) 0) => 0)
+(check (bytevector-advance-utf8 #u8(97 98) 0 1) => 1)
+(check (bytevector-advance-utf8 #u8(97 98) 1 1) => 1)
 
 (check-report)

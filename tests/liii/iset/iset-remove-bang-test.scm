@@ -24,10 +24,7 @@
 ;; -----
 ;; 返回仅包含不满足谓词元素的修改后的 iset。
 ;;
-(check (iset->list (iset-remove! (lambda (x) (< x 6))
-                     (iset 2 3 5 7 11)
-                   ) ;iset-remove!
-       ) ;iset->list
+(check (iset->list (iset-remove! (lambda (x) (< x 6)) (iset 2 3 5 7 11)))
   =>
   '(7 11)
 ) ;check

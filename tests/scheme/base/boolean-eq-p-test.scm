@@ -47,53 +47,24 @@
 (check (boolean=? #f #f #f #f #f) => #t)
 (check (boolean=? #t #t #f #t #t) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-number-of-args
-  (boolean=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (boolean=? #t)
-) ;check-catch
+(check-catch 'wrong-number-of-args (boolean=?))
+(check-catch 'wrong-number-of-args (boolean=? #t))
 (check (apply + (list 3 4)) => 7)
 (check (apply + (list 2 3 4)) => 9)
 (check (values 4) => 4)
 (check (values) => #<unspecified>)
 (check (+ (values 1 2 3) 4) => 10)
-(check (string-ref ((lambda () (values "abcd" 2)))
-       ) ;string-ref
-  =>
-  #\c
-) ;check
-(check (+ (call/cc (lambda (ret) (ret 1 2 3)))
-         4
-       ) ;+
-  =>
-  10
-) ;check
-(check (call-with-values (lambda () (values 4 5))
-         (lambda (x y) x)
-       ) ;call-with-values
-  =>
-  4
-) ;check
+(check (string-ref ((lambda () (values "abcd" 2)))) => #\c)
+(check (+ (call/cc (lambda (ret) (ret 1 2 3))) 4) => 10)
+(check (call-with-values (lambda () (values 4 5)) (lambda (x y) x)) => 4)
 (check (*) => 1)
 (check (call-with-values * -) => -1)
-(check (receive (a b) (values 1 2) (+ a b))
-  =>
-  3
-) ;check
-(guard (condition (else (display "condition: ")
-                    (write condition)
-                    (newline)
-                    'exception
-                  ) ;else
+(check (receive (a b) (values 1 2) (+ a b)) => 3)
+(guard (condition (else (display "condition: ") (write condition) (newline) 'exception)
        ) ;condition
   (+ 1 (raise 'an-error))
 ) ;guard
-(guard (condition (else (display "something went wrong")
-                    (newline)
-                    'dont-care
-                  ) ;else
-       ) ;condition
+(guard (condition (else (display "something went wrong") (newline) 'dont-care))
   (+ 1 (raise 'an-error))
 ) ;guard
 (with-input-from-string "(+ 1 2)"
@@ -114,11 +85,7 @@
   (check (add1/add 0) => 1)
   (check (add1/add 1 2) => 3)
 ) ;let
-(define add3
-  (typed-lambda ((i integer?) (x real?) z)
-    (+ i x z)
-  ) ;typed-lambda
-) ;define
+(define add3 (typed-lambda ((i integer?) (x real?) z) (+ i x z)))
 (check (add3 1 2 3) => 6)
 (check-catch 'type-error (add3 1.2 2 3))
 (check-report)

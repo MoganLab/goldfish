@@ -33,22 +33,10 @@
 
 
 (check (ascii-control->graphic 0) => 64)
-(check (ascii-control->graphic 31)
-  =>
-  95
-) ;check
-(check (ascii-control->graphic 127)
-  =>
-  63
-) ;check
-(check (ascii-control->graphic #\delete)
-  =>
-  #\?
-) ;check
-(check (ascii-control->graphic 32)
-  =>
-  #f
-) ;check
+(check (ascii-control->graphic 31) => 95)
+(check (ascii-control->graphic 127) => 63)
+(check (ascii-control->graphic #\delete) => #\?)
+(check (ascii-control->graphic 32) => #f)
 
 
 (check-report)

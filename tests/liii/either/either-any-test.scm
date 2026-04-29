@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -38,20 +35,11 @@
 ;; ----
 ;; type-error 当 pred 不是过程或 either 不是 Either 时
 
-(check-true (either-any even? (from-right 10))
-) ;check-true
-(check-false (either-any even? (from-right 11))
-) ;check-false
-(check-false (either-any even? (from-left "error"))
-) ;check-false
+(check-true (either-any even? (from-right 10)))
+(check-false (either-any even? (from-right 11)))
+(check-false (either-any even? (from-left "error")))
 
-(check-catch 'type-error
-  (either-any even? "not-either")
-) ;check-catch
-(check-catch 'type-error
-  (either-any "not-a-proc"
-    (from-right 10)
-  ) ;either-any
-) ;check-catch
+(check-catch 'type-error (either-any even? "not-either"))
+(check-catch 'type-error (either-any "not-a-proc" (from-right 10)))
 
 (check-report)

@@ -46,14 +46,8 @@
 (check (arithmetic-shift 2 1) => 4)
 (check (arithmetic-shift 8 -2) => 2)
 (check (arithmetic-shift 8 2) => 32)
-(check (arithmetic-shift 65536 -3)
-  =>
-  8192
-) ;check
-(check (arithmetic-shift 32768 3)
-  =>
-  262144
-) ;check
+(check (arithmetic-shift 65536 -3) => 8192)
+(check (arithmetic-shift 32768 3) => 262144)
 
 
 

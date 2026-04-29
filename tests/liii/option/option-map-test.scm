@@ -26,20 +26,9 @@
 
 
 (let ((opt1 (option 42)) (opt2 (none)))
-  (check (option-map (lambda (x) (+ x 1)) opt1)
-    =>
-    (option 43)
-  ) ;check
-  (check (option-map (lambda (x) (+ x 1)) opt2)
-    =>
-    (none)
-  ) ;check
-  (check (option-map (lambda (x) (number->string x))
-           opt1
-         ) ;option-map
-    =>
-    (option "42")
-  ) ;check
+  (check (option-map (lambda (x) (+ x 1)) opt1) => (option 43))
+  (check (option-map (lambda (x) (+ x 1)) opt2) => (none))
+  (check (option-map (lambda (x) (number->string x)) opt1) => (option "42"))
 ) ;let
 
 

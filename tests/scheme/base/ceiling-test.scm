@@ -30,15 +30,9 @@
 (check (ceiling 0) => 0)
 (check (ceiling -1) => -1)
 (check (ceiling -1.2) => -1.0)
-(check-catch 'wrong-type-arg
-  (ceiling 2.0+4.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (ceiling 'hello')
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (ceiling 4 5)
-) ;check-catch
+(check-catch 'wrong-type-arg (ceiling 2.0+4.0i))
+(check-catch 'wrong-type-arg (ceiling 'hello'))
+(check-catch 'wrong-number-of-args (ceiling 4 5))
 (check (s7-ceiling 1.1) => 2)
 (check (s7-ceiling -1.2) => -1)
 (check-report)

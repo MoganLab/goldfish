@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii os)
-  (liii string)
-) ;import
+(import (liii check) (liii os) (liii string))
 
 
 (check-set-mode! 'report-failed)
@@ -27,10 +24,7 @@
 
 ;; ; 基本功能测试
 (when (os-windows?)
-  (check (string-starts? (os-temp-dir) "C:")
-    =>
-    #t
-  ) ;check
+  (check (string-starts? (os-temp-dir) "C:") => #t)
 ) ;when
 
 
@@ -40,8 +34,7 @@
 
 
 ;; ; 验证返回值非空
-(check-false (string-null? (os-temp-dir))
-) ;check-false
+(check-false (string-null? (os-temp-dir)))
 
 
 (check-report)

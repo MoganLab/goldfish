@@ -49,62 +49,31 @@
 
 
 (check (take '(1 2 3 4) 3) => '(1 2 3))
-(check (take '(1 2 3 4) 4)
-  =>
-  '(1 2 3 4)
-) ;check
-(check (take '(1 2 3 . 4) 3)
-  =>
-  '(1 2 3)
-) ;check
+(check (take '(1 2 3 4) 4) => '(1 2 3 4))
+(check (take '(1 2 3 . 4) 3) => '(1 2 3))
 
 
-(check-catch 'wrong-type-arg
-  (take '(1 2 3 4) 5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (take '(1 2 3 . 4) 4)
-) ;check-catch
+(check-catch 'wrong-type-arg (take '(1 2 3 4) 5))
+(check-catch 'wrong-type-arg (take '(1 2 3 . 4) 4))
 
 
 (check (take '() 0) => '())
 (check (take '(a) 1) => '(a))
 (check (take '(a) 0) => '())
-(check (take '((a) (b c) d) 2)
-  =>
-  '((a) (b c))
-) ;check
-(check (take '(1 2 3 4 5 6) 3)
-  =>
-  '(1 2 3)
-) ;check
+(check (take '((a) (b c) d) 2) => '((a) (b c)))
+(check (take '(1 2 3 4 5 6) 3) => '(1 2 3))
 
 
-(check (take (drop '(1 2 3 4 5) 1) 3)
-  =>
-  '(2 3 4)
-) ;check
-(check (take (take '(1 2 3 4 5) 4) 2)
-  =>
-  '(1 2)
-) ;check
+(check (take (drop '(1 2 3 4 5) 1) 3) => '(2 3 4))
+(check (take (take '(1 2 3 4 5) 4) 2) => '(1 2))
 
 
-(check (take (iota 10) 5)
-  =>
-  '(0 1 2 3 4)
-) ;check
+(check (take (iota 10) 5) => '(0 1 2 3 4))
 
 
-(check-catch 'wrong-type-arg
-  (take '(1 2 3) -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (take "not a list" 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (take '(1 2 3) "not a number")
-) ;check-catch
+(check-catch 'wrong-type-arg (take '(1 2 3) -1))
+(check-catch 'wrong-type-arg (take "not a list" 2))
+(check-catch 'wrong-type-arg (take '(1 2 3) "not a number"))
 
 
 (check-report)

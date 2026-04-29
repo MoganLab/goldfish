@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -31,16 +28,9 @@
 
 
 ;; 基本 ASCII 测试
-(check (utf8->string (bytevector 72 101 108 108 111)
-       ) ;utf8->string
-  =>
-  "Hello"
-) ;check
+(check (utf8->string (bytevector 72 101 108 108 111)) => "Hello")
 (check (utf8->string #u8(72)) => "H")
-(check (utf8->string #u8(72 101))
-  =>
-  "He"
-) ;check
+(check (utf8->string #u8(72 101)) => "He")
 
 
 ;; 空字节向量
@@ -48,54 +38,25 @@
 
 
 ;; 2 字节 UTF-8 字符 (U+0080 到 U+07FF)
-(check (utf8->string #u8(195 164))
-  =>
-  "ä"
-) ;check
+(check (utf8->string #u8(195 164)) => "ä")
 
 
 ;; 3 字节 UTF-8 字符 (U+0800 到 U+FFFF)
-(check (utf8->string #u8(228 184 173))
-  =>
-  "中"
-) ;check
-(check (utf8->string #u8(230 177 137))
-  =>
-  "汉"
-) ;check
-(check (utf8->string #u8(229 173 151))
-  =>
-  "字"
-) ;check
+(check (utf8->string #u8(228 184 173)) => "中")
+(check (utf8->string #u8(230 177 137)) => "汉")
+(check (utf8->string #u8(229 173 151)) => "字")
 
 
 ;; 4 字节 UTF-8 字符 (U+10000 到 U+10FFFF)
-(check (utf8->string #u8(240 159 145 141))
-  =>
-  "👍"
-) ;check
-(check (utf8->string #u8(240 159 154 128))
-  =>
-  "🚀"
-) ;check
-(check (utf8->string #u8(240 159 142 137))
-  =>
-  "🎉"
-) ;check
-(check (utf8->string #u8(240 159 142 138))
-  =>
-  "🎊"
-) ;check
+(check (utf8->string #u8(240 159 145 141)) => "👍")
+(check (utf8->string #u8(240 159 154 128)) => "🚀")
+(check (utf8->string #u8(240 159 142 137)) => "🎉")
+(check (utf8->string #u8(240 159 142 138)) => "🎊")
 
 
 ;; 混合字符测试
-(check (utf8->string #u8(240 159 145 141 240 159 154 128)
-       ) ;utf8->string
-  =>
-  "👍🚀"
-) ;check
-(check (utf8->string #u8(72 101 108 108 111 32 240 159 154 128 32 87 111 114 108 100)
-       ) ;utf8->string
+(check (utf8->string #u8(240 159 145 141 240 159 154 128)) => "👍🚀")
+(check (utf8->string #u8(72 101 108 108 111 32 240 159 154 128 32 87 111 114 108 100))
   =>
   "Hello 🚀 World"
 ) ;check
@@ -107,58 +68,21 @@
 
 
 ;; 错误处理测试
-(check-catch 'value-error
-  (utf8->string (bytevector 255 101 108 108 111)
-  ) ;utf8->string
-) ;check-catch
-(check-catch 'value-error
-  (utf8->string (bytevector 128))
-) ;check-catch
-(check-catch 'value-error
-  (utf8->string (bytevector 248 128 128 128 128)
-  ) ;utf8->string
-) ;check-catch
-(check-catch 'value-error
-  (utf8->string (bytevector 252 128 128 128 128 128)
-  ) ;utf8->string
-) ;check-catch
+(check-catch 'value-error (utf8->string (bytevector 255 101 108 108 111)))
+(check-catch 'value-error (utf8->string (bytevector 128)))
+(check-catch 'value-error (utf8->string (bytevector 248 128 128 128 128)))
+(check-catch 'value-error (utf8->string (bytevector 252 128 128 128 128 128)))
 
 
 ;; 与 string->utf8 互逆操作验证
-(check (utf8->string (string->utf8 ""))
-  =>
-  ""
-) ;check
-(check (utf8->string (string->utf8 "H"))
-  =>
-  "H"
-) ;check
-(check (utf8->string (string->utf8 "Hello"))
-  =>
-  "Hello"
-) ;check
-(check (utf8->string (string->utf8 "ä"))
-  =>
-  "ä"
-) ;check
-(check (utf8->string (string->utf8 "中"))
-  =>
-  "中"
-) ;check
-(check (utf8->string (string->utf8 "👍"))
-  =>
-  "👍"
-) ;check
-(check (utf8->string (string->utf8 "汉字书写")
-       ) ;utf8->string
-  =>
-  "汉字书写"
-) ;check
-(check (utf8->string (string->utf8 "Hello 你好 👍")
-       ) ;utf8->string
-  =>
-  "Hello 你好 👍"
-) ;check
+(check (utf8->string (string->utf8 "")) => "")
+(check (utf8->string (string->utf8 "H")) => "H")
+(check (utf8->string (string->utf8 "Hello")) => "Hello")
+(check (utf8->string (string->utf8 "ä")) => "ä")
+(check (utf8->string (string->utf8 "中")) => "中")
+(check (utf8->string (string->utf8 "👍")) => "👍")
+(check (utf8->string (string->utf8 "汉字书写")) => "汉字书写")
+(check (utf8->string (string->utf8 "Hello 你好 👍")) => "Hello 你好 👍")
 
 
 (check-report)

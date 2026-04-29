@@ -17,32 +17,16 @@
 ;;   返回 scheme 字符串，如 "http", "https"。
 
 
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-scheme u1) => "https")
 
 
-(define u2
-  (make-uri-raw "http"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u2 (make-uri-raw "http" "example.com" "/" '() #f))
 (check (uri-scheme u2) => "http")
 
 
 ;; #f scheme
-(define u3
-  (make-uri-raw #f "" "/path" '() #f)
-) ;define
+(define u3 (make-uri-raw #f "" "/path" '() #f))
 (check (uri-scheme u3) => #f)
 
 

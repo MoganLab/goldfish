@@ -27,10 +27,7 @@
 
 
 ;; 基本转换
-(let ((gen (flexvector->generator (flexvector 'a 'b 'c)
-           ) ;flexvector->generator
-      ) ;gen
-     ) ;
+(let ((gen (flexvector->generator (flexvector 'a 'b 'c))))
   (check (gen) => 'a)
   (check (gen) => 'b)
   (check (gen) => 'c)
@@ -41,18 +38,13 @@
 
 
 ;; 空向量
-(let ((gen (flexvector->generator (flexvector))
-      ) ;gen
-     ) ;
+(let ((gen (flexvector->generator (flexvector))))
   (check (eof-object? (gen)) => #t)
 ) ;let
 
 
 ;; 单元素
-(let ((gen (flexvector->generator (flexvector 'only)
-           ) ;flexvector->generator
-      ) ;gen
-     ) ;
+(let ((gen (flexvector->generator (flexvector 'only))))
   (check (gen) => 'only)
   (check (eof-object? (gen)) => #t)
 ) ;let
@@ -69,20 +61,11 @@
 
 
 ;; 用于遍历
-(let ((fv (flexvector 10 20 30))
-      (sum 0)
-      (gen #f)
-     ) ;
+(let ((fv (flexvector 10 20 30)) (sum 0) (gen #f))
   (set! gen (flexvector->generator fv))
   (let loop
     ((val (gen)))
-    (if (eof-object? val)
-      sum
-      (begin
-        (set! sum (+ sum val))
-        (loop (gen))
-      ) ;begin
-    ) ;if
+    (if (eof-object? val) sum (begin (set! sum (+ sum val)) (loop (gen))))
   ) ;let
   (check sum => 60)
 ) ;let

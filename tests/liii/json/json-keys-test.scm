@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 
 (check-set-mode! 'report-failed)
@@ -40,24 +36,15 @@
 
 (let ((j '((bob (age . 18) (sex . male)))))
   (check (json-keys j) => '(bob))
-  (check (json-keys (json-ref j 'bob))
-    =>
-    '(age sex)
-  ) ;check
+  (check (json-keys (json-ref j 'bob)) => '(age sex))
 ) ;let
 
 
 (check (json-keys 'null) => '())
 (check (json-keys 'true) => '())
 (check (json-keys 'false) => '())
-(check (json-keys (string->json "[1,2,3]"))
-  =>
-  '()
-) ;check
-(check (json-keys (string->json "{}"))
-  =>
-  '()
-) ;check
+(check (json-keys (string->json "[1,2,3]")) => '())
+(check (json-keys (string->json "{}")) => '())
 
 
 (check-report)

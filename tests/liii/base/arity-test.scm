@@ -31,39 +31,23 @@
 
 
 ;; 测试固定参数 lambda
-(check (arity (lambda (x y) (+ x y)))
-  =>
-  '(2 . 2)
-) ;check
+(check (arity (lambda (x y) (+ x y))) => '(2 . 2))
 
 
 ;; 测试单参数函数
-(check (arity (lambda (x) x))
-  =>
-  '(1 . 1)
-) ;check
+(check (arity (lambda (x) x)) => '(1 . 1))
 
 
 ;; 测试无参数函数 (thunk)
-(check (arity (lambda () 42))
-  =>
-  '(0 . 0)
-) ;check
+(check (arity (lambda () 42)) => '(0 . 0))
 
 
 ;; 测试变参函数
-(check (arity (lambda (x . rest) (cons x rest))
-       ) ;arity
-  =>
-  '(1 . 536870912)
-) ;check
+(check (arity (lambda (x . rest) (cons x rest))) => '(1 . 536870912))
 
 
 ;; 测试只有 rest 参数的函数
-(check (arity (lambda args args))
-  =>
-  '(0 . 536870912)
-) ;check
+(check (arity (lambda args args)) => '(0 . 536870912))
 
 
 ;; 测试 C 内置函数 +
@@ -87,23 +71,13 @@
 
 
 ;; 测试 define 定义的函数
-(check (let ()
-         (define (add3 a b c)
-           (+ a b c)
-         ) ;define
-         (arity add3)
-       ) ;let
-  =>
-  '(3 . 3)
-) ;check
+(check (let () (define (add3 a b c) (+ a b c)) (arity add3)) => '(3 . 3))
 
 
 ;; 测试 define* 定义的函数
 ;; 注意：define* 的所有参数都是可选的，所以 min 是 0
 (check (let ()
-         (define* (greet name (greeting "Hello"))
-           (string-append greeting " " name)
-         ) ;define*
+         (define* (greet name (greeting "Hello")) (string-append greeting " " name))
          (arity greet)
        ) ;let
   =>

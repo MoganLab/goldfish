@@ -18,52 +18,17 @@
 ;; boolean?
 ;; 如果对象是读取错误，返回 #t；否则返回 #f。
 ;; 测试错误对象（pair/list 格式）
-(check (read-error? '(read-error))
-  =>
-  #t
-) ;check
-(check (read-error? '(read-error "message"))
-  =>
-  #t
-) ;check
-(check (read-error? '(other-error))
-  =>
-  #f
-) ;check
+(check (read-error? '(read-error)) => #t)
+(check (read-error? '(read-error "message")) => #t)
+(check (read-error? '(other-error)) => #f)
 ;; 测试非错误对象（使用 guard 来安全地测试）
-(check (guard (ex (else #f))
-         (read-error? "error")
-       ) ;guard
-  =>
-  #f
-) ;check
-(check (guard (ex (else #f))
-         (read-error? 123)
-       ) ;guard
-  =>
-  #f
-) ;check
-(check (guard (ex (else #f))
-         (read-error? #t)
-       ) ;guard
-  =>
-  #f
-) ;check
-(check (guard (ex (else #f))
-         (read-error? 'read-error)
-       ) ;guard
-  =>
-  #f
-) ;check
+(check (guard (ex (else #f)) (read-error? "error")) => #f)
+(check (guard (ex (else #f)) (read-error? 123)) => #f)
+(check (guard (ex (else #f)) (read-error? #t)) => #f)
+(check (guard (ex (else #f)) (read-error? 'read-error)) => #f)
 ;; 测试与 file-error? 的区别
-(check (read-error? '(read-error))
-  =>
-  #t
-) ;check
-(check (file-error? '(read-error))
-  =>
-  #f
-) ;check
+(check (read-error? '(read-error)) => #t)
+(check (file-error? '(read-error)) => #f)
 (check (read-error? '(io-error)) => #f)
 (check (file-error? '(io-error)) => #t)
 (check-report)

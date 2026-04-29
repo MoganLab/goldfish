@@ -18,10 +18,6 @@
 ;; -----
 ;; 返回按对应键升序排列的值列表。
 ;;
-(check (fxmapping-values (fxmapping 0 'a 1 'b 2 'c)
-       ) ;fxmapping-values
-  =>
-  '(a b c)
-) ;check
+(check (fxmapping-values (fxmapping 0 'a 1 'b 2 'c)) => '(a b c))
 
 (check-report)

@@ -35,78 +35,36 @@
 
 
 (let ((trie (make-trie)))
-  (check-false (trie-ref trie (string->list "hey"))
-  ) ;check-false
-  (check (trie-ref trie
-           (string->list "hey")
-           'default
-         ) ;trie-ref
-    =>
-    'default
-  ) ;check
+  (check-false (trie-ref trie (string->list "hey")))
+  (check (trie-ref trie (string->list "hey") 'default) => 'default)
 ) ;let
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "hello")
-    'world
-  ) ;trie-insert!
-  (check (trie-ref trie (string->list "hello"))
-    =>
-    'world
-  ) ;check
-  (check-false (trie-ref trie (string->list "hell"))
-  ) ;check-false
-  (check-false (trie-ref trie (string->list "helloo"))
-  ) ;check-false
+  (trie-insert! trie (string->list "hello") 'world)
+  (check (trie-ref trie (string->list "hello")) => 'world)
+  (check-false (trie-ref trie (string->list "hell")))
+  (check-false (trie-ref trie (string->list "helloo")))
 ) ;let
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "app")
-    'prefix
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "apple")
-    'fruit
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "application")
-    'software
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "app") 'prefix)
+  (trie-insert! trie (string->list "apple") 'fruit)
+  (trie-insert! trie (string->list "application") 'software)
 
-  (check (trie-ref trie (string->list "app"))
-    =>
-    'prefix
-  ) ;check
-  (check (trie-ref trie (string->list "apple"))
-    =>
-    'fruit
-  ) ;check
-  (check (trie-ref trie
-           (string->list "application")
-         ) ;trie-ref
-    =>
-    'software
-  ) ;check
-  (check-false (trie-ref trie (string->list "appl"))
-  ) ;check-false
+  (check (trie-ref trie (string->list "app")) => 'prefix)
+  (check (trie-ref trie (string->list "apple")) => 'fruit)
+  (check (trie-ref trie (string->list "application")) => 'software)
+  (check-false (trie-ref trie (string->list "appl")))
 ) ;let
 
 
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root)
-  (trie-insert! trie
-    (string->list "a")
-    'letter
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "a") 'letter)
   (check (trie-ref trie '()) => 'root)
-  (check (trie-ref trie (string->list "a"))
-    =>
-    'letter
-  ) ;check
+  (check (trie-ref trie (string->list "a")) => 'letter)
 ) ;let
 
 

@@ -18,14 +18,9 @@
 ;; -----
 ;; 返回只包含在恰好一个映射中存在的键的新 fxmapping。
 ;;
-(let ((xor (fxmapping-xor (fxmapping 0 'a 1 'b)
-             (fxmapping 1 'B 2 'c)
-           ) ;fxmapping-xor
-      ) ;xor
-     ) ;
+(let ((xor (fxmapping-xor (fxmapping 0 'a 1 'b) (fxmapping 1 'B 2 'c))))
   (check-true (fxmapping-contains? xor 0))
-  (check-false (fxmapping-contains? xor 1)
-  ) ;check-false
+  (check-false (fxmapping-contains? xor 1))
   (check-true (fxmapping-contains? xor 2))
 ) ;let
 

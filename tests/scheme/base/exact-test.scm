@@ -39,17 +39,9 @@
 (check (exact -2.5) => -5/2)
 (check (exact 3/4) => 3/4)
 (check (exact 0.0) => 0)
-(check-catch 'wrong-number-of-args
-  (exact)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (exact 1 2)
-) ;check-catch
+(check-catch 'wrong-number-of-args (exact))
+(check-catch 'wrong-number-of-args (exact 1 2))
 (check-catch 'wrong-type-arg (exact 'a))
-(check-catch 'wrong-type-arg
-  (exact "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (exact 1.0+2.0i)
-) ;check-catch
+(check-catch 'wrong-type-arg (exact "hello"))
+(check-catch 'wrong-type-arg (exact 1.0+2.0i))
 (check-report)

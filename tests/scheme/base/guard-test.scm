@@ -28,39 +28,20 @@
 ;; 2. 使用类似 cond 的子句匹配异常
 ;; 3. else 子句作为默认处理
 ;; 4. 注意：S7 的 guard 即使 body 未抛出异常也会返回 else 子句的结果
-(check (guard (ex (else 'caught))
-         (raise 'error)
-       ) ;guard
-  =>
-  'caught
-) ;check
-(check (guard (ex ((eq? ex 'specific) 'matched)
-                (else 'default)
-              ) ;ex
+(check (guard (ex (else 'caught)) (raise 'error)) => 'caught)
+(check (guard (ex ((eq? ex 'specific) 'matched) (else 'default))
          (raise 'specific)
        ) ;guard
   =>
   'matched
 ) ;check
-(check (guard (ex (else 'caught))
-         'normal
-       ) ;guard
-  =>
-  'caught
-) ;check
-(check (guard (ex ((eq? ex 'a) 'a-caught)
-               ((eq? ex 'b) 'b-caught)
-              ) ;ex
+(check (guard (ex (else 'caught)) 'normal) => 'caught)
+(check (guard (ex ((eq? ex 'a) 'a-caught) ((eq? ex 'b) 'b-caught))
          (raise 'b)
        ) ;guard
   =>
   'b-caught
 ) ;check
-(check (guard (ex (else ex))
-         (error 'test-error "message")
-       ) ;guard
-  =>
-  "message"
-) ;check
+(check (guard (ex (else ex)) (error 'test-error "message")) => "message")
 
 (check-report)

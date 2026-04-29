@@ -49,11 +49,7 @@
 
 
 ;; 生成列表
-(let ((result (flexvector->list (flexvector-unfold (lambda (n) (< n 0))
-                                  (lambda (n) n)
-                                  (lambda (n) (- n 1))
-                                  5
-                                ) ;flexvector-unfold
+(let ((result (flexvector->list (flexvector-unfold (lambda (n) (< n 0)) (lambda (n) n) (lambda (n) (- n 1)) 5)
               ) ;flexvector->list
       ) ;result
      ) ;
@@ -64,27 +60,18 @@
 ;; 斐波那契数列
 (let ((result (flexvector->list (flexvector-unfold (lambda (p) (> (car p) 100))
                                   (lambda (p) (car p))
-                                  (lambda (p)
-                                    (list (cadr p) (+ (car p) (cadr p)))
-                                  ) ;lambda
+                                  (lambda (p) (list (cadr p) (+ (car p) (cadr p))))
                                   '(1 1)
                                 ) ;flexvector-unfold
               ) ;flexvector->list
       ) ;result
      ) ;
-  (check result
-    =>
-    '(1 1 2 3 5 8 13 21 34 55 89)
-  ) ;check
+  (check result => '(1 1 2 3 5 8 13 21 34 55 89))
 ) ;let
 
 
 ;; 空结果
-(check (flexvector->vector (flexvector-unfold (lambda (x) #t)
-                             (lambda (x) x)
-                             (lambda (x) x)
-                             'seed
-                           ) ;flexvector-unfold
+(check (flexvector->vector (flexvector-unfold (lambda (x) #t) (lambda (x) x) (lambda (x) x) 'seed)
        ) ;flexvector->vector
   =>
   #()
@@ -92,11 +79,7 @@
 
 
 ;; 单元素
-(check (flexvector->vector (flexvector-unfold (lambda (x) (> x 0))
-                             (lambda (x) x)
-                             (lambda (x) (+ x 1))
-                             0
-                           ) ;flexvector-unfold
+(check (flexvector->vector (flexvector-unfold (lambda (x) (> x 0)) (lambda (x) x) (lambda (x) (+ x 1)) 0)
        ) ;flexvector->vector
   =>
   #(0)
@@ -106,9 +89,7 @@
 ;; 使用字符串状态
 (check (flexvector->vector (flexvector-unfold (lambda (s) (string=? s ""))
                              (lambda (s) (string-ref s 0))
-                             (lambda (s)
-                               (substring s 1 (string-length s))
-                             ) ;lambda
+                             (lambda (s) (substring s 1 (string-length s)))
                              "hello"
                            ) ;flexvector-unfold
        ) ;flexvector->vector

@@ -87,18 +87,12 @@
 (check (boolean? (not 123)) => #t)
 (check (boolean? (and #t #f)) => #t)
 (check (boolean? (or #t #f)) => #t)
-(check (boolean? (boolean=? #t #t))
-  =>
-  #t
-) ;check
+(check (boolean? (boolean=? #t #t)) => #t)
 ;; 类型判断一致性测试
 (check (boolean? (boolean? #t)) => #t)
 (check (boolean? (boolean? #f)) => #t)
 (check (boolean? (boolean? 123)) => #t)
-(check (boolean? (string? "hello"))
-  =>
-  #t
-) ;check
+(check (boolean? (string? "hello")) => #t)
 (check (boolean? (integer? 42)) => #t)
 ;; 边界类型测试
 (check (boolean? 0) => #f)
@@ -107,13 +101,7 @@
 (check (boolean? -inf.0) => #f)
 (check (boolean? +nan.0) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-number-of-args
-  (boolean?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (boolean? #t #f)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (boolean? 1 2 3)
-) ;check-catch
+(check-catch 'wrong-number-of-args (boolean?))
+(check-catch 'wrong-number-of-args (boolean? #t #f))
+(check-catch 'wrong-number-of-args (boolean? 1 2 3))
 (check-report)

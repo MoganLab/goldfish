@@ -43,17 +43,11 @@
 (let ((fv (flexvector 1 2 3)))
   (let ((copy (flexvector-copy fv)))
     ;; 长度相同
-    (check (flexvector-length fv)
-      =>
-      (flexvector-length copy)
-    ) ;check
+    (check (flexvector-length fv) => (flexvector-length copy))
     ;; 是不同对象
     (check-false (eq? fv copy))
     ;; 内容相同
-    (check (flexvector->vector copy)
-      =>
-      #(1 2 3)
-    ) ;check
+    (check (flexvector->vector copy) => #(1 2 3))
     ;; 修改拷贝不影响原向量
     (flexvector-set! copy 0 'x)
     (check (flexvector-ref fv 0) => 1)
@@ -64,46 +58,26 @@
 
 ;; 从指定位置拷贝到末尾
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector (flexvector-copy fv 2)
-         ) ;flexvector->vector
-    =>
-    #(3 4 5)
-  ) ;check
+  (check (flexvector->vector (flexvector-copy fv 2)) => #(3 4 5))
 ) ;let
 
 
 ;; 拷贝区间 [start, end)
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->vector (flexvector-copy fv 1 4)
-         ) ;flexvector->vector
-    =>
-    #(2 3 4)
-  ) ;check
+  (check (flexvector->vector (flexvector-copy fv 1 4)) => #(2 3 4))
 ) ;let
 
 
 ;; 边界测试：空区间
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->vector (flexvector-copy fv 0 0)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
-  (check (flexvector->vector (flexvector-copy fv 3 3)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
+  (check (flexvector->vector (flexvector-copy fv 0 0)) => #())
+  (check (flexvector->vector (flexvector-copy fv 3 3)) => #())
 ) ;let
 
 
 ;; 单元素区间
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->vector (flexvector-copy fv 1 2)
-         ) ;flexvector->vector
-    =>
-    #(2)
-  ) ;check
+  (check (flexvector->vector (flexvector-copy fv 1 2)) => #(2))
 ) ;let
 
 

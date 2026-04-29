@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-1)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-1) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -39,19 +35,10 @@
 
 
 ;; Ensure all constants are distinct
-(let ((constants (list TIME-DURATION
-                   TIME-MONOTONIC
-                   TIME-PROCESS
-                   TIME-TAI
-                   TIME-THREAD
-                   TIME-UTC
-                 ) ;list
+(let ((constants (list TIME-DURATION TIME-MONOTONIC TIME-PROCESS TIME-TAI TIME-THREAD TIME-UTC)
       ) ;constants
      ) ;
-  (check-true (= (length constants)
-                (length (delete-duplicates constants))
-              ) ;=
-  ) ;check-true
+  (check-true (= (length constants) (length (delete-duplicates constants))))
 ) ;let
 
 

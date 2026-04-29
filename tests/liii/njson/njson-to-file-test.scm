@@ -50,49 +50,25 @@
 ) ;define
 
 
-(let-njson ((root (string->njson "{\"b\":1,\"a\":2}")
-            ) ;root
-           ) ;
-  (check-true (> (njson->file njson-to-file-path root)
-                0
-              ) ;>
-  ) ;check-true
-  (check (path-read-text njson-to-file-path)
-    =>
-    "{\n  \"a\": 2,\n  \"b\": 1\n}"
-  ) ;check
+(let-njson ((root (string->njson "{\"b\":1,\"a\":2}")))
+  (check-true (> (njson->file njson-to-file-path root) 0))
+  (check (path-read-text njson-to-file-path) => "{\n  \"a\": 2,\n  \"b\": 1\n}")
 ) ;let-njson
 
 
-(check-true (> (njson->file njson-to-file-path 'null)
-              0
-            ) ;>
-) ;check-true
-(let-njson ((loaded-null (file->njson njson-to-file-path)
-            ) ;loaded-null
-           ) ;
+(check-true (> (njson->file njson-to-file-path 'null) 0))
+(let-njson ((loaded-null (file->njson njson-to-file-path)))
   (check-true (njson-null? loaded-null))
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson->file 1 'null)
-) ;check-catch
-(check-catch 'type-error
-  (njson->file njson-to-file-path 'foo)
-) ;check-catch
+(check-catch 'type-error (njson->file 1 'null))
+(check-catch 'type-error (njson->file njson-to-file-path 'foo))
 
 
-(define njson-to-file-freed
-  (string->njson "{\"k\":1}")
-) ;define
-(check-true (njson-free njson-to-file-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson->file njson-to-file-path
-    njson-to-file-freed
-  ) ;njson->file
-) ;check-catch
+(define njson-to-file-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-to-file-freed))
+(check-catch 'type-error (njson->file njson-to-file-path njson-to-file-freed))
 
 
 (check-report)

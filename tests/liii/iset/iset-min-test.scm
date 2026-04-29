@@ -25,15 +25,9 @@
 ;; -----
 ;; 返回集合中的最小整数，如果集合为空则返回 #f。
 ;;
-(check (iset-min (iset 2 3 5 7 11))
-  =>
-  2
-) ;check
+(check (iset-min (iset 2 3 5 7 11)) => 2)
 (check (iset-min (iset)) => #f)
-(check (iset-min pos-set)
-  =>
-  (car pos-seq)
-) ;check
+(check (iset-min pos-set) => (car pos-seq))
 
 
 (check-report)

@@ -54,96 +54,31 @@
 ;; (flatten '((a b) c (((d)) e)) 3)        => '(a b c d e)
 
 
-(check (flatten '((a) () (b ()) () (c))
-         'deepest
-       ) ;flatten
-  =>
-  '(a b c)
-) ;check
-(check (flatten '((a b) c (((d)) e)) 'deepest)
-  =>
-  '(a b c d e)
-) ;check
-(check (flatten '(a b (() (c))) 'deepest)
-  =>
-  '(a b c)
-) ;check
+(check (flatten '((a) () (b ()) () (c)) 'deepest) => '(a b c))
+(check (flatten '((a b) c (((d)) e)) 'deepest) => '(a b c d e))
+(check (flatten '(a b (() (c))) 'deepest) => '(a b c))
 
 
-(check (flatten '((a) () (b ()) () (c)) 0)
-  =>
-  '((a) () (b ()) () (c))
-) ;check
-(check (flatten '((a) () (b ()) () (c)) 1)
-  =>
-  '(a b () c)
-) ;check
-(check (flatten '((a) () (b ()) () (c)))
-  =>
-  '(a b () c)
-) ;check
-(check (flatten '((a) () (b ()) () (c)) 2)
-  =>
-  '(a b c)
-) ;check
-(check (flatten '((a) () (b ()) () (c)) -1)
-  =>
-  '(a b c)
-) ;check
-(check (flatten '((a b) c (((d)) e)) 0)
-  =>
-  '((a b) c (((d)) e))
-) ;check
-(check (flatten '((a b) c (((d)) e)) 1)
-  =>
-  '(a b c ((d)) e)
-) ;check
-(check (flatten '((a b) c (((d)) e)))
-  =>
-  '(a b c ((d)) e)
-) ;check
-(check (flatten '((a b) c (((d)) e)) 2)
-  =>
-  '(a b c (d) e)
-) ;check
-(check (flatten '((a b) c (((d)) e)) 3)
-  =>
-  '(a b c d e)
-) ;check
-(check (flatten '((a b) c (((d)) e)) -1)
-  =>
-  '(a b c d e)
-) ;check
-(check (flatten '(a b (() (c))) 0)
-  =>
-  '(a b (() (c)))
-) ;check
-(check (flatten '(a b (() (c))) 1)
-  =>
-  '(a b () (c))
-) ;check
-(check (flatten '(a b (() (c))))
-  =>
-  '(a b () (c))
-) ;check
-(check (flatten '(a b (() (c))) 2)
-  =>
-  '(a b c)
-) ;check
-(check (flatten '(a b (() (c))) -1)
-  =>
-  '(a b c)
-) ;check
+(check (flatten '((a) () (b ()) () (c)) 0) => '((a) () (b ()) () (c)))
+(check (flatten '((a) () (b ()) () (c)) 1) => '(a b () c))
+(check (flatten '((a) () (b ()) () (c))) => '(a b () c))
+(check (flatten '((a) () (b ()) () (c)) 2) => '(a b c))
+(check (flatten '((a) () (b ()) () (c)) -1) => '(a b c))
+(check (flatten '((a b) c (((d)) e)) 0) => '((a b) c (((d)) e)))
+(check (flatten '((a b) c (((d)) e)) 1) => '(a b c ((d)) e))
+(check (flatten '((a b) c (((d)) e))) => '(a b c ((d)) e))
+(check (flatten '((a b) c (((d)) e)) 2) => '(a b c (d) e))
+(check (flatten '((a b) c (((d)) e)) 3) => '(a b c d e))
+(check (flatten '((a b) c (((d)) e)) -1) => '(a b c d e))
+(check (flatten '(a b (() (c))) 0) => '(a b (() (c))))
+(check (flatten '(a b (() (c))) 1) => '(a b () (c)))
+(check (flatten '(a b (() (c)))) => '(a b () (c)))
+(check (flatten '(a b (() (c))) 2) => '(a b c))
+(check (flatten '(a b (() (c))) -1) => '(a b c))
 
 
-(check-catch 'type-error
-  (flatten '((a) () (b ()) () (c)) 'a)
-) ;check-catch
-(check-catch 'type-error
-  (flatten '((a) () (b ()) () (c))
-    (make-vector 1 1)
-  ) ;flatten
-) ;check-catch
+(check-catch 'type-error (flatten '((a) () (b ()) () (c)) 'a))
+(check-catch 'type-error (flatten '((a) () (b ()) () (c)) (make-vector 1 1)))
 
 
 (check-report)

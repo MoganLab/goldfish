@@ -28,12 +28,8 @@
 (check-true (eq? 'abc 'abc))
 (check-false (eq? 'abc 'def))
 ;; Test eq? for lists (not the same instance)
-(check-false (eq? (list 1 2 3) (list 1 2 3))
-) ;check-false
-(check-true (let ((lst (list 1 2 3)))
-              (eq? lst lst)
-            ) ;let
-) ;check-true
+(check-false (eq? (list 1 2 3) (list 1 2 3)))
+(check-true (let ((lst (list 1 2 3))) (eq? lst lst)))
 ;; Test eq? for strings (always #f due to different instances)
 (check-false (eq? "hello" "hello"))
 ;; Test eq? for procedures

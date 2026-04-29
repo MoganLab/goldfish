@@ -38,21 +38,12 @@
 
 
 (let* ((ht (hash-table 'a 1 'b 2 'c 3))
-       (ks (hash-table-map->list (lambda (k v) k)
-             ht
-           ) ;hash-table-map->list
-       ) ;ks
-       (vs (hash-table-map->list (lambda (k v) v)
-             ht
-           ) ;hash-table-map->list
-       ) ;vs
+       (ks (hash-table-map->list (lambda (k v) k) ht))
+       (vs (hash-table-map->list (lambda (k v) v) ht))
       ) ;
-  (check-true (not (null? (member 'a ks)))
-  ) ;check-true
-  (check-true (not (null? (member 'b ks)))
-  ) ;check-true
-  (check-true (not (null? (member 'c ks)))
-  ) ;check-true
+  (check-true (not (null? (member 'a ks))))
+  (check-true (not (null? (member 'b ks))))
+  (check-true (not (null? (member 'c ks))))
   (check-true (not (null? (member 1 vs))))
   (check-true (not (null? (member 2 vs))))
   (check-true (not (null? (member 3 vs))))

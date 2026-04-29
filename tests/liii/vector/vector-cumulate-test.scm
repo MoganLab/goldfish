@@ -41,41 +41,16 @@
 ;; wrong-type-arg 当proc无法应用到对应参数时
 
 
-(check (vector-cumulate + 0 '#(1 2 3 4))
-  =>
-  #(1 3 6 10)
-) ;check
-(check (vector-cumulate - 0 '#(1 2 3 4))
-  =>
-  #(-1 -3 -6 -10)
-) ;check
-(check (vector-cumulate * 1 '#(-1 -2 -3 -4))
-  =>
-  #(-1 2 -6 24)
-) ;check
-(check-catch 'type-error
-  (vector-cumulate + 0 'a)
-) ;check-catch
-(check (vector-cumulate + 0 '#())
-  =>
-  #()
-) ;check
-(check (vector-cumulate (lambda (x y) 'a)
-         0
-         '#(1 2 3)
-       ) ;vector-cumulate
-  =>
-  #(a a a)
-) ;check
+(check (vector-cumulate + 0 '#(1 2 3 4)) => #(1 3 6 10))
+(check (vector-cumulate - 0 '#(1 2 3 4)) => #(-1 -3 -6 -10))
+(check (vector-cumulate * 1 '#(-1 -2 -3 -4)) => #(-1 2 -6 24))
+(check-catch 'type-error (vector-cumulate + 0 'a))
+(check (vector-cumulate + 0 '#()) => #())
+(check (vector-cumulate (lambda (x y) 'a) 0 '#(1 2 3)) => #(a a a))
 (check-catch 'wrong-number-of-args
-  (vector-cumulate (lambda (x) 'a)
-    0
-    '#(1 2 3)
-  ) ;vector-cumulate
+  (vector-cumulate (lambda (x) 'a) 0 '#(1 2 3))
 ) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-cumulate + '(1) '#(1 2 3))
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-cumulate + '(1) '#(1 2 3)))
 (check (vector-cumulate (lambda (x y) (+ x 2))
          0
          '#((#_quote a) (#_quote b) (#_quote c))

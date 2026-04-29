@@ -27,22 +27,11 @@
 ;; 如果 option 为空，则不执行任何操作。
 
 
-(let ((opt1 (option 42))
-      (opt2 (none))
-      (result '())
-     ) ;
-  (option-for-each (lambda (x)
-                     (set! result (cons x result))
-                   ) ;lambda
-    opt1
-  ) ;option-for-each
+(let ((opt1 (option 42)) (opt2 (none)) (result '()))
+  (option-for-each (lambda (x) (set! result (cons x result))) opt1)
   (check result => '(42))
   (set! result '())
-  (option-for-each (lambda (x)
-                     (set! result (cons x result))
-                   ) ;lambda
-    opt2
-  ) ;option-for-each
+  (option-for-each (lambda (x) (set! result (cons x result))) opt2)
   (check result => '())
 ) ;let
 

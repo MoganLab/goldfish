@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-predicate)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-predicate))
 
 
 (check-set-mode! 'report-failed)
@@ -21,47 +18,26 @@
 
 
 ;; 相对 URI（无 scheme）
-(define u1
-  (make-uri-raw #f "" "/path" '() #f)
-) ;define
+(define u1 (make-uri-raw #f "" "/path" '() #f))
 (check (uri-relative? u1) => #t)
 
 
 ;; 空 scheme 也视为相对 URI
-(define u2
-  (make-uri-raw "" "" "/path" '() #f)
-) ;define
+(define u2 (make-uri-raw "" "" "/path" '() #f))
 (check (uri-relative? u2) => #t)
 
 
 ;; 绝对 URI（有 scheme）
-(define u3
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u3 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-relative? u3) => #f)
 
 
-(define u4
-  (make-uri-raw "http"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u4 (make-uri-raw "http" "example.com" "/" '() #f))
 (check (uri-relative? u4) => #f)
 
 
 ;; 非 URI 对象返回 #f
-(check (uri-relative? "not-a-uri")
-  =>
-  #f
-) ;check
+(check (uri-relative? "not-a-uri") => #f)
 (check (uri-relative? 123) => #f)
 
 

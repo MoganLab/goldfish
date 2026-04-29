@@ -33,10 +33,7 @@
 ) ;let
 
 
-(check (random-source? 'not-a-source)
-  =>
-  #f
-) ;check
+(check (random-source? 'not-a-source) => #f)
 (check (random-source? 123) => #f)
 (check (random-source? "string") => #f)
 (check (random-source? '(1 2 3)) => #f)
@@ -44,10 +41,7 @@
 (check (random-source? 3.14) => #f)
 
 
-(check (random-source? default-random-source)
-  =>
-  #t
-) ;check
+(check (random-source? default-random-source) => #t)
 
 
 (check-report)

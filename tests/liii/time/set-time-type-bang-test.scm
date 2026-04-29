@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -29,30 +26,17 @@
 
 
 (let ((t (make-time TIME-UTC 0 0)))
-  (check (set-time-type! t TIME-MONOTONIC)
-    =>
-    TIME-MONOTONIC
-  ) ;check
+  (check (set-time-type! t TIME-MONOTONIC) => TIME-MONOTONIC)
   (check (time-type t) => TIME-MONOTONIC)
-  (check (set-time-type! t TIME-TAI)
-    =>
-    TIME-TAI
-  ) ;check
+  (check (set-time-type! t TIME-TAI) => TIME-TAI)
   (check (time-type t) => TIME-TAI)
 ) ;let
 
 
 ;; Test error conditions
 (let ((t (make-time TIME-UTC 0 0)))
-  (check-catch 'wrong-type-arg
-    (set-time-type! "not-a-time"
-      TIME-MONOTONIC
-    ) ;set-time-type!
-  ) ;check-catch
-  (check (set-time-type! t 'invalid-type)
-    =>
-    'invalid-type
-  ) ;check
+  (check-catch 'wrong-type-arg (set-time-type! "not-a-time" TIME-MONOTONIC))
+  (check (set-time-type! t 'invalid-type) => 'invalid-type)
 ) ;let
 
 

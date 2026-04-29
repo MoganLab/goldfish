@@ -3,45 +3,24 @@
 ;; uri-transform 模块提供 URI 的修改和转换函数。
 
 
-(import (liii uri-record)
-  (liii uri-transform)
-  (liii uri-convert)
-) ;import
+(import (liii uri-record) (liii uri-transform) (liii uri-convert))
 
 
 ;; ==== 常见用法示例 ====
 
 
 ;; 示例1：修改 URI 的 scheme
-(uri-with-scheme (make-uri-raw "http"
-                   "example.com"
-                   "/"
-                   '()
-                   #f
-                 ) ;make-uri-raw
-  "https"
-) ;uri-with-scheme
+(uri-with-scheme (make-uri-raw "http" "example.com" "/" '() #f) "https")
 
 
 ;; 示例2：更新查询参数
-(uri-extend-query (make-uri-raw "https"
-                    "api.com"
-                    "/"
-                    '()
-                    #f
-                  ) ;make-uri-raw
+(uri-extend-query (make-uri-raw "https" "api.com" "/" '() #f)
   '(("page" . "1") ("limit" . "10"))
 ) ;uri-extend-query
 
 
 ;; 示例3：URI 转字符串
-(uri->string (make-uri-raw "https"
-               "example.com"
-               "/path"
-               '(("a" . "1"))
-               "frag"
-             ) ;make-uri-raw
-) ;uri->string
+(uri->string (make-uri-raw "https" "example.com" "/path" '(("a" . "1")) "frag"))
 ;; => "https://example.com/path?a=1#frag"
 
 

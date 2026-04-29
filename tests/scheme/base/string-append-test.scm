@@ -25,34 +25,13 @@
 ;; 3. 不修改原字符串，返回新字符串
 (check (string-append) => "")
 (check (string-append "abc") => "abc")
-(check (string-append "abc" "def")
-  =>
-  "abcdef"
-) ;check
-(check (string-append "a" "b" "c")
-  =>
-  "abc"
-) ;check
-(check (string-append "" "abc")
-  =>
-  "abc"
-) ;check
-(check (string-append "abc" "")
-  =>
-  "abc"
-) ;check
+(check (string-append "abc" "def") => "abcdef")
+(check (string-append "a" "b" "c") => "abc")
+(check (string-append "" "abc") => "abc")
+(check (string-append "abc" "") => "abc")
 (check (string-append "" "") => "")
-(check (string-append "Hello, " "world!")
-  =>
-  "Hello, world!"
-) ;check
-(check-catch 'wrong-type-arg
-  (string-append 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-append "a" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-append "a" '(1))
-) ;check-catch
+(check (string-append "Hello, " "world!") => "Hello, world!")
+(check-catch 'wrong-type-arg (string-append 'a))
+(check-catch 'wrong-type-arg (string-append "a" 1))
+(check-catch 'wrong-type-arg (string-append "a" '(1)))
 (check-report)

@@ -39,11 +39,7 @@
 
 
 ;; 基本累积：前缀和
-(check (flexvector->vector (flexvector-cumulate +
-                             0
-                             (flexvector 3 1 4 1 5 9 2 5 6)
-                           ) ;flexvector-cumulate
-       ) ;flexvector->vector
+(check (flexvector->vector (flexvector-cumulate + 0 (flexvector 3 1 4 1 5 9 2 5 6)))
   =>
   #(3 4 8 9 14 23 25 30 36)
 ) ;check
@@ -52,23 +48,14 @@
 
 ;; 前缀积
 (let ((fv (flexvector 2 3 4 5)))
-  (check (flexvector->vector (flexvector-cumulate * 1 fv)
-         ) ;flexvector->vector
-    =>
-    #(2 6 24 120)
-  ) ;check
+  (check (flexvector->vector (flexvector-cumulate * 1 fv)) => #(2 6 24 120))
 ) ;let
 ;; 2, 2*3=6, 6*4=24, 24*5=120
 
 
 ;; 累积字符串
 (let ((fv (flexvector #\h #\e #\l #\l #\o)))
-  (check (flexvector->vector (flexvector-cumulate (lambda (acc ch)
-                                                    (string-append acc (string ch))
-                                                  ) ;lambda
-                               ""
-                               fv
-                             ) ;flexvector-cumulate
+  (check (flexvector->vector (flexvector-cumulate (lambda (acc ch) (string-append acc (string ch))) "" fv)
          ) ;flexvector->vector
     =>
     #("h" "he" "hel" "hell" "hello")
@@ -77,27 +64,18 @@
 
 
 ;; 空向量
-(check (flexvector->vector (flexvector-cumulate + 0 (flexvector))
-       ) ;flexvector->vector
-  =>
-  #()
-) ;check
+(check (flexvector->vector (flexvector-cumulate + 0 (flexvector))) => #())
 
 
 ;; 单元素
 (let ((fv (flexvector 42)))
-  (check (flexvector->vector (flexvector-cumulate + 0 fv)
-         ) ;flexvector->vector
-    =>
-    #(42)
-  ) ;check
+  (check (flexvector->vector (flexvector-cumulate + 0 fv)) => #(42))
 ) ;let
 
 
 ;; 累积最大值
 (let ((fv (flexvector 3 1 4 1 5 9 2 6)))
-  (check (flexvector->vector (flexvector-cumulate max 0 fv)
-         ) ;flexvector->vector
+  (check (flexvector->vector (flexvector-cumulate max 0 fv))
     =>
     #(3 3 4 4 5 9 9 9)
   ) ;check
@@ -107,10 +85,7 @@
 ;; 原向量不变
 (let ((fv (flexvector 1 2 3)))
   (flexvector-cumulate + 0 fv)
-  (check (flexvector->vector fv)
-    =>
-    #(1 2 3)
-  ) ;check
+  (check (flexvector->vector fv) => #(1 2 3))
 ) ;let
 
 

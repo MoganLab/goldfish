@@ -21,15 +21,11 @@
 ;; -----
 ;; 返回满足 pred 的键值对数量。
 ;;
-(check (fxmapping-count (lambda (k v) (> k 5))
-         (fxmapping 3 'a 7 'b 10 'c)
-       ) ;fxmapping-count
+(check (fxmapping-count (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c))
   =>
   2
 ) ;check
-(check (fxmapping-count (lambda (k v) (symbol? v))
-         (fxmapping 0 'a 1 2 2 'c)
-       ) ;fxmapping-count
+(check (fxmapping-count (lambda (k v) (symbol? v)) (fxmapping 0 'a 1 2 2 'c))
   =>
   2
 ) ;check

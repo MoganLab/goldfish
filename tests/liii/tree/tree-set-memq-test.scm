@@ -28,36 +28,18 @@
 ;; 它是 memq 的批量版本，内部使用符号集合进行快速查找。
 
 ;; 基本测试
-(check (tree-set-memq '(a b) '(a c d))
-  =>
-  #t
-) ;check
-(check (tree-set-memq '(a b) '(c d e))
-  =>
-  #f
-) ;check
+(check (tree-set-memq '(a b) '(a c d)) => #t)
+(check (tree-set-memq '(a b) '(c d e)) => #f)
 
 ;; 嵌套列表
-(check (tree-set-memq '(a b) '(c (a d)))
-  =>
-  #t
-) ;check
-(check (tree-set-memq '(x y) '(a (b c)))
-  =>
-  #f
-) ;check
+(check (tree-set-memq '(a b) '(c (a d))) => #t)
+(check (tree-set-memq '(x y) '(a (b c))) => #f)
 
 ;; 多个符号都匹配
-(check (tree-set-memq '(a b) '((a b c)))
-  =>
-  #t
-) ;check
+(check (tree-set-memq '(a b) '((a b c))) => #t)
 
 ;; 空列表
-(check (tree-set-memq '() '(a b c))
-  =>
-  #f
-) ;check
+(check (tree-set-memq '() '(a b c)) => #f)
 (check (tree-set-memq '(a) '()) => #f)
 
 (check-report)

@@ -41,14 +41,8 @@
 
 
 (check (jiffies-per-second) => 1000000)
-(check (integer? (jiffies-per-second))
-  =>
-  #t
-) ;check
-(check (positive? (jiffies-per-second))
-  =>
-  #t
-) ;check
+(check (integer? (jiffies-per-second)) => #t)
+(check (positive? (jiffies-per-second)) => #t)
 
 
 (check-report)

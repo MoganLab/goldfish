@@ -44,10 +44,7 @@
 (check (char-upper-case? #\9) => #f)
 (check (char-upper-case? #\!) => #f)
 (check (char-upper-case? #\space) => #f)
-(check (char-upper-case? #\newline)
-  =>
-  #f
-) ;check
+(check (char-upper-case? #\newline) => #f)
 ;; 混合测试
 (check (char-upper-case? #\@) => #f)
 (check (char-upper-case? #\_) => #f)
@@ -56,18 +53,10 @@
 (check (char-upper-case? #\M) => #t)
 (check (char-upper-case? #\m) => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-upper-case? 1)
-) ;check-catch
-(check-catch 'type-error
-  (char-upper-case? "A")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-upper-case?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-upper-case? #\A #\B)
-) ;check-catch
+(check-catch 'type-error (char-upper-case? 1))
+(check-catch 'type-error (char-upper-case? "A"))
+(check-catch 'wrong-number-of-args (char-upper-case?))
+(check-catch 'wrong-number-of-args (char-upper-case? #\A #\B))
 ;; Unicode 字符测试（codepoint >= 256）
 (check (char-upper-case? #\中) => #f)
 (check-report)

@@ -1,9 +1,4 @@
-(import (liii check)
-  (liii os)
-  (liii uuid)
-  (liii base)
-  (liii vector)
-) ;import
+(import (liii check) (liii os) (liii uuid) (liii base) (liii vector))
 
 
 (check-set-mode! 'report-failed)
@@ -33,23 +28,13 @@
 
 ;; ; 基本功能测试
 (when (not (os-windows?))
-  (check (> (vector-length (listdir "/usr")) 0)
-    =>
-    #t
-  ) ;check
+  (check (> (vector-length (listdir "/usr")) 0) => #t)
 ) ;when
 
 
 ;; ; 测试创建目录并列出
-(let* ((test-dir (string-append (os-temp-dir)
-                   (string (os-sep))
-                   (uuid4)
-                 ) ;string-append
-       ) ;test-dir
-       (test-dir2 (string-append test-dir
-                    (string (os-sep))
-                  ) ;string-append
-       ) ;test-dir2
+(let* ((test-dir (string-append (os-temp-dir) (string (os-sep)) (uuid4)))
+       (test-dir2 (string-append test-dir (string (os-sep))))
        (dir-a (string-append test-dir2 "a"))
        (dir-b (string-append test-dir2 "b"))
        (dir-c (string-append test-dir2 "c"))
@@ -76,10 +61,7 @@
 
 
 (when (os-windows?)
-  (check (> (vector-length (listdir "C:")) 0)
-    =>
-    #t
-  ) ;check
+  (check (> (vector-length (listdir "C:")) 0) => #t)
 ) ;when
 
 

@@ -100,85 +100,37 @@
 (check (caar '((1 2 3) 4 5)) => 1)
 (check (caar '((#t #f) x y z)) => #t)
 ;; 嵌套列表结构
-(check (caar '(((a b) c) d e))
-  =>
-  '(a b)
-) ;check
-(check (caar '(((() a) b) c))
-  =>
-  '(() a)
-) ;check
+(check (caar '(((a b) c) d e)) => '(a b))
+(check (caar '(((() a) b) c)) => '(() a))
 (check (caar '(((1 2) 3) 4)) => '(1 2))
 ;; 混合结构测试
-(check (caar '(("hello" . 123) . "world"))
-  =>
-  "hello"
-) ;check
-(check (caar '((42 . "forty-two") . 99))
-  =>
-  42
-) ;check
-(check (caar '((#\a . #\b) . nil))
-  =>
-  #\a
-) ;check
+(check (caar '(("hello" . 123) . "world")) => "hello")
+(check (caar '((42 . "forty-two") . 99)) => 42)
+(check (caar '((#\a . #\b) . nil)) => #\a)
 ;; 构造器创建的结构
-(check (caar (cons (cons 1 2) (cons 3 4)))
-  =>
-  1
-) ;check
-(check (caar (cons (cons 'x 'y) (cons 'z 'w)))
-  =>
-  'x
-) ;check
-(check (caar (cons (list 1 2 3) (list 4 5 6)))
-  =>
-  1
-) ;check
+(check (caar (cons (cons 1 2) (cons 3 4))) => 1)
+(check (caar (cons (cons 'x 'y) (cons 'z 'w))) => 'x)
+(check (caar (cons (list 1 2 3) (list 4 5 6))) => 1)
 ;; 复杂嵌套构造
-(let ((nested (cons (cons (cons 1 2) (cons 3 4))
-                (cons 5 6)
-              ) ;cons
-      ) ;nested
-     ) ;
+(let ((nested (cons (cons (cons 1 2) (cons 3 4)) (cons 5 6))))
   (check (caar nested) => (cons 1 2))
 ) ;let
 ;; 涉及空列表的测试
-(check-catch 'wrong-type-arg
-  (caar '(() . c))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (caar '(()))
-) ;check-catch
+(check-catch 'wrong-type-arg (caar '(() . c)))
+(check-catch 'wrong-type-arg (caar '(())))
 ;; 非法参数类型错误
 (check-catch 'wrong-type-arg (caar 'a))
 (check-catch 'wrong-type-arg (caar 123))
-(check-catch 'wrong-type-arg
-  (caar "hello")
-) ;check-catch
+(check-catch 'wrong-type-arg (caar "hello"))
 (check-catch 'wrong-type-arg (caar #f))
 (check-catch 'wrong-type-arg (caar '()))
-(check-catch 'wrong-type-arg
-  (caar '(a b . c))
-) ;check-catch
+(check-catch 'wrong-type-arg (caar '(a b . c)))
 ;; 返回不同类型测试
-(check (caar '(("string" "another") 42))
-  =>
-  "string"
-) ;check
+(check (caar '(("string" "another") 42)) => "string")
 (check (caar '((123 456) 789)) => 123)
-(check (caar '(((1 2 3)) 4 5 6))
-  =>
-  (list 1 2 3)
-) ;check
-(check (caar '((#f nil "test") x y z))
-  =>
-  #f
-) ;check
+(check (caar '(((1 2 3)) 4 5 6)) => (list 1 2 3))
+(check (caar '((#f nil "test") x y z)) => #f)
 ;; edge cases for nested structure
 (check (caar '((((a))))) => '((a)))
-(check (caar '((((1 2))) 3 4 5))
-  =>
-  '((1 2))
-) ;check
+(check (caar '((((1 2))) 3 4 5)) => '((1 2)))
 (check-report)

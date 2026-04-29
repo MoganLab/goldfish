@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-make)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-make))
 
 
 (check-set-mode! 'report-failed)
@@ -21,33 +18,16 @@
 
 
 ;; 简单构建
-(define u1
-  (uri-build :scheme
-    "https"
-    :host
-    "example.com"
-  ) ;uri-build
-) ;define
+(define u1 (uri-build :scheme "https" :host "example.com"))
 (check (uri-scheme u1) => "https")
 (check (uri-host u1) => "example.com")
 (check (uri-path u1) => "")
 
 
 ;; 带路径
-(define u2
-  (uri-build :scheme
-    "http"
-    :host
-    "api.example.com"
-    :path
-    "/v1/users"
-  ) ;uri-build
-) ;define
+(define u2 (uri-build :scheme "http" :host "api.example.com" :path "/v1/users"))
 (check (uri-scheme u2) => "http")
-(check (uri-host u2)
-  =>
-  "api.example.com"
-) ;check
+(check (uri-host u2) => "api.example.com")
 (check (uri-path u2) => "/v1/users")
 
 
@@ -68,10 +48,7 @@
 (check (uri-scheme u3) => "https")
 (check (uri-user u3) => "admin")
 (check (uri-password u3) => "secret")
-(check (uri-host u3)
-  =>
-  "db.example.com"
-) ;check
+(check (uri-host u3) => "db.example.com")
 (check (uri-explicit-port u3) => 5432)
 
 
@@ -91,10 +68,7 @@
 ) ;define
 (check (uri-host u4) => "search.com")
 (check (uri-path u4) => "/query")
-(check (uri-query-ref u4 "q")
-  =>
-  "hello"
-) ;check
+(check (uri-query-ref u4 "q") => "hello")
 (check (uri-query-ref u4 "page") => "1")
 (check (uri-fragment u4) => "results")
 
@@ -122,17 +96,11 @@
 (check (uri-scheme u5) => "https")
 (check (uri-user u5) => "user")
 (check (uri-password u5) => "pass")
-(check (uri-host u5)
-  =>
-  "api.example.com"
-) ;check
+(check (uri-host u5) => "api.example.com")
 (check (uri-explicit-port u5) => 8443)
 (check (uri-path u5) => "/v2/resource")
 (check (uri-query-ref u5 "id") => "123")
-(check (uri-query-ref u5 "format")
-  =>
-  "json"
-) ;check
+(check (uri-query-ref u5 "format") => "json")
 (check (uri-fragment u5) => "section")
 
 

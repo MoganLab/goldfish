@@ -40,9 +40,7 @@
 (check-true (symbol? '123abc))
 (check-true (symbol? '1a2b3c))
 ;; 空符号名称测试 (注意：某些scheme系统可能不支持空符号)
-(check-true (symbol? (string->symbol "empty-symbol")
-            ) ;symbol?
-) ;check-true
+(check-true (symbol? (string->symbol "empty-symbol")))
 ;; 特殊符号测试
 (check-true (symbol? 'if))
 (check-true (symbol? 'lambda))
@@ -51,8 +49,7 @@
 (check-true (symbol? 'begin))
 ;; 特殊符号格式测试
 (check-true (symbol? 'complex_name))
-(check-true (symbol? 'symbol_with_underscore)
-) ;check-true
+(check-true (symbol? 'symbol_with_underscore))
 (check-true (symbol? 'symbol-with-dash))
 ;; 非符号类型测试
 (check-false (symbol? 123))
@@ -60,13 +57,8 @@
 (check-false (symbol? #\a))
 (check-false (symbol? '()))
 (check-false (symbol? (list 'a 'b 'c)))
-(check-false (symbol? (vector 'a 'b 'c))
-) ;check-false
+(check-false (symbol? (vector 'a 'b 'c)))
 ;; 字符串转换测试
-(check-true (symbol? (string->symbol "test"))
-) ;check-true
-(check-true (symbol? (string->symbol "complex-symbol-with-numbers"
-                     ) ;string->symbol
-            ) ;symbol?
-) ;check-true
+(check-true (symbol? (string->symbol "test")))
+(check-true (symbol? (string->symbol "complex-symbol-with-numbers")))
 (check-report)

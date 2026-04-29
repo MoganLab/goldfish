@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -55,10 +52,7 @@
 (define (range n)
   (let loop
     ((i 0) (acc '()))
-    (if (= i n)
-      (reverse acc)
-      (loop (+ i 1) (cons i acc))
-    ) ;if
+    (if (= i n) (reverse acc) (loop (+ i 1) (cons i acc)))
   ) ;let
 ) ;define
 
@@ -66,21 +60,14 @@
 (define big-n 1000000)
 (define big-list (range big-n))
 (define s-big (list->set big-list))
-(define s-small-big
-  (list->set (range (- big-n 1)))
-) ;define
+(define s-small-big (list->set (range (- big-n 1))))
 
 
 (check (set-size s-big) => big-n)
-(check (set-size s-small-big)
-  =>
-  (- big-n 1)
-) ;check
+(check (set-size s-small-big) => (- big-n 1))
 
 
-(check-catch 'type-error
-  (set-size "not a set")
-) ;check-catch
+(check-catch 'type-error (set-size "not a set"))
 
 
 (check-report)

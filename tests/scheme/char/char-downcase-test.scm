@@ -32,15 +32,9 @@
 (check (char-downcase #\Z) => #\z)
 (check (char-downcase #\a) => #\a)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-downcase "A")
-) ;check-catch
-(check-catch 'type-error
-  (char-downcase 65)
-) ;check-catch
-(check-catch 'type-error
-  (char-downcase 'A)
-) ;check-catch
+(check-catch 'type-error (char-downcase "A"))
+(check-catch 'type-error (char-downcase 65))
+(check-catch 'type-error (char-downcase 'A))
 ;; Latin-1 字符测试（128 <= codepoint < 256）
 (check (char-downcase #\Ä) => #\ä)
 (check (char-downcase #\ä) => #\ä)

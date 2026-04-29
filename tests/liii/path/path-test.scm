@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -36,27 +33,13 @@
 (check (path->string (path "")) => ".")
 
 (when (not (os-windows?))
-  (check (path->string (path "tmp/demo.txt"))
-    =>
-    "tmp/demo.txt"
-  ) ;check
-  (check (path->string (path (path "tmp/demo.txt"))
-         ) ;path->string
-    =>
-    "tmp/demo.txt"
-  ) ;check
+  (check (path->string (path "tmp/demo.txt")) => "tmp/demo.txt")
+  (check (path->string (path (path "tmp/demo.txt"))) => "tmp/demo.txt")
 ) ;when
 
 (when (os-windows?)
-  (check (path->string (path "tmp/demo.txt"))
-    =>
-    "tmp\\demo.txt"
-  ) ;check
-  (check (path->string (path (path "tmp/demo.txt"))
-         ) ;path->string
-    =>
-    "tmp\\demo.txt"
-  ) ;check
+  (check (path->string (path "tmp/demo.txt")) => "tmp\\demo.txt")
+  (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
 ) ;when
 
 (check-report)

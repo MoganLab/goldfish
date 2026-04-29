@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -33,15 +30,12 @@
 ;; 无
 
 
-(let-njson ((root (string->njson "{\"k\":1}")))
-  (check-true (njson? root))
-) ;let-njson
+(let-njson ((root (string->njson "{\"k\":1}"))) (check-true (njson? root)))
 
 
 (check-false (njson? 'foo))
 (check-false (njson? 1))
-(check-false (njson? '(njson-handle . 1))
-) ;check-false
+(check-false (njson? '(njson-handle . 1)))
 
 
 (check-report)

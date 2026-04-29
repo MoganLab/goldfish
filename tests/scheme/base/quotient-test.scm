@@ -50,26 +50,14 @@
 (check (quotient -17 5) => -3)
 (check (quotient 17 -5) => -3)
 (check (quotient -17 -5) => 3)
-(check-catch 'division-by-zero
-  (quotient 11 0)
-) ;check-catch
-(check-catch 'division-by-zero
-  (quotient 0 0)
-) ;check-catch
+(check-catch 'division-by-zero (quotient 11 0))
+(check-catch 'division-by-zero (quotient 0 0))
 (check (quotient 10.5 3.0) => 3)
 (check (quotient 10.5 -3.0) => -3)
 (check (quotient -10.5 3.0) => -3)
 (check (quotient -10.5 -3.0) => 3)
-(check-catch 'wrong-type-arg
-  (quotient 1.0+1.0i 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (quotient 'hello 2)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (quotient 10)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (quotient 5 3 2)
-) ;check-catch
+(check-catch 'wrong-type-arg (quotient 1.0+1.0i 2))
+(check-catch 'wrong-type-arg (quotient 'hello 2))
+(check-catch 'wrong-number-of-args (quotient 10))
+(check-catch 'wrong-number-of-args (quotient 5 3 2))
 (check-report)

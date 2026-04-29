@@ -31,23 +31,19 @@
 ) ;define
 
 ;; 文件位置测试
-(display "=== 测试1: 基础调用 ==="
-) ;display
+(display "=== 测试1: 基础调用 ===")
 (newline)
 (check (+ 1 1) => 3)
 
-(display "=== 测试2: 嵌套调用 ==="
-) ;display
+(display "=== 测试2: 嵌套调用 ===")
 (newline)
 (test-nested-failure)
 
-(display "=== 测试3: 深度调用链 ==="
-) ;display
+(display "=== 测试3: 深度调用链 ===")
 (newline)
 (level-1)
 
-(display "=== 测试4: 错误传播 ==="
-) ;display
+(display "=== 测试4: 错误传播 ===")
 (newline)
 (test-error-propagation)
 
@@ -56,6 +52,5 @@
 (check-report)
 
 ;; 验证位置信息正确显示
-(display "验证stacktrace已捕获实际测试位置而非check-report位置"
-) ;display
+(display "验证stacktrace已捕获实际测试位置而非check-report位置")
 (newline)

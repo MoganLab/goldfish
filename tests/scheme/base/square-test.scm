@@ -34,9 +34,7 @@
 (check (square 0.0) => 0.0)
 (check (square 10) => 100)
 (check (square 1.0+2.0i) => -3.0+4.0i)
-(check-catch 'wrong-type-arg
-  (square "a")
-) ;check-catch
+(check-catch 'wrong-type-arg (square "a"))
 ;; 补充square边界测试
 (check (square 1) => 1)
 (check (square -1) => 1)

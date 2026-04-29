@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -46,8 +42,7 @@
 (define (string-list-contains? s xs)
   (cond ((null? xs) #f)
         ((string=? s (car xs)) #t)
-        (else (string-list-contains? s (cdr xs))
-        ) ;else
+        (else (string-list-contains? s (cdr xs)))
   ) ;cond
 ) ;define
 
@@ -56,117 +51,65 @@
   (catch 'type-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
 ) ;define
 
 
-(let-njson ((base (string->njson deep-merge-base-json)
-            ) ;base
-            (patch (string->njson deep-merge-patch-json)
-            ) ;patch
+(let-njson ((base (string->njson deep-merge-base-json))
+            (patch (string->njson deep-merge-patch-json))
            ) ;
-  (check-true (njson? (njson-deep-merge! base patch))
-  ) ;check-true
+  (check-true (njson? (njson-deep-merge! base patch)))
   (check (njson-ref base "meta" "x") => 1)
   (check (njson-ref base "meta" "y") => 2)
-  (check (njson-ref base "meta" "nested" "a")
-    =>
-    1
-  ) ;check
-  (check (njson-ref base "meta" "nested" "b")
-    =>
-    2
-  ) ;check
+  (check (njson-ref base "meta" "nested" "a") => 1)
+  (check (njson-ref base "meta" "nested" "b") => 2)
   (check (njson-ref base "override") => 0)
 ) ;let-njson
 
 
-(let-njson ((base (string->njson "{\"meta\":{\"x\":1}}")
-            ) ;base
-            (patch (string->njson "{\"meta\":{\"y\":2},\"new-top\":1}"
-                   ) ;string->njson
-            ) ;patch
+(let-njson ((base (string->njson "{\"meta\":{\"x\":1}}"))
+            (patch (string->njson "{\"meta\":{\"y\":2},\"new-top\":1}"))
            ) ;
-  (check-true (string-list-contains? "meta"
-                (njson-keys base)
-              ) ;string-list-contains?
-  ) ;check-true
-  (check-false (string-list-contains? "new-top"
-                 (njson-keys base)
-               ) ;string-list-contains?
-  ) ;check-false
-  (check-true (njson? (njson-deep-merge! base patch))
-  ) ;check-true
+  (check-true (string-list-contains? "meta" (njson-keys base)))
+  (check-false (string-list-contains? "new-top" (njson-keys base)))
+  (check-true (njson? (njson-deep-merge! base patch)))
   (let ((keys (njson-keys base)))
-    (check-true (string-list-contains? "meta" keys)
-    ) ;check-true
-    (check-true (string-list-contains? "new-top" keys)
-    ) ;check-true
+    (check-true (string-list-contains? "meta" keys))
+    (check-true (string-list-contains? "new-top" keys))
   ) ;let
   (check (njson-ref base "meta" "x") => 1)
   (check (njson-ref base "meta" "y") => 2)
 ) ;let-njson
 
 
-(let-njson ((base (string->njson "{\"meta\":{\"x\":1,\"nested\":{\"k\":1}}}"
-                  ) ;string->njson
-            ) ;base
-           ) ;
-  (check-true (njson? (njson-deep-merge! base base))
-  ) ;check-true
+(let-njson ((base (string->njson "{\"meta\":{\"x\":1,\"nested\":{\"k\":1}}}")))
+  (check-true (njson? (njson-deep-merge! base base)))
   (check (njson-ref base "meta" "x") => 1)
-  (check (njson-ref base "meta" "nested" "k")
-    =>
-    1
-  ) ;check
+  (check (njson-ref base "meta" "nested" "k") => 1)
 ) ;let-njson
 
 
 (let-njson ((base (string->njson "{\"a\":1}")))
-  (check-catch 'type-error
-    (njson-deep-merge! base 'foo)
-  ) ;check-catch
-  (check-catch 'type-error
-    (njson-deep-merge! base 1)
-  ) ;check-catch
-  (check (capture-type-error-message (lambda () (njson-deep-merge! base 1))
-         ) ;capture-type-error-message
+  (check-catch 'type-error (njson-deep-merge! base 'foo))
+  (check-catch 'type-error (njson-deep-merge! base 1))
+  (check (capture-type-error-message (lambda () (njson-deep-merge! base 1)))
     =>
     "njson-deep-merge!: source-json must be njson object-handle"
   ) ;check
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-deep-merge! 'foo 'null)
-) ;check-catch
+(check-catch 'type-error (njson-deep-merge! 'foo 'null))
 
 
-(define njson-deep-merge!-freed
-  (string->njson "{\"a\":1}")
-) ;define
-(check-true (njson-free njson-deep-merge!-freed)
-) ;check-true
+(define njson-deep-merge!-freed (string->njson "{\"a\":1}"))
+(check-true (njson-free njson-deep-merge!-freed))
 (let-njson ((patch (string->njson "{\"b\":2}")))
-  (check-catch 'type-error
-    (njson-deep-merge! njson-deep-merge!-freed
-      patch
-    ) ;njson-deep-merge!
-  ) ;check-catch
+  (check-catch 'type-error (njson-deep-merge! njson-deep-merge!-freed patch))
 ) ;let-njson
 
 

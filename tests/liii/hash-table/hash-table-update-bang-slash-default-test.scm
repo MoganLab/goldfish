@@ -44,35 +44,15 @@
 
 
 (let ((ht (make-hash-table)))
-  (hash-table-update!/default ht
-    'key1
-    (lambda (x) (+ x 1))
-    10
-  ) ;hash-table-update!/default
+  (hash-table-update!/default ht 'key1 (lambda (x) (+ x 1)) 10)
   (check (hash-table-ref ht 'key1) => 11)
-  (hash-table-update!/default ht
-    'key1
-    (lambda (x) (+ x 1))
-    10
-  ) ;hash-table-update!/default
+  (hash-table-update!/default ht 'key1 (lambda (x) (+ x 1)) 10)
   (check (hash-table-ref ht 'key1) => 12)
-  (hash-table-update!/default ht
-    'key2
-    (lambda (x) (* x 2))
-    5
-  ) ;hash-table-update!/default
+  (hash-table-update!/default ht 'key2 (lambda (x) (* x 2)) 5)
   (check (hash-table-ref ht 'key2) => 10)
-  (hash-table-update!/default ht
-    'key2
-    (lambda (x) (+ x 2))
-    5
-  ) ;hash-table-update!/default
+  (hash-table-update!/default ht 'key2 (lambda (x) (+ x 2)) 5)
   (check (hash-table-ref ht 'key2) => 12)
-  (hash-table-update!/default ht
-    'key2
-    (lambda (x) #f)
-    5
-  ) ;hash-table-update!/default
+  (hash-table-update!/default ht 'key2 (lambda (x) #f) 5)
   (check (hash-table-ref ht 'key2) => #f)
 ) ;let
 

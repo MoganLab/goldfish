@@ -48,91 +48,34 @@
 ;; ; Basic functionality tests for string-downcase
 (check (string-downcase "ABC") => "abc")
 (check (string-downcase "abc") => "abc")
-(check (string-downcase "ABC123")
-  =>
-  "abc123"
-) ;check
-(check (string-downcase "123ABC")
-  =>
-  "123abc"
-) ;check
-(check (string-downcase "Hello World")
-  =>
-  "hello world"
-) ;check
-(check (string-downcase "!@#$%")
-  =>
-  "!@#$%"
-) ;check
-(check (string-downcase "MixedCaseString")
-  =>
-  "mixedcasestring"
-) ;check
-(check (string-downcase "UPPERCASE")
-  =>
-  "uppercase"
-) ;check
-(check (string-downcase "lowercase")
-  =>
-  "lowercase"
-) ;check
-(check (string-downcase "CamelCaseISAGoodName")
-  =>
-  "camelcaseisagoodname"
-) ;check
+(check (string-downcase "ABC123") => "abc123")
+(check (string-downcase "123ABC") => "123abc")
+(check (string-downcase "Hello World") => "hello world")
+(check (string-downcase "!@#$%") => "!@#$%")
+(check (string-downcase "MixedCaseString") => "mixedcasestring")
+(check (string-downcase "UPPERCASE") => "uppercase")
+(check (string-downcase "lowercase") => "lowercase")
+(check (string-downcase "CamelCaseISAGoodName") => "camelcaseisagoodname")
 (check (string-downcase "") => "")
 (check (string-downcase "A") => "a")
 (check (string-downcase "Z") => "z")
-(check (string-downcase "a1B2c3D4")
-  =>
-  "a1b2c3d4"
-) ;check
+(check (string-downcase "a1B2c3D4") => "a1b2c3d4")
 
 ;; ; 验证非ASCII字符保持不变（当前实现只支持基本ASCII）
-(check (string-downcase "中文")
-  =>
-  "中文"
-) ;check
-(check (string-downcase "中文TEST功能")
-  =>
-  "中文test功能"
-) ;check
-(check (string-downcase "ÀÁÂ")
-  =>
-  "ÀÁÂ"
-) ;check
+(check (string-downcase "中文") => "中文")
+(check (string-downcase "中文TEST功能") => "中文test功能")
+(check (string-downcase "ÀÁÂ") => "ÀÁÂ")
 (check (string-downcase "À") => "À")
 (check (string-downcase "Á") => "Á")
-(check (string-downcase "ÄÖÜ")
-  =>
-  "ÄÖÜ"
-) ;check
-(check (string-downcase "ΑΒΓ")
-  =>
-  "ΑΒΓ"
-) ;check
-(check (string-downcase "café")
-  =>
-  "café"
-) ;check
+(check (string-downcase "ÄÖÜ") => "ÄÖÜ")
+(check (string-downcase "ΑΒΓ") => "ΑΒΓ")
+(check (string-downcase "café") => "café")
 
 ;; ; Mixed alphanumeric and special characters
-(check (string-downcase "ABC-def-GHI")
-  =>
-  "abc-def-ghi"
-) ;check
-(check (string-downcase "123-ABC-xyz")
-  =>
-  "123-abc-xyz"
-) ;check
-(check (string-downcase "___ABCDE___")
-  =>
-  "___abcde___"
-) ;check
-(check (string-downcase ".COM/.NET/.ORG")
-  =>
-  ".com/.net/.org"
-) ;check
+(check (string-downcase "ABC-def-GHI") => "abc-def-ghi")
+(check (string-downcase "123-ABC-xyz") => "123-abc-xyz")
+(check (string-downcase "___ABCDE___") => "___abcde___")
+(check (string-downcase ".COM/.NET/.ORG") => ".com/.net/.org")
 
 ;; ; Edge cases - single character
 (check (string-downcase "X") => "x")
@@ -142,201 +85,82 @@
 (check (string-downcase " ") => " ")
 
 ;; ; String case variations
-(check (string-downcase "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-       ) ;string-downcase
+(check (string-downcase "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
   =>
   "abcdefghijklmnopqrstuvwxyz"
 ) ;check
-(check (string-downcase "abcdefghijklmnopqrstuvwxyz"
-       ) ;string-downcase
+(check (string-downcase "abcdefghijklmnopqrstuvwxyz")
   =>
   "abcdefghijklmnopqrstuvwxyz"
 ) ;check
-(check (string-downcase "AbCdEfGhIjKlMnOpQrStUvWxYz"
-       ) ;string-downcase
+(check (string-downcase "AbCdEfGhIjKlMnOpQrStUvWxYz")
   =>
   "abcdefghijklmnopqrstuvwxyz"
 ) ;check
-(check (string-downcase "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-       ) ;string-downcase
+(check (string-downcase "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
   =>
   "0123456789abcdefghijklmnopqrstuvwxyz0123456789"
 ) ;check
 
 ;; ; Boundary conditions
 (check (string-downcase "A" 0) => "a")
-(check (string-downcase "ABC" 0)
-  =>
-  "abc"
-) ;check
-(check (string-downcase "ABC" 0 1)
-  =>
-  "aBC"
-) ;check
-(check (string-downcase "ABC" 0 2)
-  =>
-  "abC"
-) ;check
-(check (string-downcase "ABC" 0 3)
-  =>
-  "abc"
-) ;check
-(check (string-downcase "ABC" 1)
-  =>
-  "Abc"
-) ;check
-(check (string-downcase "ABC" 1 2)
-  =>
-  "AbC"
-) ;check
-(check (string-downcase "ABC" 1 3)
-  =>
-  "Abc"
-) ;check
-(check (string-downcase "ABC" 2)
-  =>
-  "ABc"
-) ;check
-(check (string-downcase "ABC" 2 3)
-  =>
-  "ABc"
-) ;check
+(check (string-downcase "ABC" 0) => "abc")
+(check (string-downcase "ABC" 0 1) => "aBC")
+(check (string-downcase "ABC" 0 2) => "abC")
+(check (string-downcase "ABC" 0 3) => "abc")
+(check (string-downcase "ABC" 1) => "Abc")
+(check (string-downcase "ABC" 1 2) => "AbC")
+(check (string-downcase "ABC" 1 3) => "Abc")
+(check (string-downcase "ABC" 2) => "ABc")
+(check (string-downcase "ABC" 2 3) => "ABc")
 
 ;; ; ASCII boundary verification
-(check (string-downcase "aBc" 0 1)
-  =>
-  "aBc"
-) ;check
-(check (string-downcase "aBc" 0 0)
-  =>
-  "aBc"
-) ;check
+(check (string-downcase "aBc" 0 1) => "aBc")
+(check (string-downcase "aBc" 0 0) => "aBc")
 
 ;; Additional boundary tests
-(check (string-downcase "A1B2C3D4E5" 0)
-  =>
-  "a1b2c3d4e5"
-) ;check
-(check (string-downcase "A1B2C3D4E5" 2)
-  =>
-  "A1b2c3d4e5"
-) ;check
-(check (string-downcase "A1B2C3D4E5" 2 5)
-  =>
-  "A1b2c3D4E5"
-) ;check
-(check (string-downcase "A1B2C3D4E5" 0 1)
-  =>
-  "a1B2C3D4E5"
-) ;check
+(check (string-downcase "A1B2C3D4E5" 0) => "a1b2c3d4e5")
+(check (string-downcase "A1B2C3D4E5" 2) => "A1b2c3d4e5")
+(check (string-downcase "A1B2C3D4E5" 2 5) => "A1b2c3D4E5")
+(check (string-downcase "A1B2C3D4E5" 0 1) => "a1B2C3D4E5")
 
 ;; ; Spanning over different character types
-(check (string-downcase "TEST123" 0 4)
-  =>
-  "test123"
-) ;check
-(check (string-downcase "TEST123" 2 5)
-  =>
-  "TEst123"
-) ;check
-(check (string-downcase "TEST123" 4 7)
-  =>
-  "TEST123"
-) ;check
-(check (string-downcase "aBc123XyZ" 1 7)
-  =>
-  "abc123xyZ"
-) ;check
+(check (string-downcase "TEST123" 0 4) => "test123")
+(check (string-downcase "TEST123" 2 5) => "TEst123")
+(check (string-downcase "TEST123" 4 7) => "TEST123")
+(check (string-downcase "aBc123XyZ" 1 7) => "abc123xyZ")
 
 ;; ; Error handling tests
-(check-catch 'out-of-range
-  (string-downcase "ABC" -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "ABC" 4)
-) ;check-catch
-(check (string-downcase "ABC" 0 0)
-  =>
-  "ABC"
-) ;check
-(check-catch 'out-of-range
-  (string-downcase "ABC" 0 4)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "ABC" 2 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "" 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "A" 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "ABC" 3 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-downcase "ABC" 5 7)
-) ;check-catch
+(check-catch 'out-of-range (string-downcase "ABC" -1))
+(check-catch 'out-of-range (string-downcase "ABC" 4))
+(check (string-downcase "ABC" 0 0) => "ABC")
+(check-catch 'out-of-range (string-downcase "ABC" 0 4))
+(check-catch 'out-of-range (string-downcase "ABC" 2 1))
+(check-catch 'out-of-range (string-downcase "" 1))
+(check-catch 'out-of-range (string-downcase "A" 2))
+(check-catch 'out-of-range (string-downcase "ABC" 3 6))
+(check-catch 'out-of-range (string-downcase "ABC" 5 7))
 
 ;; ; Invalid argument type tests
-(check-catch 'wrong-type-arg
-  (string-downcase 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-downcase "hello" "123")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-downcase "hello" 1.5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-downcase "hello" 1 4.5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-downcase 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-downcase "hello" 'a 'b)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-downcase 123))
+(check-catch 'wrong-type-arg (string-downcase "hello" "123"))
+(check-catch 'wrong-type-arg (string-downcase "hello" 1.5))
+(check-catch 'wrong-type-arg (string-downcase "hello" 1 4.5))
+(check-catch 'wrong-type-arg (string-downcase 'a))
+(check-catch 'wrong-type-arg (string-downcase "hello" 'a 'b))
 
 ;; ; Long strings and performance considerations
-(check (string-downcase (make-string 100 #\A))
-  =>
-  (make-string 100 #\a)
-) ;check
-(check (string-downcase (make-string 1000 #\A))
-  =>
-  (make-string 1000 #\a)
-) ;check
+(check (string-downcase (make-string 100 #\A)) => (make-string 100 #\a))
+(check (string-downcase (make-string 1000 #\A)) => (make-string 1000 #\a))
 
 ;; ; Special case consistency
-(check (string-downcase "Test" 0 1)
-  =>
-  "test"
-) ;check
-(check (string-downcase "Test" 1 2)
-  =>
-  "Test"
-) ;check
-(check (string-downcase "Test" 2 3)
-  =>
-  "Test"
-) ;check
-(check (string-downcase "Test" 3 4)
-  =>
-  "Test"
-) ;check
-(check (string-downcase "Test " 0)
-  =>
-  "test "
-) ;check
-(check (string-downcase " Test")
-  =>
-  " test"
-) ;check
+(check (string-downcase "Test" 0 1) => "test")
+(check (string-downcase "Test" 1 2) => "Test")
+(check (string-downcase "Test" 2 3) => "Test")
+(check (string-downcase "Test" 3 4) => "Test")
+(check (string-downcase "Test " 0) => "test ")
+(check (string-downcase " Test") => " test")
 
-(check (string-downcase "ABC" 0 1)
-  =>
-  "aBC"
-) ;check
+(check (string-downcase "ABC" 0 1) => "aBC")
 
 (check-report)

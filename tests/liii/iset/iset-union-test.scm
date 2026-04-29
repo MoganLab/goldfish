@@ -18,16 +18,10 @@
 ;; ----
 ;; (iset-union iset1 iset2 ...)
 ;;
-(check (iset->list (iset-union (iset 0 1 3) (iset 0 2 4))
-       ) ;iset->list
+(check (iset->list (iset-union (iset 0 1 3) (iset 0 2 4))) => '(0 1 2 3 4))
+(check (iset->list (iset-union pos-set neg-set))
   =>
-  '(0 1 2 3 4)
-) ;check
-(check (iset->list (iset-union pos-set neg-set)
-       ) ;iset->list
-  =>
-  (iset->list (list->iset (append pos-seq neg-seq))
-  ) ;iset->list
+  (iset->list (list->iset (append pos-seq neg-seq)))
 ) ;check
 
 

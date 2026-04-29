@@ -39,12 +39,7 @@
 (let ((fv (flexvector 10 20 30)))
   ;; 10<25 满足, 20<25 满足, 30<25 不满足
   ;; 所以返回索引 2
-  (check (flexvector-skip (lambda (x) (< x 25))
-           fv
-         ) ;flexvector-skip
-    =>
-    2
-  ) ;check
+  (check (flexvector-skip (lambda (x) (< x 25)) fv) => 2)
 ) ;let
 
 
@@ -68,33 +63,18 @@
 
 
 ;; 空向量
-(check (flexvector-skip (lambda (x) #t)
-         (flexvector)
-       ) ;flexvector-skip
-  =>
-  0
-) ;check
+(check (flexvector-skip (lambda (x) #t) (flexvector)) => 0)
 
 
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-skip (lambda (x) (= x 42))
-           fv
-         ) ;flexvector-skip
-    =>
-    1
-  ) ;check
+  (check (flexvector-skip (lambda (x) (= x 42)) fv) => 1)
 ) ;let
 
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector-skip (lambda (x) (= x 0))
-           fv
-         ) ;flexvector-skip
-    =>
-    0
-  ) ;check
+  (check (flexvector-skip (lambda (x) (= x 0)) fv) => 0)
 ) ;let
 
 

@@ -66,14 +66,8 @@
 
 ;; ; 数学性质测试
 (check (bitwise-ior 15 15) => 15)
-(check (bitwise-ior 7 3)
-  =>
-  (bitwise-ior 3 7)
-) ;check
-(check (bitwise-ior 15 (bitwise-ior 7 3))
-  =>
-  (bitwise-ior (bitwise-ior 15 7) 3)
-) ;check
+(check (bitwise-ior 7 3) => (bitwise-ior 3 7))
+(check (bitwise-ior 15 (bitwise-ior 7 3)) => (bitwise-ior (bitwise-ior 15 7) 3))
 (check (bitwise-ior 255 0) => 255)
 (check (bitwise-ior 255 -1) => -1)
 
@@ -92,61 +86,31 @@
 
 
 ;; ; 特殊值测试
-(check (bitwise-ior 2147483647 2147483647)
-  =>
-  2147483647
-) ;check
-(check (bitwise-ior -2147483648 -2147483648)
-  =>
-  -2147483648
-) ;check
-(check (bitwise-ior 2147483647 -2147483648)
-  =>
-  -1
-) ;check
-(check (bitwise-ior 4294967295 4294967295)
-  =>
-  4294967295
-) ;check
-(check (bitwise-ior 9223372036854775807
-         9223372036854775807
-       ) ;bitwise-ior
+(check (bitwise-ior 2147483647 2147483647) => 2147483647)
+(check (bitwise-ior -2147483648 -2147483648) => -2147483648)
+(check (bitwise-ior 2147483647 -2147483648) => -1)
+(check (bitwise-ior 4294967295 4294967295) => 4294967295)
+(check (bitwise-ior 9223372036854775807 9223372036854775807)
   =>
   9223372036854775807
 ) ;check
-(check (bitwise-ior -9223372036854775808
-         -9223372036854775808
-       ) ;bitwise-ior
+(check (bitwise-ior -9223372036854775808 -9223372036854775808)
   =>
   -9223372036854775808
 ) ;check
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bitwise-ior "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-ior 1 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-ior 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-ior #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-ior '(1 2) 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-ior "string" 1))
+(check-catch 'wrong-type-arg (bitwise-ior 1 'symbol))
+(check-catch 'wrong-type-arg (bitwise-ior 3.14 2))
+(check-catch 'wrong-type-arg (bitwise-ior #\a 1))
+(check-catch 'wrong-type-arg (bitwise-ior '(1 2) 3))
 
 
 ;; ; 多参数错误处理测试
-(check-catch 'wrong-type-arg
-  (bitwise-ior 1 2 3 "four")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-ior 1 2 "three" 4)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-ior 1 2 3 "four"))
+(check-catch 'wrong-type-arg (bitwise-ior 1 2 "three" 4))
 
 
 

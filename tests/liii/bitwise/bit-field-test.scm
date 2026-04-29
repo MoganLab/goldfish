@@ -67,16 +67,12 @@
 
 ;; ; 边界值测试
 ;; ; 注意：S7 Scheme 的 bit-field 实现有特殊规则
-(check-catch 'out-of-range
-  (bit-field 0 0 1)
-) ;check-catch
+(check-catch 'out-of-range (bit-field 0 0 1))
 (check (bit-field -1 0 1) => 1)
 ;; ; S7 Scheme 的 bit-field 对 -1 的处理与标准不同
 ;; ; (check (bit-field -1 0 8) => 255)   ; 这个测试会失败，因为 S7 返回 1
 (check (bit-field 1 0 1) => 1)
-(check-catch 'out-of-range
-  (bit-field 1 1 2)
-) ;check-catch
+(check-catch 'out-of-range (bit-field 1 1 2))
 ;; ; (check-catch 'out-of-range
 ;; ;              (bit-field 2 1 2))         ; 这个测试会失败，S7 返回 1
 
@@ -101,10 +97,7 @@
 
 
 ;; ; 特殊值测试
-(check (bit-field 2147483647 0 31)
-  =>
-  2147483647
-) ;check
+(check (bit-field 2147483647 0 31) => 2147483647)
 ;; ; 注意：S7 Scheme 的 bit-field 对高位提取有特殊规则
 ;; ; (check (bit-field -2147483648 31 32) => 1) ; 这个测试会失败
 ;; ; (check (bit-field 4294967295 0 32) => 4294967295) ; 这个测试会失败
@@ -120,29 +113,19 @@
 
 ;; ; 超出整数长度测试
 ;; ; 注意：S7 Scheme 的 bit-field 对超出范围的处理会抛出错误
-(check-catch 'out-of-range
-  (bit-field 1 32 64)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-field 255 8 16)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-field 65535 16 32)
-) ;check-catch
+(check-catch 'out-of-range (bit-field 1 32 64))
+(check-catch 'out-of-range (bit-field 255 8 16))
+(check-catch 'out-of-range (bit-field 65535 16 32))
 
 
 ;; ; 错误处理测试 - wrong-type-arg
 ;; ; 注意：S7 Scheme 的错误类型可能与标准不同
-(check-catch 'wrong-type-arg
-  (bit-field "string" 0 4)
-) ;check-catch
+(check-catch 'wrong-type-arg (bit-field "string" 0 4))
 ;; ; (check-catch 'wrong-type-arg
 ;; ;              (bit-field 1 "string" 4))  ; 这个测试会失败，错误类型不同
 ;; ; (check-catch 'wrong-type-arg
 ;; ;              (bit-field 1 0 "string"))  ; 这个测试会失败，错误类型不同
-(check-catch 'wrong-type-arg
-  (bit-field 3.14 0 4)
-) ;check-catch
+(check-catch 'wrong-type-arg (bit-field 3.14 0 4))
 ;; ; (check-catch 'wrong-type-arg
 ;; ;              (bit-field 1 3.14 4))      ; 这个测试会失败，错误类型不同
 ;; ; (check-catch 'wrong-type-arg
@@ -151,9 +134,7 @@
 
 ;; ; 错误处理测试 - out-of-range
 ;; ; 注意：S7 Scheme 的 bit-field 对某些边界情况不会抛出错误
-(check-catch 'out-of-range
-  (bit-field 0 128 129)
-) ;check-catch
+(check-catch 'out-of-range (bit-field 0 128 129))
 ;; ; 以下情况 S7 Scheme 不会抛出 out-of-range 错误：
 ;; ; (check-catch 'out-of-range
 ;; ;              (bit-field 1 -1 4))        ; 起始索引为负数，但 S7 返回正常值

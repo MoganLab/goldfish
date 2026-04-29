@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-transform)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-transform))
 
 
 (check-set-mode! 'report-failed)
@@ -21,45 +18,20 @@
 
 
 ;; 添加 fragment
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u2
-  (uri-with-fragment u1 "section-1")
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u2 (uri-with-fragment u1 "section-1"))
 (check (uri-fragment u2) => "section-1")
 
 
 ;; 修改 fragment
-(define u3
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    "old"
-  ) ;make-uri-raw
-) ;define
+(define u3 (make-uri-raw "https" "example.com" "/" '() "old"))
 (define u4 (uri-with-fragment u3 "new"))
 (check (uri-fragment u4) => "new")
 
 
 ;; 保留其他字段
-(define u5
-  (make-uri-raw "https"
-    "api.com"
-    "/v1"
-    '(("k" . "v"))
-    "old"
-  ) ;make-uri-raw
-) ;define
-(define u6
-  (uri-with-fragment u5 "section-2")
-) ;define
+(define u5 (make-uri-raw "https" "api.com" "/v1" '(("k" . "v")) "old"))
+(define u6 (uri-with-fragment u5 "section-2"))
 (check (uri-path u6) => "/v1")
 (check (uri-query-ref u6 "k") => "v")
 (check (uri-fragment u6) => "section-2")

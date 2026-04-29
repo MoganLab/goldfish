@@ -45,34 +45,47 @@
 ;; 基本测试 - ASCII
 (let ((s "abcdef"))
   (check (string-cursor->index s (string-index s char-alphabetic?)) => 0)
-  (check (string-cursor->index s (string-index s (lambda (c) (char=? c #\d)))) => 3))
+  (check (string-cursor->index s (string-index s (lambda (c) (char=? c #\d))))
+    =>
+    3
+  ) ;check
+) ;let
 
 ;; 测试中文
 (let ((s "abc123"))
   (check (string-cursor->index s (string-index s char-numeric?)) => 3)
-  (check (string-cursor->index s (string-index s (lambda (c) (char=? c #\2)))) => 4))
+  (check (string-cursor->index s (string-index s (lambda (c) (char=? c #\2))))
+    =>
+    4
+  ) ;check
+) ;let
 
 ;; 测试未找到的情况
 (let ((s "abc"))
-  (check (string-cursor->index s (string-index s char-numeric?)) => 3))
+  (check (string-cursor->index s (string-index s char-numeric?)) => 3)
+) ;let
 
 ;; 测试带 start 参数
 (let ((s "abc123"))
   (check (string-cursor->index s (string-index s char-numeric? 2)) => 3)
-  (check (string-cursor->index s (string-index s char-numeric? 4)) => 4))
+  (check (string-cursor->index s (string-index s char-numeric? 4)) => 4)
+) ;let
 
 ;; 测试带 start 和 end 参数
 (let ((s "abc123"))
   (check (string-cursor->index s (string-index s char-numeric? 0 3)) => 3)
   (check (string-cursor->index s (string-index s char-numeric? 4 5)) => 4)
   ;; 在范围内没有找到
-  (check (string-cursor->index s (string-index s char-numeric? 0 3)) => 3))
+  (check (string-cursor->index s (string-index s char-numeric? 0 3)) => 3)
+) ;let
 
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (result (string-index s char-numeric? start end)))
-  (check (string-cursor->index s result) => 3))
+       (result (string-index s char-numeric? start end))
+      ) ;
+  (check (string-cursor->index s result) => 3)
+) ;let*
 (check-report)

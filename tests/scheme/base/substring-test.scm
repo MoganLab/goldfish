@@ -42,16 +42,10 @@
 ;; out-of-range 当 start 或 end 超出字符串范围时。
 
 ;; 基本 ASCII 测试
-(check (substring "Hello" 0 5)
-  =>
-  "Hello"
-) ;check
+(check (substring "Hello" 0 5) => "Hello")
 (check (substring "Hello" 0 2) => "He")
 (check (substring "Hello" 2 4) => "ll")
-(check (substring "Hello" 1 5)
-  =>
-  "ello"
-) ;check
+(check (substring "Hello" 1 5) => "ello")
 (check (substring "Hello" 0 0) => "")
 (check (substring "Hello" 3 3) => "")
 
@@ -64,14 +58,8 @@
 (check (substring "abc" 2 3) => "c")
 
 ;; 错误处理
-(check-catch 'out-of-range
-  (substring "Hello" 0 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (substring "Hello" 6 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (substring "Hello" 3 2)
-) ;check-catch
+(check-catch 'out-of-range (substring "Hello" 0 6))
+(check-catch 'out-of-range (substring "Hello" 6 6))
+(check-catch 'out-of-range (substring "Hello" 3 2))
 
 (check-report)

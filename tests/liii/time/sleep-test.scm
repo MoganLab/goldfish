@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (scheme time)
-) ;import
+(import (liii check) (liii time) (scheme time))
 
 
 (check-set-mode! 'report-failed)
@@ -53,9 +50,7 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (sleep 'not-a-number)
-) ;check-catch
+(check-catch 'type-error (sleep 'not-a-number))
 
 
 (check-report)

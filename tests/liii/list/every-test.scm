@@ -31,10 +31,7 @@
 
 
 (check (every integer? '()) => #t)
-(check (every integer? '(a 3.14 3))
-  =>
-  #f
-) ;check
+(check (every integer? '(a 3.14 3)) => #f)
 (check (every integer? '(1 2 3)) => #t)
 
 

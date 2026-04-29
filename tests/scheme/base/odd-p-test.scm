@@ -24,9 +24,7 @@
 ;; 如果参数不是整数类型
 (check-true (odd? 1))
 (check-false (odd? 0))
-(check-catch 'wrong-type-arg
-  (odd? 1.0+1.0i)
-) ;check-catch
+(check-catch 'wrong-type-arg (odd? 1.0+1.0i))
 (check-catch 'wrong-type-arg (odd? 1.0))
 (check-catch 'wrong-type-arg (odd? 0.0))
 (check-catch 'wrong-type-arg (odd? #\A))

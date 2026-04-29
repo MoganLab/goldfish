@@ -37,34 +37,16 @@
 (let ((r (numeric-range 0 10)))
   (check (range-count even? r) => 5)
   (check (range-count odd? r) => 5)
-  (check (range-count (lambda (x) (> x 5)) r)
-    =>
-    4
-  ) ;check
-  (check (range-count (lambda (x) (< x 5)) r)
-    =>
-    5
-  ) ;check
-  (check (range-count (lambda (x) (= x 0)) r)
-    =>
-    1
-  ) ;check
-  (check (range-count (lambda (x) (< x 0)) r)
-    =>
-    0
-  ) ;check
+  (check (range-count (lambda (x) (> x 5)) r) => 4)
+  (check (range-count (lambda (x) (< x 5)) r) => 5)
+  (check (range-count (lambda (x) (= x 0)) r) => 1)
+  (check (range-count (lambda (x) (< x 0)) r) => 0)
 ) ;let
 
 
 (let ((r (numeric-range 0 5)))
-  (check (range-count (lambda (x) #t) r)
-    =>
-    5
-  ) ;check
-  (check (range-count (lambda (x) #f) r)
-    =>
-    0
-  ) ;check
+  (check (range-count (lambda (x) #t) r) => 5)
+  (check (range-count (lambda (x) #f) r) => 0)
 ) ;let
 
 

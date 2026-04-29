@@ -41,25 +41,13 @@
 
 
 ;; 基本合并测试
-(check (vector-merge < #(1 3 5) #(2 4 6))
-  =>
-  #(1 2 3 4 5 6)
-) ;check
-(check (vector-merge < #(1 1 3) #(1 2 4))
-  =>
-  #(1 1 1 2 3 4)
-) ;check
+(check (vector-merge < #(1 3 5) #(2 4 6)) => #(1 2 3 4 5 6))
+(check (vector-merge < #(1 1 3) #(1 2 4)) => #(1 1 1 2 3 4))
 
 
 ;; 包含空向量的合并
-(check (vector-merge < #() #(1 2 3))
-  =>
-  #(1 2 3)
-) ;check
-(check (vector-merge < #(1 2 3) #())
-  =>
-  #(1 2 3)
-) ;check
+(check (vector-merge < #() #(1 2 3)) => #(1 2 3))
+(check (vector-merge < #(1 2 3) #()) => #(1 2 3))
 (check (vector-merge < #() #()) => #())
 
 
@@ -70,9 +58,7 @@
 
 
 (define (pair-full-< x y)
-  (cond ((not (= (car x) (car y)))
-         (< (car x) (car y))
-        ) ;
+  (cond ((not (= (car x) (car y))) (< (car x) (car y)))
         (else (< (cdr y) (cdr x)))
   ) ;cond
 ) ;define

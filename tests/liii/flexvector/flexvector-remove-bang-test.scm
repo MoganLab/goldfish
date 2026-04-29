@@ -59,10 +59,7 @@
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-remove! fv 0)
-    =>
-    'only
-  ) ;check
+  (check (flexvector-remove! fv 0) => 'only)
   (check (flexvector-empty? fv) => #t)
 ) ;let
 
@@ -71,10 +68,7 @@
 (let ((fv (flexvector 'a 'b 'c 'd 'e)))
   (flexvector-remove! fv 2)
   (flexvector-add-back! fv 'x)
-  (check (flexvector->list fv)
-    =>
-    '(a b d e x)
-  ) ;check
+  (check (flexvector->list fv) => '(a b d e x))
 ) ;let
 
 

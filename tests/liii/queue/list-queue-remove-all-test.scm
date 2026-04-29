@@ -6,30 +6,21 @@
 
 ;; list-queue-remove-all! 基本测试
 (let ((q (list-queue 1 2 3)))
-  (check (list-queue-remove-all! q)
-    =>
-    '(1 2 3)
-  ) ;check
+  (check (list-queue-remove-all! q) => '(1 2 3))
   (check (list-queue-empty? q) => #t)
 ) ;let
 
 
 ;; 空队列
 (let ((q (list-queue)))
-  (check (list-queue-remove-all! q)
-    =>
-    '()
-  ) ;check
+  (check (list-queue-remove-all! q) => '())
   (check (list-queue-empty? q) => #t)
 ) ;let
 
 
 ;; 单元素队列
 (let ((q (list-queue 42)))
-  (check (list-queue-remove-all! q)
-    =>
-    '(42)
-  ) ;check
+  (check (list-queue-remove-all! q) => '(42))
   (check (list-queue-empty? q) => #t)
 ) ;let
 

@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-compare)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-compare))
 
 
 (check-set-mode! 'report-failed)
@@ -21,38 +18,14 @@
 
 
 ;; 相同 URI 有相同哈希值
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u2
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-hash u1) => (uri-hash u2))
 
 
 ;; 不同 scheme，不同哈希值
-(define u3
-  (make-uri-raw "http"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(check (= (uri-hash u1) (uri-hash u3))
-  =>
-  #f
-) ;check
+(define u3 (make-uri-raw "http" "example.com" "/" '() #f))
+(check (= (uri-hash u1) (uri-hash u3)) => #f)
 
 
 ;; 计算具体值
@@ -61,33 +34,13 @@
 
 
 ;; 带 query 的 URI
-(define u4
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '(("a" . "1"))
-    #f
-  ) ;make-uri-raw
-) ;define
-(check (> (uri-hash u4) (uri-hash u1))
-  =>
-  #t
-) ;check
+(define u4 (make-uri-raw "https" "example.com" "/" '(("a" . "1")) #f))
+(check (> (uri-hash u4) (uri-hash u1)) => #t)
 
 
 ;; 带 fragment 的 URI
-(define u5
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    "section"
-  ) ;make-uri-raw
-) ;define
-(check (> (uri-hash u5) (uri-hash u1))
-  =>
-  #t
-) ;check
+(define u5 (make-uri-raw "https" "example.com" "/" '() "section"))
+(check (> (uri-hash u5) (uri-hash u1)) => #t)
 
 
 ;; 复杂 URI
@@ -104,9 +57,7 @@
 
 
 ;; 空 URI
-(define u7
-  (make-uri-raw #f "" "" '() #f)
-) ;define
+(define u7 (make-uri-raw #f "" "" '() #f))
 (check (uri-hash u7) => 0)
 
 

@@ -29,6 +29,9 @@
 (check (reverse-list->string '()) => "")
 
 ;; Unicode 测试
-(check (reverse-list->string (reverse (string->list/cursors "中文"))) => "中文")
+(check (reverse-list->string (reverse (string->list/cursors "中文")))
+  =>
+  "中文"
+) ;check
 
 (check-report)

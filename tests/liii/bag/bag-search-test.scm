@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -43,54 +40,21 @@
     (remove 4)
   ) ;define
 
-  (call-with-values (lambda ()
-                      (bag-search! (bag-copy yam)
-                        #\!
-                        failure/insert
-                        error
-                      ) ;bag-search!
-                    ) ;lambda
-    (lambda (b obj)
-      (check-true (bag-contains? b #\!))
-      (check obj => 1)
-    ) ;lambda
+  (call-with-values (lambda () (bag-search! (bag-copy yam) #\! failure/insert error))
+    (lambda (b obj) (check-true (bag-contains? b #\!)) (check obj => 1))
   ) ;call-with-values
-  (call-with-values (lambda ()
-                      (bag-search! (bag-copy yam)
-                        #\!
-                        failure/ignore
-                        error
-                      ) ;bag-search!
-                    ) ;lambda
-    (lambda (b obj)
-      (check-false (bag-contains? b #\!))
-      (check obj => 2)
-    ) ;lambda
+  (call-with-values (lambda () (bag-search! (bag-copy yam) #\! failure/ignore error))
+    (lambda (b obj) (check-false (bag-contains? b #\!)) (check obj => 2))
   ) ;call-with-values
-  (call-with-values (lambda ()
-                      (bag-search! (bag-copy yam)
-                        #\y
-                        error
-                        success/update
-                      ) ;bag-search!
-                    ) ;lambda
+  (call-with-values (lambda () (bag-search! (bag-copy yam) #\y error success/update))
     (lambda (b obj)
       (check-true (bag-contains? b #\b))
       (check-false (bag-contains? b #\y))
       (check obj => 3)
     ) ;lambda
   ) ;call-with-values
-  (call-with-values (lambda ()
-                      (bag-search! (bag-copy yam)
-                        #\a
-                        error
-                        success/remove
-                      ) ;bag-search!
-                    ) ;lambda
-    (lambda (b obj)
-      (check-false (bag-contains? b #\a))
-      (check obj => 4)
-    ) ;lambda
+  (call-with-values (lambda () (bag-search! (bag-copy yam) #\a error success/remove))
+    (lambda (b obj) (check-false (bag-contains? b #\a)) (check obj => 4))
   ) ;call-with-values
 ) ;let
 

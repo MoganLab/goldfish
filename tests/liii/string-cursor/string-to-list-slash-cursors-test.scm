@@ -41,8 +41,7 @@
 (check (char->integer (car (string->list/cursors "中文"))) => 20013)
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abc")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (length (string->list/cursors s start end)) => 3))
+(let* ((s "abc") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (length (string->list/cursors s start end)) => 3)
+) ;let*
 (check-report)

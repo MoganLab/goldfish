@@ -54,18 +54,10 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (int-vector-ref 'not-a-vector 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (int-vector-ref (vector 1 2 3) 0)
-) ;check-catch
-(check-catch 'out-of-range
-  (int-vector-ref (int-vector 1 2) 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (int-vector-ref (int-vector 1 2) -1)
-) ;check-catch
+(check-catch 'wrong-type-arg (int-vector-ref 'not-a-vector 0))
+(check-catch 'wrong-type-arg (int-vector-ref (vector 1 2 3) 0))
+(check-catch 'out-of-range (int-vector-ref (int-vector 1 2) 5))
+(check-catch 'out-of-range (int-vector-ref (int-vector 1 2) -1))
 
 
 (check-report)

@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -38,35 +35,20 @@
 ;; Test basic behavior
 (define s-foreach (set 1 2 3))
 (define foreach-collected '())
-(set-for-each (lambda (x)
-                (set! foreach-collected
-                  (cons x foreach-collected)
-                ) ;set!
-              ) ;lambda
+(set-for-each (lambda (x) (set! foreach-collected (cons x foreach-collected)))
   s-foreach
 ) ;set-for-each
-(check-true (set=? (list->set foreach-collected)
-              s-foreach
-            ) ;set=?
-) ;check-true
+(check-true (set=? (list->set foreach-collected) s-foreach))
 
 
 ;; Test empty set - no calls triggered
 (define foreach-count 0)
-(set-for-each (lambda (x)
-                (set! foreach-count (+ foreach-count 1))
-              ) ;lambda
-  s-empty
-) ;set-for-each
+(set-for-each (lambda (x) (set! foreach-count (+ foreach-count 1))) s-empty)
 (check (set-size s-empty) => 0)
 (check foreach-count => 0)
 
 
-(check-catch 'type-error
-  (set-for-each (lambda (x) x)
-    "not a set"
-  ) ;set-for-each
-) ;check-catch
+(check-catch 'type-error (set-for-each (lambda (x) x) "not a set"))
 
 
 (check-report)

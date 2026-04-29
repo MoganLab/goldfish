@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -48,18 +44,8 @@
   (catch 'key-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
@@ -70,18 +56,8 @@
   (catch 'type-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
@@ -89,8 +65,7 @@
 
 
 (let-njson ((root (string->njson sample-json)))
-  (check-true (njson? (njson-append! root "nums" 99))
-  ) ;check-true
+  (check-true (njson? (njson-append! root "nums" 99)))
   (check (njson-ref root "nums" 5) => 99)
 ) ;let-njson
 
@@ -101,52 +76,28 @@
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-append! 'foo 1)
-) ;check-catch
+(check-catch 'type-error (njson-append! 'foo 1))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'type-error
-    (njson-append! root "nums" +nan.0)
-  ) ;check-catch
-  (check-catch 'type-error
-    (njson-append! root "nums" +inf.0)
-  ) ;check-catch
-  (check-catch 'type-error
-    (njson-append! root "nums" -inf.0)
-  ) ;check-catch
-  (check (capture-type-error-message (lambda ()
-                                       (njson-append! root "nums" +nan.0)
-                                     ) ;lambda
-         ) ;capture-type-error-message
+  (check-catch 'type-error (njson-append! root "nums" +nan.0))
+  (check-catch 'type-error (njson-append! root "nums" +inf.0))
+  (check-catch 'type-error (njson-append! root "nums" -inf.0))
+  (check (capture-type-error-message (lambda () (njson-append! root "nums" +nan.0)))
     =>
     "g_njson-append!: number must be finite (NaN/Inf are not valid JSON numbers)"
   ) ;check
-  (check-catch 'key-error
-    (njson-append! root)
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-append! root "as")
-  ) ;check-catch
-  (check (capture-key-error-message (lambda () (njson-append! root "as"))
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-append! root))
+  (check-catch 'key-error (njson-append! root "as"))
+  (check (capture-key-error-message (lambda () (njson-append! root "as")))
     =>
     "g_njson-append!: append target must be array"
   ) ;check
-  (check-catch 'key-error
-    (njson-append! root "nums")
-  ) ;check-catch
-  (check (capture-key-error-message (lambda () (njson-append! root "nums"))
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-append! root "nums"))
+  (check (capture-key-error-message (lambda () (njson-append! root "nums")))
     =>
     "g_njson-append!: append target must be array"
   ) ;check
-  (check-catch 'key-error
-    (njson-append! root "name" 1)
-  ) ;check-catch
-  (check (capture-key-error-message (lambda ()
-                                      (njson-append! root "name" 1)
-                                    ) ;lambda
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-append! root "name" 1))
+  (check (capture-key-error-message (lambda () (njson-append! root "name" 1)))
     =>
     "g_njson-append!: append target must be array"
   ) ;check

@@ -24,17 +24,11 @@
 ;; -----
 ;; 返回最终累积值。
 ;;
-(check (fxmapping-fold (lambda (k v acc) (+ v acc))
-         0
-         (fxmapping 0 10 1 20 2 30)
-       ) ;fxmapping-fold
+(check (fxmapping-fold (lambda (k v acc) (+ v acc)) 0 (fxmapping 0 10 1 20 2 30))
   =>
   60
 ) ;check
-(check (fxmapping-fold (lambda (k v acc) (cons k acc))
-         '()
-         (fxmapping 0 'a 1 'b 2 'c)
-       ) ;fxmapping-fold
+(check (fxmapping-fold (lambda (k v acc) (cons k acc)) '() (fxmapping 0 'a 1 'b 2 'c))
   =>
   '(2 1 0)
 ) ;check

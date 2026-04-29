@@ -1,20 +1,13 @@
-(import (liii check)
-  (liii enum)
-  (srfi srfi-1)
-) ;import
+(import (liii check) (liii enum) (srfi srfi-1))
 
 
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
 ;; enum-type-enums
@@ -47,19 +40,11 @@
 ;; 无。
 
 
-(check (enum-type-size color)
-  =>
-  (length (enum-type-enums color))
-) ;check
-(check color-names
-  =>
-  (map enum-name (enum-type-enums color))
-) ;check
+(check (enum-type-size color) => (length (enum-type-enums color)))
+(check color-names => (map enum-name (enum-type-enums color)))
 (check (iota (enum-type-size color))
   =>
-  (map enum-ordinal
-    (enum-type-enums color)
-  ) ;map
+  (map enum-ordinal (enum-type-enums color))
 ) ;check
 
 

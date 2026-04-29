@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -37,24 +34,11 @@
 ;; ----
 ;; type-error 当 either 不是 Either 时
 
-(let ((main (from-right 1))
-      (backup (from-right 2))
-      (fail (from-left 0))
-     ) ;
-  (check (to-right (either-or-else main backup))
-    =>
-    1
-  ) ;check
-  (check (to-right (either-or-else fail backup))
-    =>
-    2
-  ) ;check
+(let ((main (from-right 1)) (backup (from-right 2)) (fail (from-left 0)))
+  (check (to-right (either-or-else main backup)) => 1)
+  (check (to-right (either-or-else fail backup)) => 2)
 ) ;let
 
-(check-catch 'type-error
-  (either-or-else "not-either"
-    (from-right 1)
-  ) ;either-or-else
-) ;check-catch
+(check-catch 'type-error (either-or-else "not-either" (from-right 1)))
 
 (check-report)

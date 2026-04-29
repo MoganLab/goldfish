@@ -48,11 +48,7 @@
 
 
 ;; 与 unfold 对比
-(let* ((unfold-result (flexvector->vector (flexvector-unfold (lambda (x) (> x 5))
-                                            (lambda (x) x)
-                                            (lambda (x) (+ x 1))
-                                            1
-                                          ) ;flexvector-unfold
+(let* ((unfold-result (flexvector->vector (flexvector-unfold (lambda (x) (> x 5)) (lambda (x) x) (lambda (x) (+ x 1)) 1)
                       ) ;flexvector->vector
        ) ;unfold-result
        (unfold-right-result (flexvector->vector (flexvector-unfold-right (lambda (x) (> x 5))
@@ -64,10 +60,7 @@
        ) ;unfold-right-result
       ) ;
   (check unfold-result => #(1 2 3 4 5))
-  (check unfold-right-result
-    =>
-    #(5 4 3 2 1)
-  ) ;check
+  (check unfold-right-result => #(5 4 3 2 1))
 ) ;let*
 
 
@@ -85,11 +78,7 @@
 
 
 ;; 空结果
-(check (flexvector->vector (flexvector-unfold-right (lambda (x) #t)
-                             (lambda (x) x)
-                             (lambda (x) x)
-                             'seed
-                           ) ;flexvector-unfold-right
+(check (flexvector->vector (flexvector-unfold-right (lambda (x) #t) (lambda (x) x) (lambda (x) x) 'seed)
        ) ;flexvector->vector
   =>
   #()

@@ -34,123 +34,34 @@
 ;; out-of-range
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
 ;; bytevector-u8-ref 基本测试
-(check (bytevector-u8-ref #u8(5 15 25) 0)
-  =>
-  5
-) ;check
-(check (bytevector-u8-ref #u8(5 15 25) 1)
-  =>
-  15
-) ;check
-(check (bytevector-u8-ref #u8(5 15 25) 2)
-  =>
-  25
-) ;check
-(check (bytevector-u8-ref #u8(255) 0)
-  =>
-  255
-) ;check
-(check (bytevector-u8-ref #u8(0) 0)
-  =>
-  0
-) ;check
+(check (bytevector-u8-ref #u8(5 15 25) 0) => 5)
+(check (bytevector-u8-ref #u8(5 15 25) 1) => 15)
+(check (bytevector-u8-ref #u8(5 15 25) 2) => 25)
+(check (bytevector-u8-ref #u8(255) 0) => 255)
+(check (bytevector-u8-ref #u8(0) 0) => 0)
 ;; 使用其他函数创建的字节向量测试
-(check (bytevector-u8-ref (bytevector 10 20 30 40)
-         0
-       ) ;bytevector-u8-ref
-  =>
-  10
-) ;check
-(check (bytevector-u8-ref (bytevector 10 20 30 40)
-         1
-       ) ;bytevector-u8-ref
-  =>
-  20
-) ;check
-(check (bytevector-u8-ref (bytevector 10 20 30 40)
-         3
-       ) ;bytevector-u8-ref
-  =>
-  40
-) ;check
-(check (bytevector-u8-ref (bytevector 200 150 100 50)
-         2
-       ) ;bytevector-u8-ref
-  =>
-  100
-) ;check
-(check (bytevector-u8-ref (make-bytevector 4 99)
-         0
-       ) ;bytevector-u8-ref
-  =>
-  99
-) ;check
-(check (bytevector-u8-ref (make-bytevector 4 99)
-         3
-       ) ;bytevector-u8-ref
-  =>
-  99
-) ;check
-(check (bytevector-u8-ref #u8(1) 0)
-  =>
-  1
-) ;check
+(check (bytevector-u8-ref (bytevector 10 20 30 40) 0) => 10)
+(check (bytevector-u8-ref (bytevector 10 20 30 40) 1) => 20)
+(check (bytevector-u8-ref (bytevector 10 20 30 40) 3) => 40)
+(check (bytevector-u8-ref (bytevector 200 150 100 50) 2) => 100)
+(check (bytevector-u8-ref (make-bytevector 4 99) 0) => 99)
+(check (bytevector-u8-ref (make-bytevector 4 99) 3) => 99)
+(check (bytevector-u8-ref #u8(1) 0) => 1)
 ;; 复杂字节向量测试
-(check (bytevector-u8-ref #u8(10 20 30 40 50 60 70 80 90 100)
-         9
-       ) ;bytevector-u8-ref
-  =>
-  100
-) ;check
-(check (bytevector-u8-ref #u8(128 64 32 16 8 4 2 1)
-         4
-       ) ;bytevector-u8-ref
-  =>
-  8
-) ;check
+(check (bytevector-u8-ref #u8(10 20 30 40 50 60 70 80 90 100) 9) => 100)
+(check (bytevector-u8-ref #u8(128 64 32 16 8 4 2 1) 4) => 8)
 ;; UTF-8转换测试
-(check (bytevector-u8-ref (string->utf8 "XYZ")
-         0
-       ) ;bytevector-u8-ref
-  =>
-  88
-) ;check
-(check (bytevector-u8-ref (string->utf8 "XYZ")
-         1
-       ) ;bytevector-u8-ref
-  =>
-  89
-) ;check
-(check (bytevector-u8-ref (string->utf8 "A") 0)
-  =>
-  65
-) ;check
+(check (bytevector-u8-ref (string->utf8 "XYZ") 0) => 88)
+(check (bytevector-u8-ref (string->utf8 "XYZ") 1) => 89)
+(check (bytevector-u8-ref (string->utf8 "A") 0) => 65)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (bytevector-u8-ref 123 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-ref "hello" 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-ref #u8(1 2 3) 1.5)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-ref #u8() 0)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-ref #u8(1 2 3) -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-ref #u8(1 2 3) 3)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-ref #u8(1 2 3) 1 3)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-ref #u8() 0)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (bytevector-u8-ref #u8(1 2 3))
-) ;check-catch
+(check-catch 'wrong-type-arg (bytevector-u8-ref 123 0))
+(check-catch 'wrong-type-arg (bytevector-u8-ref "hello" 0))
+(check-catch 'wrong-type-arg (bytevector-u8-ref #u8(1 2 3) 1.5))
+(check-catch 'out-of-range (bytevector-u8-ref #u8() 0))
+(check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) -1))
+(check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) 3))
+(check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) 1 3))
+(check-catch 'out-of-range (bytevector-u8-ref #u8() 0))
+(check-catch 'wrong-number-of-args (bytevector-u8-ref #u8(1 2 3)))
 (check-report)

@@ -55,16 +55,8 @@
 (check (gcd 12 -9) => 3)
 (check-catch 'wrong-type-arg (gcd 1.5))
 (check-catch 'wrong-type-arg (gcd 2.3))
-(check-catch 'wrong-type-arg
-  (gcd 1.0+1.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (gcd 'hello)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (gcd 1 2.0+1.0i 3)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (gcd 1.5 2.5)
-) ;check-catch
+(check-catch 'wrong-type-arg (gcd 1.0+1.0i))
+(check-catch 'wrong-type-arg (gcd 'hello))
+(check-catch 'wrong-type-arg (gcd 1 2.0+1.0i 3))
+(check-catch 'wrong-type-arg (gcd 1.5 2.5))
 (check-report)

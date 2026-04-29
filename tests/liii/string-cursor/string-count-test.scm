@@ -43,8 +43,7 @@
 
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abc123")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-count char-alphabetic? s start end) => 3))
+(let* ((s "abc123") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-count char-alphabetic? s start end) => 3)
+) ;let*
 (check-report)

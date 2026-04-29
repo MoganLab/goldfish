@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-transform)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-transform))
 
 
 (check-set-mode! 'report-failed)
@@ -21,50 +18,21 @@
 
 
 ;; 移除单个参数
-(define u1
-  (make-uri-raw "https"
-    "api.com"
-    "/"
-    '(("a" . "1") ("b" . "2"))
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u2
-  (uri-without-query-param u1 "a")
-) ;define
+(define u1 (make-uri-raw "https" "api.com" "/" '(("a" . "1") ("b" . "2")) #f))
+(define u2 (uri-without-query-param u1 "a"))
 (check (uri-query-ref u2 "a") => #f)
 (check (uri-query-ref u2 "b") => "2")
 
 
 ;; 移除不存在的参数（无变化）
-(define u3
-  (make-uri-raw "https"
-    "api.com"
-    "/"
-    '(("a" . "1"))
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u4
-  (uri-without-query-param u3
-    "nonexistent"
-  ) ;uri-without-query-param
-) ;define
+(define u3 (make-uri-raw "https" "api.com" "/" '(("a" . "1")) #f))
+(define u4 (uri-without-query-param u3 "nonexistent"))
 (check (uri-query-ref u4 "a") => "1")
 
 
 ;; 空 query 保持不变
-(define u5
-  (make-uri-raw "https"
-    "api.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u6
-  (uri-without-query-param u5 "key")
-) ;define
+(define u5 (make-uri-raw "https" "api.com" "/" '() #f))
+(define u6 (uri-without-query-param u5 "key"))
 (check (uri-query-raw u6) => '())
 
 

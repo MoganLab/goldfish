@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -37,14 +34,11 @@
 (define s-to-list (set 1 2 3))
 (define l-to-list (set->list s-to-list))
 (check (length l-to-list) => 3)
-(check-true (set=? (list->set l-to-list) s-to-list)
-) ;check-true
+(check-true (set=? (list->set l-to-list) s-to-list))
 
 
 ;; Test type error
-(check-catch 'type-error
-  (set->list "not a set")
-) ;check-catch
+(check-catch 'type-error (set->list "not a set"))
 
 
 (check-report)

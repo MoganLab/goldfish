@@ -19,28 +19,13 @@
 
 ;; 有 query
 (define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '(("a" . "1") ("b" . "2"))
-    #f
-  ) ;make-uri-raw
+  (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f)
 ) ;define
-(check (uri-query u1)
-  =>
-  '(("a" . "1") ("b" . "2"))
-) ;check
+(check (uri-query u1) => '(("a" . "1") ("b" . "2")))
 
 
 ;; 空 query
-(define u2
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-query u2) => '())
 
 

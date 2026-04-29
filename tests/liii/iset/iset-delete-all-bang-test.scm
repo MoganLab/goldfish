@@ -24,13 +24,7 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
-(check (iset->list (iset-delete-all! (iset 2 3 5 7 11)
-                     '(3 4 5)
-                   ) ;iset-delete-all!
-       ) ;iset->list
-  =>
-  '(2 7 11)
-) ;check
+(check (iset->list (iset-delete-all! (iset 2 3 5 7 11) '(3 4 5))) => '(2 7 11))
 
 
 (check-report)

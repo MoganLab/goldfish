@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii os)
-  (liii string)
-) ;import
+(import (liii check) (liii os) (liii string))
 
 
 (check-set-mode! 'report-failed)

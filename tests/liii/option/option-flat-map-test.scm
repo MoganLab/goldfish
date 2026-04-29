@@ -26,24 +26,9 @@
 
 
 (let ((opt1 (option 42)) (opt2 (none)))
-  (check (option-flat-map (lambda (x) (option (+ x 1)))
-           opt1
-         ) ;option-flat-map
-    =>
-    (option 43)
-  ) ;check
-  (check (option-flat-map (lambda (x) (option (+ x 1)))
-           opt2
-         ) ;option-flat-map
-    =>
-    (none)
-  ) ;check
-  (check (option-flat-map (lambda (x) (none))
-           opt1
-         ) ;option-flat-map
-    =>
-    (none)
-  ) ;check
+  (check (option-flat-map (lambda (x) (option (+ x 1))) opt1) => (option 43))
+  (check (option-flat-map (lambda (x) (option (+ x 1))) opt2) => (none))
+  (check (option-flat-map (lambda (x) (none)) opt1) => (none))
 ) ;let
 
 

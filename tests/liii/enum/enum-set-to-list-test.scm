@@ -4,29 +4,25 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-set
-  (enum-type->enum-set color)
-) ;define
+(define color-set (enum-type->enum-set color))
 
 
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella")
+    (funghi "mushrooms")
+    (bianca "ricotta and mozzarella")
+    (chicago "deep-dish")
+    (hawaiian "pineapple and ham"))
 ) ;define
 
 
-(define pizza
-  (make-enum-type pizza-descriptions)
-) ;define
+(define pizza (make-enum-type pizza-descriptions))
 
 
 ;; enum-set->list
@@ -59,14 +55,10 @@
 ;; 无。
 
 
-(check color-names
-  =>
-  (enum-set->list color-set)
-) ;check
+(check color-names => (enum-set->list color-set))
 (check (map car pizza-descriptions)
   =>
-  (enum-set->list (enum-type->enum-set pizza)
-  ) ;enum-set->list
+  (enum-set->list (enum-type->enum-set pizza))
 ) ;check
 
 

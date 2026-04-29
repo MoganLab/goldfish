@@ -51,13 +51,14 @@
 (check (string-pad-right "xxabcxx" 5 #\space 2 5) => "abc  ")
 
 ;; 测试使用游标作为 start/end
-(let* ((s "325")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-pad-right s 5 #\space start end) => "325  "))
+(let* ((s "325") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-pad-right s 5 #\space start end) => "325  ")
+) ;let*
 
 ;; 测试混合类型报错
-(check-catch 'type-error (string-pad-right "abc" 5 #\space 0 (string-cursor-end "abc")))
+(check-catch 'type-error
+  (string-pad-right "abc" 5 #\space 0 (string-cursor-end "abc"))
+) ;check-catch
 
 ;; 测试 start > end 报错
 (check-catch 'value-error (string-pad-right "abc" 5 #\space 2 1))

@@ -96,8 +96,7 @@
 ;; - 对于字符串键等需要使用 equal? 的情况，请使用 assoc
 (let ((l '((a 1) (b 2) (c . 3))))
   (check (assq 'a l) => '(a 1))
-  (check-true (eq? (assq 'a l) (list-ref l 0))
-  ) ;check-true
+  (check-true (eq? (assq 'a l) (list-ref l 0)))
   (check (assq 'b l) => '(b 2))
   (check (assq 'c l) => '(c . 3))
   (check (assq 'd l) => #f)
@@ -105,54 +104,24 @@
 (check (assq 'a '()) => #f)
 (check (assq 'a '((a . 1))) => '(a . 1))
 (check (assq 'a '((a) (b))) => '(a))
-(check (assq 'b '((a 1) (b 2) (a 3)))
-  =>
-  '(b 2)
-) ;check
-(check (assq 'a '((a 1) (b 2) (a 3)))
-  =>
-  '(a 1)
-) ;check
-(check (assq 1 '((1 "one") (2 "two")))
-  =>
-  '(1 "one")
-) ;check
-(check (assq 3 '((1 "one") (2 "two")))
-  =>
-  #f
-) ;check
-(check (assq 'x '((x . 10) (y . 20)))
-  =>
-  '(x . 10)
-) ;check
-(check (assq 'vector
-         '((symbol . 1) (vector . #(1 2 3)) (list a b c))
-       ) ;assq
+(check (assq 'b '((a 1) (b 2) (a 3))) => '(b 2))
+(check (assq 'a '((a 1) (b 2) (a 3))) => '(a 1))
+(check (assq 1 '((1 "one") (2 "two"))) => '(1 "one"))
+(check (assq 3 '((1 "one") (2 "two"))) => #f)
+(check (assq 'x '((x . 10) (y . 20))) => '(x . 10))
+(check (assq 'vector '((symbol . 1) (vector . #(1 2 3)) (list a b c)))
   =>
   '(vector . #(1 2 3))
 ) ;check
-(check (assq 'list
-         '((symbol . 1) (vector . #(1 2 3)) (list a b c))
-       ) ;assq
+(check (assq 'list '((symbol . 1) (vector . #(1 2 3)) (list a b c)))
   =>
   '(list a b c)
 ) ;check
-(check (assq 'key
-         '((key . value) (other . something))
-       ) ;assq
-  =>
-  '(key . value)
-) ;check
-(check (assq 'missing
-         '((key . value) (other . something))
-       ) ;assq
-  =>
-  #f
-) ;check
+(check (assq 'key '((key . value) (other . something))) => '(key . value))
+(check (assq 'missing '((key . value) (other . something))) => #f)
 (let ((l '((a 1) (b 2) (c . 3))))
   (check (assq 'a l) => '(a 1))
-  (check-true (eq? (assq 'a l) (list-ref l 0))
-  ) ;check-true
+  (check-true (eq? (assq 'a l) (list-ref l 0)))
   (check (assq 'b l) => '(b 2))
   (check (assq 'c l) => '(c . 3))
   (check (assq 'd l) => #f)

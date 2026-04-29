@@ -53,18 +53,9 @@
 (check (copy-bit 0 0 #t) => 1)
 (check (copy-bit 2 0 #t) => 4)
 (check (copy-bit 2 15 #f) => 11)
-(check (copy-bit 62 0 #t)
-  =>
-  4611686018427387904
-) ;check
-(check (copy-bit 63 1 #t)
-  =>
-  -9223372036854775807
-) ;check
-(check (copy-bit 63 -1 #f)
-  =>
-  9223372036854775807
-) ;check
+(check (copy-bit 62 0 #t) => 4611686018427387904)
+(check (copy-bit 63 1 #t) => -9223372036854775807)
+(check (copy-bit 63 -1 #f) => 9223372036854775807)
 
 
 ;; ; 边界值测试
@@ -97,22 +88,10 @@
 
 
 ;; ; 特殊值测试
-(check (copy-bit 31 2147483647 #t)
-  =>
-  4294967295
-) ;check
-(check (copy-bit 31 -2147483648 #f)
-  =>
-  -4294967296
-) ;check
-(check (copy-bit 63 9223372036854775807 #t)
-  =>
-  -1
-) ;check
-(check (copy-bit 63 -9223372036854775808 #f)
-  =>
-  0
-) ;check
+(check (copy-bit 31 2147483647 #t) => 4294967295)
+(check (copy-bit 31 -2147483648 #f) => -4294967296)
+(check (copy-bit 63 9223372036854775807 #t) => -1)
+(check (copy-bit 63 -9223372036854775808 #f) => 0)
 
 
 ;; ; 负整数测试
@@ -123,36 +102,18 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (copy-bit "string" 1 #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (copy-bit 1 "string" #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (copy-bit 3.14 2 #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (copy-bit 1 3.14 #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (copy-bit #\a 1 #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (copy-bit 1 #\a #t)
-) ;check-catch
+(check-catch 'wrong-type-arg (copy-bit "string" 1 #t))
+(check-catch 'wrong-type-arg (copy-bit 1 "string" #t))
+(check-catch 'wrong-type-arg (copy-bit 3.14 2 #t))
+(check-catch 'wrong-type-arg (copy-bit 1 3.14 #t))
+(check-catch 'wrong-type-arg (copy-bit #\a 1 #t))
+(check-catch 'wrong-type-arg (copy-bit 1 #\a #t))
 
 
 ;; ; 错误处理测试 - out-of-range
-(check-catch 'out-of-range
-  (copy-bit 64 -1 #f)
-) ;check-catch
-(check-catch 'out-of-range
-  (copy-bit 10000 -1 #f)
-) ;check-catch
-(check-catch 'out-of-range
-  (copy-bit -1 1 #t)
-) ;check-catch
+(check-catch 'out-of-range (copy-bit 64 -1 #f))
+(check-catch 'out-of-range (copy-bit 10000 -1 #f))
+(check-catch 'out-of-range (copy-bit -1 1 #t))
 
 
 

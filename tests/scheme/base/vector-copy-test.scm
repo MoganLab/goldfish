@@ -26,30 +26,12 @@
 ;; ----
 ;; 1. 返回新向量，不修改原向量
 ;; 2. 复制范围为 [start, end)
-(check (vector-copy #(a b c))
-  =>
-  #(a b c)
-) ;check
-(check (vector-copy #(a b c) 0)
-  =>
-  #(a b c)
-) ;check
-(check (vector-copy #(a b c) 1)
-  =>
-  #(b c)
-) ;check
-(check (vector-copy #(a b c) 1 3)
-  =>
-  #(b c)
-) ;check
-(check (vector-copy #(a b c) 0 0)
-  =>
-  #()
-) ;check
-(check (vector-copy #(1 2 3 4 5) 2 4)
-  =>
-  #(3 4)
-) ;check
+(check (vector-copy #(a b c)) => #(a b c))
+(check (vector-copy #(a b c) 0) => #(a b c))
+(check (vector-copy #(a b c) 1) => #(b c))
+(check (vector-copy #(a b c) 1 3) => #(b c))
+(check (vector-copy #(a b c) 0 0) => #())
+(check (vector-copy #(1 2 3 4 5) 2 4) => #(3 4))
 (let ((v #(a b c)))
   (let ((copy (vector-copy v)))
     (vector-set! copy 0 'x)
@@ -57,17 +39,9 @@
     (check copy => #(x b c))
   ) ;let
 ) ;let
-(check-catch 'wrong-type-arg
-  (vector-copy)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-copy '())
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-copy #(a) 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-copy #(a) -1)
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-copy))
+(check-catch 'wrong-type-arg (vector-copy '()))
+(check-catch 'out-of-range (vector-copy #(a) 2))
+(check-catch 'out-of-range (vector-copy #(a) -1))
 
 (check-report)

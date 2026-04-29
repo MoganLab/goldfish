@@ -52,25 +52,17 @@
 ) ;let
 
 
-(check-catch 'out-of-range
-  (vector-ref #() 0)
-) ;check-catch
+(check-catch 'out-of-range (vector-ref #() 0))
 (check (vector-ref #(42) 0) => 42)
 
 
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range
-    (vector-ref v -1)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector-ref v 3)
-  ) ;check-catch
+  (check-catch 'out-of-range (vector-ref v -1))
+  (check-catch 'out-of-range (vector-ref v 3))
 ) ;let
 
 
-(let ((v #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
-      ) ;v
-     ) ;
+(let ((v #(1 2.5 "hello" (#_quote symbol) #\c #t #f)))
   (check (vector-ref v 0) => 1)
   (check (vector-ref v 2) => "hello")
   (check (vector-ref v 4) => #\c)

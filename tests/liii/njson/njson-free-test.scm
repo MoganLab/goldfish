@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -34,63 +31,33 @@
 ;; 输入不是可用 njson 句柄时抛出。
 
 
-(define free-check
-  (string->njson "{\"x\":1}")
-) ;define
+(define free-check (string->njson "{\"x\":1}"))
 (check-true (njson-free free-check))
-(check-catch 'type-error
-  (njson-ref free-check "x")
-) ;check-catch
-(check-catch 'type-error
-  (njson-free 'foo)
-) ;check-catch
+(check-catch 'type-error (njson-ref free-check "x"))
+(check-catch 'type-error (njson-free 'foo))
 
 
-(define stale-handle-old
-  (string->njson "{\"a\":1}")
-) ;define
-(check (njson-ref stale-handle-old "a")
-  =>
-  1
-) ;check
-(check-true (njson-free stale-handle-old)
-) ;check-true
-(let-njson ((stale-handle-new (string->njson "{\"b\":2}")
-            ) ;stale-handle-new
-           ) ;
-  (check (njson-ref stale-handle-new "b")
-    =>
-    2
-  ) ;check
-  (check-catch 'type-error
-    (njson-ref stale-handle-old "b")
-  ) ;check-catch
-  (check-catch 'type-error
-    (njson-free stale-handle-old)
-  ) ;check-catch
-  (check (njson-ref stale-handle-new "b")
-    =>
-    2
-  ) ;check
+(define stale-handle-old (string->njson "{\"a\":1}"))
+(check (njson-ref stale-handle-old "a") => 1)
+(check-true (njson-free stale-handle-old))
+(let-njson ((stale-handle-new (string->njson "{\"b\":2}")))
+  (check (njson-ref stale-handle-new "b") => 2)
+  (check-catch 'type-error (njson-ref stale-handle-old "b"))
+  (check-catch 'type-error (njson-free stale-handle-old))
+  (check (njson-ref stale-handle-new "b") => 2)
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-ref (cons 'njson-handle 1) "x")
-) ;check-catch
+(check-catch 'type-error (njson-ref (cons 'njson-handle 1) "x"))
 
 
-(let-njson ((root (string->njson "{\"secret\":42}"))
-           ) ;
+(let-njson ((root (string->njson "{\"secret\":42}")))
   (let* ((payload (cdr root))
          (id (car payload))
          (gen (cdr payload))
-         (forged (cons 'njson-handle (cons id (+ gen 1)))
-         ) ;forged
+         (forged (cons 'njson-handle (cons id (+ gen 1))))
         ) ;
-    (check-catch 'type-error
-      (njson-ref forged "secret")
-    ) ;check-catch
+    (check-catch 'type-error (njson-ref forged "secret"))
   ) ;let*
 ) ;let-njson
 

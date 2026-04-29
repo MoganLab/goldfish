@@ -34,9 +34,7 @@
 ;; ; 基本功能测试
 (when (not (os-windows?))
   ;; 测试创建已存在的目录会报错
-  (check-catch 'file-exists-error
-    (mkdir "/tmp")
-  ) ;check-catch
+  (check-catch 'file-exists-error (mkdir "/tmp"))
 
   ;; 测试创建新目录
   (check (begin

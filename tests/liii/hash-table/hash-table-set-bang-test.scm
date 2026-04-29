@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii hash-table)
-) ;import
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -52,15 +49,9 @@
 ) ;let
 
 
-(check-catch 'wrong-number-of-args
-  (hash-table-set! (make-hash-table))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (hash-table-set! (make-hash-table) 'a)
-) ;check-catch
-(check-catch 'type-error
-  (hash-table-set! "not-a-table" 'a 1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (hash-table-set! (make-hash-table)))
+(check-catch 'wrong-number-of-args (hash-table-set! (make-hash-table) 'a))
+(check-catch 'type-error (hash-table-set! "not-a-table" 'a 1))
 
 
 (check-report)

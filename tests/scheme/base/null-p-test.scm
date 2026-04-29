@@ -136,13 +136,7 @@
 (check (null? (reverse '())) => #t)
 (check (null? (reverse '(1))) => #f)
 ;; null? 错误处理测试
-(check-catch 'wrong-number-of-args
-  (null?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (null? '() '())
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (null? 1 2)
-) ;check-catch
+(check-catch 'wrong-number-of-args (null?))
+(check-catch 'wrong-number-of-args (null? '() '()))
+(check-catch 'wrong-number-of-args (null? 1 2))
 (check-report)

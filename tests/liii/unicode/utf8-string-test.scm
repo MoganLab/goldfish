@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -48,23 +45,13 @@
 
 
 ;; 兼容性测试
-(check (string->utf8 (utf8-string #\中 #\文))
-  =>
-  #u8(228 184 173 230 150 135)
-) ;check
-(check (utf8-string #\H #\e #\l #\l #\o #\space #\🐟)
-  =>
-  "Hello 🐟"
-) ;check
+(check (string->utf8 (utf8-string #\中 #\文)) => #u8(228 184 173 230 150 135))
+(check (utf8-string #\H #\e #\l #\l #\o #\space #\🐟) => "Hello 🐟")
 
 
 ;; 错误处理测试
-(check-catch 'type-error
-  (utf8-string 1)
-) ;check-catch
-(check-catch 'type-error
-  (utf8-string #\a "b")
-) ;check-catch
+(check-catch 'type-error (utf8-string 1))
+(check-catch 'type-error (utf8-string #\a "b"))
 
 
 (check-report)

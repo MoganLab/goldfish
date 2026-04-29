@@ -30,8 +30,6 @@
 (check (expt 4 1/2) => 2)
 (check (expt 0 0) => 1)
 (check (expt 2 10) => 1024)
-(check-catch 'division-by-zero
-  (expt 0 -1)
-) ;check-catch
+(check-catch 'division-by-zero (expt 0 -1))
 
 (check-report)

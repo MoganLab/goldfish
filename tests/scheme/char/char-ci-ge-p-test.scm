@@ -48,22 +48,13 @@
 (check (char-ci>=? #\A #\A) => #t)
 (check (char-ci>=? #\a #\a) => #t)
 ;; 特殊字符测试
-(check (char-ci>=? #\newline #\space)
-  =>
-  #f
-) ;check
+(check (char-ci>=? #\newline #\space) => #f)
 (check (char-ci>=? #\space #\tab) => #t)
 (check (char-ci>=? #\@ #\!) => #t)
 (check (char-ci>=? #\! #\!) => #t)
 ;; 多参数非严格降序测试
-(check (char-ci>=? #\D #\c #\B #\a)
-  =>
-  #t
-) ;check
-(check (char-ci>=? #\d #\C #\b #\A)
-  =>
-  #t
-) ;check
+(check (char-ci>=? #\D #\c #\B #\a) => #t)
+(check (char-ci>=? #\d #\C #\b #\A) => #t)
 (check (char-ci>=? #\z #\z #\a) => #t)
 (check (char-ci>=? #\b #\a #\C) => #f)
 ;; 数字字符测试（大小写不影响）
@@ -81,18 +72,10 @@
 (check (char-ci>=? #\~ #\0) => #t)
 (check (char-ci>=? #\~ #\space) => #t)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-ci>=? 1 #\A)
-) ;check-catch
-(check-catch 'type-error
-  (char-ci>=? #\A 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-ci>=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-ci>=? #\A)
-) ;check-catch
+(check-catch 'type-error (char-ci>=? 1 #\A))
+(check-catch 'type-error (char-ci>=? #\A 'symbol))
+(check-catch 'wrong-number-of-args (char-ci>=?))
+(check-catch 'wrong-number-of-args (char-ci>=? #\A))
 ;; Unicode 字符测试（codepoint >= 256）
 (check (char-ci>=? #\中 #\A) => #t)
 (check (char-ci>=? #\A #\中) => #f)

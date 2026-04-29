@@ -25,35 +25,21 @@
 ;; 2. 多个字符串时，proc 接收对应位置的字符
 ;; 3. 遍历到最短字符串的长度为止
 (let ((result '()))
-  (string-for-each (lambda (c)
-                     (set! result (cons c result))
-                   ) ;lambda
-    "abc"
-  ) ;string-for-each
+  (string-for-each (lambda (c) (set! result (cons c result))) "abc")
   (check result => '(#\c #\b #\a))
 ) ;let
 (let ((result '()))
-  (string-for-each (lambda (c1 c2)
-                     (set! result (cons (list c1 c2) result))
-                   ) ;lambda
+  (string-for-each (lambda (c1 c2) (set! result (cons (list c1 c2) result)))
     "ab"
     "xy"
   ) ;string-for-each
   (check result => '((#\b #\y) (#\a #\x)))
 ) ;let
 (let ((result '()))
-  (string-for-each (lambda (c)
-                     (set! result (cons c result))
-                   ) ;lambda
-    ""
-  ) ;string-for-each
+  (string-for-each (lambda (c) (set! result (cons c result))) "")
   (check result => '())
 ) ;let
-(check-catch 'wrong-number-of-args
-  (string-for-each)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-for-each (lambda (c) c))
-) ;check-catch
+(check-catch 'wrong-number-of-args (string-for-each))
+(check-catch 'wrong-number-of-args (string-for-each (lambda (c) c)))
 
 (check-report)

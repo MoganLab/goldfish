@@ -16,35 +16,17 @@
 
 
 (check (keyword->symbol :baz) => 'baz)
-(check (keyword->symbol :hello-world)
-  =>
-  'hello-world
-) ;check
-(check (symbol? (keyword->symbol :test))
-  =>
-  #t
-) ;check
-(check (keyword? (keyword->symbol :test))
-  =>
-  #f
-) ;check
+(check (keyword->symbol :hello-world) => 'hello-world)
+(check (symbol? (keyword->symbol :test)) => #t)
+(check (keyword? (keyword->symbol :test)) => #f)
 
 
 ;; 与 symbol->keyword 的互逆性
-(check (equal? (symbol->keyword (keyword->symbol :ghi))
-         :ghi
-       ) ;equal?
-  =>
-  #t
-) ;check
+(check (equal? (symbol->keyword (keyword->symbol :ghi)) :ghi) => #t)
 
 
 ;; 与 string->keyword 的组合使用
-(check (keyword->symbol (string->keyword "def")
-       ) ;keyword->symbol
-  =>
-  'def
-) ;check
+(check (keyword->symbol (string->keyword "def")) => 'def)
 
 
 (check-report)

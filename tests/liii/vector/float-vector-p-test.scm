@@ -35,18 +35,11 @@
 ;; 无
 
 
-(check-true (float-vector? (float-vector 1.0 2.0 3.0)
-            ) ;float-vector?
-) ;check-true
-(check-false (float-vector? (vector 1.0 2.0 3.0))
-) ;check-false
-(check-false (float-vector? (int-vector 1 2 3))
-) ;check-false
-(check-false (float-vector? (complex-vector 1.0+2.0i 3.0+4.0i)
-             ) ;float-vector?
-) ;check-false
-(check-false (float-vector? 'not-a-vector)
-) ;check-false
+(check-true (float-vector? (float-vector 1.0 2.0 3.0)))
+(check-false (float-vector? (vector 1.0 2.0 3.0)))
+(check-false (float-vector? (int-vector 1 2 3)))
+(check-false (float-vector? (complex-vector 1.0+2.0i 3.0+4.0i)))
+(check-false (float-vector? 'not-a-vector))
 (check-false (float-vector? 42))
 (check-false (float-vector? 3.14))
 (check-false (float-vector? "string"))

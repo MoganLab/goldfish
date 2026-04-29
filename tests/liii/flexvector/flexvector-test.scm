@@ -20,10 +20,7 @@
 ;; -----
 ;; 返回包含指定元素的新 flexvector。
 ;;
-(check (flexvector-length (flexvector 1 2 3))
-  =>
-  3
-) ;check
+(check (flexvector-length (flexvector 1 2 3)) => 3)
 
 
 (check-report)

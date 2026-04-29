@@ -2,18 +2,11 @@
 
 (check-set-mode! 'report-failed)
 
-(define mp
-  (make-parameter "initial value")
-) ;define
+(define mp (make-parameter "initial value"))
 
 (check (mp) => "initial value")
 
-(check (parameterize ((mp "new value"))
-         (mp)
-       ) ;parameterize
-  =>
-  "new value"
-) ;check
+(check (parameterize ((mp "new value")) (mp)) => "new value")
 
 (check (mp) => "initial value")
 

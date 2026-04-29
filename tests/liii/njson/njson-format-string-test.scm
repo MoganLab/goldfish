@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -38,37 +35,20 @@
 ;; indent < 0 或参数个数不合法时抛出。
 
 
-(check (njson-format-string "{\"b\":1,\"a\":{\"k\":2}}"
-       ) ;njson-format-string
+(check (njson-format-string "{\"b\":1,\"a\":{\"k\":2}}")
   =>
   "{\n  \"a\": {\n    \"k\": 2\n  },\n  \"b\": 1\n}"
 ) ;check
-(check (njson-format-string "[1,2,3]" 4)
-  =>
-  "[\n    1,\n    2,\n    3\n]"
-) ;check
-(check (njson-format-string "{\"a\":1}" 0)
-  =>
-  "{\n\"a\": 1\n}"
-) ;check
+(check (njson-format-string "[1,2,3]" 4) => "[\n    1,\n    2,\n    3\n]")
+(check (njson-format-string "{\"a\":1}" 0) => "{\n\"a\": 1\n}")
 (check (njson-format-string "1") => "1")
 
 
-(check-catch 'parse-error
-  (njson-format-string "{name:1}")
-) ;check-catch
-(check-catch 'type-error
-  (njson-format-string 1)
-) ;check-catch
-(check-catch 'type-error
-  (njson-format-string "{}" "2")
-) ;check-catch
-(check-catch 'value-error
-  (njson-format-string "{}" -1)
-) ;check-catch
-(check-catch 'value-error
-  (njson-format-string "{}" 2 4)
-) ;check-catch
+(check-catch 'parse-error (njson-format-string "{name:1}"))
+(check-catch 'type-error (njson-format-string 1))
+(check-catch 'type-error (njson-format-string "{}" "2"))
+(check-catch 'value-error (njson-format-string "{}" -1))
+(check-catch 'value-error (njson-format-string "{}" 2 4))
 
 
 (check-report)

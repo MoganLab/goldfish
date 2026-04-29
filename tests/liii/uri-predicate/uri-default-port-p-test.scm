@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-predicate)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-predicate))
 
 
 (check-set-mode! 'report-failed)
@@ -29,14 +26,7 @@
 
 
 ;; 基本测试（当前实现）
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
 ;; 无显式端口时返回 #f（当前实现）
 (check (uri-default-port? u1) => #f)
 

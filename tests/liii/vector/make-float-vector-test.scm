@@ -39,23 +39,12 @@
 ;; wrong-type-arg 当k不是合法整数或fill不是实数时
 
 
-(check-true (float-vector? (make-float-vector 0))
-) ;check-true
-(check-true (float-vector? (make-float-vector 3))
-) ;check-true
-(check (make-float-vector 3 0.0)
-  =>
-  #(0.0 0.0 0.0)
-) ;check
-(check (make-float-vector 3 1.0)
-  =>
-  #(1.0 1.0 1.0)
-) ;check
+(check-true (float-vector? (make-float-vector 0)))
+(check-true (float-vector? (make-float-vector 3)))
+(check (make-float-vector 3 0.0) => #(0.0 0.0 0.0))
+(check (make-float-vector 3 1.0) => #(1.0 1.0 1.0))
 (check (make-float-vector 0) => #())
-(check (vector-length (make-float-vector 5))
-  =>
-  5
-) ;check
+(check (vector-length (make-float-vector 5)) => 5)
 
 
 (let ((v (make-float-vector 5 3.14)))
@@ -71,12 +60,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (make-float-vector 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-float-vector 3 'not-a-number)
-) ;check-catch
+(check-catch 'wrong-type-arg (make-float-vector 'not-a-number))
+(check-catch 'wrong-type-arg (make-float-vector 3 'not-a-number))
 
 
 (check-report)

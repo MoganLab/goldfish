@@ -46,68 +46,34 @@
 ;; wrong-type-arg 当list不是列表或k不是整数类型时
 
 
-(check (take-right '(1 2 3 4) 3)
-  =>
-  '(2 3 4)
-) ;check
-(check (take-right '(1 2 3 4) 4)
-  =>
-  '(1 2 3 4)
-) ;check
-(check (take-right '(1 2 3 . 4) 3)
-  =>
-  '(1 2 3 . 4)
-) ;check
+(check (take-right '(1 2 3 4) 3) => '(2 3 4))
+(check (take-right '(1 2 3 4) 4) => '(1 2 3 4))
+(check (take-right '(1 2 3 . 4) 3) => '(1 2 3 . 4))
 
 
 (check (take-right '() 0) => '())
 (check (take-right '(a) 1) => '(a))
 (check (take-right '(a) 0) => '())
-(check (take-right '((a) (b c) d) 2)
-  =>
-  '((b c) d)
-) ;check
-(check (take-right '(1 2 3 4 5 6) 3)
-  =>
-  '(4 5 6)
-) ;check
+(check (take-right '((a) (b c) d) 2) => '((b c) d))
+(check (take-right '(1 2 3 4 5 6) 3) => '(4 5 6))
 
 
-(check (take-right (drop '(1 2 3 4 5) 1) 3)
-  =>
-  '(3 4 5)
-) ;check
-(check (take-right (take '(1 2 3 4 5) 4) 2)
-  =>
-  '(3 4)
-) ;check
+(check (take-right (drop '(1 2 3 4 5) 1) 3) => '(3 4 5))
+(check (take-right (take '(1 2 3 4 5) 4) 2) => '(3 4))
 
 
-(check (take-right (iota 10) 5)
-  =>
-  '(5 6 7 8 9)
-) ;check
+(check (take-right (iota 10) 5) => '(5 6 7 8 9))
 
 
 (check (take-right '(1) 1) => '(1))
 (check (take-right '(1 2) 1) => '(2))
 
 
-(check-catch 'out-of-range
-  (take-right '(1 2 3 4) 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (take-right '(1 2 3 . 4) 4)
-) ;check-catch
-(check-catch 'out-of-range
-  (take-right '(1 2 3) -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (take-right "not a list" 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (take-right '(1 2 3) "not a number")
-) ;check-catch
+(check-catch 'out-of-range (take-right '(1 2 3 4) 5))
+(check-catch 'out-of-range (take-right '(1 2 3 . 4) 4))
+(check-catch 'out-of-range (take-right '(1 2 3) -1))
+(check-catch 'wrong-type-arg (take-right "not a list" 2))
+(check-catch 'wrong-type-arg (take-right '(1 2 3) "not a number"))
 
 
 (check-report)

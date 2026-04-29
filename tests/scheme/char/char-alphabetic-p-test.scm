@@ -44,33 +44,19 @@
 (check (char-alphabetic? #\#) => #f)
 ;; 特殊字符测试
 (check (char-alphabetic? #\space) => #f)
-(check (char-alphabetic? #\newline)
-  =>
-  #f
-) ;check
+(check (char-alphabetic? #\newline) => #f)
 (check (char-alphabetic? #\tab) => #f)
-(check (char-alphabetic? #\return)
-  =>
-  #f
-) ;check
+(check (char-alphabetic? #\return) => #f)
 ;; 边界字符测试
 (check (char-alphabetic? #\[) => #f)
 (check (char-alphabetic? #\\) => #f)
 (check (char-alphabetic? #\`) => #f)
 (check (char-alphabetic? #\{) => #f)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-alphabetic? 1)
-) ;check-catch
-(check-catch 'type-error
-  (char-alphabetic? "a")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-alphabetic?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char-alphabetic? #\a #\b)
-) ;check-catch
+(check-catch 'type-error (char-alphabetic? 1))
+(check-catch 'type-error (char-alphabetic? "a"))
+(check-catch 'wrong-number-of-args (char-alphabetic?))
+(check-catch 'wrong-number-of-args (char-alphabetic? #\a #\b))
 ;; Unicode 字符测试（codepoint >= 256）
 (check (char-alphabetic? #\中) => #t)
 (check-report)

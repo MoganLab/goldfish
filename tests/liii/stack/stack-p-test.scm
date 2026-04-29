@@ -44,10 +44,7 @@
 (check (stack? (list 1 2 3)) => #f)
 
 
-(check (stack? (list->stack '(1 2 3)))
-  =>
-  #t
-) ;check
+(check (stack? (list->stack '(1 2 3))) => #t)
 
 
 (check-report)

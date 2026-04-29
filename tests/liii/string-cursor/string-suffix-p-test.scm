@@ -43,11 +43,15 @@
        (start1 (string-cursor-start s1))
        (end1 (string-cursor-end s1))
        (start2 (string-cursor-start s2))
-       (end2 (string-cursor-end s2)))
-  (check (string-suffix? s1 s2 start1 end1 start2 end2) => #t))
+       (end2 (string-cursor-end s2))
+      ) ;
+  (check (string-suffix? s1 s2 start1 end1 start2 end2) => #t)
+) ;let*
 
 ;; 测试混合类型报错
-(check-catch 'type-error (string-suffix? "abc" "abc" 0 (string-cursor-end "abc")))
+(check-catch 'type-error
+  (string-suffix? "abc" "abc" 0 (string-cursor-end "abc"))
+) ;check-catch
 
 ;; 测试 start > end 报错
 (check-catch 'value-error (string-suffix? "abc" "abc" 2 1))

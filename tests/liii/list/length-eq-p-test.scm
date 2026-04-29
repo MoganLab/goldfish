@@ -37,9 +37,7 @@
 
 
 (check-true (length=? 0 (list)))
-(check-catch 'value-error
-  (length=? -1 (list))
-) ;check-catch
+(check-catch 'value-error (length=? -1 (list)))
 
 
 (check-report)

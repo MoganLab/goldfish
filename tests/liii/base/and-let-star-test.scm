@@ -36,17 +36,11 @@
 
 
 ;; 基础测试 - 所有条件为真
-(check (and-let* ((hi 3) (ho #t)) (+ hi 1))
-  =>
-  4
-) ;check
+(check (and-let* ((hi 3) (ho #t)) (+ hi 1)) => 4)
 
 
 ;; 基础测试 - 有条件为假，返回假
-(check (and-let* ((hi 3) (ho #f)) (+ hi 1))
-  =>
-  #f
-) ;check
+(check (and-let* ((hi 3) (ho #f)) (+ hi 1)) => #f)
 
 
 ;; 单变量测试
@@ -58,22 +52,12 @@
 
 
 ;; 嵌套表达式
-(check (and-let* ((a 1) (b (+ a 2)) (c (* b 2)))
-         (+ a b c)
-       ) ;and-let*
-  =>
-  10
-) ;check
+(check (and-let* ((a 1) (b (+ a 2)) (c (* b 2))) (+ a b c)) => 10)
 
 
 ;; 短路测试 - 第二个条件为假，不会执行第三个
 (check (let ((evaluated #f))
-         (and-let* ((x 1)
-                    (y #f)
-                    (z (begin (set! evaluated #t) 3))
-                   ) ;
-           'body
-         ) ;and-let*
+         (and-let* ((x 1) (y #f) (z (begin (set! evaluated #t) 3))) 'body)
          evaluated
        ) ;let
   =>

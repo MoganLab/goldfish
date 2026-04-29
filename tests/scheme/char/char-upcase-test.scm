@@ -42,21 +42,12 @@
 (check (char-upcase #\_) => #\_)
 (check (char-upcase #\?) => #\?)
 (check (char-upcase #\space) => #\space)
-(check (char-upcase #\newline)
-  =>
-  #\newline
-) ;check
+(check (char-upcase #\newline) => #\newline)
 (check (char-upcase #\null) => #\null)
 ;; 错误处理测试
-(check-catch 'type-error
-  (char-upcase "a")
-) ;check-catch
-(check-catch 'type-error
-  (char-upcase 65)
-) ;check-catch
-(check-catch 'type-error
-  (char-upcase 'a)
-) ;check-catch
+(check-catch 'type-error (char-upcase "a"))
+(check-catch 'type-error (char-upcase 65))
+(check-catch 'type-error (char-upcase 'a))
 ;; Latin-1 字符测试（128 <= codepoint < 256）
 (check (char-upcase #\ä) => #\Ä)
 (check (char-upcase #\Ä) => #\Ä)

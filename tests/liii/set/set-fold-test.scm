@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,39 +38,16 @@
 
 
 ;; Test sum
-(check (set-fold (lambda (x acc) (+ x acc))
-         0
-         s-1-2-3
-       ) ;set-fold
-  =>
-  6
-) ;check
-(check (set-fold (lambda (x acc) (+ x acc))
-         0
-         s-empty
-       ) ;set-fold
-  =>
-  0
-) ;check
+(check (set-fold (lambda (x acc) (+ x acc)) 0 s-1-2-3) => 6)
+(check (set-fold (lambda (x acc) (+ x acc)) 0 s-empty) => 0)
 
 
 ;; Test accumulating to list (order not guaranteed)
-(define fold-list
-  (set-fold (lambda (x acc) (cons x acc))
-    '()
-    s-1-2
-  ) ;set-fold
-) ;define
-(check-true (set=? (list->set fold-list) s-1-2)
-) ;check-true
+(define fold-list (set-fold (lambda (x acc) (cons x acc)) '() s-1-2))
+(check-true (set=? (list->set fold-list) s-1-2))
 
 
-(check-catch 'type-error
-  (set-fold (lambda (x acc) acc)
-    '()
-    "not a set"
-  ) ;set-fold
-) ;check-catch
+(check-catch 'type-error (set-fold (lambda (x acc) acc) '() "not a set"))
 
 
 (check-report)

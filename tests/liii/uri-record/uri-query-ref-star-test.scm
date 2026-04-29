@@ -17,14 +17,7 @@
 ;;   返回 key 对应的值，不存在则返回 default（默认 #f）。
 
 
-(define u
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '(("a" . "1"))
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u (make-uri-raw "https" "example.com" "/" '(("a" . "1")) #f))
 
 
 ;; 存在的 key
@@ -36,10 +29,7 @@
 
 
 ;; 不存在的 key，使用自定义默认值
-(check (uri-query-ref* u "b" "default")
-  =>
-  "default"
-) ;check
+(check (uri-query-ref* u "b" "default") => "default")
 (check (uri-query-ref* u "b" "") => "")
 
 

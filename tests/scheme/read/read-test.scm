@@ -32,55 +32,31 @@
 ;; read-error
 ;;   当输入不是合法的 Scheme datum 时抛出。
 (check-true (procedure? read))
-(check (with-input-from-string "123"
-         (lambda () (read))
-       ) ;with-input-from-string
-  =>
-  123
-) ;check
-(check (with-input-from-string "1 2"
-         (lambda () (list (read) (read)))
-       ) ;with-input-from-string
+(check (with-input-from-string "123" (lambda () (read))) => 123)
+(check (with-input-from-string "1 2" (lambda () (list (read) (read))))
   =>
   '(1 2)
 ) ;check
-(check (with-input-from-string "#t"
-         (lambda () (read))
-       ) ;with-input-from-string
-  =>
-  #t
-) ;check
-(check (let ((port (open-input-string "\"goldfish\"")
-             ) ;port
-            ) ;
+(check (with-input-from-string "#t" (lambda () (read))) => #t)
+(check (let ((port (open-input-string "\"goldfish\"")))
          (read port)
        ) ;let
   =>
   "goldfish"
 ) ;check
-(check (let ((port (open-input-string "hello-world"))
-            ) ;
+(check (let ((port (open-input-string "hello-world")))
          (read port)
        ) ;let
   =>
   'hello-world
 ) ;check
-(check (let ((port (open-input-string "(1 2 (3 4))"))
-            ) ;
+(check (let ((port (open-input-string "(1 2 (3 4))")))
          (read port)
        ) ;let
   =>
   '(1 2 (3 4))
 ) ;check
-(check (let ((port (open-input-string "()")))
-         (read port)
-       ) ;let
-  =>
-  '()
-) ;check
-(check-true (let ((port (open-input-string "")))
-              (eof-object? (read port))
-            ) ;let
-) ;check-true
+(check (let ((port (open-input-string "()"))) (read port)) => '())
+(check-true (let ((port (open-input-string ""))) (eof-object? (read port))))
 (check-catch 'wrong-type-arg (read 123))
 (check-report)
