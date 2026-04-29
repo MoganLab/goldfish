@@ -41,25 +41,30 @@
   (check (string-copy/cursors s 1) => "bcdef")
   (check (string-copy/cursors s 1 4) => "bcd")
   (check (string-copy/cursors s 0 0) => "")
-  (check (string-copy/cursors s 3 3) => ""))
+  (check (string-copy/cursors s 3 3) => "")
+) ;let
 
 ;; 测试中文
 (let ((s "中文测试"))
   (check (string-copy/cursors s) => "中文测试")
   (check (string-copy/cursors s 1 3) => "文测")
-  (check (string-copy/cursors s 0 1) => "中"))
+  (check (string-copy/cursors s 0 1) => "中")
+) ;let
 
 ;; 测试emoji
 (let ((s "🎉🎊🎁"))
-  (check (string-copy/cursors s 1 3) => "🎊🎁"))
+  (check (string-copy/cursors s 1 3) => "🎊🎁")
+) ;let
 
 ;; 测试使用游标参数
 (let* ((s "abcdef")
        (start-c (string-cursor-start s))
        (end-c (string-cursor-end s))
-       (mid-c (string-index->cursor s 3)))
+       (mid-c (string-index->cursor s 3))
+      ) ;
   (check (string-copy/cursors s start-c end-c) => "abcdef")
   (check (string-copy/cursors s start-c mid-c) => "abc")
-  (check (string-copy/cursors s mid-c end-c) => "def"))
+  (check (string-copy/cursors s mid-c end-c) => "def")
+) ;let*
 
 (check-report)

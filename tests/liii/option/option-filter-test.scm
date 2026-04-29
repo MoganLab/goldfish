@@ -26,34 +26,11 @@
 ;; - 如果值不满足条件：返回空 option
 
 
-(let ((opt1 (option 42))
-      (opt2 (none))
-      (opt3 (option -5))
-     ) ;
-  (check (option-filter (lambda (x) (> x 0))
-           opt1
-         ) ;option-filter
-    =>
-    (option 42)
-  ) ;check
-  (check (option-filter (lambda (x) (> x 100))
-           opt1
-         ) ;option-filter
-    =>
-    (none)
-  ) ;check
-  (check (option-filter (lambda (x) (> x 0))
-           opt2
-         ) ;option-filter
-    =>
-    (none)
-  ) ;check
-  (check (option-filter (lambda (x) (> x 0))
-           opt3
-         ) ;option-filter
-    =>
-    (none)
-  ) ;check
+(let ((opt1 (option 42)) (opt2 (none)) (opt3 (option -5)))
+  (check (option-filter (lambda (x) (> x 0)) opt1) => (option 42))
+  (check (option-filter (lambda (x) (> x 100)) opt1) => (none))
+  (check (option-filter (lambda (x) (> x 0)) opt2) => (none))
+  (check (option-filter (lambda (x) (> x 0)) opt3) => (none))
 ) ;let
 
 

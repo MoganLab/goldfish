@@ -76,26 +76,11 @@
 
 
 ;; ; 特殊值测试
-(check (any-bit-set? 2147483647 2147483647)
-  =>
-  #t
-) ;check
-(check (any-bit-set? 2147483647 0)
-  =>
-  #f
-) ;check
-(check (any-bit-set? -2147483648 -2147483648)
-  =>
-  #t
-) ;check
-(check (any-bit-set? -2147483648 0)
-  =>
-  #f
-) ;check
-(check (any-bit-set? 2147483647 -2147483648)
-  =>
-  #f
-) ;check
+(check (any-bit-set? 2147483647 2147483647) => #t)
+(check (any-bit-set? 2147483647 0) => #f)
+(check (any-bit-set? -2147483648 -2147483648) => #t)
+(check (any-bit-set? -2147483648 0) => #f)
+(check (any-bit-set? 2147483647 -2147483648) => #f)
 
 
 ;; ; 负整数测试
@@ -108,30 +93,14 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (any-bit-set? "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? 1 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? 1 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? 1 #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? '(1 2) 3)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (any-bit-set? 1 '(2 3))
-) ;check-catch
+(check-catch 'wrong-type-arg (any-bit-set? "string" 1))
+(check-catch 'wrong-type-arg (any-bit-set? 1 "string"))
+(check-catch 'wrong-type-arg (any-bit-set? 3.14 2))
+(check-catch 'wrong-type-arg (any-bit-set? 1 3.14))
+(check-catch 'wrong-type-arg (any-bit-set? #\a 1))
+(check-catch 'wrong-type-arg (any-bit-set? 1 #\a))
+(check-catch 'wrong-type-arg (any-bit-set? '(1 2) 3))
+(check-catch 'wrong-type-arg (any-bit-set? 1 '(2 3)))
 
 
 

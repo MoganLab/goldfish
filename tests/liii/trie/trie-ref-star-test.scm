@@ -34,17 +34,9 @@
 
 
 (let ((trie (make-trie)))
-  (check-false (trie-ref* trie (string->list "hey"))
-  ) ;check-false
-  (check (trie-ref trie
-           (string->list "hey")
-           'default
-         ) ;trie-ref
-    =>
-    'default
-  ) ;check
-  (check-false (trie-ref* trie (string->list "hey"))
-  ) ;check-false
+  (check-false (trie-ref* trie (string->list "hey")))
+  (check (trie-ref trie (string->list "hey") 'default) => 'default)
+  (check-false (trie-ref* trie (string->list "hey")))
 ) ;let
 
 

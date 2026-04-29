@@ -35,10 +35,7 @@
 
 
 ;; 测试 cons 函数签名（返回 pair?，接受两个任意类型参数）
-(check (signature cons)
-  =>
-  '(pair? #t #t)
-) ;check
+(check (signature cons) => '(pair? #t #t))
 
 
 ;; 测试基本算术函数（返回 number?，接受可变 number? 参数）
@@ -55,19 +52,11 @@
 
 
 ;; 测试 string-append 函数（返回 string?，接受可变 string? 参数）
-(check (car (signature string-append))
-  =>
-  'string?
-) ;check
+(check (car (signature string-append)) => 'string?)
 
 
 ;; 测试自定义函数（没有签名）
-(check (let ((f (lambda (x) (+ x 1))))
-         (signature f)
-       ) ;let
-  =>
-  #f
-) ;check
+(check (let ((f (lambda (x) (+ x 1)))) (signature f)) => #f)
 
 
 (check-report)

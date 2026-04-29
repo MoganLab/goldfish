@@ -5,23 +5,21 @@
 
 
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella")
+    (funghi "mushrooms")
+    (bianca "ricotta and mozzarella")
+    (chicago "deep-dish")
+    (hawaiian "pineapple and ham"))
 ) ;define
 
 
-(define pizza
-  (make-enum-type pizza-descriptions)
-) ;define
+(define pizza (make-enum-type pizza-descriptions))
 
 
-(define pizza-chicago
-  (enum-name->enum pizza 'chicago)
-) ;define
+(define pizza-chicago (enum-name->enum pizza 'chicago))
 
 
-(define pizza-bianca
-  (enum-name->enum pizza 'bianca)
-) ;define
+(define pizza-bianca (enum-name->enum pizza 'bianca))
 
 
 ;; list->enum-set
@@ -57,9 +55,7 @@
 ;; 无。
 
 
-(check (enum-set-contains? (list->enum-set pizza
-                             (list pizza-chicago pizza-bianca)
-                           ) ;list->enum-set
+(check (enum-set-contains? (list->enum-set pizza (list pizza-chicago pizza-bianca))
          pizza-chicago
        ) ;enum-set-contains?
   =>

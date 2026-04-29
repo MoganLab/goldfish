@@ -48,150 +48,63 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-join"
 
-(check (string-join '("a" "b" "c"))
-  =>
-  "abc"
-) ;check
-(check (string-join '("a" "b" "c") ":")
-  =>
-  "a:b:c"
-) ;check
-(check (string-join '("a" "b" "c") ":" 'infix)
-  =>
-  "a:b:c"
-) ;check
-(check (string-join '("a" "b" "c") ":" 'suffix)
-  =>
-  "a:b:c:"
-) ;check
-(check (string-join '("a" "b" "c") ":" 'prefix)
-  =>
-  ":a:b:c"
-) ;check
+(check (string-join '("a" "b" "c")) => "abc")
+(check (string-join '("a" "b" "c") ":") => "a:b:c")
+(check (string-join '("a" "b" "c") ":" 'infix) => "a:b:c")
+(check (string-join '("a" "b" "c") ":" 'suffix) => "a:b:c:")
+(check (string-join '("a" "b" "c") ":" 'prefix) => ":a:b:c")
 
 ;; 空列表测试
 (check (string-join '() ":") => "")
-(check (string-join '() ":" 'infix)
-  =>
-  ""
-) ;check
-(check (string-join '() ":" 'prefix)
-  =>
-  ""
-) ;check
-(check (string-join '() ":" 'suffix)
-  =>
-  ""
-) ;check
+(check (string-join '() ":" 'infix) => "")
+(check (string-join '() ":" 'prefix) => "")
+(check (string-join '() ":" 'suffix) => "")
 
 ;; strict-infix 模式错误测试
-(check-catch 'value-error
-  (string-join '() ":" 'strict-infix)
-) ;check-catch
-(check-catch 'value-error
-  (string-join '() "" 'strict-infix)
-) ;check-catch
-(check-catch 'value-error
-  (string-join '() "分隔" 'strict-infix)
-) ;check-catch
+(check-catch 'value-error (string-join '() ":" 'strict-infix))
+(check-catch 'value-error (string-join '() "" 'strict-infix))
+(check-catch 'value-error (string-join '() "分隔" 'strict-infix))
 
 ;; 无效参数类型测试
-(check-catch 'type-error
-  (string-join '() ":" 2)
-) ;check-catch
-(check-catch 'value-error
-  (string-join '() ":" 'no-such-grammer)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-join '() ":" 1 2 3)
-) ;check-catch
+(check-catch 'type-error (string-join '() ":" 2))
+(check-catch 'value-error (string-join '() ":" 'no-such-grammer))
+(check-catch 'wrong-number-of-args (string-join '() ":" 1 2 3))
 
 ;; 空字符串元素边界测试
-(check (string-join '("" "") ":")
-  =>
-  ":"
-) ;check
-(check (string-join '("" "" "") ":")
-  =>
-  "::"
-) ;check
+(check (string-join '("" "") ":") => ":")
+(check (string-join '("" "" "") ":") => "::")
 (check (string-join '("" "") "") => "")
-(check (string-join '("" "" "") "")
-  =>
-  ""
-) ;check
-(check (string-join '("" "") "分隔符")
-  =>
-  "分隔符"
-) ;check
-(check (string-join '("" "" "") "分隔符")
-  =>
-  "分隔符分隔符"
-) ;check
-(check (string-join '("" "") "" 'suffix)
-  =>
-  ""
-) ;check
-(check (string-join '("" "") "" 'prefix)
-  =>
-  ""
-) ;check
-(check (string-join '("" "" "")
-         "分隔"
-         'suffix
-       ) ;string-join
-  =>
-  "分隔分隔分隔"
-) ;check
-(check (string-join '("元素1" "元素2" "元素3")
-         ""
-         'prefix
-       ) ;string-join
+(check (string-join '("" "" "") "") => "")
+(check (string-join '("" "") "分隔符") => "分隔符")
+(check (string-join '("" "" "") "分隔符") => "分隔符分隔符")
+(check (string-join '("" "") "" 'suffix) => "")
+(check (string-join '("" "") "" 'prefix) => "")
+(check (string-join '("" "" "") "分隔" 'suffix) => "分隔分隔分隔")
+(check (string-join '("元素1" "元素2" "元素3") "" 'prefix)
   =>
   "元素1元素2元素3"
 ) ;check
 
 ;; 中文和Unicode字符边界测试
-(check (string-join '("中文" "测试" "字符串")
-       ) ;string-join
+(check (string-join '("中文" "测试" "字符串"))
   =>
   "中文测试字符串"
 ) ;check
-(check (string-join '("中文" "测试" "字符串")
-         "间"
-       ) ;string-join
+(check (string-join '("中文" "测试" "字符串") "间")
   =>
   "中文间测试间字符串"
 ) ;check
-(check (string-join '("中文1" "中文2" "中文3")
-         "分隔"
-       ) ;string-join
+(check (string-join '("中文1" "中文2" "中文3") "分隔")
   =>
   "中文1分隔中文2分隔中文3"
 ) ;check
 
 ;; emoji和特殊字符边界测试
-(check (string-join '("🌟" "🎉" "😀")
-         "-"
-       ) ;string-join
-  =>
-  "🌟-🎉-😀"
-) ;check
-(check (string-join '("🌟" "🎉" "😀")
-         "🎯"
-       ) ;string-join
-  =>
-  "🌟🎯🎉🎯😀"
-) ;check
-(check (string-join '("hello" "test") ":")
-  =>
-  "hello:test"
-) ;check
+(check (string-join '("🌟" "🎉" "😀") "-") => "🌟-🎉-😀")
+(check (string-join '("🌟" "🎉" "😀") "🎯") => "🌟🎯🎉🎯😀")
+(check (string-join '("hello" "test") ":") => "hello:test")
 
 ;; 单元素边界测试
-(check (string-join '("单元素测试") ",")
-  =>
-  "单元素测试"
-) ;check
+(check (string-join '("单元素测试") ",") => "单元素测试")
 
 (check-report)

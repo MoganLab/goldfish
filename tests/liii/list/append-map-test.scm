@@ -37,44 +37,27 @@
        (input '(1 2 3))
        (expected '(1 2 2 4 3 6))
       ) ;
-  (check (append-map proc input)
-    =>
-    expected
-  ) ;check
+  (check (append-map proc input) => expected)
 ) ;let*
 
 
-(let* ((proc (lambda (x y) (list (+ x y) (- x y)))
-       ) ;proc
+(let* ((proc (lambda (x y) (list (+ x y) (- x y))))
        (list1 '(5 8 10))
        (list2 '(3 2 7))
        (expected '(8 2 10 6 17 3))
       ) ;
-  (check (append-map proc list1 list2)
-    =>
-    expected
-  ) ;check
+  (check (append-map proc list1 list2) => expected)
 ) ;let*
 
 
-(check (append-map (lambda (x y) (list x y))
-         '(1)
-         '()
-       ) ;append-map
-  =>
-  '()
-) ;check
+(check (append-map (lambda (x y) (list x y)) '(1) '()) => '())
 
 
-(let* ((proc (lambda (x) (if (even? x) (list x) '()))
-       ) ;proc
+(let* ((proc (lambda (x) (if (even? x) (list x) '())))
        (input '(1 2 3 4))
        (expected '(2 4))
       ) ;
-  (check (append-map proc input)
-    =>
-    expected
-  ) ;check
+  (check (append-map proc input) => expected)
 ) ;let*
 
 
@@ -83,24 +66,15 @@
        (list2 '(1 2))
        (expected '((a . 1) (b . 2)))
       ) ;
-  (check (append-map proc list1 list2)
-    =>
-    expected
-  ) ;check
+  (check (append-map proc list1 list2) => expected)
 ) ;let*
 
 
-(let* ((proc (lambda (x)
-               (list (list x) (list (* x 2)))
-             ) ;lambda
-       ) ;proc
+(let* ((proc (lambda (x) (list (list x) (list (* x 2)))))
        (input '(5))
        (expected '((5) (10)))
       ) ;
-  (check (append-map proc input)
-    =>
-    expected
-  ) ;check
+  (check (append-map proc input) => expected)
 ) ;let*
 
 

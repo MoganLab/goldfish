@@ -36,18 +36,13 @@
 ;; (fold-right cons () '(1 2 3 4)) => '(1 2 3 4)
 
 
-(check (fold-right + 0 '(1 2 3 4))
-  =>
-  10
-) ;check
+(check (fold-right + 0 '(1 2 3 4)) => 10)
 
 
 (check (fold-right + 0 '()) => 0)
 
 
-(check (fold-right (lambda (x count)
-                     (if (symbol? x) (+ count 1) count)
-                   ) ;lambda
+(check (fold-right (lambda (x count) (if (symbol? x) (+ count 1) count))
          0
          '(a b 1 2 3 4)
        ) ;fold-right
@@ -56,27 +51,13 @@
 ) ;check
 
 
-(check (fold-right cons () '(1 2 3 4))
-  =>
-  '(1 2 3 4)
-) ;check
+(check (fold-right cons () '(1 2 3 4)) => '(1 2 3 4))
 
 
-(check (fold-right + 0 '(1 2 3) '(4 5 6))
-  =>
-  21
-) ;check
-(check (fold-right + 0 '(1 2 3 4) '(10 20 30))
-  =>
-  66
-) ;check
-(check (fold-right list '() '(1 2 3) '(a b c))
-  =>
-  '(1 a (2 b (3 c ())))
-) ;check
-(check-catch 'type-error
-  (fold-right 0 + '(1 2 3) 'a)
-) ;check-catch
+(check (fold-right + 0 '(1 2 3) '(4 5 6)) => 21)
+(check (fold-right + 0 '(1 2 3 4) '(10 20 30)) => 66)
+(check (fold-right list '() '(1 2 3) '(a b c)) => '(1 a (2 b (3 c ()))))
+(check-catch 'type-error (fold-right 0 + '(1 2 3) 'a))
 
 
 (check-report)

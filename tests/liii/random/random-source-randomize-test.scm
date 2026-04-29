@@ -36,10 +36,7 @@
   (let ((state1 (random-source-state-ref s)))
     (random-source-randomize! s)
     (let ((state2 (random-source-state-ref s)))
-      (check (not (equal? state1 state2))
-        =>
-        #t
-      ) ;check
+      (check (not (equal? state1 state2)) => #t)
     ) ;let
   ) ;let
 ) ;let
@@ -50,21 +47,14 @@
   (let ((state1 (random-source-state-ref s)))
     (random-source-randomize! s)
     (let ((state2 (random-source-state-ref s)))
-      (check (not (equal? state1 state2))
-        =>
-        #t
-      ) ;check
+      (check (not (equal? state1 state2)) => #t)
     ) ;let
   ) ;let
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (random-source-randomize! 'not-a-source)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-source-randomize! 123)
-) ;check-catch
+(check-catch 'wrong-type-arg (random-source-randomize! 'not-a-source))
+(check-catch 'wrong-type-arg (random-source-randomize! 123))
 
 
 (check-report)

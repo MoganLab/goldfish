@@ -42,32 +42,18 @@
   (hash-table-set! ht 'k1 'v1)
   (hash-table-set! ht 'k2 'v2)
   (let ((ht-copy (hash-table-copy ht)))
-    (check (hash-table-ref ht-copy 'k1)
-      =>
-      'v1
-    ) ;check
-    (check (hash-table-ref ht-copy 'k2)
-      =>
-      'v2
-    ) ;check
+    (check (hash-table-ref ht-copy 'k1) => 'v1)
+    (check (hash-table-ref ht-copy 'k2) => 'v2)
     (hash-table-set! ht-copy 'k1 'modified)
     (check (hash-table-ref ht 'k1) => 'v1)
-    (check (hash-table-ref ht-copy 'k1)
-      =>
-      'modified
-    ) ;check
+    (check (hash-table-ref ht-copy 'k1) => 'modified)
   ) ;let
 ) ;let
 
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'a 1)
-  (check (hash-table-ref (hash-table-copy ht #f)
-           'a
-         ) ;hash-table-ref
-    =>
-    1
-  ) ;check
+  (check (hash-table-ref (hash-table-copy ht #f) 'a) => 1)
 ) ;let
 
 

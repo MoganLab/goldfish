@@ -21,10 +21,7 @@
 ;; -----
 ;; 返回包含列表元素的新 iset。重复元素会被去重。
 ;;
-(check (iset->list (list->iset '(-3 -1 0 2)))
-  =>
-  '(-3 -1 0 2)
-) ;check
+(check (iset->list (list->iset '(-3 -1 0 2))) => '(-3 -1 0 2))
 
 
 (check-report)

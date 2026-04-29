@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -38,21 +34,10 @@
 ;; ----
 ;; 无。
 
-(define bob-j
-  '((bob (age . 18) (sex . male) (name . "Bob")))
-) ;define
+(define bob-j '((bob (age . 18) (sex . male) (name . "Bob"))))
 
-(check (json-get-or-else 'null bob-j)
-  =>
-  bob-j
-) ;check
-(check (json-get-or-else 42 bob-j)
-  =>
-  42
-) ;check
-(check (json-get-or-else '() bob-j)
-  =>
-  '()
-) ;check
+(check (json-get-or-else 'null bob-j) => bob-j)
+(check (json-get-or-else 42 bob-j) => 42)
+(check (json-get-or-else '() bob-j) => '())
 
 (check-report)

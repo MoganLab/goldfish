@@ -33,14 +33,10 @@
 
 
 ;; Test basic delete-all
-(define s-del-all
-  (set-delete-all s-1-2-3 '(1 2))
-) ;define
+(define s-del-all (set-delete-all s-1-2-3 '(1 2)))
 (check (set-size s-del-all) => 1)
-(check-false (set-contains? s-del-all 1)
-) ;check-false
-(check-false (set-contains? s-del-all 2)
-) ;check-false
+(check-false (set-contains? s-del-all 1))
+(check-false (set-contains? s-del-all 2))
 (check-true (set-contains? s-del-all 3))
 
 

@@ -57,14 +57,8 @@
 
 
 ;; ; 特殊值测试
-(check (bitwise-not 2147483647)
-  =>
-  -2147483648
-) ;check
-(check (bitwise-not -2147483648)
-  =>
-  2147483647
-) ;check
+(check (bitwise-not 2147483647) => -2147483648)
+(check (bitwise-not -2147483648) => 2147483647)
 
 
 

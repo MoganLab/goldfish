@@ -1,7 +1,4 @@
-(import (liii check)
-        (liii unicode)
-        (scheme base)
-) ;import
+(import (liii check) (liii unicode) (scheme base))
 
 (check-set-mode! 'report-failed)
 
@@ -56,13 +53,7 @@
   (check (utf8-string-length str) => 5)
   (check (string-ref str 0) => #\space)
 ) ;let
-(check-catch 'out-of-range
-  (utf8-make-string -1 #\a)
-) ;check-catch
-(check-catch 'out-of-range
-  (utf8-make-string -1)
-) ;check-catch
-(check-catch 'type-error
-  (utf8-make-string 3 "a")
-) ;check-catch
+(check-catch 'out-of-range (utf8-make-string -1 #\a))
+(check-catch 'out-of-range (utf8-make-string -1))
+(check-catch 'type-error (utf8-make-string 3 "a"))
 (check-report)

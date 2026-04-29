@@ -33,12 +33,9 @@
 
 
 (check-true (ascii-bytevector? #u8()))
-(check-true (ascii-bytevector? #u8(0 65 127))
-) ;check-true
-(check-false (ascii-bytevector? #u8(0 128))
-) ;check-false
-(check-false (ascii-bytevector? '(65 66))
-) ;check-false
+(check-true (ascii-bytevector? #u8(0 65 127)))
+(check-false (ascii-bytevector? #u8(0 128)))
+(check-false (ascii-bytevector? '(65 66)))
 
 
 (check-report)

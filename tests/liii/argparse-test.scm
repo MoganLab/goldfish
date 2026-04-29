@@ -35,10 +35,7 @@
 ;; ==== 单元测试 ====
 
 
-(import (liii check)
-  (liii argparse)
-  (liii base)
-) ;import
+(import (liii check) (liii argparse) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -59,16 +56,10 @@
     '((name . "width") (type . number) (short . "width") (default . 80))
   ) ;parser
 
-  (check (parser :get-argument "width")
-    =>
-    80
-  ) ;check
+  (check (parser :get-argument "width") => 80)
 
   (parser :parse-args '("--width" "100"))
-  (check (parser :get-argument "width")
-    =>
-    100
-  ) ;check
+  (check (parser :get-argument "width") => 100)
   (check (parser 'width) => 100)
 
   (parser :parse-args '("-width" "60"))
@@ -77,14 +68,9 @@
 
 
 (let ((parser (make-argument-parser)))
-  (parser :add-argument
-    '((name . "height") (type . number) (default . 60))
-  ) ;parser
+  (parser :add-argument '((name . "height") (type . number) (default . 60)))
   (parser :parse-args '("--height" "120"))
-  (check (parser :get-argument "height")
-    =>
-    120
-  ) ;check
+  (check (parser :get-argument "height") => 120)
 ) ;let
 
 
@@ -95,37 +81,23 @@
   (parser :add-argument
     '((name . "title") (type . string) (default . "Untitled"))
   ) ;parser
-  (parser :parse-args
-    '("-w" "100" "--title" "My Document")
-  ) ;parser
-  (check (parser :get-argument "width")
-    =>
-    100
-  ) ;check
-  (check (parser :get-argument "title")
-    =>
-    "My Document"
-  ) ;check
+  (parser :parse-args '("-w" "100" "--title" "My Document"))
+  (check (parser :get-argument "width") => 100)
+  (check (parser :get-argument "title") => "My Document")
 ) ;let
 
 
 (let ((parser (make-argument-parser)))
-  (check-catch 'type-error
-    (parser :add-argument '((name name)))
-  ) ;check-catch
-  (check-catch 'value-error
-    (parser :add-argument '())
-  ) ;check-catch
+  (check-catch 'type-error (parser :add-argument '((name name))))
+  (check-catch 'value-error (parser :add-argument '()))
 ) ;let
 
 
 (let ((parser (make-argument-parser)))
-  (parser :add-argument
-    '((name . "verbose") (short . "v") (action . store-true))
-  ) ;parser
-  (parser :add-argument
-    '((name . "cache") (action . store-false))
-  ) ;parser
+  (parser :add-argument '((name . "verbose")
+                          (short . "v")
+                          (action . store-true)))
+  (parser :add-argument '((name . "cache") (action . store-false)))
   (check (parser 'verbose) => #f)
   (check (parser 'cache) => #t)
   (parser :parse-args '("--verbose" "--cache"))
@@ -141,63 +113,59 @@
   (parser :add-argument
     '((name . "title") (type . string) (short . "t") (default . "Untitled"))
   ) ;parser
-  (parser :parse-args
-    '("input.scm" "--width=100" "-t=Doc" "output.scm")
-  ) ;parser
+  (parser :parse-args '("input.scm" "--width=100" "-t=Doc" "output.scm"))
   (check (parser 'width) => 100)
   (check (parser 'title) => "Doc")
   (check (parser :positionals) => '("input.scm" "output.scm"))
 ) ;let
 
 
-(let ((parser (make-argument-parser
-                '((command . "fmt")
-                  (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                  (skip-prefix-options . ("-m=" "--mode="))
-                  (unknown-options . ignore)))))
-  (parser :add-argument
-    '((name . "dry-run") (action . store-true))
-  ) ;parser
-  (parser :parse-argv
-    '("bin/gf" "-m" "r7rs" "fmt" "--dry-run" "file.scm")
-  ) ;parser
+(let ((parser (make-argument-parser '((command . "fmt")
+                                      (skip-value-options "-m"
+                                        "--mode"
+                                        "-I"
+                                        "-A")
+                                      (skip-prefix-options "-m=" "--mode=")
+                                      (unknown-options . ignore))
+              ) ;make-argument-parser
+      ) ;parser
+     ) ;
+  (parser :add-argument '((name . "dry-run") (action . store-true)))
+  (parser :parse-argv '("bin/gf" "-m" "r7rs" "fmt" "--dry-run" "file.scm"))
   (check (parser 'dry-run) => #t)
   (check (parser :get-positionals) => '("file.scm"))
 ) ;let
 
 
-(let ((parser (make-argument-parser
-                '((command . "fmt")
-                  (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                  (skip-prefix-options . ("-m=" "--mode="))
-                  (unknown-options . positional)))))
-  (parser :add-argument
-    '((name . "dry-run") (action . store-true))
-  ) ;parser
-  (parser :parse-argv
-    '("bin/gf" "fmt" "--dryrun" "file.scm")
-  ) ;parser
+(let ((parser (make-argument-parser '((command . "fmt")
+                                      (skip-value-options "-m"
+                                        "--mode"
+                                        "-I"
+                                        "-A")
+                                      (skip-prefix-options "-m=" "--mode=")
+                                      (unknown-options . positional))
+              ) ;make-argument-parser
+      ) ;parser
+     ) ;
+  (parser :add-argument '((name . "dry-run") (action . store-true)))
+  (parser :parse-argv '("bin/gf" "fmt" "--dryrun" "file.scm"))
   (check (parser 'dry-run) => #f)
   (check (parser :positionals) => '("--dryrun" "file.scm"))
 ) ;let
 
 
 (let ((parser (make-argument-parser)))
-  (check-catch 'value-error
-    (parser :parse-args '("--bad"))
-  ) ;check-catch
+  (check-catch 'value-error (parser :parse-args '("--bad")))
 ) ;let
 
 
-(let ((parser (make-argument-parser
-                '((unknown-options . ignore)))))
+(let ((parser (make-argument-parser '((unknown-options . ignore)))))
   (parser :parse-args '("--bad" "file.scm"))
   (check (parser :positionals) => '("file.scm"))
 ) ;let
 
 
-(let ((parser (make-argument-parser
-                '((unknown-options . positional)))))
+(let ((parser (make-argument-parser '((unknown-options . positional)))))
   (parser :parse-args '("--bad" "file.scm"))
   (check (parser :positionals) => '("--bad" "file.scm"))
 ) ;let

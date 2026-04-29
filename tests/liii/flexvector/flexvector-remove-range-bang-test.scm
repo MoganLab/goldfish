@@ -39,20 +39,14 @@
 ;; 基本测试：移除中间范围
 (let ((fv (flexvector 'a 'b 'c 'd 'e 'f)))
   (flexvector-remove-range! fv 1 4)
-  (check (flexvector->list fv)
-    =>
-    '(a e f)
-  ) ;check
+  (check (flexvector->list fv) => '(a e f))
 ) ;let
 
 
 ;; 空范围（无变化）
 (let ((fv (flexvector 'a 'b 'c 'd 'e 'f)))
   (flexvector-remove-range! fv 1 1)
-  (check (flexvector->list fv)
-    =>
-    '(a b c d e f)
-  ) ;check
+  (check (flexvector->list fv) => '(a b c d e f))
 ) ;let
 
 
@@ -86,12 +80,7 @@
 
 ;; 返回值是原对象
 (let ((fv (flexvector 'a 'b 'c)))
-  (check (eq? (flexvector-remove-range! fv 0 1)
-           fv
-         ) ;eq?
-    =>
-    #t
-  ) ;check
+  (check (eq? (flexvector-remove-range! fv 0 1) fv) => #t)
 ) ;let
 
 

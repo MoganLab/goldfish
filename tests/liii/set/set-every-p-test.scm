@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -49,50 +46,27 @@
 (define s-1-2-3 (set 1 2 3))
 
 
-(check-true (set-every? (lambda (x) (> x 0))
-              s-empty
-            ) ;set-every?
-) ;check-true
-(check-true (set-every? (lambda (x) (> x 0)) s-1)
-) ;check-true
-(check-true (set-every? (lambda (x) (> x 0)) s-1-2)
-) ;check-true
-(check-true (set-every? (lambda (x) (> x 0))
-              s-1-2-3
-            ) ;set-every?
-) ;check-true
+(check-true (set-every? (lambda (x) (> x 0)) s-empty))
+(check-true (set-every? (lambda (x) (> x 0)) s-1))
+(check-true (set-every? (lambda (x) (> x 0)) s-1-2))
+(check-true (set-every? (lambda (x) (> x 0)) s-1-2-3))
 
 
-(check-false (set-every? (lambda (x) (> x 1)) s-1)
-) ;check-false
-(check-false (set-every? (lambda (x) (> x 1)) s-1-2)
-) ;check-false
-(check-false (set-every? (lambda (x) (> x 1))
-               s-1-2-3
-             ) ;set-every?
-) ;check-false
+(check-false (set-every? (lambda (x) (> x 1)) s-1))
+(check-false (set-every? (lambda (x) (> x 1)) s-1-2))
+(check-false (set-every? (lambda (x) (> x 1)) s-1-2-3))
 
 
-(check-true (set-every? (lambda (x) (number? x))
-              s-1-2-3
-            ) ;set-every?
-) ;check-true
+(check-true (set-every? (lambda (x) (number? x)) s-1-2-3))
 
 
 ;; Test boundary cases
-(check-true (set-every? (lambda (x) (odd? x)) s-1)
-) ;check-true
-(check-false (set-every? (lambda (x) (odd? x)) s-1-2)
-) ;check-false
-(check-false (set-every? (lambda (x) (even? x))
-               s-1-2
-             ) ;set-every?
-) ;check-false
+(check-true (set-every? (lambda (x) (odd? x)) s-1))
+(check-false (set-every? (lambda (x) (odd? x)) s-1-2))
+(check-false (set-every? (lambda (x) (even? x)) s-1-2))
 
 
-(check-catch 'type-error
-  (set-every? (lambda (x) #t) "not a set")
-) ;check-catch
+(check-catch 'type-error (set-every? (lambda (x) #t) "not a set"))
 
 
 (check-report)

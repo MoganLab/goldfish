@@ -27,12 +27,12 @@
 ;; 3. 性能：O(1)
 
 ;; 基本测试
-(let ((s "abc")
-      (c (string-cursor-start "abc")))
+(let ((s "abc") (c (string-cursor-start "abc")))
   (check (string-cursor? c) => #t)
   (check (string-cursor? 'not-a-cursor) => #f)
   (check (string-cursor? 0) => #f)
   (check (string-cursor? "abc") => #f)
-  (check (string-cursor? '()) => #f))
+  (check (string-cursor? '()) => #f)
+) ;let
 
 (check-report)

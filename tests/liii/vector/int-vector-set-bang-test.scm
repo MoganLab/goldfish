@@ -67,24 +67,14 @@
 
 
 (let ((v (int-vector 1 2)))
-  (check-catch 'wrong-type-arg
-    (int-vector-set! v 0 'not-an-integer)
-  ) ;check-catch
-  (check-catch 'wrong-type-arg
-    (int-vector-set! v 0 3.14)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (int-vector-set! v 5 100)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (int-vector-set! v -1 100)
-  ) ;check-catch
+  (check-catch 'wrong-type-arg (int-vector-set! v 0 'not-an-integer))
+  (check-catch 'wrong-type-arg (int-vector-set! v 0 3.14))
+  (check-catch 'out-of-range (int-vector-set! v 5 100))
+  (check-catch 'out-of-range (int-vector-set! v -1 100))
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (int-vector-set! (vector 1 2 3) 0 100)
-) ;check-catch
+(check-catch 'wrong-type-arg (int-vector-set! (vector 1 2 3) 0 100))
 
 
 (check-report)

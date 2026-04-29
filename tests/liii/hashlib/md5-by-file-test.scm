@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii hashlib)
-  (liii path)
-) ;import
+(import (liii check) (liii hashlib) (liii path))
 
 
 (check-set-mode! 'report-failed)
@@ -32,28 +29,17 @@
 
 
 ;; ; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
-      ) ;tmp-file
-      (content "hello")
-     ) ;
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt") (content "hello"))
   (path-write-text tmp-file content)
-  (check (md5-by-file tmp-file)
-    =>
-    (md5 content)
-  ) ;check
+  (check (md5-by-file tmp-file) => (md5 content))
   (delete-file tmp-file)
 ) ;let
 
 
 ;; ; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"
-      ) ;tmp-file
-     ) ;
+(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
   (path-write-text tmp-file "")
-  (check (md5-by-file tmp-file)
-    =>
-    (md5 "")
-  ) ;check
+  (check (md5-by-file tmp-file) => (md5 ""))
   (delete-file tmp-file)
 ) ;let
 

@@ -36,50 +36,26 @@
 
 
 (check (vector-append) => #())
-(check (vector-append #(1 2 3))
-  =>
-  #(1 2 3)
-) ;check
-(check (vector-append #(1 2) #(3 4))
-  =>
-  #(1 2 3 4)
-) ;check
-(check (vector-append #(a b) #(c d) #(e f))
-  =>
-  #(a b c d e f)
-) ;check
+(check (vector-append #(1 2 3)) => #(1 2 3))
+(check (vector-append #(1 2) #(3 4)) => #(1 2 3 4))
+(check (vector-append #(a b) #(c d) #(e f)) => #(a b c d e f))
 (check (vector-append #()) => #())
 (check (vector-append #() #()) => #())
-(check (vector-append #() #(1) #())
-  =>
-  #(1)
-) ;check
+(check (vector-append #() #(1) #()) => #(1))
 (check (vector-append #(42)) => #(42))
-(check (vector-append #(1) #(2) #(3))
-  =>
-  #(1 2 3)
-) ;check
-(check (vector-append #(1 2.5)
-         #("hello" (#_quote symbol))
-         #(#\c #t #f)
-       ) ;vector-append
+(check (vector-append #(1) #(2) #(3)) => #(1 2 3))
+(check (vector-append #(1 2.5) #("hello" (#_quote symbol)) #(#\c #t #f))
   =>
   #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
 ) ;check
-(check (vector-append #((1 2)) #((3 4)))
-  =>
-  #((1 2) (3 4))
-) ;check
+(check (vector-append #((1 2)) #((3 4))) => #((1 2) (3 4)))
 
 
 (let ((original #(a b c)))
   (let ((appended (vector-append original)))
     (check-true (vector? appended))
     (check-false (eq? original appended))
-    (check (vector-length appended)
-      =>
-      (vector-length original)
-    ) ;check
+    (check (vector-length appended) => (vector-length original))
   ) ;let
 ) ;let
 
@@ -96,15 +72,9 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (vector-append 'not-a-vector)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-append #(1 2) 'not-a-vector)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-append #(1 2) 3 #(4 5))
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-append 'not-a-vector))
+(check-catch 'wrong-type-arg (vector-append #(1 2) 'not-a-vector))
+(check-catch 'wrong-type-arg (vector-append #(1 2) 3 #(4 5)))
 
 
 (check-report)

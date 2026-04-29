@@ -13,13 +13,8 @@
 ;; (flexvector-map! proc fv1 fv2 ...)
 ;;
 (let ((fv (flexvector 10 20 30)))
-  (flexvector-map! (lambda (x) (* x 10))
-    fv
-  ) ;flexvector-map!
-  (check (flexvector->list fv)
-    =>
-    '(100 200 300)
-  ) ;check
+  (flexvector-map! (lambda (x) (* x 10)) fv)
+  (check (flexvector->list fv) => '(100 200 300))
 ) ;let
 
 

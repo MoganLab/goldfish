@@ -40,75 +40,27 @@
 (check (string-upcase "aBc") => "ABC")
 (check (string-upcase "123") => "123")
 (check (string-upcase "!@#") => "!@#")
-(check (string-upcase "abc123xyz")
-  =>
-  "ABC123XYZ"
-) ;check
+(check (string-upcase "abc123xyz") => "ABC123XYZ")
 (check (string-upcase "") => "")
-(check (string-upcase "中文english123")
-  =>
-  "中文ENGLISH123"
-) ;check
-(check (string-upcase "mixedUPPERlower123")
-  =>
-  "MIXEDUPPERLOWER123"
-) ;check
+(check (string-upcase "中文english123") => "中文ENGLISH123")
+(check (string-upcase "mixedUPPERlower123") => "MIXEDUPPERLOWER123")
 
-(check (string-upcase (make-string 0))
-  =>
-  ""
-) ;check
-(check (string-upcase (make-string 10 #\a))
-  =>
-  "AAAAAAAAAA"
-) ;check
+(check (string-upcase (make-string 0)) => "")
+(check (string-upcase (make-string 10 #\a)) => "AAAAAAAAAA")
 
-(check (string-upcase "abcdef" 0 1)
-  =>
-  "Abcdef"
-) ;check
-(check (string-upcase "abcdef" 0 3)
-  =>
-  "ABCdef"
-) ;check
-(check (string-upcase "abcdef" 2 4)
-  =>
-  "abCDef"
-) ;check
-(check (string-upcase "abcdef"
-         3
-         (string-length "abcdef")
-       ) ;string-upcase
-  =>
-  "abcDEF"
-) ;check
-(check (string-upcase "abcdef"
-         0
-         (string-length "abcdef")
-       ) ;string-upcase
-  =>
-  "ABCDEF"
-) ;check
+(check (string-upcase "abcdef" 0 1) => "Abcdef")
+(check (string-upcase "abcdef" 0 3) => "ABCdef")
+(check (string-upcase "abcdef" 2 4) => "abCDef")
+(check (string-upcase "abcdef" 3 (string-length "abcdef")) => "abcDEF")
+(check (string-upcase "abcdef" 0 (string-length "abcdef")) => "ABCDEF")
 (check (string-upcase "abc" 0) => "ABC")
 (check (string-upcase "abc" 1) => "aBC")
 
-(check (string-upcase "space char space")
-  =>
-  "SPACE CHAR SPACE"
-) ;check
-(check (string-upcase "tab\tnewline\nreturn\r")
-  =>
-  "TAB\tNEWLINE\nRETURN\r"
-) ;check
+(check (string-upcase "space char space") => "SPACE CHAR SPACE")
+(check (string-upcase "tab\tnewline\nreturn\r") => "TAB\tNEWLINE\nRETURN\r")
 
-(check-catch 'out-of-range
-  (string-upcase "abc" 0 4)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-upcase "abc" -1 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-upcase "abc" 2 1)
-) ;check-catch
+(check-catch 'out-of-range (string-upcase "abc" 0 4))
+(check-catch 'out-of-range (string-upcase "abc" -1 2))
+(check-catch 'out-of-range (string-upcase "abc" 2 1))
 
 (check-report)

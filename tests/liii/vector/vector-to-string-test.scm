@@ -44,68 +44,16 @@
 ;; wrong-type-arg 当vec不是向量、start/end不是整数，或区间内含有非字符元素时
 
 
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-       ) ;vector->string
-  =>
-  "0123"
-) ;check
-(check (vector->string (vector #\a #\b #\c))
-  =>
-  "abc"
-) ;check
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-         0
-         4
-       ) ;vector->string
-  =>
-  "0123"
-) ;check
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-         1
-       ) ;vector->string
-  =>
-  "123"
-) ;check
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-         1
-         4
-       ) ;vector->string
-  =>
-  "123"
-) ;check
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-         1
-         3
-       ) ;vector->string
-  =>
-  "12"
-) ;check
-(check (vector->string (vector #\0 #\1 #\2 #\3)
-         1
-         2
-       ) ;vector->string
-  =>
-  "1"
-) ;check
-(check-catch 'out-of-range
-  (vector->string (vector #\0 #\1 #\2 #\3)
-    2
-    10
-  ) ;vector->string
-) ;check-catch
-(check (vector->string (vector 0 1 #\2 3 4)
-         2
-         3
-       ) ;vector->string
-  =>
-  "2"
-) ;check
-(check-catch 'wrong-type-arg
-  (vector->string (vector 0 1 #\2 3 4)
-    1
-    3
-  ) ;vector->string
-) ;check-catch
+(check (vector->string (vector #\0 #\1 #\2 #\3)) => "0123")
+(check (vector->string (vector #\a #\b #\c)) => "abc")
+(check (vector->string (vector #\0 #\1 #\2 #\3) 0 4) => "0123")
+(check (vector->string (vector #\0 #\1 #\2 #\3) 1) => "123")
+(check (vector->string (vector #\0 #\1 #\2 #\3) 1 4) => "123")
+(check (vector->string (vector #\0 #\1 #\2 #\3) 1 3) => "12")
+(check (vector->string (vector #\0 #\1 #\2 #\3) 1 2) => "1")
+(check-catch 'out-of-range (vector->string (vector #\0 #\1 #\2 #\3) 2 10))
+(check (vector->string (vector 0 1 #\2 3 4) 2 3) => "2")
+(check-catch 'wrong-type-arg (vector->string (vector 0 1 #\2 3 4) 1 3))
 
 
 (check-report)

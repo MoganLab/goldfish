@@ -63,12 +63,8 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (list->stack 'not-a-list)
-) ;check-catch
-(check-catch 'type-error
-  (list->stack 123)
-) ;check-catch
+(check-catch 'type-error (list->stack 'not-a-list))
+(check-catch 'type-error (list->stack 123))
 
 
 (check-report)

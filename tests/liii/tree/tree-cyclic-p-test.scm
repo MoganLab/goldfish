@@ -34,10 +34,7 @@
 ;; 嵌套循环结构
 (let ((inner (list 'a 'b)))
   (set-cdr! (cdr inner) inner)
-  (check (tree-cyclic? (list 'x inner))
-    =>
-    #t
-  ) ;check
+  (check (tree-cyclic? (list 'x inner)) => #t)
 ) ;let
 
 (check-report)

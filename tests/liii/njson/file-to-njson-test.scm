@@ -55,30 +55,16 @@
 ) ;path-write-text
 
 
-(let-njson ((loaded (file->njson file-to-njson-path)
-            ) ;loaded
-           ) ;
-  (check (njson-ref loaded "name")
-    =>
-    "Goldfish"
-  ) ;check
-  (check (njson-ref loaded "active")
-    =>
-    #t
-  ) ;check
+(let-njson ((loaded (file->njson file-to-njson-path)))
+  (check (njson-ref loaded "name") => "Goldfish")
+  (check (njson-ref loaded "active") => #t)
   (check (njson-ref loaded "nums" 2) => 3)
 ) ;let-njson
 
 
-(path-write-text file-to-njson-path
-  "{bad:1}"
-) ;path-write-text
-(check-catch 'parse-error
-  (file->njson file-to-njson-path)
-) ;check-catch
-(check-catch 'type-error
-  (file->njson 1)
-) ;check-catch
+(path-write-text file-to-njson-path "{bad:1}")
+(check-catch 'parse-error (file->njson file-to-njson-path))
+(check-catch 'type-error (file->njson 1))
 
 
 (check-report)

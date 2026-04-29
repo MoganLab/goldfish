@@ -18,19 +18,11 @@
 ;; ----
 ;; (iset-difference iset1 iset2 ...)
 ;;
-(check (iset->list (iset-difference (iset 0 1 3 4)
-                     (iset 0 2)
-                     (iset 0 4)
-                   ) ;iset-difference
-       ) ;iset->list
+(check (iset->list (iset-difference (iset 0 1 3 4) (iset 0 2) (iset 0 4)))
   =>
   '(1 3)
 ) ;check
-(check (iset->list (iset-difference pos-set neg-set)
-       ) ;iset->list
-  =>
-  pos-seq
-) ;check
+(check (iset->list (iset-difference pos-set neg-set)) => pos-seq)
 
 
 (check-report)

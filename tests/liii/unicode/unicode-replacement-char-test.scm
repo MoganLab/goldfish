@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -26,31 +23,17 @@
 
 
 ;; 基本值测试
-(check unicode-replacement-char
-  =>
-  65533
-) ;check
-(check unicode-replacement-char
-  =>
-  65533
-) ;check
+(check unicode-replacement-char => 65533)
+(check unicode-replacement-char => 65533)
 
 
 ;; 验证类型和值
-(check-true (integer? unicode-replacement-char)
-) ;check-true
+(check-true (integer? unicode-replacement-char))
 
 
 ;; 与 hexstr 转换
-(check (codepoint->hexstr unicode-replacement-char
-       ) ;codepoint->hexstr
-  =>
-  "FFFD"
-) ;check
-(check (hexstr->codepoint "FFFD")
-  =>
-  unicode-replacement-char
-) ;check
+(check (codepoint->hexstr unicode-replacement-char) => "FFFD")
+(check (hexstr->codepoint "FFFD") => unicode-replacement-char)
 
 
 (check-report)

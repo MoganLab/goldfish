@@ -50,14 +50,8 @@
 (check (first-set-bit 0) => -1)
 (check (first-set-bit 40) => 3)
 (check (first-set-bit -28) => 2)
-(check (first-set-bit (expt 2 62))
-  =>
-  62
-) ;check
-(check (first-set-bit (expt -2 62))
-  =>
-  62
-) ;check
+(check (first-set-bit (expt 2 62)) => 62)
+(check (first-set-bit (expt -2 62)) => 62)
 
 
 ;; ; 边界值测试
@@ -85,14 +79,8 @@
 
 ;; ; 特殊值测试
 (check (first-set-bit 2147483647) => 0)
-(check (first-set-bit -2147483648)
-  =>
-  31
-) ;check
-(check (first-set-bit 9223372036854775807)
-  =>
-  0
-) ;check
+(check (first-set-bit -2147483648) => 31)
+(check (first-set-bit 9223372036854775807) => 0)
 ;; ; 注意：-9223372036854775808 超出范围，已注释掉
 ;; ; (check (first-set-bit -9223372036854775808) => 63) ; 最小64位有符号整数，第一个设置位是第63位
 
@@ -106,21 +94,11 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (first-set-bit "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (first-set-bit 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (first-set-bit 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (first-set-bit #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (first-set-bit '(1 2))
-) ;check-catch
+(check-catch 'wrong-type-arg (first-set-bit "string"))
+(check-catch 'wrong-type-arg (first-set-bit 'symbol))
+(check-catch 'wrong-type-arg (first-set-bit 3.14))
+(check-catch 'wrong-type-arg (first-set-bit #\a))
+(check-catch 'wrong-type-arg (first-set-bit '(1 2)))
 
 
 

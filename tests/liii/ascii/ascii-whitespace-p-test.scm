@@ -33,8 +33,7 @@
 
 
 (check-true (ascii-whitespace? #\tab))
-(check-true (ascii-whitespace? #\newline)
-) ;check-true
+(check-true (ascii-whitespace? #\newline))
 (check-true (ascii-whitespace? #\space))
 (check-false (ascii-whitespace? #\A))
 

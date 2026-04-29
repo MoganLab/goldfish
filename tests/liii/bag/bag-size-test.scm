@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -26,8 +23,6 @@
 
 (check (bag-size b-empty) => 0)
 (check (bag-size b-1-2) => 3)
-(check-catch 'type-error
-  (bag-size "not a bag")
-) ;check-catch
+(check-catch 'type-error (bag-size "not a bag"))
 
 (check-report)

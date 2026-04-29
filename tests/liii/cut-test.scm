@@ -72,36 +72,21 @@
 (check-set-mode! 'report-failed)
 
 ;; 基础占位符测试
-(check ((cut list <> 'y <>) 'x 'z)
-  =>
-  '(x y z)
-) ;check
+(check ((cut list <> 'y <>) 'x 'z) => '(x y z))
 (check ((cut + 1 <...>) 2 3) => 6)
 (check ((cut + 1 <...>)) => 1)
 (check ((cut <> 1 <...>) + 2 3) => 6)
-(check ((cut list <> <> <...>) 1 2 3)
-  =>
-  '(1 2 3)
-) ;check
-(check ((cut list <> <> <...>) 1 2)
-  =>
-  '(1 2)
-) ;check
+(check ((cut list <> <> <...>) 1 2 3) => '(1 2 3))
+(check ((cut list <> <> <...>) 1 2) => '(1 2))
 (check ((cut + 1 2)) => 3)
 (check ((cut <>) list) => ())
 (check ((cut)) => ())
 (check ((cut <> #t <...>) if 1 0) => 1)
 
 ;; 错误处理测试
-(check-catch 'wrong-number-of-args
- ((cut list <> <>) 1)
-) ;check-catch
-(check-catch 'wrong-number-of-args
- ((cut list <> <> <...>) 1)
-) ;check-catch
-(check-catch 'syntax-error
- ((cut list <> <> <...> <>) 1 2 3)
-) ;check-catch
+(check-catch 'wrong-number-of-args ((cut list <> <>) 1))
+(check-catch 'wrong-number-of-args ((cut list <> <> <...>) 1))
+(check-catch 'syntax-error ((cut list <> <> <...> <>) 1 2 3))
 
 ;; cut vs cute 求值时机对比测试
 (let* ((a 1) (f (cut <> (set! a 2))))

@@ -37,10 +37,7 @@
 (let ((ht (make-hash-table)))
   (check (hash-table->alist ht) => '())
   (hash-table-set! ht 'k1 'v1)
-  (check (hash-table->alist ht)
-    =>
-    '(k1 v1)
-  ) ;check
+  (check (hash-table->alist ht) => '(k1 v1))
 ) ;let
 
 

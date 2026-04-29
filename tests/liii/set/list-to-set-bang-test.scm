@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -39,20 +36,13 @@
 
 ;; 测试 list->set! 基本行为
 (define s-list-merge (set 1 2))
-(define s-list-merge-result
-  (list->set! s-list-merge '(2 3 4))
-) ;define
-(check-true (eq? s-list-merge-result s-list-merge)
-) ;check-true
+(define s-list-merge-result (list->set! s-list-merge '(2 3 4)))
+(check-true (eq? s-list-merge-result s-list-merge))
 (check (set-size s-list-merge) => 4)
-(check-true (set-contains? s-list-merge 1)
-) ;check-true
-(check-true (set-contains? s-list-merge 2)
-) ;check-true
-(check-true (set-contains? s-list-merge 3)
-) ;check-true
-(check-true (set-contains? s-list-merge 4)
-) ;check-true
+(check-true (set-contains? s-list-merge 1))
+(check-true (set-contains? s-list-merge 2))
+(check-true (set-contains? s-list-merge 3))
+(check-true (set-contains? s-list-merge 4))
 
 
 ;; 测试空列表
@@ -62,9 +52,7 @@
 
 
 ;; 测试类型错误
-(check-catch 'type-error
-  (list->set! "not a set" '(1 2))
-) ;check-catch
+(check-catch 'type-error (list->set! "not a set" '(1 2)))
 
 
 (check-report)

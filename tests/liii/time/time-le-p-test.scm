@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -41,9 +38,7 @@
 
 ;; Test error conditions
 (check-catch 'wrong-type-arg
-  (time<=? (make-time TIME-UTC 0 0)
-    (make-time TIME-TAI 0 0)
-  ) ;time<=?
+  (time<=? (make-time TIME-UTC 0 0) (make-time TIME-TAI 0 0))
 ) ;check-catch
 
 

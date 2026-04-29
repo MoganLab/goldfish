@@ -66,99 +66,47 @@
 ;; (filter (lambda (x) (string? x)) '("a" 1 "b" 2)) => '("a" "b")
 
 
-(check (filter even? '(-2 -1 0 1 2))
-  =>
-  '(-2 0 2)
-) ;check
-(check (filter even? '(1 2 3 4 5 6))
-  =>
-  '(2 4 6)
-) ;check
-(check (filter odd? '(1 2 3 4 5 6))
-  =>
-  '(1 3 5)
-) ;check
-(check (filter positive? '(-2 -1 0 1 2))
-  =>
-  '(1 2)
-) ;check
-(check (filter negative? '(-2 -1 0 1 2))
-  =>
-  '(-2 -1)
-) ;check
+(check (filter even? '(-2 -1 0 1 2)) => '(-2 0 2))
+(check (filter even? '(1 2 3 4 5 6)) => '(2 4 6))
+(check (filter odd? '(1 2 3 4 5 6)) => '(1 3 5))
+(check (filter positive? '(-2 -1 0 1 2)) => '(1 2))
+(check (filter negative? '(-2 -1 0 1 2)) => '(-2 -1))
 
 
 (check (filter even? '()) => '())
-(check (filter (lambda (x) #f) '(1 2 3))
-  =>
-  '()
-) ;check
-(check (filter (lambda (x) #t) '(1 2 3))
-  =>
-  '(1 2 3)
-) ;check
-(check (filter (lambda (x) (> x 100)) '(1 2 3))
-  =>
-  '()
-) ;check
+(check (filter (lambda (x) #f) '(1 2 3)) => '())
+(check (filter (lambda (x) #t) '(1 2 3)) => '(1 2 3))
+(check (filter (lambda (x) (> x 100)) '(1 2 3)) => '())
 
 
-(check (filter symbol? '(a 1 b 2 c 3))
-  =>
-  '(a b c)
-) ;check
-(check (filter string?
-         '("hello" 42 "world" 3.14)
-       ) ;filter
-  =>
-  '("hello" "world")
-) ;check
-(check (filter list? '(1 (2 3) 4 (5 (6))))
-  =>
-  '((2 3) (5 (6)))
-) ;check
-(check (filter boolean? '(#t #f 1 "a" #t))
-  =>
-  '(#t #f #t)
-) ;check
+(check (filter symbol? '(a 1 b 2 c 3)) => '(a b c))
+(check (filter string? '("hello" 42 "world" 3.14)) => '("hello" "world"))
+(check (filter list? '(1 (2 3) 4 (5 (6)))) => '((2 3) (5 (6))))
+(check (filter boolean? '(#t #f 1 "a" #t)) => '(#t #f #t))
 
 
-(check (filter (lambda (x)
-                 (and (list? x) (not (null? x)))
-               ) ;lambda
-         '(() (a) b (c d) ())
-       ) ;filter
+(check (filter (lambda (x) (and (list? x) (not (null? x)))) '(() (a) b (c d) ()))
   =>
   '((a) (c d))
 ) ;check
-(check (filter (lambda (x)
-                 (and (list? x) (> (length x) 1))
-               ) ;lambda
-         '((a) (b c) (d) (e f g))
-       ) ;filter
+(check (filter (lambda (x) (and (list? x) (> (length x) 1))) '((a)
+                                                               (b c)
+                                                               (d)
+                                                               (e f g)))
   =>
   '((b c) (e f g))
 ) ;check
 
 
-(check (filter (lambda (x) (and x (> x 5)))
-         '(3 7 4 9 2 8)
-       ) ;filter
-  =>
-  '(7 9 8)
-) ;check
-(check (filter (lambda (x) (> (string-length x) 3))
-         '("a" "hello" "xyz" "world")
-       ) ;filter
+(check (filter (lambda (x) (and x (> x 5))) '(3 7 4 9 2 8)) => '(7 9 8))
+(check (filter (lambda (x) (> (string-length x) 3)) '("a" "hello" "xyz" "world"))
   =>
   '("hello" "world")
 ) ;check
 
 
 (let ((numbers (iota 100)))
-  (check (filter (lambda (x) (= (modulo x 10) 0))
-           numbers
-         ) ;filter
+  (check (filter (lambda (x) (= (modulo x 10) 0)) numbers)
     =>
     '(0 10 20 30 40 50 60 70 80 90)
   ) ;check
@@ -166,21 +114,9 @@
 
 
 (let ((large-list (make-list 1000 5)))
-  (check (length (filter (lambda (x) #t) large-list)
-         ) ;length
-    =>
-    1000
-  ) ;check
-  (check (length (filter (lambda (x) (> x 0)) large-list)
-         ) ;length
-    =>
-    1000
-  ) ;check
-  (check (length (filter (lambda (x) (> x 5)) large-list)
-         ) ;length
-    =>
-    0
-  ) ;check
+  (check (length (filter (lambda (x) #t) large-list)) => 1000)
+  (check (length (filter (lambda (x) (> x 0)) large-list)) => 1000)
+  (check (length (filter (lambda (x) (> x 5)) large-list)) => 0)
 ) ;let
 
 

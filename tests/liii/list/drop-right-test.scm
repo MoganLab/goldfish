@@ -56,33 +56,15 @@
 ;; - wrong-type-arg：当list不是列表或k不是整数类型时
 
 
-(check (drop-right '(1 2 3 4) 2)
-  =>
-  '(1 2)
-) ;check
+(check (drop-right '(1 2 3 4) 2) => '(1 2))
 (check (drop-right '(1 2 3 4) 4) => '())
-(check (drop-right '(1 2 3 . 4) 3)
-  =>
-  '()
-) ;check
+(check (drop-right '(1 2 3 . 4) 3) => '())
 
 
-(check (drop-right '(1 2 3 4 5) 0)
-  =>
-  '(1 2 3 4 5)
-) ;check
-(check (drop-right '(1 2 3 4 5) 1)
-  =>
-  '(1 2 3 4)
-) ;check
-(check (drop-right '(1 2 3 4 5) 3)
-  =>
-  '(1 2)
-) ;check
-(check (drop-right '(1 2 3 4 5) 5)
-  =>
-  '()
-) ;check
+(check (drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (drop-right '(1 2 3 4 5) 1) => '(1 2 3 4))
+(check (drop-right '(1 2 3 4 5) 3) => '(1 2))
+(check (drop-right '(1 2 3 4 5) 5) => '())
 
 
 (check (drop-right '() 0) => '())
@@ -92,79 +74,32 @@
 (check (drop-right '(a) 1) => '())
 
 
-(check (drop-right '((a b) (c d) (e f)) 1)
-  =>
-  '((a b) (c d))
-) ;check
-(check (drop-right '((a b) (c d) (e f)) 2)
-  =>
-  '((a b))
-) ;check
-(check (drop-right '((a b) (c d) (e f)) 3)
-  =>
-  '()
-) ;check
+(check (drop-right '((a b) (c d) (e f)) 1) => '((a b) (c d)))
+(check (drop-right '((a b) (c d) (e f)) 2) => '((a b)))
+(check (drop-right '((a b) (c d) (e f)) 3) => '())
 
 
-(check (drop-right '(1 2 . 3) 0)
-  =>
-  '(1 2)
-) ;check
-(check (drop-right '(1 2 . 3) 1)
-  =>
-  '(1)
-) ;check
+(check (drop-right '(1 2 . 3) 0) => '(1 2))
+(check (drop-right '(1 2 . 3) 1) => '(1))
 (check (drop-right '(1 2 . 3) 2) => '())
-(check (drop-right '(a b c . d) 1)
-  =>
-  '(a b)
-) ;check
-(check (drop-right '(a b c . d) 2)
-  =>
-  '(a)
-) ;check
-(check (drop-right '(a b c . d) 3)
-  =>
-  '()
-) ;check
+(check (drop-right '(a b c . d) 1) => '(a b))
+(check (drop-right '(a b c . d) 2) => '(a))
+(check (drop-right '(a b c . d) 3) => '())
 
 
-(check (drop-right (drop-right '(1 2 3 4 5) 1)
-         1
-       ) ;drop-right
-  =>
-  '(1 2 3)
-) ;check
-(check (drop-right (take-right '(1 2 3 4 5) 4)
-         2
-       ) ;drop-right
-  =>
-  '(2 3)
-) ;check
-(check (take-right (drop-right '(1 2 3 4 5) 2)
-         2
-       ) ;take-right
-  =>
-  '(2 3)
-) ;check
+(check (drop-right (drop-right '(1 2 3 4 5) 1) 1) => '(1 2 3))
+(check (drop-right (take-right '(1 2 3 4 5) 4) 2) => '(2 3))
+(check (take-right (drop-right '(1 2 3 4 5) 2) 2) => '(2 3))
 
 
-(check (drop-right (iota 10) 5)
-  =>
-  '(0 1 2 3 4)
-) ;check
-(check (drop-right (iota 10) 0)
-  =>
-  '(0 1 2 3 4 5 6 7 8 9)
-) ;check
+(check (drop-right (iota 10) 5) => '(0 1 2 3 4))
+(check (drop-right (iota 10) 0) => '(0 1 2 3 4 5 6 7 8 9))
 (check (drop-right (iota 10) 10) => '())
 
 
 (let ((lst '(1 2 3 4 5 6 7 8 9 10)))
   (define (symmetry-test lst k)
-    (append (drop-right lst k)
-      (take-right lst k)
-    ) ;append
+    (append (drop-right lst k) (take-right lst k))
   ) ;define
 
   (check (symmetry-test lst 0) => lst)
@@ -174,39 +109,17 @@
 ) ;let
 
 
-(check (drop-right '("a" "b" "c" "d") 2)
-  =>
-  '("a" "b")
-) ;check
-(check (drop-right '(42 43 44 45) 2)
-  =>
-  '(42 43)
-) ;check
-(check (drop-right '(#t #f #t #f) 2)
-  =>
-  '(#t #f)
-) ;check
-(check (drop-right '(a 1 "hello") 1)
-  =>
-  '(a 1)
-) ;check
+(check (drop-right '("a" "b" "c" "d") 2) => '("a" "b"))
+(check (drop-right '(42 43 44 45) 2) => '(42 43))
+(check (drop-right '(#t #f #t #f) 2) => '(#t #f))
+(check (drop-right '(a 1 "hello") 1) => '(a 1))
 
 
-(check-catch 'out-of-range
-  (drop-right '(1 2 3 4) 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (drop-right '(1 2 3 4) -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (drop-right '(1 2 3 . 4) 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (drop-right "not a list" 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (drop-right '(1 2 3) "not a number")
-) ;check-catch
+(check-catch 'out-of-range (drop-right '(1 2 3 4) 5))
+(check-catch 'out-of-range (drop-right '(1 2 3 4) -1))
+(check-catch 'out-of-range (drop-right '(1 2 3 . 4) 4))
+(check-catch 'wrong-type-arg (drop-right "not a list" 2))
+(check-catch 'wrong-type-arg (drop-right '(1 2 3) "not a number"))
 
 
 (check-report)

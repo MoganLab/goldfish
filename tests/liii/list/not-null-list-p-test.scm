@@ -34,10 +34,7 @@
 
 
 (check (not-null-list? (list 1)) => #t)
-(check (not-null-list? (list 1 2 3))
-  =>
-  #t
-) ;check
+(check (not-null-list? (list 1 2 3)) => #t)
 (check (not-null-list? '(a)) => #t)
 (check (not-null-list? '(a b c)) => #t)
 (check (not-null-list? ()) => #f)
@@ -46,9 +43,7 @@
 (check (not-null-list? '(a . b)) => #f)
 
 
-(check-catch 'type-error
-  (not-null-list? 1)
-) ;check-catch
+(check-catch 'type-error (not-null-list? 1))
 
 
 (check-report)

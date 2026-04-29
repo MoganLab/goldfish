@@ -55,281 +55,86 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-skip-right"
 
-(check (string-skip-right "hello   " #\space)
-  =>
-  4
-) ;check
-(check (string-skip-right "aaaa" #\a)
-  =>
-  #f
-) ;check
-(check (string-skip-right "abc123"
-         char-numeric?
-       ) ;string-skip-right
-  =>
-  2
-) ;check
-(check (string-skip-right "123abc"
-         char-alphabetic?
-       ) ;string-skip-right
-  =>
-  2
-) ;check
-(check (string-skip-right "" #\space)
-  =>
-  #f
-) ;check
+(check (string-skip-right "hello   " #\space) => 4)
+(check (string-skip-right "aaaa" #\a) => #f)
+(check (string-skip-right "abc123" char-numeric?) => 2)
+(check (string-skip-right "123abc" char-alphabetic?) => 2)
+(check (string-skip-right "" #\space) => #f)
 
 ;; 字符参数测试
-(check (string-skip-right "abcxxx" #\x)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 0 5)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 0 4)
-  =>
-  2
-) ;check
-(check (string-skip-right "   \t\n  "
-         char-whitespace?
-       ) ;string-skip-right
-  =>
-  #f
-) ;check
+(check (string-skip-right "abcxxx" #\x) => 2)
+(check (string-skip-right "abcxxx" #\x 0 5) => 2)
+(check (string-skip-right "abcxxx" #\x 0 4) => 2)
+(check (string-skip-right "   \t\n  " char-whitespace?) => #f)
 
 ;; 扩展综合测试
-(check (string-skip-right "helloh" #\h)
-  =>
-  4
-) ;check
-(check (string-skip-right "hellohh" #\h)
-  =>
-  4
-) ;check
-(check (string-skip-right "hhh" #\h)
-  =>
-  #f
-) ;check
-(check (string-skip-right "hello world" #\d)
-  =>
-  9
-) ;check
-(check (string-skip-right "hello" #\x)
-  =>
-  4
-) ;check
+(check (string-skip-right "helloh" #\h) => 4)
+(check (string-skip-right "hellohh" #\h) => 4)
+(check (string-skip-right "hhh" #\h) => #f)
+(check (string-skip-right "hello world" #\d) => 9)
+(check (string-skip-right "hello" #\x) => 4)
 (check (string-skip-right "" #\a) => #f)
-(check (string-skip-right "a" #\a)
-  =>
-  #f
-) ;check
+(check (string-skip-right "a" #\a) => #f)
 (check (string-skip-right "a" #\b) => 0)
-(check (string-skip-right "0123456789" #\9)
-  =>
-  8
-) ;check
-(check (string-skip-right "0123456789" #\8)
-  =>
-  9
-) ;check
+(check (string-skip-right "0123456789" #\9) => 8)
+(check (string-skip-right "0123456789" #\8) => 9)
 
 ;; 谓词参数测试
-(check (string-skip-right "0123456789"
-         char-numeric?
-       ) ;string-skip-right
-  =>
-  #f
-) ;check
-(check (string-skip-right "abc123"
-         char-numeric?
-       ) ;string-skip-right
-  =>
-  2
-) ;check
-(check (string-skip-right "123abc"
-         char-alphabetic?
-       ) ;string-skip-right
-  =>
-  2
-) ;check
-(check (string-skip-right "Hello123"
-         char-upper-case?
-       ) ;string-skip-right
-  =>
-  7
-) ;check
-(check (string-skip-right "HELLO"
-         char-upper-case?
-       ) ;string-skip-right
-  =>
-  #f
-) ;check
-(check (string-skip-right "123!@#"
-         char-alphabetic?
-       ) ;string-skip-right
-  =>
-  5
-) ;check
-(check (string-skip-right "hello   "
-         char-whitespace?
-       ) ;string-skip-right
-  =>
-  4
-) ;check
-(check (string-skip-right "helloh"
-         (lambda (c) (char=? c #\h))
-       ) ;string-skip-right
-  =>
-  4
-) ;check
+(check (string-skip-right "0123456789" char-numeric?) => #f)
+(check (string-skip-right "abc123" char-numeric?) => 2)
+(check (string-skip-right "123abc" char-alphabetic?) => 2)
+(check (string-skip-right "Hello123" char-upper-case?) => 7)
+(check (string-skip-right "HELLO" char-upper-case?) => #f)
+(check (string-skip-right "123!@#" char-alphabetic?) => 5)
+(check (string-skip-right "hello   " char-whitespace?) => 4)
+(check (string-skip-right "helloh" (lambda (c) (char=? c #\h))) => 4)
 
 ;; 单字符边界情况
-(check (string-skip-right "a" #\a)
-  =>
-  #f
-) ;check
+(check (string-skip-right "a" #\a) => #f)
 (check (string-skip-right "a" #\b) => 0)
-(check (string-skip-right " " #\space)
-  =>
-  #f
-) ;check
-(check (string-skip-right "\t"
-         char-whitespace?
-       ) ;string-skip-right
-  =>
-  #f
-) ;check
+(check (string-skip-right " " #\space) => #f)
+(check (string-skip-right "\t" char-whitespace?) => #f)
 
 ;; start和end参数测试
-(check (string-skip-right "abcxxx" #\x 0)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 1)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 2)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 3)
-  =>
-  #f
-) ;check
-(check (string-skip-right "abcxxx" #\x 4)
-  =>
-  #f
-) ;check
-(check (string-skip-right "abcxxx" #\x 0 3)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 0 4)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 1 4)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 2 4)
-  =>
-  2
-) ;check
-(check (string-skip-right "abcxxx" #\x 3 4)
-  =>
-  #f
-) ;check
-(check (string-skip-right "abcxxx" #\x 3 3)
-  =>
-  #f
-) ;check
+(check (string-skip-right "abcxxx" #\x 0) => 2)
+(check (string-skip-right "abcxxx" #\x 1) => 2)
+(check (string-skip-right "abcxxx" #\x 2) => 2)
+(check (string-skip-right "abcxxx" #\x 3) => #f)
+(check (string-skip-right "abcxxx" #\x 4) => #f)
+(check (string-skip-right "abcxxx" #\x 0 3) => 2)
+(check (string-skip-right "abcxxx" #\x 0 4) => 2)
+(check (string-skip-right "abcxxx" #\x 1 4) => 2)
+(check (string-skip-right "abcxxx" #\x 2 4) => 2)
+(check (string-skip-right "abcxxx" #\x 3 4) => #f)
+(check (string-skip-right "abcxxx" #\x 3 3) => #f)
 
 ;; 特殊字符和边界情况
-(check (string-skip-right "test___" #\_)
-  =>
-  3
-) ;check
-(check (string-skip-right "b@@a" #\@)
-  =>
-  3
-) ;check
-(check (string-skip-right "a---" #\-)
-  =>
-  0
-) ;check
-(check (string-skip-right "hello,," #\,)
-  =>
-  4
-) ;check
+(check (string-skip-right "test___" #\_) => 3)
+(check (string-skip-right "b@@a" #\@) => 3)
+(check (string-skip-right "a---" #\-) => 0)
+(check (string-skip-right "hello,," #\,) => 4)
 
 ;; 复杂谓词
 (check (string-skip-right "!@#abc123"
-         (lambda (c)
-           (or (char-alphabetic? c)
-             (char-numeric? c)
-           ) ;or
-         ) ;lambda
+         (lambda (c) (or (char-alphabetic? c) (char-numeric? c)))
        ) ;string-skip-right
   =>
   2
 ) ;check
-(check (string-skip-right "abc123   "
-         char-whitespace?
-       ) ;string-skip-right
-  =>
-  5
-) ;check
-(check (string-skip-right "abc123"
-         char-upper-case?
-       ) ;string-skip-right
-  =>
-  5
-) ;check
-(check (string-skip-right "ABC123"
-         char-upper-case?
-       ) ;string-skip-right
-  =>
-  5
-) ;check
-(check (string-skip-right "abcABC"
-         char-upper-case?
-       ) ;string-skip-right
-  =>
-  2
-) ;check
+(check (string-skip-right "abc123   " char-whitespace?) => 5)
+(check (string-skip-right "abc123" char-upper-case?) => 5)
+(check (string-skip-right "ABC123" char-upper-case?) => 5)
+(check (string-skip-right "abcABC" char-upper-case?) => 2)
 
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (string-skip-right 123 #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-skip-right "hello" "a")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-skip-right "hello" 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-skip-right "hello" '(a))
-) ;check-catch
-(check-catch 'out-of-range
-  (string-skip-right "hello" #\a -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-skip-right "hello" #\a 0 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-skip-right "hello" #\a 3 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-skip-right "" #\a 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-skip-right "abc" #\a 5)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-skip-right 123 #\a))
+(check-catch 'wrong-type-arg (string-skip-right "hello" "a"))
+(check-catch 'wrong-type-arg (string-skip-right "hello" 123))
+(check-catch 'wrong-type-arg (string-skip-right "hello" '(a)))
+(check-catch 'out-of-range (string-skip-right "hello" #\a -1))
+(check-catch 'out-of-range (string-skip-right "hello" #\a 0 6))
+(check-catch 'out-of-range (string-skip-right "hello" #\a 3 2))
+(check-catch 'out-of-range (string-skip-right "" #\a 1))
+(check-catch 'out-of-range (string-skip-right "abc" #\a 5))
 
 (check-report)

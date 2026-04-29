@@ -10,14 +10,11 @@
 
 ;; 示例1：构造一个 Right 值并映射结果
 (define ok (from-right 21))
-(to-right (either-map (lambda (x) (* x 2)) ok)
-) ;to-right
+(to-right (either-map (lambda (x) (* x 2)) ok))
 
 
 ;; 示例2：遇到 Left 时回退到默认值
-(either-get-or-else (from-left "network-error")
-  0
-) ;either-get-or-else
+(either-get-or-else (from-left "network-error") 0)
 
 
 ;; 示例3：把普通值包装成 Left 或 Right

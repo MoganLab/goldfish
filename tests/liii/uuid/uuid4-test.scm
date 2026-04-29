@@ -38,29 +38,14 @@
 
 ;; Verify format: 8-4-4-4-12 pattern
 (define uuid-str (uuid4))
-(check (char=? (string-ref uuid-str 8) #\-)
-  =>
-  #t
-) ;check
-(check (char=? (string-ref uuid-str 13) #\-)
-  =>
-  #t
-) ;check
-(check (char=? (string-ref uuid-str 18) #\-)
-  =>
-  #t
-) ;check
-(check (char=? (string-ref uuid-str 23) #\-)
-  =>
-  #t
-) ;check
+(check (char=? (string-ref uuid-str 8) #\-) => #t)
+(check (char=? (string-ref uuid-str 13) #\-) => #t)
+(check (char=? (string-ref uuid-str 18) #\-) => #t)
+(check (char=? (string-ref uuid-str 23) #\-) => #t)
 
 
 ;; Verify version bit (4th character of 3rd segment should be '4')
-(check (char=? (string-ref uuid-str 14) #\4)
-  =>
-  #t
-) ;check
+(check (char=? (string-ref uuid-str 14) #\4) => #t)
 
 
 (check-report)

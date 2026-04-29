@@ -29,8 +29,7 @@
 ;; value-error
 ;; 字符串不是以新行开头、closing line 非法，或某一行缩进少于基准缩进时抛出。
 
-(check (deindent "\n  第一行\n  第二行\n  第三行\n  "
-       ) ;deindent
+(check (deindent "\n  第一行\n  第二行\n  第三行\n  ")
   =>
   "第一行\n第二行\n第三行"
 ) ;check
@@ -61,19 +60,9 @@
 
 (check (deindent "\n\n  ") => "")
 
-(check-catch 'value-error
-  (deindent "第一行\n  ")
-) ;check-catch
-(check-catch 'value-error
-  (deindent "\n")
-) ;check-catch
-(check-catch 'value-error
-  (deindent "\n  第一行\n\t第二行\n  "
-  ) ;deindent
-) ;check-catch
-(check-catch 'value-error
-  (deindent "\n  第一行\n 第二行\n  "
-  ) ;deindent
-) ;check-catch
+(check-catch 'value-error (deindent "第一行\n  "))
+(check-catch 'value-error (deindent "\n"))
+(check-catch 'value-error (deindent "\n  第一行\n\t第二行\n  "))
+(check-catch 'value-error (deindent "\n  第一行\n 第二行\n  "))
 
 (check-report)

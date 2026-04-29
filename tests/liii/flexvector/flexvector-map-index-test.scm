@@ -13,10 +13,7 @@
 ;; (flexvector-map/index proc fv1 fv2 ...)
 ;;
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector->vector (flexvector-map/index (lambda (i x) (+ x (* i 2)))
-                               fv
-                             ) ;flexvector-map/index
-         ) ;flexvector->vector
+  (check (flexvector->vector (flexvector-map/index (lambda (i x) (+ x (* i 2))) fv))
     =>
     #(10 22 34)
   ) ;check

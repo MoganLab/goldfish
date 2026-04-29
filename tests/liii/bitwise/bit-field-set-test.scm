@@ -96,14 +96,8 @@
 
 
 ;; ; 特殊值测试
-(check (bit-field-set 0 0 31)
-  =>
-  2147483647
-) ;check
-(check (bit-field-set 0 31 32)
-  =>
-  2147483648
-) ;check
+(check (bit-field-set 0 0 31) => 2147483647)
+(check (bit-field-set 0 31 32) => 2147483648)
 ;; ; 注意：S7 Scheme 的 bit-field-set 对 -2147483648 的处理与标准不同
 ;; ; (check (bit-field-set -2147483648 31 32) => -2147483648) ; 这个测试会失败
 
@@ -117,32 +111,18 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bit-field-set "string" 0 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-field-set 1 "string" 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-field-set 1 0 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-field-set 3.14 0 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-field-set 1 3.14 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-field-set 1 0 3.14)
-) ;check-catch
+(check-catch 'wrong-type-arg (bit-field-set "string" 0 4))
+(check-catch 'wrong-type-arg (bit-field-set 1 "string" 4))
+(check-catch 'wrong-type-arg (bit-field-set 1 0 "string"))
+(check-catch 'wrong-type-arg (bit-field-set 3.14 0 4))
+(check-catch 'wrong-type-arg (bit-field-set 1 3.14 4))
+(check-catch 'wrong-type-arg (bit-field-set 1 0 3.14))
 
 
 ;; ; 错误处理测试 - out-of-range
 ;; ; 注意：S7 Scheme 的 bit-field-set 实现与 SRFI 151 标准有所不同
 ;; ; 只有结束索引超过63时会抛出 out-of-range 错误
-(check-catch 'out-of-range
-  (bit-field-set 1 0 64)
-) ;check-catch
+(check-catch 'out-of-range (bit-field-set 1 0 64))
 
 
 ;; ; 其他边界情况不会抛出错误，而是返回正常值

@@ -60,45 +60,19 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-pad"
 
-(check (string-pad "MathAgape" 15)
-  =>
-  "      MathAgape"
-) ;check
-(check (string-pad "MathAgape" 12 #\1)
-  =>
-  "111MathAgape"
-) ;check
-(check (string-pad "MathAgape" 6 #\1 0 4)
-  =>
-  "11Math"
-) ;check
-(check (string-pad "MathAgape" 9)
-  =>
-  "MathAgape"
-) ;check
-(check (string-pad "MathAgape" 5)
-  =>
-  "Agape"
-) ;check
-(check (string-pad "MathAgape" 2 #\1 0 4)
-  =>
-  "th"
-) ;check
+(check (string-pad "MathAgape" 15) => "      MathAgape")
+(check (string-pad "MathAgape" 12 #\1) => "111MathAgape")
+(check (string-pad "MathAgape" 6 #\1 0 4) => "11Math")
+(check (string-pad "MathAgape" 9) => "MathAgape")
+(check (string-pad "MathAgape" 5) => "Agape")
+(check (string-pad "MathAgape" 2 #\1 0 4) => "th")
 
-(check-catch 'out-of-range
-  (string-pad "MathAgape" -1)
-) ;check-catch
+(check-catch 'out-of-range (string-pad "MathAgape" -1))
 
 (check (string-pad "abc" 6) => "   abc")
-(check (string-pad "abc" 6 #\0)
-  =>
-  "000abc"
-) ;check
+(check (string-pad "abc" 6 #\0) => "000abc")
 (check (string-pad "abcdef" 3) => "def")
-(check (string-pad "abcdef" 3 #\0)
-  =>
-  "def"
-) ;check
+(check (string-pad "abcdef" 3 #\0) => "def")
 (check (string-pad "" 5) => "     ")
 (check (string-pad "" 5 #\0) => "00000")
 (check (string-pad "a" 1) => "a")
@@ -108,44 +82,17 @@
 (check (string-pad "abc" 2) => "bc")
 (check (string-pad "abc" 1) => "c")
 
-(check (string-pad "中文" 6)
-  =>
-  "中文"
-) ;check
+(check (string-pad "中文" 6) => "中文")
 
-(check (string-pad "HelloWorld" 12 #\!)
-  =>
-  "!!HelloWorld"
-) ;check
-(check (string-pad "HelloWorld" 7 #\! 0 5)
-  =>
-  "!!Hello"
-) ;check
-(check (string-pad "HelloWorld" 8 #\! 1 6)
-  =>
-  "!!!elloW"
-) ;check
-(check (string-pad "HelloWorld" 5 #\x 3 5)
-  =>
-  "xxxlo"
-) ;check
-(check (string-pad "HelloWorld" 0 #\! 3 3)
-  =>
-  ""
-) ;check
+(check (string-pad "HelloWorld" 12 #\!) => "!!HelloWorld")
+(check (string-pad "HelloWorld" 7 #\! 0 5) => "!!Hello")
+(check (string-pad "HelloWorld" 8 #\! 1 6) => "!!!elloW")
+(check (string-pad "HelloWorld" 5 #\x 3 5) => "xxxlo")
+(check (string-pad "HelloWorld" 0 #\! 3 3) => "")
 
-(check (string-pad "abc" 10 #\*)
-  =>
-  "*******abc"
-) ;check
-(check (string-pad "test" 8 #\-)
-  =>
-  "----test"
-) ;check
-(check (string-pad "123" 7 #\0)
-  =>
-  "0000123"
-) ;check
+(check (string-pad "abc" 10 #\*) => "*******abc")
+(check (string-pad "test" 8 #\-) => "----test")
+(check (string-pad "123" 7 #\0) => "0000123")
 
 ;; string-pad-right
 ;; 在字符串右侧填充字符以达到指定长度。
@@ -200,139 +147,41 @@
 ;; out-of-range 当len为负数时
 ;; wrong-type-arg 当str不是字符串类型时
 
-(check (string-pad-right "MathAgape" 15)
-  =>
-  "MathAgape      "
-) ;check
-(check (string-pad-right "MathAgape" 12 #\1)
-  =>
-  "MathAgape111"
-) ;check
-(check (string-pad-right "MathAgape" 6 #\1 0 4)
-  =>
-  "Math11"
-) ;check
-(check (string-pad-right "MathAgape" 9)
-  =>
-  "MathAgape"
-) ;check
-(check (string-pad-right "MathAgape" 9 #\1)
-  =>
-  "MathAgape"
-) ;check
-(check (string-pad-right "MathAgape" 4)
-  =>
-  "Math"
-) ;check
+(check (string-pad-right "MathAgape" 15) => "MathAgape      ")
+(check (string-pad-right "MathAgape" 12 #\1) => "MathAgape111")
+(check (string-pad-right "MathAgape" 6 #\1 0 4) => "Math11")
+(check (string-pad-right "MathAgape" 9) => "MathAgape")
+(check (string-pad-right "MathAgape" 9 #\1) => "MathAgape")
+(check (string-pad-right "MathAgape" 4) => "Math")
 
-(check-catch 'out-of-range
-  (string-pad-right "MathAgape" -1)
-) ;check-catch
+(check-catch 'out-of-range (string-pad-right "MathAgape" -1))
 
-(check (string-pad-right "abc" 6)
-  =>
-  "abc   "
-) ;check
-(check (string-pad-right "abc" 6 #\0)
-  =>
-  "abc000"
-) ;check
-(check (string-pad-right "abcdef" 3)
-  =>
-  "abc"
-) ;check
-(check (string-pad-right "abcdef" 3 #\0)
-  =>
-  "abc"
-) ;check
-(check (string-pad-right "" 5)
-  =>
-  "     "
-) ;check
-(check (string-pad-right "" 5 #\0)
-  =>
-  "00000"
-) ;check
+(check (string-pad-right "abc" 6) => "abc   ")
+(check (string-pad-right "abc" 6 #\0) => "abc000")
+(check (string-pad-right "abcdef" 3) => "abc")
+(check (string-pad-right "abcdef" 3 #\0) => "abc")
+(check (string-pad-right "" 5) => "     ")
+(check (string-pad-right "" 5 #\0) => "00000")
 (check (string-pad-right "a" 1) => "a")
-(check (string-pad-right "abc" 3)
-  =>
-  "abc"
-) ;check
+(check (string-pad-right "abc" 3) => "abc")
 
 (check (string-pad-right "abc" 0) => "")
-(check (string-pad-right "abc" 2)
-  =>
-  "ab"
-) ;check
-(check (string-pad-right "abc" 1)
-  =>
-  "a"
-) ;check
+(check (string-pad-right "abc" 2) => "ab")
+(check (string-pad-right "abc" 1) => "a")
 
-(check (string-pad-right "中文" 6)
-  =>
-  "中文"
-) ;check
+(check (string-pad-right "中文" 6) => "中文")
 
-(check (string-pad-right "HelloWorld" 12 #\!)
-  =>
-  "HelloWorld!!"
-) ;check
-(check (string-pad-right "HelloWorld"
-         7
-         #\!
-         0
-         5
-       ) ;string-pad-right
-  =>
-  "Hello!!"
-) ;check
-(check (string-pad-right "HelloWorld"
-         8
-         #\!
-         1
-         6
-       ) ;string-pad-right
-  =>
-  "elloW!!!"
-) ;check
-(check (string-pad-right "HelloWorld"
-         5
-         #\x
-         3
-         5
-       ) ;string-pad-right
-  =>
-  "loxxx"
-) ;check
-(check (string-pad-right "HelloWorld"
-         0
-         #\!
-         3
-         3
-       ) ;string-pad-right
-  =>
-  ""
-) ;check
+(check (string-pad-right "HelloWorld" 12 #\!) => "HelloWorld!!")
+(check (string-pad-right "HelloWorld" 7 #\! 0 5) => "Hello!!")
+(check (string-pad-right "HelloWorld" 8 #\! 1 6) => "elloW!!!")
+(check (string-pad-right "HelloWorld" 5 #\x 3 5) => "loxxx")
+(check (string-pad-right "HelloWorld" 0 #\! 3 3) => "")
 
-(check (string-pad-right "abc" 10 #\*)
-  =>
-  "abc*******"
-) ;check
-(check (string-pad-right "test" 8 #\-)
-  =>
-  "test----"
-) ;check
-(check (string-pad-right "123" 7 #\0)
-  =>
-  "1230000"
-) ;check
+(check (string-pad-right "abc" 10 #\*) => "abc*******")
+(check (string-pad-right "test" 8 #\-) => "test----")
+(check (string-pad-right "123" 7 #\0) => "1230000")
 
-(check-catch 'out-of-range
-  (string-pad "abc" -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-pad-right "abc" -1)
-) ;check-catch
+(check-catch 'out-of-range (string-pad "abc" -1))
+(check-catch 'out-of-range (string-pad-right "abc" -1))
 
 (check-report)

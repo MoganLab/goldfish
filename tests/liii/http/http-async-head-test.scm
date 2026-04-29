@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -38,17 +35,11 @@
 
 (let ((head-completed #f) (head-response #f))
   (http-async-head "https://httpbin.org"
-    (lambda (response)
-      (set! head-completed #t)
-      (set! head-response response)
-    ) ;lambda
+    (lambda (response) (set! head-completed #t) (set! head-response response))
   ) ;http-async-head
   (http-wait-all 30)
   (check-true head-completed)
-  (check (head-response 'status-code)
-    =>
-    200
-  ) ;check
+  (check (head-response 'status-code) => 200)
 ) ;let
 
 (check-report)

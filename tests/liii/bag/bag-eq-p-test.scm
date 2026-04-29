@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -20,10 +17,7 @@
 ;; -----
 ;; 如果两个 bag 包含相同的元素（包括重复次数），返回 #t；否则返回 #f。
 
-(let ((b1 (bag 1 1 2))
-      (b2 (bag 1 1 2 2))
-      (b3 (bag 1 1 2))
-     ) ;
+(let ((b1 (bag 1 1 2)) (b2 (bag 1 1 2 2)) (b3 (bag 1 1 2)))
   (check-true (bag=? b1 b3))
   (check-false (bag=? b1 b2))
 ) ;let

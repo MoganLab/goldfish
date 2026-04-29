@@ -23,10 +23,6 @@
 ;; ----
 ;; (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz"
 
-(check (path->string (path-from-string "archive.tar.gz")
-       ) ;path->string
-  =>
-  "archive.tar.gz"
-) ;check
+(check (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz")
 
 (check-report)

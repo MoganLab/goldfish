@@ -35,10 +35,7 @@
 ;; 基本测试
 (let ((fv (flexvector 'a 'b 'c)))
   ;; 返回被移除的元素
-  (check (flexvector-remove-front! fv)
-    =>
-    'a
-  ) ;check
+  (check (flexvector-remove-front! fv) => 'a)
   ;; 长度减少
   (check (flexvector-length fv) => 2)
   ;; 剩余元素前移
@@ -57,10 +54,7 @@
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-remove-front! fv)
-    =>
-    'only
-  ) ;check
+  (check (flexvector-remove-front! fv) => 'only)
   (check (flexvector-empty? fv) => #t)
 ) ;let
 
@@ -68,14 +62,8 @@
 ;; 添加后再移除（使用多个元素一次性添加）
 (let ((fv (flexvector)))
   (flexvector-add-front! fv 1 2 3)
-  (check (flexvector->list fv)
-    =>
-    '(1 2 3)
-  ) ;check
-  (check (flexvector-remove-front! fv)
-    =>
-    1
-  ) ;check
+  (check (flexvector->list fv) => '(1 2 3))
+  (check (flexvector-remove-front! fv) => 1)
   (check (flexvector->list fv) => '(2 3))
 ) ;let
 
@@ -84,10 +72,7 @@
 (let ((fv (flexvector 'a 'b 'c)))
   (flexvector-remove-front! fv)
   (flexvector-add-back! fv 'd)
-  (check (flexvector->list fv)
-    =>
-    '(b c d)
-  ) ;check
+  (check (flexvector->list fv) => '(b c d))
 ) ;let
 
 

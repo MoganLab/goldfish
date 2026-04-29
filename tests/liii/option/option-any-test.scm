@@ -25,34 +25,12 @@
 ;; - (pred value) 的结果如果 option 非空
 
 
-(let ((opt1 (option 42))
-      (opt2 (none))
-      (opt3 (option -5))
-     ) ;
-  (check (option-any (lambda (x) (> x 0)) opt1)
-    =>
-    #t
-  ) ;check
-  (check (option-any (lambda (x) (> x 0)) opt2)
-    =>
-    #f
-  ) ;check
-  (check (option-any (lambda (x) (> x 0)) opt3)
-    =>
-    #f
-  ) ;check
-  (check (option-any (lambda (x) (number? x))
-           opt1
-         ) ;option-any
-    =>
-    #t
-  ) ;check
-  (check (option-any (lambda (x) (string? x))
-           opt1
-         ) ;option-any
-    =>
-    #f
-  ) ;check
+(let ((opt1 (option 42)) (opt2 (none)) (opt3 (option -5)))
+  (check (option-any (lambda (x) (> x 0)) opt1) => #t)
+  (check (option-any (lambda (x) (> x 0)) opt2) => #f)
+  (check (option-any (lambda (x) (> x 0)) opt3) => #f)
+  (check (option-any (lambda (x) (number? x)) opt1) => #t)
+  (check (option-any (lambda (x) (string? x)) opt1) => #f)
 ) ;let
 
 

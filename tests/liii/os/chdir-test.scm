@@ -29,12 +29,8 @@
 
 ;; ; 基本功能测试
 (let* ((orig-dir (getcwd))
-       (test-dir (string-append (os-temp-dir)
-                    (string (os-sep))
-                    "test_chdir_dir"
-                  ) ;string-append
-       ) ;test-dir
-      ) ;let*
+       (test-dir (string-append (os-temp-dir) (string (os-sep)) "test_chdir_dir"))
+      ) ;
   ;; 确保测试目录不存在
   (when (file-exists? test-dir)
     (rmdir test-dir)
@@ -49,9 +45,7 @@
 
   ;; 验证当前目录已改变
   (let ((cwd (getcwd)))
-    (check-true (or (string=? cwd test-dir)
-                  (string=? cwd (string-append "/private" test-dir))
-                ) ;or
+    (check-true (or (string=? cwd test-dir) (string=? cwd (string-append "/private" test-dir)))
     ) ;check-true
   ) ;let
 
@@ -65,9 +59,7 @@
 
 
 ;; ; 错误测试
-(check-catch 'file-not-found-error
-  (chdir "/nonexistent/directory")
-) ;check-catch
+(check-catch 'file-not-found-error (chdir "/nonexistent/directory"))
 
 
 (check-report)

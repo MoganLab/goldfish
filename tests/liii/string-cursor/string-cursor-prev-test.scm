@@ -34,30 +34,32 @@
 (let* ((s "abc")
        (end (string-cursor-end s))
        (prev1 (string-cursor-prev s end))
-       (prev2 (string-cursor-prev s prev1)))
+       (prev2 (string-cursor-prev s prev1))
+      ) ;
   (check (string-cursor->index s prev1) => 2)
-  (check (string-cursor->index s prev2) => 1))
+  (check (string-cursor->index s prev2) => 1)
+) ;let*
 
 ;; 测试中文字符串
-(let* ((s "中文")
-       (end (string-cursor-end s))
-       (prev (string-cursor-prev s end)))
-  (check (string-cursor->index s prev) => 1))
+(let* ((s "中文") (end (string-cursor-end s)) (prev (string-cursor-prev s end)))
+  (check (string-cursor->index s prev) => 1)
+) ;let*
 
 ;; 测试emoji字符串
-(let* ((s "🎉🎊")
-       (end (string-cursor-end s))
-       (prev (string-cursor-prev s end)))
-  (check (string-cursor->index s prev) => 1))
+(let* ((s "🎉🎊") (end (string-cursor-end s)) (prev (string-cursor-prev s end)))
+  (check (string-cursor->index s prev) => 1)
+) ;let*
 
 ;; 测试到达start后不能再prev
 (check-catch 'value-error
   (let ((start (string-cursor-start "a")))
-    (string-cursor-prev "a" start)))
+    (string-cursor-prev "a" start)
+  ) ;let
+) ;check-catch
 
 ;; 测试使用整数索引
-(let* ((s "abc")
-       (prev (string-cursor-prev s 2)))
-  (check (string-cursor->index s prev) => 1))
+(let* ((s "abc") (prev (string-cursor-prev s 2)))
+  (check (string-cursor->index s prev) => 1)
+) ;let*
 
 (check-report)

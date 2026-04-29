@@ -62,53 +62,28 @@
 (check (last-pair '(() a b)) => '(b))
 
 
-(check (last-pair '(a b . c))
-  =>
-  '(b . c)
-) ;check
+(check (last-pair '(a b . c)) => '(b . c))
 (check (last-pair '(a . b)) => '(a . b))
-(check (last-pair '(a b c . d))
-  =>
-  '(c . d)
-) ;check
+(check (last-pair '(a b c . d)) => '(c . d))
 
 
-(check (last-pair '((a b) (c d)))
-  =>
-  '((c d))
-) ;check
-(check (last-pair '((a) b (c d)))
-  =>
-  '((c d))
-) ;check
+(check (last-pair '((a b) (c d))) => '((c d)))
+(check (last-pair '((a) b (c d))) => '((c d)))
 (check (last-pair '(a (b c) d)) => '(d))
 
 
-(check (last-pair '(a (b (c))))
-  =>
-  '((b (c)))
-) ;check
-(check (last-pair '("hello" "world" "test"))
-  =>
-  '("test")
-) ;check
+(check (last-pair '(a (b (c)))) => '((b (c))))
+(check (last-pair '("hello" "world" "test")) => '("test"))
 (check (last-pair '(1 "a" b)) => '(b))
 
 
 (check (last-pair '(#t #f #t)) => '(#t))
-(check (last-pair '(42 43 44.5))
-  =>
-  '(44.5)
-) ;check
+(check (last-pair '(42 43 44.5)) => '(44.5))
 (check (last-pair '(() [] {})) => '({}))
 
 
-(check-catch 'wrong-type-arg
-  (last-pair '())
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (last-pair 'not-a-list)
-) ;check-catch
+(check-catch 'wrong-type-arg (last-pair '()))
+(check-catch 'wrong-type-arg (last-pair 'not-a-list))
 
 
 (check-report)

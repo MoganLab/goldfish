@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii sort)
-  (liii trie)
-) ;import
+(import (liii check) (liii sort) (liii trie))
 
 
 (check-set-mode! 'report-failed)
@@ -35,32 +32,21 @@
 
 
 (let ((trie (make-trie)))
-  (trie-insert! trie
-    (string->list "hello")
-    'world
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "hey")
-    'there
-  ) ;trie-insert!
-  (trie-insert! trie
-    (string->list "hi")
-    'again
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "hello") 'world)
+  (trie-insert! trie (string->list "hey") 'there)
+  (trie-insert! trie (string->list "hi") 'again)
 
   (check (list-sort! < (trie->list trie))
     =>
-    '(((#\h ((#\i () again) (#\e ((#\y () there) (#\l ((#\l ((#\o () world)))))))))))
+    '(((#\h
+        ((#\i () again) (#\e ((#\y () there) (#\l ((#\l ((#\o () world)))))))))))
   ) ;check
 ) ;let
 
 
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root-value)
-  (trie-insert! trie
-    (string->list "test")
-    'other-value
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "test") 'other-value)
   (check (trie->list trie)
     =>
     '(((#\t ((#\e ((#\s ((#\t () other-value)))))))) root-value)

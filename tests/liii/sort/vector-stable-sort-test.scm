@@ -37,44 +37,20 @@
 ;; 无
 
 
-(check-true (vector-sorted? <
-              (vector-stable-sort <
-                #(1 5 1 0 -1 9 2 4 3)
-              ) ;vector-stable-sort
-            ) ;vector-sorted?
-) ;check-true
-(check-true (vector-sorted? <
-              (vector-stable-sort <
-                #(9 7 5 3 2 8 6 4 1)
-              ) ;vector-stable-sort
-            ) ;vector-sorted?
-) ;check-true
+(check-true (vector-sorted? < (vector-stable-sort < #(1 5 1 0 -1 9 2 4 3))))
+(check-true (vector-sorted? < (vector-stable-sort < #(9 7 5 3 2 8 6 4 1))))
 
 
 ;; 边界情况
-(check (vector-stable-sort < #())
-  =>
-  #()
-) ;check
-(check (vector-stable-sort < #(42))
-  =>
-  #(42)
-) ;check
-(check (vector-stable-sort < #(1 2 3 4 5))
-  =>
-  #(1 2 3 4 5)
-) ;check
+(check (vector-stable-sort < #()) => #())
+(check (vector-stable-sort < #(42)) => #(42))
+(check (vector-stable-sort < #(1 2 3 4 5)) => #(1 2 3 4 5))
 
 
 ;; 确保原向量未被修改
 (define test-vec #(3 1 4 1 5 9 2 6 5))
-(define sorted-vec
-  (vector-stable-sort < test-vec)
-) ;define
-(check (equal? test-vec #(3 1 4 1 5 9 2 6 5))
-  =>
-  #t
-) ;check
+(define sorted-vec (vector-stable-sort < test-vec))
+(check (equal? test-vec #(3 1 4 1 5 9 2 6 5)) => #t)
 
 
 (check-report)

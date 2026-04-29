@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii error)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii error) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -29,22 +25,11 @@
 ;; ----
 ;; type-error 当传入非字符参数时。
 
-(check (path->string (path-of-drive #\C))
-  =>
-  "C:\\"
-) ;check
-(check (path-type (path-of-drive #\C))
-  =>
-  'windows
-) ;check
+(check (path->string (path-of-drive #\C)) => "C:\\")
+(check (path-type (path-of-drive #\C)) => 'windows)
 (check (path-drive (path-root)) => "")
-(check (path-drive (path-of-drive #\C))
-  =>
-  "C"
-) ;check
+(check (path-drive (path-of-drive #\C)) => "C")
 
-(check-catch 'type-error
-  (path-of-drive 1)
-) ;check-catch
+(check-catch 'type-error (path-of-drive 1))
 
 (check-report)

@@ -8,11 +8,13 @@
 (let* ((s "abcdef")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (mid (string-index->cursor s 3)))
+       (mid (string-index->cursor s 3))
+      ) ;
   (check (string-cursor-diff s start end) => 6)
   (check (string-cursor-diff s start mid) => 3)
   (check (string-cursor-diff s mid end) => 3)
-  (check (string-cursor-diff s start start) => 0))
+  (check (string-cursor-diff s start start) => 0)
+) ;let*
 
 ;; 测试使用整数索引
 (check (string-cursor-diff "abc" 0 3) => 3)

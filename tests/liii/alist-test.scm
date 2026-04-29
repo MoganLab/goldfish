@@ -9,15 +9,11 @@
 
 
 ;; 示例1：判断一个列表是否为 alist
-(alist? '((name . "Goldfish") (age . 18))
-) ;alist?
+(alist? '((name . "Goldfish") (age . 18)))
 
 
 ;; 示例2：按键查找，并在缺失时返回默认值
-(alist-ref/default '((name . "Goldfish"))
-  'age
-  0
-) ;alist-ref/default
+(alist-ref/default '((name . "Goldfish")) 'age 0)
 
 
 ;; 示例3：把向量转换成以索引为键的 alist

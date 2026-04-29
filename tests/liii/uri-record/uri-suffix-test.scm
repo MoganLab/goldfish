@@ -18,50 +18,22 @@
 
 
 ;; 有后缀
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/file.txt"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/file.txt" '() #f))
 (check (uri-suffix u1) => "txt")
 
 
 ;; 多后缀
-(define u2
-  (make-uri-raw "https"
-    "example.com"
-    "/file.tar.gz"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u2 (make-uri-raw "https" "example.com" "/file.tar.gz" '() #f))
 (check (uri-suffix u2) => "gz")
 
 
 ;; 无后缀
-(define u3
-  (make-uri-raw "https"
-    "example.com"
-    "/README"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u3 (make-uri-raw "https" "example.com" "/README" '() #f))
 (check (uri-suffix u3) => #f)
 
 
 ;; 目录路径
-(define u4
-  (make-uri-raw "https"
-    "example.com"
-    "/path/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u4 (make-uri-raw "https" "example.com" "/path/" '() #f))
 (check (uri-suffix u4) => #f)
 
 

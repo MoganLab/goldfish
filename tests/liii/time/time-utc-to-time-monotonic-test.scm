@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -28,36 +25,23 @@
 
 
 ;; time-utc->time-monotonic basic
-(let* ((t-utc (make-time TIME-UTC 123456789 42)
-       ) ;t-utc
+(let* ((t-utc (make-time TIME-UTC 123456789 42))
        (t-mon (time-utc->time-monotonic t-utc))
       ) ;
-  (check (time-type t-mon)
-    =>
-    TIME-MONOTONIC
-  ) ;check
+  (check (time-type t-mon) => TIME-MONOTONIC)
   (check (time-second t-mon) => 42)
-  (check (time-nanosecond t-mon)
-    =>
-    123456789
-  ) ;check
+  (check (time-nanosecond t-mon) => 123456789)
 ) ;let*
 
 
 ;; round-trip
-(let* ((t-utc1 (make-time TIME-UTC 123456789 42)
-       ) ;t-utc1
-       (t-mon (time-utc->time-monotonic t-utc1)
-       ) ;t-mon
-       (t-utc2 (time-monotonic->time-utc t-mon)
-       ) ;t-utc2
+(let* ((t-utc1 (make-time TIME-UTC 123456789 42))
+       (t-mon (time-utc->time-monotonic t-utc1))
+       (t-utc2 (time-monotonic->time-utc t-mon))
       ) ;
   (check (time-type t-utc2) => TIME-UTC)
   (check (time-second t-utc2) => 42)
-  (check (time-nanosecond t-utc2)
-    =>
-    123456789
-  ) ;check
+  (check (time-nanosecond t-utc2) => 123456789)
 ) ;let*
 
 

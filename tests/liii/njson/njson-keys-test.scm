@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -41,34 +38,20 @@
 (define (string-list-contains? s xs)
   (cond ((null? xs) #f)
         ((string=? s (car xs)) #t)
-        (else (string-list-contains? s (cdr xs))
-        ) ;else
+        (else (string-list-contains? s (cdr xs)))
   ) ;cond
 ) ;define
 
 
 (let-njson ((root (string->njson sample-json)))
-  (check-true (> (length (njson-keys root)) 0)
-  ) ;check-true
-  (check-true (string-list-contains? "active"
-                (njson-keys root)
-              ) ;string-list-contains?
-  ) ;check-true
+  (check-true (> (length (njson-keys root)) 0))
+  (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-drop! root "active")
-  (check-false (string-list-contains? "active"
-                 (njson-keys root)
-               ) ;string-list-contains?
-  ) ;check-false
+  (check-false (string-list-contains? "active" (njson-keys root)))
   (njson-set! root "active" #t)
-  (check-true (string-list-contains? "active"
-                (njson-keys root)
-              ) ;string-list-contains?
-  ) ;check-true
+  (check-true (string-list-contains? "active" (njson-keys root)))
   (njson-set! root "new-key" 1)
-  (check-true (string-list-contains? "new-key"
-                (njson-keys root)
-              ) ;string-list-contains?
-  ) ;check-true
+  (check-true (string-list-contains? "new-key" (njson-keys root)))
 ) ;let-njson
 
 
@@ -77,20 +60,14 @@
   (njson-drop! root "active")
   (njson-set! root "lazy-key" 1)
   (let ((keys (njson-keys root)))
-    (check-false (string-list-contains? "active" keys)
-    ) ;check-false
-    (check-true (string-list-contains? "lazy-key" keys)
-    ) ;check-true
-    (check-true (string-list-contains? "name" keys)
-    ) ;check-true
+    (check-false (string-list-contains? "active" keys))
+    (check-true (string-list-contains? "lazy-key" keys))
+    (check-true (string-list-contains? "name" keys))
   ) ;let
   (let ((keys2 (njson-keys root)))
-    (check-false (string-list-contains? "active" keys2)
-    ) ;check-false
-    (check-true (string-list-contains? "lazy-key" keys2)
-    ) ;check-true
-    (check-true (string-list-contains? "name" keys2)
-    ) ;check-true
+    (check-false (string-list-contains? "active" keys2))
+    (check-true (string-list-contains? "lazy-key" keys2))
+    (check-true (string-list-contains? "name" keys2))
   ) ;let
 ) ;let-njson
 
@@ -105,19 +82,12 @@
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-keys 'foo)
-) ;check-catch
+(check-catch 'type-error (njson-keys 'foo))
 
 
-(define njson-keys-freed
-  (string->njson "{\"k\":1}")
-) ;define
-(check-true (njson-free njson-keys-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-keys njson-keys-freed)
-) ;check-catch
+(define njson-keys-freed (string->njson "{\"k\":1}"))
+(check-true (njson-free njson-keys-freed))
+(check-catch 'type-error (njson-keys njson-keys-freed))
 
 
 (check-report)

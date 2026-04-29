@@ -35,35 +35,23 @@
 
 ;; 基本转换
 (let ((fv (flexvector 1 2 3)))
-  (check (flexvector->list fv)
-    =>
-    '(1 2 3)
-  ) ;check
+  (check (flexvector->list fv) => '(1 2 3))
 ) ;let
 
 
 ;; 空向量
-(check (flexvector->list (flexvector))
-  =>
-  '()
-) ;check
+(check (flexvector->list (flexvector)) => '())
 
 
 ;; 从指定位置转换
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->list fv 2)
-    =>
-    '(3 4 5)
-  ) ;check
+  (check (flexvector->list fv 2) => '(3 4 5))
 ) ;let
 
 
 ;; 转换区间 [start, end)
 (let ((fv (flexvector 1 2 3 4 5)))
-  (check (flexvector->list fv 1 4)
-    =>
-    '(2 3 4)
-  ) ;check
+  (check (flexvector->list fv 1 4) => '(2 3 4))
 ) ;let
 
 
@@ -82,11 +70,7 @@
 
 ;; 往返测试
 (let ((lst '(a b c d e)))
-  (check (flexvector->list (list->flexvector lst)
-         ) ;flexvector->list
-    =>
-    lst
-  ) ;check
+  (check (flexvector->list (list->flexvector lst)) => lst)
 ) ;let
 
 

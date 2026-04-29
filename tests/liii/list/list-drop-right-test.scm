@@ -40,41 +40,20 @@
 ;; (list-drop-right '(1 2 3) 10) => '()
 
 
-(check (list-drop-right '(1 2 3 4 5) 3)
-  =>
-  '(1 2)
-) ;check
-(check (list-drop-right '(1 2 3 4 5) 0)
-  =>
-  '(1 2 3 4 5)
-) ;check
-(check (list-drop-right '(1 2 3 4 5) 5)
-  =>
-  '()
-) ;check
+(check (list-drop-right '(1 2 3 4 5) 3) => '(1 2))
+(check (list-drop-right '(1 2 3 4 5) 0) => '(1 2 3 4 5))
+(check (list-drop-right '(1 2 3 4 5) 5) => '())
 
 
-(check (list-drop-right '(1 2 3) -1)
-  =>
-  '(1 2 3)
-) ;check
-(check (list-drop-right '(1 2 3) 10)
-  =>
-  '()
-) ;check
+(check (list-drop-right '(1 2 3) -1) => '(1 2 3))
+(check (list-drop-right '(1 2 3) 10) => '())
 
 
 (check (list-drop-right '() 0) => '())
 
 
-(check-catch 'type-error
-  (list-drop-right "not a list" 2)
-) ;check-catch
-(check-catch 'type-error
-  (list-drop-right '(1 2 3)
-    "not a number"
-  ) ;list-drop-right
-) ;check-catch
+(check-catch 'type-error (list-drop-right "not a list" 2))
+(check-catch 'type-error (list-drop-right '(1 2 3) "not a number"))
 
 
 (check-report)

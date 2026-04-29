@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii os)
-  (liii string)
-) ;import
+(import (liii check) (liii os) (liii string))
 
 
 (check-set-mode! 'report-failed)
@@ -38,16 +35,12 @@
 (check (getenv "TEST_VAR") => #f)
 
 
-(check-false (string-null? (getenv "PATH"))
-) ;check-false
+(check-false (string-null? (getenv "PATH")))
 (unsetenv "PATH")
 (check (getenv "PATH") => #f)
 (unsetenv "home")
 (check (getenv "home") => #f)
-(check (getenv "home" "value does not found")
-  =>
-  "value does not found"
-) ;check
+(check (getenv "home" "value does not found") => "value does not found")
 
 
 (check-report)

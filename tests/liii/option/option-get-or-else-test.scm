@@ -24,17 +24,9 @@
 
 
 (let ((opt1 (option 42)) (opt2 (none)))
-  (check (option-get-or-else 0 opt1)
-    =>
-    42
-  ) ;check
+  (check (option-get-or-else 0 opt1) => 42)
   (check (option-get-or-else 0 opt2) => 0)
-  (check (option-get-or-else (lambda () "default")
-           opt2
-         ) ;option-get-or-else
-    =>
-    "default"
-  ) ;check
+  (check (option-get-or-else (lambda () "default") opt2) => "default")
 ) ;let
 
 

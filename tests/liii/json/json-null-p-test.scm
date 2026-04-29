@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -36,15 +32,10 @@
 ;; ----
 ;; 无。
 
-(define bob-pp
-  '((bob (age . 18) (sex . male) (name . "Bob") (empty . null)))
-) ;define
+(define bob-pp '((bob (age . 18) (sex . male) (name . "Bob") (empty . null))))
 
 (check-true (json-null? 'null))
-(check-false (json-null? '((name . "Alice")))
-) ;check-false
-(check-true (json-null? (json-ref bob-pp 'bob 'empty)
-            ) ;json-null?
-) ;check-true
+(check-false (json-null? '((name . "Alice"))))
+(check-true (json-null? (json-ref bob-pp 'bob 'empty)))
 
 (check-report)

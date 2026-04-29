@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -44,8 +40,7 @@
 (define s-mut-replace (set-copy s-1))
 (set-replace! s-mut-replace 1)
 (check (set-size s-mut-replace) => 1)
-(check-true (set-contains? s-mut-replace 1)
-) ;check-true
+(check-true (set-contains? s-mut-replace 1))
 
 
 ;; Test replacing equals but not eq? element
@@ -53,34 +48,17 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s)
-      (string-hash (string-map char-downcase s)
-      ) ;string-hash
-    ) ;lambda
+    (lambda (s) (string-hash (string-map char-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-str-ci-mut
-  (list->set-with-comparator string-ci-comparator
-    '("Apple" "Banana")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
-(check (set-member s-str-ci-mut
-         "apple"
-         'not-found
-       ) ;set-member
-  =>
-  "Apple"
-) ;check
+(check (set-member s-str-ci-mut "apple" 'not-found) => "Apple")
 
 
 (set-replace! s-str-ci-mut "apple")
-(check (set-member s-str-ci-mut
-         "apple"
-         'not-found
-       ) ;set-member
-  =>
-  "apple"
-) ;check
+(check (set-member s-str-ci-mut "apple" 'not-found) => "apple")
 
 
 ;; Test non-existing element
@@ -89,9 +67,7 @@
 
 
 ;; Test type error
-(check-catch 'type-error
-  (set-replace! "not a set" 1)
-) ;check-catch
+(check-catch 'type-error (set-replace! "not a set" 1))
 
 
 (check-report)

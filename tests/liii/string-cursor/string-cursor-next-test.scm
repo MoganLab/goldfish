@@ -34,37 +34,44 @@
 (let* ((start (string-cursor-start "abc"))
        (next1 (string-cursor-next "abc" start))
        (next2 (string-cursor-next "abc" next1))
-       (end (string-cursor-end "abc")))
+       (end (string-cursor-end "abc"))
+      ) ;
   (check (string-cursor->index "abc" next1) => 1)
   (check (string-cursor->index "abc" next2) => 2)
-  (check (string-cursor=? next2 (string-cursor-prev "abc" end)) => #t))
+  (check (string-cursor=? next2 (string-cursor-prev "abc" end)) => #t)
+) ;let*
 
 ;; 测试中文字符串
 (let* ((start (string-cursor-start "中文"))
        (next1 (string-cursor-next "中文" start))
-       (end (string-cursor-end "中文")))
+       (end (string-cursor-end "中文"))
+      ) ;
   (check (string-cursor->index "中文" next1) => 1)
-  (check (string-cursor=? next1 (string-cursor-prev "中文" end)) => #t))
+  (check (string-cursor=? next1 (string-cursor-prev "中文" end)) => #t)
+) ;let*
 
 ;; 测试emoji字符串
 (let* ((start (string-cursor-start "🎉🎊"))
        (next1 (string-cursor-next "🎉🎊" start))
-       (end (string-cursor-end "🎉🎊")))
+       (end (string-cursor-end "🎉🎊"))
+      ) ;
   (check (string-cursor->index "🎉🎊" next1) => 1)
-  (check (string-cursor=? next1 (string-cursor-prev "🎉🎊" end)) => #t))
+  (check (string-cursor=? next1 (string-cursor-prev "🎉🎊" end)) => #t)
+) ;let*
 
 ;; 测试空字符串不能有next
-(check-catch 'value-error
-  (string-cursor-next "" (string-cursor-start "")))
+(check-catch 'value-error (string-cursor-next "" (string-cursor-start "")))
 
 ;; 测试到达end后不能再next
 (check-catch 'value-error
   (let ((end (string-cursor-end "a")))
-    (string-cursor-next "a" end)))
+    (string-cursor-next "a" end)
+  ) ;let
+) ;check-catch
 
 ;; 测试使用整数索引
-(let* ((s "abc")
-       (next (string-cursor-next s 0)))
-  (check (string-cursor->index s next) => 1))
+(let* ((s "abc") (next (string-cursor-next s 0)))
+  (check (string-cursor->index s next) => 1)
+) ;let*
 
 (check-report)

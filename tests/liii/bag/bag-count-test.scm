@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -27,12 +24,7 @@
 ;; 返回满足 predicate 的元素总数（含重复）。
 
 (check (bag-count even? b-1-2) => 2)
-(check (bag-count (lambda (x) (> x 9)) b-1-2)
-  =>
-  0
-) ;check
-(check-catch 'type-error
-  (bag-count even? "not a bag")
-) ;check-catch
+(check (bag-count (lambda (x) (> x 9)) b-1-2) => 0)
+(check-catch 'type-error (bag-count even? "not a bag"))
 
 (check-report)

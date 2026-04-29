@@ -34,36 +34,13 @@
          ) ;fxmapping-adjoin/combinator
       ) ;m
      ) ;
-  (check (fxmapping-ref m
-           0
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    '(b a)
-  ) ;check
+  (check (fxmapping-ref m 0 (lambda () 'not-found)) => '(b a))
 ) ;let
 
-(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a)
-           (lambda (k new old) old)
-           1
-           'b
-         ) ;fxmapping-adjoin/combinator
-      ) ;m
+(let ((m (fxmapping-adjoin/combinator (fxmapping 0 'a) (lambda (k new old) old) 1 'b))
      ) ;
-  (check (fxmapping-ref m
-           0
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    'a
-  ) ;check
-  (check (fxmapping-ref m
-           1
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    'b
-  ) ;check
+  (check (fxmapping-ref m 0 (lambda () 'not-found)) => 'a)
+  (check (fxmapping-ref m 1 (lambda () 'not-found)) => 'b)
 ) ;let
 
 (check-report)

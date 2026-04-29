@@ -34,29 +34,19 @@
 
 
 (let ((r (numeric-range 0 5)) (result '()))
-  (range-for-each (lambda (x)
-                    (set! result (cons x result))
-                  ) ;lambda
-    r
-  ) ;range-for-each
+  (range-for-each (lambda (x) (set! result (cons x result))) r)
   (check result => '(4 3 2 1 0))
 ) ;let
 
 
 (let ((r (numeric-range 0 0)) (result '()))
-  (range-for-each (lambda (x)
-                    (set! result (cons x result))
-                  ) ;lambda
-    r
-  ) ;range-for-each
+  (range-for-each (lambda (x) (set! result (cons x result))) r)
   (check result => '())
 ) ;let
 
 
 (let ((r (numeric-range 1 4)) (sum 0))
-  (range-for-each (lambda (x) (set! sum (+ sum x)))
-    r
-  ) ;range-for-each
+  (range-for-each (lambda (x) (set! sum (+ sum x))) r)
   (check sum => 6)
 ) ;let
 

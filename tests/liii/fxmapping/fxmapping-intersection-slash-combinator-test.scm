@@ -28,24 +28,10 @@
                     ) ;fxmapping-intersection/combinator
       ) ;intersection
      ) ;
-  (check-false (fxmapping-contains? intersection 0)
-  ) ;check-false
-  (check (fxmapping-ref intersection
-           1
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    25
-  ) ;check
-  (check (fxmapping-ref intersection
-           2
-           (lambda () 'not-found)
-         ) ;fxmapping-ref
-    =>
-    45
-  ) ;check
-  (check-false (fxmapping-contains? intersection 3)
-  ) ;check-false
+  (check-false (fxmapping-contains? intersection 0))
+  (check (fxmapping-ref intersection 1 (lambda () 'not-found)) => 25)
+  (check (fxmapping-ref intersection 2 (lambda () 'not-found)) => 45)
+  (check-false (fxmapping-contains? intersection 3))
 ) ;let
 
 (check-report)

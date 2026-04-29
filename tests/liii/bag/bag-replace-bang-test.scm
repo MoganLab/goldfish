@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii bag)
-  (liii error)
-) ;import
+(import (liii check) (liii bag) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -23,13 +20,9 @@
 ;; -----
 ;; 就地修改原 bag，并返回修改后的 bag（破坏性）。
 
-(let* ((s1 "hello")
-       (s2 (string-copy s1))
-       (b (bag s1))
-      ) ;
+(let* ((s1 "hello") (s2 (string-copy s1)) (b (bag s1)))
   (bag-replace! b s2)
-  (check-true (eq? (car (bag->list b)) s2)
-  ) ;check-true
+  (check-true (eq? (car (bag->list b)) s2))
 ) ;let*
 
 (check-report)

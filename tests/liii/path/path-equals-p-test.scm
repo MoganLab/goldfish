@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -26,13 +23,7 @@
 ;; ----
 ;; 在 Windows 上路径比较不区分大小写。
 
-(check-true (path-equals? (path-copy (path-of-drive #\d))
-              (path-of-drive #\D)
-            ) ;path-equals?
-) ;check-true
-(check-true (path-equals? (path "tmp/demo.txt")
-              "tmp/demo.txt"
-            ) ;path-equals?
-) ;check-true
+(check-true (path-equals? (path-copy (path-of-drive #\d)) (path-of-drive #\D)))
+(check-true (path-equals? (path "tmp/demo.txt") "tmp/demo.txt"))
 
 (check-report)

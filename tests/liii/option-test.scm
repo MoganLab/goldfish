@@ -17,9 +17,7 @@
 
 
 ;; 示例3：把 option 内的值映射成新结果
-(option-map (lambda (x) (* x 2))
-  (option 21)
-) ;option-map
+(option-map (lambda (x) (* x 2)) (option 21))
 
 
 ;; ==== 如何查看函数的文档和用例 ====

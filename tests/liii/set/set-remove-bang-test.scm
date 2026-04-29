@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,36 +38,22 @@
 
 ;; Test basic behavior
 (define s-remove-mut (set 1 2 3 4))
-(define s-remove-mut-result
-  (set-remove! even? s-remove-mut)
-) ;define
-(check-true (eq? s-remove-mut-result s-remove-mut)
-) ;check-true
+(define s-remove-mut-result (set-remove! even? s-remove-mut))
+(check-true (eq? s-remove-mut-result s-remove-mut))
 (check (set-size s-remove-mut) => 2)
-(check-true (set-contains? s-remove-mut 1)
-) ;check-true
-(check-true (set-contains? s-remove-mut 3)
-) ;check-true
-(check-false (set-contains? s-remove-mut 2)
-) ;check-false
-(check-false (set-contains? s-remove-mut 4)
-) ;check-false
+(check-true (set-contains? s-remove-mut 1))
+(check-true (set-contains? s-remove-mut 3))
+(check-false (set-contains? s-remove-mut 2))
+(check-false (set-contains? s-remove-mut 4))
 
 
 ;; Test empty set
-(define s-remove-mut-empty
-  (set-copy s-empty)
-) ;define
+(define s-remove-mut-empty (set-copy s-empty))
 (set-remove! even? s-remove-mut-empty)
-(check (set-size s-remove-mut-empty)
-  =>
-  0
-) ;check
+(check (set-size s-remove-mut-empty) => 0)
 
 
-(check-catch 'type-error
-  (set-remove! even? "not a set")
-) ;check-catch
+(check-catch 'type-error (set-remove! even? "not a set"))
 
 
 (check-report)

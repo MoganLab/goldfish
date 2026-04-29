@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -49,38 +45,19 @@
 (define s-4-5 (set 4 5))
 
 
-(check-true (set-disjoint? s-1-2-3 s-4-5)
-) ;check-true
-(check-false (set-disjoint? s-1-2-3 s-2-3-4)
-) ;check-false
+(check-true (set-disjoint? s-1-2-3 s-4-5))
+(check-false (set-disjoint? s-1-2-3 s-2-3-4))
 (check-true (set-disjoint? s-empty s-1))
 (check-true (set-disjoint? s-1 s-empty))
-(check-true (set-disjoint? s-empty s-empty)
-) ;check-true
-(check-catch 'type-error
-  (set-disjoint? "not a set" s-1)
-) ;check-catch
-(check-catch 'type-error
-  (set-disjoint? s-1 "not a set")
-) ;check-catch
+(check-true (set-disjoint? s-empty s-empty))
+(check-catch 'type-error (set-disjoint? "not a set" s-1))
+(check-catch 'type-error (set-disjoint? s-1 "not a set"))
 
 
 ;; Test comparator mismatch
-(define str-comp
-  (make-comparator string?
-    string=?
-    string<?
-    string-hash
-  ) ;make-comparator
-) ;define
-(define s-str
-  (list->set-with-comparator str-comp
-    '("apple" "banana")
-  ) ;list->set-with-comparator
-) ;define
-(check-catch 'value-error
-  (set-disjoint? s-1 s-str)
-) ;check-catch
+(define str-comp (make-comparator string? string=? string<? string-hash))
+(define s-str (list->set-with-comparator str-comp '("apple" "banana")))
+(check-catch 'value-error (set-disjoint? s-1 s-str))
 
 
 (check-report)

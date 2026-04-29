@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 (check-set-mode! 'report-failed)
 
@@ -41,25 +37,11 @@
 ;; ----
 ;; 无。
 
-(let* ((j0 '((active . #t) (verified . #f) (name . "Alice"))
-       ) ;j0
-      ) ;
-  (check (json-ref-boolean j0 'active #f)
-    =>
-    #t
-  ) ;check
-  (check (json-ref-boolean j0 'verified #t)
-    =>
-    #f
-  ) ;check
-  (check (json-ref-boolean j0 'name #f)
-    =>
-    #f
-  ) ;check
-  (check (json-ref-boolean j0 'nonexistent #t)
-    =>
-    #t
-  ) ;check
+(let* ((j0 '((active . #t) (verified . #f) (name . "Alice"))))
+  (check (json-ref-boolean j0 'active #f) => #t)
+  (check (json-ref-boolean j0 'verified #t) => #f)
+  (check (json-ref-boolean j0 'name #f) => #f)
+  (check (json-ref-boolean j0 'nonexistent #t) => #t)
 ) ;let*
 
 (check-report)

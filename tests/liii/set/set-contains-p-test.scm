@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -45,9 +42,7 @@
 (check-true (set-contains? s-1 1))
 (check-false (set-contains? s-1 2))
 (check-false (set-contains? s-empty 1))
-(check-catch 'type-error
-  (set-contains? "not a set" 1)
-) ;check-catch
+(check-catch 'type-error (set-contains? "not a set" 1))
 
 
 (check-report)

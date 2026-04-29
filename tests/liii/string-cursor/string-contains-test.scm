@@ -32,7 +32,8 @@
 ;; 基本测试
 (let ((result (string-contains "abcdef" "cd")))
   (check (string-cursor? result) => #t)
-  (check (string-cursor->index "abcdef" result) => 2))
+  (check (string-cursor->index "abcdef" result) => 2)
+) ;let
 
 (check (string-contains "abcdef" "xyz") => #f)
 (check (string-cursor->index "abcdef" (string-contains "abcdef" "")) => 0)
@@ -41,16 +42,19 @@
 
 ;; 测试中文
 (let ((result (string-contains "我是中国人" "中国")))
-  (check (string-cursor->index "我是中国人" result) => 2))
+  (check (string-cursor->index "我是中国人" result) => 2)
+) ;let
 
 ;; 测试多次出现
 (let ((result (string-contains "ababab" "ab")))
-  (check (string-cursor->index "ababab" result) => 0))
+  (check (string-cursor->index "ababab" result) => 0)
+) ;let
 
 
 ;; 测试使用整数索引作为 start/end
 (let ((result (string-contains "abcdef" "cd" 1 5)))
-  (check (string-cursor->index "abcdef" result) => 2))
+  (check (string-cursor->index "abcdef" result) => 2)
+) ;let
 
 ;; 测试使用游标作为 start/end
 (let* ((s1 "abcdef")
@@ -59,14 +63,18 @@
        (end1 (string-cursor-end s1))
        (start2 (string-cursor-start s2))
        (end2 (string-cursor-end s2))
-       (result (string-contains s1 s2 start1 end1 start2 end2)))
-  (check (string-cursor->index s1 result) => 2))
+       (result (string-contains s1 s2 start1 end1 start2 end2))
+      ) ;
+  (check (string-cursor->index s1 result) => 2)
+) ;let*
 
 ;; 测试整数索引限制搜索范围
 (check (string-contains "abcdef" "cd" 3 6) => #f)
 
 ;; 测试混合类型报错
-(check-catch 'type-error (string-contains "abc" "ab" 0 (string-cursor-end "abc")))
+(check-catch 'type-error
+  (string-contains "abc" "ab" 0 (string-cursor-end "abc"))
+) ;check-catch
 
 ;; 测试 start > end 报错
 (check-catch 'value-error (string-contains "abc" "ab" 2 1))

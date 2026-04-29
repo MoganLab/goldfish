@@ -12,11 +12,7 @@
 ;; ----
 ;; (iset-open-closed-interval iset low high)
 ;;
-(check (iset->list (iset-open-closed-interval (iset 2 3 5 7 11)
-                     2
-                     7
-                   ) ;iset-open-closed-interval
-       ) ;iset->list
+(check (iset->list (iset-open-closed-interval (iset 2 3 5 7 11) 2 7))
   =>
   '(3 5 7)
 ) ;check

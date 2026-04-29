@@ -51,19 +51,11 @@
 
 
 (define my-vector (vector 0 1 2 3))
-(vector-swap! my-vector
-  0
-  (- (vector-length my-vector) 1)
-) ;vector-swap!
+(vector-swap! my-vector 0 (- (vector-length my-vector) 1))
 (check my-vector => #(3 1 2 0))
 
 
-(check-catch 'out-of-range
-  (vector-swap! my-vector
-    1
-    (vector-length my-vector)
-  ) ;vector-swap!
-) ;check-catch
+(check-catch 'out-of-range (vector-swap! my-vector 1 (vector-length my-vector)))
 
 
 (check-report)

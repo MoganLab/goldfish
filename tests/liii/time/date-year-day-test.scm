@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -44,17 +41,9 @@
 
 
 ;; Test date-year-day error conditions
-(check-catch 'wrong-type-arg
-  (date-year-day "not-a-date")
-) ;check-catch
-(check-catch 'value-error
-  (date-year-day (make-date 0 0 0 0 1 0 2023 0)
-  ) ;date-year-day
-) ;check-catch
-(check-catch 'value-error
-  (date-year-day (make-date 0 0 0 0 1 13 2023 0)
-  ) ;date-year-day
-) ;check-catch
+(check-catch 'wrong-type-arg (date-year-day "not-a-date"))
+(check-catch 'value-error (date-year-day (make-date 0 0 0 0 1 0 2023 0)))
+(check-catch 'value-error (date-year-day (make-date 0 0 0 0 1 13 2023 0)))
 
 
 (check-report)

@@ -4,19 +4,13 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-red
-  (enum-name->enum color 'red)
-) ;define
+(define color-red (enum-name->enum color 'red))
 
 
 ;; enum-name
@@ -49,14 +43,8 @@
 ;; 无。
 
 
-(check (enum-name (enum-name->enum color 'red))
-  =>
-  'red
-) ;check
-(check (enum-name (enum-ordinal->enum color 0))
-  =>
-  'red
-) ;check
+(check (enum-name (enum-name->enum color 'red)) => 'red)
+(check (enum-name (enum-ordinal->enum color 0)) => 'red)
 
 
 (check-report)

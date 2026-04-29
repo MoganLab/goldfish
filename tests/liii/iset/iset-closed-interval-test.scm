@@ -17,14 +17,7 @@
 ;; low, high : exact-integer
 ;; 区间边界（包含）。
 ;;
-(check (iset->list (iset-closed-interval (iset 2 3 5 7 11)
-                     2
-                     7
-                   ) ;iset-closed-interval
-       ) ;iset->list
-  =>
-  '(2 3 5 7)
-) ;check
+(check (iset->list (iset-closed-interval (iset 2 3 5 7 11) 2 7)) => '(2 3 5 7))
 
 
 (check-report)

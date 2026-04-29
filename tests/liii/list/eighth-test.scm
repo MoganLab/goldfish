@@ -25,10 +25,7 @@
 ;; (eighth '(1 2 3 4 5 6 7 8 9 10)) => 8
 
 
-(check (eighth '(1 2 3 4 5 6 7 8 9 10))
-  =>
-  8
-) ;check
+(check (eighth '(1 2 3 4 5 6 7 8 9 10)) => 8)
 
 
 (check-report)

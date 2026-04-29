@@ -39,14 +39,8 @@
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'key 'value)
-  (check (hash-table-ref ht 'key)
-    =>
-    'value
-  ) ;check
-  (check (hash-table-ref ht 'missing)
-    =>
-    #f
-  ) ;check
+  (check (hash-table-ref ht 'key) => 'value)
+  (check (hash-table-ref ht 'missing) => #f)
 ) ;let
 
 

@@ -4,24 +4,22 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
 (define pizza-descriptions
-  '((margherita "tomato and mozzarella") (funghi "mushrooms") (bianca "ricotta and mozzarella") (chicago "deep-dish") (hawaiian "pineapple and ham"))
+  '((margherita "tomato and mozzarella")
+    (funghi "mushrooms")
+    (bianca "ricotta and mozzarella")
+    (chicago "deep-dish")
+    (hawaiian "pineapple and ham"))
 ) ;define
 
 
-(define pizza
-  (make-enum-type pizza-descriptions)
-) ;define
+(define pizza (make-enum-type pizza-descriptions))
 
 
 ;; enum-max
@@ -54,14 +52,8 @@
 ;; 无。
 
 
-(check (enum-name (enum-max color))
-  =>
-  'violet
-) ;check
-(check (enum-name (enum-max pizza))
-  =>
-  'hawaiian
-) ;check
+(check (enum-name (enum-max color)) => 'violet)
+(check (enum-name (enum-max pizza)) => 'hawaiian)
 
 
 (check-report)

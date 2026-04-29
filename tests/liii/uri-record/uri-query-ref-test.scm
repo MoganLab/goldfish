@@ -18,12 +18,7 @@
 
 
 (define u
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '(("a" . "1") ("b" . "2"))
-    #f
-  ) ;make-uri-raw
+  (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f)
 ) ;define
 
 

@@ -68,24 +68,13 @@
 
 
 (let ((v (float-vector 1.0 2.0)))
-  (check-catch 'wrong-type-arg
-    (float-vector-set! v 0 'not-a-number)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (float-vector-set! v 5 100.0)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (float-vector-set! v -1 100.0)
-  ) ;check-catch
+  (check-catch 'wrong-type-arg (float-vector-set! v 0 'not-a-number))
+  (check-catch 'out-of-range (float-vector-set! v 5 100.0))
+  (check-catch 'out-of-range (float-vector-set! v -1 100.0))
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (float-vector-set! (vector 1.0 2.0 3.0)
-    0
-    100.0
-  ) ;float-vector-set!
-) ;check-catch
+(check-catch 'wrong-type-arg (float-vector-set! (vector 1.0 2.0 3.0) 0 100.0))
 
 
 (check-report)

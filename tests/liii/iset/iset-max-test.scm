@@ -25,17 +25,9 @@
 ;; -----
 ;; 返回集合中的最大整数，如果集合为空则返回 #f。
 ;;
-(check (iset-max (iset 2 3 5 7 11))
-  =>
-  11
-) ;check
+(check (iset-max (iset 2 3 5 7 11)) => 11)
 (check (iset-max (iset)) => #f)
-(check (iset-max pos-set)
-  =>
-  (list-ref pos-seq
-    (- (length pos-seq) 1)
-  ) ;list-ref
-) ;check
+(check (iset-max pos-set) => (list-ref pos-seq (- (length pos-seq) 1)))
 
 
 (check-report)

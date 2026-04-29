@@ -80,26 +80,11 @@
 
 
 ;; ; 特殊值测试
-(check (every-bit-set? 2147483647 2147483647)
-  =>
-  #t
-) ;check
-(check (every-bit-set? 2147483647 0)
-  =>
-  #f
-) ;check
-(check (every-bit-set? -2147483648 -2147483648)
-  =>
-  #t
-) ;check
-(check (every-bit-set? -2147483648 0)
-  =>
-  #f
-) ;check
-(check (every-bit-set? 2147483647 -2147483648)
-  =>
-  #f
-) ;check
+(check (every-bit-set? 2147483647 2147483647) => #t)
+(check (every-bit-set? 2147483647 0) => #f)
+(check (every-bit-set? -2147483648 -2147483648) => #t)
+(check (every-bit-set? -2147483648 0) => #f)
+(check (every-bit-set? 2147483647 -2147483648) => #f)
 
 
 ;; ; 负整数测试
@@ -112,49 +97,21 @@
 
 
 ;; ; 与 bitwise-and 的关系测试
-(check (every-bit-set? 5 7)
-  =>
-  (= (bitwise-and 5 7) 5)
-) ;check
-(check (every-bit-set? 3 6)
-  =>
-  (= (bitwise-and 3 6) 3)
-) ;check
-(check (every-bit-set? 10 10)
-  =>
-  (= (bitwise-and 10 10) 10)
-) ;check
-(check (every-bit-set? 7 2)
-  =>
-  (= (bitwise-and 7 2) 7)
-) ;check
+(check (every-bit-set? 5 7) => (= (bitwise-and 5 7) 5))
+(check (every-bit-set? 3 6) => (= (bitwise-and 3 6) 3))
+(check (every-bit-set? 10 10) => (= (bitwise-and 10 10) 10))
+(check (every-bit-set? 7 2) => (= (bitwise-and 7 2) 7))
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (every-bit-set? "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? 1 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? 1 3.14)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? 1 #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? '(1 2) 3)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (every-bit-set? 1 '(2 3))
-) ;check-catch
+(check-catch 'wrong-type-arg (every-bit-set? "string" 1))
+(check-catch 'wrong-type-arg (every-bit-set? 1 "string"))
+(check-catch 'wrong-type-arg (every-bit-set? 3.14 2))
+(check-catch 'wrong-type-arg (every-bit-set? 1 3.14))
+(check-catch 'wrong-type-arg (every-bit-set? #\a 1))
+(check-catch 'wrong-type-arg (every-bit-set? 1 #\a))
+(check-catch 'wrong-type-arg (every-bit-set? '(1 2) 3))
+(check-catch 'wrong-type-arg (every-bit-set? 1 '(2 3)))
 
 
 

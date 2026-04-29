@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -42,9 +38,7 @@
 
 
 ;; Test basic difference
-(define s-diff-1
-  (set-difference s-1-2-3 s-2-3-4)
-) ;define
+(define s-diff-1 (set-difference s-1-2-3 s-2-3-4))
 (check (set-size s-diff-1) => 1)
 (check-true (set-contains? s-diff-1 1))
 (check-false (set-contains? s-diff-1 2))
@@ -52,9 +46,7 @@
 
 
 ;; Test multiple sets difference
-(define s-diff-2
-  (set-difference s-1-2-3 s-2-3-4 s-4-5)
-) ;define
+(define s-diff-2 (set-difference s-1-2-3 s-2-3-4 s-4-5))
 (check (set-size s-diff-2) => 1)
 (check-true (set-contains? s-diff-2 1))
 
@@ -64,47 +56,22 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s)
-      (string-hash (string-map char-downcase s)
-      ) ;string-hash
-    ) ;lambda
+    (lambda (s) (string-hash (string-map char-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-diff-ci-1
-  (list->set-with-comparator string-ci-comparator
-    '("Apple" "Banana")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
-(define s-diff-ci-2
-  (list->set-with-comparator string-ci-comparator
-    '("apple")
-  ) ;list->set-with-comparator
-) ;define
-(define s-diff-ci
-  (set-difference s-diff-ci-1 s-diff-ci-2)
-) ;define
+(define s-diff-ci-2 (list->set-with-comparator string-ci-comparator '("apple")))
+(define s-diff-ci (set-difference s-diff-ci-1 s-diff-ci-2))
 (check (set-size s-diff-ci) => 1)
-(check (set-member s-diff-ci
-         "banana"
-         'not-found
-       ) ;set-member
-  =>
-  "Banana"
-) ;check
+(check (set-member s-diff-ci "banana" 'not-found) => "Banana")
 
 
 ;; Test type and comparator errors
-(check-catch 'type-error
-  (set-difference "not a set" s-1)
-) ;check-catch
-(define s-str-ci
-  (list->set-with-comparator string-ci-comparator
-    '("test")
-  ) ;list->set-with-comparator
-) ;define
-(check-catch 'value-error
-  (set-difference s-1 s-str-ci)
-) ;check-catch
+(check-catch 'type-error (set-difference "not a set" s-1))
+(define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
+(check-catch 'value-error (set-difference s-1 s-str-ci))
 
 
 (check-report)

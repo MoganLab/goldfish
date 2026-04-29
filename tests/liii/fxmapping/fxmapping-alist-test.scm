@@ -18,13 +18,7 @@
 ;; -----
 ;; 返回按键升序排列的关联列表 ((key . value) ...)。
 ;;
-(check (fxmapping->alist (fxmapping 0 'a 1 'b))
-  =>
-  '((0 . a) (1 . b))
-) ;check
-(check (fxmapping->alist (fxmapping))
-  =>
-  '()
-) ;check
+(check (fxmapping->alist (fxmapping 0 'a 1 'b)) => '((0 . a) (1 . b)))
+(check (fxmapping->alist (fxmapping)) => '())
 
 (check-report)

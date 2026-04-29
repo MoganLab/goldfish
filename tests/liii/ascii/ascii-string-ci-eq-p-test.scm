@@ -31,14 +31,8 @@
 ;; 参数类型不匹配时按过程约定报错
 
 
-(check-true (ascii-string-ci=? "GoldFish"
-              "goldfish"
-            ) ;ascii-string-ci=?
-) ;check-true
-(check-false (ascii-string-ci=? "goldfish"
-               "gold-fish"
-             ) ;ascii-string-ci=?
-) ;check-false
+(check-true (ascii-string-ci=? "GoldFish" "goldfish"))
+(check-false (ascii-string-ci=? "goldfish" "gold-fish"))
 
 
 (check-report)

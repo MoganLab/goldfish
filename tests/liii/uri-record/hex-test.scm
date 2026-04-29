@@ -12,10 +12,8 @@
 ;; 先看十六进制转换是否正确
 (define (hex-digit n)
   (if (< n 10)
-    (integer->char (+ n (char->integer #\0))
-    ) ;integer->char
-    (integer->char (+ (- n 10) (char->integer #\A))
-    ) ;integer->char
+    (integer->char (+ n (char->integer #\0)))
+    (integer->char (+ (- n 10) (char->integer #\A)))
   ) ;if
 ) ;define
 
@@ -36,10 +34,7 @@
 
 ;; 所以空格应该编码为 "%20"
 (check (uri-encode " ") => "%20")
-(check (uri-encode "hello world")
-  =>
-  "hello%20world"
-) ;check
+(check (uri-encode "hello world") => "hello%20world")
 
 
 (check-report)

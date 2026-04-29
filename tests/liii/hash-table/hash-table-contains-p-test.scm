@@ -39,18 +39,13 @@
 
 (let ((ht (make-hash-table)))
   (hash-table-set! ht 'brand 'liii)
-  (check-true (hash-table-contains? ht 'brand)
-  ) ;check-true
+  (check-true (hash-table-contains? ht 'brand))
   (hash-table-set! ht 'brand #f)
-  (check-false (hash-table-contains? ht 'brand)
-  ) ;check-false
+  (check-false (hash-table-contains? ht 'brand))
 ) ;let
 
 
-(check-false (hash-table-contains? (make-hash-table)
-               'missing
-             ) ;hash-table-contains?
-) ;check-false
+(check-false (hash-table-contains? (make-hash-table) 'missing))
 
 
 (check-report)

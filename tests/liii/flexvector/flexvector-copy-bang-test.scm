@@ -45,74 +45,44 @@
 
 
 ;; 基本复制
-(let ((to (flexvector 1 2 3 4 5))
-      (from (flexvector 20 30 40))
-     ) ;
+(let ((to (flexvector 1 2 3 4 5)) (from (flexvector 20 30 40)))
   (flexvector-copy! to 1 from)
-  (check (flexvector->list to)
-    =>
-    '(1 20 30 40 5)
-  ) ;check
+  (check (flexvector->list to) => '(1 20 30 40 5))
 ) ;let
 
 
 ;; 复制指定区间
-(let ((to (flexvector 1 2 3 4 5))
-      (from (flexvector 10 20 30 40 50))
-     ) ;
+(let ((to (flexvector 1 2 3 4 5)) (from (flexvector 10 20 30 40 50)))
   (flexvector-copy! to 1 from 1 4)
-  (check (flexvector->list to)
-    =>
-    '(1 20 30 40 5)
-  ) ;check
+  (check (flexvector->list to) => '(1 20 30 40 5))
 ) ;let
 
 
 ;; 复制到开头
-(let ((to (flexvector 'a 'b 'c))
-      (from (flexvector 1 2))
-     ) ;
+(let ((to (flexvector 'a 'b 'c)) (from (flexvector 1 2)))
   (flexvector-copy! to 0 from)
-  (check (flexvector->list to)
-    =>
-    '(1 2 c)
-  ) ;check
+  (check (flexvector->list to) => '(1 2 c))
 ) ;let
 
 
 ;; 复制到末尾
-(let ((to (flexvector 'a 'b))
-      (from (flexvector 'x 'y 'z))
-     ) ;
+(let ((to (flexvector 'a 'b)) (from (flexvector 'x 'y 'z)))
   (flexvector-copy! to 2 from)
-  (check (flexvector->list to)
-    =>
-    '(a b x y z)
-  ) ;check
+  (check (flexvector->list to) => '(a b x y z))
 ) ;let
 
 
 ;; 源向量比目标长（目标会扩容）
-(let ((to (flexvector 1))
-      (from (flexvector 'a 'b 'c 'd 'e))
-     ) ;
+(let ((to (flexvector 1)) (from (flexvector 'a 'b 'c 'd 'e)))
   (flexvector-copy! to 0 from)
-  (check (flexvector->list to)
-    =>
-    '(a b c d e)
-  ) ;check
+  (check (flexvector->list to) => '(a b c d e))
 ) ;let
 
 
 ;; 空源向量（无变化）
-(let ((to (flexvector 1 2 3))
-      (from (flexvector))
-     ) ;
+(let ((to (flexvector 1 2 3)) (from (flexvector)))
   (flexvector-copy! to 1 from)
-  (check (flexvector->list to)
-    =>
-    '(1 2 3)
-  ) ;check
+  (check (flexvector->list to) => '(1 2 3))
 ) ;let
 
 

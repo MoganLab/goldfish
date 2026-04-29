@@ -40,43 +40,26 @@
 
 
 (let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
-  (check-true (number? (complex-vector-ref v 0))
-  ) ;check-true
-  (check-true (number? (complex-vector-ref v 1))
-  ) ;check-true
+  (check-true (number? (complex-vector-ref v 0)))
+  (check-true (number? (complex-vector-ref v 1)))
 ) ;let
 
 
 (let ((v (make-complex-vector 3)))
-  (check-true (number? (complex-vector-ref v 0))
-  ) ;check-true
-  (check-true (number? (complex-vector-ref v 1))
-  ) ;check-true
-  (check-true (number? (complex-vector-ref v 2))
-  ) ;check-true
+  (check-true (number? (complex-vector-ref v 0)))
+  (check-true (number? (complex-vector-ref v 1)))
+  (check-true (number? (complex-vector-ref v 2)))
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (complex-vector-ref 'not-a-vector 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (complex-vector-ref (vector 1.0+2.0i 3.0+4.0i)
-    0
-  ) ;complex-vector-ref
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (complex-vector-ref (int-vector 1 2) 0)
+(check-catch 'wrong-type-arg (complex-vector-ref 'not-a-vector 0))
+(check-catch 'wrong-type-arg (complex-vector-ref (vector 1.0+2.0i 3.0+4.0i) 0))
+(check-catch 'wrong-type-arg (complex-vector-ref (int-vector 1 2) 0))
+(check-catch 'out-of-range
+  (complex-vector-ref (complex-vector 1.0+2.0i 3.0+4.0i) 5)
 ) ;check-catch
 (check-catch 'out-of-range
-  (complex-vector-ref (complex-vector 1.0+2.0i 3.0+4.0i)
-    5
-  ) ;complex-vector-ref
-) ;check-catch
-(check-catch 'out-of-range
-  (complex-vector-ref (complex-vector 1.0+2.0i 3.0+4.0i)
-    -1
-  ) ;complex-vector-ref
+  (complex-vector-ref (complex-vector 1.0+2.0i 3.0+4.0i) -1)
 ) ;check-catch
 
 

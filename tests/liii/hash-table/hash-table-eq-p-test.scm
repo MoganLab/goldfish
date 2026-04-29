@@ -34,19 +34,12 @@
 ;; 非哈希表输入时由底层实现报错。
 
 
-(let ((empty-h1 (make-hash-table))
-      (empty-h2 (make-hash-table))
-     ) ;
-  (check (hash-table=? empty-h1 empty-h2)
-    =>
-    #t
-  ) ;check
+(let ((empty-h1 (make-hash-table)) (empty-h2 (make-hash-table)))
+  (check (hash-table=? empty-h1 empty-h2) => #t)
 ) ;let
 
 
-(let ((t1 (make-hash-table))
-      (t2 (make-hash-table))
-     ) ;
+(let ((t1 (make-hash-table)) (t2 (make-hash-table)))
   (hash-table-set! t1 'a 1)
   (hash-table-set! t2 'a 1)
   (check (hash-table=? t1 t2) => #t)

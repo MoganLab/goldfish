@@ -21,50 +21,25 @@
 ;; unspecified
 
 ;; 追加文本测试
-(let ((append-file (path-join (path-temp-dir)
-                     "path-append-text.txt"
-                   ) ;path-join
-      ) ;append-file
-     ) ;
+(let ((append-file (path-join (path-temp-dir) "path-append-text.txt")))
   (when (path-exists? append-file)
     (delete-file (path->string append-file))
   ) ;when
-  (path-write-text append-file
-    "Initial content\n"
-  ) ;path-write-text
-  (check (path-read-text append-file)
-    =>
-    "Initial content\n"
-  ) ;check
-  (path-append-text append-file
-    "Appended content\n"
-  ) ;path-append-text
-  (check (path-read-text append-file)
-    =>
-    "Initial content\nAppended content\n"
-  ) ;check
+  (path-write-text append-file "Initial content\n")
+  (check (path-read-text append-file) => "Initial content\n")
+  (path-append-text append-file "Appended content\n")
+  (check (path-read-text append-file) => "Initial content\nAppended content\n")
   (delete-file (path->string append-file))
 ) ;let
 
 ;; 追加到不存在文件测试
-(let ((append-missing-file (path-join (path-temp-dir)
-                             "path-append-missing.txt"
-                           ) ;path-join
-      ) ;append-missing-file
-     ) ;
+(let ((append-missing-file (path-join (path-temp-dir) "path-append-missing.txt")))
   (when (path-exists? append-missing-file)
-    (delete-file (path->string append-missing-file)
-    ) ;delete-file
+    (delete-file (path->string append-missing-file))
   ) ;when
-  (path-append-text append-missing-file
-    "new"
-  ) ;path-append-text
-  (check (path-read-text append-missing-file)
-    =>
-    "new"
-  ) ;check
-  (delete-file (path->string append-missing-file)
-  ) ;delete-file
+  (path-append-text append-missing-file "new")
+  (check (path-read-text append-missing-file) => "new")
+  (delete-file (path->string append-missing-file))
 ) ;let
 
 (check-report)

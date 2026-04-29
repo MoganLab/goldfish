@@ -31,24 +31,9 @@
 ;; 如果键不存在且提供了 failure，返回 failure 的结果；
 ;; 否则抛出错误。
 ;;
-(check (fxmapping-ref (fxmapping 0 'a 1 'b)
-         0
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
-  =>
-  'a
-) ;check
-(check (fxmapping-ref (fxmapping 0 'a 1 'b)
-         1
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
-  =>
-  'b
-) ;check
-(check (fxmapping-ref (fxmapping 0 'a 1 'b)
-         2
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+(check (fxmapping-ref (fxmapping 0 'a 1 'b) 0 (lambda () 'not-found)) => 'a)
+(check (fxmapping-ref (fxmapping 0 'a 1 'b) 1 (lambda () 'not-found)) => 'b)
+(check (fxmapping-ref (fxmapping 0 'a 1 'b) 2 (lambda () 'not-found))
   =>
   'not-found
 ) ;check

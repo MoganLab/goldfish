@@ -1,45 +1,28 @@
-(import (liii check)
-  (liii enum)
-  (srfi srfi-1)
-) ;import
+(import (liii check) (liii enum) (srfi srfi-1))
 
 
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-set
-  (enum-type->enum-set color)
-) ;define
+(define color-set (enum-type->enum-set color))
 
 
 (define reddish
   (list->enum-set color
-    (map (lambda (name)
-           (enum-name->enum color name)
-         ) ;lambda
-      (take color-names 3)
-    ) ;map
+    (map (lambda (name) (enum-name->enum color name)) (take color-names 3))
   ) ;list->enum-set
 ) ;define
 
 
 (define reddish-complement
   (list->enum-set color
-    (map (lambda (name)
-           (enum-name->enum color name)
-         ) ;lambda
-      (drop color-names 3)
-    ) ;map
+    (map (lambda (name) (enum-name->enum color name)) (drop color-names 3))
   ) ;list->enum-set
 ) ;define
 
@@ -77,19 +60,8 @@
 ;; 无。
 
 
-(check (enum-set=? color-set
-         (enum-set-xor reddish
-           reddish-complement
-         ) ;enum-set-xor
-       ) ;enum-set=?
-  =>
-  #t
-) ;check
-(check (enum-set-empty? (enum-set-xor reddish reddish)
-       ) ;enum-set-empty?
-  =>
-  #t
-) ;check
+(check (enum-set=? color-set (enum-set-xor reddish reddish-complement)) => #t)
+(check (enum-set-empty? (enum-set-xor reddish reddish)) => #t)
 
 
 (check-report)

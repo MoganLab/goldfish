@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,9 +38,7 @@
 
 ;; Test basic behavior
 (define s-partition-mut (set 1 2 3 4))
-(call-with-values (lambda ()
-                    (set-partition! even? s-partition-mut)
-                  ) ;lambda
+(call-with-values (lambda () (set-partition! even? s-partition-mut))
   (lambda (yes no)
     (check-true (eq? yes s-partition-mut))
     (check (set-size yes) => 2)
@@ -57,22 +52,13 @@
 
 
 ;; Test empty set
-(define s-partition-empty
-  (set-copy s-empty)
-) ;define
-(call-with-values (lambda ()
-                    (set-partition! even? s-partition-empty)
-                  ) ;lambda
-  (lambda (yes no)
-    (check (set-size yes) => 0)
-    (check (set-size no) => 0)
-  ) ;lambda
+(define s-partition-empty (set-copy s-empty))
+(call-with-values (lambda () (set-partition! even? s-partition-empty))
+  (lambda (yes no) (check (set-size yes) => 0) (check (set-size no) => 0))
 ) ;call-with-values
 
 
-(check-catch 'type-error
-  (set-partition! even? "not a set")
-) ;check-catch
+(check-catch 'type-error (set-partition! even? "not a set"))
 
 
 (check-report)

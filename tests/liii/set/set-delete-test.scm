@@ -53,9 +53,7 @@
 
 
 ;; Test deleting multiple elements
-(define s-del-3
-  (set-delete s-1-2-3 1 2)
-) ;define
+(define s-del-3 (set-delete s-1-2-3 1 2))
 (check (set-size s-del-3) => 1)
 (check-false (set-contains? s-del-3 1))
 (check-false (set-contains? s-del-3 2))

@@ -31,10 +31,7 @@
 
 
 (let ((r (numeric-range 0 5)))
-  (check (range->vector r)
-    =>
-    #(0 1 2 3 4)
-  ) ;check
+  (check (range->vector r) => #(0 1 2 3 4))
 ) ;let
 
 
@@ -44,18 +41,12 @@
 
 
 (let ((r (numeric-range 10 20 2)))
-  (check (range->vector r)
-    =>
-    #(10 12 14 16 18)
-  ) ;check
+  (check (range->vector r) => #(10 12 14 16 18))
 ) ;let
 
 
 (let ((r (vector-range #(a b c d e))))
-  (check (range->vector r)
-    =>
-    #(a b c d e)
-  ) ;check
+  (check (range->vector r) => #(a b c d e))
 ) ;let
 
 

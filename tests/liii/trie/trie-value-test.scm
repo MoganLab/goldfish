@@ -35,28 +35,16 @@
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root)
   (check (trie-value trie) => '(root))
-  (trie-insert! trie
-    (string->list "a")
-    'letter
-  ) ;trie-insert!
+  (trie-insert! trie (string->list "a") 'letter)
   (check (trie-value trie) => '(root))
 ) ;let
 
 
 (let ((trie (make-trie)))
   (trie-insert! trie '() 'root-value)
-  (check (trie-value trie)
-    =>
-    '(root-value)
-  ) ;check
-  (trie-insert! trie
-    (string->list "test")
-    'other-value
-  ) ;trie-insert!
-  (check (trie-value trie)
-    =>
-    '(root-value)
-  ) ;check
+  (check (trie-value trie) => '(root-value))
+  (trie-insert! trie (string->list "test") 'other-value)
+  (check (trie-value trie) => '(root-value))
 ) ;let
 
 

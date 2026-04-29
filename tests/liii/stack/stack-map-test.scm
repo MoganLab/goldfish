@@ -34,9 +34,7 @@
 
 
 (let ((s (make-stack)))
-  (let ((result (stack-map (lambda (x) (* x 2)) s)
-        ) ;result
-       ) ;
+  (let ((result (stack-map (lambda (x) (* x 2)) s)))
     (check (stack? result) => #t)
     (check (stack-empty? result) => #t)
   ) ;let
@@ -44,18 +42,14 @@
 
 
 (let ((s (stack 1)))
-  (let ((result (stack-map (lambda (x) (* x 2)) s)
-        ) ;result
-       ) ;
+  (let ((result (stack-map (lambda (x) (* x 2)) s)))
     (check (stack-top result) => 2)
   ) ;let
 ) ;let
 
 
 (let ((s (stack 1 2 3)))
-  (let ((result (stack-map (lambda (x) (* x 2)) s)
-        ) ;result
-       ) ;
+  (let ((result (stack-map (lambda (x) (* x 2)) s)))
     (check (stack->list result) => '(2 4 6))
   ) ;let
 ) ;let
@@ -68,35 +62,21 @@
 
 
 (let ((s (stack 1 2 3)))
-  (let ((result (stack-map (lambda (x) (+ x 10)) s)
-        ) ;result
-       ) ;
-    (check (stack->list result)
-      =>
-      '(11 12 13)
-    ) ;check
+  (let ((result (stack-map (lambda (x) (+ x 10)) s)))
+    (check (stack->list result) => '(11 12 13))
   ) ;let
 ) ;let
 
 
 (let ((s (stack 1 2)))
-  (let ((result (stack-map (lambda (x) (list x x)) s)
-        ) ;result
-       ) ;
-    (check (stack->list result)
-      =>
-      '((1 1) (2 2))
-    ) ;check
+  (let ((result (stack-map (lambda (x) (list x x)) s)))
+    (check (stack->list result) => '((1 1) (2 2)))
   ) ;let
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-map "not-a-proc" (stack 1 2))
-) ;check-catch
-(check-catch 'type-error
-  (stack-map (lambda (x) x) 'not-a-stack)
-) ;check-catch
+(check-catch 'type-error (stack-map "not-a-proc" (stack 1 2)))
+(check-catch 'type-error (stack-map (lambda (x) x) 'not-a-stack))
 
 
 (check-report)

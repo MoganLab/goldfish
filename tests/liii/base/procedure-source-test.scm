@@ -31,10 +31,7 @@
 
 
 ;; 测试 lambda 函数的源代码
-(check (procedure-source (lambda (x) (+ x 1)))
-  =>
-  '(lambda (x) (+ x 1))
-) ;check
+(check (procedure-source (lambda (x) (+ x 1))) => '(lambda (x) (+ x 1)))
 
 
 ;; 测试 define 定义的函数
@@ -54,8 +51,7 @@
 
 
 ;; 测试多参数函数
-(check (procedure-source (lambda (a b c) (+ a b c))
-       ) ;procedure-source
+(check (procedure-source (lambda (a b c) (+ a b c)))
   =>
   '(lambda (a b c) (+ a b c))
 ) ;check
@@ -63,9 +59,7 @@
 
 ;; 测试带默认参数的函数 (使用 define* 定义)
 (check (let ()
-         (define* (greet name (greeting "Hello"))
-           (string-append greeting " " name)
-         ) ;define*
+         (define* (greet name (greeting "Hello")) (string-append greeting " " name))
          (procedure-source greet)
        ) ;let
   =>

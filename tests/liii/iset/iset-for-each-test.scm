@@ -25,9 +25,7 @@
 ;; 按递增数值顺序应用 proc。
 ;;
 (check (let ((sum 0))
-         (iset-for-each (lambda (x) (set! sum (+ sum x)))
-           (iset 2 3 5 7 11)
-         ) ;iset-for-each
+         (iset-for-each (lambda (x) (set! sum (+ sum x))) (iset 2 3 5 7 11))
          sum
        ) ;let
   =>

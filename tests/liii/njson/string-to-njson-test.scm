@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -41,24 +38,14 @@
 ) ;define
 
 
-(let-njson ((root (string->njson string-to-njson-sample)
-            ) ;root
-           ) ;
-  (check (njson-ref root "name")
-    =>
-    "Goldfish"
-  ) ;check
-  (check-true (njson-contains-key? root "active")
-  ) ;check-true
+(let-njson ((root (string->njson string-to-njson-sample)))
+  (check (njson-ref root "name") => "Goldfish")
+  (check-true (njson-contains-key? root "active"))
 ) ;let-njson
 
 
-(check-catch 'parse-error
-  (string->njson "{name:\"Goldfish\"}")
-) ;check-catch
-(check-catch 'type-error
-  (string->njson 1)
-) ;check-catch
+(check-catch 'parse-error (string->njson "{name:\"Goldfish\"}"))
+(check-catch 'type-error (string->njson 1))
 
 
 (check-report)

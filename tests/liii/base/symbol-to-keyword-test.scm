@@ -15,27 +15,13 @@
 ;; 将普通符号转换为 keyword 类型
 
 
-(check (equal? (symbol->keyword 'world) :world)
-  =>
-  #t
-) ;check
-(check (equal? (symbol->keyword 'foo-bar)
-         :foo-bar
-       ) ;equal?
-  =>
-  #t
-) ;check
-(check (keyword? (symbol->keyword 'test))
-  =>
-  #t
-) ;check
+(check (equal? (symbol->keyword 'world) :world) => #t)
+(check (equal? (symbol->keyword 'foo-bar) :foo-bar) => #t)
+(check (keyword? (symbol->keyword 'test)) => #t)
 
 
 ;; 与 keyword->symbol 的互逆性
-(check (keyword->symbol (symbol->keyword 'abc))
-  =>
-  'abc
-) ;check
+(check (keyword->symbol (symbol->keyword 'abc)) => 'abc)
 
 
 (check-report)

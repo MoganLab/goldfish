@@ -23,26 +23,11 @@
 ;; 当前 option（如果非空）或备选 option（如果当前为空）。
 
 
-(let ((opt1 (option 42))
-      (opt2 (option 0))
-      (opt3 (none))
-     ) ;
-  (check (option-or-else opt2 opt1)
-    =>
-    (option 42)
-  ) ;check
-  (check (option-or-else opt1 opt3)
-    =>
-    (option 42)
-  ) ;check
-  (check (option-or-else opt2 opt3)
-    =>
-    (option 0)
-  ) ;check
-  (check (option-or-else opt1 opt1)
-    =>
-    (option 42)
-  ) ;check
+(let ((opt1 (option 42)) (opt2 (option 0)) (opt3 (none)))
+  (check (option-or-else opt2 opt1) => (option 42))
+  (check (option-or-else opt1 opt3) => (option 42))
+  (check (option-or-else opt2 opt3) => (option 0))
+  (check (option-or-else opt1 opt1) => (option 42))
 ) ;let
 
 

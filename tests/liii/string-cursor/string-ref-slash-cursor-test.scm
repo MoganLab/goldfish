@@ -35,24 +35,28 @@
 (let ((s "abc"))
   (check (string-ref/cursor s (string-cursor-start s)) => #\a)
   (check (string-ref/cursor s (string-index->cursor s 1)) => #\b)
-  (check (string-ref/cursor s (string-index->cursor s 2)) => #\c))
+  (check (string-ref/cursor s (string-index->cursor s 2)) => #\c)
+) ;let
 
 ;; 测试中文
 (let ((s "中文"))
   (check (string-ref/cursor s (string-cursor-start s)) => #\中)
-  (check (string-ref/cursor s (string-index->cursor s 1)) => #\文))
+  (check (string-ref/cursor s (string-index->cursor s 1)) => #\文)
+) ;let
 
 ;; 测试emoji
 (let ((s "🎉🎊"))
   (check (string-ref/cursor s (string-cursor-start s)) => #\🎉)
-  (check (string-ref/cursor s (string-index->cursor s 1)) => #\🎊))
+  (check (string-ref/cursor s (string-index->cursor s 1)) => #\🎊)
+) ;let
 
 ;; 测试ASCII+中文混合
 (let ((s "a中b文"))
   (check (string-ref/cursor s (string-index->cursor s 0)) => #\a)
   (check (string-ref/cursor s (string-index->cursor s 1)) => #\中)
   (check (string-ref/cursor s (string-index->cursor s 2)) => #\b)
-  (check (string-ref/cursor s (string-index->cursor s 3)) => #\文))
+  (check (string-ref/cursor s (string-index->cursor s 3)) => #\文)
+) ;let
 
 ;; 测试使用整数索引
 (check (string-ref/cursor "abc" 0) => #\a)

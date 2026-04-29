@@ -44,10 +44,7 @@
 ;; 无
 
 
-(check (alist-ref/default '((a . 1)) 'b 2)
-  =>
-  2
-) ;check
+(check (alist-ref/default '((a . 1)) 'b 2) => 2)
 
 
 (check-report)

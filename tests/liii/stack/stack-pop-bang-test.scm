@@ -72,14 +72,10 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-pop! 'not-a-stack)
-) ;check-catch
+(check-catch 'type-error (stack-pop! 'not-a-stack))
 
 
-(check-catch 'value-error
-  (stack-pop! (make-stack))
-) ;check-catch
+(check-catch 'value-error (stack-pop! (make-stack)))
 
 
 (check-report)

@@ -45,88 +45,40 @@
 
 
 (check (vector->list #()) => ())
-(check (vector->list #(a b c))
-  =>
-  '(a b c)
-) ;check
-(check (vector->list #(1 2 3))
-  =>
-  '(1 2 3)
-) ;check
+(check (vector->list #(a b c)) => '(a b c))
+(check (vector->list #(1 2 3)) => '(1 2 3))
 (check (vector->list #(42)) => '(42))
 (check (vector->list #(a)) => '(a))
-(check (vector->list #(1 2.5 "hello" (#_quote symbol) #\c #t #f)
-       ) ;vector->list
+(check (vector->list #(1 2.5 "hello" (#_quote symbol) #\c #t #f))
   =>
   '(1 2.5 "hello" (#_quote symbol) #\c #t #f)
 ) ;check
-(check (vector->list #((1 2) (3 4)))
-  =>
-  '((1 2) (3 4))
-) ;check
+(check (vector->list #((1 2) (3 4))) => '((1 2) (3 4)))
 
 
-(check (vector->list #(0 1 2 3) 1)
-  =>
-  '(1 2 3)
-) ;check
-(check (vector->list #(0 1 2 3) 2)
-  =>
-  '(2 3)
-) ;check
-(check (vector->list #(0 1 2 3) 3)
-  =>
-  '(3)
-) ;check
-(check (vector->list #(0 1 2 3) 4)
-  =>
-  ()
-) ;check
+(check (vector->list #(0 1 2 3) 1) => '(1 2 3))
+(check (vector->list #(0 1 2 3) 2) => '(2 3))
+(check (vector->list #(0 1 2 3) 3) => '(3))
+(check (vector->list #(0 1 2 3) 4) => ())
 
 
-(check (vector->list #(0 1 2 3) 1 3)
-  =>
-  '(1 2)
-) ;check
-(check (vector->list #(0 1 2 3) 0 4)
-  =>
-  '(0 1 2 3)
-) ;check
-(check (vector->list #(0 1 2 3) 1 1)
-  =>
-  ()
-) ;check
-(check (vector->list #(0 1 2 3) 2 4)
-  =>
-  '(2 3)
-) ;check
+(check (vector->list #(0 1 2 3) 1 3) => '(1 2))
+(check (vector->list #(0 1 2 3) 0 4) => '(0 1 2 3))
+(check (vector->list #(0 1 2 3) 1 1) => ())
+(check (vector->list #(0 1 2 3) 2 4) => '(2 3))
 
 
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range
-    (vector->list v -1)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector->list v 4)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector->list v 2 5)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector->list v 3 2)
-  ) ;check-catch
+  (check-catch 'out-of-range (vector->list v -1))
+  (check-catch 'out-of-range (vector->list v 4))
+  (check-catch 'out-of-range (vector->list v 2 5))
+  (check-catch 'out-of-range (vector->list v 3 2))
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (vector->list 'not-a-vector)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector->list #(1 2 3) 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector->list #(1 2 3) 0 'not-a-number)
-) ;check-catch
+(check-catch 'wrong-type-arg (vector->list 'not-a-vector))
+(check-catch 'wrong-type-arg (vector->list #(1 2 3) 'not-a-number))
+(check-catch 'wrong-type-arg (vector->list #(1 2 3) 0 'not-a-number))
 
 
 (check-report)

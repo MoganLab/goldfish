@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii os)
-  (liii sys)
-) ;import
+(import (liii check) (liii os) (liii sys))
 
 
 (check-set-mode! 'report-failed)
@@ -34,9 +31,7 @@
 
 
 ;; ; 基本功能测试
-(when (and (os-linux?)
-        (not (string=? "root" (getlogin)))
-      ) ;and
+(when (and (os-linux?) (not (string=? "root" (getlogin))))
   (check-true (access "/root" 'F_OK))
   (check-false (access "/root" 'R_OK))
   (check-false (access "/root" 'W_OK))

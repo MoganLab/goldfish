@@ -63,10 +63,7 @@
 
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2 3)))
-  (check (eq? (flexvector-clear! fv) fv)
-    =>
-    #t
-  ) ;check
+  (check (eq? (flexvector-clear! fv) fv) => #t)
 ) ;let
 
 

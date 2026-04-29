@@ -49,13 +49,11 @@
 (check-true (dotted-list? '(1 2 . 3)))
 
 
-(check-false (dotted-list? (circular-list 1 2 3))
-) ;check-false
+(check-false (dotted-list? (circular-list 1 2 3)))
 (check-false (dotted-list? '()))
 (check-false (dotted-list? '(a)))
 (check-false (dotted-list? '(a b)))
-(check-false (dotted-list? '(a b (c d)))
-) ;check-false
+(check-false (dotted-list? '(a b (c d))))
 
 
 (check-true (dotted-list? 'a))
@@ -65,18 +63,14 @@
 (check-true (dotted-list? '(a . b)))
 (check-true (dotted-list? '(a b . c)))
 (check-true (dotted-list? '(a b c . d)))
-(check-true (dotted-list? '(a b c d . e))
-) ;check-true
+(check-true (dotted-list? '(a b c d . e)))
 (check-true (dotted-list? '(() . a)))
 (check-true (dotted-list? '(a () . b)))
-(check-true (dotted-list? '(a b () . c))
-) ;check-true
+(check-true (dotted-list? '(a b () . c)))
 
 
-(check-true (dotted-list? '((a . b) c . d))
-) ;check-true
-(check-true (dotted-list? '(a (b . c) . d))
-) ;check-true
+(check-true (dotted-list? '((a . b) c . d)))
+(check-true (dotted-list? '(a (b . c) . d)))
 (check-true (dotted-list? '(a b . c)))
 
 
@@ -87,8 +81,7 @@
 
 
 (check-true (dotted-list? '(a b c . d)))
-(check-false (dotted-list? '(a b (c . d)))
-) ;check-false
+(check-false (dotted-list? '(a b (c . d))))
 
 
 (check-false (dotted-list? '()))
@@ -106,10 +99,8 @@
 ) ;let
 
 
-(check-true (dotted-list? '(a (b . c) . d))
-) ;check-true
-(check-false (dotted-list? '((a b) (c d)))
-) ;check-false
+(check-true (dotted-list? '(a (b . c) . d)))
+(check-false (dotted-list? '((a b) (c d))))
 (check-true (dotted-list? '((a b) . c)))
 
 

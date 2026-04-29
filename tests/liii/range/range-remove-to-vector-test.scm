@@ -34,36 +34,22 @@
 
 
 (let ((r (numeric-range 0 10)))
-  (check (range-remove->vector even? r)
-    =>
-    #(1 3 5 7 9)
-  ) ;check
+  (check (range-remove->vector even? r) => #(1 3 5 7 9))
 ) ;let
 
 
 (let ((r (numeric-range 0 10)))
-  (check (range-remove->vector odd? r)
-    =>
-    #(0 2 4 6 8)
-  ) ;check
+  (check (range-remove->vector odd? r) => #(0 2 4 6 8))
 ) ;let
 
 
 (let ((r (numeric-range 0 0)))
-  (check (range-remove->vector even? r)
-    =>
-    #()
-  ) ;check
+  (check (range-remove->vector even? r) => #())
 ) ;let
 
 
 (let ((r (numeric-range 0 5)))
-  (check (range-remove->vector (lambda (x) (> x 2))
-           r
-         ) ;range-remove->vector
-    =>
-    #(0 1 2)
-  ) ;check
+  (check (range-remove->vector (lambda (x) (> x 2)) r) => #(0 1 2))
 ) ;let
 
 

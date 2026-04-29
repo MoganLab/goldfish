@@ -25,17 +25,11 @@
 ;; 返回新的 fxmapping，包含原映射的所有键值对以及新设置的键值对。
 ;; 如果键已存在，新值会覆盖原值。
 ;;
-(check (fxmapping-ref (fxmapping-set (fxmapping 0 'a) 0 'b)
-         0
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+(check (fxmapping-ref (fxmapping-set (fxmapping 0 'a) 0 'b) 0 (lambda () 'not-found))
   =>
   'b
 ) ;check
-(check (fxmapping-ref (fxmapping-set (fxmapping 0 'a) 1 'b)
-         1
-         (lambda () 'not-found)
-       ) ;fxmapping-ref
+(check (fxmapping-ref (fxmapping-set (fxmapping 0 'a) 1 'b) 1 (lambda () 'not-found))
   =>
   'b
 ) ;check

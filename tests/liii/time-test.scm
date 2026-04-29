@@ -17,9 +17,7 @@
 
 
 ;; 示例3：构造日期并格式化输出
-(date->string (make-date 0 0 0 0 1 1 1970 0)
-  "~Y-~m-~d"
-) ;date->string
+(date->string (make-date 0 0 0 0 1 1 1970 0) "~Y-~m-~d")
 
 
 ;; ==== 如何查看函数的文档和用例 ====

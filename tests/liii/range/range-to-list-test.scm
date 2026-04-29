@@ -41,10 +41,7 @@
 
 
 (let ((r (numeric-range 10 20 2)))
-  (check (range->list r)
-    =>
-    '(10 12 14 16 18)
-  ) ;check
+  (check (range->list r) => '(10 12 14 16 18))
 ) ;let
 
 
@@ -54,10 +51,7 @@
 
 
 (let ((r (string-range "hello")))
-  (check (range->list r)
-    =>
-    '(#\h #\e #\l #\l #\o)
-  ) ;check
+  (check (range->list r) => '(#\h #\e #\l #\l #\o))
 ) ;let
 
 

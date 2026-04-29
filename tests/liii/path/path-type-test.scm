@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -23,13 +20,7 @@
 ;; 返回 'posix 或 'windows。
 
 (check (path-type (path)) => 'posix)
-(check (path-type (path-root))
-  =>
-  'posix
-) ;check
-(check (path-type (path-of-drive #\c))
-  =>
-  'windows
-) ;check
+(check (path-type (path-root)) => 'posix)
+(check (path-type (path-of-drive #\c)) => 'windows)
 
 (check-report)

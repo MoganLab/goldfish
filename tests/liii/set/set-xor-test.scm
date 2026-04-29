@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -41,9 +37,7 @@
 
 
 ;; Test basic xor
-(define s-xor-1
-  (set-xor s-1-2-3 s-2-3-4)
-) ;define
+(define s-xor-1 (set-xor s-1-2-3 s-2-3-4))
 (check (set-size s-xor-1) => 2)
 (check-true (set-contains? s-xor-1 1))
 (check-true (set-contains? s-xor-1 4))
@@ -54,51 +48,26 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s)
-      (string-hash (string-map char-downcase s)
-      ) ;string-hash
-    ) ;lambda
+    (lambda (s) (string-hash (string-map char-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-union-ci-1
-  (list->set-with-comparator string-ci-comparator
-    '("Apple")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("Apple"))
 ) ;define
 (define s-union-ci-2
-  (list->set-with-comparator string-ci-comparator
-    '("apple" "Banana")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("apple" "Banana"))
 ) ;define
-(define s-xor-ci
-  (set-xor s-union-ci-1 s-union-ci-2)
-) ;define
+(define s-xor-ci (set-xor s-union-ci-1 s-union-ci-2))
 (check (set-size s-xor-ci) => 1)
-(check (set-member s-xor-ci
-         "banana"
-         'not-found
-       ) ;set-member
-  =>
-  "Banana"
-) ;check
-(check-true (set-contains? s-xor-ci "banana")
-) ;check-true
-(check-false (set-contains? s-xor-ci "apple")
-) ;check-false
+(check (set-member s-xor-ci "banana" 'not-found) => "Banana")
+(check-true (set-contains? s-xor-ci "banana"))
+(check-false (set-contains? s-xor-ci "apple"))
 
 
 ;; Test type and comparator errors
-(check-catch 'type-error
-  (set-xor "not a set" s-1-2-3)
-) ;check-catch
-(define s-str-ci
-  (list->set-with-comparator string-ci-comparator
-    '("test")
-  ) ;list->set-with-comparator
-) ;define
-(check-catch 'value-error
-  (set-xor s-1-2-3 s-str-ci)
-) ;check-catch
+(check-catch 'type-error (set-xor "not a set" s-1-2-3))
+(define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
+(check-catch 'value-error (set-xor s-1-2-3 s-str-ci))
 
 
 (check-report)

@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -35,9 +31,7 @@
 
 
 (define s-empty (set))
-(define comp
-  (set-element-comparator s-empty)
-) ;define
+(define comp (set-element-comparator s-empty))
 (define s-1 (set 1))
 (define s-1-2-3 (set 1 2 3))
 (define s-2-3-4 (set 2 3 4))
@@ -45,24 +39,17 @@
 
 
 ;; Test basic union
-(define s-union-1
-  (set-union s-1-2-3 s-2-3-4)
-) ;define
+(define s-union-1 (set-union s-1-2-3 s-2-3-4))
 (check (set-size s-union-1) => 4)
 (check-true (set-contains? s-union-1 1))
 (check-true (set-contains? s-union-1 2))
 (check-true (set-contains? s-union-1 3))
 (check-true (set-contains? s-union-1 4))
-(check-true (eq? (set-element-comparator s-union-1)
-              comp
-            ) ;eq?
-) ;check-true
+(check-true (eq? (set-element-comparator s-union-1) comp))
 
 
 ;; Test multiple sets union
-(define s-union-2
-  (set-union s-1 s-2-3-4 s-4-5)
-) ;define
+(define s-union-2 (set-union s-1 s-2-3-4 s-4-5))
 (check (set-size s-union-2) => 5)
 (check-true (set-contains? s-union-2 1))
 (check-true (set-contains? s-union-2 5))
@@ -73,53 +60,24 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s)
-      (string-hash (string-map char-downcase s)
-      ) ;string-hash
-    ) ;lambda
+    (lambda (s) (string-hash (string-map char-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-union-ci-1
-  (list->set-with-comparator string-ci-comparator
-    '("Apple")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("Apple"))
 ) ;define
 (define s-union-ci-2
-  (list->set-with-comparator string-ci-comparator
-    '("apple" "Banana")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("apple" "Banana"))
 ) ;define
-(define s-union-ci
-  (set-union s-union-ci-1 s-union-ci-2)
-) ;define
-(check (set-member s-union-ci
-         "apple"
-         'not-found
-       ) ;set-member
-  =>
-  "Apple"
-) ;check
-(check (set-member s-union-ci
-         "banana"
-         'not-found
-       ) ;set-member
-  =>
-  "Banana"
-) ;check
+(define s-union-ci (set-union s-union-ci-1 s-union-ci-2))
+(check (set-member s-union-ci "apple" 'not-found) => "Apple")
+(check (set-member s-union-ci "banana" 'not-found) => "Banana")
 
 
 ;; Test type and comparator errors
-(check-catch 'type-error
-  (set-union "not a set" s-1)
-) ;check-catch
-(define s-str-ci
-  (list->set-with-comparator string-ci-comparator
-    '("test")
-  ) ;list->set-with-comparator
-) ;define
-(check-catch 'value-error
-  (set-union s-1 s-str-ci)
-) ;check-catch
+(check-catch 'type-error (set-union "not a set" s-1))
+(define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
+(check-catch 'value-error (set-union s-1 s-str-ci))
 
 
 (check-report)

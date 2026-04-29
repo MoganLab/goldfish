@@ -13,9 +13,7 @@
 ;; (flexvector-for-each/index proc fv1 fv2 ...)
 ;;
 (let ((fv (flexvector 10 20 30)) (res '()))
-  (flexvector-for-each/index (lambda (i x)
-                               (set! res (cons (+ x (* i 2)) res))
-                             ) ;lambda
+  (flexvector-for-each/index (lambda (i x) (set! res (cons (+ x (* i 2)) res)))
     fv
   ) ;flexvector-for-each/index
   (check res => '(34 22 10))

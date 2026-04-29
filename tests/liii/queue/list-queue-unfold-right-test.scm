@@ -13,10 +13,7 @@
       ) ;q
      ) ;
   ;; unfold-right: 递归结束后从尾部添加，所以第一个元素最后被添加，结果反向
-  (check (list-queue-list q)
-    =>
-    '(6 4 2 0)
-  ) ;check
+  (check (list-queue-list q) => '(6 4 2 0))
 ) ;let
 
 
@@ -30,10 +27,7 @@
            ) ;list-queue-unfold-right
         ) ;q
        ) ;
-    (check (list-queue-list q)
-      =>
-      '(8 6 4 2 0)
-    ) ;check
+    (check (list-queue-list q) => '(8 6 4 2 0))
   ) ;let
 ) ;let
 

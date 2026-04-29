@@ -17,10 +17,7 @@
 
 
 ;; 带 last-pair 参数的 make-list-queue
-(let* ((lst '(1 2 3))
-       (last-ptr (cddr lst))
-       (q (make-list-queue lst last-ptr))
-      ) ;
+(let* ((lst '(1 2 3)) (last-ptr (cddr lst)) (q (make-list-queue lst last-ptr)))
   (check (list-queue-list q) => '(1 2 3))
   (check (list-queue-back q) => 3)
 ) ;let*

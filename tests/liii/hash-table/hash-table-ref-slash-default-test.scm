@@ -41,22 +41,10 @@
 
 
 (let ((ht (make-hash-table)))
-  (check (hash-table-ref/default ht 'key 'value1)
-    =>
-    'value1
-  ) ;check
-  (check (hash-table-ref/default ht
-           'key
-           (lambda () 3)
-         ) ;hash-table-ref/default
-    =>
-    3
-  ) ;check
+  (check (hash-table-ref/default ht 'key 'value1) => 'value1)
+  (check (hash-table-ref/default ht 'key (lambda () 3)) => 3)
   (hash-table-set! ht 'key 'value)
-  (check (hash-table-ref/default ht 'key 'value1)
-    =>
-    'value
-  ) ;check
+  (check (hash-table-ref/default ht 'key 'value1) => 'value)
 ) ;let
 
 

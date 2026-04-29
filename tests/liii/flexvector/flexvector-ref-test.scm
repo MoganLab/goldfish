@@ -54,12 +54,7 @@
 
 ;; 边界测试：索引计算
 (let ((fv (flexvector 10 20 30 40 50)))
-  (check (flexvector-ref fv
-           (- (flexvector-length fv) 1)
-         ) ;flexvector-ref
-    =>
-    50
-  ) ;check
+  (check (flexvector-ref fv (- (flexvector-length fv) 1)) => 50)
 ) ;let
 
 

@@ -22,18 +22,20 @@
 ;; -----
 ;; 返回包含合并后键值对的新 fxmapping。
 ;;
-(check (fxmapping-ref (alist->fxmapping/combinator (lambda (k new old) old)
-                        '((0 . a) (0 . b))
-                      ) ;alist->fxmapping/combinator
+(check (fxmapping-ref (alist->fxmapping/combinator (lambda (k new old) old) '((0
+                                                                               . a)
+                                                                              (0
+                                                                               . b)))
          0
          (lambda () 'not-found)
        ) ;fxmapping-ref
   =>
   'a
 ) ;check
-(check (fxmapping-ref (alist->fxmapping/combinator (lambda (k new old) new)
-                        '((0 . a) (0 . b))
-                      ) ;alist->fxmapping/combinator
+(check (fxmapping-ref (alist->fxmapping/combinator (lambda (k new old) new) '((0
+                                                                               . a)
+                                                                              (0
+                                                                               . b)))
          0
          (lambda () 'not-found)
        ) ;fxmapping-ref

@@ -42,37 +42,45 @@
 ;; 基本测试 - ASCII
 (let ((s "abc123"))
   ;; 从右向左，第一个不是字母的是 '1'（索引3），successor 是索引6
-  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 6))
+  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 6)
+) ;let
 
 ;; 测试全部满足谓词的情况
 (let ((s "abc"))
-  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 0))
+  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 0)
+) ;let
 
 ;; 测试全部不满足谓词的情况
 (let ((s "123"))
-  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 3))
+  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 3)
+) ;let
 
 ;; 测试带 start/end 参数
 (let ((s "abc123"))
   ;; 在 [0, 4) 范围内，从右往左是 c(2) b(1) a(0)，全部满足，返回 start=0
   (check (string-cursor->index s (string-skip-right s char-alphabetic? 0 3)) => 0)
   ;; 在 [3, 6) 范围内，从右往左是 3(5) 2(4) 1(3)，全部满足（都是数字），返回 start=3
-  (check (string-cursor->index s (string-skip-right s char-numeric? 3 6)) => 3))
+  (check (string-cursor->index s (string-skip-right s char-numeric? 3 6)) => 3)
+) ;let
 
 ;; 测试空字符串
 (let ((s ""))
-  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 0))
+  (check (string-cursor->index s (string-skip-right s char-alphabetic?)) => 0)
+) ;let
 
 ;; 测试中文
 (let ((s "中文  "))
   ;; 从右往左，第一个不是空白的是 '文'（索引1），successor 是索引2
-  (check (string-cursor->index s (string-skip-right s char-whitespace?)) => 2))
+  (check (string-cursor->index s (string-skip-right s char-whitespace?)) => 2)
+) ;let
 
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (result (string-skip-right s char-numeric? start end)))
-  (check (string-cursor->index s result) => 3))
+       (result (string-skip-right s char-numeric? start end))
+      ) ;
+  (check (string-cursor->index s result) => 3)
+) ;let*
 (check-report)

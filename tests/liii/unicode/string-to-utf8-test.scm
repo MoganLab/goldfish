@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -36,34 +33,16 @@
 
 
 ;; 基本 ASCII 测试
-(check (string->utf8 "Hello")
-  =>
-  (bytevector 72 101 108 108 111)
-) ;check
+(check (string->utf8 "Hello") => (bytevector 72 101 108 108 111))
 (check (string->utf8 "") => #u8())
 
 
 ;; 多字节字符测试
-(check (string->utf8 "ä")
-  =>
-  #u8(195 164)
-) ;check
-(check (string->utf8 "中")
-  =>
-  #u8(228 184 173)
-) ;check
-(check (string->utf8 "👍")
-  =>
-  #u8(240 159 145 141)
-) ;check
-(check (string->utf8 "🚀")
-  =>
-  #u8(240 159 154 128)
-) ;check
-(check (string->utf8 "🎉")
-  =>
-  #u8(240 159 142 137)
-) ;check
+(check (string->utf8 "ä") => #u8(195 164))
+(check (string->utf8 "中") => #u8(228 184 173))
+(check (string->utf8 "👍") => #u8(240 159 145 141))
+(check (string->utf8 "🚀") => #u8(240 159 154 128))
+(check (string->utf8 "🎉") => #u8(240 159 142 137))
 
 
 ;; 混合字符测试
@@ -78,72 +57,29 @@
 
 
 ;; 带 start 和 end 参数的测试
-(check (string->utf8 "Hello" 0 0)
-  =>
-  #u8()
-) ;check
-(check (string->utf8 "Hello" 1 1)
-  =>
-  #u8()
-) ;check
-(check (string->utf8 "Hello" 2 3)
-  =>
-  #u8(108)
-) ;check
-(check (string->utf8 "Hello" 3 5)
-  =>
-  #u8(108 111)
-) ;check
-(check (string->utf8 "Hello" 2)
-  =>
-  #u8(108 108 111)
-) ;check
-(check (string->utf8 "Hello" 0 3)
-  =>
-  #u8(72 101 108)
-) ;check
+(check (string->utf8 "Hello" 0 0) => #u8())
+(check (string->utf8 "Hello" 1 1) => #u8())
+(check (string->utf8 "Hello" 2 3) => #u8(108))
+(check (string->utf8 "Hello" 3 5) => #u8(108 111))
+(check (string->utf8 "Hello" 2) => #u8(108 108 111))
+(check (string->utf8 "Hello" 0 3) => #u8(72 101 108))
 
 
 ;; Unicode 字符范围测试
-(check (string->utf8 "汉")
-  =>
-  #u8(230 177 137)
-) ;check
-(check (string->utf8 "字")
-  =>
-  #u8(229 173 151)
-) ;check
+(check (string->utf8 "汉") => #u8(230 177 137))
+(check (string->utf8 "字") => #u8(229 173 151))
 
 
 ;; 错误处理测试
-(check-catch 'out-of-range
-  (string->utf8 "Hello" 2 6)
-) ;check-catch
-(check-catch 'out-of-range
-  (string->utf8 "汉字书写" 4)
-) ;check-catch
+(check-catch 'out-of-range (string->utf8 "Hello" 2 6))
+(check-catch 'out-of-range (string->utf8 "汉字书写" 4))
 
 
 ;; 与 utf8->string 互逆操作验证
-(check (utf8->string (string->utf8 "Hello" 1 2)
-       ) ;utf8->string
-  =>
-  "e"
-) ;check
-(check (utf8->string (string->utf8 "Hello" 0 2)
-       ) ;utf8->string
-  =>
-  "He"
-) ;check
-(check (utf8->string (string->utf8 "Hello" 2))
-  =>
-  "llo"
-) ;check
-(check (utf8->string (string->utf8 "Hello" 2 5)
-       ) ;utf8->string
-  =>
-  "llo"
-) ;check
+(check (utf8->string (string->utf8 "Hello" 1 2)) => "e")
+(check (utf8->string (string->utf8 "Hello" 0 2)) => "He")
+(check (utf8->string (string->utf8 "Hello" 2)) => "llo")
+(check (utf8->string (string->utf8 "Hello" 2 5)) => "llo")
 
 
 (check-report)

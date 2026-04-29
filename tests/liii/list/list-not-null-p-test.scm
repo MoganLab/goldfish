@@ -34,10 +34,7 @@
 
 
 (check (list-not-null? (list 1)) => #t)
-(check (list-not-null? (list 1 2 3))
-  =>
-  #t
-) ;check
+(check (list-not-null? (list 1 2 3)) => #t)
 (check (list-not-null? '(a)) => #t)
 (check (list-not-null? '(a b c)) => #t)
 (check (list-not-null? ()) => #f)

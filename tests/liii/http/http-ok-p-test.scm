@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii os))
 
 (check-set-mode! 'report-failed)
 

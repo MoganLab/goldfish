@@ -118,9 +118,7 @@
   "SELECT\n  users.id,\n  users.name,\n  COUNT(orders.id) as order_count\nFROM users\nLEFT JOIN orders ON users.id = orders.user_id\nWHERE users.active = TRUE\nGROUP BY users.id, users.name\nORDER BY order_count DESC"
 ) ;check
 (check-catch 'value-error (&- #"" ""))
-(check-catch 'value-error
-  (&- #"" hello "")
-) ;check-catch
+(check-catch 'value-error (&- #"" hello ""))
 (check-catch 'value-error
   (&- #""
   第一行

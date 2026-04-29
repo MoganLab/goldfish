@@ -52,10 +52,7 @@
 ;; ; 基本功能测试：交换两个位的值
 (check (bit-swap 0 2 4) => 1)
 (check (bit-swap 3 0 5) => 12)
-(check (bit-swap 63 0 1)
-  =>
-  -9223372036854775808
-) ;check
+(check (bit-swap 63 0 1) => -9223372036854775808)
 (check (bit-swap 10 0 3) => 1026)
 (check (bit-swap 5 1 2) => 32)
 
@@ -89,39 +86,19 @@
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bit-swap "string" 0 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-swap 1 "string" 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-swap 1 2 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-swap 3.14 0 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-swap 1 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bit-swap 1 2 3.14)
-) ;check-catch
+(check-catch 'wrong-type-arg (bit-swap "string" 0 1))
+(check-catch 'wrong-type-arg (bit-swap 1 "string" 2))
+(check-catch 'wrong-type-arg (bit-swap 1 2 "string"))
+(check-catch 'wrong-type-arg (bit-swap 3.14 0 1))
+(check-catch 'wrong-type-arg (bit-swap 1 3.14 2))
+(check-catch 'wrong-type-arg (bit-swap 1 2 3.14))
 
 
 ;; ; 错误处理测试 - out-of-range
-(check-catch 'out-of-range
-  (bit-swap 64 0 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-swap -1 1 3)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-swap 1 64 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (bit-swap 1 -1 2)
-) ;check-catch
+(check-catch 'out-of-range (bit-swap 64 0 1))
+(check-catch 'out-of-range (bit-swap -1 1 3))
+(check-catch 'out-of-range (bit-swap 1 64 2))
+(check-catch 'out-of-range (bit-swap 1 -1 2))
 
 
 

@@ -24,10 +24,7 @@
 
 
 ;; keyword 同时也是 symbol
-(check (and (keyword? :x) (symbol? :x))
-  =>
-  #t
-) ;check
+(check (and (keyword? :x) (symbol? :x)) => #t)
 
 
 (check-report)

@@ -37,21 +37,9 @@
 ;; 当输入不是列表时抛出错误。
 
 
-(check (hash-table-ref (alist->hash-table (list 'k1 'v1))
-         'k1
-       ) ;hash-table-ref
-  =>
-  'v1
-) ;check
-(check (hash-table-ref (alist->hash-table '(k1 v1 k2 v2))
-         'k2
-       ) ;hash-table-ref
-  =>
-  'v2
-) ;check
-(check-catch 'value-error
-  (alist->hash-table '(k1))
-) ;check-catch
+(check (hash-table-ref (alist->hash-table (list 'k1 'v1)) 'k1) => 'v1)
+(check (hash-table-ref (alist->hash-table '(k1 v1 k2 v2)) 'k2) => 'v2)
+(check-catch 'value-error (alist->hash-table '(k1)))
 
 
 (check-report)

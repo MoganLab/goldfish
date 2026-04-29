@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -31,26 +28,8 @@
 ;; wrong-type-arg 当参数不是日期对象时抛出错误。
 
 
-(let ((d1 (make-date 123456789
-            45
-            30
-            14
-            25
-            12
-            2023
-            28800
-          ) ;make-date
-      ) ;d1
-      (d2 (make-date 999999999
-            59
-            59
-            23
-            31
-            1
-            2000
-            -14400
-          ) ;make-date
-      ) ;d2
+(let ((d1 (make-date 123456789 45 30 14 25 12 2023 28800))
+      (d2 (make-date 999999999 59 59 23 31 1 2000 -14400))
      ) ;
   (check (date-year d1) => 2023)
   (check (date-year d2) => 2000)
@@ -58,9 +37,7 @@
 
 
 ;; FIXME: strange?
-(check-true (undefined? (date-year (make-time TIME-UTC 0 0))
-            ) ;undefined?
-) ;check-true
+(check-true (undefined? (date-year (make-time TIME-UTC 0 0))))
 
 
 (check-report)

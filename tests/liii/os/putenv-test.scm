@@ -36,12 +36,8 @@
 
 
 ;; ; 错误测试
-(check-catch 'type-error
-  (putenv 123 "abc")
-) ;check-catch
-(check-catch 'type-error
-  (putenv "ABC" 123)
-) ;check-catch
+(check-catch 'type-error (putenv 123 "abc"))
+(check-catch 'type-error (putenv "ABC" 123))
 
 
 (check-report)

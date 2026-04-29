@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,36 +38,22 @@
 
 ;; Test basic behavior
 (define s-filter-mut (set 1 2 3 4))
-(define s-filter-mut-result
-  (set-filter! odd? s-filter-mut)
-) ;define
-(check-true (eq? s-filter-mut-result s-filter-mut)
-) ;check-true
+(define s-filter-mut-result (set-filter! odd? s-filter-mut))
+(check-true (eq? s-filter-mut-result s-filter-mut))
 (check (set-size s-filter-mut) => 2)
-(check-true (set-contains? s-filter-mut 1)
-) ;check-true
-(check-true (set-contains? s-filter-mut 3)
-) ;check-true
-(check-false (set-contains? s-filter-mut 2)
-) ;check-false
-(check-false (set-contains? s-filter-mut 4)
-) ;check-false
+(check-true (set-contains? s-filter-mut 1))
+(check-true (set-contains? s-filter-mut 3))
+(check-false (set-contains? s-filter-mut 2))
+(check-false (set-contains? s-filter-mut 4))
 
 
 ;; Test empty set
-(define s-filter-mut-empty
-  (set-copy s-empty)
-) ;define
+(define s-filter-mut-empty (set-copy s-empty))
 (set-filter! even? s-filter-mut-empty)
-(check (set-size s-filter-mut-empty)
-  =>
-  0
-) ;check
+(check (set-size s-filter-mut-empty) => 0)
 
 
-(check-catch 'type-error
-  (set-filter! even? "not a set")
-) ;check-catch
+(check-catch 'type-error (set-filter! even? "not a set"))
 
 
 (check-report)

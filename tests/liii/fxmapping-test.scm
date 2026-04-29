@@ -9,9 +9,7 @@
 
 
 ;; 示例1：构造一个 fixnum 键映射并按键读取
-(define m
-  (fxmapping 0 'zero 1 'one 2 'two)
-) ;define
+(define m (fxmapping 0 'zero 1 'one 2 'two))
 (fxmapping-ref m 1 (lambda () 'missing))
 
 

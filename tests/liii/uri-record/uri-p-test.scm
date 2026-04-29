@@ -23,16 +23,7 @@
 
 
 ;; URI 对象
-(check (uri? (make-uri-raw "http"
-               "example.com"
-               "/"
-               '()
-               #f
-             ) ;make-uri-raw
-       ) ;uri?
-  =>
-  #t
-) ;check
+(check (uri? (make-uri-raw "http" "example.com" "/" '() #f)) => #t)
 
 
 ;; 非 URI 对象

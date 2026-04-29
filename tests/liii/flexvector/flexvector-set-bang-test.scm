@@ -51,10 +51,7 @@
   ;; 验证已修改
   (check (flexvector-ref fv 1) => 'd)
   ;; 验证其他元素未变
-  (check (flexvector->list fv)
-    =>
-    '(a d c)
-  ) ;check
+  (check (flexvector->list fv) => '(a d c))
 ) ;let
 
 
@@ -62,19 +59,13 @@
 (let ((fv (flexvector 'a 'b 'c)))
   (check (flexvector-set! fv 0 'x) => 'a)
   (check (flexvector-set! fv 2 'z) => 'c)
-  (check (flexvector->list fv)
-    =>
-    '(x b z)
-  ) ;check
+  (check (flexvector->list fv) => '(x b z))
 ) ;let
 
 
 ;; 单元素向量
 (let ((fv (flexvector 'only)))
-  (check (flexvector-set! fv 0 'new)
-    =>
-    'only
-  ) ;check
+  (check (flexvector-set! fv 0 'new) => 'only)
   (check (flexvector-ref fv 0) => 'new)
 ) ;let
 
@@ -84,10 +75,7 @@
   (flexvector-set! fv 0 10)
   (flexvector-set! fv 1 20)
   (flexvector-set! fv 2 30)
-  (check (flexvector->vector fv)
-    =>
-    #(10 20 30)
-  ) ;check
+  (check (flexvector->vector fv) => #(10 20 30))
 ) ;let
 
 

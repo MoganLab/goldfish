@@ -32,18 +32,9 @@
 ;; 不可转换输入返回 #f
 
 
-(check (ascii-mirror-bracket #\()
-  =>
-  #\)
-) ;check
-(check (ascii-mirror-bracket #\])
-  =>
-  #\[
-) ;check
-(check (ascii-mirror-bracket #\>)
-  =>
-  #\<
-) ;check
+(check (ascii-mirror-bracket #\() => #\))
+(check (ascii-mirror-bracket #\]) => #\[)
+(check (ascii-mirror-bracket #\>) => #\<)
 (check (ascii-mirror-bracket #\A) => #f)
 (check (ascii-mirror-bracket 40) => 41)
 

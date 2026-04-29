@@ -34,10 +34,7 @@
 (let ((s (make-random-source)))
   (let ((state (random-source-state-ref s)))
     (check (pair? state) => #t)
-    (check (eq? (car state) 'random-source-state)
-      =>
-      #t
-    ) ;check
+    (check (eq? (car state) 'random-source-state) => #t)
     (check (= (length state) 3) => #t)
   ) ;let
 ) ;let
@@ -45,30 +42,19 @@
 
 (let ((s (make-random-source)))
   (let ((state1 (random-source-state-ref s)))
-    (let ((rand-int (random-source-make-integers s)
-          ) ;rand-int
-         ) ;
+    (let ((rand-int (random-source-make-integers s)))
       (rand-int 100)
       (let ((state2 (random-source-state-ref s)))
-        (check (not (equal? state1 state2))
-          =>
-          #t
-        ) ;check
+        (check (not (equal? state1 state2)) => #t)
       ) ;let
     ) ;let
   ) ;let
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (random-source-state-ref 'not-a-source)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-source-state-ref 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (random-source-state-ref "string")
-) ;check-catch
+(check-catch 'wrong-type-arg (random-source-state-ref 'not-a-source))
+(check-catch 'wrong-type-arg (random-source-state-ref 123))
+(check-catch 'wrong-type-arg (random-source-state-ref "string"))
 
 
 (check-report)

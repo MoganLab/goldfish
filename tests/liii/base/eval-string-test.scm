@@ -32,39 +32,23 @@
 
 
 ;; 测试字符串
-(check (eval-string "\"hello\"")
-  =>
-  "hello"
-) ;check
+(check (eval-string "\"hello\"") => "hello")
 
 
 ;; 测试符号
-(check (eval-string "'symbol")
-  =>
-  'symbol
-) ;check
+(check (eval-string "'symbol") => 'symbol)
 
 
 ;; 测试列表
-(check (eval-string "'(1 2 3)")
-  =>
-  '(1 2 3)
-) ;check
+(check (eval-string "'(1 2 3)") => '(1 2 3))
 
 
 ;; 测试 lambda 和调用
-(check (eval-string "((lambda (x) (* x x)) 5)")
-  =>
-  25
-) ;check
+(check (eval-string "((lambda (x) (* x x)) 5)") => 25)
 
 
 ;; 测试复杂表达式
-(check (eval-string "(let ((a 3) (b 4)) (+ a b))"
-       ) ;eval-string
-  =>
-  7
-) ;check
+(check (eval-string "(let ((a 3) (b 4)) (+ a b))") => 7)
 
 
 ;; 测试 if 表达式

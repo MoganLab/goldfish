@@ -41,25 +41,13 @@
 
 
 ;; 基本合并测试
-(check (list-merge < '(1 3 5) '(2 4 6))
-  =>
-  '(1 2 3 4 5 6)
-) ;check
-(check (list-merge < '(1 1 3) '(1 2 4))
-  =>
-  '(1 1 1 2 3 4)
-) ;check
+(check (list-merge < '(1 3 5) '(2 4 6)) => '(1 2 3 4 5 6))
+(check (list-merge < '(1 1 3) '(1 2 4)) => '(1 1 1 2 3 4))
 
 
 ;; 包含空列表的合并
-(check (list-merge < '() '(1 2 3))
-  =>
-  '(1 2 3)
-) ;check
-(check (list-merge < '(1 2 3) '())
-  =>
-  '(1 2 3)
-) ;check
+(check (list-merge < '() '(1 2 3)) => '(1 2 3))
+(check (list-merge < '(1 2 3) '()) => '(1 2 3))
 (check (list-merge < '() '()) => '())
 
 
@@ -70,9 +58,7 @@
 
 
 (define (pair-full-< x y)
-  (cond ((not (= (car x) (car y)))
-         (< (car x) (car y))
-        ) ;
+  (cond ((not (= (car x) (car y))) (< (car x) (car y)))
         (else (< (cdr y) (cdr x)))
   ) ;cond
 ) ;define

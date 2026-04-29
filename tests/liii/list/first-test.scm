@@ -42,18 +42,13 @@
 ;; (first '(a b c)) => 'a
 
 
-(check (first '(1 2 3 4 5 6 7 8 9 10))
-  =>
-  1
-) ;check
+(check (first '(1 2 3 4 5 6 7 8 9 10)) => 1)
 (check (first '(left . right)) => 'left)
 (check (first '(a b c)) => 'a)
 (check (first '(42)) => 42)
 
 
-(check-catch 'wrong-type-arg
-  (first '())
-) ;check-catch
+(check-catch 'wrong-type-arg (first '()))
 
 
 (check (first '(a)) => 'a)
@@ -69,10 +64,7 @@
 (check (first '(() a b)) => '())
 
 
-(check (first '((1 2 3) 4 5))
-  =>
-  '(1 2 3)
-) ;check
+(check (first '((1 2 3) 4 5)) => '(1 2 3))
 (check (first '("a" "b" "c")) => "a")
 (check (first '(42 43 44)) => 42)
 (check (first '(#t #f #t)) => #t)

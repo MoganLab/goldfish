@@ -16,14 +16,8 @@
 ;; ----
 ;; (isubset= iset k)
 ;;
-(check (iset->list (isubset= pos-set 90))
-  =>
-  '()
-) ;check
-(check (iset->list (isubset= pos-set 100))
-  =>
-  '(100)
-) ;check
+(check (iset->list (isubset= pos-set 90)) => '())
+(check (iset->list (isubset= pos-set 100)) => '(100))
 
 
 (check-report)

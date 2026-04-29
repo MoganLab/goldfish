@@ -78,9 +78,7 @@
 ) ;let
 
 
-(check-catch 'type-error
-  (stack-copy 'not-a-stack)
-) ;check-catch
+(check-catch 'type-error (stack-copy 'not-a-stack))
 
 
 (check-report)

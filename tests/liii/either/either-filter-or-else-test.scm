@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -40,48 +37,21 @@
 ;; ----
 ;; type-error 当 pred 不是过程或 either 不是 Either 时
 
-(let ((r10 (from-right 10))
-      (r11 (from-right 11))
-      (l (from-left "orig"))
-     ) ;
-  (check (to-right (either-filter-or-else even? "err" r10)
-         ) ;to-right
-    =>
-    10
-  ) ;check
+(let ((r10 (from-right 10)) (r11 (from-right 11)) (l (from-left "orig")))
+  (check (to-right (either-filter-or-else even? "err" r10)) => 10)
 
-  (let ((res (either-filter-or-else even?
-               "Must be even"
-               r11
-             ) ;either-filter-or-else
-        ) ;res
-       ) ;
+  (let ((res (either-filter-or-else even? "Must be even" r11)))
     (check-true (either-left? res))
     (check (to-left res) => "Must be even")
   ) ;let
 
-  (let ((res-l (either-filter-or-else even?
-                 "Must be even"
-                 l
-               ) ;either-filter-or-else
-        ) ;res-l
-       ) ;
+  (let ((res-l (either-filter-or-else even? "Must be even" l)))
     (check-true (either-left? res-l))
     (check (to-left res-l) => "orig")
   ) ;let
 ) ;let
 
-(check-catch 'type-error
-  (either-filter-or-else even?
-    0
-    "not-either"
-  ) ;either-filter-or-else
-) ;check-catch
-(check-catch 'type-error
-  (either-filter-or-else "not-a-proc"
-    0
-    (from-right 10)
-  ) ;either-filter-or-else
-) ;check-catch
+(check-catch 'type-error (either-filter-or-else even? 0 "not-either"))
+(check-catch 'type-error (either-filter-or-else "not-a-proc" 0 (from-right 10)))
 
 (check-report)

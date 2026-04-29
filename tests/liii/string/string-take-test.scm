@@ -43,54 +43,22 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-take"
 
-(check (string-take "MathAgape" 4)
-  =>
-  "Math"
-) ;check
-(check (string-take "MathAgape" 0)
-  =>
-  ""
-) ;check
-(check (string-take "MathAgape" 9)
-  =>
-  "MathAgape"
-) ;check
+(check (string-take "MathAgape" 4) => "Math")
+(check (string-take "MathAgape" 0) => "")
+(check (string-take "MathAgape" 9) => "MathAgape")
 (check (string-take "" 0) => "")
 (check (string-take "a" 1) => "a")
 (check (string-take "Hello" 1) => "H")
 (check (string-take "abc" 2) => "ab")
-(check (string-take "test123" 4)
-  =>
-  "test"
-) ;check
-(check (string-take "中文测试" 6)
-  =>
-  "中文"
-) ;check
-(check (string-take "🌟🎉" 4)
-  =>
-  "🌟"
-) ;check
-(check-catch 'out-of-range
-  (string-take "MathAgape" 20)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-take "" 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-take "Hello" -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take 123 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take "MathAgape" "4")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take "MathAgape" 4.5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take "MathAgape" 'a)
-) ;check-catch
+(check (string-take "test123" 4) => "test")
+(check (string-take "中文测试" 6) => "中文")
+(check (string-take "🌟🎉" 4) => "🌟")
+(check-catch 'out-of-range (string-take "MathAgape" 20))
+(check-catch 'out-of-range (string-take "" 1))
+(check-catch 'out-of-range (string-take "Hello" -1))
+(check-catch 'wrong-type-arg (string-take 123 4))
+(check-catch 'wrong-type-arg (string-take "MathAgape" "4"))
+(check-catch 'wrong-type-arg (string-take "MathAgape" 4.5))
+(check-catch 'wrong-type-arg (string-take "MathAgape" 'a))
 
 (check-report)

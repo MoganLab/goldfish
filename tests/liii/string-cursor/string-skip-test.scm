@@ -40,34 +40,42 @@
 ;; 基本测试
 (let ((s "   abc"))
   ;; 跳过空白字符，返回第一个非空白字符 'a' 的cursor
-  (check (string-cursor->index s (string-skip s char-whitespace?)) => 3))
+  (check (string-cursor->index s (string-skip s char-whitespace?)) => 3)
+) ;let
 
 ;; 测试全部满足谓词的情况
 (let ((s "   "))
-  (check (string-cursor->index s (string-skip s char-whitespace?)) => 3))
+  (check (string-cursor->index s (string-skip s char-whitespace?)) => 3)
+) ;let
 
 ;; 测试全部不满足谓词的情况
 (let ((s "abc"))
-  (check (string-cursor->index s (string-skip s char-whitespace?)) => 0))
+  (check (string-cursor->index s (string-skip s char-whitespace?)) => 0)
+) ;let
 
 ;; 测试空字符串
 (let ((s ""))
-  (check (string-cursor->index s (string-skip s char-whitespace?)) => 0))
+  (check (string-cursor->index s (string-skip s char-whitespace?)) => 0)
+) ;let
 
 ;; 测试带 start/end 参数
 (let ((s "abc  def"))
   ;; 从索引3开始，跳过空白，返回 'd' 的索引5
-  (check (string-cursor->index s (string-skip s char-whitespace? 3)) => 5))
+  (check (string-cursor->index s (string-skip s char-whitespace? 3)) => 5)
+) ;let
 
 ;; 测试中文
 (let ((s "  中文"))
-  (check (string-cursor->index s (string-skip s char-whitespace?)) => 2))
+  (check (string-cursor->index s (string-skip s char-whitespace?)) => 2)
+) ;let
 
 
 ;; 测试使用游标作为 start/end
 (let* ((s "abc123")
        (start (string-cursor-start s))
        (end (string-cursor-end s))
-       (result (string-skip s char-alphabetic? start end)))
-  (check (string-cursor->index s result) => 3))
+       (result (string-skip s char-alphabetic? start end))
+      ) ;
+  (check (string-cursor->index s result) => 3)
+) ;let*
 (check-report)

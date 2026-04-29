@@ -21,10 +21,7 @@
 
 
 ;; 双参数形式
-(let* ((lst '(1 2 3))
-       (last-ptr (cddr lst))
-       (q (list-queue))
-      ) ;
+(let* ((lst '(1 2 3)) (last-ptr (cddr lst)) (q (list-queue)))
   (list-queue-set-list! q lst last-ptr)
   (check (list-queue-list q) => '(1 2 3))
 ) ;let*
@@ -35,10 +32,7 @@
   (list-queue-set-list! q '(1 2))
   (list-queue-add-back! q 3)
   (list-queue-add-front! q 0)
-  (check (list-queue-list q)
-    =>
-    '(0 1 2 3)
-  ) ;check
+  (check (list-queue-list q) => '(0 1 2 3))
 ) ;let
 
 

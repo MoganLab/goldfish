@@ -18,8 +18,7 @@
 ;; -----
 ;; 返回按键降序排列的关联列表。
 ;;
-(check (fxmapping->decreasing-alist (fxmapping 0 'a 1 'b)
-       ) ;fxmapping->decreasing-alist
+(check (fxmapping->decreasing-alist (fxmapping 0 'a 1 'b))
   =>
   '((1 . b) (0 . a))
 ) ;check

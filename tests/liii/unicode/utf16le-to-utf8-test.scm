@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii unicode)
-  (liii base)
-) ;import
+(import (liii check) (liii unicode) (liii base))
 
 
 (check-set-mode! 'report-failed)
@@ -31,37 +28,21 @@
 
 
 ;; ASCII 字符（2 字节 UTF-16LE -> 1 字节 UTF-8）
-(check (utf16le->utf8 #u8(72 0))
-  =>
-  #u8(72)
-) ;check
-(check (utf16le->utf8 #u8(72 0 101 0 108 0 108 0 111 0)
-       ) ;utf16le->utf8
+(check (utf16le->utf8 #u8(72 0)) => #u8(72))
+(check (utf16le->utf8 #u8(72 0 101 0 108 0 108 0 111 0))
   =>
   #u8(72 101 108 108 111)
 ) ;check
 
 
 ;; BMP 字符（2 字节 UTF-16LE -> 2-3 字节 UTF-8）
-(check (utf16le->utf8 #u8(228 0))
-  =>
-  #u8(195 164)
-) ;check
-(check (utf16le->utf8 #u8(45 78))
-  =>
-  #u8(228 184 173)
-) ;check
+(check (utf16le->utf8 #u8(228 0)) => #u8(195 164))
+(check (utf16le->utf8 #u8(45 78)) => #u8(228 184 173))
 
 
 ;; 代理对（4 字节 UTF-16LE -> 4 字节 UTF-8）
-(check (utf16le->utf8 #u8(61 216 77 220))
-  =>
-  #u8(240 159 145 141)
-) ;check
-(check (utf16le->utf8 #u8(61 216 128 222))
-  =>
-  #u8(240 159 154 128)
-) ;check
+(check (utf16le->utf8 #u8(61 216 77 220)) => #u8(240 159 145 141))
+(check (utf16le->utf8 #u8(61 216 128 222)) => #u8(240 159 154 128))
 
 
 ;; 空字节向量
@@ -69,32 +50,18 @@
 
 
 ;; 与 utf8->utf16le 互逆操作
-(check (utf16le->utf8 (utf8->utf16le #u8(72)))
-  =>
-  #u8(72)
-) ;check
-(check (utf16le->utf8 (utf8->utf16le #u8(228 184 173))
-       ) ;utf16le->utf8
-  =>
-  #u8(228 184 173)
-) ;check
-(check (utf16le->utf8 (utf8->utf16le #u8(240 159 145 141))
-       ) ;utf16le->utf8
+(check (utf16le->utf8 (utf8->utf16le #u8(72))) => #u8(72))
+(check (utf16le->utf8 (utf8->utf16le #u8(228 184 173))) => #u8(228 184 173))
+(check (utf16le->utf8 (utf8->utf16le #u8(240 159 145 141)))
   =>
   #u8(240 159 145 141)
 ) ;check
 
 
 ;; 错误处理
-(check-catch 'value-error
-  (utf16le->utf8 #u8(0))
-) ;check-catch
-(check-catch 'value-error
-  (utf16le->utf8 #u8(0 216))
-) ;check-catch
-(check-catch 'type-error
-  (utf16le->utf8 "not-a-bytevector")
-) ;check-catch
+(check-catch 'value-error (utf16le->utf8 #u8(0)))
+(check-catch 'value-error (utf16le->utf8 #u8(0 216)))
+(check-catch 'type-error (utf16le->utf8 "not-a-bytevector"))
 
 
 (check-report)

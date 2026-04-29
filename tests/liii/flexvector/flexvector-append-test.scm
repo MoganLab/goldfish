@@ -11,10 +11,7 @@
 ;; ----
 ;; (flexvector-append fv ...)
 ;;
-(check (flexvector->vector (flexvector-append (flexvector 10 20)
-                             (flexvector)
-                             (flexvector 30 40)
-                           ) ;flexvector-append
+(check (flexvector->vector (flexvector-append (flexvector 10 20) (flexvector) (flexvector 30 40))
        ) ;flexvector->vector
   =>
   #(10 20 30 40)

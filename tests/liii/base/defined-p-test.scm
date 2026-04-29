@@ -38,20 +38,11 @@
 
 
 ;; 测试未定义的符号
-(check (defined? 'undefined-symbol-xyz)
-  =>
-  #f
-) ;check
+(check (defined? 'undefined-symbol-xyz) => #f)
 
 
 ;; 测试已定义的符号
-(check (let ()
-         (define x 42)
-         (defined? 'x)
-       ) ;let
-  =>
-  #t
-) ;check
+(check (let () (define x 42) (defined? 'x)) => #t)
 
 
 ;; 测试内置符号
@@ -61,48 +52,23 @@
 
 
 ;; 测试 let 环境中的符号
-(check (let ((a 1))
-         (defined? 'a)
-       ) ;let
-  =>
-  #t
-) ;check
+(check (let ((a 1)) (defined? 'a)) => #t)
 
 
 ;; 测试在 let 中查找外部符号
-(check (let ((a 1))
-         (defined? '+)
-       ) ;let
-  =>
-  #t
-) ;check
+(check (let ((a 1)) (defined? '+)) => #t)
 
 
 ;; 测试指定 let 参数
-(check (let ((a 1))
-         (defined? 'a (curlet))
-       ) ;let
-  =>
-  #t
-) ;check
+(check (let ((a 1)) (defined? 'a (curlet))) => #t)
 
 
 ;; 测试 ignore-globals 参数
-(check (let ()
-         (defined? '+ (curlet) #t)
-       ) ;let
-  =>
-  #f
-) ;check
+(check (let () (defined? '+ (curlet) #t)) => #f)
 
 
 ;; 测试局部变量覆盖
-(check (let ((+ 1))
-         (defined? '+)
-       ) ;let
-  =>
-  #t
-) ;check
+(check (let ((+ 1)) (defined? '+)) => #t)
 
 
 (check-report)

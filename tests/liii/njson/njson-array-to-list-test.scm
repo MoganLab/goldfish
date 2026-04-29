@@ -1,8 +1,6 @@
 (import (liii check)
   (liii base)
-  (rename (liii json)
-    (json-object? ljson-object?)
-  ) ;rename
+  (rename (liii json) (json-object? ljson-object?))
   (liii njson)
 ) ;import
 
@@ -46,21 +44,11 @@
 
 
 (define array-as-list '())
-(let-njson ((root (string->njson njson-array->list-json)
-            ) ;root
-           ) ;
-  (set! array-as-list
-    (njson-array->list root)
-  ) ;set!
-  (check array-as-list
-    =>
-    njson-array->list-expected
-  ) ;check
+(let-njson ((root (string->njson njson-array->list-json)))
+  (set! array-as-list (njson-array->list root))
+  (check array-as-list => njson-array->list-expected)
 ) ;let-njson
-(check array-as-list
-  =>
-  njson-array->list-expected
-) ;check
+(check array-as-list => njson-array->list-expected)
 
 
 (let-njson ((root (string->njson "[]")))
@@ -72,32 +60,19 @@
   (let ((shape-list (njson-array->list root)))
     (check (car shape-list) => '(()))
     (check (cadr shape-list) => '())
-    (check-true (ljson-object? (car shape-list))
-    ) ;check-true
-    (check (ljson-object? (cadr shape-list))
-      =>
-      #f
-    ) ;check
+    (check-true (ljson-object? (car shape-list)))
+    (check (ljson-object? (cadr shape-list)) => #f)
   ) ;let
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-array->list 'foo)
-) ;check-catch
+(check-catch 'type-error (njson-array->list 'foo))
 (let-njson ((obj (string->njson "{\"a\":1}")))
-  (check-catch 'type-error
-    (njson-array->list obj)
-  ) ;check-catch
+  (check-catch 'type-error (njson-array->list obj))
 ) ;let-njson
-(define array->list-freed
-  (string->njson "[1]")
-) ;define
-(check-true (njson-free array->list-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-array->list array->list-freed)
-) ;check-catch
+(define array->list-freed (string->njson "[1]"))
+(check-true (njson-free array->list-freed))
+(check-catch 'type-error (njson-array->list array->list-freed))
 
 
 (check-report)

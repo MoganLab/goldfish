@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-) ;import
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -23,9 +20,6 @@
 ;; 返回驱动器字母，如 "C"；非 Windows 路径返回空字符串。
 
 (check (path-drive (path-root)) => "")
-(check (path-drive (path-of-drive #\c))
-  =>
-  "C"
-) ;check
+(check (path-drive (path-of-drive #\c)) => "C")
 
 (check-report)

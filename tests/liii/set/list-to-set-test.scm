@@ -36,33 +36,25 @@
 
 
 (define s-empty (set))
-(define comp
-  (set-element-comparator s-empty)
-) ;define
+(define comp (set-element-comparator s-empty))
 (define s-1-2-3 (set 1 2 3))
 (define s-1-2 (set 1 2))
 
 
 (define s-list-1 (list->set '(1 2 3)))
 (check-true (set? s-list-1))
-(check-true (eq? (set-element-comparator s-list-1)
-              comp
-            ) ;eq?
-) ;check-true
+(check-true (eq? (set-element-comparator s-list-1) comp))
 (check-true (set=? s-1-2-3 s-list-1))
 (check-false (eq? s-1-2-3 s-list-1))
 
 
 (define s-list-empty (list->set '()))
-(check-true (set=? s-empty s-list-empty)
-) ;check-true
+(check-true (set=? s-empty s-list-empty))
 (check (set-size s-list-empty) => 0)
 
 
 ;; Duplicates in list should be handled
-(define s-list-dup
-  (list->set '(1 2 2 1))
-) ;define
+(define s-list-dup (list->set '(1 2 2 1)))
 (check-true (set=? s-1-2 s-list-dup))
 (check (set-size s-list-dup) => 2)
 

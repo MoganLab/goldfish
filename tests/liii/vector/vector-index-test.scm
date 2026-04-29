@@ -39,14 +39,8 @@
 
 
 (check (vector-index even? #()) => #f)
-(check (vector-index even? #(1 3 5 7 9))
-  =>
-  #f
-) ;check
-(check (vector-index even? #(1 3 4 7 8))
-  =>
-  2
-) ;check
+(check (vector-index even? #(1 3 5 7 9)) => #f)
+(check (vector-index even? #(1 3 4 7 8)) => 2)
 
 
 (check-report)

@@ -3,27 +3,15 @@
 ;; uri-compare 模块提供 URI 的比较和哈希函数。
 
 
-(import (liii uri-record)
-  (liii uri-compare)
-) ;import
+(import (liii uri-record) (liii uri-compare))
 
 
 ;; ==== 常见用法示例 ====
 
 
 ;; 示例1：URI 相等比较
-(uri=? (make-uri-raw "https"
-         "example.com"
-         "/"
-         '()
-         #f
-       ) ;make-uri-raw
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
+(uri=? (make-uri-raw "https" "example.com" "/" '() #f)
+  (make-uri-raw "https" "example.com" "/" '() #f)
 ) ;uri=?
 
 
@@ -34,13 +22,7 @@
 
 
 ;; 示例3：URI 哈希值
-(uri-hash (make-uri-raw "https"
-            "example.com"
-            "/path"
-            '()
-            #f
-          ) ;make-uri-raw
-) ;uri-hash
+(uri-hash (make-uri-raw "https" "example.com" "/path" '() #f))
 
 
 ;; ==== 如何查看函数的文档和用例 ====

@@ -34,15 +34,8 @@
 ;; 无。
 
 
-(check (enum-type? (make-enum-type '(a b c)))
-  =>
-  #t
-) ;check
-(check (enum-type? (make-enum-type '((a 1) (b 2)))
-       ) ;enum-type?
-  =>
-  #t
-) ;check
+(check (enum-type? (make-enum-type '(a b c))) => #t)
+(check (enum-type? (make-enum-type '((a 1) (b 2)))) => #t)
 
 
 (check-report)

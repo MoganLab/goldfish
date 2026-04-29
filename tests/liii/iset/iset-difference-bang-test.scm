@@ -24,11 +24,7 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
-(check (iset->list (iset-difference! (iset 0 1 3 4)
-                     (iset 0 2)
-                     (iset 0 4)
-                   ) ;iset-difference!
-       ) ;iset->list
+(check (iset->list (iset-difference! (iset 0 1 3 4) (iset 0 2) (iset 0 4)))
   =>
   '(1 3)
 ) ;check

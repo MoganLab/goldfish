@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -41,39 +38,25 @@
 
 ;; Test basic removal
 (define s-remove-1 (set 1 2 3 4))
-(define s-remove-2
-  (set-remove even? s-remove-1)
-) ;define
+(define s-remove-2 (set-remove even? s-remove-1))
 (check-true (set? s-remove-2))
-(check-true (eq? (set-element-comparator s-remove-2)
-              (set-element-comparator s-remove-1)
-            ) ;eq?
+(check-true (eq? (set-element-comparator s-remove-2) (set-element-comparator s-remove-1))
 ) ;check-true
 (check (set-size s-remove-2) => 2)
-(check-true (set-contains? s-remove-2 1)
-) ;check-true
-(check-true (set-contains? s-remove-2 3)
-) ;check-true
-(check-false (set-contains? s-remove-2 2)
-) ;check-false
-(check-false (set-contains? s-remove-2 4)
-) ;check-false
-(check-true (set-contains? s-remove-1 2)
-) ;check-true
-(check-true (set-contains? s-remove-1 4)
-) ;check-true
+(check-true (set-contains? s-remove-2 1))
+(check-true (set-contains? s-remove-2 3))
+(check-false (set-contains? s-remove-2 2))
+(check-false (set-contains? s-remove-2 4))
+(check-true (set-contains? s-remove-1 2))
+(check-true (set-contains? s-remove-1 4))
 
 
 ;; Test empty set
-(define s-remove-empty
-  (set-remove even? s-empty)
-) ;define
+(define s-remove-empty (set-remove even? s-empty))
 (check (set-size s-remove-empty) => 0)
 
 
-(check-catch 'type-error
-  (set-remove even? "not a set")
-) ;check-catch
+(check-catch 'type-error (set-remove even? "not a set"))
 
 
 (check-report)

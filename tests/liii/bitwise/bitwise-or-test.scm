@@ -46,18 +46,9 @@
 
 
 ;; ; 验证 bitwise-or 与 bitwise-ior 功能相同
-(check (bitwise-or 5 3)
-  =>
-  (bitwise-ior 5 3)
-) ;check
-(check (bitwise-or 8 4)
-  =>
-  (bitwise-ior 8 4)
-) ;check
-(check (bitwise-or 1 2 4)
-  =>
-  (bitwise-ior 1 2 4)
-) ;check
+(check (bitwise-or 5 3) => (bitwise-ior 5 3))
+(check (bitwise-or 8 4) => (bitwise-ior 8 4))
+(check (bitwise-or 1 2 4) => (bitwise-ior 1 2 4))
 
 
 

@@ -18,33 +18,20 @@
 
 
 ;; 简单解析
-(check (query-string->alist "a=1")
-  =>
-  '(("a" . "1"))
-) ;check
-(check (query-string->alist "a=1&b=2")
-  =>
-  '(("a" . "1") ("b" . "2"))
-) ;check
+(check (query-string->alist "a=1") => '(("a" . "1")))
+(check (query-string->alist "a=1&b=2") => '(("a" . "1") ("b" . "2")))
 
 
 ;; 空值
-(check (query-string->alist "key=")
-  =>
-  '(("key" . ""))
-) ;check
+(check (query-string->alist "key=") => '(("key" . "")))
 
 
 ;; 无等号（只有 key）
-(check (query-string->alist "flag")
-  =>
-  '(("flag" . ""))
-) ;check
+(check (query-string->alist "flag") => '(("flag" . "")))
 
 
 ;; URL 编码的值
-(check (query-string->alist "name=hello%20world"
-       ) ;query-string->alist
+(check (query-string->alist "name=hello%20world")
   =>
   '(("name" . "hello world"))
 ) ;check

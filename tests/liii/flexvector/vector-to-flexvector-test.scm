@@ -35,73 +35,41 @@
 
 
 ;; 基本转换
-(check (flexvector->vector (vector->flexvector #(1 2 3))
-       ) ;flexvector->vector
-  =>
-  #(1 2 3)
-) ;check
+(check (flexvector->vector (vector->flexvector #(1 2 3))) => #(1 2 3))
 
 
 ;; 空向量
-(check (flexvector->list (vector->flexvector #())
-       ) ;flexvector->list
-  =>
-  '()
-) ;check
+(check (flexvector->list (vector->flexvector #())) => '())
 
 
 ;; 从指定位置转换
 (let ((vec #(1 2 3 4 5)))
-  (check (flexvector->vector (vector->flexvector vec 2)
-         ) ;flexvector->vector
-    =>
-    #(3 4 5)
-  ) ;check
+  (check (flexvector->vector (vector->flexvector vec 2)) => #(3 4 5))
 ) ;let
 
 
 ;; 转换区间 [start, end)
 (let ((vec #(1 2 3 4 5)))
-  (check (flexvector->vector (vector->flexvector vec 1 4)
-         ) ;flexvector->vector
-    =>
-    #(2 3 4)
-  ) ;check
+  (check (flexvector->vector (vector->flexvector vec 1 4)) => #(2 3 4))
 ) ;let
 
 
 ;; 边界测试：空区间
 (let ((vec #(1 2 3)))
-  (check (flexvector->vector (vector->flexvector vec 0 0)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
-  (check (flexvector->vector (vector->flexvector vec 3 3)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
+  (check (flexvector->vector (vector->flexvector vec 0 0)) => #())
+  (check (flexvector->vector (vector->flexvector vec 3 3)) => #())
 ) ;let
 
 
 ;; 单元素
 (let ((vec #(only)))
-  (check (flexvector->vector (vector->flexvector vec)
-         ) ;flexvector->vector
-    =>
-    #(only)
-  ) ;check
+  (check (flexvector->vector (vector->flexvector vec)) => #(only))
 ) ;let
 
 
 ;; 往返测试
 (let ((vec #(a b c d e)))
-  (check (flexvector->vector (vector->flexvector vec)
-         ) ;flexvector->vector
-    =>
-    vec
-  ) ;check
+  (check (flexvector->vector (vector->flexvector vec)) => vec)
 ) ;let
 
 

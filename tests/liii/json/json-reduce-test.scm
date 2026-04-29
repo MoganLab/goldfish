@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii json)
-  (liii base)
-  (liii error)
-) ;import
+(import (liii check) (liii json) (liii base) (liii error))
 
 
 (check-set-mode! 'report-failed)
@@ -47,38 +43,22 @@
 
 
 (let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-reduce j0
-             'name
-             (lambda (k v) (string-upcase v))
-           ) ;json-reduce
-       ) ;j1
+       (j1 (json-reduce j0 'name (lambda (k v) (string-upcase v))))
       ) ;
   (check (json-ref j1 'name) => "ALICE")
   (check (json-ref j1 'age) => 25)
 ) ;let*
 
 
-(let* ((j0 '((person (name . "Alice") (age . 25)))
-       ) ;j0
-       (j1 (json-reduce j0
-             'person
-             (lambda (k v) v)
-           ) ;json-reduce
-       ) ;j1
+(let* ((j0 '((person (name . "Alice") (age . 25))))
+       (j1 (json-reduce j0 'person (lambda (k v) v)))
       ) ;
-  (check (json-ref j1 'person)
-    =>
-    '((name . "Alice") (age . 25))
-  ) ;check
+  (check (json-ref j1 'person) => '((name . "Alice") (age . 25)))
 ) ;let*
 
 
 (let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-reduce j0
-             (lambda (k) (equal? k 'age))
-             (lambda (k v) (+ v 1))
-           ) ;json-reduce
-       ) ;j1
+       (j1 (json-reduce j0 (lambda (k) (equal? k 'age)) (lambda (k v) (+ v 1))))
       ) ;
   (check (json-ref j1 'age) => 26)
   (check (json-ref j1 'name) => "Alice")
@@ -86,162 +66,93 @@
 
 
 (let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-reduce j0
-             #t
-             (lambda (k v)
-               (if (string? v) (string-upcase v) v)
-             ) ;lambda
-           ) ;json-reduce
-       ) ;j1
+       (j1 (json-reduce j0 #t (lambda (k v) (if (string? v) (string-upcase v) v))))
       ) ;
   (check (json-ref j1 'name) => "ALICE")
   (check (json-ref j1 'age) => 25)
 ) ;let*
 
 
-(let* ((j0 '((name . "Alice") (age . 25)))
-       (j1 (json-reduce j0 #f (lambda (k v) v))
-       ) ;j1
-      ) ;
+(let* ((j0 '((name . "Alice") (age . 25))) (j1 (json-reduce j0 #f (lambda (k v) v))))
   (check (json-ref j1 'name) => "Alice")
   (check (json-ref j1 'age) => 25)
 ) ;let*
 
 
-(let* ((j0 '((user (profile (contact (email . "alice@example.com") (phone . "123-456-7890")))))
+(let* ((j0 '((user (profile (contact (email . "alice@example.com")
+                              (phone . "123-456-7890")))))
        ) ;j0
        (j1 (json-reduce j0
              'user
              'profile
              'contact
              'email
-             (lambda (k v)
-               (string-append v ".verified")
-             ) ;lambda
+             (lambda (k v) (string-append v ".verified"))
            ) ;json-reduce
        ) ;j1
       ) ;
-  (check (json-ref j1
-           'user
-           'profile
-           'contact
-           'email
-         ) ;json-ref
+  (check (json-ref j1 'user 'profile 'contact 'email)
     =>
     "alice@example.com.verified"
   ) ;check
 ) ;let*
 
 
-(let* ((j0 '((user (data (scores . #(85 90 78 92 88)) (settings (notifications . #t) (theme . "dark")))))
+(let* ((j0 '((user (data (scores . #(85 90 78 92 88))
+                     (settings (notifications . #t) (theme . "dark")))))
        ) ;j0
        (j1 (json-reduce j0
              'user
              'data
              (lambda (k) (equal? k 'scores))
-             (lambda (k v)
-               (vector-map (lambda (score) (+ score 5))
-                 v
-               ) ;vector-map
-             ) ;lambda
+             (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
            ) ;json-reduce
        ) ;j1
       ) ;
-  (check (json-ref j1 'user 'data 'scores)
-    =>
-    #(90 95 83 97 93)
-  ) ;check
-  (check (json-ref j1
-           'user
-           'data
-           'settings
-           'theme
-         ) ;json-ref
-    =>
-    "dark"
-  ) ;check
+  (check (json-ref j1 'user 'data 'scores) => #(90 95 83 97 93))
+  (check (json-ref j1 'user 'data 'settings 'theme) => "dark")
 ) ;let*
 
 
-(let* ((j0 '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78)))))
-       ) ;j0
+(let* ((j0 '((user (profile (name . "Alice") (age . 25) (scores . #(85 90 78))))))
        (j1 (json-reduce j0
              'user
              'profile
              'scores
-             (lambda (k v)
-               (vector-map (lambda (score) (+ score 5))
-                 v
-               ) ;vector-map
-             ) ;lambda
+             (lambda (k v) (vector-map (lambda (score) (+ score 5)) v))
            ) ;json-reduce
        ) ;j1
       ) ;
-  (check (json-ref j1 'user 'profile 'scores)
-    =>
-    #(90 95 83)
-  ) ;check
-  (check (json-ref j1 'user 'profile 'name)
-    =>
-    "Alice"
-  ) ;check
+  (check (json-ref j1 'user 'profile 'scores) => #(90 95 83))
+  (check (json-ref j1 'user 'profile 'name) => "Alice")
 ) ;let*
 
 
 (let ((json '()))
-  (check (json-reduce json
-           'name
-           (lambda (k v) v)
-         ) ;json-reduce
-    =>
-    '()
-  ) ;check
+  (check (json-reduce json 'name (lambda (k v) v)) => '())
 ) ;let
 
 
 (let ((json #()))
-  (check (json-reduce json
-           'name
-           (lambda (k v) v)
-         ) ;json-reduce
-    =>
-    #()
-  ) ;check
+  (check (json-reduce json 'name (lambda (k v) v)) => #())
 ) ;let
 
 
-(let ((json '((person (name . "Alice") (age . 25) (address (city . "Wonderland") (zip . "12345"))))
+(let ((json '((person (name . "Alice")
+                (age . 25)
+                (address (city . "Wonderland") (zip . "12345"))))
       ) ;json
      ) ;
-  (let ((updated-json (json-reduce json
-                        'person
-                        'address
-                        'city
-                        (lambda (x y) (string-upcase y))
-                      ) ;json-reduce
+  (let ((updated-json (json-reduce json 'person 'address 'city (lambda (x y) (string-upcase y)))
         ) ;updated-json
        ) ;
-    (check (json-ref updated-json
-             'person
-             'address
-             'city
-           ) ;json-ref
-      =>
-      "WONDERLAND"
-    ) ;check
+    (check (json-ref updated-json 'person 'address 'city) => "WONDERLAND")
   ) ;let
 ) ;let
 
 
-(check-catch 'type-error
-  (json-reduce "not-a-json"
-    'key
-    (lambda (k v) v)
-  ) ;json-reduce
-) ;check-catch
-(check-catch 'type-error
-  (json-reduce 123 'key (lambda (k v) v))
-) ;check-catch
+(check-catch 'type-error (json-reduce "not-a-json" 'key (lambda (k v) v)))
+(check-catch 'type-error (json-reduce 123 'key (lambda (k v) v)))
 
 
 (check-report)

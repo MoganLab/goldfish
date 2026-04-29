@@ -49,10 +49,7 @@
 (let ((fv (flexvector 'a 'c)))
   (flexvector-add! fv 1 'b)
   (check (flexvector-length fv) => 3)
-  (check (flexvector->list fv)
-    =>
-    '(a b c)
-  ) ;check
+  (check (flexvector->list fv) => '(a b c))
 ) ;let
 
 
@@ -60,10 +57,7 @@
 (let ((fv (flexvector 'a 'b)))
   (flexvector-add! fv 2 'c)
   (check (flexvector-length fv) => 3)
-  (check (flexvector->list fv)
-    =>
-    '(a b c)
-  ) ;check
+  (check (flexvector->list fv) => '(a b c))
 ) ;let
 
 
@@ -71,20 +65,14 @@
 (let ((fv (flexvector 'a)))
   (flexvector-add! fv 1 'b 'c 'd)
   (check (flexvector-length fv) => 4)
-  (check (flexvector->list fv)
-    =>
-    '(a b c d)
-  ) ;check
+  (check (flexvector->list fv) => '(a b c d))
 ) ;let
 
 
 ;; 在开头插入多个元素
 (let ((fv (flexvector 'z)))
   (flexvector-add! fv 0 'a 'b 'c)
-  (check (flexvector->list fv)
-    =>
-    '(a b c z)
-  ) ;check
+  (check (flexvector->list fv) => '(a b c z))
 ) ;let
 
 
@@ -106,10 +94,7 @@
 
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2)))
-  (check (eq? (flexvector-add! fv 1 'x) fv)
-    =>
-    #t
-  ) ;check
+  (check (eq? (flexvector-add! fv 1 'x) fv) => #t)
 ) ;let
 
 

@@ -42,23 +42,11 @@
 
 ;; ; 测试文件重命名
 (let* ((temp-dir (os-temp-dir))
-       (src-file (string-append temp-dir
-                   (string (os-sep))
-                   "test_rename_src.txt"
-                 ) ;string-append
-       ) ;src-file
-       (dst-file (string-append temp-dir
-                   (string (os-sep))
-                   "test_rename_dst.txt"
-                 ) ;string-append
-       ) ;dst-file
+       (src-file (string-append temp-dir (string (os-sep)) "test_rename_src.txt"))
+       (dst-file (string-append temp-dir (string (os-sep)) "test_rename_dst.txt"))
       ) ;
   ;; 创建源文件
-  (with-output-to-file src-file
-    (lambda ()
-      (display "test data for rename")
-    ) ;lambda
-  ) ;with-output-to-file
+  (with-output-to-file src-file (lambda () (display "test data for rename")))
   ;; 验证源文件存在
   (check-true (file-exists? src-file))
   ;; 重命名文件
@@ -73,45 +61,21 @@
 
 
 ;; ; 测试 rename 错误情况
-(check-catch 'type-error
-  (rename 123 "dst")
-) ;check-catch
-(check-catch 'type-error
-  (rename "src" 123)
-) ;check-catch
-(check-catch 'file-not-found-error
-  (rename "/nonexistent/file.txt"
-    "dst.txt"
-  ) ;rename
-) ;check-catch
+(check-catch 'type-error (rename 123 "dst"))
+(check-catch 'type-error (rename "src" 123))
+(check-catch 'file-not-found-error (rename "/nonexistent/file.txt" "dst.txt"))
 
 
 ;; ; 测试目标文件已存在
 (let* ((temp-dir (os-temp-dir))
-       (src-file (string-append temp-dir
-                   (string (os-sep))
-                   "test_rename_src2.txt"
-                 ) ;string-append
-       ) ;src-file
-       (dst-file (string-append temp-dir
-                   (string (os-sep))
-                   "test_rename_dst2.txt"
-                 ) ;string-append
-       ) ;dst-file
+       (src-file (string-append temp-dir (string (os-sep)) "test_rename_src2.txt"))
+       (dst-file (string-append temp-dir (string (os-sep)) "test_rename_dst2.txt"))
       ) ;
   ;; 创建源文件和目标文件
-  (with-output-to-file src-file
-    (lambda () (display "source content"))
-  ) ;with-output-to-file
-  (with-output-to-file dst-file
-    (lambda ()
-      (display "destination content")
-    ) ;lambda
-  ) ;with-output-to-file
+  (with-output-to-file src-file (lambda () (display "source content")))
+  (with-output-to-file dst-file (lambda () (display "destination content")))
   ;; 目标文件已存在时应抛出 file-exists-error
-  (check-catch 'file-exists-error
-    (rename src-file dst-file)
-  ) ;check-catch
+  (check-catch 'file-exists-error (rename src-file dst-file))
   ;; 清理
   (remove src-file)
   (remove dst-file)
@@ -120,16 +84,8 @@
 
 ;; ; 测试目录重命名
 (let* ((temp-dir (os-temp-dir))
-       (src-dir (string-append temp-dir
-                  (string (os-sep))
-                  "test_rename_dir_src"
-                ) ;string-append
-       ) ;src-dir
-       (dst-dir (string-append temp-dir
-                  (string (os-sep))
-                  "test_rename_dir_dst"
-                ) ;string-append
-       ) ;dst-dir
+       (src-dir (string-append temp-dir (string (os-sep)) "test_rename_dir_src"))
+       (dst-dir (string-append temp-dir (string (os-sep)) "test_rename_dir_dst"))
       ) ;
   ;; 创建源目录
   (when (file-exists? src-dir)

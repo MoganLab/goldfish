@@ -62,77 +62,18 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-trim-right"
 
-(check (string-trim-right "  hello  ")
-  =>
-  "  hello"
-) ;check
-(check (string-trim-right "---hello---" #\-)
-  =>
-  "---hello"
-) ;check
-(check (string-trim-right "123hello123"
-         char-numeric?
-       ) ;string-trim-right
-  =>
-  "123hello"
-) ;check
+(check (string-trim-right "  hello  ") => "  hello")
+(check (string-trim-right "---hello---" #\-) => "---hello")
+(check (string-trim-right "123hello123" char-numeric?) => "123hello")
 (check (string-trim-right "   ") => "")
 (check (string-trim-right "") => "")
-(check (string-trim-right "hello" #\-)
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "abcABC123"
-         char-upper-case?
-       ) ;string-trim-right
-  =>
-  "abcABC123"
-) ;check
-(check (string-trim-right "  hello  "
-         #\space
-         2
-         7
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "   hello   "
-         #\space
-         3
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "   hello   "
-         #\space
-         3
-         8
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "---hello---"
-         #\-
-         3
-         8
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "123hello123"
-         char-numeric?
-         3
-         8
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
-(check (string-trim-right "123hello123"
-         char-numeric?
-         3
-       ) ;string-trim-right
-  =>
-  "hello"
-) ;check
+(check (string-trim-right "hello" #\-) => "hello")
+(check (string-trim-right "abcABC123" char-upper-case?) => "abcABC123")
+(check (string-trim-right "  hello  " #\space 2 7) => "hello")
+(check (string-trim-right "   hello   " #\space 3) => "hello")
+(check (string-trim-right "   hello   " #\space 3 8) => "hello")
+(check (string-trim-right "---hello---" #\- 3 8) => "hello")
+(check (string-trim-right "123hello123" char-numeric? 3 8) => "hello")
+(check (string-trim-right "123hello123" char-numeric? 3) => "hello")
 
 (check-report)

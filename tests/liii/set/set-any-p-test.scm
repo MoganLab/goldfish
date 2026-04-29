@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -48,49 +45,32 @@
 (define s-1-2-3 (set 1 2 3))
 
 
-(check-false (set-any? (lambda (x) (> x 10)) s-empty)
-) ;check-false
-(check-false (set-any? (lambda (x) (> x 10)) s-1)
-) ;check-false
-(check-false (set-any? (lambda (x) (> x 10)) s-1-2)
-) ;check-false
-(check-false (set-any? (lambda (x) (> x 10)) s-1-2-3)
-) ;check-false
+(check-false (set-any? (lambda (x) (> x 10)) s-empty))
+(check-false (set-any? (lambda (x) (> x 10)) s-1))
+(check-false (set-any? (lambda (x) (> x 10)) s-1-2))
+(check-false (set-any? (lambda (x) (> x 10)) s-1-2-3))
 
 
-(check-true (set-any? (lambda (x) (= x 1)) s-1)
-) ;check-true
-(check-true (set-any? (lambda (x) (= x 1)) s-1-2)
-) ;check-true
-(check-true (set-any? (lambda (x) (= x 1)) s-1-2-3)
-) ;check-true
-(check-true (set-any? (lambda (x) (= x 2)) s-1-2)
-) ;check-true
-(check-true (set-any? (lambda (x) (= x 3)) s-1-2-3)
-) ;check-true
+(check-true (set-any? (lambda (x) (= x 1)) s-1))
+(check-true (set-any? (lambda (x) (= x 1)) s-1-2))
+(check-true (set-any? (lambda (x) (= x 1)) s-1-2-3))
+(check-true (set-any? (lambda (x) (= x 2)) s-1-2))
+(check-true (set-any? (lambda (x) (= x 3)) s-1-2-3))
 
 
 ;; Test multiple elements satisfying predicate
-(check-true (set-any? (lambda (x) (> x 0)) s-1-2-3)
-) ;check-true
-(check-true (set-any? (lambda (x) (< x 10)) s-1-2-3)
-) ;check-true
+(check-true (set-any? (lambda (x) (> x 0)) s-1-2-3))
+(check-true (set-any? (lambda (x) (< x 10)) s-1-2-3))
 
 
 ;; Test boundary cases
-(check-true (set-any? (lambda (x) (even? x)) s-1-2)
-) ;check-true
-(check-false (set-any? (lambda (x) (even? x)) s-1)
-) ;check-false
-(check-true (set-any? (lambda (x) (odd? x)) s-1)
-) ;check-true
-(check-true (set-any? (lambda (x) (odd? x)) s-1-2)
-) ;check-true
+(check-true (set-any? (lambda (x) (even? x)) s-1-2))
+(check-false (set-any? (lambda (x) (even? x)) s-1))
+(check-true (set-any? (lambda (x) (odd? x)) s-1))
+(check-true (set-any? (lambda (x) (odd? x)) s-1-2))
 
 
-(check-catch 'type-error
-  (set-any? (lambda (x) #t) "not a set")
-) ;check-catch
+(check-catch 'type-error (set-any? (lambda (x) #t) "not a set"))
 
 
 (check-report)

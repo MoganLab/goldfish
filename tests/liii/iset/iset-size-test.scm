@@ -18,10 +18,7 @@
 ;;
 (check (iset-size (iset)) => 0)
 (check (iset-size (iset 1 3 5)) => 3)
-(check (iset-size pos-set)
-  =>
-  (length pos-seq)
-) ;check
+(check (iset-size pos-set) => (length pos-seq))
 
 
 (check-report)

@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii path)
-  (liii os)
-  (liii base)
-) ;import
+(import (liii check) (liii path) (liii os) (liii base))
 
 (check-set-mode! 'report-failed)
 
@@ -28,18 +24,11 @@
 ;; (path->string (path-from-env "HOME")) => (getenv "HOME")
 
 (when (not (os-windows?))
-  (check (path->string (path-from-env "HOME"))
-    =>
-    (getenv "HOME")
-  ) ;check
+  (check (path->string (path-from-env "HOME")) => (getenv "HOME"))
 ) ;when
 
 (when (os-windows?)
-  (check (path->string (path-from-env "USERPROFILE")
-         ) ;path->string
-    =>
-    (getenv "USERPROFILE")
-  ) ;check
+  (check (path->string (path-from-env "USERPROFILE")) => (getenv "USERPROFILE"))
 ) ;when
 
 (check-report)

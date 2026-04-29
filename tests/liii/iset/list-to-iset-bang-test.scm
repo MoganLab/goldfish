@@ -16,11 +16,7 @@
 ;; -----
 ;; 返回包含原集合和列表元素的 iset。可以修改原集合。
 ;;
-(check (iset->list (list->iset! (iset 2 3 5) '(-3 -1 0))
-       ) ;iset->list
-  =>
-  '(-3 -1 0 2 3 5)
-) ;check
+(check (iset->list (list->iset! (iset 2 3 5) '(-3 -1 0))) => '(-3 -1 0 2 3 5))
 
 
 (check-report)

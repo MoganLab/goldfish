@@ -3,24 +3,15 @@
 ;; uri-predicate 模块提供 URI 相关的谓词函数。
 
 
-(import (liii uri-record)
-  (liii uri-predicate)
-) ;import
+(import (liii uri-record) (liii uri-predicate))
 
 
 ;; ==== 常见用法示例 ====
 
 
 ;; 示例1：检查 URI 是否为绝对 URI
-(uri-absolute? (make-uri-raw "https"
-                 "example.com"
-                 "/"
-                 '()
-                 #f
-               ) ;make-uri-raw
-) ;uri-absolute?
-(uri-absolute? (make-uri-raw #f "" "/path" '() #f)
-) ;uri-absolute?
+(uri-absolute? (make-uri-raw "https" "example.com" "/" '() #f))
+(uri-absolute? (make-uri-raw #f "" "/path" '() #f))
 
 
 ;; 示例2：获取 scheme 的默认端口

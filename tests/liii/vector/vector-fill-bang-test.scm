@@ -109,10 +109,7 @@
 
 (let ((v (vector 1 2 3 4 5)))
   (vector-fill! v "string")
-  (check v
-    =>
-    #("string" "string" "string" "string" "string")
-  ) ;check
+  (check v => #("string" "string" "string" "string" "string"))
 ) ;let
 
 
@@ -164,34 +161,16 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (vector-fill! 'not-a-vector 42)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-fill! #(1 2 3) 42 'not-a-number)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-fill! #(1 2 3)
-    42
-    0
-    'not-a-number
-  ) ;vector-fill!
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-fill! 'not-a-vector 42))
+(check-catch 'wrong-type-arg (vector-fill! #(1 2 3) 42 'not-a-number))
+(check-catch 'wrong-type-arg (vector-fill! #(1 2 3) 42 0 'not-a-number))
 
 
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range
-    (vector-fill! v 42 -1)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector-fill! v 42 4)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector-fill! v 42 2 5)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector-fill! v 42 3 2)
-  ) ;check-catch
+  (check-catch 'out-of-range (vector-fill! v 42 -1))
+  (check-catch 'out-of-range (vector-fill! v 42 4))
+  (check-catch 'out-of-range (vector-fill! v 42 2 5))
+  (check-catch 'out-of-range (vector-fill! v 42 3 2))
 ) ;let
 
 

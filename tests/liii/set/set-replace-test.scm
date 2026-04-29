@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-  (srfi srfi-128)
-) ;import
+(import (liii check) (liii error) (liii set) (srfi srfi-128))
 
 
 (check-set-mode! 'report-failed)
@@ -45,8 +41,7 @@
 ;; Test basic replace
 (define s-replace-1 (set-replace s-1 1))
 (check (set-size s-replace-1) => 1)
-(check-true (set-contains? s-replace-1 1)
-) ;check-true
+(check-true (set-contains? s-replace-1 1))
 (check-true (set=? s-replace-1 s-1))
 (check-false (eq? s-replace-1 s-1))
 
@@ -60,44 +55,22 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s)
-      (string-hash (string-map char-downcase s)
-      ) ;string-hash
-    ) ;lambda
+    (lambda (s) (string-hash (string-map char-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-str-ci-2
-  (list->set-with-comparator string-ci-comparator
-    '("Apple" "Banana")
-  ) ;list->set-with-comparator
+  (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
-(check (set-member s-str-ci-2
-         "apple"
-         'not-found
-       ) ;set-member
-  =>
-  "Apple"
-) ;check
+(check (set-member s-str-ci-2 "apple" 'not-found) => "Apple")
 
 
-(define s-replace-3
-  (set-replace s-str-ci-2 "apple")
-) ;define
-(check (set-member s-replace-3
-         "apple"
-         'not-found
-       ) ;set-member
-  =>
-  "apple"
-) ;check
-(check-false (eq? s-replace-3 s-str-ci-2)
-) ;check-false
+(define s-replace-3 (set-replace s-str-ci-2 "apple"))
+(check (set-member s-replace-3 "apple" 'not-found) => "apple")
+(check-false (eq? s-replace-3 s-str-ci-2))
 
 
 ;; Test type error
-(check-catch 'type-error
-  (set-replace "not a set" 1)
-) ;check-catch
+(check-catch 'type-error (set-replace "not a set" 1))
 
 
 (check-report)

@@ -66,20 +66,13 @@
   (vector-set! v 2 'symbol)
   (vector-set! v 3 #\c)
   (vector-set! v 4 #t)
-  (check v
-    =>
-    #("string" 3.14 symbol #\c #t)
-  ) ;check
+  (check v => #("string" 3.14 symbol #\c #t))
 ) ;let
 
 
 (let ((v #(1 2 3)))
-  (check-catch 'out-of-range
-    (vector-set! v -1 42)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (vector-set! v 3 42)
-  ) ;check-catch
+  (check-catch 'out-of-range (vector-set! v -1 42))
+  (check-catch 'out-of-range (vector-set! v 3 42))
 ) ;let
 
 

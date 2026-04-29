@@ -24,13 +24,7 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
-(check (iset->list (iset-intersection! (iset 0 1 3 4)
-                     (iset 0 2 4)
-                   ) ;iset-intersection!
-       ) ;iset->list
-  =>
-  '(0 4)
-) ;check
+(check (iset->list (iset-intersection! (iset 0 1 3 4) (iset 0 2 4))) => '(0 4))
 
 
 (check-report)

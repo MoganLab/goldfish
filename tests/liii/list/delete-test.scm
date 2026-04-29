@@ -33,43 +33,23 @@
 ;; (delete #\a (list #\a #\b #\c) char=?) => (list #\b #\c)
 
 
-(check (delete 1 (list 1 2 3 4))
-  =>
-  (list 2 3 4)
-) ;check
+(check (delete 1 (list 1 2 3 4)) => (list 2 3 4))
 
 
-(check (delete 0 (list 1 2 3 4))
-  =>
-  (list 1 2 3 4)
-) ;check
+(check (delete 0 (list 1 2 3 4)) => (list 1 2 3 4))
 
 
-(check (delete #\a (list #\a #\b #\c) char=?)
-  =>
-  (list #\b #\c)
-) ;check
+(check (delete #\a (list #\a #\b #\c) char=?) => (list #\b #\c))
 
 
-(check (delete #\a
-         (list #\a #\b #\c)
-         (lambda (x y) #f)
-       ) ;delete
-  =>
-  (list #\a #\b #\c)
-) ;check
+(check (delete #\a (list #\a #\b #\c) (lambda (x y) #f)) => (list #\a #\b #\c))
 
 
 (check (delete 1 (list)) => (list))
 
 
 (check (catch 'wrong-type-arg
-         (lambda ()
-           (check (delete 1 (list 1 2 3 4) 'not-pred)
-             =>
-             1
-           ) ;check
-         ) ;lambda
+         (lambda () (check (delete 1 (list 1 2 3 4) 'not-pred) => 1))
          (lambda args #t)
        ) ;catch
   =>

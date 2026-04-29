@@ -42,18 +42,27 @@
 ;; 3. 性能：O(n)，n 为生成的字符数
 
 (check (string-unfold (lambda (n) (> n 2))
-                      (lambda (n) (integer->char (+ n 65)))
-                      (lambda (n) (+ n 1))
-                      0) => "ABC")
+         (lambda (n) (integer->char (+ n 65)))
+         (lambda (n) (+ n 1))
+         0
+       ) ;string-unfold
+  =>
+  "ABC"
+) ;check
 
 (check (string-unfold (lambda (n) (> n 2))
-                      (lambda (n) (integer->char (+ n 65)))
-                      (lambda (n) (+ n 1))
-                      0 "x") => "xABC")
+         (lambda (n) (integer->char (+ n 65)))
+         (lambda (n) (+ n 1))
+         0
+         "x"
+       ) ;string-unfold
+  =>
+  "xABC"
+) ;check
 
-(check (string-unfold (lambda (n) (>= n 0))
-                      (lambda (n) #\a)
-                      (lambda (n) (+ n 1))
-                      0) => "")
+(check (string-unfold (lambda (n) (>= n 0)) (lambda (n) #\a) (lambda (n) (+ n 1)) 0)
+  =>
+  ""
+) ;check
 
 (check-report)

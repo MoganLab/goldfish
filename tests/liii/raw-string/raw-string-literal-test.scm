@@ -40,10 +40,7 @@
 (check #"-"\""-" => "\\\"")
 (check #"-"#"()""-" => "#\"()\"")
 (check #"-"#""a"""-" => "#\"\"a\"\"")
-(check #"-"ends with \""-"
-  =>
-  "ends with \\\""
-) ;check
+(check #"-"ends with \""-" => "ends with \\\"")
 (check #""multiline
 string""
   =>
@@ -99,9 +96,6 @@ string""
   =>
   "<!DOCTYPE html>\n<html>\n  <head><title>\"测试页面\"</title></head>\n  <body>\n    <p>这里有很多\"引号\"</p>\n  </body>\n</html>"
 ) ;check
-(check #"tag with space"hello"tag with space"
-  =>
-  "hello"
-) ;check
+(check #"tag with space"hello"tag with space" => "hello")
 (check #"(())"value"(())" => "value")
 (check-report)

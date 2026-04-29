@@ -36,34 +36,41 @@
 ;; 测试ASCII字符串
 (let* ((end (string-cursor-end "abcdef"))
        (back2 (string-cursor-back "abcdef" end 2))
-       (back0 (string-cursor-back "abcdef" end 0)))
+       (back0 (string-cursor-back "abcdef" end 0))
+      ) ;
   (check (string-cursor->index "abcdef" back2) => 4)
-  (check (string-cursor->index "abcdef" back0) => 6))
+  (check (string-cursor->index "abcdef" back0) => 6)
+) ;let*
 
 ;; 测试中文字符串
 (let* ((end (string-cursor-end "我是中国人"))
-       (back3 (string-cursor-back "我是中国人" end 3)))
-  (check (string-cursor->index "我是中国人" back3) => 2))
+       (back3 (string-cursor-back "我是中国人" end 3))
+      ) ;
+  (check (string-cursor->index "我是中国人" back3) => 2)
+) ;let*
 
 ;; 测试从start向前进（结合forward）
 (let* ((start (string-cursor-start "abc"))
        (fwd1 (string-cursor-forward "abc" start 1))
-       (fwd3 (string-cursor-forward "abc" start 3)))
+       (fwd3 (string-cursor-forward "abc" start 3))
+      ) ;
   (check (string-cursor->index "abc" fwd1) => 1)
-  (check (string-cursor->index "abc" fwd3) => 3))
+  (check (string-cursor->index "abc" fwd3) => 3)
+) ;let*
 
 ;; 测试边界：back 0 应该返回原cursor
-(let* ((end (string-cursor-end "abc"))
-       (back0 (string-cursor-back "abc" end 0)))
-  (check (string-cursor=? end back0) => #t))
+(let* ((end (string-cursor-end "abc")) (back0 (string-cursor-back "abc" end 0)))
+  (check (string-cursor=? end back0) => #t)
+) ;let*
 
 ;; 测试越界应该报错
 (check-catch 'value-error
-  (string-cursor-back "abc" (string-cursor-start "abc") 1))
+  (string-cursor-back "abc" (string-cursor-start "abc") 1)
+) ;check-catch
 
 ;; 测试使用整数索引
-(let* ((s "abc")
-       (back (string-cursor-back s 2 1)))
-  (check (string-cursor->index s back) => 1))
+(let* ((s "abc") (back (string-cursor-back s 2 1)))
+  (check (string-cursor->index s back) => 1)
+) ;let*
 
 (check-report)

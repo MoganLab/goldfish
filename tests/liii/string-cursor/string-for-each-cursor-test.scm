@@ -32,9 +32,11 @@
 
 ;; 基本测试 - 收集所有 cursor 并通过 string-ref/cursor 读取字符
 (let ((result '()))
-  (string-for-each-cursor
-    (lambda (cur) (set! result (cons cur result)))
-    "abc")
-  (check (map (lambda (c) (string-ref/cursor "abc" c)) (reverse result)) => '(#\a #\b #\c)))
+  (string-for-each-cursor (lambda (cur) (set! result (cons cur result))) "abc")
+  (check (map (lambda (c) (string-ref/cursor "abc" c)) (reverse result))
+    =>
+    '(#\a #\b #\c)
+  ) ;check
+) ;let
 
 (check-report)

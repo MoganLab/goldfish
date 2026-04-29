@@ -38,10 +38,8 @@
 (let ((r (numeric-range 0 10)))
   (check-true (range-every integer? r))
   (check-false (range-every even? r))
-  (check-true (range-every (lambda (x) (< x 10)) r)
-  ) ;check-true
-  (check-false (range-every (lambda (x) (> x 5)) r)
-  ) ;check-false
+  (check-true (range-every (lambda (x) (< x 10)) r))
+  (check-false (range-every (lambda (x) (> x 5)) r))
 ) ;let
 
 
@@ -52,8 +50,7 @@
 
 
 (let ((r (numeric-range 0 0)))
-  (check-true (range-every (lambda (x) #f) r)
-  ) ;check-true
+  (check-true (range-every (lambda (x) #f) r))
 ) ;let
 
 

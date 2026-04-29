@@ -33,32 +33,16 @@
 (check (take-while even? '()) => '())
 
 
-(check (take-while (lambda (x) #t) '(1 2 3))
-  =>
-  '(1 2 3)
-) ;check
+(check (take-while (lambda (x) #t) '(1 2 3)) => '(1 2 3))
 
 
-(check (take-while (lambda (x) #f) '(1 2 3))
-  =>
-  '()
-) ;check
+(check (take-while (lambda (x) #f) '(1 2 3)) => '())
 
 
-(check (take-while (lambda (x) (not (= x 1)))
-         '(1 2 3)
-       ) ;take-while
-  =>
-  '()
-) ;check
+(check (take-while (lambda (x) (not (= x 1))) '(1 2 3)) => '())
 
 
-(check (take-while (lambda (x) (< x 3))
-         '(1 2 3 0)
-       ) ;take-while
-  =>
-  '(1 2)
-) ;check
+(check (take-while (lambda (x) (< x 3)) '(1 2 3 0)) => '(1 2))
 
 
 (check-report)

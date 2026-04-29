@@ -21,11 +21,7 @@
 ;; -----
 ;; 返回只包含键严格大于 key 的键值对的新 fxmapping。
 ;;
-(let ((m (fxsubmapping> (fxmapping 0 'a 1 'b 2 'c 3 'd)
-           1
-         ) ;fxsubmapping>
-      ) ;m
-     ) ;
+(let ((m (fxsubmapping> (fxmapping 0 'a 1 'b 2 'c 3 'd) 1)))
   (check-false (fxmapping-contains? m 1))
   (check-true (fxmapping-contains? m 2))
   (check-true (fxmapping-contains? m 3))

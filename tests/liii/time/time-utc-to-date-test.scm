@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -29,9 +26,7 @@
 
 
 ;; time-utc->date basic (UTC)
-(let* ((t (make-time TIME-UTC 0 0))
-       (d (time-utc->date t 0))
-      ) ;
+(let* ((t (make-time TIME-UTC 0 0)) (d (time-utc->date t 0)))
   (check (date-year d) => 1970)
   (check (date-month d) => 1)
   (check (date-day d) => 1)
@@ -43,9 +38,7 @@
 
 
 ;; time-utc->date with positive tz offset (+8)
-(let* ((t (make-time TIME-UTC 0 0))
-       (d (time-utc->date t 28800))
-      ) ;
+(let* ((t (make-time TIME-UTC 0 0)) (d (time-utc->date t 28800)))
   (check (date-year d) => 1970)
   (check (date-month d) => 1)
   (check (date-day d) => 1)
@@ -57,14 +50,8 @@
 
 
 ;; Error conditions
-(check-catch 'wrong-type-arg
-  (time-utc->date (make-time TIME-TAI 0 0)
-    0
-  ) ;time-utc->date
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (time-utc->date "not-a-time" 0)
-) ;check-catch
+(check-catch 'wrong-type-arg (time-utc->date (make-time TIME-TAI 0 0) 0))
+(check-catch 'wrong-type-arg (time-utc->date "not-a-time" 0))
 
 
 (check-report)

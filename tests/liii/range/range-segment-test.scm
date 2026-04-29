@@ -37,10 +37,7 @@
   (let ((segs (range-segment r 3)))
     (check (length segs) => 4)
     (check (range-length (car segs)) => 3)
-    (check (range-length (cadddr segs))
-      =>
-      1
-    ) ;check
+    (check (range-length (cadddr segs)) => 1)
   ) ;let
 ) ;let
 

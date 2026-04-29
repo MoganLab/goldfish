@@ -54,20 +54,14 @@
 (check (iota 5) => (list 0 1 2 3 4))
 (check (iota 5 1 2) => (list 1 3 5 7 9))
 (check (iota 3 0 -1) => (list 0 -1 -2))
-(check (iota 4 10 -2)
-  =>
-  (list 10 8 6 4)
-) ;check
+(check (iota 4 10 -2) => (list 10 8 6 4))
 
 
 (check (iota 3 7 0) => (list 7 7 7))
 
 
 (check (iota 3 -5) => (list -5 -4 -3))
-(check (iota 4 -10 2)
-  =>
-  (list -10 -8 -6 -4)
-) ;check
+(check (iota 4 -10 2) => (list -10 -8 -6 -4))
 
 
 (check-catch 'value-error (iota -1))

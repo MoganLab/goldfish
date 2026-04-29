@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -48,14 +45,9 @@
 (check-false (njson-array? 1))
 
 
-(define njson-array-freed
-  (string->njson "[1]")
-) ;define
-(check-true (njson-free njson-array-freed)
-) ;check-true
-(check-catch 'type-error
-  (njson-array? njson-array-freed)
-) ;check-catch
+(define njson-array-freed (string->njson "[1]"))
+(check-true (njson-free njson-array-freed))
+(check-catch 'type-error (njson-array? njson-array-freed))
 
 
 (check-report)

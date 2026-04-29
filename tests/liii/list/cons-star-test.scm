@@ -55,83 +55,42 @@
 ;; wrong-number-of-args 如果没有提供任何参数
 (check (cons* 1 2) => '(1 . 2))
 (check (cons* 1 2 3) => '(1 2 . 3))
-(check (cons* 'a 'b 'c 'd)
-  =>
-  '(a b c . d)
-) ;check
+(check (cons* 'a 'b 'c 'd) => '(a b c . d))
 (check (cons* '(1 2 3)) => '(1 2 3))
-(check (cons* '(1 2) 3 4)
-  =>
-  '((1 2) 3 . 4)
-) ;check
+(check (cons* '(1 2) 3 4) => '((1 2) 3 . 4))
 (check (cons* 1 2 '(3 4)) => '(1 2 3 4))
-(check (cons* '(1) '(2) '(3))
-  =>
-  '((1) (2) 3)
-) ;check
+(check (cons* '(1) '(2) '(3)) => '((1) (2) 3))
 (check (cons* 1 '() 3) => '(1 () . 3))
-(check (cons* 1 (cons* 2 3))
-  =>
-  '(1 2 . 3)
-) ;check
+(check (cons* 1 (cons* 2 3)) => '(1 2 . 3))
 
 
 (check (cons* 1) => 1)
 (check (cons* 'a) => 'a)
 (check (cons* '()) => '())
 (check (cons* '(1 2 3)) => '(1 2 3))
-(check (cons* '(a b) '(c d))
-  =>
-  '((a b) c d)
-) ;check
+(check (cons* '(a b) '(c d)) => '((a b) c d))
 
 
 (check (cons* 1 2 '()) => '(1 2))
 (check (cons* '() '() '()) => '(() ()))
-(check (cons* 1 2 3 4 '())
-  =>
-  '(1 2 3 4)
-) ;check
-(check (cons* 1 2 3 4 5)
-  =>
-  '(1 2 3 4 . 5)
-) ;check
+(check (cons* 1 2 3 4 '()) => '(1 2 3 4))
+(check (cons* 1 2 3 4 5) => '(1 2 3 4 . 5))
 
 
-(check (cons* 1 2 (cons* 3 4 5))
-  =>
-  '(1 2 3 4 . 5)
-) ;check
-(check (cons* (cons* 1 2) 3 4)
-  =>
-  '((1 . 2) 3 . 4)
-) ;check
-(check (cons* 1 (list 2 3) (cons* 4 5))
-  =>
-  '(1 (2 3) 4 . 5)
-) ;check
+(check (cons* 1 2 (cons* 3 4 5)) => '(1 2 3 4 . 5))
+(check (cons* (cons* 1 2) 3 4) => '((1 . 2) 3 . 4))
+(check (cons* 1 (list 2 3) (cons* 4 5)) => '(1 (2 3) 4 . 5))
 
 
 (check (cons* 'a 'b 'c) => '(a b . c))
-(check (cons* 1 2 3 4 5 6)
-  =>
-  '(1 2 3 4 5 . 6)
-) ;check
+(check (cons* 1 2 3 4 5 6) => '(1 2 3 4 5 . 6))
 
 
-(check (cons* 1 'a 2 'b)
-  =>
-  '(1 a 2 . b)
-) ;check
-(check (cons* 'hello 42 'world)
-  =>
-  '(hello 42 . world)
-) ;check
+(check (cons* 1 'a 2 'b) => '(1 a 2 . b))
+(check (cons* 'hello 42 'world) => '(hello 42 . world))
 
 
-(check-catch 'wrong-number-of-args
-  (cons*)
-) ;check-catch
+(check-catch 'wrong-number-of-args (cons*))
 
 
 (check-report)

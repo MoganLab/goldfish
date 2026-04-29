@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii set)
-) ;import
+(import (liii check) (liii error) (liii set))
 
 
 (check-set-mode! 'report-failed)
@@ -59,9 +56,7 @@
 
 
 ;; Test type error
-(check-catch 'type-error
-  (set-adjoin! "not a set" 1)
-) ;check-catch
+(check-catch 'type-error (set-adjoin! "not a set" 1))
 
 
 (check-report)

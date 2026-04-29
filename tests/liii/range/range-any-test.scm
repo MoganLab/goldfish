@@ -37,21 +37,16 @@
 
 (let ((r (numeric-range 0 10)))
   (check-true (range-any even? r))
-  (check-true (range-any (lambda (x) (> x 8)) r)
-  ) ;check-true
-  (check-false (range-any (lambda (x) (> x 10)) r)
-  ) ;check-false
-  (check-true (range-any (lambda (x) (= x 0)) r)
-  ) ;check-true
-  (check-false (range-any (lambda (x) (< x 0)) r)
-  ) ;check-false
+  (check-true (range-any (lambda (x) (> x 8)) r))
+  (check-false (range-any (lambda (x) (> x 10)) r))
+  (check-true (range-any (lambda (x) (= x 0)) r))
+  (check-false (range-any (lambda (x) (< x 0)) r))
 ) ;let
 
 
 (let ((r (numeric-range 1 10)))
   (check-true (range-any odd? r))
-  (check-false (range-any (lambda (x) (= x 0)) r)
-  ) ;check-false
+  (check-false (range-any (lambda (x) (= x 0)) r))
 ) ;let
 
 

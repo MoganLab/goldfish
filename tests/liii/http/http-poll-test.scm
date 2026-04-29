@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii time)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii time) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -34,9 +30,7 @@
 
 (let ((poll-count 0))
   (http-async-get "https://httpbin.org/get"
-    (lambda (r)
-      (set! poll-count (+ poll-count 1))
-    ) ;lambda
+    (lambda (r) (set! poll-count (+ poll-count 1)))
   ) ;http-async-get
   ;; 轮询直到完成
   (let loop
@@ -44,10 +38,7 @@
     (when pending
       (let ((executed (http-poll)))
         (if (> executed 0)
-          (display (string-append "Poll executed "
-                     (number->string executed)
-                     " callback(s)\n"
-                   ) ;string-append
+          (display (string-append "Poll executed " (number->string executed) " callback(s)\n")
           ) ;display
           (begin
             (sleep 0.05)

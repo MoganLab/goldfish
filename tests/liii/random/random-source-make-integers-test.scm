@@ -32,18 +32,12 @@
 ;; wrong-type-arg 当 s 不是随机源时抛出。
 
 
-(let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)
-       ) ;rand-int
-      ) ;
+(let* ((s (make-random-source)) (rand-int (random-source-make-integers s)))
   (check (procedure? rand-int) => #t)
 ) ;let*
 
 
-(let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)
-       ) ;rand-int
-      ) ;
+(let* ((s (make-random-source)) (rand-int (random-source-make-integers s)))
   (let ((r (rand-int 100)))
     (check (integer? r) => #t)
     (check (>= r 0) => #t)
@@ -52,14 +46,8 @@
 ) ;let*
 
 
-(let* ((s (make-random-source))
-       (rand-int (random-source-make-integers s)
-       ) ;rand-int
-      ) ;
-  (let ((r1 (rand-int 100))
-        (r2 (rand-int 100))
-        (r3 (rand-int 100))
-       ) ;
+(let* ((s (make-random-source)) (rand-int (random-source-make-integers s)))
+  (let ((r1 (rand-int 100)) (r2 (rand-int 100)) (r3 (rand-int 100)))
     (check (integer? r1) => #t)
     (check (integer? r2) => #t)
     (check (integer? r3) => #t)
@@ -67,10 +55,7 @@
 ) ;let*
 
 
-(check-catch 'wrong-type-arg
-  (random-source-make-integers 'not-a-source
-  ) ;random-source-make-integers
-) ;check-catch
+(check-catch 'wrong-type-arg (random-source-make-integers 'not-a-source))
 
 
 (check-report)

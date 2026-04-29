@@ -4,24 +4,16 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-red
-  (enum-name->enum color 'red)
-) ;define
+(define color-red (enum-name->enum color 'red))
 
 
-(define color-set
-  (enum-type->enum-set color)
-) ;define
+(define color-set (enum-type->enum-set color))
 
 
 ;; enum-set-filter!
@@ -57,16 +49,11 @@
 ;; 无。
 
 
-(let ((filtered (enum-set-filter! (lambda (e) (enum=? e color-red))
-                  (enum-set-copy color-set)
-                ) ;enum-set-filter!
+(let ((filtered (enum-set-filter! (lambda (e) (enum=? e color-red)) (enum-set-copy color-set))
       ) ;filtered
      ) ;
   (check (enum-set-size filtered) => 1)
-  (check (enum-set-contains? filtered color-red)
-    =>
-    #t
-  ) ;check
+  (check (enum-set-contains? filtered color-red) => #t)
 ) ;let
 
 

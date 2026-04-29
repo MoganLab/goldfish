@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii os)
-  (scheme time)
-) ;import
+(import (liii check) (liii os) (scheme time))
 
 
 (check-set-mode! 'report-failed)

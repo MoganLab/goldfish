@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -38,15 +35,10 @@
 ;; ----
 ;; type-error 当 either 不是 Either 时
 
-(check-true (either-contains? (from-right 10) 10)
-) ;check-true
-(check-false (either-contains? (from-right 11) 10)
-) ;check-false
-(check-false (either-contains? (from-left 10) 10)
-) ;check-false
+(check-true (either-contains? (from-right 10) 10))
+(check-false (either-contains? (from-right 11) 10))
+(check-false (either-contains? (from-left 10) 10))
 
-(check-catch 'type-error
-  (either-contains? "not-either" 1)
-) ;check-catch
+(check-catch 'type-error (either-contains? "not-either" 1))
 
 (check-report)

@@ -28,9 +28,7 @@
 ;; (partition symbol? '(one 2 3 four five 6)) => (cons '(five four one) '(6 3 2))
 
 
-(check (partition symbol?
-         '(one 2 3 four five 6)
-       ) ;partition
+(check (partition symbol? '(one 2 3 four five 6))
   =>
   (cons '(five four one) '(6 3 2))
 ) ;check

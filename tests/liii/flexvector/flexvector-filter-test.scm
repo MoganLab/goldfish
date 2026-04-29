@@ -34,10 +34,7 @@
 
 ;; 基本过滤
 (let ((fv (flexvector 10 20 30)))
-  (check (flexvector->vector (flexvector-filter (lambda (x) (< x 25))
-                               fv
-                             ) ;flexvector-filter
-         ) ;flexvector->vector
+  (check (flexvector->vector (flexvector-filter (lambda (x) (< x 25)) fv))
     =>
     #(10 20)
   ) ;check
@@ -48,39 +45,24 @@
 
 ;; 过滤出偶数
 (let ((fv (flexvector 1 2 3 4 5 6)))
-  (check (flexvector->list (flexvector-filter even? fv)
-         ) ;flexvector->list
-    =>
-    '(2 4 6)
-  ) ;check
+  (check (flexvector->list (flexvector-filter even? fv)) => '(2 4 6))
 ) ;let
 
 
 ;; 全部满足
 (let ((fv (flexvector 2 4 6)))
-  (check (flexvector->vector (flexvector-filter even? fv)
-         ) ;flexvector->vector
-    =>
-    #(2 4 6)
-  ) ;check
+  (check (flexvector->vector (flexvector-filter even? fv)) => #(2 4 6))
 ) ;let
 
 
 ;; 全部不满足
 (let ((fv (flexvector 1 3 5)))
-  (check (flexvector->vector (flexvector-filter even? fv)
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
+  (check (flexvector->vector (flexvector-filter even? fv)) => #())
 ) ;let
 
 
 ;; 空向量
-(check (flexvector->vector (flexvector-filter (lambda (x) #t)
-                             (flexvector)
-                           ) ;flexvector-filter
-       ) ;flexvector->vector
+(check (flexvector->vector (flexvector-filter (lambda (x) #t) (flexvector)))
   =>
   #()
 ) ;check
@@ -88,10 +70,7 @@
 
 ;; 单元素满足
 (let ((fv (flexvector 42)))
-  (check (flexvector->vector (flexvector-filter (lambda (x) (= x 42))
-                               fv
-                             ) ;flexvector-filter
-         ) ;flexvector->vector
+  (check (flexvector->vector (flexvector-filter (lambda (x) (= x 42)) fv))
     =>
     #(42)
   ) ;check
@@ -100,25 +79,13 @@
 
 ;; 单元素不满足
 (let ((fv (flexvector 42)))
-  (check (flexvector->vector (flexvector-filter (lambda (x) (= x 0))
-                               fv
-                             ) ;flexvector-filter
-         ) ;flexvector->vector
-    =>
-    #()
-  ) ;check
+  (check (flexvector->vector (flexvector-filter (lambda (x) (= x 0)) fv)) => #())
 ) ;let
 
 
 ;; 多向量过滤
-(let ((fv1 (flexvector 1 2 3 4))
-      (fv2 (flexvector 10 20 30 40))
-     ) ;
-  (check (flexvector->vector (flexvector-filter (lambda (x y) (< (+ x y) 35))
-                               fv1
-                               fv2
-                             ) ;flexvector-filter
-         ) ;flexvector->vector
+(let ((fv1 (flexvector 1 2 3 4)) (fv2 (flexvector 10 20 30 40)))
+  (check (flexvector->vector (flexvector-filter (lambda (x y) (< (+ x y) 35)) fv1 fv2))
     =>
     #(1 2 3)
   ) ;check

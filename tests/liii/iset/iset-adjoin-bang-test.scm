@@ -24,11 +24,7 @@
 ;; -----
 ;; 返回修改后的原 iset。
 ;;
-(check (iset->list (iset-adjoin! (iset 1 3 5) 0)
-       ) ;iset->list
-  =>
-  '(0 1 3 5)
-) ;check
+(check (iset->list (iset-adjoin! (iset 1 3 5) 0)) => '(0 1 3 5))
 
 
 (check-report)

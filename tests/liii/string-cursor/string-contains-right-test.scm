@@ -31,23 +31,27 @@
 
 ;; 基本测试
 (let ((result (string-contains-right "ababab" "ab")))
-  (check (string-cursor->index "ababab" result) => 4))
+  (check (string-cursor->index "ababab" result) => 4)
+) ;let
 
 (check (string-contains-right "abcdef" "xyz") => #f)
 (check (string-cursor->index "abcdef" (string-contains-right "abcdef" "")) => 6)
 
 ;; 测试中文
 (let ((result (string-contains-right "中国中国" "中国")))
-  (check (string-cursor->index "中国中国" result) => 2))
+  (check (string-cursor->index "中国中国" result) => 2)
+) ;let
 
 ;; 测试只出现一次
 (let ((result (string-contains-right "abcdef" "cd")))
-  (check (string-cursor->index "abcdef" result) => 2))
+  (check (string-cursor->index "abcdef" result) => 2)
+) ;let
 
 
 ;; 测试使用整数索引作为 start/end
 (let ((result (string-contains-right "ababab" "ab" 0 6)))
-  (check (string-cursor->index "ababab" result) => 4))
+  (check (string-cursor->index "ababab" result) => 4)
+) ;let
 
 ;; 测试使用游标作为 start/end
 (let* ((s1 "ababab")
@@ -56,11 +60,15 @@
        (end1 (string-cursor-end s1))
        (start2 (string-cursor-start s2))
        (end2 (string-cursor-end s2))
-       (result (string-contains-right s1 s2 start1 end1 start2 end2)))
-  (check (string-cursor->index s1 result) => 4))
+       (result (string-contains-right s1 s2 start1 end1 start2 end2))
+      ) ;
+  (check (string-cursor->index s1 result) => 4)
+) ;let*
 
 ;; 测试混合类型报错
-(check-catch 'type-error (string-contains-right "abc" "ab" 0 (string-cursor-end "abc")))
+(check-catch 'type-error
+  (string-contains-right "abc" "ab" 0 (string-cursor-end "abc"))
+) ;check-catch
 
 ;; 测试 start > end 报错
 (check-catch 'value-error (string-contains-right "abc" "ab" 2 1))

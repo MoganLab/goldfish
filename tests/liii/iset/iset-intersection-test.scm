@@ -18,16 +18,8 @@
 ;; ----
 ;; (iset-intersection iset1 iset2 ...)
 ;;
-(check (iset->list (iset-intersection (iset 0 1 3 4)
-                     (iset 0 2 4)
-                   ) ;iset-intersection
-       ) ;iset->list
-  =>
-  '(0 4)
-) ;check
-(check-true (iset-empty? (iset-intersection pos-set neg-set)
-            ) ;iset-empty?
-) ;check-true
+(check (iset->list (iset-intersection (iset 0 1 3 4) (iset 0 2 4))) => '(0 4))
+(check-true (iset-empty? (iset-intersection pos-set neg-set)))
 
 
 (check-report)

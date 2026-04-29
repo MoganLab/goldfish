@@ -18,9 +18,7 @@
 
 
 ;; 示例3：进行大小写无关的字符串比较
-(ascii-string-ci=? "GoldFish"
-  "goldfish"
-) ;ascii-string-ci=?
+(ascii-string-ci=? "GoldFish" "goldfish")
 
 
 ;; ==== 如何查看函数的文档和用例 ====

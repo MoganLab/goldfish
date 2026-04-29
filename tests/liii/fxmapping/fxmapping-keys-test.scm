@@ -18,10 +18,6 @@
 ;; -----
 ;; 返回按键升序排列的键列表。
 ;;
-(check (fxmapping-keys (fxmapping 0 'a 1 'b 2 'c)
-       ) ;fxmapping-keys
-  =>
-  '(0 1 2)
-) ;check
+(check (fxmapping-keys (fxmapping 0 'a 1 'b 2 'c)) => '(0 1 2))
 
 (check-report)

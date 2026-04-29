@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -35,57 +32,24 @@
 
 
 ;; Test make-date
-(check-true (date? (make-date 0 0 0 0 1 1 1970 0))
-) ;check-true
-(check-true (date? (make-date 999999999
-                     59
-                     59
-                     23
-                     31
-                     12
-                     2023
-                     28800
-                   ) ;make-date
-            ) ;date?
-) ;check-true
-(check-true (date? (make-date 500000000
-                     30
-                     30
-                     12
-                     15
-                     6
-                     2000
-                     -14400
-                   ) ;make-date
-            ) ;date?
-) ;check-true
+(check-true (date? (make-date 0 0 0 0 1 1 1970 0)))
+(check-true (date? (make-date 999999999 59 59 23 31 12 2023 28800)))
+(check-true (date? (make-date 500000000 30 30 12 15 6 2000 -14400)))
 
 
 ;; Test edge cases
-(check-true (date? (make-date 0 0 0 0 1 1 0 0))
-) ;check-true
-(check-true (date? (make-date 0 0 0 0 1 1 -1000 0))
-) ;check-true
-(check-true (date? (make-date 0 0 0 0 1 1 10000 0))
-) ;check-true
-(check-true (date? (make-date 0 0 0 0 1 1 2023 -64800)
-            ) ;date?
-) ;check-true
-(check-true (date? (make-date 0 0 0 0 1 1 2023 64800)
-            ) ;date?
-) ;check-true
+(check-true (date? (make-date 0 0 0 0 1 1 0 0)))
+(check-true (date? (make-date 0 0 0 0 1 1 -1000 0)))
+(check-true (date? (make-date 0 0 0 0 1 1 10000 0)))
+(check-true (date? (make-date 0 0 0 0 1 1 2023 -64800)))
+(check-true (date? (make-date 0 0 0 0 1 1 2023 64800)))
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg
-  (make-date 'not-number 0 0 0 1 1 1970 0)
-) ;check-catch
+(check-catch 'wrong-type-arg (make-date 'not-number 0 0 0 1 1 1970 0))
 ;; no range check
-(check-true (date? (make-date -1 0 0 0 1 1 1970 0))
-) ;check-true
-(check-true (date? (make-date 1000000000 0 0 0 1 1 1970 0)
-            ) ;date?
-) ;check-true
+(check-true (date? (make-date -1 0 0 0 1 1 1970 0)))
+(check-true (date? (make-date 1000000000 0 0 0 1 1 1970 0)))
 
 
 (check-report)

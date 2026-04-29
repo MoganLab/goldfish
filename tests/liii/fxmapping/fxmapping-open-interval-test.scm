@@ -21,12 +21,7 @@
 ;; -----
 ;; 返回只包含键在 (low, high) 范围内的键值对的新 fxmapping。
 ;;
-(let ((m (fxmapping-open-interval (fxmapping 0 'a 1 'b 2 'c 3 'd 4 'e)
-           1
-           4
-         ) ;fxmapping-open-interval
-      ) ;m
-     ) ;
+(let ((m (fxmapping-open-interval (fxmapping 0 'a 1 'b 2 'c 3 'd 4 'e) 1 4)))
   (check-false (fxmapping-contains? m 0))
   (check-false (fxmapping-contains? m 1))
   (check-true (fxmapping-contains? m 2))

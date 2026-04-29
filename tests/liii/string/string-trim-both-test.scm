@@ -62,73 +62,18 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-trim-both"
 
-(check (string-trim-both "  hello  ")
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "---hello---" #\-)
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "123hello123"
-         char-numeric?
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
+(check (string-trim-both "  hello  ") => "hello")
+(check (string-trim-both "---hello---" #\-) => "hello")
+(check (string-trim-both "123hello123" char-numeric?) => "hello")
 (check (string-trim-both "   ") => "")
 (check (string-trim-both "") => "")
-(check (string-trim-both "hello" #\-)
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "abcABC123"
-         char-upper-case?
-       ) ;string-trim-both
-  =>
-  "abcABC123"
-) ;check
-(check (string-trim-both "  hello  "
-         #\space
-         2
-         7
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "   hello   "
-         #\space
-         3
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "   hello   "
-         #\space
-         3
-         8
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "---hello---" #\- 3 8)
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "123hello123"
-         char-numeric?
-         3
-         8
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
-(check (string-trim-both "123hello123"
-         char-numeric?
-         3
-       ) ;string-trim-both
-  =>
-  "hello"
-) ;check
+(check (string-trim-both "hello" #\-) => "hello")
+(check (string-trim-both "abcABC123" char-upper-case?) => "abcABC123")
+(check (string-trim-both "  hello  " #\space 2 7) => "hello")
+(check (string-trim-both "   hello   " #\space 3) => "hello")
+(check (string-trim-both "   hello   " #\space 3 8) => "hello")
+(check (string-trim-both "---hello---" #\- 3 8) => "hello")
+(check (string-trim-both "123hello123" char-numeric? 3 8) => "hello")
+(check (string-trim-both "123hello123" char-numeric? 3) => "hello")
 
 (check-report)

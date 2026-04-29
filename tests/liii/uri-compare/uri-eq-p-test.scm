@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii uri-record)
-  (liii uri-compare)
-) ;import
+(import (liii check) (liii uri-record) (liii uri-compare))
 
 
 (check-set-mode! 'report-failed)
@@ -21,102 +18,32 @@
 
 
 ;; 完全相同的 URI
-(define u1
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u2
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com" "/" '() #f))
+(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri=? u1 u2) => #t)
 
 
 ;; 相同的 URI，不同的创建方式
-(define u3
-  (make-uri-raw "http"
-    "test.com"
-    "/path"
-    '(("a" . "1"))
-    "frag"
-  ) ;make-uri-raw
-) ;define
-(define u4
-  (make-uri-raw "http"
-    "test.com"
-    "/path"
-    '(("a" . "1"))
-    "frag"
-  ) ;make-uri-raw
-) ;define
+(define u3 (make-uri-raw "http" "test.com" "/path" '(("a" . "1")) "frag"))
+(define u4 (make-uri-raw "http" "test.com" "/path" '(("a" . "1")) "frag"))
 (check (uri=? u3 u4) => #t)
 
 
 ;; 不同 scheme
-(define u5
-  (make-uri-raw "http"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u6
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u5 (make-uri-raw "http" "example.com" "/" '() #f))
+(define u6 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri=? u5 u6) => #f)
 
 
 ;; 不同 host
-(define u7
-  (make-uri-raw "https"
-    "a.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u8
-  (make-uri-raw "https"
-    "b.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u7 (make-uri-raw "https" "a.com" "/" '() #f))
+(define u8 (make-uri-raw "https" "b.com" "/" '() #f))
 (check (uri=? u7 u8) => #f)
 
 
 ;; 不同 path
-(define u9
-  (make-uri-raw "https"
-    "example.com"
-    "/a"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
-(define u10
-  (make-uri-raw "https"
-    "example.com"
-    "/b"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u9 (make-uri-raw "https" "example.com" "/a" '() #f))
+(define u10 (make-uri-raw "https" "example.com" "/b" '() #f))
 (check (uri=? u9 u10) => #f)
 
 

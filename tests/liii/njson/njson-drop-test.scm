@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii base)
-  (liii error)
-  (liii njson)
-) ;import
+(import (liii check) (liii base) (liii error) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -46,36 +42,21 @@
   (catch 'key-error
     thunk
     (lambda args
-      (let ((payload (if (and (pair? args) (pair? (cdr args)))
-                       (cadr args)
-                       '()
-                     ) ;if
-            ) ;payload
-           ) ;
-        (if (and (pair? payload)
-              (string? (car payload))
-            ) ;and
-          (car payload)
-          ""
-        ) ;if
+      (let ((payload (if (and (pair? args) (pair? (cdr args))) (cadr args) '())))
+        (if (and (pair? payload) (string? (car payload))) (car payload) "")
       ) ;let
     ) ;lambda
   ) ;catch
 ) ;define
 
 
-(let-njson ((root (string->njson sample-json))
-            (root4 (njson-drop root "active"))
-           ) ;
-  (check-false (njson-contains-key? root4 "active")
-  ) ;check-false
+(let-njson ((root (string->njson sample-json)) (root4 (njson-drop root "active")))
+  (check-false (njson-contains-key? root4 "active"))
   (check (njson-ref root "active") => #t)
 ) ;let-njson
 
 
-(let-njson ((arr (string->njson "[10,20,30]"))
-            (arr2 (njson-drop arr 1))
-           ) ;
+(let-njson ((arr (string->njson "[10,20,30]")) (arr2 (njson-drop arr 1)))
   (check (njson-ref arr2 0) => 10)
   (check (njson-ref arr2 1) => 30)
   (check (njson-size arr2) => 2)
@@ -83,43 +64,24 @@
 ) ;let-njson
 
 
-(check-catch 'type-error
-  (njson-drop 'foo "active")
-) ;check-catch
+(check-catch 'type-error (njson-drop 'foo "active"))
 (let-njson ((root (string->njson sample-json)))
-  (check-catch 'key-error
-    (njson-drop root 'active)
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-drop root "not-found")
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-drop root "meta" "not-found")
-  ) ;check-catch
-  (check-catch 'key-error
-    (njson-drop root "name" "as" "as")
-  ) ;check-catch
-  (check (capture-key-error-message (lambda ()
-                                      (njson-drop root "not-found")
-                                    ) ;lambda
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-drop root 'active))
+  (check-catch 'key-error (njson-drop root "not-found"))
+  (check-catch 'key-error (njson-drop root "meta" "not-found"))
+  (check-catch 'key-error (njson-drop root "name" "as" "as"))
+  (check (capture-key-error-message (lambda () (njson-drop root "not-found")))
     =>
     "g_njson-drop: path not found: missing object key 'not-found'"
   ) ;check
-  (check (capture-key-error-message (lambda ()
-                                      (njson-drop root "name" "as" "as")
-                                    ) ;lambda
-         ) ;capture-key-error-message
+  (check (capture-key-error-message (lambda () (njson-drop root "name" "as" "as")))
     =>
     "g_njson-drop: path not found: missing object key 'as'"
   ) ;check
 ) ;let-njson
 (let-njson ((arr (string->njson "[10,20,30]")))
-  (check-catch 'key-error
-    (njson-drop arr 3)
-  ) ;check-catch
-  (check (capture-key-error-message (lambda () (njson-drop arr 3))
-         ) ;capture-key-error-message
+  (check-catch 'key-error (njson-drop arr 3))
+  (check (capture-key-error-message (lambda () (njson-drop arr 3)))
     =>
     "g_njson-drop: path not found: array index out of range (index=3, size=3)"
   ) ;check

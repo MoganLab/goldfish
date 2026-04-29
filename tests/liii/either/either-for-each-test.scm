@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -37,33 +34,14 @@
 ;; ----
 ;; type-error 当 proc 不是过程或 either 不是 Either 时
 
-(let ((counter 0)
-      (left-val (from-left "error"))
-      (right-val (from-right 5))
-     ) ;
-  (either-for-each (lambda (x)
-                     (set! counter (+ counter x))
-                   ) ;lambda
-    left-val
-  ) ;either-for-each
+(let ((counter 0) (left-val (from-left "error")) (right-val (from-right 5)))
+  (either-for-each (lambda (x) (set! counter (+ counter x))) left-val)
   (check counter => 0)
-  (either-for-each (lambda (x)
-                     (set! counter (+ counter x))
-                   ) ;lambda
-    right-val
-  ) ;either-for-each
+  (either-for-each (lambda (x) (set! counter (+ counter x))) right-val)
   (check counter => 5)
 ) ;let
 
-(check-catch 'type-error
-  (either-for-each (lambda (x) x)
-    "not-either"
-  ) ;either-for-each
-) ;check-catch
-(check-catch 'type-error
-  (either-for-each "not-a-proc"
-    (from-right 10)
-  ) ;either-for-each
-) ;check-catch
+(check-catch 'type-error (either-for-each (lambda (x) x) "not-either"))
+(check-catch 'type-error (either-for-each "not-a-proc" (from-right 10)))
 
 (check-report)

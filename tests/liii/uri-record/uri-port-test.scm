@@ -18,50 +18,22 @@
 
 
 ;; 显式端口
-(define u1
-  (make-uri-raw "https"
-    "example.com:8080"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u1 (make-uri-raw "https" "example.com:8080" "/" '() #f))
 (check (uri-port u1) => 8080)
 
 
 ;; 使用默认端口 (https = 443)
-(define u2
-  (make-uri-raw "https"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-port u2) => 443)
 
 
 ;; 使用默认端口 (http = 80)
-(define u3
-  (make-uri-raw "http"
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u3 (make-uri-raw "http" "example.com" "/" '() #f))
 (check (uri-port u3) => 80)
 
 
 ;; 无 scheme，无端口
-(define u4
-  (make-uri-raw #f
-    "example.com"
-    "/"
-    '()
-    #f
-  ) ;make-uri-raw
-) ;define
+(define u4 (make-uri-raw #f "example.com" "/" '() #f))
 (check (uri-port u4) => #f)
 
 

@@ -9,11 +9,8 @@
 
 
 ;; 示例1：定义一个枚举类型并按名字取值
-(define Color
-  (make-enum-type '(red green blue))
-) ;define
-(enum-name (enum-name->enum Color 'green)
-) ;enum-name
+(define Color (make-enum-type '(red green blue)))
+(enum-name (enum-name->enum Color 'green))
 
 
 ;; 示例2：读取枚举类型的大小
@@ -21,9 +18,7 @@
 
 
 ;; 示例3：把枚举值放入 enum-set 再做成员判断
-(enum-set-contains? (enum-set Color
-                      (enum-name->enum Color 'red)
-                    ) ;enum-set
+(enum-set-contains? (enum-set Color (enum-name->enum Color 'red))
   (enum-name->enum Color 'red)
 ) ;enum-set-contains?
 

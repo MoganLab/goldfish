@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii time)
-  (srfi srfi-19)
-) ;import
+(import (liii check) (liii time) (srfi srfi-19))
 
 
 (check-set-mode! 'report-failed)
@@ -30,16 +27,14 @@
 
 
 ;; Test date?
-(check-true (date? (make-date 0 0 0 0 1 1 1970 0))
-) ;check-true
+(check-true (date? (make-date 0 0 0 0 1 1 1970 0)))
 (check-false (date? 123))
 (check-false (date? "string"))
 (check-false (date? 'symbol))
 (check-false (date? #t))
 (check-false (date? #(vector)))
 (check-false (date? (cons 1 2)))
-(check-false (date? (make-time TIME-UTC 0 0))
-) ;check-false
+(check-false (date? (make-time TIME-UTC 0 0)))
 
 
 (check-report)

@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii http)
-  (liii string)
-  (liii os)
-) ;import
+(import (liii check) (liii http) (liii string) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -41,10 +37,7 @@
 ;; 测试异步 POST 请求
 (let ((post-completed #f) (post-response #f))
   (http-async-post "https://httpbin.org/post"
-    (lambda (response)
-      (set! post-completed #t)
-      (set! post-response response)
-    ) ;lambda
+    (lambda (response) (set! post-completed #t) (set! post-response response))
     :params
     '()
     :data
@@ -56,14 +49,8 @@
   ) ;http-async-post
   (http-wait-all 30)
   (check-true post-completed)
-  (check (post-response 'status-code)
-    =>
-    200
-  ) ;check
-  (check-true (string-contains (post-response 'text)
-                "async-post"
-              ) ;string-contains
-  ) ;check-true
+  (check (post-response 'status-code) => 200)
+  (check-true (string-contains (post-response 'text) "async-post"))
 ) ;let
 
 (check-report)

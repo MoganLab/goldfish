@@ -25,20 +25,11 @@
 
 ;; 嵌套列表
 (check (tree-leaves '(a (b c))) => 3)
-(check (tree-leaves '((a b) (c d)))
-  =>
-  4
-) ;check
-(check (tree-leaves '(a (b (c d))))
-  =>
-  4
-) ;check
+(check (tree-leaves '((a b) (c d))) => 4)
+(check (tree-leaves '(a (b (c d)))) => 4)
 
 ;; 更深嵌套
 (check (tree-leaves '(((a)))) => 1)
-(check (tree-leaves '((a b) ((c d) e)))
-  =>
-  5
-) ;check
+(check (tree-leaves '((a b) ((c d) e))) => 5)
 
 (check-report)

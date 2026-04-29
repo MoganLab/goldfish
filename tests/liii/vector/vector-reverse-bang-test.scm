@@ -61,24 +61,12 @@
 ) ;let
 
 
-(check-catch 'wrong-number-of-args
-  (vector-reverse! (vector 1 2) 0 2 3)
-) ;check-catch
-(check-catch 'type-error
-  (vector-reverse! (vector 1 2) 'a 2)
-) ;check-catch
-(check-catch 'type-error
-  (vector-reverse! (vector 1 2) 0 'b)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-reverse! (vector 1 2) -1 2)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-reverse! (vector 1 2) 0 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-reverse! (vector 1 2) 2 1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector-reverse! (vector 1 2) 0 2 3))
+(check-catch 'type-error (vector-reverse! (vector 1 2) 'a 2))
+(check-catch 'type-error (vector-reverse! (vector 1 2) 0 'b))
+(check-catch 'out-of-range (vector-reverse! (vector 1 2) -1 2))
+(check-catch 'out-of-range (vector-reverse! (vector 1 2) 0 5))
+(check-catch 'out-of-range (vector-reverse! (vector 1 2) 2 1))
 
 
 (let ((vec (vector)))

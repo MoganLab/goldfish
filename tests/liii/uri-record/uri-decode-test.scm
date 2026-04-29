@@ -22,14 +22,8 @@
 
 
 ;; 空格解码
-(check (uri-decode "hello%20world")
-  =>
-  "hello world"
-) ;check
-(check (uri-decode "hello+world")
-  =>
-  "hello world"
-) ;check
+(check (uri-decode "hello%20world") => "hello world")
+(check (uri-decode "hello+world") => "hello world")
 
 
 ;; 特殊字符解码
@@ -38,9 +32,7 @@
 
 
 ;; 错误处理
-(check-catch 'type-error
-  (uri-decode 123)
-) ;check-catch
+(check-catch 'type-error (uri-decode 123))
 
 
 (check-report)

@@ -34,10 +34,7 @@
 ;; 非哈希表输入时由底层实现报错。
 
 
-(check (hash-table-values (make-hash-table))
-  =>
-  '()
-) ;check
+(check (hash-table-values (make-hash-table)) => '())
 
 
 (let ((ht (make-hash-table)))

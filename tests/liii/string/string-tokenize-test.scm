@@ -43,217 +43,89 @@
 ;; wrong-type-arg 当char不是字符类型时
 ;; out-of-range 当start/end超出字符串索引范围时
 
-(check (string-tokenize "a b c")
-  =>
-  '("a" "b" "c")
-) ;check
-(check (string-tokenize "a b c ")
-  =>
-  '("a" "b" "c" "")
-) ;check
-(check (string-tokenize " a b c")
-  =>
-  '("a" "b" "c")
-) ;check
-(check (string-tokenize "  a  b c  ")
-  =>
-  '("a" "b" "c" "")
-) ;check
-(check (string-tokenize "abc")
-  =>
-  '("abc")
-) ;check
+(check (string-tokenize "a b c") => '("a" "b" "c"))
+(check (string-tokenize "a b c ") => '("a" "b" "c" ""))
+(check (string-tokenize " a b c") => '("a" "b" "c"))
+(check (string-tokenize "  a  b c  ") => '("a" "b" "c" ""))
+(check (string-tokenize "abc") => '("abc"))
 (check (string-tokenize "   ") => '(""))
 (check (string-tokenize "") => '(""))
 
-(check (string-tokenize "one,two,three" #\,)
-  =>
-  '("one" "two" "three")
-) ;check
-(check (string-tokenize "path/to/file" #\/)
-  =>
-  '("path" "to" "file")
-) ;check
-(check (string-tokenize "192.168.1.1" #\.)
-  =>
-  '("192" "168" "1" "1")
-) ;check
-(check (string-tokenize "hello:::world" #\:)
-  =>
-  '("hello" "world")
-) ;check
-(check (string-tokenize "test---case" #\-)
-  =>
-  '("test" "case")
-) ;check
+(check (string-tokenize "one,two,three" #\,) => '("one" "two" "three"))
+(check (string-tokenize "path/to/file" #\/) => '("path" "to" "file"))
+(check (string-tokenize "192.168.1.1" #\.) => '("192" "168" "1" "1"))
+(check (string-tokenize "hello:::world" #\:) => '("hello" "world"))
+(check (string-tokenize "test---case" #\-) => '("test" "case"))
 
 (check (string-tokenize "x") => '("x"))
-(check (string-tokenize "x" #\x)
-  =>
-  '("")
-) ;check
-(check (string-tokenize "xx")
-  =>
-  '("xx")
-) ;check
-(check (string-tokenize "x x")
-  =>
-  '("x" "x")
-) ;check
-(check (string-tokenize "x x" #\x)
-  =>
-  '(" " "")
-) ;check
+(check (string-tokenize "x" #\x) => '(""))
+(check (string-tokenize "xx") => '("xx"))
+(check (string-tokenize "x x") => '("x" "x"))
+(check (string-tokenize "x x" #\x) => '(" " ""))
 
-(check (string-tokenize "hello\tworld\nscheme"
-         #\tab
-       ) ;string-tokenize
+(check (string-tokenize "hello\tworld\nscheme" #\tab)
   =>
   '("hello" "world\nscheme")
 ) ;check
-(check (string-tokenize "line1\nline2\nline3"
-         #\newline
-       ) ;string-tokenize
+(check (string-tokenize "line1\nline2\nline3" #\newline)
   =>
   '("line1" "line2" "line3")
 ) ;check
-(check (string-tokenize "a|b|c|d" #\|)
-  =>
-  '("a" "b" "c" "d")
-) ;check
+(check (string-tokenize "a|b|c|d" #\|) => '("a" "b" "c" "d"))
 
 (check (string-tokenize "The quick brown fox")
   =>
   '("The" "quick" "brown" "fox")
 ) ;check
-(check (string-tokenize "multiple   spaces   here"
-       ) ;string-tokenize
+(check (string-tokenize "multiple   spaces   here")
   =>
   '("multiple" "spaces" "here")
 ) ;check
-(check (string-tokenize "comma,separated,values,test"
-         #\,
-       ) ;string-tokenize
+(check (string-tokenize "comma,separated,values,test" #\,)
   =>
   '("comma" "separated" "values" "test")
 ) ;check
 
-(check (string-tokenize "hello world scheme"
-         #\space
-         6
-       ) ;string-tokenize
-  =>
-  '("world" "scheme")
-) ;check
-(check (string-tokenize "hello world scheme"
-         #\space
-         0
-         11
-       ) ;string-tokenize
+(check (string-tokenize "hello world scheme" #\space 6) => '("world" "scheme"))
+(check (string-tokenize "hello world scheme" #\space 0 11)
   =>
   '("hello" "world")
 ) ;check
-(check (string-tokenize "hello world scheme"
-         #\space
-         6
-         11
-       ) ;string-tokenize
-  =>
-  '("world")
-) ;check
-(check (string-tokenize "a,b,c,d" #\, 2)
-  =>
-  '("b" "c" "d")
-) ;check
-(check (string-tokenize "a,b,c,d" #\, 0 3)
-  =>
-  '("a" "b")
-) ;check
+(check (string-tokenize "hello world scheme" #\space 6 11) => '("world"))
+(check (string-tokenize "a,b,c,d" #\, 2) => '("b" "c" "d"))
+(check (string-tokenize "a,b,c,d" #\, 0 3) => '("a" "b"))
 
-(check (string-tokenize "test string"
-         #\space
-         0
-         4
-       ) ;string-tokenize
-  =>
-  '("test")
-) ;check
-(check (string-tokenize "test string"
-         #\space
-         5
-         11
-       ) ;string-tokenize
-  =>
-  '("string")
-) ;check
-(check (string-tokenize "test string"
-         #\space
-         5
-       ) ;string-tokenize
-  =>
-  '("string")
-) ;check
+(check (string-tokenize "test string" #\space 0 4) => '("test"))
+(check (string-tokenize "test string" #\space 5 11) => '("string"))
+(check (string-tokenize "test string" #\space 5) => '("string"))
 
-(check (string-tokenize "123 456 789")
-  =>
-  '("123" "456" "789")
-) ;check
-(check (string-tokenize "file1.txt:file2.txt:file3.txt"
-         #\:
-       ) ;string-tokenize
+(check (string-tokenize "123 456 789") => '("123" "456" "789"))
+(check (string-tokenize "file1.txt:file2.txt:file3.txt" #\:)
   =>
   '("file1.txt" "file2.txt" "file3.txt")
 ) ;check
-(check (string-tokenize "user@domain.com;user2@domain.com"
-         #\;
-       ) ;string-tokenize
+(check (string-tokenize "user@domain.com;user2@domain.com" #\;)
   =>
   '("user@domain.com" "user2@domain.com")
 ) ;check
 
-(check (string-tokenize "a,,b,,,c" #\,)
-  =>
-  '("a" "b" "c")
-) ;check
-(check (string-tokenize "::::" #\:)
-  =>
-  '("")
-) ;check
-(check (string-tokenize "a::b" #\:)
-  =>
-  '("a" "b")
-) ;check
-(check (string-tokenize "::a::" #\:)
-  =>
-  '("a" "")
-) ;check
+(check (string-tokenize "a,,b,,,c" #\,) => '("a" "b" "c"))
+(check (string-tokenize "::::" #\:) => '(""))
+(check (string-tokenize "a::b" #\:) => '("a" "b"))
+(check (string-tokenize "::a::" #\:) => '("a" ""))
 
 (check (string-tokenize "中文 测试 功能")
   =>
   '("中文" "测试" "功能")
 ) ;check
 
-(check-catch 'wrong-type-arg
-  (string-tokenize 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-tokenize "hello" "not-a-char")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-tokenize "hello" #\h 1.5)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-tokenize "hello" #\space -1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-tokenize "hello" #\space 0 10)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-tokenize "" #\space 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-tokenize "test" #\space 5)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-tokenize 123))
+(check-catch 'wrong-type-arg (string-tokenize "hello" "not-a-char"))
+(check-catch 'wrong-type-arg (string-tokenize "hello" #\h 1.5))
+(check-catch 'out-of-range (string-tokenize "hello" #\space -1))
+(check-catch 'out-of-range (string-tokenize "hello" #\space 0 10))
+(check-catch 'out-of-range (string-tokenize "" #\space 1))
+(check-catch 'out-of-range (string-tokenize "test" #\space 5))
 
 (check (let ((s "lisp scheme clojure"))
          (string-tokenize s)

@@ -12,10 +12,7 @@
 ;; (reverse-flexvector->list fv)
 ;;
 (let ((fv (flexvector 1 2 3)))
-  (check (reverse-flexvector->list fv)
-    =>
-    '(3 2 1)
-  ) ;check
+  (check (reverse-flexvector->list fv) => '(3 2 1))
 ) ;let
 
 

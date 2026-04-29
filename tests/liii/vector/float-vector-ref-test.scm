@@ -39,9 +39,7 @@
 ;; out-of-range 当索引越界时
 
 
-(let ((v (float-vector 10.0 20.0 30.0 40.0 50.0)
-      ) ;v
-     ) ;
+(let ((v (float-vector 10.0 20.0 30.0 40.0 50.0)))
   (check (float-vector-ref v 0) => 10.0)
   (check (float-vector-ref v 1) => 20.0)
   (check (float-vector-ref v 2) => 30.0)
@@ -63,27 +61,11 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (float-vector-ref 'not-a-vector 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (float-vector-ref (vector 1.0 2.0 3.0)
-    0
-  ) ;float-vector-ref
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (float-vector-ref (int-vector 1 2) 0)
-) ;check-catch
-(check-catch 'out-of-range
-  (float-vector-ref (float-vector 1.0 2.0)
-    5
-  ) ;float-vector-ref
-) ;check-catch
-(check-catch 'out-of-range
-  (float-vector-ref (float-vector 1.0 2.0)
-    -1
-  ) ;float-vector-ref
-) ;check-catch
+(check-catch 'wrong-type-arg (float-vector-ref 'not-a-vector 0))
+(check-catch 'wrong-type-arg (float-vector-ref (vector 1.0 2.0 3.0) 0))
+(check-catch 'wrong-type-arg (float-vector-ref (int-vector 1 2) 0))
+(check-catch 'out-of-range (float-vector-ref (float-vector 1.0 2.0) 5))
+(check-catch 'out-of-range (float-vector-ref (float-vector 1.0 2.0) -1))
 
 
 (check-report)

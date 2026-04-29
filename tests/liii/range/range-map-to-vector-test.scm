@@ -34,42 +34,22 @@
 
 
 (let ((r (numeric-range 0 5)))
-  (check (range-map->vector (lambda (x) (* x 2))
-           r
-         ) ;range-map->vector
-    =>
-    #(0 2 4 6 8)
-  ) ;check
+  (check (range-map->vector (lambda (x) (* x 2)) r) => #(0 2 4 6 8))
 ) ;let
 
 
 (let ((r (numeric-range 0 5)))
-  (check (range-map->vector (lambda (x) (* x x))
-           r
-         ) ;range-map->vector
-    =>
-    #(0 1 4 9 16)
-  ) ;check
+  (check (range-map->vector (lambda (x) (* x x)) r) => #(0 1 4 9 16))
 ) ;let
 
 
 (let ((r (numeric-range 0 0)))
-  (check (range-map->vector (lambda (x) (* x 2))
-           r
-         ) ;range-map->vector
-    =>
-    #()
-  ) ;check
+  (check (range-map->vector (lambda (x) (* x 2)) r) => #())
 ) ;let
 
 
 (let ((r (numeric-range 1 6)))
-  (check (range-map->vector (lambda (x) (+ x 10))
-           r
-         ) ;range-map->vector
-    =>
-    #(11 12 13 14 15)
-  ) ;check
+  (check (range-map->vector (lambda (x) (+ x 10)) r) => #(11 12 13 14 15))
 ) ;let
 
 

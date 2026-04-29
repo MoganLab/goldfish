@@ -4,24 +4,16 @@
 (check-set-mode! 'report-failed)
 
 
-(define color-names
-  '(red tangerine orange yellow green cyan blue violet)
-) ;define
+(define color-names '(red tangerine orange yellow green cyan blue violet))
 
 
-(define color
-  (make-enum-type color-names)
-) ;define
+(define color (make-enum-type color-names))
 
 
-(define color-set
-  (enum-type->enum-set color)
-) ;define
+(define color-set (enum-type->enum-set color))
 
 
-(define empty-colors
-  (enum-empty-set color)
-) ;define
+(define empty-colors (enum-empty-set color))
 
 
 (define (constantly obj)
@@ -65,22 +57,9 @@
 ;; 无。
 
 
-(check (enum-set-any? (lambda (e) (eq? 'green (enum-name e)))
-         color-set
-       ) ;enum-set-any?
-  =>
-  #t
-) ;check
-(check (enum-set-any? (lambda (e) (eq? 'mauve (enum-name e)))
-         color-set
-       ) ;enum-set-any?
-  =>
-  #f
-) ;check
-(check (enum-set-any? never empty-colors)
-  =>
-  #f
-) ;check
+(check (enum-set-any? (lambda (e) (eq? 'green (enum-name e))) color-set) => #t)
+(check (enum-set-any? (lambda (e) (eq? 'mauve (enum-name e))) color-set) => #f)
+(check (enum-set-any? never empty-colors) => #f)
 
 
 (check-report)

@@ -4,9 +4,7 @@
 (check-set-mode! 'report-failed)
 
 
-(define mixed-set
-  (list->iset (iota 20 -10 3))
-) ;define
+(define mixed-set (list->iset (iota 20 -10 3)))
 
 
 ;;
@@ -20,10 +18,7 @@
                       (lambda (x update _) (update 1 #t))
                     ) ;iset-search!
                   ) ;lambda
-  (lambda (set _)
-    (check-true (iset=? (iset-adjoin mixed-set 1) set)
-    ) ;check-true
-  ) ;lambda
+  (lambda (set _) (check-true (iset=? (iset-adjoin mixed-set 1) set)))
 ) ;call-with-values
 
 

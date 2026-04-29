@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii either)
-) ;import
+(import (liii check) (liii error) (liii either))
 
 (check-set-mode! 'report-failed)
 
@@ -35,22 +32,11 @@
 ;; type-error 当输入不是 Either 时
 ;; value-error 当输入是 Left 时
 
-(check (to-right (from-right "success data"))
-  =>
-  "success data"
-) ;check
-(check (to-right (from-right 100))
-  =>
-  100
-) ;check
-(check (to-right (from-right '(1 2 3)))
-  =>
-  '(1 2 3)
-) ;check
+(check (to-right (from-right "success data")) => "success data")
+(check (to-right (from-right 100)) => 100)
+(check (to-right (from-right '(1 2 3))) => '(1 2 3))
 
 (check-catch 'type-error (to-right '()))
-(check-catch 'value-error
-  (to-right (from-left "I am Left"))
-) ;check-catch
+(check-catch 'value-error (to-right (from-left "I am Left")))
 
 (check-report)

@@ -50,8 +50,7 @@
 
 (check-false (proper-list? '(a . b)))
 (check-false (proper-list? '(a b . c)))
-(check-false (proper-list? (circular-list 1 2 3))
-) ;check-false
+(check-false (proper-list? (circular-list 1 2 3)))
 
 
 (check-true (proper-list? '(() ())))
@@ -69,8 +68,7 @@
 
 (check-false (proper-list? '(a . b)))
 (check-false (proper-list? '(a b . c)))
-(check-false (proper-list? '(a b c . d))
-) ;check-false
+(check-false (proper-list? '(a b c . d)))
 
 
 (let ((lst (list 1 2 3)))

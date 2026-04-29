@@ -51,30 +51,15 @@
 
 
 ;; ; 与 bitwise-not/bitwise-xor 的关系测试
-(check (bitwise-eqv 5 3)
-  =>
-  (bitwise-not (bitwise-xor 5 3))
-) ;check
-(check (bitwise-eqv 10 10)
-  =>
-  (bitwise-not (bitwise-xor 10 10))
-) ;check
-(check (bitwise-eqv 7 2)
-  =>
-  (bitwise-not (bitwise-xor 7 2))
-) ;check
-(check (bitwise-eqv 10 5)
-  =>
-  (bitwise-not (bitwise-xor 10 5))
-) ;check
+(check (bitwise-eqv 5 3) => (bitwise-not (bitwise-xor 5 3)))
+(check (bitwise-eqv 10 10) => (bitwise-not (bitwise-xor 10 10)))
+(check (bitwise-eqv 7 2) => (bitwise-not (bitwise-xor 7 2)))
+(check (bitwise-eqv 10 5) => (bitwise-not (bitwise-xor 10 5)))
 
 
 ;; ; 数学性质测试
 (check (bitwise-eqv 15 15) => -1)
-(check (bitwise-eqv 7 3)
-  =>
-  (bitwise-eqv 3 7)
-) ;check
+(check (bitwise-eqv 7 3) => (bitwise-eqv 3 7))
 (check (bitwise-eqv 255 255) => -1)
 
 
@@ -84,37 +69,20 @@
 
 
 ;; ; 特殊值测试
-(check (bitwise-eqv 2147483647 2147483647)
-  =>
-  -1
-) ;check
-(check (bitwise-eqv -2147483648 -2147483648)
-  =>
-  -1
-) ;check
+(check (bitwise-eqv 2147483647 2147483647) => -1)
+(check (bitwise-eqv -2147483648 -2147483648) => -1)
 (check (bitwise-eqv 2147483647 -2147483648)
   =>
-  (bitwise-not (bitwise-xor 2147483647 -2147483648)
-  ) ;bitwise-not
+  (bitwise-not (bitwise-xor 2147483647 -2147483648))
 ) ;check
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bitwise-eqv "string" 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-eqv 1 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-eqv 3.14 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-eqv #\a 1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-eqv '(1 2) 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-eqv "string" 1))
+(check-catch 'wrong-type-arg (bitwise-eqv 1 'symbol))
+(check-catch 'wrong-type-arg (bitwise-eqv 3.14 2))
+(check-catch 'wrong-type-arg (bitwise-eqv #\a 1))
+(check-catch 'wrong-type-arg (bitwise-eqv '(1 2) 3))
 
 
 

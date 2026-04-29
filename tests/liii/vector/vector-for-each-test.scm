@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii list)
-  (liii vector)
-) ;import
+(import (liii check) (liii list) (liii vector))
 
 
 (check-set-mode! 'report-failed)
@@ -41,9 +38,7 @@
 
 
 (check (let ((lst (make-list 5)))
-         (vector-for-each (lambda (i) (list-set! lst i (* i i)))
-           #(0 1 2 3 4)
-         ) ;vector-for-each
+         (vector-for-each (lambda (i) (list-set! lst i (* i i))) #(0 1 2 3 4))
          lst
        ) ;let
   =>
@@ -52,9 +47,7 @@
 
 
 (check (let ((lst (make-list 5)))
-         (vector-for-each (lambda (i) (list-set! lst i (* i i)))
-           #(0 1 2)
-         ) ;vector-for-each
+         (vector-for-each (lambda (i) (list-set! lst i (* i i))) #(0 1 2))
          lst
        ) ;let
   =>
@@ -63,9 +56,7 @@
 
 
 (check (let ((lst (make-list 5)))
-         (vector-for-each (lambda (i) (list-set! lst i (* i i)))
-           #()
-         ) ;vector-for-each
+         (vector-for-each (lambda (i) (list-set! lst i (* i i))) #())
          lst
        ) ;let
   =>
@@ -74,59 +65,40 @@
 
 
 (let ((sum 0))
-  (vector-for-each (lambda (x) (set! sum (+ sum x)))
-    #(1 2 3)
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! sum (+ sum x))) #(1 2 3))
   (check sum => 6)
 ) ;let
 
 
 (let ((result '()))
-  (vector-for-each (lambda (x)
-                     (set! result (cons x result))
-                   ) ;lambda
-    #(a b c)
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! result (cons x result))) #(a b c))
   (check result => '(c b a))
 ) ;let
 
 
 (let ((result '()))
-  (vector-for-each (lambda (x y)
-                     (set! result (cons (cons x y) result))
-                   ) ;lambda
+  (vector-for-each (lambda (x y) (set! result (cons (cons x y) result)))
     #(a b c)
     #(1 2 3)
   ) ;vector-for-each
-  (check result
-    =>
-    '((c . 3) (b . 2) (a . 1))
-  ) ;check
+  (check result => '((c . 3) (b . 2) (a . 1)))
 ) ;let
 
 
 (let ((count 0))
-  (vector-for-each (lambda (x) (set! count (+ count 1)))
-    #()
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! count (+ count 1))) #())
   (check count => 0)
 ) ;let
 
 
 (let ((value #f))
-  (vector-for-each (lambda (x) (set! value x))
-    #(42)
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! value x)) #(42))
   (check value => 42)
 ) ;let
 
 
-(check-catch 'wrong-type-arg
-  (vector-for-each 'not-a-proc #(1 2 3))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-for-each + 'not-a-vector)
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-for-each 'not-a-proc #(1 2 3)))
+(check-catch 'wrong-type-arg (vector-for-each + 'not-a-vector))
 
 
 (check-report)

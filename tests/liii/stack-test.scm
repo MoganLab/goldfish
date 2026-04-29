@@ -43,8 +43,7 @@
 ;; stack-copy - 复制栈
 
 
-(display "=== Stack module loaded successfully ==="
-) ;display
+(display "=== Stack module loaded successfully ===")
 (newline)
 
 

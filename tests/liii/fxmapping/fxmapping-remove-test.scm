@@ -21,17 +21,11 @@
 ;; -----
 ;; 返回不包含满足 pred 的键值对的新 fxmapping。
 ;;
-(let ((removed (fxmapping-remove (lambda (k v) (> k 5))
-                 (fxmapping 3 'a 7 'b 10 'c)
-               ) ;fxmapping-remove
-      ) ;removed
+(let ((removed (fxmapping-remove (lambda (k v) (> k 5)) (fxmapping 3 'a 7 'b 10 'c)))
      ) ;
-  (check-true (fxmapping-contains? removed 3)
-  ) ;check-true
-  (check-false (fxmapping-contains? removed 7)
-  ) ;check-false
-  (check-false (fxmapping-contains? removed 10)
-  ) ;check-false
+  (check-true (fxmapping-contains? removed 3))
+  (check-false (fxmapping-contains? removed 7))
+  (check-false (fxmapping-contains? removed 10))
 ) ;let
 
 (check-report)

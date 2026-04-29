@@ -91,15 +91,11 @@
 ;; ; 数学性质测试
 (check (bitwise-if 5 3 7)
   =>
-  (bitwise-ior (bitwise-and 5 3)
-    (bitwise-and (bitwise-not 5) 7)
-  ) ;bitwise-ior
+  (bitwise-ior (bitwise-and 5 3) (bitwise-and (bitwise-not 5) 7))
 ) ;check
 (check (bitwise-if 10 15 0)
   =>
-  (bitwise-ior (bitwise-and 10 15)
-    (bitwise-and (bitwise-not 10) 0)
-  ) ;bitwise-ior
+  (bitwise-ior (bitwise-and 10 15) (bitwise-and (bitwise-not 10) 0))
 ) ;check
 (check (bitwise-if 0 5 10) => 10)
 (check (bitwise-if -1 5 10) => 5)
@@ -107,21 +103,9 @@
 
 
 ;; ; 特殊值测试
-(check (bitwise-if 2147483647 2147483647 0)
-  =>
-  2147483647
-) ;check
-(check (bitwise-if -2147483648 0 -2147483648)
-  =>
-  0
-) ;check
-(check (bitwise-if 2147483647
-         2147483647
-         -2147483648
-       ) ;bitwise-if
-  =>
-  -1
-) ;check
+(check (bitwise-if 2147483647 2147483647 0) => 2147483647)
+(check (bitwise-if -2147483648 0 -2147483648) => 0)
+(check (bitwise-if 2147483647 2147483647 -2147483648) => -1)
 
 
 ;; ; 更多边界值测试
@@ -139,58 +123,30 @@
 
 
 ;; ; 大整数测试
-(check (bitwise-if 4294967295 4294967295 0)
-  =>
-  4294967295
-) ;check
-(check (bitwise-if 0 4294967295 4294967295)
-  =>
-  4294967295
-) ;check
-(check (bitwise-if 9223372036854775807
-         9223372036854775807
-         0
-       ) ;bitwise-if
+(check (bitwise-if 4294967295 4294967295 0) => 4294967295)
+(check (bitwise-if 0 4294967295 4294967295) => 4294967295)
+(check (bitwise-if 9223372036854775807 9223372036854775807 0)
   =>
   9223372036854775807
 ) ;check
-(check (bitwise-if 0
-         9223372036854775807
-         9223372036854775807
-       ) ;bitwise-if
+(check (bitwise-if 0 9223372036854775807 9223372036854775807)
   =>
   9223372036854775807
 ) ;check
 
 
 ;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg
-  (bitwise-if "string" 1 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-if 1 "string" 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-if 1 2 "string")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-if 1.5 2 3)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bitwise-if #\a 2 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (bitwise-if "string" 1 2))
+(check-catch 'wrong-type-arg (bitwise-if 1 "string" 2))
+(check-catch 'wrong-type-arg (bitwise-if 1 2 "string"))
+(check-catch 'wrong-type-arg (bitwise-if 1.5 2 3))
+(check-catch 'wrong-type-arg (bitwise-if #\a 2 3))
 
 
 ;; ; 错误处理测试 - wrong-number-of-args
-(check-catch 'wrong-number-of-args
-  (bitwise-if 1)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (bitwise-if 1 2)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (bitwise-if 1 2 3 4)
-) ;check-catch
+(check-catch 'wrong-number-of-args (bitwise-if 1))
+(check-catch 'wrong-number-of-args (bitwise-if 1 2))
+(check-catch 'wrong-number-of-args (bitwise-if 1 2 3 4))
 
 
 

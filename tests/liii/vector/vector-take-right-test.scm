@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii error)
-  (liii vector)
-) ;import
+(import (liii check) (liii error) (liii vector))
 
 
 (check-set-mode! 'report-failed)
@@ -40,35 +37,14 @@
 ;; type-error 当vec不是向量，或n不是整数时
 
 
-(check (vector-take-right #(1 2 3 4 5) 3)
-  =>
-  #(3 4 5)
-) ;check
-(check (vector-take-right #(1 2 3 4 5) 0)
-  =>
-  #()
-) ;check
-(check (vector-take-right #(1 2 3 4 5) 5)
-  =>
-  #(1 2 3 4 5)
-) ;check
-(check (vector-take-right #(1 2 3) -1)
-  =>
-  #()
-) ;check
-(check (vector-take-right #(1 2 3) 10)
-  =>
-  #(1 2 3)
-) ;check
+(check (vector-take-right #(1 2 3 4 5) 3) => #(3 4 5))
+(check (vector-take-right #(1 2 3 4 5) 0) => #())
+(check (vector-take-right #(1 2 3 4 5) 5) => #(1 2 3 4 5))
+(check (vector-take-right #(1 2 3) -1) => #())
+(check (vector-take-right #(1 2 3) 10) => #(1 2 3))
 (check (vector-take-right #() 0) => #())
-(check-catch 'type-error
-  (vector-take-right "not a vector" 2)
-) ;check-catch
-(check-catch 'type-error
-  (vector-take-right #(1 2 3)
-    "not a number"
-  ) ;vector-take-right
-) ;check-catch
+(check-catch 'type-error (vector-take-right "not a vector" 2))
+(check-catch 'type-error (vector-take-right #(1 2 3) "not a number"))
 
 
 (check-report)

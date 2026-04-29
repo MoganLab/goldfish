@@ -32,20 +32,47 @@
 
 ;; 测试ASCII
 (let ((s "abcdef"))
-  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s)) => "abcdef")
-  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 4)) => "bcd")
-  (check (substring/cursors s (string-index->cursor s 0) (string-index->cursor s 0)) => ""))
+  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s))
+    =>
+    "abcdef"
+  ) ;check
+  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 4))
+    =>
+    "bcd"
+  ) ;check
+  (check (substring/cursors s (string-index->cursor s 0) (string-index->cursor s 0))
+    =>
+    ""
+  ) ;check
+) ;let
 
 ;; 测试中文
 (let ((s "我是中国人"))
-  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s)) => "我是中国人")
-  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 4)) => "是中国")
-  (check (substring/cursors s (string-index->cursor s 2) (string-index->cursor s 2)) => ""))
+  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s))
+    =>
+    "我是中国人"
+  ) ;check
+  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 4))
+    =>
+    "是中国"
+  ) ;check
+  (check (substring/cursors s (string-index->cursor s 2) (string-index->cursor s 2))
+    =>
+    ""
+  ) ;check
+) ;let
 
 ;; 测试emoji
 (let ((s "🎉🎊🎁"))
-  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s)) => "🎉🎊🎁")
-  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 3)) => "🎊🎁"))
+  (check (substring/cursors s (string-cursor-start s) (string-cursor-end s))
+    =>
+    "🎉🎊🎁"
+  ) ;check
+  (check (substring/cursors s (string-index->cursor s 1) (string-index->cursor s 3))
+    =>
+    "🎊🎁"
+  ) ;check
+) ;let
 
 ;; 测试使用整数索引
 (check (substring/cursors "abc" 1 3) => "bc")
@@ -53,12 +80,10 @@
 
 
 ;; 测试使用游标作为 start/end
-(let* ((s "abcdef")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (substring/cursors s start end) => "abcdef"))
+(let* ((s "abcdef") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (substring/cursors s start end) => "abcdef")
+) ;let*
 
 ;; 测试混合 index/cursor 参数应该报错
-(check-catch 'type-error
-  (substring/cursors "abc" 0 (string-cursor-end "abc")))
+(check-catch 'type-error (substring/cursors "abc" 0 (string-cursor-end "abc")))
 (check-report)

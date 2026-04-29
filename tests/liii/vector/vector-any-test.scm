@@ -39,14 +39,8 @@
 
 
 (check (vector-any even? #()) => #f)
-(check (vector-any even? #(1 3 5 7 9))
-  =>
-  #f
-) ;check
-(check (vector-any even? #(1 3 4 7 8))
-  =>
-  #t
-) ;check
+(check (vector-any even? #(1 3 5 7 9)) => #f)
+(check (vector-any even? #(1 3 4 7 8)) => #t)
 
 
 (check-report)

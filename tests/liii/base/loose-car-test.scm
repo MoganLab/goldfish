@@ -27,10 +27,7 @@
 ;; 测试非空列表
 (check (loose-car '(1 2 3)) => 1)
 (check (loose-car '(a b c)) => 'a)
-(check (loose-car '("hello" "world"))
-  =>
-  "hello"
-) ;check
+(check (loose-car '("hello" "world")) => "hello")
 
 
 ;; 测试空列表（这是 loose-car 的主要用途）
@@ -38,10 +35,7 @@
 
 
 ;; 测试嵌套列表
-(check (loose-car '((1 2) 3 4))
-  =>
-  '(1 2)
-) ;check
+(check (loose-car '((1 2) 3 4)) => '(1 2))
 
 
 ;; 测试单元素列表

@@ -37,24 +37,10 @@
 
 
 ;; 基本测试
-(check (flexvector-length (make-flexvector 0))
-  =>
-  0
-) ;check
-(check (flexvector-length (make-flexvector 3))
-  =>
-  3
-) ;check
-(check (flexvector->vector (make-flexvector 3 #f)
-       ) ;flexvector->vector
-  =>
-  #(#f #f #f)
-) ;check
-(check (flexvector->vector (make-flexvector 3 'a)
-       ) ;flexvector->vector
-  =>
-  #(a a a)
-) ;check
+(check (flexvector-length (make-flexvector 0)) => 0)
+(check (flexvector-length (make-flexvector 3)) => 3)
+(check (flexvector->vector (make-flexvector 3 #f)) => #(#f #f #f))
+(check (flexvector->vector (make-flexvector 3 'a)) => #(a a a))
 
 
 ;; 边界测试：大量元素
@@ -68,10 +54,7 @@
 ;; 修改后行为
 (let ((fv (make-flexvector 3 'a)))
   (flexvector-set! fv 1 'b)
-  (check (flexvector->vector fv)
-    =>
-    #(a b a)
-  ) ;check
+  (check (flexvector->vector fv) => #(a b a))
 ) ;let
 
 

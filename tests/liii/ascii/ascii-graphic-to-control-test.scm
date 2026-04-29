@@ -33,26 +33,11 @@
 
 
 (check (ascii-graphic->control 64) => 0)
-(check (ascii-graphic->control 95)
-  =>
-  31
-) ;check
-(check (ascii-graphic->control 63)
-  =>
-  127
-) ;check
-(check (ascii-graphic->control #\@)
-  =>
-  #\null
-) ;check
-(check (ascii-graphic->control #\A)
-  =>
-  #\x1
-) ;check
-(check (ascii-graphic->control 32)
-  =>
-  #f
-) ;check
+(check (ascii-graphic->control 95) => 31)
+(check (ascii-graphic->control 63) => 127)
+(check (ascii-graphic->control #\@) => #\null)
+(check (ascii-graphic->control #\A) => #\x1)
+(check (ascii-graphic->control 32) => #f)
 
 
 (check-report)

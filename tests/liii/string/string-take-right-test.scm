@@ -43,73 +43,26 @@
 ;; 该版本支持 Unicode 字符级别的操作，并提供 cursor-based API。
 ;; 参见: gf doc liii/string-cursor "string-take-right"
 
-(check (string-take-right "MathAgape" 0)
-  =>
-  ""
-) ;check
-(check (string-take-right "MathAgape" 1)
-  =>
-  "e"
-) ;check
-(check (string-take-right "MathAgape" 9)
-  =>
-  "MathAgape"
-) ;check
-(check (string-take-right "MathAgape" 4)
-  =>
-  "gape"
-) ;check
-(check (string-take-right "MathAgape" 0)
-  =>
-  ""
-) ;check
-(check (string-take-right "MathAgape" 9)
-  =>
-  "MathAgape"
-) ;check
+(check (string-take-right "MathAgape" 0) => "")
+(check (string-take-right "MathAgape" 1) => "e")
+(check (string-take-right "MathAgape" 9) => "MathAgape")
+(check (string-take-right "MathAgape" 4) => "gape")
+(check (string-take-right "MathAgape" 0) => "")
+(check (string-take-right "MathAgape" 9) => "MathAgape")
 (check (string-take-right "" 0) => "")
 (check (string-take-right "a" 1) => "a")
-(check (string-take-right "Hello" 1)
-  =>
-  "o"
-) ;check
-(check (string-take-right "abc" 2)
-  =>
-  "bc"
-) ;check
-(check (string-take-right "test123" 3)
-  =>
-  "123"
-) ;check
-(check (string-take-right "中文测试" 6)
-  =>
-  "测试"
-) ;check
-(check (string-take-right "🌟🎉" 4)
-  =>
-  "🎉"
-) ;check
+(check (string-take-right "Hello" 1) => "o")
+(check (string-take-right "abc" 2) => "bc")
+(check (string-take-right "test123" 3) => "123")
+(check (string-take-right "中文测试" 6) => "测试")
+(check (string-take-right "🌟🎉" 4) => "🎉")
 
-(check-catch 'out-of-range
-  (string-take-right "MathAgape" 20)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-take-right "" 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (string-take-right "Hello" -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take-right 123 4)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take-right "MathAgape" "4")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take-right "MathAgape" 4.5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-take-right "MathAgape" 'a)
-) ;check-catch
+(check-catch 'out-of-range (string-take-right "MathAgape" 20))
+(check-catch 'out-of-range (string-take-right "" 1))
+(check-catch 'out-of-range (string-take-right "Hello" -1))
+(check-catch 'wrong-type-arg (string-take-right 123 4))
+(check-catch 'wrong-type-arg (string-take-right "MathAgape" "4"))
+(check-catch 'wrong-type-arg (string-take-right "MathAgape" 4.5))
+(check-catch 'wrong-type-arg (string-take-right "MathAgape" 'a))
 
 (check-report)

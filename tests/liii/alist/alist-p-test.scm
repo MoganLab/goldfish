@@ -39,10 +39,7 @@
 (check (alist? '()) => #t)
 (check (alist? '((a 1))) => #t)
 (check (alist? '((a . 1))) => #t)
-(check (alist? '((a . 1) (b . 2)))
-  =>
-  #t
-) ;check
+(check (alist? '((a . 1) (b . 2))) => #t)
 (check (alist? '(1 2 3)) => #f)
 
 

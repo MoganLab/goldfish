@@ -34,8 +34,7 @@
 
 
 ;; ; 测试删除不存在的变量
-(check-true (unsetenv "NONEXISTENT_VAR_12345")
-) ;check-true
+(check-true (unsetenv "NONEXISTENT_VAR_12345"))
 
 
 (check-report)

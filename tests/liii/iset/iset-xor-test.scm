@@ -16,15 +16,8 @@
 ;; ----
 ;; (iset-xor iset1 iset2)
 ;;
-(check (iset->list (iset-xor (iset 0 1 3) (iset 0 2 4))
-       ) ;iset->list
-  =>
-  '(1 2 3 4)
-) ;check
-(check (iset->list (iset-xor pos-set pos-set))
-  =>
-  '()
-) ;check
+(check (iset->list (iset-xor (iset 0 1 3) (iset 0 2 4))) => '(1 2 3 4))
+(check (iset->list (iset-xor pos-set pos-set)) => '())
 
 
 (check-report)

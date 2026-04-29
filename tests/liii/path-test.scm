@@ -18,10 +18,7 @@
 
 
 ;; 示例2：路径拼接
-(path-join "/home/user"
-  "Documents"
-  "file.txt"
-) ;path-join
+(path-join "/home/user" "Documents" "file.txt")
 ;; => #<path /home/user/Documents/file.txt>
 
 

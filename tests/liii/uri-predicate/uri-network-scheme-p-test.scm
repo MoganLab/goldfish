@@ -1,6 +1,4 @@
-(import (liii check)
-  (liii uri-predicate)
-) ;import
+(import (liii check) (liii uri-predicate))
 
 
 (check-set-mode! 'report-failed)
@@ -20,72 +18,27 @@
 
 
 ;; 网络 scheme
-(check (uri-network-scheme? "http")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "https")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "ftp")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "ssh")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "smtp")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "dns")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "pop3")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "imap")
-  =>
-  #t
-) ;check
-(check (uri-network-scheme? "ldap")
-  =>
-  #t
-) ;check
+(check (uri-network-scheme? "http") => #t)
+(check (uri-network-scheme? "https") => #t)
+(check (uri-network-scheme? "ftp") => #t)
+(check (uri-network-scheme? "ssh") => #t)
+(check (uri-network-scheme? "smtp") => #t)
+(check (uri-network-scheme? "dns") => #t)
+(check (uri-network-scheme? "pop3") => #t)
+(check (uri-network-scheme? "imap") => #t)
+(check (uri-network-scheme? "ldap") => #t)
 
 
 ;; 非网络 scheme
-(check (uri-network-scheme? "file")
-  =>
-  #f
-) ;check
-(check (uri-network-scheme? "mailto")
-  =>
-  #f
-) ;check
-(check (uri-network-scheme? "data")
-  =>
-  #f
-) ;check
-(check (uri-network-scheme? "javascript")
-  =>
-  #f
-) ;check
+(check (uri-network-scheme? "file") => #f)
+(check (uri-network-scheme? "mailto") => #f)
+(check (uri-network-scheme? "data") => #f)
+(check (uri-network-scheme? "javascript") => #f)
 
 
 ;; 大小写敏感
-(check (uri-network-scheme? "HTTP")
-  =>
-  #f
-) ;check
-(check (uri-network-scheme? "HTTPS")
-  =>
-  #f
-) ;check
+(check (uri-network-scheme? "HTTP") => #f)
+(check (uri-network-scheme? "HTTPS") => #f)
 
 
 ;; 空值和非法输入

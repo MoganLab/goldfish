@@ -3,17 +3,14 @@
 ;; uri-make 模块提供 URI 的构造器函数。
 
 
-(import (liii uri-record)
-  (liii uri-make)
-) ;import
+(import (liii uri-record) (liii uri-make))
 
 
 ;; ==== 常见用法示例 ====
 
 
 ;; 示例1：从字符串构造 URI
-(make-uri "https://example.com/path?a=1#frag"
-) ;make-uri
+(make-uri "https://example.com/path?a=1#frag")
 
 
 ;; 示例2：从组件构建 URI

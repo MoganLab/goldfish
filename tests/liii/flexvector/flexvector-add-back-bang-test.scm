@@ -59,10 +59,7 @@
   (flexvector-add-back! fv 'w)
   (check (flexvector-length fv) => 4)
   (check (flexvector-ref fv 3) => 'w)
-  (check (flexvector->list fv)
-    =>
-    '(x y z w)
-  ) ;check
+  (check (flexvector->list fv) => '(x y z w))
 ) ;let
 
 
@@ -70,19 +67,13 @@
 (let ((fv (flexvector 1)))
   (flexvector-add-back! fv 2 3 4)
   (check (flexvector-length fv) => 4)
-  (check (flexvector->vector fv)
-    =>
-    #(1 2 3 4)
-  ) ;check
+  (check (flexvector->vector fv) => #(1 2 3 4))
 ) ;let
 
 
 ;; 返回值是原对象
 (let ((fv (flexvector 1 2)))
-  (check (eq? (flexvector-add-back! fv 3) fv)
-    =>
-    #t
-  ) ;check
+  (check (eq? (flexvector-add-back! fv 3) fv) => #t)
 ) ;let
 
 

@@ -51,8 +51,7 @@
 
 
 ;; 测试使用游标作为 start/end
-(let* ((s "a,b,c")
-       (start (string-cursor-start s))
-       (end (string-cursor-end s)))
-  (check (string-split s "," 'infix #f start end) => '("a" "b" "c")))
+(let* ((s "a,b,c") (start (string-cursor-start s)) (end (string-cursor-end s)))
+  (check (string-split s "," 'infix #f start end) => '("a" "b" "c"))
+) ;let*
 (check-report)
