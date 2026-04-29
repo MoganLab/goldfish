@@ -8232,6 +8232,15 @@ static void remove_gensym_from_heap(s7_scheme *sc, s7_pointer x) /* x known to b
 static inline void remove_from_heap(s7_scheme *sc, s7_pointer x)
 {
   /* global functions are very rarely redefined, so we can remove the function body from the heap when it is defined */
+  if ((!x) || (is_free(x))) return;
+  if (type_unchecked(x) == T_CHARACTER)
+    {
+      /* Unicode characters >255 are interned in sc->unicode_chars_table and can be shared
+       * across multiple syntax trees. Removing them from the heap here can double-remove the
+       * same cached character when another closure refers to it later.
+       */
+      return;
+    }
   if (!in_heap(x)) return;
   if (is_pair(x))   /* all the compute time is here, might be faster to go down a level explicitly */
     {
@@ -20354,6 +20363,8 @@ s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
     {
       sc->unicode_chars_table = s7_make_hash_table(sc, 128);
       s7_gc_protect(sc, sc->unicode_chars_table);
+      if (mark_function[T_CHARACTER] == mark_noop)
+        mark_function[T_CHARACTER] = just_mark;
     }
   {
     s7_pointer key = s7_make_integer(sc, (s7_int)c);
@@ -20401,6 +20412,7 @@ s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
           character_name_length(cp) = len;
           memcpy((void *)(&(character_name(cp))), buf, len);
         }
+      add_semipermanent_object(sc, cp);
       s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
       return(cp);
     }
