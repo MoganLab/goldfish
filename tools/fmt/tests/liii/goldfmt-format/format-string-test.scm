@@ -184,6 +184,12 @@
   "#\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\"\n"
 ) ;check
 
+;; char literal 应保留原始写法，尤其是 #\x 前缀不能在 fmt 后变成别的形式
+(check (format-string "(list #\\x2000 #\\中 #\\space)")
+  =>
+  "(list #\\x2000 #\\中 #\\space)\n"
+) ;check
+
 ;; 多行 raw string 可以和左侧函数保留在同一行
 (check (format-string "(display #\"SQL\"\n  ;; not a comment\n  SELECT 1\n  \"SQL\")"
        ) ;format-string

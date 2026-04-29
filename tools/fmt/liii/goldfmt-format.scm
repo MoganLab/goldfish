@@ -49,7 +49,9 @@
     (define (format-atom-value value)
       (if (raw-string-literal? value)
           (raw-string-literal-source value)
-          (write-to-string value)))
+          (if (char-literal? value)
+              (char-literal-source value)
+              (write-to-string value))))
 
     (define (single-arg-symbol-form? value name)
       (and (pair? value)
@@ -476,6 +478,7 @@
     (define (format-reader-datum-inline datum)
       (cond
         ((raw-string-literal? datum) (raw-string-literal-source datum))
+        ((char-literal? datum) (char-literal-source datum))
         ((raw-string-datum? datum) (cadr datum))
         ((single-arg-symbol-form? datum 'quasiquote)
          (string-append "`" (format-reader-datum-inline (cadr datum))))
@@ -490,6 +493,7 @@
     (define (format-reader-datum-at datum indent)
       (cond
         ((raw-string-literal? datum) (raw-string-literal-source datum))
+        ((char-literal? datum) (char-literal-source datum))
         ((raw-string-datum? datum) (cadr datum))
         ((single-arg-symbol-form? datum 'quasiquote)
          (string-append "`" (format-reader-datum-at (cadr datum) (+ indent 1))))

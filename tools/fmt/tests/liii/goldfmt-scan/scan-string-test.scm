@@ -113,6 +113,25 @@
   ) ;let
 ) ;let
 
+;; 字符字面量需要保留原始 source，避免 fmt 把 #\x 形式改写成 #\ 形式
+(let* ((results (scan-string "(list #\\x2000 #\\中 #\\space)"))
+       (node (vector-ref results 0))
+       (children (env-children node))
+       (char-x (atom-value (vector-ref children 0)))
+       (char-zh (atom-value (vector-ref children 1)))
+       (char-space (atom-value (vector-ref children 2)))
+      ) ;
+  (check (char-literal? char-x) => #t)
+  (check (char-literal-source char-x) => "#\\x2000")
+  (check (char-literal-value char-x) => #\x2000)
+  (check (char-literal? char-zh) => #t)
+  (check (char-literal-source char-zh) => "#\\中")
+  (check (char-literal-value char-zh) => #\中)
+  (check (char-literal? char-space) => #t)
+  (check (char-literal-source char-space) => "#\\space")
+  (check (char-literal-value char-space) => #\space)
+) ;let*
+
 ;; 测试 scan-string：嵌套结构
 (let ((results (scan-string #"CODE"(if (a b) c d)"CODE"
                ) ;scan-string
