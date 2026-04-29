@@ -33,139 +33,41 @@
 (check (floor-quotient 10 -2) => -5)
 (check (floor-quotient -10 2) => -5)
 (check (floor-quotient -10 -2) => 5)
-(check-catch 'division-by-zero
-  (floor-quotient 11 0)
-) ;check-catch
-(check-catch 'division-by-zero
-  (floor-quotient 0 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (floor-quotient 1.0+1.0i 2)
-) ;check-catch
+(check-catch 'division-by-zero (floor-quotient 11 0))
+(check-catch 'division-by-zero (floor-quotient 0 0))
+(check-catch 'wrong-type-arg (floor-quotient 1.0+1.0i 2))
 (check (floor-quotient 0 2) => 0)
 (check (floor-quotient 0 -2) => 0)
-(check (receive (q r) (floor/ 11 3) q)
-  =>
-  3
-) ;check
-(check (receive (q r) (floor/ 11 3) r)
-  =>
-  2
-) ;check
-(check (receive (q r) (floor/ 11 -3) q)
-  =>
-  -4
-) ;check
-(check (receive (q r) (floor/ 11 -3) r)
-  =>
-  -1
-) ;check
-(check (receive (q r) (floor/ -11 3) q)
-  =>
-  -4
-) ;check
-(check (receive (q r) (floor/ -11 3) r)
-  =>
-  1
-) ;check
-(check (receive (q r) (floor/ -11 -3) q)
-  =>
-  3
-) ;check
-(check (receive (q r) (floor/ -11 -3) r)
-  =>
-  -2
-) ;check
-(check (receive (q r) (floor/ 10 2) q)
-  =>
-  5
-) ;check
-(check (receive (q r) (floor/ 10 2) r)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ 10 -2) q)
-  =>
-  -5
-) ;check
-(check (receive (q r) (floor/ 10 -2) r)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ -10 2) q)
-  =>
-  -5
-) ;check
-(check (receive (q r) (floor/ -10 2) r)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ -10 -2) q)
-  =>
-  5
-) ;check
-(check (receive (q r) (floor/ -10 -2) r)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ 15 4) q)
-  =>
-  3
-) ;check
-(check (receive (q r) (floor/ 15 4) r)
-  =>
-  3
-) ;check
-(check (receive (q r) (floor/ 15 -4) q)
-  =>
-  -4
-) ;check
-(check (receive (q r) (floor/ 15 -4) r)
-  =>
-  -1
-) ;check
-(check (receive (q r) (floor/ -15 4) q)
-  =>
-  -4
-) ;check
-(check (receive (q r) (floor/ -15 4) r)
-  =>
-  1
-) ;check
-(check (receive (q r) (floor/ -15 -4) q)
-  =>
-  3
-) ;check
-(check (receive (q r) (floor/ -15 -4) r)
-  =>
-  -3
-) ;check
-(check (receive (q r) (floor/ 1 3) q)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ 1 3) r)
-  =>
-  1
-) ;check
-(check (receive (q r) (floor/ 0 5) q)
-  =>
-  0
-) ;check
-(check (receive (q r) (floor/ 0 5) r)
-  =>
-  0
-) ;check
-(check-catch 'division-by-zero
-  (floor/ 11 0)
-) ;check-catch
-(check-catch 'division-by-zero
-  (floor/ 0 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (floor/ 1.0+1.0i 2)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (floor/ 5 #t)
-) ;check-catch
+(check (receive (q r) (floor/ 11 3) q) => 3)
+(check (receive (q r) (floor/ 11 3) r) => 2)
+(check (receive (q r) (floor/ 11 -3) q) => -4)
+(check (receive (q r) (floor/ 11 -3) r) => -1)
+(check (receive (q r) (floor/ -11 3) q) => -4)
+(check (receive (q r) (floor/ -11 3) r) => 1)
+(check (receive (q r) (floor/ -11 -3) q) => 3)
+(check (receive (q r) (floor/ -11 -3) r) => -2)
+(check (receive (q r) (floor/ 10 2) q) => 5)
+(check (receive (q r) (floor/ 10 2) r) => 0)
+(check (receive (q r) (floor/ 10 -2) q) => -5)
+(check (receive (q r) (floor/ 10 -2) r) => 0)
+(check (receive (q r) (floor/ -10 2) q) => -5)
+(check (receive (q r) (floor/ -10 2) r) => 0)
+(check (receive (q r) (floor/ -10 -2) q) => 5)
+(check (receive (q r) (floor/ -10 -2) r) => 0)
+(check (receive (q r) (floor/ 15 4) q) => 3)
+(check (receive (q r) (floor/ 15 4) r) => 3)
+(check (receive (q r) (floor/ 15 -4) q) => -4)
+(check (receive (q r) (floor/ 15 -4) r) => -1)
+(check (receive (q r) (floor/ -15 4) q) => -4)
+(check (receive (q r) (floor/ -15 4) r) => 1)
+(check (receive (q r) (floor/ -15 -4) q) => 3)
+(check (receive (q r) (floor/ -15 -4) r) => -3)
+(check (receive (q r) (floor/ 1 3) q) => 0)
+(check (receive (q r) (floor/ 1 3) r) => 1)
+(check (receive (q r) (floor/ 0 5) q) => 0)
+(check (receive (q r) (floor/ 0 5) r) => 0)
+(check-catch 'division-by-zero (floor/ 11 0))
+(check-catch 'division-by-zero (floor/ 0 0))
+(check-catch 'wrong-type-arg (floor/ 1.0+1.0i 2))
+(check-catch 'wrong-type-arg (floor/ 5 #t))
 (check-report)

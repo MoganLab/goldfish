@@ -34,13 +34,9 @@
 (check-true (eqv? 'abc 'abc))
 (check-false (eqv? 'abc 'def))
 ;; Test eqv? for lists (same instance)
-(check-true (let ((lst (list 1 2 3)))
-              (eqv? lst lst)
-            ) ;let
-) ;check-true
+(check-true (let ((lst (list 1 2 3))) (eqv? lst lst)))
 ;; Test eqv? for lists (different instances)
-(check-false (eqv? (list 1 2 3) (list 1 2 3))
-) ;check-false
+(check-false (eqv? (list 1 2 3) (list 1 2 3)))
 ;; Test eqv? for strings (always #f due to different instances)
 (check-false (eqv? "hello" "hello"))
 (check-false (eqv? "hello" "world"))

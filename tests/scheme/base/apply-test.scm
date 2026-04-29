@@ -29,8 +29,6 @@
 (check (apply + 1 2 '(3 4)) => 10)
 (check (apply list '()) => '())
 (check (apply string-append '("a" "b" "c")) => "abc")
-(check-catch 'syntax-error
-  (apply 1 '(2 3))
-) ;check-catch
+(check-catch 'syntax-error (apply 1 '(2 3)))
 
 (check-report)

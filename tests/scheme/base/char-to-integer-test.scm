@@ -52,18 +52,10 @@
 (check (char->integer #\a) => 97)
 (check (char->integer #\z) => 122)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (char->integer 65)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char->integer "A")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char->integer)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char->integer #\A #\B)
-) ;check-catch
+(check-catch 'wrong-type-arg (char->integer 65))
+(check-catch 'wrong-type-arg (char->integer "A"))
+(check-catch 'wrong-number-of-args (char->integer))
+(check-catch 'wrong-number-of-args (char->integer #\A #\B))
 ;; Unicode 字符测试
 (check (char->integer #\中) => 20013)
 (check (char->integer #\🐟) => 128031)

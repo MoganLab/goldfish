@@ -56,13 +56,7 @@
 (check (kar (kons 1 2)) => 1)
 (check (kdr (kons 1 2)) => 2)
 ;; 修改器测试
-(check (let ((k (kons 1 2)))
-         (set-kar! k 3)
-         (kar k)
-       ) ;let
-  =>
-  3
-) ;check
+(check (let ((k (kons 1 2))) (set-kar! k 3) (kar k)) => 3)
 ;; 更实用的记录类型 - 人员信息
 (define-record-type :person
   (make-person name age)
@@ -70,18 +64,9 @@
   (name get-name set-name!)
   (age get-age)
 ) ;define-record-type
-(check (person? (make-person "Da" 3))
-  =>
-  #t
-) ;check
-(check (get-age (make-person "Da" 3))
-  =>
-  3
-) ;check
-(check (get-name (make-person "Da" 3))
-  =>
-  "Da"
-) ;check
+(check (person? (make-person "Da" 3)) => #t)
+(check (get-age (make-person "Da" 3)) => 3)
+(check (get-name (make-person "Da" 3)) => "Da")
 ;; 使用修改器
 (check (let ((da (make-person "Da" 3)))
          (set-name! da "Darcy")
@@ -93,14 +78,9 @@
 ;; 不可变字段尝试修改会导致错误
 ;; (set-age! da 4) 会报错，因为 age 没有定义修改器
 ;; 创建多个实例
-(let ((p1 (make-person "Alice" 25))
-      (p2 (make-person "Bob" 30))
-     ) ;
+(let ((p1 (make-person "Alice" 25)) (p2 (make-person "Bob" 30)))
   (check (get-name p1) => "Alice")
   (check (get-name p2) => "Bob")
-  (check (+ (get-age p1) (get-age p2))
-    =>
-    55
-  ) ;check
+  (check (+ (get-age p1) (get-age p2)) => 55)
 ) ;let
 (check-report)

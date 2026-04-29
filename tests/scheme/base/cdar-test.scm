@@ -27,11 +27,7 @@
 (check (cdar '(((a) b) c)) => '(b))
 (check-catch 'wrong-type-arg (cdar '()))
 (check-catch 'wrong-type-arg (cdar 'a))
-(check-catch 'wrong-number-of-args
-  (cdar)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (cdar '((a b) c) 'x)
-) ;check-catch
+(check-catch 'wrong-number-of-args (cdar))
+(check-catch 'wrong-number-of-args (cdar '((a b) c) 'x))
 
 (check-report)

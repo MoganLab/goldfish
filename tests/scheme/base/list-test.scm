@@ -215,41 +215,17 @@
 (check (list 'single) => '(single))
 (check (list 'a 'b 'c 'd) => '(a b c d))
 ;; 数据类型兼容性测试
-(check (list 42 3.14 1/2 1.0+2.0i)
-  =>
-  '(42 3.14 1/2 1.0+2.0i)
-) ;check
+(check (list 42 3.14 1/2 1.0+2.0i) => '(42 3.14 1/2 1.0+2.0i))
 (check (list #t #f) => '(#t #f))
-(check (list #\a #\b #\c)
-  =>
-  '(#\a #\b #\c)
-) ;check
-(check (list "hello" "world")
-  =>
-  '("hello" "world")
-) ;check
-(check (list 'symbol1 'symbol2 'keyword:)
-  =>
-  '(symbol1 symbol2 keyword:)
-) ;check
+(check (list #\a #\b #\c) => '(#\a #\b #\c))
+(check (list "hello" "world") => '("hello" "world"))
+(check (list 'symbol1 'symbol2 'keyword:) => '(symbol1 symbol2 keyword:))
 ;; 嵌套结构测试
-(check (list '() '() '())
-  =>
-  '(() () ())
-) ;check
-(check (list '(a b) '(c d))
-  =>
-  '((a b) (c d))
-) ;check
-(check (list (list 1 2) (list 3 4))
-  =>
-  '((1 2) (3 4))
-) ;check
+(check (list '() '() '()) => '(() () ()))
+(check (list '(a b) '(c d)) => '((a b) (c d)))
+(check (list (list 1 2) (list 3 4)) => '((1 2) (3 4)))
 ;; 复杂对象测试
-(check (list #(1 2 3) #u8(255 128))
-  =>
-  '(#(1 2 3) #(255 128))
-) ;check
+(check (list #(1 2 3) #u8(255 128)) => '(#(1 2 3) #(255 128)))
 (check (list #t #f) => '(#t #f))
 (check (list 1 2 3) => '(1 2 3))
 ;; 混合类型测试
@@ -262,55 +238,20 @@
   '(a 1 "hello" (sub list) #t 3.14)
 ) ;check
 ;; 极大参数数量测试
-(check (list 1
-         2
-         3
-         4
-         5
-         6
-         7
-         8
-         9
-         10
-         11
-         12
-         13
-         14
-         15
-         16
-         17
-         18
-         19
-         20
-       ) ;list
+(check (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
   =>
   '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)
 ) ;check
 ;; 重复元素测试
 (check (list 'a 'a 'a) => '(a a a))
 (check (list 1 1 1 1) => '(1 1 1 1))
-(check (list "test" "test")
-  =>
-  '("test" "test")
-) ;check
+(check (list "test" "test") => '("test" "test"))
 ;; Unicode和特殊字符测试
-(check (list "中文" "测试" "字符串")
-  =>
-  '("中文" "测试" "字符串")
-) ;check
-(check (list #\中 #\文)
-  =>
-  '(#\中 #\文)
-) ;check
+(check (list "中文" "测试" "字符串") => '("中文" "测试" "字符串"))
+(check (list #\中 #\文) => '(#\中 #\文))
 ;; 深层嵌套结构测试
-(check (list (list (list 'a)) (list 'b))
-  =>
-  '(((a)) (b))
-) ;check
-(check (list '() (list '() (list 'a)))
-  =>
-  '(() (() (a)))
-) ;check
+(check (list (list (list 'a)) (list 'b)) => '(((a)) (b)))
+(check (list '() (list '() (list 'a))) => '(() (() (a))))
 ;; 性能验证：大列表构造
 (check (length (list 'a
                  'b
@@ -356,10 +297,7 @@
 ;; 独立对象验证 - 确认不与参数共享
 (let ((a 'original) (b "test") (c #t))
   (let ((result (list a b c)))
-    (check (equal? result '(original "test" #t))
-      =>
-      #t
-    ) ;check
+    (check (equal? result '(original "test" #t)) => #t)
     (check (not (eq? result a)) => #t)
     (check (not (eq? result b)) => #t)
   ) ;let
@@ -368,13 +306,7 @@
 (define (test-list-wrapper . args)
   (apply list args)
 ) ;define
-(check (test-list-wrapper 1 2 3)
-  =>
-  '(1 2 3)
-) ;check
-(check (test-list-wrapper 'a 'b 'c 'd)
-  =>
-  '(a b c d)
-) ;check
+(check (test-list-wrapper 1 2 3) => '(1 2 3))
+(check (test-list-wrapper 'a 'b 'c 'd) => '(a b c d))
 (check (test-list-wrapper) => '())
 (check-report)

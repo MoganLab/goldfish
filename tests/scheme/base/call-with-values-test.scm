@@ -26,7 +26,10 @@
 ;; 2. consumer 的参数个数应与 producer 返回值个数匹配
 ;; 3. 是接收多值的标准方式
 (check (call-with-values (lambda () (values 1 2)) +) => 3)
-(check (call-with-values (lambda () (values 10 20 30)) (lambda (a b c) (* a b c))) => 6000)
+(check (call-with-values (lambda () (values 10 20 30)) (lambda (a b c) (* a b c)))
+  =>
+  6000
+) ;check
 (check (call-with-values (lambda () (values)) (lambda args (length args))) => 1)
 (check (call-with-values (lambda () (values 'x)) list) => '(x))
 

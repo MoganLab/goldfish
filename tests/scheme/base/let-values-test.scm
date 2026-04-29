@@ -24,23 +24,11 @@
 ;; any
 ;; 返回最后一个 body 表达式的结果。
 ;; 单值绑定
-(check (let-values (((ret) (+ 1 2)))
-         (+ ret 4)
-       ) ;let-values
-  =>
-  7
-) ;check
+(check (let-values (((ret) (+ 1 2))) (+ ret 4)) => 7)
 ;; 多值绑定
-(check (let-values (((a b) (values 3 4)))
-         (+ a b)
-       ) ;let-values
-  =>
-  7
-) ;check
+(check (let-values (((a b) (values 3 4))) (+ a b)) => 7)
 ;; 多组绑定
-(check (let-values (((x y) (values 1 2))
-                    ((z w) (values 3 4))
-                   ) ;
+(check (let-values (((x y) (values 1 2)) ((z w) (values 3 4)))
          (+ x y z w)
        ) ;let-values
   =>

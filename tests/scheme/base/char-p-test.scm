@@ -38,12 +38,8 @@
 (check (char? "A") => #f)
 (check (char? 'a) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-number-of-args
-  (char?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char? #\A #\B)
-) ;check-catch
+(check-catch 'wrong-number-of-args (char?))
+(check-catch 'wrong-number-of-args (char? #\A #\B))
 ;; Unicode 字符测试
 (check (char? #\中) => #t)
 (check (char? #\x4E2D) => #t)

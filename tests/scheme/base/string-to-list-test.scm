@@ -24,37 +24,14 @@
 ;; 2. 返回的列表中每个元素都是字符
 (check (string->list "") => '())
 (check (string->list "a") => '(#\a))
-(check (string->list "abc")
-  =>
-  '(#\a #\b #\c)
-) ;check
-(check (string->list "123")
-  =>
-  '(#\1 #\2 #\3)
-) ;check
-(check (length (string->list "hello"))
-  =>
-  5
-) ;check
-(check (car (string->list "xyz"))
-  =>
-  #\x
-) ;check
-(check (string->list "abcde" 1 4)
-  =>
-  '(#\b #\c #\d)
-) ;check
-(check-catch 'wrong-type-arg
-  (string->list '())
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->list '(#\a))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string->list)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string->list "a" "b")
-) ;check-catch
+(check (string->list "abc") => '(#\a #\b #\c))
+(check (string->list "123") => '(#\1 #\2 #\3))
+(check (length (string->list "hello")) => 5)
+(check (car (string->list "xyz")) => #\x)
+(check (string->list "abcde" 1 4) => '(#\b #\c #\d))
+(check-catch 'wrong-type-arg (string->list '()))
+(check-catch 'wrong-type-arg (string->list '(#\a)))
+(check-catch 'wrong-number-of-args (string->list))
+(check-catch 'wrong-type-arg (string->list "a" "b"))
 
 (check-report)

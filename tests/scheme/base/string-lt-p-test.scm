@@ -35,17 +35,9 @@
 (check (string<? "123" "124") => #t)
 (check (string<? "a" "b" "c") => #t)
 (check (string<? "a" "b" "b") => #f)
-(check-catch 'wrong-number-of-args
-  (string<?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string<? "a")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string<? 'a "b")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string<? "a" 1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (string<?))
+(check-catch 'wrong-number-of-args (string<? "a"))
+(check-catch 'wrong-type-arg (string<? 'a "b"))
+(check-catch 'wrong-type-arg (string<? "a" 1))
 
 (check-report)

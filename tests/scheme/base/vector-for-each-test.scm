@@ -25,35 +25,21 @@
 ;; 2. 多个向量时，proc 接收对应位置的元素
 ;; 3. 遍历到最短向量的长度为止
 (let ((result '()))
-  (vector-for-each (lambda (x)
-                     (set! result (cons x result))
-                   ) ;lambda
-    #(a b c)
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! result (cons x result))) #(a b c))
   (check result => '(c b a))
 ) ;let
 (let ((result '()))
-  (vector-for-each (lambda (x y)
-                     (set! result (cons (list x y) result))
-                   ) ;lambda
+  (vector-for-each (lambda (x y) (set! result (cons (list x y) result)))
     #(1 2)
     #(10 20)
   ) ;vector-for-each
   (check result => '((2 20) (1 10)))
 ) ;let
 (let ((result '()))
-  (vector-for-each (lambda (x)
-                     (set! result (cons x result))
-                   ) ;lambda
-    #()
-  ) ;vector-for-each
+  (vector-for-each (lambda (x) (set! result (cons x result))) #())
   (check result => '())
 ) ;let
-(check-catch 'wrong-number-of-args
-  (vector-for-each)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (vector-for-each (lambda (x) x))
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector-for-each))
+(check-catch 'wrong-number-of-args (vector-for-each (lambda (x) x)))
 
 (check-report)

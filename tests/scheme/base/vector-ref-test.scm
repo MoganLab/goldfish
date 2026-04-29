@@ -29,23 +29,11 @@
 (check (vector-ref #(a b c) 2) => 'c)
 (check (vector-ref #(1) 0) => 1)
 (check (vector-ref #("x" "y") 1) => "y")
-(check-catch 'wrong-number-of-args
-  (vector-ref #(1))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-ref '() 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-ref #(1) 'a)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-ref #() 0)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-ref #(a) 1)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-ref #(a b) -1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector-ref #(1)))
+(check-catch 'wrong-type-arg (vector-ref '() 0))
+(check-catch 'wrong-type-arg (vector-ref #(1) 'a))
+(check-catch 'out-of-range (vector-ref #() 0))
+(check-catch 'out-of-range (vector-ref #(a) 1))
+(check-catch 'out-of-range (vector-ref #(a b) -1))
 
 (check-report)

@@ -25,27 +25,13 @@
 ;; 1. k 必须是非负整数
 ;; 2. 不提供 fill 时，各元素的初始值由实现决定
 (check (make-vector 0) => #())
-(check (vector-length (make-vector 3))
-  =>
-  3
-) ;check
-(check (make-vector 3 #\a)
-  =>
-  #(#\a #\a #\a)
-) ;check
+(check (vector-length (make-vector 3)) => 3)
+(check (make-vector 3 #\a) => #(#\a #\a #\a))
 (check (make-vector 2 'x) => #(x x))
 (check (make-vector 1 42) => #(42))
-(check-catch 'wrong-number-of-args
-  (make-vector)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-vector -1)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-vector 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (make-vector 1.5)
-) ;check-catch
+(check-catch 'wrong-number-of-args (make-vector))
+(check-catch 'wrong-type-arg (make-vector -1))
+(check-catch 'wrong-type-arg (make-vector 'a))
+(check-catch 'wrong-type-arg (make-vector 1.5))
 
 (check-report)

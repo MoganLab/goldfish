@@ -75,18 +75,12 @@
 
 ;; 错误处理：参数不足
 (check-catch 'wrong-number-of-args (=))
-(check-catch 'wrong-number-of-args
-  (= 1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (= 1))
 
 ;; 错误处理：类型错误
 (check-catch 'wrong-type-arg (= 1 'a))
-(check-catch 'wrong-type-arg
-  (= 1 "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (= 1 '(1 2))
-) ;check-catch
+(check-catch 'wrong-type-arg (= 1 "hello"))
+(check-catch 'wrong-type-arg (= 1 '(1 2)))
 (check-catch 'wrong-type-arg (= #t 1))
 
 (check-report)

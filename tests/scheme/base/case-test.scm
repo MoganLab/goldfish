@@ -43,39 +43,9 @@
 ;; 错误处理
 ;; ----
 ;; 按命中子句中表达式自身规则处理
-(check (case '+
-             ((+ -) 'p0)
-             ((* /) 'p1)
-       ) ;case
-  =>
-  'p0
-) ;check
-(check (case '-
-             ((+ -) 'p0)
-             ((* /) 'p1)
-       ) ;case
-  =>
-  'p0
-) ;check
-(check (case '*
-             ((+ -) 'p0)
-             ((* /) 'p1)
-       ) ;case
-  =>
-  'p1
-) ;check
-(check (case '@
-             ((+ -) 'p0)
-             ((* /) 'p1)
-       ) ;case
-  =>
-  #<unspecified>
-) ;check
-(check (case '&
-             ((+ -) 'p0)
-             ((* /) 'p1)
-       ) ;case
-  =>
-  #<unspecified>
-) ;check
+(check (case '+ ((+ -) 'p0) ((* /) 'p1)) => 'p0)
+(check (case '- ((+ -) 'p0) ((* /) 'p1)) => 'p0)
+(check (case '* ((+ -) 'p0) ((* /) 'p1)) => 'p1)
+(check (case '@ ((+ -) 'p0) ((* /) 'p1)) => #<unspecified>)
+(check (case '& ((+ -) 'p0) ((* /) 'p1)) => #<unspecified>)
 (check-report)

@@ -54,19 +54,9 @@
 (check (abs 1/3) => 1/3)
 (check (abs -1/3) => 1/3)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (abs 1.0+2.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (abs "hello")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (abs 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (abs)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (abs 1 2 3)
-) ;check-catch
+(check-catch 'wrong-type-arg (abs 1.0+2.0i))
+(check-catch 'wrong-type-arg (abs "hello"))
+(check-catch 'wrong-type-arg (abs 'symbol))
+(check-catch 'wrong-number-of-args (abs))
+(check-catch 'wrong-number-of-args (abs 1 2 3))
 (check-report)

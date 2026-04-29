@@ -42,10 +42,7 @@
 (check (char=? #\0 #\9) => #f)
 ;; 特殊字符测试
 (check (char=? #\space #\space) => #t)
-(check (char=? #\newline #\newline)
-  =>
-  #t
-) ;check
+(check (char=? #\newline #\newline) => #t)
 (check (char=? #\tab #\tab) => #t)
 (check (char=? #\space #\newline) => #f)
 ;; 多参数测试
@@ -54,14 +51,8 @@
 (check (char=? #\A #\A #\a) => #f)
 (check (char=? #\a #\b #\c) => #f)
 ;; 边界测试
-(check (char=? #\0 #\0 #\0 #\0 #\0)
-  =>
-  #t
-) ;check
-(check (char=? #\A #\A #\A #\A #\a)
-  =>
-  #f
-) ;check
+(check (char=? #\0 #\0 #\0 #\0 #\0) => #t)
+(check (char=? #\A #\A #\A #\A #\a) => #f)
 (check (char=? #\z #\z #\z) => #t)
 (check (char=? #\! #\! #\!) => #t)
 ;; 数字字符测试
@@ -71,21 +62,11 @@
 (check (char=? #\a #\b #\c #\d) => #f)
 (check (char=? #\A #\B #\C) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (char=? 1 #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char=? #\A 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char=? 123 #\a)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char=? #\A)
-) ;check-catch
+(check-catch 'wrong-type-arg (char=? 1 #\A))
+(check-catch 'wrong-type-arg (char=? #\A 'symbol))
+(check-catch 'wrong-type-arg (char=? 123 #\a))
+(check-catch 'wrong-number-of-args (char=?))
+(check-catch 'wrong-number-of-args (char=? #\A))
 ;; Unicode 字符测试
 (check (char=? #\中 #\中) => #t)
 (check (char=? #\中 #\x4E2D) => #t)

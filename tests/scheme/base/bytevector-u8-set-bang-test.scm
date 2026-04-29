@@ -43,25 +43,11 @@
   (check bv => #u8(10))
 ) ;let
 ;; 错误处理测试
-(check-catch 'out-of-range
-  (bytevector-u8-set! #u8() 0 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-set! #u8(1 2 3) -1 5)
-) ;check-catch
-(check-catch 'out-of-range
-  (bytevector-u8-set! #u8(1 2 3) 3 5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-set! 123 0 5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-set! "hello" 0 5)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-set! #u8(1 2 3) 1 256)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (bytevector-u8-set! #u8(1 2 3) 1 -1)
-) ;check-catch
+(check-catch 'out-of-range (bytevector-u8-set! #u8() 0 5))
+(check-catch 'out-of-range (bytevector-u8-set! #u8(1 2 3) -1 5))
+(check-catch 'out-of-range (bytevector-u8-set! #u8(1 2 3) 3 5))
+(check-catch 'wrong-type-arg (bytevector-u8-set! 123 0 5))
+(check-catch 'wrong-type-arg (bytevector-u8-set! "hello" 0 5))
+(check-catch 'wrong-type-arg (bytevector-u8-set! #u8(1 2 3) 1 256))
+(check-catch 'wrong-type-arg (bytevector-u8-set! #u8(1 2 3) 1 -1))
 (check-report)

@@ -38,29 +38,13 @@
   (vector-set! v 1 99)
   (check v => #(1 99 3))
 ) ;let
-(check-catch 'wrong-number-of-args
-  (vector-set! #(1))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (vector-set! #(1) 0)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (vector-set! #(1) 0 0 0)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-set! '() 0 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-set! #(1) 'a 'b)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-set! #() 0 'a)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-set! #(a) 1 'b)
-) ;check-catch
-(check-catch 'out-of-range
-  (vector-set! #(a b) -1 'c)
-) ;check-catch
+(check-catch 'wrong-number-of-args (vector-set! #(1)))
+(check-catch 'wrong-number-of-args (vector-set! #(1) 0))
+(check-catch 'wrong-number-of-args (vector-set! #(1) 0 0 0))
+(check-catch 'wrong-type-arg (vector-set! '() 0 'a))
+(check-catch 'wrong-type-arg (vector-set! #(1) 'a 'b))
+(check-catch 'out-of-range (vector-set! #() 0 'a))
+(check-catch 'out-of-range (vector-set! #(a) 1 'b))
+(check-catch 'out-of-range (vector-set! #(a b) -1 'c))
 
 (check-report)

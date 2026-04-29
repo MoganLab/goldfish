@@ -29,29 +29,12 @@
 ;; 3. 空字节向量返回空字符串
 (check (utf8->string #u8()) => "")
 (check (utf8->string #u8(97)) => "a")
-(check (utf8->string #u8(72 101 108 108 111))
-  =>
-  "Hello"
-) ;check
-(check (utf8->string #u8(228 184 150 231 149 140)
-       ) ;utf8->string
-  =>
-  "世界"
-) ;check
-(check (utf8->string #u8(97 98 99) 1)
-  =>
-  "bc"
-) ;check
-(check (utf8->string #u8(97 98 99) 0 2)
-  =>
-  "ab"
-) ;check
-(check-catch 'wrong-type-arg
-  (utf8->string)
-) ;check-catch
+(check (utf8->string #u8(72 101 108 108 111)) => "Hello")
+(check (utf8->string #u8(228 184 150 231 149 140)) => "世界")
+(check (utf8->string #u8(97 98 99) 1) => "bc")
+(check (utf8->string #u8(97 98 99) 0 2) => "ab")
+(check-catch 'wrong-type-arg (utf8->string))
 (check (utf8->string '()) => "")
-(check-catch 'value-error
-  (utf8->string #u8(255))
-) ;check-catch
+(check-catch 'value-error (utf8->string #u8(255)))
 
 (check-report)

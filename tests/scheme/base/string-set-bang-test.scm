@@ -103,44 +103,22 @@
 ;; 错误处理测试
 ;; 索引越界测试
 (let ((str (string-copy "abc")))
-  (check-catch 'out-of-range
-    (string-set! str -1 #\x)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (string-set! str 3 #\x)
-  ) ;check-catch
+  (check-catch 'out-of-range (string-set! str -1 #\x))
+  (check-catch 'out-of-range (string-set! str 3 #\x))
 ) ;let
 (let ((str (string-copy "")))
-  (check-catch 'out-of-range
-    (string-set! str 0 #\x)
-  ) ;check-catch
+  (check-catch 'out-of-range (string-set! str 0 #\x))
 ) ;let
 ;; 类型错误测试
-(check-catch 'wrong-type-arg
-  (string-set! 123 0 #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-set! "hello" 0.5 #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-set! "hello" 0 123)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-set! "hello" 1 "A")
-) ;check-catch
+(check-catch 'wrong-type-arg (string-set! 123 0 #\A))
+(check-catch 'wrong-type-arg (string-set! "hello" 0.5 #\A))
+(check-catch 'wrong-type-arg (string-set! "hello" 0 123))
+(check-catch 'wrong-type-arg (string-set! "hello" 1 "A"))
 ;; 参数数量错误测试
-(check-catch 'wrong-number-of-args
-  (string-set!)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-set! "hello")
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-set! "hello" 1)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-set! "hello" 1 #\a #\b)
-) ;check-catch
+(check-catch 'wrong-number-of-args (string-set!))
+(check-catch 'wrong-number-of-args (string-set! "hello"))
+(check-catch 'wrong-number-of-args (string-set! "hello" 1))
+(check-catch 'wrong-number-of-args (string-set! "hello" 1 #\a #\b))
 ;; 变量引用一致性测试
 (let ((str1 (string-copy "hello")))
   (let ((str2 str1))

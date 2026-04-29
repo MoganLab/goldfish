@@ -24,25 +24,11 @@
 ;; 2. 向量中每个元素必须是字符
 (check (vector->string #()) => "")
 (check (vector->string #(#\a)) => "a")
-(check (vector->string #(#\a #\b #\c))
-  =>
-  "abc"
-) ;check
-(check (vector->string #(#\1 #\2))
-  =>
-  "12"
-) ;check
-(check (string-length (vector->string #(#\x #\y #\z))
-       ) ;string-length
-  =>
-  3
-) ;check
-(check-catch 'wrong-type-arg
-  (vector->string)
-) ;check-catch
+(check (vector->string #(#\a #\b #\c)) => "abc")
+(check (vector->string #(#\1 #\2)) => "12")
+(check (string-length (vector->string #(#\x #\y #\z))) => 3)
+(check-catch 'wrong-type-arg (vector->string))
 (check (vector->string '()) => "")
-(check-catch 'wrong-type-arg
-  (vector->string #(1 2))
-) ;check-catch
+(check-catch 'wrong-type-arg (vector->string #(1 2)))
 
 (check-report)

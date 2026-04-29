@@ -29,10 +29,7 @@
 (check (numerator -3/7) => -3)
 (check (numerator 5) => 5)
 (check (numerator 0) => 0)
-(check (numerator (inexact->exact 2.5))
-  =>
-  5
-) ;check
+(check (numerator (inexact->exact 2.5)) => 5)
 ;; 补充numerator测试
 (check (numerator 42) => 42)
 (check (numerator -42) => -42)

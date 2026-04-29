@@ -28,12 +28,7 @@
 ;; 表达式测试 - 条件为真
 (check (when (> 3 1) 1) => 1)
 ;; 表达式测试 - 条件为假
-(check (when (> 1 3)
-         1
-       ) ;when
-  =>
-  #<unspecified>
-) ;check
+(check (when (> 1 3) 1) => #<unspecified>)
 ;; 多表达式测试
 (check (let ((result '()))
          (when #t

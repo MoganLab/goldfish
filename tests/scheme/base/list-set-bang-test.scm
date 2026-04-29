@@ -253,9 +253,7 @@
 ) ;let
 ;; 空列表面界测试
 (let ((lst (list)))
-  (check-catch 'wrong-type-arg
-    (list-set! lst 0 'value)
-  ) ;check-catch
+  (check-catch 'wrong-type-arg (list-set! lst 0 'value))
 ) ;let
 ;; 各种数据类型测试
 (let ((lst (list 1 "text" #t 'symbol)))
@@ -263,10 +261,7 @@
   (list-set! lst 1 "modified")
   (list-set! lst 2 #f)
   (list-set! lst 3 'changed)
-  (check lst
-    =>
-    '(42 "modified" #f changed)
-  ) ;check
+  (check lst => '(42 "modified" #f changed))
 ) ;let
 ;; 字符数据类型测试
 (let ((lst (list #\a #\b #\c #\d)))
@@ -277,10 +272,7 @@
 ;; 字符串数据类型测试
 (let ((lst (list "hello" "world" "test")))
   (list-set! lst 1 "modified")
-  (check lst
-    =>
-    '("hello" "modified" "test")
-  ) ;check
+  (check lst => '("hello" "modified" "test"))
 ) ;let
 ;; 布尔数据类型测试
 (let ((lst (list #t #f #t)))
@@ -290,18 +282,12 @@
 ;; 符号数据类型测试
 (let ((lst (list 'define 'lambda 'if 'cond)))
   (list-set! lst 2 'when)
-  (check lst
-    =>
-    '(define lambda when cond)
-  ) ;check
+  (check lst => '(define lambda when cond))
 ) ;let
 ;; 过程数据类型测试
 (let ((lst (list car cdr cons)))
   (list-set! lst 0 list)
-  (check (procedure? (list-ref lst 0))
-    =>
-    #t
-  ) ;check
+  (check (procedure? (list-ref lst 0)) => #t)
 ) ;let
 ;; 嵌套子列表结构测试
 (let ((lst (list '(a b) '(c d) '(e f))))
@@ -309,24 +295,14 @@
   (check lst => '((a b) (x y z) (e f)))
 ) ;let
 ;; 嵌套结构替换测试
-(let ((lst (list (list 'a) (list 'b) (list 'c))
-      ) ;lst
-     ) ;
+(let ((lst (list (list 'a) (list 'b) (list 'c))))
   (list-set! lst 1 (list 'x 'y))
   (check lst => '((a) (x y) (c)))
 ) ;let
 ;; 深度嵌套结构测试
-(let ((lst (list (list (list 1))
-             (list 2)
-             (list (list 3))
-           ) ;list
-      ) ;lst
-     ) ;
+(let ((lst (list (list (list 1)) (list 2) (list (list 3)))))
   (list-set! lst 1 (list 'new 'structure))
-  (check lst
-    =>
-    '(((1)) (new structure) ((3)))
-  ) ;check
+  (check lst => '(((1)) (new structure) ((3))))
 ) ;let
 ;; 向量和字节向量元素测试
 (let ((lst (list #(1 2 3) #u8(255 128))))
@@ -335,54 +311,21 @@
   (check lst => '(#(4 5 6) #(100 200)))
 ) ;let
 ;; Unicode字符串元素测试
-(let ((lst (list "中文" "测试" "字符串")
-      ) ;lst
-     ) ;
+(let ((lst (list "中文" "测试" "字符串")))
   (list-set! lst 1 "修改")
-  (check lst
-    =>
-    '("中文" "修改" "字符串")
-  ) ;check
+  (check lst => '("中文" "修改" "字符串"))
 ) ;let
 ;; 构造器函数列表测试
 (let ((lst (make-list 4 'placeholder)))
   (list-set! lst 1 'second)
   (list-set! lst 3 'last)
-  (check lst
-    =>
-    '(placeholder second placeholder last)
-  ) ;check
+  (check lst => '(placeholder second placeholder last))
 ) ;let
 ;; 长列表性能测试
-(let ((lst (list 1
-             2
-             3
-             4
-             5
-             6
-             7
-             8
-             9
-             10
-             11
-             12
-             13
-             14
-             15
-             16
-             17
-             18
-             19
-             20
-           ) ;list
-      ) ;lst
-     ) ;
+(let ((lst (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20)))
   (list-set! lst 5 'five)
   (list-set! lst 15 'fifteen)
-  (check lst
-    =>
-    '(1 2 3 4 5 five 7 8 9 10 11 12 13 14 15 fifteen 17 18 19 20)
-  ) ;check
+  (check lst => '(1 2 3 4 5 five 7 8 9 10 11 12 13 14 15 fifteen 17 18 19 20))
 ) ;let
 ;; 空字符串和空列表元素测试
 (let ((lst (list "" (list) "abc")))
@@ -402,56 +345,28 @@
   (check lst => '(#t #f 42 "hello"))
 ) ;let
 ;; 错误参数类型测试
-(check-catch 'wrong-type-arg
-  (list-set! 123 0 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (list-set! "string" 1 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (list-set! #t 0 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (list-set! 'symbol 1 'value)
-) ;check-catch
+(check-catch 'wrong-type-arg (list-set! 123 0 'value))
+(check-catch 'wrong-type-arg (list-set! "string" 1 'value))
+(check-catch 'wrong-type-arg (list-set! #t 0 'value))
+(check-catch 'wrong-type-arg (list-set! 'symbol 1 'value))
 ;; 索引越界测试
 (let ((lst (list 'a 'b 'c)))
-  (check-catch 'out-of-range
-    (list-set! lst -1 'value)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (list-set! lst 3 'value)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (list-set! lst 4 'value)
-  ) ;check-catch
+  (check-catch 'out-of-range (list-set! lst -1 'value))
+  (check-catch 'out-of-range (list-set! lst 3 'value))
+  (check-catch 'out-of-range (list-set! lst 4 'value))
 ) ;let
 (let ((lst (list 'single)))
-  (check-catch 'out-of-range
-    (list-set! lst 1 'value)
-  ) ;check-catch
-  (check-catch 'out-of-range
-    (list-set! lst -1 'value)
-  ) ;check-catch
+  (check-catch 'out-of-range (list-set! lst 1 'value))
+  (check-catch 'out-of-range (list-set! lst -1 'value))
 ) ;let
 ;; 参数数量错误测试
-(check-catch 'wrong-number-of-args
-  (list-set!)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list-set! '(a b c))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list-set! '(a b c) 1)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list-set! '(a b c) 1 'x 'y)
-) ;check-catch
+(check-catch 'wrong-number-of-args (list-set!))
+(check-catch 'wrong-number-of-args (list-set! '(a b c)))
+(check-catch 'wrong-number-of-args (list-set! '(a b c) 1))
+(check-catch 'wrong-number-of-args (list-set! '(a b c) 1 'x 'y))
 ;; 大整数索引边界测试
 (let ((lst '(a b c d e f g h i j)))
-  (check-catch 'out-of-range
-    (list-set! lst 11 'value)
-  ) ;check-catch
+  (check-catch 'out-of-range (list-set! lst 11 'value))
 ) ;let
 ;; 验证突变影响（共享引用测试）
 (let ((original (list 'a 'b 'c 'd 'e)))
@@ -471,8 +386,7 @@
   ) ;let
 ) ;let
 ;; 被修改引用关系保持测试
-(let ((lst (cons 10 (cons 20 (cons 30 '()))))
-     ) ;
+(let ((lst (cons 10 (cons 20 (cons 30 '())))))
   (list-set! lst 1 200)
   (list-set! lst 2 300)
   (check lst => '(10 200 300))

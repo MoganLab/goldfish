@@ -45,23 +45,14 @@
 (check (char<=? #\a #\a #\a) => #t)
 (check (char<=? #\0 #\0) => #t)
 ;; 特殊字符测试
-(check (char<=? #\space #\newline)
-  =>
-  #f
-) ;check
+(check (char<=? #\space #\newline) => #f)
 (check (char<=? #\tab #\tab) => #t)
-(check (char<=? #\newline #\space)
-  =>
-  #t
-) ;check
+(check (char<=? #\newline #\space) => #t)
 ;; 多参数非严格升序测试
 (check (char<=? #\A #\B #\C) => #t)
 (check (char<=? #\A #\A #\B) => #t)
 (check (char<=? #\a #\b #\c) => #t)
-(check (char<=? #\0 #\0 #\1 #\1 #\2)
-  =>
-  #t
-) ;check
+(check (char<=? #\0 #\0 #\1 #\1 #\2) => #t)
 ;; 多参数非升序测试
 (check (char<=? #\A #\B #\A) => #f)
 (check (char<=? #\b #\a) => #f)
@@ -79,20 +70,12 @@
 (check (char<=? #\5 #\5) => #t)
 (check (char<=? #\9 #\8) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (char<=? 1 #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char<=? #\A 'symbol)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char<=?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char<=? #\A)
-) ;check-catch
+(check-catch 'wrong-type-arg (char<=? 1 #\A))
+(check-catch 'wrong-type-arg (char<=? #\A 'symbol))
+(check-catch 'wrong-number-of-args (char<=?))
+(check-catch 'wrong-number-of-args (char<=? #\A))
 ;; Unicode 字符测试
-(check (char<=? #\A #\中) => #t)  ; 65 <= 20013
+(check (char<=? #\A #\中) => #t)
 (check (char<=? #\中 #\中) => #t)
-(check (char<=? #\文 #\中) => #f)  ; 25991 <= 20013
+(check (char<=? #\文 #\中) => #f)
 (check-report)

@@ -47,11 +47,7 @@
 (check (<= 1.1 1) => #f)
 (check (<= 0.0 0.0) => #t)
 (check-catch 'wrong-number-of-args (<=))
-(check-catch 'wrong-number-of-args
-  (<= 1)
-) ;check-catch
+(check-catch 'wrong-number-of-args (<= 1))
 (check-catch 'wrong-type-arg (<= 1 'a))
-(check-catch 'wrong-type-arg
-  (<= "hello" 2)
-) ;check-catch
+(check-catch 'wrong-type-arg (<= "hello" 2))
 (check-report)

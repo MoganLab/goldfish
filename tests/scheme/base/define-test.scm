@@ -31,9 +31,13 @@
 ;; 3. 在顶层或函数体内使用
 (define test-var 42)
 (check test-var => 42)
-(define (square x) (* x x))
+(define (square x)
+  (* x x)
+) ;define
 (check (square 5) => 25)
-(define (add a b) (+ a b))
+(define (add a b)
+  (+ a b)
+) ;define
 (check (add 2 3) => 5)
 
 (check-report)

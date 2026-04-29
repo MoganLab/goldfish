@@ -29,31 +29,15 @@
 (check (floor-remainder 17 -5) => -3)
 (check (floor-remainder -17 -5) => -2)
 ;; 与 modulo 对比
-(check (floor-remainder 10 3)
-  =>
-  (modulo 10 3)
-) ;check
-(check (floor-remainder -10 3)
-  =>
-  (modulo -10 3)
-) ;check
-(check (floor-remainder 10 -3)
-  =>
-  (modulo 10 -3)
-) ;check
-(check (floor-remainder -10 -3)
-  =>
-  (modulo -10 -3)
-) ;check
+(check (floor-remainder 10 3) => (modulo 10 3))
+(check (floor-remainder -10 3) => (modulo -10 3))
+(check (floor-remainder 10 -3) => (modulo 10 -3))
+(check (floor-remainder -10 -3) => (modulo -10 -3))
 ;; 边界测试
 (check (floor-remainder 0 5) => 0)
 (check (floor-remainder 5 5) => 0)
 (check (floor-remainder 1 5) => 1)
 ;; 错误测试
-(check-catch 'division-by-zero
-  (floor-remainder 10 0)
-) ;check-catch
-(check-catch 'type-error
-  (floor-remainder "10" 5)
-) ;check-catch
+(check-catch 'division-by-zero (floor-remainder 10 0))
+(check-catch 'type-error (floor-remainder "10" 5))
 (check-report)

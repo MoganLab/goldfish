@@ -29,22 +29,13 @@
 (check (denominator -3/7) => 7)
 (check (denominator 5) => 1)
 (check (denominator 0) => 1)
-(check (denominator (inexact->exact 2.5))
-  =>
-  2
-) ;check
+(check (denominator (inexact->exact 2.5)) => 2)
 ;; 补充denominator测试
 (check (denominator 42) => 1)
 (check (denominator -42) => 1)
 (check (denominator 1/3) => 3)
 (check (denominator 2) => 1)
 (check (denominator -1/2) => 2)
-(check (denominator (inexact->exact 5.5))
-  =>
-  2
-) ;check
-(check (denominator (inexact->exact 0.25))
-  =>
-  4
-) ;check
+(check (denominator (inexact->exact 5.5)) => 2)
+(check (denominator (inexact->exact 0.25)) => 4)
 (check-report)

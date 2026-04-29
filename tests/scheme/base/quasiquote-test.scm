@@ -31,7 +31,7 @@
 (let ((lst '(b c)))
   (check `(a ,@lst d) => '(a b c d))
 ) ;let
-(check `(1 2 3) => '(1 2 3))
-(check `hello => 'hello)
+(check '(1 2 3) => '(1 2 3))
+(check 'hello => 'hello)
 
 (check-report)

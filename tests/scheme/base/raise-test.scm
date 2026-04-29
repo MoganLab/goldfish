@@ -21,27 +21,14 @@
 ;; 测试抛出字符串
 (check-catch #t (raise "error message"))
 ;; 测试抛出列表
-(check-catch #t
-  (raise '(error type "message"))
-) ;check-catch
+(check-catch #t (raise '(error type "message")))
 ;; 测试 guard 捕获 raise
-(let ((result (guard (ex (else ex))
-                (raise 'test-error)
-                'unreachable
-              ) ;guard
-      ) ;result
-     ) ;
+(let ((result (guard (ex (else ex)) (raise 'test-error) 'unreachable)))
   (check (eq? result 'test-error) => #t)
 ) ;let
 ;; 测试 raise 后代码不执行
 (let ((executed #f))
-  (catch #t
-    (lambda ()
-      (raise 'error)
-      (set! executed #t)
-    ) ;lambda
-    (lambda args 'caught)
-  ) ;catch
+  (catch #t (lambda () (raise 'error) (set! executed #t)) (lambda args 'caught))
   (check executed => #f)
 ) ;let
 (check-report)

@@ -25,14 +25,8 @@
 ;; 3. 返回新向量，不修改原向量
 (check (vector-append) => #())
 (check (vector-append #(a)) => #(a))
-(check (vector-append #(a b) #(c d))
-  =>
-  #(a b c d)
-) ;check
-(check (vector-append #(1) #(2) #(3))
-  =>
-  #(1 2 3)
-) ;check
+(check (vector-append #(a b) #(c d)) => #(a b c d))
+(check (vector-append #(1) #(2) #(3)) => #(1 2 3))
 (check (vector-append #() #(a)) => #(a))
 (check (vector-append #(a) #()) => #(a))
 (check (vector-append #() #()) => #())
@@ -43,11 +37,7 @@
     (check result => #(x b c))
   ) ;let
 ) ;let
-(check-catch 'wrong-type-arg
-  (vector-append 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector-append #(1) 'a)
-) ;check-catch
+(check-catch 'wrong-type-arg (vector-append 'a))
+(check-catch 'wrong-type-arg (vector-append #(1) 'a))
 
 (check-report)

@@ -22,22 +22,12 @@
 ;; ----
 ;; 1. 在 S7 Scheme 中，所有端口同时被视为二进制端口和文本端口
 ;; 2. 非端口对象返回 #f
-(check (binary-port? (current-input-port))
-  =>
-  #t
-) ;check
-(check (binary-port? (current-output-port))
-  =>
-  #t
-) ;check
+(check (binary-port? (current-input-port)) => #t)
+(check (binary-port? (current-output-port)) => #t)
 (check (binary-port? '()) => #f)
 (check (binary-port? "abc") => #f)
 (check (binary-port? 123) => #f)
-(check-catch 'wrong-number-of-args
-  (binary-port?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (binary-port? 1 2)
-) ;check-catch
+(check-catch 'wrong-number-of-args (binary-port?))
+(check-catch 'wrong-number-of-args (binary-port? 1 2))
 
 (check-report)

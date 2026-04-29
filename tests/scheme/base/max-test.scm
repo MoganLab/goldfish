@@ -52,30 +52,19 @@
 (check (max -inf.0 7 3) => 7.0)
 (check (nan? (max +nan.0 7 3)) => #t)
 (check (nan? (max 7 +nan.0 3)) => #t)
-(check (nan? (max +nan.0 +inf.0 -inf.0))
-  =>
-  #t
-) ;check
+(check (nan? (max +nan.0 +inf.0 -inf.0)) => #t)
 (check (max 7 3.0 5/4) => 7.0)
 (check (max 5.0 7/2 8) => 8.0)
 (check (max +inf.0 7 3/4) => +inf.0)
 (check (max -inf.0 7 3.0) => 7.0)
 (check (nan? (max +nan.0 7.0 3)) => #t)
 (check (nan? (max 7/3 +nan.0 3)) => #t)
-(check-catch 'wrong-number-of-args
-  (max)
-) ;check-catch
+(check-catch 'wrong-number-of-args (max))
 (check-catch 'type-error (max 'hello 7))
-(check-catch 'type-error
-  (max "world" 7)
-) ;check-catch
+(check-catch 'type-error (max "world" 7))
 (check-catch 'type-error (max #t 7))
 (check-catch 'type-error (max #f 7))
-(check-catch 'type-error
-  (max '(1 3 5) 7)
-) ;check-catch
+(check-catch 'type-error (max '(1 3 5) 7))
 (check-catch 'type-error (max '() 7))
-(check-catch 'type-error
-  (max 1.0+2.0i 2)
-) ;check-catch
+(check-catch 'type-error (max 1.0+2.0i 2))
 (check-report)

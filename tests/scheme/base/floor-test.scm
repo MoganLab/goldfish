@@ -30,15 +30,9 @@
 (check (floor 0) => 0)
 (check (floor -1) => -1)
 (check (floor -1.2) => -2.0)
-(check-catch 'wrong-type-arg
-  (floor 2.0+4.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (floor 'hello')
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (floor 4 5)
-) ;check-catch
+(check-catch 'wrong-type-arg (floor 2.0+4.0i))
+(check-catch 'wrong-type-arg (floor 'hello'))
+(check-catch 'wrong-number-of-args (floor 4 5))
 (check (s7-floor 1.1) => 1)
 (check (s7-floor -1.2) => -2)
 (check-report)

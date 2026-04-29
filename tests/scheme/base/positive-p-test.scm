@@ -33,22 +33,10 @@
 (check-false (positive? -1/2))
 (check-false (positive? -inf.0))
 (check-false (positive? +nan.0))
-(check-catch 'wrong-type-arg
-  (positive? 1.0+1.0i)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (positive? #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (positive? #t)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (positive? "not-a-number")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (positive? 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (positive? '(1 2 3))
-) ;check-catch
+(check-catch 'wrong-type-arg (positive? 1.0+1.0i))
+(check-catch 'wrong-type-arg (positive? #\A))
+(check-catch 'wrong-type-arg (positive? #t))
+(check-catch 'wrong-type-arg (positive? "not-a-number"))
+(check-catch 'wrong-type-arg (positive? 'symbol))
+(check-catch 'wrong-type-arg (positive? '(1 2 3)))
 (check-report)

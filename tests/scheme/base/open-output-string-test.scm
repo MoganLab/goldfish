@@ -19,16 +19,10 @@
 ) ;let
 (let ((port (open-output-string)))
   (display "abc" port)
-  (check (get-output-string port)
-    =>
-    "abc"
-  ) ;check
+  (check (get-output-string port) => "abc")
 ) ;let
 (let ((port (open-output-string)))
   (display "λμ" port)
-  (check (get-output-string port)
-    =>
-    "λμ"
-  ) ;check
+  (check (get-output-string port) => "λμ")
 ) ;let
 (check-report)

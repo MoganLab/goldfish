@@ -24,19 +24,12 @@
 ;; ------
 ;; 在 proc 返回后关闭端口。
 ;; 测试输入端口
-(let ((result (call-with-port (open-input-string "hello")
-                (lambda (p) (read p))
-              ) ;call-with-port
-      ) ;result
-     ) ;
+(let ((result (call-with-port (open-input-string "hello") (lambda (p) (read p)))))
   (check result => 'hello)
 ) ;let
 ;; 测试输出端口
 (let ((result (call-with-port (open-output-string)
-                (lambda (p)
-                  (display "test" p)
-                  (get-output-string p)
-                ) ;lambda
+                (lambda (p) (display "test" p) (get-output-string p))
               ) ;call-with-port
       ) ;result
      ) ;

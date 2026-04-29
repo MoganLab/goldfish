@@ -25,14 +25,9 @@
 ;; 如果 port 参数不是由 open-output-string 创建的端口，抛出错误。
 (let ((port (open-output-string)))
   (display "xyz" port)
-  (check (get-output-string port)
-    =>
-    "xyz"
-  ) ;check
+  (check (get-output-string port) => "xyz")
 ) ;let
 (let ((port (open-input-string "ERROR")))
-  (check-catch 'wrong-type-arg
-    (get-output-string port)
-  ) ;check-catch
+  (check-catch 'wrong-type-arg (get-output-string port))
 ) ;let
 (check-report)

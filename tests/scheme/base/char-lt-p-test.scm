@@ -50,10 +50,7 @@
 ;; 多参数升序测试
 (check (char<? #\A #\B #\C) => #t)
 (check (char<? #\a #\b #\c) => #t)
-(check (char<? #\0 #\1 #\2 #\3 #\4)
-  =>
-  #t
-) ;check
+(check (char<? #\0 #\1 #\2 #\3 #\4) => #t)
 (check (char<? #\! #\# #\$ #\%) => #t)
 ;; 多参数非升序测试
 (check (char<? #\A #\B #\A) => #f)
@@ -73,23 +70,13 @@
 (check (char<? #\5 #\5) => #f)
 (check (char<? #\9 #\8) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg
-  (char<? 1 #\A)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char<? #\A 'symbol)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (char<? 123 #\a)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char<?)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (char<? #\A)
-) ;check-catch
+(check-catch 'wrong-type-arg (char<? 1 #\A))
+(check-catch 'wrong-type-arg (char<? #\A 'symbol))
+(check-catch 'wrong-type-arg (char<? 123 #\a))
+(check-catch 'wrong-number-of-args (char<?))
+(check-catch 'wrong-number-of-args (char<? #\A))
 ;; Unicode 字符测试
-(check (char<? #\A #\中) => #t)  ; 65 < 20013
-(check (char<? #\中 #\文) => #t)  ; 20013 < 25991
+(check (char<? #\A #\中) => #t)
+(check (char<? #\中 #\文) => #t)
 (check (char<? #\中 #\中) => #f)
 (check-report)

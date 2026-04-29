@@ -118,37 +118,24 @@
 (check (length '((a b) (c d) e)) => 3)
 (check (length '((a) (b) (c))) => 3)
 (check (length '(((a b) c) d e)) => 3)
-(check (length '((1 2 3 4) (5 6 7 8)))
-  =>
-  2
-) ;check
+(check (length '((1 2 3 4) (5 6 7 8))) => 2)
 ;; length 复杂数据结构测试
-(check (length '((first 1) (second 2) (third 3))
-       ) ;length
-  =>
-  3
-) ;check
-(check (length '("hello" "world" "test"))
-  =>
-  3
-) ;check
-(check (length '(#t #f (#_quote symbol)))
-  =>
-  3
-) ;check
-(check (length '(42 3.14 "string" #t))
-  =>
-  4
-) ;check
+(check (length '((first 1) (second 2) (third 3))) => 3)
+(check (length '("hello" "world" "test")) => 3)
+(check (length '(#t #f (#_quote symbol))) => 3)
+(check (length '(42 3.14 "string" #t)) => 4)
 ;; length 边界测试：各种规模列表
 (check (length '(a)) => 1)
 (check (length '(a b)) => 2)
-(check (length '(a b c d e f g h i j))
-  =>
-  10
-) ;check
-(check (length '(long list with many elements potentially spanning multiple lines)
-       ) ;length
+(check (length '(a b c d e f g h i j)) => 10)
+(check (length '(long list
+                  with
+                  many
+                  elements
+                  potentially
+                  spanning
+                  multiple
+                  lines))
   =>
   9
 ) ;check
@@ -159,39 +146,17 @@
 (check (length '(single)) => 1)
 ;; length 字符和数字列表测试
 (check (length '(#\a #\b #\c #\d)) => 4)
-(check (length '(0 1 2 3 4 5 6 7 8 9))
-  =>
-  10
-) ;check
-(check (length '("zero" "one" "two" "three" "four")
-       ) ;length
-  =>
-  5
-) ;check
+(check (length '(0 1 2 3 4 5 6 7 8 9)) => 10)
+(check (length '("zero" "one" "two" "three" "four")) => 5)
 ;; length 列表构造函数测试
 (check (length (make-list 3 #\a)) => 3)
 (check (length (make-list 0)) => 0)
-(check (length (make-list 5 'value))
-  =>
-  5
-) ;check
+(check (length (make-list 5 'value)) => 5)
 ;; length 列表操作函数结果测试
-(check (length (append '(1 2) '(3 4 5)))
-  =>
-  5
-) ;check
-(check (length (append '() '(a b c)))
-  =>
-  3
-) ;check
-(check (length (append '(x y) '()))
-  =>
-  2
-) ;check
-(check (length (reverse '(a b c d)))
-  =>
-  4
-) ;check
+(check (length (append '(1 2) '(3 4 5))) => 5)
+(check (length (append '() '(a b c))) => 3)
+(check (length (append '(x y) '())) => 2)
+(check (length (reverse '(a b c d))) => 4)
 (check (length (reverse '())) => 0)
 ;; length 特殊测试：字符串和向量等
 (check (length "string") => 6)
@@ -212,35 +177,13 @@
 (check (length '(() () ())) => 3)
 (check (length '(() a b 3 c)) => 5)
 ;; length Unicode字符串列表测试
-(check (length '("中国" "美国" "日本"))
-  =>
-  3
-) ;check
-(check (length '("hello" "世界" "123"))
-  =>
-  3
-) ;check
+(check (length '("中国" "美国" "日本")) => 3)
+(check (length '("hello" "世界" "123")) => 3)
 ;; length 程序构造测试
-(check (length (let ((lst '(a b c))) lst))
-  =>
-  3
-) ;check
-(check (length (map square '(1 2 3 4)))
-  =>
-  4
-) ;check
-(check (length (filter symbol? '(a 1 b 2 c 3)))
-  =>
-  3
-) ;check
+(check (length (let ((lst '(a b c))) lst)) => 3)
+(check (length (map square '(1 2 3 4))) => 4)
+(check (length (filter symbol? '(a 1 b 2 c 3))) => 3)
 ;; length URL列表测试
-(check (length '("http://example.com" "https://test.org")
-       ) ;length
-  =>
-  2
-) ;check
-(check (length '(user admin guest moderator))
-  =>
-  4
-) ;check
+(check (length '("http://example.com" "https://test.org")) => 2)
+(check (length '(user admin guest moderator)) => 4)
 (check-report)

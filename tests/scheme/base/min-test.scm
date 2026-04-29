@@ -52,30 +52,19 @@
 (check (min -inf.0 7 3) => -inf.0)
 (check (nan? (min +nan.0 7 3)) => #t)
 (check (nan? (min 7 +nan.0 3)) => #t)
-(check (nan? (min +nan.0 +inf.0 -inf.0))
-  =>
-  #t
-) ;check
+(check (nan? (min +nan.0 +inf.0 -inf.0)) => #t)
 (check (min 7 3.0 15/4) => 3.0)
 (check (min 5.0 7/2 3) => 3.0)
 (check (min +inf.0 7 39/4) => 7.0)
 (check (min -inf.0 7 3.0) => -inf.0)
 (check (nan? (min +nan.0 7.0 3)) => #t)
 (check (nan? (min 7/3 +nan.0 3)) => #t)
-(check-catch 'wrong-number-of-args
-  (min)
-) ;check-catch
+(check-catch 'wrong-number-of-args (min))
 (check-catch 'type-error (min 'hello 7))
-(check-catch 'type-error
-  (min "world" 7)
-) ;check-catch
+(check-catch 'type-error (min "world" 7))
 (check-catch 'type-error (min #t 7))
 (check-catch 'type-error (min #f 7))
-(check-catch 'type-error
-  (min '(1 3 5) 7)
-) ;check-catch
+(check-catch 'type-error (min '(1 3 5) 7))
 (check-catch 'type-error (min '() 7))
-(check-catch 'type-error
-  (min 1.0+2.0i 2)
-) ;check-catch
+(check-catch 'type-error (min 1.0+2.0i 2))
 (check-report)

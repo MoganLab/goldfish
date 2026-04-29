@@ -26,19 +26,13 @@
 ;; 1. 抛出可捕获的错误
 ;; 2. 通常用于表示程序遇到无法恢复的情况
 ;; 3. 可用 catch 或 guard 捕获处理
-(check
-  (catch #t
-    (lambda () (error 'test-err) 'unreachable)
-    (lambda args 'caught)
-  ) ;catch
-  => 'caught
+(check (catch #t (lambda () (error 'test-err) 'unreachable) (lambda args 'caught))
+  =>
+  'caught
 ) ;check
-(check
-  (catch #t
-    (lambda () (error "message"))
-    (lambda args 'caught-msg)
-  ) ;catch
-  => 'caught-msg
+(check (catch #t (lambda () (error "message")) (lambda args 'caught-msg))
+  =>
+  'caught-msg
 ) ;check
 
 (check-report)

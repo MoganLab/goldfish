@@ -171,9 +171,7 @@
   ) ;let
 ) ;let
 ;; 测试set-car!对不同数据结构的影响
-(let ((pair (cons 'head 'tail))
-      (alist (list 'a 'b 'c 'd 'e))
-     ) ;
+(let ((pair (cons 'head 'tail)) (alist (list 'a 'b 'c 'd 'e)))
   ;; 修改点对结构
   (set-car! pair 'new-head)
   (check pair => '(new-head . tail))
@@ -185,38 +183,17 @@
   (check (cdr alist) => '(b c d e))
 ) ;let
 ;; set-car!错误处理测试
-(check-catch 'wrong-type-arg
-  (set-car! 123 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-car! '() 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-car! "string" 'value)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (set-car! #t 'value)
-) ;check-catch
+(check-catch 'wrong-type-arg (set-car! 123 'value))
+(check-catch 'wrong-type-arg (set-car! '() 'value))
+(check-catch 'wrong-type-arg (set-car! "string" 'value))
+(check-catch 'wrong-type-arg (set-car! #t 'value))
 ;; 测试参数数量错误
-(check-catch 'wrong-number-of-args
-  (set-car! (cons 1 2))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (set-car! (cons 1 2) 'a 'b)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (set-car!)
-) ;check-catch
+(check-catch 'wrong-number-of-args (set-car! (cons 1 2)))
+(check-catch 'wrong-number-of-args (set-car! (cons 1 2) 'a 'b))
+(check-catch 'wrong-number-of-args (set-car!))
 ;; 测试复杂对象的set-car!修改
-(let ((complex-pair (cons (list 'old-structure 'with-values)
-                      'remaining-cdr
-                    ) ;cons
-      ) ;complex-pair
-     ) ;
+(let ((complex-pair (cons (list 'old-structure 'with-values) 'remaining-cdr)))
   (set-car! complex-pair 'simplified)
-  (check complex-pair
-    =>
-    '(simplified . remaining-cdr)
-  ) ;check
+  (check complex-pair => '(simplified . remaining-cdr))
 ) ;let
 (check-report)

@@ -31,56 +31,23 @@
 (check (string-copy "") => "")
 (check (string-copy "abc") => "abc")
 ;; 子串复制（ASCII字符串，字节索引=字符索引）
-(check (string-copy "hello" 0)
-  =>
-  "hello"
-) ;check
-(check (string-copy "hello" 1)
-  =>
-  "ello"
-) ;check
+(check (string-copy "hello" 0) => "hello")
+(check (string-copy "hello" 1) => "ello")
 (check (string-copy "hello" 2) => "llo")
 (check (string-copy "hello" 4) => "o")
 (check (string-copy "hello" 5) => "")
 ;; 指定范围复制
-(check (string-copy "hello" 0 5)
-  =>
-  "hello"
-) ;check
-(check (string-copy "hello" 0 2)
-  =>
-  "he"
-) ;check
-(check (string-copy "hello" 1 4)
-  =>
-  "ell"
-) ;check
+(check (string-copy "hello" 0 5) => "hello")
+(check (string-copy "hello" 0 2) => "he")
+(check (string-copy "hello" 1 4) => "ell")
 (check (string-copy "hello" 2 3) => "l")
 (check (string-copy "hello" 3 3) => "")
 ;; 中文字符串（UTF-8，每个字符3字节）
-(check (string-copy "你好世界")
-  =>
-  "你好世界"
-) ;check
+(check (string-copy "你好世界") => "你好世界")
 ;; "你好世界" - "你"=3字节, "好"=3字节, "世"=3字节, "界"=3字节
-(check (string-copy "你好世界" 3)
-  =>
-  "好世界"
-) ;check
-(check (string-copy "你好世界" 6)
-  =>
-  "世界"
-) ;check
-(check (string-copy "你好世界" 0 3)
-  =>
-  "你"
-) ;check
-(check (string-copy "你好世界" 3 6)
-  =>
-  "好"
-) ;check
-(check (string-copy "你好世界" 0 6)
-  =>
-  "你好"
-) ;check
+(check (string-copy "你好世界" 3) => "好世界")
+(check (string-copy "你好世界" 6) => "世界")
+(check (string-copy "你好世界" 0 3) => "你")
+(check (string-copy "你好世界" 3 6) => "好")
+(check (string-copy "你好世界" 0 6) => "你好")
 (check-report)

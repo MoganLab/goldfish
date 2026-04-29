@@ -40,17 +40,9 @@
   (string-fill! s #\x 1 4)
   (check s => "axxxa")
 ) ;let
-(check-catch 'wrong-type-arg
-  (string-fill! '() #\a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-fill! "abc" 'a)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (string-fill! "abc")
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (string-fill! "abc" #\a #\b)
-) ;check-catch
+(check-catch 'wrong-type-arg (string-fill! '() #\a))
+(check-catch 'wrong-type-arg (string-fill! "abc" 'a))
+(check-catch 'wrong-number-of-args (string-fill! "abc"))
+(check-catch 'wrong-type-arg (string-fill! "abc" #\a #\b))
 
 (check-report)

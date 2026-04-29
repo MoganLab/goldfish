@@ -26,15 +26,11 @@
 ;; 2. 主要用于副作用操作
 ;; 3. 多个列表时按并行方式遍历
 (let ((result '()))
-  (for-each
-    (lambda (x) (set! result (cons x result)))
-    '(1 2 3)
-  ) ;for-each
+  (for-each (lambda (x) (set! result (cons x result))) '(1 2 3))
   (check result => '(3 2 1))
 ) ;let
 (let ((result '()))
-  (for-each
-    (lambda (x y) (set! result (cons (+ x y) result)))
+  (for-each (lambda (x y) (set! result (cons (+ x y) result)))
     '(1 2 3)
     '(10 20 30)
   ) ;for-each

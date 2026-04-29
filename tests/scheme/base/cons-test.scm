@@ -25,27 +25,15 @@
 ;; 1. 如果 obj2 是列表，则返回一个扩展后的列表
 ;; 2. 如果 obj2 不是列表，则返回一个非列表的点对
 (check (cons 'a '()) => '(a))
-(check (cons '(a) '(b c d))
-  =>
-  '((a) b c d)
-) ;check
+(check (cons '(a) '(b c d)) => '((a) b c d))
 (check (cons "a" '(b c)) => '("a" b c))
 (check (cons 'a 3) => '(a . 3))
 (check (cons '(a b) 'c) => '((a b) . c))
 (check (car (cons 'a 'b)) => 'a)
 (check (cdr (cons 'a 'b)) => 'b)
-(check (cons 1 (cons 2 (cons 3 '())))
-  =>
-  '(1 2 3)
-) ;check
-(check-catch 'wrong-number-of-args
-  (cons)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (cons 1)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (cons 1 2 3)
-) ;check-catch
+(check (cons 1 (cons 2 (cons 3 '()))) => '(1 2 3))
+(check-catch 'wrong-number-of-args (cons))
+(check-catch 'wrong-number-of-args (cons 1))
+(check-catch 'wrong-number-of-args (cons 1 2 3))
 
 (check-report)

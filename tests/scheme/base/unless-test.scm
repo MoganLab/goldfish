@@ -27,11 +27,15 @@
 (check (unless #f 'no) => 'no)
 (check (unless #t 'yes) => #<unspecified>)
 (let ((x 0))
-  (unless (> x 0) (set! x 1))
+  (unless (> x 0)
+    (set! x 1)
+  ) ;unless
   (check x => 1)
 ) ;let
 (let ((x 0))
-  (unless (< x 0) (set! x 2))
+  (unless (< x 0)
+    (set! x 2)
+  ) ;unless
   (check x => 2)
 ) ;let
 

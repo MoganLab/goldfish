@@ -27,12 +27,7 @@
 ;; 2. 执行结束后恢复原来的输出端口
 ;; 3. 文件会被覆盖
 (let ((tmp (path->string (path-join (path-temp-dir) "with-output-to-file-tmp.txt"))))
-  (let ((result
-         (with-output-to-file
-           tmp
-           (lambda () (display "hello") 'done)
-         ) ;with-output-to-file
-        )) ;result
+  (let ((result (with-output-to-file tmp (lambda () (display "hello") 'done))))
     (check result => 'done)
   ) ;let
 ) ;let

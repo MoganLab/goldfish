@@ -24,30 +24,12 @@
 ;; 2. 返回新列表，不修改原向量
 (check (vector->list #()) => '())
 (check (vector->list #(a)) => '(a))
-(check (vector->list #(1 2 3))
-  =>
-  '(1 2 3)
-) ;check
-(check (vector->list #("x" "y"))
-  =>
-  '("x" "y")
-) ;check
-(check (length (vector->list #(a b c d)))
-  =>
-  4
-) ;check
-(check (car (vector->list #(1 2 3)))
-  =>
-  1
-) ;check
-(check-catch 'wrong-number-of-args
-  (vector->list)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector->list '())
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (vector->list "abc")
-) ;check-catch
+(check (vector->list #(1 2 3)) => '(1 2 3))
+(check (vector->list #("x" "y")) => '("x" "y"))
+(check (length (vector->list #(a b c d))) => 4)
+(check (car (vector->list #(1 2 3))) => 1)
+(check-catch 'wrong-number-of-args (vector->list))
+(check-catch 'wrong-type-arg (vector->list '()))
+(check-catch 'wrong-type-arg (vector->list "abc"))
 
 (check-report)

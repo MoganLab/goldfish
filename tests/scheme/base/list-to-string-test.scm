@@ -24,32 +24,12 @@
 ;; 2. 列表中每个元素必须是字符
 (check (list->string '()) => "")
 (check (list->string '(#\a)) => "a")
-(check (list->string '(#\a #\b #\c))
-  =>
-  "abc"
-) ;check
-(check (list->string '(#\1 #\2))
-  =>
-  "12"
-) ;check
-(check (string-length (list->string '(#\x #\y #\z))
-       ) ;string-length
-  =>
-  3
-) ;check
-(check-catch 'wrong-type-arg
-  (list->string 'a)
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (list->string '(1 2))
-) ;check-catch
-(check-catch 'wrong-type-arg
-  (list->string '(#\a 1))
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list->string)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (list->string '(#\a) '(#\b))
-) ;check-catch
+(check (list->string '(#\a #\b #\c)) => "abc")
+(check (list->string '(#\1 #\2)) => "12")
+(check (string-length (list->string '(#\x #\y #\z))) => 3)
+(check-catch 'wrong-type-arg (list->string 'a))
+(check-catch 'wrong-type-arg (list->string '(1 2)))
+(check-catch 'wrong-type-arg (list->string '(#\a 1)))
+(check-catch 'wrong-number-of-args (list->string))
+(check-catch 'wrong-number-of-args (list->string '(#\a) '(#\b)))
 (check-report)

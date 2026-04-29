@@ -45,21 +45,11 @@
 (check (modulo 20 7) => 6)
 (check (modulo -20 7) => 1)
 (check (modulo 20 -7) => -1)
-(check-catch 'type-error
-  (modulo 1.0+1.0i 2)
-) ;check-catch
-(check-catch 'type-error
-  (modulo 'hello 2)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (modulo 5)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (modulo 5 3 2)
-) ;check-catch
-(check-catch 'division-by-zero
-  (modulo 1 0)
-) ;check-catch
+(check-catch 'type-error (modulo 1.0+1.0i 2))
+(check-catch 'type-error (modulo 'hello 2))
+(check-catch 'wrong-number-of-args (modulo 5))
+(check-catch 'wrong-number-of-args (modulo 5 3 2))
+(check-catch 'division-by-zero (modulo 1 0))
 (check (floor-remainder 13 4) => 1)
 (check (floor-remainder -13 4) => 3)
 (check (floor-remainder 13 -4) => -3)
@@ -68,10 +58,7 @@
 (check (floor-remainder 0 -5) => 0)
 (check (floor-remainder 13 4.0) => 1.0)
 (check (floor-remainder -13.0 4) => 3.0)
-(check (floor-remainder 13.0 -4.0)
-  =>
-  -3.0
-) ;check
+(check (floor-remainder 13.0 -4.0) => -3.0)
 (check (floor-remainder 1000000 7) => 1)
 (check (floor-remainder 1 1) => 0)
 (check (floor-remainder 5 5) => 0)
@@ -80,19 +67,9 @@
 (check (floor-remainder 20 7) => 6)
 (check (floor-remainder -20 7) => 1)
 (check (floor-remainder 20 -7) => -1)
-(check-catch 'type-error
-  (floor-remainder 1.0+1.0i 2)
-) ;check-catch
-(check-catch 'type-error
-  (floor-remainder 'hello 2)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (floor-remainder 5)
-) ;check-catch
-(check-catch 'wrong-number-of-args
-  (floor-remainder 5 3 2)
-) ;check-catch
-(check-catch 'division-by-zero
-  (floor-remainder 1 0)
-) ;check-catch
+(check-catch 'type-error (floor-remainder 1.0+1.0i 2))
+(check-catch 'type-error (floor-remainder 'hello 2))
+(check-catch 'wrong-number-of-args (floor-remainder 5))
+(check-catch 'wrong-number-of-args (floor-remainder 5 3 2))
+(check-catch 'division-by-zero (floor-remainder 1 0))
 (check-report)
