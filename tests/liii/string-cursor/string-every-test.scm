@@ -33,6 +33,7 @@
 ;; 2. 与 (liii string) 中的 string-every 功能相同，但本版本使用 cursor 遍历字符串
 ;; 3. start/end 参数可以是整数索引或 string-cursor
 ;; 4. 与 (liii string) 版本的差异：本版本只接受谓词(procedure)，不支持字符参数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确遍历和检查
 ;;
 ;; 相关实现
 ;; --------

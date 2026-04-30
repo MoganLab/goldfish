@@ -38,6 +38,12 @@
 ;; 2. 支持 Unicode 字符串
 ;; 3. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，(liii string) 按字节操作
 ;; 4. 性能：O(n)，n 为输出字符串长度
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确复制
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-replicate 函数
+;; 参见: gf doc liii/string "string-replicate"
 
 ;; 基本测试
 (check (string-replicate "abcdef" 2 8) => "cdefab")

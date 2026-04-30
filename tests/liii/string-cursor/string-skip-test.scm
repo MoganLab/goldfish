@@ -36,6 +36,12 @@
 ;; 2. 常用于跳过空白字符等场景
 ;; 3. 搜索范围是 [start, end)
 ;; 4. 性能：O(n)，n 为字符串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确搜索
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-skip 函数
+;; 参见: gf doc liii/string "string-skip"
 
 ;; 基本测试
 (let ((s "   abc"))

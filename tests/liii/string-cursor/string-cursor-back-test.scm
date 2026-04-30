@@ -32,6 +32,12 @@
 ;; 2. 如果 cursor 是整数，会先转换为游标
 ;; 3. 如果移动超出范围，会报错
 ;; 4. 性能：O(1)
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确游标移动
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-cursor-back"
 
 ;; 测试ASCII字符串
 (let* ((end (string-cursor-end "abcdef"))
@@ -71,6 +77,13 @@
 ;; 测试使用整数索引
 (let* ((s "abc") (back (string-cursor-back s 2 1)))
   (check (string-cursor->index s back) => 1)
+) ;let*
+
+;; Emoji 测试
+(let* ((end (string-cursor-end "hello😀world"))
+        (back1 (string-cursor-back "hello😀world" end 1))
+       ) ;
+  (check (string-cursor->index "hello😀world" back1) => 10)
 ) ;let*
 
 (check-report)

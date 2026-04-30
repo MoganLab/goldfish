@@ -31,6 +31,12 @@
 ;; 1. string-trim 是 SRFI-130 中的字符串修剪函数
 ;; 2. 与 (liii string) 中的 string-trim 功能相同
 ;; 3. 性能：O(n)，n 为被修剪的字符数
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确修剪
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-trim 函数
+;; 参见: gf doc liii/string "string-trim"
 
 ;; 基本测试
 (check (string-trim "  abc  ") => "abc  ")
