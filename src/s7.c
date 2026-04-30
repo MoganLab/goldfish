@@ -20412,6 +20412,7 @@ s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
           character_name_length(cp) = len;
           memcpy((void *)(&(character_name(cp))), buf, len);
         }
+      add_semipermanent_object(sc, cp);
       s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
       return(cp);
     }
