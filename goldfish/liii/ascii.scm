@@ -43,23 +43,8 @@
     ascii-left-paren?
     ascii-right-paren?
   ) ;export
-  (import (srfi srfi-175)
-    (scheme char))
+  (import (srfi srfi-175))
   (begin
-
-    (define (ascii-upcase x)
-      (if (char? x)
-        (char-upcase x)
-        (or (ascii-lower-case-value x 65 26) x)
-      ) ;if
-    ) ;define
-
-    (define (ascii-downcase x)
-      (if (char? x)
-        (char-downcase x)
-        (or (ascii-upper-case-value x 97 26) x)
-      ) ;if
-    ) ;define
 
     (define (ascii-left-paren? x)
       (if (char? x) (char=? x #\() (and (integer? x) (= x 40)))
