@@ -22,6 +22,8 @@
 ;; - 遵循 Unicode simple casing 规则
 ;; - 对于非字母字符，返回原字符
 ;; - 与 Chez Scheme 10.3.0 的 Unicode simple casing 行为保持一致
+;; - 若仅需处理 ASCII 字符，可使用 `(liii ascii)` 中的 `ascii-downcase`，
+;;   运行 `gf doc liii/ascii ascii-downcase` 查看其文档。
 ;;
 ;; 错误处理
 ;; ------

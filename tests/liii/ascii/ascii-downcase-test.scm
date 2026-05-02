@@ -21,6 +21,9 @@
 ;; 注意
 ;; ----
 ;; 非字母输入会原样返回。
+;; - 本函数是 `(scheme char)` 中 `char-downcase` 的 ASCII 特化版本。
+;; - 对于 ASCII 字符，`ascii-downcase` 与 `char-downcase` 结果一致。
+;; - `ascii-downcase` 同时支持字符和整数参数，而 `char-downcase` 仅接受字符。
 ;;
 ;; 示例
 ;; ----
