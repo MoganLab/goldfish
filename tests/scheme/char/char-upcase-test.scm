@@ -1,6 +1,33 @@
 (import (liii check) (scheme char))
 (check-set-mode! 'report-failed)
-
+;; char-upcase
+;; 将字符转换为大写形式。
+;;
+;; 语法
+;; ----
+;; (char-upcase char) → char
+;;
+;; 参数
+;; ----
+;; char : character
+;; 要转换的字符
+;;
+;; 返回值
+;; ------
+;; char
+;; 对应的大写字符。如果字符没有对应的大写形式，则返回原字符。
+;;
+;; 注意
+;; ----
+;; - 遵循 Unicode simple casing 规则
+;; - 对于非字母字符，返回原字符
+;; - 与 Chez Scheme 10.3.0 的 Unicode simple casing 行为保持一致
+;;
+;; 错误处理
+;; ------
+;; type-error
+;; 参数必须是字符类型，否则会抛出异常
+;;
 ;; Basic Latin (ASCII)
 (check (char-upcase #\a) => #\A)
 (check (char-upcase #\z) => #\Z)
