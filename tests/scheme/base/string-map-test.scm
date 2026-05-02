@@ -1,5 +1,6 @@
 (import (liii check))
 (import (scheme base))
+(import (liii ascii))
 (check-set-mode! 'report-failed)
 ;; string-map
 ;; 对字符串中的每个字符应用过程，返回结果字符串。
@@ -21,17 +22,17 @@
 ;; string?
 ;; 返回包含结果的字符串。
 ;; 基本测试
-(check (string-map char-upcase "hello") => "HELLO")
-(check (string-map char-downcase "WORLD") => "world")
+(check (string-map ascii-upcase "hello") => "HELLO")
+(check (string-map ascii-downcase "WORLD") => "world")
 ;; 转换测试
 (check (string-map (lambda (c) (integer->char (+ 1 (char->integer c)))) "abc")
   =>
   "bcd"
 ) ;check
 ;; 空字符串测试
-(check (string-map char-upcase "") => "")
+(check (string-map ascii-upcase "") => "")
 ;; 单字符测试
-(check (string-map char-upcase "x") => "X")
+(check (string-map ascii-upcase "x") => "X")
 ;; 中文字符测试
 (check (string-map (lambda (c) c) "你好") => "你好")
 ;; 多个字符串参数（如果支持）

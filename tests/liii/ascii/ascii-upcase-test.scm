@@ -21,6 +21,9 @@
 ;; 注意
 ;; ----
 ;; 非字母输入会原样返回。
+;; - 本函数是 `(scheme char)` 中 `char-upcase` 的 ASCII 特化版本。
+;; - 对于 ASCII 字符，`ascii-upcase` 与 `char-upcase` 结果一致。
+;; - `ascii-upcase` 同时支持字符和整数参数，而 `char-upcase` 仅接受字符。
 ;;
 ;; 示例
 ;; ----

@@ -59,6 +59,7 @@
       get-output-string
       floor/
     ) ;only
+    (scheme char)
     (liii error)
   ) ;import
   (export

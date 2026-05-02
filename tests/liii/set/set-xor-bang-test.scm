@@ -1,4 +1,5 @@
 (import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
 
 
 (check-set-mode! 'report-failed)
@@ -48,7 +49,7 @@
   (make-comparator string?
     string-ci=?
     string-ci<?
-    (lambda (s) (string-hash (string-map char-downcase s)))
+    (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
 (define s-xor!-ci-1 (list->set-with-comparator string-ci-comparator '("Apple")))
