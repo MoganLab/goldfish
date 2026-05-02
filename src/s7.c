@@ -1292,8 +1292,8 @@ struct s7_scheme {
              call_with_input_string_symbol, call_with_output_file_symbol, call_with_output_string_symbol, car_symbol,
              catch_symbol, cdaaar_symbol, cdaadr_symbol, cdaar_symbol, cdadar_symbol, cdaddr_symbol, cdadr_symbol, cdar_symbol,
              cddaar_symbol, cddadr_symbol, cddar_symbol, cdddar_symbol, cddddr_symbol, cdddr_symbol, cddr_symbol, cdr_symbol,
-             ceiling_symbol, char_downcase_symbol, char_eq_symbol, char_geq_symbol, char_gt_symbol, char_leq_symbol, char_lt_symbol,
-             char_position_symbol, char_to_integer_symbol, char_upcase_symbol, cload_directory_symbol, close_input_port_symbol,
+             ceiling_symbol, char_eq_symbol, char_geq_symbol, char_gt_symbol, char_leq_symbol, char_lt_symbol,
+             char_position_symbol, char_to_integer_symbol, cload_directory_symbol, close_input_port_symbol,
              close_output_port_symbol, complex_symbol, complex_vector_ref_symbol, complex_vector_set_symbol, complex_vector_symbol,
              cond_expand_symbol, cons_symbol, copy_symbol, cos_symbol, cosh_symbol, coverlet_symbol,
              curlet_symbol, current_error_port_symbol, current_input_port_symbol, current_output_port_symbol, cutlet_symbol, cyclic_sequences_symbol,
@@ -57751,11 +57751,8 @@ static bool p_p_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const 
 			        ((ppf == string_to_number_p_p) ? opt_p_p_f_string_to_number : opt_p_p_f));
 	      if (caadr(expr) == sc->string_ref_symbol)
 		{
-		  if (q_func1(opc).p_p_f == char_upcase_p_p)
-		    q_func1(opc).p_p_f = char_upcase_p_p_unchecked;
-		  else
-		    if (q_func1(opc).p_p_f == is_char_whitespace_p_p)
-		      q_func1(opc).p_p_f = is_char_whitespace_p_p_unchecked;
+		  if (q_func1(opc).p_p_f == is_char_whitespace_p_p)
+		    q_func1(opc).p_p_f = is_char_whitespace_p_p_unchecked;
 		}
 	      q_func2_arg(opc).o1 = o1;
 	      fp = q_call(o1).fp;
@@ -91390,7 +91387,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_p_p);
   s7_set_p_p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_p_p);
   s7_set_p_p_function(sc, global_value(sc->is_char_numeric_symbol), is_char_numeric_p_p);
-  s7_set_p_p_function(sc, global_value(sc->char_upcase_symbol), char_upcase_p_p);
   s7_set_p_p_function(sc, global_value(sc->read_char_symbol), read_char_p_p);
   s7_set_p_i_function(sc, global_value(sc->make_string_symbol), make_string_p_i);
   s7_set_p_ii_function(sc, global_value(sc->make_int_vector_symbol), make_int_vector_p_ii);
@@ -92382,10 +92378,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->number_to_string_symbol =      defun("number->string",	number_to_string,	1, 1, false);
   sc->string_to_number_symbol =      defun("string->number",	string_to_number,	1, 1, false);
 
-  sc->char_upcase_symbol =           s7_define_typed_function(sc, "char-upcase", g_char_upcase, 1, 0, false,
-                                                              "(char-upcase c) converts the character c to upper case", sc->pcl_c);
-  sc->char_downcase_symbol =         s7_define_typed_function(sc, "char-downcase", g_char_downcase, 1, 0, false,
-                                                              "(char-downcase c) converts the character c to lower case", sc->pcl_c);
   sc->char_to_integer_symbol =       s7_define_typed_function(sc, "char->integer", g_char_to_integer, 1, 0, false,
                                                               "(char->integer c) converts the character c to an integer",
                                                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_char_symbol));

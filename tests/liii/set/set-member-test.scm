@@ -1,4 +1,5 @@
 (import (liii check) (liii error) (liii set) (srfi srfi-128))
+(import (liii ascii))
 
 
 (check-set-mode! 'report-failed)
@@ -51,7 +52,7 @@
 ;; Test case where comparator considers elements equal but they are not eq?
 ;; Construct a case-insensitive string set
 (define (my-string-ci-hash s)
-  (string-hash (string-map char-downcase s))
+  (string-hash (string-map ascii-downcase s))
 ) ;define
 
 
