@@ -1,4 +1,5 @@
 (import (liii check) (liii error) (liii string) (srfi srfi-13))
+(import (liii ascii))
 
 ;; string-fold
 ;; 通过从左到右的顺序遍历字符串字符，将给定过程应用于每个字符和累加器值。
@@ -132,7 +133,7 @@
 ) ;check
 
 ;; 反向构建测试
-(check (string-fold (lambda (c acc) (string-append acc (string (char-upcase c))))
+(check (string-fold (lambda (c acc) (string-append acc (string (ascii-upcase c))))
          ""
          "abc"
        ) ;string-fold

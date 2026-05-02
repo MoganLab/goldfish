@@ -1,4 +1,5 @@
 (import (liii check) (liii string))
+(import (liii ascii))
 
 ;; string-for-each
 ;; 将给定过程应用于字符串的每个字符，用于副作用操作，不返回有意义的值。
@@ -139,7 +140,7 @@
 (check-catch 'wrong-type-arg (string-for-each 123 "hello"))
 (check-catch 'wrong-type-arg (string-for-each (lambda (x) x) 123))
 (check-catch 'wrong-type-arg (string-for-each "not-function" "hello"))
-(check-catch 'wrong-type-arg (string-for-each char-upcase 123))
+(check-catch 'wrong-type-arg (string-for-each ascii-upcase 123))
 
 (check (let ((ascii-sum 0))
          (string-for-each (lambda (c) (set! ascii-sum (+ ascii-sum (char->integer c))))
@@ -152,7 +153,7 @@
 ) ;check
 
 (check (let ((upper-chars '()))
-         (string-for-each (lambda (c) (set! upper-chars (cons (char-upcase c) upper-chars)))
+         (string-for-each (lambda (c) (set! upper-chars (cons (ascii-upcase c) upper-chars)))
            "abc"
          ) ;string-for-each
          (reverse upper-chars)
