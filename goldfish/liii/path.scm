@@ -44,7 +44,7 @@
     (liii string)
     (liii vector)
     (scheme base)
-    (scheme char)
+    (liii ascii)
   ) ;import
   (begin
 
@@ -109,7 +109,7 @@
 
     ;; ; Extract drive letter from Windows path string
     (define (extract-drive s)
-      (string (char-upcase (string-ref s 0)))
+      (string (ascii-upcase (string-ref s 0)))
     ) ;define
 
     ;; ; Parse Windows path string into parts
@@ -510,7 +510,7 @@
 
     (define (path-of-drive ch)
       (if (char? ch)
-        (make-path-record #() 'windows (string (char-upcase ch)))
+        (make-path-record #() 'windows (string (ascii-upcase ch)))
         (type-error "path-of-drive: argument must be char")
       ) ;if
     ) ;define
