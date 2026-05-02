@@ -166,4 +166,28 @@
 (check (digit-value #\팔) => 8)
 (check (digit-value #\구) => 9)
 
+;; 越南语喃字数字测试（#\x 字符字面量）
+(check (digit-value #\x3007) => 0)   ;; 〇 (không)
+(check (digit-value #\x20B20) => 1)  ;; 𠬠 (một)
+(check (digit-value #\x20129) => 2)  ;; 𠄩 (hai)
+(check (digit-value #\x20027) => 3)  ;; 𠀧 (ba)
+(check (digit-value #\x2629A) => 4)  ;; 𦊚 (bốn)
+(check (digit-value #\x2013C) => 5)  ;; 𠄼 (năm)
+(check (digit-value #\x264B9) => 6)  ;; 𦒹 (sáu)
+(check (digit-value #\x26271) => 7)  ;; 𦉱 (bảy)
+(check (digit-value #\x20969) => 8)  ;; 𠥩 (tám)
+(check (digit-value #\x200E9) => 9)  ;; 𠃩 (chín)
+
+;; 越南语喃字数字测试（直接字符字面量）
+(check (digit-value #\〇) => 0)   ;; không
+(check (digit-value #\𠬠) => 1)   ;; một
+(check (digit-value #\𠄩) => 2)   ;; hai
+(check (digit-value #\𠀧) => 3)   ;; ba
+(check (digit-value #\𦊚) => 4)   ;; bốn
+(check (digit-value #\𠄼) => 5)   ;; năm
+(check (digit-value #\𦒹) => 6)   ;; sáu
+(check (digit-value #\𦉱) => 7)   ;; bảy
+(check (digit-value #\𠥩) => 8)   ;; tám
+(check (digit-value #\𠃩) => 9)   ;; chín
+
 (check-report)
