@@ -40,7 +40,18 @@
   ) ;export
   (begin
     (define (digit-value ch)
-      (if (char-numeric? ch) (- (char->integer ch) (char->integer #\0)) #f)
+      (case ch
+        ((#\0 #\x3007 #\x96F6 #\xC601) 0)   ;; 0 〇 零 영
+        ((#\1 #\x4E00 #\x58F1 #\x58F9 #\xC77C) 1)   ;; 1 一 壱 壹 일
+        ((#\2 #\x4E8C #\x5F10 #\x8D30 #\xC774) 2)   ;; 2 二 弐 贰 이
+        ((#\3 #\x4E09 #\x53C2 #\x53C1 #\xC0BC) 3)   ;; 3 三 参 叁 삼
+        ((#\4 #\x56DB #\x8086 #\xC0AC) 4)   ;; 4 四 肆 사
+        ((#\5 #\x4E94 #\x4F0D #\xC624) 5)   ;; 5 五 伍 오
+        ((#\6 #\x516D #\x9678 #\x9646 #\xC721) 6)   ;; 6 六 陸 陆 육
+        ((#\7 #\x4E03 #\x67D2 #\xCE60) 7)   ;; 7 七 柒 칠
+        ((#\8 #\x516B #\x634C #\xD314) 8)   ;; 8 八 捌 팔
+        ((#\9 #\x4E5D #\x7396 #\xAD6C) 9)   ;; 9 九 玖 구
+        (else #f))
     ) ;define
 
     (define s7-char-upcase char-upcase)
