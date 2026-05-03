@@ -1,4 +1,5 @@
-(import (liii check) (liii string))
+(import (liii check)
+        (scheme char) (liii string))
 
 ;; string-skip-right
 ;; 在字符串中从右向左跳过指定字符或满足条件的字符，返回第一个不满足条件的字符位置。

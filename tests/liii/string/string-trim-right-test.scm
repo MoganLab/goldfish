@@ -1,4 +1,5 @@
-(import (liii check) (liii string))
+(import (liii check)
+        (scheme char) (liii string))
 
 ;; string-trim-right
 ;; 从字符串末尾移除指定的字符/空白字符。

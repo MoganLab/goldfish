@@ -38,7 +38,7 @@
     unicode-replacement-char
   ) ;export
 
-  (import (scheme base) (liii base) (liii bitwise) (liii error))
+  (import (scheme base) (liii base) (liii ascii) (liii bitwise) (liii error))
 
   (begin
 
@@ -366,7 +366,7 @@
         ((chars (string->list hex-string)))
         (unless (null? chars)
           (let ((c (car chars)))
-            (unless (or (char-numeric? c) (char<=? #\A c #\F) (char<=? #\a c #\f))
+            (unless (or (ascii-numeric? c) (char<=? #\A c #\F) (char<=? #\a c #\f))
               (error 'value-error "hexstr->codepoint: invalid hexadecimal string")
             ) ;unless
             (loop (cdr chars))
