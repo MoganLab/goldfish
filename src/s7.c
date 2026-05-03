@@ -1308,7 +1308,7 @@ struct s7_scheme {
              integer_decode_float_symbol, integer_to_char_symbol,
              is_aritable_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
              is_c_object_symbol, c_object_let_symbol, c_object_type_symbol, is_c_pointer_symbol,
-             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_numeric_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
+             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
              is_complex_symbol, is_complex_vector_symbol, is_constant_symbol,
              is_continuation_symbol, is_defined_symbol, is_dilambda_symbol, is_eof_object_symbol, is_eq_symbol, is_equal_symbol,
              is_eqv_symbol, is_even_symbol, is_exact_symbol, is_float_vector_symbol, is_funclet_symbol,
@@ -91338,7 +91338,6 @@ static void init_opt_functions(s7_scheme *sc)
 
   s7_set_b_7p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_lower_case_symbol), is_char_lower_case_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_numeric_symbol), is_char_numeric_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_upper_case_symbol), is_char_upper_case_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_b_7p);
 
@@ -91386,7 +91385,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->c_pointer_weak2_symbol), c_pointer_weak2_p_p);
   s7_set_p_p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_p_p);
   s7_set_p_p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_numeric_symbol), is_char_numeric_p_p);
   s7_set_p_p_function(sc, global_value(sc->read_char_symbol), read_char_p_p);
   s7_set_p_i_function(sc, global_value(sc->make_string_symbol), make_string_p_i);
   s7_set_p_ii_function(sc, global_value(sc->make_int_vector_symbol), make_int_vector_p_ii);
@@ -92391,8 +92389,6 @@ static void init_rootlet(s7_scheme *sc)
                                                               "(char-lower-case? c) returns #t if the character c is in lower case", sc->pl_bc);
   sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,
                                                               "(char-alphabetic? c) returns #t if the character c is alphabetic", sc->pl_bc);
-  sc->is_char_numeric_symbol =       s7_define_typed_function(sc, "char-numeric?", g_is_char_numeric, 1, 0, false,
-                                                              "(char-numeric? c) returns #t if the character c is a digit", sc->pl_bc);
   sc->is_char_whitespace_symbol =    s7_define_typed_function(sc, "char-whitespace?", g_is_char_whitespace, 1, 0, false,
                                                               "(char-whitespace? c) returns #t if the character c is non-printing character", sc->pl_bc);
 

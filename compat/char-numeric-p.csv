@@ -1,0 +1,1920 @@
+codepoint,char,category
+U+0030,0,ASCII Digit
+U+0031,1,ASCII Digit
+U+0032,2,ASCII Digit
+U+0033,3,ASCII Digit
+U+0034,4,ASCII Digit
+U+0035,5,ASCII Digit
+U+0036,6,ASCII Digit
+U+0037,7,ASCII Digit
+U+0038,8,ASCII Digit
+U+0039,9,ASCII Digit
+U+00B2,²,Other
+U+00B3,³,Other
+U+00B9,¹,Other
+U+00BC,¼,Other
+U+00BD,½,Other
+U+00BE,¾,Other
+U+0660,٠,Arabic-Indic Digit
+U+0661,١,Arabic-Indic Digit
+U+0662,٢,Arabic-Indic Digit
+U+0663,٣,Arabic-Indic Digit
+U+0664,٤,Arabic-Indic Digit
+U+0665,٥,Arabic-Indic Digit
+U+0666,٦,Arabic-Indic Digit
+U+0667,٧,Arabic-Indic Digit
+U+0668,٨,Arabic-Indic Digit
+U+0669,٩,Arabic-Indic Digit
+U+06F0,۰,Extended Arabic-Indic Digit
+U+06F1,۱,Extended Arabic-Indic Digit
+U+06F2,۲,Extended Arabic-Indic Digit
+U+06F3,۳,Extended Arabic-Indic Digit
+U+06F4,۴,Extended Arabic-Indic Digit
+U+06F5,۵,Extended Arabic-Indic Digit
+U+06F6,۶,Extended Arabic-Indic Digit
+U+06F7,۷,Extended Arabic-Indic Digit
+U+06F8,۸,Extended Arabic-Indic Digit
+U+06F9,۹,Extended Arabic-Indic Digit
+U+07C0,߀,Other
+U+07C1,߁,Other
+U+07C2,߂,Other
+U+07C3,߃,Other
+U+07C4,߄,Other
+U+07C5,߅,Other
+U+07C6,߆,Other
+U+07C7,߇,Other
+U+07C8,߈,Other
+U+07C9,߉,Other
+U+0966,०,Devanagari Digit
+U+0967,१,Devanagari Digit
+U+0968,२,Devanagari Digit
+U+0969,३,Devanagari Digit
+U+096A,४,Devanagari Digit
+U+096B,५,Devanagari Digit
+U+096C,६,Devanagari Digit
+U+096D,७,Devanagari Digit
+U+096E,८,Devanagari Digit
+U+096F,९,Devanagari Digit
+U+09E6,০,Bengali Digit
+U+09E7,১,Bengali Digit
+U+09E8,২,Bengali Digit
+U+09E9,৩,Bengali Digit
+U+09EA,৪,Bengali Digit
+U+09EB,৫,Bengali Digit
+U+09EC,৬,Bengali Digit
+U+09ED,৭,Bengali Digit
+U+09EE,৮,Bengali Digit
+U+09EF,৯,Bengali Digit
+U+09F4,৴,Other
+U+09F5,৵,Other
+U+09F6,৶,Other
+U+09F7,৷,Other
+U+09F8,৸,Other
+U+09F9,৹,Other
+U+0A66,੦,Gurmukhi Digit
+U+0A67,੧,Gurmukhi Digit
+U+0A68,੨,Gurmukhi Digit
+U+0A69,੩,Gurmukhi Digit
+U+0A6A,੪,Gurmukhi Digit
+U+0A6B,੫,Gurmukhi Digit
+U+0A6C,੬,Gurmukhi Digit
+U+0A6D,੭,Gurmukhi Digit
+U+0A6E,੮,Gurmukhi Digit
+U+0A6F,੯,Gurmukhi Digit
+U+0AE6,૦,Gujarati Digit
+U+0AE7,૧,Gujarati Digit
+U+0AE8,૨,Gujarati Digit
+U+0AE9,૩,Gujarati Digit
+U+0AEA,૪,Gujarati Digit
+U+0AEB,૫,Gujarati Digit
+U+0AEC,૬,Gujarati Digit
+U+0AED,૭,Gujarati Digit
+U+0AEE,૮,Gujarati Digit
+U+0AEF,૯,Gujarati Digit
+U+0B66,୦,Oriya Digit
+U+0B67,୧,Oriya Digit
+U+0B68,୨,Oriya Digit
+U+0B69,୩,Oriya Digit
+U+0B6A,୪,Oriya Digit
+U+0B6B,୫,Oriya Digit
+U+0B6C,୬,Oriya Digit
+U+0B6D,୭,Oriya Digit
+U+0B6E,୮,Oriya Digit
+U+0B6F,୯,Oriya Digit
+U+0B72,୲,Other
+U+0B73,୳,Other
+U+0B74,୴,Other
+U+0B75,୵,Other
+U+0B76,୶,Other
+U+0B77,୷,Other
+U+0BE6,௦,Tamil Digit
+U+0BE7,௧,Tamil Digit
+U+0BE8,௨,Tamil Digit
+U+0BE9,௩,Tamil Digit
+U+0BEA,௪,Tamil Digit
+U+0BEB,௫,Tamil Digit
+U+0BEC,௬,Tamil Digit
+U+0BED,௭,Tamil Digit
+U+0BEE,௮,Tamil Digit
+U+0BEF,௯,Tamil Digit
+U+0BF0,௰,Other
+U+0BF1,௱,Other
+U+0BF2,௲,Other
+U+0C66,౦,Telugu Digit
+U+0C67,౧,Telugu Digit
+U+0C68,౨,Telugu Digit
+U+0C69,౩,Telugu Digit
+U+0C6A,౪,Telugu Digit
+U+0C6B,౫,Telugu Digit
+U+0C6C,౬,Telugu Digit
+U+0C6D,౭,Telugu Digit
+U+0C6E,౮,Telugu Digit
+U+0C6F,౯,Telugu Digit
+U+0C78,౸,Other
+U+0C79,౹,Other
+U+0C7A,౺,Other
+U+0C7B,౻,Other
+U+0C7C,౼,Other
+U+0C7D,౽,Other
+U+0C7E,౾,Other
+U+0CE6,೦,Kannada Digit
+U+0CE7,೧,Kannada Digit
+U+0CE8,೨,Kannada Digit
+U+0CE9,೩,Kannada Digit
+U+0CEA,೪,Kannada Digit
+U+0CEB,೫,Kannada Digit
+U+0CEC,೬,Kannada Digit
+U+0CED,೭,Kannada Digit
+U+0CEE,೮,Kannada Digit
+U+0CEF,೯,Kannada Digit
+U+0D58,൘,Other
+U+0D59,൙,Other
+U+0D5A,൚,Other
+U+0D5B,൛,Other
+U+0D5C,൜,Other
+U+0D5D,൝,Other
+U+0D5E,൞,Other
+U+0D66,൦,Malayalam Digit
+U+0D67,൧,Malayalam Digit
+U+0D68,൨,Malayalam Digit
+U+0D69,൩,Malayalam Digit
+U+0D6A,൪,Malayalam Digit
+U+0D6B,൫,Malayalam Digit
+U+0D6C,൬,Malayalam Digit
+U+0D6D,൭,Malayalam Digit
+U+0D6E,൮,Malayalam Digit
+U+0D6F,൯,Malayalam Digit
+U+0D70,൰,Other
+U+0D71,൱,Other
+U+0D72,൲,Other
+U+0D73,൳,Other
+U+0D74,൴,Other
+U+0D75,൵,Other
+U+0D76,൶,Other
+U+0D77,൷,Other
+U+0D78,൸,Other
+U+0DE6,෦,Other
+U+0DE7,෧,Other
+U+0DE8,෨,Other
+U+0DE9,෩,Other
+U+0DEA,෪,Other
+U+0DEB,෫,Other
+U+0DEC,෬,Other
+U+0DED,෭,Other
+U+0DEE,෮,Other
+U+0DEF,෯,Other
+U+0E50,๐,Thai Digit
+U+0E51,๑,Thai Digit
+U+0E52,๒,Thai Digit
+U+0E53,๓,Thai Digit
+U+0E54,๔,Thai Digit
+U+0E55,๕,Thai Digit
+U+0E56,๖,Thai Digit
+U+0E57,๗,Thai Digit
+U+0E58,๘,Thai Digit
+U+0E59,๙,Thai Digit
+U+0ED0,໐,Lao Digit
+U+0ED1,໑,Lao Digit
+U+0ED2,໒,Lao Digit
+U+0ED3,໓,Lao Digit
+U+0ED4,໔,Lao Digit
+U+0ED5,໕,Lao Digit
+U+0ED6,໖,Lao Digit
+U+0ED7,໗,Lao Digit
+U+0ED8,໘,Lao Digit
+U+0ED9,໙,Lao Digit
+U+0F20,༠,Tibetan Digit
+U+0F21,༡,Tibetan Digit
+U+0F22,༢,Tibetan Digit
+U+0F23,༣,Tibetan Digit
+U+0F24,༤,Tibetan Digit
+U+0F25,༥,Tibetan Digit
+U+0F26,༦,Tibetan Digit
+U+0F27,༧,Tibetan Digit
+U+0F28,༨,Tibetan Digit
+U+0F29,༩,Tibetan Digit
+U+0F2A,༪,Other
+U+0F2B,༫,Other
+U+0F2C,༬,Other
+U+0F2D,༭,Other
+U+0F2E,༮,Other
+U+0F2F,༯,Other
+U+0F30,༰,Other
+U+0F31,༱,Other
+U+0F32,༲,Other
+U+0F33,༳,Other
+U+1040,၀,Myanmar Digit
+U+1041,၁,Myanmar Digit
+U+1042,၂,Myanmar Digit
+U+1043,၃,Myanmar Digit
+U+1044,၄,Myanmar Digit
+U+1045,၅,Myanmar Digit
+U+1046,၆,Myanmar Digit
+U+1047,၇,Myanmar Digit
+U+1048,၈,Myanmar Digit
+U+1049,၉,Myanmar Digit
+U+1090,႐,Other
+U+1091,႑,Other
+U+1092,႒,Other
+U+1093,႓,Other
+U+1094,႔,Other
+U+1095,႕,Other
+U+1096,႖,Other
+U+1097,႗,Other
+U+1098,႘,Other
+U+1099,႙,Other
+U+1369,፩,Other
+U+136A,፪,Other
+U+136B,፫,Other
+U+136C,፬,Other
+U+136D,፭,Other
+U+136E,፮,Other
+U+136F,፯,Other
+U+1370,፰,Other
+U+1371,፱,Other
+U+1372,፲,Other
+U+1373,፳,Other
+U+1374,፴,Other
+U+1375,፵,Other
+U+1376,፶,Other
+U+1377,፷,Other
+U+1378,፸,Other
+U+1379,፹,Other
+U+137A,፺,Other
+U+137B,፻,Other
+U+137C,፼,Other
+U+16EE,ᛮ,Other
+U+16EF,ᛯ,Other
+U+16F0,ᛰ,Other
+U+17E0,០,Khmer Digit
+U+17E1,១,Khmer Digit
+U+17E2,២,Khmer Digit
+U+17E3,៣,Khmer Digit
+U+17E4,៤,Khmer Digit
+U+17E5,៥,Khmer Digit
+U+17E6,៦,Khmer Digit
+U+17E7,៧,Khmer Digit
+U+17E8,៨,Khmer Digit
+U+17E9,៩,Khmer Digit
+U+17F0,៰,Other
+U+17F1,៱,Other
+U+17F2,៲,Other
+U+17F3,៳,Other
+U+17F4,៴,Other
+U+17F5,៵,Other
+U+17F6,៶,Other
+U+17F7,៷,Other
+U+17F8,៸,Other
+U+17F9,៹,Other
+U+1810,᠐,Mongolian Digit
+U+1811,᠑,Mongolian Digit
+U+1812,᠒,Mongolian Digit
+U+1813,᠓,Mongolian Digit
+U+1814,᠔,Mongolian Digit
+U+1815,᠕,Mongolian Digit
+U+1816,᠖,Mongolian Digit
+U+1817,᠗,Mongolian Digit
+U+1818,᠘,Mongolian Digit
+U+1819,᠙,Mongolian Digit
+U+1946,᥆,Limbu Digit
+U+1947,᥇,Limbu Digit
+U+1948,᥈,Limbu Digit
+U+1949,᥉,Limbu Digit
+U+194A,᥊,Limbu Digit
+U+194B,᥋,Limbu Digit
+U+194C,᥌,Limbu Digit
+U+194D,᥍,Limbu Digit
+U+194E,᥎,Limbu Digit
+U+194F,᥏,Limbu Digit
+U+19D0,᧐,New Tai Lue Digit
+U+19D1,᧑,New Tai Lue Digit
+U+19D2,᧒,New Tai Lue Digit
+U+19D3,᧓,New Tai Lue Digit
+U+19D4,᧔,New Tai Lue Digit
+U+19D5,᧕,New Tai Lue Digit
+U+19D6,᧖,New Tai Lue Digit
+U+19D7,᧗,New Tai Lue Digit
+U+19D8,᧘,New Tai Lue Digit
+U+19D9,᧙,New Tai Lue Digit
+U+19DA,᧚,Other
+U+1A80,᪀,Tai Tham Hora Digit
+U+1A81,᪁,Tai Tham Hora Digit
+U+1A82,᪂,Tai Tham Hora Digit
+U+1A83,᪃,Tai Tham Hora Digit
+U+1A84,᪄,Tai Tham Hora Digit
+U+1A85,᪅,Tai Tham Hora Digit
+U+1A86,᪆,Tai Tham Hora Digit
+U+1A87,᪇,Tai Tham Hora Digit
+U+1A88,᪈,Tai Tham Hora Digit
+U+1A89,᪉,Tai Tham Hora Digit
+U+1A90,᪐,Tai Tham Tham Digit
+U+1A91,᪑,Tai Tham Tham Digit
+U+1A92,᪒,Tai Tham Tham Digit
+U+1A93,᪓,Tai Tham Tham Digit
+U+1A94,᪔,Tai Tham Tham Digit
+U+1A95,᪕,Tai Tham Tham Digit
+U+1A96,᪖,Tai Tham Tham Digit
+U+1A97,᪗,Tai Tham Tham Digit
+U+1A98,᪘,Tai Tham Tham Digit
+U+1A99,᪙,Tai Tham Tham Digit
+U+1B50,᭐,Balinese Digit
+U+1B51,᭑,Balinese Digit
+U+1B52,᭒,Balinese Digit
+U+1B53,᭓,Balinese Digit
+U+1B54,᭔,Balinese Digit
+U+1B55,᭕,Balinese Digit
+U+1B56,᭖,Balinese Digit
+U+1B57,᭗,Balinese Digit
+U+1B58,᭘,Balinese Digit
+U+1B59,᭙,Balinese Digit
+U+1BB0,᮰,Sundanese Digit
+U+1BB1,᮱,Sundanese Digit
+U+1BB2,᮲,Sundanese Digit
+U+1BB3,᮳,Sundanese Digit
+U+1BB4,᮴,Sundanese Digit
+U+1BB5,᮵,Sundanese Digit
+U+1BB6,᮶,Sundanese Digit
+U+1BB7,᮷,Sundanese Digit
+U+1BB8,᮸,Sundanese Digit
+U+1BB9,᮹,Sundanese Digit
+U+1C40,᱀,Lepcha Digit
+U+1C41,᱁,Lepcha Digit
+U+1C42,᱂,Lepcha Digit
+U+1C43,᱃,Lepcha Digit
+U+1C44,᱄,Lepcha Digit
+U+1C45,᱅,Lepcha Digit
+U+1C46,᱆,Lepcha Digit
+U+1C47,᱇,Lepcha Digit
+U+1C48,᱈,Lepcha Digit
+U+1C49,᱉,Lepcha Digit
+U+1C50,᱐,Ol Chiki Digit
+U+1C51,᱑,Ol Chiki Digit
+U+1C52,᱒,Ol Chiki Digit
+U+1C53,᱓,Ol Chiki Digit
+U+1C54,᱔,Ol Chiki Digit
+U+1C55,᱕,Ol Chiki Digit
+U+1C56,᱖,Ol Chiki Digit
+U+1C57,᱗,Ol Chiki Digit
+U+1C58,᱘,Ol Chiki Digit
+U+1C59,᱙,Ol Chiki Digit
+U+2070,⁰,Superscript
+U+2074,⁴,Superscript
+U+2075,⁵,Superscript
+U+2076,⁶,Superscript
+U+2077,⁷,Superscript
+U+2078,⁸,Superscript
+U+2079,⁹,Superscript
+U+2080,₀,Subscript
+U+2081,₁,Subscript
+U+2082,₂,Subscript
+U+2083,₃,Subscript
+U+2084,₄,Subscript
+U+2085,₅,Subscript
+U+2086,₆,Subscript
+U+2087,₇,Subscript
+U+2088,₈,Subscript
+U+2089,₉,Subscript
+U+2150,⅐,Other
+U+2151,⅑,Other
+U+2152,⅒,Other
+U+2153,⅓,Other
+U+2154,⅔,Other
+U+2155,⅕,Other
+U+2156,⅖,Other
+U+2157,⅗,Other
+U+2158,⅘,Other
+U+2159,⅙,Other
+U+215A,⅚,Other
+U+215B,⅛,Other
+U+215C,⅜,Other
+U+215D,⅝,Other
+U+215E,⅞,Other
+U+215F,⅟,Other
+U+2160,Ⅰ,Other
+U+2161,Ⅱ,Other
+U+2162,Ⅲ,Other
+U+2163,Ⅳ,Other
+U+2164,Ⅴ,Other
+U+2165,Ⅵ,Other
+U+2166,Ⅶ,Other
+U+2167,Ⅷ,Other
+U+2168,Ⅸ,Other
+U+2169,Ⅹ,Other
+U+216A,Ⅺ,Other
+U+216B,Ⅻ,Other
+U+216C,Ⅼ,Other
+U+216D,Ⅽ,Other
+U+216E,Ⅾ,Other
+U+216F,Ⅿ,Other
+U+2170,ⅰ,Other
+U+2171,ⅱ,Other
+U+2172,ⅲ,Other
+U+2173,ⅳ,Other
+U+2174,ⅴ,Other
+U+2175,ⅵ,Other
+U+2176,ⅶ,Other
+U+2177,ⅷ,Other
+U+2178,ⅸ,Other
+U+2179,ⅹ,Other
+U+217A,ⅺ,Other
+U+217B,ⅻ,Other
+U+217C,ⅼ,Other
+U+217D,ⅽ,Other
+U+217E,ⅾ,Other
+U+217F,ⅿ,Other
+U+2180,ↀ,Other
+U+2181,ↁ,Other
+U+2182,ↂ,Other
+U+2185,ↅ,Other
+U+2186,ↆ,Other
+U+2187,ↇ,Other
+U+2188,ↈ,Other
+U+2189,↉,Other
+U+2460,①,Other
+U+2461,②,Other
+U+2462,③,Other
+U+2463,④,Other
+U+2464,⑤,Other
+U+2465,⑥,Other
+U+2466,⑦,Other
+U+2467,⑧,Other
+U+2468,⑨,Other
+U+2469,⑩,Other
+U+246A,⑪,Other
+U+246B,⑫,Other
+U+246C,⑬,Other
+U+246D,⑭,Other
+U+246E,⑮,Other
+U+246F,⑯,Other
+U+2470,⑰,Other
+U+2471,⑱,Other
+U+2472,⑲,Other
+U+2473,⑳,Other
+U+2474,⑴,Other
+U+2475,⑵,Other
+U+2476,⑶,Other
+U+2477,⑷,Other
+U+2478,⑸,Other
+U+2479,⑹,Other
+U+247A,⑺,Other
+U+247B,⑻,Other
+U+247C,⑼,Other
+U+247D,⑽,Other
+U+247E,⑾,Other
+U+247F,⑿,Other
+U+2480,⒀,Other
+U+2481,⒁,Other
+U+2482,⒂,Other
+U+2483,⒃,Other
+U+2484,⒄,Other
+U+2485,⒅,Other
+U+2486,⒆,Other
+U+2487,⒇,Other
+U+2488,⒈,Other
+U+2489,⒉,Other
+U+248A,⒊,Other
+U+248B,⒋,Other
+U+248C,⒌,Other
+U+248D,⒍,Other
+U+248E,⒎,Other
+U+248F,⒏,Other
+U+2490,⒐,Other
+U+2491,⒑,Other
+U+2492,⒒,Other
+U+2493,⒓,Other
+U+2494,⒔,Other
+U+2495,⒕,Other
+U+2496,⒖,Other
+U+2497,⒗,Other
+U+2498,⒘,Other
+U+2499,⒙,Other
+U+249A,⒚,Other
+U+249B,⒛,Other
+U+24EA,⓪,Other
+U+24EB,⓫,Negative Circled
+U+24EC,⓬,Negative Circled
+U+24ED,⓭,Negative Circled
+U+24EE,⓮,Negative Circled
+U+24EF,⓯,Negative Circled
+U+24F0,⓰,Negative Circled
+U+24F1,⓱,Negative Circled
+U+24F2,⓲,Negative Circled
+U+24F3,⓳,Negative Circled
+U+24F4,⓴,Negative Circled
+U+24F5,⓵,Negative Circled
+U+24F6,⓶,Negative Circled
+U+24F7,⓷,Negative Circled
+U+24F8,⓸,Negative Circled
+U+24F9,⓹,Negative Circled
+U+24FA,⓺,Negative Circled
+U+24FB,⓻,Negative Circled
+U+24FC,⓼,Negative Circled
+U+24FD,⓽,Negative Circled
+U+24FE,⓾,Negative Circled
+U+24FF,⓿,Negative Circled
+U+2776,❶,Dingbat Circled
+U+2777,❷,Dingbat Circled
+U+2778,❸,Dingbat Circled
+U+2779,❹,Dingbat Circled
+U+277A,❺,Dingbat Circled
+U+277B,❻,Dingbat Circled
+U+277C,❼,Dingbat Circled
+U+277D,❽,Dingbat Circled
+U+277E,❾,Dingbat Circled
+U+277F,❿,Dingbat Circled
+U+2780,➀,Dingbat Circled
+U+2781,➁,Dingbat Circled
+U+2782,➂,Dingbat Circled
+U+2783,➃,Dingbat Circled
+U+2784,➄,Dingbat Circled
+U+2785,➅,Dingbat Circled
+U+2786,➆,Dingbat Circled
+U+2787,➇,Dingbat Circled
+U+2788,➈,Dingbat Circled
+U+2789,➉,Dingbat Circled
+U+278A,➊,Dingbat Circled
+U+278B,➋,Dingbat Circled
+U+278C,➌,Dingbat Circled
+U+278D,➍,Dingbat Circled
+U+278E,➎,Dingbat Circled
+U+278F,➏,Dingbat Circled
+U+2790,➐,Dingbat Circled
+U+2791,➑,Dingbat Circled
+U+2792,➒,Dingbat Circled
+U+2793,➓,Dingbat Circled
+U+2CFD,⳽,Coptic Fraction
+U+3007,〇,Ideographic Zero
+U+3021,〡,Hangzhou
+U+3022,〢,Hangzhou
+U+3023,〣,Hangzhou
+U+3024,〤,Hangzhou
+U+3025,〥,Hangzhou
+U+3026,〦,Hangzhou
+U+3027,〧,Hangzhou
+U+3028,〨,Hangzhou
+U+3029,〩,Hangzhou
+U+3038,〸,Hangzhou
+U+3039,〹,Hangzhou
+U+303A,〺,Hangzhou
+U+3192,㆒,Ideographic Tally
+U+3193,㆓,Ideographic Tally
+U+3194,㆔,Ideographic Tally
+U+3195,㆕,Ideographic Tally
+U+3220,㈠,Parenthesized
+U+3221,㈡,Parenthesized
+U+3222,㈢,Parenthesized
+U+3223,㈣,Parenthesized
+U+3224,㈤,Parenthesized
+U+3225,㈥,Parenthesized
+U+3226,㈦,Parenthesized
+U+3227,㈧,Parenthesized
+U+3228,㈨,Parenthesized
+U+3229,㈩,Parenthesized
+U+3248,㉈,Other
+U+3249,㉉,Other
+U+324A,㉊,Other
+U+324B,㉋,Other
+U+324C,㉌,Other
+U+324D,㉍,Other
+U+324E,㉎,Other
+U+324F,㉏,Other
+U+3251,㉑,Circled >= 21
+U+3252,㉒,Circled >= 21
+U+3253,㉓,Circled >= 21
+U+3254,㉔,Circled >= 21
+U+3255,㉕,Circled >= 21
+U+3256,㉖,Circled >= 21
+U+3257,㉗,Circled >= 21
+U+3258,㉘,Circled >= 21
+U+3259,㉙,Circled >= 21
+U+325A,㉚,Circled >= 21
+U+325B,㉛,Circled >= 21
+U+325C,㉜,Circled >= 21
+U+325D,㉝,Circled >= 21
+U+325E,㉞,Circled >= 21
+U+325F,㉟,Circled >= 21
+U+3280,㊀,Circled
+U+3281,㊁,Circled
+U+3282,㊂,Circled
+U+3283,㊃,Circled
+U+3284,㊄,Circled
+U+3285,㊅,Circled
+U+3286,㊆,Circled
+U+3287,㊇,Circled
+U+3288,㊈,Circled
+U+3289,㊉,Circled
+U+32B1,㊱,Circled >= 21
+U+32B2,㊲,Circled >= 21
+U+32B3,㊳,Circled >= 21
+U+32B4,㊴,Circled >= 21
+U+32B5,㊵,Circled >= 21
+U+32B6,㊶,Circled >= 21
+U+32B7,㊷,Circled >= 21
+U+32B8,㊸,Circled >= 21
+U+32B9,㊹,Circled >= 21
+U+32BA,㊺,Circled >= 21
+U+32BB,㊻,Circled >= 21
+U+32BC,㊼,Circled >= 21
+U+32BD,㊽,Circled >= 21
+U+32BE,㊾,Circled >= 21
+U+32BF,㊿,Circled >= 21
+U+A620,꘠,Vai Digit
+U+A621,꘡,Vai Digit
+U+A622,꘢,Vai Digit
+U+A623,꘣,Vai Digit
+U+A624,꘤,Vai Digit
+U+A625,꘥,Vai Digit
+U+A626,꘦,Vai Digit
+U+A627,꘧,Vai Digit
+U+A628,꘨,Vai Digit
+U+A629,꘩,Vai Digit
+U+A6E6,ꛦ,Bamum
+U+A6E7,ꛧ,Bamum
+U+A6E8,ꛨ,Bamum
+U+A6E9,ꛩ,Bamum
+U+A6EA,ꛪ,Bamum
+U+A6EB,ꛫ,Bamum
+U+A6EC,ꛬ,Bamum
+U+A6ED,ꛭ,Bamum
+U+A6EE,ꛮ,Bamum
+U+A6EF,ꛯ,Bamum
+U+A830,꠰,Other
+U+A831,꠱,Other
+U+A832,꠲,Other
+U+A833,꠳,Other
+U+A834,꠴,Other
+U+A835,꠵,Other
+U+A8D0,꣐,Saurashtra Digit
+U+A8D1,꣑,Saurashtra Digit
+U+A8D2,꣒,Saurashtra Digit
+U+A8D3,꣓,Saurashtra Digit
+U+A8D4,꣔,Saurashtra Digit
+U+A8D5,꣕,Saurashtra Digit
+U+A8D6,꣖,Saurashtra Digit
+U+A8D7,꣗,Saurashtra Digit
+U+A8D8,꣘,Saurashtra Digit
+U+A8D9,꣙,Saurashtra Digit
+U+A900,꤀,Kayah Li Digit
+U+A901,꤁,Kayah Li Digit
+U+A902,꤂,Kayah Li Digit
+U+A903,꤃,Kayah Li Digit
+U+A904,꤄,Kayah Li Digit
+U+A905,꤅,Kayah Li Digit
+U+A906,꤆,Kayah Li Digit
+U+A907,꤇,Kayah Li Digit
+U+A908,꤈,Kayah Li Digit
+U+A909,꤉,Kayah Li Digit
+U+A9D0,꧐,Javanese Digit
+U+A9D1,꧑,Javanese Digit
+U+A9D2,꧒,Javanese Digit
+U+A9D3,꧓,Javanese Digit
+U+A9D4,꧔,Javanese Digit
+U+A9D5,꧕,Javanese Digit
+U+A9D6,꧖,Javanese Digit
+U+A9D7,꧗,Javanese Digit
+U+A9D8,꧘,Javanese Digit
+U+A9D9,꧙,Javanese Digit
+U+A9F0,꧰,Myanmar Tai Laing Digit
+U+A9F1,꧱,Myanmar Tai Laing Digit
+U+A9F2,꧲,Myanmar Tai Laing Digit
+U+A9F3,꧳,Myanmar Tai Laing Digit
+U+A9F4,꧴,Myanmar Tai Laing Digit
+U+A9F5,꧵,Myanmar Tai Laing Digit
+U+A9F6,꧶,Myanmar Tai Laing Digit
+U+A9F7,꧷,Myanmar Tai Laing Digit
+U+A9F8,꧸,Myanmar Tai Laing Digit
+U+A9F9,꧹,Myanmar Tai Laing Digit
+U+AA50,꩐,Cham Digit
+U+AA51,꩑,Cham Digit
+U+AA52,꩒,Cham Digit
+U+AA53,꩓,Cham Digit
+U+AA54,꩔,Cham Digit
+U+AA55,꩕,Cham Digit
+U+AA56,꩖,Cham Digit
+U+AA57,꩗,Cham Digit
+U+AA58,꩘,Cham Digit
+U+AA59,꩙,Cham Digit
+U+ABF0,꯰,Meetei Mayek Digit
+U+ABF1,꯱,Meetei Mayek Digit
+U+ABF2,꯲,Meetei Mayek Digit
+U+ABF3,꯳,Meetei Mayek Digit
+U+ABF4,꯴,Meetei Mayek Digit
+U+ABF5,꯵,Meetei Mayek Digit
+U+ABF6,꯶,Meetei Mayek Digit
+U+ABF7,꯷,Meetei Mayek Digit
+U+ABF8,꯸,Meetei Mayek Digit
+U+ABF9,꯹,Meetei Mayek Digit
+U+F96B,參,Other
+U+F973,拾,Other
+U+F978,兩,Other
+U+F9B2,零,Other
+U+F9D1,六,Other
+U+F9D3,陸,Other
+U+F9FD,什,Other
+U+FF10,０,Fullwidth Digit
+U+FF11,１,Fullwidth Digit
+U+FF12,２,Fullwidth Digit
+U+FF13,３,Fullwidth Digit
+U+FF14,４,Fullwidth Digit
+U+FF15,５,Fullwidth Digit
+U+FF16,６,Fullwidth Digit
+U+FF17,７,Fullwidth Digit
+U+FF18,８,Fullwidth Digit
+U+FF19,９,Fullwidth Digit
+U+10107,𐄇,Aegean
+U+10108,𐄈,Aegean
+U+10109,𐄉,Aegean
+U+1010A,𐄊,Aegean
+U+1010B,𐄋,Aegean
+U+1010C,𐄌,Aegean
+U+1010D,𐄍,Aegean
+U+1010E,𐄎,Aegean
+U+1010F,𐄏,Aegean
+U+10110,𐄐,Aegean
+U+10111,𐄑,Aegean
+U+10112,𐄒,Aegean
+U+10113,𐄓,Aegean
+U+10114,𐄔,Aegean
+U+10115,𐄕,Aegean
+U+10116,𐄖,Aegean
+U+10117,𐄗,Aegean
+U+10118,𐄘,Aegean
+U+10119,𐄙,Aegean
+U+1011A,𐄚,Aegean
+U+1011B,𐄛,Aegean
+U+1011C,𐄜,Aegean
+U+1011D,𐄝,Aegean
+U+1011E,𐄞,Aegean
+U+1011F,𐄟,Aegean
+U+10120,𐄠,Aegean
+U+10121,𐄡,Aegean
+U+10122,𐄢,Aegean
+U+10123,𐄣,Aegean
+U+10124,𐄤,Aegean
+U+10125,𐄥,Aegean
+U+10126,𐄦,Aegean
+U+10127,𐄧,Aegean
+U+10128,𐄨,Aegean
+U+10129,𐄩,Aegean
+U+1012A,𐄪,Aegean
+U+1012B,𐄫,Aegean
+U+1012C,𐄬,Aegean
+U+1012D,𐄭,Aegean
+U+1012E,𐄮,Aegean
+U+1012F,𐄯,Aegean
+U+10130,𐄰,Aegean
+U+10131,𐄱,Aegean
+U+10132,𐄲,Aegean
+U+10133,𐄳,Aegean
+U+10140,𐅀,Other
+U+10141,𐅁,Other
+U+10142,𐅂,Other
+U+10143,𐅃,Other
+U+10144,𐅄,Other
+U+10145,𐅅,Greek Acrophonic
+U+10146,𐅆,Greek Acrophonic
+U+10147,𐅇,Greek Acrophonic
+U+10148,𐅈,Greek Acrophonic
+U+10149,𐅉,Greek Acrophonic
+U+1014A,𐅊,Greek Acrophonic
+U+1014B,𐅋,Other
+U+1014C,𐅌,Other
+U+1014D,𐅍,Other
+U+1014E,𐅎,Other
+U+1014F,𐅏,Other
+U+10150,𐅐,Other
+U+10151,𐅑,Other
+U+10152,𐅒,Other
+U+10153,𐅓,Other
+U+10154,𐅔,Other
+U+10155,𐅕,Other
+U+10156,𐅖,Other
+U+10157,𐅗,Other
+U+10158,𐅘,Other
+U+10159,𐅙,Other
+U+1015A,𐅚,Other
+U+1015B,𐅛,Other
+U+1015C,𐅜,Other
+U+1015D,𐅝,Other
+U+1015E,𐅞,Other
+U+1015F,𐅟,Other
+U+10160,𐅠,Other
+U+10161,𐅡,Other
+U+10162,𐅢,Other
+U+10163,𐅣,Other
+U+10164,𐅤,Other
+U+10165,𐅥,Other
+U+10166,𐅦,Other
+U+10167,𐅧,Other
+U+10168,𐅨,Other
+U+10169,𐅩,Other
+U+1016A,𐅪,Other
+U+1016B,𐅫,Other
+U+1016C,𐅬,Other
+U+1016D,𐅭,Other
+U+1016E,𐅮,Other
+U+1016F,𐅯,Other
+U+10170,𐅰,Other
+U+10171,𐅱,Other
+U+10172,𐅲,Other
+U+10173,𐅳,Other
+U+10174,𐅴,Other
+U+10175,𐅵,Greek Fraction
+U+10176,𐅶,Greek Fraction
+U+10177,𐅷,Greek Fraction
+U+10178,𐅸,Greek Fraction
+U+1018A,𐆊,Greek
+U+1018B,𐆋,Greek
+U+102E1,𐋡,Coptic Epact
+U+102E2,𐋢,Coptic Epact
+U+102E3,𐋣,Coptic Epact
+U+102E4,𐋤,Coptic Epact
+U+102E5,𐋥,Coptic Epact
+U+102E6,𐋦,Coptic Epact
+U+102E7,𐋧,Coptic Epact
+U+102E8,𐋨,Coptic Epact
+U+102E9,𐋩,Coptic Epact
+U+102EA,𐋪,Coptic Epact
+U+102EB,𐋫,Coptic Epact
+U+102EC,𐋬,Coptic Epact
+U+102ED,𐋭,Coptic Epact
+U+102EE,𐋮,Coptic Epact
+U+102EF,𐋯,Coptic Epact
+U+102F0,𐋰,Coptic Epact
+U+102F1,𐋱,Coptic Epact
+U+102F2,𐋲,Coptic Epact
+U+102F3,𐋳,Coptic Epact
+U+102F4,𐋴,Coptic Epact
+U+102F5,𐋵,Coptic Epact
+U+102F6,𐋶,Coptic Epact
+U+102F7,𐋷,Coptic Epact
+U+102F8,𐋸,Coptic Epact
+U+102F9,𐋹,Coptic Epact
+U+102FA,𐋺,Coptic Epact
+U+102FB,𐋻,Coptic Epact
+U+10320,𐌠,Old Italic
+U+10321,𐌡,Old Italic
+U+10322,𐌢,Old Italic
+U+10323,𐌣,Old Italic
+U+10341,𐍁,Gothic
+U+1034A,𐍊,Gothic
+U+103D1,𐏑,Old Persian
+U+103D2,𐏒,Old Persian
+U+103D3,𐏓,Old Persian
+U+103D4,𐏔,Old Persian
+U+103D5,𐏕,Old Persian
+U+104A0,𐒠,Osmanya Digit
+U+104A1,𐒡,Osmanya Digit
+U+104A2,𐒢,Osmanya Digit
+U+104A3,𐒣,Osmanya Digit
+U+104A4,𐒤,Osmanya Digit
+U+104A5,𐒥,Osmanya Digit
+U+104A6,𐒦,Osmanya Digit
+U+104A7,𐒧,Osmanya Digit
+U+104A8,𐒨,Osmanya Digit
+U+104A9,𐒩,Osmanya Digit
+U+10858,𐡘,Aramaic
+U+10859,𐡙,Aramaic
+U+1085A,𐡚,Aramaic
+U+1085B,𐡛,Aramaic
+U+1085C,𐡜,Aramaic
+U+1085D,𐡝,Aramaic
+U+1085E,𐡞,Aramaic
+U+1085F,𐡟,Aramaic
+U+10879,𐡹,Nabataean
+U+1087A,𐡺,Nabataean
+U+1087B,𐡻,Nabataean
+U+1087C,𐡼,Nabataean
+U+1087D,𐡽,Nabataean
+U+1087E,𐡾,Nabataean
+U+1087F,𐡿,Nabataean
+U+108A7,𐢧,Palmyrene
+U+108A8,𐢨,Palmyrene
+U+108A9,𐢩,Palmyrene
+U+108AA,𐢪,Palmyrene
+U+108AB,𐢫,Palmyrene
+U+108AC,𐢬,Palmyrene
+U+108AD,𐢭,Palmyrene
+U+108AE,𐢮,Palmyrene
+U+108AF,𐢯,Palmyrene
+U+108FB,𐣻,Hatran
+U+108FC,𐣼,Hatran
+U+108FD,𐣽,Hatran
+U+108FE,𐣾,Hatran
+U+108FF,𐣿,Hatran
+U+10916,𐤖,Phoenician
+U+10917,𐤗,Phoenician
+U+10918,𐤘,Phoenician
+U+10919,𐤙,Phoenician
+U+1091A,𐤚,Phoenician
+U+1091B,𐤛,Phoenician
+U+109BC,𐦼,Meroitic Cursive
+U+109BD,𐦽,Meroitic Cursive
+U+109C0,𐧀,Meroitic Hieroglyphs
+U+109C1,𐧁,Meroitic Hieroglyphs
+U+109C2,𐧂,Meroitic Hieroglyphs
+U+109C3,𐧃,Meroitic Hieroglyphs
+U+109C4,𐧄,Meroitic Hieroglyphs
+U+109C5,𐧅,Meroitic Hieroglyphs
+U+109C6,𐧆,Meroitic Hieroglyphs
+U+109C7,𐧇,Meroitic Hieroglyphs
+U+109C8,𐧈,Meroitic Hieroglyphs
+U+109C9,𐧉,Meroitic Hieroglyphs
+U+109CA,𐧊,Meroitic Hieroglyphs
+U+109CB,𐧋,Meroitic Hieroglyphs
+U+109CC,𐧌,Meroitic Hieroglyphs
+U+109CD,𐧍,Meroitic Hieroglyphs
+U+109CE,𐧎,Meroitic Hieroglyphs
+U+109CF,𐧏,Meroitic Hieroglyphs
+U+109D2,𐧒,Other
+U+109D3,𐧓,Other
+U+109D4,𐧔,Other
+U+109D5,𐧕,Other
+U+109D6,𐧖,Other
+U+109D7,𐧗,Other
+U+109D8,𐧘,Other
+U+109D9,𐧙,Other
+U+109DA,𐧚,Other
+U+109DB,𐧛,Other
+U+109DC,𐧜,Other
+U+109DD,𐧝,Other
+U+109DE,𐧞,Other
+U+109DF,𐧟,Other
+U+109E0,𐧠,Other
+U+109E1,𐧡,Other
+U+109E2,𐧢,Other
+U+109E3,𐧣,Other
+U+109E4,𐧤,Other
+U+109E5,𐧥,Other
+U+109E6,𐧦,Other
+U+109E7,𐧧,Other
+U+109E8,𐧨,Other
+U+109E9,𐧩,Other
+U+109EA,𐧪,Other
+U+109EB,𐧫,Other
+U+109EC,𐧬,Other
+U+109ED,𐧭,Other
+U+109EE,𐧮,Other
+U+109EF,𐧯,Other
+U+109F0,𐧰,Other
+U+109F1,𐧱,Other
+U+109F2,𐧲,Other
+U+109F3,𐧳,Other
+U+109F4,𐧴,Other
+U+109F5,𐧵,Other
+U+109F6,𐧶,Other
+U+109F7,𐧷,Other
+U+109F8,𐧸,Other
+U+109F9,𐧹,Other
+U+109FA,𐧺,Other
+U+109FB,𐧻,Other
+U+109FC,𐧼,Other
+U+109FD,𐧽,Other
+U+109FE,𐧾,Other
+U+109FF,𐧿,Other
+U+10A40,𐩀,Kharosthi
+U+10A41,𐩁,Kharosthi
+U+10A42,𐩂,Kharosthi
+U+10A43,𐩃,Kharosthi
+U+10A44,𐩄,Kharosthi
+U+10A45,𐩅,Kharosthi
+U+10A46,𐩆,Kharosthi
+U+10A47,𐩇,Kharosthi
+U+10A48,𐩈,Other
+U+10A7D,𐩽,Old South Arabian
+U+10A7E,𐩾,Old South Arabian
+U+10A9D,𐪝,Old North Arabian
+U+10A9E,𐪞,Old North Arabian
+U+10A9F,𐪟,Old North Arabian
+U+10AEB,𐫫,Manichaean
+U+10AEC,𐫬,Manichaean
+U+10AED,𐫭,Manichaean
+U+10AEE,𐫮,Manichaean
+U+10AEF,𐫯,Manichaean
+U+10B58,𐭘,Inscriptional Parthian
+U+10B59,𐭙,Inscriptional Parthian
+U+10B5A,𐭚,Inscriptional Parthian
+U+10B5B,𐭛,Inscriptional Parthian
+U+10B5C,𐭜,Inscriptional Parthian
+U+10B5D,𐭝,Inscriptional Parthian
+U+10B5E,𐭞,Inscriptional Parthian
+U+10B5F,𐭟,Inscriptional Parthian
+U+10B78,𐭸,Inscriptional Pahlavi
+U+10B79,𐭹,Inscriptional Pahlavi
+U+10B7A,𐭺,Inscriptional Pahlavi
+U+10B7B,𐭻,Inscriptional Pahlavi
+U+10B7C,𐭼,Inscriptional Pahlavi
+U+10B7D,𐭽,Inscriptional Pahlavi
+U+10B7E,𐭾,Inscriptional Pahlavi
+U+10B7F,𐭿,Inscriptional Pahlavi
+U+10BA9,𐮩,Psalter Pahlavi
+U+10BAA,𐮪,Psalter Pahlavi
+U+10BAB,𐮫,Psalter Pahlavi
+U+10BAC,𐮬,Psalter Pahlavi
+U+10BAD,𐮭,Psalter Pahlavi
+U+10BAE,𐮮,Psalter Pahlavi
+U+10BAF,𐮯,Psalter Pahlavi
+U+10CFA,𐳺,Old Hungarian
+U+10CFB,𐳻,Old Hungarian
+U+10CFC,𐳼,Old Hungarian
+U+10CFD,𐳽,Old Hungarian
+U+10CFE,𐳾,Old Hungarian
+U+10CFF,𐳿,Old Hungarian
+U+10D30,𐴰,Hanifi Rohingya
+U+10D31,𐴱,Hanifi Rohingya
+U+10D32,𐴲,Hanifi Rohingya
+U+10D33,𐴳,Hanifi Rohingya
+U+10D34,𐴴,Hanifi Rohingya
+U+10D35,𐴵,Hanifi Rohingya
+U+10D36,𐴶,Hanifi Rohingya
+U+10D37,𐴷,Hanifi Rohingya
+U+10D38,𐴸,Hanifi Rohingya
+U+10D39,𐴹,Hanifi Rohingya
+U+10D40,𐵀,Other
+U+10D41,𐵁,Other
+U+10D42,𐵂,Other
+U+10D43,𐵃,Other
+U+10D44,𐵄,Other
+U+10D45,𐵅,Other
+U+10D46,𐵆,Other
+U+10D47,𐵇,Other
+U+10D48,𐵈,Other
+U+10D49,𐵉,Other
+U+10E60,𐹠,Rumi
+U+10E61,𐹡,Rumi
+U+10E62,𐹢,Rumi
+U+10E63,𐹣,Rumi
+U+10E64,𐹤,Rumi
+U+10E65,𐹥,Rumi
+U+10E66,𐹦,Rumi
+U+10E67,𐹧,Rumi
+U+10E68,𐹨,Rumi
+U+10E69,𐹩,Rumi
+U+10E6A,𐹪,Rumi
+U+10E6B,𐹫,Rumi
+U+10E6C,𐹬,Rumi
+U+10E6D,𐹭,Rumi
+U+10E6E,𐹮,Rumi
+U+10E6F,𐹯,Rumi
+U+10E70,𐹰,Rumi
+U+10E71,𐹱,Rumi
+U+10E72,𐹲,Rumi
+U+10E73,𐹳,Rumi
+U+10E74,𐹴,Rumi
+U+10E75,𐹵,Rumi
+U+10E76,𐹶,Rumi
+U+10E77,𐹷,Rumi
+U+10E78,𐹸,Rumi
+U+10E79,𐹹,Rumi
+U+10E7A,𐹺,Rumi
+U+10E7B,𐹻,Rumi
+U+10E7C,𐹼,Rumi
+U+10E7D,𐹽,Rumi
+U+10E7E,𐹾,Rumi
+U+10F1D,𐼝,Old Sogdian
+U+10F1E,𐼞,Old Sogdian
+U+10F1F,𐼟,Old Sogdian
+U+10F20,𐼠,Old Sogdian
+U+10F21,𐼡,Old Sogdian
+U+10F22,𐼢,Old Sogdian
+U+10F23,𐼣,Old Sogdian
+U+10F24,𐼤,Old Sogdian
+U+10F25,𐼥,Old Sogdian
+U+10F26,𐼦,Old Sogdian
+U+10F51,𐽑,Sogdian
+U+10F52,𐽒,Sogdian
+U+10F53,𐽓,Sogdian
+U+10F54,𐽔,Sogdian
+U+10FC5,𐿅,Old Uyghur
+U+10FC6,𐿆,Old Uyghur
+U+10FC7,𐿇,Old Uyghur
+U+10FC8,𐿈,Old Uyghur
+U+10FC9,𐿉,Old Uyghur
+U+10FCA,𐿊,Old Uyghur
+U+10FCB,𐿋,Old Uyghur
+U+11052,𑁒,Brahmi Number
+U+11053,𑁓,Brahmi Number
+U+11054,𑁔,Brahmi Number
+U+11055,𑁕,Brahmi Number
+U+11056,𑁖,Brahmi Number
+U+11057,𑁗,Brahmi Number
+U+11058,𑁘,Brahmi Number
+U+11059,𑁙,Brahmi Number
+U+1105A,𑁚,Brahmi Number
+U+1105B,𑁛,Brahmi Number
+U+1105C,𑁜,Brahmi Number
+U+1105D,𑁝,Brahmi Number
+U+1105E,𑁞,Brahmi Number
+U+1105F,𑁟,Brahmi Number
+U+11060,𑁠,Brahmi Number
+U+11061,𑁡,Brahmi Number
+U+11062,𑁢,Brahmi Number
+U+11063,𑁣,Brahmi Number
+U+11064,𑁤,Brahmi Number
+U+11065,𑁥,Brahmi Number
+U+11066,𑁦,Brahmi Digit
+U+11067,𑁧,Brahmi Digit
+U+11068,𑁨,Brahmi Digit
+U+11069,𑁩,Brahmi Digit
+U+1106A,𑁪,Brahmi Digit
+U+1106B,𑁫,Brahmi Digit
+U+1106C,𑁬,Brahmi Digit
+U+1106D,𑁭,Brahmi Digit
+U+1106E,𑁮,Brahmi Digit
+U+1106F,𑁯,Brahmi Digit
+U+110F0,𑃰,Sora Sompeng Digit
+U+110F1,𑃱,Sora Sompeng Digit
+U+110F2,𑃲,Sora Sompeng Digit
+U+110F3,𑃳,Sora Sompeng Digit
+U+110F4,𑃴,Sora Sompeng Digit
+U+110F5,𑃵,Sora Sompeng Digit
+U+110F6,𑃶,Sora Sompeng Digit
+U+110F7,𑃷,Sora Sompeng Digit
+U+110F8,𑃸,Sora Sompeng Digit
+U+110F9,𑃹,Sora Sompeng Digit
+U+11136,𑄶,Chakma Digit
+U+11137,𑄷,Chakma Digit
+U+11138,𑄸,Chakma Digit
+U+11139,𑄹,Chakma Digit
+U+1113A,𑄺,Chakma Digit
+U+1113B,𑄻,Chakma Digit
+U+1113C,𑄼,Chakma Digit
+U+1113D,𑄽,Chakma Digit
+U+1113E,𑄾,Chakma Digit
+U+1113F,𑄿,Chakma Digit
+U+111D0,𑇐,Sharada Digit
+U+111D1,𑇑,Sharada Digit
+U+111D2,𑇒,Sharada Digit
+U+111D3,𑇓,Sharada Digit
+U+111D4,𑇔,Sharada Digit
+U+111D5,𑇕,Sharada Digit
+U+111D6,𑇖,Sharada Digit
+U+111D7,𑇗,Sharada Digit
+U+111D8,𑇘,Sharada Digit
+U+111D9,𑇙,Sharada Digit
+U+111E1,𑇡,Sinhala Archaic
+U+111E2,𑇢,Sinhala Archaic
+U+111E3,𑇣,Sinhala Archaic
+U+111E4,𑇤,Sinhala Archaic
+U+111E5,𑇥,Sinhala Archaic
+U+111E6,𑇦,Sinhala Archaic
+U+111E7,𑇧,Sinhala Archaic
+U+111E8,𑇨,Sinhala Archaic
+U+111E9,𑇩,Sinhala Archaic
+U+111EA,𑇪,Sinhala Archaic
+U+111EB,𑇫,Sinhala Archaic
+U+111EC,𑇬,Sinhala Archaic
+U+111ED,𑇭,Sinhala Archaic
+U+111EE,𑇮,Sinhala Archaic
+U+111EF,𑇯,Sinhala Archaic
+U+111F0,𑇰,Sinhala Archaic
+U+111F1,𑇱,Sinhala Archaic
+U+111F2,𑇲,Sinhala Archaic
+U+111F3,𑇳,Sinhala Archaic
+U+111F4,𑇴,Sinhala Archaic
+U+112F0,𑋰,Khudawadi Digit
+U+112F1,𑋱,Khudawadi Digit
+U+112F2,𑋲,Khudawadi Digit
+U+112F3,𑋳,Khudawadi Digit
+U+112F4,𑋴,Khudawadi Digit
+U+112F5,𑋵,Khudawadi Digit
+U+112F6,𑋶,Khudawadi Digit
+U+112F7,𑋷,Khudawadi Digit
+U+112F8,𑋸,Khudawadi Digit
+U+112F9,𑋹,Khudawadi Digit
+U+11450,𑑐,Newa Digit
+U+11451,𑑑,Newa Digit
+U+11452,𑑒,Newa Digit
+U+11453,𑑓,Newa Digit
+U+11454,𑑔,Newa Digit
+U+11455,𑑕,Newa Digit
+U+11456,𑑖,Newa Digit
+U+11457,𑑗,Newa Digit
+U+11458,𑑘,Newa Digit
+U+11459,𑑙,Newa Digit
+U+114D0,𑓐,Tirhuta Digit
+U+114D1,𑓑,Tirhuta Digit
+U+114D2,𑓒,Tirhuta Digit
+U+114D3,𑓓,Tirhuta Digit
+U+114D4,𑓔,Tirhuta Digit
+U+114D5,𑓕,Tirhuta Digit
+U+114D6,𑓖,Tirhuta Digit
+U+114D7,𑓗,Tirhuta Digit
+U+114D8,𑓘,Tirhuta Digit
+U+114D9,𑓙,Tirhuta Digit
+U+11650,𑙐,Modi Digit
+U+11651,𑙑,Modi Digit
+U+11652,𑙒,Modi Digit
+U+11653,𑙓,Modi Digit
+U+11654,𑙔,Modi Digit
+U+11655,𑙕,Modi Digit
+U+11656,𑙖,Modi Digit
+U+11657,𑙗,Modi Digit
+U+11658,𑙘,Modi Digit
+U+11659,𑙙,Modi Digit
+U+116C0,𑛀,Takri Digit
+U+116C1,𑛁,Takri Digit
+U+116C2,𑛂,Takri Digit
+U+116C3,𑛃,Takri Digit
+U+116C4,𑛄,Takri Digit
+U+116C5,𑛅,Takri Digit
+U+116C6,𑛆,Takri Digit
+U+116C7,𑛇,Takri Digit
+U+116C8,𑛈,Takri Digit
+U+116C9,𑛉,Takri Digit
+U+116D0,𑛐,Other
+U+116D1,𑛑,Other
+U+116D2,𑛒,Other
+U+116D3,𑛓,Other
+U+116D4,𑛔,Other
+U+116D5,𑛕,Other
+U+116D6,𑛖,Other
+U+116D7,𑛗,Other
+U+116D8,𑛘,Other
+U+116D9,𑛙,Other
+U+116DA,𑛚,Other
+U+116DB,𑛛,Other
+U+116DC,𑛜,Other
+U+116DD,𑛝,Other
+U+116DE,𑛞,Other
+U+116DF,𑛟,Other
+U+116E0,𑛠,Other
+U+116E1,𑛡,Other
+U+116E2,𑛢,Other
+U+116E3,𑛣,Other
+U+11730,𑜰,Ahom Digit
+U+11731,𑜱,Ahom Digit
+U+11732,𑜲,Ahom Digit
+U+11733,𑜳,Ahom Digit
+U+11734,𑜴,Ahom Digit
+U+11735,𑜵,Ahom Digit
+U+11736,𑜶,Ahom Digit
+U+11737,𑜷,Ahom Digit
+U+11738,𑜸,Ahom Digit
+U+11739,𑜹,Ahom Digit
+U+1173A,𑜺,Other
+U+1173B,𑜻,Other
+U+118E0,𑣠,Warang Citi Digit
+U+118E1,𑣡,Warang Citi Digit
+U+118E2,𑣢,Warang Citi Digit
+U+118E3,𑣣,Warang Citi Digit
+U+118E4,𑣤,Warang Citi Digit
+U+118E5,𑣥,Warang Citi Digit
+U+118E6,𑣦,Warang Citi Digit
+U+118E7,𑣧,Warang Citi Digit
+U+118E8,𑣨,Warang Citi Digit
+U+118E9,𑣩,Warang Citi Digit
+U+118EA,𑣪,Other
+U+118EB,𑣫,Other
+U+118EC,𑣬,Other
+U+118ED,𑣭,Other
+U+118EE,𑣮,Other
+U+118EF,𑣯,Other
+U+118F0,𑣰,Other
+U+118F1,𑣱,Other
+U+118F2,𑣲,Other
+U+11950,𑥐,Dives Akuru
+U+11951,𑥑,Dives Akuru
+U+11952,𑥒,Dives Akuru
+U+11953,𑥓,Dives Akuru
+U+11954,𑥔,Dives Akuru
+U+11955,𑥕,Dives Akuru
+U+11956,𑥖,Dives Akuru
+U+11957,𑥗,Dives Akuru
+U+11958,𑥘,Dives Akuru
+U+11959,𑥙,Dives Akuru
+U+11BF0,𑯰,Other
+U+11BF1,𑯱,Other
+U+11BF2,𑯲,Other
+U+11BF3,𑯳,Other
+U+11BF4,𑯴,Other
+U+11BF5,𑯵,Other
+U+11BF6,𑯶,Other
+U+11BF7,𑯷,Other
+U+11BF8,𑯸,Other
+U+11BF9,𑯹,Other
+U+11C50,𑱐,Bhaiksuki Digit
+U+11C51,𑱑,Bhaiksuki Digit
+U+11C52,𑱒,Bhaiksuki Digit
+U+11C53,𑱓,Bhaiksuki Digit
+U+11C54,𑱔,Bhaiksuki Digit
+U+11C55,𑱕,Bhaiksuki Digit
+U+11C56,𑱖,Bhaiksuki Digit
+U+11C57,𑱗,Bhaiksuki Digit
+U+11C58,𑱘,Bhaiksuki Digit
+U+11C59,𑱙,Bhaiksuki Digit
+U+11C5A,𑱚,Other
+U+11C5B,𑱛,Other
+U+11C5C,𑱜,Other
+U+11C5D,𑱝,Other
+U+11C5E,𑱞,Other
+U+11C5F,𑱟,Other
+U+11C60,𑱠,Other
+U+11C61,𑱡,Other
+U+11C62,𑱢,Other
+U+11C63,𑱣,Other
+U+11C64,𑱤,Other
+U+11C65,𑱥,Other
+U+11C66,𑱦,Other
+U+11C67,𑱧,Other
+U+11C68,𑱨,Other
+U+11C69,𑱩,Other
+U+11C6A,𑱪,Other
+U+11C6B,𑱫,Other
+U+11C6C,𑱬,Other
+U+11D50,𑵐,Masaram Gondi Digit
+U+11D51,𑵑,Masaram Gondi Digit
+U+11D52,𑵒,Masaram Gondi Digit
+U+11D53,𑵓,Masaram Gondi Digit
+U+11D54,𑵔,Masaram Gondi Digit
+U+11D55,𑵕,Masaram Gondi Digit
+U+11D56,𑵖,Masaram Gondi Digit
+U+11D57,𑵗,Masaram Gondi Digit
+U+11D58,𑵘,Masaram Gondi Digit
+U+11D59,𑵙,Masaram Gondi Digit
+U+11DA0,𑶠,Gunjala Gondi
+U+11DA1,𑶡,Gunjala Gondi
+U+11DA2,𑶢,Gunjala Gondi
+U+11DA3,𑶣,Gunjala Gondi
+U+11DA4,𑶤,Gunjala Gondi
+U+11DA5,𑶥,Gunjala Gondi
+U+11DA6,𑶦,Gunjala Gondi
+U+11DA7,𑶧,Gunjala Gondi
+U+11DA8,𑶨,Gunjala Gondi
+U+11DA9,𑶩,Gunjala Gondi
+U+11F50,𑽐,Kawi
+U+11F51,𑽑,Kawi
+U+11F52,𑽒,Kawi
+U+11F53,𑽓,Kawi
+U+11F54,𑽔,Kawi
+U+11F55,𑽕,Kawi
+U+11F56,𑽖,Kawi
+U+11F57,𑽗,Kawi
+U+11F58,𑽘,Kawi
+U+11F59,𑽙,Kawi
+U+11FC0,𑿀,Tamil Fraction
+U+11FC1,𑿁,Tamil Fraction
+U+11FC2,𑿂,Tamil Fraction
+U+11FC3,𑿃,Tamil Fraction
+U+11FC4,𑿄,Tamil Fraction
+U+11FC5,𑿅,Tamil Fraction
+U+11FC6,𑿆,Tamil Fraction
+U+11FC7,𑿇,Tamil Fraction
+U+11FC8,𑿈,Tamil Fraction
+U+11FC9,𑿉,Tamil Fraction
+U+11FCA,𑿊,Tamil Fraction
+U+11FCB,𑿋,Tamil Fraction
+U+11FCC,𑿌,Tamil Fraction
+U+11FCD,𑿍,Tamil Fraction
+U+11FCE,𑿎,Tamil Fraction
+U+11FCF,𑿏,Tamil Fraction
+U+11FD0,𑿐,Tamil Fraction
+U+11FD1,𑿑,Tamil Fraction
+U+11FD2,𑿒,Tamil Fraction
+U+11FD3,𑿓,Tamil Fraction
+U+11FD4,𑿔,Tamil Fraction
+U+12400,𒐀,Cuneiform
+U+12401,𒐁,Cuneiform
+U+12402,𒐂,Cuneiform
+U+12403,𒐃,Cuneiform
+U+12404,𒐄,Cuneiform
+U+12405,𒐅,Cuneiform
+U+12406,𒐆,Cuneiform
+U+12407,𒐇,Cuneiform
+U+12408,𒐈,Cuneiform
+U+12409,𒐉,Cuneiform
+U+1240A,𒐊,Cuneiform
+U+1240B,𒐋,Cuneiform
+U+1240C,𒐌,Cuneiform
+U+1240D,𒐍,Cuneiform
+U+1240E,𒐎,Cuneiform
+U+1240F,𒐏,Cuneiform
+U+12410,𒐐,Cuneiform
+U+12411,𒐑,Cuneiform
+U+12412,𒐒,Cuneiform
+U+12413,𒐓,Cuneiform
+U+12414,𒐔,Cuneiform
+U+12415,𒐕,Cuneiform
+U+12416,𒐖,Cuneiform
+U+12417,𒐗,Cuneiform
+U+12418,𒐘,Cuneiform
+U+12419,𒐙,Cuneiform
+U+1241A,𒐚,Cuneiform
+U+1241B,𒐛,Cuneiform
+U+1241C,𒐜,Cuneiform
+U+1241D,𒐝,Cuneiform
+U+1241E,𒐞,Cuneiform
+U+1241F,𒐟,Cuneiform
+U+12420,𒐠,Cuneiform
+U+12421,𒐡,Cuneiform
+U+12422,𒐢,Cuneiform
+U+12423,𒐣,Cuneiform
+U+12424,𒐤,Cuneiform
+U+12425,𒐥,Cuneiform
+U+12426,𒐦,Cuneiform
+U+12427,𒐧,Cuneiform
+U+12428,𒐨,Cuneiform
+U+12429,𒐩,Cuneiform
+U+1242A,𒐪,Cuneiform
+U+1242B,𒐫,Cuneiform
+U+1242C,𒐬,Cuneiform
+U+1242D,𒐭,Cuneiform
+U+1242E,𒐮,Cuneiform
+U+1242F,𒐯,Cuneiform
+U+12430,𒐰,Cuneiform
+U+12431,𒐱,Cuneiform
+U+12432,𒐲,Cuneiform
+U+12433,𒐳,Cuneiform
+U+12434,𒐴,Cuneiform
+U+12435,𒐵,Cuneiform
+U+12436,𒐶,Cuneiform
+U+12437,𒐷,Cuneiform
+U+12438,𒐸,Cuneiform
+U+12439,𒐹,Cuneiform
+U+1243A,𒐺,Cuneiform
+U+1243B,𒐻,Cuneiform
+U+1243C,𒐼,Cuneiform
+U+1243D,𒐽,Cuneiform
+U+1243E,𒐾,Cuneiform
+U+1243F,𒐿,Cuneiform
+U+12440,𒑀,Cuneiform
+U+12441,𒑁,Cuneiform
+U+12442,𒑂,Cuneiform
+U+12443,𒑃,Cuneiform
+U+12444,𒑄,Cuneiform
+U+12445,𒑅,Cuneiform
+U+12446,𒑆,Cuneiform
+U+12447,𒑇,Cuneiform
+U+12448,𒑈,Cuneiform
+U+12449,𒑉,Cuneiform
+U+1244A,𒑊,Cuneiform
+U+1244B,𒑋,Cuneiform
+U+1244C,𒑌,Cuneiform
+U+1244D,𒑍,Cuneiform
+U+1244E,𒑎,Cuneiform
+U+1244F,𒑏,Cuneiform
+U+12450,𒑐,Cuneiform
+U+12451,𒑑,Cuneiform
+U+12452,𒑒,Cuneiform
+U+12453,𒑓,Cuneiform
+U+12454,𒑔,Cuneiform
+U+12455,𒑕,Cuneiform
+U+12456,𒑖,Cuneiform
+U+12457,𒑗,Cuneiform
+U+12458,𒑘,Cuneiform
+U+12459,𒑙,Cuneiform
+U+1245A,𒑚,Cuneiform
+U+1245B,𒑛,Cuneiform
+U+1245C,𒑜,Cuneiform
+U+1245D,𒑝,Cuneiform
+U+1245E,𒑞,Cuneiform
+U+1245F,𒑟,Cuneiform
+U+12460,𒑠,Cuneiform
+U+12461,𒑡,Cuneiform
+U+12462,𒑢,Cuneiform
+U+12463,𒑣,Cuneiform
+U+12464,𒑤,Cuneiform
+U+12465,𒑥,Cuneiform
+U+12466,𒑦,Cuneiform
+U+12467,𒑧,Cuneiform
+U+12468,𒑨,Cuneiform
+U+12469,𒑩,Cuneiform
+U+1246A,𒑪,Cuneiform
+U+1246B,𒑫,Cuneiform
+U+1246C,𒑬,Cuneiform
+U+1246D,𒑭,Cuneiform
+U+1246E,𒑮,Cuneiform
+U+16130,𖄰,Other
+U+16131,𖄱,Other
+U+16132,𖄲,Other
+U+16133,𖄳,Other
+U+16134,𖄴,Other
+U+16135,𖄵,Other
+U+16136,𖄶,Other
+U+16137,𖄷,Other
+U+16138,𖄸,Other
+U+16139,𖄹,Other
+U+16A60,𖩠,Mro Digit
+U+16A61,𖩡,Mro Digit
+U+16A62,𖩢,Mro Digit
+U+16A63,𖩣,Mro Digit
+U+16A64,𖩤,Mro Digit
+U+16A65,𖩥,Mro Digit
+U+16A66,𖩦,Mro Digit
+U+16A67,𖩧,Mro Digit
+U+16A68,𖩨,Mro Digit
+U+16A69,𖩩,Mro Digit
+U+16AC0,𖫀,Tangsa
+U+16AC1,𖫁,Tangsa
+U+16AC2,𖫂,Tangsa
+U+16AC3,𖫃,Tangsa
+U+16AC4,𖫄,Tangsa
+U+16AC5,𖫅,Tangsa
+U+16AC6,𖫆,Tangsa
+U+16AC7,𖫇,Tangsa
+U+16AC8,𖫈,Tangsa
+U+16AC9,𖫉,Tangsa
+U+16B50,𖭐,Pahawh Hmong Digit
+U+16B51,𖭑,Pahawh Hmong Digit
+U+16B52,𖭒,Pahawh Hmong Digit
+U+16B53,𖭓,Pahawh Hmong Digit
+U+16B54,𖭔,Pahawh Hmong Digit
+U+16B55,𖭕,Pahawh Hmong Digit
+U+16B56,𖭖,Pahawh Hmong Digit
+U+16B57,𖭗,Pahawh Hmong Digit
+U+16B58,𖭘,Pahawh Hmong Digit
+U+16B59,𖭙,Pahawh Hmong Digit
+U+16B5B,𖭛,Other
+U+16B5C,𖭜,Other
+U+16B5D,𖭝,Other
+U+16B5E,𖭞,Other
+U+16B5F,𖭟,Other
+U+16B60,𖭠,Other
+U+16B61,𖭡,Other
+U+16D70,𖵰,Other
+U+16D71,𖵱,Other
+U+16D72,𖵲,Other
+U+16D73,𖵳,Other
+U+16D74,𖵴,Other
+U+16D75,𖵵,Other
+U+16D76,𖵶,Other
+U+16D77,𖵷,Other
+U+16D78,𖵸,Other
+U+16D79,𖵹,Other
+U+16E80,𖺀,Other
+U+16E81,𖺁,Other
+U+16E82,𖺂,Other
+U+16E83,𖺃,Other
+U+16E84,𖺄,Other
+U+16E85,𖺅,Other
+U+16E86,𖺆,Other
+U+16E87,𖺇,Other
+U+16E88,𖺈,Other
+U+16E89,𖺉,Other
+U+16E8A,𖺊,Other
+U+16E8B,𖺋,Other
+U+16E8C,𖺌,Other
+U+16E8D,𖺍,Other
+U+16E8E,𖺎,Other
+U+16E8F,𖺏,Other
+U+16E90,𖺐,Other
+U+16E91,𖺑,Other
+U+16E92,𖺒,Other
+U+16E93,𖺓,Other
+U+16E94,𖺔,Other
+U+16E95,𖺕,Other
+U+16E96,𖺖,Other
+U+1CCF0,𜳰,Other
+U+1CCF1,𜳱,Other
+U+1CCF2,𜳲,Other
+U+1CCF3,𜳳,Other
+U+1CCF4,𜳴,Other
+U+1CCF5,𜳵,Other
+U+1CCF6,𜳶,Other
+U+1CCF7,𜳷,Other
+U+1CCF8,𜳸,Other
+U+1CCF9,𜳹,Other
+U+1D2C0,𝋀,Other
+U+1D2C1,𝋁,Other
+U+1D2C2,𝋂,Other
+U+1D2C3,𝋃,Other
+U+1D2C4,𝋄,Other
+U+1D2C5,𝋅,Other
+U+1D2C6,𝋆,Other
+U+1D2C7,𝋇,Other
+U+1D2C8,𝋈,Other
+U+1D2C9,𝋉,Other
+U+1D2CA,𝋊,Other
+U+1D2CB,𝋋,Other
+U+1D2CC,𝋌,Other
+U+1D2CD,𝋍,Other
+U+1D2CE,𝋎,Other
+U+1D2CF,𝋏,Other
+U+1D2D0,𝋐,Other
+U+1D2D1,𝋑,Other
+U+1D2D2,𝋒,Other
+U+1D2D3,𝋓,Other
+U+1D2E0,𝋠,Mayan
+U+1D2E1,𝋡,Mayan
+U+1D2E2,𝋢,Mayan
+U+1D2E3,𝋣,Mayan
+U+1D2E4,𝋤,Mayan
+U+1D2E5,𝋥,Mayan
+U+1D2E6,𝋦,Mayan
+U+1D2E7,𝋧,Mayan
+U+1D2E8,𝋨,Mayan
+U+1D2E9,𝋩,Mayan
+U+1D2EA,𝋪,Mayan
+U+1D2EB,𝋫,Mayan
+U+1D2EC,𝋬,Mayan
+U+1D2ED,𝋭,Mayan
+U+1D2EE,𝋮,Mayan
+U+1D2EF,𝋯,Mayan
+U+1D2F0,𝋰,Mayan
+U+1D2F1,𝋱,Mayan
+U+1D2F2,𝋲,Mayan
+U+1D2F3,𝋳,Mayan
+U+1D360,𝍠,Counting Rod
+U+1D361,𝍡,Counting Rod
+U+1D362,𝍢,Counting Rod
+U+1D363,𝍣,Counting Rod
+U+1D364,𝍤,Counting Rod
+U+1D365,𝍥,Counting Rod
+U+1D366,𝍦,Counting Rod
+U+1D367,𝍧,Counting Rod
+U+1D368,𝍨,Counting Rod
+U+1D369,𝍩,Counting Rod
+U+1D36A,𝍪,Counting Rod
+U+1D36B,𝍫,Counting Rod
+U+1D36C,𝍬,Counting Rod
+U+1D36D,𝍭,Counting Rod
+U+1D36E,𝍮,Counting Rod
+U+1D36F,𝍯,Counting Rod
+U+1D370,𝍰,Counting Rod
+U+1D371,𝍱,Counting Rod
+U+1D372,𝍲,Other
+U+1D373,𝍳,Other
+U+1D374,𝍴,Other
+U+1D375,𝍵,Other
+U+1D376,𝍶,Other
+U+1D377,𝍷,Other
+U+1D378,𝍸,Other
+U+1D7CE,𝟎,Mathematical Digit
+U+1D7CF,𝟏,Mathematical Digit
+U+1D7D0,𝟐,Mathematical Digit
+U+1D7D1,𝟑,Mathematical Digit
+U+1D7D2,𝟒,Mathematical Digit
+U+1D7D3,𝟓,Mathematical Digit
+U+1D7D4,𝟔,Mathematical Digit
+U+1D7D5,𝟕,Mathematical Digit
+U+1D7D6,𝟖,Mathematical Digit
+U+1D7D7,𝟗,Mathematical Digit
+U+1D7D8,𝟘,Mathematical Digit
+U+1D7D9,𝟙,Mathematical Digit
+U+1D7DA,𝟚,Mathematical Digit
+U+1D7DB,𝟛,Mathematical Digit
+U+1D7DC,𝟜,Mathematical Digit
+U+1D7DD,𝟝,Mathematical Digit
+U+1D7DE,𝟞,Mathematical Digit
+U+1D7DF,𝟟,Mathematical Digit
+U+1D7E0,𝟠,Mathematical Digit
+U+1D7E1,𝟡,Mathematical Digit
+U+1D7E2,𝟢,Mathematical Digit
+U+1D7E3,𝟣,Mathematical Digit
+U+1D7E4,𝟤,Mathematical Digit
+U+1D7E5,𝟥,Mathematical Digit
+U+1D7E6,𝟦,Mathematical Digit
+U+1D7E7,𝟧,Mathematical Digit
+U+1D7E8,𝟨,Mathematical Digit
+U+1D7E9,𝟩,Mathematical Digit
+U+1D7EA,𝟪,Mathematical Digit
+U+1D7EB,𝟫,Mathematical Digit
+U+1D7EC,𝟬,Mathematical Digit
+U+1D7ED,𝟭,Mathematical Digit
+U+1D7EE,𝟮,Mathematical Digit
+U+1D7EF,𝟯,Mathematical Digit
+U+1D7F0,𝟰,Mathematical Digit
+U+1D7F1,𝟱,Mathematical Digit
+U+1D7F2,𝟲,Mathematical Digit
+U+1D7F3,𝟳,Mathematical Digit
+U+1D7F4,𝟴,Mathematical Digit
+U+1D7F5,𝟵,Mathematical Digit
+U+1D7F6,𝟶,Mathematical Digit
+U+1D7F7,𝟷,Mathematical Digit
+U+1D7F8,𝟸,Mathematical Digit
+U+1D7F9,𝟹,Mathematical Digit
+U+1D7FA,𝟺,Mathematical Digit
+U+1D7FB,𝟻,Mathematical Digit
+U+1D7FC,𝟼,Mathematical Digit
+U+1D7FD,𝟽,Mathematical Digit
+U+1D7FE,𝟾,Mathematical Digit
+U+1D7FF,𝟿,Mathematical Digit
+U+1E140,𞅀,Nyiakeng Puachue Hmong Digit
+U+1E141,𞅁,Nyiakeng Puachue Hmong Digit
+U+1E142,𞅂,Nyiakeng Puachue Hmong Digit
+U+1E143,𞅃,Nyiakeng Puachue Hmong Digit
+U+1E144,𞅄,Nyiakeng Puachue Hmong Digit
+U+1E145,𞅅,Nyiakeng Puachue Hmong Digit
+U+1E146,𞅆,Nyiakeng Puachue Hmong Digit
+U+1E147,𞅇,Nyiakeng Puachue Hmong Digit
+U+1E148,𞅈,Nyiakeng Puachue Hmong Digit
+U+1E149,𞅉,Nyiakeng Puachue Hmong Digit
+U+1E2F0,𞋰,Wancho Digit
+U+1E2F1,𞋱,Wancho Digit
+U+1E2F2,𞋲,Wancho Digit
+U+1E2F3,𞋳,Wancho Digit
+U+1E2F4,𞋴,Wancho Digit
+U+1E2F5,𞋵,Wancho Digit
+U+1E2F6,𞋶,Wancho Digit
+U+1E2F7,𞋷,Wancho Digit
+U+1E2F8,𞋸,Wancho Digit
+U+1E2F9,𞋹,Wancho Digit
+U+1E4F0,𞓰,Other
+U+1E4F1,𞓱,Other
+U+1E4F2,𞓲,Other
+U+1E4F3,𞓳,Other
+U+1E4F4,𞓴,Other
+U+1E4F5,𞓵,Other
+U+1E4F6,𞓶,Other
+U+1E4F7,𞓷,Other
+U+1E4F8,𞓸,Other
+U+1E4F9,𞓹,Other
+U+1E5F1,𞗱,Ol Onal
+U+1E5F2,𞗲,Ol Onal
+U+1E5F3,𞗳,Ol Onal
+U+1E5F4,𞗴,Ol Onal
+U+1E5F5,𞗵,Ol Onal
+U+1E5F6,𞗶,Ol Onal
+U+1E5F7,𞗷,Ol Onal
+U+1E5F8,𞗸,Ol Onal
+U+1E5F9,𞗹,Ol Onal
+U+1E5FA,𞗺,Ol Onal
+U+1E8C7,𞣇,Other
+U+1E8C8,𞣈,Other
+U+1E8C9,𞣉,Other
+U+1E8CA,𞣊,Other
+U+1E8CB,𞣋,Other
+U+1E8CC,𞣌,Other
+U+1E8CD,𞣍,Other
+U+1E8CE,𞣎,Other
+U+1E8CF,𞣏,Other
+U+1E950,𞥐,Adlam Digit
+U+1E951,𞥑,Adlam Digit
+U+1E952,𞥒,Adlam Digit
+U+1E953,𞥓,Adlam Digit
+U+1E954,𞥔,Adlam Digit
+U+1E955,𞥕,Adlam Digit
+U+1E956,𞥖,Adlam Digit
+U+1E957,𞥗,Adlam Digit
+U+1E958,𞥘,Adlam Digit
+U+1E959,𞥙,Adlam Digit
+U+1EC71,𞱱,Indic Siyaq
+U+1EC72,𞱲,Indic Siyaq
+U+1EC73,𞱳,Indic Siyaq
+U+1EC74,𞱴,Indic Siyaq
+U+1EC75,𞱵,Indic Siyaq
+U+1EC76,𞱶,Indic Siyaq
+U+1EC77,𞱷,Indic Siyaq
+U+1EC78,𞱸,Indic Siyaq
+U+1EC79,𞱹,Indic Siyaq
+U+1EC7A,𞱺,Indic Siyaq
+U+1EC7B,𞱻,Indic Siyaq
+U+1EC7C,𞱼,Indic Siyaq
+U+1EC7D,𞱽,Indic Siyaq
+U+1EC7E,𞱾,Indic Siyaq
+U+1EC7F,𞱿,Indic Siyaq
+U+1EC80,𞲀,Indic Siyaq
+U+1EC81,𞲁,Indic Siyaq
+U+1EC82,𞲂,Indic Siyaq
+U+1EC83,𞲃,Indic Siyaq
+U+1EC84,𞲄,Indic Siyaq
+U+1EC85,𞲅,Indic Siyaq
+U+1EC86,𞲆,Indic Siyaq
+U+1EC87,𞲇,Indic Siyaq
+U+1EC88,𞲈,Indic Siyaq
+U+1EC89,𞲉,Indic Siyaq
+U+1EC8A,𞲊,Indic Siyaq
+U+1EC8B,𞲋,Indic Siyaq
+U+1EC8C,𞲌,Indic Siyaq
+U+1EC8D,𞲍,Indic Siyaq
+U+1EC8E,𞲎,Indic Siyaq
+U+1EC8F,𞲏,Indic Siyaq
+U+1EC90,𞲐,Indic Siyaq
+U+1EC91,𞲑,Indic Siyaq
+U+1EC92,𞲒,Indic Siyaq
+U+1EC93,𞲓,Indic Siyaq
+U+1EC94,𞲔,Indic Siyaq
+U+1EC95,𞲕,Indic Siyaq
+U+1EC96,𞲖,Indic Siyaq
+U+1EC97,𞲗,Indic Siyaq
+U+1EC98,𞲘,Indic Siyaq
+U+1EC99,𞲙,Indic Siyaq
+U+1EC9A,𞲚,Indic Siyaq
+U+1EC9B,𞲛,Indic Siyaq
+U+1EC9C,𞲜,Indic Siyaq
+U+1EC9D,𞲝,Indic Siyaq
+U+1EC9E,𞲞,Indic Siyaq
+U+1EC9F,𞲟,Indic Siyaq
+U+1ECA0,𞲠,Indic Siyaq
+U+1ECA1,𞲡,Indic Siyaq
+U+1ECA2,𞲢,Indic Siyaq
+U+1ECA3,𞲣,Indic Siyaq
+U+1ECA4,𞲤,Indic Siyaq
+U+1ECA5,𞲥,Indic Siyaq
+U+1ECA6,𞲦,Indic Siyaq
+U+1ECA7,𞲧,Indic Siyaq
+U+1ECA8,𞲨,Indic Siyaq
+U+1ECA9,𞲩,Indic Siyaq
+U+1ECAA,𞲪,Indic Siyaq
+U+1ECAB,𞲫,Indic Siyaq
+U+1ECAD,𞲭,Other
+U+1ECAE,𞲮,Other
+U+1ECAF,𞲯,Other
+U+1ECB1,𞲱,Other
+U+1ECB2,𞲲,Other
+U+1ECB3,𞲳,Other
+U+1ECB4,𞲴,Other
+U+1ED01,𞴁,Ottoman Siyaq
+U+1ED02,𞴂,Ottoman Siyaq
+U+1ED03,𞴃,Ottoman Siyaq
+U+1ED04,𞴄,Ottoman Siyaq
+U+1ED05,𞴅,Ottoman Siyaq
+U+1ED06,𞴆,Ottoman Siyaq
+U+1ED07,𞴇,Ottoman Siyaq
+U+1ED08,𞴈,Ottoman Siyaq
+U+1ED09,𞴉,Ottoman Siyaq
+U+1ED0A,𞴊,Ottoman Siyaq
+U+1ED0B,𞴋,Ottoman Siyaq
+U+1ED0C,𞴌,Ottoman Siyaq
+U+1ED0D,𞴍,Ottoman Siyaq
+U+1ED0E,𞴎,Ottoman Siyaq
+U+1ED0F,𞴏,Ottoman Siyaq
+U+1ED10,𞴐,Ottoman Siyaq
+U+1ED11,𞴑,Ottoman Siyaq
+U+1ED12,𞴒,Ottoman Siyaq
+U+1ED13,𞴓,Ottoman Siyaq
+U+1ED14,𞴔,Ottoman Siyaq
+U+1ED15,𞴕,Ottoman Siyaq
+U+1ED16,𞴖,Ottoman Siyaq
+U+1ED17,𞴗,Ottoman Siyaq
+U+1ED18,𞴘,Ottoman Siyaq
+U+1ED19,𞴙,Ottoman Siyaq
+U+1ED1A,𞴚,Ottoman Siyaq
+U+1ED1B,𞴛,Ottoman Siyaq
+U+1ED1C,𞴜,Ottoman Siyaq
+U+1ED1D,𞴝,Ottoman Siyaq
+U+1ED1E,𞴞,Ottoman Siyaq
+U+1ED1F,𞴟,Ottoman Siyaq
+U+1ED20,𞴠,Ottoman Siyaq
+U+1ED21,𞴡,Ottoman Siyaq
+U+1ED22,𞴢,Ottoman Siyaq
+U+1ED23,𞴣,Ottoman Siyaq
+U+1ED24,𞴤,Ottoman Siyaq
+U+1ED25,𞴥,Ottoman Siyaq
+U+1ED26,𞴦,Ottoman Siyaq
+U+1ED27,𞴧,Ottoman Siyaq
+U+1ED28,𞴨,Ottoman Siyaq
+U+1ED29,𞴩,Ottoman Siyaq
+U+1ED2A,𞴪,Ottoman Siyaq
+U+1ED2B,𞴫,Ottoman Siyaq
+U+1ED2C,𞴬,Ottoman Siyaq
+U+1ED2D,𞴭,Ottoman Siyaq
+U+1ED2F,𞴯,Other
+U+1ED30,𞴰,Other
+U+1ED31,𞴱,Other
+U+1ED32,𞴲,Other
+U+1ED33,𞴳,Other
+U+1ED34,𞴴,Other
+U+1ED35,𞴵,Other
+U+1ED36,𞴶,Other
+U+1ED37,𞴷,Other
+U+1ED38,𞴸,Other
+U+1ED39,𞴹,Other
+U+1ED3A,𞴺,Other
+U+1ED3B,𞴻,Other
+U+1ED3C,𞴼,Other
+U+1ED3D,𞴽,Ottoman Siyaq
+U+1F100,🄀,Enclosed
+U+1F101,🄁,Enclosed
+U+1F102,🄂,Enclosed
+U+1F103,🄃,Enclosed
+U+1F104,🄄,Enclosed
+U+1F105,🄅,Enclosed
+U+1F106,🄆,Enclosed
+U+1F107,🄇,Enclosed
+U+1F108,🄈,Enclosed
+U+1F109,🄉,Enclosed
+U+1F10A,🄊,Enclosed
+U+1F10B,🄋,Enclosed
+U+1F10C,🄌,Enclosed
+U+1FBF0,🯰,Segmented Digit
+U+1FBF1,🯱,Segmented Digit
+U+1FBF2,🯲,Segmented Digit
+U+1FBF3,🯳,Segmented Digit
+U+1FBF4,🯴,Segmented Digit
+U+1FBF5,🯵,Segmented Digit
+U+1FBF6,🯶,Segmented Digit
+U+1FBF7,🯷,Segmented Digit
+U+1FBF8,🯸,Segmented Digit
+U+1FBF9,🯹,Segmented Digit
+U+2F890,廾,Other
