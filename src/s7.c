@@ -1308,7 +1308,7 @@ struct s7_scheme {
              integer_decode_float_symbol, integer_to_char_symbol,
              is_aritable_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
              is_c_object_symbol, c_object_let_symbol, c_object_type_symbol, is_c_pointer_symbol,
-             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
+             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_numeric_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
              is_complex_symbol, is_complex_vector_symbol, is_constant_symbol,
              is_continuation_symbol, is_defined_symbol, is_dilambda_symbol, is_eof_object_symbol, is_eq_symbol, is_equal_symbol,
              is_eqv_symbol, is_even_symbol, is_exact_symbol, is_float_vector_symbol, is_funclet_symbol,
@@ -91338,7 +91338,6 @@ static void init_opt_functions(s7_scheme *sc)
 
   s7_set_b_7p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_lower_case_symbol), is_char_lower_case_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_upper_case_symbol), is_char_upper_case_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_b_7p);
 
   s7_set_b_p_function(sc, global_value(sc->is_openlet_symbol), s7_is_openlet);
@@ -92383,8 +92382,6 @@ static void init_rootlet(s7_scheme *sc)
                                                               "(integer->char i) converts the non-negative integer i to a character",
                                                               s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol));
 
-  sc->is_char_upper_case_symbol =    s7_define_typed_function(sc, "char-upper-case?", g_is_char_upper_case, 1, 0, false,
-                                                              "(char-upper-case? c) returns #t if the character c is in upper case", sc->pl_bc);
   sc->is_char_lower_case_symbol =    s7_define_typed_function(sc, "char-lower-case?", g_is_char_lower_case, 1, 0, false,
                                                               "(char-lower-case? c) returns #t if the character c is in lower case", sc->pl_bc);
   sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,

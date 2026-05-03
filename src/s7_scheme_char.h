@@ -34,8 +34,6 @@ bool is_char_whitespace_b_7p(s7_scheme *sc, s7_pointer c);
 s7_pointer is_char_whitespace_p_p(s7_scheme *sc, s7_pointer c);
 s7_pointer is_char_whitespace_p_p_unchecked(s7_scheme *sc, s7_pointer c);
 
-s7_pointer g_is_char_upper_case(s7_scheme *sc, s7_pointer args);
-bool is_char_upper_case_b_7p(s7_scheme *sc, s7_pointer c);
 s7_pointer g_is_char_lower_case(s7_scheme *sc, s7_pointer args);
 bool is_char_lower_case_b_7p(s7_scheme *sc, s7_pointer c);
 
