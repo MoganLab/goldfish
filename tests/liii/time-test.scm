@@ -34,6 +34,7 @@
 ;; 一、基础时钟接口
 ;; 用于读取当前时钟和休眠的函数
 ;;   sleep                    - 按秒休眠
+;;   datetime-now             - 获取当前日期时间向量 [year month day hour minute second microsecond]
 ;;   current-second           - 获取当前秒时间戳
 ;;   current-jiffy            - 获取当前 jiffy 计数
 ;;   jiffies-per-second       - 获取每秒 jiffy 数

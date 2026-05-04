@@ -63,6 +63,7 @@
     (liii string)
     (liii path)
     (liii os)
+    (liii time)
   ) ;import
   (begin
 
@@ -100,7 +101,7 @@
 
     ;; 时间戳格式化
     (define (format-timestamp)
-      (let ((t (g_datetime-now)))
+      (let ((t (datetime-now)))
         (string-append (number->string (vector-ref t 0))
           "-"
           (string-pad (number->string (vector-ref t 1)) 2 #\0)
