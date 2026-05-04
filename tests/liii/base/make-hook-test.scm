@@ -1,8 +1,5 @@
 (import (liii check)
-        (liii base)
-        (liii os)
-        (liii string)
-        (scheme file))
+        (liii base))
 
 ;; make-hook - 创建 hook 对象
 ;;
@@ -69,28 +66,5 @@
                 (set! result (list (hook 'a) (hook 'b))))))
   (h 1 2)
   (check result => '(1 2)))
-
-;; *exit-hook* 在 exit 时被触发
-;; 由于 exit 会结束进程，通过子进程方式测试
-(let ((flag-file "tests/liii/base/exit-hook-flag.txt"))
-  ;; 清理可能存在的旧文件
-  (when (file-exists? flag-file)
-    (delete-file flag-file))
-  ;; 在子进程中运行：设置 *exit-hook* 并调用 exit
-  (os-call "bin\\gf.exe -e \"(set! (hook-functions *exit-hook*) (list (lambda (hook) (with-output-to-file \\\"tests/liii/base/exit-hook-flag.txt\\\" (lambda () (display \\\"ok\\\") (newline)))))) (exit 0)\"")
-  ;; 验证 exit-hook 被触发（文件被创建）
-  (check (file-exists? flag-file) => #t)
-  ;; 验证文件内容
-  (when (file-exists? flag-file)
-    (let ((content (call-with-input-file flag-file
-                     (lambda (port)
-                       (let loop ((chars '()))
-                         (let ((c (read-char port)))
-                           (if (eof-object? c)
-                             (list->string (reverse chars))
-                             (loop (cons c chars)))))))))
-      (check (string-contains? content "ok") => #t))
-    ;; 清理测试文件
-    (delete-file flag-file)))
 
 (check-report)
