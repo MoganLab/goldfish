@@ -15,7 +15,7 @@
 ;;
 
 (define-library (scheme time)
-  (import (only (scheme base) let-values s7-round))
+  (import (only (scheme base) let-values round))
   (export current-second
     current-jiffy
     jiffies-per-second
@@ -42,8 +42,8 @@
     ) ;define
 
     (define (current-jiffy)
-      ;; NOTE: use the s7-round to ensure that a natural number is returned.
-      (s7-round (* (current-second) (jiffies-per-second)))
+      ;; NOTE: use round to ensure that a natural number is returned.
+      (round (* (current-second) (jiffies-per-second)))
     ) ;define
 
   ) ;begin
