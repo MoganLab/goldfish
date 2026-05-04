@@ -5,14 +5,31 @@
 (check-set-mode! 'report-failed)
 
 
-;; keyword->symbol - 将关键字转换为符号
+;; keyword->symbol
+;; 将关键字转换为普通符号。
 ;;
-;; 语法: (keyword->symbol key)
-;; 参数: key - 关键字
-;; 返回值: 去掉冒号的普通符号
+;; 语法
+;; ----
+;; (keyword->symbol key)
 ;;
-;; 说明:
-;; 将 keyword 转换为普通符号（去掉冒号前缀）
+;; 参数
+;; ----
+;; key - 关键字
+;;
+;; 返回值
+;; ------
+;; symbol
+;; 去掉冒号前缀的普通符号。
+;;
+;; 说明
+;; ----
+;; 将 keyword 转换为普通符号（去掉冒号前缀）。
+;;
+;; 示例
+;; ----
+;; (keyword->symbol :baz)         => 'baz
+;; (keyword->symbol :hello-world) => 'hello-world
+;; (symbol? (keyword->symbol :test)) => #t
 
 
 (check (keyword->symbol :baz) => 'baz)

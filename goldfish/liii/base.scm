@@ -10,6 +10,7 @@
     object->string
     eval-string
     signature
+    copy
     keyword?
     string->keyword
     symbol->keyword

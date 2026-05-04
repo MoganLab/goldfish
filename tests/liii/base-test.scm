@@ -1,7 +1,7 @@
 ;; (liii base) 模块函数分类索引
 ;;
-;; `(liii base)` 是 `(scheme base)` 的扩展库，包含了 R7RS `scheme base` 的所有功能，
-;; 并额外提供了来自 SRFI-2、SRFI-8 的实用函数，以及若干扩展工具。
+;; `(liii base)` 是 `(scheme base)` 的扩展库，在 R7RS `scheme base` 的基础上
+;; 增补了来自 SRFI-2、SRFI-8 的实用函数，以及若干 S7 扩展工具。
 ;;
 ;; ==== 使用说明 ====
 ;; 如需使用 R7RS 标准函数，请查看：
@@ -22,6 +22,7 @@
 
 
 ;; 三、S7 扩展
+;;   copy                 - 复制序列或对象
 ;;   define*              - 带默认参数和可选参数的 define
 ;;   procedure-source     - 获取过程的源代码定义
 ;;   procedure-arglist    - 获取过程的参数列表
