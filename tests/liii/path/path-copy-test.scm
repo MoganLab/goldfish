@@ -3,30 +3,32 @@
 (check-set-mode! 'report-failed)
 
 ;; path-copy
-;; 复制路径值。
+;; 将文件复制到目标路径。
 ;;
 ;; 语法
 ;; ----
-;; (path-copy path-value)
+;; (path-copy source target)
 ;;
 ;; 参数
 ;; ----
-;; path-value : path-value
-;; 要复制的路径值。
+;; source : path | string
+;; 源文件路径。
+;; target : path | string
+;; 目标文件路径。
 ;;
 ;; 返回值
-;; ----
-;; path-value
-;; 返回一个新的路径值副本。
+;; ------
+;; boolean
+;; 复制成功返回 #t，失败返回 #f。
 
-(when (not (os-windows?))
-  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp/demo.txt")
-) ;when
-
-(when (os-windows?)
-  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
-) ;when
-
-(check-true (path=? (path "tmp/demo.txt") (path-copy (path "tmp/demo.txt"))))
+(let ((src "tests/liii/path/path-copy-src.txt")
+      (dst "tests/liii/path/path-copy-dst.txt")
+     ) ;
+  (path-write-text src "hello path-copy")
+  (check-true (path-copy src dst))
+  (check (path-read-text dst) => "hello path-copy")
+  (path-unlink src)
+  (path-unlink dst)
+) ;let
 
 (check-report)

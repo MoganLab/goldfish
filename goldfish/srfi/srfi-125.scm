@@ -54,9 +54,6 @@
       ) ;when
     ) ;define
 
-    (define s7-hash-table-set! hash-table-set!)
-    (define s7-make-hash-table make-hash-table)
-
     (define (make-hash-table . args)
       (cond ((null? args) (s7-make-hash-table))
             ((comparator? (car args))

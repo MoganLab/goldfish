@@ -19,6 +19,6 @@
 ;; boolean
 ;; 当两个路径值相等时返回 #t，否则返回 #f。
 
-(check-true (path=? (path "tmp/demo.txt") (path-copy (path "tmp/demo.txt"))))
+(check-true (path=? (path "tmp/demo.txt") (path-clone (path "tmp/demo.txt"))))
 
 (check-report)
