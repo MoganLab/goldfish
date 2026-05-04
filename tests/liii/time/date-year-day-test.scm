@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是日期对象时抛出错误。
+;; type-error 当参数不是日期对象时抛出错误。
 ;; value-error 当日期的月份不合法时抛出错误。
 
 
@@ -41,7 +41,7 @@
 
 
 ;; Test date-year-day error conditions
-(check-catch 'wrong-type-arg (date-year-day "not-a-date"))
+(check-catch 'type-error (date-year-day "not-a-date"))
 (check-catch 'value-error (date-year-day (make-date 0 0 0 0 1 0 2023 0)))
 (check-catch 'value-error (date-year-day (make-date 0 0 0 0 1 13 2023 0)))
 

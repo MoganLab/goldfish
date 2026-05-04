@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是日期对象时抛出错误。
+;; type-error 当参数不是日期对象时抛出错误。
 
 
 ;; date->time-utc basic
@@ -49,7 +49,7 @@
 
 
 ;; Error conditions
-(check-catch 'wrong-type-arg (date->time-utc "not-a-date"))
+(check-catch 'type-error (date->time-utc "not-a-date"))
 
 
 (check-report)

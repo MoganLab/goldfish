@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当clock-type不是有效的时间类型常量时抛出错误。
+;; type-error 当clock-type不是有效的时间类型常量时抛出错误。
 
 
 ;; Test current-time
@@ -29,18 +29,18 @@
 (check-true (time? (current-time TIME-UTC)))
 (check-true (time? (current-time TIME-MONOTONIC)))
 (check-true (time? (current-time TIME-TAI)))
-(check-catch 'wrong-type-arg (time? (current-time TIME-THREAD)))
-(check-catch 'wrong-type-arg (time? (current-time TIME-PROCESS)))
-(check-catch 'wrong-type-arg (time? (current-time TIME-DURATION)))
+(check-catch 'type-error (time? (current-time TIME-THREAD)))
+(check-catch 'type-error (time? (current-time TIME-PROCESS)))
+(check-catch 'type-error (time? (current-time TIME-DURATION)))
 
 
 ;; Check that returned times have correct types
 (check (time-type (current-time TIME-UTC)) => TIME-UTC)
 (check (time-type (current-time TIME-MONOTONIC)) => TIME-MONOTONIC)
 (check (time-type (current-time TIME-TAI)) => TIME-TAI)
-(check-catch 'wrong-type-arg (time-type (current-time TIME-THREAD)))
-(check-catch 'wrong-type-arg (time-type (current-time TIME-PROCESS)))
-(check-catch 'wrong-type-arg (time-type (current-time TIME-DURATION)))
+(check-catch 'type-error (time-type (current-time TIME-THREAD)))
+(check-catch 'type-error (time-type (current-time TIME-PROCESS)))
+(check-catch 'type-error (time-type (current-time TIME-DURATION)))
 
 
 ;; Check that nanoseconds are in valid range
@@ -62,7 +62,7 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (current-time 'invalid-type))
+(check-catch 'type-error (current-time 'invalid-type))
 
 
 (check-report)

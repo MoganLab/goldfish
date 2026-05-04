@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -22,7 +22,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数类型不正确时抛出错误。
+;; type-error 当参数类型不正确时抛出错误。
 ;; value-error 当输入字符串无法匹配模板时抛出错误。
 
 
@@ -55,8 +55,8 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (string->date 1 "~Y"))
-(check-catch 'wrong-type-arg (string->date "2020" 123))
+(check-catch 'type-error (string->date 1 "~Y"))
+(check-catch 'type-error (string->date "2020" 123))
 (check-catch 'value-error (string->date "2020-01-01" "~Y/~m/~d"))
 
 
