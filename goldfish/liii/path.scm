@@ -44,6 +44,7 @@
     (liii string)
     (liii vector)
     (scheme base)
+    (scheme char)
     (liii ascii)
   ) ;import
   (begin

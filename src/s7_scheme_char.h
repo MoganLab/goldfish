@@ -25,10 +25,6 @@ s7_pointer g_integer_to_char(s7_scheme *sc, s7_pointer args);
 s7_pointer integer_to_char_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer integer_to_char_p_i(s7_scheme *sc, s7_int ind);
 
-s7_pointer g_is_char_alphabetic(s7_scheme *sc, s7_pointer args);
-bool is_char_alphabetic_b_7p(s7_scheme *sc, s7_pointer c);
-s7_pointer is_char_alphabetic_p_p(s7_scheme *sc, s7_pointer c);
-
 s7_pointer g_is_char_whitespace(s7_scheme *sc, s7_pointer args);
 bool is_char_whitespace_b_7p(s7_scheme *sc, s7_pointer c);
 s7_pointer is_char_whitespace_p_p(s7_scheme *sc, s7_pointer c);
