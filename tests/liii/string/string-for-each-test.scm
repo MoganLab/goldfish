@@ -1,4 +1,4 @@
-(import (liii check) (liii string))
+(import (liii check) (scheme char) (liii string))
 (import (liii ascii))
 
 ;; string-for-each
