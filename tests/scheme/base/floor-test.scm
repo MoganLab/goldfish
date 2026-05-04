@@ -33,6 +33,5 @@
 (check-catch 'wrong-type-arg (floor 2.0+4.0i))
 (check-catch 'wrong-type-arg (floor 'hello'))
 (check-catch 'wrong-number-of-args (floor 4 5))
-(check (s7-floor 1.1) => 1)
-(check (s7-floor -1.2) => -2)
+
 (check-report)

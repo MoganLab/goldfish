@@ -5,7 +5,10 @@
 
 
 ;; ==== 常见用法示例 ====
-(import (liii time) (srfi srfi-19))
+(import (liii time)
+  (scheme time)
+  (srfi srfi-19)
+)
 
 
 ;; 示例1：读取系统 jiffy 精度

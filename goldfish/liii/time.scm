@@ -1,5 +1,5 @@
 (define-library (liii time)
-  (export sleep current-second current-jiffy jiffies-per-second)
+  (export sleep)
   (import (liii base) (scheme time))
   (begin
 

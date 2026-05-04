@@ -65011,13 +65011,13 @@ static void init_choosers(s7_scheme *sc)
 
   /* min */
   func = set_function_chooser(sc->min_symbol, min_chooser);
-  sc->min_2 = make_function_with_class(sc, func, "min", g_min_2, 2, 0, false);
-  sc->min_3 = make_function_with_class(sc, func, "min", g_min_3, 3, 0, false);
+  sc->min_2 = make_function_with_class(sc, func, "s7-min", g_min_2, 2, 0, false);
+  sc->min_3 = make_function_with_class(sc, func, "s7-min", g_min_3, 3, 0, false);
 
   /* max */
   func = set_function_chooser(sc->max_symbol, max_chooser);
-  sc->max_2 = make_function_with_class(sc, func, "max", g_max_2, 2, 0, false);
-  sc->max_3 = make_function_with_class(sc, func, "max", g_max_3, 3, 0, false);
+  sc->max_2 = make_function_with_class(sc, func, "s7-max", g_max_2, 2, 0, false);
+  sc->max_3 = make_function_with_class(sc, func, "s7-max", g_max_3, 3, 0, false);
 
   /* < */
   func = set_function_chooser(sc->lt_symbol, less_chooser);
@@ -65441,25 +65441,25 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	    #define MAIN_NAMES_SIZE 445
 	    static const char *main_names[MAIN_NAMES_SIZE] = {
       "<=", ">=", "do", "gc", "if", "or", "pi", "abs", "and", "ash", "car", "cdr", "cos", "eq?", "exp", "gcd",
-        "lcm", "let", "log", "map", "max", "min", "nan", "not", "sin", "sym", "tan", "*s7*", "acos", "asin",
+        "lcm", "let", "log", "map", "s7-max", "s7-min", "nan", "not", "sin", "sym", "tan", "*s7*", "acos", "asin",
         "assq", "assv", "atan", "caar", "cadr", "case", "cdar", "cddr", "cond", "cons", "copy", "cosh", "else",
         "eqv?", "eval", "exit", "expt", "help", "let*", "let?", "list", "load", "memq", "memv", "nan?", "odd?",
         "read", "set!", "sinh", "sqrt", "tanh", "when", "abort", "acosh", "angle", "apply", "arity", "asinh",
         "assoc", "atanh", "bacro", "begin", "byte?", "caaar", "caadr", "cadar", "caddr", "catch", "cdaar",
         "cdadr", "cddar", "cdddr", "char?", "error", "even?", "fill!", "floor", "goto?", "index", "inlet",
-        "list?", "macro", "null?", "owlet", "pair?", "quote", "real?", "round", "sort!", "throw", "unlet",
+        "list?", "macro", "null?", "owlet", "pair?", "quote", "real?", "s7-round", "sort!", "throw", "unlet",
         "write", "zero?", "append", "bacro*", "bignum", "caaaar", "caaadr", "caadar", "caaddr", "cadaar",
         "cadadr", "caddar", "cadddr", "cdaaar", "cdaadr", "cdadar", "cdaddr", "cddaar", "cddadr", "cdddar",
         "cddddr", "char<?", "char=?", "char>?", "curlet", "cutlet", "define", "equal?", "exact?", "float?",
         "format", "gensym", "getenv", "lambda", "length", "letrec", "logand", "logior", "lognot", "logxor",
-        "macro*", "macro?", "member", "modulo", "outlet", "random", "setter", "string", "sublet", "symbol",
-        "system", "unless", "values", "varlet", "vector", "bignum?", "call/cc", "ceiling", "char<=?",
+        "macro*", "macro?", "member", "s7-modulo", "outlet", "random", "setter", "string", "sublet", "symbol",
+        "system", "unless", "values", "varlet", "vector", "bignum?", "call/cc", "s7-ceiling", "char<=?",
         "char>=?", "complex", "define*", "display", "funclet", "gensym?", "iterate", "lambda*", "let-ref",
         "letrec*", "logbit?", "newline", "number?", "openlet", "provide", "require", "reverse", "rootlet",
         "string?", "symbol?", "syntax?", "type-of", "unquote", "vector?", "boolean?", "complex?", "coverlet",
         "defined?", "dilambda", "for-each", "funclet?", "inexact?", "integer?", "keyword?", "let-set!",
         "list-ref", "openlet?", "quotient", "reverse!", "set-car!", "set-cdr!", "string<?", "string=?",
-        "string>?", "truncate", "with-let", "aritable?", "c-object?", "c-pointer", "char-ci<?", "char-ci=?",
+        "string>?", "s7-truncate", "with-let", "aritable?", "c-object?", "c-pointer", "char-ci<?", "char-ci=?",
         "char-ci>?", "constant?", "dilambda?", "hash-code", "imag-part", "infinite?", "iterator?", "let->list",
         "list-set!", "list-tail", "magnitude", "make-hook", "make-list", "negative?", "numerator", "peek-char",
         "port-file", "positive?", "provided?", "rational?", "read-byte", "read-char", "read-line", "real-part",
@@ -92312,19 +92312,19 @@ static void init_rootlet(s7_scheme *sc)
   sc->subtract_symbol =              defun("-",		        subtract,		1, 0, true); set_all_integer_and_float(sc->subtract_symbol);
   sc->multiply_symbol =              defun("*",		        multiply,		0, 0, true); set_all_integer_and_float(sc->multiply_symbol);
   sc->divide_symbol =                defun("/",		        divide,			1, 0, true); set_all_float(sc->divide_symbol);
-  sc->min_symbol =                   defun("min",		min,			1, 0, true); set_all_integer_and_float(sc->min_symbol);
-  sc->max_symbol =                   defun("max",		max,			1, 0, true); set_all_integer_and_float(sc->max_symbol);
+  sc->min_symbol =                   defun("s7-min",		min,			1, 0, true); set_all_integer_and_float(sc->min_symbol);
+  sc->max_symbol =                   defun("s7-max",		max,			1, 0, true); set_all_integer_and_float(sc->max_symbol);
 
   sc->quotient_symbol =              defun("quotient",		quotient,		2, 0, false); set_all_integer(sc->quotient_symbol);
   sc->remainder_symbol =             defun("remainder",	        remainder,		2, 0, false); set_all_integer(sc->remainder_symbol);
-  sc->modulo_symbol =                defun("modulo",		modulo,			2, 0, false); set_all_integer(sc->modulo_symbol);
+  sc->modulo_symbol =                defun("s7-modulo",		modulo,			2, 0, false); set_all_integer(sc->modulo_symbol);
   sc->num_eq_symbol =                defun("=",		        num_eq,			2, 0, true);
   sc->lt_symbol =                    defun("<",		        less,			2, 0, true);
   sc->gt_symbol =                    defun(">",		        greater,		2, 0, true);
   sc->leq_symbol =                   defun("<=",		less_or_equal,		2, 0, true);
   sc->geq_symbol =                   defun(">=",		greater_or_equal,	2, 0, true);
   sc->gcd_symbol =                   defun("gcd",		gcd,			0, 0, true);
-  sc->lcm_symbol =                   defun("lcm",		lcm,			0, 0, true);
+  sc->lcm_symbol =                   defun("s7-lcm",		lcm,			0, 0, true);
   sc->rationalize_symbol =           defun("rationalize",	rationalize,		1, 1, false);
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
   sc->random_state_symbol =          defun("random-state",      random_state,	        0, 2, false);
@@ -92348,10 +92348,10 @@ static void init_rootlet(s7_scheme *sc)
   sc->acosh_symbol =                 defun("acosh",		acosh,			1, 0, false);
   sc->atanh_symbol =                 defun("atanh",		atanh,			1, 0, false);
   sc->sqrt_symbol =                  s7_define_typed_function(sc, "sqrt", g_sqrt, 1, 0, false, "(sqrt z) returns the square root of z", sc->pl_nn);
-  sc->floor_symbol =                 s7_define_typed_function(sc, "floor", g_floor, 1, 0, false, "(floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
-  sc->ceiling_symbol =               s7_define_typed_function(sc, "ceiling", g_ceiling, 1, 0, false, "(ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
-  sc->truncate_symbol =              defun("truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
-  sc->round_symbol =                 defun("round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
+  sc->floor_symbol =                 s7_define_typed_function(sc, "s7-floor", g_floor, 1, 0, false, "(s7-floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
+  sc->ceiling_symbol =               s7_define_typed_function(sc, "s7-ceiling", g_ceiling, 1, 0, false, "(s7-ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
+  sc->truncate_symbol =              defun("s7-truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
+  sc->round_symbol =                 defun("s7-round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
   sc->logand_symbol =                s7_define_typed_function(sc, "logand", g_logand, 0, 0, true, "(logand int32_t ...) returns the AND of its integer arguments (the bits that are on in every argument)", sc->pcl_i);
   sc->logior_symbol =                s7_define_typed_function(sc, "logior", g_logior, 0, 0, true, "(logior int32_t ...) returns the OR of its integer arguments (the bits that are on in any of the arguments)", sc->pcl_i);
   sc->logxor_symbol =                s7_define_typed_function(sc, "logxor", g_logxor, 0, 0, true, "(logxor int32_t ...) returns the XOR of its integer arguments (the bits that are on in an odd number of the arguments)", sc->pcl_i);

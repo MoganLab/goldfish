@@ -39,19 +39,14 @@
     min
     floor
     floor/
-    s7-floor
     ceiling
-    s7-ceiling
     truncate
     truncate/
-    s7-truncate
     round
-    s7-round
     floor-quotient
     floor-remainder
     gcd
     lcm
-    s7-lcm
     modulo
     quotient
     remainder
@@ -257,8 +252,6 @@
 
     (define inexact exact->inexact)
 
-    (define s7-max max)
-
     (define (max2 x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "max: parameter must be real number")
@@ -275,8 +268,6 @@
         ) ;if
       ) ;let
     ) ;define
-
-    (define s7-min min)
 
     (define (min2 x y)
       (when (or (not (real? x)) (not (real? y)))
@@ -295,25 +286,17 @@
       ) ;let
     ) ;define
 
-    (define s7-floor floor)
-
     (define (floor x)
       (if (inexact? x) (inexact (s7-floor x)) (s7-floor x))
     ) ;define
-
-    (define s7-ceiling ceiling)
 
     (define (ceiling x)
       (if (inexact? x) (inexact (s7-ceiling x)) (s7-ceiling x))
     ) ;define
 
-    (define s7-truncate truncate)
-
     (define (truncate x)
       (if (inexact? x) (inexact (s7-truncate x)) (s7-truncate x))
     ) ;define
-
-    (define s7-round round)
 
     (define (round x)
       (if (inexact? x) (inexact (s7-round x)) (s7-round x))
@@ -357,8 +340,6 @@
       ) ;let*
     ) ;define
 
-    (define s7-modulo modulo)
-
     (define (modulo x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "modulo: parameters must be reals")
@@ -368,8 +349,6 @@
       ) ;when
       (s7-modulo x y)
     ) ;define
-
-    (define s7-lcm lcm)
 
     (define (lcm2 x y)
       (when (or (not (real? x)) (not (real? y)))
