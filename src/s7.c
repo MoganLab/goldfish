@@ -38901,7 +38901,7 @@ static s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args);
 
 static s7_pointer g_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
-  #define H_make_hash_table "(make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
+  #define H_make_hash_table "(s7-make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
 used to check equality of keys; it usually defaults to equal?. typer sets the types of the keys and values that are allowed \
 in the table; it is a cons, defaulting to (cons #t #t) which means any types are allowed.\n"
   #define Q_make_hash_table s7_make_signature(sc, 4, sc->is_hash_table_symbol, sc->is_integer_symbol, \
@@ -39585,7 +39585,7 @@ s7_pointer s7_hash_table_set(s7_scheme *sc, s7_pointer table, s7_pointer key, s7
 
 static s7_pointer g_hash_table_set(s7_scheme *sc, s7_pointer args)
 {
-  #define H_hash_table_set "(hash-table-set! table key value) sets the value associated with key in the hash table to value"
+  #define H_hash_table_set "(s7-hash-table-set! table key value) sets the value associated with key in the hash table to value"
   #define Q_hash_table_set s7_make_signature(sc, 4, sc->T, sc->is_hash_table_symbol, sc->T, sc->T)
 
   s7_pointer table = car(args);
@@ -65445,64 +65445,73 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	    /* check main symbols, from t865.scm */
 	    #define MAIN_NAMES_SIZE 445
 	    static const char *main_names[MAIN_NAMES_SIZE] = {
-	      "<=", ">=", "gc", "if", "pi", "do", "or",
-	      "cos", "not", "ash", "exp", "sym", "nan", "tan", "map", "gcd", "car", "max", "abs", "lcm", "cdr", "let", "min", "sin", "eq?", "and", "log",
-	      "acos", "assv", "eval", "cons", "help", "let*", "list", "*s7*", "sqrt", "memq", "exit", "expt", "assq", "nan?", "when", "read", "odd?", "let?",
-	        "load", "atan", "asin", "cond", "set!", "caar", "eqv?", "cadr", "cdar", "cddr", "tanh", "sinh", "case", "cosh", "copy", "memv", "else",
-	      "error", "round", "inlet", "unlet", "throw", "owlet", "list?", "index", "atanh", "asinh", "assoc", "apply", "fill!", "even?", "angle", "pair?",
-	        "char?", "caadr", "caddr", "cdadr", "cdddr", "bacro", "macro", "acosh", "zero?", "caaar", "cadar", "cdaar", "cddar", "goto?", "real?", "arity",
-	        "byte?", "abort", "catch", "null?", "sort!", "write", "begin", "quote", "floor",
-	      "define", "float?", "format", "vector", "bignum", "unless", "symbol", "values", "member", "lambda", "logxor", "system", "logand", "modulo",
-	        "length", "char<?", "char=?", "append", "setter", "char>?", "caadar", "caddar", "cdadar", "cdddar", "exact?", "bacro*", "macro*", "string",
-	        "equal?", "letrec", "getenv", "macro?", "caaaar", "cadaar", "gensym", "caaddr", "cdaaar", "cadddr", "cddaar", "varlet", "cdaddr", "cddddr",
-	        "random", "logior", "caaadr", "cadadr", "cdaadr", "cddadr", "lognot", "sublet", "curlet", "cutlet", "outlet",
-	      "letrec*", "complex", "unquote", "reverse", "string?", "let-ref", "gensym?", "require", "define*", "call/cc",
-	        "newline", "char<=?", "vector?", "char>=?", "funclet", "display", "rootlet", "logbit?", "lambda*", "bignum?", "provide", "symbol?",
-	        "iterate", "openlet", "ceiling", "syntax?", "type-of", "number?",
-	      "quotient", "dilambda", "complex?", "reverse!", "string<?", "set-cdr!", "set-car!", "keyword?", "defined?",
-	        "string>?", "integer?", "funclet?", "let-set!", "inexact?", "boolean?", "with-let", "openlet?", "truncate", "string=?",
-	        "list-ref", "coverlet", "for-each",
-	      "substring", "imag-part", "signature", "constant?", "remainder", "dilambda?", "read-byte", "read-char", "infinite?",
-	        "sequence?", "magnitude", "peek-char", "char-ci>?", "iterator?", "numerator", "rational?", "char-ci=?", "subvector", "list-set!",
-	        "negative?", "provided?", "string<=?", "char-ci<?", "real-part", "aritable?", "make-list", "read-line", "list-tail", "tree-memq",
-	        "c-pointer", "let->list", "make-hook", "string>=?", "positive?", "c-object?", "port-file", "hash-code",
-	      "int-vector", "write-char", "undefined?", "quasiquote", "make-polar", "stacktrace", "write-byte", "c-pointer?", "hash-table", "profile-in",
-	        "immutable!", "*function*", "immutable?", "string-ref", "char-ci>=?", "file-mtime",
-		"subvector?", "char-ci<=?", "directory?", "tree-count", "procedure?", "vector-ref",
-	      "object->let", "with-baffle", "make-string", "denominator", "tree-leaves", "vector-set!", "int-vector?", "vector-rank",
-	        "eval-string", "hash-table?", "rationalize", "string-ci<?", "string-ci=?", "string-ci>?", "input-port?",
-		"macroexpand", "eof-object?", "port-string", "char-ready?", "cond-expand", "string-set!", "make-vector", "read-string",
-		"char-upcase", "string-copy", "equivalent?", "nan-payload", "list-values", "reader-cond", "byte-vector", "delete-file",
-	      "float-vector", "define-bacro", "symbol-table", "string-ci<=?", "list->string", "string-ci>=?", "apply-values", "file-exists?", "c-object-let",
-	        "unspecified?", "define-macro", "string-fill!", "list->vector", "port-closed?", "tree-cyclic?", "dynamic-wind", "string->list", "byte-vector?",
-		"write-string", "vector-fill!", "proper-list?", "random-state", "output-port?", "vector->list", "vector-typer",
-	      "string-append", "string-upcase", "port-position", "define-macro*", "tree-set-memq", "string-length", "vector-append", "documentation",
-	        "char-downcase", "char->integer", "integer->char", "char-position", "c-object-type", "random-state?", "vector-length", "port-filename",
-		"symbol->value", "char-numeric?", "float-vector?", "define-bacro*", "make-iterator", "pair-filename", "continuation?",
-	      "hook-functions", "c-pointer-type", "exact->inexact", "c-pointer-info", "integer-length", "string->symbol", "symbol->string", "complex-vector",
-	        "inexact->exact", "emergency-exit", "string->number", "number->string", "int-vector-ref", "dynamic-unwind", "object->string", "call-with-exit",
-		"hash-table-ref",
-	      "c-pointer-weak2", "directory->list", "symbol->keyword", "open-input-file", "c-pointer->list", "let-temporarily", "keyword->symbol",
-	        "byte-vector-ref", "c-pointer-weak1", "string-position", "int-vector-set!", "make-int-vector", "hash-table-set!",
-		"string->keyword", "weak-hash-table", "string-downcase", "define-constant", "complex-vector?", "make-hash-table",
-	      "iterator-at-end?", "subvector-vector", "procedure-source", "call-with-values", "close-input-port",
-	        "make-byte-vector", "float-vector-ref", "char-alphabetic?", "make-rectangular", "cyclic-sequences", "port-line-number",
-		"byte-vector-set!", "weak-hash-table?", "char-whitespace?", "open-output-file", "define-expansion", "char-upper-case?", "pair-line-number",
-		"vector-dimension",
-	      "open-input-string", "get-output-string", "iterator-sequence", "make-float-vector", "close-output-port", "flush-output-port",
-	        "define-expansion*", "float-vector-set!", "procedure-arglist", "vector-dimensions",
-	      "open-output-string", "substring-uncopied", "complex-vector-ref", "subvector-position", "hash-table-entries", "random-state->list",
-	        "current-input-port", "current-error-port",
-	      "string->byte-vector", "byte-vector->string", "multiple-value-bind", "complex-vector-set!", "open-input-function", "current-output-port",
-	        "with-output-to-file", "make-complex-vector",
-	      "with-input-from-file", "hash-table-key-typer", "symbol-initial-value", "make-weak-hash-table", "integer-decode-float", "open-output-function",
-	        "call-with-input-file",
-	      "with-output-to-string", "call-with-output-file", "symbol->dynamic-value",
-	      "set-current-error-port", "call-with-input-string", "set-current-input-port", "hash-table-value-typer", "with-input-from-string",
-	      "set-current-output-port", "call-with-output-string", NULL};
+      "<=", ">=", "do", "gc", "if", "or", "pi", "abs", "and", "ash", "car", "cdr", "cos", "eq?", "exp", "gcd",
+        "lcm", "let", "log", "map", "max", "min", "nan", "not", "sin", "sym", "tan", "*s7*", "acos", "asin",
+        "assq", "assv", "atan", "caar", "cadr", "case", "cdar", "cddr", "cond", "cons", "copy", "cosh", "else",
+        "eqv?", "eval", "exit", "expt", "help", "let*", "let?", "list", "load", "memq", "memv", "nan?", "odd?",
+        "read", "set!", "sinh", "sqrt", "tanh", "when", "abort", "acosh", "angle", "apply", "arity", "asinh",
+        "assoc", "atanh", "bacro", "begin", "byte?", "caaar", "caadr", "cadar", "caddr", "catch", "cdaar",
+        "cdadr", "cddar", "cdddr", "char?", "error", "even?", "fill!", "floor", "goto?", "index", "inlet",
+        "list?", "macro", "null?", "owlet", "pair?", "quote", "real?", "round", "sort!", "throw", "unlet",
+        "write", "zero?", "append", "bacro*", "bignum", "caaaar", "caaadr", "caadar", "caaddr", "cadaar",
+        "cadadr", "caddar", "cadddr", "cdaaar", "cdaadr", "cdadar", "cdaddr", "cddaar", "cddadr", "cdddar",
+        "cddddr", "char<?", "char=?", "char>?", "curlet", "cutlet", "define", "equal?", "exact?", "float?",
+        "format", "gensym", "getenv", "lambda", "length", "letrec", "logand", "logior", "lognot", "logxor",
+        "macro*", "macro?", "member", "modulo", "outlet", "random", "setter", "string", "sublet", "symbol",
+        "system", "unless", "values", "varlet", "vector", "bignum?", "call/cc", "ceiling", "char<=?",
+        "char>=?", "complex", "define*", "display", "funclet", "gensym?", "iterate", "lambda*", "let-ref",
+        "letrec*", "logbit?", "newline", "number?", "openlet", "provide", "require", "reverse", "rootlet",
+        "string?", "symbol?", "syntax?", "type-of", "unquote", "vector?", "boolean?", "complex?", "coverlet",
+        "defined?", "dilambda", "for-each", "funclet?", "inexact?", "integer?", "keyword?", "let-set!",
+        "list-ref", "openlet?", "quotient", "reverse!", "set-car!", "set-cdr!", "string<?", "string=?",
+        "string>?", "truncate", "with-let", "aritable?", "c-object?", "c-pointer", "char-ci<?", "char-ci=?",
+        "char-ci>?", "constant?", "dilambda?", "hash-code", "imag-part", "infinite?", "iterator?", "let->list",
+        "list-set!", "list-tail", "magnitude", "make-hook", "make-list", "negative?", "numerator", "peek-char",
+        "port-file", "positive?", "provided?", "rational?", "read-byte", "read-char", "read-line", "real-part",
+        "remainder", "sequence?", "signature", "string<=?", "string>=?", "substring", "subvector", "tree-memq",
+        "*function*", "c-pointer?", "char-ci<=?", "char-ci>=?", "directory?", "file-mtime", "hash-table",
+        "immutable!", "immutable?", "int-vector", "make-polar", "procedure?", "profile-in", "quasiquote",
+        "stacktrace", "string-ref", "subvector?", "tree-count", "undefined?", "vector-ref", "write-byte",
+        "write-char", "byte-vector", "char-ready?", "char-upcase", "cond-expand", "delete-file", "denominator",
+        "eof-object?", "equivalent?", "eval-string", "hash-table?", "input-port?", "int-vector?",
+        "list-values", "macroexpand", "make-string", "make-vector", "nan-payload", "object->let",
+        "port-string", "rationalize", "read-string", "reader-cond", "string-ci<?", "string-ci=?",
+        "string-ci>?", "string-copy", "string-set!", "tree-leaves", "vector-rank", "vector-set!",
+        "with-baffle", "apply-values", "byte-vector?", "c-object-let", "define-bacro", "define-macro",
+        "dynamic-wind", "file-exists?", "float-vector", "list->string", "list->vector", "output-port?",
+        "port-closed?", "proper-list?", "random-state", "string->list", "string-ci<=?", "string-ci>=?",
+        "string-fill!", "symbol-table", "tree-cyclic?", "unspecified?", "vector->list", "vector-fill!",
+        "vector-typer", "write-string", "c-object-type", "char->integer", "char-downcase", "char-numeric?",
+        "char-position", "continuation?", "define-bacro*", "define-macro*", "documentation", "float-vector?",
+        "integer->char", "make-iterator", "pair-filename", "port-filename", "port-position", "random-state?",
+        "string-append", "string-length", "string-upcase", "symbol->value", "tree-set-memq", "vector-append",
+        "vector-length", "c-pointer-info", "c-pointer-type", "call-with-exit", "complex-vector",
+        "dynamic-unwind", "emergency-exit", "exact->inexact", "hash-table-ref", "hook-functions",
+        "inexact->exact", "int-vector-ref", "integer-length", "number->string", "object->string",
+        "string->number", "string->symbol", "symbol->string", "byte-vector-ref", "c-pointer->list",
+        "c-pointer-weak1", "c-pointer-weak2", "complex-vector?", "define-constant", "directory->list",
+        "int-vector-set!", "keyword->symbol", "let-temporarily", "make-int-vector", "open-input-file",
+        "string->keyword", "string-downcase", "string-position", "symbol->keyword", "weak-hash-table",
+        "byte-vector-set!", "call-with-values", "char-alphabetic?", "char-upper-case?", "char-whitespace?",
+        "close-input-port", "cyclic-sequences", "define-expansion", "float-vector-ref", "iterator-at-end?",
+        "make-byte-vector", "make-rectangular", "open-output-file", "pair-line-number", "port-line-number",
+        "procedure-source", "subvector-vector", "vector-dimension", "weak-hash-table?", "close-output-port",
+        "define-expansion*", "float-vector-set!", "flush-output-port", "get-output-string",
+        "iterator-sequence", "make-float-vector", "open-input-string", "procedure-arglist",
+        "vector-dimensions", "complex-vector-ref", "current-error-port", "current-input-port",
+        "hash-table-entries", "open-output-string", "random-state->list", "s7-hash-table-set!",
+        "s7-make-hash-table", "substring-uncopied", "subvector-position", "byte-vector->string",
+        "complex-vector-set!", "current-output-port", "make-complex-vector", "multiple-value-bind",
+        "open-input-function", "string->byte-vector", "with-output-to-file", "call-with-input-file",
+        "hash-table-key-typer", "integer-decode-float", "make-weak-hash-table", "open-output-function",
+        "symbol-initial-value", "with-input-from-file", "call-with-output-file", "symbol->dynamic-value",
+        "with-output-to-string", "call-with-input-string", "hash-table-value-typer", "set-current-error-port",
+        "set-current-input-port", "with-input-from-string", "call-with-output-string",
+        "set-current-output-port"
+      };
 
 	    static const int32_t main_names_index[LEVEN_MAX_LEN] = {0, 7, 27, 62, 103, 156, 184, 206, 243, 265, 296, 321, 344, 361,
-							 380, 399, 409, 417, 425, 432, 435, 440, 442}; /* 443==NULL, 7858 - 3576 bytes */
+							 378, 397, 407, 417, 425, 432, 435, 440, 442}; /* 443==NULL, 7858 - 3576 bytes */
 	    const int32_t start = main_names_index[sym_len - 2], end = main_names_index[sym_len - 1];
 #if 0
 	    { /* if above list changed, this might help: */
@@ -92560,13 +92569,13 @@ static void init_rootlet(s7_scheme *sc)
   sc->hash_table_symbol =            defun("hash-table",	hash_table,		0, 0, true);
   set_has_even_args(global_value(sc->hash_table_symbol));
   set_is_saver(sc->hash_table_symbol);
-  sc->make_hash_table_symbol =       defun("make-hash-table",	make_hash_table,	0, 3, false);
+  sc->make_hash_table_symbol =       defun("s7-make-hash-table",	make_hash_table,	0, 3, false);
   sc->make_weak_hash_table_symbol =  defun("make-weak-hash-table", make_weak_hash_table,0, 3, false);
   sc->weak_hash_table_symbol =       defun("weak-hash-table",   weak_hash_table,        0, 0, true);
   set_has_even_args(global_value(sc->weak_hash_table_symbol));
   set_is_saver(sc->weak_hash_table_symbol);
   sc->hash_table_ref_symbol =        defun("hash-table-ref",	hash_table_ref,		2, 0, true);
-  sc->hash_table_set_symbol =        defun("hash-table-set!",	hash_table_set,		3, 0, false);
+  sc->hash_table_set_symbol =        defun("s7-hash-table-set!",	hash_table_set,		3, 0, false);
   sc->hash_table_size_symbol =    defun("hash-table-size", hash_table_size,	1, 0, false);
   sc->hash_code_symbol =             defun("hash-code",         hash_code,              1, 1, false);
   sc->dummy_equal_hash_table = make_dummy_hash_table(sc);
