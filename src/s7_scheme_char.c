@@ -24,7 +24,6 @@ extern s7_pointer* chars;
 
 static bool char_is_alphabetic[S7_NUM_CHARS];
 static bool char_is_whitespace[S7_NUM_CHARS];
-static bool char_is_lowercase[S7_NUM_CHARS];
 static bool char_tables_inited= false;
 
 static bool
@@ -53,7 +52,6 @@ init_scheme_char_tables (void) {
     const unsigned char c= (unsigned char) i;
     char_is_alphabetic[i]= (isalpha ((int) c) != 0);
     char_is_whitespace[i]= is_whitespace_char ((uint8_t) c);
-    char_is_lowercase[i] = (islower ((int) c) != 0);
   }
 }
 
@@ -74,16 +72,6 @@ char_is_whitespace_v (uint32_t cp) {
   return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetWhitespace), cp);
 #else
   return iswspace ((wint_t) cp) != 0;
-#endif
-}
-
-static bool
-char_is_lowercase_v (uint32_t cp) {
-  if (cp < 256) return char_is_lowercase[cp];
-#if defined(__APPLE__)
-  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetLowercaseLetter), cp);
-#else
-  return iswlower ((wint_t) cp) != 0;
 #endif
 }
 
@@ -231,21 +219,6 @@ is_char_whitespace_p_p (s7_scheme* sc, s7_pointer c) {
 s7_pointer
 is_char_whitespace_p_p_unchecked (s7_scheme* sc, s7_pointer c) {
   return s7_make_boolean (sc, char_is_whitespace_v (s7_character (c)));
-}
-
-/* -------------------------------- char-lower-case? -------------------------------- */
-
-s7_pointer
-g_is_char_lower_case (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-lower-case?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_lowercase_v (s7_character (arg)));
-}
-
-bool
-is_char_lower_case_b_7p (s7_scheme* sc, s7_pointer c) {
-  if (!s7_is_character (c)) return s7i_method_or_bust_bool (sc, c, "char-lower-case?", list1 (sc, c), "a character", 1);
-  return char_is_lowercase_v (s7_character (c));
 }
 
 /* -------------------------------- char? -------------------------------- */

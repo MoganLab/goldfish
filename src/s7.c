@@ -1308,7 +1308,7 @@ struct s7_scheme {
              integer_decode_float_symbol, integer_to_char_symbol,
              is_aritable_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
              is_c_object_symbol, c_object_let_symbol, c_object_type_symbol, is_c_pointer_symbol,
-             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_numeric_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
+             is_char_alphabetic_symbol, is_char_symbol, is_char_whitespace_symbol,
              is_complex_symbol, is_complex_vector_symbol, is_constant_symbol,
              is_continuation_symbol, is_defined_symbol, is_dilambda_symbol, is_eof_object_symbol, is_eq_symbol, is_equal_symbol,
              is_eqv_symbol, is_even_symbol, is_exact_symbol, is_float_vector_symbol, is_funclet_symbol,
@@ -65485,7 +65485,7 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	      "c-pointer-weak2", "directory->list", "symbol->keyword", "open-input-file", "c-pointer->list", "let-temporarily", "keyword->symbol",
 	        "byte-vector-ref", "c-pointer-weak1", "string-position", "int-vector-set!", "make-int-vector", "hash-table-set!",
 		"string->keyword", "weak-hash-table", "string-downcase", "define-constant", "complex-vector?", "make-hash-table",
-	      "iterator-at-end?", "char-lower-case?", "subvector-vector", "procedure-source", "call-with-values", "close-input-port",
+	      "iterator-at-end?", "subvector-vector", "procedure-source", "call-with-values", "close-input-port",
 	        "make-byte-vector", "float-vector-ref", "char-alphabetic?", "make-rectangular", "cyclic-sequences", "port-line-number",
 		"byte-vector-set!", "weak-hash-table?", "char-whitespace?", "open-output-file", "define-expansion", "char-upper-case?", "pair-line-number",
 		"vector-dimension",
@@ -65502,7 +65502,7 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	      "set-current-output-port", "call-with-output-string", NULL};
 
 	    static const int32_t main_names_index[LEVEN_MAX_LEN] = {0, 7, 27, 62, 103, 156, 184, 206, 243, 265, 296, 321, 344, 361,
-							 380, 400, 410, 418, 426, 433, 436, 441, 443}; /* 443==NULL, 7858 - 3576 bytes */
+							 380, 399, 409, 417, 425, 432, 435, 440, 442}; /* 443==NULL, 7858 - 3576 bytes */
 	    const int32_t start = main_names_index[sym_len - 2], end = main_names_index[sym_len - 1];
 #if 0
 	    { /* if above list changed, this might help: */
@@ -91337,7 +91337,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_b_7p_function(sc, global_value(sc->is_iterator_symbol), is_iterator_b_7p);
 
   s7_set_b_7p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_lower_case_symbol), is_char_lower_case_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_b_7p);
 
   s7_set_b_p_function(sc, global_value(sc->is_openlet_symbol), s7_is_openlet);
@@ -92382,8 +92381,6 @@ static void init_rootlet(s7_scheme *sc)
                                                               "(integer->char i) converts the non-negative integer i to a character",
                                                               s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol));
 
-  sc->is_char_lower_case_symbol =    s7_define_typed_function(sc, "char-lower-case?", g_is_char_lower_case, 1, 0, false,
-                                                              "(char-lower-case? c) returns #t if the character c is in lower case", sc->pl_bc);
   sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,
                                                               "(char-alphabetic? c) returns #t if the character c is alphabetic", sc->pl_bc);
   sc->is_char_whitespace_symbol =    s7_define_typed_function(sc, "char-whitespace?", g_is_char_whitespace, 1, 0, false,
