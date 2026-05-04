@@ -1,4 +1,4 @@
-(import (liii check) (srfi srfi-165))
+(import (liii check) (scheme char) (srfi srfi-165))
 
 (check-set-mode! 'report-failed)
 

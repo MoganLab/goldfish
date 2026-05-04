@@ -1,4 +1,5 @@
 (import (liii check))
+(import (scheme char))
 (import (liii string-cursor))
 
 (check-set-mode! 'report-failed)

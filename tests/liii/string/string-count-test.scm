@@ -1,5 +1,5 @@
 (import (liii check)
-        (scheme char) (liii error) (liii string) (srfi srfi-13))
+        (scheme char) (liii ascii) (liii error) (liii string) (srfi srfi-13))
 
 ;; string-count
 ;; 统计字符串中满足指定条件的字符数量。
@@ -89,7 +89,7 @@
 (check (string-count "method123_doSomething456" char-numeric?) => 6)
 
 ;; 特殊字符测试
-(check (string-count "特殊abc" char-alphabetic?) => 3)
+(check (string-count "特殊abc" ascii-alphabetic?) => 3)
 
 ;; start/end 范围参数测试
 (check (string-count "hello world" #\l 0) => 3)

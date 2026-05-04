@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-13)
-  (import (liii base) (srfi srfi-1))
+  (import (liii base) (srfi srfi-1) (scheme char))
   (export string-null?
     string-copy
     string-join
