@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)

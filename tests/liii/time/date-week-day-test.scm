@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是日期对象时抛出错误。
+;; type-error 当参数不是日期对象时抛出错误。
 
 
 ;; Test date-week-day
@@ -36,7 +36,7 @@
 
 
 ;; Test date-week-day error conditions
-(check-catch 'wrong-type-arg (date-week-day "not-a-date"))
+(check-catch 'type-error (date-week-day "not-a-date"))
 
 
 (check-report)

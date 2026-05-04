@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数类型不正确时抛出错误。
+;; type-error 当参数类型不正确时抛出错误。
 
 
 ;; Test make-date
@@ -46,7 +46,7 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (make-date 'not-number 0 0 0 1 1 1970 0))
+(check-catch 'type-error (make-date 'not-number 0 0 0 1 1 1970 0))
 ;; no range check
 (check-true (date? (make-date -1 0 0 0 1 1 1970 0)))
 (check-true (date? (make-date 1000000000 0 0 0 1 1 1970 0)))

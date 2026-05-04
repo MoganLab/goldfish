@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当参数不是时间对象时抛出错误。
+;; type-error 当参数不是时间对象时抛出错误。
 
 
 ;; Test copy-time
@@ -41,7 +41,7 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (copy-time "not-a-time"))
+(check-catch 'type-error (copy-time "not-a-time"))
 
 
 (check-report)
