@@ -3292,33 +3292,26 @@ f_datetime_now (s7_scheme* sc, s7_pointer args) {
   // Use C++ chrono to get microseconds
   std::uint64_t micros= 0;
 #ifdef TB_CONFIG_OS_WINDOWS
-  // On Windows, ensure we properly handle chrono
   FILETIME       ft;
   ULARGE_INTEGER uli;
   GetSystemTimeAsFileTime (&ft);
   uli.LowPart = ft.dwLowDateTime;
   uli.HighPart= ft.dwHighDateTime;
-  // Convert to microseconds and get modulo
-  micros= (uli.QuadPart / 10) % 1000000; // Convert from 100-nanosecond intervals to microseconds
+  micros= (uli.QuadPart / 10) % 1000000;
 #else
-  // Standard approach for other platforms
   auto now_chrono= std::chrono::system_clock::now ();
   auto duration  = now_chrono.time_since_epoch ();
   micros         = std::chrono::duration_cast<std::chrono::microseconds> (duration).count () % 1000000;
 #endif
 
-  // Create a vector with the time components - vector is easier to index than list in Scheme
   s7_pointer time_vec= s7_make_vector (sc, 7);
-
-  // Fill the vector with values
-  s7_vector_set (sc, time_vec, 0, s7_make_integer (sc, lt.year));   // year
-  s7_vector_set (sc, time_vec, 1, s7_make_integer (sc, lt.month));  // month
-  s7_vector_set (sc, time_vec, 2, s7_make_integer (sc, lt.mday));   // day
-  s7_vector_set (sc, time_vec, 3, s7_make_integer (sc, lt.hour));   // hour
-  s7_vector_set (sc, time_vec, 4, s7_make_integer (sc, lt.minute)); // minute
-  s7_vector_set (sc, time_vec, 5, s7_make_integer (sc, lt.second)); // second
-  s7_vector_set (sc, time_vec, 6, s7_make_integer (sc, micros));    // micro-second
-
+  s7_vector_set (sc, time_vec, 0, s7_make_integer (sc, lt.year));
+  s7_vector_set (sc, time_vec, 1, s7_make_integer (sc, lt.month));
+  s7_vector_set (sc, time_vec, 2, s7_make_integer (sc, lt.mday));
+  s7_vector_set (sc, time_vec, 3, s7_make_integer (sc, lt.hour));
+  s7_vector_set (sc, time_vec, 4, s7_make_integer (sc, lt.minute));
+  s7_vector_set (sc, time_vec, 5, s7_make_integer (sc, lt.second));
+  s7_vector_set (sc, time_vec, 6, s7_make_integer (sc, micros));
   return time_vec;
 }
 

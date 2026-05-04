@@ -1,0 +1,5 @@
+2026-05-05 04:02:38.003 [DEBUG] This is a debug message
+2026-05-05 04:02:38.003 [INFO] Application started
+2026-05-05 04:02:38.003 [WARNING] This is a warning
+2026-05-05 04:02:38.003 [ERROR] Something went wrong: 404
+2026-05-05 04:02:38.003 [INFO] User Alice logged in at 192.168.1.1

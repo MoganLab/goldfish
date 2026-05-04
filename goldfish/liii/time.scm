@@ -67,7 +67,6 @@
     string->date
     ;; Base
     sleep
-    datetime-now
   ) ;export
   (import (liii base) (scheme time) (srfi srfi-19))
   (begin
@@ -77,10 +76,6 @@
         (error 'type-error "(sleep seconds): seconds must be a number")
         (g_sleep seconds)
       ) ;if
-    ) ;define
-
-    (define (datetime-now)
-      (g_datetime-now)
     ) ;define
 
   ) ;begin

@@ -103,21 +103,11 @@
 
     ;; 时间戳格式化
     (define (format-timestamp)
-      (let ((t (datetime-now)))
-        (string-append (number->string (vector-ref t 0))
-          "-"
-          (string-pad (number->string (vector-ref t 1)) 2 #\0)
-          "-"
-          (string-pad (number->string (vector-ref t 2)) 2 #\0)
-          " "
-          (string-pad (number->string (vector-ref t 3)) 2 #\0)
-          ":"
-          (string-pad (number->string (vector-ref t 4)) 2 #\0)
-          ":"
-          (string-pad (number->string (vector-ref t 5)) 2 #\0)
+      (let ((d (current-date)))
+        (string-append
+          (date->string d "~Y-~m-~d ~H:~M:~S")
           "."
-          (string-pad (number->string (quotient (vector-ref t 6) 1000)) 3 #\0)
-        ) ;string-append
+          (substring (date->string d "~N") 0 3))
       ) ;let
     ) ;define
 
