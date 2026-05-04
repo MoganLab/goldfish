@@ -76,7 +76,13 @@
     string-remove
   ) ;export
 
-  (import (scheme base) (liii base) (liii error) (liii list) (liii unicode))
+  (import (scheme base)
+    (scheme char)
+    (liii base)
+    (liii error)
+    (liii list)
+    (liii unicode)
+  ) ;import
 
   (begin
 

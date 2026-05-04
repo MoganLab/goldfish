@@ -2421,7 +2421,20 @@
       (unless (char? char)
         (error 'type-error "char-whitespace?: parameter must be character")
       ) ;unless
-      (s7-char-whitespace? char)
+      (let ((cp (char->integer char)))
+        (cond ((<= 9 cp 13) #t)
+              ((= cp 32) #t)
+              ((= cp 133) #t)
+              ((= cp 160) #t)
+              ((= cp 5760) #t)
+              ((<= 8192 cp 8202) #t)
+              ((<= 8232 cp 8233) #t)
+              ((= cp 8239) #t)
+              ((= cp 8287) #t)
+              ((= cp 12288) #t)
+              (else #f)
+        ) ;cond
+      ) ;let
     ) ;define
 
     (define (char-upper-case? char)
