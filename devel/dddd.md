@@ -23,6 +23,14 @@ bin/gf tests/xxx/xxx-test.scm
 bin/gf doc 函数名
 ```
 
+## 如何提交
+
+提交前执行以下最少步骤：
+
+```bash
+bin/gf test --changed-since=main
+```
+
 ## 日期 任务描述
 ### What (可选)
 简要描述任务目标和完成的工作。
