@@ -79,6 +79,14 @@
         "en_US": "Enter interactive REPL mode",
         "zh_CN": "进入交互式 REPL 模式"
       }
+    },
+    "code": {
+      "organization": "liii",
+      "module": "goldcode",
+      "description": {
+        "en_US": "Launch Claude Code with pre-sync and pull",
+        "zh_CN": "同步钩子、拉取代码并启动 Claude Code"
+      }
     }
   }
 }

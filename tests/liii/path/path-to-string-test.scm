@@ -27,13 +27,13 @@
 (when (not (os-windows?))
   (check (path->string (path "tmp/demo.txt")) => "tmp/demo.txt")
   (check (path->string (path (path "tmp/demo.txt"))) => "tmp/demo.txt")
-  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp/demo.txt")
+  (check (path->string (path-clone (path "tmp/demo.txt"))) => "tmp/demo.txt")
 ) ;when
 
 (when (os-windows?)
   (check (path->string (path "tmp/demo.txt")) => "tmp\\demo.txt")
   (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
-  (check (path->string (path-copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
+  (check (path->string (path-clone (path "tmp/demo.txt"))) => "tmp\\demo.txt")
 ) ;when
 
 (check-report)

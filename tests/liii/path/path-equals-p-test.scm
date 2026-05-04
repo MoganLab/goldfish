@@ -23,7 +23,7 @@
 ;; ----
 ;; 在 Windows 上路径比较不区分大小写。
 
-(check-true (path-equals? (path-copy (path-of-drive #\d)) (path-of-drive #\D)))
+(check-true (path-equals? (path-clone (path-of-drive #\d)) (path-of-drive #\D)))
 (check-true (path-equals? (path "tmp/demo.txt") "tmp/demo.txt"))
 
 (check-report)

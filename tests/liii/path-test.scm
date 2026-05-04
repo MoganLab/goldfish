@@ -73,7 +73,9 @@
 
 ;; 四、路径操作
 ;; 用于操作和转换路径的函数
-;;   path-copy         - 复制 path 对象
+;;   path-clone        - 复制 path 对象
+;;   path-copy         - 复制文件到目标路径
+;;   path-copy-into    - 复制文件到目标目录
 ;;   path-join         - 拼接多个路径片段
 ;;   path-parent       - 获取父目录路径
 ;;   path->string      - 将路径转换为字符串
