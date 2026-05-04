@@ -1,0 +1,35 @@
+(letrec
+  ((loop
+    (lambda (i end acc count)
+      (if (> i end)
+        (cons count acc)
+        (let ((c (integer->char i)))
+          (if (char-alphabetic? c)
+            (loop (+ i 1) end (cons i acc) (+ count 1))
+            (loop (+ i 1) end acc count)))))))
+
+  ;; BMP: 0x0000 - 0xD7FF
+  (let ((r1 (loop 0 #xD7FF '() 0)))
+    ;; SMP-SPU: 0xE000 - 0x10FFFF
+    (let ((r2 (loop #xE000 #x10FFFF (cdr r1) (car r1))))
+      (let ((count (car r2))
+            (codepoints (cdr r2)))
+        (display "codepoint,char")
+        (newline)
+        (for-each
+          (lambda (cp)
+            (display "U+")
+            (if (< cp #x1000)
+              (if (< cp #x100)
+                (if (< cp #x10)
+                  (display (string-append "000" (number->string cp 16)))
+                  (display (string-append "00" (number->string cp 16))))
+                (display (string-append "0" (number->string cp 16))))
+              (display (number->string cp 16)))
+            (display ",")
+            (display (integer->char cp))
+            (newline))
+          (reverse codepoints))
+        (display "; total: ")
+        (display count)
+        (newline)))))

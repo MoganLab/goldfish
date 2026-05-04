@@ -57749,11 +57749,6 @@ static bool p_p_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const 
 	      else
 		q_call(opc).fp = (ppf == exp_p_p) ? opt_p_p_f_exp : ((ppf == iterate_p_p) ? opt_p_p_f_iterate :
 			        ((ppf == string_to_number_p_p) ? opt_p_p_f_string_to_number : opt_p_p_f));
-	      if (caadr(expr) == sc->string_ref_symbol)
-		{
-		  if (q_func1(opc).p_p_f == is_char_whitespace_p_p)
-		    q_func1(opc).p_p_f = is_char_whitespace_p_p_unchecked;
-		}
 	      q_func2_arg(opc).o1 = o1;
 	      fp = q_call(o1).fp;
 	      q_func2(opc).fp = fp;
@@ -78803,7 +78798,7 @@ static bool opt_dotimes(s7_scheme *sc, s7_pointer code, s7_pointer scc, bool loo
 		    for (; integer(stepper) < end; integer(stepper)++)
 		      fi(o);
 	      }
-	    else /* (do ((i 0 (+ i 1))) ((= i 1)) (char-alphabetic? (string-ref #u(0 1) 1))) or (logbit? i -1): kinda nutty */
+	    else /* (do ((i 0 (+ i 1))) ((= i 1)) (char-numeric? (string-ref #u(0 1) 1))) or (logbit? i -1): kinda nutty */
 	      for (; integer(stepper) < end; integer(stepper)++)
 		func(sc);
 	  clear_mutable_integer(stepper);
@@ -91345,9 +91340,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_b_p_function(sc, global_value(sc->is_vector_symbol), s7_is_vector);
   s7_set_b_7p_function(sc, global_value(sc->is_iterator_symbol), is_iterator_b_7p);
 
-  s7_set_b_7p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_b_7p);
-
   s7_set_b_p_function(sc, global_value(sc->is_openlet_symbol), s7_is_openlet);
   s7_set_b_7p_function(sc, global_value(sc->iterator_is_at_end_symbol), iterator_is_at_end_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_zero_symbol), zero_b_7p);
@@ -91390,8 +91382,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->c_pointer_type_symbol), c_pointer_type_p_p);
   s7_set_p_p_function(sc, global_value(sc->c_pointer_weak1_symbol), c_pointer_weak1_p_p);
   s7_set_p_p_function(sc, global_value(sc->c_pointer_weak2_symbol), c_pointer_weak2_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_p_p);
   s7_set_p_p_function(sc, global_value(sc->read_char_symbol), read_char_p_p);
   s7_set_p_i_function(sc, global_value(sc->make_string_symbol), make_string_p_i);
   s7_set_p_ii_function(sc, global_value(sc->make_int_vector_symbol), make_int_vector_p_ii);
@@ -92390,10 +92380,6 @@ static void init_rootlet(s7_scheme *sc)
                                                               "(integer->char i) converts the non-negative integer i to a character",
                                                               s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol));
 
-  sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,
-                                                              "(char-alphabetic? c) returns #t if the character c is alphabetic", sc->pl_bc);
-  sc->is_char_whitespace_symbol =    s7_define_typed_function(sc, "char-whitespace?", g_is_char_whitespace, 1, 0, false,
-                                                              "(char-whitespace? c) returns #t if the character c is non-printing character", sc->pl_bc);
 
   sc->char_eq_symbol =               s7_define_typed_function(sc, "char=?", g_chars_are_equal, 2, 0, true,
                                                               "(char=? char ...) returns #t if all the character arguments are equal", sc->pcl_bc);

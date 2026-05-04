@@ -22,57 +22,8 @@ extern s7_pointer* chars;
 
 #define S7_NUM_CHARS 256
 
-static bool char_is_alphabetic[S7_NUM_CHARS];
-static bool char_is_whitespace[S7_NUM_CHARS];
-static bool char_tables_inited= false;
-
-static bool
-is_whitespace_char (uint8_t c) {
-  switch (c) {
-  case '\t':
-  case '\n':
-  case '\r':
-  case '\f':
-  case '\v':
-  case ' ':
-  case 133: /* 0x85 */
-  case 160: /* 0xA0 */
-    return true;
-  default:
-    return false;
-  }
-}
-
 void
 init_scheme_char_tables (void) {
-  if (char_tables_inited) return;
-  char_tables_inited= true;
-
-  for (int i= 0; i < S7_NUM_CHARS; i++) {
-    const unsigned char c= (unsigned char) i;
-    char_is_alphabetic[i]= (isalpha ((int) c) != 0);
-    char_is_whitespace[i]= is_whitespace_char ((uint8_t) c);
-  }
-}
-
-static bool
-char_is_alphabetic_v (uint32_t cp) {
-  if (cp < 256) return char_is_alphabetic[cp];
-#if defined(__APPLE__)
-  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetLetter), cp);
-#else
-  return iswalpha ((wint_t) cp) != 0;
-#endif
-}
-
-static bool
-char_is_whitespace_v (uint32_t cp) {
-  if (cp < 256) return char_is_whitespace[cp];
-#if defined(__APPLE__)
-  return CFCharacterSetIsLongCharacterMember (CFCharacterSetGetPredefined (kCFCharacterSetWhitespace), cp);
-#else
-  return iswspace ((wint_t) cp) != 0;
-#endif
 }
 
 static s7_pointer
@@ -169,57 +120,6 @@ latin1_toupper (uint32_t cp) {
   return cp;
 }
 #endif
-
-/* -------------------------------- char-alphabetic? char-numeric? char-whitespace? -------------------------------- */
-
-s7_pointer
-g_is_char_alphabetic (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-alphabetic?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_alphabetic_v (s7_character (arg)));
-}
-
-bool
-is_char_alphabetic_b_7p (s7_scheme* sc, s7_pointer c) {
-  if (!s7_is_character (c)) {
-    s7_wrong_type_arg_error (sc, "char-alphabetic?", 1, c, "a character");
-    return false;
-  }
-  return char_is_alphabetic_v (s7_character (c));
-}
-
-s7_pointer
-is_char_alphabetic_p_p (s7_scheme* sc, s7_pointer c) {
-  if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-alphabetic?", list1 (sc, c), "a character", 1);
-  return s7_make_boolean (sc, char_is_alphabetic_v (s7_character (c)));
-}
-
-s7_pointer
-g_is_char_whitespace (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) return s7i_method_or_bust (sc, arg, "char-whitespace?", args, "a character", 1);
-  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (arg)));
-}
-
-bool
-is_char_whitespace_b_7p (s7_scheme* sc, s7_pointer c) {
-  if (!s7_is_character (c)) {
-    s7_wrong_type_arg_error (sc, "char-whitespace?", 1, c, "a character");
-    return false;
-  }
-  return char_is_whitespace_v (s7_character (c));
-}
-
-s7_pointer
-is_char_whitespace_p_p (s7_scheme* sc, s7_pointer c) {
-  if (!s7_is_character (c)) return s7i_method_or_bust (sc, c, "char-whitespace?", list1 (sc, c), "a character", 1);
-  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (c)));
-}
-
-s7_pointer
-is_char_whitespace_p_p_unchecked (s7_scheme* sc, s7_pointer c) {
-  return s7_make_boolean (sc, char_is_whitespace_v (s7_character (c)));
-}
 
 /* -------------------------------- char? -------------------------------- */
 

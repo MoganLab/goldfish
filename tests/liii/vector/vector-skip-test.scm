@@ -1,4 +1,4 @@
-(import (liii check) (liii vector))
+(import (liii check) (scheme char) (liii vector))
 
 
 (check-set-mode! 'report-failed)
