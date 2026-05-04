@@ -189,6 +189,12 @@
         (parser :add-argument
           '((name . "changed-since") (type . string))
         ) ;parser
+        (parser :add-argument
+          '((name . "all") (action . store-true))
+        ) ;parser
+        (parser :add-argument
+          '((name . "help") (short . "h") (action . store-true))
+        ) ;parser
         parser
       ) ;let
     ) ;define
@@ -428,6 +434,10 @@
           ((string-starts? (car remaining) "--changed-since=")
            (loop (cdr remaining) #f found-target)
           ) ;--changed-since=...
+          ;; 跳过 --all
+          ((equal? (car remaining) "--all")
+           (loop (cdr remaining) #f found-target)
+          ) ;--all
           ;; 找到 target（第一个非选项参数）
           ((not found-target)
            (loop (cdr remaining) #f (car remaining))
@@ -440,26 +450,126 @@
       ) ;let loop
     ) ;define
 
+    (define (git-current-branch)
+      (let* ((tmp-file (test-path-join (os-temp-dir)
+                                       (string-append "gf-test-branch-"
+                                                      (number->string (getpid))
+                                                      ".txt")))
+             (cmd (string-append "git rev-parse --abbrev-ref HEAD > "
+                                 tmp-file
+                                 " 2>&1"))
+             (exit-code (os-call cmd)))
+        (if (zero? exit-code)
+            (let* ((port (open-input-file tmp-file))
+                   (branch (read-line port)))
+              (close-input-port port)
+              (remove tmp-file)
+              branch
+            ) ;let*
+            (begin
+              (when (file-exists? tmp-file)
+                (remove tmp-file)
+              ) ;when
+              #f
+            ) ;begin
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (parse-test-all args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (parser 'all)
+      ) ;let
+    ) ;define
+
+    (define (route-test-command args all-mode)
+      (let ((branch (git-current-branch))
+            (exe (executable)))
+        (cond
+          ((and branch (not (string=? branch "main")))
+           (if all-mode
+               (begin
+                 (display (string-append "[gf test] Not on main branch (currently on '"
+                                         branch
+                                         "'), running all tests (--all). Use `gf test --help` for details."))
+                 (newline)
+                 (display (string-append "Running: " exe " test --changed-since=main"))
+                 (newline)
+                 (display (string-append "Running: " exe " test tests"))
+                 (newline)
+                 (newline)
+                 (cons "main" #t)
+               ) ;begin
+               (begin
+                 (display (string-append "[gf test] Not on main branch (currently on '"
+                                         branch
+                                         "'), running changed tests since main. Use `gf test --help` for details."))
+                 (newline)
+                 (display (string-append "Running: " exe " test --changed-since=main"))
+                 (newline)
+                 (newline)
+                 (cons "main" #f)
+               ) ;begin
+           ) ;if
+          ) ;non-main branch
+          (branch
+           (display "[gf test] On main branch, running all tests. Use `gf test --help` for details.")
+           (newline)
+           (display (string-append "Running: " exe " test tests"))
+           (newline)
+           (newline)
+           (cons #f #f)
+          ) ;main branch
+          (else
+           (display "[gf test] Not a git repository, running all tests. Use `gf test --help` for details.")
+           (newline)
+           (display (string-append "Running: " exe " test tests"))
+           (newline)
+           (newline)
+           (cons #f #f)
+          ) ;not git repo
+        ) ;cond
+      ) ;let
+    ) ;define
+
     (define (run-goldtest)
       (let* ((raw-args (command-line))
              (args (check-and-switch-to-target raw-args))
+             (all-mode (parse-test-all args))
              (changed-since (parse-test-changed-since args))
              (parsed (parse-test-args args))
              (arg-type (car parsed))
              (arg-value (cdr parsed))
+             ;; 智能路由：无显式参数时根据 git 状态决定
+             (route-result (if (and (not arg-type) (not changed-since))
+                               (route-test-command args all-mode)
+                               #f))
+             (final-changed-since (if route-result (car route-result) changed-since))
+             (need-run-all (if route-result (cdr route-result) #f))
              (all-test-files (list-sort string<? (find-test-files "tests")))
              (filtered-test-files (filter-test-files all-test-files arg-type arg-value))
-             (test-files (if changed-since
-                           (filter-changed-test-files filtered-test-files changed-since)
-                           filtered-test-files
-                         ) ;if
-             ) ;test-files
-            ) ;
+             ;; 如果指定了 changed-since，先过滤出变更的测试
+             (changed-test-files (if final-changed-since
+                                     (filter-changed-test-files filtered-test-files final-changed-since)
+                                     '()))
+             ;; 在 --all 模式下，把未变更的测试追加在后面
+             (remaining-test-files (if need-run-all
+                                       (filter (lambda (f)
+                                                 (not (member f changed-test-files)))
+                                               filtered-test-files)
+                                       '()))
+             (test-files (if need-run-all
+                             (append changed-test-files remaining-test-files)
+                             (if final-changed-since
+                                 changed-test-files
+                                 filtered-test-files)))
+            ) ;let*
         (if (null? test-files)
           (begin
-            (if changed-since
+            (if final-changed-since
               (begin
-                (display (string-append YELLOW "No test files changed since " changed-since RESET))
+                (display (string-append YELLOW "No test files changed since " final-changed-since RESET))
                 (newline)
               ) ;begin
               (if arg-value
@@ -479,8 +589,8 @@
             (when arg-value
               (display-filter-info arg-type arg-value)
             ) ;when
-            (when changed-since
-              (display (string-append "Running changed tests since: " changed-since))
+            (when final-changed-since
+              (display (string-append "Running changed tests since: " final-changed-since))
               (newline)
             ) ;when
             (let ((test-results
@@ -506,26 +616,24 @@
       (display "Usage:") (newline)
       (display "  gf test [options] [PATH|PATTERN]") (newline) (newline)
       (display "Options:") (newline)
+      (display "  --all                            Run all tests (greedy: changed first, then all)") (newline)
       (display "  --changed-since REV              Run tests changed since REV") (newline) (newline)
       (display "Examples:") (newline)
-      (display "  gf test                          Run all tests") (newline)
+      (display "  gf test                          Run tests (smart route based on git branch)") (newline)
+      (display "  gf test --all                    Run all tests") (newline)
       (display "  gf test tools/doc/tests/         Run tests in directory") (newline)
       (display "  gf test tests/liii/string/       Run tests in directory") (newline)
       (display "  gf test string-test.scm          Run specific test file") (newline)
       (display "  gf test string                   Run tests matching pattern") (newline)
       (display "  gf test --changed-since=HEAD     Run changed test files") (newline) (newline)
       (display "Note:") (newline)
+      (display "  Smart routing: on non-main branch, gf test runs --changed-since=main") (newline)
       (display "  If path contains /tests/, it will switch to parent directory") (newline)
       (display "  e.g., gf test tools/doc/tests/  =>  cd tools/doc && gf test tests/") (newline)
     ) ;define
 
     (define (test-help-requested? args)
-      (let ((parser (make-argument-parser
-                      '((command . "test")
-                        (unknown-options . positional)))))
-        (parser :add-argument
-          '((name . "help") (short . "h") (action . store-true))
-        ) ;parser
+      (let ((parser (make-test-arg-parser)))
         (parser :parse-argv args)
         (parser 'help)
       ) ;let

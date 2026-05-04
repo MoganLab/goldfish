@@ -70,5 +70,5 @@ jobs:
         run: xmake build --yes -vD goldfish
 
       - name: run tests
-        run: bin/gf test
+        run: bin/gf test --all
 
