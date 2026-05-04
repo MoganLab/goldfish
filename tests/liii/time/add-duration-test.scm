@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是时间对象，或 time-duration 不是 TIME-DURATION 时抛出错误。
+;; type-error 当参数不是时间对象，或 time-duration 不是 TIME-DURATION 时抛出错误。
 
 
 ;; Test add-duration basic
@@ -54,8 +54,8 @@
 
 ;; Test error conditions
 (let ((d (time-difference (make-time TIME-UTC 0 1) (make-time TIME-UTC 0 0))))
-  (check-catch 'wrong-type-arg (add-duration "not-time" d))
-  (check-catch 'wrong-type-arg
+  (check-catch 'type-error (add-duration "not-time" d))
+  (check-catch 'type-error
     (add-duration (make-time TIME-UTC 0 0) (make-time TIME-UTC 0 0))
   ) ;check-catch
 ) ;let

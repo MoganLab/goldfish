@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -22,7 +22,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数类型不正确时抛出错误。
+;; type-error 当参数类型不正确时抛出错误。
 
 
 (let ((t (make-time TIME-UTC 0 0)))
@@ -35,7 +35,7 @@
 
 ;; Test error conditions
 (let ((t (make-time TIME-UTC 0 0)))
-  (check-catch 'wrong-type-arg (set-time-nanosecond! "not-a-time" 0))
+  (check-catch 'type-error (set-time-nanosecond! "not-a-time" 0))
 ) ;let
 
 

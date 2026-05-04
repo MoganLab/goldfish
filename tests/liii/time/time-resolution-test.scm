@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当clock-type不是有效的时间类型常量时抛出错误。
+;; type-error 当clock-type不是有效的时间类型常量时抛出错误。
 
 
 ;; Test time-resolution
@@ -29,13 +29,13 @@
 (check-true (integer? (time-resolution TIME-UTC)))
 (check-true (integer? (time-resolution TIME-MONOTONIC)))
 (check-true (integer? (time-resolution TIME-TAI)))
-(check-catch 'wrong-type-arg (time-resolution TIME-THREAD))
-(check-catch 'wrong-type-arg (time-resolution TIME-PROCESS))
-(check-catch 'wrong-type-arg (time-resolution TIME-DURATION))
+(check-catch 'type-error (time-resolution TIME-THREAD))
+(check-catch 'type-error (time-resolution TIME-PROCESS))
+(check-catch 'type-error (time-resolution TIME-DURATION))
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg (time-resolution 'invalid-type))
+(check-catch 'type-error (time-resolution 'invalid-type))
 
 
 (check-report)

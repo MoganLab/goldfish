@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是时间对象或类型不匹配时抛出错误。
+;; type-error 当参数不是时间对象或类型不匹配时抛出错误。
 
 
 ;; time-utc->time-tai basic

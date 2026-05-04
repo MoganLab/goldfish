@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -22,7 +22,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数类型不正确时抛出错误。
+;; type-error 当参数类型不正确时抛出错误。
 
 
 ;; Test date->string basic
@@ -49,9 +49,9 @@
 
 ;; Test error conditions
 (let ((d (make-date 0 0 0 0 1 1 1970 0)))
-  (check-catch 'wrong-type-arg (date->string "not-a-date"))
-  (check-catch 'wrong-type-arg (date->string d 123))
-  (check-catch 'wrong-type-arg (date->string d 'symbol))
+  (check-catch 'type-error (date->string "not-a-date"))
+  (check-catch 'type-error (date->string d 123))
+  (check-catch 'type-error (date->string d 'symbol))
 ) ;let
 
 

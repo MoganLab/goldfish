@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -29,7 +29,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当参数不是时间对象或时间类型不匹配时抛出错误。
+;; type-error 当参数不是时间对象或时间类型不匹配时抛出错误。
 
 
 ;; Test time-difference
@@ -61,10 +61,10 @@
 
 
 ;; Test error conditions
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (time-difference (make-time TIME-UTC 0 0) (make-time TIME-TAI 0 0))
 ) ;check-catch
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (time-difference "not-time" (make-time TIME-UTC 0 0))
 ) ;check-catch
 

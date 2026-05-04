@@ -1,4 +1,4 @@
-(import (liii check) (liii time) (srfi srfi-19))
+(import (liii check) (liii time))
 
 
 (check-set-mode! 'report-failed)
@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当 tz-offset 不是整数时抛出错误。
+;; type-error 当 tz-offset 不是整数时抛出错误。
 
 
 ;; Test that current date can be converted
