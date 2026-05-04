@@ -1302,7 +1302,7 @@ struct s7_scheme {
              features_symbol, file__symbol, fill_symbol, float_vector_ref_symbol, float_vector_set_symbol, float_vector_symbol, floor_symbol,
              flush_output_port_symbol, for_each_symbol, format_symbol, funclet_symbol, _function__symbol, procedure_arglist_symbol,
              gc_symbol, gcd_symbol, gensym_symbol, geq_symbol, get_output_string_symbol, gt_symbol,
-             hash_table_entries_symbol, hash_table_key_typer_symbol, hash_table_ref_symbol, hash_table_set_symbol, hash_table_symbol,
+             hash_table_size_symbol, hash_table_key_typer_symbol, hash_table_ref_symbol, hash_table_set_symbol, hash_table_symbol,
              hash_table_value_typer_symbol, help_symbol, hook_functions_symbol,
              imag_part_symbol, immutable_symbol, inexact_to_exact_symbol, inlet_symbol, int_vector_ref_symbol, int_vector_set_symbol, int_vector_symbol,
              integer_decode_float_symbol, integer_to_char_symbol,
@@ -37941,20 +37941,20 @@ bool s7_is_hash_table(s7_pointer p) {return(is_hash_table(p));}
 /* g_is_hash_table is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- hash-table-entries -------------------------------- */
-static s7_pointer g_hash_table_entries(s7_scheme *sc, s7_pointer args)
+static s7_pointer g_hash_table_size(s7_scheme *sc, s7_pointer args)
 {
-  #define H_hash_table_entries "(hash-table-entries obj) returns the number of entries in the hash-table obj"
-  #define Q_hash_table_entries s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
+  #define H_hash_table_size "(hash-table-size obj) returns the number of entries in the hash-table obj"
+  #define Q_hash_table_size s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
 
   if (!is_hash_table(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->hash_table_entries_symbol, args, sc->type_names[T_HASH_TABLE]));
+    return(sole_arg_method_or_bust(sc, car(args), sc->hash_table_size_symbol, args, sc->type_names[T_HASH_TABLE]));
   return(make_integer(sc, hash_table_entries(car(args))));
 }
 
-static s7_int hash_table_entries_i_7p(s7_scheme *sc, s7_pointer table)
+static s7_int hash_table_size_i_7p(s7_scheme *sc, s7_pointer table)
 {
   if (!is_hash_table(table))
-    return(integer(method_or_bust_p(sc, table, sc->hash_table_entries_symbol, sc->type_names[T_HASH_TABLE])));
+    return(integer(method_or_bust_p(sc, table, sc->hash_table_size_symbol, sc->type_names[T_HASH_TABLE])));
   return(hash_table_entries(table));
 }
 
@@ -91290,7 +91290,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7p_function(sc, global_value(sc->numerator_symbol), numerator_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->denominator_symbol), denominator_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->char_to_integer_symbol), char_to_integer_i_7p);
-  s7_set_i_7p_function(sc, global_value(sc->hash_table_entries_symbol), hash_table_entries_i_7p);
+  s7_set_i_7p_function(sc, global_value(sc->hash_table_size_symbol), hash_table_size_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->tree_leaves_symbol), tree_leaves_i_7p);
   s7_set_p_p_function(sc, global_value(sc->char_to_integer_symbol), char_to_integer_p_p);
 
@@ -92567,7 +92567,7 @@ static void init_rootlet(s7_scheme *sc)
   set_is_saver(sc->weak_hash_table_symbol);
   sc->hash_table_ref_symbol =        defun("hash-table-ref",	hash_table_ref,		2, 0, true);
   sc->hash_table_set_symbol =        defun("hash-table-set!",	hash_table_set,		3, 0, false);
-  sc->hash_table_entries_symbol =    defun("hash-table-entries", hash_table_entries,	1, 0, false);
+  sc->hash_table_size_symbol =    defun("hash-table-size", hash_table_size,	1, 0, false);
   sc->hash_code_symbol =             defun("hash-code",         hash_code,              1, 1, false);
   sc->dummy_equal_hash_table = make_dummy_hash_table(sc);
   sc->hash_table_key_typer_symbol =  defun("hash-table-key-typer", hash_table_key_typer, 1, 0, false);
