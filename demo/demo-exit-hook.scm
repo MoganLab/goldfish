@@ -27,4 +27,4 @@
 ;; 正常退出，exit-hook 会自动触发日志 flush
 (display "Exiting...")
 (newline)
-(exit 0)
+
