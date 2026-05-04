@@ -56,6 +56,7 @@
   ) ;export
   (import (scheme base)
     (scheme write)
+    (scheme file)
     (scheme time)
     (srfi srfi-13)
     (liii base)
@@ -98,6 +99,7 @@
     (define *log-callback* (lambda (log-entry) (values)))
     (define *log-level* DEBUG)
     (define *log-format* "%(asctime)s [%(levelname)s] %(message)s")
+    (define *log-file-port* #f)
 
     ;; 时间戳格式化
     (define (format-timestamp)
@@ -212,6 +214,9 @@
     ) ;define
 
     (define (log-set-callback! callback)
+      (when *log-file-port*
+        (close-output-port *log-file-port*)
+        (set! *log-file-port* #f))
       (set! *log-callback* callback)
     ) ;define
 
@@ -318,24 +323,19 @@
 
     ;; ============== 文件处理器 ==============
     (define (make-file-handler path)
+      ;; 关闭之前打开的文件端口
+      (when *log-file-port*
+        (close-output-port *log-file-port*)
+        (set! *log-file-port* #f))
       ;; 自动创建父目录
       (let ((parent (path-parent path)))
         (when (and parent (not (path-exists? parent)))
           (mkdir (path->string parent))
         ) ;when
       ) ;let
-      ;; 返回带缓冲的回调函数
-      (let ((buffer '()) (buffer-size 0) (max-buffer-size 4096) (max-buffer-count 10))
-        (define (flush-buffer)
-          (when (not (null? buffer))
-            (let ((port (open-output-file (path->string path) 'append)))
-              (for-each (lambda (line) (display line port) (newline port)) (reverse buffer))
-              (close-output-port port)
-            ) ;let
-            (set! buffer '())
-            (set! buffer-size 0)
-          ) ;when
-        ) ;define
+      ;; 以追加模式打开文件并保持打开
+      (let ((port (open-output-file (path->string path) "a")))
+        (set! *log-file-port* port)
         (lambda (msg)
           (let* ((severity (cdr (assq 'SEVERITY msg)))
                  (line (pyfmt *log-format*
@@ -350,11 +350,8 @@
                        ) ;pyfmt
                  ) ;line
                 ) ;
-            (set! buffer (cons line buffer))
-            (set! buffer-size (+ buffer-size (string-length line)))
-            (when (or (>= (length buffer) max-buffer-count) (>= buffer-size max-buffer-size))
-              (flush-buffer)
-            ) ;when
+            (display line port)
+            (newline port)
           ) ;let*
         ) ;lambda
       ) ;let
@@ -362,10 +359,8 @@
 
     ;; ============== log-flush! ==============
     (define (log-flush!)
-      ;; 对于文件处理器，这里需要一种方式来刷新当前回调的缓冲
-      ;; 当前实现：如果回调是文件处理器，则无法直接访问其内部 flush-buffer
-      ;; 简化处理：不支持直接刷新文件 handler 的缓冲
-      (values)
+      (when *log-file-port*
+        (flush-output-port *log-file-port*))
     ) ;define
 
     ;; ============== 辅助函数 ==============
