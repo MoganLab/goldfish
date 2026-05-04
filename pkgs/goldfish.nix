@@ -14,7 +14,7 @@
 
 stdenv.mkDerivation {
   pname = "goldfish";
-  version = "17.11.55";
+  version = "18.11.0";
 
   src = ./..;
 

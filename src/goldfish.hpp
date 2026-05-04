@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.55"
+#define GOLDFISH_VERSION "18.11.0"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
