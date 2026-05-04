@@ -383,5 +383,15 @@
       (set! *log-callback* (make-file-handler path))
     ) ;define
 
+    ;; ============== exit-hook 自动 flush ==============
+    (define *log-exit-hook-registered* #f)
+    (unless *log-exit-hook-registered*
+      (set! *log-exit-hook-registered* #t)
+      (set! (hook-functions *exit-hook*)
+        (cons (lambda (hook)
+                (when *log-file-port*
+                  (flush-output-port *log-file-port*)))
+              (hook-functions *exit-hook*))))
+
   ) ;begin
 ) ;define-library
