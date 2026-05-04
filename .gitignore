@@ -1,6 +1,9 @@
 # Ignore .DS_Store (common on macOS)
 .DS_Store
 
+# Ignore all log files in demo directory
+demo/**/*.log
+
 # Ignore the .gitignore file itself
 /.gitignore
 .xmake/

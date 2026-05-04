@@ -1163,6 +1163,7 @@ struct s7_scheme {
   s7_pointer unbound_variable_hook;   /* *unbound-variable-hook* hook object */
   s7_pointer missing_close_paren_hook, rootlet_redefinition_hook;
   s7_pointer error_hook, read_error_hook; /* *error-hook* hook object, and *read-error-hook* */
+  s7_pointer exit_hook;                 /* *exit-hook* hook object */
   token_t tok;
   bool gc_off, gc_in_progress;        /* gc_off: if true, the GC won't run */
   uint32_t gc_stats, gensym_counter, f_class, add_class, multiply_class, subtract_class, num_eq_class;
@@ -48121,6 +48122,24 @@ static s7_pointer g_exit(s7_scheme *sc, s7_pointer args)
       if (cobj == sc->T)
 	call_c_object_frees(sc);
     }
+  if (hook_has_functions(sc->exit_hook))
+    {
+      s7_pointer exit_code;
+      if (is_null(args))
+	exit_code = s7_make_integer(sc, EXIT_SUCCESS);
+      else
+	{
+	  s7_pointer obj = car(args);
+	  if (obj == sc->F)
+	    exit_code = s7_make_integer(sc, EXIT_FAILURE);
+	  else if ((obj == sc->T) || (!s7_is_integer(obj)))
+	    exit_code = s7_make_integer(sc, EXIT_SUCCESS);
+	  else
+	    exit_code = obj;
+	}
+      s7_apply_function(sc, sc->exit_hook, set_plist_1(sc, exit_code));
+    }
+
   s7_quit(sc);
   if (show_gc_stats(sc))
     s7_warn(sc, 256, "gc calls %" ld64 " total time: %f\n", sc->gc_calls, (double)(sc->gc_total_time) / ticks_per_second());
@@ -93273,6 +93292,11 @@ s7_scheme *s7_init(void)
   sc->rootlet_redefinition_hook = s7_eval_c_string(sc, "(make-hook 'name 'value)");
   s7_define_constant_with_documentation(sc, "*rootlet-redefinition-hook*", sc->rootlet_redefinition_hook,
 					"*rootlet-redefinition-hook* functions are called when a top-level variable's value is changed, (hook 'name 'value).");
+
+  /* -------- *exit-hook* -------- */
+  sc->exit_hook = s7_eval_c_string(sc, "(make-hook 'code)");
+  s7_define_constant_with_documentation(sc, "*exit-hook*", sc->exit_hook,
+					"*exit-hook* functions are called when exit is invoked, passed the exit code as (hook 'code).");
 
   sc->temp_error_hook = s7_eval_c_string(sc, "(make-hook 'type 'data)");
   /* internal; this is holding error-hook functions during an evaluation where error-hook is temporarily nil -- do we actually need a hook for this? */
