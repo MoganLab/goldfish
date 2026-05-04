@@ -39,7 +39,6 @@
     min
     floor
     floor/
-    s7-floor
     ceiling
     s7-ceiling
     truncate
@@ -294,8 +293,6 @@
         ) ;if
       ) ;let
     ) ;define
-
-    (define s7-floor floor)
 
     (define (floor x)
       (if (inexact? x) (inexact (s7-floor x)) (s7-floor x))

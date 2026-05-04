@@ -92358,7 +92358,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->acosh_symbol =                 defun("acosh",		acosh,			1, 0, false);
   sc->atanh_symbol =                 defun("atanh",		atanh,			1, 0, false);
   sc->sqrt_symbol =                  s7_define_typed_function(sc, "sqrt", g_sqrt, 1, 0, false, "(sqrt z) returns the square root of z", sc->pl_nn);
-  sc->floor_symbol =                 s7_define_typed_function(sc, "floor", g_floor, 1, 0, false, "(floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
+  sc->floor_symbol =                 s7_define_typed_function(sc, "s7-floor", g_floor, 1, 0, false, "(s7-floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
   sc->ceiling_symbol =               s7_define_typed_function(sc, "ceiling", g_ceiling, 1, 0, false, "(ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
   sc->truncate_symbol =              defun("truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
   sc->round_symbol =                 defun("round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
