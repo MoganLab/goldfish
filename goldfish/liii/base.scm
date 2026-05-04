@@ -21,6 +21,8 @@
     identity
     any?
     typed-lambda
+    make-hook
+    hook-functions
   ) ;export
   (begin
 
