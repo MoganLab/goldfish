@@ -1,7 +1,6 @@
 (define-library (liii path)
   (export path
     path?
-    path-clone
     path-copy
     path-copy-into
     path-dir?
@@ -150,21 +149,10 @@
                    ) ;let
                  ) ;if
                 ) ;
-                ((path? arg) (path-clone arg))
+                ((path? arg) (copy arg))
                 (else (type-error "path: argument must be string or path"))
           ) ;cond
         ) ;let
-      ) ;if
-    ) ;define
-
-    ;; ; Copy a path object
-    (define (path-clone p)
-      (if (path? p)
-        (make-path-record (vector-copy (path-record-parts p))
-          (path-record-type p)
-          (path-record-drive p)
-        ) ;make-path-record
-        (type-error "path-clone: argument must be path")
       ) ;if
     ) ;define
 
