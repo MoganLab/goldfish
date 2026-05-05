@@ -58,7 +58,7 @@
   #t
 ) ;check
 
-;; max-inline-length 当前为 40：长度等于 40 时仍可单行。
+;; max-inline-length 当前为 80：长度等于 80 时仍可单行。
 (check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
                     ) ;scan
        ) ;can-inline?
@@ -66,12 +66,12 @@
   #t
 ) ;check
 
-;; 超过 max-inline-length 时不能单行。
+;; 未超过 max-inline-length 时仍可单行。
 (check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
                     ) ;scan
        ) ;can-inline?
   =>
-  #f
+  #t
 ) ;check
 
 (check (can-inline? (scan '(unknown a b)))
@@ -80,6 +80,21 @@
 ) ;check
 
 (check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+                    ) ;scan
+       ) ;can-inline?
+  =>
+  #t
+) ;check
+
+;; 超过 max-inline-length 时不能单行。
+(check (can-inline? (scan '(+ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+                    ) ;scan
+       ) ;can-inline?
+  =>
+  #f
+) ;check
+
+(check (can-inline? (scan '(unknown aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
                     ) ;scan
        ) ;can-inline?
   =>

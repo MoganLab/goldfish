@@ -7,6 +7,7 @@ on:
       - 'json/**'
       - 'src/**'
       - 'tests/**'
+      - 'tools/**'
       - 'xmake/**'
       - 'xmake.lua'
       - '.github/workflows/ci-fedora.yml'
@@ -14,8 +15,10 @@ on:
     branches: [ main ]
     paths:
       - 'goldfish/**'
+      - 'json/**'
       - 'src/**'
       - 'tests/**'
+      - 'tools/**'
       - 'xmake/**'
       - 'xmake.lua'
       - '.github/workflows/ci-fedora.yml'
@@ -69,6 +72,8 @@ jobs:
       - name: build
         run: xmake build --yes -vD goldfish
 
-      - name: run tests
+      - name: run tools/fmt tests
+        run: bin/gf test tools/fmt/tests
+      - name: run tests --all
         run: bin/gf test --all
 

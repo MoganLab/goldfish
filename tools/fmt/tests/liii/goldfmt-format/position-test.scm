@@ -146,13 +146,7 @@
       (check text
         =>
         (&- #""
-                     (let ((x (begin
-                                (display "computing")
-                                (compute-x arg1)
-                              ) ;begin
-                           ) ;x
-                           (y 20)
-                          ) ;
+                     (let ((x (begin (display "computing") (compute-x arg1))) (y 20))
                        (+ x y)
                      ) ;let
                      ""
@@ -163,7 +157,7 @@
       (check (env-right-line node) => 0)
       (check (env-indent positioned) => 0)
       (check (env-left-line positioned) => 1)
-      (check (env-right-line positioned) => 9)
+      (check (env-right-line positioned) => 3)
       (let* ((bindings (child positioned 0))
              (binding-x (child bindings 0))
              (begin-node (child binding-x 0))
@@ -171,16 +165,16 @@
             ) ;
         (check (env-indent bindings) => 5)
         (check (env-left-line bindings) => 1)
-        (check (env-right-line bindings) => 7)
+        (check (env-right-line bindings) => 1)
         (check (env-indent binding-x) => 6)
         (check (env-left-line binding-x) => 1)
-        (check (env-right-line binding-x) => 5)
+        (check (env-right-line binding-x) => 1)
         (check (env-indent begin-node) => 9)
         (check (env-left-line begin-node) => 1)
-        (check (env-right-line begin-node) => 4)
+        (check (env-right-line begin-node) => 1)
         (check (env-indent body) => 2)
-        (check (env-left-line body) => 8)
-        (check (env-right-line body) => 8)
+        (check (env-left-line body) => 2)
+        (check (env-right-line body) => 2)
       ) ;let*
     ) ;lambda
   ) ;call-with-values
@@ -196,12 +190,7 @@
       (check text
         =>
         (&- #""
-                     (cond ((or (> x 0) (< x 0))
-                            (begin
-                              (display "non-zero")
-                              'non-zero
-                            ) ;begin
-                           ) ;
+                     (cond ((or (> x 0) (< x 0)) (begin (display "non-zero") 'non-zero))
                            (else 'zero)
                      ) ;cond
                      ""
@@ -212,7 +201,7 @@
       (check (env-right-line node) => 0)
       (check (env-indent positioned) => 0)
       (check (env-left-line positioned) => 1)
-      (check (env-right-line positioned) => 8)
+      (check (env-right-line positioned) => 3)
       (let* ((clause1 (child positioned 0))
              (or-node (child clause1 0))
              (begin-node (child clause1 1))
@@ -220,16 +209,16 @@
             ) ;
         (check (env-indent clause1) => 6)
         (check (env-left-line clause1) => 1)
-        (check (env-right-line clause1) => 6)
+        (check (env-right-line clause1) => 1)
         (check (env-indent or-node) => 7)
         (check (env-left-line or-node) => 1)
         (check (env-right-line or-node) => 1)
-        (check (env-indent begin-node) => 7)
-        (check (env-left-line begin-node) => 2)
-        (check (env-right-line begin-node) => 5)
+        (check (env-indent begin-node) => 28)
+        (check (env-left-line begin-node) => 1)
+        (check (env-right-line begin-node) => 1)
         (check (env-indent clause2) => 6)
-        (check (env-left-line clause2) => 7)
-        (check (env-right-line clause2) => 7)
+        (check (env-left-line clause2) => 2)
+        (check (env-right-line clause2) => 2)
       ) ;let*
     ) ;lambda
   ) ;call-with-values
