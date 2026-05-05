@@ -248,6 +248,7 @@
                     #
 
 
+
                     #
 )
          0
@@ -257,11 +258,13 @@
     #
 
 
+
     #
 )
 ) ;check
 (check (list-tail '(#	
                     #
+
 
 
                     #
@@ -274,6 +277,7 @@
 ) ;check
 (check (list-tail '(#	
                     #
+
 
 
                     #

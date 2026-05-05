@@ -81,20 +81,16 @@
 (check (digit-value #\>) => #f)
 (check (digit-value #\?) => #f)
 (check (digit-value #\/) => #f)
-
-;; 中文简体数字测试（#\x 字符字面量）
-(check (digit-value #\x3007) => 0)   ;; 〇
-(check (digit-value #\x4E00) => 1)   ;; 一
-(check (digit-value #\x4E8C) => 2)   ;; 二
-(check (digit-value #\x4E09) => 3)   ;; 三
-(check (digit-value #\x56DB) => 4)   ;; 四
-(check (digit-value #\x4E94) => 5)   ;; 五
-(check (digit-value #\x516D) => 6)   ;; 六
-(check (digit-value #\x4E03) => 7)   ;; 七
-(check (digit-value #\x516B) => 8)   ;; 八
-(check (digit-value #\x4E5D) => 9)   ;; 九
-
-;; 中文简体数字测试（直接字符字面量）
+(check (digit-value #\x3007) => 0)
+(check (digit-value #\x4E00) => 1)
+(check (digit-value #\x4E8C) => 2)
+(check (digit-value #\x4E09) => 3)
+(check (digit-value #\x56DB) => 4)
+(check (digit-value #\x4E94) => 5)
+(check (digit-value #\x516D) => 6)
+(check (digit-value #\x4E03) => 7)
+(check (digit-value #\x516B) => 8)
+(check (digit-value #\x4E5D) => 9)
 (check (digit-value #\〇) => 0)
 (check (digit-value #\一) => 1)
 (check (digit-value #\二) => 2)
@@ -105,20 +101,16 @@
 (check (digit-value #\七) => 7)
 (check (digit-value #\八) => 8)
 (check (digit-value #\九) => 9)
-
-;; 中文繁体数字测试（#\x 字符字面量）
-(check (digit-value #\x96F6) => 0)   ;; 零
-(check (digit-value #\x58F9) => 1)   ;; 壹
-(check (digit-value #\x8D30) => 2)   ;; 贰
-(check (digit-value #\x53C1) => 3)   ;; 叁
-(check (digit-value #\x8086) => 4)   ;; 肆
-(check (digit-value #\x4F0D) => 5)   ;; 伍
-(check (digit-value #\x9646) => 6)   ;; 陆
-(check (digit-value #\x67D2) => 7)   ;; 柒
-(check (digit-value #\x634C) => 8)   ;; 捌
-(check (digit-value #\x7396) => 9)   ;; 玖
-
-;; 中文繁体数字测试（直接字符字面量）
+(check (digit-value #\x96F6) => 0)
+(check (digit-value #\x58F9) => 1)
+(check (digit-value #\x8D30) => 2)
+(check (digit-value #\x53C1) => 3)
+(check (digit-value #\x8086) => 4)
+(check (digit-value #\x4F0D) => 5)
+(check (digit-value #\x9646) => 6)
+(check (digit-value #\x67D2) => 7)
+(check (digit-value #\x634C) => 8)
+(check (digit-value #\x7396) => 9)
 (check (digit-value #\零) => 0)
 (check (digit-value #\壹) => 1)
 (check (digit-value #\贰) => 2)
@@ -129,32 +121,24 @@
 (check (digit-value #\柒) => 7)
 (check (digit-value #\捌) => 8)
 (check (digit-value #\玖) => 9)
-
-;; 日文数字测试（#\x 字符字面量）
-(check (digit-value #\x58F1) => 1)   ;; 壱
-(check (digit-value #\x5F10) => 2)   ;; 弐
-(check (digit-value #\x53C2) => 3)   ;; 参
-(check (digit-value #\x9678) => 6)   ;; 陸
-
-;; 日文数字测试（直接字符字面量）
+(check (digit-value #\x58F1) => 1)
+(check (digit-value #\x5F10) => 2)
+(check (digit-value #\x53C2) => 3)
+(check (digit-value #\x9678) => 6)
 (check (digit-value #\壱) => 1)
 (check (digit-value #\弐) => 2)
 (check (digit-value #\参) => 3)
 (check (digit-value #\陸) => 6)
-
-;; 韩文数字测试（#\x 字符字面量）
-(check (digit-value #\xC601) => 0)   ;; 영
-(check (digit-value #\xC77C) => 1)   ;; 일
-(check (digit-value #\xC774) => 2)   ;; 이
-(check (digit-value #\xC0BC) => 3)   ;; 삼
-(check (digit-value #\xC0AC) => 4)   ;; 사
-(check (digit-value #\xC624) => 5)   ;; 오
-(check (digit-value #\xC721) => 6)   ;; 육
-(check (digit-value #\xCE60) => 7)   ;; 칠
-(check (digit-value #\xD314) => 8)   ;; 팔
-(check (digit-value #\xAD6C) => 9)   ;; 구
-
-;; 韩文数字测试（直接字符字面量）
+(check (digit-value #\xC601) => 0)
+(check (digit-value #\xC77C) => 1)
+(check (digit-value #\xC774) => 2)
+(check (digit-value #\xC0BC) => 3)
+(check (digit-value #\xC0AC) => 4)
+(check (digit-value #\xC624) => 5)
+(check (digit-value #\xC721) => 6)
+(check (digit-value #\xCE60) => 7)
+(check (digit-value #\xD314) => 8)
+(check (digit-value #\xAD6C) => 9)
 (check (digit-value #\영) => 0)
 (check (digit-value #\일) => 1)
 (check (digit-value #\이) => 2)
@@ -165,29 +149,24 @@
 (check (digit-value #\칠) => 7)
 (check (digit-value #\팔) => 8)
 (check (digit-value #\구) => 9)
-
-;; 越南语喃字数字测试（#\x 字符字面量）
-(check (digit-value #\x3007) => 0)   ;; 〇 (không)
-(check (digit-value #\x20B20) => 1)  ;; 𠬠 (một)
-(check (digit-value #\x20129) => 2)  ;; 𠄩 (hai)
-(check (digit-value #\x20027) => 3)  ;; 𠀧 (ba)
-(check (digit-value #\x2629A) => 4)  ;; 𦊚 (bốn)
-(check (digit-value #\x2013C) => 5)  ;; 𠄼 (năm)
-(check (digit-value #\x264B9) => 6)  ;; 𦒹 (sáu)
-(check (digit-value #\x26271) => 7)  ;; 𦉱 (bảy)
-(check (digit-value #\x20969) => 8)  ;; 𠥩 (tám)
-(check (digit-value #\x200E9) => 9)  ;; 𠃩 (chín)
-
-;; 越南语喃字数字测试（直接字符字面量）
-(check (digit-value #\〇) => 0)   ;; không
-(check (digit-value #\𠬠) => 1)   ;; một
-(check (digit-value #\𠄩) => 2)   ;; hai
-(check (digit-value #\𠀧) => 3)   ;; ba
-(check (digit-value #\𦊚) => 4)   ;; bốn
-(check (digit-value #\𠄼) => 5)   ;; năm
-(check (digit-value #\𦒹) => 6)   ;; sáu
-(check (digit-value #\𦉱) => 7)   ;; bảy
-(check (digit-value #\𠥩) => 8)   ;; tám
-(check (digit-value #\𠃩) => 9)   ;; chín
-
+(check (digit-value #\x3007) => 0)
+(check (digit-value #\x20B20) => 1)
+(check (digit-value #\x20129) => 2)
+(check (digit-value #\x20027) => 3)
+(check (digit-value #\x2629A) => 4)
+(check (digit-value #\x2013C) => 5)
+(check (digit-value #\x264B9) => 6)
+(check (digit-value #\x26271) => 7)
+(check (digit-value #\x20969) => 8)
+(check (digit-value #\x200E9) => 9)
+(check (digit-value #\〇) => 0)
+(check (digit-value #\𠬠) => 1)
+(check (digit-value #\𠄩) => 2)
+(check (digit-value #\𠀧) => 3)
+(check (digit-value #\𦊚) => 4)
+(check (digit-value #\𠄼) => 5)
+(check (digit-value #\𦒹) => 6)
+(check (digit-value #\𦉱) => 7)
+(check (digit-value #\𠥩) => 8)
+(check (digit-value #\𠃩) => 9)
 (check-report)
