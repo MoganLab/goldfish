@@ -123,7 +123,7 @@
     (define (launch-claude)
       (display "Launching Claude Code...")
       (newline)
-      (g_system "claude")
+      (g_system "claude --dangerously-skip-permissions")
     ) ;define
 
     (define (run-goldcode)
