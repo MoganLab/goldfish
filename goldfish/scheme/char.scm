@@ -2772,21 +2772,22 @@
       (unless (char? char)
         (error 'type-error "char-whitespace?: parameter must be character")
       ) ;unless
-      (let ((cp (char->integer char)))
-        (cond ((<= 9 cp 13) #t)
-              ((= cp 32) #t)
-              ((= cp 133) #t)
-              ((= cp 160) #t)
-              ((= cp 5760) #t)
-              ((<= 8192 cp 8202) #t)
-              ((<= 8232 cp 8233) #t)
-              ((= cp 8239) #t)
-              ((= cp 8287) #t)
-              ((= cp 12288) #t)
-              (else #f)
-        ) ;cond
-      ) ;let
+      (hash-table-ref *char-whitespace-ht* (char->integer char))
     ) ;define
+
+    (unless (defined? '*char-whitespace-ht*)
+      (define *char-whitespace-ht* (s7-make-hash-table))
+      (char-ht-set-range! *char-whitespace-ht* 9 13)
+      (s7-hash-table-set! *char-whitespace-ht* 32 #t)
+      (s7-hash-table-set! *char-whitespace-ht* 133 #t)
+      (s7-hash-table-set! *char-whitespace-ht* 160 #t)
+      (s7-hash-table-set! *char-whitespace-ht* 5760 #t)
+      (char-ht-set-range! *char-whitespace-ht* 8192 8202)
+      (char-ht-set-range! *char-whitespace-ht* 8232 8233)
+      (s7-hash-table-set! *char-whitespace-ht* 8239 #t)
+      (s7-hash-table-set! *char-whitespace-ht* 8287 #t)
+      (s7-hash-table-set! *char-whitespace-ht* 12288 #t)
+    ) ;unless
 
     (unless (defined? '*char-upper-ht*)
       (define *char-upper-ht* (s7-make-hash-table))
