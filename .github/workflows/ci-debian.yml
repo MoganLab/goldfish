@@ -1,4 +1,4 @@
-name: CI on Debian bookworm
+name: CI on Debian trixie
 on:
   push:
     branches: [ main ]
@@ -27,7 +27,7 @@ env:
 
 jobs:
   build:
-    container: debian:bookworm
+    container: debian:trixie
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: true

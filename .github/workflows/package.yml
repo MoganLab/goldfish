@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container: debian:bookworm
+    container: debian:trixie
     env:
       XMAKE_ROOT: y
       DEBIAN_FRONTEND: noninteractive
@@ -23,7 +23,7 @@ jobs:
     steps:
     - name: Install Dependencies
       run: |
-        echo 'deb http://deb.debian.org/debian bookworm-backports main' > /etc/apt/sources.list.d/backports.list
+        echo 'deb http://deb.debian.org/debian trixie-backports main' > /etc/apt/sources.list.d/backports.list
         apt-get update
         apt-get install -y \
           git \
@@ -34,7 +34,7 @@ jobs:
           build-essential \
           devscripts \
           debhelper
-        apt-get install -y -t bookworm-backports xmake
+        apt-get install -y -t trixie-backports xmake
 
     - name: Checkout
       uses: actions/checkout@v4
