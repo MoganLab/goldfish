@@ -131,13 +131,7 @@
        ) ;format-datum
   =>
   (&- #""
-             (let ((x (begin
-                        (display "computing")
-                        (compute-x arg1)
-                      ) ;begin
-                   ) ;x
-                   (y 20)
-                  ) ;
+             (let ((x (begin (display "computing") (compute-x arg1))) (y 20))
                (+ x y)
              ) ;let
              ""
