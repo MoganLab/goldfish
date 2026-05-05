@@ -123,40 +123,16 @@
     (define (launch-claude)
       (display "Launching Claude Code...")
       (newline)
-      (g_system "claude")
+      (os-call "claude --dangerously-skip-permissions")
     ) ;define
 
     (define (run-goldcode)
       ;; Sync pre-commit hook
       (sync-pre-commit-hook)
 
-      ;; Check if we should verify main branch (only when extra arguments are provided)
-      (let ((args (argv)))
-        (if (> (length args) 2)
-          (if (not (check-main-branch))
-            (let ((branch (get-current-branch)))
-              (stderr-line (string-append "Error: You are not on the main branch. Current branch: " branch)
-              ) ;stderr-line
-              (stderr-line "Please switch to main branch first: git checkout main")
-              1
-            ) ;let
-            (begin
-              (display "Already on main branch.")
-              (newline)
-              (pull-latest-code)
-              (launch-claude)
-              0
-            ) ;begin
-          ) ;if
-          (begin
-            (display "No branch check argument provided, skipping main branch check...")
-            (newline)
-            (pull-latest-code)
-            (launch-claude)
-            0
-          ) ;begin
-        ) ;if
-      ) ;let
+      ;; Pull latest code and launch Claude Code
+      (pull-latest-code)
+      (launch-claude)
     ) ;define
 
     (define (main)
