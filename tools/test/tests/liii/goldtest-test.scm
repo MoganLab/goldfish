@@ -10,10 +10,13 @@
 (import (liii goldtest))
 
 ;; 示例1：解析 gf test 命令行参数
-(parse-test-args '("bin/gf" "test" "json")) ; => '(pattern . "json")
+(parse-test-args '("bin/gf" "test" "json"))
 
 ;; 示例2：按模式过滤测试文件
-(filter-test-files '("tests/liii/json-test.scm" "tests/liii/list-test.scm") 'pattern "json")
+(filter-test-files '("tests/liii/json-test.scm" "tests/liii/list-test.scm")
+  'pattern
+  "json"
+) ;filter-test-files
 ;; => '("tests/liii/json-test.scm")
 
 ;; 示例3：查找整个 tests 目录中的测试文件
