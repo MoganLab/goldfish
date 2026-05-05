@@ -1,3 +1,5 @@
+(import (scheme char))
+
 (letrec
   ((loop
     (lambda (i end acc count)
@@ -23,10 +25,10 @@
               (if (< i #x1000)
                 (if (< i #x100)
                   (if (< i #x10)
-                    (display (string-append "000" (number->string i 16)))
-                    (display (string-append "00" (number->string i 16))))
-                  (display (string-append "0" (number->string i 16))))
-                (display (number->string i 16)))
+                    (display (string-append "000" (string-upcase (number->string i 16))))
+                    (display (string-append "00" (string-upcase (number->string i 16)))))
+                  (display (string-append "0" (string-upcase (number->string i 16)))))
+                (display (string-upcase (number->string i 16))))
               (display ",")
               (display c)
               (display ",")
