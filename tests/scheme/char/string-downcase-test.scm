@@ -53,4 +53,7 @@
 (check-catch 'type-error (string-downcase #\a))
 (check-catch 'wrong-number-of-args (string-downcase))
 (check-catch 'wrong-number-of-args (string-downcase "hello" "world"))
+;; UTF-8 测试
+(check (string-downcase "ABC中文") => "abc中文")
+(check (string-downcase "RÉSUMÉ") => "résumé")
 (check-report)

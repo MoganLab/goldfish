@@ -38,6 +38,7 @@
     string-downcase
     string-foldcase
   ) ;export
+  (import (scheme base) (liii unicode))
   (begin
     (define (digit-value ch)
       (case ch
@@ -4013,29 +4014,43 @@
       ) ;let
     ) ;define
 
-    (define s7-string-upcase string-upcase)
+    (define (utf8-string-map proc str)
+      (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+        (let loop
+          ((pos 0) (result '()))
+          (if (>= pos len)
+            (apply utf8-string (reverse result))
+            (let* ((next (bytevector-advance-utf8 bv pos len))
+                   (char-bv (bytevector-copy bv pos next))
+                   (ch (integer->char (utf8->codepoint char-bv)))
+                   (new-ch (proc ch))
+                  ) ;
+              (loop next (cons new-ch result))
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
     (define (string-upcase str)
       (unless (string? str)
         (error 'type-error "string-upcase: parameter must be string")
       ) ;unless
-      (s7-string-upcase str)
+      (utf8-string-map char-upcase str)
     ) ;define
-
-    (define s7-string-downcase string-downcase)
 
     (define (string-downcase str)
       (unless (string? str)
         (error 'type-error "string-downcase: parameter must be string")
       ) ;unless
-      (s7-string-downcase str)
+      (utf8-string-map char-downcase str)
     ) ;define
 
     (define (string-foldcase str)
       (unless (string? str)
         (error 'type-error "string-foldcase: parameter must be string")
       ) ;unless
-      (string-downcase str)
+      (utf8-string-map char-foldcase str)
     ) ;define
 
   ) ;begin

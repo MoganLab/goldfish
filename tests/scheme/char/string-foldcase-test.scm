@@ -58,4 +58,7 @@
 (check-catch 'type-error (string-foldcase #\a))
 (check-catch 'wrong-number-of-args (string-foldcase))
 (check-catch 'wrong-number-of-args (string-foldcase "hello" "world"))
+;; UTF-8 测试
+(check (string-foldcase "ABC中文") => "abc中文")
+(check (string-foldcase "RÉSUMÉ") => "résumé")
 (check-report)

@@ -53,4 +53,7 @@
 (check-catch 'type-error (string-upcase #\a))
 (check-catch 'wrong-number-of-args (string-upcase))
 (check-catch 'wrong-number-of-args (string-upcase "hello" "world"))
+;; UTF-8 测试
+(check (string-upcase "abc中文") => "ABC中文")
+(check (string-upcase "RéSuMé") => "RÉSUMÉ")
 (check-report)
