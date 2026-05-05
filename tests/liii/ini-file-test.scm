@@ -1,4 +1,4 @@
-;; (liii ini-file) test file — SRFI 233: INI files
+;; (liii ini) test file — SRFI 233: INI files
 ;;
 ;; Tests for make-ini-file-generator and make-ini-file-accumulator.
 
