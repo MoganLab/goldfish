@@ -1,5 +1,6 @@
 (import (liii check))
 (import (scheme base))
+(import (scheme char))
 (check-set-mode! 'report-failed)
 ;; string-ci=?
 ;; 按大小写不敏感的方式比较多个字符串是否相等。

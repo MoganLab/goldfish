@@ -1,5 +1,6 @@
 (import (liii check) (liii error) (liii set) (srfi srfi-128))
 (import (liii ascii))
+(import (scheme char))
 
 
 (check-set-mode! 'report-failed)
