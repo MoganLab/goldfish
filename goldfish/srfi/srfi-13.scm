@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-13)
-  (import (liii base) (srfi srfi-1) (scheme char))
+  (import (liii base) (srfi srfi-1) (scheme char) (srfi srfi-175))
   (export string-null?
     string-copy
     string-join
@@ -226,7 +226,7 @@
     ) ;define
 
     (define (string-trim str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
@@ -256,7 +256,7 @@
     ) ;define
 
     (define (string-trim-right str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
@@ -286,7 +286,7 @@
     ) ;define
 
     (define (string-trim-both str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
