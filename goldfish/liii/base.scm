@@ -3,6 +3,7 @@
   (export and-let*
     receive
     define*
+    lambda*
     procedure-source
     procedure-arglist
     arity
@@ -23,6 +24,10 @@
     typed-lambda
     make-hook
     hook-functions
+    with-output-to-string
+    with-input-from-string
+    call-with-input-string
+    call-with-output-string
   ) ;export
   (begin
 
