@@ -82,11 +82,9 @@
     (define (ascii-string? x)
       (and (string? x)
         (let ((len (string-length x)))
-          (let loop ((i 0))
-            (or (>= i len)
-                (and (< (char->integer (string-ref x i)) 128)
-                     (loop (+ i 1)))
-            ) ;or
+          (let loop
+            ((i 0))
+            (or (>= i len) (and (< (char->integer (string-ref x i)) 128) (loop (+ i 1))))
           ) ;let
         ) ;let
       ) ;and
@@ -185,26 +183,26 @@
     ) ;define
 
     (define (ascii-upcase x)
-      (cond ((char? x)
-             (integer->char (ascii-upcase (char->integer x))))
+      (cond ((char? x) (integer->char (ascii-upcase (char->integer x))))
             ((string? x)
              (unless (ascii-string? x)
-               (error 'value-error "ascii-upcase: string must be ASCII" x))
-             (string-map (lambda (c) (ascii-upcase c)) x))
-            (else
-             (or (ascii-lower-case-value x 65 26) x))
+               (error 'value-error "ascii-upcase: string must be ASCII" x)
+             ) ;unless
+             (string-map (lambda (c) (ascii-upcase c)) x)
+            ) ;
+            (else (or (ascii-lower-case-value x 65 26) x))
       ) ;cond
     ) ;define
 
     (define (ascii-downcase x)
-      (cond ((char? x)
-             (integer->char (ascii-downcase (char->integer x))))
+      (cond ((char? x) (integer->char (ascii-downcase (char->integer x))))
             ((string? x)
              (unless (ascii-string? x)
-               (error 'value-error "ascii-downcase: string must be ASCII" x))
-             (string-map (lambda (c) (ascii-downcase c)) x))
-            (else
-             (or (ascii-upper-case-value x 97 26) x))
+               (error 'value-error "ascii-downcase: string must be ASCII" x)
+             ) ;unless
+             (string-map (lambda (c) (ascii-downcase c)) x)
+            ) ;
+            (else (or (ascii-upper-case-value x 97 26) x))
       ) ;cond
     ) ;define
 

@@ -104,10 +104,10 @@
     ;; 时间戳格式化
     (define (format-timestamp)
       (let ((d (current-date)))
-        (string-append
-          (date->string d "~Y-~m-~d ~H:~M:~S")
+        (string-append (date->string d "~Y-~m-~d ~H:~M:~S")
           "."
-          (substring (date->string d "~N") 0 3))
+          (substring (date->string d "~N") 0 3)
+        ) ;string-append
       ) ;let
     ) ;define
 
@@ -206,7 +206,8 @@
     (define (log-set-callback! callback)
       (when *log-file-port*
         (close-output-port *log-file-port*)
-        (set! *log-file-port* #f))
+        (set! *log-file-port* #f)
+      ) ;when
       (set! *log-callback* callback)
     ) ;define
 
@@ -316,7 +317,8 @@
       ;; 关闭之前打开的文件端口
       (when *log-file-port*
         (close-output-port *log-file-port*)
-        (set! *log-file-port* #f))
+        (set! *log-file-port* #f)
+      ) ;when
       ;; 自动创建父目录
       (let ((parent (path-parent path)))
         (when (and parent (not (path-exists? parent)))
@@ -350,7 +352,8 @@
     ;; ============== log-flush! ==============
     (define (log-flush!)
       (when *log-file-port*
-        (flush-output-port *log-file-port*))
+        (flush-output-port *log-file-port*)
+      ) ;when
     ) ;define
 
     ;; ============== 辅助函数 ==============
@@ -378,10 +381,11 @@
     (unless *log-exit-hook-registered*
       (set! *log-exit-hook-registered* #t)
       (set! (hook-functions *exit-hook*)
-        (cons (lambda (hook)
-                (when *log-file-port*
-                  (flush-output-port *log-file-port*)))
-              (hook-functions *exit-hook*))))
+        (cons (lambda (hook) (when *log-file-port* (flush-output-port *log-file-port*)))
+          (hook-functions *exit-hook*)
+        ) ;cons
+      ) ;set!
+    ) ;unless
 
   ) ;begin
 ) ;define-library
