@@ -16,7 +16,7 @@
 ;; SRFI 233: INI files
 ;; Authors: John Cowan (spec), Arvydas Silanskas (reference implementation)
 
-(define-library (liii ini-file)
+(define-library (srfi srfi-233)
   (import (scheme base) (liii base))
   (export make-ini-file-generator make-ini-file-accumulator)
   (begin

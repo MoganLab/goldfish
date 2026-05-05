@@ -12,7 +12,7 @@
 
 ;; ==== 单元测试 ====
 
-(import (liii check) (liii ini-file) (liii base))
+(import (liii check) (liii ini) (liii base))
 
 (check-set-mode! 'report-failed)
 
