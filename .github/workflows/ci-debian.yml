@@ -70,6 +70,8 @@ jobs:
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
       - name: build
         run: xmake build --yes -vD goldfish
-      - name: run tests
+      - name: run tools/fmt tests
+        run: bin/gf test tools/fmt/tests
+      - name: run tests --all
         run: bin/gf test --all
 
