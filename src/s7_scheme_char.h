@@ -53,24 +53,6 @@ s7_pointer g_char_equal_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_char_less_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_char_greater_2(s7_scheme *sc, s7_pointer args);
 
-#if !WITH_PURE_S7
-s7_pointer g_chars_are_ci_equal(s7_scheme *sc, s7_pointer args);
-s7_pointer g_chars_are_ci_less(s7_scheme *sc, s7_pointer args);
-s7_pointer g_chars_are_ci_greater(s7_scheme *sc, s7_pointer args);
-s7_pointer g_chars_are_ci_geq(s7_scheme *sc, s7_pointer args);
-s7_pointer g_chars_are_ci_leq(s7_scheme *sc, s7_pointer args);
-
-bool char_ci_lt_b_unchecked(s7_pointer c1, s7_pointer c2);
-bool char_ci_lt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2);
-bool char_ci_leq_b_unchecked(s7_pointer c1, s7_pointer c2);
-bool char_ci_leq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2);
-bool char_ci_gt_b_unchecked(s7_pointer c1, s7_pointer c2);
-bool char_ci_gt_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2);
-bool char_ci_geq_b_unchecked(s7_pointer c1, s7_pointer c2);
-bool char_ci_geq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2);
-bool char_ci_eq_b_unchecked(s7_pointer c1, s7_pointer c2);
-bool char_ci_eq_b_7pp(s7_scheme *sc, s7_pointer c1, s7_pointer c2);
-#endif
 
 s7_pointer g_char_position(s7_scheme *sc, s7_pointer args);
 s7_pointer char_position_p_ppi(s7_scheme *sc, s7_pointer chr, s7_pointer str, s7_int start);
