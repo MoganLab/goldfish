@@ -1,5 +1,4 @@
-(import (liii check)
-        (scheme char))
+(import (liii check) (scheme char))
 (import (liii string-cursor))
 
 (check-set-mode! 'report-failed)
@@ -72,8 +71,14 @@
 (check (string-any char-numeric? "中文123" 0 2) => #f)
 
 ;; 测试谓词返回非布尔真值（SRFI-130 特性）
-(check (string-any (lambda (c) (if (char-numeric? c) (string c) #f)) "abc123") => "1")
-(check (string-any (lambda (c) (if (char=? c #\中) 'found #f)) "中文测试") => 'found)
+(check (string-any (lambda (c) (if (char-numeric? c) (string c) #f)) "abc123")
+  =>
+  "1"
+) ;check
+(check (string-any (lambda (c) (if (char=? c #\中) 'found #f)) "中文测试")
+  =>
+  'found
+) ;check
 
 ;; 测试短路求值：第一个字符满足时立即返回
 (check (string-any char-numeric? "1abc") => #t)

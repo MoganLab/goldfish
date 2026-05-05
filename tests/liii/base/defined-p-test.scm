@@ -72,11 +72,28 @@
 
 
 ;; 测试 define 在 unless 内部（首次定义）
-(check (let () (unless (defined? 'test-unless-define) (define test-unless-define 99)) test-unless-define) => 99)
+(check (let ()
+         (unless (defined? 'test-unless-define)
+           (define test-unless-define 99)
+         ) ;unless
+         test-unless-define
+       ) ;let
+  =>
+  99
+) ;check
 
 
 ;; 测试 define 在 unless 内部（已定义则跳过）
-(check (let () (define test-unless-define2 100) (unless (defined? 'test-unless-define2) (define test-unless-define2 999)) test-unless-define2) => 100)
+(check (let ()
+         (define test-unless-define2 100)
+         (unless (defined? 'test-unless-define2)
+           (define test-unless-define2 999)
+         ) ;unless
+         test-unless-define2
+       ) ;let
+  =>
+  100
+) ;check
 
 
 (check-report)

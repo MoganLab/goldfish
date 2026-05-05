@@ -1,5 +1,4 @@
-(import (liii check)
-        (scheme char) (liii string))
+(import (liii check) (scheme char) (liii string))
 
 ;; string-any
 ;; 检查字符串中的任意字符是否满足给定的条件。

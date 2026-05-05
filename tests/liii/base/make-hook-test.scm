@@ -47,43 +47,42 @@
 
 
 ;; 设置 hook-functions 并触发回调
-(let ((h (make-hook 'code))
-      (result #f))
-  (set! (hook-functions h)
-        (list (lambda (hook)
-                (set! result (hook 'code)))))
+(let ((h (make-hook 'code)) (result #f))
+  (set! (hook-functions h) (list (lambda (hook) (set! result (hook 'code)))))
   (h 42)
-  (check result => 42))
+  (check result => 42)
+) ;let
 
 
 ;; 多个回调按顺序执行
-(let ((h (make-hook 'x))
-      (results '()))
+(let ((h (make-hook 'x)) (results '()))
   (set! (hook-functions h)
-        (list (lambda (hook) (set! results (cons (hook 'x) results)))
-              (lambda (hook) (set! results (cons (* 2 (hook 'x)) results)))))
+    (list (lambda (hook) (set! results (cons (hook 'x) results)))
+      (lambda (hook) (set! results (cons (* 2 (hook 'x)) results)))
+    ) ;list
+  ) ;set!
   (h 5)
   ;; for-each 按列表顺序执行，所以先第一个回调，再第二个回调
-  (check results => '(10 5)))
+  (check results => '(10 5))
+) ;let
 
 
 ;; 无参数的 hook
-(let ((h (make-hook))
-      (called #f))
-  (set! (hook-functions h)
-        (list (lambda (hook) (set! called #t))))
+(let ((h (make-hook)) (called #f))
+  (set! (hook-functions h) (list (lambda (hook) (set! called #t))))
   (h)
-  (check called => #t))
+  (check called => #t)
+) ;let
 
 
 ;; 多参数 hook
-(let ((h (make-hook 'a 'b))
-      (result '()))
+(let ((h (make-hook 'a 'b)) (result '()))
   (set! (hook-functions h)
-        (list (lambda (hook)
-                (set! result (list (hook 'a) (hook 'b))))))
+    (list (lambda (hook) (set! result (list (hook 'a) (hook 'b)))))
+  ) ;set!
   (h 1 2)
-  (check result => '(1 2)))
+  (check result => '(1 2))
+) ;let
 
 
 (check-report)

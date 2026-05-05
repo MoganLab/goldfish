@@ -35,7 +35,10 @@
 (check ((lambda* (a (b 2)) (+ a b)) 1) => 3)
 (check ((lambda* (a (b 2)) (+ a b)) 1 5) => 6)
 (check ((lambda* (a (b 2)) (+ a b)) 1 :b 5) => 6)
-(check ((lambda* ((name "World")) (string-append "Hello, " name))) => "Hello, World")
+(check ((lambda* ((name "World")) (string-append "Hello, " name)))
+  =>
+  "Hello, World"
+) ;check
 (check (procedure? (lambda* (x) x)) => #t)
 
 
