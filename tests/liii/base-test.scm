@@ -48,3 +48,7 @@
 
 ;; 五、类型检查语法
 ;;   typed-lambda         - 带类型标注的 lambda 语法
+
+
+;; 六、列表操作
+;;   reverse!             - 原地反转列表（性能优于 reverse）
