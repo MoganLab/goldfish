@@ -1,5 +1,4 @@
-(import (liii check)
-        (scheme char) (liii string))
+(import (liii check) (scheme char) (liii string))
 
 ;; string-trim-right
 ;; 从字符串末尾移除指定的字符/空白字符。
@@ -20,7 +19,7 @@
 ;; char/pred? : char? 或 procedure?
 ;; - 字符(char)：指定要从末尾移除的字符
 ;; - 谓词(procedure)：接受单个字符作为参数的函数，返回布尔值
-;; - 省略时默认为字符空白字符空格(#\ )
+;; - 省略时默认为 ascii-whitespace?（仅移除 ASCII 空白字符）
 ;;
 ;; start : integer? 可选
 ;; 起始位置索引（包含），默认为0。
@@ -76,5 +75,10 @@
 (check (string-trim-right "---hello---" #\- 3 8) => "hello")
 (check (string-trim-right "123hello123" char-numeric? 3 8) => "hello")
 (check (string-trim-right "123hello123" char-numeric? 3) => "hello")
+
+;; ascii-whitespace? 默认不会移除非 ASCII 空白字节（如 160）
+(let ((s (string #\h #\e #\l #\l #\o (integer->char 160))))
+  (check (string-trim-right s) => s)
+) ;let
 
 (check-report)
