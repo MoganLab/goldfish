@@ -5598,8 +5598,6 @@
       (hash-table-ref *char-lower-ht* (char->integer char))
     ) ;define
 
-    (define s7-char-ci=? char-ci=?)
-
     (define (char-ci=? char1 char2 . rest)
       (unless (char? char1)
         (error 'type-error "char-ci=?: first parameter must be character")
@@ -5607,21 +5605,23 @@
       (unless (char? char2)
         (error 'type-error "char-ci=?: second parameter must be character")
       ) ;unless
-      (let loop
-        ((current (s7-char-ci=? char1 char2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-char (car remaining)))
-            (unless (char? next-char)
-              (error 'type-error "char-ci=?: parameter must be character")
-            ) ;unless
-            (and current (loop (s7-char-ci=? char2 next-char) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (char-foldcase char1)) (f2 (char-foldcase char2)))
+        (let loop
+          ((current (char=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-char (car remaining)))
+              (unless (char? next-char)
+                (error 'type-error "char-ci=?: parameter must be character")
+              ) ;unless
+              (let ((next-folded (char-foldcase next-char)))
+                (and current (loop (char=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-char-ci<? char-ci<?)
 
     (define (char-ci<? char1 char2 . rest)
       (unless (char? char1)
@@ -5630,21 +5630,23 @@
       (unless (char? char2)
         (error 'type-error "char-ci<?: second parameter must be character")
       ) ;unless
-      (let loop
-        ((current (s7-char-ci<? char1 char2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-char (car remaining)))
-            (unless (char? next-char)
-              (error 'type-error "char-ci<?: parameter must be character")
-            ) ;unless
-            (and current (loop (s7-char-ci<? char2 next-char) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (char-foldcase char1)) (f2 (char-foldcase char2)))
+        (let loop
+          ((current (char<? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-char (car remaining)))
+              (unless (char? next-char)
+                (error 'type-error "char-ci<?: parameter must be character")
+              ) ;unless
+              (let ((next-folded (char-foldcase next-char)))
+                (and current (loop (char<? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-char-ci>? char-ci>?)
 
     (define (char-ci>? char1 char2 . rest)
       (unless (char? char1)
@@ -5653,21 +5655,23 @@
       (unless (char? char2)
         (error 'type-error "char-ci>?: second parameter must be character")
       ) ;unless
-      (let loop
-        ((current (s7-char-ci>? char1 char2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-char (car remaining)))
-            (unless (char? next-char)
-              (error 'type-error "char-ci>?: parameter must be character")
-            ) ;unless
-            (and current (loop (s7-char-ci>? char2 next-char) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (char-foldcase char1)) (f2 (char-foldcase char2)))
+        (let loop
+          ((current (char>? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-char (car remaining)))
+              (unless (char? next-char)
+                (error 'type-error "char-ci>?: parameter must be character")
+              ) ;unless
+              (let ((next-folded (char-foldcase next-char)))
+                (and current (loop (char>? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-char-ci>=? char-ci>=?)
 
     (define (char-ci>=? char1 char2 . rest)
       (unless (char? char1)
@@ -5676,21 +5680,23 @@
       (unless (char? char2)
         (error 'type-error "char-ci>=?: second parameter must be character")
       ) ;unless
-      (let loop
-        ((current (s7-char-ci>=? char1 char2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-char (car remaining)))
-            (unless (char? next-char)
-              (error 'type-error "char-ci>=?: parameter must be character")
-            ) ;unless
-            (and current (loop (s7-char-ci>=? char2 next-char) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (char-foldcase char1)) (f2 (char-foldcase char2)))
+        (let loop
+          ((current (char>=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-char (car remaining)))
+              (unless (char? next-char)
+                (error 'type-error "char-ci>=?: parameter must be character")
+              ) ;unless
+              (let ((next-folded (char-foldcase next-char)))
+                (and current (loop (char>=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-char-ci<=? char-ci<=?)
 
     (define (char-ci<=? char1 char2 . rest)
       (unless (char? char1)
@@ -5699,21 +5705,23 @@
       (unless (char? char2)
         (error 'type-error "char-ci<=?: second parameter must be character")
       ) ;unless
-      (let loop
-        ((current (s7-char-ci<=? char1 char2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-char (car remaining)))
-            (unless (char? next-char)
-              (error 'type-error "char-ci<=?: parameter must be character")
-            ) ;unless
-            (and current (loop (s7-char-ci<=? char2 next-char) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (char-foldcase char1)) (f2 (char-foldcase char2)))
+        (let loop
+          ((current (char<=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-char (car remaining)))
+              (unless (char? next-char)
+                (error 'type-error "char-ci<=?: parameter must be character")
+              ) ;unless
+              (let ((next-folded (char-foldcase next-char)))
+                (and current (loop (char<=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-string-ci=? string-ci=?)
 
     (define (string-ci=? str1 str2 . rest)
       (unless (string? str1)
@@ -5722,21 +5730,23 @@
       (unless (string? str2)
         (error 'type-error "string-ci=?: second parameter must be string")
       ) ;unless
-      (let loop
-        ((current (s7-string-ci=? str1 str2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-str (car remaining)))
-            (unless (string? next-str)
-              (error 'type-error "string-ci=?: parameter must be string")
-            ) ;unless
-            (and current (loop (s7-string-ci=? str2 next-str) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (string-foldcase str1)) (f2 (string-foldcase str2)))
+        (let loop
+          ((current (string=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci=?: parameter must be string")
+              ) ;unless
+              (let ((next-folded (string-foldcase next-str)))
+                (and current (loop (string=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-string-ci<? string-ci<?)
 
     (define (string-ci<? str1 str2 . rest)
       (unless (string? str1)
@@ -5745,21 +5755,23 @@
       (unless (string? str2)
         (error 'type-error "string-ci<?: second parameter must be string")
       ) ;unless
-      (let loop
-        ((current (s7-string-ci<? str1 str2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-str (car remaining)))
-            (unless (string? next-str)
-              (error 'type-error "string-ci<?: parameter must be string")
-            ) ;unless
-            (and current (loop (s7-string-ci<? str2 next-str) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (string-foldcase str1)) (f2 (string-foldcase str2)))
+        (let loop
+          ((current (string<? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci<?: parameter must be string")
+              ) ;unless
+              (let ((next-folded (string-foldcase next-str)))
+                (and current (loop (string<? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-string-ci>? string-ci>?)
 
     (define (string-ci>? str1 str2 . rest)
       (unless (string? str1)
@@ -5768,21 +5780,23 @@
       (unless (string? str2)
         (error 'type-error "string-ci>?: second parameter must be string")
       ) ;unless
-      (let loop
-        ((current (s7-string-ci>? str1 str2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-str (car remaining)))
-            (unless (string? next-str)
-              (error 'type-error "string-ci>?: parameter must be string")
-            ) ;unless
-            (and current (loop (s7-string-ci>? str2 next-str) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (string-foldcase str1)) (f2 (string-foldcase str2)))
+        (let loop
+          ((current (string>? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci>?: parameter must be string")
+              ) ;unless
+              (let ((next-folded (string-foldcase next-str)))
+                (and current (loop (string>? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-string-ci<=? string-ci<=?)
 
     (define (string-ci<=? str1 str2 . rest)
       (unless (string? str1)
@@ -5791,21 +5805,23 @@
       (unless (string? str2)
         (error 'type-error "string-ci<=?: second parameter must be string")
       ) ;unless
-      (let loop
-        ((current (s7-string-ci<=? str1 str2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-str (car remaining)))
-            (unless (string? next-str)
-              (error 'type-error "string-ci<=?: parameter must be string")
-            ) ;unless
-            (and current (loop (s7-string-ci<=? str2 next-str) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (string-foldcase str1)) (f2 (string-foldcase str2)))
+        (let loop
+          ((current (string<=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci<=?: parameter must be string")
+              ) ;unless
+              (let ((next-folded (string-foldcase next-str)))
+                (and current (loop (string<=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
-
-    (define s7-string-ci>=? string-ci>=?)
 
     (define (string-ci>=? str1 str2 . rest)
       (unless (string? str1)
@@ -5814,17 +5830,21 @@
       (unless (string? str2)
         (error 'type-error "string-ci>=?: second parameter must be string")
       ) ;unless
-      (let loop
-        ((current (s7-string-ci>=? str1 str2)) (remaining rest))
-        (if (null? remaining)
-          current
-          (let ((next-str (car remaining)))
-            (unless (string? next-str)
-              (error 'type-error "string-ci>=?: parameter must be string")
-            ) ;unless
-            (and current (loop (s7-string-ci>=? str2 next-str) (cdr remaining)))
-          ) ;let
-        ) ;if
+      (let ((f1 (string-foldcase str1)) (f2 (string-foldcase str2)))
+        (let loop
+          ((current (string>=? f1 f2)) (prev f2) (remaining rest))
+          (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci>=?: parameter must be string")
+              ) ;unless
+              (let ((next-folded (string-foldcase next-str)))
+                (and current (loop (string>=? prev next-folded) next-folded (cdr remaining)))
+              ) ;let
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 

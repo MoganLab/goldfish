@@ -1359,9 +1359,8 @@ struct s7_scheme {
              write_byte_symbol, write_char_symbol, write_string_symbol, write_symbol;
   s7_pointer hash_code_symbol, dummy_equal_hash_table, features_setter;
 #if !WITH_PURE_S7
-  s7_pointer char_ci_eq_symbol, char_ci_geq_symbol, char_ci_gt_symbol, char_ci_leq_symbol, char_ci_lt_symbol, integer_length_symbol,
-             is_char_ready_symbol, let_to_list_symbol, list_to_string_symbol, list_to_vector_symbol, make_polar_symbol, string_ci_eq_symbol,
-             string_ci_geq_symbol, string_ci_gt_symbol, string_ci_leq_symbol, string_ci_lt_symbol, string_length_symbol,
+  s7_pointer integer_length_symbol,
+             is_char_ready_symbol, let_to_list_symbol, list_to_string_symbol, list_to_vector_symbol, make_polar_symbol, string_length_symbol,
              string_to_list_symbol, vector_length_symbol, vector_to_list_symbol;
 #endif
 #if WITH_R7RS
@@ -21553,113 +21552,6 @@ static s7_pointer check_rest_are_strings(s7_scheme *sc, s7_pointer sym, s7_point
   return(sc->F);
 }
 
-static s7_pointer g_string_ci_cmp(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (val == 0)
-	{
-	  if (!scheme_strequal_ci(str, car(strs)))
-	    return(check_rest_are_strings(sc, sym, cdr(strs), args));
-	}
-      else
-	if (scheme_strcasecmp(str, car(strs)) != val)
-	  return(check_rest_are_strings(sc, sym, cdr(strs), args));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_string_ci_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (scheme_strcasecmp(str, car(strs)) == val)
-	return(check_rest_are_strings(sc, sym, cdr(strs), args));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_strings_are_ci_equal(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_equal "(string-ci=? str ...) returns #t if all the string arguments are equal, ignoring case"
-  #define Q_strings_are_ci_equal sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, 0, sc->string_ci_eq_symbol));
-}
-
-static s7_pointer g_strings_are_ci_less(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_less "(string-ci<? str ...) returns #t if all the string arguments are increasing, ignoring case"
-  #define Q_strings_are_ci_less sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, -1, sc->string_ci_lt_symbol));
-}
-
-static s7_pointer g_strings_are_ci_greater(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_greater "(string-ci>? str ...) returns #t if all the string arguments are decreasing, ignoring case"
-  #define Q_strings_are_ci_greater sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, 1, sc->string_ci_gt_symbol));
-}
-
-static s7_pointer g_strings_are_ci_geq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_geq "(string-ci>=? str ...) returns #t if all the string arguments are equal or decreasing, ignoring case"
-  #define Q_strings_are_ci_geq sc->pcl_bs
-  return(g_string_ci_cmp_not(sc, args, -1, sc->string_ci_geq_symbol));
-}
-
-static s7_pointer g_strings_are_ci_leq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_leq "(string-ci<=? str ...) returns #t if all the string arguments are equal or increasing, ignoring case"
-  #define Q_strings_are_ci_leq sc->pcl_bs
-  return(g_string_ci_cmp_not(sc, args, 1, sc->string_ci_leq_symbol));
-}
-
-static bool string_ci_lt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == -1);}
-static bool string_ci_lt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_lt_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == -1);
-}
-
-static bool string_ci_leq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) != 1);}
-static bool string_ci_leq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_leq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) != 1);
-}
-
-static bool string_ci_gt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == 1);}
-static bool string_ci_gt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_gt_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == 1);
-}
-
-static bool string_ci_geq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) != -1);}
-static bool string_ci_geq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_geq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) != -1);
-}
-
-static bool string_ci_eq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == 0);}
-static bool string_ci_eq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_eq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == 0);
-}
 #endif /* pure s7 */
 
 
@@ -38096,7 +37988,7 @@ static s7_pointer g_set_hash_table_value_typer(s7_scheme *sc, s7_pointer args)
 
 
 /* ---------------- hash map and equality tables ---------------- */
-/* built in hash loc tables for eq? eqv? equal? equivalent? = string=? string-ci=? char=? char-ci=? (default=equal?) */
+/* built in hash loc tables for eq? eqv? equal? equivalent? = string=? char=? (default=equal?) */
 #define hash_loc(Sc, Table, Key) (*(hash_table_mapper(Table)[type(Key)]))(Sc, Table, Key)
 
 static hash_map_t eq_hash_map[NUM_TYPES];
@@ -38105,10 +37997,6 @@ static hash_map_t char_eq_hash_map[NUM_TYPES];
 static hash_map_t closure_hash_map[NUM_TYPES];
 static hash_map_t equivalent_hash_map[NUM_TYPES];
 static hash_map_t c_function_hash_map[NUM_TYPES];
-#if !WITH_PURE_S7
-static hash_map_t string_ci_eq_hash_map[NUM_TYPES];
-static hash_map_t char_ci_eq_hash_map[NUM_TYPES];
-#endif
 /* also default_hash_map */
 
 
@@ -38371,21 +38259,6 @@ static hash_entry_t *hash_char(s7_scheme *sc, s7_pointer table, s7_pointer key)
   return(sc->unentry);
 }
 
-#if !WITH_PURE_S7
-static s7_uint hash_map_ci_char(s7_scheme *sc, s7_pointer table, s7_pointer key) {return(upper_character(key));}
-
-static hash_entry_t *hash_ci_char(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  if (is_character(key))
-    {
-      s7_uint loc = hash_loc(sc, table, key) % hash_table_mask(table);
-      for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
-	if (upper_character(key) == upper_character(hash_entry_key(entry)))
-	  return(entry);
-    }
-  return(sc->unentry);
-}
-#endif
 
 
 /* ---------------- hash strings ---------------- */
@@ -39040,20 +38913,6 @@ in the table; it is a cons, defaulting to (cons #t #t) which means any types are
 		  hash_table_mapper(table) = string_eq_hash_map;
 		  return(table);
 		}
-#if !WITH_PURE_S7
-	      if (c_function_call(proc) == g_strings_are_ci_equal)
-		{
-		  hash_table_checker(table) = hash_ci_string;
-		  hash_table_mapper(table) = string_ci_eq_hash_map;
-		  return(table);
-		}
-	      if (c_function_call(proc) == g_chars_are_ci_equal)
-		{
-		  hash_table_checker(table) = hash_ci_char;
-		  hash_table_mapper(table) = char_ci_eq_hash_map;
-		  return(table);
-		}
-#endif
 	      if (c_function_call(proc) == g_chars_are_equal)
 		{
 		  hash_table_checker(table) = hash_char;
@@ -39170,7 +39029,6 @@ static const char *hash_table_checker_name(s7_scheme *sc, s7_pointer table)
   if (hash_table_checker(table) == hash_string) return("string=?");
 #if !WITH_PURE_S7
   if (hash_table_checker(table) == hash_ci_string) return("string-ci=?");
-  if (hash_table_checker(table) == hash_ci_char) return("char-ci=?");
 #endif
   if (hash_table_checker(table) == hash_char) return("char=?");
   if (hash_table_checker(table) == hash_number_num_eq) return("=");
@@ -39194,10 +39052,6 @@ static void init_hash_maps(void)
       default_hash_map[i] = hash_map_nil;
       string_eq_hash_map[i] = hash_map_nil;
       char_eq_hash_map[i] = hash_map_nil;
-#if !WITH_PURE_S7
-      string_ci_eq_hash_map[i] = hash_map_nil;
-      char_ci_eq_hash_map[i] = hash_map_nil;
-#endif
       closure_hash_map[i] = hash_map_closure;
       c_function_hash_map[i] = hash_map_c_function;
       eq_hash_map[i] = hash_map_eq;
@@ -39230,10 +39084,6 @@ static void init_hash_maps(void)
   string_eq_hash_map[T_STRING] =      hash_map_string;
   string_eq_hash_map[T_BYTE_VECTOR] = hash_map_byte_vector;
   char_eq_hash_map[T_CHARACTER] =     hash_map_char;
-#if !WITH_PURE_S7
-  string_ci_eq_hash_map[T_STRING] =   hash_map_ci_string;
-  char_ci_eq_hash_map[T_CHARACTER] =  hash_map_ci_char;
-#endif
 
   for (int32_t i = 0; i < NUM_TYPES; i++)
     equivalent_hash_map[i] = default_hash_map[i];
@@ -39530,14 +39380,13 @@ static void check_hash_table_checker(s7_scheme *sc, s7_pointer table, s7_pointer
 #else
       if ((((hash_table_checker(table) == hash_string) || (hash_table_checker(table) == hash_ci_string)) &&
 	   (!is_string(key))) ||
-	  (((hash_table_checker(table) == hash_char) || (hash_table_checker(table) == hash_ci_char)) &&
+	  ((hash_table_checker(table) == hash_char) &&
 	   (!is_character(key))))
 	error_nr(sc, sc->wrong_type_arg_symbol,
 		 set_elist_4(sc, wrap_string(sc, "hash-table-set! key ~S, is ~A, but the hash-table's key function is ~A", 70),
 			     key, type_name_string(sc, key),
-			     (hash_table_checker(table) == hash_string) ? sc->string_eq_symbol :
-			     ((hash_table_checker(table) == hash_ci_string) ? sc->string_ci_eq_symbol :
-			      ((hash_table_checker(table) == hash_char) ? sc->char_eq_symbol : sc->char_ci_eq_symbol))));
+			     ((hash_table_checker(table) == hash_ci_string) ? sc->string_eq_symbol :
+			      ((hash_table_checker(table) == hash_char) ? sc->char_eq_symbol : sc->string_eq_symbol))));
 #endif
 }
 
@@ -45008,14 +44857,6 @@ static void hash_table_checker_to_let(s7_scheme *sc, s7_pointer let, s7_pointer 
 	    else
 	      if (hash_table_checker(table) == hash_char)
 		s7_varlet(sc, let, sc->function_symbol, sc->char_eq_symbol);
-#if !WITH_PURE_S7
-	      else
-		if (hash_table_checker(table) == hash_ci_char)
-		  s7_varlet(sc, let, sc->function_symbol, sc->char_ci_eq_symbol);
-		else
-		  if (hash_table_checker(table) == hash_ci_string)
-		    s7_varlet(sc, let, sc->function_symbol, sc->string_ci_eq_symbol);
-#endif
 }
 
 static s7_pointer hash_table_to_let(s7_scheme *sc, s7_pointer table)
@@ -65161,11 +65002,6 @@ static void init_choosers(s7_scheme *sc)
 #if !WITH_PURE_S7
   set_function_chooser(sc->string_length_symbol, string_substring_chooser);
   set_function_chooser(sc->string_to_list_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_eq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_geq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_leq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_gt_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_lt_symbol, string_substring_chooser);
 #endif
 
   /* also: directory->list substring with-input-from-file with-input-from-string with-output-to-file open-output-file open-input-file
@@ -65476,22 +65312,22 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
         "string?", "symbol?", "syntax?", "type-of", "unquote", "vector?", "boolean?", "complex?", "coverlet",
         "defined?", "dilambda", "for-each", "funclet?", "inexact?", "integer?", "keyword?", "let-set!",
         "list-ref", "openlet?", "quotient", "reverse!", "set-car!", "set-cdr!", "string<?", "string=?",
-        "string>?", "s7-truncate", "with-let", "aritable?", "c-object?", "c-pointer", "char-ci<?", "char-ci=?",
-        "char-ci>?", "constant?", "dilambda?", "hash-code", "imag-part", "infinite?", "iterator?", "let->list",
+        "string>?", "s7-truncate", "with-let", "aritable?", "c-object?", "c-pointer", "constant?", "dilambda?",
+        "hash-code", "imag-part", "infinite?", "iterator?", "let->list",
         "list-set!", "list-tail", "magnitude", "make-hook", "make-list", "negative?", "numerator", "peek-char",
         "port-file", "positive?", "provided?", "rational?", "read-byte", "read-char", "read-line", "real-part",
         "remainder", "sequence?", "signature", "string<=?", "string>=?", "substring", "subvector", "tree-memq",
-        "*function*", "c-pointer?", "char-ci<=?", "char-ci>=?", "directory?", "file-mtime", "hash-table",
+        "*function*", "c-pointer?", "directory?", "file-mtime", "hash-table",
         "immutable!", "immutable?", "int-vector", "make-polar", "procedure?", "profile-in", "quasiquote",
         "stacktrace", "string-ref", "subvector?", "tree-count", "undefined?", "vector-ref", "write-byte",
         "write-char", "byte-vector", "char-ready?", "char-upcase", "cond-expand", "delete-file", "denominator",
         "eof-object?", "equivalent?", "eval-string", "hash-table?", "input-port?", "int-vector?",
         "list-values", "macroexpand", "make-string", "make-vector", "nan-payload", "object->let",
-        "port-string", "rationalize", "read-string", "reader-cond", "string-ci<?", "string-ci=?",
-        "string-ci>?", "string-copy", "string-set!", "tree-leaves", "vector-rank", "vector-set!",
+        "port-string", "rationalize", "read-string", "reader-cond", "string-copy", "string-set!",
+        "tree-leaves", "vector-rank", "vector-set!",
         "with-baffle", "apply-values", "byte-vector?", "c-object-let", "define-bacro", "define-macro",
         "dynamic-wind", "file-exists?", "float-vector", "list->string", "list->vector", "output-port?",
-        "port-closed?", "proper-list?", "random-state", "string->list", "string-ci<=?", "string-ci>=?",
+        "port-closed?", "proper-list?", "random-state", "string->list",
         "string-fill!", "symbol-table", "tree-cyclic?", "unspecified?", "vector->list", "vector-fill!",
         "vector-typer", "write-string", "c-object-type", "char->integer", "char-downcase", "char-numeric?",
         "char-position", "continuation?", "define-bacro*", "define-macro*", "documentation", "float-vector?",
@@ -90998,28 +90834,6 @@ static void init_fx_function(void)
 static void init_opt_functions(s7_scheme *sc)
 {
 #if !WITH_PURE_S7
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_lt_symbol), char_ci_lt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_leq_symbol), char_ci_leq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_gt_symbol), char_ci_gt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_geq_symbol), char_ci_geq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_eq_symbol), char_ci_eq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_lt_symbol), string_ci_lt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_leq_symbol), string_ci_leq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_gt_symbol), string_ci_gt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_geq_symbol), string_ci_geq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_eq_symbol), string_ci_eq_b_7pp);
-
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_lt_symbol), char_ci_lt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_leq_symbol), char_ci_leq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_gt_symbol), char_ci_gt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_geq_symbol), char_ci_geq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_eq_symbol), char_ci_eq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_lt_symbol), string_ci_lt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_leq_symbol), string_ci_leq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_gt_symbol), string_ci_gt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_geq_symbol), string_ci_geq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_eq_symbol), string_ci_eq_b_unchecked);
-
   s7_set_p_pp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_pp);
   s7_set_p_ppp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_ppp);
   s7_set_i_i_function(sc, global_value(sc->integer_length_symbol), integer_length_i_i);
@@ -92431,21 +92245,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_geq_symbol =            defun("string>=?",	        strings_are_geq,	2, 0, true);
 
 #if !WITH_PURE_S7
-  sc->char_ci_eq_symbol =            s7_define_typed_function(sc, "char-ci=?", g_chars_are_ci_equal, 2, 0, true,
-                                                              "(char-ci=? char ...) returns #t if all the character arguments are equal, ignoring case", sc->pcl_bc);
-  sc->char_ci_lt_symbol =            s7_define_typed_function(sc, "char-ci<?", g_chars_are_ci_less, 2, 0, true,
-                                                              "(char-ci<? char ...) returns #t if all the character arguments are increasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_gt_symbol =            s7_define_typed_function(sc, "char-ci>?", g_chars_are_ci_greater, 2, 0, true,
-                                                              "(char-ci>? char ...) returns #t if all the character arguments are decreasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_leq_symbol =           s7_define_typed_function(sc, "char-ci<=?", g_chars_are_ci_leq, 2, 0, true,
-                                                              "(char-ci<=? char ...) returns #t if all the character arguments are equal or increasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_geq_symbol =           s7_define_typed_function(sc, "char-ci>=?", g_chars_are_ci_geq, 2, 0, true,
-                                                              "(char-ci>=? char ...) returns #t if all the character arguments are equal or decreasing, ignoring case", sc->pcl_bc);
-  sc->string_ci_eq_symbol =          defun("string-ci=?",	strings_are_ci_equal,	2, 0, true);
-  sc->string_ci_lt_symbol =          defun("string-ci<?",	strings_are_ci_less,	2, 0, true);
-  sc->string_ci_gt_symbol =          defun("string-ci>?",	strings_are_ci_greater, 2, 0, true);
-  sc->string_ci_leq_symbol =         defun("string-ci<=?",	strings_are_ci_leq,	2, 0, true);
-  sc->string_ci_geq_symbol =         defun("string-ci>=?",	strings_are_ci_geq,	2, 0, true);
   sc->string_fill_symbol =           defun("string-fill!",	string_fill,		2, 2, false);
   sc->list_to_string_symbol =        defun("list->string",	list_to_string,		1, 0, false);
   sc->string_length_symbol =         s7_define_typed_function(sc, "string-length", g_string_length, 1, 0, false, "(string-length str) returns the length of str.", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol));
