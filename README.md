@@ -38,6 +38,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID generation                      | `uuid4`                                                          |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP client library                  | `http-get`, `http-post`, `http-head`                             |
 | [(liii json)](goldfish/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
+| [(liii ini-file)](goldfish/liii/ini-file.scm)     | INI file parsing (SRFI 233)          | `make-ini-file-generator`, `make-ini-file-accumulator`            |
 
 
 ### SRFI
