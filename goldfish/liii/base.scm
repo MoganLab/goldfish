@@ -28,6 +28,7 @@
     with-input-from-string
     call-with-input-string
     call-with-output-string
+    reverse!
   ) ;export
   (begin
 
