@@ -14,10 +14,7 @@
 ;; limitations under the License.
 
 (define-library (liii han-zi)
-  (export han-zi->number
-    number->han-zi
-    han-zi-number?
-  ) ;export
+  (export han-zi->number number->han-zi han-zi-number?)
   (begin
 
     (define (han-zi->number ch)
@@ -25,22 +22,22 @@
         (error 'type-error "han-zi->number: parameter must be character")
       ) ;unless
       (case ch
-        ((#\零 #\〇) 0)
-        ((#\一 #\壹) 1)
-        ((#\二 #\贰) 2)
-        ((#\三 #\叁) 3)
-        ((#\四 #\肆) 4)
-        ((#\五 #\伍) 5)
-        ((#\六 #\陆) 6)
-        ((#\七 #\柒) 7)
-        ((#\八 #\捌) 8)
-        ((#\九 #\玖) 9)
-        ((#\十 #\拾) 10)
-        ((#\百 #\佰) 100)
-        ((#\千 #\仟) 1000)
-        ((#\万) 10000)
-        ((#\亿) 100000000)
-        (else #f)
+       ((#\零 #\〇) 0)
+       ((#\一 #\壹) 1)
+       ((#\二 #\贰) 2)
+       ((#\三 #\叁) 3)
+       ((#\四 #\肆) 4)
+       ((#\五 #\伍) 5)
+       ((#\六 #\陆) 6)
+       ((#\七 #\柒) 7)
+       ((#\八 #\捌) 8)
+       ((#\九 #\玖) 9)
+       ((#\十 #\拾) 10)
+       ((#\百 #\佰) 100)
+       ((#\千 #\仟) 1000)
+       ((#\万) 10000)
+       ((#\亿) 100000000)
+       (else #f)
       ) ;case
     ) ;define
 
@@ -48,120 +45,28 @@
       (unless (integer? n)
         (error 'type-error "number->han-zi: parameter must be integer")
       ) ;unless
-      (cond
-        ((< n 0) #f)
-        ((= n 0)
-         (case style
-           ((common financial) #\零)
-           ((year) #\〇)
-           (else #f)
-         ) ;case
-        ) ;= n 0
-        ((= n 1)
-         (case style
-           ((common year) #\一)
-           ((financial) #\壹)
-           (else #f)
-         ) ;case
-        ) ;= n 1
-        ((= n 2)
-         (case style
-           ((common year) #\二)
-           ((financial) #\贰)
-           (else #f)
-         ) ;case
-        ) ;= n 2
-        ((= n 3)
-         (case style
-           ((common year) #\三)
-           ((financial) #\叁)
-           (else #f)
-         ) ;case
-        ) ;= n 3
-        ((= n 4)
-         (case style
-           ((common year) #\四)
-           ((financial) #\肆)
-           (else #f)
-         ) ;case
-        ) ;= n 4
-        ((= n 5)
-         (case style
-           ((common year) #\五)
-           ((financial) #\伍)
-           (else #f)
-         ) ;case
-        ) ;= n 5
-        ((= n 6)
-         (case style
-           ((common year) #\六)
-           ((financial) #\陆)
-           (else #f)
-         ) ;case
-        ) ;= n 6
-        ((= n 7)
-         (case style
-           ((common year) #\七)
-           ((financial) #\柒)
-           (else #f)
-         ) ;case
-        ) ;= n 7
-        ((= n 8)
-         (case style
-           ((common year) #\八)
-           ((financial) #\捌)
-           (else #f)
-         ) ;case
-        ) ;= n 8
-        ((= n 9)
-         (case style
-           ((common year) #\九)
-           ((financial) #\玖)
-           (else #f)
-         ) ;case
-        ) ;= n 9
-        ((= n 10)
-         (case style
-           ((common) #\十)
-           ((financial) #\拾)
-           (else #f)
-         ) ;case
-        ) ;= n 10
-        ((= n 100)
-         (case style
-           ((common) #\百)
-           ((financial) #\佰)
-           (else #f)
-         ) ;case
-        ) ;= n 100
-        ((= n 1000)
-         (case style
-           ((common) #\千)
-           ((financial) #\仟)
-           (else #f)
-         ) ;case
-        ) ;= n 1000
-        ((= n 10000)
-         (case style
-           ((common financial) #\万)
-           (else #f)
-         ) ;case
-        ) ;= n 10000
-        ((= n 100000000)
-         (case style
-           ((common financial) #\亿)
-           (else #f)
-         ) ;case
-        ) ;= n 100000000
-        (else #f)
+      (cond ((< n 0) #f)
+            ((= n 0) (case style ((common financial) #\零) ((year) #\〇) (else #f)))
+            ((= n 1) (case style ((common year) #\一) ((financial) #\壹) (else #f)))
+            ((= n 2) (case style ((common year) #\二) ((financial) #\贰) (else #f)))
+            ((= n 3) (case style ((common year) #\三) ((financial) #\叁) (else #f)))
+            ((= n 4) (case style ((common year) #\四) ((financial) #\肆) (else #f)))
+            ((= n 5) (case style ((common year) #\五) ((financial) #\伍) (else #f)))
+            ((= n 6) (case style ((common year) #\六) ((financial) #\陆) (else #f)))
+            ((= n 7) (case style ((common year) #\七) ((financial) #\柒) (else #f)))
+            ((= n 8) (case style ((common year) #\八) ((financial) #\捌) (else #f)))
+            ((= n 9) (case style ((common year) #\九) ((financial) #\玖) (else #f)))
+            ((= n 10) (case style ((common) #\十) ((financial) #\拾) (else #f)))
+            ((= n 100) (case style ((common) #\百) ((financial) #\佰) (else #f)))
+            ((= n 1000) (case style ((common) #\千) ((financial) #\仟) (else #f)))
+            ((= n 10000) (case style ((common financial) #\万) (else #f)))
+            ((= n 100000000) (case style ((common financial) #\亿) (else #f)))
+            (else #f)
       ) ;cond
     ) ;define
 
     (define (han-zi-number? ch)
-      (if (char? ch)
-        (not (not (han-zi->number ch)))
-        #f
-      ) ;if
+      (if (char? ch) (not (not (han-zi->number ch))) #f)
     ) ;define
 
   ) ;begin
