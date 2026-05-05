@@ -15,10 +15,10 @@
 ;;
 
 (define (%goldfmt-common-dirname path-str)
-  (let loop ((i (- (string-length path-str) 1)))
+  (let loop
+    ((i (- (string-length path-str) 1)))
     (cond ((< i 0) ".")
-          ((or (char=? (string-ref path-str i) #\/)
-               (char=? (string-ref path-str i) #\\))
+          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
            (if (= i 0) "." (substring path-str 0 i))
           ) ;
           (else (loop (- i 1)))
@@ -28,9 +28,7 @@
 
 (set! *load-path*
   (append (list "../common" "tools/common")
-    (map (lambda (root)
-           (string-append (%goldfmt-common-dirname root) "/common")
-         ) ;lambda
+    (map (lambda (root) (string-append (%goldfmt-common-dirname root) "/common"))
       *load-path*
     ) ;map
     *load-path*
@@ -39,23 +37,20 @@
 
 (define-library (liii goldfmt)
   (import (liii base)
-          (liii sys)
-          (liii path)
-          (liii string)
-          (liii argparse)
-          (liii goldtool-changed)
-          (srfi srfi-13)
-          (liii raw-string)
-          (liii goldfmt-scan)
-          (liii goldfmt-format))
-  (export main
-          format-datum
-          format-datum+node
-          format-node
-          format-string)
+    (liii sys)
+    (liii path)
+    (liii string)
+    (liii argparse)
+    (liii goldtool-changed)
+    (srfi srfi-13)
+    (liii raw-string)
+    (liii goldfmt-scan)
+    (liii goldfmt-format)
+  ) ;import
+  (export main format-datum format-datum+node format-node format-string)
   (begin
-    
-    ;;; 显示帮助文档
+
+    ;; ; 显示帮助文档
     (define (display-help)
       (display "Usage: gf fmt [options] [path]")
       (newline)
@@ -64,9 +59,11 @@
       (newline)
       (display "  -h, --help       显示此帮助文档")
       (newline)
-      (display "      --dry-run    预览模式（不写回文件；目录路径不支持）")
+      (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
+      ) ;display
       (newline)
-      (display "      --changed-since REV    仅格式化自 REV 以来变更的 .scm 文件")
+      (display "      --changed-since REV    仅格式化自 REV 以来变更的 .scm 文件"
+      ) ;display
       (newline)
       (newline)
       (display "Arguments:")
@@ -84,60 +81,82 @@
       (newline)
       (display "  gf fmt --dry-run file.scm    预览格式化结果")
       (newline)
-      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 .scm 文件")
+      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 .scm 文件"
+      ) ;display
       (newline)
-      (display "  gf fmt --dry-run --changed-since=HEAD  预览变更文件的格式化结果")
+      (display "  gf fmt --dry-run --changed-since=HEAD  预览变更文件的格式化结果"
+      ) ;display
       (newline)
-      (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件")
-      (newline))
-    
-    ;;; 格式化单个文件（dry-run 模式，输出到终端）
+      (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件"
+      ) ;display
+      (newline)
+    ) ;define
+
+    ;; ; 格式化单个文件（dry-run 模式，输出到终端）
     (define (format-file-dry-run path-str)
       (let* ((nodes (scan-file path-str)))
-        (let loop ((i 0))
+        (let loop
+          ((i 0))
           (if (>= i (vector-length nodes))
-              (values)
-              (let ((node (vector-ref nodes i)))
-                (call-with-values
-                  (lambda () (format-node node 0))
-                  (lambda (text positioned-node)
-                    (display (ensure-trailing-newline text))
-                    (loop (+ i 1)))))))))
-    
-    ;;; 辅助函数：确保字符串以换行符结尾
-    (define (ensure-trailing-newline str)
-      (if (or (string=? str "")
-              (string-suffix? "\n" str))
-          str
-          (string-append str "\n")))
+            (values)
+            (let ((node (vector-ref nodes i)))
+              (call-with-values (lambda () (format-node node 0))
+                (lambda (text positioned-node)
+                  (display (ensure-trailing-newline text))
+                  (loop (+ i 1))
+                ) ;lambda
+              ) ;call-with-values
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
-    ;;; 格式化单个文件（覆盖原文件）
-    ;;; 返回值: 如果文件有变更返回 #t，否则返回 #f
+    ;; ; 辅助函数：确保字符串以换行符结尾
+    (define (ensure-trailing-newline str)
+      (if (or (string=? str "") (string-suffix? "\n" str))
+        str
+        (string-append str "\n")
+      ) ;if
+    ) ;define
+
+    ;; ; 格式化单个文件（覆盖原文件）
+    ;; ; 返回值: 如果文件有变更返回 #t，否则返回 #f
     (define (format-file path-str)
       (let* ((p (path path-str))
              (original-content (path-read-text p))
              (nodes (scan-file path-str))
-             (results '()))
-        (let loop ((i 0)
-                   (acc '()))
+             (results '())
+            ) ;
+        (let loop
+          ((i 0) (acc '()))
           (if (>= i (vector-length nodes))
-              (let* ((joined (string-join (reverse acc) "\n"))
-                     (formatted (ensure-trailing-newline joined)))
-                (if (string=? original-content formatted)
-                    #f  ; 无变更
-                    (begin
-                      (path-write-text p formatted)
-                      #t)))  ; 有变更
-              (let ((node (vector-ref nodes i)))
-                (call-with-values
-                  (lambda () (format-node node 0))
-                  (lambda (text positioned-node)
-                    (loop (+ i 1) (cons text acc))))))))) 
-    
-    ;;; 递归格式化指定文件列表
-    ;;; 返回值: (values total updated) - 处理的文件总数和更新的文件数
+            (let* ((joined (string-join (reverse acc) "\n"))
+                   (formatted (ensure-trailing-newline joined))
+                  ) ;
+              (if (string=? original-content formatted)
+                #f
+                (begin
+                  (path-write-text p formatted)
+                  #t
+                ) ;begin
+              ) ;if
+            ) ;let*
+            (let ((node (vector-ref nodes i)))
+              (call-with-values (lambda () (format-node node 0))
+                (lambda (text positioned-node) (loop (+ i 1) (cons text acc)))
+              ) ;call-with-values
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; ; 递归格式化指定文件列表
+    ;; ; 返回值: (values total updated) - 处理的文件总数和更新的文件数
     (define (format-file-list files dry-run)
-      (let loop ((remaining files) (total 0) (updated 0))
+      (let loop
+        ((remaining files) (total 0) (updated 0))
         (if (null? remaining)
           (values total updated)
           (let ((file (car remaining)))
@@ -171,20 +190,153 @@
                (newline)
                (exit 1)
               ) ;
-              (else
-               (let ((files (if scope
-                              (changed-scheme-files-since since scope)
-                              (changed-scheme-files-since since)
-                            ) ;if
-                    ) ;files
-                   ) ;
-                 (if (null? files)
+              (else (let ((files (if scope
+                                   (changed-scheme-files-since since scope)
+                                   (changed-scheme-files-since since)
+                                 ) ;if
+                          ) ;files
+                         ) ;
+                      (if (null? files)
+                        (begin
+                          (display (string-append "No changed Scheme files since " since))
+                          (newline)
+                          #t
+                        ) ;begin
+                        (call-with-values (lambda () (format-file-list files dry-run))
+                          (lambda (total updated)
+                            (display (string-append "Total files processed: "
+                                       (number->string total)
+                                       ", Files updated: "
+                                       (number->string updated)
+                                     ) ;string-append
+                            ) ;display
+                            (newline)
+                            #t
+                          ) ;lambda
+                        ) ;call-with-values
+                      ) ;if
+                    ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; ; 递归格式化目录
+    ;; ; 返回值: (values total updated) - 处理的文件总数和更新的文件数
+    (define (format-directory dir-path)
+      (let ((entries (path-list-path (path dir-path))))
+        (let loop
+          ((i 0) (total 0) (updated 0))
+          (if (>= i (vector-length entries))
+            (values total updated)
+            (let ((entry (vector-ref entries i)))
+              (cond ((path-file? entry)
+                     (let ((entry-str (path->string entry)))
+                       (if (string-suffix? ".scm" entry-str)
+                         (begin
+                           (display (string-append "Processing: " entry-str))
+                           (newline)
+                           (let ((changed? (format-file entry-str)))
+                             (if changed?
+                               (begin
+                                 (display (string-append "  Updated: " entry-str))
+                                 (newline)
+                                 (loop (+ i 1) (+ total 1) (+ updated 1))
+                               ) ;begin
+                               (loop (+ i 1) (+ total 1) updated)
+                             ) ;if
+                           ) ;let
+                         ) ;begin
+                         (loop (+ i 1) total updated)
+                       ) ;if
+                     ) ;let
+                    ) ;
+                    ((path-dir? entry)
+                     (call-with-values (lambda () (format-directory (path->string entry)))
+                       (lambda (sub-total sub-updated)
+                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated))
+                       ) ;lambda
+                     ) ;call-with-values
+                    ) ;
+                    (else (loop (+ i 1) total updated))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (make-fmt-arg-parser)
+      (let ((parser (make-argument-parser '((command . "fmt")
+                                            (skip-value-options "-m"
+                                              "--mode"
+                                              "-I"
+                                              "-A")
+                                            (skip-prefix-options "-m="
+                                              "--mode=")
+                                            (unknown-options . positional))
+                    ) ;make-argument-parser
+            ) ;parser
+           ) ;
+        (parser :add-argument '((name . "help")
+                                (short . "h")
+                                (action . store-true)))
+        (parser :add-argument '((name . "dry-run") (action . store-true)))
+        (parser :add-argument '((name . "changed-since") (type . string)))
+        parser
+      ) ;let
+    ) ;define
+
+    (define (first-positional parser)
+      (let ((positionals (parser :positionals)))
+        (if (null? positionals) "" (car positionals))
+      ) ;let
+    ) ;define
+
+    ;; ; 主入口函数
+    (define (main)
+      (let ((parser (make-fmt-arg-parser)))
+        (parser :parse-argv (argv))
+        (let ((help-flag (parser 'help))
+              (dry-run (parser 'dry-run))
+              (changed-since (parser 'changed-since))
+              (path-str (first-positional parser))
+             ) ;
+          (cond (help-flag (display-help) #t)
+                (changed-since (format-changed-since changed-since path-str dry-run))
+                ((string=? path-str "") (display-help) #t)
+                ((path-file? (path path-str))
+                 (if dry-run
+                   (format-file-dry-run path-str)
                    (begin
-                     (display (string-append "No changed Scheme files since " since))
+                     (display (string-append "Processing: " path-str))
                      (newline)
-                     #t
+                     (let ((changed? (format-file path-str)))
+                       (if changed?
+                         (begin
+                           (display (string-append "  Updated: " path-str))
+                           (newline)
+                         ) ;begin
+                         '()
+                       ) ;if
+                       (display (string-append "Total files processed: 1, Files updated: "
+                                  (if changed? "1" "0")
+                                ) ;string-append
+                       ) ;display
+                       (newline)
+                       #t
+                     ) ;let
                    ) ;begin
-                   (call-with-values (lambda () (format-file-list files dry-run))
+                 ) ;if
+                ) ;
+                ((path-dir? (path path-str))
+                 (if dry-run
+                   (begin
+                     (display "错误: --dry-run 选项仅支持单个文件")
+                     (newline)
+                     (exit 1)
+                   ) ;begin
+                   (call-with-values (lambda () (format-directory path-str))
                      (lambda (total updated)
                        (display (string-append "Total files processed: "
                                   (number->string total)
@@ -197,121 +349,14 @@
                      ) ;lambda
                    ) ;call-with-values
                  ) ;if
-               ) ;let
-              ) ;else
-        ) ;cond
+                ) ;
+                (else (display (string-append "错误: 路径不存在 - " path-str))
+                  (newline)
+                  (exit 1)
+                ) ;else
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
-
-    ;;; 递归格式化目录
-    ;;; 返回值: (values total updated) - 处理的文件总数和更新的文件数
-    (define (format-directory dir-path)
-      (let ((entries (path-list-path (path dir-path))))
-        (let loop ((i 0)
-                   (total 0)
-                   (updated 0))
-          (if (>= i (vector-length entries))
-              (values total updated)
-              (let ((entry (vector-ref entries i)))
-                (cond
-                  ((path-file? entry)
-                   (let ((entry-str (path->string entry)))
-                      (if (string-suffix? ".scm" entry-str)
-                          (begin
-                            (display (string-append "Processing: " entry-str))
-                            (newline)
-                            (let ((changed? (format-file entry-str)))
-                              (if changed?
-                                  (begin
-                                    (display (string-append "  Updated: " entry-str))
-                                    (newline)
-                                    (loop (+ i 1) (+ total 1) (+ updated 1)))
-                                  (loop (+ i 1) (+ total 1) updated))))
-                          (loop (+ i 1) total updated))))
-                  ((path-dir? entry)
-                   (call-with-values
-                     (lambda () (format-directory (path->string entry)))
-                     (lambda (sub-total sub-updated)
-                       (loop (+ i 1) (+ total sub-total) (+ updated sub-updated)))))
-                  (else
-                    (loop (+ i 1) total updated))))))))
-    
-    (define (make-fmt-arg-parser)
-      (let ((parser (make-argument-parser
-                      '((command . "fmt")
-                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                        (skip-prefix-options . ("-m=" "--mode="))
-                        (unknown-options . positional)))))
-        (parser :add-argument
-          '((name . "help") (short . "h") (action . store-true))
-        ) ;parser
-        (parser :add-argument
-          '((name . "dry-run") (action . store-true))
-        ) ;parser
-        (parser :add-argument
-          '((name . "changed-since") (type . string))
-        ) ;parser
-        parser
-      ) ;let
-    ) ;define
-
-    (define (first-positional parser)
-      (let ((positionals (parser :positionals)))
-        (if (null? positionals) "" (car positionals))
-      ) ;let
-    ) ;define
-
-    ;;; 主入口函数
-    (define (main)
-      (let ((parser (make-fmt-arg-parser)))
-        (parser :parse-argv (argv))
-        (let ((help-flag (parser 'help))
-              (dry-run (parser 'dry-run))
-              (changed-since (parser 'changed-since))
-              (path-str (first-positional parser)))
-          (cond
-            ; 显示帮助
-            (help-flag
-             (display-help)
-             #t)
-            (changed-since
-             (format-changed-since changed-since path-str dry-run))
-            ((string=? path-str "")
-             (display-help)
-             #t)
-              ; 处理单个文件
-              ((path-file? (path path-str))
-               (if dry-run
-                   (format-file-dry-run path-str)
-                   (begin
-                     (display (string-append "Processing: " path-str))
-                     (newline)
-                     (let ((changed? (format-file path-str)))
-                       (if changed?
-                           (begin
-                             (display (string-append "  Updated: " path-str))
-                             (newline))
-                           '())
-                       (display (string-append "Total files processed: 1, Files updated: " (if changed? "1" "0")))
-                       (newline)
-                       #t))))
-             ; 处理目录（不支持 --dry-run）
-             ((path-dir? (path path-str))
-              (if dry-run
-                  (begin
-                    (display "错误: --dry-run 选项仅支持单个文件")
-                    (newline)
-                    (exit 1))
-                  (call-with-values
-                    (lambda () (format-directory path-str))
-                    (lambda (total updated)
-                      (display (string-append "Total files processed: " (number->string total) ", Files updated: " (number->string updated)))
-                      (newline)
-                      #t))))
-            ; 路径不存在
-            (else
-             (display (string-append "错误: 路径不存在 - " path-str))
-             (newline)
-             (exit 1))))))
   ) ;begin
 ) ;define-library

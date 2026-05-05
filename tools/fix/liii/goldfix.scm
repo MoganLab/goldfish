@@ -1,9 +1,5 @@
 (define-library (liii goldfix)
-  (export main
-    fix-string
-    repair-parentheses
-    parentheses-balanced?
-  ) ;export
+  (export main fix-string repair-parentheses parentheses-balanced?)
   (import (liii base)
     (liii sys)
     (liii path)
@@ -15,38 +11,30 @@
 
   (begin
     (define (display-help)
-      (display "Usage: gf fix [options] [path]"
-      ) ;display
+      (display "Usage: gf fix [options] [path]")
       (newline)
       (newline)
       (display "Options:")
       (newline)
-      (display "  -h, --help       显示此帮助文档"
-      ) ;display
+      (display "  -h, --help       显示此帮助文档")
       (newline)
-      (display "      --dry-run    预览模式（仅支持单个文件）"
-      ) ;display
+      (display "      --dry-run    预览模式（仅支持单个文件）")
       (newline)
       (newline)
       (display "Arguments:")
       (newline)
-      (display "  path    要修正括号的文件或目录路径（可选）"
-      ) ;display
+      (display "  path    要修正括号的文件或目录路径（可选）")
       (newline)
       (newline)
       (display "Examples:")
       (newline)
-      (display "  gf fix                        显示此帮助文档"
-      ) ;display
+      (display "  gf fix                        显示此帮助文档")
       (newline)
-      (display "  gf fix --help                 显示此帮助文档"
-      ) ;display
+      (display "  gf fix --help                 显示此帮助文档")
       (newline)
-      (display "  gf fix file.scm               修正单个文件"
-      ) ;display
+      (display "  gf fix file.scm               修正单个文件")
       (newline)
-      (display "  gf fix --dry-run file.scm     预览修正结果"
-      ) ;display
+      (display "  gf fix --dry-run file.scm     预览修正结果")
       (newline)
       (display "  gf fix /path/to/dir           递归修正目录下所有 .scm 文件"
       ) ;display
@@ -73,8 +61,7 @@
           (if (repair-report-ok? report)
             repaired
             (begin
-              (display-diagnostics (repair-report-diagnostics report)
-              ) ;display-diagnostics
+              (display-diagnostics (repair-report-diagnostics report))
               repaired
             ) ;begin
           ) ;if
@@ -83,9 +70,7 @@
     ) ;define
 
     (define (fix-file-dry-run path-str)
-      (let ((source (path-read-text (path path-str))
-            ) ;source
-           ) ;
+      (let ((source (path-read-text (path path-str))))
         (display (repair-source source))
         (newline)
       ) ;let
@@ -96,20 +81,12 @@
              (source (path-read-text p))
              (repaired (repair-source source))
             ) ;
-        (if (string=? source repaired)
-          #f
-          (begin
-            (path-write-text p repaired)
-            #t
-          ) ;begin
-        ) ;if
+        (if (string=? source repaired) #f (begin (path-write-text p repaired) #t))
       ) ;let*
     ) ;define
 
     (define (fix-directory dir-path)
-      (let ((entries (path-list-path (path dir-path))
-            ) ;entries
-           ) ;
+      (let ((entries (path-list-path (path dir-path))))
         (let loop
           ((i 0) (total 0) (updated 0))
           (if (>= i (vector-length entries))
@@ -119,13 +96,11 @@
                      (let ((entry-str (path->string entry)))
                        (if (string-suffix? ".scm" entry-str)
                          (begin
-                           (display (string-append "Processing: " entry-str)
-                           ) ;display
+                           (display (string-append "Processing: " entry-str))
                            (newline)
                            (if (fix-file entry-str)
                              (begin
-                               (display (string-append "  Updated: " entry-str)
-                               ) ;display
+                               (display (string-append "  Updated: " entry-str))
                                (newline)
                                (loop (+ i 1) (+ total 1) (+ updated 1))
                              ) ;begin
@@ -137,14 +112,9 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda ()
-                                         (fix-directory (path->string entry))
-                                       ) ;lambda
+                     (call-with-values (lambda () (fix-directory (path->string entry)))
                        (lambda (sub-total sub-updated)
-                         (loop (+ i 1)
-                           (+ total sub-total)
-                           (+ updated sub-updated)
-                         ) ;loop
+                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated))
                        ) ;lambda
                      ) ;call-with-values
                     ) ;
@@ -157,17 +127,21 @@
     ) ;define
 
     (define (make-fix-arg-parser)
-      (let ((parser (make-argument-parser
-                      '((command . "fix")
-                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                        (skip-prefix-options . ("-m=" "--mode="))
-                        (unknown-options . positional)))))
-        (parser :add-argument
-          '((name . "help") (short . "h") (action . store-true))
-        ) ;parser
-        (parser :add-argument
-          '((name . "dry-run") (action . store-true))
-        ) ;parser
+      (let ((parser (make-argument-parser '((command . "fix")
+                                            (skip-value-options "-m"
+                                              "--mode"
+                                              "-I"
+                                              "-A")
+                                            (skip-prefix-options "-m="
+                                              "--mode=")
+                                            (unknown-options . positional))
+                    ) ;make-argument-parser
+            ) ;parser
+           ) ;
+        (parser :add-argument '((name . "help")
+                                (short . "h")
+                                (action . store-true)))
+        (parser :add-argument '((name . "dry-run") (action . store-true)))
         parser
       ) ;let
     ) ;define
@@ -185,21 +159,16 @@
               (dry-run (parser 'dry-run))
               (path-str (first-positional parser))
              ) ;
-          (cond ((or help-flag (string=? path-str ""))
-                 (display-help)
-                 #t
-                ) ;
+          (cond ((or help-flag (string=? path-str "")) (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
                    (fix-file-dry-run path-str)
                    (let ((changed? (fix-file path-str)))
-                     (display (string-append "Processing: " path-str)
-                     ) ;display
+                     (display (string-append "Processing: " path-str))
                      (newline)
                      (if changed?
                        (begin
-                         (display (string-append "  Updated: " path-str)
-                         ) ;display
+                         (display (string-append "  Updated: " path-str))
                          (newline)
                        ) ;begin
                        '()
@@ -216,8 +185,7 @@
                 ((path-dir? (path path-str))
                  (if dry-run
                    (begin
-                     (display "错误: --dry-run 选项仅支持单个文件"
-                     ) ;display
+                     (display "错误: --dry-run 选项仅支持单个文件")
                      (newline)
                      (exit 1)
                    ) ;begin
@@ -235,10 +203,7 @@
                    ) ;call-with-values
                  ) ;if
                 ) ;
-                (else (display (string-append "错误: 路径不存在 - "
-                                 path-str
-                               ) ;string-append
-                      ) ;display
+                (else (display (string-append "错误: 路径不存在 - " path-str))
                   (newline)
                   (exit 1)
                 ) ;else

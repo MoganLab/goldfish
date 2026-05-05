@@ -1,13 +1,6 @@
 (define-library (liii goldfix-tokenize)
-  (export tokenize
-    tokenize-lines
-    code-token?
-    line-start-close?
-  ) ;export
-  (import (liii base)
-    (liii string)
-    (liii goldfix-record)
-  ) ;import
+  (export tokenize tokenize-lines code-token? line-start-close?)
+  (import (liii base) (liii string) (liii goldfix-record))
 
   (begin
     (define (whitespace-char? c)
@@ -27,13 +20,9 @@
       ) ;or
     ) ;define
     (define (string-prefix-at? str prefix pos)
-      (let ((len (string-length str))
-            (prefix-len (string-length prefix))
-           ) ;
+      (let ((len (string-length str)) (prefix-len (string-length prefix)))
         (and (<= (+ pos prefix-len) len)
-          (string=? (substring str pos (+ pos prefix-len))
-            prefix
-          ) ;string=?
+          (string=? (substring str pos (+ pos prefix-len)) prefix)
         ) ;and
       ) ;let
     ) ;define
@@ -43,12 +32,8 @@
           ((i (+ start 1)) (escaped #f))
           (cond ((>= i len) len)
                 (escaped (loop (+ i 1) #f))
-                ((char=? (string-ref source i) #\\)
-                 (loop (+ i 1) #t)
-                ) ;
-                ((char=? (string-ref source i) #\")
-                 (+ i 1)
-                ) ;
+                ((char=? (string-ref source i) #\\) (loop (+ i 1) #t))
+                ((char=? (string-ref source i) #\") (+ i 1))
                 (else (loop (+ i 1) #f))
           ) ;cond
         ) ;let
@@ -60,12 +45,8 @@
           ((i (+ start 1)) (escaped #f))
           (cond ((>= i len) len)
                 (escaped (loop (+ i 1) #f))
-                ((char=? (string-ref source i) #\\)
-                 (loop (+ i 1) #t)
-                ) ;
-                ((char=? (string-ref source i) #\|)
-                 (+ i 1)
-                ) ;
+                ((char=? (string-ref source i) #\\) (loop (+ i 1) #t))
+                ((char=? (string-ref source i) #\|) (+ i 1))
                 (else (loop (+ i 1) #f))
           ) ;cond
         ) ;let
@@ -86,10 +67,7 @@
                    (char=? (string-ref source i) #\|)
                    (char=? (string-ref source (+ i 1)) #\#)
                  ) ;and
-                 (if (= level 1)
-                   (+ i 2)
-                   (loop (+ i 2) (- level 1))
-                 ) ;if
+                 (if (= level 1) (+ i 2) (loop (+ i 2) (- level 1)))
                 ) ;
                 (else (loop (+ i 1) level))
           ) ;cond
@@ -98,17 +76,11 @@
     ) ;define
     (define (find-raw-string-end source start)
       (let* ((len (string-length source))
-             (delimiter-end (string-index source #\" (+ start 2))
-             ) ;delimiter-end
+             (delimiter-end (string-index source #\" (+ start 2)))
             ) ;
         (if delimiter-end
-          (let* ((delimiter (substring source
-                              (+ start 2)
-                              delimiter-end
-                            ) ;substring
-                 ) ;delimiter
-                 (delimiter-len (string-length delimiter)
-                 ) ;delimiter-len
+          (let* ((delimiter (substring source (+ start 2) delimiter-end))
+                 (delimiter-len (string-length delimiter))
                  (content-start (+ delimiter-end 1))
                 ) ;
             (if (= delimiter-len 0)
@@ -130,9 +102,7 @@
                       ((and (<= (+ i delimiter-len) len)
                          (string-prefix-at? source delimiter i)
                          (< (+ i delimiter-len) len)
-                         (char=? (string-ref source (+ i delimiter-len))
-                           #\"
-                         ) ;char=?
+                         (char=? (string-ref source (+ i delimiter-len)) #\")
                        ) ;and
                        (+ i delimiter-len 1)
                       ) ;
@@ -154,12 +124,7 @@
               (+ start 3)
               (let loop
                 ((i (+ start 3)))
-                (if (or (>= i len)
-                      (delimiter-char? (string-ref source i))
-                    ) ;or
-                  i
-                  (loop (+ i 1))
-                ) ;if
+                (if (or (>= i len) (delimiter-char? (string-ref source i))) i (loop (+ i 1)))
               ) ;let
             ) ;if
           ) ;let
@@ -171,9 +136,7 @@
         (let loop
           ((i start))
           (cond ((>= i len) len)
-                ((char=? (string-ref source i) #\newline)
-                 i
-                ) ;
+                ((char=? (string-ref source i) #\newline) i)
                 (else (loop (+ i 1)))
           ) ;cond
         ) ;let
@@ -184,9 +147,7 @@
         (let loop
           ((i start))
           (cond ((>= i len) len)
-                ((delimiter-char? (string-ref source i))
-                 i
-                ) ;
+                ((delimiter-char? (string-ref source i)) i)
                 ((and (< (+ i 1) len)
                    (char=? (string-ref source i) #\#)
                    (char=? (string-ref source (+ i 1)) #\|)
@@ -200,21 +161,13 @@
     ) ;define
     (define (code-token? token)
       (and (fix-token? token)
-        (not (eq? (fix-token-type token)
-               'line-comment
-             ) ;eq?
-        ) ;not
-        (not (eq? (fix-token-type token)
-               'block-comment
-             ) ;eq?
-        ) ;not
+        (not (eq? (fix-token-type token) 'line-comment))
+        (not (eq? (fix-token-type token) 'block-comment))
       ) ;and
     ) ;define
     (define (first-code-token tokens)
       (cond ((null? tokens) #f)
-            ((code-token? (car tokens))
-             (car tokens)
-            ) ;
+            ((code-token? (car tokens)) (car tokens))
             (else (first-code-token (cdr tokens)))
       ) ;cond
     ) ;define
@@ -222,12 +175,8 @@
       (let loop
         ((rest tokens) (result '()))
         (cond ((null? rest) (reverse result))
-              ((= (fix-token-line (car rest))
-                 line-number
-               ) ;=
-               (loop (cdr rest)
-                 (cons (car rest) result)
-               ) ;loop
+              ((= (fix-token-line (car rest)) line-number)
+               (loop (cdr rest) (cons (car rest) result))
               ) ;
               (else (loop (cdr rest) result))
         ) ;cond
@@ -248,13 +197,9 @@
           ((line-number 1) (result '()))
           (if (> line-number line-count)
             (reverse result)
-            (let* ((line-tokens (tokens-for-line tokens line-number)
-                   ) ;line-tokens
+            (let* ((line-tokens (tokens-for-line tokens line-number))
                    (first (first-code-token line-tokens))
-                   (start-offset (list-ref-safe line-starts
-                                   (- line-number 1)
-                                 ) ;list-ref-safe
-                   ) ;start-offset
+                   (start-offset (list-ref-safe line-starts (- line-number 1)))
                   ) ;
               (loop (+ line-number 1)
                 (cons (make-fix-line :number
@@ -277,31 +222,16 @@
     (define (line-start-close? token line)
       (and (fix-token? token)
         (fix-line? line)
-        (eq? (fix-token-type token)
-          'close-paren
-        ) ;eq?
-        (let ((first (fix-line-first-code-token line))
-             ) ;
-          (and first
-            (= (fix-token-offset token)
-              (fix-token-offset first)
-            ) ;=
-          ) ;and
+        (eq? (fix-token-type token) 'close-paren)
+        (let ((first (fix-line-first-code-token line)))
+          (and first (= (fix-token-offset token) (fix-token-offset first)))
         ) ;let
       ) ;and
     ) ;define
     (define (tokenize source)
-      (let ((len (string-length source))
-            (tokens '())
-            (i 0)
-            (line 1)
-            (column 0)
-           ) ;
+      (let ((len (string-length source)) (tokens '()) (i 0) (line 1) (column 0))
         (define (next-char offset)
-          (if (< offset len)
-            (string-ref source offset)
-            #\null
-          ) ;if
+          (if (< offset len) (string-ref source offset) #\null)
         ) ;define
         (define (advance-range! start end)
           (let loop
@@ -320,12 +250,7 @@
             ) ;if
           ) ;let
         ) ;define
-        (define (add-token! type
-                  start
-                  end
-                  token-line
-                  token-column
-                ) ;add-token!
+        (define (add-token! type start end token-line token-column)
           (set! tokens
             (cons (make-fix-token :type
                     type
@@ -356,27 +281,13 @@
                   (token-line line)
                   (token-column column)
                  ) ;
-              (cond ((whitespace-char? c)
-                     (advance-range! i (+ i 1))
-                     (set! i (+ i 1))
-                     (loop)
-                    ) ;
+              (cond ((whitespace-char? c) (advance-range! i (+ i 1)) (set! i (+ i 1)) (loop))
                     ((char=? c #\()
-                     (add-token! 'open-paren
-                       start
-                       (+ start 1)
-                       token-line
-                       token-column
-                     ) ;add-token!
+                     (add-token! 'open-paren start (+ start 1) token-line token-column)
                      (loop)
                     ) ;
                     ((char=? c #\))
-                     (add-token! 'close-paren
-                       start
-                       (+ start 1)
-                       token-line
-                       token-column
-                     ) ;add-token!
+                     (add-token! 'close-paren start (+ start 1) token-line token-column)
                      (loop)
                     ) ;
                     ((char=? c #\;)
@@ -398,12 +309,7 @@
                      (loop)
                     ) ;
                     ((and (char=? c #\#) (char=? next-c #\\))
-                     (add-token! 'char
-                       start
-                       (find-char-end source start)
-                       token-line
-                       token-column
-                     ) ;add-token!
+                     (add-token! 'char start (find-char-end source start) token-line token-column)
                      (loop)
                     ) ;
                     ((and (char=? c #\#) (char=? next-c #\"))
@@ -433,12 +339,7 @@
                      ) ;add-token!
                      (loop)
                     ) ;
-                    (else (add-token! 'other
-                            start
-                            (find-other-end source start)
-                            token-line
-                            token-column
-                          ) ;add-token!
+                    (else (add-token! 'other start (find-other-end source start) token-line token-column)
                       (loop)
                     ) ;else
               ) ;cond
@@ -448,19 +349,12 @@
       ) ;let
     ) ;define
     (define (tokenize-lines source)
-      (let ((tokens (tokenize source))
-            (len (string-length source))
-           ) ;
+      (let ((tokens (tokenize source)) (len (string-length source)))
         (let loop
           ((pos 0) (starts '(0)))
           (if (>= pos len)
-            (build-lines source
-              tokens
-              (reverse starts)
-            ) ;build-lines
-            (if (char=? (string-ref source pos)
-                  #\newline
-                ) ;char=?
+            (build-lines source tokens (reverse starts))
+            (if (char=? (string-ref source pos) #\newline)
               (loop (+ pos 1) (cons (+ pos 1) starts))
               (loop (+ pos 1) starts)
             ) ;if

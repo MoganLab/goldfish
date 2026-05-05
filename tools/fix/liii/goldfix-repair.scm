@@ -1,8 +1,5 @@
 (define-library (liii goldfix-repair)
-  (export repair-parentheses
-    fix-string
-    parentheses-balanced?
-  ) ;export
+  (export repair-parentheses fix-string parentheses-balanced?)
   (import (liii base)
     (liii goldfix-record)
     (liii goldfix-tokenize)
@@ -26,9 +23,7 @@
       ) ;make-open-frame
     ) ;define
 
-    (define (make-pending-close-from-token frame
-              token
-            ) ;make-pending-close-from-token
+    (define (make-pending-close-from-token frame token)
       (make-pending-close :frame
         frame
         :offset
@@ -56,10 +51,7 @@
       ) ;make-fix-edit
     ) ;define
 
-    (define (make-delete-edit token
-              reason
-              open-offset
-            ) ;make-delete-edit
+    (define (make-delete-edit token reason open-offset)
       (make-fix-edit :kind
         'delete
         :start
@@ -73,9 +65,7 @@
       ) ;make-fix-edit
     ) ;define
 
-    (define (make-delete-edit-from-pending pending
-              reason
-            ) ;make-delete-edit-from-pending
+    (define (make-delete-edit-from-pending pending reason)
       (make-fix-edit :kind
         'delete
         :start
@@ -85,24 +75,16 @@
         :reason
         reason
         :open-offset
-        (open-frame-offset (pending-close-frame pending)
-        ) ;open-frame-offset
+        (open-frame-offset (pending-close-frame pending))
       ) ;make-fix-edit
     ) ;define
 
     (define (insert-frame-by-column frame frames)
       (cond ((null? frames) (list frame))
-            ((< (open-frame-column frame)
-               (open-frame-column (car frames))
-             ) ;<
+            ((< (open-frame-column frame) (open-frame-column (car frames)))
              (cons frame frames)
             ) ;
-            (else (cons (car frames)
-                    (insert-frame-by-column frame
-                      (cdr frames)
-                    ) ;insert-frame-by-column
-                  ) ;cons
-            ) ;else
+            (else (cons (car frames) (insert-frame-by-column frame (cdr frames))))
       ) ;cond
     ) ;define
 
@@ -111,11 +93,7 @@
         ((rest frames) (result '()))
         (if (null? rest)
           result
-          (loop (cdr rest)
-            (insert-frame-by-column (car rest)
-              result
-            ) ;insert-frame-by-column
-          ) ;loop
+          (loop (cdr rest) (insert-frame-by-column (car rest) result))
         ) ;if
       ) ;let
     ) ;define
@@ -125,12 +103,10 @@
     ) ;define
 
     (define (should-pend-close? closed token line)
-      (and (not (line-start-close-token? token line)
-           ) ;not
+      (and (not (line-start-close-token? token line))
         (fix-line-first-code-token line)
         (<= (open-frame-column closed)
-          (fix-token-column (fix-line-first-code-token line)
-          ) ;fix-token-column
+          (fix-token-column (fix-line-first-code-token line))
         ) ;<=
       ) ;and
     ) ;define
@@ -140,20 +116,11 @@
         (let loop
           ((rest tokens) (stack '()))
           (cond ((null? rest) (null? stack))
-                ((eq? (fix-token-type (car rest))
-                   'open-paren
-                 ) ;eq?
-                 (loop (cdr rest)
-                   (push (car rest) stack)
-                 ) ;loop
+                ((eq? (fix-token-type (car rest)) 'open-paren)
+                 (loop (cdr rest) (push (car rest) stack))
                 ) ;
-                ((eq? (fix-token-type (car rest))
-                   'close-paren
-                 ) ;eq?
-                 (if (null? stack)
-                   #f
-                   (loop (cdr rest) (cdr stack))
-                 ) ;if
+                ((eq? (fix-token-type (car rest)) 'close-paren)
+                 (if (null? stack) #f (loop (cdr rest) (cdr stack)))
                 ) ;
                 (else (loop (cdr rest) stack))
           ) ;cond
@@ -175,9 +142,7 @@
         ) ;define
 
         (define (add-diagnostic! diagnostic)
-          (set! diagnostics
-            (cons diagnostic diagnostics)
-          ) ;set!
+          (set! diagnostics (cons diagnostic diagnostics))
         ) ;define
 
         (define (confirm-pending-closes! line-indent)
@@ -186,20 +151,10 @@
               ((rest pending-closes))
               (if (not (null? rest))
                 (let ((pending (car rest)))
-                  (if (> line-indent
-                        (open-frame-column (pending-close-frame pending)
-                        ) ;open-frame-column
-                      ) ;>
+                  (if (> line-indent (open-frame-column (pending-close-frame pending)))
                     (begin
-                      (add-edit! (make-delete-edit-from-pending pending
-                                   "premature-close"
-                                 ) ;make-delete-edit-from-pending
-                      ) ;add-edit!
-                      (set! restore
-                        (cons (pending-close-frame pending)
-                          restore
-                        ) ;cons
-                      ) ;set!
+                      (add-edit! (make-delete-edit-from-pending pending "premature-close"))
+                      (set! restore (cons (pending-close-frame pending) restore))
                     ) ;begin
                   ) ;if
                   (loop (cdr rest))
@@ -207,8 +162,7 @@
               ) ;if
             ) ;let
             (let push-loop
-              ((frames (sort-frames-by-column restore))
-              ) ;
+              ((frames (sort-frames-by-column restore)))
               (if (not (null? frames))
                 (begin
                   (set! stack (push (car frames) stack))
@@ -221,37 +175,22 @@
         ) ;define
 
         (define (close-by-indent-boundary! first)
-          (let ((boundary-indent (fix-token-column first)
-                ) ;boundary-indent
-                (line-start-close? (eq? (fix-token-type first)
-                                     'close-paren
-                                   ) ;eq?
-                ) ;line-start-close?
+          (let ((boundary-indent (fix-token-column first))
+                (line-start-close? (eq? (fix-token-type first) 'close-paren))
                ) ;
             (let loop
               ()
               (if (and (not (null? stack))
                     (if line-start-close?
-                      (> (open-frame-column (car stack))
-                        boundary-indent
-                      ) ;>
-                      (>= (open-frame-column (car stack))
-                        boundary-indent
-                      ) ;>=
+                      (> (open-frame-column (car stack)) boundary-indent)
+                      (>= (open-frame-column (car stack)) boundary-indent)
                     ) ;if
                   ) ;and
                 (let ((frame (car stack)))
                   (set! stack (cdr stack))
                   (if last-code-end-offset
-                    (add-edit! (make-insert-edit last-code-end-offset
-                                 "indent-boundary"
-                                 frame
-                               ) ;make-insert-edit
-                    ) ;add-edit!
-                    (add-diagnostic! (list 'no-insert-position
-                                       (open-frame-offset frame)
-                                     ) ;list
-                    ) ;add-diagnostic!
+                    (add-edit! (make-insert-edit last-code-end-offset "indent-boundary" frame))
+                    (add-diagnostic! (list 'no-insert-position (open-frame-offset frame)))
                   ) ;if
                   (loop)
                 ) ;let
@@ -261,39 +200,21 @@
         ) ;define
 
         (define (process-close-paren! token line)
-          (cond ((null? stack)
-                 (add-edit! (make-delete-edit token
-                              "extra-close"
-                              #f
-                            ) ;make-delete-edit
-                 ) ;add-edit!
-                ) ;
+          (cond ((null? stack) (add-edit! (make-delete-edit token "extra-close" #f)))
                 ((and (line-start-close-token? token line)
-                   (not (= (open-frame-column (car stack))
-                          (fix-token-column token)
-                        ) ;=
-                   ) ;not
+                   (not (= (open-frame-column (car stack)) (fix-token-column token)))
                  ) ;and
-                 (add-edit! (make-delete-edit token
-                              "indent-mismatch-close"
-                              (open-frame-offset (car stack))
-                            ) ;make-delete-edit
+                 (add-edit! (make-delete-edit token "indent-mismatch-close" (open-frame-offset (car stack)))
                  ) ;add-edit!
                 ) ;
                 (else (let ((closed (car stack)))
                         (set! stack (cdr stack))
                         (if (should-pend-close? closed token line)
                           (set! pending-closes
-                            (cons (make-pending-close-from-token closed
-                                    token
-                                  ) ;make-pending-close-from-token
-                              pending-closes
-                            ) ;cons
+                            (cons (make-pending-close-from-token closed token) pending-closes)
                           ) ;set!
                         ) ;if
-                        (set! last-code-end-offset
-                          (fix-token-end token)
-                        ) ;set!
+                        (set! last-code-end-offset (fix-token-end token))
                       ) ;let
                 ) ;else
           ) ;cond
@@ -301,35 +222,19 @@
 
         (define (process-token! token line)
           (cond ((eq? (fix-token-type token) 'open-paren)
-                 (set! stack
-                   (push (make-open-frame-from-token token)
-                     stack
-                   ) ;push
-                 ) ;set!
-                 (set! last-code-end-offset
-                   (fix-token-end token)
-                 ) ;set!
+                 (set! stack (push (make-open-frame-from-token token) stack))
+                 (set! last-code-end-offset (fix-token-end token))
                 ) ;
-                ((eq? (fix-token-type token)
-                   'close-paren
-                 ) ;eq?
-                 (process-close-paren! token line)
-                ) ;
-                ((code-token? token)
-                 (set! last-code-end-offset
-                   (fix-token-end token)
-                 ) ;set!
-                ) ;
+                ((eq? (fix-token-type token) 'close-paren) (process-close-paren! token line))
+                ((code-token? token) (set! last-code-end-offset (fix-token-end token)))
           ) ;cond
         ) ;define
 
         (define (process-line! line)
-          (let ((first (fix-line-first-code-token line))
-               ) ;
+          (let ((first (fix-line-first-code-token line)))
             (if first
               (begin
-                (confirm-pending-closes! (fix-token-column first)
-                ) ;confirm-pending-closes!
+                (confirm-pending-closes! (fix-token-column first))
                 (close-by-indent-boundary! first)
               ) ;begin
             ) ;if
@@ -348,22 +253,14 @@
         (define (close-remaining-at-eof!)
           ;; EOF 修复要落在最后一个代码 token 后面。如果文件末尾是行注释，
           ;; 直接插到物理 EOF 会让新增的右括号继续成为注释内容。
-          (let ((insert-offset (or last-code-end-offset
-                                 (string-length source)
-                               ) ;or
-                ) ;insert-offset
-               ) ;
+          (let ((insert-offset (or last-code-end-offset (string-length source))))
             (set! pending-closes '())
             (let loop
               ()
               (if (not (null? stack))
                 (let ((frame (car stack)))
                   (set! stack (cdr stack))
-                  (add-edit! (make-insert-edit insert-offset
-                               "eof"
-                               frame
-                             ) ;make-insert-edit
-                  ) ;add-edit!
+                  (add-edit! (make-insert-edit insert-offset "eof" frame))
                   (loop)
                 ) ;let
               ) ;if
@@ -373,19 +270,13 @@
 
         (let loop
           ((rest lines))
-          (if (not (null? rest))
-            (begin
-              (process-line! (car rest))
-              (loop (cdr rest))
-            ) ;begin
-          ) ;if
+          (if (not (null? rest)) (begin (process-line! (car rest)) (loop (cdr rest))))
         ) ;let
 
         (close-remaining-at-eof!)
 
         (let* ((ordered-edits (reverse edits))
-               (repaired (apply-edits source ordered-edits)
-               ) ;repaired
+               (repaired (apply-edits source ordered-edits))
                (ok? (parentheses-balanced? repaired))
               ) ;
           (values repaired
