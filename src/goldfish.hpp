@@ -4247,7 +4247,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
   }
 
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii string))");
+    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii string))");
   }
   else if (mode == "scheme") {
     s7_eval_c_string (sc, "(import (liii base) (liii error))");
@@ -4696,7 +4696,7 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
              GOLDFISH_VERSION, S7_VERSION, S7_DATE);
   // Display mode info; liii mode shows extra imported libraries
   if (mode == "liii" || mode == "default") {
-    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (liii base) (liii error) (liii string) compared to r7rs)\n\n",
+    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (scheme base) (liii base) (liii error) (liii string) compared to r7rs)\n\n",
                mode.c_str ());
   }
   else {
