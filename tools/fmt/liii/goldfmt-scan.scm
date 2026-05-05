@@ -40,6 +40,22 @@
       ) ;let
     ) ;define
 
+    ;; ; 高效拼接字符串列表（O(n)，避免 string-join 的 O(n^2) 问题）
+    (define (fast-string-join strings)
+      (let ((out (open-output-string)))
+        (let loop
+          ((rest strings))
+          (if (null? rest)
+            (get-output-string out)
+            (begin
+              (display (car rest) out)
+              (loop (cdr rest))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (raw-string-form? datum)
       (and (pair? datum)
         (eq? (car datum) '*raw-string*)
@@ -446,7 +462,7 @@
            (result '())
           ) ;
           (if (>= i len)
-            (string-join (reverse result) "")
+            (fast-string-join (reverse! result))
             (let ((c (string-ref source i))
                   (next-c (if (< (+ i 1) len) (string-ref source (+ i 1)) #\nul))
                  ) ;
