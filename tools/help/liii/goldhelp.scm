@@ -29,11 +29,7 @@
     (liii sys)
     (liii list)
   ) ;import
-  (export main
-    load-gfproject
-    get-tool-description
-    display-help
-  ) ;export
+  (export main load-gfproject get-tool-description display-help)
   (begin
 
     (define (load-gfproject)
@@ -41,17 +37,10 @@
       (string->json (g_gfproject-load-config))
     ) ;define
 
-    (define (get-tool-description tools
-              tool-name
-              lang
-            ) ;get-tool-description
+    (define (get-tool-description tools tool-name lang)
       "Get description for a tool in specified language"
       (let* ((tool (json-ref tools tool-name))
-             (desc (if (json-null? tool)
-                     (json-null)
-                     (json-ref tool "description")
-                   ) ;if
-             ) ;desc
+             (desc (if (json-null? tool) (json-null) (json-ref tool "description")))
             ) ;
         (if (json-null? desc)
           ""
@@ -69,21 +58,15 @@
 
     (define (json-empty? x)
       "Check if json-ref returned empty result (null or empty list)"
-      (or (json-null? x)
-        (and (list? x) (null? x))
-      ) ;or
+      (or (json-null? x) (and (list? x) (null? x)))
     ) ;define
 
-    (define (has-tool-implementation? tools
-              tool-name
-            ) ;has-tool-implementation?
+    (define (has-tool-implementation? tools tool-name)
       "Check if a tool has Scheme implementation (has organization and module)"
       (let ((tool (json-ref tools tool-name)))
         (if (json-empty? tool)
           #f
-          (let ((org (json-ref tool "organization"))
-                (mod (json-ref tool "module"))
-               ) ;
+          (let ((org (json-ref tool "organization")) (mod (json-ref tool "module")))
             (and (not (json-empty? org))
               (not (json-empty? mod))
               (> (string-length org) 0)
@@ -102,22 +85,11 @@
       (newline)
     ) ;define
 
-    (define (display-command-line
-              cmd
-              desc
-              .
-              extra-lines
-            ) ;
+    (define (display-command-line cmd desc . extra-lines)
       "Display a command with its description, aligned to column 19"
       (display "  ")
       (display cmd)
-      (let ((pad (- 19
-                   (+ (string-length "  ")
-                     (string-length cmd)
-                   ) ;+
-                 ) ;-
-            ) ;pad
-           ) ;
+      (let ((pad (- 19 (+ (string-length "  ") (string-length cmd)))))
         (if (> pad 0)
           (display (make-string pad #\space))
           (begin
@@ -128,27 +100,16 @@
       ) ;let
       (display desc)
       (newline)
-      (for-each (lambda (line)
-                  (display (make-string 19 #\space))
-                  (display line)
-                  (newline)
-                ) ;lambda
+      (for-each (lambda (line) (display (make-string 19 #\space)) (display line) (newline))
         extra-lines
       ) ;for-each
     ) ;define
 
     (define (display-dynamic-commands tools)
       "Display dynamic commands from gfproject.json with one-line descriptions"
-      (let ((tool-names (list-sort string<? (json-keys tools))
-            ) ;tool-names
-           ) ;
+      (let ((tool-names (list-sort string<? (json-keys tools))))
         (for-each (lambda (tool-name)
-                    (let ((desc (get-tool-description tools
-                                  tool-name
-                                  "en_US"
-                                ) ;get-tool-description
-                          ) ;desc
-                         ) ;
+                    (let ((desc (get-tool-description tools tool-name "en_US")))
                       (display-command-line tool-name desc)
                     ) ;let
                   ) ;lambda
@@ -159,36 +120,20 @@
 
     (define (display-help)
       "Display help information matching the C++ display_help() format"
-      (let* ((config (load-gfproject))
-             (tools (json-ref config "tools"))
-            ) ;
+      (let* ((config (load-gfproject)) (tools (json-ref config "tools")))
         (display-version)
         (newline)
         (display "Commands:")
         (newline)
-        (let ((help-desc (get-tool-description tools
-                           "help"
-                           "en_US"
-                         ) ;get-tool-description
-              ) ;help-desc
-             ) ;
+        (let ((help-desc (get-tool-description tools "help" "en_US")))
           (display-command-line "help" help-desc)
         ) ;let
         (if (not (json-null? tools))
-          (let ((other-tool-names (filter (lambda (name)
-                                            (not (string=? name "help"))
-                                          ) ;lambda
-                                    (json-keys tools)
-                                  ) ;filter
+          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help"))) (json-keys tools))
                 ) ;other-tool-names
                ) ;
             (for-each (lambda (tool-name)
-                        (let ((desc (get-tool-description tools
-                                      tool-name
-                                      "en_US"
-                                    ) ;get-tool-description
-                              ) ;desc
-                             ) ;
+                        (let ((desc (get-tool-description tools tool-name "en_US")))
                           (display-command-line tool-name desc)
                         ) ;let
                       ) ;lambda
@@ -196,27 +141,18 @@
             ) ;for-each
           ) ;let
         ) ;if
-        (display-command-line "FILE"
-          "Load and evaluate Scheme code from FILE"
-        ) ;display-command-line
+        (display-command-line "FILE" "Load and evaluate Scheme code from FILE")
         (newline)
         (display "Options:")
         (newline)
         (display-command-line "--mode, -m MODE"
           "Set mode: default, liii, sicp, r7rs, s7"
         ) ;display-command-line
-        (display-command-line "-I DIR"
-          "Prepend DIR to library search path"
-        ) ;display-command-line
-        (display-command-line "-A DIR"
-          "Append DIR to library search path"
-        ) ;display-command-line
-        (display-command-line "-e CODE"
-          "Alias for eval CODE"
-        ) ;display-command-line
+        (display-command-line "-I DIR" "Prepend DIR to library search path")
+        (display-command-line "-A DIR" "Append DIR to library search path")
+        (display-command-line "-e CODE" "Alias for eval CODE")
         (newline)
-        (display "Type 'gf help <command>' for more information on a specific command."
-        ) ;display
+        (display "Type 'gf help <command>' for more information on a specific command.")
         (newline)
       ) ;let*
     ) ;define
@@ -225,18 +161,11 @@
       "Search for README.md in tools/<tool-name>/ directory"
       (let ((cwd (getcwd)))
         (if cwd
-          (let ((readme-path (path->string (path-join (path cwd)
-                                             (path "tools")
-                                             (path tool-name)
-                                             (path "README.md")
-                                           ) ;path-join
+          (let ((readme-path (path->string (path-join (path cwd) (path "tools") (path tool-name) (path "README.md"))
                              ) ;path->string
                 ) ;readme-path
                ) ;
-            (if (file-exists? readme-path)
-              readme-path
-              #f
-            ) ;if
+            (if (file-exists? readme-path) readme-path #f)
           ) ;let
           #f
         ) ;if
@@ -255,20 +184,13 @@
             (display tool-name)
             (newline)
           ) ;begin
-          (let ((readme-path (find-tool-readme tool-name)
-                ) ;readme-path
-               ) ;
+          (let ((readme-path (find-tool-readme tool-name)))
             (if readme-path
               (begin
                 (display (path-read-text readme-path))
                 (newline)
               ) ;begin
-              (let ((cmd (string-append "gf "
-                           tool-name
-                           " --help"
-                         ) ;string-append
-                    ) ;cmd
-                   ) ;
+              (let ((cmd (string-append "gf " tool-name " --help")))
                 (os-call cmd)
               ) ;let
             ) ;if
@@ -278,11 +200,10 @@
     ) ;define
 
     (define (make-help-arg-parser)
-      (make-argument-parser
-        '((command . "help")
-          (skip-value-options . ("-m" "--mode" "-I" "-A"))
-          (skip-prefix-options . ("-m=" "--mode="))
-          (unknown-options . positional))
+      (make-argument-parser '((command . "help")
+                              (skip-value-options "-m" "--mode" "-I" "-A")
+                              (skip-prefix-options "-m=" "--mode=")
+                              (unknown-options . positional))
       ) ;make-argument-parser
     ) ;define
 
@@ -291,10 +212,7 @@
       (let ((parser (make-help-arg-parser)))
         (parser :parse-argv (command-line))
         (let ((positionals (parser :positionals)))
-          (if (null? positionals)
-            (display-help)
-            (display-tool-help (car positionals))
-          ) ;if
+          (if (null? positionals) (display-help) (display-tool-help (car positionals)))
         ) ;let
       ) ;let
     ) ;define
