@@ -398,7 +398,10 @@
     ) ;define
 
     (define (reader-delimiter? c)
-      (or (char-whitespace? c)
+      (or (char=? c #\space)
+        (char=? c #\tab)
+        (char=? c #\newline)
+        (char=? c #\return)
         (char=? c #\()
         (char=? c #\))
         (char=? c #\[)
