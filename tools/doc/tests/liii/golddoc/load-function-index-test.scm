@@ -1,14 +1,8 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path*
-  (cons "tools/golddoc" *load-path*)
-) ;set!
+(set! *load-path* (cons "tools/golddoc" *load-path*))
 
-(import (liii check)
-  (liii golddoc)
-  (liii os)
-  (liii path)
-) ;import
+(import (liii check) (liii golddoc) (liii os) (liii path))
 
 (check-set-mode! 'report-failed)
 
@@ -38,9 +32,7 @@
     ((remaining paths))
     (and (not (null? remaining))
       (or (and (path-file? (car remaining))
-            (string=? (path-name (car remaining))
-              "function-library-index.json"
-            ) ;string=?
+            (string=? (path-name (car remaining)) "function-library-index.json")
           ) ;and
         (loop (cdr remaining))
       ) ;or
@@ -49,100 +41,47 @@
 ) ;define
 
 (define (cleanup-load-index-fixture base-root)
-  (let ((load-root (path-join base-root "goldfish")
-        ) ;load-root
-        (tests-root (path-join base-root "tests")
-        ) ;tests-root
+  (let ((load-root (path-join base-root "goldfish"))
+        (tests-root (path-join base-root "tests"))
        ) ;
-    (path-unlink (path-join tests-root
-                   "function-library-index.json"
-                 ) ;path-join
-      #t
-    ) ;path-unlink
-    (if (path-dir? tests-root)
-      (path-rmdir tests-root)
-      #f
-    ) ;if
-    (if (path-dir? load-root)
-      (path-rmdir load-root)
-      #f
-    ) ;if
-    (if (path-dir? base-root)
-      (path-rmdir base-root)
-      #f
-    ) ;if
+    (path-unlink (path-join tests-root "function-library-index.json") #t)
+    (if (path-dir? tests-root) (path-rmdir tests-root) #f)
+    (if (path-dir? load-root) (path-rmdir load-root) #f)
+    (if (path-dir? base-root) (path-rmdir base-root) #f)
   ) ;let
 ) ;define
 
-(check (index-entry->library-query "(liii string)"
-       ) ;index-entry->library-query
-  =>
-  "liii/string"
-) ;check
-(check (index-entry->library-query "(scheme char)"
-       ) ;index-entry->library-query
-  =>
-  "scheme/char"
-) ;check
-(check (index-entry->library-query "(bad)")
-  =>
-  #f
-) ;check
-(check (index-entry->library-query 1)
-  =>
-  #f
-) ;check
+(check (index-entry->library-query "(liii string)") => "liii/string")
+(check (index-entry->library-query "(scheme char)") => "scheme/char")
+(check (index-entry->library-query "(bad)") => #f)
+(check (index-entry->library-query 1) => #f)
 
 (let* ((base-root (path-join (path-temp-dir)
-                    (string-append "golddoc-load-index-"
-                      (number->string (getpid))
-                    ) ;string-append
+                    (string-append "golddoc-load-index-" (number->string (getpid)))
                   ) ;path-join
        ) ;base-root
-       (load-root (path-join base-root "goldfish")
-       ) ;load-root
-       (tests-root (path-join base-root "tests")
-       ) ;tests-root
-       (index-path (path-join tests-root
-                     "function-library-index.json"
-                   ) ;path-join
-       ) ;index-path
+       (load-root (path-join base-root "goldfish"))
+       (tests-root (path-join base-root "tests"))
+       (index-path (path-join tests-root "function-library-index.json"))
        (old-load-path *load-path*)
       ) ;
   (cleanup-load-index-fixture base-root)
   (mkdir (path->string base-root))
   (mkdir (path->string load-root))
   (mkdir (path->string tests-root))
-  (dynamic-wind (lambda ()
-                  (set! *load-path*
-                    (list (path->string load-root))
-                  ) ;set!
-                ) ;lambda
+  (dynamic-wind (lambda () (set! *load-path* (list (path->string load-root))))
     (lambda ()
-      (check (find-function-index-paths)
-        =>
-        '()
-      ) ;check
+      (check (find-function-index-paths) => '())
       (check (load-function-index) => '())
       (path-write-text index-path
         "{\"sample-func\":[\"(liii sample)\"],\"shared-func\":[\"(scheme base)\",\"(liii sample)\"]}"
       ) ;path-write-text
-      (let ((index-paths (find-function-index-paths)
-            ) ;index-paths
-            (index (load-function-index))
-           ) ;
+      (let ((index-paths (find-function-index-paths)) (index (load-function-index)))
         (check-true (pair? index-paths))
-        (check-true (contains-function-index-path? index-paths
-                    ) ;contains-function-index-path?
-        ) ;check-true
-        (check (cdr (assoc "sample-func" index))
-          =>
-          '("(liii sample)")
-        ) ;check
-        (check (cdr (assoc "shared-func" index))
-          =>
-          '("(scheme base)" "(liii sample)")
-        ) ;check
+        (check-true (contains-function-index-path? index-paths))
+        (check (cdr (assoc "sample-func" index)) => '("(liii sample)"))
+        (check (cdr (assoc "shared-func" index)) => '("(scheme base)"
+                                                      "(liii sample)"))
       ) ;let
     ) ;lambda
     (lambda ()

@@ -1,15 +1,8 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path*
-  (cons "tools/golddoc" *load-path*)
-) ;set!
+(set! *load-path* (cons "tools/golddoc" *load-path*))
 
-(import (liii check)
-  (liii os)
-  (liii path)
-  (liii string)
-  (liii sys)
-) ;import
+(import (liii check) (liii os) (liii path) (liii string) (liii sys))
 
 (check-set-mode! 'report-failed)
 
@@ -19,34 +12,19 @@
 ;; 而不是误报 library not found。
 
 (define (run-shell-command command)
-  (os-call (string-append "sh -c \"" command "\"")
-  ) ;os-call
+  (os-call (string-append "sh -c \"" command "\""))
 ) ;define
 
 (when (not (os-windows?))
-  (let* ((index-path (path-join "tests"
-                       "function-library-index.json"
-                     ) ;path-join
-         ) ;index-path
+  (let* ((index-path (path-join "tests" "function-library-index.json"))
          (output-path (path-join (path-temp-dir)
-                        (string-append "golddoc-missing-index-"
-                          (number->string (getpid))
-                          ".log"
-                        ) ;string-append
+                        (string-append "golddoc-missing-index-" (number->string (getpid)) ".log")
                       ) ;path-join
          ) ;output-path
-         (saved-index-text (and (path-file? index-path)
-                             (path-read-text index-path)
-                           ) ;and
-         ) ;saved-index-text
+         (saved-index-text (and (path-file? index-path) (path-read-text index-path)))
         ) ;
     (path-unlink output-path #t)
-    (dynamic-wind (lambda ()
-                    (if saved-index-text
-                      (path-unlink index-path #t)
-                      #f
-                    ) ;if
-                  ) ;lambda
+    (dynamic-wind (lambda () (if saved-index-text (path-unlink index-path #t) #f))
       (lambda ()
         (run-shell-command (string-append (executable)
                              " doc 'alist->fxmapping/combinator' > "
@@ -67,12 +45,7 @@
       ) ;lambda
       (lambda ()
         (path-unlink output-path #t)
-        (if saved-index-text
-          (path-write-text index-path
-            saved-index-text
-          ) ;path-write-text
-          #f
-        ) ;if
+        (if saved-index-text (path-write-text index-path saved-index-text) #f)
       ) ;lambda
     ) ;dynamic-wind
   ) ;let*
