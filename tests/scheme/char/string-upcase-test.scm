@@ -22,6 +22,12 @@
 ;; - 小写字母被转换为大写
 ;; - 大写字母保持不变
 ;; - 非字母字符保持不变
+;; - 支持 Unicode 字符的大小写转换（如 `é` → `É`）
+;;
+;; 相关函数
+;; ----
+;; (liii ascii) 中的 ascii-upcase — 仅处理 ASCII 字母的大小写转换，支持字符、整数和字符串参数。
+;;   字符串参数必须是纯 ASCII 字符串，否则会抛出 value-error。
 ;;
 ;; 错误处理
 ;; ------
@@ -53,4 +59,7 @@
 (check-catch 'type-error (string-upcase #\a))
 (check-catch 'wrong-number-of-args (string-upcase))
 (check-catch 'wrong-number-of-args (string-upcase "hello" "world"))
+;; UTF-8 测试
+(check (string-upcase "abc中文") => "ABC中文")
+(check (string-upcase "RéSuMé") => "RÉSUMÉ")
 (check-report)

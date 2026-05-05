@@ -8,7 +8,7 @@
 ;;                   string-take-right, string-drop, string-drop-right, string-pad,
 ;;                   string-pad-right, string-trim, string-trim-right, string-trim-both,
 ;;                   string-index, string-index-right, string-skip, string-skip-right,
-;;                   string-contains, string-count, string-upcase, string-downcase,
+;;                   string-contains, string-count,
 ;;                   string-fold, string-fold-right, string-for-each-index, string-reverse,
 ;;                   string-tokenize
 ;; - Liii 扩展: string-starts?, string-ends?, string-contains?, string-split, string-replace,
@@ -53,8 +53,6 @@
 
 ;; 三、转换与替换
 ;; 用于变换字符串内容的函数
-;;   string-upcase        - 转为大写
-;;   string-downcase      - 转为小写
 ;;   string-reverse       - 反转字符串
 ;;   string-join          - 连接字符串列表
 ;;   string-split         - 按分隔符切分字符串

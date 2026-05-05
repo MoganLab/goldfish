@@ -19,8 +19,6 @@
     string-skip-right
     string-contains
     string-count
-    string-upcase
-    string-downcase
     string-fold
     string-fold-right
     string-for-each-index

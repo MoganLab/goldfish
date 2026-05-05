@@ -38,8 +38,6 @@
     string-skip-right
     string-contains
     string-count
-    string-upcase
-    string-downcase
     string-fold
     string-fold-right
     string-for-each-index
@@ -435,28 +433,6 @@
         (count criterion (string->list str-sub))
       ) ;let
     ) ;define
-
-    (define s7-string-upcase string-upcase)
-
-    (define* (string-upcase str (start 0) (end (string-length str)))
-      (let* ((left (substring str 0 start))
-             (middle (substring str start end))
-             (right (substring str end))
-            ) ;
-        (string-append left (s7-string-upcase middle) right)
-      ) ;let*
-    ) ;define*
-
-    (define s7-string-downcase string-downcase)
-
-    (define* (string-downcase str (start 0) (end (string-length str)))
-      (let* ((left (substring str 0 start))
-             (middle (substring str start end))
-             (right (substring str end))
-            ) ;
-        (string-append left (s7-string-downcase middle) right)
-      ) ;let*
-    ) ;define*
 
     (define (string-reverse str . start+end)
       (cond ((null-list? start+end) (reverse str))
