@@ -38,9 +38,7 @@
           (reverse result)
           (let ((value (car remaining)))
             (loop (cdr remaining)
-              (if (and (string? value)
-                    (not (member value result))
-                  ) ;and
+              (if (and (string? value) (not (member value result)))
                 (cons value result)
                 result
               ) ;if
@@ -50,9 +48,7 @@
       ) ;let
     ) ;define
 
-    (define (initialize-distance-row! row
-              right-length
-            ) ;initialize-distance-row!
+    (define (initialize-distance-row! row right-length)
       (let loop
         ((index 0))
         (if (> index right-length)
@@ -65,106 +61,55 @@
       ) ;let
     ) ;define
 
-    (define (distance-cost left
-              right
-              left-index
-              right-index
-            ) ;distance-cost
-      (if (char=? (string-ref left (- left-index 1))
-            (string-ref right (- right-index 1))
-          ) ;char=?
+    (define (distance-cost left right left-index right-index)
+      (if (char=? (string-ref left (- left-index 1)) (string-ref right (- right-index 1)))
         0
         1
       ) ;if
     ) ;define
 
-    (define (fill-distance-row! left
-              right
-              left-index
-              right-length
-              prev-row
-              curr-row
-            ) ;fill-distance-row!
+    (define (fill-distance-row! left right left-index right-length prev-row curr-row)
       (vector-set! curr-row 0 left-index)
       (let column-loop
         ((right-index 1) (row-min left-index))
         (if (> right-index right-length)
           row-min
-          (let* ((cost (distance-cost left
-                         right
-                         left-index
-                         right-index
-                       ) ;distance-cost
-                 ) ;cost
-                 (deletion (+ (vector-ref prev-row right-index) 1)
-                 ) ;deletion
-                 (insertion (+ (vector-ref curr-row (- right-index 1))
-                              1
-                            ) ;+
-                 ) ;insertion
-                 (substitution (+ (vector-ref prev-row (- right-index 1))
-                                 cost
-                               ) ;+
-                 ) ;substitution
-                 (distance (min deletion insertion substitution)
-                 ) ;distance
+          (let* ((cost (distance-cost left right left-index right-index))
+                 (deletion (+ (vector-ref prev-row right-index) 1))
+                 (insertion (+ (vector-ref curr-row (- right-index 1)) 1))
+                 (substitution (+ (vector-ref prev-row (- right-index 1)) cost))
+                 (distance (min deletion insertion substitution))
                  (next-min (min row-min distance))
                 ) ;
-            (vector-set! curr-row
-              right-index
-              distance
-            ) ;vector-set!
+            (vector-set! curr-row right-index distance)
             (column-loop (+ right-index 1) next-min)
           ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    (define (bounded-levenshtein-distance left
-              right
-            ) ;bounded-levenshtein-distance
+    (define (bounded-levenshtein-distance left right)
       (let* ((left-length (string-length left))
              (right-length (string-length right))
-             (length-gap (abs (- left-length right-length))
-             ) ;length-gap
+             (length-gap (abs (- left-length right-length)))
             ) ;
         (if (> length-gap max-fuzzy-edit-distance)
           #f
-          (let ((prev (make-vector (+ right-length 1) 0)
-                ) ;prev
-                (curr (make-vector (+ right-length 1) 0)
-                ) ;curr
+          (let ((prev (make-vector (+ right-length 1) 0))
+                (curr (make-vector (+ right-length 1) 0))
                ) ;
-            (initialize-distance-row! prev
-              right-length
-            ) ;initialize-distance-row!
+            (initialize-distance-row! prev right-length)
             (let row-loop
-              ((left-index 1)
-               (prev-row prev)
-               (curr-row curr)
-              ) ;
+              ((left-index 1) (prev-row prev) (curr-row curr))
               (if (> left-index left-length)
-                (let ((distance (vector-ref prev-row right-length)
-                      ) ;distance
-                     ) ;
-                  (and (<= distance max-fuzzy-edit-distance)
-                    distance
-                  ) ;and
+                (let ((distance (vector-ref prev-row right-length)))
+                  (and (<= distance max-fuzzy-edit-distance) distance)
                 ) ;let
-                (let ((row-min (fill-distance-row! left
-                                 right
-                                 left-index
-                                 right-length
-                                 prev-row
-                                 curr-row
-                               ) ;fill-distance-row!
+                (let ((row-min (fill-distance-row! left right left-index right-length prev-row curr-row)
                       ) ;row-min
                      ) ;
                   (and (<= row-min max-fuzzy-edit-distance)
-                    (row-loop (+ left-index 1)
-                      curr-row
-                      prev-row
-                    ) ;row-loop
+                    (row-loop (+ left-index 1) curr-row prev-row)
                   ) ;and
                 ) ;let
               ) ;if
@@ -176,9 +121,7 @@
 
     (define (edit-distance-matches query candidates)
       (let loop
-        ((remaining (unique-strings candidates))
-         (matches '())
-        ) ;
+        ((remaining (unique-strings candidates)) (matches '()))
         (if (null? remaining)
           (map car
             (list-sort (lambda (left right)
@@ -192,17 +135,12 @@
           ) ;map
           (let* ((candidate (car remaining))
                  (distance (and (not (string=? candidate query))
-                             (bounded-levenshtein-distance query
-                               candidate
-                             ) ;bounded-levenshtein-distance
+                             (bounded-levenshtein-distance query candidate)
                            ) ;and
                  ) ;distance
                 ) ;
             (loop (cdr remaining)
-              (if distance
-                (cons (cons candidate distance) matches)
-                matches
-              ) ;if
+              (if distance (cons (cons candidate distance) matches) matches)
             ) ;loop
           ) ;let*
         ) ;if
@@ -211,16 +149,12 @@
 
     (define (prefix-matches query candidates)
       (let loop
-        ((remaining (unique-strings candidates))
-         (matches '())
-        ) ;
+        ((remaining (unique-strings candidates)) (matches '()))
         (if (null? remaining)
           (list-sort string<? matches)
           (let ((candidate (car remaining)))
             (loop (cdr remaining)
-              (if (and (not (string=? candidate query))
-                    (string-starts? candidate query)
-                  ) ;and
+              (if (and (not (string=? candidate query)) (string-starts? candidate query))
                 (cons candidate matches)
                 matches
               ) ;if
@@ -231,30 +165,17 @@
     ) ;define
 
     (define (suggest-candidates query candidates)
-      (let ((prefixes (prefix-matches query candidates)
-            ) ;prefixes
-           ) ;
-        (if (null? prefixes)
-          (edit-distance-matches query candidates)
-          prefixes
-        ) ;if
+      (let ((prefixes (prefix-matches query candidates)))
+        (if (null? prefixes) (edit-distance-matches query candidates) prefixes)
       ) ;let
     ) ;define
 
-    (define (suggest-library-functions library-query
-              function-name
-            ) ;suggest-library-functions
-      (suggest-candidates function-name
-        (library-documented-functions library-query
-        ) ;library-documented-functions
-      ) ;suggest-candidates
+    (define (suggest-library-functions library-query function-name)
+      (suggest-candidates function-name (library-documented-functions library-query))
     ) ;define
 
-    (define (suggest-visible-functions function-name
-            ) ;suggest-visible-functions
-      (suggest-candidates function-name
-        (visible-function-names)
-      ) ;suggest-candidates
+    (define (suggest-visible-functions function-name)
+      (suggest-candidates function-name (visible-function-names))
     ) ;define
 
   ) ;begin

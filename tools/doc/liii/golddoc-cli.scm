@@ -36,23 +36,15 @@
 
     (define (golddoc-command-name)
       (let ((name (path-name (executable))))
-        (if (= (string-length name) 0)
-          "gf"
-          name
-        ) ;if
+        (if (= (string-length name) 0) "gf" name)
       ) ;let
     ) ;define
 
     (define (shell-double-quote value)
       (let loop
-        ((chars (string->list value))
-         (parts '())
-        ) ;
+        ((chars (string->list value)) (parts '()))
         (if (null? chars)
-          (string-append "\""
-            (apply string-append (reverse parts))
-            "\""
-          ) ;string-append
+          (string-append "\"" (apply string-append (reverse parts)) "\"")
           (let ((ch (car chars)))
             (loop (cdr chars)
               (cond ((char=? ch #\\) (cons "\\\\" parts))
@@ -75,39 +67,20 @@
     ) ;define
 
     (define (library-doc-command library-query)
-      (string-append (golddoc-command-name)
-        " doc "
-        library-query
-      ) ;string-append
+      (string-append (golddoc-command-name) " doc " library-query)
     ) ;define
 
     (define (library-source-command library-query)
-      (string-append (golddoc-command-name)
-        " source "
-        library-query
-      ) ;string-append
+      (string-append (golddoc-command-name) " source " library-query)
     ) ;define
 
-    (define (library-query->display-name library-query
-            ) ;library-query->display-name
-      (let ((parts (parse-library-query library-query)
-            ) ;parts
-           ) ;
-        (if parts
-          (string-append "("
-            (car parts)
-            " "
-            (cdr parts)
-            ")"
-          ) ;string-append
-          library-query
-        ) ;if
+    (define (library-query->display-name library-query)
+      (let ((parts (parse-library-query library-query)))
+        (if parts (string-append "(" (car parts) " " (cdr parts) ")") library-query)
       ) ;let
     ) ;define
 
-    (define (library-function-doc-command library-query
-              function-name
-            ) ;library-function-doc-command
+    (define (library-function-doc-command library-query function-name)
       (string-append (golddoc-command-name)
         " doc "
         library-query
@@ -122,9 +95,7 @@
         (newline port)
         (display "  gf doc ORG/LIB" port)
         (newline port)
-        (display "  gf doc ORG/LIB \"FUNC\""
-          port
-        ) ;display
+        (display "  gf doc ORG/LIB \"FUNC\"" port)
         (newline port)
         (display "  gf doc \"FUNC\"" port)
         (newline port)
@@ -154,89 +125,51 @@
         ) ;display
         (newline port)
         (newline port)
-        (display "Function Name Mapping Rules:"
-          port
-        ) ;display
+        (display "Function Name Mapping Rules:" port)
         (newline port)
         (display "  Special characters in function names are mapped to file names:"
           port
         ) ;display
         (newline port)
-        (display "    +     -> plus          (e.g., + -> plus)"
-          port
-        ) ;display
+        (display "    +     -> plus          (e.g., + -> plus)" port)
         (newline port)
-        (display "    -     -> minus         (e.g., - -> minus)"
-          port
-        ) ;display
+        (display "    -     -> minus         (e.g., - -> minus)" port)
         (newline port)
-        (display "    *     -> star          (e.g., * -> star)"
-          port
-        ) ;display
+        (display "    *     -> star          (e.g., * -> star)" port)
         (newline port)
-        (display "    /     -> slash         (e.g., / -> slash)"
-          port
-        ) ;display
+        (display "    /     -> slash         (e.g., / -> slash)" port)
         (newline port)
-        (display "    =     -> eq            (e.g., = -> eq)"
-          port
-        ) ;display
+        (display "    =     -> eq            (e.g., = -> eq)" port)
         (newline port)
-        (display "    <     -> lt            (e.g., < -> lt)"
-          port
-        ) ;display
+        (display "    <     -> lt            (e.g., < -> lt)" port)
         (newline port)
-        (display "    <=    -> le            (e.g., <= -> le)"
-          port
-        ) ;display
+        (display "    <=    -> le            (e.g., <= -> le)" port)
         (newline port)
-        (display "    >     -> gt            (e.g., > -> gt)"
-          port
-        ) ;display
+        (display "    >     -> gt            (e.g., > -> gt)" port)
         (newline port)
-        (display "    >=    -> ge            (e.g., >= -> ge)"
-          port
-        ) ;display
+        (display "    >=    -> ge            (e.g., >= -> ge)" port)
         (newline port)
-        (display "    ?     -> -p            (e.g., path? -> path-p)"
-          port
-        ) ;display
+        (display "    ?     -> -p            (e.g., path? -> path-p)" port)
         (newline port)
-        (display "    !     -> -bang         (e.g., reverse! -> reverse-bang)"
-          port
-        ) ;display
+        (display "    !     -> -bang         (e.g., reverse! -> reverse-bang)" port)
         (newline port)
         (display "    ->    -> -to-          (e.g., list->vector -> list-to-vector)"
           port
         ) ;display
         (newline port)
-        (display "    /     -> -slash-       (e.g., path/join -> path-slash-join)"
-          port
-        ) ;display
+        (display "    /     -> -slash-       (e.g., path/join -> path-slash-join)" port)
         (newline port)
-        (display "    *     -> -star         (e.g., char* -> char-star)"
-          port
-        ) ;display
+        (display "    *     -> -star         (e.g., char* -> char-star)" port)
         (newline port)
-        (display "    =     -> -eq           (e.g., char= -> char-eq)"
-          port
-        ) ;display
+        (display "    =     -> -eq           (e.g., char= -> char-eq)" port)
         (newline port)
-        (display "    <     -> -lt           (e.g., char< -> char-lt)"
-          port
-        ) ;display
+        (display "    <     -> -lt           (e.g., char< -> char-lt)" port)
         (newline port)
-        (display "    >     -> -gt           (e.g., char> -> char-gt)"
-          port
-        ) ;display
+        (display "    >     -> -gt           (e.g., char> -> char-gt)" port)
         (newline port)
-        (display "    <=    -> -le           (e.g., char<= -> char-le)"
-          port
-        ) ;display
+        (display "    <=    -> -le           (e.g., char<= -> char-le)" port)
         (newline port)
-        (display "    >=    -> -ge           (e.g., char>= -> char-ge)"
-          port
-        ) ;display
+        (display "    >=    -> -ge           (e.g., char>= -> char-ge)" port)
         (newline port)
         (newline port)
         (display "How It Works:" port)
@@ -261,29 +194,18 @@
     ) ;define
 
     (define (display-build-json-hint)
-      (stderr-line "Hint: run `gf doc --build-json` to build function index."
-      ) ;stderr-line
+      (stderr-line "Hint: run `gf doc --build-json` to build function index.")
     ) ;define
 
-    (define (display-function-suggestions function-name
-              suggestions
-            ) ;display-function-suggestions
+    (define (display-function-suggestions function-name suggestions)
       (let ((port (current-error-port)))
-        (display (string-append "No exact match for function: "
-                   function-name
-                 ) ;string-append
-          port
-        ) ;display
+        (display (string-append "No exact match for function: " function-name) port)
         (newline port)
-        (display "Try one of these commands:"
-          port
-        ) ;display
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each (lambda (suggestion)
                     (display "  " port)
-                    (display (function-doc-command suggestion)
-                      port
-                    ) ;display
+                    (display (function-doc-command suggestion) port)
                     (newline port)
                   ) ;lambda
           suggestions
@@ -291,10 +213,7 @@
       ) ;let
     ) ;define
 
-    (define (display-library-function-suggestions library-query
-              function-name
-              suggestions
-            ) ;display-library-function-suggestions
+    (define (display-library-function-suggestions library-query function-name suggestions)
       (let ((port (current-error-port)))
         (display (string-append "No exact match for function: "
                    function-name
@@ -304,17 +223,11 @@
           port
         ) ;display
         (newline port)
-        (display "Try one of these commands:"
-          port
-        ) ;display
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each (lambda (suggestion)
                     (display "  " port)
-                    (display (library-function-doc-command library-query
-                               suggestion
-                             ) ;library-function-doc-command
-                      port
-                    ) ;display
+                    (display (library-function-doc-command library-query suggestion) port)
                     (newline port)
                   ) ;lambda
           suggestions
@@ -322,9 +235,7 @@
       ) ;let
     ) ;define
 
-    (define (display-library-choices function-name
-              library-queries
-            ) ;display-library-choices
+    (define (display-library-choices function-name library-queries)
       (let ((port (current-error-port)))
         (display (string-append "Function is implemented in multiple visible libraries: "
                    function-name
@@ -332,17 +243,11 @@
           port
         ) ;display
         (newline port)
-        (display "Try one of these commands:"
-          port
-        ) ;display
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each (lambda (library-query)
                     (display "  " port)
-                    (display (library-function-doc-command library-query
-                               function-name
-                             ) ;library-function-doc-command
-                      port
-                    ) ;display
+                    (display (library-function-doc-command library-query function-name) port)
                     (newline port)
                   ) ;lambda
           library-queries
@@ -350,45 +255,27 @@
       ) ;let
     ) ;define
 
-    (define (display-exported-without-docs function-name
-              library-queries
-            ) ;display-exported-without-docs
+    (define (display-exported-without-docs function-name library-queries)
       (let ((port (current-error-port)))
-        (display (string-append "Function "
-                   function-name
-                   " is exported in:"
-                 ) ;string-append
-          port
-        ) ;display
+        (display (string-append "Function " function-name " is exported in:") port)
         (newline port)
         (for-each (lambda (library-query)
                     (display "  " port)
-                    (display (library-query->display-name library-query
-                             ) ;library-query->display-name
-                      port
-                    ) ;display
+                    (display (library-query->display-name library-query) port)
                     (newline port)
                   ) ;lambda
           library-queries
         ) ;for-each
-        (display "No documentation and test cases available."
-          port
-        ) ;display
+        (display "No documentation and test cases available." port)
         (newline port)
-        (display "Try one of these commands:"
-          port
-        ) ;display
+        (display "Try one of these commands:" port)
         (newline port)
         (for-each (lambda (library-query)
                     (display "  " port)
-                    (display (library-doc-command library-query)
-                      port
-                    ) ;display
+                    (display (library-doc-command library-query) port)
                     (newline port)
                     (display "  " port)
-                    (display (library-source-command library-query)
-                      port
-                    ) ;display
+                    (display (library-source-command library-query) port)
                     (newline port)
                   ) ;lambda
           library-queries
@@ -396,40 +283,30 @@
       ) ;let
     ) ;define
 
-    (define (display-library-without-docs library-query
-            ) ;display-library-without-docs
+    (define (display-library-without-docs library-query)
       (let ((port (current-error-port)))
         (display (string-append "Library "
-                   (library-query->display-name library-query
-                   ) ;library-query->display-name
+                   (library-query->display-name library-query)
                    " exists."
                  ) ;string-append
           port
         ) ;display
         (newline port)
-        (display "No documentation and test cases available."
-          port
-        ) ;display
+        (display "No documentation and test cases available." port)
         (newline port)
-        (display "Try one of these commands:"
-          port
-        ) ;display
+        (display "Try one of these commands:" port)
         (newline port)
         (display "  " port)
-        (display (library-source-command library-query)
-          port
-        ) ;display
+        (display (library-source-command library-query) port)
         (newline port)
       ) ;let
     ) ;define
 
     (define (handle-build-json)
-      (let ((built-paths (build-function-indexes!))
-           ) ;
+      (let ((built-paths (build-function-indexes!)))
         (if (null? built-paths)
           (begin
-            (stderr-line "Error: no buildable tests roots found in *load-path*."
-            ) ;stderr-line
+            (stderr-line "Error: no buildable tests roots found in *load-path*.")
             1
           ) ;begin
           (begin
@@ -450,52 +327,33 @@
       (let* ((parts (parse-library-query query))
              (group (and parts (car parts)))
              (doc-path (library-doc-path query))
-             (visible-library-root (and parts
-                                     (find-visible-library-root query)
-                                   ) ;and
-             ) ;visible-library-root
+             (visible-library-root (and parts (find-visible-library-root query)))
             ) ;
         (cond ((not parts) (display-usage) 1)
               ((excluded-test-group? group)
-               (stderr-line (string-append "Error: documentation for tests/"
-                              group
-                              " is not supported yet."
-                            ) ;string-append
+               (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet.")
                ) ;stderr-line
                1
               ) ;
-              (doc-path (display (path-read-text doc-path))
-                0
-              ) ;doc-path
+              (doc-path (display (path-read-text doc-path)) 0)
               ((not visible-library-root)
-               (let ((fallback-libraries (visible-libraries-for-function query)
-                     ) ;fallback-libraries
-                    ) ;
+               (let ((fallback-libraries (visible-libraries-for-function query)))
                  (if (null? fallback-libraries)
                    (if (null? (find-function-index-paths))
                      (begin
-                       (stderr-line (string-append "Error: function index not found for query: "
-                                      query
-                                    ) ;string-append
+                       (stderr-line (string-append "Error: function index not found for query: " query)
                        ) ;stderr-line
                        (display-build-json-hint)
                        1
                      ) ;begin
-                     (let ((suggestions (suggest-visible-functions query)
-                           ) ;suggestions
-                          ) ;
+                     (let ((suggestions (suggest-visible-functions query)))
                        (if (null? suggestions)
                          (begin
-                           (stderr-line (string-append "Error: library not found in *load-path*: "
-                                          query
-                                        ) ;string-append
-                           ) ;stderr-line
+                           (stderr-line (string-append "Error: library not found in *load-path*: " query))
                            1
                          ) ;begin
                          (begin
-                           (display-function-suggestions query
-                             suggestions
-                           ) ;display-function-suggestions
+                           (display-function-suggestions query suggestions)
                            1
                          ) ;begin
                        ) ;if
@@ -505,60 +363,34 @@
                  ) ;if
                ) ;let
               ) ;
-              (else (display-library-without-docs query)
-                1
-              ) ;else
+              (else (display-library-without-docs query) 1)
         ) ;cond
       ) ;let*
     ) ;define
 
-    (define (handle-library-function library-query
-              exported-name
-            ) ;handle-library-function
-      (let* ((parts (parse-library-query library-query)
-             ) ;parts
+    (define (handle-library-function library-query exported-name)
+      (let* ((parts (parse-library-query library-query))
              (group (and parts (car parts)))
-             (doc-path (function-doc-path library-query
-                         exported-name
-                       ) ;function-doc-path
-             ) ;doc-path
+             (doc-path (function-doc-path library-query exported-name))
             ) ;
         (cond ((not parts) (display-usage) 1)
               ((excluded-test-group? group)
-               (stderr-line (string-append "Error: documentation for tests/"
-                              group
-                              " is not supported yet."
-                            ) ;string-append
+               (stderr-line (string-append "Error: documentation for tests/" group " is not supported yet.")
                ) ;stderr-line
                1
               ) ;
-              (doc-path (display (path-read-text doc-path))
-                0
-              ) ;doc-path
-              ((not (find-visible-library-root library-query
-                    ) ;find-visible-library-root
-               ) ;not
-               (stderr-line (string-append "Error: library not found in *load-path*: "
-                              library-query
-                            ) ;string-append
+              (doc-path (display (path-read-text doc-path)) 0)
+              ((not (find-visible-library-root library-query))
+               (stderr-line (string-append "Error: library not found in *load-path*: " library-query)
                ) ;stderr-line
                1
               ) ;
-              (else (if (member library-query
-                          (visible-libraries-for-function exported-name
-                          ) ;visible-libraries-for-function
-                        ) ;member
+              (else (if (member library-query (visible-libraries-for-function exported-name))
                       (begin
-                        (display-exported-without-docs exported-name
-                          (list library-query)
-                        ) ;display-exported-without-docs
+                        (display-exported-without-docs exported-name (list library-query))
                         1
                       ) ;begin
-                      (let ((suggestions (suggest-library-functions library-query
-                                           exported-name
-                                         ) ;suggest-library-functions
-                            ) ;suggestions
-                           ) ;
+                      (let ((suggestions (suggest-library-functions library-query exported-name)))
                         (if (null? suggestions)
                           (begin
                             (stderr-line (string-append "Error: documentation file not found for function: "
@@ -570,10 +402,7 @@
                             1
                           ) ;begin
                           (begin
-                            (display-library-function-suggestions library-query
-                              exported-name
-                              suggestions
-                            ) ;display-library-function-suggestions
+                            (display-library-function-suggestions library-query exported-name suggestions)
                             1
                           ) ;begin
                         ) ;if
@@ -588,20 +417,14 @@
       (run-function-query function-name)
     ) ;define
 
-    (define (documented-library-queries function-name
-              library-queries
-            ) ;documented-library-queries
+    (define (documented-library-queries function-name library-queries)
       (let loop
-        ((remaining library-queries)
-         (documented '())
-        ) ;
+        ((remaining library-queries) (documented '()))
         (if (null? remaining)
           documented
           (let ((library-query (car remaining)))
             (loop (cdr remaining)
-              (if (function-doc-path library-query
-                    function-name
-                  ) ;function-doc-path
+              (if (function-doc-path library-query function-name)
                 (append documented (list library-query))
                 documented
               ) ;if
@@ -611,48 +434,23 @@
       ) ;let
     ) ;define
 
-    (define (library-query->import-set library-query
-            ) ;library-query->import-set
+    (define (library-query->import-set library-query)
       ;; 将 "liii/base" 转换为 (liii base) 形式的 import set
-      (let ((parts (parse-library-query library-query)
-            ) ;parts
-           ) ;
-        (if parts
-          (list (string->symbol (car parts))
-            (string->symbol (cdr parts))
-          ) ;list
-          #f
-        ) ;if
+      (let ((parts (parse-library-query library-query)))
+        (if parts (list (string->symbol (car parts)) (string->symbol (cdr parts))) #f)
       ) ;let
     ) ;define
 
-    (define (display-doc-with-source library-query
-              function-name
-            ) ;display-doc-with-source
-      (let ((doc-path (function-doc-path library-query
-                        function-name
-                      ) ;function-doc-path
-            ) ;doc-path
-           ) ;
+    (define (display-doc-with-source library-query function-name)
+      (let ((doc-path (function-doc-path library-query function-name)))
         ;; 显示源代码（如果有的话）
-        (let ((import-set (library-query->import-set library-query
-                          ) ;library-query->import-set
-              ) ;import-set
-             ) ;
+        (let ((import-set (library-query->import-set library-query)))
           (when import-set
             (let ((env (environment import-set)))
-              (let ((func (eval (string->symbol function-name)
-                            env
-                          ) ;eval
-                    ) ;func
-                   ) ;
+              (let ((func (eval (string->symbol function-name) env)))
                 ;; 使用 guard 捕获 procedure-source 的错误
                 ;; 某些语法形式（如 define*）会导致 procedure-source 报错
-                (let ((source (guard (ex (else #f))
-                                (procedure-source func)
-                              ) ;guard
-                      ) ;source
-                     ) ;
+                (let ((source (guard (ex (else #f)) (procedure-source func))))
                   (when (and source (not (null? source)))
                     (display ";; 源代码:")
                     (newline)
@@ -676,72 +474,42 @@
     ) ;define
 
     (define (run-function-query function-name)
-      (let ((library-queries (visible-libraries-for-function function-name
-                             ) ;visible-libraries-for-function
-            ) ;library-queries
-           ) ;
+      (let ((library-queries (visible-libraries-for-function function-name)))
         (cond ((null? library-queries)
-               (let ((suggestions (suggest-visible-functions function-name
-                                  ) ;suggest-visible-functions
-                     ) ;suggestions
-                    ) ;
+               (let ((suggestions (suggest-visible-functions function-name)))
                  (if (null? suggestions)
                    (begin
-                     (stderr-line (string-append "Error: function not found in *load-path*: "
-                                    function-name
-                                  ) ;string-append
+                     (stderr-line (string-append "Error: function not found in *load-path*: " function-name)
                      ) ;stderr-line
-                     (if (null? (find-function-index-paths))
-                       (display-build-json-hint)
-                       #f
-                     ) ;if
+                     (if (null? (find-function-index-paths)) (display-build-json-hint) #f)
                      1
                    ) ;begin
                    (begin
-                     (display-function-suggestions function-name
-                       suggestions
-                     ) ;display-function-suggestions
+                     (display-function-suggestions function-name suggestions)
                      1
                    ) ;begin
                  ) ;if
                ) ;let
               ) ;
-              (else (let ((documented-queries (documented-library-queries function-name
-                                                library-queries
-                                              ) ;documented-library-queries
-                          ) ;documented-queries
+              (else (let ((documented-queries (documented-library-queries function-name library-queries))
                          ) ;
                       (cond ((null? documented-queries)
-                             (display-exported-without-docs function-name
-                               library-queries
-                             ) ;display-exported-without-docs
+                             (display-exported-without-docs function-name library-queries)
                              1
                             ) ;
                             ((null? (cdr documented-queries))
-                             (display-doc-with-source (car documented-queries)
-                               function-name
-                             ) ;display-doc-with-source
+                             (display-doc-with-source (car documented-queries) function-name)
                              0
                             ) ;
-                            (else (display-doc-with-source (car documented-queries)
-                                    function-name
-                                  ) ;display-doc-with-source
+                            (else (display-doc-with-source (car documented-queries) function-name)
                               (newline)
-                              (display ";; 该函数在其他库中也有实现:"
-                                (current-error-port)
-                              ) ;display
+                              (display ";; 该函数在其他库中也有实现:" (current-error-port))
                               (newline (current-error-port))
                               (for-each (lambda (library-query)
-                                          (display ";;   gf doc "
-                                            (current-error-port)
-                                          ) ;display
-                                          (display library-query
-                                            (current-error-port)
-                                          ) ;display
+                                          (display ";;   gf doc " (current-error-port))
+                                          (display library-query (current-error-port))
                                           (display " " (current-error-port))
-                                          (write function-name
-                                            (current-error-port)
-                                          ) ;write
+                                          (write function-name (current-error-port))
                                           (newline (current-error-port))
                                         ) ;lambda
                                 (cdr documented-queries)
@@ -760,17 +528,9 @@
         (case (car parsed)
               ((help) (display-usage) 0)
               ((build-json) (handle-build-json))
-              ((library)
-               (handle-library (cadr parsed))
-              ) ;
-              ((library-function)
-               (handle-library-function (cadr parsed)
-                 (caddr parsed)
-               ) ;handle-library-function
-              ) ;
-              ((function)
-               (handle-function (cadr parsed))
-              ) ;
+              ((library) (handle-library (cadr parsed)))
+              ((library-function) (handle-library-function (cadr parsed) (caddr parsed)))
+              ((function) (handle-function (cadr parsed)))
               (else (display-usage) 0)
         ) ;case
       ) ;let

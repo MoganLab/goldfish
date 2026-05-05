@@ -28,9 +28,7 @@
   (begin
 
     (define (append-unique-string strings value)
-      (if (or (not (string? value))
-            (member value strings)
-          ) ;or
+      (if (or (not (string? value)) (member value strings))
         strings
         (append strings (list value))
       ) ;if
@@ -42,27 +40,16 @@
 
     (define (find-buildable-index-targets)
       (let loop
-        ((roots *load-path*)
-         (tests-roots '())
-         (targets '())
-        ) ;
+        ((roots *load-path*) (tests-roots '()) (targets '()))
         (if (null? roots)
           targets
           (let* ((load-root (car roots))
-                 (tests-root (and (string? load-root)
-                               (find-tests-root-for-load-root load-root
-                               ) ;find-tests-root-for-load-root
-                             ) ;and
-                 ) ;tests-root
+                 (tests-root (and (string? load-root) (find-tests-root-for-load-root load-root)))
                 ) ;
-            (if (and tests-root
-                  (not (member tests-root tests-roots))
-                ) ;and
+            (if (and tests-root (not (member tests-root tests-roots)))
               (loop (cdr roots)
                 (append tests-roots (list tests-root))
-                (append targets
-                  (list (cons load-root tests-root))
-                ) ;append
+                (append targets (list (cons load-root tests-root)))
               ) ;loop
               (loop (cdr roots) tests-roots targets)
             ) ;if
@@ -72,80 +59,41 @@
     ) ;define
 
     (define (sorted-dir-entries dir)
-      (list-sort string<?
-        (vector->list (listdir dir))
-      ) ;list-sort
+      (list-sort string<? (vector->list (listdir dir)))
     ) ;define
 
-    (define (index-add! index
-              function-name
-              library-entry
-            ) ;index-add!
+    (define (index-add! index function-name library-entry)
       (let ((cell (assoc function-name index)))
         (if cell
-          (set-cdr! cell
-            (append-unique-string (cdr cell)
-              library-entry
-            ) ;append-unique-string
-          ) ;set-cdr!
-          (set! index
-            (append index
-              (list (cons function-name
-                      (list library-entry)
-                    ) ;cons
-              ) ;list
-            ) ;append
-          ) ;set!
+          (set-cdr! cell (append-unique-string (cdr cell) library-entry))
+          (set! index (append index (list (cons function-name (list library-entry)))))
         ) ;if
         index
       ) ;let
     ) ;define
 
-    (define (index-add-exported-functions index
-              library-entry
-              exported-functions
-            ) ;index-add-exported-functions
+    (define (index-add-exported-functions index library-entry exported-functions)
       (let loop
-        ((remaining exported-functions)
-         (result index)
-        ) ;
+        ((remaining exported-functions) (result index))
         (if (null? remaining)
           result
-          (loop (cdr remaining)
-            (index-add! result
-              (car remaining)
-              library-entry
-            ) ;index-add!
-          ) ;loop
+          (loop (cdr remaining) (index-add! result (car remaining) library-entry))
         ) ;if
       ) ;let
     ) ;define
 
     (define (sorted-index index)
-      (map (lambda (entry)
-             (cons (car entry)
-               (list-sort string<? (cdr entry))
-             ) ;cons
-           ) ;lambda
-        (list-sort (lambda (left right)
-                     (string<? (car left) (car right))
-                   ) ;lambda
-          index
-        ) ;list-sort
+      (map (lambda (entry) (cons (car entry) (list-sort string<? (cdr entry))))
+        (list-sort (lambda (left right) (string<? (car left) (car right))) index)
       ) ;map
     ) ;define
 
     (define (library-form? form)
-      (and (pair? form)
-        (eq? (car form) 'define-library)
-        (pair? (cdr form))
-      ) ;and
+      (and (pair? form) (eq? (car form) 'define-library) (pair? (cdr form)))
     ) ;define
 
     (define (export-form? form)
-      (and (pair? form)
-        (eq? (car form) 'export)
-      ) ;and
+      (and (pair? form) (eq? (car form) 'export))
     ) ;define
 
     (define (library-name-part->string value)
@@ -156,44 +104,27 @@
     ) ;define
 
     (define (library-name->entry library-name)
-      (if (not (and (list? library-name)
-                 (= (length library-name) 2)
-               ) ;and
-          ) ;not
+      (if (not (and (list? library-name) (= (length library-name) 2)))
         #f
-        (let* ((group (library-name-part->string (car library-name)
-                      ) ;library-name-part->string
-               ) ;group
-               (library (library-name-part->string (cadr library-name)
-                        ) ;library-name-part->string
-               ) ;library
+        (let* ((group (library-name-part->string (car library-name)))
+               (library (library-name-part->string (cadr library-name)))
               ) ;
           (and group
             library
             (supported-test-group? group)
-            (string-append "("
-              group
-              " "
-              library
-              ")"
-            ) ;string-append
+            (string-append "(" group " " library ")")
           ) ;and
         ) ;let*
       ) ;if
     ) ;define
 
     (define (rename-export-spec? value)
-      (and (pair? value)
-        (eq? (car value) 'rename)
-        (= (length value) 3)
-      ) ;and
+      (and (pair? value) (eq? (car value) 'rename) (= (length value) 3))
     ) ;define
 
     (define (export-spec->name spec)
       (cond ((symbol? spec) (symbol->string spec))
-            ((rename-export-spec? spec)
-             (library-name-part->string (caddr spec))
-            ) ;
+            ((rename-export-spec? spec) (library-name-part->string (caddr spec)))
             (else #f)
       ) ;cond
     ) ;define
@@ -203,15 +134,8 @@
         ((remaining (cdr form)) (names '()))
         (if (null? remaining)
           names
-          (let ((name (export-spec->name (car remaining))
-                ) ;name
-               ) ;
-            (loop (cdr remaining)
-              (if name
-                (append-unique-string names name)
-                names
-              ) ;if
-            ) ;loop
+          (let ((name (export-spec->name (car remaining))))
+            (loop (cdr remaining) (if name (append-unique-string names name) names))
           ) ;let
         ) ;if
       ) ;let
@@ -226,17 +150,10 @@
             (loop (cdr remaining)
               (if (export-form? declaration)
                 (let export-loop
-                  ((exports (export-form-names declaration)
-                   ) ;exports
-                   (result names)
-                  ) ;
+                  ((exports (export-form-names declaration)) (result names))
                   (if (null? exports)
                     result
-                    (export-loop (cdr exports)
-                      (append-unique-string result
-                        (car exports)
-                      ) ;append-unique-string
-                    ) ;export-loop
+                    (export-loop (cdr exports) (append-unique-string result (car exports)))
                   ) ;if
                 ) ;let
                 names
@@ -250,9 +167,7 @@
     (define (index-add-library-form index form)
       (if (not (library-form? form))
         index
-        (let ((library-entry (library-name->entry (cadr form))
-              ) ;library-entry
-             ) ;
+        (let ((library-entry (library-name->entry (cadr form))))
           (if library-entry
             (index-add-exported-functions index
               library-entry
@@ -264,19 +179,13 @@
       ) ;if
     ) ;define
 
-    (define (index-add-source-file index
-              library-file
-            ) ;index-add-source-file
+    (define (index-add-source-file index library-file)
       (call-with-input-file library-file
         (lambda (port)
           (let loop
             ((result index))
             (let ((form (read port)))
-              (if (eof-object? form)
-                result
-                (loop (index-add-library-form result form)
-                ) ;loop
-              ) ;if
+              (if (eof-object? form) result (loop (index-add-library-form result form)))
             ) ;let
           ) ;let
         ) ;lambda
@@ -286,26 +195,12 @@
     (define (build-index-for-load-root load-root)
       (let ((index '()))
         (for-each (lambda (group-name)
-                    (let ((group-dir (path->string (path-join load-root group-name)
-                                     ) ;path->string
-                          ) ;group-dir
-                         ) ;
-                      (if (and (path-dir? group-dir)
-                            (supported-test-group? group-name)
-                          ) ;and
+                    (let ((group-dir (path->string (path-join load-root group-name))))
+                      (if (and (path-dir? group-dir) (supported-test-group? group-name))
                         (for-each (lambda (entry-name)
-                                    (let ((source-file (path->string (path-join group-dir entry-name)
-                                                       ) ;path->string
-                                          ) ;source-file
-                                         ) ;
-                                      (if (and (path-file? source-file)
-                                            (string-ends? entry-name ".scm")
-                                          ) ;and
-                                        (set! index
-                                          (index-add-source-file index
-                                            source-file
-                                          ) ;index-add-source-file
-                                        ) ;set!
+                                    (let ((source-file (path->string (path-join group-dir entry-name))))
+                                      (if (and (path-file? source-file) (string-ends? entry-name ".scm"))
+                                        (set! index (index-add-source-file index source-file))
                                       ) ;if
                                     ) ;let
                                   ) ;lambda
@@ -321,35 +216,18 @@
     ) ;define
 
     (define (index->json-value index)
-      (map (lambda (entry)
-             (cons (car entry)
-               (list->vector (cdr entry))
-             ) ;cons
-           ) ;lambda
-        index
-      ) ;map
+      (map (lambda (entry) (cons (car entry) (list->vector (cdr entry)))) index)
     ) ;define
 
-    (define (build-function-index-at! load-root
-              tests-root
-            ) ;build-function-index-at!
-      (let ((index-path (path->string (path-join tests-root
-                                        "function-library-index.json"
-                                      ) ;path-join
-                        ) ;path->string
-            ) ;index-path
+    (define (build-function-index-at! load-root tests-root)
+      (let ((index-path (path->string (path-join tests-root "function-library-index.json")))
            ) ;
-        (let* ((raw-index (build-index-for-load-root load-root)
-               ) ;raw-index
-               (json-value (index->json-value raw-index)
-               ) ;json-value
+        (let* ((raw-index (build-index-for-load-root load-root))
+               (json-value (index->json-value raw-index))
                ;; 当索引为空时，使用空对象 '(()) 代替空列表
-               (normalized-json-value (if (null? json-value) '(()) json-value)
-               ) ;normalized-json-value
+               (normalized-json-value (if (null? json-value) '(()) json-value))
               ) ;
-          (let-njson ((index-json (json->njson normalized-json-value)
-                      ) ;index-json
-                     ) ;
+          (let-njson ((index-json (json->njson normalized-json-value)))
             (njson->file index-path index-json)
           ) ;let-njson
         ) ;let*
@@ -359,22 +237,12 @@
 
     (define (build-function-indexes!)
       (let loop
-        ((targets (find-buildable-index-targets))
-         (built-paths '())
-        ) ;
+        ((targets (find-buildable-index-targets)) (built-paths '()))
         (if (null? targets)
           built-paths
-          (let* ((target (car targets))
-                 (load-root (car target))
-                 (tests-root (cdr target))
-                ) ;
+          (let* ((target (car targets)) (load-root (car target)) (tests-root (cdr target)))
             (loop (cdr targets)
-              (append built-paths
-                (list (build-function-index-at! load-root
-                        tests-root
-                      ) ;build-function-index-at!
-                ) ;list
-              ) ;append
+              (append built-paths (list (build-function-index-at! load-root tests-root)))
             ) ;loop
           ) ;let*
         ) ;if
