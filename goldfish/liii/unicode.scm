@@ -402,7 +402,7 @@
         ) ;error
       ) ;when
 
-      (let ((hex-str (string-upcase (number->string codepoint 16))))
+      (let ((hex-str (ascii-upcase (number->string codepoint 16))))
         (if (and (> codepoint 0) (< codepoint 16) (= (string-length hex-str) 1))
           (string-append "0" hex-str)
           hex-str

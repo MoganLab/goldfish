@@ -1,4 +1,4 @@
-(import (liii check) (liii json) (liii base) (liii error))
+(import (liii check) (liii json) (liii base) (liii error) (scheme char))
 
 
 (check-set-mode! 'report-failed)

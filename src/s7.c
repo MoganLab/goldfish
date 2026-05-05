@@ -1344,9 +1344,9 @@ struct s7_scheme {
              setter_symbol, set_car_symbol, set_cdr_symbol,
              set_current_error_port_symbol, set_current_input_port_symbol, set_current_output_port_symbol,
              signature_symbol, sin_symbol, sinh_symbol, sort_symbol, sqrt_symbol,
-             stacktrace_symbol, string_append_symbol, string_copy_symbol, string_downcase_symbol, string_eq_symbol, string_fill_symbol,
+             stacktrace_symbol, string_append_symbol, string_copy_symbol, string_eq_symbol, string_fill_symbol,
              string_geq_symbol, string_gt_symbol, string_leq_symbol, string_lt_symbol, string_position_symbol, string_ref_symbol,
-             string_set_symbol, string_symbol, string_to_keyword_symbol, string_to_number_symbol, string_to_symbol_symbol, string_upcase_symbol,
+             string_set_symbol, string_symbol, string_to_keyword_symbol, string_to_number_symbol, string_to_symbol_symbol,
              sublet_symbol, substring_symbol, substring_uncopied_symbol, subtract_symbol, subvector_symbol, subvector_position_symbol, subvector_vector_symbol,
              symbol_symbol, symbol_to_dynamic_value_symbol, symbol_initial_value_symbol,
              symbol_to_keyword_symbol, symbol_to_string_symbol, symbol_to_value_symbol,
@@ -65150,8 +65150,6 @@ static void init_choosers(s7_scheme *sc)
   set_function_chooser(sc->string_ref_symbol, string_substring_chooser);
   set_function_chooser(sc->string_to_symbol_symbol, string_substring_chooser); /* not string_to_number here (not const char*??) */
   set_function_chooser(sc->string_to_keyword_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_downcase_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_upcase_symbol, string_substring_chooser);
   set_function_chooser(sc->string_position_symbol, string_substring_chooser);
   set_function_chooser(sc->string_geq_symbol, string_substring_chooser);
   set_function_chooser(sc->string_leq_symbol, string_substring_chooser);
@@ -65457,7 +65455,7 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	    (sym == car(err_code)) && (sym_len < 24))     /* don't treat these as common variables */
 	  {         /* perhaps also check that the suggested new name actually fits the rest of err_code!: "char -> caar (char #\a)" */
 	    /* check main symbols, from t865.scm */
-	    #define MAIN_NAMES_SIZE 445
+	    #define MAIN_NAMES_SIZE 443
 	    static const char *main_names[MAIN_NAMES_SIZE] = {
       "<=", ">=", "do", "gc", "if", "or", "pi", "abs", "and", "ash", "car", "cdr", "cos", "eq?", "exp", "gcd",
         "lcm", "let", "log", "map", "s7-max", "s7-min", "nan", "not", "sin", "sym", "tan", "*s7*", "acos", "asin",
@@ -65498,14 +65496,14 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
         "vector-typer", "write-string", "c-object-type", "char->integer", "char-downcase", "char-numeric?",
         "char-position", "continuation?", "define-bacro*", "define-macro*", "documentation", "float-vector?",
         "integer->char", "make-iterator", "pair-filename", "port-filename", "port-position", "random-state?",
-        "string-append", "string-length", "string-upcase", "symbol->value", "tree-set-memq", "vector-append",
+        "string-append", "string-length", "symbol->value", "tree-set-memq", "vector-append",
         "vector-length", "c-pointer-info", "c-pointer-type", "call-with-exit", "complex-vector",
         "dynamic-unwind", "emergency-exit", "exact->inexact", "hash-table-ref", "hook-functions",
         "inexact->exact", "int-vector-ref", "integer-length", "number->string", "object->string",
         "string->number", "string->symbol", "symbol->string", "byte-vector-ref", "c-pointer->list",
         "c-pointer-weak1", "c-pointer-weak2", "complex-vector?", "define-constant", "directory->list",
         "int-vector-set!", "keyword->symbol", "let-temporarily", "make-int-vector", "open-input-file",
-        "string->keyword", "string-downcase", "string-position", "symbol->keyword", "weak-hash-table",
+        "string->keyword", "string-position", "symbol->keyword", "weak-hash-table",
         "byte-vector-set!", "call-with-values", "char-alphabetic?", "char-upper-case?", "char-whitespace?",
         "close-input-port", "cyclic-sequences", "define-expansion", "float-vector-ref", "iterator-at-end?",
         "make-byte-vector", "make-rectangular", "open-output-file", "pair-line-number", "port-line-number",
@@ -92455,12 +92453,6 @@ static void init_rootlet(s7_scheme *sc)
 #endif
   sc->string_copy_symbol =           defun("string-copy",	string_copy,		1, 3, false);
 
-  sc->string_downcase_symbol =       s7_define_typed_function(sc, "string-downcase", g_string_downcase, 1, 0, false,
-                                                                   "(string-downcase str) returns the lower case version of str.",
-                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
-  sc->string_upcase_symbol =         s7_define_typed_function(sc, "string-upcase", g_string_upcase, 1, 0, false,
-                                                                   "(string-upcase str) returns the upper case version of str.",
-                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
   sc->string_append_symbol =         defun("string-append",	string_append,		0, 0, true);
   sc->substring_symbol =             defun("substring",	        substring,		1, 2, false);
   sc->substring_uncopied_symbol =    defun("substring-uncopied",substring_uncopied,	1, 2, false);

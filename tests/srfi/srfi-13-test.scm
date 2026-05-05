@@ -53,12 +53,7 @@
 ;;   string-contains      - 判断字符串是否包含子串
 ;;   string-count         - 统计满足条件的字符个数
 
-;; 六、字符串大小写转换
-;; 用于转换字符串大小写的函数
-;;   string-upcase        - 转为大写
-;;   string-downcase      - 转为小写
-
-;; 七、字符串反转与分词
+;; 六、字符串反转与分词
 ;; 用于反转字符串和分词的函数
 ;;   string-reverse       - 反转字符串
 ;;   string-tokenize      - 按分隔符拆分字符串为列表
