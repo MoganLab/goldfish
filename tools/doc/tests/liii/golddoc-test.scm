@@ -5,23 +5,18 @@
 
 ;; ==== 常见用法示例 ====
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
-(set! *load-path*
-  (cons "tools/golddoc" *load-path*)
-) ;set!
+(set! *load-path* (cons "tools/golddoc" *load-path*))
 
 (import (liii golddoc))
 
 ;; 示例1：解析 gf doc 命令行参数
-(parse-doc-args '("bin/gf" "doc" "liii/string")
-) ;parse-doc-args
+(parse-doc-args '("bin/gf" "doc" "liii/string"))
 
 ;; 示例2：把导出名映射成测试文件 stem
 (exported-name->test-stem "njson-set!")
 
 ;; 示例3：计算模糊匹配编辑距离
-(bounded-levenshtein-distance "string-spilt"
-  "string-split"
-) ;bounded-levenshtein-distance
+(bounded-levenshtein-distance "string-spilt" "string-split")
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/golddoc "parse-doc-args"

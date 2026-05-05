@@ -1,8 +1,6 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path*
-  (cons "tools/golddoc" *load-path*)
-) ;set!
+(set! *load-path* (cons "tools/golddoc" *load-path*))
 
 (import (liii check) (liii golddoc))
 
@@ -31,68 +29,58 @@
 ;; 该函数会跳过 `doc` 命令本身，以及 `-m`、`--mode`、`-I`、`-A`
 ;; 及其参数，便于后续 Scheme 层统一处理。
 
-(check (parse-doc-args '("bin/gf" "doc" "liii/string")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "liii/string"))
   =>
   '(library "liii/string")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "-m" "r7rs" "doc" "liii/string")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "-m" "r7rs" "doc" "liii/string"))
   =>
   '(library "liii/string")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "-I" "/tmp" "-A" "/var/tmp" "doc" "liii/string")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf"
+                         "-I"
+                         "/tmp"
+                         "-A"
+                         "/var/tmp"
+                         "doc"
+                         "liii/string"))
   =>
   '(library "liii/string")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "doc" "liii/string" "string-split")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "liii/string" "string-split"))
   =>
   '(library-function "liii/string" "string-split")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "doc" "string-split")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "string-split"))
   =>
   '(function "string-split")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "doc" "--build-json")
-       ) ;parse-doc-args
-  =>
-  '(build-json)
-) ;check
+(check (parse-doc-args '("bin/gf" "doc" "--build-json")) => '(build-json))
 
-(check (parse-doc-args '("bin/gf" "doc" "truncate/")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "truncate/"))
   =>
   '(function "truncate/")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "doc" "alist->fxmapping/combinator")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "alist->fxmapping/combinator"))
   =>
   '(library "alist->fxmapping/combinator")
 ) ;check
 
-(check (parse-doc-args '("bin/gf" "doc"))
-  =>
-  '(invalid)
-) ;check
+(check (parse-doc-args '("bin/gf" "doc")) => '(invalid))
 
-(check (parse-doc-args '("bin/gf" "doc" "liii/string" "string-split" "extra")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "doc" "liii/string" "string-split" "extra"))
   =>
   '(invalid "liii/string" "string-split" "extra")
 ) ;check
 
 
-(check (parse-doc-args '("bin/gf" "--mode=liii" "doc" "liii/string")
-       ) ;parse-doc-args
+(check (parse-doc-args '("bin/gf" "--mode=liii" "doc" "liii/string"))
   =>
   '(library "liii/string")
 ) ;check

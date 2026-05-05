@@ -1,8 +1,6 @@
 ;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
 ;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path*
-  (cons "tools/golddoc" *load-path*)
-) ;set!
+(set! *load-path* (cons "tools/golddoc" *load-path*))
 
 (import (liii check) (liii golddoc))
 
@@ -36,14 +34,22 @@
 ;; 5. 距离相同时按函数名字典序升序。
 
 (check (suggest-candidates "string-spl"
-         '("string-spilt" "string-split" "string-splat" "string-split" "hash-table")
+         '("string-spilt"
+           "string-split"
+           "string-splat"
+           "string-split"
+           "hash-table")
        ) ;suggest-candidates
   =>
   '("string-splat" "string-split")
 ) ;check
 
 (check (suggest-candidates "string-splst"
-         '("string-spilt" "string-split" "string-splat" "string-split" "hash-table")
+         '("string-spilt"
+           "string-split"
+           "string-splat"
+           "string-split"
+           "hash-table")
        ) ;suggest-candidates
   =>
   '("string-splat" "string-split" "string-spilt")
@@ -63,11 +69,6 @@
   '("string-splits")
 ) ;check
 
-(check (suggest-candidates "string-splst"
-         '("hash-table" "vector-map")
-       ) ;suggest-candidates
-  =>
-  '()
-) ;check
+(check (suggest-candidates "string-splst" '("hash-table" "vector-map")) => '())
 
 (check-report)

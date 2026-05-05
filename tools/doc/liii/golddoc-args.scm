@@ -16,56 +16,42 @@
 
 (define-library (liii golddoc-args)
   (import (scheme base) (liii string) (liii argparse))
-  (export parse-doc-args
-    library-query?
-    parse-library-query
-  ) ;export
+  (export parse-doc-args library-query? parse-library-query)
   (begin
 
     (define (library-query? value)
-      (and (string? value)
-        (string-contains? value "/")
-      ) ;and
+      (and (string? value) (string-contains? value "/"))
     ) ;define
 
     (define (classify-doc-args filtered)
       (cond ((null? filtered) '(invalid))
-            ((or (member "--help" filtered)
-               (member "-h" filtered)
-             ) ;or
-             '(help)
-            ) ;
-            ((and (= (length filtered) 1)
-               (string=? (car filtered) "--build-json")
-             ) ;and
+            ((or (member "--help" filtered) (member "-h" filtered)) '(help))
+            ((and (= (length filtered) 1) (string=? (car filtered) "--build-json"))
              '(build-json)
             ) ;
-            ((and (= (length filtered) 1)
-               (parse-library-query (car filtered))
-             ) ;and
+            ((and (= (length filtered) 1) (parse-library-query (car filtered)))
              (list 'library (car filtered))
             ) ;
-            ((= (length filtered) 1)
-             (list 'function (car filtered))
-            ) ;
-            ((and (= (length filtered) 2)
-               (parse-library-query (car filtered))
-             ) ;and
-             (list 'library-function
-               (car filtered)
-               (cadr filtered)
-             ) ;list
+            ((= (length filtered) 1) (list 'function (car filtered)))
+            ((and (= (length filtered) 2) (parse-library-query (car filtered)))
+             (list 'library-function (car filtered) (cadr filtered))
             ) ;
             (else (cons 'invalid filtered))
       ) ;cond
     ) ;define
 
     (define (parse-doc-args args)
-      (let ((parser (make-argument-parser
-                      '((command . "doc")
-                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                        (skip-prefix-options . ("-m=" "--mode="))
-                        (unknown-options . positional)))))
+      (let ((parser (make-argument-parser '((command . "doc")
+                                            (skip-value-options "-m"
+                                              "--mode"
+                                              "-I"
+                                              "-A")
+                                            (skip-prefix-options "-m="
+                                              "--mode=")
+                                            (unknown-options . positional))
+                    ) ;make-argument-parser
+            ) ;parser
+           ) ;
         (parser :parse-argv args)
         (classify-doc-args (parser :positionals))
       ) ;let

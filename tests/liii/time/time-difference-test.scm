@@ -64,9 +64,7 @@
 (check-catch 'type-error
   (time-difference (make-time TIME-UTC 0 0) (make-time TIME-TAI 0 0))
 ) ;check-catch
-(check-catch 'type-error
-  (time-difference "not-time" (make-time TIME-UTC 0 0))
-) ;check-catch
+(check-catch 'type-error (time-difference "not-time" (make-time TIME-UTC 0 0)))
 
 
 (check-report)

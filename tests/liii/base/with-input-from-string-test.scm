@@ -33,7 +33,10 @@
 
 
 (check (with-input-from-string "123" (lambda () (read))) => 123)
-(check (with-input-from-string "1 2" (lambda () (list (read) (read)))) => '(1 2))
+(check (with-input-from-string "1 2" (lambda () (list (read) (read))))
+  =>
+  '(1 2)
+) ;check
 (check (with-input-from-string "#t" (lambda () (read))) => #t)
 (check (with-input-from-string "(+ 1 2)" (lambda () (read))) => '(+ 1 2))
 

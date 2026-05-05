@@ -74,6 +74,10 @@ jobs:
 
       - name: run tools/fmt tests
         run: bin/gf test tools/fmt/tests
+      - name: run tools/doc tests
+        run: bin/gf test tools/doc/tests
+      - name: run tools/fix tests
+        run: bin/gf test tools/fix/tests
       - name: run tests --all
         run: bin/gf test --all
 

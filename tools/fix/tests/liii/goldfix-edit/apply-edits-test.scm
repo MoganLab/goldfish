@@ -1,7 +1,4 @@
-(import (liii check)
-  (liii goldfix-edit)
-  (liii goldfix-record)
-) ;import
+(import (liii check) (liii goldfix-edit) (liii goldfix-record))
 
 (check-set-mode! 'report-failed)
 
@@ -9,17 +6,7 @@
 ;; 将 insert/delete edit 应用于原始 source。
 
 (check (apply-edits "(define x 1"
-         (list (make-fix-edit :kind
-                 'insert
-                 :offset
-                 11
-                 :text
-                 ")"
-                 :reason
-                 "eof"
-                 :open-offset
-                 0
-               ) ;make-fix-edit
+         (list (make-fix-edit :kind 'insert :offset 11 :text ")" :reason "eof" :open-offset 0)
          ) ;list
        ) ;apply-edits
   =>
@@ -76,17 +63,7 @@
                  :open-offset
                  #f
                ) ;make-fix-edit
-           (make-fix-edit :kind
-             'insert
-             :offset
-             0
-             :text
-             "'"
-             :reason
-             "test"
-             :open-offset
-             #f
-           ) ;make-fix-edit
+           (make-fix-edit :kind 'insert :offset 0 :text "'" :reason "test" :open-offset #f)
          ) ;list
        ) ;apply-edits
   =>

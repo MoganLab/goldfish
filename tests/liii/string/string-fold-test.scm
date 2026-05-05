@@ -1,5 +1,4 @@
-(import (liii check)
-        (scheme char) (liii error) (liii string) (srfi srfi-13))
+(import (liii check) (scheme char) (liii error) (liii string) (srfi srfi-13))
 (import (liii ascii))
 
 ;; string-fold

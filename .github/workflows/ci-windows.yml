@@ -48,6 +48,10 @@ jobs:
         run: xmake build --yes -vD goldfish
       - name: test tools/fmt
         run: bin/gf test tools/fmt/tests
+      - name: test tools/doc
+        run: bin/gf test tools/doc/tests
+      - name: test tools/fix
+        run: bin/gf test tools/fix/tests
       - name: test --all
         run: bin/gf test --all
 

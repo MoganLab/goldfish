@@ -32,9 +32,7 @@
   (begin
 
     (define (append-unique-string strings value)
-      (if (or (not (string? value))
-            (member value strings)
-          ) ;or
+      (if (or (not (string? value)) (member value strings))
         strings
         (append strings (list value))
       ) ;if
@@ -47,9 +45,7 @@
           result
           (let ((value (car remaining)))
             (if (string? value)
-              (loop (cdr remaining)
-                (append result (list value))
-              ) ;loop
+              (loop (cdr remaining) (append result (list value)))
               (loop (cdr remaining) result)
             ) ;if
           ) ;let
@@ -67,24 +63,17 @@
         (let* ((trimmed (string-trim entry))
                (body (and (string-starts? trimmed "(")
                        (string-ends? trimmed ")")
-                       (substring trimmed
-                         1
-                         (- (string-length trimmed) 1)
-                       ) ;substring
+                       (substring trimmed 1 (- (string-length trimmed) 1))
                      ) ;and
                ) ;body
-               (parts (and body (string-split body " "))
-               ) ;parts
+               (parts (and body (string-split body " ")))
               ) ;
           (if (and parts
                 (= (length parts) 2)
                 (not (string-null? (car parts)))
                 (not (string-null? (cadr parts)))
               ) ;and
-            (string-append (car parts)
-              "/"
-              (cadr parts)
-            ) ;string-append
+            (string-append (car parts) "/" (cadr parts))
             #f
           ) ;if
         ) ;let*
@@ -93,28 +82,15 @@
 
     (define (find-function-index-paths)
       (let loop
-        ((roots *load-path*)
-         (tests-roots '())
-         (index-paths '())
-        ) ;
+        ((roots *load-path*) (tests-roots '()) (index-paths '()))
         (if (null? roots)
           index-paths
           (let* ((load-root (car roots))
-                 (tests-root (and (string? load-root)
-                               (find-tests-root-for-load-root load-root
-                               ) ;find-tests-root-for-load-root
-                             ) ;and
-                 ) ;tests-root
-                 (already-seen (and tests-root
-                                 (member tests-root tests-roots)
-                               ) ;and
-                 ) ;already-seen
+                 (tests-root (and (string? load-root) (find-tests-root-for-load-root load-root)))
+                 (already-seen (and tests-root (member tests-root tests-roots)))
                  (index-path (and tests-root
                                (not already-seen)
-                               (path->string (path-join tests-root
-                                               "function-library-index.json"
-                                             ) ;path-join
-                               ) ;path->string
+                               (path->string (path-join tests-root "function-library-index.json"))
                              ) ;and
                  ) ;index-path
                 ) ;
@@ -133,31 +109,20 @@
       ) ;let
     ) ;define
 
-    (define (merge-function-index-entries current
-              entries
-            ) ;merge-function-index-entries
+    (define (merge-function-index-entries current entries)
       (let ((merged current))
         (for-each (lambda (entry)
                     (let* ((function-name (car entry))
-                           (libraries (string-list-only (cdr entry))
-                           ) ;libraries
+                           (libraries (string-list-only (cdr entry)))
                            (cell (assoc function-name merged))
                           ) ;
                       (if cell
                         (for-each (lambda (library-entry)
-                                    (set-cdr! cell
-                                      (append-unique-string (cdr cell)
-                                        library-entry
-                                      ) ;append-unique-string
-                                    ) ;set-cdr!
+                                    (set-cdr! cell (append-unique-string (cdr cell) library-entry))
                                   ) ;lambda
                           libraries
                         ) ;for-each
-                        (set! merged
-                          (append merged
-                            (list (cons function-name libraries))
-                          ) ;append
-                        ) ;set!
+                        (set! merged (append merged (list (cons function-name libraries))))
                       ) ;if
                     ) ;let*
                   ) ;lambda
@@ -169,37 +134,25 @@
 
     (define (load-function-index)
       (let loop
-        ((index-paths (find-function-index-paths)
-         ) ;index-paths
-         (merged '())
-        ) ;
+        ((index-paths (find-function-index-paths)) (merged '()))
         (if (null? index-paths)
           merged
           (let ((entries (let-njson ((root (file->njson (car index-paths))))
-                           (normalize-object-alist (njson-object->alist root)
-                           ) ;normalize-object-alist
+                           (normalize-object-alist (njson-object->alist root))
                          ) ;let-njson
                 ) ;entries
                ) ;
-            (loop (cdr index-paths)
-              (merge-function-index-entries merged
-                entries
-              ) ;merge-function-index-entries
-            ) ;loop
+            (loop (cdr index-paths) (merge-function-index-entries merged entries))
           ) ;let
         ) ;if
       ) ;let
     ) ;define
 
     (define (visible-library-query? library-query)
-      (let* ((parts (parse-library-query library-query)
-             ) ;parts
-             (group (and parts (car parts)))
-            ) ;
+      (let* ((parts (parse-library-query library-query)) (group (and parts (car parts))))
         (and parts
           (not (excluded-test-group? group))
-          (find-visible-library-root library-query
-          ) ;find-visible-library-root
+          (find-visible-library-root library-query)
           library-query
         ) ;and
       ) ;let*
@@ -217,13 +170,8 @@
                    (has-visible-library? (let visible-loop
                                            ((remaining library-entries))
                                            (and (not (null? remaining))
-                                             (or (let ((library-query (index-entry->library-query (car remaining)
-                                                                      ) ;index-entry->library-query
-                                                       ) ;library-query
-                                                      ) ;
-                                                   (and library-query
-                                                     (visible-library-query? library-query)
-                                                   ) ;and
+                                             (or (let ((library-query (index-entry->library-query (car remaining))))
+                                                   (and library-query (visible-library-query? library-query))
                                                  ) ;let
                                                (visible-loop (cdr remaining))
                                              ) ;or
@@ -231,10 +179,7 @@
                                          ) ;let
                    ) ;has-visible-library?
                   ) ;
-              (when (and has-visible-library?
-                      (not (set-contains? visible function-name)
-                      ) ;not
-                    ) ;and
+              (when (and has-visible-library? (not (set-contains? visible function-name)))
                 (set-adjoin! visible function-name)
               ) ;when
               (loop (cdr entries))
@@ -244,36 +189,19 @@
       ) ;let
     ) ;define
 
-    (define (visible-libraries-for-function function-name
-            ) ;visible-libraries-for-function
-      (let* ((entry (assoc function-name
-                      (load-function-index)
-                    ) ;assoc
-             ) ;entry
-             (library-entries (if entry (cdr entry) '())
-             ) ;library-entries
+    (define (visible-libraries-for-function function-name)
+      (let* ((entry (assoc function-name (load-function-index)))
+             (library-entries (if entry (cdr entry) '()))
             ) ;
         (let loop
-          ((remaining library-entries)
-           (visible '())
-          ) ;
+          ((remaining library-entries) (visible '()))
           (if (null? remaining)
             visible
-            (let* ((library-query (index-entry->library-query (car remaining)
-                                  ) ;index-entry->library-query
-                   ) ;library-query
-                   (visible-library (and library-query
-                                      (visible-library-query? library-query)
-                                    ) ;and
-                   ) ;visible-library
+            (let* ((library-query (index-entry->library-query (car remaining)))
+                   (visible-library (and library-query (visible-library-query? library-query)))
                   ) ;
               (loop (cdr remaining)
-                (if visible-library
-                  (append-unique-string visible
-                    visible-library
-                  ) ;append-unique-string
-                  visible
-                ) ;if
+                (if visible-library (append-unique-string visible visible-library) visible)
               ) ;loop
             ) ;let*
           ) ;if

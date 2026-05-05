@@ -45,13 +45,7 @@
 
   (begin
     (define-record-type fix-token
-      (%make-fix-token type
-        offset
-        end
-        line
-        column
-        text
-      ) ;%make-fix-token
+      (%make-fix-token type offset end line column text)
       fix-token?
       (type fix-token-type)
       (offset fix-token-offset)
@@ -62,25 +56,16 @@
     ) ;define-record-type
 
     (define-record-type fix-line
-      (%make-fix-line number
-        start-offset
-        first-code-token
-        tokens
-      ) ;%make-fix-line
+      (%make-fix-line number start-offset first-code-token tokens)
       fix-line?
       (number fix-line-number)
       (start-offset fix-line-start-offset)
-      (first-code-token fix-line-first-code-token
-      ) ;first-code-token
+      (first-code-token fix-line-first-code-token)
       (tokens fix-line-tokens)
     ) ;define-record-type
 
     (define-record-type open-frame
-      (%make-open-frame offset
-        line
-        column
-        tag-name
-      ) ;%make-open-frame
+      (%make-open-frame offset line column tag-name)
       open-frame?
       (offset open-frame-offset)
       (line open-frame-line)
@@ -89,12 +74,7 @@
     ) ;define-record-type
 
     (define-record-type pending-close
-      (%make-pending-close frame
-        offset
-        end
-        line
-        column
-      ) ;%make-pending-close
+      (%make-pending-close frame offset end line column)
       pending-close?
       (frame pending-close-frame)
       (offset pending-close-offset)
@@ -104,14 +84,7 @@
     ) ;define-record-type
 
     (define-record-type fix-edit
-      (%make-fix-edit kind
-        offset
-        start
-        end
-        text
-        reason
-        open-offset
-      ) ;%make-fix-edit
+      (%make-fix-edit kind offset start end text reason open-offset)
       fix-edit?
       (kind fix-edit-kind)
       (offset fix-edit-offset)
@@ -123,10 +96,7 @@
     ) ;define-record-type
 
     (define-record-type repair-report
-      (%make-repair-report ok?
-        edits
-        diagnostics
-      ) ;%make-repair-report
+      (%make-repair-report ok? edits diagnostics)
       repair-report?
       (ok? repair-report-ok?)
       (edits repair-report-edits)
@@ -135,111 +105,50 @@
 
     (define (assert-non-negative-integer name value)
       (when (not (integer? value))
-        (value-error (string-append name
-                       " must be an integer"
-                     ) ;string-append
-        ) ;value-error
+        (value-error (string-append name " must be an integer"))
       ) ;when
       (when (< value 0)
-        (value-error (string-append name
-                       " must be non-negative"
-                     ) ;string-append
-        ) ;value-error
+        (value-error (string-append name " must be non-negative"))
       ) ;when
     ) ;define
 
-    (define* (make-fix-token (type 'other)
-               (offset 0)
-               (end 0)
-               (line 1)
-               (column 0)
-               (text "")
-             ) ;make-fix-token
+    (define* (make-fix-token (type 'other) (offset 0) (end 0) (line 1) (column 0) (text ""))
       (when (not (symbol? type))
-        (value-error "make-fix-token: type must be a symbol"
-        ) ;value-error
+        (value-error "make-fix-token: type must be a symbol")
       ) ;when
-      (assert-non-negative-integer "make-fix-token: offset"
-        offset
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-token: end"
-        end
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-token: line"
-        line
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-token: column"
-        column
-      ) ;assert-non-negative-integer
+      (assert-non-negative-integer "make-fix-token: offset" offset)
+      (assert-non-negative-integer "make-fix-token: end" end)
+      (assert-non-negative-integer "make-fix-token: line" line)
+      (assert-non-negative-integer "make-fix-token: column" column)
       (when (< end offset)
-        (value-error "make-fix-token: end must be >= offset"
-        ) ;value-error
+        (value-error "make-fix-token: end must be >= offset")
       ) ;when
       (when (not (string? text))
-        (value-error "make-fix-token: text must be a string"
-        ) ;value-error
+        (value-error "make-fix-token: text must be a string")
       ) ;when
-      (%make-fix-token type
-        offset
-        end
-        line
-        column
-        text
-      ) ;%make-fix-token
+      (%make-fix-token type offset end line column text)
     ) ;define*
 
-    (define* (make-fix-line (number 1)
-               (start-offset 0)
-               (first-code-token #f)
-               (tokens '())
-             ) ;make-fix-line
-      (assert-non-negative-integer "make-fix-line: number"
-        number
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-line: start-offset"
-        start-offset
-      ) ;assert-non-negative-integer
-      (when (not (or (eq? first-code-token #f)
-                   (fix-token? first-code-token)
-                 ) ;or
-            ) ;not
-        (value-error "make-fix-line: first-code-token must be a fix-token or #f"
-        ) ;value-error
+    (define* (make-fix-line (number 1) (start-offset 0) (first-code-token #f) (tokens '()))
+      (assert-non-negative-integer "make-fix-line: number" number)
+      (assert-non-negative-integer "make-fix-line: start-offset" start-offset)
+      (when (not (or (eq? first-code-token #f) (fix-token? first-code-token)))
+        (value-error "make-fix-line: first-code-token must be a fix-token or #f")
       ) ;when
       (when (not (list? tokens))
-        (value-error "make-fix-line: tokens must be a list"
-        ) ;value-error
+        (value-error "make-fix-line: tokens must be a list")
       ) ;when
-      (%make-fix-line number
-        start-offset
-        first-code-token
-        tokens
-      ) ;%make-fix-line
+      (%make-fix-line number start-offset first-code-token tokens)
     ) ;define*
 
-    (define* (make-open-frame (offset 0)
-               (line 1)
-               (column 0)
-               (tag-name "")
-             ) ;make-open-frame
-      (assert-non-negative-integer "make-open-frame: offset"
-        offset
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-open-frame: line"
-        line
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-open-frame: column"
-        column
-      ) ;assert-non-negative-integer
+    (define* (make-open-frame (offset 0) (line 1) (column 0) (tag-name ""))
+      (assert-non-negative-integer "make-open-frame: offset" offset)
+      (assert-non-negative-integer "make-open-frame: line" line)
+      (assert-non-negative-integer "make-open-frame: column" column)
       (when (not (string? tag-name))
-        (value-error "make-open-frame: tag-name must be a string"
-        ) ;value-error
+        (value-error "make-open-frame: tag-name must be a string")
       ) ;when
-      (%make-open-frame offset
-        line
-        column
-        tag-name
-      ) ;%make-open-frame
+      (%make-open-frame offset line column tag-name)
     ) ;define*
 
     (define* (make-pending-close (frame (make-open-frame))
@@ -249,31 +158,16 @@
                (column 0)
              ) ;make-pending-close
       (when (not (open-frame? frame))
-        (value-error "make-pending-close: frame must be an open-frame"
-        ) ;value-error
+        (value-error "make-pending-close: frame must be an open-frame")
       ) ;when
-      (assert-non-negative-integer "make-pending-close: offset"
-        offset
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-pending-close: end"
-        end
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-pending-close: line"
-        line
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-pending-close: column"
-        column
-      ) ;assert-non-negative-integer
+      (assert-non-negative-integer "make-pending-close: offset" offset)
+      (assert-non-negative-integer "make-pending-close: end" end)
+      (assert-non-negative-integer "make-pending-close: line" line)
+      (assert-non-negative-integer "make-pending-close: column" column)
       (when (< end offset)
-        (value-error "make-pending-close: end must be >= offset"
-        ) ;value-error
+        (value-error "make-pending-close: end must be >= offset")
       ) ;when
-      (%make-pending-close frame
-        offset
-        end
-        line
-        column
-      ) ;%make-pending-close
+      (%make-pending-close frame offset end line column)
     ) ;define*
 
     (define* (make-fix-edit (kind 'insert)
@@ -284,73 +178,38 @@
                (reason "")
                (open-offset #f)
              ) ;make-fix-edit
-      (when (not (or (eq? kind 'insert)
-                   (eq? kind 'delete)
-                 ) ;or
-            ) ;not
-        (value-error "make-fix-edit: kind must be insert or delete"
-        ) ;value-error
+      (when (not (or (eq? kind 'insert) (eq? kind 'delete)))
+        (value-error "make-fix-edit: kind must be insert or delete")
       ) ;when
-      (assert-non-negative-integer "make-fix-edit: offset"
-        offset
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-edit: start"
-        start
-      ) ;assert-non-negative-integer
-      (assert-non-negative-integer "make-fix-edit: end"
-        end
-      ) ;assert-non-negative-integer
+      (assert-non-negative-integer "make-fix-edit: offset" offset)
+      (assert-non-negative-integer "make-fix-edit: start" start)
+      (assert-non-negative-integer "make-fix-edit: end" end)
       (when (< end start)
-        (value-error "make-fix-edit: end must be >= start"
-        ) ;value-error
+        (value-error "make-fix-edit: end must be >= start")
       ) ;when
       (when (not (string? text))
-        (value-error "make-fix-edit: text must be a string"
-        ) ;value-error
+        (value-error "make-fix-edit: text must be a string")
       ) ;when
       (when (not (string? reason))
-        (value-error "make-fix-edit: reason must be a string"
-        ) ;value-error
+        (value-error "make-fix-edit: reason must be a string")
       ) ;when
-      (when (not (or (eq? open-offset #f)
-                   (and (integer? open-offset)
-                     (>= open-offset 0)
-                   ) ;and
-                 ) ;or
-            ) ;not
-        (value-error "make-fix-edit: open-offset must be #f or a non-negative integer"
-        ) ;value-error
+      (when (not (or (eq? open-offset #f) (and (integer? open-offset) (>= open-offset 0))))
+        (value-error "make-fix-edit: open-offset must be #f or a non-negative integer")
       ) ;when
-      (%make-fix-edit kind
-        offset
-        start
-        end
-        text
-        reason
-        open-offset
-      ) ;%make-fix-edit
+      (%make-fix-edit kind offset start end text reason open-offset)
     ) ;define*
 
-    (define* (make-repair-report (ok? #f)
-               (edits '())
-               (diagnostics '())
-             ) ;make-repair-report
+    (define* (make-repair-report (ok? #f) (edits '()) (diagnostics '()))
       (when (not (boolean? ok?))
-        (value-error "make-repair-report: ok? must be boolean"
-        ) ;value-error
+        (value-error "make-repair-report: ok? must be boolean")
       ) ;when
       (when (not (list? edits))
-        (value-error "make-repair-report: edits must be a list"
-        ) ;value-error
+        (value-error "make-repair-report: edits must be a list")
       ) ;when
       (when (not (list? diagnostics))
-        (value-error "make-repair-report: diagnostics must be a list"
-        ) ;value-error
+        (value-error "make-repair-report: diagnostics must be a list")
       ) ;when
-      (%make-repair-report ok?
-        edits
-        diagnostics
-      ) ;%make-repair-report
+      (%make-repair-report ok? edits diagnostics)
     ) ;define*
   ) ;begin
 ) ;define-library

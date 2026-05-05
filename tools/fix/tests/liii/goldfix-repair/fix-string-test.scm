@@ -1,24 +1,15 @@
-(import (liii check)
-  (liii goldfix)
-  (liii raw-string)
-) ;import
+(import (liii check) (liii goldfix) (liii raw-string))
 
 (check-set-mode! 'report-failed)
 
 ;; fix-string
 ;; 根据可信缩进修正缺失或多余的右括号。
 
-(check (fix-string "(define x 1)")
-  =>
-  "(define x 1)"
-) ;check
+(check (fix-string "(define x 1)") => "(define x 1)")
 
 (check (fix-string "") => "")
 
-(check (fix-string "(define x 1")
-  =>
-  "(define x 1)"
-) ;check
+(check (fix-string "(define x 1") => "(define x 1)")
 
 (check (fix-string (&- #""
                       (define a 1
@@ -66,10 +57,7 @@
   ) ;&-
 ) ;check
 
-(check (fix-string "(define x 1))")
-  =>
-  "(define x 1)"
-) ;check
+(check (fix-string "(define x 1))") => "(define x 1)")
 
 (check (fix-string (&- #""
                       (begin
@@ -87,13 +75,9 @@
   ) ;&-
 ) ;check
 
-(check (fix-string "(display \")\") ; )")
-  =>
-  "(display \")\") ; )"
-) ;check
+(check (fix-string "(display \")\") ; )") => "(display \")\") ; )")
 
-(check (fix-string "(&- #\"\"\n  (not-code)\n\"\")"
-       ) ;fix-string
+(check (fix-string "(&- #\"\"\n  (not-code)\n\"\")")
   =>
   "(&- #\"\"\n  (not-code)\n\"\")"
 ) ;check
