@@ -1,5 +1,5 @@
 ;;
-;; Copyright (C) 2024 The Goldfish Scheme Authors
+;; Copyright (C) 2026 The Goldfish Scheme Authors
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@
     ) ;define
 
     ;; Trim leading and trailing whitespace (space/tab)
-    (define (ini-trim str)
+    (define (ini-string-trim str)
       (let ((len (string-length str)))
         (let loop-start
           ((i 0))
@@ -79,12 +79,12 @@
     ;; Parse a section header line like "[name]"
     ;; Returns section name string, or #f if not a section header
     (define (parse-section-name line)
-      (let* ((trimmed (ini-trim line)) (len (string-length trimmed)))
+      (let* ((trimmed (ini-string-trim line)) (len (string-length trimmed)))
         (if (and (> len 1)
               (char=? (string-ref trimmed 0) #\[)
               (char=? (string-ref trimmed (- len 1)) #\])
             ) ;and
-          (ini-trim (substring trimmed 1 (- len 1)))
+          (ini-string-trim (substring trimmed 1 (- len 1)))
           #f
         ) ;if
       ) ;let*
@@ -100,7 +100,7 @@
             (let ((line (read-line inport)))
               (cond ((eof-object? line) (eof-object))
                     (else (let* ((no-comment (remove-comment line comment-delim))
-                                 (trimmed (ini-trim no-comment))
+                                 (trimmed (ini-string-trim no-comment))
                                 ) ;
                             (if (string=? trimmed "")
                               (loop)
@@ -108,7 +108,7 @@
                                 (cond (section-name (set! current-section (string->symbol section-name)) (loop))
                                       (else (let ((kv (split-at-first trimmed key-value-sep)))
                                               (if kv
-                                                (let ((key-str (ini-trim (car kv))) (val-str (ini-trim (cdr kv))))
+                                                (let ((key-str (ini-string-trim (car kv))) (val-str (ini-string-trim (cdr kv))))
                                                   (list current-section (string->symbol key-str) val-str)
                                                 ) ;let
                                                 (list current-section (string->symbol trimmed) #f)
