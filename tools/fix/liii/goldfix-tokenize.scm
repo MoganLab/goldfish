@@ -192,16 +192,34 @@
       ) ;let
     ) ;define
     (define (build-lines source tokens line-starts)
-      (let ((line-count (length line-starts)))
-        (let loop
-          ((line-number 1) (result '()))
-          (if (> line-number line-count)
-            (reverse result)
-            (let* ((line-tokens (tokens-for-line tokens line-number))
+      (let* ((line-count (length line-starts))
+             (line-token-lists (make-vector line-count '()))
+             (start-offsets (list->vector line-starts))
+            ) ;
+        (let token-loop
+          ((rest tokens))
+          (if (not (null? rest))
+            (let* ((token (car rest)) (line-idx (- (fix-token-line token) 1)))
+              (when (and (>= line-idx 0) (< line-idx line-count))
+                (vector-set! line-token-lists
+                  line-idx
+                  (cons token (vector-ref line-token-lists line-idx))
+                ) ;vector-set!
+              ) ;when
+              (token-loop (cdr rest))
+            ) ;let*
+          ) ;if
+        ) ;let
+        (let line-loop
+          ((line-number line-count) (result '()))
+          (if (= line-number 0)
+            result
+            (let* ((idx (- line-number 1))
+                   (line-tokens (reverse (vector-ref line-token-lists idx)))
                    (first (first-code-token line-tokens))
-                   (start-offset (list-ref-safe line-starts (- line-number 1)))
+                   (start-offset (vector-ref start-offsets idx))
                   ) ;
-              (loop (+ line-number 1)
+              (line-loop (- line-number 1)
                 (cons (make-fix-line :number
                         line-number
                         :start-offset
@@ -213,11 +231,11 @@
                       ) ;make-fix-line
                   result
                 ) ;cons
-              ) ;loop
+              ) ;line-loop
             ) ;let*
           ) ;if
         ) ;let
-      ) ;let
+      ) ;let*
     ) ;define
     (define (line-start-close? token line)
       (and (fix-token? token)
