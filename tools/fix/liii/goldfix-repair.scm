@@ -136,7 +136,6 @@
             (diagnostics '())
             (last-code-end-offset #f)
            ) ;
-
         (define (add-edit! edit)
           (set! edits (cons edit edits))
         ) ;define
