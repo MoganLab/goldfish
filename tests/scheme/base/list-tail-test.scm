@@ -53,49 +53,24 @@
   =>
   '("text" #t (#_quote symbol))
 ) ;check
-(check (list-tail '(#	
-                    #
-
-
-
-                    #
-)
+(check (list-tail '(#	# #)
          0
        ) ;list-tail
   =>
-  '(#	
-    #
-
-
-
-    #
-)
+  '(#	# #)
 ) ;check
-(check (list-tail '(#	
-                    #
-
-
-
-                    #
-)
+(check (list-tail '(#	# #)
          2
        ) ;list-tail
-  =>
-  '(#
-)
+  => '(#)
 ) ;check
-(check (list-tail '(#	
-                    #
-
-
-
-                    #
-)
+(check (list-tail '(#	# # )
          3
        ) ;list-tail
   =>
   '()
 ) ;check
+
 ;; 子列表包含嵌套结构测试
 (check (list-tail '((a b) (c d) (e f)) 0) => '((a b) (c d) (e f)))
 (check (list-tail '((a b) (c d) (e f)) 1) => '((c d) (e f)))
