@@ -215,7 +215,7 @@
 
     (define (reader-newlines count)
       (let loop
-        ((i (+ count 1)) (result ""))
+        ((i count) (result ""))
         (if (<= i 0) result (loop (- i 1) (string-append result "\n")))
       ) ;let
     ) ;define
@@ -470,9 +470,7 @@
         ((i 0) (column 0))
         (if (>= i (string-length text))
           column
-          (loop (+ i 1)
-            (if (char=? (string-ref text i) #\newline) 0 (+ column 1))
-          ) ;loop
+          (loop (+ i 1) (if (char=? (string-ref text i) #\newline) 0 (+ column 1)))
         ) ;if
       ) ;let
     ) ;define
@@ -509,15 +507,13 @@
              ) ;let
             ) ;
             ((null? current) (reader-append-close result close-indent))
-            (else (reader-append-close
-                    (let* ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                           ) ;prefix
-                           (before-tail (string-append result prefix ". "))
-                          ) ;
-                      (string-append before-tail
-                        (format-reader-datum-at current (last-line-column before-tail))
-                      ) ;string-append
-                    ) ;let*
+            (else (reader-append-close (let* ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent))))
+                                              (before-tail (string-append result prefix ". "))
+                                             ) ;
+                                         (string-append before-tail
+                                           (format-reader-datum-at current (last-line-column before-tail))
+                                         ) ;string-append
+                                       ) ;let*
                     close-indent
                   ) ;reader-append-close
             ) ;else

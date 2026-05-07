@@ -125,27 +125,27 @@
 ;; quote/quasiquote 内部由 scan-file 注入的 (*newline* n) 应展开为真实空行
 (check (format-first-node-file "007_01.scm")
   =>
-  "`(begin\n\n   (define ,name ,value))"
+  "`(begin\n   (define ,name ,value))"
 ) ;check
 
 (check (format-first-node-file "007_02.scm")
   =>
-  "'(begin\n\n   (define x 1))"
+  "'(begin\n   (define x 1))"
 ) ;check
 
 (check (format-first-node-file "007_03.scm")
   =>
-  "`(begin\n\n\n   (define ,name ,value))"
+  "`(begin\n\n   (define ,name ,value))"
 ) ;check
 
 (check (format-first-node-file "007_04.scm")
   =>
-  "`(begin\n   (define x ,a)\n\n   (define y ,b)\n   (define z ,c))"
+  "`(begin\n   (define x ,a)\n   (define y ,b)\n   (define z ,c))"
 ) ;check
 
 (check (format-datum '(quote #(a (*newline* 1) b)))
   =>
-  "'#(a\n\n   b\n ) ;#"
+  "'#(a\n   b\n ) ;#"
 ) ;check
 
 (check (format-datum '#((alpha beta gamma delta epsilon zeta eta theta iota kappa)
