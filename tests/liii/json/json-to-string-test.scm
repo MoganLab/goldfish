@@ -79,8 +79,8 @@
                                   (("text" . "2") ("type" . "text"))
                                 ) ;#
                              ))
-                                  (("role" . "user") ("content" . "中文"))
-                                ) ;#
+                            (("role" . "user") ("content" . "中文"))
+                          ) ;#
                        ))
        ) ;json->string
   =>

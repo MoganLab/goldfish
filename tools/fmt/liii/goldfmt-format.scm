@@ -403,15 +403,17 @@
                   (cons (spaces item-indent) (cons (reader-newlines (cadr item)) pieces))
                   #t
                 ) ;loop
-                (loop (cdr items)
-                  (cons (format-reader-datum-at item item-indent)
-                    (if prefix-ready?
-                      pieces
-                      (cons (string-append "\n" (spaces item-indent)) pieces)
-                    ) ;if
-                  ) ;cons
-                  #f
-                ) ;loop
+                (let ((item-text (string-trim (format-reader-datum-at item item-indent))))
+                  (loop (cdr items)
+                    (cons item-text
+                      (if prefix-ready?
+                        pieces
+                        (cons (string-append "\n" (spaces item-indent)) pieces)
+                      ) ;if
+                    ) ;cons
+                    #f
+                  ) ;loop
+                ) ;let
               ) ;if
             ) ;let
           ) ;if
@@ -463,6 +465,18 @@
       ) ;let
     ) ;define
 
+    (define (last-line-column text)
+      (let loop
+        ((i 0) (column 0))
+        (if (>= i (string-length text))
+          column
+          (loop (+ i 1)
+            (if (char=? (string-ref text i) #\newline) 0 (+ column 1))
+          ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (reader-append-close result close-indent)
       (if (string-suffix? ";#" result)
         (string-append result "\n" (spaces close-indent) ")")
@@ -483,7 +497,9 @@
                  (reader-append-rest (cdr current)
                    (string-append result
                      (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                     (format-reader-datum-at item rest-indent)
+                     (format-reader-datum-at item
+                       (if prefix-ready? (last-line-column result) rest-indent)
+                     ) ;format-reader-datum-at
                    ) ;string-append
                    rest-indent
                    #f
@@ -494,11 +510,14 @@
             ) ;
             ((null? current) (reader-append-close result close-indent))
             (else (reader-append-close
-                    (string-append result
-                      (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                      ". "
-                      (format-reader-datum-at current (+ rest-indent 2))
-                    ) ;string-append
+                    (let* ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
+                           ) ;prefix
+                           (before-tail (string-append result prefix ". "))
+                          ) ;
+                      (string-append before-tail
+                        (format-reader-datum-at current (last-line-column before-tail))
+                      ) ;string-append
+                    ) ;let*
                     close-indent
                   ) ;reader-append-close
             ) ;else

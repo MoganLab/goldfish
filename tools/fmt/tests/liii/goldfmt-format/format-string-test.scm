@@ -214,7 +214,7 @@
 (check (format-string "(check (f '((\"messages\" . #(((\"role\" . \"user\") (\"content\" . #(((\"text\" . \"1\") (\"type\" . \"text\")) ((\"text\" . \"2\") (\"type\" . \"text\"))))) ((\"role\" . \"user\") (\"content\" . \"中文\")))))) => \"ok\")"
        ) ;format-string
   =>
-  "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\"))\n                     ) ;#\n                  ))\n                       ((\"role\" . \"user\") (\"content\" . \"中文\"))\n                     ) ;#\n            ))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
+  "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\"))\n                     ) ;#\n                  ))\n                 ((\"role\" . \"user\") (\"content\" . \"中文\"))\n               ) ;#\n            ))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
 ) ;check
 
 (check-report)
