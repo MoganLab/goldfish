@@ -4,6 +4,7 @@
     (liii sys)
     (liii path)
     (liii argparse)
+    (liii os)
     (srfi srfi-13)
     (liii goldfix-repair)
     (liii goldfix-record)
@@ -76,7 +77,7 @@
       ) ;let
     ) ;define
 
-    (define (fix-file path-str)
+    (define (fix-file-core path-str)
       (let* ((p (path path-str))
              (source (path-read-text p))
              (repaired (repair-source source))
@@ -85,7 +86,17 @@
       ) ;let*
     ) ;define
 
+    (define (fix-file path-str)
+      (let ((fmt-cmd (string-append (executable) " fmt " path-str)))
+        (os-call fmt-cmd)
+      ) ;let
+      (fix-file-core path-str)
+    ) ;define
+
     (define (fix-directory dir-path)
+      (let ((fmt-cmd (string-append (executable) " fmt " dir-path)))
+        (os-call fmt-cmd)
+      ) ;let
       (let ((entries (path-list-path (path dir-path))))
         (let loop
           ((i 0) (total 0) (updated 0))
@@ -96,9 +107,9 @@
                      (let ((entry-str (path->string entry)))
                        (if (string-suffix? ".scm" entry-str)
                          (begin
-                           (display (string-append "Processing: " entry-str))
+                           (display (string-append "Fixing: " entry-str))
                            (newline)
-                           (if (fix-file entry-str)
+                           (if (fix-file-core entry-str)
                              (begin
                                (display (string-append "  Updated: " entry-str))
                                (newline)
@@ -164,7 +175,7 @@
                  (if dry-run
                    (fix-file-dry-run path-str)
                    (let ((changed? (fix-file path-str)))
-                     (display (string-append "Processing: " path-str))
+                     (display (string-append "Fixing: " path-str))
                      (newline)
                      (if changed?
                        (begin
@@ -173,7 +184,7 @@
                        ) ;begin
                        '()
                      ) ;if
-                     (display (string-append "Total files processed: 1, Files updated: "
+                     (display (string-append "Total files fixed: 1, Files updated: "
                                 (if changed? "1" "0")
                               ) ;string-append
                      ) ;display
@@ -191,7 +202,7 @@
                    ) ;begin
                    (call-with-values (lambda () (fix-directory path-str))
                      (lambda (total updated)
-                       (display (string-append "Total files processed: "
+                       (display (string-append "Total files fixed: "
                                   (number->string total)
                                   ", Files updated: "
                                   (number->string updated)

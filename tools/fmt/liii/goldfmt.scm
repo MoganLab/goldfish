@@ -160,7 +160,7 @@
         (if (null? remaining)
           (values total updated)
           (let ((file (car remaining)))
-            (display (string-append "Processing: " file))
+            (display (string-append "Formatting: " file))
             (newline)
             (if dry-run
               (begin
@@ -204,7 +204,7 @@
                         ) ;begin
                         (call-with-values (lambda () (format-file-list files dry-run))
                           (lambda (total updated)
-                            (display (string-append "Total files processed: "
+                            (display (string-append "Total files formatted: "
                                        (number->string total)
                                        ", Files updated: "
                                        (number->string updated)
@@ -234,7 +234,7 @@
                      (let ((entry-str (path->string entry)))
                        (if (string-suffix? ".scm" entry-str)
                          (begin
-                           (display (string-append "Processing: " entry-str))
+                           (display (string-append "Formatting: " entry-str))
                            (newline)
                            (let ((changed? (format-file entry-str)))
                              (if changed?
@@ -309,7 +309,7 @@
                  (if dry-run
                    (format-file-dry-run path-str)
                    (begin
-                     (display (string-append "Processing: " path-str))
+                     (display (string-append "Formatting: " path-str))
                      (newline)
                      (let ((changed? (format-file path-str)))
                        (if changed?
@@ -319,7 +319,7 @@
                          ) ;begin
                          '()
                        ) ;if
-                       (display (string-append "Total files processed: 1, Files updated: "
+                       (display (string-append "Total files formatted: 1, Files updated: "
                                   (if changed? "1" "0")
                                 ) ;string-append
                        ) ;display
@@ -338,7 +338,7 @@
                    ) ;begin
                    (call-with-values (lambda () (format-directory path-str))
                      (lambda (total updated)
-                       (display (string-append "Total files processed: "
+                       (display (string-append "Total files formatted: "
                                   (number->string total)
                                   ", Files updated: "
                                   (number->string updated)

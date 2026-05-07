@@ -11,16 +11,30 @@
       (cons item stack)
     ) ;define
 
-    (define (make-open-frame-from-token token)
-      (make-open-frame :offset
-        (fix-token-offset token)
-        :line
-        (fix-token-line token)
-        :column
-        (fix-token-column token)
-        :tag-name
-        ""
-      ) ;make-open-frame
+    (define (make-open-frame-from-token token prev-token)
+      (let ((is-vector-prefix
+              (and prev-token
+                (eq? (fix-token-type prev-token) 'other)
+                (string=? (fix-token-text prev-token) "#")
+                (= (fix-token-end prev-token) (fix-token-offset token))
+              ) ;and
+            )) ;is-vector-prefix
+        (make-open-frame :offset
+          (if is-vector-prefix
+            (fix-token-offset prev-token)
+            (fix-token-offset token)
+          ) ;if
+          :line
+          (fix-token-line token)
+          :column
+          (if is-vector-prefix
+            (fix-token-column prev-token)
+            (fix-token-column token)
+          ) ;if
+          :tag-name
+          ""
+        ) ;make-open-frame
+      ) ;let
     ) ;define
 
     (define (make-pending-close-from-token frame token)
@@ -219,9 +233,9 @@
           ) ;cond
         ) ;define
 
-        (define (process-token! token line)
+        (define (process-token! token line prev-token)
           (cond ((eq? (fix-token-type token) 'open-paren)
-                 (set! stack (push (make-open-frame-from-token token) stack))
+                 (set! stack (push (make-open-frame-from-token token prev-token) stack))
                  (set! last-code-end-offset (fix-token-end token))
                 ) ;
                 ((eq? (fix-token-type token) 'close-paren) (process-close-paren! token line))
@@ -238,11 +252,11 @@
               ) ;begin
             ) ;if
             (let loop
-              ((tokens (fix-line-tokens line)))
+              ((tokens (fix-line-tokens line)) (prev-token #f))
               (if (not (null? tokens))
                 (begin
-                  (process-token! (car tokens) line)
-                  (loop (cdr tokens))
+                  (process-token! (car tokens) line prev-token)
+                  (loop (cdr tokens) (car tokens))
                 ) ;begin
               ) ;if
             ) ;let
