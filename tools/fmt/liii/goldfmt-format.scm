@@ -215,7 +215,7 @@
 
     (define (reader-newlines count)
       (let loop
-        ((i (+ count 1)) (result ""))
+        ((i count) (result ""))
         (if (<= i 0) result (loop (- i 1) (string-append result "\n")))
       ) ;let
     ) ;define
