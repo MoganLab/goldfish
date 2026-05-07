@@ -145,7 +145,14 @@
 
 (check (format-datum '(quote #(a (*newline* 1) b)))
   =>
-  "'#(a\n\n   b)"
+  "'#(a\n\n   b\n ) ;#"
+) ;check
+
+(check (format-datum '#((alpha beta gamma delta epsilon zeta eta theta iota kappa)
+                         (one two three four five six seven eight nine ten)
+                       ))
+  =>
+  "#((alpha beta gamma delta epsilon zeta eta theta iota kappa)\n  (one two three four five six seven eight nine ten)\n) ;#"
 ) ;check
 
 ;; 超过 max-inline-length 的 reader datum 应进入 head-aware 多行排版
@@ -207,7 +214,7 @@
 (check (format-string "(check (f '((\"messages\" . #(((\"role\" . \"user\") (\"content\" . #(((\"text\" . \"1\") (\"type\" . \"text\")) ((\"text\" . \"2\") (\"type\" . \"text\"))))) ((\"role\" . \"user\") (\"content\" . \"中文\")))))) => \"ok\")"
        ) ;format-string
   =>
-  "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\")))))\n                       ((\"role\" . \"user\") (\"content\" . \"中文\")))))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
+  "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\"))\n                     ) ;#\n                  ))\n                 ((\"role\" . \"user\") (\"content\" . \"中文\"))\n               ) ;#\n            ))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
 ) ;check
 
 (check-report)

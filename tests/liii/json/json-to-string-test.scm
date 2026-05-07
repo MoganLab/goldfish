@@ -63,7 +63,9 @@
 
 (check (json->string '(("messages"
                         . #((("role" . "user") ("content" . #(1 2 3)))
-                            (("role" . "user") ("content" . "中文")))))
+                            (("role" . "user") ("content" . "中文"))
+                          ) ;#
+                       ))
        ) ;json->string
   =>
   "{\"messages\":[{\"role\":\"user\",\"content\":[1,2,3]},{\"role\":\"user\",\"content\":\"中文\"}]}"
@@ -74,8 +76,12 @@
                         . #((("role" . "user")
                              ("content"
                               . #((("text" . "1") ("type" . "text"))
-                                  (("text" . "2") ("type" . "text")))))
-                                  (("role" . "user") ("content" . "中文")))))
+                                  (("text" . "2") ("type" . "text"))
+                                ) ;#
+                             ))
+                            (("role" . "user") ("content" . "中文"))
+                          ) ;#
+                       ))
        ) ;json->string
   =>
   "{\"messages\":[{\"role\":\"user\",\"content\":[{\"text\":\"1\",\"type\":\"text\"},{\"text\":\"2\",\"type\":\"text\"}]},{\"role\":\"user\",\"content\":\"中文\"}]}"
