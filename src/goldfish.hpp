@@ -5271,6 +5271,30 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
   }
 
+  // 自动路由：如果参数是目录且第一级文件夹是 tests，自动视为 test 命令
+  if (!command.empty () && command != "help" && command != "version" &&
+      command != "eval" && command != "load" && command != "repl" &&
+      command != "run" && command != "test" && command != "-e") {
+    std::error_code ec;
+    if (fs::is_directory (command, ec)) {
+      fs::path p (command);
+      auto     it= p.begin ();
+      if (it != p.end () && *it == "tests") {
+        if (command_index >= 0 && command_index <= static_cast<int> (command_args.size ())) {
+          command_args.insert (command_args.begin () + command_index, "test");
+        }
+        command= "test";
+        std::cerr << "[gf] Auto-routing: detected tests directory, routing to test command" << "\n";
+        std::cerr << "[gf] Executing: ";
+        for (size_t i= 0; i < command_args.size (); ++i) {
+          if (i > 0) std::cerr << " ";
+          std::cerr << command_args[i];
+        }
+        std::cerr << std::endl;
+      }
+    }
+  }
+
   // 根据命令类型确定默认模式：
   // - repl/load 命令默认使用 liii 模式
   // - 其他命令（eval, run, 直接执行脚本）默认使用 r7rs 模式
