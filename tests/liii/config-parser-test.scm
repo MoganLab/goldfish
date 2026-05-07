@@ -32,6 +32,7 @@
 
 (import (liii check)
   (liii config-parser)
+  (liii raw-string)
   (liii base)
   (liii string)
   (scheme base)
@@ -42,10 +43,30 @@
 ;; ==== 测试用 INI 字符串 ====
 
 (define test-ini
-  "[DEFAULT]\nServerAliveInterval = 45\nCompression = yes\nForwardX11 = yes\n\n[forge.example]\nUser = hg\n\n[topsecret.server.example]\nPort = 50022\nForwardX11 = no\n"
+  (&- #""
+    [DEFAULT]
+    ServerAliveInterval = 45
+    Compression = yes
+    ForwardX11 = yes
+
+    [forge.example]
+    User = hg
+
+    [topsecret.server.example]
+    Port = 50022
+    ForwardX11 = no
+    ""
+  ) ;&-
 ) ;define
 
-(define test-ini-simple "[database]\nhost=localhost\nport=5432\n")
+(define test-ini-simple
+  (&- #""
+    [database]
+    host=localhost
+    port=5432
+    ""
+  ) ;&-
+) ;define
 
 ;; ==== 1. make-config-parser: 创建空解析器 ====
 
@@ -88,7 +109,13 @@
 ;; ==== 6. config-get: 前后空白被忽略 ====
 
 (let ((config (make-config-parser)))
-  (config-read-string config "[section]\n  key  =  value  \n")
+  (config-read-string config
+    (&- #""
+      [section]
+        key  =  value
+      ""
+    ) ;&-
+  ) ;config-read-string
   (check (config-get config "section" "key") => "value")
 ) ;let
 
@@ -218,7 +245,14 @@
 
 (let ((config (make-config-parser)))
   (config-read-string config
-    "; comment\n\n[section]\n; another comment\nkey=val\n"
+    (&- #""
+      ; comment
+
+      [section]
+      ; another comment
+      key=val
+      ""
+    ) ;&-
   ) ;config-read-string
   (check (config-sections config) => '("section"))
   (check (config-get config "section" "key") => "val")
@@ -227,7 +261,13 @@
 ;; ==== 21. 冒号分隔符 ====
 
 (let ((config (make-config-parser)))
-  (config-read-string config "[section]\nkey: value\n")
+  (config-read-string config
+    (&- #""
+      [section]
+      key: value
+      ""
+    ) ;&-
+  ) ;config-read-string
   (check (config-get config "section" "key") => "value")
 ) ;let
 
@@ -235,7 +275,18 @@
 
 (let ((config (make-config-parser)))
   (config-read-string config
-    "[section]\na=yes\nb=true\nc=on\nd=1\ne=no\nf=false\ng=off\nh=0\n"
+    (&- #""
+      [section]
+      a=yes
+      b=true
+      c=on
+      d=1
+      e=no
+      f=false
+      g=off
+      h=0
+      ""
+    ) ;&-
   ) ;config-read-string
   (check (config-get-boolean config "section" "a") => #t)
   (check (config-get-boolean config "section" "b") => #t)
@@ -250,7 +301,13 @@
 ;; ==== 23. 多个 = 只有第一个是分隔符 ====
 
 (let ((config (make-config-parser)))
-  (config-read-string config "[section]\nurl=http://example.com?key=val\n")
+  (config-read-string config
+    (&- #""
+      [section]
+      url=http://example.com?key=val
+      ""
+    ) ;&-
+  ) ;config-read-string
   (check (config-get config "section" "url") => "http://example.com?key=val")
 ) ;let
 
@@ -274,7 +331,13 @@
 ;; ==== 26. keys 不区分大小写 ====
 
 (let ((config (make-config-parser)))
-  (config-read-string config "[Section]\nMyKey=value\n")
+  (config-read-string config
+    (&- #""
+      [Section]
+      MyKey=value
+      ""
+    ) ;&-
+  ) ;config-read-string
   (check (config-get config "Section" "mykey") => "value")
   (check (config-get config "Section" "MYKEY") => "value")
   (check (config-get config "Section" "MyKey") => "value")
@@ -283,7 +346,16 @@
 ;; ==== 27. config-write: 包含 DEFAULT 的输出 ====
 
 (let* ((config (make-config-parser))
-       (_ (config-read-string config "[DEFAULT]\nkey=val\n[section]\nother=data\n"))
+       (_ (config-read-string config
+            (&- #""
+              [DEFAULT]
+              key=val
+              [section]
+              other=data
+              ""
+            ) ;&-
+          ) ;config-read-string
+       ) ;_
        (result (call-with-output-string (lambda (port) (config-write config port))))
       ) ;
   (check (string-contains result "[DEFAULT]") => #t)
