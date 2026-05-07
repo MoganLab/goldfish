@@ -26,16 +26,9 @@
 ) ;call-with-values
 
 ;; 测试 #() 向量字面量：) 对齐到 # 而非 ( 时不应被误判为缩进不匹配
-(call-with-values
-  (lambda ()
-    (repair-parentheses
-      "(x . #((a)\n        (b)\n     ) ;#\n)"
-    ) ;lambda
-  ) ;call-with-values
+(call-with-values (lambda () (repair-parentheses "(x . #((a)\n        (b)\n     ) ;#\n)"))
   (lambda (repaired report)
-    (check repaired =>
-      "(x . #((a)\n        (b)\n     ) ;#\n)"
-    ) ;check
+    (check repaired => "(x . #((a)\n        (b)\n     ) ;#\n)")
     (check (repair-report-ok? report) => #t)
     (check (length (repair-report-edits report)) => 0)
   ) ;lambda
