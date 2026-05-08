@@ -38,6 +38,7 @@
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4`                                                            |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
 | [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
+| [(liii ini)](goldfish/liii/ini.scm)               | INI 文件解析 (SRFI 233)         | `make-ini-file-generator`, `make-ini-file-accumulator`              |
 
 ### SRFI
 
@@ -54,6 +55,7 @@
 | `(srfi srfi-133)` | 部分 | 向量                      |
 | `(srfi srfi-151)` | 部分 | 位运算                    |
 | `(srfi srfi-196)` | 完整 | Range 库                  |
+| `(srfi srfi-233)` | 完整 | INI 文件                  |
 | `(srfi srfi-216)` | 部分 | SICP                      |
 
 
