@@ -2,7 +2,6 @@
   (liii config-parser)
   (liii raw-string)
   (scheme base)
-  (scheme file)
 ) ;import
 
 (check-set-mode! 'report-failed)
@@ -31,18 +30,11 @@
 ;; 文件内容解析规则与 `config-read-string` 一致。
 ;; 支持注释、多分隔符、DEFAULT section 继承等。
 
-;; 使用临时文件测试 config-read-file
-(let ((tmpfile "/tmp/test-config-parser.ini"))
-  (let ((port (open-output-file tmpfile)))
-    (display "[database]\nhost=localhost\nport=5432\n" port)
-    (close-output-port port)
-  ) ;let
-  (let ((config (make-config-parser)))
-    (config-read-file config tmpfile)
-    (check (config-sections config) => '("database"))
-    (check (config-get config "database" "host") => "localhost")
-    (check (config-get config "database" "port") => "5432")
-  ) ;let
+(let ((config (make-config-parser)))
+  (config-read-file config "tests/liii/config-parser/test-data.ini")
+  (check (config-sections config) => '("database"))
+  (check (config-get config "database" "host") => "localhost")
+  (check (config-get config "database" "port") => "5432")
 ) ;let
 
 (check-report)
