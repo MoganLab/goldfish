@@ -38,6 +38,7 @@
 | [(liii uuid)](goldfish/liii/uuid.scm)             | UUID 生成                       | `uuid4`                                                            |
 | [(liii http)](goldfish/liii/http.scm)             | HTTP 客户端库                   | `http-get`, `http-post`, `http-head`                               |
 | [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
+| [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
 
 ### SRFI
 
