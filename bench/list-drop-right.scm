@@ -7,7 +7,7 @@
   (liii error)
 )
 
-;; 旧版本 - 先调用 length 再调用 drop-right
+;; 旧版本 - list-drop-right 原来的实现：先调用 length 再调用 drop-right
 (define (list-drop-right-old lst n)
   (unless (list? lst)
     (type-error "list-drop-right: first argument must be a list" lst)

@@ -7,7 +7,7 @@
   (liii error)
 )
 
-;; 旧版本 - 先调用 length 再调用 take-right
+;; 旧版本 - list-take-right 原来的实现：先调用 length 再调用 take-right
 (define (list-take-right-old lst n)
   (unless (list? lst)
     (type-error "list-take-right: first argument must be a list" lst)
