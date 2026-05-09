@@ -121,8 +121,15 @@
         (type-error "list-drop: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) lst)
-            ((>= n (length lst)) '())
-            (else (drop lst n))
+            ((= n 0) lst)
+            (else (let loop
+                    ((rest lst) (count 0))
+                    (cond ((null? rest) '())
+                          ((>= count n) rest)
+                          (else (loop (cdr rest) (+ count 1)))
+                    ) ;cond
+                  ) ;let
+            ) ;else
       ) ;cond
     ) ;define
 
