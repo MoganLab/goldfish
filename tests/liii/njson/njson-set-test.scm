@@ -15,7 +15,7 @@
 ;; ----
 ;; json : njson-handle
 ;; key ... : string | integer
-;; value : njson-handle | string | number | boolean | 'null
+;; value : njson-handle | string | number | boolean | 'null | vector
 ;;
 ;; 返回值
 ;; ----
@@ -128,6 +128,48 @@
     =>
     "g_njson-set: set target must be array or object"
   ) ;check
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json))
+            (root2 (njson-set root "tags" #("a" "b" "c")))
+            (root3 (njson-set root "nums" #(10 20 30 40 50)))
+           ) ;
+  (check (njson-ref root2 "tags" 0) => "a")
+  (check (njson-ref root2 "tags" 1) => "b")
+  (check (njson-ref root2 "tags" 2) => "c")
+  (check-false (njson-contains-key? root "tags"))
+  (check (njson-ref root3 "nums" 0) => 10)
+  (check (njson-ref root3 "nums" 1) => 20)
+  (check (njson-ref root3 "nums" 2) => 30)
+  (check (njson-ref root "nums" 0) => 1)
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json))
+            (root2 (njson-set root "mixed" #(1 "two" #f 3.14)))
+           ) ;
+  (check (njson-ref root2 "mixed" 0) => 1)
+  (check (njson-ref root2 "mixed" 1) => "two")
+  (check (njson-ref root2 "mixed" 2) => #f)
+  (check (njson-ref root2 "mixed" 3) => 3.14)
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json))
+            (root2 (njson-set root "nested" #(#(1 2) #(3 4))))
+           ) ;
+  (check (njson-ref root2 "nested" 0 0) => 1)
+  (check (njson-ref root2 "nested" 0 1) => 2)
+  (check (njson-ref root2 "nested" 1 0) => 3)
+  (check (njson-ref root2 "nested" 1 1) => 4)
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json)) (root2 (njson-set root "empty" #())))
+  (check-true (njson-array? (njson-ref root2 "empty")))
+  (check (njson-size (njson-ref root2 "empty")) => 0)
+  (check-false (njson-contains-key? root "empty"))
 ) ;let-njson
 
 

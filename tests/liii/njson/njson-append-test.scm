@@ -16,7 +16,7 @@
 ;; ----
 ;; json : njson-handle
 ;; k1..kn : string | integer
-;; value : njson-handle | string | number | boolean | 'null
+;; value : njson-handle | string | number | boolean | 'null | vector
 ;;
 ;; 返回值
 ;; ----
@@ -101,6 +101,30 @@
     =>
     "g_njson-append: append target must be array"
   ) ;check
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json))
+            (root2 (njson-append root "nums" #("a" "b")))
+           ) ;
+  (check-true (njson-array? (njson-ref root2 "nums" 5)))
+  (check (njson-ref root2 "nums" 5 0) => "a")
+  (check (njson-ref root2 "nums" 5 1) => "b")
+  (check (njson-size (njson-ref root "nums")) => 5)
+) ;let-njson
+
+
+(let-njson ((arr (string->njson "[1,2]")) (arr2 (njson-append arr #(3 4))))
+  (check-true (njson-array? (njson-ref arr2 2)))
+  (check (njson-ref arr2 2 0) => 3)
+  (check (njson-ref arr2 2 1) => 4)
+  (check (njson-size arr) => 2)
+) ;let-njson
+
+
+(let-njson ((root (string->njson sample-json)) (root2 (njson-append root "nums" #())))
+  (check-true (njson-array? (njson-ref root2 "nums")))
+  (check (njson-size (njson-ref root2 "nums")) => 6)
 ) ;let-njson
 
 

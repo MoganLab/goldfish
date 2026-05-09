@@ -524,7 +524,22 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     return false;
   }
 
-  error_msg = "value must be njson handle, string?, number?, boolean?, or null symbol";
+  if (s7_is_vector (value)) {
+    s7_int len = s7_vector_length (value);
+    s7_pointer* elements = s7_vector_elements (value);
+    out = json::array ();
+    for (s7_int i = 0; i < len; ++i) {
+      json element_json;
+      if (!scheme_to_njson_scalar_or_handle (sc, elements[i], element_json, error_msg)) {
+        error_msg = "vector element " + std::to_string (i) + ": " + error_msg;
+        return false;
+      }
+      out.push_back (element_json);
+    }
+    return true;
+  }
+
+  error_msg = "value must be njson handle, string?, number?, boolean?, vector?, or null symbol";
   return false;
 }
 
