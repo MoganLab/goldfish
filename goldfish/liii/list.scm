@@ -174,8 +174,28 @@
         (type-error "list-drop-right: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) lst)
-            ((>= n (length lst)) '())
-            (else (drop-right lst n))
+            ((= n 0) lst)
+            (else
+              (let ((len 0))
+                (let loop ((rest lst))
+                  (when (pair? rest)
+                    (set! len (+ len 1))
+                    (loop (cdr rest))
+                  ) ;when
+                ) ;let
+                (if (>= n len)
+                  '()
+                  (let loop ((rest lst) (count 0) (result '()))
+                    (cond ((null? rest) (reverse result))
+                          ((>= count (- len n))
+                           (loop (cdr rest) (+ count 1) result)
+                          ) ;>=
+                          (else (loop (cdr rest) (+ count 1) (cons (car rest) result)))
+                    ) ;cond
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;else
       ) ;cond
     ) ;define
 
