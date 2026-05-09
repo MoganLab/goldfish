@@ -141,8 +141,28 @@
         (type-error "list-take-right: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) '())
-            ((>= n (length lst)) lst)
-            (else (take-right lst n))
+            ((= n 0) '())
+            (else
+              (let ((len 0))
+                (let loop ((rest lst))
+                  (when (pair? rest)
+                    (set! len (+ len 1))
+                    (loop (cdr rest))
+                  ) ;when
+                ) ;let
+                (if (>= n len)
+                  lst
+                  (let loop ((rest lst) (count 0) (result '()))
+                    (cond ((null? rest) (reverse result))
+                          ((>= count (- len n))
+                           (loop (cdr rest) (+ count 1) (cons (car rest) result))
+                          ) ;>=
+                          (else (loop (cdr rest) (+ count 1) result))
+                    ) ;cond
+                  ) ;let
+                ) ;if
+              ) ;let
+            ) ;else
       ) ;cond
     ) ;define
 
