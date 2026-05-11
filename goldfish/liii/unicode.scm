@@ -215,7 +215,7 @@
       (unless (char? char)
         (error 'type-error "utf8-string-set!: expected char" char)
       ) ;unless
-      (let* ((bv (string->utf8 str))
+      (let* ((bv (string->byte-vector str))
              (byte-len (bytevector-length bv))
              (char-bv (codepoint->utf8 (char->integer char)))
             ) ;
@@ -225,11 +225,56 @@
             (error 'out-of-range "utf8-string-set!: index out of range" index)
             (let ((next-byte-pos (bytevector-advance-utf8 bv byte-pos byte-len)))
               (if (= char-index index)
-                (utf8->string (bytevector-append (bytevector-copy bv 0 byte-pos)
-                                char-bv
-                                (bytevector-copy bv next-byte-pos byte-len)
-                              ) ;bytevector-append
-                ) ;utf8->string
+                (let ((old-char-len (- next-byte-pos byte-pos))
+                      (char-bv-len (bytevector-length char-bv))
+                     ) ;
+                  (if (= old-char-len char-bv-len)
+                    ;; 等长替换：直接修改原 bytevector，无需复制
+                    (let replace-char
+                      ((j 0))
+                      (if (= j char-bv-len)
+                        (byte-vector->string bv)
+                        (begin
+                          (bytevector-u8-set! bv (+ byte-pos j) (bytevector-u8-ref char-bv j))
+                          (replace-char (+ j 1))
+                        ) ;begin
+                      ) ;if
+                    ) ;let
+                    ;; 不等长替换：make-bytevector + 手动循环填充，减少临时对象分配
+                    (let* ((new-len (+ (- byte-len old-char-len) char-bv-len))
+                           (result (make-bytevector new-len))
+                          ) ;
+                      (let copy-front
+                        ((i 0))
+                        (if (= i byte-pos)
+                          (let copy-char
+                            ((j 0))
+                            (if (= j char-bv-len)
+                              (let copy-back
+                                ((src next-byte-pos) (dst (+ byte-pos char-bv-len)))
+                                (if (= src byte-len)
+                                  (byte-vector->string result)
+                                  (begin
+                                    (bytevector-u8-set! result dst (bytevector-u8-ref bv src))
+                                    (copy-back (+ src 1) (+ dst 1))
+                                  ) ;begin
+                                ) ;if
+                              ) ;let
+                              (begin
+                                (bytevector-u8-set! result (+ byte-pos j) (bytevector-u8-ref char-bv j))
+                                (copy-char (+ j 1))
+                              ) ;begin
+                            ) ;if
+                          ) ;let
+                          (begin
+                            (bytevector-u8-set! result i (bytevector-u8-ref bv i))
+                            (copy-front (+ i 1))
+                          ) ;begin
+                        ) ;if
+                      ) ;let
+                    ) ;let*
+                  ) ;if
+                ) ;let
                 (loop next-byte-pos (+ char-index 1))
               ) ;if
             ) ;let
