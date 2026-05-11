@@ -697,15 +697,32 @@
     ) ;define
     (define (scan-file path)
       (let* ((raw-content (path-read-text path))
-             (tokens (let ((scanned (source-tokenize raw-content)))
-                       (if (and (not (null? scanned))
+             (scanned (source-tokenize raw-content))
+             ;; 处理文件开头空行
+             (leading-blanks (let loop ((i 0) (count 0))
+                               (if (>= i (string-length raw-content))
+                                 count
+                                 (let ((c (string-ref raw-content i)))
+                                   (cond ((char=? c #\newline) (loop (+ i 1) (+ count 1)))
+                                         ((char=? c #\return) (loop (+ i 1) count))
+                                         ((or (char=? c #\space) (char=? c #\tab)) (loop (+ i 1) count))
+                                         (else count)
+                                   ) ;cond
+                                 ) ;let
+                               ) ;if
+                             ) ;let
+                           )
+             (tokens-with-leading (if (> leading-blanks 0)
+                                    (cons (cons 'newline leading-blanks) scanned)
+                                    scanned))
+             ;; 处理文件末尾换行符
+             (tokens (if (and (not (null? tokens-with-leading))
                              (> (string-length raw-content) 0)
-                             (char=? (string-ref raw-content (- (string-length raw-content) 1)) #\newline)
-                           ) ;and
-                         (append scanned (list (cons 'newline 1)))
-                         scanned
-                       ) ;if
-                     ) ;let
+                             (char=? (string-ref raw-content (- (string-length raw-content) 1)) #\newline))
+                            ;and
+                         (append tokens-with-leading (list (cons 'newline 1)))
+                         tokens-with-leading)
+                        ;if
              ) ;tokens
              (processed-content (source-tokens->string tokens))
             ) ;

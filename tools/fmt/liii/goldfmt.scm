@@ -94,30 +94,11 @@
 
     ;; ; 格式化单个文件（dry-run 模式，输出到终端）
     (define (format-file-dry-run path-str)
-      (let* ((nodes (scan-file path-str)))
-        (let loop
-          ((i 0))
-          (if (>= i (vector-length nodes))
-            (values)
-            (let ((node (vector-ref nodes i)))
-              (call-with-values (lambda () (format-node node 0))
-                (lambda (text positioned-node)
-                  (display (ensure-trailing-newline text))
-                  (loop (+ i 1))
-                ) ;lambda
-              ) ;call-with-values
-            ) ;let
-          ) ;if
-        ) ;let
+      (let* ((nodes (scan-file path-str))
+             (formatted (format-nodes nodes))
+            ) ;
+        (display formatted)
       ) ;let*
-    ) ;define
-
-    ;; ; 辅助函数：确保字符串以换行符结尾
-    (define (ensure-trailing-newline str)
-      (if (or (string=? str "") (string-suffix? "\n" str))
-        str
-        (string-append str "\n")
-      ) ;if
     ) ;define
 
     ;; ; 格式化单个文件（覆盖原文件）
@@ -126,29 +107,15 @@
       (let* ((p (path path-str))
              (original-content (path-read-text p))
              (nodes (scan-file path-str))
-             (results '())
+             (formatted (format-nodes nodes))
             ) ;
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i (vector-length nodes))
-            (let* ((joined (string-join (reverse acc) "\n"))
-                   (formatted (ensure-trailing-newline joined))
-                  ) ;
-              (if (string=? original-content formatted)
-                #f
-                (begin
-                  (path-write-text p formatted)
-                  #t
-                ) ;begin
-              ) ;if
-            ) ;let*
-            (let ((node (vector-ref nodes i)))
-              (call-with-values (lambda () (format-node node 0))
-                (lambda (text positioned-node) (loop (+ i 1) (cons text acc)))
-              ) ;call-with-values
-            ) ;let
-          ) ;if
-        ) ;let
+        (if (string=? original-content formatted)
+          #f
+          (begin
+            (path-write-text p formatted)
+            #t
+          ) ;begin
+        ) ;if
       ) ;let*
     ) ;define
 

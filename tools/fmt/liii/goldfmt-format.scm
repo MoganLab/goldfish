@@ -19,6 +19,7 @@
     format-datum+node
     format-node
     format-string
+    format-nodes
     format-inline
     can-inline?
   ) ;export
@@ -146,7 +147,10 @@
     ) ;define
 
     (define (format-comment-content content)
-      (if (or (string=? content "") (char=? (string-ref content 0) #\space))
+      (if (or (string=? content "")
+              (char=? (string-ref content 0) #\space)
+              (char=? (string-ref content 0) #\;)
+            )
         (string-append ";;" content)
         (string-append ";; " content)
       ) ;if
@@ -1058,15 +1062,17 @@
 
   (define (join-top-level pieces)
     (let loop
-      ((rest pieces) (result ""))
+      ((rest pieces) (result "") (first #t))
       (cond ((null? rest)
              (if (and (not (string=? result "")) (not (string-suffix? "\n" result)))
                (string-append result "\n")
                result
              ) ;if
             ) ;
-            ((string=? result "") (loop (cdr rest) (car rest)))
-            (else (loop (cdr rest) (string-append result "\n" (car rest))))
+            (first
+              (loop (cdr rest) (string-append result (car rest)) #f)
+            ) ;
+            (else (loop (cdr rest) (string-append result "\n" (car rest)) #f))
       ) ;cond
     ) ;let
   ) ;define
@@ -1138,10 +1144,8 @@
         (reverse result)
         (let ((node (vector-ref nodes i)))
           (if (newline-node? node)
-            (if is-first
-              (loop (+ i 1) #t result)
-              (loop (+ i 1) #f (cons (make-newlines (newline-count node)) result))
-            ) ;if
+            (loop (+ i 1) #f (cons (make-newlines (newline-count node)) result))
+            ;if
             (call-with-values (lambda () (format-node node 0))
               (lambda (formatted positioned-node)
                 (let ((next-result (if (and (define-node? node) (not is-first))
@@ -1164,5 +1168,9 @@
     (let* ((nodes (scan-string source)) (pieces (format-top-level-nodes nodes)))
       (join-top-level pieces)
     ) ;let*
+  ) ;define
+
+  (define (format-nodes nodes)
+    (join-top-level (format-top-level-nodes nodes))
   ) ;define
 ) ;define-library

@@ -1,6 +1,7 @@
 (import (liii check)
   (liii goldfmt-format)
   (liii goldfmt-scan)
+  (liii goldfmt-record)
   (liii os)
   (liii raw-string)
   (srfi srfi-13)
@@ -215,6 +216,48 @@
        ) ;format-string
   =>
   "(check (f '((\"messages\"\n             . #(((\"role\" . \"user\")\n                  (\"content\"\n                   . #(((\"text\" . \"1\") (\"type\" . \"text\"))\n                       ((\"text\" . \"2\") (\"type\" . \"text\"))\n                     ) ;#\n                  ))\n                 ((\"role\" . \"user\") (\"content\" . \"中文\"))\n               ) ;#\n            ))\n       ) ;f\n  =>\n  \"ok\"\n) ;check\n"
+) ;check
+
+;; 纯分号分隔线注释不应在中间插入空格
+(let ((semicolon-line (make-env :tag-name "*comment*" :children (vector (make-atom :value ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;")))))
+  (check (call-with-values (lambda () (format-node semicolon-line 0))
+           (lambda (text positioned-node) text))
+    =>
+    ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
+  ) ;check
+) ;let
+
+;; 内容以分号开头的注释（对应原始输入 ;;; ...）应保持连续分号
+(let ((mixed-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "; not all semicolons")))))
+  (check (call-with-values (lambda () (format-node mixed-comment 0))
+           (lambda (text positioned-node) text))
+    =>
+    ";;; not all semicolons"
+  ) ;check
+) ;let
+
+;; 空注释
+(let ((empty-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "")))))
+  (check (call-with-values (lambda () (format-node empty-comment 0))
+           (lambda (text positioned-node) text))
+    =>
+    ";;"
+  ) ;check
+) ;let
+
+;; 三个分号开头的注释应保持原样
+(let ((triple-comment (make-env :tag-name "*comment*" :children (vector (make-atom :value "; certain Scheme versions do not define 'filter'")))))
+  (check (call-with-values (lambda () (format-node triple-comment 0))
+           (lambda (text positioned-node) text))
+    =>
+    ";;; certain Scheme versions do not define 'filter'"
+  ) ;check
+) ;let
+
+;; 测试文件开头空行后紧跟注释，空行应被保留
+(check (format-string "(*newline* 1)\n(*comment* \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\")\n")
+  =>
+  "\n;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
 ) ;check
 
 (check-report)
