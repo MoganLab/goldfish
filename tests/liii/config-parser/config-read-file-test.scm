@@ -1,8 +1,4 @@
-(import (liii check)
-  (liii config-parser)
-  (liii raw-string)
-  (scheme base)
-) ;import
+(import (liii check) (liii config-parser) (liii raw-string) (scheme base))
 
 (check-set-mode! 'report-failed)
 
