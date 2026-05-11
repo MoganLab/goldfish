@@ -66,15 +66,28 @@
           (unless (char? c)
             (error 'type-error "utf8-make-string: expected char" c)
           ) ;unless
-          (let ((utf8-bv (codepoint->utf8 (char->integer c))))
-            (let loop
-              ((i 0) (result (bytevector)))
+          (let* ((utf8-bv (codepoint->utf8 (char->integer c)))
+                 (unit-len (bytevector-length utf8-bv))
+                 (total-len (* k unit-len))
+                 (result (make-bytevector total-len))
+                ) ;
+            (let outer
+              ((i 0))
               (if (= i k)
                 (utf8->string result)
-                (loop (+ i 1) (bytevector-append result utf8-bv))
+                (let inner
+                  ((j 0) (offset (* i unit-len)))
+                  (if (= j unit-len)
+                    (outer (+ i 1))
+                    (begin
+                      (bytevector-u8-set! result offset (bytevector-u8-ref utf8-bv j))
+                      (inner (+ j 1) (+ offset 1))
+                    ) ;begin
+                  ) ;if
+                ) ;let
               ) ;if
             ) ;let
-          ) ;let
+          ) ;let*
         ) ;let
       ) ;if
     ) ;define
