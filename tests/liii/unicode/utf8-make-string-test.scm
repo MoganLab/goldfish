@@ -53,6 +53,10 @@
   (check (utf8-string-length str) => 5)
   (check (string-ref str 0) => #\space)
 ) ;let
+(let ((str (utf8-make-string 100 #\中)))
+  (check (utf8-string-length str) => 100)
+  (check (bytevector-length (string->utf8 str)) => 300)
+) ;let
 (check-catch 'out-of-range (utf8-make-string -1 #\a))
 (check-catch 'out-of-range (utf8-make-string -1))
 (check-catch 'type-error (utf8-make-string 3 "a"))
