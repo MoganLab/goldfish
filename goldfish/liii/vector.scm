@@ -42,7 +42,12 @@
   (begin
 
     (define (vector-filter pred vec)
-      (list->vector (vector-fold-right (lambda (elem acc) (if (pred elem) (cons elem acc) acc)) '() vec)))
+      (list->vector (vector-fold-right (lambda (elem acc) (if (pred elem) (cons elem acc) acc))
+                      '()
+                      vec
+                    ) ;vector-fold-right
+      ) ;list->vector
+    ) ;define
 
     (define (vector-contains? vec elem . args)
       (let ((cmp (if (null? args) equal? (car args))))
