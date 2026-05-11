@@ -307,10 +307,8 @@
                 ) ;when
              ) ;_
              (start (vector-ref pos idx))
-             (end (vector-ref pos (+ idx 1)))
-             (char-bv (bytevector-copy bv start end))
             ) ;
-        (integer->char (utf8->codepoint char-bv))
+        (integer->char (utf8->codepoint-at bv start))
       ) ;let*
     ) ;define
 
@@ -738,11 +736,9 @@
           (if (or (>= i end1-idx) (>= j end2-idx))
             count
             (let* ((b1-start (vector-ref pos1 i))
-                   (b1-end (vector-ref pos1 (+ i 1)))
-                   (ch1 (integer->char (utf8->codepoint (bytevector-copy bv1 b1-start b1-end))))
+                   (ch1 (integer->char (utf8->codepoint-at bv1 b1-start)))
                    (b2-start (vector-ref pos2 j))
-                   (b2-end (vector-ref pos2 (+ j 1)))
-                   (ch2 (integer->char (utf8->codepoint (bytevector-copy bv2 b2-start b2-end))))
+                   (ch2 (integer->char (utf8->codepoint-at bv2 b2-start)))
                   ) ;
               (if (char=? ch1 ch2) (loop (+ i 1) (+ j 1) (+ count 1)) count)
             ) ;let*
@@ -781,11 +777,9 @@
           (if (or (< i start1-idx) (< j start2-idx))
             count
             (let* ((b1-start (vector-ref pos1 i))
-                   (b1-end (vector-ref pos1 (+ i 1)))
-                   (ch1 (integer->char (utf8->codepoint (bytevector-copy bv1 b1-start b1-end))))
+                   (ch1 (integer->char (utf8->codepoint-at bv1 b1-start)))
                    (b2-start (vector-ref pos2 j))
-                   (b2-end (vector-ref pos2 (+ j 1)))
-                   (ch2 (integer->char (utf8->codepoint (bytevector-copy bv2 b2-start b2-end))))
+                   (ch2 (integer->char (utf8->codepoint-at bv2 b2-start)))
                   ) ;
               (if (char=? ch1 ch2) (loop (- i 1) (- j 1) (+ count 1)) count)
             ) ;let*
@@ -858,11 +852,9 @@
         (if (>= j s2-end)
           #t
           (let* ((b1-start (vector-ref pos1 i))
-                 (b1-end (vector-ref pos1 (+ i 1)))
-                 (ch1 (integer->char (utf8->codepoint (bytevector-copy bv1 b1-start b1-end))))
+                 (ch1 (integer->char (utf8->codepoint-at bv1 b1-start)))
                  (b2-start (vector-ref pos2 j))
-                 (b2-end (vector-ref pos2 (+ j 1)))
-                 (ch2 (integer->char (utf8->codepoint (bytevector-copy bv2 b2-start b2-end))))
+                 (ch2 (integer->char (utf8->codepoint-at bv2 b2-start)))
                 ) ;
             (if (char=? ch1 ch2) (loop (+ i 1) (+ j 1)) #f)
           ) ;let*

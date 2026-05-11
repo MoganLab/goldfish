@@ -10,6 +10,7 @@
     bytevector-advance-utf8
     codepoint->utf8
     utf8->codepoint
+    utf8->codepoint-at
     utf8-string-trim-right
     utf8-string-trim-left
     utf8-string-trim-both
@@ -357,6 +358,94 @@
                 ) ;
 
                 (else (error 'value-error "utf8->codepoint: invalid UTF-8 sequence"))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (utf8->codepoint-at bv start)
+      (unless (bytevector? bv)
+        (error 'type-error "utf8->codepoint-at: expected bytevector")
+      ) ;unless
+
+      (let ((len (bytevector-length bv)))
+        (when (>= start len)
+          (error 'value-error "utf8->codepoint-at: start index past end of bytevector")
+        ) ;when
+
+        (let ((first-byte (bytevector-u8-ref bv start)))
+          (cond ((<= first-byte 127) first-byte)
+
+                ((<= 194 first-byte 223)
+                 (when (> (+ start 2) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 2-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1))))
+                   (unless (<= 128 byte2 191)
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (bitwise-ior (ash (bitwise-and first-byte 31) 6) (bitwise-and byte2 63))
+                 ) ;let
+                ) ;
+
+                ((<= 224 first-byte 239)
+                 (when (> (+ start 3) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 3-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1)))
+                       (byte3 (bytevector-u8-ref bv (+ start 2)))
+                      ) ;
+                   (unless (and (<= 128 byte2 191) (<= 128 byte3 191))
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (let ((codepoint (bitwise-ior (ash (bitwise-and first-byte 15) 12)
+                                      (ash (bitwise-and byte2 63) 6)
+                                      (bitwise-and byte3 63)
+                                    ) ;bitwise-ior
+                         ) ;codepoint
+                        ) ;
+                     (when (or (<= 55296 codepoint 57343)
+                             (and (= first-byte 224) (< codepoint 2048))
+                             (and (= first-byte 237) (>= codepoint 55296))
+                           ) ;or
+                       (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                     ) ;when
+                     codepoint
+                   ) ;let
+                 ) ;let
+                ) ;
+
+                ((<= 240 first-byte 244)
+                 (when (> (+ start 4) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 4-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1)))
+                       (byte3 (bytevector-u8-ref bv (+ start 2)))
+                       (byte4 (bytevector-u8-ref bv (+ start 3)))
+                      ) ;
+                   (unless (and (<= 128 byte2 191) (<= 128 byte3 191) (<= 128 byte4 191))
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (let ((codepoint (bitwise-ior (ash (bitwise-and first-byte 7) 18)
+                                      (ash (bitwise-and byte2 63) 12)
+                                      (ash (bitwise-and byte3 63) 6)
+                                      (bitwise-and byte4 63)
+                                    ) ;bitwise-ior
+                         ) ;codepoint
+                        ) ;
+                     (when (or (< codepoint 65536)
+                             (> codepoint 1114111)
+                             (and (= first-byte 240) (< codepoint 65536))
+                             (and (= first-byte 244) (> codepoint 1114111))
+                           ) ;or
+                       (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                     ) ;when
+                     codepoint
+                   ) ;let
+                 ) ;let
+                ) ;
+
+                (else (error 'value-error "utf8->codepoint-at: invalid UTF-8 sequence"))
           ) ;cond
         ) ;let
       ) ;let

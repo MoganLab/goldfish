@@ -5855,8 +5855,7 @@
           (if (>= pos len)
             (apply utf8-string (reverse result))
             (let* ((next (bytevector-advance-utf8 bv pos len))
-                   (char-bv (bytevector-copy bv pos next))
-                   (ch (integer->char (utf8->codepoint char-bv)))
+                   (ch (integer->char (utf8->codepoint-at bv pos)))
                    (new-ch (proc ch))
                   ) ;
               (loop next (cons new-ch result))
