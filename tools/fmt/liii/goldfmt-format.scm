@@ -1148,12 +1148,18 @@
             ;if
             (call-with-values (lambda () (format-node node 0))
               (lambda (formatted positioned-node)
-                (let ((next-result (if (and (define-node? node) (not is-first))
-                                     (cons formatted (cons "" result))
-                                     (cons formatted result)
-                                   ) ;if
-                      ) ;next-result
-                     ) ;
+                (let* ((prev-node (if (> i 0) (vector-ref nodes (- i 1)) #f))
+                       (needs-blank (and (define-node? node)
+                                         (not is-first)
+                                         (not (and prev-node (newline-node? prev-node)))
+                                       )
+                       ) ;needs-blank
+                       (next-result (if needs-blank
+                                      (cons formatted (cons "" result))
+                                      (cons formatted result)
+                                    ) ;if
+                       ) ;next-result
+                      ) ;
                   (loop (+ i 1) #f next-result)
                 ) ;let
               ) ;lambda
