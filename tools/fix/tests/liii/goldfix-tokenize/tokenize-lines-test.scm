@@ -59,6 +59,16 @@
   (check (fix-token-text (list-ref tokens 2)) => "#\"\"(not-code)\"\"")
 ) ;let
 
+;; 独立的 | 标识符不应被当作 bar symbol 的开始定界符。
+
+(let ((tokens (tokenize "(or | a)")))
+  (check (length tokens) => 5)
+  (check (fix-token-type (list-ref tokens 2)) => 'other)
+  (check (fix-token-text (list-ref tokens 2)) => "|")
+  (check (fix-token-type (list-ref tokens 3)) => 'other)
+  (check (fix-token-text (list-ref tokens 3)) => "a")
+) ;let
+
 ;; tokenize-lines
 ;; 按物理行组织 token，并记录第一枚 code token。
 

@@ -348,7 +348,7 @@
                      ) ;add-token!
                      (loop)
                     ) ;
-                    ((char=? c #\|)
+                    ((and (char=? c #\|) (not (whitespace-char? next-c)))
                      (add-token! 'other
                        start
                        (find-bar-symbol-end source start)
