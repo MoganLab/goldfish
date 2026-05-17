@@ -14289,6 +14289,7 @@ static char *floatify(char *str, s7_int *nlen)
 static void insert_spaces(s7_scheme *sc, const char *src, s7_int width, s7_int len)
 {
   s7_int spaces = width - len;
+  if ((spaces <= 0) || (len <= 0)) return;
   if (width >= sc->num_to_str_size)
     {
       sc->num_to_str_size = width + 1;
