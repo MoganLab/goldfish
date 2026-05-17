@@ -51,18 +51,12 @@
 (check (cdr '((((a))))) => '())
 ;; 各种数据类型cdr边界测试
 (check (cdr '(123 "text" symbol)) => '("text" symbol))
-(check (cdr '(#\newline
-              #	ab
-              #\space)
-       ) ;cdr
-  =>
-  '(#	ab #\space)
-) ;check
+(check (cdr '(#\newline #	ab #\space)) => '(#	ab #\space))
 
 (check (cdr '((a b) c d)) => '(c d))
 (check (cdr '(#(1 2) #(3 4))) => '(#(3 4)))
 (check (cdr '(+ - * /)) => '(- * /))
-(check (cdr '((#_quote (a b)) (#_quote (c d)))) => '((#_quote (c d))))
+(check (cdr '('(a b) '(c d))) => '('(c d)))
 
 ;; 极端边界条件测试
 (check (cdr '((lambda (x) x) (lambda (y) y))) => '((lambda (y) y)))

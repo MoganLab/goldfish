@@ -29,6 +29,7 @@
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当过程应用到不兼容参数时
+
 (define (filter pred lst)
   (cond ((null? lst) '())
         ((pred (car lst)) (cons (car lst) (filter pred (cdr lst))))

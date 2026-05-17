@@ -85,10 +85,7 @@
 ;; Unicode和特殊字符边界测试
 (check (car '("中文" "world")) => "中文")
 (check (car '("🙂" "🚀")) => "🙂")
-(check (car '((list 'a 'b) 'c))
-  =>
-  '(list 'a 'b)
-) ;check
+(check (car '((list 'a 'b) 'c)) => '(list 'a 'b))
 ;; 函数和过程对象作为car值测试
 (check (car '((lambda (x) (* x x)) (lambda (y) (+ y 1))))
   =>

@@ -110,13 +110,13 @@
 ) ;let
 ;; 引号语法测试
 (let ((port (open-input-string "'hello")))
-  (check (read port) => '(#_quote hello))
+  (check (read port) => ''hello)
 ) ;let
 (let ((port (open-input-string "'(1 2 3)")))
-  (check (read port) => '(#_quote (1 2 3)))
+  (check (read port) => ''(1 2 3))
 ) ;let
 (let ((port (open-input-string "`hello")))
-  (check (read port) => '(#_quote hello))
+  (check (read port) => ''hello)
 ) ;let
 ;; 取消引号语法 - 这些在当前实现中可能不支持
 ;; (let ((port (open-input-string ",hello")))
@@ -143,7 +143,7 @@
 ) ;let
 ;; 混合类型列表测试
 (let ((port (open-input-string "(1 \"two\" 'three 4.0)")))
-  (check (read port) => '(1 "two" (#_quote three) 4.0))
+  (check (read port) => '(1 "two" 'three 4.0))
 ) ;let
 ;; 文件结束测试
 (let ((port (open-input-string "")))
@@ -210,11 +210,11 @@
 ) ;let
 ;; 中文符号测试
 (let ((port (open-input-string "'中文测试")))
-  (check (read port) => '(#_quote 中文测试))
+  (check (read port) => ''中文测试)
 ) ;let
 ;; 嵌套引号测试
 (let ((port (open-input-string "''hello")))
-  (check (read port) => '(#_quote (#_quote hello)))
+  (check (read port) => '''hello)
 ) ;let
 ;; 复杂嵌套测试
 (let ((port (open-input-string "(a (b (c d)) e)")))

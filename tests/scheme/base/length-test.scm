@@ -122,7 +122,7 @@
 ;; length 复杂数据结构测试
 (check (length '((first 1) (second 2) (third 3))) => 3)
 (check (length '("hello" "world" "test")) => 3)
-(check (length '(#t #f (#_quote symbol))) => 3)
+(check (length '(#t #f 'symbol)) => 3)
 (check (length '(42 3.14 "string" #t)) => 4)
 ;; length 边界测试：各种规模列表
 (check (length '(a)) => 1)

@@ -77,6 +77,17 @@
       ) ;and
     ) ;define
 
+    ;; ; 检查是否为 S7 #_quote 语法对象形式（非符号 quote）
+    (define (quote-syntax-form? value)
+      (and (pair? value)
+        (not (null? value))
+        (syntax? (car value))
+        (string=? (object->string (car value) #f) "#_quote")
+        (not (null? (cdr value)))
+        (null? (cddr value))
+      ) ;and
+    ) ;define
+
     ;; ; 将 quote 形式转换为字符串：'(quoted-content)
     (define (quote-form->string value)
       (let ((quoted-content (cadr value)))
@@ -148,9 +159,9 @@
 
     (define (format-comment-content content)
       (if (or (string=? content "")
-              (char=? (string-ref content 0) #\space)
-              (char=? (string-ref content 0) #\;)
-            )
+            (char=? (string-ref content 0) #\space)
+            (char=? (string-ref content 0) #\;)
+          ) ;or
         (string-append ";;" content)
         (string-append ";; " content)
       ) ;if
@@ -585,6 +596,9 @@
             ((single-arg-symbol-form? datum 'unquote-splicing)
              (string-append ",@" (format-reader-datum-inline (cadr datum)))
             ) ;
+            ((quote-syntax-form? datum)
+             (string-append "'" (format-reader-datum-inline (cadr datum)))
+            ) ;
             ((pair? datum) (format-reader-pair-inline datum))
             ((or (vector? datum) (byte-vector? datum)) (format-reader-vector-inline datum))
             (else (format-atom-value datum))
@@ -603,6 +617,9 @@
             ) ;
             ((single-arg-symbol-form? datum 'unquote-splicing)
              (string-append ",@" (format-reader-datum-at (cadr datum) (+ indent 2)))
+            ) ;
+            ((quote-syntax-form? datum)
+             (string-append "'" (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
             ((pair? datum) (format-reader-pair-at datum indent))
             ((or (vector? datum) (byte-vector? datum))
@@ -1069,9 +1086,7 @@
                result
              ) ;if
             ) ;
-            (first
-              (loop (cdr rest) (string-append result (car rest)) #f)
-            ) ;
+            (first (loop (cdr rest) (string-append result (car rest)) #f))
             (else (loop (cdr rest) (string-append result "\n" (car rest)) #f))
       ) ;cond
     ) ;let
@@ -1145,23 +1160,19 @@
         (let ((node (vector-ref nodes i)))
           (if (newline-node? node)
             (loop (+ i 1) #f (cons (make-newlines (newline-count node)) result))
-            ;if
             (call-with-values (lambda () (format-node node 0))
               (lambda (formatted positioned-node)
                 (let* ((prev-node (if (> i 0) (vector-ref nodes (- i 1)) #f))
                        (needs-blank (and (define-node? node)
-                                         (not is-first)
-                                         (not (and prev-node (newline-node? prev-node)))
-                                       )
+                                      (not is-first)
+                                      (not (and prev-node (newline-node? prev-node)))
+                                    ) ;and
                        ) ;needs-blank
-                       (next-result (if needs-blank
-                                      (cons formatted (cons "" result))
-                                      (cons formatted result)
-                                    ) ;if
+                       (next-result (if needs-blank (cons formatted (cons "" result)) (cons formatted result))
                        ) ;next-result
                       ) ;
                   (loop (+ i 1) #f next-result)
-                ) ;let
+                ) ;let*
               ) ;lambda
             ) ;call-with-values
           ) ;if
