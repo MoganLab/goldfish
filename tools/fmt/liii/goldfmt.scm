@@ -94,9 +94,7 @@
 
     ;; ; 格式化单个文件（dry-run 模式，输出到终端）
     (define (format-file-dry-run path-str)
-      (let* ((nodes (scan-file path-str))
-             (formatted (format-nodes nodes))
-            ) ;
+      (let* ((nodes (scan-file path-str)) (formatted (format-nodes nodes)))
         (display formatted)
       ) ;let*
     ) ;define

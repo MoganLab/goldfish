@@ -698,8 +698,8 @@
     (define (scan-file path)
       (let* ((raw-content (path-read-text path))
              (scanned (source-tokenize raw-content))
-             ;; 处理文件开头空行
-             (leading-blanks (let loop ((i 0) (count 0))
+             (leading-blanks (let loop
+                               ((i 0) (count 0))
                                (if (>= i (string-length raw-content))
                                  count
                                  (let ((c (string-ref raw-content i)))
@@ -711,18 +711,16 @@
                                  ) ;let
                                ) ;if
                              ) ;let
-                           )
-             (tokens-with-leading (if (> leading-blanks 0)
-                                    (cons (cons 'newline leading-blanks) scanned)
-                                    scanned))
-             ;; 处理文件末尾换行符
+             ) ;leading-blanks
+             (tokens-with-leading (if (> leading-blanks 0) (cons (cons 'newline leading-blanks) scanned) scanned)
+             ) ;tokens-with-leading
              (tokens (if (and (not (null? tokens-with-leading))
-                             (> (string-length raw-content) 0)
-                             (char=? (string-ref raw-content (- (string-length raw-content) 1)) #\newline))
-                            ;and
-                         (append tokens-with-leading (list (cons 'newline 1)))
-                         tokens-with-leading)
-                        ;if
+                           (> (string-length raw-content) 0)
+                           (char=? (string-ref raw-content (- (string-length raw-content) 1)) #\newline)
+                         ) ;and
+                       (append tokens-with-leading (list (cons 'newline 1)))
+                       tokens-with-leading
+                     ) ;if
              ) ;tokens
              (processed-content (source-tokens->string tokens))
             ) ;
