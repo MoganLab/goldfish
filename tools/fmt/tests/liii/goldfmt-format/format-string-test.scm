@@ -260,4 +260,30 @@
   "\n;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\n"
 ) ;check
 
+;; 测试 quasiquote 内的 (*comment*) 被还原为 ;; 注释
+;; 注意：format-string 使用 read 读取输入，raw ;; 注释会被 read 丢弃，
+;; 因此测试输入需直接使用 tokenize 后的 (*comment*) 形式。
+(check (format-string #"IN"`(let ((x ,y))
+   (*comment* " comment inside quasiquote")
+   (display x))
+"IN")
+  =>
+  #"OUT"`(let ((x ,y))
+   ;; comment inside quasiquote
+   (display x))
+"OUT"
+) ;check
+
+;; 测试 quote 内的 (*comment*) 被还原为 ;; 注释
+(check (format-string #"IN"'(let ((x 1))
+   (*comment* " comment inside quote")
+   (display x))
+"IN")
+  =>
+  #"OUT"'(let ((x 1))
+   ;; comment inside quote
+   (display x))
+"OUT"
+) ;check
+
 (check-report)
