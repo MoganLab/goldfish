@@ -1,5 +1,6 @@
 (import (liii check) (liii os) (liii path) (liii string))
 (check-set-mode! 'report-failed)
+
 (define (cleanup-function-libraries-fixture base-root)
   (let ((load-root (path-join base-root "goldfish"))
         (hidden-root (path-join base-root "hidden-goldfish"))

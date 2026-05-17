@@ -44,7 +44,9 @@
 
 
 ;; 测试稳定性（相等元素保持相对顺序）
+
 (define pairs '((1 . a) (2 . b) (1 . c) (3 . d) (2 . e)))
+
 (define sorted-pairs
   (list-stable-sort (lambda (x y) (< (car x) (car y))) pairs)
 ) ;define

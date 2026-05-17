@@ -18,6 +18,7 @@
 
 
 ;; 有 query
+
 (define u1
   (make-uri-raw "https" "example.com" "/" '(("a" . "1") ("b" . "2")) #f)
 ) ;define
@@ -25,6 +26,7 @@
 
 
 ;; 空 query
+
 (define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-query u2) => '())
 

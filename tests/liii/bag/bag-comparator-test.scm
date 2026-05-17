@@ -3,8 +3,11 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-empty (bag))
+
 (define b-1-2 (bag 1 2 2))
+
 (define comp (bag-comparator b-empty))
 
 ;; bag-comparator 函数测试

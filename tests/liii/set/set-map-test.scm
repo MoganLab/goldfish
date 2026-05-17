@@ -39,7 +39,9 @@
 
 
 (define s-empty (set))
+
 (define comp (set-element-comparator s-empty))
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -50,7 +52,9 @@
 
 
 ;; Test basic mapping
+
 (define s-map-1 (set 1 2 3))
+
 (define s-map-2 (set-map comp (lambda (x) (+ x 10)) s-map-1))
 (check-true (set? s-map-2))
 (check-true (eq? (set-element-comparator s-map-2) comp))
@@ -62,7 +66,9 @@
 
 
 ;; Test deduplication behavior
+
 (define s-map-dup (set 1 2 3 4 5))
+
 (define s-map-dup-result (set-map comp (lambda (x) (quotient x 2)) s-map-dup))
 (check (set-size s-map-dup-result) => 3)
 (check-true (set-contains? s-map-dup-result 0))
@@ -71,9 +77,11 @@
 
 
 ;; Test with different comparator
+
 (define s-map-sym
   (list->set-with-comparator (make-eq-comparator) '(foo bar baz))
 ) ;define
+
 (define s-map-str (set-map string-ci-comparator symbol->string s-map-sym))
 (check (set-member s-map-str "FOO" 'not-found) => "foo")
 (check (set-member s-map-str "BAR" 'not-found) => "bar")

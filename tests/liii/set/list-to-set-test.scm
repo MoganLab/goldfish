@@ -36,8 +36,11 @@
 
 
 (define s-empty (set))
+
 (define comp (set-element-comparator s-empty))
+
 (define s-1-2-3 (set 1 2 3))
+
 (define s-1-2 (set 1 2))
 
 
@@ -54,6 +57,7 @@
 
 
 ;; Duplicates in list should be handled
+
 (define s-list-dup (list->set '(1 2 2 1)))
 (check-true (set=? s-1-2 s-list-dup))
 (check (set-size s-list-dup) => 2)

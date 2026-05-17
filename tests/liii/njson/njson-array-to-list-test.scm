@@ -38,6 +38,7 @@
 (define njson-array->list-json
   "[1,{\"name\":\"Goldfish\",\"tags\":[\"a\",\"b\"]},[2,{\"k\":null}],[]]"
 ) ;define
+
 (define njson-array->list-expected
   '(1 (("name" . "Goldfish") ("tags" "a" "b")) (2 (("k" . null))) ())
 ) ;define
@@ -70,6 +71,7 @@
 (let-njson ((obj (string->njson "{\"a\":1}")))
   (check-catch 'type-error (njson-array->list obj))
 ) ;let-njson
+
 (define array->list-freed (string->njson "[1]"))
 (check-true (njson-free array->list-freed))
 (check-catch 'type-error (njson-array->list array->list-freed))

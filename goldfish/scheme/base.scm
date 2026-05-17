@@ -586,7 +586,7 @@
               (catch ,#t
                 (lambda ,() ,@body)
                 (lambda (type info)
-                  (if (pair? (*s7* (#_quote catches)))
+                  (if (pair? (*s7* 'catches))
                     (lambda () (apply throw type info))
                     (car info))))))
          (cond ,@(cdr results)

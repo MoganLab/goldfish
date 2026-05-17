@@ -3,6 +3,7 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-empty (bag))
 
 ;; bag-disjoint? 函数测试

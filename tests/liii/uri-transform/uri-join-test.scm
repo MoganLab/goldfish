@@ -18,8 +18,11 @@
 
 
 ;; 合并相对路径引用
+
 (define base (string->uri "https://example.com/docs/api/"))
+
 (define ref (string->uri "../guide/intro.md"))
+
 (define joined (uri-join base ref))
 
 

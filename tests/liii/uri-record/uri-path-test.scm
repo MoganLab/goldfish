@@ -18,21 +18,25 @@
 
 
 ;; 简单路径
+
 (define u1 (make-uri-raw "https" "example.com" "/path/to/file" '() #f))
 (check (uri-path u1) => "/path/to/file")
 
 
 ;; 根路径
+
 (define u2 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-path u2) => "/")
 
 
 ;; 空路径
+
 (define u3 (make-uri-raw "https" "example.com" "" '() #f))
 (check (uri-path u3) => "")
 
 
 ;; 带查询的路径
+
 (define u4 (make-uri-raw "https" "example.com" "/api/v1" '(("key" . "val")) #f))
 (check (uri-path u4) => "/api/v1")
 

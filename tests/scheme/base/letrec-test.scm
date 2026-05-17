@@ -29,6 +29,7 @@
 ;; letrec 允许在 init 表达式中引用其他 var，适合定义相互递归的函数。
 ;; 所有 var 在 init 求值前就已经绑定，但只有在使用时才求值。
 ;; 相互递归的偶数/奇数判断
+
 (define (test-letrec)
   (letrec ((even? (lambda (n) (if (= n 0) #t (odd? (- n 1)))))
            (odd? (lambda (n) (if (= n 0) #f (even? (- n 1)))))

@@ -39,6 +39,7 @@
 
 
 ;; Test basic replace!
+
 (define s-mut-replace (set-copy s-1))
 (set-replace! s-mut-replace 1)
 (check (set-size s-mut-replace) => 1)
@@ -46,6 +47,7 @@
 
 
 ;; Test replacing equals but not eq? element
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -53,6 +55,7 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-str-ci-mut
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define

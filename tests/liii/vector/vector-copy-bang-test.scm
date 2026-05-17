@@ -49,6 +49,7 @@
 
 
 (define a (vector "a0" "a1" "a2" "a3" "a4"))
+
 (define b (vector "b0" "b1" "b2" "b3" "b4"))
 
 
@@ -62,12 +63,14 @@
 
 
 (define a (vector "a0" "a1" "a2" "a3" "a4"))
+
 (define b (vector "b0" "b1" "b2" "b3" "b4"))
 (vector-copy! b 0 a 1)
 (check b => #("a1" "a2" "a3" "a4" "b4"))
 
 
 (define a (vector "a0" "a1" "a2" "a3" "a4"))
+
 (define b (vector "b0" "b1" "b2" "b3" "b4"))
 (vector-copy! b 0 a 0 5)
 (check b => #("a0" "a1" "a2" "a3" "a4"))

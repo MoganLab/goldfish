@@ -34,11 +34,14 @@
 
 
 (define s-2-3-4 (set 2 3 4))
+
 (define s-4-5 (set 4 5))
 
 
 ;; Test basic difference!
+
 (define s-diff!-1 (set 1 2 3 4))
+
 (define s-diff!-result (set-difference! s-diff!-1 s-2-3-4))
 (check-true (eq? s-diff!-result s-diff!-1))
 (check (set-size s-diff!-1) => 1)
@@ -47,6 +50,7 @@
 
 
 ;; Test multiple sets difference
+
 (define s-diff!-2 (set 1 2 3 4 5))
 (set-difference! s-diff!-2 s-2-3-4 s-4-5)
 (check (set-size s-diff!-2) => 1)
@@ -54,6 +58,7 @@
 
 
 ;; Test element source (using case-insensitive comparator)
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -61,9 +66,11 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-diff!-ci-1
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
+
 (define s-diff!-ci-2
   (list->set-with-comparator string-ci-comparator '("apple"))
 ) ;define
@@ -74,7 +81,9 @@
 
 ;; Test type and comparator errors
 (check-catch 'type-error (set-difference! "not a set" (set 1)))
+
 (define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
+
 (define s-num (set 1))
 (check-catch 'value-error (set-difference! s-num s-str-ci))
 

@@ -33,7 +33,9 @@
 
 
 (define s-empty (set))
+
 (define s-1-2 (set 1 2))
+
 (define s-1-2-3 (set 1 2 3))
 
 
@@ -43,6 +45,7 @@
 
 
 ;; Test accumulating to list (order not guaranteed)
+
 (define fold-list (set-fold (lambda (x acc) (cons x acc)) '() s-1-2))
 (check-true (set=? (list->set fold-list) s-1-2))
 

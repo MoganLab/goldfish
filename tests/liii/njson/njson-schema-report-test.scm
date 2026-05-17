@@ -36,24 +36,39 @@
 (define schema-object-json
   "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"},\"age\":{\"type\":\"integer\"}},\"required\":[\"name\"],\"additionalProperties\":false}"
 ) ;define
+
 (define schema-instance-ok-json "{\"name\":\"Alice\",\"age\":18}")
+
 (define schema-instance-bad-type-json "{\"name\":\"Alice\",\"age\":\"18\"}")
+
 (define schema-instance-bad-missing-json "{\"age\":18}")
+
 (define schema-instance-bad-extra-json "{\"name\":\"Alice\",\"city\":\"HZ\"}")
+
 (define schema-instance-name-only-json "{\"name\":\"Alice\"}")
+
 (define schema-instance-array-json "[1,2,3]")
+
 (define schema-bad-handle-json "{\"type\":\"object\",\"required\":1}")
+
 (define schema-bad-non-object-json "1")
+
 (define schema-array-items-int-json
   "{\"type\":\"array\",\"items\":{\"type\":\"integer\"}}"
 ) ;define
+
 (define schema-array-ok-json "[1,2,3]")
+
 (define schema-array-bad-json "[1,\"2\",3]")
+
 (define schema-scalar-int-json "{\"type\":\"integer\"}")
+
 (define schema-scalar-null-json "{\"type\":\"null\"}")
+
 (define schema-default-count-json
   "{\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"default\":7}}}"
 ) ;define
+
 (define schema-empty-object-json "{}")
 
 
@@ -209,6 +224,7 @@
 
 
 (define schema-handle-for-freed-check (string->njson schema-object-json))
+
 (define freed-instance-handle (string->njson "{\"name\":\"Bob\"}"))
 (check-true (njson-free freed-instance-handle))
 (check-catch 'type-error

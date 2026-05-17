@@ -55,6 +55,7 @@
 
 
 (define calc-env (make-hash-table))
+
 (define calc
   (packrat-parser expr
     (expr (('begin body <- exprs 'end) body)

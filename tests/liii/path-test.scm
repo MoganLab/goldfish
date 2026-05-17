@@ -9,6 +9,7 @@
 
 
 ;; 示例1：创建路径并获取信息
+
 (define p (path "/home/user/file.txt"))
 (path->string p)
 (path-name p)

@@ -49,10 +49,7 @@
 (check (list-tail '(single) 1) => '())
 (check (list-tail '() 0) => '())
 ;; 各种数据类型边界测试
-(check (list-tail '(42 "text" #t (#_quote symbol)) 1)
-  =>
-  '("text" #t (#_quote symbol))
-) ;check
+(check (list-tail '(42 "text" #t 'symbol) 1) => '("text" #t 'symbol))
 (check (list-tail '(#t #t #t) 0) => '(#t #t #t))
 (check (list-tail '(#t #t #t) 2) => '(#t))
 (check (list-tail '(#t #t #t) 3) => '())
@@ -64,9 +61,9 @@
 (check (list-tail '((a b) (c d) (e f)) 3) => '())
 ;; 复杂数据结构测试
 (check (list-tail '(() a b 3 c) 1) => '(a b 3 c))
-(check (list-tail '(#(1 2) (#_quote symbol) "string" 3.14) 1)
+(check (list-tail '(#(1 2) 'symbol "string" 3.14) 1)
   =>
-  '((#_quote symbol) "string" 3.14)
+  '('symbol "string" 3.14)
 ) ;check
 (check (list-tail '(1 "hello" (nested list) #t 3.14) 2)
   =>
@@ -144,10 +141,7 @@
 (check (list-tail (append '(a b c) (make-list 997 'x)) 3) => (make-list 997 'x))
 ;; 边界测试集3：各种数据类型兼容性边界
 (check (list-tail '(42 3.14 1/2 1.0+2.0i) 1) => '(3.14 1/2 1.0+2.0i))
-(check (list-tail '(#t #f #\a "hello" (#_quote symbol)) 2)
-  =>
-  '(#\a "hello" (#_quote symbol))
-) ;check
+(check (list-tail '(#t #f #\a "hello" 'symbol) 2) => '(#\a "hello" 'symbol))
 (check (list-tail '(#(1 2) #(255) (a b) car) 1) => '(#(255) (a b) car))
 (check (list-tail '(() (()) ((()))) 1) => '((()) ((()))))
 ;; 边界测试集4：Unicode和特殊字符边界

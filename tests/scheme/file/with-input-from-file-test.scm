@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-with-input.txt")
 ;; 创建测试文件
 (with-output-to-file test-file (lambda () (display "input from file")))
@@ -23,6 +24,7 @@
   '("first" "second")
 ) ;check
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文输入重定向.txt")
 (with-output-to-file chinese-file (lambda () (display "中文输入内容")))
 (check (with-input-from-file chinese-file

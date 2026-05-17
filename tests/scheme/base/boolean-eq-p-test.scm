@@ -85,6 +85,7 @@
   (check (add1/add 0) => 1)
   (check (add1/add 1 2) => 3)
 ) ;let
+
 (define add3 (typed-lambda ((i integer?) (x real?) z) (+ i x z)))
 (check (add3 1 2 3) => 6)
 (check-catch 'type-error (add3 1.2 2 3))

@@ -25,6 +25,7 @@
 ;; ----
 ;; wrong-type-arg
 ;; 当第一个参数不是字符时抛出。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)

@@ -37,7 +37,9 @@
 
 
 ;; Test basic behavior
+
 (define s-filter-mut (set 1 2 3 4))
+
 (define s-filter-mut-result (set-filter! odd? s-filter-mut))
 (check-true (eq? s-filter-mut-result s-filter-mut))
 (check (set-size s-filter-mut) => 2)
@@ -48,6 +50,7 @@
 
 
 ;; Test empty set
+
 (define s-filter-mut-empty (set-copy s-empty))
 (set-filter! even? s-filter-mut-empty)
 (check (set-size s-filter-mut-empty) => 0)

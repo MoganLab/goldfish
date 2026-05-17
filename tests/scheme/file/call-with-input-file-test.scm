@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-call-with-input-file.txt")
 ;; 创建测试文件
 (with-output-to-file test-file (lambda () (display "hello world")))
@@ -19,6 +20,7 @@
   '("line1" "line2")
 ) ;check
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文测试.txt")
 (with-output-to-file chinese-file (lambda () (display "中文内容")))
 (check (call-with-input-file chinese-file (lambda (port) (read-string 100 port)))

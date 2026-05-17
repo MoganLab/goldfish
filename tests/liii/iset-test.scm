@@ -9,6 +9,7 @@
 
 
 ;; 示例1：从整数列表构造一个 iset
+
 (define s (list->iset '(1 2 3 5 8)))
 (iset-size s)
 

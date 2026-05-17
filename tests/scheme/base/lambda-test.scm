@@ -36,11 +36,13 @@
 (check ((lambda (x y) (* x y)) 4 6) => 24)
 (check ((lambda () 42)) => 42)
 (check ((lambda (x) ((lambda (y) (+ x y)) 5)) 3) => 8)
+
 (define (apply-function f x)
   (f x)
 ) ;define
 (check (apply-function (lambda (x) (* x x)) 5) => 25)
 (check (apply-function (lambda (x) (+ x 1)) 10) => 11)
+
 (define (filter pred lst)
   (cond ((null? lst) '())
         ((pred (car lst)) (cons (car lst) (filter pred (cdr lst))))

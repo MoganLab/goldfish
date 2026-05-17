@@ -95,6 +95,7 @@
 ;; ==== 常见用法示例 ====
 
 ;; 示例1：从字符串解析 URI 并访问组件
+
 (define u1
   (string->uri "https://user:pass@api.example.com:8443/v1/users?id=123#profile")
 ) ;define
@@ -106,7 +107,9 @@
 (uri-fragment u1)
 
 ;; 示例2：构造 API 请求 URI
+
 (define base-uri (string->uri "https://api.example.com/v1"))
+
 (define api-uri
   (uri-extend-query (uri-join-path base-uri "users" "123")
     '(("fields" . "name,email") ("include" . "profile"))
@@ -115,23 +118,30 @@
 (uri->string api-uri)
 
 ;; 示例3：修改 URI 的 scheme（http 转 https）
+
 (define insecure (string->uri "http://example.com/path"))
+
 (define secure (uri-with-scheme insecure "https"))
 (uri->string secure)
 
 ;; 示例4：移除敏感信息，生成日志友好的 URI
+
 (define sensitive
   (string->uri "https://admin:secret@db.example.com:3306/admin?password=123")
 ) ;define
 (uri->human-string sensitive)
 
 ;; 示例5：分页 API 请求构造
+
 (define list-api (string->uri "https://api.example.com/items"))
+
 (define page-2 (uri-extend-query list-api '(("page" . "2") ("limit" . "20"))))
 (uri->string page-2)
 
 ;; 示例6：合并基础 URI 和相对路径
+
 (define base (string->uri "https://example.com/docs/api/"))
+
 (define ref (string->uri "../guide/intro.md"))
 (uri->string (uri-join base ref))
 

@@ -17,6 +17,7 @@
 
 ;; 示例3：切片截取
 ;; 使用 take-right 取末尾元素，体现惰性序列的随机访问能力
+
 (define r (numeric-range 0 100))
 (range->list (range-take-right r 3))
 

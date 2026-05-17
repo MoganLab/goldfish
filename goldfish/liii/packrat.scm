@@ -416,7 +416,7 @@
                                      ,(parse-pattern nt body #<rest>))
                                  ) ;
                                  (((#<var:> <- #<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car (#_quote (#<val>)))
+                                  `(packrat-check-base ,(car '(#<val>))
                                      (lambda (#<var>)
                                        ,(parse-pattern nt body #<rest>)))
                                  ) ;
@@ -428,17 +428,17 @@
                                         results)))
                                  ) ;
                                  (((#<var:> <- #<val:> #<rest:...>))
-                                  `(packrat-check ,(car (#_quote (#<val>)))
+                                  `(packrat-check ,(car '(#<val>))
                                      (lambda (#<var>)
                                        ,(parse-pattern nt body #<rest>)))
                                  ) ;
                                  (((#<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car (#_quote (#<val>)))
+                                  `(packrat-check-base ,(car '(#<val>))
                                      (lambda (dummy)
                                        ,(parse-pattern nt body #<rest>)))
                                  ) ;
                                  (((#<val:> #<rest:...>))
-                                  `(packrat-check ,(car (#_quote (#<val>)))
+                                  `(packrat-check ,(car '(#<val>))
                                      (lambda (dummy)
                                        ,(parse-pattern nt body #<rest>)))
                                  ) ;
@@ -473,7 +473,7 @@
 
     (define-macro (packrat-lambda*-alt succeed fail bindings . body)
       (let ((bindings-list (cadr bindings)))
-        `(make-packrat-parse-pattern (#_quote ())
+        `(make-packrat-parse-pattern '()
            (lambda (bindings results ks kf)
              (let ((,succeed
                     (lambda (value) (ks bindings (make-result value results))))

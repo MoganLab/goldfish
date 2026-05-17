@@ -64,6 +64,7 @@
 (let-njson ((scalar (string->njson "1")))
   (check-catch 'type-error (njson-array->vector scalar))
 ) ;let-njson
+
 (define array->vector-freed (string->njson "[1]"))
 (check-true (njson-free array->vector-freed))
 (check-catch 'type-error (njson-array->vector array->vector-freed))

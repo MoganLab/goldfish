@@ -46,6 +46,7 @@
 
 
 (define let-njson-multi-a '())
+
 (define let-njson-multi-b '())
 (check (let-njson ((j1 (string->njson "{\"a\":1}")) (j2 (string->njson "{\"b\":2}")))
          (set! let-njson-multi-a j1)

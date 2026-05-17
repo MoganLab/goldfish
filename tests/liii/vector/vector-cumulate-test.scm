@@ -51,13 +51,7 @@
   (vector-cumulate (lambda (x) 'a) 0 '#(1 2 3))
 ) ;check-catch
 (check-catch 'wrong-type-arg (vector-cumulate + '(1) '#(1 2 3)))
-(check (vector-cumulate (lambda (x y) (+ x 2))
-         0
-         '#((#_quote a) (#_quote b) (#_quote c))
-       ) ;vector-cumulate
-  =>
-  #(2 4 6)
-) ;check
+(check (vector-cumulate (lambda (x y) (+ x 2)) 0 '#('a 'b 'c)) => #(2 4 6))
 
 
 (check-report)

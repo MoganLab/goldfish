@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-binary-input.bin")
 ;; 创建测试文件（二进制内容）
 (with-output-to-file test-file (lambda () (display "binary content") (newline)))
@@ -11,6 +12,7 @@
   (close-port port)
 ) ;let
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文二进制输入.bin")
 (with-output-to-file chinese-file (lambda () (display "中文二进制内容")))
 (let ((port (open-binary-input-file chinese-file)))

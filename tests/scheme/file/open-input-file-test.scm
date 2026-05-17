@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-open-input.txt")
 ;; 创建测试文件
 (with-output-to-file test-file
@@ -13,6 +14,7 @@
   (close-port port)
 ) ;let
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文输入.txt")
 (with-output-to-file chinese-file
   (lambda () (display "第一行\n") (display "第二行"))

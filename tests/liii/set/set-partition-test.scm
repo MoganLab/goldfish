@@ -37,6 +37,7 @@
 
 
 ;; Test basic behavior
+
 (define s-partition-1 (set 1 2 3 4))
 (call-with-values (lambda () (set-partition even? s-partition-1))
   (lambda (yes no)

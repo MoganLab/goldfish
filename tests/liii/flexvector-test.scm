@@ -9,6 +9,7 @@
 
 
 ;; 示例1：创建一个可变长向量并访问元素
+
 (define fv (flexvector 1 2 3))
 (flexvector-length fv)
 (flexvector-ref fv 1)

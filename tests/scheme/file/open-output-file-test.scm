@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-open-output.txt")
 ;; 测试 open-output-file
 (let ((port (open-output-file test-file)))
@@ -22,6 +23,7 @@
   "new content"
 ) ;check
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文输出文件.txt")
 (let ((port (open-output-file chinese-file)))
   (check-true (output-port? port))

@@ -42,6 +42,7 @@
 
 
 (define s-empty (set))
+
 (define s-1 (set 1))
 
 
@@ -52,6 +53,7 @@
 
 ;; Test case where comparator considers elements equal but they are not eq?
 ;; Construct a case-insensitive string set
+
 (define (my-string-ci-hash s)
   (string-hash (string-map ascii-downcase s))
 ) ;define
@@ -60,6 +62,7 @@
 (define string-ci-comparator
   (make-comparator string? string-ci=? string-ci<? my-string-ci-hash)
 ) ;define
+
 (define s-str-ci
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define

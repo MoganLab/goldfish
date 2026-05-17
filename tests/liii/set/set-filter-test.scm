@@ -37,7 +37,9 @@
 
 
 ;; Test basic filtering
+
 (define s-filter-1 (set 1 2 3 4))
+
 (define s-filter-2 (set-filter even? s-filter-1))
 (check-true (set? s-filter-2))
 (check-true (eq? (set-element-comparator s-filter-2) (set-element-comparator s-filter-1))
@@ -50,6 +52,7 @@
 
 
 ;; Test empty set
+
 (define s-filter-empty (set-filter even? s-empty))
 (check (set-size s-filter-empty) => 0)
 

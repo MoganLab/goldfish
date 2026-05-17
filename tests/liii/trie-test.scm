@@ -7,6 +7,7 @@
 (import (liii trie))
 
 ;; 示例1：创建空 trie
+
 (define t (make-trie))
 
 ;; 示例2：按路径插入值

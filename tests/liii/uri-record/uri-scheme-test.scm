@@ -26,6 +26,7 @@
 
 
 ;; #f scheme
+
 (define u3 (make-uri-raw #f "" "/path" '() #f))
 (check (uri-scheme u3) => #f)
 

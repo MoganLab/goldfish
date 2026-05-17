@@ -3,6 +3,7 @@
 ;; (liii logging) 测试用例
 
 ;; 用于接收回调结果的全局变量
+
 (define *last-msg* #f)
 
 ;; 日志级别常量

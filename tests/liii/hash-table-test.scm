@@ -9,6 +9,7 @@
 
 
 ;; 示例1：创建哈希表并读取已有键
+
 (define ht (hash-table 'a 1 'b 2))
 (hash-table-ref/default ht 'a 'missing)
 

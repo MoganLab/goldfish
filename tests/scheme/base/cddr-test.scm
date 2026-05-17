@@ -111,10 +111,7 @@
 (check (cddr '((a b) c d)) => '(d))
 (check (cddr '(#(1 2) #(3 4) #(5 6))) => '(#(5 6)))
 (check (cddr '(+ - * /)) => '(* /))
-(check (cddr '((#_quote (a b)) (#_quote (c d)) (#_quote (e f))))
-  =>
-  '((#_quote (e f)))
-) ;check
+(check (cddr '('(a b) '(c d) '(e f))) => '('(e f)))
 ;; 极端边界条件测试
 (check (cddr '((lambda (x) x) (lambda (y) y) (lambda (z) z)))
   =>

@@ -71,6 +71,7 @@
 (let-njson ((scalar (string->njson "1")))
   (check-catch 'type-error (njson-object->hash-table scalar))
 ) ;let-njson
+
 (define object->hash-table-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free object->hash-table-freed))
 (check-catch 'type-error (njson-object->hash-table object->hash-table-freed))

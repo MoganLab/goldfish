@@ -70,8 +70,8 @@
 (check (car '((a (b (c))))) => '(a (b (c))))
 (check (car '(((1 2) 3) 4)) => '((1 2) 3))
 (check (car '(() b c)) => '())
-(check (car '((#_quote (a b)) (#_quote (c d)))) => '(#_quote (a b)))
-(check (car '((#_quote (a b)) (#_quote (c d)))) => '(#_quote (a b)))
+(check (car '('(a b) '(c d))) => ''(a b))
+(check (car '('(a b) '(c d))) => ''(a b))
 ;; 向量和字节向量作为car值测试
 (check (car '(#(1 2 3) #(4 5))) => #(1 2 3))
 (check (car '(#(255 128) #(1 2))) => #u8(255 128))
@@ -85,10 +85,7 @@
 ;; Unicode和特殊字符边界测试
 (check (car '("中文" "world")) => "中文")
 (check (car '("🙂" "🚀")) => "🙂")
-(check (car '((list (#_quote a) (#_quote b)) (#_quote c)))
-  =>
-  '(list (#_quote a) (#_quote b))
-) ;check
+(check (car '((list 'a 'b) 'c)) => '(list 'a 'b))
 ;; 函数和过程对象作为car值测试
 (check (car '((lambda (x) (* x x)) (lambda (y) (+ y 1))))
   =>

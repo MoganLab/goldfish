@@ -18,7 +18,9 @@
 
 
 ;; 与 make-uri 结果相同
+
 (define u1 (string->uri "https://example.com/path"))
+
 (define u2 (make-uri "https://example.com/path"))
 (check (uri=? u1 u2) => #t)
 
@@ -30,7 +32,9 @@
 
 
 ;; 简单用法
+
 (define url "https://api.example.com/v1/users?id=123")
+
 (define uri (string->uri url))
 (check (uri-scheme uri) => "https")
 (check (uri-host uri) => "api.example.com")

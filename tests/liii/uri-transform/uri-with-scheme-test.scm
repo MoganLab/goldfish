@@ -18,7 +18,9 @@
 
 
 ;; 修改 scheme
+
 (define u1 (make-uri-raw "http" "example.com" "/" '() #f))
+
 (define u2 (uri-with-scheme u1 "https"))
 (check (uri-scheme u2) => "https")
 (check (uri-host u2) => "example.com")
@@ -26,14 +28,18 @@
 
 
 ;; 添加 scheme 到相对 URI
+
 (define u3 (make-uri-raw #f "" "/path" '() #f))
+
 (define u4 (uri-with-scheme u3 "https"))
 (check (uri-scheme u4) => "https")
 (check (uri-path u4) => "/path")
 
 
 ;; 其他字段保持不变
+
 (define u5 (make-uri-raw "http" "api.com:8080" "/v1" '(("k" . "v")) "frag"))
+
 (define u6 (uri-with-scheme u5 "https"))
 (check (uri-scheme u6) => "https")
 (check (uri-host u6) => "api.com")

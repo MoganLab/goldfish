@@ -49,7 +49,9 @@
 
 
 ;; 确保原向量未被修改
+
 (define test-vec #(3 1 4 1 5 9 2 6 5))
+
 (define sorted-vec (vector-sort < test-vec))
 (check (equal? test-vec #(3 1 4 1 5 9 2 6 5)) => #t)
 

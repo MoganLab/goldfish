@@ -33,12 +33,16 @@
 
 
 (define s-empty (set))
+
 (define s-1 (set 1))
+
 (define s-1-2-3 (set 1 2 3))
+
 (define s-2-3-4 (set 2 3 4))
 
 
 ;; Test basic intersection
+
 (define s-inter-1 (set-intersection s-1-2-3 s-2-3-4))
 (check (set-size s-inter-1) => 2)
 (check-true (set-contains? s-inter-1 2))
@@ -46,6 +50,7 @@
 
 
 ;; Test multiple sets intersection
+
 (define s-inter-2 (set-intersection s-1-2-3 s-2-3-4 (set 2 3)))
 (check (set-size s-inter-2) => 2)
 (check-true (set-contains? s-inter-2 2))
@@ -53,6 +58,7 @@
 
 
 ;; Test element source (using case-insensitive comparator)
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -60,12 +66,15 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-inter-ci-1
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
+
 (define s-inter-ci-2
   (list->set-with-comparator string-ci-comparator '("apple" "Pear"))
 ) ;define
+
 (define s-inter-ci (set-intersection s-inter-ci-1 s-inter-ci-2))
 (check (set-member s-inter-ci "apple" 'not-found) => "Apple")
 (check (set-size s-inter-ci) => 1)
@@ -73,6 +82,7 @@
 
 ;; Test type and comparator errors
 (check-catch 'type-error (set-intersection "not a set" s-1))
+
 (define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
 (check-catch 'value-error (set-intersection s-1 s-str-ci))
 

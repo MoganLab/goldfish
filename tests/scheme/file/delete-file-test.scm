@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-delete-file.txt")
 ;; 创建测试文件
 (with-output-to-file test-file (lambda () (display "test")))
@@ -16,6 +17,7 @@
 ;; 测试删除参数类型错误
 (check-catch 'type-error (delete-file 123))
 ;; 测试删除中文文件名
+
 (define chinese-file "tests/scheme/file/中文删除.txt")
 (with-output-to-file chinese-file (lambda () (display "test")))
 (check-true (file-exists? chinese-file))

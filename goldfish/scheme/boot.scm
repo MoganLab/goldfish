@@ -28,21 +28,21 @@
 (define-macro (define-library libname . body)
   `(define ,(symbol (object->string libname))
      (with-let (sublet (unlet)
-                 (cons (#_quote import) import)
-                 (cons (#_quote *export*) ())
-                 (cons (#_quote export)
+                 (cons 'import import)
+                 (cons '*export* ())
+                 (cons 'export
                    (define-macro (,(gensym) . names)
                      (#_list-values
-                      (#_quote set!)
-                      (#_quote *export*)
+                      'set!
+                      '*export*
                       (#_list-values
-                       (#_quote append)
+                       'append
                        (#_list-values #_quote names)
-                       (#_quote *export*))))))
+                       '*export*)))))
        ,@body
        (apply inlet
          (map (lambda (entry)
-                (if (or (member (car entry) (#_quote (*export* export import)))
+                (if (or (member (car entry) '(*export* export import))
                       (and (pair? *export*) (not (member (car entry) *export*))))
                   (values)
                   entry))
