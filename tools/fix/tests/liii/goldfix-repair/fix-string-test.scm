@@ -120,4 +120,32 @@
   ) ;&-
 ) ;check
 
+;; 独立的 | 标识符不应被当作 bar symbol 的开始定界符。
+
+(check (fix-string (&- #""
+                      (define-regexp-grammar
+                        (:menu-item (:or ---
+                                      |
+                                      (group :%1)
+                                      (text :%1)
+                                    ) ;:or
+                        ) ;:menu-item
+                      ) ;define-regexp-grammar
+                      ""
+                   ) ;&-
+       ) ;fix-string
+  =>
+  (&- #""
+             (define-regexp-grammar
+               (:menu-item (:or ---
+                             |
+                             (group :%1)
+                             (text :%1)
+                           ) ;:or
+               ) ;:menu-item
+             ) ;define-regexp-grammar
+             ""
+  ) ;&-
+) ;check
+
 (check-report)
