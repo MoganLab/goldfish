@@ -228,6 +228,15 @@
       ) ;and
     ) ;define
 
+    (define (comment-datum? datum)
+      (and (pair? datum)
+        (eq? (car datum) '*comment*)
+        (pair? (cdr datum))
+        (string? (cadr datum))
+        (null? (cddr datum))
+      ) ;and
+    ) ;define
+
     (define (reader-newlines count)
       (let loop
         ((i count) (result ""))
@@ -237,6 +246,7 @@
 
     (define (reader-datum-contains-newline-marker? datum)
       (cond ((newline-marker-datum? datum) #t)
+            ((comment-datum? datum) #t)
             ((pair? datum)
              (or (reader-datum-contains-newline-marker? (car datum))
                (reader-datum-contains-newline-marker? (cdr datum))
@@ -587,6 +597,7 @@
       (cond ((raw-string-literal? datum) (raw-string-literal-source datum))
             ((char-literal? datum) (char-literal-source datum))
             ((raw-string-datum? datum) (cadr datum))
+            ((comment-datum? datum) (format-comment-content (cadr datum)))
             ((single-arg-symbol-form? datum 'quasiquote)
              (string-append "`" (format-reader-datum-inline (cadr datum)))
             ) ;
@@ -609,6 +620,7 @@
       (cond ((raw-string-literal? datum) (raw-string-literal-source datum))
             ((char-literal? datum) (char-literal-source datum))
             ((raw-string-datum? datum) (cadr datum))
+            ((comment-datum? datum) (format-comment-content (cadr datum)))
             ((single-arg-symbol-form? datum 'quasiquote)
              (string-append "`" (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
