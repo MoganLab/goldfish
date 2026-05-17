@@ -58,4 +58,21 @@
 ;; 字段值包含特殊字符
 (check (pyfmt "%(path)s" :path "/var/log/app.log") => "/var/log/app.log")
 
+;; 字符串 key
+(check (pyfmt "%(name)s" "name" "Bob") => "Bob")
+
+;; #f 是合法字段值，不能被当作缺失字段
+(check (pyfmt "%(ok)s" :ok #f) => "#f")
+
+;; 缺失字段时保留完整占位符
+(check (pyfmt "%(name)s") => "%(name)s")
+(check (pyfmt "%(age)d") => "%(age)d")
+(check (pyfmt "hello %(name)s!" :other "Bob") => "hello %(name)s!")
+
+;; 参数错误
+(check-catch 'type-error (pyfmt 123))
+(check-catch 'type-error (pyfmt "%(name)s" :name))
+(check-catch 'type-error (pyfmt "%(name)s" 123 "Bob"))
+(check-catch 'type-error (pyfmt "%(age)d" :age "30"))
+
 (check-report)

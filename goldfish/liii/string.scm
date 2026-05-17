@@ -188,29 +188,28 @@
       (define (plist->salist plist)
         (let loop
           ((p plist) (result '()))
-          (if (null? p)
-            (reverse result)
-            (let ((key (car p)) (val (cadr p)))
-              (loop (cddr p)
-                (cons (cons (cond ((keyword? key) (symbol->string (keyword->symbol key)))
-                                  ((symbol? key) (symbol->string key))
-                                  ((string? key) key)
-                                  (else (type-error "pyfmt: key must be keyword, symbol or string"))
-                            ) ;cond
-                        val
-                      ) ;cons
-                  result
-                ) ;cons
-              ) ;loop
-            ) ;let
-          ) ;if
+          (cond ((null? p) (reverse result))
+                ((not (pair? (cdr p))) (type-error "pyfmt: plist requires key-value pairs"))
+                (else (let ((key (car p)) (val (cadr p)))
+                        (loop (cddr p)
+                          (cons (cons (cond ((keyword? key) (symbol->string (keyword->symbol key)))
+                                            ((symbol? key) (symbol->string key))
+                                            ((string? key) key)
+                                            (else (type-error "pyfmt: key must be keyword, symbol or string"))
+                                      ) ;cond
+                                  val
+                                ) ;cons
+                            result
+                          ) ;cons
+                        ) ;loop
+                      ) ;let
+                ) ;else
+          ) ;cond
         ) ;let
       ) ;define
 
-      (define (lookup key alist)
-        (let ((pair (assoc key alist equal?)))
-          (and pair (cdr pair))
-        ) ;let
+      (define (lookup-pair key alist)
+        (assoc key alist equal?)
       ) ;define
 
       (let ((salist (plist->salist plist)) (len (string-length format-string)))
@@ -224,9 +223,13 @@
                   (if (and end-pos (> end-pos (+ pos 2)))
                     (let* ((key (substring format-string (+ pos 2) end-pos))
                            (type-pos (+ end-pos 1))
-                           (type-char (if (< type-pos len) (string-ref format-string type-pos) #\s))
-                           (val (lookup key salist))
-                           (val-str (cond ((not val) (string-append "%(" key ")"))
+                           (has-type? (< type-pos len))
+                           (type-char (if has-type? (string-ref format-string type-pos) #\s))
+                           (placeholder-end (if has-type? (+ type-pos 1) (+ end-pos 1)))
+                           (placeholder (substring format-string pos placeholder-end))
+                           (pair (lookup-pair key salist))
+                           (val (and pair (cdr pair)))
+                           (val-str (cond ((not pair) placeholder)
                                           ((char=? type-char #\d)
                                            (if (number? val)
                                              (number->string val)
@@ -237,7 +240,9 @@
                                     ) ;cond
                            ) ;val-str
                           ) ;
-                      (loop (+ end-pos 2) (cons val-str (cons (substring format-string i pos) parts)))
+                      (loop placeholder-end
+                        (cons val-str (cons (substring format-string i pos) parts))
+                      ) ;loop
                     ) ;let*
                     (loop len (cons (substring format-string i len) parts))
                   ) ;if
