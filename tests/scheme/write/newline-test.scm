@@ -21,6 +21,7 @@
 ;; 描述
 ;; ----
 ;; `newline` 常用于组织多行输出，与 `display` 或 `write` 搭配使用。
+
 (define (capture-output thunk)
   (let ((port (open-output-string)))
     (thunk port)

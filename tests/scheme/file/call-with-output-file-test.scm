@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-call-with-output-file.txt")
 ;; 测试 call-with-output-file 基本功能
 (call-with-output-file test-file (lambda (port) (display "test content" port)))
@@ -15,6 +16,7 @@
   "new content"
 ) ;check
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文输出.txt")
 (call-with-output-file chinese-file
   (lambda (port) (display "中文写入内容" port))

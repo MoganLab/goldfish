@@ -6,10 +6,12 @@
 ;; ==== 常见用法示例 ====
 (import (scheme write))
 ;; 示例1：使用 write 输出可读形式
+
 (define port (open-output-string))
 (write '(1 2 3) port)
 (get-output-string port)
 ;; 示例2：使用 display 输出用户友好的形式
+
 (define port2 (open-output-string))
 (display "hello" port2)
 (get-output-string port2)

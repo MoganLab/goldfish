@@ -33,6 +33,7 @@
 (check-set-mode! 'report-failed)
 ;; ==== 测试：基本用法 ====
 ;; 根据参数数量执行不同逻辑
+
 (define my-func
   (case-lambda
    (() "zero args")
@@ -47,6 +48,7 @@
 (check (my-func 1 2 3 4) => 10)
 ;; ==== 测试：参数默认值 ====
 ;; range 函数支持 1/2/3 个参数，未提供的参数使用默认值
+
 (define my-range
   (case-lambda
    ((end) (my-range 0 end 1))

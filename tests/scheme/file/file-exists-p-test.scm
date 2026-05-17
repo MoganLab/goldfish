@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-exists.txt")
 ;; 确保测试文件不存在
 (when (file-exists? test-file)
@@ -20,6 +21,7 @@
 ;; 测试参数类型错误
 (check-catch 'type-error (file-exists? 123))
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文存在.txt")
 (when (file-exists? chinese-file)
   (delete-file chinese-file)

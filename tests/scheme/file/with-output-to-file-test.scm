@@ -1,5 +1,6 @@
 (import (liii check) (scheme file))
 (check-set-mode! 'report-failed)
+
 (define test-file "tests/scheme/file/test-with-output.txt")
 ;; 清理可能存在的旧文件
 (when (file-exists? test-file)
@@ -19,6 +20,7 @@
   "new output"
 ) ;check
 ;; 测试中文文件名
+
 (define chinese-file "tests/scheme/file/中文输出重定向.txt")
 (with-output-to-file chinese-file (lambda () (display "中文输出内容")))
 (check (call-with-input-file chinese-file (lambda (port) (read-string 100 port)))

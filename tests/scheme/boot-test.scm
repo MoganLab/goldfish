@@ -21,6 +21,7 @@
   (delete-file "/tmp/test_delete_file")
   (check (file-exists? "/tmp/test_delete_file") => #f)
 ) ;when
+
 (define (sum start end)
   (if (= start end) start (+ (sum start (- end 1)) end))
 ) ;define
