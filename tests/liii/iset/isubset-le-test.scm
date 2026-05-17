@@ -5,8 +5,11 @@
 
 
 (define pos-seq (iota 20 100 3))
+
 (define mixed-seq (iota 20 -10 3))
+
 (define pos-set (list->iset pos-seq))
+
 (define mixed-set (list->iset mixed-seq))
 
 

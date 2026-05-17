@@ -3,7 +3,9 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-empty (bag))
+
 (define b-1-2 (bag 1 2 2))
 
 ;; bag-member 函数测试

@@ -18,16 +18,24 @@
 
 
 (define pos-seq (iota 20 100 3))
+
 (define neg-seq (iota 20 -100 3))
+
 (define mixed-seq (iota 20 -10 3))
+
 (define sparse-seq (iota 20 -10000 1003))
 
 
 (define pos-set (list->iset pos-seq))
+
 (define pos-set+ (iset-adjoin pos-set 9))
+
 (define neg-set (list->iset neg-seq))
+
 (define mixed-set (list->iset mixed-seq))
+
 (define dense-set (make-range-iset 0 49))
+
 (define sparse-set (list->iset sparse-seq))
 
 

@@ -18,6 +18,7 @@
 
 
 ;; 简单构建
+
 (define u1 (uri-build :scheme "https" :host "example.com"))
 (check (uri-scheme u1) => "https")
 (check (uri-host u1) => "example.com")
@@ -25,6 +26,7 @@
 
 
 ;; 带路径
+
 (define u2 (uri-build :scheme "http" :host "api.example.com" :path "/v1/users"))
 (check (uri-scheme u2) => "http")
 (check (uri-host u2) => "api.example.com")
@@ -32,6 +34,7 @@
 
 
 ;; 带端口和认证
+
 (define u3
   (uri-build :scheme
     "https"
@@ -53,6 +56,7 @@
 
 
 ;; 带查询和 fragment
+
 (define u4
   (uri-build :scheme
     "https"
@@ -74,6 +78,7 @@
 
 
 ;; 完整构建
+
 (define u5
   (uri-build :scheme
     "https"
@@ -105,6 +110,7 @@
 
 
 ;; 空值处理
+
 (define u6 (uri-build))
 (check (uri? u6) => #t)
 (check (uri-scheme u6) => #f)

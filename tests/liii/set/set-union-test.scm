@@ -33,14 +33,20 @@
 
 
 (define s-empty (set))
+
 (define comp (set-element-comparator s-empty))
+
 (define s-1 (set 1))
+
 (define s-1-2-3 (set 1 2 3))
+
 (define s-2-3-4 (set 2 3 4))
+
 (define s-4-5 (set 4 5))
 
 
 ;; Test basic union
+
 (define s-union-1 (set-union s-1-2-3 s-2-3-4))
 (check (set-size s-union-1) => 4)
 (check-true (set-contains? s-union-1 1))
@@ -51,6 +57,7 @@
 
 
 ;; Test multiple sets union
+
 (define s-union-2 (set-union s-1 s-2-3-4 s-4-5))
 (check (set-size s-union-2) => 5)
 (check-true (set-contains? s-union-2 1))
@@ -58,6 +65,7 @@
 
 
 ;; Test element source (using case-insensitive comparator)
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -65,12 +73,15 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-union-ci-1
   (list->set-with-comparator string-ci-comparator '("Apple"))
 ) ;define
+
 (define s-union-ci-2
   (list->set-with-comparator string-ci-comparator '("apple" "Banana"))
 ) ;define
+
 (define s-union-ci (set-union s-union-ci-1 s-union-ci-2))
 (check (set-member s-union-ci "apple" 'not-found) => "Apple")
 (check (set-member s-union-ci "banana" 'not-found) => "Banana")
@@ -78,6 +89,7 @@
 
 ;; Test type and comparator errors
 (check-catch 'type-error (set-union "not a set" s-1))
+
 (define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
 (check-catch 'value-error (set-union s-1 s-str-ci))
 

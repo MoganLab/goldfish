@@ -5,10 +5,15 @@
 
 
 (define pos-seq (iota 20 100 3))
+
 (define neg-seq (iota 20 -100 3))
+
 (define pos-set (list->iset pos-seq))
+
 (define neg-set (list->iset neg-seq))
+
 (define dense-set (make-range-iset 0 49))
+
 (define sparse-set (list->iset (iota 20 -10000 1003)))
 
 

@@ -33,6 +33,7 @@
 
 
 ;; Test basic delete-all!
+
 (define s-mut-del-all (set-copy s-1-2-3))
 (set-delete-all! s-mut-del-all '(1 2))
 (check (set-size s-mut-del-all) => 1)

@@ -31,7 +31,9 @@
 
 
 ;; Test basic conversion
+
 (define s-to-list (set 1 2 3))
+
 (define l-to-list (set->list s-to-list))
 (check (length l-to-list) => 3)
 (check-true (set=? (list->set l-to-list) s-to-list))

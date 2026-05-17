@@ -211,6 +211,7 @@
 ;;
 ;; 省略号 #<...> 匹配任意数量的元素，这里用于匹配 (* 0 ...) 的任意参数
 ;; else 子句在无法简化时原样返回表达式
+
 (define (simplify expr)
   (case* expr
    (((+ 0 #<x:>)) '#<x>)
@@ -251,6 +252,7 @@
 ;; - else 子句     当以上都不匹配时返回 'unknown
 ;;
 ;; 应用场景：编译器/解释器前端、代码高亮工具、静态分析工具
+
 (define (expr-type expr)
   (case* expr
    (((lambda (#<args:...>) #<body:>)) 'lambda)
@@ -292,6 +294,7 @@
 ;; - #<a> #<b> #<rest> 直接返回值（数字或列表）
 ;;
 ;; 应用场景：列表处理、数据结构遍历、模式匹配提取
+
 (define (list-info lst)
   (case* lst
    ((()) 'empty)
@@ -309,6 +312,7 @@
 
 
 ;; 4. 简单的模式匹配计算器
+
 (define (calc expr)
   (case* expr
    (((+ #<a:integer?> #<b:integer?>)) (+ #<a> #<b>))
@@ -327,6 +331,7 @@
 
 
 ;; 5. 数据结构验证
+
 (define (validate-user data)
   (case* data
    (((user (name #<n:string?>) (age #<a:integer?>))) (and (> #<a> 0) (< #<a> 150)))
@@ -345,6 +350,7 @@
 
 
 ;; 匹配二元运算表达式并提取操作符和操作数
+
 (define (binop-expr? expr)
   (case* expr
    (((#<op:symbol?> #<left:> #<right:>)) (list 'binop '#<op> '#<left> '#<right>))
@@ -360,6 +366,7 @@
 
 
 ;; 匹配 if 表达式
+
 (define (if-expr? expr)
   (case* expr
    (((if #<cond:> #<then:> #<else:>)) (list 'if-expr '#<cond> '#<then> '#<else>))

@@ -39,7 +39,9 @@
 
 
 (define s-empty (set))
+
 (define s-1 (set 1))
+
 (define s-1-2 (set 1 2))
 
 
@@ -55,7 +57,9 @@
 
 
 ;; Test comparator mismatch
+
 (define str-comp (make-comparator string? string=? string<? string-hash))
+
 (define s-str (list->set-with-comparator str-comp '("apple" "banana")))
 (check-catch 'value-error (set=? s-1 s-str))
 

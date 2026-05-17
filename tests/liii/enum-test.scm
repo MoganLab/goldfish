@@ -9,6 +9,7 @@
 
 
 ;; 示例1：定义一个枚举类型并按名字取值
+
 (define Color (make-enum-type '(red green blue)))
 (enum-name (enum-name->enum Color 'green))
 

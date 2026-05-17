@@ -33,10 +33,15 @@
 
 
 (define s-empty (set))
+
 (define s-1 (set 1))
+
 (define s-1-2 (set 1 2))
+
 (define s-1-2-3 (set 1 2 3))
+
 (define s-2-3-4 (set 2 3 4))
+
 (define s-4-5 (set 4 5))
 
 
@@ -49,6 +54,7 @@
 
 
 ;; Large set test
+
 (define (range n)
   (let loop
     ((i 0) (acc '()))
@@ -58,8 +64,11 @@
 
 
 (define big-n 1000000)
+
 (define big-list (range big-n))
+
 (define s-big (list->set big-list))
+
 (define s-small-big (list->set (range (- big-n 1))))
 
 

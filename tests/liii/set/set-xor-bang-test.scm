@@ -37,7 +37,9 @@
 
 
 ;; Test basic xor!
+
 (define s-xor!-1 (set 1 2 3))
+
 (define s-xor!-result (set-xor! s-xor!-1 s-2-3-4))
 (check-true (eq? s-xor!-result s-xor!-1))
 (check (set-size s-xor!-1) => 2)
@@ -46,6 +48,7 @@
 
 
 ;; Test element source (using case-insensitive comparator)
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -53,7 +56,9 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-xor!-ci-1 (list->set-with-comparator string-ci-comparator '("Apple")))
+
 (define s-xor!-ci-2
   (list->set-with-comparator string-ci-comparator '("apple" "Banana"))
 ) ;define
@@ -65,7 +70,9 @@
 
 ;; Test type and comparator errors
 (check-catch 'type-error (set-xor! "not a set" (set 1)))
+
 (define s-str-ci (list->set-with-comparator string-ci-comparator '("test")))
+
 (define s-num (set 1))
 (check-catch 'value-error (set-xor! s-num s-str-ci))
 

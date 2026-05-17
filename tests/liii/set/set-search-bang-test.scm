@@ -57,6 +57,7 @@
 
 
 ;; Test set-search! insert
+
 (define s-search-1 (set 1 2))
 (call-with-values (lambda ()
                     (set-search! s-search-1
@@ -76,6 +77,7 @@
 
 
 ;; Test set-search! ignore
+
 (define s-search-2 (set 1 2))
 (call-with-values (lambda ()
                     (set-search! s-search-2
@@ -94,6 +96,7 @@
 
 
 ;; Test set-search! update (equals but not eq?)
+
 (define s-search-ci
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define
@@ -117,6 +120,7 @@
 
 
 ;; Test set-search! delete
+
 (define s-search-3 (set 1 2 3))
 (call-with-values (lambda ()
                     (set-search! s-search-3

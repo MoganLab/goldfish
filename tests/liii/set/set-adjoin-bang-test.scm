@@ -37,6 +37,7 @@
 
 
 ;; Test basic adjoin!
+
 (define s-mut (set-copy s-empty))
 (set-adjoin! s-mut 1)
 (check (set-size s-mut) => 1)

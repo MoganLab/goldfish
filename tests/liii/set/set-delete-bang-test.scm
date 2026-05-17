@@ -37,6 +37,7 @@
 
 
 ;; Test basic delete!
+
 (define s-mut-del (set-copy s-1-2-3))
 (set-delete! s-mut-del 1)
 (check (set-size s-mut-del) => 2)

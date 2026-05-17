@@ -9,6 +9,7 @@
 
 
 ;; 示例1：构造一个 Right 值并映射结果
+
 (define ok (from-right 21))
 (to-right (either-map (lambda (x) (* x 2)) ok))
 

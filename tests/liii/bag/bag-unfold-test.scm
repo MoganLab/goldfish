@@ -3,7 +3,9 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-empty (bag))
+
 (define comp (bag-comparator b-empty))
 
 ;; bag-unfold 函数测试
@@ -46,12 +48,14 @@
 ) ;check-catch
 
 ;; stop? 立即为真，返回空 bag
+
 (define b-unfold-empty
   (bag-unfold (lambda (n) #t) (lambda (n) n) (lambda (n) n) 0 comp)
 ) ;define
 (check (bag-member b-unfold-empty 1 'none) => 'none)
 
 ;; mapper 返回常量，重复元素也应能命中
+
 (define b-unfold-dup
   (bag-unfold (lambda (n) (> n 2)) (lambda (n) 'x) (lambda (n) (+ n 1)) 0 comp)
 ) ;define

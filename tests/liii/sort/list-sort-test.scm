@@ -38,6 +38,7 @@
 
 
 (define test-list '(3 1 4 1 5 9 2 6 5))
+
 (define sorted-list (list-sort < test-list))
 
 

@@ -37,7 +37,9 @@
 
 
 ;; Test basic behavior
+
 (define s-remove-mut (set 1 2 3 4))
+
 (define s-remove-mut-result (set-remove! even? s-remove-mut))
 (check-true (eq? s-remove-mut-result s-remove-mut))
 (check (set-size s-remove-mut) => 2)
@@ -48,6 +50,7 @@
 
 
 ;; Test empty set
+
 (define s-remove-mut-empty (set-copy s-empty))
 (set-remove! even? s-remove-mut-empty)
 (check (set-size s-remove-mut-empty) => 0)

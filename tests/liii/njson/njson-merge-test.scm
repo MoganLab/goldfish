@@ -34,6 +34,7 @@
 (define shallow-merge-base-json
   "{\"name\":\"base\",\"meta\":{\"x\":1},\"arr\":[1,2]}"
 ) ;define
+
 (define shallow-merge-patch-json
   "{\"meta\":{\"y\":2},\"arr\":[9],\"extra\":true}"
 ) ;define

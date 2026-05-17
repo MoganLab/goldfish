@@ -41,6 +41,7 @@
 
 
 ;; Test basic replace
+
 (define s-replace-1 (set-replace s-1 1))
 (check (set-size s-replace-1) => 1)
 (check-true (set-contains? s-replace-1 1))
@@ -53,6 +54,7 @@
 
 
 ;; Test replacing equals but not eq? element
+
 (define string-ci-comparator
   (make-comparator string?
     string-ci=?
@@ -60,6 +62,7 @@
     (lambda (s) (string-hash (string-map ascii-downcase s)))
   ) ;make-comparator
 ) ;define
+
 (define s-str-ci-2
   (list->set-with-comparator string-ci-comparator '("Apple" "Banana"))
 ) ;define

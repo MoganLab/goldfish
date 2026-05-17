@@ -10,6 +10,7 @@
 
 
 ;; 先看十六进制转换是否正确
+
 (define (hex-digit n)
   (if (< n 10)
     (integer->char (+ n (char->integer #\0)))

@@ -3,7 +3,9 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-empty (bag))
+
 (define comp (bag-comparator b-empty))
 
 ;; list->bag 函数测试
@@ -26,6 +28,7 @@
 (check-true (eq? (bag-comparator b-list-1) comp))
 (check (bag-size b-list-1) => 4)
 (check (bag-count (lambda (x) (= x 2)) b-list-1) => 2)
+
 (define b-list-empty (list->bag '()))
 (check-true (bag-empty? b-list-empty))
 

@@ -74,6 +74,7 @@
 (let-njson ((arr (string->njson "[1]")))
   (check-catch 'type-error (njson-object->alist arr))
 ) ;let-njson
+
 (define object->alist-freed (string->njson "{\"a\":1}"))
 (check-true (njson-free object->alist-freed))
 (check-catch 'type-error (njson-object->alist object->alist-freed))

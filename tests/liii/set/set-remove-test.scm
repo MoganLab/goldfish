@@ -37,7 +37,9 @@
 
 
 ;; Test basic removal
+
 (define s-remove-1 (set 1 2 3 4))
+
 (define s-remove-2 (set-remove even? s-remove-1))
 (check-true (set? s-remove-2))
 (check-true (eq? (set-element-comparator s-remove-2) (set-element-comparator s-remove-1))
@@ -52,6 +54,7 @@
 
 
 ;; Test empty set
+
 (define s-remove-empty (set-remove even? s-empty))
 (check (set-size s-remove-empty) => 0)
 

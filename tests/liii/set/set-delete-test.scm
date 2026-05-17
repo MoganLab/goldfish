@@ -39,6 +39,7 @@
 
 
 ;; Test basic delete
+
 (define s-del-1 (set-delete s-1-2-3 1))
 (check (set-size s-del-1) => 2)
 (check-false (set-contains? s-del-1 1))
@@ -47,12 +48,14 @@
 
 
 ;; Test deleting non-existing element
+
 (define s-del-2 (set-delete s-1-2-3 4))
 (check (set-size s-del-2) => 3)
 (check-true (set=? s-del-2 s-1-2-3))
 
 
 ;; Test deleting multiple elements
+
 (define s-del-3 (set-delete s-1-2-3 1 2))
 (check (set-size s-del-3) => 1)
 (check-false (set-contains? s-del-3 1))

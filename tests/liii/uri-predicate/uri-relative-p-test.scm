@@ -18,16 +18,19 @@
 
 
 ;; 相对 URI（无 scheme）
+
 (define u1 (make-uri-raw #f "" "/path" '() #f))
 (check (uri-relative? u1) => #t)
 
 
 ;; 空 scheme 也视为相对 URI
+
 (define u2 (make-uri-raw "" "" "/path" '() #f))
 (check (uri-relative? u2) => #t)
 
 
 ;; 绝对 URI（有 scheme）
+
 (define u3 (make-uri-raw "https" "example.com" "/" '() #f))
 (check (uri-relative? u3) => #f)
 

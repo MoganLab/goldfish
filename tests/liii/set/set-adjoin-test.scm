@@ -38,6 +38,7 @@
 
 
 ;; Test basic adjoin
+
 (define s-adjoin-1 (set-adjoin s-empty 1))
 (check (set-size s-adjoin-1) => 1)
 (check-true (set-contains? s-adjoin-1 1))
@@ -52,6 +53,7 @@
 
 
 ;; Test adding existing element
+
 (define s-adjoin-3 (set-adjoin (set 1) 1))
 (check (set-size s-adjoin-3) => 1)
 (check-true (set-contains? s-adjoin-3 1))

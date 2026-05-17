@@ -36,8 +36,11 @@
 
 
 (define s-empty (set))
+
 (define s-1 (set 1))
+
 (define s-1-2 (set 1 2))
+
 (define s-1-2-3 (set 1 2 3))
 
 

@@ -33,7 +33,9 @@
 
 
 ;; Test basic behavior
+
 (define s-foreach (set 1 2 3))
+
 (define foreach-collected '())
 (set-for-each (lambda (x) (set! foreach-collected (cons x foreach-collected)))
   s-foreach
@@ -42,6 +44,7 @@
 
 
 ;; Test empty set - no calls triggered
+
 (define foreach-count 0)
 (set-for-each (lambda (x) (set! foreach-count (+ foreach-count 1))) s-empty)
 (check (set-size s-empty) => 0)

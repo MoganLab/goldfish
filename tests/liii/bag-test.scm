@@ -9,6 +9,7 @@
 
 
 ;; 示例1：创建一个会保留重复元素的 bag
+
 (define scores (bag 1 2 2 3))
 (bag-size scores)
 

@@ -40,10 +40,12 @@
 
 
 (define s-empty (set))
+
 (define comp (set-element-comparator s-empty))
 
 
 ;; Create set {0, 1, 2, ..., 9}
+
 (define s-10
   (set-unfold (lambda (x) (= x 10)) (lambda (x) x) (lambda (x) (+ x 1)) 0 comp)
 ) ;define

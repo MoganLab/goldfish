@@ -37,6 +37,7 @@
 
 
 ;; Test basic behavior
+
 (define s-partition-mut (set 1 2 3 4))
 (call-with-values (lambda () (set-partition! even? s-partition-mut))
   (lambda (yes no)
@@ -52,6 +53,7 @@
 
 
 ;; Test empty set
+
 (define s-partition-empty (set-copy s-empty))
 (call-with-values (lambda () (set-partition! even? s-partition-empty))
   (lambda (yes no) (check (set-size yes) => 0) (check (set-size no) => 0))

@@ -37,6 +37,7 @@
 
 
 ;; Verify format: 8-4-4-4-12 pattern
+
 (define uuid-str (uuid4))
 (check (char=? (string-ref uuid-str 8) #\-) => #t)
 (check (char=? (string-ref uuid-str 13) #\-) => #t)

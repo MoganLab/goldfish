@@ -3,6 +3,7 @@
 (check-set-mode! 'report-failed)
 
 ;; Data Setup
+
 (define b-1-2 (bag 1 2 2))
 
 ;; bag-find 函数测试
