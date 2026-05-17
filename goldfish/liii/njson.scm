@@ -142,7 +142,7 @@
                    (lambda ,()
                      (when (not ,released?)
                        (set! ,released? ,#t)
-                       (catch (#_quote type-error)
+                       (catch 'type-error
                          (lambda ,() (njson-free ,var))
                          (lambda args #f))))))
                ,inner))

@@ -214,7 +214,7 @@
                  (,environment-set-global!
                   ,env-sym
                   (make-hash-table variable-comparator))
-                 (,environment-set-local! ,env-sym (#_quote ()))
+                 (,environment-set-local! ,env-sym '())
                  ,@(map (lambda (p ds)
                           `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds)))
                      processed
