@@ -1095,17 +1095,28 @@
   ) ;define
 
   (define (join-top-level pieces)
-    (let loop
-      ((rest pieces) (result "") (first #t))
-      (cond ((null? rest)
-             (if (and (not (string=? result "")) (not (string-suffix? "\n" result)))
-               (string-append result "\n")
-               result
-             ) ;if
-            ) ;
-            (first (loop (cdr rest) (string-append result (car rest)) #f))
-            (else (loop (cdr rest) (string-append result "\n" (car rest)) #f))
-      ) ;cond
+    (let ((out (open-output-string)))
+      (let loop
+        ((rest pieces) (first #t))
+        (cond ((null? rest)
+               (let ((result (get-output-string out)))
+                 (if (and (not (string=? result "")) (not (string-suffix? "\n" result)))
+                   (string-append result "\n")
+                   result
+                 ) ;if
+               ) ;let
+              ) ;
+              (first
+                (display (car rest) out)
+                (loop (cdr rest) #f)
+              ) ;
+              (else
+                (display "\n" out)
+                (display (car rest) out)
+                (loop (cdr rest) #f)
+              ) ;
+        ) ;cond
+      ) ;let
     ) ;let
   ) ;define
 
