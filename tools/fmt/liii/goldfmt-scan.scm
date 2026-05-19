@@ -536,8 +536,8 @@
         ) ;let
       ) ;let
     ) ;define
-    (define (scan-string str)
-      (let ((port (open-input-string (rewrite-reader-literals str))))
+    (define (scan-string-fast str)
+      (let ((port (open-input-string str)))
         (let loop
           ((results '()))
           (let ((datum (read port)))
@@ -548,6 +548,29 @@
           ) ;let
         ) ;let
       ) ;let
+    ) ;define
+    (define (needs-rewrite-reader-literals? str)
+      (let ((len (string-length str)))
+        (let loop ((i 0))
+          (cond ((>= i len) #f)
+                ((and (char=? (string-ref str i) #\#)
+                    (< (+ i 1) len)
+                    (or (char=? (string-ref str (+ i 1)) #\")
+                      (char=? (string-ref str (+ i 1)) #\\)
+                    ) ;or
+                  ) ;and
+                 #t
+                ) ;
+                (else (loop (+ i 1)))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+    (define (scan-string str)
+      (if (needs-rewrite-reader-literals? str)
+        (scan-string-fast (rewrite-reader-literals str))
+        (scan-string-fast str)
+      ) ;if
     ) ;define
     (define (whitespace-char? c)
       (or (char=? c #\space)
