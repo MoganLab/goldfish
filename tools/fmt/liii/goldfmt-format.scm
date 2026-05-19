@@ -377,12 +377,16 @@
     ) ;define
 
     (define (format-reader-vector-inline datum)
-      (let ((prefix (if (byte-vector? datum) "#u8(" "#(")))
-        (let loop
-          ((i 0) (pieces '()))
+      (let ((out (open-output-string)))
+        (display (if (byte-vector? datum) "#u8(" "#(") out)
+        (let loop ((i 0))
           (if (>= i (vector-length datum))
-            (string-append prefix (string-join (reverse pieces) " ") ")")
-            (loop (+ i 1) (cons (format-reader-datum-inline (vector-ref datum i)) pieces))
+            (begin (display ")" out) (get-output-string out))
+            (begin
+              (if (> i 0) (display " " out))
+              (display (format-reader-datum-inline (vector-ref datum i)) out)
+              (loop (+ i 1))
+            ) ;begin
           ) ;if
         ) ;let
       ) ;let
@@ -452,30 +456,40 @@
     ) ;define
 
     (define (format-reader-pair-inline datum)
-      (let loop
-        ((current datum) (pieces '()))
-        (cond ((pair? current)
-               (loop (cdr current) (cons (format-reader-datum-inline (car current)) pieces))
-              ) ;
-              ((null? current) (string-append "(" (string-join (reverse pieces) " ") ")"))
-              (else (string-append "("
-                      (string-join (reverse pieces) " ")
-                      " . "
-                      (format-reader-datum-inline current)
-                      ")"
-                    ) ;string-append
-              ) ;else
-        ) ;cond
+      (let ((out (open-output-string)))
+        (display "(" out)
+        (let loop
+          ((current datum) (first #t))
+          (cond ((pair? current)
+                 (if first
+                   (begin (display (format-reader-datum-inline (car current)) out) (loop (cdr current) #f))
+                   (begin (display " " out) (display (format-reader-datum-inline (car current)) out) (loop (cdr current) #f))
+                 ) ;if
+                ) ;
+                ((null? current) (display ")" out) (get-output-string out))
+                (else (display " . " out)
+                  (display (format-reader-datum-inline current) out)
+                  (display ")" out)
+                  (get-output-string out)
+                ) ;else
+          ) ;cond
+        ) ;let
       ) ;let
     ) ;define
 
     (define (reader-append-selected result selected)
-      (let loop
-        ((items selected) (text result))
-        (if (null? items)
-          text
-          (loop (cdr items) (string-append text " " (reader-selected-text (car items))))
-        ) ;if
+      (let ((out (open-output-string)))
+        (display result out)
+        (let loop ((items selected))
+          (if (null? items)
+            (get-output-string out)
+            (begin
+              (display " " out)
+              (display (reader-selected-text (car items)) out)
+              (loop (cdr items))
+            ) ;begin
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
@@ -497,41 +511,43 @@
     ) ;define
 
     (define (reader-append-rest current result rest-indent prefix-ready? close-indent)
-      (cond ((pair? current)
-             (let ((item (car current)))
-               (if (newline-marker-datum? item)
-                 (reader-append-rest (cdr current)
-                   (string-append result (reader-newlines (cadr item)) (spaces rest-indent))
-                   rest-indent
-                   #t
-                   close-indent
-                 ) ;reader-append-rest
-                 (reader-append-rest (cdr current)
-                   (string-append result
-                     (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                     (format-reader-datum-at item
-                       (if prefix-ready? (last-line-column result) rest-indent)
-                     ) ;format-reader-datum-at
-                   ) ;string-append
-                   rest-indent
-                   #f
-                   close-indent
-                 ) ;reader-append-rest
-               ) ;if
-             ) ;let
-            ) ;
-            ((null? current) (reader-append-close result close-indent))
-            (else (reader-append-close (let* ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent))))
-                                              (before-tail (string-append result prefix ". "))
-                                             ) ;
-                                         (string-append before-tail
-                                           (format-reader-datum-at current (last-line-column before-tail))
-                                         ) ;string-append
-                                       ) ;let*
-                    close-indent
-                  ) ;reader-append-close
-            ) ;else
-      ) ;cond
+      (let ((out (open-output-string)))
+        (display result out)
+        (let loop ((current current) (prefix-ready? prefix-ready?) (last-result result))
+          (cond ((pair? current)
+                 (let ((item (car current)))
+                   (if (newline-marker-datum? item)
+                     (begin
+                       (display (reader-newlines (cadr item)) out)
+                       (display (spaces rest-indent) out)
+                       (loop (cdr current) #t (spaces rest-indent))
+                     ) ;begin
+                     (let ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))))
+                       (display prefix out)
+                       (let ((text (format-reader-datum-at item
+                                     (if prefix-ready? (last-line-column last-result) rest-indent))))
+                         (display text out)
+                         (loop (cdr current) #f text)
+                       ) ;let
+                     ) ;let
+                   ) ;if
+                 ) ;let
+                ) ;
+                ((null? current)
+                 (reader-append-close (get-output-string out) close-indent))
+                (else
+                 (let* ((prefix (if prefix-ready? "" (string-append "\n" (spaces rest-indent))))
+                        (before-tail (string-append (get-output-string out) prefix ". "))
+                       ) ;
+                   (reader-append-close
+                     (string-append before-tail
+                       (format-reader-datum-at current (last-line-column before-tail)))
+                     close-indent)
+                 ) ;let*
+                ) ;else
+          ) ;cond
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (format-reader-pair-multiline datum indent)
