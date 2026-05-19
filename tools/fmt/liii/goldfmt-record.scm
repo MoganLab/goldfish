@@ -71,32 +71,6 @@
 
     ;; ; 使用具名参数构造 atom
     (define* (make-atom (depth 0) (indent -1) (left-line 0) (right-line 0) (value #f))
-      ;; ; 参数校验
-      (when (not (integer? depth))
-        (value-error "make-atom in liii/goldfmt-record: depth must be an integer")
-      ) ;when
-      (when (< depth 0)
-        (value-error "make-atom in liii/goldfmt-record: depth must be non-negative")
-      ) ;when
-      (when (not (integer? indent))
-        (value-error "make-atom in liii/goldfmt-record: indent must be an integer")
-      ) ;when
-      (when (< indent -1)
-        (value-error "make-atom in liii/goldfmt-record: indent must be >= -1")
-      ) ;when
-      (when (not (integer? left-line))
-        (value-error "make-atom in liii/goldfmt-record: left-line must be an integer")
-      ) ;when
-      (when (< left-line 0)
-        (value-error "make-atom in liii/goldfmt-record: left-line must be non-negative")
-      ) ;when
-      (when (not (integer? right-line))
-        (value-error "make-atom in liii/goldfmt-record: right-line must be an integer")
-      ) ;when
-      (when (< right-line 0)
-        (value-error "make-atom in liii/goldfmt-record: right-line must be non-negative"
-        ) ;value-error
-      ) ;when
       (%make-atom depth indent left-line right-line value)
     ) ;define*
 
@@ -108,14 +82,6 @@
     ) ;define-record-type
 
     (define* (make-raw-string-literal (source "") (value ""))
-      (when (not (string? source))
-        (value-error "make-raw-string-literal in liii/goldfmt-record: source must be a string"
-        ) ;value-error
-      ) ;when
-      (when (not (string? value))
-        (value-error "make-raw-string-literal in liii/goldfmt-record: value must be a string"
-        ) ;value-error
-      ) ;when
       (%make-raw-string-literal source value)
     ) ;define*
 
@@ -127,13 +93,6 @@
     ) ;define-record-type
 
     (define* (make-char-literal (source "") (value #\space))
-      (when (not (string? source))
-        (value-error "make-char-literal in liii/goldfmt-record: source must be a string"
-        ) ;value-error
-      ) ;when
-      (when (not (char? value))
-        (value-error "make-char-literal in liii/goldfmt-record: value must be a char")
-      ) ;when
       (%make-char-literal source value)
     ) ;define*
 
@@ -146,37 +105,6 @@
                (right-line 0)
                (value #f)
              ) ;make-env
-      ;; ; 参数校验
-      (when (not (or (string? tag-name) (eq? tag-name #f)))
-        (value-error "make-env in liii/goldfmt-record: tag-name must be a string or #f")
-      ) ;when
-      (when (not (integer? depth))
-        (value-error "make-env in liii/goldfmt-record: depth must be an integer")
-      ) ;when
-      (when (< depth 0)
-        (value-error "make-env in liii/goldfmt-record: depth must be non-negative")
-      ) ;when
-      (when (not (integer? indent))
-        (value-error "make-env in liii/goldfmt-record: indent must be an integer")
-      ) ;when
-      (when (< indent -1)
-        (value-error "make-env in liii/goldfmt-record: indent must be >= -1")
-      ) ;when
-      (when (not (or (vector? children) (eq? children #f)))
-        (value-error "make-env in liii/goldfmt-record: children must be a vector or #f")
-      ) ;when
-      (when (not (integer? left-line))
-        (value-error "make-env in liii/goldfmt-record: left-line must be an integer")
-      ) ;when
-      (when (< left-line 0)
-        (value-error "make-env in liii/goldfmt-record: left-line must be non-negative")
-      ) ;when
-      (when (not (integer? right-line))
-        (value-error "make-env in liii/goldfmt-record: right-line must be an integer")
-      ) ;when
-      (when (< right-line 0)
-        (value-error "make-env in liii/goldfmt-record: right-line must be non-negative")
-      ) ;when
       (%make-env tag-name depth indent children left-line right-line value)
     ) ;define*
 
