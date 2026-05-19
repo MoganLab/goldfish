@@ -852,11 +852,35 @@
     ) ;define
 
     (define (positioned-atom node indent left-line right-line)
-      #t
+      (make-atom :depth
+        (atom-depth node)
+        :indent
+        indent
+        :left-line
+        left-line
+        :right-line
+        right-line
+        :value
+        (atom-value node)
+      ) ;make-atom
     ) ;define
 
     (define (positioned-env node indent children left-line right-line)
-      #t
+      (make-env :tag-name
+        (env-tag-name node)
+        :depth
+        (env-depth node)
+        :indent
+        indent
+        :children
+        children
+        :left-line
+        left-line
+        :right-line
+        right-line
+        :value
+        (env-value node)
+      ) ;make-env
     ) ;define
 
     ;; ; emit-comment! 将 scan 阶段的 (*comment* "...") 还原为 ;; 注释行。
