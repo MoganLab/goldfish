@@ -1,17 +1,17 @@
 (import (liii check) (liii string))
 
 ;; char-position
-;; 在字符串中查找字符（或子串）首次出现的位置。
+;; 在字符串中查找字符首次出现的位置。
 ;;
 ;; 语法
 ;; ----
-;; (char-position char-or-str str)
-;; (char-position char-or-str str start)
+;; (char-position char-or-charset str)
+;; (char-position char-or-charset str start)
 ;;
 ;; 参数
 ;; ----
-;; char-or-str : char? 或 string?
-;; 要查找的字符或子串。
+;; char-or-charset : char? 或 string?
+;; 当为 char? 时，查找该字符的位置；当为 string? 时，查找字符集中任意字符首次出现的位置。
 ;;
 ;; str : string?
 ;; 被搜索的源字符串。
@@ -39,5 +39,9 @@
 (check (char-position #\o "hello world" 5) => 7)
 (check-true (integer? (char-position #\a "abc")))
 (check (char-position #\你 "你好世界") => #f)
+
+;; 第一个参数为 string? 时，查找字符集中任意字符首次出现的位置
+(check (char-position "aeiou" "hello world") => 1)
+(check (char-position "xyz" "hello world") => #f)
 
 (check-report)
