@@ -338,23 +338,30 @@
     (define (string-index str char/pred? . start+end)
       (if (char? char/pred?)
         ;; fast path: use C-level char-position with strchr
-        (cond ((null? start+end)
-               (char-position char/pred? str))
+        (cond ((null? start+end) (char-position char/pred? str))
               ((null? (cdr start+end))
                ;; only start: use char-position directly on original string
                (let ((start (car start+end)))
                  (when (< start 0)
-                   (error 'out-of-range "string-index" start))
+                   (error 'out-of-range "string-index" start)
+                 ) ;when
                  (when (> start (string-length str))
-                   (error 'out-of-range "string-index" start))
-                 (char-position char/pred? str start)))
+                   (error 'out-of-range "string-index" start)
+                 ) ;when
+                 (char-position char/pred? str start)
+               ) ;let
+              ) ;
               (else
-               ;; start + end: use substring for end boundary
-               (let ((start (car start+end))
-                     (end-opt (cadr start+end)))
-                 (let ((s (substring str start end-opt)))
-                   (let ((pos (char-position char/pred? s)))
-                     (if pos (+ start pos) #f))))))
+                ;; start + end: use substring for end boundary
+                (let ((start (car start+end)) (end-opt (cadr start+end)))
+                  (let ((s (substring str start end-opt)))
+                    (let ((pos (char-position char/pred? s)))
+                      (if pos (+ start pos) #f)
+                    ) ;let
+                  ) ;let
+                ) ;let
+              ) ;else
+        ) ;cond
         ;; slow path: predicate-based search
         (let* ((start (if (null-list? start+end) 0 (car start+end)))
                (str-sub (%string-from-range str start+end))
@@ -429,9 +436,8 @@
     ) ;define
 
     (define (string-contains str sub-str)
-      (if (= (string-length sub-str) 0)
-        #t
-        (if (string-position sub-str str) #t #f)))
+      (if (= (string-length sub-str) 0) #t (if (string-position sub-str str) #t #f))
+    ) ;define
 
     (define (string-count str char/pred? . start+end)
       (when (not (string? str))
