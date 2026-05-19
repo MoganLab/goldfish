@@ -132,6 +132,82 @@
       10000000))
 
   (newline)
+  (display "=== define-record-type Tests ===")
+  (newline)
+  (newline)
+
+  ;; Define record types with different field counts
+  (define-record-type :point
+    (make-point x y)
+    point?
+    (x point-x)
+    (y point-y))
+
+  (define-record-type :person
+    (make-person name age city job)
+    person?
+    (name person-name)
+    (age person-age)
+    (city person-city)
+    (job person-job))
+
+  (define-record-type :big-record
+    (make-big-record f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 f11 f12 f13 f14 f15 f16)
+    big-record?
+    (f1 big-record-f1)
+    (f2 big-record-f2)
+    (f3 big-record-f3)
+    (f4 big-record-f4)
+    (f5 big-record-f5)
+    (f6 big-record-f6)
+    (f7 big-record-f7)
+    (f8 big-record-f8)
+    (f9 big-record-f9)
+    (f10 big-record-f10)
+    (f11 big-record-f11)
+    (f12 big-record-f12)
+    (f13 big-record-f13)
+    (f14 big-record-f14)
+    (f15 big-record-f15)
+    (f16 big-record-f16))
+
+  ;; 14. Create simple record (2 fields + type tag = 4 inlet args)
+  (bench-case "create record 2 fields"
+    (lambda () (make-point 1 2))
+    2000000)
+
+  ;; 15. Create medium record (4 fields + type tag = 8 inlet args)
+  (bench-case "create record 4 fields"
+    (lambda () (make-person "Alice" 30 "NYC" "Dev"))
+    1000000)
+
+  ;; 16. Create big record (16 fields + type tag = 32 inlet args)
+  (bench-case "create record 16 fields"
+    (lambda () (make-big-record 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16))
+    500000)
+
+  ;; 17. Access record field (let-ref underlying)
+  (define test-person (make-person "Alice" 30 "NYC" "Dev"))
+  (bench-case "access record field (let-ref)"
+    (lambda () (person-name test-person))
+    20000000)
+
+  ;; 18. Record type predicate
+  (bench-case "record type predicate"
+    (lambda () (person? test-person))
+    20000000)
+
+  ;; 19. Compare: direct inlet vs record create (2 fields)
+  (bench-case "direct inlet 4 args (equiv to record 2f)"
+    (lambda () (inlet 'type 'point 'x 1 'y 2))
+    2000000)
+
+  ;; 20. Compare: direct inlet vs record create (4 fields)
+  (bench-case "direct inlet 8 args (equiv to record 4f)"
+    (lambda () (inlet 'type 'person 'name "Alice" 'age 30 'city "NYC" 'job "Dev"))
+    1000000)
+
+  (newline)
   (display "=== Benchmark completed ===")
   (newline))
 
