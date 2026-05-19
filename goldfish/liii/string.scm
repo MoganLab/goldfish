@@ -33,6 +33,7 @@
     string-remove-suffix
     pyfmt
     string-position
+    char-position
   ) ;export
   (import (except (srfi srfi-13) string-replace)
     (scheme base)

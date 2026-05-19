@@ -20,6 +20,10 @@ s7_pointer string_ref_1(s7_scheme *sc, s7_pointer strng, s7_pointer index);
 s7_pointer g_string_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_length(s7_scheme *sc, s7_pointer args);
 
+s7_pointer g_char_position(s7_scheme *sc, s7_pointer args);
+s7_pointer char_position_p_ppi(s7_scheme *sc, s7_pointer chr, s7_pointer str, s7_int start);
+s7_pointer g_char_position_csi(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif
