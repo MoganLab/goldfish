@@ -412,9 +412,8 @@
     ) ;define
 
     (define (string-contains str sub-str)
-      (if (= (string-length sub-str) 0)
-        #t
-        (if (string-position sub-str str) #t #f)))
+      (if (= (string-length sub-str) 0) #t (if (string-position sub-str str) #t #f))
+    ) ;define
 
     (define (string-count str char/pred? . start+end)
       (when (not (string? str))
