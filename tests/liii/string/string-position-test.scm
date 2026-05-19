@@ -32,8 +32,8 @@
 
 (check (string-position "34" "0123456789") => 3)
 (check (string-position "012" "0123456789") => 0)
-(check (string-position "" "hello") => #f)
-(check (string-position "abc" "0123456789") => #f)
+(check-false (string-position "" "hello"))
+(check-false (string-position "abc" "0123456789"))
 (check (string-position "34" "0123434567" 4) => 5)
 
 (check-report)
