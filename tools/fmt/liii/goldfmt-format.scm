@@ -143,11 +143,7 @@
     ) ;define
 
     (define (make-newlines n)
-      (if (<= n 0) "" (make-newlines-iter (- n 1) ""))
-    ) ;define
-
-    (define (make-newlines-iter n acc)
-      (if (<= n 0) acc (make-newlines-iter (- n 1) (string-append acc "\n")))
+      (if (<= n 1) "" (make-string (- n 1) #\newline))
     ) ;define
 
     (define (comment-content node)
