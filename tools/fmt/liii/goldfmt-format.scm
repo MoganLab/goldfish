@@ -675,10 +675,14 @@
       ) ;let
     ) ;define
 
-    (define (can-inline? node)
+    ;; ; 返回内联文本字符串（可内联时）或 #f（不可内联时）
+    (define (try-inline node)
       (cond ((comment-node? node) #t)
             ((newline-node? node) #f)
-            ((atom? node) (not (string-contains-newline? (format-inline node))))
+            ((atom? node)
+             (let ((text (format-inline node)))
+               (if (string-contains-newline? text) #f text))
+            ) ;
             ((contains-comment? node) #f)
             ((must-inline? (env-tag-name node)) #t)
             ((never-inline? (env-tag-name node)) #f)
@@ -688,12 +692,19 @@
              #f
             ) ;
             (else (let ((candidate (format-inline node)))
-                    (and (not (string-contains-newline? candidate))
-                      (<= (string-length candidate) max-inline-length)
-                    ) ;and
+                    (if (and (not (string-contains-newline? candidate))
+                          (<= (string-length candidate) max-inline-length)
+                        ) ;and
+                      candidate
+                      #f
+                    ) ;if
                   ) ;let
             ) ;else
       ) ;cond
+    ) ;define
+
+    (define (can-inline? node)
+      (if (try-inline node) #t #f)
     ) ;define
 
     ;; ; writer 状态记录当前输出端口、行号和列号。行号从 1 开始，列号从 0 开始。
@@ -790,10 +801,11 @@
                 (let* ((separator (child-separator node i))
                        (child-column (+ column (string-length separator)))
                        (next-result (cons (cons child child-column) result))
+                       (inline-text (try-inline child))
                       ) ;
-                  (if (can-inline? child)
+                  (if inline-text
                     (loop (+ i 1)
-                      (+ child-column (string-length (format-inline child)))
+                      (+ child-column (string-length inline-text))
                       next-direct-env-count
                       next-result
                     ) ;loop
