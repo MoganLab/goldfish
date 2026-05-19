@@ -110,10 +110,7 @@
     ) ;define
 
     (define (spaces n)
-      (let loop
-        ((i n) (result ""))
-        (if (<= i 0) result (loop (- i 1) (string-append result " ")))
-      ) ;let
+      (if (<= n 0) "" (make-string n #\space))
     ) ;define
 
     ;; ; 空 tag-name 的环境形如 ((x 1) (y 2))，第一个 child 前不能多输出空格。
