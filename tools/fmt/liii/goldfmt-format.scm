@@ -41,20 +41,16 @@
     ) ;define
 
     (define (string-contains-newline? text)
-      (let loop
-        ((i 0))
-        (cond ((>= i (string-length text)) #f)
-              ((char=? (string-ref text i) #\newline) #t)
-              (else (loop (+ i 1)))
-        ) ;cond
-      ) ;let
+      (if (string-position "\n" text) #t #f)
     ) ;define
 
     (define (format-atom-value value)
-      (if (raw-string-literal? value)
-        (raw-string-literal-source value)
-        (if (char-literal? value) (char-literal-source value) (write-to-string value))
-      ) ;if
+      (cond ((raw-string-literal? value) (raw-string-literal-source value))
+            ((char-literal? value) (char-literal-source value))
+            ((symbol? value) (symbol->string value))
+            ((number? value) (number->string value))
+            (else (write-to-string value))
+      ) ;cond
     ) ;define
 
     (define (single-arg-symbol-form? value name)
@@ -110,10 +106,7 @@
     ) ;define
 
     (define (spaces n)
-      (let loop
-        ((i n) (result ""))
-        (if (<= i 0) result (loop (- i 1) (string-append result " ")))
-      ) ;let
+      (if (<= n 0) "" (make-string n #\space))
     ) ;define
 
     ;; ; 空 tag-name 的环境形如 ((x 1) (y 2))，第一个 child 前不能多输出空格。
@@ -146,11 +139,7 @@
     ) ;define
 
     (define (make-newlines n)
-      (if (<= n 0) "" (make-newlines-iter (- n 1) ""))
-    ) ;define
-
-    (define (make-newlines-iter n acc)
-      (if (<= n 0) acc (make-newlines-iter (- n 1) (string-append acc "\n")))
+      (if (<= n 1) "" (make-string (- n 1) #\newline))
     ) ;define
 
     (define (comment-content node)
@@ -657,16 +646,23 @@
             ) ;
             ((reader-prefix-env? node) (format-inline-atom-or-quote (env-value node)))
             (else (let ((children (env-children node)))
-                    (let loop
-                      ((i 0) (result (string-append "(" (env-tag-name node))))
-                      (if (>= i (vector-length children))
-                        (string-append result ")")
-                        (let ((child (vector-ref children i)))
-                          (loop (+ i 1)
-                            (string-append result (child-separator node i) (format-inline child))
-                          ) ;loop
-                        ) ;let
-                      ) ;if
+                    (let ((out (open-output-string)))
+                      (display "(" out)
+                      (display (env-tag-name node) out)
+                      (let loop
+                        ((i 0))
+                        (if (>= i (vector-length children))
+                          (begin
+                            (display ")" out)
+                            (get-output-string out)
+                          ) ;begin
+                          (begin
+                            (display (child-separator node i) out)
+                            (display (format-inline (vector-ref children i)) out)
+                            (loop (+ i 1))
+                          ) ;begin
+                        ) ;if
+                      ) ;let
                     ) ;let
                   ) ;let
             ) ;else
@@ -679,10 +675,14 @@
       ) ;let
     ) ;define
 
-    (define (can-inline? node)
+    ;; ; 返回内联文本字符串（可内联时）或 #f（不可内联时）
+    (define (try-inline node)
       (cond ((comment-node? node) #t)
             ((newline-node? node) #f)
-            ((atom? node) (not (string-contains-newline? (format-inline node))))
+            ((atom? node)
+             (let ((text (format-inline node)))
+               (if (string-contains-newline? text) #f text))
+            ) ;
             ((contains-comment? node) #f)
             ((must-inline? (env-tag-name node)) #t)
             ((never-inline? (env-tag-name node)) #f)
@@ -692,12 +692,19 @@
              #f
             ) ;
             (else (let ((candidate (format-inline node)))
-                    (and (not (string-contains-newline? candidate))
-                      (<= (string-length candidate) max-inline-length)
-                    ) ;and
+                    (if (and (not (string-contains-newline? candidate))
+                          (<= (string-length candidate) max-inline-length)
+                        ) ;and
+                      candidate
+                      #f
+                    ) ;if
                   ) ;let
             ) ;else
       ) ;cond
+    ) ;define
+
+    (define (can-inline? node)
+      (if (try-inline node) #t #f)
     ) ;define
 
     ;; ; writer 状态记录当前输出端口、行号和列号。行号从 1 开始，列号从 0 开始。
@@ -753,7 +760,12 @@
     ) ;define
 
     (define (emit-spaces! writer n)
-      (emit-string! writer (spaces n))
+      (if (> n 0)
+        (begin
+          (display (make-string n #\space) (writer-port writer))
+          (set-writer-column! writer (+ (writer-column writer) n))
+        ) ;begin
+      ) ;if
     ) ;define
 
     (define (selected-child pair)
@@ -789,10 +801,11 @@
                 (let* ((separator (child-separator node i))
                        (child-column (+ column (string-length separator)))
                        (next-result (cons (cons child child-column) result))
+                       (inline-text (try-inline child))
                       ) ;
-                  (if (can-inline? child)
+                  (if inline-text
                     (loop (+ i 1)
-                      (+ child-column (string-length (format-inline child)))
+                      (+ child-column (string-length inline-text))
                       next-direct-env-count
                       next-result
                     ) ;loop
@@ -1090,17 +1103,28 @@
   ) ;define
 
   (define (join-top-level pieces)
-    (let loop
-      ((rest pieces) (result "") (first #t))
-      (cond ((null? rest)
-             (if (and (not (string=? result "")) (not (string-suffix? "\n" result)))
-               (string-append result "\n")
-               result
-             ) ;if
-            ) ;
-            (first (loop (cdr rest) (string-append result (car rest)) #f))
-            (else (loop (cdr rest) (string-append result "\n" (car rest)) #f))
-      ) ;cond
+    (let ((out (open-output-string)))
+      (let loop
+        ((rest pieces) (first #t))
+        (cond ((null? rest)
+               (let ((result (get-output-string out)))
+                 (if (and (not (string=? result "")) (not (string-suffix? "\n" result)))
+                   (string-append result "\n")
+                   result
+                 ) ;if
+               ) ;let
+              ) ;
+              (first
+                (display (car rest) out)
+                (loop (cdr rest) #f)
+              ) ;
+              (else
+                (display "\n" out)
+                (display (car rest) out)
+                (loop (cdr rest) #f)
+              ) ;
+        ) ;cond
+      ) ;let
     ) ;let
   ) ;define
 
