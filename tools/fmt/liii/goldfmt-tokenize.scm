@@ -112,7 +112,6 @@
                                ) ;cond
                     ) ;in-string
                     (in-block-comment (cond ((and (char=? c #\|) (char=? next-c #\#))
-                                             (flush-run! run-start i)
                                              (set! in-block-comment #f)
                                              (process-char (+ i 2) (+ i 2))
                                             ) ;
