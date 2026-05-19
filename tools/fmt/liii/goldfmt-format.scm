@@ -41,20 +41,16 @@
     ) ;define
 
     (define (string-contains-newline? text)
-      (let loop
-        ((i 0))
-        (cond ((>= i (string-length text)) #f)
-              ((char=? (string-ref text i) #\newline) #t)
-              (else (loop (+ i 1)))
-        ) ;cond
-      ) ;let
+      (if (string-position "\n" text) #t #f)
     ) ;define
 
     (define (format-atom-value value)
-      (if (raw-string-literal? value)
-        (raw-string-literal-source value)
-        (if (char-literal? value) (char-literal-source value) (write-to-string value))
-      ) ;if
+      (cond ((raw-string-literal? value) (raw-string-literal-source value))
+            ((char-literal? value) (char-literal-source value))
+            ((symbol? value) (symbol->string value))
+            ((number? value) (number->string value))
+            (else (write-to-string value))
+      ) ;cond
     ) ;define
 
     (define (single-arg-symbol-form? value name)
