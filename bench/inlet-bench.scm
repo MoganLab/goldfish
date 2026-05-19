@@ -50,12 +50,12 @@
   ;; 1. Empty inlet -- goes through s7_inlet -> sublet_1
   (bench-case "empty inlet"
     (lambda () (inlet))
-    1000000)
+    10000000)
 
   ;; 2. simple_inlet path -- 2 args
   (bench-case "simple inlet 2 args"
     (lambda () (inlet 'a 1))
-    1000000)
+    5000000)
 
   ;; 3. simple_inlet path -- 8 args
   (bench-case "simple inlet 8 args"
@@ -65,13 +65,13 @@
   ;; 4. generic path -- with cons args (goes through s7_inlet -> sublet_1)
   (bench-case "generic inlet (with cons)"
     (lambda () (inlet '(a . 1) '(b . 2)))
-    1000000)
+    2000000)
 
   ;; 5. generic path -- with let arg (goes through s7_inlet -> sublet_1)
   (let ((e (inlet 'x 1 'y 2)))
     (bench-case "generic inlet (with let)"
       (lambda () (inlet 'a 1 e))
-      1000000))
+      2000000))
 
   (newline)
   (display "=== Big Inlet Tests ===")
@@ -81,7 +81,7 @@
   ;; 6. Create big inlet incrementally via sublet
   (bench-case (string-append "create big inlet (" (number->string big-inlet-size) " via sublet loop)")
     (lambda () (make-big-inlet big-inlet-size))
-    10)
+    200)
 
   ;; Pre-create big inlet for subsequent tests
   (define big-inlet (make-big-inlet big-inlet-size))
@@ -93,17 +93,17 @@
   ;; 7. Copy big inlet via inlet (triggers append_let in sublet_1)
   (bench-case "copy big inlet via (inlet big-inlet)"
     (lambda () (inlet big-inlet))
-    100)
+    1000)
 
-  ;; 8. Copy big inlet via sublet
+  ;; 8. Copy big inlet via sublet (no actual copy, just makes empty child let)
   (bench-case "copy big inlet via (sublet big-inlet)"
     (lambda () (sublet big-inlet))
-    100)
+    1000000)
 
   ;; 9. Merge big inlet with small inlet
   (bench-case "merge big inlet + small inlet"
     (lambda () (inlet 'a 1 big-inlet))
-    100)
+    1000)
 
   (newline)
   (display "=== Big Inlet Symbol Lookup Tests ===")
@@ -113,23 +113,23 @@
   ;; 10. defined? on existing symbol in big inlet
   (bench-case "defined? existing symbol in big inlet"
     (lambda () (defined? 'sym-100 big-inlet))
-    100000)
+    50000)
 
   ;; 11. defined? on non-existing symbol in big inlet
   (bench-case "defined? non-existing symbol in big inlet"
     (lambda () (defined? 'nonexistent big-inlet))
-    100000)
+    10000000)
 
   ;; 12. let-ref on existing symbol in big inlet
   (bench-case "let-ref existing symbol in big inlet"
     (lambda () (let-ref big-inlet 'sym-100))
-    100000)
+    50000)
 
   ;; 13. let-ref on last symbol in big inlet
   (let ((last-sym (string->symbol (string-append "sym-" (number->string (- big-inlet-size 1))))))
     (bench-case "let-ref last symbol in big inlet"
       (lambda () (let-ref big-inlet last-sym))
-      100000))
+      10000000))
 
   (newline)
   (display "=== Benchmark completed ===")
