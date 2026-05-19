@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldfmt-scan)
-  (export scan scan-string scan-file)
+  (export scan scan-string scan-file scan-content)
   (import (liii base)
     (liii path)
     (liii raw-string)
@@ -718,9 +718,8 @@
         "\n"
       ) ;string-join
     ) ;define
-    (define (scan-file path)
-      (let* ((raw-content (path-read-text path))
-             (scanned (source-tokenize raw-content))
+    (define (scan-content raw-content)
+      (let* ((scanned (source-tokenize raw-content))
              (leading-blanks (let loop
                                ((i 0) (count 0))
                                (if (>= i (string-length raw-content))
@@ -750,5 +749,8 @@
         (scan-string processed-content)
       ) ;let*
     ) ;define
+
+    (define (scan-file path)
+      (scan-content (path-read-text path)))
   ) ;begin
 ) ;define-library

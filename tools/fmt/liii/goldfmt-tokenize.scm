@@ -8,8 +8,8 @@
 ;; http://www.apache.org/licenses/LICENSE-2.0
 ;;
 ;; Unless required by applicable law or agreed to in writing, software
-;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 ;; License for the specific language governing permissions and limitations
 ;; under the License.
 ;;
@@ -63,9 +63,15 @@
             (raw-delimiter "")
             (raw-delimiter-match 0)
            ) ;
-        (define (process-char i)
+        (define (flush-run! start end)
+          (if (< start end)
+            (set! current-line (string-append current-line (substring content start end)))
+          ) ;if
+        ) ;define
+        (define (process-char i run-start)
           (if (>= i len)
             (begin
+              (flush-run! run-start i)
               (if (and (not (string-null? current-line))
                     (not (string-every (lambda (c)
                                          (or (char=? c #\space)
@@ -85,27 +91,40 @@
             (let ((c (string-ref content i))
                   (next-c (if (< (+ i 1) len) (string-ref content (+ i 1)) #\nul))
                  ) ;
-              (cond (in-string (set! current-line (string-append current-line (string c)))
-                      (cond (string-escaped (set! string-escaped #f) (process-char (+ i 1)))
-                            ((char=? c #\\) (set! string-escaped #t) (process-char (+ i 1)))
-                            ((char=? c #\") (set! in-string #f) (process-char (+ i 1)))
-                            (else (process-char (+ i 1)))
-                      ) ;cond
+              (cond (in-string (cond (string-escaped
+                                      (flush-run! run-start i)
+                                      (set! current-line (string-append current-line (string c)))
+                                      (set! string-escaped #f)
+                                      (process-char (+ i 1) (+ i 1))
+                                     ) ;
+                                     ((char=? c #\\)
+                                      (flush-run! run-start i)
+                                      (set! current-line (string-append current-line (string c)))
+                                      (set! string-escaped #t)
+                                      (process-char (+ i 1) (+ i 1))
+                                     ) ;
+                                     ((char=? c #\")
+                                      (flush-run! run-start (+ i 1))
+                                      (set! in-string #f)
+                                      (process-char (+ i 1) (+ i 1))
+                                     ) ;
+                                     (else (process-char (+ i 1) run-start))
+                               ) ;cond
                     ) ;in-string
                     (in-block-comment (cond ((and (char=? c #\|) (char=? next-c #\#))
                                              (set! in-block-comment #f)
-                                             (process-char (+ i 2))
+                                             (process-char (+ i 2) (+ i 2))
                                             ) ;
-                                            (else (process-char (+ i 1)))
+                                            (else (process-char (+ i 1) run-start))
                                       ) ;cond
                     ) ;in-block-comment
-                    (in-raw-string (set! current-line (string-append current-line (string c)))
+                    (in-raw-string
                       (cond ((and (= (string-length raw-delimiter) 0) (char=? c #\") (char=? next-c #\"))
-                             (set! current-line (string-append current-line "\""))
+                             (flush-run! run-start (+ i 2))
                              (set! in-raw-string #f)
                              (set! raw-delimiter "")
                              (set! raw-delimiter-match 0)
-                             (process-char (+ i 2))
+                             (process-char (+ i 2) (+ i 2))
                             ) ;
                             ((and (< raw-delimiter-match (string-length raw-delimiter))
                                (char=? c (string-ref raw-delimiter raw-delimiter-match))
@@ -114,28 +133,37 @@
                              (if (>= raw-delimiter-match (string-length raw-delimiter))
                                (if (and (< (+ i 1) len) (char=? (string-ref content (+ i 1)) #\"))
                                  (begin
-                                   (set! current-line (string-append current-line "\""))
+                                   (flush-run! run-start (+ i 2))
                                    (set! in-raw-string #f)
                                    (set! raw-delimiter "")
                                    (set! raw-delimiter-match 0)
-                                   (process-char (+ i 2))
+                                   (process-char (+ i 2) (+ i 2))
                                  ) ;begin
-                                 (process-char (+ i 1))
+                                 (process-char (+ i 1) run-start)
                                ) ;if
-                               (process-char (+ i 1))
+                               (process-char (+ i 1) run-start)
                              ) ;if
                             ) ;
-                            ((char=? c #\newline) (set! raw-delimiter-match 0) (process-char (+ i 1)))
-                            (else (set! raw-delimiter-match 0) (process-char (+ i 1)))
+                            ((char=? c #\newline)
+                             (flush-run! run-start (+ i 1))
+                             (set! raw-delimiter-match 0)
+                             (process-char (+ i 1) (+ i 1))
+                            ) ;
+                            (else
+                             (set! raw-delimiter-match 0)
+                             (process-char (+ i 1) run-start)
+                            ) ;else
                       ) ;cond
                     ) ;in-raw-string
 
                     (else (cond ((and (char=? c #\#) (char=? next-c #\|))
+                                 (flush-run! run-start i)
                                  (set! in-block-comment #t)
-                                 (process-char (+ i 2))
+                                 (process-char (+ i 2) (+ i 2))
                                 ) ;
 
                                 ((and (char=? c #\#) (char=? next-c #\"))
+                                 (flush-run! run-start i)
                                  (let ((delim-end (string-index content #\" (+ i 2))))
                                    (if delim-end
                                      (begin
@@ -143,22 +171,24 @@
                                        (set! raw-delimiter (substring content (+ i 2) delim-end))
                                        (set! raw-delimiter-match 0)
                                        (set! current-line (string-append current-line "#\"" raw-delimiter "\""))
-                                       (process-char (+ delim-end 1))
+                                       (process-char (+ delim-end 1) (+ delim-end 1))
                                      ) ;begin
                                      (begin
                                        (set! current-line (string-append current-line (string c)))
-                                       (process-char (+ i 1))
+                                       (process-char (+ i 1) (+ i 1))
                                      ) ;begin
                                    ) ;if
                                  ) ;let
                                 ) ;
 
                                 ((char=? c #\")
+                                 (flush-run! run-start i)
                                  (set! in-string #t)
                                  (set! current-line (string-append current-line (string c)))
-                                 (process-char (+ i 1))
+                                 (process-char (+ i 1) (+ i 1))
                                 ) ;
                                 ((and (char=? c #\;) (char=? next-c #\;))
+                                 (flush-run! run-start i)
                                  (if (and (not (string-null? current-line))
                                        (not (string-every (lambda (c) (or (char=? c #\space) (char=? c #\tab)))
                                               current-line
@@ -177,23 +207,24 @@
                                    (if newline-pos
                                      (begin
                                        (set! current-line "")
-                                       (process-char (+ newline-pos 1))
+                                       (process-char (+ newline-pos 1) (+ newline-pos 1))
                                      ) ;begin
                                      (reverse tokens)
                                    ) ;if
                                  ) ;let*
                                 ) ;
                                 ((char=? c #\newline)
+                                 (flush-run! run-start i)
                                  (if (and (not (string-null? current-line)) (not (blank-line? current-line)))
                                    (begin
                                      (set! tokens (cons (cons 'code current-line) tokens))
                                      (set! current-line "")
-                                     (process-char (+ i 1))
+                                     (process-char (+ i 1) (+ i 1))
                                    ) ;begin
                                    (if (null? tokens)
                                      (begin
                                        (set! current-line "")
-                                       (process-char (+ i 1))
+                                       (process-char (+ i 1) (+ i 1))
                                      ) ;begin
                                      (let count-loop
                                        ((pos (+ i 1)) (blank-count (if (blank-line? current-line) 1 0)))
@@ -206,7 +237,7 @@
                                                          (set! tokens (cons (cons 'newline blank-count) tokens))
                                                        ) ;when
                                                    (set! current-line "")
-                                                   (process-char pos)
+                                                   (process-char pos pos)
                                                  ) ;else
                                            ) ;cond
                                          ) ;let
@@ -215,16 +246,14 @@
                                    ) ;if
                                  ) ;if
                                 ) ;
-                                (else (set! current-line (string-append current-line (string c)))
-                                  (process-char (+ i 1))
-                                ) ;else
+                                (else (process-char (+ i 1) run-start))
                           ) ;cond
                     ) ;else
               ) ;cond
             ) ;let
           ) ;if
         ) ;define
-        (process-char 0)
+        (process-char 0 0)
       ) ;let
     ) ;define
     (define (tokens->string tokens)
