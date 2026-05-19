@@ -746,7 +746,12 @@
     ) ;define
 
     (define (emit-spaces! writer n)
-      (emit-string! writer (spaces n))
+      (if (> n 0)
+        (begin
+          (display (make-string n #\space) (writer-port writer))
+          (set-writer-column! writer (+ (writer-column writer) n))
+        ) ;begin
+      ) ;if
     ) ;define
 
     (define (selected-child pair)
