@@ -650,16 +650,23 @@
             ) ;
             ((reader-prefix-env? node) (format-inline-atom-or-quote (env-value node)))
             (else (let ((children (env-children node)))
-                    (let loop
-                      ((i 0) (result (string-append "(" (env-tag-name node))))
-                      (if (>= i (vector-length children))
-                        (string-append result ")")
-                        (let ((child (vector-ref children i)))
-                          (loop (+ i 1)
-                            (string-append result (child-separator node i) (format-inline child))
-                          ) ;loop
-                        ) ;let
-                      ) ;if
+                    (let ((out (open-output-string)))
+                      (display "(" out)
+                      (display (env-tag-name node) out)
+                      (let loop
+                        ((i 0))
+                        (if (>= i (vector-length children))
+                          (begin
+                            (display ")" out)
+                            (get-output-string out)
+                          ) ;begin
+                          (begin
+                            (display (child-separator node i) out)
+                            (display (format-inline (vector-ref children i)) out)
+                            (loop (+ i 1))
+                          ) ;begin
+                        ) ;if
+                      ) ;let
                     ) ;let
                   ) ;let
             ) ;else
