@@ -228,20 +228,34 @@
       ) ;let
     ) ;define
     (define (tokens->string tokens)
-      (string-join (map (lambda (token)
-                          (let ((type (car token)) (content (cdr token)))
-                            (cond ((eq? type 'comment)
-                                   (string-append "(*comment* \"" (escape-string-content content) "\")")
-                                  ) ;
-                                  ((eq? type 'newline) (string-append "(*newline* " (number->string content) ")"))
-                                  (else content)
-                            ) ;cond
-                          ) ;let
-                        ) ;lambda
-                     tokens
-                   ) ;map
-        "\n"
-      ) ;string-join
+      (let ((out (open-output-string)))
+        (let loop ((rest tokens))
+          (if (null? rest)
+            (get-output-string out)
+            (let* ((token (car rest))
+                   (type (car token))
+                   (content (cdr token))
+                  ) ;
+              (cond ((eq? type 'comment)
+                     (display "(*comment* \"" out)
+                     (display (escape-string-content content) out)
+                     (display "\")" out)
+                    ) ;
+                    ((eq? type 'newline)
+                     (display "(*newline* " out)
+                     (display (number->string content) out)
+                     (display ")" out)
+                    ) ;
+                    (else (display content out))
+              ) ;cond
+              (when (not (null? (cdr rest)))
+                (display "\n" out)
+              ) ;when
+              (loop (cdr rest))
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
   ) ;begin
 ) ;define-library
