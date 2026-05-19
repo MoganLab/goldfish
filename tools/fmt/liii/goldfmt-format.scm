@@ -754,17 +754,22 @@
 
     (define (emit-string! writer text)
       (display text (writer-port writer))
-      (let loop
-        ((i 0) (line (writer-line writer)) (column (writer-column writer)))
-        (if (>= i (string-length text))
-          (begin
-            (set-writer-line! writer line)
-            (set-writer-column! writer column)
-          ) ;begin
-          (if (char=? (string-ref text i) #\newline)
-            (loop (+ i 1) (+ line 1) 0)
-            (loop (+ i 1) line (+ column 1))
-          ) ;if
+      (let ((nl (string-position "\n" text)))
+        (if nl
+          (let loop
+            ((i 0) (line (writer-line writer)) (column (writer-column writer)))
+            (if (>= i (string-length text))
+              (begin
+                (set-writer-line! writer line)
+                (set-writer-column! writer column)
+              ) ;begin
+              (if (char=? (string-ref text i) #\newline)
+                (loop (+ i 1) (+ line 1) 0)
+                (loop (+ i 1) line (+ column 1))
+              ) ;if
+            ) ;if
+          ) ;let
+          (set-writer-column! writer (+ (writer-column writer) (string-length text)))
         ) ;if
       ) ;let
     ) ;define
