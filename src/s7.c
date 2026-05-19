@@ -10341,8 +10341,11 @@ static s7_pointer sublet_1(s7_scheme *sc, s7_pointer let, s7_pointer bindings, s
 	    case T_LET:
 	      if ((entry == sc->rootlet) || (new_let == sc->starlet)) continue;
 	      append_let(sc, new_let, entry);
-	      if (is_not_slot_end(let_slots(new_let))) /* make sure the end slot (slot) is correct */
-		for (slot = let_slots(new_let); is_not_slot_end(next_slot(slot)); slot = next_slot(slot)); /* slot can't be local -- see below */
+      if (is_pair(cdr(entries))) /* only need tail if more entries follow */
+	{
+	  if (is_not_slot_end(let_slots(new_let))) /* make sure the end slot (slot) is correct */
+	    for (slot = let_slots(new_let); is_not_slot_end(next_slot(slot)); slot = next_slot(slot)); /* slot can't be local -- see below */
+	}
 	      continue;
 
 	    default:
@@ -10420,11 +10423,13 @@ static s7_pointer sublet_chooser(s7_scheme *sc, s7_pointer func, int32_t num_arg
 /* -------------------------------- inlet -------------------------------- */
 s7_pointer s7_inlet(s7_scheme *sc, s7_pointer args)
 {
-  #define H_inlet "(inlet ...) adds its arguments, each a let, a cons: '(symbol . value), or a symbol/value pair, \
-to a new let, and returns the new let. (inlet :a 1 :b 2) or (inlet 'a 1 'b 2)"
+  #define H_inlet "(inlet ...) adds its arguments, each a let, a cons: '(symbol . value), or a symbol/value pair, \nto a new let, and returns the new let. (inlet :a 1 :b 2) or (inlet 'a 1 'b 2)"
   #define Q_inlet s7_make_circular_signature(sc, 1, 2, sc->is_let_symbol, sc->T)
+  if (args == sc->nil)
+    return(make_let(sc, sc->rootlet));
   return(sublet_1(sc, sc->rootlet, args, sc->inlet_symbol));
 }
+
 
 #define g_inlet s7_inlet
 
