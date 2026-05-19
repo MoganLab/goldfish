@@ -24,6 +24,8 @@ s7_pointer g_char_position(s7_scheme *sc, s7_pointer args);
 s7_pointer char_position_p_ppi(s7_scheme *sc, s7_pointer chr, s7_pointer str, s7_int start);
 s7_pointer g_char_position_csi(s7_scheme *sc, s7_pointer args);
 
+s7_pointer g_string_position(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

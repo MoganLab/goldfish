@@ -109,6 +109,37 @@ g_char_position_csi (s7_scheme* sc, s7_pointer args) {
   return p ? s7_make_integer (sc, (s7_int) (p - porig)) : s7_f (sc);
 }
 
+/* -------------------------------- string-position -------------------------------- */
+
+s7_pointer g_string_position(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer str1 = s7_car(args), str2 = s7_cadr(args);
+
+  if (!s7_is_string(str1))
+    return method_or_bust(sc, str1, "string-position", "a string");
+  if (!s7_is_string(str2))
+    return method_or_bust(sc, str2, "string-position", "a string");
+
+  s7_int start = 0;
+  if (s7_is_pair(s7_cddr(args)))
+    {
+      const s7_pointer arg3 = s7_caddr(args);
+      if (!s7_is_integer(arg3))
+        return method_or_bust(sc, arg3, "string-position", "an integer");
+      start = s7_integer(arg3);
+      if (start < 0)
+        return s7_wrong_type_arg_error(sc, "string-position", 3, arg3, "a non-negative integer");
+    }
+
+  if (s7_string_length(str1) == 0) return s7_f(sc);
+  if (start >= s7_string_length(str2)) return s7_f(sc);
+
+  const char *s1 = s7_string(str1);
+  const char *s2 = s7_string(str2);
+  const char *p2 = strstr((const char *)(s2 + start), s1);
+  return p2 ? s7_make_integer(sc, (s7_int)(p2 - s2)) : s7_f(sc);
+}
+
 /* -------------------------------- string-ref -------------------------------- */
 
 s7_pointer string_ref_1(s7_scheme *sc, s7_pointer strng, s7_pointer index)

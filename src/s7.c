@@ -20456,38 +20456,10 @@ static s7_pointer char_position_chooser(s7_scheme *sc, s7_pointer func, int32_t 
 
 
 /* -------------------------------- string-position -------------------------------- */
-static s7_pointer g_string_position(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_position "(string-position str1 str2 (start 0)) returns the starting position of str1 in str2 or #f"
-  #define Q_string_position s7_make_signature(sc, 4, \
-                              s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), \
-                              sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol)
-  s7_int start = 0;
-  const s7_pointer str1 = car(args), str2 = cadr(args);
-
-  if (!is_string(str1))
-    return(method_or_bust(sc, str1, sc->string_position_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_string(str2))
-    return(method_or_bust(sc, str2, sc->string_position_symbol, args, sc->type_names[T_STRING], 2));
-
-  if (is_pair(cddr(args)))
-    {
-      const s7_pointer arg3 = caddr(args);
-      if (!s7_is_integer(arg3))
-	return(method_or_bust(sc, arg3, sc->string_position_symbol, args, sc->type_names[T_INTEGER], 3));
-      start = s7_integer_clamped_if_gmp(sc, arg3);
-      if (start < 0)
-	wrong_type_error_nr(sc, sc->string_position_symbol, 3, caddr(args), a_non_negative_integer_string);
-    }
-  if (string_length(str1) == 0) return(sc->F);
-  if (start >= string_length(str2)) return(sc->F);
-  {
-    const char *s1 = string_value(str1);
-    const char *s2 = string_value(str2);
-    const char *p2 = strstr((const char *)(s2 + start), s1); /* g++ insists on const */
-    return((p2) ? make_integer(sc, p2 - s2) : sc->F);
-  }
-}
+#define H_string_position "(string-position str1 str2 (start 0)) returns the starting position of str1 in str2 or #f"
+#define Q_string_position s7_make_signature(sc, 4, \
+                            s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), \
+                            sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol)
 
 
 /* -------------------------------- strings -------------------------------- */
