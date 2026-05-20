@@ -41,6 +41,7 @@
     (liii path)
     (liii string)
     (liii argparse)
+    (liii hashlib)
     (liii goldtool-changed)
     (srfi srfi-13)
     (liii raw-string)
@@ -49,6 +50,38 @@
   ) ;import
   (export main format-datum format-datum+node format-node format-string)
   (begin
+
+    ;; ; 缓存工具函数
+    (define (fmt-cache-base-dir)
+      (path->string (path-join (path-home) ".cache" "goldfish" "fmt" (version)))
+    ) ;define
+
+    (define (fmt-cache-path file-path)
+      (let* ((hash (sha256-by-file file-path))
+             (prefix (substring hash 0 2))
+             (rest (substring hash 2))
+             (base (fmt-cache-base-dir))
+            ) ;
+        (path->string (path-join base prefix rest))
+      ) ;let*
+    ) ;define
+
+    (define (fmt-cache-hit? file-path)
+      (let ((cache (fmt-cache-path file-path)))
+        (file-exists? cache)
+      ) ;let
+    ) ;define
+
+    (define (fmt-cache-touch file-path)
+      (let* ((cache (fmt-cache-path file-path))
+             (cache-dir (path->string (path-parent (path cache))))
+            ) ;
+        (unless (path-dir? (path cache-dir))
+          (g_mkdir cache-dir)
+        ) ;unless
+        (path-touch (path cache))
+      ) ;let*
+    ) ;define
 
     ;; ; 显示帮助文档
     (define (display-help)
@@ -100,47 +133,62 @@
     ) ;define
 
     ;; ; 格式化单个文件（覆盖原文件）
-    ;; ; 返回值: 如果文件有变更返回 #t，否则返回 #f
-    (define (format-file path-str)
-      (let* ((p (path path-str))
-             (original-content (path-read-text p))
-             (nodes (scan-file path-str))
-             (formatted (format-nodes nodes))
-            ) ;
-        (if (string=? original-content formatted)
-          #f
-          (begin
-            (path-write-text p formatted)
-            #t
-          ) ;begin
-        ) ;if
-      ) ;let*
-    ) ;define
+    ;; ; 返回值: 'cached (缓存命中), #t (文件有变更), #f (无变更)
+    (define* (format-file path-str (use-cache? #t))
+      (if (and use-cache? (fmt-cache-hit? path-str))
+        'cached
+        (let* ((p (path path-str))
+               (original-content (path-read-text p))
+               (nodes (scan-file path-str))
+               (formatted (format-nodes nodes))
+              ) ;
+          (if (string=? original-content formatted)
+            (begin
+              (when use-cache?
+                (fmt-cache-touch path-str)
+              ) ;when
+              #f
+            ) ;begin
+            (begin
+              (path-write-text p formatted)
+              (when use-cache?
+                (fmt-cache-touch path-str)
+              ) ;when
+              #t
+            ) ;begin
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;define*
 
     ;; ; 递归格式化指定文件列表
-    ;; ; 返回值: (values total updated) - 处理的文件总数和更新的文件数
+    ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
     (define (format-file-list files dry-run)
       (let loop
-        ((remaining files) (total 0) (updated 0))
+        ((remaining files) (total 0) (updated 0) (cached 0))
         (if (null? remaining)
-          (values total updated)
+          (values total updated cached)
           (let ((file (car remaining)))
-            (display (string-append "Formatting: " file))
-            (newline)
             (if dry-run
               (begin
+                (display (string-append "Formatting: " file))
+                (newline)
                 (format-file-dry-run file)
-                (loop (cdr remaining) (+ total 1) updated)
+                (loop (cdr remaining) (+ total 1) updated cached)
               ) ;begin
-              (let ((changed? (format-file file)))
-                (if changed?
-                  (begin
-                    (display (string-append "  Updated: " file))
-                    (newline)
-                    (loop (cdr remaining) (+ total 1) (+ updated 1))
-                  ) ;begin
-                  (loop (cdr remaining) (+ total 1) updated)
-                ) ;if
+              (let ((result (format-file file)))
+                (cond ((eq? result 'cached)
+                       (loop (cdr remaining) (+ total 1) updated (+ cached 1))
+                      ) ;
+                      (result (display (string-append "  Updated: " file))
+                        (newline)
+                        (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
+                      ) ;result
+                      (else (display (string-append "Formatting: " file))
+                        (newline)
+                        (loop (cdr remaining) (+ total 1) updated cached)
+                      ) ;else
+                ) ;cond
               ) ;let
             ) ;if
           ) ;let
@@ -168,11 +216,13 @@
                           #t
                         ) ;begin
                         (call-with-values (lambda () (format-file-list files dry-run))
-                          (lambda (total updated)
+                          (lambda (total updated cached)
                             (display (string-append "Total files formatted: "
                                        (number->string total)
                                        ", Files updated: "
                                        (number->string updated)
+                                       ", Files cached: "
+                                       (number->string cached)
                                      ) ;string-append
                             ) ;display
                             (newline)
@@ -187,43 +237,43 @@
     ) ;define
 
     ;; ; 递归格式化目录
-    ;; ; 返回值: (values total updated) - 处理的文件总数和更新的文件数
+    ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
     (define (format-directory dir-path)
       (let ((entries (path-list-path (path dir-path))))
         (let loop
-          ((i 0) (total 0) (updated 0))
+          ((i 0) (total 0) (updated 0) (cached 0))
           (if (>= i (vector-length entries))
-            (values total updated)
+            (values total updated cached)
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
                        (if (string-suffix? ".scm" entry-str)
-                         (begin
-                           (display (string-append "Formatting: " entry-str))
-                           (newline)
-                           (let ((changed? (format-file entry-str)))
-                             (if changed?
-                               (begin
-                                 (display (string-append "  Updated: " entry-str))
-                                 (newline)
-                                 (loop (+ i 1) (+ total 1) (+ updated 1))
-                               ) ;begin
-                               (loop (+ i 1) (+ total 1) updated)
-                             ) ;if
-                           ) ;let
-                         ) ;begin
-                         (loop (+ i 1) total updated)
+                         (let ((result (format-file entry-str)))
+                           (cond ((eq? result 'cached)
+                                  (loop (+ i 1) (+ total 1) updated (+ cached 1))
+                                 ) ;
+                                 (result (display (string-append "  Updated: " entry-str))
+                                   (newline)
+                                   (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                                 ) ;result
+                                 (else (display (string-append "Formatting: " entry-str))
+                                   (newline)
+                                   (loop (+ i 1) (+ total 1) updated cached)
+                                 ) ;else
+                           ) ;cond
+                         ) ;let
+                         (loop (+ i 1) total updated cached)
                        ) ;if
                      ) ;let
                     ) ;
                     ((path-dir? entry)
                      (call-with-values (lambda () (format-directory (path->string entry)))
-                       (lambda (sub-total sub-updated)
-                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated))
+                       (lambda (sub-total sub-updated sub-cached)
+                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
                      ) ;call-with-values
                     ) ;
-                    (else (loop (+ i 1) total updated))
+                    (else (loop (+ i 1) total updated cached))
               ) ;cond
             ) ;let
           ) ;if
@@ -273,25 +323,20 @@
                 ((path-file? (path path-str))
                  (if dry-run
                    (format-file-dry-run path-str)
-                   (begin
-                     (display (string-append "Formatting: " path-str))
+                   (let ((result (format-file path-str)))
+                     (cond ((eq? result 'cached) #f)
+                           (result (display (string-append "  Updated: " path-str)) (newline))
+                           (else (display (string-append "Formatting: " path-str)) (newline))
+                     ) ;cond
+                     (display (string-append "Total files formatted: 1, Files updated: "
+                                (if (eq? result #t) "1" "0")
+                                ", Files cached: "
+                                (if (eq? result 'cached) "1" "0")
+                              ) ;string-append
+                     ) ;display
                      (newline)
-                     (let ((changed? (format-file path-str)))
-                       (if changed?
-                         (begin
-                           (display (string-append "  Updated: " path-str))
-                           (newline)
-                         ) ;begin
-                         '()
-                       ) ;if
-                       (display (string-append "Total files formatted: 1, Files updated: "
-                                  (if changed? "1" "0")
-                                ) ;string-append
-                       ) ;display
-                       (newline)
-                       #t
-                     ) ;let
-                   ) ;begin
+                     #t
+                   ) ;let
                  ) ;if
                 ) ;
                 ((path-dir? (path path-str))
@@ -302,11 +347,13 @@
                      (exit 1)
                    ) ;begin
                    (call-with-values (lambda () (format-directory path-str))
-                     (lambda (total updated)
+                     (lambda (total updated cached)
                        (display (string-append "Total files formatted: "
                                   (number->string total)
                                   ", Files updated: "
                                   (number->string updated)
+                                  ", Files cached: "
+                                  (number->string cached)
                                 ) ;string-append
                        ) ;display
                        (newline)
