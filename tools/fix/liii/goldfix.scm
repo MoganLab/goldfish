@@ -4,6 +4,7 @@
     (liii sys)
     (liii path)
     (liii argparse)
+    (liii hashlib)
     (liii os)
     (srfi srfi-13)
     (liii goldfix-repair)
@@ -11,6 +12,38 @@
   ) ;import
 
   (begin
+
+    (define (fix-cache-base-dir)
+      (path->string (path-join (path-home) ".cache" "goldfish" "fix" (version)))
+    ) ;define
+
+    (define (fix-cache-path file-path)
+      (let* ((hash (sha256-by-file file-path))
+             (prefix (substring hash 0 2))
+             (rest (substring hash 2))
+             (base (fix-cache-base-dir))
+            ) ;
+        (path->string (path-join base prefix rest))
+      ) ;let*
+    ) ;define
+
+    (define (fix-cache-hit? file-path)
+      (let ((cache (fix-cache-path file-path)))
+        (file-exists? cache)
+      ) ;let
+    ) ;define
+
+    (define (fix-cache-touch file-path)
+      (let* ((cache (fix-cache-path file-path))
+             (cache-dir (path->string (path-parent (path cache))))
+            ) ;
+        (unless (path-dir? (path cache-dir))
+          (g_mkdir cache-dir)
+        ) ;unless
+        (path-touch (path cache))
+      ) ;let*
+    ) ;define
+
     (define (display-help)
       (display "Usage: gf fix [options] [path]")
       (newline)
@@ -77,21 +110,38 @@
       ) ;let
     ) ;define
 
-    (define (fix-file-core path-str)
-      (let* ((p (path path-str))
-             (source (path-read-text p))
-             (repaired (repair-source source))
-            ) ;
-        (if (string=? source repaired) #f (begin (path-write-text p repaired) #t))
-      ) ;let*
-    ) ;define
+    (define* (fix-file-core path-str (use-cache? #t))
+      (if (and use-cache? (fix-cache-hit? path-str))
+        'cached
+        (let* ((p (path path-str))
+               (source (path-read-text p))
+               (repaired (repair-source source))
+              ) ;
+          (if (string=? source repaired)
+            (begin
+              (when use-cache?
+                (fix-cache-touch path-str)
+              ) ;when
+              #f
+            ) ;begin
+            (begin
+              (path-write-text p repaired)
+              (when use-cache?
+                (fix-cache-touch path-str)
+              ) ;when
+              #t
+            ) ;begin
+          ) ;if
+        ) ;let*
+      ) ;if
+    ) ;define*
 
-    (define (fix-file path-str)
+    (define* (fix-file path-str (use-cache? #t))
       (let ((fmt-cmd (string-append (executable) " fmt " path-str)))
         (os-call fmt-cmd)
       ) ;let
-      (fix-file-core path-str)
-    ) ;define
+      (fix-file-core path-str use-cache?)
+    ) ;define*
 
     (define (fix-directory dir-path)
       (let ((fmt-cmd (string-append (executable) " fmt " dir-path)))
@@ -99,37 +149,36 @@
       ) ;let
       (let ((entries (path-list-path (path dir-path))))
         (let loop
-          ((i 0) (total 0) (updated 0))
+          ((i 0) (total 0) (updated 0) (cached 0))
           (if (>= i (vector-length entries))
-            (values total updated)
+            (values total updated cached)
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
                        (if (string-suffix? ".scm" entry-str)
-                         (begin
-                           (display (string-append "Fixing: " entry-str))
-                           (newline)
-                           (if (fix-file-core entry-str)
-                             (begin
-                               (display (string-append "  Updated: " entry-str))
-                               (newline)
-                               (loop (+ i 1) (+ total 1) (+ updated 1))
-                             ) ;begin
-                             (loop (+ i 1) (+ total 1) updated)
-                           ) ;if
-                         ) ;begin
-                         (loop (+ i 1) total updated)
+                         (let ((result (fix-file-core entry-str)))
+                           (cond ((eq? result 'cached)
+                                  (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                                 (result (display (string-append "  Updated: " entry-str))
+                                   (newline)
+                                   (loop (+ i 1) (+ total 1) (+ updated 1) cached))
+                                 (else (display (string-append "Fixing: " entry-str))
+                                   (newline)
+                                   (loop (+ i 1) (+ total 1) updated cached))
+                           ) ;cond
+                         ) ;let
+                         (loop (+ i 1) total updated cached)
                        ) ;if
                      ) ;let
                     ) ;
                     ((path-dir? entry)
                      (call-with-values (lambda () (fix-directory (path->string entry)))
-                       (lambda (sub-total sub-updated)
-                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated))
+                       (lambda (sub-total sub-updated sub-cached)
+                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
                      ) ;call-with-values
                     ) ;
-                    (else (loop (+ i 1) total updated))
+                    (else (loop (+ i 1) total updated cached))
               ) ;cond
             ) ;let
           ) ;if
@@ -174,18 +223,15 @@
                 ((path-file? (path path-str))
                  (if dry-run
                    (fix-file-dry-run path-str)
-                   (let ((changed? (fix-file path-str)))
-                     (display (string-append "Fixing: " path-str))
-                     (newline)
-                     (if changed?
-                       (begin
-                         (display (string-append "  Updated: " path-str))
-                         (newline)
-                       ) ;begin
-                       '()
-                     ) ;if
+                   (let ((result (fix-file path-str)))
+                     (cond ((eq? result 'cached) #f)
+                           (result (display (string-append "  Updated: " path-str)) (newline))
+                           (else (display (string-append "Fixing: " path-str)) (newline))
+                     ) ;cond
                      (display (string-append "Total files fixed: 1, Files updated: "
-                                (if changed? "1" "0")
+                                (if (eq? result #t) "1" "0")
+                                ", Files cached: "
+                                (if (eq? result 'cached) "1" "0")
                               ) ;string-append
                      ) ;display
                      (newline)
@@ -201,11 +247,13 @@
                      (exit 1)
                    ) ;begin
                    (call-with-values (lambda () (fix-directory path-str))
-                     (lambda (total updated)
+                     (lambda (total updated cached)
                        (display (string-append "Total files fixed: "
                                   (number->string total)
                                   ", Files updated: "
                                   (number->string updated)
+                                  ", Files cached: "
+                                  (number->string cached)
                                 ) ;string-append
                        ) ;display
                        (newline)
