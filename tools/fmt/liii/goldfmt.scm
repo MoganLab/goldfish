@@ -178,8 +178,6 @@
               ) ;begin
               (let ((result (format-file file)))
                 (cond ((eq? result 'cached)
-                       (display (string-append "  Cached: " file))
-                       (newline)
                        (loop (cdr remaining) (+ total 1) updated (+ cached 1))
                       ) ;
                       (result (display (string-append "  Updated: " file))
@@ -252,8 +250,6 @@
                        (if (string-suffix? ".scm" entry-str)
                          (let ((result (format-file entry-str)))
                            (cond ((eq? result 'cached)
-                                  (display (string-append "  Cached: " entry-str))
-                                  (newline)
                                   (loop (+ i 1) (+ total 1) updated (+ cached 1))
                                  ) ;
                                  (result (display (string-append "  Updated: " entry-str))
@@ -328,7 +324,7 @@
                  (if dry-run
                    (format-file-dry-run path-str)
                    (let ((result (format-file path-str)))
-                     (cond ((eq? result 'cached) (display (string-append "  Cached: " path-str)) (newline))
+                     (cond ((eq? result 'cached) #f)
                            (result (display (string-append "  Updated: " path-str)) (newline))
                            (else (display (string-append "Formatting: " path-str)) (newline))
                      ) ;cond
