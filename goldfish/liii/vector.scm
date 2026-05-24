@@ -14,6 +14,8 @@
     vector-partition
     vector-swap!
     vector-reverse!
+    vector-reverse-copy
+    vector-reverse-copy!
     vector-map!
     vector-cumulate
     reverse-vector->list
