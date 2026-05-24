@@ -34,6 +34,8 @@
     vector-partition
     vector-swap!
     vector-reverse!
+    vector-reverse-copy
+    vector-reverse-copy!
     vector-map!
     vector-cumulate
     reverse-vector->list
@@ -293,6 +295,25 @@
         ) ;let
       ) ;let*
     ) ;define
+
+    (define* (vector-reverse-copy vec (start 0) (end (vector-length vec)))
+      (let ((v (vector-copy vec start end)))
+        (vector-reverse! v)
+        v
+      ) ;let
+    ) ;define*
+
+    (define* (vector-reverse-copy! to at from (start 0) (end (vector-length from)))
+      (let* ((temp (vector-copy from start end))
+             (len (vector-length temp)))
+        (let loop ((i 0))
+          (when (< i len)
+            (vector-set! to (+ at (- len i 1)) (vector-ref temp i))
+            (loop (+ i 1))
+          ) ;when
+        ) ;let
+      ) ;let*
+    ) ;define*
 
     (define (vector-map! proc vec . rest)
       (let ((len (if (null? rest)
