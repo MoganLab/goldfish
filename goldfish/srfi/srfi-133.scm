@@ -33,6 +33,7 @@
     vector-swap!
     vector-reverse!
     vector-cumulate
+    reverse-vector->list
     reverse-list->vector
     vector=
   ) ;export
@@ -259,6 +260,13 @@
         ) ;let
       ) ;let*
     ) ;define
+
+    (define* (reverse-vector->list vec (start 0) (end (vector-length vec)))
+      (let loop
+        ((i start) (acc '()))
+        (if (= i end) acc (loop (+ i 1) (cons (vector-ref vec i) acc)))
+      ) ;let
+    ) ;define*
 
     (define reverse-list->vector
       (typed-lambda ((lst proper-list?))
