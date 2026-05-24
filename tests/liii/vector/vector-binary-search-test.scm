@@ -49,10 +49,11 @@
 ;; type-error 当 cmp 不是过程时
 
 (define (cmp a b)
-  (cond
-    ((< a b) -1)
-    ((= a b) 0)
-    (else 1)))
+  (cond ((< a b) -1)
+        ((= a b) 0)
+        (else 1)
+  ) ;cond
+) ;define
 
 (define v '#(0 2 4 6 8 10 12))
 
