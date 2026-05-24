@@ -33,6 +33,7 @@
     vector-skip
     vector-skip-right
     vector-binary-search
+    vector-concatenate
     vector-partition
     vector-swap!
     vector-reverse!
@@ -245,6 +246,10 @@
       (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
 
+    (define (vector-concatenate ls)
+      (apply vector-append ls)
+    ) ;define
+
     (define* (vector-binary-search vec value cmp (start 0) (end (vector-length vec)))
       (let lp
         ((lo start) (hi (- end 1)))
@@ -336,9 +341,9 @@
     ) ;define*
 
     (define* (vector-reverse-copy! to at from (start 0) (end (vector-length from)))
-      (let* ((temp (vector-copy from start end))
-             (len (vector-length temp)))
-        (let loop ((i 0))
+      (let* ((temp (vector-copy from start end)) (len (vector-length temp)))
+        (let loop
+          ((i 0))
           (when (< i len)
             (vector-set! to (+ at (- len i 1)) (vector-ref temp i))
             (loop (+ i 1))

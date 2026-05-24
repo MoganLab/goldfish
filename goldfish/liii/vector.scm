@@ -15,6 +15,7 @@
     vector-skip
     vector-skip-right
     vector-binary-search
+    vector-concatenate
     vector-partition
     vector-swap!
     vector-reverse!
