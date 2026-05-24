@@ -34,6 +34,7 @@
     vector-skip-right
     vector-binary-search
     vector-partition
+    vector-append-subvectors
     vector-swap!
     vector-reverse!
     vector-reverse-copy
@@ -282,6 +283,18 @@
       ) ;let*
     ) ;define
 
+    (define (vector-append-subvectors . o)
+      (let lp
+        ((ls o) (vecs '()))
+        (if (null? ls)
+          (apply vector-append (reverse vecs))
+          (lp (cdr (cddr ls))
+            (cons (vector-copy (car ls) (cadr ls) (car (cddr ls))) vecs)
+          ) ;lp
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (vector-swap! vec i j)
       (let ((elem-i (vector-ref vec i)) (elem-j (vector-ref vec j)))
         (vector-set! vec i elem-j)
@@ -336,9 +349,9 @@
     ) ;define*
 
     (define* (vector-reverse-copy! to at from (start 0) (end (vector-length from)))
-      (let* ((temp (vector-copy from start end))
-             (len (vector-length temp)))
-        (let loop ((i 0))
+      (let* ((temp (vector-copy from start end)) (len (vector-length temp)))
+        (let loop
+          ((i 0))
           (when (< i len)
             (vector-set! to (+ at (- len i 1)) (vector-ref temp i))
             (loop (+ i 1))
