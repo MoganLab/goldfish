@@ -28,6 +28,7 @@
     vector-index-right
     vector-skip
     vector-skip-right
+    vector-binary-search
     vector-partition
     vector-swap!
     vector-reverse!
@@ -175,6 +176,20 @@
     (define (vector-skip-right pred v)
       (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
+
+    (define* (vector-binary-search vec value cmp (start 0) (end (vector-length vec)))
+      (let lp
+        ((lo start) (hi (- end 1)))
+        (and (<= lo hi)
+          (let* ((mid (quotient (+ lo hi) 2)) (x (vector-ref vec mid)) (y (cmp value x)))
+            (cond ((< y 0) (lp lo (- mid 1)))
+                  ((> y 0) (lp (+ mid 1) hi))
+                  (else mid)
+            ) ;cond
+          ) ;let*
+        ) ;and
+      ) ;let
+    ) ;define*
 
     (define (vector-partition pred v)
       (let* ((len (vector-length v)) (cnt (vector-count pred v)) (ret (make-vector len)))
