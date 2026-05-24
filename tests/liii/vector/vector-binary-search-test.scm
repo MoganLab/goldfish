@@ -55,7 +55,7 @@
   ) ;cond
 ) ;define
 
-(define v '#(0 2 4 6 8 10 12))
+(define v #(0 2 4 6 8 10 12))
 
 (check (vector-binary-search v 0 cmp) => 0)
 (check (vector-binary-search v 6 cmp) => 3)
