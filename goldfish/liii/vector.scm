@@ -16,6 +16,7 @@
     vector-reverse!
     vector-map!
     vector-cumulate
+    reverse-vector->list
     reverse-list->vector
     vector=
     vector-contains?
