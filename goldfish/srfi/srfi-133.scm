@@ -19,6 +19,8 @@
   (export vector-empty?
     vector-unfold
     vector-unfold-right
+    vector-unfold!
+    vector-unfold-right!
     vector-fold
     vector-fold-right
     vector-count
@@ -75,6 +77,36 @@
             (let-values (((elem . new-seeds) (apply f k seeds)))
               (vector-set! vec k elem)
               (loop (- k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold! f vec start end . seeds)
+      (let ((count (- end start)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k count)
+            (if #f #f)
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec (+ start k) elem)
+              (loop (+ k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold-right! f vec start end . seeds)
+      (let ((count (- end start)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k count)
+            (if #f #f)
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec (- end 1 k) elem)
+              (loop (+ k 1) new-seeds)
             ) ;let-values
           ) ;if
         ) ;let
