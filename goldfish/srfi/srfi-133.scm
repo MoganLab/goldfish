@@ -17,6 +17,8 @@
 (define-library (srfi srfi-133)
   (import (liii base))
   (export vector-empty?
+    vector-unfold
+    vector-unfold-right
     vector-fold
     vector-fold-right
     vector-count
@@ -44,6 +46,36 @@
         (error 'type-error "v is not a vector")
       ) ;when
       (zero? (vector-length v))
+    ) ;define
+
+    (define (vector-unfold f length . seeds)
+      (let ((vec (make-vector length)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k length)
+            vec
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec k elem)
+              (loop (+ k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold-right f length . seeds)
+      (let ((vec (make-vector length)))
+        (let loop
+          ((k (- length 1)) (seeds seeds))
+          (if (< k 0)
+            vec
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec k elem)
+              (loop (- k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (vector= elt=? . rest)

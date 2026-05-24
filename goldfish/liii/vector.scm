@@ -1,6 +1,8 @@
 (define-library (liii vector)
   (import (scheme base) (srfi srfi-133) (srfi srfi-13))
   (export vector-empty?
+    vector-unfold
+    vector-unfold-right
     vector-fold
     vector-fold-right
     vector-count
