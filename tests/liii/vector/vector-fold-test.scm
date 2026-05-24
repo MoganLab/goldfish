@@ -31,11 +31,6 @@
 ;; ----
 ;; 本实现中的proc参数顺序为(当前元素, 累加器)。
 ;;
-;; 示例
-;; ----
-;; (vector-fold + 0 #(1 2 3 4)) => 10
-;; (vector-fold string-append "" #("a" "b")) => "ba"
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是向量，或proc不是过程时

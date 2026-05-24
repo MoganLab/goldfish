@@ -31,12 +31,6 @@
 ;; 修改是破坏性的，会改变原向量。
 ;; 整数会被自动转换为浮点数。
 ;;
-;; 示例
-;; ----
-;; (define v (float-vector 1.0 2.0 3.0))
-;; (float-vector-set! v 1 100.0)
-;; v => #r(1.0 100.0 3.0)
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是float-vector时

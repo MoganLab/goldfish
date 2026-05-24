@@ -33,11 +33,6 @@
 ;; ----
 ;; 返回的是字符向量，元素类型为char。
 ;;
-;; 示例
-;; ----
-;; (string->vector "abc") => #( #\\a #\\b #\\c )
-;; (string->vector "0123" 1 3) => #( #\\1 #\\2 )
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出字符串边界或start大于end时

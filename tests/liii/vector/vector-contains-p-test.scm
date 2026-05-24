@@ -32,11 +32,6 @@
 ;; ----
 ;; compare会按(compare 元素 elem)的方式参与判断。
 ;;
-;; 示例
-;; ----
-;; (vector-contains? #(1 2 3) 2) => #t
-;; (vector-contains? #(1 2 3) 4) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; type-error 当vec不是向量，或compare不是过程时

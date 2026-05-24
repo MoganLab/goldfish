@@ -31,12 +31,6 @@
 ;; 修改是破坏性的，会改变原向量。
 ;; 只能设置复数值。
 ;;
-;; 示例
-;; ----
-;; (define v (complex-vector 1+2i 3+4i 5+6i))
-;; (complex-vector-set! v 1 100+200i)
-;; v => #c(1+2i 100+200i 5+6i)
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是complex-vector时

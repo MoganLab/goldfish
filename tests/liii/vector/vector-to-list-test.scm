@@ -33,11 +33,6 @@
 ;; ----
 ;; 当start和end相等时，返回空列表。
 ;;
-;; 示例
-;; ----
-;; (vector->list #(0 1 2 3) 1 3) => '(1 2)
-;; (vector->list #()) => '()
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时

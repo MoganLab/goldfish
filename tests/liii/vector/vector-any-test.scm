@@ -28,11 +28,6 @@
 ;; ----
 ;; 空向量的结果为#f。
 ;;
-;; 示例
-;; ----
-;; (vector-any even? #(1 3 4)) => #t
-;; (vector-any even? #()) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时

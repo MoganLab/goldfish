@@ -28,11 +28,6 @@
 ;; ----
 ;; 空向量的统计结果始终为0。
 ;;
-;; 示例
-;; ----
-;; (vector-count even? #(1 2 3 4)) => 2
-;; (vector-count string? #(1 "a" 2)) => 1
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时

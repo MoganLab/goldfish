@@ -31,12 +31,6 @@
 ;; 修改是破坏性的，会改变原向量。
 ;; 只能设置整数值。
 ;;
-;; 示例
-;; ----
-;; (define v (int-vector 1 2 3))
-;; (int-vector-set! v 1 100)
-;; v => #i(1 100 3)
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是int-vector时
