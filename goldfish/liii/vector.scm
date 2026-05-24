@@ -17,6 +17,7 @@
     vector-binary-search
     vector-concatenate
     vector-partition
+    vector-append-subvectors
     vector-swap!
     vector-reverse!
     vector-reverse-copy

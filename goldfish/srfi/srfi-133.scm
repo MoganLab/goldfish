@@ -35,6 +35,7 @@
     vector-binary-search
     vector-concatenate
     vector-partition
+    vector-append-subvectors
     vector-swap!
     vector-reverse!
     vector-reverse-copy
@@ -285,6 +286,18 @@
           ) ;if
         ) ;let
       ) ;let*
+    ) ;define
+
+    (define (vector-append-subvectors . o)
+      (let lp
+        ((ls o) (vecs '()))
+        (if (null? ls)
+          (apply vector-append (reverse vecs))
+          (lp (cdr (cddr ls))
+            (cons (vector-copy (car ls) (cadr ls) (car (cddr ls))) vecs)
+          ) ;lp
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (vector-swap! vec i j)
