@@ -3,6 +3,8 @@
   (export vector-empty?
     vector-unfold
     vector-unfold-right
+    vector-unfold!
+    vector-unfold-right!
     vector-fold
     vector-fold-right
     vector-count
