@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-133)
-  (import (liii base) (scheme case-lambda))
+  (import (liii base))
   (export vector-empty?
     vector-fold
     vector-fold-right
@@ -177,27 +177,19 @@
       (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
 
-    (define vector-binary-search
-      (case-lambda
-        ((vec value cmp)
-         (vector-binary-search vec value cmp 0 (vector-length vec)))
-        ((vec value cmp start)
-         (vector-binary-search vec value cmp start (vector-length vec)))
-        ((vec value cmp start end)
-         (let lp ((lo start) (hi (- end 1)))
-           (and (<= lo hi)
-             (let* ((mid (quotient (+ lo hi) 2))
-                    (x (vector-ref vec mid))
-                    (y (cmp value x)))
-               (cond ((< y 0) (lp lo (- mid 1)))
-                     ((> y 0) (lp (+ mid 1) hi))
-                     (else mid)
-               ) ;cond
-             ) ;let*
-           ) ;and
-         ) ;let lp
-        ) ;3-arg
-      ) ;case-lambda
+    (define* (vector-binary-search vec value cmp (start 0) (end (vector-length vec)))
+      (let lp ((lo start) (hi (- end 1)))
+        (and (<= lo hi)
+          (let* ((mid (quotient (+ lo hi) 2))
+                 (x (vector-ref vec mid))
+                 (y (cmp value x)))
+            (cond ((< y 0) (lp lo (- mid 1)))
+                  ((> y 0) (lp (+ mid 1) hi))
+                  (else mid)
+            ) ;cond
+          ) ;let*
+        ) ;and
+      ) ;let lp
     ) ;define
 
     (define (vector-partition pred v)
