@@ -32,6 +32,7 @@
     vector-partition
     vector-swap!
     vector-reverse!
+    vector-map!
     vector-cumulate
     reverse-list->vector
     vector=
@@ -258,6 +259,29 @@
           ) ;when
         ) ;let
       ) ;let*
+    ) ;define
+
+    (define (vector-map! proc vec . rest)
+      (let ((len (if (null? rest)
+                   (vector-length vec)
+                   (apply min (vector-length vec) (map vector-length rest))
+                 ) ;if
+            ) ;len
+           ) ;
+        (let loop
+          ((i 0))
+          (if (= i len)
+            vec
+            (begin
+              (vector-set! vec
+                i
+                (apply proc (vector-ref vec i) (map (lambda (v) (vector-ref v i)) rest))
+              ) ;vector-set!
+              (loop (+ i 1))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
     (define reverse-list->vector
