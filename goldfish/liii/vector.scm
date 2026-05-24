@@ -10,6 +10,7 @@
     vector-index-right
     vector-skip
     vector-skip-right
+    vector-binary-search
     vector-partition
     vector-swap!
     vector-reverse!
