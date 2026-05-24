@@ -28,11 +28,6 @@
 ;; ----
 ;; 索引从0开始，超出范围会报错。
 ;;
-;; 示例
-;; ----
-;; (complex-vector-ref (complex-vector 1+2i 3+4i 5+6i) 0) => 1+2i
-;; (complex-vector-ref (complex-vector 1+2i 3+4i 5+6i) 2) => 5+6i
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是complex-vector时

@@ -31,11 +31,6 @@
 ;; ----
 ;; 与vector-fold不同，遍历顺序是从右到左。
 ;;
-;; 示例
-;; ----
-;; (vector-fold-right + 0 #(1 2 3 4)) => 10
-;; (vector-fold-right string-append "" #("a" "b")) => "ab"
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是向量，或proc不是过程时

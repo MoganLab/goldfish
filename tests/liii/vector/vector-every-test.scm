@@ -28,11 +28,6 @@
 ;; ----
 ;; 空向量按约定返回#t。
 ;;
-;; 示例
-;; ----
-;; (vector-every odd? #(1 3 5)) => #t
-;; (vector-every odd? #(1 2 3)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时

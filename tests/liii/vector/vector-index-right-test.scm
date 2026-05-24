@@ -28,11 +28,6 @@
 ;; ----
 ;; 搜索方向为从右到左。
 ;;
-;; 示例
-;; ----
-;; (vector-index-right even? #(1 3 4 6)) => 3
-;; (vector-index-right even? #(1 3 5)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当pred不是过程，或vec不是向量时

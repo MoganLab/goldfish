@@ -29,11 +29,6 @@
 ;; ----
 ;; 创建的向量是complex-vector类型，只能存储复数。
 ;;
-;; 示例
-;; ----
-;; (make-complex-vector 3 0.0+1.0i) => #c(0.0+1.0i 0.0+1.0i 0.0+1.0i)
-;; (make-complex-vector 0) => #c()
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当k不是合法整数或fill不是复数时

@@ -28,11 +28,6 @@
 ;; ----
 ;; 索引从0开始，超出范围会报错。
 ;;
-;; 示例
-;; ----
-;; (float-vector-ref (float-vector 1.0 2.0 3.0) 0) => 1.0
-;; (float-vector-ref (float-vector 1.0 2.0 3.0) 2) => 3.0
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是float-vector时

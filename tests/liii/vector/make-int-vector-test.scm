@@ -29,11 +29,6 @@
 ;; ----
 ;; 创建的向量是int-vector类型，只能存储整数。
 ;;
-;; 示例
-;; ----
-;; (make-int-vector 3 0) => #i(0 0 0)
-;; (make-int-vector 0) => #i()
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当k不是合法整数时

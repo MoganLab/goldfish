@@ -25,11 +25,6 @@
 ;; ----
 ;; 普通向量即使元素全为复数，也不一定被视为complex-vector。
 ;;
-;; 示例
-;; ----
-;; (complex-vector? (complex-vector 1+2i 3+4i)) => #t
-;; (complex-vector? (vector 1+2i 3+4i)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无

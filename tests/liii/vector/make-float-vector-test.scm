@@ -29,11 +29,6 @@
 ;; ----
 ;; 创建的向量是float-vector类型，只能存储浮点数。
 ;;
-;; 示例
-;; ----
-;; (make-float-vector 3 1.0) => #r(1.0 1.0 1.0)
-;; (make-float-vector 0) => #r()
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当k不是合法整数或fill不是实数时

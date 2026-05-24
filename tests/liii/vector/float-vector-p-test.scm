@@ -25,11 +25,6 @@
 ;; ----
 ;; 普通向量即使元素全为实数，也不一定被视为float-vector。
 ;;
-;; 示例
-;; ----
-;; (float-vector? (float-vector 1.0 2.0 3.0)) => #t
-;; (float-vector? (vector 1.0 2.0 3.0)) => #f
-;;
 ;; 错误处理
 ;; ----
 ;; 无

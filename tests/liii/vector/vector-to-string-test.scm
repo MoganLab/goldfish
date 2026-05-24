@@ -33,11 +33,6 @@
 ;; ----
 ;; 被转换的元素必须都是字符。
 ;;
-;; 示例
-;; ----
-;; (vector->string (vector #\\a #\\b #\\c)) => "abc"
-;; (vector->string (vector #\\0 #\\1 #\\2 #\\3) 1 3) => "12"
-;;
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时

@@ -28,11 +28,6 @@
 ;; ----
 ;; 索引从0开始，超出范围会报错。
 ;;
-;; 示例
-;; ----
-;; (int-vector-ref (int-vector 10 20 30) 0) => 10
-;; (int-vector-ref (int-vector 10 20 30) 2) => 30
-;;
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当vec不是int-vector时
