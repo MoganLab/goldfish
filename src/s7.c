@@ -9231,7 +9231,7 @@ static s7_pointer string_to_symbol_p_p(s7_scheme *sc, s7_pointer p) {return(g_st
 
 
 /* -------------------------------- symbol -------------------------------- */
-static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
 
 static s7_pointer mark_as_symbol_from_symbol(s7_pointer sym)
 {
@@ -9261,7 +9261,7 @@ static s7_pointer g_symbol(s7_scheme *sc, s7_pointer args)
     {
       if (is_null(cdr(args)))
 	return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, car(args), sc->symbol_symbol)));
-      return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, g_string_append_1(sc, args, sc->symbol_symbol), sc->symbol_symbol)));
+      return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, s7i_string_append_1(sc, args, sc->symbol_symbol), sc->symbol_symbol)));
     }
   if (len == 0)
     sole_arg_wrong_type_error_nr(sc, sc->symbol_symbol, car(args), wrap_string(sc, "a non-null string", 17));
@@ -20872,7 +20872,7 @@ static void string_append_2(s7_scheme *sc, s7_pointer newstr, s7_pointer args, c
 	  }}
 }
 
-static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   #define H_string_append "(string-append str1 ...) appends all its string arguments into one string"
   #define Q_string_append sc->pcl_s
@@ -20957,7 +20957,7 @@ static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer c
   return(newstr);
 }
 
-static s7_pointer g_string_append(s7_scheme *sc, s7_pointer args) {return(g_string_append_1(sc, args, sc->string_append_symbol));}
+/* g_string_append is now defined in s7_liii_string.c */
 
 static inline s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
 {
@@ -20980,7 +20980,7 @@ static inline s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointe
       end_temp(sc->x);
       return(newstr);
     }
-  return(g_string_append_1(sc, list_2(sc, s1, s2), sc->string_append_symbol));
+  return(s7i_string_append_1(sc, list_2(sc, s1, s2), sc->string_append_symbol));
 }
 
 static s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2) {return(string_append_1(sc, s1, s2));}
@@ -21440,7 +21440,7 @@ static s7_pointer check_rest_are_strings(s7_scheme *sc, s7_pointer sym, s7_point
 /* -------------------------------- string -------------------------------- */
 const char *s7_string(s7_pointer str) {return(string_value(str));}
 
-static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
+s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 {
   int32_t len;
   s7_pointer chrs, newstr;
@@ -21466,7 +21466,7 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		  ok_chrs = args;
 		  for (int32_t i = 0; ok_chrs != chrs; i++, ok_chrs = cdr(ok_chrs))
 		    str[i] = character(car(ok_chrs));
-		  return(g_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
+		  return(s7i_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
 	}
@@ -21486,14 +21486,11 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
   return(newstr);
 }
 
-static s7_pointer g_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string "(string chr...) appends all its character arguments into one string"
-  #define Q_string s7_make_circular_signature(sc, 1, 2, sc->is_string_symbol, sc->is_char_symbol)
-  return((is_null(args)) ? nil_string : g_string_1(sc, args, sc->string_symbol));
-}
+#define H_string "(string chr...) appends all its character arguments into one string"
+#define Q_string s7_make_circular_signature(sc, 1, 2, sc->is_string_symbol, sc->is_char_symbol)
+/* g_string is now defined in s7_liii_string.c */
 
-static s7_pointer g_string_c1(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
   const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
@@ -21517,7 +21514,7 @@ static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
   s7_pointer str;
   const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
-  if (!is_character(c)) return(g_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
+  if (!is_character(c)) return(s7i_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
   if (s7_character(c) > 0xFF)
     out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
                           wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
@@ -21539,7 +21536,7 @@ static s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
   if (!s7_is_proper_list(sc, car(args)))
     return(method_or_bust_p(sc, car(args), sc->list_to_string_symbol,
 			    wrap_string(sc, "a (proper, non-circular) list of characters", 43)));
-  return(g_string_1(sc, car(args), sc->list_to_string_symbol));
+  return(s7i_string_1(sc, car(args), sc->list_to_string_symbol));
 }
 #endif
 
@@ -43769,7 +43766,7 @@ static s7_pointer g_append(s7_scheme *sc, s7_pointer args)
     {
     case T_NIL:        return(g_list_append(sc, cdr(args)));
     case T_PAIR:       return(g_list_append(sc, args));
-    case T_STRING:     return(g_string_append_1(sc, args, sc->append_symbol));
+    case T_STRING:     return(s7i_string_append_1(sc, args, sc->append_symbol));
       /* should this work in the generic append: (append "12" #\3) -- currently an error, (append (list 1 2) 3) -> '(1 2 . 3), but vector is error */
     case T_HASH_TABLE: return(hash_table_append(sc, args));
     case T_LET:        return(let_append(sc, args));
@@ -64203,7 +64200,7 @@ static void init_choosers(s7_scheme *sc)
 
   /* string */
   func = set_function_chooser(sc->string_symbol, string_chooser);
-  sc->string_c1 = make_function_with_class(sc, func, "string", g_string_c1, 1, 0, false);
+  sc->string_c1 = make_function_with_class(sc, func, "string", s7i_string_c1, 1, 0, false);
 
   /* string-append */
   func = set_function_chooser(sc->string_append_symbol, string_append_chooser);

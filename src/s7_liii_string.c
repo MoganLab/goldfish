@@ -393,3 +393,14 @@ s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
     return(result);
   }
 }
+
+s7_pointer g_string_append(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_string_append_1(sc, args, s7_make_symbol(sc, "string-append")));
+}
+
+s7_pointer g_string(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_null(sc, args)) return(s7i_nil_string());
+  return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
+}
