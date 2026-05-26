@@ -59,6 +59,12 @@ s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
 s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
 
+/* module system helpers */
+bool s7i_is_closure(s7_pointer p);
+bool s7i_is_closure_star(s7_pointer p);
+s7_pointer s7i_missing_key_value(s7_scheme *sc);
+const char *s7i_find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *already_loaded, bool loading);
+
 #ifdef __cplusplus
 }
 #endif

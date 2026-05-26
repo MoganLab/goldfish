@@ -407,6 +407,7 @@
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
 #include "s7_liii_vector.h"
+#include "s7_module.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -24558,39 +24559,6 @@ s7_pointer s7_add_to_load_path(s7_scheme *sc, const char *dir)
   return(path);
 }
 
-static s7_pointer g_load_path_set(s7_scheme *sc, s7_pointer args)
-{
-  /* new value must be either () or a (proper?) list of strings */
-  s7_pointer strs;
-  if (is_null(cadr(args))) return(cadr(args));
-  if (!is_pair(cadr(args)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set *load-path* to ~S", 27), cadr(args)));
-  for (strs = cadr(args); is_pair(strs); strs = cdr(strs))
-    if (!is_string(car(strs)))
-      error_nr(sc, sc->wrong_type_arg_symbol, set_elist_3(sc, wrap_string(sc, "can't set *load-path* to ~S, ~S is not a string", 47), cadr(args), car(strs)));
-  if ((S7_DEBUGGING) && (!is_null(strs))) fprintf(stderr, "%s[%d]: strs: %s\n", __func__, __LINE__, display(args));
-#if 0
-  if (!is_null(strs))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set *load-path* to ~S, it is not a proper list", 52), cadr(args)));
-#endif
-  return(cadr(args));
-}
-
-/* -------- *cload-directory* -------- */
-static s7_pointer g_cload_directory_set(s7_scheme *sc, s7_pointer args)
-{
-  /* this sets the directory for cload.scm's output */
-  const s7_pointer cl_dir = cadr(args);
-  if (!is_string(cl_dir))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set *cload-directory* to ~S", 33), cadr(args)));
-  s7_symbol_set_value(sc, sc->cload_directory_symbol, cl_dir);
-  if (string_length(cl_dir) > 0) /* was strlen(string_value)? */
-    s7_add_to_load_path(sc, (const char *)(string_value(cl_dir)));
-  /* should this remove the previous *cload-directory* name first? or not affect *load-path* at all? */
-  return(cl_dir);
-}
-
-
 /* ---------------- autoload ---------------- */
 #define INITIAL_AUTOLOAD_NAMES_SIZE 4
 
@@ -24636,7 +24604,7 @@ void s7_autoload_set_names(s7_scheme *sc, const char **names, s7_int size)
   sc->autoload_names_loc++;
 }
 
-static const char *find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *already_loaded, bool loading)
+const char *find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *already_loaded, bool loading)
 {
   s7_int libs = sc->autoload_names_loc;
   const char *name = symbol_name(symbol);
@@ -24680,14 +24648,30 @@ s7_pointer s7_autoload(s7_scheme *sc, s7_pointer symbol, s7_pointer file_or_func
   return(file_or_function);
 }
 
+bool s7i_is_closure(s7_pointer p) { return is_closure(p); }
+bool s7i_is_closure_star(s7_pointer p) { return is_closure_star(p); }
+s7_pointer s7i_missing_key_value(s7_scheme *sc) { return missing_key_value(sc); }
+const char *s7i_find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *already_loaded, bool loading)
+{
+  return find_autoload_name(sc, symbol, already_loaded, loading);
+}
+
+/* -------- *cload-directory* -------- */
+static s7_pointer g_cload_directory_set(s7_scheme *sc, s7_pointer args)
+{
+  /* this sets the directory for cload.scm's output */
+  const s7_pointer cl_dir = cadr(args);
+  if (!is_string(cl_dir))
+    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set *cload-directory* to ~S", 33), cadr(args)));
+  s7_symbol_set_value(sc, sc->cload_directory_symbol, cl_dir);
+  if (string_length(cl_dir) > 0) /* was strlen(string_value)? */
+    s7_add_to_load_path(sc, (const char *)(string_value(cl_dir)));
+  /* should this remove the previous *cload-directory* name first? or not affect *load-path* at all? */
+  return(cl_dir);
+}
+
 static s7_pointer g_autoload(s7_scheme *sc, s7_pointer args)
 {
-  #define H_autoload "(autoload symbol file-or-function) adds the symbol to its table of autoloadable symbols. \
-If that symbol is encountered as an unbound variable, s7 either loads the file (following *load-path*), or calls \
-the function.  The function takes one argument, the calling environment.  Presumably the symbol is defined \
-in the file, or by the function."
-  #define Q_autoload s7_make_signature(sc, 3, sc->T, sc->is_symbol_symbol, sc->T)
-
   s7_pointer sym = car(args), value;
   if (is_string(sym))
     {
@@ -24717,13 +24701,9 @@ in the file, or by the function."
 #endif
 }
 
-
 /* -------------------------------- *autoload* -------------------------------- */
 static s7_pointer g_autoloader(s7_scheme *sc, s7_pointer args) /* the *autoload* function */
 {
-  #define H_autoloader "(*autoload* sym) returns the autoload info for the symbol sym, or #f."
-  #define Q_autoloader s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
-
   const s7_pointer sym = car(args);
   if (!is_symbol(sym))
     {
@@ -24744,7 +24724,6 @@ static s7_pointer g_autoloader(s7_scheme *sc, s7_pointer args) /* the *autoload*
     }
   return(sc->F);
 }
-
 
 /* ---------------- require ---------------- */
 static bool is_a_feature(const s7_pointer sym, s7_pointer lst) /* used only with *features* which (sigh) can be circular: (set-cdr! *features* *features*) */
@@ -24900,38 +24879,6 @@ static s7_pointer g_provide(s7_scheme *sc, s7_pointer args)
 }
 
 void s7_provide(s7_scheme *sc, const char *feature) {c_provide(sc, make_symbol_with_strlen(sc, feature));}
-
-
-static s7_pointer g_features_set(s7_scheme *sc, s7_pointer args) /* *features* setter */
-{
-  const s7_pointer new_features = cadr(args);
-  if (is_null(new_features)) return(sc->nil);
-  if (!is_pair(new_features))
-    error_nr(sc, sc->wrong_type_arg_symbol,
-	     set_elist_2(sc, wrap_string(sc, "can't set *features* to ~S (*features* must be a pair)", 54), new_features));
-  if (s7_list_length(sc, new_features) <= 0)
-    error_nr(sc, sc->wrong_type_arg_symbol,
-	     set_elist_2(sc, wrap_string(sc, "can't set *features* to an improper or circular list ~S", 55), new_features));
-  for (s7_pointer features = new_features; is_pair(features); features = cdr(features))
-    if (!is_symbol(car(features)))
-      error_nr(sc, sc->wrong_type_arg_symbol,
-	       set_elist_2(sc, wrap_string(sc, "can't set *features* to ~S (each feature should be a symbol)", 60), new_features));
-  return(new_features);
-}
-
-static s7_pointer g_libraries_set(s7_scheme *sc, s7_pointer args) /* *libraries* setter */
-{
-  const s7_pointer new_libraries = cadr(args);
-  if (is_null(new_libraries)) return(sc->nil);
-  if ((!is_pair(new_libraries)) || (s7_list_length(sc, new_libraries) <= 0))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set *libraries* to ~S", 27), new_libraries));
-  for (s7_pointer libraries = new_libraries; is_pair(libraries); libraries = cdr(libraries))
-    if ((!is_pair(car(libraries))) ||
-	(!is_string(caar(libraries))) ||
-	(!is_let(cdar(libraries))))
-      sole_arg_wrong_type_error_nr(sc, sc->libraries_symbol, car(libraries), wrap_string(sc, "a list of conses of the form (string . let)", 43));
-  return(new_libraries);
-}
 
 
 /* -------------------------------- eval-string -------------------------------- */
@@ -91963,6 +91910,11 @@ static void init_rootlet(s7_scheme *sc)
   sc->call_with_exit_symbol =        semisafe_defun("call-with-exit", call_with_exit,   1, 0, false); /* semisafe: see t101-6.scm, apply on stack */
 
   sc->load_symbol =                  semisafe_defun("load",	load,			1, 1, false);
+  #define H_autoload "(autoload symbol file-or-function) adds the symbol to its table of autoloadable symbols. \
+If that symbol is encountered as an unbound variable, s7 either loads the file (following *load-path*), or calls \
+the function.  The function takes one argument, the calling environment.  Presumably the symbol is defined \
+in the file, or by the function."
+  #define Q_autoload s7_make_signature(sc, 3, sc->T, sc->is_symbol_symbol, sc->T)
   sc->autoload_symbol =              defun("autoload",	        autoload,		2, 0, false);
   sc->eval_symbol =                  semisafe_defun("eval",	eval,			1, 1, false); set_func_is_definer(sc->eval_symbol);
   sc->eval_string_symbol =           semisafe_defun("eval-string", eval_string,		1, 1, false); set_func_is_definer(sc->eval_string_symbol);
@@ -92116,6 +92068,8 @@ static void init_rootlet(s7_scheme *sc)
 		s7_make_safe_function(sc, "#<set-*cload-directory*>", g_cload_directory_set, 2, 0, false, "*cload-directory* setter"));
 
   /* -------- *autoload* -------- this pretends to be a hash-table or environment, but it's actually a function */
+  #define H_autoloader "(*autoload* sym) returns the autoload info for the symbol sym, or #f."
+  #define Q_autoloader s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
   sc->autoloader_symbol = s7_define_typed_function(sc, "*autoload*", g_autoloader, 1, 0, false, H_autoloader, Q_autoloader);
   c_function_set_setter(global_value(sc->autoloader_symbol), global_value(sc->autoload_symbol)); /* (set! (*autoload* x) y) */
 
