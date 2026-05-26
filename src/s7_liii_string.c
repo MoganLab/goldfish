@@ -404,3 +404,19 @@ s7_pointer g_string(s7_scheme *sc, s7_pointer args)
   if (s7_is_null(sc, args)) return(s7i_nil_string());
   return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
 }
+
+s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_int start = 0, end;
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "substring-uncopied", args, "a string", 1));
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "substring-uncopied"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+    }
+  return(s7_make_string_with_length(sc, s7_string(str) + start, end - start));
+}

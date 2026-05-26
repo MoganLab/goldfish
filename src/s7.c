@@ -21030,25 +21030,10 @@ end: (substring \"01234\" 1 2) -> \"1\""
 #define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
 /* g_substring is now defined in s7_liii_string.c */
 
-static s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
-{
-  #define H_substring_uncopied "(substring-uncopied str start (end (length str))) returns an immutable string sharing the portion of the string str between start and \
+#define H_substring_uncopied "(substring-uncopied str start (end (length str))) returns an immutable string sharing the portion of the string str between start and \
 end: (substring-uncopied \"01234\" 1 2) -> \"1\".  substring-uncopied does not GC protect the original string; it is intended for very brief uses."
-  #define Q_substring_uncopied s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer str = car(args);
-  s7_int start = 0, end;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->substring_uncopied_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->substring_uncopied_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-    }
-  return(wrap_string(sc, (char *)(string_value(str) + start), end - start));
-}
+#define Q_substring_uncopied s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_substring_uncopied is now defined in s7_liii_string.c */
 
 static s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start, s7_int end)
 {
