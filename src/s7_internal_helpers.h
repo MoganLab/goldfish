@@ -46,6 +46,12 @@ bool s7i_is_unused(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name);
 s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer x1, s7_pointer x2, const char *type_name, s7_int arg_pos);
 
+bool s7i_is_subvector(s7_pointer p);
+s7_int s7i_subvector_position(s7_pointer p);
+s7_pointer s7i_subvector_vector(s7_scheme *sc, s7_pointer p);
+bool s7i_is_typed_t_vector(s7_pointer p);
+s7_pointer s7i_typed_vector_typer(s7_scheme *sc, s7_pointer p);
+
 #ifdef __cplusplus
 }
 #endif

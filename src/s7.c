@@ -29346,6 +29346,26 @@ s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *meth
   return method_or_bust_pp(sc, obj, s7_make_symbol(sc, method_name), x1, x2, wrap_string(sc, type_name, safe_strlen(type_name)), (int32_t)arg_pos);
 }
 
+bool s7i_is_subvector(s7_pointer p) {return(is_subvector(p));}
+
+s7_int s7i_subvector_position(s7_pointer p)
+{
+  if (is_subvector(p))
+    switch (type(p))
+      {
+      case T_VECTOR:         return((s7_int)(vector_elements(p) - vector_elements(subvector_vector(p))));
+      case T_INT_VECTOR:     return((s7_int)(int_vector_ints(p) - int_vector_ints(subvector_vector(p))));
+      case T_FLOAT_VECTOR:   return((s7_int)(float_vector_floats(p) - float_vector_floats(subvector_vector(p))));
+      case T_COMPLEX_VECTOR: return((s7_int)(complex_vector_complexes(p) - complex_vector_complexes(subvector_vector(p))));
+      case T_BYTE_VECTOR:    return((s7_int)(byte_vector_bytes(p) - byte_vector_bytes(subvector_vector(p))));
+      }
+  return(-1);
+}
+
+s7_pointer s7i_subvector_vector(s7_scheme *sc, s7_pointer p) {return(subvector_vector(p));}
+bool s7i_is_typed_t_vector(s7_pointer p) {return(is_typed_t_vector(p));}
+s7_pointer s7i_typed_vector_typer(s7_scheme *sc, s7_pointer p) {return(typed_vector_typer(p));}
+
 static s7_pointer new_format_port(s7_scheme *sc)
 {
   const s7_int len = FORMAT_PORT_LENGTH;
@@ -34662,70 +34682,16 @@ static s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
 }
 
 /* -------------------------------- vector-length -------------------------------- */
-static s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_length "(vector-length v) returns the length of vector v"
-  #define Q_vector_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_length_symbol, args, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_length(vec)));
-}
-
-static s7_int vector_length_i_7p(s7_scheme *sc, s7_pointer vec)
-{
-  if (!is_any_vector(vec))
-    return(integer(method_or_bust_p(sc, vec, sc->vector_length_symbol, sc->type_names[T_VECTOR])));
-  return(vector_length(vec));
-}
-
-static s7_pointer vector_length_p_p(s7_scheme *sc, s7_pointer vec)
-{
-  if (!is_any_vector(vec))
-    return(method_or_bust_p(sc, vec, sc->vector_length_symbol, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_length(vec)));
-}
+/* g_vector_length, vector_length_i_7p, vector_length_p_p are now defined in s7_liii_vector.c */
 #endif
 
 
 /* -------------------------------- subvector subvector? subvector-vector subvector-position -------------------------------- */
 static bool s7_is_subvector(s7_pointer vec) {return((is_any_vector(vec)) && (is_subvector(vec)));}
 
-static s7_pointer g_is_subvector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_subvector "(subvector? obj) returns #t if obj is a subvector"
-  #define Q_is_subvector sc->pl_bt
-  check_boolean_method(sc, s7_is_subvector, sc->is_subvector_symbol, args);
-}
-
-static s7_pointer g_subvector_position(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector_position "(subvector-position obj) returns obj's offset"
-  #define Q_subvector_position s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_subvector_symbol)
-
-  const s7_pointer sv = car(args);
-  if (s7_is_subvector(sv))
-    switch (type(sv))
-      {
-      case T_VECTOR:         return(make_integer(sc, (s7_int)(vector_elements(sv) - vector_elements(subvector_vector(sv)))));
-      case T_INT_VECTOR:     return(make_integer(sc, (s7_int)(int_vector_ints(sv) - int_vector_ints(subvector_vector(sv)))));
-      case T_FLOAT_VECTOR:   return(make_integer(sc, (s7_int)(float_vector_floats(sv) - float_vector_floats(subvector_vector(sv)))));
-      case T_COMPLEX_VECTOR: return(make_integer(sc, (s7_int)(complex_vector_complexes(sv) - complex_vector_complexes(subvector_vector(sv)))));
-      case T_BYTE_VECTOR:    return(make_integer(sc, (s7_int)(byte_vector_bytes(sv) - byte_vector_bytes(subvector_vector(sv)))));
-      }
-  return(sole_arg_method_or_bust(sc, sv, sc->subvector_position_symbol, args, sc->type_names[T_VECTOR]));
-}
-
-static s7_pointer g_subvector_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector_vector "(subvector-vector obj) returns the vector underlying the subvector obj"
-  #define Q_subvector_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_subvector_symbol)
-
-  if (s7_is_subvector(car(args)))
-    return(subvector_vector(car(args)));
-  return(sole_arg_method_or_bust(sc, car(args), sc->subvector_vector_symbol, args, sc->type_names[T_VECTOR]));
-}
+/* g_is_subvector is now defined in s7_liii_vector.c */
+/* g_subvector_position is now defined in s7_liii_vector.c */
+/* g_subvector_vector is now defined in s7_liii_vector.c */
 
 static s7_pointer subvector(s7_scheme *sc, s7_pointer vect, s7_int skip_dims, s7_int index)
 {
@@ -35750,65 +35716,15 @@ s7_int s7_vector_rank(s7_pointer vec) {return((s7_int)(vector_rank(vec)));}
 
 
 /* -------------------------------- vector-dimension -------------------------------- */
-static s7_pointer g_vector_dimension(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_dimension "(vector-dimension vect n) returns the size of the n-th dimension (n is 0-based)"
-  #define Q_vector_dimension s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_vector_symbol, sc->is_integer_symbol)
-  s7_pointer vec = car(args);
-  s7_pointer dim = cadr(args);
-  s7_int n;
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_dimension_symbol, args, sc->type_names[T_VECTOR], 1));
-  if (!s7_is_integer(dim))
-    return(method_or_bust(sc, vec, sc->vector_dimension_symbol, args, sc->type_names[T_INTEGER], 2));
-  n = s7_integer_clamped_if_gmp(sc, dim);
-  if (n < 0)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_2(sc, wrap_string(sc, "vector-dimension second argument is negative: ~S", 48), dim));
-  if (n >= vector_rank(vec))
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "vector-dimension second argument, ~S, should be less than the vector rank, ~D", 77),
-			 dim, wrap_integer(sc, vector_rank(vec))));
-  if (vector_has_dimension_info(vec))
-    return(make_integer(sc, vector_dimension(vec, n)));
-  return(make_integer(sc, vector_length(vec)));
-}
+/* g_vector_dimension is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-dimensions -------------------------------- */
-static s7_pointer g_vector_dimensions(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_dimensions "(vector-dimensions vect) returns a list of vect's dimensions"
-  #define Q_vector_dimensions s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_dimensions_symbol, args, sc->type_names[T_VECTOR]));
-  if (vector_rank(vec) == 1)
-    return(list_1(sc, make_integer(sc, vector_length(vec))));
-  begin_temp(sc->y, sc->nil);
-  for (s7_int i = vector_ndims(vec) - 1; i >= 0; i--)
-    sc->y = cons(sc, make_integer(sc, vector_dimension(vec, i)), sc->y);
-  return_with_end_temp(sc->y);
-}
+/* g_vector_dimensions is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-typer -------------------------------- */
-static s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_typer "(vector-typer vect) returns the vector's element type checking function"
-  #define Q_vector_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_typer_symbol, args, sc->type_names[T_VECTOR]));
-  if (is_typed_t_vector(vec)) return(typed_vector_typer(vec));
-  if (is_float_vector(vec)) return(global_value(sc->is_float_symbol));
-  if (is_int_vector(vec)) return(global_value(sc->is_integer_symbol));
-  if (is_byte_vector(vec)) return(global_value(sc->is_byte_symbol));
-  if (is_complex_vector(vec)) return(global_value(sc->is_number_symbol));
-  return(sc->F);
-}
+/* g_vector_typer is now defined in s7_liii_vector.c */
 
 static s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args)
 {
@@ -91914,6 +91830,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_undefined_symbol =       bool_defun("undefined?",       is_undefined,       0, T_UNDEFINED,    just_mark_vector,   true);
   sc->is_unspecified_symbol =     bool_defun("unspecified?",     is_unspecified,     0, T_UNSPECIFIED,  just_mark_vector,   true);
   sc->is_c_object_symbol =        bool_defun("c-object?",        is_c_object,	     0, T_C_OBJECT,     mark_vector_1,      false);
+  #define H_is_subvector "(subvector? obj) returns #t if obj is a subvector"
+  #define Q_is_subvector sc->pl_bt
   sc->is_subvector_symbol =       bool_defun("subvector?",       is_subvector,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_weak_hash_table_symbol = bool_defun("weak-hash-table?", is_weak_hash_table, 0, T_FREE,         mark_vector_1,      false);
   sc->is_goto_symbol =            bool_defun("goto?",	         is_goto,            0, T_GOTO,         mark_vector_1,      true);
@@ -92283,6 +92201,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->vector_append_symbol =         defun("vector-append",	vector_append,		0, 0, true);
   sc->list_to_vector_symbol =        defun("list->vector",	list_to_vector,		1, 0, false);
   sc->vector_fill_symbol =           defun("vector-fill!",	vector_fill,		2, 2, false);
+  #define H_vector_length "(vector-length v) returns the length of vector v"
+  #define Q_vector_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_length_symbol =         defun("vector-length",	vector_length,		1, 0, false);
   sc->vector_to_list_symbol =        defun("vector->list",	vector_to_list,		1, 2, false);
 #else
@@ -92292,17 +92212,27 @@ static void init_rootlet(s7_scheme *sc)
 #endif
   sc->vector_ref_symbol =            defun("vector-ref",	vector_ref,		2, 0, true);
   sc->vector_set_symbol =            defun("vector-set!",	vector_set,		3, 0, true);
+  #define H_vector_dimension "(vector-dimension vect n) returns the size of the n-th dimension (n is 0-based)"
+  #define Q_vector_dimension s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_vector_symbol, sc->is_integer_symbol)
   sc->vector_dimension_symbol =      defun("vector-dimension",  vector_dimension,	2, 0, false);
+  #define H_vector_dimensions "(vector-dimensions vect) returns a list of vect's dimensions"
+  #define Q_vector_dimensions s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_vector_symbol)
   sc->vector_dimensions_symbol =     defun("vector-dimensions", vector_dimensions,	1, 0, false);
   #define H_vector_rank "(vector-rank vect) returns the number of dimensions in vect"
   #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_rank_symbol =           defun("vector-rank",       vector_rank,	        1, 0, false);
   sc->make_vector_symbol =           defun("make-vector",	make_vector,		1, 2, false); set_is_saver(sc->make_vector_symbol);
   sc->vector_symbol =                defun("vector",		vector,			0, 0, true);  set_is_saver(sc->vector_symbol);
+  #define H_vector_typer "(vector-typer vect) returns the vector's element type checking function"
+  #define Q_vector_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_vector_symbol)
   sc->vector_typer_symbol =          defun("vector-typer",      vector_typer,	        1, 0, false);
 
   sc->subvector_symbol =             defun("subvector",         subvector,	        1, 3, false); set_is_saver(sc->subvector_symbol);
+  #define H_subvector_position "(subvector-position obj) returns obj's offset"
+  #define Q_subvector_position s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_subvector_symbol)
   sc->subvector_position_symbol =    defun("subvector-position", subvector_position,    1, 0, false);
+  #define H_subvector_vector "(subvector-vector obj) returns the vector underlying the subvector obj"
+  #define Q_subvector_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_subvector_symbol)
   sc->subvector_vector_symbol =      defun("subvector-vector",  subvector_vector,       1, 0, false);
 
   sc->float_vector_symbol =          defun("float-vector",	float_vector,		0, 0, true);
