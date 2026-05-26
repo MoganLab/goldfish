@@ -112,6 +112,38 @@ s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args)
   return(s7_f(sc));
 }
 
+s7_pointer g_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = s7_list_length(sc, args);
+  if (len < 0)
+    return(s7_error(sc, s7_make_symbol(sc, "read-error"),
+                    s7_cons(sc, s7_make_string(sc, "vector contents list is not a proper list"), s7_nil(sc))));
+  {
+    s7_pointer vec = s7_make_vector(sc, len);
+    s7_int i = 0;
+    for (s7_pointer p = args; s7_is_pair(p); p = s7_cdr(p), i++)
+      s7_vector_set(sc, vec, i, s7_car(p));
+    return(vec);
+  }
+}
+
+s7_pointer g_vector_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer vec = s7_make_vector(sc, 2);
+  s7_vector_set(sc, vec, 0, s7_car(args));
+  s7_vector_set(sc, vec, 1, s7_cadr(args));
+  return(vec);
+}
+
+s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer vec = s7_make_vector(sc, 3);
+  s7_vector_set(sc, vec, 0, s7_car(args));
+  s7_vector_set(sc, vec, 1, s7_cadr(args));
+  s7_vector_set(sc, vec, 2, s7_caddr(args));
+  return(vec);
+}
+
 #if !WITH_PURE_S7
 
 s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)

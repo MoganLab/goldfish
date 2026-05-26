@@ -34426,44 +34426,13 @@ static s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- vector -------------------------------- */
-static s7_pointer g_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector "(vector ...) returns a vector whose elements are the arguments"
-  #define Q_vector s7_make_circular_signature(sc, 1, 2, sc->is_vector_symbol, sc->T)
-
-  s7_pointer end;
-  s7_int len = proper_list_length_with_end(args, &end);
-  if (!is_null(end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "vector contents list is not a proper list", 41)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 71),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_pointer vec = make_simple_vector(sc, len);
-    if (len > 0)
-      for (s7_int i = 0; is_pair(args); args = cdr(args), i++)
-	vector_element(vec, i) = car(args);
-    return(vec);
-  }
-}
+/* g_vector, g_vector_2, g_vector_3 are now defined in s7_liii_vector.c */
 
 static inline s7_pointer vector_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
 {
   s7_pointer vec = make_simple_vector(sc, 2);
   vector_element(vec, 0) = p1;
   vector_element(vec, 1) = p2;
-  return(vec);
-}
-
-static s7_pointer g_vector_2(s7_scheme *sc, s7_pointer args) {return(vector_p_pp(sc, car(args), cadr(args)));}
-
-static s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer vec = make_simple_vector(sc, 3);
-  vector_element(vec, 0) = car(args); args = cdr(args);
-  vector_element(vec, 1) = car(args);
-  vector_element(vec, 2) = cadr(args);
   return(vec);
 }
 
@@ -92222,6 +92191,8 @@ static void init_rootlet(s7_scheme *sc)
   #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_rank_symbol =           defun("vector-rank",       vector_rank,	        1, 0, false);
   sc->make_vector_symbol =           defun("make-vector",	make_vector,		1, 2, false); set_is_saver(sc->make_vector_symbol);
+  #define H_vector "(vector ...) returns a vector whose elements are the arguments"
+  #define Q_vector s7_make_circular_signature(sc, 1, 2, sc->is_vector_symbol, sc->T)
   sc->vector_symbol =                defun("vector",		vector,			0, 0, true);  set_is_saver(sc->vector_symbol);
   #define H_vector_typer "(vector-typer vect) returns the vector's element type checking function"
   #define Q_vector_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_vector_symbol)
