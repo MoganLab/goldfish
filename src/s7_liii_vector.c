@@ -144,6 +144,19 @@ s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
   return(vec);
 }
 
+s7_pointer g_vector_ref(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer vec = s7_car(args);
+  if (!s7_is_vector(vec))
+    return(s7i_method_or_bust(sc, vec, "vector-ref", args, "a vector", 1));
+  return(s7i_vector_ref_1(sc, vec, s7_cdr(args)));
+}
+
+s7_pointer g_vector_ref_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
 s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);

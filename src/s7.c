@@ -34826,7 +34826,7 @@ a vector that points to the same elements as the original-vector but with differ
 
 
 /* -------------------------------- vector-ref -------------------------------- */
-static s7_pointer vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
+s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
 {
   s7_int index = 0;
   if (vector_length(vect) == 0)
@@ -34881,16 +34881,7 @@ static s7_pointer vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indice
   return((vector_getter(vect))(sc, vect, index));
 }
 
-static s7_pointer g_vector_ref(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_ref "(vector-ref v ... i) returns the i-th element of vector v."
-  #define Q_vector_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_vector_symbol, sc->is_integer_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_ref_symbol, args, sc->type_names[T_VECTOR], 1));
-  return(vector_ref_1(sc, vec, cdr(args))); /* 19-Jan-19 */
-}
+/* g_vector_ref is now defined in s7_liii_vector.c */
 
 static s7_pointer vector_ref_p_pi(s7_scheme *sc, s7_pointer vec, s7_int index)
 {
@@ -34935,7 +34926,7 @@ static s7_pointer vector_ref_p_pii_direct(s7_scheme *sc, s7_pointer vec, s7_int 
 
 static s7_pointer t_vector_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(vector_element(vec, index));}
 
-static inline s7_pointer vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
+s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 {
   s7_int index;
   if ((!is_t_vector(vec)) ||
@@ -34948,7 +34939,7 @@ static inline s7_pointer vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_point
   return(vector_element(vec, index));
 }
 
-static s7_pointer g_vector_ref_2(s7_scheme *sc, s7_pointer args) {return(vector_ref_p_pp(sc, car(args), cadr(args)));}
+/* g_vector_ref_2 is now defined in s7_liii_vector.c */
 
 static s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
 {
@@ -47203,7 +47194,7 @@ static s7_pointer implicit_index(s7_scheme *sc, s7_pointer obj, s7_pointer indic
   switch (type(obj))
     {
     case T_VECTOR:                       /* (#(#(1 2) #(3 4)) 1 1) -> 4 */
-      return(vector_ref_1(sc, obj, indices));
+      return(s7i_vector_ref_1(sc, obj, indices));
 
     case T_FLOAT_VECTOR:
       {
@@ -48635,12 +48626,12 @@ fx_c_ss_any(fx_c_tU, t_lookup, U_lookup)
 static s7_pointer fx_memq_ss(s7_scheme *sc, s7_pointer arg) {return(memq_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
 static s7_pointer fx_memq_tu(s7_scheme *sc, s7_pointer arg) {return(memq_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_assq_ss(s7_scheme *sc, s7_pointer arg) {return(assq_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
-static s7_pointer fx_vref_ss(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
-static s7_pointer fx_vref_st(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_ts(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), s_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_tu(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_ot(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, o_lookup(sc, cadr(arg), arg), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_gt(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ss(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
+static s7_pointer fx_vref_st(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ts(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), s_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_tu(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ot(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, o_lookup(sc, cadr(arg), arg), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_gt(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_sref_ss(s7_scheme *sc, s7_pointer arg) {return(string_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
 static s7_pointer fx_sref_su(s7_scheme *sc, s7_pointer arg) {return(string_ref_p_pp(sc, lookup(sc, cadr(arg)), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_cons_ss(s7_scheme *sc, s7_pointer arg) {return(cons(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
@@ -49448,32 +49439,32 @@ static s7_pointer fx_gt_add_tu_s(s7_scheme *sc, s7_pointer arg)
 
 static s7_pointer fx_gt_vref_s(s7_scheme *sc, s7_pointer arg)
 {
-  return(gt_p_pp(sc, vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg)))), lookup(sc, caddr(arg))));
+  return(gt_p_pp(sc, s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg)))), lookup(sc, caddr(arg))));
 }
 
 static s7_pointer fx_geq_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(geq_p_pp(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(geq_p_pp(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_is_eq_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(make_boolean(sc, lookup(sc, cadr(arg)) == vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(make_boolean(sc, lookup(sc, cadr(arg)) == s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_href_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(hash_table_ref_p_pp(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(hash_table_ref_p_pp(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_lref_s_vref(s7_scheme *sc, s7_pointer arg) /* tbig */
 {
-  return(let_ref(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(let_ref(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_vref_s_add(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), add_p_pp_wrapped(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), add_p_pp_wrapped(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static inline s7_pointer fx_vref_vref_3(s7_scheme *sc, s7_pointer vec, s7_pointer num1, s7_pointer num2)
@@ -49487,7 +49478,7 @@ static inline s7_pointer fx_vref_vref_3(s7_scheme *sc, s7_pointer vec, s7_pointe
 	  if ((is_t_vector(vec_in_vec)) && (vector_rank(vec_in_vec) == 1) && (index2 < vector_length(vec_in_vec)))
 	    return(vector_element(vec_in_vec, index2));
 	}}
-  return(vector_ref_p_pp(sc, vector_ref_p_pp(sc, vec, num1), num2));
+  return(s7i_vector_ref_p_pp(sc, s7i_vector_ref_p_pp(sc, vec, num1), num2));
 }
 
 #define fx_vref_vref_ss_s_any(Name, Lookup1, Lookup2, Lookup3) \
@@ -49658,14 +49649,14 @@ fx_c_s_opssq_direct_any(fx_c_t_opsuq_direct, t_lookup, u_lookup)
 
 static s7_pointer fx_vref_g_vref_gs(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
-			 vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
+			 s7i_vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_vref_g_vref_gt(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
-			 vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), t_lookup(sc, opt1_sym(opt3_pair(arg)), arg))));
+  return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
+			 s7i_vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), t_lookup(sc, opt1_sym(opt3_pair(arg)), arg))));
 }
 
 static s7_pointer fx_c_c_opssq(s7_scheme *sc, s7_pointer arg)
@@ -49744,7 +49735,7 @@ static s7_pointer fx_vref_p1(s7_scheme *sc, s7_pointer arg)
       if ((index >= 0) && (vector_length(vec) > index))
 	return(vector_element(vec, index));
     }
-  return(vector_ref_p_pp(sc, vec, g_add_xi(sc, ind, 1, 2)));
+  return(s7i_vector_ref_p_pp(sc, vec, g_add_xi(sc, ind, 1, 2)));
 }
 
 static s7_pointer fx_num_eq_add_s_si(s7_scheme *sc, s7_pointer arg)
@@ -50068,7 +50059,7 @@ static s7_pointer fx_sub_vref2(s7_scheme *sc, s7_pointer arg)
       if ((index1 >= 0) && (index1 <= vector_length(vec)) && (index2 >= 0) && (index2 < vector_length(vec)))
 	return(subtract_p_pp(sc, vector_ref_p_pi(sc, vec, index1), vector_ref_p_pi(sc, vec, index2)));
     }
-  return(subtract_p_pp(sc, vector_ref_p_pp(sc, vec, num1), vector_ref_p_pp(sc, vec, num2)));
+  return(subtract_p_pp(sc, s7i_vector_ref_p_pp(sc, vec, num1), s7i_vector_ref_p_pp(sc, vec, num2)));
 }
 
 static s7_pointer fx_c_op_opsqq(s7_scheme *sc, s7_pointer code)
@@ -50851,7 +50842,7 @@ static s7_pointer fx_safe_closure_s_to_sc(s7_scheme *sc, s7_pointer arg)
   return(fn_proc(car(closure_body(opt1_lambda(arg))))(sc, sc->t2_1));
 }
 
-static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, opt2_sym(arg)), opt3_con(cdr(arg))));}
+static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, opt2_sym(arg)), opt3_con(cdr(arg))));}
 static s7_pointer fx_safe_closure_s_to_sub1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
@@ -50885,7 +50876,7 @@ static s7_pointer fx_safe_closure_a_to_sc(s7_scheme *sc, s7_pointer arg)
   return(fn_proc(car(closure_body(func)))(sc, sc->t2_1));
 }
 
-static s7_pointer fx_safe_closure_a_to_vref(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, fx_call(sc, cdr(arg)), opt3_con(cdr(arg))));}
+static s7_pointer fx_safe_closure_a_to_vref(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, fx_call(sc, cdr(arg)), opt3_con(cdr(arg))));}
 
 static s7_pointer fx_safe_closure_s_and_2a(s7_scheme *sc, s7_pointer code) /* safe_closure_s_a where "a" is fx_and_2a */
 {
@@ -52064,7 +52055,7 @@ static bool fx_tree_in(s7_scheme *sc, const s7_pointer tree, const s7_pointer va
 
 	  if (pfunc == fx_c_sc_direct) /* p_pp cases */
 	    {
-	      if ((opt3_direct(cdr(p)) == (s7_pointer)vector_ref_p_pp) && (is_t_integer(caddr(p))))
+	      if ((opt3_direct(cdr(p)) == (s7_pointer)s7i_vector_ref_p_pp) && (is_t_integer(caddr(p))))
 		return(with_fx(tree, fx_vector_ref_tc));
 	      if ((opt3_direct(cdr(p)) == (s7_pointer)string_ref_p_pp) && (is_t_integer(caddr(p))) && (integer(caddr(p)) == 0))
 		set_opt3_direct(cdr(p), string_ref_p_p0);
@@ -57831,7 +57822,7 @@ static s7_pointer opt_p_pp_sf_mul(opt_info *o) {return(multiply_p_pp(o->sc, slot
 static s7_pointer opt_p_pp_sf_set_car(opt_info *o) {return(inline_set_car(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
 static s7_pointer opt_p_pp_sf_set_cdr(opt_info *o) {return(inline_set_cdr(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
 static s7_pointer opt_p_pp_sf_href(opt_info *o) {return(s7_hash_table_ref(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
-static s7_pointer opt_p_pp_fs_vref(opt_info *o) {return(vector_ref_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
+static s7_pointer opt_p_pp_fs_vref(opt_info *o) {return(s7i_vector_ref_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_cons(opt_info *o) {return(cons(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_add(opt_info *o) {return(add_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_sub(opt_info *o) {return(subtract_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
@@ -58053,7 +58044,7 @@ static bool p_pp_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const
 	      if (q_arg1(opc).p)
 		{
 		  q_call(opc).fp = (func == add_p_pp) ? opt_p_pp_fs_add : ((func == subtract_p_pp) ? opt_p_pp_fs_sub :
-                                   ((func == vector_ref_p_pp) ? opt_p_pp_fs_vref : ((func == cons_p_pp) ? opt_p_pp_fs_cons : opt_p_pp_fs)));
+                                   ((func == s7i_vector_ref_p_pp) ? opt_p_pp_fs_vref : ((func == cons_p_pp) ? opt_p_pp_fs_cons : opt_p_pp_fs)));
 		  q_func1_arg(opc).o1 = o1;
 		  q_func1(opc).fp = q_call(o1).fp;
 		  if (q_func1(opc).fp == opt_p_p_s_random) q_func1(opc).fp = opt_p_p_s_random_wrapped;
@@ -75345,7 +75336,7 @@ static Inline bool inline_op_implicit_vector_ref_a(s7_scheme *sc) /* called once
 	  sc->value = (is_float_vector(vec)) ? make_real(sc, float_vector(vec, index)) : vector_getter(vec)(sc, vec, index);
 	  return(true);
 	}}
-  sc->value = vector_ref_1(sc, vec, set_plist_1(sc, ind));
+  sc->value = s7i_vector_ref_1(sc, vec, set_plist_1(sc, ind));
   return(true);
 }
 
@@ -75362,7 +75353,7 @@ static s7_pointer fx_implicit_vector_ref_a(s7_scheme *sc, s7_pointer arg)
       if ((index < vector_length(vec)) && (index >= 0))
 	return(vector_getter(vec)(sc, vec, index));
     }
-  return(vector_ref_1(sc, vec, set_plist_1(sc, ind)));
+  return(s7i_vector_ref_1(sc, vec, set_plist_1(sc, ind)));
 }
 
 static bool op_implicit_vector_ref_aa(s7_scheme *sc) /* tnum/tmat, neither uses fx case if available (see tmp) */
@@ -75387,7 +75378,7 @@ static bool op_implicit_vector_ref_aa(s7_scheme *sc) /* tnum/tmat, neither uses 
 	  unstack_gc_protect(sc);
 	  return(true);
 	}}
-  sc->value = vector_ref_1(sc, vec, set_plist_2(sc, ind1, ind2));
+  sc->value = s7i_vector_ref_1(sc, vec, set_plist_2(sc, ind1, ind2));
   unstack_gc_protect(sc);
   return(true);
 }
@@ -79321,7 +79312,7 @@ static void apply_vector(s7_scheme *sc)                    /* -------- vector as
 	sc->value = vector_getter(sc->code)(sc, sc->code, index);
       else out_of_range_error_nr(sc, sc->vector_ref_symbol, int_two, car(sc->args), (index < 0) ? it_is_negative_string : it_is_too_large_string);
     }
-  else sc->value = vector_ref_1(sc, sc->code, sc->args);
+  else sc->value = s7i_vector_ref_1(sc, sc->code, sc->args);
 }
 
 static void apply_string(s7_scheme *sc)                    /* -------- string as applicable object -------- */
@@ -90705,7 +90696,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7pii_function(sc, global_value(sc->byte_vector_set_symbol), byte_vector_set_i_7pii);
   s7_set_i_7piii_function(sc, global_value(sc->byte_vector_set_symbol), byte_vector_set_i_7piii);
 
-  s7_set_p_pp_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pp);
+  s7_set_p_pp_function(sc, global_value(sc->vector_ref_symbol), s7i_vector_ref_p_pp);
   s7_set_p_pi_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pi);
   s7_set_p_pii_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pii);
   s7_set_p_pip_function(sc, global_value(sc->vector_set_symbol), vector_set_p_pip);
@@ -92165,6 +92156,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->vector_fill_symbol = sc->fill_symbol;
   sc->string_fill_symbol = sc->fill_symbol;
 #endif
+  #define H_vector_ref "(vector-ref v ... i) returns the i-th element of vector v."
+  #define Q_vector_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_vector_symbol, sc->is_integer_symbol)
   sc->vector_ref_symbol =            defun("vector-ref",	vector_ref,		2, 0, true);
   sc->vector_set_symbol =            defun("vector-set!",	vector_set,		3, 0, true);
   #define H_vector_dimension "(vector-dimension vect n) returns the size of the n-th dimension (n is 0-based)"
