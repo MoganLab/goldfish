@@ -218,3 +218,59 @@ s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
     return(s7i_sole_arg_method_or_bust(sc, str, "string-length", args, "a string"));
   return(s7_make_integer(sc, s7_string_length(str)));
 }
+
+s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer n = s7_car(args);
+  s7_int len;
+  if (!s7_is_integer(n))
+    return(s7i_method_or_bust(sc, n, "make-string", args, "an integer", 1));
+  if (s7_is_pair(s7_cdr(args)) && !s7_is_character(s7_cadr(args)))
+    return(s7i_method_or_bust(sc, s7_cadr(args), "make-string", args, "a character", 2));
+
+  len = s7_integer(n);
+  if (len == 0) return(s7i_nil_string());
+  if (len < 0)
+    return(s7_out_of_range_error(sc, "make-string", 1, n, "it is negative"));
+  if (len > s7i_max_string_length(sc))
+    return(s7_out_of_range_error(sc, "make-string", 1, n, "it is too large"));
+  if (s7_is_null(sc, s7_cdr(args)))
+    return(s7i_make_empty_string(sc, len, '\0'));
+  {
+    s7_pointer c = s7_cadr(args);
+    if (s7_character(c) > 0xFF)
+      return(s7_out_of_range_error(sc, "make-string", 2, c,
+                                   "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters"));
+    char fill = (char)s7_character(c);
+    s7_pointer result = s7i_make_empty_string(sc, len, fill);
+    if (fill == '\0')
+      {
+        char *str = (char *)s7_string(result);
+        memset(str, 0, len);
+      }
+    return(result);
+  }
+}
+
+s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
+{
+  s7_int radix;
+  char *str;
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust(sc, s7_car(args), "string->number", args, "a string", 1));
+
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      s7_pointer rad = s7_cadr(args);
+      if (!s7_is_integer(rad))
+	return(s7i_method_or_bust(sc, rad, "string->number", args, "an integer", 2));
+      radix = (int32_t)s7_integer(rad);
+      if ((radix < 2) || (radix > 16))
+	return(s7_out_of_range_error(sc, "string->number", 2, rad, "a valid radix"));
+    }
+  else radix = 10;
+  str = (char *)s7_string(s7_car(args));
+  if ((!str) || (!*str))
+    return(s7_f(sc));
+  return(s7i_string_to_number(sc, str, radix));
+}

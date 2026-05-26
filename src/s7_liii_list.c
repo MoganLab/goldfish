@@ -132,3 +132,13 @@ s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
     return(s7_out_of_range_error(sc, "list-tail", 2, ind, "it is too large"));
   return(p);
 }
+
+s7_pointer g_cons(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_list(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_copy_proper_list(sc, args));
+}

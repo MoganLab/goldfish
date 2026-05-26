@@ -27,6 +27,18 @@ s7_pointer g_hash_table_value_typer(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_hash_table_set(s7_scheme *sc, s7_pointer args);
 
+s7_pointer g_hash_table_ref(s7_scheme *sc, s7_pointer args);
+
+s7_pointer g_hash_table(s7_scheme *sc, s7_pointer args);
+s7_pointer g_hash_table_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_weak_hash_table(s7_scheme *sc, s7_pointer args);
+
+s7_pointer g_make_hash_table(s7_scheme *sc, s7_pointer args);
+s7_pointer g_make_weak_hash_table(s7_scheme *sc, s7_pointer args);
+
+s7_pointer g_is_weak_hash_table(s7_scheme *sc, s7_pointer args);
+s7_pointer g_hash_code(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif
