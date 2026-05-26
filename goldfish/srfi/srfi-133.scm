@@ -289,13 +289,41 @@
     ) ;define
 
     (define (vector-append-subvectors . o)
+      (unless (zero? (modulo (length o) 3))
+        (error 'wrong-number-of-args
+          "vector-append-subvectors: arguments must be in (vec start end) triples"
+        ) ;error
+      ) ;unless
       (let lp
         ((ls o) (vecs '()))
         (if (null? ls)
           (apply vector-append (reverse vecs))
-          (lp (cdr (cddr ls))
-            (cons (vector-copy (car ls) (cadr ls) (car (cddr ls))) vecs)
-          ) ;lp
+          (let ((vec (car ls)) (start (cadr ls)) (end (car (cddr ls))))
+            (unless (vector? vec)
+              (error 'type-error "vector-append-subvectors: vec must be a vector" vec)
+            ) ;unless
+            (unless (integer? start)
+              (error 'type-error "vector-append-subvectors: start must be integer" start)
+            ) ;unless
+            (unless (integer? end)
+              (error 'type-error "vector-append-subvectors: end must be integer" end)
+            ) ;unless
+            (let ((len (vector-length vec)))
+              (when (< start 0)
+                (error 'value-error "vector-append-subvectors: start must be nonnegative" start)
+              ) ;when
+              (when (< end 0)
+                (error 'value-error "vector-append-subvectors: end must be nonnegative" end)
+              ) ;when
+              (when (> start end)
+                (error 'value-error "vector-append-subvectors: start > end" start end)
+              ) ;when
+              (when (> end len)
+                (error 'value-error "vector-append-subvectors: end out of range" end len)
+              ) ;when
+            ) ;let
+            (lp (cdr (cddr ls)) (cons (vector-copy vec start end) vecs))
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
