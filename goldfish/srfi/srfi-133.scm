@@ -248,6 +248,16 @@
     ) ;define
 
     (define (vector-concatenate ls)
+      (unless (list? ls)
+        (error 'type-error "vector-concatenate: argument is not a list")
+      ) ;unless
+      (for-each (lambda (v)
+                  (unless (vector? v)
+                    (error 'type-error "vector-concatenate: list element is not a vector")
+                  ) ;unless
+                ) ;lambda
+        ls
+      ) ;for-each
       (apply vector-append ls)
     ) ;define
 
