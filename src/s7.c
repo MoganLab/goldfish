@@ -1365,7 +1365,7 @@ struct s7_scheme {
              string_to_list_symbol, vector_length_symbol, vector_to_list_symbol;
 #endif
 #if WITH_R7RS
-  s7_pointer unlink_symbol, access_symbol, time_symbol, clock_gettime_symbol, uname_symbol;
+  s7_pointer clock_gettime_symbol, uname_symbol;
 #endif
   bool r7rs_inited;
   s7_pointer s7_symbol, r5rs_symbol, r7rs_symbol, global_is_eq, initial_is_eq, global_memq, initial_memq, global_assq, initial_assq;
@@ -1414,9 +1414,7 @@ struct s7_scheme {
              is_mutable_symbol, line_symbol, open_symbol, original_vector_symbol, pointer_symbol, port_type_symbol, position_symbol,
              sequence_symbol, size_symbol, source_symbol, weak_symbol;
 
-#if WITH_SYSTEM_EXTRAS
-  s7_pointer is_directory_symbol, delete_file_symbol, system_symbol, directory_to_list_symbol, file_mtime_symbol;
-#endif
+
   s7_pointer open_input_function_choices[S7_NUM_READ_CHOICES];
   s7_pointer closed_input_function, closed_output_function;
   s7_pointer vector_set_function, string_set_function, list_set_function, hash_table_set_function, let_set_function, c_object_set_function, last_function;
@@ -30704,233 +30702,6 @@ static s7_pointer format_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 }
 
 
-#if WITH_SYSTEM_EXTRAS
-#include <fcntl.h>
-
-/* -------------------------------- directory? -------------------------------- */
-static bool is_directory_b_7p(s7_scheme *sc, s7_pointer p)
-{
-  if (!is_string(p))
-    sole_arg_wrong_type_error_nr(sc, sc->is_directory_symbol, p, sc->type_names[T_STRING]);
-  if (string_length(p) >= 2)
-    {
-      block_t *b = expand_filename(sc, string_value(p));
-      if (b)
-	{
-	  bool result = is_directory((char *)block_data(b));
-	  liberate(sc, b);
-	  return(result);
-	}}
-  return(is_directory(string_value(p)));
-}
-
-static s7_pointer g_is_directory(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_directory "(directory? str) returns #t if str is the name of a directory"
-  #define Q_is_directory s7_make_signature(sc, 2, sc->is_boolean_symbol, sc->is_string_symbol)
-  return(make_boolean(sc, is_directory_b_7p(sc, car(args))));
-}
-
-/* -------------------------------- file-exists? -------------------------------- */
-static bool file_probe(const char *arg)
-{
-#if !MS_WINDOWS
-  return(access(arg, F_OK) == 0);
-#else
-  int32_t fd = open(arg, O_RDONLY, 0);
-  if (fd == -1) return(false);
-  close(fd);
-  return(true);
-#endif
-}
-
-/* -------------------------------- delete-file -------------------------------- */
-static s7_pointer g_delete_file(s7_scheme *sc, s7_pointer args)
-{
-  #define H_delete_file "(delete-file filename) deletes the file filename."
-  #define Q_delete_file s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(sole_arg_method_or_bust(sc, name, sc->delete_file_symbol, args, sc->type_names[T_STRING]));
-  if (string_length(name) > 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  s7_int result = unlink((char *)block_data(b));
-	  liberate(sc, b);
-	  if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-	    file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-	  return(make_integer(sc, result));
-	}}
-  {
-    s7_int result = unlink(string_value(name));
-    if ((result == -1) && (sc->scheme_version == sc->r7rs_symbol))
-      file_error_nr(sc, "delete-file", strerror(errno), string_value(name));
-    return(make_integer(sc, result));
-  }
-}
-
-/* -------------------------------- system -------------------------------- */
-static s7_pointer g_system(s7_scheme *sc, s7_pointer args)
-{
-  #define H_system "(system command return-string) executes the command.  If the optional second argument is #t, \
-system captures the output as a string and returns it."
-  #define Q_system s7_make_signature(sc, 3, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol), sc->is_string_symbol, sc->is_boolean_symbol)
-
-#ifdef __EMSCRIPTEN__
-  return s7_nil(sc);
-#else
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(method_or_bust(sc, name, sc->system_symbol, args, sc->type_names[T_STRING], 2));
-  if (is_pair(cdr(args)))
-    {
-      const s7_pointer return_string = cadr(args);
-      if (return_string == sc->T)
-	{
-          #define BUF_SIZE 256
-	  char buf[BUF_SIZE];
-	  char *str = NULL;
-	  int32_t cur_len = 0, full_len = 0;
-	  FILE *fd = popen(string_value(name), "r");
-	  while (fgets(buf, BUF_SIZE, fd))
-	    {
-	      s7_int buf_len = safe_strlen(buf);
-	      if (cur_len + buf_len >= full_len)
-		{
-		  full_len += BUF_SIZE * 2;
-		  str = (str) ? (char *)Realloc(str, full_len) : (char *)Malloc(full_len);
-		}
-	      memcpy((void *)(str + cur_len), (void *)buf, buf_len);
-	      cur_len += buf_len;
-	    }
-	  pclose(fd);
-	  if (str)
-	    {
-	      block_t *b = mallocate_block(sc);
-	      block_data(b) = (void *)str;
-	      block_set_index(b, TOP_BLOCK_LIST);
-#if S7_DEBUGGING
-	      sc->blocks_mallocated[TOP_BLOCK_LIST]++;
-#endif
-	      return(block_to_string(sc, b, cur_len));
-	    }
-	  return(nil_string);
-	}
-      if (return_string != sc->F)
-	wrong_type_error_nr(sc, sc->system_symbol, 2, return_string, sc->type_names[T_BOOLEAN]);
-    }
-  return(make_integer(sc, system(string_value(name))));
-#endif
-}
-
-#if !MS_WINDOWS
-#include <dirent.h>
-
-/* -------------------------------- directory->list -------------------------------- */
-static s7_pointer directory_to_list_1(s7_scheme *sc, const char *dir_name)
-{
-  DIR *dpos;
-  begin_temp(sc->y, sc->nil);
-  if ((dpos = opendir(dir_name)))
-    {
-      struct dirent *dirp;
-      while ((dirp = readdir(dpos)))
-	sc->y = cons_unchecked(sc, s7_make_string(sc, dirp->d_name), sc->y);
-      closedir(dpos);
-    }
-  return_with_end_temp(sc->y);
-}
-
-static s7_pointer g_directory_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_directory_to_list "(directory->list directory) returns the contents of the directory as a list of strings (filenames)."
-  #define Q_directory_to_list s7_make_signature(sc, 2, sc->is_list_symbol, sc->is_string_symbol)   /* can return nil */
-
-  const s7_pointer name = car(args);
-  if (!is_string(name))
-    return(method_or_bust_p(sc, name, sc->directory_to_list_symbol, sc->type_names[T_STRING]));
-  if (string_length(name) >= 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  s7_pointer result = directory_to_list_1(sc, (char *)block_data(b));
-	  liberate(sc, b);
-	  return(result);
-	}}
-  return(directory_to_list_1(sc, string_value(name)));
-}
-
-/* -------------------------------- file-mtime -------------------------------- */
-static s7_pointer g_file_mtime(s7_scheme *sc, s7_pointer args)
-{
-  #define H_file_mtime "(file-mtime file): return the write date of file"
-  #define Q_file_mtime s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol)
-
-  struct stat statbuf;
-  int32_t err;
-  const s7_pointer name = car(args);
-
-  if (!is_string(name))
-    return(sole_arg_method_or_bust(sc, name, sc->file_mtime_symbol, args, sc->type_names[T_STRING]));
-  if (string_length(name) >= 2)
-    {
-      block_t *b = expand_filename(sc, string_value(name));
-      if (b)
-	{
-	  err = stat((char *)block_data(b), &statbuf);
-	  liberate(sc, b);
-	  if (err < 0)
-	    file_error_nr(sc, "file-mtime", strerror(errno), string_value(name));
-	  return(make_integer(sc, (s7_int)(statbuf.st_mtime)));
-	}}
-  err = stat(string_value(name), &statbuf);
-  if (err < 0)
-    file_error_nr(sc, "file-mtime", strerror(errno), string_value(name));
-  return(make_integer(sc, (s7_int)(statbuf.st_mtime)));
-}
-#endif /* !ms_windows */
-#endif /* with_system_extras */
-
-
-
-#if WITH_R7RS
-
-/* -------------------------------- time -------------------------------- */
-static s7_pointer g_time(s7_scheme *sc, s7_pointer args)
-{
-#if (!MS_WINDOWS)
-  s7_pointer arg = car(args);
-  time_t* time_val = (time_t*)s7_c_pointer_with_type(sc, arg, make_symbol(sc, "time_t*", 7), "time", 0); /* 0 = argnum */
-  return(make_integer(sc, (s7_int)time(time_val)));
-#else
-  return(minus_one);
-#endif
-}
-
-/* -------------------------------- unlink -------------------------------- */
-static s7_pointer g_unlink(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer arg = car(args);
-  if (!s7_is_string(arg))
-    sole_arg_wrong_type_error_nr(sc, sc->unlink_symbol, arg, sc->type_names[T_STRING]);
-  return(make_integer(sc, (s7_int)unlink((char*)string_value(arg))));
-}
-
-/* -------------------------------- access -------------------------------- */
-static s7_pointer g_access(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer path = car(args), mode = cadr(args);
-  if (!s7_is_string(path))
-    wrong_type_error_nr(sc, sc->access_symbol, 1, path, sc->type_names[T_STRING]);
-  if (!s7_is_integer(mode))
-    wrong_type_error_nr(sc, sc->access_symbol, 2, mode, sc->type_names[T_INTEGER]);
-  return(make_integer(sc, (s7_int)access((char *)string_value(path), (int)integer(mode))));
-}
-#endif
 
 
 /* -------------------------------- lists -------------------------------- */
@@ -90105,27 +89876,6 @@ static s7_pointer sl_set_history_enabled(s7_scheme *sc, s7_pointer sym, s7_point
 #if WITH_R7RS
 void r7rs_init(s7_scheme *sc)
 {
-  s7_pointer cur_env = sc->curlet; /* or rootlet? */
-
-  sc->access_symbol = make_symbol(sc, "access", 6);
-  sc->unlink_symbol = make_symbol(sc, "unlink", 6);
-  sc->time_symbol = make_symbol(sc, "time", 4);
-
-#ifdef CLOCK_REALTIME
-  s7_define(sc, cur_env, make_symbol(sc, "CLOCK_REALTIME", 14), make_integer(sc, (s7_int)CLOCK_REALTIME));
-#endif
-#ifdef F_OK
-  s7_define(sc, cur_env, make_symbol(sc, "F_OK", 4), make_integer(sc, (s7_int)F_OK));
-#endif
-  s7_define(sc, cur_env, sc->unlink_symbol,
-            s7_make_typed_function_with_environment(sc, "unlink", g_unlink, 1, 0, false, "int unlink(char*)",
-						    s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol), cur_env));
-  s7_define(sc, cur_env, sc->access_symbol,
-            s7_make_typed_function_with_environment(sc, "access", g_access, 2, 0, false, "int access(char* int)",
-						    s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_string_symbol, sc->is_integer_symbol), cur_env));
-  s7_define(sc, cur_env, sc->time_symbol,
-            s7_make_typed_function_with_environment(sc, "time", g_time, 1, 0, false, "int time(time_t*)",
-						    s7_make_signature(sc, 2, sc->is_integer_symbol, make_symbol(sc, "time_t*", 7)), cur_env));
   sc->r7rs_inited = true;
 }
 
@@ -91040,9 +90790,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->outlet_symbol), outlet_p_p);
   s7_set_p_p_function(sc, global_value(sc->make_iterator_symbol), s7_make_iterator);
 
-#if WITH_SYSTEM_EXTRAS
-  s7_set_b_7p_function(sc, global_value(sc->is_directory_symbol), is_directory_b_7p);
-#endif
+
 
   s7_set_b_i_function(sc, global_value(sc->is_even_symbol), even_i);
   s7_set_b_i_function(sc, global_value(sc->is_odd_symbol), odd_i);
@@ -91936,15 +91684,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->with_output_to_string_symbol =   semisafe_defun("with-output-to-string",   with_output_to_string,   1, 0, false);
   sc->with_output_to_file_symbol =     semisafe_defun("with-output-to-file",     with_output_to_file,     2, 0, false);
 
-#if WITH_SYSTEM_EXTRAS
-  sc->is_directory_symbol =          defun("directory?",	is_directory,		1, 0, false);
-  sc->delete_file_symbol =           defun("delete-file",	delete_file,		1, 0, false);
-  sc->system_symbol =                defun("system",		system,			1, 1, false);
-#if !MS_WINDOWS
-  sc->directory_to_list_symbol =     defun("directory->list",   directory_to_list,	1, 0, false);
-  sc->file_mtime_symbol =            defun("file-mtime",	file_mtime,		1, 0, false);
-#endif
-#endif
+
   sc->real_part_symbol =             s7_define_typed_function(sc, "real-part", g_real_part, 1, 0, false, "(real-part num) returns the real part of num", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol));
   sc->imag_part_symbol =             s7_define_typed_function(sc, "imag-part", g_imag_part, 1, 0, false, "(imag-part num) returns the imaginary part of num", s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_number_symbol));
   sc->numerator_symbol =             defun("numerator",	        numerator,		1, 0, false);
