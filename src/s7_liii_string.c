@@ -294,3 +294,49 @@ s7_pointer g_substring(s7_scheme *sc, s7_pointer args)
   if (len == 0) return(s7i_nil_string());
   return(s7_make_string_with_length(sc, s + start, len));
 }
+
+s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer source = s7_car(args);
+  s7_pointer p, dest;
+  s7_int start, end;
+
+  if (!s7_is_string(source))
+    return(s7i_method_or_bust(sc, source, "string-copy", args, "a string", 1));
+  if (s7_is_null(sc, s7_cdr(args)))
+    {
+      if (s7_string_length(source) == 0) return(s7i_nil_string());
+      return(s7_make_string_with_length(sc, s7_string(source), s7_string_length(source)));
+    }
+  dest = s7_cadr(args);
+  if (!s7_is_string(dest))
+    return(s7i_method_or_bust(sc, dest, "string-copy", args, "a string", 2));
+  if (s7_is_immutable(dest))
+    return(s7_wrong_type_arg_error(sc, "string-copy", 2, dest, "a mutable string"));
+
+  end = s7_string_length(dest);
+  p = s7_cddr(args);
+  if (s7_is_null(sc, p))
+    start = 0;
+  else
+    {
+      if (!s7_is_integer(s7_car(p)))
+	return(s7i_method_or_bust(sc, s7_car(p), "string-copy", args, "an integer", 3));
+      start = s7_integer(s7_car(p));
+      if (start < 0) start = 0;
+      p = s7_cdr(p);
+      if (s7_is_null(sc, p))
+	end = start + s7_string_length(source);
+      else
+	{
+	  if (!s7_is_integer(s7_car(p)))
+	    return(s7i_method_or_bust(sc, s7_car(p), "string-copy", args, "an integer", 4));
+	  end = s7_integer(s7_car(p));
+	  if (end < 0) end = start;
+	}}
+  if (end > s7_string_length(dest)) end = s7_string_length(dest);
+  if (end <= start) return(dest);
+  if ((end - start) > s7_string_length(source)) end = start + s7_string_length(source);
+  memmove((void *)((char *)s7_string(dest) + start), (const void *)s7_string(source), end - start);
+  return(dest);
+}

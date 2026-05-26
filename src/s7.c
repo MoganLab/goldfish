@@ -21093,56 +21093,10 @@ static s7_pointer string_substring_chooser(s7_scheme *sc, s7_pointer func, int32
 
 
 /* -------------------------------- string-copy -------------------------------- */
-static s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_copy "(string-copy str dest-str (dest-start 0) dest-end) returns a copy of its string argument.  If dest-str is given, \
+#define H_string_copy "(string-copy str dest-str (dest-start 0) dest-end) returns a copy of its string argument.  If dest-str is given, \
     string-copy copies its first argument into the second, starting at dest-start in the second string and returns dest-str"
-  #define Q_string_copy s7_make_signature(sc, 5, sc->is_string_symbol, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer source = car(args);
-  s7_pointer p, dest;
-  s7_int start, end;
-
-  if (!is_string(source))
-    return(method_or_bust(sc, source, sc->string_copy_symbol, args, sc->type_names[T_STRING], 1));
-  if (is_null(cdr(args)))
-    {
-      if (string_length(source) == 0) return(nil_string);
-      return(make_string_with_length(sc, string_value(source), string_length(source)));
-    }
-  dest = cadr(args);
-  if (!is_string(dest))
-    return(method_or_bust(sc, dest, sc->string_copy_symbol, args, sc->type_names[T_STRING], 2));
-  if (is_immutable_string(dest))
-    immutable_object_error_nr(sc, set_elist_2(sc, wrap_string(sc, "can't string-copy to ~S; it is immutable", 40), dest));
-
-  end = string_length(dest);
-  p = cddr(args);
-  if (is_null(p))
-    start = 0;
-  else
-    {
-      if (!s7_is_integer(car(p)))
-	return(method_or_bust(sc, car(p), sc->string_copy_symbol, args, sc->type_names[T_STRING], 3));
-      start = s7_integer_clamped_if_gmp(sc, car(p));
-      if (start < 0) start = 0;
-      p = cdr(p);
-      if (is_null(p))
-	end = start + string_length(source);
-      else
-	{
-	  if (!s7_is_integer(car(p)))
-	    return(method_or_bust(sc, car(p), sc->string_copy_symbol, args, sc->type_names[T_STRING], 4));
-	  end = s7_integer_clamped_if_gmp(sc, car(p));
-	  if (end < 0) end = start;
-	}}
-  if (end > string_length(dest)) end = string_length(dest);
-  if (end <= start) return(dest);
-  if ((end - start) > string_length(source)) end = start + string_length(source);
-  memmove((void *)(string_value(dest) + start), (void *)(string_value(source)), end - start);
-  /* although I haven't tracked down a case, libasan+auto-tester reported source<dest with overlap, so use memmove */
-  return(dest);
-}
+#define Q_string_copy s7_make_signature(sc, 5, sc->is_string_symbol, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_string_copy is now defined in s7_liii_string.c */
 
 static s7_pointer string_copy_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {

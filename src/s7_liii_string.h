@@ -23,6 +23,7 @@ s7_pointer g_string_length(s7_scheme *sc, s7_pointer args);
 s7_pointer g_make_string(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args);
 s7_pointer g_substring(s7_scheme *sc, s7_pointer args);
+s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_is_string(s7_scheme *sc, s7_pointer args);
 
