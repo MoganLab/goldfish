@@ -21425,43 +21425,11 @@ static s7_pointer check_rest_are_strings(s7_scheme *sc, s7_pointer sym, s7_point
 
 /* -------------------------------- string-fill! -------------------------------- */
 
-static s7_pointer g_string_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
-{
-  const s7_pointer str = car(args);
-  s7_pointer chr;
-  s7_int start = 0, end;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, caller, args, sc->type_names[T_STRING], 1)); /* not two methods here */
-  if (is_immutable_string(str))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, caller, str));
-
-  chr = cadr(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, caller, args, sc->type_names[T_CHARACTER], 2));
-
-  end = string_length(str);
-  if (!is_null(cddr(args)))
-    {
-      s7_pointer p = start_and_end(sc, caller, args, 3, cddr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(chr); /* this is what Guile does, and r7rs says end is "exclusive" in these situations, so (string-fill! str #\a 3 3) is a no-op */
-    }
-  if (end == 0) return(chr);
-  local_memset((void *)(string_value(str) + start), (int32_t)character(chr), end - start); /* not memclr even if chr=#\null! */ /* unaligned */
-  return(chr);
-}
-
-#if !WITH_PURE_S7
-static s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_fill "(string-fill! str chr start end) fills the string str with the character chr"
-  #define Q_string_fill s7_make_signature(sc, 5, \
+#define H_string_fill "(string-fill! str chr start end) fills the string str with the character chr"
+#define Q_string_fill s7_make_signature(sc, 5, \
                           s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol), \
                           sc->is_string_symbol, sc->is_char_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-  return(g_string_fill_1(sc, sc->string_fill_symbol, args));
-}
-#endif
+/* g_string_fill is now defined in s7_liii_string.c */
 
 
 /* -------------------------------- string -------------------------------- */
@@ -43590,7 +43558,7 @@ s7_pointer s7_fill(s7_scheme *sc, s7_pointer args)
   const s7_pointer obj = car(args);
   switch (type(obj))
     {
-    case T_STRING:     return(g_string_fill_1(sc, sc->fill_symbol, args)); /* redundant type check here and below */
+    case T_STRING:     return(g_string_fill(sc, args)); /* redundant type check here and below */
     case T_PAIR:       return(pair_fill(sc, args));
     case T_HASH_TABLE: return(hash_table_fill(sc, args));
 

@@ -340,3 +340,30 @@ s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args)
   memmove((void *)((char *)s7_string(dest) + start), (const void *)s7_string(source), end - start);
   return(dest);
 }
+
+s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_pointer chr;
+  s7_int start = 0, end;
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "string-fill!", args, "a string", 1));
+  if (s7_is_immutable(str))
+    return(s7_wrong_type_arg_error(sc, "string-fill!", 1, str, "a mutable string"));
+
+  chr = s7_cadr(args);
+  if (!s7_is_character(chr))
+    return(s7i_method_or_bust(sc, chr, "string-fill!", args, "a character", 2));
+
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cddr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "string-fill!"), args, 3, s7_cddr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+      if (start == end) return(chr);
+    }
+  if (end == 0) return(chr);
+  memset((void *)((char *)s7_string(str) + start), (int)s7_character(chr), (size_t)(end - start));
+  return(chr);
+}
