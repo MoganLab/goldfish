@@ -17,6 +17,16 @@ extern "C" {
 
 s7_pointer g_is_hash_table(s7_scheme *sc, s7_pointer args);
 
+s7_pointer g_hash_table_size(s7_scheme *sc, s7_pointer args);
+s7_int hash_table_size_i_7p(s7_scheme *sc, s7_pointer table);
+
+s7_pointer g_hash_table_ref_2(s7_scheme *sc, s7_pointer args);
+
+s7_pointer g_hash_table_key_typer(s7_scheme *sc, s7_pointer args);
+s7_pointer g_hash_table_value_typer(s7_scheme *sc, s7_pointer args);
+
+s7_pointer g_hash_table_set(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

@@ -32,6 +32,19 @@ static s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, const char *name
   return(s7_wrong_type_arg_error(sc, name, 1, obj, type_name));
 }
 
+/* -------------------------------- string? -------------------------------- */
+
+s7_pointer g_is_string(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_string(p)) return(s7_t(sc));
+  {
+    s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "string?"));
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
 /* -------------------------------- char-position -------------------------------- */
 
 s7_pointer

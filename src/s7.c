@@ -406,6 +406,7 @@
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
+#include "s7_liii_list.h"
 #include "s7_liii_vector.h"
 #include "s7_module.h"
 
@@ -6621,12 +6622,9 @@ s7_pointer s7_nil(s7_scheme *sc) {return(sc->nil);}     /* should this be "s7_nu
 bool s7_is_null(s7_scheme *sc, s7_pointer p) {return(is_null(p));}
 static bool is_null_b_p(s7_pointer p) {return(type(p) == T_NIL);} /* faster than b_7p because opt_b_p is faster */
 
-static s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_null "(null? obj) returns #t if obj is the empty list"
-  #define Q_is_null sc->pl_bt
-  check_boolean_method(sc, is_null, sc->is_null_symbol, args);
-}
+#define H_is_null "(null? obj) returns #t if obj is the empty list"
+#define Q_is_null sc->pl_bt
+/* g_is_null is now defined in s7_liii_list.c */
 
 
 /* #<undefined> and #<unspecified> */
@@ -20465,12 +20463,9 @@ static s7_pointer char_position_chooser(s7_scheme *sc, s7_pointer func, int32_t 
 /* -------------------------------- strings -------------------------------- */
 bool s7_is_string(s7_pointer p) {return(is_string(p));}
 
-static s7_pointer g_is_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_string "(string? obj) returns #t if obj is a string"
-  #define Q_is_string sc->pl_bt
-  check_boolean_method(sc, is_string, sc->is_string_symbol, args);
-}
+#define H_is_string "(string? obj) returns #t if obj is a string"
+#define Q_is_string sc->pl_bt
+/* g_is_string is now defined in s7_liii_string.c */
 
 
 s7_int s7_string_length(s7_pointer str) {return(string_length(str));}
@@ -31316,22 +31311,9 @@ static s7_pointer ref_index_checked(s7_scheme *sc, s7_pointer caller, s7_pointer
   return(implicit_index(sc, in_obj, cddr(args)));
 }
 
-static s7_pointer g_list_ref(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_ref "(list-ref lst i ...) returns the i-th element (0-based) of the list"
-  #define Q_list_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_pair_symbol, sc->is_integer_symbol)
-  /* (let ((L '((1 2 3) (4 5 6)))) (list-ref L 1 2)) */
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst))
-    return(method_or_bust(sc, lst, sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1));
-  {
-    s7_pointer obj = list_ref_1(sc, lst, cadr(args));
-    if (is_pair(cddr(args)))
-      return(ref_index_checked(sc, global_value(sc->list_ref_symbol), obj, args));
-    return(obj);
-  }
-}
+#define H_list_ref "(list-ref lst i ...) returns the i-th element (0-based) of the list"
+#define Q_list_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_pair_symbol, sc->is_integer_symbol)
+/* g_list_ref is now defined in s7_liii_list.c */
 
 static bool op_implicit_pair_ref_a(s7_scheme *sc)
 {
@@ -31569,12 +31551,9 @@ static s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
   return(lst);
 }
 
-static s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_tail "(list-tail lst i) returns the list from the i-th element on"
-  #define Q_list_tail s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->is_integer_symbol) /* #t: (list-tail '(1 . 2) 1) -> 2 */
-  return(list_tail_p_pp(sc, car(args), cadr(args)));
-}
+#define H_list_tail "(list-tail lst i) returns the list from the i-th element on"
+#define Q_list_tail s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->is_integer_symbol) /* #t: (list-tail '(1 . 2) 1) -> 2 */
+/* g_list_tail is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- cons -------------------------------- */
@@ -31602,16 +31581,9 @@ static s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
 
 /* -------- car -------- */
 
-static s7_pointer g_car(s7_scheme *sc, s7_pointer args)
-{
-  #define H_car "(car pair) returns the first element of the pair"
-  #define Q_car sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (is_pair(lst))
-    return(car(lst));
-  return(sole_arg_method_or_bust(sc, lst, sc->car_symbol, args, sc->type_names[T_PAIR]));
-}
+#define H_car "(car pair) returns the first element of the pair"
+#define Q_car sc->pl_p
+/* g_car is now defined in s7_liii_list.c */
 
 static s7_pointer car_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -31626,17 +31598,9 @@ static s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
   return(method_or_bust(sc, car(args), sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1)); /* 1=arg num if error */
 }
 
-static s7_pointer g_set_car(s7_scheme *sc, s7_pointer args)
-{
-  #define H_set_car "(set-car! pair val) sets the pair's first element to val"
-  #define Q_set_car s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
-
-  s7_pointer lst = car(args), val = cadr(args);
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->set_car_symbol, args, sc->type_names[T_PAIR], 1));
-  set_car(lst, val);
-  return(val);
-}
+#define H_set_car "(set-car! pair val) sets the pair's first element to val"
+#define Q_set_car s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
+/* g_set_car is now defined in s7_liii_list.c */
 
 static Inline s7_pointer inline_set_car(s7_scheme *sc, s7_pointer lst, s7_pointer value)
 {
@@ -31650,16 +31614,9 @@ static s7_pointer set_car_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) 
 
 
 /* -------- cdr -------- */
-static s7_pointer g_cdr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdr "(cdr pair) returns the second element of the pair"
-  #define Q_cdr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (is_pair(lst))
-    return(cdr(lst));
-  return(sole_arg_method_or_bust(sc, lst, sc->cdr_symbol, args, sc->type_names[T_PAIR]));
-}
+#define H_cdr "(cdr pair) returns the second element of the pair"
+#define Q_cdr sc->pl_p
+/* g_cdr is now defined in s7_liii_list.c */
 
 static s7_pointer cdr_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -31668,18 +31625,9 @@ static s7_pointer cdr_p_p(s7_scheme *sc, s7_pointer lst)
   return(sole_arg_method_or_bust(sc, lst, sc->cdr_symbol, set_plist_1(sc, lst), sc->type_names[T_PAIR]));
 }
 
-static s7_pointer g_set_cdr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_set_cdr "(set-cdr! pair val) sets the pair's second element to val"
-  #define Q_set_cdr s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
-
-  s7_pointer lst = car(args);
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->set_cdr_symbol, args, sc->type_names[T_PAIR], 1));
-  set_cdr(lst, cadr(args));
-  /* (define (func) (set-cdr! ((lambda (x) (values x x)) (list-values 1)))) (func) (func) ; hung in fx_c_nc, need both func calls and list-value */
-  return(cadr(args));
-}
+#define H_set_cdr "(set-cdr! pair val) sets the pair's second element to val"
+#define Q_set_cdr s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
+/* g_set_cdr is now defined in s7_liii_list.c */
 
 static Inline s7_pointer inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointer value)
 {
@@ -31693,17 +31641,9 @@ static s7_pointer set_cdr_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) 
 
 
 /* -------- caar --------*/
-static s7_pointer g_caar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caar "(caar lst) returns (car (car lst)): (caar '((1 2))) -> 1"
-  #define Q_caar sc->pl_p
-
-  s7_pointer lst = car(args);
-  /* it makes no difference in timing to move lst here or below (i.e. lst=car(lst) then return(car(lst)) and so on) */
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->caar_symbol, lst, car_a_list_string);
-  return(caar(lst));
-}
+#define H_caar "(caar lst) returns (car (car lst)): (caar '((1 2))) -> 1"
+#define Q_caar sc->pl_p
+/* g_caar is now defined in s7_liii_list.c */
 
 static s7_pointer caar_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -31714,16 +31654,9 @@ static s7_pointer caar_p_p(s7_scheme *sc, s7_pointer lst)
 
 
 /* -------- cadr --------*/
-static s7_pointer g_cadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cadr "(cadr lst) returns (car (cdr lst)): (cadr '(1 2 3)) -> 2"
-  #define Q_cadr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cadr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadr_symbol, lst, cdr_a_list_string);
-  return(cadr(lst));
-}
+#define H_cadr "(cadr lst) returns (car (cdr lst)): (cadr '(1 2 3)) -> 2"
+#define Q_cadr sc->pl_p
+/* g_cadr is now defined in s7_liii_list.c */
 
 static s7_pointer cadr_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -31742,16 +31675,9 @@ static s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
 
 
 /* -------- cdar -------- */
-static s7_pointer g_cdar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdar "(cdar lst) returns (cdr (car lst)): (cdar '((1 2 3))) -> '(2 3)"
-  #define Q_cdar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cdar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdar_symbol, lst, car_a_list_string);
-  return(cdar(lst));
-}
+#define H_cdar "(cdar lst) returns (cdr (car lst)): (cdar '((1 2 3))) -> '(2 3)"
+#define Q_cdar sc->pl_p
+/* g_cdar is now defined in s7_liii_list.c */
 
 static s7_pointer cdar_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -31762,16 +31688,9 @@ static s7_pointer cdar_p_p(s7_scheme *sc, s7_pointer lst)
 
 
 /* -------- cddr -------- */
-static s7_pointer g_cddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cddr "(cddr lst) returns (cdr (cdr lst)): (cddr '(1 2 3 4)) -> '(3 4)"
-  #define Q_cddr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cddr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cddr_symbol, lst, cdr_a_list_string);
-  return(cddr(lst));
-}
+#define H_cddr "(cddr lst) returns (cdr (cdr lst)): (cddr '(1 2 3 4)) -> '(3 4)"
+#define Q_cddr sc->pl_p
+/* g_cddr is now defined in s7_liii_list.c */
 
 static s7_pointer cddr_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -37366,47 +37285,33 @@ bool s7_is_hash_table(s7_pointer p) {return(is_hash_table(p));}
 
 /* g_is_hash_table is now defined in s7_liii_hash_table.c */
 
-/* -------------------------------- hash-table-entries -------------------------------- */
-static s7_pointer g_hash_table_size(s7_scheme *sc, s7_pointer args)
+s7_int s7i_hash_table_entries(s7_pointer table) {return(hash_table_entries(table));}
+
+s7_pointer s7i_hash_table_key_typer(s7_scheme *sc, s7_pointer table)
 {
-  #define H_hash_table_size "(hash-table-size obj) returns the number of entries in the hash-table obj"
-  #define Q_hash_table_size s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
-
-  if (!is_hash_table(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->hash_table_size_symbol, args, sc->type_names[T_HASH_TABLE]));
-  return(make_integer(sc, hash_table_entries(car(args))));
-}
-
-static s7_int hash_table_size_i_7p(s7_scheme *sc, s7_pointer table)
-{
-  if (!is_hash_table(table))
-    return(integer(method_or_bust_p(sc, table, sc->hash_table_size_symbol, sc->type_names[T_HASH_TABLE])));
-  return(hash_table_entries(table));
-}
-
-
-/* -------------------------------- hash-table-key|value-typer -------------------------------- */
-static s7_pointer g_hash_table_key_typer(s7_scheme *sc, s7_pointer args)
-{
-  #define H_hash_table_key_typer "(hash-table-key-typer hash) returns the hash-table's key type checking function"
-  #define Q_hash_table_key_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_hash_table_symbol)
-
-  s7_pointer table = car(args);
-  if (!is_hash_table(table)) return(sole_arg_method_or_bust(sc, table, sc->hash_table_key_typer_symbol, args, sc->type_names[T_HASH_TABLE]));
   if (is_typed_hash_table(table)) return(hash_table_key_typer(table));
   return(sc->F);
 }
 
-static s7_pointer g_hash_table_value_typer(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_hash_table_value_typer(s7_scheme *sc, s7_pointer table)
 {
-  #define H_hash_table_value_typer "(hash-table-value-typer hash) returns the hash-table's value type checking function"
-  #define Q_hash_table_value_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_hash_table_symbol)
-
-  s7_pointer table = car(args);
-  if (!is_hash_table(table)) return(sole_arg_method_or_bust(sc, table, sc->hash_table_value_typer_symbol, args, sc->type_names[T_HASH_TABLE]));
   if (is_typed_hash_table(table)) return(hash_table_value_typer(table));
   return(sc->F);
 }
+
+/* -------------------------------- hash-table-entries -------------------------------- */
+#define H_hash_table_size "(hash-table-size obj) returns the number of entries in the hash-table obj"
+#define Q_hash_table_size s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
+/* g_hash_table_size and hash_table_size_i_7p are now defined in s7_liii_hash_table.c */
+
+/* -------------------------------- hash-table-key|value-typer -------------------------------- */
+#define H_hash_table_key_typer "(hash-table-key-typer hash) returns the hash-table's key type checking function"
+#define Q_hash_table_key_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_hash_table_symbol)
+/* g_hash_table_key_typer is now defined in s7_liii_hash_table.c */
+
+#define H_hash_table_value_typer "(hash-table-value-typer hash) returns the hash-table's value type checking function"
+#define Q_hash_table_value_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_hash_table_symbol)
+/* g_hash_table_value_typer is now defined in s7_liii_hash_table.c */
 
 static s7_pointer make_hash_table_procedures(s7_scheme *sc)
 {
@@ -38687,13 +38592,7 @@ static s7_pointer g_hash_table_ref(s7_scheme *sc, s7_pointer args)
   return(result);
 }
 
-static s7_pointer g_hash_table_ref_2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer table = car(args);
-  if (!is_hash_table(table))
-    return(method_or_bust(sc, table, sc->hash_table_ref_symbol, args, sc->type_names[T_HASH_TABLE], 1));
-  return(hash_entry_value((*hash_table_checker(table))(sc, table, cadr(args))));
-}
+/* g_hash_table_ref_2 is now defined in s7_liii_hash_table.c */
 
 static s7_pointer hash_table_ref_p_pp(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
@@ -38966,16 +38865,9 @@ s7_pointer s7_hash_table_set(s7_scheme *sc, s7_pointer table, s7_pointer key, s7
   return(value);
 }
 
-static s7_pointer g_hash_table_set(s7_scheme *sc, s7_pointer args)
-{
-  #define H_hash_table_set "(s7-hash-table-set! table key value) sets the value associated with key in the hash table to value"
-  #define Q_hash_table_set s7_make_signature(sc, 4, sc->T, sc->is_hash_table_symbol, sc->T, sc->T)
-
-  s7_pointer table = car(args);
-  if (!is_mutable_hash_table(table))
-    return(mutable_method_or_bust(sc, table, sc->hash_table_set_symbol, args, sc->type_names[T_HASH_TABLE], 1));
-  return(s7_hash_table_set(sc, table, cadr(args), caddr(args)));
-}
+#define H_hash_table_set "(s7-hash-table-set! table key value) sets the value associated with key in the hash table to value"
+#define Q_hash_table_set s7_make_signature(sc, 4, sc->T, sc->is_hash_table_symbol, sc->T, sc->T)
+/* g_hash_table_set is now defined in s7_liii_hash_table.c */
 
 static s7_pointer hash_table_set_p_ppp(s7_scheme *sc, s7_pointer table, s7_pointer key, s7_pointer value)
 {
