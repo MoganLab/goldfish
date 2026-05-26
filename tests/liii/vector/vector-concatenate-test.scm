@@ -1,4 +1,4 @@
-(import (liii check) (liii vector))
+(import (liii check) (liii vector) (liii error))
 
 
 (check-set-mode! 'report-failed)
@@ -59,6 +59,11 @@
     ) ;let
   ) ;let
 ) ;let
+
+
+(check-catch 'type-error (vector-concatenate "not-a-list"))
+(check-catch 'type-error (vector-concatenate '(#(1 2) "not-a-vector")))
+(check-catch 'type-error (vector-concatenate 42))
 
 
 (check-report)
