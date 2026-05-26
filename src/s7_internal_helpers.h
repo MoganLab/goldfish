@@ -65,6 +65,11 @@ bool s7i_is_closure_star(s7_pointer p);
 s7_pointer s7i_missing_key_value(s7_scheme *sc);
 const char *s7i_find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *already_loaded, bool loading);
 
+/* hash-table helpers */
+s7_int s7i_hash_table_entries(s7_pointer table);
+s7_pointer s7i_hash_table_key_typer(s7_scheme *sc, s7_pointer table);
+s7_pointer s7i_hash_table_value_typer(s7_scheme *sc, s7_pointer table);
+
 #ifdef __cplusplus
 }
 #endif
