@@ -11,6 +11,11 @@
 
 #ifndef WITH_PURE_S7
 #define WITH_PURE_S7 0
+s7_pointer g_make_vector(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_make_vector_1(sc, args, s7_make_symbol(sc, "make-vector")));
+}
+
 #endif
 
 s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args)

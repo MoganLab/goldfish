@@ -35249,7 +35249,7 @@ static inline s7_pointer make_multivector(s7_scheme *sc, s7_pointer vec, s7_poin
   return(vec);
 }
 
-static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   s7_int len;
   const s7_pointer dims = car(args);
@@ -35357,18 +35357,15 @@ static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer cal
   }
 }
 
-static s7_pointer g_make_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_vector "(make-vector len (value #<unspecified>) type) returns a vector of len elements initialized to value. \
+#define H_make_vector "(make-vector len (value #<unspecified>) type) returns a vector of len elements initialized to value. \
 To create a multidimensional vector, put the dimension bounds in a list (this is to avoid ambiguities such as \
 (make-vector 1 2) where it's not clear whether the '2' is an initial value or a dimension size).  (make-vector '(2 3) 1.0) \
 returns a 2 dimensional vector of 6 total elements, all initialized to 1.0. The 'type argument can set the element type. \
 It is a function that checks the new value, returning #f if the value is not acceptable: (make-vector 8 1/2 rational?)."
-  #define Q_make_vector s7_make_signature(sc, 4, sc->is_vector_symbol, \
-					  s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->T, \
-					  s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->is_boolean_symbol)) /* actually #t here not boolean? */
-  return(g_make_vector_1(sc, args, sc->make_vector_symbol));
-}
+#define Q_make_vector s7_make_signature(sc, 4, sc->is_vector_symbol, \
+				  s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->T, \
+				  s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->is_boolean_symbol)) /* actually #t here not boolean? */
+/* g_make_vector is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- make-float-vector -------------------------------- */
@@ -35389,7 +35386,7 @@ static s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
 	  if (!is_real(init))
 	    return(method_or_bust(sc, init, sc->make_float_vector_symbol, args, sc->type_names[T_REAL], 2));
 	  if (is_rational(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
+	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
 	}
       else init = real_zero;
       if (s7_is_integer(size))
@@ -35467,7 +35464,7 @@ static s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
 	  if (!is_number(init))
 	    return(method_or_bust(sc, init, sc->make_complex_vector_symbol, args, sc->type_names[T_COMPLEX], 2));
 	  if (is_rational(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
+	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
 	}
       else init = real_zero;
       if (s7_is_integer(size))
@@ -35621,7 +35618,7 @@ static s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
   else init = int_zero;
 
  if (!s7_is_integer(size))
-   return(g_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
+   return(s7i_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
  {
    s7_pointer result = make_simple_byte_vector(sc, len);
    if (len > 0) /* make-byte-vector 2) should return #u(0 0) so we always need to fill */
@@ -35831,7 +35828,7 @@ static s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
   for (s7_int i = 0; i < len; i++)
     if (!is_t_integer(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#i(...)", 7), i + 1, src[i], sc->type_names[T_INTEGER]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_int_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_int_vector_symbol);
   return(s7_copy_1(sc, sc->int_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -35845,7 +35842,7 @@ static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data
   for (s7_int i = 0; i < len; i++)
     if (!is_byte(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -35859,7 +35856,7 @@ static s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer dat
   for (s7_int i = 0; i < len; i++)
     if (!is_real(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#r(...)", 7), i + 1, src[i], sc->type_names[T_REAL]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_float_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_float_vector_symbol);
   return(s7_copy_1(sc, sc->float_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -35873,7 +35870,7 @@ static s7_pointer g_complex_multivector(s7_scheme *sc, s7_int dims, s7_pointer d
   for (s7_int i = 0; i < len; i++)
     if (!is_number(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#c(...)", 7), i + 1, src[i], sc->type_names[T_COMPLEX]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_complex_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_complex_vector_symbol);
   return(s7_copy_1(sc, sc->complex_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -35909,7 +35906,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_double *src = (s7_double *)float_vector_floats(old_vec);
       s7_double *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_float_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_float_vector_symbol);
       else new_vec = make_simple_float_vector(sc, len);
       dst = (s7_double *)float_vector_floats(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;  /* same speed as memcpy(dst, src, len * sizeof(s7_double)); */
@@ -35920,7 +35917,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_int *src = (s7_int *)int_vector_ints(old_vec);
       s7_int *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_int_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_int_vector_symbol);
       else new_vec = make_simple_int_vector(sc, len);
       dst = (s7_int *)int_vector_ints(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -35931,7 +35928,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const uint8_t *src = (const uint8_t *)byte_vector_bytes(old_vec);
       uint8_t *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_byte_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_byte_vector_symbol);
       else new_vec = make_simple_byte_vector(sc, len);
       dst = (uint8_t *)byte_vector_bytes(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -35942,7 +35939,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_complex *src = (s7_complex *)complex_vector_complexes(old_vec);
       s7_complex *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_complex_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_complex_vector_symbol);
       else new_vec = make_simple_complex_vector(sc, len);
       dst = (s7_complex *)complex_vector_complexes(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -43718,7 +43715,7 @@ static s7_pointer int_vector_reverse(s7_scheme *sc, s7_pointer iv)
   const s7_int len = vector_length(iv);
   const s7_int *end = (s7_int *)(source + len);
   if (vector_rank(iv) > 1)
-    new_iv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, iv)), int_zero), sc->make_int_vector_symbol);
+    new_iv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, iv)), int_zero), sc->make_int_vector_symbol);
   else new_iv = make_simple_int_vector(sc, len);
   dest = (s7_int *)(int_vector_ints(new_iv) + len);
   while (source < end) *(--dest) = *source++;
@@ -43733,7 +43730,7 @@ static s7_pointer float_vector_reverse(s7_scheme *sc, s7_pointer fv)
   const s7_int len = vector_length(fv);
   const s7_double *end = (s7_double *)(source + len);
   if (vector_rank(fv) > 1)
-    new_fv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, fv)), real_zero), sc->make_float_vector_symbol);
+    new_fv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, fv)), real_zero), sc->make_float_vector_symbol);
   else new_fv = make_simple_float_vector(sc, len);
   dest = (s7_double *)(float_vector_floats(new_fv) + len);
   while (source < end) *(--dest) = *source++;
@@ -43748,7 +43745,7 @@ static s7_pointer complex_vector_reverse(s7_scheme *sc, s7_pointer cv)
   const s7_int len = vector_length(cv);
   const s7_complex *end = (s7_complex *)(source + len);
   if (vector_rank(cv) > 1)
-    new_cv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, cv)), real_zero), sc->make_complex_vector_symbol);
+    new_cv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, cv)), real_zero), sc->make_complex_vector_symbol);
   else new_cv = make_simple_complex_vector(sc, len);
   dest = (s7_complex *)(complex_vector_complexes(new_cv) + len);
   while (source < end) *(--dest) = *source++;
