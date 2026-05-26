@@ -144,6 +144,16 @@ s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
   return(vec);
 }
 
+s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (s7_is_null(sc, lst))
+    return(s7_make_vector(sc, 0));
+  if (!s7_is_proper_list(sc, lst))
+    return(s7i_method_or_bust_p(sc, lst, "list->vector", "a proper list"));
+  return(g_vector(sc, lst));
+}
+
 #if !WITH_PURE_S7
 
 s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)

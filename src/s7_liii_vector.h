@@ -28,6 +28,7 @@ s7_pointer g_vector_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args);
 
 #if !WITH_PURE_S7
+s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args);
 s7_int vector_length_i_7p(s7_scheme *sc, s7_pointer vec);
 s7_pointer vector_length_p_p(s7_scheme *sc, s7_pointer vec);

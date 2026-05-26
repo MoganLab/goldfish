@@ -34632,23 +34632,7 @@ static s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
 
 #if !WITH_PURE_S7
 /* -------------------------------- list->vector -------------------------------- */
-static s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_to_vector "(list->vector lst) returns a vector containing the elements of lst; (apply vector lst)"
-  #define Q_list_to_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_proper_list_symbol)
-
-  s7_pointer lst = car(args);
-  if (is_null(lst))
-    return(make_simple_vector(sc, 0)); /* was s7_make_vector */
-  sc->temp3 = lst;
-  if (!s7_is_proper_list(sc, lst))
-    return(method_or_bust_p(sc, lst, sc->list_to_vector_symbol, a_proper_list_string));
-  {
-    s7_pointer result = g_vector(sc, lst);
-    sc->temp3 = sc->unused;
-    return(result);
-  }
-}
+/* g_list_to_vector is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-length -------------------------------- */
 /* g_vector_length, vector_length_i_7p, vector_length_p_p are now defined in s7_liii_vector.c */
@@ -92168,6 +92152,8 @@ static void init_rootlet(s7_scheme *sc)
 
 #if !WITH_PURE_S7
   sc->vector_append_symbol =         defun("vector-append",	vector_append,		0, 0, true);
+  #define H_list_to_vector "(list->vector lst) returns a vector containing the elements of lst; (apply vector lst)"
+  #define Q_list_to_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_proper_list_symbol)
   sc->list_to_vector_symbol =        defun("list->vector",	list_to_vector,		1, 0, false);
   sc->vector_fill_symbol =           defun("vector-fill!",	vector_fill,		2, 2, false);
   #define H_vector_length "(vector-length v) returns the length of vector v"
