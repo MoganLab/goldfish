@@ -406,6 +406,7 @@
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
+#include "s7_liii_vector.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -29345,6 +29346,26 @@ s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *meth
   return method_or_bust_pp(sc, obj, s7_make_symbol(sc, method_name), x1, x2, wrap_string(sc, type_name, safe_strlen(type_name)), (int32_t)arg_pos);
 }
 
+bool s7i_is_subvector(s7_pointer p) {return(is_subvector(p));}
+
+s7_int s7i_subvector_position(s7_pointer p)
+{
+  if (is_subvector(p))
+    switch (type(p))
+      {
+      case T_VECTOR:         return((s7_int)(vector_elements(p) - vector_elements(subvector_vector(p))));
+      case T_INT_VECTOR:     return((s7_int)(int_vector_ints(p) - int_vector_ints(subvector_vector(p))));
+      case T_FLOAT_VECTOR:   return((s7_int)(float_vector_floats(p) - float_vector_floats(subvector_vector(p))));
+      case T_COMPLEX_VECTOR: return((s7_int)(complex_vector_complexes(p) - complex_vector_complexes(subvector_vector(p))));
+      case T_BYTE_VECTOR:    return((s7_int)(byte_vector_bytes(p) - byte_vector_bytes(subvector_vector(p))));
+      }
+  return(-1);
+}
+
+s7_pointer s7i_subvector_vector(s7_scheme *sc, s7_pointer p) {return(subvector_vector(p));}
+bool s7i_is_typed_t_vector(s7_pointer p) {return(is_typed_t_vector(p));}
+s7_pointer s7i_typed_vector_typer(s7_scheme *sc, s7_pointer p) {return(typed_vector_typer(p));}
+
 static s7_pointer new_format_port(s7_scheme *sc)
 {
   const s7_int len = FORMAT_PORT_LENGTH;
@@ -33971,7 +33992,7 @@ void s7_vector_fill(s7_scheme *sc, s7_pointer vec, s7_pointer obj)
     }
 }
 
-static s7_pointer g_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
+s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 {
   const s7_pointer vect = car(args);
   s7_pointer fill;
@@ -34073,15 +34094,12 @@ static s7_pointer g_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer a
 
 #if !WITH_PURE_S7
 /* -------------------------------- vector-fill! -------------------------------- */
-static s7_pointer g_vector_fill(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_fill "(vector-fill! v val start end) sets all elements of the vector v between start and end to val"
-  #define Q_vector_fill s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->T, sc->is_integer_symbol)
-  return(g_vector_fill_1(sc, sc->vector_fill_symbol, args));
-}
+#define H_vector_fill "(vector-fill! v val start end) sets all elements of the vector v between start and end to val"
+#define Q_vector_fill s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->T, sc->is_integer_symbol)
+/* g_vector_fill is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-append -------------------------------- */
-static s7_pointer vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
+s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
 static s7_pointer copy_source_no_dest(s7_scheme *sc, s7_pointer source, s7_pointer args);
 
 static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
@@ -34126,7 +34144,7 @@ static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
 		}}
 	  wrong_type_error_nr(sc, sc->vector_append_symbol, i + 1, vect, sc->type_names[T_VECTOR]);
 	}}
-  return(vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
+  return(s7i_vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
 }
 
 static s7_pointer vector_append_p_pp(s7_scheme *sc, s7_pointer v1, s7_pointer v2)
@@ -34405,44 +34423,13 @@ static s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- vector -------------------------------- */
-static s7_pointer g_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector "(vector ...) returns a vector whose elements are the arguments"
-  #define Q_vector s7_make_circular_signature(sc, 1, 2, sc->is_vector_symbol, sc->T)
-
-  s7_pointer end;
-  s7_int len = proper_list_length_with_end(args, &end);
-  if (!is_null(end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "vector contents list is not a proper list", 41)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 71),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_pointer vec = make_simple_vector(sc, len);
-    if (len > 0)
-      for (s7_int i = 0; is_pair(args); args = cdr(args), i++)
-	vector_element(vec, i) = car(args);
-    return(vec);
-  }
-}
+/* g_vector, g_vector_2, g_vector_3 are now defined in s7_liii_vector.c */
 
 static inline s7_pointer vector_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
 {
   s7_pointer vec = make_simple_vector(sc, 2);
   vector_element(vec, 0) = p1;
   vector_element(vec, 1) = p2;
-  return(vec);
-}
-
-static s7_pointer g_vector_2(s7_scheme *sc, s7_pointer args) {return(vector_p_pp(sc, car(args), cadr(args)));}
-
-static s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer vec = make_simple_vector(sc, 3);
-  vector_element(vec, 0) = car(args); args = cdr(args);
-  vector_element(vec, 1) = car(args);
-  vector_element(vec, 2) = cadr(args);
   return(vec);
 }
 
@@ -34642,89 +34629,19 @@ static s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
 
 #if !WITH_PURE_S7
 /* -------------------------------- list->vector -------------------------------- */
-static s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_to_vector "(list->vector lst) returns a vector containing the elements of lst; (apply vector lst)"
-  #define Q_list_to_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_proper_list_symbol)
-
-  s7_pointer lst = car(args);
-  if (is_null(lst))
-    return(make_simple_vector(sc, 0)); /* was s7_make_vector */
-  sc->temp3 = lst;
-  if (!s7_is_proper_list(sc, lst))
-    return(method_or_bust_p(sc, lst, sc->list_to_vector_symbol, a_proper_list_string));
-  {
-    s7_pointer result = g_vector(sc, lst);
-    sc->temp3 = sc->unused;
-    return(result);
-  }
-}
+/* g_list_to_vector is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-length -------------------------------- */
-static s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_length "(vector-length v) returns the length of vector v"
-  #define Q_vector_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_length_symbol, args, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_length(vec)));
-}
-
-static s7_int vector_length_i_7p(s7_scheme *sc, s7_pointer vec)
-{
-  if (!is_any_vector(vec))
-    return(integer(method_or_bust_p(sc, vec, sc->vector_length_symbol, sc->type_names[T_VECTOR])));
-  return(vector_length(vec));
-}
-
-static s7_pointer vector_length_p_p(s7_scheme *sc, s7_pointer vec)
-{
-  if (!is_any_vector(vec))
-    return(method_or_bust_p(sc, vec, sc->vector_length_symbol, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_length(vec)));
-}
+/* g_vector_length, vector_length_i_7p, vector_length_p_p are now defined in s7_liii_vector.c */
 #endif
 
 
 /* -------------------------------- subvector subvector? subvector-vector subvector-position -------------------------------- */
 static bool s7_is_subvector(s7_pointer vec) {return((is_any_vector(vec)) && (is_subvector(vec)));}
 
-static s7_pointer g_is_subvector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_subvector "(subvector? obj) returns #t if obj is a subvector"
-  #define Q_is_subvector sc->pl_bt
-  check_boolean_method(sc, s7_is_subvector, sc->is_subvector_symbol, args);
-}
-
-static s7_pointer g_subvector_position(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector_position "(subvector-position obj) returns obj's offset"
-  #define Q_subvector_position s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_subvector_symbol)
-
-  const s7_pointer sv = car(args);
-  if (s7_is_subvector(sv))
-    switch (type(sv))
-      {
-      case T_VECTOR:         return(make_integer(sc, (s7_int)(vector_elements(sv) - vector_elements(subvector_vector(sv)))));
-      case T_INT_VECTOR:     return(make_integer(sc, (s7_int)(int_vector_ints(sv) - int_vector_ints(subvector_vector(sv)))));
-      case T_FLOAT_VECTOR:   return(make_integer(sc, (s7_int)(float_vector_floats(sv) - float_vector_floats(subvector_vector(sv)))));
-      case T_COMPLEX_VECTOR: return(make_integer(sc, (s7_int)(complex_vector_complexes(sv) - complex_vector_complexes(subvector_vector(sv)))));
-      case T_BYTE_VECTOR:    return(make_integer(sc, (s7_int)(byte_vector_bytes(sv) - byte_vector_bytes(subvector_vector(sv)))));
-      }
-  return(sole_arg_method_or_bust(sc, sv, sc->subvector_position_symbol, args, sc->type_names[T_VECTOR]));
-}
-
-static s7_pointer g_subvector_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector_vector "(subvector-vector obj) returns the vector underlying the subvector obj"
-  #define Q_subvector_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_subvector_symbol)
-
-  if (s7_is_subvector(car(args)))
-    return(subvector_vector(car(args)));
-  return(sole_arg_method_or_bust(sc, car(args), sc->subvector_vector_symbol, args, sc->type_names[T_VECTOR]));
-}
+/* g_is_subvector is now defined in s7_liii_vector.c */
+/* g_subvector_position is now defined in s7_liii_vector.c */
+/* g_subvector_vector is now defined in s7_liii_vector.c */
 
 static s7_pointer subvector(s7_scheme *sc, s7_pointer vect, s7_int skip_dims, s7_int index)
 {
@@ -34906,7 +34823,7 @@ a vector that points to the same elements as the original-vector but with differ
 
 
 /* -------------------------------- vector-ref -------------------------------- */
-static s7_pointer vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
+s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
 {
   s7_int index = 0;
   if (vector_length(vect) == 0)
@@ -34961,16 +34878,7 @@ static s7_pointer vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indice
   return((vector_getter(vect))(sc, vect, index));
 }
 
-static s7_pointer g_vector_ref(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_ref "(vector-ref v ... i) returns the i-th element of vector v."
-  #define Q_vector_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_vector_symbol, sc->is_integer_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_ref_symbol, args, sc->type_names[T_VECTOR], 1));
-  return(vector_ref_1(sc, vec, cdr(args))); /* 19-Jan-19 */
-}
+/* g_vector_ref is now defined in s7_liii_vector.c */
 
 static s7_pointer vector_ref_p_pi(s7_scheme *sc, s7_pointer vec, s7_int index)
 {
@@ -35015,7 +34923,7 @@ static s7_pointer vector_ref_p_pii_direct(s7_scheme *sc, s7_pointer vec, s7_int 
 
 static s7_pointer t_vector_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(vector_element(vec, index));}
 
-static inline s7_pointer vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
+s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 {
   s7_int index;
   if ((!is_t_vector(vec)) ||
@@ -35028,7 +34936,7 @@ static inline s7_pointer vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_point
   return(vector_element(vec, index));
 }
 
-static s7_pointer g_vector_ref_2(s7_scheme *sc, s7_pointer args) {return(vector_ref_p_pp(sc, car(args), cadr(args)));}
+/* g_vector_ref_2 is now defined in s7_liii_vector.c */
 
 static s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
 {
@@ -35338,7 +35246,7 @@ static inline s7_pointer make_multivector(s7_scheme *sc, s7_pointer vec, s7_poin
   return(vec);
 }
 
-static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   s7_int len;
   const s7_pointer dims = car(args);
@@ -35446,18 +35354,15 @@ static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer cal
   }
 }
 
-static s7_pointer g_make_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_vector "(make-vector len (value #<unspecified>) type) returns a vector of len elements initialized to value. \
+#define H_make_vector "(make-vector len (value #<unspecified>) type) returns a vector of len elements initialized to value. \
 To create a multidimensional vector, put the dimension bounds in a list (this is to avoid ambiguities such as \
 (make-vector 1 2) where it's not clear whether the '2' is an initial value or a dimension size).  (make-vector '(2 3) 1.0) \
 returns a 2 dimensional vector of 6 total elements, all initialized to 1.0. The 'type argument can set the element type. \
 It is a function that checks the new value, returning #f if the value is not acceptable: (make-vector 8 1/2 rational?)."
-  #define Q_make_vector s7_make_signature(sc, 4, sc->is_vector_symbol, \
-					  s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->T, \
-					  s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->is_boolean_symbol)) /* actually #t here not boolean? */
-  return(g_make_vector_1(sc, args, sc->make_vector_symbol));
-}
+#define Q_make_vector s7_make_signature(sc, 4, sc->is_vector_symbol, \
+				  s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->T, \
+				  s7_make_signature(sc, 2, sc->is_procedure_symbol, sc->is_boolean_symbol)) /* actually #t here not boolean? */
+/* g_make_vector is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- make-float-vector -------------------------------- */
@@ -35478,7 +35383,7 @@ static s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
 	  if (!is_real(init))
 	    return(method_or_bust(sc, init, sc->make_float_vector_symbol, args, sc->type_names[T_REAL], 2));
 	  if (is_rational(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
+	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
 	}
       else init = real_zero;
       if (s7_is_integer(size))
@@ -35556,7 +35461,7 @@ static s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
 	  if (!is_number(init))
 	    return(method_or_bust(sc, init, sc->make_complex_vector_symbol, args, sc->type_names[T_COMPLEX], 2));
 	  if (is_rational(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
+	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
 	}
       else init = real_zero;
       if (s7_is_integer(size))
@@ -35710,7 +35615,7 @@ static s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
   else init = int_zero;
 
  if (!s7_is_integer(size))
-   return(g_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
+   return(s7i_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
  {
    s7_pointer result = make_simple_byte_vector(sc, len);
    if (len > 0) /* make-byte-vector 2) should return #u(0 0) so we always need to fill */
@@ -35739,88 +35644,25 @@ static s7_pointer make_byte_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 
 
 /* -------------------------------- vector? -------------------------------- */
-static s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_vector "(vector? obj) returns #t if obj is a vector"
-  #define Q_is_vector sc->pl_bt
-  check_boolean_method(sc, is_any_vector, sc->is_vector_symbol, args);
-}
+/* g_is_vector is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-rank -------------------------------- */
 s7_int s7_vector_rank(s7_pointer vec) {return((s7_int)(vector_rank(vec)));}
 
-static s7_pointer g_vector_rank(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_rank "(vector-rank vect) returns the number of dimensions in vect"
-  #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_rank_symbol, args, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_rank(vec)));
-}
+/* g_vector_rank is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-dimension -------------------------------- */
-static s7_pointer g_vector_dimension(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_dimension "(vector-dimension vect n) returns the size of the n-th dimension (n is 0-based)"
-  #define Q_vector_dimension s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_vector_symbol, sc->is_integer_symbol)
-  s7_pointer vec = car(args);
-  s7_pointer dim = cadr(args);
-  s7_int n;
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_dimension_symbol, args, sc->type_names[T_VECTOR], 1));
-  if (!s7_is_integer(dim))
-    return(method_or_bust(sc, vec, sc->vector_dimension_symbol, args, sc->type_names[T_INTEGER], 2));
-  n = s7_integer_clamped_if_gmp(sc, dim);
-  if (n < 0)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_2(sc, wrap_string(sc, "vector-dimension second argument is negative: ~S", 48), dim));
-  if (n >= vector_rank(vec))
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "vector-dimension second argument, ~S, should be less than the vector rank, ~D", 77),
-			 dim, wrap_integer(sc, vector_rank(vec))));
-  if (vector_has_dimension_info(vec))
-    return(make_integer(sc, vector_dimension(vec, n)));
-  return(make_integer(sc, vector_length(vec)));
-}
+/* g_vector_dimension is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-dimensions -------------------------------- */
-static s7_pointer g_vector_dimensions(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_dimensions "(vector-dimensions vect) returns a list of vect's dimensions"
-  #define Q_vector_dimensions s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_dimensions_symbol, args, sc->type_names[T_VECTOR]));
-  if (vector_rank(vec) == 1)
-    return(list_1(sc, make_integer(sc, vector_length(vec))));
-  begin_temp(sc->y, sc->nil);
-  for (s7_int i = vector_ndims(vec) - 1; i >= 0; i--)
-    sc->y = cons(sc, make_integer(sc, vector_dimension(vec, i)), sc->y);
-  return_with_end_temp(sc->y);
-}
+/* g_vector_dimensions is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-typer -------------------------------- */
-static s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_typer "(vector-typer vect) returns the vector's element type checking function"
-  #define Q_vector_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_vector_symbol)
-
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_typer_symbol, args, sc->type_names[T_VECTOR]));
-  if (is_typed_t_vector(vec)) return(typed_vector_typer(vec));
-  if (is_float_vector(vec)) return(global_value(sc->is_float_symbol));
-  if (is_int_vector(vec)) return(global_value(sc->is_integer_symbol));
-  if (is_byte_vector(vec)) return(global_value(sc->is_byte_symbol));
-  if (is_complex_vector(vec)) return(global_value(sc->is_number_symbol));
-  return(sc->F);
-}
+/* g_vector_typer is now defined in s7_liii_vector.c */
 
 static s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args)
 {
@@ -35983,7 +35825,7 @@ static s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
   for (s7_int i = 0; i < len; i++)
     if (!is_t_integer(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#i(...)", 7), i + 1, src[i], sc->type_names[T_INTEGER]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_int_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_int_vector_symbol);
   return(s7_copy_1(sc, sc->int_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -35997,7 +35839,7 @@ static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data
   for (s7_int i = 0; i < len; i++)
     if (!is_byte(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -36011,7 +35853,7 @@ static s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer dat
   for (s7_int i = 0; i < len; i++)
     if (!is_real(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#r(...)", 7), i + 1, src[i], sc->type_names[T_REAL]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_float_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_float_vector_symbol);
   return(s7_copy_1(sc, sc->float_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -36025,7 +35867,7 @@ static s7_pointer g_complex_multivector(s7_scheme *sc, s7_int dims, s7_pointer d
   for (s7_int i = 0; i < len; i++)
     if (!is_number(src[i]))
       wrong_type_error_nr(sc, wrap_string(sc, "#c(...)", 7), i + 1, src[i], sc->type_names[T_COMPLEX]);
-  sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_complex_vector_symbol);
+  sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_complex_vector_symbol);
   return(s7_copy_1(sc, sc->complex_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
@@ -36061,7 +35903,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_double *src = (s7_double *)float_vector_floats(old_vec);
       s7_double *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_float_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_float_vector_symbol);
       else new_vec = make_simple_float_vector(sc, len);
       dst = (s7_double *)float_vector_floats(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;  /* same speed as memcpy(dst, src, len * sizeof(s7_double)); */
@@ -36072,7 +35914,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_int *src = (s7_int *)int_vector_ints(old_vec);
       s7_int *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_int_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_int_vector_symbol);
       else new_vec = make_simple_int_vector(sc, len);
       dst = (s7_int *)int_vector_ints(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -36083,7 +35925,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const uint8_t *src = (const uint8_t *)byte_vector_bytes(old_vec);
       uint8_t *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_byte_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), int_zero), sc->make_byte_vector_symbol);
       else new_vec = make_simple_byte_vector(sc, len);
       dst = (uint8_t *)byte_vector_bytes(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -36094,7 +35936,7 @@ static Vectorized s7_pointer s7_vector_copy_1(s7_scheme *sc, s7_pointer old_vec)
       const s7_complex *src = (s7_complex *)complex_vector_complexes(old_vec);
       s7_complex *dst;
       if (vector_rank(old_vec) > 1)
-	new_vec = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_complex_vector_symbol);
+	new_vec = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, old_vec)), real_zero), sc->make_complex_vector_symbol);
       else new_vec = make_simple_complex_vector(sc, len);
       dst = (s7_complex *)complex_vector_complexes(new_vec);
       for (s7_int i = len; i > 0; i--) *dst++ = *src++;
@@ -43870,7 +43712,7 @@ static s7_pointer int_vector_reverse(s7_scheme *sc, s7_pointer iv)
   const s7_int len = vector_length(iv);
   const s7_int *end = (s7_int *)(source + len);
   if (vector_rank(iv) > 1)
-    new_iv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, iv)), int_zero), sc->make_int_vector_symbol);
+    new_iv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, iv)), int_zero), sc->make_int_vector_symbol);
   else new_iv = make_simple_int_vector(sc, len);
   dest = (s7_int *)(int_vector_ints(new_iv) + len);
   while (source < end) *(--dest) = *source++;
@@ -43885,7 +43727,7 @@ static s7_pointer float_vector_reverse(s7_scheme *sc, s7_pointer fv)
   const s7_int len = vector_length(fv);
   const s7_double *end = (s7_double *)(source + len);
   if (vector_rank(fv) > 1)
-    new_fv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, fv)), real_zero), sc->make_float_vector_symbol);
+    new_fv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, fv)), real_zero), sc->make_float_vector_symbol);
   else new_fv = make_simple_float_vector(sc, len);
   dest = (s7_double *)(float_vector_floats(new_fv) + len);
   while (source < end) *(--dest) = *source++;
@@ -43900,7 +43742,7 @@ static s7_pointer complex_vector_reverse(s7_scheme *sc, s7_pointer cv)
   const s7_int len = vector_length(cv);
   const s7_complex *end = (s7_complex *)(source + len);
   if (vector_rank(cv) > 1)
-    new_cv = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, cv)), real_zero), sc->make_complex_vector_symbol);
+    new_cv = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, cv)), real_zero), sc->make_complex_vector_symbol);
   else new_cv = make_simple_complex_vector(sc, len);
   dest = (s7_complex *)(complex_vector_complexes(new_cv) + len);
   while (source < end) *(--dest) = *source++;
@@ -44297,7 +44139,7 @@ s7_pointer s7_fill(s7_scheme *sc, s7_pointer args)
       return(cadr(args));        /* this parallels the empty vector case */
 
     case T_BYTE_VECTOR: case T_INT_VECTOR: case T_FLOAT_VECTOR: case T_VECTOR: case T_COMPLEX_VECTOR:
-      return(g_vector_fill_1(sc, sc->fill_symbol, args));
+      return(s7i_vector_fill_1(sc, sc->fill_symbol, args));
 
     case T_LET:
       if_let_method_exists_return_value(sc, obj, sc->fill_symbol, args);
@@ -44341,7 +44183,7 @@ static s7_int total_sequence_length(s7_scheme *sc, s7_pointer args, s7_pointer c
   return(len);
 }
 
-static s7_pointer vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller)
+s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller)
 {
   s7_pointer new_vec, p = args, pargs, vtyper = NULL;
   s7_pointer *v_elements = NULL;
@@ -44525,7 +44367,7 @@ static s7_pointer g_append(s7_scheme *sc, s7_pointer args)
     case T_HASH_TABLE: return(hash_table_append(sc, args));
     case T_LET:        return(let_append(sc, args));
     case T_VECTOR: case T_INT_VECTOR: case T_FLOAT_VECTOR: case T_BYTE_VECTOR: case T_COMPLEX_VECTOR:
-      return(vector_append(sc, args, type(car(args)), sc->append_symbol));
+      return(s7i_vector_append(sc, args, type(car(args)), sc->append_symbol));
     case T_C_OBJECT:   if_c_object_method_exists_return_value(sc, car(args), sc->append_symbol, args); break;
     default: if_method_exists_return_value(sc, car(args), sc->append_symbol, args);
     }
@@ -47346,7 +47188,7 @@ static s7_pointer implicit_index(s7_scheme *sc, s7_pointer obj, s7_pointer indic
   switch (type(obj))
     {
     case T_VECTOR:                       /* (#(#(1 2) #(3 4)) 1 1) -> 4 */
-      return(vector_ref_1(sc, obj, indices));
+      return(s7i_vector_ref_1(sc, obj, indices));
 
     case T_FLOAT_VECTOR:
       {
@@ -48778,12 +48620,12 @@ fx_c_ss_any(fx_c_tU, t_lookup, U_lookup)
 static s7_pointer fx_memq_ss(s7_scheme *sc, s7_pointer arg) {return(memq_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
 static s7_pointer fx_memq_tu(s7_scheme *sc, s7_pointer arg) {return(memq_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_assq_ss(s7_scheme *sc, s7_pointer arg) {return(assq_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
-static s7_pointer fx_vref_ss(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
-static s7_pointer fx_vref_st(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_ts(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), s_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_tu(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_ot(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, o_lookup(sc, cadr(arg), arg), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
-static s7_pointer fx_vref_gt(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ss(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
+static s7_pointer fx_vref_st(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ts(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), s_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_tu(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, t_lookup(sc, cadr(arg), arg), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_ot(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, o_lookup(sc, cadr(arg), arg), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
+static s7_pointer fx_vref_gt(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)), t_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_sref_ss(s7_scheme *sc, s7_pointer arg) {return(string_ref_p_pp(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
 static s7_pointer fx_sref_su(s7_scheme *sc, s7_pointer arg) {return(string_ref_p_pp(sc, lookup(sc, cadr(arg)), u_lookup(sc, opt1_sym(cdr(arg)), arg)));}
 static s7_pointer fx_cons_ss(s7_scheme *sc, s7_pointer arg) {return(cons(sc, lookup(sc, cadr(arg)), lookup(sc, opt1_sym(cdr(arg)))));}
@@ -49591,32 +49433,32 @@ static s7_pointer fx_gt_add_tu_s(s7_scheme *sc, s7_pointer arg)
 
 static s7_pointer fx_gt_vref_s(s7_scheme *sc, s7_pointer arg)
 {
-  return(gt_p_pp(sc, vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg)))), lookup(sc, caddr(arg))));
+  return(gt_p_pp(sc, s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg)))), lookup(sc, caddr(arg))));
 }
 
 static s7_pointer fx_geq_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(geq_p_pp(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(geq_p_pp(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_is_eq_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(make_boolean(sc, lookup(sc, cadr(arg)) == vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(make_boolean(sc, lookup(sc, cadr(arg)) == s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_href_s_vref(s7_scheme *sc, s7_pointer arg)
 {
-  return(hash_table_ref_p_pp(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(hash_table_ref_p_pp(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_lref_s_vref(s7_scheme *sc, s7_pointer arg) /* tbig */
 {
-  return(let_ref(sc, lookup(sc, cadr(arg)), vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(let_ref(sc, lookup(sc, cadr(arg)), s7i_vector_ref_p_pp(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_vref_s_add(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup(sc, cadr(arg)), add_p_pp_wrapped(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(s7i_vector_ref_p_pp(sc, lookup(sc, cadr(arg)), add_p_pp_wrapped(sc, lookup(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static inline s7_pointer fx_vref_vref_3(s7_scheme *sc, s7_pointer vec, s7_pointer num1, s7_pointer num2)
@@ -49630,7 +49472,7 @@ static inline s7_pointer fx_vref_vref_3(s7_scheme *sc, s7_pointer vec, s7_pointe
 	  if ((is_t_vector(vec_in_vec)) && (vector_rank(vec_in_vec) == 1) && (index2 < vector_length(vec_in_vec)))
 	    return(vector_element(vec_in_vec, index2));
 	}}
-  return(vector_ref_p_pp(sc, vector_ref_p_pp(sc, vec, num1), num2));
+  return(s7i_vector_ref_p_pp(sc, s7i_vector_ref_p_pp(sc, vec, num1), num2));
 }
 
 #define fx_vref_vref_ss_s_any(Name, Lookup1, Lookup2, Lookup3) \
@@ -49801,14 +49643,14 @@ fx_c_s_opssq_direct_any(fx_c_t_opsuq_direct, t_lookup, u_lookup)
 
 static s7_pointer fx_vref_g_vref_gs(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
-			 vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
+  return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
+			 s7i_vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), lookup(sc, opt1_sym(opt3_pair(arg))))));
 }
 
 static s7_pointer fx_vref_g_vref_gt(s7_scheme *sc, s7_pointer arg)
 {
-  return(vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
-			 vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), t_lookup(sc, opt1_sym(opt3_pair(arg)), arg))));
+  return(s7i_vector_ref_p_pp(sc, lookup_global(sc, cadr(arg)),
+			 s7i_vector_ref_p_pp(sc, lookup_global(sc, car(opt3_pair(arg))), t_lookup(sc, opt1_sym(opt3_pair(arg)), arg))));
 }
 
 static s7_pointer fx_c_c_opssq(s7_scheme *sc, s7_pointer arg)
@@ -49887,7 +49729,7 @@ static s7_pointer fx_vref_p1(s7_scheme *sc, s7_pointer arg)
       if ((index >= 0) && (vector_length(vec) > index))
 	return(vector_element(vec, index));
     }
-  return(vector_ref_p_pp(sc, vec, g_add_xi(sc, ind, 1, 2)));
+  return(s7i_vector_ref_p_pp(sc, vec, g_add_xi(sc, ind, 1, 2)));
 }
 
 static s7_pointer fx_num_eq_add_s_si(s7_scheme *sc, s7_pointer arg)
@@ -50211,7 +50053,7 @@ static s7_pointer fx_sub_vref2(s7_scheme *sc, s7_pointer arg)
       if ((index1 >= 0) && (index1 <= vector_length(vec)) && (index2 >= 0) && (index2 < vector_length(vec)))
 	return(subtract_p_pp(sc, vector_ref_p_pi(sc, vec, index1), vector_ref_p_pi(sc, vec, index2)));
     }
-  return(subtract_p_pp(sc, vector_ref_p_pp(sc, vec, num1), vector_ref_p_pp(sc, vec, num2)));
+  return(subtract_p_pp(sc, s7i_vector_ref_p_pp(sc, vec, num1), s7i_vector_ref_p_pp(sc, vec, num2)));
 }
 
 static s7_pointer fx_c_op_opsqq(s7_scheme *sc, s7_pointer code)
@@ -50994,7 +50836,7 @@ static s7_pointer fx_safe_closure_s_to_sc(s7_scheme *sc, s7_pointer arg)
   return(fn_proc(car(closure_body(opt1_lambda(arg))))(sc, sc->t2_1));
 }
 
-static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, lookup(sc, opt2_sym(arg)), opt3_con(cdr(arg))));}
+static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, lookup(sc, opt2_sym(arg)), opt3_con(cdr(arg))));}
 static s7_pointer fx_safe_closure_s_to_sub1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
@@ -51028,7 +50870,7 @@ static s7_pointer fx_safe_closure_a_to_sc(s7_scheme *sc, s7_pointer arg)
   return(fn_proc(car(closure_body(func)))(sc, sc->t2_1));
 }
 
-static s7_pointer fx_safe_closure_a_to_vref(s7_scheme *sc, s7_pointer arg) {return(vector_ref_p_pp(sc, fx_call(sc, cdr(arg)), opt3_con(cdr(arg))));}
+static s7_pointer fx_safe_closure_a_to_vref(s7_scheme *sc, s7_pointer arg) {return(s7i_vector_ref_p_pp(sc, fx_call(sc, cdr(arg)), opt3_con(cdr(arg))));}
 
 static s7_pointer fx_safe_closure_s_and_2a(s7_scheme *sc, s7_pointer code) /* safe_closure_s_a where "a" is fx_and_2a */
 {
@@ -52207,7 +52049,7 @@ static bool fx_tree_in(s7_scheme *sc, const s7_pointer tree, const s7_pointer va
 
 	  if (pfunc == fx_c_sc_direct) /* p_pp cases */
 	    {
-	      if ((opt3_direct(cdr(p)) == (s7_pointer)vector_ref_p_pp) && (is_t_integer(caddr(p))))
+	      if ((opt3_direct(cdr(p)) == (s7_pointer)s7i_vector_ref_p_pp) && (is_t_integer(caddr(p))))
 		return(with_fx(tree, fx_vector_ref_tc));
 	      if ((opt3_direct(cdr(p)) == (s7_pointer)string_ref_p_pp) && (is_t_integer(caddr(p))) && (integer(caddr(p)) == 0))
 		set_opt3_direct(cdr(p), string_ref_p_p0);
@@ -57974,7 +57816,7 @@ static s7_pointer opt_p_pp_sf_mul(opt_info *o) {return(multiply_p_pp(o->sc, slot
 static s7_pointer opt_p_pp_sf_set_car(opt_info *o) {return(inline_set_car(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
 static s7_pointer opt_p_pp_sf_set_cdr(opt_info *o) {return(inline_set_cdr(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
 static s7_pointer opt_p_pp_sf_href(opt_info *o) {return(s7_hash_table_ref(o->sc, slot_value(q_arg1(o).p), q_p_func1_call(o)));}
-static s7_pointer opt_p_pp_fs_vref(opt_info *o) {return(vector_ref_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
+static s7_pointer opt_p_pp_fs_vref(opt_info *o) {return(s7i_vector_ref_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_cons(opt_info *o) {return(cons(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_add(opt_info *o) {return(add_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
 static s7_pointer opt_p_pp_fs_sub(opt_info *o) {return(subtract_p_pp(o->sc, q_p_func1_call(o), slot_value(q_arg1(o).p)));}
@@ -58196,7 +58038,7 @@ static bool p_pp_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const
 	      if (q_arg1(opc).p)
 		{
 		  q_call(opc).fp = (func == add_p_pp) ? opt_p_pp_fs_add : ((func == subtract_p_pp) ? opt_p_pp_fs_sub :
-                                   ((func == vector_ref_p_pp) ? opt_p_pp_fs_vref : ((func == cons_p_pp) ? opt_p_pp_fs_cons : opt_p_pp_fs)));
+                                   ((func == s7i_vector_ref_p_pp) ? opt_p_pp_fs_vref : ((func == cons_p_pp) ? opt_p_pp_fs_cons : opt_p_pp_fs)));
 		  q_func1_arg(opc).o1 = o1;
 		  q_func1(opc).fp = q_call(o1).fp;
 		  if (q_func1(opc).fp == opt_p_p_s_random) q_func1(opc).fp = opt_p_p_s_random_wrapped;
@@ -75488,7 +75330,7 @@ static Inline bool inline_op_implicit_vector_ref_a(s7_scheme *sc) /* called once
 	  sc->value = (is_float_vector(vec)) ? make_real(sc, float_vector(vec, index)) : vector_getter(vec)(sc, vec, index);
 	  return(true);
 	}}
-  sc->value = vector_ref_1(sc, vec, set_plist_1(sc, ind));
+  sc->value = s7i_vector_ref_1(sc, vec, set_plist_1(sc, ind));
   return(true);
 }
 
@@ -75505,7 +75347,7 @@ static s7_pointer fx_implicit_vector_ref_a(s7_scheme *sc, s7_pointer arg)
       if ((index < vector_length(vec)) && (index >= 0))
 	return(vector_getter(vec)(sc, vec, index));
     }
-  return(vector_ref_1(sc, vec, set_plist_1(sc, ind)));
+  return(s7i_vector_ref_1(sc, vec, set_plist_1(sc, ind)));
 }
 
 static bool op_implicit_vector_ref_aa(s7_scheme *sc) /* tnum/tmat, neither uses fx case if available (see tmp) */
@@ -75530,7 +75372,7 @@ static bool op_implicit_vector_ref_aa(s7_scheme *sc) /* tnum/tmat, neither uses 
 	  unstack_gc_protect(sc);
 	  return(true);
 	}}
-  sc->value = vector_ref_1(sc, vec, set_plist_2(sc, ind1, ind2));
+  sc->value = s7i_vector_ref_1(sc, vec, set_plist_2(sc, ind1, ind2));
   unstack_gc_protect(sc);
   return(true);
 }
@@ -79464,7 +79306,7 @@ static void apply_vector(s7_scheme *sc)                    /* -------- vector as
 	sc->value = vector_getter(sc->code)(sc, sc->code, index);
       else out_of_range_error_nr(sc, sc->vector_ref_symbol, int_two, car(sc->args), (index < 0) ? it_is_negative_string : it_is_too_large_string);
     }
-  else sc->value = vector_ref_1(sc, sc->code, sc->args);
+  else sc->value = s7i_vector_ref_1(sc, sc->code, sc->args);
 }
 
 static void apply_string(s7_scheme *sc)                    /* -------- string as applicable object -------- */
@@ -90848,7 +90690,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7pii_function(sc, global_value(sc->byte_vector_set_symbol), byte_vector_set_i_7pii);
   s7_set_i_7piii_function(sc, global_value(sc->byte_vector_set_symbol), byte_vector_set_i_7piii);
 
-  s7_set_p_pp_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pp);
+  s7_set_p_pp_function(sc, global_value(sc->vector_ref_symbol), s7i_vector_ref_p_pp);
   s7_set_p_pi_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pi);
   s7_set_p_pii_function(sc, global_value(sc->vector_ref_symbol), vector_ref_p_pii);
   s7_set_p_pip_function(sc, global_value(sc->vector_set_symbol), vector_set_p_pip);
@@ -91905,6 +91747,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_string_symbol =          bool_defun("string?",	         is_string,	     0, T_STRING,       mark_simple_vector, true);
   sc->is_list_symbol =            bool_defun("list?",	         is_list,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_pair_symbol =            bool_defun("pair?",	         is_pair,	     0, T_PAIR,         mark_vector_1,      false);
+  #define H_is_vector "(vector? obj) returns #t if obj is a vector"
+  #define Q_is_vector sc->pl_bt
   sc->is_vector_symbol =          bool_defun("vector?",	         is_vector,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_float_vector_symbol =    bool_defun("float-vector?",    is_float_vector,    0, T_FLOAT_VECTOR, mark_simple_vector, true);
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
@@ -91924,6 +91768,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_undefined_symbol =       bool_defun("undefined?",       is_undefined,       0, T_UNDEFINED,    just_mark_vector,   true);
   sc->is_unspecified_symbol =     bool_defun("unspecified?",     is_unspecified,     0, T_UNSPECIFIED,  just_mark_vector,   true);
   sc->is_c_object_symbol =        bool_defun("c-object?",        is_c_object,	     0, T_C_OBJECT,     mark_vector_1,      false);
+  #define H_is_subvector "(subvector? obj) returns #t if obj is a subvector"
+  #define Q_is_subvector sc->pl_bt
   sc->is_subvector_symbol =       bool_defun("subvector?",       is_subvector,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_weak_hash_table_symbol = bool_defun("weak-hash-table?", is_weak_hash_table, 0, T_FREE,         mark_vector_1,      false);
   sc->is_goto_symbol =            bool_defun("goto?",	         is_goto,            0, T_GOTO,         mark_vector_1,      true);
@@ -92291,8 +92137,12 @@ static void init_rootlet(s7_scheme *sc)
 
 #if !WITH_PURE_S7
   sc->vector_append_symbol =         defun("vector-append",	vector_append,		0, 0, true);
+  #define H_list_to_vector "(list->vector lst) returns a vector containing the elements of lst; (apply vector lst)"
+  #define Q_list_to_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_proper_list_symbol)
   sc->list_to_vector_symbol =        defun("list->vector",	list_to_vector,		1, 0, false);
   sc->vector_fill_symbol =           defun("vector-fill!",	vector_fill,		2, 2, false);
+  #define H_vector_length "(vector-length v) returns the length of vector v"
+  #define Q_vector_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_length_symbol =         defun("vector-length",	vector_length,		1, 0, false);
   sc->vector_to_list_symbol =        defun("vector->list",	vector_to_list,		1, 2, false);
 #else
@@ -92300,17 +92150,33 @@ static void init_rootlet(s7_scheme *sc)
   sc->vector_fill_symbol = sc->fill_symbol;
   sc->string_fill_symbol = sc->fill_symbol;
 #endif
+  #define H_vector_ref "(vector-ref v ... i) returns the i-th element of vector v."
+  #define Q_vector_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_vector_symbol, sc->is_integer_symbol)
   sc->vector_ref_symbol =            defun("vector-ref",	vector_ref,		2, 0, true);
   sc->vector_set_symbol =            defun("vector-set!",	vector_set,		3, 0, true);
+  #define H_vector_dimension "(vector-dimension vect n) returns the size of the n-th dimension (n is 0-based)"
+  #define Q_vector_dimension s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_vector_symbol, sc->is_integer_symbol)
   sc->vector_dimension_symbol =      defun("vector-dimension",  vector_dimension,	2, 0, false);
+  #define H_vector_dimensions "(vector-dimensions vect) returns a list of vect's dimensions"
+  #define Q_vector_dimensions s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_vector_symbol)
   sc->vector_dimensions_symbol =     defun("vector-dimensions", vector_dimensions,	1, 0, false);
+  #define H_vector_rank "(vector-rank vect) returns the number of dimensions in vect"
+  #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_rank_symbol =           defun("vector-rank",       vector_rank,	        1, 0, false);
   sc->make_vector_symbol =           defun("make-vector",	make_vector,		1, 2, false); set_is_saver(sc->make_vector_symbol);
+  #define H_vector "(vector ...) returns a vector whose elements are the arguments"
+  #define Q_vector s7_make_circular_signature(sc, 1, 2, sc->is_vector_symbol, sc->T)
   sc->vector_symbol =                defun("vector",		vector,			0, 0, true);  set_is_saver(sc->vector_symbol);
+  #define H_vector_typer "(vector-typer vect) returns the vector's element type checking function"
+  #define Q_vector_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_vector_symbol)
   sc->vector_typer_symbol =          defun("vector-typer",      vector_typer,	        1, 0, false);
 
   sc->subvector_symbol =             defun("subvector",         subvector,	        1, 3, false); set_is_saver(sc->subvector_symbol);
+  #define H_subvector_position "(subvector-position obj) returns obj's offset"
+  #define Q_subvector_position s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_subvector_symbol)
   sc->subvector_position_symbol =    defun("subvector-position", subvector_position,    1, 0, false);
+  #define H_subvector_vector "(subvector-vector obj) returns the vector underlying the subvector obj"
+  #define Q_subvector_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_subvector_symbol)
   sc->subvector_vector_symbol =      defun("subvector-vector",  subvector_vector,       1, 0, false);
 
   sc->float_vector_symbol =          defun("float-vector",	float_vector,		0, 0, true);
