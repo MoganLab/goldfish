@@ -21511,18 +21511,9 @@ static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 
 /* -------------------------------- list->string -------------------------------- */
 #if !WITH_PURE_S7
-static s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_to_string "(list->string lst) appends all the list's characters into one string; (apply string lst)"
-  #define Q_list_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_proper_list_symbol)
-
-  if (is_null(car(args)))
-    return(nil_string);
-  if (!s7_is_proper_list(sc, car(args)))
-    return(method_or_bust_p(sc, car(args), sc->list_to_string_symbol,
-			    wrap_string(sc, "a (proper, non-circular) list of characters", 43)));
-  return(s7i_string_1(sc, car(args), sc->list_to_string_symbol));
-}
+#define H_list_to_string "(list->string lst) appends all the list's characters into one string; (apply string lst)"
+#define Q_list_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_proper_list_symbol)
+/* g_list_to_string is now defined in s7_liii_string.c */
 #endif
 
 

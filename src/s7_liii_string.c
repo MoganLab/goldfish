@@ -420,3 +420,15 @@ s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
     }
   return(s7_make_string_with_length(sc, s7_string(str) + start, end - start));
 }
+
+#if !WITH_PURE_S7
+s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_null(sc, s7_car(args)))
+    return(s7i_nil_string());
+  if (!s7_is_proper_list(sc, s7_car(args)))
+    return(s7i_method_or_bust_p(sc, s7_car(args), "list->string",
+                                "a (proper, non-circular) list of characters"));
+  return(s7i_string_1(sc, s7_car(args), s7_make_symbol(sc, "list->string")));
+}
+#endif
