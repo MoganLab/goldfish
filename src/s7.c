@@ -34099,7 +34099,7 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 /* g_vector_fill is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-append -------------------------------- */
-static s7_pointer vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
+s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
 static s7_pointer copy_source_no_dest(s7_scheme *sc, s7_pointer source, s7_pointer args);
 
 static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
@@ -34144,7 +34144,7 @@ static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
 		}}
 	  wrong_type_error_nr(sc, sc->vector_append_symbol, i + 1, vect, sc->type_names[T_VECTOR]);
 	}}
-  return(vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
+  return(s7i_vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
 }
 
 static s7_pointer vector_append_p_pp(s7_scheme *sc, s7_pointer v1, s7_pointer v2)
@@ -44183,7 +44183,7 @@ static s7_int total_sequence_length(s7_scheme *sc, s7_pointer args, s7_pointer c
   return(len);
 }
 
-static s7_pointer vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller)
+s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller)
 {
   s7_pointer new_vec, p = args, pargs, vtyper = NULL;
   s7_pointer *v_elements = NULL;
@@ -44367,7 +44367,7 @@ static s7_pointer g_append(s7_scheme *sc, s7_pointer args)
     case T_HASH_TABLE: return(hash_table_append(sc, args));
     case T_LET:        return(let_append(sc, args));
     case T_VECTOR: case T_INT_VECTOR: case T_FLOAT_VECTOR: case T_BYTE_VECTOR: case T_COMPLEX_VECTOR:
-      return(vector_append(sc, args, type(car(args)), sc->append_symbol));
+      return(s7i_vector_append(sc, args, type(car(args)), sc->append_symbol));
     case T_C_OBJECT:   if_c_object_method_exists_return_value(sc, car(args), sc->append_symbol, args); break;
     default: if_method_exists_return_value(sc, car(args), sc->append_symbol, args);
     }
