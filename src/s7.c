@@ -406,6 +406,7 @@
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
+#include "s7_liii_vector.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -35739,26 +35740,13 @@ static s7_pointer make_byte_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 
 
 /* -------------------------------- vector? -------------------------------- */
-static s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_vector "(vector? obj) returns #t if obj is a vector"
-  #define Q_is_vector sc->pl_bt
-  check_boolean_method(sc, is_any_vector, sc->is_vector_symbol, args);
-}
+/* g_is_vector is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-rank -------------------------------- */
 s7_int s7_vector_rank(s7_pointer vec) {return((s7_int)(vector_rank(vec)));}
 
-static s7_pointer g_vector_rank(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_rank "(vector-rank vect) returns the number of dimensions in vect"
-  #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
-  s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_rank_symbol, args, sc->type_names[T_VECTOR]));
-  return(make_integer(sc, vector_rank(vec)));
-}
+/* g_vector_rank is now defined in s7_liii_vector.c */
 
 
 /* -------------------------------- vector-dimension -------------------------------- */
@@ -91905,6 +91893,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_string_symbol =          bool_defun("string?",	         is_string,	     0, T_STRING,       mark_simple_vector, true);
   sc->is_list_symbol =            bool_defun("list?",	         is_list,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_pair_symbol =            bool_defun("pair?",	         is_pair,	     0, T_PAIR,         mark_vector_1,      false);
+  #define H_is_vector "(vector? obj) returns #t if obj is a vector"
+  #define Q_is_vector sc->pl_bt
   sc->is_vector_symbol =          bool_defun("vector?",	         is_vector,	     0, T_FREE,         mark_vector_1,      false);
   sc->is_float_vector_symbol =    bool_defun("float-vector?",    is_float_vector,    0, T_FLOAT_VECTOR, mark_simple_vector, true);
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
@@ -92304,6 +92294,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->vector_set_symbol =            defun("vector-set!",	vector_set,		3, 0, true);
   sc->vector_dimension_symbol =      defun("vector-dimension",  vector_dimension,	2, 0, false);
   sc->vector_dimensions_symbol =     defun("vector-dimensions", vector_dimensions,	1, 0, false);
+  #define H_vector_rank "(vector-rank vect) returns the number of dimensions in vect"
+  #define Q_vector_rank s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_vector_symbol)
   sc->vector_rank_symbol =           defun("vector-rank",       vector_rank,	        1, 0, false);
   sc->make_vector_symbol =           defun("make-vector",	make_vector,		1, 2, false); set_is_saver(sc->make_vector_symbol);
   sc->vector_symbol =                defun("vector",		vector,			0, 0, true);  set_is_saver(sc->vector_symbol);
