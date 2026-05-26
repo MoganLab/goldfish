@@ -30,8 +30,17 @@ s7_pointer s7i_find_method_with_let(s7_scheme *sc, s7_pointer obj, s7_pointer me
 bool s7i_has_active_methods(s7_scheme *sc, s7_pointer obj);
 void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
+s7_pointer s7i_copy_proper_list(s7_scheme *sc, s7_pointer lst);
 s7_int s7i_position_of(const s7_pointer p, s7_pointer args);
 s7_pointer s7i_nil_string(void);
+s7_pointer s7i_make_empty_string(s7_scheme *sc, s7_int len, char fill);
+s7_int s7i_max_string_length(s7_scheme *sc);
+s7_int s7i_max_list_length(s7_scheme *sc);
+
+s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym);
+s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix);
 
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
@@ -69,6 +78,14 @@ const char *s7i_find_autoload_name(s7_scheme *sc, s7_pointer symbol, bool *alrea
 s7_int s7i_hash_table_entries(s7_pointer table);
 s7_pointer s7i_hash_table_key_typer(s7_scheme *sc, s7_pointer table);
 s7_pointer s7i_hash_table_value_typer(s7_scheme *sc, s7_pointer table);
+
+s7_pointer s7i_ref_index_checked(s7_scheme *sc, s7_pointer caller, s7_pointer in_obj, s7_pointer args);
+s7_pointer s7i_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_hash_table_add(s7_scheme *sc, s7_pointer table, s7_pointer key, s7_pointer value);
+bool s7i_is_weak_hash_table(s7_pointer p);
+void s7i_set_weak_hash_table(s7_pointer p);
+void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
 #ifdef __cplusplus
 }

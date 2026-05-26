@@ -9231,7 +9231,7 @@ static s7_pointer string_to_symbol_p_p(s7_scheme *sc, s7_pointer p) {return(g_st
 
 
 /* -------------------------------- symbol -------------------------------- */
-static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
 
 static s7_pointer mark_as_symbol_from_symbol(s7_pointer sym)
 {
@@ -9261,7 +9261,7 @@ static s7_pointer g_symbol(s7_scheme *sc, s7_pointer args)
     {
       if (is_null(cdr(args)))
 	return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, car(args), sc->symbol_symbol)));
-      return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, g_string_append_1(sc, args, sc->symbol_symbol), sc->symbol_symbol)));
+      return(mark_as_symbol_from_symbol(g_string_to_symbol_1(sc, s7i_string_append_1(sc, args, sc->symbol_symbol), sc->symbol_symbol)));
     }
   if (len == 0)
     sole_arg_wrong_type_error_nr(sc, sc->symbol_symbol, car(args), wrap_string(sc, "a non-null string", 17));
@@ -15360,7 +15360,7 @@ static s7_pointer nan2_or_bust(s7_scheme *sc, s7_double x, const char *q, int32_
 }
 
 #if WITH_NUMBER_SEPARATOR
-static s7_pointer string_to_number(s7_scheme *sc, char *str, int32_t radix);
+
 
 static s7_pointer make_symbol_or_number(s7_scheme *sc, const char *name, int32_t radix, bool want_symbol)
 {
@@ -15395,7 +15395,7 @@ static s7_pointer make_symbol_or_number(s7_scheme *sc, const char *name, int32_t
 	}
   new_name[j] = '\0';
   {
-    s7_pointer result = string_to_number(sc, new_name, radix);
+    s7_pointer result = s7i_string_to_number(sc, new_name, radix);
     liberate(sc, b);
     return(result);
   }
@@ -15779,7 +15779,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
 
 /* -------------------------------- string->number -------------------------------- */
-static s7_pointer string_to_number(s7_scheme *sc, char *str, int32_t radix)
+s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix)
 {
   s7_pointer x = make_atom(sc, str, radix, NO_SYMBOLS, WITHOUT_OVERFLOW_ERROR);
   return((is_number(x)) ? x : sc->F);  /* only needed because str might start with '#' and not be a number (#t for example) */
@@ -15791,7 +15791,7 @@ static s7_pointer string_to_number_p_p(s7_scheme *sc, s7_pointer str1)
   if (!is_string(str1))
     wrong_type_error_nr(sc, sc->string_to_number_symbol, 1, str1, sc->type_names[T_STRING]);
   str = (char *)string_value(str1);
-  return(((!str) || (!*str)) ? sc->F : string_to_number(sc, str, 10));
+  return(((!str) || (!*str)) ? sc->F : s7i_string_to_number(sc, str, 10));
 }
 
 static s7_pointer string_to_number_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer radix1)
@@ -15810,7 +15810,7 @@ static s7_pointer string_to_number_p_pp(s7_scheme *sc, s7_pointer str1, s7_point
   str = (char *)string_value(str1);
   if ((!str) || (!*str))
     return(sc->F);
-  return(string_to_number(sc, str, radix));
+  return(s7i_string_to_number(sc, str, radix));
 }
 
 static s7_pointer g_string_to_number_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
@@ -15833,19 +15833,16 @@ static s7_pointer g_string_to_number_1(s7_scheme *sc, s7_pointer args, s7_pointe
   str = (char *)string_value(car(args));
   if ((!str) || (!*str))
     return(sc->F);
-  return(string_to_number(sc, str, radix));
+  return(s7i_string_to_number(sc, str, radix));
 }
 
-static s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_number "(string->number str (radix 10)) converts str into a number. \
+#define H_string_to_number "(string->number str (radix 10)) converts str into a number. \
 If str does not represent a number, string->number returns #f.  If 'str' has an embedded radix, \
 the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 3."
-  #define Q_string_to_number s7_make_signature(sc, 3, \
+#define Q_string_to_number s7_make_signature(sc, 3, \
                                s7_make_signature(sc, 2, sc->is_number_symbol, sc->not_symbol), \
                                sc->is_string_symbol, sc->is_integer_symbol)
-  return(g_string_to_number_1(sc, args, sc->string_to_number_symbol));
-}
+/* g_string_to_number is now defined in s7_liii_string.c */
 
 
 
@@ -20510,6 +20507,21 @@ static Inline s7_pointer inline_make_empty_string(s7_scheme *sc, s7_int len, cha
 
 static s7_pointer make_empty_string(s7_scheme *sc, s7_int len, char fill) {return(inline_make_empty_string(sc, len, fill));}
 
+s7_pointer s7i_make_empty_string(s7_scheme *sc, s7_int len, char fill)
+{
+  return(make_empty_string(sc, len, fill));
+}
+
+s7_int s7i_max_string_length(s7_scheme *sc)
+{
+  return(sc->max_string_length);
+}
+
+s7_int s7i_max_list_length(s7_scheme *sc)
+{
+  return(sc->max_list_length);
+}
+
 s7_pointer s7_make_string(s7_scheme *sc, const char *str)
 {
   s7_int len = safe_strlen(str);
@@ -20645,47 +20657,9 @@ static void init_strings(void)
 /* -------------------------------- make-string -------------------------------- */
 s7_pointer s7_make_string_with_length(s7_scheme *sc, const char *str, s7_int len) {return(make_string_with_length(sc, str, len));}
 
-static s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_string "(make-string len (val #\\space)) makes a string of length len filled with the character val (default: space)"
-  #define Q_make_string s7_make_signature(sc, 3, sc->is_string_symbol, sc->is_integer_symbol, sc->is_char_symbol)
-
-  const s7_pointer n = car(args);
-  s7_int len;
-  if (!s7_is_integer(n))
-    {
-      if_method_exists_return_value(sc, n, sc->make_string_symbol, args);
-      wrong_type_error_nr(sc, sc->make_string_symbol, 1, n, sc->type_names[T_INTEGER]);
-    }
-  if ((is_pair(cdr(args))) &&
-      (!is_character(cadr(args))))
-    return(method_or_bust(sc, cadr(args), sc->make_string_symbol, args, sc->type_names[T_CHARACTER], 2));
-
-  len = s7_integer_clamped_if_gmp(sc, n);
-  if (len == 0) return(nil_string);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_string_symbol, int_one, n, it_is_negative_string);
-  if (len > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-string length argument ~D is greater than (*s7* 'max-string-length), ~D", 76),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
-  if (is_null(cdr(args)))
-    return(make_empty_string(sc, len, '\0')); /* #\null here means "don't fill/clear" */
-  {
-    const s7_pointer c = cadr(args);
-    if (s7_character(c) > 0xFF)
-      {
-        const char *hint = "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters";
-        out_of_range_error_nr(sc, sc->make_string_symbol, int_two, c,
-                              wrap_string(sc, hint, safe_strlen(hint)));
-      }
-    char fill = s7_character(c);
-    s7_pointer result = make_empty_string(sc, len, fill);
-    if (fill == '\0')
-      memclr((void *)string_value(result), (size_t)len);
-    return(result);
-  }
-}
+#define H_make_string "(make-string len (val #\\space)) makes a string of length len filled with the character val (default: space)"
+#define Q_make_string s7_make_signature(sc, 3, sc->is_string_symbol, sc->is_integer_symbol, sc->is_char_symbol)
+/* g_make_string is now defined in s7_liii_string.c */
 
 static s7_pointer make_string_p_i(s7_scheme *sc, s7_int len)
 {
@@ -20898,7 +20872,7 @@ static void string_append_2(s7_scheme *sc, s7_pointer newstr, s7_pointer args, c
 	  }}
 }
 
-static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   #define H_string_append "(string-append str1 ...) appends all its string arguments into one string"
   #define Q_string_append sc->pcl_s
@@ -20983,7 +20957,7 @@ static s7_pointer g_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer c
   return(newstr);
 }
 
-static s7_pointer g_string_append(s7_scheme *sc, s7_pointer args) {return(g_string_append_1(sc, args, sc->string_append_symbol));}
+/* g_string_append is now defined in s7_liii_string.c */
 
 static inline s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
 {
@@ -21006,7 +20980,7 @@ static inline s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointe
       end_temp(sc->x);
       return(newstr);
     }
-  return(g_string_append_1(sc, list_2(sc, s1, s2), sc->string_append_symbol));
+  return(s7i_string_append_1(sc, list_2(sc, s1, s2), sc->string_append_symbol));
 }
 
 static s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2) {return(string_append_1(sc, s1, s2));}
@@ -21051,33 +21025,10 @@ static s7_pointer start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer arg
   return(sc->unused);
 }
 
-static s7_pointer g_substring(s7_scheme *sc, s7_pointer args)
-{
-  #define H_substring "(substring str start (end (length str))) returns the portion of the string str between start and \
+#define H_substring "(substring str start (end (length str))) returns the portion of the string str between start and \
 end: (substring \"01234\" 1 2) -> \"1\""
-  #define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer str = car(args);
-  s7_int start = 0, end, len;
-  char *s;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->substring_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->substring_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-    }
-  s = string_value(str);
-  len = end - start;
-  if (len == 0) return(nil_string);
-  {
-    s7_pointer result = inline_make_string_with_length(sc, (char *)(s + start), len);
-    string_value(result)[len] = 0;
-    return(result);
-  }
-}
+#define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_substring is now defined in s7_liii_string.c */
 
 static s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
 {
@@ -21147,56 +21098,10 @@ static s7_pointer string_substring_chooser(s7_scheme *sc, s7_pointer func, int32
 
 
 /* -------------------------------- string-copy -------------------------------- */
-static s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_copy "(string-copy str dest-str (dest-start 0) dest-end) returns a copy of its string argument.  If dest-str is given, \
+#define H_string_copy "(string-copy str dest-str (dest-start 0) dest-end) returns a copy of its string argument.  If dest-str is given, \
     string-copy copies its first argument into the second, starting at dest-start in the second string and returns dest-str"
-  #define Q_string_copy s7_make_signature(sc, 5, sc->is_string_symbol, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer source = car(args);
-  s7_pointer p, dest;
-  s7_int start, end;
-
-  if (!is_string(source))
-    return(method_or_bust(sc, source, sc->string_copy_symbol, args, sc->type_names[T_STRING], 1));
-  if (is_null(cdr(args)))
-    {
-      if (string_length(source) == 0) return(nil_string);
-      return(make_string_with_length(sc, string_value(source), string_length(source)));
-    }
-  dest = cadr(args);
-  if (!is_string(dest))
-    return(method_or_bust(sc, dest, sc->string_copy_symbol, args, sc->type_names[T_STRING], 2));
-  if (is_immutable_string(dest))
-    immutable_object_error_nr(sc, set_elist_2(sc, wrap_string(sc, "can't string-copy to ~S; it is immutable", 40), dest));
-
-  end = string_length(dest);
-  p = cddr(args);
-  if (is_null(p))
-    start = 0;
-  else
-    {
-      if (!s7_is_integer(car(p)))
-	return(method_or_bust(sc, car(p), sc->string_copy_symbol, args, sc->type_names[T_STRING], 3));
-      start = s7_integer_clamped_if_gmp(sc, car(p));
-      if (start < 0) start = 0;
-      p = cdr(p);
-      if (is_null(p))
-	end = start + string_length(source);
-      else
-	{
-	  if (!s7_is_integer(car(p)))
-	    return(method_or_bust(sc, car(p), sc->string_copy_symbol, args, sc->type_names[T_STRING], 4));
-	  end = s7_integer_clamped_if_gmp(sc, car(p));
-	  if (end < 0) end = start;
-	}}
-  if (end > string_length(dest)) end = string_length(dest);
-  if (end <= start) return(dest);
-  if ((end - start) > string_length(source)) end = start + string_length(source);
-  memmove((void *)(string_value(dest) + start), (void *)(string_value(source)), end - start);
-  /* although I haven't tracked down a case, libasan+auto-tester reported source<dest with overlap, so use memmove */
-  return(dest);
-}
+#define Q_string_copy s7_make_signature(sc, 5, sc->is_string_symbol, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_string_copy is now defined in s7_liii_string.c */
 
 static s7_pointer string_copy_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -21525,49 +21430,17 @@ static s7_pointer check_rest_are_strings(s7_scheme *sc, s7_pointer sym, s7_point
 
 /* -------------------------------- string-fill! -------------------------------- */
 
-static s7_pointer g_string_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
-{
-  const s7_pointer str = car(args);
-  s7_pointer chr;
-  s7_int start = 0, end;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, caller, args, sc->type_names[T_STRING], 1)); /* not two methods here */
-  if (is_immutable_string(str))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, caller, str));
-
-  chr = cadr(args);
-  if (!is_character(chr))
-    return(method_or_bust(sc, chr, caller, args, sc->type_names[T_CHARACTER], 2));
-
-  end = string_length(str);
-  if (!is_null(cddr(args)))
-    {
-      s7_pointer p = start_and_end(sc, caller, args, 3, cddr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(chr); /* this is what Guile does, and r7rs says end is "exclusive" in these situations, so (string-fill! str #\a 3 3) is a no-op */
-    }
-  if (end == 0) return(chr);
-  local_memset((void *)(string_value(str) + start), (int32_t)character(chr), end - start); /* not memclr even if chr=#\null! */ /* unaligned */
-  return(chr);
-}
-
-#if !WITH_PURE_S7
-static s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_fill "(string-fill! str chr start end) fills the string str with the character chr"
-  #define Q_string_fill s7_make_signature(sc, 5, \
+#define H_string_fill "(string-fill! str chr start end) fills the string str with the character chr"
+#define Q_string_fill s7_make_signature(sc, 5, \
                           s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol), \
                           sc->is_string_symbol, sc->is_char_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-  return(g_string_fill_1(sc, sc->string_fill_symbol, args));
-}
-#endif
+/* g_string_fill is now defined in s7_liii_string.c */
 
 
 /* -------------------------------- string -------------------------------- */
 const char *s7_string(s7_pointer str) {return(string_value(str));}
 
-static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
+s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 {
   int32_t len;
   s7_pointer chrs, newstr;
@@ -21593,7 +21466,7 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		  ok_chrs = args;
 		  for (int32_t i = 0; ok_chrs != chrs; i++, ok_chrs = cdr(ok_chrs))
 		    str[i] = character(car(ok_chrs));
-		  return(g_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
+		  return(s7i_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
 	}
@@ -21613,14 +21486,11 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
   return(newstr);
 }
 
-static s7_pointer g_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string "(string chr...) appends all its character arguments into one string"
-  #define Q_string s7_make_circular_signature(sc, 1, 2, sc->is_string_symbol, sc->is_char_symbol)
-  return((is_null(args)) ? nil_string : g_string_1(sc, args, sc->string_symbol));
-}
+#define H_string "(string chr...) appends all its character arguments into one string"
+#define Q_string s7_make_circular_signature(sc, 1, 2, sc->is_string_symbol, sc->is_char_symbol)
+/* g_string is now defined in s7_liii_string.c */
 
-static s7_pointer g_string_c1(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
   const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
@@ -21644,7 +21514,7 @@ static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
   s7_pointer str;
   const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
-  if (!is_character(c)) return(g_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
+  if (!is_character(c)) return(s7i_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
   if (s7_character(c) > 0xFF)
     out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
                           wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
@@ -21666,7 +21536,7 @@ static s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
   if (!s7_is_proper_list(sc, car(args)))
     return(method_or_bust_p(sc, car(args), sc->list_to_string_symbol,
 			    wrap_string(sc, "a (proper, non-circular) list of characters", 43)));
-  return(g_string_1(sc, car(args), sc->list_to_string_symbol));
+  return(s7i_string_1(sc, car(args), sc->list_to_string_symbol));
 }
 #endif
 
@@ -21684,36 +21554,9 @@ static s7_pointer string_to_list(s7_scheme *sc, const char *str, s7_int len)
 }
 
 #if !WITH_PURE_S7
-static s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_list "(string->list str start end) returns the elements of the string str in a list; (map values str)"
-  #define Q_string_to_list s7_make_circular_signature(sc, 2, 3, sc->is_proper_list_symbol, sc->is_string_symbol, sc->is_integer_symbol)
-
-  s7_int start = 0, end;
-  const s7_pointer str = car(args);
-
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_to_list_symbol, args, sc->type_names[T_STRING]));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->string_to_list_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(sc->nil);
-    }
-  else
-    if (end == 0) return(sc->nil);
-  if ((end - start) > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_5(sc, wrap_string(sc, "string->list length ~D, (- ~D ~D), is greater than (*s7* 'max-list-length), ~D", 78),
-			 wrap_integer(sc, end - start), wrap_integer(sc, end), wrap_integer(sc, start),
-			 wrap_integer(sc, sc->max_list_length)));
-  check_free_heap_size(sc, end - start);
-  begin_temp(sc->y, sc->nil);
-  for (s7_int i = end - 1; i >= start; i--)
-    sc->y = cons_unchecked(sc, chars[((uint8_t)string_value(str)[i])], sc->y);
-  return_with_end_temp(sc->y);
-}
+#define H_string_to_list "(string->list str start end) returns the elements of the string str in a list; (map values str)"
+#define Q_string_to_list s7_make_circular_signature(sc, 2, 3, sc->is_proper_list_symbol, sc->is_string_symbol, sc->is_integer_symbol)
+/* g_string_to_list is now defined in s7_liii_string.c */
 
 static s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
 {
@@ -31186,6 +31029,11 @@ static /* inline */ s7_pointer copy_proper_list(s7_scheme *sc, s7_pointer lst)
   return(tp);
 }
 
+s7_pointer s7i_copy_proper_list(s7_scheme *sc, s7_pointer lst)
+{
+  return(copy_proper_list(sc, lst));
+}
+
 bool s7_is_proper_list(s7_scheme *sc, s7_pointer lst)
 {
   /* #t if () or undotted/non-circular pair */
@@ -31301,7 +31149,7 @@ static s7_pointer list_ref_1(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
 
 static s7_pointer implicit_index(s7_scheme *sc, s7_pointer obj, s7_pointer indices);
 
-static s7_pointer ref_index_checked(s7_scheme *sc, s7_pointer caller, s7_pointer in_obj, s7_pointer args)
+s7_pointer s7i_ref_index_checked(s7_scheme *sc, s7_pointer caller, s7_pointer in_obj, s7_pointer args)
 {
   if (!is_applicable(in_obj)) /* let implicit_index shuffle syntax and closures */
     error_nr(sc, sc->syntax_error_symbol,
@@ -31557,17 +31405,9 @@ static s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
 
 
 /* -------------------------------- cons -------------------------------- */
-static s7_pointer g_cons(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cons "(cons a b) returns a pair containing a and b"
-  #define Q_cons s7_make_signature(sc, 3, sc->is_pair_symbol, sc->T, sc->T)
-
-  s7_pointer p;
-  new_cell(sc, p, T_PAIR | T_SAFE_PROCEDURE);
-  set_car(p, car(args));
-  set_cdr(p, cadr(args));
-  return(p);
-}
+#define H_cons "(cons a b) returns a pair containing a and b"
+#define Q_cons s7_make_signature(sc, 3, sc->is_pair_symbol, sc->T, sc->T)
+/* g_cons is now defined in s7_liii_list.c */
 
 static s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
 {
@@ -32841,12 +32681,9 @@ static bool op_member_if(s7_scheme *sc)
 
 
 /* -------------------------------- list -------------------------------- */
-static s7_pointer g_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list "(list ...) returns its arguments in a list"
-  #define Q_list s7_make_circular_signature(sc, 1, 2, sc->is_proper_list_symbol, sc->T)
-  return(copy_proper_list(sc, args));
-}
+#define H_list "(list ...) returns its arguments in a list"
+#define Q_list s7_make_circular_signature(sc, 1, 2, sc->is_proper_list_symbol, sc->T)
+/* g_list is now defined in s7_liii_list.c */
 
 static s7_pointer g_list_0(s7_scheme *sc, s7_pointer args) {return(sc->nil);}
 static s7_pointer g_list_1(s7_scheme *sc, s7_pointer args) {return(list_1(sc, car(args)));}
@@ -37313,6 +37150,21 @@ s7_pointer s7i_hash_table_value_typer(s7_scheme *sc, s7_pointer table)
 #define Q_hash_table_value_typer s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->not_symbol, sc->is_procedure_symbol), sc->is_hash_table_symbol)
 /* g_hash_table_value_typer is now defined in s7_liii_hash_table.c */
 
+bool s7i_is_weak_hash_table(s7_pointer p)
+{
+  return(is_weak_hash_table(p));
+}
+
+void s7i_set_weak_hash_table(s7_pointer p)
+{
+  set_weak_hash_table(p);
+}
+
+void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val)
+{
+  weak_hash_iters(p) = val;
+}
+
 static s7_pointer make_hash_table_procedures(s7_scheme *sc)
 {
   s7_pointer p = cons(sc, sc->T, sc->T); /* checker, mapped */
@@ -37455,25 +37307,9 @@ s7_int s7_hash_code(s7_scheme *sc, s7_pointer obj, s7_pointer eqfunc)
   return(default_hash_map[type(obj)](sc, sc->dummy_equal_hash_table, obj));
 }
 
-static s7_pointer g_hash_code(s7_scheme *sc, s7_pointer args)
-{
-  #define H_hash_code "(hash-code obj (eqfunc)) returns an integer suitable for use as a hash code for obj."
-  #define Q_hash_code s7_make_signature(sc, 3, sc->is_integer_symbol, sc->T, sc->T)
-
-  const s7_pointer obj = car(args);
-  s7_int code;
-  if ((is_pair(cdr(args))) &&
-      (!is_procedure(cadr(args))))
-    error_nr(sc, sc->wrong_type_arg_symbol,
-	     set_elist_2(sc, wrap_string(sc, "hash-code second argument (currently ignored) should be a function: ~S", 70), cadr(args)));
-  /* I think this function should not accept methods */
-  code = default_hash_map[type(obj)](sc, sc->dummy_equal_hash_table, obj);
-#ifdef __clang__
-  if (code < 0) code = 0;
-#endif
-  return(make_integer(sc, code));
-}
-
+#define H_hash_code "(hash-code obj (eqfunc)) returns an integer suitable for use as a hash code for obj."
+#define Q_hash_code s7_make_signature(sc, 3, sc->is_integer_symbol, sc->T, sc->T)
+/* g_hash_code is now defined in s7_liii_hash_table.c */
 
 static bool (*equals[NUM_TYPES])(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci);
 static bool (*equivalents[NUM_TYPES])(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci);
@@ -38211,7 +38047,7 @@ static bool compatible_types(s7_scheme *sc, const s7_pointer eq_type, const s7_p
 static s7_pointer g_is_equal(s7_scheme *sc, s7_pointer args);
 static s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args);
 
-static s7_pointer g_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   #define H_make_hash_table "(s7-make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
 used to check equality of keys; it usually defaults to equal?. typer sets the types of the keys and values that are allowed \
@@ -38436,27 +38272,14 @@ in the table; it is a cons, defaulting to (cons #t #t) which means any types are
   return(s7_make_hash_table(sc, size));
 }
 
-static s7_pointer g_make_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  return(g_make_hash_table_1(sc, args, sc->make_hash_table_symbol));
-}
-
+/* g_make_hash_table is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- make-weak-hash-table -------------------------------- */
-static s7_pointer g_make_weak_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_weak_hash_table "(make-weak-hash-table (size 8) eq-func typers) returns a new weak hash table"
-  #define Q_make_weak_hash_table s7_make_signature(sc, 4, sc->is_weak_hash_table_symbol, sc->is_integer_symbol, \
+#define H_make_weak_hash_table "(make-weak-hash-table (size 8) eq-func typers) returns a new weak hash table"
+#define Q_make_weak_hash_table s7_make_signature(sc, 4, sc->is_weak_hash_table_symbol, sc->is_integer_symbol, \
 						   s7_make_signature(sc, 3, sc->is_procedure_symbol, sc->is_pair_symbol, sc->not_symbol), \
 						   s7_make_signature(sc, 2, sc->is_pair_symbol, sc->not_symbol))
-  s7_pointer table = g_make_hash_table_1(sc, args, sc->make_weak_hash_table_symbol);
-  if (is_hash_table(table)) /* (make-weak-hash-table (openlet (inlet 'make-weak-hash-table list))) ! */
-    {
-      set_weak_hash_table(table);
-      weak_hash_iters(table) = 0;
-    }
-  return(table);
-}
+/* g_make_weak_hash_table is now defined in s7_liii_hash_table.c */
 
 static const char *hash_table_checker_name(s7_scheme *sc, s7_pointer table)
 {
@@ -38475,13 +38298,9 @@ static const char *hash_table_checker_name(s7_scheme *sc, s7_pointer table)
 
 
 /* -------------------------------- weak-hash-table? -------------------------------- */
-static s7_pointer g_is_weak_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_weak_hash_table "(weak-hash-table? obj) returns #t if obj is a weak hash-table"
-  #define Q_is_weak_hash_table sc->pl_bt
-  #define is_weak_hash(p) ((is_hash_table(p)) && (is_weak_hash_table(p)))
-  check_boolean_method(sc, is_weak_hash, sc->is_weak_hash_table_symbol, args);
-}
+#define H_is_weak_hash_table "(weak-hash-table? obj) returns #t if obj is a weak hash-table"
+#define Q_is_weak_hash_table sc->pl_bt
+/* g_is_weak_hash_table is now defined in s7_liii_hash_table.c */
 
 static void init_hash_maps(void)
 {
@@ -38577,21 +38396,9 @@ s7_pointer s7_hash_table_ref(s7_scheme *sc, s7_pointer table, s7_pointer key)
   return(hash_entry_value((*hash_table_checker(table))(sc, table, key)));
 }
 
-static s7_pointer g_hash_table_ref(s7_scheme *sc, s7_pointer args)
-{
-  #define H_hash_table_ref "(hash-table-ref table key) returns the value associated with key in the hash table"
-  #define Q_hash_table_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_hash_table_symbol, sc->T)
-
-  const s7_pointer table = car(args);
-  s7_pointer result;
-  if (!is_hash_table(table))
-    return(method_or_bust(sc, table, sc->hash_table_ref_symbol, args, sc->type_names[T_HASH_TABLE], 1));
-  result = s7_hash_table_ref(sc, table, cadr(args));
-  if (is_pair(cddr(args)))
-    return(ref_index_checked(sc, global_value(sc->hash_table_ref_symbol), result, args));
-  return(result);
-}
-
+#define H_hash_table_ref "(hash-table-ref table key) returns the value associated with key in the hash table"
+#define Q_hash_table_ref s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_hash_table_symbol, sc->T)
+/* g_hash_table_ref is now defined in s7_liii_hash_table.c */
 /* g_hash_table_ref_2 is now defined in s7_liii_hash_table.c */
 
 static s7_pointer hash_table_ref_p_pp(s7_scheme *sc, s7_pointer table, s7_pointer key)
@@ -38929,7 +38736,12 @@ static inline s7_pointer hash_table_add(s7_scheme *sc, s7_pointer table, s7_poin
   return(value);
 }
 
-static s7_pointer g_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
+s7_pointer s7i_hash_table_add(s7_scheme *sc, s7_pointer table, s7_pointer key, s7_pointer value)
+{
+  return(hash_table_add(sc, table, key, value));
+}
+
+s7_pointer s7i_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   s7_int len = proper_list_length(args);
   if (len & 1)
@@ -38950,35 +38762,17 @@ static s7_pointer g_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer call
   }
 }
 
-static s7_pointer g_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_hash_table "(hash-table ...) returns a hash-table containing the symbol/value pairs passed as its arguments. \
+#define H_hash_table "(hash-table ...) returns a hash-table containing the symbol/value pairs passed as its arguments. \
 That is, (hash-table 'a 1 'b 2) returns a new hash-table with the two key/value pairs preinstalled."
-  #define Q_hash_table s7_make_circular_signature(sc, 1, 2, sc->is_hash_table_symbol, sc->T)
-  return(g_hash_table_1(sc, args, sc->hash_table_symbol));
-}
-
-static s7_pointer g_hash_table_2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer table = s7_make_hash_table(sc, sc->default_hash_table_length);
-  if (cadr(args) != missing_key_value(sc)) /* #f default */
-    hash_table_add(sc, table, car(args), cadr(args));
-  return(table);
-}
-
+#define Q_hash_table s7_make_circular_signature(sc, 1, 2, sc->is_hash_table_symbol, sc->T)
+/* g_hash_table is now defined in s7_liii_hash_table.c */
+/* g_hash_table_2 is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- weak-hash-table -------------------------------- */
-static s7_pointer g_weak_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_weak_hash_table "(weak-hash-table ...) returns a weak-hash-table containing the symbol/value pairs passed as its arguments. \
+#define H_weak_hash_table "(weak-hash-table ...) returns a weak-hash-table containing the symbol/value pairs passed as its arguments. \
 That is, (weak-hash-table 'a 1 'b 2) returns a new weak-hash-table with the two key/value pairs preinstalled."
-  #define Q_weak_hash_table Q_hash_table
-
-  s7_pointer table = g_hash_table_1(sc, args, sc->weak_hash_table_symbol);
-  set_weak_hash_table(table);
-  weak_hash_iters(table) = 0;
-  return(table);
-}
+#define Q_weak_hash_table Q_hash_table
+/* g_weak_hash_table is now defined in s7_liii_hash_table.c */
 
 static s7_pointer hash_table_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
@@ -43739,7 +43533,7 @@ s7_pointer s7_fill(s7_scheme *sc, s7_pointer args)
   const s7_pointer obj = car(args);
   switch (type(obj))
     {
-    case T_STRING:     return(g_string_fill_1(sc, sc->fill_symbol, args)); /* redundant type check here and below */
+    case T_STRING:     return(g_string_fill(sc, args)); /* redundant type check here and below */
     case T_PAIR:       return(pair_fill(sc, args));
     case T_HASH_TABLE: return(hash_table_fill(sc, args));
 
@@ -43972,7 +43766,7 @@ static s7_pointer g_append(s7_scheme *sc, s7_pointer args)
     {
     case T_NIL:        return(g_list_append(sc, cdr(args)));
     case T_PAIR:       return(g_list_append(sc, args));
-    case T_STRING:     return(g_string_append_1(sc, args, sc->append_symbol));
+    case T_STRING:     return(s7i_string_append_1(sc, args, sc->append_symbol));
       /* should this work in the generic append: (append "12" #\3) -- currently an error, (append (list 1 2) 3) -> '(1 2 . 3), but vector is error */
     case T_HASH_TABLE: return(hash_table_append(sc, args));
     case T_LET:        return(let_append(sc, args));
@@ -64406,7 +64200,7 @@ static void init_choosers(s7_scheme *sc)
 
   /* string */
   func = set_function_chooser(sc->string_symbol, string_chooser);
-  sc->string_c1 = make_function_with_class(sc, func, "string", g_string_c1, 1, 0, false);
+  sc->string_c1 = make_function_with_class(sc, func, "string", s7i_string_c1, 1, 0, false);
 
   /* string-append */
   func = set_function_chooser(sc->string_append_symbol, string_append_chooser);

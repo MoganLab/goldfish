@@ -218,3 +218,189 @@ s7_pointer g_string_length(s7_scheme *sc, s7_pointer args)
     return(s7i_sole_arg_method_or_bust(sc, str, "string-length", args, "a string"));
   return(s7_make_integer(sc, s7_string_length(str)));
 }
+
+s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer n = s7_car(args);
+  s7_int len;
+  if (!s7_is_integer(n))
+    return(s7i_method_or_bust(sc, n, "make-string", args, "an integer", 1));
+  if (s7_is_pair(s7_cdr(args)) && !s7_is_character(s7_cadr(args)))
+    return(s7i_method_or_bust(sc, s7_cadr(args), "make-string", args, "a character", 2));
+
+  len = s7_integer(n);
+  if (len == 0) return(s7i_nil_string());
+  if (len < 0)
+    return(s7_out_of_range_error(sc, "make-string", 1, n, "it is negative"));
+  if (len > s7i_max_string_length(sc))
+    return(s7_out_of_range_error(sc, "make-string", 1, n, "it is too large"));
+  if (s7_is_null(sc, s7_cdr(args)))
+    return(s7i_make_empty_string(sc, len, '\0'));
+  {
+    s7_pointer c = s7_cadr(args);
+    if (s7_character(c) > 0xFF)
+      return(s7_out_of_range_error(sc, "make-string", 2, c,
+                                   "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters"));
+    char fill = (char)s7_character(c);
+    s7_pointer result = s7i_make_empty_string(sc, len, fill);
+    if (fill == '\0')
+      {
+        char *str = (char *)s7_string(result);
+        memset(str, 0, len);
+      }
+    return(result);
+  }
+}
+
+s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
+{
+  s7_int radix;
+  char *str;
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust(sc, s7_car(args), "string->number", args, "a string", 1));
+
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      s7_pointer rad = s7_cadr(args);
+      if (!s7_is_integer(rad))
+	return(s7i_method_or_bust(sc, rad, "string->number", args, "an integer", 2));
+      radix = (int32_t)s7_integer(rad);
+      if ((radix < 2) || (radix > 16))
+	return(s7_out_of_range_error(sc, "string->number", 2, rad, "a valid radix"));
+    }
+  else radix = 10;
+  str = (char *)s7_string(s7_car(args));
+  if ((!str) || (!*str))
+    return(s7_f(sc));
+  return(s7i_string_to_number(sc, str, radix));
+}
+
+s7_pointer g_substring(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_int start = 0, end, len;
+  const char *s;
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "substring", args, "a string", 1));
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "substring"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+    }
+  s = s7_string(str);
+  len = end - start;
+  if (len == 0) return(s7i_nil_string());
+  return(s7_make_string_with_length(sc, s + start, len));
+}
+
+s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer source = s7_car(args);
+  s7_pointer p, dest;
+  s7_int start, end;
+
+  if (!s7_is_string(source))
+    return(s7i_method_or_bust(sc, source, "string-copy", args, "a string", 1));
+  if (s7_is_null(sc, s7_cdr(args)))
+    {
+      if (s7_string_length(source) == 0) return(s7i_nil_string());
+      return(s7_make_string_with_length(sc, s7_string(source), s7_string_length(source)));
+    }
+  dest = s7_cadr(args);
+  if (!s7_is_string(dest))
+    return(s7i_method_or_bust(sc, dest, "string-copy", args, "a string", 2));
+  if (s7_is_immutable(dest))
+    return(s7_wrong_type_arg_error(sc, "string-copy", 2, dest, "a mutable string"));
+
+  end = s7_string_length(dest);
+  p = s7_cddr(args);
+  if (s7_is_null(sc, p))
+    start = 0;
+  else
+    {
+      if (!s7_is_integer(s7_car(p)))
+	return(s7i_method_or_bust(sc, s7_car(p), "string-copy", args, "an integer", 3));
+      start = s7_integer(s7_car(p));
+      if (start < 0) start = 0;
+      p = s7_cdr(p);
+      if (s7_is_null(sc, p))
+	end = start + s7_string_length(source);
+      else
+	{
+	  if (!s7_is_integer(s7_car(p)))
+	    return(s7i_method_or_bust(sc, s7_car(p), "string-copy", args, "an integer", 4));
+	  end = s7_integer(s7_car(p));
+	  if (end < 0) end = start;
+	}}
+  if (end > s7_string_length(dest)) end = s7_string_length(dest);
+  if (end <= start) return(dest);
+  if ((end - start) > s7_string_length(source)) end = start + s7_string_length(source);
+  memmove((void *)((char *)s7_string(dest) + start), (const void *)s7_string(source), end - start);
+  return(dest);
+}
+
+s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_pointer chr;
+  s7_int start = 0, end;
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "string-fill!", args, "a string", 1));
+  if (s7_is_immutable(str))
+    return(s7_wrong_type_arg_error(sc, "string-fill!", 1, str, "a mutable string"));
+
+  chr = s7_cadr(args);
+  if (!s7_is_character(chr))
+    return(s7i_method_or_bust(sc, chr, "string-fill!", args, "a character", 2));
+
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cddr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "string-fill!"), args, 3, s7_cddr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+      if (start == end) return(chr);
+    }
+  if (end == 0) return(chr);
+  memset((void *)((char *)s7_string(str) + start), (int)s7_character(chr), (size_t)(end - start));
+  return(chr);
+}
+
+s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
+{
+  s7_int start = 0, end;
+  s7_pointer str = s7_car(args);
+
+  if (!s7_is_string(str))
+    return(s7i_sole_arg_method_or_bust(sc, str, "string->list", args, "a string"));
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "string->list"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+      if (start == end) return(s7_nil(sc));
+    }
+  else
+    if (end == 0) return(s7_nil(sc));
+  if ((end - start) > s7i_max_list_length(sc))
+    return(s7_out_of_range_error(sc, "string->list", 2, s7_make_integer(sc, end - start), "it is too large"));
+  {
+    s7_pointer result = s7_nil(sc);
+    for (s7_int i = end - 1; i >= start; i--)
+      result = s7_cons(sc, chars[((uint8_t)s7_string(str)[i])], result);
+    return(result);
+  }
+}
+
+s7_pointer g_string_append(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_string_append_1(sc, args, s7_make_symbol(sc, "string-append")));
+}
+
+s7_pointer g_string(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_null(sc, args)) return(s7i_nil_string());
+  return(s7i_string_1(sc, args, s7_make_symbol(sc, "string")));
+}
