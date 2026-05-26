@@ -20517,6 +20517,11 @@ s7_int s7i_max_string_length(s7_scheme *sc)
   return(sc->max_string_length);
 }
 
+s7_int s7i_max_list_length(s7_scheme *sc)
+{
+  return(sc->max_list_length);
+}
+
 s7_pointer s7_make_string(s7_scheme *sc, const char *str)
 {
   s7_int len = safe_strlen(str);
@@ -21552,36 +21557,9 @@ static s7_pointer string_to_list(s7_scheme *sc, const char *str, s7_int len)
 }
 
 #if !WITH_PURE_S7
-static s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_list "(string->list str start end) returns the elements of the string str in a list; (map values str)"
-  #define Q_string_to_list s7_make_circular_signature(sc, 2, 3, sc->is_proper_list_symbol, sc->is_string_symbol, sc->is_integer_symbol)
-
-  s7_int start = 0, end;
-  const s7_pointer str = car(args);
-
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_to_list_symbol, args, sc->type_names[T_STRING]));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->string_to_list_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(sc->nil);
-    }
-  else
-    if (end == 0) return(sc->nil);
-  if ((end - start) > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_5(sc, wrap_string(sc, "string->list length ~D, (- ~D ~D), is greater than (*s7* 'max-list-length), ~D", 78),
-			 wrap_integer(sc, end - start), wrap_integer(sc, end), wrap_integer(sc, start),
-			 wrap_integer(sc, sc->max_list_length)));
-  check_free_heap_size(sc, end - start);
-  begin_temp(sc->y, sc->nil);
-  for (s7_int i = end - 1; i >= start; i--)
-    sc->y = cons_unchecked(sc, chars[((uint8_t)string_value(str)[i])], sc->y);
-  return_with_end_temp(sc->y);
-}
+#define H_string_to_list "(string->list str start end) returns the elements of the string str in a list; (map values str)"
+#define Q_string_to_list s7_make_circular_signature(sc, 2, 3, sc->is_proper_list_symbol, sc->is_string_symbol, sc->is_integer_symbol)
+/* g_string_to_list is now defined in s7_liii_string.c */
 
 static s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
 {

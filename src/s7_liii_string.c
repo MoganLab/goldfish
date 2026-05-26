@@ -367,3 +367,29 @@ s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args)
   memset((void *)((char *)s7_string(str) + start), (int)s7_character(chr), (size_t)(end - start));
   return(chr);
 }
+
+s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args)
+{
+  s7_int start = 0, end;
+  s7_pointer str = s7_car(args);
+
+  if (!s7_is_string(str))
+    return(s7i_sole_arg_method_or_bust(sc, str, "string->list", args, "a string"));
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "string->list"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+      if (start == end) return(s7_nil(sc));
+    }
+  else
+    if (end == 0) return(s7_nil(sc));
+  if ((end - start) > s7i_max_list_length(sc))
+    return(s7_out_of_range_error(sc, "string->list", 2, s7_make_integer(sc, end - start), "it is too large"));
+  {
+    s7_pointer result = s7_nil(sc);
+    for (s7_int i = end - 1; i >= start; i--)
+      result = s7_cons(sc, chars[((uint8_t)s7_string(str)[i])], result);
+    return(result);
+  }
+}
