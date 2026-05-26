@@ -51,5 +51,16 @@
   ) ;let
 ) ;let
 
+;; 错误处理测试
+(check-catch 'wrong-number-of-args (vector-append-subvectors #(1) 0))
+(check-catch 'wrong-number-of-args (vector-append-subvectors #(1) 0 1 #(2) 0))
+(check-catch 'type-error (vector-append-subvectors "x" 0 1))
+(check-catch 'type-error (vector-append-subvectors #(1) "a" 1))
+(check-catch 'type-error (vector-append-subvectors #(1) 0 "b"))
+(check-catch 'value-error (vector-append-subvectors #(1 2 3) -1 1))
+(check-catch 'value-error (vector-append-subvectors #(1 2 3) 0 -1))
+(check-catch 'value-error (vector-append-subvectors #(1 2 3) 2 1))
+(check-catch 'value-error (vector-append-subvectors #(1 2 3) 0 4))
+
 
 (check-report)
