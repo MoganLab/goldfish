@@ -16,6 +16,11 @@ s7_pointer g_make_vector(s7_scheme *sc, s7_pointer args)
   return(s7i_make_vector_1(sc, args, s7_make_symbol(sc, "make-vector")));
 }
 
+s7_pointer g_vector_fill(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_vector_fill_1(sc, s7_make_symbol(sc, "vector-fill!"), args));
+}
+
 #endif
 
 s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args)

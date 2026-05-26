@@ -33992,7 +33992,7 @@ void s7_vector_fill(s7_scheme *sc, s7_pointer vec, s7_pointer obj)
     }
 }
 
-static s7_pointer g_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
+s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 {
   const s7_pointer vect = car(args);
   s7_pointer fill;
@@ -34094,12 +34094,9 @@ static s7_pointer g_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer a
 
 #if !WITH_PURE_S7
 /* -------------------------------- vector-fill! -------------------------------- */
-static s7_pointer g_vector_fill(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_fill "(vector-fill! v val start end) sets all elements of the vector v between start and end to val"
-  #define Q_vector_fill s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->T, sc->is_integer_symbol)
-  return(g_vector_fill_1(sc, sc->vector_fill_symbol, args));
-}
+#define H_vector_fill "(vector-fill! v val start end) sets all elements of the vector v between start and end to val"
+#define Q_vector_fill s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->T, sc->is_integer_symbol)
+/* g_vector_fill is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-append -------------------------------- */
 static s7_pointer vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
@@ -44142,7 +44139,7 @@ s7_pointer s7_fill(s7_scheme *sc, s7_pointer args)
       return(cadr(args));        /* this parallels the empty vector case */
 
     case T_BYTE_VECTOR: case T_INT_VECTOR: case T_FLOAT_VECTOR: case T_VECTOR: case T_COMPLEX_VECTOR:
-      return(g_vector_fill_1(sc, sc->fill_symbol, args));
+      return(s7i_vector_fill_1(sc, sc->fill_symbol, args));
 
     case T_LET:
       if_let_method_exists_return_value(sc, obj, sc->fill_symbol, args);
