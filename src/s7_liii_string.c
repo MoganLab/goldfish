@@ -274,3 +274,23 @@ s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
     return(s7_f(sc));
   return(s7i_string_to_number(sc, str, radix));
 }
+
+s7_pointer g_substring(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_int start = 0, end, len;
+  const char *s;
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust(sc, str, "substring", args, "a string", 1));
+  end = s7_string_length(str);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "substring"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+    }
+  s = s7_string(str);
+  len = end - start;
+  if (len == 0) return(s7i_nil_string());
+  return(s7_make_string_with_length(sc, s + start, len));
+}

@@ -21020,33 +21020,10 @@ static s7_pointer start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer arg
   return(sc->unused);
 }
 
-static s7_pointer g_substring(s7_scheme *sc, s7_pointer args)
-{
-  #define H_substring "(substring str start (end (length str))) returns the portion of the string str between start and \
+#define H_substring "(substring str start (end (length str))) returns the portion of the string str between start and \
 end: (substring \"01234\" 1 2) -> \"1\""
-  #define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer str = car(args);
-  s7_int start = 0, end, len;
-  char *s;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->substring_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->substring_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-    }
-  s = string_value(str);
-  len = end - start;
-  if (len == 0) return(nil_string);
-  {
-    s7_pointer result = inline_make_string_with_length(sc, (char *)(s + start), len);
-    string_value(result)[len] = 0;
-    return(result);
-  }
-}
+#define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_substring is now defined in s7_liii_string.c */
 
 static s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
 {
