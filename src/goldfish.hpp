@@ -1715,6 +1715,9 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Get ();
+      if (response.status_code != 200) {
+        return response2hashtable (sc, response);
+      }
     } catch (const std::exception& e) {
       return s7_make_integer (sc, 500);
     }
@@ -1779,6 +1782,9 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Post ();
+      if (response.status_code != 200) {
+        return response2hashtable (sc, response);
+      }
     } catch (const std::exception& e) {
       return s7_make_integer (sc, 500);
     }

@@ -251,4 +251,41 @@
   ) ;let*
 ) ;if
 
+;; 流式模式下，非 200 状态码应返回 response hashtable 而非 undefined
+(let ((r (http-post "https://httpbin.org/status/401"
+           :stream
+           #t
+           :callback
+           (lambda (chunk) #t)
+         ) ;http-post
+      ) ;r
+     ) ;
+  (check-true (not (undefined? r)))
+  (check (r 'status-code) => 401)
+) ;let
+
+(let ((r (http-post "https://httpbin.org/status/403"
+           :stream
+           #t
+           :callback
+           (lambda (chunk) #t)
+         ) ;http-post
+      ) ;r
+     ) ;
+  (check-true (not (undefined? r)))
+  (check (r 'status-code) => 403)
+) ;let
+
+;; 流式模式下，200 状态码仍返回 undefined
+(let ((r (http-post "https://httpbin.org/status/200"
+           :stream
+           #t
+           :callback
+           (lambda (chunk) #t)
+         ) ;http-post
+      ) ;r
+     ) ;
+  (check-true (undefined? r))
+) ;let
+
 (check-report)
