@@ -33375,6 +33375,16 @@ void s7_vector_fill(s7_scheme *sc, s7_pointer vec, s7_pointer obj)
     }
 }
 
+s7_pointer s7i_make_simple_complex_vector(s7_scheme *sc, s7_int len)
+{
+  return(make_simple_complex_vector(sc, len));
+}
+
+s7_complex s7i_to_c_complex(s7_pointer z)
+{
+  return(s7_to_c_complex(z));
+}
+
 s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 {
   const s7_pointer vect = car(args);
@@ -33773,38 +33783,6 @@ static s7_pointer vector_to_list_p_p(s7_scheme *sc, s7_pointer vec)
 #endif
 
 
-/* -------------------------------- string->byte-vector -------------------------------- */
-static s7_pointer g_string_to_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_byte_vector "(string->byte-vector obj) turns a string into a byte-vector."
-  #define Q_string_to_byte_vector s7_make_signature(sc, 2, sc->is_byte_vector_symbol, sc->is_string_symbol)
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust_p(sc, str, sc->string_to_byte_vector_symbol, sc->type_names[T_STRING]));
-  if (string_length(str) > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "string->byte-vector string is too long: (> ~D ~D) (*s7* 'max-vector-length)", 75),
-			 wrap_integer(sc, string_length(str)), wrap_integer(sc, sc->max_vector_length)));
-  return(s7_copy_1(sc, sc->string_to_byte_vector_symbol, set_plist_2(sc, str, make_simple_byte_vector(sc, string_length(str)))));
-}
-
-
-/* -------------------------------- byte-vector->string -------------------------------- */
-static s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_byte_vector_to_string "(byte-vector->string obj) turns a byte-vector into a string."
-  #define Q_byte_vector_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_byte_vector_symbol)
-  s7_pointer bv = car(args);
-  if (!is_byte_vector(bv))
-    return(method_or_bust_p(sc, bv, sc->byte_vector_to_string_symbol, sc->type_names[T_BYTE_VECTOR]));
-  if (byte_vector_length(bv) > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "byte-vector->string byte-vector is too large: (> ~D ~D) (*s7* 'max-string-length)", 81),
-			 wrap_integer(sc, byte_vector_length(bv)), wrap_integer(sc, sc->max_string_length)));
-  return(s7_copy_1(sc, sc->byte_vector_to_string_symbol, set_plist_2(sc, bv, make_empty_string(sc, byte_vector_length(bv), '\0'))));
-}
-
-
 /* -------------------------------- vector -------------------------------- */
 /* g_vector, g_vector_2, g_vector_3 are now defined in s7_liii_vector.c */
 
@@ -33823,46 +33801,8 @@ static s7_pointer vector_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 }
 
 
-/* -------------------------------- float-vector? -------------------------------- */
-static s7_pointer g_is_float_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_float_vector "(float-vector? obj) returns #t if obj is an homogeneous float vector"
-  #define Q_is_float_vector sc->pl_bt
-  check_boolean_method(sc, s7_is_float_vector, sc->is_float_vector_symbol, args);
-}
-
-
 /* -------------------------------- float-vector -------------------------------- */
-static s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_float_vector "(float-vector ...) returns an homogeneous float vector whose elements are the arguments"
-  #define Q_float_vector s7_make_circular_signature(sc, 1, 2, sc->is_float_vector_symbol, sc->is_real_symbol)
-
-  s7_pointer bad_end = sc->nil;
-  const s7_int len = proper_list_length_with_end(args, &bad_end);
-  if (!is_null(bad_end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "float-vector contents list is not a proper list", 47)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "float-vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 77),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_pointer vec = make_simple_float_vector(sc, len);
-    s7_int i = 0;
-    if (len == 0) return(vec);
-    for (s7_pointer nums = args; is_pair(nums); nums = cdr(nums), i++)
-      {
-	s7_pointer num = car(nums);
-	if (is_t_real(num))
-	  float_vector(vec, i) = real(num);
-	else
-	  if (is_real(num))                         /* bignum is ok here */
-	    float_vector(vec, i) = s7_real(num);
-	  else return(method_or_bust(sc, num, sc->float_vector_symbol, args, sc->type_names[T_REAL], i + 1));
-      }
-    return(vec);
-  }
-}
+/* g_float_vector is now defined in s7_liii_vector.c */
 
 static s7_pointer float_vector_p_d(s7_scheme *sc, s7_double x)
 {
@@ -33880,43 +33820,8 @@ static s7_pointer float_vector_p_i(s7_scheme *sc, s7_int x) /* thash */
 /* p_dd case doesn't get any hits */
 
 
-/* -------------------------------- int-vector? -------------------------------- */
-static s7_pointer g_is_int_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_int_vector "(int-vector? obj) returns #t if obj is an homogeneous s7_int vector"
-  #define Q_is_int_vector sc->pl_bt
-  check_boolean_method(sc, is_int_vector, sc->is_int_vector_symbol, args);
-}
-
-
 /* -------------------------------- int-vector -------------------------------- */
-static s7_pointer g_int_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_int_vector "(int-vector ...) returns an homogeneous s7_int vector whose elements are the arguments"
-  #define Q_int_vector s7_make_circular_signature(sc, 1, 2, sc->is_int_vector_symbol, sc->is_integer_symbol)
-
-  s7_pointer bad_end = sc->nil;
-  const s7_int len = proper_list_length_with_end(args, &bad_end);
-  if (!is_null(bad_end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "int-vector contents list is not a proper list", 45)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "int-vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 75),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_pointer vec = make_simple_int_vector(sc, len);
-    s7_int i = 0;
-    if (len == 0) return(vec);
-    for (s7_pointer arglist = args; is_pair(arglist); arglist = cdr(arglist), i++)
-      {
-	s7_pointer num = car(arglist);
-	if (!s7_is_integer(num))
-	  return(method_or_bust(sc, num, sc->int_vector_symbol, args, sc->type_names[T_INTEGER], i + 1));
-	int_vector(vec, i) = s7_integer_clamped_if_gmp(sc, num);
-      }
-    return(vec);
-  }
-}
+/* g_int_vector is now defined in s7_liii_vector.c */
 
 static s7_pointer int_vector_p_i(s7_scheme *sc, s7_int x)
 {
@@ -33927,88 +33832,11 @@ static s7_pointer int_vector_p_i(s7_scheme *sc, s7_int x)
 /* p_ii case doesn't get any hits */
 
 
-/* -------------------------------- byte-vector? -------------------------------- */
-static s7_pointer g_is_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_byte_vector "(byte-vector? obj) returns #t if obj is a byte-vector"
-  #define Q_is_byte_vector sc->pl_bt
-  check_boolean_method(sc, is_byte_vector_b_p, sc->is_byte_vector_symbol, args);
-}
-
-
 /* -------------------------------- byte-vector -------------------------------- */
-static s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_byte_vector "(byte-vector ...) returns a byte-vector whose elements are the arguments"
-  #define Q_byte_vector s7_make_circular_signature(sc, 1, 2, sc->is_byte_vector_symbol, sc->is_byte_symbol)
-
-  s7_pointer bad_end = sc->nil;
-  const s7_int len = proper_list_length_with_end(args, &bad_end);
-  if (!is_null(bad_end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "byte-vector contents list is not a proper list", 46)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "byte-vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 76),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_int i = 0;
-    s7_pointer vec = make_simple_byte_vector(sc, len);
-    uint8_t *str = byte_vector_bytes(vec);
-    if (len == 0) return(vec);
-    for (s7_pointer arglist = args; is_pair(arglist); i++, arglist = cdr(arglist))
-      {
-	s7_pointer byte = car(arglist);
-	s7_int b;
-	if (is_t_integer(byte))
-	  b = integer(byte);
-	else
-	    return(method_or_bust(sc, byte, sc->byte_vector_symbol, args, sc->type_names[T_INTEGER], i + 1));
-	if ((b < 0) || (b > 255))
-	  wrong_type_error_nr(sc, sc->byte_vector_symbol, i + 1, byte, an_unsigned_byte_string);
-	str[i] = (uint8_t)b;
-      }
-    return(vec);
-  }
-}
-
-/* -------------------------------- complex-vector? -------------------------------- */
-static s7_pointer g_is_complex_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_complex_vector "(complex-vector? obj) returns #t if obj is an homogeneous complex vector"
-  #define Q_is_complex_vector sc->pl_bt
-  check_boolean_method(sc, s7_is_complex_vector, sc->is_complex_vector_symbol, args);
-}
-
+/* g_byte_vector is now defined in s7_liii_vector.c */
 
 /* -------------------------------- complex-vector -------------------------------- */
-static s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_complex_vector "(complex-vector ...) returns an homogeneous complex vector whose elements are the arguments"
-  #define Q_complex_vector s7_make_circular_signature(sc, 1, 2, sc->is_complex_vector_symbol, sc->is_complex_symbol)
-
-  s7_pointer bad_end = sc->nil;
-  const s7_int len = proper_list_length_with_end(args, &bad_end);
-  if (!is_null(bad_end))
-    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "complex-vector contents list is not a proper list", 49)));
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "complex-vector has too many arguments: '~S, but (*s7* 'max-vector-length) is ~D", 79),
-			 args, wrap_integer(sc, sc->max_vector_length)));
-  {
-    s7_pointer vec = make_simple_complex_vector(sc, len);
-    s7_int i = 0;
-    if (len == 0) return(vec);
-    for (s7_pointer arglist = args; is_pair(arglist); arglist = cdr(arglist), i++)
-      {
-	s7_pointer num = car(arglist);
-	if (is_number(num))
-	  complex_vector(vec, i) = s7_to_c_complex(num);
-	else return(method_or_bust(sc, num, sc->complex_vector_symbol, args, sc->type_names[T_COMPLEX], i + 1));
-      }
-    return(vec);
-  }
-}
-
+/* g_complex_vector is now defined in s7_liii_vector.c */
 
 #if !WITH_PURE_S7
 /* -------------------------------- list->vector -------------------------------- */
@@ -91040,9 +90868,17 @@ static void init_rootlet(s7_scheme *sc)
   #define H_is_vector "(vector? obj) returns #t if obj is a vector"
   #define Q_is_vector sc->pl_bt
   sc->is_vector_symbol =          bool_defun("vector?",	         is_vector,	     0, T_FREE,         mark_vector_1,      false);
+  #define H_is_float_vector "(float-vector? obj) returns #t if obj is an homogeneous float vector"
+  #define Q_is_float_vector sc->pl_bt
   sc->is_float_vector_symbol =    bool_defun("float-vector?",    is_float_vector,    0, T_FLOAT_VECTOR, mark_simple_vector, true);
+  #define H_is_complex_vector "(complex-vector? obj) returns #t if obj is an homogeneous complex vector"
+  #define Q_is_complex_vector sc->pl_bt
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
+  #define H_is_int_vector "(int-vector? obj) returns #t if obj is an homogeneous s7_int vector"
+  #define Q_is_int_vector sc->pl_bt
   sc->is_int_vector_symbol =      bool_defun("int-vector?",      is_int_vector,	     0, T_INT_VECTOR,   mark_simple_vector, true);
+  #define H_is_byte_vector "(byte-vector? obj) returns #t if obj is a byte-vector"
+  #define Q_is_byte_vector sc->pl_bt
   sc->is_byte_vector_symbol =     bool_defun("byte-vector?",     is_byte_vector,     0, T_BYTE_VECTOR,  mark_simple_vector, true);
 
   #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
@@ -91461,26 +91297,38 @@ static void init_rootlet(s7_scheme *sc)
   #define Q_subvector_vector s7_make_signature(sc, 2, sc->is_vector_symbol, sc->is_subvector_symbol)
   sc->subvector_vector_symbol =      defun("subvector-vector",  subvector_vector,       1, 0, false);
 
+  #define H_float_vector "(float-vector ...) returns an homogeneous float vector whose elements are the arguments"
+  #define Q_float_vector s7_make_circular_signature(sc, 1, 2, sc->is_float_vector_symbol, sc->is_real_symbol)
   sc->float_vector_symbol =          defun("float-vector",	float_vector,		0, 0, true);
   sc->make_float_vector_symbol =     defun("make-float-vector", make_float_vector,	1, 1, false);
   sc->float_vector_set_symbol =      defun("float-vector-set!", float_vector_set,	3, 0, true);
   sc->float_vector_ref_symbol =      defun("float-vector-ref",  float_vector_ref,	2, 0, true);
 
+  #define H_complex_vector "(complex-vector ...) returns an homogeneous complex vector whose elements are the arguments"
+  #define Q_complex_vector s7_make_circular_signature(sc, 1, 2, sc->is_complex_vector_symbol, sc->is_complex_symbol)
   sc->complex_vector_symbol =        defun("complex-vector",	complex_vector,		0, 0, true);
   sc->make_complex_vector_symbol =   defun("make-complex-vector", make_complex_vector,	1, 1, false);
   sc->complex_vector_set_symbol =    defun("complex-vector-set!", complex_vector_set,	3, 0, true);
   sc->complex_vector_ref_symbol =    defun("complex-vector-ref",  complex_vector_ref,	2, 0, true);
 
+  #define H_int_vector "(int-vector ...) returns an homogeneous s7_int vector whose elements are the arguments"
+  #define Q_int_vector s7_make_circular_signature(sc, 1, 2, sc->is_int_vector_symbol, sc->is_integer_symbol)
   sc->int_vector_symbol =            defun("int-vector",	int_vector,		0, 0, true);
   sc->make_int_vector_symbol =       defun("make-int-vector",	make_int_vector,	1, 1, false);
   sc->int_vector_set_symbol =        defun("int-vector-set!",	int_vector_set,		3, 0, true);
   sc->int_vector_ref_symbol =        defun("int-vector-ref",	int_vector_ref,		2, 0, true);
 
+  #define H_byte_vector "(byte-vector ...) returns a byte-vector whose elements are the arguments"
+  #define Q_byte_vector s7_make_circular_signature(sc, 1, 2, sc->is_byte_vector_symbol, sc->is_byte_symbol)
   sc->byte_vector_symbol =           defun("byte-vector",	byte_vector,		0, 0, true);
   sc->make_byte_vector_symbol =      defun("make-byte-vector",  make_byte_vector,	1, 1, false);
   sc->byte_vector_ref_symbol =       defun("byte-vector-ref",	byte_vector_ref,        2, 0, true);
   sc->byte_vector_set_symbol =       defun("byte-vector-set!",	byte_vector_set,	3, 0, true);
+  #define H_string_to_byte_vector "(string->byte-vector obj) turns a string into a byte-vector."
+  #define Q_string_to_byte_vector s7_make_signature(sc, 2, sc->is_byte_vector_symbol, sc->is_string_symbol)
   sc->string_to_byte_vector_symbol = defun("string->byte-vector", string_to_byte_vector, 1, 0, false);
+  #define H_byte_vector_to_string "(byte-vector->string obj) turns a byte-vector into a string."
+  #define Q_byte_vector_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_byte_vector_symbol)
   sc->byte_vector_to_string_symbol = defun("byte-vector->string", byte_vector_to_string, 1, 0, false);
 
   sc->hash_table_symbol =            defun("hash-table",	hash_table,		0, 0, true);
