@@ -162,7 +162,10 @@
     ;; ; ---------------------------------------------------------
 
     (define (json-contains-key? json key)
-      (and (pair? json) (not (equal? json '(()))) (if (assoc key json) #t #f))
+      (if (not (json-object? json))
+        #f
+        (if (equal? json '(())) #f (if (assoc key json) #t #f))
+      ) ;if
     ) ;define
 
     ;; ; ---------------------------------------------------------
@@ -202,10 +205,7 @@
     ;; ; ---------------------------------------------------------
 
     (define (json-keys json)
-      (if (and (list? json) (not (null? json)) (not (equal? json '(()))))
-        (map car json)
-        '()
-      ) ;if
+      (if (json-object? json) (if (equal? json '(())) '() (map car json)) '())
     ) ;define
 
   ) ;begin
