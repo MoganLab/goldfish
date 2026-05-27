@@ -408,6 +408,7 @@
 #include "s7_liii_hash_table.h"
 #include "s7_liii_list.h"
 #include "s7_liii_vector.h"
+#include "s7_liii_tree.h"
 #include "s7_module.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
@@ -11817,12 +11818,14 @@ static bool tree_is_cyclic(s7_scheme *sc, s7_pointer tree)
   return(result);
 }
 
-static s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args)
+bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer tree)
 {
-  #define H_tree_is_cyclic "(tree-cyclic? tree) returns #t if the tree has a cycle."
-  #define Q_tree_is_cyclic sc->pl_bt
-  return(make_boolean(sc, tree_is_cyclic(sc, car(args))));
+  return(tree_is_cyclic(sc, tree));
 }
+
+/* g_tree_is_cyclic is now defined in s7_liii_tree.c */
+#define H_tree_is_cyclic "(tree-cyclic? tree) returns #t if the tree has a cycle."
+#define Q_tree_is_cyclic sc->pl_bt
 
 static inline s7_int tree_len(s7_scheme *sc, s7_pointer p);
 
@@ -30669,12 +30672,14 @@ static s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
   return(method_or_bust_p(sc, tree, sc->tree_leaves_symbol, a_list_string));
 }
 
-static s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
 {
-  #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
-  #define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
-  return(tree_leaves_p_p(sc, car(args)));
+  return(tree_leaves_p_p(sc, tree));
 }
+
+/* g_tree_leaves is now defined in s7_liii_tree.c */
+#define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
+#define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
 
 
 /* ---------------- tree-memq ---------------- */
@@ -30731,12 +30736,14 @@ static bool tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
   return(s7_tree_memq(sc, sym, tree));
 }
 
-static s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args)
+bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
 {
-  #define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
-  #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
-  return(make_boolean(sc, tree_memq_b_7pp(sc, car(args), cadr(args))));
+  return(tree_memq_b_7pp(sc, sym, tree));
 }
+
+/* g_tree_memq is now defined in s7_liii_tree.c */
+#define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
+#define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
 
 static /* inline */ bool tree_including_quote_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)    /* sym need not be a symbol */
 {
@@ -30833,12 +30840,14 @@ static s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer 
   return(make_boolean(sc, tree_set_memq_b_7pp(sc, syms, tree)));
 }
 
-static s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
 {
-  #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
-  #define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
-  return(make_boolean(sc, tree_set_memq_b_7pp(sc, car(args), cadr(args))));
+  return(tree_set_memq_p_pp(sc, syms, tree));
 }
+
+/* g_tree_set_memq is now defined in s7_liii_tree.c */
+#define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
+#define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
 
 static s7_pointer tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
 {
@@ -30862,10 +30871,12 @@ static s7_pointer tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_p
   }
 }
 
-static s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
 {
-  return(tree_set_memq_syms_direct(sc, car(args), cadr(args))); /* need other form for pp */
+  return(tree_set_memq_syms_direct(sc, syms, tree));
 }
+
+/* g_tree_set_memq_syms is now defined in s7_liii_tree.c */
 
 static s7_pointer tree_set_memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
 {
@@ -30889,6 +30900,11 @@ static s7_int tree_count(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int 
   return(tree_count(sc, obj, cdr(tree), tree_count(sc, obj, car(tree), count)));
 }
 
+s7_int s7i_tree_count(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count)
+{
+  return(tree_count(sc, obj, tree, count));
+}
+
 static inline s7_int tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count, s7_int top)
 {
   if (tree == obj) return(count + 1);
@@ -30902,32 +30918,14 @@ static inline s7_int tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_point
   return(count);
 }
 
-static s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args)
+s7_int s7i_tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count, s7_int top)
 {
-  #define H_tree_count "(tree-count obj tree max-count) returns how many times obj is in tree (using eq?), stopping at max-count (if specified)"
-  #define Q_tree_count s7_make_signature(sc, 4, sc->is_integer_symbol, sc->T, sc->is_list_symbol, sc->is_integer_symbol)
-  const s7_pointer obj = car(args), tree = cadr(args);
-  s7_pointer count;
-
-  if (!is_pair(tree))
-    {
-      if ((is_pair(cddr(args))) &&
-	  (!s7_is_integer(caddr(args))))
-	wrong_type_error_nr(sc, sc->tree_count_symbol, 3, caddr(args), sc->type_names[T_INTEGER]);
-      if (is_null(tree)) return(int_zero);
-      if (!has_active_methods(sc, tree))
-	wrong_type_error_nr(sc, sc->tree_count_symbol, 2, tree, a_list_string);
-      return(find_and_apply_method(sc, tree, sc->tree_count_symbol, set_mlist_2(sc, obj, tree)));
-    }
-  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-count: tree is cyclic: ~S", 30), tree));
-  if (is_null(cddr(args)))
-    return(make_integer(sc, tree_count(sc, obj, tree, 0)));
-  count = caddr(args);
-  if (!s7_is_integer(count))
-    wrong_type_error_nr(sc, sc->tree_count_symbol, 3, count, sc->type_names[T_INTEGER]);
-  return(make_integer(sc, tree_count_at_least(sc, obj, tree, 0, s7_integer_clamped_if_gmp(sc, count))));
+  return(tree_count_at_least(sc, obj, tree, count, top));
 }
+
+/* g_tree_count is now defined in s7_liii_tree.c */
+#define H_tree_count "(tree-count obj tree max-count) returns how many times obj is in tree (using eq?), stopping at max-count (if specified)"
+#define Q_tree_count s7_make_signature(sc, 4, sc->is_integer_symbol, sc->T, sc->is_list_symbol, sc->is_integer_symbol)
 
 
 /* -------------------------------- pair? -------------------------------- */

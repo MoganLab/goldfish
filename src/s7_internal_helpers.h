@@ -87,6 +87,15 @@ bool s7i_is_weak_hash_table(s7_pointer p);
 void s7i_set_weak_hash_table(s7_pointer p);
 void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
+/* tree helpers */
+bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer tree);
+s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer tree);
+bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
+s7_pointer s7i_tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+s7_int s7i_tree_count(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count);
+s7_int s7i_tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count, s7_int top);
+
 #ifdef __cplusplus
 }
 #endif
