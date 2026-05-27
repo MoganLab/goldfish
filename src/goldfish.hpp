@@ -2713,6 +2713,9 @@ glue_liii_os (s7_scheme* sc) {
   glue_getpid (sc);
 }
 
+inline void
+glue_liii_subprocess (s7_scheme* sc);
+
 static s7_pointer
 f_uuid4 (s7_scheme* sc, s7_pointer args) {
   tb_char_t        uuid[37];
@@ -3460,6 +3463,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_process_context (sc);
   glue_liii_sys (sc);
   glue_liii_os (sc);
+  glue_liii_subprocess (sc);
   glue_liii_path (sc);
   glue_liii_list (sc);
   glue_liii_time (sc);
