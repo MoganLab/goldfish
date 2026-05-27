@@ -103,6 +103,94 @@ s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = s7_list_length(sc, args);
+  if (len < 0)
+    return(s7_error(sc, s7_make_symbol(sc, "read-error"),
+                    s7_cons(sc, s7_make_string(sc, "float-vector contents list is not a proper list"), s7_nil(sc))));
+  {
+    s7_pointer vec = s7_make_float_vector(sc, len, 0, NULL);
+    s7_int i = 0;
+    if (len == 0) return(vec);
+    for (s7_pointer nums = args; s7_is_pair(nums); nums = s7_cdr(nums), i++)
+      {
+        s7_pointer num = s7_car(nums);
+        if (!s7_is_real(num))
+          return(s7i_method_or_bust(sc, num, "float-vector", args, "a real", i + 1));
+        s7_float_vector_set(vec, i, s7_real(num));
+      }
+    return(vec);
+  }
+}
+
+s7_pointer g_int_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = s7_list_length(sc, args);
+  if (len < 0)
+    return(s7_error(sc, s7_make_symbol(sc, "read-error"),
+                    s7_cons(sc, s7_make_string(sc, "int-vector contents list is not a proper list"), s7_nil(sc))));
+  {
+    s7_pointer vec = s7_make_int_vector(sc, len, 0, NULL);
+    s7_int i = 0;
+    if (len == 0) return(vec);
+    for (s7_pointer arglist = args; s7_is_pair(arglist); arglist = s7_cdr(arglist), i++)
+      {
+        s7_pointer num = s7_car(arglist);
+        if (!s7_is_integer(num))
+          return(s7i_method_or_bust(sc, num, "int-vector", args, "an integer", i + 1));
+        s7_int_vector_set(vec, i, s7_integer(num));
+      }
+    return(vec);
+  }
+}
+
+s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = s7_list_length(sc, args);
+  if (len < 0)
+    return(s7_error(sc, s7_make_symbol(sc, "read-error"),
+                    s7_cons(sc, s7_make_string(sc, "byte-vector contents list is not a proper list"), s7_nil(sc))));
+  {
+    s7_pointer vec = s7_make_byte_vector(sc, len, 0, NULL);
+    s7_int i = 0;
+    if (len == 0) return(vec);
+    for (s7_pointer arglist = args; s7_is_pair(arglist); i++, arglist = s7_cdr(arglist))
+      {
+        s7_pointer byte = s7_car(arglist);
+        s7_int b;
+        if (!s7_is_integer(byte))
+          return(s7i_method_or_bust(sc, byte, "byte-vector", args, "an integer", i + 1));
+        b = s7_integer(byte);
+        if ((b < 0) || (b > 255))
+          return(s7_wrong_type_arg_error(sc, "byte-vector", i + 1, byte, "a byte"));
+        s7_byte_vector_set(vec, i, (uint8_t)b);
+      }
+    return(vec);
+  }
+}
+
+s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = s7_list_length(sc, args);
+  if (len < 0)
+    return(s7_error(sc, s7_make_symbol(sc, "read-error"),
+                    s7_cons(sc, s7_make_string(sc, "complex-vector contents list is not a proper list"), s7_nil(sc))));
+  {
+    s7_pointer vec = s7i_make_simple_complex_vector(sc, len);
+    s7_int i = 0;
+    if (len == 0) return(vec);
+    for (s7_pointer arglist = args; s7_is_pair(arglist); arglist = s7_cdr(arglist), i++)
+      {
+        s7_pointer num = s7_car(arglist);
+        if (!s7_is_number(num))
+          return(s7i_method_or_bust(sc, num, "complex-vector", args, "a number", i + 1));
+        s7_complex_vector_elements(vec)[i] = s7i_to_c_complex(num);
+      }
+    return(vec);
+  }
+}
+
 s7_pointer g_vector_rank(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);

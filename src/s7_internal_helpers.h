@@ -65,6 +65,8 @@ s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices);
 s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind);
 
 s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
+s7_pointer s7i_make_simple_complex_vector(s7_scheme *sc, s7_int len);
+s7_complex s7i_to_c_complex(s7_pointer z);
 s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
 
