@@ -8,6 +8,7 @@
 
 #include "s7_liii_vector.h"
 #include "s7_internal_helpers.h"
+#include <string.h>
 
 #ifndef WITH_PURE_S7
 #define WITH_PURE_S7 0
@@ -75,6 +76,30 @@ s7_pointer g_is_complex_vector(s7_scheme *sc, s7_pointer args)
     s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "complex-vector?"));
     if (func == s7_undefined(sc)) return(s7_f(sc));
     return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+s7_pointer g_string_to_byte_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_p(sc, str, "string->byte-vector", "a string"));
+  {
+    s7_int len = s7_string_length(str);
+    s7_pointer bv = s7_make_byte_vector(sc, len, 0, NULL);
+    memcpy(s7_byte_vector_elements(bv), s7_string(str), len);
+    return(bv);
+  }
+}
+
+s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer bv = s7_car(args);
+  if (!s7_is_byte_vector(bv))
+    return(s7i_method_or_bust_p(sc, bv, "byte-vector->string", "a byte-vector"));
+  {
+    s7_int len = s7_vector_length(bv);
+    return(s7_make_string_with_length(sc, (const char *)s7_byte_vector_elements(bv), len));
   }
 }
 

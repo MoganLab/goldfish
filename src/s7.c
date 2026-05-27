@@ -33773,38 +33773,6 @@ static s7_pointer vector_to_list_p_p(s7_scheme *sc, s7_pointer vec)
 #endif
 
 
-/* -------------------------------- string->byte-vector -------------------------------- */
-static s7_pointer g_string_to_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_byte_vector "(string->byte-vector obj) turns a string into a byte-vector."
-  #define Q_string_to_byte_vector s7_make_signature(sc, 2, sc->is_byte_vector_symbol, sc->is_string_symbol)
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust_p(sc, str, sc->string_to_byte_vector_symbol, sc->type_names[T_STRING]));
-  if (string_length(str) > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "string->byte-vector string is too long: (> ~D ~D) (*s7* 'max-vector-length)", 75),
-			 wrap_integer(sc, string_length(str)), wrap_integer(sc, sc->max_vector_length)));
-  return(s7_copy_1(sc, sc->string_to_byte_vector_symbol, set_plist_2(sc, str, make_simple_byte_vector(sc, string_length(str)))));
-}
-
-
-/* -------------------------------- byte-vector->string -------------------------------- */
-static s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_byte_vector_to_string "(byte-vector->string obj) turns a byte-vector into a string."
-  #define Q_byte_vector_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_byte_vector_symbol)
-  s7_pointer bv = car(args);
-  if (!is_byte_vector(bv))
-    return(method_or_bust_p(sc, bv, sc->byte_vector_to_string_symbol, sc->type_names[T_BYTE_VECTOR]));
-  if (byte_vector_length(bv) > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "byte-vector->string byte-vector is too large: (> ~D ~D) (*s7* 'max-string-length)", 81),
-			 wrap_integer(sc, byte_vector_length(bv)), wrap_integer(sc, sc->max_string_length)));
-  return(s7_copy_1(sc, sc->byte_vector_to_string_symbol, set_plist_2(sc, bv, make_empty_string(sc, byte_vector_length(bv), '\0'))));
-}
-
-
 /* -------------------------------- vector -------------------------------- */
 /* g_vector, g_vector_2, g_vector_3 are now defined in s7_liii_vector.c */
 
@@ -91452,7 +91420,11 @@ static void init_rootlet(s7_scheme *sc)
   sc->make_byte_vector_symbol =      defun("make-byte-vector",  make_byte_vector,	1, 1, false);
   sc->byte_vector_ref_symbol =       defun("byte-vector-ref",	byte_vector_ref,        2, 0, true);
   sc->byte_vector_set_symbol =       defun("byte-vector-set!",	byte_vector_set,	3, 0, true);
+  #define H_string_to_byte_vector "(string->byte-vector obj) turns a string into a byte-vector."
+  #define Q_string_to_byte_vector s7_make_signature(sc, 2, sc->is_byte_vector_symbol, sc->is_string_symbol)
   sc->string_to_byte_vector_symbol = defun("string->byte-vector", string_to_byte_vector, 1, 0, false);
+  #define H_byte_vector_to_string "(byte-vector->string obj) turns a byte-vector into a string."
+  #define Q_byte_vector_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_byte_vector_symbol)
   sc->byte_vector_to_string_symbol = defun("byte-vector->string", byte_vector_to_string, 1, 0, false);
 
   sc->hash_table_symbol =            defun("hash-table",	hash_table,		0, 0, true);
