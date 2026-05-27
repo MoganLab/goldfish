@@ -34,6 +34,50 @@ s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer g_is_float_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_float_vector(p)) return(s7_t(sc));
+  {
+    s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "float-vector?"));
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+s7_pointer g_is_int_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_int_vector(p)) return(s7_t(sc));
+  {
+    s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "int-vector?"));
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+s7_pointer g_is_byte_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_byte_vector(p)) return(s7_t(sc));
+  {
+    s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "byte-vector?"));
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+s7_pointer g_is_complex_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_complex_vector(p)) return(s7_t(sc));
+  {
+    s7_pointer func = s7_method(sc, p, s7_make_symbol(sc, "complex-vector?"));
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
 s7_pointer g_vector_rank(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);

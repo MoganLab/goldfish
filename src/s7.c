@@ -33823,15 +33823,6 @@ static s7_pointer vector_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 }
 
 
-/* -------------------------------- float-vector? -------------------------------- */
-static s7_pointer g_is_float_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_float_vector "(float-vector? obj) returns #t if obj is an homogeneous float vector"
-  #define Q_is_float_vector sc->pl_bt
-  check_boolean_method(sc, s7_is_float_vector, sc->is_float_vector_symbol, args);
-}
-
-
 /* -------------------------------- float-vector -------------------------------- */
 static s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
 {
@@ -33880,15 +33871,6 @@ static s7_pointer float_vector_p_i(s7_scheme *sc, s7_int x) /* thash */
 /* p_dd case doesn't get any hits */
 
 
-/* -------------------------------- int-vector? -------------------------------- */
-static s7_pointer g_is_int_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_int_vector "(int-vector? obj) returns #t if obj is an homogeneous s7_int vector"
-  #define Q_is_int_vector sc->pl_bt
-  check_boolean_method(sc, is_int_vector, sc->is_int_vector_symbol, args);
-}
-
-
 /* -------------------------------- int-vector -------------------------------- */
 static s7_pointer g_int_vector(s7_scheme *sc, s7_pointer args)
 {
@@ -33927,15 +33909,6 @@ static s7_pointer int_vector_p_i(s7_scheme *sc, s7_int x)
 /* p_ii case doesn't get any hits */
 
 
-/* -------------------------------- byte-vector? -------------------------------- */
-static s7_pointer g_is_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_byte_vector "(byte-vector? obj) returns #t if obj is a byte-vector"
-  #define Q_is_byte_vector sc->pl_bt
-  check_boolean_method(sc, is_byte_vector_b_p, sc->is_byte_vector_symbol, args);
-}
-
-
 /* -------------------------------- byte-vector -------------------------------- */
 static s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
 {
@@ -33970,15 +33943,6 @@ static s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
     return(vec);
   }
 }
-
-/* -------------------------------- complex-vector? -------------------------------- */
-static s7_pointer g_is_complex_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_complex_vector "(complex-vector? obj) returns #t if obj is an homogeneous complex vector"
-  #define Q_is_complex_vector sc->pl_bt
-  check_boolean_method(sc, s7_is_complex_vector, sc->is_complex_vector_symbol, args);
-}
-
 
 /* -------------------------------- complex-vector -------------------------------- */
 static s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
@@ -91040,9 +91004,17 @@ static void init_rootlet(s7_scheme *sc)
   #define H_is_vector "(vector? obj) returns #t if obj is a vector"
   #define Q_is_vector sc->pl_bt
   sc->is_vector_symbol =          bool_defun("vector?",	         is_vector,	     0, T_FREE,         mark_vector_1,      false);
+  #define H_is_float_vector "(float-vector? obj) returns #t if obj is an homogeneous float vector"
+  #define Q_is_float_vector sc->pl_bt
   sc->is_float_vector_symbol =    bool_defun("float-vector?",    is_float_vector,    0, T_FLOAT_VECTOR, mark_simple_vector, true);
+  #define H_is_complex_vector "(complex-vector? obj) returns #t if obj is an homogeneous complex vector"
+  #define Q_is_complex_vector sc->pl_bt
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
+  #define H_is_int_vector "(int-vector? obj) returns #t if obj is an homogeneous s7_int vector"
+  #define Q_is_int_vector sc->pl_bt
   sc->is_int_vector_symbol =      bool_defun("int-vector?",      is_int_vector,	     0, T_INT_VECTOR,   mark_simple_vector, true);
+  #define H_is_byte_vector "(byte-vector? obj) returns #t if obj is a byte-vector"
+  #define Q_is_byte_vector sc->pl_bt
   sc->is_byte_vector_symbol =     bool_defun("byte-vector?",     is_byte_vector,     0, T_BYTE_VECTOR,  mark_simple_vector, true);
 
   #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
