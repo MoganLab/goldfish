@@ -142,3 +142,79 @@ s7_pointer g_list(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_copy_proper_list(sc, args));
 }
+
+s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
+{
+  #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
+  #define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
+
+  s7_int index;
+  s7_pointer p = lst, ind;
+
+  if (!s7_is_pair(lst) || s7_is_immutable(lst))
+    return(s7_wrong_type_arg_error(sc, "list-set!", 1, lst, "a mutable pair"));
+  ind = s7_car(args);
+  if ((arg_num > 2) && s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_set_car(lst, ind);
+      return(ind);
+    }
+  if (!s7_is_integer(ind))
+    {
+      s7_pointer full_args = s7_cons(sc, lst, args);
+      return(s7i_method_or_bust(sc, ind, "list-set!", full_args, "an integer", 2));
+    }
+  index = s7_integer(ind);
+
+  if (index < 0)
+    return(s7_out_of_range_error(sc, "list-set!", arg_num, ind, "it is negative"));
+  if (index > s7i_max_list_length(sc))
+    return(s7_out_of_range_error(sc, "list-set!", arg_num, ind, "it is too large"));
+
+  for (s7_int i = 0; (i < index) && s7_is_pair(p); i++, p = s7_cdr(p)) {}
+  if (!s7_is_pair(p))
+    {
+      if (s7_is_null(sc, p))
+        return(s7_out_of_range_error(sc, "list-set!", arg_num, ind, "it is too large"));
+      return(s7_wrong_type_arg_error(sc, "list-set!", 1, lst, "a proper list"));
+    }
+  if (s7_is_null(sc, s7_cddr(args)))
+    s7_set_car(p, s7_cadr(args));
+  else
+    {
+      if (!s7_is_pair(s7_car(p)))
+        return(s7_wrong_number_of_args_error(sc, "list-set!", args));
+      return(g_list_set_1(sc, s7_car(p), s7_cdr(args), arg_num + 1));
+    }
+  return(s7_cadr(args));
+}
+
+s7_pointer g_list_set(s7_scheme *sc, s7_pointer args)
+{
+  return(g_list_set_1(sc, s7_car(args), s7_cdr(args), 2));
+}
+
+s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  s7_pointer p = lst;
+  s7_int index;
+  if (!s7_is_pair(lst) || s7_is_immutable(lst))
+    return(s7_wrong_type_arg_error(sc, "list-set!", 1, lst, "a mutable pair"));
+  index = s7_integer(s7_cadr(args));
+  if ((index < 0) || (index > s7i_max_list_length(sc)))
+    return(s7_out_of_range_error(sc, "list-set!", 2, s7_make_integer(sc, index), "it is negative or too large"));
+
+  for (s7_int i = 0; (i < index) && s7_is_pair(p); i++, p = s7_cdr(p)) {}
+  if (!s7_is_pair(p))
+    {
+      if (s7_is_null(sc, p))
+        return(s7_out_of_range_error(sc, "list-set!", 2, s7_make_integer(sc, index), "it is too large"));
+      return(s7_wrong_type_arg_error(sc, "list-set!", 1, lst, "a proper list"));
+    }
+  {
+    s7_pointer val = s7_caddr(args);
+    s7_set_car(p, val);
+    return(val);
+  }
+}

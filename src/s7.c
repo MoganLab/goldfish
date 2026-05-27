@@ -31238,53 +31238,10 @@ s7_pointer s7_list_set(s7_scheme *sc, s7_pointer lst, s7_int num, s7_pointer val
   return(val);
 }
 
-static s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
-{
-  #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
-  #define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
+/* g_list_set and g_list_set_i are now defined in s7_liii_list.c */
 
-  s7_int index;
-  s7_pointer p = lst, ind;
-  /* (let ((L '((1 2 3) (4 5 6)))) (list-set! L 1 2 32) L) */
-
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->list_set_symbol, set_ulist_1(sc, lst, args), sc->type_names[T_PAIR], 1));
-  ind = car(args);
-  if ((arg_num > 2) && (is_null(cdr(args))))
-    {
-      set_car(lst, ind);
-      return(ind);
-    }
-  if (!s7_is_integer(ind))
-    return(method_or_bust(sc, ind, sc->list_set_symbol, set_ulist_1(sc, lst, args), sc->type_names[T_INTEGER], 2));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-
-  if (index < 0) /* arg_num used here so can't use list_set_index_check */
-    out_of_range_error_nr(sc, sc->list_set_symbol, wrap_integer(sc, arg_num), ind, it_is_negative_string);
-  if (index > sc->max_list_length) /* (list-set! (list 1 2 3) (ash 1 61) 0) */
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_4(sc, wrap_string(sc, "list-set! ~:D argument ~D is too large, (*s7* 'max-list-length) is ~D", 69),
-			 wrap_integer(sc, arg_num), ind, wrap_integer(sc, sc->max_list_length)));
-
-  for (s7_int i = 0; (i < index) && is_pair(p); i++, p = cdr(p)) {}
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_set_symbol, wrap_integer(sc, arg_num), ind, it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, a_proper_list_string);
-    }
-  if (is_null(cddr(args)))
-    set_car(p, cadr(args));
-  else
-    {
-      if (!s7_is_pair(car(p)))
-	wrong_number_of_arguments_error_nr(sc, "too many arguments for list-set!: ~S", 36, args);
-      return(g_list_set_1(sc, car(p), cdr(args), arg_num + 1));
-    }
-  return(cadr(args)); /* args here == cdr(args) of original call */
-}
-
-static s7_pointer g_list_set(s7_scheme *sc, s7_pointer args) {return(g_list_set_1(sc, car(args), cdr(args), 2));}
+#define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
+#define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
 
 static no_return void list_set_index_check_nr(s7_scheme *sc, s7_int index)
 {
@@ -31315,30 +31272,6 @@ static s7_pointer list_set_p_pip(s7_scheme *sc, s7_pointer lst, s7_int index, s7
   if (!is_pair(lst))
     wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, sc->type_names[T_PAIR]);
   return(list_set_p_pip_unchecked(sc, lst, index, value));
-}
-
-static s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer lst = car(args);
-  s7_pointer p = lst;
-  s7_int index;
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->list_set_symbol, args, sc->type_names[T_PAIR], 1));
-  index = s7_integer_clamped_if_gmp(sc, cadr(args));
-  if ((index < 0) || (index > sc->max_list_length)) list_set_index_check_nr(sc, index);
-
-  for (s7_int i = 0; (i < index) && is_pair(p); i++, p = cdr(p)) {}
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_set_symbol, int_two, wrap_integer(sc, index), it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, a_proper_list_string);
-    }
-  {
-    s7_pointer val = caddr(args);
-    set_car(p, val);
-    return(val);
-  }
 }
 
 static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)

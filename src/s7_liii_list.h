@@ -29,6 +29,10 @@ s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cons(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list(s7_scheme *sc, s7_pointer args);
 
+s7_pointer g_list_set(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num);
+
 #ifdef __cplusplus
 }
 #endif
