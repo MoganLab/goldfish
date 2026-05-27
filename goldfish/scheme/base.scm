@@ -19,6 +19,10 @@
     ;; R7RS 5: Program Structure
     define-values
     define-record-type
+    ;; R7RS 6.1: Equivalence predicates
+    eqv?
+    eq?
+    equal?
     ;; R7RS 6.2: Numbers
     ;; - 比较和算术
     =
@@ -103,6 +107,7 @@
     assoc
     list-copy
     map
+    for-each
     ;; R7RS 6.5: Symbol
     symbol?
     symbol=?
@@ -136,6 +141,14 @@
     string<=?
     string>=?
     ;; R7RS 6.8: Vector
+    vector?
+    make-vector
+    vector
+    vector-length
+    vector-ref
+    vector-set!
+    vector->list
+    list->vector
     vector->string
     string->vector
     vector-copy
@@ -156,20 +169,57 @@
     bytevector-advance-utf8
     ;; Input and Output
     call-with-port
+    call-with-input-file
+    call-with-output-file
+    input-port?
+    output-port?
     port?
     binary-port?
     textual-port?
     input-port-open?
     output-port-open?
+    current-input-port
+    current-output-port
+    current-error-port
+    open-input-file
+    open-output-file
     open-binary-input-file
     open-binary-output-file
     close-port
+    close-input-port
+    close-output-port
+    open-input-string
+    open-output-string
+    get-output-string
+    read-char
+    peek-char
+    read-line
+    read-string
+    read
+    write-char
+    write
+    display
+    newline
+    write-shared
+    write-simple
+    flush-output-port
+    eof-object?
     eof-object
+    char-ready?
+    with-input-from-file
+    with-output-to-file
     ;; Control flow
+    procedure?
+    apply
     string-map
     vector-map
     string-for-each
     vector-for-each
+    call-with-current-continuation
+    call/cc
+    values
+    call-with-values
+    dynamic-wind
     ;; Exception
     raise
     guard
