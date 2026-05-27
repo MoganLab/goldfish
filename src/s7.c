@@ -21030,25 +21030,10 @@ end: (substring \"01234\" 1 2) -> \"1\""
 #define Q_substring s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
 /* g_substring is now defined in s7_liii_string.c */
 
-static s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args)
-{
-  #define H_substring_uncopied "(substring-uncopied str start (end (length str))) returns an immutable string sharing the portion of the string str between start and \
+#define H_substring_uncopied "(substring-uncopied str start (end (length str))) returns an immutable string sharing the portion of the string str between start and \
 end: (substring-uncopied \"01234\" 1 2) -> \"1\".  substring-uncopied does not GC protect the original string; it is intended for very brief uses."
-  #define Q_substring_uncopied s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  const s7_pointer str = car(args);
-  s7_int start = 0, end;
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->substring_uncopied_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->substring_uncopied_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-    }
-  return(wrap_string(sc, (char *)(string_value(str) + start), end - start));
-}
+#define Q_substring_uncopied s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_substring_uncopied is now defined in s7_liii_string.c */
 
 static s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start, s7_int end)
 {
@@ -21526,18 +21511,9 @@ static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 
 /* -------------------------------- list->string -------------------------------- */
 #if !WITH_PURE_S7
-static s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_list_to_string "(list->string lst) appends all the list's characters into one string; (apply string lst)"
-  #define Q_list_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_proper_list_symbol)
-
-  if (is_null(car(args)))
-    return(nil_string);
-  if (!s7_is_proper_list(sc, car(args)))
-    return(method_or_bust_p(sc, car(args), sc->list_to_string_symbol,
-			    wrap_string(sc, "a (proper, non-circular) list of characters", 43)));
-  return(s7i_string_1(sc, car(args), sc->list_to_string_symbol));
-}
+#define H_list_to_string "(list->string lst) appends all the list's characters into one string; (apply string lst)"
+#define Q_list_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_proper_list_symbol)
+/* g_list_to_string is now defined in s7_liii_string.c */
 #endif
 
 
@@ -31262,53 +31238,10 @@ s7_pointer s7_list_set(s7_scheme *sc, s7_pointer lst, s7_int num, s7_pointer val
   return(val);
 }
 
-static s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
-{
-  #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
-  #define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
+/* g_list_set and g_list_set_i are now defined in s7_liii_list.c */
 
-  s7_int index;
-  s7_pointer p = lst, ind;
-  /* (let ((L '((1 2 3) (4 5 6)))) (list-set! L 1 2 32) L) */
-
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->list_set_symbol, set_ulist_1(sc, lst, args), sc->type_names[T_PAIR], 1));
-  ind = car(args);
-  if ((arg_num > 2) && (is_null(cdr(args))))
-    {
-      set_car(lst, ind);
-      return(ind);
-    }
-  if (!s7_is_integer(ind))
-    return(method_or_bust(sc, ind, sc->list_set_symbol, set_ulist_1(sc, lst, args), sc->type_names[T_INTEGER], 2));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-
-  if (index < 0) /* arg_num used here so can't use list_set_index_check */
-    out_of_range_error_nr(sc, sc->list_set_symbol, wrap_integer(sc, arg_num), ind, it_is_negative_string);
-  if (index > sc->max_list_length) /* (list-set! (list 1 2 3) (ash 1 61) 0) */
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_4(sc, wrap_string(sc, "list-set! ~:D argument ~D is too large, (*s7* 'max-list-length) is ~D", 69),
-			 wrap_integer(sc, arg_num), ind, wrap_integer(sc, sc->max_list_length)));
-
-  for (s7_int i = 0; (i < index) && is_pair(p); i++, p = cdr(p)) {}
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_set_symbol, wrap_integer(sc, arg_num), ind, it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, a_proper_list_string);
-    }
-  if (is_null(cddr(args)))
-    set_car(p, cadr(args));
-  else
-    {
-      if (!s7_is_pair(car(p)))
-	wrong_number_of_arguments_error_nr(sc, "too many arguments for list-set!: ~S", 36, args);
-      return(g_list_set_1(sc, car(p), cdr(args), arg_num + 1));
-    }
-  return(cadr(args)); /* args here == cdr(args) of original call */
-}
-
-static s7_pointer g_list_set(s7_scheme *sc, s7_pointer args) {return(g_list_set_1(sc, car(args), cdr(args), 2));}
+#define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
+#define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
 
 static no_return void list_set_index_check_nr(s7_scheme *sc, s7_int index)
 {
@@ -31339,30 +31272,6 @@ static s7_pointer list_set_p_pip(s7_scheme *sc, s7_pointer lst, s7_int index, s7
   if (!is_pair(lst))
     wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, sc->type_names[T_PAIR]);
   return(list_set_p_pip_unchecked(sc, lst, index, value));
-}
-
-static s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer lst = car(args);
-  s7_pointer p = lst;
-  s7_int index;
-  if (!is_mutable_pair(lst))
-    return(mutable_method_or_bust(sc, lst, sc->list_set_symbol, args, sc->type_names[T_PAIR], 1));
-  index = s7_integer_clamped_if_gmp(sc, cadr(args));
-  if ((index < 0) || (index > sc->max_list_length)) list_set_index_check_nr(sc, index);
-
-  for (s7_int i = 0; (i < index) && is_pair(p); i++, p = cdr(p)) {}
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_set_symbol, int_two, wrap_integer(sc, index), it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, a_proper_list_string);
-    }
-  {
-    s7_pointer val = caddr(args);
-    set_car(p, val);
-    return(val);
-  }
 }
 
 static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)

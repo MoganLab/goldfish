@@ -28,6 +28,7 @@ s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_append(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string(s7_scheme *sc, s7_pointer args);
+s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_is_string(s7_scheme *sc, s7_pointer args);
 
@@ -36,6 +37,10 @@ s7_pointer char_position_p_ppi(s7_scheme *sc, s7_pointer chr, s7_pointer str, s7
 s7_pointer g_char_position_csi(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_string_position(s7_scheme *sc, s7_pointer args);
+
+#if !WITH_PURE_S7
+s7_pointer g_list_to_string(s7_scheme *sc, s7_pointer args);
+#endif
 
 #ifdef __cplusplus
 }
