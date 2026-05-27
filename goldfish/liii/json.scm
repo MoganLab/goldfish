@@ -51,7 +51,7 @@
     ;; ; ---------------------------------------------------------
 
     (define (ensure-json-structure x)
-      (unless (or (json-object? x) (json-array? x))
+      (unless (or (and (list? x) (not (null? x))) (vector? x))
         (type-error "Value is not a JSON object or array" x)
       ) ;unless
     ) ;define
@@ -61,9 +61,7 @@
         '()
         (begin
           (ensure-json-structure json)
-          (let ((val (if (and (json-object? json) (equal? json '(()))) '() (g:json-ref json key))
-                ) ;val
-               ) ;
+          (let ((val (if (equal? json '(())) '() (g:json-ref json key))))
             (if (null? args) val (apply json-ref (cons val args)))
           ) ;let
         ) ;begin
@@ -73,10 +71,7 @@
     (define (json-set json key val . args)
       (ensure-json-structure json)
       (if (null? args)
-        (if (and (json-object? json) (equal? json '(())))
-          json
-          (g:json-set json key val)
-        ) ;if
+        (if (equal? json '(())) json (g:json-set json key val))
         (json-set json key (lambda (x) (apply json-set (cons x (cons val args)))))
       ) ;if
     ) ;define
@@ -84,10 +79,7 @@
     (define (json-push json key val . args)
       (ensure-json-structure json)
       (if (null? args)
-        (if (and (json-object? json) (equal? json '(())))
-          (g:json-push '() key val)
-          (g:json-push json key val)
-        ) ;if
+        (if (equal? json '(())) (g:json-push '() key val) (g:json-push json key val))
         (json-set json key (lambda (x) (apply json-push (cons x (cons val args)))))
       ) ;if
     ) ;define
@@ -95,7 +87,7 @@
     (define (json-drop json key . args)
       (ensure-json-structure json)
       (if (null? args)
-        (if (and (json-object? json) (equal? json '(()))) json (g:json-drop json key))
+        (if (equal? json '(())) json (g:json-drop json key))
         (json-set json key (lambda (x) (apply json-drop (cons x args))))
       ) ;if
     ) ;define
@@ -110,10 +102,7 @@
             (if (null? (cdr args))
               ;; Single level: (json-reduce json key proc)
               (let ((proc (car args)))
-                (if (and (json-object? json) (equal? json '(())))
-                  json
-                  (g:json-reduce json key proc)
-                ) ;if
+                (if (equal? json '(())) json (g:json-reduce json key proc))
               ) ;let
               ;; Multi level
               (let* ((keys (cons key (drop-right args 1)))
@@ -173,10 +162,7 @@
     ;; ; ---------------------------------------------------------
 
     (define (json-contains-key? json key)
-      (if (not (json-object? json))
-        #f
-        (if (equal? json '(())) #f (if (assoc key json) #t #f))
-      ) ;if
+      (and (pair? json) (not (equal? json '(()))) (if (assoc key json) #t #f))
     ) ;define
 
     ;; ; ---------------------------------------------------------
@@ -216,7 +202,10 @@
     ;; ; ---------------------------------------------------------
 
     (define (json-keys json)
-      (if (json-object? json) (if (equal? json '(())) '() (map car json)) '())
+      (if (and (list? json) (not (null? json)) (not (equal? json '(()))))
+        (map car json)
+        '()
+      ) ;if
     ) ;define
 
   ) ;begin
