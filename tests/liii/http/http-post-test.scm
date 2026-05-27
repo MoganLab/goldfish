@@ -103,7 +103,8 @@
            ) ;http-post
         ) ;r
        ) ;
-    (check-true (undefined? r))
+    (check-true (hash-table? r))
+    (check (r 'status-code) => 200)
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
       (check-true (string-contains response "streaming-json"))
@@ -129,7 +130,8 @@
           ) ;begin
        ) ;r
       ) ;
-  (check-true (undefined? r))
+  (check-true (hash-table? r))
+  (check (r 'status-code) => 200)
   (check-true (file-exists? output-file))
   (let ((body (call-with-input-file output-file (lambda (port) (read-string 4096 port)))
         ) ;body
@@ -189,7 +191,8 @@
            ) ;http-post
         ) ;r
        ) ;
-    (check-true (undefined? r))
+    (check-true (hash-table? r))
+    (check (r 'status-code) => 200)
     (check-true (> (length collected) 0))
     (let ((response (string-join (reverse collected) "")))
       (check-true (string-contains response "multipart-value"))
@@ -251,7 +254,7 @@
   ) ;let*
 ) ;if
 
-;; 流式模式下，非 200 状态码应返回 response hashtable 而非 undefined
+;; 流式模式下，非 200 状态码应返回 response hashtable
 (let ((r (http-post "https://httpbin.org/status/401"
            :stream
            #t
@@ -260,7 +263,7 @@
          ) ;http-post
       ) ;r
      ) ;
-  (check-true (not (undefined? r)))
+  (check-true (hash-table? r))
   (check (r 'status-code) => 401)
 ) ;let
 
@@ -272,11 +275,11 @@
          ) ;http-post
       ) ;r
      ) ;
-  (check-true (not (undefined? r)))
+  (check-true (hash-table? r))
   (check (r 'status-code) => 403)
 ) ;let
 
-;; 流式模式下，200 状态码仍返回 undefined
+;; 流式模式下，200 状态码也返回 hashtable
 (let ((r (http-post "https://httpbin.org/status/200"
            :stream
            #t
@@ -285,7 +288,8 @@
          ) ;http-post
       ) ;r
      ) ;
-  (check-true (undefined? r))
+  (check-true (hash-table? r))
+  (check (r 'status-code) => 200)
 ) ;let
 
 (check-report)

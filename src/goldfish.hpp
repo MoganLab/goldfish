@@ -1527,6 +1527,16 @@ glue_njson (s7_scheme* sc) {
 }
 
 static s7_pointer
+error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
+  s7_pointer ht= s7_make_hash_table (sc, 4);
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, status_code));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, url.c_str()));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, ""));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str()));
+  return ht;
+}
+
+static s7_pointer
 response2hashtable (s7_scheme* sc, cpr::Response r) {
   s7_pointer ht= s7_make_hash_table (sc, 8);
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, r.status_code));
@@ -1715,13 +1725,10 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Get ();
-      if (response.status_code != 200) {
-        return response2hashtable (sc, response);
-      }
+      return response2hashtable (sc, response);
     } catch (const std::exception& e) {
-      return s7_make_integer (sc, 500);
+      return error2hashtable (sc, 0, url, e.what());
     }
-    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Get ();
@@ -1782,13 +1789,10 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Post ();
-      if (response.status_code != 200) {
-        return response2hashtable (sc, response);
-      }
+      return response2hashtable (sc, response);
     } catch (const std::exception& e) {
-      return s7_make_integer (sc, 500);
+      return error2hashtable (sc, 0, url, e.what());
     }
-    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Post ();
