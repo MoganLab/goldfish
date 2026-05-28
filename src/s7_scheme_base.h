@@ -104,6 +104,16 @@ double s7_string_to_double_simple(const char *str, int32_t radix);
 /* read-line function */
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args);
 
+/* max function */
+s7_pointer g_max(s7_scheme *sc, s7_pointer args);
+s7_pointer g_max_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_max_3(s7_scheme *sc, s7_pointer args);
+
+/* min function */
+s7_pointer g_min(s7_scheme *sc, s7_pointer args);
+s7_pointer g_min_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_min_3(s7_scheme *sc, s7_pointer args);
+
 /* Helper functions exported from s7.c */
 const char *s7i_an_input_port_string(void);
 const char *s7i_a_boolean_string(void);
