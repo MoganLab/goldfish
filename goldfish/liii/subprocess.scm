@@ -360,14 +360,20 @@
              ) ;
           (let loop
             ((cmds commands))
-            (cond ((null? cmds) 0)
+            (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                     code
+                     (if (zero? code)
+                       (from-right code)
+                       (from-left (list code (car cmds)))
+                     ) ;if
                    ) ;let-values
                   ) ;
                   (else (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                          (if (zero? code) 0 (loop (cdr cmds)))
+                          (if (zero? code)
+                            (from-right 0)
+                            (loop (cdr cmds))
+                          ) ;if
                         ) ;let-values
                   ) ;else
             ) ;cond
