@@ -197,11 +197,7 @@
     read-string
     read
     write-char
-    write
-    display
     newline
-    write-shared
-    write-simple
     flush-output-port
     eof-object?
     eof-object
