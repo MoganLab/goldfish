@@ -14524,78 +14524,14 @@ static block_t *number_to_string_with_radix(s7_scheme *sc, s7_pointer obj, int32
 char *s7_number_to_string(s7_scheme *sc, s7_pointer obj, s7_int radix)
 {
   s7_int nlen = 0;
-  block_t *b = number_to_string_with_radix(sc, obj, radix, 0, 20, 'g', &nlen);  /* (log top 10) so we get all the digits in base 10 (??) */
+  block_t *b = number_to_string_with_radix(sc, obj, radix, 0, sc->float_format_precision, 'g', &nlen);
   char *str = copy_string_with_length((char *)block_data(b), nlen);
   liberate(sc, b);
   return(str);
 }
 
-static s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_number_to_string "(number->string num (radix 10)) converts the number num into a string."
-  #define Q_number_to_string s7_make_signature(sc, 3, sc->is_string_symbol, sc->is_number_symbol, sc->is_integer_symbol)
-
-  s7_int nlen = 0, radix; /* ignore cppcheck complaint about radix! */
-  const char *result;
-  s7_pointer x = car(args);
-
-  if (!is_number(x))
-    return(method_or_bust(sc, x, sc->number_to_string_symbol, args, a_number_string, 1));
-
-  if (is_pair(cdr(args)))
-    {
-      s7_pointer base = cadr(args);
-      if (s7_is_integer(base))
-	radix = s7_integer_clamped_if_gmp(sc, base);
-      else return(method_or_bust(sc, base, sc->number_to_string_symbol, args, sc->type_names[T_INTEGER], 2));
-      if ((radix < 2) || (radix > 16))
-	out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
-      {
-	block_t *b = number_to_string_with_radix(sc, x, radix, 0, sc->float_format_precision, 'g', &nlen);
-	return(block_to_string(sc, b, nlen));
-      }}
-  else
-    {
-      if (is_t_integer(x))
-	result = integer_to_string(sc, integer(x), &nlen);
-      else result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
-    }
-  return(inline_make_string_with_length(sc, result, nlen));
-}
-
-static s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p)
-{
-  s7_int nlen = 0;
-  char *result;
-  if (!is_number(p))
-    return(method_or_bust_p(sc, p, sc->number_to_string_symbol, a_number_string));
-  result = number_to_string_base_10(sc, p, 0, sc->float_format_precision, 'g', &nlen, p_write);
-  return(inline_make_string_with_length(sc, result, nlen));
-}
-
-static s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
-{
-  s7_int nlen = 0;
-  const char *result = integer_to_string(sc, p, &nlen);
-  return(inline_make_string_with_length(sc, result, nlen));
-}
-/* not number_to_string_p_d! */
-
-static s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base)
-{
-  s7_int nlen = 0, radix;
-  block_t *b;
-
-  if (!is_number(num))
-    wrong_type_error_nr(sc, sc->number_to_string_symbol, 1, num, a_number_string);
-  if (!is_t_integer(base))
-    wrong_type_error_nr(sc, sc->number_to_string_symbol, 2, base, sc->type_names[T_INTEGER]);
-  radix = integer(base);
-  if ((radix < 2) || (radix > 16))
-    out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
-  b = number_to_string_with_radix(sc, num, radix, 0, sc->float_format_precision, 'g', &nlen);
-  return(block_to_string(sc, b, nlen));
-}
+#define H_number_to_string "(number->string num (radix 10)) converts the number num into a string."
+#define Q_number_to_string s7_make_signature(sc, 3, sc->is_string_symbol, sc->is_number_symbol, sc->is_integer_symbol)
 
 
 /* -------------------------------------------------------------------------------- */
@@ -14842,7 +14778,7 @@ static s7_pointer unknown_sharp_constant(s7_scheme *sc, const char *name, s7_poi
   return(make_undefined(sc, name));
 }
 
-static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error);
+s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error);
 #define SYMBOL_OK true
 #define NO_SYMBOLS false
 
@@ -15363,7 +15299,7 @@ static s7_pointer make_symbol_or_number(s7_scheme *sc, const char *name, int32_t
 }
 #endif
 
-static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error)
+s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error)
 {
   /* make symbol or number from string, a number starts with + - . or digit, but so does 1+ for example */
 #if WITH_NUMBER_SEPARATOR
@@ -15740,12 +15676,6 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
 
 /* -------------------------------- string->number -------------------------------- */
-s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix)
-{
-  s7_pointer x = make_atom(sc, str, radix, NO_SYMBOLS, WITHOUT_OVERFLOW_ERROR);
-  return((is_number(x)) ? x : sc->F);  /* only needed because str might start with '#' and not be a number (#t for example) */
-}
-
 #define H_string_to_number "(string->number str (radix 10)) converts str into a number. \
 If str does not represent a number, string->number returns #f.  If 'str' has an embedded radix, \
 the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 3."

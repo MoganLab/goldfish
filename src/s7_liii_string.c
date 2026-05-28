@@ -252,6 +252,12 @@ s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix)
+{
+  s7_pointer x = make_atom(sc, str, radix, false, false);
+  return((s7_is_number(x)) ? x : s7_f(sc));
+}
+
 s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
 {
   s7_int radix;

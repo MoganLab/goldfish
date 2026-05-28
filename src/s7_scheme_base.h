@@ -160,6 +160,12 @@ s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc);
 s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol);
 s7_pointer s7i_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name, s7_int arg_pos);
 
+/* number->string function */
+s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args);
+s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p);
+s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p);
+s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base);
+
 #ifdef __cplusplus
 }
 #endif
