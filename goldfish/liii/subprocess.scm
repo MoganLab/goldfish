@@ -173,12 +173,56 @@
       (set! %run-ban-list (cons symbol %run-ban-list))
     ) ;define
 
-    (define (run-string command . opts)
-      ""
+    (define (run-values command . opts)
+      (let ((cwd (%keyword-value :cwd opts #f))
+            (env (%keyword-value :env opts #f))
+            (input (%keyword-value :input opts #f))
+            (timeout (%keyword-value :timeout opts #f))
+            (stdout (%keyword-value :stdout opts #f))
+            (stderr (%keyword-value :stderr opts #f))
+            (stdin (%keyword-value :stdin opts #f))
+            (cmd-str-or-lambda (%command->string command))
+            (orig-dir #f)
+           ) ;
+        (%check-cwd-conflict command cwd)
+        (when cwd
+          (set! orig-dir (getcwd))
+          (chdir cwd)
+        ) ;when
+        (let-values (((out err code)
+                      (if (pair? cmd-str-or-lambda)
+                        (begin
+                          (apply (cadr cmd-str-or-lambda) (cddr cmd-str-or-lambda))
+                          (values "" "" 0)
+                        ) ;begin
+                        (g_subprocess-run-values cmd-str-or-lambda
+                          cwd
+                          env
+                          input
+                          timeout
+                          stdout
+                          stderr
+                          stdin
+                        ) ;g_subprocess-run-values
+                      ) ;if
+                     ) ;
+                    ) ;
+          (when orig-dir
+            (chdir orig-dir)
+          ) ;when
+          (values out err code)
+        ) ;let-values
+      ) ;let
     ) ;define
 
-    (define (run-values command . opts)
-      (values "" "" 0)
+    (define (run-string command . opts)
+      (let-values (((out err code) (apply run-values command opts)))
+        (if (zero? code)
+          out
+          (value-error (string-append "Command failed with exit code " (number->string code))
+          ) ;value-error
+        ) ;if
+      ) ;let-values
     ) ;define
 
   ) ;begin
