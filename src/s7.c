@@ -17455,7 +17455,7 @@ static s7_pointer quotient_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(quotient_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
+s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
 {
   #define H_quotient "(quotient x1 x2) returns the integer quotient of x1 and x2; (quotient 4 3) = 1"
   #define Q_quotient sc->pcl_r
@@ -17667,7 +17667,7 @@ static s7_pointer remainder_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(remainder_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
+s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
 {
   #define H_remainder "(remainder x y) returns the remainder of x/y; (remainder 10 3) = 1"
   #define Q_remainder sc->pcl_r
@@ -17876,7 +17876,7 @@ static s7_pointer modulo_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(modulo_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
+s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
 {
   #define H_modulo "(modulo x y) returns x mod y; (modulo 4 3) = 1.  The arguments can be real numbers."
   #define Q_modulo sc->pcl_r

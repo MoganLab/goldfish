@@ -144,6 +144,15 @@ s7_int rationalize_i_i(s7_int x);
 s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x);
 s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x);
 
+/* quotient function */
+s7_pointer g_quotient(s7_scheme *sc, s7_pointer args);
+
+/* remainder function */
+s7_pointer g_remainder(s7_scheme *sc, s7_pointer args);
+
+/* modulo function */
+s7_pointer g_modulo(s7_scheme *sc, s7_pointer args);
+
 /* Helper functions exported from s7.c */
 const char *s7i_an_input_port_string(void);
 const char *s7i_a_boolean_string(void);
