@@ -12,6 +12,8 @@
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 #define S7_INT64_MAX 9223372036854775807LL
 /* #define S7_INT64_MIN -9223372036854775808LL */   /* why is this disallowed in C? "warning: integer constant is so large that it is unsigned" */
@@ -1272,4 +1274,74 @@ s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
   if (fabs(x) > RATIONALIZE_LIMIT)
     s7_out_of_range_error(sc, "rationalize", 1, s7_make_real(sc, x), "it is too large");
   return(s7_rationalize(sc, x, s7i_default_rationalize_error(sc)));
+}
+
+/* -------------------------------- number->string -------------------------------- */
+
+s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer x = s7_car(args);
+
+  if (!s7_is_number(x))
+    return(s7i_method_or_bust(sc, x, "number->string", args, "a number", 1));
+
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      s7_pointer base = s7_cadr(args);
+      if (!s7_is_integer(base))
+        return(s7i_method_or_bust(sc, base, "number->string", args, "an integer", 2));
+      s7_int radix = s7_integer(base);
+      if ((radix < 2) || (radix > 16))
+        return(s7_out_of_range_error(sc, "number->string", 2, base, "a valid radix"));
+      char *str = s7_number_to_string(sc, x, radix);
+      s7_pointer result = s7_make_string(sc, str);
+      free(str);
+      return(result);
+    }
+
+  char *str = s7_number_to_string(sc, x, 10);
+  s7_pointer result = s7_make_string(sc, str);
+  free(str);
+  return(result);
+}
+
+s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p)
+{
+  char *str;
+  if (!s7_is_number(p))
+    return(s7i_method_or_bust_p(sc, p, "number->string", "a number"));
+  str = s7_number_to_string(sc, p, 10);
+  {
+    s7_pointer result = s7_make_string(sc, str);
+    free(str);
+    return(result);
+  }
+}
+
+s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
+{
+  char buf[32];
+  snprintf(buf, sizeof(buf), "%" PRId64, p);
+  return(s7_make_string(sc, buf));
+}
+
+s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base)
+{
+  s7_int radix;
+  char *str;
+
+  if (!s7_is_number(num))
+    return(s7_wrong_type_arg_error(sc, "number->string", 1, num, "a number"));
+  if (!s7_is_integer(base))
+    return(s7_wrong_type_arg_error(sc, "number->string", 2, base, "an integer"));
+  radix = s7_integer(base);
+  if ((radix < 2) || (radix > 16))
+    return(s7_out_of_range_error(sc, "number->string", 2, base, "a valid radix"));
+
+  str = s7_number_to_string(sc, num, radix);
+  {
+    s7_pointer result = s7_make_string(sc, str);
+    free(str);
+    return(result);
+  }
 }

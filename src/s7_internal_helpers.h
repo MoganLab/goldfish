@@ -41,6 +41,7 @@ s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller
 s7_pointer s7i_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym);
 s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix);
+s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error);
 
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;

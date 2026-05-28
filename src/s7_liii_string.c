@@ -252,6 +252,12 @@ s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix)
+{
+  s7_pointer x = make_atom(sc, str, radix, false, false);
+  return((s7_is_number(x)) ? x : s7_f(sc));
+}
+
 s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
 {
   s7_int radix;
@@ -270,6 +276,34 @@ s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args)
     }
   else radix = 10;
   str = (char *)s7_string(s7_car(args));
+  if ((!str) || (!*str))
+    return(s7_f(sc));
+  return(s7i_string_to_number(sc, str, radix));
+}
+
+s7_pointer string_to_number_p_p(s7_scheme *sc, s7_pointer str1)
+{
+  char *str;
+  if (!s7_is_string(str1))
+    return(s7_wrong_type_arg_error(sc, "string->number", 1, str1, "a string"));
+  str = (char *)s7_string(str1);
+  return(((!str) || (!*str)) ? s7_f(sc) : s7i_string_to_number(sc, str, 10));
+}
+
+s7_pointer string_to_number_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer radix1)
+{
+  s7_int radix;
+  char *str;
+  if (!s7_is_string(str1))
+    return(s7_wrong_type_arg_error(sc, "string->number", 1, str1, "a string"));
+
+  if (!s7_is_integer(radix1))
+    return(s7_wrong_type_arg_error(sc, "string->number", 2, radix1, "an integer"));
+  radix = s7_integer(radix1);
+  if ((radix < 2) || (radix > 16))
+    return(s7_out_of_range_error(sc, "string->number", 2, radix1, "a valid radix"));
+
+  str = (char *)s7_string(str1);
   if ((!str) || (!*str))
     return(s7_f(sc));
   return(s7i_string_to_number(sc, str, radix));
