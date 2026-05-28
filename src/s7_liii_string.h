@@ -22,6 +22,8 @@ s7_pointer g_string_length(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_make_string(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_to_number(s7_scheme *sc, s7_pointer args);
+s7_pointer string_to_number_p_p(s7_scheme *sc, s7_pointer str1);
+s7_pointer string_to_number_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer radix1);
 s7_pointer g_substring(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args);

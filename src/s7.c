@@ -15746,57 +15746,6 @@ s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix)
   return((is_number(x)) ? x : sc->F);  /* only needed because str might start with '#' and not be a number (#t for example) */
 }
 
-static s7_pointer string_to_number_p_p(s7_scheme *sc, s7_pointer str1)
-{
-  char *str;
-  if (!is_string(str1))
-    wrong_type_error_nr(sc, sc->string_to_number_symbol, 1, str1, sc->type_names[T_STRING]);
-  str = (char *)string_value(str1);
-  return(((!str) || (!*str)) ? sc->F : s7i_string_to_number(sc, str, 10));
-}
-
-static s7_pointer string_to_number_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer radix1)
-{
-  s7_int radix;
-  char *str;
-  if (!is_string(str1))
-    wrong_type_error_nr(sc, sc->string_to_number_symbol, 1, str1, sc->type_names[T_STRING]);
-
-  if (!is_t_integer(radix1))
-    wrong_type_error_nr(sc, sc->string_to_number_symbol, 2, radix1, sc->type_names[T_INTEGER]);
-  radix = integer(radix1);
-  if ((radix < 2) || (radix > 16))
-    out_of_range_error_nr(sc, sc->string_to_number_symbol, int_two, radix1, a_valid_radix_string);
-
-  str = (char *)string_value(str1);
-  if ((!str) || (!*str))
-    return(sc->F);
-  return(s7i_string_to_number(sc, str, radix));
-}
-
-static s7_pointer g_string_to_number_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
-{
-  s7_int radix;
-  char *str;
-  if (!is_string(car(args)))
-    return(method_or_bust(sc, car(args), caller, args, sc->type_names[T_STRING], 1));
-
-  if (is_pair(cdr(args)))
-    {
-      const s7_pointer rad = cadr(args);
-      if (!s7_is_integer(rad))
-	return(method_or_bust(sc, rad, caller, args, sc->type_names[T_INTEGER], 2));
-      radix = s7_integer_clamped_if_gmp(sc, rad);
-      if ((radix < 2) || (radix > 16))
-	out_of_range_error_nr(sc, caller, int_two, rad, a_valid_radix_string);
-    }
-  else radix = 10;
-  str = (char *)string_value(car(args));
-  if ((!str) || (!*str))
-    return(sc->F);
-  return(s7i_string_to_number(sc, str, radix));
-}
-
 #define H_string_to_number "(string->number str (radix 10)) converts str into a number. \
 If str does not represent a number, string->number returns #f.  If 'str' has an embedded radix, \
 the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 3."
