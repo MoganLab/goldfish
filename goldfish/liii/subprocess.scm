@@ -173,5 +173,13 @@
       (set! %run-ban-list (cons symbol %run-ban-list))
     ) ;define
 
+    (define (run-string command . opts)
+      ""
+    ) ;define
+
+    (define (run-values command . opts)
+      (values "" "" 0)
+    ) ;define
+
   ) ;begin
 ) ;define-library
