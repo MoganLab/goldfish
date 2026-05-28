@@ -74,6 +74,34 @@ s7_pointer g_is_infinite(s7_scheme *sc, s7_pointer args);
 bool s7_is_nan(s7_scheme *sc, s7_pointer x);
 s7_pointer g_is_nan(s7_scheme *sc, s7_pointer args);
 
+/* hyperbolic functions */
+s7_pointer sinh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_sinh(s7_scheme *sc, s7_pointer args);
+s7_double sinh_d_d(s7_double x);
+s7_pointer sinh_p_d(s7_scheme *sc, s7_double x);
+
+s7_pointer cosh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_cosh(s7_scheme *sc, s7_pointer args);
+s7_double cosh_d_d(s7_double x);
+s7_pointer cosh_p_d(s7_scheme *sc, s7_double x);
+
+s7_pointer tanh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_tanh(s7_scheme *sc, s7_pointer args);
+s7_double tanh_d_d(s7_double x);
+
+s7_pointer asinh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_asinh(s7_scheme *sc, s7_pointer args);
+
+s7_pointer acosh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_acosh(s7_scheme *sc, s7_pointer args);
+
+s7_pointer atanh_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer g_atanh(s7_scheme *sc, s7_pointer args);
+
+/* expt */
+s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw);
+s7_pointer g_expt(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

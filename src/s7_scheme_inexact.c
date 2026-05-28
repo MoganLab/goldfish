@@ -40,11 +40,25 @@
 #endif
 
 #include "s7_scheme_inexact.h"
+#include "s7_internal_helpers.h"
 #include <string.h>
 #include <time.h>
 #include <math.h>
 #if HAVE_COMPLEX_NUMBERS
   #include <complex.h>
+#endif
+
+#ifndef S7_INT_BITS
+#define S7_INT_BITS 63
+#endif
+#ifndef S7_INT64_MAX
+#define S7_INT64_MAX 9223372036854775807LL
+#endif
+#ifndef S7_INT64_MIN
+#define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL)
+#endif
+#ifndef s7_int_abs
+#define s7_int_abs(x) ((x) >= 0 ? (x) : -(x))
 #endif
 
 
@@ -795,4 +809,548 @@ s7_double atan_d_d(s7_double x)
 s7_double atan_d_dd(s7_double x, s7_double y)
 {
   return atan2(x, y);
+}
+
+/* -------------------------------- sinh -------------------------------- */
+s7_pointer sinh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 0);                    /* (sinh 0) -> 0 */
+      return s7_make_real(sc, sinh((double)iv));
+    }
+
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      return s7_make_real(sc, sinh(frac));
+    }
+
+  if (s7_is_real(x))
+    {
+      return s7_make_real(sc, sinh(s7_real(x)));
+    }
+
+  if (s7_is_complex(x))
+    {
+#if HAVE_COMPLEX_NUMBERS
+      double r = s7_real_part(x);
+      double i = s7_imag_part(x);
+      s7_complex z = r + i * _Complex_I;
+      s7_complex result = csinh(z);
+      return s7_make_complex(sc, creal(result), cimag(result));
+#else
+      return s7_out_of_range_error(sc, "sinh", 1, x, "no complex numbers");
+#endif
+    }
+
+  return s7i_method_or_bust_p(sc, x, "sinh", "a number");
+}
+
+s7_pointer g_sinh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_sinh "(sinh z) returns sinh(z)"
+  #define Q_sinh sc->pl_nn
+  return(sinh_p_p(sc, s7_car(args)));
+}
+
+s7_double sinh_d_d(s7_double x) {return(sinh(x));}
+s7_pointer sinh_p_d(s7_scheme *sc, s7_double x) {return(s7_make_real(sc, sinh(x)));}
+
+
+/* -------------------------------- cosh -------------------------------- */
+s7_pointer cosh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 1);                   /* (cosh 0) -> 1 */
+      return s7_make_real(sc, cosh((double)iv));
+    }
+
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      return s7_make_real(sc, cosh(frac));
+    }
+
+  if (s7_is_real(x))
+    {
+      return s7_make_real(sc, cosh(s7_real(x)));
+    }
+
+  if (s7_is_complex(x))
+    {
+#if HAVE_COMPLEX_NUMBERS
+      double r = s7_real_part(x);
+      double i = s7_imag_part(x);
+      s7_complex z = r + i * _Complex_I;
+      s7_complex result = ccosh(z);
+      return s7_make_complex(sc, creal(result), cimag(result));
+#else
+      return s7_out_of_range_error(sc, "cosh", 1, x, "no complex numbers");
+#endif
+    }
+
+  return s7i_method_or_bust_p(sc, x, "cosh", "a number");
+}
+
+s7_pointer g_cosh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_cosh "(cosh z) returns cosh(z)"
+  #define Q_cosh sc->pl_nn
+  return(cosh_p_p(sc, s7_car(args)));
+}
+
+s7_double cosh_d_d(s7_double x) {return(cosh(x));}
+s7_pointer cosh_p_d(s7_scheme *sc, s7_double x) {return(s7_make_real(sc, cosh(x)));}
+
+
+/* -------------------------------- tanh -------------------------------- */
+#define TANH_LIMIT 350.0
+
+s7_pointer tanh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 0);
+      return s7_make_real(sc, tanh((double)iv));
+    }
+
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      return s7_make_real(sc, tanh(frac));
+    }
+
+  if (s7_is_real(x))
+    {
+      return s7_make_real(sc, tanh(s7_real(x)));
+    }
+
+  if (s7_is_complex(x))
+    {
+#if HAVE_COMPLEX_NUMBERS
+      double r = s7_real_part(x);
+      double i = s7_imag_part(x);
+      if (r > TANH_LIMIT)
+        return s7_make_real(sc, 1.0);                         /* closer than 0.0 which is what ctanh is about to return! */
+      if (r < -TANH_LIMIT)
+        return s7_make_real(sc, -1.0);              /* closer than ctanh's -0.0 */
+      s7_complex z = r + i * _Complex_I;
+      s7_complex result = ctanh(z);
+      return s7_make_complex(sc, creal(result), cimag(result));
+#else
+      return s7_out_of_range_error(sc, "tanh", 1, x, "no complex numbers");
+#endif
+    }
+
+  return s7i_method_or_bust_p(sc, x, "tanh", "a number");
+}
+
+s7_pointer g_tanh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_tanh "(tanh z) returns tanh(z)"
+  #define Q_tanh sc->pl_nn
+  return(tanh_p_p(sc, s7_car(args)));
+}
+
+s7_double tanh_d_d(s7_double x) {return(tanh(x));}
+
+
+/* -------------------------------- asinh -------------------------------- */
+s7_pointer asinh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 0);
+      return s7_make_real(sc, asinh((double)iv));
+    }
+
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      return s7_make_real(sc, asinh(frac));
+    }
+
+  if (s7_is_real(x))
+    {
+      return s7_make_real(sc, asinh(s7_real(x)));
+    }
+
+  if (s7_is_complex(x))
+    {
+#if HAVE_COMPLEX_NUMBERS
+      double r = s7_real_part(x);
+      double i = s7_imag_part(x);
+      s7_complex z = r + i * _Complex_I;
+#if (defined(__OpenBSD__)) || (defined(__NetBSD__))
+      s7_complex result = casinh_1(z);
+#else
+      s7_complex result = casinh(z);
+#endif
+      return s7_make_complex(sc, creal(result), cimag(result));
+#else
+      return s7_out_of_range_error(sc, "asinh", 1, x, "no complex numbers");
+#endif
+    }
+
+  return s7i_method_or_bust_p(sc, x, "asinh", "a number");
+}
+
+s7_pointer g_asinh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_asinh "(asinh z) returns asinh(z)"
+  #define Q_asinh sc->pl_nn
+  return(asinh_p_p(sc, s7_car(args)));
+}
+
+
+/* -------------------------------- acosh -------------------------------- */
+s7_pointer acosh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 1) return s7_make_integer(sc, 0);
+      if (iv >= 1)
+        return s7_make_real(sc, acosh((double)iv));
+    }
+  else if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      if (frac >= 1.0)
+        return s7_make_real(sc, acosh(frac));
+    }
+  else if (s7_is_real(x))
+    {
+      double rv = s7_real(x);
+      if (rv >= 1.0)
+        return s7_make_real(sc, acosh(rv));
+    }
+  else if (!s7_is_complex(x))
+    {
+      return s7i_method_or_bust_p(sc, x, "acosh", "a number");
+    }
+
+#if HAVE_COMPLEX_NUMBERS
+#ifdef __OpenBSD__
+  {
+    s7_complex z = s7_real_part(x) + s7_imag_part(x) * _Complex_I;
+    s7_complex result = cacosh_1(z);
+    return s7_make_complex(sc, creal(result), cimag(result));
+  }
+#else
+  {
+    s7_complex z = s7_real_part(x) + s7_imag_part(x) * _Complex_I;
+    s7_complex result = cacosh(z);
+    return s7_make_complex(sc, creal(result), cimag(result));
+  }
+#endif
+#else
+  return s7_out_of_range_error(sc, "acosh", 1, x, "no complex numbers");
+#endif
+}
+
+s7_pointer g_acosh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_acosh "(acosh z) returns acosh(z)"
+  #define Q_acosh sc->pl_nn
+  return(acosh_p_p(sc, s7_car(args)));
+}
+
+
+/* -------------------------------- atanh -------------------------------- */
+s7_pointer atanh_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    {
+      s7_int iv = s7_integer(x);
+      if (iv == 0) return s7_make_integer(sc, 0);                    /* (atanh 0) -> 0 */
+    }
+  else if (s7_is_rational(x) && !s7_is_integer(x))
+    {
+      double frac = (double)s7_numerator(x) / (double)s7_denominator(x);
+      if (fabs(frac) < 1.0)
+        return s7_make_real(sc, atanh(frac));
+    }
+  else if (s7_is_real(x))
+    {
+      double rv = s7_real(x);
+      if (fabs(rv) < 1.0)
+        return s7_make_real(sc, atanh(rv));
+    }
+  else if (!s7_is_complex(x))
+    {
+      return s7i_method_or_bust_p(sc, x, "atanh", "a number");
+    }
+
+#if HAVE_COMPLEX_NUMBERS
+  {
+    s7_complex z = s7_real_part(x) + s7_imag_part(x) * _Complex_I;
+#if (defined(__OpenBSD__)) || (defined(__NetBSD__))
+    s7_complex result = catanh_1(z);
+#else
+    s7_complex result = catanh(z);
+#endif
+    return s7_make_complex(sc, creal(result), cimag(result));
+  }
+#else
+  return s7_out_of_range_error(sc, "atanh", 1, x, "no complex numbers");
+#endif
+}
+
+s7_pointer g_atanh(s7_scheme *sc, s7_pointer args)
+{
+  #define H_atanh "(atanh z) returns atanh(z)"
+  #define Q_atanh sc->pl_nn
+  return(atanh_p_p(sc, s7_car(args)));
+}
+
+
+/* -------------------------------- expt -------------------------------- */
+#if HAVE_OVERFLOW_CHECKS
+  #if defined(__clang__)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #elif defined(__GNUC__) && (__GNUC__ >= 5)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #else
+    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+  #endif
+#else
+  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+#endif
+
+static bool expt_is_zero(s7_pointer x)
+{
+  if (s7_is_integer(x))
+    return s7_integer(x) == 0;
+  if (s7_is_real(x))
+    return s7_real(x) == 0.0;
+  return false;
+}
+
+static bool expt_is_one(s7_pointer x)
+{
+  if (s7_is_integer(x))
+    return s7_integer(x) == 1;
+  if (s7_is_real(x))
+    return s7_real(x) == 1.0;
+  return false;
+}
+
+static bool expt_is_negative(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    return s7_integer(x) < 0;
+  if (s7_is_rational(x) && !s7_is_integer(x))
+    return s7_numerator(x) < 0;
+  if (s7_is_real(x))
+    return s7_real(x) < 0.0;
+  s7_wrong_type_arg_error(sc, "expt", 2, x, "a real number");
+  return false;
+}
+
+static s7_int int_to_int(s7_int x, s7_int n)
+{
+  /* from GSL */
+  s7_int value = 1;
+  do {
+    if (n & 1) value *= x;
+    n >>= 1;
+    if (multiply_overflow(x, x, &x))
+      break;
+  } while (n);
+  return(value);
+}
+
+static const s7_int nth_roots[63] = {
+  S7_INT64_MAX, S7_INT64_MAX, 3037000499LL, 2097151, 55108, 6208, 1448, 511, 234, 127, 78, 52, 38, 28, 22,
+  18, 15, 13, 11, 9, 8, 7, 7, 6, 6, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2,
+  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2};
+
+static bool int_pow_ok(s7_int x, s7_int y) {return((y < S7_INT_BITS) && (nth_roots[y] >= s7_int_abs(x)));}
+
+s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw)
+{
+  if (!s7_is_number(n))
+    return(s7i_method_or_bust_pp(sc, n, "expt", n, pw, "a number", 1));
+  if (!s7_is_number(pw))
+    return(s7i_method_or_bust_pp(sc, pw, "expt", n, pw, "a number", 2));
+
+  if (expt_is_zero(n))
+    {
+      if (expt_is_zero(pw))
+        {
+          if ((s7_is_integer(n)) && (s7_is_integer(pw)))       /* (expt 0 0) -> 1 */
+            return(s7_make_integer(sc, 1));
+          return(s7_make_real(sc, 0.0));                                   /* (expt 0.0 0) -> 0.0 */
+        }
+      if (s7_is_real(pw))
+        {
+          if (expt_is_negative(sc, pw))                              /* (expt 0 -1) */
+            s7i_division_by_zero_error(sc, "expt", n, pw);
+          /* (Clisp gives divide-by-zero error here, Guile returns inf.0) */
+
+          if (is_NaN(s7_real(pw)))                             /* (expt 0 +nan.0) */
+            return(pw);
+        }
+      else
+        {                                                      /* (expt 0 a+bi) */
+          if (s7_real_part(pw) < 0.0)                             /* (expt 0 -1+i) */
+            s7i_division_by_zero_error(sc, "expt", n, pw);
+          if ((is_NaN(s7_real_part(pw))) ||                       /* (expt 0 0+1/0i) */
+              (is_NaN(s7_imag_part(pw))))
+            return(pw);
+        }
+      if ((s7_is_integer(n)) && (s7_is_integer(pw)))           /* pw != 0, (expt 0 2312) */
+        return(s7_make_integer(sc, 0));
+      return(s7_make_real(sc, 0.0));                                       /* (expt 0.0 123123) */
+    }
+
+  if (expt_is_one(pw))
+    {
+      if (s7_is_integer(pw))                                   /* (expt x 1) */
+        return(n);
+      if (s7_is_rational(n) && !s7_is_integer(n))                                      /* (expt ratio 1.0) */
+        return(s7_make_real(sc, (double)s7_numerator(n) / (double)s7_denominator(n)));
+      return(n);
+    }
+  if (s7_is_integer(pw))
+    {
+      const s7_int y = s7_integer(pw);
+      if (y == 0)
+        {
+          if (s7_is_rational(n))                                 /* (expt 3 0) */
+            return(s7_make_integer(sc, 1));
+          if ((is_NaN(s7_real_part(n))) ||                    /* (expt 1/0 0) -> NaN */
+              (is_NaN(s7_imag_part(n))))                      /* (expt (complex 0 1/0) 0) -> NaN */
+            return(n);
+          return(s7_make_real(sc, 1.0));                                   /* (expt 3.0 0) */
+        }
+
+      if (s7_is_integer(n))
+        {
+          const s7_int x = s7_integer(n);
+          if (x == 1)                                       /* (expt 1 y) */
+            return(n);
+
+          if (x == -1)
+            {
+              if (y == S7_INT64_MIN)                        /* (expt -1 most-negative-fixnum) */
+                return(s7_make_integer(sc, 1));
+              if (y & 1)                                    /* (expt -1 odd-int) */
+                return(n);                                  /*    n == -1 */
+              return(s7_make_integer(sc, 1));                              /* (expt -1 even-int) */
+            }
+
+          if (y == S7_INT64_MIN)                            /* (expt x most-negative-fixnum) */
+            return(s7_make_real(sc, 0.0));
+          if (x == S7_INT64_MIN)                            /* (expt most-negative-fixnum y) */
+            return(s7_make_real(sc, pow((double)x, (double)y)));
+
+          if (int_pow_ok(x, s7_int_abs(y)))
+            {
+              if (y > 0)
+                return(s7_make_integer(sc, int_to_int(x, y)));
+              return(s7_make_ratio(sc, 1, int_to_int(x, -y)));
+            }
+        }
+
+      if (s7_is_rational(n) && !s7_is_integer(n))
+        {
+          const s7_int nm = s7_numerator(n), dn = s7_denominator(n);
+          if (y == S7_INT64_MIN)
+            {
+              if (s7_int_abs(nm) > dn)
+                return(s7_make_real(sc, 0.0));                  /* (expt 4/3 most-negative-fixnum) -> 0? */
+              return(s7_make_real(sc, INFINITY));               /* (expt 3/4 most-negative-fixnum) -> inf? */
+            }
+          if ((int_pow_ok(nm, s7_int_abs(y))) &&
+              (int_pow_ok(dn, s7_int_abs(y))))
+            {
+              if (y > 0)
+                return(s7_make_ratio(sc, int_to_int(nm, y), int_to_int(dn, y)));
+              return(s7_make_ratio(sc, int_to_int(dn, -y), int_to_int(nm, -y)));
+            }
+        }
+
+      if (s7_is_real(n))
+        {
+          /* (expt -1.0 most-positive-fixnum) should be -1.0
+           * (expt -1.0 (+ (expt 2 53) 1)) -> -1.0
+           * (expt -1.0 (- 1 (expt 2 54))) -> -1.0
+           */
+          if (s7_real(n) == -1.0)
+            {
+              if (y == S7_INT64_MIN)
+                return(s7_make_real(sc, 1.0));
+              return((s7_int_abs(y) & 1) ? n : s7_make_real(sc, 1.0));
+            }
+        }
+
+      if (s7_is_complex(n))
+        {
+#if HAVE_COMPLEX_NUMBERS
+          if ((s7_real_part(n) == 0.0) &&
+              ((s7_imag_part(n) == 1.0) ||
+               (s7_imag_part(n) == -1.0)))
+            {
+              bool yp = (y > 0), np = (s7_imag_part(n) > 0.0);
+              switch (s7_int_abs(y) % 4)
+                {
+                case 0: return(s7_make_real(sc, 1.0));
+                case 1: return(make_complex_not_0i(sc, 0.0, (yp == np) ? 1.0 : -1.0));
+                case 2: return(s7_make_real(sc, -1.0));
+                case 3: return(make_complex_not_0i(sc, 0.0, (yp == np) ? -1.0 : 1.0));
+                }
+            }
+#else
+          return(s7_out_of_range_error(sc, "expt", 2, n, "no complex numbers"));
+#endif
+        }
+    }
+
+  if ((s7_is_real(n)) &&
+      (s7_is_real(pw)))
+    {
+      s7_double x, y;
+      if ((s7_is_rational(pw) && !s7_is_integer(pw)) && (s7_numerator(pw) == 1))
+        {
+          if (s7_denominator(pw) == 2)
+            return(sqrt_p_p(sc, n));
+          if (s7_denominator(pw) == 3)
+            return(s7_make_real(sc, cbrt(s7_real(n)))); /* (expt 27 1/3) should be 3, not 3.0... */
+          /* but: (expt 512/729 1/3) -> 0.88888888888889, and 4 -> sqrt(sqrt...) etc? */
+        }
+
+      x = s7_real(n);
+      y = s7_real(pw);
+      if (is_NaN(x)) return(n);
+      if (is_NaN(y)) return(pw);
+      if (y == 0.0) return(s7_make_real(sc, 1.0));
+      /* I think pow(rl, inf) is ok */
+      if (x > 0.0)
+        return(s7_make_real(sc, pow(x, y)));      /* tricky cases abound here: (expt -1 1/9223372036854775807) */
+    }
+
+  /* (expt 0+i 1e+16) = 0.98156860153485-0.19111012657867i ?
+   * (expt 0+i 1+1/0i) = 0.0 ??
+   */
+  {
+    s7_complex zn = s7_real_part(n) + s7_imag_part(n) * _Complex_I;
+    s7_complex zpw = s7_real_part(pw) + s7_imag_part(pw) * _Complex_I;
+    s7_complex result = cpow(zn, zpw);
+    return s7_make_complex(sc, creal(result), cimag(result));
+  }
+}
+
+s7_pointer g_expt(s7_scheme *sc, s7_pointer args)
+{
+  #define H_expt "(expt z1 z2) returns z1^z2"
+  #define Q_expt sc->pcl_n
+  return(expt_p_pp(sc, s7_car(args), s7_cadr(args)));
 }
