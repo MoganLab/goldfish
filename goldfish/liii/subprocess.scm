@@ -259,9 +259,8 @@
     (define (run-string command . opts)
       (let-values (((out err code) (apply run-values command opts)))
         (if (zero? code)
-          out
-          (value-error (string-append "Command failed with exit code " (number->string code))
-          ) ;value-error
+          (from-right out)
+          (from-left code)
         ) ;if
       ) ;let-values
     ) ;define
@@ -390,7 +389,12 @@
              ) ;
           (let loop
             ((cmds commands) (last-code 0))
-            (cond ((null? cmds) last-code)
+            (cond ((null? cmds)
+                   (if (zero? last-code)
+                     (from-right last-code)
+                     (from-left last-code)
+                   ) ;if
+                  ) ;
                   (else (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
                           (loop (cdr cmds) code)
                         ) ;let-values
@@ -410,7 +414,7 @@
              ) ;
           (let loop
             ((cmds commands) (input #f))
-            (cond ((null? cmds) "")
+            (cond ((null? cmds) (from-right ""))
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
@@ -428,9 +432,8 @@
                                 ) ;
                                ) ;
                      (if (zero? code)
-                       out
-                       (value-error (string-append "Pipe failed with exit code " (number->string code))
-                       ) ;value-error
+                       (from-right out)
+                       (from-left (list code (car cmds)))
                      ) ;if
                    ) ;let-values
                   ) ;
@@ -449,7 +452,10 @@
                                       ) ;run-values
                                      ) ;
                                     ) ;
-                          (loop (cdr cmds) out)
+                          (if (zero? code)
+                            (loop (cdr cmds) out)
+                            (from-left (list code (car cmds)))
+                          ) ;if
                         ) ;let-values
                   ) ;else
             ) ;cond
