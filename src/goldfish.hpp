@@ -2435,6 +2435,16 @@ glue_os_call (s7_scheme* sc) {
   glue_define (sc, name, desc, f_os_call, 1, 0);
 }
 
+s7_pointer
+f_subprocess_run_values (s7_scheme* sc, s7_pointer args);
+
+inline void
+glue_subprocess_run_values (s7_scheme* sc) {
+  const char* name = "g_subprocess-run-values";
+  const char* desc = "(g_subprocess-run-values command cwd env input timeout stdout stderr stdin) => (values stdout stderr exit-code)";
+  glue_define (sc, name, desc, f_subprocess_run_values, 1, 7);
+}
+
 static s7_pointer
 f_system (s7_scheme* sc, s7_pointer args) {
   const char* cmd_c= s7_string (s7_car (args));
@@ -2697,6 +2707,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_os_arch (sc);
   glue_os_type (sc);
   glue_os_call (sc);
+  glue_subprocess_run_values (sc);
   glue_system (sc);
   glue_access (sc);
   glue_setenv (sc);
