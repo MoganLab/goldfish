@@ -113,19 +113,18 @@
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
-            (else (value-error
-                    (let ((suggestion
-                            (if (and (pair? command) (string? (car command)))
-                              (format #f "'(~a ...)" (string->symbol (car command)))
-                              "'(xxx \"yyy\" \"zzz\")"
-                            ) ;if
-                          ) ;suggestion
-                         ) ;
-                      (format #f "Command list must start with a symbol, e.g. ~a, got: ~a"
-                        suggestion
-                        (object->string command)
-                      ) ;format
-                    ) ;let
+            (else (value-error (let ((suggestion (if (and (pair? command) (string? (car command)))
+                                                   (format #f "'(~a ...)" (string->symbol (car command)))
+                                                   "'(xxx \"yyy\" \"zzz\")"
+                                                 ) ;if
+                                     ) ;suggestion
+                                    ) ;
+                                 (format #f
+                                   "Command list must start with a symbol, e.g. ~a, got: ~a"
+                                   suggestion
+                                   (object->string command)
+                                 ) ;format
+                               ) ;let
                   ) ;value-error
             ) ;else
       ) ;cond
@@ -247,9 +246,29 @@
                              (values "" "" 0)
                             ) ;
                             ((pair? cmd-spec)
-                             (g_subprocess-run-values cmd-spec cwd env input timeout stdout stdout-mode stderr stderr-mode stdin)
+                             (g_subprocess-run-values cmd-spec
+                               cwd
+                               env
+                               input
+                               timeout
+                               stdout
+                               stdout-mode
+                               stderr
+                               stderr-mode
+                               stdin
+                             ) ;g_subprocess-run-values
                             ) ;
-                            (else (g_subprocess-run-values cmd-spec cwd env input timeout stdout stdout-mode stderr stderr-mode stdin)
+                            (else (g_subprocess-run-values cmd-spec
+                                    cwd
+                                    env
+                                    input
+                                    timeout
+                                    stdout
+                                    stdout-mode
+                                    stderr
+                                    stderr-mode
+                                    stdin
+                                  ) ;g_subprocess-run-values
                             ) ;else
                       ) ;cond
                      ) ;

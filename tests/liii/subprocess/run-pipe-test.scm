@@ -27,8 +27,7 @@
     =>
     "hello world\n"
   ) ;check
-  (check (either-right? (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc
-                                                                        "-l")))
+  (check (either-right? (run-pipe '(printf "a\nb\nc") '(grep "a") '(wc "-l")))
     =>
     #t
   ) ;check
