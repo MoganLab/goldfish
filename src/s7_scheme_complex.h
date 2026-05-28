@@ -41,6 +41,13 @@ s7_pointer g_real_part(s7_scheme *sc, s7_pointer args);
 s7_double imag_part_d_7p(s7_scheme *sc, s7_pointer x);
 s7_pointer imag_part_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer g_imag_part(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args);
+
+#if HAVE_COMPLEX_NUMBERS
+s7_complex s7i_catanh_1(s7_complex z);
+s7_complex s7i_casinh_1(s7_complex z);
+s7_complex s7i_cacosh_1(s7_complex z);
+#endif
 
 #ifdef __cplusplus
 }

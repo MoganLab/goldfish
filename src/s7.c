@@ -436,16 +436,6 @@
   #endif
 #endif
 
-#if WITH_CLANG_PP
-  #define s7_complex_i ((double)1.0i)
-#else
-#if (defined(__GNUC__))
-  #define s7_complex_i 1.0i
-#else
-  #define s7_complex_i (s7_complex)_Complex_I /* a float, but we want a double */
-#endif
-#endif
-
 #ifndef M_PI
   #define M_PI 3.1415926535897932384626433832795029L
 #endif
@@ -6497,6 +6487,16 @@ static s7_pointer apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer
   s7_pointer func = find_method_with_let(sc, obj, method);
   if (func == sc->undefined) return(sc->F);
   return(s7_apply_function(sc, func, set_mlist_1(sc, obj))); /* plist here and below will probably not work (_pp case known bad) */
+}
+
+s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer method)
+{
+  return(apply_boolean_method(sc, obj, method));
+}
+
+s7_pointer s7i_is_complex_symbol(s7_scheme *sc)
+{
+  return(sc->is_complex_symbol);
 }
 
 /* this is a macro mainly to simplify the Checker handling */
@@ -13204,113 +13204,6 @@ static s7_pointer g_nan_payload(s7_scheme *sc, s7_pointer args)
 /* for g_log, we also need round. this version is from stackoverflow, see also r5rs_round below */
 static double s7_round(double number) {return((number < 0.0) ? ceil(number - 0.5) : floor(number + 0.5));}
 
-#if HAVE_COMPLEX_NUMBERS
-#if __cplusplus
-  #define _Complex_I (complex<s7_double>(0.0, 1.0))
-  #define creal(x) Real(x)
-  #define cimag(x) Imag(x)
-  #define carg(x) arg(x)
-  #define cabs(x) abs(x)
-  #define csqrt(x) sqrt(x)
-  #define cpow(x, y) pow(x, y)
-  #define clog(x) log(x)
-  #define cexp(x) exp(x)
-  #define csin(x) sin(x)
-  #define ccos(x) cos(x)
-  #define ctan(x) tan(x)
-  #define csinh(x) sinh(x)
-  #define ccosh(x) cosh(x)
-  #define ctanh(x) tanh(x)
-  #define casin(x) asin(x)
-  #define cacos(x) acos(x)
-  #define catan(x) atan(x)
-  #define casinh(x) asinh(x)
-  #define cacosh(x) acosh(x)
-  #define catanh(x) atanh(x)
-#endif
-
-
-#if !HAVE_COMPLEX_TRIG
-#if __cplusplus
-
-  static s7_complex ctan(s7_complex z)   {return(csin(z) / ccos(z));}
-  static s7_complex ctanh(s7_complex z)  {return(csinh(z) / ccosh(z));}
-  static s7_complex casin(s7_complex z)  {return(-s7_complex_i * clog(s7_complex_i * z + csqrt(1.0 - z * z)));}
-  static s7_complex cacos(s7_complex z)  {return(-s7_complex_i * clog(z + s7_complex_i * csqrt(1.0 - z * z)));}
-  static s7_complex catan(s7_complex z)  {return(s7_complex_i * clog((s7_complex_i + z) / (s7_complex_i - z)) / 2.0);}
-  static s7_complex casinh(s7_complex z) {return(clog(z + csqrt(1.0 + z * z)));}
-  static s7_complex cacosh(s7_complex z) {return(clog(z + csqrt(z * z - 1.0)));}
-  static s7_complex catanh(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
-#else
-
-#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 12)
-static s7_complex clog(s7_complex z) {return(log(fabs(cabs(z))) + carg(z) * s7_complex_i);}
-static s7_complex cpow(s7_complex x, s7_complex y)
-{
-  s7_double r = cabs(x);
-  s7_double theta = carg(x);
-  s7_double yre = creal(y);
-  s7_double yim = cimag(y);
-  s7_double nr = exp(yre * log(r) - yim * theta);
-  s7_double ntheta = yre * theta + yim * log(r);
-  return(nr * cos(ntheta) + (nr * sin(ntheta)) * s7_complex_i);
-}
-#endif
-#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 9) /* untested -- this orignally looked at __FreeBSD_version which apparently no longer exists */
-  static s7_complex cexp(s7_complex z) {return(exp(creal(z)) * cos(cimag(z)) + (exp(creal(z)) * sin(cimag(z))) * s7_complex_i);}
-#endif
-
-#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 10)
-  static s7_complex csin(s7_complex z)   {return(sin(creal(z)) * cosh(cimag(z)) + (cos(creal(z)) * sinh(cimag(z))) * s7_complex_i);}
-  static s7_complex ccos(s7_complex z)   {return(cos(creal(z)) * cosh(cimag(z)) + (-sin(creal(z)) * sinh(cimag(z))) * s7_complex_i);}
-  static s7_complex csinh(s7_complex z)  {return(sinh(creal(z)) * cos(cimag(z)) + (cosh(creal(z)) * sin(cimag(z))) * s7_complex_i);}
-  static s7_complex ccosh(s7_complex z)  {return(cosh(creal(z)) * cos(cimag(z)) + (sinh(creal(z)) * sin(cimag(z))) * s7_complex_i);}
-  static s7_complex ctan(s7_complex z)   {return(csin(z) / ccos(z));}
-  static s7_complex ctanh(s7_complex z)  {return(csinh(z) / ccosh(z));}
-  static s7_complex casin(s7_complex z)  {return(-s7_complex_i * clog(s7_complex_i * z + csqrt(1.0 - z * z)));}
-  static s7_complex cacos(s7_complex z)  {return(-s7_complex_i * clog(z + s7_complex_i * csqrt(1.0 - z * z)));}
-  static s7_complex catan(s7_complex z)  {return(s7_complex_i * clog((s7_complex_i + z) / (s7_complex_i - z)) / 2.0);}
-  static s7_complex catanh(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
-  static s7_complex casinh(s7_complex z) {return(clog(z + csqrt(1.0 + z * z)));}
-  static s7_complex cacosh(s7_complex z) {return(clog(z + csqrt(z * z - 1.0)));}
-#endif /* not FreeBSD 10 */
-#endif /* not c++ */
-#endif /* not HAVE_COMPLEX_TRIG */
-
-#else  /* not HAVE_COMPLEX_NUMBERS */
-  #define _Complex_I 1.0
-  #define creal(x) 0.0
-  #define cimag(x) 0.0
-  #define csin(x) sin(x)
-  #define casin(x) x
-  #define ccos(x) cos(x)
-  #define cacos(x) x
-  #define ctan(x) x
-  #define catan(x) x
-  #define csinh(x) x
-  #define casinh(x) x
-  #define ccosh(x) x
-  #define cacosh(x) x
-  #define ctanh(x) x
-  #define catanh(x) x
-  #define cexp(x) exp(x)
-  #define cpow(x, y) pow(x, y)
-  #define clog(x) log(x)
-  #define csqrt(x) sqrt(x)
-  #define conj(x) x
-#endif
-
-#ifdef __OpenBSD__
-  /* openbsd's builtin versions of these functions are not usable */
-  static s7_complex catanh_1(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
-  static s7_complex casinh_1(s7_complex z) {return(clog(z + csqrt(1.0 + z * z)));}
-  static s7_complex cacosh_1(s7_complex z) {return(clog(z + csqrt(z * z - 1.0)));}
-#endif
-#ifdef __NetBSD__
-  static s7_complex catanh_1(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
-  static s7_complex casinh_1(s7_complex z) {return(clog(z + csqrt(1.0 + z * z)));}
-#endif
-
 bool s7_is_number(s7_pointer p)   {return(is_number(p));}
 bool s7_is_complex(s7_pointer p)  {return(is_number(p));}
 bool s7_is_real(s7_pointer p)     {return(is_real(p));}
@@ -18829,12 +18722,9 @@ static s7_pointer g_is_real(s7_scheme *sc, s7_pointer args)
   check_boolean_method(sc, is_real, sc->is_real_symbol, args);
 }
 
-static s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_complex "(complex? obj) returns #t if obj is a number"
-  #define Q_is_complex sc->pl_bt
-  check_boolean_method(sc, is_number, sc->is_complex_symbol, args);
-}
+#define H_is_complex "(complex? obj) returns #t if obj is a number"
+#define Q_is_complex sc->pl_bt
+
 
 static s7_pointer g_is_rational(s7_scheme *sc, s7_pointer args)
 {

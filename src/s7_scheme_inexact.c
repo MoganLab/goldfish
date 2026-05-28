@@ -46,6 +46,7 @@
 #include <math.h>
 #if HAVE_COMPLEX_NUMBERS
   #include <complex.h>
+  #include "s7_scheme_complex.h"
 #endif
 
 #ifndef S7_INT_BITS
@@ -988,7 +989,7 @@ s7_pointer asinh_p_p(s7_scheme *sc, s7_pointer x)
       double i = s7_imag_part(x);
       s7_complex z = r + i * _Complex_I;
 #if (defined(__OpenBSD__)) || (defined(__NetBSD__))
-      s7_complex result = casinh_1(z);
+      s7_complex result = s7i_casinh_1(z);
 #else
       s7_complex result = casinh(z);
 #endif
@@ -1040,7 +1041,7 @@ s7_pointer acosh_p_p(s7_scheme *sc, s7_pointer x)
 #ifdef __OpenBSD__
   {
     s7_complex z = s7_real_part(x) + s7_imag_part(x) * _Complex_I;
-    s7_complex result = cacosh_1(z);
+    s7_complex result = s7i_cacosh_1(z);
     return s7_make_complex(sc, creal(result), cimag(result));
   }
 #else
@@ -1092,7 +1093,7 @@ s7_pointer atanh_p_p(s7_scheme *sc, s7_pointer x)
   {
     s7_complex z = s7_real_part(x) + s7_imag_part(x) * _Complex_I;
 #if (defined(__OpenBSD__)) || (defined(__NetBSD__))
-    s7_complex result = catanh_1(z);
+    s7_complex result = s7i_catanh_1(z);
 #else
     s7_complex result = catanh(z);
 #endif
