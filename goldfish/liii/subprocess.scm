@@ -114,7 +114,18 @@
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
             (else (value-error
-                    "Command list must start with a symbol, e.g. '(xxx \"yyy\" \"zzz\"), not all strings"
+                    (let ((suggestion
+                            (if (and (pair? command) (string? (car command)))
+                              (format #f "'(~a ...)" (string->symbol (car command)))
+                              "'(xxx \"yyy\" \"zzz\")"
+                            ) ;if
+                          ) ;suggestion
+                         ) ;
+                      (format #f "Command list must start with a symbol, e.g. ~a, got: ~a"
+                        suggestion
+                        (object->string command)
+                      ) ;format
+                    ) ;let
                   ) ;value-error
             ) ;else
       ) ;cond
