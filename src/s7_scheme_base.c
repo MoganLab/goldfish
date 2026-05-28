@@ -7,6 +7,7 @@
  */
 
 #include "s7_scheme_base.h"
+#include "s7_internal_helpers.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -841,3 +842,45 @@ s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)
     }
   return s7i_port_read_line(sc, port, with_eol);
 }
+
+/* ---------------------------------------- max ---------------------------------------- */
+
+s7_pointer g_max(s7_scheme *sc, s7_pointer args)
+{
+  #define H_max "(max ...) returns the maximum of its arguments"
+  #define Q_max sc->pcl_r
+
+  s7_pointer x = s7_car(args);
+  if (s7_is_null(sc, s7_cdr(args)))
+    {
+      if (s7_is_real(x)) return(x);
+      return s7_wrong_type_arg_error(sc, "max", 1, x, "a real number");
+    }
+  for (s7_pointer nums = s7_cdr(args); s7_is_pair(nums); nums = s7_cdr(nums))
+    x = max_p_pp(sc, x, s7_car(nums));
+  return(x);
+}
+
+s7_pointer g_max_2(s7_scheme *sc, s7_pointer args) {return(max_p_pp(sc, s7_car(args), s7_cadr(args)));}
+s7_pointer g_max_3(s7_scheme *sc, s7_pointer args) {return(max_p_pp(sc, max_p_pp(sc, s7_car(args), s7_cadr(args)), s7_caddr(args)));}
+
+/* ---------------------------------------- min ---------------------------------------- */
+
+s7_pointer g_min(s7_scheme *sc, s7_pointer args)
+{
+  #define H_min "(min ...) returns the minimum of its arguments"
+  #define Q_min sc->pcl_r
+
+  s7_pointer x = s7_car(args);
+  if (s7_is_null(sc, s7_cdr(args)))
+    {
+      if (s7_is_real(x)) return(x);
+      return s7_wrong_type_arg_error(sc, "min", 1, x, "a real number");
+    }
+  for (s7_pointer nums = s7_cdr(args); s7_is_pair(nums); nums = s7_cdr(nums))
+    x = min_p_pp(sc, x, s7_car(nums));
+  return(x);
+}
+
+s7_pointer g_min_2(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, s7_car(args), s7_cadr(args)));}
+s7_pointer g_min_3(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, min_p_pp(sc, s7_car(args), s7_cadr(args)), s7_caddr(args)));}

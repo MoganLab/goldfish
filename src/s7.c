@@ -18736,7 +18736,7 @@ static bool is_real_via_method_1(s7_scheme *sc, s7_pointer p)
 #define max_out_x(Sc, X, Y) method_or_bust_pp(Sc, X, Sc->max_symbol, X, Y, Sc->type_names[T_REAL], 1)
 #define max_out_y(Sc, X, Y) method_or_bust_pp(Sc, Y, Sc->max_symbol, X, Y, Sc->type_names[T_REAL], 2)
 
-static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
+s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
   /* same basic code as lt_b_7_pp (or any relop) but max returns NaN if NaN encountered, and methods for < and max return
    *    different results, so it seems simpler to repeat the other code.
@@ -18792,25 +18792,6 @@ static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(x);
 }
 
-static s7_pointer g_max(s7_scheme *sc, s7_pointer args)
-{
-  #define H_max "(max ...) returns the maximum of its arguments"
-  #define Q_max sc->pcl_r
-
-  s7_pointer x = car(args);
-  if (is_null(cdr(args)))
-    {
-      if (is_real(x)) return(x);
-      return(method_or_bust_p(sc, x, sc->max_symbol, sc->type_names[T_REAL]));
-    }
-  for (s7_pointer nums = cdr(args); is_pair(nums); nums = cdr(nums))
-    x = max_p_pp(sc, x, car(nums));
-  return(x);
-}
-
-static s7_pointer g_max_2(s7_scheme *sc, s7_pointer args) {return(max_p_pp(sc, car(args), cadr(args)));}
-static s7_pointer g_max_3(s7_scheme *sc, s7_pointer args) {return(max_p_pp(sc, max_p_pp(sc, car(args), cadr(args)), caddr(args)));}
-
 static s7_pointer max_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
   return((args == 2) ? sc->max_2 : ((args == 3) ? sc->max_3 : func));
@@ -18827,7 +18808,7 @@ static s7_double max_d_dddd(s7_double x1, s7_double x2, s7_double x3, s7_double 
 #define min_out_x(Sc, X, Y) method_or_bust_pp(Sc, X, Sc->min_symbol, X, Y, Sc->type_names[T_REAL], 1)
 #define min_out_y(Sc, X, Y) method_or_bust_pp(Sc, Y, Sc->min_symbol, X, Y, Sc->type_names[T_REAL], 2)
 
-static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
+s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
   if (type(x) == type(y))
     {
@@ -18877,25 +18858,6 @@ static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
   return(x);
 }
-
-static s7_pointer g_min(s7_scheme *sc, s7_pointer args)
-{
-  #define H_min "(min ...) returns the minimum of its arguments"
-  #define Q_min sc->pcl_r
-
-  s7_pointer x = car(args);
-  if (is_null(cdr(args)))
-    {
-      if (is_real(x)) return(x);
-      return(method_or_bust_p(sc, x, sc->min_symbol, sc->type_names[T_REAL]));
-    }
-  for (s7_pointer nums = cdr(args); is_pair(nums); nums = cdr(nums))
-    x = min_p_pp(sc, x, car(nums));
-  return(x);
-}
-
-static s7_pointer g_min_2(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, car(args), cadr(args)));}
-static s7_pointer g_min_3(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, min_p_pp(sc, car(args), cadr(args)), caddr(args)));}
 
 static s7_pointer min_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
@@ -91080,8 +91042,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->subtract_symbol =              defun("-",		        subtract,		1, 0, true); set_all_integer_and_float(sc->subtract_symbol);
   sc->multiply_symbol =              defun("*",		        multiply,		0, 0, true); set_all_integer_and_float(sc->multiply_symbol);
   sc->divide_symbol =                defun("/",		        divide,			1, 0, true); set_all_float(sc->divide_symbol);
-  sc->min_symbol =                   defun("s7-min",		min,			1, 0, true); set_all_integer_and_float(sc->min_symbol);
-  sc->max_symbol =                   defun("s7-max",		max,			1, 0, true); set_all_integer_and_float(sc->max_symbol);
+  sc->min_symbol =                   s7_define_typed_function(sc, "s7-min", g_min, 1, 0, true, "(min ...) returns the minimum of its arguments", sc->pcl_r); set_all_integer_and_float(sc->min_symbol);
+  sc->max_symbol =                   s7_define_typed_function(sc, "s7-max", g_max, 1, 0, true, "(max ...) returns the maximum of its arguments", sc->pcl_r); set_all_integer_and_float(sc->max_symbol);
 
   sc->quotient_symbol =              defun("quotient",		quotient,		2, 0, false); set_all_integer(sc->quotient_symbol);
   sc->remainder_symbol =             defun("remainder",	        remainder,		2, 0, false); set_all_integer(sc->remainder_symbol);
