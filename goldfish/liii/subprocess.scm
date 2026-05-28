@@ -76,7 +76,7 @@
         (cond ((procedure? val) (cons 'lambda (cons val args)))
               ((string? val) (cons val args))
               ((path? val) (cons (path->string val) args))
-              (else (string-join (cons (symbol->string sym) args) " "))
+              (else (cons (symbol->string sym) args))
         ) ;cond
       ) ;let
     ) ;define
@@ -113,8 +113,9 @@
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
-            ((and (list? command) (every string? command)) command)
-            (else (type-error "(run command ...): command must be string or list of strings")
+            (else (value-error
+                    "Command list must start with a symbol, e.g. '(xxx \"yyy\" \"zzz\"), not all strings"
+                  ) ;value-error
             ) ;else
       ) ;cond
     ) ;define

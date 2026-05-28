@@ -111,8 +111,8 @@
     (check (zero? code) => #t)
   )
 
-  ;; list form bypasses shell
-  (let-values (((out err code) (run-values '("printf" "%s" "hello world"))))
+  ;; list form with symbol head
+  (let-values (((out err code) (run-values '(printf "%s" "hello world"))))
     (check out => "hello world")
     (check (zero? code) => #t)
   )

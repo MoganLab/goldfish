@@ -36,8 +36,8 @@
 (when (os-linux?)
   (check (either-right? (run-string "echo hello")) => #t)
   (check (to-right (run-string "echo hello")) => "hello\n")
-  (check (either-right? (run-string '("echo" "hello"))) => #t)
-  (check (to-right (run-string '("echo" "hello"))) => "hello\n")
+  (check (either-right? (run-string '(echo "hello"))) => #t)
+  (check (to-right (run-string '(echo "hello"))) => "hello\n")
 
   (check (either-left? (run-string "false")) => #t)
   (check (to-left (run-string "false")) => 1)
@@ -78,9 +78,9 @@
   (check (either-right? (run-string "echo hello >&2" :stderr 'discard)) => #t)
   (check (to-right (run-string "echo hello >&2" :stderr 'discard)) => "")
 
-  ;; list form bypasses shell
-  (check (either-right? (run-string '("printf" "%s" "hello world"))) => #t)
-  (check (to-right (run-string '("printf" "%s" "hello world"))) => "hello world")
+  ;; list form with symbol head
+  (check (either-right? (run-string '(printf "%s" "hello world"))) => #t)
+  (check (to-right (run-string '(printf "%s" "hello world"))) => "hello world")
 ) ;when
 
 (check-report)
