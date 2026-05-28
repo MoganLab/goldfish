@@ -22,6 +22,7 @@
     run-get
     run-allow!
     run-ban!
+    run-unban!
     run-and
     run-or
     run-sequence
@@ -43,7 +44,7 @@
 
     (define %run-registry (make-hash-table))
     (define %run-allow-list '())
-    (define %run-ban-list '())
+    (define %run-ban-list '(rm))
 
     (define (%keyword-value key opts default)
       (let loop
@@ -68,6 +69,25 @@
                      ) ;string-append
         ) ;value-error
       ) ;when
+    ) ;define
+
+    (define (%check-string-command cmd)
+      (let loop
+        ((banned %run-ban-list))
+        (when (pair? banned)
+          (let ((sym-str (symbol->string (car banned))))
+            (when (and (>= (string-length cmd) (string-length sym-str))
+                    (string=? (substring cmd 0 (string-length sym-str)) sym-str)
+                    (or (= (string-length cmd) (string-length sym-str))
+                      (char=? (string-ref cmd (string-length sym-str)) #\space)
+                    ) ;or
+                  ) ;and
+              (value-error (string-append "Command '" cmd "' has been banned"))
+            ) ;when
+          ) ;let
+          (loop (cdr banned))
+        ) ;when
+      ) ;let
     ) ;define
 
     (define (%resolve-symbol-command sym args)
@@ -142,6 +162,9 @@
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
+        (when (string? cmd-spec)
+          (%check-string-command cmd-spec)
+        ) ;when
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
@@ -222,6 +245,10 @@
       (set! %run-ban-list (cons symbol %run-ban-list))
     ) ;define
 
+    (define (run-unban! symbol)
+      (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
@@ -236,6 +263,9 @@
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
+        (when (string? cmd-spec)
+          (%check-string-command cmd-spec)
+        ) ;when
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
