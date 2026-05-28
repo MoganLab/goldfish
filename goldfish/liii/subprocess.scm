@@ -73,8 +73,8 @@
       (%check-symbol-command sym)
       (let ((val (hash-table-ref/default %run-registry sym #f)))
         (cond ((procedure? val) (cons 'lambda (cons val args)))
-              ((string? val) (string-join (cons val args) " "))
-              ((path? val) (string-join (cons (path->string val) args) " "))
+              ((string? val) (cons val args))
+              ((path? val) (cons (path->string val) args))
               (else (string-join (cons (symbol->string sym) args) " "))
         ) ;cond
       ) ;let
@@ -107,12 +107,12 @@
       ) ;when
     ) ;define
 
-    (define (%command->string command)
+    (define (%command->exec-spec command)
       (cond ((string? command) command)
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
-            ((and (list? command) (every string? command)) (string-join command " "))
+            ((and (list? command) (every string? command)) command)
             (else (type-error "(run command ...): command must be string or list of strings")
             ) ;else
       ) ;cond
@@ -120,7 +120,13 @@
 
     (define (run command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
-            (cmd-str-or-lambda (%command->string command))
+            (env (%keyword-value :env opts #f))
+            (input (%keyword-value :input opts #f))
+            (timeout (%keyword-value :timeout opts #f))
+            (stdout (%keyword-value :stdout opts #f))
+            (stderr (%keyword-value :stderr opts #f))
+            (stdin (%keyword-value :stdin opts #f))
+            (cmd-spec (%command->exec-spec command))
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
@@ -128,13 +134,35 @@
           (set! orig-dir (getcwd))
           (chdir cwd)
         ) ;when
-        (let ((result (if (pair? cmd-str-or-lambda)
-                        (begin
-                          (apply (cadr cmd-str-or-lambda) (cddr cmd-str-or-lambda))
-                          0
-                        ) ;begin
-                        (os-call cmd-str-or-lambda)
-                      ) ;if
+        (let ((result
+               (cond ((and (pair? cmd-spec) (eq? (car cmd-spec) 'lambda))
+                      (apply (cadr cmd-spec) (cddr cmd-spec))
+                      0
+                     ) ;lambda
+                     ((or env input timeout stdout stderr stdin)
+                      (let-values (((out err code)
+                                    (run-values command
+                                      :cwd cwd :env env
+                                      :input input :timeout timeout
+                                      :stdout stdout :stderr stderr
+                                      :stdin stdin
+                                    ) ;run-values
+                                   ) ;
+                                  ) ;let-values
+                        (display out)
+                        (display err (current-error-port))
+                        code
+                      ) ;let-values
+                     ) ;has-keywords
+                     ((pair? cmd-spec)
+                      (let-values (((out err code) (run-values command)))
+                        (display out)
+                        (display err (current-error-port))
+                        code
+                      ) ;let-values
+                     ) ;list-form
+                     (else (os-call cmd-spec))
+               ) ;cond
               ) ;result
              ) ;
           (when orig-dir
@@ -181,7 +209,7 @@
             (stdout (%keyword-value :stdout opts #f))
             (stderr (%keyword-value :stderr opts #f))
             (stdin (%keyword-value :stdin opts #f))
-            (cmd-str-or-lambda (%command->string command))
+            (cmd-spec (%command->exec-spec command))
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
@@ -190,21 +218,33 @@
           (chdir cwd)
         ) ;when
         (let-values (((out err code)
-                      (if (pair? cmd-str-or-lambda)
-                        (begin
-                          (apply (cadr cmd-str-or-lambda) (cddr cmd-str-or-lambda))
-                          (values "" "" 0)
-                        ) ;begin
-                        (g_subprocess-run-values cmd-str-or-lambda
-                          cwd
-                          env
-                          input
-                          timeout
-                          stdout
-                          stderr
-                          stdin
-                        ) ;g_subprocess-run-values
-                      ) ;if
+                      (cond ((and (pair? cmd-spec) (eq? (car cmd-spec) 'lambda))
+                             (apply (cadr cmd-spec) (cddr cmd-spec))
+                             (values "" "" 0)
+                            ) ;lambda
+                            ((pair? cmd-spec)
+                             (g_subprocess-run-values cmd-spec
+                               cwd
+                               env
+                               input
+                               timeout
+                               stdout
+                               stderr
+                               stdin
+                             ) ;g_subprocess-run-values
+                            ) ;list
+                            (else
+                             (g_subprocess-run-values cmd-spec
+                               cwd
+                               env
+                               input
+                               timeout
+                               stdout
+                               stderr
+                               stdin
+                             ) ;g_subprocess-run-values
+                            ) ;string
+                      ) ;cond
                      ) ;
                     ) ;
           (when orig-dir

@@ -27,7 +27,7 @@ using std::vector;
 
 s7_pointer
 f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c = s7_string (s7_car (args));
+  s7_pointer cmd_arg = s7_car (args);
   args = s7_cdr (args);
 
   const char* cwd = nullptr;
@@ -186,8 +186,27 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     tb_pipe_file_exit (in_pipe[1]);
   }
 
-  tb_char_t const* sh_argv[] = {"sh", "-c", cmd_c, tb_null};
-  tb_process_ref_t process = tb_process_init ("/bin/sh", sh_argv, &attr);
+  tb_process_ref_t process = tb_null;
+  if (s7_is_string (cmd_arg)) {
+    const char* cmd_c = s7_string (cmd_arg);
+    tb_char_t const* sh_argv[] = {"sh", "-c", cmd_c, tb_null};
+    process = tb_process_init ("/bin/sh", sh_argv, &attr);
+  }
+  else if (s7_is_pair (cmd_arg)) {
+    vector<const char*> argv;
+    s7_pointer p = cmd_arg;
+    while (s7_is_pair (p)) {
+      s7_pointer item = s7_car (p);
+      if (s7_is_string (item)) {
+        argv.push_back (s7_string (item));
+      }
+      p = s7_cdr (p);
+    }
+    argv.push_back (nullptr);
+    if (!argv.empty ()) {
+      process = tb_process_init (argv[0], argv.data (), &attr);
+    }
+  }
 
   if (out_pipe[1]) tb_pipe_file_exit (out_pipe[1]);
   if (err_pipe[1]) tb_pipe_file_exit (err_pipe[1]);
