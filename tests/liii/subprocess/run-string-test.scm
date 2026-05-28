@@ -1,4 +1,10 @@
-(import (liii check) (liii os) (liii path) (liii subprocess) (scheme file))
+(import (liii check)
+  (liii either)
+  (liii os)
+  (liii path)
+  (liii subprocess)
+  (scheme file)
+) ;import
 
 ;; run-string
 ;; 执行命令并返回标准输出字符串。
@@ -23,54 +29,58 @@
 ;;
 ;; 返回值
 ;; ----
-;; string
-;; 标准输出字符串（末尾换行保留）。
-;;
-;; 错误处理
-;; ----
-;; value-error 当命令返回非 0 退出码时。
-;;
-;; 说明
-;; ----
-;; 由于 run-string 不返回退出码，非 0 时抛出异常以避免静默失败。
+;; Either
+;; 成功时返回 Right（内含标准输出字符串），
+;; 失败时返回 Left（内含退出码）。
 
 (when (os-linux?)
-  (check (run-string "echo hello") => "hello\n")
-  (check (run-string '("echo" "hello")) => "hello\n")
+  (check (either-right? (run-string "echo hello")) => #t)
+  (check (to-right (run-string "echo hello")) => "hello\n")
+  (check (either-right? (run-string '(echo "hello"))) => #t)
+  (check (to-right (run-string '(echo "hello"))) => "hello\n")
 
-  (check-catch 'value-error (run-string "false"))
+  (check (either-left? (run-string "false")) => #t)
+  (check (to-left (run-string "false")) => 1)
 
-  (check (run-string "pwd" :cwd "/tmp") => "/tmp\n")
+  (check (either-right? (run-string "pwd" :cwd "/tmp")) => #t)
+  (check (to-right (run-string "pwd" :cwd "/tmp")) => "/tmp\n")
 
   ;; :env
-  (check (run-string "echo $FOO" :env '(("FOO" . "bar"))) => "bar\n")
+  (check (either-right? (run-string "echo $FOO" :env '(("FOO" . "bar")))) => #t)
+  (check (to-right (run-string "echo $FOO" :env '(("FOO" . "bar")))) => "bar\n")
 
   ;; :input
-  (check (run-string "cat" :input "hello world") => "hello world")
+  (check (either-right? (run-string "cat" :input "hello world")) => #t)
+  (check (to-right (run-string "cat" :input "hello world")) => "hello world")
 
   ;; :stdout to file
   (let ((tmpfile "/tmp/gf-run-string-stdout-test.txt"))
     (when (file-exists? tmpfile)
       (delete-file tmpfile)
-    )
-    (check (run-string "echo hello" :stdout tmpfile) => "")
+    ) ;when
+    (check (either-right? (run-string "echo hello" :stdout tmpfile)) => #t)
+    (check (to-right (run-string "echo hello" :stdout tmpfile)) => "")
     (check (path-read-text tmpfile) => "hello\n")
     (when (file-exists? tmpfile)
       (delete-file tmpfile)
-    )
-  )
+    ) ;when
+  ) ;let
 
   ;; :stdout 'discard
-  (check (run-string "echo hello" :stdout 'discard) => "")
+  (check (either-right? (run-string "echo hello" :stdout 'discard)) => #t)
+  (check (to-right (run-string "echo hello" :stdout 'discard)) => "")
 
   ;; :stderr 'stdout
-  (check (run-string "echo hello >&2" :stderr 'stdout) => "hello\n")
+  (check (either-right? (run-string "echo hello >&2" :stderr 'stdout)) => #t)
+  (check (to-right (run-string "echo hello >&2" :stderr 'stdout)) => "hello\n")
 
   ;; :stderr 'discard
-  (check (run-string "echo hello >&2" :stderr 'discard) => "")
+  (check (either-right? (run-string "echo hello >&2" :stderr 'discard)) => #t)
+  (check (to-right (run-string "echo hello >&2" :stderr 'discard)) => "")
 
-  ;; list form bypasses shell
-  (check (run-string '("printf" "%s" "hello world")) => "hello world")
-)
+  ;; list form with symbol head
+  (check (either-right? (run-string '(printf "%s" "hello world"))) => #t)
+  (check (to-right (run-string '(printf "%s" "hello world"))) => "hello world")
+) ;when
 
 (check-report)

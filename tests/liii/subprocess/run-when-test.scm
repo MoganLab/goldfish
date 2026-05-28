@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii subprocess))
+(import (liii check) (liii either) (liii os) (liii subprocess))
 
 ;; run-when
 ;; 条件不满足时执行命令。
@@ -16,12 +16,18 @@
 ;;
 ;; 返回值
 ;; ----
-;; integer
-;; 0（条件满足时不执行），或 command 的退出码。
+;; Either
+;; condition 满足时返回 Right 0；command 成功时返回 Right（内含退出码），
+;; 失败时返回 Left（内含 (list code command)）。
 
 (when (os-linux?)
-  (check (run-when "false" "echo yes") => 0)
-  (check (run-when "true" "echo yes") => 0)
-)
+  (check (either-right? (run-when "false" "echo yes")) => #t)
+  (check (to-right (run-when "false" "echo yes")) => 0)
+  (check (either-right? (run-when "true" "echo yes")) => #t)
+  (check (to-right (run-when "true" "echo yes")) => 0)
+
+  (check (either-left? (run-when "false" "false")) => #t)
+  (check (to-left (run-when "false" "false")) => '(1 "false"))
+) ;when
 
 (check-report)

@@ -5,8 +5,8 @@
   (check (zero? (run "true")) => #t)
   (check (zero? (run "false")) => #f)
   (check (run "echo hello") => 0)
-  (check (zero? (run '("true"))) => #t)
-  (check (zero? (run '("false"))) => #f)
+  (check (zero? (run '(true))) => #t)
+  (check (zero? (run '(false))) => #f)
 
   (let ((orig-dir (getcwd)))
     (run "pwd" :cwd "/tmp")
@@ -14,12 +14,11 @@
   ) ;let
 
   (let ((orig-dir (getcwd)))
-    (run '("pwd") :cwd "/tmp")
+    (run '(pwd) :cwd "/tmp")
     (check (getcwd) => orig-dir)
   ) ;let
 
   (check-catch 'value-error (run "cd /tmp" :cwd "/home"))
-  (check-catch 'value-error (run '("cd" "/tmp") :cwd "/home"))
   (check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
 
   ;; run-set! / run-get tests

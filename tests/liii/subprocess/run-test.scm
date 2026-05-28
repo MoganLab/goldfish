@@ -11,7 +11,7 @@
 ;; 参数
 ;; ----
 ;; command : string 或 list
-;; 字符串形式通过 /bin/sh -c 执行，列表形式逐字传递参数。
+;; 字符串形式通过 /bin/sh -c 执行，列表形式以 symbol 开头。
 ;;
 ;; keyword value ... : 可选
 ;; :cwd — 工作目录。
@@ -30,15 +30,15 @@
 ;; 说明
 ;; ----
 ;; 1. 字符串命令支持 shell 特性（通配符、变量展开等）。
-;; 2. 列表形式更安全，不经过 shell 解析。
+;; 2. 列表形式以 symbol 开头，最终转换为字符串执行。
 ;; 3. 命令中显式包含 cd 时不可同时设置 :cwd，否则抛 value-error。
 
 (when (os-linux?)
   (check (zero? (run "true")) => #t)
   (check (zero? (run "false")) => #f)
   (check (run "echo hello") => 0)
-  (check (zero? (run '("true"))) => #t)
-  (check (zero? (run '("false"))) => #f)
+  (check (zero? (run '(true))) => #t)
+  (check (zero? (run '(false))) => #f)
 
   (let ((orig-dir (getcwd)))
     (run "pwd" :cwd "/tmp")
@@ -46,19 +46,18 @@
   ) ;let
 
   (let ((orig-dir (getcwd)))
-    (run '("pwd") :cwd "/tmp")
+    (run '(pwd) :cwd "/tmp")
     (check (getcwd) => orig-dir)
   ) ;let
 
   (check-catch 'value-error (run "cd /tmp" :cwd "/home"))
-  (check-catch 'value-error (run '("cd" "/tmp") :cwd "/home"))
   (check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
 
   ;; :env
   (check (run "test $FOO = bar" :env '(("FOO" . "bar"))) => 0)
 
-  ;; list form bypasses shell
-  (check (run '("printf" "%s" "hello world")) => 0)
+  ;; list form with symbol head
+  (check (run '(printf "%s" "hello world")) => 0)
 ) ;when
 
 (check-report)

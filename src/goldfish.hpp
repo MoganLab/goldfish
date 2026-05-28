@@ -2441,8 +2441,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args);
 inline void
 glue_subprocess_run_values (s7_scheme* sc) {
   const char* name = "g_subprocess-run-values";
-  const char* desc = "(g_subprocess-run-values command cwd env input timeout stdout stderr stdin) => (values stdout stderr exit-code)";
-  glue_define (sc, name, desc, f_subprocess_run_values, 1, 7);
+  const char* desc = "(g_subprocess-run-values command cwd env input timeout stdout stdout-mode stderr stderr-mode stdin) => (values stdout stderr exit-code)";
+  glue_define (sc, name, desc, f_subprocess_run_values, 1, 9);
 }
 
 static s7_pointer

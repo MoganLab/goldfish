@@ -22,6 +22,7 @@
     run-get
     run-allow!
     run-ban!
+    run-unban!
     run-and
     run-or
     run-sequence
@@ -31,6 +32,7 @@
   ) ;export
   (import (scheme base)
     (liii base)
+    (liii either)
     (liii error)
     (liii hash-table)
     (liii list)
@@ -42,7 +44,7 @@
 
     (define %run-registry (make-hash-table))
     (define %run-allow-list '())
-    (define %run-ban-list '())
+    (define %run-ban-list '(rm))
 
     (define (%keyword-value key opts default)
       (let loop
@@ -69,13 +71,32 @@
       ) ;when
     ) ;define
 
+    (define (%check-string-command cmd)
+      (let loop
+        ((banned %run-ban-list))
+        (when (pair? banned)
+          (let ((sym-str (symbol->string (car banned))))
+            (when (and (>= (string-length cmd) (string-length sym-str))
+                    (string=? (substring cmd 0 (string-length sym-str)) sym-str)
+                    (or (= (string-length cmd) (string-length sym-str))
+                      (char=? (string-ref cmd (string-length sym-str)) #\space)
+                    ) ;or
+                  ) ;and
+              (value-error (string-append "Command '" cmd "' has been banned"))
+            ) ;when
+          ) ;let
+          (loop (cdr banned))
+        ) ;when
+      ) ;let
+    ) ;define
+
     (define (%resolve-symbol-command sym args)
       (%check-symbol-command sym)
       (let ((val (hash-table-ref/default %run-registry sym #f)))
         (cond ((procedure? val) (cons 'lambda (cons val args)))
               ((string? val) (cons val args))
               ((path? val) (cons (path->string val) args))
-              (else (string-join (cons (symbol->string sym) args) " "))
+              (else (cons (symbol->string sym) args))
         ) ;cond
       ) ;let
     ) ;define
@@ -112,8 +133,19 @@
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;
-            ((and (list? command) (every string? command)) command)
-            (else (type-error "(run command ...): command must be string or list of strings")
+            (else (value-error (let ((suggestion (if (and (pair? command) (string? (car command)))
+                                                   (format #f "'(~a ...)" (string->symbol (car command)))
+                                                   "'(xxx \"yyy\" \"zzz\")"
+                                                 ) ;if
+                                     ) ;suggestion
+                                    ) ;
+                                 (format #f
+                                   "Command list must start with a symbol, e.g. ~a, got: ~a"
+                                   suggestion
+                                   (object->string command)
+                                 ) ;format
+                               ) ;let
+                  ) ;value-error
             ) ;else
       ) ;cond
     ) ;define
@@ -130,39 +162,51 @@
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
+        (when (string? cmd-spec)
+          (%check-string-command cmd-spec)
+        ) ;when
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
         ) ;when
-        (let ((result
-               (cond ((and (pair? cmd-spec) (eq? (car cmd-spec) 'lambda))
-                      (apply (cadr cmd-spec) (cddr cmd-spec))
-                      0
-                     ) ;lambda
-                     ((or env input timeout stdout stderr stdin)
-                      (let-values (((out err code)
-                                    (run-values command
-                                      :cwd cwd :env env
-                                      :input input :timeout timeout
-                                      :stdout stdout :stderr stderr
-                                      :stdin stdin
-                                    ) ;run-values
-                                   ) ;
-                                  ) ;let-values
-                        (display out)
-                        (display err (current-error-port))
-                        code
-                      ) ;let-values
-                     ) ;has-keywords
-                     ((pair? cmd-spec)
-                      (let-values (((out err code) (run-values command)))
-                        (display out)
-                        (display err (current-error-port))
-                        code
-                      ) ;let-values
-                     ) ;list-form
-                     (else (os-call cmd-spec))
-               ) ;cond
+        (let ((result (cond ((and (pair? cmd-spec) (eq? (car cmd-spec) 'lambda))
+                             (apply (cadr cmd-spec) (cddr cmd-spec))
+                             0
+                            ) ;
+                            ((or env input timeout stdout stderr stdin)
+                             (let-values (((out err code)
+                                           (run-values command
+                                             :cwd
+                                             cwd
+                                             :env
+                                             env
+                                             :input
+                                             input
+                                             :timeout
+                                             timeout
+                                             :stdout
+                                             stdout
+                                             :stderr
+                                             stderr
+                                             :stdin
+                                             stdin
+                                           ) ;run-values
+                                          ) ;
+                                         ) ;
+                               (display out)
+                               (display err (current-error-port))
+                               code
+                             ) ;let-values
+                            ) ;
+                            ((pair? cmd-spec)
+                             (let-values (((out err code) (run-values command)))
+                               (display out)
+                               (display err (current-error-port))
+                               code
+                             ) ;let-values
+                            ) ;
+                            (else (os-call cmd-spec))
+                      ) ;cond
               ) ;result
              ) ;
           (when orig-dir
@@ -201,18 +245,27 @@
       (set! %run-ban-list (cons symbol %run-ban-list))
     ) ;define
 
+    (define (run-unban! symbol)
+      (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
             (input (%keyword-value :input opts #f))
             (timeout (%keyword-value :timeout opts #f))
             (stdout (%keyword-value :stdout opts #f))
+            (stdout-mode (%keyword-value :stdout-mode opts #f))
             (stderr (%keyword-value :stderr opts #f))
+            (stderr-mode (%keyword-value :stderr-mode opts #f))
             (stdin (%keyword-value :stdin opts #f))
             (cmd-spec (%command->exec-spec command))
             (orig-dir #f)
            ) ;
         (%check-cwd-conflict command cwd)
+        (when (string? cmd-spec)
+          (%check-string-command cmd-spec)
+        ) ;when
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
@@ -221,7 +274,7 @@
                       (cond ((and (pair? cmd-spec) (eq? (car cmd-spec) 'lambda))
                              (apply (cadr cmd-spec) (cddr cmd-spec))
                              (values "" "" 0)
-                            ) ;lambda
+                            ) ;
                             ((pair? cmd-spec)
                              (g_subprocess-run-values cmd-spec
                                cwd
@@ -229,21 +282,24 @@
                                input
                                timeout
                                stdout
+                               stdout-mode
                                stderr
+                               stderr-mode
                                stdin
                              ) ;g_subprocess-run-values
-                            ) ;list
-                            (else
-                             (g_subprocess-run-values cmd-spec
-                               cwd
-                               env
-                               input
-                               timeout
-                               stdout
-                               stderr
-                               stdin
-                             ) ;g_subprocess-run-values
-                            ) ;string
+                            ) ;
+                            (else (g_subprocess-run-values cmd-spec
+                                    cwd
+                                    env
+                                    input
+                                    timeout
+                                    stdout
+                                    stdout-mode
+                                    stderr
+                                    stderr-mode
+                                    stdin
+                                  ) ;g_subprocess-run-values
+                            ) ;else
                       ) ;cond
                      ) ;
                     ) ;
@@ -257,11 +313,7 @@
 
     (define (run-string command . opts)
       (let-values (((out err code) (apply run-values command opts)))
-        (if (zero? code)
-          out
-          (value-error (string-append "Command failed with exit code " (number->string code))
-          ) ;value-error
-        ) ;if
+        (if (zero? code) (from-right out) (from-left code))
       ) ;let-values
     ) ;define
 
@@ -297,7 +349,7 @@
              ) ;
           (let loop
             ((cmds commands) (first? #t))
-            (cond ((null? cmds) 0)
+            (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
@@ -318,7 +370,7 @@
                                  ) ;run-values
                                 ) ;
                                ) ;
-                     code
+                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
                    ) ;let-values
                   ) ;
                   (else (let-values (((out err code)
@@ -336,7 +388,7 @@
                                       ) ;run-values
                                      ) ;
                                     ) ;
-                          (if (zero? code) (loop (cdr cmds) #f) code)
+                          (if (zero? code) (loop (cdr cmds) #f) (from-left (list code (car cmds))))
                         ) ;let-values
                   ) ;else
             ) ;cond
@@ -353,14 +405,14 @@
              ) ;
           (let loop
             ((cmds commands))
-            (cond ((null? cmds) 0)
+            (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
                    (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                     code
+                     (if (zero? code) (from-right code) (from-left (list code (car cmds))))
                    ) ;let-values
                   ) ;
                   (else (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
-                          (if (zero? code) 0 (loop (cdr cmds)))
+                          (if (zero? code) (from-right 0) (loop (cdr cmds)))
                         ) ;let-values
                   ) ;else
             ) ;cond
@@ -377,7 +429,9 @@
              ) ;
           (let loop
             ((cmds commands) (last-code 0))
-            (cond ((null? cmds) last-code)
+            (cond ((null? cmds)
+                   (if (zero? last-code) (from-right last-code) (from-left last-code))
+                  ) ;
                   (else (let-values (((out err code) (run-values (car cmds) :cwd cwd :env env :timeout timeout)))
                           (loop (cdr cmds) code)
                         ) ;let-values
@@ -397,7 +451,7 @@
              ) ;
           (let loop
             ((cmds commands) (input #f))
-            (cond ((null? cmds) "")
+            (cond ((null? cmds) (from-right ""))
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
@@ -414,11 +468,7 @@
                                  ) ;run-values
                                 ) ;
                                ) ;
-                     (if (zero? code)
-                       out
-                       (value-error (string-append "Pipe failed with exit code " (number->string code))
-                       ) ;value-error
-                     ) ;if
+                     (if (zero? code) (from-right out) (from-left (list code (car cmds))))
                    ) ;let-values
                   ) ;
                   (else (let-values (((out err code)
@@ -436,7 +486,7 @@
                                       ) ;run-values
                                      ) ;
                                     ) ;
-                          (loop (cdr cmds) out)
+                          (if (zero? code) (loop (cdr cmds) out) (from-left (list code (car cmds))))
                         ) ;let-values
                   ) ;else
             ) ;cond
@@ -445,25 +495,27 @@
       ) ;let-values
     ) ;define
 
-    (define (run-if condition then-cmd . else-cmds)
+    (define (run-if condition then-cmd else-cmd)
       (let-values (((out err code) (run-values condition)))
         (if (zero? code)
           (let-values (((out err code) (run-values then-cmd)))
-            code
+            (if (zero? code) (from-right code) (from-left (list code then-cmd)))
           ) ;let-values
-          (if (null? else-cmds)
-            code
-            (let-values (((out err code) (run-values (car else-cmds))))
-              code
-            ) ;let-values
-          ) ;if
+          (let-values (((out err code) (run-values else-cmd)))
+            (if (zero? code) (from-right code) (from-left (list code else-cmd)))
+          ) ;let-values
         ) ;if
       ) ;let-values
     ) ;define
 
     (define (run-when condition command)
       (let-values (((out err code) (run-values condition)))
-        (if (zero? code) 0 (let-values (((out err code) (run-values command))) code))
+        (if (zero? code)
+          (from-right 0)
+          (let-values (((out err code) (run-values command)))
+            (if (zero? code) (from-right code) (from-left (list code command)))
+          ) ;let-values
+        ) ;if
       ) ;let-values
     ) ;define
 
