@@ -23,14 +23,24 @@
 
 (when (os-linux?)
   (check (either-right? (run-pipe "echo hello world" '("grep" "hello"))) => #t)
-  (check (to-right (run-pipe "echo hello world" '("grep" "hello"))) => "hello world\n")
-  (check (either-right? (run-pipe '("printf" "a\nb\nc") '("grep" "a") '("wc" "-l"))) => #t)
-  (check (to-right (run-pipe '("printf" "a\nb\nc") '("grep" "a") '("wc" "-l"))) => "1\n")
+  (check (to-right (run-pipe "echo hello world" '("grep" "hello")))
+    =>
+    "hello world\n"
+  ) ;check
+  (check (either-right? (run-pipe '("printf" "a\nb\nc") '("grep" "a") '("wc"
+                                                                        "-l")))
+    =>
+    #t
+  ) ;check
+  (check (to-right (run-pipe '("printf" "a\nb\nc") '("grep" "a") '("wc" "-l")))
+    =>
+    "1\n"
+  ) ;check
   (check (either-right? (run-pipe "echo hello")) => #t)
   (check (to-right (run-pipe "echo hello")) => "hello\n")
 
   (check (either-left? (run-pipe "echo hello" '("false"))) => #t)
   (check (to-left (run-pipe "echo hello" '("false"))) => '(1 ("false")))
-)
+) ;when
 
 (check-report)

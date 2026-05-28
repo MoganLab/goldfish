@@ -33,6 +33,6 @@
   (check (to-left (run-if "true" "false")) => '(1 "false"))
   (check (either-left? (run-if "false" "echo yes" "false")) => #t)
   (check (to-left (run-if "false" "echo yes" "false")) => '(1 "false"))
-)
+) ;when
 
 (check-report)

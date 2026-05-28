@@ -29,6 +29,6 @@
   (check (to-right (run-or "false" "true")) => 0)
   (check (either-right? (run-or "true" "false" :cwd "/tmp")) => #t)
   (check (to-right (run-or "true" "false" :cwd "/tmp")) => 0)
-)
+) ;when
 
 (check-report)

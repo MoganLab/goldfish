@@ -30,6 +30,6 @@
   (check (to-left (run-sequence "true" "false")) => 1)
   (check (either-right? (run-sequence "true" "true" :cwd "/tmp")) => #t)
   (check (to-right (run-sequence "true" "true" :cwd "/tmp")) => 0)
-)
+) ;when
 
 (check-report)

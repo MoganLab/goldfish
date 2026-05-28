@@ -28,6 +28,6 @@
 
   (check (either-left? (run-when "false" "false")) => #t)
   (check (to-left (run-when "false" "false")) => '(1 "false"))
-)
+) ;when
 
 (check-report)
