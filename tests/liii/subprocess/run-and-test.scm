@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii path) (liii subprocess) (scheme file))
+(import (liii check) (liii either) (liii os) (liii path) (liii subprocess) (scheme file))
 
 ;; run-and
 ;; 顺序执行命令，失败即停（替代 shell 的 &&）。
@@ -19,22 +19,29 @@
 ;;
 ;; 返回值
 ;; ----
-;; integer
-;; 第一个失败命令的退出码，或 0（全部成功）。
+;; Either
+;; 全部成功时返回 Right（内含最后一个命令的退出码），
+;; 失败时返回 Left（内含 (list code command)）。
 
 (when (os-linux?)
-  (check (run-and "true" "true") => 0)
-  (check (run-and "false" "true") => 1)
-  (check (run-and "true" "false") => 1)
-  (check (run-and "true" "true" :cwd "/tmp") => 0)
-  (check (run-and "test $FOO = bar" :env '(("FOO" . "bar"))) => 0)
+  (check (either-right? (run-and "true" "true")) => #t)
+  (check (to-right (run-and "true" "true")) => 0)
+  (check (either-left? (run-and "false" "true")) => #t)
+  (check (to-left (run-and "false" "true")) => '(1 "false"))
+  (check (either-left? (run-and "true" "false")) => #t)
+  (check (to-left (run-and "true" "false")) => '(1 "false"))
+  (check (either-right? (run-and "true" "true" :cwd "/tmp")) => #t)
+  (check (to-right (run-and "true" "true" :cwd "/tmp")) => 0)
+  (check (either-right? (run-and "test $FOO = bar" :env '(("FOO" . "bar")))) => #t)
+  (check (to-right (run-and "test $FOO = bar" :env '(("FOO" . "bar")))) => 0)
 
   ;; :stdout only on last
   (let ((tmpfile "/tmp/gf-run-and-stdout.txt"))
     (when (file-exists? tmpfile)
       (delete-file tmpfile)
     )
-    (check (run-and "echo a" "echo b" :stdout tmpfile) => 0)
+    (check (either-right? (run-and "echo a" "echo b" :stdout tmpfile)) => #t)
+    (check (to-right (run-and "echo a" "echo b" :stdout tmpfile)) => 0)
     (check (path-read-text tmpfile) => "b\n")
     (when (file-exists? tmpfile)
       (delete-file tmpfile)
@@ -42,11 +49,14 @@
   )
 
   ;; :input only on first
-  (check (run-and "cat" "true" :input "hello") => 0)
+  (check (either-right? (run-and "cat" "true" :input "hello")) => #t)
+  (check (to-right (run-and "cat" "true" :input "hello")) => 0)
 
   ;; Multiple commands
-  (check (run-and "true" "true" "true") => 0)
-  (check (run-and "true" "false" "true") => 1)
+  (check (either-right? (run-and "true" "true" "true")) => #t)
+  (check (to-right (run-and "true" "true" "true")) => 0)
+  (check (either-left? (run-and "true" "false" "true")) => #t)
+  (check (to-left (run-and "true" "false" "true")) => '(1 "false"))
 )
 
 (check-report)

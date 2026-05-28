@@ -298,7 +298,7 @@
              ) ;
           (let loop
             ((cmds commands) (first? #t))
-            (cond ((null? cmds) 0)
+            (cond ((null? cmds) (from-right 0))
                   ((null? (cdr cmds))
                    (let-values (((out err code)
                                  (run-values (car cmds)
@@ -319,7 +319,10 @@
                                  ) ;run-values
                                 ) ;
                                ) ;
-                     code
+                     (if (zero? code)
+                       (from-right code)
+                       (from-left (list code (car cmds)))
+                     ) ;if
                    ) ;let-values
                   ) ;
                   (else (let-values (((out err code)
@@ -337,7 +340,10 @@
                                       ) ;run-values
                                      ) ;
                                     ) ;
-                          (if (zero? code) (loop (cdr cmds) #f) code)
+                          (if (zero? code)
+                            (loop (cdr cmds) #f)
+                            (from-left (list code (car cmds)))
+                          ) ;if
                         ) ;let-values
                   ) ;else
             ) ;cond
