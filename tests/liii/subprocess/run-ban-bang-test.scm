@@ -1,6 +1,7 @@
 (import (liii check) (liii subprocess))
 
-(run-ban! 'dangerous-cmd)
-(check-catch 'value-error (run '(dangerous-cmd "arg")))
+(run-set! 'echo-cmd "/bin/echo")
+(run-ban! 'echo-cmd)
+(check-catch 'value-error (run '(echo-cmd "hello")))
 
 (check-report)

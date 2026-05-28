@@ -18,4 +18,8 @@
   (check (getcwd) => orig-dir)
 ) ;let
 
+(check-catch 'value-error (run "cd /tmp" :cwd "/home"))
+(check-catch 'value-error (run '("cd" "/tmp") :cwd "/home"))
+(check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
+
 (check-report)

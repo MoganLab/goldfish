@@ -57,11 +57,14 @@
 
     (define (%check-symbol-command sym)
       (when (memq sym %run-ban-list)
-        (value-error (string-append "符号命令 '" (symbol->string sym) "' 已被禁止")
+        (value-error (string-append "Symbol command '" (symbol->string sym) "' has been banned")
         ) ;value-error
       ) ;when
       (when (and (not (null? %run-allow-list)) (not (memq sym %run-allow-list)))
-        (value-error (string-append "符号命令 '" (symbol->string sym) "' 不在白名单中")
+        (value-error (string-append "Symbol command '"
+                       (symbol->string sym)
+                       "' is not in the allow list"
+                     ) ;string-append
         ) ;value-error
       ) ;when
     ) ;define
@@ -75,6 +78,33 @@
               (else (string-join (cons (symbol->string sym) args) " "))
         ) ;cond
       ) ;let
+    ) ;define
+
+    (define (%string-prefix? str prefix)
+      (let ((len-str (string-length str)) (len-pre (string-length prefix)))
+        (and (>= len-str len-pre) (string=? (substring str 0 len-pre) prefix))
+      ) ;let
+    ) ;define
+
+    (define (%check-cwd-conflict command cwd)
+      (when cwd
+        (let ((has-cd? (cond ((string? command)
+                              (or (%string-prefix? command "cd ") (string-contains? command " cd "))
+                             ) ;
+                             ((and (pair? command) (list? command))
+                              (let ((first (car command)))
+                                (or (and (string? first) (string=? first "cd")) (eq? first 'cd))
+                              ) ;let
+                             ) ;
+                             (else #f)
+                       ) ;cond
+              ) ;has-cd?
+             ) ;
+          (when has-cd?
+            (value-error "Cannot set :cwd when command explicitly contains cd")
+          ) ;when
+        ) ;let
+      ) ;when
     ) ;define
 
     (define (%command->string command)
@@ -93,6 +123,7 @@
             (cmd-str-or-lambda (%command->string command))
             (orig-dir #f)
            ) ;
+        (%check-cwd-conflict command cwd)
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
