@@ -137,6 +137,13 @@ s7_pointer g_gcd(s7_scheme *sc, s7_pointer args);
 /* lcm function */
 s7_pointer g_lcm(s7_scheme *sc, s7_pointer args);
 
+/* rationalize function */
+bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom);
+s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args);
+s7_int rationalize_i_i(s7_int x);
+s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x);
+s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x);
+
 /* Helper functions exported from s7.c */
 const char *s7i_an_input_port_string(void);
 const char *s7i_a_boolean_string(void);

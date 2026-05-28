@@ -1201,3 +1201,75 @@ s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
     }
   return((d <= 1) ? s7_make_integer(sc, n) : s7_make_ratio(sc, n, d));
 }
+
+/* -------------------------------- rationalize -------------------------------- */
+
+s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
+{
+  #define H_rationalize "(rationalize x err) returns the ratio with smallest denominator within err of x"
+  #define Q_rationalize s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol)
+
+  s7_double err;
+  const s7_pointer x = s7_car(args);
+
+  if (!s7_is_real(x))
+    return s7i_method_or_bust(sc, x, "rationalize", args, "a real number", 1);
+  if (s7_is_null(sc, s7_cdr(args)))
+    err = s7i_default_rationalize_error(sc);
+  else
+    {
+      const s7_pointer ex = s7_cadr(args);
+      if (!s7_is_real(ex))
+        return s7i_method_or_bust(sc, ex, "rationalize", args, "a real number", 2);
+      err = s7_number_to_real_with_caller(sc, ex, "rationalize");
+      if (is_NaN(err))
+        s7_out_of_range_error(sc, "rationalize", 2, ex, "it is NaN");
+      if (err < 0.0) err = -err;
+    }
+
+  if (s7_is_integer(x))
+    {
+      s7_int a, b, pa;
+      if (err < 1.0) return(x);
+      a = s7_integer(x);
+      pa = (a < 0) ? -a : a;
+      if (err >= pa) return(s7_make_integer(sc, 0));
+      b = (s7_int)err;
+      pa -= b;
+      return(s7_make_integer(sc, (a < 0) ? -pa : pa));
+    }
+  if (s7_is_ratio(x))
+    {
+      if (err == 0.0)
+        return(x);
+    }
+  if (s7_is_real(x))
+    {
+      const s7_double rat = s7_real(x);
+      s7_int numer = 0, denom = 1;
+      if ((is_NaN(rat)) || (isinf(rat)))
+        s7_out_of_range_error(sc, "rationalize", 1, x, "a normal real number");
+      if (err >= fabs(rat))
+        return(s7_make_integer(sc, 0));
+      if (fabs(rat) > RATIONALIZE_LIMIT)
+        s7_out_of_range_error(sc, "rationalize", 1, x, "it is too large");
+      if ((fabs(rat) + fabs(err)) < 1.0e-18)
+        err = 1.0e-18;
+      if (fabs(rat) < fabs(err))
+        return(s7_make_integer(sc, 0));
+      return((c_rationalize(rat, err, &numer, &denom)) ? s7_make_ratio(sc, numer, denom) : s7_f(sc));
+    }
+  return s7_f(sc);
+}
+
+s7_int rationalize_i_i(s7_int x) {return(x);}
+s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x) {return(s7_make_integer(sc, x));}
+
+s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
+{
+  if ((is_NaN(x)) || (isinf(x)))
+    s7_out_of_range_error(sc, "rationalize", 1, s7_make_real(sc, x), "a normal real number");
+  if (fabs(x) > RATIONALIZE_LIMIT)
+    s7_out_of_range_error(sc, "rationalize", 1, s7_make_real(sc, x), "it is too large");
+  return(s7_rationalize(sc, x, s7i_default_rationalize_error(sc)));
+}

@@ -6611,6 +6611,8 @@ bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char 
   return s7i_sole_arg_method_or_bust(sc, obj, method_name, args, type_name) != sc->F;
 }
 
+s7_double s7i_default_rationalize_error(s7_scheme *sc) {return(sc->default_rationalize_error);}
+
 /* -------------------------------- constants -------------------------------- */
 /* #f and #t */
 s7_pointer s7_f(s7_scheme *sc) {return(sc->F);}
@@ -13326,7 +13328,7 @@ bool s7_is_ratio(s7_pointer p)
 
 #define RATIONALIZE_LIMIT 1.0e12
 
-static bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
+bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
 {
   /* from CL code in Canny, Donald, Ressler, "A Rational Rotation Method for Robust Geometric Algorithms" */
   double x0, x1;
@@ -15809,81 +15811,6 @@ the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 
 /* (abs|magnitude -9223372036854775808) won't work here */
 
 
-/* -------------------------------- rationalize -------------------------------- */
-
-static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
-{
-  #define H_rationalize "(rationalize x err) returns the ratio with smallest denominator within err of x"
-  #define Q_rationalize s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol)
-  /* I can't find a case where this returns a non-rational result */
-
-  s7_double err;
-  const s7_pointer x = car(args);
-
-  if (!is_real(x))
-    return(method_or_bust(sc, x, sc->rationalize_symbol, args, sc->type_names[T_REAL], 1));
-  if (is_null(cdr(args)))
-    err = sc->default_rationalize_error;
-  else
-    {
-      const s7_pointer ex = cadr(args);
-      if (!is_real(ex))
-	return(method_or_bust(sc, ex, sc->rationalize_symbol, args, sc->type_names[T_REAL], 2));
-      err = real_to_double(sc, ex, "rationalize");
-      if (is_NaN(err))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_two, ex, it_is_nan_string);
-      if (err < 0.0) err = -err;
-    }
-
-  switch (type(x))
-    {
-    case T_INTEGER:
-      {
-	s7_int a, b, pa;
-	if (err < 1.0) return(x);
-	a = integer(x);
-	pa = (a < 0) ? -a : a;
-	if (err >= pa) return(int_zero);
-	b = (s7_int)err;
-	pa -= b;
-	return(make_integer(sc, (a < 0) ? -pa : pa));
-      }
-    case T_RATIO:
-      if (err == 0.0)
-	return(x);
-    case T_REAL:
-      {
-	const s7_double rat = s7_real(x); /* possible fall through from above */
-	s7_int numer = 0, denom = 1;
-	if ((is_NaN(rat)) || (is_inf(rat)))
-	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, a_normal_real_string);
-	if (err >= fabs(rat))
-	  return(int_zero);
-	if (fabs(rat) > RATIONALIZE_LIMIT)
-	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, it_is_too_large_string);
-	if ((fabs(rat) + fabs(err)) < 1.0e-18)
-	  err = 1.0e-18;
-	/* (/ 1.0 most-positive-fixnum) is 1.0842021e-19, so if we let err be less than that,
-	 * (rationalize 1e-19 1e-20) hangs, but this only affects the initial ceiling, I believe.
-	 */
-	if (fabs(rat) < fabs(err))
-	  return(int_zero);
-	return((c_rationalize(rat, err, &numer, &denom)) ? make_simpler_ratio_or_integer(sc, numer, denom) : sc->F);
-      }}
-  if (S7_DEBUGGING) fprintf(stderr, "%s[%d]: we should not be here\n", __func__, __LINE__);
-  return(sc->F); /* make compiler happy */
-}
-
-static s7_int rationalize_i_i(s7_int x) {return(x);}
-static s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
-static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
-{
-  if ((is_NaN(x)) || (is_inf(x)))
-    out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), a_normal_real_string); /* was make_real, also below */
-  if (fabs(x) > RATIONALIZE_LIMIT)
-    out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), it_is_too_large_string);
-  return(s7_rationalize(sc, x, sc->default_rationalize_error));
-}
 
 
 /* -------------------------------- inexact helpers -------------------------------- */
@@ -90298,7 +90225,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->geq_symbol =                   defun(">=",		greater_or_equal,	2, 0, true);
   sc->gcd_symbol =                   s7_define_typed_function(sc, "gcd", g_gcd, 0, 0, true, "(gcd ...) returns the greatest common divisor of its rational arguments", sc->pcl_f);
   sc->lcm_symbol =                   s7_define_typed_function(sc, "s7-lcm", g_lcm, 0, 0, true, "(lcm ...) returns the least common multiple of its rational arguments", sc->pcl_f);
-  sc->rationalize_symbol =           defun("rationalize",	rationalize,		1, 1, false);
+  sc->rationalize_symbol =           s7_define_typed_function(sc, "rationalize", g_rationalize, 1, 1, false, "(rationalize x err) returns the ratio with smallest denominator within err of x", s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol));
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
   sc->random_state_symbol =          defun("random-state",      random_state,	        0, 2, false);
   sc->expt_symbol =                  s7_define_typed_function(sc, "expt", g_expt, 2, 0, false, "(expt z1 z2) returns z1^z2", sc->pcl_n);
