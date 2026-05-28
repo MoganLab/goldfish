@@ -96,6 +96,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args = s7_cdr (args);
   }
 
+  bool stdout_append = false;
+  if (s7_is_pair (args)) {
+    s7_pointer stdout_mode_val = s7_car (args);
+    if (s7_is_symbol (stdout_mode_val) && strcmp (s7_symbol_name (stdout_mode_val), "append") == 0) {
+      stdout_append = true;
+    }
+    args = s7_cdr (args);
+  }
+
   bool stderr_to_stdout = false;
   bool stderr_discard = false;
   const char* stderr_path = nullptr;
@@ -112,6 +121,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     }
     else if (s7_is_string (stderr_val)) {
       stderr_path = s7_string (stderr_val);
+    }
+    args = s7_cdr (args);
+  }
+
+  bool stderr_append = false;
+  if (s7_is_pair (args)) {
+    s7_pointer stderr_mode_val = s7_car (args);
+    if (s7_is_symbol (stderr_mode_val) && strcmp (s7_symbol_name (stderr_mode_val), "append") == 0) {
+      stderr_append = true;
     }
     args = s7_cdr (args);
   }
@@ -138,7 +156,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (stdout_path) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.out.path = stdout_path;
-    attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
+    attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stdout_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
   else if (!stdout_discard) {
     tb_size_t mode[2] = {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
@@ -151,7 +169,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (stderr_path) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path = stderr_path;
-    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
+    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stderr_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
   else if (stderr_to_stdout && out_pipe[1]) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;

@@ -229,7 +229,9 @@
             (input (%keyword-value :input opts #f))
             (timeout (%keyword-value :timeout opts #f))
             (stdout (%keyword-value :stdout opts #f))
+            (stdout-mode (%keyword-value :stdout-mode opts #f))
             (stderr (%keyword-value :stderr opts #f))
+            (stderr-mode (%keyword-value :stderr-mode opts #f))
             (stdin (%keyword-value :stdin opts #f))
             (cmd-spec (%command->exec-spec command))
             (orig-dir #f)
@@ -245,9 +247,9 @@
                              (values "" "" 0)
                             ) ;
                             ((pair? cmd-spec)
-                             (g_subprocess-run-values cmd-spec cwd env input timeout stdout stderr stdin)
+                             (g_subprocess-run-values cmd-spec cwd env input timeout stdout stdout-mode stderr stderr-mode stdin)
                             ) ;
-                            (else (g_subprocess-run-values cmd-spec cwd env input timeout stdout stderr stdin)
+                            (else (g_subprocess-run-values cmd-spec cwd env input timeout stdout stdout-mode stderr stderr-mode stdin)
                             ) ;else
                       ) ;cond
                      ) ;
@@ -444,18 +446,15 @@
       ) ;let-values
     ) ;define
 
-    (define (run-if condition then-cmd . else-cmds)
+    (define (run-if condition then-cmd else-cmd)
       (let-values (((out err code) (run-values condition)))
         (if (zero? code)
           (let-values (((out err code) (run-values then-cmd)))
             (if (zero? code) (from-right code) (from-left (list code then-cmd)))
           ) ;let-values
-          (if (null? else-cmds)
-            (from-right code)
-            (let-values (((out err code) (run-values (car else-cmds))))
-              (if (zero? code) (from-right code) (from-left (list code (car else-cmds))))
-            ) ;let-values
-          ) ;if
+          (let-values (((out err code) (run-values else-cmd)))
+            (if (zero? code) (from-right code) (from-left (list code else-cmd)))
+          ) ;let-values
         ) ;if
       ) ;let-values
     ) ;define
