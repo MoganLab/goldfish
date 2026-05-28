@@ -31,6 +31,7 @@
   ) ;export
   (import (scheme base)
     (liii base)
+    (liii either)
     (liii error)
     (liii hash-table)
     (liii list)
@@ -449,12 +450,18 @@
       (let-values (((out err code) (run-values condition)))
         (if (zero? code)
           (let-values (((out err code) (run-values then-cmd)))
-            code
+            (if (zero? code)
+              (from-right code)
+              (from-left (list code then-cmd))
+            ) ;if
           ) ;let-values
           (if (null? else-cmds)
-            code
+            (from-right code)
             (let-values (((out err code) (run-values (car else-cmds))))
-              code
+              (if (zero? code)
+                (from-right code)
+                (from-left (list code (car else-cmds)))
+              ) ;if
             ) ;let-values
           ) ;if
         ) ;if
@@ -463,7 +470,15 @@
 
     (define (run-when condition command)
       (let-values (((out err code) (run-values condition)))
-        (if (zero? code) 0 (let-values (((out err code) (run-values command))) code))
+        (if (zero? code)
+          (from-right 0)
+          (let-values (((out err code) (run-values command)))
+            (if (zero? code)
+              (from-right code)
+              (from-left (list code command))
+            ) ;if
+          ) ;let-values
+        ) ;if
       ) ;let-values
     ) ;define
 
