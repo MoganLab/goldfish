@@ -1,4 +1,4 @@
-(import (liii check) (scheme write))
+(import (liii check) (scheme base))
 (check-set-mode! 'report-failed)
 ;; newline
 ;; 向输出端口写入一个换行符。
