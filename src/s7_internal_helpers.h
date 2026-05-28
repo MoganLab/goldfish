@@ -95,6 +95,8 @@ bool s7i_is_weak_hash_table(s7_pointer p);
 void s7i_set_weak_hash_table(s7_pointer p);
 void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
+s7_double s7i_default_rationalize_error(s7_scheme *sc);
+
 #ifdef __cplusplus
 }
 #endif

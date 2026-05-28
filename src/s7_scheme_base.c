@@ -884,3 +884,392 @@ s7_pointer g_min(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_min_2(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, s7_car(args), s7_cadr(args)));}
 s7_pointer g_min_3(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, min_p_pp(sc, s7_car(args), s7_cadr(args)), s7_caddr(args)));}
+
+#if HAVE_OVERFLOW_CHECKS
+  #if defined(__clang__)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #elif defined(__GNUC__) && (__GNUC__ >= 5)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #else
+    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+  #endif
+#else
+  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+#endif
+
+/* -------------------------------- c_gcd -------------------------------- */
+
+static s7_int c_gcd_1(s7_int u, s7_int v)
+{
+  /* can't take abs of these so do it by hand */
+  s7_int divisor = 1;
+  if (u == v) return(u);
+  while (((u & 1) == 0) && ((v & 1) == 0))
+    {
+      u /= 2;
+      v /= 2;
+      divisor *= 2;
+    }
+  return(divisor);
+}
+
+s7_int c_gcd(s7_int u, s7_int v)
+{
+  s7_int a, b;
+  if (u < 0)
+    {
+      if (u == S7_INT64_MIN) return(c_gcd_1(u, v));
+      a = -u;
+    }
+  else a = u;
+  if (v < 0)
+    {
+      if (v == S7_INT64_MIN) return(c_gcd_1(u, v));
+      b = -v;
+    }
+  else b = v;
+  while (b != 0)
+    {
+      s7_int temp = a % b;
+      a = b;
+      b = temp;
+    }
+  return(a);
+}
+
+/* -------------------------------- truncate -------------------------------- */
+
+s7_pointer truncate_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    return(x);
+  if (s7_is_ratio(x))
+    return(s7_make_integer(sc, (s7_int)(s7_numerator(x) / s7_denominator(x))));
+  if (s7_is_real(x))
+    {
+      const s7_double z = s7_real(x);
+      if (is_NaN(z))
+        return s7_out_of_range_error(sc, "truncate", 1, x, "it is NaN");
+      if (isinf(z))
+        return s7_out_of_range_error(sc, "truncate", 1, x, "it is infinite");
+      if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
+        return s7_out_of_range_error(sc, "truncate", 1, x, "it is too large");
+      return(s7_make_integer(sc, (z > 0.0) ? (s7_int)floor(z) : (s7_int)ceil(z)));
+    }
+  if (s7_is_complex(x))
+    return s7_wrong_type_arg_error(sc, "truncate", 1, x, "a real number");
+  return s7i_method_or_bust_p(sc, x, "truncate", "a real number");
+}
+
+s7_pointer g_truncate(s7_scheme *sc, s7_pointer args)
+{
+  #define H_truncate "(truncate x) returns the integer closest to x toward 0"
+  #define Q_truncate s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)
+  return(truncate_p_p(sc, s7_car(args)));
+}
+
+s7_int truncate_i_i(s7_int i) {return(i);}
+s7_pointer truncate_p_i(s7_scheme *sc, s7_int x) {return(s7_make_integer(sc, x));}
+
+s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
+{
+  if (is_NaN(x))
+    s7_out_of_range_error(sc, "truncate", 1, s7_make_real(sc, x), "it is NaN");
+  if (isinf(x))
+    s7_out_of_range_error(sc, "truncate", 1, s7_make_real(sc, x), "it is infinite");
+  if (fabs(x) > DOUBLE_TO_INT64_LIMIT)
+    s7_out_of_range_error(sc, "truncate", 1, s7_make_real(sc, x), "it is too large");
+  return((x > 0.0) ? (s7_int)floor(x) : (s7_int)ceil(x));
+}
+
+s7_pointer truncate_p_d(s7_scheme *sc, s7_double x) {return(s7_make_integer(sc, truncate_i_7d(sc, x)));}
+
+/* -------------------------------- round -------------------------------- */
+
+static s7_double r5rs_round(s7_double x)
+{
+  s7_double fl = floor(x), ce = ceil(x);
+  s7_double dfl = x - fl;
+  s7_double dce = ce - x;
+  if (dfl > dce) return(ce);
+  if (dfl < dce) return(fl);
+  return((fmod(fl, 2.0) == 0.0) ? fl : ce);
+}
+
+s7_pointer round_p_p(s7_scheme *sc, s7_pointer x)
+{
+  if (s7_is_integer(x))
+    return(x);
+  if (s7_is_ratio(x))
+    {
+      s7_int truncated = s7_numerator(x) / s7_denominator(x), remains = s7_numerator(x) % s7_denominator(x);
+      long double frac = fabsl((long double)remains / (long double)s7_denominator(x));
+      if ((frac > 0.5) ||
+          ((frac == 0.5) &&
+           (truncated % 2 != 0)))
+        return(s7_make_integer(sc, (s7_numerator(x) < 0) ? (truncated - 1) : (truncated + 1)));
+      return(s7_make_integer(sc, truncated));
+    }
+  if (s7_is_real(x))
+    {
+      const s7_double z = s7_real(x);
+      if (is_NaN(z))
+        return s7_out_of_range_error(sc, "round", 1, x, "it is NaN");
+      if (isinf(z))
+        return s7_out_of_range_error(sc, "round", 1, x, "it is infinite");
+      if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
+        return s7_out_of_range_error(sc, "round", 1, x, "it is too large");
+      return(s7_make_integer(sc, (s7_int)r5rs_round(z)));
+    }
+  if (s7_is_complex(x))
+    return s7_wrong_type_arg_error(sc, "round", 1, x, "a real number");
+  return s7i_method_or_bust_p(sc, x, "round", "a real number");
+}
+
+s7_pointer g_round(s7_scheme *sc, s7_pointer args)
+{
+  #define H_round "(round x) returns the integer closest to x"
+  #define Q_round s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)
+  return(round_p_p(sc, s7_car(args)));
+}
+
+s7_int round_i_i(s7_int i) {return(i);}
+s7_pointer round_p_i(s7_scheme *sc, s7_int x) {return(s7_make_integer(sc, x));}
+
+s7_int round_i_7d(s7_scheme *sc, s7_double z)
+{
+  if (is_NaN(z))
+    s7_out_of_range_error(sc, "round", 1, s7_make_real(sc, z), "it is NaN");
+  if ((isinf(z)) ||
+      (z > DOUBLE_TO_INT64_LIMIT) || (z < -DOUBLE_TO_INT64_LIMIT))
+    s7_out_of_range_error(sc, "round", 1, s7_make_real(sc, z), "it is too large");
+  return((s7_int)r5rs_round(z));
+}
+
+s7_pointer round_p_d(s7_scheme *sc, s7_double x) {return(s7_make_integer(sc, round_i_7d(sc, x)));}
+
+/* -------------------------------- gcd -------------------------------- */
+
+s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
+{
+  #define H_gcd "(gcd ...) returns the greatest common divisor of its rational arguments"
+  #define Q_gcd sc->pcl_f
+
+  s7_int n = 0, d = 1;
+  s7_pointer n_args;
+  if (!s7_is_pair(args))       /* (gcd) */
+    return(s7_make_integer(sc, 0));
+
+  if (!s7_is_pair(s7_cdr(args)))  /* (gcd 3/4) */
+    {
+      if (!s7_is_rational(s7_car(args)))
+        return s7i_method_or_bust(sc, s7_car(args), "gcd", args, "a rational number", 1);
+      return(abs_p_p(sc, s7_car(args)));
+    }
+
+  if (s7_is_integer(s7_car(args)))
+    {
+      n = s7_integer(s7_car(args));
+      n_args = s7_cdr(args);
+    }
+  else n_args = args;
+
+  for (s7_pointer nums = n_args; s7_is_pair(nums); nums = s7_cdr(nums))
+    {
+      const s7_pointer x = s7_car(nums);
+      if (s7_is_integer(x))
+        {
+          if (s7_integer(x) == S7_INT64_MIN)
+            {
+              if ((n == S7_INT64_MIN) && (s7_is_null(sc, s7_cdr(nums)))) /* gcd is supposed to return a positive integer, but we can't take abs(S7_INT64_MIN) */
+                s7_out_of_range_error(sc, "gcd", 1, args, "it is too large");
+            }
+          n = c_gcd(n, s7_integer(x));
+        }
+      else if (s7_is_ratio(x))
+        {
+#if HAVE_OVERFLOW_CHECKS
+          s7_int dn;
+#endif
+          n = c_gcd(n, s7_numerator(x));
+          if (d == 1)
+            d = s7_denominator(x);
+          else
+            {
+              const s7_int b = s7_denominator(x);
+#if HAVE_OVERFLOW_CHECKS
+              if (multiply_overflow(d / c_gcd(d, b), b, &dn)) /* (gcd 1/92233720368547758 1/3005) */
+                s7_out_of_range_error(sc, "gcd", 1, args, "intermediate result is too large");
+              d = dn;
+#else
+              d = (d / c_gcd(d, b)) * b;
+#endif
+            }
+        }
+      else if (s7_is_real(x) || s7_is_complex(x))
+        return s7_wrong_type_arg_error(sc, "gcd", s7i_position_of(nums, args), x, "a rational number");
+      else
+        return s7i_method_or_bust(sc, x, "gcd",
+                                  (nums == args) ? s7_cons(sc, x, s7_cdr(nums)) :
+                                                   s7_cons(sc, (d <= 1) ? s7_make_integer(sc, n) : s7_make_ratio(sc, n, d), nums),
+                                  "a rational number", s7i_position_of(nums, args));
+    }
+  return((d <= 1) ? s7_make_integer(sc, n) : s7_make_ratio(sc, n, d));
+}
+
+/* -------------------------------- lcm -------------------------------- */
+
+s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
+{
+  /* (/ (* m n) (gcd m n)), (lcm a b c) -> (lcm a (lcm b c)) */
+  #define H_lcm "(lcm ...) returns the least common multiple of its rational arguments"
+  #define Q_lcm sc->pcl_f
+
+  s7_int n = 1, d = 0;
+  if (!s7_is_pair(args))
+    return(s7_make_integer(sc, 1));
+
+  if (!s7_is_pair(s7_cdr(args)))
+    {
+      if (!s7_is_rational(s7_car(args)))
+        return s7i_method_or_bust(sc, s7_car(args), "lcm", args, "a rational number", 1);
+      return(g_abs(sc, args));
+    }
+
+  for (s7_pointer nums = args; s7_is_pair(nums); nums = s7_cdr(nums))
+    {
+      const s7_pointer x = s7_car(nums);
+      s7_int b;
+#if HAVE_OVERFLOW_CHECKS
+      s7_int n1;
+#endif
+      if (s7_is_integer(x))
+        {
+          d = 1;
+          if (s7_integer(x) == 0) /* return 0 unless there's a wrong-type-arg (geez what a mess) */
+            {
+              for (nums = s7_cdr(nums); s7_is_pair(nums); nums = s7_cdr(nums))
+                {
+                  const s7_pointer x1 = s7_car(nums);
+                  if (!s7_is_rational(x1))
+                    return s7_wrong_type_arg_error(sc, "lcm", s7i_position_of(nums, args), x1, "a rational number");
+                }
+              return(s7_make_integer(sc, 0));
+            }
+          b = s7_integer(x);
+          if (b < 0)
+            {
+              if (b == S7_INT64_MIN)
+                s7_out_of_range_error(sc, "lcm", 1, args, "it is too large");
+              b = -b;
+            }
+#if HAVE_OVERFLOW_CHECKS
+          if (multiply_overflow(n / c_gcd(n, b), b, &n1))
+            s7_out_of_range_error(sc, "lcm", 1, args, "result is too large");
+          n = n1;
+#else
+          n = (n / c_gcd(n, b)) * b;
+#endif
+        }
+      else if (s7_is_ratio(x))
+        {
+          b = s7_numerator(x);
+          if (b < 0)
+            {
+              if (b == S7_INT64_MIN)
+                s7_out_of_range_error(sc, "lcm", 1, args, "it is too large");
+              b = -b;
+            }
+#if HAVE_OVERFLOW_CHECKS
+          if (multiply_overflow(n / c_gcd(n, b), b, &n1))  /* (lcm 92233720368547758/3 3005/2) */
+            s7_out_of_range_error(sc, "lcm", 1, args, "intermediate result is too large");
+          n = n1;
+#else
+          n = (n / c_gcd(n, b)) * b;
+#endif
+          if (d == 0)
+            d = (nums == args) ? s7_denominator(x) : 1;
+          else d = c_gcd(d, s7_denominator(x));
+        }
+      else if (s7_is_real(x) || s7_is_complex(x))
+        return s7_wrong_type_arg_error(sc, "lcm", s7i_position_of(nums, args), x, "a rational number");
+      else
+        return s7i_method_or_bust(sc, x, "lcm",
+                                  (nums == args) ? s7_cons(sc, x, s7_cdr(nums)) :
+                                                   s7_cons(sc, (d <= 1) ? s7_make_integer(sc, n) : s7_make_ratio(sc, n, d), nums),
+                                  "a rational number", s7i_position_of(nums, args));
+    }
+  return((d <= 1) ? s7_make_integer(sc, n) : s7_make_ratio(sc, n, d));
+}
+
+/* -------------------------------- rationalize -------------------------------- */
+
+s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
+{
+  #define H_rationalize "(rationalize x err) returns the ratio with smallest denominator within err of x"
+  #define Q_rationalize s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol)
+
+  s7_double err;
+  const s7_pointer x = s7_car(args);
+
+  if (!s7_is_real(x))
+    return s7i_method_or_bust(sc, x, "rationalize", args, "a real number", 1);
+  if (s7_is_null(sc, s7_cdr(args)))
+    err = s7i_default_rationalize_error(sc);
+  else
+    {
+      const s7_pointer ex = s7_cadr(args);
+      if (!s7_is_real(ex))
+        return s7i_method_or_bust(sc, ex, "rationalize", args, "a real number", 2);
+      err = s7_number_to_real_with_caller(sc, ex, "rationalize");
+      if (is_NaN(err))
+        s7_out_of_range_error(sc, "rationalize", 2, ex, "it is NaN");
+      if (err < 0.0) err = -err;
+    }
+
+  if (s7_is_integer(x))
+    {
+      s7_int a, b, pa;
+      if (err < 1.0) return(x);
+      a = s7_integer(x);
+      pa = (a < 0) ? -a : a;
+      if (err >= pa) return(s7_make_integer(sc, 0));
+      b = (s7_int)err;
+      pa -= b;
+      return(s7_make_integer(sc, (a < 0) ? -pa : pa));
+    }
+  if (s7_is_ratio(x))
+    {
+      if (err == 0.0)
+        return(x);
+    }
+  if (s7_is_real(x))
+    {
+      const s7_double rat = s7_real(x);
+      s7_int numer = 0, denom = 1;
+      if ((is_NaN(rat)) || (isinf(rat)))
+        s7_out_of_range_error(sc, "rationalize", 1, x, "a normal real number");
+      if (err >= fabs(rat))
+        return(s7_make_integer(sc, 0));
+      if (fabs(rat) > RATIONALIZE_LIMIT)
+        s7_out_of_range_error(sc, "rationalize", 1, x, "it is too large");
+      if ((fabs(rat) + fabs(err)) < 1.0e-18)
+        err = 1.0e-18;
+      if (fabs(rat) < fabs(err))
+        return(s7_make_integer(sc, 0));
+      return((c_rationalize(rat, err, &numer, &denom)) ? s7_make_ratio(sc, numer, denom) : s7_f(sc));
+    }
+  return s7_f(sc);
+}
+
+s7_int rationalize_i_i(s7_int x) {return(x);}
+s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x) {return(s7_make_integer(sc, x));}
+
+s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
+{
+  if ((is_NaN(x)) || (isinf(x)))
+    s7_out_of_range_error(sc, "rationalize", 1, s7_make_real(sc, x), "a normal real number");
+  if (fabs(x) > RATIONALIZE_LIMIT)
+    s7_out_of_range_error(sc, "rationalize", 1, s7_make_real(sc, x), "it is too large");
+  return(s7_rationalize(sc, x, s7i_default_rationalize_error(sc)));
+}

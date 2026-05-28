@@ -6611,6 +6611,8 @@ bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char 
   return s7i_sole_arg_method_or_bust(sc, obj, method_name, args, type_name) != sc->F;
 }
 
+s7_double s7i_default_rationalize_error(s7_scheme *sc) {return(sc->default_rationalize_error);}
+
 /* -------------------------------- constants -------------------------------- */
 /* #f and #t */
 s7_pointer s7_f(s7_scheme *sc) {return(sc->F);}
@@ -13324,50 +13326,9 @@ bool s7_is_ratio(s7_pointer p)
   return(is_t_ratio(p));
 }
 
-static s7_int c_gcd_1(s7_int u, s7_int v)
-{
-  /* can't take abs of these so do it by hand */
-  s7_int divisor = 1;
-  if (u == v) return(u);
-  while (((u & 1) == 0) && ((v & 1) == 0))
-    {
-      u /= 2;
-      v /= 2;
-      divisor *= 2;
-    }
-  return(divisor);
-}
-
-static s7_int c_gcd(s7_int u, s7_int v)
-{
-  /* #if __cplusplus\n return std::gcd(u, v);\n #else... but this requires #include <algorithm> (else gcd is not defined in std::)
-   *   and C++'s gcd returns negative results sometimes -- isn't gcd defined to be positive?  std::gcd is ca 25% faster than the code below.
-   */
-  s7_int a, b;
-  if (u < 0)
-    {
-      if (u == S7_INT64_MIN) return(c_gcd_1(u, v));
-      a = -u;
-    }
-  else a = u;
-  if (v < 0)
-    {
-      if (v == S7_INT64_MIN) return(c_gcd_1(u, v));
-      b = -v;
-    }
-  else b = v;
-  while (b != 0)
-    {
-      s7_int temp = a % b;
-      a = b;
-      b = temp;
-    }
-  return(a);
-}
-
 #define RATIONALIZE_LIMIT 1.0e12
 
-static bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
+bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
 {
   /* from CL code in Canny, Donald, Ressler, "A Rational Rotation Method for Robust Geometric Algorithms" */
   double x0, x1;
@@ -15850,81 +15811,6 @@ the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 
 /* (abs|magnitude -9223372036854775808) won't work here */
 
 
-/* -------------------------------- rationalize -------------------------------- */
-
-static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
-{
-  #define H_rationalize "(rationalize x err) returns the ratio with smallest denominator within err of x"
-  #define Q_rationalize s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol)
-  /* I can't find a case where this returns a non-rational result */
-
-  s7_double err;
-  const s7_pointer x = car(args);
-
-  if (!is_real(x))
-    return(method_or_bust(sc, x, sc->rationalize_symbol, args, sc->type_names[T_REAL], 1));
-  if (is_null(cdr(args)))
-    err = sc->default_rationalize_error;
-  else
-    {
-      const s7_pointer ex = cadr(args);
-      if (!is_real(ex))
-	return(method_or_bust(sc, ex, sc->rationalize_symbol, args, sc->type_names[T_REAL], 2));
-      err = real_to_double(sc, ex, "rationalize");
-      if (is_NaN(err))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_two, ex, it_is_nan_string);
-      if (err < 0.0) err = -err;
-    }
-
-  switch (type(x))
-    {
-    case T_INTEGER:
-      {
-	s7_int a, b, pa;
-	if (err < 1.0) return(x);
-	a = integer(x);
-	pa = (a < 0) ? -a : a;
-	if (err >= pa) return(int_zero);
-	b = (s7_int)err;
-	pa -= b;
-	return(make_integer(sc, (a < 0) ? -pa : pa));
-      }
-    case T_RATIO:
-      if (err == 0.0)
-	return(x);
-    case T_REAL:
-      {
-	const s7_double rat = s7_real(x); /* possible fall through from above */
-	s7_int numer = 0, denom = 1;
-	if ((is_NaN(rat)) || (is_inf(rat)))
-	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, a_normal_real_string);
-	if (err >= fabs(rat))
-	  return(int_zero);
-	if (fabs(rat) > RATIONALIZE_LIMIT)
-	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, it_is_too_large_string);
-	if ((fabs(rat) + fabs(err)) < 1.0e-18)
-	  err = 1.0e-18;
-	/* (/ 1.0 most-positive-fixnum) is 1.0842021e-19, so if we let err be less than that,
-	 * (rationalize 1e-19 1e-20) hangs, but this only affects the initial ceiling, I believe.
-	 */
-	if (fabs(rat) < fabs(err))
-	  return(int_zero);
-	return((c_rationalize(rat, err, &numer, &denom)) ? make_simpler_ratio_or_integer(sc, numer, denom) : sc->F);
-      }}
-  if (S7_DEBUGGING) fprintf(stderr, "%s[%d]: we should not be here\n", __func__, __LINE__);
-  return(sc->F); /* make compiler happy */
-}
-
-static s7_int rationalize_i_i(s7_int x) {return(x);}
-static s7_pointer rationalize_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
-static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
-{
-  if ((is_NaN(x)) || (is_inf(x)))
-    out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), a_normal_real_string); /* was make_real, also below */
-  if (fabs(x) > RATIONALIZE_LIMIT)
-    out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), it_is_too_large_string);
-  return(s7_rationalize(sc, x, sc->default_rationalize_error));
-}
 
 
 /* -------------------------------- inexact helpers -------------------------------- */
@@ -15953,301 +15839,6 @@ static s7_pointer log_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_p
 
 
 
-/* -------------------------------- lcm -------------------------------- */
-static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
-{
-  /* (/ (* m n) (gcd m n)), (lcm a b c) -> (lcm a (lcm b c)) */
-  #define H_lcm "(lcm ...) returns the least common multiple of its rational arguments"
-  #define Q_lcm sc->pcl_f
-
-  s7_int n = 1, d = 0;
-  if (!is_pair(args))
-    return(int_one);
-
-  if (!is_pair(cdr(args)))
-    {
-      if (!is_rational(car(args)))
-	return(method_or_bust(sc, car(args), sc->lcm_symbol, args, a_rational_string, 1));
-      return(g_abs(sc, args));
-    }
-
-  for (s7_pointer nums = args; is_pair(nums); nums = cdr(nums))
-    {
-      const s7_pointer x = car(nums);
-      s7_int b;
-#if HAVE_OVERFLOW_CHECKS
-      s7_int n1;
-#endif
-      switch (type(x))
-	{
-	case T_INTEGER:
-	  d = 1;
-	  if (integer(x) == 0) /* return 0 unless there's a wrong-type-arg (geez what a mess) */
-	    {
-	      for (nums = cdr(nums); is_pair(nums); nums = cdr(nums))
-		{
-		  const s7_pointer x1 = car(nums);
-		  if (is_number(x1))
-		    {
-		      if (!is_rational(x1))
-			wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x1, a_rational_string);
-		    }
-		  else
-		    if (has_active_methods(sc, x1))
-		      {
-			s7_pointer func = find_method_with_let(sc, x1, sc->is_rational_symbol);
-			if ((func == sc->undefined) ||
-			    (is_false(sc, s7_apply_function(sc, func, set_plist_1(sc, x1)))))
-			  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x1, a_rational_string);
-		      }
-		    else wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x1, a_rational_string);
-		}
-	      return(int_zero);
-	    }
-	  b = integer(x);
-	  if (b < 0)
-	    {
-	      if (b == S7_INT64_MIN)
-		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-	      b = -b;
-	    }
-#if HAVE_OVERFLOW_CHECKS
-	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))
-	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, result_is_too_large_string);
-	  n = n1;
-#else
-	  n = (n / c_gcd(n, b)) * b;
-#endif
-	  break;
-
-	case T_RATIO:
-	  b = numerator(x);
-	  if (b < 0)
-	    {
-	      if (b == S7_INT64_MIN)
-		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-	      b = -b;
-	    }
-#if HAVE_OVERFLOW_CHECKS
-	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))  /* (lcm 92233720368547758/3 3005/2) */
-	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, intermediate_too_large_string);
-          n = n1;
-#else
-	  n = (n / c_gcd(n, b)) * b;
-#endif
-	  if (d == 0)
-	    d = (nums == args) ? denominator(x) : 1;
-	  else d = c_gcd(d, denominator(x));
-	  break;
-
-	case T_REAL: case T_COMPLEX:
-	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x, a_rational_string);
-
-	default:
-	  return(method_or_bust(sc, x, sc->lcm_symbol,
-				(nums == args) ? set_ulist_1(sc, x, cdr(nums)) :
-				                 set_ulist_1(sc, (d <= 1) ? make_integer(sc, n) : make_ratio_with_div_check(sc, sc->lcm_symbol, n, d), nums),
-				a_rational_string, position_of(nums, args)));
-	}}
-  return((d <= 1) ? make_integer(sc, n) : make_simple_ratio(sc, n, d));
-}
-
-
-/* -------------------------------- gcd -------------------------------- */
-static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
-{
-  #define H_gcd "(gcd ...) returns the greatest common divisor of its rational arguments"
-  #define Q_gcd sc->pcl_f
-
-  s7_int n = 0, d = 1;
-  s7_pointer n_args;
-  if (!is_pair(args))       /* (gcd) */
-    return(int_zero);
-
-  if (!is_pair(cdr(args)))  /* (gcd 3/4) */
-    {
-      if (!is_rational(car(args)))
-	return(method_or_bust(sc, car(args), sc->gcd_symbol, args, a_rational_string, 1));
-      return(abs_p_p(sc, car(args)));
-    }
-
-  if (is_t_integer(car(args)))
-    {
-      n = integer(car(args));
-      n_args = cdr(args);
-    }
-  else n_args = args;
-
-  for (s7_pointer nums = n_args; is_pair(nums); nums = cdr(nums))
-    {
-      const s7_pointer x = car(nums);
-      switch (type(x))
-	{
-	case T_INTEGER:
-	  if (integer(x) == S7_INT64_MIN)
-	  {
-	    if ((n == S7_INT64_MIN) && (is_null(cdr(nums)))) /* gcd is supposed to return a positive integer, but we can't take abs(S7_INT64_MIN) */
-	      sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, it_is_too_large_string);
-	  }
-	  n = c_gcd(n, integer(x));
-	  break;
-
-	case T_RATIO:
-	  {
-#if HAVE_OVERFLOW_CHECKS
-	    s7_int dn;
-#endif
-	    n = c_gcd(n, numerator(x));
-	    if (d == 1)
-	      d = denominator(x);
-	    else
-	      {
-		const s7_int b = denominator(x);
-#if HAVE_OVERFLOW_CHECKS
-		if (multiply_overflow(d / c_gcd(d, b), b, &dn)) /* (gcd 1/92233720368547758 1/3005) */
-		  sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, intermediate_too_large_string);
-		d = dn;
-#else
-		d = (d / c_gcd(d, b)) * b;
-#endif
-	      }}
-	  break;
-
-	case T_REAL: case T_COMPLEX:
-	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(nums, args), x, a_rational_string);
-
-	default:
-	  return(method_or_bust(sc, x, sc->gcd_symbol,
-				(nums == args) ? set_ulist_1(sc, x, cdr(nums)) :
-				                 set_ulist_1(sc, (d <= 1) ? make_integer(sc, n) : make_ratio_with_div_check(sc, sc->gcd_symbol, n, d), nums),
-				a_rational_string, position_of(nums, args)));
-	}}
-  return((d <= 1) ? make_integer(sc, n) : make_simple_ratio(sc, n, d));
-}
-
-
-
-
-
-
-/* -------------------------------- truncate -------------------------------- */
-static s7_pointer truncate_p_p(s7_scheme *sc, s7_pointer x)
-{
-  switch (type(x))
-    {
-    case T_INTEGER:
-      return(x);
-    case T_RATIO:
-      return(make_integer(sc, (s7_int)(numerator(x) / denominator(x)))); /* C "/" already truncates (but this divide is not accurate over e13) */
-    case T_REAL:
-      {
-	const s7_double z = real(x);
-	if (is_NaN(z))
-	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_nan_string);
-	if (is_inf(z))
-	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_infinite_string);
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_too_large_string);
-	return(make_integer(sc, (z > 0.0) ? (s7_int)floor(z) : (s7_int)ceil(z)));
-      }
-    case T_COMPLEX:
-      sole_arg_wrong_type_error_nr(sc, sc->truncate_symbol, x, sc->type_names[T_REAL]);
-    default:
-      return(method_or_bust_p(sc, x, sc->truncate_symbol, sc->type_names[T_REAL]));
-    }
-}
-
-static s7_pointer g_truncate(s7_scheme *sc, s7_pointer args)
-{
-  #define H_truncate "(truncate x) returns the integer closest to x toward 0"
-  #define Q_truncate s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)
-  return(truncate_p_p(sc, car(args)));
-}
-
-static s7_int truncate_i_i(s7_int i) {return(i);}
-static s7_pointer truncate_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
-
-static s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
-{
-  if (is_NaN(x))
-    sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, real_NaN, it_is_nan_string);
-  if (is_inf(x))
-    sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, wrap_real(sc, x), it_is_infinite_string);
-  if (fabs(x) > DOUBLE_TO_INT64_LIMIT)
-    sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, wrap_real(sc, x), it_is_too_large_string);
-  return((x > 0.0) ? (s7_int)floor(x) : (s7_int)ceil(x));
-}
-
-static s7_pointer truncate_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc, truncate_i_7d(sc, x)));}
-
-
-/* -------------------------------- round -------------------------------- */
-static s7_double r5rs_round(s7_double x)
-{
-  s7_double fl = floor(x), ce = ceil(x);
-  s7_double dfl = x - fl;
-  s7_double dce = ce - x;
-  if (dfl > dce) return(ce);
-  if (dfl < dce) return(fl);
-  return((fmod(fl, 2.0) == 0.0) ? fl : ce);
-}
-
-static s7_pointer round_p_p(s7_scheme *sc, s7_pointer x)
-{
-  switch (type(x))
-    {
-    case T_INTEGER:
-      return(x);
-    case T_RATIO:
-      {
-	s7_int truncated = numerator(x) / denominator(x), remains = numerator(x) % denominator(x);
-	long_double frac = s7_fabsl((long_double)remains / (long_double)denominator(x));
-	if ((frac > 0.5) ||
-	    ((frac == 0.5) &&
-	     (truncated % 2 != 0)))
-	  return(make_integer(sc, (numerator(x) < 0) ? (truncated - 1) : (truncated + 1)));
-	return(make_integer(sc, truncated));
-      }
-    case T_REAL:
-      {
-	const s7_double z = real(x);
-	if (is_NaN(z))
-	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_nan_string);
-	if (is_inf(z))
-	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_infinite_string);
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_too_large_string);
-	return(make_integer(sc, (s7_int)r5rs_round(z)));
-      }
-    case T_COMPLEX:
-      sole_arg_wrong_type_error_nr(sc, sc->round_symbol, x, sc->type_names[T_REAL]);
-    default:
-      return(method_or_bust_p(sc, x, sc->round_symbol, sc->type_names[T_REAL]));
-    }
-}
-
-static s7_pointer g_round(s7_scheme *sc, s7_pointer args)
-{
-  #define H_round "(round x) returns the integer closest to x"
-  #define Q_round s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)
-  return(round_p_p(sc, car(args)));
-}
-/* (round (/ ...)) -> real_divide etc (wrapped) -- round_p_p is called in tbit via fx_c_op_opssqq_s_direct */
-
-static s7_int round_i_i(s7_int i) {return(i);}
-static s7_pointer round_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
-
-static s7_int round_i_7d(s7_scheme *sc, s7_double z)
-{
-  if (is_NaN(z))
-    sole_arg_out_of_range_error_nr(sc, sc->round_symbol, real_NaN, it_is_nan_string);
-  if ((is_inf(z)) ||
-      (z > DOUBLE_TO_INT64_LIMIT) || (z < -DOUBLE_TO_INT64_LIMIT))
-    sole_arg_out_of_range_error_nr(sc, sc->round_symbol, wrap_real(sc, z), it_is_too_large_string);
-  return((s7_int)r5rs_round(z));
-}
-
-static s7_pointer round_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc,round_i_7d(sc, x)));}
 
 
 /* ---------------------------------------- add ---------------------------------------- */
@@ -17864,7 +17455,7 @@ static s7_pointer quotient_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(quotient_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
+s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
 {
   #define H_quotient "(quotient x1 x2) returns the integer quotient of x1 and x2; (quotient 4 3) = 1"
   #define Q_quotient sc->pcl_r
@@ -18076,7 +17667,7 @@ static s7_pointer remainder_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(remainder_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
+s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
 {
   #define H_remainder "(remainder x y) returns the remainder of x/y; (remainder 10 3) = 1"
   #define Q_remainder sc->pcl_r
@@ -18285,7 +17876,7 @@ static s7_pointer modulo_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(modulo_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-static s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
+s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
 {
   #define H_modulo "(modulo x y) returns x mod y; (modulo 4 3) = 1.  The arguments can be real numbers."
   #define Q_modulo sc->pcl_r
@@ -90632,9 +90223,9 @@ static void init_rootlet(s7_scheme *sc)
   sc->gt_symbol =                    defun(">",		        greater,		2, 0, true);
   sc->leq_symbol =                   defun("<=",		less_or_equal,		2, 0, true);
   sc->geq_symbol =                   defun(">=",		greater_or_equal,	2, 0, true);
-  sc->gcd_symbol =                   defun("gcd",		gcd,			0, 0, true);
-  sc->lcm_symbol =                   defun("s7-lcm",		lcm,			0, 0, true);
-  sc->rationalize_symbol =           defun("rationalize",	rationalize,		1, 1, false);
+  sc->gcd_symbol =                   s7_define_typed_function(sc, "gcd", g_gcd, 0, 0, true, "(gcd ...) returns the greatest common divisor of its rational arguments", sc->pcl_f);
+  sc->lcm_symbol =                   s7_define_typed_function(sc, "s7-lcm", g_lcm, 0, 0, true, "(lcm ...) returns the least common multiple of its rational arguments", sc->pcl_f);
+  sc->rationalize_symbol =           s7_define_typed_function(sc, "rationalize", g_rationalize, 1, 1, false, "(rationalize x err) returns the ratio with smallest denominator within err of x", s7_make_signature(sc, 3, sc->is_rational_symbol, sc->is_real_symbol, sc->is_real_symbol));
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
   sc->random_state_symbol =          defun("random-state",      random_state,	        0, 2, false);
   sc->expt_symbol =                  s7_define_typed_function(sc, "expt", g_expt, 2, 0, false, "(expt z1 z2) returns z1^z2", sc->pcl_n);
@@ -90659,8 +90250,8 @@ static void init_rootlet(s7_scheme *sc)
   sc->sqrt_symbol =                  s7_define_typed_function(sc, "sqrt", g_sqrt, 1, 0, false, "(sqrt z) returns the square root of z", sc->pl_nn);
   sc->floor_symbol =                 s7_define_typed_function(sc, "s7-floor", g_floor, 1, 0, false, "(s7-floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
   sc->ceiling_symbol =               s7_define_typed_function(sc, "s7-ceiling", g_ceiling, 1, 0, false, "(s7-ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
-  sc->truncate_symbol =              defun("s7-truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
-  sc->round_symbol =                 defun("s7-round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
+  sc->truncate_symbol =              s7_define_typed_function(sc, "s7-truncate", g_truncate, 1, 0, false, "(truncate x) returns the integer closest to x toward 0", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->truncate_symbol);
+  sc->round_symbol =                 s7_define_typed_function(sc, "s7-round", g_round, 1, 0, false, "(round x) returns the integer closest to x", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->round_symbol);
   sc->logand_symbol =                s7_define_typed_function(sc, "logand", g_logand, 0, 0, true, "(logand int32_t ...) returns the AND of its integer arguments (the bits that are on in every argument)", sc->pcl_i);
   sc->logior_symbol =                s7_define_typed_function(sc, "logior", g_logior, 0, 0, true, "(logior int32_t ...) returns the OR of its integer arguments (the bits that are on in any of the arguments)", sc->pcl_i);
   sc->logxor_symbol =                s7_define_typed_function(sc, "logxor", g_logxor, 0, 0, true, "(logxor int32_t ...) returns the XOR of its integer arguments (the bits that are on in an odd number of the arguments)", sc->pcl_i);
