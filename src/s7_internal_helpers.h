@@ -111,6 +111,10 @@ s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc);
 s7_pointer s7i_is_openlet_symbol(s7_scheme *sc);
 s7_pointer s7i_is_funclet_symbol(s7_scheme *sc);
 
+/* bridge functions for g_c_pointer_info and g_c_pointer_type migration */
+s7_pointer s7i_c_pointer_info_p_p(s7_scheme *sc, s7_pointer cptr);
+s7_pointer s7i_c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr);
+
 /* bridge functions for g_tree_is_cyclic and g_type_of migration */
 bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_type_of(s7_scheme *sc, s7_pointer p);

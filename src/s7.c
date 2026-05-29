@@ -12107,12 +12107,9 @@ static s7_pointer c_pointer_info_p_p(s7_scheme *sc, s7_pointer cptr)
   return(c_pointer_info(cptr));
 }
 
-static s7_pointer g_c_pointer_info(s7_scheme *sc, s7_pointer args)
-{
+/* g_c_pointer_info is now defined in s7_scheme_predicate.c */
   #define H_c_pointer_info "(c-pointer-info obj) returns the c-pointer info field"
   #define Q_c_pointer_info s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
-  return(c_pointer_info_p_p(sc, car(args)));
-}
 
 
 /* -------------------------------- c-pointer-type -------------------------------- */
@@ -12130,12 +12127,9 @@ static s7_pointer c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr)
   return((is_c_pointer(cptr)) ? c_pointer_type(cptr) : method_or_bust_lp(sc, cptr, sc->c_pointer_type_symbol, T_C_POINTER));
 }
 
-static s7_pointer g_c_pointer_type(s7_scheme *sc, s7_pointer args)
-{
+/* g_c_pointer_type is now defined in s7_scheme_predicate.c */
   #define H_c_pointer_type "(c-pointer-type obj) returns the c-pointer type field"
   #define Q_c_pointer_type s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
-  return(c_pointer_type_p_p(sc, car(args)));
-}
 
 
 /* -------------------------------- c-pointer-weak1/2 -------------------------------- */
@@ -19924,6 +19918,10 @@ s7_pointer s7i_rootlet(s7_scheme *sc) {return(sc->rootlet);}
 s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc) {return(sc->is_c_pointer_symbol);}
 s7_pointer s7i_is_openlet_symbol(s7_scheme *sc) {return(sc->is_openlet_symbol);}
 s7_pointer s7i_is_funclet_symbol(s7_scheme *sc) {return(sc->is_funclet_symbol);}
+
+/* bridge functions for g_c_pointer_info and g_c_pointer_type migration */
+s7_pointer s7i_c_pointer_info_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_info_p_p(sc, cptr));}
+s7_pointer s7i_c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_type_p_p(sc, cptr));}
 
 /* bridge functions for g_tree_is_cyclic and g_type_of migration */
 bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p) {return(tree_is_cyclic(sc, p));}

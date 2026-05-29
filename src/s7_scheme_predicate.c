@@ -368,3 +368,13 @@ s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args)
     return(s7i_sole_arg_method_or_bust(sc, iter, "iterator-sequence", args, "an iterator"));
   return(s7i_iterator_sequence(iter));
 }
+
+s7_pointer g_c_pointer_info(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_c_pointer_info_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_c_pointer_type(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_c_pointer_type_p_p(sc, s7_car(args)));
+}
