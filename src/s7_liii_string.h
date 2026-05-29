@@ -29,6 +29,8 @@ s7_pointer g_string_copy(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_fill(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_to_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_append(s7_scheme *sc, s7_pointer args);
+s7_pointer g_string_append_2(s7_scheme *sc, s7_pointer args);
+s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2);
 s7_pointer g_string(s7_scheme *sc, s7_pointer args);
 s7_pointer g_substring_uncopied(s7_scheme *sc, s7_pointer args);
 

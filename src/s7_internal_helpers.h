@@ -43,6 +43,14 @@ s7_pointer s7i_string_c1(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_string_to_number(s7_scheme *sc, char *str, int32_t radix);
 s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_symbol, bool with_error);
 
+/* pre-allocated list helpers for string-append migration */
+s7_pointer s7i_set_plist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+s7_pointer s7i_set_ulist_1(s7_scheme *sc, s7_pointer x1, s7_pointer x2);
+void s7i_string_append_length_error(s7_scheme *sc, s7_pointer caller, s7_int len);
+bool s7i_is_string_append_or_symbol_caller(s7_scheme *sc, s7_pointer caller);
+void s7i_set_string_value(s7_pointer str, const char *val);
+char *s7i_string_value_ptr(s7_pointer str);
+
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
 
