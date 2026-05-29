@@ -271,4 +271,18 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   return s7_values (sc, s7_cons (sc, out_s7, s7_cons (sc, err_s7, s7_cons (sc, code_s7, s7_nil (sc)))));
 }
 
+inline void
+glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
+  s7_pointer cur_env= s7_curlet (sc);
+  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+}
+
+void
+glue_subprocess_run_values (s7_scheme* sc) {
+  const char* name = "g_subprocess-run-values";
+  const char* desc = "(g_subprocess-run-values command cwd env input timeout stdout stdout-mode stderr stderr-mode stdin) => (values stdout stderr exit-code)";
+  glue_define (sc, name, desc, f_subprocess_run_values, 1, 9);
+}
+
 } // namespace goldfish
