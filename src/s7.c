@@ -9911,19 +9911,9 @@ bool s7_is_let(s7_pointer let) {return(is_let(let));}
 
 
 /* -------------------------------- funclet? -------------------------------- */
-static s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_funclet is now defined in s7_scheme_predicate.c */
   #define H_is_funclet "(funclet? obj) returns #t if obj is a funclet (a function's environment)."
   #define Q_is_funclet sc->pl_bt
-
-  s7_pointer let = car(args);
-  if (let == sc->rootlet) return(sc->F);
-  if ((is_let(let)) && ((is_funclet(let)) || (is_maclet(let))))
-    return(sc->T);
-  if (!has_active_methods(sc, let))
-    return(sc->F);
-  return(apply_boolean_method(sc, let, sc->is_funclet_symbol));
-}
 
 
 /* -------------------------------- unlet -------------------------------- */
@@ -9954,15 +9944,9 @@ static s7_pointer g_unlet(s7_scheme *sc, s7_pointer unused_args)
 /* -------------------------------- openlet? -------------------------------- */
 bool s7_is_openlet(s7_pointer let) {return(has_methods(let));}
 
-static s7_pointer g_is_openlet(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_openlet is now defined in s7_scheme_predicate.c */
   #define H_is_openlet "(openlet? obj) returns #t if 'obj' has methods."
   #define Q_is_openlet sc->pl_bt
-
-  s7_pointer let = car(args);  /* if let is not a let, should this raise an error? -- no, easier to use this way in cond */
-  if_method_exists_return_value(sc, let, sc->is_openlet_symbol, args);
-  return(make_boolean(sc, has_methods(let)));
-}
 
 
 /* -------------------------------- openlet -------------------------------- */
@@ -12025,18 +12009,10 @@ bool s7_is_c_pointer(s7_pointer arg) {return(is_c_pointer(arg));}
 
 bool s7_is_c_pointer_of_type(s7_pointer arg, s7_pointer type) {return((is_c_pointer(arg)) && (c_pointer_type(arg) == type));}
 
-static s7_pointer g_is_c_pointer(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_c_pointer is now defined in s7_scheme_predicate.c */
   #define H_is_c_pointer "(c-pointer? obj type) returns #t if obj is a C pointer being held in s7.  \
 If type is given, the c_pointer's type is also checked."
   #define Q_is_c_pointer s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->T)
-
-  s7_pointer obj = car(args);
-  if (is_c_pointer(obj))
-    return((is_pair(cdr(args))) ? make_boolean(sc, c_pointer_type(obj) == cadr(args)) : sc->T);
-  if (!has_active_methods(sc, obj)) return(sc->F);
-  return(apply_boolean_method(sc, obj, sc->is_c_pointer_symbol));
-}
 
 
 /* -------------------------------- c-pointer -------------------------------- */
@@ -19964,6 +19940,16 @@ bool s7i_is_eof(s7_pointer p) {return(is_eof(p));}
 bool s7i_is_t_real(s7_pointer p) {return(is_t_real(p));}
 bool s7i_is_continuation(s7_pointer p) {return(is_continuation(p));}
 const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
+
+/* bridge functions for s7_scheme_predicate.c migration */
+s7_pointer s7i_c_pointer_type(s7_pointer p) {return(c_pointer_type(p));}
+bool s7i_has_methods(s7_pointer p) {return(has_methods(p));}
+bool s7i_is_funclet(s7_pointer p) {return(is_funclet(p));}
+bool s7i_is_maclet(s7_pointer p) {return(is_maclet(p));}
+s7_pointer s7i_rootlet(s7_scheme *sc) {return(sc->rootlet);}
+s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc) {return(sc->is_c_pointer_symbol);}
+s7_pointer s7i_is_openlet_symbol(s7_scheme *sc) {return(sc->is_openlet_symbol);}
+s7_pointer s7i_is_funclet_symbol(s7_scheme *sc) {return(sc->is_funclet_symbol);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
    g_strings_are_geq, g_strings_are_leq, g_string_equal_2, g_string_equal_2c, string_eq_p_pp,

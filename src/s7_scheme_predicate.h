@@ -46,6 +46,9 @@ s7_pointer g_is_constant(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_c_object(s7_scheme *sc, s7_pointer args);
 s7_pointer g_help(s7_scheme *sc, s7_pointer args);
 s7_pointer g_arity(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_c_pointer(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_openlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

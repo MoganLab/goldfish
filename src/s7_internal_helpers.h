@@ -101,6 +101,16 @@ bool s7i_is_t_real(s7_pointer p);
 bool s7i_is_continuation(s7_pointer p);
 const uint8_t *s7i_uppers_ptr(void);
 
+/* bridge functions for s7_scheme_predicate.c migration */
+s7_pointer s7i_c_pointer_type(s7_pointer p);
+bool s7i_has_methods(s7_pointer p);
+bool s7i_is_funclet(s7_pointer p);
+bool s7i_is_maclet(s7_pointer p);
+s7_pointer s7i_rootlet(s7_scheme *sc);
+s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc);
+s7_pointer s7i_is_openlet_symbol(s7_scheme *sc);
+s7_pointer s7i_is_funclet_symbol(s7_scheme *sc);
+
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
 

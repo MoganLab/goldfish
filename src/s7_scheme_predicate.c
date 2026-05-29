@@ -247,3 +247,36 @@ s7_pointer g_arity(s7_scheme *sc, s7_pointer args)
 {
   return(s7_arity(sc, s7_car(args)));
 }
+
+s7_pointer g_is_c_pointer(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer obj = s7_car(args);
+  if (s7_is_c_pointer(obj))
+    return((s7_is_pair(s7_cdr(args))) ? s7_make_boolean(sc, s7i_c_pointer_type(obj) == s7_cadr(args)) : s7_t(sc));
+  if (!s7i_has_active_methods(sc, obj)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, obj, s7i_is_c_pointer_symbol(sc)));
+}
+
+s7_pointer g_is_openlet(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer let = s7_car(args);
+  /* if_method_exists_return_value expansion */
+  if (s7i_has_active_methods(sc, let))
+    {
+      s7_pointer func = s7i_find_method_with_let(sc, let, s7i_is_openlet_symbol(sc));
+      if (func != s7_undefined(sc))
+        return(s7_apply_function(sc, func, args));
+    }
+  return(s7_make_boolean(sc, s7i_has_methods(let)));
+}
+
+s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer let = s7_car(args);
+  if (let == s7i_rootlet(sc)) return(s7_f(sc));
+  if ((s7_is_let(let)) && ((s7i_is_funclet(let)) || (s7i_is_maclet(let))))
+    return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, let))
+    return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, let, s7i_is_funclet_symbol(sc)));
+}
