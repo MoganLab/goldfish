@@ -18649,34 +18649,14 @@ static s7_int numerator_i_7p(s7_scheme *sc, s7_pointer x)
   return(integer(method_or_bust_p(sc, x, sc->numerator_symbol, a_rational_string)));
 }
 
-static s7_pointer g_numerator(s7_scheme *sc, s7_pointer args)
-{
+/* g_numerator is now defined in s7_scheme_predicate.c */
   #define H_numerator "(numerator rat) returns the numerator of the rational number rat"
   #define Q_numerator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
 
-  const s7_pointer x = car(args);
-  switch (type(x))
-    {
-    case T_RATIO:       return(make_integer(sc, numerator(x)));
-    case T_INTEGER:     return(x);
-    default:            return(method_or_bust_p(sc, x, sc->numerator_symbol, a_rational_string));
-    }
-}
 
-
-static s7_pointer g_denominator(s7_scheme *sc, s7_pointer args)
-{
+/* g_denominator is now defined in s7_scheme_predicate.c */
   #define H_denominator "(denominator rat) returns the denominator of the rational number rat"
   #define Q_denominator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
-
-  const s7_pointer x = car(args);
-  switch (type(x))
-    {
-    case T_RATIO:       return(make_integer(sc, denominator(x)));
-    case T_INTEGER:     return(int_one);
-    default:            return(method_or_bust_p(sc, x, sc->denominator_symbol, a_rational_string));
-    }
-}
 
 static s7_int denominator_i_7p(s7_scheme *sc, s7_pointer x)
 {
@@ -24218,15 +24198,9 @@ static s7_pointer g_iterator_is_at_end(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- iterator-sequence -------------------------------- */
-static s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args)
-{
+/* g_iterator_sequence is now defined in s7_scheme_predicate.c */
   #define H_iterator_sequence "(iterator-sequence iterator) returns the sequence that iterator is traversing."
   #define Q_iterator_sequence s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_iterator_symbol)
-  s7_pointer iter = car(args);
-  if (!is_iterator(iter))
-    return(sole_arg_method_or_bust(sc, iter, sc->iterator_sequence_symbol, args, sc->type_names[T_ITERATOR]));
-  return(iterator_sequence(iter));
-}
 
 /* iterator-length and iterator-position run up against the function iterator */
 
@@ -27711,6 +27685,10 @@ void s7i_division_by_zero_error(s7_scheme *sc, const char *caller, s7_pointer x,
 }
 
 bool s7i_is_subvector(s7_pointer p) {return(is_subvector(p));}
+
+s7_pointer s7i_int_one(s7_scheme *sc) {(void)sc; return(int_one);}
+
+s7_pointer s7i_iterator_sequence(s7_pointer iter) {return(iterator_sequence(iter));}
 
 s7_int s7i_subvector_position(s7_pointer p)
 {

@@ -57,6 +57,9 @@ s7_pointer g_is_equal(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args);
 s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args);
+s7_pointer g_numerator(s7_scheme *sc, s7_pointer args);
+s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
+s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

@@ -170,6 +170,12 @@ void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
 s7_double s7i_default_rationalize_error(s7_scheme *sc);
 
+/* bridge for g_numerator/g_denominator migration */
+s7_pointer s7i_int_one(s7_scheme *sc);
+
+/* bridge for g_iterator_sequence migration */
+s7_pointer s7i_iterator_sequence(s7_pointer iter);
+
 /* symbol helpers */
 bool s7i_is_gensym(s7_pointer p);
 s7_pointer s7i_symbol_name_cell(s7_pointer sym);
