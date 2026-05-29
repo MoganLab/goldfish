@@ -603,3 +603,209 @@ static s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
 s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2) {return(string_append_1(sc, s1, s2));}
 
 s7_pointer g_string_append_2(s7_scheme *sc, s7_pointer args) {return(string_append_1(sc, s7_car(args), s7_cadr(args)));}
+
+/* -------------------------------- string comparisons -------------------------------- */
+
+static s7_pointer g_string_cmp(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
+{
+  s7_pointer str = s7_car(args);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_sym(sc, str, sym, args, tn, 1));
+  for (s7_pointer strs = s7_cdr(args); s7_is_pair(strs); str = s7_car(strs), strs = s7_cdr(strs))
+    {
+      if (!s7_is_string(s7_car(strs)))
+        return(s7i_method_or_bust_sym(sc, s7_car(strs), sym, s7i_set_ulist_1(sc, str, strs), tn, s7i_position_of(strs, args)));
+      if (s7i_scheme_strcmp(str, s7_car(strs)) != val)
+        {
+          for (str = s7_cdr(strs); s7_is_pair(str); str = s7_cdr(str))
+            if (!s7i_is_string_via_method(sc, s7_car(str)))
+              s7i_wrong_type_error_nr(sc, sym, s7i_position_of(str, args), s7_car(str), tn);
+          return(s7_f(sc));
+        }}
+  return(s7_t(sc));
+}
+
+static s7_pointer g_string_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
+{
+  s7_pointer str = s7_car(args);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_sym(sc, str, sym, args, tn, 1));
+  for (s7_pointer strs = s7_cdr(args); s7_is_pair(strs); str = s7_car(strs), strs = s7_cdr(strs))
+    {
+      if (!s7_is_string(s7_car(strs)))
+        return(s7i_method_or_bust_sym(sc, s7_car(strs), sym, s7i_set_ulist_1(sc, str, strs), tn, s7i_position_of(strs, args)));
+      if (s7i_scheme_strcmp(str, s7_car(strs)) == val)
+        {
+          for (str = s7_cdr(strs); s7_is_pair(str); str = s7_cdr(str))
+            if (!s7i_is_string_via_method(sc, s7_car(str)))
+              s7i_wrong_type_error_nr(sc, sym, s7i_position_of(str, args), s7_car(str), tn);
+          return(s7_f(sc));
+        }}
+  return(s7_t(sc));
+}
+
+s7_pointer g_strings_are_equal(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer str = s7_car(args);
+  s7_pointer eq_sym = s7i_string_eq_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+
+  if (!s7_is_string(str))
+    return(s7i_method_or_bust_sym(sc, str, eq_sym, args, tn, 1));
+  for (s7_pointer arglist = s7_cdr(args); s7_is_pair(arglist); arglist = s7_cdr(arglist))
+    {
+      s7_pointer p = s7_car(arglist);
+      if (!s7_is_string(p))
+        return(s7i_method_or_bust_sym(sc, p, eq_sym, s7i_set_ulist_1(sc, str, arglist), tn, s7i_position_of(arglist, args)));
+      if (!s7i_scheme_strings_are_equal(p, str))
+        {
+          for (str = s7_cdr(arglist); s7_is_pair(str); str = s7_cdr(str))
+            if (!s7i_is_string_via_method(sc, s7_car(str)))
+              s7i_wrong_type_error_nr(sc, eq_sym, s7i_position_of(str, args), s7_car(str), tn);
+          return(s7_f(sc));
+        }}
+  return(s7_t(sc));
+}
+
+s7_pointer g_strings_are_less(s7_scheme *sc, s7_pointer args)
+{
+  return(g_string_cmp(sc, args, -1, s7i_string_lt_symbol(sc)));
+}
+
+s7_pointer g_strings_are_greater(s7_scheme *sc, s7_pointer args)
+{
+  return(g_string_cmp(sc, args, 1, s7i_string_gt_symbol(sc)));
+}
+
+s7_pointer g_strings_are_geq(s7_scheme *sc, s7_pointer args)
+{
+  return(g_string_cmp_not(sc, args, -1, s7i_string_geq_symbol(sc)));
+}
+
+s7_pointer g_strings_are_leq(s7_scheme *sc, s7_pointer args)
+{
+  return(g_string_cmp_not(sc, args, 1, s7i_string_leq_symbol(sc)));
+}
+
+s7_pointer g_string_equal_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer eq_sym = s7i_string_eq_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust_sym(sc, s7_car(args), eq_sym, args, tn, 1));
+  if (!s7_is_string(s7_cadr(args)))
+    return(s7i_method_or_bust_sym(sc, s7_cadr(args), eq_sym, args, tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strings_are_equal(s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_string_equal_2c(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer eq_sym = s7i_string_eq_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust_sym(sc, s7_car(args), eq_sym, args, tn, 1));
+  return(s7_make_boolean(sc, s7i_scheme_strings_are_equal(s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer string_eq_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
+{
+  s7_pointer eq_sym = s7i_string_eq_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str1))
+    return(s7i_method_or_bust_sym(sc, str1, eq_sym, s7i_set_plist_2(sc, str1, str2), tn, 1));
+  if (!s7_is_string(str2))
+    return(s7i_method_or_bust_sym(sc, str2, eq_sym, s7i_set_plist_2(sc, str1, str2), tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strings_are_equal(str1, str2)));
+}
+
+s7_pointer g_string_less_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lt_sym = s7i_string_lt_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust_sym(sc, s7_car(args), lt_sym, args, tn, 1));
+  if (!s7_is_string(s7_cadr(args)))
+    return(s7i_method_or_bust_sym(sc, s7_cadr(args), lt_sym, args, tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strcmp(s7_car(args), s7_cadr(args)) == -1));
+}
+
+s7_pointer string_lt_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
+{
+  s7_pointer lt_sym = s7i_string_lt_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str1))
+    return(s7i_method_or_bust_sym(sc, str1, lt_sym, s7i_set_plist_2(sc, str1, str2), tn, 1));
+  if (!s7_is_string(str2))
+    return(s7i_method_or_bust_sym(sc, str2, lt_sym, s7i_set_plist_2(sc, str1, str2), tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strcmp(str1, str2) == -1));
+}
+
+s7_pointer g_string_greater_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer gt_sym = s7i_string_gt_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(s7_car(args)))
+    return(s7i_method_or_bust_sym(sc, s7_car(args), gt_sym, args, tn, 1));
+  if (!s7_is_string(s7_cadr(args)))
+    return(s7i_method_or_bust_sym(sc, s7_cadr(args), gt_sym, args, tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strcmp(s7_car(args), s7_cadr(args)) == 1));
+}
+
+s7_pointer string_gt_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
+{
+  s7_pointer gt_sym = s7i_string_gt_symbol(sc);
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str1))
+    return(s7i_method_or_bust_sym(sc, str1, gt_sym, s7i_set_plist_2(sc, str1, str2), tn, 1));
+  if (!s7_is_string(str2))
+    return(s7i_method_or_bust_sym(sc, str2, gt_sym, s7i_set_plist_2(sc, str1, str2), tn, 2));
+  return(s7_make_boolean(sc, s7i_scheme_strcmp(str1, str2) == 1));
+}
+
+/* boolean unchecked/checked variants for optimizer */
+bool string_lt_b_unchecked(s7_pointer s1, s7_pointer s2) {return(s7i_scheme_strcmp(s1, s2) == -1);}
+bool string_leq_b_unchecked(s7_pointer s1, s7_pointer s2) {return(s7i_scheme_strcmp(s1, s2) != 1);}
+bool string_gt_b_unchecked(s7_pointer s1, s7_pointer s2) {return(s7i_scheme_strcmp(s1, s2) == 1);}
+bool string_geq_b_unchecked(s7_pointer s1, s7_pointer s2) {return(s7i_scheme_strcmp(s1, s2) != -1);}
+bool string_eq_b_unchecked(s7_pointer s1, s7_pointer s2) {return(s7i_scheme_strings_are_equal(s1, s2));}
+
+static void check_string2_args(s7_scheme *sc, s7_pointer caller, s7_pointer str1, s7_pointer str2)
+{
+  s7_pointer tn = s7i_string_type_name(sc);
+  if (!s7_is_string(str1))
+    { s7i_method_or_bust_sym(sc, str1, caller, s7i_set_plist_2(sc, str1, str2), tn, 1); }
+  if (!s7_is_string(str2))
+    { s7i_method_or_bust_sym(sc, str2, caller, s7i_set_plist_2(sc, str1, str2), tn, 2); }
+}
+
+bool string_lt_b_7pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
+{
+  check_string2_args(sc, s7i_string_lt_symbol(sc), s1, s2);
+  return(s7i_scheme_strcmp(s1, s2) == -1);
+}
+
+bool string_leq_b_7pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
+{
+  check_string2_args(sc, s7i_string_leq_symbol(sc), s1, s2);
+  return(s7i_scheme_strcmp(s1, s2) != 1);
+}
+
+bool string_gt_b_7pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
+{
+  check_string2_args(sc, s7i_string_gt_symbol(sc), s1, s2);
+  return(s7i_scheme_strcmp(s1, s2) == 1);
+}
+
+bool string_geq_b_7pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
+{
+  check_string2_args(sc, s7i_string_geq_symbol(sc), s1, s2);
+  return(s7i_scheme_strcmp(s1, s2) != -1);
+}
+
+bool string_eq_b_7pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
+{
+  check_string2_args(sc, s7i_string_eq_symbol(sc), s1, s2);
+  return(s7i_scheme_strings_are_equal(s1, s2));
+}

@@ -51,6 +51,22 @@ bool s7i_is_string_append_or_symbol_caller(s7_scheme *sc, s7_pointer caller);
 void s7i_set_string_value(s7_pointer str, const char *val);
 char *s7i_string_value_ptr(s7_pointer str);
 
+/* string comparison helpers for string cmp migration */
+int32_t s7i_scheme_strcmp(s7_pointer s1, s7_pointer s2);
+bool s7i_scheme_strings_are_equal(s7_pointer x, s7_pointer y);
+bool s7i_is_string_via_method(s7_scheme *sc, s7_pointer obj);
+s7_pointer s7i_method_or_bust_sym(s7_scheme *sc, s7_pointer obj, s7_pointer method_sym, s7_pointer args, s7_pointer typ, s7_int arg_pos);
+s7_pointer s7i_set_plist_1(s7_scheme *sc, s7_pointer x1);
+s7_pointer s7i_string_type_name(s7_scheme *sc);
+s7_pointer s7i_string_eq_symbol(s7_scheme *sc);
+s7_pointer s7i_string_lt_symbol(s7_scheme *sc);
+s7_pointer s7i_string_gt_symbol(s7_scheme *sc);
+s7_pointer s7i_string_leq_symbol(s7_scheme *sc);
+s7_pointer s7i_string_geq_symbol(s7_scheme *sc);
+bool s7i_is_true(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_is_string_symbol(s7_scheme *sc);
+const uint8_t *s7i_uppers_ptr(void);
+
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
 
