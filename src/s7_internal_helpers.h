@@ -98,6 +98,15 @@ void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
 s7_double s7i_default_rationalize_error(s7_scheme *sc);
 
+/* symbol helpers */
+bool s7i_is_gensym(s7_pointer p);
+s7_pointer s7i_symbol_name_cell(s7_pointer sym);
+s7_int s7i_symbol_name_length(s7_pointer sym);
+s7_pointer s7i_make_symbol_with_length(s7_scheme *sc, const char *name, s7_int len);
+s7_pointer s7i_initial_value(s7_pointer symbol);
+void s7i_set_initial_value(s7_pointer symbol, s7_pointer value);
+bool s7i_initial_value_is_defined(s7_scheme *sc, s7_pointer symbol);
+
 #ifdef __cplusplus
 }
 #endif
