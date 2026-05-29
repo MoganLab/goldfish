@@ -105,6 +105,7 @@ target ("goldfish") do
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
+    add_files ("src/liii_http.cpp")
     add_files ("src/s7.c", {languages = "c11"})
     add_files ("src/s7_scheme_complex.c", {languages = "c11"})
     add_files ("src/s7_scheme_char.c", {languages = "c11"})
