@@ -61,9 +61,7 @@
 #endif
 #endif
 
-#include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json-schema.hpp>
 
 #ifdef GOLDFISH_WITH_REPL
 #include <functional>
