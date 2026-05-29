@@ -29604,12 +29604,9 @@ static s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- pair? -------------------------------- */
-static s7_pointer g_is_pair(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_pair "(pair? obj) returns #t if obj is a pair (a non-empty list)"
-  #define Q_is_pair sc->pl_bt
-  check_boolean_method(sc, is_pair, sc->is_pair_symbol, args);
-}
+#define H_is_pair "(pair? obj) returns #t if obj is a pair (a non-empty list)"
+#define Q_is_pair sc->pl_bt
+/* g_is_pair is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- list? -------------------------------- */
@@ -29617,13 +29614,9 @@ bool s7_is_list(s7_scheme *sc, s7_pointer p) {return(is_list(p));}
 
 static bool is_list_b(s7_pointer p) {return((is_pair(p)) || (type(p) == T_NIL));}
 
-static s7_pointer g_is_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_list "(list? obj) returns #t if obj is a pair or null"
-  #define Q_is_list sc->pl_bt
-  #define is_a_list(p) s7_is_list(sc, p)
-  check_boolean_method(sc, is_a_list, sc->is_list_symbol, args);
-}
+#define H_is_list "(list? obj) returns #t if obj is a pair or null"
+#define Q_is_list sc->pl_bt
+/* g_is_list is now defined in s7_liii_list.c */
 
 static s7_int proper_list_length(s7_pointer a)
 {
@@ -29699,12 +29692,9 @@ bool s7_is_proper_list(s7_scheme *sc, s7_pointer lst)
   return(true);
 }
 
-static s7_pointer g_is_proper_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_proper_list "(proper-list? x) returns #t is x is a list that is neither circular nor dotted."
-  #define Q_is_proper_list sc->pl_bt
-  return(make_boolean(sc, s7_is_proper_list(sc, car(args))));
-}
+#define H_is_proper_list "(proper-list? x) returns #t is x is a list that is neither circular nor dotted."
+#define Q_is_proper_list sc->pl_bt
+/* g_is_proper_list is now defined in s7_liii_list.c */
 
 static s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(make_boolean(sc, s7_is_proper_list(sc, arg)));}
 
@@ -30131,12 +30121,9 @@ static s7_pointer caaar_p_p(s7_scheme *sc, s7_pointer lst)
   return(caaar(lst));
 }
 
-static s7_pointer g_caaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caaar "(caaar lst) returns (car (car (car lst))): (caaar '(((1 2)))) -> 1"
-  #define Q_caaar sc->pl_p
-  return(caaar_p_p(sc, car(args)));
-}
+#define H_caaar "(caaar lst) returns (car (car (car lst))): (caaar '(((1 2)))) -> 1"
+#define Q_caaar sc->pl_p
+/* g_caaar is now defined in s7_liii_list.c */
 
 /* -------- caadr -------- */
 static s7_pointer caadr_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30148,29 +30135,14 @@ static s7_pointer caadr_p_p(s7_scheme *sc, s7_pointer lst)
   return(NULL);
 }
 
-static s7_pointer g_caadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caadr "(caadr lst) returns (car (car (cdr lst))): (caadr '(1 (2 3))) -> 2"
-  #define Q_caadr sc->pl_p
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caadr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caadr_symbol, lst, cdr_a_list_string);
-  if (!is_pair(cadr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caadr_symbol, lst, cadr_a_list_string);
-  return(caadr(lst));
-}
+#define H_caadr "(caadr lst) returns (car (car (cdr lst))): (caadr '(1 (2 3))) -> 2"
+#define Q_caadr sc->pl_p
+/* g_caadr is now defined in s7_liii_list.c */
 
 /* -------- cadar -------- */
-static s7_pointer g_cadar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cadar "(cadar lst) returns (car (cdr (car lst))): (cadar '((1 2 3))) -> 2"
-  #define Q_cadar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cadar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadar_symbol, lst, car_a_list_string);
-  if (!is_pair(cdar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadar_symbol, lst, cdar_a_list_string);
-  return(cadar(lst));
-}
+#define H_cadar "(cadar lst) returns (car (cdr (car lst))): (cadar '((1 2 3))) -> 2"
+#define Q_cadar sc->pl_p
+/* g_cadar is now defined in s7_liii_list.c */
 
 static s7_pointer cadar_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -30190,25 +30162,14 @@ static s7_pointer cdaar_p_p(s7_scheme *sc, s7_pointer lst)
   return(cdaar(lst));
 }
 
-static s7_pointer g_cdaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdaar "(cdaar lst) returns (cdr (car (car lst))): (cdaar '(((1 2 3)))) -> '(2 3)"
-  #define Q_cdaar sc->pl_p
-  return(cdaar_p_p(sc, car(args)));
-}
+#define H_cdaar "(cdaar lst) returns (cdr (car (car lst))): (cdaar '(((1 2 3)))) -> '(2 3)"
+#define Q_cdaar sc->pl_p
+/* g_cdaar is now defined in s7_liii_list.c */
 
 /* -------- caddr -------- */
-static s7_pointer g_caddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caddr "(caddr lst) returns (car (cdr (cdr lst))): (caddr '(1 2 3 4)) -> 3"
-  #define Q_caddr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caddr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caddr_symbol, lst, cdr_a_list_string);
-  if (!is_pair(cddr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caddr_symbol, lst, cddr_a_list_string);
-  return(caddr(lst));
-}
+#define H_caddr "(caddr lst) returns (car (cdr (cdr lst))): (caddr '(1 2 3 4)) -> 3"
+#define Q_caddr sc->pl_p
+/* g_caddr is now defined in s7_liii_list.c */
 
 static s7_pointer caddr_p_p(s7_scheme *sc, s7_pointer lst)
 {
@@ -30238,12 +30199,9 @@ static s7_pointer cdddr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cdddr(lst));
 }
 
-static s7_pointer g_cdddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdddr "(cdddr lst) returns (cdr (cdr (cdr lst))): (cdddr '(1 2 3 4)) -> '(4)"
-  #define Q_cdddr sc->pl_p
-  return(cdddr_p_p(sc, car(args)));
-}
+#define H_cdddr "(cdddr lst) returns (cdr (cdr (cdr lst))): (cdddr '(1 2 3 4)) -> '(4)"
+#define Q_cdddr sc->pl_p
+/* g_cdddr is now defined in s7_liii_list.c */
 
 /* -------- cdadr -------- */
 static s7_pointer cdadr_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30254,12 +30212,9 @@ static s7_pointer cdadr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cdadr(lst));
 }
 
-static s7_pointer g_cdadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdadr "(cdadr lst) returns (cdr (car (cdr lst))): (cdadr '(1 (2 3 4))) -> '(3 4)"
-  #define Q_cdadr sc->pl_p
-  return(cdadr_p_p(sc, car(args)));
-}
+#define H_cdadr "(cdadr lst) returns (cdr (car (cdr lst))): (cdadr '(1 (2 3 4))) -> '(3 4)"
+#define Q_cdadr sc->pl_p
+/* g_cdadr is now defined in s7_liii_list.c */
 
 /* -------- cddar -------- */
 static s7_pointer cddar_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30270,68 +30225,29 @@ static s7_pointer cddar_p_p(s7_scheme *sc, s7_pointer lst)
   return(cddar(lst));
 }
 
-static s7_pointer g_cddar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cddar "(cddar lst) returns (cdr (cdr (car lst))): (cddar '((1 2 3 4))) -> '(3 4)"
-  #define Q_cddar sc->pl_p
-  return(cddar_p_p(sc, car(args)));
-}
+#define H_cddar "(cddar lst) returns (cdr (cdr (car lst))): (cddar '((1 2 3 4))) -> '(3 4)"
+#define Q_cddar sc->pl_p
+/* g_cddar is now defined in s7_liii_list.c */
 
 /* -------- caaaar -------- */
-static s7_pointer g_caaaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caaaar "(caaaar lst) returns (car (car (car (car lst)))): (caaaar '((((1 2))))) -> 1"
-  #define Q_caaaar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caaaar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaaar_symbol, lst, car_a_list_string);
-  if (!is_pair(caar(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaaar_symbol, lst, caar_a_list_string);
-  if (!is_pair(caaar(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaaar_symbol, lst, caaar_a_list_string);
-  return(caaaar(lst));
-}
+#define H_caaaar "(caaaar lst) returns (car (car (car (car lst)))): (caaaar '((((1 2))))) -> 1"
+#define Q_caaaar sc->pl_p
+/* g_caaaar is now defined in s7_liii_list.c */
 
 /* -------- caaadr -------- */
-static s7_pointer g_caaadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caaadr "(caaadr lst) returns (car (car (car (cdr lst)))): (caaadr '(1 ((2 3)))) -> 2"
-  #define Q_caaadr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caaadr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaadr_symbol, lst, cdr_a_list_string);
-  if (!is_pair(cadr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaadr_symbol, lst, cadr_a_list_string);
-  if (!is_pair(caadr(lst))) sole_arg_wrong_type_error_nr(sc, sc->caaadr_symbol, lst, caadr_a_list_string);
-  return(caaadr(lst));
-}
+#define H_caaadr "(caaadr lst) returns (car (car (car (cdr lst)))): (caaadr '(1 ((2 3)))) -> 2"
+#define Q_caaadr sc->pl_p
+/* g_caaadr is now defined in s7_liii_list.c */
 
 /* -------- caadar -------- */
-static s7_pointer g_caadar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caadar "(caadar lst) returns (car (car (cdr (car lst)))): (caadar '((1 (2 3)))) -> 2"
-  #define Q_caadar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->caadar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->caadar_symbol, lst, car_a_list_string);
-  if (!is_pair(cdar(lst))) sole_arg_wrong_type_error_nr(sc, sc->caadar_symbol, lst, cdar_a_list_string);
-  if (!is_pair(cadar(lst))) sole_arg_wrong_type_error_nr(sc, sc->caadar_symbol, lst, cadar_a_list_string);
-  return(caadar(lst));
-}
+#define H_caadar "(caadar lst) returns (car (car (cdr (car lst)))): (caadar '((1 (2 3)))) -> 2"
+#define Q_caadar sc->pl_p
+/* g_caadar is now defined in s7_liii_list.c */
 
 /* -------- cadaar -------- */
-static s7_pointer g_cadaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cadaar "(cadaar lst) returns (car (cdr (car (car lst)))): (cadaar '(((1 2 3)))) -> 2"
-  #define Q_cadaar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cadaar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadaar_symbol, lst, car_a_list_string);
-  if (!is_pair(caar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadaar_symbol, lst, caar_a_list_string);
-  if (!is_pair(cdaar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cadaar_symbol, lst, cdaar_a_list_string);
-  return(cadaar(lst));
-}
+#define H_cadaar "(cadaar lst) returns (car (cdr (car (car lst)))): (cadaar '(((1 2 3)))) -> 2"
+#define Q_cadaar sc->pl_p
+/* g_cadaar is now defined in s7_liii_list.c */
 
 /* -------- caaddr -------- */
 
@@ -30344,12 +30260,9 @@ static s7_pointer caaddr_p_p(s7_scheme *sc, s7_pointer lst)
   return(caaddr(lst));
 }
 
-static s7_pointer g_caaddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caaddr "(caaddr lst) returns (car (car (cdr (cdr lst)))): (caaddr '(1 2 (3 4))) -> 3"
-  #define Q_caaddr sc->pl_p
-  return(caaddr_p_p(sc, car(args)));
-}
+#define H_caaddr "(caaddr lst) returns (car (car (cdr (cdr lst)))): (caaddr '(1 2 (3 4))) -> 3"
+#define Q_caaddr sc->pl_p
+/* g_caaddr is now defined in s7_liii_list.c */
 
 /* -------- cadddr -------- */
 static s7_pointer cadddr_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30361,12 +30274,9 @@ static s7_pointer cadddr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cadddr(lst));
 }
 
-static s7_pointer g_cadddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cadddr "(cadddr lst) returns (car (cdr (cdr (cdr lst)))): (cadddr '(1 2 3 4 5)) -> 4"
-  #define Q_cadddr sc->pl_p
-  return(cadddr_p_p(sc, car(args)));
-}
+#define H_cadddr "(cadddr lst) returns (car (cdr (cdr (cdr lst)))): (cadddr '(1 2 3 4 5)) -> 4"
+#define Q_cadddr sc->pl_p
+/* g_cadddr is now defined in s7_liii_list.c */
 
 /* -------- cadadr -------- */
 static s7_pointer cadadr_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30378,12 +30288,9 @@ static s7_pointer cadadr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cadadr(lst));
 }
 
-static s7_pointer g_cadadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cadadr "(cadadr lst) returns (car (cdr (car (cdr lst)))): (cadadr '(1 (2 3 4))) -> 3"
-  #define Q_cadadr sc->pl_p
-  return(cadadr_p_p(sc, car(args)));
-}
+#define H_cadadr "(cadadr lst) returns (car (cdr (car (cdr lst)))): (cadadr '(1 (2 3 4))) -> 3"
+#define Q_cadadr sc->pl_p
+/* g_cadadr is now defined in s7_liii_list.c */
 
 /* -------- caddar -------- */
 static s7_pointer caddar_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30395,82 +30302,34 @@ static s7_pointer caddar_p_p(s7_scheme *sc, s7_pointer lst)
   return(caddar(lst));
 }
 
-static s7_pointer g_caddar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_caddar "(caddar lst) returns (car (cdr (cdr (car lst)))): (caddar '((1 2 3 4))) -> 3"
-  #define Q_caddar sc->pl_p
-  return(caddar_p_p(sc, car(args)));
-}
+#define H_caddar "(caddar lst) returns (car (cdr (cdr (car lst)))): (caddar '((1 2 3 4))) -> 3"
+#define Q_caddar sc->pl_p
+/* g_caddar is now defined in s7_liii_list.c */
 
 /* -------- cdaaar -------- */
-static s7_pointer g_cdaaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdaaar "(cdaaar lst) returns (cdr (car (car (car lst)))): (cdaaar '((((1 2 3))))) -> '(2 3)"
-  #define Q_cdaaar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cdaaar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaaar_symbol, lst, car_a_list_string);
-  if (!is_pair(caar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaaar_symbol, lst, caar_a_list_string);
-  if (!is_pair(caaar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaaar_symbol, lst, caaar_a_list_string);
-  return(cdaaar(lst));
-}
+#define H_cdaaar "(cdaaar lst) returns (cdr (car (car (car lst)))): (cdaaar '((((1 2 3))))) -> '(2 3)"
+#define Q_cdaaar sc->pl_p
+/* g_cdaaar is now defined in s7_liii_list.c */
 
 /* -------- cdaadr -------- */
-static s7_pointer g_cdaadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdaadr "(cdaadr lst) returns (cdr (car (car (cdr lst)))): (cdaadr '(1 ((2 3 4)))) -> '(3 4)"
-  #define Q_cdaadr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cdaadr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaadr_symbol, lst, cdr_a_list_string);
-  if (!is_pair(cadr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaadr_symbol, lst, cadr_a_list_string);
-  if (!is_pair(caadr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaadr_symbol, lst, caadr_a_list_string);
-  return(cdaadr(lst));
-}
+#define H_cdaadr "(cdaadr lst) returns (cdr (car (car (cdr lst)))): (cdaadr '(1 ((2 3 4)))) -> '(3 4)"
+#define Q_cdaadr sc->pl_p
+/* g_cdaadr is now defined in s7_liii_list.c */
 
 /* -------- cdadar -------- */
-static s7_pointer g_cdadar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdadar "(cdadar lst) returns (cdr (car (cdr (car lst)))): (cdadar '((1 (2 3 4)))) -> '(3 4)"
-  #define Q_cdadar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cdadar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdadar_symbol, lst, car_a_list_string);
-  if (!is_pair(cdar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdadar_symbol, lst, cdar_a_list_string);
-  if (!is_pair(cadar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdadar_symbol, lst, cadar_a_list_string);
-  return(cdadar(lst));
-}
+#define H_cdadar "(cdadar lst) returns (cdr (car (cdr (car lst)))): (cdadar '((1 (2 3 4)))) -> '(3 4)"
+#define Q_cdadar sc->pl_p
+/* g_cdadar is now defined in s7_liii_list.c */
 
 /* -------- cddaar -------- */
-static s7_pointer g_cddaar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cddaar "(cddaar lst) returns (cdr (cdr (car (car lst)))): (cddaar '(((1 2 3 4)))) -> '(3 4)"
-  #define Q_cddaar sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cddaar_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(car(lst))) sole_arg_wrong_type_error_nr(sc, sc->cddaar_symbol, lst, car_a_list_string);
-  if (!is_pair(caar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cddaar_symbol, lst, caar_a_list_string);
-  if (!is_pair(cdaar(lst))) sole_arg_wrong_type_error_nr(sc, sc->cddaar_symbol, lst, cdaar_a_list_string);
-  return(cddaar(lst));
-}
+#define H_cddaar "(cddaar lst) returns (cdr (cdr (car (car lst)))): (cddaar '(((1 2 3 4)))) -> '(3 4)"
+#define Q_cddaar sc->pl_p
+/* g_cddaar is now defined in s7_liii_list.c */
 
 /* -------- cdaddr -------- */
-static s7_pointer g_cdaddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdaddr "(cdaddr lst) returns (cdr (car (cdr (cdr lst)))): (cdaddr '(1 2 (3 4 5))) -> '(4 5)"
-  #define Q_cdaddr sc->pl_p
-
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(sole_arg_method_or_bust(sc, lst, sc->cdaddr_symbol, args, sc->type_names[T_PAIR]));
-  if (!is_pair(cdr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaddr_symbol, lst, cdr_a_list_string);
-  if (!is_pair(cddr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaddr_symbol, lst, cddr_a_list_string);
-  if (!is_pair(caddr(lst))) sole_arg_wrong_type_error_nr(sc, sc->cdaddr_symbol, lst, caddr_a_list_string);
-  return(cdaddr(lst));
-}
+#define H_cdaddr "(cdaddr lst) returns (cdr (car (cdr (cdr lst)))): (cdaddr '(1 2 (3 4 5))) -> '(4 5)"
+#define Q_cdaddr sc->pl_p
+/* g_cdaddr is now defined in s7_liii_list.c */
 
 /* -------- cddddr -------- */
 
@@ -30483,12 +30342,9 @@ static s7_pointer cddddr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cddddr(lst));
 }
 
-static s7_pointer g_cddddr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cddddr "(cddddr lst) returns (cdr (cdr (cdr (cdr lst)))): (cddddr '(1 2 3 4 5)) -> '(5)"
-  #define Q_cddddr sc->pl_p
-  return(cddddr_p_p(sc, car(args)));
-}
+#define H_cddddr "(cddddr lst) returns (cdr (cdr (cdr (cdr lst)))): (cddddr '(1 2 3 4 5)) -> '(5)"
+#define Q_cddddr sc->pl_p
+/* g_cddddr is now defined in s7_liii_list.c */
 
 /* -------- cddadr -------- */
 static s7_pointer cddadr_p_p(s7_scheme *sc, s7_pointer lst)
@@ -30500,12 +30356,9 @@ static s7_pointer cddadr_p_p(s7_scheme *sc, s7_pointer lst)
   return(cddadr(lst));
 }
 
-static s7_pointer g_cddadr(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cddadr "(cddadr lst) returns (cdr (cdr (car (cdr lst)))): (cddadr '(1 (2 3 4 5))) -> '(4 5)"
-  #define Q_cddadr sc->pl_p
-  return(cddadr_p_p(sc, car(args)));
-}
+#define H_cddadr "(cddadr lst) returns (cdr (cdr (car (cdr lst)))): (cddadr '(1 (2 3 4 5))) -> '(4 5)"
+#define Q_cddadr sc->pl_p
+/* g_cddadr is now defined in s7_liii_list.c */
 
 /* -------- cdddar -------- */
 
@@ -30518,12 +30371,9 @@ static s7_pointer cdddar_p_p(s7_scheme *sc, s7_pointer lst)
   return(cdddar(lst));
 }
 
-static s7_pointer g_cdddar(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cdddar "(cdddar lst) returns (cdr (cdr (cdr (car lst)))): (cdddar '((1 2 3 4 5))) -> '(4 5)"
-  #define Q_cdddar sc->pl_p
-  return(cdddar_p_p(sc, car(args)));
-}
+#define H_cdddar "(cdddar lst) returns (cdr (cdr (cdr (car lst)))): (cdddar '((1 2 3 4 5))) -> '(4 5)"
+#define Q_cdddar sc->pl_p
+/* g_cdddar is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- assoc assv assq -------------------------------- */

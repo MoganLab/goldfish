@@ -18,6 +18,43 @@ s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
   }
 }
 
+/* -------------------------------- pair? -------------------------------- */
+
+s7_pointer g_is_pair(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_pair(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  {
+    s7_pointer sym = s7_make_symbol(sc, "pair?");
+    s7_pointer func = s7i_find_method_with_let(sc, p, sym);
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+/* -------------------------------- list? -------------------------------- */
+
+s7_pointer g_is_list(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_list(sc, p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  {
+    s7_pointer sym = s7_make_symbol(sc, "list?");
+    s7_pointer func = s7i_find_method_with_let(sc, p, sym);
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+/* -------------------------------- proper-list? -------------------------------- */
+
+s7_pointer g_is_proper_list(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7_is_proper_list(sc, s7_car(args))));
+}
+
 s7_pointer g_car(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);
@@ -70,6 +107,330 @@ s7_pointer g_cddr(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(s7_cdr(lst)))
     return(s7_wrong_type_arg_error(sc, "cddr", 1, lst, "a pair whose cdr is also a pair"));
   return(s7_cddr(lst));
+}
+
+/* -------------------------------- 3-level cxxxr -------------------------------- */
+
+s7_pointer g_caaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaar", 1, lst, "a pair whose caar is also a pair"));
+  return(s7_caaar(lst));
+}
+
+s7_pointer g_caadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caadr", 1, lst, "a pair whose cadr is also a pair"));
+  return(s7_caadr(lst));
+}
+
+s7_pointer g_cadar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cadar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadar", 1, lst, "a pair whose cdar is also a pair"));
+  return(s7_cadar(lst));
+}
+
+s7_pointer g_caddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caddr", 1, lst, "a pair whose cddr is also a pair"));
+  return(s7_caddr(lst));
+}
+
+s7_pointer g_cdaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaar", 1, lst, "a pair whose caar is also a pair"));
+  return(s7_cdaar(lst));
+}
+
+s7_pointer g_cdddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdddr", 1, lst, "a pair whose cddr is also a pair"));
+  return(s7_cdddr(lst));
+}
+
+s7_pointer g_cdadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdadr", 1, lst, "a pair whose cadr is also a pair"));
+  return(s7_cdadr(lst));
+}
+
+s7_pointer g_cddar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cddar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddar", 1, lst, "a pair whose cdar is also a pair"));
+  return(s7_cddar(lst));
+}
+
+/* -------------------------------- 4-level cxxxr -------------------------------- */
+
+s7_pointer g_caaaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caaaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaaar", 1, lst, "a pair whose caar is also a pair"));
+  if (!s7_is_pair(s7_caaar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaaar", 1, lst, "a pair whose caaar is also a pair"));
+  return(s7_caaaar(lst));
+}
+
+s7_pointer g_caaadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caaadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaadr", 1, lst, "a pair whose cadr is also a pair"));
+  if (!s7_is_pair(s7_caadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaadr", 1, lst, "a pair whose caadr is also a pair"));
+  return(s7_caaadr(lst));
+}
+
+s7_pointer g_caadar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caadar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "caadar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caadar", 1, lst, "a pair whose cdar is also a pair"));
+  if (!s7_is_pair(s7_cadar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caadar", 1, lst, "a pair whose cadar is also a pair"));
+  return(s7_caadar(lst));
+}
+
+s7_pointer g_cadaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cadaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadaar", 1, lst, "a pair whose caar is also a pair"));
+  if (!s7_is_pair(s7_cdaar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadaar", 1, lst, "a pair whose cdaar is also a pair"));
+  return(s7_cadaar(lst));
+}
+
+s7_pointer g_caaddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caaddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaddr", 1, lst, "a pair whose cddr is also a pair"));
+  if (!s7_is_pair(s7_caddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "caaddr", 1, lst, "a pair whose caddr is also a pair"));
+  return(s7_caaddr(lst));
+}
+
+s7_pointer g_cadddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cadddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadddr", 1, lst, "a pair whose cddr is also a pair"));
+  if (!s7_is_pair(s7_cdddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadddr", 1, lst, "a pair whose cdddr is also a pair"));
+  return(s7_cadddr(lst));
+}
+
+s7_pointer g_cadadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cadadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadadr", 1, lst, "a pair whose cadr is also a pair"));
+  if (!s7_is_pair(s7_cdadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cadadr", 1, lst, "a pair whose cdadr is also a pair"));
+  return(s7_cadadr(lst));
+}
+
+s7_pointer g_caddar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "caddar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "caddar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caddar", 1, lst, "a pair whose cdar is also a pair"));
+  if (!s7_is_pair(s7_cddar(lst)))
+    return(s7_wrong_type_arg_error(sc, "caddar", 1, lst, "a pair whose cddar is also a pair"));
+  return(s7_caddar(lst));
+}
+
+s7_pointer g_cdaaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdaaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaaar", 1, lst, "a pair whose caar is also a pair"));
+  if (!s7_is_pair(s7_caaar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaaar", 1, lst, "a pair whose caaar is also a pair"));
+  return(s7_cdaaar(lst));
+}
+
+s7_pointer g_cdaadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdaadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaadr", 1, lst, "a pair whose cadr is also a pair"));
+  if (!s7_is_pair(s7_caadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaadr", 1, lst, "a pair whose caadr is also a pair"));
+  return(s7_cdaadr(lst));
+}
+
+s7_pointer g_cdadar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdadar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdadar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdadar", 1, lst, "a pair whose cdar is also a pair"));
+  if (!s7_is_pair(s7_cadar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdadar", 1, lst, "a pair whose cadar is also a pair"));
+  return(s7_cdadar(lst));
+}
+
+s7_pointer g_cddaar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cddaar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddaar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_caar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddaar", 1, lst, "a pair whose caar is also a pair"));
+  if (!s7_is_pair(s7_cdaar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddaar", 1, lst, "a pair whose cdaar is also a pair"));
+  return(s7_cddaar(lst));
+}
+
+s7_pointer g_cdaddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdaddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaddr", 1, lst, "a pair whose cddr is also a pair"));
+  if (!s7_is_pair(s7_caddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdaddr", 1, lst, "a pair whose caddr is also a pair"));
+  return(s7_cdaddr(lst));
+}
+
+s7_pointer g_cddddr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cddddr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddddr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddddr", 1, lst, "a pair whose cddr is also a pair"));
+  if (!s7_is_pair(s7_cdddr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddddr", 1, lst, "a pair whose cdddr is also a pair"));
+  return(s7_cddddr(lst));
+}
+
+s7_pointer g_cddadr(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cddadr", args, "a pair"));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddadr", 1, lst, "a pair whose cdr is also a pair"));
+  if (!s7_is_pair(s7_cadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddadr", 1, lst, "a pair whose cadr is also a pair"));
+  if (!s7_is_pair(s7_cdadr(lst)))
+    return(s7_wrong_type_arg_error(sc, "cddadr", 1, lst, "a pair whose cdadr is also a pair"));
+  return(s7_cddadr(lst));
+}
+
+s7_pointer g_cdddar(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_sole_arg_method_or_bust(sc, lst, "cdddar", args, "a pair"));
+  if (!s7_is_pair(s7_car(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdddar", 1, lst, "a pair whose car is also a pair"));
+  if (!s7_is_pair(s7_cdar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdddar", 1, lst, "a pair whose cdar is also a pair"));
+  if (!s7_is_pair(s7_cddar(lst)))
+    return(s7_wrong_type_arg_error(sc, "cdddar", 1, lst, "a pair whose cddar is also a pair"));
+  return(s7_cdddar(lst));
 }
 
 s7_pointer g_set_car(s7_scheme *sc, s7_pointer args)
