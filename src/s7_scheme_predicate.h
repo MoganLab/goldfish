@@ -62,6 +62,8 @@ s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
 s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args);
 s7_pointer g_c_pointer_info(s7_scheme *sc, s7_pointer args);
 s7_pointer g_c_pointer_type(s7_scheme *sc, s7_pointer args);
+s7_pointer g_c_object_type(s7_scheme *sc, s7_pointer args);
+s7_pointer g_c_object_let(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

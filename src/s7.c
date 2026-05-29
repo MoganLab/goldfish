@@ -38142,20 +38142,9 @@ static s7_pointer fallback_length(s7_scheme *sc, s7_pointer obj) {return(sc->F);
 /* -------------------------------- c-object-type -------------------------------- */
 s7_int s7_c_object_type(s7_pointer obj) {return((is_c_object(obj)) ? c_object_type(obj) : -1);}
 
-static s7_pointer g_c_object_type(s7_scheme *sc, s7_pointer args)
-{
-  #define H_c_object_type "(c-object-type obj) returns the c_object's type tag."
-  #define Q_c_object_type s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_c_object_symbol)
-
-  s7_pointer cobj = car(args);
-  if (!is_c_object(cobj))
-    {
-      if (!has_active_methods(sc, cobj))
-	sole_arg_wrong_type_error_nr(sc, sc->c_object_type_symbol, cobj, sc->type_names[T_C_OBJECT]);
-      return(find_and_apply_method(sc, cobj, sc->c_object_type_symbol, args));
-    }
-  return(make_integer(sc, c_object_type(cobj))); /* this is the c_object_types table index = tag */
-}
+/* g_c_object_type is now defined in s7_scheme_predicate.c */
+#define H_c_object_type "(c-object-type obj) returns the c_object's type tag."
+#define Q_c_object_type s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_c_object_symbol)
 
 s7_int s7_make_c_type(s7_scheme *sc, const char *name) /* shouldn't this be s7_make_c_object_type? */
 {
@@ -38249,20 +38238,9 @@ void s7_c_type_set_setter(s7_scheme *sc, s7_int tag, s7_pointer setter)
 /* -------------------------------- c-object-let -------------------------------- */
 s7_pointer s7_c_object_let(s7_pointer obj) {return(c_object_let(obj));}
 
-static s7_pointer g_c_object_let(s7_scheme *sc, s7_pointer args)
-{
-  #define H_c_object_let "(c-object-let obj) returns the c_object's local let, if any."
-  #define Q_c_object_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->is_c_object_symbol)
-
-  const s7_pointer cobj = car(args);
-  if (!is_c_object(cobj))
-    {
-      if (!has_active_methods(sc, cobj))
-	sole_arg_wrong_type_error_nr(sc, sc->c_object_let_symbol, cobj, sc->type_names[T_C_OBJECT]);
-      return(find_and_apply_method(sc, cobj, sc->c_object_let_symbol, args));
-    }
-  return(c_object_let(cobj));
-}
+/* g_c_object_let is now defined in s7_scheme_predicate.c */
+#define H_c_object_let "(c-object-let obj) returns the c_object's local let, if any."
+#define Q_c_object_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->is_c_object_symbol)
 
 s7_pointer s7_c_object_set_let(s7_scheme *sc, s7_pointer cobj, s7_pointer let)
 {

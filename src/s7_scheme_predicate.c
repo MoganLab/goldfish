@@ -378,3 +378,25 @@ s7_pointer g_c_pointer_type(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_c_pointer_type_p_p(sc, s7_car(args)));
 }
+
+s7_pointer g_c_object_type(s7_scheme *sc, s7_pointer args)
+{
+  #define H_c_object_type "(c-object-type obj) returns the c_object's type tag."
+  #define Q_c_object_type s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_c_object_symbol)
+
+  s7_pointer cobj = s7_car(args);
+  if (!s7_is_c_object(cobj))
+    return(s7i_sole_arg_method_or_bust(sc, cobj, "c-object-type", args, "a c-object"));
+  return(s7_make_integer(sc, s7_c_object_type(cobj)));
+}
+
+s7_pointer g_c_object_let(s7_scheme *sc, s7_pointer args)
+{
+  #define H_c_object_let "(c-object-let obj) returns the c_object's local let, if any."
+  #define Q_c_object_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->is_c_object_symbol)
+
+  s7_pointer cobj = s7_car(args);
+  if (!s7_is_c_object(cobj))
+    return(s7i_sole_arg_method_or_bust(sc, cobj, "c-object-let", args, "a c-object"));
+  return(s7_c_object_let(cobj));
+}
