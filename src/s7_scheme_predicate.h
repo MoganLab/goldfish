@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 s7_pointer g_not(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_boolean(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

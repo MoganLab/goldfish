@@ -13,3 +13,11 @@ s7_pointer g_not(s7_scheme *sc, s7_pointer args)
 {
   return((s7_car(args) == s7_f(sc)) ? s7_t(sc) : s7_f(sc));
 }
+
+s7_pointer g_is_boolean(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_boolean(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_boolean_symbol(sc)));
+}

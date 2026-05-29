@@ -6687,12 +6687,9 @@ s7_pointer s7_make_boolean(s7_scheme *sc, bool obj) {return(make_boolean(sc, obj
 
 bool s7_is_boolean(s7_pointer x) {return(type(x) == T_BOOLEAN);}
 
-static s7_pointer g_is_boolean(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_boolean is now defined in s7_scheme_predicate.c */
   #define H_is_boolean "(boolean? obj) returns #t if obj is #f or #t: (boolean? ()) -> #f"
   #define Q_is_boolean sc->pl_bt
-  check_boolean_method(sc, is_boolean, sc->is_boolean_symbol, args);
-}
 
 
 /* -------------------------------- constant? -------------------------------- */
@@ -19997,6 +19994,7 @@ s7_pointer s7i_string_leq_symbol(s7_scheme *sc) {return(sc->string_leq_symbol);}
 s7_pointer s7i_string_geq_symbol(s7_scheme *sc) {return(sc->string_geq_symbol);}
 bool s7i_is_true(s7_scheme *sc, s7_pointer p) {return(is_true(sc, p));}
 s7_pointer s7i_is_string_symbol(s7_scheme *sc) {return(sc->is_string_symbol);}
+s7_pointer s7i_is_boolean_symbol(s7_scheme *sc) {return(sc->is_boolean_symbol);}
 const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
