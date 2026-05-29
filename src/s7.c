@@ -404,6 +404,7 @@
 #include "s7_scheme_char.h"
 #include "s7_scheme_write.h"
 #include "s7_scheme_symbol.h"
+#include "s7_scheme_predicate.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
@@ -6675,12 +6676,9 @@ static bool is_eof_object_b_p(s7_pointer p) {return(p == eof_object);}
 /* -------------------------------- not -------------------------------- */
 static bool not_b_7p(s7_scheme *sc, s7_pointer p) {return(p == sc->F);}
 
-static s7_pointer g_not(s7_scheme *sc, s7_pointer args)
-{ /* this doesn't need method handling */
+/* g_not is now defined in s7_scheme_predicate.c */
   #define H_not "(not obj) returns #t if obj is #f, otherwise #f: (not ()) -> #f"
   #define Q_not sc->pl_bt
-  return((car(args) == sc->F) ? sc->T : sc->F);
-}
 
 
 /* -------------------------------- boolean? -------------------------------- */
