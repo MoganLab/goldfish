@@ -36246,9 +36246,6 @@ static bool compatible_types(s7_scheme *sc, const s7_pointer eq_type, const s7_p
   return(false);
 }
 
-static s7_pointer g_is_equal(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args);
-
 s7_pointer s7i_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
   #define H_make_hash_table "(s7-make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
@@ -40174,19 +40171,11 @@ static void init_equals(void)
 bool s7_is_equal(s7_scheme *sc, s7_pointer x, s7_pointer y) {return((*(equals[type(x)]))(sc, x, y, NULL));}
 bool s7_is_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y) {return((*(equivalents[type(x)]))(sc, x, y, NULL));}
 
-static s7_pointer g_is_equal(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_equal "(equal? obj1 obj2) returns #t if obj1 is equal to obj2"
-  #define Q_is_equal sc->pcl_bt
-  return(make_boolean(sc, is_equal_1(sc, car(args), cadr(args), NULL)));
-}
-
-static s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_equivalent "(equivalent? obj1 obj2) returns #t if obj1 is close enough to obj2."
-  #define Q_is_equivalent sc->pcl_bt
-  return(make_boolean(sc, is_equivalent_1(sc, car(args), cadr(args), NULL)));
-}
+/* g_is_equal and g_is_equivalent are now in s7_scheme_predicate.c */
+#define H_is_equal "(equal? obj1 obj2) returns #t if obj1 is equal to obj2"
+#define Q_is_equal sc->pcl_bt
+#define H_is_equivalent "(equivalent? obj1 obj2) returns #t if obj1 is close enough to obj2."
+#define Q_is_equivalent sc->pcl_bt
 
 static s7_pointer is_equal_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b)      {return((is_equal_1(sc, a, b, NULL)) ? sc->T : sc->F);}
 static s7_pointer is_equivalent_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b) {return((is_equivalent_1(sc, a, b, NULL)) ? sc->T : sc->F);}

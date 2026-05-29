@@ -303,3 +303,17 @@ s7_pointer g_is_eqv(s7_scheme *sc, s7_pointer args)
 {
   return(s7_make_boolean(sc, s7_is_eqv(sc, s7_car(args), s7_cadr(args))));
 }
+
+s7_pointer g_is_equal(s7_scheme *sc, s7_pointer args)
+{
+  #define H_is_equal "(equal? obj1 obj2) returns #t if obj1 is equal to obj2"
+  #define Q_is_equal sc->pcl_bt
+  return(s7_make_boolean(sc, s7_is_equal(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args)
+{
+  #define H_is_equivalent "(equivalent? obj1 obj2) returns #t if obj1 is close enough to obj2."
+  #define Q_is_equivalent sc->pcl_bt
+  return(s7_make_boolean(sc, s7_is_equivalent(sc, s7_car(args), s7_cadr(args))));
+}
