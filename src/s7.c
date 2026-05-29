@@ -6500,6 +6500,11 @@ static s7_pointer apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer
   return(s7_apply_function(sc, func, set_mlist_1(sc, obj))); /* plist here and below will probably not work (_pp case known bad) */
 }
 
+s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer method)
+{
+  return apply_boolean_method(sc, obj, method);
+}
+
 /* this is a macro mainly to simplify the Checker handling */
 #define check_boolean_method(Sc, Checker, Method, Args)	       \
   {							       \
