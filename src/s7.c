@@ -6650,12 +6650,9 @@ This is not the same as (not (defined? val)) which refers to whether a symbol ha
   check_boolean_method(sc, is_undefined, sc->is_undefined_symbol, args);
 }
 
-static s7_pointer g_is_unspecified(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_unspecified "(unspecified? val) returns #t if val is #<unspecified>"
-  #define Q_is_unspecified sc->pl_bt
-  check_boolean_method(sc, is_unspecified, sc->is_unspecified_symbol, args);
-}
+/* g_is_unspecified is now defined in s7_scheme_predicate.c */
+#define H_is_unspecified "(unspecified? val) returns #t if val is #<unspecified>"
+#define Q_is_unspecified sc->pl_bt
 
 
 /* -------------------------------- eof-object? -------------------------------- */
@@ -12004,10 +12001,7 @@ bool s7_is_keyword(s7_pointer obj) {return(is_symbol_and_keyword(obj));}
 #define H_is_keyword "(keyword? obj) returns #t if obj is a keyword, (keyword? :rest) -> #t"
 #define Q_is_keyword sc->pl_bt
 
-static s7_pointer g_is_keyword(s7_scheme *sc, s7_pointer args)
-{
-  check_boolean_method(sc, is_symbol_and_keyword, sc->is_keyword_symbol, args);
-}
+/* g_is_keyword is now defined in s7_scheme_predicate.c */
 
 
 /* -------------------------------- string->keyword -------------------------------- */
@@ -18753,19 +18747,13 @@ static s7_int denominator_i_7p(s7_scheme *sc, s7_pointer x)
 
 
 /* ---------------------------------------- number? bignum? complex? integer? byte? rational? real?  ---------------------------------------- */
-static s7_pointer g_is_number(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_number "(number? obj) returns #t if obj is a number"
-  #define Q_is_number sc->pl_bt
-  check_boolean_method(sc, is_number, sc->is_number_symbol, args);
-}
+/* g_is_number is now defined in s7_scheme_predicate.c */
+#define H_is_number "(number? obj) returns #t if obj is a number"
+#define Q_is_number sc->pl_bt
 
-static s7_pointer g_is_integer(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_integer "(integer? obj) returns #t if obj is an integer"
-  #define Q_is_integer sc->pl_bt
-  check_boolean_method(sc, s7_is_integer, sc->is_integer_symbol, args);
-}
+/* g_is_integer is now defined in s7_scheme_predicate.c */
+#define H_is_integer "(integer? obj) returns #t if obj is an integer"
+#define Q_is_integer sc->pl_bt
 
 static bool is_byte(s7_pointer x) {return((s7_is_integer(x)) && (s7_integer(x) >= 0) && (s7_integer(x) < 256));}
 static s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
@@ -18775,27 +18763,17 @@ static s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
   check_boolean_method(sc, is_byte, sc->is_byte_symbol, args);
 }
 
-static s7_pointer g_is_real(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_real "(real? obj) returns #t if obj is a real number"
-  #define Q_is_real sc->pl_bt
-  check_boolean_method(sc, is_real, sc->is_real_symbol, args);
-}
+/* g_is_real is now defined in s7_scheme_predicate.c */
+#define H_is_real "(real? obj) returns #t if obj is a real number"
+#define Q_is_real sc->pl_bt
 
-static s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_complex "(complex? obj) returns #t if obj is a number"
-  #define Q_is_complex sc->pl_bt
-  check_boolean_method(sc, is_number, sc->is_complex_symbol, args);
-}
+/* g_is_complex is now defined in s7_scheme_predicate.c */
+#define H_is_complex "(complex? obj) returns #t if obj is a number"
+#define Q_is_complex sc->pl_bt
 
-static s7_pointer g_is_rational(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_rational "(rational? obj) returns #t if obj is a rational number (either an integer or a ratio)"
-  #define Q_is_rational sc->pl_bt
-  check_boolean_method(sc, is_rational, sc->is_rational_symbol, args);
-  /* in the non-gmp case, (rational? 455702434782048082459/86885567283849955830) -> #f, not #t, and similarly for exact? etc */
-}
+/* g_is_rational is now defined in s7_scheme_predicate.c */
+#define H_is_rational "(rational? obj) returns #t if obj is a rational number (either an integer or a ratio)"
+#define Q_is_rational sc->pl_bt
 
 static s7_pointer g_is_float(s7_scheme *sc, s7_pointer args)
 {
@@ -19995,6 +19973,15 @@ s7_pointer s7i_string_geq_symbol(s7_scheme *sc) {return(sc->string_geq_symbol);}
 bool s7i_is_true(s7_scheme *sc, s7_pointer p) {return(is_true(sc, p));}
 s7_pointer s7i_is_string_symbol(s7_scheme *sc) {return(sc->is_string_symbol);}
 s7_pointer s7i_is_boolean_symbol(s7_scheme *sc) {return(sc->is_boolean_symbol);}
+s7_pointer s7i_is_unspecified_symbol(s7_scheme *sc) {return(sc->is_unspecified_symbol);}
+s7_pointer s7i_is_number_symbol(s7_scheme *sc) {return(sc->is_number_symbol);}
+s7_pointer s7i_is_integer_symbol(s7_scheme *sc) {return(sc->is_integer_symbol);}
+s7_pointer s7i_is_real_symbol(s7_scheme *sc) {return(sc->is_real_symbol);}
+s7_pointer s7i_is_complex_symbol(s7_scheme *sc) {return(sc->is_complex_symbol);}
+s7_pointer s7i_is_rational_symbol(s7_scheme *sc) {return(sc->is_rational_symbol);}
+s7_pointer s7i_is_keyword_symbol(s7_scheme *sc) {return(sc->is_keyword_symbol);}
+s7_pointer s7i_is_dilambda_symbol(s7_scheme *sc) {return(sc->is_dilambda_symbol);}
+s7_pointer s7i_is_sequence_symbol(s7_scheme *sc) {return(sc->is_sequence_symbol);}
 const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
@@ -37342,12 +37329,9 @@ s7_pointer s7_make_typed_function_with_environment(s7_scheme *sc, const char *na
 /* -------------------------------- procedure? -------------------------------- */
 bool s7_is_procedure(s7_pointer obj) {return(is_procedure(obj));}
 
-static s7_pointer g_is_procedure(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_procedure "(procedure? obj) returns #t if obj is a procedure"
-  #define Q_is_procedure sc->pl_bt
-  return(make_boolean(sc, is_procedure(car(args))));
-}
+/* g_is_procedure is now defined in s7_scheme_predicate.c */
+#define H_is_procedure "(procedure? obj) returns #t if obj is a procedure"
+#define Q_is_procedure sc->pl_bt
 
 #if !DISABLE_DEPRECATED
 s7_pointer s7_closure_body(s7_scheme *sc, s7_pointer clo) {return((has_closure_let(clo)) ? closure_body(clo) : sc->nil);}
@@ -38570,12 +38554,9 @@ bool s7_is_dilambda(s7_pointer func)
   return(false);
 }
 
-static s7_pointer g_is_dilambda(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_dilambda "(dilambda? obj) returns #t if obj is a procedure with setter."
-  #define Q_is_dilambda sc->pl_bt
-  check_boolean_method(sc, s7_is_dilambda, sc->is_dilambda_symbol, args);
-}
+/* g_is_dilambda is now defined in s7_scheme_predicate.c */
+#define H_is_dilambda "(dilambda? obj) returns #t if obj is a procedure with setter."
+#define Q_is_dilambda sc->pl_bt
 
 
 /* -------------------------------- dilambda -------------------------------- */
@@ -38814,12 +38795,9 @@ static int32_t arity_to_int(s7_scheme *sc, s7_pointer clo)
 
 
 /* -------------------------------- sequence? -------------------------------- */
-static s7_pointer g_is_sequence(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_sequence "(sequence? obj) returns #t if obj is a sequence (vector, string, pair, etc)"
-  #define Q_is_sequence sc->pl_bt
-  check_boolean_method(sc, is_simple_sequence, sc->is_sequence_symbol, args);
-}
+/* g_is_sequence is now defined in s7_scheme_predicate.c */
+#define H_is_sequence "(sequence? obj) returns #t if obj is a sequence (vector, string, pair, etc)"
+#define Q_is_sequence sc->pl_bt
 
 static bool is_sequence_b(s7_pointer seq) {return(is_simple_sequence(seq));}
 

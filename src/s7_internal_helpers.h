@@ -68,6 +68,15 @@ s7_pointer s7i_string_geq_symbol(s7_scheme *sc);
 bool s7i_is_true(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_is_string_symbol(s7_scheme *sc);
 s7_pointer s7i_is_boolean_symbol(s7_scheme *sc);
+s7_pointer s7i_is_unspecified_symbol(s7_scheme *sc);
+s7_pointer s7i_is_number_symbol(s7_scheme *sc);
+s7_pointer s7i_is_integer_symbol(s7_scheme *sc);
+s7_pointer s7i_is_real_symbol(s7_scheme *sc);
+s7_pointer s7i_is_complex_symbol(s7_scheme *sc);
+s7_pointer s7i_is_rational_symbol(s7_scheme *sc);
+s7_pointer s7i_is_keyword_symbol(s7_scheme *sc);
+s7_pointer s7i_is_dilambda_symbol(s7_scheme *sc);
+s7_pointer s7i_is_sequence_symbol(s7_scheme *sc);
 const uint8_t *s7i_uppers_ptr(void);
 
 /* write-related helpers */

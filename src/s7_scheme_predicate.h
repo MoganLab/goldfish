@@ -17,6 +17,16 @@ extern "C" {
 
 s7_pointer g_not(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_boolean(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_unspecified(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_number(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_integer(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_real(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_rational(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_keyword(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_procedure(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_dilambda(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_sequence(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }
