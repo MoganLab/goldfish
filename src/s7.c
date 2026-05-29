@@ -403,6 +403,7 @@
 #include "s7_scheme_complex.h"
 #include "s7_scheme_char.h"
 #include "s7_scheme_write.h"
+#include "s7_scheme_symbol.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
@@ -9124,6 +9125,15 @@ static s7_pointer g_is_syntax(s7_scheme *sc, s7_pointer args)
 }
 
 
+/* -------------------------------- symbol helpers -------------------------------- */
+bool s7i_is_gensym(s7_pointer p) {return(is_gensym(p));}
+s7_pointer s7i_symbol_name_cell(s7_pointer sym) {return(symbol_name_cell(sym));}
+s7_int s7i_symbol_name_length(s7_pointer sym) {return(symbol_name_length(sym));}
+s7_pointer s7i_make_symbol_with_length(s7_scheme *sc, const char *name, s7_int len) {return(make_symbol(sc, name, len));}
+s7_pointer s7i_initial_value(s7_pointer symbol) {return(initial_value(symbol));}
+void s7i_set_initial_value(s7_pointer symbol, s7_pointer value) {set_initial_value(symbol, value);}
+bool s7i_initial_value_is_defined(s7_scheme *sc, s7_pointer symbol) {return(initial_value_is_defined(sc, symbol));}
+
 /* -------------------------------- symbol? -------------------------------- */
 bool s7_is_symbol(s7_pointer p) {return(is_symbol(p));}
 
@@ -9165,54 +9175,15 @@ static s7_pointer make_string_with_length(s7_scheme *sc, const char *str, s7_int
   return(inline_make_string_with_length(sc, str, len)); /* packaged to avoid inlining everywhere */
 }
 
-static s7_pointer g_symbol_to_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_symbol_to_string "(symbol->string sym) returns the symbol sym converted to a string"
-  #define Q_symbol_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_symbol_symbol)
+/* g_symbol_to_string, g_symbol_to_string_uncopied, symbol_to_string_p_p, symbol_to_string_uncopied_p
+   migrated to s7_scheme_symbol.c */
+#define H_symbol_to_string "(symbol->string sym) returns the symbol sym converted to a string"
+#define Q_symbol_to_string s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_symbol_symbol)
 
-  const s7_pointer sym = car(args);
-  if (!is_symbol(sym))
-    return(sole_arg_method_or_bust(sc, sym, sc->symbol_to_string_symbol, args, sc->type_names[T_SYMBOL]));
-  /* s7_make_string uses strlen which stops at an embedded null */
-  if (symbol_name_length(sym) > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "symbol->string symbol name is too large: (> ~D ~D) (*s7* 'max-string-length)", 76),
-			 wrap_integer(sc, symbol_name_length(sym)), wrap_integer(sc, sc->max_string_length)));
-  return(inline_make_string_with_length(sc, symbol_name(sym), symbol_name_length(sym)));    /* return a copy */
-}
+#define H_string_to_symbol "(string->symbol str) returns the string str converted to a symbol"
+#define Q_string_to_symbol s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->is_string_symbol)
 
-static s7_pointer g_symbol_to_string_uncopied(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer sym = car(args);
-  if (!is_symbol(sym))
-    return(sole_arg_method_or_bust(sc, sym, sc->symbol_to_string_symbol, args, sc->type_names[T_SYMBOL]));
-  if (is_gensym(sym))
-    return(make_string_with_length(sc, symbol_name(sym), symbol_name_length(sym)));    /* return a copy of gensym name (which will be freed) */
-  return(symbol_name_cell(sym));
-}
-
-static s7_pointer symbol_to_string_p_p(s7_scheme *sc, s7_pointer sym)
-{
-  if (!is_symbol(sym))
-    return(sole_arg_method_or_bust(sc, sym, sc->symbol_to_string_symbol, set_plist_1(sc, sym), sc->type_names[T_SYMBOL]));
-  if (symbol_name_length(sym) > sc->max_string_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "symbol->string symbol name is too large: (> ~D ~D) (*s7* 'max-string-length)", 76),
-			 wrap_integer(sc, symbol_name_length(sym)), wrap_integer(sc, sc->max_string_length)));
-  return(inline_make_string_with_length(sc, symbol_name(sym), symbol_name_length(sym)));
-}
-
-static s7_pointer symbol_to_string_uncopied_p(s7_scheme *sc, s7_pointer sym)
-{
-  if (!is_symbol(sym))
-    return(sole_arg_method_or_bust(sc, sym, sc->symbol_to_string_symbol, set_plist_1(sc, sym), sc->type_names[T_SYMBOL]));
-  if (is_gensym(sym))
-    return(make_string_with_length(sc, symbol_name(sym), symbol_name_length(sym)));
-  return(symbol_name_cell(sym));
-}
-
-
-/* -------------------------------- string->symbol -------------------------------- */
+/* g_string_to_symbol_1 still needed by g_symbol in s7.c */
 static inline s7_pointer g_string_to_symbol_1(s7_scheme *sc, s7_pointer str, s7_pointer caller)
 {
   if (!is_string(str))
@@ -9221,15 +9192,6 @@ static inline s7_pointer g_string_to_symbol_1(s7_scheme *sc, s7_pointer str, s7_
     sole_arg_wrong_type_error_nr(sc, caller, str, wrap_string(sc, "a non-null string", 17));
   return(make_symbol(sc, string_value(str), string_length(str)));
 }
-
-static s7_pointer g_string_to_symbol(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_symbol "(string->symbol str) returns the string str converted to a symbol"
-  #define Q_string_to_symbol s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->is_string_symbol)
-  return(g_string_to_symbol_1(sc, car(args), sc->string_to_symbol_symbol));
-}
-
-static s7_pointer string_to_symbol_p_p(s7_scheme *sc, s7_pointer p) {return(g_string_to_symbol_1(sc, p, sc->string_to_symbol_symbol));}
 
 
 /* -------------------------------- symbol -------------------------------- */
@@ -9301,16 +9263,9 @@ static s7_pointer symbol_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
 }
 
 /* -------- symbol-initial-value -------- */
-static s7_pointer g_symbol_initial_value(s7_scheme *sc, s7_pointer args)
-{
-  #define H_symbol_initial_value "(symbol-initial-value sym) returns the initial binding of the symbol sym"
-  #define Q_symbol_initial_value s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
-
-  s7_pointer symbol = car(args);
-  if (!is_symbol(symbol)) /* or is_normal_symbol? now (symbol-initial-value :hi) -> #<undefined> */
-    return(sole_arg_method_or_bust(sc, symbol, sc->symbol_initial_value_symbol, set_plist_1(sc, symbol), sc->type_names[T_SYMBOL]));
-  return(initial_value(symbol));
-}
+/* g_symbol_initial_value migrated to s7_scheme_symbol.c */
+#define H_symbol_initial_value "(symbol-initial-value sym) returns the initial binding of the symbol sym"
+#define Q_symbol_initial_value s7_make_signature(sc, 2, sc->T, sc->is_symbol_symbol)
 
 static s7_pointer g_symbol_set_initial_value(s7_scheme *sc, s7_pointer args)
 {
@@ -12026,10 +11981,11 @@ s7_pointer s7_define_constant_with_documentation(s7_scheme *sc, const char *name
 /* -------------------------------- keyword? -------------------------------- */
 bool s7_is_keyword(s7_pointer obj) {return(is_symbol_and_keyword(obj));}
 
+#define H_is_keyword "(keyword? obj) returns #t if obj is a keyword, (keyword? :rest) -> #t"
+#define Q_is_keyword sc->pl_bt
+
 static s7_pointer g_is_keyword(s7_scheme *sc, s7_pointer args)
 {
-  #define H_is_keyword "(keyword? obj) returns #t if obj is a keyword, (keyword? :rest) -> #t"
-  #define Q_is_keyword sc->pl_bt
   check_boolean_method(sc, is_symbol_and_keyword, sc->is_keyword_symbol, args);
 }
 
@@ -12050,32 +12006,15 @@ s7_pointer s7_make_keyword(s7_scheme *sc, const char *key)
   }
 }
 
-static s7_pointer g_string_to_keyword(s7_scheme *sc, s7_pointer args)
-{
-  #define H_string_to_keyword "(string->keyword str) prepends ':' to str and defines that as a keyword"
-  #define Q_string_to_keyword s7_make_signature(sc, 2, sc->is_keyword_symbol, sc->is_string_symbol)
-
-  const s7_pointer str = car(args);
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_to_keyword_symbol, args, sc->type_names[T_STRING]));
-  if ((string_length(str) == 0) ||
-      (string_value(str)[0] == '\0'))
-    error_nr(sc, sc->out_of_range_symbol, set_elist_2(sc, wrap_string(sc, "string->keyword wants a non-null string: ~S", 43), str));
-  return(s7_make_keyword(sc, string_value(str)));
-}
+/* g_string_to_keyword migrated to s7_scheme_symbol.c */
+#define H_string_to_keyword "(string->keyword str) prepends ':' to str and defines that as a keyword"
+#define Q_string_to_keyword s7_make_signature(sc, 2, sc->is_keyword_symbol, sc->is_string_symbol)
 
 
 /* -------------------------------- keyword->symbol -------------------------------- */
-static s7_pointer g_keyword_to_symbol(s7_scheme *sc, s7_pointer args)
-{
-  #define H_keyword_to_symbol "(keyword->symbol key) returns a symbol with the same name as key but no prepended or appended colon"
-  #define Q_keyword_to_symbol s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->is_keyword_symbol)
-
-  s7_pointer sym = car(args);
-  if (!is_symbol_and_keyword(sym))
-    return(method_or_bust_p(sc, sym, sc->keyword_to_symbol_symbol, wrap_string(sc, "a keyword", 9)));
-  return(keyword_symbol(sym));
-}
+/* g_keyword_to_symbol migrated to s7_scheme_symbol.c */
+#define H_keyword_to_symbol "(keyword->symbol key) returns a symbol with the same name as key but no prepended or appended colon"
+#define Q_keyword_to_symbol s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->is_keyword_symbol)
 
 s7_pointer s7_keyword_to_symbol(s7_scheme *sc, s7_pointer key) {return(keyword_symbol(key));}
 
@@ -12083,15 +12022,9 @@ s7_pointer s7_keyword_to_symbol(s7_scheme *sc, s7_pointer key) {return(keyword_s
 /* -------------------------------- symbol->keyword -------------------------------- */
 #define symbol_to_keyword(Sc, Sym) s7_make_keyword(Sc, symbol_name(Sym))
 
-static s7_pointer g_symbol_to_keyword(s7_scheme *sc, s7_pointer args)
-{
-  #define H_symbol_to_keyword "(symbol->keyword sym) returns a keyword with the same name as sym, but with a colon prepended"
-  #define Q_symbol_to_keyword s7_make_signature(sc, 2, sc->is_keyword_symbol, sc->is_symbol_symbol)
-
-  if (!is_symbol(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->symbol_to_keyword_symbol, args, sc->type_names[T_SYMBOL]));
-  return(symbol_to_keyword(sc, car(args)));
-}
+/* g_symbol_to_keyword migrated to s7_scheme_symbol.c */
+#define H_symbol_to_keyword "(symbol->keyword sym) returns a keyword with the same name as sym, but with a colon prepended"
+#define Q_symbol_to_keyword s7_make_signature(sc, 2, sc->is_keyword_symbol, sc->is_symbol_symbol)
 
 
 /* -------------------------------- c-pointer? -------------------------------- */
