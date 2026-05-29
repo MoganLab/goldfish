@@ -210,3 +210,40 @@ s7_pointer g_is_let(s7_scheme *sc, s7_pointer args)
   if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
   return(s7i_apply_boolean_method(sc, p, s7i_is_let_symbol(sc)));
 }
+
+s7_pointer g_is_goto(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_is_goto(s7_car(args))));
+}
+
+s7_pointer g_is_constant(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_is_constant(sc, s7_car(args))));
+}
+
+s7_pointer g_is_c_object(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer obj = s7_car(args);
+  if (s7_is_c_object(obj)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, obj)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, obj, s7i_is_c_object_symbol(sc)));
+}
+
+s7_pointer g_help(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer obj = s7_car(args);
+  /* if_method_exists_return_value expansion */
+  if (s7i_has_active_methods(sc, obj))
+    {
+      s7_pointer func = s7i_find_method_with_let(sc, obj, s7i_help_symbol(sc));
+      if (func != s7_undefined(sc))
+        return(s7_apply_function(sc, func, args));
+    }
+  const char *doc = s7_help(sc, obj);
+  return((doc) ? s7_make_string(sc, doc) : s7_f(sc));
+}
+
+s7_pointer g_arity(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_arity(sc, s7_car(args)));
+}

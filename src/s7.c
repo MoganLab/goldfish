@@ -6698,12 +6698,9 @@ static inline bool is_constant_symbol(s7_scheme *sc, s7_pointer sym) /* inline: 
 
 #define is_constant(sc, p) ((type(p) != T_SYMBOL) || (is_constant_symbol(sc, p)))
 
-static s7_pointer g_is_constant(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_constant is now defined in s7_scheme_predicate.c */
   #define H_is_constant "(constant? obj) returns #t if obj either evaluates to itself, or is a symbol whose binding is constant"
   #define Q_is_constant sc->pl_bt
-  return(make_boolean(sc, is_constant(sc, car(args))));
-}
 
 static bool is_constant_b_7p(s7_scheme *sc, s7_pointer p) {return(is_constant(sc, p));}
 static s7_pointer is_constant_p_p(s7_scheme *sc, s7_pointer p) {return(make_boolean(sc, is_constant(sc, p)));}
@@ -12837,12 +12834,9 @@ static void call_with_exit(s7_scheme *sc)
     }
 }
 
-static s7_pointer g_is_goto(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_goto is now defined in s7_scheme_predicate.c */
   #define H_is_goto "(goto? obj) returns #t if obj is a call-with-exit exit function"
   #define Q_is_goto sc->pl_bt
-  return(make_boolean(sc, is_goto(car(args))));
-}
 
 static inline s7_pointer make_goto(s7_scheme *sc, s7_pointer name) /* inline for 73=1% in tgc */
 {
@@ -19961,6 +19955,10 @@ s7_pointer s7i_is_iterator_symbol(s7_scheme *sc) {return(sc->is_iterator_symbol)
 s7_pointer s7i_is_gensym_symbol(s7_scheme *sc) {return(sc->is_gensym_symbol);}
 s7_pointer s7i_is_syntax_symbol(s7_scheme *sc) {return(sc->is_syntax_symbol);}
 s7_pointer s7i_is_let_symbol(s7_scheme *sc) {return(sc->is_let_symbol);}
+bool s7i_is_goto(s7_pointer p) {return(is_goto(p));}
+bool s7i_is_constant(s7_scheme *sc, s7_pointer p) {return(is_constant(sc, p));}
+s7_pointer s7i_is_c_object_symbol(s7_scheme *sc) {return(sc->is_c_object_symbol);}
+s7_pointer s7i_help_symbol(s7_scheme *sc) {return(sc->help_symbol);}
 bool s7i_is_undefined(s7_pointer p) {return(is_undefined(p));}
 bool s7i_is_eof(s7_pointer p) {return(is_eof(p));}
 bool s7i_is_t_real(s7_pointer p) {return(is_t_real(p));}
@@ -37810,15 +37808,9 @@ const char *s7_help(s7_scheme *sc, s7_pointer obj)
   return(NULL);
 }
 
-static s7_pointer g_help(s7_scheme *sc, s7_pointer args)
-{
+/* g_help is now defined in s7_scheme_predicate.c */
   #define H_help "(help obj) returns obj's documentation"
   #define Q_help s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_string_symbol, sc->not_symbol), sc->T)
-  const char *doc;
-  if_method_exists_return_value(sc, car(args), sc->help_symbol, args);
-  doc = s7_help(sc, car(args));
-  return((doc) ? s7_make_string(sc, doc) : sc->F);
-}
 
 
 /* -------------------------------- signature -------------------------------- */
@@ -38178,15 +38170,9 @@ static bool op_dynamic_wind(s7_scheme *sc)
 /* -------------------------------- c-object? -------------------------------- */
 bool s7_is_c_object(s7_pointer p) {return(is_c_object(p));}
 
-static s7_pointer g_is_c_object(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_c_object is now defined in s7_scheme_predicate.c */
   #define H_is_c_object "(c-object? obj) returns #t is obj is a c-object."
   #define Q_is_c_object sc->pl_bt
-  s7_pointer obj = car(args);
-  if (is_c_object(obj)) return(sc->T);
-  if (!has_active_methods(sc, obj)) return(sc->F);
-  return(apply_boolean_method(sc, obj, sc->is_c_object_symbol));
-}
 
 static no_return void apply_error_nr(s7_scheme *sc, s7_pointer obj, s7_pointer args)
 {
@@ -38654,13 +38640,9 @@ s7_pointer s7_arity(s7_scheme *sc, s7_pointer obj)
   return(sc->F);
 }
 
-static s7_pointer g_arity(s7_scheme *sc, s7_pointer args) /* arity-uncopied could use sc->ulist */
-{
+/* g_arity is now defined in s7_scheme_predicate.c */
   #define H_arity "(arity obj) the min and max number of args that obj can be applied to.  Returns #f if the object is not applicable."
   #define Q_arity s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_pair_symbol, sc->not_symbol), sc->T)
-  /* if_method_exists_return_value(sc, p, sc->arity_symbol, args); */
-  return(s7_arity(sc, car(args)));
-}
 
 
 /* -------------------------------- aritable? -------------------------------- */

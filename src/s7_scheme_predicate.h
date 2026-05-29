@@ -41,6 +41,11 @@ s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_gensym(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_syntax(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_let(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_goto(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_constant(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_c_object(s7_scheme *sc, s7_pointer args);
+s7_pointer g_help(s7_scheme *sc, s7_pointer args);
+s7_pointer g_arity(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }
