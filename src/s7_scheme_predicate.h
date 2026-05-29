@@ -31,6 +31,13 @@ s7_pointer g_is_symbol(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_input_port(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_output_port(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_undefined(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_eof_object(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_float(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_random_state(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_continuation(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

@@ -81,6 +81,17 @@ s7_pointer s7i_is_symbol_symbol(s7_scheme *sc);
 s7_pointer s7i_is_input_port_symbol(s7_scheme *sc);
 s7_pointer s7i_is_output_port_symbol(s7_scheme *sc);
 s7_pointer s7i_is_macro_symbol(s7_scheme *sc);
+s7_pointer s7i_is_undefined_symbol(s7_scheme *sc);
+s7_pointer s7i_is_eof_object_symbol(s7_scheme *sc);
+s7_pointer s7i_is_byte_symbol(s7_scheme *sc);
+s7_pointer s7i_is_float_symbol(s7_scheme *sc);
+s7_pointer s7i_is_random_state_symbol(s7_scheme *sc);
+s7_pointer s7i_is_continuation_symbol(s7_scheme *sc);
+s7_pointer s7i_is_iterator_symbol(s7_scheme *sc);
+bool s7i_is_undefined(s7_pointer p);
+bool s7i_is_eof(s7_pointer p);
+bool s7i_is_t_real(s7_pointer p);
+bool s7i_is_continuation(s7_pointer p);
 const uint8_t *s7i_uppers_ptr(void);
 
 /* write-related helpers */

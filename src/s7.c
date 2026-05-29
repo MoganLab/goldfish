@@ -6642,13 +6642,10 @@ s7_pointer s7_unspecified(s7_scheme *sc)     {return(sc->unspecified);}
 
 bool s7_is_unspecified(s7_scheme *sc, s7_pointer val) {return(is_unspecified(val));}
 
-static s7_pointer g_is_undefined(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_undefined is now defined in s7_scheme_predicate.c */
   #define H_is_undefined "(undefined? val) returns #t if val is #<undefined> or some other #... value that s7 does not recognize; (undefined? #asdf): #t.\
 This is not the same as (not (defined? val)) which refers to whether a symbol has a binding: (undefined? 'asdf): #f, but (not (defined? 'asdf)): #t"
   #define Q_is_undefined sc->pl_bt
-  check_boolean_method(sc, is_undefined, sc->is_undefined_symbol, args);
-}
 
 /* g_is_unspecified is now defined in s7_scheme_predicate.c */
 #define H_is_unspecified "(unspecified? val) returns #t if val is #<unspecified>"
@@ -6660,12 +6657,9 @@ s7_pointer eof_object = NULL;          /* #<eof> is an entry in the chars array,
 
 s7_pointer s7_eof_object(s7_scheme *sc) {return(eof_object);}
 
-static s7_pointer g_is_eof_object(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_eof_object is now defined in s7_scheme_predicate.c */
   #define H_is_eof_object "(eof-object? val) returns #t if val is the end-of-file object, #<eof>.  It is the same as (eq? val #<eof>)"
   #define Q_is_eof_object sc->pl_bt
-  check_boolean_method(sc, is_eof, sc->is_eof_object_symbol, args);
-}
 
 static bool is_eof_object_b_p(s7_pointer p) {return(p == eof_object);}
 
@@ -12228,15 +12222,9 @@ static s7_pointer g_c_pointer_to_list(s7_scheme *sc, s7_pointer args)
 /* -------------------------------- continuations and gotos -------------------------------- */
 
 /* ----------------------- continuation? -------------------------------- */
-static s7_pointer g_is_continuation(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_continuation is now defined in s7_scheme_predicate.c */
   #define H_is_continuation "(continuation? obj) returns #t if obj is a continuation"
   #define Q_is_continuation sc->pl_bt
-  check_boolean_method(sc, is_continuation, sc->is_continuation_symbol, args);
-  /* is this the right thing?  It returns #f for call-with-exit ("goto") because
-   *   that form of continuation can't continue (via a jump back to its context).
-   */
-}
 
 static bool is_continuation_b_p(s7_pointer p) {return(is_continuation(p));}
 
@@ -18753,12 +18741,9 @@ static s7_int denominator_i_7p(s7_scheme *sc, s7_pointer x)
 #define Q_is_integer sc->pl_bt
 
 static bool is_byte(s7_pointer x) {return((s7_is_integer(x)) && (s7_integer(x) >= 0) && (s7_integer(x) < 256));}
-static s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_byte is now defined in s7_scheme_predicate.c */
   #define H_is_byte "(byte? obj) returns #t if obj is a byte (an integer between 0 and 255)"
   #define Q_is_byte sc->pl_bt
-  check_boolean_method(sc, is_byte, sc->is_byte_symbol, args);
-}
 
 /* g_is_real is now defined in s7_scheme_predicate.c */
 #define H_is_real "(real? obj) returns #t if obj is a real number"
@@ -18772,14 +18757,9 @@ static s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
 #define H_is_rational "(rational? obj) returns #t if obj is a rational number (either an integer or a ratio)"
 #define Q_is_rational sc->pl_bt
 
-static s7_pointer g_is_float(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_float is now defined in s7_scheme_predicate.c */
   #define H_is_float "(float? x) returns #t is x is real and not rational."
   #define Q_is_float sc->pl_bt
-  /* (float? (openlet (inlet 'x 0.0 'float? (lambda (obj) (and (real? (obj 'x)) (not (exact? (obj 'x)))))))) */
-  check_boolean_method(sc, is_t_real, sc->is_float_symbol, args);
-  /* return(make_boolean(sc, is_t_real(p))); */
-}
 
 static bool is_float_b(s7_pointer x) {return(is_t_real(x));}
 
@@ -18985,12 +18965,9 @@ static s7_pointer random_state_setter(s7_scheme *sc, s7_pointer r, s7_int loc, s
 
 
 /* -------------------------------- random-state? -------------------------------- */
-static s7_pointer g_is_random_state(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_random_state is now defined in s7_scheme_predicate.c */
   #define H_is_random_state "(random-state? obj) returns #t if obj is a random-state object (from random-state)."
   #define Q_is_random_state sc->pl_bt
-  check_boolean_method(sc, is_random_state, sc->is_random_state_symbol, args);
-}
 
 bool s7_is_random_state(s7_pointer r) {return(type(r) == T_RANDOM_STATE);}
 
@@ -19983,6 +19960,17 @@ s7_pointer s7i_is_symbol_symbol(s7_scheme *sc) {return(sc->is_symbol_symbol);}
 s7_pointer s7i_is_input_port_symbol(s7_scheme *sc) {return(sc->is_input_port_symbol);}
 s7_pointer s7i_is_output_port_symbol(s7_scheme *sc) {return(sc->is_output_port_symbol);}
 s7_pointer s7i_is_macro_symbol(s7_scheme *sc) {return(sc->is_macro_symbol);}
+s7_pointer s7i_is_undefined_symbol(s7_scheme *sc) {return(sc->is_undefined_symbol);}
+s7_pointer s7i_is_eof_object_symbol(s7_scheme *sc) {return(sc->is_eof_object_symbol);}
+s7_pointer s7i_is_byte_symbol(s7_scheme *sc) {return(sc->is_byte_symbol);}
+s7_pointer s7i_is_float_symbol(s7_scheme *sc) {return(sc->is_float_symbol);}
+s7_pointer s7i_is_random_state_symbol(s7_scheme *sc) {return(sc->is_random_state_symbol);}
+s7_pointer s7i_is_continuation_symbol(s7_scheme *sc) {return(sc->is_continuation_symbol);}
+s7_pointer s7i_is_iterator_symbol(s7_scheme *sc) {return(sc->is_iterator_symbol);}
+bool s7i_is_undefined(s7_pointer p) {return(is_undefined(p));}
+bool s7i_is_eof(s7_pointer p) {return(is_eof(p));}
+bool s7i_is_t_real(s7_pointer p) {return(is_t_real(p));}
+bool s7i_is_continuation(s7_pointer p) {return(is_continuation(p));}
 const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
@@ -23733,16 +23721,9 @@ static s7_pointer titr_pos(s7_scheme *sc, s7_pointer iter, const char *func, int
 
 
 /* -------------------------------- iterator? -------------------------------- */
-static s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_iterator is now defined in s7_scheme_predicate.c */
   #define H_is_iterator "(iterator? obj) returns #t if obj is an iterator."
   #define Q_is_iterator sc->pl_bt
-
-  s7_pointer iter = car(args);
-  if (is_iterator(iter)) return(sc->T);
-  /* closure itself is not an iterator: (let ((c1 (let ((+iterator+ #t) (a 0)) (lambda () (set! a (+ a 1)))))) (iterate c1)): error (a function not an iterator) */
-  check_boolean_method(sc, is_iterator, sc->is_iterator_symbol, args);
-}
 
 bool s7_is_iterator(s7_pointer obj) {return(is_iterator(obj));}
 

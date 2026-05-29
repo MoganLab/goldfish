@@ -130,3 +130,59 @@ s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args)
   if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
   return(s7i_apply_boolean_method(sc, p, s7i_is_macro_symbol(sc)));
 }
+
+s7_pointer g_is_undefined(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7i_is_undefined(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_undefined_symbol(sc)));
+}
+
+s7_pointer g_is_eof_object(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7i_is_eof(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_eof_object_symbol(sc)));
+}
+
+s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_integer(p) && s7_integer(p) >= 0 && s7_integer(p) < 256) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_byte_symbol(sc)));
+}
+
+s7_pointer g_is_float(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7i_is_t_real(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_float_symbol(sc)));
+}
+
+s7_pointer g_is_random_state(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_random_state(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_random_state_symbol(sc)));
+}
+
+s7_pointer g_is_continuation(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7i_is_continuation(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_continuation_symbol(sc)));
+}
+
+s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_iterator(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_iterator_symbol(sc)));
+}
