@@ -317,3 +317,18 @@ s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args)
   #define Q_is_equivalent sc->pcl_bt
   return(s7_make_boolean(sc, s7_is_equivalent(sc, s7_car(args), s7_cadr(args))));
 }
+
+s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_rootlet(sc));
+}
+
+s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer port = s7_car(args);
+  if (s7_is_input_port(sc, port) || s7_is_output_port(sc, port))
+    return(s7_make_boolean(sc, s7i_port_is_closed(port)));
+  if ((port == s7_current_output_port(sc)) && (port == s7_f(sc)))
+    return(s7_f(sc));
+  return(s7i_method_or_bust_p(sc, port, "port-closed?", "a port"));
+}

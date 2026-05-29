@@ -10979,12 +10979,9 @@ static s7_pointer let_copy(s7_scheme *sc, s7_pointer let)
 
 
 /* -------------------------------- rootlet -------------------------------- */
-static s7_pointer g_rootlet(s7_scheme *sc, s7_pointer unused)
-{
+/* g_rootlet is now defined in s7_scheme_predicate.c */
   #define H_rootlet "(rootlet) returns the current top-level definitions (symbol bindings)."
   #define Q_rootlet s7_make_signature(sc, 1, sc->is_let_symbol)
-  return(sc->rootlet);
-}
 
 s7_pointer s7_rootlet(s7_scheme *sc) {return(sc->rootlet);}
 
@@ -20182,18 +20179,10 @@ static s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
 
 
 /* -------------------------------- port-closed? -------------------------------- */
-static s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_port_closed is now defined in s7_scheme_predicate.c */
   #define H_is_port_closed "(port-closed? p) returns #t if the port p is closed."
   #define Q_is_port_closed s7_make_signature(sc, 2, sc->is_boolean_symbol, \
                               s7_make_signature(sc, 3, sc->is_input_port_symbol, sc->is_output_port_symbol, sc->not_symbol))
-  s7_pointer port = car(args);
-  if ((is_input_port(port)) || (is_output_port(port)))
-    return(make_boolean(sc, port_is_closed(port)));
-  if ((port == current_output_port(sc)) && (port == sc->F))
-    return(sc->F);
-  return(method_or_bust_p(sc, port, sc->is_port_closed_symbol, wrap_string(sc, "a port", 6)));
-}
 
 static bool is_port_closed_b_7p(s7_scheme *sc, s7_pointer port)
 {
