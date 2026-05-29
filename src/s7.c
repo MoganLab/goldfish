@@ -20458,14 +20458,9 @@ static bool is_output_port_b(s7_pointer p)          {return(is_output_port(p));}
 
 
 /* -------------------------------- current-input-port -------------------------------- */
+#define H_current_input_port "(current-input-port) returns the current input port"
+#define Q_current_input_port s7_make_signature(sc, 1, sc->is_input_port_symbol)
 s7_pointer s7_current_input_port(s7_scheme *sc) {return(current_input_port(sc));}
-
-static s7_pointer g_current_input_port(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_current_input_port "(current-input-port) returns the current input port"
-  #define Q_current_input_port s7_make_signature(sc, 1, sc->is_input_port_symbol)
-  return(current_input_port(sc));
-}
 
 static s7_pointer g_set_current_input_port(s7_scheme *sc, s7_pointer args)
 {
@@ -20493,6 +20488,8 @@ s7_pointer s7_set_current_input_port(s7_scheme *sc, s7_pointer port)
 
 
 /* -------------------------------- current-output-port -------------------------------- */
+#define H_current_output_port "(current-output-port) returns the current output port"
+#define Q_current_output_port s7_make_signature(sc, 1, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
 s7_pointer s7_current_output_port(s7_scheme *sc) {return(current_output_port(sc));}
 
 s7_pointer s7_set_current_output_port(s7_scheme *sc, s7_pointer port)
@@ -20502,12 +20499,6 @@ s7_pointer s7_set_current_output_port(s7_scheme *sc, s7_pointer port)
   return(old_port);
 }
 
-static s7_pointer g_current_output_port(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_current_output_port "(current-output-port) returns the current output port"
-  #define Q_current_output_port s7_make_signature(sc, 1, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  return(current_output_port(sc));
-}
 
 static s7_pointer g_set_current_output_port(s7_scheme *sc, s7_pointer args)
 {
@@ -20530,6 +20521,8 @@ static s7_pointer g_set_current_output_port(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- current-error-port -------------------------------- */
+#define H_current_error_port "(current-error-port) returns the current error port"
+#define Q_current_error_port s7_make_signature(sc, 1, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
 s7_pointer s7_current_error_port(s7_scheme *sc) {return(current_error_port(sc));}
 
 s7_pointer s7_set_current_error_port(s7_scheme *sc, s7_pointer port)
@@ -20537,13 +20530,6 @@ s7_pointer s7_set_current_error_port(s7_scheme *sc, s7_pointer port)
   s7_pointer old_port = current_error_port(sc);
   set_current_error_port(sc, port);
   return(old_port);
-}
-
-static s7_pointer g_current_error_port(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_current_error_port "(current-error-port) returns the current error port"
-  #define Q_current_error_port s7_make_signature(sc, 1, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  return(current_error_port(sc));
 }
 
 static s7_pointer g_set_current_error_port(s7_scheme *sc, s7_pointer args)
@@ -21839,12 +21825,8 @@ s7_pointer s7_open_output_string(s7_scheme *sc)
   return(port);
 }
 
-static s7_pointer g_open_output_string(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_open_output_string "(open-output-string) opens an output string port"
-  #define Q_open_output_string s7_make_signature(sc, 1, sc->is_output_port_symbol)
-  return(s7_open_output_string(sc));
-}
+#define H_open_output_string "(open-output-string) opens an output string port"
+#define Q_open_output_string s7_make_signature(sc, 1, sc->is_output_port_symbol)
 
 
 /* -------------------------------- get-output-string -------------------------------- */
