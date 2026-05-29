@@ -9156,6 +9156,26 @@ static s7_pointer nil_string; /* permanent "" */
 
 s7_pointer s7i_nil_string(void) {return(nil_string);}
 
+s7_pointer s7i_set_plist_2(s7_scheme *sc, s7_pointer x1, s7_pointer x2) {return(set_plist_2(sc, x1, x2));}
+s7_pointer s7i_set_ulist_1(s7_scheme *sc, s7_pointer x1, s7_pointer x2) {return(set_ulist_1(sc, x1, x2));}
+
+void s7i_string_append_length_error(s7_scheme *sc, s7_pointer caller, s7_int len)
+{
+  error_nr(sc, sc->out_of_range_symbol,
+           set_elist_4(sc, wrap_string(sc, "~S new string length, ~D, is larger than (*s7* 'max-string-length): ~D", 70),
+                       caller, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
+}
+
+bool s7i_is_string_append_or_symbol_caller(s7_scheme *sc, s7_pointer caller)
+{
+  return((caller == sc->string_append_symbol) || (caller == sc->symbol_symbol));
+}
+
+void s7i_set_string_value(s7_pointer str, const char *val) {string_value(str) = (char *)val;}
+char *s7i_string_value_ptr(s7_pointer str) {return(string_value(str));}
+
+/* string comparison bridge functions (defined after scheme_strcmp etc.) */
+
 static Inline s7_pointer inline_make_string_with_length(s7_scheme *sc, const char *str, s7_int len)
 {
   s7_pointer new_string;
@@ -19784,147 +19804,12 @@ s7_int s7i_sequence_length(s7_scheme *sc, s7_pointer seq)
 
 static s7_pointer s7_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 
-static void string_append_2(s7_scheme *sc, s7_pointer newstr, s7_pointer args, const s7_pointer stop_arg, s7_pointer caller)
-{
-  s7_int len;
-  char *pos = string_value(newstr);
-  for (s7_pointer strs = args; strs != stop_arg; strs = cdr(strs))
-    {
-      s7_pointer str = car(strs);
-      if (is_string(str))
-	{
-	  len = string_length(str);
-	  if (len > 0)
-	    {
-	      memcpy(pos, string_value(str), len);
-	      pos += len;
-	    }}
-      else
-	if (!sequence_is_empty(sc, str))
-	  {
-	    char *old_str = string_value(newstr);
-	    string_value(newstr) = pos;
-	    len = sequence_length(sc, str);
-	    s7_copy_1(sc, caller, set_plist_2(sc, str, newstr));
-	    string_value(newstr) = old_str;
-	    pos += len;
-	  }}
-}
+/* string_append_2, s7i_string_append_1, string_append_1, string_append_p_pp, g_string_append_2
+   migrated to s7_liii_string.c */
 
-s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
-{
-  #define H_string_append "(string-append str1 ...) appends all its string arguments into one string"
-  #define Q_string_append sc->pcl_s
-
-  s7_int len = 0;
-  s7_pointer newstr;
-  bool just_strings = true;
-
-  if (is_null(args))
-    return(nil_string);
-
-  gc_protect_via_stack(sc, args);
-  /* get length for new string */
-  for (s7_pointer strs = args; is_pair(strs); strs = cdr(strs))
-    {
-      const s7_pointer str = car(strs);
-      if (is_string(str))
-	len += string_length(str);
-      else
-	{
-	  s7_int newlen;
-	  if (!is_sequence(str))
-	    {
-	      unstack_gc_protect(sc);
-	      wrong_type_error_nr(sc, caller, position_of(strs, args), str, sc->type_names[T_STRING]);
-	    }
-	  if (has_active_methods(sc, str)) /* look for string-append and if found, cobble up a plausible intermediate call */
-	    {
-	      const s7_pointer func = find_method_with_let(sc, str, caller);
-	      if (func != sc->undefined)
-		{
-		  if (len == 0)
-		    {
-		      unstack_gc_protect(sc);
-		      return(s7_apply_function(sc, func, strs)); /* not args (string-append "" "" ...) */
-		    }
-		  newstr = make_empty_string(sc, len, '\0');
-		  string_append_2(sc, newstr, args, strs, caller);
-		  unstack_gc_protect(sc);
-		  return(s7_apply_function(sc, func, set_ulist_1(sc, newstr, strs)));
-		}}
-	  if ((caller == sc->string_append_symbol) || (caller == sc->symbol_symbol))
-	    {
-	      unstack_gc_protect(sc);
-	      wrong_type_error_nr(sc, caller, position_of(strs, args), str, sc->type_names[T_STRING]);
-	    }
-	  newlen = sequence_length(sc, str);
-	  if (newlen < 0)
-	    {
-	      unstack_gc_protect(sc);
-	      wrong_type_error_nr(sc, caller, position_of(strs, args), str, sc->type_names[T_STRING]);
-	    }
-	  just_strings = false;
-	  len += newlen;
-	}}
-  if (len == 0)
-    {
-      unstack_gc_protect(sc);
-      return(nil_string);
-    }
-  if (len > sc->max_string_length)
-    {
-      unstack_gc_protect(sc);
-      error_nr(sc, sc->out_of_range_symbol,
-	       set_elist_4(sc, wrap_string(sc, "~S new string length, ~D, is larger than (*s7* 'max-string-length): ~D", 70),
-			   caller, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
-    }
-  newstr = inline_make_empty_string(sc, len, '\0');
-  if (just_strings)
-    {
-      s7_pointer strs = args;
-      for (char *pos = string_value(newstr); is_pair(strs); strs = cdr(strs))
-	{
-	  len = string_length(car(strs));
-	  if (len > 0)
-	    {
-	      memcpy(pos, string_value(car(strs)), len);
-	      pos += len;
-	    }}}
-  else string_append_2(sc, newstr, args, sc->nil, caller);
-  unstack_gc_protect(sc);
-  return(newstr);
-}
-
+#define H_string_append "(string-append str1 ...) appends all its string arguments into one string"
+#define Q_string_append sc->pcl_s
 /* g_string_append is now defined in s7_liii_string.c */
-
-static inline s7_pointer string_append_1(s7_scheme *sc, s7_pointer s1, s7_pointer s2)
-{
-  if ((is_string(s1)) && (is_string(s2)))
-    {
-      s7_int len;
-      const s7_int pos = string_length(s1);
-      s7_pointer newstr;
-      if (pos == 0) return(make_string_with_length(sc, string_value(s2), string_length(s2)));
-      len = pos + string_length(s2);
-      if (len == pos) return(make_string_with_length(sc, string_value(s1), string_length(s1)));
-      if (len > sc->max_string_length)
-	error_nr(sc, sc->out_of_range_symbol,
-		 set_elist_4(sc, wrap_string(sc, "~S new string length, ~D, is larger than (*s7* 'max-string-length): ~D", 70),
-			     sc->string_append_symbol, wrap_integer(sc, len), wrap_integer(sc, sc->max_string_length)));
-      begin_temp(sc->x, s2); /* or temp6 if this collides */
-      newstr = make_empty_string(sc, len, '\0'); /* len+1 0-terminated */
-      memcpy(string_value(newstr), string_value(s1), pos);
-      memcpy((char *)(string_value(newstr) + pos), string_value(s2), string_length(s2));
-      end_temp(sc->x);
-      return(newstr);
-    }
-  return(s7i_string_append_1(sc, list_2(sc, s1, s2), sc->string_append_symbol));
-}
-
-static s7_pointer string_append_p_pp(s7_scheme *sc, s7_pointer s1, s7_pointer s2) {return(string_append_1(sc, s1, s2));}
-
-static s7_pointer g_string_append_2(s7_scheme *sc, s7_pointer args) {return(string_append_1(sc, car(args), cadr(args)));}
 
 static void check_for_substring_temp(s7_scheme *sc, s7_pointer expr);
 
@@ -20084,206 +19969,50 @@ static bool is_string_via_method(s7_scheme *sc, s7_pointer obj)
   return(false);
 }
 
-static s7_pointer g_string_cmp(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (scheme_strcmp(str, car(strs)) != val)
-	{
-	  for (str = cdr(strs); is_pair(str); str = cdr(str))
-	    if (!is_string_via_method(sc, car(str)))
-	      wrong_type_error_nr(sc, sym, position_of(str, args), car(str), sc->type_names[T_STRING]);
-	  return(sc->F);
-	}}
-  return(sc->T);
-}
-
-static s7_pointer g_string_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (scheme_strcmp(str, car(strs)) == val)
-	{
-	  for (str = cdr(strs); is_pair(str); str = cdr(str))
-	    if (!is_string_via_method(sc, car(str)))
-	      wrong_type_error_nr(sc, sym, position_of(str, args), car(str), sc->type_names[T_STRING]);
-	  return(sc->F);
-	}}
-  return(sc->T);
-}
-
 static bool scheme_strings_are_equal(s7_pointer x, s7_pointer y)
 {
   return((string_length(x) == string_length(y)) &&
 	 (strings_are_equal_with_length(string_value(x), string_value(y), string_length(x)))); /* unaligned */
 }
 
-static s7_pointer g_strings_are_equal(s7_scheme *sc, s7_pointer args)
+/* string comparison bridge functions */
+int32_t s7i_scheme_strcmp(s7_pointer s1, s7_pointer s2) {return(scheme_strcmp(s1, s2));}
+bool s7i_scheme_strings_are_equal(s7_pointer x, s7_pointer y) {return(scheme_strings_are_equal(x, y));}
+bool s7i_is_string_via_method(s7_scheme *sc, s7_pointer obj) {return(is_string_via_method(sc, obj));}
+
+s7_pointer s7i_method_or_bust_sym(s7_scheme *sc, s7_pointer obj, s7_pointer method_sym, s7_pointer args, s7_pointer typ, s7_int arg_pos)
 {
-  #define H_strings_are_equal "(string=? str ...) returns #t if all the string arguments are equal"
-  #define Q_strings_are_equal sc->pcl_bs
-
-  /* C-based check stops at null, but we can have embedded nulls.
-   *   (let ((s1 "1234") (s2 "1245")) (string-set! s1 1 #\null) (string-set! s2 1 #\null) (string=? s1 s2))
-   */
-  s7_pointer str = car(args);
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->string_eq_symbol, args, sc->type_names[T_STRING], 1));
-  for (s7_pointer arglist = cdr(args); is_pair(arglist); arglist = cdr(arglist))
-    {
-      s7_pointer p = car(arglist);
-      if (!is_string(p))
-	return(method_or_bust(sc, p, sc->string_eq_symbol, set_ulist_1(sc, str, arglist), sc->type_names[T_STRING], position_of(arglist, args)));
-      if (!scheme_strings_are_equal(p, str))
-	{
-	  for (str = cdr(arglist); is_pair(str); str = cdr(str))
-	    if (!is_string_via_method(sc, car(str)))
-	      wrong_type_error_nr(sc, sc->string_eq_symbol, position_of(str, args), car(str), sc->type_names[T_STRING]);
-	  return(sc->F);
-	}}
-  return(sc->T);
+  return(method_or_bust(sc, obj, method_sym, args, typ, (int32_t)arg_pos));
 }
 
-static s7_pointer g_strings_are_less(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_less "(string<? str ...) returns #t if all the string arguments are increasing"
-  #define Q_strings_are_less sc->pcl_bs
-  return(g_string_cmp(sc, args, -1, sc->string_lt_symbol));
-}
+s7_pointer s7i_set_plist_1(s7_scheme *sc, s7_pointer x1) {return(set_plist_1(sc, x1));}
+s7_pointer s7i_string_type_name(s7_scheme *sc) {return(sc->type_names[T_STRING]);}
+s7_pointer s7i_string_eq_symbol(s7_scheme *sc) {return(sc->string_eq_symbol);}
+s7_pointer s7i_string_lt_symbol(s7_scheme *sc) {return(sc->string_lt_symbol);}
+s7_pointer s7i_string_gt_symbol(s7_scheme *sc) {return(sc->string_gt_symbol);}
+s7_pointer s7i_string_leq_symbol(s7_scheme *sc) {return(sc->string_leq_symbol);}
+s7_pointer s7i_string_geq_symbol(s7_scheme *sc) {return(sc->string_geq_symbol);}
+bool s7i_is_true(s7_scheme *sc, s7_pointer p) {return(is_true(sc, p));}
+s7_pointer s7i_is_string_symbol(s7_scheme *sc) {return(sc->is_string_symbol);}
+const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
 
-static s7_pointer g_strings_are_greater(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_greater "(string>? str ...) returns #t if all the string arguments are decreasing"
-  #define Q_strings_are_greater sc->pcl_bs
-  return(g_string_cmp(sc, args, 1, sc->string_gt_symbol));
-}
+/* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
+   g_strings_are_geq, g_strings_are_leq, g_string_equal_2, g_string_equal_2c, string_eq_p_pp,
+   g_string_less_2, string_lt_p_pp, g_string_greater_2, string_gt_p_pp,
+   string_lt_b_unchecked/7pp, string_leq_b_unchecked/7pp, string_gt_b_unchecked/7pp,
+   string_geq_b_unchecked/7pp, string_eq_b_unchecked/7pp
+   migrated to s7_liii_string.c */
 
-static s7_pointer g_strings_are_geq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_geq "(string>=? str ...) returns #t if all the string arguments are equal or decreasing"
-  #define Q_strings_are_geq sc->pcl_bs
-  return(g_string_cmp_not(sc, args, -1, sc->string_geq_symbol));
-}
-
-static s7_pointer g_strings_are_leq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_leq "(string<=? str ...) returns #t if all the string arguments are equal or increasing"
-  #define Q_strings_are_leq sc->pcl_bs
-  return(g_string_cmp_not(sc, args, 1, sc->string_leq_symbol));
-}
-
-static s7_pointer g_string_equal_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_string(car(args)))
-    return(method_or_bust(sc, car(args), sc->string_eq_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_string(cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->string_eq_symbol, args, sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strings_are_equal(car(args), cadr(args))));
-}
-
-static s7_pointer g_string_equal_2c(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_string(car(args)))
-    return(method_or_bust(sc, car(args), sc->string_eq_symbol, args, sc->type_names[T_STRING], 1));
-  return(make_boolean(sc, scheme_strings_are_equal(car(args), cadr(args))));
-}
-
-static s7_pointer string_eq_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  if (!is_string(str1))
-    return(method_or_bust(sc, str1, sc->string_eq_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 1));
-  if (!is_string(str2))
-    return(method_or_bust(sc, str2, sc->string_eq_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strings_are_equal(str1, str2)));
-}
-
-static s7_pointer g_string_less_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_string(car(args)))
-    return(method_or_bust(sc, car(args), sc->string_lt_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_string(cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->string_lt_symbol, args, sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strcmp(car(args), cadr(args)) == -1));
-}
-
-static s7_pointer string_lt_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  if (!is_string(str1))
-    return(method_or_bust(sc, str1, sc->string_lt_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 1));
-  if (!is_string(str2))
-    return(method_or_bust(sc, str2, sc->string_lt_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strcmp(str1, str2) == -1));
-}
-
-static s7_pointer g_string_greater_2(s7_scheme *sc, s7_pointer args)
-{
-  if (!is_string(car(args)))
-    return(method_or_bust(sc, car(args), sc->string_gt_symbol, args, sc->type_names[T_STRING], 1));
-  if (!is_string(cadr(args)))
-    return(method_or_bust(sc, cadr(args), sc->string_gt_symbol, args, sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strcmp(car(args), cadr(args)) == 1));
-}
-
-static s7_pointer string_gt_p_pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  if (!is_string(str1))
-    return(method_or_bust(sc, str1, sc->string_gt_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 1));
-  if (!is_string(str2))
-    return(method_or_bust(sc, str2, sc->string_gt_symbol, set_plist_2(sc, str1, str2), sc->type_names[T_STRING], 2));
-  return(make_boolean(sc, scheme_strcmp(str1, str2) == 1));
-}
-
-#define check_string2_args(Sc, Caller, Str1, Str2) \
-  do { \
-      if (!is_string(Str1)) return(method_or_bust(sc, Str1, Caller, set_plist_2(Sc, Str1, Str2), Sc->type_names[T_STRING], 1) != Sc->F); \
-      if (!is_string(Str2)) return(method_or_bust(sc, Str2, Caller, set_plist_2(Sc, Str1, Str2), Sc->type_names[T_STRING], 2) != Sc->F); \
-     } while (0)
-
-static bool string_lt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcmp(str1, str2) == -1);}
-static bool string_lt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_lt_symbol, str1, str2);
-  return(scheme_strcmp(str1, str2) == -1);
-}
-
-static bool string_leq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcmp(str1, str2) != 1);}
-static bool string_leq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_leq_symbol, str1, str2);
-  return(scheme_strcmp(str1, str2) != 1);
-}
-
-static bool string_gt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcmp(str1, str2) == 1);}
-static bool string_gt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_gt_symbol, str1, str2);
-  return(scheme_strcmp(str1, str2) == 1);
-}
-
-static bool string_geq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcmp(str1, str2) != -1);}
-static bool string_geq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_geq_symbol, str1, str2);
-  return(scheme_strcmp(str1, str2) != -1);
-}
-
-static bool string_eq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strings_are_equal(str1, str2));}
-static bool string_eq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_eq_symbol, str1, str2);
-  return(scheme_strings_are_equal(str1, str2));
-}
+#define H_strings_are_equal "(string=? str ...) returns #t if all the string arguments are equal"
+#define Q_strings_are_equal sc->pcl_bs
+#define H_strings_are_less "(string<? str ...) returns #t if all the string arguments are increasing"
+#define Q_strings_are_less sc->pcl_bs
+#define H_strings_are_greater "(string>? str ...) returns #t if all the string arguments are decreasing"
+#define Q_strings_are_greater sc->pcl_bs
+#define H_strings_are_geq "(string>=? str ...) returns #t if all the string arguments are equal or decreasing"
+#define Q_strings_are_geq sc->pcl_bs
+#define H_strings_are_leq "(string<=? str ...) returns #t if all the string arguments are equal or increasing"
+#define Q_strings_are_leq sc->pcl_bs
 
 static s7_pointer string_equal_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
