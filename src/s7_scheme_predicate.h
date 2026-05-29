@@ -38,6 +38,9 @@ s7_pointer g_is_float(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_random_state(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_continuation(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_gensym(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_syntax(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_let(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

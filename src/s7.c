@@ -9006,12 +9006,9 @@ s7_pointer s7_gensym(s7_scheme *sc, const char *prefix)
 
 static bool is_gensym_b_p(s7_pointer g) {return((is_symbol(g)) && (is_gensym(g)));}
 
-static s7_pointer g_is_gensym(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_gensym is now defined in s7_scheme_predicate.c */
   #define H_is_gensym "(gensym? sym) returns #t if sym is a gensym"
   #define Q_is_gensym sc->pl_bt
-  check_boolean_method(sc, is_gensym_b_p, sc->is_gensym_symbol, args);
-}
 
 static s7_pointer g_gensym(s7_scheme *sc, s7_pointer args)
 {
@@ -9108,12 +9105,9 @@ static s7_pointer g_gensym(s7_scheme *sc, s7_pointer args)
 /* -------------------------------- syntax? -------------------------------- */
 bool s7_is_syntax(s7_pointer p) {return(is_syntax(p));}
 
-static s7_pointer g_is_syntax(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_syntax is now defined in s7_scheme_predicate.c */
   #define H_is_syntax "(syntax? obj) returns #t if obj is a syntactic value (e.g. lambda)"
   #define Q_is_syntax sc->pl_bt
-  check_boolean_method(sc, is_syntax, sc->is_syntax_symbol, args);
-}
 
 
 /* -------------------------------- symbol helpers -------------------------------- */
@@ -9914,12 +9908,9 @@ static s7_pointer make_slot(s7_scheme *sc, s7_pointer variable, s7_pointer value
 /* -------------------------------- let? -------------------------------- */
 bool s7_is_let(s7_pointer let) {return(is_let(let));}
 
-static s7_pointer g_is_let(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_let is now defined in s7_scheme_predicate.c */
   #define H_is_let "(let? obj) returns #t if obj is a let."
   #define Q_is_let sc->pl_bt
-  check_boolean_method(sc, is_let, sc->is_let_symbol, args);
-}
 
 
 /* -------------------------------- funclet? -------------------------------- */
@@ -19967,6 +19958,9 @@ s7_pointer s7i_is_float_symbol(s7_scheme *sc) {return(sc->is_float_symbol);}
 s7_pointer s7i_is_random_state_symbol(s7_scheme *sc) {return(sc->is_random_state_symbol);}
 s7_pointer s7i_is_continuation_symbol(s7_scheme *sc) {return(sc->is_continuation_symbol);}
 s7_pointer s7i_is_iterator_symbol(s7_scheme *sc) {return(sc->is_iterator_symbol);}
+s7_pointer s7i_is_gensym_symbol(s7_scheme *sc) {return(sc->is_gensym_symbol);}
+s7_pointer s7i_is_syntax_symbol(s7_scheme *sc) {return(sc->is_syntax_symbol);}
+s7_pointer s7i_is_let_symbol(s7_scheme *sc) {return(sc->is_let_symbol);}
 bool s7i_is_undefined(s7_pointer p) {return(is_undefined(p));}
 bool s7i_is_eof(s7_pointer p) {return(is_eof(p));}
 bool s7i_is_t_real(s7_pointer p) {return(is_t_real(p));}
