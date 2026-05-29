@@ -26,6 +26,8 @@
 
 #ifdef TB_CONFIG_OS_WINDOWS
 #include <windows.h>
+#elif TB_CONFIG_OS_MACOSX
+#include <limits.h>
 #elif defined(__EMSCRIPTEN__)
 #include <limits.h>
 #else
