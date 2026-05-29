@@ -11754,12 +11754,9 @@ static bool tree_is_cyclic(s7_scheme *sc, s7_pointer tree)
   return(result);
 }
 
-static s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_is_cyclic "(tree-cyclic? tree) returns #t if the tree has a cycle."
-  #define Q_tree_is_cyclic sc->pl_bt
-  return(make_boolean(sc, tree_is_cyclic(sc, car(args))));
-}
+/* g_tree_is_cyclic migrated to s7_scheme_predicate.c */
+#define H_tree_is_cyclic "(tree-cyclic? tree) returns #t if the tree has a cycle."
+#define Q_tree_is_cyclic sc->pl_bt
 
 static inline s7_int tree_len(s7_scheme *sc, s7_pointer p);
 
@@ -19950,6 +19947,10 @@ s7_pointer s7i_rootlet(s7_scheme *sc) {return(sc->rootlet);}
 s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc) {return(sc->is_c_pointer_symbol);}
 s7_pointer s7i_is_openlet_symbol(s7_scheme *sc) {return(sc->is_openlet_symbol);}
 s7_pointer s7i_is_funclet_symbol(s7_scheme *sc) {return(sc->is_funclet_symbol);}
+
+/* bridge functions for g_tree_is_cyclic and g_type_of migration */
+bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p) {return(tree_is_cyclic(sc, p));}
+s7_pointer s7i_type_of(s7_scheme *sc, s7_pointer p) {return(sc->type_to_typers[type(p)]);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
    g_strings_are_geq, g_strings_are_leq, g_string_equal_2, g_string_equal_2c, string_eq_p_pp,
@@ -30470,8 +30471,7 @@ static bool closure_has_two_normal_args(s7_scheme *sc, s7_pointer eq_func) /* sc
 	 (is_null(cddr(closure_pars(eq_func)))));  /* arity == 2 */
 }
 
-static s7_pointer g_is_eq(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_is_eqv(s7_scheme *sc, s7_pointer args);
+/* g_is_eq and g_is_eqv migrated to s7_scheme_predicate.c */
 static s7_pfunc s7_bool_optimize(s7_scheme *sc, s7_pointer expr);
 
 /* a naming experiment, "q_" to match signature "Q_" */
@@ -39155,14 +39155,9 @@ static s7_pointer is_eq_p_pp(s7_scheme *sc, s7_pointer obj1, s7_pointer obj2)
   return(make_boolean(sc, ((obj1 == obj2) || ((is_unspecified(obj1)) && (is_unspecified(obj2))))));
 }
 
-static s7_pointer g_is_eq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_eq "(eq? obj1 obj2) returns #t if obj1 is eq to (the same object as) obj2"
-  #define Q_is_eq sc->pcl_bt
-  return(make_boolean(sc, ((car(args) == cadr(args)) ||
-			   ((is_unspecified(car(args))) && (is_unspecified(cadr(args)))))));
-  /* (eq? (apply apply apply values '(())) #<unspecified>) should return #t */
-}
+/* g_is_eq migrated to s7_scheme_predicate.c */
+#define H_is_eq "(eq? obj1 obj2) returns #t if obj1 is eq to (the same object as) obj2"
+#define Q_is_eq sc->pcl_bt
 
 bool s7_is_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
@@ -39174,12 +39169,9 @@ bool s7_is_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(false);
 }
 
-static s7_pointer g_is_eqv(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_eqv "(eqv? obj1 obj2) returns #t if obj1 is equivalent to obj2"
-  #define Q_is_eqv sc->pcl_bt
-  return(make_boolean(sc, s7_is_eqv(sc, car(args), cadr(args))));
-}
+/* g_is_eqv migrated to s7_scheme_predicate.c */
+#define H_is_eqv "(eqv? obj1 obj2) returns #t if obj1 is equivalent to obj2"
+#define Q_is_eqv sc->pcl_bt
 
 static s7_pointer is_eqv_p_pp(s7_scheme *sc, s7_pointer obj1, s7_pointer obj2) {return(make_boolean(sc, s7_is_eqv(sc, obj1, obj2)));}
 
@@ -45275,12 +45267,9 @@ static void init_typers(s7_scheme *sc)
 
 s7_pointer s7_type_of(s7_scheme *sc, s7_pointer arg) {return(sc->type_to_typers[type(arg)]);}
 
-static s7_pointer g_type_of(s7_scheme *sc, s7_pointer args)
-{
-  #define H_type_of "(type-of obj) returns a symbol describing obj's type: (type-of 1): 'integer?"
-  #define Q_type_of s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->not_symbol), sc->T)
-  return(sc->type_to_typers[type(car(args))]);
-}
+/* g_type_of migrated to s7_scheme_predicate.c */
+#define H_type_of "(type-of obj) returns a symbol describing obj's type: (type-of 1): 'integer?"
+#define Q_type_of s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_symbol_symbol, sc->not_symbol), sc->T)
 
 
 /* -------------------------------- exit emergency-exit -------------------------------- */

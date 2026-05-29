@@ -49,6 +49,10 @@ s7_pointer g_arity(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_c_pointer(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_openlet(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args);
+s7_pointer g_type_of(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_eq(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_eqv(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

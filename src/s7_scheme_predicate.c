@@ -280,3 +280,26 @@ s7_pointer g_is_funclet(s7_scheme *sc, s7_pointer args)
     return(s7_f(sc));
   return(s7i_apply_boolean_method(sc, let, s7i_is_funclet_symbol(sc)));
 }
+
+s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_tree_is_cyclic(sc, s7_car(args))));
+}
+
+s7_pointer g_type_of(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_type_of(sc, s7_car(args)));
+}
+
+s7_pointer g_is_eq(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer a = s7_car(args);
+  s7_pointer b = s7_cadr(args);
+  return(s7_make_boolean(sc, ((a == b) ||
+    ((s7_is_unspecified(sc, a)) && (s7_is_unspecified(sc, b))))));
+}
+
+s7_pointer g_is_eqv(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7_is_eqv(sc, s7_car(args), s7_cadr(args))));
+}
