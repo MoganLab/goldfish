@@ -18,6 +18,43 @@ s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
   }
 }
 
+/* -------------------------------- pair? -------------------------------- */
+
+s7_pointer g_is_pair(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_pair(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  {
+    s7_pointer sym = s7_make_symbol(sc, "pair?");
+    s7_pointer func = s7i_find_method_with_let(sc, p, sym);
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+/* -------------------------------- list? -------------------------------- */
+
+s7_pointer g_is_list(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_list(sc, p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  {
+    s7_pointer sym = s7_make_symbol(sc, "list?");
+    s7_pointer func = s7i_find_method_with_let(sc, p, sym);
+    if (func == s7_undefined(sc)) return(s7_f(sc));
+    return(s7_apply_function(sc, func, s7_cons(sc, p, s7_nil(sc))));
+  }
+}
+
+/* -------------------------------- proper-list? -------------------------------- */
+
+s7_pointer g_is_proper_list(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7_is_proper_list(sc, s7_car(args))));
+}
+
 s7_pointer g_car(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);

@@ -29604,12 +29604,9 @@ static s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- pair? -------------------------------- */
-static s7_pointer g_is_pair(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_pair "(pair? obj) returns #t if obj is a pair (a non-empty list)"
-  #define Q_is_pair sc->pl_bt
-  check_boolean_method(sc, is_pair, sc->is_pair_symbol, args);
-}
+#define H_is_pair "(pair? obj) returns #t if obj is a pair (a non-empty list)"
+#define Q_is_pair sc->pl_bt
+/* g_is_pair is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- list? -------------------------------- */
@@ -29617,13 +29614,9 @@ bool s7_is_list(s7_scheme *sc, s7_pointer p) {return(is_list(p));}
 
 static bool is_list_b(s7_pointer p) {return((is_pair(p)) || (type(p) == T_NIL));}
 
-static s7_pointer g_is_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_list "(list? obj) returns #t if obj is a pair or null"
-  #define Q_is_list sc->pl_bt
-  #define is_a_list(p) s7_is_list(sc, p)
-  check_boolean_method(sc, is_a_list, sc->is_list_symbol, args);
-}
+#define H_is_list "(list? obj) returns #t if obj is a pair or null"
+#define Q_is_list sc->pl_bt
+/* g_is_list is now defined in s7_liii_list.c */
 
 static s7_int proper_list_length(s7_pointer a)
 {
@@ -29699,12 +29692,9 @@ bool s7_is_proper_list(s7_scheme *sc, s7_pointer lst)
   return(true);
 }
 
-static s7_pointer g_is_proper_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_proper_list "(proper-list? x) returns #t is x is a list that is neither circular nor dotted."
-  #define Q_is_proper_list sc->pl_bt
-  return(make_boolean(sc, s7_is_proper_list(sc, car(args))));
-}
+#define H_is_proper_list "(proper-list? x) returns #t is x is a list that is neither circular nor dotted."
+#define Q_is_proper_list sc->pl_bt
+/* g_is_proper_list is now defined in s7_liii_list.c */
 
 static s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(make_boolean(sc, s7_is_proper_list(sc, arg)));}
 

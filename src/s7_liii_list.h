@@ -14,6 +14,9 @@ extern "C" {
 #endif
 
 s7_pointer g_is_null(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_pair(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_list(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_proper_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_car(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cdr(s7_scheme *sc, s7_pointer args);
 s7_pointer g_caar(s7_scheme *sc, s7_pointer args);
