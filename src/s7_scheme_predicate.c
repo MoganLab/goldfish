@@ -98,3 +98,35 @@ s7_pointer g_is_sequence(s7_scheme *sc, s7_pointer args)
   if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
   return(s7i_apply_boolean_method(sc, p, s7i_is_sequence_symbol(sc)));
 }
+
+s7_pointer g_is_symbol(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_symbol(p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_symbol_symbol(sc)));
+}
+
+s7_pointer g_is_input_port(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_input_port(sc, p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_input_port_symbol(sc)));
+}
+
+s7_pointer g_is_output_port(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_output_port(sc, p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_output_port_symbol(sc)));
+}
+
+s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = s7_car(args);
+  if (s7_is_macro(sc, p)) return(s7_t(sc));
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
+  return(s7i_apply_boolean_method(sc, p, s7i_is_macro_symbol(sc)));
+}

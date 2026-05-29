@@ -27,6 +27,10 @@ s7_pointer g_is_keyword(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_procedure(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_dilambda(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_sequence(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_symbol(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_input_port(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_output_port(s7_scheme *sc, s7_pointer args);
+s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

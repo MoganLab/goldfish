@@ -77,6 +77,10 @@ s7_pointer s7i_is_rational_symbol(s7_scheme *sc);
 s7_pointer s7i_is_keyword_symbol(s7_scheme *sc);
 s7_pointer s7i_is_dilambda_symbol(s7_scheme *sc);
 s7_pointer s7i_is_sequence_symbol(s7_scheme *sc);
+s7_pointer s7i_is_symbol_symbol(s7_scheme *sc);
+s7_pointer s7i_is_input_port_symbol(s7_scheme *sc);
+s7_pointer s7i_is_output_port_symbol(s7_scheme *sc);
+s7_pointer s7i_is_macro_symbol(s7_scheme *sc);
 const uint8_t *s7i_uppers_ptr(void);
 
 /* write-related helpers */

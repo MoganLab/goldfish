@@ -9134,12 +9134,9 @@ bool s7i_initial_value_is_defined(s7_scheme *sc, s7_pointer symbol) {return(init
 /* -------------------------------- symbol? -------------------------------- */
 bool s7_is_symbol(s7_pointer p) {return(is_symbol(p));}
 
-static s7_pointer g_is_symbol(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_symbol is now defined in s7_scheme_predicate.c */
   #define H_is_symbol "(symbol? obj) returns #t if obj is a symbol"
   #define Q_is_symbol sc->pl_bt
-  check_boolean_method(sc, is_symbol, sc->is_symbol_symbol, args);
-}
 
 const char *s7_symbol_name(s7_pointer sym) {return(symbol_name(sym));}
 
@@ -19982,6 +19979,10 @@ s7_pointer s7i_is_rational_symbol(s7_scheme *sc) {return(sc->is_rational_symbol)
 s7_pointer s7i_is_keyword_symbol(s7_scheme *sc) {return(sc->is_keyword_symbol);}
 s7_pointer s7i_is_dilambda_symbol(s7_scheme *sc) {return(sc->is_dilambda_symbol);}
 s7_pointer s7i_is_sequence_symbol(s7_scheme *sc) {return(sc->is_sequence_symbol);}
+s7_pointer s7i_is_symbol_symbol(s7_scheme *sc) {return(sc->is_symbol_symbol);}
+s7_pointer s7i_is_input_port_symbol(s7_scheme *sc) {return(sc->is_input_port_symbol);}
+s7_pointer s7i_is_output_port_symbol(s7_scheme *sc) {return(sc->is_output_port_symbol);}
+s7_pointer s7i_is_macro_symbol(s7_scheme *sc) {return(sc->is_macro_symbol);}
 const uint8_t *s7i_uppers_ptr(void) {return(uppers);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
@@ -20508,24 +20509,18 @@ static s7_pointer g_pair_filename(s7_scheme *sc, s7_pointer args)
 bool s7_is_input_port(s7_scheme *sc, s7_pointer p) {return(is_input_port(p));}
 static bool is_input_port_b(s7_pointer p)          {return(is_input_port(p));}
 
-static s7_pointer g_is_input_port(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_input_port is now defined in s7_scheme_predicate.c */
   #define H_is_input_port "(input-port? p) returns #t if p is an input port"
   #define Q_is_input_port sc->pl_bt
-  check_boolean_method(sc, is_input_port, sc->is_input_port_symbol, args);
-}
 
 
 /* -------------------------------- output-port? -------------------------------- */
 bool s7_is_output_port(s7_scheme *sc, s7_pointer p) {return(is_output_port(p));}
 static bool is_output_port_b(s7_pointer p)          {return(is_output_port(p));}
 
-static s7_pointer g_is_output_port(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_output_port is now defined in s7_scheme_predicate.c */
   #define H_is_output_port "(output-port? p) returns #t if p is an output port"
   #define Q_is_output_port sc->pl_bt
-  check_boolean_method(sc, is_output_port, sc->is_output_port_symbol, args);
-}
 
 
 /* -------------------------------- current-input-port -------------------------------- */
@@ -37726,12 +37721,9 @@ s7_pointer s7_define_expansion(s7_scheme *sc, const char *name, s7_function fnc,
 bool s7_is_macro(s7_scheme *sc, s7_pointer mac) {return(is_any_macro(mac));}
 static bool is_macro_b(s7_pointer mac) {return(is_any_macro(mac));}
 
-static s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args)
-{
+/* g_is_macro is now defined in s7_scheme_predicate.c */
   #define H_is_macro "(macro? arg) returns #t if 'arg' is a macro or a bacro"
   #define Q_is_macro sc->pl_bt
-  check_boolean_method(sc, is_any_macro, sc->is_macro_symbol, args);
-}
 
 static bool closure_is_aritable(s7_scheme *sc, s7_pointer x, s7_pointer x_args, int32_t args);
 
