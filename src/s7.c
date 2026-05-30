@@ -33005,7 +33005,7 @@ static s7_pointer complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_poin
   }
 }
 
-static s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args) {return(complex_vector_ref_p_pp(sc, car(args), cadr(args)));}
+s7_pointer s7i_complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(complex_vector_ref_p_pp(sc, vec, index));}
 
 static s7_pointer complex_vector_ref_p_pi(s7_scheme *sc, s7_pointer vec, s7_int index)
 {

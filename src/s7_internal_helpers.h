@@ -233,6 +233,9 @@ s7_pointer s7i_assv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
 s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
 s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
 
+/* bridge function for g_cv_ref_2 migration */
+s7_pointer s7i_complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
 

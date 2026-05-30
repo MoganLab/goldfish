@@ -324,6 +324,11 @@ s7_pointer g_vector_ref_2(s7_scheme *sc, s7_pointer args)
   return(s7i_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
 }
 
+s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_complex_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
 s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);
