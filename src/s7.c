@@ -17275,8 +17275,7 @@ static inline s7_pointer num_eq_xx(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(sc->F);
 }
 
-static s7_pointer g_num_eq_xi(s7_scheme *sc, s7_pointer args) {return(num_eq_xx(sc, car(args), cadr(args)));}
-static s7_pointer g_num_eq_ix(s7_scheme *sc, s7_pointer args) {return(num_eq_xx(sc, cadr(args), car(args)));}
+s7_pointer s7i_num_eq_xx(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(num_eq_xx(sc, x, y));}
 
 static s7_pointer num_eq_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
