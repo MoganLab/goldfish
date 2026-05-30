@@ -1371,3 +1371,11 @@ s7_pointer g_denominator(s7_scheme *sc, s7_pointer args)
     return(s7i_int_one(sc));
   return(s7i_method_or_bust_p(sc, x, "denominator", "an integer or a ratio"));
 }
+
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args)
+{
+  #define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
+also accepts a string or vector argument."
+  #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
+  return(s7i_reverse_p_p(sc, s7_car(args)));
+}

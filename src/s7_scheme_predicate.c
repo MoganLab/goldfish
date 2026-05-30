@@ -423,14 +423,6 @@ s7_pointer g_pair_line_number(s7_scheme *sc, s7_pointer args)
   return(s7i_pair_line_number_p_p(sc, s7_car(args)));
 }
 
-s7_pointer g_reverse(s7_scheme *sc, s7_pointer args)
-{
-  #define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
-also accepts a string or vector argument."
-  #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
-  return(s7i_reverse_p_p(sc, s7_car(args)));
-}
-
 s7_pointer g_port_line_number(s7_scheme *sc, s7_pointer args)
 {
   #define H_port_line_number "(port-line-number input-file-port) returns the current read line number of port"

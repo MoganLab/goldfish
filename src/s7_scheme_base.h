@@ -172,6 +172,9 @@ s7_pointer g_numerator(s7_scheme *sc, s7_pointer args);
 /* denominator function */
 s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
 
+/* reverse function */
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif
