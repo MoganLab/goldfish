@@ -15601,16 +15601,6 @@ static s7_pointer g_subtract(s7_scheme *sc, s7_pointer args)
   return(x);
 }
 
-static s7_pointer g_subtract_3(s7_scheme *sc, s7_pointer args) /* wrapped version gets no hits */
-{
-  s7_pointer x = car(args);
-  x = subtract_p_pp_wrapped(sc, x, cadr(args));
-  sc->error_argnum = 1;
-  x = subtract_p_pp(sc, x, caddr(args));
-  sc->error_argnum = 0;
-  return(x);
-}
-
 static s7_pointer minus_c1(s7_scheme *sc, s7_pointer x)
 {
   switch (type(x))
