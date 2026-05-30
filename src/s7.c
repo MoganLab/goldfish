@@ -17422,6 +17422,9 @@ static s7_pointer g_less_xf(s7_scheme *sc, s7_pointer args)
 }
 
 static inline s7_pointer lt_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(make_boolean(sc, lt_b_7pp(sc, x, y)));}
+
+s7_pointer s7i_lt_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(lt_p_pp(sc, x, y));}
+
 static bool lt_b_ii(s7_int i1, s7_int i2) {return(i1 < i2);}
 static bool lt_b_dd(s7_double i1, s7_double i2) {return(i1 < i2);}
 static s7_pointer lt_p_dd(s7_scheme *sc, s7_double x1, s7_double x2) {return(make_boolean(sc, x1 < x2));}
@@ -17435,7 +17438,6 @@ static bool lt_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(lt_out_x(sc, x, make_integer(sc, y)));
 }
 
-static s7_pointer g_less_2(s7_scheme *sc, s7_pointer args) {return(lt_p_pp(sc, car(args), cadr(args)));}
 static s7_pointer lt_p_pi(s7_scheme *sc, s7_pointer x, s7_int y) {return(make_boolean(sc, lt_b_pi(sc, x, y)));}
 
 static s7_pointer less_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)

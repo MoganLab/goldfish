@@ -1440,6 +1440,11 @@ s7_pointer g_num_eq_2(s7_scheme *sc, s7_pointer args)
   return(s7_make_boolean(sc, s7i_num_eq_b_7pp(sc, s7_car(args), s7_cadr(args))));
 }
 
+s7_pointer g_less_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_lt_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
 s7_pointer g_add_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_add_p_pp(sc, s7_car(args), s7_cadr(args)));
