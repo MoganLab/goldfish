@@ -119,6 +119,41 @@ s7_pointer s7i_c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr);
 bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_type_of(s7_scheme *sc, s7_pointer p);
 
+/* bridge functions for g_c_pointer_weak1, g_c_pointer_weak2 migration */
+s7_pointer s7i_c_pointer_weak1_p_p(s7_scheme *sc, s7_pointer cptr);
+s7_pointer s7i_c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr);
+
+/* bridge functions for g_tree_leaves migration */
+s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_cyclic_sequences migration */
+s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_object_to_let migration */
+s7_pointer s7i_object_to_let_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_pair_line_number migration */
+s7_pointer s7i_pair_line_number_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_reverse migration */
+s7_pointer s7i_reverse_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_port_line_number migration */
+s7_pointer s7i_port_line_number_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_tree_memq migration */
+bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
+
+/* bridge functions for g_tree_set_memq migration */
+bool s7i_tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+
+/* bridge functions for g_unlet_disabled migration */
+s7_pointer s7i_unlet_disabled(s7_scheme *sc);
+
+/* bridge functions for g_curlet migration */
+s7_pointer s7i_curlet(s7_scheme *sc);
+void s7i_capture_let_counter_inc(s7_scheme *sc);
+
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
 

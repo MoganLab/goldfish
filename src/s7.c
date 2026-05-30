@@ -10393,7 +10393,7 @@ static s7_pointer call_let_set_fallback(s7_scheme *sc, s7_pointer let, s7_pointe
   return(result);
 }
 
-static s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args) {return(sc->unlet_disabled);}
+/* g_unlet_disabled is now defined in s7_scheme_predicate.c */
 /* we need a self-id here for let_ref, but it needs to be a real s7_cell, not g_unlet_disabled itself, hence sc->unlet_disabled */
 
 static /* inline */ s7_pointer let_ref(s7_scheme *sc, s7_pointer let, s7_pointer symbol)
@@ -10806,13 +10806,9 @@ s7_pointer s7_curlet(s7_scheme *sc) /* see also fx_curlet */
   return(sc->curlet);
 }
 
-static s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_curlet "(curlet) returns the current definitions (symbol bindings)"
-  #define Q_curlet s7_make_signature(sc, 1, sc->is_let_symbol)
-  sc->capture_let_counter++;
-  return(sc->curlet);
-}
+/* g_curlet is now defined in s7_scheme_predicate.c */
+#define H_curlet "(curlet) returns the current definitions (symbol bindings)"
+#define Q_curlet s7_make_signature(sc, 1, sc->is_let_symbol)
 
 static void update_symbol_ids(s7_scheme *sc, s7_pointer let)
 {
@@ -11939,24 +11935,18 @@ static s7_pointer c_pointer_weak1_p_p(s7_scheme *sc, s7_pointer cptr)
   return((is_c_pointer(cptr)) ? c_pointer_weak1(cptr) : method_or_bust_lp(sc, cptr, sc->c_pointer_weak1_symbol, T_C_POINTER));
 }
 
-static s7_pointer g_c_pointer_weak1(s7_scheme *sc, s7_pointer args)
-{
-  #define H_c_pointer_weak1 "(c-pointer-weak1 obj) returns the c-pointer weak1 field"
-  #define Q_c_pointer_weak1 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
-  return(c_pointer_weak1_p_p(sc, car(args)));
-}
+/* g_c_pointer_weak1 is now defined in s7_scheme_predicate.c */
+#define H_c_pointer_weak1 "(c-pointer-weak1 obj) returns the c-pointer weak1 field"
+#define Q_c_pointer_weak1 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
 
 static s7_pointer c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr)
 {
   return((is_c_pointer(cptr)) ? c_pointer_weak2(cptr) : method_or_bust_lp(sc, cptr, sc->c_pointer_weak2_symbol, T_C_POINTER));
 }
 
-static s7_pointer g_c_pointer_weak2(s7_scheme *sc, s7_pointer args)
-{
-  #define H_c_pointer_weak2 "(c-pointer-weak2 obj) returns the c-pointer weak2 field"
-  #define Q_c_pointer_weak2 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
-  return(c_pointer_weak2_p_p(sc, car(args)));
-}
+/* g_c_pointer_weak2 is now defined in s7_scheme_predicate.c */
+#define H_c_pointer_weak2 "(c-pointer-weak2 obj) returns the c-pointer weak2 field"
+#define Q_c_pointer_weak2 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
 
 
 /* -------------------------------- c-pointer->list -------------------------------- */
@@ -19686,12 +19676,9 @@ static s7_pointer port_line_number_p_p(s7_scheme *sc, s7_pointer x)
   return(make_integer(sc, port_line_number(x)));
 }
 
-static s7_pointer g_port_line_number(s7_scheme *sc, s7_pointer args)
-{
-  #define H_port_line_number "(port-line-number input-file-port) returns the current read line number of port"
-  #define Q_port_line_number s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_input_port_symbol)
-  return(port_line_number_p_p(sc, (is_null(args)) ? current_input_port(sc) : car(args)));
-}
+/* g_port_line_number is now defined in s7_scheme_predicate.c */
+#define H_port_line_number "(port-line-number input-file-port) returns the current read line number of port"
+#define Q_port_line_number s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_input_port_symbol)
 
 s7_int s7_port_line_number(s7_scheme *sc, s7_pointer p)
 {
@@ -19764,12 +19751,9 @@ static s7_pointer pair_line_number_p_p(s7_scheme *sc, s7_pointer p)
   return((has_location(p)) ? make_integer(sc, pair_line_number(p)) : sc->F);
 }
 
-static s7_pointer g_pair_line_number(s7_scheme *sc, s7_pointer args)
-{
-  #define H_pair_line_number "(pair-line-number pair) returns the line number at which it read 'pair', or #f if no such number is available"
-  #define Q_pair_line_number s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), sc->is_pair_symbol)
-  return(pair_line_number_p_p(sc, car(args)));
-}
+/* g_pair_line_number is now defined in s7_scheme_predicate.c */
+#define H_pair_line_number "(pair-line-number pair) returns the line number at which it read 'pair', or #f if no such number is available"
+#define Q_pair_line_number s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), sc->is_pair_symbol)
 
 
 /* -------------------------------- pair-filename -------------------------------- */
@@ -23977,12 +23961,9 @@ static s7_pointer cyclic_sequences_p_p(s7_scheme *sc, s7_pointer obj)
   return(sc->nil);
 }
 
-static s7_pointer g_cyclic_sequences(s7_scheme *sc, s7_pointer args)
-{
-  #define H_cyclic_sequences "(cyclic-sequences obj) returns a list of elements that are cyclic."
-  #define Q_cyclic_sequences s7_make_signature(sc, 2, sc->is_proper_list_symbol, sc->T)
-  return(cyclic_sequences_p_p(sc, car(args)));
-}
+/* g_cyclic_sequences is now defined in s7_scheme_predicate.c */
+#define H_cyclic_sequences "(cyclic-sequences obj) returns a list of elements that are cyclic."
+#define Q_cyclic_sequences s7_make_signature(sc, 2, sc->is_proper_list_symbol, sc->T)
 
 
 /* -------------------------------- object->port (display format etc) -------------------------------- */
@@ -28263,10 +28244,7 @@ static s7_pointer g_format_f(s7_scheme *sc, s7_pointer args)  /* port == #f, the
   return(format_to_port_1(sc, sc->F, string_value(str), cddr(args), NULL, true, true, string_length(str), str));
 }
 
-static s7_pointer g_format_nr(s7_scheme *sc, s7_pointer args)  /* port == #f, in do body, args already evaluated */
-{
-  return(nil_string);
-}
+/* g_format_nr is now defined in s7_scheme_predicate.c */
 
 static s7_pointer g_format_just_control_string(s7_scheme *sc, s7_pointer args)
 {
@@ -28580,12 +28558,9 @@ static s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
   return(method_or_bust_p(sc, tree, sc->tree_leaves_symbol, a_list_string));
 }
 
-static s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
-  #define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
-  return(tree_leaves_p_p(sc, car(args)));
-}
+/* g_tree_leaves is now defined in s7_scheme_predicate.c */
+#define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
+#define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
 
 
 /* ---------------- tree-memq ---------------- */
@@ -28642,12 +28617,9 @@ static bool tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
   return(s7_tree_memq(sc, sym, tree));
 }
 
-static s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
-  #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
-  return(make_boolean(sc, tree_memq_b_7pp(sc, car(args), cadr(args))));
-}
+/* g_tree_memq is now defined in s7_scheme_predicate.c */
+#define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
+#define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
 
 static /* inline */ bool tree_including_quote_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)    /* sym need not be a symbol */
 {
@@ -28744,12 +28716,9 @@ static s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer 
   return(make_boolean(sc, tree_set_memq_b_7pp(sc, syms, tree)));
 }
 
-static s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
-  #define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
-  return(make_boolean(sc, tree_set_memq_b_7pp(sc, car(args), cadr(args))));
-}
+/* g_tree_set_memq is now defined in s7_scheme_predicate.c */
+#define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
+#define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
 
 static s7_pointer tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
 {
@@ -40642,13 +40611,10 @@ static s7_pointer reverse_p_p(s7_scheme *sc, s7_pointer obj)
   return(sc->nil);
 }
 
-static s7_pointer g_reverse(s7_scheme *sc, s7_pointer args)
-{
-  #define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
+/* g_reverse is now defined in s7_scheme_predicate.c */
+#define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
 also accepts a string or vector argument."
-  #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
-  return(reverse_p_p(sc, car(args)));
-}
+#define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
 
 static s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
 {
@@ -41894,12 +41860,24 @@ static s7_pointer object_to_let_p_p(s7_scheme *sc, s7_pointer obj)
   return(sc->F);
 }
 
-static s7_pointer g_object_to_let(s7_scheme *sc, s7_pointer args)
-{
-  #define H_object_to_let "(object->let obj) returns a let (namespace) describing obj."
-  #define Q_object_to_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->T)
-  return(object_to_let_p_p(sc, car(args)));
-}
+/* g_object_to_let is now defined in s7_scheme_predicate.c */
+#define H_object_to_let "(object->let obj) returns a let (namespace) describing obj."
+#define Q_object_to_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->T)
+
+/* bridge functions for s7_scheme_predicate.c migration (round 2) */
+s7_pointer s7i_c_pointer_weak1_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_weak1_p_p(sc, cptr));}
+s7_pointer s7i_c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_weak2_p_p(sc, cptr));}
+s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer p) {return(tree_leaves_p_p(sc, p));}
+s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p) {return(cyclic_sequences_p_p(sc, p));}
+s7_pointer s7i_object_to_let_p_p(s7_scheme *sc, s7_pointer p) {return(object_to_let_p_p(sc, p));}
+s7_pointer s7i_pair_line_number_p_p(s7_scheme *sc, s7_pointer p) {return(pair_line_number_p_p(sc, p));}
+s7_pointer s7i_reverse_p_p(s7_scheme *sc, s7_pointer p) {return(reverse_p_p(sc, p));}
+s7_pointer s7i_port_line_number_p_p(s7_scheme *sc, s7_pointer p) {return(port_line_number_p_p(sc, p));}
+bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree) {return(tree_memq_b_7pp(sc, sym, tree));}
+bool s7i_tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree) {return(tree_set_memq_b_7pp(sc, syms, tree));}
+s7_pointer s7i_unlet_disabled(s7_scheme *sc) {return(sc->unlet_disabled);}
+s7_pointer s7i_curlet(s7_scheme *sc) {return(sc->curlet);}
+void s7i_capture_let_counter_inc(s7_scheme *sc) {sc->capture_let_counter++;}
 
 
 /* ---------------- stacktrace ---------------- */

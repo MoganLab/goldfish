@@ -64,6 +64,19 @@ s7_pointer g_c_pointer_info(s7_scheme *sc, s7_pointer args);
 s7_pointer g_c_pointer_type(s7_scheme *sc, s7_pointer args);
 s7_pointer g_c_object_type(s7_scheme *sc, s7_pointer args);
 s7_pointer g_c_object_let(s7_scheme *sc, s7_pointer args);
+s7_pointer g_c_pointer_weak1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_c_pointer_weak2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args);
+s7_pointer g_cyclic_sequences(s7_scheme *sc, s7_pointer args);
+s7_pointer g_object_to_let(s7_scheme *sc, s7_pointer args);
+s7_pointer g_pair_line_number(s7_scheme *sc, s7_pointer args);
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args);
+s7_pointer g_port_line_number(s7_scheme *sc, s7_pointer args);
+s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args);
+s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args);
+s7_pointer g_format_nr(s7_scheme *sc, s7_pointer args);
+s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args);
+s7_pointer g_curlet(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

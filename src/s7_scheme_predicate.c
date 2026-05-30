@@ -400,3 +400,98 @@ s7_pointer g_c_object_let(s7_scheme *sc, s7_pointer args)
     return(s7i_sole_arg_method_or_bust(sc, cobj, "c-object-let", args, "a c-object"));
   return(s7_c_object_let(cobj));
 }
+
+/* ---- Pattern A: thin wrappers (delegate to one internal helper) ---- */
+
+s7_pointer g_c_pointer_weak1(s7_scheme *sc, s7_pointer args)
+{
+  #define H_c_pointer_weak1 "(c-pointer-weak1 obj) returns the c-pointer weak1 field"
+  #define Q_c_pointer_weak1 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
+  return(s7i_c_pointer_weak1_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_c_pointer_weak2(s7_scheme *sc, s7_pointer args)
+{
+  #define H_c_pointer_weak2 "(c-pointer-weak2 obj) returns the c-pointer weak2 field"
+  #define Q_c_pointer_weak2 s7_make_signature(sc, 2, sc->T, sc->is_c_pointer_symbol)
+  return(s7i_c_pointer_weak2_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args)
+{
+  #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
+  #define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
+  return(s7i_tree_leaves_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_cyclic_sequences(s7_scheme *sc, s7_pointer args)
+{
+  #define H_cyclic_sequences "(cyclic-sequences obj) returns a list of elements that are cyclic."
+  #define Q_cyclic_sequences s7_make_signature(sc, 2, sc->is_proper_list_symbol, sc->T)
+  return(s7i_cyclic_sequences_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_object_to_let(s7_scheme *sc, s7_pointer args)
+{
+  #define H_object_to_let "(object->let obj) returns a let (namespace) describing obj."
+  #define Q_object_to_let s7_make_signature(sc, 2, sc->is_let_symbol, sc->T)
+  return(s7i_object_to_let_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_pair_line_number(s7_scheme *sc, s7_pointer args)
+{
+  #define H_pair_line_number "(pair-line-number pair) returns the line number at which it read 'pair', or #f if no such number is available"
+  #define Q_pair_line_number s7_make_signature(sc, 2, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->not_symbol), sc->is_pair_symbol)
+  return(s7i_pair_line_number_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args)
+{
+  #define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
+also accepts a string or vector argument."
+  #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
+  return(s7i_reverse_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_port_line_number(s7_scheme *sc, s7_pointer args)
+{
+  #define H_port_line_number "(port-line-number input-file-port) returns the current read line number of port"
+  #define Q_port_line_number s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_input_port_symbol)
+  return(s7i_port_line_number_p_p(sc, (s7_is_null(sc, args)) ? s7_current_input_port(sc) : s7_car(args)));
+}
+
+/* ---- Pattern B: make_boolean wrappers ---- */
+
+s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args)
+{
+  #define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
+  #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
+  return(s7_make_boolean(sc, s7i_tree_memq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args)
+{
+  #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
+  #define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
+  return(s7_make_boolean(sc, s7i_tree_set_memq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+/* ---- Pattern C: struct accessors ---- */
+
+s7_pointer g_format_nr(s7_scheme *sc, s7_pointer args)  /* port == #f, in do body, args already evaluated */
+{
+  return(s7i_nil_string());
+}
+
+s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_unlet_disabled(sc));
+}
+
+s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
+{
+  #define H_curlet "(curlet) returns the current definitions (symbol bindings)"
+  #define Q_curlet s7_make_signature(sc, 1, sc->is_let_symbol)
+  s7i_capture_let_counter_inc(sc);
+  return(s7i_curlet(sc));
+}
