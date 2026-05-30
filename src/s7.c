@@ -33119,7 +33119,7 @@ static inline s7_pointer float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7
   }
 }
 
-static s7_pointer g_fv_ref_2(s7_scheme *sc, s7_pointer args) {return(float_vector_ref_p_pp(sc, car(args), cadr(args)));}
+s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(float_vector_ref_p_pp(sc, vec, index));}
 
 static s7_pointer g_fv_ref_3(s7_scheme *sc, s7_pointer args)
 {
@@ -33384,7 +33384,7 @@ static inline s7_pointer int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_p
   return(make_integer(sc, int_vector(vec, ind)));
 }
 
-static s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args) {return(int_vector_ref_p_pp(sc, car(args), cadr(args)));}
+s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(int_vector_ref_p_pp(sc, vec, index));}
 
 static s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
 {
