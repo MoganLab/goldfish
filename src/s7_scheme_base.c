@@ -1519,6 +1519,14 @@ s7_pointer g_subtract_3(s7_scheme *sc, s7_pointer args)
   return(s7i_subtract_p_pp(sc, x, s7_caddr(args)));
 }
 
+s7_pointer g_abort(s7_scheme *sc, s7_pointer args)
+{
+  (void)sc;
+  (void)args;
+  abort();
+  return(NULL);
+}
+
 s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_multiply_p_pp(sc, s7_car(args), s7_cadr(args)));

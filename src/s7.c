@@ -44581,11 +44581,6 @@ static s7_pointer g_exit(s7_scheme *sc, s7_pointer args)
 #endif
 }
 
-#if WITH_GCC
-static s7_pointer g_abort(s7_scheme *sc, s7_pointer args) {abort(); return(NULL);}
-#endif
-
-
 /* -------------------------------- optimizer stuff -------------------------------- */
 /* There is a problem with cache misses:  a bigger cache reduces one test from 24 seconds to 17 (cachegrind agrees).
  *   But how to optimize s7 for cache hits?  The culprits are eval and gc.  Looking at the numbers,
