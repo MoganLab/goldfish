@@ -578,3 +578,13 @@ s7_pointer g_append_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7_append(sc, s7_car(args), s7_cadr(args)));
 }
+
+s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_leq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_geq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}

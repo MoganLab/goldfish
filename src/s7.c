@@ -17603,7 +17603,10 @@ static bool leq_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
 }
 
 static s7_pointer leq_p_pi(s7_scheme *sc, s7_pointer x, s7_int y) {return(make_boolean(sc, leq_b_pi(sc, x, y)));}
-static s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args) {return(make_boolean(sc, leq_b_7pp(sc, car(args), cadr(args))));}
+
+/* bridge for g_leq_2 migration */
+bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(leq_b_7pp(sc, x, y));}
+
 static s7_pointer g_leq_ixx(s7_scheme *sc, s7_pointer args)
 {
   const s7_pointer nums = cdr(args);
@@ -17904,7 +17907,8 @@ static bool geq_b_dd(s7_double i1, s7_double i2) {return(i1 >= i2);}
 static s7_pointer geq_p_dd(s7_scheme *sc, s7_double x1, s7_double x2) {return(make_boolean(sc, x1 >= x2));}
 static s7_pointer geq_p_ii(s7_scheme *sc, s7_int x1, s7_int x2) {return(make_boolean(sc, x1 >= x2));}
 
-static s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args) {return(make_boolean(sc, geq_b_7pp(sc, car(args), cadr(args))));}
+/* bridge for g_geq_2 migration */
+bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(geq_b_7pp(sc, x, y));}
 
 static s7_pointer g_geq_xf(s7_scheme *sc, s7_pointer args)
 {
