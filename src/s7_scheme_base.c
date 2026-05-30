@@ -1590,6 +1590,11 @@ s7_pointer g_outlet(s7_scheme *sc, s7_pointer args)
   return(s7i_outlet_p_p(sc, s7_car(args)));
 }
 
+s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_quotient_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
 s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_curlet(sc));

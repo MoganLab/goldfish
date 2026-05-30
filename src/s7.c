@@ -16514,14 +16514,10 @@ static s7_pointer quotient_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(quotient_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
-{
-  #define H_quotient "(quotient x1 x2) returns the integer quotient of x1 and x2; (quotient 4 3) = 1"
-  #define Q_quotient sc->pcl_r
-  /* sig was '(integer? ...) but quotient can return NaN */
-  /* (define (quo x1 x2) (truncate (/ x1 x2))) ; slib */
-  return(quotient_p_pp(sc, car(args), cadr(args)));
-}
+s7_pointer s7i_quotient_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(quotient_p_pp(sc, x, y));}
+
+#define H_quotient "(quotient x1 x2) returns the integer quotient of x1 and x2; (quotient 4 3) = 1"
+#define Q_quotient sc->pcl_r
 
 
 /* -------------------------------- remainder -------------------------------- */
