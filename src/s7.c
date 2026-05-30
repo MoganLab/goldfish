@@ -30320,10 +30320,6 @@ static bool op_member_if(s7_scheme *sc)
 /* g_list is now defined in s7_liii_list.c */
 
 
-static s7_pointer g_list_2(s7_scheme *sc, s7_pointer args) {return(list_2(sc, car(args), cadr(args)));}
-static s7_pointer g_list_3(s7_scheme *sc, s7_pointer args) {return(list_3(sc, car(args), cadr(args), caddr(args)));}
-static s7_pointer g_list_4(s7_scheme *sc, s7_pointer args) {s7_pointer p = cddr(args); return(list_4(sc, car(args), cadr(args), car(p), cadr(p)));}
-
 static s7_pointer list_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
   if (args == 0) return(sc->list_0);

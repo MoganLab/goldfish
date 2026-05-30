@@ -187,6 +187,9 @@ s7_pointer g_memv(s7_scheme *sc, s7_pointer args);
 /* list functions */
 s7_pointer g_list_0(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_4(s7_scheme *sc, s7_pointer args);
 s7_pointer g_append_2(s7_scheme *sc, s7_pointer args);
 
 /* comparison functions */

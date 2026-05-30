@@ -1405,6 +1405,21 @@ s7_pointer g_list_1(s7_scheme *sc, s7_pointer args)
   return(s7_cons(sc, s7_car(args), s7_nil(sc)));
 }
 
+s7_pointer g_list_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_nil(sc))));
+}
+
+s7_pointer g_list_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_cons(sc, s7_caddr(args), s7_nil(sc)))));
+}
+
+s7_pointer g_list_4(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_cons(sc, s7_caddr(args), s7_cons(sc, s7_cadddr(args), s7_nil(sc))))));
+}
+
 s7_pointer g_append_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7_append(sc, s7_car(args), s7_cadr(args)));
