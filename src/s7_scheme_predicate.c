@@ -337,32 +337,6 @@ s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args)
   return(s7i_method_or_bust_p(sc, port, "port-closed?", "a port"));
 }
 
-s7_pointer g_numerator(s7_scheme *sc, s7_pointer args)
-{
-  #define H_numerator "(numerator rat) returns the numerator of the rational number rat"
-  #define Q_numerator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
-
-  const s7_pointer x = s7_car(args);
-  if (s7_is_ratio(x))
-    return(s7_make_integer(sc, s7_numerator(x)));
-  if (s7_is_integer(x))
-    return(x);
-  return(s7i_method_or_bust_p(sc, x, "numerator", "an integer or a ratio"));
-}
-
-s7_pointer g_denominator(s7_scheme *sc, s7_pointer args)
-{
-  #define H_denominator "(denominator rat) returns the denominator of the rational number rat"
-  #define Q_denominator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
-
-  const s7_pointer x = s7_car(args);
-  if (s7_is_ratio(x))
-    return(s7_make_integer(sc, s7_denominator(x)));
-  if (s7_is_integer(x))
-    return(s7i_int_one(sc));
-  return(s7i_method_or_bust_p(sc, x, "denominator", "an integer or a ratio"));
-}
-
 s7_pointer g_iterator_sequence(s7_scheme *sc, s7_pointer args)
 {
   #define H_iterator_sequence "(iterator-sequence iterator) returns the sequence that iterator is traversing."

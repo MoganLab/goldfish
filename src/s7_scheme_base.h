@@ -166,6 +166,12 @@ s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p);
 s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p);
 s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base);
 
+/* numerator function */
+s7_pointer g_numerator(s7_scheme *sc, s7_pointer args);
+
+/* denominator function */
+s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif
