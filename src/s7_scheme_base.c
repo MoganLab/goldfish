@@ -1485,6 +1485,13 @@ s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args)
   return(s7i_add_p_ppp_wrapped(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
 }
 
+s7_pointer g_add_4(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer x = s7i_add_p_pp_wrapped(sc, s7_car(args), s7_cadr(args));
+  s7_pointer p = s7_cddr(args);
+  return(s7i_add_p_pp(sc, x, s7i_add_p_pp_wrapped(sc, s7_car(p), s7_cadr(p))));
+}
+
 s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_negate_p_p(sc, s7_car(args)));

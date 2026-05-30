@@ -15232,16 +15232,6 @@ static s7_pointer g_add(s7_scheme *sc, s7_pointer args)
   return(x);
 }
 
-static s7_pointer g_add_4(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer x = add_p_pp_wrapped(sc, car(args), cadr(args));
-  s7_pointer p = cddr(args);
-  sc->error_argnum = 2;
-  p = add_p_pp(sc, x, add_p_pp_wrapped(sc, car(p), cadr(p)));
-  sc->error_argnum = 0;
-  return(p);
-}
-
 static s7_pointer g_add_x1_1(s7_scheme *sc, s7_pointer x, int32_t pos)
 {
   if (is_t_integer(x))

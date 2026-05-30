@@ -207,6 +207,7 @@ s7_pointer g_add_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args);
 s7_pointer g_add_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_4(s7_scheme *sc, s7_pointer args);
 s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args);
 s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args);
 s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args);
