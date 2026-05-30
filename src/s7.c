@@ -413,6 +413,7 @@
 #include "s7_module.h"
 #include "s7_dtoa.h"
 #include "s7_op_names.h"
+#include "s7_ctables.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -13843,88 +13844,7 @@ char *s7_number_to_string(s7_scheme *sc, s7_pointer obj, s7_int radix)
 #define Q_number_to_string s7_make_signature(sc, 3, sc->is_string_symbol, sc->is_number_symbol, sc->is_integer_symbol)
 
 
-/* -------------------------------------------------------------------------------- */
-#define CTABLE_SIZE 256
-static bool *exponent_table, *slashify_table, *char_ok_in_a_name, *white_space, *number_table, *symbol_slashify_table;
-static int32_t *digits;
-
-static void init_ctables(void)
-{
-  exponent_table = (bool *)Calloc(CTABLE_SIZE, sizeof(bool));
-  slashify_table = (bool *)Calloc(CTABLE_SIZE, sizeof(bool));
-  symbol_slashify_table = (bool *)Calloc(CTABLE_SIZE, sizeof(bool));
-  char_ok_in_a_name = (bool *)Malloc(CTABLE_SIZE * sizeof(bool));
-  white_space = (bool *)Calloc(CTABLE_SIZE + 1, sizeof(bool));
-  white_space++;      /* leave white_space[-1] false for white_space[EOF] */
-  number_table = (bool *)Calloc(CTABLE_SIZE, sizeof(bool));
-  digits = (int32_t *)Malloc(CTABLE_SIZE * sizeof(int32_t));
-
-  for (int32_t i = 0; i < CTABLE_SIZE; i++)
-    {
-      char_ok_in_a_name[i] = true;
-      /* white_space[i] = false; */
-      digits[i] = 256;
-      /* number_table[i] = false; */
-    }
-
-  char_ok_in_a_name[0] = false;
-  char_ok_in_a_name[(uint8_t)'('] = false;  /* cast for C++ */
-  char_ok_in_a_name[(uint8_t)')'] = false;
-  char_ok_in_a_name[(uint8_t)';'] = false;
-  char_ok_in_a_name[(uint8_t)'\t'] = false;
-  char_ok_in_a_name[(uint8_t)'\n'] = false;
-  char_ok_in_a_name[(uint8_t)'\r'] = false;
-  char_ok_in_a_name[(uint8_t)' '] = false;
-  char_ok_in_a_name[(uint8_t)'"'] = false;
-
-  white_space[(uint8_t)'\t'] = true;
-  white_space[(uint8_t)'\n'] = true;
-  white_space[(uint8_t)'\r'] = true;
-  white_space[(uint8_t)'\f'] = true;
-  white_space[(uint8_t)'\v'] = true;
-  white_space[(uint8_t)' '] = true;
-  white_space[(uint8_t)'\205'] = true; /* 133 */
-  white_space[(uint8_t)'\240'] = true; /* 160 */
-
-  /* surely only 'e' is needed... */
-  exponent_table[(uint8_t)'e'] = true; exponent_table[(uint8_t)'E'] = true;
-  exponent_table[(uint8_t)'@'] = true;
-#if WITH_EXTRA_EXPONENT_MARKERS
-  exponent_table[(uint8_t)'s'] = true; exponent_table[(uint8_t)'S'] = true;
-  exponent_table[(uint8_t)'f'] = true; exponent_table[(uint8_t)'F'] = true;
-  exponent_table[(uint8_t)'d'] = true; exponent_table[(uint8_t)'D'] = true;
-  exponent_table[(uint8_t)'l'] = true; exponent_table[(uint8_t)'L'] = true;
-#endif
-  for (int32_t i = 0; i < 32; i++) slashify_table[i] = true;
-  /* for (int32_t i = 127; i < 160; i++) slashify_table[i] = true; */ /* 6-Apr-24 for utf-8, but this has no effect on s7test?? */
-  slashify_table[(uint8_t)'\\'] = true;
-  slashify_table[(uint8_t)'"'] = true;
-#if WITH_R7RS
-  /* In R7RS mode, newlines should be escaped to ensure proper serialization */
-  slashify_table[(uint8_t)'\n'] = true;
-#else
-   slashify_table[(uint8_t)'\n'] = false;
-#endif
-
-  for (int32_t i = 0; i < CTABLE_SIZE; i++)
-    symbol_slashify_table[i] = ((slashify_table[i]) || (!char_ok_in_a_name[i])); /* force use of (symbol ...) for cases like '(ab) as symbol */
-
-  digits[(uint8_t)'0'] = 0; digits[(uint8_t)'1'] = 1; digits[(uint8_t)'2'] = 2; digits[(uint8_t)'3'] = 3; digits[(uint8_t)'4'] = 4;
-  digits[(uint8_t)'5'] = 5; digits[(uint8_t)'6'] = 6; digits[(uint8_t)'7'] = 7; digits[(uint8_t)'8'] = 8; digits[(uint8_t)'9'] = 9;
-  digits[(uint8_t)'a'] = 10; digits[(uint8_t)'A'] = 10;
-  digits[(uint8_t)'b'] = 11; digits[(uint8_t)'B'] = 11;
-  digits[(uint8_t)'c'] = 12; digits[(uint8_t)'C'] = 12;
-  digits[(uint8_t)'d'] = 13; digits[(uint8_t)'D'] = 13;
-  digits[(uint8_t)'e'] = 14; digits[(uint8_t)'E'] = 14;
-  digits[(uint8_t)'f'] = 15; digits[(uint8_t)'F'] = 15;
-
-  number_table[(uint8_t)'0'] = true; number_table[(uint8_t)'1'] = true; number_table[(uint8_t)'2'] = true; number_table[(uint8_t)'3'] = true;
-  number_table[(uint8_t)'4'] = true; number_table[(uint8_t)'5'] = true; number_table[(uint8_t)'6'] = true; number_table[(uint8_t)'7'] = true;
-  number_table[(uint8_t)'8'] = true; number_table[(uint8_t)'9'] = true; number_table[(uint8_t)'.'] = true;
-  number_table[(uint8_t)'+'] = true;
-  number_table[(uint8_t)'-'] = true;
-  number_table[(uint8_t)'#'] = true;
-}
+/* ctables moved to s7_ctables.c */
 
 #define is_white_space(C) white_space[C]
   /* this is much faster than C's isspace, and does not depend on the current locale.
