@@ -10,6 +10,7 @@
 #define S7_SCHEME_BASE_H
 
 #include "s7.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -100,6 +101,15 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args);
 /* string->number helper functions */
 s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow);
 double s7_string_to_double_simple(const char *str, int32_t radix);
+
+/* C string helper functions */
+s7_int safe_strlen(const char *str);
+char *copy_string_with_length(const char *str, s7_int len);
+char *copy_string(const char *str);
+bool safe_strcmp(const char *s1, const char *s2);
+bool local_strncmp(const char *s1, const char *s2, size_t n);
+size_t catstrs(char *dst, size_t len, ...);
+size_t catstrs_direct(char *dst, const char *str1, ...);
 
 /* read-line function */
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args);

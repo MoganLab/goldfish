@@ -14,6 +14,15 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdarg.h>
+
+#define Malloc(Size) malloc(Size)
+
+#if __GNUC__
+  #define Sentinel __attribute__((sentinel))
+#else
+  #define Sentinel
+#endif
 
 #ifndef S7_DEBUGGING
   #define S7_DEBUGGING 0
@@ -33,6 +42,88 @@ bool is_NaN(s7_double x)
 static bool is_inf(s7_double x)
 {
   return isinf(x);
+}
+
+/* C string helper functions */
+
+s7_int safe_strlen(const char *str)
+{
+  const char *tmp = str;
+  if ((!tmp) || (!*tmp)) return(0);
+  for (; *tmp; ++tmp);
+  return(tmp - str);
+}
+
+char *copy_string_with_length(const char *str, s7_int len)
+{
+  char *newstr;
+#if S7_DEBUGGING
+  if ((len <= 0) || (!str))
+    {fprintf(stderr, "%s[%d]: len: %" ld64 ", str: %s\n", __func__, __LINE__, len, str); abort();}
+#endif
+  if (len > (1LL << 48)) return(NULL);
+  newstr = (char *)Malloc(len + 1);
+  memcpy((void *)newstr, (const void *)str, len);
+  newstr[len] = '\0';
+  return(newstr);
+}
+
+char *copy_string(const char *str)
+{
+  return(copy_string_with_length(str, safe_strlen(str)));
+}
+
+bool safe_strcmp(const char *s1, const char *s2)
+{
+  if ((!s1) || (!s2)) return(s1 == s2);
+  return(strcmp(s1, s2) == 0);
+}
+
+bool local_strncmp(const char *s1, const char *s2, size_t n)
+{
+#if ((!S7_ALIGNED) && (defined(__x86_64__) || defined(__i386__)))
+  if (n >= 8)
+    {
+      size_t n8 = n >> 3;
+      s7_int *is1 = (s7_int *)s1, *is2 = (s7_int *)s2;
+      do {if (*is1++ != *is2++) return(false);} while (--n8 > 0);
+      s1 = (const char *)is1;
+      s2 = (const char *)is2;
+      n &= 7;
+    }
+#endif
+  while (n > 0)
+    {
+      if (*s1++ != *s2++) return(false);
+      n--;
+    }
+  return(true);
+}
+
+size_t catstrs(char *dst, size_t len, ...)
+{
+  const char *dend = (const char *)(dst + len - 1);
+  char *d = dst;
+  va_list ap;
+  while ((*d) && (d < dend)) d++;
+  va_start(ap, len);
+  for (const char *s = va_arg(ap, const char *); s != NULL; s = va_arg(ap, const char *))
+    while ((*s) && (d < dend)) {*d++ = *s++;}
+  *d = '\0';
+  va_end (ap);
+  return(d - dst);
+}
+
+size_t catstrs_direct(char *dst, const char *str1, ...)
+{
+  char *d = dst;
+  va_list ap;
+  va_start(ap, str1);
+  for (const char *s = str1; s != NULL; s = va_arg(ap, const char *))
+    while (*s) {*d++ = *s++;}
+  *d = '\0';
+  va_end (ap);
+  return(d - dst);
 }
 
 #define DOUBLE_TO_INT64_LIMIT 9.223372036854775807e18  /* 2^63 - 1 */
