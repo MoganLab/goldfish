@@ -247,6 +247,9 @@ s7_pointer s7i_heap_holder_p_p(s7_scheme *sc, s7_pointer obj);
 /* bridge functions for g_heap_holders migration */
 s7_int s7i_heap_holders(s7_pointer obj);
 
+/* bridge functions for g_is_defined_in_rootlet migration */
+bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym);
+
 /* bridge functions for g_leq_2/g_geq_2 migration */
 bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);

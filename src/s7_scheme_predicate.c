@@ -482,3 +482,19 @@ s7_pointer g_heap_holders(s7_scheme *sc, s7_pointer args)
 }
 #endif
 
+s7_pointer g_is_defined_in_unlet(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer sym = s7_car(args);
+  if (!s7_is_symbol(sym))
+    return(s7_wrong_type_arg_error(sc, "defined?", 1, sym, "a symbol"));
+  return(s7_make_boolean(sc, s7i_initial_value_is_defined(sc, sym)));
+}
+
+s7_pointer g_is_defined_in_rootlet(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer sym = s7_car(args);
+  if (!s7_is_symbol(sym))
+    return(s7_wrong_type_arg_error(sc, "defined?", 1, sym, "a symbol"));
+  return(s7_make_boolean(sc, s7i_is_defined_in_rootlet(sc, sym)));
+}
+

@@ -11636,23 +11636,6 @@ Only the let is searched if ignore-globals is #t."
   return((is_defined_global(sym)) ? sc->T : make_boolean(sc, is_bound_symbol(sc, sym)));
 }
 
-static s7_pointer g_is_defined_in_unlet(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer sym = car(args);
-  if (!is_symbol(sym))
-    wrong_type_error_nr(sc, sc->is_defined_symbol, 1, car(args), a_symbol_string);
-  return(make_boolean(sc, initial_value_is_defined(sc, sym)));
-}
-
-static s7_pointer g_is_defined_in_rootlet(s7_scheme *sc, s7_pointer args) /* aimed at lint.scm */
-{
-  /* (defined? bigi1 (rootlet)) can be optimized to opt_p_call_sf */
-  s7_pointer sym = car(args);
-  if (!is_symbol(sym))
-    wrong_type_error_nr(sc, sc->is_defined_symbol, 1, sym, a_symbol_string);
-  return(make_boolean(sc, (is_slot(global_slot(sym))) && (global_value(sym) != sc->undefined)));
-}
-
 static s7_pointer is_defined_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
   if (args == 2)
@@ -41890,6 +41873,7 @@ bool s7i_tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree) {r
 s7_pointer s7i_unlet_disabled(s7_scheme *sc) {return(sc->unlet_disabled);}
 s7_pointer s7i_curlet(s7_scheme *sc) {return(sc->curlet);}
 void s7i_capture_let_counter_inc(s7_scheme *sc) {sc->capture_let_counter++;}
+bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym) {return((is_slot(global_slot(sym))) && (global_value(sym) != sc->undefined));}
 
 
 /* ---------------- stacktrace ---------------- */
