@@ -175,6 +175,15 @@ s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
 /* reverse function */
 s7_pointer g_reverse(s7_scheme *sc, s7_pointer args);
 
+/* assq function */
+s7_pointer g_assq(s7_scheme *sc, s7_pointer args);
+
+/* assv function */
+s7_pointer g_assv(s7_scheme *sc, s7_pointer args);
+
+/* memv function */
+s7_pointer g_memv(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

@@ -476,21 +476,6 @@ s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
   return(s7i_tree_set_memq_syms_direct(sc, s7_car(args), s7_cadr(args)));
 }
 
-s7_pointer g_assq(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_assq_p_pp(sc, s7_car(args), s7_cadr(args)));
-}
-
-s7_pointer g_assv(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_assv_p_pp(sc, s7_car(args), s7_cadr(args)));
-}
-
-s7_pointer g_memv(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_memv_p_pp(sc, s7_car(args), s7_cadr(args)));
-}
-
 #if S7_DEBUGGING
 s7_pointer g_heap_analyze(s7_scheme *sc, s7_pointer args)
 {
