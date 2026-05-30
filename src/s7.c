@@ -29940,18 +29940,13 @@ static s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
 /* I think (memq 'c '(a b . c)) should return #f because otherwise (memq () ...) would return the () at the end */
 /* if memq's list is a quoted list, it won't be changing, so we can tell ahead of time that it is a proper list, and what its length is */
 
-static s7_pointer g_memq_2(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer obj = car(args), lst = cadr(args);
-  if (obj == car(lst)) return(lst);
-  return((obj == cadr(lst)) ? cdr(lst) : sc->F);
-}
-
 static s7_pointer memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 {
   if (obj == car(lst)) return(lst);
   return((obj == cadr(lst)) ? cdr(lst) : sc->F);
 }
+
+s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_2_p_pp(sc, obj, lst));}
 
 static s7_pointer memq_3_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 {
@@ -29987,7 +29982,7 @@ static s7_pointer memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F);
 }
 
-static s7_pointer g_memq_4(s7_scheme *sc, s7_pointer args) {return(memq_4_p_pp(sc, car(args), cadr(args)));}
+s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_4_p_pp(sc, obj, lst));}
 
 static s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
 {

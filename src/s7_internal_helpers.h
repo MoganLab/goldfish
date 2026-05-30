@@ -229,6 +229,10 @@ s7_pointer s7i_memv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
 s7_pointer s7i_assq_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
 s7_pointer s7i_assv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
 
+/* bridge functions for g_memq_2, g_memq_4 migration */
+s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
 

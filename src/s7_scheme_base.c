@@ -1455,6 +1455,16 @@ s7_pointer g_num_eq_ix(s7_scheme *sc, s7_pointer args)
   return(s7i_num_eq_xx(sc, s7_cadr(args), s7_car(args)));
 }
 
+s7_pointer g_memq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memq_2_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memq_4(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memq_4_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
 s7_pointer g_add_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_add_p_pp(sc, s7_car(args), s7_cadr(args)));
