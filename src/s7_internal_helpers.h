@@ -132,6 +132,12 @@ s7_pointer s7i_outlet_p_p(s7_scheme *sc, s7_pointer let);
 /* bridge function for g_quotient migration */
 s7_pointer s7i_quotient_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
+/* bridge function for g_remainder migration */
+s7_pointer s7i_remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_modulo migration */
+s7_pointer s7i_modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
 /* bridge functions for g_cyclic_sequences migration */
 s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p);
 

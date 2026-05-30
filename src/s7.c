@@ -16722,17 +16722,10 @@ static s7_pointer remainder_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(remainder_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
-{
-  #define H_remainder "(remainder x y) returns the remainder of x/y; (remainder 10 3) = 1"
-  #define Q_remainder sc->pcl_r
-  /* (define (rem x y) (- x (* y (quo x y)))) ; slib, if y is an integer (- x (truncate x y)), fractional part: (remainder x 1) */
+s7_pointer s7i_remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(remainder_p_pp(sc, x, y));}
 
-  s7_pointer x = car(args), y = cadr(args);
-  if ((is_t_integer(x)) && (is_t_integer(y)))
-    return(make_integer(sc, remainder_i_7ii(sc, integer(x), integer(y))));
-  return(remainder_p_pp(sc, x, y));
-}
+#define H_remainder "(remainder x y) returns the remainder of x/y; (remainder 10 3) = 1"
+#define Q_remainder sc->pcl_r
 
 
 /* -------------------------------- modulo -------------------------------- */
@@ -16931,15 +16924,10 @@ static s7_pointer modulo_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   return(modulo_p_pp(sc, x, wrap_integer(sc, y)));
 }
 
-s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
-{
-  #define H_modulo "(modulo x y) returns x mod y; (modulo 4 3) = 1.  The arguments can be real numbers."
-  #define Q_modulo sc->pcl_r
-  /* (define (mod x y) (- x (* y (floor (/ x y))))) from slib
-   * (mod x 0) = x according to "Concrete Mathematics"
-   */
-  return(modulo_p_pp(sc, car(args), cadr(args)));
-}
+s7_pointer s7i_modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(modulo_p_pp(sc, x, y));}
+
+#define H_modulo "(modulo x y) returns x mod y; (modulo 4 3) = 1.  The arguments can be real numbers."
+#define Q_modulo sc->pcl_r
 
 
 /* ---------------------------------------- max ---------------------------------------- */
