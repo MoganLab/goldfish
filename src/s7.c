@@ -14917,13 +14917,6 @@ the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 
 #endif
 
 /* -------------------------------- log -------------------------------- */
-static s7_pointer g_int_log2(s7_scheme *sc, s7_pointer args)
-{
-  s7_int ix = integer(car(args));
-  s7_double fx = log2((double)ix);
-  return(((ix & (ix - 1)) == 0) ? make_integer(sc, (s7_int)s7_round(fx)) : make_real(sc, fx));
-}
-
 static s7_pointer log_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
   if (args == 2)
