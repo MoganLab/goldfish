@@ -12678,18 +12678,6 @@ static s7_pointer make_ratio(s7_scheme *sc, s7_int a, s7_int b);
 #endif /* not sun */
 
 
-/* -------------------------------- NaN payloads -------------------------------- */
-typedef union {s7_int ix; double fx;} decode_float_t;
-
-static double nan_with_payload(s7_int payload)
-{
-  decode_float_t num;
-  if (payload <= 0) return(NAN);
-  num.fx = NAN;
-  num.ix = num.ix | payload;
-  return(num.fx);
-}
-
 static s7_pointer make_nan_with_payload(s7_scheme *sc, s7_int payload)
 {
   return(make_real(sc, nan_with_payload(payload)));
@@ -12710,13 +12698,6 @@ static s7_pointer g_nan(s7_scheme *sc, s7_pointer args)
   if (integer(payload) >= NAN_PAYLOAD_LIMIT)
     sole_arg_out_of_range_error_nr(sc, sc->nan_symbol, set_elist_1(sc, payload), it_is_too_large_string);
   return(make_nan_with_payload(sc, integer(payload)));
-}
-
-static s7_int nan_payload(double x)
-{
-  decode_float_t num;
-  num.fx = x;
-  return(num.ix & 0xffffffffffff);
 }
 
 static s7_pointer g_nan_payload(s7_scheme *sc, s7_pointer args)

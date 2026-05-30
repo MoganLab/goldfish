@@ -126,6 +126,24 @@ size_t catstrs_direct(char *dst, const char *str1, ...)
   return(d - dst);
 }
 
+/* NaN payload helper functions */
+
+double nan_with_payload(s7_int payload)
+{
+  decode_float_t num;
+  if (payload <= 0) return(NAN);
+  num.fx = NAN;
+  num.ix = num.ix | payload;
+  return(num.fx);
+}
+
+s7_int nan_payload(double x)
+{
+  decode_float_t num;
+  num.fx = x;
+  return(num.ix & 0xffffffffffff);
+}
+
 #define DOUBLE_TO_INT64_LIMIT 9.223372036854775807e18  /* 2^63 - 1 */
 #define INT64_TO_DOUBLE_LIMIT (1LL << 53)               /* 2^53 */
 #define RATIONALIZE_LIMIT 1.0e12

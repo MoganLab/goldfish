@@ -111,6 +111,11 @@ bool local_strncmp(const char *s1, const char *s2, size_t n);
 size_t catstrs(char *dst, size_t len, ...);
 size_t catstrs_direct(char *dst, const char *str1, ...);
 
+/* NaN payload helpers */
+typedef union {s7_int ix; double fx;} decode_float_t;
+double nan_with_payload(s7_int payload);
+s7_int nan_payload(double x);
+
 /* read-line function */
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args);
 
