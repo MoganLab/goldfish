@@ -1419,3 +1419,73 @@ s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7_make_boolean(sc, s7i_geq_b_7pp(sc, s7_car(args), s7_cadr(args))));
 }
+
+s7_pointer g_add_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_add_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_ppp(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_ppp_wrapped(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_negate_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_negate_p_p_wrapped(sc, s7_car(args)));
+}
+
+s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_subtract_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_subtract_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_multiply_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_ppp(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_ppp_wrapped(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_invert_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_divide_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
