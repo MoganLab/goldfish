@@ -15,6 +15,10 @@
 #include <inttypes.h>
 #include <stdio.h>
 
+#ifndef S7_DEBUGGING
+  #define S7_DEBUGGING 0
+#endif
+
 #define S7_INT64_MAX 9223372036854775807LL
 /* #define S7_INT64_MIN -9223372036854775808LL */   /* why is this disallowed in C? "warning: integer constant is so large that it is unsigned" */
 #define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL) /* in gcc 9 we had to assign this to an s7_int, then use that! */
@@ -34,6 +38,7 @@ static bool is_inf(s7_double x)
 #define DOUBLE_TO_INT64_LIMIT 9.223372036854775807e18  /* 2^63 - 1 */
 #define INT64_TO_DOUBLE_LIMIT (1LL << 53)               /* 2^53 */
 #define RATIONALIZE_LIMIT 1.0e12
+#define ld64 PRId64
 
 static s7_int wrap_uint64_to_s7_int(uint64_t bits)
 {
@@ -1205,6 +1210,102 @@ s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 }
 
 /* -------------------------------- rationalize -------------------------------- */
+
+bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
+{
+  /* from CL code in Canny, Donald, Ressler, "A Rational Rotation Method for Robust Geometric Algorithms" */
+  double x0, x1;
+  s7_int i, p0, q0 = 1, p1, q1 = 1;
+  double e0, e1, e0p, e1p;
+  int32_t tries = 0;
+  /* don't use long_double: the loop below will hang */
+
+  /* #e1e19 is a killer -- it's bigger than most-positive-fixnum, but if we ceil(ux) below
+   *   it turns into most-negative-fixnum.  1e19 is trouble in many places.
+   */
+  if (fabs(ux) > RATIONALIZE_LIMIT)
+    {
+      /* (rationalize most-positive-fixnum) should not return most-negative-fixnum
+       *   but any number > 1e14 here is so inaccurate that rationalize is useless
+       *   for example,
+       *     default: (rationalize (/ (*s7* 'most-positive-fixnum) 31111.0)) -> 1185866354261165/4
+       *     gmp:     (rationalize (/ (*s7* 'most-positive-fixnum) 31111.0)) -> 9223372036854775807/31111
+       * can't return false here because that confuses some of the callers!
+       */
+      (*numer) = (s7_int)ux;
+      (*denom) = 1;
+      return(true);
+    }
+
+  if (error < 0.0) error = -error;
+  x0 = ux - error;
+  x1 = ux + error;
+  i = (s7_int)ceil(x0);
+
+  if (error >= 1.0) /* aw good grief! */
+    {
+      if (x0 < 0.0)
+        (*numer) = (x1 < 0.0) ? (s7_int)floor(x1) : 0;
+      else (*numer) = i;
+      (*denom) = 1;
+      return(true);
+    }
+  if (x1 >= i)
+    {
+      (*numer) = (i >= 0) ? i : (s7_int)floor(x1);
+      (*denom) = 1;
+      return(true);
+    }
+
+  p0 = (s7_int)floor(x0);
+  p1 = (s7_int)ceil(x1);
+  e0 = p1 - x0;
+  e1 = x0 - p0;
+  e0p = p1 - x1;
+  e1p = x1 - p0;
+  while (true)
+    {
+      s7_int old_p1, old_q1;
+      double old_e0, old_e1, old_e0p, r, r1;
+      const double val = (double)p0 / (double)q0;
+
+      if (((x0 <= val) && (val <= x1)) || (e1 == 0.0) || (e1p == 0.0) || (tries > 100))
+        {
+          if ((q0 == S7_INT64_MIN) && (p0 == 1)) /* (rationalize 1.000000004297917e-12) when error is 1e-12 */
+            {
+              (*numer) = 0;
+              (*denom) = 1;
+            }
+          else
+            {
+              (*numer) = p0;
+              (*denom) = q0;
+              if ((S7_DEBUGGING) && (q0 == 0)) fprintf(stderr, "%s[%d]: %f %" ld64 "/0\n", __func__, __LINE__, ux, p0);
+            }
+          if ((S7_DEBUGGING) && (*denom < 0)) fprintf(stderr, "%s[%d]: denominator is %" ld64 "?\n", __func__, __LINE__, *denom);
+          return(true);
+        }
+      tries++;
+      r = (s7_int)floor(e0 / e1);
+      r1 = (s7_int)ceil(e0p / e1p);
+      if (r1 < r) r = r1;
+      /* do handles all step vars in parallel */
+      old_p1 = p1;
+      p1 = p0;
+      old_q1 = q1;
+      q1 = q0;
+      old_e0 = e0;
+      e0 = e1p;
+      old_e0p = e0p;
+      e0p = e1;
+      old_e1 = e1;
+      p0 = old_p1 + r * p0;
+      q0 = old_q1 + r * q0;
+      e1 = old_e0p - r * e1p;  /* if the error is set too low, we can get e1 = 0 here: (rationalize (/ pi) 1e-17) */
+      e1p = old_e0 - r * old_e1;
+    }
+  return(false);
+}
 
 s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
 {
