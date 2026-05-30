@@ -10497,7 +10497,6 @@ static inline s7_pointer g_cdr_let_ref(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer starlet(s7_scheme *sc, s7_int choice);
 static s7_pointer g_starlet_ref(s7_scheme *sc, s7_pointer args) {return(starlet(sc, starlet_symbol_id(cadr(args))));}
-static s7_pointer g_curlet_ref(s7_scheme *sc, s7_pointer args) {return(lookup(sc, cadr(args)));}
 
 
 static s7_pointer g_rootlet_ref(s7_scheme *sc, s7_pointer args)
@@ -10937,6 +10936,8 @@ static inline s7_pointer lookup(s7_scheme *sc, const s7_pointer symbol) /* looku
 {
   return(inline_lookup_from(sc, symbol, sc->curlet));
 }
+
+s7_pointer s7i_lookup_p_p(s7_scheme *sc, s7_pointer symbol) {return(lookup(sc, symbol));}
 
 static inline s7_pointer lookup_slot_from(s7_pointer symbol, s7_pointer let)
 {

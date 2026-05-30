@@ -138,6 +138,9 @@ s7_pointer s7i_remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 /* bridge function for g_modulo migration */
 s7_pointer s7i_modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
+/* bridge function for g_curlet_ref migration */
+s7_pointer s7i_lookup_p_p(s7_scheme *sc, s7_pointer symbol);
+
 /* bridge functions for g_cyclic_sequences migration */
 s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p);
 
