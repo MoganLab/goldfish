@@ -126,6 +126,9 @@ s7_pointer s7i_c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr);
 /* bridge functions for g_tree_leaves migration */
 s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer p);
 
+/* bridge function for g_outlet migration */
+s7_pointer s7i_outlet_p_p(s7_scheme *sc, s7_pointer let);
+
 /* bridge functions for g_cyclic_sequences migration */
 s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p);
 

@@ -10852,12 +10852,10 @@ static s7_pointer outlet_p_p(s7_scheme *sc, s7_pointer let)
 
 /* g_outlet_unlet migrated to s7_scheme_predicate.c */
 
-static s7_pointer g_outlet(s7_scheme *sc, s7_pointer args)
-{
-  #define H_outlet "(outlet let) is the environment that contains let."
-  #define Q_outlet s7_make_signature(sc, 2, sc->is_let_symbol, has_let_signature(sc))
-  return(outlet_p_p(sc, car(args)));
-}
+s7_pointer s7i_outlet_p_p(s7_scheme *sc, s7_pointer let) {return(outlet_p_p(sc, let));}
+
+#define H_outlet "(outlet let) is the environment that contains let."
+#define Q_outlet s7_make_signature(sc, 2, sc->is_let_symbol, has_let_signature(sc))
 
 static s7_pointer outlet_chooser(s7_scheme *sc, s7_pointer func, int32_t num_args, s7_pointer expr)
 {

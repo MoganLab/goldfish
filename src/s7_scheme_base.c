@@ -1585,6 +1585,11 @@ s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
   return(s7i_curlet(sc));
 }
 
+s7_pointer g_outlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_outlet_p_p(sc, s7_car(args)));
+}
+
 s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_curlet(sc));
