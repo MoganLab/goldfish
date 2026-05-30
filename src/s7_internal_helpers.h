@@ -224,6 +224,29 @@ s7_pointer s7i_initial_value(s7_pointer symbol);
 void s7i_set_initial_value(s7_pointer symbol, s7_pointer value);
 bool s7i_initial_value_is_defined(s7_scheme *sc, s7_pointer symbol);
 
+/* bridge functions for g_memv, g_assq, g_assv migration */
+s7_pointer s7i_memv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer s7i_assq_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer s7i_assv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+
+/* bridge functions for g_tree_set_memq_syms migration */
+s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
+
+/* bridge functions for g_heap_analyze migration */
+void s7i_heap_analyze(s7_scheme *sc);
+
+/* bridge functions for g_show_op_stack migration */
+void s7i_show_op_stack(s7_scheme *sc);
+
+/* bridge functions for g_is_op_stack migration */
+bool s7i_is_op_stack_active(s7_scheme *sc);
+
+/* bridge functions for g_heap_holder migration */
+s7_pointer s7i_heap_holder_p_p(s7_scheme *sc, s7_pointer obj);
+
+/* bridge functions for g_heap_holders migration */
+s7_int s7i_heap_holders(s7_pointer obj);
+
 #ifdef __cplusplus
 }
 #endif

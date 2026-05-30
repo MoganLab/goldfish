@@ -10850,7 +10850,7 @@ static s7_pointer outlet_p_p(s7_scheme *sc, s7_pointer let)
   return((let == sc->rootlet) ? sc->rootlet : let_outlet(let)); /* rootlet check is needed(!) */
 }
 
-static s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args) {return(sc->curlet);}
+/* g_outlet_unlet migrated to s7_scheme_predicate.c */
 
 static s7_pointer g_outlet(s7_scheme *sc, s7_pointer args)
 {
@@ -28742,9 +28742,12 @@ static s7_pointer tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_p
   }
 }
 
-static s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
+/* g_tree_set_memq_syms migrated to s7_scheme_predicate.c */
+
+/* bridge for g_tree_set_memq_syms migration */
+s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b)
 {
-  return(tree_set_memq_syms_direct(sc, car(args), cadr(args))); /* need other form for pp */
+  return(tree_set_memq_syms_direct(sc, a, b));
 }
 
 static s7_pointer tree_set_memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
@@ -29609,14 +29612,14 @@ static s7_pointer assq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 	  method_or_bust_pp(sc, lst, sc->assq_symbol, obj, lst, an_association_list_string, 2)));
 }
 
-static s7_pointer g_assq(s7_scheme *sc, s7_pointer args)
+/* g_assq migrated to s7_scheme_predicate.c */
+#define H_assq "(assq obj alist) returns the key-value pair associated (via eq?) with the key obj in the association list alist"
+#define Q_assq s7_make_signature(sc, 3, s7_make_signature(sc, 2, sc->is_pair_symbol, sc->not_symbol), sc->T, sc->is_list_symbol)
+
+/* bridge for g_assq migration */
+s7_pointer s7i_assq_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b)
 {
-  #define H_assq "(assq obj alist) returns the key-value pair associated (via eq?) with the key obj in the association list alist"
-  #define Q_assq s7_make_signature(sc, 3, s7_make_signature(sc, 2, sc->is_pair_symbol, sc->not_symbol), sc->T, sc->is_list_symbol)
-  return(assq_p_pp(sc, car(args), cadr(args)));
-  /* we don't check for (pair? (car x)) here (or in assv) so we get some inconsistency with assoc:
-   *  (assq #f '(#f 2 . 3)) -> #f, (assoc #f '(#f 2 . 3)) -> 'error
-   */
+  return(assq_p_pp(sc, a, b));
 }
 
 static s7_pointer assv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
@@ -29650,11 +29653,14 @@ static s7_pointer assv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F); /* not reached */
 }
 
-static s7_pointer g_assv(s7_scheme *sc, s7_pointer args)        /* g_assv is called by g_assoc below */
+/* g_assv migrated to s7_scheme_predicate.c */
+#define H_assv "(assv obj alist) returns the key-value pair associated (via eqv?) with the key obj in the association list alist"
+#define Q_assv Q_assq
+
+/* bridge for g_assv migration */
+s7_pointer s7i_assv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b)
 {
-  #define H_assv "(assv obj alist) returns the key-value pair associated (via eqv?) with the key obj in the association list alist"
-  #define Q_assv Q_assq
-  return(assv_p_pp(sc, car(args), cadr(args)));
+  return(assv_p_pp(sc, a, b));
 }
 
 s7_pointer s7_assoc(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
@@ -30082,11 +30088,14 @@ static s7_pointer memv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F); /* not reached */
 }
 
-static s7_pointer g_memv(s7_scheme *sc, s7_pointer args)
+/* g_memv migrated to s7_scheme_predicate.c */
+#define H_memv "(memv obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memv uses eqv?"
+#define Q_memv sc->pl_tl
+
+/* bridge for g_memv migration */
+s7_pointer s7i_memv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b)
 {
-  #define H_memv "(memv obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memv uses eqv?"
-  #define Q_memv sc->pl_tl
-  return(memv_p_pp(sc, car(args), cadr(args)));
+  return(memv_p_pp(sc, a, b));
 }
 
 
@@ -85751,28 +85760,35 @@ static s7_pointer g_heap_scan(s7_scheme *sc, s7_pointer args)
   return(sc->F);
 }
 
-static s7_pointer g_heap_analyze(s7_scheme *sc, s7_pointer args)
+/* g_heap_analyze migrated to s7_scheme_predicate.c */
+#define H_heap_analyze "(heap-analyze) gets heap data for subsequent heap-scan"
+#define Q_heap_analyze s7_make_signature(sc, 1, sc->not_symbol)
+
+/* bridge for g_heap_analyze migration */
+void s7i_heap_analyze(s7_scheme *sc)
 {
-  #define H_heap_analyze "(heap-analyze) gets heap data for subsequent heap-scan"
-  #define Q_heap_analyze s7_make_signature(sc, 1, sc->not_symbol)
   s7_heap_analyze(sc);
-  return(sc->F);
 }
 
-static s7_pointer g_heap_holder(s7_scheme *sc, s7_pointer args)
+/* g_heap_holder migrated to s7_scheme_predicate.c */
+#define H_heap_holder "(heap-holder obj) returns the object pointing to obj"
+#define Q_heap_holder s7_make_signature(sc, 2, sc->T, sc->T)
+
+/* bridge for g_heap_holder migration */
+s7_pointer s7i_heap_holder_p_p(s7_scheme *sc, s7_pointer obj)
 {
-  #define H_heap_holder "(heap-holder obj) returns the object pointing to obj"
-  #define Q_heap_holder s7_make_signature(sc, 2, sc->T, sc->T)
-  s7_pointer obj = car(args);
   if ((obj->holders == 0) || ((!(obj->holder)) && (!(obj->root)))) return(sc->F);
   return((obj->holder) ? obj->holder : s7_make_string(sc, obj->root));
 }
 
-static s7_pointer g_heap_holders(s7_scheme *sc, s7_pointer args)
+/* g_heap_holders migrated to s7_scheme_predicate.c */
+#define H_heap_holders "(heap-holders obj) returns the number of objects pointing to obj"
+#define Q_heap_holders s7_make_signature(sc, 2, sc->is_integer_symbol, sc->T)
+
+/* bridge for g_heap_holders migration */
+s7_int s7i_heap_holders(s7_pointer obj)
 {
-  #define H_heap_holders "(heap-holders obj) returns the number of objects pointing to obj"
-  #define Q_heap_holders s7_make_signature(sc, 2, sc->is_integer_symbol, sc->T)
-  return(make_integer(sc, car(args)->holders));
+  return(obj->holders);
 }
 
 /* random debugging stuff */
@@ -85803,19 +85819,24 @@ void s7_show_op_stack(s7_scheme *sc)
   else fprintf(stderr, "op_stack is empty\n");
 }
 
-static s7_pointer g_show_op_stack(s7_scheme *sc, s7_pointer args)
+/* g_show_op_stack migrated to s7_scheme_predicate.c */
+#define H_show_op_stack "(show-op-stack) displays the current op_stack"
+#define Q_show_op_stack s7_make_signature(sc, 1, sc->not_symbol)
+
+/* bridge for g_show_op_stack migration */
+void s7i_show_op_stack(s7_scheme *sc)
 {
-  #define H_show_op_stack "(show-op-stack) displays the current op_stack"
-  #define Q_show_op_stack s7_make_signature(sc, 1, sc->not_symbol)
   s7_show_op_stack(sc);
-  return(sc->F);
 }
 
-static s7_pointer g_is_op_stack(s7_scheme *sc, s7_pointer args)
+/* g_is_op_stack migrated to s7_scheme_predicate.c */
+#define H_is_op_stack "(op-stack?) returns #t if there are entries in the op_stack"
+#define Q_is_op_stack s7_make_signature(sc, 1, sc->is_boolean_symbol)
+
+/* bridge for g_is_op_stack migration */
+bool s7i_is_op_stack_active(s7_scheme *sc)
 {
-  #define H_is_op_stack "(op-stack?) returns #t if there are entries in the op_stack"
-  #define Q_is_op_stack s7_make_signature(sc, 1, sc->is_boolean_symbol)
-  return(make_boolean(sc, (sc->op_stack < sc->op_stack_now)));
+  return(sc->op_stack < sc->op_stack_now);
 }
 #endif
 

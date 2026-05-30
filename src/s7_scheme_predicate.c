@@ -9,6 +9,10 @@
 #include "s7_scheme_predicate.h"
 #include "s7_internal_helpers.h"
 
+#ifndef S7_DEBUGGING
+  #define S7_DEBUGGING 0
+#endif
+
 s7_pointer g_not(s7_scheme *sc, s7_pointer args)
 {
   return((s7_car(args) == s7_f(sc)) ? s7_t(sc) : s7_f(sc));
@@ -495,3 +499,57 @@ s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
   s7i_capture_let_counter_inc(sc);
   return(s7i_curlet(sc));
 }
+
+s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_curlet(sc));
+}
+
+s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_tree_set_memq_syms_direct(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_assq(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_assq_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_assv(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_assv_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memv(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memv_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+#if S7_DEBUGGING
+s7_pointer g_heap_analyze(s7_scheme *sc, s7_pointer args)
+{
+  s7i_heap_analyze(sc);
+  return(s7_f(sc));
+}
+
+s7_pointer g_show_op_stack(s7_scheme *sc, s7_pointer args)
+{
+  s7i_show_op_stack(sc);
+  return(s7_f(sc));
+}
+
+s7_pointer g_is_op_stack(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_is_op_stack_active(sc)));
+}
+
+s7_pointer g_heap_holder(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_heap_holder_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_heap_holders(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_integer(sc, s7i_heap_holders(s7_car(args))));
+}
+#endif
