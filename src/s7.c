@@ -33084,7 +33084,8 @@ static s7_pointer complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_poi
   return(value);
 }
 
-static s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args) {return(complex_vector_set_p_ppp(sc, car(args), cadr(args), caddr(args)));}
+s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer index, s7_pointer value) {return(complex_vector_set_p_ppp(sc, vec, index, value));}
+
 /* static s7_pointer g_cv_set_3_nr(s7_scheme *sc, s7_pointer args) {return(complex_vector_set_p_ppp_nr(sc, car(args), cadr(args), caddr(args)));} */
 
 static s7_pointer complex_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
