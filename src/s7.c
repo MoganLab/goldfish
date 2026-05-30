@@ -17195,6 +17195,8 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(false);
 }
 
+bool s7i_num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(num_eq_b_7pp(sc, x, y));}
+
 static bool is_number_via_method(s7_scheme *sc, s7_pointer p)
 {
   if (is_number(p))
@@ -17260,14 +17262,6 @@ static bool num_eq_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   if (!is_number(x)) /* complex/ratio can't == int */
     wrong_type_error_nr(sc, sc->num_eq_symbol, 1, x, a_number_string);
   return(false);
-}
-
-static s7_pointer g_num_eq_2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer x = car(args), y = cadr(args);
-  if ((is_t_integer(x)) && (is_t_integer(y))) /* this is by far the most common case (ratios aren't used much, and = with floats is frowned upon) */
-    return(make_boolean(sc, integer(x) == integer(y)));
-  return(make_boolean(sc, num_eq_b_7pp(sc, x, y)));
 }
 
 static inline s7_pointer num_eq_xx(s7_scheme *sc, s7_pointer x, s7_pointer y)

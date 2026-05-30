@@ -254,6 +254,9 @@ bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym);
 bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
+/* bridge function for g_num_eq_2 migration */
+bool s7i_num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
 /* bridge functions for arithmetic g_ functions migration */
 s7_pointer s7i_add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 s7_pointer s7i_add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);

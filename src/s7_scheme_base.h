@@ -195,6 +195,7 @@ s7_pointer g_append_2(s7_scheme *sc, s7_pointer args);
 /* comparison functions */
 s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_num_eq_2(s7_scheme *sc, s7_pointer args);
 
 /* arithmetic shortcut functions */
 s7_pointer g_add_2(s7_scheme *sc, s7_pointer args);
