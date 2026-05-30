@@ -213,6 +213,12 @@ s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args);
 
+/* let functions */
+s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args);
+s7_pointer g_curlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

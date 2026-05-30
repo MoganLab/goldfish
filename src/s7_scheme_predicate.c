@@ -322,11 +322,6 @@ s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args)
   return(s7_make_boolean(sc, s7_is_equivalent(sc, s7_car(args), s7_cadr(args))));
 }
 
-s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_rootlet(sc));
-}
-
 s7_pointer g_is_port_closed(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer port = s7_car(args);
@@ -451,24 +446,6 @@ s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args)
 s7_pointer g_format_nr(s7_scheme *sc, s7_pointer args)  /* port == #f, in do body, args already evaluated */
 {
   return(s7i_nil_string());
-}
-
-s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_unlet_disabled(sc));
-}
-
-s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
-{
-  #define H_curlet "(curlet) returns the current definitions (symbol bindings)"
-  #define Q_curlet s7_make_signature(sc, 1, sc->is_let_symbol)
-  s7i_capture_let_counter_inc(sc);
-  return(s7i_curlet(sc));
-}
-
-s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_curlet(sc));
 }
 
 s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args)
