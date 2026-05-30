@@ -15096,6 +15096,8 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
 }
 
+s7_pointer s7i_add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(add_p_pp(sc, x, y));}
+
 static inline s7_pointer add_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -15169,6 +15171,8 @@ static s7_pointer add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(add_p_pp(sc, x, y));
 }
 
+s7_pointer s7i_add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(add_p_pp_wrapped(sc, x, y));}
+
 static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
   if ((is_t_integer(x)) && (is_t_integer(y)) && (is_t_integer(z)))
@@ -15194,6 +15198,8 @@ static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointe
     return(num);
   }
 }
+
+s7_pointer s7i_add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z) {return(add_p_ppp(sc, x, y, z));}
 
 static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
@@ -15222,6 +15228,9 @@ static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s
 }
 
 
+s7_pointer s7i_add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z) {return(add_p_ppp_wrapped(sc, x, y, z));}
+
+
 static s7_pointer g_add(s7_scheme *sc, s7_pointer args)
 {
   #define H_add "(+ ...) adds its arguments"
@@ -15246,11 +15255,6 @@ static s7_pointer g_add(s7_scheme *sc, s7_pointer args)
   sc->error_argnum = 0;
   return(x);
 }
-
-static s7_pointer g_add_2(s7_scheme *sc, s7_pointer args) {return(add_p_pp(sc, car(args), cadr(args)));}
-static s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args) {return(add_p_pp_wrapped(sc, car(args), cadr(args)));}
-static s7_pointer g_add_3(s7_scheme *sc, s7_pointer args) {return(add_p_ppp(sc, car(args), cadr(args), caddr(args)));}
-static s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args) {return(add_p_ppp_wrapped(sc, car(args), cadr(args), caddr(args)));}
 
 static s7_pointer g_add_4(s7_scheme *sc, s7_pointer args)
 {
@@ -15355,10 +15359,6 @@ static s7_pointer argument_type(s7_scheme *sc, s7_pointer arg1)
 }
 
 static s7_pointer g_random_i(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args);
-static s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args);
 
 static s7_pointer add_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -15404,6 +15404,8 @@ static s7_pointer negate_p_p(s7_scheme *sc, s7_pointer x)     /* can't use "nega
       return(method_or_bust_p(sc, x, sc->subtract_symbol, a_number_string));
     }
 }
+
+s7_pointer s7i_negate_p_p(s7_scheme *sc, s7_pointer x) {return(negate_p_p(sc, x));}
 
 static inline s7_pointer subtract_if_overflow_to_real_or_big_integer(s7_scheme *sc, s7_int x, s7_int y)
 {
@@ -15552,6 +15554,8 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
 }
 
+s7_pointer s7i_subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(subtract_p_pp(sc, x, y));}
+
 static s7_pointer negate_p_p_wrapped(s7_scheme *sc, s7_pointer x)     /* can't use "negate" because it confuses C++! */
 {
   switch (type(x))
@@ -15567,6 +15571,8 @@ static s7_pointer negate_p_p_wrapped(s7_scheme *sc, s7_pointer x)     /* can't u
     }
   return(negate_p_p(sc, x));
 }
+
+s7_pointer s7i_negate_p_p_wrapped(s7_scheme *sc, s7_pointer x) {return(negate_p_p_wrapped(sc, x));}
 
 static s7_pointer subtract_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
@@ -15612,6 +15618,8 @@ static s7_pointer subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
   return(subtract_p_pp(sc, x, y));
 }
 
+s7_pointer s7i_subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(subtract_p_pp_wrapped(sc, x, y));}
+
 static s7_pointer g_subtract(s7_scheme *sc, s7_pointer args)
 {
   #define H_subtract "(- x1 ...) subtracts its trailing arguments from the first, or negates the first if only one it is given"
@@ -15626,11 +15634,6 @@ static s7_pointer g_subtract(s7_scheme *sc, s7_pointer args)
   sc->error_argnum = 0;
   return(x);
 }
-
-static s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args) {return(negate_p_p(sc, car(args)));}
-static s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args) {return(negate_p_p_wrapped(sc, car(args)));}
-static s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args) {return(subtract_p_pp(sc, car(args), cadr(args)));}
-static s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args) {return(subtract_p_pp_wrapped(sc, car(args), cadr(args)));}
 
 static s7_pointer g_subtract_3(s7_scheme *sc, s7_pointer args) /* wrapped version gets no hits */
 {
@@ -15864,6 +15867,8 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     }
 }
 
+s7_pointer s7i_multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(multiply_p_pp(sc, x, y));}
+
 static inline s7_pointer multiply_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -15910,6 +15915,8 @@ static s7_pointer multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
   return(multiply_p_pp(sc, x, y));
 }
 
+s7_pointer s7i_multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(multiply_p_pp_wrapped(sc, x, y));}
+
 static s7_pointer multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
   /* no hits for reals in tnum */
@@ -15921,6 +15928,8 @@ static s7_pointer multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_p
   return(x);
 }
 
+s7_pointer s7i_multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z) {return(multiply_p_ppp(sc, x, y, z));}
+
 static s7_pointer multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
   /* no hits for reals in tnum */
@@ -15931,6 +15940,8 @@ static s7_pointer multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer
   sc->error_argnum = 0;
   return(x);
 }
+
+s7_pointer s7i_multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z) {return(multiply_p_ppp_wrapped(sc, x, y, z));}
 
 static s7_pointer multiply_method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer args, s7_pointer typ, int32_t num)
 {
@@ -15964,11 +15975,6 @@ static s7_pointer g_multiply(s7_scheme *sc, s7_pointer args)
   sc->error_argnum = 0;
   return(x);
 }
-
-static s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args) {return(multiply_p_pp(sc, car(args), cadr(args)));}
-static s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args) {return(multiply_p_pp_wrapped(sc, car(args), cadr(args)));}
-static s7_pointer g_multiply_3(s7_scheme *sc, s7_pointer args) {return(multiply_p_ppp(sc, car(args), cadr(args), caddr(args)));}
-static s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args) {return(multiply_p_ppp_wrapped(sc, car(args), cadr(args), caddr(args)));}
 
 static s7_pointer g_mul_xi(s7_scheme *sc, s7_pointer x, s7_int n, int32_t loc)
 {
@@ -16106,6 +16112,8 @@ static s7_pointer invert_p_p(s7_scheme *sc, s7_pointer num)
     }
   return(NULL);
 }
+
+s7_pointer s7i_invert_p_p(s7_scheme *sc, s7_pointer x) {return(invert_p_p(sc, x));}
 
 static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
@@ -16305,6 +16313,8 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
   return(NULL); /* make the compiler happy */
 }
 
+s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y) {return(divide_p_pp(sc, x, y));}
+
 static s7_pointer g_divide(s7_scheme *sc, s7_pointer args)
 {
   #define H_divide "(/ x1 ...) divides its first argument by the rest, or inverts the first if there is only one argument"
@@ -16322,9 +16332,6 @@ static s7_pointer g_divide(s7_scheme *sc, s7_pointer args)
   sc->error_argnum = 0;
   return(x);
 }
-
-static s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args) {return(invert_p_p(sc, car(args)));}
-static s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args) {return(divide_p_pp(sc, car(args), cadr(args)));}
 
 static s7_pointer g_divide_by_2(s7_scheme *sc, s7_pointer args)
 {

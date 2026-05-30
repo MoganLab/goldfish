@@ -94,6 +94,20 @@ s7_pointer g_list_1(s7_scheme *sc, s7_pointer args);
 s7_pointer g_append_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }

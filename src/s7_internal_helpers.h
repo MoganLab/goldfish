@@ -251,6 +251,22 @@ s7_int s7i_heap_holders(s7_pointer obj);
 bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
+/* bridge functions for arithmetic g_ functions migration */
+s7_pointer s7i_add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_negate_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_negate_p_p_wrapped(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_invert_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
 #ifdef __cplusplus
 }
 #endif
