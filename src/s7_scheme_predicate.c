@@ -505,13 +505,3 @@ s7_pointer g_heap_holders(s7_scheme *sc, s7_pointer args)
 }
 #endif
 
-s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_initial_value(s7_cadr(args)));
-}
-
-s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args)
-{
-  return(s7i_initial_value(s7_car(args)));
-}
-

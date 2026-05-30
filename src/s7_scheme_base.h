@@ -209,6 +209,10 @@ s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args);
 s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args);
 s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args);
 
+/* unlet functions */
+s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args);
+s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

@@ -1489,3 +1489,13 @@ s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_divide_p_pp(sc, s7_car(args), s7_cadr(args)));
 }
+
+s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_initial_value(s7_cadr(args)));
+}
+
+s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_initial_value(s7_car(args)));
+}

@@ -81,9 +81,6 @@ s7_pointer g_show_op_stack(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_op_stack(s7_scheme *sc, s7_pointer args);
 s7_pointer g_heap_holder(s7_scheme *sc, s7_pointer args);
 s7_pointer g_heap_holders(s7_scheme *sc, s7_pointer args);
-s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args);
-s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args);
-
 #ifdef __cplusplus
 }
 #endif
