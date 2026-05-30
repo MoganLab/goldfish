@@ -10498,7 +10498,7 @@ static inline s7_pointer g_cdr_let_ref(s7_scheme *sc, s7_pointer args)
 static s7_pointer starlet(s7_scheme *sc, s7_int choice);
 static s7_pointer g_starlet_ref(s7_scheme *sc, s7_pointer args) {return(starlet(sc, starlet_symbol_id(cadr(args))));}
 static s7_pointer g_curlet_ref(s7_scheme *sc, s7_pointer args) {return(lookup(sc, cadr(args)));}
-static s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args) {return(initial_value(cadr(args)));}
+
 
 static s7_pointer g_rootlet_ref(s7_scheme *sc, s7_pointer args)
 {
@@ -11053,7 +11053,7 @@ s7_pointer s7_symbol_set_value(s7_scheme *sc, s7_pointer sym, s7_pointer val)
   return(val);
 }
 
-static s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args) {return(initial_value(car(args)));}
+
 
 static s7_pointer symbol_to_value_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
 {
@@ -30332,8 +30332,7 @@ static bool op_member_if(s7_scheme *sc)
 #define Q_list s7_make_circular_signature(sc, 1, 2, sc->is_proper_list_symbol, sc->T)
 /* g_list is now defined in s7_liii_list.c */
 
-static s7_pointer g_list_0(s7_scheme *sc, s7_pointer args) {return(sc->nil);}
-static s7_pointer g_list_1(s7_scheme *sc, s7_pointer args) {return(list_1(sc, car(args)));}
+
 static s7_pointer g_list_2(s7_scheme *sc, s7_pointer args) {return(list_2(sc, car(args), cadr(args)));}
 static s7_pointer g_list_3(s7_scheme *sc, s7_pointer args) {return(list_3(sc, car(args), cadr(args), caddr(args)));}
 static s7_pointer g_list_4(s7_scheme *sc, s7_pointer args) {s7_pointer p = cddr(args); return(list_4(sc, car(args), cadr(args), car(p), cadr(p)));}
@@ -41213,7 +41212,7 @@ s7_pointer s7_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
   return(g_append(sc, set_plist_2(sc, a, b)));
 }
 
-static s7_pointer g_append_2(s7_scheme *sc, s7_pointer args) {return(s7_append(sc, car(args), cadr(args)));}
+
 
 static s7_pointer append_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
