@@ -95,7 +95,9 @@
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
       ) ;display
       (newline)
-      (display "      --changed-since REV    仅格式化自 REV 以来变更的 .scm 文件"
+      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）")
+      (newline)
+      (display "      --changed-since REV    仅格式化自 REV 以来变更的文件"
       ) ;display
       (newline)
       (newline)
@@ -114,13 +116,19 @@
       (newline)
       (display "  gf fmt --dry-run file.scm    预览格式化结果")
       (newline)
-      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 .scm 文件"
+      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的文件"
       ) ;display
       (newline)
       (display "  gf fmt --dry-run --changed-since=HEAD  预览变更文件的格式化结果"
       ) ;display
       (newline)
       (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件"
+      ) ;display
+      (newline)
+      (display "  gf fmt -e sld /path/to/dir   递归格式化目录下所有 .sld 文件"
+      ) ;display
+      (newline)
+      (display "  gf fmt -e scm,sld /path/to/dir  递归格式化目录下所有 .scm 和 .sld 文件"
       ) ;display
       (newline)
     ) ;define
@@ -196,7 +204,19 @@
       ) ;let
     ) ;define
 
-    (define (format-changed-since since path-str dry-run)
+    (define (file-extension-match? filename extensions)
+      (let loop ((exts extensions))
+        (if (null? exts)
+          #f
+          (if (string-suffix? (car exts) filename)
+            #t
+            (loop (cdr exts))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (format-changed-since since path-str dry-run extensions)
       (let ((scope (if (string=? path-str "") #f path-str)))
         (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
                (display (string-append "错误: 路径不存在 - " scope))
@@ -204,8 +224,8 @@
                (exit 1)
               ) ;
               (else (let ((files (if scope
-                                   (changed-scheme-files-since since scope)
-                                   (changed-scheme-files-since since)
+                                   (changed-scheme-files-since since scope extensions)
+                                   (changed-scheme-files-since since extensions)
                                  ) ;if
                           ) ;files
                          ) ;
@@ -238,7 +258,7 @@
 
     ;; ; 递归格式化目录
     ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
-    (define (format-directory dir-path)
+    (define (format-directory dir-path extensions)
       (let ((entries (path-list-path (path dir-path))))
         (let loop
           ((i 0) (total 0) (updated 0) (cached 0))
@@ -247,7 +267,7 @@
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
-                       (if (string-suffix? ".scm" entry-str)
+                       (if (file-extension-match? entry-str extensions)
                          (let ((result (format-file entry-str)))
                            (cond ((eq? result 'cached)
                                   (loop (+ i 1) (+ total 1) updated (+ cached 1))
@@ -267,7 +287,7 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda () (format-directory (path->string entry)))
+                     (call-with-values (lambda () (format-directory (path->string entry) extensions))
                        (lambda (sub-total sub-updated sub-cached)
                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
@@ -297,6 +317,10 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
+        (parser :add-argument '((name . "extension")
+                                (short . "e")
+                                (type . string)
+                                (default . "scm")))
         (parser :add-argument '((name . "changed-since") (type . string)))
         parser
       ) ;let
@@ -308,17 +332,29 @@
       ) ;let
     ) ;define
 
+    (define (normalize-extension ext)
+      (if (and (> (string-length ext) 0)
+               (char=? (string-ref ext 0) #\.))
+        ext
+        (string-append "." ext))
+    ) ;define
+
+    (define (parse-extensions raw)
+      (map normalize-extension (string-split raw ","))
+    ) ;define
+
     ;; ; 主入口函数
     (define (main)
       (let ((parser (make-fmt-arg-parser)))
         (parser :parse-argv (argv))
-        (let ((help-flag (parser 'help))
-              (dry-run (parser 'dry-run))
-              (changed-since (parser 'changed-since))
-              (path-str (first-positional parser))
-             ) ;
+        (let* ((help-flag (parser 'help))
+               (dry-run (parser 'dry-run))
+               (extensions (parse-extensions (parser 'extension)))
+               (changed-since (parser 'changed-since))
+               (path-str (first-positional parser))
+              ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (format-changed-since changed-since path-str dry-run))
+                (changed-since (format-changed-since changed-since path-str dry-run extensions))
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
@@ -346,7 +382,7 @@
                      (newline)
                      (exit 1)
                    ) ;begin
-                   (call-with-values (lambda () (format-directory path-str))
+                   (call-with-values (lambda () (format-directory path-str extensions))
                      (lambda (total updated cached)
                        (display (string-append "Total files formatted: "
                                   (number->string total)
