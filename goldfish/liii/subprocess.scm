@@ -16,8 +16,8 @@
 
 (define-library (liii subprocess)
   (export run
-    run-string
     run-values
+    run-either
     run-set!
     run-get
     run-allow!
@@ -311,9 +311,9 @@
       ) ;let
     ) ;define
 
-    (define (run-string command . opts)
+    (define (run-either command . opts)
       (let-values (((out err code) (apply run-values command opts)))
-        (if (zero? code) (from-right out) (from-left code))
+        (if (zero? code) (from-right out) (from-left (cons code err)))
       ) ;let-values
     ) ;define
 
