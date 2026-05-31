@@ -43305,18 +43305,11 @@ static no_return void read_error_1_nr(s7_scheme *sc, const char *errmsg, bool st
 static no_return void read_error_nr(s7_scheme *sc, const char *errmsg) {read_error_1_nr(sc, errmsg, false);}
 static no_return void string_read_error_nr(s7_scheme *sc, const char *errmsg) {read_error_1_nr(sc, errmsg, true);}
 
-static s7_pointer g_error(s7_scheme *sc, s7_pointer args)
-{
-  #define H_error "(error type ...) signals an error.  The 'type' can be used with catch to trap \
+/* g_error is now implemented in s7_scheme_base.c */
+#define H_error "(error type ...) signals an error.  The 'type' can be used with catch to trap \
 particular errors.  If the error is not caught, s7 treats the second argument as a format control string, \
 and applies it to the rest of the arguments."
-  #define Q_error s7_make_circular_signature(sc, 1, 2, sc->values_symbol, sc->T)
-
-  if (is_string(car(args)))  /* a CL-style error -- use tag='no-catch */
-    error_nr(sc, make_symbol(sc, "no-catch", 8), args);
-  error_nr(sc, car(args), cdr(args));
-  return(sc->unspecified);
-}
+#define Q_error s7_make_circular_signature(sc, 1, 2, sc->values_symbol, sc->T)
 
 static char *truncate_string(char *form, s7_int len, use_write_t use_write)
 {

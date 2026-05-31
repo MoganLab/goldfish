@@ -1824,3 +1824,11 @@ s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_curlet(sc));
 }
+
+s7_pointer g_error(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_string(s7_car(args)))
+    s7_error(sc, s7_make_symbol(sc, "no-catch"), args);
+  s7_error(sc, s7_car(args), s7_cdr(args));
+  return(s7_unspecified(sc));
+}

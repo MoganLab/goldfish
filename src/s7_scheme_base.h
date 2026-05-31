@@ -248,6 +248,9 @@ s7_pointer g_curlet_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer g_outlet(s7_scheme *sc, s7_pointer args);
 s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args);
 
+/* error function */
+s7_pointer g_error(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif
