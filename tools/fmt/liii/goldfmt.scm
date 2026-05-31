@@ -95,7 +95,8 @@
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
       ) ;display
       (newline)
-      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）")
+      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）"
+      ) ;display
       (newline)
       (display "      --changed-since REV    仅格式化自 REV 以来变更的文件"
       ) ;display
@@ -185,9 +186,7 @@
                 (loop (cdr remaining) (+ total 1) updated cached)
               ) ;begin
               (let ((result (format-file file)))
-                (cond ((eq? result 'cached)
-                       (loop (cdr remaining) (+ total 1) updated (+ cached 1))
-                      ) ;
+                (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
                       (result (display (string-append "  Updated: " file))
                         (newline)
                         (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
@@ -205,13 +204,11 @@
     ) ;define
 
     (define (file-extension-match? filename extensions)
-      (let loop ((exts extensions))
+      (let loop
+        ((exts extensions))
         (if (null? exts)
           #f
-          (if (string-suffix? (car exts) filename)
-            #t
-            (loop (cdr exts))
-          ) ;if
+          (if (string-suffix? (car exts) filename) #t (loop (cdr exts)))
         ) ;if
       ) ;let
     ) ;define
@@ -225,7 +222,7 @@
               ) ;
               (else (let ((files (if scope
                                    (changed-scheme-files-since since scope extensions)
-                                   (changed-scheme-files-since since extensions)
+                                   (changed-scheme-files-since since #f extensions)
                                  ) ;if
                           ) ;files
                          ) ;
@@ -269,9 +266,7 @@
                      (let ((entry-str (path->string entry)))
                        (if (file-extension-match? entry-str extensions)
                          (let ((result (format-file entry-str)))
-                           (cond ((eq? result 'cached)
-                                  (loop (+ i 1) (+ total 1) updated (+ cached 1))
-                                 ) ;
+                           (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
                                    (newline)
                                    (loop (+ i 1) (+ total 1) (+ updated 1) cached)
@@ -317,10 +312,12 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
-        (parser :add-argument '((name . "extension")
-                                (short . "e")
-                                (type . string)
-                                (default . "scm")))
+        (parser :add-argument
+          '((name . "extension")
+            (short . "e")
+            (type . string)
+            (default . "scm"))
+        ) ;parser
         (parser :add-argument '((name . "changed-since") (type . string)))
         parser
       ) ;let
@@ -333,10 +330,10 @@
     ) ;define
 
     (define (normalize-extension ext)
-      (if (and (> (string-length ext) 0)
-               (char=? (string-ref ext 0) #\.))
+      (if (and (> (string-length ext) 0) (char=? (string-ref ext 0) #\.))
         ext
-        (string-append "." ext))
+        (string-append "." ext)
+      ) ;if
     ) ;define
 
     (define (parse-extensions raw)
@@ -403,7 +400,7 @@
                   (exit 1)
                 ) ;else
           ) ;cond
-        ) ;let
+        ) ;let*
       ) ;let
     ) ;define
   ) ;begin

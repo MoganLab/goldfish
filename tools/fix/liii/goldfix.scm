@@ -1,3 +1,24 @@
+(define (%goldfix-common-dirname path-str)
+  (let loop
+    ((i (- (string-length path-str) 1)))
+    (cond ((< i 0) ".")
+          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
+           (if (= i 0) "." (substring path-str 0 i))
+          ) ;
+          (else (loop (- i 1)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(set! *load-path*
+  (append (list "../common" "tools/common")
+    (map (lambda (root) (string-append (%goldfix-common-dirname root) "/common"))
+      *load-path*
+    ) ;map
+    *load-path*
+  ) ;append
+) ;set!
+
 (define-library (liii goldfix)
   (export main fix-string repair-parentheses parentheses-balanced?)
   (import (liii base)
@@ -10,6 +31,7 @@
     (srfi srfi-13)
     (liii goldfix-repair)
     (liii goldfix-record)
+    (liii goldtool-changed)
   ) ;import
 
   (begin
@@ -55,7 +77,10 @@
       (newline)
       (display "      --dry-run    预览模式（仅支持单个文件）")
       (newline)
-      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）")
+      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）"
+      ) ;display
+      (newline)
+      (display "      --changed-since REV    仅修正自 REV 以来变更的文件")
       (newline)
       (newline)
       (display "Arguments:")
@@ -72,6 +97,8 @@
       (display "  gf fix file.scm               修正单个文件")
       (newline)
       (display "  gf fix --dry-run file.scm     预览修正结果")
+      (newline)
+      (display "  gf fix --changed-since=HEAD   修正自 HEAD 以来变更的文件")
       (newline)
       (display "  gf fix /path/to/dir           递归修正目录下所有 .scm 文件"
       ) ;display
@@ -152,15 +179,84 @@
       (fix-file-core path-str use-cache?)
     ) ;define*
 
+    (define (fix-file-list files dry-run)
+      (let loop
+        ((remaining files) (total 0) (updated 0) (cached 0))
+        (if (null? remaining)
+          (values total updated cached)
+          (let ((file (car remaining)))
+            (if dry-run
+              (begin
+                (display (string-append "Fixing: " file))
+                (newline)
+                (fix-file-dry-run file)
+                (loop (cdr remaining) (+ total 1) updated cached)
+              ) ;begin
+              (let ((result (fix-file file)))
+                (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
+                      (result (display (string-append "  Updated: " file))
+                        (newline)
+                        (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
+                      ) ;result
+                      (else (display (string-append "Fixing: " file))
+                        (newline)
+                        (loop (cdr remaining) (+ total 1) updated cached)
+                      ) ;else
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (file-extension-match? filename extensions)
-      (let loop ((exts extensions))
+      (let loop
+        ((exts extensions))
         (if (null? exts)
           #f
-          (if (string-suffix? (car exts) filename)
-            #t
-            (loop (cdr exts))
-          ) ;if
+          (if (string-suffix? (car exts) filename) #t (loop (cdr exts)))
         ) ;if
+      ) ;let
+    ) ;define
+
+    (define (fix-changed-since since path-str dry-run extensions)
+      (let ((scope (if (string=? path-str "") #f path-str)))
+        (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
+               (display (string-append "错误: 路径不存在 - " scope))
+               (newline)
+               (exit 1)
+              ) ;
+              (else (let ((files (if scope
+                                   (changed-scheme-files-since since scope extensions)
+                                   (changed-scheme-files-since since #f extensions)
+                                 ) ;if
+                          ) ;files
+                         ) ;
+                      (if (null? files)
+                        (begin
+                          (display (string-append "No changed Scheme files since " since))
+                          (newline)
+                          #t
+                        ) ;begin
+                        (call-with-values (lambda () (fix-file-list files dry-run))
+                          (lambda (total updated cached)
+                            (display (string-append "Total files fixed: "
+                                       (number->string total)
+                                       ", Files updated: "
+                                       (number->string updated)
+                                       ", Files cached: "
+                                       (number->string cached)
+                                     ) ;string-append
+                            ) ;display
+                            (newline)
+                            #t
+                          ) ;lambda
+                        ) ;call-with-values
+                      ) ;if
+                    ) ;let
+              ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
@@ -178,14 +274,15 @@
                      (let ((entry-str (path->string entry)))
                        (if (file-extension-match? entry-str extensions)
                          (let ((result (fix-file-core entry-str)))
-                           (cond ((eq? result 'cached)
-                                  (loop (+ i 1) (+ total 1) updated (+ cached 1)))
+                           (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
                                    (newline)
-                                   (loop (+ i 1) (+ total 1) (+ updated 1) cached))
+                                   (loop (+ i 1) (+ total 1) (+ updated 1) cached)
+                                 ) ;result
                                  (else (display (string-append "Fixing: " entry-str))
                                    (newline)
-                                   (loop (+ i 1) (+ total 1) updated cached))
+                                   (loop (+ i 1) (+ total 1) updated cached)
+                                 ) ;else
                            ) ;cond
                          ) ;let
                          (loop (+ i 1) total updated cached)
@@ -223,10 +320,13 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
-        (parser :add-argument '((name . "extension")
-                                (short . "e")
-                                (type . string)
-                                (default . "scm")))
+        (parser :add-argument
+          '((name . "extension")
+            (short . "e")
+            (type . string)
+            (default . "scm"))
+        ) ;parser
+        (parser :add-argument '((name . "changed-since") (type . string)))
         parser
       ) ;let
     ) ;define
@@ -238,10 +338,10 @@
     ) ;define
 
     (define (normalize-extension ext)
-      (if (and (> (string-length ext) 0)
-               (char=? (string-ref ext 0) #\.))
+      (if (and (> (string-length ext) 0) (char=? (string-ref ext 0) #\.))
         ext
-        (string-append "." ext))
+        (string-append "." ext)
+      ) ;if
     ) ;define
 
     (define (parse-extensions raw)
@@ -254,9 +354,12 @@
         (let* ((help-flag (parser 'help))
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
+               (changed-since (parser 'changed-since))
                (path-str (first-positional parser))
               ) ;
-          (cond ((or help-flag (string=? path-str "")) (display-help) #t)
+          (cond (help-flag (display-help) #t)
+                (changed-since (fix-changed-since changed-since path-str dry-run extensions))
+                ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
                    (fix-file-dry-run path-str)
@@ -304,7 +407,7 @@
                   (exit 1)
                 ) ;else
           ) ;cond
-        ) ;let
+        ) ;let*
       ) ;let
     ) ;define
   ) ;begin
