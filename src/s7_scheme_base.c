@@ -28,10 +28,6 @@
   #define S7_DEBUGGING 0
 #endif
 
-#define S7_INT64_MAX 9223372036854775807LL
-/* #define S7_INT64_MIN -9223372036854775808LL */   /* why is this disallowed in C? "warning: integer constant is so large that it is unsigned" */
-#define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL) /* in gcc 9 we had to assign this to an s7_int, then use that! */
-
 /* Helper function to check for NaN */
 bool is_NaN(s7_double x)
 {
@@ -1000,18 +996,6 @@ s7_pointer g_min(s7_scheme *sc, s7_pointer args)
 
 s7_pointer g_min_2(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, s7_car(args), s7_cadr(args)));}
 s7_pointer g_min_3(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, min_p_pp(sc, s7_car(args), s7_cadr(args)), s7_caddr(args)));}
-
-#if HAVE_OVERFLOW_CHECKS
-  #if defined(__clang__)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #elif defined(__GNUC__) && (__GNUC__ >= 5)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #else
-    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-  #endif
-#else
-  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-#endif
 
 /* -------------------------------- c_gcd -------------------------------- */
 

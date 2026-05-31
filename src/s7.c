@@ -12746,11 +12746,7 @@ static s7_pointer g_nan_payload(s7_scheme *sc, s7_pointer args)
 #endif
 #endif
 
-#if WITH_GCC
-#define s7_int_abs(x) ({s7_int _X_; _X_ = x; _X_ >= 0 ? _X_ : -_X_;})
-#else
-#define s7_int_abs(x) ((x) >= 0 ? (x) : -(x))
-#endif
+/* s7_int_abs is defined in s7_internal_helpers.h */
 /* can't use abs even in gcc -- it doesn't work with s7_ints! */
 
 #if !__NetBSD__

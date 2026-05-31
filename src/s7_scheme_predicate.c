@@ -18,44 +18,41 @@ s7_pointer g_not(s7_scheme *sc, s7_pointer args)
   return((s7_car(args) == s7_f(sc)) ? s7_t(sc) : s7_f(sc));
 }
 
-s7_pointer g_is_boolean(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_boolean(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_boolean_symbol(sc)));
+#define S7_TYPE_PREDICATE(Func_name, Fast_check, Symbol_fn) \
+s7_pointer Func_name(s7_scheme *sc, s7_pointer args)          \
+{                                                             \
+  s7_pointer p = s7_car(args);                                \
+  if (Fast_check) return(s7_t(sc));                           \
+  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));       \
+  return(s7i_apply_boolean_method(sc, p, Symbol_fn(sc)));     \
 }
 
-s7_pointer g_is_unspecified(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_unspecified(sc, p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_unspecified_symbol(sc)));
-}
+S7_TYPE_PREDICATE(g_is_boolean, s7_is_boolean(p), s7i_is_boolean_symbol)
+S7_TYPE_PREDICATE(g_is_unspecified, s7_is_unspecified(sc, p), s7i_is_unspecified_symbol)
+S7_TYPE_PREDICATE(g_is_number, s7_is_number(p), s7i_is_number_symbol)
+S7_TYPE_PREDICATE(g_is_integer, s7_is_integer(p), s7i_is_integer_symbol)
+S7_TYPE_PREDICATE(g_is_real, s7_is_real(p), s7i_is_real_symbol)
+S7_TYPE_PREDICATE(g_is_rational, s7_is_rational(p), s7i_is_rational_symbol)
+S7_TYPE_PREDICATE(g_is_keyword, s7_is_keyword(p), s7i_is_keyword_symbol)
+S7_TYPE_PREDICATE(g_is_dilambda, s7_is_dilambda(p), s7i_is_dilambda_symbol)
+S7_TYPE_PREDICATE(g_is_sequence, s7i_is_sequence(p), s7i_is_sequence_symbol)
+S7_TYPE_PREDICATE(g_is_symbol, s7_is_symbol(p), s7i_is_symbol_symbol)
+S7_TYPE_PREDICATE(g_is_input_port, s7_is_input_port(sc, p), s7i_is_input_port_symbol)
+S7_TYPE_PREDICATE(g_is_output_port, s7_is_output_port(sc, p), s7i_is_output_port_symbol)
+S7_TYPE_PREDICATE(g_is_macro, s7_is_macro(sc, p), s7i_is_macro_symbol)
+S7_TYPE_PREDICATE(g_is_undefined, s7i_is_undefined(p), s7i_is_undefined_symbol)
+S7_TYPE_PREDICATE(g_is_eof_object, s7i_is_eof(p), s7i_is_eof_object_symbol)
+S7_TYPE_PREDICATE(g_is_float, s7i_is_t_real(p), s7i_is_float_symbol)
+S7_TYPE_PREDICATE(g_is_random_state, s7_is_random_state(p), s7i_is_random_state_symbol)
+S7_TYPE_PREDICATE(g_is_continuation, s7i_is_continuation(p), s7i_is_continuation_symbol)
+S7_TYPE_PREDICATE(g_is_iterator, s7_is_iterator(p), s7i_is_iterator_symbol)
+S7_TYPE_PREDICATE(g_is_syntax, s7_is_syntax(p), s7i_is_syntax_symbol)
+S7_TYPE_PREDICATE(g_is_let, s7_is_let(p), s7i_is_let_symbol)
+S7_TYPE_PREDICATE(g_is_c_object, s7_is_c_object(p), s7i_is_c_object_symbol)
 
-s7_pointer g_is_number(s7_scheme *sc, s7_pointer args)
+s7_pointer g_is_procedure(s7_scheme *sc, s7_pointer args)
 {
-  s7_pointer p = s7_car(args);
-  if (s7_is_number(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_number_symbol(sc)));
-}
-
-s7_pointer g_is_integer(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_integer(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_integer_symbol(sc)));
-}
-
-s7_pointer g_is_real(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_real(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_real_symbol(sc)));
+  return(s7_make_boolean(sc, s7_is_procedure(s7_car(args))));
 }
 
 s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args)
@@ -66,129 +63,12 @@ s7_pointer g_is_complex(s7_scheme *sc, s7_pointer args)
   return(s7i_apply_boolean_method(sc, p, s7i_is_complex_symbol(sc)));
 }
 
-s7_pointer g_is_rational(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_rational(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_rational_symbol(sc)));
-}
-
-s7_pointer g_is_keyword(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_keyword(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_keyword_symbol(sc)));
-}
-
-s7_pointer g_is_procedure(s7_scheme *sc, s7_pointer args)
-{
-  return(s7_make_boolean(sc, s7_is_procedure(s7_car(args))));
-}
-
-s7_pointer g_is_dilambda(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_dilambda(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_dilambda_symbol(sc)));
-}
-
-s7_pointer g_is_sequence(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7i_is_sequence(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_sequence_symbol(sc)));
-}
-
-s7_pointer g_is_symbol(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_symbol(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_symbol_symbol(sc)));
-}
-
-s7_pointer g_is_input_port(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_input_port(sc, p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_input_port_symbol(sc)));
-}
-
-s7_pointer g_is_output_port(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_output_port(sc, p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_output_port_symbol(sc)));
-}
-
-s7_pointer g_is_macro(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_macro(sc, p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_macro_symbol(sc)));
-}
-
-s7_pointer g_is_undefined(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7i_is_undefined(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_undefined_symbol(sc)));
-}
-
-s7_pointer g_is_eof_object(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7i_is_eof(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_eof_object_symbol(sc)));
-}
-
 s7_pointer g_is_byte(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer p = s7_car(args);
   if (s7_is_integer(p) && s7_integer(p) >= 0 && s7_integer(p) < 256) return(s7_t(sc));
   if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
   return(s7i_apply_boolean_method(sc, p, s7i_is_byte_symbol(sc)));
-}
-
-s7_pointer g_is_float(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7i_is_t_real(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_float_symbol(sc)));
-}
-
-s7_pointer g_is_random_state(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_random_state(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_random_state_symbol(sc)));
-}
-
-s7_pointer g_is_continuation(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7i_is_continuation(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_continuation_symbol(sc)));
-}
-
-s7_pointer g_is_iterator(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_iterator(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_iterator_symbol(sc)));
 }
 
 s7_pointer g_is_gensym(s7_scheme *sc, s7_pointer args)
@@ -199,22 +79,6 @@ s7_pointer g_is_gensym(s7_scheme *sc, s7_pointer args)
   return(s7i_apply_boolean_method(sc, p, s7i_is_gensym_symbol(sc)));
 }
 
-s7_pointer g_is_syntax(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_syntax(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_syntax_symbol(sc)));
-}
-
-s7_pointer g_is_let(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer p = s7_car(args);
-  if (s7_is_let(p)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, p)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, p, s7i_is_let_symbol(sc)));
-}
-
 s7_pointer g_is_goto(s7_scheme *sc, s7_pointer args)
 {
   return(s7_make_boolean(sc, s7i_is_goto(s7_car(args))));
@@ -223,14 +87,6 @@ s7_pointer g_is_goto(s7_scheme *sc, s7_pointer args)
 s7_pointer g_is_constant(s7_scheme *sc, s7_pointer args)
 {
   return(s7_make_boolean(sc, s7i_is_constant(sc, s7_car(args))));
-}
-
-s7_pointer g_is_c_object(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer obj = s7_car(args);
-  if (s7_is_c_object(obj)) return(s7_t(sc));
-  if (!s7i_has_active_methods(sc, obj)) return(s7_f(sc));
-  return(s7i_apply_boolean_method(sc, obj, s7i_is_c_object_symbol(sc)));
 }
 
 s7_pointer g_help(s7_scheme *sc, s7_pointer args)

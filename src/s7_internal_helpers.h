@@ -9,6 +9,32 @@
 
 #include "s7.h"
 
+#ifndef S7_INT64_MAX
+  #define S7_INT64_MAX 9223372036854775807LL
+#endif
+#ifndef S7_INT64_MIN
+  #define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL)
+#endif
+#ifndef s7_int_abs
+  #if defined(__GNUC__) || defined(__clang__)
+    #define s7_int_abs(x) ({s7_int _X_; _X_ = x; _X_ >= 0 ? _X_ : -_X_;})
+  #else
+    #define s7_int_abs(x) ((x) >= 0 ? (x) : -(x))
+  #endif
+#endif
+
+#if HAVE_OVERFLOW_CHECKS
+  #if defined(__clang__)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #elif defined(__GNUC__) && (__GNUC__ >= 5)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #else
+    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+  #endif
+#else
+  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
