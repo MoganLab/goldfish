@@ -29,6 +29,7 @@
     call-with-input-string
     call-with-output-string
     reverse!
+    format
   ) ;export
   (begin
 
