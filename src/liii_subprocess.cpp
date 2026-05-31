@@ -16,6 +16,7 @@
 
 #include "s7.h"
 #include <tbox/tbox.h>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -24,6 +25,8 @@ namespace goldfish {
 
 using std::string;
 using std::vector;
+
+enum class redirect_mode { tee, capture, inherit, discard, file };
 
 s7_pointer
 f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
@@ -83,14 +86,24 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args = s7_cdr (args);
   }
 
-  bool stdout_discard = false;
+  redirect_mode stdout_mode = redirect_mode::inherit;
   const char* stdout_path = nullptr;
   if (s7_is_pair (args)) {
     s7_pointer stdout_val = s7_car (args);
-    if (s7_is_symbol (stdout_val) && strcmp (s7_symbol_name (stdout_val), "discard") == 0) {
-      stdout_discard = true;
+    if (s7_is_symbol (stdout_val)) {
+      const char* sym = s7_symbol_name (stdout_val);
+      if (strcmp (sym, "capture") == 0) {
+        stdout_mode = redirect_mode::capture;
+      }
+      else if (strcmp (sym, "discard") == 0) {
+        stdout_mode = redirect_mode::discard;
+      }
+      else if (strcmp (sym, "inherit") == 0) {
+        stdout_mode = redirect_mode::inherit;
+      }
     }
     else if (s7_is_string (stdout_val)) {
+      stdout_mode = redirect_mode::file;
       stdout_path = s7_string (stdout_val);
     }
     args = s7_cdr (args);
@@ -105,8 +118,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args = s7_cdr (args);
   }
 
+  redirect_mode stderr_mode = redirect_mode::inherit;
   bool stderr_to_stdout = false;
-  bool stderr_discard = false;
   const char* stderr_path = nullptr;
   if (s7_is_pair (args)) {
     s7_pointer stderr_val = s7_car (args);
@@ -115,11 +128,18 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       if (strcmp (sym, "stdout") == 0) {
         stderr_to_stdout = true;
       }
+      else if (strcmp (sym, "capture") == 0) {
+        stderr_mode = redirect_mode::capture;
+      }
       else if (strcmp (sym, "discard") == 0) {
-        stderr_discard = true;
+        stderr_mode = redirect_mode::discard;
+      }
+      else if (strcmp (sym, "inherit") == 0) {
+        stderr_mode = redirect_mode::inherit;
       }
     }
     else if (s7_is_string (stderr_val)) {
+      stderr_mode = redirect_mode::file;
       stderr_path = s7_string (stderr_val);
     }
     args = s7_cdr (args);
@@ -152,13 +172,21 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (cwd) attr.curdir = cwd;
   if (!envp.empty ()) attr.envp = (tb_char_t const**) envp.data ();
 
+  bool need_stdout_pipe = (stdout_mode == redirect_mode::tee || stdout_mode == redirect_mode::capture)
+                          || (stderr_to_stdout && stdout_mode != redirect_mode::file && stdout_mode != redirect_mode::discard);
+
   tb_pipe_file_ref_t out_pipe[2] = {tb_null};
-  if (stdout_path) {
+  if (stdout_mode == redirect_mode::file) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.out.path = stdout_path;
     attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stdout_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
-  else if (!stdout_discard) {
+  else if (stdout_mode == redirect_mode::discard) {
+    attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+    attr.out.path = "/dev/null";
+    attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
+  }
+  else if (need_stdout_pipe) {
     tb_size_t mode[2] = {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
@@ -166,16 +194,21 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 
   tb_pipe_file_ref_t err_pipe[2] = {tb_null};
-  if (stderr_path) {
+  if (stderr_mode == redirect_mode::file) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.err.path = stderr_path;
     attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stderr_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
+  }
+  else if (stderr_mode == redirect_mode::discard) {
+    attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+    attr.err.path = "/dev/null";
+    attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (stderr_to_stdout && out_pipe[1]) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe = out_pipe[1];
   }
-  else if (!stderr_discard) {
+  else if (stderr_mode == redirect_mode::tee || stderr_mode == redirect_mode::capture) {
     tb_size_t mode[2] = {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
@@ -248,6 +281,10 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       while ((n = tb_pipe_file_read (out_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
         buf[n] = '\0';
         stdout_str.append (buf);
+        if (stdout_mode == redirect_mode::tee) {
+          fwrite (buf, 1, n, stdout);
+          fflush (stdout);
+        }
       }
       tb_pipe_file_exit (out_pipe[0]);
     }
@@ -258,6 +295,10 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       while ((n = tb_pipe_file_read (err_pipe[0], (tb_byte_t*) buf, sizeof (buf) - 1)) > 0) {
         buf[n] = '\0';
         stderr_str.append (buf);
+        if (stderr_mode == redirect_mode::tee) {
+          fwrite (buf, 1, n, stderr);
+          fflush (stderr);
+        }
       }
       tb_pipe_file_exit (err_pipe[0]);
     }

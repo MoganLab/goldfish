@@ -16,8 +16,8 @@
 
 (define-library (liii subprocess)
   (export run
-    run-string
     run-values
+    run-either
     run-set!
     run-get
     run-allow!
@@ -193,15 +193,11 @@
                                            ) ;run-values
                                           ) ;
                                          ) ;
-                               (display out)
-                               (display err (current-error-port))
                                code
                              ) ;let-values
                             ) ;
                             ((pair? cmd-spec)
                              (let-values (((out err code) (run-values command)))
-                               (display out)
-                               (display err (current-error-port))
                                code
                              ) ;let-values
                             ) ;
@@ -249,6 +245,14 @@
       (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
     ) ;define
 
+    (define (%valid-stdout? val)
+      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (string? val))
+    ) ;define
+
+    (define (%valid-stderr? val)
+      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (eq? val 'stdout) (string? val))
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
@@ -266,6 +270,12 @@
         (when (string? cmd-spec)
           (%check-string-command cmd-spec)
         ) ;when
+        (unless (%valid-stdout? stdout)
+          (value-error (format #f "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, or string" stdout))
+        ) ;unless
+        (unless (%valid-stderr? stderr)
+          (value-error (format #f "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'stdout, or string" stderr))
+        ) ;unless
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
@@ -311,10 +321,22 @@
       ) ;let
     ) ;define
 
-    (define (run-string command . opts)
-      (let-values (((out err code) (apply run-values command opts)))
-        (if (zero? code) (from-right out) (from-left code))
-      ) ;let-values
+    (define (run-either command . opts)
+      (let ((has-stdout? (%keyword-value :stdout opts #f))
+            (has-stderr? (%keyword-value :stderr opts #f))
+           ) ;
+        (let-values (((out err code)
+                      (apply run-values command
+                        (append (if has-stdout? '() (list :stdout 'capture))
+                                (if has-stderr? '() (list :stderr 'capture))
+                                opts
+                        ) ;append
+                      ) ;run-values
+                     ) ;
+                    ) ;
+          (if (zero? code) (from-right out) (from-left (cons code err)))
+        ) ;let-values
+      ) ;let
     ) ;define
 
     (define (%symbol-keyword? sym)
@@ -465,6 +487,8 @@
                                    input
                                    :stdin
                                    stdin
+                                   :stdout
+                                   'capture
                                  ) ;run-values
                                 ) ;
                                ) ;
@@ -483,6 +507,8 @@
                                         input
                                         :stdin
                                         stdin
+                                        :stdout
+                                        'capture
                                       ) ;run-values
                                      ) ;
                                     ) ;

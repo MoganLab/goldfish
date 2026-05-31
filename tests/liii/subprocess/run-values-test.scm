@@ -17,8 +17,8 @@
 ;; :env — 环境变量覆盖，格式为 '(("KEY" . "value") ...)。
 ;; :input — 写入子进程 stdin 的字符串。
 ;; :timeout — 超时时间（秒），超时后返回 -1。
-;; :stdout — 'discard 或文件路径。
-;; :stderr — 'stdout、'discard 或文件路径。
+;; :stdout — 'capture、'discard 或文件路径。
+;; :stderr — 'capture、'stdout、'discard 或文件路径。
 ;; :stdin — 文件路径或 'null。
 ;;
 ;; 返回值
@@ -27,7 +27,7 @@
 ;; exit-code 为 0 表示成功，-1 表示超时。
 
 (when (os-linux?)
-  (let-values (((out err code) (run-values "echo hello")))
+  (let-values (((out err code) (run-values "echo hello" :stdout 'capture)))
     (check out => "hello\n")
     (check err => "")
     (check (zero? code) => #t)
@@ -39,13 +39,13 @@
   ) ;let-values
 
   ;; :env
-  (let-values (((out err code) (run-values "echo $FOO" :env '(("FOO" . "bar")))))
+  (let-values (((out err code) (run-values "echo $FOO" :env '(("FOO" . "bar")) :stdout 'capture)))
     (check out => "bar\n")
     (check (zero? code) => #t)
   ) ;let-values
 
   ;; :input
-  (let-values (((out err code) (run-values "cat" :input "hello world")))
+  (let-values (((out err code) (run-values "cat" :input "hello world" :stdout 'capture)))
     (check out => "hello world")
     (check (zero? code) => #t)
   ) ;let-values
@@ -96,7 +96,7 @@
       (delete-file tmpfile)
     ) ;when
     (call-with-output-file tmpfile (lambda (p) (display "file content\n" p)))
-    (let-values (((out err code) (run-values "cat" :stdin tmpfile)))
+    (let-values (((out err code) (run-values "cat" :stdin tmpfile :stdout 'capture)))
       (check out => "file content\n")
       (check (zero? code) => #t)
     ) ;let-values
@@ -106,13 +106,13 @@
   ) ;let
 
   ;; :stdin 'null
-  (let-values (((out err code) (run-values "cat" :stdin 'null)))
+  (let-values (((out err code) (run-values "cat" :stdin 'null :stdout 'capture)))
     (check out => "")
     (check (zero? code) => #t)
   ) ;let-values
 
   ;; list form with symbol head
-  (let-values (((out err code) (run-values '(printf "%s" "hello world"))))
+  (let-values (((out err code) (run-values '(printf "%s" "hello world") :stdout 'capture)))
     (check out => "hello world")
     (check (zero? code) => #t)
   ) ;let-values

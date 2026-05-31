@@ -18,7 +18,7 @@
 ;;
 ;; 说明
 ;; ----
-;; 注册表是全局的，作用域覆盖所有后续的 run / run-string / run-values 调用。
+;; 注册表是全局的，作用域覆盖所有后续的 run / run-either / run-values 调用。
 
 (when (os-linux?)
   (run-set! 'echo-cmd "/bin/echo")
