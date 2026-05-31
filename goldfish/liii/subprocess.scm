@@ -193,15 +193,11 @@
                                            ) ;run-values
                                           ) ;
                                          ) ;
-                               (display out)
-                               (display err (current-error-port))
                                code
                              ) ;let-values
                             ) ;
                             ((pair? cmd-spec)
                              (let-values (((out err code) (run-values command)))
-                               (display out)
-                               (display err (current-error-port))
                                code
                              ) ;let-values
                             ) ;
@@ -312,9 +308,21 @@
     ) ;define
 
     (define (run-either command . opts)
-      (let-values (((out err code) (apply run-values command opts)))
-        (if (zero? code) (from-right out) (from-left (cons code err)))
-      ) ;let-values
+      (let ((has-stdout? (%keyword-value :stdout opts #f))
+            (has-stderr? (%keyword-value :stderr opts #f))
+           ) ;
+        (let-values (((out err code)
+                      (apply run-values command
+                        (append (if has-stdout? '() '(:stdout 'capture))
+                                (if has-stderr? '() '(:stderr 'capture))
+                                opts
+                        ) ;append
+                      ) ;run-values
+                     ) ;
+                    ) ;
+          (if (zero? code) (from-right out) (from-left (cons code err)))
+        ) ;let-values
+      ) ;let
     ) ;define
 
     (define (%symbol-keyword? sym)
@@ -465,6 +473,8 @@
                                    input
                                    :stdin
                                    stdin
+                                   :stdout
+                                   'capture
                                  ) ;run-values
                                 ) ;
                                ) ;
@@ -483,6 +493,8 @@
                                         input
                                         :stdin
                                         stdin
+                                        :stdout
+                                        'capture
                                       ) ;run-values
                                      ) ;
                                     ) ;

@@ -83,11 +83,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     args = s7_cdr (args);
   }
 
+  bool stdout_capture = false;
   bool stdout_discard = false;
   const char* stdout_path = nullptr;
   if (s7_is_pair (args)) {
     s7_pointer stdout_val = s7_car (args);
-    if (s7_is_symbol (stdout_val) && strcmp (s7_symbol_name (stdout_val), "discard") == 0) {
+    if (s7_is_symbol (stdout_val) && strcmp (s7_symbol_name (stdout_val), "capture") == 0) {
+      stdout_capture = true;
+    }
+    else if (s7_is_symbol (stdout_val) && strcmp (s7_symbol_name (stdout_val), "discard") == 0) {
       stdout_discard = true;
     }
     else if (s7_is_string (stdout_val)) {
@@ -106,6 +110,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 
   bool stderr_to_stdout = false;
+  bool stderr_capture = false;
   bool stderr_discard = false;
   const char* stderr_path = nullptr;
   if (s7_is_pair (args)) {
@@ -114,6 +119,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
       const char* sym = s7_symbol_name (stderr_val);
       if (strcmp (sym, "stdout") == 0) {
         stderr_to_stdout = true;
+      }
+      else if (strcmp (sym, "capture") == 0) {
+        stderr_capture = true;
       }
       else if (strcmp (sym, "discard") == 0) {
         stderr_discard = true;
@@ -153,12 +161,13 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   if (!envp.empty ()) attr.envp = (tb_char_t const**) envp.data ();
 
   tb_pipe_file_ref_t out_pipe[2] = {tb_null};
+  bool need_stdout_pipe = stdout_capture || (stderr_to_stdout && !stdout_path && !stdout_discard);
   if (stdout_path) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
     attr.out.path = stdout_path;
     attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | (stdout_append ? TB_FILE_MODE_APPEND : TB_FILE_MODE_TRUNC);
   }
-  else if (!stdout_discard) {
+  else if (need_stdout_pipe) {
     tb_size_t mode[2] = {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (out_pipe, mode, 0);
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
@@ -175,7 +184,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
     attr.err.pipe = out_pipe[1];
   }
-  else if (!stderr_discard) {
+  else if (stderr_capture) {
     tb_size_t mode[2] = {TB_PIPE_MODE_RO, TB_PIPE_MODE_WO};
     tb_pipe_file_init_pair (err_pipe, mode, 0);
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_PIPE;
