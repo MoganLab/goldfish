@@ -35,9 +35,34 @@
   static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
 #endif
 
+/* forward declarations for internal types used in bridge functions */
+typedef struct block_t block_t;
+
+#ifndef ld64
+  #include <inttypes.h>
+  #define ld64 PRId64
+#endif
+
+#ifndef no_return
+  #ifdef _MSC_VER
+    #define no_return _Noreturn
+  #elif defined(__GNUC__) || defined(__clang__)
+    #define no_return __attribute__((noreturn))
+  #else
+    #define no_return
+  #endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/* format_data_t type - needed by s7_scheme_format.c */
+typedef struct {
+  s7_int loc, curly_len, ctr;
+  char *curly_str;
+  s7_pointer args, orig_str, curly_arg, port, strport;
+} format_data_t;
 
 s7_pointer s7i_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name,
                               s7_pointer args, const char *type_name, s7_int arg_pos);
@@ -200,7 +225,6 @@ typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE}
 
 bool s7i_port_is_closed(s7_pointer p);
 s7_pointer s7i_object_out(s7_scheme *sc, s7_pointer obj, s7_pointer port, s7i_use_write_t choice);
-void s7i_port_write_character(s7_scheme *sc, uint8_t c, s7_pointer port);
 void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
 void s7i_port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port);
 s7_pointer s7i_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end);
@@ -305,6 +329,7 @@ s7_int s7i_heap_holders(s7_pointer obj);
 /* bridge functions for g_is_defined_in_rootlet migration */
 bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym);
 
+
 /* bridge functions for g_leq_2/g_geq_2 migration */
 bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
@@ -337,5 +362,102 @@ s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 #ifdef __cplusplus
 }
 #endif
+
+
+/* bridge functions for format module */
+s7_int s7i_format_column(s7_scheme *sc);
+void s7i_set_format_column(s7_scheme *sc, s7_int val);
+void s7i_inc_format_column(s7_scheme *sc);
+void s7i_add_format_column(s7_scheme *sc, s7_int n);
+s7_int s7i_format_depth(s7_scheme *sc);
+void s7i_set_format_depth(s7_scheme *sc, s7_int val);
+void s7i_inc_format_depth(s7_scheme *sc);
+void s7i_dec_format_depth(s7_scheme *sc);
+int32_t s7i_num_fdats(s7_scheme *sc);
+void s7i_set_num_fdats(s7_scheme *sc, int32_t val);
+format_data_t **s7i_fdats(s7_scheme *sc);
+void s7i_set_fdats(s7_scheme *sc, format_data_t **val);
+s7_int s7i_print_length(s7_scheme *sc);
+s7_int s7i_max_string_length(s7_scheme *sc);
+char *s7i_strbuf(s7_scheme *sc);
+s7_int s7i_strbuf_size(s7_scheme *sc);
+bool s7i_has_openlets(s7_scheme *sc);
+void s7i_set_has_openlets(s7_scheme *sc, bool val);
+s7_pointer s7i_format_symbol(s7_scheme *sc);
+s7_pointer s7i_format_error_symbol(s7_scheme *sc);
+s7_pointer s7i_format_just_control_string(s7_scheme *sc);
+s7_pointer s7i_format_as_objstr(s7_scheme *sc);
+s7_pointer s7i_format_no_column(s7_scheme *sc);
+s7_pointer s7i_format_f(s7_scheme *sc);
+s7_pointer s7i_is_null_symbol(s7_scheme *sc);
+s7_pointer s7i_is_string_symbol(s7_scheme *sc);
+s7_pointer s7i_is_output_port_symbol(s7_scheme *sc);
+s7_pointer s7i_is_boolean_symbol(s7_scheme *sc);
+const char *s7i_type_name_string(s7_scheme *sc);
+s7_pointer s7i_F(s7_scheme *sc);
+s7_pointer s7i_T(s7_scheme *sc);
+s7_pointer s7i_nil(s7_scheme *sc);
+s7_pointer s7i_undefined(s7_scheme *sc);
+
+no_return void s7i_error_nr(s7_scheme *sc, s7_pointer sym, s7_pointer list);
+s7_pointer s7i_set_elist_2(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer s7i_set_elist_3(s7_scheme *sc, s7_pointer a, s7_pointer b, s7_pointer c);
+s7_pointer s7i_set_elist_4(s7_scheme *sc, s7_pointer a, s7_pointer b, s7_pointer c, s7_pointer d);
+s7_pointer s7i_set_elist_5(s7_scheme *sc, s7_pointer a, s7_pointer b, s7_pointer c, s7_pointer d, s7_pointer e);
+s7_pointer s7i_set_plist_3(s7_scheme *sc, s7_pointer a, s7_pointer b, s7_pointer c);
+s7_pointer s7i_wrap_string(s7_scheme *sc, const char *str, s7_int len);
+s7_pointer s7i_wrap_integer(s7_scheme *sc, s7_int n);
+char *s7i_number_to_string_base_10(s7_scheme *sc, s7_pointer num, s7_int width, s7_int precision, char float_choice, s7_int *nlen, s7i_use_write_t choice);
+block_t *s7i_number_to_string_with_radix(s7_scheme *sc, s7_pointer num, int32_t radix, s7_int width, s7_int precision, char float_choice, s7_int *nlen);
+const char *s7i_integer_to_string(s7_scheme *sc, s7_int num, s7_int *nlen);
+block_t *s7i_mallocate(s7_scheme *sc, s7_int size);
+void s7i_liberate(s7_scheme *sc, block_t *b);
+block_t *s7i_inline_mallocate(s7_scheme *sc, s7_int size);
+s7_pointer s7i_inline_block_to_string(s7_scheme *sc, block_t *block, s7_int len);
+s7_pointer s7i_make_string_with_length(s7_scheme *sc, const char *str, s7_int len);
+s7_pointer s7i_object_to_list(s7_scheme *sc, s7_pointer obj);
+void s7i_resize_port_data(s7_scheme *sc, s7_pointer port, s7_int len);
+void s7i_close_format_port(s7_scheme *sc, s7_pointer port);
+s7_pointer s7i_open_format_port(s7_scheme *sc);
+s7_int s7i_integer_clamped_if_gmp(s7_scheme *sc, s7_pointer p);
+bool s7i_is_one(s7_pointer x);
+bool s7i_is_one_or_big_one(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_find_method_with_let(s7_scheme *sc, s7_pointer obj, s7_pointer method);
+s7_pointer s7i_current_output_port(s7_scheme *sc);
+const char *s7i_string_value(s7_pointer str);
+s7_int s7i_string_length(s7_pointer str);
+void s7i_set_string_length(s7_pointer str, s7_int len);
+
+s7_int s7i_port_position(s7_pointer port);
+void s7i_set_port_position(s7_pointer port, s7_int val);
+s7_int s7i_port_data_size(s7_pointer port);
+void s7i_set_port_data_size(s7_pointer port, s7_int val);
+uint8_t *s7i_port_data(s7_pointer port);
+void s7i_set_port_data(s7_pointer port, uint8_t *val);
+block_t *s7i_port_data_block(s7_pointer port);
+void s7i_set_port_data_block(s7_pointer port, block_t *val);
+bool s7i_is_string_port(s7_pointer port);
+bool s7i_port_is_closed(s7_pointer port);
+void s7i_port_write_character(s7_scheme *sc, char c, s7_pointer port);
+void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port);
+
+s7_pointer s7i_format_string_1(s7_scheme *sc);
+s7_pointer s7i_format_string_2(s7_scheme *sc);
+s7_pointer s7i_format_string_3(s7_scheme *sc);
+s7_pointer s7i_format_string_4(s7_scheme *sc);
+s7_pointer s7i_an_output_port_string(void);
+s7_pointer s7i_a_format_port_string(void);
+s7_int s7i_FORMAT_PORT_LENGTH(void);
+const int32_t *s7i_digits(void);
+const bool *s7i_white_space(void);
+bool s7i_digitp(int32_t c);
+s7_int s7i_safe_strlen(const char *str);
+void *s7i_block_data(block_t *b);
+bool s7i_is_columnizing(const char *str);
+bool s7i_is_elist(s7_scheme *sc, s7_pointer p);
+int32_t s7i_type(s7_pointer p);
+int32_t s7i_T_INTEGER(void);
+int32_t s7i_T_RATIO(void);
+int32_t s7i_T_STRING(void);
 
 #endif /* S7_INTERNAL_HELPERS_H */
