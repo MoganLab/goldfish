@@ -51,15 +51,6 @@
 #ifndef S7_INT_BITS
 #define S7_INT_BITS 63
 #endif
-#ifndef S7_INT64_MAX
-#define S7_INT64_MAX 9223372036854775807LL
-#endif
-#ifndef S7_INT64_MIN
-#define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL)
-#endif
-#ifndef s7_int_abs
-#define s7_int_abs(x) ((x) >= 0 ? (x) : -(x))
-#endif
 
 
 /* -------------------------------- sqrt -------------------------------- */
@@ -1112,17 +1103,6 @@ s7_pointer g_atanh(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- expt -------------------------------- */
-#if HAVE_OVERFLOW_CHECKS
-  #if defined(__clang__)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #elif defined(__GNUC__) && (__GNUC__ >= 5)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #else
-    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-  #endif
-#else
-  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-#endif
 
 static bool expt_is_zero(s7_pointer x)
 {
@@ -1353,4 +1333,11 @@ s7_pointer g_expt(s7_scheme *sc, s7_pointer args)
   #define H_expt "(expt z1 z2) returns z1^z2"
   #define Q_expt sc->pcl_n
   return(expt_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_int_log2(s7_scheme *sc, s7_pointer args)
+{
+  s7_int ix = s7_integer(s7_car(args));
+  s7_double fx = log2((double)ix);
+  return(((ix & (ix - 1)) == 0) ? s7_make_integer(sc, (s7_int)round(fx)) : s7_make_real(sc, fx));
 }

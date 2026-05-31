@@ -9,6 +9,32 @@
 
 #include "s7.h"
 
+#ifndef S7_INT64_MAX
+  #define S7_INT64_MAX 9223372036854775807LL
+#endif
+#ifndef S7_INT64_MIN
+  #define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL)
+#endif
+#ifndef s7_int_abs
+  #if defined(__GNUC__) || defined(__clang__)
+    #define s7_int_abs(x) ({s7_int _X_; _X_ = x; _X_ >= 0 ? _X_ : -_X_;})
+  #else
+    #define s7_int_abs(x) ((x) >= 0 ? (x) : -(x))
+  #endif
+#endif
+
+#if HAVE_OVERFLOW_CHECKS
+  #if defined(__clang__)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #elif defined(__GNUC__) && (__GNUC__ >= 5)
+    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
+  #else
+    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+  #endif
+#else
+  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,6 +54,8 @@ bool s7i_sequence_is_empty(s7_scheme *sc, s7_pointer seq);
 s7_int s7i_sequence_length(s7_scheme *sc, s7_pointer seq);
 s7_pointer s7i_find_method_with_let(s7_scheme *sc, s7_pointer obj, s7_pointer method);
 bool s7i_has_active_methods(s7_scheme *sc, s7_pointer obj);
+/* boolean method dispatch for type predicate migration */
+s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer method);
 void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args);
 s7_pointer s7i_copy_proper_list(s7_scheme *sc, s7_pointer lst);
@@ -65,7 +93,107 @@ s7_pointer s7i_string_leq_symbol(s7_scheme *sc);
 s7_pointer s7i_string_geq_symbol(s7_scheme *sc);
 bool s7i_is_true(s7_scheme *sc, s7_pointer p);
 s7_pointer s7i_is_string_symbol(s7_scheme *sc);
+s7_pointer s7i_is_boolean_symbol(s7_scheme *sc);
+s7_pointer s7i_is_unspecified_symbol(s7_scheme *sc);
+s7_pointer s7i_is_number_symbol(s7_scheme *sc);
+s7_pointer s7i_is_integer_symbol(s7_scheme *sc);
+s7_pointer s7i_is_real_symbol(s7_scheme *sc);
+s7_pointer s7i_is_complex_symbol(s7_scheme *sc);
+s7_pointer s7i_is_rational_symbol(s7_scheme *sc);
+s7_pointer s7i_is_keyword_symbol(s7_scheme *sc);
+s7_pointer s7i_is_dilambda_symbol(s7_scheme *sc);
+s7_pointer s7i_is_sequence_symbol(s7_scheme *sc);
+s7_pointer s7i_is_symbol_symbol(s7_scheme *sc);
+s7_pointer s7i_is_input_port_symbol(s7_scheme *sc);
+s7_pointer s7i_is_output_port_symbol(s7_scheme *sc);
+s7_pointer s7i_is_macro_symbol(s7_scheme *sc);
+s7_pointer s7i_is_undefined_symbol(s7_scheme *sc);
+s7_pointer s7i_is_eof_object_symbol(s7_scheme *sc);
+s7_pointer s7i_is_byte_symbol(s7_scheme *sc);
+s7_pointer s7i_is_float_symbol(s7_scheme *sc);
+s7_pointer s7i_is_random_state_symbol(s7_scheme *sc);
+s7_pointer s7i_is_continuation_symbol(s7_scheme *sc);
+s7_pointer s7i_is_iterator_symbol(s7_scheme *sc);
+s7_pointer s7i_is_gensym_symbol(s7_scheme *sc);
+s7_pointer s7i_is_syntax_symbol(s7_scheme *sc);
+s7_pointer s7i_is_let_symbol(s7_scheme *sc);
+bool s7i_is_goto(s7_pointer p);
+bool s7i_is_constant(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_is_c_object_symbol(s7_scheme *sc);
+s7_pointer s7i_help_symbol(s7_scheme *sc);
+bool s7i_is_undefined(s7_pointer p);
+bool s7i_is_eof(s7_pointer p);
+bool s7i_is_t_real(s7_pointer p);
+bool s7i_is_continuation(s7_pointer p);
 const uint8_t *s7i_uppers_ptr(void);
+
+/* bridge functions for s7_scheme_predicate.c migration */
+s7_pointer s7i_c_pointer_type(s7_pointer p);
+bool s7i_has_methods(s7_pointer p);
+bool s7i_is_funclet(s7_pointer p);
+bool s7i_is_maclet(s7_pointer p);
+s7_pointer s7i_rootlet(s7_scheme *sc);
+s7_pointer s7i_is_c_pointer_symbol(s7_scheme *sc);
+s7_pointer s7i_is_openlet_symbol(s7_scheme *sc);
+s7_pointer s7i_is_funclet_symbol(s7_scheme *sc);
+
+/* bridge functions for g_c_pointer_info and g_c_pointer_type migration */
+s7_pointer s7i_c_pointer_info_p_p(s7_scheme *sc, s7_pointer cptr);
+s7_pointer s7i_c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr);
+
+/* bridge functions for g_tree_is_cyclic and g_type_of migration */
+bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_type_of(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_c_pointer_weak1, g_c_pointer_weak2 migration */
+s7_pointer s7i_c_pointer_weak1_p_p(s7_scheme *sc, s7_pointer cptr);
+s7_pointer s7i_c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr);
+
+/* bridge functions for g_tree_leaves migration */
+s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge function for g_outlet migration */
+s7_pointer s7i_outlet_p_p(s7_scheme *sc, s7_pointer let);
+
+/* bridge function for g_quotient migration */
+s7_pointer s7i_quotient_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_remainder migration */
+s7_pointer s7i_remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_modulo migration */
+s7_pointer s7i_modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_curlet_ref migration */
+s7_pointer s7i_lookup_p_p(s7_scheme *sc, s7_pointer symbol);
+
+/* bridge functions for g_cyclic_sequences migration */
+s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_object_to_let migration */
+s7_pointer s7i_object_to_let_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_pair_line_number migration */
+s7_pointer s7i_pair_line_number_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_reverse migration */
+s7_pointer s7i_reverse_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_port_line_number migration */
+s7_pointer s7i_port_line_number_p_p(s7_scheme *sc, s7_pointer p);
+
+/* bridge functions for g_tree_memq migration */
+bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
+
+/* bridge functions for g_tree_set_memq migration */
+bool s7i_tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+
+/* bridge functions for g_unlet_disabled migration */
+s7_pointer s7i_unlet_disabled(s7_scheme *sc);
+
+/* bridge functions for g_curlet migration */
+s7_pointer s7i_curlet(s7_scheme *sc);
+void s7i_capture_let_counter_inc(s7_scheme *sc);
 
 /* write-related helpers */
 typedef enum {S7I_P_DISPLAY, S7I_P_WRITE, S7I_P_READABLE, S7I_P_KEY, S7I_P_CODE} s7i_use_write_t;
@@ -122,6 +250,12 @@ void s7i_set_weak_hash_table_iters(s7_pointer p, s7_int val);
 
 s7_double s7i_default_rationalize_error(s7_scheme *sc);
 
+/* bridge for g_numerator/g_denominator migration */
+s7_pointer s7i_int_one(s7_scheme *sc);
+
+/* bridge for g_iterator_sequence migration */
+s7_pointer s7i_iterator_sequence(s7_pointer iter);
+
 /* symbol helpers */
 bool s7i_is_gensym(s7_pointer p);
 s7_pointer s7i_symbol_name_cell(s7_pointer sym);
@@ -130,6 +264,75 @@ s7_pointer s7i_make_symbol_with_length(s7_scheme *sc, const char *name, s7_int l
 s7_pointer s7i_initial_value(s7_pointer symbol);
 void s7i_set_initial_value(s7_pointer symbol, s7_pointer value);
 bool s7i_initial_value_is_defined(s7_scheme *sc, s7_pointer symbol);
+
+/* bridge functions for g_memv, g_assq, g_assv migration */
+s7_pointer s7i_memv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer s7i_assq_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer s7i_assv_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b);
+
+/* bridge functions for g_memq_2, g_memq_4 migration */
+s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+
+/* bridge function for g_cv_ref_2 migration */
+s7_pointer s7i_complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+
+/* bridge function for g_cv_set_3 migration */
+s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer index, s7_pointer value);
+
+/* bridge functions for g_fv_ref_2, g_iv_ref_2 migration */
+s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+
+/* bridge functions for g_tree_set_memq_syms migration */
+s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
+
+/* bridge functions for g_heap_analyze migration */
+void s7i_heap_analyze(s7_scheme *sc);
+
+/* bridge functions for g_show_op_stack migration */
+void s7i_show_op_stack(s7_scheme *sc);
+
+/* bridge functions for g_is_op_stack migration */
+bool s7i_is_op_stack_active(s7_scheme *sc);
+
+/* bridge functions for g_heap_holder migration */
+s7_pointer s7i_heap_holder_p_p(s7_scheme *sc, s7_pointer obj);
+
+/* bridge functions for g_heap_holders migration */
+s7_int s7i_heap_holders(s7_pointer obj);
+
+/* bridge functions for g_is_defined_in_rootlet migration */
+bool s7i_is_defined_in_rootlet(s7_scheme *sc, s7_pointer sym);
+
+/* bridge functions for g_leq_2/g_geq_2 migration */
+bool s7i_leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+bool s7i_geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_num_eq_2 migration */
+bool s7i_num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_less_2 migration */
+s7_pointer s7i_lt_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge function for g_num_eq_xi/g_num_eq_ix migration */
+s7_pointer s7i_num_eq_xx(s7_scheme *sc, s7_pointer x, s7_pointer y);
+
+/* bridge functions for arithmetic g_ functions migration */
+s7_pointer s7i_add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_negate_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_negate_p_p_wrapped(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y);
+s7_pointer s7i_multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z);
+s7_pointer s7i_invert_p_p(s7_scheme *sc, s7_pointer x);
+s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
 #ifdef __cplusplus
 }

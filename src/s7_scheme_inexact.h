@@ -102,6 +102,9 @@ s7_pointer g_atanh(s7_scheme *sc, s7_pointer args);
 s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw);
 s7_pointer g_expt(s7_scheme *sc, s7_pointer args);
 
+/* int-log2 (internal helper for log with base 2 integer args) */
+s7_pointer g_int_log2(s7_scheme *sc, s7_pointer args);
+
 #ifdef __cplusplus
 }
 #endif

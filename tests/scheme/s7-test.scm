@@ -115,4 +115,20 @@
   15
 ) ;check
 (check (let ((x 1)) (define-constant y 2) (+ x y)) => 3)
+
+;; gensym? tests
+(check (gensym? (gensym)) => #t)
+(check (gensym? 'hello) => #f)
+(check (gensym? 42) => #f)
+
+;; syntax? tests
+(check (syntax? lambda) => #t)
+(check (syntax? 42) => #f)
+(check (syntax? 'hello) => #f)
+
+;; let? tests
+(check (let? (rootlet)) => #t)
+(check (let? 42) => #f)
+(check (let? 'hello) => #f)
+
 (check-report)

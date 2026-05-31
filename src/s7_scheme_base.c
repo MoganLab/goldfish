@@ -14,10 +14,19 @@
 #include <stdint.h>
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdarg.h>
 
-#define S7_INT64_MAX 9223372036854775807LL
-/* #define S7_INT64_MIN -9223372036854775808LL */   /* why is this disallowed in C? "warning: integer constant is so large that it is unsigned" */
-#define S7_INT64_MIN (int64_t)(-S7_INT64_MAX - 1LL) /* in gcc 9 we had to assign this to an s7_int, then use that! */
+#define Malloc(Size) malloc(Size)
+
+#if __GNUC__
+  #define Sentinel __attribute__((sentinel))
+#else
+  #define Sentinel
+#endif
+
+#ifndef S7_DEBUGGING
+  #define S7_DEBUGGING 0
+#endif
 
 /* Helper function to check for NaN */
 bool is_NaN(s7_double x)
@@ -31,9 +40,110 @@ static bool is_inf(s7_double x)
   return isinf(x);
 }
 
+/* C string helper functions */
+
+s7_int safe_strlen(const char *str)
+{
+  const char *tmp = str;
+  if ((!tmp) || (!*tmp)) return(0);
+  for (; *tmp; ++tmp);
+  return(tmp - str);
+}
+
+char *copy_string_with_length(const char *str, s7_int len)
+{
+  char *newstr;
+#if S7_DEBUGGING
+  if ((len <= 0) || (!str))
+    {fprintf(stderr, "%s[%d]: len: %" ld64 ", str: %s\n", __func__, __LINE__, len, str); abort();}
+#endif
+  if (len > (1LL << 48)) return(NULL);
+  newstr = (char *)Malloc(len + 1);
+  memcpy((void *)newstr, (const void *)str, len);
+  newstr[len] = '\0';
+  return(newstr);
+}
+
+char *copy_string(const char *str)
+{
+  return(copy_string_with_length(str, safe_strlen(str)));
+}
+
+bool safe_strcmp(const char *s1, const char *s2)
+{
+  if ((!s1) || (!s2)) return(s1 == s2);
+  return(strcmp(s1, s2) == 0);
+}
+
+bool local_strncmp(const char *s1, const char *s2, size_t n)
+{
+#if ((!S7_ALIGNED) && (defined(__x86_64__) || defined(__i386__)))
+  if (n >= 8)
+    {
+      size_t n8 = n >> 3;
+      s7_int *is1 = (s7_int *)s1, *is2 = (s7_int *)s2;
+      do {if (*is1++ != *is2++) return(false);} while (--n8 > 0);
+      s1 = (const char *)is1;
+      s2 = (const char *)is2;
+      n &= 7;
+    }
+#endif
+  while (n > 0)
+    {
+      if (*s1++ != *s2++) return(false);
+      n--;
+    }
+  return(true);
+}
+
+size_t catstrs(char *dst, size_t len, ...)
+{
+  const char *dend = (const char *)(dst + len - 1);
+  char *d = dst;
+  va_list ap;
+  while ((*d) && (d < dend)) d++;
+  va_start(ap, len);
+  for (const char *s = va_arg(ap, const char *); s != NULL; s = va_arg(ap, const char *))
+    while ((*s) && (d < dend)) {*d++ = *s++;}
+  *d = '\0';
+  va_end (ap);
+  return(d - dst);
+}
+
+size_t catstrs_direct(char *dst, const char *str1, ...)
+{
+  char *d = dst;
+  va_list ap;
+  va_start(ap, str1);
+  for (const char *s = str1; s != NULL; s = va_arg(ap, const char *))
+    while (*s) {*d++ = *s++;}
+  *d = '\0';
+  va_end (ap);
+  return(d - dst);
+}
+
+/* NaN payload helper functions */
+
+double nan_with_payload(s7_int payload)
+{
+  decode_float_t num;
+  if (payload <= 0) return(NAN);
+  num.fx = NAN;
+  num.ix = num.ix | payload;
+  return(num.fx);
+}
+
+s7_int nan_payload(double x)
+{
+  decode_float_t num;
+  num.fx = x;
+  return(num.ix & 0xffffffffffff);
+}
+
 #define DOUBLE_TO_INT64_LIMIT 9.223372036854775807e18  /* 2^63 - 1 */
 #define INT64_TO_DOUBLE_LIMIT (1LL << 53)               /* 2^53 */
 #define RATIONALIZE_LIMIT 1.0e12
+#define ld64 PRId64
 
 static s7_int wrap_uint64_to_s7_int(uint64_t bits)
 {
@@ -887,18 +997,6 @@ s7_pointer g_min(s7_scheme *sc, s7_pointer args)
 s7_pointer g_min_2(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, s7_car(args), s7_cadr(args)));}
 s7_pointer g_min_3(s7_scheme *sc, s7_pointer args) {return(min_p_pp(sc, min_p_pp(sc, s7_car(args), s7_cadr(args)), s7_caddr(args)));}
 
-#if HAVE_OVERFLOW_CHECKS
-  #if defined(__clang__)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #elif defined(__GNUC__) && (__GNUC__ >= 5)
-    #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #else
-    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-  #endif
-#else
-  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
-#endif
-
 /* -------------------------------- c_gcd -------------------------------- */
 
 static s7_int c_gcd_1(s7_int u, s7_int v)
@@ -1206,6 +1304,102 @@ s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 
 /* -------------------------------- rationalize -------------------------------- */
 
+bool c_rationalize(s7_double ux, s7_double error, s7_int *numer, s7_int *denom)
+{
+  /* from CL code in Canny, Donald, Ressler, "A Rational Rotation Method for Robust Geometric Algorithms" */
+  double x0, x1;
+  s7_int i, p0, q0 = 1, p1, q1 = 1;
+  double e0, e1, e0p, e1p;
+  int32_t tries = 0;
+  /* don't use long_double: the loop below will hang */
+
+  /* #e1e19 is a killer -- it's bigger than most-positive-fixnum, but if we ceil(ux) below
+   *   it turns into most-negative-fixnum.  1e19 is trouble in many places.
+   */
+  if (fabs(ux) > RATIONALIZE_LIMIT)
+    {
+      /* (rationalize most-positive-fixnum) should not return most-negative-fixnum
+       *   but any number > 1e14 here is so inaccurate that rationalize is useless
+       *   for example,
+       *     default: (rationalize (/ (*s7* 'most-positive-fixnum) 31111.0)) -> 1185866354261165/4
+       *     gmp:     (rationalize (/ (*s7* 'most-positive-fixnum) 31111.0)) -> 9223372036854775807/31111
+       * can't return false here because that confuses some of the callers!
+       */
+      (*numer) = (s7_int)ux;
+      (*denom) = 1;
+      return(true);
+    }
+
+  if (error < 0.0) error = -error;
+  x0 = ux - error;
+  x1 = ux + error;
+  i = (s7_int)ceil(x0);
+
+  if (error >= 1.0) /* aw good grief! */
+    {
+      if (x0 < 0.0)
+        (*numer) = (x1 < 0.0) ? (s7_int)floor(x1) : 0;
+      else (*numer) = i;
+      (*denom) = 1;
+      return(true);
+    }
+  if (x1 >= i)
+    {
+      (*numer) = (i >= 0) ? i : (s7_int)floor(x1);
+      (*denom) = 1;
+      return(true);
+    }
+
+  p0 = (s7_int)floor(x0);
+  p1 = (s7_int)ceil(x1);
+  e0 = p1 - x0;
+  e1 = x0 - p0;
+  e0p = p1 - x1;
+  e1p = x1 - p0;
+  while (true)
+    {
+      s7_int old_p1, old_q1;
+      double old_e0, old_e1, old_e0p, r, r1;
+      const double val = (double)p0 / (double)q0;
+
+      if (((x0 <= val) && (val <= x1)) || (e1 == 0.0) || (e1p == 0.0) || (tries > 100))
+        {
+          if ((q0 == S7_INT64_MIN) && (p0 == 1)) /* (rationalize 1.000000004297917e-12) when error is 1e-12 */
+            {
+              (*numer) = 0;
+              (*denom) = 1;
+            }
+          else
+            {
+              (*numer) = p0;
+              (*denom) = q0;
+              if ((S7_DEBUGGING) && (q0 == 0)) fprintf(stderr, "%s[%d]: %f %" ld64 "/0\n", __func__, __LINE__, ux, p0);
+            }
+          if ((S7_DEBUGGING) && (*denom < 0)) fprintf(stderr, "%s[%d]: denominator is %" ld64 "?\n", __func__, __LINE__, *denom);
+          return(true);
+        }
+      tries++;
+      r = (s7_int)floor(e0 / e1);
+      r1 = (s7_int)ceil(e0p / e1p);
+      if (r1 < r) r = r1;
+      /* do handles all step vars in parallel */
+      old_p1 = p1;
+      p1 = p0;
+      old_q1 = q1;
+      q1 = q0;
+      old_e0 = e0;
+      e0 = e1p;
+      old_e0p = e0p;
+      e0p = e1;
+      old_e1 = e1;
+      p0 = old_p1 + r * p0;
+      q0 = old_q1 + r * q0;
+      e1 = old_e0p - r * e1p;  /* if the error is set too low, we can get e1 = 0 here: (rationalize (/ pi) 1e-17) */
+      e1p = old_e0 - r * old_e1;
+    }
+  return(false);
+}
+
 s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
 {
   #define H_rationalize "(rationalize x err) returns the ratio with smallest denominator within err of x"
@@ -1344,4 +1538,281 @@ s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base)
     free(str);
     return(result);
   }
+}
+
+s7_pointer g_numerator(s7_scheme *sc, s7_pointer args)
+{
+  #define H_numerator "(numerator rat) returns the numerator of the rational number rat"
+  #define Q_numerator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
+
+  const s7_pointer x = s7_car(args);
+  if (s7_is_ratio(x))
+    return(s7_make_integer(sc, s7_numerator(x)));
+  if (s7_is_integer(x))
+    return(x);
+  return(s7i_method_or_bust_p(sc, x, "numerator", "an integer or a ratio"));
+}
+
+s7_pointer g_denominator(s7_scheme *sc, s7_pointer args)
+{
+  #define H_denominator "(denominator rat) returns the denominator of the rational number rat"
+  #define Q_denominator s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_rational_symbol)
+
+  const s7_pointer x = s7_car(args);
+  if (s7_is_ratio(x))
+    return(s7_make_integer(sc, s7_denominator(x)));
+  if (s7_is_integer(x))
+    return(s7i_int_one(sc));
+  return(s7i_method_or_bust_p(sc, x, "denominator", "an integer or a ratio"));
+}
+
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args)
+{
+  #define H_reverse "(reverse lst) returns a list with the elements of lst in reverse order.  reverse \
+also accepts a string or vector argument."
+  #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
+  return(s7i_reverse_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_assq(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_assq_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_assv(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_assv_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memv(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memv_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_list_0(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_nil(sc));
+}
+
+s7_pointer g_list_1(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_nil(sc)));
+}
+
+s7_pointer g_list_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_nil(sc))));
+}
+
+s7_pointer g_list_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_cons(sc, s7_caddr(args), s7_nil(sc)))));
+}
+
+s7_pointer g_list_4(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_cons(sc, s7_car(args), s7_cons(sc, s7_cadr(args), s7_cons(sc, s7_caddr(args), s7_cons(sc, s7_cadddr(args), s7_nil(sc))))));
+}
+
+s7_pointer g_append_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_append(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_leq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_geq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_num_eq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7_make_boolean(sc, s7i_num_eq_b_7pp(sc, s7_car(args), s7_cadr(args))));
+}
+
+s7_pointer g_less_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_lt_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_num_eq_xi(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_num_eq_xx(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_num_eq_ix(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_num_eq_xx(sc, s7_cadr(args), s7_car(args)));
+}
+
+s7_pointer g_memq_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memq_2_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memq_4(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_memq_4_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_add_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_add_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_ppp(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_add_p_ppp_wrapped(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_add_4(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer x = s7i_add_p_pp_wrapped(sc, s7_car(args), s7_cadr(args));
+  s7_pointer p = s7_cddr(args);
+  return(s7i_add_p_pp(sc, x, s7i_add_p_pp_wrapped(sc, s7_car(p), s7_cadr(p))));
+}
+
+s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_negate_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_negate_p_p_wrapped(sc, s7_car(args)));
+}
+
+s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_subtract_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_subtract_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_subtract_3(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer x = s7_car(args);
+  x = s7i_subtract_p_pp_wrapped(sc, x, s7_cadr(args));
+  return(s7i_subtract_p_pp(sc, x, s7_caddr(args)));
+}
+
+s7_pointer g_abort(s7_scheme *sc, s7_pointer args)
+{
+  (void)sc;
+  (void)args;
+  abort();
+  return(NULL);
+}
+
+s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_pp_wrapped(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_multiply_3(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_ppp(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_multiply_p_ppp_wrapped(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));
+}
+
+s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_invert_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_divide_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_initial_value(s7_cadr(args)));
+}
+
+s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_initial_value(s7_car(args)));
+}
+
+s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_rootlet(sc));
+}
+
+s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_unlet_disabled(sc));
+}
+
+s7_pointer g_curlet(s7_scheme *sc, s7_pointer unused_args)
+{
+  #define H_curlet "(curlet) returns the current definitions (symbol bindings)"
+  #define Q_curlet s7_make_signature(sc, 1, sc->is_let_symbol)
+  s7i_capture_let_counter_inc(sc);
+  return(s7i_curlet(sc));
+}
+
+s7_pointer g_outlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_outlet_p_p(sc, s7_car(args)));
+}
+
+s7_pointer g_curlet_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_lookup_p_p(sc, s7_cadr(args)));
+}
+
+s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_quotient_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_remainder(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_remainder_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_modulo(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_modulo_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_curlet(sc));
+}
+
+s7_pointer g_error(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_string(s7_car(args)))
+    s7_error(sc, s7_make_symbol(sc, "no-catch"), args);
+  s7_error(sc, s7_car(args), s7_cdr(args));
+  return(s7_unspecified(sc));
 }

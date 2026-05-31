@@ -32,6 +32,12 @@ s7_pointer g_write_char(s7_scheme *sc, s7_pointer args);
 s7_pointer g_write_string(s7_scheme *sc, s7_pointer args);
 s7_pointer g_write_byte(s7_scheme *sc, s7_pointer args);
 
+/* Port accessor functions */
+s7_pointer g_current_input_port(s7_scheme *sc, s7_pointer unused_args);
+s7_pointer g_current_output_port(s7_scheme *sc, s7_pointer unused_args);
+s7_pointer g_current_error_port(s7_scheme *sc, s7_pointer unused_args);
+s7_pointer g_open_output_string(s7_scheme *sc, s7_pointer unused_args);
+
 /* Optimizer helpers */
 s7_pointer newline_p(s7_scheme *sc);
 s7_pointer newline_p_p(s7_scheme *sc, s7_pointer port);

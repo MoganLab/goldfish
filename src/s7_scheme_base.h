@@ -10,6 +10,7 @@
 #define S7_SCHEME_BASE_H
 
 #include "s7.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -101,6 +102,20 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args);
 s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow);
 double s7_string_to_double_simple(const char *str, int32_t radix);
 
+/* C string helper functions */
+s7_int safe_strlen(const char *str);
+char *copy_string_with_length(const char *str, s7_int len);
+char *copy_string(const char *str);
+bool safe_strcmp(const char *s1, const char *s2);
+bool local_strncmp(const char *s1, const char *s2, size_t n);
+size_t catstrs(char *dst, size_t len, ...);
+size_t catstrs_direct(char *dst, const char *str1, ...);
+
+/* NaN payload helpers */
+typedef union {s7_int ix; double fx;} decode_float_t;
+double nan_with_payload(s7_int payload);
+s7_int nan_payload(double x);
+
 /* read-line function */
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args);
 
@@ -165,6 +180,76 @@ s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args);
 s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p);
 s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p);
 s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base);
+
+/* numerator function */
+s7_pointer g_numerator(s7_scheme *sc, s7_pointer args);
+
+/* denominator function */
+s7_pointer g_denominator(s7_scheme *sc, s7_pointer args);
+
+/* reverse function */
+s7_pointer g_reverse(s7_scheme *sc, s7_pointer args);
+
+/* assq function */
+s7_pointer g_assq(s7_scheme *sc, s7_pointer args);
+
+/* assv function */
+s7_pointer g_assv(s7_scheme *sc, s7_pointer args);
+
+/* memv function */
+s7_pointer g_memv(s7_scheme *sc, s7_pointer args);
+
+/* list functions */
+s7_pointer g_list_0(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_4(s7_scheme *sc, s7_pointer args);
+s7_pointer g_append_2(s7_scheme *sc, s7_pointer args);
+
+/* comparison functions */
+s7_pointer g_leq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_geq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_num_eq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_less_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_num_eq_xi(s7_scheme *sc, s7_pointer args);
+s7_pointer g_num_eq_ix(s7_scheme *sc, s7_pointer args);
+s7_pointer g_memq_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_memq_4(s7_scheme *sc, s7_pointer args);
+
+/* arithmetic shortcut functions */
+s7_pointer g_add_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_3_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_add_4(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_1_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_subtract_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_abort(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_2(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_2_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_multiply_3_wrapped(s7_scheme *sc, s7_pointer args);
+s7_pointer g_invert_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_divide_2(s7_scheme *sc, s7_pointer args);
+
+/* unlet functions */
+s7_pointer g_unlet_ref(s7_scheme *sc, s7_pointer args);
+s7_pointer g_sv_unlet_ref(s7_scheme *sc, s7_pointer args);
+
+/* let functions */
+s7_pointer g_rootlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_unlet_disabled(s7_scheme *sc, s7_pointer args);
+s7_pointer g_curlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_curlet_ref(s7_scheme *sc, s7_pointer args);
+s7_pointer g_outlet(s7_scheme *sc, s7_pointer args);
+s7_pointer g_outlet_unlet(s7_scheme *sc, s7_pointer args);
+
+/* error function */
+s7_pointer g_error(s7_scheme *sc, s7_pointer args);
 
 #ifdef __cplusplus
 }
