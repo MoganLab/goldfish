@@ -3,6 +3,7 @@
   (import (liii base)
     (liii sys)
     (liii path)
+    (liii string)
     (liii argparse)
     (liii hashlib)
     (liii os)
@@ -54,6 +55,8 @@
       (newline)
       (display "      --dry-run    预览模式（仅支持单个文件）")
       (newline)
+      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）")
+      (newline)
       (newline)
       (display "Arguments:")
       (newline)
@@ -71,6 +74,12 @@
       (display "  gf fix --dry-run file.scm     预览修正结果")
       (newline)
       (display "  gf fix /path/to/dir           递归修正目录下所有 .scm 文件"
+      ) ;display
+      (newline)
+      (display "  gf fix -e sld /path/to/dir    递归修正目录下所有 .sld 文件"
+      ) ;display
+      (newline)
+      (display "  gf fix -e scm,sld /path/to/dir  递归修正目录下所有 .scm 和 .sld 文件"
       ) ;display
       (newline)
     ) ;define
@@ -143,7 +152,19 @@
       (fix-file-core path-str use-cache?)
     ) ;define*
 
-    (define (fix-directory dir-path)
+    (define (file-extension-match? filename extensions)
+      (let loop ((exts extensions))
+        (if (null? exts)
+          #f
+          (if (string-suffix? (car exts) filename)
+            #t
+            (loop (cdr exts))
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (fix-directory dir-path extensions)
       (let ((fmt-cmd (string-append (executable) " fmt " dir-path)))
         (os-call fmt-cmd)
       ) ;let
@@ -155,7 +176,7 @@
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
-                       (if (string-suffix? ".scm" entry-str)
+                       (if (file-extension-match? entry-str extensions)
                          (let ((result (fix-file-core entry-str)))
                            (cond ((eq? result 'cached)
                                   (loop (+ i 1) (+ total 1) updated (+ cached 1)))
@@ -172,7 +193,7 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda () (fix-directory (path->string entry)))
+                     (call-with-values (lambda () (fix-directory (path->string entry) extensions))
                        (lambda (sub-total sub-updated sub-cached)
                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
@@ -202,6 +223,10 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
+        (parser :add-argument '((name . "extension")
+                                (short . "e")
+                                (type . string)
+                                (default . "scm")))
         parser
       ) ;let
     ) ;define
@@ -212,13 +237,25 @@
       ) ;let
     ) ;define
 
+    (define (normalize-extension ext)
+      (if (and (> (string-length ext) 0)
+               (char=? (string-ref ext 0) #\.))
+        ext
+        (string-append "." ext))
+    ) ;define
+
+    (define (parse-extensions raw)
+      (map normalize-extension (string-split raw ","))
+    ) ;define
+
     (define (main)
       (let ((parser (make-fix-arg-parser)))
         (parser :parse-argv (argv))
-        (let ((help-flag (parser 'help))
-              (dry-run (parser 'dry-run))
-              (path-str (first-positional parser))
-             ) ;
+        (let* ((help-flag (parser 'help))
+               (dry-run (parser 'dry-run))
+               (extensions (parse-extensions (parser 'extension)))
+               (path-str (first-positional parser))
+              ) ;
           (cond ((or help-flag (string=? path-str "")) (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
@@ -246,7 +283,7 @@
                      (newline)
                      (exit 1)
                    ) ;begin
-                   (call-with-values (lambda () (fix-directory path-str))
+                   (call-with-values (lambda () (fix-directory path-str extensions))
                      (lambda (total updated cached)
                        (display (string-append "Total files fixed: "
                                   (number->string total)
