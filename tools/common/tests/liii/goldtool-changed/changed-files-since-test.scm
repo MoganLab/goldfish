@@ -53,6 +53,7 @@
 ) ;define
 
 (define original-cwd (getcwd))
+
 (define repo-dir
   (path->string (path-join (path-temp-dir)
                   (string-append "goldtool-changed-test-" (number->string (getpid)))
@@ -92,6 +93,30 @@
     ) ;let
 
     (check (changed-scheme-files-since "HEAD" "sub") => '("sub/c.scm"))
+
+    ;; 测试传入 #f 和自定义 extensions
+    (let ((files (changed-scheme-files-since "HEAD" #f '(".scm"))))
+      (check (contains? "a.scm" files) => #t)
+      (check (contains? "b.txt" files) => #f)
+      (check (contains? "sub/c.scm" files) => #t)
+    ) ;let
+
+    ;; 创建 .sld 文件并测试只匹配 .sld
+    (path-write-text (path "d.sld") "(define-library (d))\n")
+    (must "git add d.sld")
+    (must "git commit -q -m 'add d.sld'")
+    (path-write-text (path "d.sld") "(define-library (d2))\n")
+
+    (let ((files (changed-scheme-files-since "HEAD" #f '(".sld"))))
+      (check (contains? "d.sld" files) => #t)
+      (check (contains? "a.scm" files) => #f)
+    ) ;let
+
+    (let ((files (changed-scheme-files-since "HEAD" #f '(".scm" ".sld"))))
+      (check (contains? "a.scm" files) => #t)
+      (check (contains? "d.sld" files) => #t)
+      (check (contains? "b.txt" files) => #f)
+    ) ;let
   ) ;lambda
   (lambda () (chdir original-cwd) (remove-tree repo-dir))
 ) ;dynamic-wind
