@@ -245,6 +245,14 @@
       (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
     ) ;define
 
+    (define (%valid-stdout? val)
+      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (string? val))
+    ) ;define
+
+    (define (%valid-stderr? val)
+      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (eq? val 'stdout) (string? val))
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
@@ -262,6 +270,12 @@
         (when (string? cmd-spec)
           (%check-string-command cmd-spec)
         ) ;when
+        (unless (%valid-stdout? stdout)
+          (value-error (format #f "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, or string" stdout))
+        ) ;unless
+        (unless (%valid-stderr? stderr)
+          (value-error (format #f "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'stdout, or string" stderr))
+        ) ;unless
         (when cwd
           (set! orig-dir (getcwd))
           (chdir cwd)
@@ -313,8 +327,8 @@
            ) ;
         (let-values (((out err code)
                       (apply run-values command
-                        (append (if has-stdout? '() '(:stdout 'capture))
-                                (if has-stderr? '() '(:stderr 'capture))
+                        (append (if has-stdout? '() (list :stdout 'capture))
+                                (if has-stderr? '() (list :stderr 'capture))
                                 opts
                         ) ;append
                       ) ;run-values
