@@ -1,51 +1,25 @@
 /* s7_continuation.c - continuation and goto implementations for s7 Scheme interpreter
  *
- * This file is included by s7.c via #include, not compiled as a standalone unit.
- * It is organized as a separate file for code clarity and maintainability.
- *
  * derived from s7, a Scheme interpreter
  * SPDX-License-Identifier: 0BSD
  */
 
-/* -------------------------------- continuation and goto macros -------------------------------- */
+#ifndef S7_CONTINUATION_C_BODY
+#define S7_CONTINUATION_C_BODY
 
-#define continuation_block(p)          (T_Con(p))->object.cwcc.block
-#define continuation_stack(p)          T_Stk(T_Con(p)->object.cwcc.stack)
-#define continuation_set_stack(p, Val) (T_Con(p))->object.cwcc.stack = T_Stk(Val)
-#define continuation_stack_end(p)      (T_Con(p))->object.cwcc.stack_end
-#define continuation_stack_start(p)    (T_Con(p))->object.cwcc.stack_start
-#define continuation_stack_top(p)      (continuation_stack_end(p) - continuation_stack_start(p))
-#define continuation_op_stack(p)       (T_Con(p))->object.cwcc.op_stack
-#define continuation_stack_size(p)     continuation_block(p)->nx.ix.i1
-#define continuation_op_loc(p)         continuation_block(p)->nx.ix.i2
-#define continuation_op_size(p)        continuation_block(p)->ln.iter_or_size
-#define continuation_key(p)            continuation_block(p)->ex.ckey
-/* this can overflow int32_t -- baffle_key is s7_int, so ckey should be also */
-#define continuation_name(p)           continuation_block(p)->dx.d_ptr
-
-#define call_exit_goto_loc(p)          (T_Got(p))->object.rexit.goto_loc
-#define call_exit_op_loc(p)            (T_Got(p))->object.rexit.op_stack_loc
-#define call_exit_active(p)            (T_Got(p))->object.rexit.active
-#define call_exit_name(p)              (T_Got(p))->object.rexit.name
-
-#define is_continuation(p)             (type(p) == T_CONTINUATION)
-#define is_goto(p)                     (type(p) == T_GOTO)
+#include "s7_continuation.h"
 
 /* -------------------------------- GC sweep helper -------------------------------- */
 
-static void process_continuation(s7_scheme *sc, s7_pointer cc)
+void process_continuation(s7_scheme *sc, s7_pointer cc)
 {
   continuation_op_stack(cc) = NULL;
   liberate_block(sc, continuation_block(cc)); /* from mallocate_block (s7_make_continuation) */
 }
 
-/* -------------------------------- GC list helper -------------------------------- */
-
-#define add_continuation(sc, p)      add_to_gc_list(sc, sc->continuations, p)
-
 /* -------------------------------- GC mark helper -------------------------------- */
 
-static void mark_continuation(s7_pointer cc)
+void mark_continuation(s7_pointer cc)
 {
   set_mark(cc);
   if (!is_marked(continuation_stack(cc))) /* can these be cyclic? */
@@ -57,10 +31,8 @@ static void mark_continuation(s7_pointer cc)
 
 /* ----------------------- continuation? -------------------------------- */
 /* g_is_continuation is now defined in s7_scheme_predicate.c */
-  #define H_is_continuation "(continuation? obj) returns #t if obj is a continuation"
-  #define Q_is_continuation sc->pl_bt
 
-static bool is_continuation_b_p(s7_pointer p) {return(is_continuation(p));}
+bool is_continuation_b_p(s7_pointer p) {return(is_continuation(p));}
 
 #if S7_DEBUGGING
 static s7_pointer check_wrap_return(s7_pointer lst)
@@ -77,7 +49,7 @@ static s7_pointer check_wrap_return(s7_pointer lst)
 }
 #endif
 
-static s7_pointer copy_any_list(s7_scheme *sc, s7_pointer a)
+s7_pointer copy_any_list(s7_scheme *sc, s7_pointer a)
 {
   s7_pointer slow = cdr(a);
   s7_pointer fast = slow;
@@ -253,8 +225,6 @@ static bool find_baffle(s7_scheme *sc, s7_int key)
   return(false);
 }
 
-#define NOT_BAFFLED -1
-
 static s7_int find_any_baffle(s7_scheme *sc)
 {
   /* search backwards through sc->curlet for any sc->baffle_symbol -- called by s7_make_continuation to set continuation_key */
@@ -265,14 +235,14 @@ static s7_int find_any_baffle(s7_scheme *sc)
   return(NOT_BAFFLED);
 }
 
-static void check_with_baffle(s7_scheme *sc)
+void check_with_baffle(s7_scheme *sc)
 {
   if (!s7_is_proper_list(sc, sc->code))
     syntax_error_nr(sc, "with-baffle: unexpected dot? ~A", 31, sc->code);
   pair_set_syntax_op(sc->code, OP_WITH_BAFFLE_UNCHECKED);
 }
 
-static bool op_with_baffle_unchecked(s7_scheme *sc)
+bool op_with_baffle_unchecked(s7_scheme *sc)
 {
   sc->code = cdr(sc->code);
   if (is_null(sc->code))
@@ -462,7 +432,7 @@ static bool check_for_dynamic_winds(s7_scheme *sc, s7_pointer cont)
 
 static s7_pointer splice_in_values(s7_scheme *sc, s7_pointer args);
 
-static void call_with_current_continuation(s7_scheme *sc)
+void call_with_current_continuation(s7_scheme *sc)
 {
   s7_pointer cont = sc->code;  /* sc->args are the returned values */
 
@@ -507,7 +477,7 @@ static void call_with_current_continuation(s7_scheme *sc)
     }
 }
 
-static s7_pointer g_call_cc(s7_scheme *sc, s7_pointer args)
+s7_pointer g_call_cc(s7_scheme *sc, s7_pointer args)
 {
   #define H_call_cc "(call-with-current-continuation (lambda (continuer) ...)) evaluates the body with continuer as a way to goto to the continuation of the body"
   #define Q_call_cc s7_make_signature(sc, 2, sc->values_symbol, sc->is_procedure_symbol)
@@ -534,7 +504,7 @@ static s7_pointer g_call_cc(s7_scheme *sc, s7_pointer args)
   return(sc->nil);
 }
 
-static void op_call_cc(s7_scheme *sc) /* OP_CALL_CC in eval via optimize_c_function_one_arg */
+void op_call_cc(s7_scheme *sc) /* OP_CALL_CC in eval via optimize_c_function_one_arg */
 {
   make_room_for_cc_stack(sc);
   begin_temp(sc->y, s7_make_continuation(sc));
@@ -544,7 +514,7 @@ static void op_call_cc(s7_scheme *sc) /* OP_CALL_CC in eval via optimize_c_funct
   sc->code = cdr(opt2_pair(sc->code)); /* cddadr(sc->code) */
 }
 
-static bool op_implicit_continuation_a(s7_scheme *sc)
+bool op_implicit_continuation_a(s7_scheme *sc)
 {
   s7_pointer code = sc->code; /* dumb-looking code, but it's faster than the pretty version, according to callgrind */
   s7_pointer cont = lookup_checked(sc, car(code));
@@ -559,7 +529,7 @@ static bool op_implicit_continuation_a(s7_scheme *sc)
 /* -------------------------------- call-with-exit -------------------------------- */
 static void pop_input_port(s7_scheme *sc);
 
-static void call_with_exit(s7_scheme *sc)
+void call_with_exit(s7_scheme *sc)
 {
   s7_int op_loc, new_stack_top, quit = 0;
 
@@ -681,8 +651,6 @@ static void call_with_exit(s7_scheme *sc)
 }
 
 /* g_is_goto is now defined in s7_scheme_predicate.c */
-  #define H_is_goto "(goto? obj) returns #t if obj is a call-with-exit exit function"
-  #define Q_is_goto sc->pl_bt
 
 #undef wrap_return
 static inline s7_pointer make_goto(s7_scheme *sc, s7_pointer name) /* inline for 73=1% in tgc */
@@ -696,7 +664,7 @@ static inline s7_pointer make_goto(s7_scheme *sc, s7_pointer name) /* inline for
   return(new_goto);
 }
 
-static s7_pointer g_call_with_exit(s7_scheme *sc, s7_pointer args)   /* (call-with-exit (lambda (return) ...)) */
+s7_pointer g_call_with_exit(s7_scheme *sc, s7_pointer args)   /* (call-with-exit (lambda (return) ...)) */
 {
   #define H_call_with_exit "(call-with-exit (lambda (exiter) ...)) is call/cc without the ability to jump back into a previous computation."
   #define Q_call_with_exit s7_make_signature(sc, 2, sc->values_symbol, sc->is_procedure_symbol)
@@ -724,7 +692,7 @@ static s7_pointer g_call_with_exit(s7_scheme *sc, s7_pointer args)   /* (call-wi
   return((is_c_function(func)) ? c_function_call(func)(sc, set_plist_1(sc, new_goto)) : s7_apply_function_star(sc, func, set_plist_1(sc, new_goto)));
 }
 
-static inline void op_call_with_exit(s7_scheme *sc)
+inline void op_call_with_exit(s7_scheme *sc)
 {
   s7_pointer args = opt2_pair(sc->code);
   s7_pointer go = make_goto(sc, caar(args));
@@ -734,14 +702,14 @@ static inline void op_call_with_exit(s7_scheme *sc)
   /* goto begin */
 }
 
-static void op_call_with_exit_o(s7_scheme *sc)
+void op_call_with_exit_o(s7_scheme *sc)
 {
   op_call_with_exit(sc);
   sc->code = car(sc->code);
   /* goto eval */
 }
 
-static bool op_implicit_goto(s7_scheme *sc)
+bool op_implicit_goto(s7_scheme *sc)
 {
   s7_pointer g = lookup_checked(sc, car(sc->code));
   if (!is_goto(g)) {sc->last_function = g; return(false);}
@@ -751,7 +719,7 @@ static bool op_implicit_goto(s7_scheme *sc)
   return(true);
 }
 
-static bool op_implicit_goto_a(s7_scheme *sc)
+bool op_implicit_goto_a(s7_scheme *sc)
 {
   s7_pointer g = lookup_checked(sc, car(sc->code));
   if (!is_goto(g)) {sc->last_function = g; return(false);}
@@ -763,7 +731,7 @@ static bool op_implicit_goto_a(s7_scheme *sc)
 
 /* -------------------------------- display/write helper -------------------------------- */
 
-static void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
+void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
 {
   if (is_symbol(continuation_name(obj)))
     {
@@ -777,4 +745,6 @@ static void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port,
 
 /* -------------------------------- setter helper -------------------------------- */
 
-static s7_pointer b_is_continuation_setter(s7_scheme *sc, s7_pointer args) {return(b_simple_setter(sc, T_CONTINUATION, args));}
+s7_pointer b_is_continuation_setter(s7_scheme *sc, s7_pointer args) {return(b_simple_setter(sc, T_CONTINUATION, args));}
+
+#endif /* S7_CONTINUATION_C_BODY */

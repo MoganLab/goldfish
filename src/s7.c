@@ -11829,7 +11829,8 @@ static s7_pointer g_c_pointer_to_list(s7_scheme *sc, s7_pointer args)
 static void symbol_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci);
 static s7_pointer b_simple_setter(s7_scheme *sc, int32_t typer, s7_pointer args);
 
-#include "s7_continuation.c"
+#define S7_CONTINUATION_IMPLEMENTATION
+#include "s7_continuation.h"
 
 
 
