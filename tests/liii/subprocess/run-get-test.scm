@@ -25,4 +25,13 @@
   (check (procedure? (run-get 'custom-lambda)) => #t)
 )
 
+(when (os-windows?)
+  (run-set! 'pytrue "python3")
+  (check (path? (run-get 'pytrue)) => #t)
+  (check (run-get 'not-exist) => #f)
+
+  (run-set! 'custom-lambda (lambda () (display "ok\n")))
+  (check (procedure? (run-get 'custom-lambda)) => #t)
+)
+
 (check-report)

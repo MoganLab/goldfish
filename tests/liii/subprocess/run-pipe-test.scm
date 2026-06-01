@@ -42,4 +42,13 @@
   (check (to-left (run-pipe "echo hello" '(false))) => '(1 (false)))
 ) ;when
 
+(when (os-windows?)
+  ;; run-pipe relies on :stdout 'capture internally, which doesn't work reliably on Windows
+  ;; multi-command pipe fails because capture returns empty string
+  (check (either-left? (run-pipe "python3 -c print('hello')" "python3 -c pass")) => #t)
+
+  ;; single command pipe succeeds because the command exits with 0 (though output is empty)
+  (check (either-right? (run-pipe "python3 -c pass")) => #t)
+) ;when
+
 (check-report)

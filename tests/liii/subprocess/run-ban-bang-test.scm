@@ -36,4 +36,21 @@
   (check (zero? (run "true")) => #t)
 ) ;when
 
+(when (os-windows?)
+  ;; 符号命令禁止与取消
+  (run-set! 'pytrue "python3")
+  (run-ban! 'pytrue)
+  (check-catch 'value-error (run '(pytrue "-c" "pass")))
+
+  (run-unban! 'pytrue)
+  (check (zero? (run '(pytrue "-c" "pass"))) => #t)
+
+  ;; 'rm 默认被禁止（字符串形式）
+  (check-catch 'value-error (run "rm -rf /tmp/test"))
+  (check-catch 'value-error (run "rm"))
+
+  ;; 其他命令不受影响
+  (check (zero? (run "python3 -c pass")) => #t)
+) ;when
+
 (check-report)

@@ -183,7 +183,11 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
   else if (stdout_mode == redirect_mode::discard) {
     attr.outtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+#ifdef TB_CONFIG_OS_WINDOWS
+    attr.out.path = "NUL";
+#else
     attr.out.path = "/dev/null";
+#endif
     attr.outmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (need_stdout_pipe) {
@@ -201,7 +205,11 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
   else if (stderr_mode == redirect_mode::discard) {
     attr.errtype = TB_PROCESS_REDIRECT_TYPE_FILEPATH;
+#ifdef TB_CONFIG_OS_WINDOWS
+    attr.err.path = "NUL";
+#else
     attr.err.path = "/dev/null";
+#endif
     attr.errmode = TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC;
   }
   else if (stderr_to_stdout && out_pipe[1]) {
@@ -240,8 +248,12 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   tb_process_ref_t process = tb_null;
   if (s7_is_string (cmd_arg)) {
     const char* cmd_c = s7_string (cmd_arg);
+#ifdef TB_CONFIG_OS_WINDOWS
+    process = tb_process_init_cmd (cmd_c, &attr);
+#else
     tb_char_t const* sh_argv[] = {"sh", "-c", cmd_c, tb_null};
     process = tb_process_init ("/bin/sh", sh_argv, &attr);
+#endif
   }
   else if (s7_is_pair (cmd_arg)) {
     vector<const char*> argv;

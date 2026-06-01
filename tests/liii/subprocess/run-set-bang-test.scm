@@ -31,4 +31,15 @@
   (check (zero? (run '(my-lambda))) => #t)
 )
 
+(when (os-windows?)
+  (run-set! 'pytrue "python3")
+  (check (zero? (run '(pytrue "-c" "pass"))) => #t)
+
+  (run-set! 'pyfalse "python3")
+  (check (zero? (run '(pyfalse "-c" "1/0"))) => #f)
+
+  (run-set! 'my-lambda (lambda () (display "ok\n")))
+  (check (zero? (run '(my-lambda))) => #t)
+)
+
 (check-report)

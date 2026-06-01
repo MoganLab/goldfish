@@ -31,4 +31,15 @@
   (check (to-right (run-or "true" "false" :cwd "/tmp")) => 0)
 ) ;when
 
+(when (os-windows?)
+  (check (either-right? (run-or "python3 -c pass" "python3 -c 1/0")) => #t)
+  (check (to-right (run-or "python3 -c pass" "python3 -c 1/0")) => 0)
+  (check (either-left? (run-or "python3 -c 1/0" "python3 -c 1/0")) => #t)
+  (check (to-left (run-or "python3 -c 1/0" "python3 -c 1/0")) => '(1 "python3 -c 1/0"))
+  (check (either-right? (run-or "python3 -c 1/0" "python3 -c pass")) => #t)
+  (check (to-right (run-or "python3 -c 1/0" "python3 -c pass")) => 0)
+  (check (either-right? (run-or "python3 -c pass" "python3 -c 1/0" :cwd (os-temp-dir))) => #t)
+  (check (to-right (run-or "python3 -c pass" "python3 -c 1/0" :cwd (os-temp-dir))) => 0)
+) ;when
+
 (check-report)

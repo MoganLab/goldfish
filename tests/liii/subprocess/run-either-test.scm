@@ -98,4 +98,61 @@
   (check (to-right (run-either '(printf "%s" "hello world") :stdout 'capture)) => "hello world")
 ) ;when
 
+(when (os-windows?)
+  ;; basic success
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-out-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-either "python3 -c pass" :stdout tmpfile :stderr 'discard)) => #t)
+    (check (to-right (run-either "python3 -c pass" :stdout tmpfile :stderr 'discard)) => "")
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; basic failure
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-out2-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-left? (run-either "python3 -c 1/0" :stdout tmpfile :stderr 'discard)) => #t)
+    (let ((result (to-left (run-either "python3 -c 1/0" :stdout tmpfile :stderr 'discard))))
+      (check (number? (car result)) => #t)
+      (check (string? (cdr result)) => #t))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :cwd
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-cwd-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-either "python3 -c pass" :cwd (os-temp-dir) :stdout tmpfile :stderr 'discard)) => #t)
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :env
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-env-win.txt"))
+        (path-env (getenv "PATH")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-either "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)) :stdout tmpfile :stderr 'discard)) => #t)
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :stdout to file
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-file-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-either "python3 -c print('hello')" :stdout tmpfile :stderr 'discard)) => #t)
+    (check (to-right (run-either "python3 -c print('hello')" :stdout tmpfile :stderr 'discard)) => "")
+    (check (path-read-text tmpfile) => "hello\n")
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :stdout 'discard
+  (check (either-right? (run-either "python3 -c pass" :stdout 'discard :stderr 'discard)) => #t)
+  (check (to-right (run-either "python3 -c pass" :stdout 'discard :stderr 'discard)) => "")
+
+  ;; list form with symbol head
+  (run-set! 'pypass "python3")
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-either-list-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-either '(pypass "-c" "print('hello world')") :stdout tmpfile :stderr 'discard)) => #t)
+    (check (to-right (run-either '(pypass "-c" "print('hello world')") :stdout tmpfile :stderr 'discard)) => "")
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+) ;when
+
 (check-report)
