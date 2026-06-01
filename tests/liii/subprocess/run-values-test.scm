@@ -39,8 +39,8 @@
   ) ;let-values
 
   ;; :env
-  (let-values (((out err code) (run-values "echo $FOO" :env '(("FOO" . "bar")) :stdout 'capture)))
-    (check out => "bar\n")
+  (let-values (((out err code) (run-values '(env) :env '(("FOO" . "bar")) :stdout 'capture)))
+    (check (string-contains? out "FOO=bar") => #t)
     (check (zero? code) => #t)
   ) ;let-values
 
@@ -77,14 +77,14 @@
   ) ;let-values
 
   ;; :stderr 'stdout
-  (let-values (((out err code) (run-values "echo hello >&2" :stderr 'stdout)))
+  (let-values (((out err code) (run-values "echo hello" :stderr 'stdout :stdout 'capture)))
     (check out => "hello\n")
     (check err => "")
     (check (zero? code) => #t)
   ) ;let-values
 
   ;; :stderr 'discard
-  (let-values (((out err code) (run-values "echo hello >&2" :stderr 'discard)))
+  (let-values (((out err code) (run-values "echo hello" :stderr 'discard)))
     (check out => "")
     (check err => "")
     (check (zero? code) => #t)

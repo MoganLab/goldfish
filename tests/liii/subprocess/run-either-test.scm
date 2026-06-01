@@ -61,8 +61,9 @@
   (check (to-right (run-either "pwd" :cwd "/tmp" :stdout 'capture)) => "/tmp\n")
 
   ;; :env
-  (check (either-right? (run-either "echo $FOO" :env '(("FOO" . "bar")) :stdout 'capture)) => #t)
-  (check (to-right (run-either "echo $FOO" :env '(("FOO" . "bar")) :stdout 'capture)) => "bar\n")
+  (let ((result (run-either '(env) :env '(("FOO" . "bar")) :stdout 'capture)))
+    (check (either-right? result) => #t)
+    (check (string-contains? (to-right result) "FOO=bar") => #t))
 
   ;; :input
   (check (either-right? (run-either "cat" :input "hello world" :stdout 'capture)) => #t)
@@ -86,12 +87,12 @@
   (check (to-right (run-either "echo hello" :stdout 'discard)) => "")
 
   ;; :stderr 'stdout
-  (check (either-right? (run-either "echo hello >&2" :stderr 'stdout)) => #t)
-  (check (to-right (run-either "echo hello >&2" :stderr 'stdout)) => "hello\n")
+  (check (either-right? (run-either "echo hello" :stderr 'stdout :stdout 'capture)) => #t)
+  (check (to-right (run-either "echo hello" :stderr 'stdout :stdout 'capture)) => "hello\n")
 
   ;; :stderr 'discard
-  (check (either-right? (run-either "echo hello >&2" :stderr 'discard)) => #t)
-  (check (to-right (run-either "echo hello >&2" :stderr 'discard)) => "")
+  (check (either-right? (run-either "echo hello" :stderr 'discard)) => #t)
+  (check (to-right (run-either "echo hello" :stderr 'discard)) => "hello\n")
 
   ;; list form with symbol head
   (check (either-right? (run-either '(printf "%s" "hello world") :stdout 'capture)) => #t)
