@@ -11,7 +11,7 @@
 ;; 参数
 ;; ----
 ;; command : string 或 list
-;; 字符串形式通过 /bin/sh -c 执行，列表形式以 symbol 开头。
+;; 字符串形式通过 wordexp 拆分后直接执行，列表形式以 symbol 开头。
 ;;
 ;; keyword value ... : 可选
 ;; :cwd — 工作目录。
@@ -29,7 +29,7 @@
 ;;
 ;; 说明
 ;; ----
-;; 1. 字符串命令支持 shell 特性（通配符、变量展开等）。
+;; 1. 字符串命令通过 wordexp 拆分后执行，不支持 shell 管道等特性。
 ;; 2. 列表形式以 symbol 开头，最终转换为字符串执行。
 ;; 3. 命令中显式包含 cd 时不可同时设置 :cwd，否则抛 value-error。
 
@@ -54,7 +54,7 @@
   (check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
 
   ;; :env
-  (check (run "test $FOO = bar" :env '(("FOO" . "bar"))) => 0)
+  (check (run '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))) => 0)
 
   ;; list form with symbol head
   (check (run '(printf "%s" "hello world")) => 0)

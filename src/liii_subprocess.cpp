@@ -21,6 +21,10 @@
 #include <string>
 #include <vector>
 
+#if !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
+#include <wordexp.h>
+#endif
+
 namespace goldfish {
 
 using std::string;
@@ -251,8 +255,13 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 #ifdef TB_CONFIG_OS_WINDOWS
     process = tb_process_init_cmd (cmd_c, &attr);
 #else
-    tb_char_t const* sh_argv[] = {"sh", "-c", cmd_c, tb_null};
-    process = tb_process_init ("/bin/sh", sh_argv, &attr);
+    wordexp_t p;
+    int       ret= wordexp (cmd_c, &p, 0);
+    if (ret == 0 && p.we_wordc > 0) {
+      process= tb_process_init (p.we_wordv[0], (tb_char_t const**) p.we_wordv,
+                                &attr);
+      wordfree (&p);
+    }
 #endif
   }
   else if (s7_is_pair (cmd_arg)) {

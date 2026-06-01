@@ -38,11 +38,11 @@
   (check (to-left (run-and "true" "false")) => '(1 "false"))
   (check (either-right? (run-and "true" "true" :cwd "/tmp")) => #t)
   (check (to-right (run-and "true" "true" :cwd "/tmp")) => 0)
-  (check (either-right? (run-and "test $FOO = bar" :env '(("FOO" . "bar"))))
+  (check (either-right? (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar"))))
     =>
     #t
   ) ;check
-  (check (to-right (run-and "test $FOO = bar" :env '(("FOO" . "bar")))) => 0)
+  (check (to-right (run-and '(sh "-c" "test $FOO = bar") :env '(("FOO" . "bar")))) => 0)
 
   ;; :stdout only on last
   (let ((tmpfile "/tmp/gf-run-and-stdout.txt"))
