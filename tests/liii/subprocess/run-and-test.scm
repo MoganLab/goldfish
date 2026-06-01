@@ -68,4 +68,32 @@
   (check (to-left (run-and "true" "false" "true")) => '(1 "false"))
 ) ;when
 
+(when (os-windows?)
+  (check (either-right? (run-and "python3 -c pass" "python3 -c pass")) => #t)
+  (check (to-right (run-and "python3 -c pass" "python3 -c pass")) => 0)
+  (check (either-left? (run-and "python3 -c 1/0" "python3 -c pass")) => #t)
+  (check (to-left (run-and "python3 -c 1/0" "python3 -c pass")) => '(1 "python3 -c 1/0"))
+  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0")) => #t)
+  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0")) => '(1 "python3 -c 1/0"))
+  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => #t)
+  (check (to-right (run-and "python3 -c pass" "python3 -c pass" :cwd (os-temp-dir))) => 0)
+  (let ((path-env (getenv "PATH")))
+    (check (either-right? (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))) => #t)
+    (check (to-right (run-and "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)))) => 0))
+
+  ;; :stdout only on last
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-and-stdout-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (check (either-right? (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile)) => #t)
+    (check (to-right (run-and "python3 -c pass" "python3 -c pass" :stdout tmpfile)) => 0)
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; Multiple commands
+  (check (either-right? (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass")) => #t)
+  (check (to-right (run-and "python3 -c pass" "python3 -c pass" "python3 -c pass")) => 0)
+  (check (either-left? (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => #t)
+  (check (to-left (run-and "python3 -c pass" "python3 -c 1/0" "python3 -c pass")) => '(1 "python3 -c 1/0"))
+) ;when
+
 (check-report)

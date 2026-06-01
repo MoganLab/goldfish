@@ -60,4 +60,26 @@
   (check (run '(printf "%s" "hello world")) => 0)
 ) ;when
 
+(when (os-windows?)
+  (check (zero? (run "python3 -c pass")) => #t)
+  (check (zero? (run "python3 -c 1/0")) => #f)
+  (check (run "python3 -c print('hello')") => 0)
+
+  (let ((orig-dir (getcwd)))
+    (run "python3 -c pass" :cwd (os-temp-dir))
+    (check (getcwd) => orig-dir)
+  ) ;let
+
+  (check-catch 'value-error (run "cd /tmp" :cwd (os-temp-dir)))
+  (check-catch 'value-error (run '(cd "/tmp") :cwd (os-temp-dir)))
+
+  ;; :env (need to preserve PATH on Windows)
+  (let ((path-env (getenv "PATH")))
+    (check (run "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env))) => 0))
+
+  ;; list form with symbol head
+  (run-set! 'pyprint "python3")
+  (check (run '(pyprint "-c" "print('hello world')")) => 0)
+) ;when
+
 (check-report)

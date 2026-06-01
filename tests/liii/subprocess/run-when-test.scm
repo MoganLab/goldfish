@@ -30,4 +30,14 @@
   (check (to-left (run-when "false" "false")) => '(1 "false"))
 ) ;when
 
+(when (os-windows?)
+  (check (either-right? (run-when "python3 -c 1/0" "python3 -c pass")) => #t)
+  (check (to-right (run-when "python3 -c 1/0" "python3 -c pass")) => 0)
+  (check (either-right? (run-when "python3 -c pass" "python3 -c pass")) => #t)
+  (check (to-right (run-when "python3 -c pass" "python3 -c pass")) => 0)
+
+  (check (either-left? (run-when "python3 -c 1/0" "python3 -c 1/0")) => #t)
+  (check (to-left (run-when "python3 -c 1/0" "python3 -c 1/0")) => '(1 "python3 -c 1/0"))
+) ;when
+
 (check-report)

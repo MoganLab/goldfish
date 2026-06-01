@@ -32,4 +32,23 @@
   (run-allow! '())
 )
 
+(when (os-windows?)
+  (run-set! 'pytrue "python3")
+  (run-set! 'pyfalse "python3")
+
+  (run-allow! 'pytrue)
+  (check (zero? (run '(pytrue "-c" "pass"))) => #t)
+  (check-catch 'value-error (run '(pyfalse "-c" "1/0")))
+
+  (run-allow! '())
+  (check (zero? (run '(pyfalse "-c" "1/0"))) => #f)
+
+  (run-allow! '(pytrue pyfalse))
+  (check (zero? (run '(pytrue "-c" "pass"))) => #t)
+  (check (zero? (run '(pyfalse "-c" "1/0"))) => #f)
+  (check-catch 'value-error (run '(unknown-cmd)))
+
+  (run-allow! '())
+)
+
 (check-report)

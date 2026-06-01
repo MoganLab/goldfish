@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii path) (liii subprocess) (scheme file))
+(import (liii check) (liii os) (liii path) (liii string) (liii subprocess) (scheme file))
 
 ;; run-values
 ;; 执行命令并多值返回 stdout、stderr 和退出码。
@@ -114,6 +114,78 @@
   ;; list form with symbol head
   (let-values (((out err code) (run-values '(printf "%s" "hello world") :stdout 'capture)))
     (check out => "hello world")
+    (check (zero? code) => #t)
+  ) ;let-values
+) ;when
+
+(when (os-windows?)
+  (let-values (((out err code) (run-values "python3 -c pass")))
+    (check out => "")
+    (check (zero? code) => #t)
+  ) ;let-values
+
+  (let-values (((out err code) (run-values "python3 -c 1/0")))
+    (check out => "")
+    (check (zero? code) => #f)
+  ) ;let-values
+
+  ;; :env (need to preserve PATH on Windows)
+  (let ((path-env (getenv "PATH"))
+        (tmpfile (string-append (os-temp-dir) "/gf-run-values-env-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (let-values (((out err code) (run-values "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)) :stdout tmpfile)))
+      (check (zero? code) => #t))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :timeout
+  (let-values (((out err code) (run-values "python3 -c \"import time; time.sleep(10)\"" :timeout 1)))
+    (check code => -1)
+  ) ;let-values
+
+  ;; :stdout to file
+  (let ((tmpfile (string-append (os-temp-dir) "/gf-run-values-stdout-win.txt")))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (let-values (((out err code) (run-values "python3 -c print('hello')" :stdout tmpfile)))
+      (check out => "")
+      (check (zero? code) => #t)
+      (check (path-read-text tmpfile) => "hello\n"))
+    (when (file-exists? tmpfile) (delete-file tmpfile))
+  ) ;let
+
+  ;; :stdout 'discard
+  (let-values (((out err code) (run-values "python3 -c print('hello')" :stdout 'discard)))
+    (check out => "")
+    (check (zero? code) => #t)
+  ) ;let-values
+
+  ;; :stderr 'discard
+  (let-values (((out err code) (run-values "python3 -c pass" :stderr 'discard)))
+    (check err => "")
+    (check (zero? code) => #t)
+  ) ;let-values
+
+  ;; :stdin from file
+  (let ((infile (string-append (os-temp-dir) "/gf-run-values-stdin-win.txt"))
+        (outfile (string-append (os-temp-dir) "/gf-run-values-stdin-out-win.txt")))
+    (when (file-exists? outfile) (delete-file outfile))
+    (call-with-output-file infile (lambda (p) (display "file content\n" p)))
+    (let ((cmd (string-append "python3 -c \"import sys; open('" (string-replace outfile "\\" "/") "','w').write(sys.stdin.read())\"")))
+      (let-values (((out err code) (run-values cmd :stdin infile)))
+        (check (zero? code) => #t))
+      (check (path-read-text outfile) => "file content\n"))
+    (when (file-exists? infile) (delete-file infile))
+    (when (file-exists? outfile) (delete-file outfile))
+  ) ;let
+
+  ;; :stdin 'null
+  (let-values (((out err code) (run-values "python3 -c pass" :stdin 'null)))
+    (check (zero? code) => #t)
+  ) ;let-values
+
+  ;; list form with symbol head
+  (run-set! 'pypass "python3")
+  (let-values (((out err code) (run-values '(pypass "-c" "print('hello world')"))))
     (check (zero? code) => #t)
   ) ;let-values
 ) ;when
