@@ -350,6 +350,136 @@ f_executable (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, exe_path.c_str ());
 }
 
+static bool
+which_access_check (const char* path) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  tb_file_info_t info;
+  return tb_file_info (path, &info) && info.type == TB_FILE_TYPE_FILE;
+#else
+  return tb_file_access (path, TB_FILE_MODE_EXEC);
+#endif
+}
+
+static s7_pointer
+f_which (s7_scheme* sc, s7_pointer args) {
+  const char* cmd_c         = s7_string (s7_car (args));
+  s7_pointer  path_arg      = s7_cdr (args);
+  const char* path_override = nullptr;
+
+  if (s7_is_pair (path_arg)) {
+    path_override= s7_string (s7_car (path_arg));
+  }
+
+  string         cmd_str (cmd_c);
+  vector<string> search_dirs;
+  string         cmd_name;
+
+  bool has_dir_sep= (cmd_str.find ('/') != string::npos) || (cmd_str.find ('\\') != string::npos);
+
+  if (has_dir_sep) {
+    size_t last_sep= cmd_str.find_last_of ("/\\");
+    string dir     = cmd_str.substr (0, last_sep);
+    cmd_name       = cmd_str.substr (last_sep + 1);
+    if (dir.empty ()) {
+      dir= ".";
+    }
+    search_dirs.push_back (dir);
+  }
+  else {
+    cmd_name= cmd_str;
+
+    string path_env;
+    if (path_override != nullptr) {
+      path_env= path_override;
+    }
+    else {
+      const char* env= getenv ("PATH");
+      if (env != nullptr) {
+        path_env= env;
+      }
+    }
+
+    if (path_env.empty ()) {
+      return s7_make_boolean (sc, false);
+    }
+
+    char path_sep= ':';
+#ifdef TB_CONFIG_OS_WINDOWS
+    path_sep= ';';
+#endif
+
+    size_t start= 0;
+    size_t end  = path_env.find (path_sep);
+    while (end != string::npos) {
+      string dir= path_env.substr (start, end - start);
+      if (!dir.empty ()) {
+        search_dirs.push_back (dir);
+      }
+      start= end + 1;
+      end  = path_env.find (path_sep, start);
+    }
+    string last_dir= path_env.substr (start);
+    if (!last_dir.empty ()) {
+      search_dirs.push_back (last_dir);
+    }
+  }
+
+  vector<string> files_to_check;
+
+#ifdef TB_CONFIG_OS_WINDOWS
+  vector<string> exts;
+  const char*    pathext= getenv ("PATHEXT");
+  if (pathext != nullptr) {
+    string ext_str (pathext);
+    size_t start= 0;
+    size_t end  = ext_str.find (';');
+    while (end != string::npos) {
+      string ext= ext_str.substr (start, end - start);
+      if (!ext.empty ()) {
+        if (ext[0] == '.') ext= ext.substr (1);
+        exts.push_back (ext);
+      }
+      start= end + 1;
+      end  = ext_str.find (';', start);
+    }
+    string last_ext= ext_str.substr (start);
+    if (!last_ext.empty ()) {
+      if (last_ext[0] == '.') last_ext= last_ext.substr (1);
+      exts.push_back (last_ext);
+    }
+  }
+
+  files_to_check.push_back (cmd_name);
+  for (const string& ext : exts) {
+    files_to_check.push_back (cmd_name + "." + ext);
+  }
+#else
+  files_to_check.push_back (cmd_name);
+#endif
+
+  for (const string& dir : search_dirs) {
+    for (const string& file : files_to_check) {
+#ifdef TB_CONFIG_OS_WINDOWS
+      string full_path= dir + "\\" + file;
+#else
+      string full_path= dir + "/" + file;
+#endif
+      if (which_access_check (full_path.c_str ())) {
+        return s7_make_string (sc, full_path.c_str ());
+      }
+    }
+  }
+
+  return s7_make_boolean (sc, false);
+}
+
+inline void
+glue_which (s7_scheme* sc) {
+  const char* name= "g_which";
+  const char* desc= "(g_which cmd [path]) => string or #f, locate a command in PATH or given search path";
+  glue_define (sc, name, desc, f_which, 1, 1);
+}
+
 inline void
 glue_executable (s7_scheme* sc) {
   const char* name= "g_executable";
@@ -359,6 +489,7 @@ glue_executable (s7_scheme* sc) {
 
 inline void
 glue_liii_sys (s7_scheme* sc) {
+  glue_which (sc);
   glue_executable (sc);
 }
 
