@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: 0BSD
  */
 
-#ifndef S7_CONTINUATION_C_BODY
-#define S7_CONTINUATION_C_BODY
-
+#include "s7_internal.h"
 #include "s7_continuation.h"
 
 /* -------------------------------- GC sweep helper -------------------------------- */
@@ -24,7 +22,7 @@ void mark_continuation(s7_pointer cc)
   set_mark(cc);
   if (!is_marked(continuation_stack(cc))) /* can these be cyclic? */
     mark_stack_1(continuation_stack(cc), continuation_stack_top(cc));
-  gc_mark(continuation_op_stack(cc));
+  s7_mark(continuation_op_stack(cc));
 }
 
 /* -------------------------------- continuations and gotos -------------------------------- */
@@ -301,10 +299,6 @@ s7_pointer s7_make_continuation(s7_scheme *sc)
   return(new_cc);
 }
 
-static void let_temp_done(s7_scheme *sc, s7_pointer args, s7_pointer let);
-static void let_temp_unwind(s7_scheme *sc, s7_pointer slot, s7_pointer new_value);
-static s7_pointer dynamic_unwind(s7_scheme *sc, s7_pointer func, s7_pointer let);
-
 static bool check_for_dynamic_winds(s7_scheme *sc, s7_pointer cont)
 {
   /* called only from call_with_current_continuation.
@@ -430,8 +424,6 @@ static bool check_for_dynamic_winds(s7_scheme *sc, s7_pointer cont)
   return(true);
 }
 
-static s7_pointer splice_in_values(s7_scheme *sc, s7_pointer args);
-
 void call_with_current_continuation(s7_scheme *sc)
 {
   s7_pointer cont = sc->code;  /* sc->args are the returned values */
@@ -527,8 +519,6 @@ bool op_implicit_continuation_a(s7_scheme *sc)
 
 
 /* -------------------------------- call-with-exit -------------------------------- */
-static void pop_input_port(s7_scheme *sc);
-
 void call_with_exit(s7_scheme *sc)
 {
   s7_int op_loc, new_stack_top, quit = 0;
@@ -747,4 +737,3 @@ void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_wr
 
 s7_pointer b_is_continuation_setter(s7_scheme *sc, s7_pointer args) {return(b_simple_setter(sc, T_CONTINUATION, args));}
 
-#endif /* S7_CONTINUATION_C_BODY */

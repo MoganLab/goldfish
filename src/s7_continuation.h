@@ -74,10 +74,4 @@ void continuation_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_wr
 s7_pointer b_is_continuation_setter(s7_scheme *sc, s7_pointer args);
 s7_pointer s7_make_continuation(s7_scheme *sc);
 
-#ifndef S7_CONTINUATION_C_BODY
-#ifdef S7_CONTINUATION_IMPLEMENTATION
-#include "s7_continuation.c"
-#endif
-#endif
-
 #endif /* S7_CONTINUATION_H */
