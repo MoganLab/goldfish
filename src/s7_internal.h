@@ -1734,10 +1734,14 @@ extern inline s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old
 #define list_2_unchecked(Sc, A, B)     cons_unchecked(Sc, A, cons_unchecked(Sc, B, Sc->nil))
 
 /* lookup_checked (macro) */
-#if S7_DEBUGGING
+#if WITH_GCC
+  #if S7_DEBUGGING
     #define lookup_checked(Sc, Sym) ({s7_pointer _x_; _x_ = lookup_1(Sc, T_Sym(Sym)); ((_x_) ? _x_ : unbound_variable(Sc, T_Sym(Sym)));})
-#else
+  #else
     #define lookup_checked(Sc, Sym) ({s7_pointer _x_; _x_ = lookup(Sc, T_Sym(Sym)); ((_x_) ? _x_ : unbound_variable(Sc, T_Sym(Sym)));})
+  #endif
+#else
+  #define lookup_checked(Sc, Sym) lookup(Sc, Sym)
 #endif
 
 /* lookup (decl) */
