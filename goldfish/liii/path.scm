@@ -10,6 +10,7 @@
     path-read-text
     path-read-bytes
     path-write-text
+    path-write-bytes
     path-append-text
     path-touch
     path-root
@@ -500,6 +501,13 @@
       (if (not (string? content))
         (type-error "path-write-text: content must be string")
         (g_path-write-text (path->string p) content)
+      ) ;if
+    ) ;define
+
+    (define (path-write-bytes p data)
+      (if (not (byte-vector? data))
+        (type-error "path-write-bytes: data must be bytevector")
+        (g_path-write-bytes (path->string p) data)
       ) ;if
     ) ;define
 
