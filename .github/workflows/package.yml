@@ -248,3 +248,109 @@ jobs:
         prerelease: true
         files: |
           tmp/build/xpack/goldfish/*.zip
+
+  package-macos:
+    # GitHub 已退役 Intel macOS runner（macos-13 于 2025-12 下线），
+    # 当前所有 macOS runner 均为 Apple Silicon (arm64)，故只产出 arm64 包。
+    # Intel Mac 用户走源码编译（Homebrew formula 回退到 build）。
+    runs-on: macos-14
+    env:
+      XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
+
+    steps:
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+      with:
+        xmake-version: v3.0.8
+
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Determine Version
+      run: |
+        REF_NAME="${{ github.ref }}"
+        MANUAL_VER="${{ inputs.manual_version }}"
+        if [ -n "$MANUAL_VER" ]; then
+          RAW_VERSION="$MANUAL_VER"
+        elif [[ "$REF_NAME" == refs/tags/* ]]; then
+          RAW_VERSION=${REF_NAME#refs/tags/}
+          RAW_VERSION=${RAW_VERSION//\//}
+        else
+          RAW_VERSION=$(date +%Y.%m.%d)
+        fi
+        if [[ "$RAW_VERSION" == v* ]]; then
+          CLEAN_VERSION=${RAW_VERSION#v}
+        else
+          CLEAN_VERSION="$RAW_VERSION"
+        fi
+        echo "VERSION_TAG=$RAW_VERSION" >> $GITHUB_ENV
+        echo "VERSION_NUM=$CLEAN_VERSION" >> $GITHUB_ENV
+        echo "Version tag: $RAW_VERSION"
+        echo "Version num: $CLEAN_VERSION"
+
+    - name: cache packages from xrepo
+      uses: actions/cache@v4
+      with:
+        path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+        key: macos-14-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+    - name: xmake repo --update
+      run: xmake repo --update
+
+    - name: Config and Build
+      run: |
+        xmake config -vyD -o tmp/build -m release --repl=true --yes
+        xmake build goldfish
+
+    - name: Build function doc index
+      run: ./bin/gf doc --build-json
+
+    - name: Package
+      run: xmake pack -vyD goldfish
+
+    - name: Verify package arch
+      run: |
+        # xmake xpack 用宿主机 arch；强制校验产物文件名里带 arm64，
+        # 防止 runner 实际架构与预期不符时悄悄产出错误命名的包。
+        DIR="tmp/build/xpack/goldfish"
+        echo "Expected arch: arm64"
+        ls -lh "$DIR"/*.tar.gz
+        if ! ls "$DIR"/*-arm64-*.tar.gz >/dev/null 2>&1; then
+          echo "::error::产物文件名里没找到 arm64，检查 xmake 是否正确识别了架构"
+          exit 1
+        fi
+
+    - name: Create summary table
+      run: |
+        DIR="tmp/build/xpack/goldfish"
+        echo "## macOS arm64 package" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| 文件名 | 大小 |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+        for pkg in "$DIR"/*.tar.gz; do
+            if [ -f "$pkg" ]; then
+                size=$(ls -lh "$pkg" | awk '{print $5}')
+                echo "| \`$(basename "$pkg")\` | $size |" >> $GITHUB_STEP_SUMMARY
+            fi
+        done
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "*目录: \`$DIR\`*" >> $GITHUB_STEP_SUMMARY
+
+    - name: Upload macOS package artifact
+      uses: actions/upload-artifact@v4
+      if: github.event_name == 'workflow_dispatch'
+      with:
+        name: goldfish-macos-arm64-package
+        path: tmp/build/xpack/goldfish/*.tar.gz
+        retention-days: 30
+        if-no-files-found: error
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        prerelease: true
+        files: |
+          tmp/build/xpack/goldfish/*.tar.gz

@@ -201,6 +201,8 @@ includes("@builtin/xpack")
 xpack ("goldfish")
     if is_plat("windows") then
         set_formats("zip")
+    elseif is_plat("macosx") then
+        set_formats("targz")
     else
         set_formats("deb", "rpm", "srpm")
     end
@@ -224,6 +226,8 @@ xpack ("goldfish")
             package:set("basename", "goldfish-scheme-src-v$(version)")
         elseif is_plat("windows") then
             package:set("basename", "goldfish-scheme-$(arch)-v$(version)-win")
+        elseif is_plat("macosx") then
+            package:set("basename", "goldfish-scheme-$(arch)-v$(version)-darwin")
         else
             package:set("basename", "goldfish-scheme-$(arch)-v$(version)")
         end
