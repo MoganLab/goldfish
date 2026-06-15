@@ -250,17 +250,12 @@ jobs:
           tmp/build/xpack/goldfish/*.zip
 
   package-macos:
-    runs-on: ${{ matrix.runner }}
+    # GitHub 已退役 Intel macOS runner（macos-13 于 2025-12 下线），
+    # 当前所有 macOS runner 均为 Apple Silicon (arm64)，故只产出 arm64 包。
+    # Intel Mac 用户走源码编译（Homebrew formula 回退到 build）。
+    runs-on: macos-14
     env:
       XMAKE_GLOBALDIR: ${{ github.workspace }}/.xmake-global
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-14
-            arch: arm64
-          - runner: macos-13
-            arch: x86_64
 
     steps:
     - name: Setup xmake
@@ -299,7 +294,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-        key: ${{ matrix.runner }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+        key: macos-14-xrepo-${{ hashFiles('**/xmake.lua') }}
 
     - name: xmake repo --update
       run: xmake repo --update
@@ -317,20 +312,20 @@ jobs:
 
     - name: Verify package arch
       run: |
-        # xmake xpack 用宿主机 arch；强制校验产物文件名里带期望的 arch，
-        # 防止 matrix 与实际产物不匹配。
+        # xmake xpack 用宿主机 arch；强制校验产物文件名里带 arm64，
+        # 防止 runner 实际架构与预期不符时悄悄产出错误命名的包。
         DIR="tmp/build/xpack/goldfish"
-        echo "Expected arch: ${{ matrix.arch }}"
+        echo "Expected arch: arm64"
         ls -lh "$DIR"/*.tar.gz
-        if ! ls "$DIR"/*-${{ matrix.arch }}-*.tar.gz >/dev/null 2>&1; then
-          echo "::error::产物文件名里没找到 ${{ matrix.arch }}，检查 xmake 是否正确识别了架构"
+        if ! ls "$DIR"/*-arm64-*.tar.gz >/dev/null 2>&1; then
+          echo "::error::产物文件名里没找到 arm64，检查 xmake 是否正确识别了架构"
           exit 1
         fi
 
     - name: Create summary table
       run: |
         DIR="tmp/build/xpack/goldfish"
-        echo "## macOS ${{ matrix.arch }} package" >> $GITHUB_STEP_SUMMARY
+        echo "## macOS arm64 package" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "| 文件名 | 大小 |" >> $GITHUB_STEP_SUMMARY
         echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
@@ -347,7 +342,7 @@ jobs:
       uses: actions/upload-artifact@v4
       if: github.event_name == 'workflow_dispatch'
       with:
-        name: goldfish-macos-${{ matrix.arch }}-package
+        name: goldfish-macos-arm64-package
         path: tmp/build/xpack/goldfish/*.tar.gz
         retention-days: 30
         if-no-files-found: error
