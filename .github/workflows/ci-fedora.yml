@@ -37,7 +37,7 @@ jobs:
       - name: Install dependencies
         run: |
           dnf update -y
-          dnf install -y gcc g++ git unzip curl perl
+          dnf install -y gcc g++ git unzip curl perl ninja-build
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1

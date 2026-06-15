@@ -33,7 +33,8 @@ jobs:
           ca-certificates \
           build-essential \
           devscripts \
-          debhelper
+          debhelper \
+          ninja-build
         apt-get install -y -t trixie-backports xmake
 
     - name: Checkout
