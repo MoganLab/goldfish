@@ -310,6 +310,25 @@
       (if (string? entry) entry (json-ref entry "path"))
     ) ;define
 
+    ;; 纯解析：从已读入的 JSON 文本构造 exclude pattern 列表。
+    ;; 出错时抛异常（由调用方 catch）。
+    (define (parse-exclude-json text)
+      (let* ((obj (string->json text)) (arr (json-ref obj "exclude")))
+        (if (not (vector? arr))
+          '()
+          (let loop
+            ((i 0) (acc '()))
+            (if (>= i (vector-length arr))
+              (reverse acc)
+              (let ((p (exclude-entry->path (vector-ref arr i))))
+                (loop (+ i 1) (if (string? p) (cons p acc) acc))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
     (define (read-project-excludes)
       (let ((root (g_project-root)))
         (if (or (not root) (not (string? root)) (string=? root ""))
@@ -317,31 +336,19 @@
           (let ((file (string-append root "/gfexclude.json")))
             (if (not (file-exists? file))
               '()
-              (guard (e (else (display (string-append "warning: gfexclude.json 解析失败，已忽略 - "
-                                         (if (string? e) e (object->string e))
-                                       ) ;string-append
-                              ) ;display
-                          (newline)
-                          '()
-                        ) ;else
-                     ) ;e
-                (let* ((obj (string->json (path-read-text (path file))))
-                       (arr (json-ref obj "exclude"))
-                      ) ;
-                  (if (not (vector? arr))
+              (catch #t
+                (lambda () (parse-exclude-json (path-read-text (path file))))
+                (lambda (type info)
+                  (let ((e (if (null? info) type (car info))))
+                    (display (string-append "warning: gfexclude.json 解析失败，已忽略 - "
+                               (if (string? e) e (object->string e))
+                             ) ;string-append
+                    ) ;display
+                    (newline)
                     '()
-                    (let loop
-                      ((i 0) (acc '()))
-                      (if (>= i (vector-length arr))
-                        (reverse acc)
-                        (let ((p (exclude-entry->path (vector-ref arr i))))
-                          (loop (+ i 1) (if (string? p) (cons p acc) acc))
-                        ) ;let
-                      ) ;if
-                    ) ;let
-                  ) ;if
-                ) ;let*
-              ) ;guard
+                  ) ;let
+                ) ;lambda
+              ) ;catch
             ) ;if
           ) ;let
         ) ;if
@@ -501,22 +508,29 @@
                 ) ;changed-since
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
-                 (if dry-run
-                   (fix-file-dry-run path-str)
-                   (let ((result (fix-file path-str #t excludes)))
-                     (cond ((eq? result 'cached) #f)
-                           (result (display (string-append "  Updated: " path-str)) (newline))
-                           (else (display (string-append "Fixing: " path-str)) (newline))
-                     ) ;cond
-                     (display (string-append "Total files fixed: 1, Files updated: "
-                                (if (eq? result #t) "1" "0")
-                                ", Files cached: "
-                                (if (eq? result 'cached) "1" "0")
-                              ) ;string-append
-                     ) ;display
+                 (if (file-excluded? path-str excludes)
+                   (begin
+                     (display (string-append "Skipped (excluded): " path-str))
                      (newline)
                      #t
-                   ) ;let
+                   ) ;begin
+                   (if dry-run
+                     (fix-file-dry-run path-str)
+                     (let ((result (fix-file path-str #t excludes)))
+                       (cond ((eq? result 'cached) #f)
+                             (result (display (string-append "  Updated: " path-str)) (newline))
+                             (else (display (string-append "Fixing: " path-str)) (newline))
+                       ) ;cond
+                       (display (string-append "Total files fixed: 1, Files updated: "
+                                  (if (eq? result #t) "1" "0")
+                                  ", Files cached: "
+                                  (if (eq? result 'cached) "1" "0")
+                                ) ;string-append
+                       ) ;display
+                       (newline)
+                       #t
+                     ) ;let
+                   ) ;if
                  ) ;if
                 ) ;
                 ((path-dir? (path path-str))
