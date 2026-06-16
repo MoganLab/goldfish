@@ -82,7 +82,7 @@
       (newline)
       (display "      --changed-since REV    仅修正自 REV 以来变更的文件")
       (newline)
-      (display "      --exclude PATTERN    跳过匹配的文件（按 basename，逗号分隔多个）"
+      (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
       ) ;display
       (newline)
       (newline)
@@ -207,17 +207,18 @@
                   (loop (cdr remaining) (+ total 1) updated cached)
                 ) ;begin
                 (let ((result (fix-file file #t excludes)))
-                (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
-                      (result (display (string-append "  Updated: " file))
-                        (newline)
-                        (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
-                      ) ;result
-                      (else (display (string-append "Fixing: " file))
-                        (newline)
-                        (loop (cdr remaining) (+ total 1) updated cached)
-                      ) ;else
-                ) ;cond
-              ) ;let
+                  (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
+                        (result (display (string-append "  Updated: " file))
+                          (newline)
+                          (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
+                        ) ;result
+                        (else (display (string-append "Fixing: " file))
+                          (newline)
+                          (loop (cdr remaining) (+ total 1) updated cached)
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;if
             ) ;if
           ) ;let
         ) ;if
@@ -234,31 +235,42 @@
       ) ;let
     ) ;define
 
-    ;; 取路径末段（basename），同时识别 / 与 \，兼容 Windows 路径。
-    (define (path-basename path-str)
-      (let loop
-        ((i (- (string-length path-str) 1)))
-        (cond ((< i 0) path-str)
-              ((or (char=? (string-ref path-str i) #\/)
-                   (char=? (string-ref path-str i) #\\))
-               (substring path-str (+ i 1) (string-length path-str)))
-              (else (loop (- i 1)))
-        ) ;cond
-      ) ;let
+    ;; 把 Windows 反斜杠归一化为正斜杠，跨平台一致比较。
+    (define (normalize-sep path-str)
+      (list->string
+        (let loop
+          ((i (- (string-length path-str) 1)) (acc '()))
+          (if (< i 0)
+            acc
+            (let ((ch (string-ref path-str i)))
+              (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;list->string
     ) ;define
 
-    ;; entry 是否命中 excludes：按 basename 比较，因此 --exclude 既可传
-    ;; basename（prefix-kbd.scm）也可传完整相对路径（a/b/prefix-kbd.scm）。
+    ;; entry 是否命中 excludes：归一化后按"分隔符边界 + 后缀"匹配。
+    ;; pattern 含 / 时按完整相对路径精确匹配（不会误伤同名文件）；
+    ;; pattern 不含 / 时退化为 basename 匹配（向后兼容）。
     (define (file-excluded? entry-str excludes)
-      (let ((entry-base (path-basename entry-str)))
+      (let ((entry-norm (normalize-sep entry-str)))
         (let loop
           ((pats excludes))
           (if (null? pats)
             #f
-            (if (string=? entry-base (path-basename (car pats)))
-              #t
-              (loop (cdr pats))
-            ) ;if
+            (let* ((p (normalize-sep (car pats)))
+                   (plen (string-length p))
+                   (elen (string-length entry-norm))
+                  ) ;
+              (if (or (string=? entry-norm p)
+                      (and (>= elen (+ plen 1))
+                           (char=? (string-ref entry-norm (- elen plen 1)) #\/)
+                           (string-suffix? p entry-norm)))
+                #t
+                (loop (cdr pats))
+              ) ;if
+            ) ;let*
           ) ;if
         ) ;let
       ) ;let
