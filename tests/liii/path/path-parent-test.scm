@@ -42,6 +42,17 @@
   (when (os-windows?)
     (check (path->string (path-parent (path "C:\\Users"))) => "C:\\")
     (check (path->string (path-parent (path "a\\b"))) => "a\\")
+    ;; s7 的 port-filename / argv 在 Windows 上返回正斜杠绝对路径,
+    ;; path-parent 必须同时识别 / 和 \,否则会把整串当单一 part 剥到只剩 "C:"
+    (check (path->string (path-parent (path "C:/Users/foo/bar.scm")))
+      =>
+      "C:\\Users\\foo\\"
+    ) ;check
+    ;; string 输入分支同样需要规范化(path->string 对 string 直通返回原串)
+    (check (path->string (path-parent "C:/Users/foo/bar.scm"))
+      =>
+      "C:\\Users\\foo\\"
+    ) ;check
   ) ;when
 ) ;let
 
