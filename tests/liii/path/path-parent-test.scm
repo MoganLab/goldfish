@@ -53,6 +53,13 @@
       =>
       "C:\\Users\\foo\\"
     ) ;check
+    ;; UNC 下 path-parent 应正确剥到 share anchor
+    (check (path->string (path-parent (path "\\\\srv\\sh\\a\\b")))
+      =>
+      "\\\\srv\\sh\\a\\")
+    (check (path->string (path-parent (path "\\\\srv\\sh\\a")))
+      =>
+      "\\\\srv\\sh")
   ) ;when
 ) ;let
 

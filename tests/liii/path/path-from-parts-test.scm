@@ -39,6 +39,11 @@
     =>
     "C:\\tmp\\demo.txt"
   ) ;check
+  ;; "\\" head: 视为当前盘根路径
+  (check (path->string (path-from-parts #("\\" "tmp" "demo.txt")))
+    =>
+    "\\tmp\\demo.txt"
+  ) ;check
 ) ;when
 
 (check-report)

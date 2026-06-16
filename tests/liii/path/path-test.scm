@@ -42,4 +42,27 @@
   (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
 ) ;when
 
+;; drop-dot-parts "." 过滤: 对齐 pathlib.PurePath('a/./b').parts 不含 "."
+(when (not (os-windows?))
+  (check (path->string (path "a/./b")) => "a/b")
+  (check (path->string (path "./a")) => "a")
+  ;; ".." 必须保留,只有在 resolve() 才处理
+  (check (path->string (path "a/../b")) => "a/../b")
+) ;when
+
+(when (os-windows?)
+  (check (path->string (path "a\\.\\b")) => "a\\b")
+  (check (path->string (path "C:\\")) => "C:\\")
+  ;; UNC 三种形式 round-trip
+  (check (path->string (path "\\\\srv")) => "\\\\srv")
+  (check (path->string (path "\\\\srv\\sh")) => "\\\\srv\\sh")
+  (check (path->string (path "\\\\srv\\sh\\a")) => "\\\\srv\\sh\\a")
+) ;when
+
+;; path-from-parts 边界: 空 vector、空 stub head
+(check (path->string (path-from-parts #())) => ".")
+(when (not (os-windows?))
+  (check (path->string (path-from-parts #("" "tmp" "demo.txt"))) => "/tmp/demo.txt")
+) ;when
+
 (check-report)

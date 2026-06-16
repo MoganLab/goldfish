@@ -170,7 +170,7 @@
     (define (parse-windows-path s)
       (let* ((normalized (string-replace s "/" "\\")) (len (string-length normalized)))
         (cond
-          ;; UNC: \\server\share[\path...]
+          ;; UNC 路径: \\server\share[\path...]
           ((unc-prefix? normalized) (parse-unc normalized len))
 
           ;; 盘符绝对路径: C:\...
@@ -378,7 +378,7 @@
              ) ;
           (case type
            ((windows) (and root (not (string-null? drive))))
-           ((posix) (if root #t #f))
+           ((posix) (and root #t))
            (else #f)
           ) ;case
         ) ;let
