@@ -82,6 +82,9 @@
       (newline)
       (display "      --changed-since REV    仅修正自 REV 以来变更的文件")
       (newline)
+      (display "      --exclude PATTERN    跳过匹配的文件（按 basename，逗号分隔多个）"
+      ) ;display
+      (newline)
       (newline)
       (display "Arguments:")
       (newline)
@@ -107,6 +110,9 @@
       ) ;display
       (newline)
       (display "  gf fix -e scm,sld /path/to/dir  递归修正目录下所有 .scm 和 .sld 文件"
+      ) ;display
+      (newline)
+      (display "  gf fix --exclude=prefix-kbd.scm /path/to/dir  递归修正但跳过 prefix-kbd.scm"
       ) ;display
       (newline)
     ) ;define
@@ -172,27 +178,35 @@
       ) ;if
     ) ;define*
 
-    (define* (fix-file path-str (use-cache? #t))
-      (let ((fmt-cmd (string-append (executable) " fmt " path-str)))
-        (os-call fmt-cmd)
+    ;; fix-file 内部会先调 gf fmt，因此 --exclude 必须透传，否则被排除文件
+    ;; 仍会被 fmt 格式化。
+    (define* (fix-file path-str (use-cache? #t) (excludes '()))
+      (let ((exclude-arg
+              (if (null? excludes)
+                ""
+                (string-append " --exclude=" (string-join excludes ","))))
+            ) ;exclude-arg
+        (os-call (string-append (executable) " fmt" exclude-arg " " path-str))
       ) ;let
       (fix-file-core path-str use-cache?)
     ) ;define*
 
-    (define (fix-file-list files dry-run)
+    (define (fix-file-list files dry-run excludes)
       (let loop
         ((remaining files) (total 0) (updated 0) (cached 0))
         (if (null? remaining)
           (values total updated cached)
           (let ((file (car remaining)))
-            (if dry-run
-              (begin
-                (display (string-append "Fixing: " file))
-                (newline)
-                (fix-file-dry-run file)
-                (loop (cdr remaining) (+ total 1) updated cached)
-              ) ;begin
-              (let ((result (fix-file file)))
+            (if (file-excluded? file excludes)
+              (loop (cdr remaining) total updated cached)
+              (if dry-run
+                (begin
+                  (display (string-append "Fixing: " file))
+                  (newline)
+                  (fix-file-dry-run file)
+                  (loop (cdr remaining) (+ total 1) updated cached)
+                ) ;begin
+                (let ((result (fix-file file #t excludes)))
                 (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
                       (result (display (string-append "  Updated: " file))
                         (newline)
@@ -220,7 +234,56 @@
       ) ;let
     ) ;define
 
-    (define (fix-changed-since since path-str dry-run extensions)
+    ;; 取路径末段（basename），同时识别 / 与 \，兼容 Windows 路径。
+    (define (path-basename path-str)
+      (let loop
+        ((i (- (string-length path-str) 1)))
+        (cond ((< i 0) path-str)
+              ((or (char=? (string-ref path-str i) #\/)
+                   (char=? (string-ref path-str i) #\\))
+               (substring path-str (+ i 1) (string-length path-str)))
+              (else (loop (- i 1)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; entry 是否命中 excludes：按 basename 比较，因此 --exclude 既可传
+    ;; basename（prefix-kbd.scm）也可传完整相对路径（a/b/prefix-kbd.scm）。
+    (define (file-excluded? entry-str excludes)
+      (let ((entry-base (path-basename entry-str)))
+        (let loop
+          ((pats excludes))
+          (if (null? pats)
+            #f
+            (if (string=? entry-base (path-basename (car pats)))
+              #t
+              (loop (cdr pats))
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 解析 --exclude 的逗号分隔值，丢弃空串。
+    (define (parse-excludes raw)
+      (if (or (not raw) (string=? raw ""))
+        '()
+        (let loop
+          ((parts (string-split raw ",")) (acc '()))
+          (if (null? parts)
+            (reverse acc)
+            (let ((p (car parts)))
+              (if (string=? p "")
+                (loop (cdr parts) acc)
+                (loop (cdr parts) (cons p acc))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    (define (fix-changed-since since path-str dry-run extensions excludes)
       (let ((scope (if (string=? path-str "") #f path-str)))
         (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
                (display (string-append "错误: 路径不存在 - " scope))
@@ -239,7 +302,7 @@
                           (newline)
                           #t
                         ) ;begin
-                        (call-with-values (lambda () (fix-file-list files dry-run))
+                        (call-with-values (lambda () (fix-file-list files dry-run excludes))
                           (lambda (total updated cached)
                             (display (string-append "Total files fixed: "
                                        (number->string total)
@@ -260,9 +323,15 @@
       ) ;let
     ) ;define
 
-    (define (fix-directory dir-path extensions)
-      (let ((fmt-cmd (string-append (executable) " fmt " dir-path)))
-        (os-call fmt-cmd)
+    (define (fix-directory dir-path extensions excludes)
+      ;; 先对整目录跑一次 gf fmt（与原逻辑一致），--exclude 同样透传，
+      ;; 防止被排除文件在 fmt 阶段被改动。
+      (let ((exclude-arg
+              (if (null? excludes)
+                ""
+                (string-append " --exclude=" (string-join excludes ","))))
+            ) ;exclude-arg
+        (os-call (string-append (executable) " fmt" exclude-arg " " dir-path))
       ) ;let
       (let ((entries (path-list-path (path dir-path))))
         (let loop
@@ -272,7 +341,8 @@
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
-                       (if (file-extension-match? entry-str extensions)
+                       (if (and (file-extension-match? entry-str extensions)
+                                (not (file-excluded? entry-str excludes)))
                          (let ((result (fix-file-core entry-str)))
                            (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
@@ -290,7 +360,7 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda () (fix-directory (path->string entry) extensions))
+                     (call-with-values (lambda () (fix-directory (path->string entry) extensions excludes))
                        (lambda (sub-total sub-updated sub-cached)
                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
@@ -327,6 +397,7 @@
             (default . "scm"))
         ) ;parser
         (parser :add-argument '((name . "changed-since") (type . string)))
+        (parser :add-argument '((name . "exclude") (type . string)))
         parser
       ) ;let
     ) ;define
@@ -355,15 +426,16 @@
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
                (changed-since (parser 'changed-since))
+               (excludes (parse-excludes (parser 'exclude)))
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (fix-changed-since changed-since path-str dry-run extensions))
+                (changed-since (fix-changed-since changed-since path-str dry-run extensions excludes))
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
                    (fix-file-dry-run path-str)
-                   (let ((result (fix-file path-str)))
+                   (let ((result (fix-file path-str #t excludes)))
                      (cond ((eq? result 'cached) #f)
                            (result (display (string-append "  Updated: " path-str)) (newline))
                            (else (display (string-append "Fixing: " path-str)) (newline))
@@ -386,7 +458,7 @@
                      (newline)
                      (exit 1)
                    ) ;begin
-                   (call-with-values (lambda () (fix-directory path-str extensions))
+                   (call-with-values (lambda () (fix-directory path-str extensions excludes))
                      (lambda (total updated cached)
                        (display (string-append "Total files fixed: "
                                   (number->string total)
