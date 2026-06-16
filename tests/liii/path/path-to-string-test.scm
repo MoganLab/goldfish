@@ -34,6 +34,12 @@
   (check (path->string (path "tmp/demo.txt")) => "tmp\\demo.txt")
   (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
   (check (path->string (copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
+  ;; drive-absolute 与 drive-relative 字符串区分
+  (check (path->string (path "C:\\foo")) => "C:\\foo")
+  (check (path->string (path "C:foo")) => "C:foo")
+  ;; UNC 路径 round-trip
+  (check (path->string (path "\\\\srv\\share\\a\\b")) => "\\\\srv\\share\\a\\b")
+  (check (path->string (path "\\\\srv\\share")) => "\\\\srv\\share")
 ) ;when
 
 (check-report)

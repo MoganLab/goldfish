@@ -35,6 +35,15 @@
   (check-true (path-absolute? (path "/tmp/demo.txt")))
 ) ;when
 
+;; Windows 路径绝对性回归:区分 drive-absolute (C:\foo) 与 drive-relative (C:foo)
+;; 对齐 pathlib: PureWindowsPath('C:foo').is_absolute() == False
+(when (os-windows?)
+  (check-true (path-absolute? (path "C:\\foo")))
+  (check-false (path-absolute? (path "C:foo")))
+  ;; UNC 路径视为绝对
+  (check-true (path-absolute? (path "\\\\srv\\share\\foo")))
+) ;when
+
 (check-true (path-absolute? (path-home)))
 (check-true (path-absolute? (path-temp-dir)))
 (check-true (path-absolute? (path-cwd)))

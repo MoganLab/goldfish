@@ -22,4 +22,9 @@
 (check (path-drive (path-root)) => "")
 (check (path-drive (path-of-drive #\c)) => "C")
 
+;; UNC 路径的 drive 字段存的是 \\server\share anchor
+(when (os-windows?)
+  (check (path-drive (path "\\\\srv\\share\\a")) => "\\\\srv\\share")
+) ;when
+
 (check-report)

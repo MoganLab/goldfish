@@ -51,50 +51,41 @@
   ) ;import
   (begin
 
-    ;; ; Path record type
+    ;; ; Path record 类型
+    ;; ; root 字段：#\\ 表示有根分隔符（绝对路径或驱动器根），#f 表示无根（drive-relative 或相对路径）
+    ;; ; 用于区分 C:\foo（root=#\\）和 C:foo（root=#f）的语义差异
     (define-record-type <path>
-      (make-path-record parts type drive)
+      (make-path-record parts type drive root)
       path?
       (parts path-record-parts path-record-set-parts!)
       (type path-record-type path-record-set-type!)
       (drive path-record-drive path-record-set-drive!)
+      (root path-record-root path-record-set-root!)
     ) ;define-record-type
 
+    ;; ; 将字符串按字符 sep 切分为 vector。封装 (liii string) 的 string-split,保留空段。
     (define (string-split-vec str sep)
-      (let loop
-        ((chars (string->list str)) (current '()) (result '()))
-        (cond ((null? chars)
-               (list->vector (reverse (cons (list->string (reverse current)) result)))
-              ) ;
-              ((char=? (car chars) sep)
-               (loop (cdr chars) '() (cons (list->string (reverse current)) result))
-              ) ;
-              (else (loop (cdr chars) (cons (car chars) current) result))
-        ) ;cond
-      ) ;let
+      (list->vector (string-split str sep))
     ) ;define
 
-    ;; ; Parse string path into parts
-    ;; For absolute paths like "/home/da", the first part is "" to indicate leading /
-    ;; On Windows, also handles backslash as separator
+    ;; ; 将路径字符串解析为 parts 与 root 标志。
+    ;; ; 返回 (values parts root),其中 root 是起始分隔符字符或 #f。
+    ;; ; parts 是纯净的段向量;起始的 "/" (Windows 上为 "\\") 由 root 字段表达,
+    ;; ; 不再以空字符串 stub 的形式混入 parts。
     (define (parse-path-string s)
-      (cond ((string-null? s) #("."))
-            ((string=? s ".") #("."))
-            ((string=? s "/") #("/"))
-            ((string=? s "\\") #("\\"))
+      (cond ((string-null? s) (values #(".") #f))
+            ((string=? s ".") (values #(".") #f))
+            ((string=? s "/") (values #() #\/))
+            ((string=? s "\\") (values #() #\\))
             (else (let ((sep (os-sep)))
-                    ;; Normalize path: replace / with \ on Windows, then split
                     (let ((normalized (if (os-windows?) (string-replace s "/" "\\") s)))
                       (if (and (> (string-length normalized) 0) (char=? (string-ref normalized 0) sep))
-                        ;; Absolute path: start with empty string part
-                        (let ((parts (string-split-vec normalized sep)))
-                          (if (or (vector-empty? parts) (not (string-null? (vector-ref parts 0))))
-                            (vector-append #("") parts)
-                            parts
-                          ) ;if
+                        ;; 绝对路径:丢弃 string-split-vec 产生的起始空 stub。
+                        (let ((raw (string-split-vec normalized sep)))
+                          (values (drop-dot-parts (vector-drop raw 1)) sep)
                         ) ;let
-                        ;; Relative path
-                        (string-split-vec normalized sep)
+                        ;; 相对路径
+                        (values (drop-dot-parts (string-split-vec normalized sep)) #f)
                       ) ;if
                     ) ;let
                   ) ;let
@@ -102,7 +93,7 @@
       ) ;cond
     ) ;define
 
-    ;; ; Check if string is a Windows absolute path with drive letter
+    ;; ; 判断字符串是否为带盘符的 Windows 路径(如 "C:" 开头)
     (define (windows-path-with-drive? s)
       (and (>= (string-length s) 2)
         (char-alphabetic? (string-ref s 0))
@@ -110,47 +101,139 @@
       ) ;and
     ) ;define
 
-    ;; ; Extract drive letter from Windows path string
+    ;; ; 判断字符串是否以 UNC 前缀(\\ 或 //)开头
+    (define (unc-prefix? s)
+      (and (>= (string-length s) 2)
+        (char=? (string-ref s 0) #\\)
+        (char=? (string-ref s 1) #\\)
+      ) ;and
+    ) ;define
+
+    ;; ; 提取 Windows 路径字符串的盘符字母(不含冒号)
     (define (extract-drive s)
       (string (ascii-upcase (string-ref s 0)))
     ) ;define
 
-    ;; ; Parse Windows path string into parts
+    ;; ; 过滤掉纯 "." 段(pathlib 风格:构造时丢弃 ".",但保留 ".." 直到 resolve() 才处理)。
+    (define (drop-dot-parts v)
+      (vector-filter (lambda (p) (not (string=? p "."))) v)
+    ) ;define
+
+    ;; ; 解析 Windows 路径字符串为 parts 与 root 标志。
+    ;; ; 返回 (values parts drive root),其中:
+    ;; ;   parts: 纯净段向量(不含 drive、anchor、分隔符 stub)
+    ;; ;   drive: "C" 或 "" (无冒号);UNC 路径下存的是 "\\server\share" anchor
+    ;; ;   root:  路径有锚(UNC share / C:\ / 当前盘根 \foo)时为 #\\,否则为 #f
     ;; ; 同时识别 \ 和 / 作为分隔符:Windows API 接受两种,但 s7 的 port-filename
     ;; ; 和命令行参数经常返回正斜杠路径(如 "C:/Users/.../foo.scm"),不做规范化会
     ;; ; 导致 string-split-vec 一刀不切、path-parent 把整串当单一 part。
-    (define (parse-windows-path s)
-      (let ((sep (os-sep)))
-        (let ((normalized (string-replace s "/" "\\")))
-          (if (and (> (string-length normalized) 2) (char=? (string-ref normalized 2) #\\))
-            ;; Absolute Windows path like "C:\Users\..."
-            (let* ((rest (substring normalized 3 (string-length normalized)))
-                   (parts (if (string-null? rest) #() (string-split-vec rest sep)))
-                  ) ;
-              parts
-            ) ;let*
-            ;; Relative to drive like "C:file.txt"
-            (string-split-vec normalized sep)
-          ) ;if
-        ) ;let
-      ) ;let
+    ;;
+    ;; ; 涵盖四种 Windows 路径形式（对齐 pathlib.PureWindowsPath）:
+    ;; ;   \\server\share\a\b  → drive="\\server\share"  root=#\\  parts=#("a" "b")
+    ;; ;   C:\a\b              → drive="C"               root=#\\  parts=#("a" "b")
+    ;; ;   C:foo               → drive="C"               root=#f   parts=#("foo")     drive-relative
+    ;; ;   \foo                → drive=""                root=#\\  parts=#("foo")     current-drive root
+    ;; ;   foo\bar             → drive=""                root=#f   parts=#("foo" "bar")
+    ;; ; parse-unc: 解析 \\server\share[\path...] 形式的 UNC 路径。
+    ;; ; 返回 (values parts drive root)。
+    (define (parse-unc normalized len)
+      (let* ((after-slash (substring normalized 2 len))
+             (first-slash (string-index after-slash #\\))
+            ) ;
+        (if (not first-slash)
+          ;; 仅 \\server（无 share），将整段当作 anchor。
+          (values #() (string-append "\\\\" after-slash) #\\)
+          (let* ((server (substring after-slash 0 first-slash))
+                 (rest (substring after-slash (+ first-slash 1) (string-length after-slash)))
+                 (second-slash (string-index rest #\\))
+                ) ;
+            (if (not second-slash)
+              ;; \\server\share（无后续路径）
+              (values #() (string-append "\\\\" server "\\" rest) #\\)
+              ;; \\server\share\path...
+              (let* ((share (substring rest 0 second-slash))
+                     (path-rest (substring rest (+ second-slash 1) (string-length rest)))
+                     (parts (if (string-null? path-rest)
+                              #()
+                              (drop-dot-parts (string-split-vec path-rest #\\))
+                            ) ;if
+                     ) ;parts
+                    ) ;
+                (values parts (string-append "\\\\" server "\\" share) #\\)
+              ) ;let*
+            ) ;if
+          ) ;let*
+        ) ;if
+      ) ;let*
     ) ;define
 
-    ;; ; Create a path object
+    (define (parse-windows-path s)
+      (let* ((normalized (string-replace s "/" "\\")) (len (string-length normalized)))
+        (cond
+          ;; UNC: \\server\share[\path...]
+          ((unc-prefix? normalized) (parse-unc normalized len))
+
+          ;; 盘符绝对路径: C:\...
+          ((and (>= len 3)
+             (char-alphabetic? (string-ref normalized 0))
+             (char=? (string-ref normalized 1) #\:)
+             (char=? (string-ref normalized 2) #\\)
+           ) ;and
+           (let* ((drive (extract-drive normalized))
+                  (rest (substring normalized 3 len))
+                  (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
+                  ) ;parts
+                 ) ;
+             (values parts drive #\\)
+           ) ;let*
+          ) ;
+
+          ;; 盘符相对路径: C:foo
+          ((windows-path-with-drive? normalized)
+           (let* ((drive (extract-drive normalized))
+                  (rest (substring normalized 2 len))
+                  (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
+                  ) ;parts
+                 ) ;
+             (values parts drive #f)
+           ) ;let*
+          ) ;
+
+          ;; 当前盘根路径: \foo
+          ((and (> len 0) (char=? (string-ref normalized 0) #\\))
+           (let* ((rest (substring normalized 1 len))
+                  (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
+                  ) ;parts
+                 ) ;
+             (values parts "" #\\)
+           ) ;let*
+          ) ;
+
+          ;; 相对路径: foo\bar
+          (else (values (drop-dot-parts (string-split-vec normalized #\\)) "" #f))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    ;; ; 构造 path 对象。
+    ;; ; Windows 路径形式（UNC、C:\、C:foo）只在 Windows 平台识别；
+    ;; ; 其他平台一律当 posix 处理,避免污染非 Windows 调用方。
     (define (path . args)
       (if (null? args)
-        (make-path-record #(".") 'posix "")
+        (make-path-record #(".") 'posix "" #f)
         (let ((arg (car args)))
           (cond ((string? arg)
-                 (if (windows-path-with-drive? arg)
-                   ;; Windows path with drive letter like "C:\Users"
-                   (let ((parts (parse-windows-path arg)) (drive (extract-drive arg)))
-                     (make-path-record parts 'windows drive)
-                   ) ;let
-                   ;; Regular path - use platform-specific type
-                   (let ((parts (parse-path-string arg)) (type (if (os-windows?) 'windows 'posix)))
-                     (make-path-record parts type "")
-                   ) ;let
+                 (if (and (os-windows?) (or (unc-prefix? arg) (windows-path-with-drive? arg)))
+                   (receive (parts drive root)
+                     (parse-windows-path arg)
+                     (make-path-record parts 'windows drive root)
+                   ) ;receive
+                   (receive (parts root)
+                     (parse-path-string arg)
+                     (let ((type (if (os-windows?) 'windows 'posix)))
+                       (make-path-record parts type "" root)
+                     ) ;let
+                   ) ;receive
                  ) ;if
                 ) ;
                 ((path? arg) (copy arg))
@@ -177,15 +260,27 @@
       ) ;let
     ) ;define
 
-    ;; ; Get parts as vector
+    ;; ; 获取 parts 向量
+    ;; ; 对外契约:absolute 路径在 parts 前保留 stub,用于与历史 caller round-trip。
+    ;; ;   posix 绝对(root=#\/, drive=""): 加 "/" stub
+    ;; ;   UNC / drive 路径: drive 字段已表达绝对性,parts 不加 stub
     (define (path-parts p)
-      (if (path? p)
-        (vector-copy (path-record-parts p))
+      (if (not (path? p))
         (type-error "path-parts: argument must be path")
+        (let ((parts (path-record-parts p))
+              (root (path-record-root p))
+              (drive (path-record-drive p))
+              (type (path-record-type p))
+             ) ;
+          (cond ((not root) (vector-copy parts))
+                ((and (eq? type 'posix) (string-null? drive)) (vector-append #("/") parts))
+                (else (vector-copy parts))
+          ) ;cond
+        ) ;let
       ) ;if
     ) ;define
 
-    ;; ; Get type ('posix or 'windows)
+    ;; ; 获取 type ('posix 或 'windows)
     (define (path-type p)
       (if (path? p)
         (path-record-type p)
@@ -193,7 +288,7 @@
       ) ;if
     ) ;define
 
-    ;; ; Get drive letter (for Windows paths)
+    ;; ; 获取盘符字母(仅 Windows 路径)
     (define (path-drive p)
       (if (path? p)
         (path-record-drive p)
@@ -201,26 +296,45 @@
       ) ;if
     ) ;define
 
-    ;; ; Convert path to string
+    ;; ; 将 path 转换为字符串。
+    ;; ; 拼装规则:
+    ;; ;   posix:  root=#\/ 时加 "/" 前缀(parts 是纯段),否则按相对路径拼接。
+    ;; ;   windows: 三类 —— UNC(drive 形如 \\srv\sh)、drive-absolute(C:\)、drive-relative(C:foo),
+    ;; ;           以及无 drive 的 current-drive root(\foo) 与相对(foo\bar)。
     (define (path->string p)
       (cond ((path? p)
              (let ((parts (path-record-parts p))
                    (type (path-record-type p))
                    (drive (path-record-drive p))
+                   (root (path-record-root p))
                   ) ;
                (case type
                 ((posix)
-                 (if (vector-empty? parts)
-                   ""
-                   (let ((first (vector-ref parts 0)))
-                     ;; POSIX type paths always use forward slash
-                     (parts->string parts "/")
-                   ) ;let
-                 ) ;if
+                 (let ((body (parts->string parts "/")))
+                   (cond ((and root (not (string-null? body))) (string-append "/" body))
+                         (root "/")
+                         ((string-null? body) ".")
+                         (else body)
+                   ) ;cond
+                 ) ;let
                 ) ;
                 ((windows)
-                 (let ((s (parts->string parts "\\")))
-                   (if (string-null? drive) s (string-append drive ":\\" s))
+                 (let ((body (parts->string parts "\\")))
+                   (cond
+                     ;; UNC: drive 字段已含 \\server\share anchor
+                     ((unc-prefix? drive)
+                      (if (string-null? body) drive (string-append drive "\\" body))
+                     ) ;
+                     ;; drive-absolute 或 drive-relative: drive 是单个盘符如 "C"
+                     ((not (string-null? drive))
+                      (let ((prefix (string-append drive ":" (if root "\\" ""))))
+                        (if (string-null? body) prefix (string-append prefix body))
+                      ) ;let
+                     ) ;
+                     ;; 无 drive: root=#\\ 为当前盘根 "\foo",否则为相对 "foo\bar"
+                     (root (if (string-null? body) "\\" (string-append "\\" body)))
+                     (else (if (string-null? body) "." body))
+                   ) ;cond
                  ) ;let
                 ) ;
                 (else (value-error "path->string: unknown type"))
@@ -236,69 +350,10 @@
       (path s)
     ) ;define
 
-    ;; ; Helper: convert parts vector to string
-    ;; ; For absolute paths, first part is "" or "/" which should result in leading /
+    ;; ; 将纯净的 parts 段用 sep 拼接成字符串。
+    ;; ; parts 不含驱动器、anchor 或绝对性 stub;绝对性由调用方根据 root 字段自行处理。
     (define (parts->string parts sep)
-      (let ((len (vector-length parts)))
-        (if (= len 0)
-          ""
-          (let ((first (vector-ref parts 0)))
-            (cond
-              ;; Absolute path indicated by empty first part
-              ((string-null? first)
-               (if (= len 1)
-                 sep
-                 (let loop
-                   ((i 1) (result ""))
-                   (if (>= i len)
-                     result
-                     (let ((part (vector-ref parts i)))
-                       (if (string-null? result)
-                         (loop (+ i 1) (string-append sep part))
-                         (loop (+ i 1) (string-append result sep part))
-                       ) ;if
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;if
-              ) ;
-              ;; Absolute path indicated by "/" as first part (from path-from-parts)
-              ((string=? first "/")
-               (if (= len 1)
-                 sep
-                 ;; Join remaining parts with sep, then prepend /
-                 (let loop
-                   ((i 1) (result ""))
-                   (if (>= i len)
-                     (string-append sep result)
-                     (let ((part (vector-ref parts i)))
-                       (if (string-null? result)
-                         (loop (+ i 1) part)
-                         (loop (+ i 1) (string-append result sep part))
-                       ) ;if
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;if
-              ) ;
-              ;; Relative path
-              (else (let loop
-                      ((i 0) (result ""))
-                      (if (>= i len)
-                        result
-                        (let ((part (vector-ref parts i)))
-                          (if (string-null? result)
-                            (loop (+ i 1) part)
-                            (loop (+ i 1) (string-append result sep part))
-                          ) ;if
-                        ) ;let
-                      ) ;if
-                    ) ;let
-              ) ;else
-            ) ;cond
-          ) ;let
-        ) ;if
-      ) ;let
+      (string-join (vector->list parts) sep)
     ) ;define
 
     ;; ; Check if two paths are equal
@@ -310,34 +365,24 @@
 
     (define path=? path-equals?)
 
-    ;; ; Check if path is absolute
+    ;; ; 判断路径是否为绝对路径。
+    ;; ; Windows: 同时有 drive 和 root（C:\foo 或 \\srv\sh\foo）才算绝对;
+    ;; ;          C:foo（drive-relative, root=#f）不算绝对。
+    ;; ; POSIX:  root=#\/ 即为绝对。
+    ;; ; 传入字符串时,先转成 path 再判断,保证语义与 path 版本一致。
     (define (path-absolute? p)
       (if (path? p)
         (let ((type (path-record-type p))
               (drive (path-record-drive p))
-              (parts (path-record-parts p))
+              (root (path-record-root p))
              ) ;
           (case type
-           ((windows)
-            ;; Windows absolute path has a drive letter
-            (not (string-null? drive))
-           ) ;
-           ((posix)
-            ;; POSIX absolute path starts with empty part (leading /) or is just "/"
-            (and (> (vector-length parts) 0)
-              (let ((first (vector-ref parts 0)))
-                (or (string-null? first) (string=? first "/"))
-              ) ;let
-            ) ;and
-           ) ;
+           ((windows) (and root (not (string-null? drive))))
+           ((posix) (if root #t #f))
            (else #f)
           ) ;case
         ) ;let
-        (let ((s (path->string p)))
-          (cond ((os-windows?) (and (>= (string-length s) 2) (char=? (string-ref s 1) #\:)))
-                (else (and (> (string-length s) 0) (char=? (string-ref s 0) (os-sep))))
-          ) ;cond
-        ) ;let
+        (path-absolute? (path p))
       ) ;if
     ) ;define
 
@@ -346,26 +391,20 @@
       (not (path-absolute? p))
     ) ;define
 
-    ;; ; Get the last component of path (filename)
+    ;; ; 获取路径的末段(文件名)
     (define (path-name p)
       (let ((s (path->string p)))
-        ;; Handle special cases: empty string and "." both represent current dir
+        ;; 空串与 "." 都表示当前目录,文件名留空。
         (if (or (string-null? s) (string=? s "."))
           ""
-          (let ((sep (os-sep)))
-            (let loop
-              ((i (- (string-length s) 1)))
-              (cond ((< i 0) s)
-                    ((char=? (string-ref s i) sep) (substring s (+ i 1) (string-length s)))
-                    (else (loop (- i 1)))
-              ) ;cond
-            ) ;let
-          ) ;let
+          (let* ((sep (os-sep)) (idx (string-index-right s sep)))
+            (if idx (substring s (+ idx 1) (string-length s)) s)
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
-    ;; ; Get the stem (filename without extension)
+    ;; ; 获取文件名去掉扩展名的部分(stem)
     (define (path-stem p)
       (let ((name (path-name p)))
         (let ((splits (string-split name #\.)))
@@ -373,22 +412,10 @@
             (cond ((<= count 1) name)
                   ((string=? name ".") "")
                   ((string=? name "..") "..")
+                  ;; 形如 ".bashrc":首段为空且仅两段,整体作为 stem
                   ((and (string=? (car splits) "") (= count 2)) name)
-                  (else
-                    ;; Take all parts except the last one and join with "."
-                    (let loop
-                      ((i 0) (result ""))
-                      (if (>= i (- count 1))
-                        result
-                        (let ((part (list-ref splits i)))
-                          (if (string-null? result)
-                            (loop (+ i 1) part)
-                            (loop (+ i 1) (string-append result "." part))
-                          ) ;if
-                        ) ;let
-                      ) ;if
-                    ) ;let
-                  ) ;else
+                  ;; 去掉最后一段,其余用 "." 连接
+                  (else (string-join (reverse (cdr (reverse splits))) "."))
             ) ;cond
           ) ;let
         ) ;let
@@ -411,56 +438,46 @@
       ) ;let
     ) ;define
 
-    ;; ; Join paths
+    ;; ; 拼接多个路径段。
+    ;; ; 已带末尾分隔符的中间结果不再补 sep,避免出现双斜杠。
     (define (path-join base . segments)
       (let ((sep (string (os-sep))))
-        (let loop
-          ((result (path->string base)) (rest segments))
-          (if (null? rest)
-            result
-            (let ((part (path->string (car rest))))
-              (if (or (string-null? result) (string-ends? result sep))
-                (loop (string-append result part) (cdr rest))
-                (loop (string-append result sep part) (cdr rest))
-              ) ;if
-            ) ;let
+        (define (join-one acc seg)
+          (if (or (string-null? acc) (string-ends? acc sep))
+            (string-append acc seg)
+            (string-append acc sep seg)
           ) ;if
+        ) ;define
+        (let loop
+          ((acc (path->string base)) (rest segments))
+          (if (null? rest) acc (loop (join-one acc (path->string (car rest))) (cdr rest)))
         ) ;let
       ) ;let
     ) ;define
 
-    ;; ; Get parent directory
-    ;; ; Windows 上同时识别 / 和 \: port-filename / argv 经常返回正斜杠路径
+    ;; ; 获取父目录。
+    ;; ; Windows 上同时识别 / 和 \: port-filename / argv 经常返回正斜杠路径。
     (define (path-parent p)
-      (let ((s (path->string p)))
-        (let ((sep (os-sep)))
-          (let ((s (if (os-windows?) (string-replace s "/" "\\") s)))
-            ;; First, remove trailing separator if present (except for root)
-            (let ((s-trimmed (if (and (> (string-length s) 1)
-                                   (char=? (string-ref s (- (string-length s) 1)) sep)
-                                 ) ;and
-                               (substring s 0 (- (string-length s) 1))
-                               s
-                             ) ;if
-                  ) ;s-trimmed
-                 ) ;
-              (let loop
-                ((i (- (string-length s-trimmed) 1)))
-                (cond ((< i 0) (if (os-windows?) (path "") (path ".")))
-                      ((char=? (string-ref s-trimmed i) sep)
-                       (if (= i 0)
-                         (path-root)
-                         ;; Keep the trailing separator for the parent path
-                         (path (substring s-trimmed 0 (+ i 1)))
-                       ) ;if
-                      ) ;
-                      (else (loop (- i 1)))
-                ) ;cond
-              ) ;let
-            ) ;let
-          ) ;let
-        ) ;let
-      ) ;let
+      (let* ((raw (path->string p))
+             (sep (os-sep))
+             ;; 归一化分隔符:Windows 上把 / 换成 \,使 string-index-right 能命中
+             (s (if (os-windows?) (string-replace raw "/" "\\") raw))
+             ;; 末尾分隔符去掉(根路径除外),避免 path-parent "/a/" 找到第二个 /
+             (s-len (string-length s))
+             (s-trimmed (if (and (> s-len 1) (char=? (string-ref s (- s-len 1)) sep))
+                          (substring s 0 (- s-len 1))
+                          s
+                        ) ;if
+             ) ;s-trimmed
+             (trim-len (string-length s-trimmed))
+             (idx (string-index-right s-trimmed sep))
+            ) ;
+        (cond ((not idx) (if (os-windows?) (path "") (path ".")))
+              ((= idx 0) (path-root))
+              ;; 保留末尾分隔符作为父目录表示(与历史行为一致)
+              (else (path (substring s-trimmed 0 (+ idx 1))))
+        ) ;cond
+      ) ;let*
     ) ;define
 
     ;; ; Path predicates and operations (work with strings or paths)
@@ -526,48 +543,72 @@
     ) ;define
 
     ;; ; Static path constructors
+    ;; ; path-root: posix 根 "/", root=#\\ 表示有根分隔符
     (define (path-root)
-      (make-path-record #("/") 'posix "")
+      (make-path-record #() 'posix "" #\/)
     ) ;define
 
+    ;; ; path-of-drive: 驱动器根 "C:\",drive="C", root=#\\, parts=#()
     (define (path-of-drive ch)
       (if (char? ch)
-        (make-path-record #() 'windows (string (ascii-upcase ch)))
+        (make-path-record #() 'windows (string (ascii-upcase ch)) #\\)
         (type-error "path-of-drive: argument must be char")
       ) ;if
     ) ;define
 
+    ;; ; path-from-parts: 从 parts vector 构造路径。
+    ;; ; 识别首段:
+    ;; ;   "C:" / "c:"  → drive-absolute（windows）, root=#\\
+    ;; ;   "/"          → posix 绝对, root=#\/
+    ;; ;   "\\"         → windows 当前驱动器根, root=#\\
+    ;; ; 其他视为相对路径的纯 parts。
     (define (path-from-parts parts)
-      (if (vector? parts)
-        (if (and (> (vector-length parts) 0)
-              (string? (vector-ref parts 0))
-              (windows-path-with-drive? (vector-ref parts 0))
-            ) ;and
-          ;; Windows path with drive letter like "C:"
-          (let* ((drive-str (vector-ref parts 0))
-                 (drive (extract-drive drive-str))
-                 ;; Build result parts without drive part
-                 (clean-parts (let loop
-                                ((i 1) (result '()))
-                                (if (>= i (vector-length parts))
-                                  (list->vector (reverse result))
-                                  (let ((part (vector-ref parts i)))
-                                    ;; Skip empty parts and separator parts
-                                    (if (or (string-null? part) (string=? part "/") (string=? part "\\"))
-                                      (loop (+ i 1) result)
-                                      (loop (+ i 1) (cons part result))
-                                    ) ;if
-                                  ) ;let
-                                ) ;if
-                              ) ;let
-                 ) ;clean-parts
-                ) ;
-            (make-path-record clean-parts 'windows drive)
-          ) ;let*
-          ;; Regular POSIX-style path
-          (make-path-record (vector-copy parts) 'posix "")
-        ) ;if
+      (if (not (vector? parts))
         (type-error "path-from-parts: argument must be vector")
+        (if (= (vector-length parts) 0)
+          (make-path-record #(".") 'posix "" #f)
+          (let ((head (vector-ref parts 0)))
+            (cond ((and (string? head) (windows-path-with-drive? head))
+                   (let ((drive (extract-drive head)))
+                     (let ((clean-parts (let loop
+                                          ((i 1) (result '()))
+                                          (if (>= i (vector-length parts))
+                                            (list->vector (reverse result))
+                                            (let ((part (vector-ref parts i)))
+                                              (if (or (string-null? part) (string=? part "/") (string=? part "\\"))
+                                                (loop (+ i 1) result)
+                                                (loop (+ i 1) (cons part result))
+                                              ) ;if
+                                            ) ;let
+                                          ) ;if
+                                        ) ;let
+                           ) ;clean-parts
+                          ) ;
+                       ;; 调用方传 "C:" 默认视为 drive-absolute（root=#\\），符合 path-of-drive 文档
+                       (make-path-record clean-parts 'windows drive #\\)
+                     ) ;let
+                   ) ;let
+                  ) ;
+
+                  ((string=? head "/")
+                   ;; posix 绝对：保留 caller 传的剩余 parts（不再剥离 "."，因为 caller 显式传）
+                   (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+                  ) ;
+
+                  ((string=? head "\\")
+                   ;; windows 当前驱动器根
+                   (make-path-record (vector-copy (vector-drop parts 1)) 'windows "" #\\)
+                  ) ;
+
+                  ((string-null? head)
+                   ;; 老式空 stub 开头，按 posix 绝对处理
+                   (make-path-record (vector-copy (vector-drop parts 1)) 'posix "" #\/)
+                  ) ;
+
+                  (else (make-path-record (vector-copy parts) 'posix "" #f))
+            ) ;cond
+          ) ;let
+        ) ;if
       ) ;if
     ) ;define
 
