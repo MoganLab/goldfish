@@ -25,6 +25,7 @@
     (liii sys)
     (liii path)
     (liii string)
+    (liii json)
     (liii argparse)
     (liii hashlib)
     (liii os)
@@ -294,6 +295,59 @@
       ) ;if
     ) ;define
 
+    ;; 自动检测项目根（gfproject.json 所在目录）下的 gfexclude.json。
+    ;; 文件格式：JSON 对象，形如
+    ;;   {"exclude": [
+    ;;     {"path": "a/b.scm", "reason": "..."},
+    ;;     "c/d.scm"
+    ;;   ]}
+    ;; exclude 数组每项可以是字符串（纯路径）或对象（含 path 与可选 reason）。
+    ;; 存在且可解析则返回 pattern 列表；不存在或无项目根时返回 '()。
+    ;; Why: 让普通的 gf fmt / gf fix 也尊重项目级 exclude 配置，无需传参；
+    ;;      每条可带 reason 说明为何排除，便于维护。
+    ;; 畸形 JSON / 类型不符时打 warning 并返回 '()，避免整个 gf fix 崩溃。
+    (define (exclude-entry->path entry)
+      (if (string? entry) entry (json-ref entry "path"))
+    ) ;define
+
+    (define (read-project-excludes)
+      (let ((root (g_project-root)))
+        (if (or (not root) (not (string? root)) (string=? root ""))
+          '()
+          (let ((file (string-append root "/gfexclude.json")))
+            (if (not (file-exists? file))
+              '()
+              (guard (e (else (display (string-append "warning: gfexclude.json 解析失败，已忽略 - "
+                                         (if (string? e) e (object->string e))
+                                       ) ;string-append
+                              ) ;display
+                          (newline)
+                          '()
+                        ) ;else
+                     ) ;e
+                (let* ((obj (string->json (path-read-text (path file))))
+                       (arr (json-ref obj "exclude"))
+                      ) ;
+                  (if (not (vector? arr))
+                    '()
+                    (let loop
+                      ((i 0) (acc '()))
+                      (if (>= i (vector-length arr))
+                        (reverse acc)
+                        (let ((p (exclude-entry->path (vector-ref arr i))))
+                          (loop (+ i 1) (if (string? p) (cons p acc) acc))
+                        ) ;let
+                      ) ;if
+                    ) ;let
+                  ) ;if
+                ) ;let*
+              ) ;guard
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
     (define (fix-changed-since since path-str dry-run extensions excludes)
       (let ((scope (if (string=? path-str "") #f path-str)))
         (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
@@ -439,7 +493,7 @@
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
                (changed-since (parser 'changed-since))
-               (excludes (parse-excludes (parser 'exclude)))
+               (excludes (append (parse-excludes (parser 'exclude)) (read-project-excludes)))
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
