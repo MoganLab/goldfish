@@ -1,4 +1,4 @@
-(import (liii check) (liii path))
+(import (liii check) (liii path) (liii os))
 
 (check-set-mode! 'report-failed)
 
@@ -24,5 +24,14 @@
 ;; (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz"
 
 (check (path->string (path-from-string "archive.tar.gz")) => "archive.tar.gz")
+
+(when (os-windows?)
+  ;; s7 的 port-filename / argv 在 Windows 上返回正斜杠绝对路径,
+  ;; parse-windows-path 必须同时识别 / 和 \,否则 string-split-vec 一刀不切
+  (check (path->string (path-from-string "C:/Users/foo/bar.scm"))
+    =>
+    "C:\\Users\\foo\\bar.scm"
+  ) ;check
+) ;when
 
 (check-report)
