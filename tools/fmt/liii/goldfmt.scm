@@ -40,6 +40,7 @@
     (liii sys)
     (liii path)
     (liii string)
+    (liii json)
     (liii argparse)
     (liii hashlib)
     (liii goldtool-changed)
@@ -101,6 +102,9 @@
       (display "      --changed-since REV    仅格式化自 REV 以来变更的文件"
       ) ;display
       (newline)
+      (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
+      ) ;display
+      (newline)
       (newline)
       (display "Arguments:")
       (newline)
@@ -130,6 +134,9 @@
       ) ;display
       (newline)
       (display "  gf fmt -e scm,sld /path/to/dir  递归格式化目录下所有 .scm 和 .sld 文件"
+      ) ;display
+      (newline)
+      (display "  gf fmt --exclude=prefix-kbd.scm /path/to/dir  递归格式化但跳过 prefix-kbd.scm"
       ) ;display
       (newline)
     ) ;define
@@ -172,31 +179,34 @@
 
     ;; ; 递归格式化指定文件列表
     ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
-    (define (format-file-list files dry-run)
+    (define (format-file-list files dry-run excludes)
       (let loop
         ((remaining files) (total 0) (updated 0) (cached 0))
         (if (null? remaining)
           (values total updated cached)
           (let ((file (car remaining)))
-            (if dry-run
-              (begin
-                (display (string-append "Formatting: " file))
-                (newline)
-                (format-file-dry-run file)
-                (loop (cdr remaining) (+ total 1) updated cached)
-              ) ;begin
-              (let ((result (format-file file)))
-                (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
-                      (result (display (string-append "  Updated: " file))
-                        (newline)
-                        (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
-                      ) ;result
-                      (else (display (string-append "Formatting: " file))
-                        (newline)
-                        (loop (cdr remaining) (+ total 1) updated cached)
-                      ) ;else
-                ) ;cond
-              ) ;let
+            (if (file-excluded? file excludes)
+              (loop (cdr remaining) total updated cached)
+              (if dry-run
+                (begin
+                  (display (string-append "Formatting: " file))
+                  (newline)
+                  (format-file-dry-run file)
+                  (loop (cdr remaining) (+ total 1) updated cached)
+                ) ;begin
+                (let ((result (format-file file)))
+                  (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
+                        (result (display (string-append "  Updated: " file))
+                          (newline)
+                          (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
+                        ) ;result
+                        (else (display (string-append "Formatting: " file))
+                          (newline)
+                          (loop (cdr remaining) (+ total 1) updated cached)
+                        ) ;else
+                  ) ;cond
+                ) ;let
+              ) ;if
             ) ;if
           ) ;let
         ) ;if
@@ -213,7 +223,125 @@
       ) ;let
     ) ;define
 
-    (define (format-changed-since since path-str dry-run extensions)
+    ;; 把 Windows 反斜杠归一化为正斜杠，跨平台一致比较。
+    (define (normalize-sep path-str)
+      (list->string (let loop
+                      ((i (- (string-length path-str) 1)) (acc '()))
+                      (if (< i 0)
+                        acc
+                        (let ((ch (string-ref path-str i)))
+                          (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
+                        ) ;let
+                      ) ;if
+                    ) ;let
+      ) ;list->string
+    ) ;define
+
+    ;; entry 是否命中 excludes：归一化后按"分隔符边界 + 后缀"匹配。
+    ;; pattern 含 / 时按完整相对路径精确匹配（不会误伤同名文件）；
+    ;; pattern 不含 / 时退化为 basename 匹配（向后兼容）。
+    (define (file-excluded? entry-str excludes)
+      (let ((entry-norm (normalize-sep entry-str)))
+        (let loop
+          ((pats excludes))
+          (if (null? pats)
+            #f
+            (let* ((p (normalize-sep (car pats)))
+                   (plen (string-length p))
+                   (elen (string-length entry-norm))
+                  ) ;
+              (if (or (string=? entry-norm p)
+                    (and (>= elen (+ plen 1))
+                      (char=? (string-ref entry-norm (- elen plen 1)) #\/)
+                      (string-suffix? p entry-norm)
+                    ) ;and
+                  ) ;or
+                #t
+                (loop (cdr pats))
+              ) ;if
+            ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 解析 --exclude 的逗号分隔值，丢弃空串。
+    (define (parse-excludes raw)
+      (if (or (not raw) (string=? raw ""))
+        '()
+        (let loop
+          ((parts (string-split raw ",")) (acc '()))
+          (if (null? parts)
+            (reverse acc)
+            (let ((p (car parts)))
+              (if (string=? p "") (loop (cdr parts) acc) (loop (cdr parts) (cons p acc)))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; 自动检测项目根（gfproject.json 所在目录）下的 gfexclude.json。
+    ;; 文件格式：JSON 对象，形如
+    ;;   {"exclude": [
+    ;;     {"path": "a/b.scm", "reason": "..."},
+    ;;     "c/d.scm"
+    ;;   ]}
+    ;; exclude 数组每项可以是字符串（纯路径）或对象（含 path 与可选 reason）。
+    ;; 存在且可解析则返回 pattern 列表；不存在或无项目根时返回 '()。
+    ;; Why: 让普通的 gf fmt / gf fix 也尊重项目级 exclude 配置，无需传参；
+    ;;      每条可带 reason 说明为何排除，便于维护。
+    ;; 畸形 JSON / 类型不符时打 warning 并返回 '()，避免整个 gf fmt 崩溃。
+    (define (exclude-entry->path entry)
+      (if (string? entry) entry (json-ref entry "path"))
+    ) ;define
+
+    ;; 纯解析：从已读入的 JSON 文本构造 exclude pattern 列表。
+    ;; 出错时抛异常（由调用方 catch）。
+    (define (parse-exclude-json text)
+      (let* ((obj (string->json text)) (arr (json-ref obj "exclude")))
+        (if (not (vector? arr))
+          '()
+          (let loop
+            ((i 0) (acc '()))
+            (if (>= i (vector-length arr))
+              (reverse acc)
+              (let ((p (exclude-entry->path (vector-ref arr i))))
+                (loop (+ i 1) (if (string? p) (cons p acc) acc))
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (read-project-excludes)
+      (let ((root (g_project-root)))
+        (if (or (not root) (not (string? root)) (string=? root ""))
+          '()
+          (let ((file (string-append root "/gfexclude.json")))
+            (if (not (file-exists? file))
+              '()
+              (catch #t
+                (lambda () (parse-exclude-json (path-read-text (path file))))
+                (lambda (type info)
+                  (let ((e (if (null? info) type (car info))))
+                    (display (string-append "warning: gfexclude.json 解析失败，已忽略 - "
+                               (if (string? e) e (object->string e))
+                             ) ;string-append
+                    ) ;display
+                    (newline)
+                    '()
+                  ) ;let
+                ) ;lambda
+              ) ;catch
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (format-changed-since since path-str dry-run extensions excludes)
       (let ((scope (if (string=? path-str "") #f path-str)))
         (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
                (display (string-append "错误: 路径不存在 - " scope))
@@ -232,7 +360,7 @@
                           (newline)
                           #t
                         ) ;begin
-                        (call-with-values (lambda () (format-file-list files dry-run))
+                        (call-with-values (lambda () (format-file-list files dry-run excludes))
                           (lambda (total updated cached)
                             (display (string-append "Total files formatted: "
                                        (number->string total)
@@ -255,7 +383,7 @@
 
     ;; ; 递归格式化目录
     ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
-    (define (format-directory dir-path extensions)
+    (define (format-directory dir-path extensions excludes)
       (let ((entries (path-list-path (path dir-path))))
         (let loop
           ((i 0) (total 0) (updated 0) (cached 0))
@@ -264,7 +392,9 @@
             (let ((entry (vector-ref entries i)))
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
-                       (if (file-extension-match? entry-str extensions)
+                       (if (and (file-extension-match? entry-str extensions)
+                             (not (file-excluded? entry-str excludes))
+                           ) ;and
                          (let ((result (format-file entry-str)))
                            (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
@@ -282,7 +412,7 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda () (format-directory (path->string entry) extensions))
+                     (call-with-values (lambda () (format-directory (path->string entry) extensions excludes))
                        (lambda (sub-total sub-updated sub-cached)
                          (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
                        ) ;lambda
@@ -319,6 +449,7 @@
             (default . "scm"))
         ) ;parser
         (parser :add-argument '((name . "changed-since") (type . string)))
+        (parser :add-argument '((name . "exclude") (type . string)))
         parser
       ) ;let
     ) ;define
@@ -348,28 +479,37 @@
                (dry-run (parser 'dry-run))
                (extensions (parse-extensions (parser 'extension)))
                (changed-since (parser 'changed-since))
+               (excludes (append (parse-excludes (parser 'exclude)) (read-project-excludes)))
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (format-changed-since changed-since path-str dry-run extensions))
+                (changed-since (format-changed-since changed-since path-str dry-run extensions excludes)
+                ) ;changed-since
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
-                 (if dry-run
-                   (format-file-dry-run path-str)
-                   (let ((result (format-file path-str)))
-                     (cond ((eq? result 'cached) #f)
-                           (result (display (string-append "  Updated: " path-str)) (newline))
-                           (else (display (string-append "Formatting: " path-str)) (newline))
-                     ) ;cond
-                     (display (string-append "Total files formatted: 1, Files updated: "
-                                (if (eq? result #t) "1" "0")
-                                ", Files cached: "
-                                (if (eq? result 'cached) "1" "0")
-                              ) ;string-append
-                     ) ;display
+                 (if (file-excluded? path-str excludes)
+                   (begin
+                     (display (string-append "Skipped (excluded): " path-str))
                      (newline)
                      #t
-                   ) ;let
+                   ) ;begin
+                   (if dry-run
+                     (format-file-dry-run path-str)
+                     (let ((result (format-file path-str)))
+                       (cond ((eq? result 'cached) #f)
+                             (result (display (string-append "  Updated: " path-str)) (newline))
+                             (else (display (string-append "Formatting: " path-str)) (newline))
+                       ) ;cond
+                       (display (string-append "Total files formatted: 1, Files updated: "
+                                  (if (eq? result #t) "1" "0")
+                                  ", Files cached: "
+                                  (if (eq? result 'cached) "1" "0")
+                                ) ;string-append
+                       ) ;display
+                       (newline)
+                       #t
+                     ) ;let
+                   ) ;if
                  ) ;if
                 ) ;
                 ((path-dir? (path path-str))
@@ -379,7 +519,7 @@
                      (newline)
                      (exit 1)
                    ) ;begin
-                   (call-with-values (lambda () (format-directory path-str extensions))
+                   (call-with-values (lambda () (format-directory path-str extensions excludes))
                      (lambda (total updated cached)
                        (display (string-append "Total files formatted: "
                                   (number->string total)

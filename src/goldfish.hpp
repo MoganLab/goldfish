@@ -99,6 +99,9 @@ f_function_libraries (s7_scheme* sc, s7_pointer args);
 static s7_pointer
 f_gfproject_load_config (s7_scheme* sc, s7_pointer args);
 
+static s7_pointer
+f_project_root (s7_scheme* sc, s7_pointer args);
+
 static bool
 split_library_query (const string& query, string& group, string& library);
 
@@ -158,6 +161,10 @@ glue_goldfish (s7_scheme* sc) {
     "export function-name in the current *load-path*";
   const char* s_gfproject_load_config = "g_gfproject-load-config";
   const char* d_gfproject_load_config = "(g_gfproject-load-config) => string, returns merged gfproject.json";
+  const char* s_project_root = "g_project-root";
+  const char* d_project_root =
+    "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
+    "or #f if none is found in the current working directory";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -171,6 +178,10 @@ glue_goldfish (s7_scheme* sc) {
   s7_define (sc, cur_env, s7_make_symbol (sc, s_gfproject_load_config),
              s7_make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
                                      d_gfproject_load_config, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_project_root),
+             s7_make_typed_function (sc, s_project_root, f_project_root, 0, 0, false,
+                                     d_project_root, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -1411,6 +1422,21 @@ f_gfproject_load_config (s7_scheme* sc, s7_pointer args) {
   string gf_lib_dir = find_goldfish_library ();
   json config = load_gfproject_config (gf_lib_dir.c_str ());
   return s7_make_string (sc, config.dump ().c_str ());
+}
+
+static s7_pointer
+f_project_root (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+  fs::path local = find_local_gfproject_json ();
+  if (local.empty ()) {
+    return s7_f (sc);
+  }
+  // local points at gfproject.json; its parent is the project root.
+  std::string s = local.parent_path ().generic_string ();
+  if (s.empty ()) {
+    return s7_f (sc);
+  }
+  return s7_make_string (sc, s.c_str ());
 }
 
 static int
