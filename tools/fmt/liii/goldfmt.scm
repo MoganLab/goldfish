@@ -224,16 +224,15 @@
 
     ;; 把 Windows 反斜杠归一化为正斜杠，跨平台一致比较。
     (define (normalize-sep path-str)
-      (list->string
-        (let loop
-          ((i (- (string-length path-str) 1)) (acc '()))
-          (if (< i 0)
-            acc
-            (let ((ch (string-ref path-str i)))
-              (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
-            ) ;let
-          ) ;if
-        ) ;let
+      (list->string (let loop
+                      ((i (- (string-length path-str) 1)) (acc '()))
+                      (if (< i 0)
+                        acc
+                        (let ((ch (string-ref path-str i)))
+                          (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
+                        ) ;let
+                      ) ;if
+                    ) ;let
       ) ;list->string
     ) ;define
 
@@ -251,9 +250,11 @@
                    (elen (string-length entry-norm))
                   ) ;
               (if (or (string=? entry-norm p)
-                      (and (>= elen (+ plen 1))
-                           (char=? (string-ref entry-norm (- elen plen 1)) #\/)
-                           (string-suffix? p entry-norm)))
+                    (and (>= elen (+ plen 1))
+                      (char=? (string-ref entry-norm (- elen plen 1)) #\/)
+                      (string-suffix? p entry-norm)
+                    ) ;and
+                  ) ;or
                 #t
                 (loop (cdr pats))
               ) ;if
@@ -272,10 +273,7 @@
           (if (null? parts)
             (reverse acc)
             (let ((p (car parts)))
-              (if (string=? p "")
-                (loop (cdr parts) acc)
-                (loop (cdr parts) (cons p acc))
-              ) ;if
+              (if (string=? p "") (loop (cdr parts) acc) (loop (cdr parts) (cons p acc)))
             ) ;let
           ) ;if
         ) ;let
@@ -334,7 +332,8 @@
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
                        (if (and (file-extension-match? entry-str extensions)
-                                (not (file-excluded? entry-str excludes)))
+                             (not (file-excluded? entry-str excludes))
+                           ) ;and
                          (let ((result (format-file entry-str)))
                            (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
@@ -423,7 +422,8 @@
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (format-changed-since changed-since path-str dry-run extensions excludes))
+                (changed-since (format-changed-since changed-since path-str dry-run extensions excludes)
+                ) ;changed-since
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run

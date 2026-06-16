@@ -181,11 +181,12 @@
     ;; fix-file 内部会先调 gf fmt，因此 --exclude 必须透传，否则被排除文件
     ;; 仍会被 fmt 格式化。
     (define* (fix-file path-str (use-cache? #t) (excludes '()))
-      (let ((exclude-arg
-              (if (null? excludes)
-                ""
-                (string-append " --exclude=" (string-join excludes ","))))
+      (let ((exclude-arg (if (null? excludes)
+                           ""
+                           (string-append " --exclude=" (string-join excludes ","))
+                         ) ;if
             ) ;exclude-arg
+           ) ;
         (os-call (string-append (executable) " fmt" exclude-arg " " path-str))
       ) ;let
       (fix-file-core path-str use-cache?)
@@ -237,16 +238,15 @@
 
     ;; 把 Windows 反斜杠归一化为正斜杠，跨平台一致比较。
     (define (normalize-sep path-str)
-      (list->string
-        (let loop
-          ((i (- (string-length path-str) 1)) (acc '()))
-          (if (< i 0)
-            acc
-            (let ((ch (string-ref path-str i)))
-              (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
-            ) ;let
-          ) ;if
-        ) ;let
+      (list->string (let loop
+                      ((i (- (string-length path-str) 1)) (acc '()))
+                      (if (< i 0)
+                        acc
+                        (let ((ch (string-ref path-str i)))
+                          (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
+                        ) ;let
+                      ) ;if
+                    ) ;let
       ) ;list->string
     ) ;define
 
@@ -264,9 +264,11 @@
                    (elen (string-length entry-norm))
                   ) ;
               (if (or (string=? entry-norm p)
-                      (and (>= elen (+ plen 1))
-                           (char=? (string-ref entry-norm (- elen plen 1)) #\/)
-                           (string-suffix? p entry-norm)))
+                    (and (>= elen (+ plen 1))
+                      (char=? (string-ref entry-norm (- elen plen 1)) #\/)
+                      (string-suffix? p entry-norm)
+                    ) ;and
+                  ) ;or
                 #t
                 (loop (cdr pats))
               ) ;if
@@ -285,10 +287,7 @@
           (if (null? parts)
             (reverse acc)
             (let ((p (car parts)))
-              (if (string=? p "")
-                (loop (cdr parts) acc)
-                (loop (cdr parts) (cons p acc))
-              ) ;if
+              (if (string=? p "") (loop (cdr parts) acc) (loop (cdr parts) (cons p acc)))
             ) ;let
           ) ;if
         ) ;let
@@ -338,11 +337,12 @@
     (define (fix-directory dir-path extensions excludes)
       ;; 先对整目录跑一次 gf fmt（与原逻辑一致），--exclude 同样透传，
       ;; 防止被排除文件在 fmt 阶段被改动。
-      (let ((exclude-arg
-              (if (null? excludes)
-                ""
-                (string-append " --exclude=" (string-join excludes ","))))
+      (let ((exclude-arg (if (null? excludes)
+                           ""
+                           (string-append " --exclude=" (string-join excludes ","))
+                         ) ;if
             ) ;exclude-arg
+           ) ;
         (os-call (string-append (executable) " fmt" exclude-arg " " dir-path))
       ) ;let
       (let ((entries (path-list-path (path dir-path))))
@@ -354,7 +354,8 @@
               (cond ((path-file? entry)
                      (let ((entry-str (path->string entry)))
                        (if (and (file-extension-match? entry-str extensions)
-                                (not (file-excluded? entry-str excludes)))
+                             (not (file-excluded? entry-str excludes))
+                           ) ;and
                          (let ((result (fix-file-core entry-str)))
                            (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
                                  (result (display (string-append "  Updated: " entry-str))
@@ -442,7 +443,8 @@
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (fix-changed-since changed-since path-str dry-run extensions excludes))
+                (changed-since (fix-changed-since changed-since path-str dry-run extensions excludes)
+                ) ;changed-since
                 ((string=? path-str "") (display-help) #t)
                 ((path-file? (path path-str))
                  (if dry-run
