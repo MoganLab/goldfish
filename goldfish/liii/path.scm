@@ -28,17 +28,29 @@
     path-name
     path-stem
     path-suffix
+    path-suffixes
+    path-with-name
+    path-with-stem
+    path-with-suffix
+    path-relative-to
     path-equals?
     path=?
     path-absolute?
     path-relative?
     path-join
     path-parent
+    path-parents
     path-list
     path-list-path
     path-rmdir
     path-unlink
     path-rename
+    path-mkdir
+    path-absolute
+    path-expanduser
+    path-match
+    path-as-posix
+    path-resolve
   ) ;export
   (import (liii base)
     (liii error)
@@ -114,9 +126,10 @@
       (string (ascii-upcase (string-ref s 0)))
     ) ;define
 
-    ;; ; 过滤掉纯 "." 段(pathlib 风格:构造时丢弃 ".",但保留 ".." 直到 resolve() 才处理)。
+    ;; ; 过滤掉 "." 段和空段(pathlib 风格:构造时丢弃 "." 与连续/尾分隔符产生的空段,
+    ;; ; 保留 ".." 直到 resolve() 才处理)。使 /tmp/ → /tmp、a//b → a/b 与 pathlib 一致。
     (define (drop-dot-parts v)
-      (vector-filter (lambda (p) (not (string=? p "."))) v)
+      (vector-filter (lambda (p) (not (or (string=? p ".") (string-null? p)))) v)
     ) ;define
 
     ;; ; 解析 Windows 路径字符串为 parts 与 root 标志。
@@ -404,80 +417,268 @@
       ) ;let
     ) ;define
 
+    ;; ; 解析末段的点分隔结构,返回 (values stem-list suffix-list)。
+    ;; ;   stem-list   : 作为 stem 的点段列表(无前导 ".")
+    ;; ;   suffix-list : 每个后缀含前导 "." 的列表
+    ;; ; 规则(对齐 pathlib):
+    ;; ;   "." / ".."        → stem=name, 无后缀
+    ;; ;   首段为空(.bashrc) → 整体作 stem, 无后缀(隐藏文件不切)
+    ;; ;   单段(name 无点)   → stem=name, 无后缀
+    ;; ;   其他(a.b.c)       → stem=a.b, suffixes=(.c)…(此处按末段切)
+    (define (split-name-dots name)
+      (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
+            (else (let ((splits (string-split name #\.)))
+                    (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                      (values (list name) '())
+                      ;; splits 不含前导空:stem 段 = 除末段外, suffix = 末段
+                      (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
+                        (values stem-segs (list (string-append "." suffix-seg)))
+                      ) ;let*
+                    ) ;if
+                  ) ;let
+            ) ;else
+      ) ;cond
+    ) ;define
+
     ;; ; 获取文件名去掉扩展名的部分(stem)
     (define (path-stem p)
-      (let ((name (path-name p)))
-        (let ((splits (string-split name #\.)))
-          (let ((count (length splits)))
-            (cond ((<= count 1) name)
-                  ((string=? name ".") "")
-                  ((string=? name "..") "..")
-                  ;; 形如 ".bashrc":首段为空且仅两段,整体作为 stem
-                  ((and (string=? (car splits) "") (= count 2)) name)
-                  ;; 去掉最后一段,其余用 "." 连接
-                  (else (string-join (reverse (cdr (reverse splits))) "."))
-            ) ;cond
-          ) ;let
-        ) ;let
-      ) ;let
+      (let-values (((stem-segs _) (split-name-dots (path-name p))))
+        (string-join stem-segs ".")
+      ) ;let-values
     ) ;define
 
     ;; ; Get the suffix (file extension)
     (define (path-suffix p)
+      (let-values (((_ suffix-segs) (split-name-dots (path-name p))))
+        (if (null? suffix-segs) "" (car suffix-segs))
+      ) ;let-values
+    ) ;define
+
+    ;; ; 获取末段的所有后缀向量(对齐 pathlib .suffixes)。
+    ;; ; 多个点分段时,从首个点起的每段都算一个后缀(含前导 ".")。
+    ;; ; 隐藏文件(.bashrc)、无点文件、"."/".." 均返回 #()。
+    (define (path-suffixes p)
       (let ((name (path-name p)))
-        (let ((splits (string-split name #\.)))
-          (let ((count (length splits)))
-            (cond ((<= count 1) "")
-                  ((string=? name ".") "")
-                  ((string=? name "..") "")
-                  ((and (string=? (car splits) "") (= count 2)) "")
-                  (else (string-append "." (list-ref splits (- count 1))))
-            ) ;cond
-          ) ;let
-        ) ;let
+        (cond ((or (string=? name ".") (string=? name "..")) #())
+              (else (let ((splits (string-split name #\.)))
+                      (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                        #()
+                        (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
+                      ) ;if
+                    ) ;let
+              ) ;else
+        ) ;cond
       ) ;let
     ) ;define
 
-    ;; ; 拼接多个路径段。
-    ;; ; 已带末尾分隔符的中间结果不再补 sep,避免出现双斜杠。
+    ;; ; 返回末段替换为 new-name 后的新 path(保留 drive/root/其他段)。
+    ;; ; 对空路径(parts 为空或仅 ".")直接返回单段 new-name 的相对路径。
+    (define (replace-last-segment p new-name)
+      (let* ((pp (path p))
+             (parts (path-record-parts pp))
+             (n (vector-length parts))
+             (type (path-record-type pp))
+             (drive (path-record-drive pp))
+             (root (path-record-root pp))
+            ) ;
+        (cond ((or (= n 0) (and (= n 1) (string=? (vector-ref parts 0) ".")))
+               (make-path-record (vector new-name) 'posix "" #f)
+              ) ;
+              (else (let ((new-parts (vector-copy parts)))
+                      (vector-set! new-parts (- n 1) new-name)
+                      (make-path-record new-parts type drive root)
+                    ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    ;; ; 替换末段整体名称(对齐 pathlib.with_name)。
+    (define (path-with-name p new-name)
+      (if (not (string? new-name))
+        (type-error "path-with-name: new-name must be string")
+        (replace-last-segment p new-name)
+      ) ;if
+    ) ;define
+
+    ;; ; 替换末段的 stem,保留原所有后缀(对齐 pathlib.with_stem)。
+    (define (path-with-stem p new-stem)
+      (if (not (string? new-stem))
+        (type-error "path-with-stem: new-stem must be string")
+        (let ((suffixes (path-suffixes p)))
+          ;; 无后缀(含隐藏文件):替换整段,等价于 with-name
+          (if (= (vector-length suffixes) 0)
+            (replace-last-segment p new-stem)
+            (replace-last-segment p
+              (apply string-append (cons new-stem (vector->list suffixes)))
+            ) ;replace-last-segment
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;; ; 替换末段后缀(对齐 pathlib.with_suffix)。
+    ;; ; ext 为 "" 去后缀;含前导 "." 时替换/追加。隐藏文件追加新后缀。
+    (define (path-with-suffix p ext)
+      (if (not (string? ext))
+        (type-error "path-with-suffix: ext must be string")
+        (let* ((name (path-name p)) (stem (path-stem p)))
+          (cond ((string-null? ext)
+                 (if (string-null? (path-suffix (path p)))
+                   (path p)
+                   (replace-last-segment p stem)
+                 ) ;if
+                ) ;
+                ((not (char=? (string-ref ext 0) #\.))
+                 (value-error "path-with-suffix: ext must start with '.'")
+                ) ;
+                (else (replace-last-segment p (string-append stem ext)))
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    ;; ; 计算 p 相对于 base 的相对路径(对齐 pathlib.relative_to)。
+    ;; ; 要求两者 anchor 一致(drive、root、type 都相同),且 base 的纯段是 p 的前缀;
+    ;; ; 否则报错。base 段等于 p 段时返回 "."。
+    (define (path-relative-to p base)
+      (let* ((pp (path p))
+             (bp (path base))
+             (p-segs (path-record-parts pp))
+             (b-segs (path-record-parts bp))
+             (p-drive (path-record-drive pp))
+             (b-drive (path-record-drive bp))
+             (p-root (path-record-root pp))
+             (b-root (path-record-root bp))
+             (pn (vector-length p-segs))
+             (bn (vector-length b-segs))
+            ) ;
+        (define (same-anchor?)
+          (and (string=? p-drive b-drive)
+            (eq? p-root b-root)
+            (eq? (path-record-type pp) (path-record-type bp))
+          ) ;and
+        ) ;define
+        (define (prefix-match?)
+          ;; 检查 b-segs 是 p-segs 的前缀
+          (let loop
+            ((i 0))
+            (cond ((= i bn) #t)
+                  ((not (string=? (vector-ref p-segs i) (vector-ref b-segs i))) #f)
+                  (else (loop (+ i 1)))
+            ) ;cond
+          ) ;let
+        ) ;define
+        (define (remaining-segments)
+          ;; 取 p-segs 从 bn 起的剩余段
+          (let* ((rlen (- pn bn)) (rest (make-vector rlen)))
+            (let fill
+              ((j 0))
+              (if (= j rlen)
+                rest
+                (begin
+                  (vector-set! rest j (vector-ref p-segs (+ bn j)))
+                  (fill (+ j 1))
+                ) ;begin
+              ) ;if
+            ) ;let
+          ) ;let*
+        ) ;define
+        (cond ((not (same-anchor?))
+               (value-error "path-relative-to: paths do not share an anchor")
+              ) ;
+              ((> bn pn) (value-error "path-relative-to: path is not relative to base"))
+              ((not (prefix-match?))
+               (value-error "path-relative-to: path is not relative to base")
+              ) ;
+              ((= bn pn) (path "."))
+              (else (make-path-record (remaining-segments) 'posix "" #f))
+        ) ;cond
+      ) ;let*
+    ) ;define
+
+    ;; ; 拼接多个路径段(对齐 pathlib.joinpath)。
+    ;; ; 遇到绝对路径参数(root 或 drive+root)时,丢弃已有累加结果,从该参数重置
+    ;; ; (pathlib: PurePath("/a").joinpath("/b") => "/b")。
+    ;; ; 相对参数则追加到当前 acc,并避免出现双斜杠。
     (define (path-join base . segments)
       (let ((sep (string (os-sep))))
-        (define (join-one acc seg)
+        (define (join-one acc seg-str)
           (if (or (string-null? acc) (string-ends? acc sep))
-            (string-append acc seg)
-            (string-append acc sep seg)
+            (string-append acc seg-str)
+            (string-append acc sep seg-str)
           ) ;if
         ) ;define
         (let loop
           ((acc (path->string base)) (rest segments))
-          (if (null? rest) acc (loop (join-one acc (path->string (car rest))) (cdr rest)))
+          (if (null? rest)
+            acc
+            (let* ((seg-path (path (car rest))) (seg-str (path->string seg-path)))
+              (if (path-absolute? seg-path)
+                (loop seg-str (cdr rest))
+                (loop (join-one acc seg-str) (cdr rest))
+              ) ;if
+            ) ;let*
+          ) ;if
         ) ;let
       ) ;let
     ) ;define
 
-    ;; ; 获取父目录。
-    ;; ; Windows 上同时识别 / 和 \: port-filename / argv 经常返回正斜杠路径。
+    ;; ; 获取父目录(对齐 pathlib.parent,不含末尾分隔符)。
+    ;; ;   /tmp/demo.txt → /tmp   /a → /   / → /   a/b → a   a → .   "" → .
+    ;; ;   C:\Users → C:\   \\srv\sh\a → \\srv\sh
+    ;; ; 基于 record 的 parts 实现:去掉末段后保留 drive/root 重建,
+    ;; ; 避免字符串扫描在 drive/UNC anchor 上的边界错误。
     (define (path-parent p)
-      (let* ((raw (path->string p))
-             (sep (os-sep))
-             ;; 归一化分隔符:Windows 上把 / 换成 \,使 string-index-right 能命中
-             (s (if (os-windows?) (string-replace raw "/" "\\") raw))
-             ;; 末尾分隔符去掉(根路径除外),避免 path-parent "/a/" 找到第二个 /
-             (s-len (string-length s))
-             (s-trimmed (if (and (> s-len 1) (char=? (string-ref s (- s-len 1)) sep))
-                          (substring s 0 (- s-len 1))
-                          s
-                        ) ;if
-             ) ;s-trimmed
-             (trim-len (string-length s-trimmed))
-             (idx (string-index-right s-trimmed sep))
+      (let* ((pp (path p))
+             (parts (path-record-parts pp))
+             (type (path-record-type pp))
+             (drive (path-record-drive pp))
+             (root (path-record-root pp))
+             (n (vector-length parts))
             ) ;
-        (cond ((not idx) (if (os-windows?) (path "") (path ".")))
-              ((= idx 0) (path-root))
-              ;; 保留末尾分隔符作为父目录表示(与历史行为一致)
-              (else (path (substring s-trimmed 0 (+ idx 1))))
+        (cond
+          ;; 无段:根路径(/、C:\、\\srv\sh)或空相对路径,parent 为自身
+          ((= n 0) pp)
+          ;; 仅一段:取决于是否有 anchor。
+          ;;  - 有 root(绝对 /a、C:\Users、\foo):parent 为其 anchor(/、C:\、\)
+          ;;  - 无 root(相对 a、foo):parent 为当前目录 "."
+          ((= n 1)
+           (if root
+             (cond ((and (eq? type 'posix) (string-null? drive)) (path-root))
+                   ((not (string-null? drive)) (path-of-drive (string-ref drive 0)))
+                   ;; 无 drive 但有 root:windows current-drive root (\foo → \)
+                   (else (make-path-record #() 'windows "" root))
+             ) ;cond
+             (path ".")
+           ) ;if
+          ) ;
+          ;; 多段:去掉末段,保留 drive/root
+          (else (make-path-record (vector-drop-right parts 1) type drive root))
         ) ;cond
       ) ;let*
+    ) ;define
+
+    ;; ; 获取所有祖先路径向量(对齐 pathlib .parents),从最近父路径到最远。
+    ;; ; 绝对路径终止于根/anchor;相对路径不补 "."(pathlib 对 'a' 的 parents 为空)。
+    (define (path-parents p)
+      (let ((start (path p)))
+        (let loop
+          ((cur start) (acc '()))
+          (let* ((par (path-parent cur))
+                 (par-str (path->string par))
+                 (cur-str (path->string cur))
+                ) ;
+            (cond
+              ;; 相对路径回溯到当前目录:停止,不纳入 "."
+              ((string=? par-str ".") (list->vector (reverse acc)))
+              ;; parent 等于自身(cur 已是根/anchor):停止(cur 已在上一轮纳入,或 cur 是 start)
+              ((string=? par-str cur-str) (list->vector (reverse acc)))
+              (else (loop par (cons par acc)))
+            ) ;cond
+          ) ;let*
+        ) ;let
+      ) ;let
     ) ;define
 
     ;; ; Path predicates and operations (work with strings or paths)
@@ -570,18 +771,12 @@
           (let ((head (vector-ref parts 0)))
             (cond ((and (string? head) (windows-path-with-drive? head))
                    (let ((drive (extract-drive head)))
-                     (let ((clean-parts (let loop
-                                          ((i 1) (result '()))
-                                          (if (>= i (vector-length parts))
-                                            (list->vector (reverse result))
-                                            (let ((part (vector-ref parts i)))
-                                              (if (or (string-null? part) (string=? part "/") (string=? part "\\"))
-                                                (loop (+ i 1) result)
-                                                (loop (+ i 1) (cons part result))
-                                              ) ;if
-                                            ) ;let
-                                          ) ;if
-                                        ) ;let
+                     ;; 跳过首段,滤掉空段与分隔符 stub(复用 drop-dot-parts 同款规则,用 vector-filter)
+                     (let ((clean-parts (vector-filter (lambda (part)
+                                                         (not (or (string-null? part) (string=? part "/") (string=? part "\\")))
+                                                       ) ;lambda
+                                          (vector-drop parts 1)
+                                        ) ;vector-filter
                            ) ;clean-parts
                           ) ;
                        ;; 调用方传 "C:" 默认视为 drive-absolute（root=#\\），符合 path-of-drive 文档
@@ -620,9 +815,25 @@
       (path (getcwd))
     ) ;define
 
+    ;; ; 用户主目录(对齐 pathlib.Path.home 的环境变量解析顺序)。
+    ;; ; POSIX: HOME;Windows: USERPROFILE,缺失则回退 HOMEDRIVE+HOMEPATH。
+    ;; ; 环境变量缺失时显式报错(与 pathlib 一致,不静默回退到错误路径)。
     (define (path-home)
-      (cond ((or (os-linux?) (os-macos?)) (path (getenv "HOME")))
-            ((os-windows?) (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH"))))
+      (cond ((or (os-linux?) (os-macos?))
+             (let ((h (getenv "HOME")))
+               (if h (path h) (value-error "path-home: HOME is not set"))
+             ) ;let
+            ) ;
+            ((os-windows?)
+             (let ((profile (getenv "USERPROFILE")))
+               (cond (profile (path profile))
+                     ((and (getenv "HOMEDRIVE") (getenv "HOMEPATH"))
+                      (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH")))
+                     ) ;
+                     (else (value-error "path-home: USERPROFILE and HOMEDRIVE/HOMEPATH are not set"))
+               ) ;cond
+             ) ;let
+            ) ;
             (else (value-error "path-home: unknown platform"))
       ) ;cond
     ) ;define
@@ -664,6 +875,167 @@
     (define (path-rename src dst)
       (rename (path->string src) (path->string dst))
     ) ;define
+
+    ;; ; 返回绝对路径(对齐 pathlib.Path.absolute):相对路径拼 cwd,绝对路径保持。
+    ;; ; 不解析符号链接(区别于 path-resolve)。返回 path 对象。
+    (define (path-absolute p)
+      (let ((pp (path p)))
+        (if (path-absolute? pp) pp (path (path-join (path-cwd) pp)))
+      ) ;let
+    ) ;define
+
+    ;; ; 展开 ~ 为用户主目录(对齐 pathlib.Path.expanduser 的 ~ 部分;不支持 ~user)。
+    ;; ; ~/x → home/x。~ 后的剩余串作为相对段拼接(用字符串拼接,避免触发 path-join
+    ;; ; 的绝对参数重置)。
+    (define (path-expanduser p)
+      (let* ((pp (path p)) (s (path->string pp)))
+        (if (string-starts? s "~")
+          (let* ((rest (substring s 1 (string-length s))) (home-str (path->string (path-home))))
+            (path (cond ((string-null? rest) home-str)
+                        ((string-starts? rest "/") (string-append home-str rest))
+                        (else (string-append home-str "/" rest))
+                  ) ;cond
+            ) ;path
+          ) ;let*
+          pp
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    ;; ; 返回用 / 作分隔符的字符串(对齐 pathlib.PurePath.as_posix)。
+    ;; ; posix 下等价于 path->string;windows 下把 \ 转成 /。
+    (define (path-as-posix p)
+      (let ((s (path->string p)))
+        (if (os-windows?) (string-replace s "\\" "/") s)
+      ) ;let
+    ) ;define
+
+    ;; ; 字符类 [..] 匹配单字符 ch。pattern[j] 是 '['。
+    ;; ; 返回 (values matched? next-index-after-])。
+    (define (charclass-match-one pattern plen j ch)
+      (let ((negate (and (< (+ j 1) plen) (char=? (string-ref pattern (+ j 1)) #\^))))
+        (let scan
+          ((k (if negate (+ j 2) (+ j 1))) (matched #f))
+          (cond ((or (>= k plen) (char=? (string-ref pattern k) #\]))
+                 (values (if negate (not matched) matched) (if (< k plen) (+ k 1) k))
+                ) ;
+                ((and (< (+ k 2) plen) (char=? (string-ref pattern (+ k 1)) #\-))
+                 (let ((lo (string-ref pattern k)) (hi (string-ref pattern (+ k 2))))
+                   (let ((hit (if (char<=? lo hi)
+                                (and (char>=? ch lo) (char<=? ch hi))
+                                (and (char>=? ch hi) (char<=? ch lo))
+                              ) ;if
+                         ) ;hit
+                        ) ;
+                     (scan (+ k 3) (or matched hit))
+                   ) ;let
+                 ) ;let
+                ) ;
+                (else (scan (+ k 1) (or matched (char=? (string-ref pattern k) ch))))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; ; glob 单层匹配(支持 * / ? / [seq],不跨分隔符)。递归,无副作用。
+    ;; ;   *  匹配任意个字符   ?  匹配单个字符   [c1c2]/[^..]/[a-z] 字符集
+    (define (glob-match? pattern str)
+      (let ((plen (string-length pattern)) (slen (string-length str)))
+        (letrec ((match-at (lambda (p0 s0)
+                             (cond ((= p0 plen) (= s0 slen))
+                                   ((char=? (string-ref pattern p0) #\*)
+                                    ;; * 尝试匹配 0..(slen-s0) 个字符
+                                    (let try-star
+                                      ((n 0))
+                                      (cond ((match-at (+ p0 1) (+ s0 n)) #t)
+                                            ((< (+ s0 n) slen) (try-star (+ n 1)))
+                                            (else #f)
+                                      ) ;cond
+                                    ) ;let
+                                   ) ;
+                                   ((= s0 slen) #f)
+                                   ((char=? (string-ref pattern p0) #\?) (match-at (+ p0 1) (+ s0 1)))
+                                   ((char=? (string-ref pattern p0) #\[)
+                                    (let-values (((hit next) (charclass-match-one pattern plen p0 (string-ref str s0))))
+                                      (and hit (match-at next (+ s0 1)))
+                                    ) ;let-values
+                                   ) ;
+                                   ((char=? (string-ref pattern p0) (string-ref str s0))
+                                    (match-at (+ p0 1) (+ s0 1))
+                                   ) ;
+                                   (else #f)
+                             ) ;cond
+                           ) ;lambda
+                 ) ;match-at
+                ) ;
+          (match-at 0 0)
+        ) ;letrec
+      ) ;let
+    ) ;define
+
+    ;; ; glob 模式匹配路径末段(对齐 pathlib.PurePath.match 的末段语义)。
+    (define (path-match p pattern)
+      (glob-match? pattern (path-name p))
+    ) ;define
+
+    ;; ; 规范化绝对路径:消除 . 段、折叠 .. 段(对齐 pathlib.Path.resolve 的纯规范化部分)。
+    ;; ; 注:因无 realpath 原语,不解析符号链接(与 pathlib strict 语义有差异)。
+    (define (normalize-absolute p)
+      (let* ((pp (path-absolute p))
+             (segs (vector->list (path-record-parts pp)))
+             (root (path-record-root pp))
+             (type (path-record-type pp))
+             (drive (path-record-drive pp))
+            ) ;
+        (let loop
+          ((rest segs) (acc '()))
+          (cond ((null? rest) (make-path-record (list->vector (reverse acc)) type drive root))
+                ((string=? (car rest) "..")
+                 (if (null? acc)
+                   ;; .. 在根之上:丢弃(不能越过根)
+                   (loop (cdr rest) acc)
+                   (loop (cdr rest) (cdr acc))
+                 ) ;if
+                ) ;
+                (else (loop (cdr rest) (cons (car rest) acc)))
+          ) ;cond
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; ; 解析为规范化的绝对路径(对齐 pathlib.Path.resolve 的简化版)。
+    ;; ; 绝对化 + 折叠 . / .. 段;不解析符号链接(无 realpath 原语)。
+    (define (path-resolve p)
+      (normalize-absolute p)
+    ) ;define
+
+    ;; ; 创建目录(对齐 pathlib.Path.mkdir)。
+    ;; ; parents=#t 递归创建中间目录;exist_ok=#t 时已存在不报错。
+    (define* (path-mkdir p (parents #f) (exist-ok #f))
+      (define (ensure-one s)
+        (if (file-exists? s) #t (mkdir s))
+      ) ;define
+      (let ((s (path->string p)))
+        (cond ((and (not exist-ok) (file-exists? s))
+               (file-exists-error (string-append "File exists: '" s "'"))
+              ) ;
+              ((not parents) (ensure-one s))
+              (else
+                ;; parents:从根向下逐级创建(跳过已存在的)
+                (let loop
+                  ((rest (reverse (vector->list (path-parents (path s))))))
+                  (if (null? rest)
+                    (ensure-one s)
+                    (begin
+                      (ensure-one (path->string (car rest)))
+                      (loop (cdr rest))
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define*
 
   ) ;begin
 ) ;define-library

@@ -24,42 +24,49 @@
 ;; path-parent 是 rich-path 中 :parent 的函数式版本。
 
 (let ((sep (string (os-sep))))
-  ;; path-parent 测试
-  (check (path->string (path-parent (path "tmp/demo.txt")))
-    =>
-    (string-append "tmp" sep)
-  ) ;check
+  ;; path-parent 测试(对齐 pathlib.parent,不含末尾分隔符)
+  (check (path->string (path-parent (path "tmp/demo.txt"))) => "tmp")
   (check (path->string (path-parent (path "tmp"))) => ".")
   (check (path->string (path-parent (path ""))) => ".")
+  ;; 多级相对路径
+  (check (path->string (path-parent (path "a/b/c")))
+    =>
+    (string-append "a" sep "b")
+  ) ;check
 
   (when (not (os-windows?))
+    ;; 根的 parent 是根本身(pathlib 语义)
     (check (path->string (path-parent (path-root))) => "/")
+    ;; 尾斜杠先归一化:/tmp/ 的 parent 是 /
     (check (path->string (path-parent (path "/tmp/"))) => "/")
-    (check (path->string (path-parent (path "/tmp/demo.txt"))) => "/tmp/")
+    ;; 绝对路径去末段,不含尾斜杠
+    (check (path->string (path-parent (path "/tmp/demo.txt"))) => "/tmp")
+    ;; 逐级回溯到根
     (check (path->string (path-parent (path-parent (path "/tmp/demo.txt")))) => "/")
+    ;; 单段绝对路径 /a 的 parent 是根
+    (check (path->string (path-parent (path "/a"))) => "/")
   ) ;when
 
   (when (os-windows?)
+    ;; drive-absolute 单段:C:\Users 的 parent 是 C:\(保留 drive+root anchor)
     (check (path->string (path-parent (path "C:\\Users"))) => "C:\\")
-    (check (path->string (path-parent (path "a\\b"))) => "a\\")
+    ;; 相对路径去末段,不含尾斜杠
+    (check (path->string (path-parent (path "a\\b"))) => "a")
     ;; s7 的 port-filename / argv 在 Windows 上返回正斜杠绝对路径,
-    ;; path-parent 必须同时识别 / 和 \,否则会把整串当单一 part 剥到只剩 "C:"
+    ;; path-parent 必须同时识别 / 和 \(基于 record parts,自动归一化)
     (check (path->string (path-parent (path "C:/Users/foo/bar.scm")))
       =>
-      "C:\\Users\\foo\\"
+      "C:\\Users\\foo"
     ) ;check
-    ;; string 输入分支同样需要规范化(path->string 对 string 直通返回原串)
-    (check (path->string (path-parent "C:/Users/foo/bar.scm"))
-      =>
-      "C:\\Users\\foo\\"
-    ) ;check
-    ;; UNC 下 path-parent 应正确剥到 share anchor
+    ;; string 输入同样工作(path-parent 内部先转 path)
+    (check (path->string (path-parent "C:/Users/foo/bar.scm")) => "C:\\Users\\foo")
+    ;; UNC 下 path-parent 剥到 share anchor
     (check (path->string (path-parent (path "\\\\srv\\sh\\a\\b")))
       =>
-      "\\\\srv\\sh\\a\\")
-    (check (path->string (path-parent (path "\\\\srv\\sh\\a")))
-      =>
-      "\\\\srv\\sh")
+      "\\\\srv\\sh\\a"
+    ) ;check
+    ;; UNC 单段:parent 为 share anchor 自身(\\srv\sh\a → \\srv\sh)
+    (check (path->string (path-parent (path "\\\\srv\\sh\\a"))) => "\\\\srv\\sh")
   ) ;when
 ) ;let
 

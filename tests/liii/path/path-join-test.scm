@@ -45,6 +45,17 @@
                   (path "/tmp/demo.txt")
                 ) ;path-equals?
     ) ;check-true
+
+    ;; 绝对参数重置(pathlib 语义):/a join /b => /b
+    (check (path->string (path-join (path "/a") "/b")) => "/b")
+    ;; 相对参数追加到绝对 base:/a join b => /a/b
+    (check (path->string (path-join (path "/a") "b")) => "/a/b")
+    ;; 相对 base 遇绝对参数重置:c join /d => /d
+    (check (path->string (path-join (path "c") "/d")) => "/d")
+    ;; 中间绝对参数重置后续: join(/a b /c d) => /c/d
+    (check (path->string (path-join (path "/a") "b" "/c" "d")) => "/c/d")
+    ;; 无双斜杠:/a/ join b => /a/b(不带尾斜杠重复)
+    (check (path->string (path-join (path "/a/") "b")) => "/a/b")
   ) ;when
 ) ;let
 

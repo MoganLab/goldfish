@@ -62,7 +62,10 @@
 ;; path-from-parts 边界: 空 vector、空 stub head
 (check (path->string (path-from-parts #())) => ".")
 (when (not (os-windows?))
-  (check (path->string (path-from-parts #("" "tmp" "demo.txt"))) => "/tmp/demo.txt")
+  (check (path->string (path-from-parts #("" "tmp" "demo.txt")))
+    =>
+    "/tmp/demo.txt"
+  ) ;check
 ) ;when
 
 (check-report)
