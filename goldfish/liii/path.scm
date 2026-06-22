@@ -641,11 +641,15 @@
           ;; 无段:根路径(/、C:\、\\srv\sh)或空相对路径,parent 为自身
           ((= n 0) pp)
           ;; 仅一段:取决于是否有 anchor。
-          ;;  - 有 root(绝对 /a、C:\Users、\foo):parent 为其 anchor(/、C:\、\)
+          ;;  - 有 root(绝对 /a、C:\Users、\foo、\\srv\sh\a):parent 为其 anchor
           ;;  - 无 root(相对 a、foo):parent 为当前目录 "."
           ((= n 1)
            (if root
              (cond ((and (eq? type 'posix) (string-null? drive)) (path-root))
+                   ;; UNC 单段(\\srv\sh\a → \\srv\sh):drive 存的是 share anchor
+                   ;; ("\\server\share" 以 \\ 开头,与单字母盘符区分),直接回到
+                   ;; 空 parts + 原 drive/root。
+                   ((unc-prefix? drive) (make-path-record #() 'windows drive root))
                    ((not (string-null? drive)) (path-of-drive (string-ref drive 0)))
                    ;; 无 drive 但有 root:windows current-drive root (\foo → \)
                    (else (make-path-record #() 'windows "" root))
