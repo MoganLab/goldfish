@@ -91,10 +91,10 @@ njson_error (s7_scheme* sc, const char* type_name, const std::string& msg, s7_po
   return s7_error (sc, s7_make_symbol (sc, type_name), s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), culprit));
 }
 
-// Map a C++ nlohmann exception to a goldfish s7_error. Only parse_error is
-// reachable from the s7 layer (via json::parse on invalid JSON); other
-// nlohmann exceptions are pre-empted by njson's own input validation and land
-// in the json::exception catch-all as a defensive fallback.
+// 把 nlohmann 抛出的 C++ 异常映射成 goldfish 的 s7_error。从 s7 层唯一稳定可
+// 触发的 nlohmann 异常是 parse_error（json::parse 解析非法 JSON 时抛）；其他
+// nlohmann 异常已被 njson 自身的输入预校验拦截，落到 json::exception 兜底分支
+// 作为防御性 fallback，避免将来 nlohmann 内部行为变化时 C++ 异常逃逸到 s7。
 static s7_pointer
 njson_map_exception_to_error (s7_scheme* sc, const char* api_name, const std::exception& err, s7_pointer culprit) {
   const char* type_name= "misc-error";
@@ -107,16 +107,15 @@ njson_map_exception_to_error (s7_scheme* sc, const char* api_name, const std::ex
   return njson_error (sc, type_name, msg, culprit);
 }
 
-// Usage:
+// 用法：
 //   NJSON_TRY_CATCH (sc, "g_njson-keys", handle, {
 //     njson_collect_keys (*root, keys);
 //     ...
 //     return result;
 //   });
 //
-// Wrap only the code that actually touches the nlohmann::json value: argument
-// validation and handle lookup are performed outside the try block so a failure
-// there cannot leave the handle cache or free-list in a half-applied state.
+// 只包裹真正会触碰 nlohmann::json 的代码：参数校验和 handle 查找都放在 try 块
+// 外，避免一旦失败时 handle 缓存或 free-list 处于半更新状态。
 #define NJSON_TRY_CATCH(sc, api_name, culprit, body)                                              \
   do {                                                                                            \
     try body catch (const std::exception& njson_err_) {                                           \
