@@ -72,4 +72,10 @@
 (check-catch 'type-error (njson->string njson-string-freed))
 
 
+;; 非 ASCII：round-trip 不丢失 UTF-8 字符。
+(let-njson ((root (string->njson "{\"author\":\"Erwin Schrödinger\"}")))
+  (check (njson->string root) => "{\"author\":\"Erwin Schrödinger\"}")
+) ;let-njson
+
+
 (check-report)
