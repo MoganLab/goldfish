@@ -40,4 +40,56 @@
   ) ;check
 ) ;when
 
+(when (os-windows?)
+  ;; 同 drive 同 root,前缀匹配
+  (check (path->string (path-relative-to (path "C:\\a\\b\\c") (path "C:\\a")))
+    =>
+    "b\\c"
+  ) ;check
+  ;; base 等于 path → 当前目录
+  (check (path->string (path-relative-to (path "C:\\a\\b") (path "C:\\a\\b")))
+    =>
+    "."
+  ) ;check
+  ;; drive-absolute 根作为 base
+  (check (path->string (path-relative-to (path "C:\\a\\b") (path "C:\\")))
+    =>
+    "a\\b"
+  ) ;check
+  ;; 不同 drive 报错(pathlib ValueError)
+  (check (guard (ex (else 'caught))
+           (path->string (path-relative-to (path "C:\\a") (path "D:\\")))
+         ) ;guard
+    =>
+    'caught
+  ) ;check
+  ;; drive-absolute vs drive-relative(C:\ vs C:)anchor 不同(root 不同)报错
+  (check (guard (ex (else 'caught))
+           (path->string (path-relative-to (path "C:\\a") (path "C:")))
+         ) ;guard
+    =>
+    'caught
+  ) ;check
+  ;; UNC 内部相对
+  (check (path->string (path-relative-to (path "\\\\srv\\sh\\a\\b") (path "\\\\srv\\sh"))
+         ) ;path->string
+    =>
+    "a\\b"
+  ) ;check
+  ;; 不同 UNC anchor 报错
+  (check (guard (ex (else 'caught))
+           (path->string (path-relative-to (path "\\\\srv1\\sh\\a") (path "\\\\srv2\\sh")))
+         ) ;guard
+    =>
+    'caught
+  ) ;check
+  ;; UNC vs drive 报错
+  (check (guard (ex (else 'caught))
+           (path->string (path-relative-to (path "\\\\srv\\sh\\a") (path "C:\\")))
+         ) ;guard
+    =>
+    'caught
+  ) ;check
+) ;when
+
 (check-report)

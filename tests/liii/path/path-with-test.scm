@@ -47,4 +47,42 @@
   ) ;check
 ) ;when
 
+(when (os-windows?)
+  ;; drive-absolute 路径改后缀
+  (check (path->string (path-with-suffix (path "C:\\tmp\\a.txt") ".md"))
+    =>
+    "C:\\tmp\\a.md"
+  ) ;check
+  ;; 去后缀
+  (check (path->string (path-with-suffix (path "C:\\tmp\\a.txt") ""))
+    =>
+    "C:\\tmp\\a"
+  ) ;check
+  ;; 多后缀只替换最后一个
+  (check (path->string (path-with-suffix (path "C:\\tmp\\a.tar.gz") ".md"))
+    =>
+    "C:\\tmp\\a.tar.md"
+  ) ;check
+  ;; 正斜杠输入(Windows 接受),输出统一反斜杠
+  (check (path->string (path-with-suffix (path "C:/tmp/a.txt") ".md"))
+    =>
+    "C:\\tmp\\a.md"
+  ) ;check
+  ;; with-name
+  (check (path->string (path-with-name (path "C:\\a\\b.txt") "c.md"))
+    =>
+    "C:\\a\\c.md"
+  ) ;check
+  ;; with-stem(保留后缀)
+  (check (path->string (path-with-stem (path "C:\\tmp\\a.tar.gz") "new"))
+    =>
+    "C:\\tmp\\new.tar.gz"
+  ) ;check
+  ;; UNC 路径改后缀
+  (check (path->string (path-with-suffix (path "\\\\srv\\sh\\a.txt") ".md"))
+    =>
+    "\\\\srv\\sh\\a.md"
+  ) ;check
+) ;when
+
 (check-report)

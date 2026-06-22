@@ -46,6 +46,36 @@
     =>
     '("C:\\a" "C:\\")
   ) ;check
+  ;; drive-absolute 单段:C:\a → (C:\)
+  (check (vector->list (vector-map path->string (path-parents (path "C:\\a"))))
+    =>
+    '("C:\\")
+  ) ;check
+  ;; drive-absolute 根自身:C:\ → ()(anchor 不再上溯)
+  (check (vector-length (path-parents (path "C:\\"))) => 0)
+  ;; drive-relative:C:foo\bar → (C:foo C:)(pathlib 对齐)
+  (check (vector->list (vector-map path->string (path-parents (path "C:foo\\bar"))))
+    =>
+    '("C:foo" "C:")
+  ) ;check
+  ;; UNC 多段:\\srv\sh\a\b → (\\srv\sh\a \\srv\sh)
+  (check (vector->list (vector-map path->string (path-parents (path "\\\\srv\\sh\\a\\b")))
+         ) ;vector->list
+    =>
+    '("\\\\srv\\sh\\a" "\\\\srv\\sh")
+  ) ;check
+  ;; UNC 单段:\\srv\sh\a → (\\srv\sh)
+  (check (vector->list (vector-map path->string (path-parents (path "\\\\srv\\sh\\a"))))
+    =>
+    '("\\\\srv\\sh")
+  ) ;check
+  ;; UNC anchor 自身:\\srv\sh → ()(无祖先)
+  (check (vector-length (path-parents (path "\\\\srv\\sh"))) => 0)
+  ;; 当前盘根单段:\foo → (\)
+  (check (vector->list (vector-map path->string (path-parents (path "\\foo"))))
+    =>
+    '("\\")
+  ) ;check
 ) ;when
 
 (check-report)

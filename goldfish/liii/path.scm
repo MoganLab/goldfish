@@ -390,7 +390,7 @@
               (root (path-record-root p))
              ) ;
           (case type
-           ((windows) (and root (not (string-null? drive))))
+           ((windows) (if root #t #f))
            ((posix) (and root #t))
            (else #f)
           ) ;case
@@ -592,7 +592,7 @@
                (value-error "path-relative-to: path is not relative to base")
               ) ;
               ((= bn pn) (path "."))
-              (else (make-path-record (remaining-segments) 'posix "" #f))
+              (else (make-path-record (remaining-segments) (path-record-type pp) "" #f))
         ) ;cond
       ) ;let*
     ) ;define
@@ -642,7 +642,8 @@
           ((= n 0) pp)
           ;; 仅一段:取决于是否有 anchor。
           ;;  - 有 root(绝对 /a、C:\Users、\foo、\\srv\sh\a):parent 为其 anchor
-          ;;  - 无 root(相对 a、foo):parent 为当前目录 "."
+          ;;  - 无 root 但有 drive(drive-relative C:foo):parent 为 "C:"(pathlib 语义)
+          ;;  - 无 root 无 drive(相对 a、foo):parent 为当前目录 "."
           ((= n 1)
            (if root
              (cond ((and (eq? type 'posix) (string-null? drive)) (path-root))
@@ -654,7 +655,11 @@
                    ;; 无 drive 但有 root:windows current-drive root (\foo → \)
                    (else (make-path-record #() 'windows "" root))
              ) ;cond
-             (path ".")
+             (if (not (string-null? drive))
+               ;; drive-relative 单段:C:foo → C:(保留 drive、root 空、parts 空)
+               (make-path-record #() 'windows drive #f)
+               (path ".")
+             ) ;if
            ) ;if
           ) ;
           ;; 多段:去掉末段,保留 drive/root

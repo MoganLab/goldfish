@@ -67,6 +67,21 @@
     ) ;check
     ;; UNC 单段:parent 为 share anchor 自身(\\srv\sh\a → \\srv\sh)
     (check (path->string (path-parent (path "\\\\srv\\sh\\a"))) => "\\\\srv\\sh")
+    ;; UNC anchor 自身:parent 是自身(pathlib 语义,根/anchor 不再上溯)
+    (check (path->string (path-parent (path "\\\\srv\\sh"))) => "\\\\srv\\sh")
+    ;; UNC 多段:剥到 share anchor 的上一段
+    (check (path->string (path-parent (path "\\\\srv\\sh\\a\\b")))
+      =>
+      "\\\\srv\\sh\\a"
+    ) ;check
+    ;; drive-relative 多段:C:foo\bar → C:foo(保留 drive,去掉末段)
+    (check (path->string (path-parent (path "C:foo\\bar"))) => "C:foo")
+    ;; drive-relative 单段:C:foo → C:(pathlib 语义,保留 drive、root 空)
+    (check (path->string (path-parent (path "C:foo"))) => "C:")
+    ;; drive-absolute 根自身:C:\ 的 parent 是自身
+    (check (path->string (path-parent (path "C:\\"))) => "C:\\")
+    ;; 当前盘根单段:\foo 的 parent 是当前盘根 \
+    (check (path->string (path-parent (path "\\foo"))) => "\\")
   ) ;when
 ) ;let
 
