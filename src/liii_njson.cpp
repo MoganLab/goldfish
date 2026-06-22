@@ -91,23 +91,15 @@ njson_error (s7_scheme* sc, const char* type_name, const std::string& msg, s7_po
   return s7_error (sc, s7_make_symbol (sc, type_name), s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), culprit));
 }
 
-// Map a C++ exception thrown by nlohmann::json operations to a structured
-// s7_error. Classification follows the nlohmann exception hierarchy and is
-// translated into the goldfish error symbols already used by the njson API:
-//   json::parse_error       -> parse-error
-//   json::out_of_range      -> key-error
-//   json::type_error        -> type-error
-//   other json::exception   -> value-error
-//   any other std::exception -> misc-error
+// Map a C++ nlohmann exception to a goldfish s7_error. Only parse_error is
+// reachable from the s7 layer (via json::parse on invalid JSON); other
+// nlohmann exceptions are pre-empted by njson's own input validation and land
+// in the json::exception catch-all as a defensive fallback.
 static s7_pointer
 njson_map_exception_to_error (s7_scheme* sc, const char* api_name, const std::exception& err, s7_pointer culprit) {
   const char* type_name= "misc-error";
   if (dynamic_cast<const json::parse_error*> (&err) != nullptr) {
     type_name= "parse-error";
-  } else if (dynamic_cast<const json::out_of_range*> (&err) != nullptr) {
-    type_name= "key-error";
-  } else if (dynamic_cast<const json::type_error*> (&err) != nullptr) {
-    type_name= "type-error";
   } else if (dynamic_cast<const json::exception*> (&err) != nullptr) {
     type_name= "value-error";
   }
@@ -821,12 +813,7 @@ f_njson_free (s7_scheme* sc, s7_pointer args) {
   }
   NjsonState& state= njson_get_or_create_state (sc);
   njson_clear_keys_cache_slot (sc, id);
-  // Reset the stored json first. unique_ptr::reset invokes the json destructor
-  // which (for exotic value types) may throw; only after success do we return
-  // the id to the free-list, keeping the slot invariant intact on failure.
-  NJSON_TRY_CATCH (sc, "g_njson-free", handle, {
-    state.handle_store[static_cast<size_t> (id)].reset ();
-  });
+  state.handle_store[static_cast<size_t> (id)].reset ();
   state.handle_free_ids.push_back (id);
   return s7_t (sc);
 }
