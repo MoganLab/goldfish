@@ -1,4 +1,4 @@
-(import (liii check) (liii base) (liii njson))
+(import (liii check) (liii base) (liii string) (liii njson))
 
 
 (check-set-mode! 'report-failed)
@@ -49,6 +49,13 @@
 (check-catch 'type-error (njson-format-string "{}" "2"))
 (check-catch 'value-error (njson-format-string "{}" -1))
 (check-catch 'value-error (njson-format-string "{}" 2 4))
+
+
+;; 非 ASCII：format-string 应原样保留 UTF-8。
+(let ((result (njson-format-string "{\"greeting\":\"こんにちは\"}")))
+  (check-true (string? result))
+  (check-true (string-contains? result "こんにちは"))
+) ;let
 
 
 (check-report)

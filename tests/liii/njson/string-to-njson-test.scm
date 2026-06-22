@@ -48,4 +48,32 @@
 (check-catch 'type-error (string->njson 1))
 
 
+;; 非 ASCII：value 既包含 \\uXXXX 转义，也支持原始 UTF-8。
+(let-njson ((root (string->njson "{\"name\":\"Erwin Schr\\u00f6dinger\"}")))
+  (check (njson-ref root "name") => "Erwin Schrödinger")
+) ;let-njson
+
+
+(let-njson ((root (string->njson "{\"名前\":\"Tsubasa\"}")))
+  (check (njson-ref root "名前") => "Tsubasa")
+) ;let-njson
+
+
+(let-njson ((root (string->njson "{\"author\":\"Erwin Schrödinger\",\"city\":\"Zürich\"}")
+            ) ;root
+           ) ;
+  (check (njson-ref root "author") => "Erwin Schrödinger")
+  (check (njson-ref root "city") => "Zürich")
+) ;let-njson
+
+
+;; 畸形 JSON：除了 property 名缺引号，再覆盖几种常见错误形态。
+(check-catch 'parse-error (string->njson "{\"key\":\"value\""))
+(check-catch 'parse-error (string->njson "{\"key\":\"value\",}"))
+(check-catch 'parse-error (string->njson "{'key':'value'}"))
+(check-catch 'parse-error (string->njson ""))
+(check-catch 'parse-error (string->njson "not json at all"))
+(check-catch 'parse-error (string->njson "[1, 2, 3"))
+
+
 (check-report)
