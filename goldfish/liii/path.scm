@@ -254,9 +254,7 @@
     (define (split-name-dots name)
       (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
             (else (let ((splits (string-split name #\.)))
-                    (if (or (<= (length splits) 1)
-                          (string=? (car splits) "")
-                        ) ;or
+                    (if (or (<= (length splits) 1) (string=? (car splits) ""))
                       (values (list name) '())
                       (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
                         (values stem-segs (list (string-append "." suffix-seg)))
@@ -632,9 +630,7 @@
       (let ((name (path-name p)))
         (cond ((or (string=? name ".") (string=? name "..")) #())
               (else (let ((splits (string-split name #\.)))
-                      (if (or (<= (length splits) 1)
-                            (string=? (car splits) "")
-                          ) ;or
+                      (if (or (<= (length splits) 1) (string=? (car splits) ""))
                         #()
                         (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
                       ) ;if
