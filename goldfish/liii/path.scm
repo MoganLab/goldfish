@@ -457,8 +457,9 @@
       (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
             (else (let ((splits (string-split name #\.)))
                     (if (or (<= (length splits) 1)
-                            (string=? (car splits) "")
-                            (string=? (car (reverse splits)) ""))
+                          (string=? (car splits) "")
+                          (string=? (car (reverse splits)) "")
+                        ) ;or
                       (values (list name) '())
                       ;; splits 不含前导/后导空:stem 段 = 除末段外, suffix = 末段
                       (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
@@ -493,8 +494,9 @@
         (cond ((or (string=? name ".") (string=? name "..")) #())
               (else (let ((splits (string-split name #\.)))
                       (if (or (<= (length splits) 1)
-                              (string=? (car splits) "")
-                              (string=? (car (reverse splits)) ""))
+                            (string=? (car splits) "")
+                            (string=? (car (reverse splits)) "")
+                          ) ;or
                         #()
                         (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
                       ) ;if
@@ -641,7 +643,9 @@
     (define (path-join base . segments)
       (let ((base-rec (path base)))
         (define (append-parts acc seg)
-          (define (drop-dots v) (vector-filter (lambda (x) (not (string=? x "."))) v))
+          (define (drop-dots v)
+            (vector-filter (lambda (x) (not (string=? x "."))) v)
+          ) ;define
           (let ((acc-parts (drop-dots (path-record-parts acc)))
                 (seg-parts (drop-dots (path-record-parts seg)))
                ) ;
