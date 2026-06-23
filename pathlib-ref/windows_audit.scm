@@ -39,11 +39,12 @@
 ) ;for-each
 
 ;; ---- root ----
-;; goldfish 暂未导出 root 访问器;此处用 path->string 间接体现。
-;; 精确 root 对照待实现导出 root getter 后补。
+;; path-root 字符串访问器,对齐 pathlib.PurePath.root
 (for-each
-  (lambda (s) (show (string-append "root " s) (path->string (path s))))
-  '("C:\\a" "C:foo" "\\foo" "\\\\srv\\sh\\a")
+  (lambda (s) (show (string-append "root " s) (path-root (path s))))
+  '("C:\\a" "C:\\a\\b" "C:\\foo" "C:foo" "C:foo\\bar" "C:\\"
+    "\\foo" "\\" "\\\\srv" "\\\\srv\\sh" "\\\\srv\\sh\\a" "\\\\srv\\sh\\a\\b"
+    "\\\\srv\\share\\a\\b" "\\\\srv\\share" "foo\\bar" "C:/Users/foo" "C:/a/b")
 ) ;for-each
 
 ;; ---- name / stem / suffix / suffixes ----
