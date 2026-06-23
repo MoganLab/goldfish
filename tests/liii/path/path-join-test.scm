@@ -68,15 +68,18 @@
     ) ;check
     ;; drive 重置(pathlib 语义):C:\a join D:\b => D:\b
     (check (path->string (path-join (path "C:\\a") "D:\\b")) => "D:\\b")
-    ;; 绝对参数清空 base:C:\a join \b => \b
-    ;; (current-drive root, path-absolute? 判定为绝对 → 重置 base。
-    ;; 与 pathlib 有差异:Python 会保留 base 的 drive 给出 C:\b。当前 path-join
-    ;; 的重置语义未区分 "drive 继承" 和 "完全重置",留作后续对齐任务。)
-    (check (path->string (path-join (path "C:\\a") "\\b")) => "\\b")
-    ;; drive-absolute base + 相对段,中间遇 drive-relative 段不重置
+    ;; current-drive root 段继承 base drive(对齐 pathlib: C:\a.joinpath('\b') => C:\b)
+    (check (path->string (path-join (path "C:\\a") "\\b")) => "C:\\b")
+    ;; drive-absolute base + drive-relative 段:不同 drive 触发重置(对齐 pathlib:
+    ;; C:\base.joinpath('D:rel','x.txt') => D:rel\x.txt)
     (check (path->string (path-join (path "C:\\base") "D:rel" "x.txt"))
       =>
-      "C:\\base\\D:rel\\x.txt"
+      "D:rel\\x.txt"
+    ) ;check
+    ;; 同 drive 的 drive-relative 段合并(对齐 pathlib: C:\base.joinpath('C:rel') => C:\base\rel)
+    (check (path->string (path-join (path "C:\\base") "C:rel"))
+      =>
+      "C:\\base\\rel"
     ) ;check
     ;; UNC base + 相对段
     (check (path->string (path-join (path "\\\\srv\\sh") "a" "b.txt"))

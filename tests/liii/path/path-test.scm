@@ -53,9 +53,9 @@
 (when (os-windows?)
   (check (path->string (path "a\\.\\b")) => "a\\b")
   (check (path->string (path "C:\\")) => "C:\\")
-  ;; UNC 三种形式 round-trip
+  ;; UNC round-trip(对齐 pathlib): 光秃 server 不带尾斜杠;share anchor 带尾斜杠
   (check (path->string (path "\\\\srv")) => "\\\\srv")
-  (check (path->string (path "\\\\srv\\sh")) => "\\\\srv\\sh")
+  (check (path->string (path "\\\\srv\\sh")) => "\\\\srv\\sh\\")
   (check (path->string (path "\\\\srv\\sh\\a")) => "\\\\srv\\sh\\a")
 ) ;when
 

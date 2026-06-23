@@ -13,7 +13,7 @@
 ;; ------
 ;; vector
 ;; 从最近父路径到最远(根或当前目录)的 path 对象序列。
-;; 绝对路径终止于根;相对路径终止于最浅段(不再补 ".")。
+;; 绝对路径终止于根;相对路径终止于当前目录 "."(对齐 pathlib)。
 
 (when (not (os-windows?))
   ;; 绝对多段:/a/b/c → (/a/b /a /)
@@ -31,13 +31,18 @@
     =>
     '("/")
   ) ;check
-  ;; 相对多段:a/b/c → (a/b a)
+  ;; 相对多段:a/b/c → (a/b a .)(对齐 pathlib,末元素为当前目录)
   (check (vector->list (vector-map path->string (path-parents (path "a/b/c"))))
     =>
-    '("a/b" "a")
+    '("a/b" "a" ".")
   ) ;check
-  ;; 相对单段:a → ()(无祖先)
-  (check (vector-length (path-parents (path "a"))) => 0)
+  ;; 相对单段:a → (.)(对齐 pathlib)
+  (check (vector->list (vector-map path->string (path-parents (path "a"))))
+    =>
+    '(".")
+  ) ;check
+  ;; 当前目录自身:. → ()(无祖先)
+  (check (vector-length (path-parents (path "."))) => 0)
 ) ;when
 
 (when (os-windows?)
@@ -58,16 +63,16 @@
     =>
     '("C:foo" "C:")
   ) ;check
-  ;; UNC 多段:\\srv\sh\a\b → (\\srv\sh\a \\srv\sh)
+  ;; UNC 多段:\\srv\sh\a\b → (\\srv\sh\a \\srv\sh\)(对齐 pathlib,末元素 anchor 带尾斜杠)
   (check (vector->list (vector-map path->string (path-parents (path "\\\\srv\\sh\\a\\b")))
          ) ;vector->list
     =>
-    '("\\\\srv\\sh\\a" "\\\\srv\\sh")
+    '("\\\\srv\\sh\\a" "\\\\srv\\sh\\")
   ) ;check
-  ;; UNC 单段:\\srv\sh\a → (\\srv\sh)
+  ;; UNC 单段:\\srv\sh\a → (\\srv\sh\)
   (check (vector->list (vector-map path->string (path-parents (path "\\\\srv\\sh\\a"))))
     =>
-    '("\\\\srv\\sh")
+    '("\\\\srv\\sh\\")
   ) ;check
   ;; UNC anchor 自身:\\srv\sh → ()(无祖先)
   (check (vector-length (path-parents (path "\\\\srv\\sh"))) => 0)

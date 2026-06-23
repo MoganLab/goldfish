@@ -37,9 +37,9 @@
   ;; drive-absolute 与 drive-relative 字符串区分
   (check (path->string (path "C:\\foo")) => "C:\\foo")
   (check (path->string (path "C:foo")) => "C:foo")
-  ;; UNC 路径 round-trip
+  ;; UNC 路径 round-trip(对齐 pathlib: share anchor 带尾斜杠)
   (check (path->string (path "\\\\srv\\share\\a\\b")) => "\\\\srv\\share\\a\\b")
-  (check (path->string (path "\\\\srv\\share")) => "\\\\srv\\share")
+  (check (path->string (path "\\\\srv\\share")) => "\\\\srv\\share\\")
 ) ;when
 
 (check-report)

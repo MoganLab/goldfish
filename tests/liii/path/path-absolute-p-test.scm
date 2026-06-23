@@ -42,6 +42,11 @@
   (check-false (path-absolute? (path "C:foo")))
   ;; UNC 路径视为绝对
   (check-true (path-absolute? (path "\\\\srv\\share\\foo")))
+  ;; 无 drive 的 root-absolute 不是绝对(对齐 pathlib: PureWindowsPath('\\foo').is_absolute() == False)
+  (check-false (path-absolute? (path "\\foo")))
+  (check-false (path-absolute? (path "\\")))
+  ;; drive-absolute 根自身是绝对
+  (check-true (path-absolute? (path "C:\\")))
 ) ;when
 
 (check-true (path-absolute? (path-home)))

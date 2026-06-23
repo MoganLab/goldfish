@@ -21,7 +21,8 @@
 
 (check (path-parts (path)) => #("."))
 (check (path-parts (path-root)) => #("/"))
-(check (path-parts (path-of-drive #\c)) => #())
+;; path-of-drive 构造 windows record,parts 含 anchor 首元素(对齐 PureWindowsPath('C:\\').parts)
+(check (path-parts (path-of-drive #\c)) => #("C:\\"))
 
 (when (not (os-windows?))
   (check (path-parts (path-from-parts #("/" "tmp" "demo.txt")))
@@ -35,10 +36,14 @@
 ) ;when
 
 (when (os-windows?)
-  ;; UNC: drive 字段表达绝对性,parts 不加 stub
-  (check (path-parts (path "\\\\srv\\sh\\a\\b")) => #("a" "b"))
-  ;; drive-absolute 同理
-  (check (path-parts (path "C:\\tmp\\demo.txt")) => #("tmp" "demo.txt"))
+  ;; UNC: parts 含 share anchor 首元素(对齐 PureWindowsPath('\\srv\sh\a\b').parts)
+  (check (path-parts (path "\\\\srv\\sh\\a\\b")) => #("\\\\srv\\sh\\" "a" "b"))
+  ;; drive-absolute: 首元素 "C:\"
+  (check (path-parts (path "C:\\tmp\\demo.txt")) => #("C:\\" "tmp" "demo.txt"))
+  ;; drive-relative: 首元素 "C:"(对齐 PureWindowsPath('C:foo').parts)
+  (check (path-parts (path "C:foo")) => #("C:" "foo"))
+  ;; current-drive root: 首元素 "\"
+  (check (path-parts (path "\\foo")) => #("\\" "foo"))
 ) ;when
 
 (check-report)

@@ -53,6 +53,9 @@
   (check-true (path-unlink unlink-file-a #t))
   (check-catch 'file-not-found-error (path-unlink unlink-file-a))
 
+  ;; unlink 目录时报 value-error(提示用 rmdir)
+  (check-catch 'value-error (path-unlink unlink-dir))
+
   ;; 清理
   (check-true (path-unlink unlink-file-b))
   (check-true (path-rmdir unlink-dir))

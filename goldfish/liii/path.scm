@@ -273,10 +273,27 @@
       ) ;let
     ) ;define
 
-    ;; ; 获取 parts 向量
-    ;; ; 对外契约:absolute 路径在 parts 前保留 stub,用于与历史 caller round-trip。
-    ;; ;   posix 绝对(root=#\/, drive=""): 加 "/" stub
-    ;; ;   UNC / drive 路径: drive 字段已表达绝对性,parts 不加 stub
+    ;; ; 构造路径的 anchor 首元素字符串(对齐 pathlib.parts 的首元素)。
+    ;; ;   posix 绝对:        "/"
+    ;; ;   UNC share anchor:  "\\server\share\"
+    ;; ;   drive-absolute:    "C:\"
+    ;; ;   drive-relative:    "C:"
+    ;; ;   current-drive root:"\"
+    ;; ; 纯相对路径(无 drive 无 root)返回 #f。
+    (define (anchor-string type drive root)
+      (cond ((eq? type 'posix) (and root "/"))
+            ((unc-prefix? drive) (string-append drive "\\"))
+            ((not (string-null? drive)) (string-append drive ":" (if root "\\" "")))
+            (root "\\")
+            (else #f)
+      ) ;cond
+    ) ;define
+
+    ;; ; 获取 parts 向量(对齐 pathlib.PurePath.parts)。
+    ;; ; 绝对路径在 parts 前保留 anchor 首元素:
+    ;; ;   posix 绝对: "/"
+    ;; ;   UNC: "\\server\share\"   drive-absolute: "C:\"   current-drive root: "\"
+    ;; ; drive-relative(C:foo)首元素为 "C:";相对路径不加首元素。
     (define (path-parts p)
       (if (not (path? p))
         (type-error "path-parts: argument must be path")
@@ -285,10 +302,9 @@
               (drive (path-record-drive p))
               (type (path-record-type p))
              ) ;
-          (cond ((not root) (vector-copy parts))
-                ((and (eq? type 'posix) (string-null? drive)) (vector-append #("/") parts))
-                (else (vector-copy parts))
-          ) ;cond
+          (let ((anchor (anchor-string type drive root)))
+            (if anchor (vector-append (vector anchor) parts) (vector-copy parts))
+          ) ;let
         ) ;let
       ) ;if
     ) ;define
@@ -334,9 +350,18 @@
                 ((windows)
                  (let ((body (parts->string parts "\\")))
                    (cond
-                     ;; UNC: drive 字段已含 \\server\share anchor
+                     ;; UNC: drive 字段含 \\server[\share] anchor,root=#\\ 表示其后有根分隔符。
+                     ;; ; 完整 share anchor(\\server\share)只剩 anchor 时带尾斜杠(对齐 pathlib:
+                     ;; ; str(W('\\srv\sh'))=='\\srv\sh\');光秃 server(\\srv,drive 内无额外 \)不带尾斜杠
+                     ;; ; (对齐 pathlib: str(W('\\srv'))=='\\srv',root 为空)。
                      ((unc-prefix? drive)
-                      (if (string-null? body) drive (string-append drive "\\" body))
+                      (if (string-null? body)
+                        (if (string-index (substring drive 2 (string-length drive)) #\\)
+                          (string-append drive "\\")
+                          drive
+                        ) ;if
+                        (string-append drive "\\" body)
+                      ) ;if
                      ) ;
                      ;; drive-absolute 或 drive-relative: drive 是单个盘符如 "C"
                      ((not (string-null? drive))
@@ -378,9 +403,9 @@
 
     (define path=? path-equals?)
 
-    ;; ; 判断路径是否为绝对路径。
-    ;; ; Windows: 同时有 drive 和 root（C:\foo 或 \\srv\sh\foo）才算绝对;
-    ;; ;          C:foo（drive-relative, root=#f）不算绝对。
+    ;; ; 判断路径是否为绝对路径(对齐 pathlib.PurePath.is_absolute)。
+    ;; ; Windows: drive 非空且 root 非空才算绝对(C:\foo、\\srv\sh\foo);
+    ;; ;          C:foo(drive-relative, root=#f)、\foo(无 drive)都不是绝对。
     ;; ; POSIX:  root=#\/ 即为绝对。
     ;; ; 传入字符串时,先转成 path 再判断,保证语义与 path 版本一致。
     (define (path-absolute? p)
@@ -390,7 +415,7 @@
               (root (path-record-root p))
              ) ;
           (case type
-           ((windows) (if root #t #f))
+           ((windows) (and root (not (string-null? drive))))
            ((posix) (and root #t))
            (else #f)
           ) ;case
@@ -404,17 +429,16 @@
       (not (path-absolute? p))
     ) ;define
 
-    ;; ; 获取路径的末段(文件名)
+    ;; ; 获取路径的末段(文件名,对齐 pathlib.PurePath.name)。
+    ;; ; 直接从 record parts 取末段,跨平台一致(不依赖 path->string 与平台 sep)。
+    ;; ; "."/空 parts 表示当前目录,文件名留空。
     (define (path-name p)
-      (let ((s (path->string p)))
-        ;; 空串与 "." 都表示当前目录,文件名留空。
-        (if (or (string-null? s) (string=? s "."))
-          ""
-          (let* ((sep (os-sep)) (idx (string-index-right s sep)))
-            (if idx (substring s (+ idx 1) (string-length s)) s)
-          ) ;let*
-        ) ;if
-      ) ;let
+      (let* ((pp (path p)) (parts (path-record-parts pp)) (n (vector-length parts)))
+        (cond ((= n 0) "")
+              ((and (= n 1) (string=? (vector-ref parts 0) ".")) "")
+              (else (vector-ref parts (- n 1)))
+        ) ;cond
+      ) ;let*
     ) ;define
 
     ;; ; 解析末段的点分隔结构,返回 (values stem-list suffix-list)。
@@ -501,17 +525,16 @@
       ) ;if
     ) ;define
 
-    ;; ; 替换末段的 stem,保留原所有后缀(对齐 pathlib.with_stem)。
+    ;; ; 替换末段的 stem,保留原最后一个后缀(对齐 pathlib.with_stem)。
+    ;; ; pathlib: PurePath('a.tar.gz').with_stem('new') => 'new.gz'(只留最后 suffix)。
     (define (path-with-stem p new-stem)
       (if (not (string? new-stem))
         (type-error "path-with-stem: new-stem must be string")
-        (let ((suffixes (path-suffixes p)))
+        (let ((suffix (path-suffix p)))
           ;; 无后缀(含隐藏文件):替换整段,等价于 with-name
-          (if (= (vector-length suffixes) 0)
+          (if (string-null? suffix)
             (replace-last-segment p new-stem)
-            (replace-last-segment p
-              (apply string-append (cons new-stem (vector->list suffixes)))
-            ) ;replace-last-segment
+            (replace-last-segment p (string-append new-stem suffix))
           ) ;if
         ) ;let
       ) ;if
@@ -598,28 +621,50 @@
     ) ;define
 
     ;; ; 拼接多个路径段(对齐 pathlib.joinpath)。
-    ;; ; 遇到绝对路径参数(root 或 drive+root)时,丢弃已有累加结果,从该参数重置
-    ;; ; (pathlib: PurePath("/a").joinpath("/b") => "/b")。
-    ;; ; 相对参数则追加到当前 acc,并避免出现双斜杠。
+    ;; ; 用 path record 作累加器,正确处理 Windows 的 drive 继承与 drive-relative 重置:
+    ;; ;   - 完整绝对段(posix root, 或 windows drive+root/UNC):完全替换 acc。
+    ;; ;   - Windows drive-relative 段(drive 非空、无 root):drive 与 acc 不同→替换 acc;
+    ;; ;     相同→追加其 parts 到 acc(pathlib: C:\base.joinpath('C:rel') => C:\base\rel)。
+    ;; ;   - Windows current-drive root 段(无 drive、有 root):继承 acc 的 drive,重置主体段
+    ;; ;     (pathlib: C:\base.joinpath('\b') => C:\b)。
+    ;; ;   - 纯相对段(无 drive 无 root):追加其 parts 到 acc。
+    ;; ; POSIX 上 drive 恒空,退化为"绝对段替换 / 相对段追加"。
     (define (path-join base . segments)
-      (let ((sep (string (os-sep))))
-        (define (join-one acc seg-str)
-          (if (or (string-null? acc) (string-ends? acc sep))
-            (string-append acc seg-str)
-            (string-append acc sep seg-str)
-          ) ;if
+      (let ((base-rec (path base)))
+        (define (append-parts acc seg)
+          (let ((acc-parts (path-record-parts acc)) (seg-parts (path-record-parts seg)))
+            (make-path-record (vector-append acc-parts seg-parts)
+              (path-record-type acc)
+              (path-record-drive acc)
+              (path-record-root acc)
+            ) ;make-path-record
+          ) ;let
+        ) ;define
+        (define (join-one acc seg)
+          (let ((seg-type (path-record-type seg))
+                (seg-drive (path-record-drive seg))
+                (seg-root (path-record-root seg))
+                (acc-drive (path-record-drive acc))
+               ) ;
+            (cond
+              ;; 完整绝对段:替换 acc
+              ((path-absolute? seg) seg)
+              ;; Windows drive-relative 段(有 drive 无 root)
+              ((and (eq? seg-type 'windows) (not (string-null? seg-drive)) (not seg-root))
+               (if (string=? seg-drive acc-drive) (append-parts acc seg) seg)
+              ) ;
+              ;; Windows current-drive root 段(无 drive 有 root):继承 acc drive,重置主体
+              ((and (eq? seg-type 'windows) (string-null? seg-drive) seg-root)
+               (make-path-record (path-record-parts seg) 'windows acc-drive seg-root)
+              ) ;
+              ;; 纯相对段:追加 parts
+              (else (append-parts acc seg))
+            ) ;cond
+          ) ;let
         ) ;define
         (let loop
-          ((acc (path->string base)) (rest segments))
-          (if (null? rest)
-            acc
-            (let* ((seg-path (path (car rest))) (seg-str (path->string seg-path)))
-              (if (path-absolute? seg-path)
-                (loop seg-str (cdr rest))
-                (loop (join-one acc seg-str) (cdr rest))
-              ) ;if
-            ) ;let*
-          ) ;if
+          ((acc base-rec) (rest segments))
+          (if (null? rest) acc (loop (join-one acc (path (car rest))) (cdr rest)))
         ) ;let
       ) ;let
     ) ;define
@@ -669,7 +714,9 @@
     ) ;define
 
     ;; ; 获取所有祖先路径向量(对齐 pathlib .parents),从最近父路径到最远。
-    ;; ; 绝对路径终止于根/anchor;相对路径不补 "."(pathlib 对 'a' 的 parents 为空)。
+    ;; ; 获取所有祖先路径向量(对齐 pathlib .parents),从最近父路径到最远。
+    ;; ; 绝对路径终止于根/anchor(末元素是根,如 "/")。
+    ;; ; 相对路径终止于当前目录 ".":'a/b/c' → (a/b a .),'a' → (.),'.'/'' → ()。
     (define (path-parents p)
       (let ((start (path p)))
         (let loop
@@ -679,10 +726,11 @@
                  (cur-str (path->string cur))
                 ) ;
             (cond
-              ;; 相对路径回溯到当前目录:停止,不纳入 "."
-              ((string=? par-str ".") (list->vector (reverse acc)))
-              ;; parent 等于自身(cur 已是根/anchor):停止(cur 已在上一轮纳入,或 cur 是 start)
+              ;; parent 等于自身(cur 已是根/anchor,或 cur 自身是 "."):停止,不纳入。
+              ;; 覆盖 'a'(parent=.)→ 但 cur≠.,故不命中此条;覆盖 '.'(parent=.,cur=.)→ 命中,返回 ()。
               ((string=? par-str cur-str) (list->vector (reverse acc)))
+              ;; 相对路径回溯到当前目录且 cur 自身不是 ".":纳入 "." 后停止。
+              ((string=? par-str ".") (list->vector (reverse (cons (path ".") acc))))
               (else (loop par (cons par acc)))
             ) ;cond
           ) ;let*
@@ -766,30 +814,45 @@
       ) ;if
     ) ;define
 
-    ;; ; path-from-parts: 从 parts vector 构造路径。
-    ;; ; 识别首段:
-    ;; ;   "C:" / "c:"  → drive-absolute（windows）, root=#\\
-    ;; ;   "/"          → posix 绝对, root=#\/
-    ;; ;   "\\"         → windows 当前驱动器根, root=#\\
+    ;; ; path-from-parts: 从 parts vector 构造路径(与 path-parts 互为逆运算)。
+    ;; ; 识别首段 anchor(对齐 pathlib.parts 首元素形式):
+    ;; ;   "C:\"   → drive-absolute(windows), root=#\\
+    ;; ;   "C:"    → drive-relative(windows),  root=#f
+    ;; ;   "\\server\share\" → UNC share anchor, drive="\\server\share", root=#\\
+    ;; ;   "\\"    → windows 当前驱动器根, root=#\\
+    ;; ;   "/"     → posix 绝对, root=#\/
     ;; ; 其他视为相对路径的纯 parts。
+    (define (clean-tail parts)
+      (vector-filter (lambda (part)
+                       (not (or (string-null? part) (string=? part "/") (string=? part "\\")))
+                     ) ;lambda
+        (vector-drop parts 1)
+      ) ;vector-filter
+    ) ;define
     (define (path-from-parts parts)
       (if (not (vector? parts))
         (type-error "path-from-parts: argument must be vector")
         (if (= (vector-length parts) 0)
           (make-path-record #(".") 'posix "" #f)
           (let ((head (vector-ref parts 0)))
-            (cond ((and (string? head) (windows-path-with-drive? head))
-                   (let ((drive (extract-drive head)))
-                     ;; 跳过首段,滤掉空段与分隔符 stub(复用 drop-dot-parts 同款规则,用 vector-filter)
-                     (let ((clean-parts (vector-filter (lambda (part)
-                                                         (not (or (string-null? part) (string=? part "/") (string=? part "\\")))
-                                                       ) ;lambda
-                                          (vector-drop parts 1)
-                                        ) ;vector-filter
-                           ) ;clean-parts
-                          ) ;
-                       ;; 调用方传 "C:" 默认视为 drive-absolute（root=#\\），符合 path-of-drive 文档
-                       (make-path-record clean-parts 'windows drive #\\)
+            (cond ((and (string? head) (unc-prefix? head))
+                   ;; UNC share anchor: \\server\share\[...] → drive="\\server\share", root=#\\
+                   (let* ((hend (string-length head))
+                          (trimmed (if (char=? (string-ref head (- hend 1)) #\\)
+                                     (substring head 0 (- hend 1))
+                                     head
+                                   ) ;if
+                          ) ;trimmed
+                         ) ;
+                     (make-path-record (clean-tail parts) 'windows trimmed #\\)
+                   ) ;let*
+                  ) ;
+
+                  ((and (string? head) (windows-path-with-drive? head))
+                   (let ((drive (extract-drive head)) (hend (string-length head)))
+                     ;; 首段含尾反斜杠(C:\) → drive-absolute(root=#\\);仅 C: → drive-relative(root=#f)
+                     (let ((root (if (and (> hend 2) (char=? (string-ref head 2) #\\)) #\\ #f)))
+                       (make-path-record (clean-tail parts) 'windows drive root)
                      ) ;let
                    ) ;let
                   ) ;
@@ -982,9 +1045,33 @@
       ) ;let
     ) ;define
 
-    ;; ; glob 模式匹配路径末段(对齐 pathlib.PurePath.match 的末段语义)。
+    ;; ; glob 模式匹配路径尾部(对齐 pathlib.PurePath.match)。
+    ;; ; 模式可含分隔符:从右向左逐段用 glob-match? 匹配 path 的末尾若干段。
+    ;; ;   a/b/c.match('c')   => True(末段)
+    ;; ;   a/b/c.match('b/c') => True(末两段)
+    ;; ;   a/b/c.match('b')   => False(末段是 c)
+    ;; ; 模式以分隔符开头(绝对模式,如 /a/b/c)时要求段数完全匹配。
     (define (path-match p pattern)
-      (glob-match? pattern (path-name p))
+      (let* ((pp (path p))
+             (type (path-record-type pp))
+             (sep (if (eq? type 'windows) #\\ #\/))
+             (segs (vector->list (path-record-parts pp)))
+             (pat-raw (string-split pattern sep))
+             ;; 绝对模式:pattern 以 sep 开头会产生首段空串
+             (absolute-pattern? (and (>= (string-length pattern) 1) (char=? (string-ref pattern 0) sep))
+             ) ;absolute-pattern?
+             (pat-segs (if absolute-pattern? (cdr pat-raw) pat-raw))
+            ) ;
+        ;; 逐段从右匹配 pat-segs 与 segs 的尾部;绝对模式要求段数完全匹配
+        (let loop
+          ((ps (reverse pat-segs)) (ss (reverse segs)))
+          (cond ((null? ps) (or (not absolute-pattern?) (null? ss)))
+                ((null? ss) #f)
+                ((glob-match? (car ps) (car ss)) (loop (cdr ps) (cdr ss)))
+                (else #f)
+          ) ;cond
+        ) ;let
+      ) ;let*
     ) ;define
 
     ;; ; 规范化绝对路径:消除 . 段、折叠 .. 段(对齐 pathlib.Path.resolve 的纯规范化部分)。

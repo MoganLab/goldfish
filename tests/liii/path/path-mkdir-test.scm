@@ -26,12 +26,12 @@
     (when (path-dir? d)
       (for-each (lambda (e)
                   (let ((full (path-join d e)))
-                    (if (path-dir? full) (rmdir-rec full) (remove full))
+                    (if (path-dir? full) (rmdir-rec full) (remove (path->string full)))
                   ) ;let
                 ) ;lambda
         (vector->list (path-list d))
       ) ;for-each
-      (rmdir d)
+      (rmdir (path->string d))
     ) ;when
   ) ;define
 
@@ -48,6 +48,8 @@
   (let ((deep (path-join base "a" "b" "c")))
     (path-mkdir deep parents: #t)
     (check-true (path-dir? deep))
+    ;; parents:#t 但叶子已存在且 exist-ok:#f(默认)时报错(对齐 pathlib)
+    (check-catch 'file-exists-error (path-mkdir deep parents: #t))
   ) ;let
 
   ;; 4. parents=#f 缺中间目录时报错

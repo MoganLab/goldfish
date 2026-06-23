@@ -29,6 +29,16 @@
   (check-false (path-match (path "a/b/c") "b"))
   ;; 字符集
   (check-true (path-match (path "foo.txt") "*.[ct]xt"))
+  ;; 含分隔符模式:从右匹配尾部若干段(对齐 pathlib.match)
+  (check-true (path-match (path "a/b/c") "b/c"))
+  (check-true (path-match (path "a/b/c") "a/b/c"))
+  (check-true (path-match (path "a/b/c") "*/c"))
+  (check-true (path-match (path "a/b/foo.txt") "b/*.txt"))
+  (check-false (path-match (path "a/b/foo.txt") "a/*.txt"))
+  ;; 绝对模式(以 / 开头):要求段数完全匹配
+  (check-true (path-match (path "/a/b/c") "/a/b/c"))
+  (check-true (path-match (path "/a/b/c") "a/b/c"))
+  (check-false (path-match (path "/x/a/b/c") "/a/b/c"))
 ) ;when
 
 (check-report)

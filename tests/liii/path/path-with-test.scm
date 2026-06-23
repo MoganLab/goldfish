@@ -34,16 +34,20 @@
     =>
     ".bashrc.bak"
   ) ;check
+  ;; with-suffix 不以 "." 开头时报 value-error(对齐 pathlib ValueError)
+  (check-catch 'value-error (path-with-suffix (path "a.txt") "md"))
+  ;; with-suffix 去多后缀只去最后一个:a.tar.gz + "" => a.tar(对齐 pathlib)
+  (check (path->string (path-with-suffix (path "a.tar.gz") "")) => "a.tar")
 
   ;; with-name
   (check (path->string (path-with-name (path "/a/b.txt") "c.md")) => "/a/c.md")
   (check (path->string (path-with-name (path "x.txt") "y")) => "y")
 
-  ;; with-stem(保留后缀)
+  ;; with-stem(只保留最后一个后缀,对齐 pathlib.with_stem)
   (check (path->string (path-with-stem (path "a.txt") "b")) => "b.txt")
   (check (path->string (path-with-stem (path "/tmp/a.tar.gz") "new"))
     =>
-    "/tmp/new.tar.gz"
+    "/tmp/new.gz"
   ) ;check
 ) ;when
 
@@ -73,10 +77,10 @@
     =>
     "C:\\a\\c.md"
   ) ;check
-  ;; with-stem(保留后缀)
+  ;; with-stem(只保留最后一个后缀,对齐 pathlib.with_stem)
   (check (path->string (path-with-stem (path "C:\\tmp\\a.tar.gz") "new"))
     =>
-    "C:\\tmp\\new.tar.gz"
+    "C:\\tmp\\new.gz"
   ) ;check
   ;; UNC 路径改后缀
   (check (path->string (path-with-suffix (path "\\\\srv\\sh\\a.txt") ".md"))

@@ -31,6 +31,8 @@
 (check (path-suffixes (path "a.b.c")) => #(".b" ".c"))
 ;; 带目录的多后缀
 (check (path-suffixes (path "/tmp/x.tar.gz")) => #(".tar" ".gz"))
+;; 连续点 a..b → (. .b)(对齐 pathlib: ['.', '.b'])
+(check (path-suffixes (path "a..b")) => #("." ".b"))
 
 (when (os-windows?)
   (check (path-suffixes (path "C:\\Users\\foo\\bar.tar.gz")) => #(".tar" ".gz"))

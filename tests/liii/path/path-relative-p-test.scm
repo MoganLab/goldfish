@@ -28,6 +28,13 @@
   (check-false (path-relative? (path "/tmp/demo.txt")))
 ) ;when
 
+(when (os-windows?)
+  ;; C:foo(drive-relative)、\foo(无 drive root)都是相对(对齐 pathlib)
+  (check-true (path-relative? (path "C:foo")))
+  (check-true (path-relative? (path "\\foo")))
+  (check-false (path-relative? (path "C:\\foo")))
+) ;when
+
 (check-false (path-relative? (path-home)))
 (check-false (path-relative? (path-temp-dir)))
 
