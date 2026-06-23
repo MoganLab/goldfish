@@ -41,4 +41,14 @@
   (check-false (path-match (path "/x/a/b/c") "/a/b/c"))
 ) ;when
 
+;; Windows: match 大小写不敏感(对齐 pathlib PureWindowsPath.match)
+(when (os-windows?)
+  (check-true (path-match (path "Foo.TXT") "*.txt"))
+  (check-true (path-match (path "C:\\a\\b\\foo.txt") "*.txt"))
+  (check-true (path-match (path "FOO.txt") "foo.TXT"))
+  (check-true (path-match (path "foo.TXt") "FOO.txt"))
+  ;; 通配 + 大小写不敏感
+  (check-true (path-match (path "Readme.MD") "*.md"))
+) ;when
+
 (check-report)

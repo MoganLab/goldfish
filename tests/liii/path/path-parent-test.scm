@@ -36,7 +36,7 @@
 
   (when (not (os-windows?))
     ;; 根的 parent 是根本身(pathlib 语义)
-    (check (path->string (path-parent (path-root))) => "/")
+    (check (path->string (path-parent (path "/"))) => "/")
     ;; 尾斜杠先归一化:/tmp/ 的 parent 是 /
     (check (path->string (path-parent (path "/tmp/"))) => "/")
     ;; 绝对路径去末段,不含尾斜杠

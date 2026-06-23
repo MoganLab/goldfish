@@ -21,7 +21,12 @@
 
 (check (path->string (path)) => ".")
 (check (path->string (path "")) => ".")
-(check (path->string (path-root)) => "/")
+(when (not (os-windows?))
+  (check (path->string (path "/")) => "/")
+) ;when
+(when (os-windows?)
+  (check (path->string (path "/")) => "\\")
+) ;when
 (check (path->string (path-of-drive #\C)) => "C:\\")
 
 (when (not (os-windows?))

@@ -54,7 +54,9 @@
 
   ;; 空目录 list 返回空向量
   (let ((empty-dir (path-join (path-temp-dir) "path-list-empty-dir")))
-    (when (path-exists? empty-dir) (rmdir (path->string empty-dir)))
+    (when (path-exists? empty-dir)
+      (rmdir (path->string empty-dir))
+    ) ;when
     (mkdir (path->string empty-dir))
     (check (vector-length (path-list empty-dir)) => 0)
     (rmdir (path->string empty-dir))

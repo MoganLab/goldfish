@@ -24,7 +24,7 @@
 ;; file-not-found-error 当路径不存在时。
 
 ;; 系统路径大小测试
-(check-true (> (path-getsize (path-root)) 0))
+(check-true (> (path-getsize (path "/")) 0))
 
 (when (not (os-windows?))
   (check-true (> (path-getsize "/etc/hosts") 0))

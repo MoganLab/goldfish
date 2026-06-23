@@ -30,8 +30,8 @@
 (check-true (path-absolute? (path-of-drive #\C)))
 
 (when (not (os-windows?))
-  (check-true (path-absolute? (path-root)))
-  (check-true (path-absolute? (path-join (path-root) "tmp")))
+  (check-true (path-absolute? (path "/")))
+  (check-true (path-absolute? (path-join (path "/") "tmp")))
   (check-true (path-absolute? (path "/tmp/demo.txt")))
 ) ;when
 

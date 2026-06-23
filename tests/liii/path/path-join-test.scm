@@ -37,11 +37,11 @@
   ) ;check
 
   (when (not (os-windows?))
-    (check (path->string (path-join (path-root) "tmp" "demo.txt"))
+    (check (path->string (path-join (path "/") "tmp" "demo.txt"))
       =>
       "/tmp/demo.txt"
     ) ;check
-    (check-true (path-equals? (path-join (path-root) (path "tmp/demo.txt"))
+    (check-true (path-equals? (path-join (path "/") (path "tmp/demo.txt"))
                   (path "/tmp/demo.txt")
                 ) ;path-equals?
     ) ;check-true
@@ -82,10 +82,7 @@
       "D:rel\\x.txt"
     ) ;check
     ;; 同 drive 的 drive-relative 段合并(对齐 pathlib: C:\base.joinpath('C:rel') => C:\base\rel)
-    (check (path->string (path-join (path "C:\\base") "C:rel"))
-      =>
-      "C:\\base\\rel"
-    ) ;check
+    (check (path->string (path-join (path "C:\\base") "C:rel")) => "C:\\base\\rel")
     ;; UNC base + 相对段
     (check (path->string (path-join (path "\\\\srv\\sh") "a" "b.txt"))
       =>
