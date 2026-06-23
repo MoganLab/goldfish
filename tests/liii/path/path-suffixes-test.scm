@@ -33,8 +33,8 @@
 (check (path-suffixes (path "/tmp/x.tar.gz")) => #(".tar" ".gz"))
 ;; 连续点 a..b → (. .b)(对齐 pathlib: ['.', '.b'])
 (check (path-suffixes (path "a..b")) => #("." ".b"))
-;; 末尾点 foo. → ()(对齐 pathlib: 末尾点不构成后缀)
-(check (path-suffixes (path "foo.")) => #())
+;; 末尾点 foo. → #(".")(对齐 Python 3.14+ pathlib: PurePath('foo.').suffixes == ['.'])
+(check (path-suffixes (path "foo.")) => #("."))
 ;; 三点 a...b → (. . .b)(中间空段算,末段非空)
 (check (path-suffixes (path "a...b")) => #("." "." ".b"))
 

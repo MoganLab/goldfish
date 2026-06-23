@@ -35,7 +35,7 @@
   =>
   "test-file.name-with-dots"
 ) ;check
-;; 末尾点文件 stem 含末尾点(对齐 pathlib: PurePath('foo.').stem == 'foo.')
-(check (path-stem (path "foo.")) => "foo.")
+;; 末尾点文件 stem 去掉末尾点(对齐 Python 3.14+ pathlib: PurePath('foo.').stem == 'foo')
+(check (path-stem (path "foo.")) => "foo")
 
 (check-report)

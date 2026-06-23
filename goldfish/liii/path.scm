@@ -249,16 +249,15 @@
     ) ;define
 
     ;; ; 解析末段的点分隔结构,返回 (values stem-list suffix-list)。
-    ;; ; 隐藏文件(.bashrc)、无点、末尾点(foo.)、"."/".." 整体作 stem 无后缀。
+    ;; ; 隐藏文件(.bashrc)、无点、"."/".." 整体作 stem 无后缀。
+    ;; ; 末尾点(foo.)当作空后缀:stem="foo", suffix=".", 对齐 Python 3.14+ pathlib。
     (define (split-name-dots name)
       (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
             (else (let ((splits (string-split name #\.)))
                     (if (or (<= (length splits) 1)
                           (string=? (car splits) "")
-                          (string=? (car (reverse splits)) "")
                         ) ;or
                       (values (list name) '())
-                      ;; splits 不含前导/后导空:stem 段 = 除末段外, suffix = 末段
                       (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
                         (values stem-segs (list (string-append "." suffix-seg)))
                       ) ;let*
@@ -627,14 +626,14 @@
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.suffixes
-    ;; ; 差异:基于 path-name 末段,跨平台一致。隐藏文件/无点/末尾点/"."/".." 均返回 #()。
+    ;; ; 差异:基于 path-name 末段,跨平台一致。隐藏文件/无点/"."/".." 返回 #()。
+    ;; ; 末尾点(foo.)返回 #("."),对齐 Python 3.14+ pathlib。
     (define (path-suffixes p)
       (let ((name (path-name p)))
         (cond ((or (string=? name ".") (string=? name "..")) #())
               (else (let ((splits (string-split name #\.)))
                       (if (or (<= (length splits) 1)
                             (string=? (car splits) "")
-                            (string=? (car (reverse splits)) "")
                           ) ;or
                         #()
                         (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
