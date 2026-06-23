@@ -35,5 +35,7 @@
   =>
   ".txt"
 ) ;check
+;; 末尾点文件无后缀(对齐 pathlib: PurePath('foo.').suffix == '')
+(check (path-suffix (path "foo.")) => "")
 
 (check-report)

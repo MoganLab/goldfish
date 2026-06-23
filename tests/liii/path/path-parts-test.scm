@@ -19,7 +19,7 @@
 ;; vector
 ;; 返回包含路径各部分的字符串向量。
 
-(check (path-parts (path)) => #("."))
+(check (path-parts (path)) => #())
 (check (path-parts (path-root)) => #("/"))
 ;; path-of-drive 构造 windows record,parts 含 anchor 首元素(对齐 PureWindowsPath('C:\\').parts)
 (check (path-parts (path-of-drive #\c)) => #("C:\\"))

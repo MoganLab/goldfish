@@ -303,7 +303,10 @@
               (type (path-record-type p))
              ) ;
           (let ((anchor (anchor-string type drive root)))
-            (if anchor (vector-append (vector anchor) parts) (vector-copy parts))
+            (cond (anchor (vector-append (vector anchor) parts))
+                  ((and (= (vector-length parts) 1) (string=? (vector-ref parts 0) ".")) #())
+                  (else (vector-copy parts))
+            ) ;cond
           ) ;let
         ) ;let
       ) ;if
@@ -448,13 +451,16 @@
     ;; ;   "." / ".."        → stem=name, 无后缀
     ;; ;   首段为空(.bashrc) → 整体作 stem, 无后缀(隐藏文件不切)
     ;; ;   单段(name 无点)   → stem=name, 无后缀
-    ;; ;   其他(a.b.c)       → stem=a.b, suffixes=(.c)…(此处按末段切)
+    ;; ;   末段为空(foo.)    → 整体作 stem, 无后缀(末尾点不构成后缀)
+    ;; ;   其他(a.b.c)       → stem=a.b, suffix=.c
     (define (split-name-dots name)
       (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
             (else (let ((splits (string-split name #\.)))
-                    (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                    (if (or (<= (length splits) 1)
+                            (string=? (car splits) "")
+                            (string=? (car (reverse splits)) ""))
                       (values (list name) '())
-                      ;; splits 不含前导空:stem 段 = 除末段外, suffix = 末段
+                      ;; splits 不含前导/后导空:stem 段 = 除末段外, suffix = 末段
                       (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
                         (values stem-segs (list (string-append "." suffix-seg)))
                       ) ;let*
@@ -480,12 +486,15 @@
 
     ;; ; 获取末段的所有后缀向量(对齐 pathlib .suffixes)。
     ;; ; 多个点分段时,从首个点起的每段都算一个后缀(含前导 ".")。
-    ;; ; 隐藏文件(.bashrc)、无点文件、"."/".." 均返回 #()。
+    ;; ; 隐藏文件(.bashrc)、无点文件、末尾点文件(foo.)、"."/".." 均返回 #()。
+    ;; ; 末尾空段(foo.)不算后缀;中间空段(a..b 的中间)算(".").
     (define (path-suffixes p)
       (let ((name (path-name p)))
         (cond ((or (string=? name ".") (string=? name "..")) #())
               (else (let ((splits (string-split name #\.)))
-                      (if (or (<= (length splits) 1) (string=? (car splits) ""))
+                      (if (or (<= (length splits) 1)
+                              (string=? (car splits) "")
+                              (string=? (car (reverse splits)) ""))
                         #()
                         (list->vector (map (lambda (s) (string-append "." s)) (cdr splits)))
                       ) ;if
@@ -632,7 +641,10 @@
     (define (path-join base . segments)
       (let ((base-rec (path base)))
         (define (append-parts acc seg)
-          (let ((acc-parts (path-record-parts acc)) (seg-parts (path-record-parts seg)))
+          (define (drop-dots v) (vector-filter (lambda (x) (not (string=? x "."))) v))
+          (let ((acc-parts (drop-dots (path-record-parts acc)))
+                (seg-parts (drop-dots (path-record-parts seg)))
+               ) ;
             (make-path-record (vector-append acc-parts seg-parts)
               (path-record-type acc)
               (path-record-drive acc)
@@ -664,7 +676,13 @@
         ) ;define
         (let loop
           ((acc base-rec) (rest segments))
-          (if (null? rest) acc (loop (join-one acc (path (car rest))) (cdr rest)))
+          (if (null? rest)
+            acc
+            (if (and (string? (car rest)) (string-null? (car rest)))
+              (loop acc (cdr rest))
+              (loop (join-one acc (path (car rest))) (cdr rest))
+            ) ;if
+          ) ;if
         ) ;let
       ) ;let
     ) ;define

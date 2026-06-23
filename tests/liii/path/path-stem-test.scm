@@ -35,5 +35,7 @@
   =>
   "test-file.name-with-dots"
 ) ;check
+;; 末尾点文件 stem 含末尾点(对齐 pathlib: PurePath('foo.').stem == 'foo.')
+(check (path-stem (path "foo.")) => "foo.")
 
 (check-report)

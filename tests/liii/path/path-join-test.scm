@@ -56,6 +56,11 @@
     (check (path->string (path-join (path "/a") "b" "/c" "d")) => "/c/d")
     ;; 无双斜杠:/a/ join b => /a/b(不带尾斜杠重复)
     (check (path->string (path-join (path "/a/") "b")) => "/a/b")
+    ;; 空串段是 no-op(对齐 pathlib: P('/a').joinpath('') => '/a')
+    (check (path->string (path-join (path "/a") "")) => "/a")
+    (check (path->string (path-join (path "a") "")) => "a")
+    ;; 空 base 不引入 ".":P('').joinpath('b') => 'b'
+    (check (path->string (path-join (path "") "b")) => "b")
   ) ;when
 
   (when (os-windows?)
