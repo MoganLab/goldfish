@@ -681,7 +681,8 @@
             ((newline-node? node) #f)
             ((atom? node)
              (let ((text (format-inline node)))
-               (if (string-contains-newline? text) #f text))
+               (if (string-contains-newline? text) #f text)
+             ) ;let
             ) ;
             ((contains-comment? node) #f)
             ((must-inline? (env-tag-name node)) #t)
@@ -1114,15 +1115,8 @@
                  ) ;if
                ) ;let
               ) ;
-              (first
-                (display (car rest) out)
-                (loop (cdr rest) #f)
-              ) ;
-              (else
-                (display "\n" out)
-                (display (car rest) out)
-                (loop (cdr rest) #f)
-              ) ;
+              (first (display (car rest) out) (loop (cdr rest) #f))
+              (else (display "\n" out) (display (car rest) out) (loop (cdr rest) #f))
         ) ;cond
       ) ;let
     ) ;let

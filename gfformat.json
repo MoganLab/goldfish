@@ -1,4 +1,0 @@
-{
-  "cpp-roots": ["src"],
-  "scm-dirs": ["goldfish", "tools"]
-}

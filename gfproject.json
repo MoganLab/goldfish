@@ -36,16 +36,8 @@
       "organization": "liii",
       "module": "goldfmt",
       "description": {
-        "en_US": "Format PATH (PATH can be a .scm file or directory)",
-        "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"
-      }
-    },
-    "format": {
-      "organization": "liii",
-      "module": "goldformat",
-      "description": {
-        "en_US": "Format all C++ (clang-format) and Scheme (gf fmt) files in the repo (scope from gfformat.json)",
-        "zh_CN": "统一格式化仓库内所有 C++（clang-format）与 Scheme（gf fmt）文件（范围由 gfformat.json 决定）"
+        "en_US": "Format code (single file/dir, or whole repo via gf_fmt.json; supports --check for CI)",
+        "zh_CN": "格式化代码（单文件/目录，或按 gf_fmt.json 仓库批量；支持 --check 供 CI）"
       }
     },
     "fix": {

@@ -1,6 +1,0 @@
-{
-  "exclude": [
-    {"path": "src/s7*", "reason": "s7 体系文件（src/s7.c、src/s7.h 及所有 s7_* 拆分/派生文件），沿用 s7 自身代码风格，clang-format 会破坏其脆弱的宏/排版，不纳入格式化"},
-    {"path": "tests", "reason": "测试目录，不纳入仓库级 format/检查；测试格式化由各测试自身负责"}
-  ]
-}
