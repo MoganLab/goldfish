@@ -37,14 +37,64 @@
   ) ;check
 
   (when (not (os-windows?))
-    (check (path->string (path-join (path-root) "tmp" "demo.txt"))
+    (check (path->string (path-join (path "/") "tmp" "demo.txt"))
       =>
       "/tmp/demo.txt"
     ) ;check
-    (check-true (path-equals? (path-join (path-root) (path "tmp/demo.txt"))
+    (check-true (path-equals? (path-join (path "/") (path "tmp/demo.txt"))
                   (path "/tmp/demo.txt")
                 ) ;path-equals?
     ) ;check-true
+
+    ;; 绝对参数重置(pathlib 语义):/a join /b => /b
+    (check (path->string (path-join (path "/a") "/b")) => "/b")
+    ;; 相对参数追加到绝对 base:/a join b => /a/b
+    (check (path->string (path-join (path "/a") "b")) => "/a/b")
+    ;; 相对 base 遇绝对参数重置:c join /d => /d
+    (check (path->string (path-join (path "c") "/d")) => "/d")
+    ;; 中间绝对参数重置后续: join(/a b /c d) => /c/d
+    (check (path->string (path-join (path "/a") "b" "/c" "d")) => "/c/d")
+    ;; 无双斜杠:/a/ join b => /a/b(不带尾斜杠重复)
+    (check (path->string (path-join (path "/a/") "b")) => "/a/b")
+    ;; 空串段是 no-op(对齐 pathlib: P('/a').joinpath('') => '/a')
+    (check (path->string (path-join (path "/a") "")) => "/a")
+    (check (path->string (path-join (path "a") "")) => "a")
+    ;; 空 base 不引入 ".":P('').joinpath('b') => 'b'
+    (check (path->string (path-join (path "") "b")) => "b")
+  ) ;when
+
+  (when (os-windows?)
+    ;; 相对 base + 相对段
+    (check (path->string (path-join (path "tmp") "a" "b.txt")) => "tmp\\a\\b.txt")
+    ;; drive-absolute base + 相对段
+    (check (path->string (path-join (path "C:\\Users") "foo" "bar.scm"))
+      =>
+      "C:\\Users\\foo\\bar.scm"
+    ) ;check
+    ;; drive 重置(pathlib 语义):C:\a join D:\b => D:\b
+    (check (path->string (path-join (path "C:\\a") "D:\\b")) => "D:\\b")
+    ;; current-drive root 段继承 base drive(对齐 pathlib: C:\a.joinpath('\b') => C:\b)
+    (check (path->string (path-join (path "C:\\a") "\\b")) => "C:\\b")
+    ;; drive-absolute base + drive-relative 段:不同 drive 触发重置(对齐 pathlib:
+    ;; C:\base.joinpath('D:rel','x.txt') => D:rel\x.txt)
+    (check (path->string (path-join (path "C:\\base") "D:rel" "x.txt"))
+      =>
+      "D:rel\\x.txt"
+    ) ;check
+    ;; 同 drive 的 drive-relative 段合并(对齐 pathlib: C:\base.joinpath('C:rel') => C:\base\rel)
+    (check (path->string (path-join (path "C:\\base") "C:rel")) => "C:\\base\\rel")
+    ;; UNC base + 相对段
+    (check (path->string (path-join (path "\\\\srv\\sh") "a" "b.txt"))
+      =>
+      "\\\\srv\\sh\\a\\b.txt"
+    ) ;check
+    ;; 正斜杠识别:Windows 上 / 和 \ 等价
+    (check (path->string (path-join (path "C:/Users") "foo/bar.scm"))
+      =>
+      "C:\\Users\\foo\\bar.scm"
+    ) ;check
+    ;; string base(path-join 接受 path 或 string)
+    (check (path->string (path-join "C:\\tmp" "x.txt")) => "C:\\tmp\\x.txt")
   ) ;when
 ) ;let
 

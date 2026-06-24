@@ -21,7 +21,12 @@
 
 (check (path->string (path)) => ".")
 (check (path->string (path "")) => ".")
-(check (path->string (path-root)) => "/")
+(when (not (os-windows?))
+  (check (path->string (path "/")) => "/")
+) ;when
+(when (os-windows?)
+  (check (path->string (path "/")) => "\\")
+) ;when
 (check (path->string (path-of-drive #\C)) => "C:\\")
 
 (when (not (os-windows?))
@@ -34,6 +39,12 @@
   (check (path->string (path "tmp/demo.txt")) => "tmp\\demo.txt")
   (check (path->string (path (path "tmp/demo.txt"))) => "tmp\\demo.txt")
   (check (path->string (copy (path "tmp/demo.txt"))) => "tmp\\demo.txt")
+  ;; drive-absolute 与 drive-relative 字符串区分
+  (check (path->string (path "C:\\foo")) => "C:\\foo")
+  (check (path->string (path "C:foo")) => "C:foo")
+  ;; UNC 路径 round-trip(对齐 pathlib: share anchor 带尾斜杠)
+  (check (path->string (path "\\\\srv\\share\\a\\b")) => "\\\\srv\\share\\a\\b")
+  (check (path->string (path "\\\\srv\\share")) => "\\\\srv\\share\\")
 ) ;when
 
 (check-report)

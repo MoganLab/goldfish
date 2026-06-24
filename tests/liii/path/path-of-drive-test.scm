@@ -27,8 +27,8 @@
 
 (check (path->string (path-of-drive #\C)) => "C:\\")
 (check (path-type (path-of-drive #\C)) => 'windows)
-(check (path-drive (path-root)) => "")
-(check (path-drive (path-of-drive #\C)) => "C")
+(check (path-drive (path "/")) => "")
+(check (path-drive (path-of-drive #\C)) => "C:")
 
 (check-catch 'type-error (path-of-drive 1))
 

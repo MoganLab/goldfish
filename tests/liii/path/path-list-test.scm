@@ -51,6 +51,21 @@
   (delete-file (path->string list-file-a))
   (delete-file (path->string list-file-b))
   (rmdir (path->string list-dir))
+
+  ;; 空目录 list 返回空向量
+  (let ((empty-dir (path-join (path-temp-dir) "path-list-empty-dir")))
+    (when (path-exists? empty-dir)
+      (rmdir (path->string empty-dir))
+    ) ;when
+    (mkdir (path->string empty-dir))
+    (check (vector-length (path-list empty-dir)) => 0)
+    (rmdir (path->string empty-dir))
+  ) ;let
+
+  ;; 不存在目录 list 报 file-not-found-error
+  (check-catch 'file-not-found-error
+    (path-list (path-join (path-temp-dir) "definitely-not-exist-xyz"))
+  ) ;check-catch
 ) ;let*
 
 (check-report)

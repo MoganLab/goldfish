@@ -41,24 +41,27 @@
 
     (define *node-rules* #f)
 
-    ;; 辅助函数：将路径转为各部分列表（去掉空字符串部分）
-    (define (path-parts-list p)
-      (let ((parts (path-parts (path p))))
-        (let loop
-          ((i 0) (result '()))
-          (if (>= i (vector-length parts))
-            (reverse result)
-            (let ((part (vector-ref parts i)))
-              (if (string-null? part) (loop (+ i 1) result) (loop (+ i 1) (cons part result)))
-            ) ;let
-          ) ;if
-        ) ;let
+    ;; 判断两个路径是否有共同祖先（排除根目录 '/'）。
+    ;; 取 path-parts,滤掉根锚点段(/、\、空串),逐段对齐比较共同前缀。
+    (define (anchor-or-empty? s)
+      (or (string-null? s) (string=? s "/") (string=? s "\\"))
+    ) ;define
+    (define (segments-list p)
+      (let loop
+        ((i 0) (parts (path-parts (path p))) (result '()))
+        (if (>= i (vector-length parts))
+          (reverse result)
+          (let ((s (vector-ref parts i)))
+            (if (anchor-or-empty? s)
+              (loop (+ i 1) parts result)
+              (loop (+ i 1) parts (cons s result))
+            ) ;if
+          ) ;let
+        ) ;if
       ) ;let
     ) ;define
-
-    ;; 判断两个路径是否有共同祖先（排除根目录 '/'）
     (define (path-has-common-ancestor? path1 path2)
-      (let ((parts1 (path-parts-list path1)) (parts2 (path-parts-list path2)))
+      (let ((parts1 (segments-list path1)) (parts2 (segments-list path2)))
         (let loop
           ((p1 parts1) (p2 parts2) (common 0))
           (cond ((or (null? p1) (null? p2)) (> common 0))

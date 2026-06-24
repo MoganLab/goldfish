@@ -35,9 +35,30 @@
 ) ;when
 
 (when (os-windows?)
-  (check (path->string (path-from-parts #("C:" "tmp" "demo.txt")))
+  ;; drive-absolute anchor 首段 "C:\"
+  (check (path->string (path-from-parts #("C:\\" "tmp" "demo.txt")))
     =>
     "C:\\tmp\\demo.txt"
+  ) ;check
+  ;; drive-relative anchor 首段 "C:"(对齐 PureWindowsPath(*('C:','tmp')) => C:tmp)
+  (check (path->string (path-from-parts #("C:" "tmp" "demo.txt")))
+    =>
+    "C:tmp\\demo.txt"
+  ) ;check
+  ;; UNC share anchor 首段
+  (check (path->string (path-from-parts #("\\\\srv\\sh\\" "a" "b")))
+    =>
+    "\\\\srv\\sh\\a\\b"
+  ) ;check
+  ;; "\\" head: 视为当前盘根路径
+  (check (path->string (path-from-parts #("\\" "tmp" "demo.txt")))
+    =>
+    "\\tmp\\demo.txt"
+  ) ;check
+  ;; round-trip:path-parts 输出可被 path-from-parts 重建
+  (check (path-parts (path-from-parts (path-parts (path "C:\\tmp\\demo.txt"))))
+    =>
+    #("C:\\" "tmp" "demo.txt")
   ) ;check
 ) ;when
 

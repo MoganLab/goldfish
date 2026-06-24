@@ -26,6 +26,11 @@
 ;; 如果源文件不存在，抛出 file-not-found-error。
 ;; 如果目标文件已存在，抛出 file-exists-error。
 ;;
+;; 注意(有意偏离 pathlib)
+;; ----
+;; pathlib.Path.rename 在目标已存在时为覆盖语义(POSIX rename(2) 覆盖、Windows 3.12+ 也覆盖)。
+;; goldfish 的 path-rename 选择更安全的不覆盖策略:目标已存在即报 file-exists-error,既不覆盖也不移动。
+;;
 ;; 相关函数
 ;; ----
 ;; gf doc liii/os "rename"
