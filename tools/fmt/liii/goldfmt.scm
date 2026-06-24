@@ -14,6 +14,12 @@
 ;; under the License.
 ;;
 
+;; gf fmt：多语言代码格式化工具。
+;; - 无路径参数：读 gf_fmt.json 仓库批量格式化所有语言（原 gf format 的能力）。
+;; - 无路径参数 + --check：非破坏性检查，未格式化则退出码 1（原 gf format --check）。
+;; - 有路径参数：按后缀（或 -e）选语言，格式化单文件或递归目录。
+;; 各语言实现见 (liii scheme-fmt) / (liii cpp-fmt)，配置见 (liii goldfmt-config)。
+
 (define (%goldfmt-common-dirname path-str)
   (let loop
     ((i (- (string-length path-str) 1)))
@@ -38,234 +44,52 @@
 (define-library (liii goldfmt)
   (import (liii base)
     (liii sys)
+    (liii os)
     (liii path)
     (liii string)
-    (liii json)
     (liii argparse)
-    (liii hashlib)
-    (liii goldtool-changed)
-    (srfi srfi-13)
-    (liii raw-string)
     (liii goldfmt-scan)
     (liii goldfmt-format)
+    (liii goldfmt-lang)
+    (liii goldfmt-config)
+    (liii scheme-fmt)
+    (liii cpp-fmt)
   ) ;import
   (export main format-datum format-datum+node format-node format-string)
   (begin
 
-    ;; ; 缓存工具函数
-    (define (fmt-cache-base-dir)
-      (path->string (path-join (path-home) ".cache" "goldfish" "fmt" (version)))
+    ;; ---- 参数解析 -------------------------------------------------------
+    (define (normalize-extension ext)
+      (if (and (> (string-length ext) 0) (char=? (string-ref ext 0) #\.))
+        ext
+        (string-append "." ext)
+      ) ;if
     ) ;define
 
-    (define (fmt-cache-path file-path)
-      (let* ((hash (sha256-by-file file-path))
-             (prefix (substring hash 0 2))
-             (rest (substring hash 2))
-             (base (fmt-cache-base-dir))
-            ) ;
-        (path->string (path-join base prefix rest))
-      ) ;let*
-    ) ;define
-
-    (define (fmt-cache-hit? file-path)
-      (let ((cache (fmt-cache-path file-path)))
-        (file-exists? cache)
+    ;; 把单个 -e token 转成后缀列表：若是语言名（cpp/scheme/...）展开为该语言后缀表，
+    ;; 否则按后缀处理（补点）。使 -e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx 全部。
+    (define (token->extensions token)
+      (let ((lang-exts (extensions-for-lang-name token)))
+        (if lang-exts lang-exts (list (normalize-extension token)))
       ) ;let
     ) ;define
 
-    (define (fmt-cache-touch file-path)
-      (let* ((cache (fmt-cache-path file-path))
-             (cache-dir (path->string (path-parent (path cache))))
-            ) ;
-        (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
-        ) ;unless
-        (path-touch (path cache))
-      ) ;let*
-    ) ;define
-
-    ;; ; 显示帮助文档
-    (define (display-help)
-      (display "Usage: gf fmt [options] [path]")
-      (newline)
-      (newline)
-      (display "Options:")
-      (newline)
-      (display "  -h, --help       显示此帮助文档")
-      (newline)
-      (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
-      ) ;display
-      (newline)
-      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）"
-      ) ;display
-      (newline)
-      (display "      --changed-since REV    仅格式化自 REV 以来变更的文件"
-      ) ;display
-      (newline)
-      (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
-      ) ;display
-      (newline)
-      (newline)
-      (display "Arguments:")
-      (newline)
-      (display "  path    要格式化的文件或目录路径（可选）")
-      (newline)
-      (newline)
-      (display "Examples:")
-      (newline)
-      (display "  gf fmt                       显示此帮助文档")
-      (newline)
-      (display "  gf fmt --help                显示此帮助文档")
-      (newline)
-      (display "  gf fmt file.scm              格式化单个文件")
-      (newline)
-      (display "  gf fmt --dry-run file.scm    预览格式化结果")
-      (newline)
-      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的文件"
-      ) ;display
-      (newline)
-      (display "  gf fmt --dry-run --changed-since=HEAD  预览变更文件的格式化结果"
-      ) ;display
-      (newline)
-      (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件"
-      ) ;display
-      (newline)
-      (display "  gf fmt -e sld /path/to/dir   递归格式化目录下所有 .sld 文件"
-      ) ;display
-      (newline)
-      (display "  gf fmt -e scm,sld /path/to/dir  递归格式化目录下所有 .scm 和 .sld 文件"
-      ) ;display
-      (newline)
-      (display "  gf fmt --exclude=prefix-kbd.scm /path/to/dir  递归格式化但跳过 prefix-kbd.scm"
-      ) ;display
-      (newline)
-    ) ;define
-
-    ;; ; 格式化单个文件（dry-run 模式，输出到终端）
-    (define (format-file-dry-run path-str)
-      (let* ((nodes (scan-file path-str)) (formatted (format-nodes nodes)))
-        (display formatted)
-      ) ;let*
-    ) ;define
-
-    ;; ; 格式化单个文件（覆盖原文件）
-    ;; ; 返回值: 'cached (缓存命中), #t (文件有变更), #f (无变更)
-    (define* (format-file path-str (use-cache? #t))
-      (if (and use-cache? (fmt-cache-hit? path-str))
-        'cached
-        (let* ((p (path path-str))
-               (original-content (path-read-text p))
-               (nodes (scan-file path-str))
-               (formatted (format-nodes nodes))
-              ) ;
-          (if (string=? original-content formatted)
-            (begin
-              (when use-cache?
-                (fmt-cache-touch path-str)
-              ) ;when
-              #f
-            ) ;begin
-            (begin
-              (path-write-text p formatted)
-              (when use-cache?
-                (fmt-cache-touch path-str)
-              ) ;when
-              #t
-            ) ;begin
-          ) ;if
-        ) ;let*
-      ) ;if
-    ) ;define*
-
-    ;; ; 递归格式化指定文件列表
-    ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
-    (define (format-file-list files dry-run excludes)
+    (define (parse-extensions raw)
       (let loop
-        ((remaining files) (total 0) (updated 0) (cached 0))
-        (if (null? remaining)
-          (values total updated cached)
-          (let ((file (car remaining)))
-            (if (file-excluded? file excludes)
-              (loop (cdr remaining) total updated cached)
-              (if dry-run
-                (begin
-                  (display (string-append "Formatting: " file))
-                  (newline)
-                  (format-file-dry-run file)
-                  (loop (cdr remaining) (+ total 1) updated cached)
-                ) ;begin
-                (let ((result (format-file file)))
-                  (cond ((eq? result 'cached) (loop (cdr remaining) (+ total 1) updated (+ cached 1)))
-                        (result (display (string-append "  Updated: " file))
-                          (newline)
-                          (loop (cdr remaining) (+ total 1) (+ updated 1) cached)
-                        ) ;result
-                        (else (display (string-append "Formatting: " file))
-                          (newline)
-                          (loop (cdr remaining) (+ total 1) updated cached)
-                        ) ;else
-                  ) ;cond
-                ) ;let
-              ) ;if
+        ((tokens (string-split raw ",")) (acc '()))
+        (if (null? tokens)
+          (let dedup
+            ((es (reverse acc)) (seen '()))
+            (if (null? es)
+              seen
+              (dedup (cdr es) (if (member (car es) seen) seen (cons (car es) seen)))
             ) ;if
           ) ;let
+          (loop (cdr tokens) (append (token->extensions (car tokens)) acc))
         ) ;if
       ) ;let
     ) ;define
 
-    (define (file-extension-match? filename extensions)
-      (let loop
-        ((exts extensions))
-        (if (null? exts)
-          #f
-          (if (string-suffix? (car exts) filename) #t (loop (cdr exts)))
-        ) ;if
-      ) ;let
-    ) ;define
-
-    ;; 把 Windows 反斜杠归一化为正斜杠，跨平台一致比较。
-    (define (normalize-sep path-str)
-      (list->string (let loop
-                      ((i (- (string-length path-str) 1)) (acc '()))
-                      (if (< i 0)
-                        acc
-                        (let ((ch (string-ref path-str i)))
-                          (loop (- i 1) (cons (if (char=? ch #\\) #\/ ch) acc))
-                        ) ;let
-                      ) ;if
-                    ) ;let
-      ) ;list->string
-    ) ;define
-
-    ;; entry 是否命中 excludes：归一化后按"分隔符边界 + 后缀"匹配。
-    ;; pattern 含 / 时按完整相对路径精确匹配（不会误伤同名文件）；
-    ;; pattern 不含 / 时退化为 basename 匹配（向后兼容）。
-    (define (file-excluded? entry-str excludes)
-      (let ((entry-norm (normalize-sep entry-str)))
-        (let loop
-          ((pats excludes))
-          (if (null? pats)
-            #f
-            (let* ((p (normalize-sep (car pats)))
-                   (plen (string-length p))
-                   (elen (string-length entry-norm))
-                  ) ;
-              (if (or (string=? entry-norm p)
-                    (and (>= elen (+ plen 1))
-                      (char=? (string-ref entry-norm (- elen plen 1)) #\/)
-                      (string-suffix? p entry-norm)
-                    ) ;and
-                  ) ;or
-                #t
-                (loop (cdr pats))
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    ;; 解析 --exclude 的逗号分隔值，丢弃空串。
     (define (parse-excludes raw)
       (if (or (not raw) (string=? raw ""))
         '()
@@ -279,151 +103,6 @@
           ) ;if
         ) ;let
       ) ;if
-    ) ;define
-
-    ;; 自动检测项目根（gfproject.json 所在目录）下的 gfexclude.json。
-    ;; 文件格式：JSON 对象，形如
-    ;;   {"exclude": [
-    ;;     {"path": "a/b.scm", "reason": "..."},
-    ;;     "c/d.scm"
-    ;;   ]}
-    ;; exclude 数组每项可以是字符串（纯路径）或对象（含 path 与可选 reason）。
-    ;; 存在且可解析则返回 pattern 列表；不存在或无项目根时返回 '()。
-    ;; Why: 让普通的 gf fmt / gf fix 也尊重项目级 exclude 配置，无需传参；
-    ;;      每条可带 reason 说明为何排除，便于维护。
-    ;; 畸形 JSON / 类型不符时打 warning 并返回 '()，避免整个 gf fmt 崩溃。
-    (define (exclude-entry->path entry)
-      (if (string? entry) entry (json-ref entry "path"))
-    ) ;define
-
-    ;; 纯解析：从已读入的 JSON 文本构造 exclude pattern 列表。
-    ;; 出错时抛异常（由调用方 catch）。
-    (define (parse-exclude-json text)
-      (let* ((obj (string->json text)) (arr (json-ref obj "exclude")))
-        (if (not (vector? arr))
-          '()
-          (let loop
-            ((i 0) (acc '()))
-            (if (>= i (vector-length arr))
-              (reverse acc)
-              (let ((p (exclude-entry->path (vector-ref arr i))))
-                (loop (+ i 1) (if (string? p) (cons p acc) acc))
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (read-project-excludes)
-      (let ((root (g_project-root)))
-        (if (or (not root) (not (string? root)) (string=? root ""))
-          '()
-          (let ((file (string-append root "/gfexclude.json")))
-            (if (not (file-exists? file))
-              '()
-              (catch #t
-                (lambda () (parse-exclude-json (path-read-text (path file))))
-                (lambda (type info)
-                  (let ((e (if (null? info) type (car info))))
-                    (display (string-append "warning: gfexclude.json 解析失败，已忽略 - "
-                               (if (string? e) e (object->string e))
-                             ) ;string-append
-                    ) ;display
-                    (newline)
-                    '()
-                  ) ;let
-                ) ;lambda
-              ) ;catch
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (format-changed-since since path-str dry-run extensions excludes)
-      (let ((scope (if (string=? path-str "") #f path-str)))
-        (cond ((and scope (not (or (path-file? (path scope)) (path-dir? (path scope)))))
-               (display (string-append "错误: 路径不存在 - " scope))
-               (newline)
-               (exit 1)
-              ) ;
-              (else (let ((files (if scope
-                                   (changed-scheme-files-since since scope extensions)
-                                   (changed-scheme-files-since since #f extensions)
-                                 ) ;if
-                          ) ;files
-                         ) ;
-                      (if (null? files)
-                        (begin
-                          (display (string-append "No changed Scheme files since " since))
-                          (newline)
-                          #t
-                        ) ;begin
-                        (call-with-values (lambda () (format-file-list files dry-run excludes))
-                          (lambda (total updated cached)
-                            (display (string-append "Total files formatted: "
-                                       (number->string total)
-                                       ", Files updated: "
-                                       (number->string updated)
-                                       ", Files cached: "
-                                       (number->string cached)
-                                     ) ;string-append
-                            ) ;display
-                            (newline)
-                            #t
-                          ) ;lambda
-                        ) ;call-with-values
-                      ) ;if
-                    ) ;let
-              ) ;else
-        ) ;cond
-      ) ;let
-    ) ;define
-
-    ;; ; 递归格式化目录
-    ;; ; 返回值: (values total updated cached) - 处理的文件总数、更新数、缓存命中数
-    (define (format-directory dir-path extensions excludes)
-      (let ((entries (path-list-path (path dir-path))))
-        (let loop
-          ((i 0) (total 0) (updated 0) (cached 0))
-          (if (>= i (vector-length entries))
-            (values total updated cached)
-            (let ((entry (vector-ref entries i)))
-              (cond ((path-file? entry)
-                     (let ((entry-str (path->string entry)))
-                       (if (and (file-extension-match? entry-str extensions)
-                             (not (file-excluded? entry-str excludes))
-                           ) ;and
-                         (let ((result (format-file entry-str)))
-                           (cond ((eq? result 'cached) (loop (+ i 1) (+ total 1) updated (+ cached 1)))
-                                 (result (display (string-append "  Updated: " entry-str))
-                                   (newline)
-                                   (loop (+ i 1) (+ total 1) (+ updated 1) cached)
-                                 ) ;result
-                                 (else (display (string-append "Formatting: " entry-str))
-                                   (newline)
-                                   (loop (+ i 1) (+ total 1) updated cached)
-                                 ) ;else
-                           ) ;cond
-                         ) ;let
-                         (loop (+ i 1) total updated cached)
-                       ) ;if
-                     ) ;let
-                    ) ;
-                    ((path-dir? entry)
-                     (call-with-values (lambda () (format-directory (path->string entry) extensions excludes))
-                       (lambda (sub-total sub-updated sub-cached)
-                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
-                       ) ;lambda
-                     ) ;call-with-values
-                    ) ;
-                    (else (loop (+ i 1) total updated cached))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
     ) ;define
 
     (define (make-fmt-arg-parser)
@@ -442,6 +121,7 @@
                                 (short . "h")
                                 (action . store-true)))
         (parser :add-argument '((name . "dry-run") (action . store-true)))
+        (parser :add-argument '((name . "check") (action . store-true)))
         (parser :add-argument
           '((name . "extension")
             (short . "e")
@@ -460,80 +140,318 @@
       ) ;let
     ) ;define
 
-    (define (normalize-extension ext)
-      (if (and (> (string-length ext) 0) (char=? (string-ref ext 0) #\.))
-        ext
-        (string-append "." ext)
+    ;; ---- 帮助 -----------------------------------------------------------
+    (define (display-help)
+      (display "Usage: gf fmt [options] [path]")
+      (newline)
+      (newline)
+      (display "Options:")
+      (newline)
+      (display "  -h, --help       显示此帮助文档")
+      (newline)
+      (display "      --check      非破坏性检查：发现未格式化文件则退出码 1（供 CI，读 gf_fmt.json）"
+      ) ;display
+      (newline)
+      (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
+      ) ;display
+      (newline)
+      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；也可直接写后缀 -e scm,sld"
+      ) ;display
+      (newline)
+      (display "      --changed-since REV    仅格式化自 REV 以来变更的 Scheme 文件"
+      ) ;display
+      (newline)
+      (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
+      ) ;display
+      (newline)
+      (newline)
+      (display "Arguments:")
+      (newline)
+      (display "  path    要格式化的文件或目录路径（可选）")
+      (newline)
+      (display "          无 path 时：读 gf_fmt.json 仓库批量格式化所有语言（scheme + cpp）"
+      ) ;display
+      (newline)
+      (newline)
+      (display "Examples:")
+      (newline)
+      (display "  gf fmt                       仓库批量格式化（C++ + Scheme）"
+      ) ;display
+      (newline)
+      (display "  gf fmt --check               CI 非破坏性检查，未格式化退出码 1"
+      ) ;display
+      (newline)
+      (display "  gf fmt file.scm              格式化单个文件")
+      (newline)
+      (display "  gf fmt --dry-run file.scm    预览格式化结果")
+      (newline)
+      (display "  gf fmt /path/to/dir          递归格式化目录下所有 .scm 文件"
+      ) ;display
+      (newline)
+      (display "  gf fmt -e scm,sld dir/       递归格式化目录下所有 .scm 和 .sld 文件"
+      ) ;display
+      (newline)
+      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 Scheme 文件"
+      ) ;display
+      (newline)
+    ) ;define
+
+    ;; ---- 仓库批量 / check（无路径参数，读 gf_fmt.json）------------------
+    ;; 通过语言注册表派发：遍历 (lang-list)，对每个 handler 取 collect/format-files/
+    ;; check-file 方法调用。新增语言只需注册 handler，此处零改动。
+
+    (define (flush-output)
+      (flush-output-port (current-output-port))
+    ) ;define
+
+    ;; 仓库批量格式化：逐语言收集 + 格式化。
+    (define (run-repo-format cfg)
+      (let loop
+        ((handlers (lang-list)))
+        (if (null? handlers)
+          (begin
+            (display "Done.")
+            (newline)
+            #t
+          ) ;begin
+          (let* ((handler (car handlers))
+                 (label (lang-label handler))
+                 (collect (lang-ref handler 'collect))
+                 (format-files (lang-ref handler 'format-files))
+                 (files (collect cfg))
+                 (stats (format-files files cfg))
+                ) ;
+            (display (string-append "=== Formatting " label " files ==="))
+            (newline)
+            (flush-output)
+            (display (string-append "Total "
+                       label
+                       " files formatted: "
+                       (number->string (car stats))
+                       ", Files updated: "
+                       (number->string (cadr stats))
+                       ", Files unchanged: "
+                       (number->string (caddr stats))
+                     ) ;string-append
+            ) ;display
+            (newline)
+            (newline)
+            (loop (cdr handlers))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (print-offenders label offenders)
+      (let ((n (length offenders)))
+        (if (= n 0)
+          (begin
+            (display (string-append label ": OK"))
+            (newline)
+          ) ;begin
+          (begin
+            (display (string-append label ": " (number->string n) " file(s) need formatting")
+            ) ;display
+            (newline)
+            (let loop
+              ((fs offenders))
+              (if (null? fs)
+                #t
+                (begin
+                  (display (string-append "  " (car fs)))
+                  (newline)
+                  (loop (cdr fs))
+                ) ;begin
+              ) ;if
+            ) ;let
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 逐文件检查某语言，返回 offenders 列表。
+    (define (check-lang handler cfg)
+      (let* ((label (lang-label handler))
+             (collect (lang-ref handler 'collect))
+             (check-file (lang-ref handler 'check-file))
+             (files (collect cfg))
+            ) ;
+        (let loop
+          ((fs files) (bad '()))
+          (if (null? fs)
+            (reverse bad)
+            (let ((f (car fs)))
+              (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    ;; 仓库级非破坏检查：逐语言收集 + 逐文件检查，汇总 offenders。
+    ;; 任一文件未格式化则退出码 1（供 CI）。Windows 无 sh 时跳过并退出 0（CI 在 Debian 跑）。
+    (define (run-repo-check cfg)
+      (if (os-windows?)
+        (begin
+          (display "fmt --check: skipped on Windows (requires sh).")
+          (newline)
+          (exit 0)
+        ) ;begin
+        (let loop
+          ((handlers (lang-list)) (results '()))
+          (if (null? handlers)
+            (let ((total (let sum
+                           ((rs results) (n 0))
+                           (if (null? rs) n (sum (cdr rs) (+ n (length (cdar rs)))))
+                         ) ;let
+                  ) ;total
+                 ) ;
+              (newline)
+              (for-each (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
+                (reverse results)
+              ) ;for-each
+              (newline)
+              (if (> total 0)
+                (begin
+                  (display (string-append "FAIL: " (number->string total) " file(s) need formatting")
+                  ) ;display
+                  (newline)
+                  (exit 1)
+                ) ;begin
+                (begin
+                  (display "OK: all files formatted.")
+                  (newline)
+                  (exit 0)
+                ) ;begin
+              ) ;if
+            ) ;let
+            (let* ((handler (car handlers)) (label (lang-label handler)))
+              (display (string-append "=== Checking " label " files ==="))
+              (newline)
+              (flush-output)
+              (loop (cdr handlers) (cons (cons handler (check-lang handler cfg)) results))
+            ) ;let*
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
-    (define (parse-extensions raw)
-      (map normalize-extension (string-split raw ","))
+    ;; ---- 单文件 / 目录 / 增量（有路径参数）-----------------------------
+    ;; 按后缀查语言注册表派发（lang-for-extension / lang-for-extensions），
+    ;; 主入口不硬编码任何语言；找不到匹配 handler 时默认走 scheme。
+    (define (scheme-handler-of)
+      (lang-for-extension ".scm")
     ) ;define
 
-    ;; ; 主入口函数
+    ;; 单文件：按文件后缀查 handler，调其 format-file；无匹配则用 scheme handler。
+    (define (dispatch-format-file path-str dry-run excludes)
+      (let* ((ext (path-suffix (path path-str)))
+             (handler (or (lang-for-extension ext) (scheme-handler-of)))
+             (format-file (lang-ref handler 'format-file))
+            ) ;
+        (format-file path-str dry-run excludes)
+      ) ;let*
+    ) ;define
+
+    ;; 按 -e 后缀选目录模式的语言 handler：
+    ;;   后缀全部属于同一语言 → 该 handler；无匹配 → scheme；混合多语言 → 报错退出。
+    (define (directory-handler-for extensions)
+      (let ((matched (lang-for-extensions extensions)))
+        (cond ((null? matched) (scheme-handler-of))
+              ((null? (cdr matched)) (car matched))
+              (else (display "错误: 目录格式化不支持混合语言后缀，请用单一语言的 -e"
+                    ) ;display
+                (newline)
+                (exit 1)
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 目录：选语言 handler，调其 format-directory（返回 (total updated unchanged) 列表），统一打印统计行。
+    (define (dispatch-format-directory dir extensions excludes dry-run)
+      (let* ((handler (directory-handler-for extensions))
+             (format-directory (lang-ref handler 'format-directory))
+             (stats (format-directory dir extensions excludes dry-run))
+            ) ;
+        (display (string-append "Total files formatted: "
+                   (number->string (car stats))
+                   ", Files updated: "
+                   (number->string (cadr stats))
+                   ", Files unchanged: "
+                   (number->string (caddr stats))
+                 ) ;string-append
+        ) ;display
+        (newline)
+        #t
+      ) ;let*
+    ) ;define
+
+    ;; 单文件/目录模式下，从 gf_fmt.json 读 scheme.exclude 作为项目级排除
+    ;; （配置不存在时降级为 '()，单文件模式不强制要求配置）。
+    (define (scheme-config-excludes)
+      (let ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))))
+        (if cfg (lang-excludes 'scheme cfg) '())
+      ) ;let
+    ) ;define
+
+    ;; ---- 主入口 ---------------------------------------------------------
     (define (main)
       (let ((parser (make-fmt-arg-parser)))
         (parser :parse-argv (argv))
         (let* ((help-flag (parser 'help))
                (dry-run (parser 'dry-run))
+               (check-flag (parser 'check))
                (extensions (parse-extensions (parser 'extension)))
                (changed-since (parser 'changed-since))
-               (excludes (append (parse-excludes (parser 'exclude)) (read-project-excludes)))
+               (cli-excludes (parse-excludes (parser 'exclude)))
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                (changed-since (format-changed-since changed-since path-str dry-run extensions excludes)
+                ;; changed-since 优先：即使无路径参数也走 Scheme 增量，而非仓库批量。
+                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes))))
+                                 (format-changed-since changed-since path-str extensions excludes dry-run)
+                               ) ;let
                 ) ;changed-since
-                ((string=? path-str "") (display-help) #t)
-                ((path-file? (path path-str))
-                 (if (file-excluded? path-str excludes)
-                   (begin
-                     (display (string-append "Skipped (excluded): " path-str))
-                     (newline)
-                     #t
-                   ) ;begin
-                   (if dry-run
-                     (format-file-dry-run path-str)
-                     (let ((result (format-file path-str)))
-                       (cond ((eq? result 'cached) #f)
-                             (result (display (string-append "  Updated: " path-str)) (newline))
-                             (else (display (string-append "Formatting: " path-str)) (newline))
-                       ) ;cond
-                       (display (string-append "Total files formatted: 1, Files updated: "
-                                  (if (eq? result #t) "1" "0")
-                                  ", Files cached: "
-                                  (if (eq? result 'cached) "1" "0")
-                                ) ;string-append
+                ;; 无路径参数：仓库批量 / check（需 gf_fmt.json）。
+                ((string=? path-str "")
+                 (let ((cfg (catch #t
+                              (lambda () (load-fmt-config))
+                              (lambda (type info)
+                                (let ((e (if (null? info) type (car info))))
+                                  (display (string-append "error: gf_fmt.json 解析失败 - "
+                                             (if (string? e) e (object->string e))
+                                           ) ;string-append
+                                  ) ;display
+                                  (newline)
+                                  (exit 1)
+                                ) ;let
+                              ) ;lambda
+                            ) ;catch
+                       ) ;cfg
+                      ) ;
+                   (if (not cfg)
+                     (begin
+                       (display "error: 找不到 gf_fmt.json，请在项目根创建它（无路径参数时必需）。"
                        ) ;display
                        (newline)
-                       #t
-                     ) ;let
+                       (exit 1)
+                     ) ;begin
+                     (if check-flag (run-repo-check cfg) (run-repo-format cfg))
                    ) ;if
-                 ) ;if
+                 ) ;let
                 ) ;
+                ;; 单文件。按后缀查注册表派发到对应语言。
+                ((path-file? (path path-str))
+                 (let ((excludes (append cli-excludes (scheme-config-excludes))))
+                   (dispatch-format-file path-str dry-run excludes)
+                 ) ;let
+                ) ;
+                ;; 目录递归。按 -e 后缀查注册表派发到对应语言。
                 ((path-dir? (path path-str))
-                 (if dry-run
-                   (begin
-                     (display "错误: --dry-run 选项仅支持单个文件")
-                     (newline)
-                     (exit 1)
-                   ) ;begin
-                   (call-with-values (lambda () (format-directory path-str extensions excludes))
-                     (lambda (total updated cached)
-                       (display (string-append "Total files formatted: "
-                                  (number->string total)
-                                  ", Files updated: "
-                                  (number->string updated)
-                                  ", Files cached: "
-                                  (number->string cached)
-                                ) ;string-append
-                       ) ;display
-                       (newline)
-                       #t
-                     ) ;lambda
-                   ) ;call-with-values
-                 ) ;if
+                 (let ((excludes (append cli-excludes (scheme-config-excludes))))
+                   (dispatch-format-directory path-str extensions excludes dry-run)
+                 ) ;let
                 ) ;
                 (else (display (string-append "错误: 路径不存在 - " path-str))
                   (newline)
@@ -543,5 +461,6 @@
         ) ;let*
       ) ;let
     ) ;define
+
   ) ;begin
 ) ;define-library

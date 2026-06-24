@@ -1,0 +1,88 @@
+name: Format Check on Debian 13
+
+# 非破坏性格式化检查：构建 bin/gf 后运行 gf fmt --check，
+# 一次性校验 C++（clang-format）与 Scheme（gf fmt）文件是否都已格式化。
+# 扫描范围由 gf_fmt.json 决定；任一文件未格式化则退出码 1，CI 红。
+# 参考自 mogan 仓库的 .github/workflows/ci-format-check-debian13.yml；
+# 区别在于 goldfish 是自己构建 bin/gf（而非下载发布的 deb）。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "goldfish/**"
+      - "tests/**"
+      - "tools/**"
+      - ".clang-format"
+      - "gf_fmt.json"
+      - "gfproject.json"
+      - "xmake/**"
+      - "xmake.lua"
+      - ".github/workflows/ci-format-check-debian13.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "goldfish/**"
+      - "tests/**"
+      - "tools/**"
+      - ".clang-format"
+      - "gf_fmt.json"
+      - "gfproject.json"
+      - "xmake/**"
+      - "xmake.lua"
+      - ".github/workflows/ci-format-check-debian13.yml"
+  workflow_dispatch:
+
+env:
+  XMAKE_ROOT: y
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  format-check:
+    container: debian:13
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git 7zip unzip curl build-essential pkg-config ninja-build clang-format-19
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: git add safe directory
+        run: git config --global --add safe.directory '*'
+
+      - name: de-gitee
+        run: sed -i '/gitee\.com/d' xmake/packages/s/s7/xmake.lua
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.8
+          actions-cache-folder: '.xmake-cache'
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+      - name: config
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build
+        run: xmake build --yes -vD goldfish
+
+      - name: Run gf fmt --check (C++ + Scheme)
+        run: bin/gf fmt --check

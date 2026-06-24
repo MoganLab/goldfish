@@ -551,14 +551,13 @@
     ) ;define
     (define (needs-rewrite-reader-literals? str)
       (let ((len (string-length str)))
-        (let loop ((i 0))
+        (let loop
+          ((i 0))
           (cond ((>= i len) #f)
                 ((and (char=? (string-ref str i) #\#)
-                    (< (+ i 1) len)
-                    (or (char=? (string-ref str (+ i 1)) #\")
-                      (char=? (string-ref str (+ i 1)) #\\)
-                    ) ;or
-                  ) ;and
+                   (< (+ i 1) len)
+                   (or (char=? (string-ref str (+ i 1)) #\") (char=? (string-ref str (+ i 1)) #\\))
+                 ) ;and
                  #t
                 ) ;
                 (else (loop (+ i 1)))

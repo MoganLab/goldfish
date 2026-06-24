@@ -36,8 +36,8 @@
       "organization": "liii",
       "module": "goldfmt",
       "description": {
-        "en_US": "Format PATH (PATH can be a .scm file or directory)",
-        "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"
+        "en_US": "Format code (single file/dir, or whole repo via gf_fmt.json; supports --check for CI)",
+        "zh_CN": "格式化代码（单文件/目录，或按 gf_fmt.json 仓库批量；支持 --check 供 CI）"
       }
     },
     "fix": {

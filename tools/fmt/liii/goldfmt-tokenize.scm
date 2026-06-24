@@ -229,13 +229,11 @@
     ) ;define
     (define (tokens->string tokens)
       (let ((out (open-output-string)))
-        (let loop ((rest tokens))
+        (let loop
+          ((rest tokens))
           (if (null? rest)
             (get-output-string out)
-            (let* ((token (car rest))
-                   (type (car token))
-                   (content (cdr token))
-                  ) ;
+            (let* ((token (car rest)) (type (car token)) (content (cdr token)))
               (cond ((eq? type 'comment)
                      (display "(*comment* \"" out)
                      (display (escape-string-content content) out)

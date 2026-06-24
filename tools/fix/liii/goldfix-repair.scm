@@ -12,25 +12,19 @@
     ) ;define
 
     (define (make-open-frame-from-token token prev-token)
-      (let ((is-vector-prefix
-              (and prev-token
-                (eq? (fix-token-type prev-token) 'other)
-                (string=? (fix-token-text prev-token) "#")
-                (= (fix-token-end prev-token) (fix-token-offset token))
-              ) ;and
-            )) ;is-vector-prefix
+      (let ((is-vector-prefix (and prev-token
+                                (eq? (fix-token-type prev-token) 'other)
+                                (string=? (fix-token-text prev-token) "#")
+                                (= (fix-token-end prev-token) (fix-token-offset token))
+                              ) ;and
+            ) ;is-vector-prefix
+           ) ;
         (make-open-frame :offset
-          (if is-vector-prefix
-            (fix-token-offset prev-token)
-            (fix-token-offset token)
-          ) ;if
+          (if is-vector-prefix (fix-token-offset prev-token) (fix-token-offset token))
           :line
           (fix-token-line token)
           :column
-          (if is-vector-prefix
-            (fix-token-column prev-token)
-            (fix-token-column token)
-          ) ;if
+          (if is-vector-prefix (fix-token-column prev-token) (fix-token-column token))
           :tag-name
           ""
         ) ;make-open-frame

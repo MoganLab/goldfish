@@ -16,16 +16,11 @@
 
 (define-library (liii goldsource-args)
   (import (scheme base) (liii string) (liii argparse))
-  (export parse-source-args
-    library-query?
-    parse-library-query
-  ) ;export
+  (export parse-source-args library-query? parse-library-query)
   (begin
 
     (define (library-query? value)
-      (and (string? value)
-        (string-contains? value "/")
-      ) ;and
+      (and (string? value) (string-contains? value "/"))
     ) ;define
 
     (define (parse-library-query query)
@@ -45,14 +40,8 @@
 
     (define (classify-source-args filtered)
       (cond ((null? filtered) '(invalid))
-            ((or (member "--help" filtered)
-               (member "-h" filtered)
-             ) ;or
-             '(help)
-            ) ;
-            ((and (= (length filtered) 1)
-               (parse-library-query (car filtered))
-             ) ;and
+            ((or (member "--help" filtered) (member "-h" filtered)) '(help))
+            ((and (= (length filtered) 1) (parse-library-query (car filtered)))
              (list 'library (car filtered))
             ) ;
             (else (cons 'invalid filtered))
@@ -60,11 +49,17 @@
     ) ;define
 
     (define (parse-source-args args)
-      (let ((parser (make-argument-parser
-                      '((command . "source")
-                        (skip-value-options . ("-m" "--mode" "-I" "-A"))
-                        (skip-prefix-options . ("-m=" "--mode="))
-                        (unknown-options . positional)))))
+      (let ((parser (make-argument-parser '((command . "source")
+                                            (skip-value-options "-m"
+                                              "--mode"
+                                              "-I"
+                                              "-A")
+                                            (skip-prefix-options "-m="
+                                              "--mode=")
+                                            (unknown-options . positional))
+                    ) ;make-argument-parser
+            ) ;parser
+           ) ;
         (parser :parse-argv args)
         (classify-source-args (parser :positionals))
       ) ;let

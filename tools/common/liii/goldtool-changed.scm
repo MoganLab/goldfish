@@ -107,28 +107,24 @@
     ) ;define
 
     (define (changed-scheme-files-since since . maybe-path)
-      (let* ((has-extension-param? (and (not (null? maybe-path))
-                                        (not (null? (cdr maybe-path)))))
+      (let* ((has-extension-param? (and (not (null? maybe-path)) (not (null? (cdr maybe-path))))
+             ) ;has-extension-param?
              (extensions (if has-extension-param? (cadr maybe-path) '(".scm")))
-             (path (if has-extension-param? (car maybe-path)
-                     (if (null? maybe-path) #f (car maybe-path)))))
+             (path (if has-extension-param?
+                     (car maybe-path)
+                     (if (null? maybe-path) #f (car maybe-path))
+                   ) ;if
+             ) ;path
+            ) ;
         (filter (lambda (file)
                   (and (path-file? file)
-                    (let loop ((exts extensions))
-                      (if (null? exts)
-                        #f
-                        (if (string-ends? file (car exts))
-                          #t
-                          (loop (cdr exts))
-                        ) ;if
-                      ) ;if
+                    (let loop
+                      ((exts extensions))
+                      (if (null? exts) #f (if (string-ends? file (car exts)) #t (loop (cdr exts))))
                     ) ;let
                   ) ;and
                 ) ;lambda
-          (if path
-            (changed-files-since since path)
-            (changed-files-since since)
-          ) ;if
+          (if path (changed-files-since since path) (changed-files-since since))
         ) ;filter
       ) ;let*
     ) ;define

@@ -54,20 +54,14 @@
         (case (car parsed)
               ((help) (display-usage) 0)
               ((library)
-               (let* ((query (cadr parsed))
-                      (source-path (source-library-path query)
-                      ) ;source-path
-                     ) ;
+               (let* ((query (cadr parsed)) (source-path (source-library-path query)))
                  (if source-path
                    (begin
                      (display (path-read-text source-path))
                      0
                    ) ;begin
                    (begin
-                     (stderr-line (string-append "Error: library not found in *load-path*: "
-                                    query
-                                  ) ;string-append
-                     ) ;stderr-line
+                     (stderr-line (string-append "Error: library not found in *load-path*: " query))
                      1
                    ) ;begin
                  ) ;if
