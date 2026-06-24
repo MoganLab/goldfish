@@ -23,7 +23,7 @@
   (import (liii base)
     (liii path)
     (liii string)
-    (liii hashlib)
+    (liii goldfmt-cache)
     (liii goldfmt-scan)
     (liii goldfmt-format)
     (liii goldfmt-lang)
@@ -40,38 +40,6 @@
 
     ;; Scheme 语言接管的后缀表（带点）。gf_fmt.json 未写 scheme.suffix 时也用此表。
     (define scheme-extensions '(".scm"))
-
-    ;; ---- 缓存（迁移自 goldfmt.scm）-------------------------------------
-    (define (fmt-cache-base-dir)
-      (path->string (path-join (path-home) ".cache" "goldfish" "fmt" (version)))
-    ) ;define
-
-    (define (fmt-cache-path file-path)
-      (let* ((hash (sha256-by-file file-path))
-             (prefix (substring hash 0 2))
-             (rest (substring hash 2))
-             (base (fmt-cache-base-dir))
-            ) ;
-        (path->string (path-join base prefix rest))
-      ) ;let*
-    ) ;define
-
-    (define (fmt-cache-hit? file-path)
-      (let ((cache (fmt-cache-path file-path)))
-        (file-exists? cache)
-      ) ;let
-    ) ;define
-
-    (define (fmt-cache-touch file-path)
-      (let* ((cache (fmt-cache-path file-path))
-             (cache-dir (path->string (path-parent (path cache))))
-            ) ;
-        (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
-        ) ;unless
-        (path-touch (path cache))
-      ) ;let*
-    ) ;define
 
     ;; ---- 单文件格式化 ---------------------------------------------------
     ;; dry-run 模式：输出到终端，不写回。
