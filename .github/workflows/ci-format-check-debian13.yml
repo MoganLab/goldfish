@@ -1,8 +1,8 @@
 name: Format Check on Debian 13
 
-# 非破坏性格式化检查：构建 bin/gf 后运行 gf format --check，
+# 非破坏性格式化检查：构建 bin/gf 后运行 gf fmt --check，
 # 一次性校验 C++（clang-format）与 Scheme（gf fmt）文件是否都已格式化。
-# 扫描范围由 gfformat.json 决定；任一文件未格式化则退出码 1，CI 红。
+# 扫描范围由 gf_fmt.json 决定；任一文件未格式化则退出码 1，CI 红。
 # 参考自 mogan 仓库的 .github/workflows/ci-format-check-debian13.yml；
 # 区别在于 goldfish 是自己构建 bin/gf（而非下载发布的 deb）。
 
@@ -15,7 +15,7 @@ on:
       - "tests/**"
       - "tools/**"
       - ".clang-format"
-      - "gfformat.json"
+      - "gf_fmt.json"
       - "gfproject.json"
       - "xmake/**"
       - "xmake.lua"
@@ -28,7 +28,7 @@ on:
       - "tests/**"
       - "tools/**"
       - ".clang-format"
-      - "gfformat.json"
+      - "gf_fmt.json"
       - "gfproject.json"
       - "xmake/**"
       - "xmake.lua"
@@ -84,5 +84,5 @@ jobs:
       - name: build
         run: xmake build --yes -vD goldfish
 
-      - name: Run gf format --check (C++ + Scheme)
-        run: bin/gf format --check
+      - name: Run gf fmt --check (C++ + Scheme)
+        run: bin/gf fmt --check

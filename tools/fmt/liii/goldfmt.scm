@@ -390,6 +390,11 @@
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
+                ;; changed-since 优先：即使无路径参数也走 Scheme 增量，而非仓库批量。
+                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes))))
+                                 (format-changed-since changed-since path-str extensions excludes dry-run)
+                               ) ;let
+                ) ;changed-since
                 ;; 无路径参数：仓库批量 / check（需 gf_fmt.json）。
                 ((string=? path-str "")
                  (let ((cfg (catch #t
@@ -418,11 +423,6 @@
                    ) ;if
                  ) ;let
                 ) ;
-                ;; 有路径参数 + changed-since：Scheme 增量。
-                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                                 (format-changed-since changed-since path-str extensions excludes dry-run)
-                               ) ;let
-                ) ;changed-since
                 ;; 单文件。
                 ((path-file? (path path-str))
                  (let ((excludes (append cli-excludes (scheme-config-excludes))))
