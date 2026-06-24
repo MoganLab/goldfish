@@ -35,6 +35,12 @@
 ;; 2. 与 (liii string) 中的 string-pad-right 功能相同
 ;; 3. 如果 s 的长度超过 len，则截断右侧
 ;; 4. 性能：O(len)
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确填充
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-pad-right 函数
+;; 参见: gf doc liii/string "string-pad-right"
 
 (check (string-pad-right "325" 5) => "325  ")
 (check (string-pad-right "71325" 5) => "71325")
