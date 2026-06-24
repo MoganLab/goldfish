@@ -26,14 +26,19 @@
     (liii path)
     (liii string)
     (liii goldfmt-lang)
+    (liii goldfmt-config)
   ) ;import
   (export clang-format-binary
-    collect-cpp
+    cpp-extensions
+    format-cpp-file
     format-cpp-files
+    format-cpp-directory
     check-cpp-file
-    cpp-handler
   ) ;export
   (begin
+
+    ;; C++ 语言接管的后缀表（带点）。gf_fmt.json 未写 cpp.suffix 时也用此表。
+    (define cpp-extensions '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
 
     ;; ---- clang-format 定位（迁移自 goldformat-binary.scm）--------------
     ;; Windows 直接用 PATH 中的 clang-format；macOS 用 homebrew llvm@19；
@@ -62,54 +67,89 @@
       (string-append "'" (string-replace s "'" "'\\''") "'")
     ) ;define
 
-    ;; 把文件列表写入临时文件，供 clang-format --files 批量处理。
-    (define (write-file-list files)
-      (let ((tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-files.txt"))))
-        (let ((port (open-output-file tmp)))
-          (display (car files) port)
-          (let loop
-            ((fs (cdr files)))
-            (if (null? fs)
+    ;; 单文件格式化：dry-run 时输出 clang-format 的 dry-run 结果；
+    ;; 否则把格式化结果输出到临时文件与原内容比对——不同才写回（计 updated）。
+    (define (format-cpp-file path-str dry-run)
+      (let ((cf (clang-format-binary)))
+        (if dry-run
+          (os-call (string-append cf " --dry-run " (shell-quote path-str)))
+          (let* ((tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-out.txt")))
+                 (rc (os-call (string-append "sh -c \"" cf " " (shell-quote path-str) " > " tmp "\"")
+                     ) ;os-call
+                 ) ;rc
+                 (formatted (if (file-exists? tmp) (path-read-text (path tmp)) ""))
+                 (ondisk (path-read-text (path path-str)))
+                ) ;
+            (if (file-exists? tmp) (delete-file tmp) #f)
+            (if (and (= rc 0) (not (string=? formatted ondisk)))
               (begin
-                (close-output-port port)
-                tmp
+                (path-write-text (path path-str) formatted)
+                (display (string-append "  Updated: " path-str))
+                (newline)
               ) ;begin
               (begin
-                (display (string-append "\n" (car fs)) port)
-                (loop (cdr fs))
+                (display (string-append "  Unchanged: " path-str))
+                (newline)
               ) ;begin
             ) ;if
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;define
-
-    ;; ---- 文件收集 -------------------------------------------------------
-    ;; 按配置 path 收集所有 C/C++ 文件（suffixes 由调用方传）。
-    (define (collect-cpp paths suffixes excludes)
-      (let loop
-        ((ps paths) (acc '()))
-        (if (null? ps)
-          acc
-          (if (path-dir? (path (car ps)))
-            (loop (cdr ps) (append (collect-files (car ps) suffixes excludes) acc))
-            (loop (cdr ps) acc)
-          ) ;if
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define
 
+    ;; ---- 文件收集 -------------------------------------------------------
+    ;; 仓库批量收集：从 cfg 的 cpp.path 递归收集 C/C++ 文件（按 cpp.suffix，尊重 cpp.exclude）。
+    (define (cpp-collect cfg)
+      (let ((paths (lang-paths 'cpp cfg))
+            (suffixes (lang-suffixes 'cpp cfg))
+            (excludes (lang-excludes 'cpp cfg))
+           ) ;
+        (let loop
+          ((ps paths) (acc '()))
+          (if (null? ps)
+            acc
+            (if (path-dir? (path (car ps)))
+              (loop (cdr ps) (append (collect-files (car ps) suffixes excludes) acc))
+              (loop (cdr ps) acc)
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
     ;; ---- 批量格式化 -----------------------------------------------------
-    ;; files 为空时打印提示；否则写文件列表后 clang-format -i --files 批量改。
-    ;; 返回处理文件数。
-    (define (format-cpp-files files)
+    ;; 逐文件 clang-format：把格式化结果输出到临时文件，与原内容比对——
+    ;; 不同则写回（计 updated），相同则跳过（计 unchanged）。返回 (total updated unchanged)。
+    ;; 无缓存（cpp 不缓存），统计诚实反映真实改动。cfg 参数为统一协议保留。
+    (define (format-one-cpp cf path-str tmp)
+      (let* ((rc (os-call (string-append "sh -c \"" cf " " (shell-quote path-str) " > " tmp "\"")
+                 ) ;os-call
+             ) ;rc
+             (formatted (if (file-exists? tmp) (path-read-text (path tmp)) ""))
+             (ondisk (path-read-text (path path-str)))
+            ) ;
+        (if (and (= rc 0) (not (string=? formatted ondisk)))
+          (begin
+            (path-write-text (path path-str) formatted)
+            (display (string-append "  Updated: " path-str))
+            (newline)
+            #t
+          ) ;begin
+          #f
+        ) ;if
+      ) ;let*
+    ) ;define
+
+    (define (format-cpp-files files cfg)
       (if (null? files)
         (begin
           (display "No C++ files found.")
           (newline)
-          0
+          (list 0 0 0)
         ) ;begin
-        (let* ((cf (clang-format-binary)) (list-file (write-file-list files)))
+        (let* ((cf (clang-format-binary))
+               (tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-out.txt")))
+              ) ;
           (display (string-append "Formatting "
                      (number->string (length files))
                      " C++ files with "
@@ -118,25 +158,50 @@
           ) ;display
           (newline)
           (flush-output-port (current-output-port))
-          (os-call (string-append cf " -i --files=" list-file))
-          (delete-file list-file)
-          (length files)
+          (let loop
+            ((fs files) (total 0) (updated 0))
+            (if (null? fs)
+              (begin
+                (if (file-exists? tmp) (delete-file tmp) #f)
+                (list total updated (- total updated))
+              ) ;begin
+              (let ((changed? (format-one-cpp cf (car fs) tmp)))
+                (loop (cdr fs) (+ total 1) (if changed? (+ updated 1) updated))
+              ) ;let
+            ) ;if
+          ) ;let
         ) ;let*
       ) ;if
+    ) ;define
+
+    ;; 目录递归格式化：收集 dir 下命中 suffixes 的 C/C++ 文件（尊重 excludes），
+    ;; 逐文件 clang-format 比对内容（同 format-cpp-files）。返回 (total updated unchanged)。
+    ;; dry-run 不支持目录（与 scheme 目录约定一致，由调用方拦截）。
+    (define (format-cpp-directory dir suffixes excludes)
+      (let ((files (collect-files dir suffixes excludes)))
+        (if (null? files)
+          (begin
+            (display "No C++ files found.")
+            (newline)
+            (list 0 0 0)
+          ) ;begin
+          (format-cpp-files files #f)
+        ) ;if
+      ) ;let
     ) ;define
 
     ;; ---- 单文件检查 -----------------------------------------------------
     ;; clang-format --dry-run --Werror，退出码非 0 表示需格式化。
     ;; stderr（含 diff）重定向到 /dev/null；返回 #t(已格式化) / #f(需格式化)。
-    ;; Windows 无 sh：视为通过（与原 gf format --check 一致，CI 在 Debian 跑）。
-    (define (check-cpp-file path-str)
+    ;; Windows 无 sh：视为通过（CI 在 Debian 跑）。cfg 参数为统一协议保留。
+    (define (check-cpp-file path cfg)
       (if (os-windows?)
         #t
         (let* ((cf (clang-format-binary))
                (rc (os-call (string-append "sh -c \""
                               cf
                               " --dry-run --Werror "
-                              (shell-quote path-str)
+                              (shell-quote path)
                               " >/dev/null 2>&1\""
                             ) ;string-append
                    ) ;os-call
@@ -147,14 +212,33 @@
       ) ;if
     ) ;define
 
-    ;; ---- handler 协议 ---------------------------------------------------
-    ;; cpp 的 collect 需要后缀，故 handler 暴露一个接收 suffixes 的版本；
-    ;; 主入口在仓库批量/check 时直接调用 collect-cpp/format-cpp-files/check-cpp-file。
+    ;; ---- 注册到语言注册表 -----------------------------------------------
+    ;; format-file / format-directory 用 lambda 适配到统一协议签名
+    ;; （cpp 单文件不读 excludes；cpp 目录不支持 dry-run，由主入口拦截）。
+    (define (cpp-format-file path dry-run excludes)
+      (format-cpp-file path dry-run)
+    ) ;define
+
+    (define (cpp-format-directory dir exts excludes dry-run)
+      (if dry-run
+        (begin
+          (display "错误: --dry-run 选项仅支持单个文件")
+          (newline)
+          (exit 1)
+        ) ;begin
+        (format-cpp-directory dir exts excludes)
+      ) ;if
+    ) ;define
+
     (define cpp-handler
       (list (cons 'name 'cpp)
-        (cons 'collect collect-cpp)
-        (cons 'check-file (lambda (path excludes) (check-cpp-file path)))
-        (cons 'format-files (lambda (files dry-run excludes) (format-cpp-files files)))
+        (cons 'label "C++")
+        (cons 'extensions cpp-extensions)
+        (cons 'collect cpp-collect)
+        (cons 'format-files format-cpp-files)
+        (cons 'format-file cpp-format-file)
+        (cons 'format-directory cpp-format-directory)
+        (cons 'check-file check-cpp-file)
       ) ;list
     ) ;define
 

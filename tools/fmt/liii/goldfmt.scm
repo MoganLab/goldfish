@@ -66,8 +66,28 @@
       ) ;if
     ) ;define
 
+    ;; 把单个 -e token 转成后缀列表：若是语言名（cpp/scheme/...）展开为该语言后缀表，
+    ;; 否则按后缀处理（补点）。使 -e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx 全部。
+    (define (token->extensions token)
+      (let ((lang-exts (extensions-for-lang-name token)))
+        (if lang-exts lang-exts (list (normalize-extension token)))
+      ) ;let
+    ) ;define
+
     (define (parse-extensions raw)
-      (map normalize-extension (string-split raw ","))
+      (let loop
+        ((tokens (string-split raw ",")) (acc '()))
+        (if (null? tokens)
+          (let dedup
+            ((es (reverse acc)) (seen '()))
+            (if (null? es)
+              seen
+              (dedup (cdr es) (if (member (car es) seen) seen (cons (car es) seen)))
+            ) ;if
+          ) ;let
+          (loop (cdr tokens) (append (token->extensions (car tokens)) acc))
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (parse-excludes raw)
@@ -135,7 +155,7 @@
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
       ) ;display
       (newline)
-      (display "  -e, --extension EXT    指定文件后缀名（默认 scm，支持逗号分隔多个）"
+      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；也可直接写后缀 -e scm,sld"
       ) ;display
       (newline)
       (display "      --changed-since REV    仅格式化自 REV 以来变更的 Scheme 文件"
@@ -176,68 +196,50 @@
       (newline)
     ) ;define
 
-    ;; ---- 仓库批量格式化（无路径参数）-----------------------------------
-    ;; 遍历 gf_fmt.json 各语言，逐语言收集 + 格式化。
+    ;; ---- 仓库批量 / check（无路径参数，读 gf_fmt.json）------------------
+    ;; 通过语言注册表派发：遍历 (lang-list)，对每个 handler 取 collect/format-files/
+    ;; check-file 方法调用。新增语言只需注册 handler，此处零改动。
+
     (define (flush-output)
       (flush-output-port (current-output-port))
     ) ;define
 
+    ;; 仓库批量格式化：逐语言收集 + 格式化。
     (define (run-repo-format cfg)
       (let loop
-        ((langs (lang-names)))
-        (if (null? langs)
+        ((handlers (lang-list)))
+        (if (null? handlers)
           (begin
             (display "Done.")
             (newline)
             #t
           ) ;begin
-          (let* ((lang (car langs))
-                 (parts (config-for-lang lang cfg))
-                 (suffixes (car parts))
-                 (paths (cadr parts))
-                 (excludes (caddr parts))
+          (let* ((handler (car handlers))
+                 (label (lang-label handler))
+                 (collect (lang-ref handler 'collect))
+                 (format-files (lang-ref handler 'format-files))
+                 (files (collect cfg))
+                 (stats (format-files files cfg))
                 ) ;
-            (cond ((eq? lang 'scheme)
-                   (display "=== Formatting Scheme files ===")
-                   (newline)
-                   (flush-output)
-                   (let ((files (collect-scheme paths excludes)))
-                     (call-with-values (lambda () (format-file-list files #f excludes))
-                       (lambda (total updated cached)
-                         (display (string-append "Total files formatted: "
-                                    (number->string total)
-                                    ", Files updated: "
-                                    (number->string updated)
-                                    ", Files cached: "
-                                    (number->string cached)
-                                  ) ;string-append
-                         ) ;display
-                         (newline)
-                       ) ;lambda
-                     ) ;call-with-values
-                   ) ;let
-                  ) ;
-                  ((eq? lang 'cpp)
-                   (display "=== Formatting C++ files ===")
-                   (newline)
-                   (flush-output)
-                   (let ((files (collect-cpp paths suffixes excludes)))
-                     (format-cpp-files files)
-                   ) ;let
-                  ) ;
-            ) ;cond
+            (display (string-append "=== Formatting " label " files ==="))
             (newline)
-            (loop (cdr langs))
+            (flush-output)
+            (display (string-append "Total "
+                       label
+                       " files formatted: "
+                       (number->string (car stats))
+                       ", Files updated: "
+                       (number->string (cadr stats))
+                       ", Files unchanged: "
+                       (number->string (caddr stats))
+                     ) ;string-append
+            ) ;display
+            (newline)
+            (newline)
+            (loop (cdr handlers))
           ) ;let*
         ) ;if
       ) ;let
-    ) ;define
-
-    ;; ---- 仓库级非破坏检查（无路径参数 + --check）-----------------------
-    ;; 迁移自原 gf format --check：逐语言收集 + 逐文件检查，汇总 offenders。
-    ;; Windows 无 sh 时 cpp 检查跳过并整体退出 0（CI 在 Debian 跑）。
-    (define (shell-quote s)
-      (string-append "'" (string-replace s "'" "'\\''") "'")
     ) ;define
 
     (define (print-offenders label offenders)
@@ -268,47 +270,26 @@
     ) ;define
 
     ;; 逐文件检查某语言，返回 offenders 列表。
-    ;; scheme：gf fmt --dry-run 与磁盘逐字节比；cpp：clang-format --dry-run --Werror 退出码。
-    (define (check-lang lang cfg)
-      (let* ((parts (config-for-lang lang cfg))
-             (suffixes (car parts))
-             (paths (cadr parts))
-             (excludes (caddr parts))
+    (define (check-lang handler cfg)
+      (let* ((label (lang-label handler))
+             (collect (lang-ref handler 'collect))
+             (check-file (lang-ref handler 'check-file))
+             (files (collect cfg))
             ) ;
-        (cond ((eq? lang 'scheme)
-               (let ((files (collect-scheme paths excludes)))
-                 (let loop
-                   ((fs files) (bad '()))
-                   (if (null? fs)
-                     (reverse bad)
-                     (let ((f (car fs)))
-                       (loop (cdr fs) (if (check-scheme-file f excludes) bad (cons f bad)))
-                     ) ;let
-                   ) ;if
-                 ) ;let
-               ) ;let
-              ) ;
-              ((eq? lang 'cpp)
-               (if (os-windows?)
-                 '()
-                 (let ((files (collect-cpp paths suffixes excludes)))
-                   (let loop
-                     ((fs files) (bad '()))
-                     (if (null? fs)
-                       (reverse bad)
-                       (let ((f (car fs)))
-                         (loop (cdr fs) (if (check-cpp-file f) bad (cons f bad)))
-                       ) ;let
-                     ) ;if
-                   ) ;let
-                 ) ;let
-               ) ;if
-              ) ;
-              (else '())
-        ) ;cond
+        (let loop
+          ((fs files) (bad '()))
+          (if (null? fs)
+            (reverse bad)
+            (let ((f (car fs)))
+              (loop (cdr fs) (if (check-file f cfg) bad (cons f bad)))
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;let*
     ) ;define
 
+    ;; 仓库级非破坏检查：逐语言收集 + 逐文件检查，汇总 offenders。
+    ;; 任一文件未格式化则退出码 1（供 CI）。Windows 无 sh 时跳过并退出 0（CI 在 Debian 跑）。
     (define (run-repo-check cfg)
       (if (os-windows?)
         (begin
@@ -317,15 +298,18 @@
           (exit 0)
         ) ;begin
         (let loop
-          ((langs (lang-names)) (results '()))
-          (if (null? langs)
-            (let* ((scheme-bad (cdr (assq 'scheme results)))
-                   (cpp-bad (cdr (assq 'cpp results)))
-                   (total (+ (length scheme-bad) (length cpp-bad)))
-                  ) ;
+          ((handlers (lang-list)) (results '()))
+          (if (null? handlers)
+            (let ((total (let sum
+                           ((rs results) (n 0))
+                           (if (null? rs) n (sum (cdr rs) (+ n (length (cdar rs)))))
+                         ) ;let
+                  ) ;total
+                 ) ;
               (newline)
-              (print-offenders "Scheme" scheme-bad)
-              (print-offenders "C++" cpp-bad)
+              (for-each (lambda (r) (print-offenders (lang-label (car r)) (cdr r)))
+                (reverse results)
+              ) ;for-each
               (newline)
               (if (> total 0)
                 (begin
@@ -340,40 +324,74 @@
                   (exit 0)
                 ) ;begin
               ) ;if
-            ) ;let*
-            (let ((lang (car langs)))
-              (display (string-append "=== Checking "
-                         (if (eq? lang 'scheme) "Scheme" "C++")
-                         " files ==="
-                       ) ;string-append
-              ) ;display
+            ) ;let
+            (let* ((handler (car handlers)) (label (lang-label handler)))
+              (display (string-append "=== Checking " label " files ==="))
               (newline)
               (flush-output)
-              (loop (cdr langs) (cons (cons lang (check-lang lang cfg)) results))
-            ) ;let
+              (loop (cdr handlers) (cons (cons handler (check-lang handler cfg)) results))
+            ) ;let*
           ) ;if
         ) ;let
       ) ;if
     ) ;define
 
     ;; ---- 单文件 / 目录 / 增量（有路径参数）-----------------------------
-    ;; 按后缀选语言。cpp 后缀走 clang-format；其余（scheme 及 -e 指定）走 scheme-fmt。
-    (define (cpp-extension? extensions)
-      (let loop
-        ((exts extensions))
-        (if (null? exts)
-          #f
-          (if (or (string=? (car exts) ".cpp")
-                (string=? (car exts) ".hpp")
-                (string=? (car exts) ".h")
-                (string=? (car exts) ".c")
-                (string=? (car exts) ".cc")
-                (string=? (car exts) ".cxx")
-              ) ;or
-            #t
-            (loop (cdr exts))
-          ) ;if
-        ) ;if
+    ;; 按后缀查语言注册表派发（lang-for-extension / lang-for-extensions），
+    ;; 主入口不硬编码任何语言；找不到匹配 handler 时默认走 scheme。
+    (define (scheme-handler-of)
+      (lang-for-extension ".scm")
+    ) ;define
+
+    ;; 单文件：按文件后缀查 handler，调其 format-file；无匹配则用 scheme handler。
+    (define (dispatch-format-file path-str dry-run excludes)
+      (let* ((ext (path-suffix (path path-str)))
+             (handler (or (lang-for-extension ext) (scheme-handler-of)))
+             (format-file (lang-ref handler 'format-file))
+            ) ;
+        (format-file path-str dry-run excludes)
+      ) ;let*
+    ) ;define
+
+    ;; 按 -e 后缀选目录模式的语言 handler：
+    ;;   后缀全部属于同一语言 → 该 handler；无匹配 → scheme；混合多语言 → 报错退出。
+    (define (directory-handler-for extensions)
+      (let ((matched (lang-for-extensions extensions)))
+        (cond ((null? matched) (scheme-handler-of))
+              ((null? (cdr matched)) (car matched))
+              (else (display "错误: 目录格式化不支持混合语言后缀，请用单一语言的 -e"
+                    ) ;display
+                (newline)
+                (exit 1)
+              ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; 目录：选语言 handler，调其 format-directory（返回 (total updated unchanged) 列表），统一打印统计行。
+    (define (dispatch-format-directory dir extensions excludes dry-run)
+      (let* ((handler (directory-handler-for extensions))
+             (format-directory (lang-ref handler 'format-directory))
+             (stats (format-directory dir extensions excludes dry-run))
+            ) ;
+        (display (string-append "Total files formatted: "
+                   (number->string (car stats))
+                   ", Files updated: "
+                   (number->string (cadr stats))
+                   ", Files unchanged: "
+                   (number->string (caddr stats))
+                 ) ;string-append
+        ) ;display
+        (newline)
+        #t
+      ) ;let*
+    ) ;define
+
+    ;; 单文件/目录模式下，从 gf_fmt.json 读 scheme.exclude 作为项目级排除
+    ;; （配置不存在时降级为 '()，单文件模式不强制要求配置）。
+    (define (scheme-config-excludes)
+      (let ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))))
+        (if cfg (lang-excludes 'scheme cfg) '())
       ) ;let
     ) ;define
 
@@ -423,36 +441,16 @@
                    ) ;if
                  ) ;let
                 ) ;
-                ;; 单文件。
+                ;; 单文件。按后缀查注册表派发到对应语言。
                 ((path-file? (path path-str))
                  (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                   (if (cpp-extension? (list (path-suffix (path path-str))))
-                     (begin
-                       (display "error: 单个 C++ 文件格式化请用 clang-format 直接处理。")
-                       (newline)
-                       (exit 1)
-                     ) ;begin
-                     (format-single-file path-str dry-run excludes)
-                   ) ;if
+                   (dispatch-format-file path-str dry-run excludes)
                  ) ;let
                 ) ;
-                ;; 目录递归。
+                ;; 目录递归。按 -e 后缀查注册表派发到对应语言。
                 ((path-dir? (path path-str))
                  (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                   (call-with-values (lambda () (format-directory path-str extensions excludes dry-run))
-                     (lambda (total updated cached)
-                       (display (string-append "Total files formatted: "
-                                  (number->string total)
-                                  ", Files updated: "
-                                  (number->string updated)
-                                  ", Files cached: "
-                                  (number->string cached)
-                                ) ;string-append
-                       ) ;display
-                       (newline)
-                       #t
-                     ) ;lambda
-                   ) ;call-with-values
+                   (dispatch-format-directory path-str extensions excludes dry-run)
                  ) ;let
                 ) ;
                 (else (display (string-append "错误: 路径不存在 - " path-str))
@@ -461,14 +459,6 @@
                 ) ;else
           ) ;cond
         ) ;let*
-      ) ;let
-    ) ;define
-
-    ;; 单文件/目录模式下，从 gf_fmt.json 读 scheme.exclude 作为项目级排除
-    ;; （配置不存在时降级为 '()，单文件模式不强制要求配置）。
-    (define (scheme-config-excludes)
-      (let ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))))
-        (if cfg (lang-excludes 'scheme cfg) '())
       ) ;let
     ) ;define
 

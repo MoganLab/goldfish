@@ -27,17 +27,19 @@
     (liii goldfmt-scan)
     (liii goldfmt-format)
     (liii goldfmt-lang)
+    (liii goldfmt-config)
     (liii goldtool-changed)
   ) ;import
-  (export format-single-file
+  (export scheme-extensions
+    format-single-file
     format-directory
     format-changed-since
     format-file-list
-    collect-scheme
-    check-scheme-file
-    scheme-handler
   ) ;export
   (begin
+
+    ;; Scheme 语言接管的后缀表（带点）。gf_fmt.json 未写 scheme.suffix 时也用此表。
+    (define scheme-extensions '(".scm"))
 
     ;; ---- 缓存（迁移自 goldfmt.scm）-------------------------------------
     (define (fmt-cache-base-dir)
@@ -274,45 +276,60 @@
     ) ;define
 
     ;; ---- handler 协议实现（供仓库批量 / check 使用）---------------------
-    ;; 按配置 path 收集所有 .scm 文件（suffixes 由调用方传，默认 .scm）。
-    (define (collect-scheme paths excludes)
-      (let loop
-        ((ps paths) (acc '()))
-        (if (null? ps)
-          acc
-          (if (path-dir? (path (car ps)))
-            (loop (cdr ps) (append (collect-files (car ps) '(".scm") excludes) acc))
-            (loop (cdr ps) acc)
+    ;; 各方法统一接收 cfg，内部用 goldfmt-config 访问器自取本语言的 path/exclude。
+
+    ;; 仓库批量收集：从 cfg 的 scheme.path 递归收集所有 .scm 文件（尊重 scheme.exclude）。
+    (define (scheme-collect cfg)
+      (let ((paths (lang-paths 'scheme cfg)) (excludes (lang-excludes 'scheme cfg)))
+        (let loop
+          ((ps paths) (acc '()))
+          (if (null? ps)
+            acc
+            (if (path-dir? (path (car ps)))
+              (loop (cdr ps) (append (collect-files (car ps) '(".scm") excludes) acc))
+              (loop (cdr ps) acc)
+            ) ;if
           ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;; 仓库批量格式化：dry-run 恒为 #f（写回），返回 (total updated cached) 列表。
+    (define (scheme-format-files files cfg)
+      (call-with-values (lambda () (format-file-list files #f (lang-excludes 'scheme cfg)))
+        (lambda (total updated cached) (list total updated cached))
+      ) ;call-with-values
+    ) ;define
+
+    ;; 单文件 check：scan + format-nodes 与磁盘逐字节比；命中 exclude 视为通过（#t）。
+    (define (scheme-check-file path-str cfg)
+      (let ((excludes (lang-excludes 'scheme cfg)))
+        (if (file-excluded? path-str excludes)
+          #t
+          (let ((nodes (scan-file path-str)) (ondisk (path-read-text (path path-str))))
+            (string=? ondisk (format-nodes nodes))
+          ) ;let
         ) ;if
       ) ;let
     ) ;define
 
-    ;; 逐文件 check：gf fmt --dry-run 输出与磁盘内容逐字节比较。
-    ;; 命中 exclude 或命令失败视为通过（#t）。
-    (define (check-scheme-file path-str excludes)
-      (if (file-excluded? path-str excludes)
-        #t
-        (let ((nodes (scan-file path-str)) (ondisk (path-read-text (path path-str))))
-          (string=? ondisk (format-nodes nodes))
-        ) ;let
-      ) ;if
+    ;; 目录格式化（协议适配）：包装 format-directory，把多值返回转成 (total updated cached) 列表。
+    (define (scheme-format-directory dir extensions excludes dry-run)
+      (call-with-values (lambda () (format-directory dir extensions excludes dry-run))
+        (lambda (total updated cached) (list total updated cached))
+      ) ;call-with-values
     ) ;define
 
     ;; 注册到语言注册表。
-    (define (scheme-check-file path excludes)
-      (check-scheme-file path excludes)
-    ) ;define
-
-    (define (scheme-format-files files dry-run excludes)
-      (format-file-list files dry-run excludes)
-    ) ;define
-
     (define scheme-handler
       (list (cons 'name 'scheme)
-        (cons 'collect collect-scheme)
-        (cons 'check-file scheme-check-file)
+        (cons 'label "Scheme")
+        (cons 'extensions scheme-extensions)
+        (cons 'collect scheme-collect)
         (cons 'format-files scheme-format-files)
+        (cons 'format-file format-single-file)
+        (cons 'format-directory scheme-format-directory)
+        (cons 'check-file scheme-check-file)
       ) ;list
     ) ;define
 

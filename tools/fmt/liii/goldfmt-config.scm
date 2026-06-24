@@ -34,11 +34,9 @@
   (import (liii base) (liii path) (liii string) (liii json))
   (export load-fmt-config
     config-exists?
-    config-for-lang
     lang-suffixes
     lang-paths
     lang-excludes
-    lang-names
     default-suffixes
     parse-csv
     exclude-entry->path
@@ -116,16 +114,6 @@
     ;; 从配置里读某语言的 exclude pattern 列表。
     (define (lang-excludes lang cfg)
       (parse-exclude-array (json-ref (json-ref cfg (symbol->string lang)) "exclude"))
-    ) ;define
-
-    ;; 汇总某语言的完整配置为一个关联结构：(suffixes paths excludes)。
-    (define (config-for-lang lang cfg)
-      (list (lang-suffixes lang cfg) (lang-paths lang cfg) (lang-excludes lang cfg))
-    ) ;define
-
-    ;; 当前支持的有序语言列表（决定仓库批量/check 的处理顺序）。
-    (define (lang-names)
-      '(scheme cpp)
     ) ;define
 
     ;; 项目根下是否存在 gf_fmt.json。
