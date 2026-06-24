@@ -15,33 +15,22 @@
 ;;
 
 (define-library (liii goldsource-library)
-  (import (scheme base)
-    (liii goldsource-args)
-    (liii path)
-  ) ;import
-  (export find-visible-library-root
-    source-library-path
-  ) ;export
+  (import (scheme base) (liii goldsource-args) (liii path))
+  (export find-visible-library-root source-library-path)
   (begin
 
     (define (find-visible-library-root query)
       (let ((parts (parse-library-query query)))
         (if (not parts)
           #f
-          (let ((group (car parts))
-                (library (cdr parts))
-               ) ;
+          (let ((group (car parts)) (library (cdr parts)))
             (let loop
               ((roots *load-path*))
               (if (null? roots)
                 #f
                 (let ((load-root (car roots)))
                   (if (and (string? load-root)
-                        (path-file? (path-join load-root
-                                      group
-                                      (string-append library ".scm")
-                                    ) ;path-join
-                        ) ;path-file?
+                        (path-file? (path-join load-root group (string-append library ".scm")))
                       ) ;and
                     load-root
                     (loop (cdr roots))
@@ -58,17 +47,10 @@
       (let* ((parts (parse-library-query query))
              (group (and parts (car parts)))
              (library (and parts (cdr parts)))
-             (load-root (and parts
-                          (find-visible-library-root query)
-                        ) ;and
-             ) ;load-root
+             (load-root (and parts (find-visible-library-root query)))
             ) ;
         (and load-root
-          (path->string (path-join load-root
-                          group
-                          (string-append library ".scm")
-                        ) ;path-join
-          ) ;path->string
+          (path->string (path-join load-root group (string-append library ".scm")))
         ) ;and
       ) ;let*
     ) ;define

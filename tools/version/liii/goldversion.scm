@@ -15,14 +15,8 @@
 ;;
 
 (define-library (liii goldversion)
-  (import (scheme base)
-          (scheme write)
-          (liii argparse)
-          (liii sys)
-  ) ;import
-  (export main
-          display-version
-  ) ;export
+  (import (scheme base) (scheme write) (liii argparse) (liii sys))
+  (export main display-version)
   (begin
 
     (define (display-version)
@@ -30,13 +24,15 @@
       (display "Goldfish Scheme ")
       (display (version))
       (display " by LiiiLabs")
-      (newline))
+      (newline)
+    ) ;define
 
     (define (main)
       "Main entry point for version command"
-      (let ((parser (make-argument-parser
-                      '((command . "version")
-                        (unknown-options . positional)))))
+      (let ((parser (make-argument-parser '((command . "version")
+                                            (unknown-options . positional)))
+            ) ;parser
+           ) ;
         (parser :parse-argv (argv))
         (display-version)
       ) ;let
