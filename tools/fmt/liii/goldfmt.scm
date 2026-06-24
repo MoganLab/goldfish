@@ -237,9 +237,11 @@
       ) ;list->string
     ) ;define
 
-    ;; entry 是否命中 excludes：归一化后按"分隔符边界 + 后缀"匹配。
+    ;; entry 是否命中 excludes：归一化后按"分隔符边界 + 后缀"精确匹配。
     ;; pattern 含 / 时按完整相对路径精确匹配（不会误伤同名文件）；
     ;; pattern 不含 / 时退化为 basename 匹配（向后兼容）。
+    ;; 注意：通配符（* 等）只由 gf format 的 C++ 收集支持（goldformat-path.scm），
+    ;; gf fmt/gf fix 仅做精确匹配——gfexclude.json 中的 src/s7* 只对 C++ 生效。
     (define (file-excluded? entry-str excludes)
       (let ((entry-norm (normalize-sep entry-str)))
         (let loop
@@ -412,11 +414,16 @@
                      ) ;let
                     ) ;
                     ((path-dir? entry)
-                     (call-with-values (lambda () (format-directory (path->string entry) extensions excludes))
-                       (lambda (sub-total sub-updated sub-cached)
-                         (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
-                       ) ;lambda
-                     ) ;call-with-values
+                     (let ((dir-str (path->string entry)))
+                       (if (file-excluded? dir-str excludes)
+                         (loop (+ i 1) total updated cached)
+                         (call-with-values (lambda () (format-directory dir-str extensions excludes))
+                           (lambda (sub-total sub-updated sub-cached)
+                             (loop (+ i 1) (+ total sub-total) (+ updated sub-updated) (+ cached sub-cached))
+                           ) ;lambda
+                         ) ;call-with-values
+                       ) ;if
+                     ) ;let
                     ) ;
                     (else (loop (+ i 1) total updated cached))
               ) ;cond
