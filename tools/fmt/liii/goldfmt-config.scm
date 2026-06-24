@@ -17,14 +17,14 @@
 ;; gf fmt 的多语言配置加载（gf_fmt.json）。
 ;; 该文件三合一承载了原 gfformat.json（扫描范围）与 gfexclude.json（排除）：
 ;;   {
-;;     "cpp":    { "suffix": "hpp,cpp,h,c,cc,cxx", "path": "src",
+;;     "cpp":    { "suffix": ["hpp","cpp","h","c","cc","cxx"], "path": ["src"],
 ;;                 "exclude": [{"path":"src/s7*","reason":"..."}, "tests"] },
-;;     "scheme": { "suffix": "scm", "path": "goldfish,tools",
+;;     "scheme": { "suffix": ["scm"], "path": ["goldfish","tools"],
 ;;                 "exclude": ["tests"] }
 ;;   }
 ;; 字段语义：
-;;   suffix  —— 逗号分隔的后缀（不带点），如 "hpp,cpp"。
-;;   path    —— 逗号分隔的根目录/文件，仓库批量模式时递归收集。
+;;   suffix  —— 后缀字符串数组（不带点），如 ["hpp","cpp"]。
+;;   path    —— 根目录/文件字符串数组，仓库批量模式时递归收集。
 ;;   exclude —— 该语言专属排除，支持两种格式：
 ;;                纯字符串 "src/s7*" 或对象 {"path":"...","reason":"..."}。
 ;;              支持通配符 *（匹配逻辑在各语言模块/通用层）。
@@ -38,7 +38,6 @@
     lang-paths
     lang-excludes
     default-suffixes
-    parse-csv
     exclude-entry->path
     parse-exclude-array
   ) ;export
@@ -60,33 +59,35 @@
       ) ;if
     ) ;define
 
-    (define (parse-csv raw)
-      (if (or (not raw) (not (string? raw)) (string=? raw ""))
+    ;; 从 JSON 值里读字符串列表：仅接受字符串数组，逐项收集字符串、丢弃非字符串。
+    ;; 非数组或空则返回 '()。
+    (define (read-string-array val)
+      (if (not (json-array? val))
         '()
         (let loop
-          ((parts (string-split raw ",")) (acc '()))
-          (if (null? parts)
+          ((i 0) (acc '()))
+          (if (>= i (vector-length val))
             (reverse acc)
-            (let ((p (car parts)))
-              (if (string=? p "") (loop (cdr parts) acc) (loop (cdr parts) (cons p acc)))
+            (let ((p (vector-ref val i)))
+              (loop (+ i 1) (if (string? p) (cons p acc) acc))
             ) ;let
           ) ;if
         ) ;let
       ) ;if
     ) ;define
 
-    ;; 从配置里读某语言的后缀列表（带点）。配置未写则用默认。
+    ;; 从配置里读某语言的后缀列表（带点）。配置未写或为空则用默认。
     (define (lang-suffixes lang cfg)
-      (let ((raw (json-ref-string (json-ref cfg (symbol->string lang)) "suffix" #f)))
-        (if raw (map normalize-suffix (parse-csv raw)) (default-suffixes lang))
+      (let ((arr (read-string-array (json-ref (json-ref cfg (symbol->string lang)) "suffix"))
+            ) ;arr
+           ) ;
+        (if (null? arr) (default-suffixes lang) (map normalize-suffix arr))
       ) ;let
     ) ;define
 
     ;; 从配置里读某语言的扫描 path 列表。
     (define (lang-paths lang cfg)
-      (let ((raw (json-ref-string (json-ref cfg (symbol->string lang)) "path" #f)))
-        (parse-csv raw)
-      ) ;let
+      (read-string-array (json-ref (json-ref cfg (symbol->string lang)) "path"))
     ) ;define
 
     ;; exclude 数组每项可以是字符串（纯路径）或对象（含 path 与可选 reason）。
