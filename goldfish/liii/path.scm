@@ -33,6 +33,7 @@
     path-with-stem
     path-with-suffix
     path-relative-to
+    path-contains?
     path-equals?
     path=?
     path-absolute?
@@ -741,6 +742,39 @@
               ((= bn pn) (path "."))
               (else (make-path-record (remaining-segments) (path-record-type pp) "" #f))
         ) ;cond
+      ) ;let*
+    ) ;define
+
+    ;; ; 对齐 pathlib.PurePath.is_relative_to(other)
+    ;; ; 返回 #t 当且仅当 p 是 base 本身或 base 的后代路径。
+    (define (path-contains? base p)
+      (let* ((pp (path p))
+             (bp (path base))
+             (p-segs (path-record-parts pp))
+             (b-segs (path-record-parts bp))
+             (p-drive (path-record-drive pp))
+             (b-drive (path-record-drive bp))
+             (p-root (path-record-root pp))
+             (b-root (path-record-root bp))
+             (pn (vector-length p-segs))
+             (bn (vector-length b-segs))
+            ) ;
+        (define (same-anchor?)
+          (and (string=? p-drive b-drive)
+            (eq? p-root b-root)
+            (eq? (path-record-type pp) (path-record-type bp))
+          ) ;and
+        ) ;define
+        (define (prefix-match?)
+          (let loop
+            ((i 0))
+            (cond ((= i bn) #t)
+                  ((not (string=? (vector-ref p-segs i) (vector-ref b-segs i))) #f)
+                  (else (loop (+ i 1)))
+            ) ;cond
+          ) ;let
+        ) ;define
+        (and (same-anchor?) (>= pn bn) (prefix-match?))
       ) ;let*
     ) ;define
 
