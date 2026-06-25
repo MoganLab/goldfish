@@ -369,10 +369,12 @@
     ) ;define
 
     ;; 目录：选语言 handler，调其 format-directory（返回 (total updated unchanged) 列表），统一打印统计行。
+    ;; 若目录所在项目存在 gf_fmt.json，则把配置一并传给 handler，使其以配置为准。
     (define (dispatch-format-directory dir extensions excludes dry-run)
-      (let* ((handler (directory-handler-for extensions))
+      (let* ((cfg (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f)))
+             (handler (directory-handler-for extensions))
              (format-directory (lang-ref handler 'format-directory))
-             (stats (format-directory dir extensions excludes dry-run))
+             (stats (format-directory dir extensions excludes dry-run cfg))
             ) ;
         (display (string-append "Total files formatted: "
                    (number->string (car stats))

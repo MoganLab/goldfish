@@ -25,6 +25,8 @@
     (liii os)
     (liii path)
     (liii string)
+    (liii subprocess)
+    (liii goldfmt-cache)
     (liii goldfmt-lang)
     (liii goldfmt-config)
   ) ;import
@@ -40,62 +42,95 @@
     ;; C++ 语言接管的后缀表（带点）。gf_fmt.json 未写 cpp.suffix 时也用此表。
     (define cpp-extensions '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
 
-    ;; ---- clang-format 定位（迁移自 goldformat-binary.scm）--------------
-    ;; Windows 直接用 PATH 中的 clang-format；macOS 用 homebrew llvm@19；
-    ;; Linux 按版本号优先探测 clang-format-19，回退到通用名。
-    (define (clang-format-binary)
-      (cond ((os-windows?) "clang-format")
-            ((os-macos?) "/opt/homebrew/opt/llvm@19/bin/clang-format")
-            (else (let loop
-                    ((paths '("/usr/local/bin/clang-format-19"
-                              "/usr/lib/llvm-19/bin/clang-format"
-                              "/usr/bin/clang-format-19"
-                              "/usr/bin/clang-format")
-                     ) ;paths
-                    ) ;
-                    (if (null? paths)
-                      "clang-format"
-                      (if (file-exists? (car paths)) (car paths) (loop (cdr paths)))
-                    ) ;if
-                  ) ;let
-            ) ;else
-      ) ;cond
+    ;; ---- clang-format 调用 ----------------------------------------------
+    ;; 优先从 gf_fmt.json 的 cpp.binary / cpp.binary-linux / cpp.binary-windows /
+    ;; cpp.binary-macos 读取；未配置时回退到 PATH 中的 "clang-format"。
+    ;; 若未找到，给出提示并返回 #f，避免无意义的子进程调用。
+    (define (clang-format-binary . maybe-cfg)
+      (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
+        (if cfg (lang-binary 'cpp cfg) "clang-format")
+      ) ;let
     ) ;define
 
-    ;; 把字符串用单引号包成 shell 安全参数（POSIX 风格）。
-    (define (shell-quote s)
-      (string-append "'" (string-replace s "'" "'\\''") "'")
+    (define (clang-format-ok? . maybe-cfg)
+      (let ((cf (apply clang-format-binary maybe-cfg)))
+        (let ((sym (string->symbol "clang-format")))
+          (run-set! sym cf)
+          (= 0 (run '(clang-format "--version")))
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (clang-format-hint)
+      (display "提示：未找到 clang-format，请安装并确保其在 PATH 中，或在 gf_fmt.json 配置 cpp.binary。"
+      ) ;display
+      (newline)
+    ) ;define
+
+    ;; 调用 clang-format。cfg 为已加载的 gf_fmt.json 配置（可为 #f），args 为字符串参数
+    ;; 列表，opts 传给 run。通过 run-set! 将配置得到的路径注册到符号命令。
+    (define (clang-format-run cfg args . opts)
+      (let ((sym (string->symbol "clang-format")) (cf (clang-format-binary cfg)))
+        (run-set! sym cf)
+        (apply run (cons (cons sym args) opts))
+      ) ;let
     ) ;define
 
     ;; 单文件格式化：dry-run 时输出 clang-format 的 dry-run 结果；
-    ;; 否则把格式化结果输出到临时文件与原内容比对——不同才写回（计 updated）。
-    (define (format-cpp-file path-str dry-run)
-      (let ((cf (clang-format-binary)))
-        (if dry-run
-          (os-call (string-append cf " --dry-run " (shell-quote path-str)))
-          (let* ((tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-out.txt")))
-                 (rc (os-call (string-append "sh -c \"" cf " " (shell-quote path-str) " > " tmp "\"")
-                     ) ;os-call
-                 ) ;rc
-                 (formatted (if (file-exists? tmp) (path-read-text (path tmp)) ""))
-                 (ondisk (path-read-text (path path-str)))
-                ) ;
-            (if (file-exists? tmp) (delete-file tmp) #f)
-            (if (and (= rc 0) (not (string=? formatted ondisk)))
+    ;; 否则先查缓存，命中则跳过；未命中则用 clang-format -i 原地格式化，
+    ;; 通过比较格式化前后内容判断是否有变更。
+    ;; 返回 'cached / #t(有变更) / #f(无变更)。
+    (define* (format-cpp-file path-str dry-run (use-cache? #t))
+      (let ((cfg (load-fmt-config)))
+        (if (not (clang-format-ok? cfg))
+          (begin
+            (clang-format-hint)
+            #f
+          ) ;begin
+          (if dry-run
+            (clang-format-run cfg (list "--dry-run" path-str))
+            (if (and use-cache? (fmt-cache-hit? path-str))
               (begin
-                (path-write-text (path path-str) formatted)
-                (display (string-append "  Updated: " path-str))
+                (display (string-append "  Cached: " path-str))
                 (newline)
+                'cached
               ) ;begin
-              (begin
-                (display (string-append "  Unchanged: " path-str))
-                (newline)
-              ) ;begin
+              (let ((ondisk (path-read-text (path path-str)))
+                    (rc (clang-format-run cfg (list "-i" path-str)))
+                   ) ;
+                (if (= rc 0)
+                  (let ((formatted (path-read-text (path path-str))))
+                    (if (not (string=? formatted ondisk))
+                      (begin
+                        (when use-cache?
+                          (fmt-cache-touch path-str)
+                        ) ;when
+                        (display (string-append "  Updated: " path-str))
+                        (newline)
+                        #t
+                      ) ;begin
+                      (begin
+                        (when use-cache?
+                          (fmt-cache-touch path-str)
+                        ) ;when
+                        (display (string-append "  Unchanged: " path-str))
+                        (newline)
+                        #f
+                      ) ;begin
+                    ) ;if
+                  ) ;let
+                  (begin
+                    (display (string-append "  Failed: " path-str))
+                    (newline)
+                    #f
+                  ) ;begin
+                ) ;if
+              ) ;let
             ) ;if
-          ) ;let*
+          ) ;if
         ) ;if
       ) ;let
-    ) ;define
+    ) ;define*
 
     ;; ---- 文件收集 -------------------------------------------------------
     ;; 仓库批量收集：从 cfg 的 cpp.path 递归收集 C/C++ 文件（按 cpp.suffix，尊重 cpp.exclude）。
@@ -118,26 +153,38 @@
     ) ;define
 
     ;; ---- 批量格式化 -----------------------------------------------------
-    ;; 逐文件 clang-format：把格式化结果输出到临时文件，与原内容比对——
-    ;; 不同则写回（计 updated），相同则跳过（计 unchanged）。返回 (total updated unchanged)。
-    ;; 无缓存（cpp 不缓存），统计诚实反映真实改动。cfg 参数为统一协议保留。
-    (define (format-one-cpp cf path-str tmp)
-      (let* ((rc (os-call (string-append "sh -c \"" cf " " (shell-quote path-str) " > " tmp "\"")
-                 ) ;os-call
-             ) ;rc
-             (formatted (if (file-exists? tmp) (path-read-text (path tmp)) ""))
-             (ondisk (path-read-text (path path-str)))
-            ) ;
-        (if (and (= rc 0) (not (string=? formatted ondisk)))
-          (begin
-            (path-write-text (path path-str) formatted)
-            (display (string-append "  Updated: " path-str))
-            (newline)
-            #t
-          ) ;begin
-          #f
-        ) ;if
-      ) ;let*
+    ;; 逐文件 clang-format：先查缓存，命中则跳过；未命中则用 clang-format -i
+    ;; 原地格式化，通过比较格式化前后内容判断是否有变更。
+    ;; 返回 (total updated cached)。
+    (define (format-one-cpp cfg path-str use-cache?)
+      (if (and use-cache? (fmt-cache-hit? path-str))
+        'cached
+        (let ((ondisk (path-read-text (path path-str)))
+              (rc (clang-format-run cfg (list "-i" path-str)))
+             ) ;
+          (if (= rc 0)
+            (let ((formatted (path-read-text (path path-str))))
+              (if (not (string=? formatted ondisk))
+                (begin
+                  (when use-cache?
+                    (fmt-cache-touch path-str)
+                  ) ;when
+                  (display (string-append "  Updated: " path-str))
+                  (newline)
+                  #t
+                ) ;begin
+                (begin
+                  (when use-cache?
+                    (fmt-cache-touch path-str)
+                  ) ;when
+                  #f
+                ) ;begin
+              ) ;if
+            ) ;let
+            #f
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     (define (format-cpp-files files cfg)
@@ -147,68 +194,85 @@
           (newline)
           (list 0 0 0)
         ) ;begin
-        (let* ((cf (clang-format-binary))
-               (tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-out.txt")))
-              ) ;
-          (display (string-append "Formatting "
-                     (number->string (length files))
-                     " C++ files with "
-                     cf
-                   ) ;string-append
-          ) ;display
-          (newline)
-          (flush-output-port (current-output-port))
-          (let loop
-            ((fs files) (total 0) (updated 0))
-            (if (null? fs)
-              (begin
-                (if (file-exists? tmp) (delete-file tmp) #f)
-                (list total updated (- total updated))
-              ) ;begin
-              (let ((changed? (format-one-cpp cf (car fs) tmp)))
-                (loop (cdr fs) (+ total 1) (if changed? (+ updated 1) updated))
-              ) ;let
-            ) ;if
+        (if (not (clang-format-ok? cfg))
+          (begin
+            (clang-format-hint)
+            (list 0 0 0)
+          ) ;begin
+          (let ((cf (clang-format-binary cfg)))
+            (display (string-append "Formatting "
+                       (number->string (length files))
+                       " C++ files with "
+                       cf
+                     ) ;string-append
+            ) ;display
+            (newline)
+            (flush-output-port (current-output-port))
+            (let loop
+              ((fs files) (total 0) (updated 0) (cached 0))
+              (if (null? fs)
+                (list total updated cached)
+                (let ((result (format-one-cpp cfg (car fs) #t)))
+                  (cond ((eq? result 'cached) (loop (cdr fs) (+ total 1) updated (+ cached 1)))
+                        (result (display (string-append "  Updated: " (car fs)))
+                          (newline)
+                          (loop (cdr fs) (+ total 1) (+ updated 1) cached)
+                        ) ;result
+                        (else (loop (cdr fs) (+ total 1) updated cached))
+                  ) ;cond
+                ) ;let
+              ) ;if
+            ) ;let
           ) ;let
-        ) ;let*
+        ) ;if
       ) ;if
     ) ;define
 
-    ;; 目录递归格式化：收集 dir 下命中 suffixes 的 C/C++ 文件（尊重 excludes），
-    ;; 逐文件 clang-format 比对内容（同 format-cpp-files）。返回 (total updated unchanged)。
-    ;; dry-run 不支持目录（与 scheme 目录约定一致，由调用方拦截）。
-    (define (format-cpp-directory dir suffixes excludes)
-      (let ((files (collect-files dir suffixes excludes)))
-        (if (null? files)
-          (begin
-            (display "No C++ files found.")
-            (newline)
-            (list 0 0 0)
-          ) ;begin
-          (format-cpp-files files #f)
-        ) ;if
+    ;; 目录递归格式化：若传入 cfg，则以 gf_fmt.json 为准收集文件；否则收集 dir 下
+    ;; 命中 suffixes 的 C/C++ 文件（尊重 excludes）。逐文件 clang-format 比对内容。
+    ;; 返回 (total updated unchanged)。dry-run 不支持目录（由调用方拦截）。
+    (define (format-cpp-directory dir suffixes excludes . maybe-cfg)
+      (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
+        (let ((files (if cfg (cpp-collect cfg) (collect-files dir suffixes excludes))))
+          (if (null? files)
+            (begin
+              (display "No C++ files found.")
+              (newline)
+              (list 0 0 0)
+            ) ;begin
+            (format-cpp-files files cfg)
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
     ;; ---- 单文件检查 -----------------------------------------------------
-    ;; clang-format --dry-run --Werror，退出码非 0 表示需格式化。
-    ;; stderr（含 diff）重定向到 /dev/null；返回 #t(已格式化) / #f(需格式化)。
-    ;; Windows 无 sh：视为通过（CI 在 Debian 跑）。cfg 参数为统一协议保留。
+    ;; 先查缓存，命中则直接通过；未命中再调用 clang-format --dry-run --Werror。
+    ;; stdout / stderr 均丢弃；返回 #t(已格式化) / #f(需格式化)。
+    ;; 检查通过后 touch 缓存，供后续跳过。
     (define (check-cpp-file path cfg)
-      (if (os-windows?)
-        #t
-        (let* ((cf (clang-format-binary))
-               (rc (os-call (string-append "sh -c \""
-                              cf
-                              " --dry-run --Werror "
-                              (shell-quote path)
-                              " >/dev/null 2>&1\""
-                            ) ;string-append
-                   ) ;os-call
-               ) ;rc
-              ) ;
-          (= rc 0)
-        ) ;let*
+      (if (not (clang-format-ok? cfg))
+        (begin
+          (clang-format-hint)
+          #f
+        ) ;begin
+        (if (fmt-cache-hit? path)
+          #t
+          (let ((rc (clang-format-run cfg
+                      (list "--dry-run" "--Werror" path)
+                      :stdout
+                      'discard
+                      :stderr
+                      'discard
+                    ) ;clang-format-run
+                ) ;rc
+               ) ;
+            (when (= rc 0)
+              (fmt-cache-touch path)
+            ) ;when
+            (= rc 0)
+          ) ;let
+        ) ;if
       ) ;if
     ) ;define
 
@@ -219,14 +283,14 @@
       (format-cpp-file path dry-run)
     ) ;define
 
-    (define (cpp-format-directory dir exts excludes dry-run)
+    (define (cpp-format-directory dir exts excludes dry-run . maybe-cfg)
       (if dry-run
         (begin
           (display "错误: --dry-run 选项仅支持单个文件")
           (newline)
           (exit 1)
         ) ;begin
-        (format-cpp-directory dir exts excludes)
+        (apply format-cpp-directory dir exts excludes maybe-cfg)
       ) ;if
     ) ;define
 
