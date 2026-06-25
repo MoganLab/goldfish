@@ -228,19 +228,26 @@
       ) ;if
     ) ;define
 
-    ;; 目录递归格式化：收集 dir 下命中 suffixes 的 C/C++ 文件（尊重 excludes），
-    ;; 逐文件 clang-format 比对内容（同 format-cpp-files）。返回 (total updated unchanged)。
-    ;; dry-run 不支持目录（与 scheme 目录约定一致，由调用方拦截）。
-    (define (format-cpp-directory dir suffixes excludes)
-      (let ((files (collect-files dir suffixes excludes)))
-        (if (null? files)
-          (begin
-            (display "No C++ files found.")
-            (newline)
-            (list 0 0 0)
-          ) ;begin
-          (format-cpp-files files #f)
-        ) ;if
+    ;; 目录递归格式化：若传入 cfg，则以 gf_fmt.json 为准收集文件；否则收集 dir 下
+    ;; 命中 suffixes 的 C/C++ 文件（尊重 excludes）。逐文件 clang-format 比对内容。
+    ;; 返回 (total updated unchanged)。dry-run 不支持目录（由调用方拦截）。
+    (define (format-cpp-directory dir suffixes excludes . maybe-cfg)
+      (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
+        (let ((files (if cfg
+                       (cpp-collect cfg)
+                       (collect-files dir suffixes excludes)
+                     ) ;if
+               ) ;files
+              ) ;
+          (if (null? files)
+            (begin
+              (display "No C++ files found.")
+              (newline)
+              (list 0 0 0)
+            ) ;begin
+            (format-cpp-files files cfg)
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
@@ -281,14 +288,14 @@
       (format-cpp-file path dry-run)
     ) ;define
 
-    (define (cpp-format-directory dir exts excludes dry-run)
+    (define (cpp-format-directory dir exts excludes dry-run . maybe-cfg)
       (if dry-run
         (begin
           (display "错误: --dry-run 选项仅支持单个文件")
           (newline)
           (exit 1)
         ) ;begin
-        (format-cpp-directory dir exts excludes)
+        (apply format-cpp-directory dir exts excludes maybe-cfg)
       ) ;if
     ) ;define
 

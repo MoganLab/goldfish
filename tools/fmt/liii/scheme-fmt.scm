@@ -281,11 +281,24 @@
       ) ;let
     ) ;define
 
-    ;; 目录格式化（协议适配）：包装 format-directory，把多值返回转成 (total updated cached) 列表。
-    (define (scheme-format-directory dir extensions excludes dry-run)
-      (call-with-values (lambda () (format-directory dir extensions excludes dry-run))
-        (lambda (total updated cached) (list total updated cached))
-      ) ;call-with-values
+    ;; 目录格式化（协议适配）：若传入 cfg，以 gf_fmt.json 为准收集并格式化；
+    ;; 否则递归格式化指定 dir。dry-run 不支持目录。返回 (total updated cached) 列表。
+    (define (scheme-format-directory dir extensions excludes dry-run . maybe-cfg)
+      (if dry-run
+        (begin
+          (display "错误: --dry-run 选项仅支持单个文件")
+          (newline)
+          (exit 1)
+        ) ;begin
+        (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
+          (if cfg
+            (scheme-format-files (scheme-collect cfg) cfg)
+            (call-with-values (lambda () (format-directory dir extensions excludes dry-run))
+              (lambda (total updated cached) (list total updated cached))
+            ) ;call-with-values
+          ) ;if
+        ) ;let
+      ) ;if
     ) ;define
 
     ;; 注册到语言注册表。
