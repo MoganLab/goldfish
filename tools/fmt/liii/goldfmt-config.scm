@@ -130,7 +130,7 @@
                            ((os-macos?) "binary-macos")
                            (else "binary-linux")
                      ) ;cond
-             )
+             ) ;os-key
              (os-bin (json-ref-string lang-cfg os-key #f))
              (generic-bin (json-ref-string lang-cfg "binary" #f))
             ) ;

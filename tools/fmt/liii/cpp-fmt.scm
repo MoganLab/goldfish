@@ -233,12 +233,7 @@
     ;; 返回 (total updated unchanged)。dry-run 不支持目录（由调用方拦截）。
     (define (format-cpp-directory dir suffixes excludes . maybe-cfg)
       (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
-        (let ((files (if cfg
-                       (cpp-collect cfg)
-                       (collect-files dir suffixes excludes)
-                     ) ;if
-               ) ;files
-              ) ;
+        (let ((files (if cfg (cpp-collect cfg) (collect-files dir suffixes excludes))))
           (if (null? files)
             (begin
               (display "No C++ files found.")
