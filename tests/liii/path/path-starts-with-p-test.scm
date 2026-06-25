@@ -20,6 +20,10 @@
 ;; ------
 ;; boolean
 ;; 当 p 是 base 本身或 base 的后代路径时返回 #t，否则返回 #f。
+;;
+;; 说明
+;; ----
+;; 本函数为纯路径运算，不访问文件系统，因此不要求参数所表示的路径真实存在。
 
 ;; 基本功能测试
 (check (path-starts-with? "/usr/share" "/usr") => #t)
@@ -35,6 +39,10 @@
 (check (path-starts-with? "tools/fmt/liii" "tools/fmt") => #t)
 (check (path-starts-with? "tools/fmt/liii/goldfmt-cache.scm" "tools/fmt") => #t)
 (check (path-starts-with? "tools/doc" "tools/fmt") => #f)
+
+;; 不存在的路径也能正常判断
+(check (path-starts-with? "/not/exist/sub" "/not/exist") => #t)
+(check (path-starts-with? "/not/exist2" "/not/exist") => #f)
 
 ;; 跨锚点返回 #f
 (when (os-windows?)
