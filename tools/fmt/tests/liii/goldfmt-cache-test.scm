@@ -12,8 +12,13 @@
 
 (check-set-mode! 'report-failed)
 
-;; 缓存根目录应包含 goldfish/fmt/<version> 结构。
-(check (string-contains? (fmt-cache-base-dir) ".cache/goldfish/fmt/") => #t)
+;; 缓存根目录应包含 goldfish/fmt/<version> 结构（Windows 路径分隔符统一成正斜杠后比较）。
+(check (string-contains? (string-replace (fmt-cache-base-dir) "\\" "/")
+         ".cache/goldfish/fmt/"
+       ) ;string-contains?
+  =>
+  #t
+) ;check
 
 ;; 创建一个临时文件，验证路径计算、touch 后缓存命中。
 (let* ((tmp-dir (path->string (path-join (path (getcwd)) "tools" "fmt" "tests" "liii"))
