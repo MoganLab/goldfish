@@ -3,6 +3,7 @@
 
 (import (liii check)
   (liii goldfmt)
+  (liii cpp-fmt)
   (liii goldtool-changed)
   (liii list)
   (liii os)
@@ -22,6 +23,12 @@
       (error "Command failed" command)
     ) ;unless
   ) ;let
+) ;define
+
+;; 检测 clang-format 是否可用；不可用时（如未安装 clang-format 的 CI）相关 C++ 端到端断言跳过。
+
+(define (clang-format-available?)
+  (zero? (os-call (string-append (clang-format-binary) " --version")))
 ) ;define
 
 (define (remove-tree target)
@@ -118,13 +125,16 @@
     ) ;let*
 
     ;; 再次修改，测试默认所有语言的端到端格式化（依赖 clang-format）
-    (path-write-text (path "a.scm") "( define a 3 )\n")
-    (path-write-text (path "b.cpp") "int  b  =  3;\n")
-    (let ((result (format-changed-since "HEAD" "" (all-registered-extensions) '() #f)))
-      (check result => #t)
-    ) ;let
-    (check (string=? (path-read-text (path "a.scm")) "(define a 3)\n") => #t)
-    (check (string=? (path-read-text (path "b.cpp")) "int b = 3;\n") => #t)
+    ;; 无 clang-format 的环境（如 macos/fedora/debian CI）跳过本段。
+    (when (clang-format-available?)
+      (path-write-text (path "a.scm") "( define a 3 )\n")
+      (path-write-text (path "b.cpp") "int  b  =  3;\n")
+      (let ((result (format-changed-since "HEAD" "" (all-registered-extensions) '() #f)))
+        (check result => #t)
+      ) ;let
+      (check (string=? (path-read-text (path "a.scm")) "(define a 3)\n") => #t)
+      (check (string=? (path-read-text (path "b.cpp")) "int b = 3;\n") => #t)
+    ) ;when
   ) ;lambda
   (lambda () (chdir original-cwd) (remove-tree repo-dir))
 ) ;dynamic-wind
