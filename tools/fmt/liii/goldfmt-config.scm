@@ -31,12 +31,13 @@
 ;; 配置文件放在项目根（g_project-root，即 gfproject.json 所在目录）。
 
 (define-library (liii goldfmt-config)
-  (import (liii base) (liii path) (liii string) (liii json))
+  (import (liii base) (liii os) (liii path) (liii string) (liii json))
   (export load-fmt-config
     config-exists?
     lang-suffixes
     lang-paths
     lang-excludes
+    lang-binary
     default-suffixes
     exclude-entry->path
     parse-exclude-array
@@ -115,6 +116,26 @@
     ;; 从配置里读某语言的 exclude pattern 列表。
     (define (lang-excludes lang cfg)
       (parse-exclude-array (json-ref (json-ref cfg (symbol->string lang)) "exclude"))
+    ) ;define
+
+    ;; 从配置里读取某语言的外部格式化器二进制路径，支持按操作系统覆盖：
+    ;;   "binary"            : 默认路径
+    ;;   "binary-linux"      : Linux 覆盖
+    ;;   "binary-windows"    : Windows 覆盖
+    ;;   "binary-macos"      : macOS 覆盖
+    ;; 未配置时返回默认字符串 "clang-format"。
+    (define (lang-binary lang cfg)
+      (let* ((lang-cfg (json-ref cfg (symbol->string lang)))
+             (os-key (cond ((os-windows?) "binary-windows")
+                           ((os-macos?) "binary-macos")
+                           (else "binary-linux")
+                     ) ;cond
+             )
+             (os-bin (json-ref-string lang-cfg os-key #f))
+             (generic-bin (json-ref-string lang-cfg "binary" #f))
+            ) ;
+        (or os-bin generic-bin "clang-format")
+      ) ;let*
     ) ;define
 
     ;; 项目根下是否存在 gf_fmt.json。

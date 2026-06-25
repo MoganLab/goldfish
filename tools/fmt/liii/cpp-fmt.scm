@@ -43,27 +43,34 @@
     (define cpp-extensions '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
 
     ;; ---- clang-format 调用 ----------------------------------------------
-    ;; 由用户自行保证 clang-format 已安装并在 PATH 中；这里仅使用通用名。
+    ;; 优先从 gf_fmt.json 的 cpp.binary / cpp.binary-linux / cpp.binary-windows /
+    ;; cpp.binary-macos 读取；未配置时回退到 PATH 中的 "clang-format"。
     ;; 若未找到，给出提示并返回 #f，避免无意义的子进程调用。
-    (define (clang-format-binary)
-      "clang-format"
+    (define (clang-format-binary . maybe-cfg)
+      (let ((cfg (if (null? maybe-cfg) #f (car maybe-cfg))))
+        (if cfg (lang-binary 'cpp cfg) "clang-format")
+      ) ;let
     ) ;define
 
-    (define (clang-format-ok?)
-      (= 0 (run '(clang-format "--version")))
+    (define (clang-format-ok? . maybe-cfg)
+      (let ((cf (apply clang-format-binary maybe-cfg)))
+        (let ((sym (string->symbol "clang-format")))
+          (run-set! sym cf)
+          (= 0 (run '(clang-format "--version")))
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (clang-format-hint)
-      (display "提示：未找到 clang-format，请安装并确保其在 PATH 中。"
+      (display "提示：未找到 clang-format，请安装并确保其在 PATH 中，或在 gf_fmt.json 配置 cpp.binary。"
       ) ;display
       (newline)
     ) ;define
 
-    ;; 调用 clang-format。args 为字符串参数列表，opts 传给 run。
-    ;; 通过 run-set! 将二进制路径（当前即为通用名）注册到符号命令，
-    ;; 使 run 接受列表形式命令，避免拼接 shell 字符串。
-    (define (clang-format-run args . opts)
-      (let ((sym (string->symbol "clang-format")) (cf (clang-format-binary)))
+    ;; 调用 clang-format。cfg 为已加载的 gf_fmt.json 配置（可为 #f），args 为字符串参数
+    ;; 列表，opts 传给 run。通过 run-set! 将配置得到的路径注册到符号命令。
+    (define (clang-format-run cfg args . opts)
+      (let ((sym (string->symbol "clang-format")) (cf (clang-format-binary cfg)))
         (run-set! sym cf)
         (apply run (cons (cons sym args) opts))
       ) ;let
@@ -74,53 +81,55 @@
     ;; 通过比较格式化前后内容判断是否有变更。
     ;; 返回 'cached / #t(有变更) / #f(无变更)。
     (define* (format-cpp-file path-str dry-run (use-cache? #t))
-      (if (not (clang-format-ok?))
-        (begin
-          (clang-format-hint)
-          #f
-        ) ;begin
-        (if dry-run
-          (clang-format-run (list "--dry-run" path-str))
-          (if (and use-cache? (fmt-cache-hit? path-str))
-            (begin
-              (display (string-append "  Cached: " path-str))
-              (newline)
-              'cached
-            ) ;begin
-            (let ((ondisk (path-read-text (path path-str)))
-                  (rc (clang-format-run (list "-i" path-str)))
-                 ) ;
-              (if (= rc 0)
-                (let ((formatted (path-read-text (path path-str))))
-                  (if (not (string=? formatted ondisk))
-                    (begin
-                      (when use-cache?
-                        (fmt-cache-touch path-str)
-                      ) ;when
-                      (display (string-append "  Updated: " path-str))
-                      (newline)
-                      #t
-                    ) ;begin
-                    (begin
-                      (when use-cache?
-                        (fmt-cache-touch path-str)
-                      ) ;when
-                      (display (string-append "  Unchanged: " path-str))
-                      (newline)
-                      #f
-                    ) ;begin
-                  ) ;if
-                ) ;let
-                (begin
-                  (display (string-append "  Failed: " path-str))
-                  (newline)
-                  #f
-                ) ;begin
-              ) ;if
-            ) ;let
+      (let ((cfg (load-fmt-config)))
+        (if (not (clang-format-ok? cfg))
+          (begin
+            (clang-format-hint)
+            #f
+          ) ;begin
+          (if dry-run
+            (clang-format-run cfg (list "--dry-run" path-str))
+            (if (and use-cache? (fmt-cache-hit? path-str))
+              (begin
+                (display (string-append "  Cached: " path-str))
+                (newline)
+                'cached
+              ) ;begin
+              (let ((ondisk (path-read-text (path path-str)))
+                    (rc (clang-format-run cfg (list "-i" path-str)))
+                   ) ;
+                (if (= rc 0)
+                  (let ((formatted (path-read-text (path path-str))))
+                    (if (not (string=? formatted ondisk))
+                      (begin
+                        (when use-cache?
+                          (fmt-cache-touch path-str)
+                        ) ;when
+                        (display (string-append "  Updated: " path-str))
+                        (newline)
+                        #t
+                      ) ;begin
+                      (begin
+                        (when use-cache?
+                          (fmt-cache-touch path-str)
+                        ) ;when
+                        (display (string-append "  Unchanged: " path-str))
+                        (newline)
+                        #f
+                      ) ;begin
+                    ) ;if
+                  ) ;let
+                  (begin
+                    (display (string-append "  Failed: " path-str))
+                    (newline)
+                    #f
+                  ) ;begin
+                ) ;if
+              ) ;let
+            ) ;if
           ) ;if
         ) ;if
-      ) ;if
+      ) ;let
     ) ;define*
 
     ;; ---- 文件收集 -------------------------------------------------------
@@ -147,11 +156,11 @@
     ;; 逐文件 clang-format：先查缓存，命中则跳过；未命中则用 clang-format -i
     ;; 原地格式化，通过比较格式化前后内容判断是否有变更。
     ;; 返回 (total updated cached)。
-    (define (format-one-cpp path-str use-cache?)
+    (define (format-one-cpp cfg path-str use-cache?)
       (if (and use-cache? (fmt-cache-hit? path-str))
         'cached
         (let ((ondisk (path-read-text (path path-str)))
-              (rc (clang-format-run (list "-i" path-str)))
+              (rc (clang-format-run cfg (list "-i" path-str)))
              ) ;
           (if (= rc 0)
             (let ((formatted (path-read-text (path path-str))))
@@ -185,12 +194,12 @@
           (newline)
           (list 0 0 0)
         ) ;begin
-        (if (not (clang-format-ok?))
+        (if (not (clang-format-ok? cfg))
           (begin
             (clang-format-hint)
             (list 0 0 0)
           ) ;begin
-          (let ((cf (clang-format-binary)))
+          (let ((cf (clang-format-binary cfg)))
             (display (string-append "Formatting "
                        (number->string (length files))
                        " C++ files with "
@@ -203,7 +212,7 @@
               ((fs files) (total 0) (updated 0) (cached 0))
               (if (null? fs)
                 (list total updated cached)
-                (let ((result (format-one-cpp (car fs) #t)))
+                (let ((result (format-one-cpp cfg (car fs) #t)))
                   (cond ((eq? result 'cached) (loop (cdr fs) (+ total 1) updated (+ cached 1)))
                         (result (display (string-append "  Updated: " (car fs)))
                           (newline)
@@ -240,14 +249,15 @@
     ;; stdout / stderr 均丢弃；返回 #t(已格式化) / #f(需格式化)。
     ;; 检查通过后 touch 缓存，供后续跳过。
     (define (check-cpp-file path cfg)
-      (if (not (clang-format-ok?))
+      (if (not (clang-format-ok? cfg))
         (begin
           (clang-format-hint)
           #f
         ) ;begin
         (if (fmt-cache-hit? path)
           #t
-          (let ((rc (clang-format-run (list "--dry-run" "--Werror" path)
+          (let ((rc (clang-format-run cfg
+                      (list "--dry-run" "--Werror" path)
                       :stdout
                       'discard
                       :stderr
