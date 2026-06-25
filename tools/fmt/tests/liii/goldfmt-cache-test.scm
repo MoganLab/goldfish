@@ -2,15 +2,13 @@
 ;;
 ;; 测试格式化缓存的命中/写入/路径计算逻辑。
 
-(import (liii check) (liii base) (liii os) (liii path) (liii string))
-
-;; 把 tools/fmt 加入加载路径，使测试能 import 工具模块（import (liii goldfmt-cache) 会找
-;; tools/fmt/liii/goldfmt-cache.scm）。
-(set! *load-path*
-  (cons (path->string (path-join (path (getcwd)) "tools" "fmt")) *load-path*)
-) ;set!
-
-(import (liii goldfmt-cache))
+(import (liii check)
+  (liii base)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii goldfmt-cache)
+) ;import
 
 (check-set-mode! 'report-failed)
 
@@ -18,7 +16,8 @@
 (check (string-contains? (fmt-cache-base-dir) ".cache/goldfish/fmt/") => #t)
 
 ;; 创建一个临时文件，验证路径计算、touch 后缓存命中。
-(let* ((tmp-dir (path->string (path-join (path (getcwd)) "tests" "liii")))
+(let* ((tmp-dir (path->string (path-join (path (getcwd)) "tools" "fmt" "tests" "liii"))
+       ) ;tmp-dir
        (tmp-file (path->string (path-join (path tmp-dir) "goldfmt-cache-tmp.txt")))
       ) ;
   (path-write-text (path tmp-file) "hello goldfmt-cache")
