@@ -28,14 +28,8 @@
     (liii goldfmt-format)
     (liii goldfmt-lang)
     (liii goldfmt-config)
-    (liii goldtool-changed)
   ) ;import
-  (export scheme-extensions
-    format-single-file
-    format-directory
-    format-changed-since
-    format-file-list
-  ) ;export
+  (export scheme-extensions format-single-file format-directory format-file-list)
   (begin
 
     ;; Scheme 语言接管的后缀表（带点）。gf_fmt.json 未写 scheme.suffix 时也用此表。
@@ -207,40 +201,6 @@
           ) ;let
         ) ;let
       ) ;if
-    ) ;define
-
-    ;; ---- 增量格式化 -----------------------------------------------------
-    (define (format-changed-since since path-str extensions excludes dry-run)
-      (let ((scope (if (string=? path-str "") #f path-str)))
-        (let ((files (if scope
-                       (changed-scheme-files-since since scope extensions)
-                       (changed-scheme-files-since since #f extensions)
-                     ) ;if
-              ) ;files
-             ) ;
-          (if (null? files)
-            (begin
-              (display (string-append "No changed Scheme files since " since))
-              (newline)
-              #t
-            ) ;begin
-            (call-with-values (lambda () (format-file-list files dry-run excludes))
-              (lambda (total updated cached)
-                (display (string-append "Total files formatted: "
-                           (number->string total)
-                           ", Files updated: "
-                           (number->string updated)
-                           ", Files cached: "
-                           (number->string cached)
-                         ) ;string-append
-                ) ;display
-                (newline)
-                #t
-              ) ;lambda
-            ) ;call-with-values
-          ) ;if
-        ) ;let
-      ) ;let
     ) ;define
 
     ;; ---- handler 协议实现（供仓库批量 / check 使用）---------------------

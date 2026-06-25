@@ -42,6 +42,7 @@
     extensions-for-lang-name
     lang-for-extension
     lang-for-extensions
+    lang-for-name
     path-matches-exclude?
     file-excluded?
     collect-files
@@ -155,6 +156,17 @@
               ) ;if
             ) ;loop
           ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 按语言名（符号）查 handler：返回第一个 name 匹配的 handler，无则 #f。
+    (define (lang-for-name name)
+      (let loop
+        ((handlers (lang-list)))
+        (if (null? handlers)
+          #f
+          (if (eq? (lang-name (car handlers)) name) (car handlers) (loop (cdr handlers)))
         ) ;if
       ) ;let
     ) ;define
