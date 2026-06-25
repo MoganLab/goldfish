@@ -48,14 +48,25 @@
     (liii path)
     (liii string)
     (liii argparse)
+    (liii json)
+    (liii list)
     (liii goldfmt-scan)
     (liii goldfmt-format)
     (liii goldfmt-lang)
     (liii goldfmt-config)
+    (liii goldtool-changed)
     (liii scheme-fmt)
     (liii cpp-fmt)
   ) ;import
-  (export main format-datum format-datum+node format-node format-string)
+  (export main
+    format-datum
+    format-datum+node
+    format-node
+    format-string
+    all-registered-extensions
+    group-files-by-lang
+    format-changed-since
+  ) ;export
   (begin
 
     ;; ---- 参数解析 -------------------------------------------------------
@@ -66,11 +77,21 @@
       ) ;if
     ) ;define
 
-    ;; 把单个 -e token 转成后缀列表：若是语言名（cpp/scheme/...）展开为该语言后缀表，
+    ;; 按 -e token 转成后缀列表：若是语言名（cpp/scheme/...）展开为该语言后缀表，
     ;; 否则按后缀处理（补点）。使 -e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx 全部。
     (define (token->extensions token)
       (let ((lang-exts (extensions-for-lang-name token)))
         (if lang-exts lang-exts (list (normalize-extension token)))
+      ) ;let
+    ) ;define
+
+    (define (file-extension-match? filename extensions)
+      (let loop
+        ((exts extensions))
+        (if (null? exts)
+          #f
+          (if (string-ends? filename (car exts)) #t (loop (cdr exts)))
+        ) ;if
       ) ;let
     ) ;define
 
@@ -158,7 +179,7 @@
       (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；也可直接写后缀 -e scm,sld"
       ) ;display
       (newline)
-      (display "      --changed-since REV    仅格式化自 REV 以来变更的 Scheme 文件"
+      (display "      --changed-since REV    仅格式化自 REV 以来变更的文件（按 -e 过滤；未指定 -e 时包含所有语言）"
       ) ;display
       (newline)
       (display "      --exclude PATTERN    跳过匹配的文件（路径后缀匹配，逗号分隔多个）"
@@ -191,7 +212,7 @@
       (display "  gf fmt -e scm,sld dir/       递归格式化目录下所有 .scm 和 .sld 文件"
       ) ;display
       (newline)
-      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的 Scheme 文件"
+      (display "  gf fmt --changed-since=HEAD  格式化自 HEAD 以来变更的所有文件"
       ) ;display
       (newline)
     ) ;define
@@ -397,6 +418,145 @@
       ) ;let
     ) ;define
 
+    ;; ---- 增量格式化（--changed-since）------------------------------------
+    ;; 检测用户是否在命令行显式传入了 -e/--extension。
+    (define (extension-option-explicit? args)
+      (let loop
+        ((as args))
+        (if (null? as)
+          #f
+          (let ((a (car as)))
+            (if (or (string=? a "-e")
+                  (string=? a "--extension")
+                  (string-starts? a "-e=")
+                  (string-starts? a "--extension=")
+                ) ;or
+              #t
+              (loop (cdr as))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 收集所有已注册语言的后缀。
+    (define (all-registered-extensions)
+      (let loop
+        ((handlers (lang-list)) (acc '()))
+        (if (null? handlers)
+          acc
+          (loop (cdr handlers) (append (lang-extensions (car handlers)) acc))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 按语言名（符号）把文件分组，返回 ((name . files) ...)。
+    (define (add-file-to-group groups file handler)
+      (let ((name (lang-name handler)))
+        (let loop
+          ((gs groups) (acc '()) (found #f))
+          (cond ((null? gs)
+                 (if found (reverse acc) (reverse (cons (cons name (list file)) acc)))
+                ) ;
+                ((and (not found) (eq? (caar gs) name))
+                 (loop (cdr gs) (cons (cons name (cons file (cdar gs))) acc) #t)
+                ) ;
+                (else (loop (cdr gs) (cons (car gs) acc) found))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (group-files-by-lang files)
+      (let loop
+        ((fs files) (groups '()))
+        (if (null? fs)
+          groups
+          (let* ((file (car fs))
+                 (ext (path-suffix (path file)))
+                 (handler (or (lang-for-extension ext) (scheme-handler-of)))
+                ) ;
+            (loop (cdr fs) (add-file-to-group groups file handler))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;; 多语言增量格式化：按文件后缀分派到对应 handler 的 format-files。
+    ;; 未显式指定 -e 时，默认使用所有已注册语言的后缀（与无路径参数的仓库批量行为一致）。
+    ;; --dry-run 与多文件 changed-since 不兼容，直接报错。
+    (define (format-changed-since since path-str extensions excludes dry-run)
+      (if dry-run
+        (begin
+          (display "错误: --dry-run 选项与 --changed-since 不能同时使用")
+          (newline)
+          (exit 1)
+        ) ;begin
+        (let ((scope (if (string=? path-str "") #f path-str))
+              (cfg (or (catch #t (lambda () (load-fmt-config)) (lambda (type info) #f))
+                     (string->json "{}")
+                   ) ;or
+              ) ;cfg
+             ) ;
+          (let ((files (if scope
+                         (changed-existing-files-since since scope)
+                         (changed-existing-files-since since)
+                       ) ;if
+                ) ;files
+               ) ;
+            (let ((filtered (filter (lambda (f)
+                                      (and (file-extension-match? f extensions) (not (file-excluded? f excludes)))
+                                    ) ;lambda
+                              files
+                            ) ;filter
+                  ) ;filtered
+                 ) ;
+              (if (null? filtered)
+                (begin
+                  (display (string-append "No changed files since " since))
+                  (newline)
+                  #t
+                ) ;begin
+                (let ((groups (group-files-by-lang filtered)))
+                  (let loop
+                    ((gs groups) (total 0) (updated 0) (cached 0))
+                    (if (null? gs)
+                      (begin
+                        (display (string-append "Total files formatted: "
+                                   (number->string total)
+                                   ", Files updated: "
+                                   (number->string updated)
+                                   ", Files cached: "
+                                   (number->string cached)
+                                 ) ;string-append
+                        ) ;display
+                        (newline)
+                        #t
+                      ) ;begin
+                      (let* ((g (car gs))
+                             (handler (lang-for-name (car g)))
+                             (format-files-fn (lang-ref handler 'format-files))
+                             (stats (format-files-fn (cdr g) cfg))
+                            ) ;
+                        (display (string-append "=== Formatting " (lang-label handler) " files ==="))
+                        (newline)
+                        (flush-output-port (current-output-port))
+                        (loop (cdr gs)
+                          (+ total (car stats))
+                          (+ updated (cadr stats))
+                          (+ cached (caddr stats))
+                        ) ;loop
+                      ) ;let*
+                    ) ;if
+                  ) ;let
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;if
+    ) ;define
+
     ;; ---- 主入口 ---------------------------------------------------------
     (define (main)
       (let ((parser (make-fmt-arg-parser)))
@@ -410,9 +570,18 @@
                (path-str (first-positional parser))
               ) ;
           (cond (help-flag (display-help) #t)
-                ;; changed-since 优先：即使无路径参数也走 Scheme 增量，而非仓库批量。
-                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes))))
-                                 (format-changed-since changed-since path-str extensions excludes dry-run)
+                ;; changed-since 优先：即使无路径参数也走增量格式化，而非仓库批量。
+                ;; 未显式指定 -e 时默认包含所有已注册语言。
+                (changed-since (let ((excludes (append cli-excludes (scheme-config-excludes)))
+                                     (effective-extensions (if (extension-option-explicit? (argv)) extensions (all-registered-extensions))
+                                     ) ;effective-extensions
+                                    ) ;
+                                 (format-changed-since changed-since
+                                   path-str
+                                   effective-extensions
+                                   excludes
+                                   dry-run
+                                 ) ;format-changed-since
                                ) ;let
                 ) ;changed-since
                 ;; 无路径参数：仓库批量 / check（需 gf_fmt.json）。
