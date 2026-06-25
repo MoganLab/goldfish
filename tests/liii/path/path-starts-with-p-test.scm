@@ -22,14 +22,14 @@
 ;; 当 p 是 base 本身或 base 的后代路径时返回 #t，否则返回 #f。
 
 ;; 基本功能测试
-(check (path-starts-with? "/home/da/git" "/home/da") => #t)
-(check (path-starts-with? "/home/da/git/goldfish" "/home/da") => #t)
-(check (path-starts-with? "/home/da" "/home/da") => #t)
-(check (path-starts-with? "/home/db" "/home/da") => #f)
-(check (path-starts-with? "/home" "/home/da") => #f)
+(check (path-starts-with? "/usr/share" "/usr") => #t)
+(check (path-starts-with? "/usr/share/doc" "/usr") => #t)
+(check (path-starts-with? "/usr" "/usr") => #t)
+(check (path-starts-with? "/usrb" "/usr") => #f)
+(check (path-starts-with? "/us" "/usr") => #f)
 
 ;; 接受 path-value
-(check (path-starts-with? (path "/home/da/git") (path "/home/da")) => #t)
+(check (path-starts-with? (path "/usr/share") (path "/usr")) => #t)
 
 ;; 相对路径
 (check (path-starts-with? "tools/fmt/liii" "tools/fmt") => #t)
