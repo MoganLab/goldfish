@@ -7,9 +7,9 @@
 (check-set-mode! 'report-failed)
 
 ;; 缓存根目录应位于 ~/.cache/goldfish/fmt/<version> 之下。
-(check (path-contains? (path-join (path-home) ".cache" "goldfish" "fmt")
-         (path (fmt-cache-base-dir))
-       ) ;path-contains?
+(check (path-starts-with? (path (fmt-cache-base-dir))
+         (path-join (path-home) ".cache" "goldfish" "fmt")
+       ) ;path-starts-with?
   =>
   #t
 ) ;check

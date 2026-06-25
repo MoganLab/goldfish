@@ -33,7 +33,7 @@
     path-with-stem
     path-with-suffix
     path-relative-to
-    path-contains?
+    path-starts-with?
     path-equals?
     path=?
     path-absolute?
@@ -747,7 +747,7 @@
 
     ;; ; 对齐 pathlib.PurePath.is_relative_to(other)
     ;; ; 返回 #t 当且仅当 p 是 base 本身或 base 的后代路径。
-    (define (path-contains? base p)
+    (define (path-starts-with? p base)
       (let* ((pp (path p))
              (bp (path base))
              (p-segs (path-record-parts pp))
