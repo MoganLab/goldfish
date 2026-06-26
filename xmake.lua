@@ -103,6 +103,7 @@ target ("goldfish") do
         add_ldflags("--preload-file goldfish@/goldfish")
     end
     add_files ("src/goldfish.cpp")
+    add_files ("src/liii_base64.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
     add_files ("src/liii_http.cpp")

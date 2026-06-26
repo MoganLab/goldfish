@@ -108,6 +108,7 @@ static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const
 void glue_njson (s7_scheme* sc);
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
+void glue_liii_base64 (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
 void glue_liii_os (s7_scheme* sc);
 void glue_liii_path (s7_scheme* sc);
@@ -698,6 +699,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_time (sc);
   glue_liii_datetime (sc);
   glue_liii_uuid (sc);
+  glue_liii_base64 (sc);
   glue_liii_hashlib (sc);
   glue_njson (sc);
   glue_http (sc);
