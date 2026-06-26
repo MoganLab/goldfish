@@ -88,48 +88,48 @@
 ) ;define
 
 (do ((i 0 (+ i 1)))
-  ((= i 20))
-  (string-base64-encode ascii-medium)
-  (string-base64-decode enc-ascii-medium)
-  (bytevector-base64-encode bv-medium)
-  (bytevector-base64-decode enc-bv-medium)
+  ((= i 5))
+  (string-base64-encode ascii-small)
+  (string-base64-decode enc-ascii-small)
+  (bytevector-base64-encode bv-small)
+  (bytevector-base64-decode enc-bv-small)
 ) ;do
 
-(define str-enc-tiny-iter 5000)
+(define str-enc-tiny-iter 3000)
 
-(define str-enc-small-iter 2000)
+(define str-enc-small-iter 300)
 
-(define str-enc-medium-iter 500)
+(define str-enc-medium-iter 30)
 
-(define str-enc-large-iter 100)
+(define str-enc-large-iter 3)
 
-(define str-decode-tiny-iter 5000)
+(define str-decode-tiny-iter 1500)
 
-(define str-decode-small-iter 2000)
+(define str-decode-small-iter 150)
 
-(define str-decode-medium-iter 500)
+(define str-decode-medium-iter 15)
 
-(define str-decode-large-iter 100)
+(define str-decode-large-iter 2)
 
-(define bv-enc-tiny-iter 5000)
+(define bv-enc-tiny-iter 3000)
 
-(define bv-enc-small-iter 2000)
+(define bv-enc-small-iter 300)
 
-(define bv-enc-medium-iter 500)
+(define bv-enc-medium-iter 30)
 
-(define bv-enc-large-iter 100)
+(define bv-enc-large-iter 3)
 
-(define bv-decode-tiny-iter 5000)
+(define bv-decode-tiny-iter 1500)
 
-(define bv-decode-small-iter 2000)
+(define bv-decode-small-iter 150)
 
-(define bv-decode-medium-iter 500)
+(define bv-decode-medium-iter 15)
 
-(define bv-decode-large-iter 100)
+(define bv-decode-large-iter 2)
 
-(define unified-enc-iter 500)
+(define unified-enc-iter 30)
 
-(define unified-decode-iter 500)
+(define unified-decode-iter 15)
 
 (display "=== (liii base64) 性能基准测试 ===")
 (newline)
