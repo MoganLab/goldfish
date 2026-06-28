@@ -103,6 +103,61 @@ f_bytevector_base64_decode (s7_scheme* sc, s7_pointer args) {
   return out;
 }
 
+static s7_pointer
+f_bytevector_base64_encode (s7_scheme* sc, s7_pointer args) {
+  s7_pointer arg= s7_car (args);
+
+  if (!s7_is_byte_vector (arg)) {
+    return base64_error (sc, "bytevector-base64-encode", "type-error",
+                         "bytevector-base64-encode: input must be bytevector", arg);
+  }
+
+  s7_int   in_len= s7_integer (s7_cadr (args));
+  uint8_t* in    = (uint8_t*) s7_byte_vector_elements (arg);
+
+  static const uint8_t encode_table[64]= {
+      'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
+      'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+      's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/'};
+
+  const uint8_t PAD= (uint8_t) '=';
+
+  s7_int     out_len= (in_len == 0) ? 0 : 4 * ((in_len + 2) / 3);
+  s7_pointer out    = s7_make_byte_vector (sc, out_len, 1, NULL);
+  uint8_t*   out_buf= (uint8_t*) s7_byte_vector_elements (out);
+
+  s7_int i= 0;
+  s7_int j= 0;
+
+  while (i + 2 < in_len) {
+    uint32_t triple= ((uint32_t) in[i] << 16) | ((uint32_t) in[i + 1] << 8) | in[i + 2];
+    out_buf[j]     = encode_table[(triple >> 18) & 0x3F];
+    out_buf[j + 1] = encode_table[(triple >> 12) & 0x3F];
+    out_buf[j + 2] = encode_table[(triple >> 6) & 0x3F];
+    out_buf[j + 3] = encode_table[triple & 0x3F];
+    i+= 3;
+    j+= 4;
+  }
+
+  s7_int rem= in_len - i;
+  if (rem == 1) {
+    uint32_t triple= (uint32_t) in[i] << 16;
+    out_buf[j]     = encode_table[(triple >> 18) & 0x3F];
+    out_buf[j + 1] = encode_table[(triple >> 12) & 0x3F];
+    out_buf[j + 2] = PAD;
+    out_buf[j + 3] = PAD;
+  }
+  else if (rem == 2) {
+    uint32_t triple= ((uint32_t) in[i] << 16) | ((uint32_t) in[i + 1] << 8);
+    out_buf[j]     = encode_table[(triple >> 18) & 0x3F];
+    out_buf[j + 1] = encode_table[(triple >> 12) & 0x3F];
+    out_buf[j + 2] = encode_table[(triple >> 6) & 0x3F];
+    out_buf[j + 3] = PAD;
+  }
+
+  return out;
+}
+
 static void
 glue_bytevector_base64_decode (s7_scheme* sc) {
   const char* name= "g_bytevector-base64-decode";
@@ -110,9 +165,17 @@ glue_bytevector_base64_decode (s7_scheme* sc) {
   s7_define_function (sc, name, f_bytevector_base64_decode, 2, 0, false, desc);
 }
 
+static void
+glue_bytevector_base64_encode (s7_scheme* sc) {
+  const char* name= "g_bytevector-base64-encode";
+  const char* desc= "(g_bytevector-base64-encode bv len) => bytevector";
+  s7_define_function (sc, name, f_bytevector_base64_encode, 2, 0, false, desc);
+}
+
 void
 glue_liii_base64 (s7_scheme* sc) {
   glue_bytevector_base64_decode (sc);
+  glue_bytevector_base64_encode (sc);
 }
 
 } // namespace goldfish
