@@ -574,9 +574,7 @@
       ) ;if
     ) ;define*
 
-    (define* (string->utf8 str (start 0) (end #t))
-      (g_string->utf8 str start end)
-    ) ;define*
+    (define* (string->utf8 str (start 0) (end #t)) (g_string->utf8 str start end))
 
     (define (raise . args)
       (apply throw #t args)
