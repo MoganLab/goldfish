@@ -74,79 +74,8 @@
       ) ;cond
     ) ;define
 
-    (define-constant BASE64_TO_BYTE_V
-      (let ((byte2base64-N (bytevector-length BYTE2BASE64_BV)))
-        (let loop
-          ((i 0) (v (make-vector 256 -1)))
-          (if (< i byte2base64-N)
-            (begin
-              (vector-set! v (BYTE2BASE64_BV i) i)
-              (loop (+ i 1) v)
-            ) ;begin
-            v
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define-constant
-
     (define (bytevector-base64-decode bv)
-      (unless (bytevector? bv)
-        (type-error "input must be bytevector")
-      ) ;unless
-      (let ((input-N (bytevector-length bv)))
-        (unless (zero? (modulo input-N 4))
-          (value-error "length of the input bytevector must be 4X")
-        ) ;unless
-        (define (decode c1 c2 c3 c4)
-          (define pad? (lambda (c) (equal? c BASE64_PAD_BYTE)))
-          (define c3-pad? (pad? c3))
-          (define c4-pad? (pad? c4))
-          (define b1 (BASE64_TO_BYTE_V c1))
-          (define b2 (BASE64_TO_BYTE_V c2))
-          (define b3 (BASE64_TO_BYTE_V c3))
-          (define b4 (BASE64_TO_BYTE_V c4))
-          (unless (and (not (pad? c1))
-                    (not (pad? c2))
-                    (not (negative? b1))
-                    (not (negative? b2))
-                    (or (and (not c3-pad?) (not c4-pad?) (not (negative? b3)) (not (negative? b4)))
-                      (and (not c3-pad?) c4-pad? (not (negative? b3)))
-                      (and c3-pad? c4-pad?)
-                    ) ;or
-                  ) ;and
-            (value-error "Invalid base64 input")
-          ) ;unless
-          (values (bitwise-ior (ash b1 2) (ash b2 -4))
-            (if c3-pad? 0 (bitwise-and (bitwise-ior (ash b2 4) (ash b3 -2)) 255))
-            (if c4-pad? 0 (bitwise-and (bitwise-ior (ash b3 6) b4) 255))
-            (if c3-pad? 1 (if c4-pad? 2 3))
-          ) ;values
-        ) ;define
-        (let ((output-N (quotient (* input-N 3) 4)))
-          (let ((output (make-bytevector output-N)))
-            (let loop
-              ((i 0) (j 0))
-              (if (< i input-N)
-                (receive (r1 r2 r3 cnt)
-                  (decode (bv i) (bv (+ i 1)) (bv (+ i 2)) (bv (+ i 3)))
-                  (bytevector-u8-set! output j r1)
-                  (when (>= cnt 2)
-                    (bytevector-u8-set! output (+ j 1) r2)
-                  ) ;when
-                  (when (>= cnt 3)
-                    (bytevector-u8-set! output (+ j 2) r3)
-                  ) ;when
-                  (loop (+ i 4) (+ j cnt))
-                ) ;receive
-                (let ((final (make-bytevector j)))
-                  (vector-copy! final 0 output 0 j)
-                  final
-                ) ;let
-              ) ;if
-            ) ;let
-          ) ;let
-        ) ;let
-      ) ;let
+      (g_bytevector-base64-decode bv (bytevector-length bv))
     ) ;define
 
     (define string-base64-decode
