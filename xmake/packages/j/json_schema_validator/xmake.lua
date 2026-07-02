@@ -8,7 +8,7 @@ package("json_schema_validator")
     add_deps("cmake", "nlohmann_json")
     add_links("nlohmann_json_schema_validator")
 
-    on_install("linux", "macosx", "windows", "mingw@windows", function (package)
+    on_install("linux", "macosx", "windows", "mingw@windows", "wasm", function (package)
         local nlohmann_json = package:dep("nlohmann_json")
         local nlohmann_json_cmake_dir = path.join(nlohmann_json:installdir("lib"), "cmake", "nlohmann_json")
         local configs = {

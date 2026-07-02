@@ -64,7 +64,7 @@ end
 
 if is_plat("wasm") then
 if has_config("pin-deps") then
-    add_requires("emscripten 3.1.55")
+    add_requires("emscripten 3.1.56")
 else
     add_requires("emscripten")
 end
