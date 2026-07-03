@@ -44,7 +44,7 @@ option("http")
     set_values(false, true)
 option_end()
 
-if has_config("http") then
+if has_config("http") and not is_plat("wasm") then
     add_requires("cpr")
 end
 
@@ -134,7 +134,9 @@ target ("goldfish") do
     add_packages("argh")
     add_packages("nlohmann_json")
     add_packages("json_schema_validator")
-    add_packages("cpr")
+    if has_config("http") and not is_plat("wasm") then
+        add_packages("cpr")
+    end
 
     -- S7 configuration from original 3rdparty/s7/xmake.lua
     add_defines("WITH_SYSTEM_EXTRAS=0")
