@@ -105,7 +105,10 @@ target ("goldfish") do
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
-    add_files ("src/liii_http.cpp")
+    if has_config("http") and not is_plat("wasm") then
+        add_files ("src/liii_http.cpp")
+        add_defines("GOLDFISH_ENABLE_HTTP")
+    end
     add_files ("src/liii_os.cpp")
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_hashlib.cpp")
