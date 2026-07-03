@@ -44,7 +44,7 @@ option("http")
     set_values(false, true)
 option_end()
 
-if has_config("http") then
+if has_config("http") and not is_plat("wasm") then
     add_requires("cpr")
 end
 
@@ -105,7 +105,10 @@ target ("goldfish") do
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
-    add_files ("src/liii_http.cpp")
+    if has_config("http") and not is_plat("wasm") then
+        add_files ("src/liii_http.cpp")
+        add_defines("GOLDFISH_ENABLE_HTTP")
+    end
     add_files ("src/liii_os.cpp")
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_hashlib.cpp")
@@ -134,7 +137,9 @@ target ("goldfish") do
     add_packages("argh")
     add_packages("nlohmann_json")
     add_packages("json_schema_validator")
-    add_packages("cpr")
+    if has_config("http") and not is_plat("wasm") then
+        add_packages("cpr")
+    end
 
     -- S7 configuration from original 3rdparty/s7/xmake.lua
     add_defines("WITH_SYSTEM_EXTRAS=0")

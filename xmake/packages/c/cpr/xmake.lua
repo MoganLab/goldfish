@@ -23,7 +23,7 @@ package("cpr")
         end
     end)
 
-    on_install("linux", "macosx", "windows", "mingw@windows", "wasm", function (package)
+    on_install("linux", "macosx", "windows", "mingw@windows", function (package)
         local configs = {"-DCPR_BUILD_TESTS=OFF",
                          "-DCPR_FORCE_USE_SYSTEM_CURL=ON",
                          "-DCPR_USE_SYSTEM_CURL=ON"}
