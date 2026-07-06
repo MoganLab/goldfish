@@ -114,7 +114,7 @@ brew uninstall goldfish
 不带任何命令时，将打印帮助信息：
 ```
 > gf
-Goldfish Scheme 18.11.15 by LiiiLabs
+Goldfish Scheme 18.11.16 by LiiiLabs
 
 Commands:
   help               Display this help message
@@ -130,7 +130,7 @@ Commands:
 `version` 子命令将打印 金鱼Scheme 版本和底层 S7 Scheme 版本：
 ```
 > gf version
-Goldfish Scheme 18.11.15 by LiiiLabs
+Goldfish Scheme 18.11.16 by LiiiLabs
 based on S7 Scheme 11.5 (22-Sep-2025)
 ```
 
