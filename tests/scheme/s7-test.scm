@@ -131,4 +131,9 @@
 (check (let? 42) => #f)
 (check (let? 'hello) => #f)
 
+(check-catch 'unbound-variable (undefined-symbol-xyz))
+(check-catch 'unbound-variable (undefined-symbol-xyza))
+(check-catch 'unbound-variable (undefined-symbol-xyzab))
+(check-catch 'unbound-variable (undefined-symbol-xyzabc))
+
 (check-report)
