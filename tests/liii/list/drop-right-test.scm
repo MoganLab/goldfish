@@ -122,4 +122,29 @@
 (check-catch 'wrong-type-arg (drop-right '(1 2 3) "not a number"))
 
 
+;; drop-right 总是创建新的列表结构，即使 k 为 0 也不共享节点
+(let ((l (list 1 2 3)))
+  (check (eq? (drop-right l 0) l) => #f)
+  (check (drop-right l 0) => '(1 2 3))
+  ;; 修改结果不影响原列表
+  (let ((r (drop-right l 1)))
+    (set-car! r 99)
+    (check l => '(1 2 3))
+  ) ;let
+) ;let
+
+
+;; 大列表 + GC 压力回归测试
+(let ((l (iota 10000)))
+  (check (drop-right l 5000) => (iota 5000))
+  (check (length (drop-right l 0)) => 10000)
+  (check l => (iota 10000))
+) ;let
+
+(do ((i 0 (+ i 1)))
+  ((= i 1000))
+  (drop-right (iota 100) 50)
+) ;do
+
+
 (check-report)

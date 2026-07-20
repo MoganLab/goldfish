@@ -86908,6 +86908,15 @@ is #t, the string is also sent to the current-output-port."
   #define Q_take s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_list_symbol, sc->is_integer_symbol)
   s7_define_semisafe_typed_function(sc, "g_take", g_take, 2, 0, false, H_take, Q_take);
 
+  /* take-right can return the non-pair tail of a dotted list, hence the #t return signature */
+  #define H_take_right "(g_take_right lst k) returns the last k elements of lst"
+  #define Q_take_right s7_make_signature(sc, 3, sc->T, sc->is_list_symbol, sc->is_integer_symbol)
+  s7_define_semisafe_typed_function(sc, "g_take_right", g_take_right, 2, 0, false, H_take_right, Q_take_right);
+
+  #define H_drop_right "(g_drop_right lst k) returns a list of all but the last k elements of lst"
+  #define Q_drop_right s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_list_symbol, sc->is_integer_symbol)
+  s7_define_semisafe_typed_function(sc, "g_drop_right", g_drop_right, 2, 0, false, H_drop_right, Q_drop_right);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */

@@ -136,19 +136,9 @@
 
     (define drop list-tail)
 
-    (define (take-right l k)
-      (let loop
-        ((lag l) (lead (drop l k)))
-        (if (pair? lead) (loop (cdr lag) (cdr lead)) lag)
-      ) ;let
-    ) ;define
+    (define take-right g_take_right)
 
-    (define (drop-right l k)
-      (let loop
-        ((lag l) (lead (drop l k)))
-        (if (pair? lead) (cons (car lag) (loop (cdr lag) (cdr lead))) '())
-      ) ;let
-    ) ;define
+    (define drop-right g_drop_right)
 
     (define (split-at lst i)
       (when (< i 0)
