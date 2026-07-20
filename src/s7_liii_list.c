@@ -7,6 +7,8 @@
 #include "s7_liii_list.h"
 #include "s7_internal_helpers.h"
 
+#include <stddef.h>
+
 s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer p = s7_car(args);
@@ -497,6 +499,61 @@ s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
 s7_pointer g_cons(s7_scheme *sc, s7_pointer args)
 {
   return(s7_cons(sc, s7_car(args), s7_cadr(args)));
+}
+
+/* -------------------------------- filter -------------------------------- */
+
+s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  if (!s7_is_pair(lst))
+    {
+      if (s7_is_null(sc, lst)) return(s7_nil(sc));
+      return(s7_wrong_type_arg_error(sc, "filter", 2, lst, "a proper list"));
+    }
+  /* args may live in evaluator-recycled cells, so keep pred and lst in our own pairs.
+   *   anchor = ((pred lst) . work), work's car holds the reversed kept elements before
+   *   the current all-passing run, work's cdr later holds the result; one protected
+   *   pair keeps everything GC-reachable while pred runs */
+  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_pointer anchor = s7_cons(sc, keep, s7_cons(sc, s7_nil(sc), s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, anchor);
+  s7_pointer work = s7_cdr(anchor);
+  s7_pointer pred = s7_car(keep);
+  s7_pointer run_start = NULL;
+  s7_pointer p = lst;
+  while (s7_is_pair(p))
+    {
+      if (s7i_is_true(sc, s7_apply_function(sc, pred, s7i_set_plist_1(sc, s7_car(p)))))
+        {
+          if (!run_start) run_start = p;
+        }
+      else
+        {
+          if (run_start)
+            {
+              for (s7_pointer q = run_start; q != p; q = s7_cdr(q))
+                s7_set_car(work, s7_cons(sc, s7_car(q), s7_car(work)));
+              run_start = NULL;
+            }
+        }
+      p = s7_cdr(p);
+    }
+  if (!s7_is_null(sc, p))
+    {
+      s7_gc_unprotect_via_stack(sc, anchor);
+      return(s7_wrong_type_arg_error(sc, "filter", 2, lst, "a proper list"));
+    }
+  /* share the longest all-passing suffix, like the reference implementation */
+  s7_pointer result = (run_start) ? run_start : s7_nil(sc);
+  s7_set_cdr(work, result);
+  for (s7_pointer q = s7_car(work); s7_is_pair(q); q = s7_cdr(q))
+    {
+      result = s7_cons(sc, s7_car(q), result);
+      s7_set_cdr(work, result);
+    }
+  s7_gc_unprotect_via_stack(sc, anchor);
+  return(result);
 }
 
 s7_pointer g_list(s7_scheme *sc, s7_pointer args)

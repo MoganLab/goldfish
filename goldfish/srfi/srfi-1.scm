@@ -268,22 +268,7 @@
       (apply append (apply map proc lists))
     ) ;define
 
-    (define (filter pred l)
-      (let recur
-        ((l l))
-        (if (null-list? l)
-          l
-          (let ((head (car l)) (tail (cdr l)))
-            (if (pred head)
-              (let ((new-tail (recur tail)))
-                (if (eq? tail new-tail) l (cons head new-tail))
-              ) ;let
-              (recur tail)
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
+    (define filter g_filter)
 
     (define (partition pred l)
       (let loop

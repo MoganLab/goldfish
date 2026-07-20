@@ -86900,6 +86900,10 @@ is #t, the string is also sent to the current-output-port."
   sc->list_tail_symbol =             defun("list-tail",	        list_tail,		2, 0, false);
   sc->make_list_symbol =             defun("make-list",  	make_list,		1, 1, false); set_is_saver(sc->make_list_symbol);
 
+  #define H_filter "(g_filter pred lst) returns a list of the elements of lst for which (pred element) is not #f"
+  #define Q_filter s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_filter", g_filter, 2, 0, false, H_filter, Q_filter);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */
