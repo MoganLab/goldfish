@@ -76,4 +76,25 @@
 (check-catch 'wrong-type-arg (take-right '(1 2 3) "not a number"))
 
 
+;; take-right 与原列表共享节点：返回的是原列表的子列表
+(let ((l (list 1 2 3 4 5)))
+  (check (eq? (take-right l 2) (cdddr l)) => #t)
+  (check (eq? (take-right l 5) l) => #t)
+  (check (eq? (take-right l 0) '()) => #t)
+) ;let
+
+
+;; 大列表 + GC 压力回归测试
+(let ((l (iota 10000)))
+  (check (take-right l 5000) => (iota 5000 5000))
+  (check (length (take-right l 10000)) => 10000)
+  (check l => (iota 10000))
+) ;let
+
+(do ((i 0 (+ i 1)))
+  ((= i 1000))
+  (take-right (iota 100) 50)
+) ;do
+
+
 (check-report)

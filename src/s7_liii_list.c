@@ -589,6 +589,69 @@ s7_pointer g_take(s7_scheme *sc, s7_pointer args)
   return(s7_cdr(head));
 }
 
+/* -------------------------------- take-right / drop-right -------------------------------- */
+
+/* shared lead walk: returns NULL on success (lead advanced n pairs),
+ * otherwise the error object to return */
+static s7_pointer take_right_lead(s7_scheme *sc, const char *name, s7_pointer lst, s7_pointer k, s7_int n, s7_pointer *lead)
+{
+  if (!s7_is_integer(k))
+    return(s7_wrong_type_arg_error(sc, name, 2, k, "an integer"));
+  if (n < 0)
+    return(s7_out_of_range_error(sc, name, 2, k, "it is negative"));
+  if (!s7_is_pair(lst) && !s7_is_null(sc, lst))
+    return(s7_wrong_type_arg_error(sc, name, 1, lst, "a list"));
+  s7_pointer p = lst;
+  for (s7_int i = 0; i < n; i++)
+    {
+      if (!s7_is_pair(p))
+        return(s7_out_of_range_error(sc, name, 2, k, "it is too large"));
+      p = s7_cdr(p);
+    }
+  (*lead) = p;
+  return(NULL);
+}
+
+s7_pointer g_take_right(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  s7_pointer k = s7_cadr(args);
+  s7_pointer lead;
+  s7_pointer err = take_right_lead(sc, "take-right", lst, k, s7_is_integer(k) ? s7_integer(k) : 0, &lead);
+  if (err) return(err);
+  /* no allocation and no Scheme callbacks: result is a sublist of lst */
+  s7_pointer lag = lst;
+  while (s7_is_pair(lead))
+    {
+      lag = s7_cdr(lag);
+      lead = s7_cdr(lead);
+    }
+  return(lag);
+}
+
+s7_pointer g_drop_right(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  s7_pointer k = s7_cadr(args);
+  s7_pointer lead;
+  s7_pointer err = take_right_lead(sc, "drop-right", lst, k, s7_is_integer(k) ? s7_integer(k) : 0, &lead);
+  if (err) return(err);
+  /* dummy head anchor, same GC pattern as g_take */
+  s7_pointer head = s7_cons(sc, s7_nil(sc), s7_nil(sc));
+  s7_gc_protect_via_stack(sc, head);
+  s7_pointer tail = head;
+  s7_pointer lag = lst;
+  while (s7_is_pair(lead))
+    {
+      s7_set_cdr(tail, s7_cons(sc, s7_car(lag), s7_nil(sc)));
+      tail = s7_cdr(tail);
+      lag = s7_cdr(lag);
+      lead = s7_cdr(lead);
+    }
+  s7_gc_unprotect_via_stack(sc, head);
+  return(s7_cdr(head));
+}
+
 s7_pointer g_list(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_copy_proper_list(sc, args));
