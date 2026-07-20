@@ -132,12 +132,7 @@
       (list-ref x 9)
     ) ;define
 
-    (define (take l k)
-      (let loop
-        ((l l) (k k))
-        (if (zero? k) '() (cons (car l) (loop (cdr l) (- k 1))))
-      ) ;let
-    ) ;define
+    (define take g_take)
 
     (define drop list-tail)
 
