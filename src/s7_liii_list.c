@@ -556,6 +556,39 @@ s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
   return(result);
 }
 
+/* -------------------------------- take -------------------------------- */
+
+s7_pointer g_take(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  s7_pointer k = s7_cadr(args);
+  if (!s7_is_integer(k))
+    return(s7_wrong_type_arg_error(sc, "take", 2, k, "an integer"));
+  s7_int n = s7_integer(k);
+  if (n < 0)
+    return(s7_wrong_type_arg_error(sc, "take", 2, k, "a non-negative integer"));
+  if (n == 0) return(s7_nil(sc));
+  /* no Scheme callbacks here, so args stay put; only the result being built
+   * needs a GC anchor, with each new pair linked in right after s7_cons */
+  s7_pointer head = s7_cons(sc, s7_nil(sc), s7_nil(sc));
+  s7_gc_protect_via_stack(sc, head);
+  s7_pointer tail = head;
+  s7_pointer p = lst;
+  for (s7_int i = 0; i < n; i++)
+    {
+      if (!s7_is_pair(p))
+        {
+          s7_gc_unprotect_via_stack(sc, head);
+          return(s7_wrong_type_arg_error(sc, "take", 1, lst, "a list of sufficient length"));
+        }
+      s7_set_cdr(tail, s7_cons(sc, s7_car(p), s7_nil(sc)));
+      tail = s7_cdr(tail);
+      p = s7_cdr(p);
+    }
+  s7_gc_unprotect_via_stack(sc, head);
+  return(s7_cdr(head));
+}
+
 s7_pointer g_list(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_copy_proper_list(sc, args));

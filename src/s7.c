@@ -86904,6 +86904,10 @@ is #t, the string is also sent to the current-output-port."
   #define Q_filter s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_filter", g_filter, 2, 0, false, H_filter, Q_filter);
 
+  #define H_take "(g_take lst k) returns a list of the first k elements of lst"
+  #define Q_take s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_list_symbol, sc->is_integer_symbol)
+  s7_define_semisafe_typed_function(sc, "g_take", g_take, 2, 0, false, H_take, Q_take);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */

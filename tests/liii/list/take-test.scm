@@ -76,4 +76,29 @@
 (check-catch 'wrong-type-arg (take '(1 2 3) "not a number"))
 
 
+;; take 总是创建新的列表结构，即使取走全部元素也不共享节点
+(let ((l (list 1 2 3)))
+  (check (eq? (take l 3) l) => #f)
+  (check (take l 3) => '(1 2 3))
+  ;; 修改结果不影响原列表
+  (let ((r (take l 2)))
+    (set-car! r 99)
+    (check l => '(1 2 3))
+  ) ;let
+) ;let
+
+
+;; 大列表 + GC 压力回归测试
+(let ((l (iota 10000)))
+  (check (take l 5000) => (iota 5000))
+  (check (length (take l 10000)) => 10000)
+  (check l => (iota 10000))
+) ;let
+
+(do ((i 0 (+ i 1)))
+  ((= i 1000))
+  (take (iota 100) 50)
+) ;do
+
+
 (check-report)
