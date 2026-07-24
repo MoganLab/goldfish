@@ -40,6 +40,12 @@
 ;; 1. 支持空分隔符，此时按字符分割
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，正确处理 Unicode
 ;; 3. 性能：O(n×m)，n 为 s 长度，m 为 delimiter 长度
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确分割
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-split 函数
+;; 参见: gf doc liii/string "string-split"
 
 (check (string-split "a:b:c" ":") => '("a" "b" "c"))
 (check (string-split "abc" "") => '("a" "b" "c"))

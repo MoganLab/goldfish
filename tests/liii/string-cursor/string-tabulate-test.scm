@@ -28,6 +28,12 @@
 ;; 1. (proc i) 对每个 i 从 0 到 len-1 调用
 ;; 2. 与 (liii string) 的区别：无直接对应函数，(liii string-cursor) 独有
 ;; 3. 性能：O(n)，n 为 len
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确构造
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-tabulate"
 
 (check (string-tabulate (lambda (i) (integer->char (+ i 65))) 3) => "ABC")
 (check (string-tabulate (lambda (i) #\a) 0) => "")
