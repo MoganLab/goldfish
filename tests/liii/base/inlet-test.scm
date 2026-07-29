@@ -87,4 +87,28 @@
 (check (begin (set! (p1 :age) (+ (p1 :age) 1)) (p1 :age)) => 27)
 
 
+;; ---- 顶层函数封装 -------------------------------------------------
+;; 复合操作写多遍会啰嗦，封装成 person-age / person-inc-age! 等顶层函数，
+;; 内部仍操作 inlet 绑定，对象本身保持简单
+
+(define (person-age p)
+  (p :age)
+) ;define
+
+(define (person-set-age! p v)
+  (set! (p :age) v)
+) ;define
+
+(define (person-inc-age! p)
+  (person-set-age! p (+ (person-age p) 1))
+) ;define
+
+(define p2 (inlet :name "Alice" :age 30))
+
+;; 通过封装函数读写 age
+(check (person-age p2) => 30)
+
+(check (begin (person-inc-age! p2) (person-age p2)) => 31)
+
+
 (check-report)
