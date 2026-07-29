@@ -66,4 +66,49 @@
 (check (length (inlet)) => 0)
 
 
+;; =========================================================================
+;; inlet 是可变的
+;; =========================================================================
+;;
+;; inlet 的绑定可以通过 set! 修改，有两种风格：
+;;
+;;   开放式：字段直接挂 inlet，外部用 (set! (obj :field) v) 改值。
+;;           字段公开可见、可改，封装弱。
+;;
+;;   封装式：字段是工厂函数的闭包变量，inlet 只暴露读写方法。
+;;           字段外部不可直接访问，封装强。
+
+
+;; ---- 开放式：直接改 inlet 绑定 ----------------------------------
+;; inlet 是可调用环境，(obj :key) 取值，set! 其返回位置即可改值
+
+(define p1 (inlet :name "Bob" :age 25))
+
+;; (p1 :age) 取值
+(check (p1 :age) => 25)
+
+;; set! 修改 :age 绑定
+(check (begin (set! (p1 :age) 26) (p1 :age)) => 26)
+
+;; 复合操作：age + 1
+(check (begin (set! (p1 :age) (+ (p1 :age) 1)) (p1 :age)) => 27)
+
+
+;; ---- 封装式：方法改闭包变量 -------------------------------------
+;; age 是闭包变量，外部只能通过 :get-age / :inc-age 操作
+
+(define* (make-person (name "?") (age 0))
+  (inlet :get-age
+    (lambda (self) age)
+    :inc-age
+    (lambda (self) (set! age (+ age 1)) age)
+  ) ;inlet
+) ;define*
+
+(define p2 (make-person :name "Bob" :age 25))
+
+;; 方法修改 age（闭包变量）
+(check (begin ((p2 :inc-age) p2) ((p2 :get-age) p2)) => 26)
+
+
 (check-report)
