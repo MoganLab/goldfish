@@ -148,7 +148,7 @@
 ) ;define
 
 (define (json->person j)
-  (inlet :name (cdr (assoc "name" j)) :age (cdr (assoc "age" j)))
+  (make-person (cdr (assoc "name" j)) (cdr (assoc "age" j)))
 ) ;define
 
 (define (string->person s)
