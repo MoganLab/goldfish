@@ -95,7 +95,9 @@
 
 
 ;; ---- 封装式：方法改闭包变量 -------------------------------------
-;; age 是闭包变量，外部只能通过 :get-age / :inc-age 操作
+;; age 是闭包变量，inlet 暴露 :get-age / :inc-age 方法
+;; 调用时避免 ((obj :method) obj) 的冗余写法，
+;; 定义顶层封装函数，调用处更自然
 
 (define* (make-person (name "?") (age 0))
   (inlet :get-age
@@ -105,10 +107,18 @@
   ) ;inlet
 ) ;define*
 
+(define (get-age obj)
+ ((obj :get-age) obj)
+) ;define
+
+(define (increase-age obj)
+ ((obj :inc-age) obj)
+) ;define
+
 (define p2 (make-person :name "Bob" :age 25))
 
-;; 方法修改 age（闭包变量）
-(check (begin ((p2 :inc-age) p2) ((p2 :get-age) p2)) => 26)
+;; increase-age 修改 age，get-age 读取
+(check (begin (increase-age p2) (get-age p2)) => 26)
 
 
 (check-report)
