@@ -248,4 +248,84 @@
 ) ;check
 
 
+;; =========================================================================
+;; inlet 与 openlet 的区别
+;; =========================================================================
+;;
+;; 两者都能模拟面向对象，但机制不同：
+;;
+;;   inlet：对象就是环境（键值容器），(obj :key) 直接取绑定值。
+;;          天然支持继承（outlet 链），但内建函数不会特殊处理它。
+;;
+;;   openlet：给环境/闭包打标记，使内建函数（length、object->string 等）
+;;            遇到该对象时，查询其内部同名方法并调用（方法分派）。
+;;
+;; 关键差异：
+;; ┌─────────────────┬──────────────────────┬───────────────────────┐
+;; │ 维度            │ 纯 inlet              │ openlet 闭包          │
+;; ├─────────────────┼──────────────────────┼───────────────────────┤
+;; │ 对象本质        │ 环境（键值容器）      │ 闭包（lambda）        │
+;; │ (obj :key)      │ 直接取绑定值          │ case 手动分派         │
+;; │ 字段封装        │ 弱（绑定可见）        │ 强（闭包变量）        │
+;; │ 继承            │ outlet 链天然支持     │ 需手动委托            │
+;; │ 内建函数方法分派│ ✗ 不触发              │ ✓ 触发                │
+;; └─────────────────┴──────────────────────┴───────────────────────┘
+;;
+;; 最后一行是核心区别：openlet 让对象能"改写"内建函数对它的处理方式，
+;; inlet 做不到。下面用计数器对象演示两种实现。
+
+
+;; ---- 纯 inlet 版计数器 -----------------------------------------
+;; 对象是 inlet，字段/方法都是绑定，方法签名 (lambda (self) ...)
+;; 状态 count 是闭包变量，多个实例状态独立
+
+(define (make-counter-inlet)
+  (let ((count 0))
+    (inlet :get
+      (lambda (self) count)
+      :inc
+      (lambda (self) (set! count (+ count 1)) count)
+    ) ;inlet
+  ) ;let
+) ;define
+
+(define ci (make-counter-inlet))
+
+;; 方法调用：((ci :inc) ci) —— 取出方法后传 self
+(check (begin ((ci :inc) ci) ((ci :inc) ci) ((ci :get) ci)) => 2)
+
+;; 纯 inlet 的局限：length 不认识它，不会调用 :length 方法
+;; 下面这个 inlet 定义了 :length，但 (length ci) 仍返回绑定数（2 个方法）
+(check (length (inlet :length (lambda (self) 99) :get (lambda (self) 0))) => 2)
+
+
+;; ---- openlet 版计数器 ------------------------------------------
+;; 同样的逻辑，但用 openlet 包装后，length 会查询 :length 方法
+
+(define (make-counter-openlet)
+  (let ((count 0))
+    (openlet (inlet :get
+               (lambda (self) count)
+               :inc
+               (lambda (self) (set! count (+ count 1)) count)
+               :length
+               (lambda (self) count)
+             ) ;inlet
+    ) ;openlet
+  ) ;let
+) ;define
+
+(define co (make-counter-openlet))
+((co :inc) co)
+((co :inc) co)
+
+;; openlet 触发方法分派：length 查询到 :length 方法，返回 count 值
+(check (length co) => 2)
+
+
+;; ---- 封装性对比 -------------------------------------------------
+;; inlet 的绑定对外可见：(ci :get) 直接返回方法 lambda
+;; openlet 闭包模式（见前面 make-person）：字段是闭包变量，外部无法直接访问
+
+
 (check-report)
