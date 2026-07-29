@@ -28,10 +28,32 @@
 ;;
 ;; 说明
 ;; ----
-;; inlet 是构造 let 的基本方式。
+;; inlet 是构造 let（环境对象）的基本方式。
 ;; 无参数调用 (inlet) 创建空 let。
 ;; (inlet 'a 1 'b 2) 创建包含 a=1、b=2 的 let。
 ;; inlet 创建的 let 是一个独立环境，其 outlet 是 rootlet。
+;;
+;; inlet 是可变的：通过 (set! (obj :key) v) 修改内部绑定。
+;; 关键性质：set! 只改绑定值，不创建新对象——对象身份（eq?）恒定不变。
+;; 因此 inlet 适合做需要就地更新、身份稳定的数据载体（如 data class）。
+;;
+;; 示例
+;; ----
+;; (define p (inlet :name "Bob" :age 25))
+;; (define alias p)
+;; (set! (p :age) 26)        ; 改 :age 绑定
+;; (eq? p alias)             ; => #t，对象身份没变
+;; (alias :age)              ; => 26，别名看到新值
+
+
+;; inlet 是可变环境：set! 改绑定值，但对象身份不变（核心不变式）
+(check (let* ((p (inlet :name "Bob" :age 25)) (alias p))
+         (set! (p :age) 26)
+         (list (eq? p alias) (alias :age))
+       ) ;let*
+  =>
+  '(#t 26)
+) ;check
 
 
 ;; 空 inlet 是 let
