@@ -1,5 +1,6 @@
 (import (liii check))
 (import (liii base))
+(import (liii json))
 
 
 (check-set-mode! 'report-failed)
@@ -131,6 +132,61 @@
 (check (person-age p2) => 30)
 
 (check (begin (person-inc-age! p2) (person-age p2)) => 31)
+
+
+;; ---- data class：inlet + 顶层序列化函数 ---------------------------
+;; person data class 的正确做法：对象就是 inlet，字段就是绑定，
+;; 序列化/反序列化用顶层函数，无需 openlet、无需闭包封装。
+;; 字段用 keyword 键；序列化为 (liii json) 兼容的字符串键 alist。
+
+(define (make-person name age)
+  (inlet :name name :age age)
+) ;define
+
+(define (person->json p)
+  (list (cons "name" (p :name)) (cons "age" (p :age)))
+) ;define
+
+(define (json->person j)
+  (inlet :name (cdr (assoc "name" j)) :age (cdr (assoc "age" j)))
+) ;define
+
+(define (string->person s)
+  (json->person (string->json s))
+) ;define
+
+
+;; 字段访问
+(check (let ((p (make-person "Bob" 25)))
+         (list (p :name) (p :age))
+       ) ;let
+  =>
+  '("Bob" 25)
+) ;check
+
+;; 序列化：person -> alist -> JSON 字符串
+(check (let ((p (make-person "Bob" 25)))
+         (person->json p)
+       ) ;let
+  =>
+  '(("name" . "Bob") ("age" . 25))
+) ;check
+
+;; 反序列化：JSON 字符串 -> person
+(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
+         (list (p :name) (p :age))
+       ) ;let
+  =>
+  '("Alice" 30)
+) ;check
+
+;; 完整往返：JSON -> person -> JSON
+(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
+         (json->string (person->json p))
+       ) ;let
+  =>
+  "{\"name\":\"Alice\",\"age\":30}"
+) ;check
 
 
 (check-report)
