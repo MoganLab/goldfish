@@ -148,7 +148,7 @@
 ) ;define
 
 (define (json->person j)
-  (make-person (cdr (assoc "name" j)) (cdr (assoc "age" j)))
+  (make-person (json-ref j "name") (json-ref j "age"))
 ) ;define
 
 (define (string->person s)
