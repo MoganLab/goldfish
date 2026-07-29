@@ -81,11 +81,11 @@
 (check (length (coverlet (openlet (inlet 'length (lambda (x) 99))))) => 1)
 
 
-;; 应用示例：用 openlet 定义 person 对象
-;; 工厂函数 make-person 返回一个闭包，被 openlet 标记后：
+;; 应用示例：用 openlet 定义带业务方法的 person 对象
+;; 工厂函数 make-person-greet 返回一个闭包，被 openlet 标记后：
 ;; - 调用 (p :field) 时按 keyword 分派，返回字段值或业务结果
 ;; - 字段 (name age) 被闭包捕获，外部无法直接访问，实现封装
-(define* (make-person (name "?") (age 0))
+(define* (make-person-greet (name "?") (age 0))
   (openlet (lambda (key)
              (case key
               ((:name) name)
@@ -99,7 +99,7 @@
 
 
 ;; (p :greet) 自动分发到业务方法
-(check (let ((p (make-person :name "Bob" :age 25)))
+(check (let ((p (make-person-greet :name "Bob" :age 25)))
          (p :greet)
        ) ;let
   =>
@@ -108,7 +108,7 @@
 
 
 ;; (p :name) / (p :age) 访问字段
-(check (let ((p (make-person :name "Alice" :age 30)))
+(check (let ((p (make-person-greet :name "Alice" :age 30)))
          (list (p :name) (p :age))
        ) ;let
   =>
@@ -117,7 +117,7 @@
 
 
 ;; 默认参数：缺省时 name 为 "?"、age 为 0
-(check (let ((p (make-person))) (p :greet)) => "Hi, I'm ?, 0 years old.")
+(check (let ((p (make-person-greet))) (p :greet)) => "Hi, I'm ?, 0 years old.")
 
 
 ;; 应用示例：用 openlet 定义 matrix 对象
@@ -172,7 +172,7 @@
 
 ;; 应用示例：用 openlet 模拟 data class（带 JSON 序列化）
 ;; 提供三层 API：
-;; - make-person-dc :name/:age 直接构造对象
+;; - make-person :name/:age 直接构造对象
 ;; - json->person  从 (liii json) 的 alist 构造
 ;; - string->person 从 JSON 字符串构造（内部 string->json 后委托 json->person）
 ;; 对象支持 :to-json 方法，导出为 (liii json) 兼容的 alist
@@ -183,7 +183,7 @@
   ) ;let
 ) ;define
 
-(define* (make-person-dc (name "?") (age 0))
+(define* (make-person (name "?") (age 0))
   (openlet (lambda (key)
              (case key
               ((:name) name)
@@ -195,7 +195,7 @@
 ) ;define*
 
 (define (json->person j)
-  (make-person-dc :name (alist-get j "name") :age (alist-get j "age"))
+  (make-person :name (alist-get j "name") :age (alist-get j "age"))
 ) ;define
 
 (define (string->person s)
@@ -203,8 +203,8 @@
 ) ;define
 
 
-;; make-person-dc :name/:age 直接构造
-(check (let ((p (make-person-dc :name "Bob" :age 25)))
+;; make-person :name/:age 直接构造
+(check (let ((p (make-person :name "Bob" :age 25)))
          (list (p :name) (p :age))
        ) ;let
   =>
@@ -231,7 +231,7 @@
 
 
 ;; :to-json 导出为字符串键 alist，可直接喂给 json->string
-(check (let ((p (make-person-dc :name "Bob" :age 25)))
+(check (let ((p (make-person :name "Bob" :age 25)))
          (p :to-json)
        ) ;let
   =>
