@@ -67,23 +67,24 @@
 
 ;; 应用示例：用 sublet + outlet 模拟继承
 ;; 设计要点：
-;; - 类环境（inlet）作为方法载体，方法以符号为键，签名为 (lambda (self) ...)
+;; - 类环境（inlet）作为方法载体，方法和字段都以 keyword 为键
+;; - 方法签名 (lambda (self) ...)，调用时显式传 self
 ;; - 子类用 (sublet 父类 (inlet ...)) 继承，覆盖的方法就近定义
 ;; - 实例用 (sublet 类 (inlet 字段...)) 构造，outlet 指向类环境
-;; - 方法调用：((let-ref 实例 '方法名) 实例) —— let-ref 沿 outlet 链查找
+;; - 方法调用：((实例 :方法名) 实例) —— inlet 可调用，keyword 取方法后传 self
 ;; - is-a 检查：遍历 outlet 链（到 rootlet 终止）判断实例是否属于某类
 
 ;; 基类 Animal
 
-(define animal-class (inlet 'speak (lambda (self) "some sound")))
+(define animal-class (inlet :speak (lambda (self) "some sound")))
 
 ;; Dog 继承 Animal，覆盖 speak
 
-(define dog-class (sublet animal-class (inlet 'speak (lambda (self) "woof"))))
+(define dog-class (sublet animal-class (inlet :speak (lambda (self) "woof"))))
 
 ;; Cat 继承 Animal，覆盖 speak
 
-(define cat-class (sublet animal-class (inlet 'speak (lambda (self) "meow"))))
+(define cat-class (sublet animal-class (inlet :speak (lambda (self) "meow"))))
 
 ;; is-a 检查：遍历 outlet 链找目标类
 
@@ -101,33 +102,32 @@
 ;; 实例工厂
 
 (define (make-animal name)
-  (sublet animal-class (inlet 'name name))
+  (sublet animal-class (inlet :name name))
 ) ;define
 
 (define (make-dog name)
-  (sublet dog-class (inlet 'name name))
+  (sublet dog-class (inlet :name name))
 ) ;define
 
 (define (make-cat name)
-  (sublet cat-class (inlet 'name name))
+  (sublet cat-class (inlet :name name))
 ) ;define
 
 
 ;; 方法覆盖：Dog.speak 返回 "woof"
-(check (let ((d (make-dog "Rex"))) ((let-ref d 'speak) d)) => "woof")
+(check (let ((d (make-dog "Rex"))) ((d :speak) d)) => "woof")
 
 
 ;; 方法覆盖：Cat.speak 返回 "meow"
-(check (let ((c (make-cat "Whiskers"))) ((let-ref c 'speak) c)) => "meow")
+(check (let ((c (make-cat "Whiskers"))) ((c :speak) c)) => "meow")
 
 
 ;; 未覆盖的方法继承自基类：Animal.speak 返回 "some sound"
-(check (let ((a (make-animal "generic")))
-         ((let-ref a 'speak) a)
-       ) ;let
-  =>
-  "some sound"
-) ;check
+(check (let ((a (make-animal "generic"))) ((a :speak) a)) => "some sound")
+
+
+;; 字段访问也用 keyword
+(check (let ((d (make-dog "Rex"))) (d :name)) => "Rex")
 
 
 ;; is-a 检查：Dog 实例既是 dog 也是 animal
