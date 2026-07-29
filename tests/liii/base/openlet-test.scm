@@ -171,13 +171,11 @@
 
 
 ;; 应用示例：用 openlet 模拟 data class（带 JSON 序列化）
-;; make-person 支持 :name/:age 直接构造，也支持 :from-json 从 alist 构造
-;; 返回的对象支持 :to-json 方法，导出为 (liii json) 兼容的 alist
-;;
-;; 与 (liii json) 的配合：
-;; - string->json 解析 JSON 字符串得到字符串键 alist
-;; - json->string 把 alist 序列化为 JSON 字符串
-;; - person 的 :to-json / :from-json 正好衔接两端
+;; 提供三层 API：
+;; - make-person-dc :name/:age 直接构造对象
+;; - json->person  从 (liii json) 的 alist 构造
+;; - string->person 从 JSON 字符串构造（内部 string->json 后委托 json->person）
+;; 对象支持 :to-json 方法，导出为 (liii json) 兼容的 alist
 
 (define (alist-get alist key)
   (let ((pair (assoc key alist)))
@@ -185,24 +183,46 @@
   ) ;let
 ) ;define
 
-(define* (make-person-dc (name #f) (age #f) (from-json #f))
-  (let* ((nm (or name (and from-json (alist-get from-json "name")) "?"))
-         (ag (or age (and from-json (alist-get from-json "age")) 0))
-        ) ;
-    (openlet (lambda (key)
-               (case key
-                ((:name) nm)
-                ((:age) ag)
-                ((:to-json) (list (cons "name" nm) (cons "age" ag)))
-               ) ;case
-             ) ;lambda
-    ) ;openlet
-  ) ;let*
+(define* (make-person-dc (name "?") (age 0))
+  (openlet (lambda (key)
+             (case key
+              ((:name) name)
+              ((:age) age)
+              ((:to-json) (list (cons "name" name) (cons "age" age)))
+             ) ;case
+           ) ;lambda
+  ) ;openlet
 ) ;define*
 
+(define (json->person j)
+  (make-person-dc :name (alist-get j "name") :age (alist-get j "age"))
+) ;define
 
-;; :from-json 从 (liii json) 的 alist 构造对象
-(check (let ((p (make-person-dc :from-json (string->json "{\"name\":\"Alice\",\"age\":30}"))))
+(define (string->person s)
+  (json->person (string->json s))
+) ;define
+
+
+;; make-person-dc :name/:age 直接构造
+(check (let ((p (make-person-dc :name "Bob" :age 25)))
+         (list (p :name) (p :age))
+       ) ;let
+  =>
+  '("Bob" 25)
+) ;check
+
+
+;; json->person 从 (liii json) 的 alist 构造对象
+(check (let ((p (json->person (string->json "{\"name\":\"Alice\",\"age\":30}"))))
+         (list (p :name) (p :age))
+       ) ;let
+  =>
+  '("Alice" 30)
+) ;check
+
+
+;; string->person 从 JSON 字符串构造对象
+(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
          (list (p :name) (p :age))
        ) ;let
   =>
@@ -220,8 +240,7 @@
 
 
 ;; 完整往返：JSON 字符串 -> person -> JSON 字符串
-(check (let ((p (make-person-dc :from-json (string->json "{\"name\":\"Alice\",\"age\":30}")))
-            ) ;
+(check (let ((p (string->person "{\"name\":\"Alice\",\"age\":30}")))
          (json->string (p :to-json))
        ) ;let
   =>
