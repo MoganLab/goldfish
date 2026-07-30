@@ -57,6 +57,8 @@
 
 (check (string-split "1,2,3" #\,) => '("1" "2" "3"))
 (check (string-split "line1\nline2\n" #\newline) => '("line1" "line2" ""))
+(check (string-split "你，好" #\，) => '("你" "好"))
+(check (string-split "a，b，c" #\，) => '("a" "b" "c"))
 
 (check (string-split "你好，世界，Goldfish" "，")
   =>

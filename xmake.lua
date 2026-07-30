@@ -111,6 +111,7 @@ target ("goldfish") do
     end
     add_files ("src/liii_os.cpp")
     add_files ("src/liii_path.cpp")
+    add_files ("src/liii_string.cpp")
     add_files ("src/liii_hashlib.cpp")
     add_files ("src/liii_base64.cpp")
     add_files ("src/scheme_base.cpp")
