@@ -85754,6 +85754,10 @@ is #t, the string is also sent to the current-output-port."
   #define Q_drop_right s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_list_symbol, sc->is_integer_symbol)
   s7_define_semisafe_typed_function(sc, "g_drop_right", g_drop_right, 2, 0, false, H_drop_right, Q_drop_right);
 
+  #define H_vector_filter "(g_vector_filter pred vec) returns a vector of the elements of vec for which (pred element) is not #f"
+  #define Q_vector_filter s7_make_signature(sc, 3, sc->is_vector_symbol, sc->is_procedure_symbol, sc->is_vector_symbol)
+  s7_define_semisafe_typed_function(sc, "g_vector_filter", g_vector_filter, 2, 0, false, H_vector_filter, Q_vector_filter);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */

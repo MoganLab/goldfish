@@ -39,5 +39,8 @@
 (check (vector-filter (lambda (x) #t) #()) => #())
 (check (vector-filter (lambda (x) #f) #(1 2 3)) => #())
 
+(check-catch 'wrong-type-arg (vector-filter 1 #(1 2 3)))
+(check-catch 'wrong-type-arg (vector-filter even? '(1 2 3)))
+
 
 (check-report)
