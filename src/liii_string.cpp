@@ -24,8 +24,7 @@ namespace goldfish {
 
 static s7_pointer
 liii_string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
-  return s7_error (
-      sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
 }
 
 // 返回 UTF-8 首字节 b 对应的码点字节宽度（1~4）；非法首字节返回 0
@@ -82,8 +81,7 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
     sep.assign (buf, (size_t) n);
   }
   else {
-    return liii_string_type_error (
-        sc, "string-split: second parameter must be string or char", sep_arg);
+    return liii_string_type_error (sc, "string-split: second parameter must be string or char", sep_arg);
   }
 
   const char* s  = s7_string (str_arg);
