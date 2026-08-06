@@ -1,5 +1,5 @@
 (import (liii check))
-(import (liii base))
+(import (scheme let))
 
 
 (check-set-mode! 'report-failed)
