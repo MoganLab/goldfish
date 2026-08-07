@@ -211,7 +211,8 @@
     (define (scheme-collect cfg)
       (let ((paths (lang-paths 'scheme cfg))
             (suffixes (lang-suffixes 'scheme cfg))
-            (excludes (lang-excludes 'scheme cfg)))
+            (excludes (lang-excludes 'scheme cfg))
+           ) ;
         (let loop
           ((ps paths) (acc '()))
           (if (null? ps)
