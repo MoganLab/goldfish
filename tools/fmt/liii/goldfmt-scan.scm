@@ -188,6 +188,16 @@
       (and (pair? value) (procedure-name=? (car value) "#_apply-values"))
     ) ;define
 
+    ;; ; 判断是否为 S7 reader 对 ` 上下文之外的 ,@x 的展开形式：(unquote (#_apply-values x))
+    (define (unquote-apply-values-form? value)
+      (and (pair? value)
+        (eq? (car value) 'unquote)
+        (pair? (cdr value))
+        (null? (cddr value))
+        (internal-apply-values-form? (cadr value))
+      ) ;and
+    ) ;define
+
     (define (internal-list-star-form? value)
       (and (pair? value)
         (let ((name (procedure-name (car value))))
@@ -268,6 +278,15 @@
             ) ;
             ((internal-list-star-form? datum)
              (list 'quasiquote (normalize-quasiquote-dotted-list datum))
+            ) ;
+            ;; ; S7 reader 会将不在 ` 上下文中的 ,@x 展开为 (unquote (#_apply-values x))
+            ;; ; 例如 (quasiquote (a ,@(f)))，需要正规化为 (unquote-splicing x)
+            ((unquote-apply-values-form? datum)
+             (list 'unquote-splicing (normalize-datum (cadr (cadr datum))))
+            ) ;
+            ;; ; 单独出现的 (#_apply-values x) 同样正规化为 (unquote-splicing x)
+            ((internal-apply-values-form? datum)
+             (list 'unquote-splicing (normalize-datum (cadr datum)))
             ) ;
             ((pair? datum)
              (cons (normalize-datum (car datum)) (normalize-datum (cdr datum)))
