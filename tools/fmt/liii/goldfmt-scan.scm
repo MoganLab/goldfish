@@ -135,6 +135,8 @@
                (make-char-literal :source (cadr datum) :value (caddr datum))
              ) ;make-atom
             ) ;
+            ;; ; quasiquote 点对尾部的 unquote 标记：直接扫描其包裹的形式
+            ((dotted-tail? datum) (scan-datum (dotted-tail-form datum) depth))
             ((atom? datum)
              ;; ; 如果是 atom，创建 atom 记录
              ;; left-line 和 right-line 使用默认值 0
@@ -195,6 +197,15 @@
         (pair? (cdr value))
         (null? (cddr value))
         (internal-apply-values-form? (cadr value))
+      ) ;and
+    ) ;define
+
+    ;; ; 判断是否为正规化后的 (unquote x) 或 (unquote-splicing x) 形式
+    (define (unquote-form? value)
+      (and (pair? value)
+        (or (eq? (car value) 'unquote) (eq? (car value) 'unquote-splicing))
+        (pair? (cdr value))
+        (null? (cddr value))
       ) ;and
     ) ;define
 
@@ -259,10 +270,76 @@
                                (else (list (normalize-quasiquote-item prefix-form)))
                          ) ;cond
              ) ;head-items
-             (tail (normalize-quasiquote-item tail-form))
+             ;; ; tail 为 (unquote x) 形式时，用 dotted-tail record 包裹，
+             ;; ; 避免 (a . (unquote b)) 退化为普通列表 (a unquote b)
+             (tail (let ((item (normalize-quasiquote-item tail-form)))
+                     (if (unquote-form? item) (make-dotted-tail item) item)
+                   ) ;let
+             ) ;tail
             ) ;
         (make-dotted-list head-items tail)
       ) ;let*
+    ) ;define
+
+    ;; ; 判断是否为显式 (quasiquote template) 形式
+    ;; ; S7 reader 不会展开显式 quasiquote，模板中的符号原样保留
+    (define (explicit-quasiquote-form? datum)
+      (and (pair? datum)
+        (eq? (car datum) 'quasiquote)
+        (pair? (cdr datum))
+        (null? (cddr datum))
+      ) ;and
+    ) ;define
+
+    ;; ; 将（可能为点对的）列表拆成元素列表和尾部，尾部为 '() 表示正规列表
+    (define (split-pair-list datum)
+      (let loop
+        ((current datum) (elems '()))
+        (cond ((pair? current) (loop (cdr current) (cons (car current) elems)))
+              ((null? current) (values (reverse elems) '()))
+              (else (values (reverse elems) current))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    ;; ; 显式 quasiquote 模板的正规化
+    ;; ; (quasiquote (a . ,b)) 经 reader 后点已丢失，读出为 (quasiquote (a unquote b))；
+    ;; ; g_quasiquote_1（src/s7.c）求值时对"倒数第二个元素为 unquote 符号"的列表
+    ;; ; 按点对 unquote 处理（任意前缀长度），这里做对应的结构恢复，
+    ;; ; 使输出为规范的 `(a . ,b) 形式，同时保证幂等。
+    (define (normalize-explicit-qq-template datum)
+      (cond ((unquote-form? datum)
+             ;; ; car 位置的 (unquote x) / (unquote-splicing x)，走通用正规化
+             ;; ; （含 0096 的 (unquote (#_apply-values x)) => (unquote-splicing x) 处理）
+             (normalize-datum datum)
+            ) ;
+            ((pair? datum)
+             (call-with-values (lambda () (split-pair-list datum))
+               (lambda (elems tail)
+                 (let ((len (length elems)))
+                   (cond
+                     ;; ; reader 丢失点的 mangled 形式：(x1 ... xn unquote y)，n >= 1
+                     ;; ; 注意：不能用 append 拼接 dotted-tail record，
+                     ;; ; S7 的 append 会把 record 当作序列展开，必须用 cons 构造
+                     ((and (null? tail) (>= len 3) (eq? (list-ref elems (- len 2)) 'unquote))
+                      (make-dotted-list (map normalize-explicit-qq-template (take elems (- len 2)))
+                        (make-dotted-tail (list 'unquote (normalize-datum (list-ref elems (- len 1)))))
+                      ) ;make-dotted-list
+                     ) ;
+                     ;; ; 普通正规列表：逐元素递归
+                     ((null? tail) (map normalize-explicit-qq-template elems))
+                     ;; ; 真实点对数据（如 (a . b)）：保持点对结构，逐部分递归
+                     (else (make-dotted-list (map normalize-explicit-qq-template elems)
+                             (normalize-explicit-qq-template tail)
+                           ) ;make-dotted-list
+                     ) ;else
+                   ) ;cond
+                 ) ;let
+               ) ;lambda
+             ) ;call-with-values
+            ) ;
+            (else datum)
+      ) ;cond
     ) ;define
 
     (define (normalize-datum datum)
@@ -273,6 +350,11 @@
              (make-char-literal :source (cadr datum) :value (caddr datum))
             ) ;
             ((quote-form? datum) (list (car datum) (normalize-datum (cadr datum))))
+            ;; ; 显式 (quasiquote T)：reader 不展开，模板中的 (a . ,b) 读出为 (a unquote b)，
+            ;; ; 需要模板级走查恢复点对结构
+            ((explicit-quasiquote-form? datum)
+             (list 'quasiquote (normalize-explicit-qq-template (cadr datum)))
+            ) ;
             ((internal-list-values-form? datum)
              (list 'quasiquote (normalize-quasiquote-list datum))
             ) ;
