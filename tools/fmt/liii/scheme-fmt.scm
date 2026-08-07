@@ -206,15 +206,18 @@
     ;; ---- handler 协议实现（供仓库批量 / check 使用）---------------------
     ;; 各方法统一接收 cfg，内部用 goldfmt-config 访问器自取本语言的 path/exclude。
 
-    ;; 仓库批量收集：从 cfg 的 scheme.path 递归收集所有 .scm 文件（尊重 scheme.exclude）。
+    ;; 仓库批量收集：从 cfg 的 scheme.path 递归收集所有 scheme 后缀文件
+    ;; （默认 .scm，尊重 gf_fmt.json 的 scheme.suffix 与 scheme.exclude）。
     (define (scheme-collect cfg)
-      (let ((paths (lang-paths 'scheme cfg)) (excludes (lang-excludes 'scheme cfg)))
+      (let ((paths (lang-paths 'scheme cfg))
+            (suffixes (lang-suffixes 'scheme cfg))
+            (excludes (lang-excludes 'scheme cfg)))
         (let loop
           ((ps paths) (acc '()))
           (if (null? ps)
             acc
             (if (path-dir? (path (car ps)))
-              (loop (cdr ps) (append (collect-files (car ps) '(".scm") excludes) acc))
+              (loop (cdr ps) (append (collect-files (car ps) suffixes excludes) acc))
               (loop (cdr ps) acc)
             ) ;if
           ) ;if
