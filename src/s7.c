@@ -85758,6 +85758,18 @@ is #t, the string is also sent to the current-output-port."
   #define Q_vector_filter s7_make_signature(sc, 3, sc->is_vector_symbol, sc->is_procedure_symbol, sc->is_vector_symbol)
   s7_define_semisafe_typed_function(sc, "g_vector_filter", g_vector_filter, 2, 0, false, H_vector_filter, Q_vector_filter);
 
+  #define H_any "(g_any pred lst) returns #t if (pred element) is true for some element of lst, else #f"
+  #define Q_any s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_any", g_any, 2, 0, false, H_any, Q_any);
+
+  #define H_every "(g_every pred lst) returns #t if (pred element) is true for every element of lst, else #f"
+  #define Q_every s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_every", g_every, 2, 0, false, H_every, Q_every);
+
+  #define H_find "(g_find pred lst) returns the first element of lst for which (pred element) is true, or #f"
+  #define Q_find s7_make_signature(sc, 3, sc->T, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_find", g_find, 2, 0, false, H_find, Q_find);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */

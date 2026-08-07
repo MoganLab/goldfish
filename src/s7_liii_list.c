@@ -7,6 +7,7 @@
 #include "s7_liii_list.h"
 #include "s7_internal_helpers.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 
 s7_pointer g_is_null(s7_scheme *sc, s7_pointer args)
@@ -650,6 +651,66 @@ s7_pointer g_drop_right(s7_scheme *sc, s7_pointer args)
     }
   s7_gc_unprotect_via_stack(sc, head);
   return(s7_cdr(head));
+}
+
+/* -------------------------------- any / every / find -------------------------------- */
+
+/* shared anchor: args may live in evaluator-recycled cells, so keep pred and
+ * lst in our own pair to stay GC-reachable while pred runs */
+static s7_pointer any_every_find_loop(s7_scheme *sc, const char *name, s7_pointer args, int mode)
+{
+  s7_pointer lst = s7_cadr(args);
+  s7_pointer initial = (mode == 1) ? s7_t(sc) : s7_f(sc);
+  if (!s7_is_pair(lst))
+    {
+      if (s7_is_null(sc, lst)) return(initial);
+      return(s7_wrong_type_arg_error(sc, name, 2, lst, "a proper list"));
+    }
+  s7_pointer anchor = s7_cons(sc, s7_car(args), lst);
+  s7_gc_protect_via_stack(sc, anchor);
+  s7_pointer pred = s7_car(anchor);
+  s7_pointer result = initial;
+  s7_pointer p = lst;
+  bool stopped = false;
+  while (s7_is_pair(p))
+    {
+      s7_pointer r = s7_apply_function(sc, pred, s7i_set_plist_1(sc, s7_car(p)));
+      if (mode == 0) /* any: stop at first true, normalized to #t */
+        {
+          if (s7i_is_true(sc, r)) { result = s7_t(sc); stopped = true; break; }
+        }
+      else if (mode == 1) /* every: stop at first false */
+        {
+          if (!s7i_is_true(sc, r)) { result = s7_f(sc); stopped = true; break; }
+        }
+      else /* find: stop at first true, return the element */
+        {
+          if (s7i_is_true(sc, r)) { result = s7_car(p); stopped = true; break; }
+        }
+      p = s7_cdr(p);
+    }
+  if (!stopped && !s7_is_null(sc, p))
+    {
+      s7_gc_unprotect_via_stack(sc, anchor);
+      return(s7_wrong_type_arg_error(sc, name, 2, lst, "a proper list"));
+    }
+  s7_gc_unprotect_via_stack(sc, anchor);
+  return(result);
+}
+
+s7_pointer g_any(s7_scheme *sc, s7_pointer args)
+{
+  return(any_every_find_loop(sc, "any", args, 0));
+}
+
+s7_pointer g_every(s7_scheme *sc, s7_pointer args)
+{
+  return(any_every_find_loop(sc, "every", args, 1));
+}
+
+s7_pointer g_find(s7_scheme *sc, s7_pointer args)
+{
+  return(any_every_find_loop(sc, "find", args, 2));
 }
 
 s7_pointer g_list(s7_scheme *sc, s7_pointer args)

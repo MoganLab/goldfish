@@ -269,12 +269,7 @@
       (filter (lambda (x) (not (pred x))) l)
     ) ;define
 
-    (define (find pred l)
-      (cond ((null? l) #f)
-            ((pred (car l)) (car l))
-            (else (find pred (cdr l)))
-      ) ;cond
-    ) ;define
+    (define find g_find)
 
     (define (take-while pred lst)
       (if (null? lst)
@@ -294,19 +289,9 @@
       ) ;let
     ) ;define
 
-    (define (any pred? l)
-      (cond ((null? l) #f)
-            ((pred? (car l)) #t)
-            (else (any pred? (cdr l)))
-      ) ;cond
-    ) ;define
+    (define any g_any)
 
-    (define (every pred? l)
-      (cond ((null? l) #t)
-            ((not (pred? (car l))) #f)
-            (else (every pred? (cdr l)))
-      ) ;cond
-    ) ;define
+    (define every g_every)
 
     (define (%extract-maybe-equal maybe-equal)
       (let ((my-equal (if (null-list? maybe-equal) equal? (car maybe-equal))))
