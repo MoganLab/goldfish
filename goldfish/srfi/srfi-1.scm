@@ -183,10 +183,7 @@
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
-             (let loop
-               ((acc initial) (lst (car lists)))
-               (if (null? lst) acc (loop (f (car lst) acc) (cdr lst)))
-             ) ;let
+             (g_fold f initial (car lists))
             ) ;
             (else (let loop
                     ((acc initial) (lsts lists))
@@ -207,10 +204,7 @@
       ) ;unless
       (cond ((null? lists) initial)
             ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
-             (let loop
-               ((lst (car lists)))
-               (if (null? lst) initial (f (car lst) (loop (cdr lst))))
-             ) ;let
+             (g_fold_right f initial (car lists))
             ) ;
             (else (let loop
                     ((lsts lists))

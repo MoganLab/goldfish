@@ -85770,6 +85770,14 @@ is #t, the string is also sent to the current-output-port."
   #define Q_find s7_make_signature(sc, 3, sc->T, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_find", g_find, 2, 0, false, H_find, Q_find);
 
+  #define H_fold "(g_fold f init lst) folds f over the elements of lst: (f elem acc)"
+  #define Q_fold s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_fold", g_fold, 3, 0, false, H_fold, Q_fold);
+
+  #define H_fold_right "(g_fold_right f init lst) folds f from the right over the elements of lst: (f elem acc)"
+  #define Q_fold_right s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_fold_right", g_fold_right, 3, 0, false, H_fold_right, Q_fold_right);
+
   sc->length_symbol =                defun("length",		length,			1, 0, false);
   sc->copy_symbol =                  defun("copy",		copy,			1, 3, false);
   /* set_is_definer(sc->copy_symbol); */ /* (copy (inlet 'a 1) (curlet)), but this check needs to be smarter */

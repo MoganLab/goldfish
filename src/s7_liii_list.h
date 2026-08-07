@@ -64,6 +64,8 @@ s7_pointer g_drop_right(s7_scheme *sc, s7_pointer args);
 s7_pointer g_any(s7_scheme *sc, s7_pointer args);
 s7_pointer g_every(s7_scheme *sc, s7_pointer args);
 s7_pointer g_find(s7_scheme *sc, s7_pointer args);
+s7_pointer g_fold(s7_scheme *sc, s7_pointer args);
+s7_pointer g_fold_right(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_list_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args);
