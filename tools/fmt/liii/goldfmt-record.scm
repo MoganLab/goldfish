@@ -39,6 +39,9 @@
     char-literal?
     char-literal-source
     char-literal-value
+    make-dotted-tail
+    dotted-tail?
+    dotted-tail-form
     good-env?
     assert-env
   ) ;export
@@ -136,6 +139,18 @@
       ) ;when
       (%make-char-literal source value)
     ) ;define*
+
+    ;; ; quasiquote 点对尾部的 unquote 标记
+    ;; ; `(a . ,b) 正规化后 tail 为 (unquote b)，若直接作为 cdr，
+    ;; ; (a . (unquote b)) 在结构上等于普通列表 (a unquote b)，点对信息丢失。
+    ;; ; 用 record 包裹后，结果成为真正的非正规列表，dotted-list? 可以识别。
+    (define-record-type dotted-tail
+      (%make-dotted-tail form)
+      dotted-tail?
+      (form dotted-tail-form)
+    ) ;define-record-type
+
+    (define* (make-dotted-tail (form '())) (%make-dotted-tail form))
 
     ;; ; 使用具名参数的构造器
     (define* (make-env (tag-name "")
