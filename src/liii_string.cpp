@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include <cmath>
 #include <cstring>
 #include <string>
 #include <string_view>
@@ -217,6 +218,95 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_string_replace (s7_scheme* sc, s7_pointer args) {
+  s7_pointer str_arg= s7_car (args);
+  s7_pointer old_arg= s7_cadr (args);
+  s7_pointer new_arg= s7_caddr (args);
+  s7_pointer rest   = s7_cdddr (args);
+
+  if (!s7_is_string (str_arg)) {
+    return liii_string_type_error (sc, "string-replace: str must be a string", str_arg);
+  }
+  if (!s7_is_string (old_arg)) {
+    return liii_string_type_error (sc, "string-replace: old must be a string", old_arg);
+  }
+  if (!s7_is_string (new_arg)) {
+    return liii_string_type_error (sc, "string-replace: new must be a string", new_arg);
+  }
+
+  s7_int count= -1;
+  if (!s7_is_null (sc, rest)) {
+    s7_pointer count_arg= s7_car (rest);
+    // 与旧实现 (integer? count) 的契约一致：整数或整数值的浮点数均可
+    if (s7_is_integer (count_arg)) {
+      count= s7_integer (count_arg);
+    }
+    else if (s7_is_real (count_arg) && std::floor (s7_real (count_arg)) == s7_real (count_arg)) {
+      count= (s7_int) s7_real (count_arg);
+    }
+    else {
+      return liii_string_type_error (sc, "string-replace: count must be an integer", count_arg);
+    }
+  }
+
+  /* 先全部拷入 C++ 缓冲区，之后只在最后做一次 Scheme 堆分配，
+   * 因此无需额外的 GC anchor（且全程没有 Scheme 回调） */
+  const std::string_view str (s7_string (str_arg), (size_t) s7_string_length (str_arg));
+  const std::string_view old_v (s7_string (old_arg), (size_t) s7_string_length (old_arg));
+  const std::string_view new_v (s7_string (new_arg), (size_t) s7_string_length (new_arg));
+
+  if (count == 0) {
+    return s7_make_string_with_length (sc, str.data (), (s7_int) str.size ());
+  }
+
+  std::string result;
+  if (old_v.empty ()) {
+    // 空 pattern：在每个字节之间插入 new（Python 兼容行为）
+    if (str.empty ()) {
+      result.assign (new_v);
+    }
+    else {
+      const size_t max_insert= str.size () + 1;
+      size_t remaining= (count < 0) ? max_insert : std::min ((size_t) count, max_insert);
+      result.reserve (str.size () + remaining * new_v.size ());
+      size_t i= 0;
+      while (i < str.size () && remaining > 0) {
+        result.append (new_v);
+        result.append (str, i, 1);
+        i++;
+        remaining--;
+      }
+      if (i == str.size ()) {
+        if (remaining > 0) result.append (new_v);
+      }
+      else {
+        result.append (str, i, str.size () - i);
+      }
+    }
+  }
+  else {
+    // 非空 pattern：从左到右、非重叠替换；UTF-8 字节级匹配是精确的
+    size_t remaining= (count < 0) ? std::string_view::npos : (size_t) count;
+    size_t start    = 0;
+    while (remaining > 0) {
+      size_t pos= str.find (old_v, start);
+      if (pos == std::string_view::npos) break;
+      result.append (str, start, pos - start);
+      result.append (new_v);
+      start= pos + old_v.size ();
+      remaining--;
+    }
+    if (start == 0) {
+      // 无匹配：返回原内容的副本
+      return s7_make_string_with_length (sc, str.data (), (s7_int) str.size ());
+    }
+    result.append (str, start, str.size () - start);
+  }
+
+  return s7_make_string_with_length (sc, result.data (), (s7_int) result.size ());
+}
+
+static s7_pointer
 f_string_starts_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer str_arg   = s7_car (args);
   s7_pointer prefix_arg= s7_cadr (args);
@@ -272,6 +362,13 @@ glue_string_ends_p (s7_scheme* sc) {
 }
 
 static void
+glue_string_replace (s7_scheme* sc) {
+  const char* name= "g_string-replace";
+  const char* desc= "(g_string-replace str old new . count) => string";
+  s7_define_function (sc, name, f_string_replace, 3, 1, false, desc);
+}
+
+static void
 glue_string_split (s7_scheme* sc) {
   const char* name= "g_string-split";
   const char* desc= "(g_string-split str sep) => list of strings";
@@ -281,6 +378,7 @@ glue_string_split (s7_scheme* sc) {
 void
 glue_liii_string (s7_scheme* sc) {
   glue_string_join (sc);
+  glue_string_replace (sc);
   glue_string_starts_p (sc);
   glue_string_ends_p (sc);
   glue_string_split (sc);

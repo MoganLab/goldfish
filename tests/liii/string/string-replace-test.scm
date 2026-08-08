@@ -124,6 +124,10 @@
 (check (string-replace "aaa" "a" "b" 1) => "baa")
 (check (string-replace "aaa" "a" "b" 2) => "bba")
 
+;; count 为整数值的浮点数（integer? 判定为 #t）
+(check (string-replace "aaa" "a" "b" 2.0) => "bba")
+(check (string-replace "aaa" "a" "b" -1.0) => "bbb")
+
 ;; 空 pattern 时的 count 行为
 (check (string-replace "hello" "" "-" 1) => "-hello")
 (check (string-replace "hello" "" "-" 2) => "-h-ello")
