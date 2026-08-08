@@ -267,7 +267,7 @@ f_string_replace (s7_scheme* sc, s7_pointer args) {
     }
     else {
       const size_t max_insert= str.size () + 1;
-      size_t remaining= (count < 0) ? max_insert : std::min ((size_t) count, max_insert);
+      size_t       remaining = (count < 0) ? max_insert : std::min ((size_t) count, max_insert);
       result.reserve (str.size () + remaining * new_v.size ());
       size_t i= 0;
       while (i < str.size () && remaining > 0) {
