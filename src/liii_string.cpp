@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include <cstring>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -126,6 +127,54 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   return s7_cdr (head);
 }
 
+static s7_pointer
+f_string_starts_p (s7_scheme* sc, s7_pointer args) {
+  s7_pointer str_arg= s7_car (args);
+  s7_pointer prefix_arg= s7_cadr (args);
+
+  if (!s7_is_string (str_arg) || !s7_is_string (prefix_arg)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "string-starts? parameter is not a string")));
+  }
+
+  // UTF-8 字节级前缀比较是精确的：前缀字节序列必然落在码点边界上
+  const size_t str_len   = (size_t) s7_string_length (str_arg);
+  const size_t prefix_len= (size_t) s7_string_length (prefix_arg);
+  if (prefix_len > str_len) return s7_f (sc);
+  return s7_make_boolean (sc, std::memcmp (s7_string (str_arg), s7_string (prefix_arg), prefix_len) == 0);
+}
+
+static s7_pointer
+f_string_ends_p (s7_scheme* sc, s7_pointer args) {
+  s7_pointer str_arg= s7_car (args);
+  s7_pointer suffix_arg= s7_cadr (args);
+
+  if (!s7_is_string (str_arg) || !s7_is_string (suffix_arg)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "string-ends? parameter is not a string")));
+  }
+
+  const size_t str_len   = (size_t) s7_string_length (str_arg);
+  const size_t suffix_len= (size_t) s7_string_length (suffix_arg);
+  if (suffix_len > str_len) return s7_f (sc);
+  const char* tail= s7_string (str_arg) + (str_len - suffix_len);
+  return s7_make_boolean (sc, std::memcmp (tail, s7_string (suffix_arg), suffix_len) == 0);
+}
+
+static void
+glue_string_starts_p (s7_scheme* sc) {
+  const char* name= "g_string-starts?";
+  const char* desc= "(g_string-starts? str prefix) => boolean";
+  s7_define_function (sc, name, f_string_starts_p, 2, 0, false, desc);
+}
+
+static void
+glue_string_ends_p (s7_scheme* sc) {
+  const char* name= "g_string-ends?";
+  const char* desc= "(g_string-ends? str suffix) => boolean";
+  s7_define_function (sc, name, f_string_ends_p, 2, 0, false, desc);
+}
+
 static void
 glue_string_split (s7_scheme* sc) {
   const char* name= "g_string-split";
@@ -135,6 +184,8 @@ glue_string_split (s7_scheme* sc) {
 
 void
 glue_liii_string (s7_scheme* sc) {
+  glue_string_starts_p (sc);
+  glue_string_ends_p (sc);
   glue_string_split (sc);
 }
 

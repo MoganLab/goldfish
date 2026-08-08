@@ -47,12 +47,7 @@
     ;; ; 基于 SRFI-13 的 string-trim 实现
     (define string-trim-left string-trim)
 
-    (define (string-starts? str prefix)
-      (if (and (string? str) (string? prefix))
-        (string-prefix? prefix str)
-        (type-error "string-starts? parameter is not a string")
-      ) ;if
-    ) ;define
+    (define string-starts? g_string-starts?)
 
     (define string-contains?
       (typed-lambda ((str string?) (sub-str string?)) (string-contains str sub-str))
@@ -121,12 +116,7 @@
       ) ;let
     ) ;define
 
-    (define (string-ends? str suffix)
-      (if (and (string? str) (string? suffix))
-        (string-suffix? suffix str)
-        (type-error "string-ends? parameter is not a string")
-      ) ;if
-    ) ;define
+    (define string-ends? g_string-ends?)
 
     (define string-remove-prefix
       (typed-lambda ((str string?) (prefix string?))
