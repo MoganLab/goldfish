@@ -70,6 +70,16 @@
 (check-catch 'value-error (string-join '() ":" 'no-such-grammer))
 (check-catch 'wrong-number-of-args (string-join '() ":" 1 2 3))
 
+;; 元素类型测试：每个元素必须是字符串（C 实现统一校验，
+;; 旧 Scheme 实现对单元素列表不校验，直接返回该元素）
+(check-catch 'type-error (string-join '("a" 1 "b") ":"))
+(check-catch 'type-error (string-join '(1) ":"))
+(check-catch 'type-error (string-join '(1)))
+
+;; 第一个参数必须是正规列表
+(check-catch 'type-error (string-join "ab" ":"))
+(check-catch 'type-error (string-join '("a" . "b") ":"))
+
 ;; 空字符串元素边界测试
 (check (string-join '("" "") ":") => ":")
 (check (string-join '("" "" "") ":") => "::")

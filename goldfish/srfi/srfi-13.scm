@@ -61,55 +61,12 @@
       ) ;cond
     ) ;define
 
-    (define (string-join l . delim+grammer)
-      (define (extract-params params-l)
-        (cond ((null-list? params-l) (list "" 'infix))
-              ((and (= (length params-l) 1) (string? (car params-l)))
-               (list (car params-l) 'infix)
-              ) ;
-              ((and (= (length params-l) 2)
-                 (string? (first params-l))
-                 (symbol? (second params-l))
-               ) ;and
-               params-l
-              ) ;
-              ((> (length params-l) 2)
-               (error 'wrong-number-of-args "optional params in string-join")
-              ) ;
-              (else (error 'type-error "optional params in string-join"))
-        ) ;cond
-      ) ;define
-      ;; 一次性把元素和分隔符交错收集到列表，再交给 string-append 一次完成拼接
-      ;; 避免旧实现每层递归重复拼接后缀导致的 O(n^2) 开销
-      (define (string-join-sub l delim)
-        (cond ((null-list? l) "")
-              ((null? (cdr l)) (car l))
-              (else (let loop
-                      ((rest (cdr l)) (acc (list (car l))))
-                      (if (null? rest)
-                        (apply string-append (reverse acc))
-                        (loop (cdr rest) (cons (car rest) (cons delim acc)))
-                      ) ;if
-                    ) ;let
-              ) ;else
-        ) ;cond
-      ) ;define
-      (let* ((params (extract-params delim+grammer))
-             (delim (first params))
-             (grammer (second params))
-             (ret (string-join-sub l delim))
-            ) ;
-        (case grammer
-         ('infix ret)
-         ('strict-infix
-          (if (null-list? l) (error 'value-error "empty list not allowed") ret)
-         ) ;
-         ('suffix (if (null-list? l) "" (string-append ret delim)))
-         ('prefix (if (null-list? l) "" (string-append delim ret)))
-         (else (error 'value-error "invalid grammer"))
-        ) ;case
-      ) ;let*
-    ) ;define
+    ;; string-join 的 C 实现见 src/liii_string.cpp 的 g_string-join
+    ;; 错误契约与旧 Scheme 实现一致：
+    ;;   type-error "optional params in string-join"（分隔符非字符串或 grammar 非符号）
+    ;;   value-error "invalid grammer"（grammar 非四种之一）
+    ;;   value-error "empty list not allowed"（strict-infix 遇到空列表）
+    (define string-join g_string-join)
 
     (define (string-null? str)
       (if (not (string? str))

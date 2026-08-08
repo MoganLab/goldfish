@@ -127,6 +127,97 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   return s7_cdr (head);
 }
 
+enum class string_join_grammar { infix, strict_infix, suffix, prefix };
+
+static s7_pointer
+f_string_join (s7_scheme* sc, s7_pointer args) {
+  s7_pointer l   = s7_car (args);
+  s7_pointer rest= s7_cdr (args);
+
+  std::string delim;
+  if (!s7_is_null (sc, rest)) {
+    s7_pointer delim_arg= s7_car (rest);
+    if (!s7_is_string (delim_arg)) {
+      return liii_string_type_error (sc, "optional params in string-join", delim_arg);
+    }
+    delim.assign (s7_string (delim_arg), (size_t) s7_string_length (delim_arg));
+    rest= s7_cdr (rest);
+  }
+
+  string_join_grammar grammar= string_join_grammar::infix;
+  bool                grammar_valid= true;
+  if (!s7_is_null (sc, rest)) {
+    s7_pointer grammar_arg= s7_car (rest);
+    if (!s7_is_symbol (grammar_arg)) {
+      return liii_string_type_error (sc, "optional params in string-join", grammar_arg);
+    }
+    const char* name= s7_symbol_name (grammar_arg);
+    if (std::strcmp (name, "infix") == 0) grammar= string_join_grammar::infix;
+    else if (std::strcmp (name, "strict-infix") == 0) grammar= string_join_grammar::strict_infix;
+    else if (std::strcmp (name, "suffix") == 0) grammar= string_join_grammar::suffix;
+    else if (std::strcmp (name, "prefix") == 0) grammar= string_join_grammar::prefix;
+    else grammar_valid= false;
+  }
+
+  // 第一趟：校验元素均为字符串并累计总字节数，与旧实现一样在 grammar 分支之前报错
+  size_t     count    = 0;
+  size_t     total_len= 0;
+  s7_pointer p        = l;
+  while (s7_is_pair (p)) {
+    s7_pointer elem= s7_car (p);
+    if (!s7_is_string (elem)) {
+      return liii_string_type_error (sc, "string-join: elements must be strings", elem);
+    }
+    total_len+= (size_t) s7_string_length (elem);
+    count++;
+    p= s7_cdr (p);
+  }
+  if (!s7_is_null (sc, p)) {
+    return liii_string_type_error (sc, "string-join: first parameter must be a proper list", l);
+  }
+
+  if (!grammar_valid) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "invalid grammer")));
+  }
+
+  if (grammar == string_join_grammar::strict_infix && count == 0) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 1, s7_make_string (sc, "empty list not allowed")));
+  }
+
+  const size_t delim_len    = delim.size ();
+  size_t       delim_count  = 0;
+  switch (grammar) {
+  case string_join_grammar::infix:
+  case string_join_grammar::strict_infix:
+    delim_count= (count > 0) ? count - 1 : 0;
+    break;
+  case string_join_grammar::suffix:
+  case string_join_grammar::prefix:
+    delim_count= count;
+    break;
+  }
+
+  std::string result;
+  result.reserve (total_len + delim_count * delim_len);
+  size_t i= 0;
+  for (p= l; s7_is_pair (p); p= s7_cdr (p), i++) {
+    if (grammar == string_join_grammar::prefix ||
+        (i > 0 && grammar != string_join_grammar::suffix)) {
+      result.append (delim);
+    }
+    s7_pointer elem= s7_car (p);
+    result.append (s7_string (elem), (size_t) s7_string_length (elem));
+    if (grammar == string_join_grammar::suffix) result.append (delim);
+  }
+
+  /* no Scheme callbacks here, so args (and the strings reachable from the
+   * input list) stay put; the result is built in a C++ buffer first and
+   * copied into the Scheme heap in a single allocation */
+  return s7_make_string_with_length (sc, result.data (), (s7_int) result.size ());
+}
+
 static s7_pointer
 f_string_starts_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer str_arg   = s7_car (args);
@@ -162,6 +253,13 @@ f_string_ends_p (s7_scheme* sc, s7_pointer args) {
 }
 
 static void
+glue_string_join (s7_scheme* sc) {
+  const char* name= "g_string-join";
+  const char* desc= "(g_string-join string-list . delim+grammar) => string";
+  s7_define_function (sc, name, f_string_join, 1, 2, false, desc);
+}
+
+static void
 glue_string_starts_p (s7_scheme* sc) {
   const char* name= "g_string-starts?";
   const char* desc= "(g_string-starts? str prefix) => boolean";
@@ -184,6 +282,7 @@ glue_string_split (s7_scheme* sc) {
 
 void
 glue_liii_string (s7_scheme* sc) {
+  glue_string_join (sc);
   glue_string_starts_p (sc);
   glue_string_ends_p (sc);
   glue_string_split (sc);
