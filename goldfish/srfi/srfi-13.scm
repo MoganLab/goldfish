@@ -287,18 +287,21 @@
       ) ;let
     ) ;define
 
+    ;; string-prefix?/string-suffix? 复用 C 实现的 g_string-starts?/g_string-ends?
+    ;; （见 src/liii_string.cpp），避免旧实现的 substring 临时分配；
+    ;; 注意参数顺序相反，且错误契约为 wrong-type-arg（区别于 liii 的 type-error）
     (define (string-prefix? prefix str)
-      (let* ((prefix-len (string-length prefix)) (str-len (string-length str)))
-        (and (<= prefix-len str-len) (string=? prefix (substring str 0 prefix-len)))
-      ) ;let*
+      (if (and (string? prefix) (string? str))
+        (g_string-starts? str prefix)
+        (error 'wrong-type-arg "string-prefix?: expected string arguments")
+      ) ;if
     ) ;define
 
     (define (string-suffix? suffix str)
-      (let* ((suffix-len (string-length suffix)) (str-len (string-length str)))
-        (and (<= suffix-len str-len)
-          (string=? suffix (substring str (- str-len suffix-len) str-len))
-        ) ;and
-      ) ;let*
+      (if (and (string? suffix) (string? str))
+        (g_string-ends? str suffix)
+        (error 'wrong-type-arg "string-suffix?: expected string arguments")
+      ) ;if
     ) ;define
 
     (define (string-index str char/pred? . start+end)
