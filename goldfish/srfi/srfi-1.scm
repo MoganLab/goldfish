@@ -269,12 +269,7 @@
       (filter (lambda (x) (not (pred x))) l)
     ) ;define
 
-    (define (find pred l)
-      (cond ((null? l) #f)
-            ((pred (car l)) (car l))
-            (else (find pred (cdr l)))
-      ) ;cond
-    ) ;define
+    (define find g_find)
 
     (define (take-while pred lst)
       (if (null? lst)
