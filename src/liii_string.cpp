@@ -129,7 +129,7 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_string_starts_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str_arg= s7_car (args);
+  s7_pointer str_arg   = s7_car (args);
   s7_pointer prefix_arg= s7_cadr (args);
 
   if (!s7_is_string (str_arg) || !s7_is_string (prefix_arg)) {
@@ -146,7 +146,7 @@ f_string_starts_p (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_string_ends_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str_arg= s7_car (args);
+  s7_pointer str_arg   = s7_car (args);
   s7_pointer suffix_arg= s7_cadr (args);
 
   if (!s7_is_string (str_arg) || !s7_is_string (suffix_arg)) {
