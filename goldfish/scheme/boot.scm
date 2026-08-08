@@ -1,29 +1,18 @@
-(unless (defined? 'texmacs-module)
-  (set! (*s7* 'scheme-version) 'r7rs)
-) ;unless
+(set! (*s7* 'scheme-version) 'r7rs)
 
 (define (file-exists? path)
-  (if (string? path)
-    (if (not (g_access path 0))
-      #f
-      (if (g_access path 1)
-        #t
-        (error 'permission-error (string-append "No permission: " path))
-      ) ;if
-    ) ;if
-    (error 'type-error "(file-exists? path): path should be string")
-  ) ;if
-) ;define
+  (unless (string? path)
+    (error 'type-error "(file-exists? path): path should be string"))
+  (and (g_access path 0) ; exist?
+       (or (g_access path 1) ; have permission?
+           (error 'permission-error (string-append "No permission: " path)))))
 
 (define (delete-file path)
-  (if (not (string? path))
-    (error 'type-error "(delete-file path): path should be string")
-    (if (not (file-exists? path))
-      (error 'read-error (string-append path " does not exist"))
-      (g_delete-file path)
-    ) ;if
-  ) ;if
-) ;define
+  (unless (string? path)
+    (error 'type-error "(delete-file path): path should be string"))
+  (unless (file-exists? path)
+    (error 'read-error (string-append path " does not exist")))
+  (g_delete-file path))
 
 (define-macro (define-library libname . body)
   `(define ,(symbol (object->string libname))
@@ -46,15 +35,12 @@
                       (and (pair? *export*) (not (member (car entry) *export*))))
                   (values)
                   entry))
-           (curlet)))))
-) ;define-macro
+           (curlet))))))
 
 (unless (defined? 'r7rs-import-library-filename)
   (define (r7rs-import-library-filename libs)
     (when (pair? libs)
-      (let ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))
-            ) ;lib
-           ) ;
+      (let ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))))
         (when (not (defined? (symbol (object->string lib))))
           (load (let loop
                   ((parts lib) (name ""))
@@ -63,17 +49,8 @@
                     (string-append name ".scm")
                     (begin
                       (set! name (string-append name "/"))
-                      (loop (cdr parts) name)
-                    ) ;begin
-                  ) ;if
-                ) ;let
-          ) ;load
-        ) ;when
-        (r7rs-import-library-filename (cdr libs))
-      ) ;let
-    ) ;when
-  ) ;define
-) ;unless
+                      (loop (cdr parts) name))))))
+        (r7rs-import-library-filename (cdr libs))))))
 
 (define-macro (import . libs)
   `(begin
@@ -85,8 +62,7 @@
                        `((lambda (e names)
                            (apply inlet
                              (map (lambda (name) (cons name (e name))) names)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
+                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
                          (cddr (quote ,lib))))
                       ((except)
                        `((lambda (e names)
@@ -96,19 +72,19 @@
                                       (values)
                                       entry))
                                e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
+                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
                          (cddr (quote ,lib))))
                       ((prefix)
                        `((lambda (e prefx)
                            (apply inlet
                              (map (lambda (entry)
-                                    (cons (string->symbol (string-append (symbol->string prefx)
-                                                            (symbol->string (car entry))))
+                                    (cons
+                                      (string->symbol (string-append
+                                                        (symbol->string prefx)
+                                                        (symbol->string (car entry))))
                                       (cdr entry)))
                                e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
+                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
                          (caddr (quote ,lib))))
                       ((rename)
                        `((lambda (e names)
@@ -119,12 +95,10 @@
                                         (cons (cadr info) (cdr entry))
                                         entry)))
                                e)))
-                         (symbol->value (symbol (object->string (cadr (quote
-                                                                        ,lib)))))
+                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
                          (cddr (quote ,lib))))
                       (else `(let ((sym (symbol (object->string (quote ,lib)))))
                                (if (not (defined? sym))
                                  (format () "~A not loaded~%" sym)
                                  (symbol->value sym))))))
-           libs)))
-) ;define-macro
+           libs))))
