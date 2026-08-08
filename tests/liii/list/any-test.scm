@@ -35,4 +35,16 @@
 (check (any integer? '(a 3.14 3)) => #t)
 
 
+;; 点列表：在到达非正规尾部前命中，正常返回
+(check (any even? '(1 2 . 3)) => #t)
+
+
+;; 非列表参数，抛出 wrong-type-arg
+(check-catch 'wrong-type-arg (any even? 3))
+
+
+;; 点列表：遍历到非正规尾部仍未命中，抛出 wrong-type-arg
+(check-catch 'wrong-type-arg (any odd? '(2 . 3)))
+
+
 (check-report)

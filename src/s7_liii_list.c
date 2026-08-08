@@ -584,6 +584,58 @@ s7_pointer g_find(s7_scheme *sc, s7_pointer args)
   return(s7_f(sc));
 }
 
+/* -------------------------------- any -------------------------------- */
+
+s7_pointer g_any(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  /* same GC pattern as g_find: keep pred and lst anchored in our own
+   * protected pair while pred runs */
+  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, keep);
+  s7_pointer pred = s7_car(keep);
+  s7_pointer p = lst;
+  while (s7_is_pair(p))
+    {
+      if (s7i_is_true(sc, s7_apply_function(sc, pred, s7i_set_plist_1(sc, s7_car(p)))))
+        {
+          s7_gc_unprotect_via_stack(sc, keep);
+          return(s7_t(sc));
+        }
+      p = s7_cdr(p);
+    }
+  s7_gc_unprotect_via_stack(sc, keep);
+  if (!s7_is_null(sc, p))
+    return(s7_wrong_type_arg_error(sc, "any", 2, lst, "a proper list"));
+  return(s7_f(sc));
+}
+
+/* -------------------------------- every -------------------------------- */
+
+s7_pointer g_every(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  /* same GC pattern as g_find: keep pred and lst anchored in our own
+   * protected pair while pred runs */
+  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, keep);
+  s7_pointer pred = s7_car(keep);
+  s7_pointer p = lst;
+  while (s7_is_pair(p))
+    {
+      if (!s7i_is_true(sc, s7_apply_function(sc, pred, s7i_set_plist_1(sc, s7_car(p)))))
+        {
+          s7_gc_unprotect_via_stack(sc, keep);
+          return(s7_f(sc));
+        }
+      p = s7_cdr(p);
+    }
+  s7_gc_unprotect_via_stack(sc, keep);
+  if (!s7_is_null(sc, p))
+    return(s7_wrong_type_arg_error(sc, "every", 2, lst, "a proper list"));
+  return(s7_t(sc));
+}
+
 /* -------------------------------- take -------------------------------- */
 
 s7_pointer g_take(s7_scheme *sc, s7_pointer args)
