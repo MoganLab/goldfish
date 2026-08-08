@@ -58,6 +58,7 @@ s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cons(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_filter(s7_scheme *sc, s7_pointer args);
+s7_pointer g_find(s7_scheme *sc, s7_pointer args);
 s7_pointer g_take(s7_scheme *sc, s7_pointer args);
 s7_pointer g_take_right(s7_scheme *sc, s7_pointer args);
 s7_pointer g_drop_right(s7_scheme *sc, s7_pointer args);

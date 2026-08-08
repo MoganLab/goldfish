@@ -556,6 +556,34 @@ s7_pointer g_filter(s7_scheme *sc, s7_pointer args)
   return(result);
 }
 
+/* -------------------------------- find -------------------------------- */
+
+s7_pointer g_find(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  /* args may live in evaluator-recycled cells, so keep pred and lst in our own
+   * protected pair; the walking pointer and the current element stay
+   * GC-reachable through lst while pred runs */
+  s7_pointer keep = s7_cons(sc, s7_car(args), s7_cons(sc, lst, s7_nil(sc)));
+  s7_gc_protect_via_stack(sc, keep);
+  s7_pointer pred = s7_car(keep);
+  s7_pointer p = lst;
+  while (s7_is_pair(p))
+    {
+      s7_pointer elem = s7_car(p);
+      if (s7i_is_true(sc, s7_apply_function(sc, pred, s7i_set_plist_1(sc, elem))))
+        {
+          s7_gc_unprotect_via_stack(sc, keep);
+          return(elem);
+        }
+      p = s7_cdr(p);
+    }
+  s7_gc_unprotect_via_stack(sc, keep);
+  if (!s7_is_null(sc, p))
+    return(s7_wrong_type_arg_error(sc, "find", 2, lst, "a proper list"));
+  return(s7_f(sc));
+}
+
 /* -------------------------------- take -------------------------------- */
 
 s7_pointer g_take(s7_scheme *sc, s7_pointer args)
