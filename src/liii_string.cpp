@@ -144,7 +144,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
     rest= s7_cdr (rest);
   }
 
-  string_join_grammar grammar= string_join_grammar::infix;
+  string_join_grammar grammar      = string_join_grammar::infix;
   bool                grammar_valid= true;
   if (!s7_is_null (sc, rest)) {
     s7_pointer grammar_arg= s7_car (rest);
@@ -177,8 +177,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   }
 
   if (!grammar_valid) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "invalid grammer")));
+    return s7_error (sc, s7_make_symbol (sc, "value-error"), s7_list (sc, 1, s7_make_string (sc, "invalid grammer")));
   }
 
   if (grammar == string_join_grammar::strict_infix && count == 0) {
@@ -186,8 +185,8 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
                      s7_list (sc, 1, s7_make_string (sc, "empty list not allowed")));
   }
 
-  const size_t delim_len    = delim.size ();
-  size_t       delim_count  = 0;
+  const size_t delim_len  = delim.size ();
+  size_t       delim_count= 0;
   switch (grammar) {
   case string_join_grammar::infix:
   case string_join_grammar::strict_infix:
@@ -203,8 +202,7 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
   result.reserve (total_len + delim_count * delim_len);
   size_t i= 0;
   for (p= l; s7_is_pair (p); p= s7_cdr (p), i++) {
-    if (grammar == string_join_grammar::prefix ||
-        (i > 0 && grammar != string_join_grammar::suffix)) {
+    if (grammar == string_join_grammar::prefix || (i > 0 && grammar != string_join_grammar::suffix)) {
       result.append (delim);
     }
     s7_pointer elem= s7_car (p);
