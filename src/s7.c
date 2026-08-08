@@ -85753,6 +85753,14 @@ is #t, the string is also sent to the current-output-port."
   #define Q_every s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_every", g_every, 2, 0, false, H_every, Q_every);
 
+  #define H_fold "(g_fold f init lst) folds f over the elements of lst: (f elem acc)"
+  #define Q_fold s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_fold", g_fold, 3, 0, false, H_fold, Q_fold);
+
+  #define H_fold_right "(g_fold_right f init lst) folds f from the right over the elements of lst: (f elem acc)"
+  #define Q_fold_right s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_fold_right", g_fold_right, 3, 0, false, H_fold_right, Q_fold_right);
+
   #define H_take "(g_take lst k) returns a list of the first k elements of lst"
   #define Q_take s7_make_signature(sc, 3, sc->is_list_symbol, sc->is_list_symbol, sc->is_integer_symbol)
   s7_define_semisafe_typed_function(sc, "g_take", g_take, 2, 0, false, H_take, Q_take);
