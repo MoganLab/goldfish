@@ -62,4 +62,24 @@
 (check-catch 'type-error (fold 0 + '(1 2 3) 'a))
 
 
+
+;; 单列表点列表抛 wrong-type-arg
+(check-catch 'wrong-type-arg (fold + 0 '(1 2 . 3)))
+
+;; 单列表路径深层折叠不消耗 Scheme 栈
+(let ((l (iota 100000)))
+  (check (fold + 0 l) => 4999950000)
+) ;let
+
+;; GC 压力回归测试：闭包 f + 中间累加值，反复触发 GC
+(let ((l (iota 10000)))
+  (do ((i 0 (+ i 1)))
+    ((= i 200))
+    (fold (lambda (x acc) (if (even? x) (+ acc 1) acc)) 0 l)
+    (fold cons '() (map (lambda (x) (list x)) '(1 2 3 4 5)))
+  ) ;do
+  (check (fold (lambda (x acc) (if (even? x) (+ acc 1) acc)) 0 l) => 5000)
+) ;let
+
+
 (check-report)
