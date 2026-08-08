@@ -27,24 +27,53 @@
     100000
   ) ;bench
 
+  (bench "短列表(3元素) suffix     "
+    (lambda () (string-join '("a" "b" "c") ":" 'suffix))
+    100000
+  ) ;bench
+
+  (bench "短列表(3元素) prefix     "
+    (lambda () (string-join '("a" "b" "c") ":" 'prefix))
+    100000
+  ) ;bench
+
+  (bench "短列表(3元素) strict-infix"
+    (lambda () (string-join '("a" "b" "c") ":" 'strict-infix))
+    100000
+  ) ;bench
+
+  (bench "短列表(3元素) 中文分隔符  "
+    (lambda () (string-join '("甲" "乙" "丙") "分隔"))
+    100000
+  ) ;bench
+
+  (bench "空列表 默认分隔符        " (lambda () (string-join '())) 100000)
+
   (let ((mid-list (map number->string (iota 100))))
     (bench "中列表(100元素) 逗号分隔   "
       (lambda () (string-join mid-list ","))
-      1000
+      10000
     ) ;bench
   ) ;let
 
   (let ((long-list (map number->string (iota 1000))))
     (bench "长列表(1000元素) 逗号分隔  "
       (lambda () (string-join long-list ","))
-      100
+      1000
     ) ;bench
   ) ;let
 
   (let ((long-list (map number->string (iota 10000))))
     (bench "超长列表(10000元素) 逗号分隔"
       (lambda () (string-join long-list ","))
-      10
+      100
+    ) ;bench
+  ) ;let
+
+  (let ((long-list (map number->string (iota 1000))))
+    (bench "长列表(1000元素) suffix  "
+      (lambda () (string-join long-list "," 'suffix))
+      1000
     ) ;bench
   ) ;let
 ) ;define
