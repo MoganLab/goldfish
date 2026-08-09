@@ -12,12 +12,42 @@
      #t)
     (else #f)))
 
+(define fold-case-ports '())
+
+(define (del-eqv key alist)
+  (let loop ((l alist) (acc '()))
+    (if (null? l)
+      (reverse acc)
+      (if (eqv? (caar l) key)
+        (loop (cdr l) acc)
+        (loop (cdr l) (cons (car l) acc))))))
+
+(define (fold-string str)
+  ;; ASCII case folding (R7RS string-foldcase, restricted to ASCII)
+  (let loop ((i 0) (out '()))
+    (if (= i (string-length str))
+      (reverse-list->string out)
+      (let ((n (char->integer (string-ref str i))))
+        (loop (+ i 1)
+              (cons (if (<= (char->integer #\A) n (char->integer #\Z))
+                      (integer->char (+ n 32))
+                      (integer->char n))
+                    out))))))
+
 (define* (read (port (current-input-port)))
   (define filename (port-filename port))
   (define (next) (read-char port))
   (define (peek) (peek-char port))
   (define labels '())
   (define pending '())
+
+  (define (fold-case?)
+    (let ((e (assv port fold-case-ports)))
+      (and e (cdr e))))
+
+  (define (set-fold-case! v)
+    (set! fold-case-ports
+      (cons (cons port v) (del-eqv port fold-case-ports))))
 
   (define (del-assv n alist)
     (let loop ((l alist) (acc '()))
@@ -170,7 +200,7 @@
   (define (read-symbol ch)
     (let ((str (read-token ch)))
       (if (valid-identifier? str)
-        (string->symbol str)
+        (string->symbol (if (fold-case?) (fold-string str) str))
         (error 'read-error "invalid token" str))))
 
   (define (char-digit? ch)
@@ -268,7 +298,8 @@
         ((polar-number str) => (lambda (n) n))
         ((pure-imaginary-number str) => (lambda (n) n))
         ((string->number str) => (lambda (n) n))
-        ((valid-identifier? str) (string->symbol str))
+        ((valid-identifier? str)
+         (string->symbol (if (fold-case?) (fold-string str) str)))
         (else (error 'read-error "invalid token" str)))))
 
   (define (read-boolean ch)
@@ -403,7 +434,7 @@
         ((char-letter? ch)
          (let ((token (take-until ch delimiter?)))
            (cond
-             ((assoc token char-names) => cdr)
+             ((assoc (if (fold-case?) (fold-string token) token) char-names) => cdr)
              ((= (string-length token) 1) ch)
              (else (error 'read-error "invalid character" token)))))
         (else ch))))
@@ -509,6 +540,14 @@
          (next-non-whitespace))
         ((#\#)
          (case (peek)
+           ((#\!)
+            (next)
+            (let ((tok (take-until #\! delimiter?)))
+              (cond
+                ((string=? tok "!fold-case") (set-fold-case! #t))
+                ((string=? tok "!no-fold-case") (set-fold-case! #f))
+                (else (error 'read-error "unknown directive" tok)))
+              (next-non-whitespace)))
            ((#\|)
             (cond
               ((read-hash-procedure #\|) ch)
