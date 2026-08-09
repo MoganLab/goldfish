@@ -213,6 +213,21 @@
              (else (error 'read-error "invalid character" token)))))
         (else ch))))
 
+  (define (read-subexpression what)
+    (let ((ch (next-non-whitespace)))
+      (if (eof-object? ch)
+        (error 'read-error "unexpected end of input" what)
+        (read-expr ch))))
+
+  (define (read-vector)
+    (let loop ((ch (next-non-whitespace)) (acc '()))
+      (if (eof-object? ch)
+        (error 'read-error "unexpected end of input in vector")
+        (if (eqv? ch #\))
+          (list->vector (reverse acc))
+          (let ((elem (read-expr ch)))
+            (loop (next-non-whitespace) (cons elem acc)))))))
+
   (define (read-sharp)
     (let ((ch (next)))
       (cond
@@ -225,7 +240,6 @@
             ((#\\) (read-character))
             ((#\() (read-vector))
             ((#\t #\T #\f #\F) (read-boolean ch))
-            ((#\n) (read-nil))
             ((#\b #\B #\o #\O #\d #\D #\x #\X #\e #\E #\i #\I)
              (read-prefixed-number ch))
             ((#\u)
