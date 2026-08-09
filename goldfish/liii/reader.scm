@@ -1,5 +1,8 @@
 (import (liii string-cursor))
 
+;; S7's bulk read-string, captured before our own read-string is defined
+(define s7-read-string read-string)
+
 (define (read-hash-procedure ch)
   ;; TODO
   #f)
@@ -38,8 +41,41 @@
 (define labels '())
 (define pending '())
 
-(define (next port) (read-char port))
-(define (peek port) (peek-char port))
+(define (next port)
+  (if (< cur-pos cur-len)
+    (let ((c (string-ref cur-str cur-pos)))
+      (set! cur-pos (+ cur-pos 1))
+      c)
+    (eof-object)))
+
+(define (peek port)
+  (if (< cur-pos cur-len)
+    (string-ref cur-str cur-pos)
+    (eof-object)))
+
+;; Slurped input buffer. Only one port is read at a time: the whole remaining
+;; port content is read once and parsed from the string. Switching ports
+;; discards the previous port's content.
+(define cur-port #f)
+(define cur-str #f)
+(define cur-len 0)
+(define cur-pos 0)
+
+(define (slurp! port)
+  (let loop ((acc '()))
+    (let ((s (s7-read-string 65536 port)))
+      (if (eof-object? s)
+        (let ((str (apply string-append (reverse acc))))
+          (set! cur-port port)
+          (set! cur-str str)
+          (set! cur-len (string-length str))
+          (set! cur-pos 0))
+        (loop (cons s acc))))))
+
+(define (load-buffer! port)
+  (if (eq? cur-port port)
+    #f
+    (slurp! port)))
 
 (define (fold-case? port)
   (if (null? fold-case-ports)
@@ -250,29 +286,14 @@
 
 ;; ---------------------------------------------------------------------------
 
-;; reusable token buffer: take-until is never called recursively, so one
-;; module-level buffer is shared (results are copies via substring)
-(define token-buf (make-string 16))
-(define token-cap 16)
-
-(define (take-until port first pred)
-  (let ((buf token-buf))
-    (string-set! buf 0 first)
-    (let lp ((len 1))
-      (let ((ch (peek port)))
-        (if (or (eof-object? ch) (pred ch))
-          (substring buf 0 len)
-          (begin
-            (next port)
-            (when (= len token-cap)
-              (set! buf (string-append buf (make-string token-cap)))
-              (set! token-buf buf)
-              (set! token-cap (* 2 token-cap)))
-            (string-set! buf len ch)
-            (lp (+ len 1))))))))
+(define (take-until port first)
+  ;; token = first + cur-str[cur-pos .. delimiter); the delimiter is not consumed
+  (let ((tok (g-scan-token cur-str cur-pos first)))
+    (set! cur-pos (+ cur-pos (- (string-length tok) 1)))
+    tok))
 
 (define (read-token port ch)
-  (take-until port ch delimiter?))
+  (take-until port ch))
 
 (define (read-symbol port ch)
   (let ((str (read-token port ch)))
@@ -292,7 +313,7 @@
           (error 'read-error "invalid token" str))))))
 
 (define (read-boolean port ch)
-  (let ((tok (take-until port ch delimiter?)))
+  (let ((tok (take-until port ch)))
     (cond
       ((string=? tok "t") #t)
       ((string=? tok "f") #f)
@@ -301,7 +322,7 @@
       (else (error 'read-error "invalid boolean" tok)))))
 
 (define (read-prefixed-number port ch)
-  (let ((str (string-append "#" (take-until port ch delimiter?))))
+  (let ((str (string-append "#" (take-until port ch))))
     (or (string->prefixed-number str)
         (error 'read-error "invalid number" str))))
 
@@ -410,7 +431,7 @@
          (read-hex-char port)
          ch))
       ((char-letter? ch)
-       (let* ((token (take-until port ch delimiter?))
+       (let* ((token (take-until port ch))
               (key (if (fold-case? port) (fold-string token) token))
               (entry (assoc key char-names)))
          (cond
@@ -590,7 +611,7 @@
        (case (peek port)
          ((#\!)
           (next port)
-          (let ((tok (take-until port #\! delimiter?)))
+          (let ((tok (take-until port #\!)))
             (cond
               ((string=? tok "!fold-case") (set-fold-case! port #t))
               ((string=? tok "!no-fold-case") (set-fold-case! port #f))
@@ -617,6 +638,7 @@
 (define* (read (port (current-input-port)))
   (set! labels '())
   (set! pending '())
+  (load-buffer! port)
   (let ((ch (next-non-whitespace port)))
     (if (eof-object? ch)
       ch
