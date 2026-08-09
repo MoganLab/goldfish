@@ -65,11 +65,30 @@ f_scan_token (s7_scheme* sc, s7_pointer args) {
   return tok;
 }
 
+/* g-skip-whitespace str pos => new-pos
+ *
+ * Advances pos past whitespace (space, tab, newline, return, form feed).
+ */
+static s7_pointer
+f_skip_whitespace (s7_scheme* sc, s7_pointer args) {
+  s7_pointer str = s7_car (args);
+  s7_int     pos = s7_integer (s7_cadr (args));
+  s7_int     len = s7_string_length (str);
+  const uint8_t* s = (const uint8_t*) s7_string (str);
+  while (pos < len &&
+         (s[pos] == 0x09 || s[pos] == 0x0a || s[pos] == 0x0c ||
+          s[pos] == 0x0d || s[pos] == 0x20))
+    pos++;
+  return s7_make_integer (sc, pos);
+}
+
 void
 glue_liii_reader (s7_scheme* sc) {
   const char* name = "g-scan-token";
   const char* desc = "(g-scan-token str start first) => token-string";
   s7_define_function (sc, name, f_scan_token, 3, 0, false, desc);
+  s7_define_function (sc, "g-skip-whitespace", f_skip_whitespace, 2, 0, false,
+                      "(g-skip-whitespace str pos) => new-pos");
 }
 
 } // namespace goldfish
