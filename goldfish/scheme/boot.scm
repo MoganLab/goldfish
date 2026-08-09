@@ -14,6 +14,47 @@
     (error 'read-error (string-append path " does not exist")))
   (g_delete-file path))
 
+;;;
+
+(define (fold fn accum list)
+  (if (null? list)
+    accum
+    (fold fn
+          (fn accum (car list))
+          (cdr list))))
+
+(define (filter pred l)
+  (let loop ([l l])
+    (if (null? l)
+      l
+      (let ([head (car l)]
+            [tail (cdr l)])
+        (if (pred head)
+          (let ([new-tail (loop tail)])
+            (if (eq? tail new-tail)
+              l
+              (cons head new-tail)))
+          (loop tail))))))
+
+(define (any pred ls)
+  (let lp ([ls ls])
+    (cond
+      ((null? ls)
+       #f)
+      ((null? (cdr ls))
+       (pred (car ls)))
+      (else
+        (or (pred (car ls)) (lp (cdr ls)))))))
+
+(define (every pred ls)
+  (or (null? ls)
+      (and (pred (car ls)) (every pred (cdr ls)))))
+
+(define (sort comparator lst)
+  (sort! (copy lst) comparator))
+
+;;;
+
 (define-macro (define-library libname . body)
   `(define ,(symbol (object->string libname))
      (with-let (sublet (unlet)
@@ -21,13 +62,11 @@
                  (cons '*export* ())
                  (cons 'export
                    (define-macro (,(gensym) . names)
-                     (#_list-values
-                      'set!
-                      '*export*
-                      (#_list-values
-                       'append
-                       (#_list-values #_quote names)
-                       '*export*)))))
+                     (list 'set!
+                           '*export*
+                           (list 'append
+                                 (list 'quote names)
+                                 '*export*)))))
        ,@body
        (apply inlet
          (map (lambda (entry)

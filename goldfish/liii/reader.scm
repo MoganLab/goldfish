@@ -625,3 +625,21 @@
     (if (eof-object? ch)
       ch
       (read-expr port ch))))
+
+;; Replace S7's load: read the file through this Scheme reader and evaluate
+;; each form. Searches *load-path* like S7's load did.
+(define (load file)
+  (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
+  (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
+    (cond
+      ((null? cands)
+       (error 'io-error (string-append "cannot load: " file)))
+      ((file-exists? (car cands))
+       (call-with-input-file (car cands)
+         (lambda (port)
+           (let loop ()
+             (let ((d (read port)))
+               (if (eof-object? d)
+                 (begin (close-input-port port) #t)
+                 (begin (eval d (rootlet)) (loop))))))))
+      (else (loop (cdr cands))))))

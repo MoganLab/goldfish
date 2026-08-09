@@ -274,6 +274,21 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
     return s7_cons (sc, s7_make_symbol (sc, "quote"),
                     s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
   }
+  if (c == '`') {
+    tiny_next (sc, port);
+    return s7_cons (sc, s7_make_symbol (sc, "quasiquote"),
+                    s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
+  }
+  if (c == ',') {
+    tiny_next (sc, port);
+    const char* name = "unquote";
+    if (tiny_peek (sc, port) == '@') {
+      tiny_next (sc, port);
+      name = "unquote-splicing";
+    }
+    return s7_cons (sc, s7_make_symbol (sc, name),
+                    s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
+  }
   if (c == '"')
     return tiny_read_string (sc, port);
   if (c == '#') {
@@ -313,7 +328,7 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       return s7_make_integer (sc, (s7_int) v);
     }
     if (d == '_') {
-      // S7 #_tokens (e.g. #_list-values): read as the symbol "#_<name>"
+      // S7 #_tokens (e.g. #_list-values): read as the plain symbol "#_<name>"
       tiny_next (sc, port);
       std::string tok = "#_";
       while (!tiny_is_delim (tiny_peek (sc, port)))
@@ -372,31 +387,11 @@ f_tiny_load (s7_scheme* sc, s7_pointer args) {
 
 void
 bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
-  std::string sc_path = std::string (gf_lib) + "/liii/string-cursor.scm";
-  std::string rd_path = std::string (gf_lib) + "/liii/reader.scm";
-  std::string expr = "(catch #t (lambda () (g-tiny-load \"";
-  expr += sc_path;
-  expr += "\") (g-tiny-load \"";
-  expr += rd_path;
-  expr += "\")) (lambda (type info) "
-         "(display \"[goldfish] bootstrap reader failed: \") (write info) (newline)))";
-  s7_eval_c_string (sc, expr.c_str ());
-  // replace S7's `load` with one that reads through the Scheme reader
-  s7_eval_c_string (sc,
-    "(define (load file) "
-    "  (define dirs (if (list? *load-path*) *load-path* (list *load-path*))) "
-    "  (let loop ((cands (cons file (map (lambda (d) (string-append d \"/\" file)) dirs)))) "
-    "    (cond ((null? cands) "
-    "           (error 'io-error (string-append \"cannot load: \" file))) "
-    "          ((file-exists? (car cands)) "
-    "           (call-with-input-file (car cands) "
-    "             (lambda (port) "
-    "               (let loop () "
-    "                 (let ((d (read port))) "
-    "                   (if (eof-object? d) "
-    "                     (begin (close-input-port port) #t) "
-    "                     (begin (eval d (rootlet)) (loop)))))))) "
-    "          (else (loop (cdr cands)))))))");
+  // the tiny bootstrap read loads boot.scm, string-cursor.scm and reader.scm;
+  // reader.scm ends by defining `read` and `load` (through the Scheme reader)
+  tiny_load_path (sc, (std::string (gf_lib) + "/scheme/boot.scm").c_str ());
+  tiny_load_path (sc, (std::string (gf_lib) + "/liii/string-cursor.scm").c_str ());
+  tiny_load_path (sc, (std::string (gf_lib) + "/liii/reader.scm").c_str ());
 }
 
 void

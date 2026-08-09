@@ -802,10 +802,11 @@ display_for_invalid_options (const std::vector<std::string>& invalid_opts) {
 
 static void
 goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
-  // `load` calls the evaluator (eval of each form), so use s7_call (proper
-  // jump/GC context) rather than s7_apply_function.
-  s7_pointer result= s7_call (sc, s7_name_to_value (sc, "load"),
-                              s7_list (sc, 1, s7_make_string (sc, path.c_str ())));
+  // evaluate (load path): s7_eval processes the deferred read frames that a
+  // C-implemented load pushes; s7_call/s7_apply_function would skip them.
+  s7_pointer result= s7_eval (sc, s7_list (sc, 2, s7_make_symbol (sc, "load"),
+                                           s7_make_string (sc, path.c_str ())),
+                              s7_rootlet (sc));
   if (!result) {
     cerr << "Failed to load " << path << endl;
     exit (-1);
@@ -1561,10 +1562,9 @@ init_goldfish_scheme (const char* gf_lib) {
 }
 
 void
-customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_path, const char* gf_lib) {
+customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   if (mode != "s7") {
-    s7_load (sc, boot_file_path);
-    // bootstrap the Scheme reader (goldfish/liii/reader.scm) through the tiny C read
+    // the tiny bootstrap read loads boot.scm, string-cursor.scm and reader.scm
     bootstrap_scheme_reader (sc, gf_lib);
   }
 
@@ -2577,8 +2577,6 @@ int
 repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string      gf_lib_dir  = find_goldfish_library ();
   const char* gf_lib      = gf_lib_dir.c_str ();
-  string      gf_boot_path= find_goldfish_boot (gf_lib);
-  const char* gf_boot     = gf_boot_path.c_str ();
 
   // 供 goldfish `g_command-line` procedure 查询
   command_args.assign (argv, argv + argc);
@@ -2647,7 +2645,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   }
 
   apply_startup_load_path_options (sc, startup_opts);
-  customize_goldfish_by_mode (sc, mode, gf_boot, gf_lib);
+  customize_goldfish_by_mode (sc, mode, gf_lib);
 
   // start capture error output
   const char* errmsg  = NULL;
