@@ -3,6 +3,7 @@
 
 (check-set-mode! 'report-failed)
 
+
 ;; -----------------------------------------------------------------------------
 ;; R7RS-small reader coverage tests
 ;;
@@ -64,6 +65,14 @@
 (check (read-str "#x-2A") => -42)
 (check (read-str "#o-52") => -42)
 (check (read-str "#b-101") => -5)
+;; hex bodies beginning with a prefix letter (b/d/e/i/o/x) must read as digits
+(check (read-str "#xbf") => 191)
+(check (read-str "#xd8") => 216)
+(check (read-str "#xef") => 239)
+(check (read-str "#x1e2") => 482)
+(check (read-str "#xbeef") => #xbeef)
+(check (read-str "#x7f") => 127)
+(check (read-str "#x80") => 128)
 
 ;; --- Exactness prefixes ---
 (check (read-str "#e42") => 42)
@@ -160,6 +169,11 @@
 (check (read-str "#\\x4a") => #\J)
 (check (read-str "#\\x4A") => #\J)
 (check (read-str "#\\x3bb") => (integer->char #x3bb))
+
+;; Raw non-ASCII character literals (UTF-8 decoded from the byte port)
+(check (read-str "#\\λ") => (integer->char #x3bb))
+(check (read-str "#\\中") => (integer->char #x4e2d))
+(check (read-str "#\\x3bbx") => (integer->char #x3bb))
 
 ;; =============================================================================
 ;; 6.7  Strings
@@ -484,5 +498,106 @@
 (check (read-str "#\"tag with space\"hello\"tag with space\"") => "hello")
 (check (read-str "#\"\"a\"b\"\"") => "a\"b")
 (check-catch 'read-error (read-str "#\"\"a"))
+
+;; =============================================================================
+;; Nesting depth guard: deep nesting must read fine up to the limit and raise
+;; a catchable read-error beyond it (previously this segfaulted).
+;; =============================================================================
+
+(define (deep-nested n)
+  (string-append (make-string n #\() (make-string n #\))))
+
+(check (pair? (read-str (deep-nested 100))) => #t)
+(check (pair? (read-str (deep-nested 20000))) => #t)
+(check (pair? (read-str (deep-nested 39000))) => #t)
+(check-catch 'read-error (read-str (deep-nested 41000)))
+
+;; the limit also applies to vector and quote abbreviation nesting
+(define (deep-vectors n)
+  (let loop ((i 0) (acc ""))
+    (if (= i n)
+      (string-append acc (make-string n #\)))
+      (loop (+ i 1) (string-append acc "#(")))))
+(check (vector? (read-str (deep-vectors 100))) => #t)
+(check-catch 'read-error (read-str (deep-vectors 41000)))
+
+;; =============================================================================
+;; Round-trip: object->string output must be readable and read back equal
+;; =============================================================================
+
+(define (round-trip datum)
+  ;; write datum, read it back, check equality.  Unreadable output (e.g. a
+  ;; procedure printed as #<...>) is reported as 'skip.
+  (let ((s (object->string datum)))
+    (catch #t
+      (lambda ()
+        (let ((d2 (read (open-input-string s))))
+          (if (or (equal? datum d2)
+                  ;; NaN is never eqv? to itself
+                  (and (number? datum) (number? d2) (nan? datum) (nan? d2)))
+            'ok
+            'mismatch)))
+      (lambda args 'skip))))
+
+(define round-trip-values
+  (list 0 42 -100 3.14 -0.5 1/3 22/7 3+4i 1-1i +i -2i 1@2
+    #b101010 #o52 #x2A #e42.0 #i1/2 +inf.0 -inf.0 +nan.0
+    #\a #\newline #\space #\alarm #\x3bb #\(
+    "hello" "a\nb" "quote: \"inside\"" "back\\slash" "tab\t" "end;"
+    "#| not comment |#" "#; not comment" "#(not a vector)"
+    'foo '->string '... '+soup+ '! '@
+    '(a b c) '(1 . 2) '(1 2 . 3) '((a) (b (c)))
+    #(1 2 "three" 'sym) #(#(1) #(2))
+    #u8(0 127 255)
+    '(quote x) '(quasiquote (a (unquote b)))
+    #t #f))
+
+(define round-trip-failures '())
+(for-each
+  (lambda (v)
+    (let ((r (round-trip v)))
+      (when (not (eq? r 'ok))
+        (set! round-trip-failures (cons (list v r (object->string v)) round-trip-failures)))))
+  round-trip-values)
+
+(check (null? round-trip-failures) => #t)
+(for-each (lambda (f) (format () "round-trip failure: ~S\n" f)) round-trip-failures)
+
+;; cyclic structure round-trips through datum labels
+(let ((cyc (read-str "#0=(1 . #0#)")))
+  (check (equal? cyc (read (open-input-string (object->string cyc)))) => #t))
+;; shared structure: S7's write does not emit labels for non-cyclic sharing,
+;; so a round-trip preserves values but not identity
+(let* ((shared (read-str "(#0=(1 2) #0#)"))
+       (again (read (open-input-string (object->string shared)))))
+  (check (equal? again shared) => #t))
+
+;; =============================================================================
+;; Fuzz: any random input must either read or raise a catchable error,
+;; never crash or hang
+;; =============================================================================
+
+(define fuzz-chunks
+  (list "#(" "#u8(" "#x" "#\\" "#;" "#!" "'" "`" ",@" "(" ")" "[" "]"
+    "\"" "\\" ";" " " "1" "2" "3" "a" "b" "z" "+" "-" "." "|"
+    "e" "i" "0" "9" ":" "@" "!" "?" "5" "7" "8" "6" "4" "#"))
+
+(define (fuzz-input)
+  (let loop ((n (+ 1 (random 200))) (acc '()))
+    (if (= n 0)
+      (apply string-append (reverse acc))
+      (loop (- n 1)
+            (cons (list-ref fuzz-chunks (random (length fuzz-chunks))) acc)))))
+
+(define fuzz-read 0)
+(define fuzz-error 0)
+(do ((i 0 (+ i 1))) ((= i 500))
+  (let ((s (fuzz-input)))
+    (catch #t
+      (lambda () (read (open-input-string s)) (set! fuzz-read (+ fuzz-read 1)))
+      (lambda args (set! fuzz-error (+ fuzz-error 1))))))
+
+(check (+ fuzz-read fuzz-error) => 500)
+(check (>= fuzz-read 0) => #t)
 
 (check-report)

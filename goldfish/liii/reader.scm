@@ -186,6 +186,10 @@
 
 (define (parse-number-prefix str)
   ;; Parse the leading radix/exactness prefixes of a "#..." string.
+  ;; A prefix unit is "#" followed by exactly one prefix letter (#x #e ...);
+  ;; consecutive units are #x#e10 / #e#x10.  A prefix letter only starts a
+  ;; unit if it directly follows a "#"; a letter inside the body (e.g. the b
+  ;; of #xbf) is not a prefix.  The body starts right after the last unit.
   ;; Returns (list body-start radix exactness) or #f if the prefix is invalid.
   ;; exactness: 0 = none, 1 = #e, 2 = #i
   (let ((len (string-length str)))
@@ -200,21 +204,27 @@
                             '(#\b #\B #\o #\O #\d #\D #\x #\X #\e #\E #\i #\I)))
                (loop (+ i 1) radix exact)
                #f))
-            ((memv ch '(#\b #\B))
-             (if (not (= radix 0)) #f (loop (+ i 1) 2 exact)))
-            ((memv ch '(#\o #\O))
-             (if (not (= radix 0)) #f (loop (+ i 1) 8 exact)))
-            ((memv ch '(#\d #\D))
-             (if (not (= radix 0)) #f (loop (+ i 1) 10 exact)))
-            ((memv ch '(#\x #\X))
-             (if (not (= radix 0)) #f (loop (+ i 1) 16 exact)))
-            ((memv ch '(#\e #\E))
-             (if (not (= exact 0)) #f (loop (+ i 1) radix 1)))
-            ((memv ch '(#\i #\I))
-             (if (not (= exact 0)) #f (loop (+ i 1) radix 2)))
+            ((memv ch '(#\b #\B #\o #\O #\d #\D #\x #\X #\e #\E #\i #\I))
+             (if (eqv? (string-ref str (- i 1)) #\#)
+               (let* ((next (and (< (+ i 1) len) (string-ref str (+ i 1))))
+                      (r (case ch
+                           ((#\b #\B) (if (= radix 0) 2 #f))
+                           ((#\o #\O) (if (= radix 0) 8 #f))
+                           ((#\d #\D) (if (= radix 0) 10 #f))
+                           ((#\x #\X) (if (= radix 0) 16 #f))
+                           (else radix)))
+                      (e (case ch
+                           ((#\e #\E) (if (= exact 0) 1 #f))
+                           ((#\i #\I) (if (= exact 0) 2 #f))
+                           (else exact))))
+                 (if (or (not r) (not e))
+                   #f
+                   (if (eqv? next #\#)
+                     (loop (+ i 1) r e)
+                      (list (+ i 1) (if (= r 0) 10 r) e))))
+                (list i (if (= radix 0) 10 radix) exact)))
             (else
              (list i (if (= radix 0) 10 radix) exact))))))))
-
 (define char-names
   (list (cons "alarm" #\alarm)
         (cons "backspace" #\backspace)
@@ -420,6 +430,28 @@
               (add-byte! ch)
               (loop))))))))
 
+;; decode a UTF-8 codepoint from the port; the leading byte b1 has already
+;; been read.  S7 ports are byte-oriented (read-char returns one byte), so a
+;; non-ASCII character literal must be decoded explicitly.
+(define (read-utf8-char port b1)
+  (define (byte)
+    (let ((c (next port)))
+      (if (eof-object? c)
+        (error 'read-error "invalid UTF-8 sequence in character")
+        (let ((b (char->integer c)))
+          (if (<= #x80 b #xbf)
+            b
+            (error 'read-error "invalid UTF-8 sequence in character"))))))
+  (let ((v (cond
+             ((<= b1 #xdf)
+              (+ (* (- b1 #xc0) 64) (- (byte) #x80)))
+             ((<= b1 #xef)
+              (+ (* (- b1 #xe0) 4096) (* (- (byte) #x80) 64) (- (byte) #x80)))
+             (else
+              (+ (* (- b1 #xf0) 262144) (* (- (byte) #x80) 4096)
+                 (* (- (byte) #x80) 64) (- (byte) #x80))))))
+    (integer->char v)))
+
 (define (read-character port)
   (let ((ch (next port)))
     (cond
@@ -437,6 +469,8 @@
            (entry (cdr entry))
            ((= (string-length token) 1) ch)
            (else (error 'read-error "invalid character" token)))))
+      ((>= (char->integer ch) #x80)
+       (read-utf8-char port (char->integer ch)))
       (else ch))))
 
 (define (read-label port n)
@@ -616,7 +650,17 @@
           (else
             (error 'read-error "Unknown # object" (string #\# ch))))))))
 
+;; Nesting depth guard.  read-expr recurses once per nesting level (lists,
+;; vectors, quote/backquote abbreviations, datum comments); the Scheme stack
+;; segfaults at roughly 60k-70k nested levels on default C stacks, so refuse
+;; to go deeper with a catchable read-error instead of crashing.
+(define *max-depth* 40000)
+(define *depth* 0)
+
 (define (read-expr port ch)
+  (set! *depth* (+ *depth* 1))
+  (when (> *depth* *max-depth*)
+    (error 'read-error "maximum nesting depth exceeded"))
   (case ch
     ((#\[) (read-parenthesized port #\]))
     ((#\() (read-parenthesized port #\)))
@@ -700,6 +744,7 @@
 (define* (read (port (current-input-port)))
   (set! labels '())
   (set! pending '())
+  (set! *depth* 0)
   (let ((ch (next-non-whitespace port)))
     (if (eof-object? ch)
       (begin
