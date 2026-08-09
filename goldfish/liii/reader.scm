@@ -303,9 +303,13 @@
         (else (error 'read-error "invalid token" str)))))
 
   (define (read-boolean ch)
-    (case ch
-      ((#\t #\T) #t)
-      ((#\f #\F) #f)))
+    (let ((tok (take-until ch delimiter?)))
+      (cond
+        ((string=? tok "t") #t)
+        ((string=? tok "f") #f)
+        ((string=? tok "true") #t)
+        ((string=? tok "false") #f)
+        (else (error 'read-error "invalid boolean" tok)))))
 
   (define (parse-number-prefix str)
     ;; Parse the leading radix/exactness prefixes of a "#..." string.
@@ -458,7 +462,7 @@
     (let ((ch (next)))
       (cond
         ((eof-object? ch)
-         (error "unexpected end of input after #"))
+         (error 'read-error "unexpected end of input after #"))
         ((read-hash-procedure ch)
          => (lambda (proc) (proc ch port)))
         (else
@@ -481,7 +485,7 @@
                      (next)
                      (read-bytevector))))))
             (else
-              (error "Unknown # object" (string #\# ch))))))))
+              (error 'read-error "Unknown # object" (string #\# ch))))))))
 
   (define (read-expr ch)
     (case ch
@@ -499,8 +503,8 @@
          (else
            (list 'unquote (read-subexpression "unquoted expression")))))
       ((#\#) (read-sharp))
-      ((#\)) (error "unexpected \")\""))
-      ((#\]) (error "unexpected \"]\""))
+      ((#\)) (error 'read-error "unexpected \")\""))
+      ((#\]) (error 'read-error "unexpected \"]\""))
       ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\- #\.)
        (read-number ch))
       (else (read-symbol ch))))
