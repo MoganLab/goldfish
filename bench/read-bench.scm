@@ -1,8 +1,7 @@
 (import (liii timeit))
 
-;; S7's original C reader (kept as g-s7-read in the glue), the tiny
-;; bootstrap C reader, and the Scheme reader from liii/reader.scm.
-(define s7-read g-s7-read)
+;; The tiny bootstrap C reader and the Scheme reader from liii/reader.scm.
+;; (S7's original C reader was removed when the tiny reader replaced it.)
 (define tiny-read g-tiny-read)
 
 (load "liii/reader.scm")
@@ -27,9 +26,8 @@
 (define (bench-case label str iterations runs readers)
   (display label)
   (newline)
-  (let* ((names (if (= (length readers) 3)
-                  (list "s7-read    " "tiny-read  " "scheme-read")
-                  (list "s7-read    " "scheme-read")))
+  (let* ((names (map (lambda (rp) (if (eq? rp tiny-read) "tiny-read" "scheme-read"))
+                     readers))
          (results (map (lambda (rp) (read-all rp str)) readers)))
     (display "  datums        : ")
     (display (length (car results)))
@@ -48,30 +46,21 @@
           (display "s")
           (newline)
           (loop (cdr ns) (cdr rps)))))
-    (let ((t1 (best-time (lambda () (read-all (car readers) str)) iterations runs))
-          (t2 (best-time (lambda () (read-all (cadr readers) str)) iterations runs)))
-      (if (= (length readers) 3)
-        (begin
-          (display "  s7/tiny       : ")
-          (display (/ t1 t2))
-          (newline)
-          (let ((t3 (best-time (lambda () (read-all (caddr readers) str)) iterations runs)))
-            (display "  s7/scheme     : ")
-            (display (/ t1 t3))
-            (newline)))
-        (begin
-          (display "  s7/scheme     : ")
-          (display (/ t1 t2))
-          (newline)))
-      (newline))))
+    (when (> (length readers) 1)
+      (let ((t1 (best-time (lambda () (read-all (car readers) str)) iterations runs))
+            (t2 (best-time (lambda () (read-all (cadr readers) str)) iterations runs)))
+        (display "  tiny/scheme   : ")
+        (display (/ t2 t1))
+        (newline)))
+      (newline)))
 
 ;; ---------------------------------------------------------------------------
 ;; sample inputs
 ;;
 ;; The "simple" samples are restricted to datums the tiny reader supports
 ;; (integers, symbols, strings, booleans, chars, lists, quote, comments), so
-;; that all three readers parse them identically. The full-R7RS samples are
-;; parsed by S7's reader and the Scheme reader only.
+;; that both readers parse them identically. The full-R7RS samples are parsed
+;; by the Scheme reader only.
 ;; ---------------------------------------------------------------------------
 
 (define sample-simple
@@ -85,7 +74,7 @@
     "sym-with-dashes _start +end -3 +42\n"
     "0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20\n"))
 
-;; a typical program-ish mix of datums (full R7RS / S7 compatible)
+;; a typical program-ish mix of datums (full R7RS)
 (define sample-typical
   (string-append
     ";; factorial\n"
@@ -125,12 +114,12 @@
 ;; ---------------------------------------------------------------------------
 
 (bench-case "simple (tiny-compatible)" sample-simple 5000 3
-            (list s7-read tiny-read read))
+            (list tiny-read read))
 (bench-case "nested (tiny-compatible)" sample-nested 5000 3
-            (list s7-read tiny-read read))
+            (list tiny-read read))
 (bench-case "typical" sample-typical 5000 3
-            (list s7-read read))
+            (list read))
 (bench-case "numbers" sample-numbers 500 3
-            (list s7-read read))
+            (list read))
 (bench-case "big" sample-big 100 3
-            (list s7-read read))
+            (list read))
