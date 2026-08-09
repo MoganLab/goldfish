@@ -33,16 +33,9 @@
   (import (liii list) (liii error) (scheme case-lambda))
   (begin
 
+    ;; list-sorted? 复用 liii_sort.cpp 的 C++ 实现 g_list-sorted?
     (define (list-sorted? less-p lis)
-      (if (null? lis)
-        #t
-        (do ((first lis (cdr first))
-             (second (cdr lis) (cdr second))
-             (res #t (not (less-p (car second) (car first))))
-            ) ;
-          ((or (null? second) (not res)) res)
-        ) ;do
-      ) ;if
+      (g_list-sorted? less-p lis)
     ) ;define
 
     (define vector-sorted?

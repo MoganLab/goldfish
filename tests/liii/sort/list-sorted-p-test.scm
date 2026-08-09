@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 无
+;; cmp 不是过程、lst 不是正规列表时抛出错误
 
 
 (check-false (list-sorted? < '(1 5 1 0 -1 9 2 4 3)))
@@ -40,6 +40,35 @@
 (check-true (list-sorted? < '(42)))
 (check-true (list-sorted? > '(5 4 3 2 1)))
 (check-false (list-sorted? > '(1 2 3 4 5)))
+
+;; 两个元素的边界情况
+(check-true (list-sorted? < '(1 2)))
+(check-false (list-sorted? < '(2 1)))
+
+;; 相等元素：判定标准是 (not (less-p next prev))，与 SRFI-132 参考实现一致
+;; < 允许相邻相等，<= 不允许（1 <= 1 为真即视为逆序）
+(check-true (list-sorted? < '(1 1 2 2 3)))
+(check-false (list-sorted? <= '(1 1 2 2 3)))
+(check-false (list-sorted? > '(1 1 2 2 3)))
+
+;; 自定义比较器（lambda）
+(check-true (list-sorted? (lambda (a b) (< (abs a) (abs b))) '(1 -2 3 -4)))
+(check-false (list-sorted? (lambda (a b) (< (abs a) (abs b))) '(1 -3 2)))
+
+;; 字符串比较器
+(check-true (list-sorted? string<? '("a" "b" "c")))
+(check-false (list-sorted? string<? '("b" "a")))
+
+;; 字符比较器
+(check-true (list-sorted? char<? '(#\a #\b #\c)))
+(check-false (list-sorted? char<? '(#\b #\a)))
+
+;; 错误：lst 不是正规列表
+(check-catch 'wrong-type-arg (list-sorted? < '(1 2 . 3)))
+(check-catch 'wrong-type-arg (list-sorted? < 3))
+
+;; 错误：cmp 不是过程
+(check-catch 'wrong-type-arg (list-sorted? 3 '(1 2 3)))
 
 
 ;; 配合排序函数使用
