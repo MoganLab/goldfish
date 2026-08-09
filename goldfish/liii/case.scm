@@ -368,12 +368,12 @@
                           ) ;with-let
             ) ;case*-helper
            ) ;
-        (#_macro (selector . clauses)
-          `(((#_funclet 'case*) 'case*-helper)
+        (macro (selector . clauses)
+          `(((funclet 'case*) 'case*-helper)
             ,selector
             (quote ,clauses)
-            (#_curlet))
-        ) ;#_macro
+            (curlet))
+        ) ;macro
       ) ;let
     ) ;define
   ) ;begin

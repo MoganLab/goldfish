@@ -482,7 +482,13 @@
 (check (eq? (read-str "#<eof>") (eof-object)) => #t)
 (check (unspecified? (read-str "#<unspecified>")) => #t)
 (check (undefined? (read-str "#<undefined>")) => #t)
-(check-catch 'read-error (read-str "#<bogus>"))
+;; any other #<name> is a named undefined (case* patterns etc.); the name
+;; keeps its ">" and equal? compares by name
+(check (undefined? (read-str "#<x:>")) => #t)
+(check (string=? (object->string (read-str "#<x:>")) "#<x:>") => #t)
+(check (string=? (object->string (read-str "#<integer?>")) "#<integer?>") => #t)
+(check (string=? (object->string (read-str "#<...>")) "#<...>") => #t)
+(check (equal? (read-str "#<x:>") (read-str "#<x:>")) => #t)
 
 ;; =============================================================================
 ;; SRFI-267 raw strings: #"delimiter"body"delimiter"

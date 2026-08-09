@@ -10679,6 +10679,12 @@ static s7_pointer make_undefined(s7_scheme *sc, const char *name)
   return(undef);
 }
 
+s7_pointer
+s7_make_undefined(s7_scheme *sc, const char *name)
+{
+  return make_undefined(sc, name);
+}
+
 static int32_t inchar(s7_pointer port)
 {
   int32_t c;

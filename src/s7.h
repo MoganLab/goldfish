@@ -62,6 +62,7 @@ s7_pointer s7_f(s7_scheme *sc);                                      /* #f */
 s7_pointer s7_t(s7_scheme *sc);                                      /* #t */
 s7_pointer s7_nil(s7_scheme *sc);                                    /* () */
 s7_pointer s7_undefined(s7_scheme *sc);                              /* #<undefined> */
+s7_pointer s7_make_undefined(s7_scheme *sc, const char *name);       /* #<name> (a named undefined) */
 s7_pointer s7_unspecified(s7_scheme *sc);                            /* #<unspecified> */
 bool s7_is_unspecified(s7_scheme *sc, s7_pointer val);               /*     returns true if val is #<unspecified> */
 s7_pointer s7_eof_object(s7_scheme *sc);                             /* #<eof> */

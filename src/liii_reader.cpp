@@ -402,8 +402,10 @@ f_tiny_load (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_undefined (s7_scheme* sc, s7_pointer args) {
-  (void) args;
-  return s7_undefined (sc);
+  if (s7_is_null (sc, args))
+    return s7_undefined (sc);
+  const char* name = s7_string (s7_car (args));
+  return s7_make_undefined (sc, name);
 }
 
 void
@@ -421,8 +423,8 @@ glue_liii_reader (s7_scheme* sc) {
                       "(g-tiny-read port) => datum");
   s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
                       "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
-  s7_define_function (sc, "g-undefined", f_undefined, 0, 0, false,
-                      "(g-undefined) => the #<undefined> object");
+  s7_define_function (sc, "g-undefined", f_undefined, 0, 1, false,
+                      "(g-undefined [name]) => the #<undefined> object, or a named undefined #<name>");
   // replace S7's read with the tiny bootstrap read
   s7_define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
                       "(read [port]) => datum");

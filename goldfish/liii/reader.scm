@@ -557,7 +557,8 @@
       (else (cons (read-expr port ch)
                   (loop (next-non-whitespace port)))))))
 
-;; internal S7 objects: #<eof>, #<unspecified>, #<undefined>
+;; internal S7 objects: #<eof>, #<unspecified>, #<undefined>; any other
+;; #<...> is read as the symbol #<...> (used by e.g. the case* macro patterns)
 (define (read-angle-token port)
   ;; chars up to (and including) the closing >
   (let loop ((acc '()))
@@ -573,7 +574,10 @@
       ((string=? tok "eof") (eof-object))
       ((string=? tok "unspecified") (if #f #f))
       ((string=? tok "undefined") (g-undefined))
-      (else (error 'read-error "unknown #< object" tok)))))
+      ;; any other #<name> is a named undefined matching S7 (the name keeps
+      ;; its ">" so that object->string prints "#<name>"); used e.g. by the
+      ;; case* macro patterns
+      (else (g-undefined (string-append "<" tok ">"))))))
 
 ;; SRFI-267 raw strings: #"delimiter"body"delimiter" (delimiter may be empty).
 ;; The closing marker is " + delimiter + "; it needs (dlen + 2) chars of
