@@ -381,6 +381,22 @@ bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   expr += "\")) (lambda (type info) "
          "(display \"[goldfish] bootstrap reader failed: \") (write info) (newline)))";
   s7_eval_c_string (sc, expr.c_str ());
+  // replace S7's `load` with one that reads through the Scheme reader
+  s7_eval_c_string (sc,
+    "(define (load file) "
+    "  (define dirs (if (list? *load-path*) *load-path* (list *load-path*))) "
+    "  (let loop ((cands (cons file (map (lambda (d) (string-append d \"/\" file)) dirs)))) "
+    "    (cond ((null? cands) "
+    "           (error 'io-error (string-append \"cannot load: \" file))) "
+    "          ((file-exists? (car cands)) "
+    "           (call-with-input-file (car cands) "
+    "             (lambda (port) "
+    "               (let loop () "
+    "                 (let ((d (read port))) "
+    "                   (if (eof-object? d) "
+    "                     (begin (close-input-port port) #t) "
+    "                     (begin (eval d (rootlet)) (loop)))))))) "
+    "          (else (loop (cdr cands)))))))");
 }
 
 void

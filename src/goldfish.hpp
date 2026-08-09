@@ -802,7 +802,10 @@ display_for_invalid_options (const std::vector<std::string>& invalid_opts) {
 
 static void
 goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
-  s7_pointer result= s7_load (sc, path.c_str ());
+  // `load` calls the evaluator (eval of each form), so use s7_call (proper
+  // jump/GC context) rather than s7_apply_function.
+  s7_pointer result= s7_call (sc, s7_name_to_value (sc, "load"),
+                              s7_list (sc, 1, s7_make_string (sc, path.c_str ())));
   if (!result) {
     cerr << "Failed to load " << path << endl;
     exit (-1);
@@ -1113,10 +1116,26 @@ goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefi
   }
 }
 
+// Parse CODE through the Scheme `read` (after bootstrap) and evaluate each
+// form in the rootlet; returns the value of the last form. Uses
+// s7_eval_c_string as the outer evaluator so error reporting is unchanged.
+static s7_pointer
+goldfish_eval_through_reader (s7_scheme* sc, const string& code) {
+  string escaped;
+  for (char c : code) {
+    if (c == '\\' || c == '"') escaped += '\\';
+    escaped += c;
+  }
+  string expr= "(let ((p (open-input-string \"" + escaped +
+               "\"))) (let loop ((r #f)) (let ((d (read p))) "
+               "(if (eof-object? d) (begin (close-input-port p) r) "
+               "(loop (eval d (rootlet)))))))";
+  return s7_eval_c_string (sc, expr.c_str ());
+}
+
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
-  string     wrapped_code= "(begin " + code + " )";
-  s7_pointer x           = s7_eval_c_string (sc, wrapped_code.c_str ());
+  s7_pointer x= goldfish_eval_through_reader (sc, code);
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
@@ -1648,7 +1667,7 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
   s7_pointer old_out_port= s7_set_current_output_port (sc, out_port);
   if (old_err_port != s7_nil (sc)) out_gc_loc= s7_gc_protect (sc, old_out_port);
 
-  s7_pointer result= s7_eval_c_string (sc, code);
+  s7_pointer result= goldfish_eval_through_reader (sc, code);
 
   const char* display_out= s7_get_output_string (sc, out_port);
   if (display_out && *display_out) {
