@@ -144,6 +144,17 @@
       (or (string->prefixed-number str)
           (error 'read-error "invalid number" str))))
 
+  (define (read-bytevector)
+    (let loop ((ch (next-non-whitespace)) (acc '()))
+      (if (eof-object? ch)
+        (error 'read-error "unexpected end of input in bytevector")
+        (if (eqv? ch #\))
+          (apply bytevector (reverse acc))
+          (let ((b (read-expr ch)))
+            (if (and (exact-integer? b) (<= 0 b 255))
+              (loop (next-non-whitespace) (cons b acc))
+              (error 'read-error "bytevector element out of range" b)))))))
+
   (define (read-sharp)
     (let ((ch (next)))
       (cond
@@ -159,6 +170,16 @@
             ((#\n) (read-nil))
             ((#\b #\B #\o #\O #\d #\D #\x #\X #\e #\E #\i #\I)
              (read-prefixed-number ch))
+            ((#\u)
+             (if (not (eqv? (peek) #\8))
+               (error 'read-error "invalid #u8")
+               (begin
+                 (next)
+                 (if (not (eqv? (peek) #\())
+                   (error 'read-error "invalid #u8")
+                   (begin
+                     (next)
+                     (read-bytevector))))))
             (else
               (error "Unknown # object" (string #\# ch))))))))
 
