@@ -3,12 +3,10 @@
 ;; R7RS 7.1.1: a <delimiter> is whitespace, ( ) " or ;.  In particular a
 ;; vertical bar is NOT a delimiter, so `foo|bar|` is one (invalid) token.
 (define (delimiter? ch)
-  (case ch
-    ((#\( #\) #\[ #\]
-      #\; #\"
-      #\space #\return #\xc #\newline #\tab)
-     #t)
-    (else #f)))
+  ;; hot path: the delimiter set is small and ASCII-only
+  (let ((n (char->integer ch)))
+    (and (< n 128)
+      (memv ch '(#\( #\) #\[ #\] #\; #\" #\space #\return #\xc #\newline #\tab)))))
 
 (define fold-case-ports '())
 
