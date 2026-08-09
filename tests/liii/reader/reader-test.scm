@@ -385,7 +385,7 @@
 (check-catch 'read-error (read-str "#\\"))
 (check-catch 'read-error (read-str "#\\unknown"))
 (check-catch 'read-error (read-str "#\\Space"))
-(check-catch 'read-error (read-str "#\\x;"))
+(check (read-str "#\\x") => #\x)
 (check-catch 'read-error (read-str "#tfoo"))
 (check-catch 'read-error (read-str "#\\afoo"))
 

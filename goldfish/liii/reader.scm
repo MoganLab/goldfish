@@ -155,6 +155,64 @@
               (loop (next-non-whitespace) (cons b acc))
               (error 'read-error "bytevector element out of range" b)))))))
 
+  (define char-names
+    (list (cons "alarm" #\alarm)
+          (cons "backspace" #\backspace)
+          (cons "delete" #\delete)
+          (cons "escape" #\escape)
+          (cons "newline" #\newline)
+          (cons "null" #\null)
+          (cons "return" #\return)
+          (cons "space" #\space)
+          (cons "tab" #\tab)))
+
+  (define (char-hex-digit? ch)
+    (let ((n (char->integer ch)))
+      (or (<= (char->integer #\0) n (char->integer #\9))
+          (<= (char->integer #\a) n (char->integer #\f))
+          (<= (char->integer #\A) n (char->integer #\F)))))
+
+  (define (char-letter? ch)
+    (let ((n (char->integer ch)))
+      (or (<= (char->integer #\a) n (char->integer #\z))
+          (<= (char->integer #\A) n (char->integer #\Z)))))
+
+  (define (hex-digit-value ch)
+    (let ((n (char->integer ch)))
+      (cond
+        ((<= (char->integer #\0) n (char->integer #\9))
+         (- n (char->integer #\0)))
+        ((<= (char->integer #\a) n (char->integer #\f))
+         (+ (- n (char->integer #\a)) 10))
+        (else
+         (+ (- n (char->integer #\A)) 10)))))
+
+  (define (read-hex-char)
+    (let loop ((n 0))
+      (let ((ch (peek)))
+        (if (and (not (eof-object? ch)) (char-hex-digit? ch))
+          (begin
+            (next)
+            (loop (+ (* n 16) (hex-digit-value ch))))
+          (integer->char n)))))
+
+  (define (read-character)
+    (let ((ch (next)))
+      (cond
+        ((eof-object? ch)
+         (error 'read-error "unexpected end of input in character"))
+        ((memv ch '(#\x #\X))
+         (if (and (not (eof-object? (peek))) (char-hex-digit? (peek)))
+           (read-hex-char)
+           ch))
+        ((char-letter? ch)
+         (let ((token (take-until ch delimiter?)))
+           (cond
+             ((assoc token char-names) => cdr)
+             ((= (string-length token) 1) ch)
+             (else (error 'read-error "invalid character" token)))))
+        (else ch))))
+
   (define (read-sharp)
     (let ((ch (next)))
       (cond
