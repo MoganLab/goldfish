@@ -14,7 +14,15 @@
             (reverse acc)
             (loop (cons d acc))))))))
 
-(define (bench-case label str iterations)
+;; wall-clock is noisy; take the minimum of `runs` timings
+(define (best-time thunk iterations runs)
+  (let loop ((i 0) (best #f))
+    (if (= i runs)
+      best
+      (let ((t (timeit thunk '() iterations)))
+        (loop (+ i 1) (if (or (not best) (< t best)) t best))))))
+
+(define (bench-case label str iterations runs)
   (let ((r1 (read-all s7-read str))
         (r2 (read-all read str)))
     (display label)
@@ -25,8 +33,8 @@
     (display "  results equal : ")
     (display (equal? r1 r2))
     (newline)
-    (let ((t1 (timeit (lambda () (read-all s7-read str)) '() iterations))
-          (t2 (timeit (lambda () (read-all read str)) '() iterations)))
+    (let ((t1 (best-time (lambda () (read-all s7-read str)) iterations runs))
+          (t2 (best-time (lambda () (read-all read str)) iterations runs)))
       (display "  s7 read       : ")
       (display t1)
       (display "s")
@@ -89,7 +97,7 @@
 ;; run
 ;; ---------------------------------------------------------------------------
 
-(bench-case "typical" sample-typical 2000)
-(bench-case "numbers" sample-numbers 300)
-(bench-case "nested" sample-nested 2000)
-(bench-case "big" sample-big 50)
+(bench-case "typical" sample-typical 5000 3)
+(bench-case "numbers" sample-numbers 500 3)
+(bench-case "nested" sample-nested 5000 3)
+(bench-case "big" sample-big 100 3)
