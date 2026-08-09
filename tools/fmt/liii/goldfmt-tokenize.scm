@@ -83,7 +83,7 @@
               (reverse tokens)
             ) ;begin
             (let ((c (string-ref content i))
-                  (next-c (if (< (+ i 1) len) (string-ref content (+ i 1)) #\nul))
+                  (next-c (if (< (+ i 1) len) (string-ref content (+ i 1)) #\null))
                  ) ;
               (cond (in-string (set! current-line (string-append current-line (string c)))
                       (cond (string-escaped (set! string-escaped #f) (process-char (+ i 1)))

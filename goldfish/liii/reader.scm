@@ -1,13 +1,11 @@
 (import (liii string-cursor))
 
-(define (read-hash-procedure ch)
-  ;; TODO
-  #f)
-
+;; R7RS 7.1.1: a <delimiter> is whitespace, ( ) " or ;.  In particular a
+;; vertical bar is NOT a delimiter, so `foo|bar|` is one (invalid) token.
 (define (delimiter? ch)
   (case ch
     ((#\( #\) #\[ #\]
-      #\; #\" #\|
+      #\; #\"
       #\space #\return #\xc #\newline #\tab)
      #t)
     (else #f)))
@@ -148,8 +146,8 @@
                          (loop (+ i 1)))))))
           (else #f))))))
 
-(define (pure-imaginary-number str)
-  ;; +i -i +2i -2i ... : real part omitted
+(define (pure-imaginary-number str radix)
+  ;; +i -i +2i -2i +1.5i ... : real part omitted
   (let ((len (string-length str)))
     (and (> len 0)
       (let ((last (string-ref str (- len 1))))
@@ -160,18 +158,31 @@
               ((string=? prefix "-") (make-rectangular 0 -1))
               ((and (> (string-length prefix) 0)
                     (or (eqv? (string-ref prefix 0) #\+)
-                        (eqv? (string-ref prefix 0) #\-))
-                    (string->number prefix))
-               => (lambda (n) (make-rectangular 0 n)))
+                        (eqv? (string-ref prefix 0) #\-)))
+               (let ((n (string->number prefix radix)))
+                 (and n (make-rectangular 0 n))))
               (else #f))))))))
 
-(define (polar-number str)
+(define (polar-number str radix)
   ;; r@theta
   (let ((at (char-position #\@ str)))
     (and at
-      (let ((r (string->number (substring str 0 at)))
-            (theta (string->number (substring str (+ at 1) (string-length str)))))
+      (let ((r (string->number (substring str 0 at) radix))
+            (theta (string->number (substring str (+ at 1) (string-length str)) radix)))
         (and r theta (real? r) (real? theta) (make-polar r theta))))))
+
+;; parse a number body (the part after any #b/#o/#d/#x/#e/#i prefixes)
+;; in the given radix; returns the number or #f.
+;; S7's string->number cannot parse a bare imaginary (+2i, -1.5i) nor a polar
+;; number (1@2 is misread as 100.0), so those forms are handled here.
+(define (parse-number-body body radix)
+  (if (char-position #\@ body)
+    (polar-number body radix)
+    (let ((len (string-length body)))
+      (if (and (> len 0) (memv (string-ref body (- len 1)) '(#\i #\I)))
+        (or (pure-imaginary-number body radix)
+            (string->number body radix))
+        (string->number body radix)))))
 
 (define (parse-number-prefix str)
   ;; Parse the leading radix/exactness prefixes of a "#..." string.
@@ -203,18 +214,6 @@
              (if (not (= exact 0)) #f (loop (+ i 1) radix 2)))
             (else
              (list i (if (= radix 0) 10 radix) exact))))))))
-
-(define (string->prefixed-number str)
-  (let ((p (parse-number-prefix str)))
-    (and p
-      (let* ((body (substring str (car p) (string-length str)))
-             (n (string->number body (cadr p)))
-             (exactness (caddr p)))
-        (and n
-          (cond
-            ((= exactness 1) (exact n))
-            ((= exactness 2) (inexact n))
-            (else n)))))))
 
 (define char-names
   (list (cons "alarm" #\alarm)
@@ -282,9 +281,7 @@
 
 (define (read-number port ch)
   (let ((str (read-token port ch)))
-    (let ((n (or (polar-number str)
-                 (string->number str)
-                 (pure-imaginary-number str))))
+    (let ((n (parse-number-body str 10)))
       (if n
         n
         (if (valid-identifier? str)
@@ -301,9 +298,24 @@
       (else (error 'read-error "invalid boolean" tok)))))
 
 (define (read-prefixed-number port ch)
-  (let ((str (string-append "#" (take-until port ch delimiter?))))
-    (or (string->prefixed-number str)
-        (error 'read-error "invalid number" str))))
+  (let* ((str (string-append "#" (take-until port ch delimiter?)))
+         (p (parse-number-prefix str)))
+    (if (not p)
+      (error 'read-error "invalid number" str)
+      (let* ((body (substring str (car p) (string-length str)))
+             (n (parse-number-body body (cadr p)))
+             (exactness (caddr p)))
+        (if (not n)
+          (error 'read-error "invalid number" str)
+          ;; S7 cannot represent an exact complex, so for #e/#i on a non-real
+          ;; number the exactness prefix is best-effort (the number is returned
+          ;; unchanged instead of raising a foreign inexact->exact error).
+          (if (real? n)
+            (case exactness
+              ((1) (exact n))
+              ((2) (inexact n))
+              (else n))
+            n))))))
 
 (define (read-hex-char port)
   (let loop ((n 0))
@@ -379,6 +391,10 @@
                  (error 'read-error "unexpected end of input while reading string"))
                (cond
                  ((or (eqv? ch #\newline) (eqv? ch #\return))
+                  ;; consume the whole line ending, including the second
+                  ;; character of a CRLF pair, then any intraline whitespace
+                  (when (and (eqv? ch #\return) (eqv? (peek port) #\newline))
+                    (next port))
                   (let skip ()
                     (let ((p (peek port)))
                       (when (and (not (eof-object? p))
@@ -506,16 +522,81 @@
       (else (cons (read-expr port ch)
                   (loop (next-non-whitespace port)))))))
 
+;; internal S7 objects: #<eof>, #<unspecified>, #<undefined>
+(define (read-angle-token port)
+  ;; chars up to (and including) the closing >
+  (let loop ((acc '()))
+    (let ((ch (next port)))
+      (cond
+        ((eof-object? ch) (error 'read-error "unterminated #< object"))
+        ((eqv? ch #\>) (list->string (reverse acc)))
+        (else (loop (cons ch acc)))))))
+
+(define (read-internal-object port)
+  (let ((tok (read-angle-token port)))
+    (cond
+      ((string=? tok "eof") (eof-object))
+      ((string=? tok "unspecified") (if #f #f))
+      ;; S7 has no Scheme-level constructor for the undefined object, so
+      ;; #<undefined> cannot be read back.
+      (else (error 'read-error "unknown #< object" tok)))))
+
+;; SRFI-267 raw strings: #"delimiter"body"delimiter" (delimiter may be empty).
+;; The closing marker is " + delimiter + "; it needs (dlen + 2) chars of
+;; lookahead, which is maintained by the fill/scan loop below.
+(define (read-raw-delimiter port)
+  ;; the opening " has been consumed; the delimiter runs to the next "
+  (let loop ((acc '()))
+    (let ((ch (next port)))
+      (cond
+        ((eof-object? ch) (error 'read-error "unterminated raw string delimiter"))
+        ((eqv? ch #\") (list->string (reverse acc)))
+        (else (loop (cons ch acc)))))))
+
+(define (raw-closing? la close)
+  ;; does la start with the closing marker close?
+  (let loop ((la la) (cl close))
+    (cond
+      ((null? cl) #t)
+      ((or (null? la) (not (eqv? (car la) (car cl)))) #f)
+      (else (loop (cdr la) (cdr cl))))))
+
+(define (read-raw-body port delim)
+  (let* ((dlen (string-length delim))
+         (need (+ dlen 2))
+         (close (cons #\" (append (string->list delim) (list #\")))))
+    (letrec ((fill (lambda (la n)
+                     (if (= n need)
+                       la
+                       (let ((ch (peek port)))
+                         (if (eof-object? ch)
+                           la
+                           (begin
+                             (next port)
+                             (fill (append la (list ch)) (+ n 1))))))))
+             (scan (lambda (la buf)
+                     (if (raw-closing? la close)
+                       (list->string (reverse buf))
+                       (if (< (length la) need)
+                         (error 'read-error "unterminated raw string")
+                         (scan (fill (cdr la) (- need 1))
+                               (cons (car la) buf)))))))
+      (scan (fill '() 0) '()))))
+
 (define (read-sharp port)
   (let ((ch (next port)))
     (cond
       ((eof-object? ch)
        (error 'read-error "unexpected end of input after #"))
-      ((read-hash-procedure ch)
-       => (lambda (proc) (proc ch port)))
       (else
         (case ch
-          ((#\\) (read-character port))
+          ((#\\)
+           (read-character port))
+          ((#\<)
+           (read-internal-object port))
+          ((#\")
+           (let ((delim (read-raw-delimiter port)))
+             (read-raw-body port delim)))
           ((#\() (read-vector port))
           ((#\t #\T #\f #\F) (read-boolean port ch))
           ((#\b #\B #\o #\O #\d #\D #\x #\X #\e #\E #\i #\I)
@@ -601,11 +682,9 @@
               (else (error 'read-error "unknown directive" tok)))
             (next-non-whitespace port)))
          ((#\|)
-          (cond
-            ((read-hash-procedure #\|) ch)
-            (else (next port)
-                  (skip-block-comment port)
-                  (next-non-whitespace port))))
+          (next port)
+          (skip-block-comment port)
+          (next-non-whitespace port))
          ((#\;)
           (next port)
           (let ((dch (next-non-whitespace port)))
@@ -623,7 +702,12 @@
   (set! pending '())
   (let ((ch (next-non-whitespace port)))
     (if (eof-object? ch)
-      ch
+      (begin
+        ;; a port at EOF keeps no directive state; drop it so that ports used
+        ;; with #!fold-case do not accumulate in fold-case-ports
+        (when (assv port fold-case-ports)
+          (set! fold-case-ports (del-eqv port fold-case-ports)))
+        ch)
       (read-expr port ch))))
 
 ;; Replace S7's load: read the file through this Scheme reader and evaluate

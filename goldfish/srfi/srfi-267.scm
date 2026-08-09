@@ -235,6 +235,7 @@
     (define (reader-read-raw-string prefix-fragment)
       (read-raw-string-after-prefix-fragment prefix-fragment (current-input-port))
     ) ;define
-    (set! *#readers* (cons (cons #\" reader-read-raw-string) *#readers*))
+    (define *readers* '())
+    (set! *readers* (cons (cons #\" reader-read-raw-string) *readers*))
   ) ;begin
 ) ;define-library

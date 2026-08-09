@@ -420,4 +420,69 @@
 ;; --- Other invalid tokens ---
 (check-catch 'read-error (read-str "a#b"))
 
+;; =============================================================================
+;; 6.2.5  Radix/exactness prefixes with complex forms
+;; =============================================================================
+
+;; rational with radix prefix
+(check (read-str "#x1/2") => 1/2)
+;; pure imaginary with exactness prefix (real part omitted)
+(check (= (read-str "#e+2i") (make-rectangular 0 2)) => #t)
+(check (= (read-str "#i-1.5i") (make-rectangular 0 -1.5)) => #t)
+(check (= (read-str "#e-i") (make-rectangular 0 -1)) => #t)
+;; #e/#i on a complex: S7 cannot represent an exact complex, so the number is
+;; returned unchanged rather than raising a foreign inexact->exact error
+(check (= (read-str "#e1+2i") 1+2i) => #t)
+(check (= (read-str "#i1+2i") 1+2i) => #t)
+;; exactness still applies to reals
+(check (exact? (read-str "#e42.0")) => #t)
+
+;; =============================================================================
+;; 6.3.1  Booleans are case-sensitive
+;; =============================================================================
+
+(check-catch 'read-error (read-str "#T"))
+(check-catch 'read-error (read-str "#F"))
+(check-catch 'read-error (read-str "#TRUE"))
+(check-catch 'read-error (read-str "#FALSE"))
+
+;; =============================================================================
+;; 6.7  CRLF line continuation inside strings
+;; =============================================================================
+
+(check (read-str "\"a\\\r\n b\"") => "ab")
+(check (read-str "\"a\\\r b\"") => "ab")
+(check (read-str "\"a\\\n b\"") => "ab")
+
+;; =============================================================================
+;; 7.1.1  | is not a delimiter
+;; =============================================================================
+
+(check-catch 'read-error (read-str "foo|bar|"))
+(check-catch 'read-error (read-str "a|b"))
+
+;; =============================================================================
+;; Internal objects (#<eof> / #<unspecified> round-trip)
+;; =============================================================================
+
+(check (eq? (read-str "#<eof>") (eof-object)) => #t)
+(check (unspecified? (read-str "#<unspecified>")) => #t)
+(check-catch 'read-error (read-str "#<undefined>"))
+(check-catch 'read-error (read-str "#<bogus>"))
+
+;; =============================================================================
+;; SRFI-267 raw strings: #"delimiter"body"delimiter"
+;; =============================================================================
+
+(check (read-str "#\"\"\"\"") => "")
+(check (read-str "#\"\" \"\"") => " ")
+(check (read-str "#\"\"a\"\"") => "a")
+(check (read-str "#\"\"\\\"\"") => "\\")
+(check (read-str "#\"-\"\"\"-\"") => "\"")
+(check (read-str "#\"-\"\\\"\"-\"") => "\\\"")
+(check (read-str "#\"(())\"value\"(())\"") => "value")
+(check (read-str "#\"tag with space\"hello\"tag with space\"") => "hello")
+(check (read-str "#\"\"a\"b\"\"") => "a\"b")
+(check-catch 'read-error (read-str "#\"\"a"))
+
 (check-report)

@@ -565,7 +565,7 @@
           (if (>= i len)
             (fast-string-join (reverse! result))
             (let ((c (string-ref source i))
-                  (next-c (if (< (+ i 1) len) (string-ref source (+ i 1)) #\nul))
+                  (next-c (if (< (+ i 1) len) (string-ref source (+ i 1)) #\null))
                  ) ;
               (cond (in-line-comment (loop (+ i 1) #f #f (not (char=? c #\newline)) #f (cons (string c) result))
                     ) ;in-line-comment
