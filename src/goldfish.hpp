@@ -112,6 +112,7 @@ void glue_http_async (s7_scheme* sc);
 #endif
 void glue_liii_base64 (s7_scheme* sc);
 void glue_liii_reader (s7_scheme* sc);
+void bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib);
 void glue_scheme_base (s7_scheme* sc);
 void glue_scheme_char (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
@@ -1541,9 +1542,11 @@ init_goldfish_scheme (const char* gf_lib) {
 }
 
 void
-customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_path) {
+customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_path, const char* gf_lib) {
   if (mode != "s7") {
     s7_load (sc, boot_file_path);
+    // bootstrap the Scheme reader (goldfish/liii/reader.scm) through the tiny C read
+    bootstrap_scheme_reader (sc, gf_lib);
   }
 
   if (mode == "default" || mode == "liii") {
@@ -2625,7 +2628,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   }
 
   apply_startup_load_path_options (sc, startup_opts);
-  customize_goldfish_by_mode (sc, mode, gf_boot);
+  customize_goldfish_by_mode (sc, mode, gf_boot, gf_lib);
 
   // start capture error output
   const char* errmsg  = NULL;

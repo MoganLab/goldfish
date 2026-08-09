@@ -335,6 +335,12 @@ f_tiny_read (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
+f_s7_read (s7_scheme* sc, s7_pointer args) {
+  // S7's original C parser, kept for benchmarking the bootstrap read
+  return s7_read (sc, s7_car (args));
+}
+
+static s7_pointer
 f_tiny_read_with_default (s7_scheme* sc, s7_pointer args) {
   if (s7_is_null (sc, args)) {
     s7_pointer ip = s7_current_input_port (sc);
@@ -344,8 +350,7 @@ f_tiny_read_with_default (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
-f_tiny_load (s7_scheme* sc, s7_pointer args) {
-  const char* path = s7_string (s7_car (args));
+tiny_load_path (s7_scheme* sc, const char* path) {
   s7_pointer port = s7_open_input_file (sc, path, "r");
   s7_pointer env = s7_rootlet (sc);
   s7_pointer result = s7_unspecified (sc);
@@ -359,10 +364,31 @@ f_tiny_load (s7_scheme* sc, s7_pointer args) {
   return result;
 }
 
+static s7_pointer
+f_tiny_load (s7_scheme* sc, s7_pointer args) {
+  const char* path = s7_string (s7_car (args));
+  return tiny_load_path (sc, path);
+}
+
+void
+bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
+  std::string sc_path = std::string (gf_lib) + "/liii/string-cursor.scm";
+  std::string rd_path = std::string (gf_lib) + "/liii/reader.scm";
+  std::string expr = "(catch #t (lambda () (g-tiny-load \"";
+  expr += sc_path;
+  expr += "\") (g-tiny-load \"";
+  expr += rd_path;
+  expr += "\")) (lambda (type info) "
+         "(display \"[goldfish] bootstrap reader failed: \") (write info) (newline)))";
+  s7_eval_c_string (sc, expr.c_str ());
+}
+
 void
 glue_liii_reader (s7_scheme* sc) {
   s7_define_function (sc, "g-tiny-read", f_tiny_read, 1, 0, false,
                       "(g-tiny-read port) => datum");
+  s7_define_function (sc, "g-s7-read", f_s7_read, 1, 0, false,
+                      "(g-s7-read port) => datum; S7's original C reader, for benchmarking");
   s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
                       "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
   // replace S7's read with the tiny bootstrap read
