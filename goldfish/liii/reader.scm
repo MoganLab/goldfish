@@ -7,7 +7,8 @@
 (define (delimiter? ch)
   (case ch
     ((#\( #\) #\[ #\]
-      #\; #\" #\space #\return #\xc #\newline #\tab)
+      #\; #\" #\|
+      #\space #\return #\xc #\newline #\tab)
      #t)
     (else #f)))
 
@@ -28,11 +29,20 @@
   (define (read-parenthesized rdelim)
     (let loop ((ch (next-non-whitespace)))
       (when (eof-object? ch)
-        (error "unexpected end of input" rdelim))
+        (error 'read-error "unexpected end of input" rdelim))
       (cond
         ((eqv? ch rdelim) '())
         ((or (eqv? ch #\)) (eqv? ch #\]))
-         (error "mismatched close paren" ch))
+         (error 'read-error "mismatched close paren" ch))
+        ((and (eqv? ch #\.) (or (eof-object? (peek)) (delimiter? (peek))))
+         (let ((tail-ch (next-non-whitespace)))
+           (if (eof-object? tail-ch)
+             (error 'read-error "unexpected end of input" rdelim)
+             (let ((tail (read-expr tail-ch)))
+               (let ((close (next-non-whitespace)))
+                 (if (eqv? close rdelim)
+                   tail
+                   (error 'read-error "expected closing delimiter" rdelim)))))))
         (else (cons (read-expr ch)
                     (loop (next-non-whitespace)))))))
 
@@ -42,49 +52,45 @@
   (define (read-symbol ch)
     (string->symbol (read-token ch)))
 
-  (define (read-string rdelim)
-    (let loop ((out '()))
-      (let ((ch (next)))
-        (cond
-          ((eof-object? ch)
-           (error "unexpected end of input while reading string"))
-          ((eqv? ch rdelim)
-           (reverse-list->string out))
-          ((eqv? ch #\\)
-           (let ((ch (next)))
-             (when (eof-object? ch)
-               (error "unexpected end of input while reading string"))
-             (cond
-               ((eqv? ch #\newline)
-                (when (hungry-eol-escapes?)
+  (define (read-string . args)
+    (let ((rdelim (if (null? args) #\" (car args))))
+      (let loop ((out '()))
+        (let ((ch (next)))
+          (cond
+            ((eof-object? ch)
+             (error 'read-error "unexpected end of input while reading string"))
+            ((eqv? ch rdelim)
+             (reverse-list->string out))
+            ((eqv? ch #\\)
+             (let ((ch (next)))
+               (when (eof-object? ch)
+                 (error 'read-error "unexpected end of input while reading string"))
+               (cond
+                 ((or (eqv? ch #\newline) (eqv? ch #\return))
                   (let skip ()
-                    (let ((ch (peek)))
-                      (when (and (not (eof-object? ch))
-                                 (or (eqv? ch #\tab)
-                                     (eq? (char-general-category ch) 'Zs)))
+                    (let ((p (peek)))
+                      (when (and (not (eof-object? p))
+                                 (or (eqv? p #\space) (eqv? p #\tab)))
                         (next)
-                        (skip)))))
-                (loop out))
-               ((eqv? ch rdelim)
-                (loop (cons rdelim out)))
-               (else
-                (loop
-                  (cons
-                    (case ch
-                      ((#\| #\\ #\()) ch
-                      ((#\0)          #\null)
-                      ((#\f)          #\xc) ; #\ff
-                      ((#\n)          #\newline)
-                      ((#\r)          #\return)
-                      ((#\t)          #\tab)
-                      ((#\a)          #\alarm)
-                      ((#\v)          #\xb) ; #\vtab
-                      ((#\b)          #\backspace)
-                      ((#\x)          (read-hex-escape))
-                      (else           (error "invalid character in escape sequence" ch))))
-                  out))))))
-        (else
-          (loop (cons ch out))))))
+                        (skip))))
+                  (loop out))
+                 ((eqv? ch rdelim)
+                  (loop (cons rdelim out)))
+                 (else
+                  (loop
+                    (cons
+                      (case ch
+                        ((#\a) #\alarm)
+                        ((#\b) #\backspace)
+                        ((#\t) #\tab)
+                        ((#\n) #\newline)
+                        ((#\r) #\return)
+                        ((#\" #\\ #\|) ch)
+                        ((#\x) (read-hex-escape))
+                        (else (error 'read-error "invalid character in escape sequence" ch)))
+                      out))))))
+            (else
+              (loop (cons ch out))))))))
 
   (define (read-number ch)
     (let ((str (read-token ch)))
@@ -195,6 +201,21 @@
             (next)
             (loop (+ (* n 16) (hex-digit-value ch))))
           (integer->char n)))))
+
+  (define (read-hex-escape)
+    (let loop ((n 0) (any #f))
+      (let ((ch (peek)))
+        (if (and (not (eof-object? ch)) (char-hex-digit? ch))
+          (begin
+            (next)
+            (loop (+ (* n 16) (hex-digit-value ch)) #t))
+          (if any
+            (if (eqv? (peek) #\;)
+              (begin
+                (next)
+                (integer->char n))
+              (error 'read-error "hex escape missing semicolon"))
+            (error 'read-error "invalid hex escape"))))))
 
   (define (read-character)
     (let ((ch (next)))
