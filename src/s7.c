@@ -18374,14 +18374,13 @@ static void stderr_display(s7_scheme *sc, const char *str, s7_pointer port) {if 
 
 
 /* -------- skip to newline readers -------- */
-static token_t token(s7_scheme *sc);
-
 static token_t file_read_semicolon(s7_scheme *sc, s7_pointer port)
 {
+  /* skip to the end of the line; the reader that used this is gone */
   int32_t c;
   do (c = fgetc(port_file(port))); while ((c != '\n') && (c != EOF));
   port_line_number(port)++;
-  return((c == EOF) ? token_eof : token(sc));
+  return(token_eof);
 }
 
 static token_t string_read_semicolon(s7_scheme *sc, s7_pointer port)
@@ -18389,13 +18388,13 @@ static token_t string_read_semicolon(s7_scheme *sc, s7_pointer port)
   const char *str = (const char *)(port_data(port) + port_position(port));
   const char *orig_str = strchr(str, (int)'\n');
   if (!orig_str)
+    port_position(port) = port_data_size(port);
+  else
     {
-      port_position(port) = port_data_size(port);
-      return(token_eof);
+      port_position(port) += (orig_str - str + 1); /* + 1 because strchr leaves orig_str pointing at the newline */
+      port_line_number(port)++;
     }
-  port_position(port) += (orig_str - str + 1); /* + 1 because strchr leaves orig_str pointing at the newline */
-  port_line_number(port)++;
-  return(token(sc));
+  return(token_eof);
 }
 
 
@@ -19660,78 +19659,6 @@ static s7_pointer g_read_string(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer eval(s7_scheme *sc, opcode_t first_op);
 
-s7_pointer s7_read(s7_scheme *sc, s7_pointer port)
-{
-  if (!is_input_port(port))
-    sole_arg_wrong_type_error_nr(sc, sc->read_symbol, port, an_input_port_string);
-  {
-    const s7_pointer old_let = sc->curlet;
-    declare_jump_info();
-    set_curlet(sc, sc->rootlet);
-    push_input_port(sc, port);
-    store_jump_info(sc);
-    set_jump_info(sc, read_set_jump);
-    if (jump_loc != no_jump)
-      {
-	if (jump_loc != error_jump)
-	  eval(sc, sc->cur_op);
-      }
-    else
-      {
-	push_stack_no_let_no_code(sc, OP_BARRIER, port);
-	push_stack_direct(sc, OP_EVAL_DONE);
-	eval(sc, OP_READ_INTERNAL);
-	if (sc->tok == token_eof)
-	  sc->value = eof_object;
-	if ((sc->cur_op == OP_EVAL_DONE) && /* pushed above */
-	    (stack_top_op(sc) == OP_BARRIER))
-	  pop_stack(sc);
-      }
-    pop_input_port(sc);
-    set_curlet(sc, old_let);
-    restore_jump_info(sc);
-    return(sc->value);
-  }
-}
-
-static s7_pointer g_read(s7_scheme *sc, s7_pointer args)
-{
-  #define H_read "(read (port (current-input-port))) returns the next object in the input port, or #<eof> at the end"
-  #define Q_read s7_make_signature(sc, 2, sc->T, sc->is_input_port_symbol)
-
-  s7_pointer port;
-  if (is_pair(args))
-    port = car(args);
-  else
-    {
-      port = input_port_if_not_loading(sc);
-      if (!port) return(eof_object);
-    }
-  if (!is_input_port(port))
-    return(method_or_bust_p(sc, port, sc->read_symbol, an_input_port_string));
-
-  if (is_function_port(port))
-    {
-      s7_pointer result = (*(port_input_function(port)))(sc, S7_READ, port);
-      if (is_multiple_value(result))
-	{
-	  clear_multiple_value(result);
-	  error_nr(sc, sc->bad_result_symbol, set_elist_2(sc, wrap_string(sc, "input-function-port read returned: ~S", 37), result));
-	}
-      return(result);
-    }
-  if ((is_string_port(port)) &&
-      (port_data_size(port) <= port_position(port)))
-    return(eof_object);
-
-  push_input_port(sc, port);
-  push_stack_op_let(sc, OP_READ_DONE); /* this stops the internal read process so we only get one form */
-  push_stack_op_let(sc, OP_READ_INTERNAL);
-  return(port);
-}
-
-
-/* -------------------------------- load -------------------------------- */
 #if WITH_MULTITHREAD_CHECKS
 typedef struct {
   s7_scheme* sc;
@@ -20028,84 +19955,32 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
 
 s7_pointer s7_load_with_environment(s7_scheme *sc, const char *filename, s7_pointer let)
 {
-  /* returns either the value of the load or NULL if filename not found or if the optional let is *s7* */
-  s7_pointer port;
-  declare_jump_info();
-  TRACK(sc);
+  /* delegate to the registered load procedure */
   if (let == sc->starlet) return(NULL);
-  if (!is_let(let))
-    {
-      s7_pointer obj_let = find_let(sc, let);
-      if (!is_let(obj_let))
-	s7_warn(sc, 128, "third argument to s7_load_with_environment is not a let or an object that has a let");
-      else let = obj_let;
-    }
-#if WITH_C_LOADER
-  port = load_shared_object(sc, filename, let);
-  if (port) return(port);
-#endif
-
-  if (is_directory(filename)) return(NULL);
-  port = load_file_1(sc, filename);
-  if (!port) return(NULL);
-
-  set_curlet(sc, let);
-  push_stack(sc, OP_LOAD_RETURN_IF_EOF, port, sc->code);
-
-  store_jump_info(sc);
-  set_jump_info(sc, load_set_jump);
-  if (jump_loc == no_jump)
-    eval(sc, OP_READ_INTERNAL);
-  else
-    if (jump_loc != error_jump)
-      eval(sc, sc->cur_op);
-  pop_input_port(sc);
-  if (is_input_port(port))
-    s7_close_input_port(sc, port);
-  restore_jump_info(sc);
-
-  if (is_multiple_value(sc->value))
-    sc->value = splice_in_values(sc, multiple_value(sc->value));
-  return(sc->value);
+  if (!is_let(let)) return(NULL);
+  return(s7_eval(sc, list_2(sc, sc->load_symbol, s7_make_string(sc, filename)), let));
 }
 
 s7_pointer s7_load(s7_scheme *sc, const char *filename) {return(s7_load_with_environment(sc, filename, sc->rootlet));}
 
 s7_pointer s7_load_c_string_with_environment(s7_scheme *sc, const char *content, s7_int bytes, s7_pointer let)
 {
-  s7_pointer port;
-  s7_int port_loc;
-  declare_jump_info();
-  TRACK(sc);
-
+  /* read each form through the registered reader and evaluate it */
   if (bytes == 0)
     bytes = strlen(content);
   else
     if (content[bytes] != 0)
       error_nr(sc, make_symbol(sc, "bad-data", 8), set_elist_1(sc, wrap_string(sc, "s7_load_c_string content is not null terminated", 47)));
-  port = open_input_string(sc, content, bytes);
-  port_loc = gc_protect_1(sc, port);
-  set_loader_port(port);
-  push_input_port(sc, port);
-  set_curlet(sc, let);
-  push_stack(sc, OP_LOAD_RETURN_IF_EOF, port, sc->code);
-  s7_gc_unprotect_at(sc, port_loc);
-
-  store_jump_info(sc);
-  set_jump_info(sc, load_set_jump);
-  if (jump_loc == no_jump)
-    eval(sc, OP_READ_INTERNAL);
-  else
-    if (jump_loc != error_jump)
-      eval(sc, sc->cur_op);
-  pop_input_port(sc);
-  if (is_input_port(port))
-    s7_close_input_port(sc, port);
-  restore_jump_info(sc);
-
-  if (is_multiple_value(sc->value))
-    sc->value = splice_in_values(sc, multiple_value(sc->value));
-  return(sc->value);
+  s7_pointer port = open_input_string(sc, content, bytes);
+  s7_pointer result = sc->unspecified;
+  while (true)
+    {
+      s7_pointer d = s7_eval(sc, list_2(sc, sc->read_symbol, port), sc->rootlet); /* (read port) */
+      if (d == eof_object) break;
+      result = s7_eval(sc, d, let);
+    }
+  s7_close_input_port(sc, port);
+  return(result);
 }
 
 s7_pointer s7_load_c_string(s7_scheme *sc, const char *content, s7_int bytes)
@@ -20119,6 +19994,7 @@ static s7_pointer g_load(s7_scheme *sc, s7_pointer args)
 defaults to the rootlet.  To load into the current environment instead, pass (curlet)."
   #define Q_load s7_make_signature(sc, 3, sc->values_symbol, sc->is_string_symbol, has_let_signature(sc))
 
+  s7_pointer let = sc->rootlet;
   const s7_pointer name = car(args);
   const char *fname;
 
@@ -20127,7 +20003,7 @@ defaults to the rootlet.  To load into the current environment instead, pass (cu
 
   if (is_pair(cdr(args)))
     {
-      s7_pointer let = cadr(args);
+      let = cadr(args);
       if (!is_let(let))
 	{
 	  s7_pointer new_let = find_let(sc, let);
@@ -20138,9 +20014,7 @@ defaults to the rootlet.  To load into the current environment instead, pass (cu
       if (let == sc->starlet)
 	error_nr(sc, sc->wrong_type_arg_symbol,
 		 set_elist_2(sc, wrap_string(sc, "can't load ~S into *s7*", 23), name));
-      set_curlet(sc, let);
     }
-  else set_curlet(sc, sc->rootlet);
 
   fname = string_value(name);
   if ((!fname) || (!*fname))   /* fopen("", "r") returns a file pointer?? */
@@ -20152,17 +20026,25 @@ defaults to the rootlet.  To load into the current environment instead, pass (cu
 	     set_elist_2(sc, wrap_string(sc, "load: ~S is a directory", 23), wrap_string(sc, fname, safe_strlen(fname))));
 #if WITH_C_LOADER
   {
-    s7_pointer p = load_shared_object(sc, fname, sc->curlet);
+    s7_pointer p = load_shared_object(sc, fname, let);
     if (p) return(p);
   }
 #endif
   errno = 0;
-  if (!load_file_1(sc, fname))
+  s7_pointer port = load_file_1(sc, fname);
+  if (!port)
     file_error_nr(sc, "load", strerror(errno), fname);
-
-  push_stack_op_let(sc, OP_LOAD_CLOSE_AND_POP_IF_EOF);  /* was pushing args and code, but I don't think they're used later */
-  push_stack_op_let(sc, OP_READ_INTERNAL);
-  return(sc->unspecified);
+  /* read each form through the registered reader and evaluate it in let */
+  s7_pointer result = sc->unspecified;
+  while (true)
+    {
+      s7_pointer d = s7_eval(sc, list_2(sc, sc->read_symbol, port), sc->rootlet); /* (read port) */
+      if (d == eof_object) break;
+      result = s7_eval(sc, d, let);
+    }
+  pop_input_port(sc); /* load_file_1 pushed the port */
+  s7_close_input_port(sc, port);
+  return(result);
 }
 
 
@@ -20506,7 +20388,7 @@ s7_pointer s7_eval_c_string_with_environment(s7_scheme *sc, const char *str, s7_
   TRACK(sc);
   push_stack_direct(sc, OP_GC_PROTECT); /* not gc protection here, but restoration of original context */
   port = s7_open_input_string(sc, str);
-  code = s7_read(sc, port);
+  code = s7_eval(sc, list_2(sc, sc->read_symbol, port), sc->rootlet); /* (read port) via the registered reader */
   s7_close_input_port(sc, port);
   result = s7_eval(sc, T_Ext(code), let);
   if (stack_top_op_unchecked(sc) == OP_GC_PROTECT) unstack_gc_protect(sc); /* pop_stack(sc); */
@@ -20520,6 +20402,7 @@ static s7_pointer g_eval_string(s7_scheme *sc, s7_pointer args)
   #define H_eval_string "(eval-string str (let (curlet))) returns the result of evaluating the string str as Scheme code"
   #define Q_eval_string s7_make_signature(sc, 3, sc->values_symbol, sc->is_string_symbol, has_let_signature(sc))
 
+  s7_pointer let = sc->curlet;
   const s7_pointer str = car(args);
   if (!is_string(str))
     return(method_or_bust(sc, str, sc->eval_string_symbol, args, sc->type_names[T_STRING], 1));
@@ -20527,7 +20410,7 @@ static s7_pointer g_eval_string(s7_scheme *sc, s7_pointer args)
     return(sc->F);  /* (eval-string "") -> #f */
   if (is_pair(cdr(args)))
     {
-      s7_pointer let = cadr(args);
+      let = cadr(args);
       if (!is_let(let))
 	{
 	  s7_pointer new_let = find_let(sc, let);
@@ -20535,39 +20418,8 @@ static s7_pointer g_eval_string(s7_scheme *sc, s7_pointer args)
 	    find_let_error_nr(sc, sc->eval_string_symbol, let, new_let, 2, args);
 	  let = new_let;
 	}
-      set_curlet(sc, let);
     }
-  begin_temp(sc->temp6, sc->args); /* see t101-17.scm */
-  push_stack(sc, OP_EVAL_STRING, args, sc->code);
-  {
-    s7_pointer port = open_and_protect_input_string(sc, str);
-    push_input_port(sc, port);
-  }
-  push_stack_op_let(sc, OP_READ_INTERNAL);
-  end_temp(sc->temp6);
-  return(sc->F);  /* I think this means that sc->value defaults to #f in op_eval_string below, so (eval-string "") mimics (eval) -> #f */
-}
-
-static s7_pointer op_eval_string(s7_scheme *sc)
-{
-  while (s7_peek_char(sc, current_input_port(sc)) != eof_object) /* (eval-string "(+ 1 2) this is a mistake") */
-    {
-      int32_t tk = token(sc);      /* (eval-string "(+ 1 2) ; a comment (not a mistake)") */
-      if (tk != token_eof)
-	{
-	  s7_pointer trail_data;
-	  s7_int trail_len = port_data_size(current_input_port(sc)) - port_position(current_input_port(sc)) + 1;
-	  if (trail_len > 32) trail_len = 32;
-	  trail_data = wrap_string(sc, (const char *)(port_data(current_input_port(sc)) + port_position(current_input_port(sc)) - 1), trail_len);
-	  s7_close_input_port(sc, current_input_port(sc));
-	  pop_input_port(sc);
-	  error_nr(sc, sc->read_error_symbol, set_elist_2(sc, wrap_string(sc, "eval-string trailing junk: ~S", 29), trail_data));
-	}}
-  s7_close_input_port(sc, current_input_port(sc));
-  pop_input_port(sc);
-  sc->code = sc->value;
-  set_current_code(sc, sc->code);
-  return(NULL);
+  return(s7_eval_c_string_with_environment(sc, string_value(str), let));
 }
 
 
@@ -59380,9 +59232,7 @@ static opt_t optimize_c_function_one_arg(s7_scheme *sc, s7_pointer expr, s7_poin
       else
 	{
 	  set_unsafely_optimized(expr);
-	  if (c_function_call(func) == g_read)
-	    set_optimize_op(expr, hop + OP_READ_S);
-	  else set_optimize_op(expr, hop + ((is_semisafe(func)) ? OP_CL_S : OP_C_S));
+	  set_optimize_op(expr, hop + ((is_semisafe(func)) ? OP_CL_S : OP_C_S));
 	}
       choose_c_function(sc, expr, func, 1);
       return(opt_bad);
@@ -78417,918 +78267,6 @@ static bool eval_car_pair(s7_scheme *sc)
   return(false);
 }
 
-
-/* ---------------- reader funcs for eval ---------------- */
-static void back_up_stack(s7_scheme *sc)
-{
-  opcode_t top_op = stack_top_op(sc);
-  if (top_op == OP_READ_DOT)
-    {
-      pop_stack(sc);
-      top_op = stack_top_op(sc);
-    }
-  if ((top_op == OP_READ_VECTOR) || (top_op == OP_READ_BYTE_VECTOR) || (top_op == OP_READ_INT_VECTOR) ||
-      (top_op == OP_READ_FLOAT_VECTOR) || (top_op == OP_READ_COMPLEX_VECTOR))
-   {
-      pop_stack(sc);
-      top_op = stack_top_op(sc);
-    }
-  if (top_op == OP_READ_QUOTE)
-    pop_stack(sc);
-}
-
-static token_t read_block_comment(s7_scheme *sc, s7_pointer port)
-{
-  /* block comments in #| ... |#
-   *   since we ignore everything until the |#, internal semicolon comments are ignored, meaning that ;|# is as effective as |#
-   */
-  if (is_file_port(port))
-    {
-      char last_char = ' ';
-      while (true)
-	{
-	  int32_t c = fgetc(port_file(port));
-	  if (c == EOF)
-	    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "unexpected end of input while reading #|", 40)));
-	  if ((c == '#') &&
-	      (last_char == '|'))
-	    break;
-	  last_char = c;
-	  if (c == '\n')
-	    port_line_number(port)++;
-	}
-      return(token(sc));
-    }
-  {
-    const char *orig_str = (const char *)(port_data(port) + port_position(port));
-    const char *pend = (const char *)(port_data(port) + port_data_size(port));
-    const char *str = orig_str;
-    const char *p;
-    while (true)
-      {
-	p = strchr(str, (int)'|');
-	if ((!p) || (p >= pend))
-	  {
-	    port_position(port) = port_data_size(port);
-	    error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "unexpected end of input while reading #|", 40)));
-	  }
-	if (p[1] == '#')
-	  break;
-	str = (const char *)(p + 1);
-      }
-    port_position(port) += (p - orig_str + 2);
-    /* now count newlines inside the comment */
-    str = (const char *)orig_str;
-    pend = p;
-    while (true)
-      {
-	p = strchr(str, (int)'\n');
-	if ((p) && (p < pend))
-	  {
-	    port_line_number(port)++;
-	    str = (const char *)(p + 1);
-	  }
-	else break;
-      }}
-  return(token(sc));
-}
-
-static token_t read_excl_comment(s7_scheme *sc, s7_pointer port)
-{
-  /* block comments in #! ... !#
-   * this is needed when an input file is treated as a script:
-       #!/home/bil/cl/snd
-       !#
-       (format #t "a test~%")
-       (exit)
-  */
-  /* make it possible to override #! handling */
-  for (s7_pointer reader = slot_value(sc->sharp_readers); is_pair(reader); reader = cdr(reader))
-    if (s7_character(caar(reader)) == '!')
-      {
-	sc->strbuf[0] = (unsigned char)'!';
-	return(token_sharp_const); /* next stage notices any errors */
-      }
-  /* not #! as block comment (for Guile I guess) */
-  {
-    int32_t c;
-    char last_char = ' ';
-    while ((c = inchar(port)) != EOF)
-      {
-	if ((c == '#') && (last_char == '!')) break;
-	last_char = c;
-      }
-    if (c == EOF)
-      error_nr(sc, sc->read_error_symbol,
-	       set_elist_1(sc, wrap_string(sc, "unexpected end of input while reading #!", 40)));
-  }
-  return(token(sc));
-}
-
-static token_t read_sharp(s7_scheme *sc, s7_pointer port)
-{
-  const int32_t c = inchar(port); /* inchar can return EOF, so it can't be used directly as an index into the digits array */
-  switch (c)
-    {
-    case EOF:
-      error_nr(sc, sc->read_error_symbol, set_elist_1(sc, wrap_string(sc, "unexpected '#' at end of input", 30)));
-      break;
-
-    case '(':                      /* #(...) */
-      sc->read_dims = int_one;             /* for read_expression! */
-      return(token_vector);
-
-    case 'i':                      /* #i(...) */
-      if (read_sharp(sc, port) == token_vector)
-	return(token_int_vector);
-      backchar('i', port);
-      break;
-
-    case 'r':                      /* #r(...) */
-      if (read_sharp(sc, port) == token_vector)
-	return(token_float_vector);
-      backchar('r', port);
-      break;
-
-    case 'c':                      /* #c(...) */
-      if (read_sharp(sc, port) == token_vector)
-	return(token_complex_vector);
-      backchar('c', port);
-      break;
-
-    case 'u':                      /* #u(...) or #u8(...) */
-      if (s7_peek_char(sc, port) == chars[(int32_t)('8')]) /* backwards compatibility: #u8(...) == #u(...) */
-	{
-	  const int32_t bc = inchar(port);
-	  if (s7_peek_char(sc, port) == chars[(int32_t)('(')])
-	    {
-	      inchar(port);
-	      sc->read_dims = int_one;    /* for read_expression! */
-	      return(token_byte_vector);
-	    }
-	  backchar(bc, port);
-	}
-      if (read_sharp(sc, port) == token_vector)
-	return(token_byte_vector);
-      backchar('u', port);
-      break;
-
-    case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
-      {
-	/* here we can get an overflow: #1231231231231232131D() */
-	s7_int dims = digits[c];
-	int32_t d = 0, loc = 0;
-	sc->strbuf[loc++] = (unsigned char)c;
-	while (true)
-	  {
-	    s7_int dig;
-	    d = inchar(port);
-	    if (d == EOF)
-	      error_nr(sc, sc->read_error_symbol,
-		       set_elist_1(sc, wrap_string(sc, "unexpected end of input while reading #n...", 43)));
-	    dig = digits[d];
-	    if (dig >= 10) break;
-	    dims = dig + (dims * 10);
-	    if (dims <= 0)
-	      {
-		sc->strbuf[loc++] = (unsigned char)d;
-		error_nr(sc, sc->read_error_symbol,
-			 set_elist_3(sc, wrap_string(sc, "reading #~A...: ~D must be a positive integer", 45),
-				     wrap_string(sc, sc->strbuf, loc),
-				     wrap_integer(sc, dims)));
-	      }
-	    if (dims > sc->max_vector_dimensions)
-	      {
-		sc->strbuf[loc++] = (unsigned char)d;
-		sc->strbuf[loc + 1] = '\0';
-		error_nr(sc, sc->read_error_symbol,
-			 set_elist_4(sc, wrap_string(sc, "reading #~A...: ~D is too large, (*s7* 'max-vector-dimensions): ~D", 66),
-				     wrap_string(sc, sc->strbuf, loc),
-				     wrap_integer(sc, dims), wrap_integer(sc, sc->max_vector_dimensions)));
-	      }
-	    sc->strbuf[loc++] = (unsigned char)d;
-	  }
-	sc->strbuf[loc++] = d;
-	if ((d == 'd') || (d == 'i') || (d == 'r') || (d == 'u') || (d == 'c'))
-	  {
-	    const int32_t chr = inchar(port);
-	    if (chr == EOF)
-	      error_nr(sc, sc->read_error_symbol,
-		       set_elist_1(sc, wrap_string(sc, "unexpected end of input while reading #n()", 42)));
-	    sc->strbuf[loc++] = (unsigned char)chr;
-	    if (chr == '(')
-	      {
-		sc->read_dims = make_integer(sc, dims);                /* for read_expression! */
-		if (d == 'd') return(token_vector);
-		if (d == 'r') return(token_float_vector);
-		if (d == 'c') return(token_complex_vector);
-		return((d == 'u') ? token_byte_vector : token_int_vector);
-	      }}
-	/* try to back out */
-	for (d = loc - 1; d > 0; d--)
-	  backchar(sc->strbuf[d], port);
-      }
-      break;
-
-#if !DISABLE_DEPRECATED
-    case ':':  /* turn #: into : -- this is for compatibility with Guile, sigh. I just noticed that Rick is using this --
-		* I'll just leave it alone, but that means : readers need to handle this case specially.
-		*/
-      sc->strbuf[0] = ':';
-      return(token_atom);
-#endif
-
-    case '!':  /*  I don't think #! is special anymore -- maybe remove this code? */
-      return(read_excl_comment(sc, port));
-
-    case '|':
-      return(read_block_comment(sc, port));
-    }
-  sc->strbuf[0] = (unsigned char)c;
-  return(token_sharp_const); /* next stage notices any errors */
-}
-
-static token_t read_comma(s7_scheme *sc, s7_pointer port)
-{
-  /* here we probably should check for symbol names that start with "@":
-         (define-macro (hi @foo) `(+ ,@foo 1)): (hi 2) -> ;foo: unbound variable
-     but (define-macro (hi .foo) `(+ ,.foo 1)): (hi 2) -> 3
-     and ambiguous: (define-macro (hi @foo . foo) `(list ,@foo))
-     what about , @foo -- is the space significant?  We accept ,@ foo. (Currently , @ says unbound variable @foo).
-  */
-  const int32_t c = inchar(port);
-  if (c == '@')
-    return(token_at_mark);
-  if (c == EOF)
-    {
-      sc->strbuf[0] = ',';  /* was '@' which doesn't make any sense */
-      return(token_comma);  /* was token_atom, which also doesn't seem sensible */
-    }
-  backchar(c, port);
-  return(token_comma);
-}
-
-static token_t read_dot(s7_scheme *sc, s7_pointer port)
-{
-  const int32_t c = inchar(port);
-  if (c != EOF)
-    {
-      backchar(c, port);
-      if ((!char_ok_in_a_name[c]) && (c != 0))
-	return(token_dot);
-    }
-  else
-    {
-      sc->strbuf[0] = '.';
-      return(token_dot);
-    }
-  sc->strbuf[0] = '.';
-  return(token_atom);  /* i.e. something that can start with a dot like a number */
-}
-
-static token_t token(s7_scheme *sc) /* inline here is slower */
-{
-  const int32_t c = port_read_white_space(current_input_port(sc))(sc, current_input_port(sc));
-  switch (c)
-    {
-    case '(':  return(token_left_paren);
-    case ')':  return(token_right_paren);
-    case '.':  return(read_dot(sc, current_input_port(sc)));
-    case '\'': return(token_quote);
-    case ';':  return(port_read_semicolon(current_input_port(sc))(sc, current_input_port(sc)));
-    case '"':  return(token_double_quote);
-    case '`':  return(token_back_quote);
-    case ',':  return(read_comma(sc, current_input_port(sc)));
-    case '#':  return(read_sharp(sc, current_input_port(sc)));
-    case '\0':
-    case EOF:  return(token_eof);
-    default:
-      sc->strbuf[0] = (unsigned char)c; /* every token_atom return goes to port_read_name, so we save a backchar/inchar shuffle by starting the read here */
-      return(token_atom);
-    }
-}
-
-static int32_t read_x_char(s7_scheme *sc, int32_t i, s7_pointer port)
-{
-  /* possible "\xn...;" char (write creates these things, so we have to read them)
-   *   but we could have crazy input like "\x -- with no trailing double quote
-   */
-  for (int32_t c_ctr = 0; ; c_ctr++)
-    {
-      int32_t d1, d2, c = inchar(port);
-      if (c == '"')                  /* "\x" -> error, "\x44" or "\x44;" -> #\D */
-	{
-	  if (c_ctr == 0)            /* "\x" */
- 	    read_error_nr(sc, "unknown backslash usage -- perhaps you meant two backslashes?");
-	  backchar(c, port);         /* "\x44" I think -- not sure about this -- Guile is happy but I think it contradicts r7rs.pdf */
-	  return(i);
-	}
-      if (c == ';')
-	{
-	  if (c_ctr == 0)            /* "\x;" */
- 	    read_error_nr(sc, "unknown backslash usage -- perhaps you meant two backslashes?");
-	  return(i);                 /* "\x44;" */
-	}
-      if (c == EOF)                  /* "\x<eof> */
-	{
-	  read_error_nr(sc, "#<eof> in midst of hex-char");
-	  return(i);
-	}
-      d1 = digits[c];
-      if (d1 >= 16)                  /* "\x4H", also "\x44H" which Guile thinks is ok -- it apparently reads 2 digits and quits? */
-	{
-	  if (c_ctr == 0)
-	    read_error_nr(sc, "unknown backslash usage -- perhaps you meant two backslashes?");
-	  backchar(c, port);
-	  return(i);
-	}
-      /* perhaps if c_ctr==0 error else backchar + return(i??) */
-
-      c = inchar(port);
-      if (c == '"')                  /* "\x4" */
-	{
-	  sc->strbuf[i++] = (unsigned char)d1;
-	  backchar((char)c, port);
-	  return(i);
-	}
-      if (c == ';')                  /* "\x4;" */
-	{
-	  sc->strbuf[i++] = (unsigned char)d1;
-	  return(i);
-	}
-      if (c == EOF)                  /* "\x4<eof> */
-	{
-	  read_error_nr(sc, "#<eof> in midst of hex-char");
-	  return(i);
-	}
-      d2 = digits[c];
-      if (d2 >= 16)
-	{
-	  if (c_ctr == 0)
-	    read_error_nr(sc, "unknown backslash usage -- perhaps you meant two backslashes?");
-	  backchar(c, port);
-	  return(i);
-	}
-      sc->strbuf[i++] = (unsigned char)(16 * d1 + d2);
-    }
-  return(i);
-}
-
-static s7_pointer unknown_string_constant(s7_scheme *sc, int32_t c)
-{
-  /* check *read-error-hook* */
-  if (hook_has_functions(sc->read_error_hook))
-    {
-      s7_pointer result = s7_call(sc, sc->read_error_hook, set_plist_2(sc, sc->F, chars[(uint8_t)c]));
-      if (is_character(result))
-	return(result);
-    }
-  return(sc->T);
-}
-
-static s7_pointer read_string_constant(s7_scheme *sc, s7_pointer port)
-{
-  /* sc->F => error, no check needed here for bad input port and so on */
-  s7_int i = 0; /* sc->strbuf index */
-  if (is_string_port(port))
-    {
-      /* try the most common case first */
-      char *s, *end, *start = (char *)(port_data(port) + port_position(port)); /* not const: C++: strpbrk(start, "\"\n\\") first arg is char* */
-      if (*start == '"')
-	{
-	  port_position(port)++;
-	  return(nil_string);
-	}
-      end = (char *)(port_data(port) + port_data_size(port));
-      s = strpbrk(start, "\"\n\\");
-      if ((!s) || (s >= end))                     /* can this read a huge string constant from a file? */
-	{
-	  if (start == end)
-	    sc->strbuf[0] = '\0';
-	  else memcpy((void *)(sc->strbuf), (void *)start, (end - start > 8) ? 8 : (end - start));
-	  sc->strbuf[8] = '\0';
-	  return(sc->F);
-	}
-      if (*s == '"')
-	{
-	  s7_int len = s - start;
-	  port_position(port) += (len + 1);
-	  return(make_string_with_length(sc, start, len));
-	}
-      for (; s < end; s++)
-	{
-	  if (*s == '"')                         /* switch here no faster */
-	    {
-	      s7_int len = s - start;
-	      port_position(port) += (len + 1);
-	      return(make_string_with_length(sc, start, len));
-	    }
-	  if (*s == '\\')
-	    {
-	      /* all kinds of special cases here (resultant string is not the current string), so drop to loop below (setting "i") */
-	      const s7_int len = (s7_int)(s - start);
-	      if (len > 0)
-		{
-		  if (len >= sc->strbuf_size)
-		    resize_strbuf(sc, len);
-		  memcpy((void *)(sc->strbuf), (void *)(port_data(port) + port_position(port)), len);
-		  port_position(port) += len;
-		}
-	      i = len;
-	      break;
-	    }
-	  else
-	    if (*s == '\n')
-	      port_line_number(port)++;
-	}}
-  while (true)
-    {
-      /* splitting this check out and duplicating the loop was slower?!? */
-      int32_t c = port_read_character(port)(sc, port);
-      switch (c)
-	{
-	case '\n':
-	  port_line_number(port)++;
-	  sc->strbuf[i++] = (unsigned char)c;
-	  break;
-
-	case EOF:
-	  sc->strbuf[(i > 8) ? 8 : i] = '\0';
-	  return(sc->F);
-
-	case '"':
-	  return(make_string_with_length(sc, sc->strbuf, i));
-
-	case '\\':
-	  c = inchar(port);
-	  switch (c)
-	    {
-	    case EOF:
-	      sc->strbuf[(i > 8) ? 8 : i] = '\0';
-	      return(sc->F);
-
-	    case '\\': case '"': case '|':
-	      sc->strbuf[i++] = (unsigned char)c;
-              break;
-
-	    case 'n': sc->strbuf[i++] = '\n'; break;
-	    case 't': sc->strbuf[i++] = '\t'; break;
-	    case 'r': sc->strbuf[i++] = '\r'; break;
-	    case '/': sc->strbuf[i++] = '/';  break;
-	    case 'b': sc->strbuf[i++] = (unsigned char)8;    break;
-	    case 'f': sc->strbuf[i++] = (unsigned char)12;   break;
-
-	    case 'x':
-	      i = read_x_char(sc, i, port);
-              break;
-
-            default:	      /* if (!is_white_space(c)) */ /* changed 8-Apr-12 */
-	      if ((c != '\n') && (c != '\r')) /* i.e. line continuation via #\\ at end of line */
-		{
-		  s7_pointer result = unknown_string_constant(sc, c);
-		  if (!is_character(result)) return(result);
-		  sc->strbuf[i++] = character(result);
-		}
-	      /* #f here would give confusing error message "end of input", so return #t=bad backslash.
-	       *     this is not optimal. It's easy to forget that backslash needs to be backslashed.
-	       * the white_space business half-implements Scheme's \<newline>...<eol>... or \<space>...<eol>...
-	       *   feature -- the characters after \ are flushed if they're all white space and include a newline.
-	       *   (string->number "1\   2") is 12??  Too bizarre.
-	       */
-	    }
-	  break;
-
-	default:
-	  sc->strbuf[i++] = (unsigned char)c;
-	  break;
-	}
-      if (i >= sc->strbuf_size)
-	resize_strbuf(sc, i);
-    }
-}
-
-static void read_double_quote(s7_scheme *sc)
-{
-  sc->value = read_string_constant(sc, current_input_port(sc));
-  if (sc->value == sc->F)                                /* can happen if input code ends in the middle of a string */
-    string_read_error_nr(sc, "end of input encountered while in a string");
-  if (sc->value == sc->T)
-    read_error_nr(sc, "unknown backslash usage -- perhaps you meant two backslashes?");
-  if (sc->safety > immutable_vector_safety) set_immutable_string(sc->value);
-}
-
-static /* inline */ bool read_sharp_const(s7_scheme *sc) /* tread but inline makes no difference? (it's currently inlined anyway) */
-{
-  sc->value = port_read_sharp(current_input_port(sc))(sc, current_input_port(sc));
-  if (sc->value == sc->no_value)
-    {
-      /* (set! *#readers* (cons (cons #\; (lambda (s) (read) (values))) *#readers*))
-       * (+ 1 #;(* 2 3) 4)
-       * so we need to get the next token, act on it without any assumptions about read list
-       */
-      sc->tok = token(sc);
-      return(true);
-    }
-  return(false);
-}
-
-static no_return void read_expression_read_error_nr(s7_scheme *sc)
-{
-  const s7_pointer port = current_input_port(sc);
-  pop_stack(sc);
-  if ((is_input_port(port)) &&
-      (!port_is_closed(port)) &&
-      (port_data(port)) &&
-      (port_position(port) > 0))
-    {
-      const s7_pointer str = make_empty_string(sc, 128, '\0');
-      const char *msg = string_value(str);
-      const s7_int pos = port_position(port);
-      s7_int start = pos - 40;
-      if (start < 0) start = 0;
-      memcpy((void *)msg, (const void *)"at \"...", 7);
-      memcpy((void *)(msg + 7), (void *)(port_data(port) + start), pos - start);
-      memcpy((void *)(msg + 7 + pos - start), (const void *)"...", 3);
-      string_length(str) = 7 + pos - start + 3;
-      error_nr(sc, sc->read_error_symbol, set_elist_1(sc, str));
-    }
-  read_error_nr(sc, "stray comma before ')'?");         /* '("a" "b",) */
-}
-
-static s7_pointer read_expression(s7_scheme *sc)
-{
-  while (true)
-    {
-      switch (sc->tok)
-	{
-	case token_eof:
-	  return(eof_object);
-
-	case token_byte_vector:
-	  push_stack_no_let_no_code(sc, OP_READ_BYTE_VECTOR, sc->read_dims); /* sc->read_dims here and below = vector dimensions (from read_sharp) -> sc->args */
-	  sc->tok = token_left_paren;
-	  break;
-
-	case token_int_vector:
-	  push_stack_no_let_no_code(sc, OP_READ_INT_VECTOR, sc->read_dims);
-	  sc->tok = token_left_paren;
-	  break;
-
-	case token_float_vector:
-	  push_stack_no_let_no_code(sc, OP_READ_FLOAT_VECTOR, sc->read_dims);
-	  sc->tok = token_left_paren;
-	  break;
-
-	case token_complex_vector:
-	  push_stack_no_let_no_code(sc, OP_READ_COMPLEX_VECTOR, sc->read_dims);
-	  sc->tok = token_left_paren;
-	  break;
-
-	case token_vector:         /* already read #( -- token_vector is triggered by #( */
-	  push_stack_no_let_no_code(sc, OP_READ_VECTOR, sc->read_dims);  /* sc->read_dims is the dimensions */
-	  /* fall through */
-
-	case token_left_paren:
-	  sc->tok = token(sc);
-	  if (sc->tok == token_right_paren)
-	    return(sc->nil);
-	  if (sc->tok == token_dot)
-	    {
-	      int32_t c;
-	      back_up_stack(sc);
-	      do {c = inchar(current_input_port(sc));} while ((c != ')') && (c != EOF));
-	      read_error_nr(sc, "stray dot after '('?");         /* (car '( . )) */
-	    }
-	  if (sc->tok == token_eof)
-	    missing_close_paren_error_nr(sc);
-	  check_stack_size(sc);                                  /* s7test, tlimit */
-	  push_stack_no_let_no_code(sc, OP_READ_LIST, sc->nil);  /* here we need to clear args, but code is ignored */
-	  break;
-
-	case token_quote:
-	  check_stack_size(sc); /* no speed diff in tload.scm which looks like the worst case */
-	  push_stack_no_let_no_code(sc, OP_READ_QUOTE, sc->nil);
-	  sc->tok = token(sc);
-	  break;
-
-	case token_back_quote:
-	  sc->tok = token(sc);
-	  push_stack_no_let_no_code(sc, OP_READ_QUASIQUOTE, sc->nil);
-	  break;
-
-	case token_comma:
-	  push_stack_no_let_no_code(sc, OP_READ_UNQUOTE, sc->nil);
-	  sc->tok = token(sc);
-	  if (sc->tok == token_right_paren)
-	    read_expression_read_error_nr(sc);
-	  if (sc->tok == token_eof)
-	    {
-	      pop_stack(sc);
-	      read_error_nr(sc, "stray comma at the end of the input?");
-	    }
-	  break;
-
-	case token_at_mark:
-	  push_stack_no_let_no_code(sc, OP_READ_APPLY_VALUES, sc->nil);
-	  sc->tok = token(sc);
-	  break;
-
-	case token_atom:
-	  return(port_read_name(current_input_port(sc))(sc, current_input_port(sc)));
-	  /* If reading list (from lparen), this will finally get us to op_read_list */
-
-	case token_double_quote:
-	  read_double_quote(sc);
-	  return(sc->value);
-
-	case token_sharp_const:
-	  return(port_read_sharp(current_input_port(sc))(sc, current_input_port(sc)));
-
-	case token_dot:                                        /* (catch #t (lambda () (+ 1 . . )) (lambda args 'hiho)) */
-	  back_up_stack(sc);
-	  {int32_t c; do {c = inchar(current_input_port(sc));} while ((c != ')') && (c != EOF));}
-	  read_error_nr(sc, "stray dot in list?");             /* (+ 1 . . ) */
-
-	case token_right_paren:                                /* (catch #t (lambda () '(1 2 . )) (lambda args 'hiho)) */
-	  back_up_stack(sc);
-	  read_error_nr(sc, "unexpected close paren");         /* (+ 1 2)) or (+ 1 . ) */
-	}}
-  /* we never get here */
-  if (S7_DEBUGGING) fprintf(stderr, "%s[%d]: we should not be here\n", __func__, __LINE__);
-  return(sc->nil);
-}
-
-static void read_dot_and_expression(s7_scheme *sc)
-{
-  push_stack_no_let_no_code(sc, OP_READ_DOT, sc->args);
-  sc->tok = token(sc);
-  sc->value = read_expression(sc);
-}
-
-static void read_tok_default(s7_scheme *sc)
-{
-  /* by far the main case here is token_left_paren, but it doesn't save anything to move it to this level */
-  push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-  sc->value = read_expression(sc);
-  /* check for op_read_list here and explicit pop_stack are slower */
-}
-
-static int32_t read_atom(s7_scheme *sc, s7_pointer port)
-{
-  push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-  /* check_stack_size(sc); */
-  sc->value = port_read_name(port)(sc, port);
-  sc->args = list_1(sc, sc->value);
-  pair_set_current_input_location(sc, sc->args);
-  return(port_read_white_space(port)(sc, port));
-}
-
-static /* inline */ int32_t read_start_list(s7_scheme *sc, s7_pointer port, int32_t c)
-{
-  sc->strbuf[0] = (unsigned char)c;
-  push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-  check_stack_size(sc); /* s7test */
-  sc->value = port_read_name(port)(sc, port);
-  sc->args = list_1(sc, sc->value);
-  pair_set_current_input_location(sc, sc->args);
-  return(port_read_white_space(port)(sc, port));
-}
-
-static void op_read_internal(s7_scheme *sc)
-{
-  /* if we're loading a file, and in the file we evaluate (at top-level) something like:
-   *      (set-current-input-port (open-input-file "tmp2.r5rs"))
-   *      (close-input-port (current-input-port))
-   *      ... (with no reset of input port to its original value)
-   * the load process tries to read the loaded string, but the current-input-port is now closed,
-   * and the original is inaccessible!  So we get a segfault in token.  We don't want to put
-   * a port_is_closed check there because token only rarely is in this danger.  I think this
-   * is the only place where we can be about to call token, and someone has screwed up our port.
-   */
-  if (port_is_closed(current_input_port(sc)))
-    error_nr(sc, sc->read_error_symbol, /* not read_error here because it paws through the port string which doesn't exist here */
-	     set_elist_1(sc, wrap_string(sc, (is_loader_port(current_input_port(sc))) ? "load input port is closed!" : "read input port is closed!", 26)));
-
-  sc->tok = token(sc);
-  switch (sc->tok)
-    {
-    case token_eof:         break;
-    case token_right_paren: read_error_nr(sc, "unexpected close paren");
-    case token_comma:       read_error_nr(sc, "unexpected comma");
-    default:
-      sc->value = read_expression(sc);
-      sc->current_line = port_line_number(current_input_port(sc));  /* this info is used to track down missing close parens */
-      sc->current_file = port_filename(current_input_port(sc));
-      break;
-    }
-}
-
-static void op_read_done(s7_scheme *sc)
-{
-  pop_input_port(sc);
-  if (sc->tok == token_eof)
-    sc->value = eof_object;
-  sc->current_file = NULL; /* this is for error handling */
-}
-
-static void op_read_s(s7_scheme *sc)
-{
-  const s7_pointer port = lookup(sc, cadr(sc->code));
-  if (!is_input_port(port)) /* was also not stdin */
-    {
-      sc->value = g_read(sc, set_plist_1(sc, port));
-      return;
-    }
-  if (port_is_closed(port))  /* I guess the port_is_closed check is needed because we're going down a level below */
-    sole_arg_wrong_type_error_nr(sc, sc->read_symbol, port, an_open_input_port_string);
-
-  if (is_function_port(port))
-    {
-      sc->value = (*(port_input_function(port)))(sc, S7_READ, port);
-      if (is_multiple_value(sc->value))
-	{
-	  clear_multiple_value(sc->value);
-	  error_nr(sc, sc->bad_result_symbol, set_elist_2(sc, wrap_string(sc, "input-function-port read returned: ~S", 37), sc->value));
-	}}
-  else /* we used to check for string port at end here, but that is rarely true so checking takes up more time than it saves */
-    {
-      push_input_port(sc, port);
-      push_stack_op(sc, OP_READ_DONE); /* this stops the internal read process so we only get one form */
-      sc->tok = token(sc);
-      switch (sc->tok)
-	{
-	case token_eof:	        return;
-	case token_right_paren: read_error_nr(sc, "unexpected close paren");
-	case token_comma:	read_error_nr(sc, "unexpected comma");
-	default:
-	  sc->value = read_expression(sc);
-	  sc->current_line = port_line_number(current_input_port(sc));  /* this info is used to track down missing close parens */
-	  sc->current_file = port_filename(current_input_port(sc));
-	}}
-}
-
-static bool op_read_quasiquote(s7_scheme *sc)
-{
-  /* this was pushed when the backquote was seen, then eventually we popped back to it */
-  sc->value = g_quasiquote_1(sc, sc->value, false);
-  /* doing quasiquote at read time means there are minor inconsistencies in various combinations or quote/' and quasiquote/`.
-   *   A quoted ` will expand but quoted quasiquote will not (` can't be redefined, but quasiquote can).  see s7test.scm for examples.
-   */
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static bool pop_read_list(s7_scheme *sc)
-{
-  /* push-stack OP_READ_LIST is always no_code and op is always OP_READ_LIST (and not used), sc->curlet is apparently not needed here */
-  unstack_with(sc, OP_READ_LIST);
-  sc->args = stack_end_args(sc);
-  if (!is_null(sc->args)) return(false); /* fall into read_list where sc->args is placed at end of on-going list, sc->value */
-  sc->args = list_1(sc, sc->value);
-  pair_set_current_input_location(sc, sc->args); /* uses port_location */
-  return(true);
-}
-
-static bool op_load_return_if_eof(s7_scheme *sc)
-{
-  if (SHOW_EVAL_OPS) fprintf(stderr, "  op_load_return_if_eof: value: %s\n", display_truncated(sc->value));
-  if (sc->tok != token_eof)
-    {
-      push_stack_op_let(sc, OP_LOAD_RETURN_IF_EOF);
-      push_stack_op_let(sc, OP_READ_INTERNAL);
-      sc->code = sc->value;
-      return(true);             /* we read an expression, now evaluate it, and return to read the next */
-    }
-  sc->current_file = NULL;
-  return(false);
-}
-
-static bool op_load_close_and_pop_if_eof(s7_scheme *sc)
-{
-  /* (load "file") in scheme: read and evaluate all exprs, then upon EOF, close current and pop input port stack */
-  if (sc->tok != token_eof)
-    {
-      push_stack_op_let(sc, OP_LOAD_CLOSE_AND_POP_IF_EOF); /* was push args, code */
-      if ((!is_string_port(current_input_port(sc))) ||
-	  (port_position(current_input_port(sc)) < port_data_size(current_input_port(sc))))
-	push_stack_op_let(sc, OP_READ_INTERNAL);
-      else sc->tok = token_eof;
-      sc->code = sc->value;
-      return(true);             /* we read an expression, now evaluate it, and return to read the next */
-    }
-  if ((S7_DEBUGGING) && (!is_loader_port(current_input_port(sc)))) fprintf(stderr, "%s[%d]: %s not loading?\n", __func__, __LINE__, display(current_input_port(sc)));
-  /* if *#readers* func hits error, clear_loader_port might not be undone? */
-  if (SHOW_EVAL_OPS) fprintf(stderr, "%s closing %s\n", __func__, display(current_input_port(sc)));
-
-  s7_close_input_port(sc, current_input_port(sc));
-  pop_input_port(sc);
-  sc->current_file = NULL;
-  if (is_multiple_value(sc->value))                    /* (load (file)) where file returns (values "a-file" an-environment)? */
-    sc->value = splice_in_values(sc, multiple_value(sc->value));
-  return(false);
-}
-
-static bool op_read_apply_values(s7_scheme *sc)
-{
-  sc->value = list_2_unchecked(sc, sc->unquote_symbol, list_2(sc, initial_value(sc->apply_values_symbol), sc->value));
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static goto_t op_read_dot(s7_scheme *sc)
-{
-  const token_t c = token(sc);
-  if (c != token_right_paren) /* '(1 . (2) 3) -> '(1 2 3), Guile says "missing close paren" */
-    {
-      if (is_pair(sc->value))
-	{
-	  for (s7_pointer p = sc->value; is_pair(p); p = cdr(p))
-	    sc->args = cons(sc, car(p), sc->args);
-	  sc->tok = c;
-	  return(goto_read_tok);
-	}
-      back_up_stack(sc);
-      read_error_nr(sc, "stray dot?");            /* (+ 1 . 2 3) or (list . ) */
-    }
-  /* args = previously read stuff, value = thing just after the dot and before the ')':
-   *   (list 1 2 . 3) -> value: 3, args: (2 1 list), '(1 . 2) -> value: 2, args: (1)
-   * but we also get here in a lambda arg list: (lambda (a b . c) #f) -> value: c, args: (b a)
-   */
-  sc->value = any_list_reverse_in_place(sc, sc->value, sc->args);
-  return((stack_top_op(sc) == OP_READ_LIST) ? goto_pop_read_list : goto_start);
-}
-
-static bool op_read_quote(s7_scheme *sc) /* '<datum> -> (#_quote <datum) in s7, not (quote <datum>) because quote is not immutable */
-{
-  /* can't check for sc->value = sc->nil here because we want ''() to be different from '() */
-  if ((sc->safety > immutable_vector_safety) &&
-      ((is_pair(sc->value)) || (is_any_vector(sc->value)) || (is_string(sc->value))))
-    set_immutable(sc->value);
-  sc->value = list_2(sc, (sc->symbol_quote) ? sc->quote_symbol : sc->quote_function, sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static bool op_read_unquote(s7_scheme *sc)
-{
-  /* here if sc->value is a constant, the unquote is pointless (should we complain?)
-   *   also currently stray "," can be ignored: (abs , 1) -- scanning the stack for quasiquote or quote seems to be unreliable
-   */
-  if ((is_pair(sc->value)) ||
-      (is_symbol(sc->value)))
-    sc->value = list_2(sc, sc->unquote_symbol, sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-/* safety check is at read time, so (immutable? (let-temporarily (((*s7* 'safety) 2)) #(1 2 3))) is #f
- *    but (immutable? (let-temporarily (((*s7* 'safety) 2)) (eval-string "#(1 2 3)"))) is #t
- */
-static bool op_read_vector(s7_scheme *sc)
-{
-  sc->value = (sc->args == int_one) ? g_vector(sc, sc->value) : g_multivector(sc, integer(sc->args), sc->value); /* sc->args was sc->read_dims earlier from read_sharp */
-  /* here and below all of the sc->value list can be freed, but my tests showed no speed up even in large cases */
-  if (sc->safety > immutable_vector_safety) set_immutable(sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static bool op_read_int_vector(s7_scheme *sc)
-{
-  sc->value = (sc->args == int_one) ? g_int_vector(sc, sc->value) : g_int_multivector(sc, integer(sc->args), sc->value);
-  if (sc->safety > immutable_vector_safety) set_immutable(sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static bool op_read_float_vector(s7_scheme *sc)
-{
-  /* sc->value is the list of values, #r(...sc->value...), sc->args = dimensions */
-  sc->value = (sc->args == int_one) ? g_float_vector(sc, sc->value) : g_float_multivector(sc, integer(sc->args), sc->value);
-  if (sc->safety > immutable_vector_safety) set_immutable(sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-  /* should this be an error: #r(9223372036854775807): #r(9.223372036854776e+18)?
-   *   also #r(pi)->error that pi is a symbol but #r(+nan.0 -inf.0): #r(+nan.0 -inf.0) -- should pi be a number in the same way?
-   */
-  /* to avoid making the list: sc->floats array (growable and maybe pruned),
-   *   token_float_vector in read_expression: sc->value = unused, push op_read_float_vector
-   *   sc->args = dims, (read_sharp sc->read_dims = dims, read_expression push_op moves it to sc->args
-   *   <read each entry...>: push op_read_float_vector (no op_read_list), read, eval,
-   *   fill sc->floats, when right-paren make new vector [for multidims, get list->frame]
-   */
-}
-
-static bool op_read_complex_vector(s7_scheme *sc)
-{
-  /* sc->value is the list of values, #c(...sc->value...), sc->args = dimensions */
-  sc->value = (sc->args == int_one) ? g_complex_vector(sc, sc->value) : g_complex_multivector(sc, integer(sc->args), sc->value);
-  if (sc->safety > immutable_vector_safety) set_immutable(sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-static bool op_read_byte_vector(s7_scheme *sc)
-{
-  sc->value = (sc->args == int_one) ? g_byte_vector(sc, sc->value) : g_byte_multivector(sc, integer(sc->args), sc->value);
-  if (sc->safety > immutable_vector_safety) set_immutable(sc->value);
-  return(stack_top_op(sc) != OP_READ_LIST);
-}
-
-
-/* ---------------- unknown ops ---------------- */
 static bool fixup_unknown_op(s7_scheme *sc, s7_pointer code, s7_pointer func, opcode_t op)
 {
   set_optimize_op(code, op);
@@ -80645,9 +79583,6 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	case OP_C_S: if (!c_function_is_ok(sc, sc->code)) {set_optimize_op(sc->code, OP_S_G); goto EVAL;}
 	case HOP_C_S: op_c_s(sc); continue;
 
-	case OP_READ_S: if (!c_function_is_ok(sc, sc->code)) {set_optimize_op(sc->code, OP_S_G); goto EVAL;}
-	case HOP_READ_S: op_read_s(sc); continue;
-
 	case OP_C_A: if (!c_function_is_ok(sc, sc->code)) {set_optimize_op(sc->code, OP_S_A); goto EVAL;}
 	case HOP_C_A: op_c_a(sc); continue;
 
@@ -81442,7 +80377,6 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 
 
 	case OP_EVAL: goto EVAL;
-	case OP_EVAL_STRING: op_eval_string(sc); goto EVAL;
 
 	case OP_QUOTE: sc->value = check_quote(sc, sc->code); continue;
 	case OP_QUOTE_UNCHECKED: sc->value = cadr(sc->code); continue;
@@ -81942,167 +80876,6 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	case OP_WITH_BAFFLE_UNCHECKED:  if (op_with_baffle_unchecked(sc)) continue; goto BEGIN;
 
 
-	case OP_READ_INTERNAL:             op_read_internal(sc); continue;
-	case OP_READ_DONE:                 op_read_done(sc);     continue;
-	case OP_LOAD_RETURN_IF_EOF:        if (op_load_return_if_eof(sc)) goto EVAL; return(sc->F);
-	case OP_LOAD_CLOSE_AND_POP_IF_EOF: if (op_load_close_and_pop_if_eof(sc)) goto EVAL; continue;
-
-	POP_READ_LIST:
-	  if (pop_read_list(sc)) goto READ_NEXT;
-
-	READ_LIST:
-	case OP_READ_LIST:       /* sc->args is sc->nil at first */
-	  sc->args = cons(sc, sc->value, sc->args);
-
-	READ_NEXT:
-	case OP_READ_NEXT:       /* this is 75% of the token calls, so expanding it saves lots of time */
-	  {
-	    int32_t c;
-	    const s7_pointer port = current_input_port(sc);
-	    c = port_read_white_space(port)(sc, port);
-
-	  READ_C:
-	    switch (c)
-	      {
-	      case '(':
-		c = port_read_white_space(port)(sc, port);  /* sc->tok = token(sc) */
-		switch (c)
-		  {
-		  case '(':  sc->tok = token_left_paren;                break;
-		  case ')':  sc->value = sc->nil; goto READ_LIST;       /* was tok = token_right_paren */
-		  case '.':  sc->tok = read_dot(sc, port);              break;
-		  case '\'': sc->tok = token_quote;                     break;
-		  case ';':  sc->tok = port_read_semicolon(port)(sc, port); break;
-		  case '"':  sc->tok = token_double_quote;              break;
-		  case '`':  sc->tok = token_back_quote;                break;
-		  case ',':  sc->tok = read_comma(sc, port);            break;
-		  case '#':  sc->tok = read_sharp(sc, port);            break;
-		  case '\0': case EOF: sc->tok = token_eof;             break;
-
-		  default: /* read first element of list (ignore callgrind confusion -- this happens a lot) */
-		    c = read_start_list(sc, port, c);
-		    goto READ_C;
-		  }
-		if (sc->tok == token_atom)
-		  {
-		    c = read_atom(sc, port);
-		    goto READ_C;
-		  }
-		if (sc->tok == token_right_paren)
-		  {
-		    sc->value = sc->nil;
-		    goto READ_LIST;
-		  }
-		if (sc->tok == token_dot)
-		  {
-		    do {c = inchar(port);} while ((c != ')') && (c != EOF));
-		    read_error_nr(sc, "stray dot after '('?");      /* (car '( . )) */
-		  }
-		if (sc->tok == token_eof)
-		  missing_close_paren_error_nr(sc);
-
-		push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-		push_stack_no_let_no_code(sc, OP_READ_LIST, sc->nil);
-		/* check_stack_size(sc); */
-		sc->value = read_expression(sc);
-		if (stack_top_op(sc) == OP_READ_LIST) goto POP_READ_LIST;
-		continue;
-
-	      case ')':
-		sc->tok = token_right_paren;
-		break;
-
-	      case '.':
-		sc->tok = read_dot(sc, port); /* dot or atom */
-		break;
-
-	      case '\'':
-		sc->tok = token_quote;
-		/* might need check_stack_size(sc) here */
-		push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-		sc->value = read_expression(sc);
-		continue;
-
-	      case ';':
-		sc->tok = port_read_semicolon(port)(sc, port);
-		break;
-
-	      case '"':
-		sc->tok = token_double_quote;
-		read_double_quote(sc);
-		goto READ_LIST;
-
-	      case '`':
-		sc->tok = token_back_quote;
-		push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-		sc->value = read_expression(sc);
-		if (stack_top_op(sc) == OP_READ_LIST) goto POP_READ_LIST;
-		continue;
-
-	      case ',':
-		sc->tok = read_comma(sc, port); /* at_mark or comma */
-		push_stack_no_let_no_code(sc, OP_READ_LIST, sc->args);
-		sc->value = read_expression(sc);
-		continue;
-
-	      case '#':
-		sc->tok = read_sharp(sc, port);
-		break;
-
-	      case '\0':
-	      case EOF:
-		missing_close_paren_error_nr(sc);
-
-	      default:
-		sc->strbuf[0] = (unsigned char)c;
-		sc->value = port_read_name(port)(sc, port);
-		goto READ_LIST;
-	      }}
-
-	READ_TOK:
-	  switch (sc->tok)
-	    {
-	    case token_right_paren: 	      /* sc->args can't be null here */
-	      sc->value = proper_list_reverse_in_place(sc, sc->args);
-	      if ((is_expansion(car(sc->value))) &&
-		  (sc->is_expanding))
-		switch (op_expansion(sc))
-		  {
-		  case goto_begin:        goto BEGIN;
-		  case goto_apply_lambda: goto APPLY_LAMBDA;
-		  case goto_start:
-		  default:                continue;
-		  }
-	      break;
-
-	    case token_eof:
-	      if (S7_DEBUGGING) fprintf(stderr, "%s[%d]: we should not be here\n", __func__, __LINE__);
-	      missing_close_paren_error_nr(sc);       /* can't happen, I believe */
-	    case token_atom:         sc->value = port_read_name(current_input_port(sc))(sc, current_input_port(sc)); goto READ_LIST;
-	    case token_sharp_const:  if (read_sharp_const(sc)) goto READ_TOK; goto READ_LIST;
-	    case token_double_quote: read_double_quote(sc); goto READ_LIST;
-	    case token_dot:          read_dot_and_expression(sc); break;
-	    default:                 read_tok_default(sc); break;
-	    }
-	  if (stack_top_op(sc) == OP_READ_LIST) goto POP_READ_LIST;
-	  continue;
-
-	case OP_READ_DOT:
-	  switch (op_read_dot(sc))
-	    {
-	    case goto_start: continue;
-	    case goto_pop_read_list: goto POP_READ_LIST;
-	    default: goto READ_TOK;
-	    }
-	case OP_READ_QUOTE:          if (op_read_quote(sc)) continue;          goto POP_READ_LIST;
-	case OP_READ_QUASIQUOTE:     if (op_read_quasiquote(sc)) continue;     goto POP_READ_LIST;
-	case OP_READ_UNQUOTE:        if (op_read_unquote(sc)) continue;        goto POP_READ_LIST;
-	case OP_READ_APPLY_VALUES:   if (op_read_apply_values(sc)) continue;   goto POP_READ_LIST;
-	case OP_READ_VECTOR:         if (op_read_vector(sc)) continue;         goto POP_READ_LIST;
-	case OP_READ_INT_VECTOR:     if (op_read_int_vector(sc)) continue;     goto POP_READ_LIST;
-	case OP_READ_FLOAT_VECTOR:   if (op_read_float_vector(sc)) continue;   goto POP_READ_LIST;
-	case OP_READ_COMPLEX_VECTOR: if (op_read_complex_vector(sc)) continue; goto POP_READ_LIST;
-	case OP_READ_BYTE_VECTOR:    if (op_read_byte_vector(sc)) continue;    goto POP_READ_LIST;
 
 	case OP_CLEAR_OPTS:
 	  break;
@@ -85518,16 +84291,9 @@ static void init_rootlet(s7_scheme *sc)
   sc->write_byte_symbol =            s7_define_typed_function(sc, "write-byte", g_write_byte, 1, 1, false, "(write-byte byte (port (current-output-port))): writes byte to the output port", s7_make_signature(sc, 3, sc->is_byte_symbol, sc->is_byte_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
   sc->read_line_symbol =             defun("read-line",	        read_line,		0, 2, false);
   sc->read_string_symbol =           defun("read-string",	read_string,		1, 1, false);
-  sc->read_symbol =                  semisafe_defun("read",	read,			0, 1, false);
-  /* read can't be safe because it messes with the stack, expecting to be all by itself in the call sequence
-   *   (not embedded in OP_SAFE_C_opSq for example) -- that is, it pushes OP_READ_INTERNAL, then returns
-   *   expecting continue (goto top-of-eval-loop), which would be nonsense if arg=fn|x_proc(read) -> fn|x_proc(arg).
-   *   a safe procedure leaves its argument list alone, does not push anything on the stack (except gc protects),
-   *   and leaves sc->code|args unscathed (fx_call assumes that is the case).  The stack part can
-   *   be hidden: if a c_function calls s7_apply_function (lambda passed as arg as in some clm gens)
-   *   then is called with args that use fx*, and the lambda func does the same, the two calls
-   *   can step on each other.
-   */
+  sc->read_symbol =                  make_symbol(sc, "read", 4);
+  /* the `read` procedure is provided by the goldfish glue (tiny bootstrap read,
+   *   then the Scheme reader from liii/reader.scm) */
   copy_initial_value(sc, sc->read_symbol);
 
   sc->call_with_input_string_symbol =  semisafe_defun("call-with-input-string",  call_with_input_string,  2, 0, false); /* body unsafe if func=read */
@@ -86531,10 +85297,33 @@ s7_scheme *s7_init(void)
   init_tc_rec(sc);
 #endif
   s7_set_history_enabled(sc, false); /* see below */
-  init_signatures(sc);      /* depends on procedure symbols */
+  init_signatures(sc);
   sc->starlet = make_starlet(sc);
   s7_set_history_enabled(sc, true);
 
+#if S7_DEBUGGING
+  s7_define_function(sc, "report-missed-calls", g_report_missed_calls, 0, 0, false, NULL); /* tc/recur tests in s7test.scm */
+  if (strcmp(op_names[HOP_SAFE_C_PP], "h_safe_c_pp") != 0) fprintf(stderr, "c op_name: %s\n", op_names[HOP_SAFE_C_PP]);
+  if (strcmp(op_names[OP_SET_WITH_LET_2], "set_with_let_2") != 0) fprintf(stderr, "set op_name: %s\n", op_names[OP_SET_WITH_LET_2]);
+  if (NUM_OPS != 913) fprintf(stderr, "size: cell: %d, block: %d, max op: %d, opt: %d\n", (int)sizeof(s7_cell), (int)sizeof(block_t), NUM_OPS, (int)sizeof(opt_info));
+  /* cell size: 48, 120 if debugging, block size: 40, opt: 128 */
+  if (!s7_type_names[0]) {fprintf(stderr, "no type_names\n"); gdb_break();} /* squelch very stupid warnings! */
+  if (POINTER_32) fprintf(stderr, "pointer 32!?\n");
+#endif
+#if 0
+  /* sizes: c_proc_t 104, c_object_t[i.e. type, not the c_object] 160, vunion: 8, port_t 88, block_t 40, port_functions_t 80, s7_cell 48/120, s7 11440/12280, opt_info 128 */
+  fprintf(stderr, "sizes: c_proc_t %d, c_object_t %d, vunion: %d, port_t %d, block_t %d, port_functions_t %d, s7_cell %d, s7 %d, opt_info %d\n",
+	  (int)sizeof(c_proc_t), (int)sizeof(c_object_t), (int)sizeof(vunion), (int)sizeof(port_t),
+	  (int)sizeof(block_t), (int)sizeof(port_functions_t), (int)sizeof(s7_cell), (int)sizeof(s7_scheme), (int)sizeof(opt_info));
+#endif
+
+  return(sc);
+}
+
+
+void
+s7_initialize_misc(s7_scheme *sc)
+{
   s7_eval_c_string(sc, "(define make-hook                                                                 \n\
                           (let ((+documentation+ \"(make-hook . pars) returns a new hook (a function) that passes that hook to each function in its function list.\")) \n\
                             (lambda hook-args                                                             \n\
@@ -86608,24 +85397,6 @@ s7_scheme *s7_init(void)
    *   or set it anyway, and assume user won't set! the global value causing the initial-value to be GC'd
    */
 #endif
-
-#if S7_DEBUGGING
-  s7_define_function(sc, "report-missed-calls", g_report_missed_calls, 0, 0, false, NULL); /* tc/recur tests in s7test.scm */
-  if (strcmp(op_names[HOP_SAFE_C_PP], "h_safe_c_pp") != 0) fprintf(stderr, "c op_name: %s\n", op_names[HOP_SAFE_C_PP]);
-  if (strcmp(op_names[OP_SET_WITH_LET_2], "set_with_let_2") != 0) fprintf(stderr, "set op_name: %s\n", op_names[OP_SET_WITH_LET_2]);
-  if (NUM_OPS != 913) fprintf(stderr, "size: cell: %d, block: %d, max op: %d, opt: %d\n", (int)sizeof(s7_cell), (int)sizeof(block_t), NUM_OPS, (int)sizeof(opt_info));
-  /* cell size: 48, 120 if debugging, block size: 40, opt: 128 */
-  if (!s7_type_names[0]) {fprintf(stderr, "no type_names\n"); gdb_break();} /* squelch very stupid warnings! */
-  if (POINTER_32) fprintf(stderr, "pointer 32!?\n");
-#endif
-#if 0
-  /* sizes: c_proc_t 104, c_object_t[i.e. type, not the c_object] 160, vunion: 8, port_t 88, block_t 40, port_functions_t 80, s7_cell 48/120, s7 11440/12280, opt_info 128 */
-  fprintf(stderr, "sizes: c_proc_t %d, c_object_t %d, vunion: %d, port_t %d, block_t %d, port_functions_t %d, s7_cell %d, s7 %d, opt_info %d\n",
-	  (int)sizeof(c_proc_t), (int)sizeof(c_object_t), (int)sizeof(vunion), (int)sizeof(port_t),
-	  (int)sizeof(block_t), (int)sizeof(port_functions_t), (int)sizeof(s7_cell), (int)sizeof(s7_scheme), (int)sizeof(opt_info));
-#endif
-
-  return(sc);
 }
 
 

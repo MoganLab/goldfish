@@ -900,6 +900,12 @@ goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const stri
   return false;
 }
 
+// read one datum from port through the registered reader (tiny or Scheme)
+static s7_pointer
+goldfish_read_datum (s7_scheme* sc, s7_pointer port) {
+  return s7_eval (sc, s7_list (sc, 2, s7_make_symbol (sc, "read"), port), s7_rootlet (sc));
+}
+
 static bool
 goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& expression,
                                                   const string& function_name) {
@@ -909,7 +915,7 @@ goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& e
 
   s7_pointer port      = s7_open_input_string (sc, expression.c_str ());
   s7_pointer eof_object= s7_eof_object (sc);
-  s7_pointer form      = s7_read (sc, port);
+  s7_pointer form      = goldfish_read_datum (sc, port);
   s7_close_input_port (sc, port);
 
   if ((form == eof_object) || (!form)) {
@@ -2380,7 +2386,7 @@ source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const 
   s7_pointer eof_object = s7_eof_object (sc);
 
   while (true) {
-    s7_pointer form= s7_read (sc, port);
+    s7_pointer form= goldfish_read_datum (sc, port);
     if (form == eof_object) break;
     if (define_library_form_exports_function (sc, form, function_name, group, library)) {
       s7_close_input_port (sc, port);

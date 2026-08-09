@@ -48,6 +48,7 @@ typedef struct s7_scheme s7_scheme;
 typedef struct s7_cell *s7_pointer;
 
 s7_scheme *s7_init(void);
+void s7_initialize_misc(s7_scheme *sc);   /* make-hook, call-with-values, etc.; needs `read` bound */
   /* s7_scheme is our interpreter
    * s7_pointer is a Scheme object of any (Scheme) type
    * s7_init creates the interpreter.

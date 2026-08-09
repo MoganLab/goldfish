@@ -335,6 +335,27 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
         tok += (char) tiny_next (sc, port);
       return s7_make_symbol (sc, tok.c_str ());
     }
+    if (d == '<') {
+      // internal S7 objects: #<unspecified>, #<undefined>, #<eof>
+      tiny_next (sc, port);
+      std::string tok;
+      while (true) {
+        s7_int h = tiny_peek (sc, port);
+        if (h < 0 || h == '>')
+          break;
+        tok += (char) tiny_next (sc, port);
+      }
+      if (tiny_peek (sc, port) == '>')
+        tiny_next (sc, port);
+      if (tok == "unspecified")
+        return s7_unspecified (sc);
+      if (tok == "undefined")
+        return s7_undefined (sc);
+      if (tok == "eof")
+        return s7_eof_object (sc);
+      return s7_error (sc, s7_make_symbol (sc, "read-error"),
+                       s7_list (sc, 1, s7_make_string (sc, "unknown #< object")));
+    }
     return s7_error (sc, s7_make_symbol (sc, "read-error"),
                      s7_list (sc, 1, s7_make_string (sc, "unknown # object")));
   }
@@ -347,12 +368,6 @@ static s7_pointer
 f_tiny_read (s7_scheme* sc, s7_pointer args) {
   s7_pointer port = s7_car (args);
   return tiny_read_form (sc, port);
-}
-
-static s7_pointer
-f_s7_read (s7_scheme* sc, s7_pointer args) {
-  // S7's original C parser, kept for benchmarking the bootstrap read
-  return s7_read (sc, s7_car (args));
 }
 
 static s7_pointer
@@ -398,13 +413,13 @@ void
 glue_liii_reader (s7_scheme* sc) {
   s7_define_function (sc, "g-tiny-read", f_tiny_read, 1, 0, false,
                       "(g-tiny-read port) => datum");
-  s7_define_function (sc, "g-s7-read", f_s7_read, 1, 0, false,
-                      "(g-s7-read port) => datum; S7's original C reader, for benchmarking");
   s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
                       "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
   // replace S7's read with the tiny bootstrap read
   s7_define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
                       "(read [port]) => datum");
+  // make-hook/call-with-values/etc. need `read` bound, so initialize them here
+  s7_initialize_misc (sc);
 }
 
 } // namespace goldfish
