@@ -92,10 +92,109 @@
             (else
               (loop (cons ch out))))))))
 
+  (define (read-symbol ch)
+    (let ((str (read-token ch)))
+      (if (valid-identifier? str)
+        (string->symbol str)
+        (error 'read-error "invalid token" str))))
+
+  (define (char-digit? ch)
+    (and (char? ch) (char<=? #\0 ch #\9)))
+
+  (define (identifier-initial? ch)
+    (or (char-letter? ch)
+        (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~))))
+
+  (define (identifier-subsequent? ch)
+    (or (identifier-initial? ch)
+        (char-digit? ch)
+        (memv ch '(#\+ #\- #\. #\@))))
+
+  (define (sign-subsequent? ch)
+    (or (identifier-initial? ch)
+        (memv ch '(#\+ #\- #\@))))
+
+  (define (dot-subsequent? ch)
+    (or (sign-subsequent? ch) (eqv? ch #\.)))
+
+  (define (valid-identifier? str)
+    ;; R7RS 7.1.1 <identifier>, for tokens not beginning with a vertical line
+    (let ((len (string-length str)))
+      (and (> len 0)
+        (let ((c0 (string-ref str 0)))
+          (cond
+            ((identifier-initial? c0)
+             (let loop ((i 1))
+               (if (= i len)
+                 #t
+                 (and (identifier-subsequent? (string-ref str i))
+                      (loop (+ i 1))))))
+            ((memv c0 '(#\+ #\-))
+             (if (= len 1)
+               #t
+               (let ((c1 (string-ref str 1)))
+                 (cond
+                   ((eqv? c1 #\.)
+                    (and (> len 2)
+                         (dot-subsequent? (string-ref str 2))
+                         (let loop ((i 3))
+                           (if (= i len)
+                             #t
+                             (and (identifier-subsequent? (string-ref str i))
+                                  (loop (+ i 1)))))))
+                   ((sign-subsequent? c1)
+                    (let loop ((i 2))
+                      (if (= i len)
+                        #t
+                        (and (identifier-subsequent? (string-ref str i))
+                             (loop (+ i 1))))))
+                   (else #f)))))
+            ((eqv? c0 #\.)
+             (and (> len 1)
+                  (dot-subsequent? (string-ref str 1))
+                  (let loop ((i 2))
+                    (if (= i len)
+                      #t
+                      (and (identifier-subsequent? (string-ref str i))
+                           (loop (+ i 1)))))))
+            (else #f))))))
+
+  (define (pure-imaginary-number str)
+    ;; +i -i +2i -2i ... : real part omitted
+    (let ((len (string-length str)))
+      (and (> len 0)
+        (let ((last (string-ref str (- len 1))))
+          (and (or (eqv? last #\i) (eqv? last #\I))
+            (let ((prefix (substring str 0 (- len 1))))
+              (cond
+                ((string=? prefix "+") (make-rectangular 0 1))
+                ((string=? prefix "-") (make-rectangular 0 -1))
+                ((and (> (string-length prefix) 0)
+                      (or (eqv? (string-ref prefix 0) #\+)
+                          (eqv? (string-ref prefix 0) #\-))
+                      (string->number prefix))
+                 => (lambda (n) (make-rectangular 0 n)))
+                (else #f))))))))
+
+  (define (polar-number str)
+    ;; r@theta
+    (let scan ((i 0))
+      (if (= i (string-length str))
+        #f
+        (if (eqv? (string-ref str i) #\@)
+          (let ((r (string->number (substring str 0 i)))
+                (theta (string->number (substring str (+ i 1) (string-length str)))))
+            (and r theta (real? r) (real? theta) (make-polar r theta)))
+          (scan (+ i 1))))))
+
   (define (read-number ch)
     (let ((str (read-token ch)))
-      (or (string->number str)
-          (string->symbol str))))
+      (cond
+        ((polar-number str) => (lambda (n) n))
+        ((pure-imaginary-number str) => (lambda (n) n))
+        ((string->number str) => (lambda (n) n))
+        ((valid-identifier? str) (string->symbol str))
+        (else (error 'read-error "invalid token" str)))))
 
   (define (read-boolean ch)
     (case ch
@@ -298,27 +397,54 @@
        (read-number ch))
       (else (read-symbol ch))))
 
-  (define (skip-comment)
+  (define (skip-line-comment)
+    ;; skip until (and including) the line ending
     (let ((ch (next)))
       (cond
-        ((eof-object? ch)   ch)
-        ((eq? ch #\newline) (next))
-        (else               (skip-comment)))))
+        ((eof-object? ch)   #f)
+        ((or (eq? ch #\newline) (eq? ch #\return)) #f)
+        (else               (skip-line-comment)))))
+
+  (define (skip-block-comment)
+    ;; skip a properly nested #| ... |# comment (the opening #| is consumed)
+    (let loop ((depth 1))
+      (let ((ch (next)))
+        (cond
+          ((eof-object? ch)
+           (error 'read-error "unterminated block comment"))
+          ((eqv? ch #\#)
+           (if (eqv? (peek) #\|)
+             (begin (next) (loop (+ depth 1)))
+             (loop depth)))
+          ((eqv? ch #\|)
+           (if (eqv? (peek) #\#)
+             (begin
+               (next)
+               (if (= depth 1) #f (loop (- depth 1))))
+             (loop depth)))
+          (else (loop depth))))))
 
   (define (next-non-whitespace)
     (let loop ((ch (next)))
       (case ch
-        ((#\;) (loop (skip-whitespace)))
+        ((#\;)
+         (skip-line-comment)
+         (next-non-whitespace))
         ((#\#)
          (case (peek)
-           ;; TODO: shebang?
-           ;;       #;<datum> comment
            ((#\|)
             (cond
               ((read-hash-procedure #\|) ch)
               (else (next)
                     (skip-block-comment)
                     (next-non-whitespace))))
+           ((#\;)
+            (next)
+            (let ((dch (next-non-whitespace)))
+              (if (eof-object? dch)
+                (error 'read-error "datum comment has no datum")
+                (read-expr dch)))
+            (next-non-whitespace))
            (else ch)))
         ;; TOOD: #\xc: #\ff Form Feed, ASCII 12
         ((#\space #\return #\xc #\newline #\tab)
