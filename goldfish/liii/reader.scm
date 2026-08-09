@@ -356,8 +356,9 @@
         (buf (make-string 16))
         (len 0))
     (letrec ((ensure! (lambda (need)
+                     ;; grow geometrically so a long string is O(n), not O(n^2)
                      (when (> (+ len need) (string-length buf))
-                       (set! buf (string-append buf (make-string (+ (string-length buf) need)))))))
+                       (set! buf (string-append buf (make-string (max need (string-length buf))))))))
           ;; chars read from the port are raw bytes in S7; write them as-is
           (add-byte! (lambda (ch)
                        (ensure! 1)

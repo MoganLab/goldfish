@@ -109,6 +109,14 @@
       (apply string-append (reverse acc))
       (loop (+ i 1) (cons sample-typical acc)))))
 
+;; one long string literal (exercises read-string buffer growth)
+(define sample-long-string
+  (string-append "\"" (make-string 200000 #\a) "\""))
+
+;; one long symbol (exercises token buffer growth)
+(define sample-long-token
+  (string-append (make-string 100000 #\x) " "))
+
 ;; ---------------------------------------------------------------------------
 ;; run
 ;; ---------------------------------------------------------------------------
@@ -122,4 +130,8 @@
 (bench-case "numbers" sample-numbers 500 3
             (list read))
 (bench-case "big" sample-big 100 3
+            (list read))
+(bench-case "long-string" sample-long-string 50 3
+            (list read))
+(bench-case "long-token" sample-long-token 100 3
             (list read))
