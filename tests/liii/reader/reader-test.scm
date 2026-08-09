@@ -600,4 +600,13 @@
 (check (+ fuzz-read fuzz-error) => 500)
 (check (>= fuzz-read 0) => #t)
 
+;; read errors carry the port byte position
+(let ((args (catch 'read-error
+              (lambda () (read (open-input-string "(1 2")))
+              (lambda (tag . errs) (car errs)))))
+  (check (pair? args) => #t)
+  (check (string? (car args)) => #t)
+  (check (> (string-length (car args)) (string-length "unexpected end of input")) => #t)
+  (check (string>? (car args) "unexpected end of input") => #t))
+
 (check-report)

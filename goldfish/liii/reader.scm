@@ -741,6 +741,22 @@
        (next-non-whitespace port))
       (else ch))))
 
+(define (port-pos port)
+  ;; byte offset of the port, or -1 when not positionable
+  (catch #t
+    (lambda () (port-position port))
+    (lambda args -1)))
+
+(define (read-error-with-pos port args)
+  ;; re-raise a read-error carrying the port position, so that errors from a
+  ;; file load can be located; args is the error's argument list
+  (let ((pos (port-pos port)))
+    (if (and (pair? args) (string? (car args)))
+      (apply error 'read-error
+             (cons (string-append (car args) " (at byte " (number->string pos) ")")
+                   (cdr args)))
+      (apply error 'read-error args))))
+
 (define* (read (port (current-input-port)))
   (set! labels '())
   (set! pending '())
@@ -753,7 +769,10 @@
         (when (assv port fold-case-ports)
           (set! fold-case-ports (del-eqv port fold-case-ports)))
         ch)
-      (read-expr port ch))))
+      (catch 'read-error
+        (lambda () (read-expr port ch))
+        (lambda (tag . errs)
+          (read-error-with-pos port (if (pair? errs) (car errs) '())))))))
 
 ;; Replace S7's load: read the file through this Scheme reader and evaluate
 ;; each form. Searches *load-path* like S7's load did.
