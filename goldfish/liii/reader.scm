@@ -250,21 +250,26 @@
 
 ;; ---------------------------------------------------------------------------
 
+;; reusable token buffer: take-until is never called recursively, so one
+;; module-level buffer is shared (results are copies via substring)
+(define token-buf (make-string 16))
+(define token-cap 16)
+
 (define (take-until port first pred)
-  (let ((buf (make-string 16))
-        (len 1))
+  (let ((buf token-buf))
     (string-set! buf 0 first)
-    (let lp ()
+    (let lp ((len 1))
       (let ((ch (peek port)))
         (if (or (eof-object? ch) (pred ch))
           (substring buf 0 len)
           (begin
             (next port)
-            (when (= len (string-length buf))
-              (set! buf (string-append buf (make-string (string-length buf)))))
+            (when (= len token-cap)
+              (set! buf (string-append buf (make-string token-cap)))
+              (set! token-buf buf)
+              (set! token-cap (* 2 token-cap)))
             (string-set! buf len ch)
-            (set! len (+ len 1))
-            (lp)))))))
+            (lp (+ len 1))))))))
 
 (define (read-token port ch)
   (take-until port ch delimiter?))
@@ -277,13 +282,14 @@
 
 (define (read-number port ch)
   (let ((str (read-token port ch)))
-    (cond
-      ((polar-number str) => (lambda (n) n))
-      ((string->number str) => (lambda (n) n))
-      ((pure-imaginary-number str) => (lambda (n) n))
-      ((valid-identifier? str)
-       (string->symbol (if (fold-case? port) (fold-string str) str)))
-      (else (error 'read-error "invalid token" str)))))
+    (let ((n (or (polar-number str)
+                 (string->number str)
+                 (pure-imaginary-number str))))
+      (if n
+        n
+        (if (valid-identifier? str)
+          (string->symbol (if (fold-case? port) (fold-string str) str))
+          (error 'read-error "invalid token" str))))))
 
 (define (read-boolean port ch)
   (let ((tok (take-until port ch delimiter?)))
@@ -404,9 +410,11 @@
          (read-hex-char port)
          ch))
       ((char-letter? ch)
-       (let ((token (take-until port ch delimiter?)))
+       (let* ((token (take-until port ch delimiter?))
+              (key (if (fold-case? port) (fold-string token) token))
+              (entry (assoc key char-names)))
          (cond
-           ((assoc (if (fold-case? port) (fold-string token) token) char-names) => cdr)
+           (entry (cdr entry))
            ((= (string-length token) 1) ch)
            (else (error 'read-error "invalid character" token)))))
       (else ch))))
