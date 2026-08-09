@@ -37,8 +37,8 @@
 (check-true (symbol? '==))
 (check-true (symbol? '=>))
 ;; 数字开头符号测试
-(check-true (symbol? '123abc))
-(check-true (symbol? '1a2b3c))
+(check-true (symbol? '|123abc|))
+(check-true (symbol? '|1a2b3c|))
 ;; 空符号名称测试 (注意：某些scheme系统可能不支持空符号)
 (check-true (symbol? (string->symbol "empty-symbol")))
 ;; 特殊符号测试

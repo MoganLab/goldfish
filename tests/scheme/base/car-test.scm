@@ -65,7 +65,7 @@
 (check (car '(3.14 2.71)) => 3.14)
 (check (car '(1/2 2/3)) => 1/2)
 (check (car '(1.0+2.0i 3.0+4.0i)) => 1.0+2.0i)
-(check (car '(#	ab #\newline)) => #	ab)
+(check (car '(#\tab ab #\newline)) => #\tab)
 ;; 嵌套结构和特殊边界值测试
 (check (car '((a (b (c))))) => '(a (b (c))))
 (check (car '(((1 2) 3) 4)) => '((1 2) 3))

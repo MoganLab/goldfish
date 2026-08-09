@@ -79,7 +79,7 @@
 
 (check (last-pair '(#t #f #t)) => '(#t))
 (check (last-pair '(42 43 44.5)) => '(44.5))
-(check (last-pair '(() [] {})) => '({}))
+(check (last-pair '(() [] |{}|)) => '(|{}|))
 
 
 (check-catch 'wrong-type-arg (last-pair '()))

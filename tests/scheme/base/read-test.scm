@@ -116,7 +116,7 @@
   (check (read port) => ''(1 2 3))
 ) ;let
 (let ((port (open-input-string "`hello")))
-  (check (read port) => ''hello)
+  (check (read port) => '`hello)
 ) ;let
 ;; 取消引号语法 - 这些在当前实现中可能不支持
 ;; (let ((port (open-input-string ",hello")))

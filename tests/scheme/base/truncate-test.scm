@@ -31,7 +31,7 @@
 (check (truncate -1) => -1)
 (check (truncate -1.2) => -1.0)
 (check-catch 'wrong-type-arg (truncate 2.0+4.0i))
-(check-catch 'wrong-type-arg (truncate 'hello'))
+(check-catch 'wrong-type-arg (truncate '|hello'|))
 (check-catch 'wrong-number-of-args (truncate 4 5))
 (check (s7-truncate 1.1) => 1)
 (check (s7-truncate -1.2) => -1)

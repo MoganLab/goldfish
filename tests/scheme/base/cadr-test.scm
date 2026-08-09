@@ -169,7 +169,7 @@
 (check (cadr '(1/2 2/3 3/4)) => 2/3)
 (check (cadr '(1.0+2.0i 3.0+4.0i 5.0+6.0i)) => 3.0+4.0i)
 ;; 任意对象类型测试
-(check (cadr '(#a "string" 42)) => "string")
+(check (cadr '(#\a "string" 42)) => "string")
 (check (cadr '(if-cond then-block else-block)) => 'then-block)
 (check (cadr '((lambda (x) x) (lambda (y) y) (lambda (z) z)))
   =>

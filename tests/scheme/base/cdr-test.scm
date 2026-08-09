@@ -51,7 +51,7 @@
 (check (cdr '((((a))))) => '())
 ;; 各种数据类型cdr边界测试
 (check (cdr '(123 "text" symbol)) => '("text" symbol))
-(check (cdr '(#\newline #	ab #\space)) => '(#	ab #\space))
+(check (cdr '(#\newline #\tab ab #\space)) => '(#\tab ab #\space))
 
 (check (cdr '((a b) c d)) => '(c d))
 (check (cdr '(#(1 2) #(3 4))) => '(#(3 4)))

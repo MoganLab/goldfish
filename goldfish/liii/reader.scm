@@ -90,7 +90,9 @@
 
 (define (identifier-initial? ch)
   (or (char-letter? ch)
-      (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~))))
+      (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~))
+      ;; S7 extension: non-ASCII characters are allowed in identifiers
+      (>= (char->integer ch) 128)))
 
 (define (identifier-subsequent? ch)
   (or (identifier-initial? ch)
@@ -351,7 +353,7 @@
             (error 'read-error "hex escape missing semicolon"))
           (error 'read-error "invalid hex escape"))))))
 
-(define (read-string port . args)
+(define (read-quoted-string port . args)
   (let ((rdelim (if (null? args) #\" (car args)))
         (buf (make-string 16))
         (len 0))
@@ -420,12 +422,17 @@
                    (case ch
                      ((#\a) (add-byte! #\alarm))
                      ((#\b) (add-byte! #\backspace))
-                     ((#\t) (add-byte! #\tab))
-                     ((#\n) (add-byte! #\newline))
-                     ((#\r) (add-byte! #\return))
-                     ((#\" #\\ #\|) (add-byte! ch))
-                     ((#\x) (add-utf8! (char->integer (read-hex-escape port))))
-                     (else (error 'read-error "invalid character in escape sequence" ch)))
+                      ((#\t) (add-byte! #\tab))
+                      ((#\n) (add-byte! #\newline))
+                      ((#\r) (add-byte! #\return))
+                      ;; S7 extensions beyond R7RS: \f \v \0 \e
+                      ((#\f) (add-byte! #\x0c))
+                      ((#\v) (add-byte! #\x0b))
+                      ((#\0) (add-byte! #\null))
+                      ((#\e) (add-byte! #\escape))
+                      ((#\" #\\ #\|) (add-byte! ch))
+                      ((#\x) (add-utf8! (char->integer (read-hex-escape port))))
+                      (else (error 'read-error "invalid character in escape sequence" ch)))
                    (loop)))))
             (else
               (add-byte! ch)
@@ -630,6 +637,12 @@
         (case ch
           ((#\\)
            (read-character port))
+          ;; S7 caret notation: #^A is Ctrl-A (char code XOR 0x40)
+          ((#\^)
+           (let ((c (next port)))
+             (if (eof-object? c)
+               (error 'read-error "unexpected end of input after #^")
+               (integer->char (logxor (char->integer c) #x40)))))
           ((#\<)
            (read-internal-object port))
           ((#\")
@@ -642,15 +655,18 @@
           ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9)
            (read-label-number port ch))
           ((#\u)
-           (if (not (eqv? (peek port) #\8))
-             (error 'read-error "invalid #u8")
-             (begin
-               (next port)
-               (if (not (eqv? (peek port) #\())
-                 (error 'read-error "invalid #u8")
-                 (begin
-                   (next port)
-                   (read-bytevector port))))))
+           (cond
+             ((eqv? (peek port) #\8)
+              (next port)
+              (if (eqv? (peek port) #\()
+                (begin (next port) (read-bytevector port))
+                (error 'read-error "invalid #u8")))
+             ;; S7 also accepts #u(...) as a shorthand for #u8(...)
+             ((eqv? (peek port) #\()
+              (next port)
+              (read-bytevector port))
+             (else
+               (error 'read-error "invalid #u8"))))
           (else
             (error 'read-error "Unknown # object" (string #\# ch))))))))
 
@@ -668,8 +684,8 @@
   (case ch
     ((#\[) (read-parenthesized port #\]))
     ((#\() (read-parenthesized port #\)))
-    ((#\") (read-string port))
-    ((#\|) (string->symbol (read-string port ch)))
+    ((#\") (read-quoted-string port))
+    ((#\|) (string->symbol (read-quoted-string port ch)))
     ((#\') (list 'quote (read-subexpression port "quoted expression")))
     ((#\`) (list 'quasiquote (read-subexpression port "quasiquoted expression")))
     ((#\,)

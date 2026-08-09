@@ -107,7 +107,7 @@
 (check (cddr '(() b c)) => '(c))
 ;; 各种数据类型cddr边界测试
 (check (cddr '(123 "text" symbol)) => '(symbol))
-(check (cddr '(#ewline #ab #\space)) => '(#\space))
+(check (cddr '(#\newline #\tab #\space)) => '(#\space))
 (check (cddr '((a b) c d)) => '(d))
 (check (cddr '(#(1 2) #(3 4) #(5 6))) => '(#(5 6)))
 (check (cddr '(+ - * /)) => '(* /))

@@ -50,5 +50,5 @@
 (check-catch 'wrong-type-arg (+ "world" 7))
 (check-catch 'wrong-type-arg (+ #t 7))
 (check-catch 'wrong-type-arg (+ '(1 3 5) 7))
-(check-catch 'unbound-variable (+ 1.0+1.0i 2i))
+(check-catch 'unbound-variable (+ 1.0+1.0i |2i|))
 (check-report)

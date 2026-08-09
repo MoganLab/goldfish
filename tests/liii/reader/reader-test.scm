@@ -194,6 +194,23 @@
 (check (read-str "\"\\x41;\"") => "A")
 (check (read-str "\"\\x3bb;\"") => "λ")
 
+;; S7 extensions: \f \v \0 \e escapes and #^ caret notation
+(check (read-str "\"\\f\"") => (string #\x0c))
+(check (read-str "\"\\v\"") => (string #\x0b))
+(check (read-str "\"\\0\"") => (string #\null))
+(check (read-str "\"\\e\"") => (string #\escape))
+(check (read-str "#^I") => #\tab)
+(check (read-str "#^J") => #\newline)
+(check (read-str "#^A") => (integer->char 1))
+(check (read-str "#^@") => (integer->char 0))
+(check (read-str "#^?") => (integer->char #x7f))
+;; Unicode identifiers (S7 extension)
+(check (read-str "中文测试") => '中文测试)
+(check (read-str "λ") => 'λ)
+;; #u(...) is accepted as a shorthand for #u8(...)
+(check (read-str "#u(1 2 3)") => #u8(1 2 3))
+(check (read-str "#u()") => #u8())
+
 ;; Line continuation: backslash + line ending, followed by intraline
 ;; whitespace which is also ignored
 (check (read-str "\"hello \\\n   world\"") => "hello world")
