@@ -42,8 +42,10 @@
   (define pending '())
 
   (define (fold-case?)
-    (let ((e (assv port fold-case-ports)))
-      (and e (cdr e))))
+    (if (null? fold-case-ports)
+      #f
+      (let ((e (assv port fold-case-ports)))
+        (and e (cdr e)))))
 
   (define (set-fold-case! v)
     (set! fold-case-ports
