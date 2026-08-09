@@ -587,9 +587,6 @@ typedef block_t vdims_t;
 #define vdims_original(p)                p->ex.ex_ptr
 
 
-typedef enum {token_eof, token_left_paren, token_right_paren, token_dot, token_atom, token_quote, token_double_quote,
-	      token_back_quote, token_comma, token_at_mark, token_sharp_const,
-              token_vector, token_byte_vector, token_int_vector, token_float_vector, token_complex_vector} token_t;
 
 typedef enum {no_article, indefinite_article} article_t;
 typedef enum {dwind_init, dwind_body, dwind_finish} dwind_t;
@@ -601,7 +598,6 @@ typedef struct {
   int32_t (*read_character)(s7_scheme *sc, s7_pointer port);             /* function to read a character, int32_t for EOF */
   void (*write_character)(s7_scheme *sc, uint8_t c, s7_pointer port);    /* function to write a character */
   void (*write_string)(s7_scheme *sc, const char *str, s7_int len, s7_pointer port); /* function to write a string of known length */
-  token_t (*read_semicolon)(s7_scheme *sc, s7_pointer port);             /* internal skip-to-semicolon reader */
   int32_t (*read_white_space)(s7_scheme *sc, s7_pointer port);           /* internal skip white space reader */
   s7_pointer (*read_name)(s7_scheme *sc, s7_pointer port);               /* internal get-next-name reader */
   s7_pointer (*read_sharp)(s7_scheme *sc, s7_pointer port);              /* internal get-next-sharp-constant reader */
@@ -1165,7 +1161,6 @@ struct s7_scheme {
   s7_pointer missing_close_paren_hook, rootlet_redefinition_hook;
   s7_pointer error_hook, read_error_hook; /* *error-hook* hook object, and *read-error-hook* */
   s7_pointer exit_hook;                 /* *exit-hook* hook object */
-  token_t tok;
   bool gc_off, gc_in_progress;        /* gc_off: if true, the GC won't run */
   uint32_t gc_stats, gensym_counter, f_class, add_class, multiply_class, subtract_class, num_eq_class;
   int32_t format_column, error_argnum;
@@ -3540,7 +3535,6 @@ static s7_pointer slot_expression(s7_pointer p)    \
 #define port_display(p)                port_port(p)->pf->displayer
 #define port_write_character(p)        port_port(p)->pf->write_character
 #define port_write_string(p)           port_port(p)->pf->write_string
-#define port_read_semicolon(p)         port_port(p)->pf->read_semicolon
 #define port_read_white_space(p)       port_port(p)->pf->read_white_space
 #define port_read_name(p)              port_port(p)->pf->read_name
 #define port_read_sharp(p)             port_port(p)->pf->read_sharp
@@ -4199,7 +4193,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_SAFE_CLOSURE_STAR_NA, HOP_SAFE_CLOSURE_STAR_NA, OP_SAFE_CLOSURE_STAR_NA_0, HOP_SAFE_CLOSURE_STAR_NA_0,
       OP_SAFE_CLOSURE_STAR_NA_1, HOP_SAFE_CLOSURE_STAR_NA_1, OP_SAFE_CLOSURE_STAR_NA_2, HOP_SAFE_CLOSURE_STAR_NA_2,
 
-      OP_C_SS, HOP_C_SS, OP_C_S, HOP_C_S, OP_C_SC, HOP_C_SC, OP_READ_S, HOP_READ_S, OP_C_P, HOP_C_P, OP_C_AP, HOP_C_AP,
+      OP_C_SS, HOP_C_SS, OP_C_S, HOP_C_S, OP_C_SC, HOP_C_SC, OP_C_P, HOP_C_P, OP_C_AP, HOP_C_AP,
       OP_C_A, HOP_C_A, OP_C_AA, HOP_C_AA, OP_C, HOP_C, OP_C_NC, HOP_C_NC, OP_C_NA, HOP_C_NA,
 
       OP_CL_S, HOP_CL_S, OP_CL_SS, HOP_CL_SS, OP_CL_A, HOP_CL_A, OP_CL_AA, HOP_CL_AA,
@@ -4220,7 +4214,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 
       OP_SYMBOL, OP_CONSTANT, OP_PAIR_SYM, OP_PAIR_PAIR, OP_PAIR_ANY, HOP_HASH_TABLE_INCREMENT, OP_CLEAR_OPTS,
 
-      OP_READ_INTERNAL, OP_EVAL, OP_EVAL_ARGS, OP_EVAL_ARGS1, OP_EVAL_ARGS2, OP_EVAL_ARGS3, OP_EVAL_ARGS4, OP_EVAL_ARGS5,
+      OP_EVAL, OP_EVAL_ARGS, OP_EVAL_ARGS1, OP_EVAL_ARGS2, OP_EVAL_ARGS3, OP_EVAL_ARGS4, OP_EVAL_ARGS5,
       OP_EVAL_SET1_NO_MV, OP_EVAL_SET2, OP_EVAL_SET2_MV, OP_EVAL_SET2_NO_MV, OP_EVAL_SET3, OP_EVAL_SET3_MV, OP_EVAL_SET3_NO_MV,
       OP_APPLY, OP_EVAL_MACRO, OP_LAMBDA, OP_QUOTE, OP_QUOTE_UNCHECKED, OP_MACROEXPAND, OP_CALL_CC, OP_CALL_WITH_EXIT, OP_CALL_WITH_EXIT_O,
       OP_C_CATCH, OP_C_CATCH_ALL, OP_C_CATCH_ALL_O, OP_C_CATCH_ALL_A,
@@ -4236,10 +4230,8 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_AND, OP_OR,
       OP_DEFINE_MACRO, OP_DEFINE_MACRO_STAR, OP_DEFINE_EXPANSION, OP_DEFINE_EXPANSION_STAR, OP_MACRO, OP_MACRO_STAR,
       OP_CASE,
-      OP_READ_LIST, OP_READ_NEXT, OP_READ_DOT, OP_READ_QUOTE,
-      OP_READ_QUASIQUOTE, OP_READ_UNQUOTE, OP_READ_APPLY_VALUES,
-      OP_READ_VECTOR, OP_READ_BYTE_VECTOR, OP_READ_INT_VECTOR, OP_READ_FLOAT_VECTOR, OP_READ_COMPLEX_VECTOR, OP_READ_DONE,
-      OP_LOAD_RETURN_IF_EOF, OP_LOAD_CLOSE_AND_POP_IF_EOF, OP_EVAL_DONE, OP_SPLICE_VALUES, OP_NO_VALUES,
+
+      OP_EVAL_DONE, OP_SPLICE_VALUES, OP_NO_VALUES,
       OP_CATCH, OP_DYNAMIC_WIND, OP_DYNAMIC_UNWIND, OP_DYNAMIC_UNWIND_PROFILE, OP_PROFILE_IN,
       OP_DEFINE_CONSTANT, OP_DEFINE_CONSTANT1,
       OP_DO, OP_DO_END, OP_DO_END1, OP_DO_STEP, OP_DO_STEP2, OP_DO_INIT,
@@ -4252,7 +4244,6 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_DEFINE_BACRO, OP_DEFINE_BACRO_STAR, OP_BACRO, OP_BACRO_STAR,
       OP_GET_OUTPUT_STRING,
       OP_SORT, OP_SORT1, OP_SORT2, OP_SORT3, OP_SORT_PAIR_END, OP_SORT_VECTOR_END, OP_SORT_STRING_END,
-      OP_EVAL_STRING,
       OP_MEMBER_IF, OP_ASSOC_IF, OP_MEMBER_IF1, OP_ASSOC_IF1,
       OP_LAMBDA_UNCHECKED, OP_LET_UNCHECKED, OP_CATCH_1, OP_CATCH_2, OP_CATCH_ALL,
 
@@ -17831,7 +17822,7 @@ static void closed_port_display(s7_scheme *sc, const char *s, s7_pointer port);
 static void close_closed_port(s7_scheme *sc, s7_pointer port) {return;}
 
 static port_functions_t closed_port_functions =
-  {closed_port_read_char, closed_port_write_char, closed_port_write_string, NULL, NULL, NULL, NULL,
+  {closed_port_read_char, closed_port_write_char, closed_port_write_string, NULL, NULL, NULL,
    closed_port_read_line, closed_port_display, close_closed_port};
 
 
@@ -18374,29 +18365,6 @@ static void stderr_display(s7_scheme *sc, const char *str, s7_pointer port) {if 
 
 
 /* -------- skip to newline readers -------- */
-static token_t file_read_semicolon(s7_scheme *sc, s7_pointer port)
-{
-  /* skip to the end of the line; the reader that used this is gone */
-  int32_t c;
-  do (c = fgetc(port_file(port))); while ((c != '\n') && (c != EOF));
-  port_line_number(port)++;
-  return(token_eof);
-}
-
-static token_t string_read_semicolon(s7_scheme *sc, s7_pointer port)
-{
-  const char *str = (const char *)(port_data(port) + port_position(port));
-  const char *orig_str = strchr(str, (int)'\n');
-  if (!orig_str)
-    port_position(port) = port_data_size(port);
-  else
-    {
-      port_position(port) += (orig_str - str + 1); /* + 1 because strchr leaves orig_str pointing at the newline */
-      port_line_number(port)++;
-    }
-  return(token_eof);
-}
-
 
 /* -------- white space readers -------- */
 
@@ -18596,11 +18564,11 @@ static block_t *mallocate_port(s7_scheme *sc)
 }
 
 static port_functions_t input_file_functions =
-  {file_read_char, input_write_char, input_write_string, file_read_semicolon, file_read_white_space,
+  {file_read_char, input_write_char, input_write_string, file_read_white_space,
    file_read_name, file_read_sharp, file_read_line, input_display, close_input_file};
 
 static port_functions_t input_string_functions_1 =
-  {string_read_char, input_write_char, input_write_string, string_read_semicolon, terminated_string_read_white_space,
+  {string_read_char, input_write_char, input_write_string, terminated_string_read_white_space,
    string_read_name, string_read_sharp, string_read_line, input_display, close_input_string};
 
 static s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller)
@@ -18828,14 +18796,14 @@ static void close_stdout(s7_scheme *sc, s7_pointer port) {return;}
 static void close_stderr(s7_scheme *sc, s7_pointer port) {return;}
 
 static const port_functions_t stdin_functions =
-  {file_read_char, input_write_char, input_write_string, file_read_semicolon, file_read_white_space,
+  {file_read_char, input_write_char, input_write_string, file_read_white_space,
    file_read_name, file_read_sharp, stdin_read_line, input_display, close_stdin};
 
 static const port_functions_t stdout_functions =
-  {output_read_char, stdout_write_char, stdout_write_string, NULL, NULL, NULL, NULL, output_read_line, stdout_display, close_stdout};
+  {output_read_char, stdout_write_char, stdout_write_string, NULL, NULL, NULL, output_read_line, stdout_display, close_stdout};
 
 static const port_functions_t stderr_functions =
-  {output_read_char, stderr_write_char, stderr_write_string, NULL, NULL, NULL, NULL, output_read_line, stderr_display, close_stderr};
+  {output_read_char, stderr_write_char, stderr_write_string, NULL, NULL, NULL, output_read_line, stderr_display, close_stderr};
 
 static s7_pointer alloc_standard_output_port(s7_scheme *sc)
 {
@@ -18903,7 +18871,7 @@ static void init_standard_ports(s7_scheme *sc)
 
 /* -------------------------------- open-output-file -------------------------------- */
 static const port_functions_t output_file_functions =
-  {output_read_char, file_write_char, file_write_string, NULL, NULL, NULL, NULL, output_read_line, file_display, close_output_file};
+  {output_read_char, file_write_char, file_write_string, NULL, NULL, NULL, output_read_line, file_display, close_output_file};
 
 s7_pointer s7_open_output_file(s7_scheme *sc, const char *name, const char *mode)
 {
@@ -18967,7 +18935,7 @@ static s7_pointer g_open_output_file(s7_scheme *sc, s7_pointer args)
  */
 
 static const port_functions_t input_string_functions =
-  {string_read_char, input_write_char, input_write_string, string_read_semicolon, terminated_string_read_white_space,
+  {string_read_char, input_write_char, input_write_string, terminated_string_read_white_space,
    string_read_name_no_free, string_read_sharp,	string_read_line, input_display, close_simple_input_string};
 
 static s7_pointer open_input_string(s7_scheme *sc, const char *input_string, s7_int len)
@@ -19035,7 +19003,7 @@ static s7_pointer g_open_input_string(s7_scheme *sc, s7_pointer args)
  */
 
 static const port_functions_t output_string_functions =
-  {output_read_char, string_write_char, string_write_string, NULL, NULL, NULL, NULL, output_read_line, string_display, close_output_string};
+  {output_read_char, string_write_char, string_write_string, NULL, NULL, NULL, output_read_line, string_display, close_output_string};
 
 s7_pointer s7_open_output_string(s7_scheme *sc)
 {
@@ -19193,7 +19161,7 @@ static void close_input_function_port(s7_scheme *sc, s7_pointer port)
 }
 
 static const port_functions_t input_function_functions =
-  {function_read_char, input_write_char, input_write_string, NULL, NULL, NULL, NULL, function_read_line, input_display, close_input_function_port};
+  {function_read_char, input_write_char, input_write_string, NULL, NULL, NULL, function_read_line, input_display, close_input_function_port};
 
 static void function_port_set_defaults(s7_pointer port)
 {
@@ -19275,7 +19243,7 @@ static void close_output_function_port(s7_scheme *sc, s7_pointer port)
 }
 
 static const port_functions_t output_function_functions =
-  {output_read_char, function_write_char, function_write_string, NULL, NULL, NULL, NULL, output_read_line, function_display, close_output_function_port};
+  {output_read_char, function_write_char, function_write_string, NULL, NULL, NULL, output_read_line, function_display, close_output_function_port};
 
 s7_pointer s7_open_output_function(s7_scheme *sc, void (*function)(s7_scheme *sc, uint8_t c, s7_pointer port))
 {
@@ -20507,17 +20475,6 @@ static s7_pointer g_with_input_from_string(s7_scheme *sc, s7_pointer args)
   const s7_pointer str = car(args), proc = cadr(args);
   if (!is_string(str))
     return(method_or_bust(sc, str, sc->with_input_from_string_symbol, args, sc->type_names[T_STRING], 1));
-  if (is_eq_initial_c_function_data(sc->read_symbol, proc)) /* was global_value 11-June-24 */
-    {
-      if (string_length(str) == 0) return(eof_object);
-      push_input_port(sc, current_input_port(sc));
-      set_current_input_port(sc, open_and_protect_input_string(sc, str));
-      port_set_string_or_function(current_input_port(sc), str);
-      push_stack(sc, OP_UNWIND_INPUT, sc->unused, current_input_port(sc));
-      push_stack_op_let(sc, OP_READ_DONE);
-      push_stack_op_let(sc, OP_READ_INTERNAL);
-      return(current_input_port(sc));
-    }
   if (!is_thunk(sc, proc))
     {
       if (is_any_procedure(proc))        /* i.e. c_function, lambda, macro, etc */
@@ -39648,21 +39605,6 @@ static bool catch_in_function(s7_scheme *sc, s7_int catch_loc, s7_pointer type, 
   return(false);
 }
 
-static bool catch_read_function(s7_scheme *sc, s7_int catch_loc, s7_pointer type, s7_pointer info)
-{
-  if (SHOW_EVAL_OPS) fprintf(stderr, "catcher: %s\n", __func__);
-  pop_input_port(sc);
-  return(false);
-}
-
-static bool catch_eval_function(s7_scheme *sc, s7_int catch_loc, s7_pointer type, s7_pointer info)
-{
-  if (SHOW_EVAL_OPS) fprintf(stderr, "catcher: %s\n", __func__);
-  s7_close_input_port(sc, current_input_port(sc));
-  pop_input_port(sc);
-  return(false);
-}
-
 static bool catch_barrier_function(s7_scheme *sc, s7_int catch_loc, s7_pointer type, s7_pointer info)
 { /* can this happen? is it doing the right thing? read/eval/call_begin_hook push_stack op_barrier but only s7_read includes a port (this is not hit in s7test.scm) */
   if (SHOW_EVAL_OPS || S7_DEBUGGING) fprintf(stderr, "catcher: %s\n", __func__);
@@ -39752,19 +39694,6 @@ bool catch_dynamic_unwind_function(s7_scheme *sc, s7_int catch_loc, s7_pointer t
   return(false);
 }
 
-static bool catch_load_close_function(s7_scheme *sc, s7_int catch_loc, s7_pointer type, s7_pointer info)
-{
-  if (SHOW_EVAL_OPS) fprintf(stderr, "catcher: %s\n", __func__);
-  if ((S7_DEBUGGING) && (!is_loader_port(current_input_port(sc)))) fprintf(stderr, "%s[%d]: %s not loading?\n", __func__, __LINE__, display(current_input_port(sc)));
-  if (SHOW_EVAL_OPS) fprintf(stderr, "%s closing %s\n", __func__, display(current_input_port(sc)));
-
-  /* this looks like catch_eval_function */
-  s7_close_input_port(sc, current_input_port(sc));
-  pop_input_port(sc);
-  /* sc->current_file = NULL; */
-  return(false);
-}
-
 typedef bool (*catch_function_t)(s7_scheme *sc, s7_int catch_loc, s7_pointer type, s7_pointer info);
 static catch_function_t catchers[NUM_OPS];
 
@@ -39780,17 +39709,14 @@ static void init_catchers(void)
   catchers[OP_DYNAMIC_UNWIND] =     catch_dynamic_unwind_function;
   catchers[OP_DYNAMIC_WIND] =       catch_dynamic_wind_function;
   catchers[OP_ERROR_HOOK_QUIT] =    catch_error_hook_function;
-  catchers[OP_EVAL_STRING] =        catch_eval_function;
   catchers[OP_GET_OUTPUT_STRING] =  catch_out_function;
   catchers[OP_LET_TEMP_DONE] =      catch_let_temporarily_function;
   catchers[OP_LET_TEMP_S7_OPENLETS_UNWIND] = catch_let_temp_s7_openlets_unwind_function;
   catchers[OP_LET_TEMP_S7_UNWIND] = catch_let_temp_s7_unwind_function;
   catchers[OP_LET_TEMP_UNWIND] =    catch_let_temp_unwind_function;
   catchers[OP_MAP_UNWIND] =         catch_map_unwind_function;
-  catchers[OP_READ_DONE] =          catch_read_function;      /* perhaps an error during (read) */
   catchers[OP_UNWIND_INPUT] =       catch_in_function;
   catchers[OP_UNWIND_OUTPUT] =      catch_out_function;
-  catchers[OP_LOAD_CLOSE_AND_POP_IF_EOF] = catch_load_close_function;
   /* do we need one for load_return_if_eof? */
 }
 
@@ -39851,8 +39777,7 @@ static void s7_warn(s7_scheme *sc, s7_int len, const char *ctrl, ...) /* len = m
 /* -------------------------------- error -------------------------------- */
 static void fill_error_location(s7_scheme *sc)
 {
-  if (((is_input_port(current_input_port(sc))) && (is_loader_port(current_input_port(sc)))) ||
-      (((sc->cur_op >= OP_READ_LIST) && (sc->cur_op <= OP_READ_DONE))))
+  if ((is_input_port(current_input_port(sc))) && (is_loader_port(current_input_port(sc))))
     {
       set_integer(slot_value(sc->error_line), port_line_number(current_input_port(sc)));
       set_integer(slot_value(sc->error_position), port_position(current_input_port(sc)));
@@ -57703,30 +57628,11 @@ s7_pointer splice_in_values(s7_scheme *sc, s7_pointer args)
       }
 
     case OP_EXPANSION:
-      /* we get here if a reader-macro (define-expansion) returns multiple values.
-       *    these need to be read in order into the current reader lists (we'll assume OP_READ_LIST is next in the stack,
-       *    and that it will be expecting the next arg entry in sc->value; but it could be OP_LOAD_RETURN_IF_EOF if the expansion is at top level).
-       * (+ (reader-cond (#t 1 (values 2 3) 4)))
-       */
-      if (SHOW_EVAL_OPS)
-	{
-	  s7_int old_print_length = sc->print_length;
-	  if (old_print_length > 40) sc->print_length = 40;
-	  fprintf(stderr, "  %s[%d]: %s stack top: %" ld64 ", op: %s, args: %s\n", __func__, __LINE__,
-		  op_names[stack_top_op(sc)], (s7_int)(intptr_t)stack_top(sc), op_names[stack_top4_op(sc)], display_truncated(args));
-	  sc->print_length = old_print_length;
-	}
-      if (stack_top4_op(sc) == OP_LOAD_RETURN_IF_EOF)
-	{
-	  /* expansion at top-level returned values, eval args in order */
-	  sc->code = args;
-	  push_stack_no_args_direct(sc, sc->begin_op);
-	  return(sc->code);
-	}
-      for (arglist = args; is_pair(cdr(arglist)); arglist = cdr(arglist))
-	stack_top4_args(sc) = cons(sc, car(arglist), stack_top4_args(sc));
-      pop_stack_no_op(sc);         /* need GC protection in loop above, so do this afterwards */
-      return(car(arglist));              /* sc->value from OP_READ_LIST point of view */
+      /* a define-expansion returned multiple values; evaluate them in order
+       * (the reader that used to splice them into a list being read is gone) */
+      sc->code = args;
+      push_stack_no_args_direct(sc, sc->begin_op);
+      return(sc->code);
 
     case OP_EVAL_DONE:    /* ((lambda (w) 1) (char-ready? (open-input-function (lambda (x) (values 1 2 3 4 5 6 7))))) */
       if (stack_top4_op(sc) == OP_NO_VALUES)
@@ -65781,8 +65687,8 @@ static bool op_let_temp_init1(s7_scheme *sc)
 
 typedef enum {goto_start, goto_begin, fall_through, goto_do_end_clauses, goto_safe_do_end_clauses,
 	      goto_eval, goto_apply_lambda, goto_do_end, goto_top_no_pop, goto_apply,
-	      goto_eval_args, goto_eval_args_pair, goto_do_unchecked, goto_pop_read_list,
-	      goto_read_tok, goto_feed_to, goto_set_unchecked} goto_t;
+	      goto_eval_args, goto_eval_args_pair, goto_do_unchecked,
+	      goto_feed_to, goto_set_unchecked} goto_t;
 
 static goto_t op_let_temp_init2(s7_scheme *sc)
 {
@@ -67214,8 +67120,6 @@ static goto_t op_expansion(s7_scheme *sc)
 {
   const s7_pointer caller = (is_pair(stack_top_args(sc))) ? car(stack_top_args(sc)) : sc->F; /* this can be garbage */
   if ((sc->stack_end > sc->stack_start) &&          /* there is a stack... */
-      (stack_top_op(sc) != OP_READ_QUOTE) &&        /* '(expansion ...) */
-      (stack_top_op(sc) != OP_READ_VECTOR) &&       /* #(expansion ...) */
       (!is_quote(sc, caller)) &&                        /* (#_quote ...) */
       (caller != sc->macroexpand_symbol) &&         /* (macroexpand (expansion ...)) */
       (caller != sc->define_expansion_symbol) &&    /* (define-expansion ...) being reloaded/redefined */
@@ -67357,18 +67261,11 @@ static bool op_eval_macro_mv(s7_scheme *sc)
 static void op_finish_expansion(s7_scheme *sc)
 {
   /* after the expander has finished, if a list was returned, we need to add some annotations.
-   *   if the expander returned (values), the list-in-progress vanishes! (This mimics map and *#readers*).
+   *   if the expander returned (values), the list-in-progress vanishes!
    */
   if (SHOW_EVAL_OPS) fprintf(stderr, "  %s[%d]: op: %s, value: %s\n", __func__, __LINE__, op_names[stack_top_op(sc)], display_truncated(sc->value));
   if (sc->value == sc->no_value)
-    {
-      if (stack_top_op(sc) != OP_LOAD_RETURN_IF_EOF) /* latter op if empty expansion at top-level */
-	{
-	  if (stack_top_op(sc) != OP_READ_LIST)      /* OP_EVAL_STRING: (eval-string "(reader-cond...)") where reader-cond returns (values) */
-	    sc->value = sc->F;                       /* (eval-string "") -> #f, was nil_string for awhile */
-	  else set_stack_top_op(sc, OP_READ_NEXT);
-	  /* OP_READ_DONE: (eval-string (object->string (with-input-from-string "(reader-cond ((provided? 'surreals) 123))" read))) */
-	}}
+    sc->value = sc->F;                       /* (eval-string "") -> #f, was nil_string for awhile */
   else
     if (is_pair(sc->value))
       sc->value = copy_body(sc, sc->value);

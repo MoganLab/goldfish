@@ -604,10 +604,6 @@ typedef block_t vdims_t;
 #define vdims_original(p)                p->ex.ex_ptr
 
 
-typedef enum {token_eof, token_left_paren, token_right_paren, token_dot, token_atom, token_quote, token_double_quote,
-	      token_back_quote, token_comma, token_at_mark, token_sharp_const,
-              token_vector, token_byte_vector, token_int_vector, token_float_vector, token_complex_vector} token_t;
-
 typedef enum {no_article, indefinite_article} article_t;
 typedef enum {dwind_init, dwind_body, dwind_finish} dwind_t;
 enum {no_safety = 0, immutable_vector_safety, more_safety_warnings};  /* (*s7* 'safety) settings, if typedef'd becomes uint32_t (but we want -1) */
@@ -618,7 +614,6 @@ typedef struct {
   int32_t (*read_character)(s7_scheme *sc, s7_pointer port);             /* function to read a character, int32_t for EOF */
   void (*write_character)(s7_scheme *sc, uint8_t c, s7_pointer port);    /* function to write a character */
   void (*write_string)(s7_scheme *sc, const char *str, s7_int len, s7_pointer port); /* function to write a string of known length */
-  token_t (*read_semicolon)(s7_scheme *sc, s7_pointer port);             /* internal skip-to-semicolon reader */
   int32_t (*read_white_space)(s7_scheme *sc, s7_pointer port);           /* internal skip white space reader */
   s7_pointer (*read_name)(s7_scheme *sc, s7_pointer port);               /* internal get-next-name reader */
   s7_pointer (*read_sharp)(s7_scheme *sc, s7_pointer port);              /* internal get-next-sharp-constant reader */
@@ -1183,7 +1178,6 @@ struct s7_scheme {
   s7_pointer missing_close_paren_hook, rootlet_redefinition_hook;
   s7_pointer error_hook, read_error_hook; /* *error-hook* hook object, and *read-error-hook* */
   s7_pointer exit_hook;                 /* *exit-hook* hook object */
-  token_t tok;
   bool gc_off, gc_in_progress;        /* gc_off: if true, the GC won't run */
   uint32_t gc_stats, gensym_counter, f_class, add_class, multiply_class, subtract_class, num_eq_class;
   int32_t format_column, error_argnum;

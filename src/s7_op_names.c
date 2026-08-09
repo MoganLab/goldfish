@@ -76,7 +76,7 @@ const char *op_names[] =
       "safe_closure*_na", "h_safe_closure*_na", "safe_closure*_na_0", "h_safe_closure*_na_0",
       "safe_closure*_na_1", "h_safe_closure*_na_1", "safe_closure*_na_2", "h_safe_closure*_na_2",
 
-      "c_ss", "h_c_ss", "c_s", "h_c_s", "c_sc", "h_c_sc", "read_s", "h_read_s", "c_p", "h_c_p", "c_ap", "h_c_ap",
+      "c_ss", "h_c_ss", "c_s", "h_c_s", "c_sc", "h_c_sc", "c_p", "h_c_p", "c_ap", "h_c_ap",
       "c_a", "h_c_a", "c_aa", "h_c_aa", "c", "h_c", "c_nc", "h_c_nc", "c_na", "h_c_na",
 
       "cl_s", "h_cl_s", "cl_ss", "h_cl_ss", "cl_a", "h_cl_a", "cl_aa", "h_cl_aa",
@@ -96,7 +96,7 @@ const char *op_names[] =
 
       "symbol", "constant", "pair_sym", "pair_pair", "pair_any", "h_hash_table_increment", "clear_opts",
 
-      "read_internal", "eval", "eval_args", "eval_args1", "eval_args2", "eval_args3", "eval_args4", "eval_args5",
+      "eval", "eval_args", "eval_args1", "eval_args2", "eval_args3", "eval_args4", "eval_args5",
       "eval_set1_no_mv", "eval_set2", "eval_set2_mv", "eval_set2_no_mv", "eval_set3", "eval_set3_mv", "eval_set3_no_mv",
       "apply", "eval_macro", "lambda", "quote", "quote_unchecked", "macroexpand", "call/cc", "call_with_exit", "call_with_exit_o",
       "c_catch", "c_catch_all", "c_catch_all_o", "c_catch_all_a",
@@ -111,10 +111,8 @@ const char *op_names[] =
       "cond", "cond1", "feed_to_1", "cond_simple", "cond1_simple", "cond_simple_o", "cond1_simple_o",
       "and", "or",
       "define_macro", "define_macro*", "define_expansion", "define_expansion*", "macro", "macro*",
-      "case", "read_list", "read_next", "read_dot", "read_quote",
-      "read_quasiquote", "read_unquote", "read_apply_values",
-      "read_vector", "read_byte_vector", "read_int_vector", "read_float_vector", "read_complex_vector", "read_done",
-      "load_return_if_eof", "load_close_and_pop_if_eof", "eval_done", "splice_values", "no_values",
+      "case",
+      "eval_done", "splice_values", "no_values",
       "catch", "dynamic_wind", "dynamic_unwind", "dynamic_wind_profile", "profile_in",
       "define_constant", "define_constant1",
       "do", "do_end", "do_end1", "do_step", "do_step2", "do_init",
@@ -127,7 +125,6 @@ const char *op_names[] =
       "define_bacro", "define_bacro*", "bacro", "bacro*",
       "get_output_string",
       "sort", "sort1", "sort2", "sort3", "sort_pair_end", "sort_vector_end", "sort_string_end",
-      "eval_string",
       "member_if", "assoc_if", "member_if1", "assoc_if1",
       "lambda_unchecked", "let_unchecked", "catch_1", "catch_2", "catch_all",
       "set_unchecked", "set_s_c", "set_s_s", "set_s_p", "set_a",
