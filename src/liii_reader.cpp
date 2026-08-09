@@ -343,10 +343,28 @@ f_tiny_read_with_default (s7_scheme* sc, s7_pointer args) {
   return tiny_read_form (sc, s7_car (args));
 }
 
+static s7_pointer
+f_tiny_load (s7_scheme* sc, s7_pointer args) {
+  const char* path = s7_string (s7_car (args));
+  s7_pointer port = s7_open_input_file (sc, path, "r");
+  s7_pointer env = s7_rootlet (sc);
+  s7_pointer result = s7_unspecified (sc);
+  while (true) {
+    s7_pointer d = tiny_read_form (sc, port);
+    if (d == s7_eof_object (sc))
+      break;
+    result = s7_eval (sc, d, env);
+  }
+  s7_close_input_port (sc, port);
+  return result;
+}
+
 void
 glue_liii_reader (s7_scheme* sc) {
   s7_define_function (sc, "g-tiny-read", f_tiny_read, 1, 0, false,
                       "(g-tiny-read port) => datum");
+  s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
+                      "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
   // replace S7's read with the tiny bootstrap read
   s7_define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
                       "(read [port]) => datum");
