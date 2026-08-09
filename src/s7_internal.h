@@ -1392,7 +1392,7 @@ struct s7_scheme {
              out_of_memory_symbol, out_of_range_symbol, profile_in_symbol, quasiquote_function, quasiquote_symbol, quote_function, quote_symbol,
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
-             unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
+             unquote_symbol, unquote_splicing_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
              wrong_number_of_args_symbol, wrong_type_arg_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
@@ -2097,7 +2097,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_SAFE_CLOSURE_STAR_NA, HOP_SAFE_CLOSURE_STAR_NA, OP_SAFE_CLOSURE_STAR_NA_0, HOP_SAFE_CLOSURE_STAR_NA_0,
       OP_SAFE_CLOSURE_STAR_NA_1, HOP_SAFE_CLOSURE_STAR_NA_1, OP_SAFE_CLOSURE_STAR_NA_2, HOP_SAFE_CLOSURE_STAR_NA_2,
 
-      OP_C_SS, HOP_C_SS, OP_C_S, HOP_C_S, OP_C_SC, HOP_C_SC, OP_READ_S, HOP_READ_S, OP_C_P, HOP_C_P, OP_C_AP, HOP_C_AP,
+      OP_C_SS, HOP_C_SS, OP_C_S, HOP_C_S, OP_C_SC, HOP_C_SC, OP_C_P, HOP_C_P, OP_C_AP, HOP_C_AP,
       OP_C_A, HOP_C_A, OP_C_AA, HOP_C_AA, OP_C, HOP_C, OP_C_NC, HOP_C_NC, OP_C_NA, HOP_C_NA,
 
       OP_CL_S, HOP_CL_S, OP_CL_SS, HOP_CL_SS, OP_CL_A, HOP_CL_A, OP_CL_AA, HOP_CL_AA,
@@ -2118,7 +2118,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
 
       OP_SYMBOL, OP_CONSTANT, OP_PAIR_SYM, OP_PAIR_PAIR, OP_PAIR_ANY, HOP_HASH_TABLE_INCREMENT, OP_CLEAR_OPTS,
 
-      OP_READ_INTERNAL, OP_EVAL, OP_EVAL_ARGS, OP_EVAL_ARGS1, OP_EVAL_ARGS2, OP_EVAL_ARGS3, OP_EVAL_ARGS4, OP_EVAL_ARGS5,
+      OP_EVAL, OP_EVAL_ARGS, OP_EVAL_ARGS1, OP_EVAL_ARGS2, OP_EVAL_ARGS3, OP_EVAL_ARGS4, OP_EVAL_ARGS5,
       OP_EVAL_SET1_NO_MV, OP_EVAL_SET2, OP_EVAL_SET2_MV, OP_EVAL_SET2_NO_MV, OP_EVAL_SET3, OP_EVAL_SET3_MV, OP_EVAL_SET3_NO_MV,
       OP_APPLY, OP_EVAL_MACRO, OP_LAMBDA, OP_QUOTE, OP_QUOTE_UNCHECKED, OP_MACROEXPAND, OP_CALL_CC, OP_CALL_WITH_EXIT, OP_CALL_WITH_EXIT_O,
       OP_C_CATCH, OP_C_CATCH_ALL, OP_C_CATCH_ALL_O, OP_C_CATCH_ALL_A,
@@ -2134,10 +2134,7 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_AND, OP_OR,
       OP_DEFINE_MACRO, OP_DEFINE_MACRO_STAR, OP_DEFINE_EXPANSION, OP_DEFINE_EXPANSION_STAR, OP_MACRO, OP_MACRO_STAR,
       OP_CASE,
-      OP_READ_LIST, OP_READ_NEXT, OP_READ_DOT, OP_READ_QUOTE,
-      OP_READ_QUASIQUOTE, OP_READ_UNQUOTE, OP_READ_APPLY_VALUES,
-      OP_READ_VECTOR, OP_READ_BYTE_VECTOR, OP_READ_INT_VECTOR, OP_READ_FLOAT_VECTOR, OP_READ_COMPLEX_VECTOR, OP_READ_DONE,
-      OP_LOAD_RETURN_IF_EOF, OP_LOAD_CLOSE_AND_POP_IF_EOF, OP_EVAL_DONE, OP_SPLICE_VALUES, OP_NO_VALUES,
+      OP_EVAL_DONE, OP_SPLICE_VALUES, OP_NO_VALUES,
       OP_CATCH, OP_DYNAMIC_WIND, OP_DYNAMIC_UNWIND, OP_DYNAMIC_UNWIND_PROFILE, OP_PROFILE_IN,
       OP_DEFINE_CONSTANT, OP_DEFINE_CONSTANT1,
       OP_DO, OP_DO_END, OP_DO_END1, OP_DO_STEP, OP_DO_STEP2, OP_DO_INIT,
@@ -2150,7 +2147,6 @@ enum {OP_UNOPT, OP_GC_PROTECT, /* must be an even number of ops here, op_gc_prot
       OP_DEFINE_BACRO, OP_DEFINE_BACRO_STAR, OP_BACRO, OP_BACRO_STAR,
       OP_GET_OUTPUT_STRING,
       OP_SORT, OP_SORT1, OP_SORT2, OP_SORT3, OP_SORT_PAIR_END, OP_SORT_VECTOR_END, OP_SORT_STRING_END,
-      OP_EVAL_STRING,
       OP_MEMBER_IF, OP_ASSOC_IF, OP_MEMBER_IF1, OP_ASSOC_IF1,
       OP_LAMBDA_UNCHECKED, OP_LET_UNCHECKED, OP_CATCH_1, OP_CATCH_2, OP_CATCH_ALL,
 
@@ -2472,7 +2468,7 @@ void add_slot_unchecked(s7_scheme *sc, s7_pointer let, s7_pointer symbol, s7_poi
 s7_pointer call_setter(s7_scheme *sc, s7_pointer slot, s7_pointer old_value);
 s7_pointer checked_slot_set_value(s7_scheme *sc, s7_pointer slot, s7_pointer value);
 s7_pointer find_let(s7_scheme *sc, s7_pointer obj);
-no_return void find_let_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer let, s7_pointer new_let, int32_t arg_num, s7_pointer args);
+no_return void find_let_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer let, s7_pointer new_let, s7_int arg_num, s7_pointer args);
 s7_pointer find_method(s7_scheme *sc, s7_pointer let, s7_pointer symbol);
 bool is_constant_symbol(s7_scheme *sc, s7_pointer sym);
 bool is_eq_initial_value(s7_pointer symbol, s7_pointer other);

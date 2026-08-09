@@ -562,11 +562,6 @@ void call_with_exit(s7_scheme *sc)
 	dynamic_unwind(sc, stack_code(sc->stack, op_loc), stack_args(sc->stack, op_loc));
 	break;
 
-      case OP_EVAL_STRING:
-	s7_close_input_port(sc, current_input_port(sc));
-	pop_input_port(sc);
-	break;
-
       case OP_BARRIER:                /* oops -- we almost certainly went too far */
 	goto SET_VALUE;
 
