@@ -24,7 +24,7 @@ namespace goldfish {
 static s7_pointer
 f_list_sorted_p (s7_scheme* sc, s7_pointer args) {
   s7_pointer less_p= s7_car (args);
-  s7_pointer lis= s7_cadr (args);
+  s7_pointer lis   = s7_cadr (args);
 
   if (!s7_is_procedure (less_p)) {
     return s7_wrong_type_arg_error (sc, "list-sorted?", 1, less_p, "a procedure");
@@ -38,13 +38,13 @@ f_list_sorted_p (s7_scheme* sc, s7_pointer args) {
    * 因此把 less_p、列表头和我们自建的二元调用列表放进同一个
    * 栈上保护的 anchor，保证回调触发 GC 时全部可达 */
   s7_pointer call_args= s7_cons (sc, s7_f (sc), s7_cons (sc, s7_f (sc), s7_nil (sc)));
-  s7_pointer anchor= s7_cons (sc, less_p, s7_cons (sc, lis, call_args));
+  s7_pointer anchor   = s7_cons (sc, less_p, s7_cons (sc, lis, call_args));
   s7_gc_protect_via_stack (sc, anchor);
   s7_pointer call_args_second= s7_cdr (call_args);
 
-  bool        sorted= true;
-  s7_pointer  prev= s7_car (lis);
-  s7_pointer  p= s7_cdr (lis);
+  bool       sorted= true;
+  s7_pointer prev  = s7_car (lis);
+  s7_pointer p     = s7_cdr (lis);
   while (s7_is_pair (p)) {
     s7_pointer cur= s7_car (p);
     s7_set_car (call_args, cur);
@@ -54,7 +54,7 @@ f_list_sorted_p (s7_scheme* sc, s7_pointer args) {
       break;
     }
     prev= cur;
-    p= s7_cdr (p);
+    p   = s7_cdr (p);
   }
   s7_gc_unprotect_via_stack (sc, anchor);
 
