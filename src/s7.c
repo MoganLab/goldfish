@@ -1380,7 +1380,7 @@ struct s7_scheme {
              out_of_memory_symbol, out_of_range_symbol, profile_in_symbol, quasiquote_function, quasiquote_symbol, quote_function, quote_symbol,
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
-             unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
+             unquote_symbol, unquote_splicing_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
              wrong_number_of_args_symbol, wrong_type_arg_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
@@ -58076,7 +58076,8 @@ static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 	    return(false);
 	}
       else
-	if (car(lst) == sc->unquote_symbol)
+	if ((car(lst) == sc->unquote_symbol) ||
+	    (car(lst) == sc->unquote_splicing_symbol))
 	  return(false);
       lst = cdr(lst);
       if (!is_pair(lst)) return(is_null(lst));
@@ -58087,7 +58088,8 @@ static bool is_simple_code(s7_scheme *sc, s7_pointer form)
 	    return(false);
 	}
       else
-	if (car(lst) == sc->unquote_symbol)
+	if ((car(lst) == sc->unquote_symbol) ||
+	    (car(lst) == sc->unquote_splicing_symbol))
 	  return(false);
     }
   return(is_null(lst));
@@ -58118,6 +58120,12 @@ and splices the resultant list into the outer list. `(1 ,(+ 1 1) ,@(list 3 4)) -
       if (is_not_null(cddr(form)))
 	syntax_error_nr(sc, "unquote: too many arguments, ~S", 31, form);
       return(cadr(form));
+    }
+  if (car(form) == sc->unquote_splicing_symbol)  /* standard R7RS spelling of ,@ */
+    {
+      if (!is_pair(cdr(form)) || is_not_null(cddr(form)))
+	syntax_error_nr(sc, "unquote-splicing: bad argument, ~S", 33, form);
+      return(list_2(sc, initial_value(sc->apply_values_symbol), cadr(form)));
     }
 
   /* it's a list, so return the list with each element handled as above.
@@ -85899,8 +85907,10 @@ in the file, or by the function."
   /* quasiquote helper funcs */
 #if WITH_IMMUTABLE_UNQUOTE
   sc->unquote_symbol =               make_symbol(sc, "<unquote>", 9); set_immutable(sc->unquote_symbol);
+  sc->unquote_splicing_symbol =      make_symbol(sc, "<unquote-splicing>", 18); set_immutable(sc->unquote_splicing_symbol);
 #else
   sc->unquote_symbol =               make_symbol(sc, "unquote", 7);
+  sc->unquote_splicing_symbol =      make_symbol(sc, "unquote-splicing", 16);
 #endif
   sc->qq_append_symbol =             defun("<list*>",           qq_append,		2, 0, false); set_is_saver(sc->qq_append_symbol); /* occurs via quasiquote as #_<list*> */
   sc->apply_values_symbol =          unsafe_defun("apply-values", apply_values,         0, 1, false); set_is_saver(sc->apply_values_symbol);
