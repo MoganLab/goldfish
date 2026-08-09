@@ -566,7 +566,6 @@
                 (read-expr dch)))
             (next-non-whitespace))
            (else ch)))
-        ;; TOOD: #\xc: #\ff Form Feed, ASCII 12
         ((#\space #\return #\xc #\newline #\tab)
          (next-non-whitespace))
         (else ch))))
