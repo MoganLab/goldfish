@@ -481,7 +481,7 @@
 
 (check (eq? (read-str "#<eof>") (eof-object)) => #t)
 (check (unspecified? (read-str "#<unspecified>")) => #t)
-(check-catch 'read-error (read-str "#<undefined>"))
+(check (undefined? (read-str "#<undefined>")) => #t)
 (check-catch 'read-error (read-str "#<bogus>"))
 
 ;; =============================================================================

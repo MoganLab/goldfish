@@ -571,8 +571,7 @@
     (cond
       ((string=? tok "eof") (eof-object))
       ((string=? tok "unspecified") (if #f #f))
-      ;; S7 has no Scheme-level constructor for the undefined object, so
-      ;; #<undefined> cannot be read back.
+      ((string=? tok "undefined") (g-undefined))
       (else (error 'read-error "unknown #< object" tok)))))
 
 ;; SRFI-267 raw strings: #"delimiter"body"delimiter" (delimiter may be empty).

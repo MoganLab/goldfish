@@ -400,6 +400,12 @@ f_tiny_load (s7_scheme* sc, s7_pointer args) {
   return tiny_load_path (sc, path);
 }
 
+static s7_pointer
+f_undefined (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+  return s7_undefined (sc);
+}
+
 void
 bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   // the tiny bootstrap read loads boot.scm, string-cursor.scm and reader.scm;
@@ -415,6 +421,8 @@ glue_liii_reader (s7_scheme* sc) {
                       "(g-tiny-read port) => datum");
   s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
                       "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
+  s7_define_function (sc, "g-undefined", f_undefined, 0, 0, false,
+                      "(g-undefined) => the #<undefined> object");
   // replace S7's read with the tiny bootstrap read
   s7_define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
                       "(read [port]) => datum");
