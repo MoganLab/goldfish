@@ -62,14 +62,39 @@ has_dot_or_exp (const uint8_t* b, s7_int len) {
   return false;
 }
 
-/* g-scan-token str start first end-box as-number? => value
+/* identifier-subsequent table (R7RS 7.1.1) for letter-initial tokens */
+static uint8_t ident_sub[256];
+static bool ident_init = false;
+static void
+init_ident () {
+  if (ident_init)
+    return;
+  for (int c = 'a'; c <= 'z'; c++) ident_sub[c] = 1;
+  for (int c = 'A'; c <= 'Z'; c++) ident_sub[c] = 1;
+  for (int c = '0'; c <= '9'; c++) ident_sub[c] = 1;
+  const char* special = "!$%&*/:<=>?@^_~+-.";
+  for (const char* p = special; *p; p++)
+    ident_sub[(uint8_t) *p] = 1;
+  ident_init = true;
+}
+
+static bool
+is_alpha (uint8_t c) {
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+/* g-scan-token str start first end-box mode fold? => value
  *
  * The input is a slurped string (S7 strings hold raw bytes). The token starts
  * with the already-consumed char `first`, followed by str[start .. i) where i
  * is the first delimiter position (or the string end). The delimiter is not
- * consumed; end-box is set to i. When as-number? is true, plain decimal
- * tokens are returned as numbers (no string allocation); otherwise the token
- * is always returned as a string.
+ * consumed; end-box is set to i.
+ *
+ * mode 0: always return the token string
+ * mode 1: plain decimal tokens are returned as numbers
+ * mode 2: like 1, and letter-initial valid identifiers are interned as symbols
+ *         (unless fold? is true, in which case they stay strings so the caller
+ *         can case-fold them)
  */
 static s7_pointer
 f_scan_token (s7_scheme* sc, s7_pointer args) {
@@ -77,7 +102,10 @@ f_scan_token (s7_scheme* sc, s7_pointer args) {
   s7_int     start = s7_integer (s7_cadr (args));
   s7_int     first = s7_character (s7_caddr (args));
   s7_pointer box = s7_cadddr (args);
-  bool       as_number = s7_boolean (sc, s7_car (s7_cddddr (args)));
+  s7_pointer arg5 = s7_car (s7_cddddr (args));
+  s7_pointer arg6 = s7_cadr (s7_cddddr (args));
+  s7_int     mode = s7_integer (arg5);
+  bool       fold = s7_boolean (sc, arg6);
   s7_int     len = s7_string_length (str);
   const uint8_t* s = (const uint8_t*) s7_string (str);
 
@@ -88,23 +116,25 @@ f_scan_token (s7_scheme* sc, s7_pointer args) {
 
   s7_int tok_len = i - start + 1;
   const uint8_t* buf;
-  uint8_t stack_buf[64];
+  uint8_t stack_buf[65];
   uint8_t* heap_buf = nullptr;
   if (tok_len <= 64) {
     stack_buf[0] = (uint8_t) first;
     if (i > start)
       memcpy (stack_buf + 1, s + start, (size_t) (i - start));
+    stack_buf[tok_len] = 0;
     buf = stack_buf;
   } else {
-    heap_buf = (uint8_t*) malloc ((size_t) tok_len);
+    heap_buf = (uint8_t*) malloc ((size_t) tok_len + 1);
     heap_buf[0] = (uint8_t) first;
     if (i > start)
       memcpy (heap_buf + 1, s + start, (size_t) (i - start));
+    heap_buf[tok_len] = 0;
     buf = heap_buf;
   }
 
   s7_pointer result;
-  if (as_number && plain_decimal (buf, tok_len)) {
+  if (mode >= 1 && plain_decimal (buf, tok_len)) {
     if (!has_dot_or_exp (buf, tok_len)) {
       errno = 0;
       char* end = nullptr;
@@ -120,6 +150,21 @@ f_scan_token (s7_scheme* sc, s7_pointer args) {
     if (end == (const char*) buf + tok_len) {
       if (heap_buf) free (heap_buf);
       return s7_make_real (sc, d);
+    }
+  }
+  if (mode >= 2 && !fold && is_alpha (buf[0])) {
+    init_ident ();
+    bool ok = true;
+    for (s7_int k = 0; k < tok_len; k++) {
+      if (!ident_sub[buf[k]]) {
+        ok = false;
+        break;
+      }
+    }
+    if (ok) {
+      s7_pointer sym = s7_make_symbol (sc, (const char*) buf);
+      if (heap_buf) free (heap_buf);
+      return sym;
     }
   }
   result = s7_make_string_with_length (sc, (const char*) buf, tok_len);
@@ -147,8 +192,8 @@ f_skip_whitespace (s7_scheme* sc, s7_pointer args) {
 void
 glue_liii_reader (s7_scheme* sc) {
   const char* name = "g-scan-token";
-  const char* desc = "(g-scan-token str start first end-box as-number?) => value";
-  s7_define_function (sc, name, f_scan_token, 5, 0, false, desc);
+  const char* desc = "(g-scan-token str start first end-box mode fold?) => value";
+  s7_define_function (sc, name, f_scan_token, 6, 0, false, desc);
   s7_define_function (sc, "g-skip-whitespace", f_skip_whitespace, 2, 0, false,
                       "(g-skip-whitespace str pos) => new-pos");
 }

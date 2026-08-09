@@ -289,8 +289,8 @@
 (define tok-end (vector 0))
 
 (define (take-until port first)
-  ;; token = first + cur-str[cur-pos .. delimiter); the delimiter is not consumed
-  (let ((tok (g-scan-token cur-str cur-pos first tok-end #f)))
+  ;; token = first + cur-str[cur-pos .. delimiter]; the delimiter is not consumed
+  (let ((tok (g-scan-token cur-str cur-pos first tok-end 0 #f)))
     (set! cur-pos (vector-ref tok-end 0))
     tok))
 
@@ -298,13 +298,17 @@
   (take-until port ch))
 
 (define (read-symbol port ch)
-  (let ((str (read-token port ch)))
-    (if (valid-identifier? str)
-      (string->symbol (if (fold-case? port) (fold-string str) str))
-      (error 'read-error "invalid token" str))))
+  (let ((tok (g-scan-token cur-str cur-pos ch tok-end 2 (fold-case? port))))
+    (set! cur-pos (vector-ref tok-end 0))
+    (if (symbol? tok)
+      tok
+      (let ((str tok))
+        (if (valid-identifier? str)
+          (string->symbol (if (fold-case? port) (fold-string str) str))
+          (error 'read-error "invalid token" str))))))
 
 (define (read-number port ch)
-  (let ((tok (g-scan-token cur-str cur-pos ch tok-end #t)))
+  (let ((tok (g-scan-token cur-str cur-pos ch tok-end 1 #f)))
     (set! cur-pos (vector-ref tok-end 0))
     (if (number? tok)
       tok
