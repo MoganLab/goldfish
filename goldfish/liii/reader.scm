@@ -826,3 +826,13 @@
                  (begin (close-input-port port) #t)
                  (begin (eval d (rootlet)) (loop))))))))
       (else (loop (cdr cands))))))
+
+;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
+;; (boot.scm) definition captured the bootstrap reader, which is minimal and
+;; is only meant for reading the three bootstrap files.
+
+(define (read-forms port)
+  (let loop ((d (read port)) (acc '()))
+    (if (eof-object? d)
+      (reverse acc)
+      (loop (read port) (cons d acc)))))
