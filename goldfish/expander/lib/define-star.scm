@@ -70,7 +70,7 @@
                        (list 'lambda
                              formals
                              (cons 'let* (cons bindings body-syns))))))
-               (let ((p (list-ref params-list i)))
-                 (if (pair? (syntax->datum p))
-                     (loop (+ i 1) req (append opts (list p)))
-                     (loop (+ i 1) (append req (list p)) opts))))))))))
+                (let ((p (list-ref params-list i)))
+                  (if (pair? (syntax->datum p))
+                      (loop (+ i 1) req (append opts (list p)))
+                      (loop (+ i 1) (cons p req) opts))))))))))
