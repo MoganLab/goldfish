@@ -40,6 +40,21 @@
 
 (define *library-registry* '())
 
+;;; Libraries whose runtime module (the register expression) has been
+;;; evaluated.  The expand-time registry (above) is populated by
+;;; expand-define-library during compilation, which may happen without the
+;;; runtime registration expression ever running (a library compiled but
+;;; never evaluated, e.g. by a compile-only driver).  A registration
+;;; expression refers to dependencies as (module-ref 'lib 'name), which
+;;; resolves against the runtime module registry -- so a library that has
+;;; expand-time state but no runtime module must be loaded (evaluated)
+;;; before its dependents can be registered.
+
+(define *runtime-registered-libraries* '())
+
+(define (runtime-registered? name)
+  (member name *runtime-registered-libraries*))
+
 (define (library-registry-ref name)
   (let ((entry (assoc name *library-registry*)))
     (and entry (cdr entry))))
@@ -94,7 +109,9 @@
           (set! *libraries-being-loaded*
                 (cons lib-name *libraries-being-loaded*)))
         (lambda ()
-          (eval (compile-program forms) (rootlet)))
+          (eval (compile-program forms) (rootlet))
+          (set! *runtime-registered-libraries*
+                (cons lib-name *runtime-registered-libraries*)))
         (lambda ()
           (set! *libraries-being-loaded*
                 (filter (lambda (n) (not (equal? n lib-name)))
@@ -110,7 +127,8 @@
         ;; treat it as a record of its live bindings so only/prefix/rename
         ;; imports of it work too.
         (make-lib-record base (map car (exp-library-bindings base)))
-        (or (library-registry-ref lib-name)
+        (or (let ((rec (library-registry-ref lib-name)))
+              (and rec (runtime-registered? lib-name) rec))
             (begin (load-library! lib-name)
                    (library-registry-ref lib-name))
             (error "import: unknown library" lib-name)))))
