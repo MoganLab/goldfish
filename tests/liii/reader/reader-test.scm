@@ -1,4 +1,3 @@
-(load "liii/reader.scm")
 (import (liii check))
 
 (check-set-mode! 'report-failed)

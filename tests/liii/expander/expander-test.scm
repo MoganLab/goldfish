@@ -1,27 +1,12 @@
 ;; expander bootstrap-0 test
 ;;
-;; Exercises the Sets-of-Scopes expander through both bootstrap paths:
-;;   1. from-source: s7 evaluates the kernel sources directly
-;;   2. from-artifact: the pre-expanded kernel-combined.scm is the expander
-;; The expander compiles programs through compile-program and the result is
-;; evaluated by s7 (the host evaluator).
+;; Exercises the Sets-of-Scopes expander.  The expander is loaded by bin/gf
+;; at startup (customize_goldfish_by_mode): the pre-expanded artifact
+;; kernel-combined.scm plus the lib layer, for non-s7 modes.  Programs are
+;; compiled through compile-program and the result is evaluated by s7 (the
+;; host evaluator).
 ;;
-;; Loading: this test first loads the seed (liii/boot.scm) and the Scheme
-;; reader, then the expander (artifact path here; see the comment in the
-;; body for switching to from-source).
-
-(load "liii/boot.scm")
-(load "liii/reader.scm")
-
-;; Choose the bootstrap path.  The artifact is the committed pre-expanded
-;; expander; the from-source path re-evaluates the kernel sources.  Both
-;; must produce a working expander.
-(if (and (getenv "EXPANDER_FROM_SOURCE") (string=? (getenv "EXPANDER_FROM_SOURCE") "1"))
-  (load-source-file "expander/kernel/load-kernel.scm")
-  (begin
-    (load-source-file "expander/kernel-combined.scm")
-    (load-source-file "expander/lib/install.scm")))
-(install-standard-library!)
+;; Loading: no manual loads here; bin/gf has already installed the expander.
 
 (define (run prog)
   (eval (compile-program prog) (rootlet)))

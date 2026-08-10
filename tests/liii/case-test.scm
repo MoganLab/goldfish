@@ -5,13 +5,7 @@
 ;; 变量/(? pred) 模式表达。
 ;;
 ;; match 是 expander 的 syntax-rules 宏，测试须经 expander 编译
-;; （compile-program），故本文件像 expander-test 一样先加载 expander。
-
-(load "liii/boot.scm")
-(load "liii/reader.scm")
-(load-source-file "expander/kernel-combined.scm")
-(load-source-file "expander/lib/install.scm")
-(install-standard-library!)
+;; （compile-program）；expander 已由 bin/gf 在启动时加载。
 
 (define (run prog)
   (eval (compile-program (cons '(import (liii match)) prog)) (rootlet)))

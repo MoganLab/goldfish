@@ -55,7 +55,8 @@
     ((let*-values () body ...)
      (let () body ...))
     ((let*-values ((formals expr)) body ...)
-     (let-values ((formals expr)) body ...))
+     (call-with-values (lambda () expr)
+       (lambda formals body ...)))
     ((let*-values ((formals expr) more ...) body ...)
      (call-with-values (lambda () expr)
        (lambda formals

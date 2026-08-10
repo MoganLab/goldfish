@@ -55,6 +55,12 @@
 (define (runtime-registered? name)
   (member name *runtime-registered-libraries*))
 
+(define (runtime-registered-add! name)
+  (unless (member name *runtime-registered-libraries*)
+    (set! *runtime-registered-libraries*
+          (cons name *runtime-registered-libraries*)))
+  name)
+
 (define (library-registry-ref name)
   (let ((entry (assoc name *library-registry*)))
     (and entry (cdr entry))))
@@ -411,7 +417,9 @@
                                            (list 'quote (car entry))
                                            v))))
                              entries)
-                        (list (list 'register-module 'm)))))))
+                        (list (list 'register-module 'm)
+                              (list 'runtime-registered-add!
+                                    (list 'quote name))))))))
 
 ;;; expand-import : syntax context -> (values defs ctx)
 ;;; Top-level import: installs the imported bindings into the-base-library so
@@ -492,5 +500,11 @@
     (module-define! the-expander-library 'expand-use-modules expand-use-modules)
     (module-define! the-expander-library 'install-module-forms! install-module-forms!)
     (module-define! the-expander-library 'library-registry-ref library-registry-ref)
+    (module-define! the-expander-library 'runtime-registered-add! runtime-registered-add!)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
-    (module-define! the-expander-library 'lib-record-exports lib-record-exports)))
+    (module-define! the-expander-library 'lib-record-exports lib-record-exports)
+    ;; load-library! evaluates a library's registration expression in the
+    ;; host rootlet, so the runtime-registered marker (called from
+    ;; library-register-expression) must also be visible there.
+    (eval (list 'define 'runtime-registered-add! runtime-registered-add!)
+          (rootlet))))

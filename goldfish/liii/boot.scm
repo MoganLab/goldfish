@@ -201,6 +201,31 @@
 (define (make-lazy-promise thunk)
   (list (cons #f thunk) '+promise+))
 
+;; The host does not provide force (or promise?) in this configuration, so
+;; implement the R7RS semantics for the make-lazy-promise representation
+;; above: evaluate once, cache, and recursively force a promise-valued
+;; result.
+
+(define (force promise)
+  (if (and (pair? promise)
+           (pair? (cdr promise))
+           (eq? (cadr promise) '+promise+))
+    (let ((box (car promise)))
+      (if (car box)
+        (cdr box)
+        (let ((value ((cdr box))))
+          (set-car! box #t)
+          (if (and (pair? value)
+                   (pair? (cdr value))
+                   (eq? (cadr value) '+promise+))
+            (let ((result (force value)))
+              (set-cdr! box result)
+              result)
+            (begin
+              (set-cdr! box value)
+              value)))))
+    promise))
+
 ;;; r7rs-small procedures the host does not provide.
 
 (define (bytevector->u8-list bv)

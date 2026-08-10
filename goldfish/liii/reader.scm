@@ -809,8 +809,11 @@
         (lambda (tag . errs)
           (read-error-with-pos port (if (pair? errs) (car errs) '())))))))
 
-;; Replace S7's load: read the file through this Scheme reader and evaluate
-;; each form. Searches *load-path* like S7's load did.
+;; Replace S7's load: read the file through this Scheme reader and expand /
+;; evaluate each form with the expander (expand-eval), so macros defined in
+;; loaded files register in the shared base library.  Searches *load-path*
+;; like S7's load did.
+
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
@@ -824,7 +827,7 @@
              (let ((d (read port)))
                (if (eof-object? d)
                  (begin (close-input-port port) #t)
-                 (begin (eval d (rootlet)) (loop))))))))
+                 (begin (expand-eval d) (loop))))))))
       (else (loop (cdr cands))))))
 
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
