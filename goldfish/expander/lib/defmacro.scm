@@ -77,3 +77,18 @@
       ((_ macro (arg ...) body ...)
        #'(define-macro macro
            (lambda (arg ...) body ...))))))
+
+;;; macro : s7's shorthand for define-macro:
+;;;   (macro (name . params) body ...)  ==  (define-macro (name . params) body ...)
+;;; Used in the wild by (liii case)'s case*, which builds its macro as the
+;;; value of a let.  define-macro itself expands to a define-syntax, which
+;;; is a definition -- so this alias must also work in definition position
+;;; inside a body scan (the intdef scanner recognizes define-macro).
+
+(define-syntax macro
+  (lambda (x)
+    (syntax-case x ()
+      ((_ (name . params) body ...)
+       #'(define-macro (name . params) body ...))
+      ((_ name expr)
+       #'(define-macro name expr)))))

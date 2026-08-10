@@ -70,13 +70,15 @@
                   (wrap-expression '(if #f #f))
                   (wrap-expression (cons 'begin (reverse lib-defs))))
                 ctx)
-        (let*-values (((body-stx ctx1)
-                       (expand-body (reverse body) ctx)))
-          (values (if (null? lib-defs)
-                    body-stx
-                    (wrap-expression
-                      (cons 'begin (append (reverse lib-defs) (list body-stx)))))
-                  ctx1)))
+        (let*-values (((body-defs ctx1)
+                       (expand-library-body (reverse body) the-base-library ctx)))
+          (let ((body-stx (wrap-expression
+                           (cons 'begin (map lower body-defs)))))
+            (values (if (null? lib-defs)
+                      body-stx
+                      (wrap-expression
+                        (cons 'begin (append (reverse lib-defs) (list body-stx)))))
+                    ctx1))))
       (let ((expr (car exprs)))
         (if (and (pair? expr) (eq? (car expr) 'begin))
           (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body)

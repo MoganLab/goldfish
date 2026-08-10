@@ -138,24 +138,31 @@
 
 (define (expand-lib-define-bind stx lib ctx)
   (let*-values (((id val-stx) (parse-internal-define stx)))
-    ;; Normalize a macro-generated definition: its binder and value carry
-    ;; the expand-macro output-flip intro scope (cf. def-bind! in
-    ;; expand.scm); flip it off so the binder resolves and the value
-    ;; expands in expansion space.
-    (let* ((ph (context-phase ctx))
-           (scp-i (context-intro-scope ctx))
-           (id (if (and scp-i (memq scp-i (syntax-scopes id ph)))
-                   (stx-flip-scope id scp-i ph)
-                   id))
-           (val-stx (if (and scp-i (memq scp-i (syntax-scopes val-stx ph)))
-                        (stx-flip-scope val-stx scp-i ph)
-                        val-stx)))
-      (let*-values (((name ctx) (context-alloc-name ctx id))
-                    ((ctx) (context-bind ctx id name))
-                    ((ref) (make-toplevel-ref name lib (syntax-form id) #f))
-                    ((ctx) (context-extend-env ctx name (make-toplevel-binding ref))))
-        (exp-library-define! lib (syntax-form id) (make-toplevel-binding ref))
-        (values (cons name val-stx) ctx)))))
+    ;; Macro alias: (define name macro) where macro resolves to a
+    ;; transformer binding -- an s7 idiom (e.g. (liii raw-string)'s
+    ;; (define deindent stx-deindent), (define &- stx-deindent)).  Register
+    ;; name as an alias of the same transformer; the value expression is a
+    ;; no-op (macro aliases have no runtime value).
+    (let*-values (((vname vbinding) (resolve-identifier val-stx ctx)))
+      (if (transformer-binding? vbinding)
+          (let*-values (((name ctx2) (context-alloc-name ctx id)))
+            (exp-library-define! lib (syntax-form id) vbinding)
+            (values (cons name (datum->syntax val-stx '(if #f #f)))
+                    (context-extend-env ctx2 name vbinding)))
+          (let* ((ph (context-phase ctx))
+                 (scp-i (context-intro-scope ctx))
+                 (id (if (and scp-i (memq scp-i (syntax-scopes id ph)))
+                         (stx-flip-scope id scp-i ph)
+                         id))
+                 (val-stx (if (and scp-i (memq scp-i (syntax-scopes val-stx ph)))
+                              (stx-flip-scope val-stx scp-i ph)
+                              val-stx)))
+            (let*-values (((name ctx) (context-alloc-name ctx id))
+                          ((ctx) (context-bind ctx id name))
+                          ((ref) (make-toplevel-ref name lib (syntax-form id) #f))
+                          ((ctx) (context-extend-env ctx name (make-toplevel-binding ref))))
+              (exp-library-define! lib (syntax-form id) (make-toplevel-binding ref))
+              (values (cons name val-stx) ctx)))))))
 
 (define (expand-lib-define-syntax stx lib ctx)
   (let* ((form (syntax-form stx))

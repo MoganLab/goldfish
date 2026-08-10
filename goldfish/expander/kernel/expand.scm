@@ -382,6 +382,10 @@
                ((binding-value binding) stx ctx))
               ((transformer-binding? binding)
                (expand-macro stx ctx (binding-value binding)))
+              ((memq (syntax-form head) host-forms)
+               ;; s7 host statement form (with-let etc.): pass through to the
+               ;; host evaluator untouched.
+               (values stx ctx))
               (else
                (expand-application stx ctx))))
           (expand-application stx ctx)))))
@@ -394,6 +398,15 @@
       (values (make-syntax (cons fun args)
                            (syntax-context stx) (syntax-library stx))
               ctx2))))
+
+;;; s7 host forms that must NOT be traversed by the expander: their bodies
+;;; are s7 statements (definitions / environment forms) that the expander
+;;; would reject in expression position (e.g. (with-let (unlet) (define ...
+;;; ...)) in (liii case)).  They are passed through to the host evaluator,
+;;; which understands them.  Identifiers are matched by name (these are
+;;; ambient host forms, not user-shadowable bindings in the goldfish libs).
+
+(define host-forms '(with-let sublet unlet))
 
 (module-define! the-expander-library 'expand-expr expand-expr)
 (module-define! the-expander-library 'expand-macro-once expand-macro-once)

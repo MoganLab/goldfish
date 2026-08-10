@@ -134,12 +134,27 @@
   (cond
     ((and (pair? spec) (eq? (car spec) 'only))
      (import-only-into-library! lib spec))
+    ((and (pair? spec) (eq? (car spec) 'except))
+     (import-except-into-library! lib spec))
     ((and (pair? spec) (eq? (car spec) 'prefix))
      (import-prefix-into-library! lib spec))
     ((and (pair? spec) (eq? (car spec) 'rename))
      (import-rename-into-library! lib spec))
     (else
      (import-plain-into-library! lib spec))))
+
+(define (import-except-into-library! lib spec)
+  (let* ((lib-name (cadr spec))
+         (ids (cddr spec))
+         (rec (library-record lib-name)))
+    (let ((src (lib-record-library rec))
+          (exports (lib-record-exports rec)))
+      (for-each (lambda (name)
+                  (unless (memq name ids)
+                    (let ((binding (exp-library-ref src name)))
+                      (when binding
+                        (exp-library-define! lib name binding)))))
+                exports))))
 
 (define (import-plain-into-library! lib lib-name)
   ;; (scsyntax): the implementation kernel module is the primitive library
