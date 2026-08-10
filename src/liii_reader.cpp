@@ -411,8 +411,9 @@ f_undefined (s7_scheme* sc, s7_pointer args) {
 void
 bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   // the tiny bootstrap read loads boot.scm, string-cursor.scm and reader.scm;
+  // boot.scm is the seed (runtime substrate + loader + define-library/import),
   // reader.scm ends by defining `read` and `load` (through the Scheme reader)
-  tiny_load_path (sc, (std::string (gf_lib) + "/scheme/boot.scm").c_str ());
+  tiny_load_path (sc, (std::string (gf_lib) + "/liii/boot.scm").c_str ());
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/string-cursor.scm").c_str ());
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/reader.scm").c_str ());
 }

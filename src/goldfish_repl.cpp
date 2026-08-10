@@ -54,7 +54,7 @@ eval_string (const char* code) {
     wasm_sc               = goldfish::init_goldfish_scheme (gf_lib);
     // 自动加载所有 goldfish/scheme/*.scm
     s7_eval_c_string (wasm_sc, "(load \"scheme/base.scm\")");
-    s7_eval_c_string (wasm_sc, "(load \"scheme/boot.scm\")");
+    s7_eval_c_string (wasm_sc, "(load \"liii/boot.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/case-lambda.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/char.scm\")");
     s7_eval_c_string (wasm_sc, "(load \"scheme/file.scm\")");

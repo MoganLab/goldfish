@@ -1626,7 +1626,7 @@ find_goldfish_library () {
 string
 find_goldfish_boot (const char* gf_lib) {
   tb_char_t        data_boot[TB_PATH_MAXN]= {0};
-  tb_char_t const* gf_boot= tb_path_absolute_to (gf_lib, "scheme/boot.scm", data_boot, sizeof (data_boot));
+  tb_char_t const* gf_boot= tb_path_absolute_to (gf_lib, "liii/boot.scm", data_boot, sizeof (data_boot));
 
   if (!tb_file_access (gf_boot, TB_FILE_MODE_RO)) {
     cerr << "The boot.scm for Goldfish Scheme does not exist" << endl;
