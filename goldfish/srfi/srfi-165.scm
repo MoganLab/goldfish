@@ -165,66 +165,33 @@
       (make-computation-environment-variable 'default-computation #f #f)
     ) ;define
 
-    (define-macro (define-computation-type make-environment run . vars)
-      (letrec ((process-vars (lambda (vars n acc)
-                               (if (null? vars)
-                                 (reverse acc)
-                                 (let ((v (car vars)) (rest (cdr vars)))
-                                   (cond ((and (pair? v)
-                                            (pair? (cdr v))
-                                            (pair? (cddr v))
-                                            (string=? (caddr v) "immutable")
-                                          ) ;and
-                                          (let ((var (car v)) (default (cadr v)))
-                                            (process-vars rest (+ n 1) (cons (list var default #t n) acc))
-                                          ) ;let
-                                         ) ;
-                                         ((and (pair? v) (pair? (cdr v)))
-                                          (let ((var (car v)) (default (cadr v)))
-                                            (process-vars rest (+ n 1) (cons (list var default #f n) acc))
-                                          ) ;let
-                                         ) ;
-                                         (else (process-vars rest (+ n 1) (cons (list v #f #f n) acc)))
-                                   ) ;cond
-                                 ) ;let
-                               ) ;if
-                             ) ;lambda
-               ) ;process-vars
-              ) ;
-        (let* ((processed (process-vars vars 0 '()))
-               (n (length processed))
-               (default-syms (map (lambda (x) (gensym "default")) processed))
-               (env-sym (gensym "env"))
-              ) ;
-          `(begin
-             ,@(map (lambda (p ds) `(define ,ds ,(cadr p)))
-                 processed
-                 default-syms)
-             ,@(map (lambda (p ds)
-                      `(define ,(car p)
-                         (,make-environment-variable
-                          (quote ,(car p))
-                          ,ds
-                          ,(caddr p)
-                          ,(cadddr p))))
-                 processed
-                 default-syms)
-             (define (,make-environment)
-               (let ((,env-sym (make-vector ,(+ n 2))))
-                 (,environment-set-global!
-                  ,env-sym
-                  (make-hash-table variable-comparator))
-                 (,environment-set-local! ,env-sym '())
-                 ,@(map (lambda (p ds)
-                          `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds)))
-                     processed
-                     default-syms)
-                 ,env-sym))
-             (define (,run computation)
-               (,execute computation (,make-environment))))
-        ) ;let*
-      ) ;letrec
-    ) ;define-macro
+    (define-syntax define-computation-type
+      (syntax-rules ()
+        ((define-computation-type make-environment run var ...)
+         (%define-computation-type make-environment run (var ...) 0 ()))))
+
+    (define-syntax %define-computation-type
+      (syntax-rules ()
+        ((_ make-environment run () n ((var default immutable i) ...))
+         (begin
+           (define var (make-environment-variable 'var default immutable i))
+           ...
+           (define (make-environment)
+             (let ((env (make-vector (+ n 2))))
+               (environment-set-global! env (make-hash-table variable-comparator))
+               (environment-set-local! env '())
+               (vector-set! env (+ i 2) (box (environment-variable-default var)))
+               ...
+               env))
+           (define (run computation)
+             (execute computation (make-environment)))))
+        ((_ make-environment run ((v d "immutable") . v*) n (p ...))
+         (%define-computation-type make-environment run v* (+ n 1) (p ... (v d #t n))))
+        ((_ make-environment run ((v d) . v*) n (p ...))
+         (%define-computation-type make-environment run v* (+ n 1) (p ... (v d #f n))))
+        ((_ make-environment run (v . v*) n (p ...))
+         (%define-computation-type make-environment run v* (+ n 1) (p ... (v #f #f n))))))
+
 
     (define (computation-environment-ref env var)
       (if (predefined? var)
