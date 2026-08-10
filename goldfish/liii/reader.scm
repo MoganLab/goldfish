@@ -836,3 +836,42 @@
     (if (eof-object? d)
       (reverse acc)
       (loop (read port) (cons d acc)))))
+
+;;; expand-eval : datum -> value
+;;; The one-time eval entry: expand a top-level form with the Sets-of-Scopes
+;;; expander (registering macros in the shared base library) and evaluate the
+;;; lowered core in the-expander-library.  This is the replacement for s7's
+;;; plain `eval' once the eval switch is flipped.  The free identifiers here
+;;; (wrap-expression, expand-library-body, ...) resolve dynamically from the
+;;; rootlet, so this definition predates the expander load.
+;;;
+;;; A plain recursive helper (not a named let) evaluates the defs: s7's
+;;; named-let (tail) context misbehaves with `eval' on lower's output.
+
+(define (eval-defs defs env)
+  (if (null? defs)
+    '(if #f #f)
+    (let ((r (eval (lower (car defs)) env)))
+      (if (null? (cdr defs))
+        r
+        (eval-defs (cdr defs) env)))))
+
+(define *eval-ctx* #f)
+
+(define (expand-eval expr)
+  (let* ((lib the-base-library)
+         (stx (stx-set-library (wrap-expression expr) lib))
+         (ctx (or *eval-ctx* (initial-context)))
+         (form (syntax-form stx))
+         (head (and (pair? form) (car form))))
+    (if (and (identifier? head)
+             (let*-values (((name binding) (resolve-identifier head ctx)))
+               (and binding (module-form-binding? binding))))
+      (let*-values (((name binding) (resolve-identifier head ctx))
+                    ((defs ctx1) ((binding-value binding) stx ctx)))
+        (set! *eval-ctx* ctx1)
+        (eval-defs defs the-expander-library))
+      (let*-values (((defs ctx1)
+                     (expand-library-body (list stx) lib ctx)))
+        (set! *eval-ctx* ctx1)
+        (eval-defs defs the-expander-library)))))
