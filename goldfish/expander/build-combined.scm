@@ -27,9 +27,10 @@
 ;;;
 ;;; Usage: EXPANDER_BOOT=from-source|from-artifact bin/gf build-combined.scm
 ;;; Output: goldfish/expander/kernel-combined.scm
-
-(load "liii/boot.scm")
-(load "liii/reader.scm")
+;;; Note: the seed (liii/boot.scm) and the Scheme reader (liii/reader.scm)
+;;; are loaded by bin/gf's bootstrap at startup; do not (load ...) them
+;;; here -- load now goes through the expander, which cannot process the
+;;; seed's host-specific forms (e.g. let-set!).
 
 (define (boot-from-source?)
   (let ((v (getenv "EXPANDER_BOOT")))
@@ -107,7 +108,7 @@
                                   (filter (lambda (e) (eq? (binding-kind (cdr e)) 'toplevel))
                                           (exp-library-bindings lib)))))
            (artifact (cons 'begin artifact)))
-      (set! (*s7* 'print-length) 1000000)
+      (let-set! *s7* 'print-length 1000000)
       (call-with-output-file output
         (lambda (port) (write artifact port)))
       (format #t "wrote ~A (~A forms)\n" output (length (cdr artifact))))))
