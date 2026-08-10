@@ -249,8 +249,13 @@
         (import-into-library! lib imports)
         (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
           (let*-values (((defs ctx1) (expand-library-body body-stxs lib ctx)))
+            ;; An exported identifier not defined in the library body is
+            ;; inherited from the base library when the base library has it
+            ;; (host primitives / core forms / ambient syntax re-exported
+            ;; without a body definition, as goldfish/scheme/base.scm does).
             (for-each (lambda (export)
-                        (let ((binding (exp-library-ref lib export)))
+                        (let ((binding (or (exp-library-ref lib export)
+                                           (exp-library-ref the-base-library export))))
                           (unless binding
                             (error "define-library: exported identifier not defined"
                                    export))

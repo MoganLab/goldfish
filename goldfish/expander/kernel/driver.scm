@@ -35,6 +35,24 @@
                 (compile-program* exprs (initial-context))))
     (lower program)))
 
+;;; compile-toplevel : datum -> lowered core Scheme S-expression
+;;; Compile a single top-level form into the-base-library, so a top-level
+;;; define-syntax registers the macro in the shared base library and later
+;;; compile-program calls can resolve it.  Value definitions are lowered to
+;;; a single (define ...) form; macro definitions produce no runtime form
+;;; (the transformer lives only at expand time) and compile to a no-op.
+;;; This is the per-form entry point used by the REPL / load / eval path,
+;;; keeping macro state across separate eval calls.
+
+(define (compile-toplevel expr)
+  (let ((lib the-base-library))
+    (let ((stx (stx-set-library (wrap-expression expr) lib)))
+      (let*-values (((defs ctx)
+                     (expand-library-body (list stx) lib (initial-context))))
+        (if (null? defs)
+          '(if #f #f)
+          (lower (car defs)))))))
+
 ;;; compile-file : string -> lowered core Scheme S-expression
 ;;; Read a source file with the R7RS reader and expand it as a program.
 
@@ -76,6 +94,7 @@
 (module-define! the-expander-library 'expand-stx expand-stx)
 (module-define! the-expander-library 'expand expand)
 (module-define! the-expander-library 'compile-program compile-program)
+(module-define! the-expander-library 'compile-toplevel compile-toplevel)
 (module-define! the-expander-library 'compile-file compile-file)
 
 ;;; Host convenience: load the lib layer (the user-space macro library) on

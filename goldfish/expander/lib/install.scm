@@ -64,6 +64,10 @@
 (install-library-file! the-base-library "expander/lib/define-record-type.scm")
 (install-library-file! the-base-library "expander/lib/core-macros.scm")
 (install-library-file! the-base-library "expander/lib/cond-expand.scm")
+;; s7 define-macro compatibility shim (depends on syntax-case).
+(install-library-file! the-base-library "expander/lib/defmacro.scm")
+;; s7 define* / lambda* compatibility shim (depends on syntax-case).
+(install-library-file! the-base-library "expander/lib/define-star.scm")
 ;; The R7RS library surface (define-library/import/define-module/use-modules)
 ;; is self-hosted lib-layer code, not part of the core artifact; installing
 ;; it registers the module-form bindings in the-base-library (the trailing

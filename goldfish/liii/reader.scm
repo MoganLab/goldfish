@@ -665,6 +665,23 @@
               (read-bytevector port))
              (else
                (error 'read-error "invalid #u8"))))
+          ;; R7RS abbreviated forms of the syntax-object forms:
+          ;;   #'X    -> (syntax X)
+          ;;   #`X    -> (quasisyntax X)
+          ;;   #,X    -> (unsyntax X)
+          ;;   #,@X   -> (unsyntax-splicing X)
+          ((#\')
+           (list 'syntax (read-subexpression port "syntax expression")))
+          ((#\`)
+           (list 'quasisyntax (read-subexpression port "quasisyntax expression")))
+          ((#\,)
+           (cond
+             ((eqv? (peek port) #\@)
+              (next port)
+              (list 'unsyntax-splicing (read-subexpression port "subexpression of #,@"))
+             )
+             (else
+               (list 'unsyntax (read-subexpression port "unsyntax expression")))))
           (else
             (error 'read-error "Unknown # object" (string #\# ch))))))))
 

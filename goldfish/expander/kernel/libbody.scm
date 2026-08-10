@@ -34,7 +34,12 @@
             ((eq? resolved 'begin)
              (loop (append (cdr (syntax-form stx)) (cdr stxs)) ctx var-defs exprs))
             (else
-             (let*-values (((result ctx1) (expand-body-form stx ctx)))
+             ;; Macro-headed form (e.g. define-macro): expand the head one
+             ;; step at a time until the definition kind is revealed, WITHOUT
+             ;; recursing into an expression body (mirrors intdef's
+             ;; scan-head-loop).  Non-definition heads fall through and the
+             ;; form is expanded as a body expression at finish time.
+             (let*-values (((result ctx1) (scan-lib-head stx ctx)))
                (let ((resolved2 (lib-resolve-head result ctx1)))
                  (cond
                    ((eq? resolved2 'define)
@@ -48,6 +53,24 @@
                    (else
                     (loop (cdr stxs) ctx1 var-defs (cons stx exprs))))))))))))
 
+;;; scan-lib-head : syntax context -> (values syntax context)
+;;; Expand the head of a top-level library form one macro step at a time
+;;; (the scan phase), stopping at a definition head (define / define-syntax
+;;; / begin) or a non-macro head.  This lets macro-generated definitions
+;;; (e.g. define-macro -> define-syntax) be detected and dispatched by
+;;; expand-library-body without expanding the body as an expression.
+
+(define (scan-lib-head stx ctx)
+  (let ((form (syntax-form stx)))
+    (if (and (pair? form) (identifier? (car form)))
+        (let*-values (((name binding) (resolve-identifier (car form) ctx)))
+          (if (and binding (transformer-binding? binding))
+              (let*-values (((out ctx1)
+                             (expand-macro-once stx ctx (binding-value binding))))
+                (scan-lib-head out ctx1))
+              (values stx ctx)))
+        (values stx ctx))))
+
 ;;; expand-library-finalize : (list (name . val-stx)) (list syntax) context
 ;;;                           -> (values defs ctx)
 ;;; Expand definition values, then body expressions, with every
@@ -58,15 +81,24 @@
 (define lib-output-source (make-syntax 'empty (stx-ctx-empty) #f))
 
 (define (expand-library-finalize var-defs exprs ctx)
+  (set-current-expand-context! ctx)
   (let*-values (((defs ctx1)
                  (let loop ((ds var-defs) (c ctx) (out '()))
                    (if (null? ds)
                        (values (reverse out) c)
-                       (let*-values (((val-sexp c1) (expand-expr (cdar ds) c)))
-                         (loop (cdr ds) c1
-                               (cons (datum->syntax lib-output-source
-                                       `(define ,(caar ds) ,val-sexp))
-                                     out)))))))
+                       ;; Prune use scopes off a macro-generated value so its
+                       ;; free identifiers resolve against the library rather
+                       ;; than the macro use site (mirrors def-bind!'s
+                       ;; stx-prune-scopes on binders in expand.scm).
+                       (let* ((ph (context-phase c))
+                              (val (stx-prune-scopes (cdar ds)
+                                                     (context-use-scopes c)
+                                                     ph)))
+                         (let*-values (((val-sexp c1) (expand-expr val c)))
+                           (loop (cdr ds) c1
+                                 (cons (datum->syntax lib-output-source
+                                         `(define ,(caar ds) ,val-sexp))
+                                       out))))))))
     (let*-values (((expr-sexps ctx2)
                    (let loop ((es exprs) (c ctx1) (out '()))
                      (if (null? es)
@@ -82,12 +114,24 @@
 
 (define (expand-lib-define-bind stx lib ctx)
   (let*-values (((id val-stx) (parse-internal-define stx)))
-    (let*-values (((name ctx) (context-alloc-name ctx id))
-                  ((ctx) (context-bind ctx id name))
-                  ((ref) (make-toplevel-ref name lib (syntax-form id) #f))
-                  ((ctx) (context-extend-env ctx name (make-toplevel-binding ref))))
-      (exp-library-define! lib (syntax-form id) (make-toplevel-binding ref))
-      (values (cons name val-stx) ctx))))
+    ;; Normalize a macro-generated definition: its binder and value carry
+    ;; the expand-macro output-flip intro scope (cf. def-bind! in
+    ;; expand.scm); flip it off so the binder resolves and the value
+    ;; expands in expansion space.
+    (let* ((ph (context-phase ctx))
+           (scp-i (context-intro-scope ctx))
+           (id (if (and scp-i (memq scp-i (syntax-scopes id ph)))
+                   (stx-flip-scope id scp-i ph)
+                   id))
+           (val-stx (if (and scp-i (memq scp-i (syntax-scopes val-stx ph)))
+                        (stx-flip-scope val-stx scp-i ph)
+                        val-stx)))
+      (let*-values (((name ctx) (context-alloc-name ctx id))
+                    ((ctx) (context-bind ctx id name))
+                    ((ref) (make-toplevel-ref name lib (syntax-form id) #f))
+                    ((ctx) (context-extend-env ctx name (make-toplevel-binding ref))))
+        (exp-library-define! lib (syntax-form id) (make-toplevel-binding ref))
+        (values (cons name val-stx) ctx)))))
 
 (define (expand-lib-define-syntax stx lib ctx)
   (let* ((form (syntax-form stx))
