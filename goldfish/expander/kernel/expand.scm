@@ -67,17 +67,33 @@
 ;;; emit-toplevel-ref : toplevel-ref syntax -> syntax
 ;;; Reference to a module-defined toplevel: a bare gensym when the
 ;;; reference sits in the defining library (or the binding has no home),
-;;; a qualified (module-ref 'home 'original) otherwise.
+;;; a qualified (module-ref 'home 'original) otherwise.  Bindings whose
+;;; home is the BASE library are ambient: they live in the expander's own
+;;; module / the host rootlet under their ORIGINAL name (the install
+;;; loader evaluates lib-layer defines into the-expander-library under the
+;;; renamed gensym AND module-define! registers the original), so any
+;;; cross-library datum reference (e.g. define-macro transformer output
+;;; referencing install-defmacro-transformer) emits the bare original
+;;; name instead of a (module-ref ...) that would need a runtime module
+;;; the base library does not register.
 
 (define (emit-toplevel-ref ref src-stx)
   (let ((home (toplevel-ref-home ref)))
-    (if (or (not home) (eq? home (syntax-library src-stx)))
-        (make-syntax (toplevel-ref-gensym ref)
-                     (syntax-context src-stx) (syntax-library src-stx))
-        (datum->syntax src-stx
-          (list 'module-ref
-                (list 'quote (exp-library-name home))
-                (list 'quote (toplevel-ref-original ref)))))))
+    (cond
+      ((not home)
+       (make-syntax (toplevel-ref-gensym ref)
+                    (syntax-context src-stx) (syntax-library src-stx)))
+      ((eq? home (syntax-library src-stx))
+       (make-syntax (toplevel-ref-gensym ref)
+                    (syntax-context src-stx) (syntax-library src-stx)))
+      ((eq? home (base-library))
+       (make-syntax (toplevel-ref-original ref)
+                    (syntax-context src-stx) (syntax-library src-stx)))
+      (else
+       (datum->syntax src-stx
+         (list 'module-ref
+               (list 'quote (exp-library-name home))
+               (list 'quote (toplevel-ref-original ref))))))))
 
 ;;; expand-macro-once : run a transformer once and return its (flipped)
 ;;; output WITHOUT expanding it.  The body scan uses this to see the head

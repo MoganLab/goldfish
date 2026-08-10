@@ -50,6 +50,30 @@
                       (loop (cdr stxs) ctx2 var-defs exprs)))
                    ((eq? resolved2 'begin)
                     (loop (append (cdr (syntax-form result)) (cdr stxs)) ctx1 var-defs exprs))
+                   ((eq? resolved2 'if)
+                    ;; Conditional top-level definition (s7 idiom):
+                    ;;   (unless (defined? *x*) (define *x* ...) ...)
+                    ;; expands to (if test (begin (define ...) ...)).  Hoist
+                    ;; the then-branch definitions unconditionally -- on first
+                    ;; load the guard (defined? on a fresh name) is false, so
+                    ;; this matches s7's evaluation -- and keep any else
+                    ;; expression as a body expression.
+                    (let* ((form (syntax-form result))
+                           (then (cadr form))
+                           (then-form (syntax-form then))
+                           (def-forms
+                            (if (and (pair? then-form)
+                                     (identifier? (car then-form))
+                                     (eq? (syntax-form (car then-form)) 'begin))
+                              (cdr then-form)
+                              (list then)))
+                           (else-stx (if (pair? (cddr form))
+                                         (caddr form)
+                                         #f)))
+                      (loop (append def-forms
+                                    (if else-stx (list else-stx) '())
+                                    (cdr stxs))
+                            ctx1 var-defs exprs)))
                    (else
                     (loop (cdr stxs) ctx1 var-defs (cons stx exprs))))))))))))
 

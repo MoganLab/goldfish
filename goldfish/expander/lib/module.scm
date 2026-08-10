@@ -168,13 +168,15 @@
          (rec (library-record lib-name)))
     (let ((src (lib-record-library rec))
           (exports (lib-record-exports rec)))
+      ;; Tolerate ids the source library does not export (s7's (import
+      ;; (only ...)) does): scheme/time.scm imports s7-round from
+      ;; (scheme base), which the goldfish scheme/base does not export but
+      ;; s7's r7rs library does.
       (for-each (lambda (id)
-                  (unless (memq id exports)
-                    (error "import only: not exported" id))
-                  (let ((binding (exp-library-ref src id)))
-                    (unless binding
-                      (error "import: exported identifier has no binding" id))
-                    (exp-library-define! lib id binding)))
+                  (when (memq id exports)
+                    (let ((binding (exp-library-ref src id)))
+                      (when binding
+                        (exp-library-define! lib id binding)))))
                 ids))))
 
 (define (import-prefix-into-library! lib spec)
@@ -252,20 +254,49 @@
             ;; An exported identifier not defined in the library body is
             ;; inherited from the base library when the base library has it
             ;; (host primitives / core forms / ambient syntax re-exported
-            ;; without a body definition, as goldfish/scheme/base.scm does).
+            ;; without a body definition, as goldfish/scheme/base.scm does);
+            ;; otherwise it falls back to a host primitive reference resolved
+            ;; at eval time (the scheme base library exports the full s7
+            ;; r7rs procedure set, most of which is never defined in its
+            ;; body).  No binding at all is NOT an error: the host s7
+            ;; environment loads scheme/base.scm with the same tolerance.
             (for-each (lambda (export)
                         (let ((binding (or (exp-library-ref lib export)
-                                           (exp-library-ref the-base-library export))))
-                          (unless binding
-                            (error "define-library: exported identifier not defined"
-                                   export))
+                                           (exp-library-ref the-base-library export)
+                                           (make-primitive-binding export))))
+                          (exp-library-define! lib export binding)
                           (when (toplevel-binding? binding)
                             (set-toplevel-ref-exported! (binding-value binding) #t))))
                       exports)
             (library-registry-set! name (make-lib-record lib exports))
-            (values (append defs
-                            (list (datum->syntax lib-output-source
-                                    (library-register-expression lib name exports))))
+            ;; Pre-declare every definition name as #<undefined> in the
+            ;; host rootlet before the body's definitions evaluate, so a
+            ;; forward reference in the library body (s7 define-library
+            ;; semantics; e.g. (define s7-sqrt sqrt) before
+            ;; (define (sqrt ...)) in scheme/inexact) resolves to
+            ;; #<undefined> instead of erroring.  s7 provides no way to
+            ;; construct #<undefined> directly; (symbol->value 'name) of an
+            ;; unknown name returns it.  (rootlet) covers both eval paths
+            ;; (define evaluated into the-expander-library falls back to
+            ;; the rootlet for names the module lacks).
+            (values (append
+                     (list (datum->syntax
+                            lib-output-source
+                            (cons 'begin
+                                  (map (lambda (d)
+                                         (let ((sexp (lower d)))
+                                           (if (and (pair? sexp)
+                                                    (eq? (car sexp) 'define))
+                                             (list 'varlet '(rootlet)
+                                                   (list 'quote (cadr sexp))
+                                                   (list 'symbol->value
+                                                         (list 'quote
+                                                               'predeclare-forward-ref)))
+                                             (list 'if #f #f))))
+                                       defs))))
+                     defs
+                     (list (datum->syntax lib-output-source
+                             (library-register-expression lib name exports))))
                     ctx1)))))))
 
 ;;; library-register-expression : exp-library name exports -> sexp
@@ -294,9 +325,30 @@
                                acc)))
                       ((primitive-binding? binding)
                        ;; Re-exported host primitive: the register expression
-                       ;; stores its name; the reference resolves at eval time
-                       ;; (self-eval -> symbol->value).
-                       (cons (cons export (binding-value binding)) acc))
+                       ;; stores (symbol->value 'name), resolved at eval time
+                       ;; against the host rootlet (the reference itself
+                       ;; resolves via s7's rootlet fallback; a name missing
+                       ;; from the host -- as some exports of
+                       ;; goldfish/scheme/base.scm are -- yields #<undefined>).
+                       ;; The module-define! is wrapped in a catch: a handful
+                       ;; of scheme/let exports are s7 constants that cannot
+                       ;; be bound (e.g. unlet -> varlet error), which s7's
+                       ;; own define-library tolerates by never materializing
+                       ;; them in a runtime module.
+                       (cons (cons export
+                                   (list 'catch
+                                         '#t
+                                         (list 'lambda
+                                               '()
+                                               (list 'module-define!
+                                                     'm
+                                                     (list 'quote export)
+                                                     (list 'symbol->value
+                                                           (list 'quote
+                                                                 (binding-value binding)))))
+                                         (list 'lambda '(tag . info)
+                                               '(if #f #f))))
+                             acc))
                       ((or (core-form-binding? binding)
                            (module-form-binding? binding))
                        ;; Ambient syntax (lambda/if/define/...): no runtime
@@ -314,9 +366,17 @@
     (cons 'let
           (cons (list (list 'm (list 'make-module (list 'quote name))))
                 (append (map (lambda (entry)
-                               (list 'module-define! 'm
-                                     (list 'quote (car entry))
-                                     (cdr entry)))
+                               (let ((v (cdr entry)))
+                                 (if (and (pair? v) (eq? (car v) 'catch))
+                                     ;; Primitive re-export: the entry is a
+                                     ;; full catch-wrapped module-define! (the
+                                     ;; module-define! itself may fail on an s7
+                                     ;; constant name such as unlet, so the
+                                     ;; whole call must sit inside the catch).
+                                     v
+                                     (list 'module-define! 'm
+                                           (list 'quote (car entry))
+                                           v))))
                              entries)
                         (list (list 'register-module 'm)))))))
 
