@@ -149,6 +149,10 @@
               (values body-sexp ctx1))))))
 
 ;;; set!
+;;; (set! var val) assigns an identifier.  (set! (proc args ...) val) is the
+;;; SRFI-17 generalized form, lowered to ((setter proc) args ... val);
+;;; goldfish's s7-derived libraries (e.g. (liii logging)'s exit-hook
+;;; registration) rely on it, as do the R7RS (set! (car x) v) positions.
 
 (define (core-set! stx ctx)
   (let ((form (syntax-form stx)))
@@ -156,22 +160,33 @@
       (error "set!: expected (set! var val)" form))
     (let ((var-stx (cadr form))
           (val-stx (caddr form)))
-      (require-identifier var-stx "set!: expected identifier")
-      (let*-values (((name binding) (resolve-identifier var-stx ctx)))
-        (cond
-          ((core-form-binding? binding)
-           (error "set!: cannot assign keyword" (syntax-form var-stx)))
-          ((primitive-binding? binding)
-           (error "set!: cannot assign primitive" (syntax-form var-stx)))
-          ((and (toplevel-binding? binding)
-                (toplevel-ref-exported? (binding-value binding)))
-           (error "set!: cannot assign exported module binding"
-                  (syntax-form var-stx))))
-        (let*-values (((val-sexp ctx1) (expand-expr val-stx ctx)))
-          (let ((target (if (toplevel-binding? binding)
-                            (emit-toplevel-ref (binding-value binding) var-stx)
-                            name)))
-            (values (datum->syntax stx `(set! ,target ,val-sexp)) ctx1)))))))
+      (if (pair? (syntax-form var-stx))
+        (let* ((target-form (syntax-form var-stx))
+               (proc-stx (car target-form))
+               (arg-stxs (cdr target-form)))
+          (let*-values (((proc-sexp ctx1) (expand-expr proc-stx ctx))
+                        ((args-sexp ctx2) (expand-list arg-stxs ctx1))
+                        ((val-sexp ctx3) (expand-expr val-stx ctx2)))
+            (values (datum->syntax stx
+                     `((setter ,proc-sexp) ,@args-sexp ,val-sexp))
+                    ctx3)))
+        (begin
+          (require-identifier var-stx "set!: expected identifier")
+          (let*-values (((name binding) (resolve-identifier var-stx ctx)))
+            (cond
+              ((core-form-binding? binding)
+               (error "set!: cannot assign keyword" (syntax-form var-stx)))
+              ((primitive-binding? binding)
+               (error "set!: cannot assign primitive" (syntax-form var-stx)))
+              ((and (toplevel-binding? binding)
+                    (toplevel-ref-exported? (binding-value binding)))
+               (error "set!: cannot assign exported module binding"
+                      (syntax-form var-stx))))
+            (let*-values (((val-sexp ctx1) (expand-expr val-stx ctx)))
+              (let ((target (if (toplevel-binding? binding)
+                                (emit-toplevel-ref (binding-value binding) var-stx)
+                                name)))
+                (values (datum->syntax stx `(set! ,target ,val-sexp)) ctx1)))))))))
 
 ;;; letrec* -- the single recursive-binding core form.
 ;;; `letrec' is a macro deriving to letrec* (lib/core-macros.scm).
