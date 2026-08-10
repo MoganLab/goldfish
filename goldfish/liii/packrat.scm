@@ -1,5 +1,5 @@
 (define-library (liii packrat)
-  (import (liii case) (liii error) (scheme base) (srfi srfi-1))
+  (import (liii error) (scheme base) (srfi srfi-1))
   (export
     ;; parse-result
     parse-result?
@@ -397,57 +397,88 @@
                                     ) ;let
                                   ) ;lambda
                ) ;parse-alternative
-               (parse-pattern (lambda (nt body pattern)
-                                ;; TODO(jinser): inline alternatives, e.g.
-                                ;;   (packrat-parser expr
-                                ;;     (expr (((/ ('a) ('b) ('c))) 'ok)))
-                                ;; <=>
-                                ;;   (packrat-parser expr
-                                ;;     (expr (('a) 'ok)
-                                ;;           (('b) 'ok)
-                                ;;           (('c) 'ok)))
-                                (case* pattern
-                                 ((((! #<fails:...>) #<rest:...>))
-                                  `(packrat-unless (string-append ,"Nonterminal "
-                                                     (symbol->string (quote ,nt))
-                                                     ," expected to fail "
-                                                     (object->external-representation #<fails>))
-                                     ,(parse-pattern nt #t #<fails>)
-                                     ,(parse-pattern nt body #<rest>))
-                                 ) ;
-                                 (((#<var:> <- #<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car '(#<val>))
-                                     (lambda (#<var>)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<var:> <- ^ #<rest:...>))
-                                  `(lambda (results)
-                                     (let ((#<var>
-                                            (parse-results-position results)))
-                                       (,(parse-pattern nt body #<rest>)
-                                        results)))
-                                 ) ;
-                                 (((#<var:> <- #<val:> #<rest:...>))
-                                  `(packrat-check ,(car '(#<val>))
-                                     (lambda (#<var>)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<val:quote?> #<rest:...>))
-                                  `(packrat-check-base ,(car '(#<val>))
-                                     (lambda (dummy)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 (((#<val:> #<rest:...>))
-                                  `(packrat-check ,(car '(#<val>))
-                                     (lambda (dummy)
-                                       ,(parse-pattern nt body #<rest>)))
-                                 ) ;
-                                 ((() #<>) `(lambda (results)
-                                              (make-result ,body results)))
-                                 (else (type-error? 'wrong-type-arg))
-                                ) ;case*
-                              ) ;lambda
-               ) ;parse-pattern
+                (parse-pattern (lambda (nt body pattern)
+                                 ;; Structural dispatch over the packrat
+                                 ;; rule pattern (replaces the (liii case)
+                                 ;; case* form, which the expander cannot
+                                 ;; load and which was broken anyway: its
+                                 ;; quote? check never matched 'sym, so
+                                 ;; token literals like 'num fell through to
+                                 ;; the plain branch and failed at runtime).
+                                 ;; Cond (not match) is used because this
+                                 ;; transformer body is compiled by s7.
+                                 (cond
+                                   ;; ((! F...) . R): fails collects the
+                                   ;; (! ...) elements, rest the tail.
+                                   ((and (pair? pattern)
+                                         (pair? (car pattern))
+                                         (eq? (caar pattern) '!))
+                                    (let ((fails (cdar pattern))
+                                          (rest (cdr pattern)))
+                                      `(packrat-unless (string-append ,"Nonterminal "
+                                                         (symbol->string (quote ,nt))
+                                                         ," expected to fail "
+                                                         (object->external-representation (quote ,fails)))
+                                         ,(parse-pattern nt #t fails)
+                                         ,(parse-pattern nt body rest))))
+                                   ;; (V <- 'sym . R): quoted token literal.
+                                   ((and (pair? pattern)
+                                         (pair? (cdr pattern))
+                                         (eq? (cadr pattern) '<-)
+                                         (pair? (cddr pattern))
+                                         (pair? (caddr pattern))
+                                         (eq? (caaddr pattern) 'quote))
+                                    (let ((var (car pattern))
+                                          (val (cadr (caddr pattern)))
+                                          (rest (cdddr pattern)))
+                                      `(packrat-check-base (quote ,val)
+                                         (lambda (,var)
+                                           ,(parse-pattern nt body rest)))))
+                                   ;; (V <- ^ . R): bind the parse position.
+                                   ((and (pair? pattern)
+                                         (pair? (cdr pattern))
+                                         (eq? (cadr pattern) '<-)
+                                         (pair? (cddr pattern))
+                                         (eq? (caddr pattern) '^))
+                                    (let ((var (car pattern))
+                                          (rest (cdddr pattern)))
+                                      `(lambda (results)
+                                         (let ((,var (parse-results-position results)))
+                                           (,(parse-pattern nt body rest)
+                                            results)))))
+                                   ;; (V <- VAL . R): VAL is a nonterminal.
+                                   ((and (pair? pattern)
+                                         (pair? (cdr pattern))
+                                         (eq? (cadr pattern) '<-))
+                                    (let ((var (car pattern))
+                                          (val (caddr pattern))
+                                          (rest (cdddr pattern)))
+                                      `(packrat-check ,val
+                                         (lambda (,var)
+                                           ,(parse-pattern nt body rest)))))
+                                   ;; ('sym . R): leading quoted token.
+                                   ((and (pair? pattern)
+                                         (pair? (car pattern))
+                                         (eq? (caar pattern) 'quote))
+                                    (let ((val (cadr (car pattern)))
+                                          (rest (cdr pattern)))
+                                      `(packrat-check-base (quote ,val)
+                                         (lambda (dummy)
+                                           ,(parse-pattern nt body rest)))))
+                                   ;; (VAL . R): VAL is a nonterminal.
+                                   ((pair? pattern)
+                                    (let ((val (car pattern))
+                                          (rest (cdr pattern)))
+                                      `(packrat-check ,val
+                                         (lambda (dummy)
+                                           ,(parse-pattern nt body rest)))))
+                                   ;; (): empty rule.
+                                   ((null? pattern)
+                                    `(lambda (results)
+                                       (make-result ,body results)))
+                                   (else (type-error? 'wrong-type-arg)))
+                               ) ;lambda
+                ) ;parse-pattern
               ) ;
         `(let ,() ,@(map parse-nonterminal nonterminal-defs) ,start-nt)
       ) ;letrec

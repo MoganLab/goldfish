@@ -139,10 +139,14 @@
   (let ((form (syntax-form stx)))
     (if (any (lambda (s) (stopped-form? s ctx)) (cdr form))
         (values stx ctx)
-        (let*-values (((sexps ctx1) (expand-list (cdr form) ctx)))
-          (if (= 1 (length sexps))
-              (values (car sexps) ctx1)
-              (values (datum->syntax stx (cons 'begin sexps)) ctx1))))))
+        ;; Expand the body through intdef so internal definitions in an
+        ;; expression begin work ((begin (define x 1) x) -- s7 allows
+        ;; statements in begin bodies; cf. the (expected (begin (define
+        ;; ans 42) (expt ...))) idiom in liii/packrat's tests).
+        (if (null? (cdr form))
+            (values (datum->syntax stx '(if #f #f)) ctx)
+            (let*-values (((body-sexp ctx1) (expand-body (cdr form) ctx)))
+              (values body-sexp ctx1))))))
 
 ;;; set!
 

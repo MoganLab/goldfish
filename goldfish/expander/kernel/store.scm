@@ -55,6 +55,13 @@
                         (filter (lambda (s) (set<=? s scps)) scps-set))))
     (cond
       ((null? matching) #f)
+      ;; Two bindings with EXACTLY the same scope set are redefinitions
+      ;; (e.g. duplicate internal defines, which s7 lets the last one
+      ;; shadow): not an ambiguity.  store-bind conses newer bindings
+      ;; first, so store-resolve's linear search picks the last define.
+      ((and (pair? (cdr matching))
+            (set=? (car matching) (cadr matching)))
+       (car matching))
       ((and (pair? (cdr matching))
             (= (length (car matching)) (length (cadr matching))))
        #f)

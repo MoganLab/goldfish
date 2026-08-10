@@ -227,30 +227,21 @@
     ;; 0-clause BSD
     ;; Bill Schottstaedt
     ;; from S7 source repo: r7rs.scm
-    (define-macro (let-values vars . body)
-      (if (and (pair? vars) (pair? (car vars)) (null? (cdar vars)))
-        `((lambda ,(caar vars) ,@body) ,(cadar vars))
-        `(with-let (apply sublet
-                     (curlet)
-                     (list ,@(map (lambda (v)
-                                    `((lambda ,(car v)
-                                        (values ,@(map (lambda (name)
-                                                         (values (symbol->keyword name)
-                                                           name))
-                                                    (let args->proper-list
-                                                      ((args (car v)))
-                                                      (cond ((symbol? args)
-                                                             (list args))
-                                                            ((not (pair? args))
-                                                             args)
-                                                            ((pair? (car args))
-                                                             (cons (caar args)
-                                                               (args->proper-list (cdr args))))
-                                                            (else (cons (car args)
-                                                                    (args->proper-list (cdr args)))))))))
-                                      ,(cadr v)))
-                               vars)))
-           ,@body)
+    ;; NOTE (goldfish expander): the s7 original expanded the multi-binding
+    ;; case to (with-let (apply sublet (curlet) ...)), whose opaque
+    ;; with-let body kept macro-generated bare identifiers (e.g. a
+    ;; parameter reference in packrat's base-generator->results) from
+    ;; resolving against the expander's hygiene-renamed lexicals.  The
+    ;; standard call-with-values encoding below is semantically identical
+    ;; and works both under s7 and the expander.
+    (define-macro (let-values bindings . body)
+      (if (null? bindings)
+        `(let () ,@body)
+        (let ((b (car bindings)) (rest (cdr bindings)))
+          `(call-with-values
+             (lambda () ,(cadr b))
+             (lambda ,(car b)
+               (let-values ,rest ,@body))))
       ) ;if
     ) ;define-macro
 
