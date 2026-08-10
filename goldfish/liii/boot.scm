@@ -304,12 +304,16 @@
 ;;; read-forms : port -> (list datum)
 ;;; Read all datums from a port (through the Scheme `read'), the loader's
 ;;; input format.  scsyntax's loader reads whole files this way.
+;;; `read' is looked up dynamically: at seed time it is the C++ tiny read,
+;;; but reader.scm later rebinds it to the R7RS reader; a statically captured
+;;; `read' would keep the seed's reader for the whole session.
 
 (define (read-forms port)
-  (let loop ((d (read port)) (acc '()))
-    (if (eof-object? d)
-      (reverse acc)
-      (loop (read port) (cons d acc)))))
+  (let ((r (symbol->value 'read)))
+    (let loop ((d (r port)) (acc '()))
+      (if (eof-object? d)
+        (reverse acc)
+        (loop (r port) (cons d acc))))))
 
 (define (load-source-file path)
   (let ((file (load-find-module-file path)))

@@ -1592,6 +1592,17 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     cerr << "No such mode: " << mode << endl;
     exit (-1);
   }
+
+  // B4: load the Sets-of-Scopes expander core and its user-space macro library
+  // so the expander is available to every gf invocation.  This runs after the
+  // mode imports: the lib-layer install code (goldfish/expander/lib/install.scm)
+  // is plain source needing scheme/base's let-values, which the s7 host lacks.
+  // help/version return before customize_goldfish_by_mode, so they stay fast.
+  if (mode != "s7") {
+    s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
+    s7_eval_c_string (sc, "(load-source-file \"expander/lib/install.scm\")");
+    s7_eval_c_string (sc, "(install-standard-library!)");
+  }
 }
 
 string

@@ -42,7 +42,7 @@ static s7_int tiny_next (s7_scheme* sc, s7_pointer port) {
 
 static bool tiny_is_delim (s7_int c) {
   return c < 0 || tiny_is_ws (c) || c == '(' || c == ')' || c == '\'' ||
-         c == '"' || c == ';';
+         c == '"' || c == ';' || c == '[' || c == ']';
 }
 
 static void tiny_skip_ws (s7_scheme* sc, s7_pointer port) {
@@ -211,7 +211,8 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
   s7_int c = tiny_peek (sc, port);
   if (c < 0)
     return s7_eof_object (sc);
-  if (c == '(') {
+  if (c == '(' || c == '[') {
+    const int close = (c == '(') ? ')' : ']';
     tiny_next (sc, port);
     s7_pointer head = s7_nil (sc);
     s7_pointer tail = s7_nil (sc);
@@ -223,7 +224,7 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
         return s7_error (sc, s7_make_symbol (sc, "read-error"),
                          s7_list (sc, 1, s7_make_string (sc, "unterminated list")));
       }
-      if (d == ')') {
+      if (d == close) {
         tiny_next (sc, port);
         return head;
       }
@@ -241,7 +242,7 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
           }
           s7_pointer b = tiny_read_form (sc, port);
           tiny_skip_ws (sc, port);
-          if (tiny_peek (sc, port) != ')') {
+          if (tiny_peek (sc, port) != close) {
             return s7_error (sc, s7_make_symbol (sc, "read-error"),
                              s7_list (sc, 1, s7_make_string (sc, "bad dotted pair")));
           }
@@ -264,7 +265,7 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       }
     }
   }
-  if (c == ')') {
+  if (c == ')' || c == ']') {
     tiny_next (sc, port);
     return s7_error (sc, s7_make_symbol (sc, "read-error"),
                      s7_list (sc, 1, s7_make_string (sc, "unexpected )")));
