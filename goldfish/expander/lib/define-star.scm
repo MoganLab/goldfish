@@ -13,9 +13,15 @@
 ;;;                 (c   (if (pair? args) (car args) 3)))
 ;;;            body ...))
 ;;;
-;;; define* is a thin macro over lambda*.  Output is built with with-syntax
-;;; + syntax-case templates so the generated nodes carry the macro-template
-;;; context (correct scope handling in the library-body scanner).
+;;; define* is a thin syntax-case macro over lambda*.  lambda* must NOT
+;;; flatten its body through syntax->datum: in a nested macro expansion
+;;; (define* -> lambda*) the macro-use stx carries only the outer macro's
+;;; intro scope, so a re-datum'd body would lose its use-site scope and its
+;;; free identifiers would fail to resolve.  The body forms and the
+;;; required/optional parameter identifiers are therefore spliced into the
+;;; output as their original use-site syntax objects (datum->syntax keeps
+;;; them untouched); only the macro skeleton (lambda / let* / args /
+;;; pair? / car / cdr / if) is built from datum.
 ;;; Installed by install.scm after syntax-case.
 
 (define-syntax define*
@@ -32,25 +38,39 @@
   (lambda (stx)
     (syntax-case stx ()
       ((_ params body ...)
-       (let ((params-datum (syntax->datum #'params)))
-         (let loop ((ps params-datum) (req '()) (opts '()))
-           (if (null? ps)
-             (if (null? opts)
-               #'(lambda params body ...)
-               (let ((bindings
-                      (apply append
-                             (map (lambda (opt)
-                                    (list (list (car opt)
-                                                (list 'if (list 'pair? 'args)
-                                                      (list 'car 'args)
-                                                      (cadr opt)))
-                                          (list 'args (list 'if (list 'pair? 'args)
-                                                            (list 'cdr 'args)
-                                                            (quote ())))))
-                                  opts))))
-                 (with-syntax ((bindings bindings)
-                               (formals (append req (quote args))))
-                   #'(lambda formals (let* bindings body ...)))))
-             (if (pair? (car ps))
-               (loop (cdr ps) req (append opts (list (car ps))))
-               (loop (cdr ps) (append req (list (car ps))) opts)))))))))
+       (let* ((params-list (syntax-form #'params))
+              (body-syns (syntax-form #'(body ...)))
+              (n (length params-list)))
+         (let loop ((i 0) (req '()) (opts '()))
+           (if (= i n)
+               (if (null? opts)
+                   ;; (lambda (a b ...) body ...)
+                   (datum->syntax stx
+                     (cons 'lambda
+                           (cons (reverse req) body-syns)))
+                   ;; (lambda (a ... . args)
+                   ;;   (let* ((o1 (if (pair? args) (car args) d1))
+                   ;;          (args (if (pair? args) (cdr args) '())))
+                   ;;     body ...))
+                   (let* ((bindings
+                           (apply append
+                                  (map (lambda (opt)
+                                         (let ((name (car (syntax-form opt)))
+                                               (default (cadr (syntax-form opt))))
+                                           (list (list name
+                                                       (list 'if (list 'pair? 'args)
+                                                             (list 'car 'args)
+                                                             default))
+                                                 (list 'args (list 'if (list 'pair? 'args)
+                                                                   (list 'cdr 'args)
+                                                                   (quote ()))))))
+                                       opts)))
+                          (formals (append (reverse req) 'args)))
+                     (datum->syntax stx
+                       (list 'lambda
+                             formals
+                             (cons 'let* (cons bindings body-syns))))))
+               (let ((p (list-ref params-list i)))
+                 (if (pair? (syntax->datum p))
+                     (loop (+ i 1) req (append opts (list p)))
+                     (loop (+ i 1) (append req (list p)) opts))))))))))
