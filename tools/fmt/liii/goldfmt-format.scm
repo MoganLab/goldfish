@@ -506,17 +506,23 @@
                    #t
                    close-indent
                  ) ;reader-append-rest
-                 (reader-append-rest (cdr current)
-                   (string-append result
-                     (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
-                     (format-reader-datum-at item
-                       (if prefix-ready? (last-line-column result) rest-indent)
-                     ) ;format-reader-datum-at
-                   ) ;string-append
-                   rest-indent
-                   #f
-                   close-indent
-                 ) ;reader-append-rest
+                 (let ((is-last-comment? (and (null? (cdr current)) (comment-datum? item)))
+                       (item-text (format-reader-datum-at item
+                                    (if prefix-ready? (last-line-column result) rest-indent)
+                                  ) ;format-reader-datum-at
+                       ) ;item-text
+                      ) ;
+                   (reader-append-rest (cdr current)
+                     (string-append result
+                       (if prefix-ready? "" (string-append "\n" (spaces rest-indent)))
+                       item-text
+                       (if is-last-comment? (string-append "\n" (spaces close-indent)) "")
+                     ) ;string-append
+                     rest-indent
+                     #f
+                     close-indent
+                   ) ;reader-append-rest
+                 ) ;let
                ) ;if
              ) ;let
             ) ;

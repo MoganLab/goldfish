@@ -14,7 +14,8 @@
     "suffix": ["scm"],
     "path": ["goldfish", "tools"],
     "exclude": [
-      "tests"
+      "tests",
+      "tools/fmt"
     ]
   }
 }
