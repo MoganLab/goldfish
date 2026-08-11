@@ -19,7 +19,9 @@
        (context-resolve ctx (car (syntax-form stx)))))
 
 (define (expand-library-body stxs lib ctx)
-  (let loop ((stxs stxs) (ctx ctx) (var-defs '()) (exprs '()))
+  (let loop ((stxs stxs) (ctx ctx) (var-defs '()) (exprs '()) (n 0))
+    (when (> n 50000)
+      (error "expand-library-body: expansion limit exceeded"))
     (if (null? stxs)
         (expand-library-finalize (reverse var-defs) (reverse exprs) ctx)
         (let* ((stx (car stxs))
@@ -27,12 +29,12 @@
           (cond
             ((eq? resolved 'define)
              (let-values (((var-def ctx1) (expand-lib-define-bind stx lib ctx)))
-               (loop (cdr stxs) ctx1 (cons var-def var-defs) exprs)))
+               (loop (cdr stxs) ctx1 (cons var-def var-defs) exprs (+ n 1))))
             ((eq? resolved 'define-syntax)
              (let-values (((ctx1) (expand-lib-define-syntax stx lib ctx)))
-               (loop (cdr stxs) ctx1 var-defs exprs)))
+               (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))
             ((eq? resolved 'begin)
-             (loop (append (cdr (syntax-form stx)) (cdr stxs)) ctx var-defs exprs))
+             (loop (append (cdr (syntax-form stx)) (cdr stxs)) ctx var-defs exprs (+ n 1)))
             (else
              ;; Macro-headed form (e.g. define-macro): expand the head one
              ;; step at a time until the definition kind is revealed, WITHOUT
@@ -44,20 +46,14 @@
                  (cond
                    ((eq? resolved2 'define)
                     (let-values (((var-def ctx2) (expand-lib-define-bind result lib ctx1)))
-                      (loop (cdr stxs) ctx2 (cons var-def var-defs) exprs)))
+                      (loop (cdr stxs) ctx2 (cons var-def var-defs) exprs (+ n 1))))
                    ((eq? resolved2 'define-syntax)
                     (let-values (((ctx2) (expand-lib-define-syntax result lib ctx1)))
-                      (loop (cdr stxs) ctx2 var-defs exprs)))
+                      (loop (cdr stxs) ctx2 var-defs exprs (+ n 1))))
                    ((eq? resolved2 'begin)
-                    (loop (append (cdr (syntax-form result)) (cdr stxs)) ctx1 var-defs exprs))
+                    (loop (append (cdr (syntax-form result)) (cdr stxs)) ctx1 var-defs exprs (+ n 1)))
                    (else
-                    ;; Non-definition head: expand as a body expression at
-                    ;; finish time.  Top-level if forms (e.g. cond/case
-                    ;; expansions) go through the ordinary expression path;
-                    ;; conditional top-level definitions are no longer
-                    ;; supported -- s7's (unless (defined? *x*) (define ...))
-                    ;; idiom was migrated to plain definitions.
-                    (loop (cdr stxs) ctx1 var-defs (cons stx exprs))))))))))))
+                    (loop (cdr stxs) ctx1 var-defs (cons stx exprs) (+ n 1))))))))))))
 
 ;;; scan-lib-head : syntax context -> (values syntax context)
 ;;; Expand the head of a top-level library form one macro step at a time

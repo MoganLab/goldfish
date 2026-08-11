@@ -34,25 +34,36 @@
                          (f xs)))))
 
               (pattern-variables
-               (lambda (pat literal-syms)
+               (lambda (pat literal-ids)
                  (letrec* ((vars '())
                            (walk (lambda (p)
-                                   (if (symbol? p)
-                                       (if (if (eq? p '_)
-                                               #t
-                                               (if (eq? p '...)
-                                                   #t
-                                                   (if (memq p literal-syms)
-                                                       #t
-                                                       (memq p vars))))
-                                           (if #f #f)
-                                           (set! vars (cons p vars)))
-                                       (if (pair? p)
-                                           (begin (walk (car p))
-                                                  (walk (cdr p)))
-                                           (if (vector? p)
-                                               (walk (vector->list p))
-                                               (if #f #f)))))))
+                                   (if (identifier? p)
+                                       (let ((form (syntax-form p)))
+                                         (if (if (eq? form '_)
+                                                 #t
+                                                 (if (eq? form '...)
+                                                     #t
+                                                     (if (and (identifier? p) (literal-id? p))
+                                                         #t
+                                                         (memq form vars))))
+                                             (if #f #f)
+                                             (set! vars (cons form vars))))
+                                       (let ((form (if (syntax? p) (syntax-form p) p)))
+                                         (if (pair? form)
+                                             (begin (walk (car form))
+                                                    (walk (cdr form)))
+                                             (if (vector? form)
+                                                 (for-each walk (vector->list form))
+                                                 (if #f #f)))))))
+                           (literal-id?
+                            (lambda (p)
+                              (let loop ((ls literal-ids))
+                                (if (null? ls)
+                                    #f
+                                    (if (and (identifier? (car ls))
+                                             (bound-identifier=? p (car ls)))
+                                        #t
+                                        (loop (cdr ls))))))))
                    (begin (walk pat)
                           (reverse vars)))))
 
@@ -112,19 +123,19 @@
                        stx))))
 
               (compile-clause
-               (lambda (clause-stx literal-syms sctx lib)
+               (lambda (clause-stx literal-ids sctx lib)
                  (letrec* ((clause (syntax-form clause-stx))
-                           (pattern-datum (syntax->datum (car clause)))
+                           (pattern-stx (car clause))
                            (rest (cdr clause))
                            (fender-stx (if (= 2 (length rest)) (car rest) #f))
                            (body-stx (if (= 2 (length rest)) (cadr rest) (car rest)))
-                           (patvars (pattern-variables pattern-datum literal-syms))
+                           (patvars (pattern-variables pattern-stx literal-ids))
                            (body-xformed (transform-syntax-body body-stx patvars sctx lib))
                            (fender-xformed (if fender-stx
                                                (transform-syntax-body fender-stx patvars sctx lib)
                                                #t)))
                    (list 'list
-                         (list 'quote pattern-datum)
+                         (list 'syntax pattern-stx)
                          (list 'quote patvars)
                          (list 'lambda patvars fender-xformed)
                          (list 'lambda patvars body-xformed))))))
@@ -134,7 +145,6 @@
                 (literals-stx (caddr form))
                 (clauses (cdddr form))
                 (literal-ids (syntax-form literals-stx))
-                (literal-syms (map syntax->datum literal-ids))
                 (sctx (syntax-context macro-stx))
                 (lib (syntax-library macro-stx)))
         (datum->syntax macro-stx
@@ -144,7 +154,7 @@
                       (make-syntax literal-ids sctx lib))
                 (cons 'list
                       (map (lambda (cl)
-                             (compile-clause cl literal-syms sctx lib))
+                             (compile-clause cl literal-ids sctx lib))
                            clauses))))))))
 
 ;;; syntax-rules : (syntax-rules (lit ...) (pat tmpl) ...) -> transformer
@@ -159,17 +169,44 @@
   (lambda (macro-stx)
     (syntax-case macro-stx ()
       ((syntax-rules (lit ...) ((keyword . pattern) template) ...)
-       ;; Mirrors Racket's stxcase-scheme.rkt: each rule's pattern is
-       ;; ((keyword . pattern) template); the keyword is the macro name
-       ;; matched against the macro head and is DROPPED, replaced by the
-       ;; `_' wildcard.  A template reference to the keyword is therefore a
-       ;; free/unbound identifier, not a pattern variable (this is what
-       ;; makes ((a) (a)) self-reference resolve to an unbound `a' rather
-       ;; than recurse).  The `(syntax ...)' template keeps the generated
-       ;; transformer's free identifiers (syntax-case / syntax / lambda /
-       ;; tmp) in the syntax-rules DEFINITION context, so they resolve to
-       ;; the base library with bare references -- hygiene requires this,
-       ;; and it avoids cross-library (module-ref (scsyntax) ...) refs.
-       (syntax (lambda (tmp)
-                 (syntax-case tmp (lit ...)
-                   ((keyword . pattern) (syntax template)) ...)))))))
+       ;; Each rule's pattern is ((keyword . pattern) template): the keyword
+       ;; is the pattern-keyword position (the macro name), matched against
+       ;; the macro-use head.  The generated transformer replaces it with a
+       ;; FRESH pattern variable `head' (make-fresh-name), so the head
+       ;; matches any keyword without binding anything the user can
+       ;; reference -- a template reference to the rule head is therefore a
+       ;; free/unbound identifier (R7RS/Guile semantics; ((a) (a)) errors
+       ;; instead of self-applying and looping).  A fresh variable, rather
+       ;; than the `_' wildcard, is required because `_' is the match.scm
+       ;; style literal-underscore marker: when the user lists `_' among the
+       ;; literals, `_' in body positions must match only the identifier `_'
+       ;; itself -- an `_' rule head would then stop matching real keywords.
+       ;; The transformer is built programmatically (datum->syntax) so the
+       ;; fresh head can be spliced into every clause pattern; its free
+       ;; identifiers (lambda / syntax-case / syntax / tmp) sit in the
+       ;; syntax-rules DEFINITION context, so they resolve to the base
+       ;; library with bare references -- hygiene requires this, and it
+       ;; avoids cross-library (module-ref (scsyntax) ...) refs.
+        (letrec* ((def-stx (syntax (list)))
+                  (def-ctx (syntax-context def-stx))
+                  (def-lib (syntax-library def-stx))
+                  (tmp (make-syntax (make-fresh-name 'tmp) def-ctx def-lib))
+                  (head (make-syntax (make-fresh-name 'kw) def-ctx def-lib))
+                  (rules (syntax-form (syntax (((keyword . pattern) template) ...)))))
+          (datum->syntax def-stx
+            (cons 'lambda
+                  (cons (list tmp)
+                        (list (cons 'syntax-case
+                                    (cons tmp
+                                          (cons (syntax (lit ...))
+                                                (map
+                                                 (lambda (rule)
+                                                   (letrec* ((rf (syntax-form rule))
+                                                             (pat (car rf))
+                                                             (tmpl (cadr rf)))
+                                                     (list (make-syntax
+                                                            (cons head (cdr (syntax-form pat)))
+                                                            def-ctx def-lib)
+                                                           (datum->syntax def-stx
+                                                             (list 'syntax tmpl)))))
+                                                  rules)))))))))))))

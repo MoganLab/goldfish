@@ -87,7 +87,7 @@
        (make-syntax (toplevel-ref-gensym ref)
                     (syntax-context src-stx) (syntax-library src-stx)))
       ((eq? home (base-library))
-       (make-syntax (toplevel-ref-original ref)
+       (make-syntax (toplevel-ref-gensym ref)
                     (syntax-context src-stx) (syntax-library src-stx)))
       (else
        (datum->syntax src-stx

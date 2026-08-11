@@ -31,6 +31,7 @@
   (lower (expand-stx expr)))
 
 (define (compile-program exprs)
+
   (let-values (((program ctx)
                 (compile-program* exprs (initial-context))))
     (lower program)))
@@ -45,6 +46,7 @@
 ;;; keeping macro state across separate eval calls.
 
 (define (compile-toplevel expr)
+
   (let ((lib the-base-library))
     (let ((stx (stx-set-library (wrap-expression expr) lib)))
       (let*-values (((defs ctx)
@@ -63,7 +65,10 @@
   (let loop ((exprs    exprs)
              (ctx      ctx)
              (lib-defs '())
-             (body     '()))
+             (body     '())
+             (n        0))
+    (when (> n 50000)
+      (error "compile-program*: expansion limit exceeded"))
     (if (null? exprs)
       (if (null? body)
         (values (if (null? lib-defs)
@@ -81,7 +86,7 @@
                     ctx1))))
       (let ((expr (car exprs)))
         (if (and (pair? expr) (eq? (car expr) 'begin))
-          (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body)
+          (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body (+ n 1))
           (let* ((stx  (wrap-expression expr))
                  (form (syntax-form stx))
                  (head (and (pair? form) (car form))))
@@ -89,9 +94,9 @@
               (let*-values (((name binding) (resolve-identifier head ctx)))
                 (if (module-form-binding? binding)
                   (let*-values (((defs ctx1) ((binding-value binding) stx ctx)))
-                    (loop (cdr exprs) ctx1 (append (reverse defs) lib-defs) body))
-                  (loop (cdr exprs) ctx lib-defs (cons stx body))))
-              (loop (cdr exprs) ctx lib-defs (cons stx body)))))))))
+                    (loop (cdr exprs) ctx1 (append (reverse defs) lib-defs) body (+ n 1)))
+                  (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1))))
+              (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1)))))))))
 
 (module-define! the-expander-library 'expand-stx expand-stx)
 (module-define! the-expander-library 'expand expand)
