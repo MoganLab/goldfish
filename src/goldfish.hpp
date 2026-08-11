@@ -1124,8 +1124,11 @@ goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefi
 }
 
 // Parse CODE through the Scheme `read` (after bootstrap) and evaluate each
-// form in the rootlet; returns the value of the last form. Uses
-// s7_eval_c_string as the outer evaluator so error reporting is unchanged.
+// form; returns the value of the last form. Uses s7_eval_c_string as the
+// outer evaluator so error reporting is unchanged. Once the expander is
+// loaded (expand-eval exists), each form goes through the expander and is
+// evaluated in the expander library; otherwise (bootstrap-only s7 mode) we
+// fall back to the plain s7 eval.
 static s7_pointer
 goldfish_eval_through_reader (s7_scheme* sc, const string& code) {
   string escaped;
@@ -1136,7 +1139,8 @@ goldfish_eval_through_reader (s7_scheme* sc, const string& code) {
   string expr= "(let ((p (open-input-string \"" + escaped +
                "\"))) (let loop ((r #f)) (let ((d (read p))) "
                "(if (eof-object? d) (begin (close-input-port p) r) "
-               "(loop (eval d (rootlet)))))))";
+               "(loop (if (defined? 'expand-eval) (expand-eval d) "
+               "(eval d (rootlet))))))))";
   return s7_eval_c_string (sc, expr.c_str ());
 }
 
@@ -1709,7 +1713,9 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
     history_values.push_back (result);
     s7_gc_protect (sc, result);
     std::string name   = "$" + std::to_string (history_values.size ());
-    s7_pointer  cur_env= s7_curlet (sc);
+    // Bind history values in the rootlet: expand-eval evaluates in the
+    // expander library inlet, so s7_curlet there would not be rootlet-visible.
+    s7_pointer  cur_env= s7_rootlet (sc);
     s7_define (sc, cur_env, s7_make_symbol (sc, name.c_str ()), result);
 
     char* result_str= s7_object_to_c_string (sc, result);
