@@ -118,6 +118,11 @@
               gnumake
               cmake
               unzip
+              gdb
+              perf
+              valgrind
+              guile
+              racket-minimal
             ];
           };
 
