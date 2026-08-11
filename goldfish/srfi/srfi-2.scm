@@ -3,9 +3,17 @@
   (export and-let*)
   (begin
 
-    (define-macro (and-let* vars . body)
-      `(let ,() (and ,@(map (lambda (v) `(define ,@v)) vars) (begin ,@body)))
-    ) ;define-macro
+    (define-syntax and-let*
+      (syntax-rules ()
+        ((and-let* () body ...)
+         (begin body ...))
+        ((and-let* ((var val) more ...) body ...)
+         (let ((var val))
+           (and var (and-let* (more ...) body ...))))
+        ((and-let* (val) body ...)
+         (let ((t val)) (and t (begin body ...))))
+        ((and-let* (val more ...) body ...)
+         (let ((t val)) (and t (and-let* (more ...) body ...))))))
 
   ) ;begin
 ) ;define-library

@@ -150,15 +150,54 @@
       ) ;if
     ) ;define
 
-    (define-macro (let-njson binding . body)
-      (let ((bindings (njson%%normalize-bindings binding)))
-        (if bindings
-          (njson%%expand-with-value-bindings bindings body)
-          `(type-error ,"let-njson: expected (var value) or non-empty ((var value) ...)"
-             (quote ,binding))
-        ) ;if
-      ) ;let
-    ) ;define-macro
+    (define-syntax let-njson
+      (lambda (stx)
+        (letrec* ((form (syntax->datum stx))
+                  (binding (cadr form))
+                  (body (cddr form))
+               (single-binding?
+                (lambda (x)
+                  (and (pair? x) (symbol? (car x)) (pair? (cdr x)) (null? (cddr x)))))
+               (binding-list?
+                (lambda (xs)
+                  (and (pair? xs)
+                    (let loop ((rest xs))
+                      (and (pair? rest)
+                        (single-binding? (car rest))
+                        (or (null? (cdr rest)) (loop (cdr rest))))))))
+               (normalize
+                (lambda (b)
+                  (cond ((single-binding? b) (list b))
+                        ((binding-list? b) b)
+                        (else #f))))
+               (expand-with-value-bindings
+                (lambda (bindings body)
+                  (if (null? bindings)
+                    `(begin ,@body)
+                    (let* ((b (car bindings))
+                           (var (car b))
+                           (value-expr (cadr b))
+                           (inner (expand-with-value-bindings (cdr bindings) body))
+                           (released? (gensym "njson-released?")))
+                      `(let ((,var ,value-expr))
+                         (if (njson? ,var)
+                           (let ((,released? #f))
+                             (dynamic-wind (lambda () #f)
+                               (lambda () ,inner)
+                               (lambda ()
+                                 (when (not ,released?)
+                                   (set! ,released? #t)
+                                   (catch 'type-error
+                                     (lambda () (njson-free ,var))
+                                     (lambda args #f))))))
+                           ,inner))))))
+               (bindings (normalize binding)))
+          (datum->syntax
+           stx
+           (if bindings
+             (expand-with-value-bindings bindings body)
+             `(type-error ,"let-njson: expected (var value) or non-empty ((var value) ...)"
+                (quote ,binding)))))))
 
     (define (njson-free x)
       (unless (njson? x)

@@ -15,9 +15,13 @@
   ) ;import
   (begin
 
-    (define-macro (check-true body) `(check ,body => ,#t))
+    (define-syntax check-true
+      (syntax-rules ()
+        ((check-true body) (check body => #t))))
 
-    (define-macro (check-false body) `(check ,body => ,#f))
+    (define-syntax check-false
+      (syntax-rules ()
+        ((check-false body) (check body => #f))))
 
     (define default-check-approx-rel-tol 1e-12)
     (define default-check-approx-abs-tol 1e-12)
@@ -43,37 +47,51 @@
       ) ;let
     ) ;define
 
-    (define-macro (check-approx expr => expected . options)
-      (let* ((parsed (parse-check-approx-options options))
-             (rel-tol (car parsed))
-             (abs-tol (cdr parsed))
-            ) ;
-        `(check:proc (quote ,expr)
-           (lambda ,() ,expr)
-           ,expected
-           (lambda (actual expected)
-             (and (number? actual)
-               (number? expected)
-               (number? ,rel-tol)
-               (number? ,abs-tol)
-               (or (= actual expected)
-                 (let* ((difference (abs (- actual expected)))
-                        (relative-tolerance (abs ,rel-tol))
-                        (absolute-tolerance (abs ,abs-tol))
-                        (scale (max (abs actual) (abs expected)))
-                        (limit (max absolute-tolerance
-                                 (* relative-tolerance scale))))
-                   (<= difference limit))))))
-      ) ;let*
-    ) ;define-macro
+    (define-syntax check-approx
+      (lambda (stx)
+        (let* ((form (syntax->datum stx))
+               (expr (cadr form))
+               (expected (cadddr form))
+               (options (cddddr form))
+               (parse-options
+                (lambda (remaining)
+                  (let loop ((remaining remaining) (rel-tol 1e-12) (abs-tol 1e-12))
+                    (cond ((null? remaining) (cons rel-tol abs-tol))
+                          ((null? (cdr remaining))
+                           (error "check-approx option requires a value" (car remaining)))
+                          ((equal? (car remaining) :rel-tol)
+                           (loop (cddr remaining) (cadr remaining) abs-tol))
+                          ((equal? (car remaining) :abs-tol)
+                           (loop (cddr remaining) rel-tol (cadr remaining)))
+                          (else (error "check-approx unrecognized option" (car remaining)))))))
+               (parsed (parse-options options))
+               (rel-tol (car parsed))
+               (abs-tol (cdr parsed)))
+          (datum->syntax
+           stx
+           `(check:proc (quote ,expr)
+              (lambda () ,expr)
+              ,expected
+              (lambda (actual expected)
+                (and (number? actual) (number? expected)
+                  (number? ,rel-tol) (number? ,abs-tol)
+                  (or (= actual expected)
+                    (let* ((difference (abs (- actual expected)))
+                           (relative-tolerance (abs ,rel-tol))
+                           (absolute-tolerance (abs ,abs-tol))
+                           (scale (max (abs actual) (abs expected)))
+                           (limit (max absolute-tolerance (* relative-tolerance scale))))
+                      (<= difference limit))))))))))
 
-    (define-macro (check-catch error-id body)
-      `(check (catch ,error-id (lambda ,() ,body) (lambda args ,error-id))
-         =>
-         ,error-id)
-    ) ;define-macro
+    (define-syntax check-catch
+      (syntax-rules ()
+        ((check-catch error-id body)
+         (check (catch error-id (lambda () body) (lambda args error-id))
+           => error-id))))
 
-    (define-macro (test left right) `(check ,left => ,right))
+    (define-syntax test
+      (syntax-rules ()
+        ((test left right) (check left => right))))
 
     (define (check-report . msg)
       (if (not (null? msg)) (begin (display (car msg))))

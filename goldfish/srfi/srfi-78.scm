@@ -234,9 +234,10 @@
       ) ;let
     ) ;define*
 
-    (define-macro (check expr => expected)
-      `(check:proc (quote ,expr) (lambda ,() ,expr) ,expected)
-    ) ;define-macro
+    (define-syntax check
+      (syntax-rules ()
+        ((check expr => expected)
+         (check:proc (quote expr) (lambda () expr) expected))))
 
     (define (check-report)
       (if (>= check:mode 1)

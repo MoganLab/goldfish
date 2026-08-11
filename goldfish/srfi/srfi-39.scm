@@ -8,27 +8,24 @@
 
     ;; parameters
     ;;   s7 has no built-in parameter objects
-    (define* (make-parameter init converter)
-      (let* ((convert (or converter (lambda (x) x))) (old-values ()) (value (convert init)))
-        (lambda () value)
-      ) ;let*
-    ) ;define*
+    (define* (make-parameter init (converter #f))
+      (let* ((convert (or converter (lambda (x) x)))
+             (value (convert init)))
+        (lambda args
+          (if (null? args)
+            value
+            (set! value (convert (car args)))))))
 
-    (define-macro (parameterize vars . body)
-      `(dynamic-wind (lambda ,()
-                       ,@(map (lambda (var)
-                                `(with-let (funclet ,(car var))
-                                   (set! old-values (cons value old-values))
-                                   (set! value (convert ,(cadr var)))))
-                           vars))
-         (lambda ,() ,@body)
-         (lambda ,()
-           ,@(map (lambda (var)
-                    `(with-let (funclet ,(car var))
-                       (set! value (car old-values))
-                       (set! old-values (cdr old-values))))
-               vars)))
-    ) ;define-macro
+    (define-syntax parameterize
+      (syntax-rules ()
+        ((parameterize () body ...)
+         (let () body ...))
+        ((parameterize ((param value) more ...) body ...)
+         (let ((old (param)))
+           (dynamic-wind
+             (lambda () (param value))
+             (lambda () (parameterize (more ...) body ...))
+             (lambda () (param old)))))))
 
   ) ;begin
 ) ;define-library
