@@ -286,4 +286,34 @@
 "OUT"
 ) ;check
 
+;; issue 912: 当最后一个元素是注释时，闭合括号不应合并到注释行末尾
+;; 测试 1: format-datum 处理 comment datum — 闭合括号应独占一行
+;; 使用 list 构建 datum，避免 gf fmt 将 (*comment* ...) 转换为 ;; ……
+(check (format-datum (list 'operator_field "$" "@" "%%" "%" (list '*comment* " ${var##pat} ${var%pat} ...")))
+  =>
+  "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  ;; ${var##pat} ${var%pat} ...\n) ;operator_field"
+) ;check
+
+;; 测试 2: format-string 处理嵌套 form，注释是内部 form 的最后一个子元素
+(check (format-string "(define f\n  (operator_field \"$\"\n    \"@\"\n    \"%%\"\n    \"%\"\n    (*comment* \" ${var##pat} ${var%pat} ...\")\n  )\n)\n"
+       ) ;format-string
+  =>
+  "(define f\n  (operator_field \"$\"\n    \"@\"\n    \"%%\"\n    \"%\"\n    ;; ${var##pat} ${var%pat} ...\n  ) ;operator_field\n) ;define\n"
+) ;check
+
+;; 测试 3: format-string 直接测试 operator_field 中有注释作为最后一个元素
+(check (format-string "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  (*comment* \" ${var##pat} ${var%pat} ...\")\n)\n"
+       ) ;format-string
+  =>
+  "(operator_field \"$\"\n  \"@\"\n  \"%%\"\n  \"%\"\n  ;; ${var##pat} ${var%pat} ...\n) ;operator_field\n"
+) ;check
+
+;; 测试 4: quote 形式中注释是最后一个元素 — reader-datum 路径
+;; format-datum 处理 '(operator_field ...)，内部走 format-reader-datum-at 路径
+;; 使用 list 构建 datum，避免 gf fmt 将 (*comment* ...) 转换为 ;; ……
+(check (format-datum (list 'quote (list 'operator_field "$" "@" "%%" "%" (list '*comment* " comment"))))
+  =>
+  "'(operator_field \"$\"\n   \"@\"\n   \"%%\"\n   \"%\"\n   ;; comment\n )"
+) ;check
+
 (check-report)
