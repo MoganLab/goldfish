@@ -405,4 +405,64 @@
   ) ;let
 ) ;let
 
+;; 测试 scan-string：字符字面量 #\: 不在 quasiquote 中 (issue #910)
+;; 先测试最简单的情况
+(let* ((results (scan-string "(char=? #\\: x)"))
+       (node (vector-ref results 0))
+      ) ;
+  (check (env? node) => #t)
+  (check (env-tag-name node) => "char=?")
+  (let* ((children (env-children node))
+         (char-arg (vector-ref children 0))
+        ) ;
+    ;; char-arg (第一个参数) 应该是 atom，包含 char-literal
+    (check (atom? char-arg) => #t)
+    (let ((char-val (atom-value char-arg)))
+      (check (char-literal? char-val) => #t)
+      (check (char-literal-source char-val) => "#\\:")
+      (check (char-literal-value char-val) => #\:)
+    ) ;let
+  ) ;let
+) ;let*
+
+;; 测试 scan-string：字符字面量 #\: 在 quasiquote 中 (issue #910)
+;; S7 对无 unquote 的 backquote 简化为 quote
+(let* ((results (scan-string #"CODE"`(char=? #\: x)"CODE"))
+       (node (vector-ref results 0))
+      ) ;
+  (check (env? node) => #t)
+  ;; S7 将无 unquote 的 ` 读为 quote，tag-name 可能是 "quote" 或 "#_quote"
+  (check (or (string=? (env-tag-name node) "quote")
+             (string=? (env-tag-name node) "#_quote")
+             (string=? (env-tag-name node) "quasiquote"))
+    => #t)
+) ;let*
+
+;; 测试 scan-string：字符字面量 #\: 在 quasiquote 中 (有 unquote, issue #910)
+(let* ((results (scan-string #"CODE"`(char=? #\: ,x)"CODE"))
+       (node (vector-ref results 0))
+      ) ;
+  (check (env? node) => #t)
+  (check (env-tag-name node) => "quasiquote")
+  ;; 检查 quasiquote 内部的 char-literal 是否被正确识别
+  (let* ((children (env-children node))
+         (inner (vector-ref children 0))
+        ) ;
+    ;; inner 应该是 (char=? ...) 这个 env
+    (check (env? inner) => #t)
+    (check (env-tag-name inner) => "char=?")
+    (let* ((inner-children (env-children inner))
+           (char-arg (vector-ref inner-children 0))
+          ) ;
+      ;; char-arg (第一个参数) 应该是 char-literal
+      (check (atom? char-arg) => #t)
+      (let ((char-val (atom-value char-arg)))
+        (check (char-literal? char-val) => #t)
+        (check (char-literal-source char-val) => "#\\:")
+        (check (char-literal-value char-val) => #\:)
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let*
+
 (check-report)

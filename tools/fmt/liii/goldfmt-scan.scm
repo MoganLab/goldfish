@@ -242,7 +242,7 @@
     ) ;define
 
     (define (normalize-quasiquote-item datum)
-      (cond ((quote-form? datum) (cadr datum))
+      (cond ((quote-form? datum) (normalize-datum (cadr datum)))
             ((internal-quote-builder-form? datum)
              (list 'quote (normalize-quasiquote-item (caddr datum)))
             ) ;
