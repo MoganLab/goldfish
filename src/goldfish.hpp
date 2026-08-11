@@ -1578,34 +1578,45 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     bootstrap_scheme_reader (sc, gf_lib);
   }
 
-  if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii string))");
-  }
-  else if (mode == "scheme") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error))");
-  }
-  else if (mode == "sicp") {
-    s7_eval_c_string (sc, "(import (scheme base) (srfi sicp))");
-  }
-  else if (mode == "r7rs") {
+  // Phase 1: imports that must run before the expander loads.  The lib-layer
+  // install code needs scheme/base's let-values, which the s7 host lacks, so
+  // every non-s7 mode imports (scheme base) here through the host-side
+  // (boot.scm) define-macro import.  Libraries whose chains contain
+  // define-syntax (liii base -> srfi-2, srfi sicp, ...) cannot load through
+  // the host before the expander exists, so they are deferred to phase 2.
+  if (mode == "default" || mode == "liii" || mode == "scheme" || mode == "sicp" || mode == "r7rs") {
     s7_eval_c_string (sc, "(import (scheme base))");
-  }
-  else if (mode == "s7") {
-  }
-  else {
-    cerr << "No such mode: " << mode << endl;
-    exit (-1);
   }
 
   // B4: load the Sets-of-Scopes expander core and its user-space macro library
   // so the expander is available to every gf invocation.  This runs after the
-  // mode imports: the lib-layer install code (goldfish/expander/lib/install.scm)
+  // base import: the lib-layer install code (goldfish/expander/lib/install.scm)
   // is plain source needing scheme/base's let-values, which the s7 host lacks.
   // help/version return before customize_goldfish_by_mode, so they stay fast.
   if (mode != "s7") {
     s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
     s7_eval_c_string (sc, "(load-source-file \"expander/lib/install.scm\")");
     s7_eval_c_string (sc, "(install-standard-library!)");
+  }
+
+  // Phase 2: mode-specific imports, now that the expander can handle
+  // define-syntax in the library chains (liii base -> srfi-2, etc).
+  if (mode == "default" || mode == "liii") {
+    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii string))");
+  }
+  else if (mode == "scheme") {
+    s7_eval_c_string (sc, "(import (liii base) (liii error))");
+  }
+  else if (mode == "sicp") {
+    s7_eval_c_string (sc, "(import (srfi sicp))");
+  }
+  else if (mode == "r7rs") {
+  }
+  else if (mode == "s7") {
+  }
+  else {
+    cerr << "No such mode: " << mode << endl;
+    exit (-1);
   }
 }
 
