@@ -82,6 +82,18 @@
                   (lambda (ctx ph) (stx-ctx-flip ctx ph scp))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
 
+;;; stx-add-then-flip : syntax scp-add scp-flip [phase] -> syntax
+;;; Single pass applying ADD then FLIP to every node's context.  The two
+;;; scope ops commute (both are set operations on the phase's scope set),
+;;; so one tree traversal replaces two (expand-macro-once flips the
+;;; input twice: add scp-u then flip scp-i).
+
+(define (stx-add-then-flip stx scp-add scp-flip . maybe-phase)
+  (stx-apply-ctx stx
+                  (lambda (ctx ph)
+                    (stx-ctx-flip (stx-ctx-add ctx ph scp-add) ph scp-flip))
+                  (if (null? maybe-phase) 0 (car maybe-phase))))
+
 (define (stx-prune-scopes stx scps . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-prune ctx ph scps))
@@ -223,6 +235,7 @@
 (module-define! the-expander-library 'generate-temporaries generate-temporaries)
 (module-define! the-expander-library 'stx-add-scope stx-add-scope)
 (module-define! the-expander-library 'stx-flip-scope stx-flip-scope)
+(module-define! the-expander-library 'stx-add-then-flip stx-add-then-flip)
 (module-define! the-expander-library 'stx-maybe-flip stx-maybe-flip)
 (module-define! the-expander-library 'stx-prune-scopes stx-prune-scopes)
 (module-define! the-expander-library 'stx-set-library stx-set-library)

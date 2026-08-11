@@ -111,7 +111,7 @@
                   scp-u)
                  scp-i)))
       (set-current-expand-context! ctx3)
-      (let* ((input (stx-flip-scope (stx-add-scope stx scp-u ph) scp-i ph))
+      (let* ((input (stx-add-then-flip stx scp-u scp-i ph))
              (output (proc input)))
         (if (not (syntax? output))
             (error "syntax-case: macro output is not a syntax object"
