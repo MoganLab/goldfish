@@ -258,7 +258,7 @@
   (let ((root (vector-ref results 0)))
     (check (env? root) => #t)
     (check (env-tag-name root) => "quasiquote")
-    (check (env-value root) => '`(a ,@rest))
+    (check (env-value root) => '(quasiquote (a (unquote-splicing rest))))
   ) ;let
 ) ;let
 

@@ -61,6 +61,16 @@ bin/gf fix goldfish/
 bin/gf fix --dry-run goldfish/liii/os.scm
 ```
 
+### gf test - 运行工具目录下的测试
+`tools/` 目录下的模块（如 `tools/fmt/`）不在默认 load-path 中，需要使用 `bin/gf test` 子命令来运行测试：
+
+```bash
+# 运行 tools/fmt 目录下的测试（自动设置 load-path）
+bin/gf test tools/fmt/tests/liii/goldfmt-scan/scan-string-test.scm
+```
+
+`bin/gf test` 与 `bin/gf` 的区别在于它会将 `tools/<name>/` 加入 load-path，使测试文件能正确找到对应的库模块。
+
 ### 测试步骤中的格式化检查
 在提交代码前，应使用以下步骤确保代码格式正确：
 ```bash
