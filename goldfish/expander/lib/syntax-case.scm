@@ -68,77 +68,113 @@
                           (reverse vars)))))
 
               (build-instantiate-call
-               (lambda (template patvars src-stx var-ctx)
+               (lambda (template patvars outer-patvars src-stx var-ctx)
                  (letrec* ((lib (syntax-library src-stx)))
                    (datum->syntax src-stx
                      (list 'instantiate
                            (list 'syntax template)
                            (cons 'list
-                                 (map (lambda (p)
-                                        (list 'cons
-                                              (list 'quote p)
-                                              (make-syntax p var-ctx lib)))
-                                      patvars)))))))
+                                 (append
+                                   (map (lambda (p)
+                                          (list 'cons
+                                                (list 'quote p)
+                                                (make-syntax p var-ctx lib)))
+                                        patvars)
+                                   (map (lambda (p)
+                                          (list 'cons (list 'quote p) p))
+                                        outer-patvars))))))))
 
               (generic-recurse
-               (lambda (form stx patvars sctx lib)
+               (lambda (form stx patvars outer-patvars sctx lib)
                  (make-syntax (spine-map (lambda (sub)
-                                           (transform-syntax-body sub patvars sctx lib))
+                                           (transform-syntax-body sub patvars outer-patvars sctx lib))
                                          form)
                               (syntax-context stx) (syntax-library stx))))
 
+              (expand-with-syntax
+               (lambda (stx form patvars outer-patvars sctx lib)
+                 (define (elems stx)
+                   (let ((e (syntax-e stx)))
+                     (if (pair? e)
+                         (cons (car e) (elems (cdr e)))
+                         '())))
+                 (letrec* ((all (elems stx))
+                           (bindings-elems (if (pair? all) (elems (cadr all)) '()))
+                           (bindings-pairs (map elems bindings-elems))
+                           (inner-pats (map (lambda (b) (if (pair? b) (car b) #f))
+                                            bindings-pairs))
+                           (inner-exprs (map (lambda (b) (if (and (pair? b) (pair? (cdr b)))
+                                                              (cadr b)
+                                                              #f))
+                                             bindings-pairs))
+                           (inner-patvars (map (lambda (p)
+                                                 (if (syntax? p) (syntax-form p) p))
+                                               inner-pats))
+                           (xformed-exprs
+                            (map (lambda (e)
+                                   (transform-syntax-body e patvars outer-patvars sctx lib))
+                                 inner-exprs))
+                           (body-elems (if (pair? all) (cddr all) '()))
+                           (body-stx (make-syntax (cons (make-syntax 'begin sctx lib)
+                                                        body-elems)
+                                                  sctx lib))
+                           (body-xformed
+                            (transform-syntax-body body-stx inner-patvars patvars sctx lib))
+                           (ws-name (make-fresh-name 'ws-input)))
+                   (datum->syntax stx
+                     (list 'let
+                           (list (list ws-name (cons 'list xformed-exprs)))
+                           (list 'syntax-case-dispatch
+                                 ws-name
+                                 (list (make-syntax 'syntax sctx lib)
+                                       (make-syntax '() sctx lib))
+                                 (list 'list
+                                       (list 'list
+                                             (list 'syntax (make-syntax inner-pats sctx lib))
+                                             (list 'quote inner-patvars)
+                                             (list 'lambda inner-patvars '#t)
+                                             (list 'lambda inner-patvars body-xformed)))))))))
+
               (transform-syntax-body
-               (lambda (stx patvars sctx lib)
+               (lambda (stx patvars outer-patvars sctx lib)
                  (letrec* ((form (syntax-form stx)))
                    (if (pair? form)
                        (if (identifier? (car form))
                            (letrec* ((head (syntax-form (car form))))
                              (if (eq? head 'syntax)
-                                 (build-instantiate-call (cadr form) patvars stx sctx)
+                                 (build-instantiate-call (cadr form) patvars outer-patvars stx sctx)
                                  (if (eq? head 'syntax-case)
                                      (make-syntax
                                       (cons (car form)
-                                            (cons (transform-syntax-body (cadr form) patvars sctx lib)
+                                            (cons (transform-syntax-body (cadr form) patvars outer-patvars sctx lib)
                                                   (cons (caddr form) (cdddr form))))
                                       (syntax-context stx) (syntax-library stx))
                                      (if (eq? head 'with-syntax)
-                                         (letrec* ((bindings-stx (cadr form))
-                                                   (new-bindings
-                                                    (map (lambda (b)
-                                                           (letrec* ((bf (syntax-form b)))
-                                                             (make-syntax
-                                                              (list (car bf)
-                                                                    (transform-syntax-body (cadr bf) patvars sctx lib))
-                                                              (syntax-context b) (syntax-library b))))
-                                                         (syntax-form bindings-stx))))
-                                           (make-syntax
-                                            (cons (car form)
-                                                  (cons (make-syntax new-bindings
-                                                                     (syntax-context bindings-stx)
-                                                                     (syntax-library bindings-stx))
-                                                        (cddr form)))
-                                            (syntax-context stx) (syntax-library stx)))
-                                         (generic-recurse form stx patvars sctx lib)))))
-                           (generic-recurse form stx patvars sctx lib))
+                                         (expand-with-syntax stx form patvars outer-patvars sctx lib)
+                                         (generic-recurse form stx patvars outer-patvars sctx lib)))))
+                           (generic-recurse form stx patvars outer-patvars sctx lib))
                        stx))))
 
-              (compile-clause
-               (lambda (clause-stx literal-ids sctx lib)
-                 (letrec* ((clause (syntax-form clause-stx))
-                           (pattern-stx (car clause))
-                           (rest (cdr clause))
-                           (fender-stx (if (= 2 (length rest)) (car rest) #f))
-                           (body-stx (if (= 2 (length rest)) (cadr rest) (car rest)))
-                           (patvars (pattern-variables pattern-stx literal-ids))
-                           (body-xformed (transform-syntax-body body-stx patvars sctx lib))
-                           (fender-xformed (if fender-stx
-                                               (transform-syntax-body fender-stx patvars sctx lib)
-                                               #t)))
-                   (list 'list
-                         (list 'syntax pattern-stx)
-                         (list 'quote patvars)
-                         (list 'lambda patvars fender-xformed)
-                         (list 'lambda patvars body-xformed))))))
+               (compile-clause
+                (lambda (clause-stx literal-ids sctx lib)
+                  (letrec* ((clause (syntax-form clause-stx))
+                            (pattern-stx (car clause))
+                            (rest (cdr clause))
+                            (fender-stx (if (= 2 (length rest)) (car rest) #f))
+                            (body-stx (if (= 2 (length rest)) (cadr rest) (car rest)))
+                            (patvars (pattern-variables pattern-stx literal-ids)))
+                    (if (not (or (= 1 (length rest)) (= 2 (length rest))))
+                        (error "syntax-case: expected a pattern, an optional guard expression, and an expression"
+                               clause-stx)
+                        (list 'list
+                              (list 'syntax pattern-stx)
+                              (list 'quote patvars)
+                              (list 'lambda patvars
+                                    (if fender-stx
+                                        (transform-syntax-body fender-stx patvars '() sctx lib)
+                                        #t))
+                              (list 'lambda patvars
+                                    (transform-syntax-body body-stx patvars '() sctx lib))))))))
 
       (letrec* ((form (syntax-form macro-stx))
                 (input-expr (cadr form))

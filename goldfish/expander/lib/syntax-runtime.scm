@@ -98,7 +98,11 @@
 
 (define (pattern-match* pattern input literals bindings)
   (if (pattern-variable? pattern literals)
-      (cons (cons (pattern-leaf-datum pattern) input) bindings)
+      (cons (cons (pattern-leaf-datum pattern)
+                  (if (syntax? input)
+                      input
+                      (datum->syntax pattern input)))
+            bindings)
       (if (and (identifier? pattern) (eq? (syntax-form pattern) '_))
           ;; `_` is a wildcard, but when listed among the literals it matches
           ;; only the identifier `_` itself.  That is the R7RS-literal reading

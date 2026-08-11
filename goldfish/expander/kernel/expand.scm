@@ -113,8 +113,11 @@
       (set-current-expand-context! ctx3)
       (let* ((input (stx-flip-scope (stx-add-scope stx scp-u ph) scp-i ph))
              (output (proc input)))
-        (values (stx-flip-scope output scp-i ph)
-                (current-expand-context))))))
+        (if (not (syntax? output))
+            (error "syntax-case: macro output is not a syntax object"
+                   output)
+            (values (stx-flip-scope output scp-i ph)
+                    (current-expand-context)))))))
 
 (define (expand-macro stx ctx proc)
   (let*-values (((output ctx4) (expand-macro-once stx ctx proc)))
