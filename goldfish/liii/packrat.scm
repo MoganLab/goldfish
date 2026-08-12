@@ -174,28 +174,13 @@
     ) ;define
 
     (define (base-generator->results generator)
-      ;; Pre-build the (finite) results chain eagerly.  The original lazy
-      ;; version used a recursive internal closure that closes over the
-      ;; generator; the expander hoists such a closure into a single shared
-      ;; one when the library is loaded, so two calls to
-      ;; base-generator->results would share the same token stream (the
-      ;; second call sees the first's exhausted generator).  Pre-building
-      ;; the chain avoids that capture entirely.
-      (let loop ((acc '()))
+      ;; Note: applies first next-generator, to get first result
+      (define (results-generator)
         (let-values (((pos base) (generator)))
-          (if base
-            (loop (cons (cons pos base) acc))
-            (let build ((tokens (reverse acc)))
-              (if (null? tokens)
-                (empty-results pos)
-                (let* ((tok (car tokens))
-                       (node (make-results (car tok) (cdr tok) (build (cdr tokens)))))
-                  node)
-              ) ;if
-            ) ;let
-          ) ;if
+          (if (not base) (empty-results pos) (make-results pos base results-generator))
         ) ;let-values
-      ) ;let
+      ) ;define
+      (results-generator)
     ) ;define
 
     (define (parse-results-next results)

@@ -77048,6 +77048,18 @@ static bool op_unknown(s7_scheme *sc)
 	      const s7_pointer body = closure_body(func);
 	      const bool one_form = is_null(cdr(body));
 	      const bool safe_case = is_safe_closure(func);
+	      /* a local variable can hold a fresh closure on each call (e.g. a thunk built
+	       *   inside a let, returned and invoked later).  The optimized thunk/closure
+	       *   op uses the opt1_lambda cached here, and closure_is_fine/ok
+	       *   short-circuits on symbol_ctr==1, so for non-immutable (i.e. possibly
+	       *   changing) bindings we bump symbol_ctr to force the cached opt1_lambda
+	       *   to be re-validated against the current slot value on the next call.
+	       *   Without this, a stale closure from a previous call is reused: two
+	       *   invocations of a function that builds a local thunk would share the
+	       *   first invocation's closure (e.g. the packrat base-generator->results
+	       *   results-generator shared-stream bug).
+	       */
+	      if (hop == 0) symbol_ctr(car(code)) = 2;
 	      set_opt1_lambda_add(code, func);
 	      if (one_form)
 		{
@@ -77148,6 +77160,7 @@ static bool op_unknown_closure_s(s7_scheme *sc, s7_pointer clo, s7_pointer code)
 	default:
 	  set_optimize_op(code, OP_S_G); break;
 	}
+      if (hop == 0) symbol_ctr(car(code)) = 2;
       set_opt1_lambda_add(code, clo);
       return(true);
     }
@@ -77164,6 +77177,7 @@ static bool op_unknown_closure_s(s7_scheme *sc, s7_pointer clo, s7_pointer code)
    *    (define (f) (define-constant (f1) ... (f1))...) where each call on f makes a different f1
    */
   set_is_unknopt(code);
+  if (hop == 0) symbol_ctr(car(code)) = 2;
   set_opt1_lambda_add(code, clo);
   return(true);
 }
@@ -77293,6 +77307,7 @@ static bool op_unknown_a(s7_scheme *sc)
 	  const bool one_form = is_null(cdr(body));
 
 	  fxify_closure_a(sc, func, one_form, safe_case, hop, code, sc->curlet);
+	  if (hop == 0) symbol_ctr(car(code)) = 2;
 	  set_opt1_lambda_add(code, func);
 	  return(true);
 	}
@@ -77590,6 +77605,7 @@ static bool op_unknown_aa(s7_scheme *sc) /* we assume in eval that this always r
 		  set_closure_one_form_fx_arg(func);
 		}
 	  if ((is_fx_treeable(cdr(code))) && (curlet_has_slots(sc))) fx_curlet_tree(sc, cdr(code));
+	  if (hop == 0) symbol_ctr(car(code)) = 2;
 	  set_opt1_lambda_add(code, func);
 	  return(true);
 	}
@@ -77598,6 +77614,7 @@ static bool op_unknown_aa(s7_scheme *sc) /* we assume in eval that this always r
     case T_CLOSURE_STAR:
       if (!has_methods(func))
 	{
+	  if (!is_immutable_and_stable(sc, head)) symbol_ctr(car(code)) = 2;
 	  fixup_closure_star_aa(sc, func, code, (is_immutable_and_stable(sc, head)) ? 1 : 0);
 	  set_opt1_lambda_add(code, func);
 	}
@@ -77703,6 +77720,7 @@ static bool op_unknown_na(s7_scheme *sc) /* we assume in eval that this always r
 		  if (is_normal_happy_symbol(sc, caddr(code)))
 		    set_safe_optimize_op(code, hop + OP_CLOSURE_ASA);
 		  else set_safe_optimize_op(code, hop + ((is_normal_happy_symbol(sc, cadddr(code))) ? OP_CLOSURE_AAS : OP_CLOSURE_3A));
+	  if (hop == 0) symbol_ctr(car(code)) = 2;
 	  set_opt1_lambda_add(code, func);
 	  return(true);
 	}
@@ -77799,6 +77817,7 @@ static bool op_unknown_np(s7_scheme *sc) /* we assume in eval that this always r
 		  else set_optimize_op(code, hop + OP_SAFE_CLOSURE_P);
 		}
 	      else set_optimize_op(code, hop + OP_CLOSURE_P);
+	      if (hop == 0) symbol_ctr(car(code)) = 2;
 	      set_opt1_lambda_add(code, func); /* added 8-Jun-22 */
 	      set_opt3_arglen(cdr(code), 1);
 	      set_unsafely_optimized(code);
@@ -77817,6 +77836,7 @@ static bool op_unknown_np(s7_scheme *sc) /* we assume in eval that this always r
 		    set_optimize_op(code, hop + ((safe_case) ? OP_SAFE_CLOSURE_PA : OP_CLOSURE_PA));
 		  }
 		else set_optimize_op(code, hop + ((safe_case) ? OP_SAFE_CLOSURE_PP : OP_CLOSURE_PP));
+	      if (hop == 0) symbol_ctr(car(code)) = 2;
 	      set_opt1_lambda_add(code, func);  /* added 8-Jun-22 */
 	      set_opt3_arglen(cdr(code), 2);    /* for later op_unknown_np */
 	      set_unsafely_optimized(code);
