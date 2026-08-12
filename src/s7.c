@@ -76928,6 +76928,15 @@ static bool eval_car_pair(s7_scheme *sc)
 			  set_optimize_op(code, OP_F_AA);              /* ((lambda (x y) ...) expr expr) */
 			  return(false);
 			}}
+		  /* code: ((lambda (recurse) (recurse)) (lambda () (if (pair? form) (f (car form)) form))) is trouble
+		   *   head (car(code)): (lambda (recurse) (recurse)), args (cadr(head)): (recurse) first case
+		   * TODO: why is this special case a problem? maybe: new function on each call (nominally) but symbol_ctr not incremented?
+		   *  other case here: ((lambda (x) x)) etc
+		   */
+		  if ((is_normal_symbol(car(args))) && (is_pair(caddr(head))) && (car(args) == caaddr(head)))
+		    {
+		      symbol_ctr(car(args)) = 2;
+		    }
 		  set_optimize_op(code, OP_F_NP);
 		}}
 	  set_no_int_opt(code);

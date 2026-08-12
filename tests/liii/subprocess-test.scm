@@ -22,10 +22,10 @@
   (check-catch 'value-error (run '(cd "/tmp") :cwd "/home"))
 
   ;; run-set! / run-get tests
-  (run-set! 'echo-cmd "/bin/echo")
+  (run-set! 'echo-cmd "echo")
   (check (zero? (run '(echo-cmd "hello"))) => #t)
 
-  (run-set! 'true-cmd "/bin/true")
+  (run-set! 'true-cmd "true")
   (check (zero? (run '(true-cmd))) => #t)
 
   (run-set! 'my-lambda (lambda () (display "ok\n")))
