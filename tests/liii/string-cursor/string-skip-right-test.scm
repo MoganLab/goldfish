@@ -38,6 +38,12 @@
 ;; 3. 搜索范围是 [start, end)
 ;; 4. 与 (liii string) 的区别：(liii string-cursor) 按字符操作，支持 Unicode
 ;; 5. 性能：O(n)，n 为字符串字符数
+;; 6. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确搜索
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-skip-right 函数
+;; 参见: gf doc liii/string "string-skip-right"
 
 ;; 基本测试 - ASCII
 (let ((s "abc123"))

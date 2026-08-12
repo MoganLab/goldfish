@@ -40,6 +40,12 @@
 ;; 1. 与 string-unfold 类似，但字符按相反顺序构建
 ;; 2. 与 (liii string) 的区别：无直接对应函数，(liii string-cursor) 独有
 ;; 3. 性能：O(n)，n 为生成的字符数
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确构造
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-unfold-right"
 
 (check (string-unfold-right (lambda (n) (> n 2))
          (lambda (n) (integer->char (+ n 65)))

@@ -32,6 +32,12 @@
 ;; 2. 支持 Unicode 字符，包括中文和 emoji
 ;; 3. 支持可选的 start/end 参数指定子串反转
 ;; 4. 性能：O(n)，n 为子串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确反转
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-reverse 函数
+;; 参见: gf doc liii/string "string-reverse"
 
 ;; 基本测试
 (check (string-reverse "abc") => "cba")

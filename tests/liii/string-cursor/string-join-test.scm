@@ -34,6 +34,12 @@
 ;; 4. prefix：在元素之间和开头插入分隔符
 ;; 5. 与 (liii string) 的区别：(liii string-cursor) 支持 Unicode 字符串
 ;; 6. 性能：O(n)，n 为所有字符串总长度
+;; 7. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确连接
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-join 函数
+;; 参见: gf doc liii/string "string-join"
 
 (check (string-join '("a" "b" "c")) => "a b c")
 (check (string-join '("a" "b" "c") ":") => "a:b:c")
