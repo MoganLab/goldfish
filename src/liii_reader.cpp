@@ -411,11 +411,19 @@ f_undefined (s7_scheme* sc, s7_pointer args) {
 
 void
 bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
-  // the tiny bootstrap read loads boot.scm, string-cursor.scm and reader.scm;
-  // boot.scm is the seed (runtime substrate + loader + define-library/import),
-  // reader.scm ends by defining `read` and `load` (through the Scheme reader)
+  // s7 阶段（bootstrap）只加载两个纯 s7 文件：
+  //   - boot.scm：seed，提供 host 宏（define-library/import/let*-values）、
+  //     loader（load-find-module-file/load-source-file）与模块 substrate
+  //   - reader.scm：R7RS reader，定义 read/load/expand-eval。它自包含
+  //     （不 import 任何库，只用 s7 原生可用的形式以及 boot.scm / glue
+  //     提供的基础函数），因此 s7 原生可以完整加载。
+  //
+  // string-cursor.scm 刻意不在 s7 阶段加载：它依赖 expander 宏
+  // （define-record-type）以及 (liii base)/(liii unicode) 等含 define-syntax
+  // 的库，s7 原生无法处理。这些库在 expander 加载后按需加载
+  // （customize_goldfish_by_mode 的 B4 阶段及 load-library!），
+  // s7 阶段保持纯净。
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/boot.scm").c_str ());
-  tiny_load_path (sc, (std::string (gf_lib) + "/liii/string-cursor.scm").c_str ());
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/reader.scm").c_str ());
 }
 

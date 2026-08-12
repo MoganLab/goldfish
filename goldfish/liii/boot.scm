@@ -228,6 +228,16 @@
 
 ;;; r7rs-small procedures the host does not provide.
 
+;; The host has no eof-object procedure (only the eof-object? predicate),
+;; so construct the EOF object in pure Scheme: reading past the end of an
+;; empty string returns the single EOF object.  The binding is captured once
+;; here so every call returns the same object.
+
+(define *eof-object* (read (open-input-string "")))
+
+(define (eof-object)
+  *eof-object*)
+
 (define (bytevector->u8-list bv)
   (let loop ((i (- (bytevector-length bv) 1)) (acc '()))
     (if (< i 0)

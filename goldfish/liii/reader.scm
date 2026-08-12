@@ -1,4 +1,3 @@
-(import (liii string-cursor))
 
 ;; R7RS 7.1.1: a <delimiter> is whitespace, ( ) " or ;.  In particular a
 ;; vertical bar is NOT a delimiter, so `foo|bar|` is one (invalid) token.
@@ -22,7 +21,7 @@
   ;; ASCII case folding (R7RS string-foldcase, restricted to ASCII)
   (let loop ((i 0) (out '()))
     (if (= i (string-length str))
-      (reverse-list->string out)
+      (list->string out)
       (let ((n (char->integer (string-ref str i))))
         (loop (+ i 1)
               (cons (if (<= (char->integer #\A) n (char->integer #\Z))
@@ -358,7 +357,7 @@
     (letrec ((ensure! (lambda (need)
                      ;; grow geometrically so a long string is O(n), not O(n^2)
                      (when (> (+ len need) (string-length buf))
-                       (set! buf (string-append buf (make-string (max need (string-length buf))))))))
+                       (set! buf (string-append buf (make-string (s7-max need (string-length buf))))))))
           ;; chars read from the port are raw bytes in S7; write them as-is
           (add-byte! (lambda (ch)
                        (ensure! 1)

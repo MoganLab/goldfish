@@ -1396,7 +1396,7 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
   s7_add_to_load_path (sc, tool_root.c_str ());
 
   string      import_expr  = "(import (" + org + " " + module + "))";
-  s7_pointer  import_result= s7_eval_c_string (sc, import_expr.c_str ());
+  s7_pointer  import_result= goldfish_eval_through_reader (sc, import_expr);
   const char* errmsg       = s7_get_output_string (sc, s7_current_error_port (sc));
   if (!import_result || ((errmsg) && (*errmsg))) {
     result.error  = gfproject_tool_prepare_error::import_failed;
@@ -1405,6 +1405,14 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
   }
 
   s7_pointer main_func= s7_name_to_value (sc, "main");
+  if ((!main_func) || (!s7_is_procedure (main_func))) {
+    // The imported library's bindings live in the expander environment, not
+    // the s7 rootlet: the host import macro (varlet into the rootlet) cannot
+    // handle the library chain, so the expander imports into the base
+    // library and subsequent expressions evaluate there.  Resolve `main`
+    // through the expander too.
+    main_func= goldfish_eval_through_reader (sc, "main");
+  }
   if ((!main_func) || (!s7_is_procedure (main_func))) {
     result.error  = gfproject_tool_prepare_error::missing_main;
     result.message= "Error: Failed to find main function in (" + org + " " + module + ").";
@@ -1600,15 +1608,20 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   }
 
   // Phase 2: mode-specific imports, now that the expander can handle
-  // define-syntax in the library chains (liii base -> srfi-2, etc).
+  // define-syntax in the library chains (liii base -> srfi-2, etc).  These
+  // must go through the expander (expand-eval), not s7's host import macro:
+  // the host macro imports only value bindings, so macros defined via
+  // define-syntax in the library chain (and-let*, receive, ...) would be
+  // missing after a host-side import, and s7's native eval would also fail
+  // on the define-syntax forms themselves (s7 has no define-syntax).
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii string))");
+    goldfish_eval_through_reader (sc, "(import (liii base) (liii error) (liii string))");
   }
   else if (mode == "scheme") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error))");
+    goldfish_eval_through_reader (sc, "(import (liii base) (liii error))");
   }
   else if (mode == "sicp") {
-    s7_eval_c_string (sc, "(import (srfi sicp))");
+    goldfish_eval_through_reader (sc, "(import (srfi sicp))");
   }
   else if (mode == "r7rs") {
   }
@@ -2900,6 +2913,11 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
     // 检查并调用 main 函数
     s7_pointer main_func= s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      // Module targets import through the expander, so `main` resolves in
+      // the expander environment rather than the s7 rootlet.
+      main_func= goldfish_eval_through_reader (sc, "main");
+    }
     if ((!main_func) || (!s7_is_procedure (main_func))) {
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
