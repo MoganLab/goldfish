@@ -412,10 +412,10 @@
 
     (define (exact-integer-sqrt n)
       (when (not (integer? n))
-        (type-error "n must be an integer" n)
+        (error 'type-error "n must be an integer" n)
       ) ;when
       (when (< n 0)
-        (value-error "n must be non-negative" n)
+        (error 'value-error "n must be non-negative" n)
       ) ;when
       (let* ((a (sqrt n)) (b (inexact->exact (floor a))) (square-b (square b)))
         (if (= square-b n) (values b 0) (values b (- n square-b)))

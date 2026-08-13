@@ -834,24 +834,32 @@ goldfish_is_fix_hint_candidate_error (const string& errmsg) {
 
 static string
 goldfish_extract_scheme_path_from_error (const string& errmsg) {
-  size_t marker= errmsg.find (".scm[");
+  const char* marker_str= ".scm";
+  size_t      marker   = errmsg.find (marker_str);
   while (marker != string::npos) {
-    size_t start= marker;
-    while (start > 0) {
-      unsigned char ch= static_cast<unsigned char> (errmsg[start - 1]);
-      if (std::isspace (ch) || ch == '"' || ch == '\'' || ch == '`' || ch == '(' || ch == ')' || ch == ',' ||
-          ch == ';') {
-        break;
+    size_t after= marker + 4;
+    char   next = (after < errmsg.size ()) ? errmsg[after] : '\0';
+    // path.scm[...] (s7 file-location style) or path.scm at end/whitespace
+    // (the R7RS reader's "in <file>" annotation)
+    if (next == '[' || next == '\0' || next == '\n' || next == ')' || next == ';' || next == '"' || next == '\'' ||
+        std::isspace (static_cast<unsigned char> (next))) {
+      size_t start= marker;
+      while (start > 0) {
+        unsigned char ch= static_cast<unsigned char> (errmsg[start - 1]);
+        if (std::isspace (ch) || ch == '"' || ch == '\'' || ch == '`' || ch == '(' || ch == ')' || ch == ',' ||
+            ch == ';') {
+          break;
+        }
+        --start;
       }
-      --start;
+
+      string candidate= errmsg.substr (start, marker + 4 - start);
+      if (!candidate.empty ()) {
+        return candidate;
+      }
     }
 
-    string candidate= errmsg.substr (start, marker + 4 - start);
-    if (!candidate.empty ()) {
-      return candidate;
-    }
-
-    marker= errmsg.find (".scm[", marker + 1);
+    marker= errmsg.find (marker_str, marker + 1);
   }
 
   return "";

@@ -15,14 +15,17 @@
 ;;
 
 (define-library (scheme inexact)
+  (import (scheme base))
   (export acos asin atan cos exp finite? infinite? log nan? sin sqrt s7-sqrt tan)
   (begin
 
+    ;; `sqrt' is not defined here: the free reference below resolves to the
+    ;; native primitive (the s7 builtin already implements the R7RS behavior:
+    ;; complex results for negative arguments, exact results for perfect
+    ;; squares).  s7-sqrt is kept as a native alias (the old code captured
+    ;; `sqrt' before redefining it, which is impossible under the expander's
+    ;; whole-library scope: a locally redefined name shadows the primitive).
     (define s7-sqrt sqrt)
-
-    (define (sqrt x)
-      (if (and (exact? x) (negative? x)) (s7-sqrt (inexact x)) (s7-sqrt x))
-    ) ;define
 
     (define (finite? x)
       (and (number? x) (not (infinite? x)) (not (nan? x)))

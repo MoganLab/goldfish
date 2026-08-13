@@ -548,7 +548,7 @@
     (cond
       ((eqv? ch rdelim) '())
       ((or (eqv? ch #\)) (eqv? ch #\]))
-       (error 'read-error "mismatched close paren" ch))
+       (error 'read-error (if (eqv? ch #\)) "unexpected close paren: \")" "unexpected close paren: \"]")))
       ((and (eqv? ch #\.) (or (eof-object? (peek port)) (delimiter? (peek port))))
        (let ((tail-ch (next-non-whitespace port)))
          (if (eof-object? tail-ch)
@@ -710,8 +710,8 @@
        (else
          (list 'unquote (read-subexpression port "unquoted expression")))))
     ((#\#) (read-sharp port))
-    ((#\)) (error 'read-error "unexpected \")\""))
-    ((#\]) (error 'read-error "unexpected \"]\""))
+    ((#\)) (error 'read-error "unexpected close paren: \")"))
+    ((#\]) (error 'read-error "unexpected close paren: \"]"))
     ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\- #\.)
      (read-number port ch))
     (else (read-symbol port ch))))
@@ -819,15 +819,31 @@
     (cond
       ((null? cands)
        (error 'io-error (string-append "cannot load: " file)))
-      ((file-exists? (car cands))
-       (call-with-input-file (car cands)
-         (lambda (port)
-           (let loop ()
-             (let ((d (read port)))
-               (if (eof-object? d)
-                 (begin (close-input-port port) #t)
-                 (begin (expand-eval d) (loop))))))))
-      (else (loop (cdr cands))))))
+       ((file-exists? (car cands))
+        (call-with-input-file (car cands)
+          (lambda (port)
+            (let loop ()
+              ;; Catch only around `read', NOT around expand-eval: a persistent
+              ;; catch frame would keep s7's `(*s7* 'catches)' non-empty and
+              ;; change `guard' semantics.  The catch re-raises read errors
+              ;; annotated with the file path so the CLI can offer
+              ;; `gf fix <file>' for unbalanced-paren files (s7's native load
+              ;; annotated errors with path.scm[line:col]; the R7RS reader only
+              ;; knows byte offsets, so the path is added here).
+              (let ((d (catch 'read-error
+                         (lambda () (read port))
+                         (lambda (tag . errs)
+                           (close-input-port port)
+                           ;; s7 wraps `(error 'read-error msg)' args as
+                           ;; ((msg)), so the message string is (caar errs).
+                           (if (and (pair? errs) (pair? (car errs)) (string? (caar errs)))
+                             (error 'read-error
+                                    (string-append (caar errs) " in " (car cands)))
+                             (apply error 'read-error errs))))))
+                (if (eof-object? d)
+                  (begin (close-input-port port) #t)
+                  (begin (expand-eval d) (loop))))))))
+       (else (loop (cdr cands))))))
 
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
 ;; (boot.scm) definition captured the bootstrap reader, which is minimal and
