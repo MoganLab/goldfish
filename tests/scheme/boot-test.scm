@@ -93,4 +93,79 @@
 (check-catch 'wrong-type-arg (g_library-register! '(a -1) (inlet)))
 (check-catch 'wrong-type-arg (g_library-register! '(a) 42))
 
+;; [0112_2] C 实现的 define-library
+(define-library (goldfish test-lib-1)
+  (export greet answer)
+  (begin
+    (define (greet) "hello")
+    (define answer 42)
+    (define hidden 99)
+  ) ;begin
+) ;define-library
+
+(check (g_library-defined? '(goldfish test-lib-1)) => #t)
+(let ((env (g_library-ref '(goldfish test-lib-1))))
+  (check (procedure? (env 'greet)) => #t)
+  (check ((env 'greet)) => "hello")
+  (check (env 'answer) => 42)
+  ;; 未导出的名字不在导出环境中
+  (check (defined? 'hidden env) => #f)
+) ;let
+
+;; 与 Scheme 版 import 的互操作：C 定义的库可以被 import 引入
+(import (goldfish test-lib-1))
+(check (greet) => "hello")
+(check answer => 42)
+;; 加载缓存约定：库名对应的全局符号已定义，import 不会重复 load
+(check (defined? (symbol (object->string '(goldfish test-lib-1)))) => #t)
+
+;; 无 export 子句：库内所有绑定都被导出
+(define-library (goldfish test-lib-2)
+  (begin
+    (define pub-1 1)
+    (define pub-2 2)
+  ) ;begin
+) ;define-library
+(let ((env (g_library-ref '(goldfish test-lib-2))))
+  (check (env 'pub-1) => 1)
+  (check (env 'pub-2) => 2)
+) ;let
+
+;; export 支持 (rename old new)
+(define-library (goldfish test-lib-3)
+  (export (rename internal external))
+  (begin (define internal 7))
+) ;define-library
+(let ((env (g_library-ref '(goldfish test-lib-3))))
+  (check (env 'external) => 7)
+  (check (defined? 'internal env) => #f)
+) ;let
+
+;; 库体内 import：引入的绑定对 begin 中的代码可见
+(define-library (goldfish test-lib-4)
+  (export double-car)
+  (import (scheme base))
+  (begin (define (double-car x) (* 2 (car x))))
+) ;define-library
+(check (((g_library-ref '(goldfish test-lib-4)) 'double-car) '(3)) => 6)
+
+;; 库体内 import 的名字可以被再导出
+(define-library (goldfish test-lib-5)
+  (export car)
+  (import (only (scheme base) car))
+) ;define-library
+(check (((g_library-ref '(goldfish test-lib-5)) 'car) '(10 20)) => 10)
+
+;; 导出未定义的名字：报错
+(check-catch 'unbound-variable
+  (define-library (goldfish test-lib-bad)
+    (export missing-name)
+  ) ;define-library
+) ;check-catch
+
+;; 非法库名：报错
+(check-catch 'wrong-type-arg
+  (define-library "not-a-list" (export x))
+) ;check-catch
+
 (check-report "\n\nCheck report of boot-test.scm => ")

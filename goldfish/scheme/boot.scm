@@ -25,23 +25,27 @@
   ) ;if
 ) ;define
 
-(define-macro (define-library libname . body)
-  `(define ,(symbol (object->string libname))
-     (with-let (sublet (unlet)
-                 (cons 'import import)
-                 (cons '*export* ())
-                 (cons 'export
-                   (define-macro (,(gensym) . names)
-                     `(set! *export* (append (quote ,names) *export*)))))
-       ,@body
-       (apply inlet
-         (map (lambda (entry)
-                (if (or (member (car entry) '(*export* export import))
-                      (and (pair? *export*) (not (member (car entry) *export*))))
-                  (values)
-                  entry))
-           (curlet)))))
-) ;define-macro
+;; C 实现的 define-library（src/s7_r7rs_library.c）已注册时，此后备版本不生效
+(unless (defined? 'define-library)
+  (define-macro (define-library libname . body)
+    `(define ,(symbol (object->string libname))
+       (with-let (sublet (unlet)
+                   (cons 'import import)
+                   (cons '*export* ())
+                   (cons 'export
+                     (define-macro (,(gensym) . names)
+                       `(set! *export* (append (quote ,names) *export*)))))
+         ,@body
+         (apply inlet
+           (map (lambda (entry)
+                  (if (or (member (car entry) '(*export* export import))
+                        (and (pair? *export*)
+                          (not (member (car entry) *export*))))
+                    (values)
+                    entry))
+             (curlet)))))
+  ) ;define-macro
+) ;unless
 
 (unless (defined? 'r7rs-import-library-filename)
   (define (r7rs-import-library-filename libs)
