@@ -48,6 +48,7 @@
     (define (default-suffixes lang)
       (cond ((eq? lang 'cpp) '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
             ((eq? lang 'scheme) '(".scm"))
+            ((eq? lang 'stem) '(".stem"))
             (else '())
       ) ;cond
     ) ;define

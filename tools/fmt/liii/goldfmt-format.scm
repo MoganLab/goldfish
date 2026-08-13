@@ -168,16 +168,21 @@
     ) ;define
 
     ;; ; 检查 env 是否为 quote 形式
+    ;; ; stem 模式下 quote 是普通符号，env 按普通列表输出，不糖化为 '
     (define (quote-env? node)
-      (and (env? node)
+      (and (not (stem-mode?))
+        (env? node)
         (or (string=? (env-tag-name node) "quote")
           (string=? (env-tag-name node) "#_quote")
         ) ;or
       ) ;and
     ) ;define
 
+    ;; ; stem 模式下 quasiquote/unquote/unquote-splicing 是普通符号，
+    ;; ; env 按普通列表输出，不糖化为 ` , ,@
     (define (reader-prefix-env? node)
-      (and (env? node)
+      (and (not (stem-mode?))
+        (env? node)
         (or (string=? (env-tag-name node) "quasiquote")
           (string=? (env-tag-name node) "unquote")
           (string=? (env-tag-name node) "unquote-splicing")
@@ -643,16 +648,21 @@
             ((dotted-tail? datum) (format-reader-datum-inline (dotted-tail-form datum)))
             ((raw-string-datum? datum) (cadr datum))
             ((comment-datum? datum) (format-comment-content (cadr datum)))
-            ((single-arg-symbol-form? datum 'quasiquote)
+            ;; ; stem 模式：quote/quasiquote/unquote 保持原样，按普通列表输出；
+            ;; ; (#_quote x) 防御性归一为 (quote x)（正常路径已在 scan 阶段归一）
+            ((and (stem-mode?) (quote-syntax-form? datum))
+             (format-reader-pair-inline (cons 'quote (cdr datum)))
+            ) ;
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'quasiquote))
              (string-append "`" (format-reader-datum-inline (cadr datum)))
             ) ;
-            ((single-arg-symbol-form? datum 'unquote)
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'unquote))
              (string-append "," (format-reader-datum-inline (cadr datum)))
             ) ;
-            ((single-arg-symbol-form? datum 'unquote-splicing)
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'unquote-splicing))
              (string-append ",@" (format-reader-datum-inline (cadr datum)))
             ) ;
-            ((quote-syntax-form? datum)
+            ((and (not (stem-mode?)) (quote-syntax-form? datum))
              (string-append "'" (format-reader-datum-inline (cadr datum)))
             ) ;
             ((pair? datum) (format-reader-pair-inline datum))
@@ -667,16 +677,21 @@
             ((dotted-tail? datum) (format-reader-datum-at (dotted-tail-form datum) indent))
             ((raw-string-datum? datum) (cadr datum))
             ((comment-datum? datum) (format-comment-content (cadr datum)))
-            ((single-arg-symbol-form? datum 'quasiquote)
+            ;; ; stem 模式：quote/quasiquote/unquote 保持原样，按普通列表输出；
+            ;; ; (#_quote x) 防御性归一为 (quote x)（正常路径已在 scan 阶段归一）
+            ((and (stem-mode?) (quote-syntax-form? datum))
+             (format-reader-pair-at (cons 'quote (cdr datum)) indent)
+            ) ;
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'quasiquote))
              (string-append "`" (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
-            ((single-arg-symbol-form? datum 'unquote)
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'unquote))
              (string-append "," (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
-            ((single-arg-symbol-form? datum 'unquote-splicing)
+            ((and (not (stem-mode?)) (single-arg-symbol-form? datum 'unquote-splicing))
              (string-append ",@" (format-reader-datum-at (cadr datum) (+ indent 2)))
             ) ;
-            ((quote-syntax-form? datum)
+            ((and (not (stem-mode?)) (quote-syntax-form? datum))
              (string-append "'" (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
             ((pair? datum) (format-reader-pair-at datum indent))

@@ -57,6 +57,7 @@
     (liii goldtool-changed)
     (liii scheme-fmt)
     (liii cpp-fmt)
+    (liii stem-fmt)
   ) ;import
   (export main
     format-datum
@@ -176,7 +177,7 @@
       (display "      --dry-run    预览模式（不写回文件；目录路径不支持）"
       ) ;display
       (newline)
-      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；也可直接写后缀 -e scm,sld"
+      (display "  -e, --extension EXT    按语言名或后缀指定：-e cpp 涵盖 .cpp/.hpp/.h/.c/.cc/.cxx；-e scheme 涵盖 .scm；-e stem 涵盖 .stem；也可直接写后缀 -e scm,sld"
       ) ;display
       (newline)
       (display "      --changed-since REV    仅格式化自 REV 以来变更的文件（按 -e 过滤；未指定 -e 时包含所有语言）"
@@ -190,7 +191,7 @@
       (newline)
       (display "  path    要格式化的文件或目录路径（可选）")
       (newline)
-      (display "          无 path 时：读 gf_fmt.json 仓库批量格式化所有语言（scheme + cpp）"
+      (display "          无 path 时：读 gf_fmt.json 仓库批量格式化所有语言（scheme + cpp + stem）"
       ) ;display
       (newline)
       (newline)

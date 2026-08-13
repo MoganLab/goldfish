@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldfmt-scan)
-  (export scan scan-string scan-file)
+  (export scan scan-string scan-file stem-mode? call-with-stem-mode)
   (import (liii base)
     (liii path)
     (liii raw-string)
@@ -31,6 +31,19 @@
   ) ;import
 
   (begin
+    ;; ; stem 模式开关：TeXmacs .stem 文件中的 quote/quasiquote/unquote 等
+    ;; ; 是普通符号而非 reader 语法，stem handler 通过 call-with-stem-mode
+    ;; ; 动态打开此开关，scan/format 共享，scm 格式不受影响的默认值为 #f。
+    (define %stem-mode? #f)
+
+    (define (stem-mode?)
+      %stem-mode?
+    ) ;define
+
+    (define (call-with-stem-mode thunk)
+      (let-temporarily ((%stem-mode? #t)) (thunk))
+    ) ;define
+
     (define (write-to-string value)
       (let ((port (open-output-string)))
         (let-temporarily (((*s7* 'print-length) 9223372036854775807))
@@ -349,10 +362,19 @@
             ((char-literal-form? datum)
              (make-char-literal :source (cadr datum) :value (caddr datum))
             ) ;
-            ((quote-form? datum) (list (car datum) (normalize-datum (cadr datum))))
+            ;; ; stem 模式：quote 不是 reader 语法，统一改写成符号 quote 引导的
+            ;; ; 普通列表（source 中的 'x 经 reader 变为 (#_quote x)，这里归一为
+            ;; ; (quote x)），使 format 阶段按普通列表原样输出
+            ((quote-form? datum)
+             (if (stem-mode?)
+               (list 'quote (normalize-datum (cadr datum)))
+               (list (car datum) (normalize-datum (cadr datum)))
+             ) ;if
+            ) ;
             ;; ; 显式 (quasiquote T)：reader 不展开，模板中的 (a . ,b) 读出为 (a unquote b)，
             ;; ; 需要模板级走查恢复点对结构
-            ((explicit-quasiquote-form? datum)
+            ;; ; stem 模式下 quasiquote 是普通符号，跳过模板正规化，按普通列表处理
+            ((and (not (stem-mode?)) (explicit-quasiquote-form? datum))
              (list 'quasiquote (normalize-explicit-qq-template (cadr datum)))
             ) ;
             ((internal-list-values-form? datum)
@@ -424,7 +446,8 @@
     (define (scan-list lst depth)
       (let* ((first (car lst)) (rest (cdr lst)))
         ;; ; 处理 quote 形式：整个作为一个 env，没有 children
-        (cond ((quote-form? lst)
+        ;; ; stem 模式下 quote 是普通符号，跳过此特判，按普通列表扫描
+        (cond ((and (not (stem-mode?)) (quote-form? lst))
                (make-env :tag-name
                  (if (syntax? first) "#_quote" (symbol->string first))
                  :depth
