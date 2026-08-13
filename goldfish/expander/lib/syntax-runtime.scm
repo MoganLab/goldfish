@@ -49,13 +49,13 @@
         (cond
           ((pair? form)
            (cons (pattern-tree (car form)) (pattern-tree (cdr form))))
-          ((vector? form)
+          ((stx-vector? form)
            (vector-map pattern-tree form))
           (else stx)))
       (cond
         ((pair? stx)
          (cons (pattern-tree (car stx)) (pattern-tree (cdr stx))))
-        ((vector? stx)
+        ((stx-vector? stx)
          (vector-map pattern-tree stx))
         (else stx))))
 
@@ -123,11 +123,11 @@
                   #f)
               ;; Vector pattern: destructure element-wise (R6RS syntax-case
               ;; vector patterns, e.g. match.scm's #(p ...)).
-              (if (vector? pattern)
+              (if (stx-vector? pattern)
                   (letrec* ((in-form (if (syntax? input)
                                          (syntax-form input)
-                                         (if (vector? input) input #f))))
-                    (if (and in-form (vector? in-form))
+                                         (if (stx-vector? input) input #f))))
+                    (if (and in-form (stx-vector? in-form))
                         (pattern-match-list (vector->list pattern)
                                             (vector->list in-form)
                                             input literals bindings)
@@ -247,7 +247,7 @@
             ;; Vector template (e.g. match.scm's #(vec ...)): elements may
             ;; be raw datums (vectors are wrapped whole), so wrap them as
             ;; syntax, instantiate as a list, and rebuild the vector.
-            (if (vector? form)
+            (if (stx-vector? form)
                 (letrec* ((elems (map (lambda (e)
                                         (if (syntax? e)
                                             e

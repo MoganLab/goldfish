@@ -78,6 +78,23 @@
   => 3)
 
 ;; =============================================================================
+;; bytevector literals (#u8(...))
+;; =============================================================================
+(check (run '((bytevector? #u8(1 2 3)))) => #t)
+(check (run '((bytevector-length #u8(1 2 3)))) => 3)
+(check (run '((bytevector-u8-ref #u8(1 2 3) 0))) => 1)
+(check (run '((equal? #u8(1 2 3) (bytevector 1 2 3)))) => #t)
+(check (run '((equal? #u8() (bytevector)))) => #t)
+(check (run '((bytevector? #u8()))) => #t)
+(check (run '((quote #u8(1 2 3)))) => #u8(1 2 3))
+(check (run '((car (list #u8(1 2) #u8(3 4))))) => #u8(1 2))
+(check (run '((bytevector? (quote #u8(7))))) => #t)
+(check (run '((bytevector-length #u8(255 128 0)))) => 3)
+(check (run '((bytevector-u8-ref (bytevector-copy #u8(9 8 7)) 2))) => 7)
+(check (run '((equal? (vector-ref #(#u8(1) #u8(2)) 1) #u8(2)))) => #t)
+(check (run '((bytevector? (cdr (cons 1 #u8(2 3)))))) => #t)
+
+;; =============================================================================
 ;; expansion output shape
 ;; =============================================================================
 ;; define desugars to letrec*

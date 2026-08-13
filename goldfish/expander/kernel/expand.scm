@@ -6,7 +6,8 @@
 ;;; Output is a plain core Scheme S-expression.
 
 (define (self-evaluating? x)
-  (or (number? x) (boolean? x) (string? x) (char? x)))
+  (or (number? x) (boolean? x) (string? x) (char? x)
+      (bytevector? x)))
 
 (define (expand-expr stx ctx)
   (cond

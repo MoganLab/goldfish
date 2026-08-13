@@ -13,6 +13,14 @@
   (context syntax-context)
   (library syntax-library))
 
+;;; stx-vector? : any -> bool
+;;; Container vectors only: in s7, `vector?' also holds for bytevectors,
+;;; whose elements are plain bytes the expander must never recurse into
+;;; (recursing would rebuild a #u8(...) literal as a plain vector).
+
+(define (stx-vector? x)
+  (and (vector? x) (not (bytevector? x))))
+
 ;;; Syntax-object contexts (phase-indexed scope sets)
 
 (define (stx-ctx-empty) '())
@@ -66,7 +74,7 @@
         ((pair? form)
          (make-syntax (map-spine (lambda (s) (stx-apply-ctx s f phase)) form)
                       new-ctx lib))
-        ((vector? form)
+        ((stx-vector? form)
          (make-syntax (vector-map (lambda (s) (stx-apply-ctx s f phase)) form)
                       new-ctx lib))
         (else
@@ -115,7 +123,7 @@
       ((pair? form)
        (make-syntax (map-spine (lambda (s) (stx-set-library s lib)) form)
                     (syntax-context stx) lib))
-      ((vector? form)
+      ((stx-vector? form)
        (make-syntax (vector-map (lambda (s) (stx-set-library s lib)) form)
                     (syntax-context stx) lib))
       (else
@@ -147,13 +155,13 @@
          ((pair? form)
           (cons (syntax->datum (car form))
                 (syntax->datum (cdr form))))
-         ((vector? form)
+         ((stx-vector? form)
           (vector-map (lambda (x) (syntax->datum x)) form))
          (else form))))
     ((pair? stx)
      (cons (syntax->datum (car stx))
            (syntax->datum (cdr stx))))
-    ((vector? stx)
+    ((stx-vector? stx)
      (vector-map (lambda (x) (syntax->datum x)) stx))
     (else stx)))
 
@@ -169,7 +177,7 @@
     (cond
       ((pair? form)
        (cons (wrap (car form)) (wrap (cdr form))))
-      ((vector? form)
+      ((stx-vector? form)
        (vector-map wrap form))
       (else form))))
 
@@ -189,7 +197,7 @@
     ((pair? datum)
      (make-syntax (map-spine (lambda (x) (datum->stx-ctx ctx lib phase x)) datum)
                   ctx lib))
-    ((vector? datum)
+    ((stx-vector? datum)
      (make-syntax (vector-map (lambda (x) (datum->stx-ctx ctx lib phase x)) datum)
                   ctx lib))
     (else

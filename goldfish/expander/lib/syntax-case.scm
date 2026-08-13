@@ -52,7 +52,7 @@
                                          (if (pair? form)
                                              (begin (walk (car form))
                                                     (walk (cdr form)))
-                                             (if (vector? form)
+                                             (if (stx-vector? form)
                                                  (for-each walk (vector->list form))
                                                  (if #f #f)))))))
                            (literal-id?

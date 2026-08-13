@@ -374,7 +374,7 @@
 (define (qq-expand stx ctx depth)
   (let ((form (syntax-form stx)))
     (cond
-      ((vector? form)
+      ((stx-vector? form)
        (qq-vector stx ctx depth))
       ((pair? form)
        (let ((head (qq-head form)))
