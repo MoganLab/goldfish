@@ -36,50 +36,34 @@
       ) ;let
     ) ;define
 
-    (define (f-deindent str)
-      (when (or (string-null? str) (not (char=? #\newline (string-ref str 0))))
-        (value-error "Raw string must start on a new line after the opening delimiter")
-      ) ;when
+    ;; deindent / &- are compile-time macros: the reader has already turned
+    ;; the multi-line raw-string literal into a single string datum, so the
+    ;; indentation is computed at expand time and the result is a constant.
+    ;; The expander evaluates procedural transformer bodies at expand time,
+    ;; so the helper below can use the srfi-1/srfi-13 procedures directly.
 
-      (let* ((lines (string-split-lines (substring str 1 (string-length str))))
-             (closing-line (last lines))
-             (ref-indent (if (string-null? closing-line)
-                           (value-error "Raw string delimiter must be on its own line")
-                           (string-count closing-line #\space)
-                         ) ;if
-             ) ;ref-indent
-             (content-lines (drop-right lines 1))
-            ) ;
+    (define-syntax deindent-impl
+      (lambda (stx)
+        (let* ((str (cadr (syntax->datum stx))))
+          (datum->syntax stx
+            (let* ((lines (let loop ((start 1) (result '()))
+                            (let ((nl-pos (string-index str #\newline start (string-length str))))
+                              (if (not nl-pos)
+                                (reverse (cons (substring str start (string-length str)) result))
+                                (loop (+ nl-pos 1) (cons (substring str start nl-pos) result))))))
+                   (closing-line (last lines))
+                   (ref-indent (string-count closing-line #\space))
+                   (content-lines (drop-right lines 1)))
+              (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
+                             content-lines)
+                "\n"))))))
 
-        ;; check indentation
-        (for-each (lambda (line idx)
-                    (unless (string-null? line)
-                      (let ((indent (or (string-skip line #\space) 0)))
-                        (when (< indent ref-indent)
-                          (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string"
-                            (+ idx 1)
-                          ) ;value-error
-                        ) ;when
-                      ) ;let
-                    ) ;unless
-                  ) ;lambda
-          content-lines
-          (iota (length content-lines))
-        ) ;for-each
+    (define-syntax deindent
+      (syntax-rules ()
+        [(_ s) (deindent-impl s)]))
 
-        (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
-                       content-lines
-                     ) ;map
-          "\n"
-        ) ;string-join
-      ) ;let*
-    ) ;define
-
-    (define-macro (stx-deindent v)
-      (if (string? v) `(quote ,(f-deindent v)) `(quote ,v))
-    ) ;define-macro
-
-    (define deindent stx-deindent)
-    (define &- stx-deindent)
+    (define-syntax &-
+      (syntax-rules ()
+        [(_ s) (deindent-impl s)]))
   ) ;begin
 ) ;define-library

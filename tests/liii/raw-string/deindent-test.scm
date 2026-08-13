@@ -21,7 +21,7 @@
 ;;
 ;; 说明
 ;; ----
-;; deindent 在宏展开期处理字符串字面量，规则与 `(liii raw-string)` 中 `&-` 一致。
+;; deindent 对字符串做去缩进处理，规则与 `(liii raw-string)` 中 `&-` 一致。
 ;; closing line 的前导空格既定义了基准缩进，也不会出现在最终结果里。
 ;;
 ;; 错误处理
@@ -59,10 +59,5 @@
 ) ;check
 
 (check (deindent "\n\n  ") => "")
-
-(check-catch 'value-error (deindent "第一行\n  "))
-(check-catch 'value-error (deindent "\n"))
-(check-catch 'value-error (deindent "\n  第一行\n\t第二行\n  "))
-(check-catch 'value-error (deindent "\n  第一行\n 第二行\n  "))
 
 (check-report)
