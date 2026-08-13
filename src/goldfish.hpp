@@ -15,6 +15,7 @@
 //
 
 #include "s7.h"
+#include "s7_r7rs_library.h"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>
@@ -711,6 +712,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_base64 (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
+  glue_r7rs_library (sc);
   glue_njson (sc);
 #ifdef GOLDFISH_ENABLE_HTTP
   glue_http (sc);

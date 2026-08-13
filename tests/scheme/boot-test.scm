@@ -42,10 +42,8 @@
   (path-write-text probe-file
     (string-append "(define *cacheprobe-load-count*\n"
       "  (if (defined? '*cacheprobe-load-count*) (+ *cacheprobe-load-count* 1) 1))\n"
-      "(define-library (liii cacheprobe)\n"
-      "  (export probe-func)\n"
-      "  (import (scheme base))\n"
-      "  (begin (define (probe-func) 42)))\n"
+      "(define-library (liii cacheprobe)\n" "  (export probe-func)\n"
+      "  (import (scheme base))\n" "  (begin (define (probe-func) 42)))\n"
     ) ;string-append
   ) ;path-write-text
   (dynamic-wind (lambda ()
@@ -67,5 +65,32 @@
     ) ;lambda
   ) ;dynamic-wind
 ) ;let*
+
+;; [0112_1] C 实现的 R7RS 库注册表基础设施
+(let ((probe-env (inlet 'probe-x 1 'probe-y 2)))
+  (check (g_library-defined? '(goldfish test-probe)) => #f)
+  (check (g_library-ref '(goldfish test-probe)) => #f)
+  (g_library-register! '(goldfish test-probe) probe-env)
+  (check (g_library-defined? '(goldfish test-probe)) => #t)
+  (check (eq? (g_library-ref '(goldfish test-probe)) probe-env) => #t)
+  (check ((g_library-ref '(goldfish test-probe)) 'probe-x) => 1)
+  ;; 重复注册：覆盖
+  (let ((env2 (inlet 'probe-z 3)))
+    (g_library-register! '(goldfish test-probe) env2)
+    (check (eq? (g_library-ref '(goldfish test-probe)) env2) => #t)
+    (check ((g_library-ref '(goldfish test-probe)) 'probe-z) => 3)
+  ) ;let
+  ;; 卸载
+  (g_library-unregister! '(goldfish test-probe))
+  (check (g_library-defined? '(goldfish test-probe)) => #f)
+  (check (g_library-ref '(goldfish test-probe)) => #f)
+) ;let
+
+;; 库名必须是 proper list，元素为 symbol 或非负整数（R7RS）
+(check-catch 'wrong-type-arg (g_library-defined? "not-a-list"))
+(check-catch 'wrong-type-arg (g_library-defined? '(a . b)))
+(check-catch 'wrong-type-arg (g_library-register! '(a 1.5) (inlet)))
+(check-catch 'wrong-type-arg (g_library-register! '(a -1) (inlet)))
+(check-catch 'wrong-type-arg (g_library-register! '(a) 42))
 
 (check-report "\n\nCheck report of boot-test.scm => ")
