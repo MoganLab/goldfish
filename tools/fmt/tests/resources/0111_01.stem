@@ -1,0 +1,1 @@
+(document (TeXmacs "2.1.4") (style (tuple "source")) (body (document (assign "new-env" (macro "env" "name" "grp" (quasi (concat (add-to-counter-group (unquote (arg "env")) (unquote (arg "grp"))) (assign (unquote (merge (arg "env") "-text")) (macro (localize (unquote (arg "name"))))))))) (quote (a b)))))
