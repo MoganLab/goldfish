@@ -188,10 +188,16 @@
                                 name)))
                 (values (datum->syntax stx `(set! ,target ,val-sexp)) ctx1)))))))))
 
-;;; letrec* -- the single recursive-binding core form.
-;;; `letrec' is a macro deriving to letrec* (lib/core-macros.scm).
+;;; letrec* / letrec -- the recursive-binding core forms.
+;;; `letrec' is a core form (not a macro): R7RS gives implementations a
+;;; choice for letrec's init evaluation order, and s7's native letrec
+;;; enforces the strict semantics (referencing an as-yet-uninitialized
+;;; binding in an init is an error), which the letrec* expansion would
+;;; silently permit.  The expander therefore emits `letrec' as-is and
+;;; lets the host evaluate it with its R7RS semantics; letrec* remains
+;;; the expander's own emission target for internal defines.
 
-(define (expand-letrec-form stx ctx)
+(define (expand-letrec-form stx ctx form-name)
   (let* ((form (syntax-form stx))
          (binding-stxs (syntax-form (cadr form)))
          (body-stxs (cddr form))
@@ -202,10 +208,11 @@
                        (expand-letrec-inits binding-stxs ctx2 names scp ph)))
           (let*-values (((body-sexp ctx4)
                          (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) (context-reset-use-scopes (context-add-prune-scope ctx3 scp)))))
-            (values (datum->syntax stx `(letrec* ,(map list names inits) ,body-sexp))
+            (values (datum->syntax stx `(,form-name ,(map list names inits) ,body-sexp))
                     (context-return ctx ctx4))))))))
 
-(define (core-letrec* stx ctx) (expand-letrec-form stx ctx))
+(define (core-letrec* stx ctx) (expand-letrec-form stx ctx 'letrec*))
+(define (core-letrec stx ctx) (expand-letrec-form stx ctx 'letrec))
 
 (define (expand-letrec-allocate binding-stxs ctx scp ph)
   (let loop ((bs binding-stxs) (c ctx) (names '()))
@@ -433,6 +440,7 @@
         (cons 'begin core-begin)
         (cons 'set! core-set!)
         (cons 'letrec* core-letrec*)
+        (cons 'letrec core-letrec)
         (cons 'define core-define)
         (cons 'define-syntax core-define-syntax)
         (cons 'let-syntax core-let-syntax)

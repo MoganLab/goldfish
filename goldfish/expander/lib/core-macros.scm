@@ -37,16 +37,10 @@
     ((let* ((name val) rest ...) body ...)
      (let ((name val)) (let* (rest ...) body ...)))))
 
-;;; letrec derives to letrec*: R7RS permits any init evaluation order for
-;;; letrec, so sequential (letrec*) is a valid implementation.  This matches
-;;; Racket, whose `letrec' also expands to the sequential letrec-values.
-;;; letrec* stays the single recursive-binding core form (core-forms.scm);
-;;; it is also the expander's own emission target for internal defines, so a
-;;; macro would split its handling into two paths.
-(define-syntax letrec
-  (syntax-rules ()
-    ((letrec ((name val) ...) body ...)
-     (letrec* ((name val) ...) body ...))))
+;;; letrec is a core form (core-forms.scm), emitted as-is so the host
+;;; evaluates it with its strict R7RS letrec semantics (referencing an
+;;; uninitialized binding in an init is an error), distinct from letrec*.
+;;; letrec* stays the recursive-binding core form used for internal defines.
 
 (define-syntax and
   (syntax-rules ()
