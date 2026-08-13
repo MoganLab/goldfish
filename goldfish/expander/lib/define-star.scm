@@ -79,25 +79,34 @@
        (let* ((params-list (syntax-form #'params))
               (body-syns (syntax-form #'(body ...)))
               (n (length params-list)))
-         (let loop ((i 0) (req '()) (opts '()))
+         (let loop ((i 0) (opts '()))
            (if (= i n)
                (if (null? opts)
-                   ;; (lambda (a b ...) body ...)
+                   ;; (lambda () body ...)
                    (datum->syntax stx
                      (cons 'lambda
-                           (cons (reverse req) body-syns)))
+                           (cons '() body-syns)))
                    ;; Keyword-capable form (also handles positional args):
                    ;;
-                   ;; (lambda (req ... . args)
+                   ;; (lambda args
                    ;;   (define (kw-name sym) ...)
                    ;;   (define (keyword-like? x) ...)
                    ;;   (define (make-keyed-alist args) ...)
                    ;;   (let ((__keyed (make-keyed-alist args)))
-                   ;;     (let* ((o1 (if (assq 'o1 __keyed)
-                   ;;                   (cdr (assq 'o1 __keyed))
-                   ;;                   d1))
+                   ;;     (let* ((a (if (assq 'a __keyed)
+                   ;;                   (cdr (assq 'a __keyed))
+                   ;;                   #f))
+                   ;;            (b (if (assq 'b __keyed)
+                   ;;                   (cdr (assq 'b __keyed))
+                   ;;                   d2))
                    ;;            ...)
                    ;;       body ...)))
+                   ;;
+                   ;; s7's define* never enforces a minimum argument count:
+                   ;; every parameter is optional, and a missing "required"
+                   ;; parameter binds to #f (so the error surfaces from the
+                   ;; body or a default expression, e.g. (vector-length #f)
+                   ;; raising wrong-type-arg).
                    (let* ((opt-names
                            (map (lambda (o) (car (syntax-form o))) opts))
                           (opt-defaults
@@ -152,7 +161,6 @@
                            (list kw-name-datum
                                  keyword-like?-datum
                                  make-keyed-alist-datum))
-                          (formals (append (reverse req) 'args))
                           (lambda-body
                            (append helper-defs
                                    (list (list 'let
@@ -160,8 +168,15 @@
                                                            (list 'make-keyed-alist 'args)))
                                                (cons 'let* (cons bindings body-syns)))))))
                      (datum->syntax stx
-                       (cons 'lambda (cons formals lambda-body)))))
-                 (let ((p (list-ref params-list i)))
-                   (if (pair? (syntax->datum p))
-                       (loop (+ i 1) req (append opts (list p)))
-                       (loop (+ i 1) (cons p req) opts))))))))))
+                       (cons 'lambda (cons 'args lambda-body)))))
+               (let ((p (list-ref params-list i)))
+                 (if (pair? (syntax->datum p))
+                     (loop (+ i 1) (append opts (list p)))
+                     ;; A bare symbol is an optional parameter without a
+                     ;; default (s7 define* semantics): missing arguments
+                     ;; bind to #f; it can be supplied positionally or by
+                     ;; keyword.
+                     (loop (+ i 1)
+                           (append opts
+                                   (list (datum->syntax stx
+                                          (list (syntax-form p) #f))))))))))))))

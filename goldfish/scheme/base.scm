@@ -246,8 +246,23 @@
     ) ;define-macro
 
     (define-macro (define-values vars expression)
-      `(if (not (null? (quote ,vars)))
-         (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
+      ;; s7's original expansion used (varlet (curlet) ...), which the
+      ;; expander does not provide; the standard-form expansion below
+      ;; (define placeholders + assign from a single call-with-values)
+      ;; works both under the s7 host (base.scm is loaded before the
+      ;; expander exists) and under the expander, like let-values above.
+      (let* ((tmp (gensym))
+             (setters
+              (let loop ((vs vars) (expr tmp) (acc '()))
+                (if (null? vs)
+                  (reverse acc)
+                  (loop (cdr vs) (list 'cdr expr)
+                        (cons `(set! ,(car vs) (car ,expr)) acc))))))
+        `(begin
+           ,@(map (lambda (v) `(define ,v 'uninitialized)) vars)
+           (call-with-values (lambda () ,expression)
+             (lambda ,tmp ,@setters)))
+      ) ;let*
     ) ;define-macro
 
     (define-macro (define-record-type type make ? . fields)
