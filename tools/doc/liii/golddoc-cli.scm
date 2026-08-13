@@ -215,10 +215,8 @@
 
     (define (display-library-function-suggestions library-query function-name suggestions)
       (let ((port (current-error-port)))
-        (display (string-append "No exact match for function: "
-                   function-name
-                   " in library: "
-                   library-query
+        (display (string-append "No exact match for function: " function-name
+                   " in library: " library-query
                  ) ;string-append
           port
         ) ;display
@@ -394,8 +392,7 @@
                         (if (null? suggestions)
                           (begin
                             (stderr-line (string-append "Error: documentation file not found for function: "
-                                           exported-name
-                                           " in library: "
+                                           exported-name " in library: "
                                            library-query
                                          ) ;string-append
                             ) ;stderr-line

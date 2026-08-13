@@ -47,15 +47,9 @@
     (liii path)
     (liii sys)
   ) ;import
-  (export parse-test-args
-    parse-test-changed-since
-    filter-test-files
-    filter-changed-test-files
-    find-test-files
-    failed-test-files
-    split-tests-target
-    run-goldtest
-    main
+  (export parse-test-args parse-test-changed-since filter-test-files
+    filter-changed-test-files find-test-files failed-test-files
+    split-tests-target run-goldtest main
   ) ;export
   (begin
 

@@ -16,10 +16,8 @@
 
 (define-library (liii golddoc-library)
   (import (scheme base) (liii golddoc-args) (liii path) (liii string))
-  (export excluded-test-group?
-    find-visible-library-root
-    find-tests-root-for-load-root
-    library-doc-path
+  (export excluded-test-group? find-visible-library-root
+    find-tests-root-for-load-root library-doc-path
   ) ;export
   (begin
 

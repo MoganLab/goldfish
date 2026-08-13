@@ -50,10 +50,8 @@
 
     (define (parse-source-args args)
       (let ((parser (make-argument-parser '((command . "source")
-                                            (skip-value-options "-m"
-                                              "--mode"
-                                              "-I"
-                                              "-A")
+                                            (skip-value-options "-m" "--mode"
+                                              "-I" "-A")
                                             (skip-prefix-options "-m="
                                               "--mode=")
                                             (unknown-options . positional))
