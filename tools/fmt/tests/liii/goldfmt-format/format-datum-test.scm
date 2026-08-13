@@ -199,4 +199,54 @@
   "`(a ,@b)"
 ) ;check
 
+;; fill 模式：全部子元素为 atom 且数量 >= 4 且无法整体内联时，
+;; 元素填充到同一行（不超过 max-inline-length=80），续行缩进 parent+2，
+;; 闭合括号保持 ) ;tag 独占一行。
+(check (format-datum (cons 'list (iota 30 1)))
+  =>
+  (&- #""
+       (list 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28
+         29 30
+       ) ;list
+       ""
+  ) ;&-
+) ;check
+
+;; 只有 3 个 atom 子元素时不触发 fill，保持一行一个
+(check (format-datum (list 'f (string->symbol (make-string 78 #\a)) 'b 'c))
+  =>
+  (&- #""
+       (f aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+         b
+         c
+       ) ;f
+       ""
+  ) ;&-
+) ;check
+
+;; 子元素 >= 4 但含有子列表时不触发 fill，保持一行一个
+(check (format-datum (list 'list (string->symbol (make-string 74 #\a)) 1 2 '(+ 3 4) 5))
+  =>
+  (&- #""
+       (list aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+         1
+         2
+         (+ 3 4)
+         5
+       ) ;list
+       ""
+  ) ;&-
+) ;check
+
+;; 引用数据（reader 路径）：无符号 head 的纯 atom 列表也触发 fill，
+;; 续行与第一个元素对齐，闭合括号在行尾
+(check (format-datum (list 'quote (iota 30 1)))
+  =>
+  (&- #""
+       '(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29
+         30)
+       ""
+  ) ;&-
+) ;check
+
 (check-report)

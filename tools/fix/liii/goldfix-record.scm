@@ -1,45 +1,14 @@
 (define-library (liii goldfix-record)
-  (export make-fix-token
-    fix-token?
-    fix-token-type
-    fix-token-offset
-    fix-token-end
-    fix-token-line
-    fix-token-column
-    fix-token-text
-    make-fix-line
-    fix-line?
-    fix-line-number
-    fix-line-start-offset
-    fix-line-first-code-token
-    fix-line-tokens
-    make-open-frame
-    open-frame?
-    open-frame-offset
-    open-frame-line
-    open-frame-column
-    open-frame-tag-name
-    make-pending-close
-    pending-close?
-    pending-close-frame
-    pending-close-offset
-    pending-close-end
-    pending-close-line
-    pending-close-column
-    make-fix-edit
-    fix-edit?
-    fix-edit-kind
-    fix-edit-offset
-    fix-edit-start
-    fix-edit-end
-    fix-edit-text
-    fix-edit-reason
-    fix-edit-open-offset
-    make-repair-report
-    repair-report?
-    repair-report-ok?
-    repair-report-edits
-    repair-report-diagnostics
+  (export make-fix-token fix-token? fix-token-type fix-token-offset
+    fix-token-end fix-token-line fix-token-column fix-token-text make-fix-line
+    fix-line? fix-line-number fix-line-start-offset fix-line-first-code-token
+    fix-line-tokens make-open-frame open-frame? open-frame-offset
+    open-frame-line open-frame-column open-frame-tag-name make-pending-close
+    pending-close? pending-close-frame pending-close-offset pending-close-end
+    pending-close-line pending-close-column make-fix-edit fix-edit?
+    fix-edit-kind fix-edit-offset fix-edit-start fix-edit-end fix-edit-text
+    fix-edit-reason fix-edit-open-offset make-repair-report repair-report?
+    repair-report-ok? repair-report-edits repair-report-diagnostics
   ) ;export
   (import (liii base) (liii error))
 

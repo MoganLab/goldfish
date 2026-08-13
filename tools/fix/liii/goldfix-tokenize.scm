@@ -220,14 +220,8 @@
                    (start-offset (vector-ref start-offsets idx))
                   ) ;
               (line-loop (- line-number 1)
-                (cons (make-fix-line :number
-                        line-number
-                        :start-offset
-                        start-offset
-                        :first-code-token
-                        first
-                        :tokens
-                        line-tokens
+                (cons (make-fix-line :number line-number :start-offset
+                        start-offset :first-code-token first :tokens line-tokens
                       ) ;make-fix-line
                   result
                 ) ;cons

@@ -23,11 +23,8 @@
     (liii set)
     (liii string)
   ) ;import
-  (export index-entry->library-query
-    find-function-index-paths
-    load-function-index
-    visible-function-names
-    visible-libraries-for-function
+  (export index-entry->library-query find-function-index-paths
+    load-function-index visible-function-names visible-libraries-for-function
   ) ;export
   (begin
 

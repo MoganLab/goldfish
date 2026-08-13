@@ -20,11 +20,7 @@
 ) ;set!
 
 (define-library (liii goldfix)
-  (export main
-    fix-string
-    repair-source
-    repair-source*
-    repair-parentheses
+  (export main fix-string repair-source repair-source* repair-parentheses
     parentheses-balanced?
   ) ;export
   (import (liii base)
@@ -351,10 +347,8 @@
 
     (define (make-fix-arg-parser)
       (let ((parser (make-argument-parser '((command . "fix")
-                                            (skip-value-options "-m"
-                                              "--mode"
-                                              "-I"
-                                              "-A")
+                                            (skip-value-options "-m" "--mode"
+                                              "-I" "-A")
                                             (skip-prefix-options "-m="
                                               "--mode=")
                                             (unknown-options . positional))

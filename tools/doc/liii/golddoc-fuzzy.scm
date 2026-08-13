@@ -21,11 +21,8 @@
     (liii sort)
     (liii string)
   ) ;import
-  (export max-fuzzy-edit-distance
-    bounded-levenshtein-distance
-    suggest-candidates
-    suggest-library-functions
-    suggest-visible-functions
+  (export max-fuzzy-edit-distance bounded-levenshtein-distance
+    suggest-candidates suggest-library-functions suggest-visible-functions
   ) ;export
   (begin
 
