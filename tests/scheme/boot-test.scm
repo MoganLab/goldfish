@@ -168,4 +168,58 @@
   (define-library "not-a-list" (export x))
 ) ;check-catch
 
+;; [0112_3] C 实现的 import：嵌套修饰符（旧 Scheme 实现不支持）
+(let* ((probe-root (path-join (path-temp-dir)
+                     (string-append "goldfish-import-nest-" (number->string (getpid)))
+                   ) ;path-join
+       ) ;probe-root
+       (probe-liii (path-join probe-root "liii"))
+       (probe-file (path-join probe-liii "nestprobe.scm"))
+       (old-load-path *load-path*)
+      ) ;
+  (mkdir (path->string probe-root))
+  (mkdir (path->string probe-liii))
+  (path-write-text probe-file
+    (string-append "(define *nestprobe-load-count*\n"
+      "  (if (defined? '*nestprobe-load-count*) (+ *nestprobe-load-count* 1) 1))\n"
+      "(define-library (liii nestprobe)\n"
+      "  (export nest-a nest-b nest-c nest-d)\n"
+      "  (begin (define nest-a 1) (define nest-b 2) (define nest-c 3) (define nest-d 4)))\n"
+    ) ;string-append
+  ) ;path-write-text
+  (dynamic-wind (lambda ()
+                  (set! *load-path* (append *load-path* (list (path->string probe-root))))
+                ) ;lambda
+    (lambda ()
+      ;; only 嵌套 except
+      (import (only (except (liii nestprobe) nest-d) nest-a nest-b))
+      (check nest-a => 1)
+      (check nest-b => 2)
+      (check (defined? 'nest-c) => #f)
+      (check (defined? 'nest-d) => #f)
+      ;; 嵌套修饰符不绕过加载缓存：文件只 load 一次
+      (check *nestprobe-load-count* => 1)
+      ;; prefix 嵌套 only
+      (import (prefix (only (liii nestprobe) nest-a) pre-))
+      (check pre-nest-a => 1)
+      ;; rename 嵌套 except
+      (import (rename (except (liii nestprobe) nest-a nest-b nest-d) (nest-c renamed-c)))
+      (check renamed-c => 3)
+      (check *nestprobe-load-count* => 1)
+    ) ;lambda
+    (lambda ()
+      (set! *load-path* old-load-path)
+      (path-unlink probe-file #t)
+      (path-rmdir (path->string probe-liii))
+      (path-rmdir (path->string probe-root))
+    ) ;lambda
+  ) ;dynamic-wind
+) ;let*
+
+;; 非法 import set：报错
+(check-catch 'wrong-type-arg (import "not-a-library-name"))
+(check-catch 'wrong-type-arg (import 42))
+;; 修饰符结构不完整：报错
+(check-catch 'syntax-error (import (only)))
+
 (check-report "\n\nCheck report of boot-test.scm => ")

@@ -25,6 +25,7 @@
 #include "s7_r7rs_library.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -216,12 +217,23 @@ g_define_library (s7_scheme* sc, s7_pointer args) {
         s7_pointer internal= NULL;
         s7_pointer external= r7rs_export_spec_names (sc, s7_car (specs), &internal);
         s7_pointer entry   = r7rs_entries_find (entries, internal);
-        /* pass 2 guarantees the name exists: in the library body's own slots,
-         * or via the fall-through to the rootlet */
-        s7_pointer value= entry ? s7_cdr (entry) : s7_let_ref (sc, lib_env, internal);
-        /* syntactic rootlet bindings (define* etc.) cannot be let slots in s7;
-         * skip them, matching the old Scheme implementation */
-        if (!s7_is_syntax (value)) s7_varlet (sc, export_env, external, value);
+        /* only the library body's own bindings are materialized in the export
+         * environment.  Names that fall through to the rootlet (pass 2 allows
+         * them, e.g. (scheme base) re-exporting eqv?) stay virtual: the export
+         * environment's outlet chain resolves them, exactly like the old
+         * Scheme implementation.  Copying hundreds of rootlet bindings into
+         * every export environment (and from there into every importer) would
+         * be a measurable slowdown. */
+        if (entry) s7_varlet (sc, export_env, external, s7_cdr (entry));
+        else
+          if (external != internal) {
+            /* a renamed rootlet re-export (export (rename eqv? same?)): the new
+             * name does not exist in the rootlet, so it must be materialized */
+            s7_pointer value= s7_let_ref (sc, lib_env, internal);
+            /* syntactic rootlet bindings (define* etc.) cannot be let slots in s7;
+             * skip them, matching the old Scheme implementation */
+            if (!s7_is_syntax (value)) s7_varlet (sc, export_env, external, value);
+          }
       }
     }
   }
@@ -231,6 +243,212 @@ g_define_library (s7_scheme* sc, s7_pointer args) {
   s7_gc_unprotect_via_stack (sc, lib_env);
   s7_gc_unprotect_via_stack (sc, args);
   return s7_t (sc);
+}
+
+/* -------- import -------- */
+
+/* map a library name (liii base) to the file path "liii/base.scm" */
+static char*
+r7rs_library_name_to_path (s7_scheme* sc, s7_pointer libname) {
+  size_t len= 1; /* NUL */
+  for (s7_pointer p= libname; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer elt= s7_car (p);
+    len+= (s7_is_symbol (elt) ? strlen (s7_symbol_name (elt)) : 24) + 1; /* '/' or ".scm" */
+  }
+  char* path= (char*) malloc (len + 4);
+  char* w   = path;
+  for (s7_pointer p= libname; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer elt= s7_car (p);
+    if (w != path) *w++= '/';
+    if (s7_is_symbol (elt)) {
+      size_t n= strlen (s7_symbol_name (elt));
+      memcpy (w, s7_symbol_name (elt), n);
+      w+= n;
+    }
+    else w+= sprintf (w, "%lld", (long long) s7_integer (elt));
+  }
+  memcpy (w, ".scm", 5); /* with NUL */
+  return path;
+}
+
+/* return the exported environment of libname, loading its file on first use */
+static s7_pointer
+r7rs_library_env (s7_scheme* sc, s7_pointer libname) {
+  s7_pointer env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
+  if (s7_is_let (env)) return env;
+  char* path= r7rs_library_name_to_path (sc, libname);
+  s7_load (sc, path); /* errors if the file cannot be found */
+  free (path);
+  env= s7_hash_table_ref (sc, r7rs_library_registry (sc), libname);
+  if (!s7_is_let (env))
+    return r7rs_library_error (sc, "unbound-variable", "import: loading did not define the library ~S", libname);
+  return env;
+}
+
+static s7_pointer r7rs_import_set_env (s7_scheme* sc, s7_pointer iset);
+
+/* is sym a member of the symbol list names? */
+static bool
+r7rs_symbol_member (s7_pointer names, s7_pointer sym) {
+  for (s7_pointer p= names; s7_is_pair (p); p= s7_cdr (p))
+    if (s7_car (p) == sym) return true;
+  return false;
+}
+
+static s7_pointer
+r7rs_import_check_names (s7_scheme* sc, s7_pointer names) {
+  for (s7_pointer p= names; s7_is_pair (p); p= s7_cdr (p))
+    if (!s7_is_symbol (s7_car (p)))
+      return r7rs_library_error (sc, "wrong-type-arg", "import: expected an identifier, got ~S", s7_car (p));
+  return NULL;
+}
+
+/* (only import-set identifier ...) */
+static s7_pointer
+r7rs_import_only (s7_scheme* sc, s7_pointer iset) {
+  s7_pointer rest= s7_cdr (iset);
+  if (!s7_is_pair (rest))
+    return r7rs_library_error (sc, "syntax-error", "import: (only ...) needs an import set, got ~S", iset);
+  s7_pointer err= r7rs_import_check_names (sc, s7_cdr (rest));
+  if (err) return err;
+  s7_pointer sub= r7rs_import_set_env (sc, s7_car (rest));
+  s7_gc_protect_via_stack (sc, sub);
+  s7_pointer env= s7_inlet (sc, s7_nil (sc));
+  s7_gc_protect_via_stack (sc, env);
+  for (s7_pointer names= s7_cdr (rest); s7_is_pair (names); names= s7_cdr (names)) {
+    s7_pointer name= s7_car (names);
+    s7_varlet (sc, env, name, s7_let_ref (sc, sub, name)); /* let-ref errors if name is missing */
+  }
+  s7_gc_unprotect_via_stack (sc, env);
+  s7_gc_unprotect_via_stack (sc, sub);
+  return env;
+}
+
+/* (except import-set identifier ...) */
+static s7_pointer
+r7rs_import_except (s7_scheme* sc, s7_pointer iset) {
+  s7_pointer rest= s7_cdr (iset);
+  if (!s7_is_pair (rest))
+    return r7rs_library_error (sc, "syntax-error", "import: (except ...) needs an import set, got ~S", iset);
+  s7_pointer err= r7rs_import_check_names (sc, s7_cdr (rest));
+  if (err) return err;
+  s7_pointer sub= r7rs_import_set_env (sc, s7_car (rest));
+  s7_gc_protect_via_stack (sc, sub);
+  s7_pointer env= s7_inlet (sc, s7_nil (sc));
+  s7_gc_protect_via_stack (sc, env);
+  s7_pointer entries= s7_let_to_list (sc, sub);
+  s7_gc_protect_via_stack (sc, entries);
+  s7_pointer names= s7_cdr (rest);
+  for (s7_pointer p= entries; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer entry= s7_car (p);
+    if (!r7rs_symbol_member (names, s7_car (entry))) s7_varlet (sc, env, s7_car (entry), s7_cdr (entry));
+  }
+  s7_gc_unprotect_via_stack (sc, entries);
+  s7_gc_unprotect_via_stack (sc, env);
+  s7_gc_unprotect_via_stack (sc, sub);
+  return env;
+}
+
+/* (prefix import-set prefix-identifier) */
+static s7_pointer
+r7rs_import_prefix (s7_scheme* sc, s7_pointer iset) {
+  if ((s7_list_length (sc, iset) != 3) || (!s7_is_symbol (s7_caddr (iset))))
+    return r7rs_library_error (sc, "syntax-error",
+                               "import: (prefix ...) needs an import set and a prefix identifier, got ~S", iset);
+  s7_pointer sub= r7rs_import_set_env (sc, s7_cadr (iset));
+  s7_gc_protect_via_stack (sc, sub);
+  s7_pointer env= s7_inlet (sc, s7_nil (sc));
+  s7_gc_protect_via_stack (sc, env);
+  s7_pointer entries= s7_let_to_list (sc, sub);
+  s7_gc_protect_via_stack (sc, entries);
+  const char* pre= s7_symbol_name (s7_caddr (iset));
+  size_t      pre_len= strlen (pre);
+  for (s7_pointer p= entries; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer  entry= s7_car (p);
+    const char* name = s7_symbol_name (s7_car (entry));
+    size_t      name_len= strlen (name);
+    char*       buf= (char*) malloc (pre_len + name_len + 1);
+    memcpy (buf, pre, pre_len);
+    memcpy (buf + pre_len, name, name_len + 1);
+    s7_varlet (sc, env, s7_make_symbol (sc, buf), s7_cdr (entry));
+    free (buf);
+  }
+  s7_gc_unprotect_via_stack (sc, entries);
+  s7_gc_unprotect_via_stack (sc, env);
+  s7_gc_unprotect_via_stack (sc, sub);
+  return env;
+}
+
+/* (rename import-set (old new) ...) */
+static s7_pointer
+r7rs_import_rename (s7_scheme* sc, s7_pointer iset) {
+  s7_pointer rest= s7_cdr (iset);
+  if (!s7_is_pair (rest))
+    return r7rs_library_error (sc, "syntax-error", "import: (rename ...) needs an import set, got ~S", iset);
+  for (s7_pointer specs= s7_cdr (rest); s7_is_pair (specs); specs= s7_cdr (specs)) {
+    s7_pointer spec= s7_car (specs);
+    if ((s7_list_length (sc, spec) != 2) || (!s7_is_symbol (s7_car (spec))) || (!s7_is_symbol (s7_cadr (spec))))
+      return r7rs_library_error (sc, "syntax-error", "import: rename expects (old new) pairs, got ~S", spec);
+  }
+  s7_pointer sub= r7rs_import_set_env (sc, s7_car (rest));
+  s7_gc_protect_via_stack (sc, sub);
+  s7_pointer env= s7_inlet (sc, s7_nil (sc));
+  s7_gc_protect_via_stack (sc, env);
+  s7_pointer entries= s7_let_to_list (sc, sub);
+  s7_gc_protect_via_stack (sc, entries);
+  s7_pointer specs= s7_cdr (rest);
+  for (s7_pointer p= entries; s7_is_pair (p); p= s7_cdr (p)) {
+    s7_pointer entry= s7_car (p);
+    s7_pointer name = s7_car (entry);
+    for (s7_pointer q= specs; s7_is_pair (q); q= s7_cdr (q)) {
+      s7_pointer spec= s7_car (q);
+      if (s7_car (spec) == name) {
+        name= s7_cadr (spec);
+        break;
+      }
+    }
+    s7_varlet (sc, env, name, s7_cdr (entry));
+  }
+  s7_gc_unprotect_via_stack (sc, entries);
+  s7_gc_unprotect_via_stack (sc, env);
+  s7_gc_unprotect_via_stack (sc, sub);
+  return env;
+}
+
+/* resolve an import set to the environment of bindings it denotes */
+static s7_pointer
+r7rs_import_set_env (s7_scheme* sc, s7_pointer iset) {
+  if (r7rs_decl_named (iset, "only")) return r7rs_import_only (sc, iset);
+  if (r7rs_decl_named (iset, "except")) return r7rs_import_except (sc, iset);
+  if (r7rs_decl_named (iset, "prefix")) return r7rs_import_prefix (sc, iset);
+  if (r7rs_decl_named (iset, "rename")) return r7rs_import_rename (sc, iset);
+  /* plain library name */
+  if (!r7rs_library_name_valid (sc, iset))
+    return r7rs_library_error (sc, "wrong-type-arg", "import: invalid import set ~S", iset);
+  return r7rs_library_env (sc, iset);
+}
+
+static s7_pointer
+g_import (s7_scheme* sc, s7_pointer args) {
+  s7_gc_protect_via_stack (sc, args);
+  /* s7 applies a c-macro without changing sc->curlet, so the current let is
+   * exactly the environment in which the import form appears. */
+  s7_pointer target= s7_curlet (sc);
+  for (s7_pointer sets= args; s7_is_pair (sets); sets= s7_cdr (sets)) {
+    s7_pointer env= r7rs_import_set_env (sc, s7_car (sets));
+    s7_gc_protect_via_stack (sc, env);
+    s7_pointer entries= s7_let_to_list (sc, env);
+    s7_gc_protect_via_stack (sc, entries);
+    /* varlet prepends slots, so bindings of later import sets shadow earlier ones */
+    for (s7_pointer p= entries; s7_is_pair (p); p= s7_cdr (p)) {
+      s7_pointer entry= s7_car (p);
+      s7_varlet (sc, target, s7_car (entry), s7_cdr (entry));
+    }
+    s7_gc_unprotect_via_stack (sc, entries);
+    s7_gc_unprotect_via_stack (sc, env);
+  }
+  s7_gc_unprotect_via_stack (sc, args);
+  return s7_t (sc); /* the "expansion" #t evaluates to itself */
 }
 
 void
@@ -249,4 +467,7 @@ glue_r7rs_library (s7_scheme* sc) {
   s7_define_macro (sc, "define-library", g_define_library, 1, 0, true,
                    "(define-library libname decl ...) defines the R7RS library libname from the given declarations "
                    "(export, import, begin, ...) and registers its exported environment");
+  s7_define_macro (sc, "import", g_import, 0, 0, true,
+                   "(import import-set ...) imports the bindings denoted by each import set (a library name, "
+                   "optionally modified by only/except/prefix/rename) into the current environment");
 }
