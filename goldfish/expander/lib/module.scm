@@ -489,6 +489,58 @@
 (define %module-forms-installed! (install-module-forms!))
 
 ;;; ------------------------------------------------------------------------
+;;; R7RS (scheme eval): environment / eval
+;;; ------------------------------------------------------------------------
+;;; An environment is an s7 inlet carrying the marker key bound to a fresh
+;;; program library; the requested import-sets are imported into it (only /
+;;; except / prefix / rename included, and macro transformers travel with
+;;; the bindings).  eval expands the expression in that library with the
+;;; Sets-of-Scopes expander and evaluates the lowered core, so macros from
+;;; the environment's libraries (e.g. srfi-8's receive) work -- s7's native
+;;; eval cannot.  A plain s7 environment (no marker) falls back to s7 eval.
+;;;
+;;; The public names are NOT installed into the base library: a base-library
+;;; value binding is referenced from user code as an unresolvable install
+;;; gensym (the runtime value lives in the-expander-library, invisible to
+;;; rootlet-eval'd library code).  The names are instead defined in the host
+;;; rootlet (like runtime-registered-add! below), so (scheme eval)'s free
+;;; references resolve at runtime; they are also module-define!'d into
+;;; the-expander-library for expander-internal use.
+
+(define *program-environment-key* 'goldfish-program-environment)
+
+(define (%make-program-environment import-sets)
+  (let ((lib (make-exp-library (list 'program (gensym)))))
+    (for-each (lambda (spec)
+                (import-spec-into-library! lib spec))
+              import-sets)
+    (inlet *program-environment-key* lib)))
+
+(define (%eval-in-program-environment expr env)
+  (let ((lib (let-ref env *program-environment-key*)))
+    (if (not (and (exp-library? lib) lib))
+        (eval expr env)
+        (let* ((stx (stx-set-library (wrap-expression expr) lib))
+               (ctx (initial-context)))
+          (let*-values (((defs ctx1) (expand-library-body (list stx) lib ctx)))
+            (let loop ((ds defs))
+              (if (null? ds)
+                  #f
+                  (let ((r (eval (lower (car ds)) the-expander-library)))
+                    (if (null? (cdr ds)) r (loop (cdr ds)))))))))))
+
+(define %environment-api-installed!
+  (begin
+    (module-define! the-expander-library 'make-program-environment
+                    %make-program-environment)
+    (module-define! the-expander-library 'eval-in-program-environment
+                    %eval-in-program-environment)
+    (eval (list 'define 'make-program-environment %make-program-environment)
+          (rootlet))
+    (eval (list 'define 'eval-in-program-environment %eval-in-program-environment)
+          (rootlet))))
+
+;;; ------------------------------------------------------------------------
 ;;; Exports (wrapped in a define so install-library-forms! runs them)
 ;;; ------------------------------------------------------------------------
 

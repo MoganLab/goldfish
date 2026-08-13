@@ -19,14 +19,23 @@
   (export environment eval)
   (begin
 
+    ;; Native s7 eval, kept for the plain-env / one-argument cases.
+    (define %s7-eval eval)
+
+    ;; R7RS (scheme eval): environment builds a program environment whose
+    ;; bindings come from the given import-sets (only / except / prefix /
+    ;; rename included), implemented by the expander's
+    ;; make-program-environment; eval then expands the expression with the
+    ;; Sets-of-Scopes expander so macros from the environment's libraries
+    ;; (e.g. srfi-8's receive) work, instead of s7's macro-less native eval.
+
     (define (environment . import-sets)
-      (let ((env (inlet)))
-        (when (not (null? import-sets))
-          (eval (cons 'import import-sets) env)
-        ) ;when
-        env
-      ) ;let
-    ) ;define
+      (make-program-environment import-sets))
+
+    (define* (eval expr (env #f))
+      (if env
+        (eval-in-program-environment expr env)
+        (%s7-eval expr)))
 
   ) ;begin
 ) ;define-library
