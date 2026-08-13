@@ -14,27 +14,6 @@
 ;; under the License.
 ;;
 
-(define (%goldtest-common-dirname path-str)
-  (let loop
-    ((i (- (string-length path-str) 1)))
-    (cond ((< i 0) ".")
-          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
-           (if (= i 0) "." (substring path-str 0 i))
-          ) ;
-          (else (loop (- i 1)))
-    ) ;cond
-  ) ;let
-) ;define
-
-(set! *load-path*
-  (append (list "../common" "tools/common")
-    (map (lambda (root) (string-append (%goldtest-common-dirname root) "/common"))
-      *load-path*
-    ) ;map
-    *load-path*
-  ) ;append
-) ;set!
-
 (define-library (liii goldtest)
   (import (scheme base)
     (scheme process-context)
@@ -403,13 +382,23 @@
       ) ;let
     ) ;define
 
+    (define (shell-command command)
+      ;; os-call does not perform shell redirection (wordexp + exec on
+      ;; POSIX): `>` and `2>&1` would be passed as literal argv to the
+      ;; program.  Run the command through `sh -c` so redirection works.
+      (if (os-windows?)
+        (os-call command)
+        (os-call (string-append "sh -c '" (string-replace command "'" "'\\''") "'"))
+      ) ;if
+    ) ;define
+
     (define (git-current-branch)
       (let* ((tmp-file (test-path-join (os-temp-dir)
                          (string-append "gf-test-branch-" (number->string (getpid)) ".txt")
                        ) ;test-path-join
              ) ;tmp-file
              (cmd (string-append "git rev-parse --abbrev-ref HEAD > " tmp-file " 2>&1"))
-             (exit-code (os-call cmd))
+             (exit-code (shell-command cmd))
             ) ;
         (if (zero? exit-code)
           (let* ((port (open-input-file tmp-file)) (branch (read-line port)))
@@ -433,7 +422,7 @@
                        ) ;test-path-join
              ) ;tmp-file
              (cmd (string-append "git rev-parse --verify " branch " > " tmp-file " 2>&1"))
-             (exit-code (os-call cmd))
+             (exit-code (shell-command cmd))
             ) ;
         (when (file-exists? tmp-file)
           (remove tmp-file)

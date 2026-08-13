@@ -1395,6 +1395,17 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
 
   s7_add_to_load_path (sc, tool_root.c_str ());
 
+  // Tools share utility libraries (e.g. (liii goldtool-changed)) in the
+  // sibling tools/common directory.  The expander resolves a tool's imports
+  // at compile time, before any top-level form of the tool file runs (the
+  // old per-tool `(set! *load-path* ...)` header is therefore dead), so the
+  // common directory must be on the load path from the start.
+  fs::path   common_dir= fs::path (tool_root).parent_path () / "common";
+  std::error_code common_ec;
+  if (fs::is_directory (common_dir, common_ec)) {
+    s7_add_to_load_path (sc, common_dir.string ().c_str ());
+  }
+
   string      import_expr  = "(import (" + org + " " + module + "))";
   s7_pointer  import_result= goldfish_eval_through_reader (sc, import_expr);
   const char* errmsg       = s7_get_output_string (sc, s7_current_error_port (sc));
