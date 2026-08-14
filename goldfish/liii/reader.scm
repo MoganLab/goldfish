@@ -1,11 +1,10 @@
 
 ;; R7RS 7.1.1: a <delimiter> is whitespace, ( ) " or ;.  In particular a
 ;; vertical bar is NOT a delimiter, so `foo|bar|` is one (invalid) token.
+;; Delegates to C++ (g-delimiter?): the delimiter set is the single source
+;; of truth shared with g-read-token, so token boundaries never diverge.
 (define (delimiter? ch)
-  ;; hot path: the delimiter set is small and ASCII-only
-  (let ((n (char->integer ch)))
-    (and (< n 128)
-      (memv ch '(#\( #\) #\[ #\] #\; #\" #\space #\return #\xc #\newline #\tab)))))
+  (g-delimiter? ch))
 
 (define fold-case-ports '())
 
@@ -258,29 +257,12 @@
 
 ;; ---------------------------------------------------------------------------
 
-;; reusable token buffer: take-until is never called recursively, so one
-;; module-level buffer is shared (results are copies via substring)
-(define token-buf (make-string 16))
-(define token-cap 16)
-
-(define (take-until port first pred)
-  (let ((buf token-buf))
-    (string-set! buf 0 first)
-    (let lp ((len 1))
-      (let ((ch (peek port)))
-        (if (or (eof-object? ch) (pred ch))
-          (substring buf 0 len)
-          (begin
-            (next port)
-            (when (= len token-cap)
-              (set! buf (string-append buf (make-string token-cap)))
-              (set! token-buf buf)
-              (set! token-cap (* 2 token-cap)))
-            (string-set! buf len ch)
-            (lp (+ len 1))))))))
-
 (define (read-token port ch)
-  (take-until port ch delimiter?))
+  ;; Delegate the character pump to C++ (g-read-token): it reads the same
+  ;; delimiter set as `delimiter?' below, so tokens are identical; only the
+  ;; byte-by-byte loop moves to native code.  Interpretation (number vs
+  ;; symbol, case folding) stays here.
+  (g-read-token port ch))
 
 (define (read-symbol port ch)
   (let ((str (read-token port ch)))
@@ -298,7 +280,7 @@
           (error 'read-error "invalid token" str))))))
 
 (define (read-boolean port ch)
-  (let ((tok (take-until port ch delimiter?)))
+  (let ((tok (read-token port ch)))
     (cond
       ((string=? tok "t") #t)
       ((string=? tok "f") #f)
@@ -307,7 +289,7 @@
       (else (error 'read-error "invalid boolean" tok)))))
 
 (define (read-prefixed-number port ch)
-  (let* ((str (string-append "#" (take-until port ch delimiter?)))
+  (let* ((str (string-append "#" (read-token port ch)))
          (p (parse-number-prefix str)))
     (if (not p)
       (error 'read-error "invalid number" str)
@@ -335,105 +317,13 @@
           (loop (+ (* n 16) (hex-digit-value ch))))
         (integer->char n)))))
 
-(define (read-hex-escape port)
-  (let loop ((n 0) (any #f))
-    (let ((ch (peek port)))
-      (if (and (not (eof-object? ch)) (char-hex-digit? ch))
-        (begin
-          (next port)
-          (loop (+ (* n 16) (hex-digit-value ch)) #t))
-        (if any
-          (if (eqv? (peek port) #\;)
-            (begin
-              (next port)
-              (integer->char n))
-            (error 'read-error "hex escape missing semicolon"))
-          (error 'read-error "invalid hex escape"))))))
-
 (define (read-quoted-string port . args)
-  (let ((rdelim (if (null? args) #\" (car args)))
-        (buf (make-string 16))
-        (len 0))
-    (letrec ((ensure! (lambda (need)
-                     ;; grow geometrically so a long string is O(n), not O(n^2)
-                     (when (> (+ len need) (string-length buf))
-                       (set! buf (string-append buf (make-string (s7-max need (string-length buf))))))))
-          ;; chars read from the port are raw bytes in S7; write them as-is
-          (add-byte! (lambda (ch)
-                       (ensure! 1)
-                       (string-set! buf len ch)
-                       (set! len (+ len 1))))
-          ;; a hex escape denotes a codepoint, encode it as UTF-8 bytes
-          (add-utf8! (lambda (n)
-                       (cond
-                         ((<= n #x7f)
-                          (ensure! 1)
-                          (string-set! buf len (integer->char n))
-                          (set! len (+ len 1)))
-                         ((<= n #x7ff)
-                          (ensure! 2)
-                          (string-set! buf len (integer->char (+ #xc0 (quotient n 64))))
-                          (string-set! buf (+ len 1) (integer->char (+ #x80 (modulo n 64))))
-                          (set! len (+ len 2)))
-                         ((<= n #xffff)
-                          (ensure! 3)
-                          (string-set! buf len (integer->char (+ #xe0 (quotient n 4096))))
-                          (string-set! buf (+ len 1) (integer->char (+ #x80 (modulo (quotient n 64) 64))))
-                          (string-set! buf (+ len 2) (integer->char (+ #x80 (modulo n 64))))
-                          (set! len (+ len 3)))
-                         (else
-                          (ensure! 4)
-                          (string-set! buf len (integer->char (+ #xf0 (quotient n 262144))))
-                          (string-set! buf (+ len 1) (integer->char (+ #x80 (modulo (quotient n 4096) 64))))
-                          (string-set! buf (+ len 2) (integer->char (+ #x80 (modulo (quotient n 64) 64))))
-                          (string-set! buf (+ len 3) (integer->char (+ #x80 (modulo n 64))))
-                          (set! len (+ len 4)))))))
-      (let loop ()
-        (let ((ch (next port)))
-          (cond
-            ((eof-object? ch)
-             (error 'read-error "unexpected end of input while reading string"))
-            ((eqv? ch rdelim)
-             (substring buf 0 len))
-            ((eqv? ch #\\)
-             (let ((ch (next port)))
-               (when (eof-object? ch)
-                 (error 'read-error "unexpected end of input while reading string"))
-               (cond
-                 ((or (eqv? ch #\newline) (eqv? ch #\return))
-                  ;; consume the whole line ending, including the second
-                  ;; character of a CRLF pair, then any intraline whitespace
-                  (when (and (eqv? ch #\return) (eqv? (peek port) #\newline))
-                    (next port))
-                  (let skip ()
-                    (let ((p (peek port)))
-                      (when (and (not (eof-object? p))
-                                 (or (eqv? p #\space) (eqv? p #\tab)))
-                        (next port)
-                        (skip))))
-                  (loop))
-                 ((eqv? ch rdelim)
-                  (add-byte! rdelim)
-                  (loop))
-                 (else
-                   (case ch
-                     ((#\a) (add-byte! #\alarm))
-                     ((#\b) (add-byte! #\backspace))
-                      ((#\t) (add-byte! #\tab))
-                      ((#\n) (add-byte! #\newline))
-                      ((#\r) (add-byte! #\return))
-                      ;; S7 extensions beyond R7RS: \f \v \0 \e
-                      ((#\f) (add-byte! #\x0c))
-                      ((#\v) (add-byte! #\x0b))
-                      ((#\0) (add-byte! #\null))
-                      ((#\e) (add-byte! #\escape))
-                      ((#\" #\\ #\|) (add-byte! ch))
-                      ((#\x) (add-utf8! (char->integer (read-hex-escape port))))
-                      (else (error 'read-error "invalid character in escape sequence" ch)))
-                   (loop)))))
-            (else
-              (add-byte! ch)
-              (loop))))))))
+  ;; Delegate to C++ (g-read-string): it implements the same semantics --
+  ;; line-ending continuation, the R7RS + S7 escape set, \xHH; as UTF-8 --
+  ;; so the byte pump and escapes run natively.  The opening rdelim (the
+  ;; char after the quote / |) is already consumed.
+  (let ((rdelim (if (null? args) #\" (car args))))
+    (g-read-string port rdelim)))
 
 ;; decode a UTF-8 codepoint from the port; the leading byte b1 has already
 ;; been read.  S7 ports are byte-oriented (read-char returns one byte), so a
@@ -467,7 +357,7 @@
          (read-hex-char port)
          ch))
       ((char-letter? ch)
-       (let* ((token (take-until port ch delimiter?))
+       (let* ((token (read-token port ch))
               (key (if (fold-case? port) (fold-string token) token))
               (entry (assoc key char-names)))
          (cond
@@ -753,7 +643,7 @@
        (case (peek port)
          ((#\!)
           (next port)
-          (let ((tok (take-until port #\! delimiter?)))
+          (let ((tok (read-token port #\!)))
             (cond
               ((string=? tok "!fold-case") (set-fold-case! port #t))
               ((string=? tok "!no-fold-case") (set-fold-case! port #f))
