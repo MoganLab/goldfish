@@ -155,8 +155,31 @@
 
     (define vector-sort vector-stable-sort)
 
-    (define (vector-sort! . r)
-      (???)
+    ;; vector-sort! 复用 S7 内置的 sort!：基于 C qsort 的原地排序，
+    ;; 直接重写向量元素，返回值与输入 eq?。
+    ;; 注意参数顺序相反：vector-sort! 是 (vector-sort! less-p v)，
+    ;; 内置 sort! 是 (sort! seq less?)。
+    (define vector-sort!
+      (case-lambda
+       ((less-p v)
+        (if (vector? v)
+          (sort! v less-p)
+          (error 'wrong-type-arg "vector-sort!: expected a vector" v)
+        ) ;if
+       ) ;
+       ((less-p v start) (vector-sort! less-p v start (vector-length v)))
+       ((less-p v start end)
+        (if (or (< start 0) (> end (vector-length v)) (> start end))
+          (raise "Invalid start or end parameters")
+          ;; S7 subvector 与原向量共享存储，
+          ;; 对子区间 sort! 即原地排序原向量的对应区间
+          (begin
+            (sort! (subvector v start end) less-p)
+            v
+          ) ;begin
+        ) ;if
+       ) ;
+      ) ;case-lambda
     ) ;define
 
     (define (vector-stable-sort! . r)
