@@ -21,7 +21,7 @@
 
 (when (os-linux?)
   ;; 符号命令禁止与取消
-  (run-set! 'echo-cmd "/bin/echo")
+  (run-set! 'echo-cmd "echo")
   (run-ban! 'echo-cmd)
   (check-catch 'value-error (run '(echo-cmd "hello")))
 

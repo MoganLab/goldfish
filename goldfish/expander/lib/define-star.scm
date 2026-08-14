@@ -13,11 +13,13 @@
 ;;;                 (c   (if (pair? args) (car args) 3)))
 ;;;            body ...))
 ;;;
-;;; Optional parameters may also be supplied by keyword (:name value), in
-;;; any order, mixed with positional args:
+;;; Optional parameters may also be supplied by keyword (:name value or
+;;; name: value), in any order, mixed with positional args:
 ;;;
 ;;;   (f :c 5)         ; b gets its default, c gets 5
 ;;;   (f 1 :c 5)       ; a=1, b=2, c=5
+;;;   (f c: 5)         ; s7-style suffix keyword, same as :c 5
+;;;   (f 1 c: 5)       ; a=1, b=2, c=5
 ;;;
 ;;; The keyword path expands to a self-contained form:
 ;;;
@@ -121,13 +123,17 @@
                                 opt-names opt-defaults))
                           (kw-name-datum
                            '(define (kw-name sym)
-                              (string->symbol (substring (symbol->string sym) 1))))
+                              (let ((s (symbol->string sym)))
+                                (if (char=? (string-ref s 0) #\:)
+                                    (string->symbol (substring s 1))
+                                    (string->symbol (substring s 0 (- (string-length s) 1)))))))
                           (keyword-like?-datum
                            '(define (keyword-like? x)
                               (and (symbol? x)
                                    (let ((s (symbol->string x)))
                                      (and (> (string-length s) 1)
-                                          (char=? (string-ref s 0) #\:))))))
+                                          (or (char=? (string-ref s 0) #\:)
+                                              (char=? (string-ref s (- (string-length s) 1)) #\:)))))))
                           (make-keyed-alist-datum
                            (list 'define 'make-keyed-alist
                                  (list 'lambda '(args)

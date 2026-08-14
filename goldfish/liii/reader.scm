@@ -21,7 +21,7 @@
   ;; ASCII case folding (R7RS string-foldcase, restricted to ASCII)
   (let loop ((i 0) (out '()))
     (if (= i (string-length str))
-      (list->string out)
+      (list->string (reverse out))
       (let ((n (char->integer (string-ref str i))))
         (loop (+ i 1)
               (cons (if (<= (char->integer #\A) n (char->integer #\Z))

@@ -1,5 +1,6 @@
 (define-library (liii json)
   (import (liii base)
+    (liii error)
     (liii list)
     (rename (guenchi json)
       (json-ref g:json-ref)

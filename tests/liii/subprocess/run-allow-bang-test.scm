@@ -14,8 +14,8 @@
 ;; 空列表表示取消白名单。
 
 (when (os-linux?)
-  (run-set! 'echo-cmd "/bin/echo")
-  (run-set! 'true-cmd "/bin/true")
+  (run-set! 'echo-cmd "echo")
+  (run-set! 'true-cmd "true")
 
   (run-allow! 'echo-cmd)
   (check (zero? (run '(echo-cmd "hello"))) => #t)

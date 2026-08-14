@@ -1,5 +1,5 @@
 (define-library (liii either)
-  (import (liii base))
+  (import (liii base) (liii error))
   (export from-left
     to-left
     from-right
