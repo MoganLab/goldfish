@@ -50,8 +50,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 当 vec 不是向量时抛出 wrong-type-arg 错误；
-;; 当 start/end 越界或 start > end 时抛出错误。
+;; 当 vec 不是向量时抛出 type-error 错误；
+;; 当 start/end 越界或 start > end 时抛出 value-error 错误。
 
 ;; 基本升序排序：精确内容断言
 (check (vector-sort! < (vector 3 1 4 1 5 9 2 6 5)) => #(1 1 2 3 4 5 5 6 9))
@@ -133,16 +133,14 @@
 ) ;check-true
 
 ;; 错误处理：非向量参数
-(check-catch 'wrong-type-arg (vector-sort! < 42))
-(check-catch 'wrong-type-arg (vector-sort! < '(3 1 2)))
+(check-catch 'type-error (vector-sort! < 42))
+(check-catch 'type-error (vector-sort! < '(3 1 2)))
+(check-catch 'type-error (vector-sort! < '(3 1 2) 0))
+(check-catch 'type-error (vector-sort! < "cba" 0 3))
 
 ;; 错误处理：start/end 越界或 start > end
-(check-catch "Invalid start or end parameters" (vector-sort! < (vector 2 1) -1))
-(check-catch "Invalid start or end parameters"
-  (vector-sort! < (vector 2 1) 0 3)
-) ;check-catch
-(check-catch "Invalid start or end parameters"
-  (vector-sort! < (vector 2 1) 2 1)
-) ;check-catch
+(check-catch 'value-error (vector-sort! < (vector 2 1) -1))
+(check-catch 'value-error (vector-sort! < (vector 2 1) 0 3))
+(check-catch 'value-error (vector-sort! < (vector 2 1) 2 1))
 
 (check-report)

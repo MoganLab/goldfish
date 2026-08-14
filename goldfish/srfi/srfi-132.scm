@@ -164,20 +164,27 @@
        ((less-p v)
         (if (vector? v)
           (sort! v less-p)
-          (error 'wrong-type-arg "vector-sort!: expected a vector" v)
+          (type-error "vector-sort!: expected a vector" v)
         ) ;if
        ) ;
-       ((less-p v start) (vector-sort! less-p v start (vector-length v)))
-       ((less-p v start end)
-        (if (or (< start 0) (> end (vector-length v)) (> start end))
-          (raise "Invalid start or end parameters")
-          ;; S7 subvector 与原向量共享存储，
-          ;; 对子区间 sort! 即原地排序原向量的对应区间
-          (begin
-            (sort! (subvector v start end) less-p)
-            v
-          ) ;begin
+       ((less-p v start)
+        (if (vector? v)
+          (vector-sort! less-p v start (vector-length v))
+          (type-error "vector-sort!: expected a vector" v)
         ) ;if
+       ) ;
+       ((less-p v start end)
+        (cond ((not (vector? v)) (type-error "vector-sort!: expected a vector" v))
+              ((or (< start 0) (> end (vector-length v)) (> start end))
+               (value-error "Invalid start or end parameters")
+              ) ;
+              (else
+                ;; S7 subvector 与原向量共享存储，
+                ;; 对子区间 sort! 即原地排序原向量的对应区间
+                (sort! (subvector v start end) less-p)
+                v
+              ) ;else
+        ) ;cond
        ) ;
       ) ;case-lambda
     ) ;define
