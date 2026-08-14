@@ -37,9 +37,11 @@
 ;;
 ;; 与 list-sort! 的区别
 ;; -------------------
-;; sort!       保证返回与输入同一个对象，只改 car 不动列表骨架；
-;; list-sort!  允许用 set-cdr! 重接链表，调用后必须使用返回值，
-;;             不能再依赖原列表变量的结构。
+;; (liii sort) 的 list-sort! 是基于 sort! 的薄封装，两者原地排序的
+;; 语义一致（只改 car 不动列表骨架，返回值与输入 eq?），区别在于：
+;; sort!       支持列表、向量和字符串，参数顺序是 (sort! seq less?)；
+;; list-sort!  只支持列表，参数顺序是 (list-sort! less? lst)，
+;;             比较函数在前（SRFI-132 约定）。
 ;;
 ;; 相关函数
 ;; --------
@@ -88,8 +90,12 @@
 (check (sort! (string #\b #\a #\c) char>?) => "cba")
 
 ;; 自定义比较函数：按字符串长度排序
-(check (sort! (list "ccc" "a" "bb") (lambda (x y) (< (string-length x) (string-length y))))
-  => '("a" "bb" "ccc"))
+(check (sort! (list "ccc" "a" "bb")
+         (lambda (x y) (< (string-length x) (string-length y)))
+       ) ;sort!
+  =>
+  '("a" "bb" "ccc")
+) ;check
 
 ;; 错误处理：非序列参数
 (check-catch 'wrong-type-arg (sort! 42 <))
