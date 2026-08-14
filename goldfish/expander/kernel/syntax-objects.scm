@@ -7,18 +7,11 @@
 ;;; and library is the home library for free-identifier resolution.
 
 (define-record-type <syntax>
-  (%make-syntax form context library wraps)
+  (make-syntax form context library)
   syntax?
   (form    syntax-form)
   (context syntax-context)
-  (library syntax-library)
-  (wraps   stx-wraps))
-
-;;; Compatibility constructor: existing callers pass three arguments and
-;;; get a syntax object with no pending wraps (eager semantics).
-
-(define (make-syntax form context library)
-  (%make-syntax form context library '()))
+  (library syntax-library))
 
 ;;; stx-vector? : any -> bool
 ;;; Container vectors only: in s7, `vector?' also holds for bytevectors,
@@ -129,124 +122,6 @@
                  (lambda (ctx ph) (stx-ctx-add-unchecked ctx ph scp))
                  (if (null? maybe-phase) 0 (car maybe-phase))))
 
-;;; Lazy wrap operations
-;;;
-;;; A pending wrap is (op scp phase), op in {add flip}.  The lazy
-;;; operations below push onto the root node's wraps list instead of
-;;; rewriting the whole tree; pending wraps are propagated to children
-;;; when the tree is destructured (stx-propagate-wrap).  Because every
-;;; scope is freshly allocated, a scope's presence in a node's
-;;; phase-scope set means the node has already had that wrap applied, so
-;;; propagation skips it -- each (node, wrap) pair is processed at most
-;;; once, keeping the amortized cost linear in the tree size.
-
-(define (stx-flip-scope-lazy stx scp . maybe-phase)
-  (let ((ph (if (null? maybe-phase) 0 (car maybe-phase))))
-    (%make-syntax (syntax-form stx) (syntax-context stx) (syntax-library stx)
-                  (cons (list 'flip scp ph) (stx-wraps stx)))))
-
-(define (stx-add-then-flip-lazy stx scp-add scp-flip . maybe-phase)
-  (let ((ph (if (null? maybe-phase) 0 (car maybe-phase))))
-    (%make-syntax (syntax-form stx) (syntax-context stx) (syntax-library stx)
-                  (cons (list 'flip scp-flip ph)
-                        (cons (list 'add scp-add ph)
-                              (stx-wraps stx))))))
-
-;;; stx-add-scope-lazy : syntax scp [phase] -> syntax
-;;; Push a pending ADD wrap instead of rewriting the tree.  The use-scope
-;;; marking of expand-macro-once's input preprocessing uses this: the
-;;; transformer destructures the input (pattern matching, expand-expr's
-;;; stx-propagate-wrap), and each destructured node picks up the pending
-;;; ADD at that point -- O(1) per node, no up-front tree walk.  Only ADD
-;;; wraps are pushed (no FLIP), so propagation only ever marks input
-;;; nodes with the use scope, never pins introduction scopes.
-
-(define (stx-add-scope-lazy stx scp . maybe-phase)
-  (let ((ph (if (null? maybe-phase) 0 (car maybe-phase))))
-    (%make-syntax (syntax-form stx) (syntax-context stx) (syntax-library stx)
-                  (cons (list 'add scp ph) (stx-wraps stx)))))
-
-;;; stx-apply-wrap : stx wrap -> stx
-;;; Apply one pending wrap to stx itself.  Idempotent: if the scope is
-;;; already present in the node's phase-scope set the wrap was applied
-;;; before and is skipped.
-
-(define (stx-apply-wrap stx w)
-  (if (not (syntax? stx))
-      stx
-      (let ((op (car w)) (scp (cadr w)) (ph (caddr w)))
-        (if (eq? op 'add)
-            (if (set-member? (stx-ctx-at (syntax-context stx) ph) scp)
-                stx
-                (%make-syntax (syntax-form stx)
-                              (stx-ctx-add (syntax-context stx) ph scp)
-                              (syntax-library stx)
-                              (stx-wraps stx)))
-            (if (set-member? (stx-ctx-at (syntax-context stx) ph) scp)
-                stx
-                (%make-syntax (syntax-form stx)
-                              (stx-ctx-flip (syntax-context stx) ph scp)
-                              (syntax-library stx)
-                              (stx-wraps stx)))))))
-
-;;; stx-propagate-wraps : (list wrap) stx -> stx
-;;; Apply a list of pending wraps to stx (idempotent).
-
-(define (stx-propagate-wraps ws stx)
-  (if (null? ws)
-      stx
-      (stx-propagate-wraps (cdr ws) (stx-apply-wrap stx (car ws)))))
-
-;;; stx-propagate-wrap : stx stx -> stx
-;;; Propagate parent's pending wraps to a child extracted from it.
-
-(define (stx-propagate-wrap parent child)
-  (stx-propagate-wraps (stx-wraps parent) child))
-
-;;; stx-flush : stx -> stx
-;;; Apply all pending wraps to stx itself, returning an equivalent stx
-;;; with no pending wraps.
-
-(define (stx-flush stx)
-  (stx-propagate-wraps (stx-wraps stx) stx))
-
-;;; stx-apply-add-wrap-all : wrap stx -> stx
-;;; Apply one ADD wrap eagerly to the whole tree, clearing every node's
-;;; pending wraps.  FLIP wraps are dropped (introduction scopes are
-;;; handled dynamically by the engine; pinning them would leave stray
-;;; scopes on macro-output binders and references that break
-;;; user-identifier matching, e.g. define-values).
-
-(define (stx-apply-add-wrap-all w stx)
-  (if (not (syntax? stx))
-      stx
-      (let ((s1 (stx-apply-wrap stx w)))
-        (let ((form (syntax-form s1)))
-          (cond
-            ((pair? form)
-             (%make-syntax (map-spine (lambda (x) (stx-apply-add-wrap-all w x)) form)
-                           (syntax-context s1) (syntax-library s1) '()))
-            ((stx-vector? form)
-             (%make-syntax (vector-map (lambda (x) (stx-apply-add-wrap-all w x)) form)
-                           (syntax-context s1) (syntax-library s1) '()))
-            (else (%make-syntax (syntax-form s1) (syntax-context s1)
-                                (syntax-library s1) '())))))))
-
-;;; stx-eager-flush : stx -> stx
-;;; Apply all pending ADD wraps to the whole tree (eager) and drop the
-;;; pending FLIP wraps, returning a tree with no pending wraps.
-
-(define (stx-eager-flush stx)
-  (let loop ((ws (stx-wraps stx)) (s stx))
-    (if (null? ws)
-        (if (null? (stx-wraps s))
-            s
-            (%make-syntax (syntax-form s) (syntax-context s)
-                          (syntax-library s) '()))
-        (if (eq? (car (car ws)) 'add)
-            (loop (cdr ws) (stx-apply-add-wrap-all (car ws) s))
-            (loop (cdr ws) s)))))
-
 (define (stx-ctx-prune ctx phase scps)
   (stx-ctx-set ctx phase (set-subtract (stx-ctx-at ctx phase) scps)))
 
@@ -254,6 +129,7 @@
   (stx-ctx-at (syntax-context stx)
               (if (null? maybe-phase) 0 (car maybe-phase))))
 
+;;; stx-apply-ctx : stx (ctx phase -> ctx) phase -> stx
 ;;; Apply a context transformation recursively to a syntax object.
 
 ;;; map-spine : (any -> any) list-or-improper -> list-or-improper
@@ -272,7 +148,7 @@
       ;; Partially-wrapped tree skeleton (datum pairs whose leaves are
       ;; syntax objects, e.g. dotted tails): recurse into pairs/vectors,
       ;; leave other datums as-is -- PopSyntax's adjust-scopes tolerates
-      ;; these, and lazily-wrapped macro output produces them.
+      ;; these.
       (cond
         ((pair? stx)
          (cons (stx-apply-ctx (car stx) f phase)
@@ -387,7 +263,7 @@
          (ctx  (syntax-context stx))
          (lib  (syntax-library stx))
          (wrap (lambda (x) (if (syntax? x)
-                               (stx-propagate-wrap stx x)
+                               x
                                (make-syntax x ctx lib)))))
     (cond
       ((pair? form)
@@ -403,30 +279,9 @@
     (datum->stx-ctx-source ctx-source datum phase)))
 
 (define (datum->stx-ctx-source ctx-source datum phase)
-  ;; When the context source is a syntax object with pending wraps, those
-  ;; wraps must reach the datum's already-wrapped sub-syntax objects:
-  ;; otherwise a pattern-variable binding pulled out of a lazily-wrapped
-  ;; input would lose the scopes the eager model applies up front.
-  (let ((ws (if (syntax? ctx-source) (stx-wraps ctx-source) '())))
-    (if (null? ws)
-        (datum->stx-ctx (if (syntax? ctx-source) (syntax-context ctx-source) ctx-source)
-                        (if (syntax? ctx-source) (syntax-library ctx-source) #f)
-                        phase datum)
-        (let ((ctx (if (syntax? ctx-source) (syntax-context (stx-flush ctx-source)) ctx-source))
-              (lib (if (syntax? ctx-source) (syntax-library ctx-source) #f)))
-          (unless (list? ctx)
-            (error "datum->syntax: context source is neither syntax nor a scope-set context" ctx-source))
-          (cond
-            ((syntax? datum)
-             (stx-propagate-wraps ws datum))
-            ((pair? datum)
-             (make-syntax (map-spine (lambda (x) (datum->stx-ctx-source ctx-source x phase)) datum)
-                          ctx lib))
-            ((stx-vector? datum)
-             (make-syntax (vector-map (lambda (x) (datum->stx-ctx-source ctx-source x phase)) datum)
-                          ctx lib))
-            (else
-             (make-syntax (if (eq? (type-of datum) 'syntax?) 'quote datum) ctx lib)))))))
+  (datum->stx-ctx (if (syntax? ctx-source) (syntax-context ctx-source) ctx-source)
+                  (if (syntax? ctx-source) (syntax-library ctx-source) #f)
+                  phase datum))
 
 (define (datum->stx-ctx ctx lib phase datum)
   (unless (list? ctx)
@@ -486,17 +341,7 @@
 (module-define! the-expander-library 'stx-maybe-flip stx-maybe-flip)
 (module-define! the-expander-library 'stx-prune-scopes stx-prune-scopes)
 (module-define! the-expander-library 'stx-set-library stx-set-library)
-(module-define! the-expander-library 'stx-wraps stx-wraps)
-(module-define! the-expander-library 'stx-flip-scope-lazy stx-flip-scope-lazy)
-(module-define! the-expander-library 'stx-add-then-flip-lazy stx-add-then-flip-lazy)
-(module-define! the-expander-library 'stx-apply-wrap stx-apply-wrap)
-(module-define! the-expander-library 'stx-propagate-wraps stx-propagate-wraps)
-(module-define! the-expander-library 'stx-propagate-wrap stx-propagate-wrap)
-(module-define! the-expander-library 'stx-flush stx-flush)
-(module-define! the-expander-library 'stx-apply-add-wrap-all stx-apply-add-wrap-all)
-(module-define! the-expander-library 'stx-eager-flush stx-eager-flush)
 (module-define! the-expander-library 'stx-add-scope-unchecked stx-add-scope-unchecked)
-(module-define! the-expander-library 'stx-add-scope-lazy stx-add-scope-lazy)
 (module-define! the-expander-library 'current-intro-scope current-intro-scope)
 (module-define! the-expander-library 'set-current-intro-scope! set-current-intro-scope!)
 (module-define! the-expander-library 'stx-ctx-mark-intro stx-ctx-mark-intro)

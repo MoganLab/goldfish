@@ -16,7 +16,7 @@
   (and (syntax? stx)
        (pair? (syntax-form stx))
        (identifier? (car (syntax-form stx)))
-       (context-resolve ctx (stx-propagate-wrap stx (car (syntax-form stx))))))
+       (context-resolve ctx (car (syntax-form stx)))))
 
 (define (expand-library-body stxs lib ctx)
   (let loop ((stxs stxs) (ctx ctx) (var-defs '()) (exprs '()) (n 0))
@@ -34,11 +34,8 @@
              (let-values (((ctx1) (expand-lib-define-syntax stx lib ctx)))
                (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))
             ((eq? resolved 'begin)
-             (let* ((ef (stx-eager-flush stx))
-                    (f (syntax-form ef)))
-               (loop (append (map (lambda (s) (stx-propagate-wrap ef s))
-                                  (cdr f))
-                             (cdr stxs)) ctx var-defs exprs (+ n 1))))
+             (loop (append (cdr (syntax-form stx)) (cdr stxs))
+                   ctx var-defs exprs (+ n 1)))
             (else
              ;; Macro-headed form (e.g. define-macro): expand the head one
              ;; step at a time until the definition kind is revealed, WITHOUT
@@ -55,11 +52,8 @@
                     (let-values (((ctx2) (expand-lib-define-syntax result lib ctx1)))
                       (loop (cdr stxs) ctx2 var-defs exprs (+ n 1))))
                    ((eq? resolved2 'begin)
-                    (let* ((ef (stx-eager-flush result))
-                           (f (syntax-form ef)))
-                      (loop (append (map (lambda (s) (stx-propagate-wrap ef s))
-                                         (cdr f))
-                                    (cdr stxs)) ctx1 var-defs exprs (+ n 1))))
+                    (loop (append (cdr (syntax-form result)) (cdr stxs))
+                          ctx1 var-defs exprs (+ n 1)))
                    (else
                     (loop (cdr stxs) ctx1 var-defs (cons stx exprs) (+ n 1))))))))))))
 
@@ -74,7 +68,7 @@
   (let ((form (syntax-form stx)))
     (if (and (pair? form) (identifier? (car form)))
         (let*-values (((name binding)
-                       (resolve-identifier (stx-propagate-wrap stx (car form)) ctx)))
+                       (resolve-identifier (car form) ctx)))
           (if (and binding (transformer-binding? binding))
               (let*-values (((out ctx1)
                              (expand-macro-once stx ctx (binding-value binding))))
@@ -153,8 +147,8 @@
 
 (define (expand-lib-define-syntax stx lib ctx)
   (let* ((form (syntax-form stx))
-         (id (stx-propagate-wrap stx (cadr form)))
-         (transformer-stx (stx-propagate-wrap stx (caddr form))))
+         (id (cadr form))
+         (transformer-stx (caddr form)))
     (let*-values (((proc ctx) (eval-transformer transformer-stx ctx)))
       (let*-values (((name ctx) (context-alloc-name ctx id)))
         (exp-library-define! lib (syntax-form id) (make-transformer-binding proc))

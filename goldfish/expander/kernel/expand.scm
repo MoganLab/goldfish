@@ -14,15 +14,15 @@
     ((not (syntax? stx))
      (values (if (symbol? stx) (list 'quote stx) stx) ctx))
     ((not (pair? (syntax-form stx)))
-     (expand-atom (stx-flush stx) ctx))
+     (expand-atom stx ctx))
     (else
      (expand-pair stx ctx))))
 
-(define (expand-list stx stxs ctx)
+(define (expand-list stxs ctx)
   (if (null? stxs)
       (values '() ctx)
-      (let*-values (((a ctx1) (expand-expr (stx-propagate-wrap stx (car stxs)) ctx))
-                    ((as ctx2) (expand-list stx (cdr stxs) ctx1)))
+      (let*-values (((a ctx1) (expand-expr (car stxs) ctx))
+                    ((as ctx2) (expand-list (cdr stxs) ctx1)))
         (values (cons a as) ctx2))))
 
 (define (resolve-identifier stx ctx)
@@ -383,7 +383,7 @@
 
 (define (expand-pair stx ctx)
   (let ((form (syntax-form stx)))
-    (let ((head (stx-propagate-wrap stx (car form))))
+    (let ((head (car form)))
       (if (identifier? head)
           (let*-values (((name binding) (resolve-identifier head ctx)))
             (cond
@@ -404,8 +404,8 @@
 (define (expand-application stx ctx)
   (let ((form (syntax-form stx))
         (ctx0 (context-reset-use-scopes ctx)))
-    (let*-values (((fun ctx1) (expand-expr (stx-propagate-wrap stx (car form)) ctx0))
-                  ((args ctx2) (expand-list stx (cdr form) ctx1)))
+    (let*-values (((fun ctx1) (expand-expr (car form) ctx0))
+                  ((args ctx2) (expand-list (cdr form) ctx1)))
       (values (make-syntax (cons fun args)
                            (syntax-context stx) (syntax-library stx))
               ctx2))))
