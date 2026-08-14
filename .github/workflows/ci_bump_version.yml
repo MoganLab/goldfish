@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '新版本号'
+        description: '新版本号 (如 v18.11.24)'
         required: true
 
 jobs:
@@ -26,35 +26,37 @@ jobs:
         run: |
           echo "NEW_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
           echo "NEW_VERSION_DATE=$(date +'%Y/%m/%d')" >> $GITHUB_ENV
+          VERSION="${{ github.event.inputs.version }}"
+          echo "NEW_VERSION_WITHOUT_V=${VERSION#v}" >> $GITHUB_ENV
 
       - name: Validate version format
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "版本格式错误，应为 17.11.35 格式"
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "版本格式错误，应为 v18.11.24 格式"
             exit 1
           fi
 
       - name: Update version in files
         run: |
           # Update xmake.lua
-          sed -i "s/^set_version (\"[^\"]*\")/set_version (\"${{ env.NEW_VERSION }}\")/" xmake.lua
+          sed -i "s/^set_version (\"[^\"]*\")/set_version (\"${{ env.NEW_VERSION_WITHOUT_V }}\")/" xmake.lua
 
           # Update src/goldfish.hpp
-          sed -i "s/#define GOLDFISH_VERSION \"[^\"]*\"/#define GOLDFISH_VERSION \"${{ env.NEW_VERSION }}\"/" src/goldfish.hpp
+          sed -i "s/#define GOLDFISH_VERSION \"[^\"]*\"/#define GOLDFISH_VERSION \"${{ env.NEW_VERSION_WITHOUT_V }}\"/" src/goldfish.hpp
           
           # Update README.md
-          sed -i -E "s/Goldfish Scheme [0-9]+\.[0-9]+\.[0-9]+/Goldfish Scheme ${{ env.NEW_VERSION }}/g" README.md
+          sed -i -E "s/Goldfish Scheme [0-9]+\.[0-9]+\.[0-9]+/Goldfish Scheme ${{ env.NEW_VERSION_WITHOUT_V }}/g" README.md
           
           # Update README_ZH.md
-          sed -i -E "s/Goldfish Scheme [0-9]+\.[0-9]+\.[0-9]+/Goldfish Scheme ${{ env.NEW_VERSION }}/g" README_ZH.md
+          sed -i -E "s/Goldfish Scheme [0-9]+\.[0-9]+\.[0-9]+/Goldfish Scheme ${{ env.NEW_VERSION_WITHOUT_V }}/g" README_ZH.md
           
           # Update pkgs/goldfish.nix
-          sed -i "s/version = \"[^\"]*\"/version = \"${{ env.NEW_VERSION }}\"/" pkgs/goldfish.nix
+          sed -i "s/version = \"[^\"]*\"/version = \"${{ env.NEW_VERSION_WITHOUT_V }}\"/" pkgs/goldfish.nix
 
       - name: Update devel/200_1.md
         run: |
-          header="## ${{ env.NEW_VERSION_DATE }}   Goldfish Scheme v${{ env.NEW_VERSION }}"
+          header="## ${{ env.NEW_VERSION_DATE }}   Goldfish Scheme ${{ env.NEW_VERSION }}"
           sed -i "3i$header" devel/200_1.md
 
       - name: Git commit and tag
@@ -63,9 +65,9 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           git add .
-          git commit -m "[200_1] Bump version to ${{ env.NEW_VERSION }}"
+          git commit -m "[200_1] bump to Goldfish Scheme ${{ env.NEW_VERSION }}"
           # 打 Tag (带 v 前缀)
-          git tag v${{ env.NEW_VERSION }}
+          git tag ${{ env.NEW_VERSION }}
           
           git push origin ${{ github.ref_name }}
-          git push origin v${{ env.NEW_VERSION }}
+          git push origin ${{ env.NEW_VERSION }}
