@@ -126,6 +126,7 @@ target ("goldfish") do
     add_files ("src/s7_liii_string.c", {languages = "c11"})
     add_files ("src/s7_liii_hash_table.c", {languages = "c11"})
     add_files ("src/s7_liii_list.c", {languages = "c11"})
+    add_files ("src/s7_liii_record.c", {languages = "c11"})
     add_files ("src/s7_liii_vector.c", {languages = "c11"})
     add_files ("src/s7_module.c", {languages = "c11"})
     add_files ("src/s7_r7rs_library.c", {languages = "c11"})
