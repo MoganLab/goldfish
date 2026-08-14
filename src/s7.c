@@ -38028,6 +38028,7 @@ s7_pointer s7_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
       if ((!is_pair(b)) && (!is_null(b)))
 	return(g_list_append(sc, list_2(sc, a, b)));
       sc->temp9 = a; /* tempx? */
+      sc->temp7 = b; /* GC protect b across the copy loop below (it is not otherwise protected here) */
       q = list_1(sc, car(a));
       begin_temp(sc->temp6, q);
       p = cdr(a);
@@ -38039,6 +38040,7 @@ s7_pointer s7_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
 	  set_cdr(np, list_1(sc, car(p)));
 	}
       end_temp(sc->temp6);
+      sc->temp7 = sc->unused;
       if (!is_null(p))
 	wrong_type_error_nr(sc, sc->append_symbol, 1, a, a_proper_list_string);
       sc->temp9 = sc->unused;
