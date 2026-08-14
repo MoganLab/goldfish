@@ -113,6 +113,7 @@ void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
 #endif
 void glue_liii_base64 (s7_scheme* sc);
+void glue_liii_json (s7_scheme* sc);
 void glue_scheme_base (s7_scheme* sc);
 void glue_scheme_char (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
@@ -711,6 +712,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_uuid (sc);
   glue_liii_hashlib (sc);
   glue_liii_base64 (sc);
+  glue_liii_json (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
