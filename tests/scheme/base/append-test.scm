@@ -223,4 +223,41 @@
 (check (length (append '(1 2) '(3 4) '(5 6) '(7 8))) => 8)
 (check (list-ref (append '(1 2 3) '(4 5 6)) 5) => 6)
 (check (list-ref (append '(1) '(2 3 4)) 3) => 4)
+;; 长列表循环构建测试（回归测试：append 构建长列表时不得损坏列表结构）
+;; s7_append 的复制循环会触发 GC，若第二个参数未受 GC 保护会被回收，
+;; 导致新列表尾部链入空闲 cell（dotted tail: <free cell!>）
+
+(define (append-loop-build n)
+  (let loop
+    ((i 0) (visible '()))
+    (if (= i n) visible (loop (+ i 1) (append visible (list (number->string i)))))
+  ) ;let
+) ;define
+(let ((visible (append-loop-build 1000)))
+  (check (proper-list? visible) => #t)
+  (check (length visible) => 1000)
+  (check (car visible) => "0")
+  (check (list-ref visible 999) => "999")
+) ;let
+;; 用户的原始复现场景：member + append 循环去重构建长列表
+(let loop
+  ((entries (map (lambda (i) (cons (number->string i) (list "lib"))) (iota 1000)))
+   (visible '())
+  ) ;
+  (if (null? entries)
+    (begin
+      (check (proper-list? visible) => #t)
+      (check (length visible) => 1000)
+      (check (list-ref visible 999) => "999")
+    ) ;begin
+    (let* ((entry (car entries)) (function-name (car entry)))
+      (loop (cdr entries)
+        (if (not (member function-name visible))
+          (append visible (list function-name))
+          visible
+        ) ;if
+      ) ;loop
+    ) ;let*
+  ) ;if
+) ;let
 (check-report)
