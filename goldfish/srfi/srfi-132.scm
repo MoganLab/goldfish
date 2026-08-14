@@ -106,45 +106,12 @@
       ) ;if
     ) ;define
 
-    (define (list-sort! less-p lst)
-      ;; 辅助函数：将列表分成小于和大于 pivot 的部分
-      (define (partition! lst pivot less-p)
-        (let loop
-          ((lst lst) (less '()) (greater '()))
-          (cond ((null? lst) (values (reverse less) (reverse greater)))
-                ;; 返回小于和大于部分
-                ((less-p (car lst) pivot) (loop (cdr lst) (cons (car lst) less) greater))
-                (else (loop (cdr lst) less (cons (car lst) greater)))
-          ) ;cond
-        ) ;let
-      ) ;define
-      ;; 排序函数：原地排序
-      (if (or (null? lst) (null? (cdr lst)))
-        ;; 如果列表为空或只有一个元素，已经排序好
-        lst
-        (let* ((pivot (car lst)))
-          (call-with-values (lambda () (partition! (cdr lst) pivot less-p))
-            ;; 调用 partition 并返回小于和大于部分
-            (lambda (less greater)
-              ;; 对小于和大于部分递归排序
-              (let ((sorted-less (list-sort! less-p less))
-                    (sorted-greater (list-sort! less-p greater))
-                   ) ;
-                ;; 如果 sorted-less 是空，直接返回 sorted-greater
-                (if (null? sorted-less)
-                  sorted-greater
-                  (begin
-                    ;; 原地连接两个部分和 pivot
-                    (set-cdr! (last-pair sorted-less) (cons pivot sorted-greater))
-                    sorted-less
-                    ;; 返回排序后的列表
-                  ) ;begin
-                ) ;if
-              ) ;let
-            ) ;lambda
-          ) ;call-with-values
-        ) ;let*
-      ) ;if
+    ;; list-sort! 复用 S7 内置的 sort!：基于 C qsort 的原地排序，
+    ;; 只重写各 pair 的 car，列表骨架不变，返回值与输入 eq?。
+    ;; 注意参数顺序相反：list-sort! 是 (list-sort! less-p lis)，
+    ;; 内置 sort! 是 (sort! seq less?)。
+    (define (list-sort! less-p lis)
+      (sort! lis less-p)
     ) ;define
 
     (define list-stable-sort!
