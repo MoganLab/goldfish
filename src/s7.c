@@ -85757,6 +85757,10 @@ is #t, the string is also sent to the current-output-port."
   #define Q_count s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_count", g_count, 2, 0, true, H_count, Q_count);
 
+  #define H_list_index "(g_list_index pred clist1 clist2 ...) returns the index of the first element tuple for which (pred elem1 elem2 ...) is not #f, or #f if there is none, stopping at the end of the shortest list"
+  #define Q_list_index s7_make_circular_signature(sc, 2, 3, sc->T, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_list_index", g_list_index, 2, 0, true, H_list_index, Q_list_index);
+
   #define H_fold "(g_fold f init lst) folds f over the elements of lst: (f elem acc)"
   #define Q_fold s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_fold", g_fold, 3, 0, false, H_fold, Q_fold);
