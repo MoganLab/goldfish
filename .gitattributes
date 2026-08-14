@@ -1,0 +1,3 @@
+# Expanded/generated artifacts are single-line dumps; treat them as binary
+# so git diff reports "Binary files differ" instead of one huge line.
+goldfish/expander/kernel-combined.scm binary
