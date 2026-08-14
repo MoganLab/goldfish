@@ -2,7 +2,7 @@
 
 var num = $args[0]
 
-var remote      = git@gitee.com:XmacsLabs/goldfish.git
+var remote      = git@github.com:MoganLab/goldfish.git
 var remoteRef   = pull/$num/head
 var localBranch = pr_$num
 
