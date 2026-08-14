@@ -288,7 +288,7 @@
             (len (letrec* ((loop (lambda (vs)
                                    (if (null? vs)
                                        0
-                                       (letrec* ((entry (assq (car vs) bindings)))
+                                       (letrec* ((entry (assq (node-datum (car vs)) bindings)))
                                          (if (and entry (list? (cdr entry)))
                                              (length (cdr entry))
                                              (loop (cdr vs))))))))
@@ -368,3 +368,146 @@
                                     (loop (cdr cls))))
                               (loop (cdr cls))))))))
     (loop clauses)))
+;;; Template precompilation
+;;;
+;;; lib/syntax-case.scm precompiles each (syntax T) template with
+;;; parse-template into a structure tree; the transformer output calls
+;;; fast-instantiate instead of instantiate.  Constant subtrees are
+;;; compiled to (c ctx lib t) nodes (rebuilt with make-syntax at run
+;;; time -- the structure tree is a plain datum, so embedded template
+;;; syntax objects would lose their context), only pattern-variable
+;;; positions consult bindings, and ellipsis variable scans run once at
+;;; compile time.
+;;;
+;;; Structure tree.  A node is (tag . payload):
+;;;   (c ctx lib t)     constant: (make-syntax t ctx lib)
+;;;   (v name ctx lib t) pattern variable: binding, else the constant
+;;;   (l ctx lib s)     list: make-syntax of the segment results
+;;;   (vec ctx lib s)   vector: make-syntax of the vector of segment results
+;;; A segment list holds (e vars elem) | (d ctx lib name t) |
+;;; (dc ctx lib t) | plain nodes.  (e ...) splices ellipsis repetitions,
+;;; (d ...) splices a dotted-tail binding, (dc ...) is a constant tail.
+
+(define (node-datum x)
+  (if (syntax? x) (syntax-form x) x))
+
+(define (parse-template stx patvars)
+  (letrec* ((form (if (syntax? stx) (syntax-form stx) stx)))
+    (if (symbol? form)
+        (if (memq form patvars)
+            (list 'v form (syntax-context stx) (syntax-library stx) stx)
+            (list 'c (syntax-context stx) (syntax-library stx) stx))
+        (if (pair? form)
+            (cons 'l
+                  (cons (syntax-context stx)
+                        (cons (syntax-library stx)
+                              (parse-list form patvars))))
+            (if (stx-vector? form)
+                (letrec* ((sctx (syntax-context stx))
+                          (lib (syntax-library stx))
+                          (elems (map (lambda (e)
+                                        (if (syntax? e)
+                                            e
+                                            (make-syntax e sctx lib)))
+                                      (vector->list form))))
+                  (cons 'vec
+                        (cons sctx
+                              (cons lib (parse-list elems patvars)))))
+                (list 'c (syntax-context stx) (syntax-library stx) stx))))))
+
+(define (parse-list form patvars)
+  (if (null? form)
+      '()
+      (if (syntax? form)
+          (if (symbol? (syntax-form form))
+              (if (memq (syntax-form form) patvars)
+                  (list (list 'd
+                              (syntax-context form)
+                              (syntax-library form)
+                              (syntax-form form)
+                              form))
+                  (list (list 'dc
+                              (syntax-context form)
+                              (syntax-library form)
+                              form)))
+              (list (parse-template form patvars)))
+          (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
+              (cons (list 'e
+                          (template-vars (car form))
+                          (parse-template (car form) patvars))
+                    (parse-list (cddr form) patvars))
+              (cons (parse-template (car form) patvars)
+                    (parse-list (cdr form) patvars))))))
+
+(define (fast-instantiate node bindings)
+  (letrec* ((tag (node-datum (car node))))
+    (if (eq? tag 'c)
+        (make-syntax (node-datum (cadddr node))
+                     (node-datum (cadr node))
+                     (node-datum (caddr node)))
+        (if (eq? tag 'v)
+            (letrec* ((b (assq (node-datum (cadr node)) bindings)))
+              (if b
+                  (cdr b)
+                  (make-syntax (node-datum (cddddr node))
+                               (node-datum (caddr node))
+                               (node-datum (cadddr node)))))
+            (if (eq? tag 'l)
+                (make-syntax (fast-instantiate-segs (cdddr node) bindings)
+                             (node-datum (cadr node))
+                             (node-datum (caddr node)))
+                (if (eq? tag 'vec)
+                    (make-syntax (list->vector (fast-instantiate-segs (cdddr node) bindings))
+                                 (node-datum (cadr node))
+                                 (node-datum (caddr node)))
+                    (error "fast-instantiate: bad node" node)))))))
+
+(define (fast-instantiate-segs segs bindings)
+  (if (null? segs)
+      '()
+      (letrec* ((seg (car segs))
+                (tag (node-datum (car seg))))
+        (if (eq? tag 'e)
+            (append (fast-instantiate-ellipsis (cdr seg) bindings)
+                    (fast-instantiate-segs (cdr segs) bindings))
+            (if (eq? tag 'd)
+                (fast-instantiate-dotted (cdr seg) bindings)
+                (if (eq? tag 'dc)
+                    (make-syntax (node-datum (cadddr seg))
+                                 (node-datum (cadr seg))
+                                 (node-datum (caddr seg)))
+                    (cons (fast-instantiate seg bindings)
+                          (fast-instantiate-segs (cdr segs) bindings))))))))
+
+(define (fast-instantiate-dotted node bindings)
+  (letrec* ((name (node-datum (caddr node)))
+            (t (cddddr node))
+            (b (assq name bindings)))
+    (if b
+        (letrec* ((v (cdr b)))
+          (if (and (syntax? v) (list? (syntax-form v)))
+              (syntax-form v)
+              v))
+        (make-syntax (node-datum t)
+                     (node-datum (cadr node))
+                     (node-datum (caddr node))))))
+
+(define (fast-instantiate-ellipsis node bindings)
+  (letrec* ((vars (car node))
+            (elem (cadr node))
+            (len (letrec* ((loop (lambda (vs)
+                                   (if (null? vs)
+                                       0
+                                       (letrec* ((entry (assq (node-datum (car vs)) bindings)))
+                                         (if (and entry (list? (cdr entry)))
+                                             (length (cdr entry))
+                                             (loop (cdr vs))))))))
+                    (loop vars)))
+            (loop (lambda (i results)
+                    (if (= i len)
+                        (reverse results)
+                        (letrec* ((indexed (index-bindings vars bindings i)))
+                          (loop (+ i 1)
+                                (cons (fast-instantiate elem indexed)
+                                      results)))))))
+    (loop 0 '())))

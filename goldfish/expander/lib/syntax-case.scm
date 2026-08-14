@@ -71,8 +71,10 @@
                (lambda (template patvars outer-patvars src-stx var-ctx)
                  (letrec* ((lib (syntax-library src-stx)))
                    (datum->syntax src-stx
-                     (list 'instantiate
-                           (list 'syntax template)
+                     (list 'fast-instantiate
+                           (list 'quote
+                                 (parse-template (datum->syntax src-stx template)
+                                                 (append patvars outer-patvars)))
                            (cons 'list
                                  (append
                                    (map (lambda (p)
@@ -82,7 +84,7 @@
                                         patvars)
                                    (map (lambda (p)
                                           (list 'cons (list 'quote p) p))
-                                        outer-patvars))))))))
+                                         outer-patvars))))))))
 
               (generic-recurse
                (lambda (form stx patvars outer-patvars sctx lib)
