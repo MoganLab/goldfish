@@ -15,8 +15,8 @@
 //
 
 #include "s7.h"
-#include "s7_r7rs_library.h"
 #include "s7_liii_record.h"
+#include "s7_r7rs_library.h"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>
