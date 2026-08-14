@@ -85753,6 +85753,10 @@ is #t, the string is also sent to the current-output-port."
   #define Q_every s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_every", g_every, 2, 0, false, H_every, Q_every);
 
+  #define H_count "(g_count pred clist1 clist2 ...) returns the number of element tuples for which (pred elem1 elem2 ...) is not #f, stopping at the end of the shortest list"
+  #define Q_count s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_procedure_symbol, sc->is_list_symbol)
+  s7_define_semisafe_typed_function(sc, "g_count", g_count, 2, 0, true, H_count, Q_count);
+
   #define H_fold "(g_fold f init lst) folds f over the elements of lst: (f elem acc)"
   #define Q_fold s7_make_signature(sc, 4, sc->T, sc->is_procedure_symbol, sc->T, sc->is_list_symbol)
   s7_define_semisafe_typed_function(sc, "g_fold", g_fold, 3, 0, false, H_fold, Q_fold);
