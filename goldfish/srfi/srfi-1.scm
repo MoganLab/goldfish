@@ -142,12 +142,7 @@
       (car (last-pair l))
     ) ;define
 
-    (define (count pred list1 . lists)
-      (let lp
-        ((lis list1) (i 0))
-        (if (null-list? lis) i (lp (cdr lis) (if (pred (car lis)) (+ i 1) i)))
-      ) ;let
-    ) ;define
+    (define count g_count)
 
     (define (zip . lists)
       (apply map list lists)
