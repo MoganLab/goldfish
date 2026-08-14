@@ -4,10 +4,6 @@
     receive
     define*
     lambda*
-    procedure-source
-    procedure-arglist
-    arity
-    defined?
     object->string
     eval-string
     signature
@@ -19,8 +15,6 @@
     loose-car
     loose-cdr
     compose
-    identity
-    any?
     typed-lambda
     make-hook
     hook-functions
@@ -41,17 +35,11 @@
       (if (eq? '() pair-or-empty) '() (cdr pair-or-empty))
     ) ;define
 
-    (define identity (lambda (x) x))
-
     (define (compose . fs)
       (if (null? fs)
         (lambda (x) x)
         (lambda (x) ((car fs) ((apply compose (cdr fs)) x)))
       ) ;if
-    ) ;define
-
-    (define (any? x)
-      #t
     ) ;define
 
     (define-macro (typed-lambda args . body)
