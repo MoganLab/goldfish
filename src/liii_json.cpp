@@ -41,15 +41,33 @@ json_write_escaped_string (std::string& out, const char* s, s7_int len) {
     unsigned char c= (unsigned char) s[i];
     if (c < 0x80) {
       switch (c) {
-        case '"': out+= "\\\""; break;
-        case '\\': out+= "\\\\"; break;
-        case '/': out+= "\\/"; break;
-        case '\b': out+= "\\b"; break;
-        case '\f': out+= "\\f"; break;
-        case '\n': out+= "\\n"; break;
-        case '\r': out+= "\\r"; break;
-        case '\t': out+= "\\t"; break;
-        default: out.push_back ((char) c); break;
+      case '"':
+        out+= "\\\"";
+        break;
+      case '\\':
+        out+= "\\\\";
+        break;
+      case '/':
+        out+= "\\/";
+        break;
+      case '\b':
+        out+= "\\b";
+        break;
+      case '\f':
+        out+= "\\f";
+        break;
+      case '\n':
+        out+= "\\n";
+        break;
+      case '\r':
+        out+= "\\r";
+        break;
+      case '\t':
+        out+= "\\t";
+        break;
+      default:
+        out.push_back ((char) c);
+        break;
       }
     }
     else {
