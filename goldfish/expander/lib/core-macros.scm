@@ -54,18 +54,59 @@
     ((or e) e)
     ((or e1 e2 ...) (let ((t e1)) (if t t (or e2 ...))))))
 
+;;; cond : procedural transformer.  Folds the clauses into a nested
+;;; if/let chain in a SINGLE expansion -- the recursive syntax-rules form
+;;; re-expanded the remaining clause list at every level, which was O(n^3)
+;;; in the eager scope machinery.  Output identifiers (let / if / begin)
+;;; are wrapped with (syntax (list))'s definition-site context, so they
+;;; resolve at the cond definition site (referential transparency).
 (define-syntax cond
-  (syntax-rules (else =>)
-    ((cond) (if #f #f))
-    ((cond (else result ...)) (begin result ...))
-    ((cond (test => proc) clause ...)
-     (let ((t test))
-       (if t (proc t) (cond clause ...))))
-    ((cond (test) clause ...)
-     (let ((t test))
-       (if t t (cond clause ...))))
-    ((cond (test result ...) clause ...)
-     (if test (begin result ...) (cond clause ...)))))
+  (lambda (whole-expr)
+    (letrec* ((form (syntax-form whole-expr))
+              (def-stx (syntax (list)))
+              (def-ctx (syntax-context def-stx))
+              (def-lib (syntax-library def-stx))
+              (else-id (datum->syntax whole-expr 'else))
+              (arrow-id (datum->syntax whole-expr '=>))
+              (emit-body
+               (lambda (results)
+    (if (null? results)
+        (datum->syntax def-stx '(if #f #f))
+        (if (null? (cdr results))
+            (car results)
+            (datum->syntax def-stx (cons 'begin results))))))
+              (build
+               (lambda (clauses)
+                 (if (null? clauses)
+        (datum->syntax def-stx '(if #f #f))
+        (letrec* ((cl (car clauses))
+                  (clf (syntax-e cl))
+                  (test (car clf))
+                  (rest (cdr clf))
+                  (rest-form (syntax-form rest))
+                  (tail (build (cdr clauses)))
+                  (t (make-syntax (make-fresh-name 't) def-ctx def-lib))
+                  (else? (and (identifier? test)
+                              (free-identifier=? test else-id))))
+          (if else?
+              (emit-body rest-form)
+              (if (null? rest-form)
+        (datum->syntax def-stx
+          (list 'let (list (list t test))
+                (list 'if t t tail)))
+        (if (and (pair? rest-form)
+                 (identifier? (car rest-form))
+                 (free-identifier=? (car rest-form) arrow-id))
+            (datum->syntax def-stx
+              (list 'let (list (list t test))
+                    (list 'if t
+                          (list (cadr rest-form) t)
+                          tail)))
+            (datum->syntax def-stx
+              (list 'if test
+                    (emit-body rest-form)
+                    tail))))))))))
+      (build (cdr form)))))
 
 (define-syntax when
   (syntax-rules ()
