@@ -21,14 +21,20 @@
     (cons element st)))
 
 (define (set-remove st element)
-  (filter (lambda (x) (not (eq? x element)))
-          st))
+  ;; Scope sets are duplicate-free lists, so the first match is the only
+  ;; match: stop the scan as soon as it is found.  expand-macro-once's
+  ;; output flip removes the intro scope that stx-ctx-add-then-flip just
+  ;; consed at the head of the set, so this is O(1) on the hot path.
+  (let loop ((rest st) (acc '()))
+    (cond
+      ((null? rest) (reverse acc))
+      ((eq? (car rest) element) (append (reverse acc) (cdr rest)))
+      (else (loop (cdr rest) (cons (car rest) acc))))))
 
 (define (set-flip st element)
-  (let ((st* (set-remove st element)))
-    (if (eq? st st*)
-      (cons element st)
-      st*)))
+  (if (set-member? st element)
+      (set-remove st element)
+      (cons element st)))
 
 (define (set-union st1 st2)
   (set-fold set-add st1 st2))

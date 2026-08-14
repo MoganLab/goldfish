@@ -45,6 +45,23 @@
 (define (stx-ctx-flip ctx phase scp)
   (stx-ctx-set ctx phase (set-flip (stx-ctx-at ctx phase) scp)))
 
+;;; stx-ctx-add-then-flip : ctx phase scp-add scp-flip -> ctx
+;;; ADD then FLIP in one pass.  scp-add/scp-flip are assumed freshly
+;;; allocated (context-alloc-scope), hence guaranteed absent from the
+;;; phase's scope set, so both ops are O(1) conses instead of the
+;;; O(#scopes) membership scan in set-add/set-flip.  This is the hot
+;;; path of expand-macro-once's input preprocessing.
+
+(define (stx-ctx-add-then-flip ctx phase scp-add scp-flip)
+  (let ((entry (assoc phase ctx)))
+    (if entry
+        (map (lambda (e)
+               (if (= (car e) phase)
+                   (cons phase (cons scp-flip (cons scp-add (cdr e))))
+                   e))
+             ctx)
+        (cons (cons phase (list scp-flip scp-add)) ctx))))
+
 (define (stx-ctx-prune ctx phase scps)
   (stx-ctx-set ctx phase (set-subtract (stx-ctx-at ctx phase) scps)))
 
@@ -98,8 +115,7 @@
 
 (define (stx-add-then-flip stx scp-add scp-flip . maybe-phase)
   (stx-apply-ctx stx
-                  (lambda (ctx ph)
-                    (stx-ctx-flip (stx-ctx-add ctx ph scp-add) ph scp-flip))
+                  (lambda (ctx ph) (stx-ctx-add-then-flip ctx ph scp-add scp-flip))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
 
 (define (stx-prune-scopes stx scps . maybe-phase)
