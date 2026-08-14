@@ -97,7 +97,9 @@
      free-identifier=? bound-identifier=? generate-temporaries
      make-syntax-introducer syntax-local-introduce syntax-local-value
      local-expand local-binder
-     new-defs def-bind! expand-box expand-unbox expand-set-box!))
+     new-defs def-bind! expand-box expand-unbox expand-set-box!
+     ;; construction-time intro-scope marking (kernel internal)
+     stx-ctx-mark-intro current-intro-scope set-current-intro-scope!))
 
 ;;; (goldfish expander) is the implementation kernel module (cf. Guile's
 ;;; (guile)): core forms + primitives + the implementation's own macros.

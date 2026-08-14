@@ -14,15 +14,15 @@
     ((not (syntax? stx))
      (values (if (symbol? stx) (list 'quote stx) stx) ctx))
     ((not (pair? (syntax-form stx)))
-     (expand-atom stx ctx))
+     (expand-atom (stx-flush stx) ctx))
     (else
      (expand-pair stx ctx))))
 
-(define (expand-list stxs ctx)
+(define (expand-list stx stxs ctx)
   (if (null? stxs)
       (values '() ctx)
-      (let*-values (((a ctx1) (expand-expr (car stxs) ctx))
-                    ((as ctx2) (expand-list (cdr stxs) ctx1)))
+      (let*-values (((a ctx1) (expand-expr (stx-propagate-wrap stx (car stxs)) ctx))
+                    ((as ctx2) (expand-list stx (cdr stxs) ctx1)))
         (values (cons a as) ctx2))))
 
 (define (resolve-identifier stx ctx)
@@ -112,13 +112,20 @@
                   scp-u)
                  scp-i)))
       (set-current-expand-context! ctx3)
-      (let* ((input (stx-add-then-flip stx scp-u scp-i ph))
-             (output (proc input)))
-        (if (not (syntax? output))
-            (error "syntax-case: macro output is not a syntax object"
-                   output)
-            (values (stx-flip-scope output scp-i ph)
-                    (current-expand-context)))))))
+      (let ((input (stx-add-scope-unchecked stx scp-u ph)))
+        ;; Introduction-scope marking happens at output-node construction
+        ;; time (datum->syntax, template instantiation), not by an
+        ;; output-wide flip: introduced nodes pick up scp_i as they are
+        ;; built, input nodes (already-existing syntax) do not.
+        (let ((old-intro (current-intro-scope)))
+          (set-current-intro-scope! scp-i)
+          (let ((output (proc input)))
+            (set-current-intro-scope! old-intro)
+            (if (not (syntax? output))
+                (error "syntax-case: macro output is not a syntax object"
+                       output)
+                (values output
+                        (current-expand-context)))))))))
 
 (define (expand-macro stx ctx proc)
   (let*-values (((output ctx4) (expand-macro-once stx ctx proc)))
@@ -325,8 +332,8 @@
            (ph (context-phase ctx))
            (scp-i (context-intro-scope ctx))
            (id1 (stx-flip-intro-off id scp-i ph))
-            (id2 (stx-prune-scopes id1 (context-use-scopes ctx) ph))
-            (id-defs (stx-add-scope id2 scp-in ph)))
+           (id2 (stx-prune-scopes id1 (context-use-scopes ctx) ph))
+           (id-defs (stx-add-scope id2 scp-in ph)))
       (if (null? maybe-transformer-stx)
           (let*-values (((name ctx1) (context-alloc-name ctx id-defs)))
             (let* ((ctx2 (context-bind ctx1 id-defs name))
@@ -376,7 +383,7 @@
 
 (define (expand-pair stx ctx)
   (let ((form (syntax-form stx)))
-    (let ((head (car form)))
+    (let ((head (stx-propagate-wrap stx (car form))))
       (if (identifier? head)
           (let*-values (((name binding) (resolve-identifier head ctx)))
             (cond
@@ -397,8 +404,8 @@
 (define (expand-application stx ctx)
   (let ((form (syntax-form stx))
         (ctx0 (context-reset-use-scopes ctx)))
-    (let*-values (((fun ctx1) (expand-expr (car form) ctx0))
-                  ((args ctx2) (expand-list (cdr form) ctx1)))
+    (let*-values (((fun ctx1) (expand-expr (stx-propagate-wrap stx (car form)) ctx0))
+                  ((args ctx2) (expand-list stx (cdr form) ctx1)))
       (values (make-syntax (cons fun args)
                            (syntax-context stx) (syntax-library stx))
               ctx2))))

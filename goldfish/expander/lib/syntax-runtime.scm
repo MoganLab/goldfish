@@ -239,10 +239,17 @@
   (letrec* ((form (syntax-form template)))
     (if (symbol? form)
         (letrec* ((binding (assq form bindings)))
-          (if binding (cdr binding) template))
+          (if binding
+              (cdr binding)
+              ;; A free template identifier (not a pattern variable):
+              ;; introduced by the macro, so it picks up the current
+              ;; introduction scope (on every phase the template carries).
+              (make-syntax (syntax-form template)
+                           (stx-ctx-mark-intro (syntax-context template) 0)
+                           (syntax-library template))))
         (if (pair? form)
             (make-syntax (instantiate-list form bindings)
-                         (syntax-context template)
+                         (stx-ctx-mark-intro (syntax-context template) 0)
                          (syntax-library template))
             ;; Vector template (e.g. match.scm's #(vec ...)): elements may
             ;; be raw datums (vectors are wrapped whole), so wrap them as
@@ -255,7 +262,7 @@
                                                          (syntax-library template))))
                                       (vector->list form))))
                   (make-syntax (list->vector (instantiate-list elems bindings))
-                               (syntax-context template)
+                               (stx-ctx-mark-intro (syntax-context template) 0)
                                (syntax-library template)))
                 template)))))
 
@@ -443,22 +450,22 @@
   (letrec* ((tag (node-datum (car node))))
     (if (eq? tag 'c)
         (make-syntax (node-datum (cadddr node))
-                     (node-datum (cadr node))
+                     (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                      (node-datum (caddr node)))
         (if (eq? tag 'v)
             (letrec* ((b (assq (node-datum (cadr node)) bindings)))
               (if b
                   (cdr b)
                   (make-syntax (node-datum (cddddr node))
-                               (node-datum (caddr node))
+                               (stx-ctx-mark-intro (node-datum (caddr node)) 0)
                                (node-datum (cadddr node)))))
             (if (eq? tag 'l)
                 (make-syntax (fast-instantiate-segs (cdddr node) bindings)
-                             (node-datum (cadr node))
+                             (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                              (node-datum (caddr node)))
                 (if (eq? tag 'vec)
                     (make-syntax (list->vector (fast-instantiate-segs (cdddr node) bindings))
-                                 (node-datum (cadr node))
+                                 (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                                  (node-datum (caddr node)))
                     (error "fast-instantiate: bad node" node)))))))
 
@@ -474,7 +481,7 @@
                 (fast-instantiate-dotted (cdr seg) bindings)
                 (if (eq? tag 'dc)
                     (make-syntax (node-datum (cadddr seg))
-                                 (node-datum (cadr seg))
+                                 (stx-ctx-mark-intro (node-datum (cadr seg)) 0)
                                  (node-datum (caddr seg)))
                     (cons (fast-instantiate seg bindings)
                           (fast-instantiate-segs (cdr segs) bindings))))))))
@@ -489,7 +496,7 @@
               (syntax-form v)
               v))
         (make-syntax (node-datum t)
-                     (node-datum (cadr node))
+                     (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                      (node-datum (caddr node))))))
 
 (define (fast-instantiate-ellipsis node bindings)
