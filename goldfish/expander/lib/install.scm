@@ -104,52 +104,6 @@
                     (lambda (p) (car (read-forms p))))))
          (and (pair? rec) (equal? (cdr rec) stamp)))))
 
-;;; write-readable : datum port -> void
-;;; Write a cached expansion in a form our R7RS reader can read back.
-;;; s7's write does not round-trip through the R7RS reader: a symbol
-;;; containing a quote (hello') is written bare, and a symbol containing
-;;; whitespace or delimiters is written as (symbol "a b") -- both unreadable
-;;; by read-forms.  Symbols that are not valid R7RS identifiers are written
-;;; in |...| vertical-bar notation; everything else is delegated to write
-;;; (numbers, including the complex forms the reader now accepts, strings,
-;;; characters, vectors, bytevectors, and dotted lists).
-
-(define (write-readable x p)
-  (cond
-    ((symbol? x)
-     (let ((s (symbol->string x)))
-       (if (valid-identifier? s)
-         (write x p)
-         (begin
-           (display #\| p)
-           (string-for-each (lambda (ch)
-                              (cond
-                                ((or (eqv? ch #\|) (eqv? ch #\\))
-                                 (display #\\ p))
-                                (else #f))
-                              (write-char ch p))
-                            s)
-           (display #\| p)))))
-    ((pair? x)
-     (display #\( p)
-     (let loop ((y x))
-       (cond
-         ((pair? y)
-          (write-readable (car y) p)
-          (if (pair? (cdr y))
-            (begin (display #\space p) (loop (cdr y)))
-            (begin
-              (display " . " p)
-              (write-readable (cdr y) p))))
-         ((null? y) #f)
-         (else
-          (display " . " p)
-          (write-readable y p))))
-     (display #\) p))
-    ((null? x)
-     (display "()" p))
-    (else (write x p))))
-
 (define (compile-cache-hot? path stamp)
   (let ((base (string-append (compile-cache-dir) "/" (g_sha256 path))))
     (compile-cache-valid? (string-append base ".scm")
@@ -161,14 +115,17 @@
     (g_mkdir dir))
   ;; s7's write truncates long lists at (*s7* 'print-length) (default 40);
   ;; a cached expansion easily exceeds that, so raise it for the write and
-  ;; restore afterwards.  write-readable (not write) is used so the output
-  ;; round-trips through our R7RS reader (s7 writes some symbols in
-  ;; unreadable forms).
+  ;; restore afterwards.  write-roundtrip (reader.scm) is used so the output
+  ;; round-trips through our R7RS reader: s7's write cannot read back symbols
+  ;; with special characters, and records lose their type identity.  It also
+  ;; emits #n=/#n# graph labels for shared/cyclic structure and refuses
+  ;; procedures (macro transformers), so a macro-defining library (which
+  ;; load filters via any-macro-def?) cannot silently produce a corrupt cache.
   (let ((old-length (*s7* 'print-length)))
     (let-set! *s7* 'print-length 1000000)
     (let ((tmp (string-append cache ".tmp")))
       (call-with-output-file tmp
-        (lambda (p) (write-readable sexp p)))
+        (lambda (p) (write-roundtrip sexp p)))
       (g_rename tmp cache))
     (let-set! *s7* 'print-length old-length))
   (let ((mtmp (string-append meta ".tmp")))

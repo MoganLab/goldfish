@@ -553,6 +553,15 @@
               (read-bytevector port))
              (else
                (error 'read-error "invalid #u8"))))
+          ;; Goldfish record serialization: #g(tag field ...) written by
+          ;; write-roundtrip.  Rebuilds the vector-layout record so the
+          ;; object round-trips with its record type intact.
+          ((#\g)
+           (if (eqv? (peek port) #\()
+             (begin
+               (next port)
+               (read-goldfish-record port))
+             (error 'read-error "invalid #g object")))
           ;; R7RS abbreviated forms of the syntax-object forms:
           ;;   #'X    -> (syntax X)
           ;;   #`X    -> (quasisyntax X)
@@ -885,6 +894,63 @@
       (reverse acc)
       (loop (read port) (cons d acc)))))
 
+;;; read-goldfish-record : port -> record
+;;; Read #g(tag field ...) -- the write-roundtrip serialization of a
+;;; vector-layout record -- and rebuild the record with its type intact.
+;;; Field values are ordinary data (read recursively); exp-library bindings
+;;; are an alist (name . binding) pairs, read as proper lists and converted
+;;; back to dotted pairs.
+
+(define (read-goldfish-record port)
+  ;; Read one field: skip whitespace/comments and read via read-expr, NOT
+  ;; via read -- read resets the label tables (labels/pending), which would
+  ;; orphan the #n= placeholders of an enclosing shared record.
+  (define (read-field)
+    (let ((ch (next-non-whitespace port)))
+      (if (eof-object? ch)
+        (error 'read-error "unexpected end of input in #g record")
+        (read-expr port ch))))
+  (let ((tag (read-field)))
+    (case tag
+      ((syntax)
+       (let ((form (read-field))
+             (ctx (read-field))
+             (lib (read-field)))
+         (if (eqv? (peek port) #\))
+           (begin (next port) (make-syntax form ctx lib))
+           (error 'read-error "malformed #g(syntax ...)"))))
+      ((exp-library)
+       (let ((name (read-field))
+             (bindings (read-field)))
+         (if (eqv? (peek port) #\))
+           (begin
+             (next port)
+             (let ((lib (make-exp-library name)))
+               (for-each (lambda (e)
+                           (if (pair? e)
+                             (exp-library-define! lib (car e) (cdr e))))
+                         bindings)
+               lib))
+           (error 'read-error "malformed #g(exp-library ...)"))))
+      ((binding)
+       (let ((kind (read-field))
+             (value (read-field)))
+         (if (eqv? (peek port) #\))
+           (begin (next port) (make-binding kind value))
+           (error 'read-error "malformed #g(binding ...)"))))
+      ((toplevel-ref)
+       (let ((gensym (read-field))
+             (home (read-field))
+             (original (read-field))
+             (exported? (read-field)))
+         (if (eqv? (peek port) #\))
+           (begin
+             (next port)
+             (make-toplevel-ref gensym home original exported?))
+           (error 'read-error "malformed #g(toplevel-ref ...)"))))
+      (else
+       (error 'read-error "unknown #g record" tag)))))
+
 ;;; expand-eval : datum -> value
 ;;; The one-time eval entry: expand a top-level form with the Sets-of-Scopes
 ;;; expander (registering macros in the shared base library) and evaluate the
@@ -923,3 +989,280 @@
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
         (eval-defs defs the-expander-library)))))
+
+;;; ------------------------------------------------------------------------
+;;; write-roundtrip : datum port -> void
+;;; A writer whose output the R7RS reader here can read back to an equal
+;;; value (read/write duality).  s7's write targets s7's own reader, so
+;;; several types do not round-trip through read-forms:
+;;;   - a symbol with a quote (hello') is written bare and unreadable;
+;;;   - a symbol with whitespace/delimiters is written as (symbol "a b"),
+;;;     which reads back as a list, not a symbol;
+;;;   - records print as #(#(record-type <name> (fields...)) ...) whose
+;;;     record type identity is lost on read.
+;;; Symbols that are not valid R7RS identifiers are written in |...|
+;;; vertical-bar notation; records are written as #g(tag fields...) and
+;;; rebuilt by read-sharp's #g dispatch.  Vectors, bytevectors, strings,
+;;; characters, numbers (including complex/imaginary/inf/nan) and booleans
+;;; delegate to write (the reader accepts their output).
+
+;;; write-roundtrip-symbol : symbol port -> void
+
+(define (write-roundtrip-symbol x p)
+  (let ((s (symbol->string x)))
+    (if (valid-identifier? s)
+      (write x p)
+      (begin
+        (display #\| p)
+        (string-for-each (lambda (ch)
+                           (cond
+                             ((or (eqv? ch #\|) (eqv? ch #\\))
+                              (display #\\ p))
+                             (else #f))
+                           (write-char ch p))
+                         s)
+        (display #\| p)))))
+
+;;; write-roundtrip : datum port -> void
+;;; Graph-aware writer: the two-pass Racket print-graph scheme.  Pass 1
+;;; walks the datum (with an eq? table) counting how many times each
+;;; container -- pair, vector, or vector-layout record -- is referenced;
+;;; containers referenced more than once (or self-referentially, e.g. an
+;;; exp-library whose toplevel-ref bindings point back at it) get a #n= on
+;;; first output and #n# afterwards, which read-label/read-sharp parse back
+;;; to the shared object.  This is essential for exp-library records: their
+;;; bindings alist's toplevel-ref homes refer back to the library itself,
+;;; so a naive recursive writer loops forever.
+
+;;; has-record? : datum -> bool
+;;; Quick scan whether a datum contains any vector-layout record.  Cached
+;;; expansions (lower core) are plain data -- symbols, pairs, vectors,
+;;; strings, numbers -- with no records, so write-roundtrip can take the
+;;; fast single-pass path (no graph bookkeeping) for them; only macro
+;;; compile products (which embed exp-library/binding records) need the
+;;; graph-aware two-pass writer.
+
+(define (has-record? x)
+  (let walk ((v x) (seen '()))
+    (cond
+      ((record-instance? v)
+       (if (not (assq v seen))
+         (let ((seen* (cons (cons v #t) seen)))
+           ;; A record is itself a record; also check its fields for
+           ;; nested records.
+           (let loop ((i 1))
+             (if (< i (vector-length v))
+               (or (walk (vector-ref v i) seen*)
+                   (loop (+ i 1)))
+               #t)))
+         #t))
+      ((pair? v)
+       (and (not (assq v seen))
+            (let ((seen* (cons (cons v #t) seen)))
+              (or (walk (car v) seen*) (walk (cdr v) seen*)))))
+      ((and (vector? v) (not (bytevector? v)))
+       (if (not (assq v seen))
+         (let ((seen* (cons (cons v #t) seen)))
+           (let loop ((i 0))
+             (if (< i (vector-length v))
+               (or (walk (vector-ref v i) seen*) (loop (+ i 1)))
+               #f)))
+         #f))
+      (else #f))))
+
+;;; write-roundtrip : datum port -> void
+;;; A writer whose output the R7RS reader (this file) reads back to an equal
+;;; value, including records and shared/cyclic structure.  Plain data (no
+;;; records) is written single-pass; data containing records -- syntax
+;;; objects, exp-libraries, bindings, toplevel-refs -- uses the two-pass
+;;; graph writer below, which emits #n=/#n# labels (read-label/read-sharp
+;;; parse them back to shared objects).  The graph pass is required for
+;;; exp-library: its bindings' toplevel-ref homes refer back to the library
+;;; itself, so a naive recursive writer loops forever.
+
+(define (write-roundtrip x p)
+  (if (not (has-record? x))
+    (let rec ((v x))
+      (cond
+        ((symbol? v) (write-roundtrip-symbol v p))
+        ((pair? v)
+         (display #\( p)
+         (let loop ((y v))
+           (cond
+             ((pair? y)
+              (rec (car y))
+              (if (pair? (cdr y))
+                (begin (display #\space p) (loop (cdr y)))
+                (if (null? (cdr y))
+                  #f
+                  (begin
+                    (display " . " p)
+                    (rec (cdr y))))))
+             ((null? y) #f)
+             (else
+              (display " . " p)
+              (rec y))))
+         (display #\) p))
+        ((null? v) (display "()" p))
+        ((vector? v)
+         (display "#(" p)
+         (let loop ((i 0))
+           (if (< i (vector-length v))
+             (begin
+               (if (> i 0) (display #\space p))
+               (rec (vector-ref v i))
+               (loop (+ i 1)))))
+         (display ")" p))
+        ((procedure? v)
+         (error "write-roundtrip: cannot serialize a procedure" v))
+        (else (write v p))))
+    ;; Graph-aware pass (data contains records): count references, then
+    ;; output with #n=/#n# labels for shared/cyclic containers.
+    (let ((counts '()))
+      (define (count-ref v)
+        (let ((e (assq v counts)))
+          (if e
+            (set-cdr! e (+ (cdr e) 1))
+            (set! counts (cons (cons v 1) counts)))))
+      (define (count-of v)
+        (let ((e (assq v counts)))
+          (if e (cdr e) 0)))
+      (let walk ((v x) (seen '()))
+        (cond
+          ((pair? v)
+           (count-ref v)
+           (if (not (assq v seen))
+             (let ((seen* (cons (cons v #t) seen)))
+               (walk (car v) seen*)
+               (walk (cdr v) seen*))))
+          ((record-instance? v)
+           (count-ref v)
+           (if (not (assq v seen))
+             (let ((seen* (cons (cons v #t) seen)))
+               (let loop ((i 1))
+                 (if (< i (vector-length v))
+                   (begin (walk (vector-ref v i) seen*) (loop (+ i 1))))))))
+          ((and (vector? v) (not (bytevector? v)) (not (record-instance? v)))
+           (count-ref v)
+           (if (not (assq v seen))
+             (let ((seen* (cons (cons v #t) seen)))
+               (let loop ((i 0))
+                 (if (< i (vector-length v))
+                   (begin (walk (vector-ref v i) seen*) (loop (+ i 1))))))))
+          (else #f)))
+      (let ((labels '())
+            (next-label 0))
+        (define (shared? v) (> (count-of v) 1))
+        (define (label-of v)
+          (let ((e (assq v labels)))
+            (if e
+              (cdr e)
+              (let ((n next-label))
+                (set! next-label (+ n 1))
+                (set! labels (cons (cons v n) labels))
+                n))))
+        (define (has-label? v) (not (not (assq v labels))))
+        (define (write-mark v)
+          (when (shared? v)
+            (display #\# p)
+            (display (label-of v) p)
+            (display #\= p)))
+        (define (write-ref v)
+          (when (shared? v)
+            (display #\# p)
+            (display (label-of v) p)
+            (display #\# p)))
+        (define (wrt v)
+          (cond
+            ((symbol? v)
+             (write-roundtrip-symbol v p))
+            ((pair? v)
+             (if (shared? v)
+               (if (has-label? v)
+                 (write-ref v)
+                 (begin (write-mark v) (wrt-pair v)))
+               (wrt-pair v)))
+            ((null? v)
+             (display "()" p))
+            ((record-instance? v)
+             (if (shared? v)
+               (if (has-label? v)
+                 (write-ref v)
+                 (begin (write-mark v) (wrt-record v)))
+               (wrt-record v)))
+            ((vector? v)
+             (if (shared? v)
+               (if (has-label? v)
+                 (write-ref v)
+                 (begin (write-mark v) (wrt-vector v)))
+               (wrt-vector v)))
+            ((procedure? v)
+             (error "write-roundtrip: cannot serialize a procedure" v))
+            (else (write v p))))
+        (define (wrt-pair v)
+          (display #\( p)
+          (let loop ((y v))
+            (cond
+              ((pair? y)
+               (wrt (car y))
+               (if (pair? (cdr y))
+                 (begin (display #\space p) (loop (cdr y)))
+                 (if (null? (cdr y))
+                   #f
+                   (begin
+                     (display " . " p)
+                     (wrt (cdr y))))))
+              ((null? y) #f)
+              (else
+               (display " . " p)
+               (wrt y))))
+          (display #\) p))
+        (define (wrt-vector v)
+          (display "#(" p)
+          (let loop ((i 0))
+            (if (< i (vector-length v))
+              (begin
+                (if (> i 0) (display #\space p))
+                (wrt (vector-ref v i))
+                (loop (+ i 1)))))
+          (display ")" p))
+        (define (wrt-record v)
+          (let* ((rtd (vector-ref v 0))
+                 (name (record-type-name rtd))
+                 (name-str (and (symbol? name) (symbol->string name))))
+            (cond
+              ((string=? name-str "<syntax>")
+               (display "#g(syntax " p)
+               (wrt (vector-ref v 1))  ; form
+               (display " " p)
+               (wrt (vector-ref v 2))  ; context
+               (display " " p)
+               (wrt (vector-ref v 3))  ; library
+               (display ")" p))
+              ((string=? name-str "<exp-library>")
+               (display "#g(exp-library " p)
+               (wrt (vector-ref v 1))  ; name
+               (display " " p)
+               (wrt (vector-ref v 2))  ; bindings
+               (display ")" p))
+              ((string=? name-str "<binding>")
+               (display "#g(binding " p)
+               (wrt (vector-ref v 1))  ; kind
+               (display " " p)
+               (wrt (vector-ref v 2))  ; value
+               (display ")" p))
+              ((string=? name-str "<toplevel-ref>")
+               (display "#g(toplevel-ref " p)
+               (wrt (vector-ref v 1))  ; gensym
+               (display " " p)
+               (wrt (vector-ref v 2))  ; home
+               (display " " p)
+               (wrt (vector-ref v 3))  ; original
+               (display " " p)
+               (wrt (vector-ref v 4))  ; exported?
+               (display ")" p))
+              (else
+               (display "#<" p)
+               (display name-str p)
+               (display ">" p)))))
+        (wrt x)))))
