@@ -10,7 +10,7 @@
   (begin
     (define bytevector-base64-encode
       (typed-lambda ((bv bytevector?))
-        (g_bytevector-base64-encode bv (bytevector-length bv))
+        (g_bytevector-base64-encode bv)
       ) ;typed-lambda
     ) ;define
 
@@ -28,7 +28,7 @@
     ) ;define
 
     (define (bytevector-base64-decode bv)
-      (g_bytevector-base64-decode bv (bytevector-length bv))
+      (g_bytevector-base64-decode bv)
     ) ;define
 
     (define string-base64-decode

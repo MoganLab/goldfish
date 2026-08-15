@@ -56,11 +56,15 @@
 
 #include "s7.h"
 
+#include <cstring>
+#include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <tuple>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace goldfish {
@@ -82,6 +86,7 @@ template <typename T> struct s7_traits;
 
 template <> struct s7_traits<std::string> {
   static const char* type_name () { return "string"; }
+  static bool accepts (s7_pointer p) { return s7_is_string (p); }
   static std::string in (s7_scheme* sc, s7_pointer p) {
     if (!s7_is_string (p))
       gf_error (sc, "type-error", "expected a string argument");
@@ -92,8 +97,22 @@ template <> struct s7_traits<std::string> {
   }
 };
 
+template <> struct s7_traits<char32_t> {
+  static const char* type_name () { return "character"; }
+  static bool accepts (s7_pointer p) { return s7_is_character (p); }
+  static char32_t in (s7_scheme* sc, s7_pointer p) {
+    if (!s7_is_character (p))
+      gf_error (sc, "type-error", "expected a character argument");
+    return (char32_t) s7_character (p);
+  }
+  static s7_pointer out (s7_scheme* sc, char32_t v) {
+    return s7_make_character (sc, (uint32_t) v);
+  }
+};
+
 template <> struct s7_traits<s7_int> {
   static const char* type_name () { return "integer"; }
+  static bool accepts (s7_pointer p) { return s7_is_integer (p); }
   static s7_int in (s7_scheme* sc, s7_pointer p) {
     if (!s7_is_integer (p))
       gf_error (sc, "type-error", "expected an integer argument");
@@ -104,6 +123,7 @@ template <> struct s7_traits<s7_int> {
 
 template <> struct s7_traits<int> {
   static const char* type_name () { return "integer"; }
+  static bool accepts (s7_pointer p) { return s7_is_integer (p); }
   static int in (s7_scheme* sc, s7_pointer p) {
     return (int) s7_traits<s7_int>::in (sc, p);
   }
@@ -112,6 +132,7 @@ template <> struct s7_traits<int> {
 
 template <> struct s7_traits<bool> {
   static const char* type_name () { return "boolean"; }
+  static bool accepts (s7_pointer p) { return s7_is_boolean (p); }
   static bool in (s7_scheme* sc, s7_pointer p) {
     if (!s7_is_boolean (p))
       gf_error (sc, "type-error", "expected a boolean argument");
@@ -122,6 +143,7 @@ template <> struct s7_traits<bool> {
 
 template <> struct s7_traits<double> {
   static const char* type_name () { return "number"; }
+  static bool accepts (s7_pointer p) { return s7_is_number (p); }
   static double in (s7_scheme* sc, s7_pointer p) {
     if (!s7_is_number (p))
       gf_error (sc, "type-error", "expected a number argument");
@@ -132,6 +154,7 @@ template <> struct s7_traits<double> {
 
 template <> struct s7_traits<std::vector<std::string>> {
   static const char* type_name () { return "vector-of-strings"; }
+  static bool accepts (s7_pointer p) { return s7_is_vector (p); }
   static std::vector<std::string> in (s7_scheme* sc, s7_pointer p) {
     std::vector<std::string> r;
     if (!s7_is_vector (p))
@@ -150,6 +173,29 @@ template <> struct s7_traits<std::vector<std::string>> {
   }
 };
 
+// std::vector<uint8_t>: bytevector <-> C++ byte vector (copy semantics, so
+// the pure C++ functions never touch s7 memory).
+template <> struct s7_traits<std::vector<uint8_t>> {
+  static const char* type_name () { return "bytevector"; }
+  static bool accepts (s7_pointer p) { return s7_is_byte_vector (p); }
+  static std::vector<uint8_t> in (s7_scheme* sc, s7_pointer p) {
+    std::vector<uint8_t> r;
+    if (!s7_is_byte_vector (p))
+      gf_error (sc, "type-error", "expected a bytevector argument");
+    s7_int n= s7_vector_length (p);
+    const uint8_t* elems= s7_byte_vector_elements (p);
+    r.assign (elems, elems + n);
+    return r;
+  }
+  static s7_pointer out (s7_scheme* sc, const std::vector<uint8_t>& v) {
+    s7_int n= (s7_int) v.size ();
+    s7_pointer r= s7_make_byte_vector (sc, n, 1, NULL);
+    if (n > 0)
+      memcpy (s7_byte_vector_elements (r), v.data (), n);
+    return r;
+  }
+};
+
 // s7_pointer: pass-through (no conversion).  For functions that need the raw
 // s7 object (e.g. to hand it to s7_call later).
 template <> struct s7_traits<s7_pointer> {
@@ -162,6 +208,70 @@ template <> struct s7_traits<s7_pointer> {
 template <> struct s7_traits<void> {
   static const char* type_name () { return "void"; }
   static s7_pointer out (s7_scheme* sc) { return s7_unspecified (sc); }
+};
+
+// std::optional<T>: absent -> #f, present -> s7_traits<T>::out.
+template <typename T>
+struct s7_traits<std::optional<T>> {
+  static const char* type_name () { return s7_traits<T>::type_name (); }
+  static bool accepts (s7_pointer p) { return s7_traits<T>::accepts (p); }
+  static std::optional<T> in (s7_scheme* sc, s7_pointer p) {
+    if (s7_is_boolean (p) && !s7_boolean (sc, p)) return std::nullopt;
+    return std::make_optional (s7_traits<T>::in (sc, p));
+  }
+  static s7_pointer out (s7_scheme* sc, const std::optional<T>& v) {
+    if (!v.has_value ()) return s7_f (sc);
+    return s7_traits<T>::out (sc, *v);
+  }
+};
+
+// gf_strlist: std::vector<std::string> mapped to an s7 LIST of strings
+// (distinct from the vector-of-strings trait above).  Output only.
+struct gf_strlist {
+  std::vector<std::string> items;
+};
+
+template <> struct s7_traits<gf_strlist> {
+  static const char* type_name () { return "list-of-strings"; }
+  static s7_pointer out (s7_scheme* sc, const gf_strlist& v) {
+    s7_pointer head= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    s7_gc_protect_via_stack (sc, head);
+    s7_pointer tail= head;
+    for (const auto& s : v.items) {
+      s7_set_cdr (tail, s7_cons (sc, s7_make_string (sc, s.c_str ()), s7_nil (sc)));
+      tail= s7_cdr (tail);
+    }
+    s7_gc_unprotect_via_stack (sc, head);
+    return s7_cdr (head);
+  }
+};
+
+// std::variant<A, B, ...>: accept any of the alternatives; the first
+// alternative whose type check succeeds wins.
+template <typename... Ts>
+struct s7_traits<std::variant<Ts...>> {
+  static const char* type_name () { return "one-of"; }
+  static std::variant<Ts...> in (s7_scheme* sc, s7_pointer p) {
+    std::variant<Ts...> result;
+    bool ok= false;
+    (void) std::initializer_list<int>{
+        (try_alternative<Ts> (sc, p, result, ok), 0)...};
+    if (!ok) {
+      std::string msg= "expected one of: ";
+      bool first= true;
+      ((msg += (first ? "" : " / "), msg += s7_traits<Ts>::type_name (), first= false), ...);
+      gf_error (sc, "type-error", msg);
+    }
+    return result;
+  }
+  template <typename T>
+  static void try_alternative (s7_scheme* sc, s7_pointer p, std::variant<Ts...>& result, bool& ok) {
+    if (ok) return;
+    if (s7_traits<T>::accepts (p)) {
+      result= std::variant<Ts...> (std::in_place_type<T>, s7_traits<T>::in (sc, p));
+      ok= true;
+    }
+  }
 };
 
 // ---------------------------------------------------------------------------
