@@ -19,6 +19,8 @@
     compile-defs
     constant-fold
     simplify-if
+    eliminate-dead-defs
+    tail-call-positions
     *foldable-functions*)
   (begin
 
@@ -234,5 +236,152 @@
             (else
              (cons head (map simplify-if (cdr sexp))))))
         sexp))
+
+    ;; ------------------------------------------------------------------
+    ;; Tail-call position analysis (L2-3 backend prerequisite).
+    ;;
+    ;; Tail positions in core IR:
+    ;;   (lambda (formals) body ...)   last body expression
+    ;;   (if test then else)           then and else
+    ;;   (begin e ...)                 last expression
+    ;;   (let/letrec/letrec* bs body)  last body expression
+    ;;   (set! name e)                 e
+    ;;   (values e ...)                no (multi-value return)
+    ;;   (call-with-values p c)        consumer c is invoked in tail
+    ;;                                 position of the whole form
+    ;;
+    ;; tail-call-positions : sexp -> (list sexp)
+    ;; Mark every subexpression that sits in a tail position by wrapping
+    ;; it as (tail-call <sexp>).  The wrapper is the analysis product:
+    ;; backends consume it to emit jumps instead of push-calls.  The
+    ;; returned IR is NOT for direct s7 evaluation (tail-call is a marker,
+    ;; not an operator), so this is exported for the L2-3 backend rather
+    ;; than run in the on-load pipeline.
+
+    ;; tail? : sexp boolean -> boolean
+    ;; Whether the given form (a lambda body) has its last expression in
+    ;; tail position -- trivially yes; the helper walks down.
+    (define (tail-call-positions sexp)
+      ;; mark-body : (list sexp) -> (list sexp); mark only the last
+      ;; expression of a body as tail.
+      (define (mark-body body)
+        (if (null? body)
+          '()
+          (let* ((rev (reverse body))
+                 (last (mark-tail (car rev))))
+            (append (reverse (cdr rev)) (list last)))))
+      (define (mark-tail s)
+        (cond
+          ((not (pair? s)) s)
+          ((memq (car s) '(quote quote-syntax)) s)
+          ((eq? (car s) 'lambda)
+           (cons 'lambda (cons (cadr s) (mark-body (cddr s)))))
+          ((eq? (car s) 'if)
+           (list 'if (cadr s) (mark-tail (caddr s))
+                 (if (pair? (cdddr s)) (mark-tail (cadddr s)) #f)))
+          ((eq? (car s) 'begin)
+           (cons 'begin (mark-body (cdr s))))
+          ((memq (car s) '(let letrec letrec*))
+           (list (car s) (cadr s) (mark-body (cddr s))))
+          ((eq? (car s) 'set!)
+           (list 'set! (cadr s) (mark-tail (caddr s))))
+          ((eq? (car s) 'call-with-values)
+           ;; consumer (caddr) is invoked in tail position
+           (list 'call-with-values (cadr s) (mark-tail (caddr s))))
+          (else
+           ;; A bare application in tail position: wrap it.
+           (list 'tail-call s))))
+      (mark-tail sexp))
+
+    ;; ------------------------------------------------------------------
+    ;; Dead code elimination at the defs level.
+    ;;
+    ;; eliminate-dead-defs : (list sexp) -> (list sexp)
+    ;; Drop top-level (define name e) defs whose name is never referenced
+    ;; by any surviving def or by the registration/other forms (directly
+    ;; or transitively).  Only lambda-valued defs are candidates: a
+    ;; non-lambda value (constant, call) may have side effects at
+    ;; definition time and is always kept.  Iterates to a fixpoint because
+    ;; deleting one def can make another unreferenced.
+
+    ;; collect-free-symbols : sexp -> (list symbol)
+    ;; Free symbols of an expression: identifiers in operator and operand
+    ;; positions, not counting lambda formals / let bindings (bound), and
+    ;; not entering quote/quote-syntax data.
+    (define (collect-free-symbols sexp)
+      (let loop ((s sexp) (acc '()))
+        (cond
+          ((symbol? s) (if (member s acc) acc (cons s acc)))
+          ((not (pair? s)) acc)
+          ((memq (car s) '(quote quote-syntax)) acc)
+          ((eq? (car s) 'lambda)
+           (let* ((formals (cadr s))
+                  (bound (if (symbol? formals) (list formals) formals)))
+             (let loop2 ((body (cddr s)) (acc acc))
+               (if (null? body)
+                 (filter (lambda (x) (not (member x bound))) acc)
+                 (loop2 (cdr body) (loop (car body) acc))))))
+          ((memq (car s) '(let letrec letrec*))
+           (let ((bound (map car (cadr s))))
+             (let loop2 ((bs (cadr s)) (acc acc))
+               (if (null? bs)
+                 (let loop3 ((body (cddr s)) (acc acc))
+                   (if (null? body)
+                     (filter (lambda (x) (not (member x bound))) acc)
+                     (loop3 (cdr body) (loop (car body) acc))))
+                 (loop2 (cdr bs) (loop (cadr (car bs)) acc))))))
+          ((eq? (car s) 'define)
+           ;; (define name value): collect from the value only; the name
+           ;; is bound by this definition.
+           (let ((val (if (pair? (cddr s)) (caddr s) #f)))
+             (if (pair? val) (loop val acc) acc)))
+          (else
+           (let loop2 ((cs (cdr s)) (acc (loop (car s) acc)))
+             (if (null? cs)
+               acc
+               (loop2 (cdr cs) (loop (car cs) acc))))))))
+
+    ;; def-name : sexp -> symbol or #f
+    ;; The name introduced by a top-level define form.
+    (define (def-name sexp)
+      (if (and (pair? sexp)
+               (eq? (car sexp) 'define)
+               (pair? (cdr sexp)))
+        (if (symbol? (cadr sexp))
+          (cadr sexp)
+          (caadr sexp))
+        #f))
+
+    ;; lambda-valued-def? : sexp -> boolean
+    ;; A def whose value is a plain lambda -- a safe DCE candidate (no
+    ;; definition-time side effect).
+    (define (lambda-valued-def? sexp)
+      (and (pair? sexp)
+           (eq? (car sexp) 'define)
+           (pair? (cdr sexp))
+           (symbol? (cadr sexp))
+           (pair? (cddr sexp))
+           (pair? (caddr sexp))
+           (eq? (caaddr sexp) 'lambda)))
+
+    (define (eliminate-dead-defs defs)
+      (let loop ((current defs))
+        ;; alive : all free symbols of the current defs.  A lambda-valued
+        ;; def whose name is not alive is unreferenced -> drop it.
+        (let* ((alive (collect-all-free current))
+               (survivors (filter (lambda (d)
+                                    (or (not (lambda-valued-def? d))
+                                        (member (def-name d) alive)))
+                                  current)))
+          (if (equal? survivors current)
+            survivors
+            (loop survivors)))))
+
+    (define (collect-all-free defs)
+      (let loop ((ds defs) (acc '()))
+        (if (null? ds)
+          acc
+          (loop (cdr ds)
+                (append (collect-free-symbols (car ds)) acc)))))
 
     )) ;begin
