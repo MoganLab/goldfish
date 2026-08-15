@@ -173,3 +173,20 @@ spec (syntax record) → 净化 (library→(libref name)) → write-roundtrip
 - 回归：scheme/base 210 + liii 3 文件冷热缓存全过（0 unbound）
 - 新增 `tests/expander/lib-cache-test.scm`：7 checks 全过，含宏库（srfi-2）、依赖库（srfi-13 跨库 module-ref）、复杂宏（liii match cond-expand）、值 binding round-trip
 - 缓存一致性：touch 源码后跨进程自动重建（mtime+size 校验）；无源场景 import 报错（缓存不替代源码）
+
+### 性能基准（2026-08-15，加载 srfi-217/19/224/113 依赖链）
+启动基线（空脚本）0.358s；总耗时扣除基线后的净加载：
+
+| 场景 | 总耗时 | 净加载 |
+|---|---|---|
+| 冷（展开+写缓存） | 4.75s | 4.39s |
+| 热（缓存命中重建） | 0.37s | **0.013s** |
+| 无缓存（--no-auto-compile 每次展开） | 3.45s | 3.09s |
+
+**热缓存 vs 无缓存 ≈ 238x 加速**；冷缓存多出的一次性写缓存开销 ~1.3s。连续两次热加载不重写缓存（纯命中确认）。
+
+### 全库覆盖回归（2026-08-15）
+遍历 goldfish/ 下全部 100 个 define-library 文件，逐个 `(import ...)` 冷/热加载：
+- **冷加载 99/100 成功，热加载 99/100 成功**（缓存文件 99 个）
+- 唯一失败：`(liii logging)` —— **预存在的展开 bug**（`expand-list` too many arguments，展开其 import 子句时崩溃），`--no-auto-compile` 下同样失败，与库缓存无关（logging 由 [0022] 引入，之后仅 fmt 相关改动）
+- 结论：宏缓存重建对全部 99 个可加载库覆盖正确
