@@ -1,6 +1,6 @@
 (import (liii check) (liii json) (liii base) (liii error))
 
-(check-set-mode! 'report-failed)
+(check-set-mode! 'report)
 
 ;; string->json
 ;; 将 JSON 字符串解析为 Scheme 数据结构。
