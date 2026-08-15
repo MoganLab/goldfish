@@ -42,14 +42,26 @@
 // before, so existing call sites in goldfish.hpp are unchanged.
 //
 // Supported argument/return types (extend s7_traits below as needed):
-//   std::string, s7_int, int, bool, double,
+//   std::string, s7_int, int, bool, double, char32_t,
 //   std::vector<std::string> (-> s7 vector of strings),
-//   s7_pointer (pass-through), void (-> (values)),
-//   std::vector<s7_byte> (-> bytevector).
+//   std::vector<uint8_t> (-> bytevector),
+//   std::optional<T> (absent -> #f),
+//   std::variant<A, B, ...> (union argument, first accepting alternative),
+//   gf_strlist (std::vector<std::string> -> s7 LIST of strings),
+//   s7_pointer (pass-through), void (-> (values)).
 //
 // The plain C++ functions must live in namespace goldfish so the macro
 // expands inside that namespace.  Functions needing the host (http
 // callbacks, reader eval) fall back to a handwritten s7_function.
+//
+// WHEN TO USE (by project convention): this template is a TOOL, not a
+// mandate.  Use it for modules whose functions are regular pure logic with
+// scalar/vector parameters and returns -- the payoff is removing s7 from
+// the module's core so it becomes independently testable and portable to a
+// future self-hosted runtime.  Do NOT force it onto modules that are
+// deeply coupled to the s7 host (callbacks, eval, exotic types): the glue
+// savings there are small, the risk of subtle behavior changes is not.  A
+// handwritten s7_function stays perfectly acceptable in those cases.
 
 #ifndef GOLDFISH_GLUE_HPP
 #define GOLDFISH_GLUE_HPP
