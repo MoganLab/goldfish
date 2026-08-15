@@ -433,6 +433,43 @@
       ((pair? v) (loop (car v) (loop (cdr v) acc)))
       (else acc))))
 
+;;; compile-enabled? : -> boolean
+;;; L2-2: run the self-hosted compile pass pipeline on library defs before
+;;; they evaluate.  Controlled by GOLDFISH_COMPILE (default on, like
+;;; GOLDFISH_AUTO_COMPILE).  The pipeline rewrites lowered core IR in place;
+;;; its output is still s7-evaluable core lambda, so this changes no
+;;; semantics -- only constants folded and dead if branches removed.
+
+(define (compile-enabled?)
+  (let ((v (getenv "GOLDFISH_COMPILE")))
+    (not (and v (member v '("0" "no" "false" "off"))))))
+
+;;; compile-defs-on-load : (list sexp) -> (list sexp)
+;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
+;;; compiler library is loaded lazily (it is a normal load-path library, not
+;;; part of the expander core), so its import must not disturb the bootstrap
+;;; of the library machinery itself.  A failure to load the compiler leaves
+;;; the defs untouched (compilation is an optimization, never a correctness
+;;; requirement).
+
+(define (compile-defs-on-load defs)
+  (if (compile-enabled?)
+    (let ((compiler
+           (catch
+             #t
+             (lambda ()
+               (if (not (runtime-registered? '(goldfish compiler)))
+                 (load-library! '(goldfish compiler)))
+               (lookup-module '(goldfish compiler)))
+             (lambda (tag . info) #f))))
+      (if (module? compiler)
+        (let ((compile-defs (module-ref compiler 'compile-defs))
+              (constant-fold (module-ref compiler 'constant-fold))
+              (simplify-if (module-ref compiler 'simplify-if)))
+          (compile-defs defs (list constant-fold simplify-if)))
+        defs))
+    defs))
+
 ;;; load-library-file-cached! : (list lib-cache) -> void
 ;;; Eval the cached defs of a file's libraries and mark them runtime-
 ;;; registered (the registration expression inside defs does that via
@@ -447,7 +484,8 @@
                             (if (not (runtime-registered? lib))
                               (load-library! lib)))
                           (apply append (map collect-cache-module-refs defs)))
-                (for-each (lambda (d) (eval d (rootlet))) defs)))
+                (for-each (lambda (d) (eval d (rootlet)))
+                          (compile-defs-on-load defs))))
             recs))
 
 ;;; library-cache-hit? : lib-file cache meta -> bool
