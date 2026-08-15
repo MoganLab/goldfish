@@ -746,6 +746,16 @@
     (call-with-output-file f
       (lambda (p) (write stamp p)))))
 
+;;; formals->names : formals -> (list symbol)
+;;; Turn a lambda formals list into the list of parameter names, handling
+;;; dotted formals (lambda (x . rest) ...).
+
+(define (formals->names f)
+  (cond ((null? f) '())
+        ((symbol? f) (list f))
+        ((pair? f) (cons (car f) (formals->names (cdr f))))
+        (else (list f))))
+
 (define (cacheable-expansion? sexp)
   (let* ((defined-names
           (let loop ((x sexp) (acc '()))
@@ -780,7 +790,7 @@
               (let* ((f (cadr x))
                      (body (caddr x))
                      (ps (append (local-define-names body)
-                                 (append (if (pair? f) f (list f)) params))))
+                                 (append (formals->names f) params))))
                 (check body ps)))
              ((memq h '(let let* letrec letrec*))
               (if (and (pair? (cadr x)) (pair? (caadr x)))
