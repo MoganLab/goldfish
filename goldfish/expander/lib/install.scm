@@ -92,11 +92,7 @@
       (if (and xdg (not (string=? xdg "")))
         xdg
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
-      ;; /v2: s7's write truncated long expansions at the default
-      ;; print-length (40) until compile-write-cache raised it; bumping the
-      ;; directory invalidates any truncated entries written before that
-      ;; fix.
-      "/goldfish/ccache/v2")))
+      "/goldfish/ccache")))
 
 (define (compile-file-stamp path)
   (list (g_path-getmtime path) (g_path-getsize path)))
