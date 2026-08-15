@@ -17,9 +17,20 @@
 ;;; Container vectors only: in s7, `vector?' also holds for bytevectors,
 ;;; whose elements are plain bytes the expander must never recurse into
 ;;; (recursing would rebuild a #u8(...) literal as a plain vector).
+;;; Vector-layout records (boot.scm make-record-type, Guile-style) are also
+;;; vectors and must not be recursed into: a record is a container vector
+;;; whose first element is its type descriptor, so it is excluded here.
+;;; (Inlet-based s7 records never reached this predicate; the vector record
+;;; work makes the distinction necessary.)
 
 (define (stx-vector? x)
-  (and (vector? x) (not (bytevector? x))))
+  (and (vector? x)
+       (not (bytevector? x))
+       (not (and (positive? (vector-length x))
+                 (let ((d (vector-ref x 0)))
+                   (and (vector? d)
+                        (positive? (vector-length d))
+                        (eq? (vector-ref d 0) 'record-type)))))))
 
 ;;; Syntax-object contexts (phase-indexed scope sets)
 

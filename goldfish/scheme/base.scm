@@ -251,7 +251,7 @@
       ;; (define placeholders + assign from a single call-with-values)
       ;; works both under the s7 host (base.scm is loaded before the
       ;; expander exists) and under the expander, like let-values above.
-      (let* ((tmp (gensym))
+      (let* ((tmp (next-fresh "tmp"))
              (setters
               (let loop ((vs vars) (expr tmp) (acc '()))
                 (if (null? vs)
@@ -266,27 +266,30 @@
     ) ;define-macro
 
     (define-macro (define-record-type type make ? . fields)
-      (let ((rtd (gensym))
+      (let ((rtd (next-record-rtd))
             (make-name (car make))
             (make-params (cdr make))
-            (field-names (map car fields)))
+            (field-names (map car fields))
+            (acc-defs
+              (let loop ((fs fields) (i 1))
+                (if (null? fs)
+                  '()
+                  (let ((acc (cadr (car fs))))
+                    (cons `(define (,acc obj) (vector-ref obj ,i))
+                          (if (pair? (cddr (car fs)))
+                            (let ((mod (caddr (car fs))))
+                              (cons `(define (,mod obj val) (vector-set! obj ,i val))
+                                    (loop (cdr fs) (+ i 1))))
+                            (loop (cdr fs) (+ i 1)))))))))
         `(begin
            (define ,rtd (make-record-type ',type ',field-names))
            (define (,make-name ,@make-params)
              (vector ,rtd ,@make-params))
-           (define (,? obj) ((record-predicate ,rtd) obj))
-           ,@(map (lambda (field)
-                    (let ((acc (cadr field)))
-                      `(define (,acc obj)
-                         ((record-accessor ,rtd ',(car field)) obj))))
-                  fields)
-           ,@(map (lambda (field)
-                    (if (pair? (cddr field))
-                        (let ((mod (caddr field)))
-                          `(define (,mod obj val)
-                             ((record-modifier ,rtd ',(car field)) obj val)))
-                        '()))
-                  fields)
+           (define (,? obj)
+             (and (vector? obj)
+                  (positive? (vector-length obj))
+                  (eq? (vector-ref obj 0) ,rtd)))
+           ,@acc-defs
            (quote ,type))
         ) ;let
       ) ;define-macro

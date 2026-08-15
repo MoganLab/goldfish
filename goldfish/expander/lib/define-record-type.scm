@@ -11,10 +11,22 @@
   (syntax->datum field))
 
 (define (dr-record-defs type make-datum pred fields)
-  (let ((rtd (gensym))
+  (let ((rtd (next-record-rtd))
         (make-name (car make-datum))
         (make-params (cdr make-datum))
-        (field-names (map car fields)))
+        (field-names (map car fields))
+        (acc-defs
+          (let loop ((fs fields) (i 1))
+            (if (null? fs)
+              '()
+              (let ((acc (cadr (car fs))))
+                (cons (list 'define (list acc 'obj) (list 'vector-ref 'obj i))
+                      (if (pair? (cddr (car fs)))
+                        (let ((mod (caddr (car fs))))
+                          (cons (list 'define (list mod 'obj 'val)
+                                      (list 'vector-set! 'obj i 'val))
+                                (loop (cdr fs) (+ i 1))))
+                        (loop (cdr fs) (+ i 1)))))))))
     (append
      (list 'begin
            (list 'define rtd
@@ -22,18 +34,11 @@
            (list 'define make-datum
                  (cons 'vector (cons rtd make-params)))
            (list 'define (list pred 'obj)
-                 (list (list 'record-predicate rtd) 'obj)))
-     (apply append
-            (map (lambda (fd)
-                   (let ((acc (cadr fd))
-                         (mod (if (pair? (cddr fd)) (caddr fd) #f)))
-                     (cons (list 'define (list acc 'obj)
-                                 (list (list 'record-accessor rtd (list 'quote (car fd))) 'obj))
-                           (if mod
-                               (list (list 'define (list mod 'obj 'val)
-                                           (list (list 'record-modifier rtd (list 'quote (car fd))) 'obj 'val)))
-                               '()))))
-                 fields)))))
+                 (list 'and
+                       (list 'vector? 'obj)
+                       (list 'positive? (list 'vector-length 'obj))
+                       (list 'eq? (list 'vector-ref 'obj 0) rtd))))
+     acc-defs)))
 
 (define-syntax define-record-type
   (lambda (stx)
