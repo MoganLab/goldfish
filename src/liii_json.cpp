@@ -422,11 +422,16 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   // 与 Scheme 版一致：最后一个分隔符之后的内容不落盘
 
   // 改写结果可能含 NUL 字节（来自 \u0000），故不能用基于 C 字符串的
-  // s7_open_input_string；构造定长 Scheme 字符串后走与原来一致的 read 流程
+  // s7_open_input_string；构造定长 Scheme 字符串后走与原来一致的 read 流程。
+  // 注意：data_str 一旦创建就要立即 GC 保护——s7_list 和 open-input-string
+  // 都会分配内存，若其间触发 GC，未保护的 data_str 会被回收，
+  // port 将指向已释放的内存（曾导致 Windows CI 偶发 0xC0000005）
   s7_pointer data_str= s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
-  s7_pointer port    = s7_call (sc, cached_open_input_string, s7_list (sc, 1, data_str));
-  s7_gc_protect_2_via_stack (sc, data_str, port);
+  s7_gc_protect_via_stack (sc, data_str);
+  s7_pointer port= s7_call (sc, cached_open_input_string, s7_list (sc, 1, data_str));
+  s7_gc_protect_via_stack (sc, port);
   s7_pointer result= s7_read (sc, port);
+  s7_gc_unprotect_via_stack (sc, port);
   s7_gc_unprotect_via_stack (sc, data_str);
   return result;
 }
