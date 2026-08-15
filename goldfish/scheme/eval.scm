@@ -20,7 +20,9 @@
   (begin
 
     ;; Native s7 eval, kept for the plain-env / one-argument cases.
-    (define %s7-eval eval)
+    ;; Resolve the HOST eval explicitly (not the library's own eval, which
+    ;; shadows it) via the ambient primitive name in the rootlet.
+    (define %s7-eval (symbol->value 'eval))
 
     ;; R7RS (scheme eval): environment builds a program environment whose
     ;; bindings come from the given import-sets (only / except / prefix /

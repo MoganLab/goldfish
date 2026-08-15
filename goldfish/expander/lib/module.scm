@@ -712,31 +712,19 @@
                             (set-toplevel-ref-exported! (binding-value binding) #t))))
                       exports)
             (library-registry-set! name (make-lib-record lib exports))
-            ;; Pre-declare every definition name as #<undefined> in the
-            ;; host rootlet before the body's definitions evaluate, so a
-            ;; forward reference in the library body (s7 define-library
-            ;; semantics; e.g. (define s7-sqrt sqrt) before
-            ;; (define (sqrt ...)) in scheme/inexact) resolves to
-            ;; #<undefined> instead of erroring.  s7 provides no way to
-            ;; construct #<undefined> directly; (symbol->value 'name) of an
-            ;; unknown name returns it.  (rootlet) covers both eval paths
-            ;; (define evaluated into the-expander-library falls back to
-            ;; the rootlet for names the module lacks).
+            ;; The defs are emitted as sequential top-level defines; a
+            ;; forward reference (a define value naming a later define in
+            ;; the same body) would unbound-error at eval time.  The host
+            ;; s7 library semantics tolerate that by pre-declaring names as
+            ;; #<undefined> -- previously done with (varlet (rootlet) ...
+            ;; (symbol->value 'predeclare-forward-ref)).  That predeclaration
+            ;; has been REMOVED (2026-08-16): it leaked two s7 host forms
+            ;; into the emitted IR, and the only real user (scheme/eval's
+            ;; %s7-eval) was actually a bug -- it meant the HOST eval but
+            ;; captured the library's own later-defined eval as #<undefined>.
+            ;; scheme/eval now resolves the host eval explicitly, and no
+            ;; library relies on forward references.
             (values (append
-                     (list (datum->syntax
-                            lib-output-source
-                            (cons 'begin
-                                  (map (lambda (d)
-                                         (let ((sexp (lower d)))
-                                           (if (and (pair? sexp)
-                                                    (eq? (car sexp) 'define))
-                                             (list 'varlet '(rootlet)
-                                                   (list 'quote (cadr sexp))
-                                                   (list 'symbol->value
-                                                         (list 'quote
-                                                               'predeclare-forward-ref)))
-                                             (list 'if #f #f))))
-                                       defs))))
                      defs
                      (list (datum->syntax lib-output-source
                              (library-register-expression lib name exports))))
@@ -766,32 +754,31 @@
                                                (list 'quote
                                                      (toplevel-ref-original ref)))))
                                acc)))
-                      ((primitive-binding? binding)
-                       ;; Re-exported host primitive: the register expression
-                       ;; stores (symbol->value 'name), resolved at eval time
-                       ;; against the host rootlet (the reference itself
-                       ;; resolves via s7's rootlet fallback; a name missing
-                       ;; from the host -- as some exports of
-                       ;; goldfish/scheme/base.scm are -- yields #<undefined>).
-                       ;; The module-define! is wrapped in a catch: a handful
-                       ;; of scheme/let exports are s7 constants that cannot
-                       ;; be bound (e.g. unlet -> varlet error), which s7's
-                       ;; own define-library tolerates by never materializing
-                       ;; them in a runtime module.
-                       (cons (cons export
-                                   (list 'catch
-                                         '#t
-                                         (list 'lambda
-                                               '()
-                                               (list 'module-define!
-                                                     'm
-                                                     (list 'quote export)
-                                                     (list 'symbol->value
-                                                           (list 'quote
-                                                                 (binding-value binding)))))
-                                         (list 'lambda '(tag . info)
-                                               '(if #f #f))))
-                             acc))
+                       ((primitive-binding? binding)
+                        ;; Re-exported host primitive: the register expression
+                        ;; references the primitive by its bare ambient name,
+                        ;; resolved at eval time against the host rootlet (a
+                        ;; name missing from the host -- as some exports of
+                        ;; goldfish/scheme/base.scm are -- unbounds, which the
+                        ;; catch tolerates).  Bare-name references keep the
+                        ;; emitted IR free of s7 host forms (symbol->value).
+                        ;; The module-define! is wrapped in a catch: a handful
+                        ;; of scheme/let exports are s7 constants that cannot
+                        ;; be bound (e.g. unlet -> varlet error), which s7's
+                        ;; own define-library tolerates by never materializing
+                        ;; them in a runtime module.
+                        (cons (cons export
+                                    (list 'catch
+                                          '#t
+                                          (list 'lambda
+                                                '()
+                                                (list 'module-define!
+                                                      'm
+                                                      (list 'quote export)
+                                                      (binding-value binding)))
+                                          (list 'lambda '(tag . info)
+                                                '(if #f #f))))
+                              acc))
                       ((or (core-form-binding? binding)
                            (module-form-binding? binding))
                        ;; Ambient syntax (lambda/if/define/...): no runtime
