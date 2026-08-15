@@ -112,6 +112,7 @@
         (newline)
         (display cmd)
         (newline)
+        (flush-output-port)
         (let ((result (os-call cmd)))
           (cons test-file result)
         ) ;let
