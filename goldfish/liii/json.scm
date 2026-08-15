@@ -53,6 +53,9 @@
     ;; json->string 由 C++ 实现（src/liii_json.cpp 中的 g_json->string）
     (define json->string g_json->string)
 
+    ;; string->json 由 C++ 实现（src/liii_json.cpp 中的 g_string->json）
+    (define string->json g_string->json)
+
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
         (type-error "Value is not a JSON object or array" x)

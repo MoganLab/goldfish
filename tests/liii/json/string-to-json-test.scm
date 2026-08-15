@@ -1,6 +1,6 @@
 (import (liii check) (liii json) (liii base) (liii error))
 
-(check-set-mode! 'report-failed)
+(check-set-mode! 'report)
 
 ;; string->json
 ;; 将 JSON 字符串解析为 Scheme 数据结构。
@@ -103,5 +103,62 @@
 (check (string->json "") => (eof-object))
 (check (string->json ".") => (eof-object))
 (check-catch 'read-error (string->json "["))
+
+;;; 顶层标量：转换算法只在分隔符处落盘，末尾无分隔符的内容被丢弃，读到空串得 eof-object
+(check (string->json "42") => (eof-object))
+(check (string->json "-7") => (eof-object))
+(check (string->json "3.14") => (eof-object))
+(check (string->json "true") => (eof-object))
+(check (string->json "null") => (eof-object))
+(check (string->json "\"hello\"") => (eof-object))
+
+;;; 空白字符容忍
+(check (string->json "  [1, 2 , 3]  ") => #(1 2 3))
+(check (string->json "{ \"a\" : 1 , \"b\" : 2 }") => '(("a" . 1) ("b" . 2)))
+(check (string->json "\t[\n1,\r\n2]\n") => #(1 2))
+(check (string->json "   ") => (eof-object))
+
+;;; 顶层只读取一个 datum，最后一个分隔符之后的内容被忽略
+(check (string->json "[1,2] trailing") => #(1 2))
+(check (string->json "1 2") => (eof-object))
+
+;;; 数字
+(check (string->json "[0,-1,3.5,-0.25,1e2,1.5e-2]")
+  =>
+  #(0 -1 3.5 -0.25 100.0 0.015)
+) ;check
+(check (string->json "[123456789012345]") => #(123456789012345))
+
+;;; 嵌套结构
+(check (string->json "[[1,2],[3,4]]") => #(#(1 2) #(3 4)))
+(check (string->json "{\"a\":{\"b\":{\"c\":1}}}") => '(("a" ("b" ("c" . 1)))))
+(check (string->json "{\"k1\":{\"k2\":[1,{\"k3\":null}]}}")
+  =>
+  '(("k1" ("k2" . #(1 (("k3" . null))))))
+) ;check
+(check (string->json "[{},[]]") => #((()) #()))
+(check (string->json "[[[]]]") => #(#(#())))
+
+;;; 宽松语法
+(check (string->json "{a-b:1}") => '((a-b . 1)))
+(check (string->json "[1,]") => #(1))
+(check (string->json "[true,false,null]") => #(true false null))
+(check (string->json "{a:1,,}") => '((a . 1) () ()))
+
+;;; 字符串内容
+(check (string->json "[\"\" ]") => #(""))
+(check (string->json "[\"a,b:c{}[]\"]") => #("a,b:c{}[]"))
+(check (string->json "[\"混合mixed文本\"]") => #("混合mixed文本"))
+(check (string->json "[\"\\u004a\\u0061\"]") => #("Ja"))
+(check (string->json "{\"\\u006b\":1}") => '(("k" . 1)))
+
+;;; 截断与非法输入
+(check-catch 'read-error (string->json "{"))
+(check-catch 'read-error (string->json "{a:1"))
+(check-catch 'read-error (string->json "[1"))
+;; 顶层未闭合字符串：转义内容未落盘，读到空串得 eof-object
+(check (string->json "\"abc") => (eof-object))
+(check-catch 'read-error (string->json "{a:}"))
+(check-catch 'parse-error (string->json "[\"\\u0041"))
 
 (check-report)
