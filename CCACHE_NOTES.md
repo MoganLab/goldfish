@@ -110,3 +110,66 @@ s7 的 write 面向 s7 自己的 reader，不保证被我们的 R7RS reader 读�
 ### 已知限制
 - closure（macro transformer）不可序列化——含宏库无法用此 writer 缓存（load 已用 any-macro-def? 过滤）
 - 图遍历对含 record 的大数据仍慢（展开产物无 record 不受影响）
+
+## 阶段 2B 验证结论（已实证，2026-08-15）
+
+### 核心原理验证通过
+宏定义不需要序列化 closure，而是**序列化 spec（syntax-rules 语法树）+ 重放重建**（Guile/Racket 思路）。完整验证链：
+
+```
+spec (syntax record) → 净化 (library→(libref name)) → write-roundtrip
+→ 读回 → 反净化 ((libref name)→registry 的活 exp-library)
+→ eval-transformer → 重建 transformer → 实际展开成功
+```
+
+### 两个关键发现
+1. **scope 是符号**（`scp:0`、`x:17`，store.scm store-alloc），可序列化且读回 eq? 成立——syntax record 的 context 字段无忧。
+2. **library 必须净化**：spec 的 library 指向 exp-library（bindings 含 closure），序列化前替换为 `(libref <name>)`，读回后经 `library-record` 解析回 registry 的活 exp-library。注意 `library-record` 返回 `(exp-library . exports)` 对，需 `lib-record-library` 解包。
+
+### define-library 级缓存格式（已验证）
+缓存 = `(define-library-cache <name> <exports> <bindings> <macro-specs> <lower-defs>)`
+- bindings：值 binding 用 `(toplevel <gensym> <home-desc> <original> <exported?>)` / `(primitive <name>)`；宏 binding 用 `(transformer)` 标记（具体 spec 在 macro-specs）
+- macro-specs：`((name . spec-datum) ...)` 源码形式（从 define-library body 提取 define-syntax）
+- lower-defs：展开后的值定义 + 注册表达式（直接 eval，含 module-ref 跨库引用）
+
+### 重建流程（已验证）
+1. 建 exp-library + 恢复值 bindings（toplevel-ref 是纯数据）
+2. 重放宏：`expand-lib-define-syntax`（libbody.scm:148）对每个 `(name spec)` 重建 transformer
+3. `library-registry-set!` + eval defs（值定义 + 注册表达式）
+4. 依赖库：展开产物已编译为 `(module-ref 'lib 'name)`，运行时按 `collect-module-refs` 先加载依赖库缓存
+
+### 验证结果
+- 简单库（值 + 宏）：缓存捕获 → 序列化(490B) → 读回 → 重建 → `(add-macro 3 4) => 7` ✅
+- binding 类型确认：值=toplevel（gensym/home/original 全纯数据），宏=transformer，依赖引用=module-ref
+
+## 阶段 2B 实现（load-library! 库缓存，已落地）
+
+### 实现内容
+`load-library!`（module.scm）改造为缓存优先：
+1. **缓存命中**（`library-cache-hit?`）：读 `.libcache` → `restore-library-cache` 重建（re-import 依赖 + 恢复值 bindings + 重放宏 + registry-set!）→ `load-library-file-cached!` eval defs（先加载 module-ref 依赖库）。
+2. **缓存未命中**：`capture-file-cache` 展开每个 define-library，提取 `(name exports imports bindings macros defs)` 写入缓存。
+3. 缓存 key = sha256(库的相对文件名)；命中要求源文件存在且 mtime+size 匹配（缓存是编译产物，不替代源码）。
+
+### 缓存记录格式
+`(name exports imports bindings macros defs)`：
+- exports：导出符号
+- imports：import 子句（重建时 re-import，复制依赖库 binding 含 re-export 宏）
+- bindings：值 binding 净化 `(toplevel <gensym> <home> <original> <exported?>)` / `(primitive <name>)`；宏 = `'transformer` 标记
+- macros：宏定义形式的**净化 syntax 对象**（保 scope 卫生），含 define-syntax/define-macro/defmacro；cond-expand 分支用 scan-lib-head 单步展开提取
+- defs：lower 后的值定义 + 注册表达式
+
+### 关键修复（调试中发现的坑）
+1. **transformer binding 必须经 imports 恢复**：re-export 的宏（如 liii check 的 check 来自 srfi-78）不在本库 macro-specs，restore 时先 `import-into-library!` 复制。
+2. **宏 spec 必须存 syntax 而非 datum**：纯 datum 重放丢 scope，破坏卫生（liii match 失败）。`purify-syntax-tree`/`depurify-syntax-tree` 处理 exp-library 引用。
+3. **cond-expand 分支宏**：match-check-identifier 等定义在 cond-expand 选中分支，extract-macro-specs 用 `scan-lib-head` 单步展开提取（不能用 expand-expr，会深入并卡在 define-syntax）。
+4. **依赖库 module-ref 预加载**：eval defs 前扫描 module-ref 逐个 load-library!（防止跨库引用 unknown module）。
+
+### 缓存有效性原则（用户确认，2026-08-15）
+缓存是源文件的**编译产物**，不是替代品：`library-cache-hit?` 要求**源文件存在且 mtime+size 匹配**才命中；源文件缺失或修改都判定缓存过期，强制重新展开。无源"缓存独立分发"能力已移除（那是设计上的错误路径）。已端到端验证：
+- touch 源码 → 新进程检测过期 → 重建缓存 → meta 更新为新 stamp
+- 移走源码 → import 报 `unknown library`（缓存不再兜底）
+
+### 验证
+- 回归：scheme/base 210 + liii 3 文件冷热缓存全过（0 unbound）
+- 新增 `tests/expander/lib-cache-test.scm`：7 checks 全过，含宏库（srfi-2）、依赖库（srfi-13 跨库 module-ref）、复杂宏（liii match cond-expand）、值 binding round-trip
+- 缓存一致性：touch 源码后跨进程自动重建（mtime+size 校验）；无源场景 import 报错（缓存不替代源码）

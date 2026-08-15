@@ -98,39 +98,434 @@
 ;;; Circular loads are an error (stricter than R7RS, which tolerates some
 ;;; import cycles).  File lookup reuses the loader's load-find-module-file.
 ;;;
-;;; load-library! deliberately does NOT use the expander ccache: the cached
-;;; expansion (lower core) loses the expand-time registry entry
-;;; (library-registry-set! in expand-define-library), which importing
-;;; libraries query to copy bindings at compile time.  A cache hit would
-;;; therefore make a library importable at runtime but unimportable at
-;;; expand time, so every library is expanded from source here.  The ccache
-;;; is used only by the whole-file loader (reader.scm load) for files that
-;;; are not imported by anything.
+;;; Since 2026-08-15 load-library! also uses the library cache: a library
+;;; file whose top-level forms are all define-library is compiled once,
+;;; captured into the ccache as a library cache record (bindings + macro
+;;; specs + lowered defs), and later loads rebuild the expand-time registry,
+;;; replay the macro definitions, and eval the lowered defs.  The cache is a
+;;; compiled artifact of the source, used only when the source's mtime+size
+;;; still matches (the whole-file loader's ccache still serves non-library
+;;; files).  A file with any non-library top-level form falls back to the
+;;; previous compile-program path.
 
 (define *libraries-being-loaded* '())
+
+;;; Library-cache capture helpers.
+;;;
+;;; A library cache record is
+;;;   (name exports ((id . binding-desc) ...) ((id . macro-spec) ...) defs)
+;;; where defs are the lowered value/registration forms, binding-desc is the
+;;; purifiable description of a value binding, and each macro-spec is the
+;;; source datum of a (define-syntax id spec) body form.  On cache hit the
+;;; exp-library is rebuilt from the binding descriptions, the macros are
+;;; replayed with expand-lib-define-syntax, and defs are evaluated.
+
+;;; library-top-level? : datum -> bool
+;;; Whether every top-level form in a loaded file is a define-library.
+
+(define (library-top-level? form)
+  (and (pair? form)
+       (eq? (car form) 'define-library)))
+
+;;; library-file-cacheable? : (list datum) -> bool
+;;; A file is cacheable when it is not empty and every top-level form is a
+;;; define-library (so the cached defs exactly reproduce the file).
+
+(define (library-file-cacheable? forms)
+  (and (pair? forms)
+       (let loop ((fs forms))
+         (cond
+           ((null? fs) #t)
+           ((library-top-level? (car fs)) (loop (cdr fs)))
+           (else #f)))))
+
+;;; library-cache-path : string -> string
+;;; The ccache file for a library source file: the same key space as
+;;; compile-file-cached but a distinct extension so the two kinds of cache
+;;; cannot collide.  The key is the library's relative file name (e.g.
+;;; "srfi/srfi-13.scm").
+
+(define (library-cache-path lib-file)
+  (string-append (compile-cache-dir) "/" (g_sha256 lib-file) ".libcache"))
+
+;;; library-cache-meta-path : string -> string
+
+(define (library-cache-meta-path lib-file)
+  (string-append (compile-cache-dir) "/" (g_sha256 lib-file) ".libmeta"))
+
+;;; parse-define-library-body : syntax -> (values exports body-stxs)
+;;; Reuse parse-library-clauses (already defined below); body stxs are the
+;;; raw clause forms (export/import filtered out) so macro specs can be
+;;; extracted as source datums.
+
+;;; extract-exports : syntax -> (list symbol)
+
+(define (extract-exports form)
+  (let ((form (syntax-form form)))
+    (apply append
+           (map (lambda (ef)
+                  (map syntax->datum (cdr (syntax-form ef))))
+                (filter (lambda (cl)
+                          (and (pair? (syntax-form cl))
+                               (identifier? (car (syntax-form cl)))
+                               (eq? (syntax-form (car (syntax-form cl))) 'export)))
+                        (cddr form))))))
+
+;;; extract-macro-specs : syntax -> (list syntax)
+;;; Each macro definition body form as its SYNTAX OBJECT (not datum), so the
+;;; hygienic scope information of a syntax-rules macro spec survives into the
+;;; cache: re-expanding a datum spec from scratch would not reproduce the
+;;; scope sets of the original definition, breaking hygiene for complex
+;;; macros (e.g. liii match).  define-syntax directly, and
+;;; define-macro/defmacro (s7 compatibility macros that expand to
+;;; define-syntax) as their own source forms.  begin forms are spliced.
+
+(define (extract-macro-specs form)
+  (let ((form (syntax-form form)))
+    (let loop ((clauses (cddr form)) (acc '()))
+      (if (null? clauses)
+        (reverse acc)
+        (let ((clause (syntax-form (car clauses))))
+          (if (not (pair? clause))
+            (loop (cdr clauses) acc)
+            (let ((head (car clause)))
+              (cond
+                ((and (identifier? head) (eq? (syntax-form head) 'begin))
+                 (loop (append (cdr clause) (cdr clauses)) acc))
+                ((and (identifier? head) (eq? (syntax-form head) 'cond-expand))
+                 ;; Expand the cond-expand ONE macro step (scan-lib-head
+                 ;; stops at the definition head), splicing the selected
+                 ;; branch as (begin ...), then recurse: macros defined
+                 ;; inside the selected branch (e.g. liii match's
+                 ;; match-check-identifier) are top-level defines and must
+                 ;; be replayed too.  Full expand-expr would descend into
+                 ;; the branch and choke on the define-syntax forms.
+                 (let*-values (((expanded ctx1)
+                                (scan-lib-head (car clauses) (initial-context))))
+                   (loop (cdr clauses)
+                         (append (extract-macro-specs-of-syntax expanded)
+                                 acc))))
+                ((and (identifier? head) (memq (syntax-form head)
+                                               '(define-syntax define-macro defmacro)))
+                 (loop (cdr clauses)
+                       (cons (car clauses) acc)))
+                (else (loop (cdr clauses) acc))))))))))
+
+;;; extract-macro-specs-of-syntax : syntax -> (list syntax)
+;;; Extract macro definition forms from an already-expanded syntax object
+;;; (e.g. the result of expanding a cond-expand), walking begin wrappers.
+
+(define (extract-macro-specs-of-syntax stx)
+  (let ((form (syntax-form stx)))
+    (cond
+      ((and (pair? form) (eq? (syntax-form (car form)) 'begin))
+       (apply append (map extract-macro-specs-of-syntax (cdr form))))
+      ((and (pair? form) (memq (syntax-form (car form))
+                               '(define-syntax define-macro defmacro)))
+       (list stx))
+      (else '()))))
+
+;;; purify-syntax-tree : syntax exp-library -> syntax
+;;; Replace every exp-library reference in a syntax tree with a (libref name)
+;;; descriptor so the tree survives write-roundtrip (a syntax record's
+;;; library field points at an exp-library whose bindings table contains
+;;; closures).  depurify-syntax-tree restores the references from the
+;;; registry.
+
+(define (purify-syntax-tree stx)
+  (cond
+    ((syntax? stx)
+     (let ((form (syntax-form stx))
+           (ctx (syntax-context stx))
+           (lib (syntax-library stx)))
+       (make-syntax
+         (cond ((pair? form) (map-spine purify-syntax-tree form))
+               ((vector? form) (vector-map purify-syntax-tree form))
+               (else form))
+         ctx
+         (if (and lib (exp-library? lib))
+           (list 'libref (exp-library-name lib))
+           lib))))
+    ((pair? stx) (cons (purify-syntax-tree (car stx)) (purify-syntax-tree (cdr stx))))
+    ((vector? stx) (vector-map purify-syntax-tree stx))
+    (else stx)))
+
+(define (depurify-syntax-tree stx)
+  (cond
+    ((syntax? stx)
+     (let ((form (syntax-form stx))
+           (ctx (syntax-context stx))
+           (lib (syntax-library stx)))
+       (make-syntax
+         (cond ((pair? form) (map-spine depurify-syntax-tree form))
+               ((vector? form) (vector-map depurify-syntax-tree form))
+               (else form))
+         ctx
+         (if (and (pair? lib) (eq? (car lib) 'libref))
+           (let ((rec (library-registry-ref (cadr lib))))
+             (and rec (lib-record-library rec)))
+           lib))))
+    ((pair? stx) (cons (depurify-syntax-tree (car stx)) (depurify-syntax-tree (cdr stx))))
+    ((vector? stx) (vector-map depurify-syntax-tree stx))
+    (else stx)))
+
+;;; purify-binding : binding -> datum
+;;; A serializable description of a library binding.  Value bindings
+;;; (toplevel/primitive) are pure data; transformer/core-form/module-form
+;;; bindings cannot be serialized (their value is a closure), so a macro
+;;; binding is recorded as the symbol 'transformer and replayed from its
+;;; source spec (extract-macro-specs).  A library whose bindings contain a
+;;; core-form/module-form value (e.g. an exported define-library handler) is
+;;; not cacheable and is signalled here.
+
+(define (purify-binding b)
+  (let ((kind (binding-kind b)))
+    (cond
+      ((eq? kind 'toplevel)
+       (let ((ref (binding-value b)))
+         (list 'toplevel
+               (toplevel-ref-gensym ref)
+               (let ((home (toplevel-ref-home ref)))
+                 (if home (list 'libref (exp-library-name home)) #f))
+               (toplevel-ref-original ref)
+               (toplevel-ref-exported? ref))))
+      ((eq? kind 'primitive)
+       (list 'primitive (binding-value b)))
+      ((eq? kind 'transformer)
+       'transformer)
+      (else
+       (error "purify-binding: library not cacheable (unsupported binding)"
+              kind)))))
+
+;;; depurify-binding : datum exp-library -> binding/#f
+;;; Rebuild a value binding from its description.  home (libref name) is
+;;; resolved to the library's own record for the library itself, or the
+;;; registry record for another (already loaded) library.  'transformer is
+;;; #f here -- macros are replayed separately.
+
+(define (depurify-binding desc self-lib)
+  (if (eq? desc 'transformer)
+    #f
+    (let ((kind (car desc)))
+      (cond
+        ((eq? kind 'toplevel)
+         (let* ((gensym (cadr desc))
+                (home-desc (caddr desc))
+                (original (cadddr desc))
+                (exported? (car (cddddr desc)))
+                (home (if (and (pair? home-desc) (eq? (car home-desc) 'libref))
+                        (let ((home-name (cadr home-desc)))
+                          (if (equal? home-name (exp-library-name self-lib))
+                            self-lib
+                            (let ((rec (library-registry-ref home-name)))
+                              (and rec (lib-record-library rec)))))
+                        home-desc)))
+           (make-toplevel-binding (make-toplevel-ref gensym home original exported?))))
+        ((eq? kind 'primitive)
+         (make-primitive-binding (cadr desc)))
+        (else #f)))))
+
+;;; capture-library-cache : syntax exp-library context
+;;;                             -> (values (list name exports bindings macros defs) context)
+;;; Expand one define-library form (which registers the expand-time record
+;;; and returns its lowered defs) and capture everything needed to rebuild
+;;; it without re-expansion: the value bindings (purified), the macro specs
+;;; (source datums), and the lowered defs.
+
+(define (capture-library-cache stx lib ctx)
+  (let* ((form (syntax-form stx))
+         (name (syntax->datum (cadr form))))
+    ;; Expand: registers the library and returns its defs.
+    (let*-values (((defs ctx1) (expand-define-library stx ctx)))
+      (let* ((rec (library-registry-ref name))
+             (lib1 (and rec (lib-record-library rec)))
+             (exports (extract-exports stx))
+             (imports (let*-values (((e i b) (parse-library-clauses (cddr form))))
+                        (reverse i)))
+             (bindings (map (lambda (e)
+                              (cons (car e) (purify-binding (cdr e))))
+                            (exp-library-bindings lib1)))
+             (macros (map purify-syntax-tree (extract-macro-specs stx)))
+             (low-defs (map lower defs)))
+        (values (list name exports imports bindings macros low-defs) ctx1)))))
+
+;;; capture-file-cache : (list datum) -> (values (list lib-cache) context)
+;;; Capture every define-library form in a file, in order, returning the
+;;; per-library cache records.
+
+(define (capture-file-cache forms)
+  (let loop ((fs forms) (ctx (initial-context)) (acc '()))
+    (if (null? fs)
+      (values (reverse acc) ctx)
+      (let* ((stx (stx-set-library (wrap-expression (car fs)) the-base-library)))
+        (let*-values (((rec ctx1) (capture-library-cache stx the-base-library ctx)))
+          (loop (cdr fs) ctx1 (cons rec acc)))))))
+
+;;; lib-cache field accessors.  A cache record is
+;;;   (name exports imports bindings macros defs)
+
+(define (lib-cache-name rec) (car rec))
+(define (lib-cache-exports rec) (cadr rec))
+(define (lib-cache-imports rec) (caddr rec))
+(define (lib-cache-bindings rec) (cadddr rec))
+(define (lib-cache-macros rec) (car (cddddr rec)))
+(define (lib-cache-defs rec) (cadr (cddddr rec)))
+
+;;; restore-library-cache : lib-cache -> exp-library
+;;; Rebuild a library from its cache record: re-import its dependencies
+;;; (copying bindings, including re-exported macros, from their registries),
+;;; restore its own value bindings, replay its macro definitions, and
+;;; re-register it.  Returns the rebuilt library (defs are evaluated by the
+;;; caller).
+
+(define (restore-library-cache rec)
+  (let* ((name (lib-cache-name rec))
+         (exports (lib-cache-exports rec))
+         (imports (lib-cache-imports rec))
+         (bindings (lib-cache-bindings rec))
+         (macros (lib-cache-macros rec))
+         (lib (make-exp-library name)))
+    ;; 1. Re-import dependencies: copies bindings (including transformer
+    ;;    bindings re-exported from other libraries) into this library.
+    (import-into-library! lib imports)
+    ;; 2. Restore this library's own value bindings (toplevel-ref homes that
+    ;;    point at the library itself resolve to the rebuilt library).
+    (for-each (lambda (e)
+                (let ((d (depurify-binding (cdr e) lib)))
+                  (when d (exp-library-define! lib (car e) d))))
+              bindings)
+    (library-registry-set! name (make-lib-record lib exports))
+    ;; 3. Replay this library's own macro definitions.  Each spec is the
+    ;;    purified syntax object of a macro definition form (define-syntax,
+    ;;    or define-macro/defmacro which expand to define-syntax); expanding
+    ;;    the single form into the library reinstalls the transformer with
+    ;;    its original hygienic scope sets.  All forms share one expansion
+    ;;    context, mirroring the original define-library body expansion
+    ;;    (macro specs may reference macros defined earlier in the body).
+    (let ((stxs (map (lambda (spec)
+                       (stx-set-library (depurify-syntax-tree spec) lib))
+                     macros)))
+      (expand-library-body stxs lib (initial-context)))
+    ;; 4. Exports with no body binding are inherited from base / primitive
+    ;;    (mirrors expand-define-library's export fallback).
+    (for-each (lambda (export)
+                (unless (exp-library-ref lib export)
+                  (exp-library-define! lib export
+                    (or (exp-library-ref the-base-library export)
+                        (make-primitive-binding export)))))
+              exports)
+    lib))
+
+;;; collect-cache-module-refs : datum -> (list name)
+;;; Collect library names referenced as (module-ref 'lib 'name) in a cached
+;;; definition, so dependencies are loaded before the defs are evaluated.
+
+(define (collect-cache-module-refs x)
+  (let loop ((v x) (acc '()))
+    (cond
+      ((and (pair? v) (eq? (car v) 'module-ref))
+       (let ((rest (cdr v)))
+         (loop (cdr v)
+               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
+                 (let ((lib (cadar rest)))
+                   (if (member lib acc) acc (cons lib acc)))
+                 acc))))
+      ((pair? v) (loop (car v) (loop (cdr v) acc)))
+      (else acc))))
+
+;;; load-library-file-cached! : (list lib-cache) -> void
+;;; Eval the cached defs of a file's libraries and mark them runtime-
+;;; registered (the registration expression inside defs does that via
+;;; runtime-registered-add!).  Dependencies referenced by module-ref in the
+;;; defs are loaded first (from their own caches when available), so a
+;;; cross-library value reference resolves at eval time.
+
+(define (load-library-file-cached! recs)
+  (for-each (lambda (rec)
+              (let ((defs (lib-cache-defs rec)))
+                (for-each (lambda (lib)
+                            (if (not (runtime-registered? lib))
+                              (load-library! lib)))
+                          (apply append (map collect-cache-module-refs defs)))
+                (for-each (lambda (d) (eval d (rootlet))) defs)))
+            recs))
+
+;;; library-cache-hit? : lib-file cache meta -> bool
+;;; A cache entry is usable only when the source file exists and the stored
+;;; stamp (mtime+size) matches the current source: the cache is a compiled
+;;; artifact of the source, never a substitute for it.  A cache whose
+;;; source is gone or modified is stale and forces re-expansion.
+
+(define (library-cache-hit? lib-file cache meta)
+  (and (file-exists? cache)
+       (file-exists? meta)
+       (let ((src (load-find-module-file lib-file)))
+         (and src
+              (let ((stamp (compile-file-stamp src)))
+                (let ((rec (call-with-input-file meta
+                             (lambda (p) (car (read-forms p))))))
+                  (and (pair? rec) (equal? (cdr rec) stamp))))))))
 
 (define (load-library! lib-name)
   (when (member lib-name *libraries-being-loaded*)
     (error "import: circular library dependency" lib-name))
-  (let ((file (load-find-module-file (library-file-name lib-name))))
-    (unless file
-      (error "import: unknown library" lib-name))
-    ;; compile-program is a global in both the host path (driver.scm) and the
-    ;; self-hosted path (the artifact), so no (require 'driver) here -- that
-    ;; would reload the expander from source and clash with the artifact.
-    (let ((forms (call-with-input-file file read-forms)))
-      (dynamic-wind
-        (lambda ()
-          (set! *libraries-being-loaded*
-                (cons lib-name *libraries-being-loaded*)))
-        (lambda ()
-          (eval (compile-program forms) (rootlet))
-          (set! *runtime-registered-libraries*
-                (cons lib-name *runtime-registered-libraries*)))
-        (lambda ()
-          (set! *libraries-being-loaded*
-                (filter (lambda (n) (not (equal? n lib-name)))
-                        *libraries-being-loaded*)))))))
+  (let ((lib-file (library-file-name lib-name)))
+    ;; Cache-first: when the cache matches the source's mtime+size, load the
+    ;; cached rebuild; otherwise (stale, or no cache) load and compile the
+    ;; source file.  The cache is a compiled artifact of the source and is
+    ;; never used without a valid source match.
+    (let ((cache (library-cache-path lib-file))
+          (meta (library-cache-meta-path lib-file)))
+      (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+               (auto-compile-enabled?)
+               (library-cache-hit? lib-file cache meta))
+        (dynamic-wind
+          (lambda ()
+            (set! *libraries-being-loaded*
+                  (cons lib-name *libraries-being-loaded*)))
+          (lambda ()
+            (let ((recs (call-with-input-file cache
+                          (lambda (p) (car (read-forms p))))))
+              (for-each restore-library-cache recs)
+              (load-library-file-cached! recs)))
+          (lambda ()
+            (set! *libraries-being-loaded*
+                  (filter (lambda (n) (not (equal? n lib-name)))
+                          *libraries-being-loaded*))))
+        ;; No cache (or stale): load and compile the source file.
+        (let ((file (load-find-module-file lib-file)))
+          (unless file
+            (error "import: unknown library" lib-name))
+          (let ((forms (call-with-input-file file read-forms)))
+            (dynamic-wind
+              (lambda ()
+                (set! *libraries-being-loaded*
+                      (cons lib-name *libraries-being-loaded*)))
+              (lambda ()
+                (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                         (auto-compile-enabled?)
+                         (library-file-cacheable? forms))
+                  (let* ((stamp (compile-file-stamp file))
+                         (cache (library-cache-path lib-file))
+                         (meta (library-cache-meta-path lib-file)))
+                    (if (compile-cache-valid? cache meta stamp)
+                      (let ((recs (call-with-input-file cache
+                                    (lambda (p) (car (read-forms p))))))
+                        (for-each restore-library-cache recs)
+                        (load-library-file-cached! recs))
+                      (let*-values (((recs ctx) (capture-file-cache forms)))
+                        (compile-write-cache (compile-cache-dir)
+                                             cache meta stamp
+                                             recs)
+                        (load-library-file-cached! recs))))
+                  (begin
+                    (eval (compile-program forms) (rootlet))
+                    (set! *runtime-registered-libraries*
+                          (cons lib-name *runtime-registered-libraries*)))))
+              (lambda ()
+                (set! *libraries-being-loaded*
+                      (filter (lambda (n) (not (equal? n lib-name)))
+                              *libraries-being-loaded*))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
@@ -564,6 +959,9 @@
     (module-define! the-expander-library 'runtime-registered-add! runtime-registered-add!)
     (module-define! the-expander-library 'runtime-registered? runtime-registered?)
     (module-define! the-expander-library 'load-library! load-library!)
+    (module-define! the-expander-library 'library-file-cacheable? library-file-cacheable?)
+    (module-define! the-expander-library 'capture-library-cache capture-library-cache)
+    (module-define! the-expander-library 'restore-library-cache restore-library-cache)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
     ;; load-library! evaluates a library's registration expression in the

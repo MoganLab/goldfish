@@ -147,3 +147,10 @@
         sexp))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
+;; The library cache (load-library! path) reuses the ccache dir, stamp,
+;; validity check, and atomic writer, so expose them for lib/module.scm.
+(module-define! the-expander-library 'compile-cache-dir compile-cache-dir)
+(module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
+(module-define! the-expander-library 'compile-cache-valid? compile-cache-valid?)
+(module-define! the-expander-library 'compile-write-cache compile-write-cache)
+(module-define! the-expander-library 'compile-cache-hot? compile-cache-hot?)
