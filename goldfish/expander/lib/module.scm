@@ -433,16 +433,26 @@
       ((pair? v) (loop (car v) (loop (cdr v) acc)))
       (else acc))))
 
-;;; compile-enabled? : -> boolean
-;;; L2-2: run the self-hosted compile pass pipeline on library defs before
-;;; they evaluate.  Controlled by GOLDFISH_COMPILE (default on, like
-;;; GOLDFISH_AUTO_COMPILE).  The pipeline rewrites lowered core IR in place;
-;;; its output is still s7-evaluable core lambda, so this changes no
-;;; semantics -- only constants folded and dead if branches removed.
+;;; optimization-level : -> integer
+;;; L2-2: how much self-hosted compilation runs on library defs before they
+;;; evaluate.  The pipeline rewrites lowered core IR in place; its output is
+;;; still s7-evaluable core lambda, so this changes no semantics -- only
+;;; constants folded and dead if branches removed.  Levels follow the -O0/1/2
+;;; convention:
+;;;   0 : no compilation (defs evaluate as lowered)
+;;;   1 : default -- constant folding + if simplification
+;;;   2+: reserved for further passes (tail-call marking, inlining, ...)
+;;; Controlled by GOLDFISH_OPT_LEVEL (0 disables compilation entirely);
+;;; unset defaults to 1.
 
-(define (compile-enabled?)
-  (let ((v (getenv "GOLDFISH_COMPILE")))
-    (not (and v (member v '("0" "no" "false" "off"))))))
+(define (optimization-level)
+  (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
+    (cond
+      ((not v) 1)
+      ((member v '("0" "no" "false" "off")) 0)
+      (else
+       (let ((n (string->number v)))
+         (if (and n (integer? n) (>= n 0)) n 1))))))
 
 ;;; compile-defs-on-load : (list sexp) -> (list sexp)
 ;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
@@ -450,25 +460,28 @@
 ;;; part of the expander core), so its import must not disturb the bootstrap
 ;;; of the library machinery itself.  A failure to load the compiler leaves
 ;;; the defs untouched (compilation is an optimization, never a correctness
-;;; requirement).
+;;; requirement).  The active pass set grows with the optimization level;
+;;; level 2+ currently enables the same core passes as level 1 and reserves
+;;; the slot for future passes (tail-call marking, inlining).
 
 (define (compile-defs-on-load defs)
-  (if (compile-enabled?)
-    (let ((compiler
-           (catch
-             #t
-             (lambda ()
-               (if (not (runtime-registered? '(goldfish compiler)))
-                 (load-library! '(goldfish compiler)))
-               (lookup-module '(goldfish compiler)))
-             (lambda (tag . info) #f))))
-      (if (module? compiler)
-        (let ((compile-defs (module-ref compiler 'compile-defs))
-              (constant-fold (module-ref compiler 'constant-fold))
-              (simplify-if (module-ref compiler 'simplify-if)))
-          (compile-defs defs (list constant-fold simplify-if)))
-        defs))
-    defs))
+  (let ((level (optimization-level)))
+    (if (zero? level)
+      defs
+      (let ((compiler
+             (catch
+               #t
+               (lambda ()
+                 (if (not (runtime-registered? '(goldfish compiler)))
+                   (load-library! '(goldfish compiler)))
+                 (lookup-module '(goldfish compiler)))
+               (lambda (tag . info) #f))))
+        (if (module? compiler)
+          (let ((compile-defs (module-ref compiler 'compile-defs))
+                (constant-fold (module-ref compiler 'constant-fold))
+                (simplify-if (module-ref compiler 'simplify-if)))
+            (compile-defs defs (list constant-fold simplify-if)))
+          defs)))))
 
 ;;; load-library-file-cached! : (list lib-cache) -> void
 ;;; Eval the cached defs of a file's libraries and mark them runtime-
