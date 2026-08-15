@@ -445,10 +445,281 @@ glue_string_to_json (s7_scheme* sc) {
   s7_gc_protect (sc, cached_open_input_string);
 }
 
+// json-ref / json-set 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
+// 的 Scheme 实现完全一致：
+//   - json-ref：多键路径逐层下钻；'() 透传（安全导航）；空对象 '(()) 读出为 '()；
+//     每层先做结构校验（非对象/数组抛 type-error）；读到的符号 'true/'false 转为 #t/#f；
+//     数组用 vector-ref 语义（非整数索引抛 wrong-type-arg、越界抛 out-of-range）
+//   - json-set：多键路径逐层函数式更新；空对象 '(()) 原样返回；
+//     键 #t 表示映射所有值；键为过程表示按键谓词筛选；普通键按 equal? 匹配；
+//     匹配成功后新序对的键：普通键分支用传入的键，#t/过程键分支保留原键；
+//     叶层值可以是过程（接收旧值返回新值）；
+//     键 #f 落入 guenchi (if v ...) 无 else 分支的历史怪癖原样保留
+//     （对象返回 #<unspecified>，数组走 (list->vector #<unspecified>) 抛 wrong-type-arg）
+
+// 真列表长度；非真列表（含循环列表）返回 -1
+static s7_int
+json_proper_list_length (s7_scheme* sc, s7_pointer x) {
+  s7_pointer slow= x, fast= x;
+  s7_int     len = 0;
+  while (s7_is_pair (fast)) {
+    fast= s7_cdr (fast);
+    len++;
+    if (s7_is_pair (fast)) {
+      fast= s7_cdr (fast);
+      len++;
+      slow= s7_cdr (slow);
+      if (fast == slow) return -1; // 循环列表
+    }
+  }
+  if (!s7_is_null (sc, fast)) return -1;
+  return len;
+}
+
+// 空对象 '(())
+static bool
+json_is_null_object (s7_scheme* sc, s7_pointer x) {
+  return s7_is_pair (x) && s7_is_null (sc, s7_car (x)) && s7_is_null (sc, s7_cdr (x));
+}
+
+// 与 (liii json) 的 json-object? 一致（x 已知非 '()）：
+// (and (list? x) (not (null? x)) (or (equal? x '(())) (every pair? x)))
+static bool
+json_is_object (s7_scheme* sc, s7_pointer x, s7_int& len) {
+  if (!s7_is_pair (x)) return false;
+  if (json_is_null_object (sc, x)) {
+    len= 1;
+    return true;
+  }
+  len= json_proper_list_length (sc, x);
+  if (len < 0) return false;
+  s7_pointer p= x;
+  while (s7_is_pair (p)) {
+    if (!s7_is_pair (s7_car (p))) return false;
+    p= s7_cdr (p);
+  }
+  return true;
+}
+
+// glue 时缓存 vector-ref / list->vector 并永久 GC 保护：
+// 仅在报错路径上调用，保证错误类型和消息与 Scheme 实现逐字节一致
+static s7_pointer cached_vector_ref    = NULL;
+static s7_pointer cached_list_to_vector= NULL;
+
+// guenchi json-ref 的 return 包装：'true -> #t，'false -> #f
+static s7_pointer symbol_true = NULL;
+static s7_pointer symbol_false= NULL;
+
+static s7_pointer
+json_ref_convert (s7_scheme* sc, s7_pointer x) {
+  if (s7_is_symbol (x)) {
+    if (x == symbol_true) return s7_t (sc);
+    if (x == symbol_false) return s7_f (sc);
+  }
+  return x;
+}
+
+static s7_pointer
+f_json_ref (s7_scheme* sc, s7_pointer args) {
+  s7_pointer cur = s7_car (args);
+  s7_pointer keys= s7_cdr (args);
+  while (s7_is_pair (keys)) {
+    s7_pointer key= s7_car (keys);
+    keys        = s7_cdr (keys);
+    // '() 透传：安全导航，直接返回 '()
+    if (s7_is_null (sc, cur)) return s7_nil (sc);
+    s7_pointer val;
+    if (s7_is_vector (cur)) {
+      if (s7_is_integer (key)) {
+        s7_int i= s7_integer (key);
+        if (i >= 0 && i < s7_vector_length (cur)) {
+          val= s7_vector_elements (cur)[i];
+        }
+        else {
+          // 抛出与 vector-ref 一致的 out-of-range 错误
+          return s7_call (sc, cached_vector_ref, s7_list (sc, 2, cur, key));
+        }
+      }
+      else {
+        // 抛出与 vector-ref 一致的 wrong-type-arg 错误
+        return s7_call (sc, cached_vector_ref, s7_list (sc, 2, cur, key));
+      }
+    }
+    else if (s7_is_pair (cur)) {
+      if (json_is_null_object (sc, cur)) {
+        val= s7_nil (sc);
+      }
+      else {
+        s7_int len;
+        if (!json_is_object (sc, cur, len)) {
+          return json_type_error (sc, "Value is not a JSON object or array", cur);
+        }
+        val          = s7_nil (sc);
+        s7_pointer p = cur;
+        while (s7_is_pair (p)) {
+          s7_pointer entry= s7_car (p);
+          if (s7_is_equal (sc, s7_car (entry), key)) {
+            val= s7_cdr (entry);
+            break;
+          }
+          p= s7_cdr (p);
+        }
+      }
+    }
+    else {
+      return json_type_error (sc, "Value is not a JSON object or array", cur);
+    }
+    cur= json_ref_convert (sc, val);
+  }
+  return cur;
+}
+
+static void
+glue_json_ref (s7_scheme* sc) {
+  const char* name= "g_json_ref";
+  const char* desc= "(g_json_ref json key . keys) => value, ref a value from Scheme-form JSON data by key path";
+  s7_define_function (sc, name, f_json_ref, 2, 0, true, desc);
+  cached_vector_ref= s7_name_to_value (sc, "vector-ref");
+  s7_gc_protect (sc, cached_vector_ref);
+  symbol_true = s7_make_symbol (sc, "true");
+  s7_gc_protect (sc, symbol_true);
+  symbol_false= s7_make_symbol (sc, "false");
+  s7_gc_protect (sc, symbol_false);
+}
+
+// json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
+// 否则写入叶层值（叶层值为过程时以旧值调用之）
+struct json_setter {
+  s7_pointer rest;        // 剩余 (key val ...) 参数；'() 表示已到叶层
+  s7_pointer leaf;        // 叶层值（仅 rest 为 '() 时有效）
+  bool       leaf_is_proc;
+};
+
+static s7_pointer json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs);
+
+static s7_pointer
+json_setter_apply (s7_scheme* sc, const json_setter& st, s7_pointer old) {
+  if (!s7_is_null (sc, st.rest)) return json_set_dispatch (sc, old, st.rest);
+  if (st.leaf_is_proc) return s7_call (sc, st.leaf, s7_list (sc, 1, old));
+  return st.leaf;
+}
+
+// guenchi json-set 的单层语义：x 已校验为 JSON 对象（含 len 个条目）或数组
+static s7_pointer
+json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const json_setter& st) {
+  if (s7_is_vector (x)) {
+    s7_int      n    = s7_vector_length (x);
+    s7_pointer* elems= s7_vector_elements (x);
+    if (s7_is_boolean (v) && !s7_boolean (sc, v)) {
+      // guenchi 的 (if v ...) 无 else 分支：(list->vector #<unspecified>) 抛 wrong-type-arg
+      return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, s7_unspecified (sc)));
+    }
+    s7_pointer result= s7_make_vector (sc, n);
+    s7_gc_protect_via_stack (sc, result);
+    s7_pointer* relems= s7_vector_elements (result);
+    for (s7_int i= 0; i < n; i++) {
+      bool replace;
+      if (s7_is_boolean (v)) replace= true;
+      else if (s7_is_procedure (v)) {
+        replace= (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc));
+      }
+      else {
+        replace= s7_is_equal (sc, s7_make_integer (sc, i), v);
+      }
+      relems[i]= replace ? json_setter_apply (sc, st, elems[i]) : elems[i];
+    }
+    s7_gc_unprotect_via_stack (sc, result);
+    return result;
+  }
+  // 对象（alist）：键 #t 或过程键保留原键，普通键匹配后用传入的键构造新序对
+  bool map_all= false, use_pred= false;
+  if (s7_is_boolean (v)) {
+    if (!s7_boolean (sc, v)) return s7_unspecified (sc); // (if v ...) 无 else 分支
+    map_all= true;
+  }
+  else if (s7_is_procedure (v)) {
+    use_pred= true;
+  }
+  // 先搭建与输入等长的结果骨架并 GC 保护（搭建期间不调用用户过程）
+  s7_pointer head= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  s7_gc_protect_via_stack (sc, head);
+  s7_pointer tail= head;
+  for (s7_int i= 1; i < len; i++) {
+    s7_set_cdr (tail, s7_cons (sc, s7_nil (sc), s7_nil (sc)));
+    tail= s7_cdr (tail);
+  }
+  s7_pointer p= x;
+  tail        = head;
+  while (s7_is_pair (p)) {
+    s7_pointer entry= s7_car (p);
+    bool       replace;
+    if (map_all) replace= true;
+    else if (use_pred) {
+      replace= (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc));
+    }
+    else {
+      replace= s7_is_equal (sc, s7_car (entry), v);
+    }
+    if (replace) {
+      s7_pointer newkey= (map_all || use_pred) ? s7_car (entry) : v;
+      s7_set_car (tail, s7_cons (sc, newkey, json_setter_apply (sc, st, s7_cdr (entry))));
+    }
+    else {
+      s7_set_car (tail, entry); // 未匹配的条目复用原序对
+    }
+    tail= s7_cdr (tail);
+    p   = s7_cdr (p);
+  }
+  s7_gc_unprotect_via_stack (sc, head);
+  return head;
+}
+
+// 对应 (liii json) 的 json-set 包装：结构校验 + '(()) 特判 + 单键/多键分派
+// kargs 为 (key val . rest)
+static s7_pointer
+json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
+  s7_int len= 0;
+  if (!s7_is_vector (x) && !json_is_object (sc, x, len)) {
+    return json_type_error (sc, "Value is not a JSON object or array", x);
+  }
+  // 空对象 '(()) 原样返回（单键与多键均如此）
+  if (json_is_null_object (sc, x)) return x;
+  s7_pointer key = s7_car (kargs);
+  s7_pointer rest= s7_cdr (kargs);
+  json_setter st;
+  if (s7_is_null (sc, s7_cdr (rest))) {
+    st.rest       = s7_nil (sc);
+    st.leaf       = s7_car (rest);
+    st.leaf_is_proc= s7_is_procedure (st.leaf);
+  }
+  else {
+    st.rest       = rest;
+    st.leaf       = NULL;
+    st.leaf_is_proc= false;
+  }
+  return json_guenchi_set (sc, x, key, len, st);
+}
+
+static s7_pointer
+f_json_set (s7_scheme* sc, s7_pointer args) {
+  return json_set_dispatch (sc, s7_car (args), s7_cdr (args));
+}
+
+static void
+glue_json_set (s7_scheme* sc) {
+  const char* name= "g_json_set";
+  const char* desc= "(g_json_set json key val . keys-and-val) => data, set a value in Scheme-form JSON data by key path";
+  s7_define_function (sc, name, f_json_set, 3, 0, true, desc);
+  cached_list_to_vector= s7_name_to_value (sc, "list->vector");
+  s7_gc_protect (sc, cached_list_to_vector);
+}
+
 void
 glue_liii_json (s7_scheme* sc) {
   glue_json_to_string (sc);
   glue_string_to_json (sc);
+  glue_json_ref (sc);
+  glue_json_set (sc);
 }
 
 } // namespace goldfish

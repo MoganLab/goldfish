@@ -137,4 +137,59 @@
 (check-catch 'type-error (json-set "not-a-json" 'key "val"))
 (check-catch 'type-error (json-set 123 'key "val"))
 
+;; 键不存在时返回内容不变的新对象，原对象不受影响
+(let* ((j0 '((a . 1))) (j1 (json-set j0 'b 2)))
+  (check j1 => '((a . 1)))
+  (check j0 => '((a . 1)))
+) ;let*
+
+;; 空对象 '(()) 特判：json-set 原样返回，不做任何修改
+(check (json-set '(()) 'a 1) => '(()))
+(check (json-set '(()) 'a 'b 1) => '(()))
+
+;; 键 #t：对对象/数组的所有值应用更新
+(check (json-set '((a . 1) (b . 2)) #t 0) => '((a . 0) (b . 0)))
+(check (json-set '((a . 1) (b . 2)) #t (lambda (x) (* x 10)))
+  =>
+  '((a . 10) (b . 20))
+) ;check
+(check (json-set #(1 2 3) #t 0) => #(0 0 0))
+(check (json-set #(1 2 3) #t (lambda (x) (+ x 1))) => #(2 3 4))
+
+;; 键为过程：按键谓词筛选要更新的条目/元素
+(check (json-set '((a . 1) (b . 2)) (lambda (k) (eq? k 'a)) 0)
+  =>
+  '((a . 0) (b . 2))
+) ;check
+(check (json-set #(10 20 30) odd? 0) => #(10 0 30))
+
+;; 数组上未匹配的键（越界索引、非整数索引）返回内容不变的新数组
+(check (json-set #(1 2) 5 0) => #(1 2))
+(check (json-set #(1 2) 'a 0) => #(1 2))
+
+;; 字符串键与 symbol 键互不匹配
+(check (json-set '(("age" . 18)) 'age 19) => '(("age" . 18)))
+(check (json-set '((age . 18)) "age" 19) => '((age . 18)))
+
+;; 多键路径：中间层不是对象/数组时抛 type-error
+(check-catch 'type-error (json-set '((a . 1)) 'a 'b 2))
+(check-catch 'type-error (json-set '((a)) 'a 'b 2))
+
+;; 多键路径穿过数组
+(let ((j1 (json-set '((a . #(1 2 3))) 'a 1 20)))
+  (check (json-ref j1 'a 1) => 20)
+) ;let
+
+;; 多键路径 + 叶值为过程
+(let ((j1 (json-set '((a (b . 1))) 'a 'b (lambda (x) (+ x 10)))))
+  (check (json-ref j1 'a 'b) => 11)
+) ;let
+
+;; 多键路径中间层为 '(()) 时原样返回（不深入递归）
+(check (json-set '((a (()))) 'a 'b 1) => '((a (()))))
+
+;; 键 #f 的历史怪癖：guenchi 实现落入 (if v ...) 无 else 分支，结果为 #<unspecified>
+(check (eq? (json-set '((a . 1)) #f 0) (if #f #f)) => #t)
+(check-catch 'wrong-type-arg (json-set #(1 2) #f 0))
+
 (check-report)
