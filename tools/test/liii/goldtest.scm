@@ -140,7 +140,11 @@
                       (display (string-append "  " test-file " ... "))
                       (if (zero? exit-code)
                         (display (string-append GREEN "PASS" RESET))
-                        (display (string-append RED "FAIL" RESET))
+                        (begin
+                          (display (string-append RED "FAIL" RESET))
+                          (display " exit-code=")
+                          (display exit-code)
+                        ) ;begin
                       ) ;if
                       (newline)
                     ) ;let
