@@ -92,7 +92,11 @@
       (if (and xdg (not (string=? xdg "")))
         xdg
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
-      "/goldfish/ccache")))
+      ;; /v2: s7's write truncated long expansions at the default
+      ;; print-length (40) until compile-write-cache raised it; bumping the
+      ;; directory invalidates any truncated entries written before that
+      ;; fix.
+      "/goldfish/ccache/v2")))
 
 (define (compile-file-stamp path)
   (list (g_path-getmtime path) (g_path-getsize path)))
@@ -107,9 +111,15 @@
 (define (compile-write-cache dir cache meta stamp sexp)
   (if (not (file-exists? dir))
     (g_mkdir dir))
-  (let ((tmp (string-append cache ".tmp")))
-    (call-with-output-file tmp (lambda (p) (write sexp p)))
-    (g_rename tmp cache))
+  ;; s7's write truncates long lists at (*s7* 'print-length) (default 40);
+  ;; a cached expansion easily exceeds that, so raise it for the write and
+  ;; restore afterwards.
+  (let ((old-length (*s7* 'print-length)))
+    (let-set! *s7* 'print-length 1000000)
+    (let ((tmp (string-append cache ".tmp")))
+      (call-with-output-file tmp (lambda (p) (write sexp p)))
+      (g_rename tmp cache))
+    (let-set! *s7* 'print-length old-length))
   (let ((mtmp (string-append meta ".tmp")))
     (call-with-output-file mtmp
       (lambda (p) (write (cons 'compile-cache stamp) p)))

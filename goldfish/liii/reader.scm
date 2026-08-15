@@ -584,27 +584,31 @@
 (define (read-expr port ch)
   (set! *depth* (+ *depth* 1))
   (when (> *depth* *max-depth*)
+    (set! *depth* (- *depth* 1))
     (error 'read-error "maximum nesting depth exceeded"))
-  (case ch
-    ((#\[) (read-parenthesized port #\]))
-    ((#\() (read-parenthesized port #\)))
-    ((#\") (read-quoted-string port))
-    ((#\|) (string->symbol (read-quoted-string port ch)))
-    ((#\') (list 'quote (read-subexpression port "quoted expression")))
-    ((#\`) (list 'quasiquote (read-subexpression port "quasiquoted expression")))
-    ((#\,)
-     (cond
-       ((eq? #\@ (peek port))
-        (next port)
-        (list 'unquote-splicing (read-subexpression port "subexpression of ,@")))
-       (else
-         (list 'unquote (read-subexpression port "unquoted expression")))))
-    ((#\#) (read-sharp port))
-    ((#\)) (error 'read-error "unexpected close paren: \")"))
-    ((#\]) (error 'read-error "unexpected close paren: \"]"))
-    ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\- #\.)
-     (read-number port ch))
-    (else (read-symbol port ch))))
+  (let ((result
+         (case ch
+           ((#\[) (read-parenthesized port #\]))
+           ((#\() (read-parenthesized port #\)))
+           ((#\") (read-quoted-string port))
+           ((#\|) (string->symbol (read-quoted-string port ch)))
+           ((#\') (list 'quote (read-subexpression port "quoted expression")))
+           ((#\`) (list 'quasiquote (read-subexpression port "quasiquoted expression")))
+           ((#\,)
+            (cond
+              ((eq? #\@ (peek port))
+               (next port)
+               (list 'unquote-splicing (read-subexpression port "subexpression of ,@")))
+              (else
+                (list 'unquote (read-subexpression port "unquoted expression")))))
+           ((#\#) (read-sharp port))
+           ((#\)) (error 'read-error "unexpected close paren: \")"))
+           ((#\]) (error 'read-error "unexpected close paren: \"]"))
+           ((#\0 #\1 #\2 #\3 #\4 #\5 #\6 #\7 #\8 #\9 #\+ #\- #\.)
+            (read-number port ch))
+           (else (read-symbol port ch)))))
+    (set! *depth* (- *depth* 1))
+    result))
 
 (define (skip-line-comment port)
   ;; skip until (and including) the line ending
