@@ -145,7 +145,8 @@
           (else #f))))))
 
 (define (pure-imaginary-number str radix)
-  ;; +i -i +2i -2i +1.5i ... : real part omitted
+  ;; +i -i +2i -2i 2i 1.5i ... : real part omitted (s7 writes a bare
+  ;; imaginary as "2i" with no leading sign; R7RS uses "+2i" / "-2i")
   (let ((len (string-length str)))
     (and (> len 0)
       (let ((last (string-ref str (- len 1))))
@@ -154,12 +155,10 @@
             (cond
               ((string=? prefix "+") (make-rectangular 0 1))
               ((string=? prefix "-") (make-rectangular 0 -1))
-              ((and (> (string-length prefix) 0)
-                    (or (eqv? (string-ref prefix 0) #\+)
-                        (eqv? (string-ref prefix 0) #\-)))
+              ((string=? prefix "") #f)
+              (else
                (let ((n (string->number prefix radix)))
-                 (and n (make-rectangular 0 n))))
-              (else #f))))))))
+                 (and n (make-rectangular 0 n)))))))))))
 
 (define (polar-number str radix)
   ;; r@theta
@@ -799,16 +798,23 @@
              ((memq h '(let let* letrec letrec*))
               (if (and (pair? (cadr x)) (pair? (caadr x)))
                 ;; let/let*/letrec/letrec*: binding names are in scope for
-                ;; the body; the binding value expressions are checked in
-                ;; the outer scope.  (Named lets fall through to the
-                ;; recursive case and are treated conservatively.)
+                ;; the body.  letrec/letrec* values see all the names too
+                ;; (a binding can recursively reference itself or a sibling,
+                ;; e.g. (letrec ((loop ...)) (loop ...))), so their value
+                ;; expressions are checked in the extended scope; let/let*
+                ;; values are checked in the outer scope.  (Named lets fall
+                ;; through to the recursive case and are treated
+                ;; conservatively.)
                 (let* ((names (map car (cadr x)))
                        (vals-ok
                         (let loop ((binds (cadr x)))
                           (cond
                             ((null? binds) #t)
                             ((and (pair? (car binds)) (pair? (cdar binds)))
-                             (and (check (cadar binds) params)
+                             (and (check (cadar binds)
+                                         (if (memq h '(letrec letrec*))
+                                           (append names params)
+                                           params))
                                   (loop (cdr binds))))
                             (else #f)))))
                   (and vals-ok (check (caddr x) (append names params))))
@@ -825,11 +831,6 @@
                   (eval d (rootlet))
                   (expand-eval d)))
               forms))
-  (define (compile-cache-hot? path stamp)
-    (let ((base (string-append (compile-cache-dir) "/" (g_sha256 path))))
-      (compile-cache-valid? (string-append base ".scm")
-                            (string-append base ".meta")
-                            stamp)))
   (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
     (cond
       ((null? cands)
@@ -856,13 +857,16 @@
                  ((compile-cache-hot? path stamp)
                   (let ((sexp (compile-file-cached path)))
                     (if (cacheable-expansion? sexp)
-                      (guard (e (#t (compile-cache-disable! path stamp)
-                                    (load-forms-sequentially forms)))
-                        (for-each (lambda (lib)
-                                    (if (not (runtime-registered? lib))
-                                      (load-library! lib)))
-                                  (collect-module-refs sexp))
-                        (eval sexp (rootlet)))
+                      (catch #t
+                        (lambda ()
+                          (for-each (lambda (lib)
+                                      (if (not (runtime-registered? lib))
+                                        (load-library! lib)))
+                                    (collect-module-refs sexp))
+                          (eval sexp (rootlet)))
+                        (lambda (type info)
+                          (compile-cache-disable! path stamp)
+                          (load-forms-sequentially forms)))
                       (begin
                         (compile-cache-disable! path stamp)
                         (load-forms-sequentially forms)))))

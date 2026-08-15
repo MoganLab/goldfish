@@ -97,6 +97,15 @@
 ;;; and evaluate (registering the runtime module) a define-library file.
 ;;; Circular loads are an error (stricter than R7RS, which tolerates some
 ;;; import cycles).  File lookup reuses the loader's load-find-module-file.
+;;;
+;;; load-library! deliberately does NOT use the expander ccache: the cached
+;;; expansion (lower core) loses the expand-time registry entry
+;;; (library-registry-set! in expand-define-library), which importing
+;;; libraries query to copy bindings at compile time.  A cache hit would
+;;; therefore make a library importable at runtime but unimportable at
+;;; expand time, so every library is expanded from source here.  The ccache
+;;; is used only by the whole-file loader (reader.scm load) for files that
+;;; are not imported by anything.
 
 (define *libraries-being-loaded* '())
 
