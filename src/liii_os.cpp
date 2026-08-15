@@ -8,13 +8,15 @@
 // http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-// WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 // License for the specific language governing permissions and limitations
 // under the License.
 //
 
 #include "s7.h"
+#include "gf_glue.hpp"
+
 #include <cstdlib>
 #include <filesystem>
 #include <string>
@@ -52,71 +54,42 @@ using std::vector;
 
 namespace fs= std::filesystem;
 
-inline void
-glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env= s7_curlet (sc);
-  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+// ---------------------------------------------------------------------------
+// Plain C++ implementations (no s7 dependency).
+// ---------------------------------------------------------------------------
+
+string
+os_arch () {
+  return TB_ARCH_STRING;
 }
 
-inline s7_pointer
-string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
-  int        N  = v.size ();
-  s7_pointer ret= s7_make_vector (sc, N);
-  for (int i= 0; i < N; i++) {
-    s7_vector_set (sc, ret, i, s7_make_string (sc, v[i].c_str ()));
-  }
-  return ret;
-}
-
-static s7_pointer
-f_os_arch (s7_scheme* sc, s7_pointer args) {
-  return s7_make_string (sc, TB_ARCH_STRING);
-}
-
-static void
-glue_os_arch (s7_scheme* sc) {
-  const char* name= "g_os-arch";
-  const char* desc= "(g_os-arch) => string";
-  glue_define (sc, name, desc, f_os_arch, 0, 0);
-}
-
-static s7_pointer
-f_os_type (s7_scheme* sc, s7_pointer args) {
+string
+os_type () {
 #ifdef TB_CONFIG_OS_LINUX
-  return s7_make_string (sc, "Linux");
+  return "Linux";
+#elif defined(TB_CONFIG_OS_MACOSX)
+  return "Darwin";
+#elif defined(TB_CONFIG_OS_WINDOWS)
+  return "Windows";
+#else
+  return "";
 #endif
-#ifdef TB_CONFIG_OS_MACOSX
-  return s7_make_string (sc, "Darwin");
-#endif
-#ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_string (sc, "Windows");
-#endif
-  return s7_make_boolean (sc, false);
 }
 
-static void
-glue_os_type (s7_scheme* sc) {
-  const char* name= "g_os-type";
-  const char* desc= "(g_os-type) => string";
-  glue_define (sc, name, desc, f_os_type, 0, 0);
-}
-
-static s7_pointer
-f_os_call (s7_scheme* sc, s7_pointer args) {
-  const char*       cmd_c= s7_string (s7_car (args));
-  tb_process_attr_t attr = {tb_null};
-  attr.flags             = TB_PROCESS_FLAG_NO_WINDOW;
+int
+os_call (const string& cmd) {
+  tb_process_attr_t attr= {tb_null};
+  attr.flags            = TB_PROCESS_FLAG_NO_WINDOW;
   int ret;
 
 #if (defined(_MSC_VER) || defined(__MINGW32__))
-  ret= (int) std::system (cmd_c);
+  ret= (int) std::system (cmd.c_str ());
 #elif defined(__EMSCRIPTEN__)
-  tb_char_t* argv[]= {(tb_char_t*) cmd_c, tb_null};
+  tb_char_t* argv[]= {(tb_char_t*) cmd.c_str (), tb_null};
   ret              = (int) tb_process_run (argv[0], (tb_char_t const**) argv, &attr);
 #else
   wordexp_t p;
-  ret= wordexp (cmd_c, &p, 0);
+  ret= wordexp (cmd.c_str (), &p, 0);
   if (ret != 0) {
     // failed after calling wordexp
   }
@@ -129,164 +102,72 @@ f_os_call (s7_scheme* sc, s7_pointer args) {
     wordfree (&p);
   }
 #endif
-  return s7_make_integer (sc, ret);
+  return ret;
 }
 
-static void
-glue_os_call (s7_scheme* sc) {
-  const char* name= "g_os-call";
-  const char* desc= "(g_os-call string) => int, execute a shell command and return the exit code";
-  glue_define (sc, name, desc, f_os_call, 1, 0);
+int
+system_call (const string& cmd) {
+  return (int) std::system (cmd.c_str ());
 }
 
-static s7_pointer
-f_system (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c= s7_string (s7_car (args));
-  int         ret  = (int) std::system (cmd_c);
-  return s7_make_integer (sc, ret);
-}
-
-static void
-glue_system (s7_scheme* sc) {
-  const char* name= "g_system";
-  const char* desc= "(g_system string) => int, execute a shell command and return the exit code";
-  glue_define (sc, name, desc, f_system, 1, 0);
-}
-
-static s7_pointer
-f_access (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
-  int         mode  = s7_integer ((s7_cadr (args)));
-  bool        ret   = false;
+bool
+access_check (const string& path, int mode) {
+  bool ret= false;
   if (mode == 0) {
     tb_file_info_t info;
-    ret= tb_file_info (path_c, &info);
+    ret= tb_file_info (path.c_str (), &info);
   }
   else {
-    ret= tb_file_access (path_c, mode);
+    ret= tb_file_access (path.c_str (), mode);
   }
-
-  return s7_make_boolean (sc, ret);
+  return ret;
 }
 
-static void
-glue_access (s7_scheme* sc) {
-  const char* name= "g_access";
-  const char* desc= "(g_access string integer) => boolean, check file access permissions";
-  glue_define (sc, name, desc, f_access, 2, 0);
+bool
+set_environment_variable (const string& key, const string& value) {
+  return tb_environment_set (key.c_str (), value.c_str ());
 }
 
-static s7_pointer
-f_set_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* key  = s7_string (s7_car (args));
-  const char* value= s7_string (s7_cadr (args));
-  return s7_make_boolean (sc, tb_environment_set (key, value));
+bool
+unset_environment_variable (const string& env_name) {
+  return tb_environment_remove (env_name.c_str ());
 }
 
-static void
-glue_setenv (s7_scheme* sc) {
-  const char* name= "g_setenv";
-  const char* desc= "(g_setenv key value) => boolean, set an environment variable";
-  glue_define (sc, name, desc, f_set_environment_variable, 2, 0);
-}
-
-static s7_pointer
-f_unset_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* env_name= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_environment_remove (env_name));
-}
-
-static void
-glue_unsetenv (s7_scheme* sc) {
-  const char* name= "g_unsetenv";
-  const char* desc= "(g_unsetenv string): string => boolean";
-  glue_define (sc, name, desc, f_unset_environment_variable, 1, 0);
-}
-
-static s7_pointer
-f_os_temp_dir (s7_scheme* sc, s7_pointer args) {
+string
+os_temp_dir () {
   tb_char_t path[GOLDFISH_PATH_MAXN];
   tb_directory_temporary (path, GOLDFISH_PATH_MAXN);
-  return s7_make_string (sc, path);
+  return string (path);
 }
 
-static void
-glue_os_temp_dir (s7_scheme* sc) {
-  const char* name= "g_os-temp-dir";
-  const char* desc= "(g_os-temp-dir) => string, get the temporary directory path";
-  glue_define (sc, name, desc, f_os_temp_dir, 0, 0);
+bool
+mkdir (const string& dir) {
+  return tb_directory_create (dir.c_str ());
 }
 
-static s7_pointer
-f_mkdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_create (dir_c));
+bool
+rmdir (const string& dir) {
+  return tb_directory_remove (dir.c_str ());
 }
 
-static void
-glue_mkdir (s7_scheme* sc) {
-  const char* name= "g_mkdir";
-  const char* desc= "(g_mkdir string) => boolean, create a directory";
-  glue_define (sc, name, desc, f_mkdir, 1, 0);
+bool
+remove_file (const string& path) {
+  return tb_file_remove (path.c_str ());
 }
 
-static s7_pointer
-f_rmdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_remove (dir_c));
-}
-
-static void
-glue_rmdir (s7_scheme* sc) {
-  const char* name= "g_rmdir";
-  const char* desc= "(g_rmdir string) => boolean, remove a directory";
-  glue_define (sc, name, desc, f_rmdir, 1, 0);
-}
-
-static s7_pointer
-f_remove_file (s7_scheme* sc, s7_pointer args) {
-  const char* path   = s7_string (s7_car (args));
-  bool        success= tb_file_remove (path);
-  return s7_make_boolean (sc, success);
-}
-
-static void
-glue_remove_file (s7_scheme* sc) {
-  const char* name= "g_remove-file";
-  const char* desc= "(g_remove-file path) => boolean, delete a file";
-  glue_define (sc, name, desc, f_remove_file, 1, 0);
-}
-
-static s7_pointer
-f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src= s7_string (s7_car (args));
-  const char* dst= s7_string (s7_cadr (args));
+bool
+rename_file (const string& src, const string& dst) {
   try {
     fs::rename (src, dst);
-    return s7_make_boolean (sc, true);
+    return true;
   } catch (const fs::filesystem_error& e) {
-    return s7_make_boolean (sc, false);
+    return false;
   }
 }
 
-static void
-glue_rename (s7_scheme* sc) {
-  const char* name= "g_rename";
-  const char* desc= "(g_rename src dst) => boolean, rename file or directory from src to dst";
-  glue_define (sc, name, desc, f_rename, 2, 0);
-}
-
-static s7_pointer
-f_chdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_current_set (dir_c));
-}
-
-static void
-glue_chdir (s7_scheme* sc) {
-  const char* name= "g_chdir";
-  const char* desc= "(g_chdir string) => boolean, change the current working directory";
-  glue_define (sc, name, desc, f_chdir, 1, 0);
+bool
+chdir (const string& dir) {
+  return tb_directory_current_set (dir.c_str ());
 }
 
 static tb_long_t
@@ -298,16 +179,14 @@ tb_directory_walk_func (tb_char_t const* path, tb_file_info_t const* info, tb_cp
   return TB_DIRECTORY_WALK_CODE_CONTINUE;
 }
 
-static s7_pointer
-f_listdir (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
+vector<string>
+listdir (const string& path) {
   vector<string> entries;
-  s7_pointer     ret= s7_make_vector (sc, 0);
-  tb_directory_walk (path_c, 0, tb_false, tb_directory_walk_func, &entries);
+  tb_directory_walk (path.c_str (), 0, tb_false, tb_directory_walk_func, &entries);
 
-  int    entries_N   = entries.size ();
-  string path_s      = string (path_c);
-  int    path_N      = path_s.size ();
+  int    entries_N   = (int) entries.size ();
+  string path_s      = string (path);
+  int    path_N      = (int) path_s.size ();
   int    path_slash_N= path_N;
   char   last_ch     = path_s[path_N - 1];
 #if defined(TB_CONFIG_OS_WINDOWS)
@@ -322,79 +201,74 @@ f_listdir (s7_scheme* sc, s7_pointer args) {
   for (int i= 0; i < entries_N; i++) {
     entries[i]= entries[i].substr (path_slash_N);
   }
-  return string_vector_to_s7_vector (sc, entries);
+  return entries;
 }
 
-static void
-glue_listdir (s7_scheme* sc) {
-  const char* name= "g_listdir";
-  const char* desc= "(g_listdir string) => vector, list the contents of a directory";
-  glue_define (sc, name, desc, f_listdir, 1, 0);
-}
-
-static s7_pointer
-f_getcwd (s7_scheme* sc, s7_pointer args) {
+string
+getcwd () {
   tb_char_t path[GOLDFISH_PATH_MAXN];
   tb_directory_current (path, GOLDFISH_PATH_MAXN);
-  return s7_make_string (sc, path);
+  return string (path);
 }
 
-static void
-glue_getcwd (s7_scheme* sc) {
-  const char* name= "g_getcwd";
-  const char* desc= "(g_getcwd) => string, get the current working directory";
-  glue_define (sc, name, desc, f_getcwd, 0, 0);
-}
-
-static s7_pointer
-f_getlogin (s7_scheme* sc, s7_pointer args) {
+string
+getlogin () {
 #ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_boolean (sc, false);
+  return "";
 #else
   uid_t          uid= getuid ();
   struct passwd* pwd= getpwuid (uid);
-  return s7_make_string (sc, pwd->pw_name);
+  return string (pwd->pw_name);
 #endif
 }
 
-static void
-glue_getlogin (s7_scheme* sc) {
-  const char* name= "g_getlogin";
-  const char* desc= "(g_getlogin) => string, get the current user's login name";
-  glue_define (sc, name, desc, f_getlogin, 0, 0);
-}
-
-static s7_pointer
-f_getpid (s7_scheme* sc, s7_pointer args) {
+int
+getpid () {
 #ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_integer (sc, (int) GetCurrentProcessId ());
+  return (int) GetCurrentProcessId ();
 #else
-  return s7_make_integer (sc, getpid ());
+  return (int) ::getpid ();
 #endif
 }
 
-static void
-glue_getpid (s7_scheme* sc) {
-  const char* name= "g_getpid";
-  const char* desc= "(g_getpid) => integer";
-  glue_define (sc, name, desc, f_getpid, 0, 0);
-}
+// ---------------------------------------------------------------------------
+// Declarative glue: each GF_GLUE generates the s7_function wrapper and the
+// registration, deriving the arity and types from the plain C++ signature.
+// ---------------------------------------------------------------------------
+
+GF_GLUE ("g_os-arch", "(g_os-arch) => string",              os_arch);
+GF_GLUE ("g_os-type", "(g_os-type) => string",              os_type);
+GF_GLUE ("g_os-call", "(g_os-call string) => int",          os_call);
+GF_GLUE ("g_system",  "(g_system string) => int",           system_call);
+GF_GLUE ("g_access",  "(g_access string integer) => boolean", access_check);
+GF_GLUE ("g_setenv",  "(g_setenv key value) => boolean",    set_environment_variable);
+GF_GLUE ("g_unsetenv", "(g_unsetenv string) => boolean",    unset_environment_variable);
+GF_GLUE ("g_os-temp-dir", "(g_os-temp-dir) => string",      os_temp_dir);
+GF_GLUE ("g_mkdir",   "(g_mkdir string) => boolean",        mkdir);
+GF_GLUE ("g_rmdir",   "(g_rmdir string) => boolean",        rmdir);
+GF_GLUE ("g_remove-file", "(g_remove-file path) => boolean", remove_file);
+GF_GLUE ("g_rename",  "(g_rename src dst) => boolean",      rename_file);
+GF_GLUE ("g_chdir",   "(g_chdir string) => boolean",        chdir);
+GF_GLUE ("g_listdir", "(g_listdir string) => vector",       listdir);
+GF_GLUE ("g_getcwd",  "(g_getcwd) => string",               getcwd);
+GF_GLUE ("g_getlogin", "(g_getlogin) => string",            getlogin);
+GF_GLUE ("g_getpid",  "(g_getpid) => integer",              getpid);
 
 void
 glue_liii_os (s7_scheme* sc) {
   glue_os_arch (sc);
   glue_os_type (sc);
   glue_os_call (sc);
-  glue_system (sc);
-  glue_access (sc);
-  glue_setenv (sc);
-  glue_unsetenv (sc);
+  glue_system_call (sc);
+  glue_access_check (sc);
+  glue_set_environment_variable (sc);
+  glue_unset_environment_variable (sc);
   glue_getcwd (sc);
   glue_os_temp_dir (sc);
   glue_mkdir (sc);
   glue_rmdir (sc);
   glue_remove_file (sc);
-  glue_rename (sc);
+  glue_rename_file (sc);
   glue_chdir (sc);
   glue_listdir (sc);
   glue_getlogin (sc);
