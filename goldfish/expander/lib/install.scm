@@ -77,3 +77,55 @@
 (module-define! the-expander-library 'install-library-forms! install-library-forms!)
 (module-define! the-expander-library 'install-library-file! install-library-file!)
 (module-define! the-expander-library 'install-standard-library! install-standard-library!)
+
+;;; ---------------------------------------------------------------------------
+;;; Guile-style ccache for the expander's compile: cache the expansion of a
+;;; source file (the lowered core S-expression from compile-file) under
+;;; $XDG_CACHE_HOME/goldfish/ccache/ (default ~/.cache/goldfish/ccache/),
+;;; keyed by sha256 of the source path, invalidated by the source's mtime
+;;; and size (Guile's ccache uses the same scheme).  compile-file keeps its
+;;; uncached semantics; compile-file-cached is the caching entry point.
+
+(define (compile-cache-dir)
+  (let ((xdg (getenv "XDG_CACHE_HOME")))
+    (string-append
+      (if (and xdg (not (string=? xdg "")))
+        xdg
+        (string-append (or (getenv "HOME") "/tmp") "/.cache"))
+      "/goldfish/ccache")))
+
+(define (compile-file-stamp path)
+  (list (g_path-getmtime path) (g_path-getsize path)))
+
+(define (compile-cache-valid? cache meta stamp)
+  (and (file-exists? cache)
+       (file-exists? meta)
+       (let ((rec (call-with-input-file meta
+                    (lambda (p) (car (read-forms p))))))
+         (and (pair? rec) (equal? (cdr rec) stamp)))))
+
+(define (compile-write-cache dir cache meta stamp sexp)
+  (if (not (file-exists? dir))
+    (g_mkdir dir))
+  (let ((tmp (string-append cache ".tmp")))
+    (call-with-output-file tmp (lambda (p) (write sexp p)))
+    (g_rename tmp cache))
+  (let ((mtmp (string-append meta ".tmp")))
+    (call-with-output-file mtmp
+      (lambda (p) (write (cons 'compile-cache stamp) p)))
+    (g_rename mtmp meta)))
+
+(define (compile-file-cached path)
+  (let* ((key (g_sha256 path))
+         (dir (compile-cache-dir))
+         (cache (string-append dir "/" key ".scm"))
+         (meta (string-append dir "/" key ".meta"))
+         (stamp (compile-file-stamp path)))
+    (if (compile-cache-valid? cache meta stamp)
+      (call-with-input-file cache
+        (lambda (p) (car (read-forms p))))
+      (let ((sexp (compile-file path)))
+        (compile-write-cache dir cache meta stamp sexp)
+        sexp))))
+
+(module-define! the-expander-library 'compile-file-cached compile-file-cached)

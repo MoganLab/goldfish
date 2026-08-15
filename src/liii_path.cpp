@@ -97,6 +97,25 @@ glue_path_getsize (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_path_getmtime (s7_scheme* sc, s7_pointer args) {
+  const char*    path_c= s7_string (s7_car (args));
+  tb_file_info_t info;
+  if (tb_file_info (path_c, &info)) {
+    return s7_make_integer (sc, (int) info.mtime);
+  }
+  else {
+    return s7_make_integer (sc, (int) -1);
+  }
+}
+
+static void
+glue_path_getmtime (s7_scheme* sc) {
+  const char* name= "g_path-getmtime";
+  const char* desc= "(g_path_getmtime string): string => integer";
+  glue_define (sc, name, desc, f_path_getmtime, 1, 0);
+}
+
+static s7_pointer
 f_path_read_text (s7_scheme* sc, s7_pointer args) {
   const char* path= s7_string (s7_car (args));
   if (!path) {
@@ -419,6 +438,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_isfile (sc);
   glue_isdir (sc);
   glue_path_getsize (sc);
+  glue_path_getmtime (sc);
   glue_path_read_text (sc);
   glue_path_read_bytes (sc);
   glue_path_write_text (sc);
