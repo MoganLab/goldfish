@@ -169,7 +169,7 @@
                (proc-stx (car target-form))
                (arg-stxs (cdr target-form)))
           (let*-values (((proc-sexp ctx1) (expand-expr proc-stx ctx))
-                        ((args-sexp ctx2) (expand-list var-stx arg-stxs ctx1))
+                        ((args-sexp ctx2) (expand-list arg-stxs ctx1))
                         ((val-sexp ctx3) (expand-expr val-stx ctx2)))
             (values (datum->syntax stx
                      `((setter ,proc-sexp) ,@args-sexp ,val-sexp))

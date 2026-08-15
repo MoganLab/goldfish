@@ -187,6 +187,6 @@ spec (syntax record) → 净化 (library→(libref name)) → write-roundtrip
 
 ### 全库覆盖回归（2026-08-15）
 遍历 goldfish/ 下全部 100 个 define-library 文件，逐个 `(import ...)` 冷/热加载：
-- **冷加载 99/100 成功，热加载 99/100 成功**（缓存文件 99 个）
-- 唯一失败：`(liii logging)` —— **预存在的展开 bug**（`expand-list` too many arguments，展开其 import 子句时崩溃），`--no-auto-compile` 下同样失败，与库缓存无关（logging 由 [0022] 引入，之后仅 fmt 相关改动）
-- 结论：宏缓存重建对全部 99 个可加载库覆盖正确
+- 修复后发现 `(liii logging)` 展开失败根因：`core-set!`（core-forms.scm）展开 SRFI-17 广义 set! 时误调 `(expand-list var-stx arg-stxs ctx1)`（3 参），expand-list 只收 2 参 → 修复为 `(expand-list arg-stxs ctx1)`，重新自举生成 artifact
+- **修复后：冷/热加载 100/100 全部成功**，缓存文件 100 个
+- 结论：宏缓存重建对全部 100 个库覆盖正确
