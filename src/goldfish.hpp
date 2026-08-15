@@ -1620,7 +1620,13 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   // base import: the lib-layer install code (goldfish/expander/lib/install.scm)
   // is plain source needing scheme/base's let-values, which the s7 host lacks.
   // help/version return before customize_goldfish_by_mode, so they stay fast.
-  if (mode != "s7") {
+  // GOLDFISH_BOOTSTRAP skips this entire chain (and the phase-2 imports below):
+  // it is used to (re)build the expander artifact from scratch (bootstrap-0),
+  // where there is no self-hosted expander yet -- s7 evaluates the kernel
+  // sources directly and eval falls back to the plain s7 eval (see
+  // goldfish_eval_through_reader), so artifact and lib state stay absent.
+  bool gf_bootstrap = (getenv ("GOLDFISH_BOOTSTRAP") != nullptr);
+  if (mode != "s7" && !gf_bootstrap) {
     s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
     s7_eval_c_string (sc, "(load-source-file \"expander/lib/install.scm\")");
     s7_eval_c_string (sc, "(install-standard-library!)");
@@ -1633,22 +1639,24 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   // define-syntax in the library chain (and-let*, receive, ...) would be
   // missing after a host-side import, and s7's native eval would also fail
   // on the define-syntax forms themselves (s7 has no define-syntax).
-  if (mode == "default" || mode == "liii") {
-    goldfish_eval_through_reader (sc, "(import (liii base) (liii error) (liii string))");
-  }
-  else if (mode == "scheme") {
-    goldfish_eval_through_reader (sc, "(import (liii base) (liii error))");
-  }
-  else if (mode == "sicp") {
-    goldfish_eval_through_reader (sc, "(import (srfi sicp))");
-  }
-  else if (mode == "r7rs") {
-  }
-  else if (mode == "s7") {
-  }
-  else {
-    cerr << "No such mode: " << mode << endl;
-    exit (-1);
+  if (!gf_bootstrap) {
+    if (mode == "default" || mode == "liii") {
+      goldfish_eval_through_reader (sc, "(import (liii base) (liii error) (liii string))");
+    }
+    else if (mode == "scheme") {
+      goldfish_eval_through_reader (sc, "(import (liii base) (liii error))");
+    }
+    else if (mode == "sicp") {
+      goldfish_eval_through_reader (sc, "(import (srfi sicp))");
+    }
+    else if (mode == "r7rs") {
+    }
+    else if (mode == "s7") {
+    }
+    else {
+      cerr << "No such mode: " << mode << endl;
+      exit (-1);
+    }
   }
 }
 

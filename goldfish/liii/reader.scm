@@ -732,7 +732,15 @@
                              (apply error 'read-error errs))))))
                 (if (eof-object? d)
                   (begin (close-input-port port) #t)
-                  (begin (expand-eval d) (loop))))))))
+                  (if (getenv "GOLDFISH_BOOTSTRAP")
+                    ;; bootstrap-0: the expander is being (re)built from
+                    ;; scratch, so there is no self-hosted expander yet and
+                    ;; evaluating forms through the host's expand-eval would
+                    ;; mix the host's inlet-based syntax objects with the
+                    ;; partially-loaded vector-layout kernel.  Evaluate with
+                    ;; plain s7 so the kernel sources load consistently.
+                    (begin (eval d (rootlet)) (loop))
+                    (begin (expand-eval d) (loop)))))))))
        (else (loop (cdr cands))))))
 
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed

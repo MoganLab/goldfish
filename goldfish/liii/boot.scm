@@ -163,6 +163,82 @@
        (let*-values ,(cdr clauses) ,@body))))
 
 ;;; ---------------------------------------------------------------------------
+;;; Independent record implementation (cf. Guile ice-9/boot-9.scm {Records}).
+;;;
+;;; The host s7 define-record-type builds inlet-based records: a record is a
+;;; let whose first pair is its type tag, so let->list / list traversal of a
+;;; record leaks that tag as data (e.g. ((<type> . <type>) (field . ...))).
+;;; The expander kernel needs records that cannot be mistaken for association
+;;; lists, so records are implemented here as a type descriptor plus a
+;;; fixed-layout vector, with type identity tested by eq? on the descriptor
+;;; (cf. Guile struct/vtable).
+;;;
+;;; Layout:  descriptor = (vector 'record-type name fields)
+;;;          instance   = (vector descriptor field0 field1 ...)
+
+(define (make-record-type type-name fields)
+  (vector 'record-type type-name fields))
+
+(define (record-type? obj)
+  (and (vector? obj)
+       (not (bytevector? obj))
+       (positive? (vector-length obj))
+       (eq? (vector-ref obj 0) 'record-type)))
+
+(define (record-type-name rtd)
+  (vector-ref rtd 1))
+
+(define (record-type-fields rtd)
+  (vector-ref rtd 2))
+
+(define (record-predicate rtd)
+  (lambda (obj)
+    (and (vector? obj)
+         (not (bytevector? obj))
+         (positive? (vector-length obj))
+         (eq? (vector-ref obj 0) rtd))))
+
+(define (record-field-index rtd field)
+  (let loop ((fs (record-type-fields rtd)) (i 1))
+    (cond ((null? fs) (error "record: no such field" field))
+          ((eq? (car fs) field) i)
+          (else (loop (cdr fs) (+ i 1))))))
+
+(define (record-accessor rtd field)
+  (let ((idx (record-field-index rtd field)))
+    (lambda (obj) (vector-ref obj idx))))
+
+(define (record-modifier rtd field)
+  (let ((idx (record-field-index rtd field)))
+    (lambda (obj val) (vector-set! obj idx val))))
+
+;;; define-record-type as a host macro (bootstrap-0): expands to code that
+;;; builds a descriptor plus vector-layout constructor / predicate /
+;;; accessors / modifiers.  The constructor takes one argument per field,
+;;; in declaration order (all kernel and library uses are of this shape).
+
+(define-macro (define-record-type type make ? . fields)
+  (let ((rtd (gensym))
+        (make-name (car make))
+        (make-params (cdr make))
+        (field-names (map car fields)))
+    `(begin
+       (define ,rtd (make-record-type ',type ',field-names))
+       (define (,make-name ,@make-params) (vector ,rtd ,@make-params))
+       (define (,? obj) ((record-predicate ,rtd) obj))
+       ,@(map (lambda (field)
+                (let ((acc (cadr field)))
+                  `(define (,acc obj) ((record-accessor ,rtd ',(car field)) obj))))
+              fields)
+       ,@(map (lambda (field)
+                (if (pair? (cddr field))
+                    (let ((mod (caddr field)))
+                      `(define (,mod obj val)
+                         ((record-modifier ,rtd ',(car field)) obj val)))
+                    '()))
+              fields))))
+
+;;; ---------------------------------------------------------------------------
 ;;; Expander runtime substrate (seed prelude).  Host-compatible value surface
 ;;; + runtime module substrate.  All data that reaches the expander comes from
 ;;; our own R7RS reader (read-forms), which emits (quote ...) with the plain

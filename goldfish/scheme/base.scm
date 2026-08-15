@@ -266,39 +266,30 @@
     ) ;define-macro
 
     (define-macro (define-record-type type make ? . fields)
-      (let ((obj (gensym))
-            (typ (gensym))
-            (args (map (lambda (field)
-                         (values (list 'quote (car field))
-                           (let ((par (memq (car field) (cdr make))))
-                             (and (pair? par) (car par))
-                           ) ;let
-                         ) ;values
-                       ) ;lambda
-                    fields
-                  ) ;map
-            ) ;args
-           ) ;
+      (let ((rtd (gensym))
+            (make-name (car make))
+            (make-params (cdr make))
+            (field-names (map car fields)))
         `(begin
-           (define (,? ,obj)
-             (and (let? ,obj) (eq? (let-ref ,obj (quote ,typ)) (quote ,type))))
-           (define ,make (inlet (quote ,typ) (quote ,type) ,@args))
+           (define ,rtd (make-record-type ',type ',field-names))
+           (define (,make-name ,@make-params)
+             (vector ,rtd ,@make-params))
+           (define (,? obj) ((record-predicate ,rtd) obj))
            ,@(map (lambda (field)
-                    (when (pair? field)
-                      (if (null? (cdr field))
-                        (values)
-                        (if (null? (cddr field))
-                          `(define (,(cadr field) ,obj)
-                             (let-ref ,obj (quote ,(car field))))
-                          `(begin
-                             (define (,(cadr field) ,obj)
-                               (let-ref ,obj (quote ,(car field))))
-                             (define (,(caddr field) ,obj val)
-                               (let-set! ,obj (quote ,(car field)) val)))))))
-               fields)
+                    (let ((acc (cadr field)))
+                      `(define (,acc obj)
+                         ((record-accessor ,rtd ',(car field)) obj))))
+                  fields)
+           ,@(map (lambda (field)
+                    (if (pair? (cddr field))
+                        (let ((mod (caddr field)))
+                          `(define (,mod obj val)
+                             ((record-modifier ,rtd ',(car field)) obj val)))
+                        '()))
+                  fields)
            (quote ,type))
-      ) ;let
-    ) ;define-macro
+        ) ;let
+      ) ;define-macro
 
     (define exact inexact->exact)
 
