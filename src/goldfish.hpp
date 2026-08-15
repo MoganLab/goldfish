@@ -2596,6 +2596,14 @@ parse_startup_cli_options (int argc, char** argv) {
       opts.mode= argv[++i];
       continue;
     }
+    if (arg == "--auto-compile") {
+      setenv ("GOLDFISH_AUTO_COMPILE", "1", 1);
+      continue;
+    }
+    if (arg == "--no-auto-compile") {
+      setenv ("GOLDFISH_AUTO_COMPILE", "0", 1);
+      continue;
+    }
     if (arg.rfind ("--mode=", 0) == 0) {
       opts.mode= arg.substr (7);
       continue;

@@ -703,46 +703,160 @@
 ;; loaded files register in the shared base library.  Searches *load-path*
 ;; like S7's load did.
 
+(define (auto-compile-enabled?)
+  (let ((v (getenv "GOLDFISH_AUTO_COMPILE")))
+    (not (and v (member v '("0" "no" "false" "off"))))))
+
+(define (contains-macro-def? form)
+  (and (pair? form)
+       (let ((h (car form)))
+         (cond ((memq h '(define-syntax define-macro)) #t)
+               ((eq? h 'begin) (any-macro-def? (cdr form)))
+               ((eq? h 'define-library) (any-macro-def? (cddr form)))
+               (else #f)))))
+
+(define (any-macro-def? forms)
+  (cond ((null? forms) #f)
+        ((contains-macro-def? (car forms)) #t)
+        (else (any-macro-def? (cdr forms)))))
+
+(define (collect-module-refs sexp)
+  (let loop ((x sexp) (acc '()))
+    (cond
+      ((and (pair? x) (eq? (car x) 'module-ref))
+       (let ((rest (cdr x)))
+         (loop (cdr x)
+               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
+                 (let ((lib (cadar rest)))
+                   (if (member lib acc) acc (cons lib acc)))
+                 acc))))
+      ((pair? x)
+       (loop (car x) (loop (cdr x) acc)))
+      (else acc))))
+
+(define (compile-cache-disabled? path stamp)
+  (let ((f (string-append (compile-cache-dir) "/" (g_sha256 path) ".disabled")))
+    (and (file-exists? f)
+         (equal? (call-with-input-file f
+                   (lambda (p) (car (read-forms p))))
+                 stamp))))
+
+(define (compile-cache-disable! path stamp)
+  (let ((f (string-append (compile-cache-dir) "/" (g_sha256 path) ".disabled")))
+    (call-with-output-file f
+      (lambda (p) (write stamp p)))))
+
+(define (cacheable-expansion? sexp)
+  (let* ((defined-names
+          (let loop ((x sexp) (acc '()))
+            (cond
+              ((pair? x)
+               (if (and (eq? (car x) 'define) (pair? (cdr x)) (symbol? (cadr x)))
+                 (loop (cdr x) (cons (cadr x) acc))
+                 (loop (car x) (loop (cdr x) acc))))
+              (else acc))))
+         (local-define-names
+          ;; Names defined directly in a lambda body (lowered core bodies
+          ;; are (begin (define ...) ...)) are in scope for the rest of the
+          ;; body; collect them so they are not mistaken for unresolved
+          ;; free symbols.
+          (lambda (body)
+            (let loop ((x body) (acc '()))
+              (cond
+                ((and (pair? x) (eq? (car x) 'begin)) (loop (cdr x) acc))
+                ((and (pair? x) (eq? (car x) 'define)
+                      (pair? (cdr x)) (symbol? (cadr x)))
+                 (cons (cadr x) acc))
+                (else acc)))))
+         (known (lambda (s) (or (member s defined-names) (defined? s)))))
+    (let check ((x sexp) (params '()))
+      (cond
+        ((symbol? x) (or (memq x params) (known x)))
+        ((pair? x)
+         (let ((h (car x)))
+           (cond
+             ((eq? h 'quote) #t)
+             ((eq? h 'lambda)
+              (let* ((f (cadr x))
+                     (body (caddr x))
+                     (ps (append (local-define-names body)
+                                 (append (if (pair? f) f (list f)) params))))
+                (check body ps)))
+             ((memq h '(let let* letrec letrec*))
+              (if (and (pair? (cadr x)) (pair? (caadr x)))
+                ;; let/let*/letrec/letrec*: binding names are in scope for
+                ;; the body; the binding value expressions are checked in
+                ;; the outer scope.  (Named lets fall through to the
+                ;; recursive case and are treated conservatively.)
+                (let* ((names (map car (cadr x)))
+                       (vals-ok
+                        (let loop ((binds (cadr x)))
+                          (cond
+                            ((null? binds) #t)
+                            ((and (pair? (car binds)) (pair? (cdar binds)))
+                             (and (check (cadar binds) params)
+                                  (loop (cdr binds))))
+                            (else #f)))))
+                  (and vals-ok (check (caddr x) (append names params))))
+                (and (check (car x) params) (check (cdr x) params))))
+             ((eq? h 'module-ref) #t)
+             (else (and (check (car x) params) (check (cdr x) params))))))
+        (else #t)))))
+
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
+  (define (load-forms-sequentially forms)
+    (for-each (lambda (d)
+                (if (getenv "GOLDFISH_BOOTSTRAP")
+                  (eval d (rootlet))
+                  (expand-eval d)))
+              forms))
+  (define (compile-cache-hot? path stamp)
+    (let ((base (string-append (compile-cache-dir) "/" (g_sha256 path))))
+      (compile-cache-valid? (string-append base ".scm")
+                            (string-append base ".meta")
+                            stamp)))
   (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
     (cond
       ((null? cands)
        (error 'io-error (string-append "cannot load: " file)))
-       ((file-exists? (car cands))
-        (call-with-input-file (car cands)
-          (lambda (port)
-            (let loop ()
-              ;; Catch only around `read', NOT around expand-eval: a persistent
-              ;; catch frame would keep s7's `(*s7* 'catches)' non-empty and
-              ;; change `guard' semantics.  The catch re-raises read errors
-              ;; annotated with the file path so the CLI can offer
-              ;; `gf fix <file>' for unbalanced-paren files (s7's native load
-              ;; annotated errors with path.scm[line:col]; the R7RS reader only
-              ;; knows byte offsets, so the path is added here).
-              (let ((d (catch 'read-error
-                         (lambda () (read port))
-                         (lambda (tag . errs)
-                           (close-input-port port)
-                           ;; s7 wraps `(error 'read-error msg)' args as
-                           ;; ((msg)), so the message string is (caar errs).
-                           (if (and (pair? errs) (pair? (car errs)) (string? (caar errs)))
-                             (error 'read-error
-                                    (string-append (caar errs) " in " (car cands)))
-                             (apply error 'read-error errs))))))
-                (if (eof-object? d)
-                  (begin (close-input-port port) #t)
-                  (if (getenv "GOLDFISH_BOOTSTRAP")
-                    ;; bootstrap-0: the expander is being (re)built from
-                    ;; scratch, so there is no self-hosted expander yet and
-                    ;; evaluating forms through the host's expand-eval would
-                    ;; mix the host's inlet-based syntax objects with the
-                    ;; partially-loaded vector-layout kernel.  Evaluate with
-                    ;; plain s7 so the kernel sources load consistently.
-                    (begin (eval d (rootlet)) (loop))
-                    (begin (expand-eval d) (loop)))))))))
-       (else (loop (cdr cands))))))
-
+      ((file-exists? (car cands))
+       (let ((path (car cands)))
+         (let ((forms (call-with-input-file path
+                        (lambda (port)
+                          (catch 'read-error
+                            (lambda () (read-forms port))
+                            (lambda (tag . errs)
+                              (close-input-port port)
+                              (if (and (pair? errs) (pair? (car errs)) (string? (caar errs)))
+                                (error 'read-error
+                                       (string-append (caar errs) " in " path))
+                                (apply error 'read-error errs))))))))
+           (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                    (auto-compile-enabled?)
+                    (not (any-macro-def? forms)))
+             (let* ((stamp (list (g_path-getmtime path) (g_path-getsize path))))
+               (cond
+                 ((compile-cache-disabled? path stamp)
+                  (load-forms-sequentially forms))
+                 ((compile-cache-hot? path stamp)
+                  (let ((sexp (compile-file-cached path)))
+                    (if (cacheable-expansion? sexp)
+                      (guard (e (#t (compile-cache-disable! path stamp)
+                                    (load-forms-sequentially forms)))
+                        (for-each (lambda (lib)
+                                    (if (not (runtime-registered? lib))
+                                      (load-library! lib)))
+                                  (collect-module-refs sexp))
+                        (eval sexp (rootlet)))
+                      (begin
+                        (compile-cache-disable! path stamp)
+                        (load-forms-sequentially forms)))))
+                 (else
+                  (compile-file-cached path)
+                  (load-forms-sequentially forms))))
+             (load-forms-sequentially forms)))))
+      (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
 ;; (boot.scm) definition captured the bootstrap reader, which is minimal and
 ;; is only meant for reading the three bootstrap files.

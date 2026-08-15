@@ -553,10 +553,19 @@
     (module-define! the-expander-library 'install-module-forms! install-module-forms!)
     (module-define! the-expander-library 'library-registry-ref library-registry-ref)
     (module-define! the-expander-library 'runtime-registered-add! runtime-registered-add!)
+    (module-define! the-expander-library 'runtime-registered? runtime-registered?)
+    (module-define! the-expander-library 'load-library! load-library!)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
     ;; load-library! evaluates a library's registration expression in the
     ;; host rootlet, so the runtime-registered marker (called from
-    ;; library-register-expression) must also be visible there.
+    ;; library-register-expression) must also be visible there.  The cached
+    ;; whole-file loader (reader.scm load) also calls load-library! /
+    ;; runtime-registered? to preload libraries a cached expansion refers
+    ;; to, so those are exposed in the rootlet as well.
     (eval (list 'define 'runtime-registered-add! runtime-registered-add!)
+          (rootlet))
+    (eval (list 'define 'runtime-registered? runtime-registered?)
+          (rootlet))
+    (eval (list 'define 'load-library! load-library!)
           (rootlet))))
