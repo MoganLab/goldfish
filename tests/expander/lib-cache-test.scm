@@ -41,4 +41,13 @@
 (import (liii base))
 (check (string? "abc") => #t)
 
+;; ===== 5. SRFI-17 广义 set!（liii logging 的 exit-hook 注册）=====
+;; logging 库加载时执行 (set! (hook-functions *exit-hook*) ...) ——
+;; SRFI-17 的 set! 位置子句。core-set! 展开该形式时曾误传
+;; expand-list 三参数导致崩溃（8b258e42 修复），此处回归覆盖。
+(import (liii logging))
+(check (procedure? send-log) => #t)
+(check (procedure? make-stdout-handler) => #t)
+(check (string? (current-log-format)) => #t)
+
 (check-report)
