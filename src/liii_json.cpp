@@ -461,7 +461,7 @@ glue_string_to_json (s7_scheme* sc) {
 static s7_int
 json_proper_list_length (s7_scheme* sc, s7_pointer x) {
   s7_pointer slow= x, fast= x;
-  s7_int     len = 0;
+  s7_int     len= 0;
   while (s7_is_pair (fast)) {
     fast= s7_cdr (fast);
     len++;
@@ -525,7 +525,7 @@ f_json_ref (s7_scheme* sc, s7_pointer args) {
   s7_pointer keys= s7_cdr (args);
   while (s7_is_pair (keys)) {
     s7_pointer key= s7_car (keys);
-    keys        = s7_cdr (keys);
+    keys          = s7_cdr (keys);
     // '() 透传：安全导航，直接返回 '()
     if (s7_is_null (sc, cur)) return s7_nil (sc);
     s7_pointer val;
@@ -554,8 +554,8 @@ f_json_ref (s7_scheme* sc, s7_pointer args) {
         if (!json_is_object (sc, cur, len)) {
           return json_type_error (sc, "Value is not a JSON object or array", cur);
         }
-        val          = s7_nil (sc);
-        s7_pointer p = cur;
+        val         = s7_nil (sc);
+        s7_pointer p= cur;
         while (s7_is_pair (p)) {
           s7_pointer entry= s7_car (p);
           if (s7_is_equal (sc, s7_car (entry), key)) {
@@ -581,7 +581,7 @@ glue_json_ref (s7_scheme* sc) {
   s7_define_function (sc, name, f_json_ref, 2, 0, true, desc);
   cached_vector_ref= s7_name_to_value (sc, "vector-ref");
   s7_gc_protect (sc, cached_vector_ref);
-  symbol_true = s7_make_symbol (sc, "true");
+  symbol_true= s7_make_symbol (sc, "true");
   s7_gc_protect (sc, symbol_true);
   symbol_false= s7_make_symbol (sc, "false");
   s7_gc_protect (sc, symbol_false);
@@ -590,8 +590,8 @@ glue_json_ref (s7_scheme* sc) {
 // json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
 // 否则写入叶层值（叶层值为过程时以旧值调用之）
 struct json_setter {
-  s7_pointer rest;        // 剩余 (key val ...) 参数；'() 表示已到叶层
-  s7_pointer leaf;        // 叶层值（仅 rest 为 '() 时有效）
+  s7_pointer rest; // 剩余 (key val ...) 参数；'() 表示已到叶层
+  s7_pointer leaf; // 叶层值（仅 rest 为 '() 时有效）
   bool       leaf_is_proc;
 };
 
@@ -684,17 +684,17 @@ json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
   }
   // 空对象 '(()) 原样返回（单键与多键均如此）
   if (json_is_null_object (sc, x)) return x;
-  s7_pointer key = s7_car (kargs);
-  s7_pointer rest= s7_cdr (kargs);
+  s7_pointer  key = s7_car (kargs);
+  s7_pointer  rest= s7_cdr (kargs);
   json_setter st;
   if (s7_is_null (sc, s7_cdr (rest))) {
-    st.rest       = s7_nil (sc);
-    st.leaf       = s7_car (rest);
+    st.rest        = s7_nil (sc);
+    st.leaf        = s7_car (rest);
     st.leaf_is_proc= s7_is_procedure (st.leaf);
   }
   else {
-    st.rest       = rest;
-    st.leaf       = NULL;
+    st.rest        = rest;
+    st.leaf        = NULL;
     st.leaf_is_proc= false;
   }
   return json_guenchi_set (sc, x, key, len, st);
@@ -708,7 +708,8 @@ f_json_set (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_set (s7_scheme* sc) {
   const char* name= "g_json_set";
-  const char* desc= "(g_json_set json key val . keys-and-val) => data, set a value in Scheme-form JSON data by key path";
+  const char* desc=
+      "(g_json_set json key val . keys-and-val) => data, set a value in Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_set, 3, 0, true, desc);
   cached_list_to_vector= s7_name_to_value (sc, "list->vector");
   s7_gc_protect (sc, cached_list_to_vector);
