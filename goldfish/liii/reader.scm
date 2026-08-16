@@ -834,21 +834,6 @@
 
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
-  ;; optimize-expansion : sexp -> sexp
-  ;; Apply the active compiler pipeline (per GOLDFISH_OPT_LEVEL) to a
-  ;; compiled artifact before evaluating it.  optimize-on-load is defined in
-  ;; the (goldfish expander) library, which this early seed does not import;
-  ;; it is looked up there via module-ref (visible from here even though the
-  ;; binding itself lives in that module, not the rootlet).  If unavailable
-  ;; or failing, the artifact is evaluated as-is (optimization is optional).
-  (define (optimize-expansion sexp)
-    (let ((opt (catch
-                 #t
-                 (lambda () (module-ref the-expander-library 'optimize-on-load))
-                 (lambda (type info) #f))))
-      (if (procedure? opt)
-        (catch #t (lambda () (opt sexp)) (lambda (type info) sexp))
-        sexp)))
   (define (load-forms-sequentially forms)
     (for-each (lambda (d)
                 (if (getenv "GOLDFISH_BOOTSTRAP")
@@ -890,7 +875,7 @@
                                       (if (not (runtime-registered? lib))
                                         (load-library! lib)))
                                     (collect-module-refs sexp))
-                          (eval (optimize-expansion sexp) (rootlet)))
+                          (eval sexp (rootlet)))
                        (lambda (type info)
                          (compile-cache-disable! path stamp)
                          (load-forms-sequentially forms)))

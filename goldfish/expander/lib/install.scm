@@ -133,8 +133,30 @@
       (lambda (p) (write (cons 'compile-cache stamp) p)))
     (g_rename mtmp meta)))
 
+;; ccache-level : -> integer
+;; The optimization level to bake into compile-file-cached artifacts.
+;; Mirrors module.scm's optimization-level, but install.scm loads before
+;; module.scm, so it cannot call that procedure.
+
+(define (ccache-level)
+  (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
+    (cond
+      ((not v) 1)
+      ((member v '("0" "no" "false" "off")) 0)
+      (else
+       (let ((n (string->number v)))
+         (if (and n (integer? n) (>= n 0)) n 1))))))
+
 (define (compile-file-cached path)
   (let* ((key (g_sha256 path))
+         (level (ccache-level))
+         ;; The artifact is cached ALREADY OPTIMIZED for the active level,
+         ;; so loading it again does not re-run the passes.  The level is
+         ;; part of the key: level 0 keeps the plain key (unoptimized,
+         ;; compatible with earlier caches), levels 1+ use a -oN suffix.
+         (key (if (zero? level)
+                key
+                (string-append key "-o" (number->string level))))
          (dir (compile-cache-dir))
          (cache (string-append dir "/" key ".scm"))
          (meta (string-append dir "/" key ".meta"))
@@ -142,9 +164,15 @@
     (if (compile-cache-valid? cache meta stamp)
       (call-with-input-file cache
         (lambda (p) (car (read-forms p))))
-      (let ((sexp (compile-file path)))
-        (compile-write-cache dir cache meta stamp sexp)
-        sexp))))
+      (let* ((sexp (compile-file path))
+             (opt (if (zero? level)
+                    sexp
+                    (let ((f (module-ref the-expander-library 'optimize-on-load)))
+                      (if (procedure? f)
+                        (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
+                        sexp)))))
+        (compile-write-cache dir cache meta stamp opt)
+        opt))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
 ;; The library cache (load-library! path) reuses the ccache dir, stamp,
