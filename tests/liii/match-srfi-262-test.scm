@@ -80,8 +80,8 @@
        => '(4 3 2 1))
 
 ;; ===== if-match =====
-(check (if-match (list 1 2) ((a b) (list 'm a b)) 'nomatch) => '(m 1 2))
-(check (if-match (list 1) ((a b) 'm) 'nomatch) => 'nomatch)
+(check (if-match (((a b) (list 1 2))) (list 'm a b) 'nomatch) => '(m 1 2))
+(check (if-match (((a b) (list 1))) 'm 'nomatch) => 'nomatch)
 
 ;; ===== match-define =====
 (match-define (mx my) (list 10 20))

@@ -81,11 +81,13 @@
 
     ;; ------------------------------------------------------------------
     ;; match-ellipsis? : syntax-or-datum -> boolean
-
+    ;;   True for the ellipsis marker `...` and extended ellipses
+    ;;   `(... n)`, `(... min #t)`, `(... min max)`.
     (define (match-ellipsis? x)
-      (if (syntax? x)
-        (eq? (syntax-form x) '...)
-        (eq? x '...)))
+      (let ((f (if (syntax? x) (syntax->datum x) x)))
+        (cond ((eq? f '...) #t)
+              ((and (pair? f) (eq? (car f) '...)) #t)
+              (else #f))))
 
     (define (ell? x)
       (or (eq? x '...)
@@ -1275,7 +1277,8 @@
     ;;   case-lambda.
     (define (compile-one-clause cl-syntax next-code args)
       (let* ((cl (syntax-form cl-syntax))
-             (pats (syntax->datum (car cl)))
+             (pat-datum (syntax->datum (car cl)))
+             (pats (if (list? pat-datum) pat-datum (list pat-datum)))
              (body (map syntax->datum (cdr cl))))
         (compile-pats-gen* pats args body next-code)))
 
@@ -1301,7 +1304,10 @@
                         (if (null? cls)
                           acc
                           (let* ((cl (syntax-form (car cls)))
-                                 (arity (length (syntax->datum (car cl)))))
+                                 (pat-datum (syntax->datum (car cl)))
+                                 (arity (if (list? pat-datum)
+                                          (length pat-datum)
+                                          1)))
                             (let ((entry (assv arity acc)))
                               (if entry
                                 (begin
@@ -1505,37 +1511,25 @@
                        (cons 'match-letrec*
                              (cons (cdr binds) body))))))))))
 
-    ;; if-match : expr clause else-expr -> value
+    ;; if-match : ((pat init) ...) conseq alter -> value
     (define-syntax if-match
       (lambda (stx)
         (let ((form (syntax-form stx)))
-          (let ((expr (cadr form))
-                (clause (caddr form))
-                (else-expr (cadddr form))
-                (tmp (car (generate-temporaries (list 'ifm-result)))))
-            (datum->syntax
-             stx
-             (list 'let (list (list tmp (syntax->datum expr)))
-                    (list (list 'define-values tmps
-                                (list (cons 'match-lambda
-                                            (list (append pats-datum
-                                                          (list vals))))
-                                      (cons 'values inits))))
-                    (map (lambda (v t) (list 'define v t)) vars tmps)
-                    (list (cons 'let (cons '() (map syntax->datum body))))))))))
-
-    (define-syntax if-match
-      (lambda (stx)
-        (let ((form (syntax-form stx)))
-          (let ((expr (cadr form))
-                (clause (caddr form))
-                (else-expr (cadddr form))
-                (tmp (car (generate-temporaries (list 'ifm-result)))))
-            (datum->syntax
-             stx
-             (list 'let (list (list tmp (syntax->datum expr)))
-             (list 'match tmp
-                   clause
-                   (list '_ (syntax->datum else-expr)))))))))))
+          (if (< (length form) 4)
+            (error "if-match: malformed form")
+            (let* ((binds (syntax-form (cadr form)))
+                   (groups (map (lambda (b) (syntax-form b)) binds))
+                   (pats (map car groups))
+                   (pats-datum (map syntax->datum pats))
+                   (inits (map (lambda (g) (syntax->datum (cadr g))) groups))
+                   (conseq (syntax->datum (caddr form)))
+                   (alter (syntax->datum (cadddr form))))
+               (datum->syntax
+                stx
+                (list 'match-values
+                      (cons 'values inits)
+                      (cons pats-datum (list conseq))
+                      (cons (map (lambda (_) '_) pats-datum)
+                            (list alter)))))))))))
 
 
