@@ -125,7 +125,7 @@
          (lambda (tag . info)
            (if (match-violation? (car info)) 'violation 'other)))
        => 'other)
-(check (match-violation? (make-match-violation 1 2 3)) => #t)
+(check (match-violation? (make-match-violation)) => #t)
 
 ;; ===== if-match =====
 (check (if-match (((a b) (list 1 2))) (list 'm a b) 'nomatch) => '(m 1 2))
@@ -143,9 +143,16 @@
     (let ((d (syntax->datum stx)))
       (datum->syntax stx (list 'cons (cadr d) (caddr d))))))
 (check (match (cons 1 2) ((pair2 a b) (list 'p a b)) (_ 'no)) => '(p 1 2))
-(define fpair (match-lambda ((pair2 a b) (list a b)) ((a) 'one)))
-(check (fpair (cons 'x 'y)) => '(x y))
-(check (fpair 9) => 'one)
+
+;; ===== match-lambda arity grouping =====
+(define ml2 (match-lambda ((a b) (list a b)) (_ 'no)))
+(check (ml2 1 2) => '(1 2))
+(check (ml2 1) => 'no)
+(define ml1 (match-lambda ((a) (list 'one a))))
+(check (ml1 9) => '(one 9))
+(define mlw (match-lambda ((_ a) (list 'got a)) ((b) (list 'single b))))
+(check (mlw 'x 9) => '(got 9))
+(check (mlw 9) => '(single 9))
 
 ;; ===== deep nested patterns =====
 (check (match '((1 2) (3 4)) (((a b) (c d)) (list a b c d)) (_ 'no))
