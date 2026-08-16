@@ -44,6 +44,9 @@
   ) ;export
   (begin
 
+    ;; s7/R7RS 没有 identity，本模块用它过滤 #f 项。
+    (define (identity x) x)
+
     ;; 各语言的后缀默认值：未在配置里写 suffix 时使用。
     (define (default-suffixes lang)
       (cond ((eq? lang 'cpp) '(".hpp" ".cpp" ".h" ".c" ".cc" ".cxx"))
