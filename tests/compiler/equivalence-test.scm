@@ -7,8 +7,8 @@
 ;; 折叠前后求值行为必须一致。
 ;;
 ;; 验证链路：capture-library-cache 展开 srfi-1 -> 取 low-defs（expander
-;; 最终产物）-> compile-defs 应用 constant-fold + simplify-if ->
-;; 原/编译 defs 分别 eval 到独立 inlet -> 按同名绑定调用比较结果。
+;; 最终产物）-> compile-defs 应用 constant-fold + inline + simplify-if
+;; -> 原/编译 defs 分别 eval 到独立 inlet -> 按同名绑定调用比较结果。
 ;;
 ;; 注意：defs 的 define 名是带 scope 后缀的 gensym（如 take:15），
 ;; 编译不改名，因此两个环境里同名绑定可直接调用比较。
@@ -33,7 +33,7 @@
        (recs (let*-values (((r c) (capture-file-cache forms))) r))
        (rec (car recs))
        (defs (list-ref rec 5)))
-  (let ((compiled (compile-defs defs (list constant-fold simplify-if))))
+  (let ((compiled (compile-defs defs (list constant-fold inline simplify-if))))
     ;; 1. pass 管线可处理真实产物且结构保持
     (check (= (length compiled) (length defs)) => #t)
     ;; 2. 原/编译 defs 分别求值到独立环境

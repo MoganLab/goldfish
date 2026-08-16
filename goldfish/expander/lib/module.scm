@@ -480,7 +480,14 @@
           (let ((compile-defs (module-ref compiler 'compile-defs))
                 (constant-fold (module-ref compiler 'constant-fold))
                 (simplify-if (module-ref compiler 'simplify-if)))
-            (compile-defs defs (list constant-fold simplify-if)))
+            (if (>= level 2)
+              ;; level 2 adds the inliner (copy propagation + beta
+              ;; reduction).  Order: fold constants first (inliner relies
+              ;; on folded literals propagating), then inline, then clean
+              ;; up the ifs the inliner's pruning leaves behind.
+              (let ((inline (module-ref compiler 'inline)))
+                (compile-defs defs (list constant-fold inline simplify-if)))
+              (compile-defs defs (list constant-fold simplify-if))))
           defs)))))
 
 ;;; load-library-file-cached! : (list lib-cache) -> void

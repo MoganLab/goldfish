@@ -19,6 +19,9 @@
     compile-defs
     constant-fold
     simplify-if
+    inline
+    *inline-max-effort*
+    *inline-max-depth*
     eliminate-dead-defs
     tail-call-positions
     *foldable-functions*)
@@ -236,6 +239,269 @@
             (else
              (cons head (map simplify-if (cdr sexp))))))
         sexp))
+
+    ;; ------------------------------------------------------------------
+    ;; inline (L2-2): the peval core -- copy propagation + beta reduction.
+    ;;
+    ;; Rewrites lowered core IR by beta-reducing applications of lambda
+    ;; literals and copy-propagating safe lexical bindings: self-evaluating
+    ;; literals, quoted data, and lambda closures.  These are immutable,
+    ;; side-effect-free values, so duplicating them at every reference is
+    ;; observationally equivalent.  A binding whose name is assigned (set!)
+    ;; in scope, and any binding not statically known, is left alone.
+    ;;
+    ;; Cost control follows Waddell & Dybvig's effort counter: one budget
+    ;; per pass bounds both the total inlining work and the nesting depth.
+    ;; When it is exhausted the pass residualizes (keeps) applications and
+    ;; references instead of inlining them, keeping the rewrite O(N) in the
+    ;; program size and bounding code growth.  Propagated bindings are kept
+    ;; in their let/letrec, so a reference left behind by a depth cut is
+    ;; still bound.
+
+    ;; lambda-formals->list : formals -> (list symbol)
+    (define (lambda-formals->list formals)
+      (if (symbol? formals)
+        (list formals)
+        (let loop ((f formals) (acc '()))
+          (cond ((null? f) (reverse acc))
+                ((pair? f) (loop (cdr f) (cons (car f) acc)))
+                (else (reverse (cons f acc)))))))
+
+    ;; collect-assigned : sexp -> (list symbol)
+    ;; Names assigned by set! anywhere in the form (not entering quoted
+    ;; data).  An assigned name is a mutable binding: copy propagation of
+    ;; its initializer would miss later writes, so it is never propagated.
+    (define (collect-assigned sexp)
+      (let loop ((s sexp) (acc '()))
+        (cond
+          ((symbol? s) acc)
+          ((not (pair? s)) acc)
+          ((memq (car s) '(quote quote-syntax)) acc)
+          ((eq? (car s) 'set!)
+           (let ((name (cadr s)))
+             (loop (caddr s)
+                   (if (member name acc) acc (cons name acc)))))
+          ((eq? (car s) 'lambda)
+           ;; formals may be a dotted list; only the body is walked
+           (let loop2 ((bs (cddr s)) (acc acc))
+             (if (null? bs)
+               acc
+               (loop2 (cdr bs) (loop (car bs) acc)))))
+          ((eq? (car s) 'define)
+           (if (and (pair? (cddr s)) (pair? (caddr s)))
+             (loop (caddr s) acc)
+             acc))
+          ((memq (car s) '(let letrec letrec*))
+           (let loop2 ((bs (cdr s)) (acc acc))
+             (if (null? bs)
+               acc
+               (loop2 (cdr bs) (loop (car bs) acc)))))
+          (else
+           (let loop2 ((cs (cdr s)) (acc (loop (car s) acc)))
+             (if (null? cs)
+               acc
+               (loop2 (cdr cs) (loop (car cs) acc))))))))
+
+    ;; safe-inline-value? : sexp -> boolean
+    ;; A value that may be freely duplicated by copy propagation.
+    (define (safe-inline-value? v)
+      (or (self-evaluating? v)
+          (and (pair? v) (eq? (car v) 'quote))
+          (and (pair? v) (eq? (car v) 'lambda))))
+
+    ;; The effort budget: a pair (remaining-effort . remaining-depth).
+    (define (make-inline-budget effort depth) (list effort depth))
+    (define (inline-budget-spent? b) (or (<= (car b) 0) (<= (cadr b) 0)))
+    (define (inline-spend-effort! b n)
+      (set-car! b (- (car b) n)))
+    (define (inline-deepen! b)
+      (set-car! (cdr b) (- (cadr b) 1)))
+
+    ;; env helpers: association list of (name . value); a value of the
+    ;; sentinel *inline-var* means the name is a variable (resolves to its
+    ;; runtime binding, not propagated).  Any other value is a statically
+    ;; known safe value to copy-propagate.
+    (define *inline-var* (list 'inline-var))
+
+    ;; lambda-self-referential? : symbol sexp -> boolean
+    ;; True when a lambda value refers to its own binding name anywhere in
+    ;; its body (a recursive function).  Propagating such a lambda would
+    ;; inline its own recursive calls -- unrolling the recursion until the
+    ;; effort budget cuts it off, bloating the residual code (and, at a
+    ;; depth cut inside a propagated copy, leaving a dangling reference).
+    ;; Leave recursive functions as variables; their recursive calls stay
+    ;; calls to the surviving letrec binding.
+    (define (lambda-self-referential? name lambda-sexp)
+      (member name (collect-residual-free (cddr lambda-sexp))))
+
+    (define (env-extend-vars env names)
+      (fold-left (lambda (e n) (cons (cons n *inline-var*) e)) env names))
+    (define (env-extend-safes env bindings assigned)
+      (fold-left (lambda (e b)
+                   (cons (cons (car b)
+                               (if (or (member (car b) assigned)
+                                       (not (safe-inline-value? (cadr b)))
+                                       (and (pair? (cadr b))
+                                            (eq? (car (cadr b)) 'lambda)
+                                            (lambda-self-referential?
+                                             (car b) (cadr b))))
+                                 *inline-var*
+                                 (cadr b)))
+                         e))
+                 env bindings))
+
+    ;; beta-bindings : formals (list sexp) -> (list (name value)) or #f
+    ;; Pair the lambda formals with the argument expressions.  With a rest
+    ;; formal the remaining args become a (list ...) construction (retained
+    ;; as a binding, never propagated, since it allocates).  Mismatched
+    ;; arity returns #f: leave the call alone so the runtime reports it.
+    (define (beta-bindings formals args)
+      (cond
+        ((symbol? formals)
+         (if (= (length args) 1) (list (list formals (car args))) #f))
+        (else
+         (let loop ((fs formals) (as args) (acc '()))
+           (cond
+             ((null? fs) (if (null? as) (reverse acc) #f))
+             ((symbol? fs)
+              (reverse (cons (list fs (if (null? as)
+                                        '(quote ())
+                                        (cons 'list as)))
+                             acc)))
+             ((null? as) #f)
+             (else (loop (cdr fs) (cdr as) (cons (list (car fs) (car as)) acc))))))))
+
+    ;; collect-residual-free : sexp -> (list symbol)
+    ;; Free symbols of an inlined body, ENTERING lambda/let bodies (minus
+    ;; their bindings) but not quoted data.  Used to decide which let
+    ;; bindings are still referenced after copy propagation: a binding kept
+    ;; only inside a propagated closure would dangle if its let were
+    ;; dropped, so those references must count.
+    (define (collect-residual-free body)
+      (let loop ((s body) (acc '()))
+        (cond
+          ((symbol? s) (if (member s acc) acc (cons s acc)))
+          ((not (pair? s)) acc)
+          ((memq (car s) '(quote quote-syntax)) acc)
+          ((eq? (car s) 'lambda)
+           (let ((bound (lambda-formals->list (cadr s))))
+             (filter (lambda (x) (not (member x bound)))
+                     (loop (cons 'begin (cddr s)) acc))))
+          ((memq (car s) '(let letrec letrec*))
+           (let ((bound (map car (cadr s))))
+             (filter (lambda (x) (not (member x bound)))
+                     (loop (cons 'begin (cddr s)) (loop (cadr s) acc)))))
+          (else
+           (let loop2 ((cs (cdr s)) (acc (loop (car s) acc)))
+             (if (null? cs)
+               acc
+               (loop2 (cdr cs) (loop (car cs) acc))))))))
+
+    ;; prune-let-bindings : head (list binding) (list sexp) -> sexp
+    ;; After inlining the body, drop bindings whose name is no longer
+    ;; referenced anywhere (binding values and body).  When none survive the
+    ;; let collapses to its body.
+    (define (prune-let-bindings head new-bindings body-inl)
+      (let* ((free (collect-residual-free
+                    (append (map (lambda (b) (cadr b)) new-bindings) body-inl)))
+             (survivors (filter (lambda (b) (member (car b) free)) new-bindings)))
+        (if (null? survivors)
+          (if (null? (cdr body-inl)) (car body-inl) (cons 'begin body-inl))
+          (cons head (cons survivors body-inl)))))
+
+    (define (inline-walk sexp env budget)
+      (if (inline-budget-spent? budget)
+        sexp
+        (cond
+          ((symbol? sexp)
+           (let ((v (assq sexp env)))
+             (if (and v (not (eq? (cdr v) *inline-var*)))
+               (begin (inline-spend-effort! budget 1) (cdr v))
+               sexp)))
+          ((not (pair? sexp)) sexp)
+          (else
+           (let ((head (car sexp)))
+             (cond
+               ((eq? head 'quote) sexp)
+               ((eq? head 'quote-syntax) sexp)
+               ((eq? head 'lambda)
+                (let* ((formals (cadr sexp))
+                       (env1 (env-extend-vars env (lambda-formals->list formals))))
+                  (cons 'lambda
+                        (cons formals
+                              (map (lambda (e) (inline-walk e env1 budget))
+                                   (cddr sexp))))))
+               ((eq? head 'define)
+                (if (and (pair? (cadr sexp)) (symbol? (caadr sexp)))
+                  ;; (define (name args) body) desugars to a lambda value
+                  (list 'define
+                        (caadr sexp)
+                        (inline-walk (cons 'lambda (cons (cdadr sexp) (cddr sexp)))
+                                     env budget))
+                  (list 'define (cadr sexp)
+                        (inline-walk (caddr sexp) env budget))))
+               ((eq? head 'if)
+                (cons 'if (map (lambda (e) (inline-walk e env budget)) (cdr sexp))))
+               ((eq? head 'begin)
+                (cons 'begin (map (lambda (e) (inline-walk e env budget)) (cdr sexp))))
+               ((eq? head 'set!)
+                (list 'set! (cadr sexp) (inline-walk (caddr sexp) env budget)))
+               ((eq? head 'let)
+                (let* ((bindings (cadr sexp))
+                       (new-bindings
+                        (map (lambda (b)
+                               (list (car b) (inline-walk (cadr b) env budget)))
+                             bindings))
+                       (env1 (env-extend-safes env new-bindings
+                                               (collect-assigned (cddr sexp))))
+                       (body-inl (map (lambda (e) (inline-walk e env1 budget))
+                                   (cddr sexp))))
+                  (inline-spend-effort! budget 1)
+                  (prune-let-bindings 'let new-bindings body-inl)))
+               ((memq head '(letrec letrec*))
+                (let* ((bindings (cadr sexp))
+                       (names (map car bindings))
+                       (env0 (env-extend-vars env names))
+                       (assigned (collect-assigned (cddr sexp)))
+                       (new-bindings
+                        (map (lambda (b)
+                               (list (car b)
+                                     (inline-walk (cadr b) env0 budget)))
+                             bindings))
+                       (env1 (env-extend-safes env new-bindings assigned))
+                       (body-inl (map (lambda (e) (inline-walk e env1 budget))
+                                   (cddr sexp))))
+                  (inline-spend-effort! budget 1)
+                  (prune-let-bindings head new-bindings body-inl)))
+               ((eq? head 'call-with-values)
+                (cons 'call-with-values
+                      (map (lambda (e) (inline-walk e env budget)) (cdr sexp))))
+               ((eq? head 'values)
+                (cons 'values
+                      (map (lambda (e) (inline-walk e env budget)) (cdr sexp))))
+               (else
+                ;; application: inline head and args, then beta-reduce if the
+                ;; head is now a lambda literal.
+                (let ((f (inline-walk head env budget))
+                      (args (map (lambda (a) (inline-walk a env budget))
+                                 (cdr sexp))))
+                  (if (and (pair? f) (eq? (car f) 'lambda)
+                           (not (inline-budget-spent? budget)))
+                    (let ((bindings (beta-bindings (cadr f) args)))
+                      (if bindings
+                        (let ((let-form (cons 'let (cons bindings (cddr f)))))
+                          (inline-spend-effort! budget 2)
+                          (inline-deepen! budget)
+                          (inline-walk let-form env budget))
+                        (cons f args)))
+                    (cons f args))))))))))
+
+    (define *inline-max-effort* 40000)
+    (define *inline-max-depth* 16)
+
+    ;; inline : sexp -> sexp
+    (define (inline sexp)
+      (inline-walk sexp '() (make-inline-budget *inline-max-effort* *inline-max-depth*)))
 
     ;; ------------------------------------------------------------------
     ;; Tail-call position analysis (L2-3 backend prerequisite).
