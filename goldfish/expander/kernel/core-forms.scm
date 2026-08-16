@@ -469,12 +469,20 @@
               (eval (lower sexp) the-expander-library)
               (loop (cdr es) c1))))))))
 
+(define (check-eval-when-situations sit-datum stx)
+  (for-each
+    (lambda (s)
+      (unless (memq s '(expand load eval))
+        (error "eval-when: invalid situation" sit-datum)))
+    sit-datum))
+
 (define (core-eval-when stx ctx)
   (let* ((form (syntax-form stx))
          (sit-datum (map syntax->datum (syntax-form (cadr form))))
          (exprs (cddr form))
          (do-expand (memq 'expand sit-datum))
          (do-keep (or (memq 'load sit-datum) (memq 'eval sit-datum))))
+    (check-eval-when-situations sit-datum stx)
     (let*-values (((ctx1)
                    (if do-expand
                      (eval-when-expand! exprs ctx)

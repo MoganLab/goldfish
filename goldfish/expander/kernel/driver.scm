@@ -104,6 +104,7 @@
                    (let* ((wform (syntax-form stx))
                           (sit-datum (map syntax->datum (syntax-form (cadr wform))))
                           (wbody (cddr wform)))
+                     (check-eval-when-situations sit-datum stx)
                      (let*-values (((ctx1)
                                     (if (memq 'expand sit-datum)
                                       (eval-when-expand! wbody ctx)

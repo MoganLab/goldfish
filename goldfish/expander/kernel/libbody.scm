@@ -41,6 +41,7 @@
              (let* ((form (syntax-form stx))
                     (sit-datum (map syntax->datum (syntax-form (cadr form))))
                     (body-exprs (cddr form)))
+               (check-eval-when-situations sit-datum stx)
                (let*-values (((ctx1)
                               (if (memq 'expand sit-datum)
                                 (eval-when-expand! body-exprs ctx)
