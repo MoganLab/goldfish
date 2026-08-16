@@ -859,29 +859,29 @@
            (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
                     (auto-compile-enabled?)
                     (not (any-macro-def? forms)))
+             ;; Compile the file once and execute the compiled artifact
+             ;; (the compile-cache hot and cold paths agree; Guile-style:
+             ;; eval-when (expand) side effects run once, at compile time).
+             ;; A non-cacheable artifact (unresolved free symbols) or an
+             ;; artifact that fails to eval falls back to per-form loading.
              (let* ((stamp (list (g_path-getmtime path) (g_path-getsize path))))
-               (cond
-                 ((compile-cache-disabled? path stamp)
-                  (load-forms-sequentially forms))
-                 ((compile-cache-hot? path stamp)
-                  (let ((sexp (compile-file-cached path)))
-                    (if (cacheable-expansion? sexp)
-                      (catch #t
-                        (lambda ()
-                          (for-each (lambda (lib)
-                                      (if (not (runtime-registered? lib))
-                                        (load-library! lib)))
-                                    (collect-module-refs sexp))
-                          (eval sexp (rootlet)))
-                        (lambda (type info)
-                          (compile-cache-disable! path stamp)
-                          (load-forms-sequentially forms)))
-                      (begin
-                        (compile-cache-disable! path stamp)
-                        (load-forms-sequentially forms)))))
-                 (else
-                  (compile-file-cached path)
-                  (load-forms-sequentially forms))))
+               (if (compile-cache-disabled? path stamp)
+                 (load-forms-sequentially forms)
+                 (let ((sexp (compile-file-cached path)))
+                   (if (cacheable-expansion? sexp)
+                     (catch #t
+                       (lambda ()
+                         (for-each (lambda (lib)
+                                     (if (not (runtime-registered? lib))
+                                       (load-library! lib)))
+                                   (collect-module-refs sexp))
+                         (eval sexp (rootlet)))
+                       (lambda (type info)
+                         (compile-cache-disable! path stamp)
+                         (load-forms-sequentially forms)))
+                     (begin
+                       (compile-cache-disable! path stamp)
+                       (load-forms-sequentially forms))))))
              (load-forms-sequentially forms)))))
       (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
