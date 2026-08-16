@@ -517,6 +517,27 @@
                              (lambda (p) (car (read-forms p))))))
                   (and (pair? rec) (equal? (cdr rec) stamp))))))))
 
+;;; load-library-guard : name thunk -> value
+;;; Wrap a library's load/compile phase so a failure inside it (a
+;;; malformed definition, an expansion error, ...) is reported with the
+;;; library name and the underlying message instead of escaping as a
+;;; bare `no-catch (#t)` with no location.  s7's (error msg args ...)
+;;; surfaces to the handler as info = ((msg args ...) ...).
+(define (load-library-guard lib-name thunk)
+  (catch
+    #t
+    thunk
+    (lambda (tag . info)
+      (let* ((detail (cond
+                       ;; s7 (error msg args ...) -> info = ((msg args ...) ...)
+                       ((and (pair? info)
+                             (pair? (car info))
+                             (or (string? (caar info)) (symbol? (caar info))))
+                        (car (car info)))
+                       ;; other raised objects (often an opaque/cyclic marker)
+                       (else "malformed definition or expansion error"))))
+        (error "import: failed to load library ~a: ~a" lib-name detail)))))
+
 (define (load-library! lib-name)
   (when (member lib-name *libraries-being-loaded*)
     (error "import: circular library dependency" lib-name))
@@ -535,10 +556,13 @@
             (set! *libraries-being-loaded*
                   (cons lib-name *libraries-being-loaded*)))
           (lambda ()
-            (let ((recs (call-with-input-file cache
-                          (lambda (p) (car (read-forms p))))))
-              (for-each restore-library-cache recs)
-              (load-library-file-cached! recs)))
+            (load-library-guard
+             lib-name
+             (lambda ()
+               (let ((recs (call-with-input-file cache
+                             (lambda (p) (car (read-forms p))))))
+                 (for-each restore-library-cache recs)
+                 (load-library-file-cached! recs)))))
           (lambda ()
             (set! *libraries-being-loaded*
                   (filter (lambda (n) (not (equal? n lib-name)))
@@ -553,26 +577,29 @@
                 (set! *libraries-being-loaded*
                       (cons lib-name *libraries-being-loaded*)))
               (lambda ()
-                (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                         (auto-compile-enabled?)
-                         (library-file-cacheable? forms))
-                  (let* ((stamp (compile-file-stamp file))
-                         (cache (library-cache-path lib-file))
-                         (meta (library-cache-meta-path lib-file)))
-                    (if (compile-cache-valid? cache meta stamp)
-                      (let ((recs (call-with-input-file cache
-                                    (lambda (p) (car (read-forms p))))))
-                        (for-each restore-library-cache recs)
-                        (load-library-file-cached! recs))
-                      (let*-values (((recs ctx) (capture-file-cache forms)))
-                        (compile-write-cache (compile-cache-dir)
-                                             cache meta stamp
-                                             recs)
-                        (load-library-file-cached! recs))))
-                  (begin
-                    (eval (compile-program forms) (rootlet))
-                    (set! *runtime-registered-libraries*
-                          (cons lib-name *runtime-registered-libraries*)))))
+                (load-library-guard
+                 lib-name
+                 (lambda ()
+                   (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                            (auto-compile-enabled?)
+                            (library-file-cacheable? forms))
+                     (let* ((stamp (compile-file-stamp file))
+                            (cache (library-cache-path lib-file))
+                            (meta (library-cache-meta-path lib-file)))
+                       (if (compile-cache-valid? cache meta stamp)
+                         (let ((recs (call-with-input-file cache
+                                       (lambda (p) (car (read-forms p))))))
+                           (for-each restore-library-cache recs)
+                           (load-library-file-cached! recs))
+                         (let*-values (((recs ctx) (capture-file-cache forms)))
+                           (compile-write-cache (compile-cache-dir)
+                                                cache meta stamp
+                                                recs)
+                           (load-library-file-cached! recs))))
+                     (begin
+                       (eval (compile-program forms) (rootlet))
+                       (set! *runtime-registered-libraries*
+                             (cons lib-name *runtime-registered-libraries*)))))))
               (lambda ()
                 (set! *libraries-being-loaded*
                       (filter (lambda (n) (not (equal? n lib-name)))
