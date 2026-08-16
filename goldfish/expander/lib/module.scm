@@ -145,13 +145,25 @@
 ;;; cannot collide.  The key is the library's relative file name (e.g.
 ;;; "srfi/srfi-13.scm").
 
+;;; library-cache-level-suffix : -> string
+;;; Library caches are stored ALREADY OPTIMIZED for the active optimization
+;;; level (see optimize-lib-cache-recs), so the level is part of the cache
+;;; key: levels are kept separate and re-loading a cached library does not
+;;; re-run the passes.  Level 0 keeps the plain key (unoptimized).
+
+(define (library-cache-level-suffix)
+  (let ((level (optimization-level)))
+    (if (zero? level) "" (string-append "-o" (number->string level)))))
+
 (define (library-cache-path lib-file)
-  (string-append (compile-cache-dir) "/" (g_sha256 lib-file) ".libcache"))
+  (string-append (compile-cache-dir) "/" (g_sha256 lib-file)
+                 (library-cache-level-suffix) ".libcache"))
 
 ;;; library-cache-meta-path : string -> string
 
 (define (library-cache-meta-path lib-file)
-  (string-append (compile-cache-dir) "/" (g_sha256 lib-file) ".libmeta"))
+  (string-append (compile-cache-dir) "/" (g_sha256 lib-file)
+                 (library-cache-level-suffix) ".libmeta"))
 
 ;;; parse-define-library-body : syntax -> (values exports body-stxs)
 ;;; Reuse parse-library-clauses (already defined below); body stxs are the
@@ -521,12 +533,33 @@
               (run-passes sexp (list constant-fold simplify-if))))
           sexp)))))
 
+;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)
+;;; Optimize each cache record's defs at the active optimization level.  A
+;;; failure to load the compiler leaves the defs untouched (optimization is
+;;; optional, never a correctness requirement).  This runs ONCE at
+;;; cache-write time; loading a cached library evals the already-optimized
+;;; defs directly.
+
+(define (optimize-lib-cache-recs recs)
+  (map (lambda (rec)
+         (let ((defs (lib-cache-defs rec)))
+           (if (null? defs)
+             rec
+             (list (lib-cache-name rec)
+                   (lib-cache-exports rec)
+                   (lib-cache-imports rec)
+                   (lib-cache-bindings rec)
+                   (lib-cache-macros rec)
+                   (compile-defs-on-load defs)))))
+       recs))
+
 ;;; load-library-file-cached! : (list lib-cache) -> void
 ;;; Eval the cached defs of a file's libraries and mark them runtime-
 ;;; registered (the registration expression inside defs does that via
 ;;; runtime-registered-add!).  Dependencies referenced by module-ref in the
 ;;; defs are loaded first (from their own caches when available), so a
-;;; cross-library value reference resolves at eval time.
+;;; cross-library value reference resolves at eval time.  The defs are
+;;; already optimized for the active level (caches store optimized defs).
 
 (define (load-library-file-cached! recs)
   (for-each (lambda (rec)
@@ -535,8 +568,7 @@
                             (if (not (runtime-registered? lib))
                               (load-library! lib)))
                           (apply append (map collect-cache-module-refs defs)))
-                (for-each (lambda (d) (eval d (rootlet)))
-                          (compile-defs-on-load defs))))
+                (for-each (lambda (d) (eval d (rootlet))) defs)))
             recs))
 
 ;;; library-cache-hit? : lib-file cache meta -> bool
@@ -629,13 +661,17 @@
                                        (lambda (p) (car (read-forms p))))))
                            (for-each restore-library-cache recs)
                            (load-library-file-cached! recs))
-                         (let*-values (((recs ctx) (capture-file-cache forms)))
-                           (compile-write-cache (compile-cache-dir)
-                                                cache meta stamp
-                                                recs)
-                           (load-library-file-cached! recs))))
+                          (let*-values (((recs ctx) (capture-file-cache forms)))
+                            (let ((recs (optimize-lib-cache-recs recs)))
+                              (compile-write-cache (compile-cache-dir)
+                                                   cache meta stamp
+                                                   recs)
+                              (load-library-file-cached! recs)))))
                      (begin
-                       (eval (compile-program forms) (rootlet))
+                       ;; Non-cacheable library: expand, optimize, then eval
+                       ;; the whole program (the pipeline still applies).
+                       (eval (optimize-on-load (compile-program forms))
+                             (rootlet))
                        (set! *runtime-registered-libraries*
                              (cons lib-name *runtime-registered-libraries*)))))))
               (lambda ()

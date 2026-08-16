@@ -970,6 +970,20 @@
         r
         (eval-defs (cdr defs) env)))))
 
+;; optimize-expansion-defs : (list sexp) -> (list sexp)
+;; Apply the active compiler pipeline to expanded defs (the per-form /
+;; REPL path, mirroring the cached paths).  compile-defs-on-load lives in
+;; the (goldfish expander) library, not in this early seed's rootlet, so it
+;; is fetched via module-ref; unavailable or failing, defs pass through
+;; unchanged (optimization is optional).
+
+(define (optimize-expansion-defs defs)
+  (let ((f (catch
+             #t
+             (lambda () (module-ref the-expander-library 'compile-defs-on-load))
+             (lambda (type info) #f))))
+    (if (procedure? f) (f defs) defs)))
+
 (define *eval-ctx* #f)
 
 (define (expand-eval expr)
@@ -984,11 +998,11 @@
       (let*-values (((name binding) (resolve-identifier head ctx))
                     ((defs ctx1) ((binding-value binding) stx ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs defs the-expander-library))
+        (eval-defs (optimize-expansion-defs defs) the-expander-library))
       (let*-values (((defs ctx1)
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs defs the-expander-library)))))
+        (eval-defs (optimize-expansion-defs defs) the-expander-library)))))
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void
