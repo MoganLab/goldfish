@@ -206,4 +206,43 @@
 (check (match (eof-object) ((eof-object) 'eof) (_ 'no)) => 'eof)
 (check (match #f ((eof-object) 'eof) (_ 'no)) => 'no)
 
+;; ===== seq* (partial prefix match) =====
+;; note: partial requires ref to be safe at terminate?, so iterate
+;; curr (termination = exhaustion) instead of indexing by length.
+(check (match '(1 2 3 4)
+              ((seq* xs ((curr xs (cdr curr)))
+                     (not (pair? curr))
+                     curr
+                     (=> car 1) (=> car 2) (=> car 3))
+               #t)
+              (_ #f)) => #t)
+(check (match '(1 2 3 4)
+              ((seq xs ((curr xs (cdr curr)))
+                     (not (pair? curr))
+                     curr
+                     (=> car 1) (=> car 2) (=> car 3))
+               #t)
+              (_ #f)) => #f)
+(check (match '(1 2 3)
+              ((seq* xs ((curr xs (cdr curr)))
+                     (not (pair? curr))
+                     curr
+                     (=> car 1) (=> car 2) (=> car 3))
+               #t)
+              (_ #f)) => #t)
+(check (match '(1 2 4)
+              ((seq* xs ((curr xs (cdr curr)))
+                     (not (pair? curr))
+                     curr
+                     (=> car 1) (=> car 2) (=> car 3))
+               #t)
+              (_ #f)) => #f)
+(check (match '(1 2 3 4 5)
+              ((seq* xs ((curr xs (cdr curr)))
+                     (not (pair? curr))
+                     curr
+                     (=> car a) (=> car b) ... (cons x y))
+               (list 'got a b x y))
+              (_ 'no)) => '(got 1 (2 3 4) 5 ()))
+
 (check-report)
