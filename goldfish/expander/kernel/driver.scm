@@ -92,10 +92,28 @@
                  (head (and (pair? form) (car form))))
             (if (identifier? head)
               (let*-values (((name binding) (resolve-identifier head ctx)))
-                (if (module-form-binding? binding)
-                  (let*-values (((defs ctx1) ((binding-value binding) stx ctx)))
-                    (loop (cdr exprs) ctx1 (append (reverse defs) lib-defs) body (+ n 1)))
-                  (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1))))
+                (cond
+                  ((module-form-binding? binding)
+                   (let*-values (((defs ctx1) ((binding-value binding) stx ctx)))
+                     (loop (cdr exprs) ctx1 (append (reverse defs) lib-defs) body (+ n 1))))
+                  ((eq? name 'eval-when)
+                   ;; R7RS eval-when: the expand situation runs NOW (so its
+                   ;; effects, e.g. (set! *load-path* ...), are visible to
+                   ;; subsequent imports / expansion); load/eval situations
+                   ;; are deferred to the body like other expressions.
+                   (let* ((wform (syntax-form stx))
+                          (sit-datum (map syntax->datum (syntax-form (cadr wform))))
+                          (wbody (cddr wform)))
+                     (let*-values (((ctx1)
+                                    (if (memq 'expand sit-datum)
+                                      (eval-when-expand! wbody ctx)
+                                      (values ctx))))
+                       (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
+                         (loop (append wbody (cdr exprs)) ctx1
+                               lib-defs body (+ n 1))
+                         (loop (cdr exprs) ctx1 lib-defs body (+ n 1))))))
+                  (else
+                   (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1)))))
               (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1)))))))))
 
 (module-define! the-expander-library 'expand-stx expand-stx)

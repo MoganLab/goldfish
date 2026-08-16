@@ -33,6 +33,22 @@
             ((eq? resolved 'define-syntax)
              (let-values (((ctx1) (expand-lib-define-syntax stx lib ctx)))
                (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))
+            ((eq? resolved 'eval-when)
+             ;; R7RS 7.1.3 library-body form: expand situation runs the
+             ;; exprs at expand time; load/eval situations re-scan the
+             ;; exprs as ordinary library-body forms (definitions get
+             ;; recognized, expressions are deferred to finalize).
+             (let* ((form (syntax-form stx))
+                    (sit-datum (map syntax->datum (syntax-form (cadr form))))
+                    (body-exprs (cddr form)))
+               (let*-values (((ctx1)
+                              (if (memq 'expand sit-datum)
+                                (eval-when-expand! body-exprs ctx)
+                                (values ctx))))
+                 (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
+                   (loop (append body-exprs (cdr stxs))
+                         ctx1 var-defs exprs (+ n 1))
+                   (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))))
             ((eq? resolved 'begin)
              (loop (append (cdr (syntax-form stx)) (cdr stxs))
                    ctx var-defs exprs (+ n 1)))

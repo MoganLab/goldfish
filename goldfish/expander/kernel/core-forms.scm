@@ -430,6 +430,60 @@
 (define (core-quasiquote stx ctx)
   (qq-expand (stx-cadr stx) ctx 1))
 
+;;; eval-when : (eval-when (situation ...) expr ...) -> value
+;;; R7RS 7.1.3.  situations are expand / load / eval (any subset):
+;;;   - expand: exprs are evaluated at expand time, in the phase+1
+;;;     (implementation) environment, immediately -- their effects (e.g.
+;;;     (set! *load-path* ...)) are visible to later expansion of the
+;;;     same body (imports, macro expansion).
+;;;   - load / eval: exprs are kept in the phase-0 output (evaluated when
+;;;     the program is loaded / when eval'd).
+;;; At least one situation must be present.
+
+(define (eval-when-expand! exprs ctx)
+  ;; Evaluate each expr at phase+1 in the implementation environment,
+  ;; threading the phase+1 expansion context through the exprs (so later
+  ;; exprs see the expansion-time bindings made by earlier ones) and
+  ;; merging it back.  A definition expr is expanded in a library
+  ;; (definition) context; other exprs are expanded as expressions.
+  ;; Effects land in the expander library / rootlet (s7 eval falls back
+  ;; to the rootlet for names the expander library does not define).
+  (let* ((ph (context-phase ctx))
+         (ctx-up (context-at-phase ctx (+ ph 1))))
+    (let loop ((es exprs) (c ctx-up))
+      (if (null? es)
+        (context-return ctx c)
+        (let* ((form (syntax-form (car es)))
+               (head (and (pair? form)
+                          (identifier? (car form))
+                          (context-resolve c (car form)))))
+          (if (memq head '(define define-syntax))
+            (let*-values (((defs c1)
+                           (expand-library-body (list (car es)) the-base-library c)))
+              (eval (if (null? defs)
+                      '(if #f #f)
+                      (lower (cons 'begin defs)))
+                    the-expander-library)
+              (loop (cdr es) c1))
+            (let*-values (((sexp c1) (expand-expr (car es) c)))
+              (eval (lower sexp) the-expander-library)
+              (loop (cdr es) c1))))))))
+
+(define (core-eval-when stx ctx)
+  (let* ((form (syntax-form stx))
+         (sit-datum (map syntax->datum (syntax-form (cadr form))))
+         (exprs (cddr form))
+         (do-expand (memq 'expand sit-datum))
+         (do-keep (or (memq 'load sit-datum) (memq 'eval sit-datum))))
+    (let*-values (((ctx1)
+                   (if do-expand
+                     (eval-when-expand! exprs ctx)
+                     (values ctx))))
+      (if do-keep
+        (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
+          (values (datum->syntax stx (cons 'begin sexps)) ctx2))
+        (values (datum->syntax stx '(if #f #f)) ctx1)))))
+
 ;;; Core form table
 
 (define core-form-handlers
@@ -450,6 +504,7 @@
         (cons 'define core-define)
         (cons 'define-syntax core-define-syntax)
         (cons 'let-syntax core-let-syntax)
-        (cons 'letrec-syntax core-letrec-syntax)))
+        (cons 'letrec-syntax core-letrec-syntax)
+        (cons 'eval-when core-eval-when)))
 
 (module-define! the-expander-library 'core-form-handlers core-form-handlers)
