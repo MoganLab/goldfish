@@ -1,0 +1,12 @@
+on: [push]
+jobs:
+  test-guile:
+    runs-on: docker
+    container:
+      image: dpk0/extensible-match:guile
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+        with:
+          submodules: false
+      - run: |
+          env TEST_VERBOSE='#t' guile --r7rs --r6rs -L . -L ./impl-lib/guile run-all-tests.ss

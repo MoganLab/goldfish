@@ -1,0 +1,12 @@
+on: [push]
+jobs:
+  test-chez:
+    runs-on: docker
+    container:
+      image: dpk0/extensible-match:chez
+    steps:
+      - uses: https://code.forgejo.org/actions/checkout@v4
+        with:
+          submodules: true
+      - run: |
+          env TEST_VERBOSE='#t' CHEZSCHEMELIBDIRS="./impl-lib/chez:$CHEZSCHEMELIBDIRS" scheme --program run-all-tests.ss

@@ -1,0 +1,13 @@
+digraph PatternCompilation {
+    "match" -> "match-lambda"
+    "match-values" -> "match-lambda"
+    "match-let" -> "match-lambda"
+    "etc." -> "match-lambda"
+    "match-lambda" -> clpluspctml
+    clpluspctml[label=<case-lambda over %match-lambda<BR /><FONT POINT-SIZE="10">match-lambda clauses grouped by number of patterns</FONT>>]
+    clpluspctml -> exppat
+    exppat[label=<expand-pattern<BR /><FONT POINT-SIZE="10">CPS-style macro, recursively expands into<BR />itself with many helper macros</FONT>>]
+    exppat -> exppat
+    exppat -> expcorepat
+    expcorepat[label=<expand-core-pattern<BR /><FONT POINT-SIZE="10">expands each core pattern<BR />individually into Scheme code</FONT>>]
+}

@@ -1,0 +1,3 @@
+[submodule "chibi"]
+	path = impl-lib/chez/chibi
+	url = https://codeberg.org/dpk/chibi-lib.git
