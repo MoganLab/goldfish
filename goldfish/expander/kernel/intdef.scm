@@ -139,34 +139,66 @@
                             (list (datum->syntax body-output-source '(if #f #f))) ctx)
       (let* ((scp-in (defs-scp-in defs))
              (ph (context-phase ctx))
-             (ctx1 (let loop ((ds var-defs) (c ctx))
-                     (if (null? ds)
-                         c
-                         (loop (cdr ds)
-                               (context-extend-env c
-                                                   (caar ds)
-                                                   (make-lexical-binding (caar ds))))))))
+             ;; Flatten var-defs: a plain define contributes (name init);
+             ;; an internal define-values (dv (n ...) expr) contributes a
+             ;; collector binding plus one (list-ref t i) per name, so the
+             ;; RHS is evaluated exactly once (letrec* ordering preserved).
+             (flat
+              (let loop ((ds var-defs) (acc '()))
+                (if (null? ds)
+                  (reverse acc)
+                  (let ((d (car ds)))
+                    (if (and (pair? d) (eq? (car d) 'dv))
+                      (let* ((names (cadr d))
+                             (val-stx (caddr d))
+                             (t (car (generate-temporaries (list 'dv-tmp)))))
+                        (loop (cdr ds)
+                              (append (let collect ((i 0) (ns names) (rest '()))
+                                        (if (null? ns)
+                                          rest
+                                          (collect (+ i 1) (cdr ns)
+                                                  (cons (cons (car ns)
+                                                              `(list-ref ,t ,i))
+                                                        rest))))
+                                      (list (cons t
+                                                  `(call-with-values
+                                                     (lambda () ,val-stx)
+                                                     (lambda args args))))
+                                      acc)))
+                      (loop (cdr ds) (cons (cons (car d) (cdr d)) acc)))))))
+             (all-names (map car flat))
+             (ctx1 (let loop ((ns all-names) (c ctx))
+                     (if (null? ns)
+                       c
+                       (loop (cdr ns)
+                             (context-extend-env c (car ns)
+                                                 (make-lexical-binding (car ns))))))))
         (let*-values (((inits ctx2)
-                       (let loop ((ds var-defs) (c ctx1) (inits '()))
+                       (let loop ((ds flat) (c ctx1) (inits '()))
                          (if (null? ds)
-                             (values (reverse inits) c)
-                             (let ((val-stx (stx-add-scope (cdar ds) scp-in ph)))
-                               (let*-values (((init-sexp c1) (expand-expr val-stx c)))
-                                 (loop (cdr ds) c1 (cons init-sexp inits))))))))
+                           (values (reverse inits) c)
+                           (let* ((raw (cdar ds))
+                                  (val-stx (stx-add-scope
+                                            (if (syntax? raw)
+                                              raw
+                                              (datum->syntax body-output-source raw))
+                                            scp-in ph)))
+                             (let*-values (((init-sexp c1) (expand-expr val-stx c)))
+                               (loop (cdr ds) c1 (cons init-sexp inits))))))))
           (let*-values (((body-sexps ctx3)
                          (let loop ((es exprs) (c ctx2) (out '()))
                            (if (null? es)
-                               (values (reverse out) c)
-                               (let*-values (((sexp c1) (expand-expr (car es) c)))
-                                 (loop (cdr es) c1 (cons sexp out)))))))
+                             (values (reverse out) c)
+                             (let*-values (((sexp c1) (expand-expr (car es) c)))
+                               (loop (cdr es) c1 (cons sexp out)))))))
             (let ((body (if (= 1 (length body-sexps))
-                            (car body-sexps)
-                            (datum->syntax body-output-source (cons 'begin body-sexps)))))
-              (if (null? var-defs)
-                  (values body ctx3)
-                  (values (datum->syntax body-output-source
-                          `(letrec* ,(map list (map car var-defs) inits) ,body))
-                          ctx3))))))))
+                          (car body-sexps)
+                          (datum->syntax body-output-source (cons 'begin body-sexps)))))
+              (if (null? flat)
+                (values body ctx3)
+                (values (datum->syntax body-output-source
+                        `(letrec* ,(map list (map car flat) inits) ,body))
+                        ctx3))))))))
 
 ;;; body-def-head : syntax context -> symbol/#f
 ;;; The definition head (define / define-syntax / begin) if the form is a
@@ -177,7 +209,7 @@
        (pair? (syntax-form stx))
        (identifier? (car (syntax-form stx)))
        (let ((h (context-resolve ctx (car (syntax-form stx)))))
-         (and (memq h '(define define-syntax begin)) h))))
+         (and (memq h '(define define-syntax define-values begin)) h))))
 
 ;;; scan-def-form : process one detected definition form, returning
 ;;; (values stxs var-defs exprs) for the continued scan.
@@ -188,6 +220,14 @@
      (let*-values (((id val-stx) (parse-internal-define form)))
        (let ((name (def-bind! defs id)))
          (values (cdr stxs) (cons (cons name val-stx) var-defs) exprs))))
+    ((eq? head 'define-values)
+     (let* ((f (syntax-form form))
+            (ids (syntax-form (cadr f)))
+            (val-stx (caddr f))
+            (names (map (lambda (id) (def-bind! defs id)) ids)))
+       (values (cdr stxs)
+               (cons (list 'dv names val-stx) var-defs)
+               exprs)))
     ((eq? head 'define-syntax)
      (let ((f (syntax-form form)))
        (def-bind! defs (cadr f) (caddr f))
