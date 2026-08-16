@@ -1099,44 +1099,45 @@
                                       `(reverse (%register-ref registers ,i))
                                       `(%register-ref registers ,i)))
                               acc)))))
-             (run-code
-              (let* ((steps (map (lambda (s) (caddr s)) state))
-                     (pattern-loop
-                      (lambda (current-value)
-                        `(let pattern-loop ((idx 0))
-                           (cond
-                             ((>= idx ,n-tests)
-                              ,(if rest?
-                                   `(let ((new-regs
-                                           (,(if rest? rest-action-id #f)
-                                            ,current-value registers)))
-                                      (if new-regs
-                                        (begin
-                                          (%registers-cow! registers)
-                                          (loop ,@steps
-                                                backtracking-point
-                                                new-regs
-                                                matched-patterns))
-                                        (if backtracking-point
-                                          (backtracking-point)
-                                          ,fail)))
-                                   `(if backtracking-point
-                                      (backtracking-point)
-                                      ,fail)))
-                             ((%bitwise-bit-set? matched-patterns idx)
-                              (pattern-loop (+ idx 1)))
-                             (else
-                              (let ((new-regs
-                                     ((vector-ref action-procs idx)
-                                      ,current-value registers)))
-                                (if new-regs
-                                  (begin
-                                    (%registers-cow! registers)
-                                    (loop ,@steps
-                                          (lambda () (pattern-loop (+ idx 1)))
-                                          new-regs
-                                          (%bitwise-bit-set matched-patterns idx)))
-                                  (pattern-loop (+ idx 1))))))))))
+              (run-code
+               (let* ((steps (map (lambda (s) (caddr s)) state))
+                      (pl-idx (car (generate-temporaries (list 'pl-idx))))
+                      (pattern-loop
+                       (lambda (current-value)
+                         `(let pattern-loop ((,pl-idx 0))
+                            (cond
+                              ((>= ,pl-idx ,n-tests)
+                               ,(if rest?
+                                    `(let ((new-regs
+                                            (,(if rest? rest-action-id #f)
+                                             ,current-value registers)))
+                                       (if new-regs
+                                         (begin
+                                           (%registers-cow! registers)
+                                           (loop ,@steps
+                                                 backtracking-point
+                                                 new-regs
+                                                 matched-patterns))
+                                         (if backtracking-point
+                                           (backtracking-point)
+                                           ,fail)))
+                                    `(if backtracking-point
+                                       (backtracking-point)
+                                       ,fail)))
+                              ((%bitwise-bit-set? matched-patterns ,pl-idx)
+                               (pattern-loop (+ ,pl-idx 1)))
+                              (else
+                               (let ((new-regs
+                                      ((vector-ref action-procs ,pl-idx)
+                                       ,current-value registers)))
+                                 (if new-regs
+                                   (begin
+                                     (%registers-cow! registers)
+                                     (loop ,@steps
+                                           (lambda () (pattern-loop (+ ,pl-idx 1)))
+                                           new-regs
+                                           (%bitwise-bit-set matched-patterns ,pl-idx)))
+                                   (pattern-loop (+ ,pl-idx 1))))))))))
                  `(let ((,name ,subject))
                     (let loop ,(append
                                 (map (lambda (s) (list (car s) (cadr s))) state)
