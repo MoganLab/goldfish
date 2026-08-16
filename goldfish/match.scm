@@ -988,11 +988,11 @@
     ;; gen-unordered* : like gen-seq* but with backtracking search
     ;;   (used by seq/unordered and lset).
     (define (gen-unordered* name state term ref tests subject fail success binds)
-      (let* ((rest? (and (not (null? tests))
+      (let* (             (rest? (and (not (null? tests))
                          (let ((last (last-elem tests)))
                            (and (eq? (car last) 'seq:many)
-                                (= (cadr last) 0)
-                                (eq? (caddr last) #t)))))
+                                (= (caddr last) 0)
+                                (eq? (cadddr last) #t)))))
              (fixed (if rest? (drop-right tests 1) tests))
              (all-vars (apply append
                               (map (lambda (tp) (cadr tp)) tests)))
@@ -1016,6 +1016,24 @@
              (rest-action-id (if rest?
                                (car (generate-temporaries (list 'a)))
                                #f))
+             (rest-test-id (if rest? (car (generate-temporaries (list 'r))) #f))
+             (rest-tp (if rest? (last-elem tests) #f))
+             (rest-vars (if rest? (cadr rest-tp) '()))
+             (rest-offset (if rest? (- (length all-vars) (length rest-vars)) 0))
+             (rest-test-binding
+              (if rest?
+                (let* ((core (last-elem rest-tp))
+                       (sub-tmps (map (lambda (v)
+                                        (cdr (assq v binds0)))
+                                      rest-vars)))
+                  (call-with-values
+                    (lambda ()
+                      (gen* core 'input '#f
+                            (cons 'list (cons #t sub-tmps))
+                            binds0))
+                    (lambda (code ignored)
+                      (list rest-test-id `(lambda (input) ,code)))))
+                '()))
              (test-bindings
               (map (lambda (tp tid)
                      (let* ((core (last-elem tp))
@@ -1109,38 +1127,43 @@
                                           new-regs
                                           (%bitwise-bit-set matched-patterns idx)))
                                   (pattern-loop (+ idx 1))))))))))
-                `(let ((,name ,subject))
-                   (let loop ,(append
-                               (map (lambda (s) (list (car s) (cadr s))) state)
-                               (list (list 'backtracking-point '#f)
-                                     (list 'registers
-                                           `(%make-registers ,n-reg))
-                                     (list 'matched-patterns 0)))
-                     (if ,term
+                 `(let ((,name ,subject))
+                    (let loop ,(append
+                                (map (lambda (s) (list (car s) (cadr s))) state)
+                                (list (list 'backtracking-point '#f)
+                                      (list 'registers
+                                            `(%make-registers ,n-reg))
+                                      (list 'matched-patterns 0)))
+                      (if ,term
+
                        (if (= matched-patterns ,all-matched-bits)
                          (let ,reg-binds
                            ,success)
                          ,fail)
                        (let ((current-value ,ref))
                          ,(pattern-loop 'current-value))))))))
-        (values
-         `(let* ,(append test-bindings
-                        action-bindings
-                        (if rest?
-                          (list (list rest-action-id
-                                      `(lambda (input regs)
-                                         (let ((vals (,rest-action-id input)))
-                                           (if vals
-                                             (let loop ((i 0) (off 0) (acc '()))
-                                               (if (>= i ,(length (cadr (last-elem tests))))
-                                                 (apply %registers-set! regs (reverse acc))
-                                                 (loop (+ i 1) (+ off 1)
-                                                       (cons (cadr vals) (cons (+ off i) acc)))))
-                                             #f)))))
-                          '()))
-            (let ((action-procs (vector ,@action-ids)))
-              ,run-code))
-         binds0)))
+          (values
+           `(let* ,(append test-bindings
+                           action-bindings)
+              ,@(if rest?
+                    (list (list 'define rest-test-id
+                                (cadr rest-test-binding))
+                          (list 'define rest-action-id
+                                `(lambda (input regs)
+                                   (let ((vals (,rest-test-id input)))
+                                     (if vals
+                                       (let loop ((i 0) (acc '()))
+                                         (if (>= i ,(length rest-vars))
+                                           (apply %registers-set! regs (reverse acc))
+                                           (loop (+ i 1)
+                                                 (cons (cons (list-ref vals (+ i 1))
+                                                             (%register-ref regs (+ ,rest-offset i)))
+                                                       (cons (+ ,rest-offset i) acc)))))
+                                       #f)))))
+                    '())
+              (let ((action-procs (vector ,@action-ids)))
+                ,run-code))
+           binds0)))
 
     ;; rename-body : (list (user . temp)) (list sexp body) -> (list sexp)
     (define (rename-body binds body)
@@ -1441,31 +1464,46 @@
                            expr))))))))
 
     ;; match-letrec : ((pat init) ...) body ... -> value
+    ;;   Compiled to (let ((v #f) ... (t #f) ...)
+    ;;                (set! t init) (set! v (match t (pat v) ...)) ...
+    ;;                (let () body ...))
+    ;;   which avoids internal define-values (goldfish expander bug 6)
+    ;;   while keeping pattern variables visible to later inits.
     (define-syntax match-letrec
       (lambda (stx)
         (let ((form (syntax-form stx)))
           (let ((binds (syntax-form (cadr form)))
                 (body (cddr form)))
-            (let* ((groups (map (lambda (b) (syntax-form b)) binds))
-                   (pats (map car groups))
-                   (inits (map (lambda (g) (syntax->datum (cadr g))) groups))
-                   (pats-datum (map syntax->datum pats))
-                   (cores (map expand-pattern pats))
-                   (vars (apply append (map collect-vars cores)))
-                   (tmps (map (lambda (_)
-                                (car (generate-temporaries (list 't))))
-                              vars))
-                   (vals (cons 'values vars)))
+            (datum->syntax
+             stx
+             (list 'match-values
+                   (cons 'values
+                         (map (lambda (b)
+                                (syntax->datum (cadr (syntax-form b))))
+                              binds))
+                   (cons (map (lambda (b) (car (syntax-form b))) binds)
+                         body)))))))
+
+    ;; match-letrec* : sequential version; each init sees the pattern
+    ;;   variables bound by the patterns to its left.
+    (define-syntax match-letrec*
+      (lambda (stx)
+        (let ((form (syntax-form stx)))
+          (let ((binds (syntax-form (cadr form)))
+                (body (cddr form)))
+            (if (null? binds)
               (datum->syntax
                stx
-               (list 'let '()
-                     (append
-                      (map (lambda (b)
-                             (let ((bf (syntax-form b)))
-                               (list 'match-define (car bf)
-                                     (syntax->datum (cadr bf)))))
-                           binds)
-                      (list (cons 'let (cons '() (map syntax->datum body))))))))))))
+               (cons 'let (cons '() (map syntax->datum body))))
+              (let* ((first (syntax-form (car binds)))
+                     (first-pats (car first))
+                     (first-init (syntax->datum (cadr first))))
+                (datum->syntax
+                 stx
+                 (list 'match-letrec
+                       (list (list first-pats first-init))
+                       (cons 'match-letrec*
+                             (cons (cdr binds) body))))))))))
 
     ;; if-match : expr clause else-expr -> value
     (define-syntax if-match
