@@ -490,6 +490,37 @@
               (compile-defs defs (list constant-fold simplify-if))))
           defs)))))
 
+;;; optimize-on-load : sexp -> sexp
+;;; Apply the active pass pipeline to a compiled PROGRAM (a single lowered
+;;; core-lambda sexp), mirroring compile-defs-on-load for libraries.  This
+;;; is the toplevel-script path: `load' compiles a file to one artifact and
+;;; evaluates it, so the passes run here -- at eval time -- instead of being
+;;; baked into the artifact cache (which is level-independent and shared
+;;; across optimization levels).  Level 0 or an unavailable compiler
+;;; library leaves the program untouched.
+
+(define (optimize-on-load sexp)
+  (let ((level (optimization-level)))
+    (if (zero? level)
+      sexp
+      (let ((compiler
+             (catch
+               #t
+               (lambda ()
+                 (if (not (runtime-registered? '(goldfish compiler)))
+                   (load-library! '(goldfish compiler)))
+                 (lookup-module '(goldfish compiler)))
+               (lambda (tag . info) #f))))
+        (if (module? compiler)
+          (let ((run-passes (module-ref compiler 'run-passes))
+                (constant-fold (module-ref compiler 'constant-fold))
+                (simplify-if (module-ref compiler 'simplify-if)))
+            (if (>= level 2)
+              (let ((inline (module-ref compiler 'inline)))
+                (run-passes sexp (list constant-fold inline simplify-if)))
+              (run-passes sexp (list constant-fold simplify-if))))
+          sexp)))))
+
 ;;; load-library-file-cached! : (list lib-cache) -> void
 ;;; Eval the cached defs of a file's libraries and mark them runtime-
 ;;; registered (the registration expression inside defs does that via
@@ -1024,6 +1055,8 @@
   (begin
     (module-define! the-expander-library 'expand-define-library expand-define-library)
     (module-define! the-expander-library 'expand-import expand-import)
+    (module-define! the-expander-library 'compile-defs-on-load compile-defs-on-load)
+    (module-define! the-expander-library 'optimize-on-load optimize-on-load)
     (module-define! the-expander-library 'expand-define-module expand-define-module)
     (module-define! the-expander-library 'expand-use-modules expand-use-modules)
     (module-define! the-expander-library 'install-module-forms! install-module-forms!)
