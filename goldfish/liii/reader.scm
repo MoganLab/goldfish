@@ -158,7 +158,7 @@
               ((string=? prefix "") #f)
               (else
                (let ((n (string->number prefix radix)))
-                 (and n (make-rectangular 0 n)))))))))))
+                 (and n (real? n) (make-rectangular 0 n)))))))))))
 
 (define (polar-number str radix)
   ;; r@theta
