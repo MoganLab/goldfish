@@ -621,6 +621,12 @@
       (or (input-port? p) (output-port? p))
     ) ;define
 
+    ;; R7RS binary file ports: goldfish does not distinguish textual/binary
+    ;; file modes, so these are the plain file ports (s7 does not provide
+    ;; them natively).
+    (define open-binary-input-file open-input-file)
+    (define open-binary-output-file open-output-file)
+
     (define textual-port? port?)
 
     (define binary-port? port?)

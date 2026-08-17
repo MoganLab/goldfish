@@ -4,7 +4,6 @@
     ;; Constructors
     fxmapping
     fxmapping-unfold
-    fxmapping-accumulate
     alist->fxmapping
     alist->fxmapping/combinator
     ;; Predicates
@@ -23,13 +22,9 @@
     fxmapping-adjust
     fxmapping-delete
     fxmapping-delete-all
-    fxmapping-update
-    fxmapping-alter
     fxmapping-delete-min
-    fxmapping-update-min
     fxmapping-pop-min
     fxmapping-delete-max
-    fxmapping-update-max
     fxmapping-pop-max
     ;; Whole fxmapping
     fxmapping-size
