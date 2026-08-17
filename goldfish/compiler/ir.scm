@@ -238,8 +238,15 @@
              ((lambda)
               (make-lambda #f (cadr sexp) (map core->ir (cddr sexp))))
              ((if)
-              (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp))
-                       (if (pair? (cdddr sexp)) (core->ir (cadddr sexp)) #f)))
+              (if (pair? (cdddr sexp))
+                ;; an explicit else, even #f, is a real branch: wrap #f as
+                ;; a const node so ir->core does not mistake it for the
+                ;; absent-else marker (an atomic #f)
+                (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp))
+                         (if (eq? (cadddr sexp) #f)
+                           (make-const #f #f)
+                           (core->ir (cadddr sexp))))
+                (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
              ((begin)
               (make-begin #f (map core->ir (cdr sexp))))
              ((let)
