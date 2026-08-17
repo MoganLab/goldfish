@@ -234,14 +234,7 @@
 
 (define (install-cache-valid? path stamp)
   (let-values (((cache meta) (install-cache-path path)))
-    (and (compile-cache-valid? cache meta stamp)
-         ;; A cache whose macro list is empty did not capture the file's
-         ;; macro definitions (an older kernel artifact without the
-         ;; collector, or a file that truly defines none) and would
-         ;; silently drop them at warm start -- treat it as a miss so the
-         ;; macros get re-expanded and registered.
-         (let ((rec (install-cache-read path)))
-           (and (pair? rec) (pair? (cdr (assq 'macros rec))))))))
+    (compile-cache-valid? cache meta stamp)))
 
 (define (install-cache-read path)
   (let-values (((cache meta) (install-cache-path path)))
