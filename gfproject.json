@@ -87,6 +87,14 @@
         "en_US": "Launch Claude Code with pre-sync and pull",
         "zh_CN": "同步钩子、拉取代码并启动 Claude Code"
       }
+    },
+    "pr": {
+      "organization": "liii",
+      "module": "goldpr",
+      "description": {
+        "en_US": "Fetch a GitHub pull request into a local pr_NUM branch",
+        "zh_CN": "拉取 GitHub PR 到本地 pr_NUM 分支"
+      }
     }
   }
 }
