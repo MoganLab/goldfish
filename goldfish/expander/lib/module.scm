@@ -365,7 +365,9 @@
              ;; the old source-spec replay (extract-macro-specs), which could
              ;; not recognize every macro-defining form.
              (macros (map (lambda (m)
-                            (cons (car m) (serialize-cache-sexp (cdr m))))
+                            (cons (car m)
+                                  (or (compile-transformer-to-program (cdr m))
+                                      (serialize-cache-sexp (cdr m)))))
                           (take-collected-macros)))
              (low-defs (map lower defs)))
         (values (list name exports imports bindings macros low-defs) ctx1)))))
@@ -424,8 +426,10 @@
     ;;    installs use -- one cache path for standard and user libraries.
     (for-each (lambda (m)
                 (let* ((mname (car m))
-                       (proc (eval (deserialize-cache-sexp (cdr m))
-                                   the-expander-library)))
+                       (data (deserialize-cache-sexp (cdr m)))
+                       (proc (if (and (pair? data) (eq? (car data) 'program))
+                               (vm-load data the-expander-library)
+                               (eval data the-expander-library))))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
     ;; 4. Exports with no body binding are inherited from base / primitive

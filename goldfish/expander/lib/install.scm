@@ -247,6 +247,33 @@
   (let-values (((cache meta) (install-cache-path path)))
     (car (read-forms (open-input-file cache)))))
 
+;;; compile-transformer-to-program : sexp -> datum/#f
+;;; Compile a transformer's lowered form to a serialized VM bytecode
+;;; program.  The compiler is a load-path library; it is looked up (never
+;;; loaded here -- loading it from inside a library capture would recurse
+;;; while the compiler library itself is being captured), so only
+;;; libraries captured after the compiler has been loaded get bytecode
+;;; transformers; anything else (notably the compiler library's own
+;;; macros, and every boot macro, captured before the module system is up)
+;;; keeps its lowered form as the warm-start path.
+(define (compile-transformer-to-program lowered)
+  (let ((compiler
+         (catch #t
+           (lambda ()
+             (if (and (module? the-expander-library)
+                      (memq 'lookup-module (module-exports the-expander-library)))
+               ((module-ref the-expander-library 'lookup-module) '(goldfish compiler))
+               #f))
+           (lambda (tag . info) #f))))
+    (if (module? compiler)
+      (catch #t
+        (lambda ()
+          (let ((to-bytecode (module-ref compiler 'to-bytecode))
+                (core->ir (module-ref compiler 'core->ir)))
+            (serialize-cache-sexp (to-bytecode (list (core->ir lowered))))))
+        (lambda (tag . info) #f))
+      #f)))
+
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp)) -> void
 (define (install-cache-save! path stamp defs macros)
   (let-values (((cache meta) (install-cache-path path)))
@@ -254,15 +281,21 @@
                      (cons 'defs (map serialize-cache-sexp defs))
                      (cons 'macros
                            (map (lambda (r)
-                                  (cons (car r) (serialize-cache-sexp (cdr r))))
+                                  (cons (car r)
+                                        (or (compile-transformer-to-program (cdr r))
+                                            (serialize-cache-sexp (cdr r)))))
                                 macros)))))
       (compile-write-cache (compile-cache-dir) cache meta stamp rec))))
 
 ;;; install-cache-load! : exp-library cache-datum -> void
 ;;; Warm start: evaluate the cached value definitions and rebuild the macro
-;;; transformers from their cached lowered forms, registering them in the
-;;; library (exp-library-define!) -- the same binding install that
-;;; expand-lib-define-syntax performs, minus the re-expansion.
+;;; transformers from their cached forms, registering them in the library
+;;; (exp-library-define!) -- the same binding install that
+;;; expand-lib-define-syntax performs, minus the re-expansion.  A cached
+;;; transformer is either a serialized VM bytecode program (compiled when
+;;; the compiler library was available at save time) or a lowered form;
+;;; a program is loaded through vm-load (a VM closure), otherwise the form
+;;; is evaluated (cf. Racket's direct-eval).
 (define (install-cache-load! lib rec)
   (let ((defs (cdr (assq 'defs rec)))
         (macros (cdr (assq 'macros rec))))
@@ -271,8 +304,10 @@
               defs)
     (for-each (lambda (r)
                 (let* ((name (car r))
-                       (proc (eval (deserialize-cache-sexp (cdr r))
-                                   the-expander-library)))
+                       (data (deserialize-cache-sexp (cdr r)))
+                       (proc (if (and (pair? data) (eq? (car data) 'program))
+                               (vm-load data the-expander-library)
+                               (eval data the-expander-library))))
                   (exp-library-define! lib name (make-transformer-binding proc))))
               macros)))
 
@@ -372,3 +407,4 @@
 ;; caches through one mechanism.
 (module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
 (module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
+(module-define! the-expander-library 'compile-transformer-to-program compile-transformer-to-program)
