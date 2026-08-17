@@ -4,8 +4,9 @@
 ;;
 
 (import (liii http)
+        (liii http-async)
         (liii sys)
-        (liii time))
+        (scheme time))
 
 (display "========================================\n")
 (display "  Async vs Sync HTTP Comparison Demo\n")
