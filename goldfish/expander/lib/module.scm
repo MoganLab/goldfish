@@ -512,8 +512,8 @@
               ;; on folded literals propagating), then inline, then clean
               ;; up the ifs the inliner's pruning leaves behind.
               (let ((inline (module-ref compiler 'inline)))
-                (compile-defs defs (list constant-fold inline simplify-if)))
-              (compile-defs defs (list constant-fold simplify-if))))
+                (compile-defs (map lower defs) (list constant-fold inline simplify-if)))
+              (compile-defs (map lower defs) (list constant-fold simplify-if))))
           defs)))))
 
 ;;; optimize-on-load : sexp -> sexp
