@@ -16,8 +16,8 @@
 
 (define-library (liii http-async)
   (import (liii http-common))
-  (export http-async-get http-async-post http-async-head http-poll
-    http-wait-all http-ok?
+  (export http-async-get http-async-post http-async-head http-poll http-wait-all
+    http-ok?
   ) ;export
   (begin
 
