@@ -3,10 +3,7 @@
 ;; 演示 libcpr 异步 HTTP 绑定的使用
 ;;
 
-(import (liii http)
-        (liii sys)
-        (liii time)
-) ;import
+(import (liii http-async) (liii sys) (scheme time))
 
 (display "=== Goldfish Scheme Async HTTP Demo ===\n\n")
 
@@ -17,6 +14,7 @@
 (display "Starting async GET to httpbin.org...\n")
 
 (define start-time (current-second))
+
 (define callback-executed #f)
 
 ;; 发起异步 GET 请求，callback 会在请求完成后被调用
@@ -24,24 +22,28 @@
   (lambda (response)
     (set! callback-executed #t)
     (display "\n  [Callback] Async GET completed!\n")
-    (display (string-append "  Status: " (number->string (response 'status-code)) "\n"))
+    (display (string-append "  Status: " (number->string (response 'status-code)) "\n")
+    ) ;display
     (display (string-append "  URL: " (response 'url) "\n"))
-    (display (string-append "  Elapsed: " (number->string (response 'elapsed)) " seconds\n"))
+    (display (string-append "  Elapsed: " (number->string (response 'elapsed)) " seconds\n")
+    ) ;display
   ) ;lambda
 ) ;http-async-get
 
 ;; 请求立即返回，不阻塞
-(display (string-append "Request initiated immediately (elapsed: " 
-                        (number->string (- (current-second) start-time))
-                        "s)\n")
+(display (string-append "Request initiated immediately (elapsed: "
+           (number->string (- (current-second) start-time))
+           "s)\n"
+         ) ;string-append
 ) ;display
 
 ;; 等待请求完成（这会阻塞直到所有异步请求完成）
 (display "Waiting for async request to complete...\n")
-(http-wait-all 10)  ; 最多等待 10 秒
-(display (string-append "Total elapsed time: " 
-                        (number->string (- (current-second) start-time))
-                        "s\n\n")
+(http-wait-all 10)
+(display (string-append "Total elapsed time: "
+           (number->string (- (current-second) start-time))
+           "s\n\n"
+         ) ;string-append
 ) ;display
 
 ;; ---------------------------------------------------------
@@ -51,43 +53,53 @@
 (display "Starting 3 concurrent requests...\n")
 
 (define concurrent-start (current-second))
+
 (define completed-count 0)
-(define urls '("https://httpbin.org/delay/1"
-               "https://httpbin.org/delay/1"
-               "https://httpbin.org/delay/1")
+
+(define urls
+  '("https://httpbin.org/delay/1"
+    "https://httpbin.org/delay/1"
+    "https://httpbin.org/delay/1")
 ) ;define
 
-(for-each
-  (lambda (url)
-    (http-async-get url
-      (lambda (response)
-        (set! completed-count (+ completed-count 1))
-        (display (string-append "  [Callback #" (number->string completed-count) 
-                                "] Completed: " (response 'url) "\n")
-        ) ;display
-      ) ;lambda
-    ) ;http-async-get
-  ) ;lambda
+(for-each (lambda (url)
+            (http-async-get url
+              (lambda (response)
+                (set! completed-count (+ completed-count 1))
+                (display (string-append "  [Callback #"
+                           (number->string completed-count)
+                           "] Completed: "
+                           (response 'url)
+                           "\n"
+                         ) ;string-append
+                ) ;display
+              ) ;lambda
+            ) ;http-async-get
+          ) ;lambda
   urls
 ) ;for-each
 
 ;; 所有请求立即返回（不等待）
 (display (string-append "All 3 requests initiated (elapsed: "
-                        (number->string (- (current-second) concurrent-start))
-                        "s)\n")
+           (number->string (- (current-second) concurrent-start))
+           "s)\n"
+         ) ;string-append
 ) ;display
 
 ;; 等待所有请求完成
 (display "Waiting for all requests to complete...\n")
-(http-wait-all 30)  ; 最多等待 30 秒
+(http-wait-all 30)
 
 (let ((total-time (- (current-second) concurrent-start)))
-  (display (string-append "All 3 requests completed in: " 
-                          (number->string total-time) "s\n")
+  (display (string-append "All 3 requests completed in: "
+             (number->string total-time)
+             "s\n"
+           ) ;string-append
   ) ;display
   (if (< total-time 2.5)
-      (display "  -> Requests were executed concurrently! (sequential would take ~3s)\n\n")
-      (display "  -> Note: Network latency may vary\n\n")
+    (display "  -> Requests were executed concurrently! (sequential would take ~3s)\n\n"
+    ) ;display
+    (display "  -> Note: Network latency may vary\n\n")
   ) ;if
 ) ;let
 
@@ -98,41 +110,43 @@
 (display "Starting async request with manual polling...\n")
 
 (define poll-start (current-second))
+
 (define poll-count 0)
 
 (http-async-get "https://httpbin.org/get"
   (lambda (response)
     (display (string-append "  [Callback] Request completed after "
-                            (number->string poll-count)
-                            " polls\n")
+               (number->string poll-count)
+               " polls\n"
+             ) ;string-append
     ) ;display
   ) ;lambda
 ) ;http-async-get
 
 ;; 使用 http-poll 非阻塞检查
-(let loop ((pending #t))
+(let loop
+  ((pending #t))
   (when pending
     (set! poll-count (+ poll-count 1))
     (let ((executed (http-poll)))
       (if (> executed 0)
-          (display (string-append "  Poll #" (number->string poll-count) 
-                                  ": callback executed\n")
+        (display (string-append "  Poll #" (number->string poll-count) ": callback executed\n")
+        ) ;display
+        (begin
+          (display (string-append "  Poll #" (number->string poll-count) ": no completion yet\n")
           ) ;display
-          (begin
-            (display (string-append "  Poll #" (number->string poll-count) 
-                                    ": no completion yet\n")
-            ) ;display
-            (sleep 0.1)  ; 等待 100ms
-            (loop #t)
-          ) ;begin
+          (sleep 0.1)
+          (loop #t)
+        ) ;begin
       ) ;if
     ) ;let
   ) ;when
 ) ;let
 
 (display (string-append "Completed using polling in: "
-                        (number->string (- (current-second) poll-start))
-                        "s\n\n")
+           (number->string (- (current-second) poll-start))
+           "s\n\n"
+         ) ;string-append
 ) ;display
 
 ;; ---------------------------------------------------------
@@ -143,12 +157,13 @@
 (http-async-post "https://httpbin.org/post"
   (lambda (response)
     (display "  [Callback] POST request completed!\n")
-    (display (string-append "  Status: " (number->string (response 'status-code)) "\n"))
+    (display (string-append "  Status: " (number->string (response 'status-code)) "\n")
+    ) ;display
   ) ;lambda
-  '()                                    ; params
-  "{\"message\": \"Hello from Goldfish Scheme\"}"  ; body
-  '(("Content-Type" . "application/json"))   ; headers
-  '()                                   ; proxy
+  '()
+  "{\"message\": \"Hello from Goldfish Scheme\"}"
+  '(("Content-Type" . "application/json"))
+  '()
 ) ;http-async-post
 
 (http-wait-all 10)
@@ -169,19 +184,16 @@
 (display "  - Callbacks are executed in the main thread (S7-safe)\n")
 (display "  - Uses libcpr's internal thread pool for true async I/O\n")
 
-;  ---
 
 (display "=== 极端并发测试 ===\n")
 (display "同时发起 10 个请求，每个服务器端延迟 2 秒\n\n")
 
-(let ((start (current-second))
-      (completed 0)
-      (n 10))
-  
+(let ((start (current-second)) (completed 0) (n 10))
+
   ;; 启动所有请求
   (display "Launching requests... ")
   (do ((i 0 (+ i 1)))
-      ((>= i n))
+    ((>= i n))
     (http-async-get (string-append "https://httpbin.org/delay/2?req=" (number->string i))
       (lambda (r)
         (set! completed (+ completed 1))
@@ -189,31 +201,42 @@
       ) ;lambda
     ) ;http-async-get
   ) ;do
-  
+
   (display "Done!\n")
-  (display (string-append "Setup time: " 
-                          (number->string (- (current-second) start))
-                          "s\n\n")
+  (display (string-append "Setup time: "
+             (number->string (- (current-second) start))
+             "s\n\n"
+           ) ;string-append
   ) ;display
-  
+
   ;; 等待完成
   (display "Waiting... ")
   (http-wait-all 60)
-  
+
   (let ((total (- (current-second) start)))
     (display "\n\n=== 结果 ===\n")
-    (display (string-append "Completed: " (number->string completed) "/" (number->string n) "\n"))
+    (display (string-append "Completed: "
+               (number->string completed)
+               "/"
+               (number->string n)
+               "\n"
+             ) ;string-append
+    ) ;display
     (display (string-append "Total time: " (number->string total) "s\n"))
-    
+
     (if (< total 10)
-        (begin
-          (display "\n✓ 验证通过：真正的异步并发！\n")
-          (display (string-append "  并发度: ~" (number->string (round (/ (* n 2) total))) "x\n"))
-        ) ;begin
-        (begin
-          (display "\n✗ 可能是同步执行\n")
-          (display (string-append "  预期: <5s, 实际: " (number->string total) "s\n"))
-        ) ;begin
+      (begin
+        (display "\n✓ 验证通过：真正的异步并发！\n")
+        (display (string-append "  并发度: ~"
+                   (number->string (round (/ (* n 2) total)))
+                   "x\n"
+                 ) ;string-append
+        ) ;display
+      ) ;begin
+      (begin
+        (display "\n✗ 可能是同步执行\n")
+        (display (string-append "  预期: <5s, 实际: " (number->string total) "s\n"))
+      ) ;begin
     ) ;if
   ) ;let
 ) ;let

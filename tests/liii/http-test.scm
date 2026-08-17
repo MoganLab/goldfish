@@ -1,8 +1,9 @@
 ;; (liii http) 模块函数分类索引
 ;;
-;; liii http 提供同步、流式和异步三种 HTTP 客户端 API，基于 cpr 库实现。
+;; liii http 提供同步和流式两种 HTTP 客户端 API，基于 cpr 库实现。
 ;; 支持 GET/POST/HEAD 请求；其中 http-get 在 :stream #t 时可做简单流式下载，
 ;; http-post 支持通过 :files 上传文件，并在 :stream #t 时按 chunk 处理响应体。
+;; 异步 API 见 (liii http-async) 模块。
 
 
 ;; ==== 常见用法示例 ====
@@ -54,12 +55,6 @@
 ;;                        #t))
 
 
-;; 示例4：异步并发请求
-;; (http-async-get "https://api.example.com/1" callback)
-;; (http-async-get "https://api.example.com/2" callback)
-;; (http-wait-all 30)  ; 等待所有请求完成，超时30秒
-
-
 
 ;; ==== 如何查看函数的文档和用例 ====
 ;;   bin/gf doc liii/http "function-name"
@@ -74,10 +69,3 @@
 ;;
 ;; 二、响应处理
 ;;   http-ok?     - 检查响应是否成功（2xx状态码）
-;;
-;; 三、异步 HTTP 请求
-;;   http-async-get    - 异步 GET 请求
-;;   http-async-post   - 异步 POST 请求
-;;   http-async-head   - 异步 HEAD 请求
-;;   http-poll         - 轮询并执行已完成的异步请求回调
-;;   http-wait-all     - 等待所有异步请求完成
