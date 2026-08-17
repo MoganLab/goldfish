@@ -1632,6 +1632,11 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
     s7_eval_c_string (sc, "(load-source-file \"expander/lib/install.scm\")");
     s7_eval_c_string (sc, "(install-standard-library!)");
+    // Preload the compiler so library captures after this point compile
+    // transformer definitions to VM bytecode programs (compiled once,
+    // resolved references), instead of lowered forms that must be re-evaluated
+    // and re-resolved by name at every warm start.
+    goldfish_eval_through_reader (sc, "(load-library! '(goldfish compiler))");
   }
 
   // Phase 2: mode-specific imports, now that the expander can handle

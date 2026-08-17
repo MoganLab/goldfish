@@ -253,10 +253,12 @@
   (let ((compiler
          (catch #t
            (lambda ()
-             (if (and (module? the-expander-library)
-                      (memq 'lookup-module (module-exports the-expander-library)))
-               ((module-ref the-expander-library 'lookup-module) '(goldfish compiler))
-               #f))
+             ;; lookup-module is an s7 primitive, not an exp-library export,
+             ;; so it is resolved as a free symbol (guarded by catch for the
+             ;; bootstrap phase where the module system is not up yet).  The
+             ;; compiler is preloaded by customize, so captures after that
+             ;; point compile transformers to bytecode programs.
+             (lookup-module '(goldfish compiler)))
            (lambda (tag . info) #f))))
     (if (module? compiler)
       (catch #t
