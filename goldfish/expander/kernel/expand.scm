@@ -52,9 +52,23 @@
             ((toplevel-binding? binding)
              (values (emit-toplevel-ref (binding-value binding) stx) ctx))
             (binding
-             (values (make-syntax (binding-value binding)
-                                  (syntax-context stx) (syntax-library stx))
-                     ctx))
+             ;; Only lexical and primitive bindings have a pure (symbol)
+             ;; value to inline.  Anything else is a live object (a
+             ;; module-form handler, a core/transformer procedure caught
+             ;; here, a stop wrapper) and must never be placed in a datum
+             ;; -- that would make the expanded output unserializable
+             ;; (cf. Racket, where datums are pure).  A stopped identifier
+             ;; stays unexpanded, exactly as expand-pair handles stops.
+             (cond
+               ((or (lexical-binding? binding) (primitive-binding? binding))
+                (values (make-syntax (binding-value binding)
+                                     (syntax-context stx) (syntax-library stx))
+                        ctx))
+               ((tstop-binding? binding)
+                (values stx ctx))
+               (else
+                (error "expand-atom: cannot inline live binding value"
+                       form binding))))
             (else
              (values (make-syntax name
                                   (syntax-context stx) (syntax-library stx))
