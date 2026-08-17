@@ -581,17 +581,25 @@
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results)
+      ;; R7RS 7.3.2 guard semantics (matching Guile): the body is evaluated
+      ;; normally and its result -- including multiple values -- is
+      ;; returned when no exception is raised; only on raise is the object
+      ;; bound to the guard variable and the cond clauses dispatched.  A
+      ;; guard with no matching clause re-raises the object.  The trailing
+      ;; (else (raise ...)) is the re-raise fallback; when the user
+      ;; provides an else clause, cond picks the user's first.
+      `(let ((caught
               (catch ,#t
-                (lambda ,() ,@body)
+                (lambda ()
+                  (cons 'normal
+                    (call-with-values (lambda () ,@body) list)))
                 (lambda (type info)
-                  (if (pair? (*s7* 'catches))
-                    (lambda () (apply throw type info))
-                    (car info))))))
-         (cond ,@(cdr results)
-               (else (if (procedure? ,(car results))
-                       (,(car results))
-                       ,(car results)))))
+                  (cons 'raised (car info))))))
+         (if (eq? (car caught) 'raised)
+           (let ((,(car results) (cdr caught)))
+             (cond ,@(cdr results)
+                   (else (raise ,(car results)))))
+           (apply values (cdr caught))))
     ) ;define-macro
 
     (define (read-error? obj)

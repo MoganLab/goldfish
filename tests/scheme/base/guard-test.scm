@@ -27,7 +27,7 @@
 ;; 1. 捕获 body 中抛出的异常
 ;; 2. 使用类似 cond 的子句匹配异常
 ;; 3. else 子句作为默认处理
-;; 4. 注意：S7 的 guard 即使 body 未抛出异常也会返回 else 子句的结果
+;; 4. body 正常返回时返回 body 的结果（R7RS 语义，与 Guile 一致）
 (check (guard (ex (else 'caught)) (raise 'error)) => 'caught)
 (check (guard (ex ((eq? ex 'specific) 'matched) (else 'default))
          (raise 'specific)
@@ -35,7 +35,7 @@
   =>
   'matched
 ) ;check
-(check (guard (ex (else 'caught)) 'normal) => 'caught)
+(check (guard (ex (else 'caught)) 'normal) => 'normal)
 (check (guard (ex ((eq? ex 'a) 'a-caught) ((eq? ex 'b) 'b-caught))
          (raise 'b)
        ) ;guard
