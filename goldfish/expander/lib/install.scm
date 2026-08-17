@@ -39,8 +39,14 @@
   (and (file-exists? cache)
        (file-exists? meta)
        (let ((rec (call-with-input-file meta
-                    (lambda (p) (car (read-forms p))))))
-         (and (pair? rec) (equal? (cdr rec) stamp)))))
+                     (lambda (p) (car (read-forms p))))))
+         (and (pair? rec)
+              ;; Cache format version 2: install caches carry a structured
+              ;; bindings field (v1 lacked it); any older cache is stale.
+              ;; The meta datum is (cons (list 'compile-cache <ver>) stamp).
+              (pair? (car rec))
+              (equal? (cadr (car rec)) 2)
+              (equal? (cdr rec) stamp)))))
 
 (define (compile-write-cache dir cache meta stamp sexp)
   (if (not (file-exists? dir))
@@ -62,7 +68,7 @@
     (let-set! *s7* 'print-length old-length))
   (let ((mtmp (string-append meta ".tmp")))
     (call-with-output-file mtmp
-      (lambda (p) (write (cons 'compile-cache stamp) p)))
+      (lambda (p) (write (cons (list 'compile-cache 2) stamp) p)))
     (g_rename mtmp meta)))
 
 ;;; take-collected-macros : -> (list (name . sexp))
@@ -74,16 +80,39 @@
     ((module-ref the-expander-library 'take-macro-records))
     '()))
 
+;;; install-binding-desc : binding -> datum/#f
+;;; The install cache needs each value definition's (gensym home original
+;;; exported?) tuple to rebuild the binding table at warm start.  This is the
+;;; same extraction lib/module.scm's purify-binding performs, inlined here
+;;; because install.scm loads before module.scm (and install-library-forms!
+;;; is used while module.scm itself is being installed).
+(define (install-binding-desc b)
+  (let ((kind (binding-kind b)))
+    (cond
+      ((eq? kind 'toplevel)
+       (let ((ref (binding-value b)))
+         (list 'toplevel
+               (toplevel-ref-gensym ref)
+               (let ((home (toplevel-ref-home ref)))
+                 (if home (list 'libref (exp-library-name home)) #f))
+               (toplevel-ref-original ref)
+               (toplevel-ref-exported? ref))))
+      ((eq? kind 'primitive)
+       (list 'primitive (binding-value b)))
+      ((eq? kind 'transformer) 'transformer)
+      (else #f))))
+
 ;;; install-library-forms! : exp-library (list datum)
-;;;                        -> (values context (list sexp) (list (name . sexp)))
+;;;                        -> (values context (list sexp) (list (name . sexp))
+;;;                                   (list (original . datum)))
 ;;; Expand a program body given as ordinary object-level source and install
 ;;; its definitions into the library.  Macros install at expand time; value
 ;;; definitions are expanded and their initializers evaluated into
 ;;; the-expander-library -- the module transformer code is evaluated in -- so
 ;;; transformer output that references a library value resolves to its
-;;; runtime binding.  Returns the lowered value-definition forms and the
-;;; collected (name . transformer-sexp) macro records so the caller can
-;;; build a serializable cache.
+;;; runtime binding.  Returns the lowered value-definition forms, the
+;;; collected macro records, and each definition's structured binding
+;;; description for the cache.
 
 (define (install-library-forms! lib forms)
   (let ((stxs (map (lambda (form)
@@ -98,7 +127,27 @@
                       (error "install-library-forms!: expected value definition"
                              sexp)))
                   sexps)
-        (values ctx sexps (take-collected-macros))))))
+        ;; Only this file's own value definitions belong in its cache, not
+        ;; the whole (accumulated) library binding table.
+        (let ((def-gensyms
+               (filter symbol?
+                       (map (lambda (s)
+                              (and (pair? s) (eq? (car s) 'define) (cadr s)))
+                            sexps))))
+          (values ctx sexps (take-collected-macros)
+                  ;; Structured binding info for the cache: each definition's
+                  ;; (original . (toplevel gensym home original exported?))
+                  ;; tuple, so warm start rebuilds the binding table from the
+                  ;; data instead of re-deriving the original name from the
+                  ;; gensym naming convention.
+                  (filter (lambda (e)
+                            (let ((d (cdr e)))
+                              (and (pair? d)
+                                   (eq? (car d) 'toplevel)
+                                   (memq (cadr d) def-gensyms))))
+                          (map (lambda (e)
+                                 (cons (car e) (install-binding-desc (cdr e))))
+                               (exp-library-bindings lib)))))))))
 
 ;;; install-library-file! : exp-library path -> context
 ;;; Read a file of object-level R7RS source (with the bundled reader) and
@@ -115,9 +164,9 @@
     (let ((stamp (compile-file-stamp path)))
       (if (install-cache-valid? path stamp)
         (install-cache-load! lib (install-cache-read path))
-        (let*-values (((ctx defs macros)
+        (let*-values (((ctx defs macros bindings)
                        (install-library-forms! lib (call-with-input-file file read-forms))))
-          (install-cache-save! path stamp defs macros)
+          (install-cache-save! path stamp defs macros bindings)
           ctx)))))
 (define (install-standard-library!)
   (install-library-file! the-base-library "expander/lib/standard.scm"))
@@ -269,18 +318,61 @@
         (lambda (tag . info) #f))
       #f)))
 
-;;; install-cache-save! : path stamp (list sexp) (list (name . sexp)) -> void
-(define (install-cache-save! path stamp defs macros)
+;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
+;;;                      (list (original . datum)) -> void
+(define (install-cache-save! path stamp defs macros bindings)
   (let-values (((cache meta) (install-cache-path path)))
-    (let ((rec (list 'macro-cache 1
+    (let ((rec (list 'macro-cache 2
                      (cons 'defs (map serialize-cache-sexp defs))
                      (cons 'macros
                            (map (lambda (r)
                                   (cons (car r)
                                         (or (compile-transformer-to-program (cdr r))
                                             (serialize-cache-sexp (cdr r)))))
-                                macros)))))
+                                macros))
+                     (cons 'bindings
+                           (map (lambda (e)
+                                  (cons (car e) (serialize-cache-sexp (cdr e))))
+                                bindings)))))
       (compile-write-cache (compile-cache-dir) cache meta stamp rec))))
+
+;;; install-depurify-binding : datum exp-library -> binding/#f
+;;; Rebuild a value binding from its cached description, mirroring
+;;; module.scm's depurify-binding.  Inlined here because install-cache-load!
+;;; runs while module.scm itself is being installed, before that procedure
+;;; is defined.  home (libref name) resolves to self-lib when the binding
+;;; belongs to the library being loaded; other homes go through the module
+;;; registry when it is available (warm start), else #f.
+(define (install-depurify-binding desc self-lib)
+  (if (eq? desc 'transformer)
+    #f
+    (let ((kind (car desc)))
+      (cond
+        ((eq? kind 'toplevel)
+         (let* ((gensym (cadr desc))
+                (home-desc (caddr desc))
+                (original (cadddr desc))
+                (exported? (car (cddddr desc)))
+                (home (if (and (pair? home-desc) (eq? (car home-desc) 'libref))
+                        (let ((home-name (cadr home-desc)))
+                          (if (equal? home-name (exp-library-name self-lib))
+                            self-lib
+                            (or (and (defined? 'library-registry-ref)
+                                     (let ((rec (library-registry-ref home-name)))
+                                       (and rec (lib-record-library rec))))
+                                ;; Registry unavailable (module.scm is still
+                                ;; being installed) or the home is not
+                                ;; registered yet: fall back to the library
+                                ;; being rebuilt.  A toplevel ref with this
+                                ;; home emits its gensym, which the s7
+                                ;; environment binds during defs evaluation.
+                                self-lib)))
+                        home-desc)))
+           (make-toplevel-binding
+             (make-toplevel-ref gensym home original exported?))))
+        ((eq? kind 'primitive)
+         (make-primitive-binding (cadr desc)))
+        (else #f)))))
 
 ;;; install-cache-load! : exp-library cache-datum -> void
 ;;; Warm start: evaluate the cached value definitions and rebuild the macro
@@ -292,40 +384,30 @@
 ;;; a program is loaded through vm-load (a VM closure), otherwise the form
 ;;; is evaluated (cf. Racket's direct-eval).
 
-;;; gensym->original-name : symbol -> symbol
-;;; context-alloc-name allocates "prefix:counter" gensyms; recover the
-;;; original identifier (the prefix) so a cached definition can be
-;;; registered in the library binding table under its public name.
-(define (gensym->original-name sym)
-  (let ((s (symbol->string sym)))
-    (let loop ((i 0))
-      (cond
-        ((>= i (string-length s)) sym)
-        ((char=? (string-ref s i) #\:) (string->symbol (substring s 0 i)))
-        (else (loop (+ i 1)))))))
-
 (define (install-cache-load! lib rec)
-  (let ((defs (cdr (assq 'defs rec)))
+  (let ((bindings (cdr (assq 'bindings rec)))
+        (defs (cdr (assq 'defs rec)))
         (macros (cdr (assq 'macros rec))))
+    ;; Restore the binding table from the cached structured info (the same
+    ;; (toplevel gensym home original exported?) tuples the libcache uses),
+    ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
+    ;; is inlined here (install-depurify-binding) because install-cache-load!
+    ;; runs while module.scm itself is being installed, before module.scm's
+    ;; depurify-binding is defined.
+    ;; Restore the binding table from the cached structured info (the same
+    ;; (toplevel gensym home original exported?) tuples the libcache uses),
+    ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
+    ;; is inlined here (install-depurify-binding) because install-cache-load!
+    ;; runs while module.scm itself is being installed, before module.scm's
+    ;; depurify-binding is defined.
+    (for-each (lambda (e)
+                (let ((b (install-depurify-binding
+                          (deserialize-cache-sexp (cdr e)) lib)))
+                  (when b
+                    (exp-library-define! lib (car e) b))))
+              bindings)
     (for-each (lambda (sexp)
-                (let ((data (deserialize-cache-sexp sexp)))
-                  ;; Mirror expand-lib-define-bind's exp-library-define!:
-                  ;; a cached value definition must be registered in the
-                  ;; library's binding table under its original name.  The
-                  ;; eval below only binds the s7 environment, which
-                  ;; resolve-identifier cannot see; leaving the table empty
-                  ;; makes every reference fall back to the bare original
-                  ;; name, which the s7 environment does not contain on the
-                  ;; warm path (e.g. syntax-case-dispatch, referenced by a
-                  ;; syntax-case-generated transformer).
-                  (when (and (pair? data) (eq? (car data) 'define)
-                             (symbol? (cadr data)))
-                    (let* ((gensym (cadr data))
-                           (original (gensym->original-name gensym)))
-                      (exp-library-define! lib original
-                        (make-toplevel-binding
-                          (make-toplevel-ref gensym lib original #f)))))
-                  (eval data the-expander-library)))
+                (eval (deserialize-cache-sexp sexp) the-expander-library))
               defs)
     (for-each (lambda (r)
                 (let* ((name (car r))
