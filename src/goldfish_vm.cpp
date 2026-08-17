@@ -112,6 +112,9 @@ struct VMProgram {
 struct VMFrame {
   size_t pc = 0;
   const std::vector<Instr>* code = nullptr;
+  VMProgram* prog = nullptr;  // the program this frame executes (not the
+                              // global g_program, which a nested vm-load can
+                              // replace mid-execution)
   std::vector<s7_pointer> slots;  // frame slots (C++ array; safe while GC is off)
   s7_pointer captured; // list of enclosing slot vectors (outermost first)
 };
@@ -220,6 +223,7 @@ static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std:
   VMFrame f;
   f.pc = 0;
   f.code = &ci.instrs;
+  f.prog = prog;
   if (reuse != nullptr) f.slots = std::move (*reuse);
   f.slots.assign (ci.nlocals, s7_nil (sc));
   for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
@@ -305,9 +309,9 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       }
       case Op::Closure: {
         int i = (int)in.b;
-        VMCodeInfo& ci = g_program->codes[i];
+        VMCodeInfo& ci = fr.prog->codes[i];
         VMClosure* vc = new VMClosure;
-        vc->prog = g_program;
+        vc->prog = fr.prog;
         vc->code_idx = i;
         vc->captured = s7_cons (sc, snapshot_slots (sc, fr), fr.captured);
         s7_pointer let = s7_inlet (sc,
@@ -440,10 +444,18 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   VMFrame f;
   f.pc = 0;
   f.code = &p->top;
+  f.prog = p;
   f.slots.clear ();
   f.captured = s7_nil (sc);
   g_frames.push_back (f);
-  return run (sc, 0);
+  // The interpreter's C++ stacks hold s7_pointers the conservative GC cannot
+  // see (same reason vm_enter disables it): running the top instructions with
+  // GC enabled can reclaim live values, leaving dangling pointers that later
+  // corrupt the heap.  Disable GC for the run, exactly like vm_enter.
+  s7_pointer saved_gc = s7_gc_on (sc, false);
+  s7_pointer result = run (sc, 0);
+  s7_gc_on (sc, s7_boolean (sc, saved_gc));
+  return result;
 }
 
 // ---------------------------------------------------------------------------
