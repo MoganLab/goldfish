@@ -357,7 +357,16 @@
              (bindings (map (lambda (e)
                               (cons (car e) (purify-binding (cdr e))))
                             (exp-library-bindings lib1)))
-             (macros (map purify-syntax-tree (extract-macro-specs stx)))
+             ;; Macro definitions are cached as their LOWERED transformer
+             ;; forms, the same mechanism the boot library installs use:
+             ;; expand-library-body collected them as (name . lowered) while
+             ;; this define-library body expanded, and warm start
+             ;; re-evaluates them (cf. Racket's direct-eval).  This replaces
+             ;; the old source-spec replay (extract-macro-specs), which could
+             ;; not recognize every macro-defining form.
+             (macros (map (lambda (m)
+                            (cons (car m) (serialize-cache-sexp (cdr m))))
+                          (take-collected-macros)))
              (low-defs (map lower defs)))
         (values (list name exports imports bindings macros low-defs) ctx1)))))
 
@@ -407,17 +416,18 @@
                   (when d (exp-library-define! lib (car e) d))))
               bindings)
     (library-registry-set! name (make-lib-record lib exports))
-    ;; 3. Replay this library's own macro definitions.  Each spec is the
-    ;;    purified syntax object of a macro definition form (define-syntax,
-    ;;    or define-macro/defmacro which expand to define-syntax); expanding
-    ;;    the single form into the library reinstalls the transformer with
-    ;;    its original hygienic scope sets.  All forms share one expansion
-    ;;    context, mirroring the original define-library body expansion
-    ;;    (macro specs may reference macros defined earlier in the body).
-    (let ((stxs (map (lambda (spec)
-                       (stx-set-library (depurify-syntax-tree spec) lib))
-                     macros)))
-      (expand-library-body stxs lib (initial-context)))
+    ;; 3. Rebuild this library's own macro transformers from their cached
+    ;;    lowered forms: re-evaluating each form yields the transformer,
+    ;;    which is registered exactly as expand-lib-define-syntax does.
+    ;;    This replaces the source-spec replay (extract-macro-specs +
+    ;;    expand-library-body), and is the same mechanism the boot library
+    ;;    installs use -- one cache path for standard and user libraries.
+    (for-each (lambda (m)
+                (let* ((mname (car m))
+                       (proc (eval (deserialize-cache-sexp (cdr m))
+                                   the-expander-library)))
+                  (exp-library-define! lib mname (make-transformer-binding proc))))
+              macros)
     ;; 4. Exports with no body binding are inherited from base / primitive
     ;;    (mirrors expand-define-library's export fallback).
     (for-each (lambda (export)
