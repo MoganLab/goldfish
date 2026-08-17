@@ -832,6 +832,22 @@
              (else (and (check (car x) params) (check (cdr x) params))))))
         (else #t)))))
 
+;; library-names-in : (list datum) -> (list lib-name)
+;; The library names declared by (define-library (name) ...) forms in a
+;; loaded file.  `load' routes files that declare libraries through the
+;; library loader so they share its cache with `import'.
+
+(define (library-names-in forms)
+  (let loop ((fs forms) (acc '()))
+    (if (null? fs)
+      (reverse acc)
+      (let ((f (car fs)))
+        (if (and (pair? f)
+                 (eq? (car f) 'define-library)
+                 (pair? (cdr f)))
+          (loop (cdr fs) (cons (cadr f) acc))
+          (loop (cdr fs) acc))))))
+
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (define (load-forms-sequentially forms)
@@ -857,32 +873,40 @@
                                        (string-append (caar errs) " in " path))
                                 (apply error 'read-error errs))))))))
             (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                     (auto-compile-enabled?)
-                     (not (any-macro-def? forms)))
-              ;; Compile the file once and execute the compiled artifact
-             ;; (the compile-cache hot and cold paths agree; Guile-style:
-             ;; eval-when (expand) side effects run once, at compile time).
-             ;; A non-cacheable artifact (unresolved free symbols) or an
-             ;; artifact that fails to eval falls back to per-form loading.
-             (let* ((stamp (list (g_path-getmtime path) (g_path-getsize path))))
-                (if (compile-cache-disabled? path stamp)
-                  (load-forms-sequentially forms)
-                   (let ((sexp (compile-file-cached path)))
-                     (if (cacheable-expansion? sexp)
-                      (catch #t
-                        (lambda ()
-                          (for-each (lambda (lib)
-                                      (if (not (runtime-registered? lib))
-                                        (load-library! lib)))
-                                    (collect-module-refs sexp))
-                          (eval sexp (rootlet)))
-                       (lambda (type info)
-                         (compile-cache-disable! path stamp)
-                         (load-forms-sequentially forms)))
-                     (begin
-                       (compile-cache-disable! path stamp)
-                       (load-forms-sequentially forms))))))
-             (load-forms-sequentially forms)))))
+                     (not (null? (library-names-in forms))))
+              ;; A library file: load it through the library machinery so
+              ;; `load' and `import' share the SAME library cache (one
+              ;; expansion, one cached artifact) instead of compiling the
+              ;; file twice with different engines.  The defs evaluate into
+              ;; the rootlet, mirroring the old per-file compile.
+              (for-each load-library! (library-names-in forms))
+              (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                       (auto-compile-enabled?)
+                       (not (any-macro-def? forms)))
+                ;; Compile the file once and execute the compiled artifact
+                ;; (the compile-cache hot and cold paths agree; Guile-style:
+                ;; eval-when (expand) side effects run once, at compile time).
+                ;; A non-cacheable artifact (unresolved free symbols) or an
+                ;; artifact that fails to eval falls back to per-form loading.
+                (let* ((stamp (list (g_path-getmtime path) (g_path-getsize path))))
+                  (if (compile-cache-disabled? path stamp)
+                    (load-forms-sequentially forms)
+                    (let ((sexp (compile-file-cached path)))
+                      (if (cacheable-expansion? sexp)
+                        (catch #t
+                          (lambda ()
+                            (for-each (lambda (lib)
+                                        (if (not (runtime-registered? lib))
+                                          (load-library! lib)))
+                                      (collect-module-refs sexp))
+                            (eval sexp (rootlet)))
+                          (lambda (type info)
+                            (compile-cache-disable! path stamp)
+                            (load-forms-sequentially forms)))
+                        (begin
+                          (compile-cache-disable! path stamp)
+                          (load-forms-sequentially forms))))))
+                (load-forms-sequentially forms))))))
       (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
 ;; (boot.scm) definition captured the bootstrap reader, which is minimal and
