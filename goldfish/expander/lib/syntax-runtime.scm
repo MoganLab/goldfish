@@ -418,7 +418,7 @@
     (if (and (module? the-expander-library)
              (memq 'library-registry-ref (module-exports the-expander-library)))
       (letrec* ((rec ((module-ref the-expander-library 'library-registry-ref) name)))
-        (if rec (lib-record-library rec) #f))
+        (if rec (car rec) #f))
       #f)))
 
 (define (node-lib x)
