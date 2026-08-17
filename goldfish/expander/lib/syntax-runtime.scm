@@ -398,29 +398,57 @@
 (define (node-datum x)
   (if (syntax? x) (syntax-form x) x))
 
+;;; Library references in template nodes.
+;;; A template node's library slot used to carry the LIVE exp-library
+;;; record (whose bindings hold transformers), which made the compiled
+;;; transformer datum unserializable.  parse-template now emits a
+;;; serializable (libref name) descriptor (the same descriptor module.scm's
+;;; purify-syntax-tree uses); fast-instantiate resolves it back to the
+;;; live library at run time via the library registry.
+
+(define (template-lib stx)
+  (let ((lib (syntax-library stx)))
+    (if (and lib (exp-library? lib))
+      (list 'libref (exp-library-name lib))
+      lib)))
+
+(define (lib-by-name name)
+  (if (and (base-library) (equal? (exp-library-name (base-library)) name))
+    (base-library)
+    (if (and (module? the-expander-library)
+             (memq 'library-registry-ref (module-exports the-expander-library)))
+      (letrec* ((rec ((module-ref the-expander-library 'library-registry-ref) name)))
+        (if rec (lib-record-library rec) #f))
+      #f)))
+
+(define (node-lib x)
+  (if (and (pair? x) (eq? (car x) 'libref))
+    (lib-by-name (cadr x))
+    (if (exp-library? x) x (lib-by-name x))))
+
 (define (parse-template stx patvars)
   (letrec* ((form (if (syntax? stx) (syntax-form stx) stx)))
     (if (symbol? form)
         (if (memq form patvars)
-            (list 'v form (syntax-context stx) (syntax-library stx) stx)
-            (list 'c (syntax-context stx) (syntax-library stx) stx))
+            (list 'v form (syntax-context stx) (template-lib stx) stx)
+            (list 'c (syntax-context stx) (template-lib stx) stx))
         (if (pair? form)
             (cons 'l
                   (cons (syntax-context stx)
-                        (cons (syntax-library stx)
+                        (cons (template-lib stx)
                               (parse-list form patvars))))
             (if (stx-vector? form)
                 (letrec* ((sctx (syntax-context stx))
-                          (lib (syntax-library stx))
+                          (lib (template-lib stx))
                           (elems (map (lambda (e)
                                         (if (syntax? e)
                                             e
-                                            (make-syntax e sctx lib)))
+                                            (make-syntax e sctx (syntax-library stx))))
                                       (vector->list form))))
                   (cons 'vec
                         (cons sctx
                               (cons lib (parse-list elems patvars)))))
-                (list 'c (syntax-context stx) (syntax-library stx) stx))))))
+                (list 'c (syntax-context stx) (template-lib stx) stx))))))
 
 (define (parse-list form patvars)
   (if (null? form)
@@ -430,12 +458,12 @@
               (if (memq (syntax-form form) patvars)
                   (list (list 'd
                               (syntax-context form)
-                              (syntax-library form)
+                              (template-lib form)
                               (syntax-form form)
                               form))
                   (list (list 'dc
                               (syntax-context form)
-                              (syntax-library form)
+                              (template-lib form)
                               form)))
               (list (parse-template form patvars)))
           (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
@@ -451,22 +479,22 @@
     (if (eq? tag 'c)
         (make-syntax (node-datum (cadddr node))
                      (stx-ctx-mark-intro (node-datum (cadr node)) 0)
-                     (node-datum (caddr node)))
+                     (node-lib (caddr node)))
         (if (eq? tag 'v)
             (letrec* ((b (assq (node-datum (cadr node)) bindings)))
               (if b
                   (cdr b)
                   (make-syntax (node-datum (cddddr node))
                                (stx-ctx-mark-intro (node-datum (caddr node)) 0)
-                               (node-datum (cadddr node)))))
+                               (node-lib (cadddr node)))))
             (if (eq? tag 'l)
                 (make-syntax (fast-instantiate-segs (cdddr node) bindings)
                              (stx-ctx-mark-intro (node-datum (cadr node)) 0)
-                             (node-datum (caddr node)))
+                             (node-lib (caddr node)))
                 (if (eq? tag 'vec)
                     (make-syntax (list->vector (fast-instantiate-segs (cdddr node) bindings))
                                  (stx-ctx-mark-intro (node-datum (cadr node)) 0)
-                                 (node-datum (caddr node)))
+                                 (node-lib (caddr node)))
                     (error "fast-instantiate: bad node" node)))))))
 
 (define (fast-instantiate-segs segs bindings)
@@ -482,7 +510,7 @@
                 (if (eq? tag 'dc)
                     (make-syntax (node-datum (cadddr seg))
                                  (stx-ctx-mark-intro (node-datum (cadr seg)) 0)
-                                 (node-datum (caddr seg)))
+                                 (node-lib (caddr seg)))
                     (cons (fast-instantiate seg bindings)
                           (fast-instantiate-segs (cdr segs) bindings))))))))
 
@@ -497,7 +525,7 @@
               v))
         (make-syntax (node-datum t)
                      (stx-ctx-mark-intro (node-datum (cadr node)) 0)
-                     (node-datum (caddr node))))))
+                     (node-lib (caddr node))))))
 
 (define (fast-instantiate-ellipsis node bindings)
   (letrec* ((vars (car node))
