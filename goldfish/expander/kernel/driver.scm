@@ -70,20 +70,13 @@
     (when (> n 50000)
       (error "compile-program*: expansion limit exceeded"))
     (if (null? exprs)
-      (if (null? body)
-        (values (if (null? lib-defs)
+      (values (if (null? body)
+                (if (null? lib-defs)
                   (wrap-expression '(if #f #f))
                   (wrap-expression (cons 'begin (reverse lib-defs))))
-                ctx)
-        (let*-values (((body-defs ctx1)
-                       (expand-library-body (reverse body) the-base-library ctx)))
-          (let ((body-stx (wrap-expression
-                           (cons 'begin (map lower body-defs)))))
-            (values (if (null? lib-defs)
-                      body-stx
-                      (wrap-expression
-                        (cons 'begin (append (reverse lib-defs) (list body-stx)))))
-                    ctx1))))
+                (wrap-expression
+                  (cons 'begin (append (reverse lib-defs) (reverse body)))))
+              ctx)
       (let ((expr (car exprs)))
         (if (and (pair? expr) (eq? (car expr) 'begin))
           (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body (+ n 1))
@@ -114,8 +107,21 @@
                                lib-defs body (+ n 1))
                          (loop (cdr exprs) ctx1 lib-defs body (+ n 1))))))
                   (else
-                   (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1)))))
-              (loop (cdr exprs) ctx lib-defs (cons stx body) (+ n 1)))))))))
+                   ;; Expand each top-level form in order (R7RS 5.1 program
+                   ;; semantics): a definition is bound immediately, so a
+                   ;; later redefinition does not retroactively capture
+                   ;; earlier references (e.g. (define x 1) (define y x)
+                   ;; (define x 2) must bind y to 1).  The library-body
+                   ;; hoisting used for define-library bodies would resolve
+                   ;; y against the final x.
+                   (let*-values (((d ctx1)
+                                  (expand-library-body (list stx) the-base-library ctx)))
+                     (loop (cdr exprs) ctx1 lib-defs
+                           (append (reverse d) body) (+ n 1))))))
+              (let*-values (((d ctx1)
+                             (expand-library-body (list stx) the-base-library ctx)))
+                (loop (cdr exprs) ctx1 lib-defs
+                      (append (reverse d) body) (+ n 1))))))))))
 
 (module-define! the-expander-library 'expand-stx expand-stx)
 (module-define! the-expander-library 'expand expand)
