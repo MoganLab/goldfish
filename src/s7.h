@@ -573,6 +573,15 @@ s7_pointer s7_make_safe_function_star(s7_scheme *sc, const char *name, s7_functi
 void s7_define_function_star(s7_scheme *sc, const char *name, s7_function fnc, const char *arglist, const char *doc);
 void s7_define_safe_function_star(s7_scheme *sc, const char *name, s7_function fnc, const char *arglist, const char *doc);
 void s7_define_typed_function_star(s7_scheme *sc, const char *name, s7_function fnc, const char *arglist, const char *doc, s7_pointer signature);
+
+/* goldfish extension: create a closure (lambda args body...) with the
+   current environment, as the interpreter's own lambda form does.
+   args is the formals (a list or a symbol), body a list of expressions,
+   arity the (statically known) argument count.  Used by the self-hosted
+   VM to wrap bytecode functions in a callable s7 closure. */
+s7_pointer s7_gf_make_closure(s7_scheme *sc, s7_pointer args, s7_pointer body, int32_t arity);
+bool s7_gf_is_closure(s7_pointer p);
+s7_pointer s7_gf_global_value(s7_scheme *sc, s7_pointer sym);
 s7_pointer s7_define_macro(s7_scheme *sc, const char *name, s7_function fnc, s7_int required_args, s7_int optional_args, bool rest_arg, const char *doc);
 s7_pointer s7_define_expansion(s7_scheme *sc, const char *name, s7_function fnc, s7_int required_args, s7_int optional_args, bool rest_arg, const char *doc);
 

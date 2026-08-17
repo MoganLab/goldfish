@@ -9079,6 +9079,31 @@ static s7_pointer make_closure(s7_scheme *sc, s7_pointer args, s7_pointer code, 
   return(new_func);
 }
 
+/* goldfish extension: expose closure creation for the self-hosted VM.
+ * args is the formals (a list or a symbol), body a list of expressions.
+ * The closure captures the current environment (sc->curlet), as the
+ * interpreter's own lambda does. */
+s7_pointer s7_gf_make_closure(s7_scheme *sc, s7_pointer args, s7_pointer body, int32_t arity)
+{
+  return make_closure(sc, args, body, T_CLOSURE, arity);
+}
+
+/* goldfish extension: closure predicate, so the VM can dispatch safely
+ * before touching closure fields. */
+bool s7_gf_is_closure(s7_pointer p)
+{
+  return is_closure(p);
+}
+
+/* goldfish extension: read a symbol's GLOBAL slot directly, bypassing
+ * the current-environment lookup of s7_symbol_value (which walks the
+ * curlet chain).  The VM's (global name) references use this. */
+s7_pointer s7_gf_global_value(s7_scheme *sc, s7_pointer sym)
+{
+  s7_pointer slot = global_slot(sym);
+  return((is_slot(slot)) ? slot_value(slot) : sc->undefined);
+}
+
 static int32_t closure_length(s7_scheme *sc, s7_pointer clo)
 {
   /* we can't use let_length(sc, closure_let(clo)) because the closure_let(closure)
