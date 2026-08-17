@@ -11,7 +11,8 @@
 (vm-load (to-bytecode
           (map core->ir
                '((define (fib-vm n) (if (< n 2) n (+ (fib-vm (- n 1)) (fib-vm (- n 2)))))
-                 (define (loop-vm i acc) (if (= i 0) acc (loop-vm (- i 1) (+ acc 1))))))))
+                 (define (loop-vm i acc) (if (= i 0) acc (loop-vm (- i 1) (+ acc 1)))))))
+         #f)
 
 ;; 等价性先验证
 (check (fib-s7 20) => 6765)

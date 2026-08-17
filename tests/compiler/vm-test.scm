@@ -56,4 +56,9 @@
 (check (f2 1) => 101)
 (check (add 3 4) => 7)
 
+;; ===== 10. rest 参数 =====
+(vm-load (to-bytecode (list (core->ir '(define (rest-f . args) (length args))))) #f)
+(check (rest-f 1 2 3) => 3)
+(check (rest-f) => 0)
+
 (check-report)

@@ -9085,7 +9085,11 @@ static s7_pointer make_closure(s7_scheme *sc, s7_pointer args, s7_pointer code, 
  * interpreter's own lambda does. */
 s7_pointer s7_gf_make_closure(s7_scheme *sc, s7_pointer args, s7_pointer body, int32_t arity)
 {
-  return make_closure(sc, args, body, T_CLOSURE, arity);
+  /* Rest formals (a symbol, or a dotted list) need T_COPY_ARGS: without it s7
+   * binds/calls the closure as a fixed-arity function and crashes. */
+  return make_closure(sc, args, body,
+                      T_CLOSURE | ((!s7_is_proper_list(sc, args)) ? T_COPY_ARGS : 0),
+                      arity);
 }
 
 /* goldfish extension: closure predicate, so the VM can dispatch safely

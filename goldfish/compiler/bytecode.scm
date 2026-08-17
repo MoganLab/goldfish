@@ -354,7 +354,11 @@
                 (begin
                   (compile-expr (define-value d) '() emit next-label next-slot add-code)
                   (emit (list 'store-global (define-name d))))
-                (compile-expr d '() emit next-label next-slot add-code)))
+                ;; A top-level expression (a library registration side
+                ;; effect, say) compiles against a non-empty frame: lambda
+                ;; bodies never touch the top frame env, but an expression
+                ;; containing let/letrec takes (car envs).
+                (compile-expr d '(()) emit next-label next-slot add-code)))
             defs)
           (list 'program
                 (cons 'code-table (get-codes))

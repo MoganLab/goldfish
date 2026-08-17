@@ -294,7 +294,13 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         break;
       case Op::StoreGlobal: {
         s7_pointer v = pop ();
-        s7_define_variable (sc, s7_symbol_name (in.a), v);
+        s7_pointer sym = in.a;
+              // Store into the program's resolution env (an inlet such as
+        // the-expander-library) when one was given, else the rootlet.
+        if (g_global_env != nullptr && s7_is_let (g_global_env))
+          s7_varlet (sc, g_global_env, sym, v);
+        else
+          s7_define_variable (sc, s7_symbol_name (sym), v);
         break;
       }
       case Op::Closure: {
@@ -310,10 +316,26 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
                                             s7_nil (sc)));
         s7_pointer cobj = s7_make_c_object_with_let (sc, VM_CLOSURE_TYPE, vc, let);
         s7_pointer formals = ci.formals;
+        // Build the call formals as a proper list: (x y) -> (x y),
+        // (a . rest) -> (a rest), a rest symbol -> (args).  The closure
+        // body must be a proper list -- (vm-enter cobj a . rest) cannot be
+        // evaluated -- and a rest arg arrives as one list value.
+        s7_pointer call_formals;
+        if (s7_is_symbol (formals)) {
+          call_formals = s7_list (sc, 1, formals);
+        } else if (!s7_is_proper_list (sc, formals)) {
+          s7_pointer acc = s7_nil (sc);
+          s7_pointer f = formals;
+          while (s7_is_pair (f)) { acc = s7_cons (sc, s7_car (f), acc); f = s7_cdr (f); }
+          acc = s7_cons (sc, f, acc);
+          call_formals = s7_reverse (sc, acc);
+        } else {
+          call_formals = formals;
+        }
         s7_pointer call = s7_cons (sc, vm_enter_symbol,
-                                   s7_cons (sc, cobj, formals));
+                                   s7_cons (sc, cobj, call_formals));
         s7_pointer body = s7_list (sc, 1, call);
-        s7_int arity = s7_is_symbol (formals) ? ci.nlocals
+        s7_int arity = s7_is_symbol (formals) ? -1
                                               : s7_list_length (sc, formals);
         push (s7_gf_make_closure (sc, formals, body, arity));
         break;
