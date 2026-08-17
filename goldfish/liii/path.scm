@@ -1192,7 +1192,16 @@
         (cond ((and (not exist-ok) (file-exists? s))
                (file-exists-error (string-append "File exists: '" s "'"))
               ) ;
-              ((not parents) (ensure-one s))
+              ((not parents)
+               ;; pathlib 语义:parents=#f 时父目录必须存在,否则报错
+               ;; (tbox 的 directory_create 会递归创建,须自行检查)。
+               (let ((parent (path->string (path-parent (path s)))))
+                 (if (and (not (equal? parent s))
+                          (not (file-exists? parent)))
+                   (file-exists-error
+                     (string-append "Parent directory does not exist: '" parent "'"))
+                   (ensure-one s)))
+              ) ;
               (else
                 ;; parents:从根向下逐级创建(跳过已存在的)
                 (let loop
