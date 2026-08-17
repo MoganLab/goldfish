@@ -289,11 +289,41 @@
 ;;; the compiler library was available at save time) or a lowered form;
 ;;; a program is loaded through vm-load (a VM closure), otherwise the form
 ;;; is evaluated (cf. Racket's direct-eval).
+
+;;; gensym->original-name : symbol -> symbol
+;;; context-alloc-name allocates "prefix:counter" gensyms; recover the
+;;; original identifier (the prefix) so a cached definition can be
+;;; registered in the library binding table under its public name.
+(define (gensym->original-name sym)
+  (let ((s (symbol->string sym)))
+    (let loop ((i 0))
+      (cond
+        ((>= i (string-length s)) sym)
+        ((char=? (string-ref s i) #\:) (string->symbol (substring s 0 i)))
+        (else (loop (+ i 1)))))))
+
 (define (install-cache-load! lib rec)
   (let ((defs (cdr (assq 'defs rec)))
         (macros (cdr (assq 'macros rec))))
     (for-each (lambda (sexp)
-                (eval (deserialize-cache-sexp sexp) the-expander-library))
+                (let ((data (deserialize-cache-sexp sexp)))
+                  ;; Mirror expand-lib-define-bind's exp-library-define!:
+                  ;; a cached value definition must be registered in the
+                  ;; library's binding table under its original name.  The
+                  ;; eval below only binds the s7 environment, which
+                  ;; resolve-identifier cannot see; leaving the table empty
+                  ;; makes every reference fall back to the bare original
+                  ;; name, which the s7 environment does not contain on the
+                  ;; warm path (e.g. syntax-case-dispatch, referenced by a
+                  ;; syntax-case-generated transformer).
+                  (when (and (pair? data) (eq? (car data) 'define)
+                             (symbol? (cadr data)))
+                    (let* ((gensym (cadr data))
+                           (original (gensym->original-name gensym)))
+                      (exp-library-define! lib original
+                        (make-toplevel-binding
+                          (make-toplevel-ref gensym lib original #f)))))
+                  (eval data the-expander-library)))
               defs)
     (for-each (lambda (r)
                 (let* ((name (car r))
