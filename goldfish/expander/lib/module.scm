@@ -578,8 +578,15 @@
 (define (load-library-file-cached! recs)
   (for-each (lambda (rec)
               (let ((defs (lib-cache-defs rec)))
+                ;; Preload only the dependencies of the cached defs, never
+                ;; the library itself: its defs may reference it through
+                ;; (module-ref '(name ...) ...) (a library's own value
+                ;; definitions can refer to each other), and re-entering
+                ;; load-library! for the library being loaded trips the
+                ;; circular-dependency guard.
                 (for-each (lambda (lib)
-                            (if (not (runtime-registered? lib))
+                            (if (and (not (runtime-registered? lib))
+                                     (not (equal? lib (lib-cache-name rec))))
                               (load-library! lib)))
                           (apply append (map collect-cache-module-refs defs)))
                 (for-each (lambda (d) (eval d (rootlet))) defs)))
