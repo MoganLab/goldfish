@@ -91,7 +91,9 @@ static Op decode_op (s7_pointer sym) {
   return Op::Unknown;
 }
 
+struct VMProgram;
 struct VMClosure {
+  VMProgram* prog;     // the program this closure's code lives in
   int code_idx;
   s7_pointer captured;  // list of enclosing slot vectors (outermost first)
 };
@@ -115,6 +117,7 @@ struct VMFrame {
 };
 
 static VMProgram* g_program = nullptr;
+static s7_pointer g_global_env = nullptr;   // optional (global name) resolution env
 static std::vector<s7_pointer> g_stack;
 static std::vector<VMFrame> g_frames;
 
@@ -127,6 +130,17 @@ static inline s7_pointer pop () {
   s7_pointer v = g_stack.back ();
   g_stack.pop_back ();
   return v;
+}
+
+// ---------------------------------------------------------------------------
+// Global lookup: the program's resolution env first, then the rootlet.
+
+static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name) {
+  if (g_global_env != nullptr && s7_is_let (g_global_env)) {
+    s7_pointer v = s7_let_ref (sc, g_global_env, name);
+    if (v != s7_undefined (sc)) return v;
+  }
+  return s7_gf_global_value (sc, name);
 }
 
 // ---------------------------------------------------------------------------
@@ -201,8 +215,8 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
 // ---------------------------------------------------------------------------
 // Frames.
 
-static void push_frame (s7_scheme* sc, int code_idx, const std::vector<s7_pointer>& args, s7_pointer captured, std::vector<s7_pointer>* reuse) {
-  VMCodeInfo& ci = g_program->codes[code_idx];
+static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std::vector<s7_pointer>& args, s7_pointer captured, std::vector<s7_pointer>* reuse) {
+  VMCodeInfo& ci = prog->codes[code_idx];
   VMFrame f;
   f.pc = 0;
   f.code = &ci.instrs;
@@ -237,7 +251,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
         s7_is_eq (s7_car (s7_car (body)), vm_enter_symbol)) {
       s7_pointer cobj = s7_cadr (s7_car (body));
       VMClosure* vc = static_cast<VMClosure*>(s7_c_object_value (cobj));
-      push_frame (sc, vc->code_idx, args, vc->captured, reuse);
+      push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, reuse);
       return nullptr;
     }
   }
@@ -264,7 +278,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         push (in.a);
         break;
       case Op::Global:
-        push (s7_gf_global_value (sc, in.a));
+        push (global_lookup (sc, in.a));
         break;
       case Op::Ref:
         push (s7_vector_ref (sc, s7_list_ref (sc, fr.captured, in.b - 1), in.c));
@@ -287,6 +301,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         int i = (int)in.b;
         VMCodeInfo& ci = g_program->codes[i];
         VMClosure* vc = new VMClosure;
+        vc->prog = g_program;
         vc->code_idx = i;
         vc->captured = s7_cons (sc, snapshot_slots (sc, fr), fr.captured);
         s7_pointer let = s7_inlet (sc,
@@ -376,10 +391,16 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
 }
 
 // ---------------------------------------------------------------------------
-// vm-load : program -> #t
+// vm-load : program env -> top result
+// Load a program, set its (global ...) resolution environment (an inlet
+// such as the-expander-library, or #f for the rootlet), run the top
+// instruction list, and return the value it leaves on the stack (e.g. a
+// VM closure).  One program at a time: loading replaces the previous
+// program and invalidates closures built from it.
 static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   s7_pointer program = s7_car (args);
   s7_gc_protect (sc, program);
+  g_global_env = s7_cadr (args);
   VMProgram* p = new VMProgram;
   s7_pointer ctable = s7_cadr (program);
   for (s7_pointer c = s7_cdr (ctable); s7_is_pair (c); c = s7_cdr (c)) {
@@ -400,8 +421,7 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.slots.clear ();
   f.captured = s7_nil (sc);
   g_frames.push_back (f);
-  run (sc, 0);
-  return s7_t (sc);
+  return run (sc, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -413,7 +433,7 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
   std::vector<s7_pointer> arg_list;
   for (s7_pointer a = s7_cdr (args); s7_is_pair (a); a = s7_cdr (a))
     arg_list.push_back (s7_car (a));
-  push_frame (sc, vc->code_idx, arg_list, vc->captured, nullptr);
+  push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, nullptr);
   s7_pointer result = run (sc, 0);
   s7_gc_on (sc, s7_boolean (sc, saved_gc));
   return result;
@@ -445,7 +465,8 @@ void glue_vm (s7_scheme* sc) {
   vm_values_symbol = s7_make_symbol (sc, "values");
   vm_call_with_values_symbol = s7_make_symbol (sc, "call-with-values");
 
-  s7_define_function (sc, "vm-load", vm_load, 1, 0, false, "(vm-load program)");
+  s7_define_function (sc, "vm-load", vm_load, 2, 0, false,
+                      "(vm-load program global-env)");
   s7_define_function (sc, "vm-enter", vm_enter, 1, 0, true, "(vm-enter cobj . args)");
 }
 

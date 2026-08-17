@@ -5,7 +5,7 @@
 
 ;; 加载一组 defs 到 VM（一个 program，函数注册为全局）
 (define (vm-load-defs defs)
-  (vm-load (to-bytecode (map core->ir defs))))
+  (vm-load (to-bytecode (map core->ir defs)) #f))
 
 (vm-load-defs '((define (add x y) (+ x y))
                 (define (sub x y) (- x y))
@@ -50,5 +50,10 @@
 ;; ===== 8. 恒等/常量 =====
 (check (id 42) => 42)
 (check (id "vm") => "vm")
+
+;; ===== 9. 多 program：加载第二个 program 后，第一个的闭包仍有效 =====
+(define f2 (vm-load (to-bytecode (list (core->ir '(lambda (x) (+ x 100))))) #f))
+(check (f2 1) => 101)
+(check (add 3 4) => 7)
 
 (check-report)
