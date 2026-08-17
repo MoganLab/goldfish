@@ -10,7 +10,7 @@
 
 (define (make-syntax-rules-transformer stx . maybe-ctx)
   (let ((ctx (if (null? maybe-ctx) (context-empty) (car maybe-ctx))))
-    (let-values (((proc _) (eval-transformer stx ctx)))
+    (let-values (((proc _ _) (eval-transformer stx ctx)))
       proc)))
 
 ;;; transformer-spec->procedure-form : syntax -> syntax
@@ -39,24 +39,29 @@
             (list param)
             (cons (car form) (cons param (cddr form)))))))
 
-;;; eval-transformer : syntax context -> (values procedure context)
+;;; eval-transformer : syntax context -> (values procedure context sexp)
 ;;; Evaluate a transformer expression at expand time.  Transformer specs
 ;;; (syntax-rules, and syntax-case in transformer position) are first desugared
 ;;; to a procedural transformer; the result is then expanded at phase+1
 ;;; (phases-model let-syntax rule), lowered to core Scheme, and evaluated
 ;;; to a procedure in the expander API module (s7 eval falls back to
-;;; rootlet for names the module does not define).
+;;; rootlet for names the module does not define).  The lowered core
+;;; S-expression is returned as a third value so library installs can
+;;; cache the transformer (the only serializable form of a transformer;
+;;; cf. Racket's direct-eval, which likewise evaluates simple transformer
+;;; expressions without compiling them).
 
 (define (eval-transformer stx ctx)
   (let* ((stx (transformer-spec->procedure-form stx))
          (ph (context-phase ctx))
          (ctx-up (context-at-phase ctx (+ ph 1))))
     (let*-values (((sexp ctx2) (expand-expr stx ctx-up)))
-      (let ((proc (eval (lower sexp) the-expander-library)))
-        (unless (procedure? proc)
-          (error "eval-transformer: transformer must evaluate to a procedure"
-                 (syntax->datum stx)))
-        (values proc (context-return ctx ctx2))))))
+      (let* ((lowered (lower sexp)))
+        (let ((proc (eval lowered the-expander-library)))
+          (unless (procedure? proc)
+            (error "eval-transformer: transformer must evaluate to a procedure"
+                   (syntax->datum stx)))
+          (values proc (context-return ctx ctx2) lowered))))))
 
 ;;; Library exports
 

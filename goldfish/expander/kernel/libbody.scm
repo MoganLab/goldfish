@@ -166,7 +166,8 @@
   (let* ((form (syntax-form stx))
          (id (cadr form))
          (transformer-stx (caddr form)))
-    (let*-values (((proc ctx) (eval-transformer transformer-stx ctx)))
+    (let*-values (((proc ctx macro-sexp) (eval-transformer transformer-stx ctx)))
+      (collect-macro-record! (syntax-form id) macro-sexp)
       (let*-values (((name ctx) (context-alloc-name ctx id)))
         (exp-library-define! lib (syntax-form id) (make-transformer-binding proc))
         (values (context-extend-env (context-bind ctx id name)
@@ -177,3 +178,25 @@
 (module-define! the-expander-library 'expand-library-finalize expand-library-finalize)
 (module-define! the-expander-library 'expand-lib-define-bind expand-lib-define-bind)
 (module-define! the-expander-library 'expand-lib-define-syntax expand-lib-define-syntax)
+
+;;; Macro transformer collection
+;;; expand-lib-define-syntax records each library macro definition as
+;;; (name . lowered-core-sexp) while it is expanded.  The install layer
+;;; (lib/install.scm) takes the records to build a serializable cache of
+;;; the library's macros: the lowered core S-expression is the only
+;;; serializable form of a transformer (closures cannot be written), and
+;;; re-evaluating it at warm start rebuilds the transformer without
+;;; re-running the expander -- cf. Racket's direct-eval path for simple
+;;; transformer expressions.
+
+(define *macro-records* '())
+
+(define (collect-macro-record! name sexp)
+  (set! *macro-records* (cons (cons name sexp) *macro-records*)))
+
+(define (take-macro-records)
+  (let ((r (reverse *macro-records*)))
+    (set! *macro-records* '())
+    r))
+(module-define! the-expander-library 'collect-macro-record! collect-macro-record!)
+(module-define! the-expander-library 'take-macro-records take-macro-records)

@@ -292,7 +292,7 @@
              (id (stx-add-scope (car b) scp ph))
              (transformer-stx (stx-add-scope (cadr b) scp ph)))
         (require-identifier id "letrec-syntax: expected identifier")
-        (let*-values (((proc ctx0) (eval-transformer transformer-stx ctx)))
+        (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
           (let*-values (((name ctx1) (context-alloc-name ctx0 id)))
             (let ((ctx2 (context-extend-env (context-bind ctx1 id name)
                                             name
@@ -307,7 +307,7 @@
              (id (stx-add-scope (car b) scp ph))
              (transformer-stx (cadr b)))
         (require-identifier id "let-syntax: expected identifier")
-        (let*-values (((proc ctx0) (eval-transformer transformer-stx ctx)))
+        (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
           (let*-values (((name ctx1) (context-alloc-name ctx0 id)))
             (let ((ctx2 (context-extend-env (context-bind ctx1 id name)
                                             name

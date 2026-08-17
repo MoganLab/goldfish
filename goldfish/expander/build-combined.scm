@@ -99,6 +99,20 @@
 
 ;; Expand everything as ONE program against ONE library, so cross-module
 ;; free references resolve to gensyms directly (no per-module mapping).
+;; The base library's PRIMITIVE bindings are dropped first: when a name is
+;; both a primitive (registered via install-primitives!) and a value
+;; definition (e.g. make-syntax from define-record-type), the primitive
+;; binding would win resolution and free references would emit the bare
+;; name -- which does not resolve at artifact load time (the artifact is
+;; evaluated in the rootlet, and expander primitives live only as bindings).
+;; With the primitives removed, those references resolve to the value
+;; definition's gensym, which the artifact defines and loads cleanly.
+(let* ((bl (base-library)))
+  (when bl
+    (set-exp-library-bindings!
+      bl
+      (filter (lambda (e) (not (primitive-binding? (cdr e))))
+              (exp-library-bindings bl)))))
 (let* ((lib (make-exp-library '(goldfish expander)))
        (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib)) all-forms)))
   (let*-values (((defs ctx) (expand-library-body stxs lib (initial-context))))

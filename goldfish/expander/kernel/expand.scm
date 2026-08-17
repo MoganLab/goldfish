@@ -347,7 +347,7 @@
           (let* ((transformer-stx (car maybe-transformer-stx))
                  (stx1 (stx-flip-intro-off transformer-stx scp-i ph))
                  (stx2 (stx-add-scope stx1 scp-in ph)))
-            (let*-values (((proc ctx1) (eval-transformer stx2 ctx)))
+            (let*-values (((proc ctx1 _) (eval-transformer stx2 ctx)))
               (let*-values (((name ctx2) (context-alloc-name ctx1 id-defs)))
                 (let* ((ctx3 (context-bind ctx2 id-defs name))
                        (store (context-store ctx3))
