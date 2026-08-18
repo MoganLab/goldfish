@@ -1,4 +1,5 @@
 (define-library (liii queue)
+  (import (goldfish))
   (export make-list-queue
     list-queue
     list-queue-copy

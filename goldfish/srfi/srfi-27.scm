@@ -25,6 +25,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (define-library (srfi srfi-27)
+  (import (goldfish))
   (import (scheme base) (srfi srfi-19) (liii error))
   (export random-integer
     random-real

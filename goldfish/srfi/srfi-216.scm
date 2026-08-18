@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-216)
+  (import (goldfish))
   (export true false nil runtime)
   (import (scheme time))
   (begin

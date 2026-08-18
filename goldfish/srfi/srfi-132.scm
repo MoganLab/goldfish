@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-132)
+  (import (goldfish))
   (export list-sorted?
     vector-sorted?
     list-merge

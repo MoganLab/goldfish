@@ -1,4 +1,5 @@
 (define-library (liii sort)
+  (import (goldfish))
   (export list-sorted?
     vector-sorted?
     list-merge

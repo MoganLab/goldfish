@@ -1,4 +1,5 @@
 (define-library (liii comparator)
+  (import (goldfish))
   (import (srfi srfi-128))
   (export comparator?
     comparator-ordered?

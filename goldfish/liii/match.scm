@@ -5,6 +5,7 @@
 ;;; supports the literal-underscore semantics this library relies on.
 
 (define-library (liii match)
+  (import (goldfish))
   (export match match-lambda match-lambda* match-let match-let* match-letrec)
   (begin
 ;;; lib/match.scm

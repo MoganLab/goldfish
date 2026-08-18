@@ -1,4 +1,5 @@
 (define-library (liii error)
+  (import (goldfish))
   (export ???
     os-error
     file-not-found-error

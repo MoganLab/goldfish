@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-13)
+  (import (goldfish))
   (import (liii base) (scheme base) (srfi srfi-1) (scheme char) (srfi srfi-175))
   (export string-null?
     string-copy

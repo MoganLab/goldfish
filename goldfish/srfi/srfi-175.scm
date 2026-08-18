@@ -2,6 +2,7 @@
 ;; SPDX-License-Identifier: MIT
 
 (define-library (srfi srfi-175)
+  (import (goldfish))
   (export ascii-codepoint?
     ascii-bytevector?
 

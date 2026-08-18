@@ -1,4 +1,5 @@
 (define-library (liii bitwise)
+  (import (goldfish))
   (import (srfi srfi-151) (liii error))
   (export lognot logand logior logxor ash)
   (export bitwise-not

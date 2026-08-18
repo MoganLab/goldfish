@@ -36,6 +36,7 @@
 ;;
 
 (define-library (srfi srfi-214)
+  (import (goldfish))
   (export
     ;; Constructors
     make-flexvector

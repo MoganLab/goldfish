@@ -1,4 +1,5 @@
 (define-library (liii fxmapping)
+  (import (goldfish))
   (import (srfi srfi-224))
   (export
     ;; Constructors
@@ -46,8 +47,6 @@
     fxmapping->decreasing-alist
     fxmapping-keys
     fxmapping-values
-    fxmapping->generator
-    fxmapping->decreasing-generator
     ;; Comparison
     fxmapping=?
     fxmapping<?
@@ -72,7 +71,5 @@
     fxsubmapping>
     fxsubmapping>=
     fxmapping-split
-    ;; Relations
-    fxmapping-relation-map
   ) ;export
 ) ;define-library

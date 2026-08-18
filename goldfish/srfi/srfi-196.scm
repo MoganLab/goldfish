@@ -22,6 +22,7 @@
 ;;
 
 (define-library (srfi srfi-196)
+  (import (goldfish))
   (import (scheme base) (scheme case-lambda))
   (export range
     numeric-range

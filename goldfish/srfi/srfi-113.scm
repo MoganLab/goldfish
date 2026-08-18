@@ -22,6 +22,7 @@
 ;;
 
 (define-library (srfi srfi-113)
+  (import (goldfish))
   (import (scheme base)
     (scheme case-lambda)
     (liii hash-table)

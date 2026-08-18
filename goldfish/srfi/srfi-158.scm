@@ -37,6 +37,7 @@
 ;; SOFTWARE.
 
 (define-library (srfi srfi-158)
+  (import (goldfish))
   (import (srfi srfi-16))
   (export generator
     circular-generator

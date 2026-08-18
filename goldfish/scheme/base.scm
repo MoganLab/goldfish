@@ -1,4 +1,5 @@
 (define-library (scheme base)
+  (import (goldfish))
   (export let-values
     define-values
     define-record-type
@@ -191,7 +192,6 @@
     file-error?
   ) ;export
   (begin
-    (include "liii/host-abi.scm")
     (define-macro (let-values bindings . body)
       (if (null? bindings)
         `(let () ,@body)
@@ -244,6 +244,7 @@
            ) ;
         `(begin
            (define ,rtd (make-record-type (quote ,type) (quote ,field-names)))
+           ,@(if (keyword? type) '() `((define ,type ,rtd)))
            (define (,make-name ,@make-params) (vector ,rtd ,@make-params))
            (define (,? obj)
              (and (vector? obj)

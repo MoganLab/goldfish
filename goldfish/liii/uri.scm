@@ -4,6 +4,7 @@
 ;; ; uri-compare、uri-make、uri-transform、uri-convert 等子模块中
 
 (define-library (liii uri)
+  (import (goldfish))
   (import (scheme base)
     (liii uri-parse)
     (liii uri-record)

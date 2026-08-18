@@ -40,6 +40,7 @@
 ;; SOFTWARE.
 
 (define-library (srfi srfi-165)
+  (import (goldfish))
   (import (srfi srfi-1) (srfi srfi-128) (srfi srfi-125))
   (export make-computation-environment-variable
     make-computation-environment

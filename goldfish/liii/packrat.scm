@@ -1,4 +1,5 @@
 (define-library (liii packrat)
+  (import (goldfish))
   (import (liii error) (scheme base) (srfi srfi-1))
   (export
     ;; parse-result

@@ -1,4 +1,5 @@
 (define-library (liii hashlib)
+  (import (goldfish))
   (export md5 sha1 sha256 md5-by-file sha1-by-file sha256-by-file)
   (begin
 

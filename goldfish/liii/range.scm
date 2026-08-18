@@ -1,4 +1,5 @@
 (define-library (liii range)
+  (import (goldfish))
   (import (srfi srfi-196))
   (export range
     numeric-range

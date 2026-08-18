@@ -1,4 +1,5 @@
 (define-library (liii timeit)
+  (import (goldfish))
   (export timeit)
   (import (liii base) (scheme base) (scheme time))
   (begin

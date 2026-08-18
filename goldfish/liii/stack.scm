@@ -1,4 +1,5 @@
 (define-library (liii stack)
+  (import (goldfish))
   (export make-stack
     stack
     stack?

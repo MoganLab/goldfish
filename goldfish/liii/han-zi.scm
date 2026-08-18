@@ -14,6 +14,7 @@
 ;; limitations under the License.
 
 (define-library (liii han-zi)
+  (import (goldfish))
   (export han-zi->number number->han-zi han-zi-number?)
   (begin
 

@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-26)
+  (import (goldfish))
   (export cut cute)
   (import (liii list) (liii error))
   (begin

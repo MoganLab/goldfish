@@ -1,4 +1,5 @@
 (define-library (liii bag)
+  (import (goldfish))
   (import (rename (srfi srfi-113)
             (bag make-bag-with-comparator)
             (list->bag list->bag-with-comparator)

@@ -1,4 +1,5 @@
 (define-library (liii list)
+  (import (goldfish))
   (export circular-list
     iota
     xcons

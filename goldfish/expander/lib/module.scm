@@ -356,7 +356,16 @@
                         (reverse i)))
              (bindings (map (lambda (e)
                               (cons (car e) (purify-binding (cdr e))))
-                            (exp-library-bindings lib1)))
+                            ;; Only the cacheable binding kinds are stored:
+                            ;; imported core-form / module-form bindings (an
+                            ;; import of (goldfish) pulls every ambient
+                            ;; binding) have no serializable description and
+                            ;; are re-derived from the re-imported
+                            ;; dependencies at restore time.
+                            (filter (lambda (e)
+                                      (memq (binding-kind (cdr e))
+                                            '(toplevel primitive transformer)))
+                                    (exp-library-bindings lib1))))
              ;; Macro definitions are cached as their LOWERED transformer
              ;; forms, the same mechanism the boot library installs use:
              ;; expand-library-body collected them as (name . lowered) while
@@ -432,13 +441,12 @@
                                (eval data the-expander-library))))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
-    ;; 4. Exports with no body binding are inherited from base / primitive
-    ;;    (mirrors expand-define-library's export fallback).
+    ;; 4. Exports with no restored body/import binding are an error (they
+    ;;    would have failed at capture time too: expand-define-library
+    ;;    requires every export to resolve from the body or an import).
     (for-each (lambda (export)
                 (unless (exp-library-ref lib export)
-                  (exp-library-define! lib export
-                    (or (exp-library-ref the-base-library export)
-                        (make-primitive-binding export)))))
+                  (error "define-library: export has no binding" export name)))
               exports)
     lib))
 
@@ -946,10 +954,19 @@
             ;; r7rs procedure set, most of which is never defined in its
             ;; body).  No binding at all is NOT an error: the host s7
             ;; environment loads scheme/base.scm with the same tolerance.
+            ;; An exported identifier not defined in the library body must
+            ;; resolve from an explicitly imported library (e.g. (scheme
+            ;; base) imports (goldfish) and re-exports the host surface).
+            ;; There is no implicit fallback to the base library or to a
+            ;; bare host-rootlet name: the s7 dependency of every export is
+            ;; declared where it is imported.  No binding at all is an
+            ;; error -- the library's API must state where each name comes
+            ;; from.
             (for-each (lambda (export)
-                        (let ((binding (or (exp-library-ref lib export)
-                                           (exp-library-ref the-base-library export)
-                                           (make-primitive-binding export))))
+                        (let ((binding (exp-library-ref lib export)))
+                          (unless binding
+                            (error "define-library: export has no binding"
+                                   export name))
                           (exp-library-define! lib export binding)
                           (when (toplevel-binding? binding)
                             (set-toplevel-ref-exported! (binding-value binding) #t))))

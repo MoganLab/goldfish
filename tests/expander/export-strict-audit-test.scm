@@ -1,0 +1,83 @@
+;; 加载式导出审计：逐个 load-library!，报告"export has no binding"根因。
+(define (string-search-forward pat s)
+  (let ((pc (string->list pat))
+        (sc (string->list s)))
+    (let outer ((i 0))
+      (if (> (+ i (length pc)) (length sc))
+        #f
+        (let inner ((j 0))
+          (cond
+            ((= j (length pc)) #t)
+            ((not (eq? (list-ref sc (+ i j)) (list-ref pc j))) #f)
+            (else (inner (+ j 1)))))))))
+
+(define (extract-export msg)
+  (let ((phrase "export has no binding"))
+    (if (string-search-forward phrase msg)
+      (let loop ((i (string-search-forward phrase msg)))
+        (let find-quote ((j i))
+          (if (and (< j (string-length msg))
+                   (eq? (string-ref msg j) (integer->char 34)))
+            (let skip-spaces ((k (+ j 1)))
+              (if (and (< k (string-length msg))
+                       (eq? (string-ref msg k) #\space))
+                (skip-spaces (+ k 1))
+                (let ((p (open-input-string
+                           (substring msg k (string-length msg)))))
+                  (read p))))
+            (find-quote (+ j 1)))))
+      '?)))
+
+(define (collect-strings x acc)
+  (cond
+    ((string? x) (cons x acc))
+    ((pair? x) (collect-strings (cdr x) (collect-strings (car x) acc)))
+    (else acc)))
+
+(define (load-try name)
+  (catch #t
+    (lambda () (load-library! name) #f)
+    (lambda (tag . info)
+      (let loop ((ss (reverse (collect-strings info '()))) (msg #f))
+        (cond
+          ((null? ss) (list name msg))
+          ((and (string? (car ss))
+                (string-search-forward "export has no binding" (car ss)))
+           (list name (car ss)))
+          (else (loop (cdr ss) msg)))))))
+
+(define fails
+  (map load-try
+    '((liii alist) (liii argparse) (liii ascii) (liii bag) (liii base64)
+      (liii base) (liii bitwise) (liii check) (liii chez) (liii comparator)
+      (liii config-parser) (liii cut) (liii either) (liii enum)
+      (liii flexvector) (liii fxmapping) (liii han-zi) (liii hashlib)
+      (liii hash-table) (liii http) (liii iset) (liii json) (liii list)
+      (liii logging) (liii match) (liii njson) (liii option) (liii os)
+      (liii packrat) (liii path) (liii queue) (liii random) (liii range)
+      (liii raw-string) (liii set) (liii sort) (liii stack)
+      (liii string-cursor) (liii string) (liii subprocess) (liii sys)
+      (liii timeit) (liii time) (liii tree) (liii trie) (liii unicode)
+      (liii uri-compare) (liii uri-convert) (liii uri-make) (liii uri-parse)
+      (liii uri-predicate) (liii uri-record) (liii uri) (liii uri-transform)
+      (liii uuid) (liii vector)
+      (scheme base) (scheme case-lambda) (scheme char) (scheme complex)
+      (scheme cxr) (scheme eval) (scheme file) (scheme inexact)
+      (scheme process-context) (scheme read) (scheme time) (scheme write)
+      (srfi sicp) (srfi srfi-113) (srfi srfi-117) (srfi srfi-125)
+      (srfi srfi-128) (srfi srfi-132) (srfi srfi-133) (srfi srfi-13)
+      (srfi srfi-151) (srfi srfi-158) (srfi srfi-165) (srfi srfi-16)
+      (srfi srfi-175) (srfi srfi-196) (srfi srfi-19) (srfi srfi-1)
+      (srfi srfi-209) (srfi srfi-214) (srfi srfi-215) (srfi srfi-216)
+      (srfi srfi-217) (srfi srfi-224) (srfi srfi-267) (srfi srfi-26)
+      (srfi srfi-27) (srfi srfi-2) (srfi srfi-39) (srfi srfi-78)
+      (srfi srfi-8) (srfi srfi-9))))
+
+(display "== export-has-no-binding 根因 ==") (newline)
+(for-each (lambda (f)
+            (if (and (pair? f) (cadr f))
+              (begin
+                (display "  ") (write (car f))
+                (display " -> ") (write (extract-export (cadr f)))
+                (newline))))
+          fails)

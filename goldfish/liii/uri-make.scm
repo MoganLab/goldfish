@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 的构造器函数
 
 (define-library (liii uri-make)
+  (import (goldfish))
   (import (scheme base)
     (scheme char)
     (liii string)

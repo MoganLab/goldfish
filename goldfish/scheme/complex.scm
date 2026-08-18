@@ -19,7 +19,7 @@
 
 (define-library (scheme complex)
   (export make-rectangular make-polar real-part imag-part magnitude angle)
-  (import (scheme base))
+  (import (scheme base) (goldfish))
 ) ;define-library
 
 ;; Note: These functions are implemented in the underlying S7 scheme engine

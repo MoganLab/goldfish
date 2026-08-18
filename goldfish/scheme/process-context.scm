@@ -15,6 +15,7 @@
 ;;
 
 (define-library (scheme process-context)
+  (import (goldfish))
   (export get-environment-variable get-environment-variables command-line)
   (begin
 

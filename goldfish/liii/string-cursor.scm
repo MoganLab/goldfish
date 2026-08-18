@@ -1,4 +1,5 @@
 (define-library (liii string-cursor)
+  (import (goldfish))
   (export
     ;; Cursor operations
     string-cursor?

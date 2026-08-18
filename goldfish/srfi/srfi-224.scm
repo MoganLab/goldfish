@@ -36,6 +36,7 @@
 ;;
 
 (define-library (srfi srfi-224)
+  (import (goldfish))
   (export
     ;; Constructors
     fxmapping

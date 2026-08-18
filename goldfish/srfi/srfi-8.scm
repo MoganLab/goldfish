@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-8)
+  (import (goldfish))
   (export receive)
   (begin
 

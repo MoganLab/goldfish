@@ -3,6 +3,7 @@
 ;; from S7 source repo: r7rs.scm
 
 (define-library (srfi srfi-39)
+  (import (goldfish))
   (export make-parameter parameterize)
   (begin
 

@@ -1,4 +1,5 @@
 (define-library (liii njson)
+  (import (goldfish))
   (import (liii base) (scheme base)
     (liii error)
     (liii path)

@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi sicp)
+  (import (goldfish))
   (export true false nil runtime)
   (import (srfi srfi-216))
 ) ;define-library

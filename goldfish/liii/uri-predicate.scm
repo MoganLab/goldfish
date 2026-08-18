@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 相关的所有谓词函数
 
 (define-library (liii uri-predicate)
+  (import (goldfish))
   (import (scheme base) (liii uri-record))
 
   ;; ; ---------- 导出接口 ----------

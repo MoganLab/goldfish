@@ -47,6 +47,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (define-library (srfi srfi-19)
+  (import (goldfish))
   (import (rename (scheme time)
             (get-time-of-day glue:get-time-of-day)
             (monotonic-nanosecond glue:monotonic-nanosecond)

@@ -1,4 +1,5 @@
 (define-library (liii os)
+  (import (goldfish))
   (export os-arch
     os-type
     os-windows?

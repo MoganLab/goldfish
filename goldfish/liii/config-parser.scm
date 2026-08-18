@@ -16,6 +16,7 @@
 ;; Inspired by Python's configparser module
 
 (define-library (liii config-parser)
+  (import (goldfish))
   (import (scheme base)
     (scheme char)
     (scheme file)

@@ -31,6 +31,7 @@
 ;; deficiencies." --Tony Hoare
 
 (define-library (srfi srfi-128)
+  (import (goldfish))
   (import (scheme base) (liii error))
   (export comparator?
     comparator-ordered?

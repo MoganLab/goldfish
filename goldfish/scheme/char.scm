@@ -38,7 +38,7 @@
     string-downcase
     string-foldcase
   ) ;export
-  (import (scheme base) (liii unicode))
+  (import (scheme base) (liii unicode) (goldfish))
   (begin
     (define (digit-value ch)
       (case ch

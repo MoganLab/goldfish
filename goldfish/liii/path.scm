@@ -1,4 +1,5 @@
 (define-library (liii path)
+  (import (goldfish))
   (export path
     path?
     path-copy

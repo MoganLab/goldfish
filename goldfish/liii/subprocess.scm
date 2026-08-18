@@ -15,6 +15,7 @@
 ;;
 
 (define-library (liii subprocess)
+  (import (goldfish))
   (export run
     run-values
     run-either

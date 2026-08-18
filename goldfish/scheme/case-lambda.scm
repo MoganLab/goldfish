@@ -3,6 +3,7 @@
 ;; from S7 source repo: r7rs.scm
 
 (define-library (scheme case-lambda)
+  (import (goldfish))
   (export case-lambda)
   (begin
 

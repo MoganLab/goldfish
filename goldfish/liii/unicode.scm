@@ -1,4 +1,5 @@
 (define-library (liii unicode)
+  (import (goldfish))
   (export
     ;; UTF-8 函数
     utf8-string

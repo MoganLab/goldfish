@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 记录类型的定义和所有访问器函数
 
 (define-library (liii uri-record)
+  (import (goldfish))
   (import (scheme base)
     (scheme char)
     (liii string)

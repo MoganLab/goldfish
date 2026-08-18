@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 解析和构造的辅助函数
 
 (define-library (liii uri-parse)
+  (import (goldfish))
   (import (scheme base) (scheme char) (liii string) (liii error))
 
   ;; ; ---------- 导出接口 ----------

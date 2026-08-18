@@ -1,4 +1,5 @@
 (define-library (liii option)
+  (import (goldfish))
   (import (liii base) (scheme base))
   (export none
     option

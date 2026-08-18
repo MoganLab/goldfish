@@ -25,11 +25,12 @@
      number? integer? rational? real? complex? exact? inexact?
      zero? positive? negative? odd? even? finite? infinite? nan?
      abs floor ceiling truncate round
-     exp log sin cos tan asin acos atan sqrt expt exact-integer-sqrt
+     exp log sin cos tan asin acos atan sqrt expt square exact-integer-sqrt
      exact inexact exact->inexact inexact->exact rationalize
      number->string string->number
      gcd lcm max min numerator denominator
      not boolean? boolean=?
+     exact-integer? integer?
      cons car cdr set-car! set-cdr!
      caar cadr cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr
      caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr
@@ -59,6 +60,7 @@
      bytevector-u8-ref bytevector-u8-set!
      bytevector-copy bytevector-copy! bytevector-append
      bytevector->u8-list u8-list->bytevector utf8->string string->utf8
+     bytevector-advance-utf8 utf8-string-length
      procedure? apply values call-with-values
      call/cc call-with-current-continuation
      dynamic-wind force make-promise promise?
@@ -74,12 +76,13 @@
      close-port close-input-port close-output-port flush-output-port
      open-input-string open-output-string get-output-string
      open-input-bytevector open-output-bytevector get-output-bytevector
-     open-input-file open-output-file
+     open-input-file open-output-file open-binary-input-file
+     open-binary-output-file
      call-with-input-file call-with-output-file
      with-input-from-file with-output-to-file
      call-with-port
      file-exists? delete-file
-     error syntax-error
+     error syntax-error raise read-error? file-error?
      ;; (scheme process-context)
      command-line exit emergency-exit get-environment-variable
      get-environment-variables
@@ -89,6 +92,25 @@
      current-second current-jiffy jiffies-per-second
      ;; (scheme repl)
      interaction-environment
+     ;; s7 extension names re-exported by the liii/srfi layers (host surface)
+     object->string eval-string signature copy
+     keyword? string->keyword symbol->keyword keyword->symbol
+     make-hook hook-functions
+     with-output-to-string with-input-from-string
+     call-with-input-string call-with-output-string
+     reverse! format
+     any every fold filter proper-list? iota
+     ash logand logior lognot logxor integer-length
+     getenv
+     set set=? set<=? set-fold set-remove set-union
+     char-position string-position
+     tree-count tree-cyclic? tree-leaves tree-memq tree-set-memq
+     hash-table hash-table? hash-table-ref hash-table-size
+     int-vector int-vector? int-vector-ref int-vector-set! make-int-vector
+     float-vector float-vector? float-vector-ref float-vector-set!
+     make-float-vector
+     complex-vector complex-vector? complex-vector-ref complex-vector-set!
+     make-complex-vector
      ;; expand-time syntax API (cf. phases-model stx primitives:
      ;; MKS/LIST/CAR/CDR/SE), used by procedural transformers
      syntax? syntax-e syntax-form syntax-context syntax-library make-syntax
@@ -101,12 +123,12 @@
      ;; construction-time intro-scope marking (kernel internal)
      stx-ctx-mark-intro current-intro-scope set-current-intro-scope!))
 
-;;; (goldfish expander) is the implementation kernel module (cf. Guile's
-;;; (guile)): core forms + primitives + the implementation's own macros.
-;;; The r7rs-small (scheme base) is a separate on-disk library that imports
-;;; it and re-exports the standard surface, so user code never touches
-;;; (goldfish expander) directly.
-(define the-base-library (make-exp-library '(goldfish expander)))
+;;; (goldfish) is the implementation library (cf. Guile's (guile)): core
+;;; forms + primitives + the implementation's own macros.  The r7rs-small
+;;; (scheme base) is a separate on-disk library that imports it and
+;;; re-exports the standard surface, so user code never touches (goldfish)
+;;; directly.
+(define the-base-library (make-exp-library '(goldfish)))
 
 (define (install-core-forms! lib)
   (for-each (lambda (entry)

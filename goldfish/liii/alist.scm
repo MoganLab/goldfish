@@ -1,4 +1,5 @@
 (define-library (liii alist)
+  (import (goldfish))
   (import (liii base) (scheme base) (liii list) (liii error) (scheme case-lambda))
   (export alist? alist-cons alist-ref alist-ref/default vector->alist)
   (begin

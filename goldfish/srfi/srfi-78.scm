@@ -38,6 +38,7 @@
 ;; Follow the same License as the original one
 
 (define-library (srfi srfi-78)
+  (import (goldfish))
   (import (scheme base))
   (export check
     check-set-mode!

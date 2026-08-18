@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 的比较和哈希函数
 
 (define-library (liii uri-compare)
+  (import (goldfish))
   (import (scheme base) (liii uri-record))
 
   ;; ; ---------- 导出接口 ----------

@@ -1,5 +1,5 @@
 (import (liii check)
-        (goldfish expander)
+        (goldfish)
         (goldfish compiler)
         (srfi srfi-1))
 

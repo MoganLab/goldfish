@@ -15,6 +15,7 @@
 ;;
 
 (define-library (scheme file)
+  (import (goldfish))
   (export call-with-input-file
     call-with-output-file
     delete-file

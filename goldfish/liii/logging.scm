@@ -18,6 +18,7 @@
 ;; 提供便捷函数、级别控制、格式化输出和文件处理器
 
 (define-library (liii logging)
+  (import (goldfish))
   (export send-log
     current-log-fields
     current-log-callback

@@ -1,4 +1,5 @@
 (define-library (liii iset)
+  (import (goldfish))
   (import (srfi srfi-217))
   (export
     ;; Constructors

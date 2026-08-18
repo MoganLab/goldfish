@@ -4,6 +4,7 @@
 ;;
 
 (define-library (liii http)
+  (import (goldfish))
   (import (liii hash-table) (liii alist) (liii error) (scheme file))
   (export http-head
     http-get

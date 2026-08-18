@@ -1,4 +1,5 @@
 (define-library (liii base64)
+  (import (goldfish))
   (import (scheme base) (liii base) (liii bitwise) (liii error))
   (export string-base64-encode
     bytevector-base64-encode

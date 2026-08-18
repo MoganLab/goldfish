@@ -18,6 +18,7 @@
 ;; 严格按照 SRFI-215 标准实现
 
 (define-library (srfi srfi-215)
+  (import (goldfish))
   (export send-log
     current-log-fields
     current-log-callback

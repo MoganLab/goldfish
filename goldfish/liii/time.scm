@@ -1,4 +1,5 @@
 (define-library (liii time)
+  (import (goldfish))
   (export
     ;; Constants
     TIME-DURATION

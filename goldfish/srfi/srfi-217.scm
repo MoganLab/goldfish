@@ -36,6 +36,7 @@
 ;;
 
 (define-library (srfi srfi-217)
+  (import (goldfish))
   (export
     ;; Constructors
     iset

@@ -216,4 +216,4 @@
     (cdr entry)))
 
 (define the-expander-library
-  (make-module '(goldfish expander)))
+  (make-module '(goldfish)))

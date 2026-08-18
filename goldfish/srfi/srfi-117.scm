@@ -9,6 +9,7 @@
 ;; Follow the same License as the original one
 
 (define-library (srfi srfi-117)
+  (import (goldfish))
   (export make-list-queue
     list-queue
     list-queue-copy

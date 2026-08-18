@@ -1,4 +1,5 @@
 (define-library (liii chez)
+  (import (goldfish))
   (export atom?)
   (begin
 

@@ -28,6 +28,7 @@
 ;;    in Scheme raw string discussions
 
 (define-library (srfi srfi-267)
+  (import (goldfish))
   (import (only (srfi srfi-13) string-contains string-suffix?))
   (export raw-string-read-error?
     raw-string-write-error?

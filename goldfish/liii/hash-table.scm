@@ -1,4 +1,5 @@
 (define-library (liii hash-table)
+  (import (goldfish))
   (import (srfi srfi-125) (srfi srfi-128))
   (export make-hash-table
     hash-table

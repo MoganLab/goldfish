@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-151)
+  (import (goldfish))
   (import (liii base) (scheme base) (liii error))
   (export bitwise-not
     bitwise-and

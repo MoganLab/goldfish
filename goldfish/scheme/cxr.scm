@@ -15,6 +15,7 @@
 ;;
 
 (define-library (scheme cxr)
+  (import (goldfish))
   (export caaar
     caadr
     cadar

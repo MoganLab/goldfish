@@ -1,4 +1,5 @@
 (define-library (liii trie)
+  (import (goldfish))
 
   (export make-trie trie? trie-insert! trie-ref trie-ref* trie-value trie->list)
   (import (srfi srfi-1) (srfi srfi-2) (srfi srfi-9) (liii alist))

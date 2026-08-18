@@ -1,4 +1,5 @@
 (define-library (liii ascii)
+  (import (goldfish))
   (export ascii-codepoint?
     ascii-bytevector?
 

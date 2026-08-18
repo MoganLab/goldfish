@@ -1,4 +1,5 @@
 (define-library (liii enum)
+  (import (goldfish))
   (import (srfi srfi-209))
   (export enum-type?
     enum?

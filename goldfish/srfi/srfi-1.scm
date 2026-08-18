@@ -12,6 +12,7 @@
 ;; Follow the same License as the original one
 
 (define-library (srfi srfi-1)
+  (import (goldfish))
   (import (liii error) (liii base) (scheme base))
   (export circular-list iota list-copy xcons cons*)
   (export circular-list? null-list? proper-list? dotted-list?)

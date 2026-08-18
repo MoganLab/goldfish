@@ -1041,7 +1041,7 @@
 ;; optimize-expansion-defs : (list sexp) -> (list sexp)
 ;; Apply the active compiler pipeline to expanded defs (the per-form /
 ;; REPL path, mirroring the cached paths).  compile-defs-on-load lives in
-;; the (goldfish expander) library, not in this early seed's rootlet, so it
+;; the (goldfish) library, not in this early seed's rootlet, so it
 ;; is fetched via module-ref; unavailable or failing, defs pass through
 ;; unchanged (optimization is optional).
 

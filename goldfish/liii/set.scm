@@ -1,4 +1,5 @@
 (define-library (liii set)
+  (import (goldfish))
   (import (rename (srfi srfi-113)
             (set make-set-with-comparator)
             (list->set list->set-with-comparator)

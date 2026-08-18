@@ -1,4 +1,5 @@
 (define-library (liii uuid)
+  (import (goldfish))
   (export uuid4)
   (begin
 

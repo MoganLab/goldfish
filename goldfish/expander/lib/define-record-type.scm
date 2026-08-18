@@ -31,6 +31,9 @@
      (list 'begin
            (list 'define rtd
                  (list 'make-record-type (list 'quote type) (list 'quote field-names)))
+           (if (keyword? type)
+             '()
+             (list 'define type rtd))
            (list 'define make-datum
                  (cons 'vector (cons rtd make-params)))
            (list 'define (list pred 'obj)

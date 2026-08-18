@@ -1,4 +1,5 @@
 (define-library (liii flexvector)
+  (import (goldfish))
   (import (srfi srfi-214))
   (export
     ;; Constructors

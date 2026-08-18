@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-133)
+  (import (goldfish))
   (import (liii base) (scheme base))
   (export vector-empty?
     vector-unfold

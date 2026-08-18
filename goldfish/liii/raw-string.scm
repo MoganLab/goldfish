@@ -10,6 +10,7 @@
 ;;    https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/raw-string
 
 (define-library (liii raw-string)
+  (import (goldfish))
   (import (srfi srfi-267) (srfi srfi-1) (srfi srfi-13) (liii error))
   (export raw-string-read-error?
     raw-string-write-error?

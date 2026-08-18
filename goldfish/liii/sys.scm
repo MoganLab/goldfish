@@ -1,4 +1,5 @@
 (define-library (liii sys)
+  (import (goldfish))
   (export argv executable which)
   (import (scheme process-context))
   (begin

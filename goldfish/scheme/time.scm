@@ -15,7 +15,7 @@
 ;;
 
 (define-library (scheme time)
-  (import (only (scheme base) let-values s7-round))
+  (import (only (scheme base) let-values s7-round) (goldfish))
   (export current-second
     current-jiffy
     jiffies-per-second

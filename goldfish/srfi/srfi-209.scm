@@ -24,6 +24,7 @@
 ;; Implementation of SRFI 209: Enums and Enum Sets
 
 (define-library (srfi srfi-209)
+  (import (goldfish))
   (import (scheme base)
     (scheme case-lambda)
     (srfi srfi-1)

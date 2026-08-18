@@ -1,4 +1,5 @@
 (define-library (liii check)
+  (import (goldfish))
   (export test
     check
     check-approx

@@ -15,6 +15,7 @@
 ;;
 
 (define-library (srfi srfi-125)
+  (import (goldfish))
   (import (scheme base) (srfi srfi-1) (srfi srfi-128) (liii base) (liii error))
   (export make-hash-table
     hash-table

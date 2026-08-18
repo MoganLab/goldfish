@@ -18,6 +18,7 @@
 ;;   random-source-make-reals    - Create real generator from source
 
 (define-library (liii random)
+  (import (goldfish))
   (import (srfi srfi-27))
   (export random-integer
     random-real

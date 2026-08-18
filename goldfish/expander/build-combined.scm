@@ -5,7 +5,7 @@
 ;;; gensyms (cf. Racket's src/expander/extract and PopSyntax's combine).
 ;;;
 ;;; The kernel source IS a library: goldfish/expander/kernel.scm
-;;; (define-library (goldfish expander)) whose body includes the kernel
+;;; (define-library (goldfish)) whose body includes the kernel
 ;;; files.  The artifact build expands that library with the running
 ;;; expander (expand-define-library), so the build is the SELF-BOOTSTRAP:
 ;;; the expander re-expands its own source to produce the next artifact.
@@ -98,7 +98,7 @@
        (stx (stx-set-library (wrap-expression form) the-base-library))
        (clauses (cddr (syntax-form stx))))
   (let*-values (((exports imports body-stxs) (parse-library-clauses clauses)))
-    (let ((lib (make-exp-library '(goldfish expander))))
+    (let ((lib (make-exp-library '(goldfish))))
       (import-into-library! lib imports)
       (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
         (let*-values (((defs ctx) (expand-library-body body-stxs lib (initial-context))))
@@ -112,7 +112,7 @@
                  ;; internal accessors (record selectors etc.) beyond the
                  ;; curated export list -- they must stay reachable.  The
                  ;; export list itself is the public API surface for
-                 ;; importers of (goldfish expander); it is verified only for
+                 ;; importers of (goldfish); it is verified only for
                  ;; typos (stray-prims above), not for completeness against
                  ;; the generated bindings.
                  (re-bindings

@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 的修改函数（with-系列、query更新、路径操作）
 
 (define-library (liii uri-transform)
+  (import (goldfish))
   (import (scheme base)
     (scheme char)
     (liii string)

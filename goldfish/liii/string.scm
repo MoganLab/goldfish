@@ -1,4 +1,5 @@
 (define-library (liii string)
+  (import (goldfish))
   (export string-null?
     string-join
     string-every

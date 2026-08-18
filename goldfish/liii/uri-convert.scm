@@ -2,6 +2,7 @@
 ;; ; 本模块包含 URI 的转换函数（uri->string, uri->human-string）
 
 (define-library (liii uri-convert)
+  (import (goldfish))
   (import (scheme base) (liii error) (liii uri-record) (liii uri-parse))
 
   ;; ; ---------- 导出接口 ----------

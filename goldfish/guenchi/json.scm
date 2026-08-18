@@ -28,7 +28,6 @@
     (liii unicode)
   ) ;import
   (export json-string-escape
-    json-string-unescape
     string->json
     json->string
     json-ref

@@ -8,7 +8,7 @@
 ;;; The SELF-HOSTED path (artifact build in build-combined.scm, and any
 ;;; future runtime load through the expander) does NOT read this file
 ;;; directly: it loads the same sources as the library goldfish/expander/
-;;; kernel.scm (define-library (goldfish expander)), whose include list
+;;; kernel.scm (define-library (goldfish)), whose include list
 ;;; must stay in sync with this manifest.
 ;;;
 ;;; Order matters: dependencies first.

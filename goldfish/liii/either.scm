@@ -1,4 +1,5 @@
 (define-library (liii either)
+  (import (goldfish))
   (import (liii base) (scheme base) (liii error))
   (export from-left
     to-left

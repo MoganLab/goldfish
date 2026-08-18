@@ -15,6 +15,7 @@
 ;;
 
 (define-library (scheme read)
+  (import (goldfish))
   (export read)
   (begin
   ) ;begin
