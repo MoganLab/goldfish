@@ -103,6 +103,143 @@
       ) ;let
     ) ;define
 
+    (define (shell-quote s)
+      (string-append "'" (string-replace s "'" "'\\''") "'")
+    ) ;define
+
+    (define (read-all-string file)
+      (let ((p (open-input-file file)))
+        (let loop ((acc '()))
+          (let ((c (read-char p)))
+            (if (eof-object? c)
+              (begin (close-input-port p) (list->string (reverse acc)))
+              (loop (cons c acc))
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (split-list lst n)
+      (let loop ((l lst) (i 0) (acc '()))
+        (if (or (null? l) (= i n))
+          (values (reverse acc) l)
+          (loop (cdr l) (+ i 1) (cons (car l) acc))
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (detect-cpu-count)
+      (if (os-windows?)
+        1
+        (let* ((tmp (test-path-join (os-temp-dir)
+                       (string-append "gf-test-nproc-" (number->string (getpid)) ".txt")))
+               (cmd (string-append "nproc > " tmp " 2>&1")))
+          (shell-command cmd)
+          (let ((n (if (file-exists? tmp)
+                     (let ((p (open-input-file tmp)))
+                       (let ((v (string->number (read-line p))))
+                         (close-input-port p)
+                         v
+                       ) ;let
+                     ) ;let
+                     #f
+                   ) ;if
+                 ) ;n
+               ) ;
+            (when (file-exists? tmp) (remove tmp))
+            (if (and n (integer? n) (> n 0)) n 1)
+          ) ;let
+        ) ;let*
+      ) ;if
+    ) ;define
+
+    (define (run-test-batch files)
+      ;; Run `files' concurrently: one shell script backgrounds every run,
+      ;; capturing stdout+stderr and the exit status into temp files, then
+      ;; waits for all of them.  The output of a failed file is printed (in
+      ;; file order) so failures stay debuggable.
+      (let* ((tag (number->string (getpid)))
+             (specs (let loop ((fs files) (i 0) (acc '()))
+                      (if (null? fs)
+                        (reverse acc)
+                        (let* ((f (car fs))
+                               (out (test-path-join (os-temp-dir)
+                                      (string-append "gf-test-" tag "-" (number->string i) ".out")))
+                               (code (test-path-join (os-temp-dir)
+                                       (string-append "gf-test-" tag "-" (number->string i) ".code"))))
+                          (loop (cdr fs) (+ i 1)
+                                (cons (list f out code) acc))))))
+             (script (string-append
+                       "export GOLDFISH_CACHE_READONLY=1; "
+                       (string-join
+                         (map (lambda (s)
+                                (string-append "(" (shell-quote (executable))
+                                               " -m r7rs " (shell-quote (car s))
+                                               " > " (shell-quote (cadr s))
+                                               " 2>&1; echo $? > " (shell-quote (caddr s)) ") &"))
+                              specs)
+                         " ")
+                       " wait"))
+             (script-file (test-path-join (os-temp-dir)
+                            (string-append "gf-test-" tag "-batch.sh"))))
+        (call-with-output-file script-file
+          (lambda (p) (display script p)))
+        (os-call (string-append "sh " (shell-quote script-file)))
+        (let ((results
+                (map (lambda (s)
+                       (let* ((f (car s)) (out (cadr s)) (code (caddr s))
+                              (n (if (file-exists? code)
+                                   (let ((p (open-input-file code)))
+                                     (let ((v (string->number (read-line p))))
+                                       (close-input-port p)
+                                       v
+                                     ) ;let
+                                   ) ;let
+                                   #f
+                                 ) ;if
+                               ) ;n
+                             ) ;
+                         (when (and n (not (zero? n)))
+                           (newline)
+                           (display "----------->")
+                           (newline)
+                           (display f)
+                           (newline)
+                           (if (file-exists? out)
+                             (begin (display (read-all-string out)) (newline)))
+                         ) ;when
+                         (when (file-exists? out) (remove out))
+                         (when (file-exists? code) (remove code))
+                         (cons f (if n n -1))
+                       ) ;let*
+                     ) ;lambda
+                     specs
+                   ) ;map
+                 ) ;results
+               ) ;
+          (when (file-exists? script-file) (remove script-file))
+          results
+        ) ;let
+      ) ;let*
+    ) ;define
+
+    (define (run-test-files test-files jobs)
+      ;; jobs<=1 keeps the original serial behavior (inline output);
+      ;; jobs>1 runs batches of `jobs' files concurrently.
+      (if (<= jobs 1)
+        (map (lambda (f) (run-test-file f)) test-files)
+        (let loop ((files test-files) (acc '()))
+          (if (null? files)
+            (reverse acc)
+            (let-values (((head tail) (split-list files jobs)))
+              (loop tail (append (reverse (run-test-batch head)) acc))
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;define
+
     (define (failed-test-files test-results)
       (map car
         (filter (lambda (test-result) (not (zero? (cdr test-result)))) test-results)
@@ -163,6 +300,7 @@
             ) ;parser
            ) ;
         (parser :add-argument '((name . "changed-since") (type . string)))
+        (parser :add-argument '((name . "jobs") (short . "j") (type . string)))
         (parser :add-argument '((name . "all") (action . store-true)))
         (parser :add-argument '((name . "help")
                                 (short . "h")
@@ -212,6 +350,20 @@
       (let ((parser (make-test-arg-parser)))
         (parser :parse-argv args)
         (parser 'changed-since)
+      ) ;let
+    ) ;define
+
+    (define (parse-test-jobs args)
+      (let ((parser (make-test-arg-parser)))
+        (parser :parse-argv args)
+        (let ((j (parser 'jobs)))
+          (if (and j (string? j))
+            (let ((n (string->number j)))
+              (if (and n (integer? n) (> n 0)) n #f)
+            ) ;let
+            #f
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
@@ -564,10 +716,9 @@
               (display (string-append "Running changed tests since: " final-changed-since))
               (newline)
             ) ;when
-            (let ((test-results (fold (lambda (test-file acc) (newline) (cons (run-test-file test-file) acc))
-                                  (list)
-                                  test-files
-                                ) ;fold
+            (let ((test-results (run-test-files test-files
+                                  (or (parse-test-jobs args) (detect-cpu-count))
+                                ) ;run-test-files
                   ) ;test-results
                  ) ;
               (let ((failed (display-summary test-results)))
@@ -595,6 +746,10 @@
       ) ;display
       (newline)
       (display "  --changed-since REV              Run tests changed since REV")
+      (newline)
+      (display "  -j, --jobs N                     Run up to N test files concurrently (default: CPU count)")
+      (newline)
+      (display "                                  Use -j 1 for the original serial behavior")
       (newline)
       (newline)
       (display "Examples:")
