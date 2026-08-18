@@ -13,6 +13,7 @@
 ;;;
 ;;; Order matters: dependencies first.
 
+(load-source-file "expander/kernel/substrate.scm")
 (load-source-file "expander/kernel/exp-library.scm")
 (load-source-file "expander/kernel/sets.scm")
 (load-source-file "expander/kernel/env.scm")

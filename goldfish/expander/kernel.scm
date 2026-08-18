@@ -226,8 +226,40 @@
     tstop-binding?
     void-expr
     wrap-expression
+    ;; runtime substrate (substrate.scm)
+    *eof-object*
+    *fresh-counter*
+    *module-registry*
+    eof-object
+    force
+    lookup-module
+    make-fresh-name
+    make-lazy-promise
+    make-module
+    make-record-type
+    module?
+    module-define!
+    module-exports
+    module-name
+    module-ref
+    next-fresh
+    next-record-rtd
+    record-accessor
+    record-field-index
+    record-instance?
+    record-modifier
+    record-predicate
+    record-type?
+    record-type-fields
+    record-type-name
+    register-module
+    syntax-error
+    the-expander-library
+    vector-for-each
+    vector-map
     )
   (begin
+    (include "expander/kernel/substrate.scm")
     (include "expander/kernel/exp-library.scm")
     (include "expander/kernel/sets.scm")
     (include "expander/kernel/env.scm")
