@@ -1474,7 +1474,13 @@
                           '(error 'match "no matching pattern"))))
               (datum->syntax
                stx
-               (list 'define-values
+               ;; The define-values head resolves in THIS library (it is
+               ;; imported from (scheme base) here), not at the use site:
+               ;; datum->syntax attaches the use-site context, so splice a
+               ;; definition-site identifier in for the head only (the rest
+               ;; -- vars, case-lambda, the user's expr -- stays use-site).
+               (list (datum->syntax (quote-syntax define-values)
+                                    'define-values)
                      vars
                      (list (cons 'case-lambda
                                  (list (cons args (list code))))
