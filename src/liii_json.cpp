@@ -17,6 +17,7 @@
 #include "s7.h"
 #include <cstdlib>
 #include <cstring>
+#include <cerrno>
 #include <vector>
 #include <string>
 
@@ -571,9 +572,48 @@ json_is_value_end (s7_int c) {
   return c == -1 || c == ',' || c == ']' || c == '}' || c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-// glue 时缓存 string->number 并永久 GC 保护：数字文本经它转换，保持与 reader 一致的数字语义
+// glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
 static s7_pointer cached_string_to_number= NULL;
 
+// 数字文本已在 parser 侧通过严格文法校验：
+//   - 无 . e E 的整数走 strtoll + s7_make_integer（快路径）
+//   - 其余走 strtod + s7_make_real（与 string->number 的双精度语义一致，1e2 => 100.0）
+//   - int64 溢出时回退 cached string->number（保持 bignum 语义）
+static s7_pointer
+json_number_to_s7 (s7_scheme* sc, const std::string& text) {
+  bool is_real= false;
+  for (char c: text) {
+    if (c == '.' || c == 'e' || c == 'E') {
+      is_real= true;
+      break;
+    }
+  }
+  if (!is_real) {
+    errno= 0;
+    char* endp= NULL;
+    long long v= strtoll (text.c_str (), &endp, 10);
+    if (errno != ERANGE && endp && *endp == '\0') {
+      return s7_make_integer (sc, (s7_int) v);
+    }
+  }
+  else {
+    errno= 0;
+    char* endp= NULL;
+    double d= strtod (text.c_str (), &endp);
+    if (endp && *endp == '\0') {
+      return s7_make_real (sc, d);
+    }
+  }
+  // 回退：超大整数等罕见情形
+  s7_pointer txt= s7_make_string_with_length (sc, text.data (), (s7_int) text.size ());
+  s7_gc_protect_via_stack (sc, txt);
+  s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
+  s7_gc_unprotect_via_stack (sc, txt);
+  return num;
+}
+
+// 调用方（f_string_to_json）已在转换期间关闭 GC（参考 njson 的做法），
+// 故此处无需对中间对象做逐节点保护
 static s7_pointer
 json_node_to_s7 (s7_scheme* sc, const jnode& n) {
   switch (n.kind) {
@@ -581,14 +621,8 @@ json_node_to_s7 (s7_scheme* sc, const jnode& n) {
     return s7_make_string_with_length (sc, n.text.data (), (s7_int) n.text.size ());
   case jnode::JSYM:
     return s7_make_symbol (sc, n.text.c_str ());
-  case jnode::JNUM: {
-    // 与原实现一致：交给 string->number，保持数字语义（1e2 => 100.0 等）
-    s7_pointer txt= s7_make_string_with_length (sc, n.text.data (), (s7_int) n.text.size ());
-    s7_gc_protect_via_stack (sc, txt);
-    s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
-    s7_gc_unprotect_via_stack (sc, txt);
-    return num;
-  }
+  case jnode::JNUM:
+    return json_number_to_s7 (sc, n.text);
   case jnode::JTRUE: return s7_make_symbol (sc, "true");
   case jnode::JFALSE: return s7_make_symbol (sc, "false");
   case jnode::JNULL: return s7_make_symbol (sc, "null");
@@ -597,48 +631,21 @@ json_node_to_s7 (s7_scheme* sc, const jnode& n) {
       // 空对象 '()
       return s7_cons (sc, s7_nil (sc), s7_nil (sc));
     }
-    // 自底向顶构建 alist：先转换所有键值并逐个保护，再从尾部向前 cons；
-    // 结束前按 LIFO 逆序解开全部保护（此后至返回不再分配）
-    std::vector<s7_pointer> prot;
-    prot.reserve (n.keys.size () * 2 + n.keys.size () * 2 + 1);
-    std::vector<s7_pointer> k, v;
-    k.reserve (n.keys.size ());
-    v.reserve (n.vals.size ());
+    // 自底向顶构建 alist，最后整体 reverse
+    s7_pointer lst= s7_nil (sc);
     for (size_t i= 0; i < n.keys.size (); i++) {
       s7_pointer key= json_node_to_s7 (sc, n.keys[i]);
-      s7_gc_protect_via_stack (sc, key);
-      prot.push_back (key);
-      k.push_back (key);
       s7_pointer val= json_node_to_s7 (sc, n.vals[i]);
-      s7_gc_protect_via_stack (sc, val);
-      prot.push_back (val);
-      v.push_back (val);
+      lst= s7_cons (sc, s7_cons (sc, key, val), lst);
     }
-    s7_pointer lst= s7_nil (sc);
-    s7_gc_protect_via_stack (sc, lst);
-    prot.push_back (lst);
-    for (size_t i= k.size (); i > 0; i--) {
-      s7_pointer pair= s7_cons (sc, k[i - 1], v[i - 1]);
-      s7_gc_protect_via_stack (sc, pair);
-      prot.push_back (pair);
-      s7_pointer nlst= s7_cons (sc, pair, lst);
-      s7_gc_protect_via_stack (sc, nlst);
-      prot.push_back (nlst);
-      lst= nlst;
-    }
-    for (size_t i= prot.size (); i > 0; i--) {
-      s7_gc_unprotect_via_stack (sc, prot[i - 1]);
-    }
-    return lst;
+    return s7_reverse (sc, lst);
   }
   case jnode::JARR: {
     s7_pointer vec= s7_make_vector (sc, (s7_int) n.items.size ());
-    s7_gc_protect_via_stack (sc, vec);
     s7_pointer* elems= s7_vector_elements (vec);
     for (size_t i= 0; i < n.items.size (); i++) {
       elems[i]= json_node_to_s7 (sc, n.items[i]);
     }
-    s7_gc_unprotect_via_stack (sc, vec);
     return vec;
   }
   }
@@ -671,7 +678,12 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   if (json_peek (&p) != -1) {
     return json_parse_error (sc, "string->json: trailing garbage after JSON value");
   }
-  return json_node_to_s7 (sc, root);
+  // 转换期间关闭 GC（参考 njson 的做法）：jnode 树已在 C++ 侧完整构造，
+  // 转换过程不会中断，无需逐节点保护；结束后恢复
+  s7_gc_on (sc, false);
+  s7_pointer result= json_node_to_s7 (sc, root);
+  s7_gc_on (sc, true);
+  return result;
 }
 
 static void
