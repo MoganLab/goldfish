@@ -115,6 +115,28 @@
                              (read-forms port)))
         (lambda () (close-input-port port))))))
 
+;;; load : path -> void
+;;; The bootstrap-0 loader.  Read the whole file, then evaluate each form
+;;; THROUGH the expander once it is up (expand-eval, defined by reader.scm),
+;;; falling back to plain s7 eval before that (the seed phase).  The R7RS
+;;; reader rebinds load to the full caching version once it loads; this seed
+;;; version keeps the ONGOING bootstrap-0 load of e.g. build-combined.scm
+;;; going through the expander after the reader comes up mid-file (s7's
+;;; builtin load would keep s7-evaluating every form, so base-library
+;;; bindings such as parse-library-clauses -- visible only to the expander --
+;;; would be unbound).
+(define (load file)
+  (let ((path (load-find-module-file file)))
+    (unless path
+      (error "load: file not found" file))
+    (let ((forms (call-with-input-file path
+                   (lambda (p) (read-forms p)))))
+      (for-each (lambda (d)
+                  (if (defined? 'expand-eval)
+                    (expand-eval d)
+                    (eval d (rootlet))))
+                forms))))
+
 ;;; load-expanded : path -> void
 ;;; Load a plain Scheme file THROUGH the expander.  The source is read with
 ;;; the bootstrap (tiny) reader, expanded against a fresh library, the
@@ -211,7 +233,12 @@
                         (g_path-getmtime artifact) (g_path-getsize artifact))))
       (call-with-values (lambda () (le-cache-files path))
         (lambda (cache meta)
-        (if (le-cache-valid? cache meta stamp)
+        ;; bootstrap-0 (GOLDFISH_BOOTSTRAP): the s7-eval'd kernel is the
+        ;; running expander, so the cache (keyed on the COMMITTED artifact's
+        ;; stamp) may hold lowering from a different kernel version -- a
+        ;; pristine rebuild must re-expand.
+        (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                 (le-cache-valid? cache meta stamp))
           (let ((rec (call-with-input-file cache
                         (lambda (p) (read-forms p)))))
             (eval (caddr rec) the-expander-library)

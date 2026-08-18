@@ -27,8 +27,9 @@
 (load-source-file "expander/kernel/libbody.scm")
 (load-source-file "expander/kernel/primitives.scm")
 (load-source-file "expander/kernel/driver.scm")
-;;; Host convenience: load the user-space macro library on top of the core
-;;; (the bootstrap-0 equivalent of the runtime's separate install.scm load
-;;; after the artifact; the library/artifact path excludes it).
-(load-source-file "expander/lib/install.scm")
+;;; install.scm is NOT loaded here: its top-level calls install the lib
+;;; layer (files using `(X ...)' ellipsis that the tiny reader collapses),
+;;; so it must wait until the R7RS reader is up.  build-combined.scm's
+;;; from-source branch loads prelude + reader + install in the runtime
+;;; order after this manifest.
 

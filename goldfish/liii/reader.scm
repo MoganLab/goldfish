@@ -881,9 +881,14 @@
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (define (load-forms-sequentially forms)
     (for-each (lambda (d)
-                (if (getenv "GOLDFISH_BOOTSTRAP")
-                  (eval d (rootlet))
-                  (expand-eval d)))
+                ;; Use the expander whenever it is up: the GOLDFISH_BOOTSTRAP
+                ;; s7-eval branch only applies to the seed phase (before this
+                ;; reader defines expand-eval).  At bootstrap-0 build-combined
+                ;; reaches the expander mid-file, so its later forms must go
+                ;; through expand-eval, not s7 eval.
+                (if (defined? 'expand-eval)
+                  (expand-eval d)
+                  (eval d (rootlet))))
               forms))
   (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
     (cond

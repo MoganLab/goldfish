@@ -39,13 +39,20 @@
     (or (not v) (string=? v "from-source"))))
 
 (if (boot-from-source?)
-  ;; Bootstrap-0: s7 evaluates the kernel sources directly (load-kernel.scm
-  ;; also loads the lib layer), producing a running expander.
-  (load-source-file "expander/kernel/load-kernel.scm")
+  ;; Bootstrap-0: s7 evaluates the kernel sources directly (load-kernel.scm),
+  ;; then the R7RS reader comes up THROUGH that kernel (load-expanded, the
+  ;; runtime chain minus the artifact), then install.scm -- whose top-level
+  ;; calls install the lib layer, whose files use `(X ...)' ellipsis that the
+  ;; tiny reader collapses -- so the reader must precede it.
+  (begin
+    (load-source-file "expander/kernel/load-kernel.scm")
+    (load-expanded "liii/prelude.scm" 'base)
+    (load-expanded "liii/reader.scm")
+    (load-expanded "expander/lib/install.scm" '(expander lib install)))
   ;; Bootstrap-N (N>=1): the committed artifact is the expander.
   (begin
     (load-source-file "expander/kernel-combined.scm")
-    (load-source-file "expander/lib/install.scm")))
+    (load-expanded "expander/lib/install.scm" '(expander lib install))))
 ;; Install the standard layer so the kernel's own let-values / let*-values
 ;; resolve to OUR macros instead of remaining free forms that s7 would
 ;; natively expand at artifact load time -- the artifact then stays pure
