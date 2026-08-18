@@ -361,24 +361,26 @@
 ;;; macros, and every boot macro, captured before the module system is up)
 ;;; keeps its lowered form as the warm-start path.
 (define (compile-transformer-to-program lowered)
-  (let ((compiler
-         (catch #t
-           (lambda ()
-             ;; lookup-module is an s7 primitive, not an exp-library export,
-             ;; so it is resolved as a free symbol (guarded by catch for the
-             ;; bootstrap phase where the module system is not up yet).  The
-             ;; compiler is preloaded by customize, so captures after that
-             ;; point compile transformers to bytecode programs.
-             (lookup-module '(goldfish compiler)))
-           (lambda (tag . info) #f))))
-    (if (module? compiler)
-      (catch #t
-        (lambda ()
-          (let ((to-bytecode (module-ref compiler 'to-bytecode))
-                (core->ir (module-ref compiler 'core->ir)))
-            (serialize-cache-sexp (to-bytecode (list (core->ir lowered))))))
-        (lambda (tag . info) #f))
-      #f)))
+  (if (getenv "GOLDFISH_NO_VM_TRANSFORMER")
+    #f
+    (let ((compiler
+           (catch #t
+             (lambda ()
+               ;; lookup-module is an s7 primitive, not an exp-library export,
+               ;; so it is resolved as a free symbol (guarded by catch for the
+               ;; bootstrap phase where the module system is not up yet).  The
+               ;; compiler is preloaded by customize, so captures after that
+               ;; point compile transformers to bytecode programs.
+               (lookup-module '(goldfish compiler)))
+             (lambda (tag . info) #f))))
+      (if (module? compiler)
+        (catch #t
+          (lambda ()
+            (let ((to-bytecode (module-ref compiler 'to-bytecode))
+                  (core->ir (module-ref compiler 'core->ir)))
+              (serialize-cache-sexp (to-bytecode (list (core->ir lowered))))))
+          (lambda (tag . info) #f))
+        #f))))
 
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
