@@ -158,7 +158,9 @@
     ;; simplify-if : ir -> ir
     ;; Resolve if whose test folds to a known boolean constant:
     ;; (if #t t e) -> t, (if #f t e) -> e.  A dead branch disappears, so
-    ;; this is also the first dead-code elimination.
+    ;; this is also the first dead-code elimination.  An if with NO else
+    ;; arm whose test is #f is left as-is: R7RS says (if #f t) returns an
+    ;; unspecified value, NOT #f, so it cannot be folded to #f.
     (define (const-boolean? ir val)
       (or (eq? ir val)
           (and (const? ir) (eq? (const-value ir) val))))
@@ -176,7 +178,8 @@
                 (el (if else (simplify-if else) #f)))
            (cond
              ((const-boolean? t #t) th)
-             ((const-boolean? t #f) el)
+             ((const-boolean? t #f)
+              (if else el (make-if #f t th #f)))
              (else (make-if #f t th el)))))
         (($begin body ...)
          (make-begin #f (map simplify-if body)))

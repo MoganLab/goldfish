@@ -40,7 +40,9 @@
 (check (fold-sexp '(if #f 1 2) simplify-if) => '2)
 (check (fold-sexp '(if x 1 2) simplify-if) => '(if x 1 2))
 (check (fold-sexp '(if #t 1) simplify-if) => '1)
-(check (fold-sexp '(if #f 1) simplify-if) => '#f)
+;; R7RS: (if #f 1) with no else arm returns an unspecified value, NOT #f,
+;; so simplify-if must keep the if (it cannot fold to #f).
+(check (fold-sexp '(if #f 1) simplify-if) => '(if #f 1))
 
 ;; 管线组合：折叠后化简
 (check (ir->core (run-passes (core->ir '(define y (if (> 3 2) (+ 1 1) 0)))
