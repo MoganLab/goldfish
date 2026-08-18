@@ -26,26 +26,22 @@
   (export main parse-pr-args run-pr pr-remote-url)
   (begin
 
+    (define (git-out . args)
+      (let-values (((out err code) (run-values (cons 'git args) :stdout 'capture)))
+        (if (and (= code 0) (> (string-length out) 0)) (string-trim-both out) #f)
+      ) ;let-values
+    ) ;define
+
     (define (pr-remote-url . opts)
       (let ((remote (if (null? opts) "origin" (car opts))))
-        (let-values (((out err code)
-                      (run-values (list 'git "remote" "get-url" remote) :stdout 'capture)
-                     ) ;
-                    ) ;
-          (if (and (= code 0) (> (string-length out) 0)) (string-trim-both out) #f)
-        ) ;let-values
+        (git-out "remote" "get-url" remote)
       ) ;let
     ) ;define
 
     (define (pr-number-string? value)
       (and (string? value)
-        (> (string-length value) 0)
-        (let loop
-          ((i 0))
-          (or (= i (string-length value))
-            (and (char-numeric? (string-ref value i)) (loop (+ i 1)))
-          ) ;or
-        ) ;let
+        (not (string-null? value))
+        (string-every char-numeric? value)
       ) ;and
     ) ;define
 
@@ -69,23 +65,15 @@
       ) ;let
     ) ;define
 
-    (define (run-cmd cmd)
+    (define (run-cmd args)
+      (display "\n-->\nrun: ")
+      (display (string-join (cons "git" args) " "))
       (newline)
-      (display "-->")
-      (newline)
-      (display "run: ")
-      (display cmd)
-      (newline)
-      (run cmd)
+      (run (cons 'git args))
     ) ;define
 
     (define (current-branch)
-      (let-values (((out err code)
-                    (run-values (list 'git "branch" "--show-current") :stdout 'capture)
-                   ) ;
-                  ) ;
-        (if (= code 0) (string-trim-both out) #f)
-      ) ;let-values
+      (git-out "branch" "--show-current")
     ) ;define
 
     (define (run-pr num)
@@ -98,25 +86,29 @@
             (display "remote: ")
             (display remote)
             (newline)
-            (when (= (run-cmd (string-append "git show-ref --verify --quiet refs/heads/" local-branch)
+            (when (= (run-cmd (list "show-ref"
+                                "--verify"
+                                "--quiet"
+                                (string-append "refs/heads/" local-branch)
+                              ) ;list
                      ) ;run-cmd
                     0
                   ) ;=
               (let ((cur (current-branch)))
                 (when (and cur (string=? cur local-branch))
-                  (run-cmd "git switch --detach")
+                  (run-cmd '("switch" "--detach"))
                 ) ;when
                 (display (string-append "Deleting existing local branch " local-branch))
                 (newline)
-                (run-cmd (string-append "git branch -D " local-branch))
+                (run-cmd (list "branch" "-D" local-branch))
               ) ;let
             ) ;when
-            (if (= (run-cmd (string-append "git fetch --force " remote " " remote-ref ":" local-branch)
+            (if (= (run-cmd (list "fetch" "--force" remote (string-append remote-ref ":" local-branch))
                    ) ;run-cmd
                   0
                 ) ;=
               (begin
-                (run-cmd (string-append "git switch " local-branch))
+                (run-cmd (list "switch" local-branch))
                 (display (string-append "Now on " local-branch " (PR #" num ")"))
                 (newline)
                 0
