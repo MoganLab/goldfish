@@ -578,6 +578,7 @@ json_parse_array (json_parser* p) {
   }
   // GC 已被调用方关闭，裸指针收集元素安全
   std::vector<s7_pointer> elems;
+  elems.reserve (32);
   while (true) {
     json_skip_ws (p);
     s7_pointer val= json_parse_value (p);
