@@ -134,3 +134,33 @@
                    ,@(map (lambda (s)
                             (if (pair? (cddr s)) (caddr s) (car s)))
                           specs))))))))))
+
+;; let-values : bind to the values of a single producer expression
+(define-syntax let-values
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((bindings (cadr form))
+            (body (cddr form)))
+        (datum->syntax
+          stx
+          (if (null? bindings)
+            `(let () ,@body)
+            (let ((b (car bindings)) (rest (cdr bindings)))
+              `(call-with-values (lambda () ,(cadr b))
+                 (lambda ,(car b) (let-values ,rest ,@body))))))))))
+
+;; let*-values : like let-values but binding clauses are evaluated
+;; sequentially (each clause may refer to earlier bindings).
+(define-syntax let*-values
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((bindings (cadr form))
+            (body (cddr form)))
+        (let loop ((bs bindings))
+          (datum->syntax
+            stx
+            (if (null? bs)
+              `(let () ,@body)
+              (let ((b (car bs)))
+                `(let-values (,(list (car b) (cadr b)))
+                   ,(loop (cdr bs)))))))))))

@@ -1625,18 +1625,20 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   bool gf_bootstrap = (getenv ("GOLDFISH_BOOTSTRAP") != nullptr);
   if (mode != "s7" && !gf_bootstrap) {
     s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
-    // Load the minimal derived forms (let/cond/case/when/do/and/or) into the
-    // base library, then the R7RS reader THROUGH the expander (boot.scm's
-    // load-expanded), immediately after the artifact: install.scm's lib-layer
-    // files use `(X ...)' ellipsis syntax that s7's tiny reader collapses, so
-    // the R7RS reader must be up before install.scm reads them, and the
-    // reader itself uses those derived forms (which the lib layer would
-    // otherwise provide -- prelude.scm breaks that cycle).  The reader's
-    // read/read-forms/load/expand-eval are re-bound in the rootlet for the
-    // s7-side loader paths.
+    // Load the minimal derived forms (let/cond/case/when/do/and/or plus
+    // let-values/let*-values) into the base library, then the R7RS reader
+    // THROUGH the expander (boot.scm's load-expanded), immediately after the
+    // artifact: install.scm's lib-layer files use `(X ...)' ellipsis syntax
+    // that s7's tiny reader collapses, so the R7RS reader must be up before
+    // install.scm reads them, and the reader itself uses those derived forms
+    // (which the lib layer would otherwise provide -- prelude.scm breaks that
+    // cycle).  The reader's read/read-forms/load/expand-eval are re-bound in
+    // the rootlet for the s7-side loader paths.  install.scm also loads
+    // THROUGH the expander (its let-values/let*-values/when/unless desugar to
+    // the prelude macros); only the artifact itself is still s7-evaluated.
     s7_eval_c_string (sc, "(load-expanded \"liii/prelude.scm\" 'base)");
     s7_eval_c_string (sc, "(load-expanded \"liii/reader.scm\")");
-    s7_eval_c_string (sc, "(load-source-file \"expander/lib/install.scm\")");
+    s7_eval_c_string (sc, "(load-expanded \"expander/lib/install.scm\" '(expander lib install))");
     s7_eval_c_string (sc, "(install-standard-library!)");
     // Preload the compiler so library captures after this point compile
     // transformer definitions to VM bytecode programs (compiled once,
