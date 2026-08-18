@@ -540,11 +540,18 @@
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
                 (constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if)))
-            (if (>= level 2)
-              (let ((inline (module-ref compiler 'inline)))
-                (run-passes sexp (list constant-fold inline simplify-if)))
-              (run-passes sexp (list constant-fold simplify-if))))
+                (simplify-if (module-ref compiler 'simplify-if))
+                (core->ir (module-ref compiler 'core->ir))
+                (ir->core (module-ref compiler 'ir->core)))
+            (ir->core
+             (if (>= level 2)
+               ;; level 2 adds the inliner (copy propagation + beta
+               ;; reduction).  Order: fold constants first (inliner relies
+               ;; on folded literals propagating), then inline, then clean
+               ;; up the ifs the inliner's pruning leaves behind.
+               (let ((inline (module-ref compiler 'inline)))
+                 (run-passes (core->ir sexp) (list constant-fold inline simplify-if)))
+               (run-passes (core->ir sexp) (list constant-fold simplify-if)))))
           sexp)))))
 
 ;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)
