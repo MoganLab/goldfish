@@ -1,5 +1,5 @@
 (define-library (liii option)
-  (import (liii base))
+  (import (liii base) (scheme base))
   (export none
     option
     option?

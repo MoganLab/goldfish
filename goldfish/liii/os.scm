@@ -22,7 +22,7 @@
     getlogin
     getpid
   ) ;export
-  (import (scheme process-context) (liii base) (liii error) (liii string))
+  (import (scheme process-context) (liii base) (scheme base) (liii error) (liii string))
   (begin
 
     (define (os-arch)

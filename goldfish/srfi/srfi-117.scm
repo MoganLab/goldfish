@@ -33,7 +33,7 @@
     list-queue-map!
     list-queue-for-each
   ) ;export
-  (import (liii base) (liii error) (liii list))
+  (import (liii base) (scheme base) (liii error) (liii list))
   (begin
 
     ;; ; The list-queue record

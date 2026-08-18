@@ -1,5 +1,5 @@
 (define-library (liii njson)
-  (import (liii base)
+  (import (liii base) (scheme base)
     (liii error)
     (liii path)
     (rename (liii json)

@@ -1,6 +1,6 @@
 (define-library (liii timeit)
   (export timeit)
-  (import (liii base) (scheme time))
+  (import (liii base) (scheme base) (scheme time))
   (begin
 
     (define* (timeit stmt (setup '()) (number 1000000))

@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-151)
-  (import (liii base) (liii error))
+  (import (liii base) (scheme base) (liii error))
   (export bitwise-not
     bitwise-and
     bitwise-ior

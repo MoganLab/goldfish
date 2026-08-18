@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-125)
-  (import (srfi srfi-1) (srfi srfi-128) (liii base) (liii error))
+  (import (scheme base) (srfi srfi-1) (srfi srfi-128) (liii base) (liii error))
   (export make-hash-table
     hash-table
     alist->hash-table

@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-133)
-  (import (liii base))
+  (import (liii base) (scheme base))
   (export vector-empty?
     vector-unfold
     vector-unfold-right

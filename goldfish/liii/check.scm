@@ -10,7 +10,8 @@
     check-true
     check-false
   ) ;export
-  (import (srfi srfi-78)
+  (import (scheme base)
+    (srfi srfi-78)
     (rename (srfi srfi-78) (check-report srfi-78-check-report))
   ) ;import
   (begin

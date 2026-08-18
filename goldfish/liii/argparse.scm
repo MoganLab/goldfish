@@ -1,5 +1,5 @@
 (define-library (liii argparse)
-  (import (liii base)
+  (import (liii base) (scheme base)
     (liii error)
     (liii list)
     (liii string)
