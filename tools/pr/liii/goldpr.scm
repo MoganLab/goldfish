@@ -20,12 +20,22 @@
     (scheme write)
     (scheme process-context)
     (liii argparse)
-    (liii os)
+    (liii string)
+    (liii subprocess)
   ) ;import
-  (export main parse-pr-args run-pr)
+  (export main parse-pr-args run-pr pr-remote-url)
   (begin
 
-    (define pr-remote "git@github.com:MoganLab/goldfish.git")
+    (define (pr-remote-url . opts)
+      (let ((remote (if (null? opts) "origin" (car opts))))
+        (let-values (((out err code)
+                      (run-values (list 'git "remote" "get-url" remote) :stdout 'capture)
+                     ) ;
+                    ) ;
+          (if (and (= code 0) (> (string-length out) 0)) (string-trim-both out) #f)
+        ) ;let-values
+      ) ;let
+    ) ;define
 
     (define (pr-number-string? value)
       (and (string? value)
@@ -59,36 +69,67 @@
       ) ;let
     ) ;define
 
+    (define (run-cmd cmd)
+      (newline)
+      (display "-->")
+      (newline)
+      (display "run: ")
+      (display cmd)
+      (newline)
+      (run cmd)
+    ) ;define
+
+    (define (current-branch)
+      (let-values (((out err code)
+                    (run-values (list 'git "branch" "--show-current") :stdout 'capture)
+                   ) ;
+                  ) ;
+        (if (= code 0) (string-trim-both out) #f)
+      ) ;let-values
+    ) ;define
+
     (define (run-pr num)
       (let ((remote-ref (string-append "pull/" num "/head"))
             (local-branch (string-append "pr_" num))
+            (remote (pr-remote-url))
            ) ;
-        (display pr-remote)
-        (newline)
-        (display remote-ref)
-        (newline)
-        (display local-branch)
-        (newline)
-        (when (= (os-call (string-append "git show-ref --verify --quiet refs/heads/" local-branch)
-                 ) ;os-call
-                0
-              ) ;=
-          (display (string-append "Deleting existing local branch " local-branch))
-          (newline)
-          (os-call (string-append "git branch -D " local-branch))
-        ) ;when
-        (if (= (os-call (string-append "git fetch --force " pr-remote " " remote-ref ":" local-branch)
-               ) ;os-call
-              0
-            ) ;=
+        (if remote
           (begin
-            (os-call (string-append "git switch " local-branch))
-            (display (string-append "Now on " local-branch " (PR #" num ")"))
+            (display "remote: ")
+            (display remote)
             (newline)
-            0
+            (when (= (run-cmd (string-append "git show-ref --verify --quiet refs/heads/" local-branch)
+                     ) ;run-cmd
+                    0
+                  ) ;=
+              (let ((cur (current-branch)))
+                (when (and cur (string=? cur local-branch))
+                  (run-cmd "git switch --detach")
+                ) ;when
+                (display (string-append "Deleting existing local branch " local-branch))
+                (newline)
+                (run-cmd (string-append "git branch -D " local-branch))
+              ) ;let
+            ) ;when
+            (if (= (run-cmd (string-append "git fetch --force " remote " " remote-ref ":" local-branch)
+                   ) ;run-cmd
+                  0
+                ) ;=
+              (begin
+                (run-cmd (string-append "git switch " local-branch))
+                (display (string-append "Now on " local-branch " (PR #" num ")"))
+                (newline)
+                0
+              ) ;begin
+              (begin
+                (display (string-append "PR #" num " not found on remote"))
+                (newline)
+                1
+              ) ;begin
+            ) ;if
           ) ;begin
           (begin
-            (display (string-append "PR #" num " not found on remote"))
+            (display "Error: no origin remote found in this repository")
             (newline)
             1
           ) ;begin
