@@ -156,13 +156,13 @@
     (if (zero? level) "" (string-append "-o" (number->string level)))))
 
 (define (library-cache-path lib-file)
-  (string-append (compile-cache-dir) "/" (g_sha256 lib-file)
+  (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
                  (library-cache-level-suffix) ".libcache"))
 
 ;;; library-cache-meta-path : string -> string
 
 (define (library-cache-meta-path lib-file)
-  (string-append (compile-cache-dir) "/" (g_sha256 lib-file)
+  (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
                  (library-cache-level-suffix) ".libmeta"))
 
 ;;; parse-define-library-body : syntax -> (values exports body-stxs)

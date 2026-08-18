@@ -32,6 +32,61 @@
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
       "/goldfish/ccache")))
 
+;;; cache-key-path : string -> string
+;;; Map a source path to a filesystem-safe, NESTED cache key: the key is
+;;; the source path itself (its directory structure mirrored under the
+;;; cache dir), so cache artifacts are identifiable by the source path
+;;; instead of an opaque hash.  "/" and "\" are treated as separators;
+;;; empty and "." components are dropped; ".." is mapped to "_dotdot"
+;;; (kept in the key to avoid collisions, but escaped so it cannot escape
+;;; the cache directory); a drive-letter prefix ("C:") and the leading
+;;; "/" of an absolute path are dropped.
+
+(define (cache-separator? c)
+  (or (char=? c #\/) (char=? c #\\)))
+
+(define (cache-key-path path)
+  (let ((n (string-length path)))
+    (let loop ((i 0) (start 0) (parts '()))
+      (if (> i n)
+        (if (null? parts)
+          "root"
+          (let ((rev (reverse parts)))
+            (let lp ((acc (car rev)) (rest (cdr rev)))
+              (if (null? rest)
+                acc
+                (lp (string-append acc "/" (car rest)) (cdr rest))))))
+        (if (or (= i n) (cache-separator? (string-ref path i)))
+          (let ((comp (substring path start i)))
+            (loop (+ i 1) (+ i 1)
+                  (if (or (string=? comp "")
+                          (string=? comp ".")
+                          (and (> (string-length comp) 0)
+                               (char=? (string-ref comp (- (string-length comp) 1)) #\:)))
+                    parts
+                    (cons (if (string=? comp "..") "_dotdot" comp) parts))))
+          (loop (+ i 1) start parts))))))
+
+;;; ensure-cache-parent! : dir cache-file -> void
+;;; Create the cache root and every missing parent directory of cache-file
+;;; under it, so nested (pathname-keyed) cache files can be written.
+
+(define (ensure-cache-parent! dir file)
+  (if (not (file-exists? dir))
+    (g_mkdir dir))
+  (let ((rel (substring file (string-length dir))))
+    (let ((n (string-length rel)))
+      (let loop ((i 1))
+        (let ((j (let lp ((k i))
+                   (if (or (= k n) (char=? (string-ref rel k) #\/))
+                     k
+                     (lp (+ k 1))))))
+          (when (< j n)
+            (let ((d (string-append dir (substring rel 0 j))))
+              (if (not (file-exists? d))
+                (g_mkdir d))
+              (loop (+ j 1)))))))))
+
 (define (compile-file-stamp path)
   (list (g_path-getmtime path) (g_path-getsize path)))
 
@@ -49,8 +104,7 @@
               (equal? (cdr rec) stamp)))))
 
 (define (compile-write-cache dir cache meta stamp sexp)
-  (if (not (file-exists? dir))
-    (g_mkdir dir))
+  (ensure-cache-parent! dir cache)
   ;; s7's write truncates long lists at (*s7* 'print-length) (default 40);
   ;; a cached expansion easily exceeds that, so raise it for the write and
   ;; restore afterwards.  write-roundtrip (reader.scm) is used so the output
@@ -154,8 +208,9 @@
 ;;; expand it into the library.  File lookup reuses the loader's
 ;;; load-find-module-file (boot/loader.scm), the single file-finding helper.
 ;;; Caches the expansion (lowered value definitions plus collected macro
-;;; transformer forms) under the ccache directory, keyed by sha256 of the
-;;; path and invalidated by mtime/size, so warm starts skip re-expansion.
+;;; transformer forms) under the ccache directory, keyed by the source path
+;;; (its directory structure mirrored under the cache dir) and invalidated
+;;; by mtime/size, so warm starts skip re-expansion.
 
 (define (install-library-file! lib path)
   (let ((file (load-find-module-file path)))
@@ -277,7 +332,7 @@
 
 ;;; install-cache-path : path -> (values cache meta)
 (define (install-cache-path path)
-  (let ((key (g_sha256 path)))
+  (let ((key (cache-key-path path)))
     (values (string-append (compile-cache-dir) "/" key ".mac")
             (string-append (compile-cache-dir) "/" key ".macmeta"))))
 
@@ -447,14 +502,16 @@
 ;;; Guile-style ccache for the expander's compile: cache the expansion of a
 ;;; source file (the lowered core S-expression from compile-file) under
 ;;; $XDG_CACHE_HOME/goldfish/ccache/ (default ~/.cache/goldfish/ccache/),
-;;; keyed by sha256 of the source path, invalidated by the source's mtime
-;;; and size (Guile's ccache uses the same scheme).  compile-file keeps its
-;;; uncached semantics; compile-file-cached is the caching entry point.
-;;; (compile-cache-dir / compile-file-stamp / compile-cache-valid? /
-;;; compile-write-cache are defined up top, before the boot installs.)
+;;; keyed by the source path (mirrored as nested directories), invalidated
+;;; by the source's mtime and size (Guile's ccache uses the same scheme).
+;;; compile-file keeps its uncached semantics; compile-file-cached is the
+;;; caching entry point.
+;;; (compile-cache-dir / cache-key-path / compile-file-stamp /
+;;; compile-cache-valid? / compile-write-cache are defined up top, before
+;;; the boot installs.)
 
 (define (compile-cache-hot? path stamp)
-  (let ((base (string-append (compile-cache-dir) "/" (g_sha256 path))))
+  (let ((base (string-append (compile-cache-dir) "/" (cache-key-path path))))
     (compile-cache-valid? (string-append base ".scm")
                           (string-append base ".meta")
                           stamp)))
@@ -474,7 +531,7 @@
          (if (and n (integer? n) (>= n 0)) n 1))))))
 
 (define (compile-file-cached path)
-  (let* ((key (g_sha256 path))
+  (let* ((key (cache-key-path path))
          (level (ccache-level))
          ;; The artifact is cached ALREADY OPTIMIZED for the active level,
          ;; so loading it again does not re-run the passes.  The level is
@@ -504,6 +561,8 @@
 ;; The library cache (load-library! path) reuses the ccache dir, stamp,
 ;; validity check, and atomic writer, so expose them for lib/module.scm.
 (module-define! the-expander-library 'compile-cache-dir compile-cache-dir)
+(module-define! the-expander-library 'cache-key-path cache-key-path)
+(module-define! the-expander-library 'ensure-cache-parent! ensure-cache-parent!)
 (module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
 (module-define! the-expander-library 'compile-cache-valid? compile-cache-valid?)
 (module-define! the-expander-library 'compile-write-cache compile-write-cache)

@@ -747,14 +747,15 @@
       (else acc))))
 
 (define (compile-cache-disabled? path stamp)
-  (let ((f (string-append (compile-cache-dir) "/" (g_sha256 path) ".disabled")))
+  (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
     (and (file-exists? f)
          (equal? (call-with-input-file f
                    (lambda (p) (car (read-forms p))))
                  stamp))))
 
 (define (compile-cache-disable! path stamp)
-  (let ((f (string-append (compile-cache-dir) "/" (g_sha256 path) ".disabled")))
+  (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
+    (ensure-cache-parent! (compile-cache-dir) f)
     (call-with-output-file f
       (lambda (p) (write stamp p)))))
 
