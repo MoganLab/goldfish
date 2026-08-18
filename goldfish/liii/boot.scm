@@ -473,32 +473,107 @@
 ;;; using kernel features only (define-syntax with lambda transformers; the
 ;;; free kernel identifiers below resolve from the rootlet once the
 ;;; artifact has loaded).
+;;;
+;;; The lowered defs are deterministic, so they are cached (like the
+;;; lib-layer ccache): re-expanding the reader through the expander costs
+;;; ~250ms per warm start, and warm starts should only pay the cheap
+;;; eval+rootlet-copy.  The cache key is the source path; validity is the
+;;; source's mtime+size AND the artifact's (the kernel version determines
+;;; the lowering), so rebuilding the artifact invalidates it.  Format (one
+;;; datum per line, written with s7's write + raised print-length, read by
+;;; the bootstrap tiny reader):
+;;;   (le-cache 1)
+;;;   ((name . gensym) ...)       ; toplevel value bindings for the rootlet
+;;;   (begin <lowered def> ...)   ; eval'd in the-expander-library
+
+(define (le-cache-dir)
+  (let ((xdg (getenv "XDG_CACHE_HOME")))
+    (string-append
+      (if (and xdg (not (string=? xdg ""))) xdg
+        (string-append (or (getenv "HOME") "/tmp") "/.cache"))
+      "/goldfish/ccache")))
+
+(define (le-cache-key path)
+  (let ((chars (string->list path)))
+    (list->string
+      (map (lambda (c)
+             (cond ((char=? c #\/) #\_)
+                   ((char=? c #\.) #\_)
+                   (else c)))
+           chars))))
+
+(define (le-cache-files path)
+  (let ((dir (le-cache-dir)))
+    (values (string-append dir "/" (le-cache-key path) ".le")
+            (string-append dir "/" (le-cache-key path) ".le.meta"))))
+
+(define (le-cache-valid? cache meta stamp)
+  (and (file-exists? cache)
+       (file-exists? meta)
+       (let ((rec (call-with-input-file meta
+                     (lambda (p) (car (read-forms p))))))
+         (and (pair? rec)
+              (pair? (car rec))
+              (equal? (car rec) '(le-cache 1))
+              (equal? (cdr rec) stamp)))))
+
+(define (le-write-cache cache meta stamp bindings sexp)
+  (if (getenv "GOLDFISH_CACHE_READONLY")
+    #f
+    (let ((dir (le-cache-dir)))
+      (if (not (file-exists? dir)) (g_mkdir dir))
+      (let ((old-length (*s7* 'print-length)))
+        (let-set! *s7* 'print-length 1000000)
+        (let ((tmp (string-append cache ".tmp")))
+          (call-with-output-file tmp
+            (lambda (p)
+              (write '(le-cache 1) p) (newline p)
+              (write bindings p) (newline p)
+              (write sexp p)))
+          (g_rename tmp cache))
+        (let ((mtmp (string-append meta ".tmp")))
+          (call-with-output-file mtmp
+            (lambda (p) (write (cons '(le-cache 1) stamp) p)))
+          (g_rename mtmp meta))
+        (let-set! *s7* 'print-length old-length)))))
+
+(define (le-rootlet-copy bindings)
+  (for-each (lambda (e)
+              (varlet (rootlet) (car e)
+                      (eval (cdr e) the-expander-library)))
+            bindings))
+
 (define (load-expanded path . maybe-lib)
   (let ((file (load-find-module-file path)))
     (unless file (error "load-expanded: file not found" path))
-    (let* ((forms (read-forms (open-input-file file)))
-           (lib (if (pair? maybe-lib)
+    (let* ((lib (if (pair? maybe-lib)
                   (if (eq? (car maybe-lib) 'base)
                     the-base-library
                     (make-exp-library (car maybe-lib)))
                   (make-exp-library '(liii reader))))
-           (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
-                      forms)))
-      (let*-values (((defs ctx) (expand-library-body stxs lib (initial-context))))
-        (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
-        ;; Re-bind every top-level VALUE binding in the rootlet: the
-        ;; s7-evaluated bootstrap code and lib-layer files reference the
-        ;; loaded file's functions as rootlet free identifiers (the old
-        ;; s7-eval'd reader had all of its functions in the rootlet; keep
-        ;; that surface).  Macro bindings have no runtime value.
-        (for-each (lambda (e)
-                    (let ((name (car e)) (b (cdr e)))
-                      (when (toplevel-binding? b)
-                        ;; varlet (not eval of a define form): a list-valued
-                        ;; binding (e.g. the reader's char-names) must not be
-                        ;; placed in the define's value position, where s7
-                        ;; would evaluate the pair as a form.
-                        (varlet (rootlet) name
-                                (eval (toplevel-ref-gensym (binding-value b))
-                                      the-expander-library)))))
-                  (exp-library-bindings lib))))))
+           (artifact (or (load-find-module-file "expander/kernel-combined.scm")
+                         "expander/kernel-combined.scm"))
+           (stamp (list (g_path-getmtime file) (g_path-getsize file)
+                        (g_path-getmtime artifact) (g_path-getsize artifact))))
+      (let*-values (((cache meta) (le-cache-files path)))
+        (if (le-cache-valid? cache meta stamp)
+          (let ((rec (call-with-input-file cache
+                        (lambda (p) (read-forms p)))))
+            (eval (caddr rec) the-expander-library)
+            (le-rootlet-copy (cadr rec)))
+          (let* ((forms (read-forms (open-input-file file)))
+                 (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
+                            forms)))
+            (let*-values (((defs ctx) (expand-library-body stxs lib (initial-context))))
+              (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
+              (let ((bindings (map (lambda (e)
+                                     (let ((name (car e)) (b (cdr e)))
+                                       (cons name
+                                             (toplevel-ref-gensym
+                                               (binding-value b)))))
+                                   (filter (lambda (e)
+                                             (toplevel-binding? (cdr e)))
+                                           (exp-library-bindings lib)))))
+                (le-write-cache cache meta stamp bindings
+                                (cons 'begin (map lower defs)))
+                (le-rootlet-copy bindings)))))))))
