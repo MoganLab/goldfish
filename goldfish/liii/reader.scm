@@ -754,10 +754,14 @@
                  stamp))))
 
 (define (compile-cache-disable! path stamp)
-  (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
-    (ensure-cache-parent! (compile-cache-dir) f)
-    (call-with-output-file f
-      (lambda (p) (write stamp p)))))
+  ;; In read-only cache mode a transient failure in one parallel child must
+  ;; not poison the shared cache with a .disabled marker.
+  (if (getenv "GOLDFISH_CACHE_READONLY")
+    #f
+    (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
+      (ensure-cache-parent! (compile-cache-dir) f)
+      (call-with-output-file f
+        (lambda (p) (write stamp p))))))
 
 ;;; formals->names : formals -> (list symbol)
 ;;; Turn a lambda formals list into the list of parameter names, handling

@@ -104,7 +104,14 @@
               (equal? (cdr rec) stamp)))))
 
 (define (compile-write-cache dir cache meta stamp sexp)
-  (ensure-cache-parent! dir cache)
+  ;; Parallel test runs share this cache directory; concurrent writers
+  ;; racing on the same key (tmp+rename is only per-file atomic) can leave
+  ;; an inconsistent artifact behind.  GOLDFISH_CACHE_READONLY turns the
+  ;; cache into read-only so parallel children never write.
+  (if (getenv "GOLDFISH_CACHE_READONLY")
+    #f
+    (begin
+      (ensure-cache-parent! dir cache)
   ;; s7's write truncates long lists at (*s7* 'print-length) (default 40);
   ;; a cached expansion easily exceeds that, so raise it for the write and
   ;; restore afterwards.  write-roundtrip (reader.scm) is used so the output
@@ -123,7 +130,7 @@
   (let ((mtmp (string-append meta ".tmp")))
     (call-with-output-file mtmp
       (lambda (p) (write (cons (list 'compile-cache 2) stamp) p)))
-    (g_rename mtmp meta)))
+    (g_rename mtmp meta)))))
 
 ;;; take-collected-macros : -> (list (name . sexp))
 ;;; Fetch and clear the kernel's collected macro records.  Tolerates an
