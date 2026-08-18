@@ -92,8 +92,7 @@
       (unless (integer? n)
         (type-error "list-take-right: second argument must be an integer" n)
       ) ;unless
-      (cond ((< n 0) '())
-            ((= n 0) '())
+      (cond ((<= n 0) '())
             (else (let advance
                     ((lead lst) (count 0))
                     (cond ((null? lead) lst)
@@ -117,8 +116,7 @@
       (unless (integer? n)
         (type-error "list-drop-right: second argument must be an integer" n)
       ) ;unless
-      (cond ((< n 0) lst)
-            ((= n 0) lst)
+      (cond ((<= n 0) lst)
             ((>= n (length lst)) '())
             (else (drop-right lst n))
       ) ;cond
