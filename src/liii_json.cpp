@@ -444,12 +444,18 @@ json_parse_symbol_key (json_parser* p, jnode& out) {
   s7_int bgn= p->pos;
   while (p->pos < p->len) {
     char c= p->s[p->pos];
-    if (c == ':' || c == ',' || c == '}' || c == ']' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"') break;
+    if (c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' '
+        || c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"') break;
     p->pos++;
   }
   if (p->pos == bgn) return false;
+  std::string text (p->s + bgn, (size_t) (p->pos - bgn));
+  // [0125] 数字开头（含负号）的键是 JSON 数字而非符号；null/true/false 是保留字不能作键
+  char c0= text[0];
+  if ((c0 >= '0' && c0 <= '9') || c0 == '-') return false;
+  if (text == "null" || text == "true" || text == "false") return false;
   out.kind= jnode::JSYM;
-  out.text.assign (p->s + bgn, (size_t) (p->pos - bgn));
+  out.text= std::move (text);
   return true;
 }
 

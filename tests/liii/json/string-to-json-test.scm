@@ -141,6 +141,12 @@
 
 ;;; 宽松语法
 (check (string->json "{a-b:1}") => '((a-b . 1)))
+
+;;; [0125] 非符号键报 parse-error：数字键、保留字键、'[' 开头键
+(check-catch 'parse-error (string->json "{1:1}"))
+(check-catch 'parse-error (string->json "{9999E9999:1}"))
+(check-catch 'parse-error (string->json "{null:null,null:null}"))
+(check-catch 'parse-error (string->json "{[: \"x\"}"))
 (check-catch 'parse-error (string->json "[1,]"))
 (check (string->json "[true,false,null]") => #(true false null))
 (check-catch 'parse-error (string->json "{a:1,,}"))
