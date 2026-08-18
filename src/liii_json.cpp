@@ -413,6 +413,9 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
         quts= !quts;
         end++;
         break;
+      case '\'':
+        // 单引号字符串不是合法 JSON（RFC 8259）
+        return json_parse_error (sc, "Single-quoted strings are not valid JSON");
       default:
         end++;
         break;
