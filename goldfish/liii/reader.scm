@@ -933,7 +933,17 @@
                                         (if (not (runtime-registered? lib))
                                           (load-library! lib)))
                                       (collect-module-refs sexp))
-                            (eval sexp (rootlet)))
+                            ;; Evaluate the compiled artifact in
+                            ;; the-expander-library, not the rootlet: the
+                            ;; lowered defs reference library bindings by
+                            ;; gensym (e.g. load-library!:40), which only
+                            ;; resolve in the-expander-library.  The rootlet
+                            ;; eval silently "worked" only when the first
+                            ;; unbound gensym threw and the fallback
+                            ;; re-loaded per-form; user code that caught the
+                            ;; error (like this suite's per-library catch)
+                            ;; ran with all library references broken.
+                            (eval sexp the-expander-library))
                           (lambda (type info)
                             (compile-cache-disable! path stamp)
                             (load-forms-sequentially forms)))
