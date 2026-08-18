@@ -722,52 +722,7 @@
               (lambda ()
                 (set! *libraries-being-loaded*
                       (filter (lambda (n) (not (equal? n lib-name)))
-                              *libraries-being-loaded*))))))))))
-        (install-rootlet-abi!)))
-
-;;; Rootlet host ABI injection.
-;;;
-;;; The s7 host does not provide the R7RS names that (scheme base) defines
-;;; (min, max, exact-integer?, string-upcase, ...): they exist only as
-;;; library bindings once (scheme base) loads through the expander.  Three
-;;; consumers resolve them against the HOST rootlet, so the names must also
-;;; live there once (scheme base) is loaded:
-;;;
-;;;   * s7-evaluated bootstrap code (boot.scm / reader.scm): the R7RS reader
-;;;     parses #u8(...) via exact-integer?, resolved against the host env.
-;;;   * the expander's primitive-by-name mechanism: install-primitives!
-;;;     binds R7RS names as bare-name primitives, and expanded code emits
-;;;     them bare; s7 looks them up in the rootlet at eval time.
-;;;   * cached library artifacts: lowered defs are (eval d (rootlet)).
-;;;
-;;; Before this injection, the same surface was provided by a Phase-1 host
-;;; `import' of (scheme base) that varlet'd the library into the curlet;
-;;; r7rs-small now loads purely through the expander, so the rootlet shim is
-;;; re-established here from the loaded library's VALUE bindings (macro
-;;; bindings have no runtime value and are excluded; primitive bindings are
-;;; s7 natives already in the rootlet).  The seed's own host fallbacks
-;;; (bytevector? etc.) are overwritten with the same values.
-(define *rootlet-abi-installed?* #f)
-
-(define (install-rootlet-abi!)
-  (unless *rootlet-abi-installed?*
-    (let ((rec (library-registry-ref '(scheme base))))
-      (when rec
-        (let ((lib (lib-record-library rec)))
-          (for-each (lambda (e)
-                      (let ((name (car e)) (binding (cdr e)))
-                        (when (toplevel-binding? binding)
-                          ;; Guard each define: a handful of exports cannot
-                          ;; be re-bound in the host (s7 constants etc.).
-                          (catch #t
-                            (lambda ()
-                              (eval (list 'define name
-                                          (toplevel-ref-gensym
-                                            (binding-value binding)))
-                                    (rootlet)))
-                            (lambda (tag . info) #f)))))
-                    (exp-library-bindings lib)))
-          (set! *rootlet-abi-installed?* #t)))))
+                              *libraries-being-loaded*))))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.

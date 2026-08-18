@@ -516,12 +516,13 @@ f_undefined (s7_scheme* sc, s7_pointer args) {
 
 void
 bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
-  // s7 阶段（bootstrap）只加载两个纯 s7 文件：
+  // s7 阶段（bootstrap）加载纯 s7 文件：
   //   - boot.scm：seed，提供 host 宏（define-library/import/let*-values）、
   //     loader（load-find-module-file/load-source-file）与模块 substrate
   //   - reader.scm：R7RS reader，定义 read/load/expand-eval。它自包含
   //     （不 import 任何库，只用 s7 原生可用的形式以及 boot.scm / glue
   //     提供的基础函数），因此 s7 原生可以完整加载。
+  //   - host-abi.scm：R7RS 值面（见下）。
   //
   // string-cursor.scm 刻意不在 s7 阶段加载：它依赖 expander 宏
   // （define-record-type）以及 (liii base)/(liii unicode) 等含 define-syntax
@@ -530,6 +531,14 @@ bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   // s7 阶段保持纯净。
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/boot.scm").c_str ());
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/reader.scm").c_str ());
+  // host-abi.scm: the R7RS value surface the s7 host lacks (min, max,
+  // exact-integer?, string-upcase, bytevector I/O, time, environment, ...).
+  // It is loaded in the s7 phase (plain defines into the rootlet) so the
+  // bootstrap reader (exact-integer?), the expander's primitive-by-name
+  // mechanism, and cached artifacts all resolve the R7RS names.  The same
+  // file is `include`d by (scheme base), so the library view and the host
+  // view share one definition.  See liii/host-abi.scm.
+  tiny_load_path (sc, (std::string (gf_lib) + "/liii/host-abi.scm").c_str ());
 }
 
 void

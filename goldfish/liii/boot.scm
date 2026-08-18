@@ -179,27 +179,6 @@
     `(let-values (,(car clauses))
        (let*-values ,(cdr clauses) ,@body))))
 
-;;; R7RS host fallbacks the expander kernel needs at runtime.
-;;;
-;;; The kernel (goldfish/expander/kernel, pre-expanded to
-;;; kernel-combined.scm) is written in portable R7RS and references R7RS
-;;; names (bytevector?, floor/, ...) that s7 spells differently or lacks.
-;;; (scheme base) provides them, but the kernel must run BEFORE the base
-;;; library can be loaded through the expander, so the seed provides the
-;;; host-side fallbacks here (cf. the let-values/record fallbacks above).
-;;; These are plain declarations; the full R7RS definitions live in
-;;; goldfish/scheme/base.scm and are loaded through the expander.
-
-(define bytevector byte-vector)
-(define bytevector? byte-vector?)
-(define make-bytevector make-byte-vector)
-(define bytevector-length length)
-(define bytevector-u8-ref byte-vector-ref)
-(define bytevector-u8-set! byte-vector-set!)
-(define bytevector-append append)
-(define string-for-each for-each)
-(define vector-fill! fill!)
-
 ;;; ---------------------------------------------------------------------------
 ;;; Independent record implementation (cf. Guile ice-9/boot-9.scm {Records}).
 ;;;
@@ -380,26 +359,6 @@
 
 (define (eof-object)
   *eof-object*)
-
-(define (bytevector->u8-list bv)
-  (let loop ((i (- (bytevector-length bv) 1)) (acc '()))
-    (if (< i 0)
-      acc
-      (loop (- i 1) (cons (bytevector-u8-ref bv i) acc)))))
-
-(define (u8-list->bytevector lst)
-  (let* ((bv (make-bytevector (length lst))))
-    (let loop ((i 0) (l lst))
-      (if (null? l)
-        bv
-        (begin (bytevector-u8-set! bv i (car l))
-               (loop (+ i 1) (cdr l)))))))
-
-(define (floor/ n d)
-  (values (floor-quotient n d) (floor-remainder n d)))
-
-(define (truncate/ n d)
-  (values (truncate-quotient n d) (truncate-remainder n d)))
 
 (define (syntax-error msg . irritants)
   (apply error (cons (string-append "syntax error: " msg) irritants)))
