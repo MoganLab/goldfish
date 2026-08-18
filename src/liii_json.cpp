@@ -16,6 +16,8 @@
 
 #include "s7.h"
 #include <cstdlib>
+#include <cstring>
+#include <vector>
 #include <string>
 
 namespace goldfish {
@@ -66,7 +68,15 @@ json_write_escaped_string (std::string& out, const char* s, s7_int len) {
         out+= "\\t";
         break;
       default:
-        out.push_back ((char) c);
+        if (c < 0x20) {
+          // [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再解析
+          char buf[8];
+          snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+          out+= buf;
+        }
+        else {
+          out.push_back ((char) c);
+        }
         break;
       }
     }
@@ -79,6 +89,9 @@ json_write_escaped_string (std::string& out, const char* s, s7_int len) {
 }
 
 static void json_write_value (s7_scheme* sc, s7_pointer x, std::string& out);
+
+// [0125] 空对象 '(()) 在顶层与嵌套位置都应输出 {}（此前顶层输出 {{}}）
+static bool json_is_null_object (s7_scheme* sc, s7_pointer x);
 
 static void
 json_write_scalar (s7_scheme* sc, s7_pointer x, std::string& out) {
@@ -151,6 +164,10 @@ json_write_object_entry (s7_scheme* sc, s7_pointer d, std::string& out) {
 
 static void
 json_write_value (s7_scheme* sc, s7_pointer x, std::string& out) {
+  if (json_is_null_object (sc, x)) {
+    out+= "{}";
+    return;
+  }
   if (s7_is_vector (x)) {
     out.push_back ('[');
     s7_int      len  = s7_vector_length (x);
@@ -280,6 +297,354 @@ json_parse_hex4 (const char* s, s7_int n, s7_int& result) {
   return true;
 }
 
+// [0125] 按 RFC 8259 重写的严格递归下降 parser，目标是 JSONTestSuite 的 y_/n_ 用例：
+//   - 严格数字文法：-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?
+//   - 严格结构文法：逗号/冒号缺失、尾逗号、尾部垃圾均报 parse-error
+//   - 字符串内裸控制字符（< 0x20）报 parse-error
+//   - 剥离 UTF-8 BOM；空白仅认 space/\t/\n/\r
+//   - 顶层标量直接返回值；空/纯空白输入仍返回 eof-object（历史行为）
+// 保留的 goldfish 扩展（与 RFC 的已知偏差）：
+//   - 不带引号的对象键（{a:1}，键解析为符号）
+// 单引号字符串不是合法 JSON，报 parse-error（与 0124 行为一致）
+//
+// 实现分两步：先解析为 C++ 侧的 jnode 树，再一次性转换为 s7 对象；
+// 转换期间对每个已完成的子树用 s7_gc_protect_via_stack 保护，避免分配触发
+// GC 回收未挂接的子树。
+
+struct jnode {
+  enum kind_t { JSTR, JSYM, JNUM, JTRUE, JFALSE, JNULL, JOBJ, JARR } kind;
+  std::string             text;  // JSTR/JNUM: 字符串内容或数字文本；JSYM: 符号名
+  std::vector<jnode>      items; // JARR
+  std::vector<jnode>      keys;  // JOBJ（JSTR 或 JSYM）
+  std::vector<jnode>      vals;  // JOBJ
+};
+
+struct json_parser {
+  s7_scheme*  sc;
+  const char* s;
+  s7_int      len;
+  s7_int      pos;
+  s7_int      depth; // 当前容器嵌套深度
+};
+
+// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
+#define JSON_MAX_DEPTH 10000
+
+static void
+json_skip_ws (json_parser* p) {
+  while (p->pos < p->len) {
+    char c= p->s[p->pos];
+    if (c == ' ' || c == '\t' || c == '\n' || c == '\r') p->pos++;
+    else break;
+  }
+}
+
+static s7_int
+json_peek (json_parser* p) {
+  return (p->pos < p->len) ? (unsigned char) p->s[p->pos] : -1;
+}
+
+static bool
+json_parse_value (json_parser* p, jnode& out);
+
+static bool
+json_parse_hex4_at (json_parser* p, s7_int at, s7_int& cp) {
+  if (at + 4 > p->len) return false;
+  return json_parse_hex4 (p->s + at, 4, cp);
+}
+
+static bool
+json_parse_string_body (json_parser* p, std::string& out) {
+  // 进入时 p->pos 指向开引号之后
+  while (p->pos < p->len) {
+    unsigned char c= (unsigned char) p->s[p->pos];
+    if (c == '"') {
+      p->pos++;
+      return true;
+    }
+    if (c == '\\') {
+      if (p->pos + 1 >= p->len) return false;
+      char next= p->s[p->pos + 1];
+      switch (next) {
+      case '"': out+= '"'; p->pos+= 2; break;
+      case '\\': out+= '\\'; p->pos+= 2; break;
+      case '/': out+= '/'; p->pos+= 2; break;
+      case 'b': out+= '\b'; p->pos+= 2; break;
+      case 'f': out+= '\f'; p->pos+= 2; break;
+      case 'n': out+= '\n'; p->pos+= 2; break;
+      case 'r': out+= '\r'; p->pos+= 2; break;
+      case 't': out+= '\t'; p->pos+= 2; break;
+      case 'u': {
+        s7_int cp;
+        if (!json_parse_hex4_at (p, p->pos + 2, cp)) return false;
+        s7_int next_cp;
+        if (cp >= 55296 && cp <= 56319 && p->pos + 6 + 6 < p->len
+            && p->s[p->pos + 6] == '\\' && p->s[p->pos + 7] == 'u'
+            && json_parse_hex4_at (p, p->pos + 8, next_cp)
+            && next_cp >= 56320 && next_cp <= 57343) {
+          cp= (cp - 55296) * 1024 + (next_cp - 56320) + 65536;
+          p->pos+= 12;
+        }
+        else {
+          p->pos+= 6;
+        }
+        if (!json_append_utf8 (out, cp)) return false;
+        break;
+      }
+      default:
+        return false;
+      }
+    }
+    else if (c < 0x20) {
+      return false; // 裸控制字符
+    }
+    else {
+      out.push_back ((char) c);
+      p->pos++;
+    }
+  }
+  return false; // 未闭合
+}
+
+// 严格数字文法；返回 false 表示不是合法 JSON 数字
+static bool
+json_parse_number (json_parser* p, jnode& out) {
+  s7_int bgn= p->pos;
+  if (json_peek (p) == '-') p->pos++;
+  s7_int c= json_peek (p);
+  if (c == '0') {
+    p->pos++;
+  }
+  else if (c >= '1' && c <= '9') {
+    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+  }
+  else return false;
+  if (json_peek (p) == '.') {
+    p->pos++;
+    if (!(json_peek (p) >= '0' && json_peek (p) <= '9')) return false;
+    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+  }
+  c= json_peek (p);
+  if (c == 'e' || c == 'E') {
+    p->pos++;
+    c= json_peek (p);
+    if (c == '+' || c == '-') p->pos++;
+    if (!(json_peek (p) >= '0' && json_peek (p) <= '9')) return false;
+    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+  }
+  out.kind= jnode::JNUM;
+  out.text.assign (p->s + bgn, (size_t) (p->pos - bgn));
+  return true;
+}
+
+// 不带引号的符号键：读到 ':'、空白或结构分隔符为止；至少一个字符
+static bool
+json_parse_symbol_key (json_parser* p, jnode& out) {
+  s7_int bgn= p->pos;
+  while (p->pos < p->len) {
+    char c= p->s[p->pos];
+    if (c == ':' || c == ',' || c == '}' || c == ']' || c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"') break;
+    p->pos++;
+  }
+  if (p->pos == bgn) return false;
+  out.kind= jnode::JSYM;
+  out.text.assign (p->s + bgn, (size_t) (p->pos - bgn));
+  return true;
+}
+
+static bool
+json_parse_object (json_parser* p, jnode& out) {
+  if (++p->depth > JSON_MAX_DEPTH) return false;
+  p->pos++; // 跳过 '{'
+  out.kind= jnode::JOBJ;
+  json_skip_ws (p);
+  if (json_peek (p) == '}') {
+    p->pos++;
+    p->depth--;
+    return true;
+  }
+  while (true) {
+    json_skip_ws (p);
+    jnode key;
+    if (json_peek (p) == '"') {
+      p->pos++;
+      key.kind= jnode::JSTR;
+      if (!json_parse_string_body (p, key.text)) { p->depth--; return false; }
+    }
+    else if (!json_parse_symbol_key (p, key)) { p->depth--; return false; }
+    json_skip_ws (p);
+    if (json_peek (p) != ':') { p->depth--; return false; }
+    p->pos++;
+    json_skip_ws (p);
+    jnode val;
+    if (!json_parse_value (p, val)) { p->depth--; return false; }
+    out.keys.push_back (std::move (key));
+    out.vals.push_back (std::move (val));
+    json_skip_ws (p);
+    s7_int c= json_peek (p);
+    if (c == ',') {
+      p->pos++;
+      continue; // 尾逗号会在下一轮的 key 解析处报错
+    }
+    p->depth--;
+    if (c == '}') {
+      p->pos++;
+      return true;
+    }
+    return false;
+  }
+}
+
+static bool
+json_parse_array (json_parser* p, jnode& out) {
+  if (++p->depth > JSON_MAX_DEPTH) return false;
+  p->pos++; // 跳过 '['
+  out.kind= jnode::JARR;
+  json_skip_ws (p);
+  if (json_peek (p) == ']') {
+    p->pos++;
+    p->depth--;
+    return true;
+  }
+  while (true) {
+    json_skip_ws (p);
+    jnode val;
+    if (!json_parse_value (p, val)) { p->depth--; return false; }
+    out.items.push_back (std::move (val));
+    json_skip_ws (p);
+    s7_int c= json_peek (p);
+    if (c == ',') {
+      p->pos++;
+      continue; // 尾逗号会在下一轮的 value 解析处报错
+    }
+    p->depth--;
+    if (c == ']') {
+      p->pos++;
+      return true;
+    }
+    return false;
+  }
+}
+
+static bool
+json_parse_literal (json_parser* p, const char* lit) {
+  size_t n= strlen (lit);
+  if ((s7_int) (p->pos + n) > p->len) return false;
+  if (strncmp (p->s + p->pos, lit, n) != 0) return false;
+  p->pos+= (s7_int) n;
+  return true;
+}
+
+static bool
+json_parse_value (json_parser* p, jnode& out) {
+  s7_int c= json_peek (p);
+  switch (c) {
+  case '{': return json_parse_object (p, out);
+  case '[': return json_parse_array (p, out);
+  case '"': {
+    p->pos++;
+    out.kind= jnode::JSTR;
+    return json_parse_string_body (p, out.text);
+  }
+  case 't':
+    if (!json_parse_literal (p, "true")) return false;
+    out.kind= jnode::JTRUE;
+    return true;
+  case 'f':
+    if (!json_parse_literal (p, "false")) return false;
+    out.kind= jnode::JFALSE;
+    return true;
+  case 'n':
+    if (!json_parse_literal (p, "null")) return false;
+    out.kind= jnode::JNULL;
+    return true;
+  case '\'':
+    // 单引号字符串不是合法 JSON（RFC 8259）
+    return false;
+  default:
+    return json_parse_number (p, out);
+  }
+}
+
+static bool
+json_is_value_end (s7_int c) {
+  return c == -1 || c == ',' || c == ']' || c == '}' || c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+// glue 时缓存 string->number 并永久 GC 保护：数字文本经它转换，保持与 reader 一致的数字语义
+static s7_pointer cached_string_to_number= NULL;
+
+static s7_pointer
+json_node_to_s7 (s7_scheme* sc, const jnode& n) {
+  switch (n.kind) {
+  case jnode::JSTR:
+    return s7_make_string_with_length (sc, n.text.data (), (s7_int) n.text.size ());
+  case jnode::JSYM:
+    return s7_make_symbol (sc, n.text.c_str ());
+  case jnode::JNUM: {
+    // 与原实现一致：交给 string->number，保持数字语义（1e2 => 100.0 等）
+    s7_pointer txt= s7_make_string_with_length (sc, n.text.data (), (s7_int) n.text.size ());
+    s7_gc_protect_via_stack (sc, txt);
+    s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
+    s7_gc_unprotect_via_stack (sc, txt);
+    return num;
+  }
+  case jnode::JTRUE: return s7_make_symbol (sc, "true");
+  case jnode::JFALSE: return s7_make_symbol (sc, "false");
+  case jnode::JNULL: return s7_make_symbol (sc, "null");
+  case jnode::JOBJ: {
+    if (n.keys.empty ()) {
+      // 空对象 '()
+      return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    }
+    // 自底向顶构建 alist：先转换所有键值并逐个保护，再从尾部向前 cons；
+    // 结束前按 LIFO 逆序解开全部保护（此后至返回不再分配）
+    std::vector<s7_pointer> prot;
+    prot.reserve (n.keys.size () * 2 + n.keys.size () * 2 + 1);
+    std::vector<s7_pointer> k, v;
+    k.reserve (n.keys.size ());
+    v.reserve (n.vals.size ());
+    for (size_t i= 0; i < n.keys.size (); i++) {
+      s7_pointer key= json_node_to_s7 (sc, n.keys[i]);
+      s7_gc_protect_via_stack (sc, key);
+      prot.push_back (key);
+      k.push_back (key);
+      s7_pointer val= json_node_to_s7 (sc, n.vals[i]);
+      s7_gc_protect_via_stack (sc, val);
+      prot.push_back (val);
+      v.push_back (val);
+    }
+    s7_pointer lst= s7_nil (sc);
+    s7_gc_protect_via_stack (sc, lst);
+    prot.push_back (lst);
+    for (size_t i= k.size (); i > 0; i--) {
+      s7_pointer pair= s7_cons (sc, k[i - 1], v[i - 1]);
+      s7_gc_protect_via_stack (sc, pair);
+      prot.push_back (pair);
+      s7_pointer nlst= s7_cons (sc, pair, lst);
+      s7_gc_protect_via_stack (sc, nlst);
+      prot.push_back (nlst);
+      lst= nlst;
+    }
+    for (size_t i= prot.size (); i > 0; i--) {
+      s7_gc_unprotect_via_stack (sc, prot[i - 1]);
+    }
+    return lst;
+  }
+  case jnode::JARR: {
+    s7_pointer vec= s7_make_vector (sc, (s7_int) n.items.size ());
+    s7_gc_protect_via_stack (sc, vec);
+    s7_pointer* elems= s7_vector_elements (vec);
+    for (size_t i= 0; i < n.items.size (); i++) {
+      elems[i]= json_node_to_s7 (sc, n.items[i]);
+    }
+    s7_gc_unprotect_via_stack (sc, vec);
+    return vec;
+  }
+  }
+  return s7_nil (sc);
+}
+
 static s7_pointer
 f_string_to_json (s7_scheme* sc, s7_pointer args) {
   s7_pointer arg= s7_car (args);
@@ -289,154 +654,24 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   const char* s  = s7_string (arg);
   s7_int      len= s7_string_length (arg);
 
-  std::string out;
-  out.reserve ((size_t) len + 8);
-  s7_int bgn = 0;
-  s7_int end = 0;
-  bool   quts= false;
-  // 上下文栈：栈顶为真表示对象（"," 改写为 ")("），为假表示数组（"," 改写为 " "）。
-  // 空栈按真处理（对应 Scheme 版 (loose-car '()) => '() 为真值）。
-  std::string stk;
-  stk.push_back (1);
-
-  while (end < len) {
-    char c= s[end];
-    if (quts && c == '\\' && end + 1 < len) {
-      char next= s[end + 1];
-      switch (next) {
-      case '"':
-      case '\\':
-      case 'b':
-      case 'f':
-      case 'n':
-      case 'r':
-      case 't':
-        // 转义序列原样保留，交由 reader 处理
-        out.append (s + bgn, (size_t) (end + 2 - bgn));
-        bgn= end= end + 2;
-        break;
-      case '/':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out.push_back ('/');
-        bgn= end= end + 2;
-        break;
-      case 'u': {
-        s7_int start_pos= end + 2;
-        s7_int end_pos  = end + 6;
-        if (!(end_pos < len)) {
-          std::string msg= "HEX sequence too short ";
-          msg.append (s + start_pos, (size_t) (len - start_pos));
-          return json_parse_error (sc, msg);
-        }
-        s7_int cp;
-        if (!json_parse_hex4 (s + start_pos, 4, cp)) {
-          std::string msg= "Invalid HEX sequence ";
-          msg.append (s + start_pos, 4);
-          return json_parse_error (sc, msg);
-        }
-        s7_int next_u_pos= end + 6;
-        if (next_u_pos + 6 < len && s[next_u_pos] == '\\' && s[next_u_pos + 1] == 'u') {
-          s7_int next_cp;
-          if (!json_parse_hex4 (s + next_u_pos + 2, 4, next_cp)) {
-            std::string msg= "Invalid HEX sequence ";
-            msg.append (s + next_u_pos + 2, 4);
-            return json_parse_error (sc, msg);
-          }
-          if (cp >= 55296 && cp <= 56319 && next_cp >= 56320 && next_cp <= 57343) {
-            s7_int combined= (cp - 55296) * 1024 + (next_cp - 56320) + 65536;
-            out.append (s + bgn, (size_t) (end - bgn));
-            if (!json_append_utf8 (out, combined)) {
-              return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                               s7_list (sc, 2, s7_make_string (sc, "codepoint->utf8: codepoint out of Unicode range"),
-                                        s7_make_integer (sc, combined)));
-            }
-            bgn= end= end + 12;
-            break;
-          }
-        }
-        out.append (s + bgn, (size_t) (end - bgn));
-        if (!json_append_utf8 (out, cp)) {
-          return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                           s7_list (sc, 2, s7_make_string (sc, "codepoint->utf8: codepoint out of Unicode range"),
-                                    s7_make_integer (sc, cp)));
-        }
-        bgn= end= end + 6;
-        break;
-      }
-      default: {
-        std::string msg= "Invalid escape char: ";
-        msg.push_back (next);
-        return json_parse_error (sc, msg);
-      }
-      }
-    }
-    else if (quts && c != '"') {
-      end++;
-    }
-    else {
-      switch (c) {
-      case '{':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out+= "((";
-        bgn= end= end + 1;
-        stk.push_back (1);
-        break;
-      case '}':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out+= "))";
-        bgn= end= end + 1;
-        if (!stk.empty ()) stk.pop_back ();
-        break;
-      case '[':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out+= "#(";
-        bgn= end= end + 1;
-        stk.push_back (0);
-        break;
-      case ']':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out.push_back (')');
-        bgn= end= end + 1;
-        if (!stk.empty ()) stk.pop_back ();
-        break;
-      case ':':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out+= " . ";
-        bgn= end= end + 1;
-        break;
-      case ',':
-        out.append (s + bgn, (size_t) (end - bgn));
-        out+= (stk.empty () || stk.back ()) ? ")(" : " ";
-        bgn= end= end + 1;
-        break;
-      case '"':
-        quts= !quts;
-        end++;
-        break;
-      case '\'':
-        // 单引号字符串不是合法 JSON（RFC 8259）
-        return json_parse_error (sc, "Single-quoted strings are not valid JSON");
-      default:
-        end++;
-        break;
-      }
-    }
+  json_parser p= {sc, s, len, 0, 0};
+  // 剥离 UTF-8 BOM
+  if (len >= 3 && (unsigned char) s[0] == 0xEF && (unsigned char) s[1] == 0xBB && (unsigned char) s[2] == 0xBF)
+    p.pos= 3;
+  json_skip_ws (&p);
+  if (json_peek (&p) == -1) {
+    // 空输入/纯空白输入：保持历史行为返回 eof-object
+    return s7_eof_object (sc);
   }
-  // 与 Scheme 版一致：最后一个分隔符之后的内容不落盘
-
-  // 改写结果可能含 NUL 字节（来自 \u0000），故不能用基于 C 字符串的
-  // s7_open_input_string；构造定长 Scheme 字符串后走与原来一致的 read 流程。
-  // 注意：data_str 一旦创建就要立即 GC 保护——s7_list 和 open-input-string
-  // 都会分配内存，若其间触发 GC，未保护的 data_str 会被回收，
-  // port 将指向已释放的内存（曾导致 Windows CI 偶发 0xC0000005）
-  s7_pointer data_str= s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
-  s7_gc_protect_via_stack (sc, data_str);
-  s7_pointer port= s7_call (sc, cached_open_input_string, s7_list (sc, 1, data_str));
-  s7_gc_protect_via_stack (sc, port);
-  s7_pointer result= s7_read (sc, port);
-  s7_gc_unprotect_via_stack (sc, port);
-  s7_gc_unprotect_via_stack (sc, data_str);
-  return result;
+  jnode root;
+  if (!json_parse_value (&p, root) || !json_is_value_end (json_peek (&p))) {
+    return json_parse_error (sc, "string->json: invalid JSON");
+  }
+  json_skip_ws (&p);
+  if (json_peek (&p) != -1) {
+    return json_parse_error (sc, "string->json: trailing garbage after JSON value");
+  }
+  return json_node_to_s7 (sc, root);
 }
 
 static void
@@ -446,7 +681,10 @@ glue_string_to_json (s7_scheme* sc) {
   s7_define_function (sc, name, f_string_to_json, 1, 0, false, desc);
   cached_open_input_string= s7_name_to_value (sc, "open-input-string");
   s7_gc_protect (sc, cached_open_input_string);
+  cached_string_to_number= s7_name_to_value (sc, "string->number");
+  s7_gc_protect (sc, cached_string_to_number);
 }
+
 
 // json-ref / json-set 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
 // 的 Scheme 实现完全一致：

@@ -101,16 +101,16 @@
 (check-catch 'parse-error (string->json "[\"\\u004G\"]"))
 (check-catch 'parse-error (string->json "[\"\\a\"]"))
 (check (string->json "") => (eof-object))
-(check (string->json ".") => (eof-object))
-(check-catch 'read-error (string->json "["))
+(check-catch 'parse-error (string->json "."))
+(check-catch 'parse-error (string->json "["))
 
-;;; 顶层标量：转换算法只在分隔符处落盘，末尾无分隔符的内容被丢弃，读到空串得 eof-object
-(check (string->json "42") => (eof-object))
-(check (string->json "-7") => (eof-object))
-(check (string->json "3.14") => (eof-object))
-(check (string->json "true") => (eof-object))
-(check (string->json "null") => (eof-object))
-(check (string->json "\"hello\"") => (eof-object))
+;;; 顶层标量：[0125] 严格 parser 直接返回标量值
+(check (string->json "42") => 42)
+(check (string->json "-7") => -7)
+(check (string->json "3.14") => 3.14)
+(check (string->json "true") => 'true)
+(check (string->json "null") => 'null)
+(check (string->json "\"hello\"") => "hello")
 
 ;;; 空白字符容忍
 (check (string->json "  [1, 2 , 3]  ") => #(1 2 3))
@@ -118,9 +118,9 @@
 (check (string->json "\t[\n1,\r\n2]\n") => #(1 2))
 (check (string->json "   ") => (eof-object))
 
-;;; 顶层只读取一个 datum，最后一个分隔符之后的内容被忽略
-(check (string->json "[1,2] trailing") => #(1 2))
-(check (string->json "1 2") => (eof-object))
+;;; [0125] 尾部垃圾与多顶层值均报 parse-error
+(check-catch 'parse-error (string->json "[1,2] trailing"))
+(check-catch 'parse-error (string->json "1 2"))
 
 ;;; 数字
 (check (string->json "[0,-1,3.5,-0.25,1e2,1.5e-2]")
@@ -141,9 +141,9 @@
 
 ;;; 宽松语法
 (check (string->json "{a-b:1}") => '((a-b . 1)))
-(check (string->json "[1,]") => #(1))
+(check-catch 'parse-error (string->json "[1,]"))
 (check (string->json "[true,false,null]") => #(true false null))
-(check (string->json "{a:1,,}") => '((a . 1) () ()))
+(check-catch 'parse-error (string->json "{a:1,,}"))
 
 ;;; 字符串内容
 (check (string->json "[\"\" ]") => #(""))
@@ -153,12 +153,11 @@
 (check (string->json "{\"\\u006b\":1}") => '(("k" . 1)))
 
 ;;; 截断与非法输入
-(check-catch 'read-error (string->json "{"))
-(check-catch 'read-error (string->json "{a:1"))
-(check-catch 'read-error (string->json "[1"))
-;; 顶层未闭合字符串：转义内容未落盘，读到空串得 eof-object
-(check (string->json "\"abc") => (eof-object))
-(check-catch 'read-error (string->json "{a:}"))
+(check-catch 'parse-error (string->json "{"))
+(check-catch 'parse-error (string->json "{a:1"))
+(check-catch 'parse-error (string->json "[1"))
+(check-catch 'parse-error (string->json "\"abc"))
+(check-catch 'parse-error (string->json "{a:}"))
 (check-catch 'parse-error (string->json "[\"\\u0041"))
 
 ;;; 单引号字符串不是合法 JSON，应报 parse-error
