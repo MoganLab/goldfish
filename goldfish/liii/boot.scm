@@ -59,166 +59,20 @@
 
 ;;;
 
-(define-macro (define-library libname . body)
-  `(define ,(symbol (object->string libname))
-     (with-let (sublet (unlet)
-                 (cons 'import import)
-                 (cons '*export* ())
-                 (cons 'export
-                   (define-macro (,(next-fresh "export-macro") . names)
-                     (list 'set!
-                           '*export*
-                           (list 'append
-                                 (list 'quote names)
-                                 '*export*)))))
-       ,@body
-       (apply inlet
-         (map (lambda (entry)
-                (if (or (member (car entry) '(*export* export import))
-                      (and (pair? *export*) (not (member (car entry) *export*))))
-                  (values)
-                  entry))
-           (curlet))))))
-
-(unless (defined? 'r7rs-import-library-filename)
-  (define (r7rs-import-library-filename libs)
-    (when (pair? libs)
-      (let ((lib (if (memq (caar libs) '(only except prefix rename)) (cadar libs) (car libs))))
-        (when (not (defined? (symbol (object->string lib))))
-          (load (let loop
-                  ((parts lib) (name ""))
-                  (set! name (string-append name (symbol->string (car parts))))
-                  (if (null? (cdr parts))
-                    (string-append name ".scm")
-                    (begin
-                      (set! name (string-append name "/"))
-                      (loop (cdr parts) name))))))
-        (r7rs-import-library-filename (cdr libs))))))
-
-(define-macro (import . libs)
-  `(begin
-     (r7rs-import-library-filename (quote ,libs))
-     (varlet (curlet)
-       ,@(map (lambda (lib)
-                (case (car lib)
-                      ((only)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (name) (cons name (e name))) names)))
-                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
-                         (cddr (quote ,lib))))
-                      ((except)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (if (member (car entry) names)
-                                      (values)
-                                      entry))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
-                         (cddr (quote ,lib))))
-                      ((prefix)
-                       `((lambda (e prefx)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (cons
-                                      (string->symbol (string-append
-                                                        (symbol->string prefx)
-                                                        (symbol->string (car entry))))
-                                      (cdr entry)))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
-                         (caddr (quote ,lib))))
-                      ((rename)
-                       `((lambda (e names)
-                           (apply inlet
-                             (map (lambda (entry)
-                                    (let ((info (assoc (car entry) names)))
-                                      (if info
-                                        (cons (cadr info) (cdr entry))
-                                        entry)))
-                               e)))
-                         (symbol->value (symbol (object->string (cadr (quote ,lib)))))
-                         (cddr (quote ,lib))))
-                      (else `(let ((sym (symbol (object->string (quote ,lib)))))
-                               (if (not (defined? sym))
-                                 (format () "~A not loaded~%" sym)
-                                 (symbol->value sym))))))
-            libs))))
-
 ;;; ---------------------------------------------------------------------------
-;;; R6RS derived forms the host (s7) does not provide.  The expander kernel
-;;; sources (goldfish/expander/kernel) use these freely; at bootstrap-0 they
-;;; are evaluated directly by s7, so the seed provides host-side fallbacks.
-;;; Once the expander is self-hosted these become OUR macros (lib layer), and
-;;; the host forms below are only exercised during the bootstrap.
-
-;;; let-values : bind to the values of a single producer expression.
-;;; The host (s7) lacks this R6RS form, and the lib-layer install code
-;;; (install.scm / module.scm, s7-evaluated before the expander loads) uses
-;;; it -- that was the sole reason (scheme base) had to be host-imported
-;;; ahead of the expander.  Providing it in the seed lets r7rs-small load
-;;; entirely through the expander (pure syntax, no host varlet import).
-(define-macro (let-values bindings . body)
-  (if (null? bindings)
-    `(let () ,@body)
-    (let ((b (car bindings)) (rest (cdr bindings)))
-      `(call-with-values
-         (lambda () ,(cadr b))
-         (lambda ,(car b)
-           (let-values ,rest ,@body))))
-  ) ;if
-) ;define-macro
-
-;;; let*-values : like let-values but binding clauses are evaluated
-;;; sequentially (each clause may refer to earlier bindings).  Expand to
-;;; nested let-values.
-(define-macro (let*-values clauses . body)
-  (if (null? clauses)
-    `(let () ,@body)
-    `(let-values (,(car clauses))
-       (let*-values ,(cdr clauses) ,@body))))
+;;; R6RS derived forms the host (s7) does not provide.  The host let-values /
+;;; let*-values / define-record-type macros for bootstrap-0 live in
+;;; bootstrap-macros.scm (loaded only under GOLDFISH_BOOTSTRAP); the former
+;;; host define-library / import macros were removed (the expander handles
+;;; r7rs-small purely syntactically).
 
 ;;; ---------------------------------------------------------------------------
 ;;; Expander runtime substrate (seed prelude).  The record runtime, promises,
 ;;; module substrate, vector-map, fresh-name generation, eof-object and
 ;;; syntax-error now live in the KERNEL (expander/kernel/substrate.scm), so
 ;;; the artifact is self-contained; the seed keeps the list utilities (fold /
-;;; filter / any / every / sort) and the loader below.
-
-;;; define-record-type as a host macro (bootstrap-0): expands to code that
-;;; builds a descriptor plus vector-layout constructor / predicate /
-;;; accessors / modifiers, using the kernel's record runtime (make-record-type
-;;; et al., expander/kernel/substrate.scm).  The constructor takes one
-;;; argument per field, in declaration order (all kernel and library uses are
-;;; of this shape).  The rtd name is a fresh READABLE symbol (counter-based,
-;;; not s7's {gensym}-N:M): the expander artifact is written as Scheme source
-;;; and must round-trip through the R7RS reader.
-
-(define-macro (define-record-type type make ? . fields)
-  (let ((rtd (next-record-rtd))
-        (make-name (car make))
-        (make-params (cdr make))
-        (field-names (map car fields))
-        (acc-defs
-          (let loop ((fs fields) (i 1))
-            (if (null? fs)
-              '()
-              (let ((acc (cadr (car fs))))
-                (cons `(define (,acc obj) (vector-ref obj ,i))
-                      (if (pair? (cddr (car fs)))
-                        (let ((mod (caddr (car fs))))
-                          (cons `(define (,mod obj val) (vector-set! obj ,i val))
-                                (loop (cdr fs) (+ i 1))))
-                        (loop (cdr fs) (+ i 1)))))))))
-    `(begin
-       (define ,rtd (make-record-type ',type ',field-names))
-       (define (,make-name ,@make-params) (vector ,rtd ,@make-params))
-       (define (,? obj)
-         (and (vector? obj)
-              (positive? (vector-length obj))
-              (eq? (vector-ref obj 0) ,rtd)))
-       ,@acc-defs)))
+;;; filter / any / every / sort) and the loader below.  The host
+;;; define-record-type macro for bootstrap-0 is in bootstrap-macros.scm.
 
 ;;; ---------------------------------------------------------------------------
 ;;; Loader (seed loader).  Module loader driven by our own R7RS reader
@@ -355,7 +209,8 @@
                          "expander/kernel-combined.scm"))
            (stamp (list (g_path-getmtime file) (g_path-getsize file)
                         (g_path-getmtime artifact) (g_path-getsize artifact))))
-      (let*-values (((cache meta) (le-cache-files path)))
+      (call-with-values (lambda () (le-cache-files path))
+        (lambda (cache meta)
         (if (le-cache-valid? cache meta stamp)
           (let ((rec (call-with-input-file cache
                         (lambda (p) (read-forms p)))))
@@ -364,7 +219,9 @@
           (let* ((forms (read-forms (open-input-file file)))
                  (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
                             forms)))
-            (let*-values (((defs ctx) (expand-library-body stxs lib (initial-context))))
+            (call-with-values
+              (lambda () (expand-library-body stxs lib (initial-context)))
+              (lambda (defs ctx)
               (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
               (let ((bindings (map (lambda (e)
                                      (let ((name (car e)) (b (cdr e)))
@@ -376,4 +233,15 @@
                                            (exp-library-bindings lib)))))
                 (le-write-cache cache meta stamp bindings
                                 (cons 'begin (map lower defs)))
-                (le-rootlet-copy bindings)))))))))
+                (le-rootlet-copy bindings)))))))))))
+
+;;; ---------------------------------------------------------------------------
+;;; Host macros for bootstrap-0 only.  Under GOLDFISH_BOOTSTRAP or a
+;;; EXPANDER_BOOT=from-source build, s7 evaluates the kernel sources
+;;; directly (no self-hosted expander yet), so the kernel define-record-type
+;;; and install.scm's let-values must come from the host.  Normal startup
+;;; loads everything through the expander and never touches this file.
+(if (or (getenv "GOLDFISH_BOOTSTRAP")
+        (and (getenv "EXPANDER_BOOT")
+             (string=? (getenv "EXPANDER_BOOT") "from-source")))
+  (load-source-file "liii/bootstrap-macros.scm"))
