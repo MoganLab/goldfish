@@ -641,7 +641,22 @@
 (define (load-library! lib-name)
   (when (member lib-name *libraries-being-loaded*)
     (error "import: circular library dependency" lib-name))
-  (let ((lib-file (library-file-name lib-name)))
+  (let ((base (base-library)))
+    (if (and base (equal? lib-name (exp-library-name base)))
+      (begin
+        ;; The implementation kernel (goldfish expander): not an on-disk
+        ;; library -- its live bindings ARE the base library, installed by
+        ;; the artifact and the boot installs (lib/install.scm).  Register
+        ;; it as a record of its live bindings (the same shape library-record
+        ;; builds for imports) and mark it runtime-registered, so
+        ;; load-library! / import of the kernel name is a no-op instead of a
+        ;; failed on-disk lookup.
+        (unless (library-registry-ref lib-name)
+          (library-registry-set! lib-name
+            (make-lib-record base (map car (exp-library-bindings base)))))
+        (set! *runtime-registered-libraries*
+              (cons lib-name *runtime-registered-libraries*)))
+      (let ((lib-file (library-file-name lib-name)))
     ;; Cache-first: when the cache matches the source's mtime+size, load the
     ;; cached rebuild; otherwise (stale, or no cache) load and compile the
     ;; source file.  The cache is a compiled artifact of the source and is
@@ -707,7 +722,7 @@
               (lambda ()
                 (set! *libraries-being-loaded*
                       (filter (lambda (n) (not (equal? n lib-name)))
-                              *libraries-being-loaded*))))))))))
+                              *libraries-being-loaded*))))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
@@ -838,6 +853,36 @@
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
 
+;;; include-file-forms : string -> (list datum)
+;;; R7RS define-library `include': read the named file (resolved over
+;;; *load-path*) and return its forms, to be spliced into the library body
+;;; at the include clause's position.
+(define (include-file-forms path)
+  (let ((file (load-find-module-file path)))
+    (unless file
+      (error 'read-error "define-library include: file not found" path))
+    (read-forms (open-input-file file))))
+
+;;; append-map-local : (a -> (list b)) (list a) -> (list b)
+;;; (SRFI-1's append-map is not in the runtime's base environment.)
+(define (append-map-local f ls)
+  (apply append (map f ls)))
+
+;;; splice-includes : datum -> (list datum)
+;;; R7RS `include' is a library BODY form: it may appear directly in the
+;;; define-library body or inside a (begin ...) clause.  Replace every
+;;; (include "file" ...) at body-element position with the file's own forms
+;;; (recursively spliced; included files may themselves use include).
+(define (splice-includes d)
+  (cond
+    ((and (pair? d) (eq? (car d) 'include))
+     (append-map-local (lambda (p)
+                         (append-map-local splice-includes (include-file-forms p)))
+                       (cdr d)))
+    ((and (pair? d) (eq? (car d) 'begin))
+     (list (cons 'begin (append-map-local splice-includes (cdr d)))))
+    (else (list d))))
+
 (define (parse-library-clauses clauses)
   (let loop ((clauses clauses) (exports '()) (imports '()) (body '()))
     (if (null? clauses)
@@ -855,6 +900,22 @@
                    exports
                    (cons (map syntax->datum (cdr clause)) imports)
                    body))
+            ((eq? head 'include)
+             ;; Splice include forms at this position and re-process them as
+             ;; body clauses.  (splice-includes works on datums; the clauses
+             ;; here are syntax trees, so convert and re-wrap.)
+             (let ((spliced (map (lambda (f) (datum->syntax (car clauses) f))
+                                 (splice-includes (syntax->datum clause)))))
+               (loop (append spliced (cdr clauses)) exports imports body)))
+            ((eq? head 'begin)
+             ;; Splice internal (include ...) forms out of the begin body,
+             ;; then keep the begin as one body clause (re-processing it
+             ;; here would loop forever).
+             (loop (cdr clauses) exports imports
+                   (cons (datum->syntax (car clauses)
+                                        (car (splice-includes
+                                               (syntax->datum clause))))
+                         body)))
             (else
              (loop (cdr clauses) exports imports (cons (car clauses) body))))))))
 

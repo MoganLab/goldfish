@@ -3,9 +3,13 @@
 ;;; dependency order.  Each kernel file is ordinary object-level source
 ;;; (no define-library, no macros beyond what the host can evaluate), so
 ;;; at bootstrap-0 this list is loaded directly by s7: it produces a
-;;; running expander with no pre-expanded artifact.  Later bootstrap
-;;; stages re-read the same list through the self-hosted expander to
-;;; produce the pre-expanded artifact (build-combined.scm).
+;;; running expander with no pre-expanded artifact.
+;;;
+;;; The SELF-HOSTED path (artifact build in build-combined.scm, and any
+;;; future runtime load through the expander) does NOT read this file
+;;; directly: it loads the same sources as the library goldfish/expander/
+;;; kernel.scm (define-library (goldfish expander)), whose include list
+;;; must stay in sync with this manifest.
 ;;;
 ;;; Order matters: dependencies first.
 
@@ -22,3 +26,8 @@
 (load-source-file "expander/kernel/libbody.scm")
 (load-source-file "expander/kernel/primitives.scm")
 (load-source-file "expander/kernel/driver.scm")
+;;; Host convenience: load the user-space macro library on top of the core
+;;; (the bootstrap-0 equivalent of the runtime's separate install.scm load
+;;; after the artifact; the library/artifact path excludes it).
+(load-source-file "expander/lib/install.scm")
+

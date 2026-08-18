@@ -11,13 +11,15 @@
 ;;;
 ;;; This is the expander core only.  The user-space macro library (lib/) is
 ;;; a separate layer built on top of this core API (see lib/install.scm);
-;;; it is loaded at the end of this file as a host convenience, but it is
-;;; NOT part of the pre-expanded core artifact produced by blue combine.
+;;; it is NOT part of the expander core / the pre-expanded artifact.  The
+;;; bootstrap-0 host path loads it after this file via load-kernel.scm; the
+;;; library path (goldfish/expander/kernel.scm) and the runtime load
+;;; lib/install.scm separately after the artifact.
 ;;;
-;;; BUILD CONTRACT with build-aux/combine.scm: the artifact builder keeps
-;;; ONLY the top-level (define ...) forms of this file (combine.scm's
-;;; driver-forms).  Keep every host-only top-level form here a define, or
-;;; it is silently dropped from build/kernel-combined.scm.
+;;; The trailing module-define! registrations expose the driver entry points
+;;; through the-expander-library; they are part of both the library body and
+;;; the bootstrap-0 host load (harmless duplication -- the artifact re-binds
+;;; the same names into the rootlet, so both resolve to the same values).
 
 (define (wrap-expression expr)
   (datum->syntax (make-syntax 'empty (stx-ctx-empty) the-base-library) expr))
@@ -128,10 +130,4 @@
 (module-define! the-expander-library 'compile-program compile-program)
 (module-define! the-expander-library 'compile-toplevel compile-toplevel)
 (module-define! the-expander-library 'compile-file compile-file)
-
-;;; Host convenience: load the lib layer (the user-space macro library) on
-;;; top of the core.  The pre-expanded artifact excludes this; the runtime
-;;; loads lib/install.scm separately after the artifact.  Always reached
-;;; through the self-hosted loader (the seed has run), so no s7 load here.
-(load-source-file "expander/lib/install.scm")
 
