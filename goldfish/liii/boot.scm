@@ -494,9 +494,11 @@
         (for-each (lambda (e)
                     (let ((name (car e)) (b (cdr e)))
                       (when (toplevel-binding? b)
-                        (eval (list 'define name
-                                    (eval (toplevel-ref-gensym
-                                            (binding-value b))
-                                          the-expander-library))
-                              (rootlet)))))
+                        ;; varlet (not eval of a define form): a list-valued
+                        ;; binding (e.g. the reader's char-names) must not be
+                        ;; placed in the define's value position, where s7
+                        ;; would evaluate the pair as a form.
+                        (varlet (rootlet) name
+                                (eval (toplevel-ref-gensym (binding-value b))
+                                      the-expander-library)))))
                   (exp-library-bindings lib))))))
