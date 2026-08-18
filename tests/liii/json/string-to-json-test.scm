@@ -161,4 +161,12 @@
 (check-catch 'read-error (string->json "{a:}"))
 (check-catch 'parse-error (string->json "[\"\\u0041"))
 
+;;; 单引号字符串不是合法 JSON，应报 parse-error
+(check-catch 'parse-error (string->json "{'key': 1}"))
+(check-catch 'parse-error (string->json "['a','b']"))
+(check-catch 'parse-error (string->json "'hello'"))
+;;; 双引号字符串内的单引号是合法内容
+(check (string->json "{\"a\": \"it's\"}") => '(("a" . "it's")))
+(check (string->json "[\"don't\"]") => #("don't"))
+
 (check-report)
