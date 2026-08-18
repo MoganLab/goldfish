@@ -65,7 +65,7 @@
                         (f x)))
                     5)
                   inline)
-       => '(letrec ((f (lambda (y) (if (= y 1) y (f (- y 1)))))) (f 5)))
+       => '(letrec* ((f (lambda (y) (if (= y 1) y (f (- y 1)))))) (f 5)))
 
 ;; 嵌套 letrec：外层参数传播进递归闭包，递归内层保留
 (check (fold-sexp '((lambda (a)
@@ -73,6 +73,6 @@
                         (g a)))
                     7)
                   inline)
-       => '(letrec ((g (lambda (b) (if (= b 0) 7 (g (- b 1)))))) (g 7)))
+       => '(letrec* ((g (lambda (b) (if (= b 0) 7 (g (- b 1)))))) (g 7)))
 
 (check-report)

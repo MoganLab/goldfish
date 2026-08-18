@@ -181,8 +181,9 @@
         (let ((d (syntax->datum stx)))
           (datum->syntax stx
             (list '? 'letrec?
-                  (list '=> 'letrec-bindings (cadr d))
-                  (list '=> 'letrec-body (caddr d)))))))
+                  (list '=> 'letrec-source (cadr d))
+                  (list '=> 'letrec-bindings (caddr d))
+                  (list '=> 'letrec-body (cadddr d)))))))
 
     (define-syntax $set!
       (lambda (stx)
@@ -255,7 +256,7 @@
                              (cadr sexp))
                         (map core->ir (cddr sexp))))
              ((letrec letrec*)
-              (make-letrec #f
+              (make-letrec head
                            (map (lambda (b) (list (car b) (core->ir (cadr b))))
                                 (cadr sexp))
                            (map core->ir (cddr sexp))))
@@ -301,10 +302,11 @@
                           (let-bindings ir))
                      (map ir->core (let-body ir)))))
         ((letrec? ir)
-         (cons 'letrec
-               (cons (map (lambda (b) (list (car b) (ir->core (cadr b))))
-                          (letrec-bindings ir))
-                     (map ir->core (letrec-body ir)))))
+         (let ((name (letrec-source ir)))
+           (cons (if (symbol? name) name 'letrec)
+                 (cons (map (lambda (b) (list (car b) (ir->core (cadr b))))
+                            (letrec-bindings ir))
+                       (map ir->core (letrec-body ir))))))
         ((set!? ir)
          (list 'set! (set!-target ir) (ir->core (set!-expr ir))))
         ((values? ir)

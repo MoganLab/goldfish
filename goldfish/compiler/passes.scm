@@ -136,8 +136,8 @@
                    (map (lambda (b) (list (car b) (constant-fold (cadr b))))
                         bindings)
                    (map constant-fold body)))
-        (($letrec bindings body ...)
-         (make-letrec #f
+        (($letrec src bindings body ...)
+         (make-letrec src
                       (map (lambda (b) (list (car b) (constant-fold (cadr b))))
                            bindings)
                       (map constant-fold body)))
@@ -188,8 +188,8 @@
                    (map (lambda (b) (list (car b) (simplify-if (cadr b))))
                         bindings)
                    (map simplify-if body)))
-        (($letrec bindings body ...)
-         (make-letrec #f
+        (($letrec src bindings body ...)
+         (make-letrec src
                       (map (lambda (b) (list (car b) (simplify-if (cadr b))))
                            bindings)
                       (map simplify-if body)))
@@ -404,7 +404,7 @@
     ;; After inlining the body, drop bindings whose name is no longer
     ;; referenced anywhere (binding values and body).  When none survive
     ;; the let collapses to its body.
-    (define (prune-let-bindings head new-bindings body-inl)
+    (define (prune-let-bindings head src new-bindings body-inl)
       (let* ((free (collect-residual-free
                     (append (map (lambda (b) (cadr b)) new-bindings) body-inl)))
              (survivors (filter (lambda (b) (member (car b) free)) new-bindings)))
@@ -412,7 +412,7 @@
           (if (null? (cdr body-inl)) (car body-inl) (make-begin #f body-inl))
           (if (eq? head 'let)
             (make-let #f survivors body-inl)
-            (make-letrec #f survivors body-inl)))))
+            (make-letrec src survivors body-inl)))))
 
     (define (inline-walk ir env budget)
       (if (inline-budget-spent? budget)
@@ -452,7 +452,7 @@
                   (body-inl (map (lambda (e) (inline-walk e env1 budget))
                                  (let-body ir))))
              (inline-spend-effort! budget 1)
-             (prune-let-bindings 'let new-bindings body-inl)))
+             (prune-let-bindings 'let #f new-bindings body-inl)))
           ((letrec? ir)
            (let* ((bindings (letrec-bindings ir))
                   (names (map car bindings))
@@ -464,8 +464,8 @@
                   (env1 (env-extend-safes env new-bindings assigned))
                   (body-inl (map (lambda (e) (inline-walk e env1 budget))
                                  (letrec-body ir))))
-             (inline-spend-effort! budget 1)
-             (prune-let-bindings 'letrec new-bindings body-inl)))
+              (inline-spend-effort! budget 1)
+              (prune-let-bindings 'letrec (letrec-source ir) new-bindings body-inl)))
           ((values? ir)
            (make-values #f (map (lambda (e) (inline-walk e env budget))
                                 (values-args ir))))
@@ -534,7 +534,7 @@
           ((let? s)
            (make-let #f (let-bindings s) (mark-body (let-body s))))
           ((letrec? s)
-           (make-letrec #f (letrec-bindings s) (mark-body (letrec-body s))))
+           (make-letrec (letrec-source s) (letrec-bindings s) (mark-body (letrec-body s))))
           ((set!? s)
            (make-set! #f (set!-target s) (mark-tail (set!-expr s))))
           ((call-with-values? s)
