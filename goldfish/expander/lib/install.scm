@@ -120,11 +120,18 @@
   ;; emits #n=/#n# graph labels for shared/cyclic structure and refuses
   ;; procedures (macro transformers), so a macro-defining library (which
   ;; load filters via any-macro-def?) cannot silently produce a corrupt cache.
+  ;; The R7RS reader (and its write-roundtrip) loads AFTER this file (it
+  ;; needs the lib layer for syntax-rules); during the bootstrap the lib-layer
+  ;; caches are plain data (serialize-cache-sexp tagged lists), so s7's write
+  ;; is readable by both the tiny and the R7RS reader.
   (let ((old-length (*s7* 'print-length)))
     (let-set! *s7* 'print-length 1000000)
     (let ((tmp (string-append cache ".tmp")))
       (call-with-output-file tmp
-        (lambda (p) (write-roundtrip sexp p)))
+        (lambda (p)
+          (if (defined? 'write-roundtrip)
+            (write-roundtrip sexp p)
+            (write sexp p))))
       (g_rename tmp cache))
     (let-set! *s7* 'print-length old-length))
   (let ((mtmp (string-append meta ".tmp")))

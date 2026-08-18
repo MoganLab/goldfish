@@ -460,3 +460,43 @@
         (lambda () (for-each (lambda (f) (eval f (rootlet)))
                              (read-forms port)))
         (lambda () (close-input-port port))))))
+
+;;; load-expanded : path -> void
+;;; Load a plain Scheme file THROUGH the expander.  The source is read with
+;;; the bootstrap (tiny) reader, expanded against a fresh library, the
+;;; lowered defs are evaluated into the-expander-library (where references
+;;; to base-library values resolve), and the file's public entry points are
+;;; re-bound in the rootlet (the s7-evaluated bootstrap code resolves them
+;;; there).  This is how reader.scm loads: the reader must be available
+;;; BEFORE install.scm (the lib-layer files use `(X ...)' ellipsis syntax
+;;; that s7's tiny reader collapses), so it loads right after the artifact,
+;;; using kernel features only (define-syntax with lambda transformers; the
+;;; free kernel identifiers below resolve from the rootlet once the
+;;; artifact has loaded).
+(define (load-expanded path . maybe-lib)
+  (let ((file (load-find-module-file path)))
+    (unless file (error "load-expanded: file not found" path))
+    (let* ((forms (read-forms (open-input-file file)))
+           (lib (if (pair? maybe-lib)
+                  (if (eq? (car maybe-lib) 'base)
+                    the-base-library
+                    (make-exp-library (car maybe-lib)))
+                  (make-exp-library '(liii reader))))
+           (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
+                      forms)))
+      (let*-values (((defs ctx) (expand-library-body stxs lib (initial-context))))
+        (call-with-output-file "/tmp/kilo/lr2.txt" (lambda (p) (let-set! *s7* (quote print-length) 1000000) (for-each (lambda (d) (write (lower d) p) (newline)) defs))) (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
+        ;; Re-bind every top-level VALUE binding in the rootlet: the
+        ;; s7-evaluated bootstrap code and lib-layer files reference the
+        ;; loaded file's functions as rootlet free identifiers (the old
+        ;; s7-eval'd reader had all of its functions in the rootlet; keep
+        ;; that surface).  Macro bindings have no runtime value.
+        (for-each (lambda (e)
+                    (let ((name (car e)) (b (cdr e)))
+                      (when (toplevel-binding? b)
+                        (eval (list 'define name
+                                    (eval (toplevel-ref-gensym
+                                            (binding-value b))
+                                          the-expander-library))
+                              (rootlet)))))
+                  (exp-library-bindings lib))))))

@@ -1,4 +1,27 @@
 
+;;; let*-values : bind to the values of a producer, sequentially.
+;;; Defined here (cf. Guile's ice-9/read.scm) so the reader is self-contained
+;;; and uses the expander's define-syntax: the reader loads through the
+;;; expander right after the artifact (kernel only), so it uses a lambda
+;;; transformer rather than syntax-rules (syntax-rules comes with the lib
+;;; layer, which loads after the reader -- the reader is needed to parse the
+;;; lib-layer files' `(X ...)' ellipsis syntax, which s7's tiny reader
+;;; collapses).
+(define-syntax let*-values
+  (lambda (stx)
+    (let ((form (syntax->datum stx)))
+      (let ((clauses (cadr form))
+            (body (cddr form)))
+        (let loop ((cls clauses))
+          (datum->syntax
+            stx
+            (if (null? cls)
+              `(let () ,@body)
+              `(call-with-values
+                 (lambda () ,(cadr (car cls)))
+                 (lambda ,(car (car cls))
+                   ,(loop (cdr cls)))))))))))
+
 ;; R7RS 7.1.1: a <delimiter> is whitespace, ( ) " or ;.  In particular a
 ;; vertical bar is NOT a delimiter, so `foo|bar|` is one (invalid) token.
 ;; Delegates to C++ (g-delimiter?): the delimiter set is the single source
@@ -693,22 +716,23 @@
                    (cdr args)))
       (apply error 'read-error args))))
 
-(define* (read (port (current-input-port)))
-  (set! labels '())
-  (set! pending '())
-  (set! *depth* 0)
-  (let ((ch (next-non-whitespace port)))
-    (if (eof-object? ch)
-      (begin
-        ;; a port at EOF keeps no directive state; drop it so that ports used
-        ;; with #!fold-case do not accumulate in fold-case-ports
-        (when (assv port fold-case-ports)
-          (set! fold-case-ports (del-eqv port fold-case-ports)))
-        ch)
-      (catch 'read-error
-        (lambda () (read-expr port ch))
-        (lambda (tag . errs)
-          (read-error-with-pos port (if (pair? errs) (car errs) '())))))))
+(define (read . args)
+  (let ((port (if (pair? args) (car args) (current-input-port))))
+    (set! labels '())
+    (set! pending '())
+    (set! *depth* 0)
+    (let ((ch (next-non-whitespace port)))
+      (if (eof-object? ch)
+        (begin
+          ;; a port at EOF keeps no directive state; drop it so that ports used
+          ;; with #!fold-case do not accumulate in fold-case-ports
+          (when (assv port fold-case-ports)
+            (set! fold-case-ports (del-eqv port fold-case-ports)))
+          ch)
+        (catch 'read-error
+          (lambda () (read-expr port ch))
+          (lambda (tag . errs)
+            (read-error-with-pos port (if (pair? errs) (car errs) '()))))))))
 
 ;; Replace S7's load: read the file through this Scheme reader and expand /
 ;; evaluate each form with the expander (expand-eval), so macros defined in

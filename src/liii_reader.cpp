@@ -519,10 +519,13 @@ bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   // s7 阶段（bootstrap）加载纯 s7 文件：
   //   - boot.scm：seed，提供 host 宏（define-library/import/let*-values）、
   //     loader（load-find-module-file/load-source-file）与模块 substrate
-  //   - reader.scm：R7RS reader，定义 read/load/expand-eval。它自包含
-  //     （不 import 任何库，只用 s7 原生可用的形式以及 boot.scm / glue
-  //     提供的基础函数），因此 s7 原生可以完整加载。
-  //   - host-abi.scm：R7RS 值面（见下）。
+  //   - host-abi.scm：R7RS 值面（见下）
+  //
+  // reader.scm 刻意不在 s7 阶段加载：它现在经 expander 加载（B4，lib 层
+  // 之后），因此可以用 syntax-rules / define*（Guile ice-9/read.scm 同款）。
+  // 引导期间所有被读的文件（boot.scm、host-abi.scm、预展开工件、install.scm
+  // 及 lib 层源码与缓存）都是纯列表 / 纯 Scheme 格式，s7 原生的 tiny reader
+  // 足以解析，直到 R7RS reader 就绪。
   //
   // string-cursor.scm 刻意不在 s7 阶段加载：它依赖 expander 宏
   // （define-record-type）以及 (liii base)/(liii unicode) 等含 define-syntax
@@ -530,7 +533,6 @@ bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
   // （customize_goldfish_by_mode 的 B4 阶段及 load-library!），
   // s7 阶段保持纯净。
   tiny_load_path (sc, (std::string (gf_lib) + "/liii/boot.scm").c_str ());
-  tiny_load_path (sc, (std::string (gf_lib) + "/liii/reader.scm").c_str ());
   // host-abi.scm: the R7RS value surface the s7 host lacks (min, max,
   // exact-integer?, string-upcase, bytevector I/O, time, environment, ...).
   // It is loaded in the s7 phase (plain defines into the rootlet) so the
