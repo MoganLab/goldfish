@@ -452,9 +452,10 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   // see (same reason vm_enter disables it): running the top instructions with
   // GC enabled can reclaim live values, leaving dangling pointers that later
   // corrupt the heap.  Disable GC for the run, exactly like vm_enter.
-  s7_pointer saved_gc = s7_gc_on (sc, false);
+  bool saved_gc = s7_gc_enabled (sc);
+  s7_gc_on (sc, false);
   s7_pointer result = run (sc, 0);
-  s7_gc_on (sc, s7_boolean (sc, saved_gc));
+  s7_gc_on (sc, saved_gc);
   return result;
 }
 
@@ -463,13 +464,14 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
 static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
   s7_pointer cobj = s7_car (args);
   VMClosure* vc = static_cast<VMClosure*>(s7_c_object_value (cobj));
-  s7_pointer saved_gc = s7_gc_on (sc, false);
+  bool saved_gc = s7_gc_enabled (sc);
+  s7_gc_on (sc, false);
   std::vector<s7_pointer> arg_list;
   for (s7_pointer a = s7_cdr (args); s7_is_pair (a); a = s7_cdr (a))
     arg_list.push_back (s7_car (a));
   push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, nullptr);
   s7_pointer result = run (sc, 0);
-  s7_gc_on (sc, s7_boolean (sc, saved_gc));
+  s7_gc_on (sc, saved_gc);
   return result;
 }
 

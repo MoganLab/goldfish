@@ -155,6 +155,7 @@ bool s7_history_enabled(s7_scheme *sc);
 bool s7_set_history_enabled(s7_scheme *sc, bool enabled);
 
 s7_pointer s7_gc_on(s7_scheme *sc, bool on);                         /* (gc on) */
+bool s7_gc_enabled(s7_scheme *sc);                                   /* true when the GC is running */
 
 s7_int s7_gc_protect(s7_scheme *sc, s7_pointer x);
 void s7_gc_unprotect_at(s7_scheme *sc, s7_int loc);

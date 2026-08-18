@@ -6605,6 +6605,11 @@ s7_pointer s7_gc_on(s7_scheme *sc, bool on)
   return(make_boolean(sc, on));
 }
 
+bool s7_gc_enabled(s7_scheme *sc)
+{
+  return(!sc->gc_off);
+}
+
 #if S7_DEBUGGING
 static void check_free_heap_size_1(s7_scheme *sc, s7_int size, const char *func, int32_t line)
 #define check_free_heap_size(Sc, Size) check_free_heap_size_1(Sc, Size, __func__, __LINE__)
