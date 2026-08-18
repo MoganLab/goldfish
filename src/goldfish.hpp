@@ -1607,21 +1607,16 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     bootstrap_scheme_reader (sc, gf_lib);
   }
 
-  // Phase 1: imports that must run before the expander loads.  The lib-layer
-  // install code needs scheme/base's let-values, which the s7 host lacks, so
-  // every non-s7 mode imports (scheme base) here through the host-side
-  // (boot.scm) define-macro import.  Libraries whose chains contain
-  // define-syntax (liii base -> srfi-2, srfi sicp, ...) cannot load through
-  // the host before the expander exists, so they are deferred to phase 2.
-  if (mode == "default" || mode == "liii" || mode == "scheme" || mode == "sicp" || mode == "r7rs") {
-    s7_eval_c_string (sc, "(import (scheme base))");
-  }
+  // Phase 1: (removed) r7rs-small used to be host-imported here through
+  // boot.scm's define-macro import (varlet into the curlet) because the
+  // lib-layer install code needed scheme/base's let-values, which the s7
+  // host lacks.  The seed (boot.scm) now provides let-values/let*-values
+  // itself, so the lib-layer can be s7-evaluated without (scheme base), and
+  // r7rs-small loads entirely through the expander (pure syntax, no varlet).
 
   // B4: load the Sets-of-Scopes expander core and its user-space macro library
-  // so the expander is available to every gf invocation.  This runs after the
-  // base import: the lib-layer install code (goldfish/expander/lib/install.scm)
-  // is plain source needing scheme/base's let-values, which the s7 host lacks.
-  // help/version return before customize_goldfish_by_mode, so they stay fast.
+  // so the expander is available to every gf invocation.  help/version return
+  // before customize_goldfish_by_mode, so they stay fast.
   // GOLDFISH_BOOTSTRAP skips this entire chain (and the phase-2 imports below):
   // it is used to (re)build the expander artifact from scratch (bootstrap-0),
   // where there is no self-hosted expander yet -- s7 evaluates the kernel

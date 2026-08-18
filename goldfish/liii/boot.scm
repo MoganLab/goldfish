@@ -153,6 +153,23 @@
 ;;; Once the expander is self-hosted these become OUR macros (lib layer), and
 ;;; the host forms below are only exercised during the bootstrap.
 
+;;; let-values : bind to the values of a single producer expression.
+;;; The host (s7) lacks this R6RS form, and the lib-layer install code
+;;; (install.scm / module.scm, s7-evaluated before the expander loads) uses
+;;; it -- that was the sole reason (scheme base) had to be host-imported
+;;; ahead of the expander.  Providing it in the seed lets r7rs-small load
+;;; entirely through the expander (pure syntax, no host varlet import).
+(define-macro (let-values bindings . body)
+  (if (null? bindings)
+    `(let () ,@body)
+    (let ((b (car bindings)) (rest (cdr bindings)))
+      `(call-with-values
+         (lambda () ,(cadr b))
+         (lambda ,(car b)
+           (let-values ,rest ,@body))))
+  ) ;if
+) ;define-macro
+
 ;;; let*-values : like let-values but binding clauses are evaluated
 ;;; sequentially (each clause may refer to earlier bindings).  Expand to
 ;;; nested let-values.
@@ -161,6 +178,27 @@
     `(let () ,@body)
     `(let-values (,(car clauses))
        (let*-values ,(cdr clauses) ,@body))))
+
+;;; R7RS host fallbacks the expander kernel needs at runtime.
+;;;
+;;; The kernel (goldfish/expander/kernel, pre-expanded to
+;;; kernel-combined.scm) is written in portable R7RS and references R7RS
+;;; names (bytevector?, floor/, ...) that s7 spells differently or lacks.
+;;; (scheme base) provides them, but the kernel must run BEFORE the base
+;;; library can be loaded through the expander, so the seed provides the
+;;; host-side fallbacks here (cf. the let-values/record fallbacks above).
+;;; These are plain declarations; the full R7RS definitions live in
+;;; goldfish/scheme/base.scm and are loaded through the expander.
+
+(define bytevector byte-vector)
+(define bytevector? byte-vector?)
+(define make-bytevector make-byte-vector)
+(define bytevector-length length)
+(define bytevector-u8-ref byte-vector-ref)
+(define bytevector-u8-set! byte-vector-set!)
+(define bytevector-append append)
+(define string-for-each for-each)
+(define vector-fill! fill!)
 
 ;;; ---------------------------------------------------------------------------
 ;;; Independent record implementation (cf. Guile ice-9/boot-9.scm {Records}).
