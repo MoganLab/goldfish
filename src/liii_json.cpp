@@ -39,53 +39,54 @@ json_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
 
 static void
 json_write_escaped_string (std::string& out, const char* s, s7_int len) {
+  // [0125] 快路径：成段追加无特殊字符的区间，遇 '"' '\\' '/' 或控制字符才特殊处理
   out.push_back ('"');
+  s7_int bgn= 0;
   for (s7_int i= 0; i < len; i++) {
     unsigned char c= (unsigned char) s[i];
-    if (c < 0x80) {
-      switch (c) {
-      case '"':
-        out+= "\\\"";
-        break;
-      case '\\':
-        out+= "\\\\";
-        break;
-      case '/':
-        out+= "\\/";
-        break;
-      case '\b':
-        out+= "\\b";
-        break;
-      case '\f':
-        out+= "\\f";
-        break;
-      case '\n':
-        out+= "\\n";
-        break;
-      case '\r':
-        out+= "\\r";
-        break;
-      case '\t':
-        out+= "\\t";
-        break;
-      default:
-        if (c < 0x20) {
-          // [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再解析
-          char buf[8];
-          snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
-          out+= buf;
-        }
-        else {
-          out.push_back ((char) c);
-        }
-        break;
+    if (c >= 0x20 && c != '"' && c != '\\' && c != '/') continue;
+    out.append (s + bgn, (size_t) (i - bgn));
+    switch (c) {
+    case '"':
+      out+= "\\\"";
+      break;
+    case '\\':
+      out+= "\\\\";
+      break;
+    case '/':
+      out+= "\\/";
+      break;
+    case '\b':
+      out+= "\\b";
+      break;
+    case '\f':
+      out+= "\\f";
+      break;
+    case '\n':
+      out+= "\\n";
+      break;
+    case '\r':
+      out+= "\\r";
+      break;
+    case '\t':
+      out+= "\\t";
+      break;
+    default:
+      if (c < 0x20) {
+        // [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再解析
+        char buf[8];
+        snprintf (buf, sizeof (buf), "\\u%04x", (unsigned) c);
+        out+= buf;
       }
+      else {
+        // 多字节 UTF-8 字符，直接输出原始字节
+        out.push_back ((char) c);
+      }
+      break;
     }
-    else {
-      // 多字节 UTF-8 字符，直接输出原始字节
-      out.push_back ((char) c);
-    }
+    bgn= i + 1;
   }
+  out.append (s + bgn, (size_t) (len - bgn));
   out.push_back ('"');
 }
 
@@ -215,6 +216,7 @@ f_json_to_string (s7_scheme* sc, s7_pointer args) {
                      s7_list (sc, 1, s7_make_string (sc, "json->string: input must not be a procedure")));
   }
   std::string out;
+  out.reserve (256);
   json_write_value (sc, x, out);
   return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
 }
@@ -247,6 +249,12 @@ json_parse_error (s7_scheme* sc, const std::string& msg) {
 
 // glue 时缓存 string->number 并永久 GC 保护：仅用于超出 int64 范围的大整数回退
 static s7_pointer cached_string_to_number= NULL;
+
+// glue 时缓存 true/false/null 符号并永久 GC 保护：
+// parser 高频构造这三个符号，缓存避免每次符号 intern 查找（json-ref 转换亦复用）
+static s7_pointer symbol_true = NULL;
+static s7_pointer symbol_false= NULL;
+static s7_pointer symbol_null = NULL;
 
 // 与 (liii unicode) 的 codepoint->utf8 一致：不排斥代理区码点，逐字节编码
 static bool
@@ -515,8 +523,9 @@ json_parse_object (json_parser* p) {
     // 空对象 '()
     return s7_cons (sc, s7_nil (sc), s7_nil (sc));
   }
-  // GC 已被调用方关闭，裸指针收集键值安全
-  std::vector<s7_pointer> k, v;
+  // GC 已被调用方关闭，裸指针收集键值安全；单数组交错存放 k0 v0 k1 v1 ...
+  std::vector<s7_pointer> kv;
+  kv.reserve (32);
   while (true) {
     json_skip_ws (p);
     s7_pointer key;
@@ -534,8 +543,8 @@ json_parse_object (json_parser* p) {
     json_skip_ws (p);
     s7_pointer val= json_parse_value (p);
     if (val == NULL) { p->depth--; return NULL; }
-    k.push_back (key);
-    v.push_back (val);
+    kv.push_back (key);
+    kv.push_back (val);
     json_skip_ws (p);
     s7_int c= json_peek (p);
     if (c == ',') {
@@ -545,12 +554,12 @@ json_parse_object (json_parser* p) {
     p->depth--;
     if (c == '}') {
       p->pos++;
-      // 正序 cons（结果为逆序链）再整体 reverse
+      // 从尾向头 cons，直接得到正序 alist（无需 s7_reverse 二次遍历）
       s7_pointer lst= s7_nil (sc);
-      for (size_t i= 0; i < k.size (); i++) {
-        lst= s7_cons (sc, s7_cons (sc, k[i], v[i]), lst);
+      for (size_t i= kv.size (); i > 0; i-= 2) {
+        lst= s7_cons (sc, s7_cons (sc, kv[i - 2], kv[i - 1]), lst);
       }
-      return s7_reverse (sc, lst);
+      return lst;
     }
     return NULL;
   }
@@ -612,13 +621,13 @@ json_parse_value (json_parser* p) {
     return json_parse_string_body (p);
   case 't':
     if (!json_parse_literal (p, "true")) return NULL;
-    return s7_make_symbol (p->sc, "true");
+    return symbol_true;
   case 'f':
     if (!json_parse_literal (p, "false")) return NULL;
-    return s7_make_symbol (p->sc, "false");
+    return symbol_false;
   case 'n':
     if (!json_parse_literal (p, "null")) return NULL;
-    return s7_make_symbol (p->sc, "null");
+    return symbol_null;
   case '\'':
     // 单引号字符串不是合法 JSON（RFC 8259）
     return NULL;
@@ -739,8 +748,6 @@ static s7_pointer cached_vector_ref    = NULL;
 static s7_pointer cached_list_to_vector= NULL;
 
 // guenchi json-ref 的 return 包装：'true -> #t，'false -> #f
-static s7_pointer symbol_true = NULL;
-static s7_pointer symbol_false= NULL;
 
 static s7_pointer
 json_ref_convert (s7_scheme* sc, s7_pointer x) {
@@ -817,6 +824,8 @@ glue_json_ref (s7_scheme* sc) {
   s7_gc_protect (sc, symbol_true);
   symbol_false= s7_make_symbol (sc, "false");
   s7_gc_protect (sc, symbol_false);
+  symbol_null= s7_make_symbol (sc, "null");
+  s7_gc_protect (sc, symbol_null);
 }
 
 // json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
