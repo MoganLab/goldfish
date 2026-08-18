@@ -15,11 +15,11 @@
 //
 
 #include "s7.h"
+#include <cerrno>
 #include <cstdlib>
 #include <cstring>
-#include <cerrno>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace goldfish {
 
@@ -357,11 +357,11 @@ json_parse_hex4_at (json_parser* p, s7_int at, s7_int& cp) {
 // 快路径：成段拷贝无特殊字符的区间，遇 '"' '\\' 或控制字符才逐字符处理
 static s7_pointer
 json_parse_string_body (json_parser* p) {
-  s7_scheme*   sc = p->sc;
-  const char*  s  = p->s;
-  s7_int       len= p->len;
-  std::string  out;
-  s7_int       bgn= p->pos;
+  s7_scheme*  sc = p->sc;
+  const char* s  = p->s;
+  s7_int      len= p->len;
+  std::string out;
+  s7_int      bgn= p->pos;
   while (p->pos < len) {
     unsigned char c= (unsigned char) s[p->pos];
     if (c == '"') {
@@ -381,22 +381,44 @@ json_parse_string_body (json_parser* p) {
     if (p->pos + 1 >= len) return NULL;
     char next= s[p->pos + 1];
     switch (next) {
-    case '"': out+= '"'; p->pos+= 2; break;
-    case '\\': out+= '\\'; p->pos+= 2; break;
-    case '/': out+= '/'; p->pos+= 2; break;
-    case 'b': out+= '\b'; p->pos+= 2; break;
-    case 'f': out+= '\f'; p->pos+= 2; break;
-    case 'n': out+= '\n'; p->pos+= 2; break;
-    case 'r': out+= '\r'; p->pos+= 2; break;
-    case 't': out+= '\t'; p->pos+= 2; break;
+    case '"':
+      out+= '"';
+      p->pos+= 2;
+      break;
+    case '\\':
+      out+= '\\';
+      p->pos+= 2;
+      break;
+    case '/':
+      out+= '/';
+      p->pos+= 2;
+      break;
+    case 'b':
+      out+= '\b';
+      p->pos+= 2;
+      break;
+    case 'f':
+      out+= '\f';
+      p->pos+= 2;
+      break;
+    case 'n':
+      out+= '\n';
+      p->pos+= 2;
+      break;
+    case 'r':
+      out+= '\r';
+      p->pos+= 2;
+      break;
+    case 't':
+      out+= '\t';
+      p->pos+= 2;
+      break;
     case 'u': {
       s7_int cp;
       if (!json_parse_hex4_at (p, p->pos + 2, cp)) return NULL;
       s7_int next_cp;
-      if (cp >= 55296 && cp <= 56319 && p->pos + 6 + 6 < len
-          && s[p->pos + 6] == '\\' && s[p->pos + 7] == 'u'
-          && json_parse_hex4_at (p, p->pos + 8, next_cp)
-          && next_cp >= 56320 && next_cp <= 57343) {
+      if (cp >= 55296 && cp <= 56319 && p->pos + 6 + 6 < len && s[p->pos + 6] == '\\' && s[p->pos + 7] == 'u' &&
+          json_parse_hex4_at (p, p->pos + 8, next_cp) && next_cp >= 56320 && next_cp <= 57343) {
         cp= (cp - 55296) * 1024 + (next_cp - 56320) + 65536;
         p->pos+= 12;
       }
@@ -419,8 +441,8 @@ json_parse_string_body (json_parser* p) {
 // 实数走 strtod + s7_make_real（与 reader 双精度语义一致，1e2 => 100.0）
 static s7_pointer
 json_parse_number (json_parser* p) {
-  s7_scheme* sc = p->sc;
-  s7_int     bgn= p->pos;
+  s7_scheme* sc     = p->sc;
+  s7_int     bgn    = p->pos;
   bool       is_real= false;
   if (json_peek (p) == '-') p->pos++;
   s7_int c= json_peek (p);
@@ -428,14 +450,16 @@ json_parse_number (json_parser* p) {
     p->pos++;
   }
   else if (c >= '1' && c <= '9') {
-    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+    while (json_peek (p) >= '0' && json_peek (p) <= '9')
+      p->pos++;
   }
   else return NULL;
   if (json_peek (p) == '.') {
     is_real= true;
     p->pos++;
     if (!(json_peek (p) >= '0' && json_peek (p) <= '9')) return NULL;
-    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+    while (json_peek (p) >= '0' && json_peek (p) <= '9')
+      p->pos++;
   }
   c= json_peek (p);
   if (c == 'e' || c == 'E') {
@@ -444,27 +468,28 @@ json_parse_number (json_parser* p) {
     c= json_peek (p);
     if (c == '+' || c == '-') p->pos++;
     if (!(json_peek (p) >= '0' && json_peek (p) <= '9')) return NULL;
-    while (json_peek (p) >= '0' && json_peek (p) <= '9') p->pos++;
+    while (json_peek (p) >= '0' && json_peek (p) <= '9')
+      p->pos++;
   }
   // 文本已在原文缓冲区内且后续必为分隔符，可安全临时 NUL 终止
   const char* text= p->s + bgn;
   size_t      tlen= (size_t) (p->pos - bgn);
   if (!is_real) {
-    errno= 0;
-    char* endp= NULL;
-    char  saved= p->s[p->pos];
+    errno                 = 0;
+    char* endp            = NULL;
+    char  saved           = p->s[p->pos];
     ((char*) p->s)[p->pos]= '\0';
-    long long v= strtoll (text, &endp, 10);
+    long long v           = strtoll (text, &endp, 10);
     ((char*) p->s)[p->pos]= saved;
     if (errno != ERANGE && endp == text + tlen) {
       return s7_make_integer (sc, (s7_int) v);
     }
   }
   else {
-    char* endp= NULL;
-    char  saved= p->s[p->pos];
+    char* endp            = NULL;
+    char  saved           = p->s[p->pos];
     ((char*) p->s)[p->pos]= '\0';
-    double d= strtod (text, &endp);
+    double d              = strtod (text, &endp);
     ((char*) p->s)[p->pos]= saved;
     if (endp == text + tlen) {
       return s7_make_real (sc, d);
@@ -485,25 +510,25 @@ json_parse_symbol_key (json_parser* p) {
   s7_int bgn= p->pos;
   while (p->pos < p->len) {
     char c= p->s[p->pos];
-    if (c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' '
-        || c == '\t' || c == '\n' || c == '\r' || c == '\'' || c == '"') break;
+    if (c == ':' || c == ',' || c == '}' || c == ']' || c == '[' || c == ' ' || c == '\t' || c == '\n' || c == '\r' ||
+        c == '\'' || c == '"')
+      break;
     p->pos++;
   }
   if (p->pos == bgn) return NULL;
   char c0= p->s[bgn];
   if ((c0 >= '0' && c0 <= '9') || c0 == '-') return NULL;
   size_t n= (size_t) (p->pos - bgn);
-  if ((n == 4 && strncmp (p->s + bgn, "null", 4) == 0)
-      || (n == 4 && strncmp (p->s + bgn, "true", 4) == 0)
-      || (n == 5 && strncmp (p->s + bgn, "false", 5) == 0)) {
+  if ((n == 4 && strncmp (p->s + bgn, "null", 4) == 0) || (n == 4 && strncmp (p->s + bgn, "true", 4) == 0) ||
+      (n == 5 && strncmp (p->s + bgn, "false", 5) == 0)) {
     return NULL;
   }
   // s7 无 make_symbol_with_length：pos < len 时临时 NUL 终止构造（随即恢复），
   // 否则（键后直接 EOF）走 std::string
   if (p->pos < p->len) {
-    char saved= p->s[p->pos];
+    char saved            = p->s[p->pos];
     ((char*) p->s)[p->pos]= '\0';
-    s7_pointer sym= s7_make_symbol (p->sc, p->s + bgn);
+    s7_pointer sym        = s7_make_symbol (p->sc, p->s + bgn);
     ((char*) p->s)[p->pos]= saved;
     return sym;
   }
@@ -536,13 +561,22 @@ json_parse_object (json_parser* p) {
     else {
       key= json_parse_symbol_key (p);
     }
-    if (key == NULL) { p->depth--; return NULL; }
+    if (key == NULL) {
+      p->depth--;
+      return NULL;
+    }
     json_skip_ws (p);
-    if (json_peek (p) != ':') { p->depth--; return NULL; }
+    if (json_peek (p) != ':') {
+      p->depth--;
+      return NULL;
+    }
     p->pos++;
     json_skip_ws (p);
     s7_pointer val= json_parse_value (p);
-    if (val == NULL) { p->depth--; return NULL; }
+    if (val == NULL) {
+      p->depth--;
+      return NULL;
+    }
     kv.push_back (key);
     kv.push_back (val);
     json_skip_ws (p);
@@ -582,7 +616,10 @@ json_parse_array (json_parser* p) {
   while (true) {
     json_skip_ws (p);
     s7_pointer val= json_parse_value (p);
-    if (val == NULL) { p->depth--; return NULL; }
+    if (val == NULL) {
+      p->depth--;
+      return NULL;
+    }
     elems.push_back (val);
     json_skip_ws (p);
     s7_int c= json_peek (p);
@@ -593,9 +630,10 @@ json_parse_array (json_parser* p) {
     p->depth--;
     if (c == ']') {
       p->pos++;
-      s7_pointer vec= s7_make_vector (sc, (s7_int) elems.size ());
+      s7_pointer  vec= s7_make_vector (sc, (s7_int) elems.size ());
       s7_pointer* dst= s7_vector_elements (vec);
-      for (size_t i= 0; i < elems.size (); i++) dst[i]= elems[i];
+      for (size_t i= 0; i < elems.size (); i++)
+        dst[i]= elems[i];
       return vec;
     }
     return NULL;
@@ -615,8 +653,10 @@ static s7_pointer
 json_parse_value (json_parser* p) {
   s7_int c= json_peek (p);
   switch (c) {
-  case '{': return json_parse_object (p);
-  case '[': return json_parse_array (p);
+  case '{':
+    return json_parse_object (p);
+  case '[':
+    return json_parse_array (p);
   case '"':
     p->pos++;
     return json_parse_string_body (p);
@@ -664,7 +704,7 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
   // 中间对象以裸指针暂存于 C++ 容器中安全；结束后恢复
   s7_gc_on (sc, false);
   s7_pointer result= json_parse_value (&p);
-  bool ok= (result != NULL) && json_is_value_end (json_peek (&p));
+  bool       ok    = (result != NULL) && json_is_value_end (json_peek (&p));
   if (ok) {
     json_skip_ws (&p);
     ok= (json_peek (&p) == -1);
@@ -685,7 +725,6 @@ glue_string_to_json (s7_scheme* sc) {
   cached_string_to_number= s7_name_to_value (sc, "string->number");
   s7_gc_protect (sc, cached_string_to_number);
 }
-
 
 // json-ref / json-set 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
 // 的 Scheme 实现完全一致：
