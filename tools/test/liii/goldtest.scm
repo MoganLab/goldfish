@@ -88,7 +88,7 @@
     ) ;define
 
     (define (goldfish-cmd)
-      (string-append (executable) " -m r7rs ")
+      (string-append (executable) " -m liii ")
     ) ;define
 
     (define (run-test-file test-file)
@@ -175,7 +175,7 @@
                        (string-join
                          (map (lambda (s)
                                 (string-append "(" (shell-quote (executable))
-                                               " -m r7rs " (shell-quote (car s))
+                                               " -m liii " (shell-quote (car s))
                                                " > " (shell-quote (cadr s))
                                                " 2>&1; echo $? > " (shell-quote (caddr s)) ") &"))
                               specs)

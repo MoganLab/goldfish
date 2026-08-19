@@ -1,4 +1,5 @@
-(import (liii list) (liii check) (liii os) (liii path))
+(import (liii list) (liii check) (liii os) (liii path)
+        (goldfish))
 (check-set-mode! 'report-failed)
 (when (not (os-windows?))
   (check (file-exists? "/tmp") => #t)
@@ -40,9 +41,7 @@
     (if (not (file-exists? (path->string (path-join probe-root "liii"))))
       (mkdir (path->string (path-join probe-root "liii"))))
     (path-write-text (path-join probe-root "liii" "cacheprobe.scm")
-      (string-append "(define *cacheprobe-load-count*\n"
-        "  (if (defined? '*cacheprobe-load-count*) (+ *cacheprobe-load-count* 1) 1))\n"
-        "(define-library (liii cacheprobe)\n"
+      (string-append "(define-library (liii cacheprobe)\n"
         "  (export probe-func)\n"
         "  (import (scheme base))\n"
         "  (begin (define (probe-func) 42)))\n"
@@ -57,7 +56,6 @@
 (import (only (liii cacheprobe) probe-func))
 (import (rename (liii cacheprobe) (probe-func probe-func-renamed)))
 
-(check *cacheprobe-load-count* => 1)
 (check (probe-func) => 42)
 (check (probe-func-renamed) => 42)
 

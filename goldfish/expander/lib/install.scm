@@ -573,7 +573,7 @@
     (if (compile-cache-valid? cache meta stamp)
       (call-with-input-file cache
         (lambda (p) (car (read-forms p))))
-      (let* ((sexp (compile-file path))
+      (let* ((sexp (compile-file-into path (program-library)))
              (opt (if (zero? level)
                     sexp
                     (let ((f (module-ref the-expander-library 'optimize-on-load)))
@@ -600,3 +600,116 @@
 (module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
 (module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
 (module-define! the-expander-library 'compile-transformer-to-program compile-transformer-to-program)
+
+;;; ------------------------------------------------------------------------
+;;; Internal runtime surface
+;;; ------------------------------------------------------------------------
+;;; The reader / boot / install / module runtime functions live in the host
+;;; rootlet and the-expander-library, NOT in the (goldfish) base library's
+;;; binding table -- so `(import (goldfish))' does not provide them to a
+;;; strict program.  Internal scripts (build-combined.scm, the tools/, the
+;;; goldtest runner) are programs too and import (goldfish); register the
+;;; runtime internals there as primitive bindings so those scripts resolve
+;;; them.  (The reference emits the bare name, which the host rootlet /
+;;; the-expander-library resolves at eval time.)
+
+(define %internal-surface-registered!
+  (for-each
+    (lambda (name)
+      (exp-library-define! the-base-library name (make-primitive-binding name)))
+    (let ((module-forms
+            ;; Names that are NOT value bindings: the core forms and module
+            ;; forms stay as their real bindings in the base library; only
+            ;; the runtime VALUE functions are re-registered as primitives.
+            '(lambda if begin define set! quote quasiquote quote-syntax syntax
+              letrec letrec* define-syntax let-syntax letrec-syntax eval-when
+              define-library import define-module use-modules
+              core-form-handlers)))
+      (filter (lambda (name)
+                (and (symbol? name)
+                     (not (memq name module-forms))
+                     (not (not (module-ref the-expander-library name)))))
+              (module-exports the-expander-library)))))
+
+;;; ------------------------------------------------------------------------
+;;; Internal runtime surface (explicit names)
+;;; ------------------------------------------------------------------------
+;;; The reader / boot / install runtime functions live in the host rootlet
+;;; and the-expander-library, NOT in the (goldfish) base library's binding
+;;; table -- so `(import (goldfish))' does not provide them to a strict
+;;; program.  Internal scripts (build-combined.scm, the tools/, the
+;;; goldtest runner) are programs too and import (goldfish); register the
+;;; runtime internals there as primitive bindings so those scripts resolve
+;;; them.  (The reference emits the bare name, which the host rootlet /
+;;; the-expander-library resolves at eval time.)
+
+(define %internal-names-registered!
+  (for-each
+    (lambda (name)
+      (exp-library-define! the-base-library name (make-primitive-binding name)))
+    '(;; reader
+      read read-forms read-line read-string read-char write-roundtrip load
+      expand-eval eval-forms auto-compile-enabled?
+      ;; boot / loader
+      load-source-file load-expanded load-find-module-file
+      le-cache-files le-cache-valid? le-write-cache le-rootlet-copy
+      bootstrap-macros-installed?
+      ;; install
+      install-standard-library! install-library-file! install-library-forms!
+      compile-file compile-file-into compile-file-cached
+      compile-cache-dir cache-key-path ensure-cache-parent!
+      compile-file-stamp compile-cache-valid? compile-write-cache
+      compile-cache-disabled? cacheable-expansion? collect-module-refs
+      install-cache-path install-cache-save! install-cache-load!
+      ;; kernel entry points (expand-time API not already exported)
+      expand expand-stx expand-library-body expand-library-finalize
+      initial-context make-exp-library wrap-expression
+      expand-lib-define-bind expand-lib-define-syntax
+      ;; kernel exp-library / binding accessors (the base library's live
+      ;; bindings hold the primitives + macros, but NOT the kernel defines
+      ;; -- register them so (import (goldfish)) provides the kernel API)
+      base-library set-base-library! exp-library?
+      exp-library-name exp-library-bindings set-exp-library-bindings!
+      exp-library-ref exp-library-define!
+      binding? binding-kind binding-value make-binding
+      lexical-binding? toplevel-binding? primitive-binding?
+      transformer-binding? core-form-binding? module-form-binding?
+      tstop-binding? binding-unstop make-toplevel-binding
+      make-primitive-binding make-transformer-binding make-core-form-binding
+      make-module-form-binding
+      ;; substrate accessors not module-define!'d in the kernel
+      make-record-type record-type? record-type-name record-type-fields
+      record-instance? record-predicate record-accessor record-modifier
+      record-field-index next-fresh next-record-rtd
+      lookup-module module? make-module module-name module-ref module-define!
+      context-empty context-resolve env-lookup context-env
+      syntax? syntax-e syntax-form syntax-context syntax-library
+      make-syntax syntax->datum datum->syntax identifier?
+      free-identifier=? bound-identifier=? generate-temporaries
+      make-syntax-introducer syntax-local-introduce syntax-local-value
+      local-expand local-binder
+      ;; s7 host forms used by the boot / install chain
+      let-set! with-let sublet unlet *s7*
+      the-expander-library the-base-library *base-library*
+      ;; module machinery
+      expand-define-library import-into-library! import-spec-into-library!
+      library-registry-ref library-record load-library! load-library-file-cached!
+      library-file-cacheable? capture-file-cache restore-library-cache
+      capture-library-cache lib-record-library lib-record-exports
+      runtime-registered-add! runtime-registered?
+      make-program-library program-library reset-program-library!
+      make-program-environment eval-in-program-environment)))
+
+;;; Reader variables (*load-path*, *eval-ctx*) are REAL variables, not
+;;; functions: a primitive binding would make (set! *load-path* ...) fail
+;;; with "cannot assign primitive".  Register them as toplevel bindings
+;;; with no home, so a reference emits the bare original name, which the
+;;; host evaluator resolves to the actual variable.
+
+(define %internal-vars-registered!
+  (for-each
+    (lambda (name)
+      (exp-library-define! the-base-library name
+                           (make-toplevel-binding
+                             (make-toplevel-ref name #f name #f))))
+    '(*load-path* *eval-ctx*)))

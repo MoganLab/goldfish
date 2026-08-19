@@ -1,6 +1,7 @@
 (import (liii check))
 (import (liii list))
 (import (scheme base))
+(import (scheme eval))
 (check-set-mode! 'report-failed)
 ;; lambda
 ;; 测试 lambda 表达式、闭包和简单高阶调用。
@@ -60,5 +61,5 @@
     (check (counter2) => 2)
   ) ;let
 ) ;let
-(check-catch 'unbound-variable ((lambda (x) y) 5))
+(check-catch 'unbound-variable (eval '((lambda (x) y) 5) (environment '(scheme base))))
 (check-report)

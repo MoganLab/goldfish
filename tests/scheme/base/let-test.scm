@@ -34,7 +34,7 @@
 ;; 嵌套 let - 内层变量遮蔽外层变量
 (check (let ((x 1)) (let ((x 2)) x)) => 2)
 ;; let 中使用条件表达式
-(check (let ((x 1)) (if (> x 0) x -x)) => 1)
+(check (let ((x 1)) (if (> x 0) x (- x))) => 1)
 ;; 命名 let - 实现循环
 (check (let loop
          ((n 5) (acc 0))

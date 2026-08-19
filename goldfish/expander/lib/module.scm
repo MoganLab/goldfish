@@ -1077,9 +1077,16 @@
 ;;; subsequent top-level forms resolve them.  Emits no definitions.
 
 (define (expand-import stx ctx)
-  (for-each (lambda (spec)
-              (import-spec-into-library! (base-library) spec))
-            (cdr (syntax->datum stx)))
+  ;; A top-level import imports into the library the form expands against
+  ;; (the syntax's library): the session PROGRAM library for expand-eval /
+  ;; the REPL / compile-program-into (R7RS 5.1: a program's environment
+  ;; starts empty and accumulates its imports), or the base library when a
+  ;; program is compiled with compile-program (the non-cacheable library /
+  ;; test-runner path).
+  (let ((lib (syntax-library stx)))
+    (for-each (lambda (spec)
+                (import-spec-into-library! lib spec))
+              (cdr (syntax->datum stx))))
   (values '() ctx))
 
 ;;; ------------------------------------------------------------------------
@@ -1125,19 +1132,76 @@
 ;;; Installation
 ;;; ------------------------------------------------------------------------
 
-(define (install-module-forms!)
-  (exp-library-define! the-base-library 'define-library
+(define (install-module-forms-into! lib)
+  (exp-library-define! lib 'define-library
     (make-module-form-binding expand-define-library))
-  (exp-library-define! the-base-library 'import
+  (exp-library-define! lib 'import
     (make-module-form-binding expand-import))
-  (exp-library-define! the-base-library 'define-module
+  (exp-library-define! lib 'define-module
     (make-module-form-binding expand-define-module))
-  (exp-library-define! the-base-library 'use-modules
+  (exp-library-define! lib 'use-modules
     (make-module-form-binding expand-use-modules)))
+
+(define (install-module-forms!)
+  (install-module-forms-into! the-base-library))
 
 ;;; Register the module forms now.  Wrapped in a define so
 ;;; install-library-forms! (which only evals value definitions) runs it.
 (define %module-forms-installed! (install-module-forms!))
+
+;;; ------------------------------------------------------------------------
+;;; Program libraries (R7RS 5.1)
+;;; ------------------------------------------------------------------------
+;;; A top-level program's environment starts EMPTY and accumulates only
+;;; what the program imports: no base-library ambient fallback, and an
+;;; identifier that resolves nowhere is an error (expand.scm errors when
+;;; resolve-identifier returns #f inside a program library).  The program
+;;; library is seeded with the core forms and the module forms (so
+;;; (import ...) / (define-library ...) work) but with NO value bindings.
+;;; The session-wide library (*program-lib*) is shared by expand-eval,
+;;; compile-program and the REPL; --mode imports are its initial imports.
+
+(define *program-lib* #f)
+
+(define (make-program-library)
+  (let ((lib (make-exp-library '(program))))
+    (for-each (lambda (entry)
+                (exp-library-define! lib (car entry)
+                                     (make-core-form-binding (cdr entry))))
+              (module-ref the-expander-library 'core-form-handlers))
+    (install-module-forms-into! lib)
+    lib))
+
+(define (program-library)
+  (or *program-lib*
+      (let ((lib (make-program-library)))
+        (set! *program-lib* lib)
+        lib)))
+
+(define (reset-program-library!)
+  (set! *program-lib* #f)
+  ;; Drop the accumulated expansion context too: it may still reference the
+  ;; discarded program library's bindings.
+  (set! *eval-ctx* #f))
+
+;;; register-program-library-primitive! : symbol -> void
+;;; Add a primitive binding to the session program library.  Used by the
+;;; REPL for history variables ($1, $2, ...): the C layer binds them in the
+;;; s7 rootlet, and the strict program environment must see them too, so a
+;;; bare reference (which the host resolves in the rootlet) is registered
+;;; here as a primitive binding.
+
+(define (register-program-library-primitive! name)
+  (exp-library-define! (program-library) name
+                       (make-primitive-binding name)))
+
+(define %program-library-api-installed!
+  (begin
+    (module-define! the-expander-library 'make-program-library make-program-library)
+    (module-define! the-expander-library 'program-library program-library)
+    (module-define! the-expander-library 'reset-program-library! reset-program-library!)
+    (module-define! the-expander-library 'register-program-library-primitive!
+                    register-program-library-primitive!)))
 
 ;;; ------------------------------------------------------------------------
 ;;; R7RS (scheme eval): environment / eval

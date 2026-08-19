@@ -1,7 +1,19 @@
 (import (liii check)
-        (goldfish compiler))
+        (goldfish compiler)
+        (goldfish))
 
 ;; 自研字节码 VM 单元测试：VM 执行结果与 s7 eval 等价。
+
+;; The VM registers globals in the s7 rootlet; a strict program resolves
+;; identifiers only from its imports, so the global names must be bound in
+;; the program library BEFORE the checks below are compiled.  eval-when
+;; (expand) runs at compile time: register each VM global as a primitive
+;; binding (a bare reference then resolves to the rootlet global).
+(eval-when (expand)
+  (for-each (lambda (name)
+              (exp-library-define! (program-library) name
+                                   (make-primitive-binding name)))
+            '(add sub fact loop mk f g h id rest-f)))
 
 ;; 加载一组 defs 到 VM（一个 program，函数注册为全局）
 (define (vm-load-defs defs)

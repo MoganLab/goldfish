@@ -34,6 +34,11 @@
 ;;; here -- load now goes through the expander, which cannot process the
 ;;; seed's host-specific forms (e.g. let-set!).
 
+;; A program (R7RS 5.1): the environment starts empty, so the internal
+;; runtime surface comes from an explicit import of the implementation
+;; library (goldfish).
+(import (goldfish))
+
 (define (boot-from-source?)
   (let ((v (getenv "EXPANDER_BOOT")))
     (or (not v) (string=? v "from-source"))))
@@ -49,10 +54,13 @@
     (load-expanded "liii/prelude.scm" 'base)
     (load-expanded "liii/reader.scm")
     (load-expanded "expander/lib/install.scm" '(expander lib install)))
-  ;; Bootstrap-N (N>=1): the committed artifact is the expander.
-  (begin
-    (load-source-file "expander/kernel-combined.scm")
-    (load-expanded "expander/lib/install.scm" '(expander lib install))))
+  ;; Bootstrap-N (N>=1): the committed artifact is the expander, and bin/gf's
+  ;; bootstrap has already loaded the lib layer (install.scm) on top of it --
+  ;; do NOT reload the artifact or re-install install.scm here: re-evaluating
+  ;; them re-creates the kernel's record types (<binding>, <syntax>,
+  ;; <context>, ...) under new identities, which invalidates every existing
+  ;; binding record the program library holds.
+  (begin))
 ;; Install the standard layer so the kernel's own let-values / let*-values
 ;; resolve to OUR macros instead of remaining free forms that s7 would
 ;; natively expand at artifact load time -- the artifact then stays pure

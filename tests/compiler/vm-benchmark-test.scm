@@ -1,5 +1,6 @@
 (import (liii check)
         (goldfish compiler)
+        (goldfish)
         (liii timeit))
 
 ;; M1 基准：VM vs s7 eval 性能对比。
@@ -8,11 +9,18 @@
 (define (fib-s7 n) (if (< n 2) n (+ (fib-s7 (- n 1)) (fib-s7 (- n 2)))))
 
 ;; VM 版
-(vm-load (to-bytecode
-          (map core->ir
-               '((define (fib-vm n) (if (< n 2) n (+ (fib-vm (- n 1)) (fib-vm (- n 2)))))
-                 (define (loop-vm i acc) (if (= i 0) acc (loop-vm (- i 1) (+ acc 1)))))))
-         #f)
+(define vm-defs
+  '((define (fib-vm n) (if (< n 2) n (+ (fib-vm (- n 1)) (fib-vm (- n 2)))))
+    (define (loop-vm i acc) (if (= i 0) acc (loop-vm (- i 1) (+ acc 1))))))
+;; Register the VM global names in the program library at COMPILE time (the
+;; VM registers them in the s7 rootlet at runtime; a strict program resolves
+;; identifiers only from its imports).
+(eval-when (expand)
+  (for-each (lambda (name)
+              (exp-library-define! (program-library) name
+                                   (make-primitive-binding name)))
+            '(fib-vm loop-vm)))
+(vm-load (to-bytecode (map core->ir vm-defs)) #f)
 
 ;; 等价性先验证
 (check (fib-s7 20) => 6765)

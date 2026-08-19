@@ -62,6 +62,17 @@
        (lambda formals
          (let*-values (more ...) body ...))))))
 
+(define-syntax parameterize
+  (syntax-rules ()
+    ((parameterize () body1 body2 ...)
+     (let () body1 body2 ...))
+    ((parameterize ((param value) binding ...) body1 body2 ...)
+     (let ((old (param)))
+       (dynamic-wind
+         (lambda () (param value))
+         (lambda () (parameterize (binding ...) body1 body2 ...))
+         (lambda () (param old)))))))
+
 ;;; case : procedural transformer.  Folds the clauses into a single
 ;;; (let ((k key)) (if ...)) chain in ONE expansion -- the recursive
 ;;; syntax-rules form was O(n^3) in the eager scope machinery.  Datums are

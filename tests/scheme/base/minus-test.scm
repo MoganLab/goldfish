@@ -1,5 +1,6 @@
 (import (liii check))
 (import (scheme base))
+(import (scheme eval))
 (check-set-mode! 'report-failed)
 ;; -
 ;; 计算所有给定数字的差。
@@ -52,5 +53,5 @@
 (check-catch 'wrong-type-arg (- "world" 7))
 (check-catch 'wrong-type-arg (- #f 7))
 (check-catch 'wrong-type-arg (- '(1 3 5) 7))
-(check-catch 'unbound-variable (- 1.0+1.0i |2i|))
+(check-catch 'unbound-variable (eval '(- 1.0+1.0i |2i|) (environment '(scheme base))))
 (check-report)

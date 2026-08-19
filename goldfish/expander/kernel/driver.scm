@@ -38,6 +38,17 @@
                 (compile-program* exprs (initial-context))))
     (lower program)))
 
+;;; compile-program-into : (list datum) exp-library -> lowered core
+;;; Compile a top-level program into a specific library (R7RS 5.1 program
+;;; semantics): the program's environment starts empty (core forms +
+;;; module forms + whatever its imports provide) and free identifiers that
+;;; resolve nowhere are errors, not ambient base-library names.
+
+(define (compile-program-into exprs lib)
+  (let-values (((program ctx)
+                (compile-program* exprs (initial-context) lib)))
+    (lower program)))
+
 ;;; compile-toplevel : datum -> lowered core Scheme S-expression
 ;;; Compile a single top-level form into the-base-library, so a top-level
 ;;; define-syntax registers the macro in the shared base library and later
@@ -63,7 +74,11 @@
 (define (compile-file path)
   (compile-program (call-with-input-file path read-forms)))
 
-(define (compile-program* exprs ctx)
+(define (compile-file-into path lib)
+  (compile-program-into (call-with-input-file path read-forms) lib))
+
+(define (compile-program* exprs ctx . maybe-lib)
+  (let ((lib (if (pair? maybe-lib) (car maybe-lib) the-base-library)))
   (let loop ((exprs    exprs)
              (ctx      ctx)
              (lib-defs '())
@@ -82,7 +97,7 @@
       (let ((expr (car exprs)))
         (if (and (pair? expr) (eq? (car expr) 'begin))
           (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body (+ n 1))
-          (let* ((stx  (wrap-expression expr))
+          (let* ((stx  (stx-set-library (wrap-expression expr) lib))
                  (form (syntax-form stx))
                  (head (and (pair? form) (car form))))
             (if (identifier? head)
@@ -117,17 +132,19 @@
                    ;; hoisting used for define-library bodies would resolve
                    ;; y against the final x.
                    (let*-values (((d ctx1)
-                                  (expand-library-body (list stx) the-base-library ctx)))
+                                  (expand-library-body (list stx) lib ctx)))
                      (loop (cdr exprs) ctx1 lib-defs
                            (append (reverse d) body) (+ n 1))))))
               (let*-values (((d ctx1)
-                             (expand-library-body (list stx) the-base-library ctx)))
+                             (expand-library-body (list stx) lib ctx)))
                 (loop (cdr exprs) ctx1 lib-defs
-                      (append (reverse d) body) (+ n 1))))))))))
+                      (append (reverse d) body) (+ n 1)))))))))))
 
 (module-define! the-expander-library 'expand-stx expand-stx)
 (module-define! the-expander-library 'expand expand)
 (module-define! the-expander-library 'compile-program compile-program)
+(module-define! the-expander-library 'compile-program-into compile-program-into)
 (module-define! the-expander-library 'compile-toplevel compile-toplevel)
 (module-define! the-expander-library 'compile-file compile-file)
+(module-define! the-expander-library 'compile-file-into compile-file-into)
 

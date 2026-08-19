@@ -9,6 +9,22 @@
   (or (number? x) (boolean? x) (string? x) (char? x)
       (bytevector? x)))
 
+;;; keyword-symbol? : any -> boolean
+;;; s7 keywords read as `:name' symbols (the R7RS reader has no keyword
+;;; type), and define* also accepts the s7-style SUFFIX keyword `name:';
+;;; the host evaluator treats a bare `:name' / `name:' reference as a
+;;; self-evaluating keyword, so the expander must not resolve it as an
+;;; identifier.
+
+(define (keyword-symbol? x)
+  (and (symbol? x)
+       (let ((s (symbol->string x)))
+         (and (> (string-length s) 0)
+              (let ((first (string-ref s 0))
+                    (last (string-ref s (- (string-length s) 1))))
+                (or (eq? first #\:)
+                    (eq? last #\:)))))))
+
 (define (expand-expr stx ctx)
   (cond
     ((not (syntax? stx))
@@ -25,6 +41,18 @@
                     ((as ctx2) (expand-list (cdr stxs) ctx1)))
         (values (cons a as) ctx2))))
 
+;;; program-library? : exp-library/#f -> boolean
+;;; True for a top-level program library (R7RS 5.1: a program's initial
+;;; environment is empty -- its bindings come only from its imports, and
+;;; free identifiers that resolve nowhere are errors, not ambient host
+;;; names).  Library bodies (define-library) are NOT program libraries:
+;;; their free names may still fall back to the base library / rootlet.
+
+(define (program-library? lib)
+  (and lib
+       (let ((n (exp-library-name lib)))
+         (and (pair? n) (eq? (car n) 'program)))))
+
 (define (resolve-identifier stx ctx)
   (let ((name (context-resolve ctx stx)))
     (let ((binding (env-lookup (context-env ctx) name)))
@@ -34,45 +62,60 @@
             (let ((lib-binding (and lib (exp-library-ref lib name))))
               (if lib-binding
                   (values name lib-binding)
-                  (let ((base-binding (let ((bl (base-library)))
-                                        (and bl (exp-library-ref bl name)))))
-                    (if base-binding
-                        (values name base-binding)
-                        (values name #f))))))))))
+                  (if (program-library? lib)
+                      (values name #f)
+                      (let ((base-binding (let ((bl (base-library)))
+                                            (and bl (exp-library-ref bl name)))))
+                        (if base-binding
+                            (values name base-binding)
+                            (values name #f)))))))))))
 
 (define (expand-atom stx ctx)
   (let ((form (syntax-form stx)))
     (if (symbol? form)
-        (let*-values (((name binding) (resolve-identifier stx ctx)))
-          (cond
-            ((core-form-binding? binding)
-             (error "expand-atom: keyword used as expression" form))
-            ((transformer-binding? binding)
-             (error "expand-atom: macro used as expression" form))
-            ((toplevel-binding? binding)
-             (values (emit-toplevel-ref (binding-value binding) stx) ctx))
-            (binding
-             ;; Only lexical and primitive bindings have a pure (symbol)
-             ;; value to inline.  Anything else is a live object (a
-             ;; module-form handler, a core/transformer procedure caught
-             ;; here, a stop wrapper) and must never be placed in a datum
-             ;; -- that would make the expanded output unserializable
-             ;; (cf. Racket, where datums are pure).  A stopped identifier
-             ;; stays unexpanded, exactly as expand-pair handles stops.
-             (cond
-               ((or (lexical-binding? binding) (primitive-binding? binding))
-                (values (make-syntax (binding-value binding)
-                                     (syntax-context stx) (syntax-library stx))
-                        ctx))
-               ((tstop-binding? binding)
-                (values stx ctx))
-               (else
-                (error "expand-atom: cannot inline live binding value"
-                       form binding))))
-            (else
-             (values (make-syntax name
-                                  (syntax-context stx) (syntax-library stx))
-                     ctx))))
+        (if (keyword-symbol? form)
+            (values form ctx)
+            (let*-values (((name binding) (resolve-identifier stx ctx)))
+              (cond
+                ((core-form-binding? binding)
+                 (error "expand-atom: keyword used as expression" form))
+                ((transformer-binding? binding)
+                 (error "expand-atom: macro used as expression" form))
+                ((toplevel-binding? binding)
+                 (values (emit-toplevel-ref (binding-value binding) stx) ctx))
+                (binding
+                 ;; Only lexical and primitive bindings have a pure (symbol)
+                 ;; value to inline.  Anything else is a live object (a
+                 ;; module-form handler, a core/transformer procedure caught
+                 ;; here, a stop wrapper) and must never be placed in a
+                 ;; datum -- that would make the expanded output
+                 ;; unserializable (cf. Racket, where datums are pure).  A
+                 ;; stopped identifier stays unexpanded, exactly as
+                 ;; expand-pair handles stops.
+                 (cond
+                   ((or (lexical-binding? binding) (primitive-binding? binding))
+                    (values (make-syntax (binding-value binding)
+                                         (syntax-context stx)
+                                         (syntax-library stx))
+                            ctx))
+                   ((tstop-binding? binding)
+                    (values stx ctx))
+                   (else
+                    (error "expand-atom: cannot inline live binding value"
+                           form binding))))
+                (else
+                 (if (program-library? (syntax-library stx))
+                     ;; Same error tag as the host evaluator's unbound
+                     ;; reference (s7 signals 'unbound-variable at eval
+                     ;; time), so (catch 'unbound-variable ...) / check-catch
+                     ;; keep working -- the strict program environment just
+                     ;; catches the reference earlier, at expansion time.
+                     (error 'unbound-variable
+                            "unbound identifier in program" form)
+                     (values (make-syntax name
+                                          (syntax-context stx)
+                                          (syntax-library stx))
+                             ctx))))))
         (values (if (self-evaluating? form)
                     (make-syntax form
                                  (syntax-context stx) (syntax-library stx))
@@ -102,6 +145,14 @@
        (make-syntax (toplevel-ref-gensym ref)
                     (syntax-context src-stx) (syntax-library src-stx)))
       ((eq? home (base-library))
+       (make-syntax (toplevel-ref-gensym ref)
+                    (syntax-context src-stx) (syntax-library src-stx)))
+      ;; A program-library binding has no runtime module (its defs evaluate
+      ;; into the-expander-library under the gensym), so a reference from a
+      ;; macro's own library context must still emit the bare gensym --
+      ;; (module-ref '(program) ...) has nothing to look up, and set! on it
+      ;; needs the gensym too.
+      ((program-library? home)
        (make-syntax (toplevel-ref-gensym ref)
                     (syntax-context src-stx) (syntax-library src-stx)))
       (else
@@ -438,6 +489,7 @@
 (module-define! the-expander-library 'expand-list expand-list)
 (module-define! the-expander-library 'lower lower)
 (module-define! the-expander-library 'resolve-identifier resolve-identifier)
+(module-define! the-expander-library 'program-library? program-library?)
 (module-define! the-expander-library 'local-expand local-expand)
 (module-define! the-expander-library 'local-expand-body local-expand-body)
 (module-define! the-expander-library 'make-syntax-introducer make-syntax-introducer)

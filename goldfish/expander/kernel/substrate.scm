@@ -201,6 +201,16 @@
       (error "module-ref: not exported" name))
     (let-ref m name)))
 
+;;; A cross-library value reference is lowered to (module-ref 'home 'name);
+;;; set! on such a reference lowers to ((setter module-ref) 'home 'name v)
+;;; (core-set!), so module-ref needs a setter that writes through to the
+;;; module's inlet.  This makes top-level set! to a program-library binding
+;;; (or any registered module) work from macro-generated code.
+(set! (setter module-ref)
+      (lambda (m name value)
+        (let ((m (if (module? m) m (lookup-module m))))
+          (let-set! m name value))))
+
 (define (register-module m)
   (let ((name (module-name m)))
     (set! *module-registry*

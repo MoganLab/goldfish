@@ -1055,7 +1055,12 @@
 (define *eval-ctx* #f)
 
 (define (expand-eval expr)
-  (let* ((lib the-base-library)
+  ;; Top-level program forms expand against the session PROGRAM library
+  ;; (R7RS 5.1: the program's environment starts empty and accumulates its
+  ;; imports).  The base library is NOT ambient here: an identifier that
+  ;; resolves nowhere is an error (expand.scm).  --mode imports and any
+  ;; user (import ...) forms land in this library.
+  (let* ((lib (program-library))
          (stx (stx-set-library (wrap-expression expr) lib))
          (ctx (or *eval-ctx* (initial-context)))
          (form (syntax-form stx))

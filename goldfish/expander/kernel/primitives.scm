@@ -70,6 +70,10 @@
      read-u8 read-bytevector read-bytevector! peek-char peek-u8 char-ready?
      write-u8 write-bytevector
      newline eof-object eof-object?
+     make-parameter
+     catch throw with-exception-handler raise-continuable
+     rootlet inlet curlet dynamic-let?
+     pi exact-integer-sqrt
      port? input-port? output-port? textual-port? binary-port?
      input-port-open? output-port-open?
      current-input-port current-output-port current-error-port
@@ -111,6 +115,24 @@
      make-float-vector
      complex-vector complex-vector? complex-vector-ref complex-vector-set!
      make-complex-vector
+     ;; s7 host functions used by internal tests / tools
+     s7-ceiling s7-floor s7-round s7-truncate s7-lcm s7-gcd s7-remainder
+     s7-modulo s7-sqrt s7-abs s7-expt
+     s7-make-hash-table s7-hash-table-ref s7-hash-table-set!
+     s7-let-to-list s7-let-ref s7-let-set!
+     s7-string-upcase s7-string-downcase
+     unspecified unspecified? undefined undefined? record-instance fill! display*
+     let? sublet unlet with-let vm-load vm-enter
+     random
+     ;; C++ glue functions (g_*), exposed in the host rootlet
+     g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir
+     g_function-libraries g_getcwd g_getlogin g_getpid g_isdir g_isfile
+     g_listdir g_md5 g_md5-by-file g_mkdir g_os-arch g_os-call g_os-temp-dir
+     g_os-type g_path-append-text g_path-copy g_path-getmtime g_path-getsize
+     g_path-read-bytes g_path-read-text g_path-touch g_path-write-bytes
+     g_path-write-text g_remove-file g_rename g_rmdir g_setenv g_sha1
+     g_sha1-by-file g_sha256 g_sha256-by-file g_string-split g_system
+     g_unsetenv
      ;; expand-time syntax API (cf. phases-model stx primitives:
      ;; MKS/LIST/CAR/CDR/SE), used by procedural transformers
      syntax? syntax-e syntax-form syntax-context syntax-library make-syntax

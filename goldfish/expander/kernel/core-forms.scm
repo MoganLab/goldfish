@@ -459,7 +459,13 @@
                           (context-resolve c (car form)))))
           (if (memq head '(define define-syntax))
             (let*-values (((defs c1)
-                           (expand-library-body (list (car es)) the-base-library c)))
+                           ;; Register the expand-time definition in the
+                           ;; library the form expands against (the program
+                           ;; library for a strict program, the base library
+                           ;; otherwise), so later forms in the SAME library
+                           ;; context see the macro / value.
+                           (expand-library-body (list (car es))
+                                                (syntax-library (car es)) c)))
               (eval (if (null? defs)
                       '(if #f #f)
                       (lower (cons 'begin defs)))

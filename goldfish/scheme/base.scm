@@ -1,6 +1,11 @@
 (define-library (scheme base)
   (import (goldfish))
-  (export let-values
+  (export
+    ;; R7RS 6.1 essential syntax (imported from the implementation library)
+    and begin case cond define define-syntax delay delay-force do guard
+    if lambda let let* let*-values let-syntax let-values letrec letrec*
+    letrec-syntax or parameterize quasiquote quote set! syntax-error
+    syntax-rules unless when
     define-values
     define-record-type
     eqv?

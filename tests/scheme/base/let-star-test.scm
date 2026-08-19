@@ -1,5 +1,6 @@
 (import (liii check))
 (import (scheme base))
+(import (scheme eval))
 (check-set-mode! 'report-failed)
 ;; let*
 ;; 顺序绑定局部变量，后续绑定可以使用前面绑定的变量。
@@ -63,7 +64,7 @@
   '(5 "Hello")
 ) ;check
 ;; 错误用法 - 引用未定义变量
-(check-catch 'unbound-variable (let* ((x y) (y 10)) x))
+(check-catch 'unbound-variable (eval '(let* ((x y) (y 10)) x) (environment '(scheme base))))
 ;; 复杂表达式
 (check (let* ((x (if #t 10 20)) (y (let* ((a x) (b (+ a 5))) (+ a b))))
          y

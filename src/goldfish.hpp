@@ -1643,8 +1643,12 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     // Preload the compiler so library captures after this point compile
     // transformer definitions to VM bytecode programs (compiled once,
     // resolved references), instead of lowered forms that must be re-evaluated
-    // and re-resolved by name at every warm start.
-    goldfish_eval_through_reader (sc, "(load-library! '(goldfish compiler))");
+    // and re-resolved by name at every warm start.  load-library! is a plain
+    // function (resolvable in the rootlet), so this runs through s7 directly
+    // -- NOT goldfish_eval_through_reader -- to avoid importing (goldfish)
+    // into the session program library (which would leak the implementation
+    // surface into a strict r7rs program).
+    s7_eval_c_string (sc, "(load-library! '(goldfish compiler))");
   }
 
   // Phase 2: mode-specific imports, now that the expander can handle
@@ -1654,17 +1658,30 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   // define-syntax in the library chain (and-let*, receive, ...) would be
   // missing after a host-side import, and s7's native eval would also fail
   // on the define-syntax forms themselves (s7 has no define-syntax).
+  //
+  // A mode is an IMPORT SHORTCUT (R7RS 5.1 program semantics): top-level
+  // code runs in an empty program environment whose initial bindings are
+  // exactly these imports.  r7rs is the foundation (scheme base); liii
+  // builds the extension layer on top of the r7rs-small standard libraries
+  // (cf. Guile's ice-9).  Nothing else is ambient: an identifier used
+  // without an import is an error.
   if (!gf_bootstrap) {
     if (mode == "default" || mode == "liii") {
-      goldfish_eval_through_reader (sc, "(import (liii base) (liii error) (liii string))");
+      goldfish_eval_through_reader (
+          sc, "(import (goldfish) (scheme base) (scheme write) (scheme read)"
+              " (scheme file) (scheme process-context) (scheme time)"
+              " (scheme inexact) (scheme char) (scheme complex) (scheme cxr)"
+              " (scheme eval) (scheme case-lambda) (liii base) (liii error)"
+              " (liii string))");
     }
     else if (mode == "scheme") {
-      goldfish_eval_through_reader (sc, "(import (liii base) (liii error))");
+      goldfish_eval_through_reader (sc, "(import (scheme base) (liii base) (liii error))");
     }
     else if (mode == "sicp") {
-      goldfish_eval_through_reader (sc, "(import (srfi sicp))");
+      goldfish_eval_through_reader (sc, "(import (scheme base) (srfi sicp))");
     }
     else if (mode == "r7rs") {
+      goldfish_eval_through_reader (sc, "(import (scheme base))");
     }
     else if (mode == "s7") {
     }
@@ -1783,6 +1800,12 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
     // expander library inlet, so s7_curlet there would not be rootlet-visible.
     s7_pointer  cur_env= s7_rootlet (sc);
     s7_define (sc, cur_env, s7_make_symbol (sc, name.c_str ()), result);
+    // Register the history name as a primitive binding in the session
+    // program library too: a strict program resolves identifiers only from
+    // its imports, so without this the next (expand-eval '(... $1 ...))
+    // would fail with "unbound identifier in program".
+    goldfish_eval_through_reader (
+        sc, ("(import (goldfish)) (register-program-library-primitive! '" + name + ")").c_str ());
 
     char* result_str= s7_object_to_c_string (sc, result);
     if (result_str) {
@@ -2107,8 +2130,8 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
              GOLDFISH_VERSION, S7_VERSION, S7_DATE);
   // Display mode info; liii mode shows extra imported libraries
   if (mode == "liii" || mode == "default") {
-    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (scheme base) (liii base) (liii error) (liii string) "
-               "compared to r7rs)\n\n",
+    ic_printf ("[b]Mode:[/] [b]%s[/] (imports the r7rs-small libraries plus (liii base) "
+               "(liii error) (liii string); r7rs imports only (scheme base))\n\n",
                mode.c_str ());
   }
   else {
