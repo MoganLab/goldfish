@@ -27,7 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-reduce)
+  (export json-string-escape)
   (begin
 
     (define (json-string-escape str)
@@ -76,6 +76,5 @@
     ;; g_json_set / g_json_drop / g_json_reduce，含变参多键路径，语义覆盖历史上的
     ;; json-set / json-drop / json-reduce 及带 * 版本），本库不再保留对应 Scheme 实现。
     ;; 历史上的 json-reduce*（多 v/p 对、p 收键路径列表的独立接口）无使用者，已删除
-    (define json-reduce g_json_reduce)
   ) ;begin
 ) ;define-library

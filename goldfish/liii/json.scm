@@ -1,8 +1,5 @@
 (define-library (liii json)
-  (import (liii base)
-    (liii list)
-    (rename (guenchi json) (json-reduce g:json-reduce))
-  ) ;import
+  (import (liii base) (liii list) (guenchi json))
   (export json-string-escape
     string->json
     json->string
