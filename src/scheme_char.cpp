@@ -18,7 +18,7 @@
 // 表数据由 tools/parse_char_tables.py 从 goldfish/scheme/char.scm 机械生成，
 // 连续码点合并为区间，二分查找
 
-#include "s7.h"
+#include "gf.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -730,76 +730,76 @@ set_lookup (const cp_range* tab, size_t n, uint32_t cp) {
 
 static s7_pointer
 char_type_error (s7_scheme* sc, const char* msg) {
-  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 1, s7_make_string (sc, msg)));
+  return gf::error (sc, gf::make_symbol (sc, "type-error"), gf::list (sc, gf::make_string (sc, msg)));
 }
 
 #define ARRAY_LEN(a) (sizeof (a) / sizeof ((a)[0]))
 
 static s7_pointer
 f_char_upcase (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) {
+  s7_pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-upcase: parameter must be character");
   }
-  uint32_t cp= s7_character (arg);
+  uint32_t cp= gf::character (arg);
   int64_t  r = map_lookup (upcase_map, ARRAY_LEN (upcase_map), cp);
-  return s7_make_character (sc, (r >= 0) ? (uint32_t) r : cp);
+  return gf::make_character (sc, (r >= 0) ? (uint32_t) r : cp);
 }
 
 static s7_pointer
 f_char_downcase (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) {
+  s7_pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-downcase: parameter must be character");
   }
-  uint32_t cp= s7_character (arg);
+  uint32_t cp= gf::character (arg);
   int64_t  r = map_lookup (downcase_map, ARRAY_LEN (downcase_map), cp);
-  return s7_make_character (sc, (r >= 0) ? (uint32_t) r : cp);
+  return gf::make_character (sc, (r >= 0) ? (uint32_t) r : cp);
 }
 
 static s7_pointer
 f_char_alphabetic_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) {
+  s7_pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-alphabetic?: parameter must be character");
   }
-  uint32_t cp= s7_character (arg);
-  if (cp > 205743) return s7_f (sc);
-  if (set_lookup (non_alphabetic_ranges, ARRAY_LEN (non_alphabetic_ranges), cp)) return s7_f (sc);
-  return s7_t (sc);
+  uint32_t cp= gf::character (arg);
+  if (cp > 205743) return gf::f (sc);
+  if (set_lookup (non_alphabetic_ranges, ARRAY_LEN (non_alphabetic_ranges), cp)) return gf::f (sc);
+  return gf::t (sc);
 }
 
 static s7_pointer
 f_char_upper_case_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) {
+  s7_pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-upper-case?: parameter must be character");
   }
-  uint32_t cp= s7_character (arg);
-  return set_lookup (upper_ranges, ARRAY_LEN (upper_ranges), cp) ? s7_t (sc) : s7_f (sc);
+  uint32_t cp= gf::character (arg);
+  return set_lookup (upper_ranges, ARRAY_LEN (upper_ranges), cp) ? gf::t (sc) : gf::f (sc);
 }
 
 static s7_pointer
 f_char_lower_case_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
-  if (!s7_is_character (arg)) {
+  s7_pointer arg= gf::car (args);
+  if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-lower-case?: parameter must be character");
   }
-  uint32_t cp= s7_character (arg);
-  return set_lookup (lower_ranges, ARRAY_LEN (lower_ranges), cp) ? s7_t (sc) : s7_f (sc);
+  uint32_t cp= gf::character (arg);
+  return set_lookup (lower_ranges, ARRAY_LEN (lower_ranges), cp) ? gf::t (sc) : gf::f (sc);
 }
 
 void
 glue_scheme_char (s7_scheme* sc) {
-  s7_define_function (sc, "g_char-upcase", f_char_upcase, 1, 0, false,
+  gf::define_function (sc, "g_char-upcase", f_char_upcase, 1, 0, false,
                       "(g_char-upcase char) => char, Unicode simple upcase mapping");
-  s7_define_function (sc, "g_char-downcase", f_char_downcase, 1, 0, false,
+  gf::define_function (sc, "g_char-downcase", f_char_downcase, 1, 0, false,
                       "(g_char-downcase char) => char, Unicode simple downcase mapping");
-  s7_define_function (sc, "g_char-alphabetic?", f_char_alphabetic_p, 1, 0, false,
+  gf::define_function (sc, "g_char-alphabetic?", f_char_alphabetic_p, 1, 0, false,
                       "(g_char-alphabetic? char) => boolean");
-  s7_define_function (sc, "g_char-upper-case?", f_char_upper_case_p, 1, 0, false,
+  gf::define_function (sc, "g_char-upper-case?", f_char_upper_case_p, 1, 0, false,
                       "(g_char-upper-case? char) => boolean");
-  s7_define_function (sc, "g_char-lower-case?", f_char_lower_case_p, 1, 0, false,
+  gf::define_function (sc, "g_char-lower-case?", f_char_lower_case_p, 1, 0, false,
                       "(g_char-lower-case? char) => boolean");
 }
 

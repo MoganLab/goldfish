@@ -14,7 +14,7 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>
@@ -125,34 +125,34 @@ void glue_vm (s7_scheme* sc);
 inline s7_pointer
 string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
   int        N  = v.size ();
-  s7_pointer ret= s7_make_vector (sc, N);
+  s7_pointer ret= gf::make_vector (sc, N);
   for (int i= 0; i < N; i++) {
-    s7_vector_set (sc, ret, i, s7_make_string (sc, v[i].c_str ()));
+    gf::vector_set (sc, ret, i, gf::make_string (sc, v[i].c_str ()));
   }
   return ret;
 }
 
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env= s7_curlet (sc);
-  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  s7_pointer cur_env= gf::curlet (sc);
+  s7_pointer func   = gf::make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 static s7_pointer
 f_version (s7_scheme* sc, s7_pointer args) {
-  return s7_make_string (sc, GOLDFISH_VERSION);
+  return gf::make_string (sc, GOLDFISH_VERSION);
 }
 
 static s7_pointer
 f_delete_file (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_file_remove (path_c));
+  const char* path_c= gf::string (gf::car (args));
+  return gf::make_boolean (sc, tb_file_remove (path_c));
 }
 
 inline void
 glue_goldfish (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
+  s7_pointer cur_env= gf::curlet (sc);
 
   const char* s_version           = "version";
   const char* d_version           = "(version) => string";
@@ -169,22 +169,22 @@ glue_goldfish (s7_scheme* sc) {
       "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
       "or #f if none is found in the current working directory";
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
-             s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_version),
+             gf::make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_delete_file),
-             s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_delete_file),
+             gf::make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
 
-  s7_define (
-      sc, cur_env, s7_make_symbol (sc, s_function_libraries),
-      s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
+  gf::define (
+      sc, cur_env, gf::make_symbol (sc, s_function_libraries),
+      gf::make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_gfproject_load_config),
-             s7_make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_gfproject_load_config),
+             gf::make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
                                      d_gfproject_load_config, NULL));
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_project_root),
-             s7_make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_project_root),
+             gf::make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -198,8 +198,8 @@ f_get_time_of_day (s7_scheme* sc, s7_pointer args) {
   auto sec        = duration_cast<seconds> (since_epoch);
 
   s7_pointer vs=
-      s7_list (sc, 2, s7_make_integer (sc, sec.count ()), s7_make_integer (sc, (since_epoch - sec).count ()));
-  return s7_values (sc, vs);
+      gf::list (sc, gf::make_integer (sc, sec.count ()), gf::make_integer (sc, (since_epoch - sec).count ()));
+  return gf::values (sc, vs);
 }
 
 static s7_pointer
@@ -208,7 +208,7 @@ f_monotonic_nanosecond (s7_scheme* sc, s7_pointer args) {
   auto now     = steady_clock::now ();
   auto duration= now.time_since_epoch ();
   auto count   = duration_cast<std::chrono::nanoseconds> (duration).count ();
-  return s7_make_integer (sc, count);
+  return gf::make_integer (sc, count);
 }
 
 template <typename Clock>
@@ -221,25 +221,25 @@ clock_resolution_ns () {
 
 inline void
 glue_scheme_time (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
+  s7_pointer cur_env= gf::curlet (sc);
 
   const char* s_get_time_of_day= "g_get-time-of-day";
   const char* d_get_time_of_day= "(g_get-time-of-day): () => (integer, integer), return the "
                                  "current second and microsecond in integer";
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_get_time_of_day),
-             s7_make_typed_function (sc, s_get_time_of_day, f_get_time_of_day, 0, 0, false, d_get_time_of_day, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_get_time_of_day),
+             gf::make_typed_function (sc, s_get_time_of_day, f_get_time_of_day, 0, 0, false, d_get_time_of_day, NULL));
 
   const char* s_monotonic_nanosecond= "g_monotonic-nanosecond";
   const char* d_monotonic_nanosecond= "(g_monotonic-nanosecond): () => integer, returns the steady clock's monotonic "
                                       "nanoseconds since an unspecified epoch";
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_monotonic_nanosecond),
-             s7_make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false,
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_monotonic_nanosecond),
+             gf::make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false,
                                      d_monotonic_nanosecond, NULL));
 
-  s7_define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
-                                       s7_make_integer (sc, clock_resolution_ns<std::chrono::system_clock> ()));
-  s7_define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
-                                       s7_make_integer (sc, clock_resolution_ns<std::chrono::steady_clock> ()));
+  gf::define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
+                                       gf::make_integer (sc, clock_resolution_ns<std::chrono::system_clock> ()));
+  gf::define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
+                                       gf::make_integer (sc, clock_resolution_ns<std::chrono::steady_clock> ()));
 }
 
 static s7_pointer
@@ -251,7 +251,7 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
 #endif
   std::string          ret;
   tb_size_t            size       = 0;
-  const char*          key        = s7_string (s7_car (args));
+  const char*          key        = gf::string (gf::car (args));
   tb_environment_ref_t environment= tb_environment_init ();
   if (environment) {
     size= tb_environment_load (environment, key);
@@ -261,26 +261,26 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
   }
   tb_environment_exit (environment);
   if (size == 0) { // env key not found
-    return s7_make_boolean (sc, false);
+    return gf::make_boolean (sc, false);
   }
   else {
-    return s7_make_string (sc, ret.substr (0, ret.size () - 1).c_str ());
+    return gf::make_string (sc, ret.substr (0, ret.size () - 1).c_str ());
   }
 }
 
 static s7_pointer
 f_command_line (s7_scheme* sc, s7_pointer args) {
-  s7_pointer ret = s7_nil (sc);
+  s7_pointer ret = gf::nil (sc);
   int        size= command_args.size ();
   for (int i= size - 1; i >= 0; i--) {
-    ret= s7_cons (sc, s7_make_string (sc, command_args[i].c_str ()), ret);
+    ret= gf::cons (sc, gf::make_string (sc, command_args[i].c_str ()), ret);
   }
   return ret;
 }
 
 static s7_pointer
 f_getenvs (s7_scheme* sc, s7_pointer args) {
-  s7_pointer p= s7_nil (sc);
+  s7_pointer p= gf::nil (sc);
 
 #ifdef TB_CONFIG_OS_WINDOWS
   // Windows: use GetEnvironmentStrings
@@ -290,9 +290,9 @@ f_getenvs (s7_scheme* sc, s7_pointer args) {
     while (*env) {
       const char* eq= strchr (env, '=');
       if (eq && eq != env) { // skip empty variable names
-        s7_pointer name = s7_make_string_with_length (sc, env, eq - env);
-        s7_pointer value= s7_make_string (sc, eq + 1);
-        p               = s7_cons (sc, s7_cons (sc, name, value), p);
+        s7_pointer name = gf::make_string_with_length (sc, env, eq - env);
+        s7_pointer value= gf::make_string (sc, eq + 1);
+        p               = gf::cons (sc, gf::cons (sc, name, value), p);
       }
       env+= strlen (env) + 1;
     }
@@ -303,9 +303,9 @@ f_getenvs (s7_scheme* sc, s7_pointer args) {
   for (int32_t i= 0; environ[i]; i++) {
     const char* eq= strchr (environ[i], '=');
     if (eq) {
-      s7_pointer name = s7_make_string_with_length (sc, environ[i], eq - environ[i]);
-      s7_pointer value= s7_make_string (sc, eq + 1);
-      p               = s7_cons (sc, s7_cons (sc, name, value), p);
+      s7_pointer name = gf::make_string_with_length (sc, environ[i], eq - environ[i]);
+      s7_pointer value= gf::make_string (sc, eq + 1);
+      p               = gf::cons (sc, gf::cons (sc, name, value), p);
     }
   }
 #endif
@@ -315,7 +315,7 @@ f_getenvs (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_scheme_process_context (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
+  s7_pointer cur_env= gf::curlet (sc);
 
   const char* s_get_environment_variable= "g_get-environment-variable";
   const char* d_get_environment_variable= "(g_get-environemt-variable string) => string";
@@ -324,13 +324,13 @@ glue_scheme_process_context (s7_scheme* sc) {
   const char* s_getenvs                 = "g_getenvs";
   const char* d_getenvs                 = "(g_getenvs) => alist, returns all environment variables as an alist";
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_get_environment_variable),
-             s7_make_typed_function (sc, s_get_environment_variable, f_get_environment_variable, 1, 0, false,
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_get_environment_variable),
+             gf::make_typed_function (sc, s_get_environment_variable, f_get_environment_variable, 1, 0, false,
                                      d_get_environment_variable, NULL));
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_command_line),
-             s7_make_typed_function (sc, s_command_line, f_command_line, 0, 0, false, d_command_line, NULL));
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_getenvs),
-             s7_make_typed_function (sc, s_getenvs, f_getenvs, 0, 0, false, d_getenvs, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_command_line),
+             gf::make_typed_function (sc, s_command_line, f_command_line, 0, 0, false, d_command_line, NULL));
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_getenvs),
+             gf::make_typed_function (sc, s_getenvs, f_getenvs, 0, 0, false, d_getenvs, NULL));
 }
 
 string
@@ -362,7 +362,7 @@ goldfish_exe () {
 static s7_pointer
 f_executable (s7_scheme* sc, s7_pointer args) {
   string exe_path= goldfish_exe ();
-  return s7_make_string (sc, exe_path.c_str ());
+  return gf::make_string (sc, exe_path.c_str ());
 }
 
 static bool
@@ -377,12 +377,12 @@ which_access_check (const char* path) {
 
 static s7_pointer
 f_which (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c        = s7_string (s7_car (args));
-  s7_pointer  path_arg     = s7_cdr (args);
+  const char* cmd_c        = gf::string (gf::car (args));
+  s7_pointer  path_arg     = gf::cdr (args);
   const char* path_override= nullptr;
 
-  if (s7_is_pair (path_arg)) {
-    path_override= s7_string (s7_car (path_arg));
+  if (gf::is_pair (path_arg)) {
+    path_override= gf::string (gf::car (path_arg));
   }
 
   string         cmd_str (cmd_c);
@@ -415,7 +415,7 @@ f_which (s7_scheme* sc, s7_pointer args) {
     }
 
     if (path_env.empty ()) {
-      return s7_make_boolean (sc, false);
+      return gf::make_boolean (sc, false);
     }
 
     char path_sep= ':';
@@ -480,12 +480,12 @@ f_which (s7_scheme* sc, s7_pointer args) {
       string full_path= dir + "/" + file;
 #endif
       if (which_access_check (full_path.c_str ())) {
-        return s7_make_string (sc, full_path.c_str ());
+        return gf::make_string (sc, full_path.c_str ());
       }
     }
   }
 
-  return s7_make_boolean (sc, false);
+  return gf::make_boolean (sc, false);
 }
 
 inline void
@@ -510,12 +510,12 @@ glue_liii_sys (s7_scheme* sc) {
 
 static s7_pointer
 f_sleep (s7_scheme* sc, s7_pointer args) {
-  s7_double seconds= s7_real (s7_car (args));
+  s7_double seconds= gf::real (gf::car (args));
 
   // 使用 tbox 的 tb_sleep 函数，参数是毫秒
   tb_msleep ((tb_long_t) (seconds * 1000));
 
-  return s7_nil (sc);
+  return gf::nil (sc);
 }
 
 inline void
@@ -529,7 +529,7 @@ static s7_pointer
 f_uuid4 (s7_scheme* sc, s7_pointer args) {
   tb_char_t        uuid[37];
   const tb_char_t* ret= tb_uuid4_make_cstr (uuid, tb_null);
-  return s7_make_string (sc, ret);
+  return gf::make_string (sc, ret);
 }
 
 inline void
@@ -552,7 +552,7 @@ f_datetime_now (s7_scheme* sc, s7_pointer args) {
   // Get local time
   tb_tm_t lt= {0};
   if (!tb_localtime (now, &lt)) {
-    return s7_f (sc);
+    return gf::f (sc);
   }
 
   // Use C++ chrono to get microseconds
@@ -574,16 +574,16 @@ f_datetime_now (s7_scheme* sc, s7_pointer args) {
 #endif
 
   // Create a vector with the time components - vector is easier to index than list in Scheme
-  s7_pointer time_vec= s7_make_vector (sc, 7);
+  s7_pointer time_vec= gf::make_vector (sc, 7);
 
   // Fill the vector with values
-  s7_vector_set (sc, time_vec, 0, s7_make_integer (sc, lt.year));   // year
-  s7_vector_set (sc, time_vec, 1, s7_make_integer (sc, lt.month));  // month
-  s7_vector_set (sc, time_vec, 2, s7_make_integer (sc, lt.mday));   // day
-  s7_vector_set (sc, time_vec, 3, s7_make_integer (sc, lt.hour));   // hour
-  s7_vector_set (sc, time_vec, 4, s7_make_integer (sc, lt.minute)); // minute
-  s7_vector_set (sc, time_vec, 5, s7_make_integer (sc, lt.second)); // second
-  s7_vector_set (sc, time_vec, 6, s7_make_integer (sc, micros));    // micro-second
+  gf::vector_set (sc, time_vec, 0, gf::make_integer (sc, lt.year));   // year
+  gf::vector_set (sc, time_vec, 1, gf::make_integer (sc, lt.month));  // month
+  gf::vector_set (sc, time_vec, 2, gf::make_integer (sc, lt.mday));   // day
+  gf::vector_set (sc, time_vec, 3, gf::make_integer (sc, lt.hour));   // hour
+  gf::vector_set (sc, time_vec, 4, gf::make_integer (sc, lt.minute)); // minute
+  gf::vector_set (sc, time_vec, 5, gf::make_integer (sc, lt.second)); // second
+  gf::vector_set (sc, time_vec, 6, gf::make_integer (sc, micros));    // micro-second
 
   return time_vec;
 }
@@ -592,7 +592,7 @@ inline void
 glue_datetime_now (s7_scheme* sc) {
   const char* name= "g_datetime-now";
   const char* desc= "(g_datetime-now) => datetime, create a datetime object with current time";
-  s7_define_function (sc, name, f_datetime_now, 0, 0, false, desc);
+  gf::define_function (sc, name, f_datetime_now, 0, 0, false, desc);
 }
 
 static s7_pointer
@@ -603,16 +603,16 @@ f_date_now (s7_scheme* sc, s7_pointer args) {
   // Get local time
   tb_tm_t lt= {0};
   if (!tb_localtime (now, &lt)) {
-    return s7_f (sc);
+    return gf::f (sc);
   }
 
   // Create a vector with the time components - vector is easier to index than list in Scheme
-  s7_pointer time_vec= s7_make_vector (sc, 3);
+  s7_pointer time_vec= gf::make_vector (sc, 3);
 
   // Fill the vector with values
-  s7_vector_set (sc, time_vec, 0, s7_make_integer (sc, lt.year));  // year
-  s7_vector_set (sc, time_vec, 1, s7_make_integer (sc, lt.month)); // month
-  s7_vector_set (sc, time_vec, 2, s7_make_integer (sc, lt.mday));  // day
+  gf::vector_set (sc, time_vec, 0, gf::make_integer (sc, lt.year));  // year
+  gf::vector_set (sc, time_vec, 1, gf::make_integer (sc, lt.month)); // month
+  gf::vector_set (sc, time_vec, 2, gf::make_integer (sc, lt.mday));  // day
 
   return time_vec;
 }
@@ -621,7 +621,7 @@ inline void
 glue_date_now (s7_scheme* sc) {
   const char* name= "g_date-now";
   const char* desc= "(g_date-now) => date, create a date object with current date";
-  s7_define_function (sc, name, f_date_now, 0, 0, false, desc);
+  gf::define_function (sc, name, f_date_now, 0, 0, false, desc);
 }
 
 inline void
@@ -638,10 +638,10 @@ glue_liii_datetime (s7_scheme* sc) {
 // -------------------------------- iota --------------------------------
 static inline s7_pointer
 iota_list (s7_scheme* sc, s7_int count, s7_pointer start, s7_int step) {
-  s7_pointer res= s7_nil (sc);
+  s7_pointer res= gf::nil (sc);
   s7_int     val;
-  for (val= s7_integer (start) + step * (count - 1); count > 0; count--) {
-    res= s7_cons (sc, s7_make_integer (sc, val), res);
+  for (val= gf::integer (start) + step * (count - 1); count > 0; count--) {
+    res= gf::cons (sc, gf::make_integer (sc, val), res);
     val-= step;
   }
   return res;
@@ -649,35 +649,35 @@ iota_list (s7_scheme* sc, s7_int count, s7_pointer start, s7_int step) {
 
 static s7_pointer
 iota_list_p_ppp (s7_scheme* sc, s7_pointer count, s7_pointer start, s7_pointer step) {
-  if (!s7_is_integer (count)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "iota: count must be an integer"), count));
+  if (!gf::is_integer (count)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "iota: count must be an integer"), count));
   }
-  if (!s7_is_integer (start)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "iota: start must be an integer"), start));
+  if (!gf::is_integer (start)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "iota: start must be an integer"), start));
   }
-  if (!s7_is_integer (step)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "iota: step must be an integer"), step));
+  if (!gf::is_integer (step)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "iota: step must be an integer"), step));
   }
-  s7_int cnt= s7_integer (count);
+  s7_int cnt= gf::integer (count);
   if (cnt < 0) {
-    return s7_error (sc, s7_make_symbol (sc, "value-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "iota: count is negative"), count));
+    return gf::error (sc, gf::make_symbol (sc, "value-error"),
+                     gf::list (sc, gf::make_string (sc, "iota: count is negative"), count));
   }
-  s7_int st = s7_integer (start);
-  s7_int stp= s7_integer (step);
+  s7_int st = gf::integer (start);
+  s7_int stp= gf::integer (step);
   return iota_list (sc, cnt, start, stp);
 }
 
 static s7_pointer
 g_iota_list (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg1 = s7_car (args); // count
-  s7_pointer rest1= s7_cdr (args);
-  s7_pointer arg2 = (s7_is_pair (rest1)) ? s7_car (rest1) : s7_make_integer (sc, 0); // start value, default 0
-  s7_pointer rest2= s7_cdr (rest1);
-  s7_pointer arg3 = (s7_is_pair (rest2)) ? s7_car (rest2) : s7_make_integer (sc, 1); // step size, default 1
+  s7_pointer arg1 = gf::car (args); // count
+  s7_pointer rest1= gf::cdr (args);
+  s7_pointer arg2 = (gf::is_pair (rest1)) ? gf::car (rest1) : gf::make_integer (sc, 0); // start value, default 0
+  s7_pointer rest2= gf::cdr (rest1);
+  s7_pointer arg3 = (gf::is_pair (rest2)) ? gf::car (rest2) : gf::make_integer (sc, 1); // step size, default 1
   return iota_list_p_ppp (sc, arg1, arg2, arg3);
 }
 
@@ -686,7 +686,7 @@ glue_iota_list (s7_scheme* sc) {
   const char* name= "iota";
   const char* desc= "(iota count [start [step]]) => list, returns a list of count elements starting from start "
                     "(default 0) with step (default 1)";
-  s7_define_function (sc, name, g_iota_list, 1, 2, false, desc);
+  gf::define_function (sc, name, g_iota_list, 1, 2, false, desc);
 }
 
 inline void
@@ -806,15 +806,15 @@ static void
 goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
   // evaluate (load path): s7_eval processes the deferred read frames that a
   // C-implemented load pushes; s7_call/s7_apply_function would skip them.
-  s7_pointer result= s7_eval (sc, s7_list (sc, 2, s7_make_symbol (sc, "load"),
-                                           s7_make_string (sc, path.c_str ())),
-                              s7_rootlet (sc));
+  s7_pointer result= gf::eval (sc, gf::list (sc, gf::make_symbol (sc, "load"),
+                                           gf::make_string (sc, path.c_str ())),
+                              gf::rootlet (sc));
   if (!result) {
     cerr << "Failed to load " << path << endl;
     exit (-1);
   }
   if (!quiet) {
-    cout << path << " => " << s7_object_to_c_string (sc, result) << endl;
+    cout << path << " => " << gf::object_to_c_string (sc, result) << endl;
   }
 }
 
@@ -886,23 +886,23 @@ goldfish_extract_error_expression (const string& errmsg, size_t search_start) {
 
 static bool
 goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const string& function_name) {
-  if (s7_is_pair (form)) {
-    s7_pointer operator_form= s7_car (form);
-    if (s7_is_symbol (operator_form) && (function_name == s7_symbol_name (operator_form))) {
+  if (gf::is_pair (form)) {
+    s7_pointer operator_form= gf::car (form);
+    if (gf::is_symbol (operator_form) && (function_name == gf::symbol_name (operator_form))) {
       return true;
     }
 
-    for (s7_pointer iter= form; s7_is_pair (iter); iter= s7_cdr (iter)) {
-      if (goldfish_form_contains_called_symbol (sc, s7_car (iter), function_name)) {
+    for (s7_pointer iter= form; gf::is_pair (iter); iter= gf::cdr (iter)) {
+      if (goldfish_form_contains_called_symbol (sc, gf::car (iter), function_name)) {
         return true;
       }
     }
 
     s7_pointer tail= form;
-    while (s7_is_pair (tail)) {
-      tail= s7_cdr (tail);
+    while (gf::is_pair (tail)) {
+      tail= gf::cdr (tail);
     }
-    if ((!s7_is_null (sc, tail)) && goldfish_form_contains_called_symbol (sc, tail, function_name)) {
+    if ((!gf::is_null (sc, tail)) && goldfish_form_contains_called_symbol (sc, tail, function_name)) {
       return true;
     }
   }
@@ -913,7 +913,7 @@ goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const stri
 // read one datum from port through the registered reader (tiny or Scheme)
 static s7_pointer
 goldfish_read_datum (s7_scheme* sc, s7_pointer port) {
-  return s7_eval (sc, s7_list (sc, 2, s7_make_symbol (sc, "read"), port), s7_rootlet (sc));
+  return gf::eval (sc, gf::list (sc, gf::make_symbol (sc, "read"), port), gf::rootlet (sc));
 }
 
 static bool
@@ -923,10 +923,10 @@ goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& e
     return false;
   }
 
-  s7_pointer port      = s7_open_input_string (sc, expression.c_str ());
-  s7_pointer eof_object= s7_eof_object (sc);
+  s7_pointer port      = gf::open_input_string (sc, expression.c_str ());
+  s7_pointer eof_object= gf::eof_object (sc);
   s7_pointer form      = goldfish_read_datum (sc, port);
-  s7_close_input_port (sc, port);
+  gf::close_input_port (sc, port);
 
   if ((form == eof_object) || (!form)) {
     return expression.find ("(" + function_name) != string::npos;
@@ -1151,13 +1151,13 @@ goldfish_eval_through_reader (s7_scheme* sc, const string& code) {
                "(if (eof-object? d) (begin (close-input-port p) r) "
                "(loop (if (defined? 'expand-eval) (expand-eval d) "
                "(eval d (rootlet))))))))";
-  return s7_eval_c_string (sc, expr.c_str ());
+  return gf::eval_c_string (sc, expr.c_str ());
 }
 
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
   s7_pointer x= goldfish_eval_through_reader (sc, code);
-  cout << s7_object_to_c_string (sc, x) << endl;
+  cout << gf::object_to_c_string (sc, x) << endl;
 }
 
 static string
@@ -1350,8 +1350,8 @@ resolve_gfproject_tool (const char* gf_lib, const string& command) {
 
 static void
 goldfish_reset_captured_error_port (s7_scheme* sc) {
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, s7_open_output_string (sc));
+  gf::close_output_port (sc, gf::current_error_port (sc));
+  gf::set_current_error_port (sc, gf::open_output_string (sc));
 }
 
 enum class gfproject_tool_prepare_error {
@@ -1403,7 +1403,7 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
     return result;
   }
 
-  s7_add_to_load_path (sc, tool_root.c_str ());
+  gf::add_to_load_path (sc, tool_root.c_str ());
 
   // Tools share utility libraries (e.g. (liii goldtool-changed)) in the
   // sibling tools/common directory.  The expander resolves a tool's imports
@@ -1413,20 +1413,20 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
   fs::path   common_dir= fs::path (tool_root).parent_path () / "common";
   std::error_code common_ec;
   if (fs::is_directory (common_dir, common_ec)) {
-    s7_add_to_load_path (sc, common_dir.string ().c_str ());
+    gf::add_to_load_path (sc, common_dir.string ().c_str ());
   }
 
   string      import_expr  = "(import (" + org + " " + module + "))";
   s7_pointer  import_result= goldfish_eval_through_reader (sc, import_expr);
-  const char* errmsg       = s7_get_output_string (sc, s7_current_error_port (sc));
+  const char* errmsg       = gf::get_output_string (sc, gf::current_error_port (sc));
   if (!import_result || ((errmsg) && (*errmsg))) {
     result.error  = gfproject_tool_prepare_error::import_failed;
     result.message= "Error importing (" + org + " " + module + "):";
     return result;
   }
 
-  s7_pointer main_func= s7_name_to_value (sc, "main");
-  if ((!main_func) || (!s7_is_procedure (main_func))) {
+  s7_pointer main_func= gf::name_to_value (sc, "main");
+  if ((!main_func) || (!gf::is_procedure (main_func))) {
     // The imported library's bindings live in the expander environment, not
     // the s7 rootlet: the host import macro (varlet into the rootlet) cannot
     // handle the library chain, so the expander imports into the base
@@ -1434,7 +1434,7 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
     // through the expander too.
     main_func= goldfish_eval_through_reader (sc, "main");
   }
-  if ((!main_func) || (!s7_is_procedure (main_func))) {
+  if ((!main_func) || (!gf::is_procedure (main_func))) {
     result.error  = gfproject_tool_prepare_error::missing_main;
     result.message= "Error: Failed to find main function in (" + org + " " + module + ").";
     return result;
@@ -1447,7 +1447,7 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
 static int
 goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& errmsg, s7_pointer old_port, int gc_loc,
                             bool include_scheme_error) {
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
   if (!message.empty ()) {
     if (include_scheme_error && (errmsg) && (*errmsg)) {
       goldfish_print_prefixed_scheme_error_message (sc, message, errmsg);
@@ -1459,21 +1459,21 @@ goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& e
   else if ((errmsg) && (*errmsg)) {
     goldfish_print_scheme_error_message (sc, errmsg);
   }
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_port);
-  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+  gf::close_output_port (sc, gf::current_error_port (sc));
+  gf::set_current_error_port (sc, old_port);
+  if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
   return 1;
 }
 
 static int
 goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& errmsg, s7_pointer old_port, int gc_loc) {
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
   goldfish_print_scheme_error_message (sc, errmsg);
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_port);
-  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-  if (s7_is_integer (result)) {
-    return static_cast<int> (s7_integer (result));
+  gf::close_output_port (sc, gf::current_error_port (sc));
+  gf::set_current_error_port (sc, old_port);
+  if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+  if (gf::is_integer (result)) {
+    return static_cast<int> (gf::integer (result));
   }
   return 0;
 }
@@ -1492,7 +1492,7 @@ goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& 
     return goldfish_finish_tool_error (sc, prepared.message, errmsg, old_port, gc_loc, include_scheme_error);
   }
 
-  s7_pointer result= s7_call (sc, prepared.main_func, s7_nil (sc));
+  s7_pointer result= gf::call (sc, prepared.main_func, gf::nil (sc));
   return goldfish_finish_tool_success (sc, result, errmsg, old_port, gc_loc);
 }
 
@@ -1501,7 +1501,7 @@ f_gfproject_load_config (s7_scheme* sc, s7_pointer args) {
   (void) args;
   string gf_lib_dir= find_goldfish_library ();
   json   config    = load_gfproject_config (gf_lib_dir.c_str ());
-  return s7_make_string (sc, config.dump ().c_str ());
+  return gf::make_string (sc, config.dump ().c_str ());
 }
 
 static s7_pointer
@@ -1509,14 +1509,14 @@ f_project_root (s7_scheme* sc, s7_pointer args) {
   (void) args;
   fs::path local= find_local_gfproject_json ();
   if (local.empty ()) {
-    return s7_f (sc);
+    return gf::f (sc);
   }
   // local points at gfproject.json; its parent is the project root.
   std::string s= local.parent_path ().generic_string ();
   if (s.empty ()) {
-    return s7_f (sc);
+    return gf::f (sc);
   }
-  return s7_make_string (sc, s.c_str ());
+  return gf::make_string (sc, s.c_str ());
 }
 
 static int
@@ -1566,7 +1566,7 @@ find_tool_root_by_command (const char* gf_lib, const string& command) {
 
 static string
 current_scheme_error_output (s7_scheme* sc) {
-  const char* errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  const char* errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
   if ((errmsg) && (*errmsg)) {
     return string (errmsg);
   }
@@ -1591,8 +1591,8 @@ read_text_file_exact (const fs::path& path) {
 
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
-  s7_scheme* sc= s7_init ();
-  s7_add_to_load_path (sc, gf_lib);
+  s7_scheme* sc= gf::init ();
+  gf::add_to_load_path (sc, gf_lib);
 
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
@@ -1624,7 +1624,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   // goldfish_eval_through_reader), so artifact and lib state stay absent.
   bool gf_bootstrap = (getenv ("GOLDFISH_BOOTSTRAP") != nullptr);
   if (mode != "s7" && !gf_bootstrap) {
-    s7_eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
+    gf::eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
     // Load the minimal derived forms (let/cond/case/when/do/and/or plus
     // let-values/let*-values) into the base library, then the R7RS reader
     // THROUGH the expander (boot.scm's load-expanded), immediately after the
@@ -1636,10 +1636,10 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     // the rootlet for the s7-side loader paths.  install.scm also loads
     // THROUGH the expander (its let-values/let*-values/when/unless desugar to
     // the prelude macros); only the artifact itself is still s7-evaluated.
-    s7_eval_c_string (sc, "(load-expanded \"liii/prelude.scm\" 'base)");
-    s7_eval_c_string (sc, "(load-expanded \"liii/reader.scm\")");
-    s7_eval_c_string (sc, "(load-expanded \"expander/lib/install.scm\" '(expander lib install))");
-    s7_eval_c_string (sc, "(install-standard-library!)");
+    gf::eval_c_string (sc, "(load-expanded \"liii/prelude.scm\" 'base)");
+    gf::eval_c_string (sc, "(load-expanded \"liii/reader.scm\")");
+    gf::eval_c_string (sc, "(load-expanded \"expander/lib/install.scm\" '(expander lib install))");
+    gf::eval_c_string (sc, "(install-standard-library!)");
     // Preload the compiler so library captures after this point compile
     // transformer definitions to VM bytecode programs (compiled once,
     // resolved references), instead of lowered forms that must be re-evaluated
@@ -1648,7 +1648,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
     // -- NOT goldfish_eval_through_reader -- to avoid importing (goldfish)
     // into the session program library (which would leak the implementation
     // surface into a strict r7rs program).
-    s7_eval_c_string (sc, "(load-library! '(goldfish compiler))");
+    gf::eval_c_string (sc, "(load-library! '(goldfish compiler))");
   }
 
   // Phase 2: mode-specific imports, now that the expander can handle
@@ -1748,15 +1748,15 @@ static std::vector<s7_pointer> history_values;
 inline void
 update_symbol_cache (s7_scheme* sc) {
   cached_symbols.clear ();
-  s7_pointer cur_env = s7_curlet (sc);
-  s7_pointer sym_list= s7_let_to_list (sc, cur_env);
-  int        n       = s7_list_length (sc, sym_list);
+  s7_pointer cur_env = gf::curlet (sc);
+  s7_pointer sym_list= gf::let_to_list (sc, cur_env);
+  int        n       = gf::list_length (sc, sym_list);
   for (int i= 0; i < n; ++i) {
-    s7_pointer  pair= s7_list_ref (sc, sym_list, i);
-    s7_pointer  sym = s7_car (pair);
-    s7_pointer  val = s7_cdr (pair);
-    const char* name= s7_symbol_name (sym);
-    const char* doc = s7_documentation (sc, val);
+    s7_pointer  pair= gf::list_ref (sc, sym_list, i);
+    s7_pointer  sym = gf::car (pair);
+    s7_pointer  val = gf::cdr (pair);
+    const char* name= gf::symbol_name (sym);
+    const char* doc = gf::documentation (sc, val);
     cached_symbols.push_back ({name, doc ? doc : ""});
   }
 }
@@ -1764,16 +1764,16 @@ update_symbol_cache (s7_scheme* sc) {
 inline void
 ic_goldfish_eval (s7_scheme* sc, const char* code) {
   int        err_gc_loc= -1, out_gc_loc= -1;
-  s7_pointer old_err_port= s7_set_current_error_port (sc, s7_open_output_string (sc));
-  if (old_err_port != s7_nil (sc)) err_gc_loc= s7_gc_protect (sc, old_err_port);
+  s7_pointer old_err_port= gf::set_current_error_port (sc, gf::open_output_string (sc));
+  if (old_err_port != gf::nil (sc)) err_gc_loc= gf::gc_protect (sc, old_err_port);
 
-  s7_pointer out_port    = s7_open_output_string (sc);
-  s7_pointer old_out_port= s7_set_current_output_port (sc, out_port);
-  if (old_err_port != s7_nil (sc)) out_gc_loc= s7_gc_protect (sc, old_out_port);
+  s7_pointer out_port    = gf::open_output_string (sc);
+  s7_pointer old_out_port= gf::set_current_output_port (sc, out_port);
+  if (old_err_port != gf::nil (sc)) out_gc_loc= gf::gc_protect (sc, old_out_port);
 
   s7_pointer result= goldfish_eval_through_reader (sc, code);
 
-  const char* display_out= s7_get_output_string (sc, out_port);
+  const char* display_out= gf::get_output_string (sc, out_port);
   if (display_out && *display_out) {
     std::string out_str= display_out;
     if (!out_str.empty () && out_str.back () == '\n') {
@@ -1785,7 +1785,7 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
     }
   }
 
-  const char* errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  const char* errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
 
   if (errmsg && *errmsg) {
     string rendered;
@@ -1794,12 +1794,12 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
   }
   if (result) {
     history_values.push_back (result);
-    s7_gc_protect (sc, result);
+    gf::gc_protect (sc, result);
     std::string name   = "$" + std::to_string (history_values.size ());
     // Bind history values in the rootlet: expand-eval evaluates in the
     // expander library inlet, so s7_curlet there would not be rootlet-visible.
-    s7_pointer  cur_env= s7_rootlet (sc);
-    s7_define (sc, cur_env, s7_make_symbol (sc, name.c_str ()), result);
+    s7_pointer  cur_env= gf::rootlet (sc);
+    gf::define (sc, cur_env, gf::make_symbol (sc, name.c_str ()), result);
     // Register the history name as a primitive binding in the session
     // program library too: a strict program resolves identifiers only from
     // its imports, so without this the next (expand-eval '(... $1 ...))
@@ -1807,18 +1807,18 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
     goldfish_eval_through_reader (
         sc, ("(import (goldfish)) (register-program-library-primitive! '" + name + ")").c_str ());
 
-    char* result_str= s7_object_to_c_string (sc, result);
+    char* result_str= gf::object_to_c_string (sc, result);
     if (result_str) {
       ic_printf ("%s [gray]=[/] %s\n", name.c_str (), result_str);
       free (result_str);
     }
   }
 
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_err_port);
+  gf::close_output_port (sc, gf::current_error_port (sc));
+  gf::set_current_error_port (sc, old_err_port);
 
-  if (err_gc_loc != -1) s7_gc_unprotect_at (sc, err_gc_loc);
-  if (out_gc_loc != -1) s7_gc_unprotect_at (sc, out_gc_loc);
+  if (err_gc_loc != -1) gf::gc_unprotect_at (sc, err_gc_loc);
+  if (out_gc_loc != -1) gf::gc_unprotect_at (sc, out_gc_loc);
 
   update_symbol_cache (sc);
 }
@@ -2043,29 +2043,29 @@ meta_describe (const char*, s7_scheme* sc, const char* arg) {
     return false;
   }
   // 查找符号
-  s7_pointer sym= s7_make_symbol (sc, arg);
+  s7_pointer sym= gf::make_symbol (sc, arg);
 
   // 检查是否已定义
-  if (!s7_is_defined (sc, s7_symbol_name (sym))) {
+  if (!gf::is_defined (sc, gf::symbol_name (sym))) {
     ic_printf ("[dim]Symbol not defined: %s[/]\n", arg);
     return false;
   }
-  s7_pointer  val = s7_symbol_value (sc, sym);
-  const char* type= s7_object_to_c_string (sc, s7_type_of (sc, val));
+  s7_pointer  val = gf::symbol_value (sc, sym);
+  const char* type= gf::object_to_c_string (sc, gf::type_of (sc, val));
   ic_printf ("[b]%s[/] [dim](%s)[/]\n", arg, type);
 
-  if (s7_is_procedure (val)) {
+  if (gf::is_procedure (val)) {
     // 参数信息
-    s7_pointer arity   = s7_arity (sc, val);
-    s7_int     min_args= s7_integer (s7_car (arity));
-    s7_int     max_args= s7_integer (s7_cdr (arity));
+    s7_pointer arity   = gf::arity (sc, val);
+    s7_int     min_args= gf::integer (gf::car (arity));
+    s7_int     max_args= gf::integer (gf::cdr (arity));
 
     std::string max_str= (max_args >= 0x20000000) ? "any" : std::to_string (max_args);
     ic_printf ("  [gray]Arity:[/] min [number]%d[/], max [number]%s[/]\n", min_args, max_str.c_str ());
 
-    s7_pointer sig= s7_signature (sc, val);
-    if (sig && !s7_is_null (sc, sig)) {
-      char* sig_str= s7_object_to_c_string (sc, sig);
+    s7_pointer sig= gf::signature (sc, val);
+    if (sig && !gf::is_null (sc, sig)) {
+      char* sig_str= gf::object_to_c_string (sc, sig);
       if (sig_str) {
         ic_printf ("  [gray]Signature:[/] %s\n", sig_str);
         free (sig_str);
@@ -2073,13 +2073,13 @@ meta_describe (const char*, s7_scheme* sc, const char* arg) {
     }
 
     // 文档
-    const char* doc= s7_documentation (sc, val);
+    const char* doc= gf::documentation (sc, val);
     if (doc && *doc) {
       ic_printf ("  [gray]Doc:[/] %s\n", doc);
     }
   }
   else {
-    char*       val_str= s7_object_to_c_string (sc, val);
+    char*       val_str= gf::object_to_c_string (sc, val);
     std::string preview;
     if (val_str) {
       preview= std::string (val_str).substr (0, 80);
@@ -2313,10 +2313,10 @@ discover_auto_goldfish_library_dirs () {
 static vector<string>
 current_load_path_entries (s7_scheme* sc) {
   vector<string> entries;
-  for (s7_pointer rest= s7_load_path (sc); s7_is_pair (rest); rest= s7_cdr (rest)) {
-    s7_pointer entry= s7_car (rest);
-    if (s7_is_string (entry)) {
-      append_unique_string (entries, string (s7_string (entry)));
+  for (s7_pointer rest= gf::load_path (sc); gf::is_pair (rest); rest= gf::cdr (rest)) {
+    s7_pointer entry= gf::car (rest);
+    if (gf::is_string (entry)) {
+      append_unique_string (entries, string (gf::string (entry)));
     }
   }
   return entries;
@@ -2324,11 +2324,11 @@ current_load_path_entries (s7_scheme* sc) {
 
 static void
 set_load_path_entries (s7_scheme* sc, const vector<string>& entries) {
-  s7_pointer list= s7_nil (sc);
+  s7_pointer list= gf::nil (sc);
   for (auto it= entries.rbegin (); it != entries.rend (); ++it) {
-    list= s7_cons (sc, s7_make_string (sc, it->c_str ()), list);
+    list= gf::cons (sc, gf::make_string (sc, it->c_str ()), list);
   }
-  s7_symbol_set_value (sc, s7_make_symbol (sc, "*load-path*"), list);
+  gf::symbol_set_value (sc, gf::make_symbol (sc, "*load-path*"), list);
 }
 
 static void
@@ -2338,7 +2338,7 @@ prepend_load_path_entries (s7_scheme* sc, const vector<string>& prepend_dirs) {
     string dir= normalize_load_path_dir (*it);
     if (dir.empty ()) continue;
     if (std::find (seen.begin (), seen.end (), dir) != seen.end ()) continue;
-    s7_add_to_load_path (sc, dir.c_str ());
+    gf::add_to_load_path (sc, dir.c_str ());
     seen.insert (seen.begin (), dir);
   }
 }
@@ -2385,11 +2385,11 @@ static s7_pointer
 make_library_name_part (s7_scheme* sc, const string& part) {
   if (string_is_decimal_integer (part)) {
     try {
-      return s7_make_integer (sc, std::stoll (part));
+      return gf::make_integer (sc, std::stoll (part));
     } catch (const std::exception&) {
     }
   }
-  return s7_make_symbol (sc, part.c_str ());
+  return gf::make_symbol (sc, part.c_str ());
 }
 
 static bool
@@ -2408,17 +2408,17 @@ split_library_query (const string& query, string& group, string& library) {
 
 static bool
 is_named_symbol (s7_pointer value, const char* name) {
-  return s7_is_symbol (value) && (strcmp (s7_symbol_name (value), name) == 0);
+  return gf::is_symbol (value) && (strcmp (gf::symbol_name (value), name) == 0);
 }
 
 static bool
 library_name_part_to_string (s7_pointer value, string& out) {
-  if (s7_is_symbol (value)) {
-    out= s7_symbol_name (value);
+  if (gf::is_symbol (value)) {
+    out= gf::symbol_name (value);
     return true;
   }
-  if (s7_is_integer (value)) {
-    out= std::to_string (s7_integer (value));
+  if (gf::is_integer (value)) {
+    out= std::to_string (gf::integer (value));
     return true;
   }
   return false;
@@ -2426,24 +2426,24 @@ library_name_part_to_string (s7_pointer value, string& out) {
 
 static bool
 extract_library_name_from_form (s7_scheme* sc, s7_pointer library_name_form, string& group, string& library) {
-  if ((!s7_is_list (sc, library_name_form)) || (s7_list_length (sc, library_name_form) != 2)) {
+  if ((!gf::is_list (sc, library_name_form)) || (gf::list_length (sc, library_name_form) != 2)) {
     return false;
   }
 
-  return library_name_part_to_string (s7_car (library_name_form), group) &&
-         library_name_part_to_string (s7_cadr (library_name_form), library);
+  return library_name_part_to_string (gf::car (library_name_form), group) &&
+         library_name_part_to_string (gf::cadr (library_name_form), library);
 }
 
 static bool
 export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& function_name) {
-  if (s7_is_symbol (export_spec)) {
-    return function_name == s7_symbol_name (export_spec);
+  if (gf::is_symbol (export_spec)) {
+    return function_name == gf::symbol_name (export_spec);
   }
 
-  if (s7_is_list (sc, export_spec) && (s7_list_length (sc, export_spec) == 3) &&
-      is_named_symbol (s7_car (export_spec), "rename")) {
+  if (gf::is_list (sc, export_spec) && (gf::list_length (sc, export_spec) == 3) &&
+      is_named_symbol (gf::car (export_spec), "rename")) {
     string renamed_export;
-    if (library_name_part_to_string (s7_caddr (export_spec), renamed_export)) {
+    if (library_name_part_to_string (gf::caddr (export_spec), renamed_export)) {
       return function_name == renamed_export;
     }
   }
@@ -2454,26 +2454,26 @@ export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& f
 static bool
 define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const string& function_name, string& group,
                                       string& library) {
-  if ((!s7_is_list (sc, form)) || s7_is_null (sc, form) || (!is_named_symbol (s7_car (form), "define-library"))) {
+  if ((!gf::is_list (sc, form)) || gf::is_null (sc, form) || (!is_named_symbol (gf::car (form), "define-library"))) {
     return false;
   }
 
   string form_group;
   string form_library;
-  if (!extract_library_name_from_form (sc, s7_cadr (form), form_group, form_library)) {
+  if (!extract_library_name_from_form (sc, gf::cadr (form), form_group, form_library)) {
     return false;
   }
 
-  for (s7_pointer declarations= s7_cddr (form); s7_is_pair (declarations); declarations= s7_cdr (declarations)) {
-    s7_pointer declaration= s7_car (declarations);
-    if ((!s7_is_list (sc, declaration)) || s7_is_null (sc, declaration) ||
-        (!is_named_symbol (s7_car (declaration), "export"))) {
+  for (s7_pointer declarations= gf::cddr (form); gf::is_pair (declarations); declarations= gf::cdr (declarations)) {
+    s7_pointer declaration= gf::car (declarations);
+    if ((!gf::is_list (sc, declaration)) || gf::is_null (sc, declaration) ||
+        (!is_named_symbol (gf::car (declaration), "export"))) {
       continue;
     }
 
-    for (s7_pointer export_specs= s7_cdr (declaration); s7_is_pair (export_specs);
-         export_specs           = s7_cdr (export_specs)) {
-      if (export_spec_name_matches (sc, s7_car (export_specs), function_name)) {
+    for (s7_pointer export_specs= gf::cdr (declaration); gf::is_pair (export_specs);
+         export_specs           = gf::cdr (export_specs)) {
+      if (export_spec_name_matches (sc, gf::car (export_specs), function_name)) {
         group  = form_group;
         library= form_library;
         return true;
@@ -2488,25 +2488,25 @@ static bool
 source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const string& function_name, string& group,
                               string& library) {
   string     source_text= read_text_file_exact (source_file);
-  s7_pointer port       = s7_open_input_string (sc, source_text.c_str ());
-  s7_pointer eof_object = s7_eof_object (sc);
+  s7_pointer port       = gf::open_input_string (sc, source_text.c_str ());
+  s7_pointer eof_object = gf::eof_object (sc);
 
   while (true) {
     s7_pointer form= goldfish_read_datum (sc, port);
     if (form == eof_object) break;
     if (define_library_form_exports_function (sc, form, function_name, group, library)) {
-      s7_close_input_port (sc, port);
+      gf::close_input_port (sc, port);
       return true;
     }
   }
 
-  s7_close_input_port (sc, port);
+  gf::close_input_port (sc, port);
   return false;
 }
 
 static s7_pointer
 make_library_name_list (s7_scheme* sc, const string& group, const string& library) {
-  return s7_list (sc, 2, make_library_name_part (sc, group), make_library_name_part (sc, library));
+  return gf::list (sc, make_library_name_part (sc, group), make_library_name_part (sc, library));
 }
 
 static vector<fs::path>
@@ -2583,36 +2583,36 @@ find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name
 
 static s7_pointer
 make_library_name_list_list (s7_scheme* sc, const vector<string>& library_queries) {
-  s7_pointer result= s7_nil (sc);
+  s7_pointer result= gf::nil (sc);
   for (auto it= library_queries.rbegin (); it != library_queries.rend (); ++it) {
     string group;
     string library;
     if (!split_library_query (*it, group, library)) continue;
-    result= s7_cons (sc, make_library_name_list (sc, group, library), result);
+    result= gf::cons (sc, make_library_name_list (sc, group, library), result);
   }
   return result;
 }
 
 static s7_pointer
 f_function_libraries (s7_scheme* sc, s7_pointer args) {
-  s7_pointer function_name_arg= s7_car (args);
-  if (!s7_is_string (function_name_arg)) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "type-error"),
-        s7_list (sc, 2, s7_make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
+  s7_pointer function_name_arg= gf::car (args);
+  if (!gf::is_string (function_name_arg)) {
+    return gf::error (
+        sc, gf::make_symbol (sc, "type-error"),
+        gf::list (sc, gf::make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
   }
 
-  string         function_name= s7_string (function_name_arg);
+  string         function_name= gf::string (function_name_arg);
   vector<string> visible_library_queries;
 
   try {
     visible_library_queries= find_function_libraries_in_load_path (sc, function_name);
   } catch (const std::exception& ex) {
-    return s7_error (
-        sc, s7_make_symbol (sc, "read-error"),
-        s7_list (
-            sc, 2,
-            s7_make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
+    return gf::error (
+        sc, gf::make_symbol (sc, "read-error"),
+        gf::list (
+            sc,
+            gf::make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
             function_name_arg));
   }
 
@@ -2769,9 +2769,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   // start capture error output
   const char* errmsg  = NULL;
-  s7_pointer  old_port= s7_set_current_error_port (sc, s7_open_output_string (sc));
+  s7_pointer  old_port= gf::set_current_error_port (sc, gf::open_output_string (sc));
   int         gc_loc  = -1;
-  if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
+  if (old_port != gf::nil (sc)) gc_loc= gf::gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.json 加载）
   json gfproject_config= load_gfproject_config (gf_lib);
@@ -2785,17 +2785,17 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   }
 
   if (command == "help") {
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     display_help ();
     return 0;
   }
 
   if (command == "version") {
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     display_version ();
     return 0;
   }
@@ -2804,9 +2804,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (command == "eval") {
     if (argc < command_index + 1) {
       std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
     // 查找 CODE 参数（跳过 mode 选项，从命令位置之后开始）
@@ -2825,17 +2825,17 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     if (code.empty ()) {
       std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
     goldfish_eval_code (sc, code);
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     if ((errmsg) && (*errmsg)) return -1;
     return 0;
   }
@@ -2844,9 +2844,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (command == "load") {
     if (argc < command_index + 1) {
       std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
     // 查找 FILE 参数（跳过 mode 选项，从命令位置之后开始）
@@ -2865,39 +2865,39 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     if (file.empty ()) {
       std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
     // 加载文件
     goldfish_eval_file (sc, file, true);
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
       goldfish_print_scheme_error_message (sc, errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       return -1;
     }
     // 加载成功后进入 REPL
 #ifdef GOLDFISH_WITH_REPL
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
       string rendered;
       goldfish_render_scheme_error_message (sc, errmsg, rendered);
       ic_printf ("[red]%s[/]", rendered.c_str ());
     }
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
 
     goldfish_repl (sc, mode);
     return 0;
 #else
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
     exit (-1);
 #endif
@@ -2906,22 +2906,22 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 处理 repl 子命令
   if (command == "repl") {
 #ifdef GOLDFISH_WITH_REPL
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
       string rendered;
       goldfish_render_scheme_error_message (sc, errmsg, rendered);
       ic_printf ("[red]%s[/]", rendered.c_str ());
     }
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
 
     goldfish_repl (sc, mode);
     return 0;
 #else
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
     exit (-1);
 #endif
@@ -2945,9 +2945,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     if (target.empty ()) {
       std::cerr << "Error: 'run' requires TARGET argument.\n" << std::endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       exit (1);
     }
 
@@ -2957,9 +2957,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
       // 检查文件是否存在
       std::error_code ec;
       if (!fs::exists (target, ec) || !fs::is_regular_file (target, ec)) {
-        s7_close_output_port (sc, s7_current_error_port (sc));
-        s7_set_current_error_port (sc, old_port);
-        if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+        gf::close_output_port (sc, gf::current_error_port (sc));
+        gf::set_current_error_port (sc, old_port);
+        if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
         std::cerr << "Error: File not found: " << target << std::endl;
         return 1;
       }
@@ -2972,41 +2972,41 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
       for (size_t i= 0; i < import_expr.length (); ++i) {
         if (import_expr[i] == '.') import_expr[i]= ' ';
       }
-      s7_eval_c_string (sc, import_expr.c_str ());
+      gf::eval_c_string (sc, import_expr.c_str ());
     }
 
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
       goldfish_print_scheme_error_message (sc, errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       return 1;
     }
 
     // 检查并调用 main 函数
-    s7_pointer main_func= s7_name_to_value (sc, "main");
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
+    s7_pointer main_func= gf::name_to_value (sc, "main");
+    if ((!main_func) || (!gf::is_procedure (main_func))) {
       // Module targets import through the expander, so `main` resolves in
       // the expander environment rather than the s7 rootlet.
       main_func= goldfish_eval_through_reader (sc, "main");
     }
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if ((!main_func) || (!gf::is_procedure (main_func))) {
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
       std::cerr << "Error: No main function found in target: " << target << std::endl;
       return 1;
     }
 
     // 调用 main 函数
-    s7_call (sc, main_func, s7_nil (sc));
+    gf::call (sc, main_func, gf::nil (sc));
 
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     return 0;
   }
 
@@ -3015,11 +3015,11 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   std::error_code ec;
   if (fs::exists (command, ec) && fs::is_regular_file (command, ec)) {
     goldfish_eval_file (sc, command, true);
-    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
     if ((errmsg) && (*errmsg)) return -1;
     return 0;
   }
@@ -3027,9 +3027,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 未知命令
   std::cerr << "Unknown command: " << command << "\n\n";
   display_help ();
-  s7_close_output_port (sc, s7_current_error_port (sc));
-  s7_set_current_error_port (sc, old_port);
-  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+  gf::close_output_port (sc, gf::current_error_port (sc));
+  gf::set_current_error_port (sc, old_port);
+  if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
   return 1;
 }
 

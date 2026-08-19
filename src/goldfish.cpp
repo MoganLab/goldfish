@@ -18,6 +18,8 @@
 #include <clocale>
 #include <string>
 
+using namespace goldfish;
+
 int
 main (int argc, char** argv) {
 #ifdef TB_CONFIG_OS_WINDOWS
@@ -28,11 +30,11 @@ main (int argc, char** argv) {
   const char* gf_lib    = gf_lib_dir.c_str ();
   s7_scheme*  sc        = goldfish::init_goldfish_scheme (gf_lib);
   int         ret       = goldfish::repl_for_community_edition (sc, argc, argv);
-  s7_pointer  exit_hook = s7_name_to_value (sc, "*exit-hook*");
-  s7_pointer  funcs     = s7_hook_functions (sc, exit_hook);
-  if (s7_is_pair (funcs)) {
-    s7_pointer args= s7_cons (sc, s7_make_integer (sc, ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE), s7_nil (sc));
-    s7_apply_function (sc, exit_hook, args);
+  s7_pointer  exit_hook = gf::name_to_value (sc, "*exit-hook*");
+  s7_pointer  funcs     = gf::hook_functions (sc, exit_hook);
+  if (gf::is_pair (funcs)) {
+    s7_pointer args= gf::cons (sc, gf::make_integer (sc, ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE), gf::nil (sc));
+    gf::apply_function (sc, exit_hook, args);
   }
   return ret;
 }

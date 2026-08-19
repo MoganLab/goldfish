@@ -14,14 +14,14 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <cstring>
 
 namespace goldfish {
 
 static s7_pointer
 base_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
-  return s7_error (sc, s7_make_symbol (sc, kind), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+  return gf::error (sc, gf::make_symbol (sc, kind), gf::list (sc, gf::make_string (sc, msg), arg));
 }
 
 // 返回 UTF-8 首字节 b 对应的码点字节宽度（1~4）；非法首字节返回 0
@@ -60,38 +60,38 @@ utf8_count_and_locate (const uint8_t* buf, s7_int byte_len, s7_int char_index, s
 
 static s7_pointer
 f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= s7_car (args);
+  s7_pointer arg= gf::car (args);
 
-  if (!s7_is_string (arg)) {
+  if (!gf::is_string (arg)) {
     return base_error (sc, "type-error", "string->utf8: input must be string", arg);
   }
 
-  const char* str     = s7_string (arg);
-  s7_int      byte_len= s7_string_length (arg);
+  const char* str     = gf::string (arg);
+  s7_int      byte_len= gf::string_length (arg);
 
   // 解析可选参数 start / end。args 形如 (str start end ...)，缺省时按 Scheme 默认值处理：
   //   start 缺省 = 0；end 缺省 = #t（取到末尾）
-  s7_pointer rest     = s7_cdr (args);
+  s7_pointer rest     = gf::cdr (args);
   s7_int     start    = 0;
   bool       end_given= false;
   s7_int     end_val  = 0;
 
-  if (!s7_is_null (sc, rest)) {
-    s7_pointer p1= s7_car (rest);
-    if (!s7_is_integer (p1)) {
+  if (!gf::is_null (sc, rest)) {
+    s7_pointer p1= gf::car (rest);
+    if (!gf::is_integer (p1)) {
       return base_error (sc, "type-error", "string->utf8: start must be integer", p1);
     }
-    start= s7_integer (p1);
-    rest = s7_cdr (rest);
+    start= gf::integer (p1);
+    rest = gf::cdr (rest);
 
-    if (!s7_is_null (sc, rest)) {
-      s7_pointer p2= s7_car (rest);
+    if (!gf::is_null (sc, rest)) {
+      s7_pointer p2= gf::car (rest);
       // Scheme 端 end 默认 #t 表示取到末尾；#t 按末尾处理
-      if (s7_is_integer (p2)) {
+      if (gf::is_integer (p2)) {
         end_given= true;
-        end_val  = s7_integer (p2);
+        end_val  = gf::integer (p2);
       }
-      else if (!s7_is_eq (p2, s7_t (sc))) {
+      else if (!gf::is_eq (p2, gf::t (sc))) {
         return base_error (sc, "type-error", "string->utf8: end must be integer", p2);
       }
     }
@@ -131,7 +131,7 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
 
   // start == end -> 空 bytevector
   if (start == end_char) {
-    return s7_make_byte_vector (sc, 0, 1, NULL);
+    return gf::make_byte_vector (sc, 0, 1, NULL);
   }
 
   // 定位 start / end 对应的字节偏移
@@ -141,8 +141,8 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
   utf8_count_and_locate ((const uint8_t*) str, byte_len, end_char, &end_byte);
 
   s7_int     out_len= end_byte - start_byte;
-  s7_pointer out    = s7_make_byte_vector (sc, out_len, 1, NULL);
-  memcpy (s7_byte_vector_elements (out), str + start_byte, out_len);
+  s7_pointer out    = gf::make_byte_vector (sc, out_len, 1, NULL);
+  memcpy (gf::byte_vector_elements (out), str + start_byte, out_len);
   return out;
 }
 
@@ -150,7 +150,7 @@ static void
 glue_string_to_utf8 (s7_scheme* sc) {
   const char* name= "g_string->utf8";
   const char* desc= "(g_string->utf8 str [start [end]]) => bytevector";
-  s7_define_function (sc, name, f_string_to_utf8, 1, 0, true, desc);
+  gf::define_function (sc, name, f_string_to_utf8, 1, 0, true, desc);
 }
 
 void

@@ -14,7 +14,7 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <algorithm>
 #include <chrono>
 #include <cpr/cpr.h>
@@ -32,31 +32,31 @@ using std::vector;
 
 static s7_pointer
 error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
-  s7_pointer ht= s7_make_hash_table (sc, 4);
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, status_code));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, url.c_str ()));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, ""));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str ()));
+  s7_pointer ht= gf::make_hash_table (sc, 4);
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "status-code"), gf::make_integer (sc, status_code));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "url"), gf::make_string (sc, url.c_str ()));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "text"), gf::make_string (sc, ""));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "reason"), gf::make_string (sc, reason.c_str ()));
   return ht;
 }
 
 static s7_pointer
 response2hashtable (s7_scheme* sc, cpr::Response r) {
-  s7_pointer ht= s7_make_hash_table (sc, 8);
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, r.status_code));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, r.url.c_str ()));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "elapsed"), s7_make_real (sc, r.elapsed));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, r.text.c_str ()));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, r.reason.c_str ()));
-  s7_pointer headers= s7_make_hash_table (sc, r.header.size ());
+  s7_pointer ht= gf::make_hash_table (sc, 8);
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "status-code"), gf::make_integer (sc, r.status_code));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "url"), gf::make_string (sc, r.url.c_str ()));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "elapsed"), gf::make_real (sc, r.elapsed));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "text"), gf::make_string (sc, r.text.c_str ()));
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "reason"), gf::make_string (sc, r.reason.c_str ()));
+  s7_pointer headers= gf::make_hash_table (sc, r.header.size ());
   for (const auto& header : r.header) {
     const auto  key      = header.first.c_str ();
     std::string key_lower= header.first;
     std::transform (key_lower.begin (), key_lower.end (), key_lower.begin (), ::tolower);
     const auto value= header.second.c_str ();
-    s7_hash_table_set (sc, headers, s7_make_string (sc, key_lower.c_str ()), s7_make_string (sc, value));
+    gf::hash_table_set (sc, headers, gf::make_string (sc, key_lower.c_str ()), gf::make_string (sc, value));
   }
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "headers"), headers);
+  gf::hash_table_set (sc, ht, gf::make_symbol (sc, "headers"), headers);
 
   return ht;
 }
@@ -65,10 +65,10 @@ inline cpr::Parameters
 to_cpr_parameters (s7_scheme* sc, s7_pointer args) {
   cpr::Parameters params= cpr::Parameters{};
   s7_pointer      iter  = args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair= s7_car (iter);
-    params.Add (cpr::Parameter (s7_string (s7_car (pair)), s7_string (s7_cdr (pair))));
-    iter= s7_cdr (iter);
+  while (!gf::is_null (sc, iter)) {
+    s7_pointer pair= gf::car (iter);
+    params.Add (cpr::Parameter (gf::string (gf::car (pair)), gf::string (gf::cdr (pair))));
+    iter= gf::cdr (iter);
   }
   return params;
 }
@@ -77,10 +77,10 @@ inline cpr::Header
 to_cpr_headers (s7_scheme* sc, s7_pointer args) {
   cpr::Header headers= cpr::Header{};
   s7_pointer  iter   = args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair= s7_car (iter);
-    headers.insert ({s7_string (s7_car (pair)), s7_string (s7_cdr (pair))});
-    iter= s7_cdr (iter);
+  while (!gf::is_null (sc, iter)) {
+    s7_pointer pair= gf::car (iter);
+    headers.insert ({gf::string (gf::car (pair)), gf::string (gf::cdr (pair))});
+    iter= gf::cdr (iter);
   }
   return headers;
 }
@@ -89,10 +89,10 @@ inline cpr::Proxies
 to_cpr_proxies (s7_scheme* sc, s7_pointer args) {
   std::map<std::string, std::string> proxy_map;
   s7_pointer                         iter= args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair                     = s7_car (iter);
-    proxy_map[s7_string (s7_car (pair))]= s7_string (s7_cdr (pair));
-    iter                                = s7_cdr (iter);
+  while (!gf::is_null (sc, iter)) {
+    s7_pointer pair                     = gf::car (iter);
+    proxy_map[gf::string (gf::car (pair))]= gf::string (gf::cdr (pair));
+    iter                                = gf::cdr (iter);
   }
   return cpr::Proxies (proxy_map);
 }
@@ -107,11 +107,11 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
   bool        has_file= false;
 
   s7_pointer iter= part_spec;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer  entry    = s7_car (iter);
-    s7_pointer  raw_key  = s7_car (entry);
-    const char* key      = s7_is_symbol (raw_key) ? s7_symbol_name (raw_key) : s7_string (raw_key);
-    const char* raw_value= s7_string (s7_cdr (entry));
+  while (!gf::is_null (sc, iter)) {
+    s7_pointer  entry    = gf::car (iter);
+    s7_pointer  raw_key  = gf::car (entry);
+    const char* key      = gf::is_symbol (raw_key) ? gf::symbol_name (raw_key) : gf::string (raw_key);
+    const char* raw_value= gf::string (gf::cdr (entry));
 
     if (strcmp (key, "name") == 0) {
       name= raw_value;
@@ -130,7 +130,7 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
       content_type= raw_value;
     }
 
-    iter= s7_cdr (iter);
+    iter= gf::cdr (iter);
   }
 
   if (has_file) {
@@ -150,19 +150,19 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
 static void
 append_cpr_multipart_file_parts (s7_scheme* sc, s7_pointer files, std::vector<cpr::Part>& parts) {
   s7_pointer iter= files;
-  while (!s7_is_null (sc, iter)) {
-    parts.push_back (to_cpr_multipart_part (sc, s7_car (iter)));
-    iter= s7_cdr (iter);
+  while (!gf::is_null (sc, iter)) {
+    parts.push_back (to_cpr_multipart_part (sc, gf::car (iter)));
+    iter= gf::cdr (iter);
   }
 }
 
 static void
 append_cpr_multipart_form_parts (s7_scheme* sc, s7_pointer data, std::vector<cpr::Part>& parts) {
   s7_pointer iter= data;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair= s7_car (iter);
-    parts.push_back (cpr::Part (s7_string (s7_car (pair)), s7_string (s7_cdr (pair))));
-    iter= s7_cdr (iter);
+  while (!gf::is_null (sc, iter)) {
+    s7_pointer pair= gf::car (iter);
+    parts.push_back (cpr::Part (gf::string (gf::car (pair)), gf::string (gf::cdr (pair))));
+    iter= gf::cdr (iter);
   }
 }
 
@@ -176,7 +176,7 @@ to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
 
 static s7_pointer
 f_http_head (s7_scheme* sc, s7_pointer args) {
-  const char*  url= s7_string (s7_car (args));
+  const char*  url= gf::string (gf::car (args));
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
   cpr::Response r= session.Head ();
@@ -185,20 +185,20 @@ f_http_head (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_http_head (s7_scheme* sc) {
-  s7_pointer  cur_env       = s7_curlet (sc);
+  s7_pointer  cur_env       = gf::curlet (sc);
   const char* s_http_head   = "g_http-head";
   const char* d_http_head   = "(g_http-head url ...) => hash-table?";
-  auto        func_http_head= s7_make_typed_function (sc, s_http_head, f_http_head, 1, 0, false, d_http_head, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_http_head), func_http_head);
+  auto        func_http_head= gf::make_typed_function (sc, s_http_head, f_http_head, 1, 0, false, d_http_head, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_http_head), func_http_head);
 }
 
 static s7_pointer
 f_http_get (s7_scheme* sc, s7_pointer args) {
-  const char*     url        = s7_string (s7_car (args));
-  s7_pointer      params     = s7_cadr (args);
-  s7_pointer      headers    = s7_caddr (args);
-  s7_pointer      proxy      = s7_cadddr (args);
-  s7_pointer      callback   = s7_car (s7_cddddr (args));
+  const char*     url        = gf::string (gf::car (args));
+  s7_pointer      params     = gf::cadr (args);
+  s7_pointer      headers    = gf::caddr (args);
+  s7_pointer      proxy      = gf::cadddr (args);
+  s7_pointer      callback   = gf::car (gf::cddddr (args));
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
@@ -207,18 +207,18 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
   session.SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (gf::is_list (sc, proxy) && !gf::is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
 
-  if (s7_is_procedure (callback)) {
+  if (gf::is_procedure (callback)) {
     session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
+      s7_pointer data_str = gf::make_string_with_length (sc, data.data (), data.length ());
+      s7_pointer call_args= gf::cons (sc, data_str, gf::nil (sc));
 
-      s7_pointer ret= s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
+      s7_pointer ret= gf::call (sc, callback, call_args);
+      if (gf::is_boolean (ret)) {
+        return gf::boolean (sc, ret);
       }
 
       return true;
@@ -238,22 +238,22 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_http_get (s7_scheme* sc) {
-  s7_pointer  cur_env      = s7_curlet (sc);
+  s7_pointer  cur_env      = gf::curlet (sc);
   const char* s_http_get   = "g_http-get";
   const char* d_http_get   = "(g_http-get url params headers proxy callback) => hash-table? | undefined";
-  auto        func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 0, false, d_http_get, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
+  auto        func_http_get= gf::make_typed_function (sc, s_http_get, f_http_get, 5, 0, false, d_http_get, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_http_get), func_http_get);
 }
 
 static s7_pointer
 f_http_post (s7_scheme* sc, s7_pointer args) {
-  const char*     url         = s7_string (s7_car (args));
-  s7_pointer      params      = s7_cadr (args);
-  s7_pointer      body_or_data= s7_caddr (args);
-  s7_pointer      headers     = s7_cadddr (args);
-  s7_pointer      proxy       = s7_car (s7_cddddr (args));
-  s7_pointer      files       = s7_cadr (s7_cddddr (args));
-  s7_pointer      callback    = s7_list_ref (sc, args, 6);
+  const char*     url         = gf::string (gf::car (args));
+  s7_pointer      params      = gf::cadr (args);
+  s7_pointer      body_or_data= gf::caddr (args);
+  s7_pointer      headers     = gf::cadddr (args);
+  s7_pointer      proxy       = gf::car (gf::cddddr (args));
+  s7_pointer      files       = gf::cadr (gf::cddddr (args));
+  s7_pointer      callback    = gf::list_ref (sc, args, 6);
   cpr::Parameters cpr_params  = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers = to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies = to_cpr_proxies (sc, proxy);
@@ -262,27 +262,27 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
   session.SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (gf::is_list (sc, proxy) && !gf::is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
 
-  if (s7_is_list (sc, files) && !s7_is_null (sc, files)) {
+  if (gf::is_list (sc, files) && !gf::is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
   }
   else {
-    const char* body    = s7_string (body_or_data);
+    const char* body    = gf::string (body_or_data);
     cpr::Body   cpr_body= cpr::Body (body);
     session.SetBody (cpr_body);
   }
 
-  if (s7_is_procedure (callback)) {
+  if (gf::is_procedure (callback)) {
     session.SetWriteCallback (cpr::WriteCallback{[sc, callback] (const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args= s7_cons (sc, data_str, s7_nil (sc));
+      s7_pointer data_str = gf::make_string_with_length (sc, data.data (), data.length ());
+      s7_pointer call_args= gf::cons (sc, data_str, gf::nil (sc));
 
-      s7_pointer ret= s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
+      s7_pointer ret= gf::call (sc, callback, call_args);
+      if (gf::is_boolean (ret)) {
+        return gf::boolean (sc, ret);
       }
 
       return true;
@@ -302,11 +302,11 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
 inline void
 glue_http_post (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-post";
   const char* doc    = "(g_http-post url params body-or-data headers proxy files callback) => hash-table? | undefined";
-  auto        func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
+  auto        func_http_post= gf::make_typed_function (sc, name, f_http_post, 7, 0, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func_http_post);
 }
 
 void
@@ -375,8 +375,8 @@ process_async_http_callbacks () {
   // Execute callbacks for completed requests (outside the lock)
   for (auto& req : completed_requests) {
     s7_pointer ht= response2hashtable (req->sc, req->response);
-    s7_call (req->sc, req->callback, s7_cons (req->sc, ht, s7_nil (req->sc)));
-    s7_gc_unprotect_at (req->sc, req->gc_loc);
+    gf::call (req->sc, req->callback, gf::cons (req->sc, ht, gf::nil (req->sc)));
+    gf::gc_unprotect_at (req->sc, req->gc_loc);
   }
 
   return static_cast<int> (completed_requests.size ());
@@ -385,15 +385,15 @@ process_async_http_callbacks () {
 // Start an async HTTP GET request
 static s7_pointer
 f_http_async_get (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  s7_pointer  headers = s7_caddr (args);
-  s7_pointer  proxy   = s7_cadddr (args);
-  s7_pointer  callback= s7_car (s7_cddddr (args));
+  const char* url     = gf::string (gf::car (args));
+  s7_pointer  params  = gf::cadr (args);
+  s7_pointer  headers = gf::caddr (args);
+  s7_pointer  proxy   = gf::cadddr (args);
+  s7_pointer  callback= gf::car (gf::cddddr (args));
 
-  if (!s7_is_procedure (callback)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "http-async-get: callback must be a procedure"), callback));
+  if (!gf::is_procedure (callback)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "http-async-get: callback must be a procedure"), callback));
   }
 
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
@@ -401,14 +401,14 @@ f_http_async_get (s7_scheme* sc, s7_pointer args) {
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
 
   // Protect callback from GC
-  int gc_loc= s7_gc_protect (sc, callback);
+  int gc_loc= gf::gc_protect (sc, callback);
 
   // Create session on heap with shared_ptr to keep it alive
   auto session= std::make_shared<cpr::Session> ();
   session->SetUrl (cpr::Url (url));
   session->SetParameters (cpr_params);
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (gf::is_list (sc, proxy) && !gf::is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 
@@ -423,32 +423,32 @@ f_http_async_get (s7_scheme* sc, s7_pointer args) {
     g_async_requests.push_back (req);
   }
 
-  return s7_make_boolean (sc, true);
+  return gf::make_boolean (sc, true);
 }
 
 inline void
 glue_http_async_get (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-async-get";
   const char* doc = "(g_http-async-get url params headers proxy callback) => boolean, start async http get. callback "
                     "receives response hashtable. Use g_http-poll to check for completion.";
-  auto        func= s7_make_typed_function (sc, name, f_http_async_get, 5, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  auto        func= gf::make_typed_function (sc, name, f_http_async_get, 5, 0, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 // Start an async HTTP POST request
 static s7_pointer
 f_http_async_post (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  const char* body    = s7_string (s7_caddr (args));
-  s7_pointer  headers = s7_cadddr (args);
-  s7_pointer  proxy   = s7_car (s7_cddddr (args));
-  s7_pointer  callback= s7_cadr (s7_cddddr (args));
+  const char* url     = gf::string (gf::car (args));
+  s7_pointer  params  = gf::cadr (args);
+  const char* body    = gf::string (gf::caddr (args));
+  s7_pointer  headers = gf::cadddr (args);
+  s7_pointer  proxy   = gf::car (gf::cddddr (args));
+  s7_pointer  callback= gf::cadr (gf::cddddr (args));
 
-  if (!s7_is_procedure (callback)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "http-async-post: callback must be a procedure"), callback));
+  if (!gf::is_procedure (callback)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "http-async-post: callback must be a procedure"), callback));
   }
 
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
@@ -456,7 +456,7 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
 
   // Protect callback from GC
-  int gc_loc= s7_gc_protect (sc, callback);
+  int gc_loc= gf::gc_protect (sc, callback);
 
   // Create session on heap with shared_ptr to keep it alive
   auto session= std::make_shared<cpr::Session> ();
@@ -464,7 +464,7 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
   session->SetParameters (cpr_params);
   session->SetBody (cpr::Body (body));
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (gf::is_list (sc, proxy) && !gf::is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 
@@ -478,31 +478,31 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
     g_async_requests.push_back (req);
   }
 
-  return s7_make_boolean (sc, true);
+  return gf::make_boolean (sc, true);
 }
 
 inline void
 glue_http_async_post (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-async-post";
   const char* doc    = "(g_http-async-post url params body headers proxy callback) => boolean, start async http post. "
                        "callback receives response hashtable. Use g_http-poll to check for completion.";
-  auto        func   = s7_make_typed_function (sc, name, f_http_async_post, 6, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  auto        func   = gf::make_typed_function (sc, name, f_http_async_post, 6, 0, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 // Start an async HTTP HEAD request
 static s7_pointer
 f_http_async_head (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  s7_pointer  headers = s7_caddr (args);
-  s7_pointer  proxy   = s7_cadddr (args);
-  s7_pointer  callback= s7_car (s7_cddddr (args));
+  const char* url     = gf::string (gf::car (args));
+  s7_pointer  params  = gf::cadr (args);
+  s7_pointer  headers = gf::caddr (args);
+  s7_pointer  proxy   = gf::cadddr (args);
+  s7_pointer  callback= gf::car (gf::cddddr (args));
 
-  if (!s7_is_procedure (callback)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "http-async-head: callback must be a procedure"), callback));
+  if (!gf::is_procedure (callback)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                     gf::list (sc, gf::make_string (sc, "http-async-head: callback must be a procedure"), callback));
   }
 
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
@@ -510,14 +510,14 @@ f_http_async_head (s7_scheme* sc, s7_pointer args) {
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
 
   // Protect callback from GC
-  int gc_loc= s7_gc_protect (sc, callback);
+  int gc_loc= gf::gc_protect (sc, callback);
 
   // Create session on heap with shared_ptr to keep it alive
   auto session= std::make_shared<cpr::Session> ();
   session->SetUrl (cpr::Url (url));
   session->SetParameters (cpr_params);
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (gf::is_list (sc, proxy) && !gf::is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 
@@ -531,42 +531,42 @@ f_http_async_head (s7_scheme* sc, s7_pointer args) {
     g_async_requests.push_back (req);
   }
 
-  return s7_make_boolean (sc, true);
+  return gf::make_boolean (sc, true);
 }
 
 inline void
 glue_http_async_head (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-async-head";
   const char* doc = "(g_http-async-head url params headers proxy callback) => boolean, start async http head. callback "
                     "receives response hashtable. Use g_http-poll to check for completion.";
-  auto        func= s7_make_typed_function (sc, name, f_http_async_head, 5, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  auto        func= gf::make_typed_function (sc, name, f_http_async_head, 5, 0, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 // Poll for completed async HTTP requests and execute their callbacks
 static s7_pointer
 f_http_poll (s7_scheme* sc, s7_pointer args) {
   int executed= process_async_http_callbacks ();
-  return s7_make_integer (sc, executed);
+  return gf::make_integer (sc, executed);
 }
 
 inline void
 glue_http_poll (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-poll";
   const char* doc    = "(g_http-poll) => integer, check for completed async http requests and execute their callbacks. "
                        "Returns number of callbacks executed.";
-  auto        func   = s7_make_typed_function (sc, name, f_http_poll, 0, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  auto        func   = gf::make_typed_function (sc, name, f_http_poll, 0, 0, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 // Wait for all pending async HTTP requests to complete (blocking)
 static s7_pointer
 f_http_wait_all (s7_scheme* sc, s7_pointer args) {
   s7_double timeout_sec= -1.0; // -1 means wait forever
-  if (s7_is_real (s7_car (args))) {
-    timeout_sec= s7_real (s7_car (args));
+  if (gf::is_real (gf::car (args))) {
+    timeout_sec= gf::real (gf::car (args));
   }
 
   auto start         = std::chrono::steady_clock::now ();
@@ -598,17 +598,17 @@ f_http_wait_all (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-  return s7_make_integer (sc, total_executed);
+  return gf::make_integer (sc, total_executed);
 }
 
 inline void
 glue_http_wait_all (s7_scheme* sc) {
-  s7_pointer  cur_env= s7_curlet (sc);
+  s7_pointer  cur_env= gf::curlet (sc);
   const char* name   = "g_http-wait-all";
   const char* doc    = "(g_http-wait-all [timeout-seconds]) => integer, wait for all pending async http requests to "
                        "complete. timeout < 0 means wait forever. Returns number of callbacks executed.";
-  auto        func   = s7_make_typed_function (sc, name, f_http_wait_all, 0, 1, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  auto        func   = gf::make_typed_function (sc, name, f_http_wait_all, 0, 1, false, doc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 void

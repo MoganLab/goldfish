@@ -37,6 +37,7 @@ using function = s7_function;
 // Constants.
 // ---------------------------------------------------------------------------
 
+scheme* init ();
 pointer f (scheme* sc);
 pointer t (scheme* sc);
 pointer nil (scheme* sc);
@@ -44,6 +45,16 @@ pointer undefined (scheme* sc);
 pointer unspecified (scheme* sc);
 pointer eof_object (scheme* sc);
 pointer make_undefined (scheme* sc, const char* name);
+
+// ---------------------------------------------------------------------------
+// Type inspection / metadata.
+// ---------------------------------------------------------------------------
+
+pointer type_of (scheme* sc, pointer arg);
+pointer arity (scheme* sc, pointer x);
+const char* documentation (scheme* sc, pointer p);
+pointer signature (scheme* sc, pointer func);
+bool is_defined (scheme* sc, const char* name);
 
 // ---------------------------------------------------------------------------
 // Predicates.
@@ -75,6 +86,7 @@ pointer cons (scheme* sc, pointer a, pointer b);
 pointer car (pointer p);
 pointer cdr (pointer p);
 pointer cadr (pointer p);
+pointer cddr (pointer p);
 pointer caddr (pointer p);
 pointer cadddr (pointer p);
 pointer cddddr (pointer p);
@@ -146,10 +158,17 @@ pointer curlet (scheme* sc);
 pointer inlet (scheme* sc, pointer bindings);
 pointer varlet (scheme* sc, pointer env, pointer symbol, pointer value);
 pointer let_ref (scheme* sc, pointer env, pointer sym);
+pointer let_to_list (scheme* sc, pointer env);
 void define (scheme* sc, pointer env, pointer symbol, pointer value);
 void define_variable (scheme* sc, const char* name, pointer value);
+pointer define_constant_with_environment (scheme* sc, pointer envir, const char* name,
+                                          pointer value);
 pointer global_value (scheme* sc, pointer sym);
 pointer name_to_value (scheme* sc, const char* name);
+pointer symbol_value (scheme* sc, pointer sym);
+pointer symbol_set_value (scheme* sc, pointer sym, pointer val);
+pointer load_path (scheme* sc);
+pointer add_to_load_path (scheme* sc, const char* dir);
 
 // ---------------------------------------------------------------------------
 // Functions / calls.
@@ -198,10 +217,17 @@ void initialize_misc (scheme* sc);
 // ---------------------------------------------------------------------------
 
 pointer open_input_file (scheme* sc, const char* name, const char* mode);
+pointer open_input_string (scheme* sc, const char* input_string);
+pointer open_output_string (scheme* sc);
 void close_input_port (scheme* sc, pointer port);
+void close_output_port (scheme* sc, pointer port);
+const char* get_output_string (scheme* sc, pointer out_port);
 pointer read_char (scheme* sc, pointer port);
 pointer peek_char (scheme* sc, pointer port);
 pointer current_input_port (scheme* sc);
+pointer current_error_port (scheme* sc);
+pointer set_current_error_port (scheme* sc, pointer port);
+pointer set_current_output_port (scheme* sc, pointer port);
 
 // ---------------------------------------------------------------------------
 // Hooks.

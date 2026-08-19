@@ -14,7 +14,7 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <string>
 
 namespace goldfish {
@@ -31,13 +31,13 @@ static bool tiny_is_ws (s7_int c) {
 }
 
 static s7_int tiny_peek (s7_scheme* sc, s7_pointer port) {
-  s7_pointer p = s7_peek_char (sc, port);
-  return s7_is_character (p) ? (s7_int) s7_character (p) : -1;
+  s7_pointer p = gf::peek_char (sc, port);
+  return gf::is_character (p) ? (s7_int) gf::character (p) : -1;
 }
 
 static s7_int tiny_next (s7_scheme* sc, s7_pointer port) {
-  s7_pointer p = s7_read_char (sc, port);
-  return s7_is_character (p) ? (s7_int) s7_character (p) : -1;
+  s7_pointer p = gf::read_char (sc, port);
+  return gf::is_character (p) ? (s7_int) gf::character (p) : -1;
 }
 
 static bool tiny_is_delim (s7_int c) {
@@ -76,8 +76,8 @@ static s7_pointer
 tiny_read_char (s7_scheme* sc, s7_pointer port) {
   s7_int c = tiny_next (sc, port);
   if (c < 0) {
-    return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "unexpected end of input in character")));
+    return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                     gf::list (sc, gf::make_string (sc, "unexpected end of input in character")));
   }
   // hex escape: #\x followed by hex digits (or #\x alone = the char x)
   if (c == 'x' || c == 'X') {
@@ -86,7 +86,7 @@ tiny_read_char (s7_scheme* sc, s7_pointer port) {
     if (h >= '0' && h <= '9') d = h - '0';
     else if (h >= 'a' && h <= 'f') d = h - 'a' + 10;
     else if (h >= 'A' && h <= 'F') d = h - 'A' + 10;
-    else return s7_make_character (sc, c);  // plain #\x
+    else return gf::make_character (sc, c);  // plain #\x
     int v = 0;
     while (true) {
       s7_int hh = tiny_peek (sc, port);
@@ -98,7 +98,7 @@ tiny_read_char (s7_scheme* sc, s7_pointer port) {
       tiny_next (sc, port);
       v = v * 16 + dd;
     }
-    return s7_make_character (sc, v);
+    return gf::make_character (sc, v);
   }
   // named characters
   static const char* names[] = {
@@ -113,14 +113,14 @@ tiny_read_char (s7_scheme* sc, s7_pointer port) {
       tok += (char) tiny_next (sc, port);
     for (size_t i = 0; i < 9; i++) {
       if (tok == names[i])
-        return s7_make_character (sc, values[i]);
+        return gf::make_character (sc, values[i]);
     }
     if (tok.size () == 1)
-      return s7_make_character (sc, (int) tok[0]);
-    return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "invalid character")));
+      return gf::make_character (sc, (int) tok[0]);
+    return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                     gf::list (sc, gf::make_string (sc, "invalid character")));
   }
-  return s7_make_character (sc, c);
+  return gf::make_character (sc, c);
 }
 
 static s7_pointer
@@ -149,9 +149,9 @@ tiny_read_token (s7_scheme* sc, s7_pointer port, s7_int first) {
       v = v * 10 + (tok[k] - '0');
     if (neg)
       v = -v;
-    return s7_make_integer (sc, (s7_int) v);
+    return gf::make_integer (sc, (s7_int) v);
   }
-  return s7_make_symbol (sc, tok.c_str ());
+  return gf::make_symbol (sc, tok.c_str ());
 }
 
 // The Scheme reader's delimiter set (goldfish/liii/reader.scm `delimiter?'
@@ -166,10 +166,10 @@ static bool scheme_delim (s7_int c) {
 
 static s7_pointer
 f_g_delimiter_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer ch = s7_car (args);
-  if (!s7_is_character (ch))
-    return s7_f (sc);
-  return scheme_delim ((s7_int) s7_character (ch)) ? s7_t (sc) : s7_f (sc);
+  s7_pointer ch = gf::car (args);
+  if (!gf::is_character (ch))
+    return gf::f (sc);
+  return scheme_delim ((s7_int) gf::character (ch)) ? gf::t (sc) : gf::f (sc);
 }
 
 // g-read-token : port first-char -> string
@@ -179,9 +179,9 @@ f_g_delimiter_p (s7_scheme* sc, s7_pointer args) {
 // fast character pump for the hottest parsing path.
 static s7_pointer
 f_g_read_token (s7_scheme* sc, s7_pointer args) {
-  s7_pointer port = s7_car (args);
-  s7_pointer first_p = s7_cadr (args);
-  s7_int     first = s7_is_character (first_p) ? (s7_int) s7_character (first_p)
+  s7_pointer port = gf::car (args);
+  s7_pointer first_p = gf::cadr (args);
+  s7_int     first = gf::is_character (first_p) ? (s7_int) gf::character (first_p)
                                                : (s7_int) first_p;
   std::string tok;
   tok += (char) first;
@@ -191,7 +191,7 @@ f_g_read_token (s7_scheme* sc, s7_pointer args) {
       break;
     tok += (char) tiny_next (sc, port);
   }
-  return s7_make_string (sc, tok.c_str ());
+  return gf::make_string (sc, tok.c_str ());
 }
 
 // g-read-string : port [rdelim] -> string
@@ -223,8 +223,8 @@ tiny_read_string_core (s7_scheme* sc, s7_pointer port, s7_int rdelim) {
   while (true) {
     s7_int c = tiny_next (sc, port);
     if (c < 0) {
-      return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                       s7_list (sc, 1, s7_make_string (sc, "unterminated string")));
+      return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                       gf::list (sc, gf::make_string (sc, "unterminated string")));
     }
     if (c == rdelim)
       break;
@@ -234,8 +234,8 @@ tiny_read_string_core (s7_scheme* sc, s7_pointer port, s7_int rdelim) {
     }
     s7_int e = tiny_next (sc, port);
     if (e < 0) {
-      return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                       s7_list (sc, 1, s7_make_string (sc, "unterminated string")));
+      return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                       gf::list (sc, gf::make_string (sc, "unterminated string")));
     }
     if (e == '\n' || e == '\r') {
       // line continuation: consume the whole line ending, then intraline ws
@@ -282,31 +282,31 @@ tiny_read_string_core (s7_scheme* sc, s7_pointer port, s7_int rdelim) {
           nd++;
         }
         if (nd == 0) {
-          return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                           s7_list (sc, 1, s7_make_string (sc, "invalid hex escape")));
+          return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                           gf::list (sc, gf::make_string (sc, "invalid hex escape")));
         }
         if (tiny_peek (sc, port) != ';') {
-          return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                           s7_list (sc, 1, s7_make_string (sc, "hex escape missing semicolon")));
+          return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                           gf::list (sc, gf::make_string (sc, "hex escape missing semicolon")));
         }
         tiny_next (sc, port);
         g_append_utf8 (s, v);
         break;
       }
       default:
-        return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                         s7_list (sc, 1, s7_make_string (sc, "invalid character in escape sequence")));
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "invalid character in escape sequence")));
     }
   }
-  return s7_make_string_with_length (sc, s.c_str (), (s7_int) s.size ());
+  return gf::make_string_with_length (sc, s.c_str (), (s7_int) s.size ());
 }
 
 static s7_pointer
 f_g_read_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer port = s7_car (args);
+  s7_pointer port = gf::car (args);
   s7_int     rdelim = '"';
-  if (s7_is_character (s7_cadr (args)))
-    rdelim = (s7_int) s7_character (s7_cadr (args));
+  if (gf::is_character (gf::cadr (args)))
+    rdelim = (s7_int) gf::character (gf::cadr (args));
   return tiny_read_string_core (sc, port, rdelim);
 }
 
@@ -315,19 +315,19 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
   tiny_skip_ws (sc, port);
   s7_int c = tiny_peek (sc, port);
   if (c < 0)
-    return s7_eof_object (sc);
+    return gf::eof_object (sc);
   if (c == '(' || c == '[') {
     const int close = (c == '(') ? ')' : ']';
     tiny_next (sc, port);
-    s7_pointer head = s7_nil (sc);
-    s7_pointer tail = s7_nil (sc);
+    s7_pointer head = gf::nil (sc);
+    s7_pointer tail = gf::nil (sc);
     bool first = true;
     while (true) {
       tiny_skip_ws (sc, port);
       s7_int d = tiny_peek (sc, port);
       if (d < 0) {
-        return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                         s7_list (sc, 1, s7_make_string (sc, "unterminated list")));
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "unterminated list")));
       }
       if (d == close) {
         tiny_next (sc, port);
@@ -342,17 +342,17 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
         tiny_next (sc, port);
         if (tiny_is_delim (tiny_peek (sc, port))) {
           if (first) {
-            return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                             s7_list (sc, 1, s7_make_string (sc, "dot with no element")));
+            return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                             gf::list (sc, gf::make_string (sc, "dot with no element")));
           }
           s7_pointer b = tiny_read_form (sc, port);
           tiny_skip_ws (sc, port);
           if (tiny_peek (sc, port) != close) {
-            return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                             s7_list (sc, 1, s7_make_string (sc, "bad dotted pair")));
+            return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                             gf::list (sc, gf::make_string (sc, "bad dotted pair")));
           }
           tiny_next (sc, port);
-          s7_set_cdr (tail, b);
+          gf::set_cdr (tail, b);
           return head;
         }
         // not a standalone dot: fall through and read it as a token
@@ -360,30 +360,30 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       }
       s7_pointer el = tiny_read_form (sc, port);
       if (first) {
-        head = s7_cons (sc, el, s7_nil (sc));
+        head = gf::cons (sc, el, gf::nil (sc));
         tail = head;
         first = false;
       } else {
-        s7_pointer cell = s7_cons (sc, el, s7_nil (sc));
-        s7_set_cdr (tail, cell);
+        s7_pointer cell = gf::cons (sc, el, gf::nil (sc));
+        gf::set_cdr (tail, cell);
         tail = cell;
       }
     }
   }
   if (c == ')' || c == ']') {
     tiny_next (sc, port);
-    return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "unexpected )")));
+    return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                     gf::list (sc, gf::make_string (sc, "unexpected )")));
   }
   if (c == '\'') {
     tiny_next (sc, port);
-    return s7_cons (sc, s7_make_symbol (sc, "quote"),
-                    s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
+    return gf::cons (sc, gf::make_symbol (sc, "quote"),
+                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
   }
   if (c == '`') {
     tiny_next (sc, port);
-    return s7_cons (sc, s7_make_symbol (sc, "quasiquote"),
-                    s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
+    return gf::cons (sc, gf::make_symbol (sc, "quasiquote"),
+                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
   }
   if (c == ',') {
     tiny_next (sc, port);
@@ -392,16 +392,16 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       tiny_next (sc, port);
       name = "unquote-splicing";
     }
-    return s7_cons (sc, s7_make_symbol (sc, name),
-                    s7_cons (sc, tiny_read_form (sc, port), s7_nil (sc)));
+    return gf::cons (sc, gf::make_symbol (sc, name),
+                    gf::cons (sc, tiny_read_form (sc, port), gf::nil (sc)));
   }
   if (c == '"')
     return tiny_read_string (sc, port);
   if (c == '#') {
     tiny_next (sc, port);
     s7_int d = tiny_peek (sc, port);
-    if (d == 't') { tiny_next (sc, port); return s7_t (sc); }
-    if (d == 'f') { tiny_next (sc, port); return s7_f (sc); }
+    if (d == 't') { tiny_next (sc, port); return gf::t (sc); }
+    if (d == 'f') { tiny_next (sc, port); return gf::f (sc); }
     if (d == '\\') { tiny_next (sc, port); return tiny_read_char (sc, port); }
     if (d == 'x' || d == 'X') {
       // #x hexadecimal integer (bootstrap: only hex radix is needed)
@@ -426,12 +426,12 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
         nd++;
       }
       if (nd == 0) {
-        return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                         s7_list (sc, 1, s7_make_string (sc, "bad hex number")));
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "bad hex number")));
       }
       if (neg)
         v = -v;
-      return s7_make_integer (sc, (s7_int) v);
+      return gf::make_integer (sc, (s7_int) v);
     }
     if (d == '_') {
       // S7 #_tokens (e.g. #_list-values): read as the plain symbol "#_<name>"
@@ -439,7 +439,7 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       std::string tok = "#_";
       while (!tiny_is_delim (tiny_peek (sc, port)))
         tok += (char) tiny_next (sc, port);
-      return s7_make_symbol (sc, tok.c_str ());
+      return gf::make_symbol (sc, tok.c_str ());
     }
     if (d == '<') {
       // internal S7 objects: #<unspecified>, #<undefined>, #<eof>
@@ -454,16 +454,16 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
       if (tiny_peek (sc, port) == '>')
         tiny_next (sc, port);
       if (tok == "unspecified")
-        return s7_unspecified (sc);
+        return gf::unspecified (sc);
       if (tok == "undefined")
-        return s7_undefined (sc);
+        return gf::undefined (sc);
       if (tok == "eof")
-        return s7_eof_object (sc);
-      return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                       s7_list (sc, 1, s7_make_string (sc, "unknown #< object")));
+        return gf::eof_object (sc);
+      return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                       gf::list (sc, gf::make_string (sc, "unknown #< object")));
     }
-    return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                     s7_list (sc, 1, s7_make_string (sc, "unknown # object")));
+    return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                     gf::list (sc, gf::make_string (sc, "unknown # object")));
   }
   // consume the first char, then read the token
   tiny_next (sc, port);
@@ -472,46 +472,46 @@ tiny_read_form (s7_scheme* sc, s7_pointer port) {
 
 static s7_pointer
 f_tiny_read (s7_scheme* sc, s7_pointer args) {
-  s7_pointer port = s7_car (args);
+  s7_pointer port = gf::car (args);
   return tiny_read_form (sc, port);
 }
 
 static s7_pointer
 f_tiny_read_with_default (s7_scheme* sc, s7_pointer args) {
-  if (s7_is_null (sc, args)) {
-    s7_pointer ip = s7_current_input_port (sc);
+  if (gf::is_null (sc, args)) {
+    s7_pointer ip = gf::current_input_port (sc);
     return tiny_read_form (sc, ip);
   }
-  return tiny_read_form (sc, s7_car (args));
+  return tiny_read_form (sc, gf::car (args));
 }
 
 static s7_pointer
 tiny_load_path (s7_scheme* sc, const char* path) {
-  s7_pointer port = s7_open_input_file (sc, path, "r");
-  s7_pointer env = s7_rootlet (sc);
-  s7_pointer result = s7_unspecified (sc);
+  s7_pointer port = gf::open_input_file (sc, path, "r");
+  s7_pointer env = gf::rootlet (sc);
+  s7_pointer result = gf::unspecified (sc);
   while (true) {
     s7_pointer d = tiny_read_form (sc, port);
-    if (d == s7_eof_object (sc))
+    if (d == gf::eof_object (sc))
       break;
-    result = s7_eval (sc, d, env);
+    result = gf::eval (sc, d, env);
   }
-  s7_close_input_port (sc, port);
+  gf::close_input_port (sc, port);
   return result;
 }
 
 static s7_pointer
 f_tiny_load (s7_scheme* sc, s7_pointer args) {
-  const char* path = s7_string (s7_car (args));
+  const char* path = gf::string (gf::car (args));
   return tiny_load_path (sc, path);
 }
 
 static s7_pointer
 f_undefined (s7_scheme* sc, s7_pointer args) {
-  if (s7_is_null (sc, args))
-    return s7_undefined (sc);
-  const char* name = s7_string (s7_car (args));
-  return s7_make_undefined (sc, name);
+  if (gf::is_null (sc, args))
+    return gf::undefined (sc);
+  const char* name = gf::string (gf::car (args));
+  return gf::make_undefined (sc, name);
 }
 
 void
@@ -545,23 +545,23 @@ bootstrap_scheme_reader (s7_scheme* sc, const char* gf_lib) {
 
 void
 glue_liii_reader (s7_scheme* sc) {
-  s7_define_function (sc, "g-tiny-read", f_tiny_read, 1, 0, false,
+  gf::define_function (sc, "g-tiny-read", f_tiny_read, 1, 0, false,
                       "(g-tiny-read port) => datum");
-  s7_define_function (sc, "g-read-token", f_g_read_token, 2, 0, false,
+  gf::define_function (sc, "g-read-token", f_g_read_token, 2, 0, false,
                       "(g-read-token port first-char) => string; reads one token up to the Scheme reader's delimiter set");
-  s7_define_function (sc, "g-read-string", f_g_read_string, 1, 1, false,
+  gf::define_function (sc, "g-read-string", f_g_read_string, 1, 1, false,
                       "(g-read-string port [rdelim]) => string; reads a quoted string (opening rdelim already consumed)");
-  s7_define_function (sc, "g-delimiter?", f_g_delimiter_p, 1, 0, false,
+  gf::define_function (sc, "g-delimiter?", f_g_delimiter_p, 1, 0, false,
                       "(g-delimiter? ch) => boolean; R7RS delimiter predicate (single source for the reader's token boundary)");
-  s7_define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
+  gf::define_function (sc, "g-tiny-load", f_tiny_load, 1, 0, false,
                       "(g-tiny-load file) => last value; loads FILE through the tiny bootstrap read");
-  s7_define_function (sc, "g-undefined", f_undefined, 0, 1, false,
+  gf::define_function (sc, "g-undefined", f_undefined, 0, 1, false,
                       "(g-undefined [name]) => the #<undefined> object, or a named undefined #<name>");
   // replace S7's read with the tiny bootstrap read
-  s7_define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
+  gf::define_function (sc, "read", f_tiny_read_with_default, 0, 1, false,
                       "(read [port]) => datum");
   // make-hook/call-with-values/etc. need `read` bound, so initialize them here
-  s7_initialize_misc (sc);
+  gf::initialize_misc (sc);
 }
 
 } // namespace goldfish

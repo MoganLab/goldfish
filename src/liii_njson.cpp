@@ -14,7 +14,7 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -37,9 +37,9 @@ using std::vector;
 
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env= s7_curlet (sc);
-  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  s7_pointer cur_env= gf::curlet (sc);
+  s7_pointer func   = gf::make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 static const char* NJSON_HANDLE_TAG= "njson-handle";
@@ -78,8 +78,8 @@ njson_register_state (s7_scheme* sc) {
 static bool
 scheme_json_key_to_string (s7_scheme* sc, s7_pointer key, std::string& out, std::string& error_msg) {
   (void) sc;
-  if (s7_is_string (key)) {
-    out= s7_string (key);
+  if (gf::is_string (key)) {
+    out= gf::string (key);
     return true;
   }
   error_msg= "json object key must be string?";
@@ -88,7 +88,7 @@ scheme_json_key_to_string (s7_scheme* sc, s7_pointer key, std::string& out, std:
 
 static s7_pointer
 njson_error (s7_scheme* sc, const char* type_name, const std::string& msg, s7_pointer culprit) {
-  return s7_error (sc, s7_make_symbol (sc, type_name), s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), culprit));
+  return gf::error (sc, gf::make_symbol (sc, type_name), gf::list (sc, gf::make_string (sc, msg.c_str ()), culprit));
 }
 
 // 把 nlohmann 抛出的 C++ 异常映射成 goldfish 的 s7_error。从 s7 层唯一稳定可
@@ -144,23 +144,23 @@ make_njson_handle (s7_scheme* sc, s7_int id) {
       generation= state.handle_generations[index];
     }
   }
-  return s7_cons (sc, s7_make_symbol (sc, NJSON_HANDLE_TAG),
-                  s7_cons (sc, s7_make_integer (sc, id), s7_make_integer (sc, generation)));
+  return gf::cons (sc, gf::make_symbol (sc, NJSON_HANDLE_TAG),
+                  gf::cons (sc, gf::make_integer (sc, id), gf::make_integer (sc, generation)));
 }
 
 static bool
 is_njson_handle (s7_pointer x, s7_int* id_out= nullptr, s7_int* generation_out= nullptr) {
-  if (!s7_is_pair (x)) return false;
-  s7_pointer tag    = s7_car (x);
-  s7_pointer payload= s7_cdr (x);
-  if (!s7_is_symbol (tag)) return false;
-  if (strcmp (s7_symbol_name (tag), NJSON_HANDLE_TAG) != 0) return false;
-  if (!s7_is_pair (payload)) return false;
-  s7_pointer id        = s7_car (payload);
-  s7_pointer generation= s7_cdr (payload);
-  if (!s7_is_integer (id) || !s7_is_integer (generation)) return false;
-  if (id_out) *id_out= s7_integer (id);
-  if (generation_out) *generation_out= s7_integer (generation);
+  if (!gf::is_pair (x)) return false;
+  s7_pointer tag    = gf::car (x);
+  s7_pointer payload= gf::cdr (x);
+  if (!gf::is_symbol (tag)) return false;
+  if (strcmp (gf::symbol_name (tag), NJSON_HANDLE_TAG) != 0) return false;
+  if (!gf::is_pair (payload)) return false;
+  s7_pointer id        = gf::car (payload);
+  s7_pointer generation= gf::cdr (payload);
+  if (!gf::is_integer (id) || !gf::is_integer (generation)) return false;
+  if (id_out) *id_out= gf::integer (id);
+  if (generation_out) *generation_out= gf::integer (generation);
   return true;
 }
 
@@ -255,10 +255,10 @@ njson_collect_keys (const json& root, std::vector<std::string>& out) {
 
 static s7_pointer
 njson_build_keys_list (s7_scheme* sc, const std::vector<std::string>& keys) {
-  s7_pointer out= s7_nil (sc);
+  s7_pointer out= gf::nil (sc);
   for (auto it= keys.rbegin (); it != keys.rend (); ++it) {
     const std::string& key= *it;
-    out= s7_cons (sc, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())), out);
+    out= gf::cons (sc, gf::make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())), out);
   }
   return out;
 }
@@ -330,11 +330,11 @@ store_njson_value (s7_scheme* sc, const json& value) {
 
 static bool
 scheme_json_index (s7_pointer key, size_t& out, std::string& error_msg) {
-  if (!s7_is_integer (key)) {
+  if (!gf::is_integer (key)) {
     error_msg= "array index must be integer?";
     return false;
   }
-  s7_int idx= s7_integer (key);
+  s7_int idx= gf::integer (key);
   if (idx < 0) {
     error_msg= "array index must be non-negative";
     return false;
@@ -346,11 +346,11 @@ scheme_json_index (s7_pointer key, size_t& out, std::string& error_msg) {
 static bool
 collect_path_keys (s7_scheme* sc, s7_pointer list, std::vector<s7_pointer>& out, std::string& error_msg) {
   s7_pointer iter= list;
-  while (s7_is_pair (iter)) {
-    out.push_back (s7_car (iter));
-    iter= s7_cdr (iter);
+  while (gf::is_pair (iter)) {
+    out.push_back (gf::car (iter));
+    iter= gf::cdr (iter);
   }
-  if (!s7_is_null (sc, iter)) {
+  if (!gf::is_null (sc, iter)) {
     error_msg= "path keys must be a proper list";
     return false;
   }
@@ -389,7 +389,7 @@ njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& p
       cur= &(*cur)[idx];
     }
     else {
-      char* key_repr_c= s7_object_to_c_string (sc, key);
+      char* key_repr_c= gf::object_to_c_string (sc, key);
       if (key_repr_c) {
         std::string key_repr (key_repr_c);
         free (key_repr_c);
@@ -451,20 +451,20 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     return true;
   }
 
-  if (s7_is_string (value)) {
-    out= s7_string (value);
+  if (gf::is_string (value)) {
+    out= gf::string (value);
     return true;
   }
-  if (s7_is_boolean (value)) {
-    out= s7_boolean (sc, value);
+  if (gf::is_boolean (value)) {
+    out= gf::boolean (sc, value);
     return true;
   }
-  if (s7_is_integer (value)) {
-    out= static_cast<long long> (s7_integer (value));
+  if (gf::is_integer (value)) {
+    out= static_cast<long long> (gf::integer (value));
     return true;
   }
-  if (s7_is_real (value)) {
-    double real_value= s7_number_to_real (sc, value);
+  if (gf::is_real (value)) {
+    double real_value= gf::number_to_real (sc, value);
     if (!std::isfinite (real_value)) {
       error_msg= "number must be finite (NaN/Inf are not valid JSON numbers)";
       return false;
@@ -472,12 +472,12 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     out= real_value;
     return true;
   }
-  if (s7_is_number (value)) {
+  if (gf::is_number (value)) {
     error_msg= "number must be real and finite";
     return false;
   }
-  if (s7_is_symbol (value)) {
-    const char* symbol_name= s7_symbol_name (value);
+  if (gf::is_symbol (value)) {
+    const char* symbol_name= gf::symbol_name (value);
     if (strcmp (symbol_name, "null") == 0) {
       out= nullptr;
       return true;
@@ -486,9 +486,9 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     return false;
   }
 
-  if (s7_is_vector (value)) {
-    s7_int      len     = s7_vector_length (value);
-    s7_pointer* elements= s7_vector_elements (value);
+  if (gf::is_vector (value)) {
+    s7_int      len     = gf::vector_length (value);
+    s7_pointer* elements= gf::vector_elements (value);
     out                 = json::array ();
     for (s7_int i= 0; i < len; ++i) {
       json element_json;
@@ -508,29 +508,29 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
 static s7_pointer
 njson_scalar_value_to_scheme (s7_scheme* sc, const json& value) {
   if (value.is_null ()) {
-    return s7_make_symbol (sc, "null");
+    return gf::make_symbol (sc, "null");
   }
   if (value.is_boolean ()) {
-    return s7_make_boolean (sc, value.get<bool> ());
+    return gf::make_boolean (sc, value.get<bool> ());
   }
   if (value.is_number_integer ()) {
-    return s7_make_integer (sc, static_cast<s7_int> (value.get<long long> ()));
+    return gf::make_integer (sc, static_cast<s7_int> (value.get<long long> ()));
   }
   if (value.is_number_unsigned ()) {
     unsigned long long v= value.get<unsigned long long> ();
     if (v > static_cast<unsigned long long> ((std::numeric_limits<s7_int>::max) ())) {
-      return s7_make_real (sc, static_cast<double> (v));
+      return gf::make_real (sc, static_cast<double> (v));
     }
-    return s7_make_integer (sc, static_cast<s7_int> (v));
+    return gf::make_integer (sc, static_cast<s7_int> (v));
   }
   if (value.is_number_float ()) {
-    return s7_make_real (sc, value.get<double> ());
+    return gf::make_real (sc, value.get<double> ());
   }
   if (value.is_string ()) {
     const auto& text= value.get_ref<const std::string&> ();
-    return s7_make_string (sc, text.c_str ());
+    return gf::make_string (sc, text.c_str ());
   }
-  return s7_nil (sc);
+  return gf::nil (sc);
 }
 
 enum class njson_scheme_tree_mode { alist_list, hash_vector };
@@ -541,33 +541,33 @@ static s7_pointer
 njson_object_to_alist_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
   // Match (liii json): empty object is '(()) so {} stays distinct from [].
   if (value.empty ()) {
-    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    return gf::cons (sc, gf::nil (sc), gf::nil (sc));
   }
-  s7_pointer out= s7_nil (sc);
+  s7_pointer out= gf::nil (sc);
   for (auto it= value.begin (); it != value.end (); ++it) {
     const std::string& key   = it.key ();
-    s7_pointer         key_s7= s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ()));
+    s7_pointer         key_s7= gf::make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ()));
     s7_pointer         val_s7= njson_value_to_scheme_tree (sc, it.value (), mode);
-    out                      = s7_cons (sc, s7_cons (sc, key_s7, val_s7), out);
+    out                      = gf::cons (sc, gf::cons (sc, key_s7, val_s7), out);
   }
-  return s7_reverse (sc, out);
+  return gf::reverse (sc, out);
 }
 
 static s7_pointer
 njson_array_to_list_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out= s7_nil (sc);
+  s7_pointer out= gf::nil (sc);
   for (auto it= value.begin (); it != value.end (); ++it) {
-    out= s7_cons (sc, njson_value_to_scheme_tree (sc, *it, mode), out);
+    out= gf::cons (sc, njson_value_to_scheme_tree (sc, *it, mode), out);
   }
-  return s7_reverse (sc, out);
+  return gf::reverse (sc, out);
 }
 
 static s7_pointer
 njson_object_to_hash_table_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out= s7_make_hash_table (sc, static_cast<s7_int> (value.size ()));
+  s7_pointer out= gf::make_hash_table (sc, static_cast<s7_int> (value.size ()));
   for (auto it= value.begin (); it != value.end (); ++it) {
     const std::string& key= it.key ();
-    s7_hash_table_set (sc, out, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())),
+    gf::hash_table_set (sc, out, gf::make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())),
                        njson_value_to_scheme_tree (sc, it.value (), mode));
   }
   return out;
@@ -575,9 +575,9 @@ njson_object_to_hash_table_tree (s7_scheme* sc, const json& value, njson_scheme_
 
 static s7_pointer
 njson_array_to_vector_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out= s7_make_vector (sc, static_cast<s7_int> (value.size ()));
+  s7_pointer out= gf::make_vector (sc, static_cast<s7_int> (value.size ()));
   for (size_t i= 0; i < value.size (); i++) {
-    s7_vector_set (sc, out, static_cast<s7_int> (i), njson_value_to_scheme_tree (sc, value[i], mode));
+    gf::vector_set (sc, out, static_cast<s7_int> (i), njson_value_to_scheme_tree (sc, value[i], mode));
   }
   return out;
 }
@@ -600,12 +600,12 @@ enum class njson_structure_root_kind { object, array };
 static s7_pointer
 njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_name,
                                 njson_structure_root_kind root_kind, njson_scheme_tree_mode mode) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, gf::car (args));
   if (thread_err) {
     return thread_err;
   }
 
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -639,28 +639,28 @@ njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
 
 static s7_pointer
 f_njson_string_to_json (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-string->json", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-string->json", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer input= s7_car (args);
-  if (!s7_is_string (input)) {
+  s7_pointer input= gf::car (args);
+  if (!gf::is_string (input)) {
     return njson_error (sc, "type-error", "g_njson-string->json: input must be string", input);
   }
 
   NJSON_TRY_CATCH (sc, "g_njson-string->json", input, {
-    json parsed= json::parse (s7_string (input));
+    json parsed= json::parse (gf::string (input));
     return make_njson_handle (sc, store_njson_value (sc, std::move (parsed)));
   });
 }
 
 static s7_pointer
 f_njson_json_to_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-json->string", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-json->string", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  input= s7_car (args);
+  s7_pointer  input= gf::car (args);
   json        encoded;
   std::string error_msg;
   if (!scheme_to_njson_scalar_or_handle (sc, input, encoded, error_msg)) {
@@ -668,62 +668,62 @@ f_njson_json_to_string (s7_scheme* sc, s7_pointer args) {
   }
   NJSON_TRY_CATCH (sc, "g_njson-json->string", input, {
     std::string dumped= encoded.dump ();
-    return s7_make_string (sc, dumped.c_str ());
+    return gf::make_string (sc, dumped.c_str ());
   });
 }
 
 static s7_pointer
 f_njson_format_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-format-string", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-format-string", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer input= s7_car (args);
-  if (!s7_is_string (input)) {
+  s7_pointer input= gf::car (args);
+  if (!gf::is_string (input)) {
     return njson_error (sc, "type-error", "g_njson-format-string: input must be string", input);
   }
 
   s7_int     indent= 2;
-  s7_pointer rest  = s7_cdr (args);
-  if (!s7_is_null (sc, rest)) {
-    s7_pointer indent_arg= s7_car (rest);
-    if (!s7_is_integer (indent_arg)) {
+  s7_pointer rest  = gf::cdr (args);
+  if (!gf::is_null (sc, rest)) {
+    s7_pointer indent_arg= gf::car (rest);
+    if (!gf::is_integer (indent_arg)) {
       return njson_error (sc, "type-error", "g_njson-format-string: indent must be integer?", indent_arg);
     }
-    indent= s7_integer (indent_arg);
+    indent= gf::integer (indent_arg);
     if (indent < 0) {
       return njson_error (sc, "value-error", "g_njson-format-string: indent must be >= 0", indent_arg);
     }
   }
 
   NJSON_TRY_CATCH (sc, "g_njson-format-string", input, {
-    json        parsed= json::parse (s7_string (input));
+    json        parsed= json::parse (gf::string (input));
     std::string dumped= parsed.dump (static_cast<int> (indent));
-    return s7_make_string (sc, dumped.c_str ());
+    return gf::make_string (sc, dumped.c_str ());
   });
 }
 
 static s7_pointer
 f_njson_handle_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-handle?", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-handle?", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer input= s7_car (args);
-  return s7_make_boolean (sc, is_njson_handle (input));
+  s7_pointer input= gf::car (args);
+  return gf::make_boolean (sc, is_njson_handle (input));
 }
 
 template <typename HandlePredicate, typename ScalarPredicate>
 static s7_pointer
 njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_name, HandlePredicate handle_pred,
                                 ScalarPredicate scalar_pred) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer input= s7_car (args);
+  s7_pointer input= gf::car (args);
   if (!is_njson_handle (input)) {
-    return s7_make_boolean (sc, scalar_pred (input));
+    return gf::make_boolean (sc, scalar_pred (input));
   }
 
   s7_int      id= 0;
@@ -736,14 +736,14 @@ njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_
     return njson_error (sc, "type-error",
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", input);
   }
-  NJSON_TRY_CATCH (sc, api_name, input, { return s7_make_boolean (sc, handle_pred (*value)); });
+  NJSON_TRY_CATCH (sc, api_name, input, { return gf::make_boolean (sc, handle_pred (*value)); });
 }
 
 static s7_pointer
 f_njson_null_p (s7_scheme* sc, s7_pointer args) {
   return njson_run_value_type_predicate (
       sc, args, "g_njson-null?", [] (const json& value) { return value.is_null (); },
-      [] (s7_pointer value) { return s7_is_symbol (value) && strcmp (s7_symbol_name (value), "null") == 0; });
+      [] (s7_pointer value) { return gf::is_symbol (value) && strcmp (gf::symbol_name (value), "null") == 0; });
 }
 
 static s7_pointer
@@ -770,14 +770,14 @@ static s7_pointer
 f_njson_string_p (s7_scheme* sc, s7_pointer args) {
   return njson_run_value_type_predicate (
       sc, args, "g_njson-string?", [] (const json& value) { return value.is_string (); },
-      [] (s7_pointer value) { return s7_is_string (value); });
+      [] (s7_pointer value) { return gf::is_string (value); });
 }
 
 static s7_pointer
 f_njson_number_p (s7_scheme* sc, s7_pointer args) {
   return njson_run_value_type_predicate (
       sc, args, "g_njson-number?", [] (const json& value) { return value.is_number (); },
-      [] (s7_pointer value) { return s7_is_number (value); });
+      [] (s7_pointer value) { return gf::is_number (value); });
 }
 
 static s7_pointer
@@ -785,23 +785,23 @@ f_njson_integer_p (s7_scheme* sc, s7_pointer args) {
   return njson_run_value_type_predicate (
       sc, args, "g_njson-integer?",
       [] (const json& value) { return value.is_number_integer () || value.is_number_unsigned (); },
-      [] (s7_pointer value) { return s7_is_integer (value); });
+      [] (s7_pointer value) { return gf::is_integer (value); });
 }
 
 static s7_pointer
 f_njson_boolean_p (s7_scheme* sc, s7_pointer args) {
   return njson_run_value_type_predicate (
       sc, args, "g_njson-boolean?", [] (const json& value) { return value.is_boolean (); },
-      [] (s7_pointer value) { return s7_is_boolean (value); });
+      [] (s7_pointer value) { return gf::is_boolean (value); });
 }
 
 static s7_pointer
 f_njson_free (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-free", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-free", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -811,16 +811,16 @@ f_njson_free (s7_scheme* sc, s7_pointer args) {
   njson_clear_keys_cache_slot (sc, id);
   state.handle_store[static_cast<size_t> (id)].reset ();
   state.handle_free_ids.push_back (id);
-  return s7_t (sc);
+  return gf::t (sc);
 }
 
 static s7_pointer
 f_njson_size (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-size", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-size", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -833,18 +833,18 @@ f_njson_size (s7_scheme* sc, s7_pointer args) {
   }
 
   if (root->is_object () || root->is_array ()) {
-    NJSON_TRY_CATCH (sc, "g_njson-size", handle, { return s7_make_integer (sc, static_cast<s7_int> (root->size ())); });
+    NJSON_TRY_CATCH (sc, "g_njson-size", handle, { return gf::make_integer (sc, static_cast<s7_int> (root->size ())); });
   }
-  return s7_make_integer (sc, 0);
+  return gf::make_integer (sc, 0);
 }
 
 static s7_pointer
 f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-empty?", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-empty?", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -857,18 +857,18 @@ f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
   }
 
   if (root->is_object () || root->is_array ()) {
-    NJSON_TRY_CATCH (sc, "g_njson-empty?", handle, { return s7_make_boolean (sc, root->empty ()); });
+    NJSON_TRY_CATCH (sc, "g_njson-empty?", handle, { return gf::make_boolean (sc, root->empty ()); });
   }
-  return s7_t (sc);
+  return gf::t (sc);
 }
 
 static s7_pointer
 f_njson_ref (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-ref", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-ref", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -876,7 +876,7 @@ f_njson_ref (s7_scheme* sc, s7_pointer args) {
   }
 
   std::vector<s7_pointer> path;
-  if (!collect_path_keys (sc, s7_cdr (args), path, error_msg)) {
+  if (!collect_path_keys (sc, gf::cdr (args), path, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
   }
   if (path.empty ()) {
@@ -916,14 +916,14 @@ njson_update_expected_argv (njson_update_op op) {
 static s7_pointer
 njson_parse_update_request (s7_scheme* sc, s7_pointer args, const char* api_name, njson_update_op op,
                             s7_pointer& handle, s7_int& id, std::vector<s7_pointer>& path, json& value_json) {
-  handle= s7_car (args);
+  handle= gf::car (args);
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
     return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
   }
 
   std::vector<s7_pointer> tokens;
-  if (!collect_path_keys (sc, s7_cdr (args), tokens, error_msg)) {
+  if (!collect_path_keys (sc, gf::cdr (args), tokens, error_msg)) {
     return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
   }
 
@@ -967,7 +967,7 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
 
   std::string error_msg;
   json*       parent  = nullptr;
-  s7_pointer  last_key= s7_nil (sc);
+  s7_pointer  last_key= gf::nil (sc);
   if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, error_msg)) {
     return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
   }
@@ -1036,11 +1036,11 @@ njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_poin
 
 static s7_pointer
 njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_update_op op, bool in_place) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer              handle= s7_nil (sc);
+  s7_pointer              handle= gf::nil (sc);
   s7_int                  id    = 0;
   std::vector<s7_pointer> path;
   json                    value_json;
@@ -1083,12 +1083,12 @@ enum class njson_merge_mode { shallow, deep };
 
 static s7_pointer
 njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_merge_mode mode, bool in_place) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, api_name, gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle      = s7_car (args);
-  s7_pointer  source_input= s7_cadr (args);
+  s7_pointer  handle      = gf::car (args);
+  s7_pointer  source_input= gf::cadr (args);
   s7_int      id          = 0;
   json        source_json;
   std::string error_msg;
@@ -1182,12 +1182,12 @@ f_njson_deep_merge_x (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-contains-key?", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-contains-key?", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
-  s7_pointer  key   = s7_cadr (args);
+  s7_pointer  handle= gf::car (args);
+  s7_pointer  key   = gf::cadr (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -1200,23 +1200,23 @@ f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
                         handle);
   }
   if (!root->is_object ()) {
-    return s7_f (sc);
+    return gf::f (sc);
   }
 
   std::string key_name;
   if (!scheme_json_key_to_string (sc, key, key_name, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-contains-key?: " + error_msg, key);
   }
-  NJSON_TRY_CATCH (sc, "g_njson-contains-key?", handle, { return s7_make_boolean (sc, root->contains (key_name)); });
+  NJSON_TRY_CATCH (sc, "g_njson-contains-key?", handle, { return gf::make_boolean (sc, root->contains (key_name)); });
 }
 
 static s7_pointer
 f_njson_keys (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-keys", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-keys", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
-  s7_pointer  handle= s7_car (args);
+  s7_pointer  handle= gf::car (args);
   s7_int      id    = 0;
   std::string error_msg;
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
@@ -1228,7 +1228,7 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
     return njson_error (sc, "type-error", "g_njson-keys: njson handle does not exist (may have been freed)", handle);
   }
   if (!root->is_object ()) {
-    return s7_nil (sc);
+    return gf::nil (sc);
   }
 
   const std::vector<std::string>* cached= nullptr;
@@ -1245,7 +1245,7 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
       return njson_build_keys_list (sc, *stored);
     }
   });
-  return s7_nil (sc);
+  return gf::nil (sc);
 }
 
 static s7_pointer
@@ -1295,13 +1295,13 @@ public:
 
 static s7_pointer
 njson_schema_errors_to_scheme (s7_scheme* sc, const std::vector<njson_schema_error_entry>& errors) {
-  s7_pointer out= s7_nil (sc);
+  s7_pointer out= gf::nil (sc);
   for (auto it= errors.rbegin (); it != errors.rend (); ++it) {
-    s7_pointer row= s7_make_hash_table (sc, 3);
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance-path"), s7_make_string (sc, it->instance_path.c_str ()));
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "message"), s7_make_string (sc, it->message.c_str ()));
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance"), s7_make_string (sc, it->instance_dump.c_str ()));
-    out= s7_cons (sc, row, out);
+    s7_pointer row= gf::make_hash_table (sc, 3);
+    gf::hash_table_set (sc, row, gf::make_symbol (sc, "instance-path"), gf::make_string (sc, it->instance_path.c_str ()));
+    gf::hash_table_set (sc, row, gf::make_symbol (sc, "message"), gf::make_string (sc, it->message.c_str ()));
+    gf::hash_table_set (sc, row, gf::make_symbol (sc, "instance"), gf::make_string (sc, it->instance_dump.c_str ()));
+    out= gf::cons (sc, row, out);
   }
   return out;
 }
@@ -1309,8 +1309,8 @@ njson_schema_errors_to_scheme (s7_scheme* sc, const std::vector<njson_schema_err
 static s7_pointer
 njson_run_schema_validation (s7_scheme* sc, const char* api_name, s7_pointer args,
                              std::vector<njson_schema_error_entry>& errors_out) {
-  s7_pointer  schema_input  = s7_car (args);
-  s7_pointer  instance_input= s7_cadr (args);
+  s7_pointer  schema_input  = gf::car (args);
+  s7_pointer  instance_input= gf::cadr (args);
   json        schema_json;
   json        instance_json;
   std::string error_msg;
@@ -1341,7 +1341,7 @@ njson_run_schema_validation (s7_scheme* sc, const char* api_name, s7_pointer arg
 
 static s7_pointer
 f_njson_schema_report (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-schema-report", s7_car (args));
+  s7_pointer thread_err= njson_require_owner_thread (sc, "g_njson-schema-report", gf::car (args));
   if (thread_err) {
     return thread_err;
   }
@@ -1351,11 +1351,11 @@ f_njson_schema_report (s7_scheme* sc, s7_pointer args) {
     return err;
   }
 
-  s7_pointer report= s7_make_hash_table (sc, 3);
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "valid?"), s7_make_boolean (sc, errors.empty ()));
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "error-count"),
-                     s7_make_integer (sc, static_cast<s7_int> (errors.size ())));
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "errors"), njson_schema_errors_to_scheme (sc, errors));
+  s7_pointer report= gf::make_hash_table (sc, 3);
+  gf::hash_table_set (sc, report, gf::make_symbol (sc, "valid?"), gf::make_boolean (sc, errors.empty ()));
+  gf::hash_table_set (sc, report, gf::make_symbol (sc, "error-count"),
+                     gf::make_integer (sc, static_cast<s7_int> (errors.size ())));
+  gf::hash_table_set (sc, report, gf::make_symbol (sc, "errors"), njson_schema_errors_to_scheme (sc, errors));
   return report;
 }
 

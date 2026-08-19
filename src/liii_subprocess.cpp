@@ -14,7 +14,7 @@
 // under the License.
 //
 
-#include "s7.h"
+#include "gf.h"
 #include <cstdio>
 #include <cstring>
 #include <string>
@@ -34,68 +34,68 @@ enum class redirect_mode { tee, capture, inherit, discard, file };
 
 s7_pointer
 f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
-  s7_pointer cmd_arg= s7_car (args);
-  args              = s7_cdr (args);
+  s7_pointer cmd_arg= gf::car (args);
+  args              = gf::cdr (args);
 
   const char* cwd= nullptr;
-  if (s7_is_pair (args) && s7_is_string (s7_car (args))) {
-    cwd = s7_string (s7_car (args));
-    args= s7_cdr (args);
+  if (gf::is_pair (args) && gf::is_string (gf::car (args))) {
+    cwd = gf::string (gf::car (args));
+    args= gf::cdr (args);
   }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
+  else if (gf::is_pair (args)) {
+    args= gf::cdr (args);
   }
 
   vector<string>      env_storage;
   vector<const char*> envp;
-  if (s7_is_pair (args) && s7_is_pair (s7_car (args))) {
-    s7_pointer env_alist= s7_car (args);
-    while (s7_is_pair (env_alist)) {
-      s7_pointer item= s7_car (env_alist);
-      if (s7_is_pair (item)) {
-        const char* key  = s7_string (s7_car (item));
-        s7_pointer  val  = s7_cdr (item);
-        const char* val_c= s7_is_string (val) ? s7_string (val) : "";
+  if (gf::is_pair (args) && gf::is_pair (gf::car (args))) {
+    s7_pointer env_alist= gf::car (args);
+    while (gf::is_pair (env_alist)) {
+      s7_pointer item= gf::car (env_alist);
+      if (gf::is_pair (item)) {
+        const char* key  = gf::string (gf::car (item));
+        s7_pointer  val  = gf::cdr (item);
+        const char* val_c= gf::is_string (val) ? gf::string (val) : "";
         env_storage.push_back (string (key) + "=" + val_c);
       }
-      env_alist= s7_cdr (env_alist);
+      env_alist= gf::cdr (env_alist);
     }
     for (auto& s : env_storage) {
       envp.push_back (s.c_str ());
     }
     envp.push_back (nullptr);
-    args= s7_cdr (args);
+    args= gf::cdr (args);
   }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
+  else if (gf::is_pair (args)) {
+    args= gf::cdr (args);
   }
 
   const char* input    = nullptr;
   size_t      input_len= 0;
-  if (s7_is_pair (args) && s7_is_string (s7_car (args))) {
-    input    = s7_string (s7_car (args));
+  if (gf::is_pair (args) && gf::is_string (gf::car (args))) {
+    input    = gf::string (gf::car (args));
     input_len= strlen (input);
-    args     = s7_cdr (args);
+    args     = gf::cdr (args);
   }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
+  else if (gf::is_pair (args)) {
+    args= gf::cdr (args);
   }
 
   tb_long_t timeout_ms= -1;
-  if (s7_is_pair (args) && s7_is_integer (s7_car (args))) {
-    timeout_ms= s7_integer (s7_car (args)) * 1000;
-    args      = s7_cdr (args);
+  if (gf::is_pair (args) && gf::is_integer (gf::car (args))) {
+    timeout_ms= gf::integer (gf::car (args)) * 1000;
+    args      = gf::cdr (args);
   }
-  else if (s7_is_pair (args)) {
-    args= s7_cdr (args);
+  else if (gf::is_pair (args)) {
+    args= gf::cdr (args);
   }
 
   redirect_mode stdout_mode= redirect_mode::inherit;
   const char*   stdout_path= nullptr;
-  if (s7_is_pair (args)) {
-    s7_pointer stdout_val= s7_car (args);
-    if (s7_is_symbol (stdout_val)) {
-      const char* sym= s7_symbol_name (stdout_val);
+  if (gf::is_pair (args)) {
+    s7_pointer stdout_val= gf::car (args);
+    if (gf::is_symbol (stdout_val)) {
+      const char* sym= gf::symbol_name (stdout_val);
       if (strcmp (sym, "capture") == 0) {
         stdout_mode= redirect_mode::capture;
       }
@@ -106,29 +106,29 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         stdout_mode= redirect_mode::inherit;
       }
     }
-    else if (s7_is_string (stdout_val)) {
+    else if (gf::is_string (stdout_val)) {
       stdout_mode= redirect_mode::file;
-      stdout_path= s7_string (stdout_val);
+      stdout_path= gf::string (stdout_val);
     }
-    args= s7_cdr (args);
+    args= gf::cdr (args);
   }
 
   bool stdout_append= false;
-  if (s7_is_pair (args)) {
-    s7_pointer stdout_mode_val= s7_car (args);
-    if (s7_is_symbol (stdout_mode_val) && strcmp (s7_symbol_name (stdout_mode_val), "append") == 0) {
+  if (gf::is_pair (args)) {
+    s7_pointer stdout_mode_val= gf::car (args);
+    if (gf::is_symbol (stdout_mode_val) && strcmp (gf::symbol_name (stdout_mode_val), "append") == 0) {
       stdout_append= true;
     }
-    args= s7_cdr (args);
+    args= gf::cdr (args);
   }
 
   redirect_mode stderr_mode     = redirect_mode::inherit;
   bool          stderr_to_stdout= false;
   const char*   stderr_path     = nullptr;
-  if (s7_is_pair (args)) {
-    s7_pointer stderr_val= s7_car (args);
-    if (s7_is_symbol (stderr_val)) {
-      const char* sym= s7_symbol_name (stderr_val);
+  if (gf::is_pair (args)) {
+    s7_pointer stderr_val= gf::car (args);
+    if (gf::is_symbol (stderr_val)) {
+      const char* sym= gf::symbol_name (stderr_val);
       if (strcmp (sym, "stdout") == 0) {
         stderr_to_stdout= true;
       }
@@ -142,31 +142,31 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
         stderr_mode= redirect_mode::inherit;
       }
     }
-    else if (s7_is_string (stderr_val)) {
+    else if (gf::is_string (stderr_val)) {
       stderr_mode= redirect_mode::file;
-      stderr_path= s7_string (stderr_val);
+      stderr_path= gf::string (stderr_val);
     }
-    args= s7_cdr (args);
+    args= gf::cdr (args);
   }
 
   bool stderr_append= false;
-  if (s7_is_pair (args)) {
-    s7_pointer stderr_mode_val= s7_car (args);
-    if (s7_is_symbol (stderr_mode_val) && strcmp (s7_symbol_name (stderr_mode_val), "append") == 0) {
+  if (gf::is_pair (args)) {
+    s7_pointer stderr_mode_val= gf::car (args);
+    if (gf::is_symbol (stderr_mode_val) && strcmp (gf::symbol_name (stderr_mode_val), "append") == 0) {
       stderr_append= true;
     }
-    args= s7_cdr (args);
+    args= gf::cdr (args);
   }
 
   const char* stdin_path= nullptr;
   bool        stdin_null= false;
-  if (s7_is_pair (args)) {
-    s7_pointer stdin_val= s7_car (args);
-    if (s7_is_symbol (stdin_val) && strcmp (s7_symbol_name (stdin_val), "null") == 0) {
+  if (gf::is_pair (args)) {
+    s7_pointer stdin_val= gf::car (args);
+    if (gf::is_symbol (stdin_val) && strcmp (gf::symbol_name (stdin_val), "null") == 0) {
       stdin_null= true;
     }
-    else if (s7_is_string (stdin_val)) {
-      stdin_path= s7_string (stdin_val);
+    else if (gf::is_string (stdin_val)) {
+      stdin_path= gf::string (stdin_val);
     }
   }
 
@@ -251,8 +251,8 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
 
   tb_process_ref_t process= tb_null;
-  if (s7_is_string (cmd_arg)) {
-    const char* cmd_c= s7_string (cmd_arg);
+  if (gf::is_string (cmd_arg)) {
+    const char* cmd_c= gf::string (cmd_arg);
 #ifdef TB_CONFIG_OS_WINDOWS
     process= tb_process_init_cmd (cmd_c, &attr);
 #elif !defined(_MSC_VER) && !defined(__MINGW32__) && !defined(__EMSCRIPTEN__)
@@ -266,15 +266,15 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     process= tb_process_init_cmd (cmd_c, &attr);
 #endif
   }
-  else if (s7_is_pair (cmd_arg)) {
+  else if (gf::is_pair (cmd_arg)) {
     vector<const char*> argv;
     s7_pointer          p= cmd_arg;
-    while (s7_is_pair (p)) {
-      s7_pointer item= s7_car (p);
-      if (s7_is_string (item)) {
-        argv.push_back (s7_string (item));
+    while (gf::is_pair (p)) {
+      s7_pointer item= gf::car (p);
+      if (gf::is_string (item)) {
+        argv.push_back (gf::string (item));
       }
-      p= s7_cdr (p);
+      p= gf::cdr (p);
     }
     argv.push_back (nullptr);
     if (!argv.empty ()) {
@@ -329,17 +329,17 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     tb_process_exit (process);
   }
 
-  s7_pointer out_s7 = s7_make_string (sc, stdout_str.c_str ());
-  s7_pointer err_s7 = s7_make_string (sc, stderr_str.c_str ());
-  s7_pointer code_s7= s7_make_integer (sc, (s7_int) status);
-  return s7_values (sc, s7_cons (sc, out_s7, s7_cons (sc, err_s7, s7_cons (sc, code_s7, s7_nil (sc)))));
+  s7_pointer out_s7 = gf::make_string (sc, stdout_str.c_str ());
+  s7_pointer err_s7 = gf::make_string (sc, stderr_str.c_str ());
+  s7_pointer code_s7= gf::make_integer (sc, (s7_int) status);
+  return gf::values (sc, gf::cons (sc, out_s7, gf::cons (sc, err_s7, gf::cons (sc, code_s7, gf::nil (sc)))));
 }
 
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env= s7_curlet (sc);
-  s7_pointer func   = s7_make_typed_function (sc, name, f, required, optional, false, desc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
+  s7_pointer cur_env= gf::curlet (sc);
+  s7_pointer func   = gf::make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 void
