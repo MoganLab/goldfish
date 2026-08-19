@@ -104,7 +104,7 @@
 (check (tr-map '(1 2 3)) => '(3 6 9))
 (check (tr-map '(10)) => '(30))
 
-;; ===== 6. VM closure body 内调用 s7 for-each =====
+;; ===== 5. VM closure body 内调用 s7 for-each =====
 ;; 回归：s7 的 g_for_each_closure 对单表达式 body（VM closure 壳
 ;; (vm-enter ...)）走 OP_FOR_EACH_2 延迟 apply 并返回 unspecified，
 ;; VM 的 Call 指令拿不到回调结果。set-size-test 经 (liii set) 的
@@ -119,7 +119,7 @@
 (check (vm-fe '()) => 0)
 (check (vm-fe '(7)) => 1)
 
-;; ===== 7. call-with-values 多值 producer =====
+;; ===== 6. call-with-values 多值 producer =====
 ;; 回归：VM 的 CallWithValues 指令对非 VM 闭包的 producer（普通 s7
 ;; lambda）返回的多值解包错误——s7 在 apply_function 里把 (values 1 2)
 ;; splice 后清除多值标记，VM 的 is_multiple_value 检测不到，把 (1 2)
