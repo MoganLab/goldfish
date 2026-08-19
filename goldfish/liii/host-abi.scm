@@ -1,3 +1,10 @@
+;;; host-abi.scm -- the R7RS value surface the s7 host lacks, or whose
+;;; semantics differ (exact-ness of floor/ceiling, list-based set ops, ...).
+;;; Loaded during the s7 bootstrap phase (liii_reader.cpp) into the rootlet,
+;;; where the expander's primitive references and the artifact's re-bindings
+;;; resolve at runtime.  eof-object / vector-map / vector-for-each are NOT
+;;; defined here: the kernel (substrate.scm) provides them, and its
+;;; re-bindings override anything this file could define.
 (define exact inexact->exact)
 (define inexact exact->inexact)
 (define (max2 x y) (when (or (not (real? x)) (not (real? y))) (error (quote type-error) "max: parameter must be real number")) (if (or (inexact? x) (inexact? y)) (inexact (s7-max x y)) (s7-max x y)))
@@ -44,14 +51,11 @@
 (define (input-port-open? p) (not (port-closed? p)))
 (define (output-port-open? p) (not (port-closed? p)))
 (define (close-port p) (if (input-port? p) (close-input-port p) (close-output-port p)))
-(define (eof-object) #<eof>)
 (define list-copy copy)
 (define (string-copy str . start_end) (cond ((null? start_end) (substring str 0)) ((= (length start_end) 1) (substring str (car start_end))) ((= (length start_end) 2) (substring str (car start_end) (cadr start_end))) (else (error (quote wrong-number-of-args)))))
 (define (string-map p . args) (apply string (apply map p args)))
 (define string-for-each for-each)
 (define* (vector-copy v (start 0) (end (vector-length v))) (if (or (> start end) (> end (vector-length v))) (error (quote out-of-range) "vector-copy") (let ((new-v (make-vector (- end start)))) (let loop ((i start) (j 0)) (if (>= i end) new-v (begin (vector-set! new-v j (vector-ref v i)) (loop (+ i 1) (+ j 1))))))))
-(define (vector-map p . args) (apply vector (apply map p args)))
-(define vector-for-each for-each)
 (define vector-fill! fill!)
 (define* (vector-copy! to at from (start 0) (end (vector-length from))) (if (or (< at 0) (> start (vector-length from)) (< end 0) (> end (vector-length from)) (> start end) (> (+ at (- end start)) (vector-length to))) (error (quote out-of-range) "vector-copy!") (let loop ((to-i at) (from-i start)) (if (>= from-i end) to (begin (vector-set! to to-i (vector-ref from from-i)) (loop (+ to-i 1) (+ from-i 1)))))))
 (define* (vector->string v (start 0) end) (let ((stop (or end (length v)))) (copy v (make-string (- stop start)) start stop)))
