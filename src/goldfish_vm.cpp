@@ -24,6 +24,7 @@
 // the lifetime of the process (one program at a time, v1).
 
 #include "gf.h"
+#include <deque>
 #include <map>
 #include <string>
 #include <vector>
@@ -126,12 +127,17 @@ struct VMFrame {
 
 static VMProgram* g_program = nullptr;
 static std::vector<s7_pointer> g_stack;
-static std::vector<VMFrame> g_frames;
+// A deque, not a vector: a nested VM call (VM closure invoked from s7,
+// which calls back into the VM, e.g. map over a VM closure) pushes frames
+// from inside the run loop; a vector realloc would invalidate the loop's
+// `VMFrame& fr = g_frames.back()` reference, leaving it dangling.
+static std::deque<VMFrame> g_frames;
 static s7_pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
 static s7_pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
 static s7_pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
 static s7_pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
 static s7_pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
+static s7_pointer g_map_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -499,7 +505,27 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         for (int i = n - 1; i >= 0; --i) args[i] = pop ();
         s7_pointer f = pop ();
         s7_pointer r;
-        if (in.op == Op::TailCall) {
+        // Fast path for (map proc seq): s7's map defers a one-expression
+        // closure body it cannot cell-optimize (a VM closure shell is
+        // (lambda x (vm-enter ...)) -- vm-enter is a C function, so the
+        // optimizer gives up) onto OP_MAP_2 and returns unspecified; the
+        // collected values then never reach the VM.  Walk the sequence
+        // directly so the VM closure callback runs through call_function.
+        if (gf::is_eq (f, g_map_fn) && args.size () == 2) {
+          size_t d0 = g_frames.size ();
+          std::vector<s7_pointer> vals;
+          for (s7_pointer p = args[1]; gf::is_pair (p); p = gf::cdr (p)) {
+            std::vector<s7_pointer> a (1);
+            a[0] = gf::car (p);
+            s7_pointer v = call_function (sc, args[0], a, nullptr);
+            if (v == nullptr) v = run (sc, d0);
+            vals.push_back (v);
+          }
+          s7_pointer lst = gf::nil (sc);
+          for (size_t i = vals.size (); i > 0; --i)
+            lst = gf::cons (sc, vals[i - 1], lst);
+          r = lst;
+        } else if (in.op == Op::TailCall) {
           std::vector<s7_pointer> slots = std::move (fr.slots);
           g_frames.pop_back ();
           r = call_function (sc, f, args, &slots);
@@ -537,7 +563,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::CallWithValues: {
         s7_pointer c = pop ();
         s7_pointer p = pop ();
-        size_t d0 = g_frames.size ();
+  size_t d0 = g_frames.size ();
         std::vector<s7_pointer> no_args;
         s7_pointer pr = call_function (sc, p, no_args, nullptr);
         s7_pointer r = (pr != nullptr) ? pr : run (sc, d0);
@@ -645,6 +671,7 @@ void glue_vm (s7_scheme* sc) {
   g_sub_fn   = gf::global_value (sc, gf::make_symbol (sc, "-"));
   g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
+  g_map_fn   = gf::global_value (sc, gf::make_symbol (sc, "map"));
   g_false = gf::f (sc);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");
