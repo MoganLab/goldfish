@@ -14,35 +14,34 @@
 ;; under the License.
 ;;
 
-(import (liii base) (liii timeit))
+(import (liii base)
+  (liii os)
+  (liii path)
+  (liii timeit)
+  (only (srfi srfi-13) string-suffix? string-contains)
+) ;import
 
-(define bench-file "bench/read-perf-data.scm")
+;; 递归收集目录下所有 .scm 文件
 
-;; 生成一个较大的测试文件：若干个 define 与列表/字符串/数字混合的 form
-
-(define (build-bench-file n)
-  (let ((out (open-output-string)))
-    (do ((i 0 (+ i 1)))
-      ((= i n))
-      (display "(define (bench-func-" out)
-      (display i out)
-      (display " x) ;; 函数注释 " out)
-      (display i out)
-      (newline out)
-      (display "  (let ((y (* x " out)
-      (display i out)
-      (display ")))" out)
-      (newline out)
-      (display "    (list y \"中文字符串测试\" #\\A 'sym #(1 2 3) 3.14)))" out)
-      (newline out)
-      (newline out)
-    ) ;do
-    (with-output-to-file bench-file (lambda () (display (get-output-string out))))
+(define (collect-scm-files dir)
+  (let loop
+    ((acc '()) (entries (vector->list (listdir dir))))
+    (if (null? entries)
+      acc
+      (let ((p (string-append dir (string (os-sep)) (car entries))))
+        (cond ((and (path-dir? p)
+                 (not (string-contains p (string-append (string (os-sep)) "resources")))
+               ) ;and
+               ;; 跳过 resources 目录：其中包含故意损坏的括号测试文件
+               (loop (append (collect-scm-files p) acc) (cdr entries))
+              ) ;
+              ((string-suffix? ".scm" (car entries)) (loop (cons p acc) (cdr entries)))
+              (else (loop acc (cdr entries)))
+        ) ;cond
+      ) ;let
+    ) ;if
   ) ;let
 ) ;define
-
-(define form-count 500)
-(build-bench-file form-count)
 
 (define (report title iterations time-val)
   (display "[")
@@ -56,42 +55,45 @@
 ) ;define
 
 (define (read-all-from-file file)
-  (let ((p (open-input-file file)))
-    (let loop
-      ()
-      (let ((x (read p)))
-        (if (eof-object? x) (begin (close-input-port p) 'done) (loop))
+  ;; 个别测试文件故意包含语法错误（括号不匹配、未闭合字符串等），读取出错时跳过
+  (catch #t
+    (lambda ()
+      (let ((p (open-input-file file)))
+        (let loop
+          ()
+          (let ((x (read p)))
+            (if (eof-object? x) (begin (close-input-port p) 'done) (loop))
+          ) ;let
+        ) ;let
       ) ;let
-    ) ;let
-  ) ;let
+    ) ;lambda
+    (lambda args 'skipped)
+  ) ;catch
+) ;define
+
+(define bench-dirs '("goldfish" "tests"))
+
+(define scm-files (apply append (map collect-scm-files bench-dirs)))
+
+(display "=== read 性能基准测试 ===")
+(newline)
+(display "文件: ")
+(display (length scm-files))
+(display " 个 .scm 文件 (goldfish/ + tests/)")
+(newline)
+(newline)
+
+(define (read-all-files)
+  (for-each read-all-from-file scm-files)
 ) ;define
 
 ;; warmup
-(do ((i 0 (+ i 1)))
-  ((= i 3))
-  (read-all-from-file bench-file)
-) ;do
+(read-all-files)
 
-(define read-iter 30)
+(define read-iter 10)
 
-(define load-iter 30)
-
-(display "=== read/load 性能基准测试 ===")
-(newline)
-(display "文件: ")
-(display bench-file)
-(display " (")
-(display form-count)
-(display " 个顶层 form)")
-(newline)
-(newline)
-
-(let ((t (timeit (lambda () (read-all-from-file bench-file)) '() read-iter)))
-  (report "读取文件(open-input-file+read)" read-iter t)
-) ;let
-
-(let ((t (timeit (lambda () (load bench-file)) '() load-iter)))
-  (report "加载文件(load)" load-iter t)
+(let ((t (timeit (lambda () (read-all-files)) '() read-iter)))
+  (report "读取全部文件(open-input-file+read)" read-iter t)
 ) ;let
 
 (newline)
