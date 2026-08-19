@@ -27,7 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-drop json-drop* json-reduce json-reduce*)
+  (export json-string-escape)
   (begin
 
     (define (json-string-escape str)
@@ -72,156 +72,9 @@
       ) ;let
     ) ;define
 
-    ;; json-set 由 C++ 实现（src/liii_json.cpp 中的 g_json_set，含变参多键路径，
-    ;; 语义覆盖历史上的 json-set 与 json-set*）；仅供本库的 json-drop* 内部使用，不导出
-    (define json-set g_json_set)
-    (define json-drop
-      (lambda (x v)
-        (if (vector? x)
-          (if (zero? (vector-length x))
-            x
-            (list->vector (cond ((procedure? v)
-                                 (let l
-                                   ((x (vector->alist x)) (v v))
-                                   (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (cdar x) (l (cdr x) v))))
-                                 ) ;let
-                                ) ;
-                                (else (let l
-                                        ((x (vector->alist x)) (v v))
-                                        (if (null? x)
-                                          '()
-                                          (if (equal? (caar x) v) (l (cdr x) v) (cons (cdar x) (l (cdr x) v)))
-                                        ) ;if
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-            ) ;list->vector
-          ) ;if
-          (cond ((procedure? v)
-                 (let l
-                   ((x x) (v v))
-                   (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (car x) (l (cdr x) v))))
-                 ) ;let
-                ) ;
-                (else (let l
-                        ((x x) (v v))
-                        (if (null? x)
-                          '()
-                          (if (equal? (caar x) v) (l (cdr x) v) (cons (car x) (l (cdr x) v)))
-                        ) ;if
-                      ) ;let
-                ) ;else
-          ) ;cond
-        ) ;if
-      ) ;lambda
-    ) ;define
-    (define json-drop*
-      (lambda (json key . rest)
-        (if (null? rest)
-          (json-drop json key)
-          (json-set json key (lambda (x) (apply json-drop* (cons x rest))))
-        ) ;if
-      ) ;lambda
-    ) ;define
-    (define json-reduce
-      (lambda (x v p)
-        (if (vector? x)
-          (list->vector (cond ((boolean? v)
-                               (if v
-                                 (let l
-                                   ((x (vector->alist x)) (p p))
-                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p)))
-                                 ) ;let
-                                 x
-                               ) ;if
-                              ) ;
-                              ((procedure? v)
-                               (let l
-                                 ((x (vector->alist x)) (v v) (p p))
-                                 (if (null? x)
-                                   '()
-                                   (if (v (caar x))
-                                     (cons (p (caar x) (cdar x)) (l (cdr x) v p))
-                                     (cons (cdar x) (l (cdr x) v p))
-                                   ) ;if
-                                 ) ;if
-                               ) ;let
-                              ) ;
-                              (else (let l
-                                      ((x (vector->alist x)) (v v) (p p))
-                                      (if (null? x)
-                                        '()
-                                        (if (equal? (caar x) v)
-                                          (cons (p (caar x) (cdar x)) (l (cdr x) v p))
-                                          (cons (cdar x) (l (cdr x) v p))
-                                        ) ;if
-                                      ) ;if
-                                    ) ;let
-                              ) ;else
-                        ) ;cond
-          ) ;list->vector
-          (cond ((boolean? v)
-                 (if v
-                   (let l
-                     ((x x) (p p))
-                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p)))
-                   ) ;let
-                   x
-                 ) ;if
-                ) ;
-                ((procedure? v)
-                 (let l
-                   ((x x) (v v) (p p))
-                   (if (null? x)
-                     '()
-                     (if (v (caar x))
-                       (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) v p))
-                       (cons (car x) (l (cdr x) v p))
-                     ) ;if
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (let l
-                        ((x x) (v v) (p p))
-                        (if (null? x)
-                          '()
-                          (if (equal? (caar x) v)
-                            (cons (cons v (p v (cdar x))) (l (cdr x) v p))
-                            (cons (car x) (l (cdr x) v p))
-                          ) ;if
-                        ) ;if
-                      ) ;let
-                ) ;else
-          ) ;cond
-        ) ;if
-      ) ;lambda
-    ) ;define
-    (define (json-reduce* j v1 v2 . rest)
-      (cond ((null? rest) (json-reduce j v1 v2))
-            ((length=? 1 rest)
-             (json-reduce j
-               v1
-               (lambda (x y)
-                 (let* ((new-v1 v2) (p (last rest)))
-                   (json-reduce y new-v1 (lambda (n m) (p (list x n) m)))
-                 ) ;let*
-               ) ;lambda
-             ) ;json-reduce
-            ) ;
-            (else (json-reduce j
-                    v1
-                    (lambda (x y)
-                      (let* ((new-v1 v2) (p (last rest)))
-                        (apply json-reduce*
-                          (append (cons y (cons new-v1 (drop-right rest 1)))
-                            (list (lambda (n m) (p (cons x n) m)))
-                          ) ;append
-                        ) ;apply
-                      ) ;let*
-                    ) ;lambda
-                  ) ;json-reduce
-            ) ;else
-      ) ;cond
-    ) ;define
+    ;; json-set / json-drop / json-reduce 均由 C++ 实现（src/liii_json.cpp 中的
+    ;; g_json_set / g_json_drop / g_json_reduce，含变参多键路径，语义覆盖历史上的
+    ;; json-set / json-drop / json-reduce 及带 * 版本），本库不再保留对应 Scheme 实现。
+    ;; 历史上的 json-reduce*（多 v/p 对、p 收键路径列表的独立接口）无使用者，已删除
   ) ;begin
 ) ;define-library

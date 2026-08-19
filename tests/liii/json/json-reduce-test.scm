@@ -151,6 +151,52 @@
 ) ;let
 
 
+;; 边界用例（0129 json-reduce 迁移 C++ 前锁定语义）
+
+;; 数组按索引转换（p 收到索引和值两个参数）
+(let* ((j0 #(10 20 30)) (j1 (json-reduce j0 1 (lambda (k v) (* v 10)))))
+  (check j1 => #(10 200 30))
+) ;let*
+
+;; 数组谓词键
+(let* ((j0 #(10 20 30 40))
+       (j1 (json-reduce j0 (lambda (k) (odd? k)) (lambda (k v) (* v 100))))
+      ) ;
+  (check j1 => #(10 2000 30 4000))
+) ;let*
+
+;; 数组 #t 键：全映射，p 收到索引和值两个参数
+(let* ((j0 #(1 2 3)) (j1 (json-reduce j0 #t (lambda (k v) (* v 10)))))
+  (check j1 => #(10 20 30))
+) ;let*
+
+;; 数组 #f 键：历史怪癖，(list->vector x) 抛 wrong-type-arg（与 json-set 的 #f 键一致）
+(check-catch 'wrong-type-arg (json-reduce #(1 2 3) #f (lambda (k v) v)))
+
+;; 对象 #f 键原样返回
+(let* ((j0 '((a . 1))))
+  (check (json-reduce j0 #f (lambda (k v) 99)) => '((a . 1)))
+) ;let*
+
+;; 多键路径首键不存在时原样返回
+(let* ((j0 '((a . 1))) (j1 (json-reduce j0 'not-exist 'x (lambda (k v) v))))
+  (check j1 => '((a . 1)))
+) ;let*
+
+;; 空对象 '(()) 原样返回
+(let ((j0 '(())))
+  (check (json-reduce j0 'a (lambda (k v) v)) => '(()))
+) ;let
+
+;; 不可变性：原对象不被修改
+(let* ((j0 '((a . 1) (b . 2))) (j1 (json-reduce j0 'a (lambda (k v) (+ v 1)))))
+  (check j0 => '((a . 1) (b . 2)))
+  (check j1 => '((a . 2) (b . 2)))
+) ;let*
+
+;; 缺少转换函数时 value-error
+(check-catch 'value-error (json-reduce '((a . 1)) 'a))
+
 (check-catch 'type-error (json-reduce "not-a-json" 'key (lambda (k v) v)))
 (check-catch 'type-error (json-reduce 123 'key (lambda (k v) v)))
 
