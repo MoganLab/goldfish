@@ -1,4 +1,4 @@
-(import (liii check) (liii json) (liii base) (liii error))
+(import (liii check) (liii json) (liii base) (liii error) (liii unicode))
 
 (check-set-mode! 'report-failed)
 
@@ -113,6 +113,26 @@
     (string-append "\"Quote\\\"InFirst100" (make-string 990 #\A) "\"")
   ) ;check
 ) ;let
+
+;; 多字节 UTF-8 字符：直接输出原始字符，不做转义
+(check (json-string-escape "你好") => "\"你好\"")
+(check (json-string-escape "中文/English") => "\"中文\\/English\"")
+(check (json-string-escape "你好\n世界") => "\"你好\\n世界\"")
+(check (json-string-escape "é") => "\"é\"")
+(check (json-string-escape "😀") => "\"😀\"")
+(check (json-string-escape "日\"本\"語") => "\"日\\\"本\\\"語\"")
+(check (json-string-escape "aé 😀 你好\\mix")
+  =>
+  "\"aé 😀 你好\\\\mix\""
+) ;check
+(let ((long-utf8 (utf8-make-string 500 #\中)))
+  (check (json-string-escape long-utf8) => (string-append "\"" long-utf8 "\""))
+) ;let
+
+;; 其他控制字符（< 0x20）转义为 \uXXXX，保证输出是可再解析的 JSON
+(check (json-string-escape (string #\x1)) => "\"\\u0001\"")
+(check (json-string-escape (string #\x1f)) => "\"\\u001f\"")
+(check (json-string-escape (string #\a #\null #\b)) => "\"a\\u0000b\"")
 
 (check (json-string-escape "1234567890") => "\"1234567890\"")
 (check (json-string-escape "0123456789ABCDEFabcdef")
