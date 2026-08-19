@@ -116,7 +116,10 @@ struct VMFrame {
   VMProgram* prog = nullptr;  // the program this frame executes (not the
                               // global g_program, which a nested vm-load can
                               // replace mid-execution)
-  std::vector<s7_pointer> slots;  // frame slots (C++ array; safe while GC is off)
+  std::vector<s7_pointer> slots;  // frame slots (fast Local/SetLocal)
+  s7_pointer shared_slots = nullptr;  // lazy s7-vector snapshot for closure
+                                      // capture; SetLocal keeps it in sync so
+                                      // letrec closures see post-init values
   s7_pointer captured; // list of enclosing slot vectors (outermost first)
   s7_pointer global_env = nullptr;  // (global ...) resolution env of this frame
 };
@@ -235,17 +238,17 @@ static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std:
   f.slots.assign (ci.nlocals, s7_nil (sc));
   for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
     f.slots[i] = args[i];
+  f.shared_slots = nullptr;
   f.captured = captured;
   g_frames.push_back (f);
 }
 
 // snapshot_slots : frame -> s7 vector
-// The frame's slots as an s7 vector, for closure capture.
+// The frame's slot vector SHARED (lazily materialized on first capture):
+// letrec init closures must see the bindings their siblings set after they
+// are built, so SetLocal keeps shared_slots in sync with the frame slots.
 static s7_pointer snapshot_slots (s7_scheme* sc, const VMFrame& fr) {
-  s7_pointer vec = s7_make_vector (sc, (s7_int)fr.slots.size ());
-  for (size_t i = 0; i < fr.slots.size (); ++i)
-    s7_vector_set (sc, vec, (s7_int)i, fr.slots[i]);
-  return vec;
+  return fr.shared_slots;
 }
 
 // ---------------------------------------------------------------------------
@@ -407,9 +410,13 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::Local:
         push (fr.slots[in.b]);
         break;
-      case Op::SetLocal:
-        fr.slots[in.b] = pop ();
+      case Op::SetLocal: {
+        s7_pointer v = pop ();
+        fr.slots[in.b] = v;
+        if (fr.shared_slots != nullptr)
+          s7_vector_set (sc, fr.shared_slots, in.b, v);
         break;
+      }
       case Op::SetRef:
         s7_vector_set (sc, s7_list_ref (sc, fr.captured, in.b - 1), in.c, pop ());
         break;
@@ -431,7 +438,13 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         vc->prog = fr.prog;
         vc->code_idx = i;
         vc->global_env = fr.global_env;
-        vc->captured = s7_cons (sc, snapshot_slots (sc, fr), fr.captured);
+        // Materialize the shared slot snapshot on first capture.
+        if (fr.shared_slots == nullptr) {
+          fr.shared_slots = s7_make_vector (sc, (s7_int)fr.slots.size ());
+          for (size_t k = 0; k < fr.slots.size (); ++k)
+            s7_vector_set (sc, fr.shared_slots, (s7_int)k, fr.slots[k]);
+        }
+        vc->captured = s7_cons (sc, fr.shared_slots, fr.captured);
         s7_pointer let = s7_inlet (sc,
                                    s7_cons (sc,
                                             s7_cons (sc, captured_symbol, vc->captured),
@@ -565,6 +578,7 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.prog = p;
   f.global_env = global_env;
   f.slots.clear ();
+  f.shared_slots = nullptr;
   f.captured = s7_nil (sc);
   g_frames.push_back (f);
   // The interpreter's C++ stacks hold s7_pointers the conservative GC cannot
