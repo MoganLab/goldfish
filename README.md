@@ -10,7 +10,7 @@ Goldfish Scheme is a Scheme interpreter with the following features:
 <img src="GoldfishScheme-logo.png" alt="示例图片" style="width: 360pt;">
 
 ## Simplicity is Beauty
-Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 98.
+Goldfish Scheme still follows the same principle of simplicity as S7 Scheme. Currently, Goldfish Scheme only depends on [S7 Scheme](https://ccrma.stanford.edu/software/s7/), [tbox](https://gitee.com/tboox/tbox) and C++ standard library defined in C++ 17.
 
 Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp](src/goldfish.cpp) are the only key source code needed to build the goldfish interpreter binary.
 
@@ -20,13 +20,13 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 
 | Library                                           | Description                          | Example functions                                                |
 | ------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
-| [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `==`, `!=`, `display*`                                           |
+| [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `and-let*`, `receive`, `eval-string`                              |
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
 | [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
 | [(liii case)](goldfish/liii/case.scm)             | Pattern matching                     | `case*`                                                          |
-| [(liii list)](goldfish/liii/list.scm)             | List Library                         | `list-view`, `fold`                                              |
+| [(liii list)](goldfish/liii/list.scm)             | List Library                         | `first`, `filter`, `fold`                                         |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
-| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-join`                                                    |
+| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-starts?`, `string-ends?`                                  |
 | [(liii vector)](goldfish/liii/vector.scm)         | Vector Library                       | `vector-index`                                                   |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
 | [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
@@ -40,6 +40,14 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii http-async)](goldfish/liii/http-async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
 | [(liii http-common)](goldfish/liii/http-common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
 | [(liii json)](goldfish/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
+| [(liii njson)](goldfish/liii/njson.scm)           | Mutable JSON with rich operations    | `json->njson`, `njson-ref`, `njson-deep-merge`                    |
+| [(liii subprocess)](goldfish/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
+| [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
+| [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
+| [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
+| [(liii sort)](goldfish/liii/sort.scm)             | Sorting Library                      | `list-sort`, `list-stable-sort`, `vector-sort`                    |
+| [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
+| [(liii argparse)](goldfish/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |
 
 
@@ -99,12 +107,17 @@ Goldfish Scheme uses subcommands for different operations:
 |------------|-------------|
 | `help` | Display help message |
 | `version` | Display version information |
+| `code` | Launch Claude Code with pre-sync and pull |
+| `doc` | Browse Goldfish Scheme library documentation |
 | `eval CODE`, `-e CODE` | Evaluate Scheme code |
+| `fmt PATH` | Format Scheme code |
+| `fix PATH` | Fix Scheme parentheses by indentation |
 | `load FILE` | Load Scheme file and enter REPL |
+| `pr NUM` | Fetch a GitHub pull request into a local `pr_NUM` branch |
 | `repl` | Enter interactive REPL mode |
 | `run TARGET` | Run main function from target |
+| `source` | View source code of library functions |
 | `test` | Run tests |
-| `fix PATH` | Format Scheme code |
 | `FILE` | Load and evaluate Scheme file directly |
 
 ### Display Help
@@ -114,12 +127,19 @@ Without any command, it will print the help message:
 Goldfish Scheme 18.11.28 by LiiiLabs
 
 Commands:
-  help               Display this help message
-  version            Display version
-  eval CODE          Evaluate Scheme code
-                     Example: gf eval '(+ 1 2)'
-                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
-  load FILE          Load Scheme code from FILE, then enter REPL
+  help             Display help information for gf commands
+  code             Launch Claude Code with pre-sync and pull
+  doc              Browse Goldfish Scheme library documentation
+  eval             Evaluate Scheme code
+  fix              Fix Scheme parentheses by indentation
+  fmt              Format code (single file/dir, or whole repo via gf_fmt.json)
+  load             Load Scheme code from FILE, then enter REPL
+  pr               Fetch a GitHub pull request into a local pr_NUM branch
+  repl             Enter interactive REPL mode
+  run              Run main function from TARGET
+  source           View source code of library functions
+  test             Run tests (all *-test.scm files under tests/)
+  version          Display version information
   ...
 ```
 

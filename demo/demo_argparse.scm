@@ -5,5 +5,6 @@
 	  '((name . "width") (type . number) (default . 40))
   ) ;parser
   (parser :parse)
-  (display* (parser 'width) "\n")
+  (display (parser 'width))
+  (newline)
 ) ;let
