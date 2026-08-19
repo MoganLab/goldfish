@@ -18156,7 +18156,7 @@ static port_functions_t input_string_functions_1 =
 const port_functions_t *s7i_input_file_functions(void) {return(&input_file_functions);}
 const port_functions_t *s7i_input_string_functions_1(void) {return(&input_string_functions_1);}
 block_t *s7i_mallocate_port(s7_scheme *sc) {return(mallocate_port(sc));}
-void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, size_t len) {port_set_filename(sc, port, name, len);}
+void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len) {port_set_filename(sc, port, name, (size_t)len);}
 
 
 /* -------------------------------- open-input-file -------------------------------- */

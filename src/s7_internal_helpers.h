@@ -404,7 +404,7 @@ s7_pointer s7i_an_input_port_string_obj(void);
 s7_pointer s7i_an_open_input_port_string_obj(void);
 s7_pointer s7i_eval(s7_scheme *sc, s7_int op);
 block_t *s7i_mallocate_port(s7_scheme *sc);
-void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, size_t len);
+void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len);
 void push_input_port(s7_scheme *sc, s7_pointer new_port);
 s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t num);
 s7_pointer method_or_bust_p(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer typ);
