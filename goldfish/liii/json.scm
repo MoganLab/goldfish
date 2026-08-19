@@ -1,5 +1,5 @@
 (define-library (liii json)
-  (import (liii base) (liii list) (guenchi json))
+  (import (liii base) (liii list))
   (export json-string-escape
     string->json
     json->string
@@ -35,6 +35,9 @@
     ;; ; ---------------------------------------------------------
     ;; ; 0. 统一接口
     ;; ; ---------------------------------------------------------
+
+    ;; json-string-escape 由 C++ 实现（src/liii_json.cpp 中的 g_json_string_escape）
+    (define json-string-escape g_json_string_escape)
 
     ;; json->string 由 C++ 实现（src/liii_json.cpp 中的 g_json->string）
     (define json->string g_json->string)

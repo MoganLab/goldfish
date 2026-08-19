@@ -228,6 +228,29 @@ glue_json_to_string (s7_scheme* sc) {
   s7_define_function (sc, name, f_json_to_string, 1, 0, false, desc);
 }
 
+// json-string-escape 的 C++ 实现，复用 json_write_escaped_string（与 json->string 的
+// 字符串转义完全一致）：\" \\ \/ \b \f \n \r \t，其余控制字符（< 0x20）转义为 \uXXXX，
+// 多字节 UTF-8 原样输出。历史上 (guenchi json) 的 Scheme 实现对其他控制字符原样输出，
+// 迁移后改为 \uXXXX 转义，保证输出是可再解析的合法 JSON
+static s7_pointer
+f_json_string_escape (s7_scheme* sc, s7_pointer args) {
+  s7_pointer arg= s7_car (args);
+  if (!s7_is_string (arg)) {
+    return s7_wrong_type_arg_error (sc, "json-string-escape", 1, arg, "a string");
+  }
+  std::string out;
+  out.reserve ((size_t) s7_string_length (arg) + 2);
+  json_write_escaped_string (out, s7_string (arg), s7_string_length (arg));
+  return s7_make_string_with_length (sc, out.data (), (s7_int) out.size ());
+}
+
+static void
+glue_json_string_escape (s7_scheme* sc) {
+  const char* name= "g_json_string_escape";
+  const char* desc= "(g_json_string_escape str) => string, escape a string as a JSON string literal";
+  s7_define_function (sc, name, f_json_string_escape, 1, 0, false, desc);
+}
+
 // string->json 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme 实现完全一致。
 // Scheme 实现的做法是：逐字符扫描 JSON 文本，把 { } [ ] : , 改写为 Scheme 可读形式
 // （{ -> "((", } -> "))", [ -> "#(", ] -> ")", : -> " . ", 对象内 , -> ")(", 数组内 , -> " "），
@@ -1319,6 +1342,7 @@ glue_json_reduce (s7_scheme* sc) {
 void
 glue_liii_json (s7_scheme* sc) {
   glue_json_to_string (sc);
+  glue_json_string_escape (sc);
   glue_string_to_json (sc);
   glue_json_ref (sc);
   glue_json_set (sc);
