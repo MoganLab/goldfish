@@ -112,6 +112,26 @@ s7_pointer s7i_character_type_name(s7_scheme *sc);
 no_return void out_of_range_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg_n, s7_pointer arg, s7_pointer descr);
 void s7i_check_free_heap_size(s7_scheme *sc, s7_int size);
 s7_pointer cons_unchecked(s7_scheme *sc, s7_pointer a, s7_pointer b);
+no_return void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
+
+/* vector bridges for s7_liii_vector.c migration */
+bool s7i_is_any_vector(s7_pointer p);
+bool s7i_is_t_vector(s7_pointer p);
+bool s7i_is_typed_vector(s7_pointer p);
+bool s7i_is_immutable_vector(s7_pointer p);
+s7_pointer s7i_vector_element(s7_pointer p, s7_int i);
+void s7i_vector_element_set(s7_pointer p, s7_int i, s7_pointer v);
+s7_pointer s7i_vector_getter_ref(s7_scheme *sc, s7_pointer p, s7_int i);
+s7_pointer s7i_vector_setter_set(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v);
+s7_pointer s7i_typed_vector_setter(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v);
+s7_int s7i_vector_offset(s7_pointer p, s7_int i);
+s7_pointer s7i_small_int(s7_int val);
+uint8_t s7i_byte_vector_element(s7_pointer p, s7_int i);
+void s7i_byte_vector_element_set(s7_pointer p, s7_int i, uint8_t v);
+s7_pointer s7i_g_vector_set(s7_scheme *sc, s7_pointer plist);
+s7_pointer s7i_set_plist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4);
+s7_pointer s7i_vector_append_2(s7_scheme *sc, s7_pointer v1, s7_pointer v2);
+s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3);
 s7_pointer s7i_string_eq_symbol(s7_scheme *sc);
 s7_pointer s7i_string_lt_symbol(s7_scheme *sc);
 s7_pointer s7i_string_gt_symbol(s7_scheme *sc);
