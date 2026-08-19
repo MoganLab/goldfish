@@ -100,13 +100,16 @@
                (alist (fold-left (lambda (e n) (slot-env-extend e n (next-slot)))
                                  '() names))
                (envs (cons alist outer-envs)))
-          (compile-body body envs emit next-label next-slot add-code)
+          (compile-body body #t envs emit next-label next-slot add-code)
           (add-code (list 'code slot-n formals (flush))))))
 
-    ;; compile-body : (list ir) frame-envs emit next-label next-slot code-add -> void
+    ;; compile-body : (list ir) bool frame-envs emit next-label next-slot
+    ;;                code-add -> void
     ;; Non-final expressions are evaluated and popped; internal defines
-    ;; become frame slots bound with letrec* semantics.
-    (define (compile-body body envs emit next-label next-slot add-code)
+    ;; become frame slots bound with letrec* semantics.  tail? is whether
+    ;; the final expression is in tail position (emit (return) / tail-call):
+    ;; a let in non-tail position must leave its value on the stack instead.
+    (define (compile-body body tail? envs emit next-label next-slot add-code)
       (let loop ((bs body) (envs envs))
         (cond
           ((null? bs)
@@ -121,7 +124,9 @@
              (emit (list 'set-local slot))
              (loop (cdr bs) new-envs)))
           ((null? (cdr bs))
-           (compile-tail (car bs) envs emit next-label next-slot add-code))
+           (if tail?
+             (compile-tail (car bs) envs emit next-label next-slot add-code)
+             (compile-expr (car bs) envs emit next-label next-slot add-code)))
           (else
            (compile-expr (car bs) envs emit next-label next-slot add-code)
            (emit '(pop))
@@ -160,12 +165,12 @@
            (begin
              (emit '(const #f))
              (emit '(return)))
-           (compile-body (begin-body s) envs emit next-label next-slot add-code)))
+            (compile-body (begin-body s) #t envs emit next-label next-slot add-code)))
         ((let? s)
-         (compile-let 'let (let-bindings s) (let-body s) envs emit
+         (compile-let 'let (let-bindings s) (let-body s) #t envs emit
                       next-label next-slot add-code))
         ((letrec? s)
-         (compile-let 'letrec (letrec-bindings s) (letrec-body s) envs emit
+         (compile-let 'letrec (letrec-bindings s) (letrec-body s) #t envs emit
                       next-label next-slot add-code))
         ((set!? s)
          (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
@@ -234,10 +239,10 @@
                  (emit '(pop))
                  (loop (cdr es)))))))
         ((let? s)
-         (compile-let 'let (let-bindings s) (let-body s) envs emit
+         (compile-let 'let (let-bindings s) (let-body s) #f envs emit
                       next-label next-slot add-code))
         ((letrec? s)
-         (compile-let 'letrec (letrec-bindings s) (letrec-body s) envs emit
+         (compile-let 'letrec (letrec-bindings s) (letrec-body s) #f envs emit
                       next-label next-slot add-code))
         ((set!? s)
          (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
@@ -265,8 +270,8 @@
         (else
          (error "to-bytecode: unknown expression" s))))
 
-    ;; compile-let : head bindings body frame-envs emit next-label next-slot code-add
-    (define (compile-let head bindings body envs emit next-label next-slot add-code)
+    ;; compile-let : head bindings body tail? frame-envs emit next-label next-slot code-add
+    (define (compile-let head bindings body tail? envs emit next-label next-slot add-code)
       (if (eq? head 'let)
         ;; let: inits evaluated in the old env (parallel bindings)
         (let* ((new-alist (fold-left (lambda (e b)
@@ -278,7 +283,7 @@
                       (emit (list 'set-local
                                   (cdr (assq (car b) new-alist)))))
                     bindings)
-          (compile-body body new-envs emit next-label next-slot add-code))
+          (compile-body body tail? new-envs emit next-label next-slot add-code))
         ;; letrec/letrec*: slots allocated first, inits in the new env
         (let* ((new-alist (fold-left (lambda (e b)
                                        (slot-env-extend e (car b) (next-slot)))
@@ -289,7 +294,7 @@
                       (emit (list 'set-local
                                   (cdr (assq (car b) new-alist)))))
                     bindings)
-          (compile-body body new-envs emit next-label next-slot add-code))))
+          (compile-body body tail? new-envs emit next-label next-slot add-code))))
 
     ;; static-producer-values : ir -> (values (list ir) (list ir)) or #f
     ;; Recognize a producer (lambda () prelude... (values v...)) and
