@@ -105,4 +105,11 @@
 ) ;check
 
 
+;;; [0125] 空对象 '(()) 顶层输出 {}（此前输出 {{}}）
+(check (json->string '(())) => "{}")
+
+;;; [0125] 控制字符（含 NUL）转义为 \uXXXX，保证输出可再被 string->json 解析
+(check (json->string (string #\a #\nul #\b)) => "\"a\\u0000b\"")
+(check (json->string (string #\x01)) => "\"\\u0001\"")
+
 (check-report)
