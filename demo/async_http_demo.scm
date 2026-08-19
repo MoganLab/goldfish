@@ -3,7 +3,7 @@
 ;; 演示 libcpr 异步 HTTP 绑定的使用
 ;;
 
-(import (liii http-async) (liii sys) (scheme time))
+(import (liii http-async) (liii sys) (liii time) (scheme time))
 
 (display "=== Goldfish Scheme Async HTTP Demo ===\n\n")
 

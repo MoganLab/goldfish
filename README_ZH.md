@@ -20,7 +20,7 @@
 
 | 库                                                | 描述                            | 示例函数                                                           |
 | ------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------ |
-| [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `==`, `!=`, `display*`                                             |
+| [(liii base)](goldfish/liii/base.scm)             | 基础库                          | `and-let*`, `receive`, `eval-string`                               |
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
 | [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
 | [(liii case)](goldfish/liii/case.scm)             | 模式匹配                        | `case*`                                                            |

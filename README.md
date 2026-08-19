@@ -20,7 +20,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 
 | Library                                           | Description                          | Example functions                                                |
 | ------------------------------------------------- | ------------------------------------ | ---------------------------------------------------------------- |
-| [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `==`, `!=`, `display*`                                           |
+| [(liii base)](goldfish/liii/base.scm)             | Basic routines                       | `and-let*`, `receive`, `eval-string`                              |
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
 | [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
 | [(liii case)](goldfish/liii/case.scm)             | Pattern matching                     | `case*`                                                          |
