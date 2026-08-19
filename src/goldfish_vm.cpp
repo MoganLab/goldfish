@@ -270,7 +270,28 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
         s7_is_eq (s7_car (s7_car (body)), vm_enter_symbol)) {
       s7_pointer cobj = s7_cadr (s7_car (body));
       VMClosure* vc = static_cast<VMClosure*>(s7_c_object_value (cobj));
-      push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env, reuse);
+      VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
+      if (s7_is_symbol (ci.formals)) {
+        // Rest closure: pack ALL arguments into a single list argument.
+        std::vector<s7_pointer> packed (1);
+        packed[0] = build_args_list (sc, args);
+        push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env, reuse);
+      } else if (!s7_is_proper_list (sc, ci.formals)) {
+        // Dotted formals (fixed . rest): fixed params then one list for the rest.
+        size_t fixed = 0;
+        for (s7_pointer p = ci.formals; s7_is_pair (p); p = s7_cdr (p))
+          ++fixed;
+        std::vector<s7_pointer> packed (fixed + 1);
+        for (size_t i = 0; i < fixed; ++i)
+          packed[i] = (i < args.size ()) ? args[i] : s7_nil (sc);
+        std::vector<s7_pointer> rest_args;
+        for (size_t i = fixed; i < args.size (); ++i)
+          rest_args.push_back (args[i]);
+        packed[fixed] = build_args_list (sc, rest_args);
+        push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env, reuse);
+      } else {
+        push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env, reuse);
+      }
       return nullptr;
     }
   }
