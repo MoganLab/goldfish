@@ -13,7 +13,7 @@
   (for-each (lambda (name)
               (exp-library-define! (program-library) name
                                    (make-primitive-binding name)))
-            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe)))
+            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe vm-cwv)))
 
 (define (vm-load-defs defs)
   (vm-load (to-bytecode (map core->ir defs)) #f))
@@ -118,5 +118,18 @@
 (check (vm-fe '(1 2 3)) => 3)
 (check (vm-fe '()) => 0)
 (check (vm-fe '(7)) => 1)
+
+;; ===== 7. call-with-values 多值 producer =====
+;; 回归：VM 的 CallWithValues 指令对非 VM 闭包的 producer（普通 s7
+;; lambda）返回的多值解包错误——s7 在 apply_function 里把 (values 1 2)
+;; splice 后清除多值标记，VM 的 is_multiple_value 检测不到，把 (1 2)
+;; 当单个参数传给 consumer。json 库的 string->json 用 call-with-values
+;; 接收 handle-escape-char 的多值，触发该 bug。
+(vm-load-defs '((define (vm-cwv p c)
+                  (call-with-values p c))))
+
+(check (vm-cwv (lambda () (values 1 2)) +) => 3)
+(check (vm-cwv (lambda () (values 1 2)) list) => '(1 2))
+(check (vm-cwv (lambda () (values 3 4)) +) => 7)
 
 (check-report)

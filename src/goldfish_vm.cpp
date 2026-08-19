@@ -139,6 +139,7 @@ static s7_pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
 static s7_pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
 static s7_pointer g_map_fn = nullptr;
 static s7_pointer g_for_each_fn = nullptr;
+static s7_pointer g_call_with_values_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -606,16 +607,42 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::CallWithValues: {
         s7_pointer c = pop ();
         s7_pointer p = pop ();
+        // s7's call-with-values handles a plain (non-VM) producer and
+        // consumer natively, including the multi-value splice; the VM's
+        // own multi-value unwrap only works when the producer is a VM
+        // closure (its (values ...) runs through the Values instruction,
+        // whose s7_values result is an is_multiple_value object).  For a
+        // producer or consumer that is not a VM closure, fall back to s7's
+        // call-with-values so the s7-level splice is not misread as a
+        // single argument.
+        auto is_vm_closure = [] (s7_scheme* sc, s7_pointer f) {
+          if (!gf::is_closure (f)) return false;
+          s7_pointer body = gf::closure_body (sc, f);
+          return gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
+                 gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol);
+        };
+        if (!is_vm_closure (sc, p) || !is_vm_closure (sc, c)) {
+          // s7's own call-with-values handles the producer multi-value
+          // splice correctly; the VM's manual unwrap cannot see s7's spliced
+          // result (the multiple-value flag is cleared).  goldfish's
+          // call-with-values lives in the rootlet; look it up by name.
+          s7_pointer cwv = g_call_with_values_fn;
+          if (cwv == nullptr || cwv == gf::undefined (sc))
+            cwv = gf::name_to_value (sc, "call-with-values");
+          s7_pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
+          push (gf::apply_function (sc, cwv, arg_list));
+          break;
+        }
   size_t d0 = g_frames.size ();
         std::vector<s7_pointer> no_args;
         s7_pointer pr = call_function (sc, p, no_args, nullptr);
-        s7_pointer r = (pr != nullptr) ? pr : run (sc, d0);
+        s7_pointer rv = (pr != nullptr) ? pr : run (sc, d0);
         std::vector<s7_pointer> c_args;
-        if (gf::is_multiple_value (r)) {
-          for (s7_pointer a = gf::cdr (r); gf::is_pair (a); a = gf::cdr (a))
+        if (gf::is_multiple_value (rv)) {
+          for (s7_pointer a = gf::cdr (rv); gf::is_pair (a); a = gf::cdr (a))
             c_args.push_back (gf::car (a));
         } else {
-          c_args.push_back (r);
+          c_args.push_back (rv);
         }
         size_t d1 = g_frames.size ();
         s7_pointer cr = call_function (sc, c, c_args, nullptr);
@@ -726,6 +753,7 @@ void glue_vm (s7_scheme* sc) {
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
   g_map_fn   = gf::global_value (sc, gf::make_symbol (sc, "map"));
   g_for_each_fn = gf::global_value (sc, gf::make_symbol (sc, "for-each"));
+  g_call_with_values_fn = gf::name_to_value (sc, "call-with-values");
   g_false = gf::f (sc);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");
