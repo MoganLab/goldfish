@@ -407,14 +407,31 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::Ref:
         push (s7_vector_ref (sc, s7_list_ref (sc, fr.captured, in.b - 1), in.c));
         break;
-      case Op::Local:
+      case Op::Local: {
+        // Top-level expressions (e.g. a library registration let) allocate
+        // slots on a frame with no fixed nlocals; grow on demand.
+        if ((s7_int)fr.slots.size () <= in.b)
+          fr.slots.resize (in.b + 1, s7_nil (sc));
         push (fr.slots[in.b]);
         break;
+      }
       case Op::SetLocal: {
         s7_pointer v = pop ();
+        if ((s7_int)fr.slots.size () <= in.b)
+          fr.slots.resize (in.b + 1, s7_nil (sc));
         fr.slots[in.b] = v;
-        if (fr.shared_slots != nullptr)
-          s7_vector_set (sc, fr.shared_slots, in.b, v);
+        if (fr.shared_slots != nullptr) {
+          if (s7_vector_length (fr.shared_slots) < (s7_int)fr.slots.size ()) {
+            // Frame grew on demand (top-level expression): rebuild the
+            // shared snapshot so closure captures see all slots.
+            s7_pointer ns = s7_make_vector (sc, (s7_int)fr.slots.size ());
+            for (size_t k = 0; k < fr.slots.size (); ++k)
+              s7_vector_set (sc, ns, (s7_int)k, fr.slots[k]);
+            fr.shared_slots = ns;
+          } else {
+            s7_vector_set (sc, fr.shared_slots, in.b, v);
+          }
+        }
         break;
       }
       case Op::SetRef:
