@@ -40,6 +40,13 @@
 | [(liii http-async)](goldfish/liii/http-async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
 | [(liii http-common)](goldfish/liii/http-common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
 | [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
+| [(liii njson)](goldfish/liii/njson.scm)           | 可变 JSON 与丰富操作            | `json->njson`, `njson-ref`, `njson-deep-merge`                      |
+| [(liii subprocess)](goldfish/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
+| [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
+| [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
+| [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
+| [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
+| [(liii argparse)](goldfish/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
 
 ### SRFI
@@ -104,12 +111,17 @@ brew uninstall goldfish
 |------------|-------------|
 | `help` | 显示帮助信息 |
 | `version` | 显示版本信息 |
+| `code` | 启动 Claude Code（预先同步并拉取） |
+| `doc` | 浏览金鱼标准库文档 |
 | `eval CODE`, `-e CODE` | 求值 Scheme 代码 |
+| `fmt PATH` | 格式化 Scheme 代码 |
+| `fix PATH` | 根据缩进修正 Scheme 括号 |
 | `load FILE` | 加载 Scheme 文件并进入 REPL |
+| `pr NUM` | 拉取 GitHub 合并请求到本地 `pr_NUM` 分支 |
 | `repl` | 进入交互式 REPL 模式 |
 | `run TARGET` | 从目标运行 main 函数 |
+| `source` | 查看库函数源码 |
 | `test` | 运行测试 |
-| `fix PATH` | 格式化 Scheme 代码 |
 | `FILE` | 直接加载并求值 Scheme 文件 |
 
 ### 显示帮助
@@ -119,12 +131,19 @@ brew uninstall goldfish
 Goldfish Scheme 18.11.28 by LiiiLabs
 
 Commands:
-  help               Display this help message
-  version            Display version
-  eval CODE          Evaluate Scheme code
-                     Example: gf eval '(+ 1 2)'
-                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping
-  load FILE          Load Scheme code from FILE, then enter REPL
+  help             Display help information for gf commands
+  code             Launch Claude Code with pre-sync and pull
+  doc              Browse Goldfish Scheme library documentation
+  eval             Evaluate Scheme code
+  fix              Fix Scheme parentheses by indentation
+  fmt              Format code (single file/dir, or whole repo via gf_fmt.json)
+  load             Load Scheme code from FILE, then enter REPL
+  pr               Fetch a GitHub pull request into a local pr_NUM branch
+  repl             Enter interactive REPL mode
+  run              Run main function from TARGET
+  source           View source code of library functions
+  test             Run tests (all *-test.scm files under tests/)
+  version          Display version information
   ...
 ```
 
