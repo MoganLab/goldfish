@@ -1113,16 +1113,16 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
     if (n == 0) return x;
     // 谓词可能触发 GC 或回调 Scheme，先只判定再分配结果（ elems 经 x 有根）
     std::vector<bool> drop (n, false);
-    s7_int      count = 0;
+    s7_int            count= 0;
     for (s7_int i= 0; i < n; i++) {
       bool hit= use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc))
                          : s7_is_equal (sc, s7_make_integer (sc, i), v);
-      drop[i]= hit;
+      drop[i] = hit;
       if (hit) count++;
     }
     if (count == 0) return x;
-    s7_pointer result= s7_make_vector (sc, n - count);
-    s7_int      at   = 0;
+    s7_pointer  result= s7_make_vector (sc, n - count);
+    s7_int      at    = 0;
     s7_pointer* relems= s7_vector_elements (result);
     for (s7_int i= 0; i < n; i++) {
       if (!drop[i]) relems[at++]= elems[i];
@@ -1162,13 +1162,13 @@ json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys) {
   }
   // 多键：经 json-set 的单层语义逐层下钻，叶层对旧值在 C++ 内递归 drop
   json_setter st;
-  st.rest       = s7_nil (sc);
-  st.leaf       = NULL;
+  st.rest        = s7_nil (sc);
+  st.leaf        = NULL;
   st.leaf_is_proc= false;
-  st.is_push    = false;
-  st.push_args  = NULL;
-  st.is_drop    = true;
-  st.drop_args  = s7_cdr (keys);
+  st.is_push     = false;
+  st.push_args   = NULL;
+  st.is_drop     = true;
+  st.drop_args   = s7_cdr (keys);
   return json_guenchi_set (sc, x, s7_car (keys), len, st);
 }
 
@@ -1216,24 +1216,23 @@ json_reducer_apply (s7_scheme* sc, const json_reducer& r, s7_pointer k, s7_point
 // guenchi json-reduce 的单层语义：x 已校验为 JSON 对象（含 len 个条目）或数组
 static s7_pointer
 json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reducer& r, s7_int len) {
-  bool is_bool= s7_is_boolean (v);
-  bool truthy = is_bool && s7_boolean (sc, v);
+  bool is_bool = s7_is_boolean (v);
+  bool truthy  = is_bool && s7_boolean (sc, v);
   bool use_pred= s7_is_procedure (v);
   if (s7_is_vector (x)) {
     if (is_bool && !truthy) {
       // guenchi 的 (if v ...) 无 else 分支：(list->vector x) 对 vector 抛 wrong-type-arg
       return s7_call (sc, cached_list_to_vector, s7_list (sc, 1, x));
     }
-    s7_int      n    = s7_vector_length (x);
-    s7_pointer* elems= s7_vector_elements (x);
+    s7_int      n     = s7_vector_length (x);
+    s7_pointer* elems = s7_vector_elements (x);
     s7_pointer  result= s7_make_vector (sc, n);
     s7_gc_protect_via_stack (sc, result);
     s7_pointer* relems= s7_vector_elements (result);
     for (s7_int i= 0; i < n; i++) {
       s7_pointer idx= s7_make_integer (sc, i);
-      bool       hit= truthy ? true
-                             : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, idx)) != s7_f (sc))
-                                         : s7_is_equal (sc, idx, v));
+      bool       hit=
+          truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, idx)) != s7_f (sc)) : s7_is_equal (sc, idx, v));
       relems[i]= hit ? json_reducer_apply (sc, r, idx, elems[i]) : elems[i];
     }
     s7_gc_unprotect_via_stack (sc, result);
@@ -1254,9 +1253,7 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   while (s7_is_pair (p)) {
     s7_pointer entry= s7_car (p);
     s7_pointer k    = s7_car (entry);
-    bool       hit  = truthy ? true
-                             : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc))
-                                         : s7_is_equal (sc, k, v));
+    bool hit= truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc)) : s7_is_equal (sc, k, v));
     if (hit) {
       s7_pointer newkey= (is_bool || use_pred) ? k : v; // 普通键分支历史用传入的键构造新序对
       s7_set_car (tail, s7_cons (sc, newkey, json_reducer_apply (sc, r, newkey, s7_cdr (entry))));
@@ -1285,18 +1282,18 @@ json_reduce_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
   }
   // 空对象 '(()) 原样返回（单层与多键均如此）
   if (json_is_null_object (sc, x)) return x;
-  s7_pointer rest= s7_cdr (kargs);
+  s7_pointer   rest= s7_cdr (kargs);
   json_reducer r;
   if (s7_is_null (sc, s7_cdr (rest))) {
     // 单层：(key proc)
-    r.p         = s7_car (rest);
-    r.is_reduce = false;
+    r.p          = s7_car (rest);
+    r.is_reduce  = false;
     r.reduce_args= NULL;
   }
   else {
     // 多键：(key k2 ... proc)
-    r.p         = NULL;
-    r.is_reduce = true;
+    r.p          = NULL;
+    r.is_reduce  = true;
     r.reduce_args= rest;
   }
   return json_guenchi_reduce (sc, x, s7_car (kargs), r, len);
