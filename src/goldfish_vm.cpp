@@ -125,6 +125,10 @@ static VMProgram* g_program = nullptr;
 static std::vector<s7_pointer> g_stack;
 static std::vector<VMFrame> g_frames;
 static s7_pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
+static s7_pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
+static s7_pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
+static s7_pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
+static s7_pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -247,6 +251,14 @@ static s7_pointer snapshot_slots (s7_scheme* sc, const VMFrame& fr) {
 // ---------------------------------------------------------------------------
 // The interpreter loop.
 
+// build_args_list : args -> s7 list
+static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>& args) {
+  return (args.empty ())
+         ? s7_nil (sc)
+         : s7_array_to_list (sc, (s7_int)args.size (),
+                             const_cast<s7_pointer*>(args.data ()));
+}
+
 // call_function : f (list arg) reuse-slots -> result or nullptr
 // A VM function pushes a frame and returns nullptr (the loop continues);
 // anything else is called with s7_call and its result returned.  reuse
@@ -262,10 +274,51 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
       return nullptr;
     }
   }
-  s7_pointer args_list = (args.empty ())
-                         ? s7_nil (sc)
-                         : s7_array_to_list (sc, (s7_int)args.size (),
-                                             const_cast<s7_pointer*>(args.data ()));
+  // Fast path: inline the hot primitives so a VM call does not pay for
+  // building an arg list and entering s7's evaluator.  The procedure
+  // objects are cached once (glue_vm); s7_is_eq is a pointer compare.
+  if (s7_is_eq (f, g_car_fn)) return s7_car (args[0]);
+  if (s7_is_eq (f, g_cdr_fn)) return s7_cdr (args[0]);
+  if (s7_is_eq (f, g_cons_fn)) return s7_cons (sc, args[0], args[1]);
+  if (s7_is_eq (f, g_eq_fn)) return s7_is_eq (args[0], args[1]) ? s7_t (sc) : s7_f (sc);
+  if (s7_is_eq (f, g_null_fn)) return s7_is_null (sc, args[0]) ? s7_t (sc) : s7_f (sc);
+  if (s7_is_eq (f, g_pair_fn)) return s7_is_pair (args[0]) ? s7_t (sc) : s7_f (sc);
+  if (s7_is_eq (f, g_not_fn)) return (args[0] == s7_f (sc)) ? s7_t (sc) : s7_f (sc);
+  // Integer fast paths for + and - (the benchmark loops); fall back to s7
+  // for non-integer or overflow (s7_apply_function re-checks).
+  if (s7_is_eq (f, g_add_fn)) {
+    s7_int sum = 0;
+    bool ok = !args.empty ();
+    for (auto& a : args)
+      if (!s7_is_integer (a)) { ok = false; break; }
+      else sum += s7_integer (a);
+    if (ok) return s7_make_integer (sc, sum);
+  }
+  if (s7_is_eq (f, g_sub_fn)) {
+    if (args.size () == 1) {
+      if (s7_is_integer (args[0])) return s7_make_integer (sc, -s7_integer (args[0]));
+    } else {
+      bool ok = true;
+      for (auto& a : args)
+        if (!s7_is_integer (a)) { ok = false; break; }
+      if (ok) {
+        s7_int r = s7_integer (args[0]);
+        for (size_t i = 1; i < args.size (); ++i) r -= s7_integer (args[i]);
+        return s7_make_integer (sc, r);
+      }
+    }
+  }
+  if (s7_is_eq (f, g_num_eq_fn)) {
+    if (s7_is_integer (args[0]) && s7_is_integer (args[1]))
+      return (s7_integer (args[0]) == s7_integer (args[1])) ? s7_t (sc) : s7_f (sc);
+    return s7_apply_function (sc, f, build_args_list (sc, args));
+  }
+  if (s7_is_eq (f, g_lt_fn)) {
+    if (s7_is_integer (args[0]) && s7_is_integer (args[1]))
+      return (s7_integer (args[0]) < s7_integer (args[1])) ? s7_t (sc) : s7_f (sc);
+    return s7_apply_function (sc, f, build_args_list (sc, args));
+  }
+  s7_pointer args_list = build_args_list (sc, args);
   // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
   // the evaluator stack and returns sc->nil, leaving the real call for the
   // eval loop.  s7_apply_function therefore returns () for (apply ...) --
@@ -529,6 +582,17 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
 void glue_vm (s7_scheme* sc) {
   VM_CLOSURE_TYPE = s7_make_c_type (sc, "vm-closure");
   g_apply_fn = s7_gf_global_value (sc, s7_make_symbol (sc, "apply"));
+  g_car_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "car"));
+  g_cdr_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "cdr"));
+  g_cons_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "cons"));
+  g_eq_fn    = s7_gf_global_value (sc, s7_make_symbol (sc, "eq?"));
+  g_null_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "null?"));
+  g_pair_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "pair?"));
+  g_not_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "not"));
+  g_add_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "+"));
+  g_sub_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "-"));
+  g_num_eq_fn = s7_gf_global_value (sc, s7_make_symbol (sc, "="));
+  g_lt_fn    = s7_gf_global_value (sc, s7_make_symbol (sc, "<"));
   g_false = s7_f (sc);
   vm_enter_symbol  = s7_make_symbol (sc, "vm-enter");
   quote_symbol     = s7_make_symbol (sc, "quote");
