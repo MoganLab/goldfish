@@ -269,7 +269,16 @@
                            (map (lambda (b) (list (car b) (core->ir (cadr b))))
                                 (cadr sexp))
                            (map core->ir (cddr sexp)))))
-             ((letrec letrec*)
+              ((let*)
+               ;; let*: sequential bindings -> nested lets (returns a single
+               ;; <let> record; the innermost body holds the expression list)
+               (let rec ((bs (cadr sexp)))
+                 (if (null? (cdr bs))
+                   (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
+                             (map core->ir (cddr sexp)))
+                   (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
+                             (list (rec (cdr bs)))))))
+              ((letrec letrec*)
               (make-letrec head
                            (map (lambda (b) (list (car b) (core->ir (cadr b))))
                                 (cadr sexp))
