@@ -116,6 +116,7 @@ target ("goldfish") do
     add_files ("src/liii_base64.cpp")
     add_files ("src/liii_reader.cpp")
     add_files ("src/goldfish_vm.cpp")
+    add_files ("src/gf.cpp")
     add_files ("src/scheme_base.cpp")
     add_files ("src/scheme_char.cpp")
     add_files ("src/s7.c", {languages = "c11"})

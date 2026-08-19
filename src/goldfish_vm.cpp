@@ -23,7 +23,7 @@
 // survive across runs.  The loaded program datum is gc-protected for
 // the lifetime of the process (one program at a time, v1).
 
-#include "s7.h"
+#include "gf.h"
 #include <map>
 #include <string>
 #include <vector>
@@ -71,23 +71,23 @@ static s7_pointer vm_values_symbol = nullptr;
 static s7_pointer vm_call_with_values_symbol = nullptr;
 
 static Op decode_op (s7_pointer sym) {
-  if (s7_is_eq (sym, vm_const_symbol)) return Op::Const;
-  if (s7_is_eq (sym, vm_global_symbol)) return Op::Global;
-  if (s7_is_eq (sym, vm_ref_symbol)) return Op::Ref;
-  if (s7_is_eq (sym, vm_local_symbol)) return Op::Local;
-  if (s7_is_eq (sym, vm_set_local_symbol)) return Op::SetLocal;
-  if (s7_is_eq (sym, vm_set_ref_symbol)) return Op::SetRef;
-  if (s7_is_eq (sym, vm_store_global_symbol)) return Op::StoreGlobal;
-  if (s7_is_eq (sym, vm_closure_symbol)) return Op::Closure;
-  if (s7_is_eq (sym, vm_call_symbol)) return Op::Call;
-  if (s7_is_eq (sym, vm_tail_call_symbol)) return Op::TailCall;
-  if (s7_is_eq (sym, vm_if_else_symbol)) return Op::IfElse;
-  if (s7_is_eq (sym, vm_jump_symbol)) return Op::Jump;
-  if (s7_is_eq (sym, vm_label_symbol)) return Op::Label;
-  if (s7_is_eq (sym, vm_return_symbol)) return Op::Return;
-  if (s7_is_eq (sym, vm_pop_symbol)) return Op::Pop;
-  if (s7_is_eq (sym, vm_values_symbol)) return Op::Values;
-  if (s7_is_eq (sym, vm_call_with_values_symbol)) return Op::CallWithValues;
+  if (gf::is_eq (sym, vm_const_symbol)) return Op::Const;
+  if (gf::is_eq (sym, vm_global_symbol)) return Op::Global;
+  if (gf::is_eq (sym, vm_ref_symbol)) return Op::Ref;
+  if (gf::is_eq (sym, vm_local_symbol)) return Op::Local;
+  if (gf::is_eq (sym, vm_set_local_symbol)) return Op::SetLocal;
+  if (gf::is_eq (sym, vm_set_ref_symbol)) return Op::SetRef;
+  if (gf::is_eq (sym, vm_store_global_symbol)) return Op::StoreGlobal;
+  if (gf::is_eq (sym, vm_closure_symbol)) return Op::Closure;
+  if (gf::is_eq (sym, vm_call_symbol)) return Op::Call;
+  if (gf::is_eq (sym, vm_tail_call_symbol)) return Op::TailCall;
+  if (gf::is_eq (sym, vm_if_else_symbol)) return Op::IfElse;
+  if (gf::is_eq (sym, vm_jump_symbol)) return Op::Jump;
+  if (gf::is_eq (sym, vm_label_symbol)) return Op::Label;
+  if (gf::is_eq (sym, vm_return_symbol)) return Op::Return;
+  if (gf::is_eq (sym, vm_pop_symbol)) return Op::Pop;
+  if (gf::is_eq (sym, vm_values_symbol)) return Op::Values;
+  if (gf::is_eq (sym, vm_call_with_values_symbol)) return Op::CallWithValues;
   return Op::Unknown;
 }
 
@@ -148,11 +148,11 @@ static inline s7_pointer pop () {
 // Global lookup: the program's resolution env first, then the rootlet.
 
 static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name, s7_pointer env) {
-  if (env != nullptr && s7_is_let (env)) {
-    s7_pointer v = s7_let_ref (sc, env, name);
-    if (v != s7_undefined (sc)) return v;
+  if (env != nullptr && gf::is_let (env)) {
+    s7_pointer v = gf::let_ref (sc, env, name);
+    if (v != gf::undefined (sc)) return v;
   }
-  return s7_gf_global_value (sc, name);
+  return gf::global_value (sc, name);
 }
 
 // ---------------------------------------------------------------------------
@@ -161,30 +161,30 @@ static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name, s7_pointer env)
 // unwrap_quote : v -> v'
 // A (const (quote x)) operand is stored as x; everything else as-is.
 static s7_pointer unwrap_quote (s7_pointer v) {
-  if (s7_is_pair (v) && s7_is_eq (s7_car (v), quote_symbol))
-    return s7_cadr (v);
+  if (gf::is_pair (v) && gf::is_eq (gf::car (v), quote_symbol))
+    return gf::cadr (v);
   return v;
 }
 
 static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
   std::vector<Instr> v;
-  for (s7_pointer p = instr_list; s7_is_pair (p); p = s7_cdr (p)) {
-    s7_pointer instr = s7_car (p);
-    if (!s7_is_pair (instr)) continue;
+  for (s7_pointer p = instr_list; gf::is_pair (p); p = gf::cdr (p)) {
+    s7_pointer instr = gf::car (p);
+    if (!gf::is_pair (instr)) continue;
     Instr in;
-    in.op = decode_op (s7_car (instr));
+    in.op = decode_op (gf::car (instr));
     switch (in.op) {
       case Op::Const:
-        in.a = unwrap_quote (s7_cadr (instr));
+        in.a = unwrap_quote (gf::cadr (instr));
         break;
       case Op::Global:
       case Op::StoreGlobal:
-        in.a = s7_cadr (instr);
+        in.a = gf::cadr (instr);
         break;
       case Op::Ref:
       case Op::SetRef:
-        in.b = s7_integer (s7_cadr (instr));
-        in.c = s7_integer (s7_caddr (instr));
+        in.b = gf::integer (gf::cadr (instr));
+        in.c = gf::integer (gf::caddr (instr));
         break;
       case Op::Local:
       case Op::SetLocal:
@@ -192,12 +192,12 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
       case Op::Call:
       case Op::TailCall:
       case Op::Values:
-        in.b = s7_integer (s7_cadr (instr));
+        in.b = gf::integer (gf::cadr (instr));
         break;
       case Op::IfElse:
       case Op::Jump:
       case Op::Label:
-        in.b = s7_integer (s7_cadr (instr));
+        in.b = gf::integer (gf::cadr (instr));
         break;
       case Op::Return:
       case Op::Pop:
@@ -235,7 +235,7 @@ static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std:
   f.prog = prog;
   f.global_env = global_env;
   if (reuse != nullptr) f.slots = std::move (*reuse);
-  f.slots.assign (ci.nlocals, s7_nil (sc));
+  f.slots.assign (ci.nlocals, gf::nil (sc));
   for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
     f.slots[i] = args[i];
   f.shared_slots = nullptr;
@@ -257,8 +257,8 @@ static s7_pointer snapshot_slots (s7_scheme* sc, const VMFrame& fr) {
 // build_args_list : args -> s7 list
 static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>& args) {
   return (args.empty ())
-         ? s7_nil (sc)
-         : s7_array_to_list (sc, (s7_int)args.size (),
+         ? gf::nil (sc)
+         : gf::array_to_list (sc, (s7_int)args.size (),
                              const_cast<s7_pointer*>(args.data ()));
 }
 
@@ -267,26 +267,26 @@ static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>&
 // anything else is called with s7_call and its result returned.  reuse
 // (optional) lets a tail call hand its slot array to the new frame.
 static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<s7_pointer>& args, std::vector<s7_pointer>* reuse) {
-  if (s7_gf_is_closure (f)) {
-    s7_pointer body = s7_closure_body (sc, f);
-    if (s7_is_pair (body) && s7_is_pair (s7_car (body)) &&
-        s7_is_eq (s7_car (s7_car (body)), vm_enter_symbol)) {
-      s7_pointer cobj = s7_cadr (s7_car (body));
-      VMClosure* vc = static_cast<VMClosure*>(s7_c_object_value (cobj));
+  if (gf::is_closure (f)) {
+    s7_pointer body = gf::closure_body (sc, f);
+    if (gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
+        gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol)) {
+      s7_pointer cobj = gf::cadr (gf::car (body));
+      VMClosure* vc = static_cast<VMClosure*>(gf::c_object_value (cobj));
       VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
-      if (s7_is_symbol (ci.formals)) {
+      if (gf::is_symbol (ci.formals)) {
         // Rest closure: pack ALL arguments into a single list argument.
         std::vector<s7_pointer> packed (1);
         packed[0] = build_args_list (sc, args);
         push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env, reuse);
-      } else if (!s7_is_proper_list (sc, ci.formals)) {
+      } else if (!gf::is_proper_list (sc, ci.formals)) {
         // Dotted formals (fixed . rest): fixed params then one list for the rest.
         size_t fixed = 0;
-        for (s7_pointer p = ci.formals; s7_is_pair (p); p = s7_cdr (p))
+        for (s7_pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
           ++fixed;
         std::vector<s7_pointer> packed (fixed + 1);
         for (size_t i = 0; i < fixed; ++i)
-          packed[i] = (i < args.size ()) ? args[i] : s7_nil (sc);
+          packed[i] = (i < args.size ()) ? args[i] : gf::nil (sc);
         std::vector<s7_pointer> rest_args;
         for (size_t i = fixed; i < args.size (); ++i)
           rest_args.push_back (args[i]);
@@ -301,46 +301,46 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   // Fast path: inline the hot primitives so a VM call does not pay for
   // building an arg list and entering s7's evaluator.  The procedure
   // objects are cached once (glue_vm); s7_is_eq is a pointer compare.
-  if (s7_is_eq (f, g_car_fn)) return s7_car (args[0]);
-  if (s7_is_eq (f, g_cdr_fn)) return s7_cdr (args[0]);
-  if (s7_is_eq (f, g_cons_fn)) return s7_cons (sc, args[0], args[1]);
-  if (s7_is_eq (f, g_eq_fn)) return s7_is_eq (args[0], args[1]) ? s7_t (sc) : s7_f (sc);
-  if (s7_is_eq (f, g_null_fn)) return s7_is_null (sc, args[0]) ? s7_t (sc) : s7_f (sc);
-  if (s7_is_eq (f, g_pair_fn)) return s7_is_pair (args[0]) ? s7_t (sc) : s7_f (sc);
-  if (s7_is_eq (f, g_not_fn)) return (args[0] == s7_f (sc)) ? s7_t (sc) : s7_f (sc);
+  if (gf::is_eq (f, g_car_fn)) return gf::car (args[0]);
+  if (gf::is_eq (f, g_cdr_fn)) return gf::cdr (args[0]);
+  if (gf::is_eq (f, g_cons_fn)) return gf::cons (sc, args[0], args[1]);
+  if (gf::is_eq (f, g_eq_fn)) return gf::is_eq (args[0], args[1]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_null_fn)) return gf::is_null (sc, args[0]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_pair_fn)) return gf::is_pair (args[0]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_not_fn)) return (args[0] == gf::f (sc)) ? gf::t (sc) : gf::f (sc);
   // Integer fast paths for + and - (the benchmark loops); fall back to s7
   // for non-integer or overflow (s7_apply_function re-checks).
-  if (s7_is_eq (f, g_add_fn)) {
+  if (gf::is_eq (f, g_add_fn)) {
     s7_int sum = 0;
     bool ok = !args.empty ();
     for (auto& a : args)
-      if (!s7_is_integer (a)) { ok = false; break; }
-      else sum += s7_integer (a);
-    if (ok) return s7_make_integer (sc, sum);
+      if (!gf::is_integer (a)) { ok = false; break; }
+      else sum += gf::integer (a);
+    if (ok) return gf::make_integer (sc, sum);
   }
-  if (s7_is_eq (f, g_sub_fn)) {
+  if (gf::is_eq (f, g_sub_fn)) {
     if (args.size () == 1) {
-      if (s7_is_integer (args[0])) return s7_make_integer (sc, -s7_integer (args[0]));
+      if (gf::is_integer (args[0])) return gf::make_integer (sc, -gf::integer (args[0]));
     } else {
       bool ok = true;
       for (auto& a : args)
-        if (!s7_is_integer (a)) { ok = false; break; }
+        if (!gf::is_integer (a)) { ok = false; break; }
       if (ok) {
-        s7_int r = s7_integer (args[0]);
-        for (size_t i = 1; i < args.size (); ++i) r -= s7_integer (args[i]);
-        return s7_make_integer (sc, r);
+        s7_int r = gf::integer (args[0]);
+        for (size_t i = 1; i < args.size (); ++i) r -= gf::integer (args[i]);
+        return gf::make_integer (sc, r);
       }
     }
   }
-  if (s7_is_eq (f, g_num_eq_fn)) {
-    if (s7_is_integer (args[0]) && s7_is_integer (args[1]))
-      return (s7_integer (args[0]) == s7_integer (args[1])) ? s7_t (sc) : s7_f (sc);
-    return s7_apply_function (sc, f, build_args_list (sc, args));
+  if (gf::is_eq (f, g_num_eq_fn)) {
+    if (gf::is_integer (args[0]) && gf::is_integer (args[1]))
+      return (gf::integer (args[0]) == gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
+    return gf::apply_function (sc, f, build_args_list (sc, args));
   }
-  if (s7_is_eq (f, g_lt_fn)) {
-    if (s7_is_integer (args[0]) && s7_is_integer (args[1]))
-      return (s7_integer (args[0]) < s7_integer (args[1])) ? s7_t (sc) : s7_f (sc);
-    return s7_apply_function (sc, f, build_args_list (sc, args));
+  if (gf::is_eq (f, g_lt_fn)) {
+    if (gf::is_integer (args[0]) && gf::is_integer (args[1]))
+      return (gf::integer (args[0]) < gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
+    return gf::apply_function (sc, f, build_args_list (sc, args));
   }
   s7_pointer args_list = build_args_list (sc, args);
   // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
@@ -353,22 +353,22 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   // mutations (typed-lambda's do/set-car! on its arg list).  Implement
   // (apply proc a1 ... an) directly instead: splice the final list
   // argument into the argument list and call the procedure.
-  if (s7_is_eq (f, g_apply_fn)) {
-    s7_pointer proc = s7_car (args_list);
-    s7_pointer rest = s7_cdr (args_list);            // (a1 ... an)
-    if (!s7_is_pair (rest))                          // (apply proc) -- no args
-      return s7_apply_function (sc, proc, s7_nil (sc));
+  if (gf::is_eq (f, g_apply_fn)) {
+    s7_pointer proc = gf::car (args_list);
+    s7_pointer rest = gf::cdr (args_list);            // (a1 ... an)
+    if (!gf::is_pair (rest))                          // (apply proc) -- no args
+      return gf::apply_function (sc, proc, gf::nil (sc));
     s7_pointer p = rest;
-    while (s7_is_pair (s7_cdr (p))) p = s7_cdr (p);  // p is the last cons (an)
-    s7_pointer last = s7_car (p);
+    while (gf::is_pair (gf::cdr (p))) p = gf::cdr (p);  // p is the last cons (an)
+    s7_pointer last = gf::car (p);
     s7_pointer spliced;
-    if (s7_is_null (sc, last)) {
+    if (gf::is_null (sc, last)) {
       if (rest == p)                                 // only (proc ()) -> no args
-        spliced = s7_nil (sc);
+        spliced = gf::nil (sc);
       else {                                         // drop the () tail
         s7_pointer q = rest;
-        while (s7_is_pair (s7_cdr (q)) && s7_cdr (q) != p) q = s7_cdr (q);
-        s7_set_cdr (q, s7_nil (sc));
+        while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
+        gf::set_cdr (q, gf::nil (sc));
         spliced = rest;
       }
     } else {
@@ -376,14 +376,14 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
         spliced = last;
       else {                                         // splice list after fixed args
         s7_pointer q = rest;
-        while (s7_is_pair (s7_cdr (q)) && s7_cdr (q) != p) q = s7_cdr (q);
-        s7_set_cdr (q, last);
+        while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
+        gf::set_cdr (q, last);
         spliced = rest;
       }
     }
-    return s7_apply_function (sc, proc, spliced);
+    return gf::apply_function (sc, proc, spliced);
   }
-  return s7_apply_function (sc, f, args_list);
+  return gf::apply_function (sc, f, args_list);
 }
 // run : target-depth -> result
 static s7_pointer run (s7_scheme* sc, size_t target_depth) {
@@ -405,47 +405,47 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         push (global_lookup (sc, in.a, fr.global_env));
         break;
       case Op::Ref:
-        push (s7_vector_ref (sc, s7_list_ref (sc, fr.captured, in.b - 1), in.c));
+        push (gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c));
         break;
       case Op::Local: {
         // Top-level expressions (e.g. a library registration let) allocate
         // slots on a frame with no fixed nlocals; grow on demand.
         if ((s7_int)fr.slots.size () <= in.b)
-          fr.slots.resize (in.b + 1, s7_nil (sc));
+          fr.slots.resize (in.b + 1, gf::nil (sc));
         push (fr.slots[in.b]);
         break;
       }
       case Op::SetLocal: {
         s7_pointer v = pop ();
         if ((s7_int)fr.slots.size () <= in.b)
-          fr.slots.resize (in.b + 1, s7_nil (sc));
+          fr.slots.resize (in.b + 1, gf::nil (sc));
         fr.slots[in.b] = v;
         if (fr.shared_slots != nullptr) {
-          if (s7_vector_length (fr.shared_slots) < (s7_int)fr.slots.size ()) {
+          if (gf::vector_length (fr.shared_slots) < (s7_int)fr.slots.size ()) {
             // Frame grew on demand (top-level expression): rebuild the
             // shared snapshot so closure captures see all slots.
-            s7_pointer ns = s7_make_vector (sc, (s7_int)fr.slots.size ());
+            s7_pointer ns = gf::make_vector (sc, (s7_int)fr.slots.size ());
             for (size_t k = 0; k < fr.slots.size (); ++k)
-              s7_vector_set (sc, ns, (s7_int)k, fr.slots[k]);
+              gf::vector_set (sc, ns, (s7_int)k, fr.slots[k]);
             fr.shared_slots = ns;
           } else {
-            s7_vector_set (sc, fr.shared_slots, in.b, v);
+            gf::vector_set (sc, fr.shared_slots, in.b, v);
           }
         }
         break;
       }
       case Op::SetRef:
-        s7_vector_set (sc, s7_list_ref (sc, fr.captured, in.b - 1), in.c, pop ());
+        gf::vector_set (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c, pop ());
         break;
       case Op::StoreGlobal: {
         s7_pointer v = pop ();
         s7_pointer sym = in.a;
               // Store into the program's resolution env (an inlet such as
         // the-expander-library) when one was given, else the rootlet.
-        if (fr.global_env != nullptr && s7_is_let (fr.global_env))
-          s7_varlet (sc, fr.global_env, sym, v);
+        if (fr.global_env != nullptr && gf::is_let (fr.global_env))
+          gf::varlet (sc, fr.global_env, sym, v);
         else
-          s7_define_variable (sc, s7_symbol_name (sym), v);
+          gf::define_variable (sc, gf::symbol_name (sym), v);
         break;
       }
       case Op::Closure: {
@@ -457,39 +457,39 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         vc->global_env = fr.global_env;
         // Materialize the shared slot snapshot on first capture.
         if (fr.shared_slots == nullptr) {
-          fr.shared_slots = s7_make_vector (sc, (s7_int)fr.slots.size ());
+          fr.shared_slots = gf::make_vector (sc, (s7_int)fr.slots.size ());
           for (size_t k = 0; k < fr.slots.size (); ++k)
-            s7_vector_set (sc, fr.shared_slots, (s7_int)k, fr.slots[k]);
+            gf::vector_set (sc, fr.shared_slots, (s7_int)k, fr.slots[k]);
         }
-        vc->captured = s7_cons (sc, fr.shared_slots, fr.captured);
-        s7_pointer let = s7_inlet (sc,
-                                   s7_cons (sc,
-                                            s7_cons (sc, captured_symbol, vc->captured),
-                                            s7_nil (sc)));
-        s7_pointer cobj = s7_make_c_object_with_let (sc, VM_CLOSURE_TYPE, vc, let);
+        vc->captured = gf::cons (sc, fr.shared_slots, fr.captured);
+        s7_pointer let = gf::inlet (sc,
+                                   gf::cons (sc,
+                                            gf::cons (sc, captured_symbol, vc->captured),
+                                            gf::nil (sc)));
+        s7_pointer cobj = gf::make_c_object_with_let (sc, VM_CLOSURE_TYPE, vc, let);
         s7_pointer formals = ci.formals;
         // Build the call formals as a proper list: (x y) -> (x y),
         // (a . rest) -> (a rest), a rest symbol -> (args).  The closure
         // body must be a proper list -- (vm-enter cobj a . rest) cannot be
         // evaluated -- and a rest arg arrives as one list value.
         s7_pointer call_formals;
-        if (s7_is_symbol (formals)) {
-          call_formals = s7_list (sc, 1, formals);
-        } else if (!s7_is_proper_list (sc, formals)) {
-          s7_pointer acc = s7_nil (sc);
+        if (gf::is_symbol (formals)) {
+          call_formals = gf::list (sc, formals);
+        } else if (!gf::is_proper_list (sc, formals)) {
+          s7_pointer acc = gf::nil (sc);
           s7_pointer f = formals;
-          while (s7_is_pair (f)) { acc = s7_cons (sc, s7_car (f), acc); f = s7_cdr (f); }
-          acc = s7_cons (sc, f, acc);
-          call_formals = s7_reverse (sc, acc);
+          while (gf::is_pair (f)) { acc = gf::cons (sc, gf::car (f), acc); f = gf::cdr (f); }
+          acc = gf::cons (sc, f, acc);
+          call_formals = gf::reverse (sc, acc);
         } else {
           call_formals = formals;
         }
-        s7_pointer call = s7_cons (sc, vm_enter_symbol,
-                                   s7_cons (sc, cobj, call_formals));
-        s7_pointer body = s7_list (sc, 1, call);
-        s7_int arity = s7_is_symbol (formals) ? -1
-                                              : s7_list_length (sc, formals);
-        push (s7_gf_make_closure (sc, formals, body, arity));
+        s7_pointer call = gf::cons (sc, vm_enter_symbol,
+                                   gf::cons (sc, cobj, call_formals));
+        s7_pointer body = gf::list (sc, call);
+        s7_int arity = gf::is_symbol (formals) ? -1
+                                              : gf::list_length (sc, formals);
+        push (gf::make_closure (sc, formals, body, arity));
         break;
       }
       case Op::Call:
@@ -529,9 +529,9 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         break;
       case Op::Values: {
         int n = (int)in.b;
-        s7_pointer args_list = s7_nil (sc);
-        for (int i = 0; i < n; ++i) args_list = s7_cons (sc, pop (), args_list);
-        push (s7_values (sc, args_list));
+        s7_pointer args_list = gf::nil (sc);
+        for (int i = 0; i < n; ++i) args_list = gf::cons (sc, pop (), args_list);
+        push (gf::values (sc, args_list));
         break;
       }
       case Op::CallWithValues: {
@@ -542,9 +542,9 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         s7_pointer pr = call_function (sc, p, no_args, nullptr);
         s7_pointer r = (pr != nullptr) ? pr : run (sc, d0);
         std::vector<s7_pointer> c_args;
-        if (s7_is_multiple_value (r)) {
-          for (s7_pointer a = s7_cdr (r); s7_is_pair (a); a = s7_cdr (a))
-            c_args.push_back (s7_car (a));
+        if (gf::is_multiple_value (r)) {
+          for (s7_pointer a = gf::cdr (r); gf::is_pair (a); a = gf::cdr (a))
+            c_args.push_back (gf::car (a));
         } else {
           c_args.push_back (r);
         }
@@ -556,12 +556,12 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       }
       default:
         g_frames.pop_back ();
-        return s7_error (sc, s7_make_symbol (sc, "vm-error"),
-                         s7_list (sc, 2, s7_make_string (sc, "unknown instruction"),
-                                  s7_make_integer (sc, (s7_int)in.op)));
+        return gf::error (sc, gf::make_symbol (sc, "vm-error"),
+                         gf::list (sc, gf::make_string (sc, "unknown instruction"),
+                                  gf::make_integer (sc, (s7_int)in.op)));
     }
   }
-  return g_stack.empty () ? s7_undefined (sc) : pop ();
+  return g_stack.empty () ? gf::undefined (sc) : pop ();
 }
 
 // ---------------------------------------------------------------------------
@@ -572,20 +572,20 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
 // VM closure).  One program at a time: loading replaces the previous
 // program and invalidates closures built from it.
 static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
-  s7_pointer program = s7_car (args);
-  s7_gc_protect (sc, program);
-  s7_pointer global_env = s7_cadr (args);
+  s7_pointer program = gf::car (args);
+  gf::gc_protect (sc, program);
+  s7_pointer global_env = gf::cadr (args);
   VMProgram* p = new VMProgram;
-  s7_pointer ctable = s7_cadr (program);
-  for (s7_pointer c = s7_cdr (ctable); s7_is_pair (c); c = s7_cdr (c)) {
-    s7_pointer code = s7_car (c);
+  s7_pointer ctable = gf::cadr (program);
+  for (s7_pointer c = gf::cdr (ctable); gf::is_pair (c); c = gf::cdr (c)) {
+    s7_pointer code = gf::car (c);
     VMCodeInfo ci;
-    ci.nlocals = s7_integer (s7_cadr (code));
-    ci.formals = s7_caddr (code);
-    ci.instrs = decode_instrs (sc, s7_cadddr (code));
+    ci.nlocals = gf::integer (gf::cadr (code));
+    ci.formals = gf::caddr (code);
+    ci.instrs = decode_instrs (sc, gf::cadddr (code));
     p->codes.push_back (ci);
   }
-  p->top = decode_instrs (sc, s7_cdr (s7_caddr (program)));
+  p->top = decode_instrs (sc, gf::cdr (gf::caddr (program)));
   g_program = p;
   g_stack.clear ();
   g_frames.clear ();
@@ -596,80 +596,80 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.global_env = global_env;
   f.slots.clear ();
   f.shared_slots = nullptr;
-  f.captured = s7_nil (sc);
+  f.captured = gf::nil (sc);
   g_frames.push_back (f);
   // The interpreter's C++ stacks hold s7_pointers the conservative GC cannot
   // see (same reason vm_enter disables it): running the top instructions with
   // GC enabled can reclaim live values, leaving dangling pointers that later
   // corrupt the heap.  Disable GC for the run, exactly like vm_enter.
-  bool saved_gc = s7_gc_enabled (sc);
-  s7_gc_on (sc, false);
+  bool saved_gc = gf::gc_enabled (sc);
+  gf::gc_on (sc, false);
   s7_pointer result = run (sc, 0);
-  s7_gc_on (sc, saved_gc);
+  gf::gc_on (sc, saved_gc);
   return result;
 }
 
 // ---------------------------------------------------------------------------
 // vm-enter : (cobj . args) -> result
 static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
-  s7_pointer cobj = s7_car (args);
-  VMClosure* vc = static_cast<VMClosure*>(s7_c_object_value (cobj));
-  bool saved_gc = s7_gc_enabled (sc);
-  s7_gc_on (sc, false);
+  s7_pointer cobj = gf::car (args);
+  VMClosure* vc = static_cast<VMClosure*>(gf::c_object_value (cobj));
+  bool saved_gc = gf::gc_enabled (sc);
+  gf::gc_on (sc, false);
   // vm-enter can be called NESTED inside another VM run (a VM program calling
   // into s7, which calls back a VM closure): run must stop at the depth that
   // existed before we pushed, not 0, or it pops the enclosing frame too.
   size_t d0 = g_frames.size ();
   std::vector<s7_pointer> arg_list;
-  for (s7_pointer a = s7_cdr (args); s7_is_pair (a); a = s7_cdr (a))
-    arg_list.push_back (s7_car (a));
+  for (s7_pointer a = gf::cdr (args); gf::is_pair (a); a = gf::cdr (a))
+    arg_list.push_back (gf::car (a));
   push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, vc->global_env, nullptr);
   s7_pointer result = run (sc, d0);
-  s7_gc_on (sc, saved_gc);
+  gf::gc_on (sc, saved_gc);
   return result;
 }
 
 // ---------------------------------------------------------------------------
 
 void glue_vm (s7_scheme* sc) {
-  VM_CLOSURE_TYPE = s7_make_c_type (sc, "vm-closure");
-  g_apply_fn = s7_gf_global_value (sc, s7_make_symbol (sc, "apply"));
-  g_car_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "car"));
-  g_cdr_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "cdr"));
-  g_cons_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "cons"));
-  g_eq_fn    = s7_gf_global_value (sc, s7_make_symbol (sc, "eq?"));
-  g_null_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "null?"));
-  g_pair_fn  = s7_gf_global_value (sc, s7_make_symbol (sc, "pair?"));
-  g_not_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "not"));
-  g_add_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "+"));
-  g_sub_fn   = s7_gf_global_value (sc, s7_make_symbol (sc, "-"));
-  g_num_eq_fn = s7_gf_global_value (sc, s7_make_symbol (sc, "="));
-  g_lt_fn    = s7_gf_global_value (sc, s7_make_symbol (sc, "<"));
-  g_false = s7_f (sc);
-  vm_enter_symbol  = s7_make_symbol (sc, "vm-enter");
-  quote_symbol     = s7_make_symbol (sc, "quote");
-  captured_symbol  = s7_make_symbol (sc, "*vm-captured*");
-  vm_const_symbol  = s7_make_symbol (sc, "const");
-  vm_global_symbol = s7_make_symbol (sc, "global");
-  vm_ref_symbol    = s7_make_symbol (sc, "ref");
-  vm_local_symbol  = s7_make_symbol (sc, "local");
-  vm_set_local_symbol = s7_make_symbol (sc, "set-local");
-  vm_set_ref_symbol = s7_make_symbol (sc, "set-ref");
-  vm_store_global_symbol = s7_make_symbol (sc, "store-global");
-  vm_closure_symbol = s7_make_symbol (sc, "closure");
-  vm_call_symbol   = s7_make_symbol (sc, "call");
-  vm_tail_call_symbol = s7_make_symbol (sc, "tail-call");
-  vm_if_else_symbol = s7_make_symbol (sc, "if-else");
-  vm_jump_symbol   = s7_make_symbol (sc, "jump");
-  vm_label_symbol  = s7_make_symbol (sc, "label");
-  vm_return_symbol = s7_make_symbol (sc, "return");
-  vm_pop_symbol    = s7_make_symbol (sc, "pop");
-  vm_values_symbol = s7_make_symbol (sc, "values");
-  vm_call_with_values_symbol = s7_make_symbol (sc, "call-with-values");
+  VM_CLOSURE_TYPE = gf::make_c_type (sc, "vm-closure");
+  g_apply_fn = gf::global_value (sc, gf::make_symbol (sc, "apply"));
+  g_car_fn   = gf::global_value (sc, gf::make_symbol (sc, "car"));
+  g_cdr_fn   = gf::global_value (sc, gf::make_symbol (sc, "cdr"));
+  g_cons_fn  = gf::global_value (sc, gf::make_symbol (sc, "cons"));
+  g_eq_fn    = gf::global_value (sc, gf::make_symbol (sc, "eq?"));
+  g_null_fn  = gf::global_value (sc, gf::make_symbol (sc, "null?"));
+  g_pair_fn  = gf::global_value (sc, gf::make_symbol (sc, "pair?"));
+  g_not_fn   = gf::global_value (sc, gf::make_symbol (sc, "not"));
+  g_add_fn   = gf::global_value (sc, gf::make_symbol (sc, "+"));
+  g_sub_fn   = gf::global_value (sc, gf::make_symbol (sc, "-"));
+  g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
+  g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
+  g_false = gf::f (sc);
+  vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
+  quote_symbol     = gf::make_symbol (sc, "quote");
+  captured_symbol  = gf::make_symbol (sc, "*vm-captured*");
+  vm_const_symbol  = gf::make_symbol (sc, "const");
+  vm_global_symbol = gf::make_symbol (sc, "global");
+  vm_ref_symbol    = gf::make_symbol (sc, "ref");
+  vm_local_symbol  = gf::make_symbol (sc, "local");
+  vm_set_local_symbol = gf::make_symbol (sc, "set-local");
+  vm_set_ref_symbol = gf::make_symbol (sc, "set-ref");
+  vm_store_global_symbol = gf::make_symbol (sc, "store-global");
+  vm_closure_symbol = gf::make_symbol (sc, "closure");
+  vm_call_symbol   = gf::make_symbol (sc, "call");
+  vm_tail_call_symbol = gf::make_symbol (sc, "tail-call");
+  vm_if_else_symbol = gf::make_symbol (sc, "if-else");
+  vm_jump_symbol   = gf::make_symbol (sc, "jump");
+  vm_label_symbol  = gf::make_symbol (sc, "label");
+  vm_return_symbol = gf::make_symbol (sc, "return");
+  vm_pop_symbol    = gf::make_symbol (sc, "pop");
+  vm_values_symbol = gf::make_symbol (sc, "values");
+  vm_call_with_values_symbol = gf::make_symbol (sc, "call-with-values");
 
-  s7_define_function (sc, "vm-load", vm_load, 2, 0, false,
+  gf::define_function (sc, "vm-load", vm_load, 2, 0, false,
                       "(vm-load program global-env)");
-  s7_define_function (sc, "vm-enter", vm_enter, 1, 0, true, "(vm-enter cobj . args)");
+  gf::define_function (sc, "vm-enter", vm_enter, 1, 0, true, "(vm-enter cobj . args)");
 }
 
 } // namespace goldfish
