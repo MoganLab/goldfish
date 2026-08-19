@@ -1018,7 +1018,7 @@ json_guenchi_push (s7_scheme* sc, s7_pointer x, s7_pointer k, s7_pointer v) {
     s7_int      n    = s7_vector_length (x);
     s7_pointer* elems= s7_vector_elements (x);
     if (n == 0) {
-      s7_pointer result= s7_make_vector (sc, 1);
+      s7_pointer result             = s7_make_vector (sc, 1);
       s7_vector_elements (result)[0]= v;
       return result;
     }
@@ -1033,7 +1033,7 @@ json_guenchi_push (s7_scheme* sc, s7_pointer x, s7_pointer k, s7_pointer v) {
     s7_pointer result= s7_make_vector (sc, n + 1);
     s7_gc_protect_via_stack (sc, result);
     s7_pointer* relems= s7_vector_elements (result);
-    s7_int at= 0;
+    s7_int      at    = 0;
     for (s7_int i= 0; i < n; i++) {
       if (i == match) relems[at++]= v;
       relems[at++]= elems[i];
@@ -1080,8 +1080,7 @@ f_json_push (s7_scheme* sc, s7_pointer args) {
 static void
 glue_json_push (s7_scheme* sc) {
   const char* name= "g_json_push";
-  const char* desc=
-      "(g_json_push json key val . keys) => data, push a value into Scheme-form JSON data by key path";
+  const char* desc= "(g_json_push json key val . keys) => data, push a value into Scheme-form JSON data by key path";
   s7_define_function (sc, name, f_json_push, 3, 0, true, desc);
 }
 

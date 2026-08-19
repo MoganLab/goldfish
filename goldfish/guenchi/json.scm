@@ -27,8 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-drop json-drop* json-reduce json-reduce*
-  ) ;export
+  (export json-string-escape json-drop json-drop* json-reduce json-reduce*)
   (begin
 
     (define (json-string-escape str)
