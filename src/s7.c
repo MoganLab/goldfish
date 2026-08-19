@@ -6089,7 +6089,7 @@ static no_return void sole_arg_out_of_range_error_nr(s7_scheme *sc, s7_pointer c
   error_nr(sc, sc->out_of_range_symbol, sc->sole_arg_out_of_range_info);
 }
 
-static no_return void out_of_range_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg_n, s7_pointer arg, s7_pointer descr)
+no_return void out_of_range_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg_n, s7_pointer arg, s7_pointer descr)
 {
   set_wlist_4(cdr(sc->out_of_range_info), caller, arg_n, arg, descr);
   error_nr(sc, sc->out_of_range_symbol, sc->out_of_range_info);
@@ -16773,96 +16773,10 @@ static s7_int string_length_i_7p(s7_scheme *sc, s7_pointer str)
 
 
 /* -------------------------------- string-ref -------------------------------- */
-static s7_pointer string_ref_p_pi(s7_scheme *sc, s7_pointer str, s7_int index)
-{
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->string_ref_symbol, set_plist_2(sc, str, make_integer(sc, index)), sc->type_names[T_STRING], 1));
-  if ((index < 0) || (index >= string_length(str)))
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(chars[((uint8_t *)string_value(str))[index]]);
-}
-
-static s7_pointer string_ref_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer index)
-{
-  s7_int ind;
-  if (!is_string(str))
-    return(method_or_bust_pp(sc, str, sc->string_ref_symbol, str, index, sc->type_names[T_STRING], 1));
-  if (!s7_is_integer(index))
-    return(method_or_bust_pp(sc, index, sc->string_ref_symbol, str, index, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if (ind < 0)
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_negative_string);
-  if (ind >= string_length(str))
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, index, it_is_too_large_string);
-  return(chars[((uint8_t *)string_value(str))[ind]]);
-}
-
-static s7_pointer string_ref_p_p0(s7_scheme *sc, s7_pointer str, s7_pointer unused_index)
-{
-  if (!is_string(str))
-    return(method_or_bust_pp(sc, str, sc->string_ref_symbol, str, int_zero, sc->type_names[T_STRING], 1));
-  if (string_length(str) <= 0)
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, int_zero, it_is_too_large_string);
-  return(chars[((uint8_t *)string_value(str))[0]]);
-}
-
-static s7_pointer string_plast_via_method(s7_scheme *sc, s7_pointer str) /* tmock */
-{
-  s7_pointer len = method_or_bust_p(sc, str, sc->length_symbol, sc->type_names[T_STRING]);
-  return(method_or_bust_pp(sc, str, sc->string_ref_symbol, str, make_integer(sc, integer(len) - 1), sc->type_names[T_STRING], 1));
-}
-
-static s7_pointer string_ref_p_plast(s7_scheme *sc, s7_pointer str, s7_pointer unused_index)
-{
-  if (!is_string(str))
-    return(string_plast_via_method(sc, str));
-  if (string_length(str) <= 0)
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, wrap_integer(sc, string_length(str) - 1), it_is_too_large_string);
-  return(chars[((uint8_t *)string_value(str))[string_length(str) - 1]]);
-}
-
-static inline s7_pointer string_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer str, s7_int index)
-{
-  if ((index < 0) || (index >= string_length(str)))
-    out_of_range_error_nr(sc, sc->string_ref_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(chars[((uint8_t *)string_value(str))[index]]);
-}
-
-static s7_pointer string_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer str, s7_int index) {return(chars[((uint8_t *)string_value(str))[index]]);}
-
-
-/* -------------------------------- string-set! -------------------------------- */
-static s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr)
-{
-  if (!is_string(str))
-    wrong_type_error_nr(sc, sc->string_set_symbol, 1, str, sc->type_names[T_STRING]);
-  if (!is_character(chr))
-    wrong_type_error_nr(sc, sc->string_set_symbol, 2, chr, sc->type_names[T_CHARACTER]);
-  if (s7_character(chr) > 0xFF)
-    {
-      const char *hint = "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters";
-      out_of_range_error_nr(sc, sc->string_set_symbol, int_two, chr,
-                            wrap_string(sc, hint, safe_strlen(hint)));
-    }
-  if ((index >= 0) && (index < string_length(str)))
-    string_value(str)[index] = s7_character(chr);
-  else out_of_range_error_nr(sc, sc->string_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(chr);
-}
-
-static s7_pointer string_set_p_pip_unchecked(s7_scheme *sc, s7_pointer str, s7_int index, s7_pointer chr)
-{
-  if ((index >= 0) && (index < string_length(str)))
-    string_value(str)[index] = s7_character(chr);
-  else out_of_range_error_nr(sc, sc->string_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(chr);
-}
-
-static s7_pointer string_set_p_pip_direct(s7_scheme *unused_sc, s7_pointer str, s7_int index, s7_pointer chr)
-{
-  string_value(str)[index] = s7_character(chr);
-  return(chr);
-}
+/* string_ref_p_pi, string_ref_p_pp, string_ref_p_p0, string_plast_via_method,
+   string_ref_p_plast, string_ref_p_pi_unchecked, string_ref_p_pi_direct,
+   string_set_p_pip, string_set_p_pip_unchecked, string_set_p_pip_direct
+   migrated to s7_liii_string.c */
 
 
 /* -------------------------------- string-append -------------------------------- */
@@ -16986,15 +16900,7 @@ end: (substring-uncopied \"01234\" 1 2) -> \"1\".  substring-uncopied does not G
 #define Q_substring_uncopied s7_make_signature(sc, 4, sc->is_string_symbol, sc->is_string_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
 /* g_substring_uncopied is now defined in s7_liii_string.c */
 
-static s7_pointer substring_uncopied_p_pii(s7_scheme *sc, s7_pointer str, s7_int start, s7_int end)
-{
-  /* is_string(arg1) already checked in opt */
-  if ((end < start) || (end > string_length(str)))
-    out_of_range_error_nr(sc, sc->substring_uncopied_symbol, int_three, wrap_integer(sc, end), (end < start) ? it_is_too_small_string : it_is_too_large_string);
-  if (start < 0)
-    out_of_range_error_nr(sc, sc->substring_uncopied_symbol, int_two, wrap_integer(sc, start), it_is_negative_string);
-  return(wrap_string(sc, (char *)(string_value(str) + start), end - start));
-}
+/* substring_uncopied_p_pii migrated to s7_liii_string.c */
 
 static s7_pointer g_get_output_string(s7_scheme *sc, s7_pointer args);
 
@@ -17114,6 +17020,8 @@ s7_pointer s7i_method_or_bust_sym(s7_scheme *sc, s7_pointer obj, s7_pointer meth
 
 s7_pointer s7i_set_plist_1(s7_scheme *sc, s7_pointer x1) {return(set_plist_1(sc, x1));}
 s7_pointer s7i_string_type_name(s7_scheme *sc) {return(sc->type_names[T_STRING]);}
+s7_pointer s7i_character_type_name(s7_scheme *sc) {return(sc->type_names[T_CHARACTER]);}
+void s7i_check_free_heap_size(s7_scheme *sc, s7_int size) {check_free_heap_size(sc, size);}
 s7_pointer s7i_string_eq_symbol(s7_scheme *sc) {return(sc->string_eq_symbol);}
 s7_pointer s7i_string_lt_symbol(s7_scheme *sc) {return(sc->string_lt_symbol);}
 s7_pointer s7i_string_gt_symbol(s7_scheme *sc) {return(sc->string_gt_symbol);}
@@ -17340,18 +17248,7 @@ static s7_pointer string_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
   return(((args == 1) && (!is_pair(cadr(expr)))) ? sc->string_c1 : func);
 }
 
-static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
-{
-  s7_pointer str;
-  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
-  if (!is_character(c)) return(s7i_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
-  if (s7_character(c) > 0xFF)
-    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
-                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
-  str = inline_make_empty_string(sc, 1, '\0');
-  string_value(str)[0] = character(c);
-  return(str);
-}
+/* string_p_p migrated to s7_liii_string.c */
 
 
 /* -------------------------------- list->string -------------------------------- */
@@ -17379,26 +17276,7 @@ static s7_pointer string_to_list(s7_scheme *sc, const char *str, s7_int len)
 #define Q_string_to_list s7_make_circular_signature(sc, 2, 3, sc->is_proper_list_symbol, sc->is_string_symbol, sc->is_integer_symbol)
 /* g_string_to_list is now defined in s7_liii_string.c */
 
-static s7_pointer string_to_list_p_p(s7_scheme *sc, s7_pointer str)
-{
-  s7_int len;
-  const uint8_t *val;
-  if (!is_string(str))
-    return(sole_arg_method_or_bust(sc, str, sc->string_to_list_symbol, set_plist_1(sc, str), sc->type_names[T_STRING]));
-  len = string_length(str);
-  if (len == 0) return(sc->nil);
-  if (len > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "string->list length, ~D, is greater than (*s7* 'max-list-length), ~D", 68),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_list_length)));
-  check_free_heap_size(sc, len);
-  val = (const uint8_t *)string_value(str);
-  {
-    s7_pointer result = sc->nil;
-    for (s7_int i = len - 1; i >= 0; i--) result = cons_unchecked(sc, chars[val[i]], result);
-    return(result);
-  }
-}
+/* string_to_list_p_p migrated to s7_liii_string.c */
 #endif
 
 
