@@ -265,6 +265,46 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
                          ? s7_nil (sc)
                          : s7_array_to_list (sc, (s7_int)args.size (),
                                              const_cast<s7_pointer*>(args.data ()));
+  // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
+  // the evaluator stack and returns sc->nil, leaving the real call for the
+  // eval loop.  s7_apply_function therefore returns () for (apply ...) --
+  // harmless inside a normal s7 eval, but the VM interpreter loop takes the
+  // return value at face value, so an (apply ...) from VM bytecode would
+  // deliver () to the next instruction (e.g. datum->syntax y ()).  Also, a
+  // closure body reached through the deferred path mis-handles let-scoped
+  // mutations (typed-lambda's do/set-car! on its arg list).  Implement
+  // (apply proc a1 ... an) directly instead: splice the final list
+  // argument into the argument list and call the procedure.
+  if (std::string (s7_object_to_c_string (sc, f)) == "apply") {
+    s7_pointer proc = s7_car (args_list);
+    s7_pointer rest = s7_cdr (args_list);            // (a1 ... an)
+    if (!s7_is_pair (rest))                          // (apply proc) -- no args
+      return s7_apply_function (sc, proc, s7_nil (sc));
+    s7_pointer p = rest;
+    while (s7_is_pair (s7_cdr (p))) p = s7_cdr (p);  // p is the last cons (an)
+    s7_pointer last = s7_car (p);
+    s7_pointer spliced;
+    if (s7_is_null (sc, last)) {
+      if (rest == p)                                 // only (proc ()) -> no args
+        spliced = s7_nil (sc);
+      else {                                         // drop the () tail
+        s7_pointer q = rest;
+        while (s7_is_pair (s7_cdr (q)) && s7_cdr (q) != p) q = s7_cdr (q);
+        s7_set_cdr (q, s7_nil (sc));
+        spliced = rest;
+      }
+    } else {
+      if (rest == p)                                 // only (proc list) -> splice
+        spliced = last;
+      else {                                         // splice list after fixed args
+        s7_pointer q = rest;
+        while (s7_is_pair (s7_cdr (q)) && s7_cdr (q) != p) q = s7_cdr (q);
+        s7_set_cdr (q, last);
+        spliced = rest;
+      }
+    }
+    return s7_apply_function (sc, proc, spliced);
+  }
   return s7_apply_function (sc, f, args_list);
 }
 // run : target-depth -> result

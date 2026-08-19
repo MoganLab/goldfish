@@ -368,17 +368,14 @@
 ;;; macros, and every boot macro, captured before the module system is up)
 ;;; keeps its lowered form as the warm-start path.
 (define (compile-transformer-to-program lowered)
-  ;; The VM transformer path is DISABLED by default: VM-compiled
-  ;; transformers whose body applies a VM closure (every s7 define-macro
-  ;; transformer, e.g. (liii base)'s typed-lambda) return their datum
-  ;; unwrapped -- a VM re-entrancy bug (apply of a nested VM closure from
-  ;; inside a running VM program) that silently yields "macro output is not
-  ;; a syntax object" when the transformer is rebuilt from the cache,
-  ;; poisoning the shared ccache for all later loads.  The lowered-form
-  ;; path (serialize-cache-sexp + eval) is correct and is the default.
-  ;; Set GOLDFISH_VM_TRANSFORMER=1 to opt back into the (faster) bytecode
-  ;; path while the VM re-entrancy bug is being fixed.
-  (if (not (getenv "GOLDFISH_VM_TRANSFORMER"))
+  ;; Compile a transformer's lowered form to a serialized VM bytecode
+  ;; program (the fast warm-start path).  The VM interpreter has its own
+  ;; apply handling (call_function splices the final list argument of
+  ;; (apply ...) directly and calls the procedure, bypassing s7's deferred
+  ;; apply opcode), so define-macro transformers whose body applies a
+  ;; closure work from the cache.  GOLDFISH_NO_VM_TRANSFORMER=1 falls back
+  ;; to the lowered-form path (serialize-cache-sexp + eval).
+  (if (getenv "GOLDFISH_NO_VM_TRANSFORMER")
     #f
     (let ((compiler
            (catch #t
