@@ -18486,9 +18486,7 @@ static port_functions_t input_string_functions_1 =
 static s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int max_size, const char *caller)
 {
   s7_pointer port;
-#if !MS_WINDOWS
   s7_int size;
-#endif
   block_t *b = mallocate_port(sc);
   new_cell(sc, port, T_INPUT_PORT);
   gc_protect_via_stack(sc, port);
@@ -18502,11 +18500,17 @@ static s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int ma
   port_file_number(port) = 0;
   add_input_port(sc, port);
 
-#if !MS_WINDOWS
-  /* this doesn't work in MS C */
+#if MS_WINDOWS
+  /* MS C's fseek/ftell truncate large files: use the 64-bit-safe variants */
+  if ((_fseeki64(fp, 0, SEEK_END) != 0) ||
+      ((size = _ftelli64(fp)) < 0))
+    size = 0;
+  rewind(fp);
+#else
   fseek(fp, 0, SEEK_END);
   size = ftell(fp);
   rewind(fp);
+#endif
   /* pseudo files (under /proc for example) have size=0, but we can read them, so don't assume a 0 length file is empty */
   if ((size > 0) &&   /* if (size != 0) we get (open-input-file "/dev/tty") -> (open "/dev/tty") read 0 bytes of an expected -1? */
       ((max_size < 0) || (size < max_size))) /* load uses max_size = -1 */
@@ -18516,11 +18520,15 @@ static s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int ma
       const size_t bytes = fread(content, sizeof(uint8_t), size, fp);
       if (bytes != (size_t)size)
 	{
-	  if (current_output_port(sc) != sc->F)
+	  /* in MS Windows text mode, CRLF -> LF translation makes the read size smaller than the file size */
+	  if (ferror(fp) || (bytes == 0))
 	    {
-	      char tmp[256];
-	      int32_t len = snprintf(tmp, 256, "(%s \"%s\") read %ld bytes of an expected %" ld64 "?", caller, name, (long)bytes, size);
-	      port_write_string(current_output_port(sc))(sc, tmp, clamp_length(len, 256), current_output_port(sc));
+	      if (current_output_port(sc) != sc->F)
+		{
+		  char tmp[256];
+		  int32_t len = snprintf(tmp, 256, "(%s \"%s\") read %ld bytes of an expected %" ld64 "?", caller, name, (long)bytes, size);
+		  port_write_string(current_output_port(sc))(sc, tmp, clamp_length(len, 256), current_output_port(sc));
+		}
 	    }
 	  size = bytes;
 	}
@@ -18548,20 +18556,6 @@ static s7_pointer read_file(s7_scheme *sc, FILE *fp, const char *name, s7_int ma
       port_needs_free(port) = false;
       port_port(port)->pf = &input_file_functions;
     }
-#else
-  /* _stat64 is no better than the fseek/ftell route, and
-   *    GetFileSizeEx and friends requires Windows.h which makes hash of everything else.
-   *    fread until done takes too long on big files, so use a file port
-   */
-  port_file(port) = fp;
-  port_type(port) = file_port;
-  port_needs_free(port) = false;
-  port_data(port) = NULL;
-  port_data_block(port) = NULL;
-  port_data_size(port) = 0;
-  port_position(port) = 0;
-  port_port(port)->pf = &input_file_functions;
-#endif
   unstack_gc_protect(sc);
   return(port);
 }
