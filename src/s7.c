@@ -27886,25 +27886,7 @@ static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
   return(s7i_vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
 }
 
-static s7_pointer vector_append_p_pp(s7_scheme *sc, s7_pointer v1, s7_pointer v2)
-{
-  s7_pointer val;
-  sc->temp7 = list_2(sc, v1, v2); /* ideally this list would be gc_protected, avoiding temp7 (method call above) */
-  val = g_vector_append(sc, sc->temp7);
-  if ((S7_DEBUGGING) && (!is_pair(sc->temp7))) fprintf(stderr, "%s[%d]: temp7: %s\n", __func__, __LINE__, display(sc->temp7));
-  sc->temp7 = sc->unused;
-  return(val);
-}
-
-static s7_pointer vector_append_p_ppp(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3)
-{
-  s7_pointer val;
-  sc->temp7 = list_3(sc, v1, v2, v3);
-  val = g_vector_append(sc, sc->temp7);
-  if ((S7_DEBUGGING) && (!is_pair(sc->temp7))) fprintf(stderr, "%s[%d]: temp7: %s\n", __func__, __LINE__, display(sc->temp7));
-  sc->temp7 = sc->unused;
-  return(val);
-}
+/* vector_append_p_pp, vector_append_p_ppp migrated to s7_liii_vector.c */
 #endif
 
 
@@ -28120,12 +28102,7 @@ static s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args)
   return_with_end_temp(sc->temp6);
 }
 
-static s7_pointer vector_to_list_p_p(s7_scheme *sc, s7_pointer vec)
-{
-  if (!is_any_vector(vec))
-    return(method_or_bust_p(sc, vec, sc->vector_to_list_symbol, sc->type_names[T_VECTOR]));
-  return(s7_vector_to_list(sc, vec));
-}
+/* vector_to_list_p_p migrated to s7_liii_vector.c */
 #endif
 
 
@@ -28437,48 +28414,9 @@ s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
 
 /* g_vector_ref is now defined in s7_liii_vector.c */
 
-static s7_pointer vector_ref_p_pi(s7_scheme *sc, s7_pointer vec, s7_int index)
-{
-  if ((!is_t_vector(vec)) ||
-      (vector_rank(vec) > 1) ||
-      (index < 0) || (index >= vector_length(vec)))
-    return(g_vector_ref(sc, set_plist_2(sc, vec, make_integer(sc, index))));
-  return(vector_element(vec, index));
-}
-
-static s7_pointer vector_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index) /* callable but just barely (tgsl.scm) */
-{
-  if ((index < 0) || (index >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->vector_ref_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(vector_getter(vec)(sc, vec, index));
-}
-
-static s7_pointer t_vector_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index)
-{
-  if ((index < 0) || (index >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->vector_ref_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(vector_element(vec, index));
-}
-
-static s7_pointer vector_ref_p_pii(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2)
-{
-  if ((!is_any_vector(vec)) ||
-      (vector_rank(vec) != 2) ||
-      (i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_ref(sc, set_plist_3(sc, vec, make_integer(sc, i1), make_integer_unchecked(sc, i2))));
-  return(vector_getter(vec)(sc, vec, i2 + (i1 * vector_offset(vec, 0))));
-}
-
-static s7_pointer vector_ref_p_pii_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2)
-{
-  if ((i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_ref(sc, set_plist_3(sc, vec, make_integer(sc, i1), make_integer_unchecked(sc, i2))));
-  return(vector_element(vec, i2 + (i1 * vector_offset(vec, 0))));
-}
-
-static s7_pointer t_vector_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(vector_element(vec, index));}
+/* vector_ref_p_pi, vector_ref_p_pi_unchecked, t_vector_ref_p_pi_unchecked,
+   vector_ref_p_pii, vector_ref_p_pii_direct, t_vector_ref_p_pi_direct
+   migrated to s7_liii_vector.c */
 
 s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 {
@@ -28494,6 +28432,40 @@ s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 }
 
 /* g_vector_ref_2 is now defined in s7_liii_vector.c */
+
+/* -------- s7i_ bridges for vector p_p migration to s7_liii_vector.c -------- */
+static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args);
+bool s7i_is_any_vector(s7_pointer p) {return(is_any_vector(p));}
+bool s7i_is_t_vector(s7_pointer p) {return(is_t_vector(p));}
+bool s7i_is_typed_vector(s7_pointer p) {return(is_typed_vector(p));}
+bool s7i_is_immutable_vector(s7_pointer p) {return(is_immutable_vector(p));}
+s7_pointer s7i_vector_element(s7_pointer p, s7_int i) {return(vector_element(p, i));}
+void s7i_vector_element_set(s7_pointer p, s7_int i, s7_pointer v) {vector_element(p, i) = v;}
+s7_pointer s7i_vector_getter_ref(s7_scheme *sc, s7_pointer p, s7_int i) {return(vector_getter(p)(sc, p, i));}
+s7_pointer s7i_vector_setter_set(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v) {vector_setter(p)(sc, p, i, v);}
+s7_pointer s7i_typed_vector_setter(s7_scheme *sc, s7_pointer p, s7_int i, s7_pointer v) {return(typed_vector_setter(sc, p, i, v));}
+s7_int s7i_vector_offset(s7_pointer p, s7_int i) {return(vector_offset(p, i));}
+s7_pointer s7i_small_int(s7_int val) {return(small_int(val));}
+uint8_t s7i_byte_vector_element(s7_pointer p, s7_int i) {return(byte_vector(p, i));}
+void s7i_byte_vector_element_set(s7_pointer p, s7_int i, uint8_t v) {byte_vector(p, i) = v;}
+s7_pointer s7i_g_vector_set(s7_scheme *sc, s7_pointer plist) {return(g_vector_set(sc, plist));}
+s7_pointer s7i_set_plist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4) {return(set_plist_4(sc, x1, x2, x3, x4));}
+s7_pointer s7i_vector_append_2(s7_scheme *sc, s7_pointer v1, s7_pointer v2)
+{
+  s7_pointer val;
+  sc->temp7 = list_2(sc, v1, v2); /* ideally this list would be gc_protected, avoiding temp7 (method call above) */
+  val = g_vector_append(sc, sc->temp7);
+  sc->temp7 = sc->unused;
+  return(val);
+}
+s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3)
+{
+  s7_pointer val;
+  sc->temp7 = list_3(sc, v1, v2, v3);
+  val = g_vector_append(sc, sc->temp7);
+  sc->temp7 = sc->unused;
+  return(val);
+}
 
 static s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
 {
@@ -28598,77 +28570,10 @@ static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
   return(val);
 }
 
-static s7_pointer vector_set_p_pip(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value) /* almost never called -- see one case in s7test.scm[13736] */
-{
-  if ((!is_any_vector(vec)) || (vector_rank(vec) > 1) || (index < 0) || (index >= vector_length(vec)))
-    return(g_vector_set(sc, set_plist_3(sc, vec, make_integer(sc, index), value)));
-  if (is_t_vector(vec))
-    {
-      if (is_typed_vector(vec)) return(typed_vector_setter(sc, vec, index, value));
-      vector_element(vec, index) = value;
-    }
-  else vector_setter(vec)(sc, vec, index, value);
-  return(value);
-}
-
-static s7_pointer vector_set_p_pip_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value)
-{
-  if ((index >= 0) && (index < vector_length(vec)))
-    vector_element(vec, index) = value;
-  else out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(value);
-}
-
-static s7_pointer vector_set_p_piip(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value)
-{
-  if ((!is_any_vector(vec)) ||
-      (vector_rank(vec) != 2) ||
-      (i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_set(sc, set_plist_4(sc, vec, make_integer(sc, i1), make_integer_unchecked(sc, i2), value)));
-  if (is_t_vector(vec))
-    {
-      if (is_typed_vector(vec))
-	return(typed_vector_setter(sc, vec, i2 + (i1 * vector_offset(vec, 0)), value));
-      vector_element(vec, i2 + (i1 * vector_offset(vec, 0))) = value;
-    }
-  else vector_setter(vec)(sc, vec, i2 + (i1 * vector_offset(vec, 0)), value);
-  return(value);
-}
-
-static s7_pointer vector_set_p_piip_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value)
-{
-  /* normal untyped vector, rank == 2 */
-  if ((i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_set(sc, set_plist_4(sc, vec, make_integer(sc, i1), make_integer_unchecked(sc, i2), value)));
-  vector_element(vec, i2 + (i1 * vector_offset(vec, 0))) = value;
-  return(value);
-}
-
-static s7_pointer typed_vector_set_p_pip_unchecked(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value)
-{
-  if ((index >= 0) && (index < vector_length(vec)))
-    typed_vector_setter(sc, vec, index, value);
-  else out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(value);
-}
-
-static s7_pointer typed_vector_set_p_piip_direct(s7_scheme *sc, s7_pointer vec, s7_int i1, s7_int i2, s7_pointer value)
-{
-  if ((i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_set(sc, set_plist_4(sc, vec, make_integer(sc, i1), make_integer_unchecked(sc, i2), value)));
-  return(typed_vector_setter(sc, vec, i2 + (i1 * vector_offset(vec, 0)), value));
-}
-
-static s7_pointer t_vector_set_p_pip_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_pointer value) {vector_element(vec, index) = value; return(value);}
-
-static s7_pointer typed_t_vector_set_p_pip_direct(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value)
-{
-  typed_vector_setter(sc, vec, index, value);
-  return(value);
-}
+/* vector_set_p_pip, vector_set_p_pip_unchecked, vector_set_p_piip,
+   vector_set_p_piip_direct, typed_vector_set_p_pip_unchecked,
+   typed_vector_set_p_piip_direct, t_vector_set_p_pip_direct,
+   typed_t_vector_set_p_pip_direct migrated to s7_liii_vector.c */
 
 static s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args)
 {
@@ -28701,27 +28606,7 @@ static s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args)
   }
 }
 
-static s7_pointer vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer ind, s7_pointer val)
-{
-  s7_int index;
-  /* if ((S7_DEBUGGING) && (is_mutable(ind)) && (is_t_integer(ind))) ind = make_integer(sc, integer(ind)); */
-  /* if ((S7_DEBUGGING) && (is_mutable(ind)) && (is_t_integer(ind))) fprintf(stderr, "%s[%d]: skipping make-integer\n", __func__, __LINE__); */
-
-  if ((!is_t_vector(vec)) || (vector_rank(vec) > 1))
-    return(g_vector_set(sc, set_plist_3(sc, vec, ind, val)));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->vector_set_symbol, vec));
-  if (!s7_is_integer(ind))
-    return(g_vector_set(sc, set_plist_3(sc, vec, ind, val)));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-  if ((index < 0) || (index >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-
-  if (is_typed_vector(vec))
-    return(typed_vector_setter(sc, vec, index, val));
-  vector_element(vec, index) = val;
-  return(val);
-}
+/* vector_set_p_ppp migrated to s7_liii_vector.c */
 
 static s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args)
 {
@@ -30202,7 +30087,7 @@ static s7_int byte_vector_ref_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index
   return((s7_int)byte_vector(vec, index2 + (index1 * vector_offset(vec, 0))));
 }
 
-static s7_pointer byte_vector_ref_p_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(small_int((byte_vector(vec, index))));}
+/* byte_vector_ref_p_pi_direct migrated to s7_liii_vector.c */
 static s7_int byte_vector_ref_i_7pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index)    {return(byte_vector(vec, index));}
 
 static s7_pointer g_bv_ref_2(s7_scheme *sc, s7_pointer args)
@@ -30280,11 +30165,7 @@ static s7_int byte_vector_set_i_7pii_direct(s7_scheme *unused_sc, s7_pointer vec
   return(byte);
 }
 
-static s7_pointer byte_vector_set_p_pip_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_pointer byte)
-{
-  byte_vector(vec, index) = (uint8_t)s7_integer(byte);
-  return(byte);
-}
+/* byte_vector_set_p_pip_direct migrated to s7_liii_vector.c */
 
 static s7_int byte_vector_set_i_7piii(s7_scheme *sc, s7_pointer vec, s7_int index1, s7_int index2, s7_int byte)
 {
