@@ -132,6 +132,20 @@ s7_pointer s7i_g_vector_set(s7_scheme *sc, s7_pointer plist);
 s7_pointer s7i_set_plist_4(s7_scheme *sc, s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer x4);
 s7_pointer s7i_vector_append_2(s7_scheme *sc, s7_pointer v1, s7_pointer v2);
 s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_pointer v3);
+
+/* list bridges for s7_liii_list.c migration */
+s7_pointer s7i_cons_safe(s7_scheme *sc, s7_pointer p1, s7_pointer p2);
+s7_pointer s7i_inline_set_car(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+s7_pointer s7i_inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointer value);
+bool s7i_is_simple(s7_pointer p);
+bool s7i_scheme_version_is_s7(s7_scheme *sc);
+s7_pointer s7i_methods_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name1, const char *method_name2,
+                                  s7_pointer x1, s7_pointer x2, s7_pointer typ, s7_int num);
+s7_pointer s7i_assoc_1(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_pointer s7i_member(s7_scheme *sc, s7_pointer obj, s7_pointer lst);
+s7_int s7i_tree_len(s7_scheme *sc, s7_pointer p);
+bool s7i_tree_is_cyclic_checked(s7_scheme *sc, s7_pointer tree);
 s7_pointer s7i_string_eq_symbol(s7_scheme *sc);
 s7_pointer s7i_string_lt_symbol(s7_scheme *sc);
 s7_pointer s7i_string_gt_symbol(s7_scheme *sc);
