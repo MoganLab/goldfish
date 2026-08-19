@@ -394,6 +394,21 @@ s7_pointer s7i_multiply_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y,
 s7_pointer s7i_invert_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer s7i_divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 
+/* bridge functions for s7_scheme_read.c (reader migration) */
+int32_t s7i_token(s7_scheme *sc);
+s7_pointer s7i_make_sharp_constant(s7_scheme *sc, const char *name, bool with_error, s7_pointer port, bool error_if_bad_number);
+void s7i_resize_strbuf(s7_scheme *sc, s7_int needed_size);
+void s7i_backchar(char c, s7_pointer port);
+bool s7i_is_loader_port(s7_pointer p);
+s7_pointer s7i_an_input_port_string_obj(void);
+s7_pointer s7i_an_open_input_port_string_obj(void);
+s7_pointer s7i_eval(s7_scheme *sc, s7_int op);
+block_t *s7i_mallocate_port(s7_scheme *sc);
+void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len);
+void push_input_port(s7_scheme *sc, s7_pointer new_port);
+/* method_or_bust/_p/_pp take s7_pointer symbols; declared in s7_scheme_read.c only
+ * (s7_liii_string.c has its own same-named static helpers, so they can't live in a shared header) */
+
 #ifdef __cplusplus
 }
 #endif
