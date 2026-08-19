@@ -84,16 +84,14 @@ parse_cursor_arg (s7_scheme* sc, s7_pointer arg, const char* who, s7_int* value)
 static s7_pointer
 f_string_cursor_start (s7_scheme* sc, s7_pointer args) {
   s7_pointer str= s7_car (args);
-  if (!check_string_arg (sc, str, "string-cursor-start: first parameter must be string"))
-    return NULL;
+  if (!check_string_arg (sc, str, "string-cursor-start: first parameter must be string")) return NULL;
   return s7_make_integer (sc, -2);
 }
 
 static s7_pointer
 f_string_cursor_end (s7_scheme* sc, s7_pointer args) {
   s7_pointer str= s7_car (args);
-  if (!check_string_arg (sc, str, "string-cursor-end: first parameter must be string"))
-    return NULL;
+  if (!check_string_arg (sc, str, "string-cursor-end: first parameter must be string")) return NULL;
   return offset_to_cursor (sc, (s7_int) s7_string_length (str));
 }
 
@@ -106,7 +104,9 @@ utf8_advance (const char* s, s7_int off) {
 
 static s7_int
 utf8_retreat (const char* s, s7_int off) {
-  do { off--; } while (off > 0 && ((s[off] & 0xC0) == 0x80));
+  do {
+    off--;
+  } while (off > 0 && ((s[off] & 0xC0) == 0x80));
   return off;
 }
 
@@ -114,41 +114,39 @@ utf8_retreat (const char* s, s7_int off) {
 
 static s7_pointer
 f_string_cursor_next (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-cursor-next: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-cursor-next: first parameter must be string");
   if (!s) return NULL;
   s7_int cur;
-  bool is_cursor= parse_cursor_arg (sc, s7_cadr (args), "string-cursor-next: second parameter must be integer or cursor", &cur);
+  bool   is_cursor=
+      parse_cursor_arg (sc, s7_cadr (args), "string-cursor-next: second parameter must be integer or cursor", &cur);
   s7_int len= (s7_int) s7_string_length (str);
 
   if (!is_cursor) {
     // 索引语义：返回索引 +1
-    if (cur < 0 || cur >= len)
-      return liii_string_cursor_value_error (sc, "string-cursor-next: already at end cursor");
+    if (cur < 0 || cur >= len) return liii_string_cursor_value_error (sc, "string-cursor-next: already at end cursor");
     return s7_make_integer (sc, cur + 1);
   }
   s7_int off= cursor_to_offset (s7_car (s7_cdr (args)));
-  if (off >= len)
-    return liii_string_cursor_value_error (sc, "string-cursor-next: already at end cursor");
+  if (off >= len) return liii_string_cursor_value_error (sc, "string-cursor-next: already at end cursor");
   return offset_to_cursor (sc, utf8_advance (s, off));
 }
 
 static s7_pointer
 f_string_cursor_prev (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-cursor-prev: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-cursor-prev: first parameter must be string");
   if (!s) return NULL;
   s7_pointer cur_arg= s7_cadr (args);
-  s7_int cur;
-  bool is_cursor= parse_cursor_arg (sc, cur_arg, "string-cursor-prev: second parameter must be integer or cursor", &cur);
+  s7_int     cur;
+  bool       is_cursor=
+      parse_cursor_arg (sc, cur_arg, "string-cursor-prev: second parameter must be integer or cursor", &cur);
   if (is_cursor) {
     s7_int off= cursor_to_offset (cur_arg);
-    if (off <= 0)
-      return liii_string_cursor_value_error (sc, "string-cursor-prev: already at start cursor");
+    if (off <= 0) return liii_string_cursor_value_error (sc, "string-cursor-prev: already at start cursor");
     return offset_to_cursor (sc, utf8_retreat (s, off));
   }
-  if (cur <= 0)
-    return liii_string_cursor_value_error (sc, "string-cursor-prev: already at start cursor");
+  if (cur <= 0) return liii_string_cursor_value_error (sc, "string-cursor-prev: already at start cursor");
   return s7_make_integer (sc, cur - 1);
 }
 
@@ -156,21 +154,19 @@ f_string_cursor_prev (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 string_cursor_move (s7_scheme* sc, s7_pointer args, bool forward, const char* who) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, who);
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, who);
   if (!s) return NULL;
   s7_pointer cur_arg= s7_cadr (args);
-  s7_int cur, nchars;
-  bool is_cursor= parse_cursor_arg (sc, cur_arg, who, &cur);
-  s7_pointer n_arg= s7_cadr (s7_cdr (args));
-  if (!s7_is_integer (n_arg))
-    return liii_string_cursor_type_error (sc, who, n_arg);
+  s7_int     cur, nchars;
+  bool       is_cursor= parse_cursor_arg (sc, cur_arg, who, &cur);
+  s7_pointer n_arg    = s7_cadr (s7_cdr (args));
+  if (!s7_is_integer (n_arg)) return liii_string_cursor_type_error (sc, who, n_arg);
   nchars= s7_integer (n_arg);
   if (!forward) nchars= -nchars;
   s7_int len= (s7_int) s7_string_length (str);
 
-  if (!is_cursor)
-    return s7_make_integer (sc, cur + nchars);
+  if (!is_cursor) return s7_make_integer (sc, cur + nchars);
 
   s7_int off= cursor_to_offset (cur_arg);
   if (nchars >= 0) {
@@ -179,10 +175,10 @@ string_cursor_move (s7_scheme* sc, s7_pointer args, bool forward, const char* wh
         return liii_string_cursor_value_error (sc, "string-cursor-forward: result would be invalid cursor");
       off= utf8_advance (s, off);
     }
-  } else {
+  }
+  else {
     for (s7_int i= 0; i < -nchars; i++) {
-      if (off <= 0)
-        return liii_string_cursor_value_error (sc, "string-cursor-back: result would be invalid cursor");
+      if (off <= 0) return liii_string_cursor_value_error (sc, "string-cursor-back: result would be invalid cursor");
       off= utf8_retreat (s, off);
     }
   }
@@ -208,49 +204,77 @@ enum cursor_cmp { CMP_EQ, CMP_LT, CMP_GT, CMP_LE, CMP_GE };
 static s7_pointer
 string_cursor_compare (s7_scheme* sc, s7_pointer args, cursor_cmp op, const char* who) {
   s7_pointer a= s7_car (args), b= s7_cadr (args);
-  s7_int ia, ib;
-  bool ca= parse_cursor_arg (sc, a, who, &ia);
-  bool cb= parse_cursor_arg (sc, b, who, &ib);
-  if (ca != cb)
-    return liii_string_cursor_type_error (sc, "string-cursor compare: cannot mix cursor and index", b);
+  s7_int     ia, ib;
+  bool       ca= parse_cursor_arg (sc, a, who, &ia);
+  bool       cb= parse_cursor_arg (sc, b, who, &ib);
+  if (ca != cb) return liii_string_cursor_type_error (sc, "string-cursor compare: cannot mix cursor and index", b);
 
   s7_int x, y;
-  if (ca) { x= -ia; y= -ib; }  // 取反后恢复字节偏移的升序
-  else    { x= ia;  y= ib; }
+  if (ca) {
+    x= -ia;
+    y= -ib;
+  } // 取反后恢复字节偏移的升序
+  else {
+    x= ia;
+    y= ib;
+  }
 
   bool result;
   switch (op) {
-    case CMP_EQ: result= (x == y); break;
-    case CMP_LT: result= (x <  y); break;
-    case CMP_GT: result= (x >  y); break;
-    case CMP_LE: result= (x <= y); break;
-    default:     result= (x >= y); break;
+  case CMP_EQ:
+    result= (x == y);
+    break;
+  case CMP_LT:
+    result= (x < y);
+    break;
+  case CMP_GT:
+    result= (x > y);
+    break;
+  case CMP_LE:
+    result= (x <= y);
+    break;
+  default:
+    result= (x >= y);
+    break;
   }
   return s7_make_boolean (sc, result);
 }
 
-static s7_pointer f_string_cursor_eq (s7_scheme* sc, s7_pointer args) { return string_cursor_compare (sc, args, CMP_EQ, "string-cursor=?"); }
-static s7_pointer f_string_cursor_lt (s7_scheme* sc, s7_pointer args) { return string_cursor_compare (sc, args, CMP_LT, "string-cursor<?"); }
-static s7_pointer f_string_cursor_gt (s7_scheme* sc, s7_pointer args) { return string_cursor_compare (sc, args, CMP_GT, "string-cursor>?"); }
-static s7_pointer f_string_cursor_le (s7_scheme* sc, s7_pointer args) { return string_cursor_compare (sc, args, CMP_LE, "string-cursor<=?"); }
-static s7_pointer f_string_cursor_ge (s7_scheme* sc, s7_pointer args) { return string_cursor_compare (sc, args, CMP_GE, "string-cursor>=?"); }
+static s7_pointer
+f_string_cursor_eq (s7_scheme* sc, s7_pointer args) {
+  return string_cursor_compare (sc, args, CMP_EQ, "string-cursor=?");
+}
+static s7_pointer
+f_string_cursor_lt (s7_scheme* sc, s7_pointer args) {
+  return string_cursor_compare (sc, args, CMP_LT, "string-cursor<?");
+}
+static s7_pointer
+f_string_cursor_gt (s7_scheme* sc, s7_pointer args) {
+  return string_cursor_compare (sc, args, CMP_GT, "string-cursor>?");
+}
+static s7_pointer
+f_string_cursor_le (s7_scheme* sc, s7_pointer args) {
+  return string_cursor_compare (sc, args, CMP_LE, "string-cursor<=?");
+}
+static s7_pointer
+f_string_cursor_ge (s7_scheme* sc, s7_pointer args) {
+  return string_cursor_compare (sc, args, CMP_GE, "string-cursor>=?");
+}
 
 // ---- string-cursor-diff ----
 
 static s7_pointer
 f_string_cursor_diff (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-cursor-diff: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-cursor-diff: first parameter must be string");
   if (!s) return NULL;
   s7_pointer a= s7_cadr (args), b= s7_caddr (args);
-  s7_int ia, ib;
-  bool ca= parse_cursor_arg (sc, a, "string-cursor-diff: start must be integer or cursor", &ia);
-  bool cb= parse_cursor_arg (sc, b, "string-cursor-diff: end must be integer or cursor", &ib);
-  if (ca != cb)
-    return liii_string_cursor_type_error (sc, "string-cursor-diff: cannot mix cursor and index", b);
+  s7_int     ia, ib;
+  bool       ca= parse_cursor_arg (sc, a, "string-cursor-diff: start must be integer or cursor", &ia);
+  bool       cb= parse_cursor_arg (sc, b, "string-cursor-diff: end must be integer or cursor", &ib);
+  if (ca != cb) return liii_string_cursor_type_error (sc, "string-cursor-diff: cannot mix cursor and index", b);
 
-  if (!ca)
-    return s7_make_integer (sc, ib - ia);
+  if (!ca) return s7_make_integer (sc, ib - ia);
 
   s7_int off1= cursor_to_offset (a), off2= cursor_to_offset (b);
   s7_int count= 0;
@@ -265,19 +289,18 @@ f_string_cursor_diff (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_string_cursor_to_index (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-cursor->index: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-cursor->index: first parameter must be string");
   if (!s) return NULL;
   s7_pointer cur_arg= s7_cadr (args);
-  s7_int cur;
-  bool is_cursor= parse_cursor_arg (sc, cur_arg, "string-cursor->index: second parameter must be integer or cursor", &cur);
-  if (!is_cursor)
-    return s7_make_integer (sc, cur);
+  s7_int     cur;
+  bool       is_cursor=
+      parse_cursor_arg (sc, cur_arg, "string-cursor->index: second parameter must be integer or cursor", &cur);
+  if (!is_cursor) return s7_make_integer (sc, cur);
 
   s7_int off= cursor_to_offset (cur_arg);
   s7_int len= (s7_int) s7_string_length (str);
-  if (off > len)
-    return liii_string_cursor_value_error (sc, "string-cursor->index: cursor out of range");
+  if (off > len) return liii_string_cursor_value_error (sc, "string-cursor->index: cursor out of range");
   s7_int count= 0;
   while (off > 0) {
     off= utf8_retreat (s, off);
@@ -288,21 +311,19 @@ f_string_cursor_to_index (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_string_index_to_cursor (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-index->cursor: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-index->cursor: first parameter must be string");
   if (!s) return NULL;
   s7_pointer idx_arg= s7_cadr (args);
-  s7_int idx;
-  bool is_cursor= parse_cursor_arg (sc, idx_arg, "string-index->cursor: second parameter must be integer or cursor", &idx);
-  if (is_cursor)
-    return idx_arg;
+  s7_int     idx;
+  bool       is_cursor=
+      parse_cursor_arg (sc, idx_arg, "string-index->cursor: second parameter must be integer or cursor", &idx);
+  if (is_cursor) return idx_arg;
 
-  if (idx < 0)
-    return liii_string_cursor_value_error (sc, "string-index->cursor: index out of range");
+  if (idx < 0) return liii_string_cursor_value_error (sc, "string-index->cursor: index out of range");
   s7_int off= 0, len= (s7_int) s7_string_length (str);
   for (s7_int i= 0; i < idx; i++) {
-    if (off >= len)
-      return liii_string_cursor_value_error (sc, "string-index->cursor: index out of range");
+    if (off >= len) return liii_string_cursor_value_error (sc, "string-index->cursor: index out of range");
     off= utf8_advance (s, off);
   }
   return offset_to_cursor (sc, off);
@@ -312,11 +333,11 @@ f_string_index_to_cursor (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_string_ref_cursor (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "string-ref/cursor: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "string-ref/cursor: first parameter must be string");
   if (!s) return NULL;
   s7_pointer cur_arg= s7_cadr (args);
-  s7_int cur;
+  s7_int     cur;
   bool is_cursor= parse_cursor_arg (sc, cur_arg, "string-ref/cursor: second parameter must be integer or cursor", &cur);
   if (!is_cursor && cur < 0)
     return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
@@ -325,27 +346,25 @@ f_string_ref_cursor (s7_scheme* sc, s7_pointer args) {
   s7_int off;
   if (is_cursor) {
     off= cursor_to_offset (cur_arg);
-    if (off >= len)
-      return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
-  } else {
+    if (off >= len) return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
+  }
+  else {
     off= 0;
     for (s7_int i= 0; i < cur; i++) {
-      if (off >= len)
-        return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
+      if (off >= len) return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
       off= utf8_advance (s, off);
     }
-    if (off >= len)
-      return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
+    if (off >= len) return liii_string_cursor_value_error (sc, "string-ref/cursor: cursor at or past end of string");
   }
 
   // 解码 UTF-8 码点
   uint32_t cp;
-  uint8_t b0= (uint8_t) s[off];
-  s7_int n= utf8_seq_len (b0);
-  if (n == 1)      cp= b0;
+  uint8_t  b0= (uint8_t) s[off];
+  s7_int   n = utf8_seq_len (b0);
+  if (n == 1) cp= b0;
   else if (n == 2) cp= ((b0 & 0x1F) << 6) | (s[off + 1] & 0x3F);
   else if (n == 3) cp= ((b0 & 0x0F) << 12) | ((s[off + 1] & 0x3F) << 6) | (s[off + 2] & 0x3F);
-  else             cp= ((b0 & 0x07) << 18) | ((s[off + 1] & 0x3F) << 12) | ((s[off + 2] & 0x3F) << 6) | (s[off + 3] & 0x3F);
+  else cp= ((b0 & 0x07) << 18) | ((s[off + 1] & 0x3F) << 12) | ((s[off + 2] & 0x3F) << 6) | (s[off + 3] & 0x3F);
   return s7_make_character (sc, cp);
 }
 
@@ -353,26 +372,25 @@ f_string_ref_cursor (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_substring_cursors (s7_scheme* sc, s7_pointer args) {
-  s7_pointer str= s7_car (args);
-  const char* s= check_string_arg (sc, str, "substring/cursors: first parameter must be string");
+  s7_pointer  str= s7_car (args);
+  const char* s  = check_string_arg (sc, str, "substring/cursors: first parameter must be string");
   if (!s) return NULL;
   s7_pointer a= s7_cadr (args), b= s7_caddr (args);
-  s7_int ia, ib;
-  bool ca= parse_cursor_arg (sc, a, "substring/cursors: start must be integer or cursor", &ia);
-  bool cb= parse_cursor_arg (sc, b, "substring/cursors: end must be integer or cursor", &ib);
-  if (ca != cb)
-    return liii_string_cursor_type_error (sc, "substring/cursors: cannot mix cursor and index", b);
+  s7_int     ia, ib;
+  bool       ca= parse_cursor_arg (sc, a, "substring/cursors: start must be integer or cursor", &ia);
+  bool       cb= parse_cursor_arg (sc, b, "substring/cursors: end must be integer or cursor", &ib);
+  if (ca != cb) return liii_string_cursor_type_error (sc, "substring/cursors: cannot mix cursor and index", b);
 
   s7_int len= (s7_int) s7_string_length (str);
   s7_int byte_start, byte_end;
   if (ca) {
     byte_start= cursor_to_offset (a);
-    byte_end= cursor_to_offset (b);
-  } else {
+    byte_end  = cursor_to_offset (b);
+  }
+  else {
     byte_end= 0;
     for (s7_int i= 0; i < ib; i++) {
-      if (byte_end >= len)
-        return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
+      if (byte_end >= len) return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
       byte_end= utf8_advance (s, byte_end);
     }
     byte_start= 0;
@@ -391,22 +409,35 @@ f_substring_cursors (s7_scheme* sc, s7_pointer args) {
 
 void
 glue_liii_string_cursor (s7_scheme* sc) {
-  s7_define_function (sc, "g_string-cursor-start", f_string_cursor_start, 1, 0, false, "(g_string-cursor-start str) => start cursor");
-  s7_define_function (sc, "g_string-cursor-end", f_string_cursor_end, 1, 0, false, "(g_string-cursor-end str) => post-end cursor");
-  s7_define_function (sc, "g_string-cursor-next", f_string_cursor_next, 2, 0, false, "(g_string-cursor-next str cur) => next cursor");
-  s7_define_function (sc, "g_string-cursor-prev", f_string_cursor_prev, 2, 0, false, "(g_string-cursor-prev str cur) => previous cursor");
-  s7_define_function (sc, "g_string-cursor-forward", f_string_cursor_forward, 3, 0, false, "(g_string-cursor-forward str cur nchars) => cursor");
-  s7_define_function (sc, "g_string-cursor-back", f_string_cursor_back, 3, 0, false, "(g_string-cursor-back str cur nchars) => cursor");
+  s7_define_function (sc, "g_string-cursor-start", f_string_cursor_start, 1, 0, false,
+                      "(g_string-cursor-start str) => start cursor");
+  s7_define_function (sc, "g_string-cursor-end", f_string_cursor_end, 1, 0, false,
+                      "(g_string-cursor-end str) => post-end cursor");
+  s7_define_function (sc, "g_string-cursor-next", f_string_cursor_next, 2, 0, false,
+                      "(g_string-cursor-next str cur) => next cursor");
+  s7_define_function (sc, "g_string-cursor-prev", f_string_cursor_prev, 2, 0, false,
+                      "(g_string-cursor-prev str cur) => previous cursor");
+  s7_define_function (sc, "g_string-cursor-forward", f_string_cursor_forward, 3, 0, false,
+                      "(g_string-cursor-forward str cur nchars) => cursor");
+  s7_define_function (sc, "g_string-cursor-back", f_string_cursor_back, 3, 0, false,
+                      "(g_string-cursor-back str cur nchars) => cursor");
   s7_define_function (sc, "g_string-cursor=?", f_string_cursor_eq, 2, 0, false, "(g_string-cursor=? c1 c2) => boolean");
   s7_define_function (sc, "g_string-cursor<?", f_string_cursor_lt, 2, 0, false, "(g_string-cursor<? c1 c2) => boolean");
   s7_define_function (sc, "g_string-cursor>?", f_string_cursor_gt, 2, 0, false, "(g_string-cursor>? c1 c2) => boolean");
-  s7_define_function (sc, "g_string-cursor<=?", f_string_cursor_le, 2, 0, false, "(g_string-cursor<=? c1 c2) => boolean");
-  s7_define_function (sc, "g_string-cursor>=?", f_string_cursor_ge, 2, 0, false, "(g_string-cursor>=? c1 c2) => boolean");
-  s7_define_function (sc, "g_string-cursor-diff", f_string_cursor_diff, 3, 0, false, "(g_string-cursor-diff str start end) => nchars");
-  s7_define_function (sc, "g_string-cursor->index", f_string_cursor_to_index, 2, 0, false, "(g_string-cursor->index str cur) => index");
-  s7_define_function (sc, "g_string-index->cursor", f_string_index_to_cursor, 2, 0, false, "(g_string-index->cursor str idx) => cursor");
-  s7_define_function (sc, "g_string-ref/cursor", f_string_ref_cursor, 2, 0, false, "(g_string-ref/cursor str cur) => char");
-  s7_define_function (sc, "g_substring/cursors", f_substring_cursors, 3, 0, false, "(g_substring/cursors str start end) => string");
+  s7_define_function (sc, "g_string-cursor<=?", f_string_cursor_le, 2, 0, false,
+                      "(g_string-cursor<=? c1 c2) => boolean");
+  s7_define_function (sc, "g_string-cursor>=?", f_string_cursor_ge, 2, 0, false,
+                      "(g_string-cursor>=? c1 c2) => boolean");
+  s7_define_function (sc, "g_string-cursor-diff", f_string_cursor_diff, 3, 0, false,
+                      "(g_string-cursor-diff str start end) => nchars");
+  s7_define_function (sc, "g_string-cursor->index", f_string_cursor_to_index, 2, 0, false,
+                      "(g_string-cursor->index str cur) => index");
+  s7_define_function (sc, "g_string-index->cursor", f_string_index_to_cursor, 2, 0, false,
+                      "(g_string-index->cursor str idx) => cursor");
+  s7_define_function (sc, "g_string-ref/cursor", f_string_ref_cursor, 2, 0, false,
+                      "(g_string-ref/cursor str cur) => char");
+  s7_define_function (sc, "g_substring/cursors", f_substring_cursors, 3, 0, false,
+                      "(g_substring/cursors str start end) => string");
 }
 
 } // namespace goldfish
