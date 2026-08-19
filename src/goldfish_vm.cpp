@@ -124,6 +124,7 @@ struct VMFrame {
 static VMProgram* g_program = nullptr;
 static std::vector<s7_pointer> g_stack;
 static std::vector<VMFrame> g_frames;
+static s7_pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -275,7 +276,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   // mutations (typed-lambda's do/set-car! on its arg list).  Implement
   // (apply proc a1 ... an) directly instead: splice the final list
   // argument into the argument list and call the procedure.
-  if (std::string (s7_object_to_c_string (sc, f)) == "apply") {
+  if (s7_is_eq (f, g_apply_fn)) {
     s7_pointer proc = s7_car (args_list);
     s7_pointer rest = s7_cdr (args_list);            // (a1 ... an)
     if (!s7_is_pair (rest))                          // (apply proc) -- no args
@@ -527,6 +528,7 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
 
 void glue_vm (s7_scheme* sc) {
   VM_CLOSURE_TYPE = s7_make_c_type (sc, "vm-closure");
+  g_apply_fn = s7_gf_global_value (sc, s7_make_symbol (sc, "apply"));
   g_false = s7_f (sc);
   vm_enter_symbol  = s7_make_symbol (sc, "vm-enter");
   quote_symbol     = s7_make_symbol (sc, "quote");

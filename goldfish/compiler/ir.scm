@@ -250,11 +250,25 @@
                 (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
              ((begin)
               (make-begin #f (map core->ir (cdr sexp))))
-             ((let)
-              (make-let #f
-                        (map (lambda (b) (list (car b) (core->ir (cadr b))))
-                             (cadr sexp))
-                        (map core->ir (cddr sexp))))
+              ((let)
+               (if (symbol? (cadr sexp))
+                 ;; named let: (let name ((v i) ...) body ...)
+                 ;;   -> (letrec ((name (lambda (v ...) body ...)))
+                 ;;              (name i ...))
+                 (let* ((name (cadr sexp))
+                        (bindings (caddr sexp))
+                        (body (cdddr sexp)))
+                   (make-letrec 'letrec
+                                (list (list name
+                                            (make-lambda #f (map car bindings)
+                                                         (map core->ir body))))
+                                (list (make-call #f name
+                                                 (map core->ir
+                                                      (map cadr bindings))))))
+                 (make-let #f
+                           (map (lambda (b) (list (car b) (core->ir (cadr b))))
+                                (cadr sexp))
+                           (map core->ir (cddr sexp)))))
              ((letrec letrec*)
               (make-letrec head
                            (map (lambda (b) (list (car b) (core->ir (cadr b))))
