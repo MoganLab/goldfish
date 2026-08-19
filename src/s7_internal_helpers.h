@@ -406,9 +406,8 @@ s7_pointer s7i_eval(s7_scheme *sc, s7_int op);
 block_t *s7i_mallocate_port(s7_scheme *sc);
 void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len);
 void push_input_port(s7_scheme *sc, s7_pointer new_port);
-s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t num);
-s7_pointer method_or_bust_p(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer typ);
-s7_pointer method_or_bust_pp(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer x1, s7_pointer x2, s7_pointer typ, int32_t num);
+/* method_or_bust/_p/_pp take s7_pointer symbols; declared in s7_scheme_read.c only
+ * (s7_liii_string.c has its own same-named static helpers, so they can't live in a shared header) */
 
 #ifdef __cplusplus
 }

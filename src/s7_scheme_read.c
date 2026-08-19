@@ -126,6 +126,11 @@
   #define add_input_port(sc, p)           add_to_gc_list(sc, sc->input_ports, p)
 #endif
 
+/* s7.c exports (not in a shared header: s7_liii_string.c defines its own same-named helpers) */
+s7_pointer method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t num);
+s7_pointer method_or_bust_p(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer typ);
+s7_pointer method_or_bust_pp(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer x1, s7_pointer x2, s7_pointer typ, int32_t num);
+
 #define declare_jump_info() bool old_longjmp; setjmp_loc_t old_jump_loc; jump_loc_t jump_loc; Jmp_Buf *old_goto_start; Jmp_Buf new_goto_start
 
 #define store_jump_info(Sc)			\
