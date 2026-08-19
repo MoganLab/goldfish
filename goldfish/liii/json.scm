@@ -2,8 +2,6 @@
   (import (liii base)
     (liii list)
     (rename (guenchi json)
-      (json-drop g:json-drop)
-      (json-drop* g:json-drop*)
       (json-reduce g:json-reduce)
       (json-reduce* g:json-reduce*)
     ) ;rename
@@ -60,18 +58,14 @@
     ;; 语义覆盖历史上的 json-push 与 json-push*）
     (define json-push g_json_push)
 
+    ;; json-drop 由 C++ 实现（src/liii_json.cpp 中的 g_json_drop，含变参多键路径，
+    ;; 语义覆盖历史上的 json-drop 与 json-drop*）
+    (define json-drop g_json_drop)
+
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
         (type-error "Value is not a JSON object or array" x)
       ) ;unless
-    ) ;define
-
-    (define (json-drop json key . args)
-      (ensure-json-structure json)
-      (if (null? args)
-        (if (and (json-object? json) (equal? json '(()))) json (g:json-drop json key))
-        (json-set json key (lambda (x) (apply json-drop (cons x args))))
-      ) ;if
     ) ;define
 
     (define (json-reduce json key . args)

@@ -27,7 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-drop json-drop* json-reduce json-reduce*)
+  (export json-string-escape json-reduce json-reduce*)
   (begin
 
     (define (json-string-escape str)
@@ -72,57 +72,9 @@
       ) ;let
     ) ;define
 
-    ;; json-set 由 C++ 实现（src/liii_json.cpp 中的 g_json_set，含变参多键路径，
-    ;; 语义覆盖历史上的 json-set 与 json-set*）；仅供本库的 json-drop* 内部使用，不导出
-    (define json-set g_json_set)
-    (define json-drop
-      (lambda (x v)
-        (if (vector? x)
-          (if (zero? (vector-length x))
-            x
-            (list->vector (cond ((procedure? v)
-                                 (let l
-                                   ((x (vector->alist x)) (v v))
-                                   (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (cdar x) (l (cdr x) v))))
-                                 ) ;let
-                                ) ;
-                                (else (let l
-                                        ((x (vector->alist x)) (v v))
-                                        (if (null? x)
-                                          '()
-                                          (if (equal? (caar x) v) (l (cdr x) v) (cons (cdar x) (l (cdr x) v)))
-                                        ) ;if
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-            ) ;list->vector
-          ) ;if
-          (cond ((procedure? v)
-                 (let l
-                   ((x x) (v v))
-                   (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (car x) (l (cdr x) v))))
-                 ) ;let
-                ) ;
-                (else (let l
-                        ((x x) (v v))
-                        (if (null? x)
-                          '()
-                          (if (equal? (caar x) v) (l (cdr x) v) (cons (car x) (l (cdr x) v)))
-                        ) ;if
-                      ) ;let
-                ) ;else
-          ) ;cond
-        ) ;if
-      ) ;lambda
-    ) ;define
-    (define json-drop*
-      (lambda (json key . rest)
-        (if (null? rest)
-          (json-drop json key)
-          (json-set json key (lambda (x) (apply json-drop* (cons x rest))))
-        ) ;if
-      ) ;lambda
-    ) ;define
+    ;; json-set 与 json-drop 均由 C++ 实现（src/liii_json.cpp 中的
+    ;; g_json_set / g_json_drop，含变参多键路径，语义覆盖历史上的
+    ;; json-set / json-drop 及带 * 版本），本库不再保留对应 Scheme 实现
     (define json-reduce
       (lambda (x v p)
         (if (vector? x)

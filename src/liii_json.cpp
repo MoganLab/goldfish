@@ -870,21 +870,26 @@ glue_json_ref (s7_scheme* sc) {
 
 // json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
 // 否则写入叶层值（叶层值为过程时以旧值调用之）；
-// is_push 表示 json-push 的多键路径（对旧值递归 json-push，kvs 为键值序列）
+// is_push 表示 json-push 的多键路径（对旧值递归 json-push，kvs 为键值序列）；
+// is_drop 表示 json-drop 的多键路径（对旧值递归 json-drop，keys 为键序列）
 struct json_setter {
   s7_pointer rest; // 剩余 (key val ...) 参数；'() 表示已到叶层
   s7_pointer leaf; // 叶层值（仅 rest 为 '() 时有效）
   bool       leaf_is_proc;
   bool       is_push;   // json-push 多键模式
   s7_pointer push_args; // (key ... val) 序列（仅 is_push 时有效）
+  bool       is_drop;   // json-drop 多键模式
+  s7_pointer drop_args; // (key ...) 序列（仅 is_drop 时有效）
 };
 
 static s7_pointer json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs);
 static s7_pointer json_push_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kvs);
+static s7_pointer json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys);
 
 static s7_pointer
 json_setter_apply (s7_scheme* sc, const json_setter& st, s7_pointer old) {
   if (st.is_push) return json_push_dispatch (sc, old, st.push_args);
+  if (st.is_drop) return json_drop_dispatch (sc, old, st.drop_args);
   if (!s7_is_null (sc, st.rest)) return json_set_dispatch (sc, old, st.rest);
   if (st.leaf_is_proc) return s7_call (sc, st.leaf, s7_list (sc, 1, old));
   return st.leaf;
@@ -975,6 +980,8 @@ json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
   json_setter st;
   st.is_push  = false;
   st.push_args= NULL;
+  st.is_drop  = false;
+  st.drop_args= NULL;
   if (s7_is_null (sc, s7_cdr (rest))) {
     st.rest        = s7_nil (sc);
     st.leaf        = s7_car (rest);
@@ -1069,6 +1076,8 @@ json_push_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kvs) {
   st.leaf_is_proc= false;
   st.is_push     = true;
   st.push_args   = s7_cdr (kvs);
+  st.is_drop     = false;
+  st.drop_args   = NULL;
   return json_guenchi_set (sc, x, s7_car (kvs), len, st);
 }
 
@@ -1084,6 +1093,97 @@ glue_json_push (s7_scheme* sc) {
   s7_define_function (sc, name, f_json_push, 3, 0, true, desc);
 }
 
+// json-drop / json-drop* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
+// 的 Scheme 实现完全一致：
+//   - 单键：对象删除键 equal? 匹配或谓词命中键的条目（全部删空时退化为 '()）；
+//     空对象 '(()) 原样返回；数组空时返回自身，非空时按键（即索引）equal? 匹配
+//     或谓词命中索引删除对应元素
+//   - 多键：等价于 (json-set json key (lambda (x) (apply json-drop x ...)))，
+//     即经 json-set 的单层语义逐层下钻（中间键不存在时静默不生效），
+//     空对象 '(()) 原样返回；每层进入时先做结构校验
+
+// guenchi json-drop 的单层语义：x 已校验为 JSON 对象或数组
+// v 为过程时按键（数组为索引）谓词筛选，否则按 equal? 匹配键（数组为索引）
+static s7_pointer
+json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
+  bool use_pred= s7_is_procedure (v);
+  if (s7_is_vector (x)) {
+    s7_int      n    = s7_vector_length (x);
+    s7_pointer* elems= s7_vector_elements (x);
+    if (n == 0) return x;
+    // 谓词可能触发 GC 或回调 Scheme，先只判定再分配结果（ elems 经 x 有根）
+    std::vector<bool> drop (n, false);
+    s7_int      count = 0;
+    for (s7_int i= 0; i < n; i++) {
+      bool hit= use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_make_integer (sc, i))) != s7_f (sc))
+                         : s7_is_equal (sc, s7_make_integer (sc, i), v);
+      drop[i]= hit;
+      if (hit) count++;
+    }
+    if (count == 0) return x;
+    s7_pointer result= s7_make_vector (sc, n - count);
+    s7_int      at   = 0;
+    s7_pointer* relems= s7_vector_elements (result);
+    for (s7_int i= 0; i < n; i++) {
+      if (!drop[i]) relems[at++]= elems[i];
+    }
+    return result;
+  }
+  // 对象（alist）：删除键命中的条目，未命中的条目复用原序对；命中后从尾向头 cons
+  std::vector<s7_pointer> kept;
+  kept.reserve (16);
+  s7_pointer p= x;
+  while (s7_is_pair (p)) {
+    s7_pointer entry= s7_car (p);
+    bool       hit  = use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
+                               : s7_is_equal (sc, s7_car (entry), v);
+    if (!hit) kept.push_back (entry);
+    p= s7_cdr (p);
+  }
+  s7_pointer lst= s7_nil (sc);
+  for (size_t i= kept.size (); i > 0; i--)
+    lst= s7_cons (sc, kept[i - 1], lst);
+  return lst;
+}
+
+// 对应 (liii json) 的 json-drop 包装：结构校验 + 空对象特判 + 单键/多键分派
+// keys 为 (key) 或 (key ...)（多键时 key 之后逐层下钻，末项为目标键或谓词）
+static s7_pointer
+json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys) {
+  s7_int len= 0;
+  if (!s7_is_vector (x) && !json_is_object (sc, x, len)) {
+    return json_type_error (sc, "Value is not a JSON object or array", x);
+  }
+  // 空对象 '(()) 原样返回（单键与多键均如此）
+  if (json_is_null_object (sc, x)) return x;
+  if (s7_is_null (sc, s7_cdr (keys))) {
+    // 单键
+    return json_guenchi_drop (sc, x, s7_car (keys));
+  }
+  // 多键：经 json-set 的单层语义逐层下钻，叶层对旧值在 C++ 内递归 drop
+  json_setter st;
+  st.rest       = s7_nil (sc);
+  st.leaf       = NULL;
+  st.leaf_is_proc= false;
+  st.is_push    = false;
+  st.push_args  = NULL;
+  st.is_drop    = true;
+  st.drop_args  = s7_cdr (keys);
+  return json_guenchi_set (sc, x, s7_car (keys), len, st);
+}
+
+static s7_pointer
+f_json_drop (s7_scheme* sc, s7_pointer args) {
+  return json_drop_dispatch (sc, s7_car (args), s7_cdr (args));
+}
+
+static void
+glue_json_drop (s7_scheme* sc) {
+  const char* name= "g_json_drop";
+  const char* desc= "(g_json_drop json key . keys) => data, drop values from Scheme-form JSON data by key path";
+  s7_define_function (sc, name, f_json_drop, 2, 0, true, desc);
+}
+
 void
 glue_liii_json (s7_scheme* sc) {
   glue_json_to_string (sc);
@@ -1091,6 +1191,7 @@ glue_liii_json (s7_scheme* sc) {
   glue_json_ref (sc);
   glue_json_set (sc);
   glue_json_push (sc);
+  glue_json_drop (sc);
 }
 
 } // namespace goldfish

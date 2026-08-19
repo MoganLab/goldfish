@@ -191,6 +191,60 @@
   ) ;if
 ) ;define
 
+;; 历史 Scheme 实现（原 (guenchi json) 的 json-drop 及 (liii json) 的包装），原样保留用于对比
+
+(define (g-json-drop/scheme x v)
+  (if (vector? x)
+    (if (zero? (vector-length x))
+      x
+      (list->vector (cond ((procedure? v)
+                           (let l
+                             ((x (vector->alist x)) (v v))
+                             (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (cdar x) (l (cdr x) v))))
+                           ) ;let
+                          ) ;
+                          (else (let l
+                                  ((x (vector->alist x)) (v v))
+                                  (if (null? x)
+                                    '()
+                                    (if (equal? (caar x) v) (l (cdr x) v) (cons (cdar x) (l (cdr x) v)))
+                                  ) ;if
+                                ) ;let
+                          ) ;else
+                    ) ;cond
+      ) ;list->vector
+    ) ;if
+    (cond ((procedure? v)
+           (let l
+             ((x x) (v v))
+             (if (null? x) '() (if (v (caar x)) (l (cdr x) v) (cons (car x) (l (cdr x) v))))
+           ) ;let
+          ) ;
+          (else (let l
+                  ((x x) (v v))
+                  (if (null? x)
+                    '()
+                    (if (equal? (caar x) v) (l (cdr x) v) (cons (car x) (l (cdr x) v)))
+                  ) ;if
+                ) ;let
+          ) ;else
+    ) ;cond
+  ) ;if
+) ;define
+
+(define (json-drop/scheme json key . args)
+  (unless (or (json-object? json) (json-array? json))
+    (type-error "Value is not a JSON object or array" json)
+  ) ;unless
+  (if (null? args)
+    (if (and (json-object? json) (equal? json '(())))
+      json
+      (g-json-drop/scheme json key)
+    ) ;if
+    (json-set/scheme json key (lambda (x) (apply json-drop/scheme (cons x args))))
+  ) ;if
+) ;define
+
 (define (build-json-string n)
   (let ((out (open-output-string)))
     (display "{" out)
@@ -251,15 +305,26 @@
         ) ;equal?
   (error 'value-error "object push mismatch")
 ) ;unless
-(unless (equal? (json-push bench-arr 300 'new)
-          (json-push/scheme bench-arr 300 'new)
-        ) ;equal?
+(unless (equal? (json-push bench-arr 300 'new) (json-push/scheme bench-arr 300 'new))
   (error 'value-error "array push mismatch")
 ) ;unless
 (unless (equal? (json-push bench-nested 'user 'profile 'weight 60)
           (json-push/scheme bench-nested 'user 'profile 'weight 60)
         ) ;equal?
   (error 'value-error "nested push mismatch")
+) ;unless
+(unless (equal? (json-drop bench-obj bench-ref-key)
+          (json-drop/scheme bench-obj bench-ref-key)
+        ) ;equal?
+  (error 'value-error "object drop mismatch")
+) ;unless
+(unless (equal? (json-drop bench-arr 100) (json-drop/scheme bench-arr 100))
+  (error 'value-error "array drop mismatch")
+) ;unless
+(unless (equal? (json-drop bench-nested 'user 'profile 'age)
+          (json-drop/scheme bench-nested 'user 'profile 'age)
+        ) ;equal?
+  (error 'value-error "nested drop mismatch")
 ) ;unless
 
 (define ref-iter 2000)
@@ -286,6 +351,8 @@
   (json-set/scheme bench-obj bench-ref-key 0)
   (json-push bench-obj "newkey" 'new)
   (json-push/scheme bench-obj "newkey" 'new)
+  (json-drop bench-obj bench-ref-key)
+  (json-drop/scheme bench-obj bench-ref-key)
 ) ;do
 
 (display "=== json-ref / json-set C++ vs Scheme 性能对比 ===")
@@ -354,8 +421,7 @@
 (let ((t (timeit (lambda () (json-push bench-obj "newkey" 'new)) '() set-iter)))
   (report "对象单键前插/C++" set-iter t)
 ) ;let
-(let ((t (timeit (lambda () (json-push/scheme bench-obj "newkey" 'new)) '() set-iter)
-     ) ;t
+(let ((t (timeit (lambda () (json-push/scheme bench-obj "newkey" 'new)) '() set-iter))
      ) ;
   (report "对象单键前插/Scheme" set-iter t)
 ) ;let
@@ -363,9 +429,7 @@
 (let ((t (timeit (lambda () (json-push bench-arr 300 'new)) '() set-iter)))
   (report "数组无匹配尾插/C++" set-iter t)
 ) ;let
-(let ((t (timeit (lambda () (json-push/scheme bench-arr 300 'new)) '() set-iter)
-     ) ;t
-     ) ;
+(let ((t (timeit (lambda () (json-push/scheme bench-arr 300 'new)) '() set-iter)))
   (report "数组无匹配尾插/Scheme" set-iter t)
 ) ;let
 
@@ -384,6 +448,35 @@
       ) ;t
      ) ;
   (report "多键路径前插/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-drop bench-obj bench-ref-key)) '() set-iter)))
+  (report "对象单键删除/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-drop/scheme bench-obj bench-ref-key)) '() set-iter))
+     ) ;
+  (report "对象单键删除/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-drop bench-arr 100)) '() set-iter)))
+  (report "数组索引删除/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-drop/scheme bench-arr 100)) '() set-iter)))
+  (report "数组索引删除/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-drop bench-nested 'user 'profile 'age)) '() set-iter)
+      ) ;t
+     ) ;
+  (report "多键路径删除/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-drop/scheme bench-nested 'user 'profile 'age))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "多键路径删除/Scheme" set-iter t)
 ) ;let
 
 (newline)

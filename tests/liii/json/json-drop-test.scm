@@ -111,6 +111,47 @@
   (check j1 => #())
 ) ;let*
 
+;; 边界用例（0129 json-drop 迁移 C++ 前锁定语义）
+
+;; 全部删空的对象退化为 '()（历史行为）
+(let* ((j0 '((a . 1))) (j1 (json-drop j0 'a)))
+  (check j1 => '())
+) ;let*
+
+;; 空对象 '(()) 单键原样返回
+(let ((j0 '(())))
+  (check (json-drop j0 'a) => '(()))
+) ;let
+
+;; 空对象 '(()) 多键原样返回
+(let ((j0 '(())))
+  (check (json-drop j0 'a 'b) => '(()))
+) ;let
+
+;; 非空数组按索引删除
+(let* ((j0 #(10 20 30)) (j1 (json-drop j0 1)))
+  (check j1 => #(10 30))
+) ;let*
+
+;; 非空数组按索引谓词删除
+(let* ((j0 #(10 20 30 40)) (j1 (json-drop j0 (lambda (k) (even? k)))))
+  (check j1 => #(20 40))
+) ;let*
+
+;; 多键路径中间键不存在时静默不生效
+(let* ((j0 '((a . 1) (b . 2))) (j1 (json-drop j0 'not-exist 'x)))
+  (check j1 => j0)
+) ;let*
+
+;; 多键路径叶层为标量时抛 type-error
+(check-catch 'type-error (json-drop '((a . 1)) 'a 'b))
+
+;; 不可变性：原对象不被修改
+(let* ((j0 '((a . 1) (b . 2))) (j1 (json-drop j0 'a)))
+  (check j0 => '((a . 1) (b . 2)))
+  (check j1 => '((b . 2)))
+) ;let*
+
 (check-catch 'type-error (json-drop "not-a-json" 'key))
 (check-catch 'type-error (json-drop 123 'key))
 
