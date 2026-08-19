@@ -105,4 +105,31 @@
 (check-catch 'type-error (json-push "not-a-json" 'key "val"))
 (check-catch 'type-error (json-push 123 'key "val"))
 
+;; 单键：对象前插
+(let ((j0 '((a . 1) (b . 2))))
+  (check (json-push j0 'c 3) => '((c . 3) (a . 1) (b . 2))))
+
+;; 单键：数组（空数组、无匹配尾插、首匹配前插）
+(check (json-push '#() 0 'a) => #(a))
+(check (json-push '#(1 2 3) 5 'x) => #(1 2 3 x))
+(check (json-push '#(1 2 3) 1 'x) => #(1 x 2 3))
+;; 键为符号时数组无匹配，尾插
+(check (json-push '#(1 2 3) 'k 'x) => #(1 2 3 x))
+
+;; 单键：空对象 '(()) 退化为 '((k . v))
+(check (json-push '(()) 'k 'v) => '((k . v)))
+
+;; 多键：空对象 '(()) 原样返回（json-set 语义）
+(check (json-push '(()) 'a 'b 1) => '(()))
+
+;; 多键：中间层不存在时静默不生效（json-set 普通键无匹配的历史语义）
+(let ((j0 '((a . 1))))
+  (check (json-push j0 'missing 'k 1) => '((a . 1))))
+
+;; 多键：值已存在时返回新结构，原结构不变
+(let* ((j0 '((person (name . "Alice"))))
+       (j1 (json-push j0 'person 'city "Wonderland")))
+  (check (json-ref j0 'person 'city) => '())
+  (check (json-ref j1 'person 'city) => "Wonderland"))
+
 (check-report)

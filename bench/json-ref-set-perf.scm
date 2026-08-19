@@ -153,6 +153,44 @@
   ) ;if
 ) ;define
 
+;; 历史 Scheme 实现（原 (guenchi json) 的 json-push 及 (liii json) 的包装），原样保留用于对比
+
+(define (g-json-push/scheme x k v)
+  (if (vector? x)
+    (if (= (vector-length x) 0)
+      (vector v)
+      (list->vector (let l
+                      ((x (vector->alist x)) (k k) (v v) (b #f))
+                      (if (null? x)
+                        (if b '() (cons v '()))
+                        (if (equal? (caar x) k)
+                          (cons v (cons (cdar x) (l (cdr x) k v #t)))
+                          (cons (cdar x) (l (cdr x) k v b))
+                        ) ;if
+                      ) ;if
+                    ) ;let
+      ) ;list->vector
+    ) ;if
+    (cons (cons k v) x)
+  ) ;if
+) ;define
+
+(define (json-push/scheme json key val . args)
+  (unless (or (json-object? json) (json-array? json))
+    (type-error "Value is not a JSON object or array" json)
+  ) ;unless
+  (if (null? args)
+    (if (and (json-object? json) (equal? json '(())))
+      (g-json-push/scheme '() key val)
+      (g-json-push/scheme json key val)
+    ) ;if
+    (json-set/scheme json
+      key
+      (lambda (x) (apply json-push/scheme (cons x (cons val args))))
+    ) ;json-set/scheme
+  ) ;if
+) ;define
+
 (define (build-json-string n)
   (let ((out (open-output-string)))
     (display "{" out)
@@ -208,6 +246,21 @@
         ) ;equal?
   (error 'value-error "array map-set mismatch")
 ) ;unless
+(unless (equal? (json-push bench-obj "newkey" 'new)
+          (json-push/scheme bench-obj "newkey" 'new)
+        ) ;equal?
+  (error 'value-error "object push mismatch")
+) ;unless
+(unless (equal? (json-push bench-arr 300 'new)
+          (json-push/scheme bench-arr 300 'new)
+        ) ;equal?
+  (error 'value-error "array push mismatch")
+) ;unless
+(unless (equal? (json-push bench-nested 'user 'profile 'weight 60)
+          (json-push/scheme bench-nested 'user 'profile 'weight 60)
+        ) ;equal?
+  (error 'value-error "nested push mismatch")
+) ;unless
 
 (define ref-iter 2000)
 
@@ -231,6 +284,8 @@
   (json-ref/scheme bench-obj bench-ref-key)
   (json-set bench-obj bench-ref-key 0)
   (json-set/scheme bench-obj bench-ref-key 0)
+  (json-push bench-obj "newkey" 'new)
+  (json-push/scheme bench-obj "newkey" 'new)
 ) ;do
 
 (display "=== json-ref / json-set C++ vs Scheme 性能对比 ===")
@@ -294,6 +349,41 @@
       ) ;t
      ) ;
   (report "数组全映射设置/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-push bench-obj "newkey" 'new)) '() set-iter)))
+  (report "对象单键前插/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-push/scheme bench-obj "newkey" 'new)) '() set-iter)
+     ) ;t
+     ) ;
+  (report "对象单键前插/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-push bench-arr 300 'new)) '() set-iter)))
+  (report "数组无匹配尾插/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-push/scheme bench-arr 300 'new)) '() set-iter)
+     ) ;t
+     ) ;
+  (report "数组无匹配尾插/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-push bench-nested 'user 'profile 'weight 60))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "多键路径前插/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-push/scheme bench-nested 'user 'profile 'weight 60))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "多键路径前插/Scheme" set-iter t)
 ) ;let
 
 (newline)
