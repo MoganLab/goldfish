@@ -17,7 +17,7 @@
 ;; json-ref / json-set 性能对比基准：C++ 实现 (g_json_ref / g_json_set) vs 历史 Scheme 实现
 ;; 运行方式: bin/gf bench/json-ref-set-perf.scm
 
-(import (liii base) (liii json) (liii alist) (liii error) (liii timeit))
+(import (liii base) (liii json) (liii alist) (liii list) (liii error) (liii timeit))
 
 ;; 历史 Scheme 实现（原 (guenchi json) 的 json-ref/json-set 及 (liii json) 的包装），原样保留用于对比
 
@@ -245,6 +245,112 @@
   ) ;if
 ) ;define
 
+;; 历史 Scheme 实现（原 (guenchi json) 的 json-reduce 及 (liii json) 的包装），原样保留用于对比
+
+(define (g-json-reduce/scheme x v p)
+  (if (vector? x)
+    (list->vector (cond ((boolean? v)
+                         (if v
+                           (let l
+                             ((x (vector->alist x)) (p p))
+                             (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p)))
+                           ) ;let
+                           x
+                         ) ;if
+                        ) ;
+                        ((procedure? v)
+                         (let l
+                           ((x (vector->alist x)) (v v) (p p))
+                           (if (null? x)
+                             '()
+                             (if (v (caar x))
+                               (cons (p (caar x) (cdar x)) (l (cdr x) v p))
+                               (cons (cdar x) (l (cdr x) v p))
+                             ) ;if
+                           ) ;if
+                         ) ;let
+                        ) ;
+                        (else (let l
+                                ((x (vector->alist x)) (v v) (p p))
+                                (if (null? x)
+                                  '()
+                                  (if (equal? (caar x) v)
+                                    (cons (p (caar x) (cdar x)) (l (cdr x) v p))
+                                    (cons (cdar x) (l (cdr x) v p))
+                                  ) ;if
+                                ) ;if
+                              ) ;let
+                        ) ;else
+                  ) ;cond
+    ) ;list->vector
+    (cond ((boolean? v)
+           (if v
+             (let l
+               ((x x) (p p))
+               (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p)))
+             ) ;let
+             x
+           ) ;if
+          ) ;
+          ((procedure? v)
+           (let l
+             ((x x) (v v) (p p))
+             (if (null? x)
+               '()
+               (if (v (caar x))
+                 (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) v p))
+                 (cons (car x) (l (cdr x) v p))
+               ) ;if
+             ) ;if
+           ) ;let
+          ) ;
+          (else (let l
+                  ((x x) (v v) (p p))
+                  (if (null? x)
+                    '()
+                    (if (equal? (caar x) v)
+                      (cons (cons v (p v (cdar x))) (l (cdr x) v p))
+                      (cons (car x) (l (cdr x) v p))
+                    ) ;if
+                  ) ;if
+                ) ;let
+          ) ;else
+    ) ;cond
+  ) ;if
+) ;define
+
+(define (json-reduce/scheme json key . args)
+  (if (null? json)
+    '()
+    (begin
+      (unless (or (json-object? json) (json-array? json))
+        (type-error "Value is not a JSON object or array" json)
+      ) ;unless
+      (if (null? args)
+        (value-error "json-reduce: missing arguments")
+        (if (null? (cdr args))
+          (let ((proc (car args)))
+            (if (and (json-object? json) (equal? json '(())))
+              json
+              (g-json-reduce/scheme json key proc)
+            ) ;if
+          ) ;let
+          (let* ((keys (cons key (drop-right args 1)))
+                 (proc (last args))
+                 (top-key (car keys))
+                 (rest-keys (cdr keys))
+                ) ;
+            (json-reduce/scheme json
+              top-key
+              (lambda (k v) (apply json-reduce/scheme (append (list v) rest-keys (list proc))))
+            ) ;json-reduce/scheme
+          ) ;let*
+        ) ;if
+      ) ;if
+    ) ;begin
+  ) ;if
+) ;define
+
 (define (build-json-string n)
   (let ((out (open-output-string)))
     (display "{" out)
@@ -326,6 +432,21 @@
         ) ;equal?
   (error 'value-error "nested drop mismatch")
 ) ;unless
+(unless (equal? (json-reduce bench-obj bench-ref-key (lambda (k v) 0))
+          (json-reduce/scheme bench-obj bench-ref-key (lambda (k v) 0))
+        ) ;equal?
+  (error 'value-error "object reduce mismatch")
+) ;unless
+(unless (equal? (json-reduce bench-arr #t (lambda (k v) (* v 2)))
+          (json-reduce/scheme bench-arr #t (lambda (k v) (* v 2)))
+        ) ;equal?
+  (error 'value-error "array reduce mismatch")
+) ;unless
+(unless (equal? (json-reduce bench-nested 'user 'profile 'age (lambda (k v) (+ v 1)))
+          (json-reduce/scheme bench-nested 'user 'profile 'age (lambda (k v) (+ v 1)))
+        ) ;equal?
+  (error 'value-error "nested reduce mismatch")
+) ;unless
 
 (define ref-iter 2000)
 
@@ -353,6 +474,8 @@
   (json-push/scheme bench-obj "newkey" 'new)
   (json-drop bench-obj bench-ref-key)
   (json-drop/scheme bench-obj bench-ref-key)
+  (json-reduce bench-obj bench-ref-key (lambda (k v) 0))
+  (json-reduce/scheme bench-obj bench-ref-key (lambda (k v) 0))
 ) ;do
 
 (display "=== json-ref / json-set C++ vs Scheme 性能对比 ===")
@@ -477,6 +600,51 @@
       ) ;t
      ) ;
   (report "多键路径删除/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-reduce bench-obj bench-ref-key (lambda (k v) 0))) '() set-iter)
+      ) ;t
+     ) ;
+  (report "对象单键转换/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-reduce/scheme bench-obj bench-ref-key (lambda (k v) 0)))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "对象单键转换/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-reduce bench-arr #t (lambda (k v) (* v 2)))) '() set-iter)
+      ) ;t
+     ) ;
+  (report "数组全映射转换/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-reduce/scheme bench-arr #t (lambda (k v) (* v 2))))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "数组全映射转换/Scheme" set-iter t)
+) ;let
+
+(let ((t (timeit (lambda () (json-reduce bench-nested 'user 'profile 'age (lambda (k v) (+ v 1))))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "多键路径转换/C++" set-iter t)
+) ;let
+(let ((t (timeit (lambda () (json-reduce/scheme bench-nested 'user 'profile 'age (lambda (k v) (+ v 1))))
+           '()
+           set-iter
+         ) ;timeit
+      ) ;t
+     ) ;
+  (report "多键路径转换/Scheme" set-iter t)
 ) ;let
 
 (newline)

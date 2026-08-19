@@ -75,79 +75,9 @@
     ;; json-set 与 json-drop 均由 C++ 实现（src/liii_json.cpp 中的
     ;; g_json_set / g_json_drop，含变参多键路径，语义覆盖历史上的
     ;; json-set / json-drop 及带 * 版本），本库不再保留对应 Scheme 实现
-    (define json-reduce
-      (lambda (x v p)
-        (if (vector? x)
-          (list->vector (cond ((boolean? v)
-                               (if v
-                                 (let l
-                                   ((x (vector->alist x)) (p p))
-                                   (if (null? x) '() (cons (p (caar x) (cdar x)) (l (cdr x) p)))
-                                 ) ;let
-                                 x
-                               ) ;if
-                              ) ;
-                              ((procedure? v)
-                               (let l
-                                 ((x (vector->alist x)) (v v) (p p))
-                                 (if (null? x)
-                                   '()
-                                   (if (v (caar x))
-                                     (cons (p (caar x) (cdar x)) (l (cdr x) v p))
-                                     (cons (cdar x) (l (cdr x) v p))
-                                   ) ;if
-                                 ) ;if
-                               ) ;let
-                              ) ;
-                              (else (let l
-                                      ((x (vector->alist x)) (v v) (p p))
-                                      (if (null? x)
-                                        '()
-                                        (if (equal? (caar x) v)
-                                          (cons (p (caar x) (cdar x)) (l (cdr x) v p))
-                                          (cons (cdar x) (l (cdr x) v p))
-                                        ) ;if
-                                      ) ;if
-                                    ) ;let
-                              ) ;else
-                        ) ;cond
-          ) ;list->vector
-          (cond ((boolean? v)
-                 (if v
-                   (let l
-                     ((x x) (p p))
-                     (if (null? x) '() (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) p)))
-                   ) ;let
-                   x
-                 ) ;if
-                ) ;
-                ((procedure? v)
-                 (let l
-                   ((x x) (v v) (p p))
-                   (if (null? x)
-                     '()
-                     (if (v (caar x))
-                       (cons (cons (caar x) (p (caar x) (cdar x))) (l (cdr x) v p))
-                       (cons (car x) (l (cdr x) v p))
-                     ) ;if
-                   ) ;if
-                 ) ;let
-                ) ;
-                (else (let l
-                        ((x x) (v v) (p p))
-                        (if (null? x)
-                          '()
-                          (if (equal? (caar x) v)
-                            (cons (cons v (p v (cdar x))) (l (cdr x) v p))
-                            (cons (car x) (l (cdr x) v p))
-                          ) ;if
-                        ) ;if
-                      ) ;let
-                ) ;else
-          ) ;cond
-        ) ;if
-      ) ;lambda
-    ) ;define
+    ;; json-reduce 由 C++ 实现（src/liii_json.cpp 中的 g_json_reduce，含变参多键路径，
+    ;; 语义覆盖 (liii json) 包装的历史 json-reduce）；仅供本库的 json-reduce* 内部使用
+    (define json-reduce g_json_reduce)
     (define (json-reduce* j v1 v2 . rest)
       (cond ((null? rest) (json-reduce j v1 v2))
             ((length=? 1 rest)

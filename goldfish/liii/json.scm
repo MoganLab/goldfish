@@ -62,42 +62,14 @@
     ;; 语义覆盖历史上的 json-drop 与 json-drop*）
     (define json-drop g_json_drop)
 
+    ;; json-reduce 由 C++ 实现（src/liii_json.cpp 中的 g_json_reduce，含变参多键路径，
+    ;; 语义覆盖历史上的 json-reduce 多层路径模式）
+    (define json-reduce g_json_reduce)
+
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
         (type-error "Value is not a JSON object or array" x)
       ) ;unless
-    ) ;define
-
-    (define (json-reduce json key . args)
-      (if (null? json)
-        '()
-        (begin
-          (ensure-json-structure json)
-          (if (null? args)
-            (value-error "json-reduce: missing arguments")
-            (if (null? (cdr args))
-              ;; Single level: (json-reduce json key proc)
-              (let ((proc (car args)))
-                (if (and (json-object? json) (equal? json '(())))
-                  json
-                  (g:json-reduce json key proc)
-                ) ;if
-              ) ;let
-              ;; Multi level
-              (let* ((keys (cons key (drop-right args 1)))
-                     (proc (last args))
-                     (top-key (car keys))
-                     (rest-keys (cdr keys))
-                    ) ;
-                (json-reduce json
-                  top-key
-                  (lambda (k v) (apply json-reduce (append (list v) rest-keys (list proc))))
-                ) ;json-reduce
-              ) ;let*
-            ) ;if
-          ) ;if
-        ) ;begin
-      ) ;if
     ) ;define
 
     ;; ; ---------------------------------------------------------
