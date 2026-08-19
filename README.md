@@ -24,9 +24,9 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii error)](goldfish/liii/error.scm)           | Python like Errors                   | `os-error` to raise `'os-error` just like OSError in Python      |
 | [(liii check)](goldfish/liii/check.scm)           | Test framework based on SRFI-78      | `check`, `check-catch`                                           |
 | [(liii case)](goldfish/liii/case.scm)             | Pattern matching                     | `case*`                                                          |
-| [(liii list)](goldfish/liii/list.scm)             | List Library                         | `list-view`, `fold`                                              |
+| [(liii list)](goldfish/liii/list.scm)             | List Library                         | `first`, `filter`, `fold`                                         |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | Bitwise Library                      | `bitwise-and`, `bitwise-or`                                      |
-| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-join`                                                    |
+| [(liii string)](goldfish/liii/string.scm)         | String Library                       | `string-starts?`, `string-ends?`                                  |
 | [(liii vector)](goldfish/liii/vector.scm)         | Vector Library                       | `vector-index`                                                   |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | Hash Table Library                   | `hash-table-empty?`, `hash-table-contains?`                      |
 | [(liii sys)](goldfish/liii/sys.scm)               | Library looks like Python sys module | `argv`                                                           |
@@ -45,6 +45,7 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 encoding conversion     | `utf8->utf16le`, `utf16be->utf8`                                  |
+| [(liii sort)](goldfish/liii/sort.scm)             | Sorting Library                      | `list-sort`, `list-stable-sort`, `vector-sort`                    |
 | [(liii time)](goldfish/liii/time.scm)             | Library looks like Python time module | `sleep`                                                          |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | Command line argument parsing        | `make-argument-parser`                                            |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI configuration parser      | `config-read-string`, `config-get`, `config-write`               |

@@ -24,9 +24,9 @@
 | [(liii error)](goldfish/liii/error.scm)           | 提供类似Python的错误函数        | `os-error`函数抛出`'os-error`，类似Python的OSError                 |
 | [(liii check)](goldfish/liii/check.scm)           | 基于SRFI 78的轻量级测试库加强版 | `check`, `check-catch`                                             |
 | [(liii case)](goldfish/liii/case.scm)             | 模式匹配                        | `case*`                                                            |
-| [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `list-view`, `fold`                                                |
+| [(liii list)](goldfish/liii/list.scm)             | 列表函数库                      | `first`, `filter`, `fold`                                          |
 | [(liii bitwise)](goldfish/liii/bitwise.scm)       | 位运算函数库                    | `bitwise-and`, `bitwise-or`                                        |
-| [(liii string)](goldfish/liii/string.scm)         | 字符串函数库                    | `string-join`                                                      |
+| [(liii string)](goldfish/liii/string.scm)         | 字符串函数库                    | `string-starts?`, `string-ends?`                                   |
 | [(liii vector)](goldfish/liii/vector.scm)         | 向量函数库                      | `vector-index`                                                     |
 | [(liii hash-table)](goldfish/liii/hash-table.scm) | 哈希表                          | `hash-table-empty?`, `hash-table-contains?`                        |
 | [(liii sys)](goldfish/liii/sys.scm)               | 库类似于 Python 的 `sys` 模块   | `argv`                                                             |
@@ -45,6 +45,7 @@
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |
 | [(liii unicode)](goldfish/liii/unicode.scm)       | UTF-8/UTF-16 编码转换           | `utf8->utf16le`, `utf16be->utf8`                                    |
+| [(liii sort)](goldfish/liii/sort.scm)             | 排序函数库                      | `list-sort`, `list-stable-sort`, `vector-sort`                      |
 | [(liii time)](goldfish/liii/time.scm)             | 库类似于 Python 的 `time` 模块  | `sleep`                                                             |
 | [(liii argparse)](goldfish/liii/argparse.scm)     | 命令行参数解析                  | `make-argument-parser`                                              |
 | [(liii config-parser)](goldfish/liii/config-parser.scm) | INI 配置文件解析器      | `config-read-string`, `config-get`, `config-write`                 |
