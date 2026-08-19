@@ -529,6 +529,12 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
           for (size_t i = vals.size (); i > 0; --i)
             lst = gf::cons (sc, vals[i - 1], lst);
           r = lst;
+          // A tail-call fast path must still drop the current frame so the
+          // result becomes the enclosing frame's return value; without it
+          // fr.pc runs on into the code that follows the call site (e.g.
+          // the else arm of an if whose true arm is a tail map), whose
+          // instructions overwrite the pushed result.
+          if (in.op == Op::TailCall) g_frames.pop_back ();
         } else if (gf::is_eq (f, g_for_each_fn) && args.size () >= 2) {
           // for-each shares map's deferred-apply problem: s7's
           // g_for_each_closure pushes OP_FOR_EACH_2 for a one-expression
@@ -569,6 +575,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
             }
           }
           r = gf::unspecified (sc);
+          if (in.op == Op::TailCall) g_frames.pop_back ();
         } else if (in.op == Op::TailCall) {
           std::vector<s7_pointer> slots = std::move (fr.slots);
           g_frames.pop_back ();

@@ -13,7 +13,8 @@
   (for-each (lambda (name)
               (exp-library-define! (program-library) name
                                    (make-primitive-binding name)))
-            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe vm-cwv)))
+            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe vm-cwv
+              vm-if-then-map vm-if-then-for-each)))
 
 (define (vm-load-defs defs)
   (vm-load (to-bytecode (map core->ir defs)) #f))
@@ -131,5 +132,25 @@
 (check (vm-cwv (lambda () (values 1 2)) +) => 3)
 (check (vm-cwv (lambda () (values 1 2)) list) => '(1 2))
 (check (vm-cwv (lambda () (values 3 4)) +) => 7)
+
+;; ===== 7. 尾位置 if 真分支的 map 快路径 =====
+;; 回归：map/for-each 快路径在 TailCall 分支未弹当前帧，结果被后续
+;; 指令（if 的 else 臂）覆盖。json-keys 的 (if (json-object? json)
+;; (map car json) '()) 触发——真分支的 tail map 返回空。
+(vm-load-defs '((define (vm-if-then-map json)
+                  (if (list? json)
+                    (map car json)
+                    '()))
+                (define (vm-if-then-for-each x)
+                  (let ((acc (list 0)))
+                    (if (pair? x)
+                      (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
+                      '())
+                    (car acc)))))
+
+(check (vm-if-then-map '((b . 1) (a . 2))) => '(b a))
+(check (vm-if-then-map '()) => '())
+(check (vm-if-then-for-each '(1 2 3)) => 3)
+(check (vm-if-then-for-each '()) => 0)
 
 (check-report)
