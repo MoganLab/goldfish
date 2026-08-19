@@ -113,6 +113,7 @@ target ("goldfish") do
     add_files ("src/liii_path.cpp")
     add_files ("src/liii_sort.cpp")
     add_files ("src/liii_string.cpp")
+    add_files ("src/liii_string_cursor.cpp")
     add_files ("src/liii_hashlib.cpp")
     add_files ("src/liii_base64.cpp")
     add_files ("src/liii_json.cpp")
