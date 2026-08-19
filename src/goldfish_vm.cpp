@@ -164,14 +164,6 @@ static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name, s7_pointer env)
 // ---------------------------------------------------------------------------
 // Instruction decoding.
 
-// unwrap_quote : v -> v'
-// A (const (quote x)) operand is stored as x; everything else as-is.
-static s7_pointer unwrap_quote (s7_pointer v) {
-  if (gf::is_pair (v) && gf::is_eq (gf::car (v), quote_symbol))
-    return gf::cadr (v);
-  return v;
-}
-
 static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
   std::vector<Instr> v;
   for (s7_pointer p = instr_list; gf::is_pair (p); p = gf::cdr (p)) {
@@ -181,7 +173,12 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
     in.op = decode_op (gf::car (instr));
     switch (in.op) {
       case Op::Const:
-        in.a = unwrap_quote (gf::cadr (instr));
+        // core->ir already unfolds a (quote X) datum into its value, so the
+        // operand is the value itself -- even when that value happens to be
+        // a (quote ...) form (e.g. (quote (quote infix)) from a self-hosted
+        // expander).  Do NOT re-unwrap here: it would over-unwrap such a
+        // nested quote into the bare inner atom.
+        in.a = gf::cadr (instr);
         break;
       case Op::Global:
       case Op::StoreGlobal:
@@ -452,6 +449,11 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
           gf::varlet (sc, fr.global_env, sym, v);
         else
           gf::define_variable (sc, gf::symbol_name (sym), v);
+        // A (set! global ...) in non-tail position compiles as
+        // const + store-global and the enclosing begin then emits (pop):
+        // leave the value so that pop has something to consume.  Top-level
+        // define never reads the leftover (the loaders ignore the result).
+        push (v);
         break;
       }
       case Op::Closure: {
@@ -611,7 +613,17 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
     ci.instrs = decode_instrs (sc, gf::cadddr (code));
     p->codes.push_back (ci);
   }
-  p->top = decode_instrs (sc, gf::cdr (gf::caddr (program)));
+  s7_pointer top = gf::caddr (program);
+  s7_int top_nlocals = 0;
+  if (gf::is_pair (gf::cdr (top)) && gf::is_integer (gf::cadr (top))) {
+    // (top <nlocals> instr...) -- slot count for top-level expressions
+    // (a top-level let's bindings are captured by lambdas).
+    top_nlocals = gf::integer (gf::cadr (top));
+    p->top = decode_instrs (sc, gf::cddr (top));
+  } else {
+    // Legacy (top instr...): no top-level slots.
+    p->top = decode_instrs (sc, gf::cdr (top));
+  }
   g_program = p;
   g_stack.clear ();
   g_frames.clear ();
@@ -620,7 +632,7 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.code = &p->top;
   f.prog = p;
   f.global_env = global_env;
-  f.slots.clear ();
+  f.slots.assign ((size_t)top_nlocals, gf::nil (sc));
   f.shared_slots = nullptr;
   f.captured = gf::nil (sc);
   g_frames.push_back (f);

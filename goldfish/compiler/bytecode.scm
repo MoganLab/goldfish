@@ -357,7 +357,14 @@
             (lambda (d)
               (if (define? d)
                 (begin
-                  (compile-expr (define-value d) '() emit next-label next-slot add-code)
+                  ;; A define value that is itself a let/letrec (not a
+                  ;; lambda) compiles against a non-empty frame env for its
+                  ;; slot allocation.  A lambda value must NOT see the empty
+                  ;; top-level alist: it would shift nested-lambda capture
+                  ;; depths by one (compiled refs vs the runtime chain).
+                  (compile-expr (define-value d)
+                                (if (lambda? (define-value d)) '() '(()))
+                                emit next-label next-slot add-code)
                   (emit (list 'store-global (define-name d))))
                 ;; A top-level expression (a library registration side
                 ;; effect, say) compiles against a non-empty frame: lambda
@@ -367,7 +374,7 @@
             defs)
           (list 'program
                 (cons 'code-table (get-codes))
-                (cons 'top (flush))))))
+                (cons 'top (cons slot-n (flush)))))))
 
     ;; ------------------------------------------------------------------
     ;; Bytecode structural validation.

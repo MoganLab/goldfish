@@ -604,8 +604,39 @@
                                      (not (equal? lib (lib-cache-name rec))))
                               (load-library! lib)))
                           (apply append (map collect-cache-module-refs defs)))
-                (for-each (lambda (d) (eval d (rootlet))) defs)))
+                (vm-load-defs defs (lib-cache-name rec))))
             recs))
+
+;;; vm-load-defs : (list sexp) name -> bool
+;;; Evaluate a library's lowered defs through the VM when the (goldfish
+;;; compiler) library is available; fall back to s7 eval otherwise (or when
+;;; the defs do not compile).  The whole def list becomes one program (a
+;;; shared code table + a sequential top), executed by one vm-load, so the
+;;; definitions land in the rootlet exactly as (eval d (rootlet)) would.
+;;; GOLDFISH_NO_VM_DEFS forces the eval fallback.  The (goldfish compiler)
+;;; library family is exempted: once its defs are VM-loaded, to-bytecode
+;;; itself becomes a VM closure and compiling a later library runs a nested
+;;; VM compile, whose shared state produces corrupted bytecode.  Returns #t
+;;; if the VM ran.
+
+(define (vm-load-defs defs lib-name)
+  (if (or (null? defs) (getenv "GOLDFISH_NO_VM_DEFS")
+          (and (pair? lib-name) (eq? (car lib-name) 'goldfish)
+               (pair? (cdr lib-name)) (eq? (cadr lib-name) 'compiler)))
+    (for-each (lambda (d) (eval d (rootlet))) defs)
+    (let ((prog
+           (catch
+             #t
+             (lambda ()
+               (let ((compiler (lookup-module '(goldfish compiler))))
+                 (and (module? compiler)
+                      (let ((to-bytecode (module-ref compiler 'to-bytecode))
+                            (core->ir (module-ref compiler 'core->ir)))
+                        (to-bytecode (map core->ir defs))))))
+             (lambda (tag . info) #f))))
+      (if prog
+        (begin (vm-load prog #f) #t)
+        (begin (for-each (lambda (d) (eval d (rootlet))) defs) #f)))))
 
 ;;; library-cache-hit? : lib-file cache meta -> bool
 ;;; A cache entry is usable only when the source file exists and the stored
