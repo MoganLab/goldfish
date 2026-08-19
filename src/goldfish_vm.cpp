@@ -138,6 +138,7 @@ static s7_pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
 static s7_pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
 static s7_pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
 static s7_pointer g_map_fn = nullptr;
+static s7_pointer g_for_each_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -527,6 +528,46 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
           for (size_t i = vals.size (); i > 0; --i)
             lst = gf::cons (sc, vals[i - 1], lst);
           r = lst;
+        } else if (gf::is_eq (f, g_for_each_fn) && args.size () >= 2) {
+          // for-each shares map's deferred-apply problem: s7's
+          // g_for_each_closure pushes OP_FOR_EACH_2 for a one-expression
+          // body it cannot cell-optimize (a VM closure shell) and returns
+          // unspecified, leaving the VM's next instruction with a bogus
+          // value.  Walk the sequence(s) directly; for-each discards the
+          // callback results (unspecified).
+          size_t d0 = g_frames.size ();
+          s7_pointer seq = args[1];
+          if (args.size () == 2) {
+            for (s7_pointer p = seq; gf::is_pair (p); p = gf::cdr (p)) {
+              std::vector<s7_pointer> a (1);
+              a[0] = gf::car (p);
+              s7_pointer v = call_function (sc, args[0], a, nullptr);
+              if (v == nullptr) v = run (sc, d0);
+              // for-each discards the callback result; run() already popped
+              // a VM-frame result off the stack, a non-VM call returned it.
+            }
+          } else {
+            // Multiple sequences: iterate in parallel over the shortest
+            // (s7 semantics); each step passes the current element of every
+            // sequence.
+            std::vector<s7_pointer> cur;
+            for (size_t i = 1; i < args.size (); ++i) cur.push_back (args[i]);
+            while (true) {
+              bool done = false;
+              for (auto& p : cur) {
+                if (!gf::is_pair (p)) { done = true; break; }
+              }
+              if (done) break;
+              std::vector<s7_pointer> a (cur.size ());
+              for (size_t i = 0; i < cur.size (); ++i) {
+                a[i] = gf::car (cur[i]);
+                cur[i] = gf::cdr (cur[i]);
+              }
+              s7_pointer v = call_function (sc, args[0], a, nullptr);
+              if (v == nullptr) v = run (sc, d0);
+            }
+          }
+          r = gf::unspecified (sc);
         } else if (in.op == Op::TailCall) {
           std::vector<s7_pointer> slots = std::move (fr.slots);
           g_frames.pop_back ();
@@ -684,6 +725,7 @@ void glue_vm (s7_scheme* sc) {
   g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
   g_map_fn   = gf::global_value (sc, gf::make_symbol (sc, "map"));
+  g_for_each_fn = gf::global_value (sc, gf::make_symbol (sc, "for-each"));
   g_false = gf::f (sc);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");

@@ -13,7 +13,7 @@
   (for-each (lambda (name)
               (exp-library-define! (program-library) name
                                    (make-primitive-binding name)))
-            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent)))
+            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe)))
 
 (define (vm-load-defs defs)
   (vm-load (to-bytecode (map core->ir defs)) #f))
@@ -103,5 +103,20 @@
 
 (check (tr-map '(1 2 3)) => '(3 6 9))
 (check (tr-map '(10)) => '(30))
+
+;; ===== 6. VM closure body 内调用 s7 for-each =====
+;; 回归：s7 的 g_for_each_closure 对单表达式 body（VM closure 壳
+;; (vm-enter ...)）走 OP_FOR_EACH_2 延迟 apply 并返回 unspecified，
+;; VM 的 Call 指令拿不到回调结果。set-size-test 经 (liii set) 的
+;; (define (set . elements) ... (for-each ...) result) 触发。
+;; 回调用 set-car! 原地修改计数器，验证回调实际执行了 N 次。
+(vm-load-defs '((define (vm-fe x)
+                  (let ((acc (list 0)))
+                    (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
+                    (car acc)))))
+
+(check (vm-fe '(1 2 3)) => 3)
+(check (vm-fe '()) => 0)
+(check (vm-fe '(7)) => 1)
 
 (check-report)
