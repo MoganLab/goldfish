@@ -943,6 +943,14 @@
     (let*-values (((exports imports body-stxs) (parse-library-clauses clauses)))
       (let ((lib (make-exp-library name)))
         (import-into-library! lib imports)
+        ;; Register BEFORE the body expands: template instantiation
+        ;; (fast-instantiate) resolves a template identifier's (libref
+        ;; name) back to the live library via lib-by-name/registry, and a
+        ;; macro defined in this very body (whose template references this
+        ;; library's imports) would otherwise find no registry entry and
+        ;; degrade the identifier's library to #f -- leaving imported
+        ;; names in the template unresolved.
+        (library-registry-set! name (make-lib-record lib exports))
         (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
           (let*-values (((defs ctx1) (expand-library-body body-stxs lib ctx)))
             ;; An exported identifier not defined in the library body is

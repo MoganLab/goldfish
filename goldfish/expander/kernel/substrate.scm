@@ -87,6 +87,8 @@
   (next-fresh "rtd"))
 
 (define (vector-map f v . more)
+  (unless (procedure? f)
+    (error 'wrong-type-arg "vector-map: first argument must be a procedure" f))
   (let* ((vs (cons v more))
          (n (vector-length v))
          (result (make-vector n)))
@@ -98,6 +100,8 @@
     result))
 
 (define (vector-for-each f v . more)
+  (unless (procedure? f)
+    (error 'wrong-type-arg "vector-for-each: first argument must be a procedure" f))
   (let* ((vs (cons v more))
          (n (vector-length v)))
     (let loop ((i 0))

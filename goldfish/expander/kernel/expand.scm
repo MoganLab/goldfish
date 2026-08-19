@@ -155,6 +155,16 @@
       ((program-library? home)
        (make-syntax (toplevel-ref-gensym ref)
                     (syntax-context src-stx) (syntax-library src-stx)))
+      ;; A binding NOT exported from its home library (e.g. an internal
+      ;; helper referenced by one of the library's own macro templates,
+      ;; which R7RS resolves in the defining library's scope) has no
+      ;; runtime module entry -- the runtime module inlet holds only
+      ;; exports, and module-ref rejects the rest.  Emit the bare gensym:
+      ;; the library's defs define it in the rootlet, where the evaluating
+      ;; program (the-expander-library) sees it.
+      ((not (toplevel-ref-exported? ref))
+       (make-syntax (toplevel-ref-gensym ref)
+                    (syntax-context src-stx) (syntax-library src-stx)))
       (else
        (datum->syntax src-stx
          (list 'module-ref
