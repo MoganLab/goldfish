@@ -25283,16 +25283,7 @@ static s7_int tree_leaves_i_7p(s7_scheme *sc, s7_pointer tree)
   return(tree_len(sc, tree));
 }
 
-static s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
-{
-  if (is_list(tree))
-    {
-      if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-	error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-leaves: tree is cyclic: ~S", 31), tree));
-      return(make_integer(sc, tree_len(sc, tree)));
-    }
-  return(method_or_bust_p(sc, tree, sc->tree_leaves_symbol, a_list_string));
-}
+/* tree_leaves_p_p migrated to s7_liii_list.c */
 
 /* g_tree_leaves is now defined in s7_scheme_predicate.c */
 #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
@@ -25447,10 +25438,7 @@ static bool tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
   return(false);
 }
 
-static s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
-{
-  return(make_boolean(sc, tree_set_memq_b_7pp(sc, syms, tree)));
-}
+/* tree_set_memq_p_pp migrated to s7_liii_list.c */
 
 /* g_tree_set_memq is now defined in s7_scheme_predicate.c */
 #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
@@ -25642,7 +25630,7 @@ bool s7_is_proper_list(s7_scheme *sc, s7_pointer lst)
 #define Q_is_proper_list sc->pl_bt
 /* g_is_proper_list is now defined in s7_liii_list.c */
 
-static s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(make_boolean(sc, s7_is_proper_list(sc, arg)));}
+/* is_proper_list_p_p migrated to s7_liii_list.c */
 
 bool is_proper_list_1(s7_scheme *sc, s7_pointer p) {return((is_pair(p)) && (is_null(cdr(p))));}
 bool is_proper_list_2(s7_scheme *sc, s7_pointer p) {return((is_pair(p)) && (is_pair(cdr(p))) && (is_null(cddr(p))));}
@@ -25680,22 +25668,7 @@ static inline s7_pointer make_list(s7_scheme *sc, s7_int len, s7_pointer init)
 
 s7_pointer s7_make_list(s7_scheme *sc, s7_int len, s7_pointer init) {return(make_list(sc, len, init));}
 
-static s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
-{
-  s7_int len;
-  if (!s7_is_integer(n))
-    return(method_or_bust(sc, n, sc->make_list_symbol, set_plist_2(sc, n, init), sc->type_names[T_INTEGER], 1));
-
-  len = s7_integer_clamped_if_gmp(sc, n);
-  if (len == 0) return(sc->nil);          /* what about (make-list 0 123)? */
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_list_symbol, int_one, n, it_is_negative_string);
-  if (len > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-list length argument ~D is greater than (*s7* 'max-list-length), ~D", 72),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_list_length)));
-  return(make_list(sc, len, init));
-}
+/* make_list_p_pp migrated to s7_liii_list.c */
 
 static s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
 {
@@ -25801,40 +25774,7 @@ static s7_pointer list_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args,
   return(func);
 }
 
-static inline s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index)
-{
-  s7_pointer p = lst;
-  if (index < 0)
-    out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, wrap_integer(sc, index), it_is_negative_string);
-  if (index > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "list-ref index ~D is too large, (*s7* 'max-list-length) is ~D", 61),
-			 wrap_integer(sc, index), wrap_integer(sc, sc->max_list_length)));
-  for (s7_int i = 0; ((is_pair(p)) && (i < index)); i++, p = cdr(p));
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, wrap_integer(sc, index), it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_ref_symbol, 1, lst, a_proper_list_string);
-    }
-  return(car(p));
-}
-
-static s7_pointer list_ref_p_pi(s7_scheme *sc, s7_pointer lst, s7_int index)
-{
-  if (!is_pair(lst))
-    wrong_type_error_nr(sc, sc->list_ref_symbol, 1, lst, sc->type_names[T_PAIR]);
-  return(list_ref_p_pi_unchecked(sc, lst, index));
-}
-
-static s7_pointer list_ref_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer index)
-{
-  if (!is_pair(lst))
-    return(g_list_ref(sc, set_plist_2(sc, lst, index)));
-  if (!s7_is_integer(index))
-    wrong_type_error_nr(sc, sc->list_ref_symbol, 1, index, sc->type_names[T_INTEGER]);
-  return(list_ref_p_pi_unchecked(sc, lst, s7_integer_clamped_if_gmp(sc, index)));
-}
+/* list_ref_p_pi_unchecked, list_ref_p_pi, list_ref_p_pp migrated to s7_liii_list.c */
 
 
 /* -------------------------------- list-set! -------------------------------- */
@@ -25852,36 +25792,7 @@ s7_pointer s7_list_set(s7_scheme *sc, s7_pointer lst, s7_int num, s7_pointer val
 #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
 #define Q_list_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_pair_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
 
-static no_return void list_set_index_check_nr(s7_scheme *sc, s7_int index)
-{
-  if (index < 0)
-    out_of_range_error_nr(sc, sc->list_set_symbol, int_two, wrap_integer(sc, index), it_is_negative_string);
-  error_nr(sc, sc->out_of_range_symbol,
-	   set_elist_3(sc, wrap_string(sc, "list-set! index ~D is too large, (*s7* 'max-list-length) is ~D", 62),
-		       wrap_integer(sc, index), wrap_integer(sc, sc->max_list_length)));
-}
-
-static inline s7_pointer list_set_p_pip_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value)
-{
-  s7_pointer p = lst;
-  if ((index < 0) || (index > sc->max_list_length)) list_set_index_check_nr(sc, index);
-  for (s7_int i = 0; ((is_pair(p)) && (i < index)); i++, p = cdr(p));
-  if (!is_pair(p))
-    {
-      if (is_null(p))
-	out_of_range_error_nr(sc, sc->list_set_symbol, int_two, wrap_integer(sc, index), it_is_too_large_string);
-      wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, a_proper_list_string);
-    }
-  set_car(p, value);
-  return(value);
-}
-
-static s7_pointer list_set_p_pip(s7_scheme *sc, s7_pointer lst, s7_int index, s7_pointer value) /* called in t101-12|14... */
-{
-  if (!is_pair(lst))
-    wrong_type_error_nr(sc, sc->list_set_symbol, 1, lst, sc->type_names[T_PAIR]);
-  return(list_set_p_pip_unchecked(sc, lst, index, value));
-}
+/* list_set_index_check_nr, list_set_p_pip_unchecked, list_set_p_pip migrated to s7_liii_list.c */
 
 static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -25895,27 +25806,7 @@ static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args,
 
 
 /* -------------------------------- list-tail -------------------------------- */
-static s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
-{
-  s7_int i, index;
-  if (!s7_is_integer(ind))
-    return(method_or_bust_pp(sc, ind, sc->list_tail_symbol, lst, ind, sc->type_names[T_INTEGER], 2));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-
-  if (!is_list(lst)) /* (list-tail () 0) -> () */
-    return(method_or_bust_pp(sc, lst, sc->list_tail_symbol, lst, ind, a_list_string, 1));
-  if (index < 0)
-    out_of_range_error_nr(sc, sc->list_tail_symbol, int_two, wrap_integer(sc, index), it_is_negative_string);
-  if (index > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "list-tail index ~D is too large, (*s7* 'max-list-length) is ~D", 62),
-			 wrap_integer(sc, index), wrap_integer(sc, sc->max_list_length)));
-
-  for (i = 0; (i < index) && (is_pair(lst)); i++, lst = cdr(lst)) {}
-  if (i < index)
-    out_of_range_error_nr(sc, sc->list_tail_symbol, int_two, wrap_integer(sc, index), it_is_too_large_string);
-  return(lst);
-}
+/* list_tail_p_pp migrated to s7_liii_list.c */
 
 #define H_list_tail "(list-tail lst i) returns the list from the i-th element on"
 #define Q_list_tail s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->is_integer_symbol) /* #t: (list-tail '(1 . 2) 1) -> 2 */
@@ -25927,14 +25818,7 @@ static s7_pointer list_tail_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer ind)
 #define Q_cons s7_make_signature(sc, 3, sc->is_pair_symbol, sc->T, sc->T)
 /* g_cons is now defined in s7_liii_list.c */
 
-static s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
-{
-  s7_pointer p;
-  new_cell(sc, p, T_PAIR | T_SAFE_PROCEDURE);
-  set_car(p, p1);
-  set_cdr(p, p2);
-  return(p);
-}
+/* cons_p_pp migrated to s7_liii_list.c */
 
 
 /* -------- car -------- */
@@ -25943,12 +25827,7 @@ static s7_pointer cons_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
 #define Q_car sc->pl_p
 /* g_car is now defined in s7_liii_list.c */
 
-static s7_pointer car_p_p(s7_scheme *sc, s7_pointer lst)
-{
-  if (is_pair(lst))
-    return(car(lst));
-  return(sole_arg_method_or_bust(sc, lst, sc->car_symbol, set_plist_1(sc, lst), sc->type_names[T_PAIR]));
-}
+/* car_p_p migrated to s7_liii_list.c */
 
 static s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
 {
@@ -25968,7 +25847,7 @@ static Inline s7_pointer inline_set_car(s7_scheme *sc, s7_pointer lst, s7_pointe
   return(value);
 }
 
-static s7_pointer set_car_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(inline_set_car(sc, lst, value));}
+/* set_car_p_pp migrated to s7_liii_list.c */
 
 
 /* -------- cdr -------- */
@@ -25976,12 +25855,7 @@ static s7_pointer set_car_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) 
 #define Q_cdr sc->pl_p
 /* g_cdr is now defined in s7_liii_list.c */
 
-static s7_pointer cdr_p_p(s7_scheme *sc, s7_pointer lst)
-{
-  if (is_pair(lst))
-    return(cdr(lst));
-  return(sole_arg_method_or_bust(sc, lst, sc->cdr_symbol, set_plist_1(sc, lst), sc->type_names[T_PAIR]));
-}
+/* cdr_p_p migrated to s7_liii_list.c */
 
 #define H_set_cdr "(set-cdr! pair val) sets the pair's second element to val"
 #define Q_set_cdr s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
@@ -25995,7 +25869,7 @@ static Inline s7_pointer inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointe
   return(value);
 }
 
-static s7_pointer set_cdr_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(inline_set_cdr(sc, lst, value));}
+/* set_cdr_p_pp migrated to s7_liii_list.c */
 
 
 /* -------- caar --------*/
@@ -26220,12 +26094,7 @@ s7_pointer s7_assq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F); /* not reached */
 }
 
-static s7_pointer assq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  return((is_pair(lst)) ? s7_assq(sc, obj, lst) :
-	 ((is_null(lst)) ? sc->F :
-	  method_or_bust_pp(sc, lst, sc->assq_symbol, obj, lst, an_association_list_string, 2)));
-}
+/* assq_p_pp migrated to s7_liii_list.c */
 
 /* g_assq migrated to s7_scheme_predicate.c */
 #define H_assq "(assq obj alist) returns the key-value pair associated (via eq?) with the key obj in the association list alist"
@@ -26237,36 +26106,7 @@ s7_pointer s7i_assq_p_pp(s7_scheme *sc, s7_pointer a, s7_pointer b)
   return(assq_p_pp(sc, a, b));
 }
 
-static s7_pointer assv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  s7_pointer slow;
-  if (!is_pair(lst))
-    {
-      if (is_null(lst)) return(sc->F);
-      if (sc->scheme_version == sc->s7_symbol)
-	return(method_or_bust_pp(sc, lst, sc->assv_symbol, obj, lst, an_association_list_string, 2));
-      return(methods_or_bust_pp(sc, lst, sc->assv_symbol, sc->assq_symbol, obj, lst, an_association_list_string, 2));
-    }
-  if (is_simple(obj))
-    return(s7_assq(sc, obj, lst));
-
-  slow = lst;
-  while (true)
-    {
-      /* here we can't play the assq == game because s7_is_eqv thinks it's getting a legit s7 object */
-      if ((is_pair(car(lst))) && (s7_is_eqv(sc, obj, caar(lst)))) return(car(lst));
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-
-      if ((is_pair(car(lst))) && (s7_is_eqv(sc, obj, caar(lst)))) return(car(lst));
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-
-      slow = cdr(slow);
-      if (slow == lst) return(sc->F);
-    }
-  return(sc->F); /* not reached */
-}
+/* assv_p_pp migrated to s7_liii_list.c */
 
 /* g_assv migrated to s7_scheme_predicate.c */
 #define H_assv "(assv obj alist) returns the key-value pair associated (via eqv?) with the key obj in the association list alist"
@@ -26472,17 +26312,7 @@ If 'func' is a function of 2 arguments, it is used for the comparison instead of
   }
 }
 
-static s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p)
-{
-  if (!is_pair(p))
-    {
-      if (is_null(p)) return(sc->F);
-      return(method_or_bust(sc, p, sc->assoc_symbol, set_plist_2(sc, obj, p), an_association_list_string, 2));
-    }
-  if (!is_pair(car(p))) wrong_type_error_nr(sc, sc->assoc_symbol, 2, p, an_association_list_string);
-  if (is_simple(obj)) return(s7_assq(sc, obj, p));
-  return(assoc_1(sc, obj, p));
-}
+/* assoc_p_pp migrated to s7_liii_list.c */
 
 static bool op_assoc_if(s7_scheme *sc)
 {
@@ -26551,11 +26381,7 @@ s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F);
 }
 
-static s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  return((is_pair(lst)) ? s7_memq(sc, obj, lst) :
-	 ((is_null(lst)) ? sc->F : method_or_bust_pp(sc, lst, sc->memq_symbol, obj, lst, a_list_string, 2)));
-}
+/* memq_p_pp migrated to s7_liii_list.c */
 
 static s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
 {
@@ -26573,20 +26399,11 @@ static s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
 /* I think (memq 'c '(a b . c)) should return #f because otherwise (memq () ...) would return the () at the end */
 /* if memq's list is a quoted list, it won't be changing, so we can tell ahead of time that it is a proper list, and what its length is */
 
-static s7_pointer memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  if (obj == car(lst)) return(lst);
-  return((obj == cadr(lst)) ? cdr(lst) : sc->F);
-}
+/* memq_2_p_pp migrated to s7_liii_list.c */
 
 s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_2_p_pp(sc, obj, lst));}
 
-static s7_pointer memq_3_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  if (obj == car(lst)) return(lst);
-  if (obj == cadr(lst)) return(cdr(lst));
-  return((obj == caddr(lst)) ? cddr(lst) : sc->F);
-}
+/* memq_3_p_pp migrated to s7_liii_list.c */
 
 static s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
 {
@@ -26605,15 +26422,7 @@ static s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
   return(sc->F);
 }
 
-static s7_pointer memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  while (true)
-    {
-      LOOP_4(if (obj == car(lst)) return(lst); lst = cdr(lst));
-      if (!is_pair(lst)) return(sc->F);
-    }
-  return(sc->F);
-}
+/* memq_4_p_pp migrated to s7_liii_list.c */
 
 s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_4_p_pp(sc, obj, lst));}
 
@@ -26668,35 +26477,7 @@ static s7_pointer memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
   return(sc->F);
 }
 
-static s7_pointer memv_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  s7_pointer p;
-  if (!is_pair(lst))
-    {
-      if (is_null(lst)) return(sc->F);
-      if (sc->scheme_version == sc->s7_symbol)
-	return(method_or_bust_pp(sc, lst, sc->memv_symbol, obj, lst, a_list_string, 2));
-      return(methods_or_bust_pp(sc, lst, sc->memv_symbol, sc->memq_symbol, obj, lst, a_list_string, 2));
-    }
-  if (is_simple(obj)) return(s7_memq(sc, obj, lst));
-  if (is_number(obj)) return(memv_number(sc, obj, lst));
-
-  p = lst;
-  while (true)
-    {
-      if (s7_is_eqv(sc, obj, car(lst))) return(lst);
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-
-      if (s7_is_eqv(sc, obj, car(lst))) return(lst);
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-
-      p = cdr(p);
-      if (p == lst) return(sc->F);
-    }
-  return(sc->F); /* not reached */
-}
+/* memv_p_pp migrated to s7_liii_list.c */
 
 /* g_memv migrated to s7_scheme_predicate.c */
 #define H_memv "(memv obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memv uses eqv?"
@@ -26750,6 +26531,30 @@ static s7_pointer member(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 }
 
 static bool p_to_b(opt_info *p);
+
+/* -------- s7i_ bridges for list p_p migration to s7_liii_list.c -------- */
+s7_pointer s7i_cons_safe(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
+{
+  s7_pointer p;
+  new_cell(sc, p, T_PAIR | T_SAFE_PROCEDURE);
+  set_car(p, p1);
+  set_cdr(p, p2);
+  return(p);
+}
+s7_pointer s7i_inline_set_car(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(inline_set_car(sc, lst, value));}
+s7_pointer s7i_inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointer value) {return(inline_set_cdr(sc, lst, value));}
+bool s7i_is_simple(s7_pointer p) {return(is_simple(p));}
+bool s7i_scheme_version_is_s7(s7_scheme *sc) {return(sc->scheme_version == sc->s7_symbol);}
+s7_pointer s7i_methods_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name1, const char *method_name2,
+                                  s7_pointer x1, s7_pointer x2, s7_pointer typ, s7_int num)
+{
+  return(methods_or_bust_pp(sc, obj, s7_make_symbol(sc, method_name1), s7_make_symbol(sc, method_name2), x1, x2, typ, (int32_t)num));
+}
+s7_pointer s7i_assoc_1(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(assoc_1(sc, obj, lst));}
+s7_pointer s7i_memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memv_number(sc, obj, lst));}
+s7_pointer s7i_member(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(member(sc, obj, lst));}
+s7_int s7i_tree_len(s7_scheme *sc, s7_pointer p) {return(tree_len(sc, p));}
+bool s7i_tree_is_cyclic_checked(s7_scheme *sc, s7_pointer tree) {return((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)));}
 
 static s7_pointer g_member(s7_scheme *sc, s7_pointer args)
 {
@@ -26879,14 +26684,7 @@ member uses equal?  If 'func' is a function of 2 arguments, it is used for the c
   }
 }
 
-static s7_pointer member_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  if (is_null(lst)) return(sc->F);
-  if (!is_pair(lst)) return(method_or_bust(sc, lst, sc->member_symbol, set_plist_2(sc, obj, lst), a_list_string, 2));
-  if (is_simple(obj)) return(s7_memq(sc, obj, lst));
-  if (is_number(obj)) return(memv_number(sc, obj, lst));
-  return(member(sc, obj, lst));
-}
+/* member_p_pp migrated to s7_liii_list.c */
 
 static s7_pointer member_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
