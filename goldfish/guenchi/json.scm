@@ -27,9 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-ref json-ref* json-set json-set* json-push
-    json-push* json-drop json-drop* json-reduce json-reduce*
-  ) ;export
+  (export json-string-escape json-drop json-drop* json-reduce json-reduce*)
   (begin
 
     (define (json-string-escape str)
@@ -74,141 +72,9 @@
       ) ;let
     ) ;define
 
-    (define json-ref
-      (lambda (x k)
-        (define return
-          (lambda (x)
-            (if (symbol? x)
-              (cond ((symbol=? x 'true) #t)
-                    ((symbol=? x 'false) #f)
-                    (else x)
-              ) ;cond
-              x
-            ) ;if
-          ) ;lambda
-        ) ;define
-        (if (vector? x)
-          (return (vector-ref x k))
-          (let loop
-            ((x x) (k k))
-            (if (null? x) '() (if (equal? (caar x) k) (return (cdar x)) (loop (cdr x) k)))
-          ) ;let
-        ) ;if
-      ) ;lambda
-    ) ;define
-    (define (json-ref* j . keys)
-      (let loop
-        ((expr j) (keys keys))
-        (if (null? keys) expr (loop (json-ref expr (car keys)) (cdr keys)))
-      ) ;let
-    ) ;define
-    (define json-set
-      (lambda (x v p)
-        (let ((x x) (v v) (p (if (procedure? p) p (lambda (x) p))))
-          (if (vector? x)
-            (list->vector (cond ((boolean? v)
-                                 (if v
-                                   (let l
-                                     ((x (vector->alist x)) (p p))
-                                     (if (null? x) '() (cons (p (cdar x)) (l (cdr x) p)))
-                                   ) ;let
-                                 ) ;if
-                                ) ;
-                                ((procedure? v)
-                                 (let l
-                                   ((x (vector->alist x)) (v v) (p p))
-                                   (if (null? x)
-                                     '()
-                                     (if (v (caar x))
-                                       (cons (p (cdar x)) (l (cdr x) v p))
-                                       (cons (cdar x) (l (cdr x) v p))
-                                     ) ;if
-                                   ) ;if
-                                 ) ;let
-                                ) ;
-                                (else (let l
-                                        ((x (vector->alist x)) (v v) (p p))
-                                        (if (null? x)
-                                          '()
-                                          (if (equal? (caar x) v)
-                                            (cons (p (cdar x)) (l (cdr x) v p))
-                                            (cons (cdar x) (l (cdr x) v p))
-                                          ) ;if
-                                        ) ;if
-                                      ) ;let
-                                ) ;else
-                          ) ;cond
-            ) ;list->vector
-            (cond ((boolean? v)
-                   (if v
-                     (let l
-                       ((x x) (p p))
-                       (if (null? x) '() (cons (cons (caar x) (p (cdar x))) (l (cdr x) p)))
-                     ) ;let
-                   ) ;if
-                  ) ;
-                  ((procedure? v)
-                   (let l
-                     ((x x) (v v) (p p))
-                     (if (null? x)
-                       '()
-                       (if (v (caar x))
-                         (cons (cons (caar x) (p (cdar x))) (l (cdr x) v p))
-                         (cons (car x) (l (cdr x) v p))
-                       ) ;if
-                     ) ;if
-                   ) ;let
-                  ) ;
-                  (else (let l
-                          ((x x) (v v) (p p))
-                          (if (null? x)
-                            '()
-                            (if (equal? (caar x) v)
-                              (cons (cons v (p (cdar x))) (l (cdr x) v p))
-                              (cons (car x) (l (cdr x) v p))
-                            ) ;if
-                          ) ;if
-                        ) ;let
-                  ) ;else
-            ) ;cond
-          ) ;if
-        ) ;let
-      ) ;lambda
-    ) ;define
-    (define (json-set* json k0 k1_or_v . ks_and_v)
-      (if (null? ks_and_v)
-        (json-set json k0 k1_or_v)
-        (json-set json
-          k0
-          (lambda (x) (apply json-set* (cons x (cons k1_or_v ks_and_v))))
-        ) ;json-set
-      ) ;if
-    ) ;define
-    (define (json-push x k v)
-      (if (vector? x)
-        (if (= (vector-length x) 0)
-          (vector v)
-          (list->vector (let l
-                          ((x (vector->alist x)) (k k) (v v) (b #f))
-                          (if (null? x)
-                            (if b '() (cons v '()))
-                            (if (equal? (caar x) k)
-                              (cons v (cons (cdar x) (l (cdr x) k v #t)))
-                              (cons (cdar x) (l (cdr x) k v b))
-                            ) ;if
-                          ) ;if
-                        ) ;let
-          ) ;list->vector
-        ) ;if
-        (cons (cons k v) x)
-      ) ;if
-    ) ;define
-    (define (json-push* json k0 v0 . rest)
-      (if (null? rest)
-        (json-push json k0 v0)
-        (json-set json k0 (lambda (x) (apply json-push* (cons x (cons v0 rest)))))
-      ) ;if
-    ) ;define
+    ;; json-set 由 C++ 实现（src/liii_json.cpp 中的 g_json_set，含变参多键路径，
+    ;; 语义覆盖历史上的 json-set 与 json-set*）；仅供本库的 json-drop* 内部使用，不导出
+    (define json-set g_json_set)
     (define json-drop
       (lambda (x v)
         (if (vector? x)

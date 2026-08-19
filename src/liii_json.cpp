@@ -869,17 +869,22 @@ glue_json_ref (s7_scheme* sc) {
 }
 
 // json-set 的叶层写入器：rest 非空表示多键路径（对旧值递归 json-set），
-// 否则写入叶层值（叶层值为过程时以旧值调用之）
+// 否则写入叶层值（叶层值为过程时以旧值调用之）；
+// is_push 表示 json-push 的多键路径（对旧值递归 json-push，kvs 为键值序列）
 struct json_setter {
   s7_pointer rest; // 剩余 (key val ...) 参数；'() 表示已到叶层
   s7_pointer leaf; // 叶层值（仅 rest 为 '() 时有效）
   bool       leaf_is_proc;
+  bool       is_push;   // json-push 多键模式
+  s7_pointer push_args; // (key ... val) 序列（仅 is_push 时有效）
 };
 
 static s7_pointer json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs);
+static s7_pointer json_push_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kvs);
 
 static s7_pointer
 json_setter_apply (s7_scheme* sc, const json_setter& st, s7_pointer old) {
+  if (st.is_push) return json_push_dispatch (sc, old, st.push_args);
   if (!s7_is_null (sc, st.rest)) return json_set_dispatch (sc, old, st.rest);
   if (st.leaf_is_proc) return s7_call (sc, st.leaf, s7_list (sc, 1, old));
   return st.leaf;
@@ -968,6 +973,8 @@ json_set_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kargs) {
   s7_pointer  key = s7_car (kargs);
   s7_pointer  rest= s7_cdr (kargs);
   json_setter st;
+  st.is_push  = false;
+  st.push_args= NULL;
   if (s7_is_null (sc, s7_cdr (rest))) {
     st.rest        = s7_nil (sc);
     st.leaf        = s7_car (rest);
@@ -996,12 +1003,94 @@ glue_json_set (s7_scheme* sc) {
   s7_gc_protect (sc, cached_list_to_vector);
 }
 
+// json-push / json-push* 的 C++ 实现，语义与历史上 (liii json) 包装 (guenchi json)
+// 的 Scheme 实现完全一致：
+//   - 单键：对象 (cons (cons k v) x) 前插；空对象 '(()) 退化为对 '() 前插得 '((k . v))；
+//     数组空时返回 #(v)；非空时按索引 equal? 匹配，首匹配处前插 v（仅一次），无匹配尾插
+//   - 多键：等价于 (json-set json key (lambda (x) (apply json-push x ...)))，
+//     即经 json-set 的单层语义逐层下钻（中间键不存在时静默不生效），
+//     空对象 '(()) 原样返回；每层进入时先做结构校验
+
+// guenchi json-push 的单层语义：x 已校验为 JSON 对象（或 '()）或数组
+static s7_pointer
+json_guenchi_push (s7_scheme* sc, s7_pointer x, s7_pointer k, s7_pointer v) {
+  if (s7_is_vector (x)) {
+    s7_int      n    = s7_vector_length (x);
+    s7_pointer* elems= s7_vector_elements (x);
+    if (n == 0) {
+      s7_pointer result             = s7_make_vector (sc, 1);
+      s7_vector_elements (result)[0]= v;
+      return result;
+    }
+    // 首个 equal? 匹配的索引处前插 v；无匹配则尾插
+    s7_int match= -1;
+    for (s7_int i= 0; i < n; i++) {
+      if (s7_is_equal (sc, s7_make_integer (sc, i), k)) {
+        match= i;
+        break;
+      }
+    }
+    s7_pointer result= s7_make_vector (sc, n + 1);
+    s7_gc_protect_via_stack (sc, result);
+    s7_pointer* relems= s7_vector_elements (result);
+    s7_int      at    = 0;
+    for (s7_int i= 0; i < n; i++) {
+      if (i == match) relems[at++]= v;
+      relems[at++]= elems[i];
+    }
+    if (match < 0) relems[at]= v;
+    s7_gc_unprotect_via_stack (sc, result);
+    return result;
+  }
+  // 对象：前插 (k . v)
+  return s7_cons (sc, s7_cons (sc, k, v), x);
+}
+
+// 对应 (liii json) 的 json-push 包装：结构校验 + 单键/多键分派
+// kvs 为 (key val) 或 (key ... val)（多键时 key 之后逐层下钻，末项为值）
+static s7_pointer
+json_push_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer kvs) {
+  s7_int len= 0;
+  if (!s7_is_vector (x) && !json_is_object (sc, x, len)) {
+    return json_type_error (sc, "Value is not a JSON object or array", x);
+  }
+  if (s7_is_null (sc, s7_cdr (s7_cdr (kvs)))) {
+    // 单键：空对象 '(()) 退化为对 '() 前插
+    s7_pointer k= s7_car (kvs);
+    s7_pointer v= s7_cadr (kvs);
+    if (json_is_null_object (sc, x)) x= s7_nil (sc);
+    return json_guenchi_push (sc, x, k, v);
+  }
+  // 多键：空对象 '(()) 原样返回（json-set 语义）
+  if (json_is_null_object (sc, x)) return x;
+  json_setter st;
+  st.rest        = s7_nil (sc);
+  st.leaf        = NULL;
+  st.leaf_is_proc= false;
+  st.is_push     = true;
+  st.push_args   = s7_cdr (kvs);
+  return json_guenchi_set (sc, x, s7_car (kvs), len, st);
+}
+
+static s7_pointer
+f_json_push (s7_scheme* sc, s7_pointer args) {
+  return json_push_dispatch (sc, s7_car (args), s7_cdr (args));
+}
+
+static void
+glue_json_push (s7_scheme* sc) {
+  const char* name= "g_json_push";
+  const char* desc= "(g_json_push json key val . keys) => data, push a value into Scheme-form JSON data by key path";
+  s7_define_function (sc, name, f_json_push, 3, 0, true, desc);
+}
+
 void
 glue_liii_json (s7_scheme* sc) {
   glue_json_to_string (sc);
   glue_string_to_json (sc);
   glue_json_ref (sc);
   glue_json_set (sc);
+  glue_json_push (sc);
 }
 
 } // namespace goldfish
