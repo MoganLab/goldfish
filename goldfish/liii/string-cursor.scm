@@ -747,10 +747,10 @@
               (let loop
                 ((i limit))
                 (cond ((string-cursor<? i start1-c) #f)
-                  ((string-prefix-at? s1 s2 i start2-c end2-c) i)
-                  ;; 已到 start，无法再后退
-                  ((string-cursor=? i start1-c) #f)
-                  (else (loop (string-cursor-prev s1 i)))
+                      ((string-prefix-at? s1 s2 i start2-c end2-c) i)
+                      ;; 已到 start，无法再后退
+                      ((string-cursor=? i start1-c) #f)
+                      (else (loop (string-cursor-prev s1 i)))
                 ) ;cond
               ) ;let
             ) ;let
