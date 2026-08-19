@@ -27,7 +27,7 @@
     (liii string)
     (liii unicode)
   ) ;import
-  (export json-string-escape json-reduce json-reduce*)
+  (export json-string-escape json-reduce)
   (begin
 
     (define (json-string-escape str)
@@ -72,38 +72,10 @@
       ) ;let
     ) ;define
 
-    ;; json-set 与 json-drop 均由 C++ 实现（src/liii_json.cpp 中的
-    ;; g_json_set / g_json_drop，含变参多键路径，语义覆盖历史上的
-    ;; json-set / json-drop 及带 * 版本），本库不再保留对应 Scheme 实现
-    ;; json-reduce 由 C++ 实现（src/liii_json.cpp 中的 g_json_reduce，含变参多键路径，
-    ;; 语义覆盖 (liii json) 包装的历史 json-reduce）；仅供本库的 json-reduce* 内部使用
+    ;; json-set / json-drop / json-reduce 均由 C++ 实现（src/liii_json.cpp 中的
+    ;; g_json_set / g_json_drop / g_json_reduce，含变参多键路径，语义覆盖历史上的
+    ;; json-set / json-drop / json-reduce 及带 * 版本），本库不再保留对应 Scheme 实现。
+    ;; 历史上的 json-reduce*（多 v/p 对、p 收键路径列表的独立接口）无使用者，已删除
     (define json-reduce g_json_reduce)
-    (define (json-reduce* j v1 v2 . rest)
-      (cond ((null? rest) (json-reduce j v1 v2))
-            ((length=? 1 rest)
-             (json-reduce j
-               v1
-               (lambda (x y)
-                 (let* ((new-v1 v2) (p (last rest)))
-                   (json-reduce y new-v1 (lambda (n m) (p (list x n) m)))
-                 ) ;let*
-               ) ;lambda
-             ) ;json-reduce
-            ) ;
-            (else (json-reduce j
-                    v1
-                    (lambda (x y)
-                      (let* ((new-v1 v2) (p (last rest)))
-                        (apply json-reduce*
-                          (append (cons y (cons new-v1 (drop-right rest 1)))
-                            (list (lambda (n m) (p (cons x n) m)))
-                          ) ;append
-                        ) ;apply
-                      ) ;let*
-                    ) ;lambda
-                  ) ;json-reduce
-            ) ;else
-      ) ;cond
-    ) ;define
   ) ;begin
 ) ;define-library
