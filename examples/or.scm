@@ -1,3 +1,5 @@
+(import (goldfish))
+
 (define-syntax let
   (lambda (x)
     (syntax-case x ()
