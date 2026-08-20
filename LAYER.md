@@ -1,7 +1,7 @@
 # Layers
 
 L0 host: src/gf.h, src/gf.cpp, src/gf_glue.hpp — sole s7.h inclusions; gf::host_version/date
-L1 tiny: src/liii_reader.cpp, goldfish/liii/boot.scm
+L1 tiny: src/liii_reader.cpp (bootstrap subset only), goldfish/liii/boot.scm (first load cache/gfo.scm)
 L2 expander-rt: goldfish/expander/kernel-combined.scm
 L3 expander-lib: goldfish/expander/lib/*, goldfish/liii/reader.scm, goldfish/cache/gfo.scm (single gfo source)
 L4 compiler: goldfish/compiler/*, goldfish/expander/syntax-ir.scm — pure, no VM/s7
