@@ -7,6 +7,7 @@
 //
 
 #include "gf.h"
+#include "s7.h"
 
 namespace goldfish {
 namespace gf {

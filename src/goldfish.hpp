@@ -15,6 +15,7 @@
 //
 
 #include "gf.h"
+#include "s7.h"
 #include <algorithm>
 #include <argh.h>
 #include <cctype>

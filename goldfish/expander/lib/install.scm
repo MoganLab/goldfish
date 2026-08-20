@@ -21,8 +21,7 @@
 (define (gfo-dir)
   (let ((xdg (getenv "XDG_CACHE_HOME")))
     (string-append
-      (if (and xdg (not (string=? xdg "")))
-        xdg
+      (if (and xdg (not (string=? xdg ""))) xdg
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
       "/goldfish/ccache")))
 
@@ -61,7 +60,8 @@
       (let loop ((i 1))
         (let ((j (let lp ((k i))
                    (if (or (= k n) (char=? (string-ref rel k) #\/))
-                     k (lp (+ k 1))))))
+                     k
+                     (lp (+ k 1))))))
           (when (< j n)
             (let ((d (string-append dir (substring rel 0 j))))
               (if (not (file-exists? d)) (g_mkdir d))

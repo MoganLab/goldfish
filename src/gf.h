@@ -15,10 +15,15 @@
 #ifndef GOLDFISH_GF_H
 #define GOLDFISH_GF_H
 
-#include "s7.h"
-
 #include <cstdint>
 #include <cstddef>
+
+struct s7_scheme;
+struct s7_cell;
+using s7_pointer = s7_cell*;
+using s7_int = int64_t;
+using s7_double = double;
+using s7_function = s7_pointer (*)(s7_scheme*, s7_pointer);
 
 namespace goldfish {
 namespace gf {
@@ -92,17 +97,17 @@ pointer cadddr (pointer p);
 pointer cddddr (pointer p);
 void set_cdr (pointer p, pointer b);
 pointer reverse (scheme* sc, pointer a);
+int_ list_length (scheme* sc, pointer a);
+pointer list_ref (scheme* sc, pointer lst, int_ num);
+pointer array_to_list (scheme* sc, int_ num_values, pointer* array);
 
 // Build a proper list from its elements (variadic; the element count is
 // inferred from the argument pack).
 template <typename... Args>
 inline pointer list (scheme* sc, Args... args) {
-  return s7_list (sc, (int_)sizeof...(args), args...);
+  pointer elems[] = {args...};
+  return array_to_list(sc, sizeof...(args), elems);
 }
-
-int_ list_length (scheme* sc, pointer a);
-pointer list_ref (scheme* sc, pointer lst, int_ num);
-pointer array_to_list (scheme* sc, int_ num_values, pointer* array);
 
 // ---------------------------------------------------------------------------
 // Booleans / characters / numbers.
