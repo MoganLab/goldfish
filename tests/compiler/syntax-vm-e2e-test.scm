@@ -2,6 +2,7 @@
         (goldfish)
         (goldfish compiler ir)
         (goldfish compiler bytecode)
+        (goldfish compiler passes)
         (goldfish expander syntax-ir))
 
 ;; 端到端闭环测试：expander 展开 → syntax->ir（含 primitive-ref/lexical-ref）
@@ -169,3 +170,32 @@
        (flatten-depth lst 1)))))
 (check (eval (list (define-name (car irs-flat)) (qv 1 '(2 3) 4)) (rootlet)) => '(1 2 3 4))
 (check (eval (list (define-name (car irs-flat)) (qv '(1 2) '(3 4))) (rootlet)) => '(1 2 3 4))
+
+;; ===== 11. VM 库加载路径：vm-load-syntax-defs（含 passes）=====
+;; 库代码经 syntax->ir → passes → bytecode → vm-load 到 the-expander-library
+;; （s7 eval 路径的同款环境），store-global 的 gensym 值可经 eval 取回调用。
+(let*-values (((defs ctx) (expand-library-body
+                           (map wrap-expression
+                                '((define (vm-len=? x l)
+                                    (cond ((and (= x 0) (null? l)) #t)
+                                          ((or (= x 0) (null? l)) #f)
+                                          (else (vm-len=? (- x 1) (cdr l)))))
+                                  (define (vm-drop lst n)
+                                    (cond ((< n 0) lst)
+                                          ((= n 0) lst)
+                                          (else (let loop
+                                                  ((rest lst) (count 0))
+                                                  (cond ((null? rest) '())
+                                                        ((>= count n) rest)
+                                                        (else (loop (cdr rest) (+ count 1))))))))))
+                           the-base-library
+                           (initial-context))))
+  (let ((irs (vm-load-syntax-defs defs ctx
+                                  (list constant-fold simplify-if)
+                                  the-expander-library)))
+    (check ((eval (define-name (car irs)) the-expander-library)
+            3 (list 'a 'b 'c))
+           => #t)
+    (check ((eval (define-name (cadr irs)) the-expander-library)
+            (list 'a 'b 'c 'd) 2)
+           => '(c d))))

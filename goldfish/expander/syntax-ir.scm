@@ -37,11 +37,14 @@
   (import (scheme base)
           (goldfish)
           (goldfish compiler ir)
-          (goldfish compiler passes))
+          (goldfish compiler passes)
+          (goldfish compiler bytecode))
   (export syntax->ir
     syntax->ir/sexp
     expand->ir
-    compile-syntax-defs)
+    compile-syntax-defs
+    compile-syntax-program
+    vm-load-syntax-defs)
   (begin
 
     ;; binding-kind : binding -> symbol/#f
@@ -288,4 +291,22 @@
           (reverse acc)
           (rec (cdr ds)
                (cons (ir->core (run-passes (syntax->ir/sexp (car ds) ctx) passes))
-                     acc)))))))
+                     acc)))))
+
+    ;; compile-syntax-program : (list syntax) context (list pass) -> program
+    ;; The library-def pipeline to BYTECODE: expander output (syntax defs)
+    ;; -> IR (with binding-kind + lexical addressing) -> passes -> a VM
+    ;; bytecode program.  This is the VM-loading counterpart of
+    ;; compile-syntax-defs (which lowers to sexp for s7 eval); vm-loading it
+    ;; keeps the library definitions executing on our VM instead of s7.
+    (define (compile-syntax-program defs ctx passes)
+      (to-bytecode (map (lambda (d) (syntax->ir d ctx)) defs)))
+
+    ;; vm-load-syntax-defs : (list syntax) context (list pass) global-env -> irs
+    ;; Compile the defs to a VM program and load it, storing each top-level
+    ;; define into global-env (e.g. the-expander-library).  Returns the IR
+    ;; list so callers can map gensym names (define-name) to values.
+    (define (vm-load-syntax-defs defs ctx passes global-env)
+      (let ((irs (map (lambda (d) (syntax->ir d ctx)) defs)))
+        (vm-load (to-bytecode irs) global-env)
+        irs))))
