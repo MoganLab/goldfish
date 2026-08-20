@@ -280,17 +280,21 @@ static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
         gf::vector_set (sc, f.slots, 0, args[0]);
     }
   } else if (!gf::is_proper_list (sc, ci.formals)) {
-    // Dotted formals (fixed . rest).
     size_t fixed = 0;
     for (s7_pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
       ++fixed;
     for (size_t i = 0; i < fixed && i < args.size (); ++i)
       gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
-    std::vector<s7_pointer> rest_args;
-    for (size_t i = fixed; i < args.size (); ++i)
-      rest_args.push_back (args[i]);
-    if ((s7_int)fixed < ci.nlocals)
-      gf::vector_set (sc, f.slots, (s7_int)fixed, build_args_list (sc, rest_args));
+    if ((s7_int)fixed < ci.nlocals) {
+      if (args.size () == fixed + 1 && gf::is_list (sc, args[fixed])) {
+        gf::vector_set (sc, f.slots, (s7_int)fixed, args[fixed]);
+      } else {
+        std::vector<s7_pointer> rest_args;
+        for (size_t i = fixed; i < args.size (); ++i)
+          rest_args.push_back (args[i]);
+        gf::vector_set (sc, f.slots, (s7_int)fixed, build_args_list (sc, rest_args));
+      }
+    }
   } else {
     for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
       gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
