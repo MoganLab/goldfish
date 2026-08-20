@@ -157,5 +157,5 @@
 ;; syntax->ir 产 IR（含 lexical-ref）可被 to-bytecode 消费
 (check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
          (let ((prog (to-bytecode (list ir))))
-           (and (pair? prog) (eq? (car prog) 'program))))
+           (if (pair? prog) (eq? (car prog) 'program) #f)))
        => #t)

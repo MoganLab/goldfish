@@ -93,6 +93,17 @@
           (cons frame env)
           (loop (cdr ns) (+ i 1) (cons (cons (car ns) i) frame)))))
 
+    ;; env-next-slot : env -> integer
+    ;; The first free slot index of the innermost frame (one past its current
+    ;; bindings' maximum index).
+    (define (env-next-slot env)
+      (if (null? env)
+        0
+        (let loop ((frame (car env)) (max-idx -1))
+          (if (null? frame)
+            (+ max-idx 1)
+            (loop (cdr frame) (max max-idx (cdar frame)))))))
+
     ;; env-add-bindings : env (list (name . slot)) -> env
     ;; Append bindings to the innermost frame (let/letrec/define slots).
     (define (env-add-bindings env bindings)
@@ -107,6 +118,14 @@
     ;; name symbol (false, for the s7-eval path where ir->core cannot
     ;; render depth/index); a primitive stays a <primitive-ref>; anything
     ;; else keeps its name symbol.
+
+    ;; binding-name / binding-init : syntax -> datum / ir
+    ;; A binding syntax (form (name init)) is a syntax record whose form is a
+    ;; pair of syntax records; unwrap with syntax-form before car/cadr.
+    (define (binding-name b)
+      (datum-of (car (syntax-form b))))
+    (define (binding-init b)
+      (cadr (syntax-form b)))
 
     (define (syntax->ir* stx ctx env resolve-lexical?)
       (cond
@@ -174,7 +193,7 @@
                      (let* ((name (datum-of (cadr form)))
                             (bindings (syntax-form (caddr form)))
                             (body (cdddr form))
-                            (bnames (map (lambda (b) (datum-of (car b))) bindings))
+                            (bnames (map binding-name bindings))
                             (env-b (env-extend-frame env bnames)))
                        (make-letrec 'letrec
                                     (list (list name
@@ -182,34 +201,34 @@
                                                              (map (lambda (b) (syntax->ir* b ctx env-b resolve-lexical?))
                                                                   body))))
                                     (list (make-call #f name
-                                                     (map (lambda (b) (syntax->ir* (cadr b) ctx env resolve-lexical?))
+                                                     (map (lambda (b) (syntax->ir* (binding-init b) ctx env resolve-lexical?))
                                                           bindings)))))
                      (let* ((bindings (syntax-form (cadr form)))
-                            (bnames (map (lambda (b) (datum-of (car b))) bindings))
-                            (slot-alist (let loop ((ns bnames) (i 0) (acc '()))
+                            (bnames (map binding-name bindings))
+                            (slot-alist (let loop ((ns bnames) (i (env-next-slot env)) (acc '()))
                                           (if (null? ns)
                                             acc
                                             (loop (cdr ns) (+ i 1)
                                                   (cons (cons (car ns) i) acc)))))
                             (env1 (env-add-bindings env (reverse slot-alist))))
                        (make-let #f
-                                 (map (lambda (b) (list (datum-of (car b))
-                                                        (syntax->ir* (cadr b) ctx env resolve-lexical?)))
+                                 (map (lambda (b) (list (binding-name b)
+                                                        (syntax->ir* (binding-init b) ctx env resolve-lexical?)))
                                       bindings)
                                  (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
                                       (cddr form))))))
-                  ((letrec letrec*)
-                   (let* ((bindings (syntax-form (cadr form)))
-                          (bnames (map (lambda (b) (datum-of (car b))) bindings))
-                          (slot-alist (let loop ((ns bnames) (i 0) (acc '()))
-                                        (if (null? ns)
-                                          acc
-                                          (loop (cdr ns) (+ i 1)
-                                                (cons (cons (car ns) i) acc)))))
-                          (env1 (env-add-bindings env (reverse slot-alist))))
+                   ((letrec letrec*)
+                    (let* ((bindings (syntax-form (cadr form)))
+                           (bnames (map binding-name bindings))
+                           (slot-alist (let loop ((ns bnames) (i (env-next-slot env)) (acc '()))
+                                         (if (null? ns)
+                                           acc
+                                           (loop (cdr ns) (+ i 1)
+                                                 (cons (cons (car ns) i) acc)))))
+                           (env1 (env-add-bindings env (reverse slot-alist))))
                      (make-letrec head-name
-                                  (map (lambda (b) (list (datum-of (car b))
-                                                         (syntax->ir* (cadr b) ctx env1 resolve-lexical?)))
+                                  (map (lambda (b) (list (binding-name b)
+                                                         (syntax->ir* (binding-init b) ctx env1 resolve-lexical?)))
                                        bindings)
                                   (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
                                        (cddr form)))))
