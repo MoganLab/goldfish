@@ -37,14 +37,12 @@
 
 (define-syntax cond-expand
   (lambda (stx)
-    (let loop ((clauses (cdr (syntax-form stx))))
-      (if (null? clauses)
-          (error "cond-expand: no matching feature requirement"
-                 (syntax->datum stx))
-          (let* ((cform (syntax-form (car clauses)))
-                 (req (car cform))
-                 (body (cdr cform)))
-            (if (or (eq? (syntax->datum req) 'else)
-                    (cond-expand-feature-satisfied? req))
-                (datum->syntax stx (cons 'begin body))
-                (loop (cdr clauses))))))))
+    (syntax-case stx (else)
+      ((_) (error "cond-expand: no matching feature requirement"
+                 (syntax->datum stx)))
+      ((_ (else body ...))
+       #'(begin body ...))
+      ((_ (feature body ...) rest ...)
+       (if (cond-expand-feature-satisfied? #'feature)
+           #'(begin body ...)
+           #'(cond-expand rest ...))))))
