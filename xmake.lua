@@ -102,6 +102,10 @@ target ("goldfish") do
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
     end
+    -- L0 host / L5 vm / L1 tiny
+    add_files ("src/gf.cpp")
+    add_files ("src/goldfish_vm.cpp")
+    add_files ("src/liii_reader.cpp")
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
@@ -114,9 +118,6 @@ target ("goldfish") do
     add_files ("src/liii_string.cpp")
     add_files ("src/liii_hashlib.cpp")
     add_files ("src/liii_base64.cpp")
-    add_files ("src/liii_reader.cpp")
-    add_files ("src/goldfish_vm.cpp")
-    add_files ("src/gf.cpp")
     add_files ("src/scheme_base.cpp")
     add_files ("src/scheme_char.cpp")
     add_files ("src/s7.c", {languages = "c11"})
@@ -184,6 +185,13 @@ target ("goldfish") do
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tests/**)", {prefixdir = "share/goldfish"})
 end
+
+target("lint-layer")
+    set_kind("phony")
+    on_build(function (target)
+        os.exec("sh tools/lint-layer.sh")
+    end)
+target_end()
 
 if is_plat("wasm") then
 target("goldfish_repl_wasm")
