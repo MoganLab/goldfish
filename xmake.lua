@@ -172,6 +172,7 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
+    add_installfiles("$(projectdir)/goldfish/(cache/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
