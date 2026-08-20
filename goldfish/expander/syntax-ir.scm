@@ -215,13 +215,13 @@
                                        (cddr form)))))
                   ((set!)
                    (let*-values (((name kind) (resolve-name (cadr form) ctx)))
-                     (make-set! #f
-                                (cond
-                                  ((env-lookup env name) =>
-                                   (lambda (loc) (make-lexical-ref #f (car loc) (cdr loc))))
-                                  ((eq? kind 'primitive) (make-primitive-ref #f name))
-                                  (else name))
-                                (syntax->ir* (caddr form) ctx env resolve-lexical?))))
+                     (let ((loc (and resolve-lexical? (env-lookup env name))))
+                       (make-set! #f
+                                  (cond
+                                    (loc (make-lexical-ref #f (car loc) (cdr loc)))
+                                    ((eq? kind 'primitive) (make-primitive-ref #f name))
+                                    (else name))
+                                  (syntax->ir* (caddr form) ctx env resolve-lexical?)))))
                   ((values)
                    (make-values #f (map (lambda (b) (syntax->ir* b ctx env resolve-lexical?))
                                         (cdr form))))

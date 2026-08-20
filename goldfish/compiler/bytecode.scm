@@ -138,73 +138,78 @@
     ;; stack for a trailing (return).
     (define (compile-tail s envs emit next-label next-slot add-code)
       (cond
-        ((lexical-ref? s)
+        [(lexical-ref? s)
          (if (= (lexical-ref-depth s) 0)
            (emit (list 'local (lexical-ref-index s)))
            (emit (list 'ref (lexical-ref-depth s) (lexical-ref-index s))))
-         (emit '(return)))
-        ((symbol? s)
+         (emit '(return))]
+        [(symbol? s)
          (compile-expr s envs emit next-label next-slot add-code)
-         (emit '(return)))
-        ((or (const? s) (void? s))
+         (emit '(return))]
+        [(or (const? s) (void? s))
          (emit (list 'const (if (const? s) (const-value s) (list 'quote 'void))))
-         (emit '(return)))
-        ((lambda? s)
+         (emit '(return))]
+        [(lambda? s)
          (emit (list 'closure (compile-lambda (lambda-formals s) (lambda-body s)
                                               envs add-code)))
-         (emit '(return)))
-        ((if? s)
-         (let ((else (if-else s)))
+         (emit '(return))]
+        [(if? s)
+         (let ((els (if-else s)))
            (compile-expr (if-test s) envs emit next-label next-slot add-code)
            (let ((L (next-label)))
              (emit (list 'if-else L))
              (compile-tail (if-then s) envs emit next-label next-slot add-code)
              (emit (list 'label L))
-             (if else
-               (compile-tail else envs emit next-label next-slot add-code)
+             (if els
+               (compile-tail els envs emit next-label next-slot add-code)
                (begin
                  (emit '(const #f))
-                 (emit '(return)))))))
-        ((begin? s)
+                 (emit '(return))))))]
+        [(begin? s)
          (if (null? (begin-body s))
            (begin
              (emit '(const #f))
              (emit '(return)))
-            (compile-body (begin-body s) #t envs emit next-label next-slot add-code)))
-        ((let? s)
+           (compile-body (begin-body s) #t envs emit next-label next-slot add-code))]
+        [(let? s)
          (compile-let 'let (let-bindings s) (let-body s) #t envs emit
-                      next-label next-slot add-code))
-        ((letrec? s)
+                      next-label next-slot add-code)]
+        [(letrec? s)
          (compile-let 'letrec (letrec-bindings s) (letrec-body s) #t envs emit
-                      next-label next-slot add-code))
-        ((set!? s)
+                      next-label next-slot add-code)]
+        [(set!? s)
          (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
-         (let ((r (resolve-var envs (set!-target s))))
+         (let ((t (set!-target s))
+               (r (if (lexical-ref? (set!-target s)) #f (resolve-var envs (set!-target s)))))
            (cond
-             ((and r (= (car r) 0)) (emit (list 'set-local (cadr r))))
-             (r (emit (list 'set-ref (car r) (cadr r))))
-             (else (emit (list 'store-global (set!-target s))))))
-         (emit '(return)))
-        ((call-with-values? s)
+             ((lexical-ref? t)
+              (if (= (lexical-ref-depth t) 0)
+                (emit (list 'set-local (lexical-ref-index t)))
+                (emit (list 'set-ref (lexical-ref-depth t) (lexical-ref-index t)))))
+             ((and r (= (car r) 0)) (emit (list 'set-local (cadr r)))
+              (r (emit (list 'set-ref (car r) (cadr r)))))
+             (else (emit (list 'store-global t)))))
+         (emit '(return))]
+        [(call-with-values? s)
          (compile-call-with-values (cwv-producer s) (cwv-consumer s) envs emit
-                                   next-label next-slot add-code #t))
-        ((values? s)
+                                   next-label next-slot add-code #t)]
+        [(values? s)
          (for-each (lambda (e)
                      (compile-expr e envs emit next-label next-slot add-code))
                    (values-args s))
          (emit (list 'values (length (values-args s))))
-         (emit '(return)))
-        ((call? s)
+         (emit '(return))]
+        [(call? s)
          (compile-expr (call-proc s) envs emit next-label next-slot add-code)
          (for-each (lambda (a)
                      (compile-expr a envs emit next-label next-slot add-code))
                    (call-args s))
-         (emit (list 'tail-call (length (call-args s)))))
-        ((not (pair? s))
+         (emit (list 'tail-call (length (call-args s))))]
+        [(not (pair? s))
          (emit (list 'const s))
-         (emit '(return)))
-        (else
-         (error "to-bytecode: unknown expression" s))))
+         (emit '(return))]
+        [else
+         (error "to-bytecode: unknown expression" s)]))
 
     ;; compile-expr : ir frame-envs emit next-label next-slot code-add -> void
     ;; Compile an expression whose value is pushed onto the stack.
@@ -244,9 +249,7 @@
            (emit '(const #f))
            (let loop ((es (begin-body s)))
              (if (null? (cdr es))
-               (compile-expr (car es) envs emit next-label next-slot add-code)
-               (begin
-                 (compile-expr (car es) envs emit next-label next-slot add-code)
+               (compile-expr (car es) envs emit next-label next-slot add-code
                  (emit '(pop))
                  (loop (cdr es)))))))
         ((let? s)
@@ -257,11 +260,16 @@
                       next-label next-slot add-code))
         ((set!? s)
          (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
-         (let ((r (resolve-var envs (set!-target s))))
+         (let ((t (set!-target s))
+               (r (if (lexical-ref? (set!-target s)) #f (resolve-var envs (set!-target s)))))
            (cond
+             ((lexical-ref? t)
+              (if (= (lexical-ref-depth t) 0)
+                (emit (list 'set-local (lexical-ref-index t)))
+                (emit (list 'set-ref (lexical-ref-depth t) (lexical-ref-index t)))))
              ((and r (= (car r) 0)) (emit (list 'set-local (cadr r))))
              (r (emit (list 'set-ref (car r) (cadr r))))
-             (else (emit (list 'store-global (set!-target s)))))))
+             (else (emit (list 'store-global t))))))
         ((call-with-values? s)
          (compile-call-with-values (cwv-producer s) (cwv-consumer s) envs emit
                                    next-label next-slot add-code #f))
@@ -279,7 +287,9 @@
         ((not (pair? s))
          (emit (list 'const s)))
         (else
-         (error "to-bytecode: unknown expression" s))))
+         (error "to-bytecode: unknown expression" s
+
+           (error "to-bytecode: unknown expression" s)))))
 
     ;; compile-let : head bindings body tail? frame-envs emit next-label next-slot code-add
     (define (compile-let head bindings body tail? envs emit next-label next-slot add-code)
@@ -411,25 +421,25 @@
 
     (define (valid-instr? i labels ncode nlocals)
       (case (car i)
-        ((const) (>= (length i) 2))
-        ((global store-global)
-         (and (>= (length i) 2) (symbol? (cadr i))))
-        ((local set-local)
+        [(const) (>= (length i) 2)]
+        [(global store-global)
+         (and (>= (length i) 2) (symbol? (cadr i)))]
+        [(local set-local)
          (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)
-              (or (not nlocals) (< (cadr i) nlocals))))
-        ((ref set-ref)
+              (or (not nlocals) (< (cadr i) nlocals)))]
+        [(ref set-ref)
          (and (>= (length i) 3) (integer? (cadr i)) (>= (cadr i) 1)
-              (integer? (caddr i)) (>= (caddr i) 0)))
-        ((closure)
+              (integer? (caddr i)) (>= (caddr i) 0))]
+        [(closure)
          (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)
-              (< (cadr i) ncode)))
-        ((call tail-call values)
-         (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)))
-        ((if-else jump)
-         (and (>= (length i) 2) (member (cadr i) labels)))
-        ((label) (and (>= (length i) 2) (member (cadr i) labels)))
-        ((return pop call-with-values) (null? (cdr i)))
-        (else #f)))
+              (< (cadr i) ncode))]
+        [(call tail-call values)
+         (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0))]
+        [(if-else jump)
+         (and (>= (length i) 2) (member (cadr i) labels))]
+        [(label) (and (>= (length i) 2) (member (cadr i) labels))]
+        [(return pop call-with-values) (null? (cdr i))]
+        [else #f]))
 
     (define (valid-bytecode? bc)
       (and (pair? bc)
@@ -453,6 +463,4 @@
                                          (valid-instr? i labels ncode (cadr code)))
                                        (cadddr code))))
                          codes)
-                  (every (lambda (i) (valid-instr? i labels ncode #f)) (cdr top))))))
-
-    )) ;begin
+                  (every (lambda (i) (valid-instr? i labels ncode #f)) (cdr top))))))))
