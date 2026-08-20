@@ -16,4 +16,5 @@ if grep -q "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel-combined
 k_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel.scm 2>/dev/null | tr -d '"')
 l_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel/load-kernel.scm 2>/dev/null | tr -d '"')
 if [ "$k_includes" != "$l_includes" ]; then echo "layer violation: load-kernel.scm out of sync with kernel.scm"; echo "kernel.scm: $k_includes"; echo "load-kernel.scm: $l_includes"; fail=1; fi
+if grep -R "goldfish/compiler" goldfish/expander/lib --include="*.scm" goldfish/liii/reader.scm goldfish/cache --include="*.scm" 2>/dev/null | grep -v "^.*:.*;;;" | grep -q .; then echo "layer violation: L3 must not import compiler"; fail=1; fi
 exit $fail
