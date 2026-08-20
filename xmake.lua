@@ -102,10 +102,13 @@ target ("goldfish") do
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
     end
-    -- L0 host / L5 vm / L1 tiny
+    -- L0 host (sole s7.h)
     add_files ("src/gf.cpp")
+    -- L5 vm (gf:: only, per-program, pre-decoded)
     add_files ("src/goldfish_vm.cpp")
+    -- L1 tiny (bootstrap reader subset)
     add_files ("src/liii_reader.cpp")
+    -- L6 loader + L0 host extensions (gf:: wrappers)
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
     add_files ("src/liii_njson.cpp")
@@ -172,18 +175,21 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
+    -- L3 cache / L4 compiler
     add_installfiles("$(projectdir)/goldfish/(cache/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(expander/syntax-ir.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
+    -- L3 expander lib + L2 kernel
     add_installfiles("$(projectdir)/goldfish/(expander/kernel/*.scm)", {prefixdir = "share/goldfish/expander/kernel"})
     add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
     add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
     add_installfiles("$(projectdir)/goldfish/(expander/build-combined.scm)", {prefixdir = "share/goldfish/expander"})
+    -- L1/L3 Scheme libs
+    add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(guenchi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/gfproject.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/node-rules.json", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/(tools/**)", {prefixdir = "share/goldfish"})
