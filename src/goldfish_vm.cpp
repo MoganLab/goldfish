@@ -286,14 +286,10 @@ static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
     for (size_t i = 0; i < fixed && i < args.size (); ++i)
       gf::vector_set (sc, f.slots, (gf::int_)i, args[i]);
     if ((gf::int_)fixed < ci.nlocals) {
-      if (args.size () == fixed + 1 && gf::is_list (sc, args[fixed])) {
-        gf::vector_set (sc, f.slots, (gf::int_)fixed, args[fixed]);
-      } else {
-        std::vector<gf::pointer> rest_args;
-        for (size_t i = fixed; i < args.size (); ++i)
-          rest_args.push_back (args[i]);
-        gf::vector_set (sc, f.slots, (gf::int_)fixed, build_args_list (sc, rest_args));
-      }
+      std::vector<gf::pointer> rest_args;
+      for (size_t i = fixed; i < args.size (); ++i)
+        rest_args.push_back (args[i]);
+      gf::vector_set (sc, f.slots, (gf::int_)fixed, build_args_list (sc, rest_args));
     }
   } else {
     for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
