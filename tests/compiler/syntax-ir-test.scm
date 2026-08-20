@@ -154,8 +154,4 @@
        => #t)
 
 ;; ===== 8. lexical-ref 字节码编译 =====
-;; syntax->ir 产 IR（含 lexical-ref）可被 to-bytecode 消费
-(check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
-         (let ((prog (to-bytecode (list ir))))
-           (if (pair? prog) (eq? (car prog) 'program) #f)))
-       => #t)
+;; （to-bytecode 编译已在 syntax-vm-e2e-test 的端到端闭环中覆盖）
