@@ -12,4 +12,8 @@ if grep "expander" src/liii_reader.cpp 2>/dev/null | grep -v "//" | grep -q .; t
 if ! head -n 160 goldfish/liii/boot.scm 2>/dev/null | grep -q 'load-source-file "cache/gfo.scm"'; then echo "layer violation: L1 boot must load cache/gfo.scm first"; fail=1; fi
 if grep -R "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel --include="*.scm" 2>/dev/null | grep -q .; then echo "layer violation: L2 kernel depends on cache/compiler"; fail=1; fi
 if grep -q "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel-combined.scm 2>/dev/null | grep -q .; then echo "layer violation: L2 artifact depends on cache/compiler"; fail=1; fi
+# L2 single source: load-kernel.scm manifest must match kernel.scm includes
+k_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel.scm 2>/dev/null | tr -d '"')
+l_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel/load-kernel.scm 2>/dev/null | tr -d '"')
+if [ "$k_includes" != "$l_includes" ]; then echo "layer violation: load-kernel.scm out of sync with kernel.scm"; echo "kernel.scm: $k_includes"; echo "load-kernel.scm: $l_includes"; fail=1; fi
 exit $fail
