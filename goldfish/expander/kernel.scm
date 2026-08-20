@@ -1,23 +1,4 @@
-;;; kernel.scm -- the expander core as one R7RS library.
-;;;
-;;; The Sets-of-Scopes expander core, organized as a library so the kernel
-;;; can be re-expanded by the expander itself (the artifact build in
-;;; build-combined.scm is this self-bootstrap: the committed artifact is the
-;;; expander, and it expands this file's library body to produce the next
-;;; artifact).
-;;;
-;;; bootstrap-0 (GOLDFISH_BOOTSTRAP / EXPANDER_BOOT=from-source) bypasses
-;;; this file: s7 evaluates the same sources directly via the manifest
-;;; expander/kernel/load-kernel.scm (which lists the identical files).
-;;;
-;;; The export list is the kernel's public API surface.  build-combined.scm
-;;; verifies that every top-level binding of the library body is exported,
-;;; so the list stays complete.  NOTE: the runtime still re-binds every
-;;; exported name into the rootlet (the lib layer references the core API as
-;;; rootlet free identifiers); narrowing that surface is a separate cleanup.
-;;;
-;;; The trailing driver module-define! registrations and the install of the
-;;; lib layer are host-loading conveniences only (see load-kernel.scm).
+;; kernel.scm (goldfish): re-expanded by expander to produce artifact; bootstrap-0 uses load-kernel.scm.
 
 (define-library (goldfish)
   (export
