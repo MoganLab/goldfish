@@ -221,3 +221,34 @@
                         (let ((r (inner x)))
                           (inner r)))))))
 (check (eval (list (define-name (car irs-nest)) 5) (rootlet)) => 7)
+
+;; ===== 14. call-with-values 多值（回归：VM 内多值拼接）=====
+;; 多值 producer（内联）+ consumer；单值 producer；无值 producer；
+;; prelude（producer 内部 let）+ 外层变量捕获；非尾位置。
+(define irs-cwv (vm-load-syntax
+                 '((define (vm-split x)
+                     (call-with-values
+                      (lambda () (values x (* x 2)))
+                      (lambda (a b) (+ a b))))
+                   (define (vm-single x)
+                     (call-with-values
+                      (lambda () (+ x 1))
+                      (lambda (a) (* a 10))))
+                   (define (vm-void)
+                     (call-with-values
+                      (lambda () (values))
+                      (lambda () 42)))
+                   (define (vm-pre x)
+                     (call-with-values
+                      (lambda () (let ((y (+ x 100))) (values x y)))
+                      (lambda (a b) (+ a b))))
+                   (define (vm-mid x)
+                     (let ((r (call-with-values
+                               (lambda () (values x (+ x 1)))
+                               (lambda (a b) (* a b)))))
+                       (+ r 1))))))
+(check (eval (list (define-name (car irs-cwv)) 5) (rootlet)) => 15)
+(check (eval (list (define-name (cadr irs-cwv)) 5) (rootlet)) => 60)
+(check (eval (list (define-name (caddr irs-cwv))) (rootlet)) => 42)
+(check (eval (list (define-name (cadddr irs-cwv)) 5) (rootlet)) => 110)
+(check (eval (list (define-name (car (cddddr irs-cwv))) 3) (rootlet)) => 13)

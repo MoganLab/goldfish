@@ -613,44 +613,18 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::CallWithValues: {
         s7_pointer c = pop ();
         s7_pointer p = pop ();
-        // s7's call-with-values handles a plain (non-VM) producer and
-        // consumer natively, including the multi-value splice; the VM's
-        // own multi-value unwrap only works when the producer is a VM
-        // closure (its (values ...) runs through the Values instruction,
-        // whose s7_values result is an is_multiple_value object).  For a
-        // producer or consumer that is not a VM closure, fall back to s7's
-        // call-with-values so the s7-level splice is not misread as a
-        // single argument.
-        auto is_vm_closure = [&] (s7_pointer f) {
-          return vm_closure_of (sc, f) != nullptr;
-        };
-        if (!is_vm_closure (p) || !is_vm_closure (c)) {
-          // s7's own call-with-values handles the producer multi-value
-          // splice correctly; the VM's manual unwrap cannot see s7's spliced
-          // result (the multiple-value flag is cleared).  goldfish's
-          // call-with-values lives in the rootlet; look it up by name.
-          s7_pointer cwv = g_call_with_values_fn;
-          if (cwv == nullptr || cwv == gf::undefined (sc))
-            cwv = gf::name_to_value (sc, "call-with-values");
-          s7_pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
-          push (gf::apply_function (sc, cwv, arg_list));
-          break;
-        }
-        size_t d0 = g_frames.size ();
-        std::vector<s7_pointer> no_args;
-        s7_pointer pr = call_function (sc, p, no_args);
-        s7_pointer rv = (pr != nullptr) ? pr : run (sc, d0);
-        std::vector<s7_pointer> c_args;
-        if (gf::is_multiple_value (rv)) {
-          for (s7_pointer a = gf::cdr (rv); gf::is_pair (a); a = gf::cdr (a))
-            c_args.push_back (gf::car (a));
-        } else {
-          c_args.push_back (rv);
-        }
-        size_t d1 = g_frames.size ();
-        s7_pointer cr = call_function (sc, c, c_args);
-        if (cr != nullptr) push (cr);
-        else push (run (sc, d1));
+        // Always delegate to s7's call-with-values.  Its splice happens on
+        // the s7 evaluator stack, so a multi-value producer result (whether
+        // a plain or VM closure) is correctly spliced into the consumer's
+        // arguments.  A manual VM unwrap cannot work: s7_values called from
+        // the VM (not an s7 eval context) returns an object whose multiple
+        // value flag is not reliably set, so gf::is_multiple_value would
+        // miss it and the consumer would receive a single bogus argument.
+        s7_pointer cwv = g_call_with_values_fn;
+        if (cwv == nullptr || cwv == gf::undefined (sc))
+          cwv = gf::name_to_value (sc, "call-with-values");
+        s7_pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
+        push (gf::apply_function (sc, cwv, arg_list));
         break;
       }
       default:

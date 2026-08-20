@@ -330,6 +330,56 @@
              (and (values? last)
                   (list (values-args last) (reverse (cdr rev)))))))
 
+    ;; lift-producer-expr : ir -> ir
+    ;; The static-producer-values inline inlines a producer
+    ;; (lambda () ... (values v...)) into the enclosing frame: the
+    ;; prelude and values expressions were compiled by syntax->ir in the
+    ;; producer's own frame (so a variable of the enclosing scope has
+    ;; depth 1), but inlined they run directly in the enclosing frame
+    ;; (depth 0).  Walk the expression and subtract 1 from every
+    ;; lexical-ref that points at the producer's enclosing scope.  A
+    ;; nested lambda introduces a fresh frame: its formals (depth 0
+    ;; inside it) are untouched, while references through the lambda's
+    ;; frame to the producer's scope (depth >= 2 inside the lambda) drop
+    ;; by 1.  deep? is whether we are at (or inside) a lambda that was
+    ;; opened inside the producer body.
+    (define (lift-producer-expr e . deep?)
+      (let ((deep (and (pair? deep?) (car deep?))))
+        (cond
+          ((lexical-ref? e)
+           (let ((d (lexical-ref-depth e)))
+             (make-lexical-ref #f (if (and deep (> d 1)) (- d 1)
+                                      (if (not deep) (- d 1) d))
+                               (lexical-ref-index e))))
+          ((lambda? e)
+           (make-lambda #f (lambda-formals e)
+                        (map (lambda (b) (lift-producer-expr b #t))
+                             (lambda-body e))))
+          ((if? e)
+           (make-if #f (lift-producer-expr (if-test e) deep)
+                    (lift-producer-expr (if-then e) deep)
+                    (and (if-else e) (lift-producer-expr (if-else e) deep))))
+          ((begin? e)
+           (make-begin #f (map (lambda (b) (lift-producer-expr b deep)) (begin-body e))))
+          ((let? e)
+           (make-let #f (let-bindings e)
+                     (map (lambda (b) (lift-producer-expr b deep)) (let-body e))))
+          ((letrec? e)
+           (make-letrec #f (letrec-bindings e)
+                        (map (lambda (b) (lift-producer-expr b deep)) (letrec-body e))))
+          ((set!? e)
+           (make-set! #f (set!-target e) (lift-producer-expr (set!-expr e) deep)))
+          ((call? e)
+           (make-call #f (lift-producer-expr (call-proc e) deep)
+                      (map (lambda (b) (lift-producer-expr b deep)) (call-args e))))
+          ((values? e)
+           (make-values #f (map (lambda (b) (lift-producer-expr b deep)) (values-args e))))
+          ((call-with-values? e)
+           (make-call-with-values #f
+                                  (lift-producer-expr (cwv-producer e) deep)
+                                  (lift-producer-expr (cwv-consumer e) deep)))
+          (else e))))
+
     ;; compile-call-with-values : producer consumer frame-envs emit next-label
     ;;                            next-slot code-add tail? -> void
     ;; Inline a statically known producer (a lambda with a tail values);
@@ -337,7 +387,8 @@
     (define (compile-call-with-values p c envs emit next-label next-slot add-code tail?)
       (let ((sv (static-producer-values p)))
         (if sv
-          (let ((vals (car sv)) (prelude (cadr sv)))
+          (let ((vals (map lift-producer-expr (car sv)))
+                (prelude (map lift-producer-expr (cadr sv))))
             (for-each (lambda (e)
                         (compile-expr e envs emit next-label next-slot add-code)
                         (emit '(pop)))
