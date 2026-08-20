@@ -25,7 +25,7 @@
 // The instruction stream is pre-decoded at load time into C++ structs
 // (enum opcode + fixed operands, jump targets resolved to indices), so
 // the interpreter loop is a plain switch -- no s7 list walking at run
-// time.  GC is disabled while the VM runs (its stacks hold s7_pointer
+// time.  GC is disabled while the VM runs (its stacks hold gf::pointer
 // values in C++ containers the conservative GC cannot see); captured slot
 // vectors live in the c_object's let, which the GC marks, so closures
 // survive across runs.  The loaded program datum is gc-protected.
@@ -39,7 +39,7 @@
 
 namespace goldfish {
 
-static s7_int VM_CLOSURE_TYPE = 0;
+static gf::int_ VM_CLOSURE_TYPE = 0;
 
 // ---------------------------------------------------------------------------
 // Decoded instruction.
@@ -52,34 +52,34 @@ enum class Op : uint8_t {
 
 struct Instr {
   Op op = Op::Unknown;
-  s7_pointer a = nullptr;  // symbol/constant operand
-  s7_int b = 0;            // integer operand (depth/arity/label)
-  s7_int c = 0;            // second integer (slot index for ref/set-ref)
+  gf::pointer a = nullptr;  // symbol/constant operand
+  gf::int_ b = 0;            // integer operand (depth/arity/label)
+  gf::int_ c = 0;            // second integer (slot index for ref/set-ref)
 };
 
-static s7_pointer vm_enter_symbol  = nullptr;  // 'vm-enter
-static s7_pointer quote_symbol     = nullptr;  // 'quote
-static s7_pointer captured_symbol  = nullptr;  // '*vm-captured*
-static s7_pointer g_false = nullptr;           // cached #f (unique object)
-static s7_pointer vm_const_symbol  = nullptr;
-static s7_pointer vm_global_symbol = nullptr;
-static s7_pointer vm_ref_symbol    = nullptr;
-static s7_pointer vm_local_symbol  = nullptr;
-static s7_pointer vm_set_local_symbol = nullptr;
-static s7_pointer vm_set_ref_symbol = nullptr;
-static s7_pointer vm_store_global_symbol = nullptr;
-static s7_pointer vm_closure_symbol = nullptr;
-static s7_pointer vm_call_symbol   = nullptr;
-static s7_pointer vm_tail_call_symbol = nullptr;
-static s7_pointer vm_if_else_symbol = nullptr;
-static s7_pointer vm_jump_symbol   = nullptr;
-static s7_pointer vm_label_symbol  = nullptr;
-static s7_pointer vm_return_symbol = nullptr;
-static s7_pointer vm_pop_symbol    = nullptr;
-static s7_pointer vm_values_symbol = nullptr;
-static s7_pointer vm_call_with_values_symbol = nullptr;
+static gf::pointer vm_enter_symbol  = nullptr;  // 'vm-enter
+static gf::pointer quote_symbol     = nullptr;  // 'quote
+static gf::pointer captured_symbol  = nullptr;  // '*vm-captured*
+static gf::pointer g_false = nullptr;           // cached #f (unique object)
+static gf::pointer vm_const_symbol  = nullptr;
+static gf::pointer vm_global_symbol = nullptr;
+static gf::pointer vm_ref_symbol    = nullptr;
+static gf::pointer vm_local_symbol  = nullptr;
+static gf::pointer vm_set_local_symbol = nullptr;
+static gf::pointer vm_set_ref_symbol = nullptr;
+static gf::pointer vm_store_global_symbol = nullptr;
+static gf::pointer vm_closure_symbol = nullptr;
+static gf::pointer vm_call_symbol   = nullptr;
+static gf::pointer vm_tail_call_symbol = nullptr;
+static gf::pointer vm_if_else_symbol = nullptr;
+static gf::pointer vm_jump_symbol   = nullptr;
+static gf::pointer vm_label_symbol  = nullptr;
+static gf::pointer vm_return_symbol = nullptr;
+static gf::pointer vm_pop_symbol    = nullptr;
+static gf::pointer vm_values_symbol = nullptr;
+static gf::pointer vm_call_with_values_symbol = nullptr;
 
-static Op decode_op (s7_pointer sym) {
+static Op decode_op (gf::pointer sym) {
   if (gf::is_eq (sym, vm_const_symbol)) return Op::Const;
   if (gf::is_eq (sym, vm_global_symbol)) return Op::Global;
   if (gf::is_eq (sym, vm_ref_symbol)) return Op::Ref;
@@ -104,13 +104,13 @@ struct VMProgram;
 struct VMClosure {
   VMProgram* prog;     // the program this closure's code lives in
   int code_idx;
-  s7_pointer captured;  // list of enclosing slot vectors (outermost first)
-  s7_pointer global_env;  // the (global ...) resolution env of this program
+  gf::pointer captured;  // list of enclosing slot vectors (outermost first)
+  gf::pointer global_env;  // the (global ...) resolution env of this program
 };
 
 struct VMCodeInfo {
   int nlocals;
-  s7_pointer formals;
+  gf::pointer formals;
   std::vector<Instr> instrs;  // pre-decoded
 };
 
@@ -125,21 +125,21 @@ struct VMFrame {
   VMProgram* prog = nullptr;  // the program this frame executes (not the
                               // global g_current_vm->prog, which a nested vm-load can
                               // replace mid-execution)
-  s7_pointer slots = nullptr;  // frame slots: an s7 vector (the SINGLE
+  gf::pointer slots = nullptr;  // frame slots: an s7 vector (the SINGLE
                                // storage -- Local/SetLocal and closure
                                // capture (Ref/SetRef) alias this same
                                // vector, so set! on a captured variable is
                                // visible both sides with no sync)
-  s7_pointer captured = nullptr;  // list of enclosing slot vectors
+  gf::pointer captured = nullptr;  // list of enclosing slot vectors
                                   // (outermost first)
-  s7_pointer global_env = nullptr;  // (global ...) resolution env of this frame
+  gf::pointer global_env = nullptr;  // (global ...) resolution env of this frame
   size_t stack_base = 0;  // g_current_vm->stack index delimiting this frame's value
                           // region; the frame owns [stack_base, g_current_vm->stack.size())
 };
 
 struct VM {
   VMProgram* prog = nullptr;
-  std::vector<s7_pointer> stack;
+  std::vector<gf::pointer> stack;
   std::deque<VMFrame> frames;
 };
 static VM g_vm;
@@ -155,20 +155,20 @@ static VM* vm_for_prog(VMProgram* prog) {
   g_prog_map[prog] = vm;
   return vm;
 }
-static s7_pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
-static s7_pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
-static s7_pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
-static s7_pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
-static s7_pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
-static s7_pointer g_call_with_values_fn = nullptr;
+static gf::pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
+static gf::pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
+static gf::pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
+static gf::pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
+static gf::pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
+static gf::pointer g_call_with_values_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
 
-static inline void push (s7_pointer v) { g_current_vm->stack.push_back (v); }
+static inline void push (gf::pointer v) { g_current_vm->stack.push_back (v); }
 
-static inline s7_pointer pop () {
-  s7_pointer v = g_current_vm->stack.back ();
+static inline gf::pointer pop () {
+  gf::pointer v = g_current_vm->stack.back ();
   g_current_vm->stack.pop_back ();
   return v;
 }
@@ -176,9 +176,9 @@ static inline s7_pointer pop () {
 // ---------------------------------------------------------------------------
 // Global lookup: the program's resolution env first, then the rootlet.
 
-static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name, s7_pointer env) {
+static gf::pointer global_lookup (gf::scheme* sc, gf::pointer name, gf::pointer env) {
   if (env != nullptr && gf::is_let (env)) {
-    s7_pointer v = gf::let_ref (sc, env, name);
+    gf::pointer v = gf::let_ref (sc, env, name);
     if (v != gf::undefined (sc)) return v;
   }
   return gf::global_value (sc, name);
@@ -187,10 +187,10 @@ static s7_pointer global_lookup (s7_scheme* sc, s7_pointer name, s7_pointer env)
 // ---------------------------------------------------------------------------
 // Instruction decoding.
 
-static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
+static std::vector<Instr> decode_instrs (gf::scheme* sc, gf::pointer instr_list) {
   std::vector<Instr> v;
-  for (s7_pointer p = instr_list; gf::is_pair (p); p = gf::cdr (p)) {
-    s7_pointer instr = gf::car (p);
+  for (gf::pointer p = instr_list; gf::is_pair (p); p = gf::cdr (p)) {
+    gf::pointer instr = gf::car (p);
     if (!gf::is_pair (instr)) continue;
     Instr in;
     in.op = decode_op (gf::car (instr));
@@ -235,13 +235,13 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
     v.push_back (in);
   }
   // resolve jump targets to instruction indices
-  std::map<s7_int, size_t> labels;
+  std::map<gf::int_, size_t> labels;
   for (size_t i = 0; i < v.size (); ++i)
     if (v[i].op == Op::Label)
       labels[v[i].b] = i;
   for (size_t i = 0; i < v.size (); ++i)
     if (v[i].op == Op::IfElse || v[i].op == Op::Jump)
-      v[i].b = (s7_int)labels[v[i].b];
+      v[i].b = (gf::int_)labels[v[i].b];
   return v;
 }
 
@@ -254,20 +254,20 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
 // Frames.
 
 // build_args_list : args -> s7 list
-static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>& args) {
+static gf::pointer build_args_list (gf::scheme* sc, const std::vector<gf::pointer>& args) {
   return (args.empty ())
          ? gf::nil (sc)
-         : gf::array_to_list (sc, (s7_int)args.size (),
-                             const_cast<s7_pointer*>(args.data ()));
+         : gf::array_to_list (sc, (gf::int_)args.size (),
+                             const_cast<gf::pointer*>(args.data ()));
 }
 
 // frame_from_args : f slots vector args -> void
 // Fill a frame's slot vector from the call args, honoring the callee's
 // formals shape: proper list, rest symbol, or dotted (fixed . rest).
 // Also sets stack_base to the current stack top.
-static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
-                             const std::vector<s7_pointer>& args) {
-  f.slots = gf::make_vector (sc, (s7_int)ci.nlocals);
+static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
+                             const std::vector<gf::pointer>& args) {
+  f.slots = gf::make_vector (sc, (gf::int_)ci.nlocals);
   if (gf::is_symbol (ci.formals)) {
     // Rest closure: the whole arg list is one slot.  The caller hands over
     // a SINGLE packed list argument (s7's rest closure bundles the args
@@ -281,23 +281,23 @@ static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
     }
   } else if (!gf::is_proper_list (sc, ci.formals)) {
     size_t fixed = 0;
-    for (s7_pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
+    for (gf::pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
       ++fixed;
     for (size_t i = 0; i < fixed && i < args.size (); ++i)
-      gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
-    if ((s7_int)fixed < ci.nlocals) {
+      gf::vector_set (sc, f.slots, (gf::int_)i, args[i]);
+    if ((gf::int_)fixed < ci.nlocals) {
       if (args.size () == fixed + 1 && gf::is_list (sc, args[fixed])) {
-        gf::vector_set (sc, f.slots, (s7_int)fixed, args[fixed]);
+        gf::vector_set (sc, f.slots, (gf::int_)fixed, args[fixed]);
       } else {
-        std::vector<s7_pointer> rest_args;
+        std::vector<gf::pointer> rest_args;
         for (size_t i = fixed; i < args.size (); ++i)
           rest_args.push_back (args[i]);
-        gf::vector_set (sc, f.slots, (s7_int)fixed, build_args_list (sc, rest_args));
+        gf::vector_set (sc, f.slots, (gf::int_)fixed, build_args_list (sc, rest_args));
       }
     }
   } else {
     for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
-      gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
+      gf::vector_set (sc, f.slots, (gf::int_)i, args[i]);
   }
   f.stack_base = g_current_vm->stack.size ();
 }
@@ -307,7 +307,7 @@ static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
 // for this frame: Local/SetLocal and any closure's Ref/SetRef alias it).
 // The frame's value region starts at the current stack top, so a nested
 // VM call neither reads nor disturbs the caller's region.
-static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std::vector<s7_pointer>& args, s7_pointer captured, s7_pointer global_env) {
+static void push_frame (gf::scheme* sc, VMProgram* prog, int code_idx, const std::vector<gf::pointer>& args, gf::pointer captured, gf::pointer global_env) {
   VMCodeInfo& ci = prog->codes[code_idx];
   VMFrame f;
   f.pc = 0;
@@ -324,20 +324,20 @@ static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std:
 
 // vm_closure_of : f -> VMClosure* or nullptr
 // Recognizes an s7 closure whose body is (vm-enter <cobj> ...).
-static VMClosure* vm_closure_of (s7_scheme* sc, s7_pointer f) {
+static VMClosure* vm_closure_of (gf::scheme* sc, gf::pointer f) {
   if (!gf::is_closure (f)) return nullptr;
-  s7_pointer body = gf::closure_body (sc, f);
+  gf::pointer body = gf::closure_body (sc, f);
   if (!(gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
         gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol)))
     return nullptr;
-  s7_pointer cobj = gf::cadr (gf::car (body));
+  gf::pointer cobj = gf::cadr (gf::car (body));
   return static_cast<VMClosure*>(gf::c_object_value (cobj));
 }
 
 // call_function : f (list arg) -> result or nullptr
 // A VM function pushes a frame and returns nullptr (the loop continues);
 // anything else is called with s7_call and its result returned.
-static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<s7_pointer>& args) {
+static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vector<gf::pointer>& args) {
   VMClosure* vc = vm_closure_of (sc, f);
   if (vc != nullptr) {
     VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
@@ -345,7 +345,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
       // Rest closure: bundle the raw call args into one list, matching what
       // s7's rest shell hands to vm-enter (frame_from_args expects the
       // single packed list in args[0]).
-      std::vector<s7_pointer> packed (1);
+      std::vector<gf::pointer> packed (1);
       packed[0] = build_args_list (sc, args);
       push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
     } else {
@@ -366,7 +366,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   // Integer fast paths for + and - (the benchmark loops); fall back to s7
   // for non-integer or overflow (s7_apply_function re-checks).
   if (gf::is_eq (f, g_add_fn)) {
-    s7_int sum = 0;
+    gf::int_ sum = 0;
     bool ok = !args.empty ();
     for (auto& a : args)
       if (!gf::is_integer (a)) { ok = false; break; }
@@ -381,7 +381,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
       for (auto& a : args)
         if (!gf::is_integer (a)) { ok = false; break; }
       if (ok) {
-        s7_int r = gf::integer (args[0]);
+        gf::int_ r = gf::integer (args[0]);
         for (size_t i = 1; i < args.size (); ++i) r -= gf::integer (args[i]);
         return gf::make_integer (sc, r);
       }
@@ -397,7 +397,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
       return (gf::integer (args[0]) < gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
     return gf::apply_function (sc, f, build_args_list (sc, args));
   }
-  s7_pointer args_list = build_args_list (sc, args);
+  gf::pointer args_list = build_args_list (sc, args);
   // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
   // the evaluator stack and returns sc->nil, leaving the real call for the
   // eval loop.  s7_apply_function therefore returns () for (apply ...) --
@@ -409,19 +409,19 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   // (apply proc a1 ... an) directly instead: splice the final list
   // argument into the argument list and call the procedure.
   if (gf::is_eq (f, g_apply_fn)) {
-    s7_pointer proc = gf::car (args_list);
-    s7_pointer rest = gf::cdr (args_list);            // (a1 ... an)
+    gf::pointer proc = gf::car (args_list);
+    gf::pointer rest = gf::cdr (args_list);            // (a1 ... an)
     if (!gf::is_pair (rest))                          // (apply proc) -- no args
       return gf::apply_function (sc, proc, gf::nil (sc));
-    s7_pointer p = rest;
+    gf::pointer p = rest;
     while (gf::is_pair (gf::cdr (p))) p = gf::cdr (p);  // p is the last cons (an)
-    s7_pointer last = gf::car (p);
-    s7_pointer spliced;
+    gf::pointer last = gf::car (p);
+    gf::pointer spliced;
     if (gf::is_null (sc, last)) {
       if (rest == p)                                 // only (proc ()) -> no args
         spliced = gf::nil (sc);
       else {                                         // drop the () tail
-        s7_pointer q = rest;
+        gf::pointer q = rest;
         while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
         gf::set_cdr (q, gf::nil (sc));
         spliced = rest;
@@ -430,7 +430,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
       if (rest == p)                                 // only (proc list) -> splice
         spliced = last;
       else {                                         // splice list after fixed args
-        s7_pointer q = rest;
+        gf::pointer q = rest;
         while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
         gf::set_cdr (q, last);
         spliced = rest;
@@ -441,7 +441,7 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
   return gf::apply_function (sc, f, args_list);
 }
 // run : target-depth -> result
-static s7_pointer run (s7_scheme* sc, size_t target_depth) {
+static gf::pointer run (gf::scheme* sc, size_t target_depth) {
   while (g_current_vm->frames.size () > target_depth) {
     VMFrame& fr = g_current_vm->frames.back ();
     const std::vector<Instr>& code = *fr.code;
@@ -450,7 +450,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       // that ends without (return)): same value-passing protocol as
       // Op::Return -- pop the frame's top-of-region value, hand it to the
       // enclosing frame's region, or return it from run at target depth.
-      s7_pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
+      gf::pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
       g_current_vm->frames.pop_back ();
       if (g_current_vm->frames.size () > target_depth) {
         push (v);
@@ -474,7 +474,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         push (gf::vector_ref (sc, fr.slots, in.b));
         break;
       case Op::SetLocal: {
-        s7_pointer v = pop ();
+        gf::pointer v = pop ();
         gf::vector_set (sc, fr.slots, in.b, v);
         break;
       }
@@ -482,8 +482,8 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         gf::vector_set (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c, pop ());
         break;
       case Op::StoreGlobal: {
-        s7_pointer v = pop ();
-        s7_pointer sym = in.a;
+        gf::pointer v = pop ();
+        gf::pointer sym = in.a;
         // Store into the program's resolution env (an inlet such as
         // the-expander-library) when one was given, else the rootlet.
         if (fr.global_env != nullptr && gf::is_let (fr.global_env))
@@ -508,32 +508,32 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // frame share the SAME vector, so set! on a captured variable is
         // visible in both directions with no snapshot/sync machinery.
         vc->captured = gf::cons (sc, fr.slots, fr.captured);
-        s7_pointer let = gf::inlet (sc,
+        gf::pointer let = gf::inlet (sc,
                                    gf::cons (sc,
                                             gf::cons (sc, captured_symbol, vc->captured),
                                             gf::nil (sc)));
-        s7_pointer cobj = gf::make_c_object_with_let (sc, VM_CLOSURE_TYPE, vc, let);
-        s7_pointer formals = ci.formals;
+        gf::pointer cobj = gf::make_c_object_with_let (sc, VM_CLOSURE_TYPE, vc, let);
+        gf::pointer formals = ci.formals;
         // Build the call formals as a proper list: (x y) -> (x y),
         // (a . rest) -> (a rest), a rest symbol -> (args).  The closure
         // body must be a proper list -- (vm-enter cobj a . rest) cannot be
         // evaluated -- and a rest arg arrives as one list value.
-        s7_pointer call_formals;
+        gf::pointer call_formals;
         if (gf::is_symbol (formals)) {
           call_formals = gf::list (sc, formals);
         } else if (!gf::is_proper_list (sc, formals)) {
-          s7_pointer acc = gf::nil (sc);
-          s7_pointer f = formals;
+          gf::pointer acc = gf::nil (sc);
+          gf::pointer f = formals;
           while (gf::is_pair (f)) { acc = gf::cons (sc, gf::car (f), acc); f = gf::cdr (f); }
           acc = gf::cons (sc, f, acc);
           call_formals = gf::reverse (sc, acc);
         } else {
           call_formals = formals;
         }
-        s7_pointer call = gf::cons (sc, vm_enter_symbol,
+        gf::pointer call = gf::cons (sc, vm_enter_symbol,
                                    gf::cons (sc, cobj, call_formals));
-        s7_pointer body = gf::list (sc, call);
-        s7_int arity = gf::is_symbol (formals) ? -1
+        gf::pointer body = gf::list (sc, call);
+        gf::int_ arity = gf::is_symbol (formals) ? -1
                                               : gf::list_length (sc, formals);
         push (gf::make_closure (sc, formals, body, arity));
         break;
@@ -541,16 +541,16 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::Call:
       case Op::TailCall: {
         int n = (int)in.b;
-        std::vector<s7_pointer> args (n);
+        std::vector<gf::pointer> args (n);
         for (int i = n - 1; i >= 0; --i) args[i] = pop ();
-        s7_pointer f = pop ();
+        gf::pointer f = pop ();
         // map/for-each are implemented in Scheme (base-functions.scm,
         // Guile boot-9 style) and resolve by name into the rootlet, so the
         // VM needs no special-casing for them here: a call to map calls the
         // Scheme closure, whose callback calls go through call_function
         // (handling VM-closure callbacks correctly).
         if (in.op == Op::Call) {
-          s7_pointer r = call_function (sc, f, args);
+          gf::pointer r = call_function (sc, f, args);
           if (r != nullptr) push (r);
         } else {
           // Tail call.  To a VM closure: replace the CURRENT frame in place
@@ -568,7 +568,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
             fr.captured = vc->captured;
             if (gf::is_symbol (ci.formals)) {
               // Rest closure: bundle the raw call args like call_function.
-              std::vector<s7_pointer> packed (1);
+              std::vector<gf::pointer> packed (1);
               packed[0] = build_args_list (sc, args);
               frame_from_args (sc, fr, ci, packed);
             } else {
@@ -576,7 +576,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
             }
             continue;  // loop re-reads fr (same object, but code/stack change)
           }
-          s7_pointer r = call_function (sc, f, args);
+          gf::pointer r = call_function (sc, f, args);
           g_current_vm->frames.pop_back ();
           if (g_current_vm->frames.size () > target_depth) {
             if (r != nullptr) push (r);
@@ -593,7 +593,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         break;
       }
       case Op::IfElse: {
-        s7_pointer t = pop ();
+        gf::pointer t = pop ();
         if (t == g_false)
           fr.pc = (size_t)in.b;
         break;
@@ -607,7 +607,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // End of the current frame: pop the frame's top-of-region value
         // (undefined if empty) and hand it to the enclosing frame's
         // region, or return it from run if none remains.
-        s7_pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
+        gf::pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
         g_current_vm->frames.pop_back ();
         if (g_current_vm->frames.size () > target_depth) {
           push (v);
@@ -620,14 +620,14 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         break;
       case Op::Values: {
         int n = (int)in.b;
-        s7_pointer args_list = gf::nil (sc);
+        gf::pointer args_list = gf::nil (sc);
         for (int i = 0; i < n; ++i) args_list = gf::cons (sc, pop (), args_list);
         push (gf::values (sc, args_list));
         break;
       }
       case Op::CallWithValues: {
-        s7_pointer c = pop ();
-        s7_pointer p = pop ();
+        gf::pointer c = pop ();
+        gf::pointer p = pop ();
         // Always delegate to s7's call-with-values.  Its splice happens on
         // the s7 evaluator stack, so a multi-value producer result (whether
         // a plain or VM closure) is correctly spliced into the consumer's
@@ -635,10 +635,10 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // the VM (not an s7 eval context) returns an object whose multiple
         // value flag is not reliably set, so gf::is_multiple_value would
         // miss it and the consumer would receive a single bogus argument.
-        s7_pointer cwv = g_call_with_values_fn;
+        gf::pointer cwv = g_call_with_values_fn;
         if (cwv == nullptr || cwv == gf::undefined (sc))
           cwv = gf::name_to_value (sc, "call-with-values");
-        s7_pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
+        gf::pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
         push (gf::apply_function (sc, cwv, arg_list));
         break;
       }
@@ -646,7 +646,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         g_current_vm->frames.pop_back ();
         return gf::error (sc, gf::make_symbol (sc, "vm-error"),
                          gf::list (sc, gf::make_string (sc, "unknown instruction"),
-                                  gf::make_integer (sc, (s7_int)in.op)));
+                                  gf::make_integer (sc, (gf::int_)in.op)));
     }
   }
   return gf::undefined (sc);
@@ -657,22 +657,22 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
 // Load a program, set its (global ...) resolution environment (an inlet
 // such as the-expander-library, or #f for the rootlet), run the top
 // instruction list, and return the value it leaves on the stack.
-static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
-  s7_pointer program = gf::car (args);
+static gf::pointer vm_load (gf::scheme* sc, gf::pointer args) {
+  gf::pointer program = gf::car (args);
   gf::gc_protect (sc, program);
-  s7_pointer global_env = gf::cadr (args);
+  gf::pointer global_env = gf::cadr (args);
   VMProgram* p = new VMProgram;
-  s7_pointer ctable = gf::cadr (program);
-  for (s7_pointer c = gf::cdr (ctable); gf::is_pair (c); c = gf::cdr (c)) {
-    s7_pointer code = gf::car (c);
+  gf::pointer ctable = gf::cadr (program);
+  for (gf::pointer c = gf::cdr (ctable); gf::is_pair (c); c = gf::cdr (c)) {
+    gf::pointer code = gf::car (c);
     VMCodeInfo ci;
     ci.nlocals = gf::integer (gf::cadr (code));
     ci.formals = gf::caddr (code);
     ci.instrs = decode_instrs (sc, gf::cadddr (code));
     p->codes.push_back (ci);
   }
-  s7_pointer top = gf::caddr (program);
-  s7_int top_nlocals = 0;
+  gf::pointer top = gf::caddr (program);
+  gf::int_ top_nlocals = 0;
   if (gf::is_pair (gf::cdr (top)) && gf::is_integer (gf::cadr (top))) {
     // (top <nlocals> instr...) -- slot count for top-level expressions
     // (a top-level let's bindings are captured by lambdas).
@@ -699,7 +699,7 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   g_current_vm->frames.push_back (f);
   bool saved_gc = gf::gc_enabled (sc);
   gf::gc_on (sc, false);
-  s7_pointer result = run (sc, 0);
+  gf::pointer result = run (sc, 0);
   gf::gc_on (sc, saved_gc);
   g_current_vm = g_vm_stack.back();
   g_vm_stack.pop_back();
@@ -708,8 +708,8 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
 
 // ---------------------------------------------------------------------------
 // vm-enter : (cobj . args) -> result
-static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
-  s7_pointer cobj = gf::car (args);
+static gf::pointer vm_enter (gf::scheme* sc, gf::pointer args) {
+  gf::pointer cobj = gf::car (args);
   VMClosure* vc = static_cast<VMClosure*>(gf::c_object_value (cobj));
   VM* target = vm_for_prog(vc->prog);
   g_vm_stack.push_back(g_current_vm);
@@ -717,11 +717,11 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
   bool saved_gc = gf::gc_enabled (sc);
   gf::gc_on (sc, false);
   size_t d0 = g_current_vm->frames.size ();
-  std::vector<s7_pointer> arg_list;
-  for (s7_pointer a = gf::cdr (args); gf::is_pair (a); a = gf::cdr (a))
+  std::vector<gf::pointer> arg_list;
+  for (gf::pointer a = gf::cdr (args); gf::is_pair (a); a = gf::cdr (a))
     arg_list.push_back (gf::car (a));
   push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, vc->global_env);
-  s7_pointer result = run (sc, d0);
+  gf::pointer result = run (sc, d0);
   gf::gc_on (sc, saved_gc);
   g_current_vm = g_vm_stack.back();
   g_vm_stack.pop_back();
@@ -730,7 +730,7 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
 
 // ---------------------------------------------------------------------------
 
-void glue_vm (s7_scheme* sc) {
+void glue_vm (gf::scheme* sc) {
   VM_CLOSURE_TYPE = gf::make_c_type (sc, "vm-closure");
   g_apply_fn = gf::global_value (sc, gf::make_symbol (sc, "apply"));
   g_car_fn   = gf::global_value (sc, gf::make_symbol (sc, "car"));
