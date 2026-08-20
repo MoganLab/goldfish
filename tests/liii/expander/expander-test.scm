@@ -8,13 +8,14 @@
 ;;
 ;; Loading: no manual loads here; bin/gf has already installed the expander.
 
+(import (liii check) (goldfish))
+
 (define (run prog)
   (eval (compile-program prog) (rootlet)))
 
 (define (run-raw prog)
   (compile-program prog))
 
-(import (liii check))
 (check-set-mode! 'report-failed)
 
 ;; =============================================================================
@@ -97,5 +98,14 @@
 ;; =============================================================================
 ;; expansion output shape
 ;; =============================================================================
-;; define desugars to letrec*
-(check (not (not (memq 'letrec* (run-raw '((define (f x) x)))))) => #t)
+;; top-level define lowers to (begin (define <name> <val>))
+(check (let ((r (run-raw '((define (f x) x)))))
+         (and (pair? r) (eq? (car r) 'begin)
+              (pair? (cadr r)) (eq? (car (cadr r)) 'define)))
+       => #t)
+(check (let ((r (cadr (run-raw '((define (f x) x))))))
+         (and (pair? (cddr r))
+              (eq? (car (caddr r)) 'lambda)))
+       => #t)
+
+(check-report)

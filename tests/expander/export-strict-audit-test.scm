@@ -1,4 +1,5 @@
 ;; 加载式导出审计：逐个 load-library!，报告"export has no binding"根因。
+(import (goldfish))
 (define (string-search-forward pat s)
   (let ((pc (string->list pat))
         (sc (string->list s)))
@@ -63,7 +64,8 @@
       (liii uuid) (liii vector)
       (scheme base) (scheme case-lambda) (scheme char) (scheme complex)
       (scheme cxr) (scheme eval) (scheme file) (scheme inexact)
-      (scheme process-context) (scheme read) (scheme time) (scheme write)
+      (scheme lazy) (scheme load) (scheme process-context) (scheme read)
+      (scheme repl) (scheme r5rs) (scheme time) (scheme write)
       (srfi sicp) (srfi srfi-113) (srfi srfi-117) (srfi srfi-125)
       (srfi srfi-128) (srfi srfi-132) (srfi srfi-133) (srfi srfi-13)
       (srfi srfi-151) (srfi srfi-158) (srfi srfi-165) (srfi srfi-16)

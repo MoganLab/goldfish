@@ -7,11 +7,11 @@
 ;; match 是 expander 的 syntax-rules 宏，测试须经 expander 编译
 ;; （compile-program）；expander 已由 bin/gf 在启动时加载。
 
+(import (liii check) (goldfish))
+(check-set-mode! 'report)
+
 (define (run prog)
   (eval (compile-program (cons '(import (liii match)) prog)) (rootlet)))
-
-(import (liii check))
-(check-set-mode! 'report)
 
 (check (run '((match 'yes ((or 'yes 'no) 'boolean) (_ 'unknown)))) => 'boolean)
 (check (run '((match 'no ((or 'yes 'no) 'boolean) (_ 'unknown)))) => 'boolean)

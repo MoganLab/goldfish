@@ -13,4 +13,12 @@
     (check (pair? (assoc "PATH" envs)) => #t)
   ) ;let
 ) ;when
+
+;; command-line：返回命令行参数列表
+(check (list? (command-line)) => #t)
+
+;; exit / emergency-exit：过程存在
+(check (procedure? exit) => #t)
+(check (procedure? emergency-exit) => #t)
+
 (check-report)

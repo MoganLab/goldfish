@@ -1,4 +1,5 @@
 (import (liii check)
+        (goldfish)
         (goldfish match))
 
 ;; SRFI-262 core subset: extensible pattern matching.

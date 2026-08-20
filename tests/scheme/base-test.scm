@@ -49,9 +49,12 @@
 ;;   number->string       - 数字转字符串
 ;;   string->number       - 字符串转数字
 ;;   square               - 平方
+;;   expt                 - 幂运算
 ;;   floor-quotient       - 向下取整的商
 ;;   floor-remainder      - 向下取整的余数
 ;;   floor/               - 向下取整除法（返回商和余数）
+;;   truncate-quotient    - 向零截断的商
+;;   truncate-remainder   - 向零截断的余数
 ;;   truncate/            - 截断除法（返回商和余数）
 ;; 二、类型判断 (R7RS 6.1 Equivalence predicates + 类型判断)
 ;;   number?              - 是否为数值
@@ -159,6 +162,7 @@
 ;;   bytevector-u8-ref    - 按索引取字节
 ;;   bytevector-u8-set!   - 按索引设置字节
 ;;   bytevector-copy      - 复制字节向量
+;;   bytevector-copy!     - 复制字节向量到另一字节向量
 ;;   bytevector-append    - 连接字节向量
 ;;   utf8->string         - UTF-8 转字符串
 ;;   string->utf8         - 字符串转 UTF-8
@@ -182,6 +186,8 @@
 ;;   lambda               - 创建过程
 ;;   define-record-type   - 定义记录类型
 ;;   begin                - 顺序执行
+;;   cond-expand          - 条件展开
+;;   make-parameter       - 创建参数对象
 ;; 十、等价判断 (R7RS 6.1 Equivalence predicates)
 ;;   eq?                  - 相同对象判断
 ;;   eqv?                 - 等价判断
@@ -196,8 +202,28 @@
 ;;   close-port           - 关闭端口
 ;;   read                 - 读取对象
 ;;   read-line            - 读取一行
+;;   read-char            - 读取一个字符
 ;;   write                - 写入对象
+;;   display              - 显示对象
+;;   write-char           - 写入一个字符
+;;   write-string         - 写入字符串
+;;   newline              - 输出换行
+;;   open-input-bytevector - 打开字节向量输入端口
+;;   open-output-bytevector - 打开字节向量输出端口
+;;   get-output-bytevector - 获取字节向量输出内容
+;;   peek-u8              - 预读一个字节
+;;   read-u8              - 读取一个字节
+;;   write-u8             - 写入一个字节
+;;   read-bytevector      - 读取至多 k 个字节
+;;   read-bytevector!     - 读取字节到现有字节向量
+;;   write-bytevector     - 写入字节向量
+;;   u8-ready?            - 是否已有可读字节
+;;   string-copy!         - 复制字符串到另一字符串
 ;; 十二、异常处理 (R7RS 6.11 Exceptions)
 ;;   raise                - 抛出异常
+;;   raise-continuable    - 抛出可续延异常
 ;;   guard                - 捕获并处理异常
+;;   with-exception-handler - 安装异常处理器
 ;;   error                - 报错
+;; 十三、其他 (R7RS 4.2 + 6.2)
+;;   features             - 可用特性列表

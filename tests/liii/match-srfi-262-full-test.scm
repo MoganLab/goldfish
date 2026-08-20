@@ -1,4 +1,5 @@
 (import (liii check)
+        (goldfish)
         (goldfish match))
 
 ;; SRFI-262 full feature coverage.

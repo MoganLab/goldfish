@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii path) (liii string) (liii list) (liii sort))
+(import (liii check) (liii os) (liii path) (liii string) (liii list) (liii sort) (goldfish))
 
 ;; 全库覆盖回归：遍历 goldfish/ 下全部 define-library 文件，
 ;; 逐个 load-library!（缓存优先路径），验证展开/重建/加载成功。

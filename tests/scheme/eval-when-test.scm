@@ -1,4 +1,5 @@
 (import (liii check))
+(import (goldfish))
 
 ;; eval-when : R7RS 7.1.3
 ;;   (eval-when (situation ...) expr ...), situation in expand/load/eval.

@@ -1,4 +1,5 @@
 (import (liii check)
+        (goldfish)
         (goldfish compiler)
         (srfi srfi-1))
 

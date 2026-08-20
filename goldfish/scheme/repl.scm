@@ -14,31 +14,16 @@
 ;; under the License.
 ;;
 
-;; (scheme process-context) library for R7RS
-;; stdmod.tex 导出清单：command-line emergency-exit exit
-;;   get-environment-variable get-environment-variables
+;; (scheme repl) library for R7RS
+;; stdmod.tex 导出清单：interaction-environment
+;;
+;; interaction-environment 由实现库 (goldfish) 提供
+;; （见 expander/kernel/primitives.scm 与 liii/host-abi.scm）。
 
-(define-library (scheme process-context)
+(define-library (scheme repl)
   (import (goldfish))
-  (export command-line
-    emergency-exit
-    exit
-    get-environment-variable
-    get-environment-variables
+  (export interaction-environment
   ) ;export
   (begin
-
-    (define (get-environment-variable key)
-      (g_get-environment-variable key)
-    ) ;define
-
-    (define (get-environment-variables)
-      (g_getenvs)
-    ) ;define
-
-    (define (command-line)
-      (g_command-line)
-    ) ;define
-
   ) ;begin
 ) ;define-library

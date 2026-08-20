@@ -1,4 +1,4 @@
-(import (liii check) (liii string))
+(import (liii check) (liii string) (goldfish))
 
 ;; Host ABI regression: the R7RS value surface (host-abi.scm) is loaded by the
 ;; seed into the rootlet; these names must resolve without any library import

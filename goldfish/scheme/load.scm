@@ -14,31 +14,15 @@
 ;; under the License.
 ;;
 
-;; (scheme process-context) library for R7RS
-;; stdmod.tex 导出清单：command-line emergency-exit exit
-;;   get-environment-variable get-environment-variables
+;; (scheme load) library for R7RS
+;; stdmod.tex 导出清单：load
+;;
+;; load 由运行时提供（见 expander/lib/install.scm %internal-names-registered!）。
 
-(define-library (scheme process-context)
+(define-library (scheme load)
   (import (goldfish))
-  (export command-line
-    emergency-exit
-    exit
-    get-environment-variable
-    get-environment-variables
+  (export load
   ) ;export
   (begin
-
-    (define (get-environment-variable key)
-      (g_get-environment-variable key)
-    ) ;define
-
-    (define (get-environment-variables)
-      (g_getenvs)
-    ) ;define
-
-    (define (command-line)
-      (g_command-line)
-    ) ;define
-
   ) ;begin
 ) ;define-library

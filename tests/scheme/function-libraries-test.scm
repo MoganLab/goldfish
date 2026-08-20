@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii path) (liii string))
+(import (liii check) (liii os) (liii path) (liii string) (goldfish))
 (check-set-mode! 'report-failed)
 
 (define (cleanup-function-libraries-fixture base-root)
