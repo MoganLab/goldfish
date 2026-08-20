@@ -29,6 +29,7 @@
     make-set! set!? set!-source set!-target set!-expr
     make-call call? call-source call-proc call-args
     make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name
+    make-lexical-ref lexical-ref? lexical-ref-source lexical-ref-depth lexical-ref-index
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
     $const $void $define $lambda $if $begin $let $letrec $set! $call $values

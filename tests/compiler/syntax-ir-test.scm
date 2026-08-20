@@ -1,6 +1,7 @@
 (import (liii check)
         (goldfish compiler ir)
         (goldfish compiler passes)
+        (goldfish compiler bytecode)
         (goldfish expander syntax-ir))
 
 ;; syntax->ir：展开后的 syntax 树直接转 IR record 树，binding-kind 保留。
@@ -27,21 +28,37 @@
                (primitive-ref-name (call-proc ir))))
        => '(#t map))
 
-;; ===== 3. 词法绑定保持 gensym =====
+;; ===== 3. 词法绑定 -> <lexical-ref>（depth/index 前置）=====
+;; (lambda (x) x)：body 引用 x，depth 0 index 0
 (check (let ((ir (expand->ir '(lambda (x) x))))
-         (list (lambda? ir)
-               (lambda-formals ir)
-               (lambda-body ir)))
-       => '(#t (x:1) (x:1)))
+         (let ((b (car (lambda-body ir))))
+           (list (lambda? ir)
+                 (lambda-formals ir)
+                 (lexical-ref? b)
+                 (lexical-ref-depth b)
+                 (lexical-ref-index b))))
+       => '(#t (x:1) #t 0 0))
 
-;; lambda 体内的 primitive 引用
+;; lambda 体内的 primitive 引用 + 词法参数
 (check (let ((ir (expand->ir '(lambda (x) (car x)))))
          (let ((b (car (lambda-body ir))))
            (list (call? b)
                  (primitive-ref? (call-proc b))
                  (primitive-ref-name (call-proc b))
-                 (call-args b))))
-       => '(#t #t car (x:1)))
+                 (let ((a (car (call-args b))))
+                   (list (lexical-ref? a)
+                         (lexical-ref-depth a)
+                         (lexical-ref-index a))))))
+       => '(#t #t car (#t 0 0)))
+
+;; 嵌套 lambda：内层引用外层变量 depth 1
+(check (let ((ir (expand->ir '(lambda (x) (lambda (y) x)))))
+         (let ((inner (car (lambda-body ir))))
+           (let ((b (car (lambda-body inner))))
+             (list (lexical-ref? b)
+                   (lexical-ref-depth b)
+                   (lexical-ref-index b)))))
+       => '(#t 1 0))
 
 ;; ===== 4. 复合结构 =====
 ;; if
@@ -96,4 +113,48 @@
                                   (initial-context))))
          (let ((out (compile-syntax-defs defs ctx (list constant-fold simplify-if))))
            (equal? out '((define f:0 (lambda () 3))))))
+       => #t)
+
+;; ===== 7. 词法寻址前置 =====
+;; 词法引用产 <lexical-ref> 节点，depth/index 在展开层计算
+(check (let ((ir (expand->ir '(lambda (x) x))))
+         (let ((b (car (lambda-body ir))))
+           (list (lexical-ref? b)
+                 (lexical-ref-depth b)
+                 (lexical-ref-index b))))
+       => '(#t 0 0))
+
+;; 双参数
+(check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
+         (let ((call (car (lambda-body ir))))
+           (list (lexical-ref-depth (call-proc call))
+                 (lexical-ref-index (call-proc call))
+                 (map (lambda (a)
+                        (list (lexical-ref-depth a) (lexical-ref-index a)))
+                      (call-args call)))))
+       => '(0 0 ((0 0) (0 1))))
+
+;; 嵌套 lambda：内层引用外层变量 -> depth 1
+(check (let ((ir (expand->ir '(lambda (x) (lambda (y) x)))))
+         (let ((inner (car (lambda-body ir))))
+           (let ((b (car (lambda-body inner))))
+             (list (lexical-ref? b)
+                   (lexical-ref-depth b)
+                   (lexical-ref-index b)))))
+       => '(#t 1 0))
+
+;; s7 eval 路径：compile-syntax-defs 输出词法保持符号（无 lexical-ref）
+(check (let*-values (((defs ctx) (expand-library-body
+                                  (list (wrap-expression '(define (sq x) (* x x))))
+                                  the-base-library
+                                  (initial-context))))
+         (let ((out (compile-syntax-defs defs ctx '())))
+           (equal? out '((define sq:0 (lambda (x:2) (* x:2 x:2)))))))
+       => #t)
+
+;; ===== 8. lexical-ref 字节码编译 =====
+;; syntax->ir 产 IR（含 lexical-ref）可被 to-bytecode 消费
+(check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
+         (let ((prog (to-bytecode (list ir))))
+           (and (pair? prog) (eq? (car prog) 'program))))
        => #t)

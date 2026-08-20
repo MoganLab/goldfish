@@ -31,6 +31,7 @@
     make-set! set!? set!-source set!-target set!-expr
     make-call call? call-source call-proc call-args
     make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name
+    make-lexical-ref lexical-ref? lexical-ref-source lexical-ref-depth lexical-ref-index
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
     $const $void $define $lambda $if $begin $let $letrec $set! $call $values
@@ -105,6 +106,13 @@
       primitive-ref?
       (source primitive-ref-source)
       (name primitive-ref-name))
+
+    (define-record-type <lexical-ref>
+      (make-lexical-ref source depth index)
+      lexical-ref?
+      (source lexical-ref-source)
+      (depth lexical-ref-depth)
+      (index lexical-ref-index))
 
     (define-record-type <call>
       (make-call source proc args)
@@ -214,6 +222,14 @@
           (datum->syntax stx
             (list '? 'primitive-ref?
                   (list '=> 'primitive-ref-name (cadr d)))))))
+
+    (define-syntax $lexical-ref
+      (lambda (stx)
+        (let ((d (syntax->datum stx)))
+          (datum->syntax stx
+            (list '? 'lexical-ref?
+                  (list '=> 'lexical-ref-depth (cadr d))
+                  (list '=> 'lexical-ref-index (caddr d)))))))
 
     (define-syntax $values
       (lambda (stx)
@@ -355,6 +371,9 @@
          (cons (ir->core (call-proc ir)) (map ir->core (call-args ir))))
         ((primitive-ref? ir)
          (primitive-ref-name ir))
+        ((lexical-ref? ir)
+         (error "ir->core: unresolved lexical-ref (depth/index not datable)"
+                (lexical-ref-depth ir) (lexical-ref-index ir)))
         ((or (symbol? ir) (not (pair? ir))) ir)
         (else (error "ir->core: unknown IR node" ir))))
 

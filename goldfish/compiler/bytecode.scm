@@ -138,6 +138,11 @@
     ;; stack for a trailing (return).
     (define (compile-tail s envs emit next-label next-slot add-code)
       (cond
+        ((lexical-ref? s)
+         (if (= (lexical-ref-depth s) 0)
+           (emit (list 'local (lexical-ref-index s)))
+           (emit (list 'ref (lexical-ref-depth s) (lexical-ref-index s))))
+         (emit '(return)))
         ((symbol? s)
          (compile-expr s envs emit next-label next-slot add-code)
          (emit '(return)))
@@ -207,6 +212,10 @@
       (cond
         ((primitive-ref? s)
          (emit (list 'global (primitive-ref-name s))))
+        ((lexical-ref? s)
+         (if (= (lexical-ref-depth s) 0)
+           (emit (list 'local (lexical-ref-index s)))
+           (emit (list 'ref (lexical-ref-depth s) (lexical-ref-index s)))))
         ((symbol? s)
          (let ((r (resolve-var envs s)))
            (cond
