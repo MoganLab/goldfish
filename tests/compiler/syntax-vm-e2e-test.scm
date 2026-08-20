@@ -252,3 +252,32 @@
 (check (eval (list (define-name (caddr irs-cwv))) (rootlet)) => 42)
 (check (eval (list (define-name (cadddr irs-cwv)) 5) (rootlet)) => 110)
 (check (eval (list (define-name (car (cddddr irs-cwv))) 3) (rootlet)) => 13)
+
+;; ===== 15. define-record-type（构造/访问/修改/类型区分/闭包捕获）=====
+(define irs-rec (vm-load-syntax
+                 '((define-record-type <point>
+                     (make-point x y)
+                     point?
+                     (x point-x set-point-x!)
+                     (y point-y))
+                   (define-record-type <circle>
+                     (make-circle r)
+                     circle?
+                     (r circle-r))
+                   (define (vm-rec-all)
+                     (let ((p (make-point 3 4))
+                           (c (make-circle 5)))
+                       (list (point? p) (circle? c)
+                             (point? c) (circle? p)
+                             (point-x p) (point-y p)
+                             (set-point-x! p 9) (point-x p)
+                             (circle-r c))))
+                   (define (vm-rec-map xs)
+                     (let ((b (make-point 0 0)))
+                       (map (lambda (x)
+                              (set-point-x! b (+ (point-x b) x))
+                              (point-x b))
+                            xs)
+                       (point-x b))))))
+(check (eval (list (define-name (list-ref irs-rec 12))) (rootlet)) => '(#t #t #f #f 3 4 9 9 5))
+(check (eval (list (define-name (list-ref irs-rec 13)) (list 'quote '(1 2 3))) (rootlet)) => 6)
