@@ -20,36 +20,18 @@
   ) ;import
 
   (begin
-
-    (define (fix-cache-base-dir)
-      (path->string (path-join (path-home) ".cache" "goldfish" "fix" (version)))
-    ) ;define
-
+    (load-source-file "cache/gfo.scm")
+    ;; unified gfo cache: ~/.cache/goldfish/ccache/fix/<version>/<path>.gfo with mtime/size stamp
     (define (fix-cache-path file-path)
-      (let* ((hash (sha256-by-file file-path))
-             (prefix (substring hash 0 2))
-             (rest (substring hash 2))
-             (base (fix-cache-base-dir))
-            ) ;
-        (path->string (path-join base prefix rest))
-      ) ;let*
+      (gfo-path (string-append "fix/" (version) "/" file-path))
     ) ;define
 
     (define (fix-cache-hit? file-path)
-      (let ((cache (fix-cache-path file-path)))
-        (file-exists? cache)
-      ) ;let
+      (gfo-valid? (fix-cache-path file-path) (gfo-stamp file-path))
     ) ;define
 
     (define (fix-cache-touch file-path)
-      (let* ((cache (fix-cache-path file-path))
-             (cache-dir (path->string (path-parent (path cache))))
-            ) ;
-        (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
-        ) ;unless
-        (path-touch (path cache))
-      ) ;let*
+      (gfo-write! (fix-cache-path file-path) (gfo-stamp file-path) 'fix)
     ) ;define
 
     (define (display-help)

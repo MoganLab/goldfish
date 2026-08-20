@@ -21,40 +21,20 @@
   (import (liii base) (liii path) (liii hashlib))
   (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
   (begin
-
-    ;; 缓存根目录：~/.cache/goldfish/fmt/<version>/
+    (load-source-file "cache/gfo.scm")
     (define (fmt-cache-base-dir)
-      (path->string (path-join (path-home) ".cache" "goldfish" "fmt" (version)))
-    ) ;define
-
-    ;; 缓存文件路径：<base-dir>/<前2位hash>/<剩余62位hash>
+      (string-append (gfo-dir) "/fmt/" (version)))
+    ;; 统一 gfo 缓存：~/.cache/goldfish/ccache/fmt/<version>/<path>.gfo
     (define (fmt-cache-path file-path)
-      (let* ((hash (sha256-by-file file-path))
-             (prefix (substring hash 0 2))
-             (rest (substring hash 2))
-             (base (fmt-cache-base-dir))
-            ) ;
-        (path->string (path-join base prefix rest))
-      ) ;let*
+      (gfo-path (string-append "fmt/" (version) "/" file-path))
     ) ;define
 
-    ;; 缓存命中：文件存在即认为已格式化。
     (define (fmt-cache-hit? file-path)
-      (let ((cache (fmt-cache-path file-path)))
-        (file-exists? cache)
-      ) ;let
+      (gfo-valid? (fmt-cache-path file-path) (gfo-stamp file-path))
     ) ;define
 
-    ;; 创建缓存条目（空文件）。按需创建两级父目录。
     (define (fmt-cache-touch file-path)
-      (let* ((cache (fmt-cache-path file-path))
-             (cache-dir (path->string (path-parent (path cache))))
-            ) ;
-        (unless (path-dir? (path cache-dir))
-          (g_mkdir cache-dir)
-        ) ;unless
-        (path-touch (path cache))
-      ) ;let*
+      (gfo-write! (fmt-cache-path file-path) (gfo-stamp file-path) 'fmt)
     ) ;define
 
   ) ;begin

@@ -21,4 +21,7 @@ if grep -R --include="*.scm" "s7_" goldfish/compiler/ goldfish/expander/syntax-i
 if grep -R --include="*.scm" "goldfish/cache\|goldfish/expander/lib" goldfish/compiler/ goldfish/expander/syntax-ir.scm 2>/dev/null | grep -q .; then echo "layer violation: L4 must not import cache/lib"; fail=1; fi
 if grep -R --include="*.h" --include="*.hpp" --include="*.cpp" "goldfish/" src/goldfish_vm.cpp 2>/dev/null | grep -v "^.*//" | grep -q .; then echo "layer violation: L5 vm must not include Scheme files"; fail=1; fi
 if grep -E '#include.*expander|#include.*compiler|\(import.*goldfish/compiler' src/goldfish.hpp 2>/dev/null | grep -q .; then echo "layer violation: L6 loader must not include expander/compiler"; fail=1; fi
+# L0 glue minimal: keep g_xxx primitives only, business logic in Scheme (liii/*)
+# current baseline 64, keep from growing; move new business to Scheme
+if [ "$(grep -c "glue_" src/goldfish.hpp 2>/dev/null)" -gt 64 ]; then echo "layer violation: L0 glue too many, move business logic to Scheme"; fail=1; fi
 exit $fail
