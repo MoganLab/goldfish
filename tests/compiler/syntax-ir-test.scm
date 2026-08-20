@@ -125,14 +125,15 @@
        => '(#t 0 0))
 
 ;; 双参数
+;; 双参数：list 是 primitive-ref，args 是词法引用
 (check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
          (let ((call (car (lambda-body ir))))
-           (list (lexical-ref-depth (call-proc call))
-                 (lexical-ref-index (call-proc call))
+           (list (primitive-ref? (call-proc call))
+                 (primitive-ref-name (call-proc call))
                  (map (lambda (a)
                         (list (lexical-ref-depth a) (lexical-ref-index a)))
                       (call-args call)))))
-       => '(0 0 ((0 0) (0 1))))
+       => '(#t list ((0 0) (0 1))))
 
 ;; 嵌套 lambda：内层引用外层变量 -> depth 1
 (check (let ((ir (expand->ir '(lambda (x) (lambda (y) x)))))
