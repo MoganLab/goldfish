@@ -205,6 +205,8 @@
     ;; Compile an expression whose value is pushed onto the stack.
     (define (compile-expr s envs emit next-label next-slot add-code)
       (cond
+        ((primitive-ref? s)
+         (emit (list 'global (primitive-ref-name s))))
         ((symbol? s)
          (let ((r (resolve-var envs s)))
            (cond

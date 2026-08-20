@@ -30,6 +30,7 @@
     make-letrec letrec? letrec-source letrec-bindings letrec-body
     make-set! set!? set!-source set!-target set!-expr
     make-call call? call-source call-proc call-args
+    make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
     $const $void $define $lambda $if $begin $let $letrec $set! $call $values
@@ -98,6 +99,12 @@
       (source set!-source)
       (target set!-target)
       (expr set!-expr))
+
+    (define-record-type <primitive-ref>
+      (make-primitive-ref source name)
+      primitive-ref?
+      (source primitive-ref-source)
+      (name primitive-ref-name))
 
     (define-record-type <call>
       (make-call source proc args)
@@ -200,6 +207,13 @@
             (list '? 'call?
                   (list '=> 'call-proc (cadr d))
                   (list '=> 'call-args (caddr d)))))))
+
+    (define-syntax $primitive-ref
+      (lambda (stx)
+        (let ((d (syntax->datum stx)))
+          (datum->syntax stx
+            (list '? 'primitive-ref?
+                  (list '=> 'primitive-ref-name (cadr d)))))))
 
     (define-syntax $values
       (lambda (stx)
@@ -339,6 +353,8 @@
                (ir->core (cwv-consumer ir))))
         ((call? ir)
          (cons (ir->core (call-proc ir)) (map ir->core (call-args ir))))
+        ((primitive-ref? ir)
+         (primitive-ref-name ir))
         ((or (symbol? ir) (not (pair? ir))) ir)
         (else (error "ir->core: unknown IR node" ir))))
 

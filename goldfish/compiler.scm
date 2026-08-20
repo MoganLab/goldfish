@@ -28,6 +28,7 @@
     make-letrec letrec? letrec-source letrec-bindings letrec-body
     make-set! set!? set!-source set!-target set!-expr
     make-call call? call-source call-proc call-args
+    make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
     $const $void $define $lambda $if $begin $let $letrec $set! $call $values
