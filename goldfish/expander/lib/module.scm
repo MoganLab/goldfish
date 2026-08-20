@@ -155,15 +155,12 @@
   (let ((level (optimization-level)))
     (if (zero? level) "" (string-append "-o" (number->string level)))))
 
-(define (library-cache-path lib-file)
+(define (library-gfo-path lib-file)
   (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
-                 (library-cache-level-suffix) ".libcache"))
+                 (library-cache-level-suffix) ".gfo"))
 
-;;; library-cache-meta-path : string -> string
-
-(define (library-cache-meta-path lib-file)
-  (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
-                 (library-cache-level-suffix) ".libmeta"))
+(define (library-cache-path lib-file) (library-gfo-path lib-file))
+(define (library-cache-meta-path lib-file) (library-gfo-path lib-file))
 
 ;;; parse-define-library-body : syntax -> (values exports body-stxs)
 ;;; Reuse parse-library-clauses (already defined below); body stxs are the
@@ -684,21 +681,19 @@
         (begin (vm-load prog #f) #t)
         (begin (for-each (lambda (d) (eval d (rootlet))) defs) #f)))))
 
-;;; library-cache-hit? : lib-file cache meta -> bool
-;;; A cache entry is usable only when the source file exists and the stored
-;;; stamp (mtime+size) matches the current source: the cache is a compiled
-;;; artifact of the source, never a substitute for it.  A cache whose
-;;; source is gone or modified is stale and forces re-expansion.
-
 (define (library-cache-hit? lib-file cache meta)
-  (and (file-exists? cache)
-       (file-exists? meta)
-       (let ((src (load-find-module-file lib-file)))
-         (and src
-              (let ((stamp (compile-file-stamp src)))
-                (let ((rec (call-with-input-file meta
-                             (lambda (p) (car (read-forms p))))))
-                  (and (pair? rec) (equal? (cdr rec) stamp))))))))
+  (let ((gfo-file cache))
+    (and (file-exists? gfo-file)
+         (let ((src (load-find-module-file lib-file)))
+           (and src
+                (let ((stamp (compile-file-stamp src)))
+                  (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
+                    (and (pair? rec) (eq? (car rec) 'gfo) (equal? (cadr rec) stamp)))))))))
+
+;; new single-arg helper
+(define (library-gfo-hit? lib-file)
+  (let ((gfo-file (library-gfo-path lib-file)))
+    (library-cache-hit? lib-file gfo-file gfo-file)))
 
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
@@ -742,15 +737,10 @@
         (set! *runtime-registered-libraries*
               (cons lib-name *runtime-registered-libraries*)))
       (let ((lib-file (library-file-name lib-name)))
-    ;; Cache-first: when the cache matches the source's mtime+size, load the
-    ;; cached rebuild; otherwise (stale, or no cache) load and compile the
-    ;; source file.  The cache is a compiled artifact of the source and is
-    ;; never used without a valid source match.
-    (let ((cache (library-cache-path lib-file))
-          (meta (library-cache-meta-path lib-file)))
+    (let ((gfo-file (library-gfo-path lib-file)))
       (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
                (auto-compile-enabled?)
-               (library-cache-hit? lib-file cache meta))
+               (library-cache-hit? lib-file gfo-file gfo-file))
         (dynamic-wind
           (lambda ()
             (set! *libraries-being-loaded*
@@ -759,8 +749,8 @@
             (load-library-guard
              lib-name
              (lambda ()
-               (let ((recs (call-with-input-file cache
-                             (lambda (p) (car (read-forms p))))))
+               (let ((recs (let ((rec (car (read-forms (open-input-file gfo-file)))))
+                             (caddr rec))))
                  (for-each restore-library-cache recs)
                  (load-library-file-cached! recs)))))
           (lambda ()
@@ -784,19 +774,31 @@
                             (auto-compile-enabled?)
                             (library-file-cacheable? forms))
                      (let* ((stamp (compile-file-stamp file))
-                            (cache (library-cache-path lib-file))
-                            (meta (library-cache-meta-path lib-file)))
-                       (if (compile-cache-valid? cache meta stamp)
-                         (let ((recs (call-with-input-file cache
-                                       (lambda (p) (car (read-forms p))))))
-                           (for-each restore-library-cache recs)
-                           (load-library-file-cached! recs))
-                          (let*-values (((recs ctx) (capture-file-cache forms)))
-                            (let ((recs (optimize-lib-cache-recs recs)))
-                              (compile-write-cache (compile-cache-dir)
-                                                   cache meta stamp
-                                                   recs)
-                              (load-library-file-cached! recs)))))
+                            (gfo-file (library-gfo-path lib-file)))
+                       (let*-values (((recs ctx) (capture-file-cache forms)))
+                         (let ((recs (optimize-lib-cache-recs recs)))
+                           (if (not (getenv "GOLDFISH_CACHE_READONLY"))
+                               (let ((old-length (*s7* 'print-length)))
+                                 (let-set! *s7* 'print-length 1000000)
+                                 (let ((dir (compile-cache-dir)))
+                                   (if (not (file-exists? dir)) (g_mkdir dir))
+                                   (let ((rel (substring gfo-file (string-length dir))))
+                                     (let ((n (string-length rel)))
+                                       (let loop ((i 1))
+                                         (let ((j (let lp ((k i)) (if (or (= k n) (char=? (string-ref rel k) #\/)) k (lp (+ k 1))))))
+                                           (when (< j n)
+                                             (let ((d (string-append dir (substring rel 0 j))))
+                                               (if (not (file-exists? d)) (g_mkdir d))
+                                               (loop (+ j 1)))))))))
+                                  (let ((tmp (string-append gfo-file ".tmp")))
+                                    (call-with-output-file tmp
+                                      (lambda (p)
+                                        (if (defined? 'write-roundtrip)
+                                            (write-roundtrip (list 'gfo stamp recs) p)
+                                            (write (list 'gfo stamp recs) p))))
+                                    (g_rename tmp gfo-file))
+                                 (let-set! *s7* 'print-length old-length)))
+                           (load-library-file-cached! recs))))
                      (begin
                        ;; Non-cacheable library: expand, optimize, then eval
                        ;; the whole program (the pipeline still applies).

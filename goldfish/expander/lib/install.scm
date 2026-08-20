@@ -18,13 +18,7 @@
 ;;; definition cache below) so warm starts rebuild transformers without
 ;;; re-running the expander.
 
-;;; ---------------------------------------------------------------------------
-;;; Cache substrate (used by both the macro-definition cache and the
-;;; Guile-style ccache below): the ccache directory, file stamps, and the
-;;; atomic cache writer.  Defined up front because the boot installs run
-;;; before the ccache section.
-
-(define (compile-cache-dir)
+(define (gfo-dir)
   (let ((xdg (getenv "XDG_CACHE_HOME")))
     (string-append
       (if (and xdg (not (string=? xdg "")))
@@ -32,20 +26,10 @@
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
       "/goldfish/ccache")))
 
-;;; cache-key-path : string -> string
-;;; Map a source path to a filesystem-safe, NESTED cache key: the key is
-;;; the source path itself (its directory structure mirrored under the
-;;; cache dir), so cache artifacts are identifiable by the source path
-;;; instead of an opaque hash.  "/" and "\" are treated as separators;
-;;; empty and "." components are dropped; ".." is mapped to "_dotdot"
-;;; (kept in the key to avoid collisions, but escaped so it cannot escape
-;;; the cache directory); a drive-letter prefix ("C:") and the leading
-;;; "/" of an absolute path are dropped.
-
-(define (cache-separator? c)
+(define (gfo-separator? c)
   (or (char=? c #\/) (char=? c #\\)))
 
-(define (cache-key-path path)
+(define (gfo-key path)
   (let ((n (string-length path)))
     (let loop ((i 0) (start 0) (parts '()))
       (if (> i n)
@@ -56,7 +40,7 @@
               (if (null? rest)
                 acc
                 (lp (string-append acc "/" (car rest)) (cdr rest))))))
-        (if (or (= i n) (cache-separator? (string-ref path i)))
+        (if (or (= i n) (gfo-separator? (string-ref path i)))
           (let ((comp (substring path start i)))
             (loop (+ i 1) (+ i 1)
                   (if (or (string=? comp "")
@@ -67,77 +51,56 @@
                     (cons (if (string=? comp "..") "_dotdot" comp) parts))))
           (loop (+ i 1) start parts))))))
 
-;;; ensure-cache-parent! : dir cache-file -> void
-;;; Create the cache root and every missing parent directory of cache-file
-;;; under it, so nested (pathname-keyed) cache files can be written.
+(define (gfo-path path)
+  (string-append (gfo-dir) "/" (gfo-key path) ".gfo"))
 
-(define (ensure-cache-parent! dir file)
-  (if (not (file-exists? dir))
-    (g_mkdir dir))
+(define (gfo-ensure-parent! dir file)
+  (if (not (file-exists? dir)) (g_mkdir dir))
   (let ((rel (substring file (string-length dir))))
     (let ((n (string-length rel)))
       (let loop ((i 1))
         (let ((j (let lp ((k i))
                    (if (or (= k n) (char=? (string-ref rel k) #\/))
-                     k
-                     (lp (+ k 1))))))
+                     k (lp (+ k 1))))))
           (when (< j n)
             (let ((d (string-append dir (substring rel 0 j))))
-              (if (not (file-exists? d))
-                (g_mkdir d))
+              (if (not (file-exists? d)) (g_mkdir d))
               (loop (+ j 1)))))))))
 
-(define (compile-file-stamp path)
+(define (gfo-stamp path)
   (list (g_path-getmtime path) (g_path-getsize path)))
 
-(define (compile-cache-valid? cache meta stamp)
-  (and (file-exists? cache)
-       (file-exists? meta)
-       (let ((rec (call-with-input-file meta
-                     (lambda (p) (car (read-forms p))))))
-         (and (pair? rec)
-              ;; Cache format version 2: install caches carry a structured
-              ;; bindings field (v1 lacked it); any older cache is stale.
-              ;; The meta datum is (cons (list 'compile-cache <ver>) stamp).
-              (pair? (car rec))
-              (equal? (cadr (car rec)) 2)
-              (equal? (cdr rec) stamp)))))
+(define (gfo-valid? gfo-file stamp)
+  (and (file-exists? gfo-file)
+       (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
+         (and (pair? rec) (eq? (car rec) 'gfo) (equal? (cadr rec) stamp)))))
 
-(define (compile-write-cache dir cache meta stamp sexp)
-  ;; Parallel test runs share this cache directory; concurrent writers
-  ;; racing on the same key (tmp+rename is only per-file atomic) can leave
-  ;; an inconsistent artifact behind.  GOLDFISH_CACHE_READONLY turns the
-  ;; cache into read-only so parallel children never write.
-  (if (getenv "GOLDFISH_CACHE_READONLY")
-    #f
-    (begin
-      (ensure-cache-parent! dir cache)
-  ;; s7's write truncates long lists at (*s7* 'print-length) (default 40);
-  ;; a cached expansion easily exceeds that, so raise it for the write and
-  ;; restore afterwards.  write-roundtrip (reader.scm) is used so the output
-  ;; round-trips through our R7RS reader: s7's write cannot read back symbols
-  ;; with special characters, and records lose their type identity.  It also
-  ;; emits #n=/#n# graph labels for shared/cyclic structure and refuses
-  ;; procedures (macro transformers), so a macro-defining library (which
-  ;; load filters via any-macro-def?) cannot silently produce a corrupt cache.
-  ;; The R7RS reader (and its write-roundtrip) loads AFTER this file (it
-  ;; needs the lib layer for syntax-rules); during the bootstrap the lib-layer
-  ;; caches are plain data (serialize-cache-sexp tagged lists), so s7's write
-  ;; is readable by both the tiny and the R7RS reader.
-  (let ((old-length (*s7* 'print-length)))
-    (let-set! *s7* 'print-length 1000000)
-    (let ((tmp (string-append cache ".tmp")))
-      (call-with-output-file tmp
-        (lambda (p)
-          (if (defined? 'write-roundtrip)
-            (write-roundtrip sexp p)
-            (write sexp p))))
-      (g_rename tmp cache))
-    (let-set! *s7* 'print-length old-length))
-  (let ((mtmp (string-append meta ".tmp")))
-    (call-with-output-file mtmp
-      (lambda (p) (write (cons (list 'compile-cache 2) stamp) p)))
-    (g_rename mtmp meta)))))
+(define (gfo-read gfo-file)
+  (let ((rec (car (read-forms (open-input-file gfo-file)))))
+    (caddr rec)))
+
+(define (gfo-write! gfo-file stamp payload)
+  (if (getenv "GOLDFISH_CACHE_READONLY") #f
+      (begin
+        (gfo-ensure-parent! (gfo-dir) gfo-file)
+        (let ((old-length (*s7* 'print-length)))
+          (let-set! *s7* 'print-length 1000000)
+          (let ((tmp (string-append gfo-file ".tmp")))
+            (call-with-output-file tmp
+              (lambda (p)
+                (if (defined? 'write-roundtrip) (write-roundtrip (list 'gfo stamp payload) p)
+                    (write (list 'gfo stamp payload) p))))
+            (g_rename tmp gfo-file))
+          (let-set! *s7* 'print-length old-length)))))
+
+;; compat aliases for previous API
+(define compile-cache-dir gfo-dir)
+(define cache-key-path gfo-key)
+(define cache-separator? gfo-separator?)
+(define ensure-cache-parent! gfo-ensure-parent!)
+(define compile-file-stamp gfo-stamp)
+(define (compile-cache-valid? cache meta stamp) (gfo-valid? cache stamp))
+(define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
 
 ;;; take-collected-macros : -> (list (name . sexp))
 ;;; Fetch and clear the kernel's collected macro records.  Tolerates an
@@ -344,19 +307,14 @@
         ((and (vector? y) (not (bytevector? y))) (vector-map loop y))
         (else y)))))
 
-;;; install-cache-path : path -> (values cache meta)
-(define (install-cache-path path)
-  (let ((key (cache-key-path path)))
-    (values (string-append (compile-cache-dir) "/" key ".mac")
-            (string-append (compile-cache-dir) "/" key ".macmeta"))))
+;;; install-cache-path : path -> gfo-file (unified .gfo)
+(define (install-cache-path path) (gfo-path path))
 
 (define (install-cache-valid? path stamp)
-  (let-values (((cache meta) (install-cache-path path)))
-    (compile-cache-valid? cache meta stamp)))
+  (gfo-valid? (install-cache-path path) stamp))
 
 (define (install-cache-read path)
-  (let-values (((cache meta) (install-cache-path path)))
-    (car (read-forms (open-input-file cache)))))
+  (gfo-read (install-cache-path path)))
 
 ;;; compile-transformer-to-program : sexp -> datum/#f
 ;;; Compile a transformer's lowered form to a serialized VM bytecode
@@ -399,20 +357,20 @@
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings)
-  (let-values (((cache meta) (install-cache-path path)))
-    (let ((rec (list 'macro-cache 2
-                     (cons 'defs (map serialize-cache-sexp defs))
-                     (cons 'macros
-                           (map (lambda (r)
-                                  (cons (car r)
-                                        (or (compile-transformer-to-program (cdr r))
-                                            (serialize-cache-sexp (cdr r)))))
-                                macros))
-                     (cons 'bindings
-                           (map (lambda (e)
-                                  (cons (car e) (serialize-cache-sexp (cdr e))))
-                                bindings)))))
-      (compile-write-cache (compile-cache-dir) cache meta stamp rec))))
+  (let ((gfo-file (install-cache-path path))
+        (rec (list 'macro-cache 2
+                   (cons 'defs (map serialize-cache-sexp defs))
+                   (cons 'macros
+                         (map (lambda (r)
+                                (cons (car r)
+                                      (or (compile-transformer-to-program (cdr r))
+                                          (serialize-cache-sexp (cdr r)))))
+                              macros))
+                   (cons 'bindings
+                         (map (lambda (e)
+                                (cons (car e) (serialize-cache-sexp (cdr e))))
+                              bindings)))))
+    (gfo-write! gfo-file stamp rec)))
 
 ;;; install-depurify-binding : datum exp-library -> binding/#f
 ;;; Rebuild a value binding from its cached description, mirroring
@@ -534,10 +492,11 @@
 ;;; the boot installs.)
 
 (define (compile-cache-hot? path stamp)
-  (let ((base (string-append (compile-cache-dir) "/" (cache-key-path path))))
-    (compile-cache-valid? (string-append base ".scm")
-                          (string-append base ".meta")
-                          stamp)))
+  (let* ((key (cache-key-path path))
+         (level (ccache-level))
+         (key (if (zero? level) key (string-append key "-o" (number->string level))))
+         (gfo-file (string-append (compile-cache-dir) "/" key ".gfo")))
+    (gfo-valid? gfo-file stamp)))
 
 ;; ccache-level : -> integer
 ;; The optimization level to bake into compile-file-cached artifacts.
@@ -556,20 +515,11 @@
 (define (compile-file-cached path)
   (let* ((key (cache-key-path path))
          (level (ccache-level))
-         ;; The artifact is cached ALREADY OPTIMIZED for the active level,
-         ;; so loading it again does not re-run the passes.  The level is
-         ;; part of the key: level 0 keeps the plain key (unoptimized,
-         ;; compatible with earlier caches), levels 1+ use a -oN suffix.
-         (key (if (zero? level)
-                key
-                (string-append key "-o" (number->string level))))
-         (dir (compile-cache-dir))
-         (cache (string-append dir "/" key ".scm"))
-         (meta (string-append dir "/" key ".meta"))
+         (key (if (zero? level) key (string-append key "-o" (number->string level))))
+         (gfo-file (string-append (compile-cache-dir) "/" key ".gfo"))
          (stamp (compile-file-stamp path)))
-    (if (compile-cache-valid? cache meta stamp)
-      (call-with-input-file cache
-        (lambda (p) (car (read-forms p))))
+    (if (gfo-valid? gfo-file stamp)
+      (gfo-read gfo-file)
       (let* ((sexp (compile-file-into path (program-library)))
              (opt (if (zero? level)
                     sexp
@@ -577,12 +527,18 @@
                       (if (procedure? f)
                         (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
                         sexp)))))
-        (compile-write-cache dir cache meta stamp opt)
+        (gfo-write! gfo-file stamp opt)
         opt))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
-;; The library cache (load-library! path) reuses the ccache dir, stamp,
-;; validity check, and atomic writer, so expose them for lib/module.scm.
+(module-define! the-expander-library 'gfo-dir gfo-dir)
+(module-define! the-expander-library 'gfo-key gfo-key)
+(module-define! the-expander-library 'gfo-path gfo-path)
+(module-define! the-expander-library 'gfo-stamp gfo-stamp)
+(module-define! the-expander-library 'gfo-valid? gfo-valid?)
+(module-define! the-expander-library 'gfo-read gfo-read)
+(module-define! the-expander-library 'gfo-write! gfo-write!)
+;; legacy aliases for previous API
 (module-define! the-expander-library 'compile-cache-dir compile-cache-dir)
 (module-define! the-expander-library 'cache-key-path cache-key-path)
 (module-define! the-expander-library 'ensure-cache-parent! ensure-cache-parent!)
@@ -656,7 +612,7 @@
       compile-file compile-file-into compile-file-cached
       compile-cache-dir cache-key-path ensure-cache-parent!
       compile-file-stamp compile-cache-valid? compile-write-cache
-      compile-cache-disabled? cacheable-expansion? collect-module-refs
+      cacheable-expansion? collect-module-refs
       install-cache-path install-cache-save! install-cache-load!
       ;; kernel entry points (expand-time API not already exported)
       expand expand-stx expand-library-body expand-library-finalize

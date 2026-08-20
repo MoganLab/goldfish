@@ -150,68 +150,87 @@
 ;;; free kernel identifiers below resolve from the rootlet once the
 ;;; artifact has loaded).
 ;;;
-;;; The lowered defs are deterministic, so they are cached (like the
-;;; lib-layer ccache): re-expanding the reader through the expander costs
-;;; ~250ms per warm start, and warm starts should only pay the cheap
-;;; eval+rootlet-copy.  The cache key is the source path; validity is the
-;;; source's mtime+size AND the artifact's (the kernel version determines
-;;; the lowering), so rebuilding the artifact invalidates it.  Format (one
-;;; datum per line, written with s7's write + raised print-length, read by
-;;; the bootstrap tiny reader):
-;;;   (le-cache 1)
-;;;   ((name . gensym) ...)       ; toplevel value bindings for the rootlet
-;;;   (begin <lowered def> ...)   ; eval'd in the-expander-library
-
-(define (le-cache-dir)
+(define (gfo-dir)
   (let ((xdg (getenv "XDG_CACHE_HOME")))
     (string-append
       (if (and xdg (not (string=? xdg ""))) xdg
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
       "/goldfish/ccache")))
 
-(define (le-cache-key path)
-  (let ((chars (string->list path)))
-    (list->string
-      (map (lambda (c)
-             (cond ((char=? c #\/) #\_)
-                   ((char=? c #\.) #\_)
-                   (else c)))
-           chars))))
+(define (gfo-separator? c)
+  (or (char=? c #\/) (char=? c #\\)))
 
-(define (le-cache-files path)
-  (let ((dir (le-cache-dir)))
-    (values (string-append dir "/" (le-cache-key path) ".le")
-            (string-append dir "/" (le-cache-key path) ".le.meta"))))
+(define (gfo-key path)
+  (let ((n (string-length path)))
+    (let loop ((i 0) (start 0) (parts '()))
+      (if (> i n)
+        (if (null? parts)
+          "root"
+          (let ((rev (reverse parts)))
+            (let lp ((acc (car rev)) (rest (cdr rev)))
+              (if (null? rest)
+                acc
+                (lp (string-append acc "/" (car rest)) (cdr rest))))))
+        (if (or (= i n) (gfo-separator? (string-ref path i)))
+          (let ((comp (substring path start i)))
+            (loop (+ i 1) (+ i 1)
+                  (if (or (string=? comp "")
+                          (string=? comp ".")
+                          (and (> (string-length comp) 0)
+                               (char=? (string-ref comp (- (string-length comp) 1)) #\:)))
+                    parts
+                    (cons (if (string=? comp "..") "_dotdot" comp) parts))))
+          (loop (+ i 1) start parts))))))
 
-(define (le-cache-valid? cache meta stamp)
-  (and (file-exists? cache)
-       (file-exists? meta)
-       (let ((rec (call-with-input-file meta
+(define (gfo-path path)
+  (string-append (gfo-dir) "/" (gfo-key path) ".gfo"))
+
+(define (gfo-ensure-parent! dir file)
+  (if (not (file-exists? dir)) (g_mkdir dir))
+  (let ((rel (substring file (string-length dir))))
+    (let ((n (string-length rel)))
+      (let loop ((i 1))
+        (let ((j (let lp ((k i))
+                   (if (or (= k n) (char=? (string-ref rel k) #\/))
+                     k
+                     (lp (+ k 1))))))
+          (when (< j n)
+            (let ((d (string-append dir (substring rel 0 j))))
+              (if (not (file-exists? d)) (g_mkdir d))
+              (loop (+ j 1)))))))))
+
+(define (gfo-valid? gfo-file stamp)
+  (and (file-exists? gfo-file)
+       (let ((rec (call-with-input-file gfo-file
                      (lambda (p) (car (read-forms p))))))
          (and (pair? rec)
-              (pair? (car rec))
-              (equal? (car rec) '(le-cache 1))
-              (equal? (cdr rec) stamp)))))
+              (eq? (car rec) 'gfo)
+              (equal? (cadr rec) stamp)))))
 
-(define (le-write-cache cache meta stamp bindings sexp)
+(define (gfo-read gfo-file)
+  (let ((rec (car (read-forms (open-input-file gfo-file)))))
+    (caddr rec)))
+
+(define (gfo-write! gfo-file stamp payload)
   (if (getenv "GOLDFISH_CACHE_READONLY")
     #f
-    (let ((dir (le-cache-dir)))
-      (if (not (file-exists? dir)) (g_mkdir dir))
+    (let ((dir (gfo-dir)))
+      (gfo-ensure-parent! dir gfo-file)
       (let ((old-length (*s7* 'print-length)))
         (let-set! *s7* 'print-length 1000000)
-        (let ((tmp (string-append cache ".tmp")))
+        (let ((tmp (string-append gfo-file ".tmp")))
           (call-with-output-file tmp
-            (lambda (p)
-              (write '(le-cache 1) p) (newline p)
-              (write bindings p) (newline p)
-              (write sexp p)))
-          (g_rename tmp cache))
-        (let ((mtmp (string-append meta ".tmp")))
-          (call-with-output-file mtmp
-            (lambda (p) (write (cons '(le-cache 1) stamp) p)))
-          (g_rename mtmp meta))
+            (lambda (p) (write (list 'gfo stamp payload) p)))
+          (g_rename tmp gfo-file))
         (let-set! *s7* 'print-length old-length)))))
+
+;; compat aliases for old le-cache names
+(define le-cache-dir gfo-dir)
+(define le-cache-key gfo-key)
+(define (le-cache-files path) (values (gfo-path path) (gfo-path path)))
+(define le-cache-valid? (lambda (cache meta stamp) (gfo-valid? cache stamp)))
+(define (le-write-cache cache meta stamp bindings sexp)
+  (gfo-write! cache stamp (list bindings sexp)))
 
 (define (le-rootlet-copy bindings)
   (for-each (lambda (e)
@@ -231,18 +250,18 @@
                          "expander/kernel-combined.scm"))
            (stamp (list (g_path-getmtime file) (g_path-getsize file)
                         (g_path-getmtime artifact) (g_path-getsize artifact))))
-      (call-with-values (lambda () (le-cache-files path))
-        (lambda (cache meta)
+      (let ((gfo-file (gfo-path path)))
         ;; bootstrap-0 (GOLDFISH_BOOTSTRAP): the s7-eval'd kernel is the
         ;; running expander, so the cache (keyed on the COMMITTED artifact's
         ;; stamp) may hold lowering from a different kernel version -- a
         ;; pristine rebuild must re-expand.
         (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                 (le-cache-valid? cache meta stamp))
-          (let ((rec (call-with-input-file cache
-                        (lambda (p) (read-forms p)))))
-            (eval (caddr rec) the-expander-library)
-            (le-rootlet-copy (cadr rec)))
+                 (gfo-valid? gfo-file stamp))
+          (let* ((payload (gfo-read gfo-file))
+                 (bindings (car payload))
+                 (sexp (cadr payload)))
+            (eval sexp the-expander-library)
+            (le-rootlet-copy bindings))
           (let* ((forms (read-forms (open-input-file file)))
                  (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
                             forms)))
@@ -258,9 +277,8 @@
                                    (filter (lambda (e)
                                              (toplevel-binding? (cdr e)))
                                            (exp-library-bindings lib)))))
-                (le-write-cache cache meta stamp bindings
-                                (cons 'begin (map lower defs)))
-                (le-rootlet-copy bindings)))))))))))
+                (gfo-write! gfo-file stamp (list bindings (cons 'begin (map lower defs))))
+                (le-rootlet-copy bindings))))))))))
 
 ;;; ---------------------------------------------------------------------------
 ;;; Host macros for bootstrap-0 only.  Under GOLDFISH_BOOTSTRAP or a

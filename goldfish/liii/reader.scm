@@ -770,23 +770,6 @@
        (loop (car x) (loop (cdr x) acc)))
       (else acc))))
 
-(define (compile-cache-disabled? path stamp)
-  (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
-    (and (file-exists? f)
-         (equal? (call-with-input-file f
-                   (lambda (p) (car (read-forms p))))
-                 stamp))))
-
-(define (compile-cache-disable! path stamp)
-  ;; In read-only cache mode a transient failure in one parallel child must
-  ;; not poison the shared cache with a .disabled marker.
-  (if (getenv "GOLDFISH_CACHE_READONLY")
-    #f
-    (let ((f (string-append (compile-cache-dir) "/" (cache-key-path path) ".disabled")))
-      (ensure-cache-parent! (compile-cache-dir) f)
-      (call-with-output-file f
-        (lambda (p) (write stamp p))))))
-
 ;;; formals->names : formals -> (list symbol)
 ;;; Turn a lambda formals list into the list of parameter names, handling
 ;;; dotted formals (lambda (x . rest) ...).
@@ -922,34 +905,23 @@
                 ;; eval-when (expand) side effects run once, at compile time).
                 ;; A non-cacheable artifact (unresolved free symbols) or an
                 ;; artifact that fails to eval falls back to per-form loading.
-                (let* ((stamp (list (g_path-getmtime path) (g_path-getsize path))))
-                  (if (compile-cache-disabled? path stamp)
-                    (load-forms-sequentially forms)
-                    (let ((sexp (compile-file-cached path)))
-                      (if (cacheable-expansion? sexp)
-                        (catch #t
-                          (lambda ()
-                            (for-each (lambda (lib)
-                                        (if (not (runtime-registered? lib))
-                                          (load-library! lib)))
-                                      (collect-module-refs sexp))
-                            ;; Evaluate the compiled artifact in
-                            ;; the-expander-library, not the rootlet: the
-                            ;; lowered defs reference library bindings by
-                            ;; gensym (e.g. load-library!:40), which only
-                            ;; resolve in the-expander-library.  The rootlet
-                            ;; eval silently "worked" only when the first
-                            ;; unbound gensym threw and the fallback
-                            ;; re-loaded per-form; user code that caught the
-                            ;; error (like this suite's per-library catch)
-                            ;; ran with all library references broken.
-                            (eval sexp the-expander-library))
-                          (lambda (type info)
-                            (compile-cache-disable! path stamp)
-                            (load-forms-sequentially forms)))
-                        (begin
-                          (compile-cache-disable! path stamp)
-                          (load-forms-sequentially forms))))))
+                (let ((sexp (compile-file-cached path)))
+                  (if (cacheable-expansion? sexp)
+                    (catch #t
+                      (lambda ()
+                        (for-each (lambda (lib)
+                                    (if (not (runtime-registered? lib))
+                                      (load-library! lib)))
+                                  (collect-module-refs sexp))
+                        ;; Evaluate the compiled artifact in
+                        ;; the-expander-library, not the rootlet: the
+                        ;; lowered defs reference library bindings by
+                        ;; gensym (e.g. load-library!:40), which only
+                        ;; resolve in the-expander-library.
+                        (eval sexp the-expander-library))
+                      (lambda (type info)
+                        (load-forms-sequentially forms)))
+                    (load-forms-sequentially forms)))
                 (load-forms-sequentially forms))))))
       (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
