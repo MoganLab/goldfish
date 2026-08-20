@@ -92,29 +92,33 @@
           (eof-object? v)))
 
     ;; try-fold-call-ir : proc (list ir) -> ir or #f
-    ;; Fold (proc arg...) when proc is a symbol in *foldable-functions*,
-    ;; every argument is a constant (a const record or a self-evaluating
-    ;; atom), and the application succeeds.  Returns a const IR node, or
-    ;; #f to leave the call untouched.
+    ;; Fold (proc arg...) when proc is a primitive reference whose name is
+    ;; in *foldable-functions*, every argument is a constant (a const
+    ;; record or a self-evaluating atom), and the application succeeds.
+    ;; Returns a const IR node, or #f to leave the call untouched.  A
+    ;; plain symbol proc (a non-primitive name, e.g. a toplevel function)
+    ;; is never folded.
     (define (try-fold-call-ir proc args)
-      (and (symbol? proc)
-           (let ((entry (assq proc *foldable-functions*)))
-             (and entry
-                  (let loop ((as args) (values '()))
-                    (if (null? as)
-                      (catch
-                        #t
-                        (lambda ()
-                          (let ((result (apply (cdr entry) (reverse values))))
-                            (make-const #f result)))
-                        (lambda (tag . info) #f))
-                      (let ((a (car as)))
-                        (cond
-                          ((const? a)
-                           (loop (cdr as) (cons (const-value a) values)))
-                          ((self-evaluating? a)
-                           (loop (cdr as) (cons a values)))
-                          (else #f)))))))))
+      (and (or (symbol? proc) (primitive-ref? proc))
+           (let ((p (if (primitive-ref? proc) (primitive-ref-name proc) proc)))
+             (and (symbol? p)
+                  (let ((entry (assq p *foldable-functions*)))
+                    (and entry
+                         (let loop ((as args) (values '()))
+                           (if (null? as)
+                             (catch
+                               #t
+                               (lambda ()
+                                 (let ((result (apply (cdr entry) (reverse values))))
+                                   (make-const #f result)))
+                               (lambda (tag . info) #f))
+                             (let ((a (car as)))
+                               (cond
+                                 ((const? a)
+                                  (loop (cdr as) (cons (const-value a) values)))
+                                 ((self-evaluating? a)
+                                  (loop (cdr as) (cons a values)))
+                                 (else #f)))))))))))
 
     ;; constant-fold : ir -> ir
     ;; Fold primitive calls whose arguments are all constants, recursively
@@ -152,6 +156,8 @@
                (as (map constant-fold args)))
            (or (try-fold-call-ir p as)
                (make-call #f p as))))
+        (($primitive-ref name)
+         (make-primitive-ref #f name))
         ((? symbol? s) s)
         (_ ir)))
 

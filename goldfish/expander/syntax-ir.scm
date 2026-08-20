@@ -28,9 +28,11 @@
 (define-library (goldfish expander syntax-ir)
   (import (scheme base)
           (goldfish)
-          (goldfish compiler ir))
+          (goldfish compiler ir)
+          (goldfish compiler passes))
   (export syntax->ir
-    expand->ir)
+    expand->ir
+    compile-syntax-defs)
   (begin
 
     ;; binding-kind : binding -> symbol/#f
@@ -146,4 +148,14 @@
     ;; Expand a datum expression in the base library and convert it to IR.
     (define (expand->ir expr)
       (let*-values (((stx ctx) (expand-expr (wrap-expression expr) (initial-context))))
-        (syntax->ir stx ctx)))))
+        (syntax->ir stx ctx)))
+
+    ;; compile-syntax-defs : (list syntax) context (list pass) -> (list sexp)
+    ;; The library-def pipeline: expander output (syntax defs) -> IR ->
+    ;; passes -> lowered core sexp.  This replaces the
+    ;; (lower defs) -> (map core->ir defs) boundary in compile-defs-on-load:
+    ;; syntax->ir keeps the binding-kind information (primitive references
+    ;; stay <primitive-ref> nodes through the passes), which core->ir cannot
+    ;; (it sees only lowered bare symbols).
+    (define (compile-syntax-defs defs ctx passes)
+      (map (lambda (d) (ir->core (run-passes (syntax->ir d ctx) passes))) defs))))

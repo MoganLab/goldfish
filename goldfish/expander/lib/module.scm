@@ -488,17 +488,67 @@
        (let ((n (string->number v)))
          (if (and n (integer? n) (>= n 0)) n 1))))))
 
-;;; compile-defs-on-load : (list sexp) -> (list sexp)
+;;; compile-defs-on-load : (list syntax) context -> (list sexp)
 ;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
 ;;; compiler library is loaded lazily (it is a normal load-path library, not
 ;;; part of the expander core), so its import must not disturb the bootstrap
 ;;; of the library machinery itself.  A failure to load the compiler leaves
-;;; the defs untouched (compilation is an optimization, never a correctness
-;;; requirement).  The active pass set grows with the optimization level;
-;;; level 2+ currently enables the same core passes as level 1 and reserves
-;;; the slot for future passes (tail-call marking, inlining).
+;;; the defs lowered-but-unoptimized (compilation is an optimization, never
+;;; a correctness requirement).  The active pass set grows with the
+;;; optimization level; level 2+ currently enables the same core passes as
+;;; level 1 and reserves the slot for future passes (tail-call marking,
+;;; inlining).
+;;;
+;;; The defs are UN-LOWERED syntax objects (the expand-library-body
+;;; output), so the pipeline runs via syntax->ir: primitive references
+;;; stay <primitive-ref> nodes through the passes.  The cached-file path
+;;; stores already-lowered sexp and is handled by optimize-lib-cache-recs
+;;; via compile-defs (core->ir on lowered sexp).
 
-(define (compile-defs-on-load defs)
+(define (compile-defs-on-load defs ctx)
+  (let ((level (optimization-level)))
+    (if (zero? level)
+      (map lower defs)
+      (let ((compiler
+             (catch
+               #t
+               (lambda ()
+                 (if (not (runtime-registered? '(goldfish compiler)))
+                   (load-library! '(goldfish compiler)))
+                 (lookup-module '(goldfish compiler)))
+               (lambda (tag . info) #f))))
+        (if (module? compiler)
+          (let ((constant-fold (module-ref compiler 'constant-fold))
+                (simplify-if (module-ref compiler 'simplify-if))
+                (compile-syntax-defs
+                 (catch
+                   #t
+                   (lambda ()
+                     (if (not (runtime-registered? '(goldfish expander syntax-ir)))
+                       (load-library! '(goldfish expander syntax-ir)))
+                     (module-ref (lookup-module '(goldfish expander syntax-ir))
+                                 'compile-syntax-defs))
+                   (lambda (tag . info) #f))))
+            (if (and (procedure? compile-syntax-defs))
+              (if (>= level 2)
+                ;; level 2 adds the inliner (copy propagation + beta
+                ;; reduction).  Order: fold constants first (inliner relies
+                ;; on folded literals propagating), then inline, then clean
+                ;; up the ifs the inliner's pruning leaves behind.
+                (let ((inline (module-ref compiler 'inline)))
+                  (compile-syntax-defs defs ctx (list constant-fold inline simplify-if)))
+                (compile-syntax-defs defs ctx (list constant-fold simplify-if)))
+              (map lower defs)))
+          (map lower defs))))))
+
+;;; compile-defs-cached : (list sexp) -> (list sexp)
+;;; Apply the compiler pipeline to ALREADY-LOWERED defs (the cached-file
+;;; path: capture-library-cache stores lowered sexp, since syntax objects
+;;; cannot be serialized).  This mirrors compile-defs-on-load but cannot
+;;; use syntax->ir -- the binding-kind information is gone after lower --
+;;; so it falls back to core->ir on the lowered sexp.
+
+(define (compile-defs-cached defs)
   (let ((level (optimization-level)))
     (if (zero? level)
       defs
@@ -515,13 +565,9 @@
                 (constant-fold (module-ref compiler 'constant-fold))
                 (simplify-if (module-ref compiler 'simplify-if)))
             (if (>= level 2)
-              ;; level 2 adds the inliner (copy propagation + beta
-              ;; reduction).  Order: fold constants first (inliner relies
-              ;; on folded literals propagating), then inline, then clean
-              ;; up the ifs the inliner's pruning leaves behind.
               (let ((inline (module-ref compiler 'inline)))
-                (compile-defs (map lower defs) (list constant-fold inline simplify-if)))
-              (compile-defs (map lower defs) (list constant-fold simplify-if))))
+                (compile-defs defs (list constant-fold inline simplify-if)))
+              (compile-defs defs (list constant-fold simplify-if))))
           defs)))))
 
 ;;; optimize-on-load : sexp -> sexp
@@ -574,12 +620,12 @@
          (let ((defs (lib-cache-defs rec)))
            (if (null? defs)
              rec
-             (list (lib-cache-name rec)
+              (list (lib-cache-name rec)
                    (lib-cache-exports rec)
                    (lib-cache-imports rec)
                    (lib-cache-bindings rec)
                    (lib-cache-macros rec)
-                   (compile-defs-on-load defs)))))
+                   (compile-defs-cached defs)))))
        recs))
 
 ;;; load-library-file-cached! : (list lib-cache) -> void

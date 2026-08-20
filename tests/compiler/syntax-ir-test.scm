@@ -1,5 +1,6 @@
 (import (liii check)
         (goldfish compiler ir)
+        (goldfish compiler passes)
         (goldfish expander syntax-ir))
 
 ;; syntax->ir：展开后的 syntax 树直接转 IR record 树，binding-kind 保留。
@@ -53,11 +54,10 @@
 
 ;; 无 else 的 if：expand-expr 以 (if #f #f) 补全 else，因此 if-else
 ;; 是空 if 树（与 core->ir 的 #f 语义等价：都求值为未指定值）
-(check (let ((ir (expand->ir '(if x (f)))))
-         (let ((e (if-else ir)))
-           (list (if? ir)
-                 (and (if? e) (eq? (if-test e) #f)))))
-       => '(#t #t))
+(check (if? (if-else (expand->ir '(if x (f)))))
+       => #t)
+(check (eq? (if-test (if-else (expand->ir '(if x (f))))) #f)
+       => #t)
 
 ;; quote -> const
 (check (let ((ir (expand->ir '(quote foo))))
@@ -78,3 +78,22 @@
                (symbol? (call-proc ir))
                (call-proc ir)))
        => '(#t #t apply1))
+
+;; ===== 6. compile-syntax-defs：库定义管线 =====
+;; syntax defs -> IR -> passes -> lowered sexp，与 core->ir 路径输出等价。
+(check (let*-values (((defs ctx) (expand-library-body
+                                  (list (wrap-expression '(define (f) (+ 1 2))))
+                                  the-base-library
+                                  (initial-context))))
+         (equal? (compile-syntax-defs defs ctx (list constant-fold simplify-if))
+                 (compile-defs (map lower defs) (list constant-fold simplify-if))))
+       => #t)
+
+;; primitive-ref 参与常量折叠：(+ 1 2) -> 3
+(check (let*-values (((defs ctx) (expand-library-body
+                                  (list (wrap-expression '(define (f) (+ 1 2))))
+                                  the-base-library
+                                  (initial-context))))
+         (let ((out (compile-syntax-defs defs ctx (list constant-fold simplify-if))))
+           (equal? out '((define f:0 (lambda () 3))))))
+       => #t)

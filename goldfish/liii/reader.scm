@@ -1038,19 +1038,22 @@
         r
         (eval-defs (cdr defs) env)))))
 
-;; optimize-expansion-defs : (list sexp) -> (list sexp)
+;; optimize-expansion-defs : (list syntax) context -> (list sexp)
 ;; Apply the active compiler pipeline to expanded defs (the per-form /
-;; REPL path, mirroring the cached paths).  compile-defs-on-load lives in
-;; the (goldfish) library, not in this early seed's rootlet, so it
-;; is fetched via module-ref; unavailable or failing, defs pass through
-;; unchanged (optimization is optional).
+;; REPL path, mirroring the cached paths).  The defs are un-lowered syntax
+;; objects, so the pipeline runs via syntax->ir, which keeps the
+;; binding-kind information (primitive references) that core->ir cannot
+;; see on lowered sexp.  compile-defs-on-load lives in the (goldfish)
+;; library, not in this early seed's rootlet, so it is fetched via
+;; module-ref; unavailable or failing, defs pass through unchanged
+;; (optimization is optional).
 
-(define (optimize-expansion-defs defs)
+(define (optimize-expansion-defs defs ctx)
   (let ((f (catch
              #t
              (lambda () (module-ref the-expander-library 'compile-defs-on-load))
              (lambda (type info) #f))))
-    (if (procedure? f) (f defs) defs)))
+    (if (procedure? f) (f defs ctx) (map lower defs))))
 
 (define *eval-ctx* #f)
 
@@ -1071,11 +1074,11 @@
       (let*-values (((name binding) (resolve-identifier head ctx))
                     ((defs ctx1) ((binding-value binding) stx ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (optimize-expansion-defs defs) the-expander-library))
+        (eval-defs (optimize-expansion-defs defs ctx1) the-expander-library))
       (let*-values (((defs ctx1)
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (optimize-expansion-defs defs) the-expander-library)))))
+        (eval-defs (optimize-expansion-defs defs ctx1) the-expander-library)))))
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void
