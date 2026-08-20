@@ -45,19 +45,21 @@
 
     (define-syntax deindent-impl
       (lambda (stx)
-        (let* ((str (cadr (syntax->datum stx))))
-          (datum->syntax stx
-            (let* ((lines (let loop ((start 1) (result '()))
-                            (let ((nl-pos (string-index str #\newline start (string-length str))))
-                              (if (not nl-pos)
-                                (reverse (cons (substring str start (string-length str)) result))
-                                (loop (+ nl-pos 1) (cons (substring str start nl-pos) result))))))
-                   (closing-line (last lines))
-                   (ref-indent (string-count closing-line #\space))
-                   (content-lines (drop-right lines 1)))
-              (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
-                             content-lines)
-                "\n"))))))
+        (syntax-case stx ()
+          ((_ s)
+           (let ((str (syntax->datum #'s)))
+             (datum->syntax stx
+               (let* ((lines (let loop ((start 1) (result '()))
+                               (let ((nl-pos (string-index str #\newline start (string-length str))))
+                                 (if (not nl-pos)
+                                   (reverse (cons (substring str start (string-length str)) result))
+                                   (loop (+ nl-pos 1) (cons (substring str start nl-pos) result))))))
+                      (closing-line (last lines))
+                      (ref-indent (string-count closing-line #\space))
+                      (content-lines (drop-right lines 1)))
+                 (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
+                                content-lines)
+                   "\n"))))))))
 
     (define-syntax deindent
       (syntax-rules ()
