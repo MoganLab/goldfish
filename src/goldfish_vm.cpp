@@ -415,7 +415,13 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // slots on a frame with no fixed nlocals; grow on demand.
         if ((s7_int)fr.slots.size () <= in.b)
           fr.slots.resize (in.b + 1, gf::nil (sc));
-        push (fr.slots[in.b]);
+        // If this frame is captured (shared_slots materialized), read from
+        // the shared snapshot so a captured closure's set-ref is visible
+        // here, and vice versa: Local and Ref must alias the same storage.
+        if (fr.shared_slots != nullptr)
+          push (gf::vector_ref (sc, fr.shared_slots, in.b));
+        else
+          push (fr.slots[in.b]);
         break;
       }
       case Op::SetLocal: {
@@ -506,20 +512,27 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         std::vector<s7_pointer> args (n);
         for (int i = n - 1; i >= 0; --i) args[i] = pop ();
         s7_pointer f = pop ();
-        s7_pointer r;
         // map/for-each are implemented in Scheme (base-functions.scm,
         // Guile boot-9 style) and resolve by name into the rootlet, so the
         // VM needs no special-casing for them here: a call to map calls the
         // Scheme closure, whose callback calls go through call_function
         // (handling VM-closure callbacks correctly).
         if (in.op == Op::TailCall) {
+          // A tail call pops the current frame; the loop's `fr` reference
+          // to it is then dangling, so after the call we MUST restart the
+          // loop (continue) to re-bind fr to g_frames.back() -- including
+          // the case where call_function pushed a new VM frame (r ==
+          // nullptr, execution continues in it) and where it returned a
+          // value (the frame below is now current).
           std::vector<s7_pointer> slots = std::move (fr.slots);
           g_frames.pop_back ();
-          r = call_function (sc, f, args, &slots);
+          s7_pointer r = call_function (sc, f, args, &slots);
+          if (r != nullptr) push (r);
+          continue;
         } else {
-          r = call_function (sc, f, args, nullptr);
+          s7_pointer r = call_function (sc, f, args, nullptr);
+          if (r != nullptr) push (r);
         }
-        if (r != nullptr) push (r);
         break;
       }
       case Op::IfElse: {
