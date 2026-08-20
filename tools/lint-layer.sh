@@ -17,4 +17,6 @@ k_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel.scm 2>/d
 l_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel/load-kernel.scm 2>/dev/null | tr -d '"')
 if [ "$k_includes" != "$l_includes" ]; then echo "layer violation: load-kernel.scm out of sync with kernel.scm"; echo "kernel.scm: $k_includes"; echo "load-kernel.scm: $l_includes"; fail=1; fi
 if grep -R "goldfish/compiler" goldfish/expander/lib --include="*.scm" goldfish/liii/reader.scm goldfish/cache --include="*.scm" 2>/dev/null | grep -v "^.*:.*;;;" | grep -q .; then echo "layer violation: L3 must not import compiler"; fail=1; fi
+if grep -R --include="*.scm" "s7_" goldfish/compiler/ goldfish/expander/syntax-ir.scm 2>/dev/null | grep -q .; then echo "layer violation: L4 must be pure no s7"; fail=1; fi
+if grep -R --include="*.scm" "goldfish/cache\|goldfish/expander/lib" goldfish/compiler/ goldfish/expander/syntax-ir.scm 2>/dev/null | grep -q .; then echo "layer violation: L4 must not import cache/lib"; fail=1; fi
 exit $fail

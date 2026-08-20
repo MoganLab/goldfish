@@ -173,6 +173,9 @@ target ("goldfish") do
     end
 
     add_installfiles("$(projectdir)/goldfish/(cache/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(expander/syntax-ir.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
