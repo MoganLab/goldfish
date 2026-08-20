@@ -199,3 +199,25 @@
     (check ((eval (define-name (cadr irs)) the-expander-library)
             (list 'a 'b 'c 'd) 2)
            => '(c d))))
+
+;; ===== 12. set! 捕获闭包（回归：帧双存储 + 全局栈下溢）=====
+;; 闭包对捕获的 let 变量做 set!，且闭包被多次调用（非尾 + 尾调用）。
+;; 曾触发 VM 全局栈下溢 → double free。
+(define irs-set (vm-load-syntax
+                 '((define (vm-setbox)
+                     (let ((acc '()))
+                       (let ((f (lambda (x) (set! acc (cons x acc)))))
+                         (f 1)
+                         (f 2))
+                       (reverse acc))))))
+(check (eval (list (define-name (car irs-set))) (rootlet)) => '(1 2))
+
+;; ===== 13. 嵌套 VM→VM 调用（非尾 + 尾调用 + 闭包捕获）=====
+;; outer 内定义 VM 闭包 inner，先非尾调用（嵌套 VM 帧，返回值要传回
+;; 外层栈区），再尾调用（原地替换帧）。曾因栈/帧管理错误结果错乱。
+(define irs-nest (vm-load-syntax
+                  '((define (vm-outer x)
+                      (let ((inner (lambda (y) (+ y 1))))
+                        (let ((r (inner x)))
+                          (inner r)))))))
+(check (eval (list (define-name (car irs-nest)) 5) (rootlet)) => 7)

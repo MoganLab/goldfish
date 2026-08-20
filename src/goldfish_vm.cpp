@@ -13,12 +13,20 @@
 // (set-ref d i) index that chain, (local i) / (set-local i) the current
 // frame, (global name) / (store-global name) the global environment.
 //
+// Value passing: one global value stack, each frame owns the region
+// [stack_base, g_stack.size()).  When a frame ends (a (return) or
+// running off the end of its instruction list) its top-of-region value
+// is popped and handed to the enclosing frame's region -- or returned by
+// run() if no enclosing frame remains below the target depth.  A
+// non-tail call to a VM closure pushes a new frame whose region starts
+// at the current stack top; a tail call to a VM closure replaces the
+// current frame in place (no frame churn, no dangling references).
+//
 // The instruction stream is pre-decoded at load time into C++ structs
 // (enum opcode + fixed operands, jump targets resolved to indices), so
 // the interpreter loop is a plain switch -- no s7 list walking at run
-// time.  Calls between VM functions (including tail calls) are plain
-// jumps.  GC is disabled while the VM runs (its stacks hold s7_pointer
-// values in C++ vectors the conservative GC cannot see); captured slot
+// time.  GC is disabled while the VM runs (its stacks hold s7_pointer
+// values in C++ containers the conservative GC cannot see); captured slot
 // vectors live in the c_object's let, which the GC marks, so closures
 // survive across runs.  The loaded program datum is gc-protected for
 // the lifetime of the process (one program at a time, v1).
@@ -117,12 +125,16 @@ struct VMFrame {
   VMProgram* prog = nullptr;  // the program this frame executes (not the
                               // global g_program, which a nested vm-load can
                               // replace mid-execution)
-  std::vector<s7_pointer> slots;  // frame slots (fast Local/SetLocal)
-  s7_pointer shared_slots = nullptr;  // lazy s7-vector snapshot for closure
-                                      // capture; SetLocal keeps it in sync so
-                                      // letrec closures see post-init values
-  s7_pointer captured; // list of enclosing slot vectors (outermost first)
+  s7_pointer slots = nullptr;  // frame slots: an s7 vector (the SINGLE
+                               // storage -- Local/SetLocal and closure
+                               // capture (Ref/SetRef) alias this same
+                               // vector, so set! on a captured variable is
+                               // visible both sides with no sync)
+  s7_pointer captured = nullptr;  // list of enclosing slot vectors
+                                  // (outermost first)
   s7_pointer global_env = nullptr;  // (global ...) resolution env of this frame
+  size_t stack_base = 0;  // g_stack index delimiting this frame's value
+                          // region; the frame owns [stack_base, g_stack.size())
 };
 
 static VMProgram* g_program = nullptr;
@@ -230,33 +242,6 @@ static std::vector<Instr> decode_instrs (s7_scheme* sc, s7_pointer instr_list) {
 // ---------------------------------------------------------------------------
 // Frames.
 
-static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std::vector<s7_pointer>& args, s7_pointer captured, s7_pointer global_env, std::vector<s7_pointer>* reuse) {
-  VMCodeInfo& ci = prog->codes[code_idx];
-  VMFrame f;
-  f.pc = 0;
-  f.code = &ci.instrs;
-  f.prog = prog;
-  f.global_env = global_env;
-  if (reuse != nullptr) f.slots = std::move (*reuse);
-  f.slots.assign (ci.nlocals, gf::nil (sc));
-  for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
-    f.slots[i] = args[i];
-  f.shared_slots = nullptr;
-  f.captured = captured;
-  g_frames.push_back (f);
-}
-
-// snapshot_slots : frame -> s7 vector
-// The frame's slot vector SHARED (lazily materialized on first capture):
-// letrec init closures must see the bindings their siblings set after they
-// are built, so SetLocal keeps shared_slots in sync with the frame slots.
-static s7_pointer snapshot_slots (s7_scheme* sc, const VMFrame& fr) {
-  return fr.shared_slots;
-}
-
-// ---------------------------------------------------------------------------
-// The interpreter loop.
-
 // build_args_list : args -> s7 list
 static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>& args) {
   return (args.empty ())
@@ -265,41 +250,93 @@ static s7_pointer build_args_list (s7_scheme* sc, const std::vector<s7_pointer>&
                              const_cast<s7_pointer*>(args.data ()));
 }
 
-// call_function : f (list arg) reuse-slots -> result or nullptr
-// A VM function pushes a frame and returns nullptr (the loop continues);
-// anything else is called with s7_call and its result returned.  reuse
-// (optional) lets a tail call hand its slot array to the new frame.
-static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<s7_pointer>& args, std::vector<s7_pointer>* reuse) {
-  if (gf::is_closure (f)) {
-    s7_pointer body = gf::closure_body (sc, f);
-    if (gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
-        gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol)) {
-      s7_pointer cobj = gf::cadr (gf::car (body));
-      VMClosure* vc = static_cast<VMClosure*>(gf::c_object_value (cobj));
-      VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
-      if (gf::is_symbol (ci.formals)) {
-        // Rest closure: pack ALL arguments into a single list argument.
-        std::vector<s7_pointer> packed (1);
-        packed[0] = build_args_list (sc, args);
-        push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env, reuse);
-      } else if (!gf::is_proper_list (sc, ci.formals)) {
-        // Dotted formals (fixed . rest): fixed params then one list for the rest.
-        size_t fixed = 0;
-        for (s7_pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
-          ++fixed;
-        std::vector<s7_pointer> packed (fixed + 1);
-        for (size_t i = 0; i < fixed; ++i)
-          packed[i] = (i < args.size ()) ? args[i] : gf::nil (sc);
-        std::vector<s7_pointer> rest_args;
-        for (size_t i = fixed; i < args.size (); ++i)
-          rest_args.push_back (args[i]);
-        packed[fixed] = build_args_list (sc, rest_args);
-        push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env, reuse);
-      } else {
-        push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env, reuse);
-      }
-      return nullptr;
+// frame_from_args : f slots vector args -> void
+// Fill a frame's slot vector from the call args, honoring the callee's
+// formals shape: proper list, rest symbol, or dotted (fixed . rest).
+// Also sets stack_base to the current stack top.
+static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
+                             const std::vector<s7_pointer>& args) {
+  f.slots = gf::make_vector (sc, (s7_int)ci.nlocals);
+  if (gf::is_symbol (ci.formals)) {
+    // Rest closure: the whole arg list is one slot.  The caller hands over
+    // a SINGLE packed list argument (s7's rest closure bundles the args
+    // into one list before vm-enter; call_function packs for VM-side calls),
+    // so the slot is args[0], not a re-packaging of args.
+    if (ci.nlocals > 0) {
+      if (args.empty ())
+        gf::vector_set (sc, f.slots, 0, gf::nil (sc));
+      else
+        gf::vector_set (sc, f.slots, 0, args[0]);
     }
+  } else if (!gf::is_proper_list (sc, ci.formals)) {
+    // Dotted formals (fixed . rest).
+    size_t fixed = 0;
+    for (s7_pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
+      ++fixed;
+    for (size_t i = 0; i < fixed && i < args.size (); ++i)
+      gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
+    std::vector<s7_pointer> rest_args;
+    for (size_t i = fixed; i < args.size (); ++i)
+      rest_args.push_back (args[i]);
+    if ((s7_int)fixed < ci.nlocals)
+      gf::vector_set (sc, f.slots, (s7_int)fixed, build_args_list (sc, rest_args));
+  } else {
+    for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
+      gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
+  }
+  f.stack_base = g_stack.size ();
+}
+
+// push_frame : prog code-index args captured global-env -> void
+// Push a new frame.  Its slot storage is an s7 vector (the single storage
+// for this frame: Local/SetLocal and any closure's Ref/SetRef alias it).
+// The frame's value region starts at the current stack top, so a nested
+// VM call neither reads nor disturbs the caller's region.
+static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std::vector<s7_pointer>& args, s7_pointer captured, s7_pointer global_env) {
+  VMCodeInfo& ci = prog->codes[code_idx];
+  VMFrame f;
+  f.pc = 0;
+  f.code = &ci.instrs;
+  f.prog = prog;
+  f.global_env = global_env;
+  f.captured = captured;
+  frame_from_args (sc, f, ci, args);
+  g_frames.push_back (f);
+}
+
+// ---------------------------------------------------------------------------
+// The interpreter loop.
+
+// vm_closure_of : f -> VMClosure* or nullptr
+// Recognizes an s7 closure whose body is (vm-enter <cobj> ...).
+static VMClosure* vm_closure_of (s7_scheme* sc, s7_pointer f) {
+  if (!gf::is_closure (f)) return nullptr;
+  s7_pointer body = gf::closure_body (sc, f);
+  if (!(gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
+        gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol)))
+    return nullptr;
+  s7_pointer cobj = gf::cadr (gf::car (body));
+  return static_cast<VMClosure*>(gf::c_object_value (cobj));
+}
+
+// call_function : f (list arg) -> result or nullptr
+// A VM function pushes a frame and returns nullptr (the loop continues);
+// anything else is called with s7_call and its result returned.
+static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<s7_pointer>& args) {
+  VMClosure* vc = vm_closure_of (sc, f);
+  if (vc != nullptr) {
+    VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
+    if (gf::is_symbol (ci.formals)) {
+      // Rest closure: bundle the raw call args into one list, matching what
+      // s7's rest shell hands to vm-enter (frame_from_args expects the
+      // single packed list in args[0]).
+      std::vector<s7_pointer> packed (1);
+      packed[0] = build_args_list (sc, args);
+      push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
+    } else {
+      push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env);
+    }
+    return nullptr;
   }
   // Fast path: inline the hot primitives so a VM call does not pay for
   // building an arg list and entering s7's evaluator.  The procedure
@@ -394,9 +431,17 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
     VMFrame& fr = g_frames.back ();
     const std::vector<Instr>& code = *fr.code;
     if (fr.pc >= code.size ()) {
+      // Frame ran off its instruction list (e.g. a top-level expression
+      // that ends without (return)): same value-passing protocol as
+      // Op::Return -- pop the frame's top-of-region value, hand it to the
+      // enclosing frame's region, or return it from run at target depth.
+      s7_pointer v = (g_stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
       g_frames.pop_back ();
-      if (g_frames.size () <= target_depth) break;
-      continue;
+      if (g_frames.size () > target_depth) {
+        push (v);
+        continue;
+      }
+      return v;
     }
     const Instr& in = code[fr.pc++];
 
@@ -410,37 +455,12 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::Ref:
         push (gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c));
         break;
-      case Op::Local: {
-        // Top-level expressions (e.g. a library registration let) allocate
-        // slots on a frame with no fixed nlocals; grow on demand.
-        if ((s7_int)fr.slots.size () <= in.b)
-          fr.slots.resize (in.b + 1, gf::nil (sc));
-        // If this frame is captured (shared_slots materialized), read from
-        // the shared snapshot so a captured closure's set-ref is visible
-        // here, and vice versa: Local and Ref must alias the same storage.
-        if (fr.shared_slots != nullptr)
-          push (gf::vector_ref (sc, fr.shared_slots, in.b));
-        else
-          push (fr.slots[in.b]);
+      case Op::Local:
+        push (gf::vector_ref (sc, fr.slots, in.b));
         break;
-      }
       case Op::SetLocal: {
         s7_pointer v = pop ();
-        if ((s7_int)fr.slots.size () <= in.b)
-          fr.slots.resize (in.b + 1, gf::nil (sc));
-        fr.slots[in.b] = v;
-        if (fr.shared_slots != nullptr) {
-          if (gf::vector_length (fr.shared_slots) < (s7_int)fr.slots.size ()) {
-            // Frame grew on demand (top-level expression): rebuild the
-            // shared snapshot so closure captures see all slots.
-            s7_pointer ns = gf::make_vector (sc, (s7_int)fr.slots.size ());
-            for (size_t k = 0; k < fr.slots.size (); ++k)
-              gf::vector_set (sc, ns, (s7_int)k, fr.slots[k]);
-            fr.shared_slots = ns;
-          } else {
-            gf::vector_set (sc, fr.shared_slots, in.b, v);
-          }
-        }
+        gf::vector_set (sc, fr.slots, in.b, v);
         break;
       }
       case Op::SetRef:
@@ -449,7 +469,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::StoreGlobal: {
         s7_pointer v = pop ();
         s7_pointer sym = in.a;
-              // Store into the program's resolution env (an inlet such as
+        // Store into the program's resolution env (an inlet such as
         // the-expander-library) when one was given, else the rootlet.
         if (fr.global_env != nullptr && gf::is_let (fr.global_env))
           gf::varlet (sc, fr.global_env, sym, v);
@@ -469,13 +489,10 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         vc->prog = fr.prog;
         vc->code_idx = i;
         vc->global_env = fr.global_env;
-        // Materialize the shared slot snapshot on first capture.
-        if (fr.shared_slots == nullptr) {
-          fr.shared_slots = gf::make_vector (sc, (s7_int)fr.slots.size ());
-          for (size_t k = 0; k < fr.slots.size (); ++k)
-            gf::vector_set (sc, fr.shared_slots, (s7_int)k, fr.slots[k]);
-        }
-        vc->captured = gf::cons (sc, fr.shared_slots, fr.captured);
+        // Capture the frame's slot vector directly: the closure and the
+        // frame share the SAME vector, so set! on a captured variable is
+        // visible in both directions with no snapshot/sync machinery.
+        vc->captured = gf::cons (sc, fr.slots, fr.captured);
         s7_pointer let = gf::inlet (sc,
                                    gf::cons (sc,
                                             gf::cons (sc, captured_symbol, vc->captured),
@@ -517,21 +534,46 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // VM needs no special-casing for them here: a call to map calls the
         // Scheme closure, whose callback calls go through call_function
         // (handling VM-closure callbacks correctly).
-        if (in.op == Op::TailCall) {
-          // A tail call pops the current frame; the loop's `fr` reference
-          // to it is then dangling, so after the call we MUST restart the
-          // loop (continue) to re-bind fr to g_frames.back() -- including
-          // the case where call_function pushed a new VM frame (r ==
-          // nullptr, execution continues in it) and where it returned a
-          // value (the frame below is now current).
-          std::vector<s7_pointer> slots = std::move (fr.slots);
-          g_frames.pop_back ();
-          s7_pointer r = call_function (sc, f, args, &slots);
+        if (in.op == Op::Call) {
+          s7_pointer r = call_function (sc, f, args);
           if (r != nullptr) push (r);
-          continue;
         } else {
-          s7_pointer r = call_function (sc, f, args, nullptr);
-          if (r != nullptr) push (r);
+          // Tail call.  To a VM closure: replace the CURRENT frame in place
+          // (true tail call -- no frame churn, no dangling fr reference).
+          // To anything else: the current frame ends; hand the callee's
+          // value to the enclosing frame's region (or return it from run at
+          // the target depth).
+          VMClosure* vc = vm_closure_of (sc, f);
+          if (vc != nullptr) {
+            VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
+            fr.pc = 0;
+            fr.code = &ci.instrs;
+            fr.prog = vc->prog;
+            fr.global_env = vc->global_env;
+            fr.captured = vc->captured;
+            if (gf::is_symbol (ci.formals)) {
+              // Rest closure: bundle the raw call args like call_function.
+              std::vector<s7_pointer> packed (1);
+              packed[0] = build_args_list (sc, args);
+              frame_from_args (sc, fr, ci, packed);
+            } else {
+              frame_from_args (sc, fr, ci, args);
+            }
+            continue;  // loop re-reads fr (same object, but code/stack change)
+          }
+          s7_pointer r = call_function (sc, f, args);
+          g_frames.pop_back ();
+          if (g_frames.size () > target_depth) {
+            if (r != nullptr) push (r);
+            continue;  // re-bind fr (the loop's fr reference is dangling)
+          }
+          // No enclosing frame below target depth.  If the callee pushed a
+          // VM frame (r == nullptr), keep running inside it (the loop sees
+          // g_frames.size() > target_depth again and continues); otherwise
+          // return the callee's value.
+          if (r == nullptr)
+            continue;
+          return r;
         }
         break;
       }
@@ -547,8 +589,16 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
       case Op::Label:
         break;
       case Op::Return: {
+        // End of the current frame: pop the frame's top-of-region value
+        // (undefined if empty) and hand it to the enclosing frame's
+        // region, or return it from run if none remains.
+        s7_pointer v = (g_stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
         g_frames.pop_back ();
-        break;  // if at target_depth the while loop exits and pops the top
+        if (g_frames.size () > target_depth) {
+          push (v);
+          continue;  // re-bind fr; the caller's frame resumes with v on top
+        }
+        return v;
       }
       case Op::Pop:
         pop ();
@@ -571,13 +621,10 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // producer or consumer that is not a VM closure, fall back to s7's
         // call-with-values so the s7-level splice is not misread as a
         // single argument.
-        auto is_vm_closure = [] (s7_scheme* sc, s7_pointer f) {
-          if (!gf::is_closure (f)) return false;
-          s7_pointer body = gf::closure_body (sc, f);
-          return gf::is_pair (body) && gf::is_pair (gf::car (body)) &&
-                 gf::is_eq (gf::car (gf::car (body)), vm_enter_symbol);
+        auto is_vm_closure = [&] (s7_pointer f) {
+          return vm_closure_of (sc, f) != nullptr;
         };
-        if (!is_vm_closure (sc, p) || !is_vm_closure (sc, c)) {
+        if (!is_vm_closure (p) || !is_vm_closure (c)) {
           // s7's own call-with-values handles the producer multi-value
           // splice correctly; the VM's manual unwrap cannot see s7's spliced
           // result (the multiple-value flag is cleared).  goldfish's
@@ -589,9 +636,9 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
           push (gf::apply_function (sc, cwv, arg_list));
           break;
         }
-  size_t d0 = g_frames.size ();
+        size_t d0 = g_frames.size ();
         std::vector<s7_pointer> no_args;
-        s7_pointer pr = call_function (sc, p, no_args, nullptr);
+        s7_pointer pr = call_function (sc, p, no_args);
         s7_pointer rv = (pr != nullptr) ? pr : run (sc, d0);
         std::vector<s7_pointer> c_args;
         if (gf::is_multiple_value (rv)) {
@@ -601,7 +648,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
           c_args.push_back (rv);
         }
         size_t d1 = g_frames.size ();
-        s7_pointer cr = call_function (sc, c, c_args, nullptr);
+        s7_pointer cr = call_function (sc, c, c_args);
         if (cr != nullptr) push (cr);
         else push (run (sc, d1));
         break;
@@ -613,7 +660,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
                                   gf::make_integer (sc, (s7_int)in.op)));
     }
   }
-  return g_stack.empty () ? gf::undefined (sc) : pop ();
+  return gf::undefined (sc);
 }
 
 // ---------------------------------------------------------------------------
@@ -648,7 +695,7 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
     // Legacy (top instr...): no top-level slots.
     p->top = decode_instrs (sc, gf::cdr (top));
   }
-  g_program = p;
+   g_program = p;
   g_stack.clear ();
   g_frames.clear ();
   VMFrame f;
@@ -656,9 +703,9 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.code = &p->top;
   f.prog = p;
   f.global_env = global_env;
-  f.slots.assign ((size_t)top_nlocals, gf::nil (sc));
-  f.shared_slots = nullptr;
   f.captured = gf::nil (sc);
+  f.stack_base = 0;
+  f.slots = gf::make_vector (sc, top_nlocals);
   g_frames.push_back (f);
   // The interpreter's C++ stacks hold s7_pointers the conservative GC cannot
   // see (same reason vm_enter disables it): running the top instructions with
@@ -685,7 +732,7 @@ static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
   std::vector<s7_pointer> arg_list;
   for (s7_pointer a = gf::cdr (args); gf::is_pair (a); a = gf::cdr (a))
     arg_list.push_back (gf::car (a));
-  push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, vc->global_env, nullptr);
+  push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, vc->global_env);
   s7_pointer result = run (sc, d0);
   gf::gc_on (sc, saved_gc);
   return result;

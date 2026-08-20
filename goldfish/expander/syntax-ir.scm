@@ -130,6 +130,34 @@
     (define (binding-init b)
       (cadr (syntax-form b)))
 
+    ;; lambda-formals->list : formals -> (list symbol)
+    ;; formals may be a rest symbol, a proper list, or a dotted list
+    ;; (fixed . rest).  Returns the bound names in order (rest last).
+    (define (lambda-formals->list formals)
+      (if (symbol? formals)
+        (list formals)
+        (let loop ((f formals) (acc '()))
+          (cond ((null? f) (reverse acc))
+                ((pair? f) (loop (cdr f) (cons (car f) acc)))
+                (else (reverse (cons f acc)))))))
+
+    ;; formals->datum : formals-syntax -> datum-formals
+    ;; Convert a lambda formals node (rest symbol / proper list / dotted
+    ;; list, possibly of syntax elements) to the plain datum formals the IR
+    ;; and bytecode backend expect, preserving the shape (a rest symbol
+    ;; stays a symbol, dotted stays dotted).
+    (define (formals->datum f)
+      (let ((d (if (syntax? f) (syntax->datum f) f)))
+        (cond ((symbol? d) d)
+              ((null? d) '())
+              ((pair? d)
+               (let loop ((p d) (acc '()))
+                 (cond ((null? p) (reverse acc))
+                       ((pair? p)
+                        (loop (cdr p) (cons (if (syntax? (car p)) (syntax->datum (car p)) (car p)) acc)))
+                       (else (reverse (cons (if (syntax? p) (syntax->datum p) p) acc))))))
+              (else d))))
+
     (define (syntax->ir* stx ctx env resolve-lexical?)
       (cond
         ((not (syntax? stx)) stx)
@@ -167,17 +195,19 @@
                             (env1 (env-add-bindings env (list (cons dname 0)))))
                        (make-define #f dname
                                     (syntax->ir* (caddr form) ctx env1 resolve-lexical?)))
-                     (let* ((df (syntax-form (cadr form)))
-                            (dname (datum-of (car df)))
-                            (dformals (map datum-of (cdr df)))
-                            (env1 (env-extend-frame env dformals)))
-                       (make-define #f dname
-                                    (make-lambda #f dformals
-                                                 (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
-                                                      (cddr form)))))))
+                      (let* ((df (syntax-form (cadr form)))
+                             (dname (datum-of (car df)))
+                             (dformals (formals->datum (cdr df)))
+                             (dnames (lambda-formals->list dformals))
+                             (env1 (env-extend-frame env dnames)))
+                        (make-define #f dname
+                                     (make-lambda #f dformals
+                                                  (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
+                                                       (cddr form)))))))
                   ((lambda)
-                   (let* ((dformals (map datum-of (syntax-form (cadr form))))
-                          (env1 (env-extend-frame env dformals)))
+                   (let* ((dformals (formals->datum (syntax-form (cadr form))))
+                          (dnames (lambda-formals->list dformals))
+                          (env1 (env-extend-frame env dnames)))
                      (make-lambda #f dformals
                                   (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
                                        (cddr form)))))
