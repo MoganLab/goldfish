@@ -1625,6 +1625,13 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* gf_lib) {
   bool gf_bootstrap = (getenv ("GOLDFISH_BOOTSTRAP") != nullptr);
   if (mode != "s7" && !gf_bootstrap) {
     gf::eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
+    // Guile boot-9 style: base library functions (map/for-each) implemented
+    // in Scheme, evaluated into the rootlet like the kernel artifact so the
+    // expander kernel, every library, and user programs all resolve the same
+    // definition by name (and the VM needs no map/for-each fast paths).
+    // Loaded AFTER the kernel (needs lambda/if/cons...) and BEFORE the
+    // compiler preload, so compile-time map references resolve to it.
+    gf::eval_c_string (sc, "(load-source-file \"expander/lib/base-functions.scm\")");
     // Load the minimal derived forms (let/cond/case/when/do/and/or plus
     // let-values/let*-values) into the base library, then the R7RS reader
     // THROUGH the expander (boot.scm's load-expanded), immediately after the

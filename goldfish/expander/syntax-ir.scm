@@ -261,5 +261,12 @@
     ;; stay <primitive-ref> nodes through the passes), which core->ir cannot
     ;; (it sees only lowered bare symbols).
     (define (compile-syntax-defs defs ctx passes)
-      (map (lambda (d) (ir->core (run-passes (syntax->ir/sexp d ctx) passes)))
-           defs))))
+      ;; Explicit recursion (not `map') so this library does not depend on
+      ;; the map binding during bootstrap, when map may resolve to a
+      ;; not-yet-installed Scheme definition.
+      (let rec ((ds defs) (acc '()))
+        (if (null? ds)
+          (reverse acc)
+          (rec (cdr ds)
+               (cons (ir->core (run-passes (syntax->ir/sexp (car ds) ctx) passes))
+                     acc)))))))
