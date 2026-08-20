@@ -221,7 +221,7 @@ GF_GLUE ("g_path-touch",     "(g_path-touch path) => boolean",         path_touc
 GF_GLUE ("g_path-copy",      "(g_path-copy source target) => boolean", path_copy);
 
 void
-glue_liii_path (s7_scheme* sc) {
+glue_liii_path (gf::scheme* sc) {
   glue_isfile (sc);
   glue_isdir (sc);
   glue_path_getsize (sc);

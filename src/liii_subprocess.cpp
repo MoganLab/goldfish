@@ -32,9 +32,9 @@ using std::vector;
 
 enum class redirect_mode { tee, capture, inherit, discard, file };
 
-s7_pointer
-f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
-  s7_pointer cmd_arg= gf::car (args);
+gf::pointer
+f_subprocess_run_values (gf::scheme* sc, gf::pointer args) {
+  gf::pointer cmd_arg= gf::car (args);
   args              = gf::cdr (args);
 
   const char* cwd= nullptr;
@@ -49,12 +49,12 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   vector<string>      env_storage;
   vector<const char*> envp;
   if (gf::is_pair (args) && gf::is_pair (gf::car (args))) {
-    s7_pointer env_alist= gf::car (args);
+    gf::pointer env_alist= gf::car (args);
     while (gf::is_pair (env_alist)) {
-      s7_pointer item= gf::car (env_alist);
+      gf::pointer item= gf::car (env_alist);
       if (gf::is_pair (item)) {
         const char* key  = gf::string (gf::car (item));
-        s7_pointer  val  = gf::cdr (item);
+        gf::pointer  val  = gf::cdr (item);
         const char* val_c= gf::is_string (val) ? gf::string (val) : "";
         env_storage.push_back (string (key) + "=" + val_c);
       }
@@ -93,7 +93,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   redirect_mode stdout_mode= redirect_mode::inherit;
   const char*   stdout_path= nullptr;
   if (gf::is_pair (args)) {
-    s7_pointer stdout_val= gf::car (args);
+    gf::pointer stdout_val= gf::car (args);
     if (gf::is_symbol (stdout_val)) {
       const char* sym= gf::symbol_name (stdout_val);
       if (strcmp (sym, "capture") == 0) {
@@ -115,7 +115,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 
   bool stdout_append= false;
   if (gf::is_pair (args)) {
-    s7_pointer stdout_mode_val= gf::car (args);
+    gf::pointer stdout_mode_val= gf::car (args);
     if (gf::is_symbol (stdout_mode_val) && strcmp (gf::symbol_name (stdout_mode_val), "append") == 0) {
       stdout_append= true;
     }
@@ -126,7 +126,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   bool          stderr_to_stdout= false;
   const char*   stderr_path     = nullptr;
   if (gf::is_pair (args)) {
-    s7_pointer stderr_val= gf::car (args);
+    gf::pointer stderr_val= gf::car (args);
     if (gf::is_symbol (stderr_val)) {
       const char* sym= gf::symbol_name (stderr_val);
       if (strcmp (sym, "stdout") == 0) {
@@ -151,7 +151,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
 
   bool stderr_append= false;
   if (gf::is_pair (args)) {
-    s7_pointer stderr_mode_val= gf::car (args);
+    gf::pointer stderr_mode_val= gf::car (args);
     if (gf::is_symbol (stderr_mode_val) && strcmp (gf::symbol_name (stderr_mode_val), "append") == 0) {
       stderr_append= true;
     }
@@ -161,7 +161,7 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   const char* stdin_path= nullptr;
   bool        stdin_null= false;
   if (gf::is_pair (args)) {
-    s7_pointer stdin_val= gf::car (args);
+    gf::pointer stdin_val= gf::car (args);
     if (gf::is_symbol (stdin_val) && strcmp (gf::symbol_name (stdin_val), "null") == 0) {
       stdin_null= true;
     }
@@ -268,9 +268,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   }
   else if (gf::is_pair (cmd_arg)) {
     vector<const char*> argv;
-    s7_pointer          p= cmd_arg;
+    gf::pointer          p= cmd_arg;
     while (gf::is_pair (p)) {
-      s7_pointer item= gf::car (p);
+      gf::pointer item= gf::car (p);
       if (gf::is_string (item)) {
         argv.push_back (gf::string (item));
       }
@@ -329,21 +329,21 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     tb_process_exit (process);
   }
 
-  s7_pointer out_s7 = gf::make_string (sc, stdout_str.c_str ());
-  s7_pointer err_s7 = gf::make_string (sc, stderr_str.c_str ());
-  s7_pointer code_s7= gf::make_integer (sc, (s7_int) status);
+  gf::pointer out_s7 = gf::make_string (sc, stdout_str.c_str ());
+  gf::pointer err_s7 = gf::make_string (sc, stderr_str.c_str ());
+  gf::pointer code_s7= gf::make_integer (sc, (gf::int_) status);
   return gf::values (sc, gf::cons (sc, out_s7, gf::cons (sc, err_s7, gf::cons (sc, code_s7, gf::nil (sc)))));
 }
 
 inline void
-glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
-  s7_pointer cur_env= gf::curlet (sc);
-  s7_pointer func   = gf::make_typed_function (sc, name, f, required, optional, false, desc, NULL);
+glue_define (gf::scheme* sc, const char* name, const char* desc, gf::function f, gf::int_ required, gf::int_ optional) {
+  gf::pointer cur_env= gf::curlet (sc);
+  gf::pointer func   = gf::make_typed_function (sc, name, f, required, optional, false, desc, NULL);
   gf::define (sc, cur_env, gf::make_symbol (sc, name), func);
 }
 
 void
-glue_subprocess_run_values (s7_scheme* sc) {
+glue_subprocess_run_values (gf::scheme* sc) {
   const char* name= "g_subprocess-run-values";
   const char* desc= "(g_subprocess-run-values command cwd env input timeout stdout stdout-mode stderr stderr-mode "
                     "stdin) => (values stdout stderr exit-code)";

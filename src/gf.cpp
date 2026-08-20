@@ -247,5 +247,12 @@ pointer set_current_output_port (scheme* sc, pointer port) {
 
 pointer hook_functions (scheme* sc, pointer hook) { return s7_hook_functions (sc, hook); }
 
+// ---------------------------------------------------------------------------
+// Host version.
+// ---------------------------------------------------------------------------
+
+const char* host_version () { return S7_VERSION; }
+const char* host_date () { return S7_DATE; }
+
 } // namespace gf
 } // namespace goldfish

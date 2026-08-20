@@ -728,16 +728,16 @@ set_lookup (const cp_range* tab, size_t n, uint32_t cp) {
   return false;
 }
 
-static s7_pointer
-char_type_error (s7_scheme* sc, const char* msg) {
+static gf::pointer
+char_type_error (gf::scheme* sc, const char* msg) {
   return gf::error (sc, gf::make_symbol (sc, "type-error"), gf::list (sc, gf::make_string (sc, msg)));
 }
 
 #define ARRAY_LEN(a) (sizeof (a) / sizeof ((a)[0]))
 
-static s7_pointer
-f_char_upcase (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_char_upcase (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
   if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-upcase: parameter must be character");
   }
@@ -746,9 +746,9 @@ f_char_upcase (s7_scheme* sc, s7_pointer args) {
   return gf::make_character (sc, (r >= 0) ? (uint32_t) r : cp);
 }
 
-static s7_pointer
-f_char_downcase (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_char_downcase (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
   if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-downcase: parameter must be character");
   }
@@ -757,9 +757,9 @@ f_char_downcase (s7_scheme* sc, s7_pointer args) {
   return gf::make_character (sc, (r >= 0) ? (uint32_t) r : cp);
 }
 
-static s7_pointer
-f_char_alphabetic_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_char_alphabetic_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
   if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-alphabetic?: parameter must be character");
   }
@@ -769,9 +769,9 @@ f_char_alphabetic_p (s7_scheme* sc, s7_pointer args) {
   return gf::t (sc);
 }
 
-static s7_pointer
-f_char_upper_case_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_char_upper_case_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
   if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-upper-case?: parameter must be character");
   }
@@ -779,9 +779,9 @@ f_char_upper_case_p (s7_scheme* sc, s7_pointer args) {
   return set_lookup (upper_ranges, ARRAY_LEN (upper_ranges), cp) ? gf::t (sc) : gf::f (sc);
 }
 
-static s7_pointer
-f_char_lower_case_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_char_lower_case_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
   if (!gf::is_character (arg)) {
     return char_type_error (sc, "char-lower-case?: parameter must be character");
   }
@@ -790,7 +790,7 @@ f_char_lower_case_p (s7_scheme* sc, s7_pointer args) {
 }
 
 void
-glue_scheme_char (s7_scheme* sc) {
+glue_scheme_char (gf::scheme* sc) {
   gf::define_function (sc, "g_char-upcase", f_char_upcase, 1, 0, false,
                       "(g_char-upcase char) => char, Unicode simple upcase mapping");
   gf::define_function (sc, "g_char-downcase", f_char_downcase, 1, 0, false,

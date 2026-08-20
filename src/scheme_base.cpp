@@ -19,8 +19,8 @@
 
 namespace goldfish {
 
-static s7_pointer
-base_error (s7_scheme* sc, const char* kind, const char* msg, s7_pointer arg) {
+static gf::pointer
+base_error (gf::scheme* sc, const char* kind, const char* msg, gf::pointer arg) {
   return gf::error (sc, gf::make_symbol (sc, kind), gf::list (sc, gf::make_string (sc, msg), arg));
 }
 
@@ -37,10 +37,10 @@ utf8_seq_len (uint8_t b) {
 // 统计 UTF-8 字节序列 [buf, buf+byte_len) 中的字符数；同时定位第 char_index 个字符
 // 的起始字节偏移（写入 *out_byte_pos）。返回字符总数；遇到非法序列返回 -1。
 // 当 char_index >= 字符总数时，*out_byte_pos 写入 byte_len（指向末尾）。
-static s7_int
-utf8_count_and_locate (const uint8_t* buf, s7_int byte_len, s7_int char_index, s7_int* out_byte_pos) {
-  s7_int i   = 0;
-  s7_int cnt = 0;
+static gf::int_
+utf8_count_and_locate (const uint8_t* buf, gf::int_ byte_len, gf::int_ char_index, gf::int_* out_byte_pos) {
+  gf::int_ i   = 0;
+  gf::int_ cnt = 0;
   bool   done= false;
 
   while (i < byte_len) {
@@ -58,26 +58,26 @@ utf8_count_and_locate (const uint8_t* buf, s7_int byte_len, s7_int char_index, s
   return cnt;
 }
 
-static s7_pointer
-f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
-  s7_pointer arg= gf::car (args);
+static gf::pointer
+f_string_to_utf8 (gf::scheme* sc, gf::pointer args) {
+  gf::pointer arg= gf::car (args);
 
   if (!gf::is_string (arg)) {
     return base_error (sc, "type-error", "string->utf8: input must be string", arg);
   }
 
   const char* str     = gf::string (arg);
-  s7_int      byte_len= gf::string_length (arg);
+  gf::int_      byte_len= gf::string_length (arg);
 
   // 解析可选参数 start / end。args 形如 (str start end ...)，缺省时按 Scheme 默认值处理：
   //   start 缺省 = 0；end 缺省 = #t（取到末尾）
-  s7_pointer rest     = gf::cdr (args);
-  s7_int     start    = 0;
+  gf::pointer rest     = gf::cdr (args);
+  gf::int_     start    = 0;
   bool       end_given= false;
-  s7_int     end_val  = 0;
+  gf::int_     end_val  = 0;
 
   if (!gf::is_null (sc, rest)) {
-    s7_pointer p1= gf::car (rest);
+    gf::pointer p1= gf::car (rest);
     if (!gf::is_integer (p1)) {
       return base_error (sc, "type-error", "string->utf8: start must be integer", p1);
     }
@@ -85,7 +85,7 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
     rest = gf::cdr (rest);
 
     if (!gf::is_null (sc, rest)) {
-      s7_pointer p2= gf::car (rest);
+      gf::pointer p2= gf::car (rest);
       // Scheme 端 end 默认 #t 表示取到末尾；#t 按末尾处理
       if (gf::is_integer (p2)) {
         end_given= true;
@@ -98,7 +98,7 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
   }
 
   // 统计字符总数 N（同时无副作用地遍历校验 UTF-8 合法性）
-  s7_int N= utf8_count_and_locate ((const uint8_t*) str, byte_len, 0, NULL);
+  gf::int_ N= utf8_count_and_locate ((const uint8_t*) str, byte_len, 0, NULL);
   if (N < 0) {
     return base_error (sc, "value-error", "string->utf8: Invalid UTF-8 sequence", arg);
   }
@@ -113,7 +113,7 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
   }
 
   // end 校验：[0, N]
-  s7_int end_char;
+  gf::int_ end_char;
   if (end_given) {
     if (end_val < 0 || end_val > N) {
       return base_error (sc, "out-of-range", "string->utf8: end out of range", arg);
@@ -135,26 +135,26 @@ f_string_to_utf8 (s7_scheme* sc, s7_pointer args) {
   }
 
   // 定位 start / end 对应的字节偏移
-  s7_int start_byte= 0;
-  s7_int end_byte  = 0;
+  gf::int_ start_byte= 0;
+  gf::int_ end_byte  = 0;
   utf8_count_and_locate ((const uint8_t*) str, byte_len, start, &start_byte);
   utf8_count_and_locate ((const uint8_t*) str, byte_len, end_char, &end_byte);
 
-  s7_int     out_len= end_byte - start_byte;
-  s7_pointer out    = gf::make_byte_vector (sc, out_len, 1, NULL);
+  gf::int_     out_len= end_byte - start_byte;
+  gf::pointer out    = gf::make_byte_vector (sc, out_len, 1, NULL);
   memcpy (gf::byte_vector_elements (out), str + start_byte, out_len);
   return out;
 }
 
 static void
-glue_string_to_utf8 (s7_scheme* sc) {
+glue_string_to_utf8 (gf::scheme* sc) {
   const char* name= "g_string->utf8";
   const char* desc= "(g_string->utf8 str [start [end]]) => bytevector";
   gf::define_function (sc, name, f_string_to_utf8, 1, 0, true, desc);
 }
 
 void
-glue_scheme_base (s7_scheme* sc) {
+glue_scheme_base (gf::scheme* sc) {
   glue_string_to_utf8 (sc);
 }
 

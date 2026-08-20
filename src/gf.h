@@ -240,6 +240,13 @@ pointer set_current_output_port (scheme* sc, pointer port);
 
 pointer hook_functions (scheme* sc, pointer hook);
 
+// ---------------------------------------------------------------------------
+// Host version.
+// ---------------------------------------------------------------------------
+
+const char* host_version ();
+const char* host_date ();
+
 } // namespace gf
 } // namespace goldfish
 

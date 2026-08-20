@@ -24,7 +24,7 @@
 static std::string last_output;
 static std::string last_error;
 static std::mutex  repl_mutex;
-static s7_scheme*  wasm_sc= nullptr;
+static gf::scheme*  wasm_sc= nullptr;
 
 // 捕获输出的辅助类
 class OutputCatcher : public std::streambuf {
@@ -107,7 +107,7 @@ eval_string (const char* code) {
   OutputCatcher err_catcher (std::cerr);
   int           status= 0;
   try {
-    s7_pointer result= gf::eval_c_string (wasm_sc, code);
+    gf::pointer result= gf::eval_c_string (wasm_sc, code);
     if (result) {
       char* result_str= gf::object_to_c_string (wasm_sc, result);
       if (result_str) {

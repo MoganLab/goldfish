@@ -116,7 +116,7 @@ string_split (const std::string& str, const split_sep& sep_arg) {
 GF_GLUE ("g_string-split", "(g_string-split str sep) => list of strings", string_split);
 
 void
-glue_liii_string (s7_scheme* sc) {
+glue_liii_string (gf::scheme* sc) {
   glue_string_split (sc);
 }
 

@@ -153,7 +153,7 @@ GF_GLUE ("g_sha256",       "(g_sha256 str) => string",         sha256);
 GF_GLUE ("g_sha256-by-file", "(g_sha256-by-file path) => string|#f", sha256_by_file);
 
 void
-glue_liii_hashlib (s7_scheme* sc) {
+glue_liii_hashlib (gf::scheme* sc) {
   glue_md5 (sc);
   glue_md5_by_file (sc);
   glue_sha1 (sc);

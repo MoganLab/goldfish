@@ -232,7 +232,7 @@ getpid () {
 }
 
 // ---------------------------------------------------------------------------
-// Declarative glue: each GF_GLUE generates the s7_function wrapper and the
+// Declarative glue: each GF_GLUE generates the gf::function wrapper and the
 // registration, deriving the arity and types from the plain C++ signature.
 // ---------------------------------------------------------------------------
 
@@ -255,7 +255,7 @@ GF_GLUE ("g_getlogin", "(g_getlogin) => string",            getlogin);
 GF_GLUE ("g_getpid",  "(g_getpid) => integer",              getpid);
 
 void
-glue_liii_os (s7_scheme* sc) {
+glue_liii_os (gf::scheme* sc) {
   glue_os_arch (sc);
   glue_os_type (sc);
   glue_os_call (sc);

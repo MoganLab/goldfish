@@ -152,7 +152,7 @@ GF_GLUE ("g_bytevector-base64-decode", "(g_bytevector-base64-decode bv) => bytev
 GF_GLUE ("g_bytevector-base64-encode", "(g_bytevector-base64-encode bv) => bytevector", bytevector_base64_encode);
 
 void
-glue_liii_base64 (s7_scheme* sc) {
+glue_liii_base64 (gf::scheme* sc) {
   glue_bytevector_base64_decode (sc);
   glue_bytevector_base64_encode (sc);
 }
