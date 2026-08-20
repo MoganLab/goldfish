@@ -301,6 +301,33 @@
       ) ;let*
     ) ;define*
 
+    ;; R7RS map：Scheme 实现（Guile boot-9 风格），VM closure 回调天然正确
+    (define (map f l1 . rest)
+      (if (null? rest)
+        (let map1 ((l l1))
+          (if (pair? l)
+            (cons (f (car l)) (map1 (cdr l)))
+            '()))
+        (let mapn ((l1 l1) (rest rest))
+          (if (pair? l1)
+            (cons (apply f (car l1) (map car rest))
+                  (mapn (cdr l1) (map cdr rest)))
+            '()))))
+
+    ;; R7RS for-each：Scheme 实现（Guile boot-9 风格）
+    (define (for-each f l1 . rest)
+      (if (null? rest)
+        (let fe1 ((l l1))
+          (if (not (null? l))
+            (begin
+              (f (car l))
+              (fe1 (cdr l)))))
+        (let fen ((l1 l1) (rest rest))
+          (if (not (null? l1))
+            (begin
+              (apply f (car l1) (map car rest))
+              (fen (cdr l1) (map cdr rest)))))))
+
     ;; R7RS features：返回当前可用的特性列表
     (define (features)
       *features*
