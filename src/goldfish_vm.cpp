@@ -14,7 +14,7 @@
 // frame, (global name) / (store-global name) the global environment.
 //
 // Value passing: one global value stack, each frame owns the region
-// [stack_base, g_vm.stack.size()).  When a frame ends (a (return) or
+// [stack_base, g_current_vm->stack.size()).  When a frame ends (a (return) or
 // running off the end of its instruction list) its top-of-region value
 // is popped and handed to the enclosing frame's region -- or returned by
 // run() if no enclosing frame remains below the target depth.  A
@@ -34,6 +34,7 @@
 #include <deque>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace goldfish {
@@ -122,7 +123,7 @@ struct VMFrame {
   size_t pc = 0;
   const std::vector<Instr>* code = nullptr;
   VMProgram* prog = nullptr;  // the program this frame executes (not the
-                              // global g_vm.prog, which a nested vm-load can
+                              // global g_current_vm->prog, which a nested vm-load can
                               // replace mid-execution)
   s7_pointer slots = nullptr;  // frame slots: an s7 vector (the SINGLE
                                // storage -- Local/SetLocal and closure
@@ -132,8 +133,8 @@ struct VMFrame {
   s7_pointer captured = nullptr;  // list of enclosing slot vectors
                                   // (outermost first)
   s7_pointer global_env = nullptr;  // (global ...) resolution env of this frame
-  size_t stack_base = 0;  // g_vm.stack index delimiting this frame's value
-                          // region; the frame owns [stack_base, g_vm.stack.size())
+  size_t stack_base = 0;  // g_current_vm->stack index delimiting this frame's value
+                          // region; the frame owns [stack_base, g_current_vm->stack.size())
 };
 
 struct VM {
@@ -142,6 +143,18 @@ struct VM {
   std::deque<VMFrame> frames;
 };
 static VM g_vm;
+static std::unordered_map<VMProgram*, VM*> g_prog_map;
+static std::vector<VM*> g_vm_stack;
+static VM* g_current_vm = &g_vm;
+
+static VM* vm_for_prog(VMProgram* prog) {
+  auto it = g_prog_map.find(prog);
+  if (it != g_prog_map.end()) return it->second;
+  VM* vm = new VM();
+  vm->prog = prog;
+  g_prog_map[prog] = vm;
+  return vm;
+}
 static s7_pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
 static s7_pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
 static s7_pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
@@ -152,11 +165,11 @@ static s7_pointer g_call_with_values_fn = nullptr;
 // ---------------------------------------------------------------------------
 // Stack helpers.
 
-static inline void push (s7_pointer v) { g_vm.stack.push_back (v); }
+static inline void push (s7_pointer v) { g_current_vm->stack.push_back (v); }
 
 static inline s7_pointer pop () {
-  s7_pointer v = g_vm.stack.back ();
-  g_vm.stack.pop_back ();
+  s7_pointer v = g_current_vm->stack.back ();
+  g_current_vm->stack.pop_back ();
   return v;
 }
 
@@ -282,7 +295,7 @@ static void frame_from_args (s7_scheme* sc, VMFrame& f, const VMCodeInfo& ci,
     for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
       gf::vector_set (sc, f.slots, (s7_int)i, args[i]);
   }
-  f.stack_base = g_vm.stack.size ();
+  f.stack_base = g_current_vm->stack.size ();
 }
 
 // push_frame : prog code-index args captured global-env -> void
@@ -299,7 +312,7 @@ static void push_frame (s7_scheme* sc, VMProgram* prog, int code_idx, const std:
   f.global_env = global_env;
   f.captured = captured;
   frame_from_args (sc, f, ci, args);
-  g_vm.frames.push_back (f);
+  g_current_vm->frames.push_back (f);
 }
 
 // ---------------------------------------------------------------------------
@@ -425,17 +438,17 @@ static s7_pointer call_function (s7_scheme* sc, s7_pointer f, const std::vector<
 }
 // run : target-depth -> result
 static s7_pointer run (s7_scheme* sc, size_t target_depth) {
-  while (g_vm.frames.size () > target_depth) {
-    VMFrame& fr = g_vm.frames.back ();
+  while (g_current_vm->frames.size () > target_depth) {
+    VMFrame& fr = g_current_vm->frames.back ();
     const std::vector<Instr>& code = *fr.code;
     if (fr.pc >= code.size ()) {
       // Frame ran off its instruction list (e.g. a top-level expression
       // that ends without (return)): same value-passing protocol as
       // Op::Return -- pop the frame's top-of-region value, hand it to the
       // enclosing frame's region, or return it from run at target depth.
-      s7_pointer v = (g_vm.stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
-      g_vm.frames.pop_back ();
-      if (g_vm.frames.size () > target_depth) {
+      s7_pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
+      g_current_vm->frames.pop_back ();
+      if (g_current_vm->frames.size () > target_depth) {
         push (v);
         continue;
       }
@@ -560,14 +573,14 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
             continue;  // loop re-reads fr (same object, but code/stack change)
           }
           s7_pointer r = call_function (sc, f, args);
-          g_vm.frames.pop_back ();
-          if (g_vm.frames.size () > target_depth) {
+          g_current_vm->frames.pop_back ();
+          if (g_current_vm->frames.size () > target_depth) {
             if (r != nullptr) push (r);
             continue;  // re-bind fr (the loop's fr reference is dangling)
           }
           // No enclosing frame below target depth.  If the callee pushed a
           // VM frame (r == nullptr), keep running inside it (the loop sees
-          // g_vm.frames.size() > target_depth again and continues); otherwise
+          // g_current_vm->frames.size() > target_depth again and continues); otherwise
           // return the callee's value.
           if (r == nullptr)
             continue;
@@ -590,9 +603,9 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         // End of the current frame: pop the frame's top-of-region value
         // (undefined if empty) and hand it to the enclosing frame's
         // region, or return it from run if none remains.
-        s7_pointer v = (g_vm.stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
-        g_vm.frames.pop_back ();
-        if (g_vm.frames.size () > target_depth) {
+        s7_pointer v = (g_current_vm->stack.size () > fr.stack_base) ? pop () : gf::undefined (sc);
+        g_current_vm->frames.pop_back ();
+        if (g_current_vm->frames.size () > target_depth) {
           push (v);
           continue;  // re-bind fr; the caller's frame resumes with v on top
         }
@@ -626,7 +639,7 @@ static s7_pointer run (s7_scheme* sc, size_t target_depth) {
         break;
       }
       default:
-        g_vm.frames.pop_back ();
+        g_current_vm->frames.pop_back ();
         return gf::error (sc, gf::make_symbol (sc, "vm-error"),
                          gf::list (sc, gf::make_string (sc, "unknown instruction"),
                                   gf::make_integer (sc, (s7_int)in.op)));
@@ -665,9 +678,12 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
     // Legacy (top instr...): no top-level slots.
     p->top = decode_instrs (sc, gf::cdr (top));
   }
-   g_vm.prog = p;
-  g_vm.stack.clear ();
-  g_vm.frames.clear ();
+  VM* vm = vm_for_prog(p);
+  g_vm_stack.push_back(g_current_vm);
+  g_current_vm = vm;
+  g_current_vm->prog = p;
+  g_current_vm->stack.clear ();
+  g_current_vm->frames.clear ();
   VMFrame f;
   f.pc = 0;
   f.code = &p->top;
@@ -676,15 +692,13 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
   f.captured = gf::nil (sc);
   f.stack_base = 0;
   f.slots = gf::make_vector (sc, top_nlocals);
-  g_vm.frames.push_back (f);
-  // The interpreter's C++ stacks hold s7_pointers the conservative GC cannot
-  // see (same reason vm_enter disables it): running the top instructions with
-  // GC enabled can reclaim live values, leaving dangling pointers that later
-  // corrupt the heap.  Disable GC for the run, exactly like vm_enter.
+  g_current_vm->frames.push_back (f);
   bool saved_gc = gf::gc_enabled (sc);
   gf::gc_on (sc, false);
   s7_pointer result = run (sc, 0);
   gf::gc_on (sc, saved_gc);
+  g_current_vm = g_vm_stack.back();
+  g_vm_stack.pop_back();
   return result;
 }
 
@@ -693,18 +707,20 @@ static s7_pointer vm_load (s7_scheme* sc, s7_pointer args) {
 static s7_pointer vm_enter (s7_scheme* sc, s7_pointer args) {
   s7_pointer cobj = gf::car (args);
   VMClosure* vc = static_cast<VMClosure*>(gf::c_object_value (cobj));
+  VM* target = vm_for_prog(vc->prog);
+  g_vm_stack.push_back(g_current_vm);
+  g_current_vm = target;
   bool saved_gc = gf::gc_enabled (sc);
   gf::gc_on (sc, false);
-  // vm-enter can be called NESTED inside another VM run (a VM program calling
-  // into s7, which calls back a VM closure): run must stop at the depth that
-  // existed before we pushed, not 0, or it pops the enclosing frame too.
-  size_t d0 = g_vm.frames.size ();
+  size_t d0 = g_current_vm->frames.size ();
   std::vector<s7_pointer> arg_list;
   for (s7_pointer a = gf::cdr (args); gf::is_pair (a); a = gf::cdr (a))
     arg_list.push_back (gf::car (a));
   push_frame (sc, vc->prog, vc->code_idx, arg_list, vc->captured, vc->global_env);
   s7_pointer result = run (sc, d0);
   gf::gc_on (sc, saved_gc);
+  g_current_vm = g_vm_stack.back();
+  g_vm_stack.pop_back();
   return result;
 }
 
