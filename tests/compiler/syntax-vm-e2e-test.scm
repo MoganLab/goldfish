@@ -99,3 +99,73 @@
                  '((define (a-toupper s)
                      (list->string (map char-upcase (string->list s)))))))
 (check (eval (list (define-name (car irs-str)) (list 'quote "abc")) (rootlet)) => "ABC")
+
+;; ===== 9. 真实库代码锚点（抽取 (liii list) 的自包含纯函数）=====
+(define (qv . xs) (list 'quote xs))
+
+;; length=? ：递归 + cond 多分支
+(define irs-len (vm-load-syntax
+                 '((define (length=? x scheme-list)
+                     (cond ((and (= x 0) (null? scheme-list)) #t)
+                           ((or (= x 0) (null? scheme-list)) #f)
+                           (else (length=? (- x 1) (cdr scheme-list))))))))
+(check (eval (list (define-name (car irs-len)) 3 (qv 'a 'b 'c)) (rootlet)) => #t)
+(check (eval (list (define-name (car irs-len)) 2 (qv 'a 'b 'c)) (rootlet)) => #f)
+
+;; length>? ：let loop + cond
+(define irs-gt (vm-load-syntax
+                '((define (length>? lst len)
+                    (let loop
+                      ((lst lst) (cnt 0))
+                      (cond ((null? lst) (< len cnt))
+                            ((pair? lst) (loop (cdr lst) (+ cnt 1)))
+                            (else (< len cnt))))))))
+(check (eval (list (define-name (car irs-gt)) (qv 1 2 3 4) 2) (rootlet)) => #t)
+(check (eval (list (define-name (car irs-gt)) (qv 1 2) 5) (rootlet)) => #f)
+
+;; list-drop ：unless/cond + let loop
+(define irs-drop (vm-load-syntax
+                  '((define (list-drop lst n)
+                      (cond ((< n 0) lst)
+                            ((= n 0) lst)
+                            (else (let loop
+                                    ((rest lst) (count 0))
+                                    (cond ((null? rest) '())
+                                          ((>= count n) rest)
+                                          (else (loop (cdr rest) (+ count 1)))))))))))
+(check (eval (list (define-name (car irs-drop)) (qv 'a 'b 'c 'd) 2) (rootlet)) => '(c d))
+(check (eval (list (define-name (car irs-drop)) (qv 'a 'b) 0) (rootlet)) => '(a b))
+(check (eval (list (define-name (car irs-drop)) (qv 'a 'b) 5) (rootlet)) => '())
+
+;; list-null? / list-not-null? ：and/or
+(define irs-null (vm-load-syntax
+                  '((define (list-null? l)
+                      (and (not (pair? l)) (null? l)))
+                    (define (list-not-null? l)
+                      (and (pair? l) (or (null? (cdr l)) (pair? (cdr l))))))))
+(check (eval (list (define-name (car irs-null)) '()) (rootlet)) => #t)
+(check (eval (list (define-name (car irs-null)) (qv 'a)) (rootlet)) => #f)
+(check (eval (list (define-name (cadr irs-null)) (qv 'a)) (rootlet)) => #t)
+
+;; ===== 10. flatten：内部 define + set-cdr! 共享结构 + 嵌套递归 =====
+(define irs-flat
+  (vm-load-syntax
+   '((define (flatten lst)
+       (define (flatten-depth-iter rest depth res-node)
+         (if (null? rest)
+           res-node
+           (let ((first (car rest)) (tail (cdr rest)))
+             (cond ((and (null? first) (not (= 0 depth)))
+                    (flatten-depth-iter tail depth res-node))
+                   ((or (= depth 0) (not (pair? first)))
+                    (set-cdr! res-node (cons first '()))
+                    (flatten-depth-iter tail depth (cdr res-node)))
+                   (else (flatten-depth-iter tail depth
+                                             (flatten-depth-iter first (- depth 1) res-node)))))))
+       (define (flatten-depth lst depth)
+         (let ((res (cons #f '())))
+           (flatten-depth-iter lst depth res)
+           (cdr res)))
+       (flatten-depth lst 1)))))
+(check (eval (list (define-name (car irs-flat)) (qv 1 '(2 3) 4)) (rootlet)) => '(1 2 3 4))
+(check (eval (list (define-name (car irs-flat)) (qv '(1 2) '(3 4))) (rootlet)) => '(1 2 3 4))
