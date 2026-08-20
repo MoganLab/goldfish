@@ -683,12 +683,8 @@
 
 (define (library-cache-hit? lib-file cache meta)
   (let ((gfo-file cache))
-    (and (file-exists? gfo-file)
-         (let ((src (load-find-module-file lib-file)))
-           (and src
-                (let ((stamp (compile-file-stamp src)))
-                  (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
-                    (and (pair? rec) (eq? (car rec) 'gfo) (equal? (cadr rec) stamp)))))))))
+    (let ((src (load-find-module-file lib-file)))
+      (and src (gfo-valid? gfo-file (compile-file-stamp src))))))
 
 ;; new single-arg helper
 (define (library-gfo-hit? lib-file)
