@@ -20,7 +20,7 @@
     (scheme write)
     (scheme process-context)
     (liii sort)
-    (liii json)
+    (liii njson)
     (liii string)
     (liii argparse)
     (liii path)
@@ -33,44 +33,45 @@
   (begin
 
     (define (load-gfproject)
-      "Load merged gfproject.scm via C++ glue (JSON dump)"
-      (string->json (g_gfproject-load-config))
+      "Load merged gfproject.scm via C++ glue (JSON dump) as njson"
+      (string->njson (g_gfproject-load-config))
     ) ;define
 
     (define (get-tool-description tools tool-name lang)
       "Get description for a tool in specified language"
-      (let* ((tool (json-ref tools tool-name))
-             (desc (if (json-null? tool) (json-null) (json-ref tool "description")))
+      (let* ((tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null)))
+             (desc (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool))) 'null (catch #t (lambda () (njson-ref tool (string-append "description" ""))) (lambda args 'null))))
             ) ;
-        (if (json-null? desc)
+        (if (or (eq? desc 'null) (and (njson? desc) (njson-null? desc)))
           ""
-          (let ((lang-desc (json-ref desc lang)))
-            (if (json-null? lang-desc)
-              (let ((en-desc (json-ref desc "en_US")))
-                (if (json-null? en-desc) "" en-desc)
+          (let ((lang-desc (catch #t (lambda () (njson-ref desc (string-append lang ""))) (lambda args 'null))))
+            (if (or (eq? lang-desc 'null) (and (njson? lang-desc) (njson-null? lang-desc)))
+              (let ((en-desc (catch #t (lambda () (njson-ref desc (string-append "en_US" ""))) (lambda args 'null))))
+                (if (or (eq? en-desc 'null) (and (njson? en-desc) (njson-null? en-desc))) "" (if (string? en-desc) en-desc ""))
               ) ;let
-              lang-desc
+              (if (string? lang-desc) lang-desc "")
             ) ;if
           ) ;let
         ) ;if
       ) ;let*
     ) ;define
 
-    (define (json-empty? x)
-      "Check if json-ref returned empty result (null or empty list)"
-      (or (json-null? x) (and (list? x) (null? x)))
+    (define (njson-empty? x)
+      "Check if njson-ref returned empty result (null)"
+      (or (eq? x 'null) (and (njson? x) (njson-null? x)) (and (string? x) (string-null? x)))
     ) ;define
 
     (define (has-tool-implementation? tools tool-name)
       "Check if a tool has Scheme implementation (has organization and module)"
-      (let ((tool (json-ref tools tool-name)))
-        (if (json-empty? tool)
+      (let ((tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null))))
+        (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool)))
           #f
-          (let ((org (json-ref tool "organization")) (mod (json-ref tool "module")))
-            (and (not (json-empty? org))
-              (not (json-empty? mod))
-              (> (string-length org) 0)
-              (> (string-length mod) 0)
+          (let ((org (catch #t (lambda () (njson-ref tool (string-append "organization" ""))) (lambda args 'null)))
+                (mod (catch #t (lambda () (njson-ref tool (string-append "module" ""))) (lambda args 'null))))
+            (and (not (or (eq? org 'null) (and (njson? org) (njson-null? org)) (and (string? org) (string-null? org))))
+              (not (or (eq? mod 'null) (and (njson? mod) (njson-null? mod)) (and (string? mod) (string-null? mod))))
+              (> (string-length (if (string? org) org "")) 0)
+              (> (string-length (if (string? mod) mod "")) 0)
             ) ;and
           ) ;let
         ) ;if
@@ -107,9 +108,9 @@
 
     (define (display-dynamic-commands tools)
       "Display dynamic commands from gfproject.scm with one-line descriptions"
-      (let ((tool-names (list-sort string<? (json-keys tools))))
+      (let ((tool-names (list-sort string<? (njson-keys tools))))
         (for-each (lambda (tool-name)
-                    (let ((desc (get-tool-description tools tool-name "en_US")))
+                    (let ((desc (get-tool-description tools (string-append tool-name "") "en_US")))
                       (display-command-line tool-name desc)
                     ) ;let
                   ) ;lambda
@@ -120,7 +121,7 @@
 
     (define (display-help)
       "Display help information matching the C++ display_help() format"
-      (let* ((config (load-gfproject)) (tools (json-ref config "tools")))
+      (let* ((config (load-gfproject)) (tools (njson-ref config (string-append "tools" ""))))
         (display-version)
         (newline)
         (display "Commands:")
@@ -128,12 +129,12 @@
         (let ((help-desc (get-tool-description tools "help" "en_US")))
           (display-command-line "help" help-desc)
         ) ;let
-        (if (not (json-null? tools))
-          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help"))) (json-keys tools))
+        (if (not (njson-empty? tools))
+          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help"))) (njson-keys tools))
                 ) ;other-tool-names
                ) ;
             (for-each (lambda (tool-name)
-                        (let ((desc (get-tool-description tools tool-name "en_US")))
+                        (let ((desc (get-tool-description tools (string-append tool-name "") "en_US")))
                           (display-command-line tool-name desc)
                         ) ;let
                       ) ;lambda
@@ -175,10 +176,10 @@
     (define (display-tool-help tool-name)
       "Display detailed help for a specific tool"
       (let* ((config (load-gfproject))
-             (tools (json-ref config "tools"))
-             (tool (json-ref tools tool-name))
+             (tools (njson-ref config (string-append "tools" "")))
+             (tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null)))
             ) ;
-        (if (json-null? tool)
+        (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool)))
           (begin
             (display "Unknown command: ")
             (display tool-name)
