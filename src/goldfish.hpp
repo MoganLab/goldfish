@@ -95,11 +95,15 @@ inline void glue_define (gf::scheme* sc, const char* name, const char* desc, gf:
 
 static gf::pointer f_goldfish_library (gf::scheme* sc, gf::pointer args);
 static gf::pointer f_load_path (gf::scheme* sc, gf::pointer args);
+static gf::pointer f_gfproject_load_config (gf::scheme* sc, gf::pointer args);
+static gf::pointer f_function_libraries (gf::scheme* sc, gf::pointer args);
+static gf::pointer f_project_root (gf::scheme* sc, gf::pointer args);
 
 static bool split_library_query (const string& query, string& group, string& library);
 
 static string find_goldfish_library ();
 
+static vector<string> find_function_libs_in_load_path (gf::scheme* sc, const string& function_name);
 
 void glue_njson (gf::scheme* sc);
 #ifdef GOLDFISH_ENABLE_HTTP
@@ -158,7 +162,16 @@ glue_goldfish (gf::scheme* sc) {
   const char* d_goldfish_library  = "(g_goldfish-library) => string or #f, goldfish library root";
   const char* s_load_path         = "g_load-path";
   const char* d_load_path         = "(g_load-path) => list of strings, current load-path";
-
+  const char* s_function_libraries= "g_function-libraries";
+  const char* d_function_libraries=
+      "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
+      "export function-name in the current *load-path*";
+  const char* s_gfproject_load_config= "g_gfproject-load-config";
+  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.scm (JSON dump)";
+  const char* s_project_root         = "g_project-root";
+  const char* d_project_root=
+      "(g_project-root) => string or #f, returns the directory containing the local gfproject.scm, "
+      "or #f if none is found in the current working directory";
 
   gf::define (sc, cur_env, gf::make_symbol (sc, s_version),
              gf::make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -172,7 +185,16 @@ glue_goldfish (gf::scheme* sc) {
   gf::define (sc, cur_env, gf::make_symbol (sc, s_load_path),
              gf::make_typed_function (sc, s_load_path, f_load_path, 0, 0, false, d_load_path, NULL));
 
+  gf::define (
+      sc, cur_env, gf::make_symbol (sc, s_function_libraries),
+      gf::make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
 
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_gfproject_load_config),
+             gf::make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
+                                     d_gfproject_load_config, NULL));
+
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_project_root),
+             gf::make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -1054,19 +1076,7 @@ goldfish_append_doc_hint_if_needed (gf::scheme* sc, const string& errmsg) {
 
   vector<string> library_queries;
   try {
-    // Delegated to Scheme (liii project) pure implementation
-    gf::pointer res = gf::eval_c_string(sc, ("(begin (import (liii project)) (function-libraries "" + function_name + ""))").c_str());
-    if (gf::is_list(sc, res)) {
-      for (gf::pointer lst = res; gf::is_pair(lst); lst = gf::cdr(lst)) {
-        gf::pointer item = gf::car(lst);
-        if (gf::is_list(sc, item) && gf::list_length(sc, item)==2) {
-          string g, l;
-          if (library_name_part_to_string(gf::car(item), g) && library_name_part_to_string(gf::cadr(item), l)) {
-            library_queries.push_back(g + "/" + l);
-          }
-        }
-      }
-    }
+    library_queries= find_function_libs_in_load_path (sc, function_name);
   } catch (const std::exception&) {
     library_queries.clear ();
   }
@@ -1577,7 +1587,27 @@ f_load_path (gf::scheme* sc, gf::pointer args) {
   return gf::load_path (sc);
 }
 
+static gf::pointer
+f_gfproject_load_config (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  string gf_lib_dir= find_goldfish_library ();
+  json   config    = load_gfproject_cfg (sc, gf_lib_dir.c_str ());
+  return gf::make_string (sc, config.dump ().c_str ());
+}
 
+static gf::pointer
+f_project_root (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  fs::path local= find_local_gfproject_scm ();
+  if (local.empty ()) {
+    return gf::f (sc);
+  }
+  std::string s= local.parent_path ().generic_string ();
+  if (s.empty ()) {
+    return gf::f (sc);
+  }
+  return gf::make_string (sc, s.c_str ());
+}
 
 static int
 goldfish_run_tool (gf::scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, gf::pointer old_port,
@@ -2620,6 +2650,33 @@ sorted_scheme_source_files (const fs::path& dir) {
   return files;
 }
 
+static vector<string>
+find_function_libs_in_load_path (gf::scheme* sc, const string& function_name) {
+  vector<string>  library_queries;
+  std::error_code ec;
+
+  for (const auto& load_root_string : current_load_path_entries (sc)) {
+    fs::path load_root (load_root_string);
+    if ((!fs::exists (load_root, ec)) || (!fs::is_directory (load_root, ec))) {
+      ec.clear ();
+      continue;
+    }
+    ec.clear ();
+
+    for (const auto& group_dir : sorted_child_directories (load_root)) {
+      for (const auto& source_file : sorted_scheme_source_files (group_dir)) {
+        string group;
+        string library;
+        if (source_file_exports_function (sc, source_file, function_name, group, library)) {
+          append_unique_exact_string (library_queries, group + "/" + library);
+        }
+      }
+    }
+  }
+
+  std::sort (library_queries.begin (), library_queries.end ());
+  return library_queries;
+}
 
 static gf::pointer
 make_library_name_list_list (gf::scheme* sc, const vector<string>& library_queries) {
@@ -2633,6 +2690,31 @@ make_library_name_list_list (gf::scheme* sc, const vector<string>& library_queri
   return result;
 }
 
+static gf::pointer
+f_function_libraries (gf::scheme* sc, gf::pointer args) {
+  gf::pointer function_name_arg= gf::car (args);
+  if (!gf::is_string (function_name_arg)) {
+    return gf::error (
+        sc, gf::make_symbol (sc, "type-error"),
+        gf::list (sc, gf::make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
+  }
+
+  string         function_name= gf::string (function_name_arg);
+  vector<string> visible_library_queries;
+
+  try {
+    visible_library_queries= find_function_libs_in_load_path (sc, function_name);
+  } catch (const std::exception& ex) {
+    return gf::error (
+        sc, gf::make_symbol (sc, "read-error"),
+        gf::list (
+            sc,
+            gf::make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
+            function_name_arg));
+  }
+
+  return make_library_name_list_list (sc, visible_library_queries);
+}
 
 static StartupCliOptions
 parse_startup_cli_options (int argc, char** argv) {
