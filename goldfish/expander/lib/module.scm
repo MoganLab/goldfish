@@ -531,10 +531,17 @@
                 ;; level 2 adds the inliner (copy propagation + beta
                 ;; reduction).  Order: fold constants first (inliner relies
                 ;; on folded literals propagating), then inline, then clean
-                ;; up the ifs the inliner's pruning leaves behind.
-                (let ((inline (module-ref compiler 'inline)))
-                  (compile-syntax-defs defs ctx (list constant-fold inline simplify-if)))
-                (compile-syntax-defs defs ctx (list constant-fold simplify-if)))
+                ;; up the ifs the inliner's pruning leaves behind, then lower
+                ;; let to lambda/call for the minimal VM core.
+                (let ((inline (module-ref compiler 'inline))
+                      (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
+                  (if lower-let
+                    (compile-syntax-defs defs ctx (list constant-fold inline simplify-if lower-let))
+                    (compile-syntax-defs defs ctx (list constant-fold inline simplify-if))))
+                (let ((lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
+                  (if lower-let
+                    (compile-syntax-defs defs ctx (list constant-fold simplify-if lower-let))
+                    (compile-syntax-defs defs ctx (list constant-fold simplify-if)))))
               (map lower defs)))
           (map lower defs))))))
 
@@ -560,11 +567,17 @@
         (if (module? compiler)
           (let ((compile-defs (module-ref compiler 'compile-defs))
                 (constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if)))
-            (if (>= level 2)
-              (let ((inline (module-ref compiler 'inline)))
-                (compile-defs defs (list constant-fold inline simplify-if)))
-              (compile-defs defs (list constant-fold simplify-if))))
+                (simplify-if (module-ref compiler 'simplify-if))
+                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
+            (if lower-let
+              (if (>= level 2)
+                (let ((inline (module-ref compiler 'inline)))
+                  (compile-defs defs (list constant-fold inline simplify-if lower-let)))
+                (compile-defs defs (list constant-fold simplify-if lower-let)))
+              (if (>= level 2)
+                (let ((inline (module-ref compiler 'inline)))
+                  (compile-defs defs (list constant-fold inline simplify-if)))
+                (compile-defs defs (list constant-fold simplify-if)))))
           defs)))))
 
 ;;; optimize-on-load : sexp -> sexp
@@ -592,17 +605,19 @@
           (let ((run-passes (module-ref compiler 'run-passes))
                 (constant-fold (module-ref compiler 'constant-fold))
                 (simplify-if (module-ref compiler 'simplify-if))
+                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f)))
                 (core->ir (module-ref compiler 'core->ir))
                 (ir->core (module-ref compiler 'ir->core)))
             (ir->core
-             (if (>= level 2)
-               ;; level 2 adds the inliner (copy propagation + beta
-               ;; reduction).  Order: fold constants first (inliner relies
-               ;; on folded literals propagating), then inline, then clean
-               ;; up the ifs the inliner's pruning leaves behind.
-               (let ((inline (module-ref compiler 'inline)))
-                 (run-passes (core->ir sexp) (list constant-fold inline simplify-if)))
-               (run-passes (core->ir sexp) (list constant-fold simplify-if)))))
+             (if lower-let
+               (if (>= level 2)
+                 (let ((inline (module-ref compiler 'inline)))
+                   (run-passes (core->ir sexp) (list constant-fold inline simplify-if lower-let)))
+                 (run-passes (core->ir sexp) (list constant-fold simplify-if lower-let)))
+               (if (>= level 2)
+                 (let ((inline (module-ref compiler 'inline)))
+                   (run-passes (core->ir sexp) (list constant-fold inline simplify-if)))
+                 (run-passes (core->ir sexp) (list constant-fold simplify-if))))))
           sexp)))))
 
 ;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)

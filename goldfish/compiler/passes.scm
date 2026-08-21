@@ -17,6 +17,7 @@
     compile-defs
     constant-fold
     simplify-if
+    lower-let
     inline
     *inline-max-effort*
     *inline-max-depth*
@@ -207,6 +208,49 @@
          (make-call-with-values #f (simplify-if p) (simplify-if c)))
         (($call proc args ...)
          (make-call #f (simplify-if proc) (map simplify-if args)))
+         ((? symbol? s) s)
+        (_ ir)))
+
+    ;; lower-let : ir -> ir
+    ;; Desugar let/letrec into lambda/call so the VM sees only core forms.
+    ;; let  ((x e) ...) body -> ((lambda (x ...) body) e ...)
+    ;; letrec ((x e) ...) body -> (let ((x #f) ...) (set! x e) ... body) lowered
+    (define (lower-let ir)
+      (match ir
+        (($const v) ir)
+        (($define name value)
+         (make-define #f name (lower-let value)))
+        (($lambda formals body ...)
+         (make-lambda #f formals (map lower-let body)))
+        (($if test then else)
+         (make-if #f (lower-let test) (lower-let then)
+                  (if else (lower-let else) #f)))
+        (($begin body ...)
+         (make-begin #f (map lower-let body)))
+        (($let bindings body ...)
+         (let ((names (map car bindings))
+               (vals (map (lambda (b) (lower-let (cadr b))) bindings))
+               (body2 (map lower-let body)))
+           (if (null? names)
+             (if (null? (cdr body2)) (car body2) (make-begin #f body2))
+             (make-call #f (make-lambda #f names body2) vals))))
+        (($letrec src bindings body ...)
+         (let ((names (map car bindings))
+               (vals (map cadr bindings))
+               (body2 (map lower-let body)))
+           (let ((inits (map lower-let vals))
+                 (tmp-bindings (map (lambda (n) (list n (make-const #f #f))) names)))
+             (lower-let (make-let #f tmp-bindings
+                          (append (map (lambda (n v) (make-set! #f n v)) names inits)
+                                  body2))))))
+        (($set! name expr)
+         (make-set! #f name (lower-let expr)))
+        (($values args ...)
+         (make-values #f (map lower-let args)))
+        (($call-with-values p c)
+         (make-call-with-values #f (lower-let p) (lower-let c)))
+        (($call proc args ...)
+         (make-call #f (lower-let proc) (map lower-let args)))
         ((? symbol? s) s)
         (_ ir)))
 

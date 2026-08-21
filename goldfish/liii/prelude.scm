@@ -35,7 +35,10 @@
           stx
           (cond ((null? args) #t)
                 ((null? (cdr args)) (car args))
-                (else `(if ,(car args) (and ,@(cdr args)) #f))))))))
+                (else
+                 (let ((t (make-fresh-name 'and-t)))
+                   `(let ((,t ,(car args)))
+                      (if ,t (and ,@(cdr args)) #f))))))))))
 
 (define-syntax or
   (lambda (stx)
