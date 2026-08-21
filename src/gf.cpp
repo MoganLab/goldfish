@@ -56,6 +56,7 @@ bool is_let (pointer p) { return s7_is_let (p); }
 bool is_procedure (pointer p) { return s7_is_procedure (p); }
 bool is_closure (pointer p) { return s7_gf_is_closure (p); }
 bool is_multiple_value (pointer p) { return s7_is_multiple_value (p); }
+void set_multiple_value (scheme* sc, pointer args) { s7_set_multiple_value (sc, args); }
 
 // ---------------------------------------------------------------------------
 // Pair / list.

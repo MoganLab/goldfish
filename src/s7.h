@@ -689,6 +689,7 @@ s7_pointer s7_dilambda_with_environment(s7_scheme *sc, s7_pointer envir,
 
 s7_pointer s7_values(s7_scheme *sc, s7_pointer args);          /* (values ...) */
 bool s7_is_multiple_value(s7_pointer obj);                     /*    is obj the results of (values ...) */
+void s7_set_multiple_value(s7_scheme *sc, s7_pointer args);    /* flag args as multiple values */
 
 s7_pointer s7_make_iterator(s7_scheme *sc, s7_pointer e);      /* (make-iterator e) */
 bool s7_is_iterator(s7_pointer obj);                           /* (iterator? obj) */

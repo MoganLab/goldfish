@@ -618,19 +618,20 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
         int n = (int)in.b;
         gf::pointer args_list = gf::nil (sc);
         for (int i = 0; i < n; ++i) args_list = gf::cons (sc, pop (), args_list);
-        push (gf::values (sc, args_list));
+        gf::pointer mv = gf::values (sc, args_list);
+        if (n >= 2) gf::set_multiple_value (sc, mv);
+        push (mv);
         break;
       }
       case Op::CallWithValues: {
         gf::pointer c = pop ();
         gf::pointer p = pop ();
-        // Always delegate to s7's call-with-values.  Its splice happens on
-        // the s7 evaluator stack, so a multi-value producer result (whether
-        // a plain or VM closure) is correctly spliced into the consumer's
-        // arguments.  A manual VM unwrap cannot work: s7_values called from
-        // the VM (not an s7 eval context) returns an object whose multiple
-        // value flag is not reliably set, so gf::is_multiple_value would
-        // miss it and the consumer would receive a single bogus argument.
+        // Delegate to s7's call-with-values; its evaluator splices the
+        // producer's multiple values into the consumer's arguments.  The
+        // producer result is spliced only when gf::is_multiple_value is
+        // true -- Values above now reliably flags n>=2 via
+        // s7_set_multiple_value, so the predicate matches and single-value
+        // results are passed as one argument.
         gf::pointer cwv = g_call_with_values_fn;
         if (cwv == nullptr || cwv == gf::undefined (sc))
           cwv = gf::name_to_value (sc, "call-with-values");

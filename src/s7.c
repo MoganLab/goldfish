@@ -56565,6 +56565,7 @@ static s7_pointer values_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 }
 
 bool s7_is_multiple_value(s7_pointer obj) {return(is_multiple_value(obj));}
+void s7_set_multiple_value(s7_scheme *sc, s7_pointer args) {if (!is_null(args)) set_multiple_value(args);}
 
 
 /* -------------------------------- list-values -------------------------------- */

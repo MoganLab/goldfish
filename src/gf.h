@@ -82,6 +82,7 @@ bool is_let (pointer p);
 bool is_procedure (pointer p);
 bool is_closure (pointer p);
 bool is_multiple_value (pointer p);
+void set_multiple_value (scheme* sc, pointer args);
 
 // ---------------------------------------------------------------------------
 // Pair / list.
