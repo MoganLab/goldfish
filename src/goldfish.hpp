@@ -167,10 +167,10 @@ glue_goldfish (gf::scheme* sc) {
       "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
       "export function-name in the current *load-path*";
   const char* s_gfproject_load_config= "g_gfproject-load-config";
-  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.json";
+  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.scm (JSON dump)";
   const char* s_project_root         = "g_project-root";
   const char* d_project_root=
-      "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
+      "(g_project-root) => string or #f, returns the directory containing the local gfproject.scm, "
       "or #f if none is found in the current working directory";
 
   gf::define (sc, cur_env, gf::make_symbol (sc, s_version),
@@ -1218,14 +1218,14 @@ find_goldhelp_tool_root (const char* gf_lib) {
   return "";
 }
 
-// Tool registration system - dynamically load tools from gfproject.json
+// Tool registration system - dynamically load tools from gfproject.scm (DSL: (gfproject (tools ...)))
 
 static fs::path
-find_local_gfproject_json () {
+find_local_gfproject_scm () {
   std::error_code ec;
   fs::path        cwd= fs::current_path (ec);
   if (!ec) {
-    fs::path local_path= cwd / "gfproject.json";
+    fs::path local_path= cwd / "gfproject.scm";
     if (fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec)) {
       return local_path;
     }
@@ -1234,38 +1234,105 @@ find_local_gfproject_json () {
 }
 
 static fs::path
-find_lib_gfproject_json (const char* gf_lib) {
+find_lib_gfproject_scm (const char* gf_lib) {
   std::error_code ec;
-  fs::path        lib_path= fs::path (gf_lib) / "gfproject.json";
+  fs::path        lib_path= fs::path (gf_lib) / "gfproject.scm";
   if (fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec)) {
     return lib_path;
   }
   ec.clear ();
-  fs::path parent_path= fs::path (gf_lib).parent_path () / "gfproject.json";
+  fs::path parent_path= fs::path (gf_lib).parent_path () / "gfproject.scm";
   if (fs::exists (parent_path, ec) && fs::is_regular_file (parent_path, ec)) {
     return parent_path;
   }
   return "";
 }
 
-static json
-load_json_file_or_empty (const fs::path& path) {
-  if (path.empty ()) {
-    return json::object ();
+// -- deprecated JSON helpers (kept for manual migration reference, no longer used)
+static fs::path find_local_gfproject_json () { return find_local_gfproject_scm(); }
+static fs::path find_lib_gfproject_json (const char* gf_lib) { return find_lib_gfproject_scm(gf_lib); }
+static json load_json_file_or_empty (const fs::path& p) { (void)p; return json::object(); }
+
+// SEXP helpers
+static std::string read_file_to_string (const fs::path& path) {
+  std::ifstream in(path, std::ios::binary);
+  if (!in) return "";
+  return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+}
+
+static json sexp_alist_to_json (gf::scheme* sc, gf::pointer alist);
+
+static json sexp_value_to_json (gf::scheme* sc, gf::pointer v) {
+  if (gf::is_string(v)) return json(std::string(gf::string(v)));
+  if (gf::is_symbol(v)) return json(std::string(gf::symbol_name(v)));
+  if (gf::is_integer(v)) return json((int64_t)gf::integer(v));
+  if (gf::is_real(v)) return json(gf::real(v));
+  if (gf::is_boolean(v)) return json(gf::boolean(sc, v));
+  if (gf::is_pair(v)) {
+    // treat as alist object if all elements are pairs with symbol keys
+    bool is_alist = true;
+    for (gf::pointer it = v; gf::is_pair(it); it = gf::cdr(it)) {
+      gf::pointer e = gf::car(it);
+      if (!gf::is_pair(e) || !gf::is_symbol(gf::car(e))) { is_alist = false; break; }
+    }
+    if (is_alist) return sexp_alist_to_json(sc, v);
+    // otherwise treat as array (should not happen for gfproject)
+    json arr = json::array();
+    for (gf::pointer it = v; gf::is_pair(it); it = gf::cdr(it)) arr.push_back(sexp_value_to_json(sc, gf::car(it)));
+    return arr;
   }
+  if (gf::is_null(sc, v)) return json::object();
+  return json(nullptr);
+}
+
+static json sexp_alist_to_json (gf::scheme* sc, gf::pointer alist) {
+  json obj = json::object();
+  for (gf::pointer it = alist; gf::is_pair(it); it = gf::cdr(it)) {
+    gf::pointer entry = gf::car(it);
+    if (!gf::is_pair(entry)) continue;
+    gf::pointer k = gf::car(entry);
+    gf::pointer vals = gf::cdr(entry);
+    std::string key = gf::is_symbol(k) ? std::string(gf::symbol_name(k)) : std::string(gf::string(k));
+    if (gf::is_null(sc, vals)) {
+      obj[key] = json::object();
+    } else if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals)) && gf::is_pair(gf::car(vals)) && gf::is_symbol(gf::car(gf::car(vals)))) {
+      // nested alist case: single level already
+      obj[key] = sexp_alist_to_json(sc, vals);
+    } else if (gf::is_pair(vals) && gf::is_pair(gf::car(vals)) && gf::is_symbol(gf::car(gf::car(vals)))) {
+      // list of pairs -> object
+      obj[key] = sexp_alist_to_json(sc, vals);
+    } else if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals))) {
+      // single value
+      obj[key] = sexp_value_to_json(sc, gf::car(vals));
+    } else {
+      // fallback: if vals is list of values, treat first as value
+      if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals))) obj[key] = sexp_value_to_json(sc, gf::car(vals));
+      else obj[key] = sexp_value_to_json(sc, vals);
+    }
+  }
+  return obj;
+}
+
+static json load_sexp_file_or_empty (gf::scheme* sc, const fs::path& path) {
+  if (path.empty()) return json::object();
+  std::string content = read_file_to_string(path);
+  if (content.empty()) return json::object();
   try {
-    std::ifstream file (path);
-    if (!file.is_open ()) {
-      return json::object ();
-    }
-    json config;
-    file >> config;
-    if (config.is_object ()) {
-      return config;
-    }
-    return json::object ();
+    gf::pointer port = gf::open_input_string(sc, content.c_str());
+    gf::pointer read_proc = gf::name_to_value(sc, "read");
+    gf::pointer form = gf::call(sc, read_proc, gf::cons(sc, port, gf::nil(sc)));
+    gf::close_input_port(sc, port);
+    if (!gf::is_pair(form)) return json::object();
+    gf::pointer head = gf::car(form);
+    if (!gf::is_symbol(head) || std::string(gf::symbol_name(head)) != "gfproject") return json::object();
+    gf::pointer body = gf::cdr(form);
+    // body is ((tools (...)) ...) -> convert to object { "tools": {...} }
+    json obj = sexp_alist_to_json(sc, body);
+    // ensure top-level is object with "tools"
+    if (!obj.contains("tools")) obj["tools"] = json::object();
+    return obj;
   } catch (...) {
-    return json::object ();
+    return json::object();
   }
 }
 
@@ -1301,10 +1368,10 @@ struct gfproject_config_bundle {
 };
 
 static gfproject_config_bundle
-load_gfproject_config_bundle (const char* gf_lib) {
+load_gfproject_config_bundle (gf::scheme* sc, const char* gf_lib) {
   gfproject_config_bundle bundle;
-  bundle.lib_config  = load_json_file_or_empty (find_lib_gfproject_json (gf_lib));
-  bundle.local_config= load_json_file_or_empty (find_local_gfproject_json ());
+  bundle.lib_config  = load_sexp_file_or_empty (sc, find_lib_gfproject_scm (gf_lib));
+  bundle.local_config= load_sexp_file_or_empty (sc, find_local_gfproject_scm ());
 
   json merged      = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
   json merged_tools= gfproject_extract_tools (bundle.lib_config);
@@ -1325,8 +1392,8 @@ load_gfproject_config_bundle (const char* gf_lib) {
 }
 
 static json
-load_gfproject_config (const char* gf_lib) {
-  return load_gfproject_config_bundle (gf_lib).merged_config;
+load_gfproject_config (gf::scheme* sc, const char* gf_lib) {
+  return load_gfproject_config_bundle (sc, gf_lib).merged_config;
 }
 
 struct gfproject_tool_resolution {
@@ -1338,8 +1405,8 @@ struct gfproject_tool_resolution {
 };
 
 static gfproject_tool_resolution
-resolve_gfproject_tool (const char* gf_lib, const string& command) {
-  gfproject_config_bundle bundle      = load_gfproject_config_bundle (gf_lib);
+resolve_gfproject_tool (gf::scheme* sc, const char* gf_lib, const string& command) {
+  gfproject_config_bundle bundle      = load_gfproject_config_bundle (sc, gf_lib);
   json                    local_tools = gfproject_extract_tools (bundle.local_config);
   json                    lib_tools   = gfproject_extract_tools (bundle.lib_config);
   json                    merged_tools= gfproject_extract_tools (bundle.merged_config);
@@ -1524,14 +1591,14 @@ static gf::pointer
 f_gfproject_load_config (gf::scheme* sc, gf::pointer args) {
   (void) args;
   string gf_lib_dir= find_goldfish_library ();
-  json   config    = load_gfproject_config (gf_lib_dir.c_str ());
+  json   config    = load_gfproject_config (sc, gf_lib_dir.c_str ());
   return gf::make_string (sc, config.dump ().c_str ());
 }
 
 static gf::pointer
 f_project_root (gf::scheme* sc, gf::pointer args) {
   (void) args;
-  fs::path local= find_local_gfproject_json ();
+  fs::path local= find_local_gfproject_scm ();
   if (local.empty ()) {
     return gf::f (sc);
   }
@@ -1545,7 +1612,7 @@ f_project_root (gf::scheme* sc, gf::pointer args) {
 static int
 goldfish_run_tool (gf::scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, gf::pointer old_port,
                    int gc_loc) {
-  gfproject_tool_resolution resolved= resolve_gfproject_tool (gf_lib, command);
+  gfproject_tool_resolution resolved= resolve_gfproject_tool (sc, gf_lib, command);
   if (!resolved.has_merged_tool) {
     return -1;
   }
@@ -2803,8 +2870,8 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
   int         gc_loc  = -1;
   if (old_port != gf::nil (sc)) gc_loc= gf::gc_protect (sc, old_port);
 
-  // 处理动态注册的工具（从 gfproject.json 加载）
-  json gfproject_config= load_gfproject_config (gf_lib);
+  // 处理动态注册的工具（从 gfproject.scm 加载，DSL: (gfproject (tools ...))）
+  json gfproject_config= load_gfproject_config (sc, gf_lib);
   if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
     int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
     if (tool_ret != -1) {

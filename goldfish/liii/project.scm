@@ -15,7 +15,7 @@
     (define (project-root)
       (let loop ([dir (g_getcwd)])
         (cond [(or (not dir) (not (string? dir)) (string=? dir ""))              #f]
-              [(g_isfile (normalize-string (join-path dir "gfproject.json"))) dir]
+              [(g_isfile (normalize-string (join-path dir "gfproject.scm"))) dir]
               [else
                 (let* ([p      (path dir)]
                        [parent (path->string (path-parent p))])

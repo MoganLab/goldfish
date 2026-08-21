@@ -28,7 +28,7 @@
 ;;   exclude —— 该语言专属排除，支持两种格式：
 ;;                纯字符串 "src/s7*" 或对象 {"path":"...","reason":"..."}。
 ;;              支持通配符 *（匹配逻辑在各语言模块/通用层）。
-;; 配置文件放在项目根（g_project-root，即 gfproject.json 所在目录）。
+;; 配置文件放在项目根（g_project-root，即 gfproject.scm 所在目录）。
 
 (define-library (liii goldfmt-config)
   (import (liii base) (liii os) (liii path) (liii string) (liii json) (liii list))

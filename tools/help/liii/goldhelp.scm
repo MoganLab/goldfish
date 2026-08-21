@@ -33,7 +33,7 @@
   (begin
 
     (define (load-gfproject)
-      "Load merged gfproject.json via C++ glue"
+      "Load merged gfproject.scm via C++ glue (JSON dump)"
       (string->json (g_gfproject-load-config))
     ) ;define
 
@@ -106,7 +106,7 @@
     ) ;define
 
     (define (display-dynamic-commands tools)
-      "Display dynamic commands from gfproject.json with one-line descriptions"
+      "Display dynamic commands from gfproject.scm with one-line descriptions"
       (let ((tool-names (list-sort string<? (json-keys tools))))
         (for-each (lambda (tool-name)
                     (let ((desc (get-tool-description tools tool-name "en_US")))

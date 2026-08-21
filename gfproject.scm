@@ -1,0 +1,66 @@
+(gfproject
+  (tools
+    (help
+      (organization liii)
+      (module goldhelp)
+      (description
+        (en_US "Display help information for gf commands")
+        (zh_CN "显示 gf 命令的帮助信息")))
+    (source
+      (organization liii)
+      (module goldsource)
+      (description
+        (en_US "View source code of library functions")
+        (zh_CN "查看库函数源代码")))
+    (version
+      (organization liii)
+      (module goldversion)
+      (description
+        (en_US "Display version information")
+        (zh_CN "显示版本信息")))
+    (doc
+      (organization liii)
+      (module golddoc)
+      (description
+        (en_US "Browse Goldfish Scheme library documentation")
+        (zh_CN "浏览 Goldfish Scheme 库文档")))
+    (fmt
+      (organization liii)
+      (module goldfmt)
+      (description
+        (en_US "Format code (single file/dir, or whole repo via gf_fmt.json; supports --check for CI)")
+        (zh_CN "格式化代码（单文件/目录，或按 gf_fmt.json 仓库批量；支持 --check 供 CI）")))
+    (fix
+      (organization liii)
+      (module goldfix)
+      (description
+        (en_US "Fix Scheme parentheses by indentation")
+        (zh_CN "根据缩进修正 Scheme 括号")))
+    (test
+      (organization liii)
+      (module goldtest)
+      (description
+        (en_US "Run tests (all *-test.scm files under tests/)")
+        (zh_CN "运行测试（tests/ 下的所有 *-test.scm 文件）")))
+    (run
+      (description
+        (en_US "Run main function from TARGET")
+        (zh_CN "从 TARGET 运行 main 函数")))
+    (eval
+      (description
+        (en_US "Evaluate Scheme code")
+        (zh_CN "执行 Scheme 代码")))
+    (load
+      (description
+        (en_US "Load Scheme code from FILE, then enter REPL")
+        (zh_CN "从 FILE 加载 Scheme 代码，然后进入 REPL")))
+    (repl
+      (description
+        (en_US "Enter interactive REPL mode")
+        (zh_CN "进入交互式 REPL 模式")))
+    (code
+      (organization liii)
+      (module goldcode)
+      (description
+        (en_US "Launch Claude Code with pre-sync and pull")
+        (zh_CN "同步钩子、拉取代码并启动 Claude Code")))))

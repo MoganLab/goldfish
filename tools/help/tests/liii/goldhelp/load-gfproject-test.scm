@@ -18,7 +18,7 @@
 ) ;define
 
 (define (cleanup-gfproject-fixture base-root)
-  (let ((config-path (path-join base-root "gfproject.json"))
+  (let ((config-path (path-join base-root "gfproject.scm"))
         (output-path (path-join base-root "version.log"))
        ) ;
     (path-unlink output-path #t)
@@ -32,12 +32,12 @@
                       (string-append "goldhelp-gfproject-" (number->string (getpid)))
                     ) ;path-join
          ) ;base-root
-         (config-path (path-join base-root "gfproject.json"))
+         (config-path (path-join base-root "gfproject.scm"))
          (output-path (path-join base-root "version.log"))
          (old-cwd (getcwd))
-         (merge-fixture "{\n  \"tools\": {\n    \"test\": {\n      \"description\": {\n        \"zh_CN\": \"运行测试（本地覆盖）\"\n      }\n    }\n  }\n}\n"
+         (merge-fixture "(gfproject (tools (test (description (zh_CN \"运行测试（本地覆盖）\")))))\n"
          ) ;merge-fixture
-         (broken-version-fixture "{\n  \"tools\": {\n    \"version\": {\n      \"module\": \"goldversion_missing\"\n    }\n  }\n}\n"
+         (broken-version-fixture "(gfproject (tools (version (module \"goldversion_missing\"))))\n"
          ) ;broken-version-fixture
         ) ;
     (cleanup-gfproject-fixture base-root)

@@ -8,12 +8,12 @@
 
 (check (let* ((tmp "/tmp/gf-project-test")
               (sub (string-append tmp "/a/b"))
-              (gf (string-append tmp "/gfproject.json"))
+              (gf (string-append tmp "/gfproject.scm"))
              ) ;
          (g_mkdir tmp)
          (g_mkdir (string-append tmp "/a"))
          (g_mkdir sub)
-         (call-with-output-file gf (lambda (p) (display "{}" p)))
+         (call-with-output-file gf (lambda (p) (display "(gfproject (tools))" p)))
          (let ((old (g_getcwd)))
            (g_chdir sub)
            (let ((r (project-root)))
