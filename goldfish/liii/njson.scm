@@ -306,9 +306,6 @@
       ) ;if
     ) ;define
 
-    ;; Same calling style as (liii json):
-    ;; (njson-set j key value)
-    ;; (njson-set j k1 k2 ... kn value)
     (define (njson-set json key val . keys)
       (unless (njson? json)
         (type-error "njson-set: json must be njson-handle" json)
@@ -316,9 +313,6 @@
       (apply g_njson-set (cons json (cons key (cons val keys))))
     ) ;define
 
-    ;; Append value to target array:
-    ;; (njson-append j value)                   ; root must be array
-    ;; (njson-append j k1 k2 ... kn value)      ; target path must be array
     (define (njson-append json . args)
       (unless (njson? json)
         (type-error "njson-append: json must be njson-handle" json)
@@ -329,9 +323,6 @@
       (apply g_njson-append (cons json args))
     ) ;define
 
-    ;; In-place update style:
-    ;; (njson-set! j key value)
-    ;; (njson-set! j k1 k2 ... kn value)
     (define (njson-set! json key val . keys)
       (unless (njson? json)
         (type-error "njson-set!: json must be njson-handle" json)
@@ -339,9 +330,6 @@
       (apply g_njson-set! (cons json (cons key (cons val keys))))
     ) ;define
 
-    ;; Append value to target array in place:
-    ;; (njson-append! j value)                   ; root must be array
-    ;; (njson-append! j k1 k2 ... kn value)      ; target path must be array
     (define (njson-append! json . args)
       (unless (njson? json)
         (type-error "njson-append!: json must be njson-handle" json)

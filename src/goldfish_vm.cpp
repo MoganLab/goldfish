@@ -289,6 +289,9 @@ static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
       std::vector<gf::pointer> rest_args;
       for (size_t i = fixed; i < args.size (); ++i)
         rest_args.push_back (args[i]);
+      // VM extra () for rest when call has fixed args but rest is empty: (json key . keys) called as (json key) gives keys=(()) not ()
+      if (rest_args.size () == 1 && gf::is_null (sc, rest_args[0]))
+        rest_args.clear ();
       gf::vector_set (sc, f.slots, (gf::int_)fixed, build_args_list (sc, rest_args));
     }
   } else {
