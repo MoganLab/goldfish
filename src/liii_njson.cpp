@@ -330,17 +330,24 @@ store_njson_value (gf::scheme* sc, const json& value) {
 
 static bool
 scheme_json_index (gf::pointer key, size_t& out, std::string& error_msg) {
-  if (!gf::is_integer (key)) {
-    error_msg= "array index must be integer?";
-    return false;
+  if (gf::is_integer (key)) {
+    gf::int_ idx= gf::integer (key);
+    if (idx < 0) {
+      error_msg= "array index must be non-negative";
+      return false;
+    }
+    out= static_cast<size_t> (idx);
+    return true;
   }
-  gf::int_ idx= gf::integer (key);
-  if (idx < 0) {
-    error_msg= "array index must be non-negative";
-    return false;
+  if (gf::is_number (key)) {
+    double d= gf::number_to_real (nullptr, key);
+    if (std::floor (d) == d && d >= 0 && d <= static_cast<double> (std::numeric_limits<gf::int_>::max ())) {
+      out= static_cast<size_t> (d);
+      return true;
+    }
   }
-  out= static_cast<size_t> (idx);
-  return true;
+  error_msg= "array index must be integer? is_integer=0 is_number=0 is_real=0";
+  return false;
 }
 
 static bool

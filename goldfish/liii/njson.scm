@@ -293,7 +293,7 @@
       (unless (njson? json)
         (type-error "njson-ref: json must be njson-handle" json)
       ) ;unless
-      (define (norm k) (cond ((string? k) (string-append k "")) ((integer? k) (+ k 0)) (else k)))
+      (define (norm k) (cond ((string? k) (string-append k "")) ((integer? k) (string->number (number->string k))) (else k)))
       (if (null? keys)
         (g_njson-ref json (norm key))
         (let ((all-keys (cons key keys)))
