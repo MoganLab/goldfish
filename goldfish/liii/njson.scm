@@ -293,13 +293,14 @@
       (unless (njson? json)
         (type-error "njson-ref: json must be njson-handle" json)
       ) ;unless
+      (define (norm k) (cond ((string? k) (string-append k "")) ((integer? k) (+ k 0)) (else k)))
       (if (null? keys)
-        (g_njson-ref json (string-append key ""))
+        (g_njson-ref json (norm key))
         (let ((all-keys (cons key keys)))
           (let loop ((cur json) (ks all-keys))
             (if (null? (cdr ks))
-              (g_njson-ref cur (string-append (car ks) ""))
-              (loop (g_njson-ref cur (string-append (car ks) "")) (cdr ks))
+              (g_njson-ref cur (norm (car ks)))
+              (loop (g_njson-ref cur (norm (car ks))) (cdr ks))
             ) ;if
           ) ;let
         ) ;let
