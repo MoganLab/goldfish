@@ -1,17 +1,16 @@
 #!/bin/sh
 set -e
 fail=0
-if grep -r "s7_" goldfish/compiler/*.scm 2>/dev/null | grep -v "^Binary" | grep -q .; then echo "layer violation: compiler imports s7"; fail=1; fi
 if grep -R --include="*.scm" "s7_" goldfish/compiler/ 2>/dev/null | grep -q .; then echo "layer violation: compiler imports s7"; fail=1; fi
 if grep -q '#include.*s7\.h' src/gf.h 2>/dev/null; then echo "layer violation: gf.h includes s7.h"; fail=1; fi
-if grep -q "s7_pointer\|s7_int\|s7_scheme" src/goldfish_vm.cpp 2>/dev/null | grep -v "^.*//" | grep -q .; then echo "layer violation: vm spells s7 types"; fail=1; fi
+if grep -n "s7_pointer\|s7_int\|s7_scheme" src/goldfish_vm.cpp 2>/dev/null | grep -v "//" | grep -q .; then echo "layer violation: vm spells s7 types"; fail=1; fi
 if grep -R --include="*.scm" "define (gfo-" goldfish --include="*.scm" 2>/dev/null | grep -v "goldfish/cache/gfo.scm" | grep -q .; then echo "layer violation: gfo defined outside cache/gfo.scm"; fail=1; fi
 if grep -Rn '#include.*s7\.h' src --include="*.cpp" --include="*.h" --include="*.hpp" 2>/dev/null | grep -v "src/gf.cpp" | grep -v "src/gf_glue.hpp" | grep -v "src/s7" | grep -q .; then echo "layer violation: non-L0 includes s7.h"; fail=1; fi
 if grep -Rn "s7_pointer\|s7_int\|s7_scheme\|s7_double\|s7_function" src --include="*.cpp" --include="*.h" --include="*.hpp" 2>/dev/null | grep -v "src/s7" | grep -v "src/gf.h" | grep -v "src/gf.cpp" | grep -v "src/gf_glue.hpp" | grep -v "^.*//" | grep -q .; then echo "layer violation: non-L0 spells s7 types"; fail=1; fi
 if grep "expander" src/liii_reader.cpp 2>/dev/null | grep -v "//" | grep -q .; then echo "layer violation: L1 tiny reader depends on expander"; fail=1; fi
 if ! head -n 160 goldfish/liii/boot.scm 2>/dev/null | grep -q 'load-source-file "cache/gfo.scm"'; then echo "layer violation: L1 boot must load cache/gfo.scm first"; fail=1; fi
 if grep -R "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel --include="*.scm" 2>/dev/null | grep -q .; then echo "layer violation: L2 kernel depends on cache/compiler"; fail=1; fi
-if grep -q "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel-combined.scm 2>/dev/null | grep -q .; then echo "layer violation: L2 artifact depends on cache/compiler"; fail=1; fi
+if grep -n "goldfish/cache\|goldfish/compiler" goldfish/expander/kernel-combined.scm 2>/dev/null | grep -q .; then echo "layer violation: L2 artifact depends on cache/compiler"; fail=1; fi
 # L2 single source: load-kernel.scm manifest must match kernel.scm includes
 k_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel.scm 2>/dev/null | tr -d '"')
 l_includes=$(grep -o '"expander/kernel/[^"]*"' goldfish/expander/kernel/load-kernel.scm 2>/dev/null | tr -d '"')
@@ -27,7 +26,7 @@ if grep -E '#include.*expander|#include.*compiler|\(import.*goldfish/compiler' s
 if [ "$(grep -c "glue_" src/goldfish.hpp 2>/dev/null)" -gt 64 ]; then echo "layer violation: L0 glue too many, move business logic to Scheme"; fail=1; fi
 if [ "$(grep -c "glue_" src/goldfish.hpp 2>/dev/null)" -gt 60 ]; then echo "layer warning: L0 glue >60, consider migrating business to Scheme (current $(grep -c "glue_" src/goldfish.hpp))"; fi
 # L0 business leakage: find_function / load_gfproject should live in Scheme
-if grep -q "find_function_libraries_in_load_path\|load_gfproject_config" src/goldfish.hpp 2>/dev/null; then echo "layer warning: L0 still contains find_function/load_gfproject business, should migrate to (liii project) pure Scheme"; fi
+if grep -q "find_function_libs_in_load_path\|load_gfproject" src/goldfish.hpp 2>/dev/null; then echo "layer warning: L0 still contains find_function/load_gfproject business, should migrate to (liii project) pure Scheme"; fi
 # L5 vm stricter: no s7 API leakage beyond gf:: wrapper
 if grep -Rn "s7_make_\|s7_is_\|s7_car\|s7_cdr\|s7_error" src/goldfish_vm.cpp 2>/dev/null | grep -v "^.*//" | grep -q .; then echo "layer violation: L5 vm leaks s7 API, use gf:: only"; fail=1; fi
 exit $fail
