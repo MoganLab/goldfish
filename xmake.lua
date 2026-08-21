@@ -175,19 +175,19 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
-    -- L1 tiny : first-load cache
-    add_installfiles("$(projectdir)/goldfish/(cache/*.scm)", {prefixdir = "share/goldfish"})
-    -- L2 expander-rt : self-contained kernel artifact
+    -- L2 core-format : gfo single source, loaded before the kernel
+    add_installfiles("$(projectdir)/goldfish/(core/*.scm)", {prefixdir = "share/goldfish"})
+    -- L3 expander-rt : self-contained kernel artifact
     add_installfiles("$(projectdir)/goldfish/(expander/kernel/*.scm)", {prefixdir = "share/goldfish/expander/kernel"})
     add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
     add_installfiles("$(projectdir)/goldfish/(expander/build-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    -- L3 expander-lib : no compiler/vm import, vm fallback via host primitive
+    -- L4 expander-lib : no compiler/vm import, vm fallback via host primitive
     add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
-    -- L4 compiler : pure, no s7/cache/lib
+    -- L5 compiler : pure, no s7/core/lib
     add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(expander/syntax-ir.scm)", {prefixdir = "share/goldfish"})
-    -- L1/L3 Scheme libs (r7rs + liii + guenchi, all via expander)
+    -- user Scheme libs (r7rs + liii + guenchi, all via expander)
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})

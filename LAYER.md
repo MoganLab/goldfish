@@ -37,9 +37,9 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L2 core-format
 
-- **文件**：gfo 模块（现为 `goldfish/cache/gfo.scm`，待迁至独立目录）。
+- **文件**：`goldfish/core/gfo.scm`（`L2` 单源）。
 - **职责**：编译缓存契约——缓存布局（key 由源路径派生）、时效戳（须记录全部输入：源文件与内核产物）、读写与回退策略。
-- **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。
+- **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。当前版本 `0`（开发期），`1` 保留给首个发布格式，发布时开发缓存自然失效。
 
 ## L3 expander-rt
 
@@ -57,7 +57,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - **文件**：`goldfish/compiler/*.scm`、`goldfish/compiler.scm`、`goldfish/expander/syntax-ir.scm`。
 - **职责**：record IR 纯变换与 `lower`/`run-passes`；依赖面收窄为 `L2` 的格式契约，不依赖 `L4` 用户态库。
-- **不变式**：禁止 `s7_` 与 `goldfish/cache|expander/lib` 导入。
+- **不变式**：禁止 `s7_` 与 `goldfish/core|expander/lib` 导入。
 
 ## L6 vm
 
@@ -81,8 +81,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## 演进债
 
-- **目录重排**：使「目录即分层」成立——gfo 迁出 `cache/` 至独立目录；`liii/*` 定位为高于核心层的业务脚本层（boot 除外，其属裸码集合）。
-- **gfo 格式版本标记**：写入缓存文件并在校验时识别，未知版本按未命中处理。
+- **liii 定位**：`liii/*` 为高于核心层的业务脚本层（boot 除外，其属裸码集合）。
 - **时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
 - **VM 多值**：当前以 `list/cons` 规避，待 `Op::Values` 寄存器化后移除包装；在此之前须防止其渗入用户可见语义。

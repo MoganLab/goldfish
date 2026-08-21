@@ -760,8 +760,7 @@
             (load-library-guard
              lib-name
              (lambda ()
-               (let ((recs (let ((rec (car (read-forms (open-input-file gfo-file)))))
-                             (caddr rec))))
+               (let ((recs (gfo-read gfo-file)))
                  (for-each restore-library-cache recs)
                  (load-library-file-cached! recs)))))
           (lambda ()

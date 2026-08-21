@@ -50,14 +50,22 @@
 (define (gfo-stamp path)
   (list (g_path-getmtime path) (g_path-getsize path)))
 
+;;; gfo-format-version : cache record layout version.  A record carrying a
+;;; different version is a cache miss and regenerates (users never clear
+;;; caches by hand).  0 marks the in-development format; 1 is reserved for
+;;; the first release format, so dev caches invalidate on release.
+(define gfo-format-version 0)
+
 (define (gfo-valid? gfo-file stamp)
   (and (file-exists? gfo-file)
        (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
-         (and (pair? rec) (eq? (car rec) 'gfo) (equal? (cadr rec) stamp)))))
+         (and (pair? rec) (eq? (car rec) 'gfo)
+              (equal? (cadr rec) gfo-format-version)
+              (equal? (caddr rec) stamp)))))
 
 (define (gfo-read gfo-file)
   (let ((rec (car (read-forms (open-input-file gfo-file)))))
-    (caddr rec)))
+    (cadddr rec)))
 
 (define (gfo-write! gfo-file stamp payload)
   (if (getenv "GOLDFISH_CACHE_READONLY") #f
@@ -68,7 +76,7 @@
           (let ((tmp (string-append gfo-file ".tmp")))
             (call-with-output-file tmp
               (lambda (p)
-                (if (defined? 'write-roundtrip) (write-roundtrip (list 'gfo stamp payload) p)
-                    (write (list 'gfo stamp payload) p))))
+                (if (defined? 'write-roundtrip) (write-roundtrip (list 'gfo gfo-format-version stamp payload) p)
+                    (write (list 'gfo gfo-format-version stamp payload) p))))
             (g_rename tmp gfo-file))
           (let-set! *s7* 'print-length old-length)))))

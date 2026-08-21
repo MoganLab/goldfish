@@ -20,7 +20,7 @@
   ) ;import
 
   (begin
-    (load-source-file "cache/gfo.scm")
+    (load-source-file "core/gfo.scm")
     ;; unified gfo cache: ~/.cache/goldfish/ccache/fix/<version>/<path>.gfo with mtime/size stamp
     (define (fix-cache-path file-path)
       (gfo-path (string-append "fix/" (version) "/" file-path))

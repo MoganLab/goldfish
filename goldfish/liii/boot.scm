@@ -107,7 +107,7 @@
 
 ;; load-expanded: expand with tiny reader against the expander, eval into
 ;; the-expander-library, copy bindings to rootlet. reader.scm uses this.
-(load-source-file "cache/gfo.scm")
+(load-source-file "core/gfo.scm")
 
 (define (le-rootlet-copy bindings)
   (for-each (lambda (e)

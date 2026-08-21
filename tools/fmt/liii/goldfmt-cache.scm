@@ -21,7 +21,7 @@
   (import (liii base) (liii path) (liii hashlib))
   (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
   (begin
-    (load-source-file "cache/gfo.scm")
+    (load-source-file "core/gfo.scm")
     (define (fmt-cache-base-dir)
       (string-append (gfo-dir) "/fmt/" (version)))
     ;; 统一 gfo 缓存：~/.cache/goldfish/ccache/fmt/<version>/<path>.gfo

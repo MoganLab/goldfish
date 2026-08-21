@@ -18,8 +18,8 @@
 ;;; definition cache below) so warm starts rebuild transformers without
 ;;; re-running the expander.
 
-;; gfo helpers live in goldfish/cache/gfo.scm (single source)
-(load-source-file "cache/gfo.scm")
+;; gfo helpers live in goldfish/core/gfo.scm (single source, L2 core-format)
+(load-source-file "core/gfo.scm")
 
 ;; compat aliases for previous API
 (define compile-cache-dir gfo-dir)
