@@ -77,7 +77,10 @@
     ) ;define
 
     (define (%add-argument args-ht args)
-      (let* ((options (car args))
+      (let* ((raw-options (car args))
+             (options (if (and (pair? raw-options) (pair? (car raw-options)) (pair? (caar raw-options)) (eq? (caaar raw-options) 'name))
+                        (car raw-options)
+                        raw-options))
              (name (alist-ref options
                      'name
                      (lambda () (value-error "name is required for an option"))
@@ -144,11 +147,19 @@
     ) ;define
 
     (define (retrieve-args args)
-      (if (null? args) (cddr (argv)) (car args))
+      (if (null? args) (cddr (argv))
+        (let ((a (car args)))
+          (if (and (pair? a) (pair? (car a)) (string? (caar a)))
+            (car a)
+            a)))
     ) ;define
 
     (define (retrieve-argv args)
-      (if (null? args) (argv) (car args))
+      (if (null? args) (argv)
+        (let ((a (car args)))
+          (if (and (pair? a) (pair? (car a)) (string? (caar a)))
+            (car a)
+            a)))
     ) ;define
 
     (define (command-arg? options arg)

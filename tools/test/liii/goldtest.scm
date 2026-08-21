@@ -50,7 +50,12 @@
     (define RESET (color 0))
 
     (define (test-path-join . parts)
-      (let ((sep (string (os-sep))))
+      ;; Normalize dotted-rest invocation for apply-style calls
+      (let* ((parts (if (and (pair? parts) (pair? (car parts)) (string? (caar parts)))
+                      (if (null? (cdr parts)) (car parts)
+                          (if (let loop ((lst parts)) (if (null? lst) #t (and (pair? (car lst)) (string? (caar lst)) (null? (cdar lst)) (loop (cdr lst))))) (map car parts) parts))
+                      parts))
+             (sep (string (os-sep))))
         (let loop
           ((result "") (rest parts))
           (if (null? rest)
@@ -67,25 +72,21 @@
     ) ;define
 
     (define (find-test-files dir)
-      (let ((files '()))
-        (when (path-dir? dir)
-          (let ((entries (listdir dir)))
-            (for-each (lambda (entry)
-                        (let ((full-path (test-path-join dir entry)))
-                          (cond ((path-dir? full-path) (set! files (append files (find-test-files full-path))))
-                                ((and (path-file? full-path) (string-ends? entry "-test.scm"))
-                                 (set! files (cons full-path files))
-                                ) ;
-                          ) ;cond
-                        ) ;let
-                      ) ;lambda
-              entries
-            ) ;for-each
-          ) ;let
-        ) ;when
-        files
-      ) ;let
-    ) ;define
+      (if (not (path-dir? dir))
+        '()
+        (let ((entries (vector->list (listdir dir))))
+          (let loop ((es entries) (acc '()))
+            (if (null? es)
+              acc
+              (let* ((entry (car es))
+                     (full-path (test-path-join dir entry))
+                     (next-acc
+                       (cond ((path-dir? full-path)
+                              (append acc (find-test-files full-path)))
+                             ((and (path-file? full-path) (string-ends? entry "-test.scm"))
+                              (cons full-path acc))
+                             (else acc))))
+                (loop (cdr es) next-acc)))))))
 
     (define (goldfish-cmd)
       (string-append (executable) " -m liii ")

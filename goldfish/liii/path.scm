@@ -798,7 +798,18 @@
     ;; ;   current-drive root 段(\b):继承 acc drive,重置主体(C:\base.joinpath('\b')=>C:\b)。
     ;; ; posix 退化为"绝对段替换 / 相对段追加"。
     (define (path-join base . segments)
-      (let ((base-rec (path base)))
+      ;; Normalize dotted-rest invocation: handle both (path-join "a" "b") and apply-style (( "b" "c"))
+      (let* ((segments (let ((s segments))
+                         (if (and (pair? s) (pair? (car s)) (string? (caar s)))
+                           (cond ((null? (cdr s)) (car s)) ; (("b" "c")) -> ("b" "c") , (("b")) -> ("b")
+                                 ((let loop ((lst s))
+                                    (if (null? lst) #t
+                                        (let ((e (car lst)))
+                                          (and (pair? e) (string? (car e)) (null? (cdr e)) (loop (cdr lst))))))
+                                  (map car s)) ; (("b") ("c")) -> ("b" "c")
+                                 (else s))
+                           s)))
+             (base-rec (path base)))
         (define (append-parts acc seg)
           (define (drop-dots v)
             (vector-filter (lambda (x) (not (string=? x "."))) v)

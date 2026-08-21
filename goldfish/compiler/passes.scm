@@ -410,10 +410,28 @@
     ;; After inlining the body, drop bindings whose name is no longer
     ;; referenced anywhere (binding values and body).  When none survive
     ;; the let collapses to its body.
+    (define (pure-ir? ir)
+      (cond
+        ((or (const? ir) (void? ir) (primitive-ref? ir) (symbol? ir)) #t)
+        ((lambda? ir) #t)
+        ((begin? ir)
+         (let loop ((es (begin-body ir)))
+           (if (null? es) #t (and (pure-ir? (car es)) (loop (cdr es))))))
+        ((if? ir) (and (pure-ir? (if-test ir))
+                       (pure-ir? (if-then ir))
+                       (or (not (if-else ir)) (pure-ir? (if-else ir)))))
+        ((values? ir)
+         (let loop ((es (values-args ir)))
+           (if (null? es) #t (and (pure-ir? (car es)) (loop (cdr es))))))
+        (else #f)))
+
     (define (prune-let-bindings head src new-bindings body-inl)
       (let* ((free (collect-residual-free
                     (append (map (lambda (b) (cadr b)) new-bindings) body-inl)))
-             (survivors (filter (lambda (b) (member (car b) free)) new-bindings)))
+             (survivors (filter (lambda (b)
+                                  (or (member (car b) free)
+                                      (not (pure-ir? (cadr b)))))
+                                new-bindings)))
         (if (null? survivors)
           (if (null? (cdr body-inl)) (car body-inl) (make-begin #f body-inl))
           (if (eq? head 'let)
