@@ -423,7 +423,10 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
         spliced = rest;
       }
     } else {
-      if (rest == p)                                 // only (proc list) -> splice
+      // last is not a list (e.g., string/handle from (apply proc (a "x")) where (a "x") is already proper) -> no splice
+      if (!gf::is_pair (last)) {
+        spliced = rest;
+      } else if (rest == p)                          // only (proc list) -> splice
         spliced = last;
       else {                                         // splice list after fixed args
         gf::pointer q = rest;

@@ -93,10 +93,10 @@ using nlohmann::json;
 inline void glue_define (gf::scheme* sc, const char* name, const char* desc, gf::function f, gf::int_ required,
                          gf::int_ optional);
 
-static gf::pointer f_function_libraries (gf::scheme* sc, gf::pointer args);
-
+static gf::pointer f_goldfish_library (gf::scheme* sc, gf::pointer args);
+static gf::pointer f_load_path (gf::scheme* sc, gf::pointer args);
 static gf::pointer f_gfproject_load_config (gf::scheme* sc, gf::pointer args);
-
+static gf::pointer f_function_libraries (gf::scheme* sc, gf::pointer args);
 static gf::pointer f_project_root (gf::scheme* sc, gf::pointer args);
 
 static bool split_library_query (const string& query, string& group, string& library);
@@ -158,6 +158,10 @@ glue_goldfish (gf::scheme* sc) {
   const char* d_version           = "(version) => string";
   const char* s_delete_file       = "g_delete-file";
   const char* d_delete_file       = "(g_delete-file string) => boolean";
+  const char* s_goldfish_library  = "g_goldfish-library";
+  const char* d_goldfish_library  = "(g_goldfish-library) => string or #f, goldfish library root";
+  const char* s_load_path         = "g_load-path";
+  const char* d_load_path         = "(g_load-path) => list of strings, current load-path";
   const char* s_function_libraries= "g_function-libraries";
   const char* d_function_libraries=
       "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
@@ -174,6 +178,12 @@ glue_goldfish (gf::scheme* sc) {
 
   gf::define (sc, cur_env, gf::make_symbol (sc, s_delete_file),
              gf::make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
+
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_goldfish_library),
+             gf::make_typed_function (sc, s_goldfish_library, f_goldfish_library, 0, 0, false, d_goldfish_library, NULL));
+
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_load_path),
+             gf::make_typed_function (sc, s_load_path, f_load_path, 0, 0, false, d_load_path, NULL));
 
   gf::define (
       sc, cur_env, gf::make_symbol (sc, s_function_libraries),
@@ -1497,6 +1507,20 @@ goldfish_run_tool_with_config (gf::scheme* sc, const char* gf_lib, const string&
 }
 
 static gf::pointer
+f_goldfish_library (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  string s= find_goldfish_library ();
+  if (s.empty ()) return gf::f (sc);
+  return gf::make_string (sc, s.c_str ());
+}
+
+static gf::pointer
+f_load_path (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::load_path (sc);
+}
+
+static gf::pointer
 f_gfproject_load_config (gf::scheme* sc, gf::pointer args) {
   (void) args;
   string gf_lib_dir= find_goldfish_library ();
@@ -1511,7 +1535,6 @@ f_project_root (gf::scheme* sc, gf::pointer args) {
   if (local.empty ()) {
     return gf::f (sc);
   }
-  // local points at gfproject.json; its parent is the project root.
   std::string s= local.parent_path ().generic_string ();
   if (s.empty ()) {
     return gf::f (sc);
