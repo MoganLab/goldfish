@@ -416,15 +416,25 @@
       ;; s7 的 catch handler 收到 (tag values-list)，
       ;; 抛出的对象为 (car values-list)：
       ;;   (raise 'x) 绑定 x；(error "msg" ...) 绑定 (msg ...) 错误对象。
-      `(let ((caught (catch ,#t
-                       (lambda ()
-                         (cons (quote normal)
-                           (call-with-values (lambda () ,@body) list)))
-                       (lambda (type info) (cons (quote raised) (car info))))))
-         (if (eq? (car caught) (quote raised))
-           (let ((,(car results) (cdr caught)))
-             (cond ,@(cdr results) (else (raise ,(car results)))))
-           (apply values (cdr caught))))
+      ;; 仅当用户子句没有 else 时才追加重抛子句：无条件追加会产生双
+      ;; else，cond 只认末尾 else，首个 else 会被当作测试表达式展开。
+      (let ((clauses (cdr results))
+            (var (car results)))
+        `(let ((caught (catch ,#t
+                         (lambda ()
+                           (cons (quote normal)
+                             (call-with-values (lambda () ,@body) list)))
+                         (lambda (type info) (cons (quote raised) (car info))))))
+           (if (eq? (car caught) (quote raised))
+             (let ((,var (cdr caught)))
+               (cond ,@clauses
+                     ,@(if (let loop ((cs clauses))
+                             (cond ((null? cs) #f)
+                                   ((eq? (car (car cs)) (quote else)) #t)
+                                   (else (loop (cdr cs)))))
+                         '()
+                         (list (list (quote else) (list (quote raise) var))))))
+             (apply values (cdr caught)))))
     ) ;define-macro
   ) ;begin
 ) ;define-library

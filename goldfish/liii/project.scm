@@ -1,5 +1,5 @@
 (define-library (liii project)
-  (import (scheme base) (liii base) (liii path) (liii sort) (liii string) (liii list))
+  (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
   (export project-root gfproject-load-config function-libraries)
   (begin
 
@@ -116,10 +116,10 @@
         (let ((v (listdir dir))) (if (vector? v) (vector->list v) '()))))
 
     (define (sorted-children root)
-      (sort (filter (lambda (n) (path-dir? (path (join-path root n)))) (listdir-list root)) string<?))
+      (list-sort string<? (filter (lambda (n) (path-dir? (path (join-path root n)))) (listdir-list root))))
 
     (define (sorted-scm-files dir)
-      (sort (filter (lambda (n) (and (string-suffix? n ".scm") (path-file? (path (join-path dir n))))) (listdir-list dir)) string<?))
+      (list-sort string<? (filter (lambda (n) (and (string-suffix? n ".scm") (path-file? (path (join-path dir n))))) (listdir-list dir))))
 
     (define (export-matches? spec name)
       (cond [(symbol? spec) (string=? (symbol->string spec) name)]
@@ -179,6 +179,7 @@
                      (sorted-scm-files gdir))))
                 (sorted-children root))))
            (if (list? load-path) load-path '()))
-          (sort res (lambda (a b) (string<? (string-append (symbol->string (car a)) "/" (symbol->string (cadr a)))
-                                             (string-append (symbol->string (car b)) "/" (symbol->string (cadr b)))))))))
+          (list-sort (lambda (a b) (string<? (string-append (symbol->string (car a)) "/" (symbol->string (cadr a)))
+                                             (string-append (symbol->string (car b)) "/" (symbol->string (cadr b)))))
+                     res))))
 ))
