@@ -1,4 +1,5 @@
 (import (liii check)
+        (liii base)
         (goldfish compiler ir)
         (goldfish compiler bytecode))
 

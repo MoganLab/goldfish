@@ -186,8 +186,9 @@
               (if (= (lexical-ref-depth t) 0)
                 (emit (list 'set-local (lexical-ref-index t)))
                 (emit (list 'set-ref (lexical-ref-depth t) (lexical-ref-index t)))))
-             ((and r (= (car r) 0)) (emit (list 'set-local (cadr r)))
-              (r (emit (list 'set-ref (car r) (cadr r)))))
+             ((and r (= (car r) 0))
+              (emit (list 'set-local (cadr r))))
+             (r (emit (list 'set-ref (car r) (cadr r))))
              (else (emit (list 'store-global t)))))
          (emit '(return))]
         [(call-with-values? s)

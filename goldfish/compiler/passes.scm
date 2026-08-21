@@ -456,7 +456,9 @@
     ;; the let collapses to its body.
     (define (pure-ir? ir)
       (cond
-        ((or (const? ir) (void? ir) (primitive-ref? ir) (symbol? ir)) #t)
+        ((or (const? ir) (void? ir) (primitive-ref? ir) (symbol? ir)
+             (and (not (pair? ir)) (not (vector? ir))))
+         #t)
         ((lambda? ir) #t)
         ((begin? ir)
          (let loop ((es (begin-body ir)))

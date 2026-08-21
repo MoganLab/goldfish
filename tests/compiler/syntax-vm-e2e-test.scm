@@ -190,9 +190,13 @@
                                                         (else (loop (cdr rest) (+ count 1))))))))))
                            the-base-library
                            (initial-context))))
-  (let ((irs (vm-load-syntax-defs defs ctx
-                                  (list constant-fold simplify-if)
-                                  the-expander-library)))
+  ;; vm-load-syntax-defs was removed from syntax-ir (L4 purity, a1d70298);
+  ;; compose the same pipeline here: syntax->ir -> passes -> bytecode ->
+  ;; vm-load into the target environment.
+  (let ((irs (map (lambda (d) (run-passes (syntax->ir d ctx)
+                                          (list constant-fold simplify-if)))
+                  defs)))
+    (vm-load (to-bytecode irs) the-expander-library)
     (check ((eval (define-name (car irs)) the-expander-library)
             3 (list 'a 'b 'c))
            => #t)
