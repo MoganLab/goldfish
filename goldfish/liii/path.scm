@@ -122,19 +122,19 @@
     ;; ; 差异:Windows 平台下先把 / 规范化为 \,再按当前平台 sep 切分;
     ;; ; posix 平台直接按 / 切分。起始分隔符由 root 字段表达,不混入 parts。
     (define (parse-path-string s)
-      (cond ((string-null? s) (values #(".") #f))
-            ((string=? s ".") (values #(".") #f))
-            ((string=? s "/") (values #() #\/))
-            ((string=? s "\\") (values #() #\\))
+      (cond ((string-null? s) (cons #(".") #f))
+            ((string=? s ".") (cons #(".") #f))
+            ((string=? s "/") (cons #() #\/))
+            ((string=? s "\\") (cons #() #\\))
             (else (let ((sep (os-sep)))
                     (let ((normalized (if (os-windows?) (string-replace s "/" "\\") s)))
                       (if (and (> (string-length normalized) 0) (char=? (string-ref normalized 0) sep))
                         ;; 绝对路径:丢弃 string-split-vec 产生的起始空 stub。
                         (let ((raw (string-split-vec normalized sep)))
-                          (values (drop-dot-parts (vector-drop raw 1)) sep)
+                          (cons (drop-dot-parts (vector-drop raw 1)) sep)
                         ) ;let
                         ;; 相对路径
-                        (values (drop-dot-parts (string-split-vec normalized sep)) #f)
+                        (cons (drop-dot-parts (string-split-vec normalized sep)) #f)
                       ) ;if
                     ) ;let
                   ) ;let
@@ -152,14 +152,14 @@
         (if (not first-slash)
           ;; 仅 \\server（无 share）：drive 是 \\\\server 整体，但 root 为 #f
           ;; (对齐 pathlib: PureWindowsPath('\\\\srv').root == '')
-          (values #() (string-append "\\\\" after-slash) #f)
+          (list #() (string-append "\\\\" after-slash) #f)
           (let* ((server (substring after-slash 0 first-slash))
                  (rest (substring after-slash (+ first-slash 1) (string-length after-slash)))
                  (second-slash (string-index rest #\\))
                 ) ;
             (if (not second-slash)
               ;; \\server\share（无后续路径）
-              (values #() (string-append "\\\\" server "\\" rest) #\\)
+              (list #() (string-append "\\\\" server "\\" rest) #\\)
               ;; \\server\share\path...
               (let* ((share (substring rest 0 second-slash))
                      (path-rest (substring rest (+ second-slash 1) (string-length rest)))
@@ -169,7 +169,7 @@
                             ) ;if
                      ) ;parts
                     ) ;
-                (values parts (string-append "\\\\" server "\\" share) #\\)
+                (list parts (string-append "\\\\" server "\\" share) #\\)
               ) ;let*
             ) ;if
           ) ;let*
@@ -201,7 +201,7 @@
                   (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
                   ) ;parts
                  ) ;
-             (values parts drive #\\)
+             (list parts drive #\\)
            ) ;let*
           ) ;
 
@@ -212,7 +212,7 @@
                   (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
                   ) ;parts
                  ) ;
-             (values parts drive #f)
+             (list parts drive #f)
            ) ;let*
           ) ;
 
@@ -222,12 +222,12 @@
                   (parts (if (string-null? rest) #() (drop-dot-parts (string-split-vec rest #\\)))
                   ) ;parts
                  ) ;
-             (values parts "" #\\)
+             (list parts "" #\\)
            ) ;let*
           ) ;
 
           ;; 相对路径: foo\bar
-          (else (values (drop-dot-parts (string-split-vec normalized #\\)) "" #f))
+          (else (list (drop-dot-parts (string-split-vec normalized #\\)) "" #f))
         ) ;cond
       ) ;let*
     ) ;define
@@ -254,12 +254,12 @@
     ;; ; 隐藏文件(.bashrc)、无点、"."/".." 整体作 stem 无后缀。
     ;; ; 末尾点(foo.)当作空后缀:stem="foo", suffix=".", 对齐 Python 3.14+ pathlib。
     (define (split-name-dots name)
-      (cond ((or (string=? name ".") (string=? name "..")) (values (list name) '()))
+      (cond ((or (string=? name ".") (string=? name "..")) (cons (list name) '()))
             (else (let ((splits (string-split name #\.)))
                     (if (or (<= (length splits) 1) (string=? (car splits) ""))
-                      (values (list name) '())
+                      (cons (list name) '())
                       (let* ((rev (reverse splits)) (suffix-seg (car rev)) (stem-segs (reverse (cdr rev))))
-                        (values stem-segs (list (string-append "." suffix-seg)))
+                        (cons stem-segs (list (string-append "." suffix-seg)))
                       ) ;let*
                     ) ;if
                   ) ;let
@@ -308,7 +308,7 @@
         (let scan
           ((k (if negate (+ j 2) (+ j 1))) (matched #f))
           (cond ((or (>= k plen) (char=? (string-ref pattern k) #\]))
-                 (values (if negate (not matched) matched) (if (< k plen) (+ k 1) k))
+                 (cons (if negate (not matched) matched) (if (< k plen) (+ k 1) k))
                 ) ;
                 ((and (< (+ k 2) plen) (char=? (string-ref pattern (+ k 1)) #\-))
                  (let ((lo (string-ref pattern k)) (hi (string-ref pattern (+ k 2))))
@@ -347,10 +347,13 @@
                                    ((= s0 slen) #f)
                                    ((char=? (string-ref pattern p0) #\?) (match-at (+ p0 1) (+ s0 1)))
                                    ((char=? (string-ref pattern p0) #\[)
-                                    (let-values (((hit next) (charclass-match-one pattern plen p0 (string-ref str s0))))
-                                      (and hit (match-at next (+ s0 1)))
-                                    ) ;let-values
-                                   ) ;
+                                     (let* ((res (charclass-match-one pattern plen p0 (string-ref str s0)))
+                                            (hit (car res))
+                                            (next (cdr res))
+                                           ) ;
+                                       (and hit (match-at next (+ s0 1)))
+                                     ) ;let*
+                                    ) ;
                                    ((char=? (string-ref pattern p0) (string-ref str s0))
                                     (match-at (+ p0 1) (+ s0 1))
                                    ) ;
@@ -402,16 +405,21 @@
         (let ((arg (car args)))
           (cond ((string? arg)
                  (if (and (os-windows?) (or (unc-prefix? arg) (windows-path-with-drive? arg)))
-                   (receive (parts drive root)
-                     (parse-windows-path arg)
+                   (let* ((res (parse-windows-path arg))
+                          (parts (car res))
+                          (drive (cadr res))
+                          (root (caddr res))
+                         ) ;
                      (make-path-record parts 'windows drive root)
-                   ) ;receive
-                   (receive (parts root)
-                     (parse-path-string arg)
+                   ) ;let*
+                   (let* ((res (parse-path-string arg))
+                          (parts (car res))
+                          (root (cdr res))
+                         ) ;
                      (let ((type (if (os-windows?) 'windows 'posix)))
                        (make-path-record parts type "" root)
                      ) ;let
-                   ) ;receive
+                   ) ;let*
                  ) ;if
                 ) ;
                 ((path? arg) (copy arg))
@@ -612,17 +620,21 @@
     ;; ; 对齐 pathlib.PurePath.stem
     ;; ; 差异:基于 path-name,跨平台一致。隐藏文件(.bashrc)整体作 stem。
     (define (path-stem p)
-      (let-values (((stem-segs _) (split-name-dots (path-name p))))
+      (let* ((res (split-name-dots (path-name p)))
+             (stem-segs (car res))
+            ) ;
         (string-join stem-segs ".")
-      ) ;let-values
+      ) ;let*
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.suffix
     ;; ; 差异:基于 path-name 末段,跨平台一致。无后缀返回 ""。
     (define (path-suffix p)
-      (let-values (((_ suffix-segs) (split-name-dots (path-name p))))
+      (let* ((res (split-name-dots (path-name p)))
+             (suffix-segs (cdr res))
+            ) ;
         (if (null? suffix-segs) "" (car suffix-segs))
-      ) ;let-values
+      ) ;let*
     ) ;define
 
     ;; ; 对齐 pathlib.PurePath.suffixes
