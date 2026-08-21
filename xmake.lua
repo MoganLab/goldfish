@@ -102,27 +102,8 @@ target ("goldfish") do
         -- preload goldfish stdlib in `bin/goldfish.data`
         add_ldflags("--preload-file goldfish@/goldfish")
     end
-    -- L0 host (sole s7.h)
+    -- L0 host (sole s7.h): C++ wrappers + s7 core (no Scheme includes)
     add_files ("src/gf.cpp")
-    -- L5 vm (gf:: only, per-program, pre-decoded)
-    add_files ("src/goldfish_vm.cpp")
-    -- L1 tiny (bootstrap reader subset)
-    add_files ("src/liii_reader.cpp")
-    -- L6 loader + L0 host extensions (gf:: wrappers)
-    add_files ("src/goldfish.cpp")
-    add_files ("src/liii_subprocess.cpp")
-    add_files ("src/liii_njson.cpp")
-    if has_config("http") and not is_plat("wasm") then
-        add_files ("src/liii_http.cpp")
-        add_defines("GOLDFISH_ENABLE_HTTP")
-    end
-    add_files ("src/liii_os.cpp")
-    add_files ("src/liii_path.cpp")
-    add_files ("src/liii_string.cpp")
-    add_files ("src/liii_hashlib.cpp")
-    add_files ("src/liii_base64.cpp")
-    add_files ("src/scheme_base.cpp")
-    add_files ("src/scheme_char.cpp")
     add_files ("src/s7.c", {languages = "c11"})
     add_files ("src/s7_op_names.c", {languages = "c11"})
     add_files ("src/s7_scheme_complex.c", {languages = "c11"})
@@ -143,6 +124,25 @@ target ("goldfish") do
     add_files ("src/s7_dtoa.c", {languages = "c11"})
     add_files ("src/s7_continuation.c", {languages = "c11"})
     add_files ("src/s7_scheme_let.c", {languages = "c11"})
+    -- L1 tiny (bootstrap reader subset, no expander)
+    add_files ("src/liii_reader.cpp")
+    -- L5 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
+    add_files ("src/goldfish_vm.cpp")
+    -- L6 loader + L0 host extensions (gf:: wrappers, CLI/REPL dispatch only)
+    add_files ("src/goldfish.cpp")
+    add_files ("src/liii_subprocess.cpp")
+    add_files ("src/liii_njson.cpp")
+    if has_config("http") and not is_plat("wasm") then
+        add_files ("src/liii_http.cpp")
+        add_defines("GOLDFISH_ENABLE_HTTP")
+    end
+    add_files ("src/liii_os.cpp")
+    add_files ("src/liii_path.cpp")
+    add_files ("src/liii_string.cpp")
+    add_files ("src/liii_hashlib.cpp")
+    add_files ("src/liii_base64.cpp")
+    add_files ("src/scheme_base.cpp")
+    add_files ("src/scheme_char.cpp")
     add_packages("tbox")
     add_packages("argh")
     add_packages("nlohmann_json")
@@ -175,17 +175,19 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
-    -- L3 cache / L4 compiler
+    -- L1 tiny : first-load cache
     add_installfiles("$(projectdir)/goldfish/(cache/*.scm)", {prefixdir = "share/goldfish"})
+    -- L2 expander-rt : self-contained kernel artifact
+    add_installfiles("$(projectdir)/goldfish/(expander/kernel/*.scm)", {prefixdir = "share/goldfish/expander/kernel"})
+    add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
+    add_installfiles("$(projectdir)/goldfish/(expander/build-combined.scm)", {prefixdir = "share/goldfish/expander"})
+    -- L3 expander-lib : no compiler/vm import, vm fallback via host primitive
+    add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
+    -- L4 compiler : pure, no s7/cache/lib
     add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(expander/syntax-ir.scm)", {prefixdir = "share/goldfish"})
-    -- L3 expander lib + L2 kernel
-    add_installfiles("$(projectdir)/goldfish/(expander/kernel/*.scm)", {prefixdir = "share/goldfish/expander/kernel"})
-    add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
-    add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    add_installfiles("$(projectdir)/goldfish/(expander/build-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    -- L1/L3 Scheme libs
+    -- L1/L3 Scheme libs (r7rs + liii + guenchi, all via expander)
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(liii/*.scm)", {prefixdir = "share/goldfish"})
