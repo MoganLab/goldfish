@@ -28,13 +28,13 @@
     (liii error)
     (liii sys)
     (liii list)
+    (liii project)
   ) ;import
   (export main load-gfproject get-tool-description display-help)
   (begin
 
     (define (load-gfproject)
-      "Load merged gfproject.scm via C++ glue (JSON dump) as njson"
-      (string->njson (g_gfproject-load-config))
+      (string->njson (gfproject-load-config))
     ) ;define
 
     (define (get-tool-description tools tool-name lang)
