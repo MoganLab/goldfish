@@ -69,7 +69,6 @@ static gf::pointer vm_enter_symbol  = nullptr;  // 'vm-enter
 static gf::pointer quote_symbol     = nullptr;  // 'quote
 static gf::pointer captured_symbol  = nullptr;  // '*vm-captured*
 static gf::pointer g_false = nullptr;           // cached #f (unique object)
-static bool g_vm_trace = false;                 // getenv VMTRACE=1
 
 // ---------------------------------------------------------------------------
 // Instruction decoding.
@@ -200,11 +199,6 @@ static gf::pointer build_args_list (gf::scheme* sc, const std::vector<gf::pointe
 static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
                              const std::vector<gf::pointer>& args) {
   f.slots = gf::make_vector (sc, (gf::int_)ci.nlocals);
-  if (g_vm_trace)
-    fprintf (stderr, "[vm] frame: nlocals=%d args=%zu formals_sym=%d formals_proper=%d\n",
-             (int)ci.nlocals, args.size (),
-             (int)gf::is_symbol (ci.formals),
-             (int)gf::is_proper_list (sc, ci.formals));
   if (gf::is_symbol (ci.formals)) {
     // Rest closure: the whole arg list is one slot.  The caller hands over
     // a SINGLE packed list argument (s7's rest closure bundles the args
@@ -413,39 +407,18 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
     }
     const Instr& in = code[fr.pc++];
 
-    if (g_vm_trace)
-      fprintf (stderr, "[vm] frames=%zu pc=%zu op=%d b=%ld c=%ld\n",
-               g_current_vm->frames.size (), fr.pc - 1, (int)in.op,
-               (long)in.b, (long)in.c);
-
     switch (in.op) {
       case Op::Const:
         push (in.a);
         break;
-      case Op::Global: {
-        gf::pointer gv = global_lookup (sc, in.a, fr.global_env);
-        if (g_vm_trace)
-          fprintf (stderr, "[vm] global: %s -> %p\n",
-                   gf::symbol_name (in.a), (void*)gv);
-        push (gv);
+      case Op::Global:
+        push (global_lookup (sc, in.a, fr.global_env));
         break;
-      }
-      case Op::Ref: {
-        gf::pointer rv = gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c);
-        if (g_vm_trace)
-          fprintf (stderr, "[vm] ref: %d/%d -> %p pair=%d\n",
-                   (int)in.b, (int)in.c, (void*)rv, (int)gf::is_pair (rv));
-        push (rv);
+      case Op::Ref:
+        push (gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c));
         break;
-      }
-      case Op::Local: {
-        gf::pointer lv = gf::vector_ref (sc, fr.slots, in.b);
-        if (g_vm_trace)
-          fprintf (stderr, "[vm] local: %d -> %p pair=%d int=%d sym=%d car-self=%d\n",
-                   (int)in.b, (void*)lv, (int)gf::is_pair (lv),
-                   (int)gf::is_integer (lv), (int)gf::is_symbol (lv),
-                   gf::is_pair (lv) ? (int)gf::is_eq (gf::car (lv), lv) : -1);
-        push (lv);
+      case Op::Local:
+        push (gf::vector_ref (sc, fr.slots, in.b));
         break;
       }
       case Op::SetLocal: {
@@ -523,9 +496,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Call:
       case Op::TailCall: {
         int n = (int)in.b;
-        if (g_vm_trace)
-          fprintf (stderr, "[vm] call-enter: op=%d n=%d stack=%zu base=%zu\n",
-                   (int)in.op, n, g_current_vm->stack.size (), fr.stack_base);
         std::vector<gf::pointer> args (n);
         for (int i = n - 1; i >= 0; --i) args[i] = pop ();
         gf::pointer f = pop ();
@@ -536,10 +506,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
         // (handling VM-closure callbacks correctly).
         if (in.op == Op::Call) {
           gf::pointer r = call_function (sc, f, args);
-          if (g_vm_trace)
-            fprintf (stderr, "[vm] call-done: r=%p frames=%zu f=%p cdr-eq=%d closure=%d\n",
-                     (void*)r, g_current_vm->frames.size (), (void*)f,
-                     (int)gf::is_eq (f, g_cdr_fn), (int)gf::is_closure (f));
           if (r != nullptr) push (r);
         } else {
           // Tail call.  To a VM closure: replace the CURRENT frame in place
@@ -548,9 +514,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
           // value to the enclosing frame's region (or return it from run at
           // the target depth).
           VMClosure* vc = vm_closure_of (sc, f);
-          if (g_vm_trace)
-            fprintf (stderr, "[vm] tailcall: n=%d vm-closure=%d idx=%d\n",
-                     n, vc != nullptr, vc ? (int)vc->code_idx : -1);
           if (vc != nullptr) {
             VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
             fr.pc = 0;
@@ -716,7 +679,6 @@ void glue_vm (gf::scheme* sc) {
   g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
   g_false = gf::f (sc);
-  g_vm_trace = (getenv ("VMTRACE") != nullptr);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");
   captured_symbol  = gf::make_symbol (sc, "*vm-captured*");
