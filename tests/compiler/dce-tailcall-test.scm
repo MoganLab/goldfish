@@ -64,12 +64,12 @@
 (check (tc-sexp (tail-call-positions (core->ir '(lambda (x) (let ((a 1)) (+ a x))))))
        => '(lambda (x) (let ((a 1)) ((tail-call (+ a x))))))
 
-;; call-with-values 的 consumer 调用是尾位置
+;; call-with-values 是普通调用（派生形式，见 ir.scm），整调用在尾位置
 (check (tc-sexp (tail-call-positions
                  (core->ir '(lambda (x) (call-with-values (lambda () (p x))
                                         (lambda (a b) (k a b)))))))
-       => '(lambda (x) (call-with-values (lambda () (p x))
-                       (lambda (a b) (tail-call (k a b))))))
+       => '(lambda (x) (tail-call (call-with-values (lambda () (p x))
+                                   (lambda (a b) (k a b))))))
 
 ;; 非尾位置不标记：if 的 test、lambda 的非末表达式
 (check (tc-sexp (tail-call-positions (core->ir '(lambda (x) (if (t x) (f x) (g x))))))

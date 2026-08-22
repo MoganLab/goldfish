@@ -62,15 +62,13 @@
        => '(#t x 1))
 
 (check (let ((ir (core->ir '(values 1 2))))
-         (list (values? ir) (values-args ir)))
-       => '(#t (1 2)))
+         (list (call? ir) (call-proc ir) (call-args ir)))
+       => '(#t values (1 2)))
 
 (check (let ((ir (core->ir '(call-with-values (lambda () (values 1 2))
                              (lambda (a b) (+ a b))))))
-         (list (call-with-values? ir)
-               (ir->core (cwv-producer ir))
-               (ir->core (cwv-consumer ir))))
-       => '(#t (lambda () (values 1 2)) (lambda (a b) (+ a b))))
+         (list (call? ir) (call-proc ir)))
+       => '(#t call-with-values))
 
 ;; ===== 3. ir->core 往返 =====
 (check (let ((core '(if (> x 0) (f (- x 1)) 0)))
@@ -107,9 +105,9 @@
        => '(begin ((a) (b))))
 
 (check (match (core->ir '(values 1 2))
-         (($values args) (list 'values args))
+         (($call proc args) (list 'call proc args))
          (_ 'no))
-       => '(values (1 2)))
+       => '(call values (1 2)))
 
 (check (match (core->ir '(set! x 1))
          (($set! name expr) (list 'set! name expr))
