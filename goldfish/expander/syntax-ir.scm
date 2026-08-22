@@ -277,12 +277,9 @@
                                     ((eq? kind 'primitive) (make-primitive-ref #f name))
                                     (else name))
                                   (syntax->ir* (caddr form) ctx env resolve-lexical?)))))
-                  ((values)
-                   (make-values #f (map (lambda (b) (syntax->ir* b ctx env resolve-lexical?))
-                                        (cdr form))))
-                  ((call-with-values)
-                   (make-call-with-values #f (syntax->ir* (cadr form) ctx env resolve-lexical?)
-                                          (syntax->ir* (caddr form) ctx env resolve-lexical?)))
+                  ;; values / call-with-values are ordinary calls to the
+                  ;; rootlet definitions (derived form): fall through to
+                  ;; make-call like any other application.
                   (else
                    (make-call #f (syntax->ir* head ctx env resolve-lexical?)
                               (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))

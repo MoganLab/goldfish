@@ -9,6 +9,17 @@
 ;;; calls (Guile boot-9 style); the rest-list iteration uses explicit
 ;;; helper recursion so the definition does not depend on `map' being
 ;;; bound before it is installed.
+;;;
+;;; Multiple values are a derived form: `values' constructs a list and
+;;; `call-with-values' applies the consumer to it.  One representation
+;;; everywhere (kernel artifact, libraries, user code); the VM has no
+;;; values datatype -- heap values objects only ever exist inside the
+;;; host at its own boundaries.
+
+(define (values . xs) xs)
+
+(define (call-with-values producer consumer)
+  (apply consumer (producer)))
 
 (define (map f l1 . rest)
   (if (null? rest)

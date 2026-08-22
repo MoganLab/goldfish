@@ -12,8 +12,7 @@
 ;;;   instr = (const v) | (global name) | (ref d i) | (local i)
 ;;;         | (set-local i) | (set-ref d i) | (store-global name)
 ;;;         | (closure i) | (call n) | (tail-call n)
-;;;         | (if-else L) | (jump L) | (label L) | (return)
-;;;         | (values n) | (call-with-values) | (pop)
+;;;         | (if-else L) | (jump L) | (label L) | (return) | (pop)
 ;;;
 ;;; Lexical addressing: every frame owns slots 0..nlocals-1 (formals,
 ;;; then let/letrec bindings and internal defines).  A variable of the
@@ -26,10 +25,6 @@
 ;;; Conventions:
 ;;; - An application in tail position compiles to (tail-call n), a
 ;;;   jump that never returns; otherwise (call n) pushes the result.
-;;; - call-with-values with a producer that is a lambda whose tail is
-;;;   a values form is inlined into a direct consumer call with a
-;;;   statically known arity; any other shape falls back to the
-;;;   (call-with-values) instruction.
 
 (define-library (goldfish compiler bytecode)
   (import (scheme base)
@@ -51,7 +46,7 @@
       '((const . 0) (global . 1) (ref . 2) (local . 3) (set-local . 4)
         (set-ref . 5) (store-global . 6) (closure . 7) (call . 8)
         (tail-call . 9) (if-else . 10) (jump . 11) (return . 12)
-        (pop . 13) (values . 14) (call-with-values . 15)))
+        (pop . 13)))
 
     ;; encode-instrs : (list instr) -> vector
     ;; Four slots per instruction: opcode, payload, i0, i1.  The payload
@@ -88,7 +83,7 @@
                                          (error "encode-instrs: unknown label"
                                                 (cadr instr))))
                                   0))
-                           ((local set-local closure call tail-call values)
+                           ((local set-local closure call tail-call)
                             (list op #f (cadr instr) 0))
                            (else (list op #f 0 0)))))
                    (loop (cdr is)
@@ -261,15 +256,6 @@
              (r (emit (list 'set-ref (car r) (cadr r))))
              (else (emit (list 'store-global t)))))
          (emit '(return))]
-        [(call-with-values? s)
-         (compile-call-with-values (cwv-producer s) (cwv-consumer s) envs emit
-                                   next-label next-slot add-code #t)]
-        [(values? s)
-         (for-each (lambda (e)
-                     (compile-expr e envs emit next-label next-slot add-code))
-                   (values-args s))
-         (emit (list 'values (length (values-args s))))
-         (emit '(return))]
         [(call? s)
          (compile-expr (call-proc s) envs emit next-label next-slot add-code)
          (for-each (lambda (a)
@@ -341,14 +327,6 @@
              ((and r (= (car r) 0)) (emit (list 'set-local (cadr r))))
              (r (emit (list 'set-ref (car r) (cadr r))))
              (else (emit (list 'store-global t))))))
-        ((call-with-values? s)
-         (compile-call-with-values (cwv-producer s) (cwv-consumer s) envs emit
-                                   next-label next-slot add-code #f))
-        ((values? s)
-         (for-each (lambda (e)
-                     (compile-expr e envs emit next-label next-slot add-code))
-                   (values-args s))
-         (emit (list 'values (length (values-args s)))))
         ((call? s)
          (compile-expr (call-proc s) envs emit next-label next-slot add-code)
          (for-each (lambda (a)
@@ -387,100 +365,6 @@
                                   (cdr (assq (car b) new-alist)))))
                     bindings)
           (compile-body body tail? new-envs emit next-label next-slot add-code))))
-
-    ;; static-producer-values : ir -> (values (list ir) (list ir)) or #f
-    ;; Recognize a producer (lambda () prelude... (values v...)) and
-    ;; return the values arguments and the prelude expressions.
-    (define (static-producer-values p)
-      (and (lambda? p)
-           (null? (lambda-formals->list (lambda-formals p)))
-           (pair? (lambda-body p))
-           (let* ((body (lambda-body p))
-                  (rev (reverse body))
-                  (last (car rev)))
-             (and (values? last)
-                  (list (values-args last) (reverse (cdr rev)))))))
-
-    ;; lift-producer-expr : ir -> ir
-    ;; The static-producer-values inline inlines a producer
-    ;; (lambda () ... (values v...)) into the enclosing frame: the
-    ;; prelude and values expressions were compiled by syntax->ir in the
-    ;; producer's own frame (so a variable of the enclosing scope has
-    ;; depth 1), but inlined they run directly in the enclosing frame
-    ;; (depth 0).  Walk the expression and subtract 1 from every
-    ;; lexical-ref that points at the producer's enclosing scope.  A
-    ;; nested lambda introduces a fresh frame: its formals (depth 0
-    ;; inside it) are untouched, while references through the lambda's
-    ;; frame to the producer's scope (depth >= 2 inside the lambda) drop
-    ;; by 1.  deep? is whether we are at (or inside) a lambda that was
-    ;; opened inside the producer body.
-    (define (lift-producer-expr e . deep?)
-      (let ((deep (and (pair? deep?) (car deep?))))
-        (cond
-          ((lexical-ref? e)
-           (let ((d (lexical-ref-depth e)))
-             (make-lexical-ref #f (if (and deep (> d 1)) (- d 1)
-                                      (if (not deep) (- d 1) d))
-                               (lexical-ref-index e))))
-          ((lambda? e)
-           (make-lambda #f (lambda-formals e)
-                        (map (lambda (b) (lift-producer-expr b #t))
-                             (lambda-body e))))
-          ((if? e)
-           (make-if #f (lift-producer-expr (if-test e) deep)
-                    (lift-producer-expr (if-then e) deep)
-                    (and (if-else e) (lift-producer-expr (if-else e) deep))))
-          ((begin? e)
-           (make-begin #f (map (lambda (b) (lift-producer-expr b deep)) (begin-body e))))
-          ((let? e)
-           (make-let #f (let-bindings e)
-                     (map (lambda (b) (lift-producer-expr b deep)) (let-body e))))
-          ((letrec? e)
-           (make-letrec #f (letrec-bindings e)
-                        (map (lambda (b) (lift-producer-expr b deep)) (letrec-body e))))
-          ((set!? e)
-           (make-set! #f (set!-target e) (lift-producer-expr (set!-expr e) deep)))
-          ((call? e)
-           (make-call #f (lift-producer-expr (call-proc e) deep)
-                      (map (lambda (b) (lift-producer-expr b deep)) (call-args e))))
-          ((values? e)
-           (make-values #f (map (lambda (b) (lift-producer-expr b deep)) (values-args e))))
-          ((call-with-values? e)
-           (make-call-with-values #f
-                                  (lift-producer-expr (cwv-producer e) deep)
-                                  (lift-producer-expr (cwv-consumer e) deep)))
-          (else e))))
-
-    ;; compile-call-with-values : producer consumer frame-envs emit next-label
-    ;;                            next-slot code-add tail? -> void
-    ;; Inline a statically known producer (a lambda with a tail values);
-    ;; otherwise emit the general (call-with-values) instruction.
-    (define (compile-call-with-values p c envs emit next-label next-slot add-code tail?)
-      (let ((sv (static-producer-values p)))
-        (if sv
-          (let ((vals (map lift-producer-expr (car sv)))
-                (prelude (map lift-producer-expr (cadr sv))))
-            (for-each (lambda (e)
-                        (compile-expr e envs emit next-label next-slot add-code)
-                        (emit '(pop)))
-                      prelude)
-            ;; consumer is the function: push it first (the call stack
-            ;; convention is [f a1 ... an]), then the values as args.
-            (if (lambda? c)
-              (emit (list 'closure (compile-lambda (lambda-formals c) (lambda-body c)
-                                                   envs add-code)))
-              (compile-expr c envs emit next-label next-slot add-code))
-            (for-each (lambda (e)
-                        (compile-expr e envs emit next-label next-slot add-code))
-                      vals)
-            (if tail?
-              (emit (list 'tail-call (length vals)))
-              (emit (list 'call (length vals)))))
-          (begin
-            (compile-expr p envs emit next-label next-slot add-code)
-            (compile-expr c envs emit next-label next-slot add-code)
-            (emit '(call-with-values))
-            (if tail? (emit '(return)))))))
 
     ;; to-bytecode : (list ir) -> program
     ;; Compile a list of top-level IR defs.  Top-level defines store
@@ -560,7 +444,7 @@
         [(if-else jump)
          (and (>= (length i) 2) (member (cadr i) labels))]
         [(label) (and (>= (length i) 2) (member (cadr i) labels))]
-        [(return pop call-with-values) (null? (cdr i))]
+        [(return pop) (null? (cdr i))]
         [else #f]))
 
     (define (valid-bytecode? bc)

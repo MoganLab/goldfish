@@ -50,11 +50,12 @@ static gf::int_ VM_CLOSURE_TYPE = 0;
 // Opcode numbers must match the vm-opcodes table in
 // goldfish/compiler/bytecode.scm (encode-bytecode).  Pre-release the
 // numbering is unstable: renumber freely, both sides together; it
-// freezes into an ABI at the first release.
+// freezes into an ABI at the first release.  Multiple values are a
+// derived form (list representation, see base-functions.scm): the VM
+// is single-value.
 enum class Op : uint8_t {
   Const, Global, Ref, Local, SetLocal, SetRef, StoreGlobal,
-  Closure, Call, TailCall, IfElse, Jump, Return, Pop,
-  Values, CallWithValues, Unknown
+  Closure, Call, TailCall, IfElse, Jump, Return, Pop, Unknown
 };
 
 struct Instr {
@@ -152,7 +153,6 @@ static gf::pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
 static gf::pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
 static gf::pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
 static gf::pointer g_num_eq_fn = nullptr, g_lt_fn = nullptr;
-static gf::pointer g_call_with_values_fn = nullptr;
 
 // ---------------------------------------------------------------------------
 // Stack helpers.
@@ -549,31 +549,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Pop:
         pop ();
         break;
-      case Op::Values: {
-        int n = (int)in.b;
-        gf::pointer args_list = gf::nil (sc);
-        for (int i = 0; i < n; ++i) args_list = gf::cons (sc, pop (), args_list);
-        gf::pointer mv = gf::values (sc, args_list);
-        if (n >= 2) gf::set_multiple_value (sc, mv);
-        push (mv);
-        break;
-      }
-      case Op::CallWithValues: {
-        gf::pointer c = pop ();
-        gf::pointer p = pop ();
-        // Delegate to s7's call-with-values; its evaluator splices the
-        // producer's multiple values into the consumer's arguments.  The
-        // producer result is spliced only when gf::is_multiple_value is
-        // true -- Values above now reliably flags n>=2 via
-        // s7_set_multiple_value, so the predicate matches and single-value
-        // results are passed as one argument.
-        gf::pointer cwv = g_call_with_values_fn;
-        if (cwv == nullptr || cwv == gf::undefined (sc))
-          cwv = gf::name_to_value (sc, "call-with-values");
-        gf::pointer arg_list = gf::cons (sc, p, gf::cons (sc, c, gf::nil (sc)));
-        push (gf::apply_function (sc, cwv, arg_list));
-        break;
-      }
       default:
         g_current_vm->frames.pop_back ();
         return gf::error (sc, gf::make_symbol (sc, "vm-error"),
@@ -670,7 +645,6 @@ void glue_vm (gf::scheme* sc) {
   g_sub_fn   = gf::global_value (sc, gf::make_symbol (sc, "-"));
   g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
-  g_call_with_values_fn = gf::name_to_value (sc, "call-with-values");
   g_false = gf::f (sc);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");

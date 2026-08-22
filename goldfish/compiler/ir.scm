@@ -314,12 +314,12 @@
                                 (cadr sexp))
                            (map core->ir (cddr sexp))))
              ((set!)
-              (make-set! #f (cadr sexp) (core->ir (caddr sexp))))
-             ((values)
-              (make-values #f (map core->ir (cdr sexp))))
-             ((call-with-values)
-              (make-call-with-values #f (core->ir (cadr sexp))
-                                     (core->ir (caddr sexp))))
+              (make-set! #f (cadr sexp) (caddr sexp)))
+             ;; values / call-with-values are NOT special forms: they are
+             ;; ordinary calls to the rootlet definitions (derived form,
+             ;; see base-functions.scm).  The <values>/<call-with-values>
+             ;; records remain as a vestigial API but nothing produces
+             ;; them from core sexps.
              (else
               (make-call #f (core->ir head) (map core->ir (cdr sexp)))))))))
 
