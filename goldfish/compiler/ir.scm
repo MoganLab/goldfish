@@ -314,7 +314,7 @@
                                 (cadr sexp))
                            (map core->ir (cddr sexp))))
              ((set!)
-              (make-set! #f (cadr sexp) (caddr sexp)))
+              (make-set! #f (cadr sexp) (core->ir (caddr sexp))))
              ;; values / call-with-values are NOT special forms: they are
              ;; ordinary calls to the rootlet definitions (derived form,
              ;; see base-functions.scm).  The <values>/<call-with-values>

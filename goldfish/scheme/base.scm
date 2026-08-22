@@ -350,15 +350,6 @@
       ) ;let*
     ) ;define
 
-    ;; Multiple values are a derived form (see base-functions.scm): a list
-    ;; produced by `values', consumed by `call-with-values'.  Defined here
-    ;; so the library exports the list-based pair, not the host's
-    ;; multiple-values objects.
-    (define (values . xs) xs)
-
-    (define (call-with-values producer consumer)
-      (apply consumer (producer)))
-
     (define-macro (let-values bindings . body)
       (if (null? bindings)
         `(let () ,@body)

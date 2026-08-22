@@ -10,16 +10,10 @@
 ;;; helper recursion so the definition does not depend on `map' being
 ;;; bound before it is installed.
 ;;;
-;;; Multiple values are a derived form: `values' constructs a list and
-;;; `call-with-values' applies the consumer to it.  One representation
-;;; everywhere (kernel artifact, libraries, user code); the VM has no
-;;; values datatype -- heap values objects only ever exist inside the
-;;; host at its own boundaries.
-
-(define (values . xs) xs)
-
-(define (call-with-values producer consumer)
-  (apply consumer (producer)))
+;;; Multiple values are a derived form at the COMPILER level only:
+;;; values / call-with-values are ordinary host procedures (no IR
+;;; nodes, no VM opcodes) -- the host's values objects and apply
+;;; splicing ARE the representation.  Nothing is redefined here.
 
 (define (map f l1 . rest)
   (if (null? rest)

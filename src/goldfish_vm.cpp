@@ -69,6 +69,7 @@ static gf::pointer vm_enter_symbol  = nullptr;  // 'vm-enter
 static gf::pointer quote_symbol     = nullptr;  // 'quote
 static gf::pointer captured_symbol  = nullptr;  // '*vm-captured*
 static gf::pointer g_false = nullptr;           // cached #f (unique object)
+static bool g_vm_trace = false;                 // getenv VMTRACE=1
 
 // ---------------------------------------------------------------------------
 // Instruction decoding.
@@ -393,6 +394,11 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
     }
     const Instr& in = code[fr.pc++];
 
+    if (g_vm_trace)
+      fprintf (stderr, "[vm] frames=%zu pc=%zu op=%d b=%ld c=%ld\n",
+               g_current_vm->frames.size (), fr.pc - 1, (int)in.op,
+               (long)in.b, (long)in.c);
+
     switch (in.op) {
       case Op::Const:
         push (in.a);
@@ -474,6 +480,9 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Call:
       case Op::TailCall: {
         int n = (int)in.b;
+        if (g_vm_trace)
+          fprintf (stderr, "[vm] call-enter: op=%d n=%d stack=%zu base=%zu\n",
+                   (int)in.op, n, g_current_vm->stack.size (), fr.stack_base);
         std::vector<gf::pointer> args (n);
         for (int i = n - 1; i >= 0; --i) args[i] = pop ();
         gf::pointer f = pop ();
@@ -492,6 +501,9 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
           // value to the enclosing frame's region (or return it from run at
           // the target depth).
           VMClosure* vc = vm_closure_of (sc, f);
+          if (g_vm_trace)
+            fprintf (stderr, "[vm] tailcall: n=%d vm-closure=%d idx=%d\n",
+                     n, vc != nullptr, vc ? (int)vc->code_idx : -1);
           if (vc != nullptr) {
             VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
             fr.pc = 0;
@@ -646,6 +658,7 @@ void glue_vm (gf::scheme* sc) {
   g_num_eq_fn = gf::global_value (sc, gf::make_symbol (sc, "="));
   g_lt_fn    = gf::global_value (sc, gf::make_symbol (sc, "<"));
   g_false = gf::f (sc);
+  g_vm_trace = (getenv ("VMTRACE") != nullptr);
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");
   captured_symbol  = gf::make_symbol (sc, "*vm-captured*");
