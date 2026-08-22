@@ -30,7 +30,9 @@
   =>
   6000
 ) ;check
-(check (call-with-values (lambda () (values)) (lambda args (length args))) => 1)
+;; R7RS: (values) delivers zero values, so a rest consumer receives none
+(check (call-with-values (lambda () (values)) (lambda args (length args))) => 0)
+(check (call-with-values (lambda () (values)) (lambda () 'zero-ok)) => 'zero-ok)
 (check (call-with-values (lambda () (values 'x)) list) => '(x))
 
 (check-report)

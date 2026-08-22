@@ -62,7 +62,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L6 vm
 
 - **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM）。
-- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。`Op::Values (n>=2)` 才置多值标记，`Op::CallWithValues` 委托宿主完成多值展开。
+- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。VM 单值传递：多值是宿主派生形式（`values`/`call-with-values` 为宿主过程，values 对象作为单值流经 VM 栈、由宿主 apply 拼接展开），无专用 opcode。
 - **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件；操作码编号与 `bytecode.scm` 的 `vm-opcodes` 保持同步——发布前可自由重编号（两侧一起改），首个发布版起冻结为 ABI。
 
 ## L7 loader
@@ -88,6 +88,6 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - **时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。另：程序级缓存不追踪依赖库变更，库更新后陈旧程序字节码仍可能命中。
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
-- **VM 多值**：当前以 `list/cons` 规避，待 `Op::Values` 寄存器化后移除包装；在此之前须防止其渗入用户可见语义。曾疑似多值渗入的案例（auto-compile 下 `gfproject-load-config` 返回错位值）已查明与多值无关：根因是延迟求值 C 特殊形式（`catch`、`call/cc`、`dynamic-wind`、`call-with-*`/`with-*`）经 `s7_apply_function` 的 c_function 快速路径调用时只返回占位符 `#f`，VM 误当结果；已修（`s7_gf_apply_eval` 强制 eval 循环，VM 通用调用路径改走它）。
+- **VM 多值**：多值是宿主派生形式（`8a0c14c7` 移除早期 list 包装——全局重定义 `values` 会混用协议破坏引导链），VM 单值栈上 values 对象由宿主 apply 拼接；n≥1 各形态（cwv/let-values/apply/VM 闭包 producer）已验证正确。已知边界：s7 把 `(values)` 与无 else `if` 的 void 归于同一 unspecified 对象，`call-with-values` 以 eq? 探测将其视为零值（R7RS 零值语义，Guile/Racket 对照一致）；代价是 void 值流入多值语境记零个值（Guile 记一个）——边缘情形，记录在案。若未来需要严格值数寄存器化（Op::Values 记录 arity），属性能/语义精化而非正确性需求。另：曾疑似多值渗入的案例（auto-compile 下 `gfproject-load-config` 返回错位值）已查明与多值无关：根因是延迟求值 C 特殊形式（`catch`、`call/cc`、`dynamic-wind`、`call-with-*`/`with-*`）经 `s7_apply_function` 的 c_function 快速路径调用时只返回占位符 `#f`，VM 误当结果；已修（`62c228ae`，`s7_gf_apply_eval` 强制 eval 循环）。
 - **C++ 业务收尾**：`find_function` 等残留宿主业务迁至纯 Scheme，进一步收敛胶水阈值。
 - **产物再生产校验（未落地）**：目标为 CI 校验内核产物 == 从源码重新生成的结果（逐字节一致）；当前该护栏尚未接入任何 workflow。

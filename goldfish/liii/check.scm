@@ -49,30 +49,38 @@
       ) ;let
     ) ;define
 
+    (define (build-check-approx stx expr-datum expected-datum opts)
+      (let* ((parsed (parse-check-approx-options opts))
+             (rel-tol (car parsed))
+             (abs-tol (cdr parsed)))
+        (datum->syntax stx
+          `(check:proc (quote ,expr-datum)
+             (lambda () ,expr-datum)
+             ,expected-datum
+             (lambda (actual expected)
+               (and (number? actual) (number? expected)
+                 (number? ,rel-tol) (number? ,abs-tol)
+                 (or (= actual expected)
+                   (let* ((difference (abs (- actual expected)))
+                          (relative-tolerance (abs ,rel-tol))
+                          (absolute-tolerance (abs ,abs-tol))
+                          (scale (max (abs actual) (abs expected)))
+                          (limit (max absolute-tolerance (* relative-tolerance scale))))
+                     (<= difference limit)))))))))
+
+    ;; (check-approx expr => expected opts ...) is the documented form
+    ;; (matching srfi-78's check); the arrowless form stays accepted.
     (define-syntax check-approx
       (lambda (stx)
-        (syntax-case stx ()
+        (syntax-case stx (=>)
+          ((_ expr => expected opts ...)
+           (build-check-approx stx (syntax->datum #'expr)
+                               (syntax->datum #'expected)
+                               (syntax->datum #'(opts ...))))
           ((_ expr expected opts ...)
-           (let* ((opts (syntax->datum #'(opts ...)))
-                  (parsed (parse-check-approx-options opts))
-                  (rel-tol (car parsed))
-                  (abs-tol (cdr parsed))
-                  (expr-datum (syntax->datum #'expr))
-                  (expected-datum (syntax->datum #'expected)))
-             (datum->syntax stx
-               `(check:proc (quote ,expr-datum)
-                  (lambda () ,expr-datum)
-                  ,expected-datum
-                  (lambda (actual expected)
-                    (and (number? actual) (number? expected)
-                      (number? ,rel-tol) (number? ,abs-tol)
-                      (or (= actual expected)
-                        (let* ((difference (abs (- actual expected)))
-                               (relative-tolerance (abs ,rel-tol))
-                               (absolute-tolerance (abs ,abs-tol))
-                               (scale (max (abs actual) (abs expected)))
-                               (limit (max absolute-tolerance (* relative-tolerance scale))))
-                          (<= difference limit))))))))))))
+           (build-check-approx stx (syntax->datum #'expr)
+                               (syntax->datum #'expected)
+                               (syntax->datum #'(opts ...)))))))
 
     (define-syntax check-catch
       (syntax-rules ()

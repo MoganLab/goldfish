@@ -16,7 +16,7 @@
 
 (define-library (scheme inexact)
   (import (scheme base) (goldfish))
-  (export acos asin atan cos exp finite? infinite? log nan? sin sqrt s7-sqrt tan)
+  (export acos asin atan cos exp finite? infinite? log nan? pi sin sqrt s7-sqrt tan)
   (begin
 
     ;; `sqrt' is not defined here: the free reference below resolves to the

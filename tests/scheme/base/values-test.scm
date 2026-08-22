@@ -24,7 +24,9 @@
 ;; 2. 单值时行为与直接返回相同
 (check (values 1) => 1)
 (check (call-with-values (lambda () (values 1 2)) (lambda (a b) (+ a b))) => 3)
-(check (call-with-values (lambda () (values)) (lambda args (length args))) => 1)
+;; R7RS: (values) delivers zero values, so a rest consumer receives none
+(check (call-with-values (lambda () (values)) (lambda args (length args))) => 0)
+(check (call-with-values (lambda () (values)) (lambda () 'zero-ok)) => 'zero-ok)
 (check (call-with-values (lambda () (values 'a 'b 'c)) list) => '(a b c))
 
 (check-report)
