@@ -5,7 +5,8 @@
 // positional form produced by encode-bytecode:
 //   (program (code-table (code nlocals formals #(op payload i0 i1 ...)) ...)
 //            (top nlocals #(op payload i0 i1 ...)))
-// Opcode numbers are an ABI shared with vm-opcodes in bytecode.scm.
+// Opcode numbers pair with vm-opcodes in bytecode.scm (unstable
+// pre-release, frozen at the first release).
 //
 // A VM function is an s7 closure shell `(lambda formals (vm-enter
 // <cobj> formals...))` whose c_object (type VM_CLOSURE) carries
@@ -46,8 +47,10 @@ static gf::int_ VM_CLOSURE_TYPE = 0;
 // ---------------------------------------------------------------------------
 // Decoded instruction.
 
-// Opcode numbers are the vm-load ABI: they must match the vm-opcodes
-// table in goldfish/compiler/bytecode.scm (encode-bytecode).
+// Opcode numbers must match the vm-opcodes table in
+// goldfish/compiler/bytecode.scm (encode-bytecode).  Pre-release the
+// numbering is unstable: renumber freely, both sides together; it
+// freezes into an ABI at the first release.
 enum class Op : uint8_t {
   Const, Global, Ref, Local, SetLocal, SetRef, StoreGlobal,
   Closure, Call, TailCall, IfElse, Jump, Return, Pop,

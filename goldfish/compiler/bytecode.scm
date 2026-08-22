@@ -42,9 +42,11 @@
 
     (define *bytecode-version* 2)
 
-    ;; The vm-load ABI: opcode numbers must match the Op enum in
-    ;; src/goldfish_vm.cpp.  (label L) has no opcode -- encoding resolves
-    ;; labels to instruction indices and drops them.
+    ;; Opcode numbers must match the Op enum in src/goldfish_vm.cpp.
+    ;; Pre-release the numbering is unstable: renumber freely, both
+    ;; sides together; it freezes into an ABI at the first release.
+    ;; (label L) has no opcode -- encoding resolves labels to
+    ;; instruction indices and drops them.
     (define vm-opcodes
       '((const . 0) (global . 1) (ref . 2) (local . 3) (set-local . 4)
         (set-ref . 5) (store-global . 6) (closure . 7) (call . 8)
