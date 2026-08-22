@@ -9113,6 +9113,8 @@ s7_pointer s7_gf_global_value(s7_scheme *sc, s7_pointer sym)
   return((is_slot(slot)) ? slot_value(slot) : sc->undefined);
 }
 
+
+
 static int32_t closure_length(s7_scheme *sc, s7_pointer clo)
 {
   /* we can't use let_length(sc, closure_let(clo)) because the closure_let(closure)
@@ -39393,6 +39395,50 @@ s7_pointer s7_apply_function(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
   /* we're limited in choices here -- the caller might be (say) car(sc->t1_1) = fn_proc(...) where the fn_proc
    *   happens to fallback on a method -- we can't just push OP_APPLY and drop back into the evaluator normally.
    */
+  return(sc->value);
+}
+
+/* goldfish extension: apply fnc to args by driving the evaluator loop,
+ * deliberately bypassing the c_function fast path of s7_apply_function.
+ * A handful of C special forms are "deferred": catch, call/cc,
+ * dynamic-wind and the call-with-* / with-* I/O combinators push their
+ * real work onto the eval stack and return a #f placeholder, expecting
+ * the eval loop to pump it to a value.  The fast path hands that
+ * placeholder straight back to the caller, so the self-hosted VM (which
+ * applies such forms as first-class values) must use this eval-loop entry
+ * instead.  For ordinary functions the eval loop reaches the same result.
+ *
+ * The structure mirrors s7_call (jump-info setup included) rather than the
+ * bare eval path of s7_apply_function: an error raised inside the callee
+ * must longjmp to a buffer at THIS level, so a catch installed by the
+ * callee (or this call's own recovery) contains it instead of unwinding
+ * the caller's continuation. */
+s7_pointer s7_gf_apply_eval(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
+{
+  declare_jump_info();
+  TRACK(sc);
+  set_current_code(sc, history_cons(sc, fnc, args));
+
+  sc->temp4 = T_App(fnc);                           /* feeble GC protection, as in s7_call */
+  sc->temp2 = T_Lst(args);
+  store_jump_info(sc);
+  set_jump_info(sc, s7_call_set_jump);
+  if (jump_loc != no_jump)
+    {
+      if (jump_loc != error_jump)
+	eval(sc, sc->cur_op);
+      if ((jump_loc == catch_jump) &&                /* returning (back to eval) from an error in catch */
+	  (sc->stack_end == sc->stack_start))
+	push_stack_op(sc, OP_ERROR_QUIT);
+    }
+  else
+    {
+      push_stack_direct(sc, OP_EVAL_DONE);
+      sc->code = fnc;
+      sc->args = (needs_copied_args(sc->code)) ? copy_proper_list(sc, args) : args;
+      eval(sc, OP_APPLY);
+    }
+  restore_jump_info(sc);
   return(sc->value);
 }
 

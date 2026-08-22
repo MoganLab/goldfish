@@ -334,12 +334,12 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   if (gf::is_eq (f, g_num_eq_fn)) {
     if (args.size () == 2 && gf::is_integer (args[0]) && gf::is_integer (args[1]))
       return (gf::integer (args[0]) == gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
-    return gf::apply_function (sc, f, build_args_list (sc, args));
+    return gf::apply_eval (sc, f, build_args_list (sc, args));
   }
   if (gf::is_eq (f, g_lt_fn)) {
     if (args.size () == 2 && gf::is_integer (args[0]) && gf::is_integer (args[1]))
       return (gf::integer (args[0]) < gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
-    return gf::apply_function (sc, f, build_args_list (sc, args));
+    return gf::apply_eval (sc, f, build_args_list (sc, args));
   }
   gf::pointer args_list = build_args_list (sc, args);
   // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
@@ -351,12 +351,14 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   // closure body reached through the deferred path mis-handles let-scoped
   // mutations (typed-lambda's do/set-car! on its arg list).  Implement
   // (apply proc a1 ... an) directly instead: splice the final list
-  // argument into the argument list and call the procedure.
+  // argument into the argument list and call the procedure.  The final
+  // call goes through apply_eval (the eval-loop entry) so a deferred
+  // proc (catch, call-with-*, dynamic-wind, ...) still runs to a value.
   if (gf::is_eq (f, g_apply_fn)) {
     gf::pointer proc = gf::car (args_list);
     gf::pointer rest = gf::cdr (args_list);            // (a1 ... an)
     if (!gf::is_pair (rest))                          // (apply proc) -- no args
-      return gf::apply_function (sc, proc, gf::nil (sc));
+      return gf::apply_eval (sc, proc, gf::nil (sc));
     gf::pointer p = rest;
     while (gf::is_pair (gf::cdr (p))) p = gf::cdr (p);  // p is the last cons (an)
     gf::pointer last = gf::car (p);
@@ -383,9 +385,9 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
         spliced = rest;
       }
     }
-    return gf::apply_function (sc, proc, spliced);
+    return gf::apply_eval (sc, proc, spliced);
   }
-  return gf::apply_function (sc, f, args_list);
+  return gf::apply_eval (sc, f, args_list);
 }
 // run : target-depth -> result
 static gf::pointer run (gf::scheme* sc, size_t target_depth) {

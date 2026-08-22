@@ -183,6 +183,7 @@ pointer add_to_load_path (scheme* sc, const char* dir);
 pointer make_closure (scheme* sc, pointer args, pointer body, int32_t arity);
 pointer closure_body (scheme* sc, pointer p);
 pointer apply_function (scheme* sc, pointer fnc, pointer args);
+pointer apply_eval (scheme* sc, pointer fnc, pointer args);
 pointer call (scheme* sc, pointer fnc, pointer args);
 pointer values (scheme* sc, pointer args);
 pointer make_typed_function (scheme* sc, const char* name, function f,

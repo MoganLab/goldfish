@@ -173,6 +173,9 @@ pointer closure_body (scheme* sc, pointer p) { return s7_closure_body (sc, p); }
 pointer apply_function (scheme* sc, pointer fnc, pointer args) {
   return s7_apply_function (sc, fnc, args);
 }
+pointer apply_eval (scheme* sc, pointer fnc, pointer args) {
+  return s7_gf_apply_eval (sc, fnc, args);
+}
 pointer call (scheme* sc, pointer fnc, pointer args) { return s7_call (sc, fnc, args); }
 pointer values (scheme* sc, pointer args) { return s7_values (sc, args); }
 pointer make_typed_function (scheme* sc, const char* name, function f,
