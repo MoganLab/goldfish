@@ -200,6 +200,11 @@ static gf::pointer build_args_list (gf::scheme* sc, const std::vector<gf::pointe
 static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
                              const std::vector<gf::pointer>& args) {
   f.slots = gf::make_vector (sc, (gf::int_)ci.nlocals);
+  if (g_vm_trace)
+    fprintf (stderr, "[vm] frame: nlocals=%d args=%zu formals_sym=%d formals_proper=%d\n",
+             (int)ci.nlocals, args.size (),
+             (int)gf::is_symbol (ci.formals),
+             (int)gf::is_proper_list (sc, ci.formals));
   if (gf::is_symbol (ci.formals)) {
     // Rest closure: the whole arg list is one slot.  The caller hands over
     // a SINGLE packed list argument (s7's rest closure bundles the args
@@ -217,15 +222,13 @@ static void frame_from_args (gf::scheme* sc, VMFrame& f, const VMCodeInfo& ci,
       ++fixed;
     for (size_t i = 0; i < fixed && i < args.size (); ++i)
       gf::vector_set (sc, f.slots, (gf::int_)i, args[i]);
-    if ((gf::int_)fixed < ci.nlocals) {
-      std::vector<gf::pointer> rest_args;
-      for (size_t i = fixed; i < args.size (); ++i)
-        rest_args.push_back (args[i]);
-      // Normalize empty rest: dotted rest called without extra args is () not (())
-      if (rest_args.size () == 1 && gf::is_null (sc, rest_args[0]))
-        rest_args.clear ();
-      gf::vector_set (sc, f.slots, (gf::int_)fixed, build_args_list (sc, rest_args));
-    }
+    if ((gf::int_)fixed < ci.nlocals)
+      // The rest arrives PRE-BUNDLED as the single argument after the
+      // fixed ones: the s7 shell's dotted tail passes it as one list,
+      // and call_function / the tail-call path bundle VM-side calls the
+      // same way.  Do not re-package it here.
+      gf::vector_set (sc, f.slots, (gf::int_)fixed,
+                      (args.size () > fixed) ? args[fixed] : gf::nil (sc));
   } else {
     for (size_t i = 0; i < args.size () && i < (size_t)ci.nlocals; ++i)
       gf::vector_set (sc, f.slots, (gf::int_)i, args[i]);
@@ -279,6 +282,17 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
       std::vector<gf::pointer> packed (1);
       packed[0] = build_args_list (sc, args);
       push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
+    } else if (!gf::is_proper_list (sc, ci.formals)) {
+      // Dotted closure: bundle the args after the fixed formals into the
+      // single pre-bundled rest argument frame_from_args expects.
+      size_t fixed = 0;
+      for (gf::pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
+        ++fixed;
+      size_t nfixed = std::min (fixed, args.size ());
+      std::vector<gf::pointer> packed (args.begin (), args.begin () + nfixed);
+      std::vector<gf::pointer> rest (args.begin () + nfixed, args.end ());
+      packed.push_back (build_args_list (sc, rest));
+      push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
     } else {
       push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env);
     }
@@ -287,8 +301,11 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   // Fast path: inline the hot primitives so a VM call does not pay for
   // building an arg list and entering s7's evaluator.  The procedure
   // objects are cached once (glue_vm); s7_is_eq is a pointer compare.
-  if (gf::is_eq (f, g_car_fn)) return gf::car (args[0]);
-  if (gf::is_eq (f, g_cdr_fn)) return gf::cdr (args[0]);
+  // car/cdr guard with is_pair: the raw accessors return NULL on a
+  // non-pair, which the call protocol reads as "no value" and the stack
+  // underflows -- fall through to apply_function for a proper type error.
+  if (gf::is_eq (f, g_car_fn) && gf::is_pair (args[0])) return gf::car (args[0]);
+  if (gf::is_eq (f, g_cdr_fn) && gf::is_pair (args[0])) return gf::cdr (args[0]);
   if (gf::is_eq (f, g_cons_fn)) return gf::cons (sc, args[0], args[1]);
   if (gf::is_eq (f, g_eq_fn)) return gf::is_eq (args[0], args[1]) ? gf::t (sc) : gf::f (sc);
   if (gf::is_eq (f, g_null_fn)) return gf::is_null (sc, args[0]) ? gf::t (sc) : gf::f (sc);
@@ -403,23 +420,47 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Const:
         push (in.a);
         break;
-      case Op::Global:
-        push (global_lookup (sc, in.a, fr.global_env));
+      case Op::Global: {
+        gf::pointer gv = global_lookup (sc, in.a, fr.global_env);
+        if (g_vm_trace)
+          fprintf (stderr, "[vm] global: %s -> %p\n",
+                   gf::symbol_name (in.a), (void*)gv);
+        push (gv);
         break;
-      case Op::Ref:
-        push (gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c));
+      }
+      case Op::Ref: {
+        gf::pointer rv = gf::vector_ref (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c);
+        if (g_vm_trace)
+          fprintf (stderr, "[vm] ref: %d/%d -> %p pair=%d\n",
+                   (int)in.b, (int)in.c, (void*)rv, (int)gf::is_pair (rv));
+        push (rv);
         break;
-      case Op::Local:
-        push (gf::vector_ref (sc, fr.slots, in.b));
+      }
+      case Op::Local: {
+        gf::pointer lv = gf::vector_ref (sc, fr.slots, in.b);
+        if (g_vm_trace)
+          fprintf (stderr, "[vm] local: %d -> %p pair=%d int=%d sym=%d car-self=%d\n",
+                   (int)in.b, (void*)lv, (int)gf::is_pair (lv),
+                   (int)gf::is_integer (lv), (int)gf::is_symbol (lv),
+                   gf::is_pair (lv) ? (int)gf::is_eq (gf::car (lv), lv) : -1);
+        push (lv);
         break;
+      }
       case Op::SetLocal: {
         gf::pointer v = pop ();
         gf::vector_set (sc, fr.slots, in.b, v);
+        // Leave the value: every expression nets exactly one stack value,
+        // so the enclosing sequence's (pop) has something to consume (same
+        // convention as StoreGlobal).
+        push (v);
         break;
       }
-      case Op::SetRef:
-        gf::vector_set (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c, pop ());
+      case Op::SetRef: {
+        gf::pointer v = pop ();
+        gf::vector_set (sc, gf::list_ref (sc, fr.captured, in.b - 1), in.c, v);
+        push (v);
         break;
+      }
       case Op::StoreGlobal: {
         gf::pointer v = pop ();
         gf::pointer sym = in.a;
@@ -493,6 +534,10 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
         // (handling VM-closure callbacks correctly).
         if (in.op == Op::Call) {
           gf::pointer r = call_function (sc, f, args);
+          if (g_vm_trace)
+            fprintf (stderr, "[vm] call-done: r=%p frames=%zu f=%p cdr-eq=%d closure=%d\n",
+                     (void*)r, g_current_vm->frames.size (), (void*)f,
+                     (int)gf::is_eq (f, g_cdr_fn), (int)gf::is_closure (f));
           if (r != nullptr) push (r);
         } else {
           // Tail call.  To a VM closure: replace the CURRENT frame in place
@@ -515,6 +560,17 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
               // Rest closure: bundle the raw call args like call_function.
               std::vector<gf::pointer> packed (1);
               packed[0] = build_args_list (sc, args);
+              frame_from_args (sc, fr, ci, packed);
+            } else if (!gf::is_proper_list (sc, ci.formals)) {
+              // Dotted closure: bundle the rest after the fixed formals
+              // into the pre-bundled rest argument, like call_function.
+              size_t fixed = 0;
+              for (gf::pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
+                ++fixed;
+              size_t nfixed = std::min (fixed, args.size ());
+              std::vector<gf::pointer> packed (args.begin (), args.begin () + nfixed);
+              std::vector<gf::pointer> rest (args.begin () + nfixed, args.end ());
+              packed.push_back (build_args_list (sc, rest));
               frame_from_args (sc, fr, ci, packed);
             } else {
               frame_from_args (sc, fr, ci, args);

@@ -187,6 +187,7 @@
                   (new-envs (cons new-alist (cdr envs))))
              (compile-expr (define-value d) new-envs emit next-label next-slot add-code)
              (emit (list 'set-local slot))
+             (emit '(pop))
              (loop (cdr bs) new-envs)))
           ((null? (cdr bs))
            (if tail?
@@ -342,6 +343,8 @@
 
     ;; compile-let : head bindings body tail? frame-envs emit next-label next-slot code-add
     (define (compile-let head bindings body tail? envs emit next-label next-slot add-code)
+      ;; set-local leaves the value on the stack (the uniform setter
+      ;; convention), so every binding init is followed by an explicit pop.
       (if (eq? head 'let)
         ;; let: inits evaluated in the old env (parallel bindings)
         (let* ((new-alist (fold-left (lambda (e b)
@@ -351,7 +354,8 @@
           (for-each (lambda (b)
                       (compile-expr (cadr b) envs emit next-label next-slot add-code)
                       (emit (list 'set-local
-                                  (cdr (assq (car b) new-alist)))))
+                                  (cdr (assq (car b) new-alist))))
+                      (emit '(pop)))
                     bindings)
           (compile-body body tail? new-envs emit next-label next-slot add-code))
         ;; letrec/letrec*: slots allocated first, inits in the new env
@@ -362,7 +366,8 @@
           (for-each (lambda (b)
                       (compile-expr (cadr b) new-envs emit next-label next-slot add-code)
                       (emit (list 'set-local
-                                  (cdr (assq (car b) new-alist)))))
+                                  (cdr (assq (car b) new-alist))))
+                      (emit '(pop)))
                     bindings)
           (compile-body body tail? new-envs emit next-label next-slot add-code))))
 
