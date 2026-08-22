@@ -84175,7 +84175,7 @@ s7_initialize_misc(s7_scheme *sc)
     set_initial_value(rs, initial_value(sc->complex_symbol)); /* for #_make-rectangular */
   }
 
-  s7_eval_c_string(sc, "(define (call-with-values producer consumer) (apply consumer (list (producer))))");
+  s7_eval_c_string(sc, "(define (call-with-values producer consumer) (let ((vs ((lambda vs vs) (producer)))) (if (and (pair? vs) (null? (cdr vs)) (eq? (car vs) (if #f #f))) (consumer) (apply consumer vs))))");
   /* (consumer (producer)) will work in any "normal" context.  If consumer is syntax and then subsequently not syntax, there is confusion */
 
   s7_eval_c_string(sc, "(define-macro (multiple-value-bind vars expression . body) (list (cons 'lambda (cons vars body)) expression))");

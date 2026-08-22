@@ -420,7 +420,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Local:
         push (gf::vector_ref (sc, fr.slots, in.b));
         break;
-      }
       case Op::SetLocal: {
         gf::pointer v = pop ();
         gf::vector_set (sc, fr.slots, in.b, v);
