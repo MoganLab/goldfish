@@ -33,10 +33,12 @@
             (top 0 (closure 0) (store-global f))))
 
 ;; ===== 3. let 槽分配 =====
+;; 统一 setter 约定：set-local 保留栈顶值，绑定 init 后显式 (pop)
 (check (defs->bytecode '((define (f x) (let ((a (+ x 1))) (* a 2)))))
        => '(program
             (code-table
              (code 2 (x) ((global +) (local 0) (const 1) (call 2) (set-local 1)
+                          (pop)
                           (global *) (local 1) (const 2) (tail-call 2))))
             (top 0 (closure 0) (store-global f))))
 
@@ -60,23 +62,26 @@
                           (global h) (local 0) (tail-call 1))))
             (top 0 (closure 0) (store-global f))))
 
-;; ===== 6. call-with-values 静态展开（producer 尾 values）=====
-;; consumer 函数先压（栈序 [f a1 ... an]），values 作参数后压
+;; ===== 6. call-with-values：宿主过程即运行时，普通全局调用 =====
+;; producer/consumer 都是闭包参数，无专用指令
 (check (defs->bytecode '((define (f) (call-with-values
                                        (lambda () (values 1 2))
                                        (lambda (a b) (+ a b))))))
        => '(program
             (code-table
+             (code 0 () ((global values) (const 1) (const 2) (tail-call 2)))
              (code 2 (a b) ((global +) (local 0) (local 1) (tail-call 2)))
-             (code 0 () ((closure 0) (const 1) (const 2) (tail-call 2))))
-            (top 0 (closure 1) (store-global f))))
+             (code 0 () ((global call-with-values) (closure 0) (closure 1)
+                         (tail-call 2))))
+            (top 0 (closure 2) (store-global f))))
 
 ;; ===== 7. call-with-values 通用（producer 非静态）=====
 (check (defs->bytecode '((define (f g) (call-with-values g (lambda (a b) (+ a b))))))
        => '(program
             (code-table
              (code 2 (a b) ((global +) (local 0) (local 1) (tail-call 2)))
-             (code 1 (g) ((local 0) (closure 0) (call-with-values) (return))))
+             (code 1 (g) ((global call-with-values) (local 0) (closure 0)
+                          (tail-call 2))))
             (top 0 (closure 1) (store-global f))))
 
 ;; ===== 8. 非 lambda 顶层 define =====
@@ -91,11 +96,11 @@
             (code-table)
             (top 0 (global display) (const "hi") (call 1))))
 
-;; ===== 10. 多值 values =====
+;; ===== 10. 多值 values：普通全局过程调用 =====
 (check (defs->bytecode '((define (f) (values 1 2))))
        => '(program
             (code-table
-             (code 0 () ((const 1) (const 2) (values 2) (return))))
+             (code 0 () ((global values) (const 1) (const 2) (tail-call 2))))
             (top 0 (closure 0) (store-global f))))
 
 ;; ===== 11. 嵌套 lambda：外层变量词法寻址 (ref 1 i) =====
@@ -111,7 +116,8 @@
        => '(program
             (code-table
              (code 0 () ((ref 1 0) (return)))
-             (code 2 (x) ((closure 0) (set-local 1) (local 1) (tail-call 0))))
+             (code 2 (x) ((closure 0) (set-local 1) (pop)
+                          (local 1) (tail-call 0))))
             (top 0 (closure 1) (store-global f))))
 
 ;; ===== 13. 序列化往返：字节码是纯数据 =====
