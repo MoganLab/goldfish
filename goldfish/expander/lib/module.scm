@@ -434,7 +434,7 @@
                 (let* ((mname (car m))
                        (data (deserialize-cache-sexp (cdr m)))
                        (proc (if (and (pair? data) (eq? (car data) 'program))
-                               (vm-load data the-expander-library)
+                               (vm-load-cached-program data the-expander-library)
                                (eval data the-expander-library))))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
@@ -677,6 +677,13 @@
 ;;; VM compile, whose shared state produces corrupted bytecode.  Returns #t
 ;;; if the VM ran.
 
+;;; vm-load-cached-program : program env -> value
+;;; Transformer caches store the symbolic bytecode program; encode it
+;;; into the positional vm-load ABI first.
+(define (vm-load-cached-program prog env)
+  (let ((compiler (lookup-module '(goldfish compiler))))
+    (vm-load ((module-ref compiler 'encode-bytecode) prog) env)))
+
 (define (vm-load-defs defs lib-name)
   (if (or (null? defs) (getenv "GOLDFISH_NO_VM_DEFS")
           (and (pair? lib-name) (eq? (car lib-name) 'goldfish)
@@ -688,9 +695,10 @@
              (lambda ()
                (let ((compiler (lookup-module '(goldfish compiler))))
                  (and (module? compiler)
-                      (let ((to-bytecode (module-ref compiler 'to-bytecode))
+                      (let ((encode (module-ref compiler 'encode-bytecode))
+                            (to-bytecode (module-ref compiler 'to-bytecode))
                             (core->ir (module-ref compiler 'core->ir)))
-                        (to-bytecode (map core->ir defs))))))
+                        (encode (to-bytecode (map core->ir defs)))))))
              (lambda (tag . info) #f))))
       (if prog
         (begin (vm-load prog #f) #t)

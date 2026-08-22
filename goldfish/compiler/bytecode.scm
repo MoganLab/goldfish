@@ -35,11 +35,79 @@
   (import (scheme base)
           (goldfish compiler ir))
   (export to-bytecode
+    encode-bytecode
     valid-bytecode?
     *bytecode-version*)
   (begin
 
     (define *bytecode-version* 2)
+
+    ;; The vm-load ABI: opcode numbers must match the Op enum in
+    ;; src/goldfish_vm.cpp.  (label L) has no opcode -- encoding resolves
+    ;; labels to instruction indices and drops them.
+    (define vm-opcodes
+      '((const . 0) (global . 1) (ref . 2) (local . 3) (set-local . 4)
+        (set-ref . 5) (store-global . 6) (closure . 7) (call . 8)
+        (tail-call . 9) (if-else . 10) (jump . 11) (return . 12)
+        (pop . 13) (values . 14) (call-with-values . 15)))
+
+    ;; encode-instrs : (list instr) -> vector
+    ;; Four slots per instruction: opcode, payload, i0, i1.  The payload
+    ;; carries the const value or the global name (#f when unused); i0/i1
+    ;; carry arity, slot or resolved jump target (0 when unused).
+    (define (encode-instrs instrs)
+      (let ((label->idx
+             (let walk ((is instrs) (i 0) (acc '()))
+               (cond ((null? is) acc)
+                     ((eq? (caar is) 'label)
+                      (walk (cdr is) i (cons (cons (cadar is) i) acc)))
+                     (else (walk (cdr is) (+ i 1) acc))))))
+        (let loop ((is instrs) (acc '()))
+          (cond ((null? is)
+                 (list->vector (reverse acc)))
+                ((eq? (caar is) 'label) (loop (cdr is) acc))
+                (else
+                 (let* ((instr (car is))
+                        (op
+                         (cond ((assq (car instr) vm-opcodes) => cdr)
+                               (else
+                                (error "encode-instrs: unknown instruction"
+                                       (car instr)))))
+                        (slots
+                         (case (car instr)
+                           ((const global store-global)
+                            (list op (cadr instr) 0 0))
+                           ((ref set-ref)
+                            (list op #f (cadr instr) (caddr instr)))
+                           ((if-else jump)
+                            (list op #f
+                                  (cond ((assq (cadr instr) label->idx) => cdr)
+                                        (else
+                                         (error "encode-instrs: unknown label"
+                                                (cadr instr))))
+                                  0))
+                           ((local set-local closure call tail-call values)
+                            (list op #f (cadr instr) 0))
+                           (else (list op #f 0 0)))))
+                   (loop (cdr is)
+                         (cons (cadddr slots)
+                               (cons (caddr slots)
+                                     (cons (cadr slots)
+                                           (cons (car slots) acc)))))))))))
+
+    ;; encode-bytecode : program -> program
+    ;; Same program shape, each instruction list replaced by the flat
+    ;; positional vector vm-load executes.  The symbolic form stays the
+    ;; serializable/cached representation.
+    (define (encode-bytecode prog)
+      (list 'program
+            (cons 'code-table
+                  (map (lambda (code)
+                         (list 'code (cadr code) (caddr code)
+                               (encode-instrs (cadddr code))))
+                       (cdr (cadr prog))))
+            (list 'top (cadr (caddr prog))
+                  (encode-instrs (cddr (caddr prog))))))
 
     ;; fold-left : (a b -> a) a (list b) -> a
     ;; R7RS (scheme base) has no fold-left; implement the left fold here.

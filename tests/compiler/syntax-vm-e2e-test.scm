@@ -18,7 +18,7 @@
                              the-base-library
                              (initial-context))))
     (let ((irs (map (lambda (d) (syntax->ir d ctx)) defs)))
-      (vm-load (to-bytecode irs) #f)
+      (vm-load (encode-bytecode (to-bytecode irs)) #f)
       irs)))
 
 ;; ===== 1. 递归 + 条件 + 算术 =====
@@ -196,7 +196,7 @@
   (let ((irs (map (lambda (d) (run-passes (syntax->ir d ctx)
                                           (list constant-fold simplify-if)))
                   defs)))
-    (vm-load (to-bytecode irs) the-expander-library)
+    (vm-load (encode-bytecode (to-bytecode irs)) the-expander-library)
     (check ((eval (define-name (car irs)) the-expander-library)
             3 (list 'a 'b 'c))
            => #t)

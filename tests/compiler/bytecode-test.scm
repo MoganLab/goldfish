@@ -187,4 +187,18 @@
             (top 0 (closure 0) (store-global f)
                  (const 2) (store-global g))))
 
+;; ===== 15. 位置编码：vm-load ABI =====
+;; 四槽一组（opcode/payload/i0/i1）；(if-else L) 的目标解析为指令下标，
+;; (label L) 伪指令删除——下标 7 指向 (const 2)。
+(check (encode-bytecode (defs->bytecode '((define (add x) (+ x 1)))))
+       => '(program (code-table
+                     (code 1 (x) #(1 + 0 0 3 #f 0 0 0 1 0 0 9 #f 2 0)))
+                     (top 0 #(7 #f 0 0 6 add 0 0))))
+(check (encode-bytecode (defs->bytecode '((define (f x) (if (> x 0) 1 2)))))
+       => '(program (code-table
+                     (code 1 (x) #(1 > 0 0 3 #f 0 0 0 0 0 0 8 #f 2 0
+                                      10 #f 7 0 0 1 0 0 12 #f 0 0
+                                      0 2 0 0 12 #f 0 0)))
+                     (top 0 #(7 #f 0 0 6 f 0 0))))
+
 (check-report)

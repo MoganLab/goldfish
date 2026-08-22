@@ -1,8 +1,11 @@
 //
 // goldfish_vm.cpp -- the self-hosted bytecode VM.
 //
-// Executes the bytecode emitted by (goldfish compiler bytecode):
-//   (program (code-table (code nlocals formals instr...) ...) (top instr...))
+// Executes the bytecode emitted by (goldfish compiler bytecode), in the
+// positional form produced by encode-bytecode:
+//   (program (code-table (code nlocals formals #(op payload i0 i1 ...)) ...)
+//            (top nlocals #(op payload i0 i1 ...)))
+// Opcode numbers are an ABI shared with vm-opcodes in bytecode.scm.
 //
 // A VM function is an s7 closure shell `(lambda formals (vm-enter
 // <cobj> formals...))` whose c_object (type VM_CLOSURE) carries
@@ -32,7 +35,6 @@
 
 #include "gf.h"
 #include <deque>
-#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -44,9 +46,11 @@ static gf::int_ VM_CLOSURE_TYPE = 0;
 // ---------------------------------------------------------------------------
 // Decoded instruction.
 
+// Opcode numbers are the vm-load ABI: they must match the vm-opcodes
+// table in goldfish/compiler/bytecode.scm (encode-bytecode).
 enum class Op : uint8_t {
   Const, Global, Ref, Local, SetLocal, SetRef, StoreGlobal,
-  Closure, Call, TailCall, IfElse, Jump, Label, Return, Pop,
+  Closure, Call, TailCall, IfElse, Jump, Return, Pop,
   Values, CallWithValues, Unknown
 };
 
@@ -61,43 +65,28 @@ static gf::pointer vm_enter_symbol  = nullptr;  // 'vm-enter
 static gf::pointer quote_symbol     = nullptr;  // 'quote
 static gf::pointer captured_symbol  = nullptr;  // '*vm-captured*
 static gf::pointer g_false = nullptr;           // cached #f (unique object)
-static gf::pointer vm_const_symbol  = nullptr;
-static gf::pointer vm_global_symbol = nullptr;
-static gf::pointer vm_ref_symbol    = nullptr;
-static gf::pointer vm_local_symbol  = nullptr;
-static gf::pointer vm_set_local_symbol = nullptr;
-static gf::pointer vm_set_ref_symbol = nullptr;
-static gf::pointer vm_store_global_symbol = nullptr;
-static gf::pointer vm_closure_symbol = nullptr;
-static gf::pointer vm_call_symbol   = nullptr;
-static gf::pointer vm_tail_call_symbol = nullptr;
-static gf::pointer vm_if_else_symbol = nullptr;
-static gf::pointer vm_jump_symbol   = nullptr;
-static gf::pointer vm_label_symbol  = nullptr;
-static gf::pointer vm_return_symbol = nullptr;
-static gf::pointer vm_pop_symbol    = nullptr;
-static gf::pointer vm_values_symbol = nullptr;
-static gf::pointer vm_call_with_values_symbol = nullptr;
 
-static Op decode_op (gf::pointer sym) {
-  if (gf::is_eq (sym, vm_const_symbol)) return Op::Const;
-  if (gf::is_eq (sym, vm_global_symbol)) return Op::Global;
-  if (gf::is_eq (sym, vm_ref_symbol)) return Op::Ref;
-  if (gf::is_eq (sym, vm_local_symbol)) return Op::Local;
-  if (gf::is_eq (sym, vm_set_local_symbol)) return Op::SetLocal;
-  if (gf::is_eq (sym, vm_set_ref_symbol)) return Op::SetRef;
-  if (gf::is_eq (sym, vm_store_global_symbol)) return Op::StoreGlobal;
-  if (gf::is_eq (sym, vm_closure_symbol)) return Op::Closure;
-  if (gf::is_eq (sym, vm_call_symbol)) return Op::Call;
-  if (gf::is_eq (sym, vm_tail_call_symbol)) return Op::TailCall;
-  if (gf::is_eq (sym, vm_if_else_symbol)) return Op::IfElse;
-  if (gf::is_eq (sym, vm_jump_symbol)) return Op::Jump;
-  if (gf::is_eq (sym, vm_label_symbol)) return Op::Label;
-  if (gf::is_eq (sym, vm_return_symbol)) return Op::Return;
-  if (gf::is_eq (sym, vm_pop_symbol)) return Op::Pop;
-  if (gf::is_eq (sym, vm_values_symbol)) return Op::Values;
-  if (gf::is_eq (sym, vm_call_with_values_symbol)) return Op::CallWithValues;
-  return Op::Unknown;
+// ---------------------------------------------------------------------------
+// Instruction decoding.
+
+// The program carries pre-encoded flat vectors (encode-bytecode in
+// goldfish/compiler/bytecode.scm): four slots per instruction -- opcode,
+// payload, i0, i1 -- with labels already resolved to instruction
+// indices.  Decoding just lays the slots out into Instr records.
+static std::vector<Instr> decode_instrs (gf::scheme* sc, gf::pointer vec) {
+  std::vector<Instr> v;
+  if (!gf::is_vector (vec)) return v;
+  gf::int_ n = gf::vector_length (vec);
+  for (gf::int_ i = 0; i + 3 < n; i += 4) {
+    Instr in;
+    gf::int_ opn = gf::integer (gf::vector_ref (sc, vec, i));
+    in.op = (opn >= 0 && opn < (gf::int_)Op::Unknown) ? (Op)opn : Op::Unknown;
+    in.a  = gf::vector_ref (sc, vec, i + 1);
+    in.b  = gf::integer (gf::vector_ref (sc, vec, i + 2));
+    in.c  = gf::integer (gf::vector_ref (sc, vec, i + 3));
+    v.push_back (in);
+  }
+  return v;
 }
 
 struct VMProgram;
@@ -182,67 +171,6 @@ static gf::pointer global_lookup (gf::scheme* sc, gf::pointer name, gf::pointer 
     if (v != gf::undefined (sc)) return v;
   }
   return gf::global_value (sc, name);
-}
-
-// ---------------------------------------------------------------------------
-// Instruction decoding.
-
-static std::vector<Instr> decode_instrs (gf::scheme* sc, gf::pointer instr_list) {
-  std::vector<Instr> v;
-  for (gf::pointer p = instr_list; gf::is_pair (p); p = gf::cdr (p)) {
-    gf::pointer instr = gf::car (p);
-    if (!gf::is_pair (instr)) continue;
-    Instr in;
-    in.op = decode_op (gf::car (instr));
-    switch (in.op) {
-      case Op::Const:
-        // core->ir already unfolds a (quote X) datum into its value, so the
-        // operand is the value itself -- even when that value happens to be
-        // a (quote ...) form (e.g. (quote (quote infix)) from a self-hosted
-        // expander).  Do NOT re-unwrap here: it would over-unwrap such a
-        // nested quote into the bare inner atom.
-        in.a = gf::cadr (instr);
-        break;
-      case Op::Global:
-      case Op::StoreGlobal:
-        in.a = gf::cadr (instr);
-        break;
-      case Op::Ref:
-      case Op::SetRef:
-        in.b = gf::integer (gf::cadr (instr));
-        in.c = gf::integer (gf::caddr (instr));
-        break;
-      case Op::Local:
-      case Op::SetLocal:
-      case Op::Closure:
-      case Op::Call:
-      case Op::TailCall:
-      case Op::Values:
-        in.b = gf::integer (gf::cadr (instr));
-        break;
-      case Op::IfElse:
-      case Op::Jump:
-      case Op::Label:
-        in.b = gf::integer (gf::cadr (instr));
-        break;
-      case Op::Return:
-      case Op::Pop:
-      case Op::CallWithValues:
-        break;
-      default:
-        break;
-    }
-    v.push_back (in);
-  }
-  // resolve jump targets to instruction indices
-  std::map<gf::int_, size_t> labels;
-  for (size_t i = 0; i < v.size (); ++i)
-    if (v[i].op == Op::Label)
-      labels[v[i].b] = i;
-  for (size_t i = 0; i < v.size (); ++i)
-    if (v[i].op == Op::IfElse || v[i].op == Op::Jump)
-      v[i].b = (gf::int_)labels[v[i].b];
-  return v;
 }
 
 // ---------------------------------------------------------------------------
@@ -603,8 +531,6 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
       case Op::Jump:
         fr.pc = (size_t)in.b;
         break;
-      case Op::Label:
-        break;
       case Op::Return: {
         // End of the current frame: pop the frame's top-of-region value
         // (undefined if empty) and hand it to the enclosing frame's
@@ -675,16 +601,10 @@ static gf::pointer vm_load (gf::scheme* sc, gf::pointer args) {
     p->codes.push_back (ci);
   }
   gf::pointer top = gf::caddr (program);
-  gf::int_ top_nlocals = 0;
-  if (gf::is_pair (gf::cdr (top)) && gf::is_integer (gf::cadr (top))) {
-    // (top <nlocals> instr...) -- slot count for top-level expressions
-    // (a top-level let's bindings are captured by lambdas).
-    top_nlocals = gf::integer (gf::cadr (top));
-    p->top = decode_instrs (sc, gf::cddr (top));
-  } else {
-    // Legacy (top instr...): no top-level slots.
-    p->top = decode_instrs (sc, gf::cdr (top));
-  }
+  // (top <nlocals> <instr-vector>) -- slot count for top-level
+  // expressions (a top-level let's bindings are captured by lambdas).
+  gf::int_ top_nlocals = gf::integer (gf::cadr (top));
+  p->top = decode_instrs (sc, gf::caddr (top));
   VM* vm = vm_for_prog(p);
   g_vm_stack.push_back(g_current_vm);
   g_current_vm = vm;
@@ -752,23 +672,6 @@ void glue_vm (gf::scheme* sc) {
   vm_enter_symbol  = gf::make_symbol (sc, "vm-enter");
   quote_symbol     = gf::make_symbol (sc, "quote");
   captured_symbol  = gf::make_symbol (sc, "*vm-captured*");
-  vm_const_symbol  = gf::make_symbol (sc, "const");
-  vm_global_symbol = gf::make_symbol (sc, "global");
-  vm_ref_symbol    = gf::make_symbol (sc, "ref");
-  vm_local_symbol  = gf::make_symbol (sc, "local");
-  vm_set_local_symbol = gf::make_symbol (sc, "set-local");
-  vm_set_ref_symbol = gf::make_symbol (sc, "set-ref");
-  vm_store_global_symbol = gf::make_symbol (sc, "store-global");
-  vm_closure_symbol = gf::make_symbol (sc, "closure");
-  vm_call_symbol   = gf::make_symbol (sc, "call");
-  vm_tail_call_symbol = gf::make_symbol (sc, "tail-call");
-  vm_if_else_symbol = gf::make_symbol (sc, "if-else");
-  vm_jump_symbol   = gf::make_symbol (sc, "jump");
-  vm_label_symbol  = gf::make_symbol (sc, "label");
-  vm_return_symbol = gf::make_symbol (sc, "return");
-  vm_pop_symbol    = gf::make_symbol (sc, "pop");
-  vm_values_symbol = gf::make_symbol (sc, "values");
-  vm_call_with_values_symbol = gf::make_symbol (sc, "call-with-values");
 
   gf::define_function (sc, "vm-load", vm_load, 2, 0, false,
                       "(vm-load program global-env)");

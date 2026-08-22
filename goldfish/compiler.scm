@@ -45,5 +45,6 @@
     tail-call-positions
     *foldable-functions*
     to-bytecode
+    encode-bytecode
     valid-bytecode?
     *bytecode-version*))

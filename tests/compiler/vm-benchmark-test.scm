@@ -20,7 +20,7 @@
               (exp-library-define! (program-library) name
                                    (make-primitive-binding name)))
             '(fib-vm loop-vm)))
-(vm-load (to-bytecode (map core->ir vm-defs)) #f)
+(vm-load (encode-bytecode (to-bytecode (map core->ir vm-defs))) #f)
 
 ;; 等价性先验证
 (check (fib-s7 20) => 6765)

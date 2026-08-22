@@ -377,7 +377,7 @@
                 (let* ((name (car r))
                        (data (deserialize-cache-sexp (cdr r)))
                        (proc (if (and (pair? data) (eq? (car data) 'program))
-                               (vm-load data the-expander-library)
+                               (vm-load-cached-program data the-expander-library)
                                (eval data the-expander-library))))
                   (exp-library-define! lib name (make-transformer-binding proc))))
               macros)))

@@ -61,9 +61,9 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L6 vm
 
-- **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM，预解码分发）。
-- **职责**：字节码执行；`Op::Values (n>=2)` 才置多值标记，`Op::CallWithValues` 委托宿主完成多值展开。
-- **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件。
+- **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM）。
+- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。`Op::Values (n>=2)` 才置多值标记，`Op::CallWithValues` 委托宿主完成多值展开。
+- **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件；操作码编号变动必须两侧同步。
 
 ## L7 loader
 

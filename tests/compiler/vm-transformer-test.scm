@@ -17,7 +17,7 @@
               vm-if-then-map vm-if-then-for-each)))
 
 (define (vm-load-defs defs)
-  (vm-load (to-bytecode (map core->ir defs)) #f))
+  (vm-load (encode-bytecode (to-bytecode (map core->ir defs))) #f))
 
 ;; ===== 1. 非尾位置的 let（绑定值含 letrec）=====
 ;; 修复前 compile-let 在非尾位置也 emit (return)，绑定值里的 letrec
@@ -87,19 +87,19 @@
 ;; ===== 4. vm-load 直接加载 lambda（transformer 等价物）=====
 ;; 覆盖非尾 let + map 组合在闭包 body 里的执行。
 (define tr-non-tail
-  (vm-load (to-bytecode (list (core->ir '(lambda (x)
+  (vm-load (encode-bytecode (to-bytecode (list (core->ir '(lambda (x)
                                            (let* ((a (let loop ((i x) (acc '()))
                                                       (if (= i 0) acc (loop (- i 1) (cons i acc)))))
                                                   (b (length a)))
-                                             (+ (length a) b))))))
+                                             (+ (length a) b)))))))
            #f))
 
 (check (tr-non-tail 3) => 6)   ; '(3 2 1) 长度 3 → 6
 (check (tr-non-tail 1) => 2)   ; '(1) 长度 1 → 2
 
 (define tr-map
-  (vm-load (to-bytecode (list (core->ir '(lambda (xs)
-                                           (map (lambda (x) (* x 3)) xs)))))
+  (vm-load (encode-bytecode (to-bytecode (list (core->ir '(lambda (xs)
+                                           (map (lambda (x) (* x 3)) xs))))))
            #f))
 
 (check (tr-map '(1 2 3)) => '(3 6 9))
