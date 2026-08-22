@@ -109,8 +109,9 @@
      set set=? set<=? set-fold set-remove set-union
      char-position string-position
      tree-count tree-cyclic? tree-leaves tree-memq tree-set-memq
-     hash-table hash-table? hash-table-ref hash-table-size
-     int-vector int-vector? int-vector-ref int-vector-set! make-int-vector
+      hash-table hash-table? hash-table-ref hash-table-size
+      make-iterator iterator? iterator-at-end?
+      int-vector int-vector? int-vector-ref int-vector-set! make-int-vector
      float-vector float-vector? float-vector-ref float-vector-set!
      make-float-vector
      complex-vector complex-vector? complex-vector-ref complex-vector-set!

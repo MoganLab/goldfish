@@ -15,6 +15,14 @@
 ;;; nodes, no VM opcodes) -- the host's values objects and apply
 ;;; splicing ARE the representation.  Nothing is redefined here.
 
+;; every one of the rest lists still has an element: R7RS multi-list
+;; map / for-each stop at the shortest list, so the loop guard must
+;; check them all, not just l1 (zip relies on this for ragged input).
+(define (lists-live? rest)
+  (if (null? rest)
+    #t
+    (and (pair? (car rest)) (lists-live? (cdr rest)))))
+
 (define (map f l1 . rest)
   (if (null? rest)
     (let map1 ((l l1))
@@ -22,7 +30,7 @@
         (cons (f (car l)) (map1 (cdr l)))
         '()))
     (let mapn ((l1 l1) (rest rest))
-      (if (pair? l1)
+      (if (and (pair? l1) (lists-live? rest))
         (cons (apply f (car l1) (map-cars rest))
               (mapn (cdr l1) (map-cdrs rest)))
         '()))))
@@ -47,7 +55,7 @@
           (f (car l))
           (fe1 (cdr l)))))
     (let fen ((l1 l1) (rest rest))
-      (if (not (null? l1))
+      (if (and (not (null? l1)) (lists-live? rest))
         (begin
           (apply f (car l1) (map-cars rest))
           (fen (cdr l1) (map-cdrs rest)))))))

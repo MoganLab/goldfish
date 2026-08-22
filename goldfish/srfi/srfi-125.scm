@@ -137,12 +137,28 @@
       (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
     ) ;define
 
+    ;; Enumeration primitive: the base layer's map/for-each are plain-list
+    ;; implementations, so the historical idiom `(map car ht)' (which relied
+    ;; on the host's generic traversal yielding one (key . value) pair per
+    ;; step) does not work.  Drive the host iterator protocol explicitly
+    ;; instead: each call yields an entry pair, #<eof> when exhausted.
+    (define (ht-entry-list ht)
+      (let ((it (make-iterator ht)))
+        (let loop ()
+          (let ((e (it)))
+            (if (eof-object? e)
+              '()
+              (cons e (loop))))
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define (hash-table-keys ht)
-      (map car ht)
+      (map car (ht-entry-list ht))
     ) ;define
 
     (define (hash-table-values ht)
-      (map cdr ht)
+      (map cdr (ht-entry-list ht))
     ) ;define
 
     (define hash-table-entries
@@ -169,7 +185,7 @@
 
     (define hash-table-count
       (typed-lambda ((pred? procedure?) (ht hash-table?))
-        (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
+        (count (lambda (e) (pred? (car e) (cdr e))) (ht-entry-list ht))
       ) ;typed-lambda
     ) ;define
 
@@ -183,19 +199,20 @@
 
     (define hash-table-for-each
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (x) (proc (car x) (cdr x))) ht)
+        (for-each (lambda (e) (proc (car e) (cdr e))) (ht-entry-list ht))
       ) ;typed-lambda
     ) ;define
 
     (define hash-table-map->list
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (map (lambda (x) (proc (car x) (cdr x))) ht)
+        (map (lambda (e) (proc (car e) (cdr e))) (ht-entry-list ht))
       ) ;typed-lambda
     ) ;define
 
+    ;; the entry list already is an association list
     (define hash-table->alist
       (typed-lambda ((ht hash-table?))
-        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
+        (ht-entry-list ht)
       ) ;typed-lambda
     ) ;define
 

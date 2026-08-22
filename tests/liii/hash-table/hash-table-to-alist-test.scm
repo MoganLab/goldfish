@@ -5,7 +5,7 @@
 
 
 ;; hash-table->alist
-;; 将哈希表转换为交替键值形式的列表。
+;; 将哈希表转换为关联列表（alist）。
 ;;
 ;; 语法
 ;; ----
@@ -19,7 +19,7 @@
 ;; 返回值
 ;; ----
 ;; list
-;; 形如 (k1 v1 k2 v2 ...) 的列表。
+;; 形如 ((k1 . v1) (k2 . v2) ...) 的关联列表（SRFI-125 语义）。
 ;;
 ;; 注意
 ;; ----
@@ -27,7 +27,7 @@
 ;;
 ;; 示例
 ;; ----
-;; (hash-table->alist ht) => '(k1 v1)
+;; (hash-table->alist ht) => '((k1 . v1))
 ;;
 ;; 错误处理
 ;; ----
@@ -37,7 +37,7 @@
 (let ((ht (make-hash-table)))
   (check (hash-table->alist ht) => '())
   (hash-table-set! ht 'k1 'v1)
-  (check (hash-table->alist ht) => '(k1 v1))
+  (check (hash-table->alist ht) => '((k1 . v1)))
 ) ;let
 
 
