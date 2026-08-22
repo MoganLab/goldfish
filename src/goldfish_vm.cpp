@@ -301,16 +301,18 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   // Fast path: inline the hot primitives so a VM call does not pay for
   // building an arg list and entering s7's evaluator.  The procedure
   // objects are cached once (glue_vm); s7_is_eq is a pointer compare.
-  // car/cdr guard with is_pair: the raw accessors return NULL on a
-  // non-pair, which the call protocol reads as "no value" and the stack
-  // underflows -- fall through to apply_function for a proper type error.
-  if (gf::is_eq (f, g_car_fn) && gf::is_pair (args[0])) return gf::car (args[0]);
-  if (gf::is_eq (f, g_cdr_fn) && gf::is_pair (args[0])) return gf::cdr (args[0]);
-  if (gf::is_eq (f, g_cons_fn)) return gf::cons (sc, args[0], args[1]);
-  if (gf::is_eq (f, g_eq_fn)) return gf::is_eq (args[0], args[1]) ? gf::t (sc) : gf::f (sc);
-  if (gf::is_eq (f, g_null_fn)) return gf::is_null (sc, args[0]) ? gf::t (sc) : gf::f (sc);
-  if (gf::is_eq (f, g_pair_fn)) return gf::is_pair (args[0]) ? gf::t (sc) : gf::f (sc);
-  if (gf::is_eq (f, g_not_fn)) return (args[0] == gf::f (sc)) ? gf::t (sc) : gf::f (sc);
+  // Every guard checks the arity before indexing args: a mismatch falls
+  // through to apply_function for the proper s7 error instead of reading
+  // out of bounds.  car/cdr also guard with is_pair -- the raw accessors
+  // return NULL on a non-pair, which the call protocol reads as "no
+  // value" and the stack underflows.
+  if (gf::is_eq (f, g_car_fn) && args.size () == 1 && gf::is_pair (args[0])) return gf::car (args[0]);
+  if (gf::is_eq (f, g_cdr_fn) && args.size () == 1 && gf::is_pair (args[0])) return gf::cdr (args[0]);
+  if (gf::is_eq (f, g_cons_fn) && args.size () == 2) return gf::cons (sc, args[0], args[1]);
+  if (gf::is_eq (f, g_eq_fn) && args.size () == 2) return gf::is_eq (args[0], args[1]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_null_fn) && args.size () == 1) return gf::is_null (sc, args[0]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_pair_fn) && args.size () == 1) return gf::is_pair (args[0]) ? gf::t (sc) : gf::f (sc);
+  if (gf::is_eq (f, g_not_fn) && args.size () == 1) return (args[0] == gf::f (sc)) ? gf::t (sc) : gf::f (sc);
   // Integer fast paths for + and - (the benchmark loops); fall back to s7
   // for non-integer or overflow (s7_apply_function re-checks).
   if (gf::is_eq (f, g_add_fn)) {
@@ -336,12 +338,12 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
     }
   }
   if (gf::is_eq (f, g_num_eq_fn)) {
-    if (gf::is_integer (args[0]) && gf::is_integer (args[1]))
+    if (args.size () == 2 && gf::is_integer (args[0]) && gf::is_integer (args[1]))
       return (gf::integer (args[0]) == gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
     return gf::apply_function (sc, f, build_args_list (sc, args));
   }
   if (gf::is_eq (f, g_lt_fn)) {
-    if (gf::is_integer (args[0]) && gf::is_integer (args[1]))
+    if (args.size () == 2 && gf::is_integer (args[0]) && gf::is_integer (args[1]))
       return (gf::integer (args[0]) < gf::integer (args[1])) ? gf::t (sc) : gf::f (sc);
     return gf::apply_function (sc, f, build_args_list (sc, args));
   }
