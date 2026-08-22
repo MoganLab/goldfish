@@ -206,6 +206,25 @@ target("lint-layer")
     end)
 target_end()
 
+-- L3 expander kernel artifact: rebuild / reproduction guard.  Both run a
+-- cold-cache from-artifact bootstrap (warm caches drift in gensym
+-- numbering; see tools/build-kernel.sh and LAYER.md 演进债).
+target("kernel")
+    set_kind("phony")
+    add_deps("goldfish")
+    on_build(function (target)
+        os.exec("sh tools/build-kernel.sh")
+    end)
+target_end()
+
+target("verify-kernel")
+    set_kind("phony")
+    add_deps("goldfish")
+    on_build(function (target)
+        os.exec("sh tools/verify-kernel.sh")
+    end)
+target_end()
+
 if is_plat("wasm") then
 target("goldfish_repl_wasm")
     set_kind("binary")

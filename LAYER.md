@@ -90,4 +90,4 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
 - **VM 多值**：多值是宿主派生形式（`8a0c14c7` 移除早期 list 包装——全局重定义 `values` 会混用协议破坏引导链），VM 单值栈上 values 对象由宿主 apply 拼接；n≥1 各形态（cwv/let-values/apply/VM 闭包 producer）已验证正确。已知边界：s7 把 `(values)` 与无 else `if` 的 void 归于同一 unspecified 对象，`call-with-values` 以 eq? 探测将其视为零值（R7RS 零值语义，Guile/Racket 对照一致）；代价是 void 值流入多值语境记零个值（Guile 记一个）——边缘情形，记录在案。若未来需要严格值数寄存器化（Op::Values 记录 arity），属性能/语义精化而非正确性需求。另：曾疑似多值渗入的案例（auto-compile 下 `gfproject-load-config` 返回错位值）已查明与多值无关：根因是延迟求值 C 特殊形式（`catch`、`call/cc`、`dynamic-wind`、`call-with-*`/`with-*`）经 `s7_apply_function` 的 c_function 快速路径调用时只返回占位符 `#f`，VM 误当结果；已修（`62c228ae`，`s7_gf_apply_eval` 强制 eval 循环）。
 - **C++ 业务收尾**：`find_function` 等残留宿主业务迁至纯 Scheme，进一步收敛胶水阈值。
-- **产物再生产校验（未落地）**：目标为 CI 校验内核产物 == 从源码重新生成的结果（逐字节一致）；当前该护栏尚未接入任何 workflow。
+- **产物再生产校验**：`xmake b verify-kernel` 已落地本地护栏——两次冷缓存 from-artifact 自举逐字节一致（fixpoint）且与已提交的 `kernel-combined.scm` 一致（再生产；不一致时提示 `xmake kernel` 重建）。重建入口 `xmake kernel`。剩余待办：接入 CI workflow。
