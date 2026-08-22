@@ -126,8 +126,8 @@
      random
      ;; C++ glue functions (g_*), exposed in the host rootlet
      g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir
-     g_getcwd g_getlogin g_getpid g_gfproject-load-config g_goldfish-library g_isdir g_isfile
-     g_listdir g_load-path g_function-libraries g_md5 g_md5-by-file g_mkdir g_os-arch g_os-call g_os-temp-dir
+     g_getcwd g_getlogin g_getpid g_goldfish-library g_isdir g_isfile
+     g_listdir g_load-path g_md5 g_md5-by-file g_mkdir g_os-arch g_os-call g_os-temp-dir
      g_os-type g_path-append-text g_path-copy g_path-getmtime g_path-getsize
      g_path-read-bytes g_path-read-text g_path-touch g_path-write-bytes
      g_path-write-text g_remove-file g_rename g_rmdir g_setenv g_sha1

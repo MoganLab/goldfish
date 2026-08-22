@@ -86,8 +86,8 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## 演进债
 
-- **时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。
+- **时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。另：程序级缓存不追踪依赖库变更，库更新后陈旧程序字节码仍可能命中。
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
-- **VM 多值**：当前以 `list/cons` 规避，待 `Op::Values` 寄存器化后移除包装；在此之前须防止其渗入用户可见语义。
+- **VM 多值**：当前以 `list/cons` 规避，待 `Op::Values` 寄存器化后移除包装；在此之前须防止其渗入用户可见语义。已实证渗入案例：auto-compile 下经 VM 编译的库函数返回错位值（`gfproject-load-config` 在 HEAD 上即返回裸 alist），`--no-auto-compile` 正常。
 - **C++ 业务收尾**：`find_function` 等残留宿主业务迁至纯 Scheme，进一步收敛胶水阈值。
 - **产物再生产校验（未落地）**：目标为 CI 校验内核产物 == 从源码重新生成的结果（逐字节一致）；当前该护栏尚未接入任何 workflow。

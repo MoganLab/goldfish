@@ -1,6 +1,6 @@
 (define-library (liii project)
   (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
-  (export project-root gfproject-load-config function-libraries)
+  (export project-root gfproject-load-config gfproject-tools-json function-libraries)
   (begin
 
     (define (normalize-string s)
@@ -65,9 +65,14 @@
             [(boolean? v) (if v "true" "false")]
             [(null? v) "null"]
             [(pair? v)
-             (if (every pair? v)
-               (string-append "{" (string-join (map (lambda (kv) (string-append "\"" (json-escape (symbol->string (car kv))) "\":" (value->json (cdr kv)))) v) ",") "}")
-               (string-append "[" (string-join (map value->json v) ",") "]"))]
+             (cond [(every pair? v)
+                    (string-append "{" (string-join (map (lambda (kv) (string-append "\"" (json-escape (symbol->string (car kv))) "\":" (value->json (cdr kv)))) v) ",") "}")]
+                   [(and (null? (cdr v)) (not (pair? (car v))))
+                    ;; a one-element list like (module goldfmt) is a key with
+                    ;; a single value, matching the host's former unpacking
+                    (value->json (car v))]
+                   [else
+                    (string-append "[" (string-join (map value->json v) ",") "]")])]
             [else (string-append "\"" (json-escape (symbol->string (string->symbol (string-append "" (if (string? v) v ""))))) "\"")]))
 
     (define (find-lib-gfproject)
@@ -82,28 +87,46 @@
         (if (not (string? cwd)) #f
           (let ((p (join-path cwd "gfproject.scm"))) (if (file-exists? p) p #f)))))
 
+    (define (tools-alist form)
+      (let ((e (assoc 'tools form))) (if e (cdr e) '())))
+
+    (define (merge-tools lib-tools local-tools)
+      (let loop ([ls local-tools] [acc lib-tools])
+        (if (null? ls) acc
+          (let* ([kv (car ls)] [k (car kv)] [v (cdr kv)] [ex (assoc k acc)])
+            (if ex
+              (loop (cdr ls) (cons (cons k (alist-merge (cdr ex) v)) (filter (lambda (e) (not (eq? (car e) k))) acc)))
+              (loop (cdr ls) (cons kv acc)))))))
+
+    (define (tools->json tools)
+      (if (null? tools) "{}"
+        (string-append "{"
+                       (string-join
+                        (map (lambda (tool)
+                               (string-append "\"" (json-escape (symbol->string (car tool))) "\":" (value->json (cdr tool))))
+                             tools)
+                        ",")
+                       "}")))
+
     (define (gfproject-load-config)
       (let* ((lib-path (find-lib-gfproject))
              (local-path (find-local-gfproject))
-             (lib-alist (if lib-path (read-gfproject lib-path) '()))
-             (local-alist (if local-path (read-gfproject local-path) '()))
-             (lib-tools (let ((e (assoc 'tools lib-alist))) (if e (cdr e) '())))
-             (local-tools (let ((e (assoc 'tools local-alist))) (if e (cdr e) '())))
-             (merged-tools
-              (let loop ([ls local-tools] [acc lib-tools])
-                (if (null? ls) acc
-                  (let* ([kv (car ls)] [k (car kv)] [v (cdr kv)] [ex (assoc k acc)])
-                    (if ex
-                      (loop (cdr ls) (cons (cons k (alist-merge (cdr ex) v)) (filter (lambda (e) (not (eq? (car e) k))) acc)))
-                      (loop (cdr ls) (cons kv acc)))))))
-             (merged (list (cons 'tools merged-tools))))
-        (if (null? merged-tools) "{\"tools\":{}}"
-          (string-append "{\"tools\":{"
-                         (string-join
-                          (map (lambda (tool)
-                                 (string-append "\"" (json-escape (symbol->string (car tool))) "\":" (value->json (cdr tool))))
-                               merged-tools) ",")
-                         "}}"))))
+             (lib-tools (if lib-path (tools-alist (read-gfproject lib-path)) '()))
+             (local-tools (if local-path (tools-alist (read-gfproject local-path)) '())))
+        (string-append "{\"tools\":" (tools->json (merge-tools lib-tools local-tools)) "}")))
+
+    ;; Three views of the gfproject tools table as one JSON document:
+    ;; library defaults, local overrides, and their merge (local wins).
+    ;; The host tool dispatcher consumes this instead of parsing gfproject.scm.
+    (define (gfproject-tools-json)
+      (let* ((lib-path (find-lib-gfproject))
+             (local-path (find-local-gfproject))
+             (lib-tools (if lib-path (tools-alist (read-gfproject lib-path)) '()))
+             (local-tools (if local-path (tools-alist (read-gfproject local-path)) '())))
+        (string-append "{\"lib\":" (tools->json lib-tools)
+                       ",\"local\":" (tools->json local-tools)
+                       ",\"merged\":" (tools->json (merge-tools lib-tools local-tools))
+                       "}")))
 
     ;; -- function-libraries --
 

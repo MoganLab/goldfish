@@ -90,20 +90,22 @@ namespace fs= std::filesystem;
 
 using nlohmann::json;
 
+// True once the B4 boot chain (expander artifact + lib layer) has loaded;
+// gates C++->Scheme call-ins that need expander-resolved modules like
+// (liii project).  Stays false under --mode s7 / GOLDFISH_BOOTSTRAP.
+static bool g_expander_online= false;
+
 inline void glue_define (gf::scheme* sc, const char* name, const char* desc, gf::function f, gf::int_ required,
                          gf::int_ optional);
 
 static gf::pointer f_goldfish_library (gf::scheme* sc, gf::pointer args);
 static gf::pointer f_load_path (gf::scheme* sc, gf::pointer args);
-static gf::pointer f_gfproject_load_config (gf::scheme* sc, gf::pointer args);
-static gf::pointer f_function_libraries (gf::scheme* sc, gf::pointer args);
-static gf::pointer f_project_root (gf::scheme* sc, gf::pointer args);
 
 static bool split_library_query (const string& query, string& group, string& library);
 
 static string find_goldfish_library ();
 
-static vector<string> find_function_libs_in_load_path (gf::scheme* sc, const string& function_name);
+static vector<string> visible_function_libraries (gf::scheme* sc, const string& function_name);
 
 void glue_njson (gf::scheme* sc);
 #ifdef GOLDFISH_ENABLE_HTTP
@@ -162,16 +164,6 @@ glue_goldfish (gf::scheme* sc) {
   const char* d_goldfish_library  = "(g_goldfish-library) => string or #f, goldfish library root";
   const char* s_load_path         = "g_load-path";
   const char* d_load_path         = "(g_load-path) => list of strings, current load-path";
-  const char* s_function_libraries= "g_function-libraries";
-  const char* d_function_libraries=
-      "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
-      "export function-name in the current *load-path*";
-  const char* s_gfproject_load_config= "g_gfproject-load-config";
-  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.scm (JSON dump)";
-  const char* s_project_root         = "g_project-root";
-  const char* d_project_root=
-      "(g_project-root) => string or #f, returns the directory containing the local gfproject.scm, "
-      "or #f if none is found in the current working directory";
 
   gf::define (sc, cur_env, gf::make_symbol (sc, s_version),
              gf::make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -184,17 +176,6 @@ glue_goldfish (gf::scheme* sc) {
 
   gf::define (sc, cur_env, gf::make_symbol (sc, s_load_path),
              gf::make_typed_function (sc, s_load_path, f_load_path, 0, 0, false, d_load_path, NULL));
-
-  gf::define (
-      sc, cur_env, gf::make_symbol (sc, s_function_libraries),
-      gf::make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
-
-  gf::define (sc, cur_env, gf::make_symbol (sc, s_gfproject_load_config),
-             gf::make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
-                                     d_gfproject_load_config, NULL));
-
-  gf::define (sc, cur_env, gf::make_symbol (sc, s_project_root),
-             gf::make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -1076,7 +1057,7 @@ goldfish_append_doc_hint_if_needed (gf::scheme* sc, const string& errmsg) {
 
   vector<string> library_queries;
   try {
-    library_queries= find_function_libs_in_load_path (sc, function_name);
+    library_queries= visible_function_libraries (sc, function_name);
   } catch (const std::exception&) {
     library_queries.clear ();
   }
@@ -1219,181 +1200,25 @@ find_goldhelp_tool_root (const char* gf_lib) {
 }
 
 // Tool registration system - dynamically load tools from gfproject.scm (DSL: (gfproject (tools ...)))
+// Config parsing/merging lives in (liii project) (pure Scheme); the host only
+// consumes its gfproject-tools-json document {lib,local,merged}.
 
-static fs::path
-find_local_gfproject_scm () {
-  std::error_code ec;
-  fs::path        cwd= fs::current_path (ec);
-  if (!ec) {
-    fs::path local_path= cwd / "gfproject.scm";
-    if (fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec)) {
-      return local_path;
-    }
+static bool
+gfproject_tools_views_json (gf::scheme* sc, string& out) {
+  if (!g_expander_online) {
+    return false;
   }
-  return "";
-}
-
-static fs::path
-find_lib_gfproject_scm (const char* gf_lib) {
-  std::error_code ec;
-  fs::path        lib_path= fs::path (gf_lib) / "gfproject.scm";
-  if (fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec)) {
-    return lib_path;
+  gf::pointer r= goldfish_eval_through_reader (
+      sc,
+      "(import (liii project))"
+      " (catch #t"
+      "    (lambda () (gfproject-tools-json))"
+      "    (lambda _ #f))");
+  if (!gf::is_string (r)) {
+    return false;
   }
-  ec.clear ();
-  fs::path parent_path= fs::path (gf_lib).parent_path () / "gfproject.scm";
-  if (fs::exists (parent_path, ec) && fs::is_regular_file (parent_path, ec)) {
-    return parent_path;
-  }
-  return "";
-}
-
-// -- deprecated JSON helpers (kept for manual migration reference, no longer used)
-static fs::path find_local_gfproject_json () { return find_local_gfproject_scm(); }
-static fs::path find_lib_gfproject_json (const char* gf_lib) { return find_lib_gfproject_scm(gf_lib); }
-static json load_json_file_or_empty (const fs::path& p) { (void)p; return json::object(); }
-
-// SEXP helpers
-static std::string read_file_to_string (const fs::path& path) {
-  std::ifstream in(path, std::ios::binary);
-  if (!in) return "";
-  return std::string((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-}
-
-static json sexp_alist_to_json (gf::scheme* sc, gf::pointer alist);
-
-static json sexp_value_to_json (gf::scheme* sc, gf::pointer v) {
-  if (gf::is_string(v)) return json(std::string(gf::string(v)));
-  if (gf::is_symbol(v)) return json(std::string(gf::symbol_name(v)));
-  if (gf::is_integer(v)) return json((int64_t)gf::integer(v));
-  if (gf::is_real(v)) return json(gf::real(v));
-  if (gf::is_boolean(v)) return json(gf::boolean(sc, v));
-  if (gf::is_pair(v)) {
-    // treat as alist object if all elements are pairs with symbol keys
-    bool is_alist = true;
-    for (gf::pointer it = v; gf::is_pair(it); it = gf::cdr(it)) {
-      gf::pointer e = gf::car(it);
-      if (!gf::is_pair(e) || !gf::is_symbol(gf::car(e))) { is_alist = false; break; }
-    }
-    if (is_alist) return sexp_alist_to_json(sc, v);
-    // otherwise treat as array (should not happen for gfproject)
-    json arr = json::array();
-    for (gf::pointer it = v; gf::is_pair(it); it = gf::cdr(it)) arr.push_back(sexp_value_to_json(sc, gf::car(it)));
-    return arr;
-  }
-  if (gf::is_null(sc, v)) return json::object();
-  return json(nullptr);
-}
-
-static json sexp_alist_to_json (gf::scheme* sc, gf::pointer alist) {
-  json obj = json::object();
-  for (gf::pointer it = alist; gf::is_pair(it); it = gf::cdr(it)) {
-    gf::pointer entry = gf::car(it);
-    if (!gf::is_pair(entry)) continue;
-    gf::pointer k = gf::car(entry);
-    gf::pointer vals = gf::cdr(entry);
-    std::string key = gf::is_symbol(k) ? std::string(gf::symbol_name(k)) : std::string(gf::string(k));
-    if (gf::is_null(sc, vals)) {
-      obj[key] = json::object();
-    } else if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals)) && gf::is_pair(gf::car(vals)) && gf::is_symbol(gf::car(gf::car(vals)))) {
-      // nested alist case: single level already
-      obj[key] = sexp_alist_to_json(sc, vals);
-    } else if (gf::is_pair(vals) && gf::is_pair(gf::car(vals)) && gf::is_symbol(gf::car(gf::car(vals)))) {
-      // list of pairs -> object
-      obj[key] = sexp_alist_to_json(sc, vals);
-    } else if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals))) {
-      // single value
-      obj[key] = sexp_value_to_json(sc, gf::car(vals));
-    } else {
-      // fallback: if vals is list of values, treat first as value
-      if (gf::is_pair(vals) && gf::is_null(sc, gf::cdr(vals))) obj[key] = sexp_value_to_json(sc, gf::car(vals));
-      else obj[key] = sexp_value_to_json(sc, vals);
-    }
-  }
-  return obj;
-}
-
-static json load_sexp_file_or_empty (gf::scheme* sc, const fs::path& path) {
-  if (path.empty()) return json::object();
-  std::string content = read_file_to_string(path);
-  if (content.empty()) return json::object();
-  try {
-    gf::pointer port = gf::open_input_string(sc, content.c_str());
-    gf::pointer read_proc = gf::name_to_value(sc, "read");
-    gf::pointer form = gf::call(sc, read_proc, gf::cons(sc, port, gf::nil(sc)));
-    gf::close_input_port(sc, port);
-    if (!gf::is_pair(form)) return json::object();
-    gf::pointer head = gf::car(form);
-    if (!gf::is_symbol(head) || std::string(gf::symbol_name(head)) != "gfproject") return json::object();
-    gf::pointer body = gf::cdr(form);
-    // body is ((tools (...)) ...) -> convert to object { "tools": {...} }
-    json obj = sexp_alist_to_json(sc, body);
-    // ensure top-level is object with "tools"
-    if (!obj.contains("tools")) obj["tools"] = json::object();
-    return obj;
-  } catch (...) {
-    return json::object();
-  }
-}
-
-static json
-gfproject_extract_tools (const json& config) {
-  if (config.is_object () && config.contains ("tools") && config["tools"].is_object ()) {
-    return config["tools"];
-  }
-  return json::object ();
-}
-
-static json
-gfproject_deep_merge_value (const json& base, const json& overlay) {
-  if (base.is_object () && overlay.is_object ()) {
-    json merged= base;
-    for (const auto& [key, overlay_value] : overlay.items ()) {
-      if (merged.contains (key)) {
-        merged[key]= gfproject_deep_merge_value (merged[key], overlay_value);
-      }
-      else {
-        merged[key]= overlay_value;
-      }
-    }
-    return merged;
-  }
-  return overlay;
-}
-
-struct gfproject_config_bundle {
-  json lib_config;
-  json local_config;
-  json merged_config;
-};
-
-static gfproject_config_bundle
-load_gfproject_cfg_bundle (gf::scheme* sc, const char* gf_lib) {
-  gfproject_config_bundle bundle;
-  bundle.lib_config  = load_sexp_file_or_empty (sc, find_lib_gfproject_scm (gf_lib));
-  bundle.local_config= load_sexp_file_or_empty (sc, find_local_gfproject_scm ());
-
-  json merged      = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
-  json merged_tools= gfproject_extract_tools (bundle.lib_config);
-  json local_tools = gfproject_extract_tools (bundle.local_config);
-
-  for (const auto& [command, local_tool] : local_tools.items ()) {
-    if (merged_tools.contains (command)) {
-      merged_tools[command]= gfproject_deep_merge_value (merged_tools[command], local_tool);
-    }
-    else {
-      merged_tools[command]= local_tool;
-    }
-  }
-
-  merged["tools"]     = merged_tools;
-  bundle.merged_config= merged;
-  return bundle;
-}
-
-static json
-load_gfproject_cfg (gf::scheme* sc, const char* gf_lib) {
-  return load_gfproject_cfg_bundle (sc, gf_lib).merged_config;
+  out= gf::string (r);
+  return true;
 }
 
 struct gfproject_tool_resolution {
@@ -1406,21 +1231,27 @@ struct gfproject_tool_resolution {
 
 static gfproject_tool_resolution
 resolve_gfproject_tool (gf::scheme* sc, const char* gf_lib, const string& command) {
-  gfproject_config_bundle bundle      = load_gfproject_cfg_bundle (sc, gf_lib);
-  json                    local_tools = gfproject_extract_tools (bundle.local_config);
-  json                    lib_tools   = gfproject_extract_tools (bundle.lib_config);
-  json                    merged_tools= gfproject_extract_tools (bundle.merged_config);
-
+  (void) gf_lib;
   gfproject_tool_resolution resolved;
-  resolved.has_local_override= local_tools.contains (command);
-  resolved.has_merged_tool   = merged_tools.contains (command);
-  resolved.has_lib_tool      = lib_tools.contains (command);
-
-  if (resolved.has_merged_tool) {
-    resolved.merged_tool= merged_tools[command];
+  string views_json;
+  if (!gfproject_tools_views_json (sc, views_json)) {
+    return resolved;
   }
-  if (resolved.has_lib_tool) {
-    resolved.lib_tool= lib_tools[command];
+  try {
+    json views= json::parse (views_json);
+    auto has_command_in = [&command, &views](const char* key) {
+      return views.contains (key) && views[key].is_object () && views[key].contains (command);
+    };
+    resolved.has_local_override= has_command_in ("local");
+    resolved.has_merged_tool   = has_command_in ("merged");
+    resolved.has_lib_tool      = has_command_in ("lib");
+    if (resolved.has_merged_tool) {
+      resolved.merged_tool= views["merged"][command];
+    }
+    if (resolved.has_lib_tool) {
+      resolved.lib_tool= views["lib"][command];
+    }
+  } catch (const std::exception&) {
   }
   return resolved;
 }
@@ -1587,28 +1418,6 @@ f_load_path (gf::scheme* sc, gf::pointer args) {
   return gf::load_path (sc);
 }
 
-static gf::pointer
-f_gfproject_load_config (gf::scheme* sc, gf::pointer args) {
-  (void) args;
-  string gf_lib_dir= find_goldfish_library ();
-  json   config    = load_gfproject_cfg (sc, gf_lib_dir.c_str ());
-  return gf::make_string (sc, config.dump ().c_str ());
-}
-
-static gf::pointer
-f_project_root (gf::scheme* sc, gf::pointer args) {
-  (void) args;
-  fs::path local= find_local_gfproject_scm ();
-  if (local.empty ()) {
-    return gf::f (sc);
-  }
-  std::string s= local.parent_path ().generic_string ();
-  if (s.empty ()) {
-    return gf::f (sc);
-  }
-  return gf::make_string (sc, s.c_str ());
-}
-
 static int
 goldfish_run_tool (gf::scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, gf::pointer old_port,
                    int gc_loc) {
@@ -1661,22 +1470,6 @@ current_scheme_error_output (gf::scheme* sc) {
     return string (errmsg);
   }
   return "";
-}
-
-static string
-read_text_file_exact (const fs::path& path) {
-  std::ifstream input (path, std::ios::binary);
-  if (!input.is_open ()) {
-    throw std::runtime_error ("Failed to open file for reading: " + path.string ());
-  }
-
-  std::ostringstream buffer;
-  buffer << input.rdbuf ();
-  if (input.bad ()) {
-    throw std::runtime_error ("Failed to read file: " + path.string ());
-  }
-
-  return buffer.str ();
 }
 
 gf::scheme*
@@ -1746,6 +1539,7 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
     // into the session program library (which would leak the implementation
     // surface into a strict r7rs program).
     gf::eval_c_string (sc, "(load-library! '(goldfish compiler))");
+    g_expander_online= true;
   }
 
   // Phase 2: mode-specific imports, now that the expander can handle
@@ -2457,39 +2251,6 @@ append_load_path_entries (gf::scheme* sc, const vector<string>& append_dirs) {
 }
 
 static bool
-append_unique_exact_string (vector<string>& items, const string& value) {
-  if (value.empty ()) return false;
-  if (std::find (items.begin (), items.end (), value) != items.end ()) return false;
-  items.push_back (value);
-  return true;
-}
-
-static bool
-string_is_decimal_integer (const string& value) {
-  if (value.empty ()) return false;
-
-  size_t index= 0;
-  if (value[0] == '+' || value[0] == '-') {
-    index= 1;
-  }
-  if (index >= value.size ()) return false;
-
-  return std::all_of (value.begin () + static_cast<std::ptrdiff_t> (index), value.end (),
-                      [] (unsigned char ch) { return std::isdigit (ch) != 0; });
-}
-
-static gf::pointer
-make_library_name_part (gf::scheme* sc, const string& part) {
-  if (string_is_decimal_integer (part)) {
-    try {
-      return gf::make_integer (sc, std::stoll (part));
-    } catch (const std::exception&) {
-    }
-  }
-  return gf::make_symbol (sc, part.c_str ());
-}
-
-static bool
 split_library_query (const string& query, string& group, string& library) {
   size_t slash_pos= query.find ('/');
   if (slash_pos == string::npos || slash_pos == 0 || slash_pos == query.size () - 1) {
@@ -2503,217 +2264,33 @@ split_library_query (const string& query, string& group, string& library) {
   return true;
 }
 
-static bool
-is_named_symbol (gf::pointer value, const char* name) {
-  return gf::is_symbol (value) && (strcmp (gf::symbol_name (value), name) == 0);
-}
-
-static bool
-library_name_part_to_string (gf::pointer value, string& out) {
-  if (gf::is_symbol (value)) {
-    out= gf::symbol_name (value);
-    return true;
-  }
-  if (gf::is_integer (value)) {
-    out= std::to_string (gf::integer (value));
-    return true;
-  }
-  return false;
-}
-
-static bool
-extract_library_name_from_form (gf::scheme* sc, gf::pointer library_name_form, string& group, string& library) {
-  if ((!gf::is_list (sc, library_name_form)) || (gf::list_length (sc, library_name_form) != 2)) {
-    return false;
-  }
-
-  return library_name_part_to_string (gf::car (library_name_form), group) &&
-         library_name_part_to_string (gf::cadr (library_name_form), library);
-}
-
-static bool
-export_spec_name_matches (gf::scheme* sc, gf::pointer export_spec, const string& function_name) {
-  if (gf::is_symbol (export_spec)) {
-    return function_name == gf::symbol_name (export_spec);
-  }
-
-  if (gf::is_list (sc, export_spec) && (gf::list_length (sc, export_spec) == 3) &&
-      is_named_symbol (gf::car (export_spec), "rename")) {
-    string renamed_export;
-    if (library_name_part_to_string (gf::caddr (export_spec), renamed_export)) {
-      return function_name == renamed_export;
-    }
-  }
-
-  return false;
-}
-
-static bool
-define_library_form_exports_function (gf::scheme* sc, gf::pointer form, const string& function_name, string& group,
-                                      string& library) {
-  if ((!gf::is_list (sc, form)) || gf::is_null (sc, form) || (!is_named_symbol (gf::car (form), "define-library"))) {
-    return false;
-  }
-
-  string form_group;
-  string form_library;
-  if (!extract_library_name_from_form (sc, gf::cadr (form), form_group, form_library)) {
-    return false;
-  }
-
-  for (gf::pointer declarations= gf::cddr (form); gf::is_pair (declarations); declarations= gf::cdr (declarations)) {
-    gf::pointer declaration= gf::car (declarations);
-    if ((!gf::is_list (sc, declaration)) || gf::is_null (sc, declaration) ||
-        (!is_named_symbol (gf::car (declaration), "export"))) {
-      continue;
-    }
-
-    for (gf::pointer export_specs= gf::cdr (declaration); gf::is_pair (export_specs);
-         export_specs           = gf::cdr (export_specs)) {
-      if (export_spec_name_matches (sc, gf::car (export_specs), function_name)) {
-        group  = form_group;
-        library= form_library;
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-static bool
-source_file_exports_function (gf::scheme* sc, const fs::path& source_file, const string& function_name, string& group,
-                              string& library) {
-  string     source_text= read_text_file_exact (source_file);
-  gf::pointer port       = gf::open_input_string (sc, source_text.c_str ());
-  gf::pointer eof_object = gf::eof_object (sc);
-
-  while (true) {
-    gf::pointer form= goldfish_read_datum (sc, port);
-    if (form == eof_object) break;
-    if (define_library_form_exports_function (sc, form, function_name, group, library)) {
-      gf::close_input_port (sc, port);
-      return true;
-    }
-  }
-
-  gf::close_input_port (sc, port);
-  return false;
-}
-
-static gf::pointer
-make_library_name_list (gf::scheme* sc, const string& group, const string& library) {
-  return gf::list (sc, make_library_name_part (sc, group), make_library_name_part (sc, library));
-}
-
-static vector<fs::path>
-sorted_child_directories (const fs::path& root) {
-  vector<fs::path> directories;
-  std::error_code  ec;
-
-  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end;
-       it.increment (ec)) {
-    if (ec) {
-      ec.clear ();
-      continue;
-    }
-    if (it->is_directory (ec)) {
-      directories.push_back (it->path ());
-    }
-    ec.clear ();
-  }
-
-  std::sort (directories.begin (), directories.end (),
-             [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
-  return directories;
-}
-
-static vector<fs::path>
-sorted_scheme_source_files (const fs::path& dir) {
-  vector<fs::path> files;
-  std::error_code  ec;
-
-  for (fs::directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end;
-       it.increment (ec)) {
-    if (ec) {
-      ec.clear ();
-      continue;
-    }
-    if (it->is_regular_file (ec) && (it->path ().extension () == ".scm")) {
-      files.push_back (it->path ());
-    }
-    ec.clear ();
-  }
-
-  std::sort (files.begin (), files.end (),
-             [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
-  return files;
-}
-
+// "group/library" query strings for libraries exporting function-name.
+// Delegates to (liii project)'s function-libraries through the expander;
+// returns {} whenever the expander or the module is unavailable
+// (s7 mode / GOLDFISH_BOOTSTRAP), so error hints degrade gracefully.
 static vector<string>
-find_function_libs_in_load_path (gf::scheme* sc, const string& function_name) {
-  vector<string>  library_queries;
-  std::error_code ec;
-
-  for (const auto& load_root_string : current_load_path_entries (sc)) {
-    fs::path load_root (load_root_string);
-    if ((!fs::exists (load_root, ec)) || (!fs::is_directory (load_root, ec))) {
-      ec.clear ();
-      continue;
-    }
-    ec.clear ();
-
-    for (const auto& group_dir : sorted_child_directories (load_root)) {
-      for (const auto& source_file : sorted_scheme_source_files (group_dir)) {
-        string group;
-        string library;
-        if (source_file_exports_function (sc, source_file, function_name, group, library)) {
-          append_unique_exact_string (library_queries, group + "/" + library);
-        }
-      }
-    }
+visible_function_libraries (gf::scheme* sc, const string& function_name) {
+  vector<string> queries;
+  if (!g_expander_online) {
+    return queries;
   }
-
-  std::sort (library_queries.begin (), library_queries.end ());
-  return library_queries;
-}
-
-static gf::pointer
-make_library_name_list_list (gf::scheme* sc, const vector<string>& library_queries) {
-  gf::pointer result= gf::nil (sc);
-  for (auto it= library_queries.rbegin (); it != library_queries.rend (); ++it) {
-    string group;
-    string library;
-    if (!split_library_query (*it, group, library)) continue;
-    result= gf::cons (sc, make_library_name_list (sc, group, library), result);
+  string         escaped;
+  for (char c : function_name) {
+    if (c == '\\' || c == '"') escaped += '\\';
+    escaped += c;
   }
-  return result;
-}
-
-static gf::pointer
-f_function_libraries (gf::scheme* sc, gf::pointer args) {
-  gf::pointer function_name_arg= gf::car (args);
-  if (!gf::is_string (function_name_arg)) {
-    return gf::error (
-        sc, gf::make_symbol (sc, "type-error"),
-        gf::list (sc, gf::make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
+  gf::pointer r= goldfish_eval_through_reader (
+      sc,
+      "(import (liii project))"
+      " (catch #t"
+      "    (lambda () (function-libraries \"" + escaped + "\"))"
+      "    (lambda _ '()))");
+  for (gf::pointer p= r; gf::is_pair (p); p= gf::cdr (p)) {
+    gf::pointer entry= gf::car (p);
+    if ((!gf::is_pair (entry)) || (!gf::is_symbol (gf::car (entry))) || (!gf::is_symbol (gf::cadr (entry)))) continue;
+    queries.emplace_back (string (gf::symbol_name (gf::car (entry))) + "/" + gf::symbol_name (gf::cadr (entry)));
   }
-
-  string         function_name= gf::string (function_name_arg);
-  vector<string> visible_library_queries;
-
-  try {
-    visible_library_queries= find_function_libs_in_load_path (sc, function_name);
-  } catch (const std::exception& ex) {
-    return gf::error (
-        sc, gf::make_symbol (sc, "read-error"),
-        gf::list (
-            sc,
-            gf::make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
-            function_name_arg));
-  }
-
-  return make_library_name_list_list (sc, visible_library_queries);
+  return queries;
 }
 
 static StartupCliOptions
@@ -2871,14 +2448,23 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
   if (old_port != gf::nil (sc)) gc_loc= gf::gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.scm 加载，DSL: (gfproject (tools ...))）
-  json gfproject_config= load_gfproject_cfg (sc, gf_lib);
-  if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
-    int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
-    if (tool_ret != -1) {
-      // Tool was found and executed (or failed with an error)
-      return tool_ret;
+  // 配置的读取与合并由 (liii project) 完成；宿主只消费其 JSON 工具视图
+  {
+    string views_json;
+    if (gfproject_tools_views_json (sc, views_json)) {
+      try {
+        json views= json::parse (views_json);
+        if (views.contains ("merged") && views["merged"].is_object () && views["merged"].contains (command)) {
+          int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+          if (tool_ret != -1) {
+            // Tool was found and executed (or failed with an error)
+            return tool_ret;
+          }
+          // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
+        }
+      } catch (const std::exception&) {
+      }
     }
-    // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
   }
 
   if (command == "help") {
