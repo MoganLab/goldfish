@@ -28,7 +28,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 - **核心语言**：C++ 执行的只有两样——读取路径上的「完全展开后 sexp 子集」，执行路径上的 VM 指令集。C++ 永远不需要解析未展开的源码。
 - **原语表 `g_*`**：无状态、单一职责的宿主调用，不含业务编排。
 - 每份契约**有计数、有版本**（opcode 数、原语数、格式标签数、格式版本），预算接口面而非文件内容。
-- **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。
+- **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。`src/liii_*.cpp`、`scheme_*.cpp` 是按主题拆分的原语实现文件（属本层原语表，同样只经 `gf.h` 访问 s7）。
 
 ## L1 tiny
 
@@ -67,9 +67,14 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L7 loader
 
-- **文件**：`src/goldfish.hpp`（胶水注册）与 `src/goldfish.cpp` 的 CLI/REPL/`*load-path*` 分发。
+- **文件**：`src/goldfish.hpp`（胶水注册）与 `src/goldfish.cpp` 的 CLI/REPL/`*load-path*` 分发；`src/goldfish_repl.cpp` 为 wasm REPL 入口（同规则约束）。
 - **职责**：仅参数解析与模块加载分发，不含展开/编译逻辑；业务编排优先下沉至 `liii/*`。
 - **不变式**：禁止 `#include expander/compiler` 与 `(import goldfish/compiler)`；胶水数预算 `<=64`。
+
+## 用户库与业务脚本（非内核层）
+
+- **文件**：`goldfish/scheme/*.scm`（r7rs）、`goldfish/srfi/`、`goldfish/guenchi/`、`goldfish/match.scm`、`goldfish/repro-hygiene.scm`；根目录 `gfproject.scm`、`node-rules.json` 为构建/工程元数据。
+- **定位**：经 expander 加载的普通用户库，享受完整宏/模块能力；不属于引导闭包与裸码集合，无预算约束。`liii/*` 同属此类（boot 除外，其属裸码集合，见 L1）。
 
 ## 依赖与降级契约
 
@@ -77,13 +82,12 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 - **示例**：
   - 允许：`L4` 调用 `g_listdir`（`L0`）；`L5` 消费 `L2` 的 gfo 结构。
   - 禁止：`L1` 依赖 expander；`L5` 出现 `s7_` 或依赖用户态库；非 `L0` 包含 `s7.h`。
-- **机检**：`sh tools/lint-layer.sh` 为开发期便利，覆盖常见违规即可；`xmake.lua` 的文件清单注释按层线性分组，便于审阅。
+- **机检**：`sh tools/lint-layer.sh` 为开发期便利，覆盖常见违规即可（含 L5/L6 opcode ABI 同步检查）；`xmake.lua` 的文件清单注释按层线性分组，便于审阅。
 
 ## 演进债
 
-- **liii 定位**：`liii/*` 为高于核心层的业务脚本层（boot 除外，其属裸码集合）。
 - **时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
 - **VM 多值**：当前以 `list/cons` 规避，待 `Op::Values` 寄存器化后移除包装；在此之前须防止其渗入用户可见语义。
 - **C++ 业务收尾**：`find_function` 等残留宿主业务迁至纯 Scheme，进一步收敛胶水阈值。
-- **产物再生产校验**：CI 校验内核产物 == 从源码重新生成的结果（逐字节一致）。
+- **产物再生产校验（未落地）**：目标为 CI 校验内核产物 == 从源码重新生成的结果（逐字节一致）；当前该护栏尚未接入任何 workflow。
