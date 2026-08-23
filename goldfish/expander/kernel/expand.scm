@@ -379,7 +379,7 @@
               (map-spine lower form))))
           (else form)))))
 
-(define-record-type <defs>
+(define-record-type/public <defs>
   (make-defs scp-in addr)
   defs?
   (scp-in defs-scp-in)
@@ -494,8 +494,3 @@
 
 (define host-forms '(with-let sublet unlet))
 
-(module-define! the-expander-library 'program-library? program-library?)
-(module-define! the-expander-library 'make-defs make-defs)
-(module-define! the-expander-library 'defs? defs?)
-(module-define! the-expander-library 'defs-scp-in defs-scp-in)
-(module-define! the-expander-library 'defs-addr defs-addr)

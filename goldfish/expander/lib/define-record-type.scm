@@ -52,3 +52,30 @@
            (fields (map dr-field-datum (cddddr form))))
       (datum->syntax stx
         (dr-record-defs type make-datum pred fields)))))
+
+;; define-record-type/public : same shape, but every generated binding
+;; except the raw rtd and the optional type-name alias is registered into
+;; the-expander-library -- the kernel's records are implementation-layer,
+;; so exporting all accessors keeps the surface rule simple ("use /public,
+;; everything lands in the module").
+(define (dr-register-def d)
+  (let ((n (if (pair? (cadr d)) (car (cadr d)) (cadr d))))
+    (list 'module-define! 'the-expander-library (list 'quote n) n)))
+
+(define (dr-interleave-register defs)
+  (if (null? defs)
+    '()
+    (let ((d (car defs)))
+      (cons d (cons (dr-register-def d) (dr-interleave-register (cdr defs)))))))
+
+(define-syntax define-record-type/public
+  (lambda (stx)
+    (let* ((form (syntax-form stx))
+           (type (syntax->datum (cadr form)))
+           (make-datum (syntax->datum (caddr form)))
+           (pred (cadddr form))
+           (fields (map dr-field-datum (cddddr form)))
+           (body (cdr (dr-record-defs type make-datum pred fields))))
+      (datum->syntax stx
+        (cons 'begin
+              (dr-interleave-register body))))))

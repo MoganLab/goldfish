@@ -12,7 +12,7 @@
   (scopes bind-scopes)
   (name bind-name))
 
-(define-record-type <store>
+(define-record-type/public <store>
   (make-store counter bindings boxes def-envs)
   store?
   (counter store-counter)
@@ -149,9 +149,3 @@
 
 ;;; Library exports
 
-(module-define! the-expander-library 'make-store make-store)
-(module-define! the-expander-library 'store? store?)
-(module-define! the-expander-library 'store-counter store-counter)
-(module-define! the-expander-library 'store-bindings store-bindings)
-(module-define! the-expander-library 'store-boxes store-boxes)
-(module-define! the-expander-library 'store-def-envs store-def-envs)

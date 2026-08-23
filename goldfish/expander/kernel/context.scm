@@ -30,7 +30,7 @@
 ;;; Cross-library references are emitted as (module-ref 'home 'original);
 ;;; same-library references as the bare gensym (see expand.scm).
 
-(define-record-type <toplevel-ref>
+(define-record-type/public <toplevel-ref>
   (make-toplevel-ref gensym home original exported?)
   toplevel-ref?
   (gensym toplevel-ref-gensym)
@@ -38,7 +38,7 @@
   (original toplevel-ref-original)
   (exported? toplevel-ref-exported? set-toplevel-ref-exported!))
 
-(define-record-type <binding>
+(define-record-type/public <binding>
   (make-binding kind value)
   binding?
   (kind binding-kind)
@@ -103,7 +103,7 @@
 (define-public (set-current-expand-context! ctx)
   (set! *current-expand-context* ctx))
 
-(define-record-type <context>
+(define-record-type/public <context>
   (make-context phase env store use-scopes prune-scopes defctx intro-scope)
   context?
   (phase context-phase)
@@ -240,25 +240,3 @@
 
 ;;; Library exports
 
-(module-define! the-expander-library 'make-context make-context)
-(module-define! the-expander-library 'context? context?)
-(module-define! the-expander-library 'context-phase context-phase)
-(module-define! the-expander-library 'context-use-scopes context-use-scopes)
-(module-define! the-expander-library 'context-intro-scope context-intro-scope)
-(module-define! the-expander-library 'make-binding make-binding)
-(module-define! the-expander-library 'binding? binding?)
-(module-define! the-expander-library 'lexical-binding? lexical-binding?)
-(module-define! the-expander-library 'toplevel-binding? toplevel-binding?)
-(module-define! the-expander-library 'primitive-binding? primitive-binding?)
-(module-define! the-expander-library 'transformer-binding? transformer-binding?)
-(module-define! the-expander-library 'core-form-binding? core-form-binding?)
-(module-define! the-expander-library 'module-form-binding? module-form-binding?)
-(module-define! the-expander-library 'tstop-binding? tstop-binding?)
-(module-define! the-expander-library 'make-toplevel-ref make-toplevel-ref)
-(module-define! the-expander-library 'toplevel-ref? toplevel-ref?)
-(module-define! the-expander-library 'toplevel-ref-gensym toplevel-ref-gensym)
-(module-define! the-expander-library 'toplevel-ref-home toplevel-ref-home)
-(module-define! the-expander-library 'toplevel-ref-original toplevel-ref-original)
-(module-define! the-expander-library 'toplevel-ref-exported? toplevel-ref-exported?)
-(module-define! the-expander-library 'set-toplevel-ref-exported! set-toplevel-ref-exported!)
-(module-define! the-expander-library 'free-identifier=? free-identifier=?)

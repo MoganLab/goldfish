@@ -6,7 +6,7 @@
 ;;; where context is a list of (phase . scopes) entries,
 ;;; and library is the home library for free-identifier resolution.
 
-(define-record-type <syntax>
+(define-record-type/public <syntax>
   (make-syntax form context library)
   syntax?
   (form    syntax-form)
@@ -328,10 +328,3 @@
 
 ;;; Library exports
 
-(module-define! the-expander-library 'syntax? syntax?)
-(module-define! the-expander-library 'make-syntax make-syntax)
-(module-define! the-expander-library 'syntax-form syntax-form)
-(module-define! the-expander-library 'syntax-context syntax-context)
-(module-define! the-expander-library 'syntax-library syntax-library)
-(module-define! the-expander-library 'identifier? identifier?)
-(module-define! the-expander-library 'bound-identifier=? bound-identifier=?)
