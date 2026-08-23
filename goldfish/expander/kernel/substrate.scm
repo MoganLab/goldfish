@@ -83,6 +83,25 @@
   (set! *fresh-counter* (+ *fresh-counter* 1))
   (string->symbol (string-append stem "~" (number->string *fresh-counter*))))
 
+;;; define-public : define in this file's scope AND register into
+;;; the-expander-library, ending the per-symbol module-define! boilerplate
+;;; (149 handwritten registrations at its introduction).  Two forms:
+;;;   (define-public (f x) body ...)   procedure
+;;;   (define-public name expr)        plain value
+;;; Requires: expansion-time syntax-rules (bootstrapped expander), and at
+;;; eval time that `the-expander-library' / `module-define!' are bound --
+;;; true for every kernel file after exp-library.scm.
+(define-syntax define-public
+  (syntax-rules ()
+    ((_ (name . formals) body ...)
+     (begin
+       (define (name . formals) body ...)
+       (module-define! the-expander-library 'name name)))
+    ((_ name expr)
+     (begin
+       (define name expr)
+       (module-define! the-expander-library 'name name)))))
+
 (define (next-record-rtd)
   (next-fresh "rtd"))
 
