@@ -86,6 +86,30 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
   - 禁止：`L1` 依赖 expander；`L5` 出现 `s7_` 或依赖用户态库；非 `L0` 包含 `s7.h`。
 - **机检**：`sh tools/lint-layer.sh` 为开发期便利，覆盖常见违规即可（含 L5/L6 opcode ABI 同步检查）；`xmake.lua` 的文件清单注释按层线性分组，便于审阅。
 
+## 宿主 ABI 规格（换宿主的交接合同）
+
+未来以自研 VM 替换 s7 时，新宿主须按以下四档提供能力。此表是「所有能 Scheme 的都在 Scheme」的审计底稿：T3 是下沉行动清单，T0/T1/T2 是引擎的最小实现面。
+
+### T0 引擎本体（重写项）
+
+- 数据表示 + GC、求值循环/VM、错误传播协议（jump buffer 链、catcher 扫描，及 goldfish 的**帧感知展开钩子**三件套 `goldfish_vm_push_boundary/pop_boundary/s7_gf_vm_unwind`）。
+- `vm-load` / `vm-enter` 位置编码字节码 ABI（L6 契约）；tiny reader C 面（`g-tiny-read`/`g-read-token`/`g-read-string`/`g-delimiter?`/`g-tiny-load`/`g-undefined`）。
+
+### T1 语言必需原语（语义等价即可）
+
+- s7 `initialize_misc` 三件套：`make-hook`、`call-with-values`、`multiple-value-bind`（注意 cwv 的 unspecified 折叠差异，见演进债）。
+- 延迟形式名单：`catch call/cc call-with-current-continuation dynamic-wind apply` 及 8 个 `call-with-*` / `with-*` I/O 组合子。
+- 其余为底层语言内建（cons/car/算术/string/vector/hash-table/port…），按 R7RS-small + 必要扩展对齐，不逐一枚举。
+
+### T2 平台能力（非语言；来自 OS/C 标准库，共 ~57 个 `g_*`）
+
+- fs/path/env/process（34）、time（7）、hash/base64（8）、http（8，可选编译）、subprocess/uuid/misc。
+
+### T3 下沉候补（当前在 C、Scheme 可表达，~38 个）
+
+- 判据：无 syscall、无外部编码表依赖的纯逻辑。现列：njson 全部 32（纯数据操作，留 C 仅因性能）、`g_string-split`、`g_char-upcase/downcase/alphabetic?/upper-case?/lower-case?`（字符表驱动）。
+- 已下沉实例：`liii/host-abi.scm`（108 个定义——exact/inexact 包装、list 系集合操作等 R7RS 语义修正层）。
+
 ## 演进债
 
 - **缓存时效戳（部分收敛，2026-08）**：工具链维度已由版本目录解决（见 L2）。剩余已知限制——程序/库缓存仍不追踪依赖库变更：库的宏定义变更后，使用该宏的库/程序的陈旧缓存仍会命中（Guile 同样存在此限制，官方实践即删除缓存目录）；依赖清单（imports 的内容哈希）是候选后续。mtime 维持 tbox 提供的精度，秒级文件系统的同秒双存极端场景未防护。

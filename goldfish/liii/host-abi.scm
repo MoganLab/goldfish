@@ -5,6 +5,9 @@
 ;;; resolve at runtime.  eof-object / vector-map / vector-for-each are NOT
 ;;; defined here: the kernel (substrate.scm) provides them, and its
 ;;; re-bindings override anything this file could define.
+;;;
+;;; This file is also the working example of LAYER.md's 宿主 ABI 规格 T3
+;;; tier: logic written in Scheme that a future host gets for free.
 (define exact inexact->exact)
 (define inexact exact->inexact)
 (define (max2 x y) (when (or (not (real? x)) (not (real? y))) (error (quote type-error) "max: parameter must be real number")) (if (or (inexact? x) (inexact? y)) (inexact (s7-max x y)) (s7-max x y)))
