@@ -704,16 +704,6 @@
         (begin (vm-load prog #f) #t)
         (begin (for-each (lambda (d) (eval d (rootlet))) defs) #f)))))
 
-(define (library-cache-hit? lib-file cache meta)
-  (let ((gfo-file cache))
-    (let ((src (load-find-module-file lib-file)))
-      (and src (gfo-valid? gfo-file (compile-file-stamp src))))))
-
-;; new single-arg helper
-(define (library-gfo-hit? lib-file)
-  (let ((gfo-file (library-gfo-path lib-file)))
-    (library-cache-hit? lib-file gfo-file gfo-file)))
-
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
 ;;; malformed definition, an expansion error, ...) is reported with the
@@ -756,58 +746,59 @@
         (set! *runtime-registered-libraries*
               (cons lib-name *runtime-registered-libraries*)))
       (let ((lib-file (library-file-name lib-name)))
-    (let ((gfo-file (library-gfo-path lib-file)))
-      (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-               (auto-compile-enabled?)
-               (library-cache-hit? lib-file gfo-file gfo-file))
-        (dynamic-wind
-          (lambda ()
-            (set! *libraries-being-loaded*
-                  (cons lib-name *libraries-being-loaded*)))
-          (lambda ()
-            (load-library-guard
-             lib-name
-             (lambda ()
-               (let ((recs (gfo-read gfo-file)))
-                 (for-each restore-library-cache recs)
-                 (load-library-file-cached! recs)))))
-          (lambda ()
-            (set! *libraries-being-loaded*
-                  (filter (lambda (n) (not (equal? n lib-name)))
-                          *libraries-being-loaded*))))
-        ;; No cache (or stale): load and compile the source file.
-        (let ((file (load-find-module-file lib-file)))
-          (unless file
-            (error "import: unknown library" lib-name))
-          (let ((forms (call-with-input-file file read-forms)))
-            (dynamic-wind
-              (lambda ()
-                (set! *libraries-being-loaded*
-                      (cons lib-name *libraries-being-loaded*)))
-              (lambda ()
-                (load-library-guard
-                 lib-name
-                 (lambda ()
-                   (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                            (auto-compile-enabled?)
-                            (library-file-cacheable? forms))
-                     (let* ((stamp (compile-file-stamp file))
-                            (gfo-file (library-gfo-path lib-file)))
-                       (let*-values (((recs ctx) (capture-file-cache forms)))
-                         (let ((recs (optimize-lib-cache-recs recs)))
-                            (gfo-write! gfo-file stamp recs)
-                           (load-library-file-cached! recs))))
-                     (begin
-                       ;; Non-cacheable library: expand, optimize, then eval
-                       ;; the whole program (the pipeline still applies).
-                       (eval (optimize-on-load (compile-program forms))
-                             (rootlet))
-                       (set! *runtime-registered-libraries*
-                             (cons lib-name *runtime-registered-libraries*)))))))
-              (lambda ()
-                (set! *libraries-being-loaded*
-                      (filter (lambda (n) (not (equal? n lib-name)))
-                              *libraries-being-loaded*))))))))))))
+        (let ((gfo-file (library-gfo-path lib-file)))
+          (let* ((src (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                           (auto-compile-enabled?)
+                           (load-find-module-file lib-file)))
+                 (recs (and src (gfo-load gfo-file (compile-file-stamp src)))))
+            (if recs
+              (dynamic-wind
+                (lambda ()
+                  (set! *libraries-being-loaded*
+                        (cons lib-name *libraries-being-loaded*)))
+                (lambda ()
+                  (load-library-guard
+                   lib-name
+                   (lambda ()
+                     (for-each restore-library-cache recs)
+                     (load-library-file-cached! recs))))
+                (lambda ()
+                  (set! *libraries-being-loaded*
+                        (filter (lambda (n) (not (equal? n lib-name)))
+                                *libraries-being-loaded*))))
+              ;; No cache (or stale): load and compile the source file.
+              (let ((file (load-find-module-file lib-file)))
+                (unless file
+                  (error "import: unknown library" lib-name))
+                (let ((forms (call-with-input-file file read-forms)))
+                  (dynamic-wind
+                    (lambda ()
+                      (set! *libraries-being-loaded*
+                            (cons lib-name *libraries-being-loaded*)))
+                    (lambda ()
+                      (load-library-guard
+                       lib-name
+                       (lambda ()
+                         (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                                  (auto-compile-enabled?)
+                                  (library-file-cacheable? forms))
+                           (let* ((stamp (compile-file-stamp file))
+                                  (gfo-file (library-gfo-path lib-file)))
+                             (let*-values (((recs ctx) (capture-file-cache forms)))
+                               (let ((recs (optimize-lib-cache-recs recs)))
+                                  (gfo-write! gfo-file stamp recs)
+                                 (load-library-file-cached! recs))))
+                           (begin
+                             ;; Non-cacheable library: expand, optimize, then eval
+                             ;; the whole program (the pipeline still applies).
+                             (eval (optimize-on-load (compile-program forms))
+                                   (rootlet))
+                             (set! *runtime-registered-libraries*
+                                   (cons lib-name *runtime-registered-libraries*)))))))
+                    (lambda ()
+                      (set! *libraries-being-loaded*
+                            (filter (lambda (n) (not (equal? n lib-name)))
+                                    *libraries-being-loaded*)))))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.

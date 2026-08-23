@@ -27,7 +27,6 @@
 (define cache-separator? gfo-separator?)
 (define ensure-cache-parent! gfo-ensure-parent!)
 (define compile-file-stamp gfo-stamp)
-(define (compile-cache-valid? cache meta stamp) (gfo-valid? cache stamp))
 (define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
 
 ;;; take-collected-macros : -> (list (name . sexp))
@@ -122,12 +121,13 @@
     (unless file
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
-      (if (install-cache-valid? path stamp)
-        (install-cache-load! lib (install-cache-read path))
-        (let*-values (((ctx defs macros bindings)
-                       (install-library-forms! lib (call-with-input-file file read-forms))))
-          (install-cache-save! path stamp defs macros bindings)
-          ctx)))))
+      (let ((cached (gfo-load (install-cache-path path) stamp)))
+        (if cached
+          (install-cache-load! lib cached)
+          (let*-values (((ctx defs macros bindings)
+                         (install-library-forms! lib (call-with-input-file file read-forms))))
+            (install-cache-save! path stamp defs macros bindings)
+            ctx))))))
 (define (install-standard-library!)
   (install-library-file! the-base-library "expander/lib/standard.scm"))
 
@@ -237,12 +237,6 @@
 
 ;;; install-cache-path : path -> gfo-file (unified .gfo)
 (define (install-cache-path path) (gfo-path path))
-
-(define (install-cache-valid? path stamp)
-  (gfo-valid? (install-cache-path path) stamp))
-
-(define (install-cache-read path)
-  (gfo-read (install-cache-path path)))
 
 ;;; compile-transformer-to-program : sexp -> datum/#f
 ;;; Compile a transformer's lowered form to a serialized VM bytecode
@@ -416,15 +410,8 @@
 ;;; compile-file keeps its uncached semantics; compile-file-cached is the
 ;;; caching entry point.
 ;;; (compile-cache-dir / cache-key-path / compile-file-stamp /
-;;; compile-cache-valid? / compile-write-cache are defined up top, before
+;;; compile-write-cache is defined up top, before
 ;;; the boot installs.)
-
-(define (compile-cache-hot? path stamp)
-  (let* ((key (cache-key-path path))
-         (level (ccache-level))
-         (key (if (zero? level) key (string-append key "-o" (number->string level))))
-         (gfo-file (string-append (compile-cache-dir) "/" key ".gfo")))
-    (gfo-valid? gfo-file stamp)))
 
 ;; ccache-level : -> integer
 ;; The optimization level to bake into compile-file-cached artifacts.
@@ -446,17 +433,18 @@
          (key (if (zero? level) key (string-append key "-o" (number->string level))))
          (gfo-file (string-append (compile-cache-dir) "/" key ".gfo"))
          (stamp (compile-file-stamp path)))
-    (if (gfo-valid? gfo-file stamp)
-      (gfo-read gfo-file)
-      (let* ((sexp (compile-file-into path (program-library)))
-             (opt (if (zero? level)
-                    sexp
-                    (let ((f (module-ref the-expander-library 'optimize-on-load)))
-                      (if (procedure? f)
-                        (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
-                        sexp)))))
-        (gfo-write! gfo-file stamp opt)
-        opt))))
+    (let ((cached (gfo-load gfo-file stamp)))
+      (if cached
+        cached
+        (let* ((sexp (compile-file-into path (program-library)))
+               (opt (if (zero? level)
+                      sexp
+                      (let ((f (module-ref the-expander-library 'optimize-on-load)))
+                        (if (procedure? f)
+                          (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
+                          sexp)))))
+          (gfo-write! gfo-file stamp opt)
+          opt)))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
 (module-define! the-expander-library 'gfo-dir gfo-dir)
@@ -464,16 +452,14 @@
 (module-define! the-expander-library 'gfo-path gfo-path)
 (module-define! the-expander-library 'gfo-stamp gfo-stamp)
 (module-define! the-expander-library 'gfo-valid? gfo-valid?)
-(module-define! the-expander-library 'gfo-read gfo-read)
+(module-define! the-expander-library 'gfo-load gfo-load)
 (module-define! the-expander-library 'gfo-write! gfo-write!)
 ;; legacy aliases for previous API
 (module-define! the-expander-library 'compile-cache-dir compile-cache-dir)
 (module-define! the-expander-library 'cache-key-path cache-key-path)
 (module-define! the-expander-library 'ensure-cache-parent! ensure-cache-parent!)
 (module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
-(module-define! the-expander-library 'compile-cache-valid? compile-cache-valid?)
 (module-define! the-expander-library 'compile-write-cache compile-write-cache)
-(module-define! the-expander-library 'compile-cache-hot? compile-cache-hot?)
 ;; Serializer shared with the user-library cache (lib/module.scm): a macro
 ;; definition caches its lowered transformer form, exactly as the boot
 ;; library installs do, so user libraries and the boot library build their
@@ -539,7 +525,7 @@
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached
       compile-cache-dir cache-key-path ensure-cache-parent!
-      compile-file-stamp compile-cache-valid? compile-write-cache
+      compile-file-stamp compile-write-cache
       cacheable-expansion? collect-module-refs
       install-cache-path install-cache-save! install-cache-load!
       ;; kernel entry points (expand-time API not already exported)

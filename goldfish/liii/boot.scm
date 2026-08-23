@@ -129,13 +129,13 @@
                         (g_path-getmtime artifact) (g_path-getsize artifact))))
       (let ((gfo-file (gfo-path path)))
         ;; bootstrap-0: s7 kernel may differ from committed artifact; force re-expand.
-        (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                 (gfo-valid? gfo-file stamp))
-          (let* ((payload (gfo-read gfo-file))
-                 (bindings (car payload))
-                 (sexp (cadr payload)))
-            (eval sexp the-expander-library)
-            (le-rootlet-copy bindings))
+        (let ((payload (and (not (getenv "GOLDFISH_BOOTSTRAP"))
+                            (gfo-load gfo-file stamp))))
+          (if payload
+            (let ((bindings (car payload))
+                  (sexp (cadr payload)))
+              (eval sexp the-expander-library)
+              (le-rootlet-copy bindings))
           (let* ((forms (read-forms (open-input-file file)))
                  (stxs (map (lambda (f) (stx-set-library (wrap-expression f) lib))
                             forms)))
@@ -152,7 +152,7 @@
                                              (toplevel-binding? (cdr e)))
                                            (exp-library-bindings lib)))))
                 (gfo-write! gfo-file stamp (list bindings (cons 'begin (map lower defs))))
-                (le-rootlet-copy bindings))))))))))
+                (le-rootlet-copy bindings)))))))))))
 
 ;; bootstrap-0 only: s7 evaluates kernel sources directly.
 (if (or (getenv "GOLDFISH_BOOTSTRAP")

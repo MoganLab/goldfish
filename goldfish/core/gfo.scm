@@ -75,10 +75,7 @@
       (g_sha256 acc)
       (loop (cdr fs) (feed acc (car fs))))))
 
-(define *gfo-version-cache* #f)
-
-(define (gfo-version-tag)
-  ;; 12-hex prefix of the pipeline fingerprint; memoized for the process.
+(define (gfo-version-tag)  ;; 12-hex prefix of the pipeline fingerprint; memoized for the process.
   (or *gfo-version-cache*
       (let* ((fp (catch #t
                    (lambda () (substring (gfo-pipeline-fingerprint) 0 12))
@@ -148,9 +145,17 @@
               (equal? (cadr rec) gfo-format-version)
               (equal? (caddr rec) stamp)))))
 
-(define (gfo-read gfo-file)
-  (let ((rec (car (read-forms (open-input-file gfo-file)))))
-    (cadddr rec)))
+;; gfo-load : gfo-file stamp -> payload | #f
+;; Single-pass variant of the gfo-valid? + gfo-read pair: parsing a cached
+;; record is expensive (pure-Scheme reader), so callers that need the
+;; payload on a hit must not parse the file twice.  Returns #f on miss.
+(define (gfo-load gfo-file stamp)
+  (and (file-exists? gfo-file)
+       (let ((rec (car (read-forms (open-input-file gfo-file)))))
+         (and (pair? rec) (eq? (car rec) 'gfo)
+              (equal? (cadr rec) gfo-format-version)
+              (equal? (caddr rec) stamp)
+              (cadddr rec)))))
 
 (define (gfo-write! gfo-file stamp payload)
   (if (getenv "GOLDFISH_CACHE_READONLY") #f
