@@ -61,8 +61,6 @@
 #endif
 #endif
 
-#include <nlohmann/json.hpp>
-
 #ifdef GOLDFISH_WITH_REPL
 #include <functional>
 #include <isocline.h>
@@ -87,8 +85,6 @@ using std::string;
 using std::vector;
 
 namespace fs= std::filesystem;
-
-using nlohmann::json;
 
 // True once the B4 boot chain (expander artifact + lib layer) has loaded;
 // gates C++->Scheme call-ins that need expander-resolved modules like
@@ -1200,60 +1196,35 @@ find_goldhelp_tool_root (const char* gf_lib) {
 }
 
 // Tool registration system - dynamically load tools from gfproject.scm (DSL: (gfproject (tools ...)))
-// Config parsing/merging lives in (liii project) (pure Scheme); the host only
-// consumes its gfproject-tools-json document {lib,local,merged}.
+// Config parsing and candidate ranking live in (liii project) (pure Scheme):
+// gfproject-tool-imports returns the import expressions of candidate tools,
+// best first, '() when the command is not a project tool.
 
-static bool
-gfproject_tools_views_json (gf::scheme* sc, string& out) {
+static vector<string>
+gfproject_tool_imports (gf::scheme* sc, const string& command) {
+  vector<string> out;
   if (!g_expander_online) {
-    return false;
+    return out;
   }
+  // Embed the command as a Scheme string literal: backslash and double
+  // quote are the only characters special inside a string.  NB: the forms
+  // stay top-level -- the expander rejects `import` inside begin/lambda.
+  string lit= "\"";
+  for (char c : command) {
+    if (c == '\\' || c == '"') lit+= '\\';
+    lit+= c;
+  }
+  lit+= '"';
   gf::pointer r= goldfish_eval_through_reader (
       sc,
       "(import (liii project))"
       " (catch #t"
-      "    (lambda () (gfproject-tools-json))"
-      "    (lambda _ #f))");
-  if (!gf::is_string (r)) {
-    return false;
+      "   (lambda () (gfproject-tool-imports " + lit + "))"
+      "   (lambda _ '()))");
+  for (gf::pointer p= r; gf::is_pair (p); p= gf::cdr (p)) {
+    if (gf::is_string (gf::car (p))) out.push_back (gf::string (gf::car (p)));
   }
-  out= gf::string (r);
-  return true;
-}
-
-struct gfproject_tool_resolution {
-  bool has_local_override= false;
-  bool has_merged_tool   = false;
-  bool has_lib_tool      = false;
-  json merged_tool       = json::object ();
-  json lib_tool          = json::object ();
-};
-
-static gfproject_tool_resolution
-resolve_gfproject_tool (gf::scheme* sc, const char* gf_lib, const string& command) {
-  (void) gf_lib;
-  gfproject_tool_resolution resolved;
-  string views_json;
-  if (!gfproject_tools_views_json (sc, views_json)) {
-    return resolved;
-  }
-  try {
-    json views= json::parse (views_json);
-    auto has_command_in = [&command, &views](const char* key) {
-      return views.contains (key) && views[key].is_object () && views[key].contains (command);
-    };
-    resolved.has_local_override= has_command_in ("local");
-    resolved.has_merged_tool   = has_command_in ("merged");
-    resolved.has_lib_tool      = has_command_in ("lib");
-    if (resolved.has_merged_tool) {
-      resolved.merged_tool= views["merged"][command];
-    }
-    if (resolved.has_lib_tool) {
-      resolved.lib_tool= views["lib"][command];
-    }
-  } catch (const std::exception&) {
-  }
-  return resolved;
+  return out;
 }
 
 static void
@@ -1280,34 +1251,15 @@ struct gfproject_tool_prepare_result {
 static string find_tool_root_by_command (const char* gf_lib, const string& command);
 
 static gfproject_tool_prepare_result
-goldfish_prepare_tool_main (gf::scheme* sc, const char* gf_lib, const string& command, const json& tool_config) {
+goldfish_prepare_tool_main (gf::scheme* sc, const char* gf_lib, const string& command,
+                            const string& import_expr) {
   gfproject_tool_prepare_result result;
 
-  if (!tool_config.is_object ()) {
-    result.error  = gfproject_tool_prepare_error::invalid_config_value;
-    result.message= "Error: Tool '" + command + "' config must be a JSON object.";
-    return result;
-  }
-
-  if (!tool_config.contains ("organization") || !tool_config.contains ("module")) {
-    result.error  = gfproject_tool_prepare_error::incomplete_config;
-    result.message= "Error: Tool '" + command + "' is not fully implemented (missing organization or module).";
-    return result;
-  }
-
-  if (!tool_config["organization"].is_string () || !tool_config["module"].is_string ()) {
-    result.error  = gfproject_tool_prepare_error::invalid_config_value;
-    result.message= "Error: Tool '" + command + "' organization/module must be strings.";
-    return result;
-  }
-
-  string org      = tool_config["organization"];
-  string module   = tool_config["module"];
   string tool_root= find_tool_root_by_command (gf_lib, command);
 
   if (tool_root.empty ()) {
     result.error  = gfproject_tool_prepare_error::missing_tool_root;
-    result.message= "Error: tools/" + command + "/" + org + " directory not found.";
+    result.message= "Error: tools/" + command + "/ directory not found.";
     return result;
   }
 
@@ -1324,12 +1276,11 @@ goldfish_prepare_tool_main (gf::scheme* sc, const char* gf_lib, const string& co
     gf::add_to_load_path (sc, common_dir.string ().c_str ());
   }
 
-  string      import_expr  = "(import (" + org + " " + module + "))";
   gf::pointer  import_result= goldfish_eval_through_reader (sc, import_expr);
   const char* errmsg       = gf::get_output_string (sc, gf::current_error_port (sc));
   if (!import_result || ((errmsg) && (*errmsg))) {
     result.error  = gfproject_tool_prepare_error::import_failed;
-    result.message= "Error importing (" + org + " " + module + "):";
+    result.message= "Error " + import_expr + ":";
     return result;
   }
 
@@ -1344,7 +1295,7 @@ goldfish_prepare_tool_main (gf::scheme* sc, const char* gf_lib, const string& co
   }
   if ((!main_func) || (!gf::is_procedure (main_func))) {
     result.error  = gfproject_tool_prepare_error::missing_main;
-    result.message= "Error: Failed to find main function in (" + org + " " + module + ").";
+    result.message= "Error: Failed to find main function via " + import_expr + ".";
     return result;
   }
 
@@ -1387,9 +1338,9 @@ goldfish_finish_tool_success (gf::scheme* sc, gf::pointer result, const char*& e
 }
 
 static int
-goldfish_run_tool_with_config (gf::scheme* sc, const char* gf_lib, const string& command, const json& tool_config,
+goldfish_run_tool_with_config (gf::scheme* sc, const char* gf_lib, const string& command, const string& import_expr,
                                const char*& errmsg, gf::pointer old_port, int gc_loc, bool allow_fallback) {
-  gfproject_tool_prepare_result prepared= goldfish_prepare_tool_main (sc, gf_lib, command, tool_config);
+  gfproject_tool_prepare_result prepared= goldfish_prepare_tool_main (sc, gf_lib, command, import_expr);
   if (prepared.error != gfproject_tool_prepare_error::none) {
     if (allow_fallback) {
       goldfish_reset_captured_error_port (sc);
@@ -1421,26 +1372,33 @@ f_load_path (gf::scheme* sc, gf::pointer args) {
 static int
 goldfish_run_tool (gf::scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, gf::pointer old_port,
                    int gc_loc) {
-  gfproject_tool_resolution resolved= resolve_gfproject_tool (sc, gf_lib, command);
-  if (!resolved.has_merged_tool) {
+  // Cheap guards before touching (liii project): paths and flags are never
+  // tool commands.  Built-in names stay dispatchable -- a project may
+  // override them.
+  if (!g_expander_online || command.empty () || command[0] == '-' || command.find ('/') != string::npos) {
+    return -1;
+  }
+
+  vector<string> imports= gfproject_tool_imports (sc, command);
+  if (imports.empty ()) {
     return -1;
   }
 
   bool allow_builtin_fallback= command == "help" || command == "version" || command == "eval" || command == "load" ||
                                command == "repl" || command == "run";
 
-  if (resolved.has_local_override && resolved.has_lib_tool) {
-    int merged_ret=
-        goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc, true);
-    if (merged_ret != -1) {
-      return merged_ret;
+  // Candidates are priority-ordered (local override first, library second):
+  // try each in turn; the first that prepares and runs wins.
+  for (size_t i= 0; i < imports.size (); ++i) {
+    const bool last= i + 1 == imports.size ();
+    int ret= goldfish_run_tool_with_config (sc, gf_lib, command, imports[i], errmsg, old_port, gc_loc,
+                                            last ? allow_builtin_fallback : true);
+    if (ret != -1) {
+      return ret;
     }
-    return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.lib_tool, errmsg, old_port, gc_loc,
-                                          allow_builtin_fallback);
+    goldfish_reset_captured_error_port (sc);
   }
-
-  return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc,
-                                        allow_builtin_fallback);
+  return -1;
 }
 
 static string
@@ -2448,23 +2406,14 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
   if (old_port != gf::nil (sc)) gc_loc= gf::gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.scm 加载，DSL: (gfproject (tools ...))）
-  // 配置的读取与合并由 (liii project) 完成；宿主只消费其 JSON 工具视图
+  // 候选查询与优先级排序由 (liii project) 完成；宿主逐个尝试 import 并执行
   {
-    string views_json;
-    if (gfproject_tools_views_json (sc, views_json)) {
-      try {
-        json views= json::parse (views_json);
-        if (views.contains ("merged") && views["merged"].is_object () && views["merged"].contains (command)) {
-          int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
-          if (tool_ret != -1) {
-            // Tool was found and executed (or failed with an error)
-            return tool_ret;
-          }
-          // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
-        }
-      } catch (const std::exception&) {
-      }
+    int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+    if (tool_ret != -1) {
+      // Tool was found and executed (or failed with an error)
+      return tool_ret;
     }
+    // tool_ret == -1: not a project tool -- fall through to built-in commands
   }
 
   if (command == "help") {

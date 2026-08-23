@@ -24,7 +24,10 @@
          ) ;let
        ) => #t)
 
-(check (let ((s (gfproject-load-config))) (and (string? s) (> (string-length s) 2))) => #t)
+(check (let ((r (gfproject-tool-imports "test")))
+         (and (list? r) (every string? r))) => #t)
+
+(check (let ((r (gfproject-tool-imports "no-such-tool-xyz"))) (null? r)) => #t)
 
 (check (let ((libs (function-libraries "string-append"))) (and (list? libs) (> (length libs) 0))) => #t)
 
