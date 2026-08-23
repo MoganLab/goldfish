@@ -30,7 +30,8 @@
   =>
   6000
 ) ;check
-;; R7RS: (values) delivers zero values, so a rest consumer receives none
+;; R7RS: (values) delivers zero values -- the rest consumer receives none,
+;; a zero-arg consumer is callable
 (check (call-with-values (lambda () (values)) (lambda args (length args))) => 0)
 (check (call-with-values (lambda () (values)) (lambda () 'zero-ok)) => 'zero-ok)
 (check (call-with-values (lambda () (values 'x)) list) => '(x))
