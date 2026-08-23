@@ -1,9 +1,94 @@
-(define (gfo-dir)
+(define (gfo-base-dir)
   (let ((xdg (getenv "XDG_CACHE_HOME")))
     (string-append
       (if (and xdg (not (string=? xdg ""))) xdg
         (string-append (or (getenv "HOME") "/tmp") "/.cache"))
       "/goldfish/ccache")))
+
+;;; --- cache identity: pipeline version directory -------------------------
+;;; The cache directory is qualified by a content hash of every pipeline
+;;; input that can change how sources are expanded/compiled: the bootstrap
+;;; chain, the kernel artifact, the expander lib and the compiler.  Touching
+;;; any of them moves all cached artifacts into a fresh directory; git
+;;; operations do NOT change the tag (content-addressed, not time-based),
+;;; so a checkout/rebase keeps its cache.  Keep the file list in sync with
+;;; the bootstrap chain (LAYER.md L1..L5).
+
+(define *gfo-version-cache* #f)
+
+(define (gfo-sort-strings ls)
+  ;; insertion sort -- gfo.scm runs before any base-layer sort exists.
+  (if (null? ls)
+    '()
+    (let ((m (car ls)))
+      (for-each (lambda (x) (when (string<? x m) (set! m x))) ls)
+      (cons m (gfo-sort-strings (let remove ((ls ls) (acc '()))
+                                  (cond ((null? ls) (reverse acc))
+                                        ((string=? (car ls) m) (append (reverse acc) (cdr ls)))
+                                        (else (remove (cdr ls) (cons (car ls) acc))))))))))
+
+(define (gfo-scm-files rel)
+  ;; .scm names directly under REL, sorted (directory order is unstable).
+  (let* ((base (car (g_load-path)))
+         (v (catch #t (lambda () (g_listdir (string-append base "/" rel))) (lambda args #f))))
+    (if (vector? v)
+      (gfo-sort-strings
+        (let loop ((i (- (vector-length v) 1)) (acc '()))
+          (if (< i 0)
+            acc
+            (let ((n (vector-ref v i)))
+              (loop (- i 1)
+                    (if (and (> (string-length n) 4)
+                             (string=? (substring n (- (string-length n) 4)) ".scm"))
+                      (cons n acc)
+                      acc))))))
+      '())))
+
+(define (gfo-locate rel)
+  ;; Minimal lookup against the load path: returns the first existing path,
+  ;; or REL itself (a missing file then contributes "-" to the fingerprint).
+  (let loop ((dirs (g_load-path)))
+    (cond ((null? dirs) rel)
+          ((file-exists? (string-append (car dirs) "/" rel))
+           (string-append (car dirs) "/" rel))
+          (else (loop (cdr dirs))))))
+
+(define (gfo-pipeline-fingerprint)
+  ;; Aggregate sha256 over every pipeline input; the name is mixed in per
+  ;; file and a missing file contributes "-".  The s7 version joins the
+  ;; mix so an interpreter change moves the directory too.
+  (define files
+    (append
+      (list "liii/boot.scm" "core/gfo.scm"
+            "liii/prelude.scm" "liii/reader.scm"
+            "liii/host-abi.scm" "liii/bootstrap-macros.scm"
+            "expander/kernel-combined.scm" "compiler.scm")
+      (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
+      (map (lambda (n) (string-append "compiler/" n)) (gfo-scm-files "compiler"))))
+  (define (feed acc f)
+    (let ((h (catch #t
+               (lambda () (g_sha256-by-file (gfo-locate f)))
+               (lambda args #f))))
+      (string-append acc f ":" (or h "-") ";")))
+  (let loop ((fs files) (acc (string-append "*s7*:" (*s7* 'version) ";")))
+    (if (null? fs)
+      (g_sha256 acc)
+      (loop (cdr fs) (feed acc (car fs))))))
+
+(define *gfo-version-cache* #f)
+
+(define (gfo-version-tag)
+  ;; 12-hex prefix of the pipeline fingerprint; memoized for the process.
+  (or *gfo-version-cache*
+      (let* ((fp (catch #t
+                   (lambda () (substring (gfo-pipeline-fingerprint) 0 12))
+                   (lambda args "bootstrap0")))
+             (tag (string-append "v" fp)))
+        (set! *gfo-version-cache* tag)
+        tag)))
+
+(define (gfo-dir)
+  (string-append (gfo-base-dir) "/" (gfo-version-tag)))
 
 (define (gfo-separator? c)
   (or (char=? c #\/) (char=? c #\\)))

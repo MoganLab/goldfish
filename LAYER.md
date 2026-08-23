@@ -40,6 +40,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - **文件**：`goldfish/core/gfo.scm`（`L2` 单源）。
 - **职责**：编译缓存契约——缓存布局（key 由源路径派生）、时效戳（须记录全部输入：源文件与内核产物）、读写与回退策略。
+- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo/prelude/reader/host-abi/bootstrap-macros/kernel-combined/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离，旧目录整体废弃可删；git 操作不改指纹（内容寻址），checkout/rebase 不失效。
 - **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。当前版本 `0`（开发期），`1` 保留给首个发布格式，发布时开发缓存自然失效。
 
 ## L3 expander-rt
@@ -87,6 +88,5 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## 演进债
 
-- **缓存时效戳演进**：mtime/size 改为内容哈希（git 操作导致 mtime 漂移只会浪费缓存，不会出错，但哈希可消除误失效）。另：程序级缓存不追踪依赖库变更，库更新后陈旧程序字节码仍可能命中。
-- **产物再生产校验接入 CI**：本地护栏已落地（`xmake b verify-kernel`：两次冷缓存自举逐字节一致 + 与已提交工件一致；重建入口 `xmake kernel`），剩余待办为接入 CI workflow。
+- **缓存时效戳（部分收敛，2026-08）**：工具链维度已由版本目录解决（见 L2）。剩余已知限制——程序/库缓存仍不追踪依赖库变更：库的宏定义变更后，使用该宏的库/程序的陈旧缓存仍会命中（Guile 同样存在此限制，官方实践即删除缓存目录）；依赖清单（imports 的内容哈希）是候选后续。mtime 维持 tbox 提供的精度，秒级文件系统的同秒双存极端场景未防护。
 - **错误穿越 VM 帧的重放（未修）**：VM 编译代码中 `(catch ...)` 的 body 经**嵌套 VM 库闭包**抛错时（如 srfi-165 的 `computation-environment-ref`、njson 的 `g_njson-ref`）产生错误行为。机制已查明（2026-08 指令级追踪）：s7 的 error 展开扫描 eval 栈找到 OP_CATCH 后以 catch_jump LongJmp 到**最近的 jump buffer**——而 VM 通用调用路径的 `apply_eval` 在出错原语层插了自己的 buffer，于是 handler 在最深的 C 层执行、其返回值被交还给 run() 的 switch，当作出错原语的"正常返回值"push 回栈，**出错帧从错位点带着语义不符的值继续执行**（重放/assv 收到符号等皆为此派生）。宿主原语在 catch 同层直接抛错则无此问题（无中间 buffer）；库 defs 走 s7 eval（GOLDFISH_NO_VM_DEFS=1）正常。注意：62c228ae 之前（s7_apply_function 无 buffer）同场景是另一失败模式——longjmp 越过 run() 后无人恢复执行、孤儿帧滞留、调用链静默截断。两模式同根：**s7 的跨层恢复协议假设"被跳过的 C 帧无状态"，而 run() 的 frames deque / pc 违反此假设**。正确修复需 VM 自管 catch（catch 编为 VM opcode + C++ 层恢复）或与 s7 协商帧感知展开协议。受影响测试：njson-ref-test、srfi-165-test（全套件仅此 2 个）。**已验证的失败教训（2026-08 B 方案实验）**：仅把通用调用按"延迟/非延迟名单"分流（普通原语走 s7_apply_function 直呼）会触发第三种模式——错误展开落在加载器层的陈旧 buffer，控制权劫持到加载器、当前程序静默放弃（exit=0 无输出）。分流前提是错误传播协议先收敛；未来任务的输入数据——完整延迟形式名单（与 s7.c 一一核对）：`catch call/cc call-with-current-continuation dynamic-wind apply call-with-input-string with-input-from-string call-with-input-file with-input-from-file call-with-output-string with-output-to-string call-with-output-file with-output-to-file`。
