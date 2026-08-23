@@ -382,7 +382,14 @@
                         `(computation-environment-update! ,env-sym ,vt ,val-t))
                    var-tmps
                    val-tmps)
-               (computation-pure (if #f #f)))))
+               ;; NB: not (computation-pure (if #f #f)) -- s7 folds an
+               ;; unspecified value into an EMPTY value sequence, both as a
+               ;; `values` argument and as a call-with-values thunk result,
+               ;; so the enclosing bind's consumer would be invoked with
+               ;; zero arguments.  Yield a real placeholder instead; the
+               ;; consumer of a with! computation always ignores it (_).
+               (make-computation (lambda (_compute) 'unspecified)))
+             ))
       ) ;let
     ) ;define-macro
 

@@ -39416,6 +39416,9 @@ s7_pointer s7_apply_function(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
 s7_pointer s7_gf_apply_eval(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
 {
   declare_jump_info();
+  /* volatile: read after LongJmp lands here (C99 7.13.2.1 -- non-volatile
+   * locals of skipped frames are indeterminate after setjmp/longjmp). */
+  volatile uintptr_t gf_boundary = goldfish_vm_push_boundary();
   TRACK(sc);
   set_current_code(sc, history_cons(sc, fnc, args));
 
@@ -39425,6 +39428,11 @@ s7_pointer s7_gf_apply_eval(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
   set_jump_info(sc, s7_call_set_jump);
   if (jump_loc != no_jump)
     {
+      /* An error longjmp landed in this activation's buffer: hand the VM
+       * the boundary so it can drop the frames the jump flew over, BEFORE
+       * any handler runs (otherwise the handler executes against orphaned
+       * VM state and its result masquerades as the failed call's value). */
+      s7_gf_vm_unwind(gf_boundary);
       if (jump_loc != error_jump)
 	eval(sc, sc->cur_op);
       if ((jump_loc == catch_jump) &&                /* returning (back to eval) from an error in catch */
@@ -39439,6 +39447,7 @@ s7_pointer s7_gf_apply_eval(s7_scheme *sc, s7_pointer fnc, s7_pointer args)
       eval(sc, OP_APPLY);
     }
   restore_jump_info(sc);
+  goldfish_vm_pop_boundary(gf_boundary);
   return(sc->value);
 }
 

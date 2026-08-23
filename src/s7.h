@@ -649,6 +649,14 @@ s7_pointer s7_apply_function_star(s7_scheme *sc, s7_pointer fnc, s7_pointer args
    path), so deferred C special forms (catch, call/cc, dynamic-wind, the
    call-with-* / with-* I/O combinators) actually run to a value. */
 s7_pointer s7_gf_apply_eval(s7_scheme *sc, s7_pointer fnc, s7_pointer args);
+/* goldfish extensions: the frame-aware unwinding protocol (implemented in
+   goldfish_vm.cpp).  Every generic call registers a boundary snapshot of the
+   VM state on entry; s7_gf_apply_eval pops it on normal return and, when an
+   error longjmp lands in its buffer, hands the id to s7_gf_vm_unwind so the
+   frames the jump flew over are dropped BEFORE any handler runs. */
+uintptr_t goldfish_vm_push_boundary(void);
+void goldfish_vm_pop_boundary(uintptr_t id);
+void s7_gf_vm_unwind(uintptr_t id);
 
 s7_pointer s7_call(s7_scheme *sc, s7_pointer func, s7_pointer args);
 s7_pointer s7_call_with_location(s7_scheme *sc, s7_pointer func, s7_pointer args, const char *caller, const char *file, s7_int line);

@@ -297,13 +297,16 @@
       (if (null? keys)
         (g_njson-ref json (norm key))
         (let ((all-keys (cons key keys)))
+          ;; Every hop -- including the last one -- requires a container:
+          ;; stepping into a scalar is a token/container mismatch
+          ;; (key-error), not a type error on the handle.
           (let loop ((cur json) (ks all-keys))
-            (if (null? (cdr ks))
-              (g_njson-ref cur (norm (car ks)))
-              (loop (g_njson-ref cur (norm (car ks))) (cdr ks))
-            ) ;if
+            (cond ((not (njson? cur))
+                   (key-error "njson-ref: path crosses a non-container value"
+                              (norm (car ks))))
+                  ((null? (cdr ks)) (g_njson-ref cur (norm (car ks))))
+                  (else (loop (g_njson-ref cur (norm (car ks))) (cdr ks)))))
           ) ;let
-        ) ;let
       ) ;if
     ) ;define
 

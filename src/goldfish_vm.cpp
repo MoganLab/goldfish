@@ -140,6 +140,29 @@ static std::unordered_map<VMProgram*, VM*> g_prog_map;
 static std::vector<VM*> g_vm_stack;
 static VM* g_current_vm = &g_vm;
 
+// ---------------------------------------------------------------------------
+// Frame-aware unwinding (see the comment at vm_unwind_to_boundary): every
+// generic call that crosses into s7 registers a boundary -- a snapshot of
+// this call's entry state.  s7_gf_apply_eval's error-landing site hands the
+// boundary id back so the frames the longjmp skipped over can be dropped.
+struct CallBoundary {
+  uintptr_t id;             // identifies this apply_eval activation
+  VM*       vm;             // g_current_vm when the call started
+  size_t    frames_size;    // vm->frames.size() at entry
+  size_t    stack_size;     // vm->stack.size() at entry
+  size_t    vm_stack_depth; // g_vm_stack.size() at entry
+};
+static std::deque<CallBoundary> g_call_boundaries;
+static uintptr_t g_boundary_next_id = 1;
+
+// Normal return: drop our own boundary.  The error-landing site pops the
+// boundaries it consumes (the landed-in one and everything above it), so a
+// stale id simply no longer matches -- ids are never reused.
+static void pop_call_boundary (uintptr_t id) {
+  if (!g_call_boundaries.empty () && g_call_boundaries.back ().id == id)
+    g_call_boundaries.pop_back ();
+}
+
 static VM* vm_for_prog(VMProgram* prog) {
   auto it = g_prog_map.find(prog);
   if (it != g_prog_map.end()) return it->second;
@@ -345,7 +368,8 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   // apply_eval, whose eval-loop entry pumps s7's deferred apply opcode to a
   // value (the historical reason for hand-splicing here was that
   // s7_apply_function returned the placeholder at face value -- gone since
-  // the eval-loop entry exists).
+  // the eval-loop entry exists).  The call boundary is managed inside
+  // s7_gf_apply_eval itself, so every crossing is covered.
   return gf::apply_eval (sc, f, args_list);
 }
 // run : target-depth -> result
@@ -622,6 +646,82 @@ static gf::pointer vm_enter (gf::scheme* sc, gf::pointer args) {
   return result;
 }
 
+// ---------------------------------------------------------------------------
+// Frame-aware unwinding.
+//
+// s7 recovers from errors by longjmp'ing to the jump buffer captured when
+// the innermost `catch` (or s7_call) was installed.  When that catch lives
+// in VM-compiled code, the buffer belongs to an apply_eval activation
+// launched from call_function -- and the jump flies over every C++ frame
+// above it: nested run() loops, vm_enter cleanups, their frames deque and
+// stack regions.  Without repair, s7 then runs the error handler at the
+// landed buffer; its result flows back through call_function as if it were
+// the failed primitive's ordinary value, and the stale frames corrupt
+// everything after (the historical "error replay" bug: njson-ref-test,
+// srfi-165-test).
+//
+// The protocol: each apply_eval activation registers a boundary snapshot on
+// the way in.  s7_gf_apply_eval's landing site calls this function with its
+// boundary id before running any handler; we drop every boundary at or
+// above the matching one and truncate each touched VM's state to the oldest
+// surviving snapshot.  The handler therefore executes against exactly the
+// state the catching context expects, and the normal return path of the
+// landed-in activation still works (ids never repeat, so its pop is a no-op).
+void vm_unwind_to_boundary (std::uintptr_t id) {
+  // Locate the matching boundary; entries above it are dead by definition.
+  size_t target = g_call_boundaries.size ();
+  for (size_t i = g_call_boundaries.size (); i > 0; --i)
+    if (g_call_boundaries[i - 1].id == static_cast<uintptr_t> (id)) { target = i - 1; break; }
+  if (target == g_call_boundaries.size ()) return; // unknown id: nothing to reclaim
+
+  // Truncate each touched VM once, to the OLDEST dead snapshot referencing
+  // it (nested activations share one VM instance per program).
+  for (size_t i = target; i < g_call_boundaries.size (); ++i) {
+    const CallBoundary& b = g_call_boundaries[i];
+    VM* vm = b.vm;
+    if (vm->frames.size () > b.frames_size) vm->frames.resize (b.frames_size);
+    if (vm->stack.size () > b.stack_size) vm->stack.resize (b.stack_size);
+  }
+
+  // Restore the instance switch the skipped vm_enter/vm_load tails would
+  // have performed: the matched boundary's vm becomes current again, and
+  // instance stack entries pushed after its snapshot are orphaned.
+  const CallBoundary& tb = g_call_boundaries[target];
+  if (g_vm_stack.size () > tb.vm_stack_depth) {
+    g_vm_stack.resize (tb.vm_stack_depth);
+    g_current_vm = tb.vm;
+  }
+
+  g_call_boundaries.resize (target);
+}
+
+// Protocol entry points, called from s7_gf_apply_eval (declared in s7.h):
+// push on the way into a generic call, pop on its normal return, unwind
+// from the error-landing site before any handler runs.  C linkage: s7.c is
+// a C translation unit and expects unmangled symbols.
+} // namespace goldfish
+
+extern "C" {
+
+// (using goldfish:: qualification: the boundary machinery is file-local to
+// the goldfish namespace, only these entry points cross into s7.c)
+
+uintptr_t goldfish_vm_push_boundary () {
+  using namespace goldfish;
+  g_call_boundaries.push_back (CallBoundary{g_boundary_next_id, g_current_vm,
+                                             g_current_vm->frames.size (),
+                                             g_current_vm->stack.size (),
+                                             g_vm_stack.size ()});
+  return g_boundary_next_id++;
+}
+
+void goldfish_vm_pop_boundary (std::uintptr_t id) { goldfish::pop_call_boundary (id); }
+
+void s7_gf_vm_unwind (std::uintptr_t id) { goldfish::vm_unwind_to_boundary (id); }
+
+}
+
+namespace goldfish {
 // ---------------------------------------------------------------------------
 
 void glue_vm (gf::scheme* sc) {
