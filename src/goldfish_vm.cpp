@@ -148,7 +148,6 @@ static VM* vm_for_prog(VMProgram* prog) {
   g_prog_map[prog] = vm;
   return vm;
 }
-static gf::pointer g_apply_fn = nullptr;  // the rootlet 'apply procedure
 static gf::pointer g_car_fn = nullptr, g_cdr_fn = nullptr, g_cons_fn = nullptr;
 static gf::pointer g_eq_fn = nullptr, g_null_fn = nullptr, g_pair_fn = nullptr;
 static gf::pointer g_not_fn = nullptr, g_add_fn = nullptr, g_sub_fn = nullptr;
@@ -342,51 +341,11 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
     return gf::apply_eval (sc, f, build_args_list (sc, args));
   }
   gf::pointer args_list = build_args_list (sc, args);
-  // s7's apply primitive is a deferred opcode: g_apply pushes OP_APPLY onto
-  // the evaluator stack and returns sc->nil, leaving the real call for the
-  // eval loop.  s7_apply_function therefore returns () for (apply ...) --
-  // harmless inside a normal s7 eval, but the VM interpreter loop takes the
-  // return value at face value, so an (apply ...) from VM bytecode would
-  // deliver () to the next instruction (e.g. datum->syntax y ()).  Also, a
-  // closure body reached through the deferred path mis-handles let-scoped
-  // mutations (typed-lambda's do/set-car! on its arg list).  Implement
-  // (apply proc a1 ... an) directly instead: splice the final list
-  // argument into the argument list and call the procedure.  The final
-  // call goes through apply_eval (the eval-loop entry) so a deferred
-  // proc (catch, call-with-*, dynamic-wind, ...) still runs to a value.
-  if (gf::is_eq (f, g_apply_fn)) {
-    gf::pointer proc = gf::car (args_list);
-    gf::pointer rest = gf::cdr (args_list);            // (a1 ... an)
-    if (!gf::is_pair (rest))                          // (apply proc) -- no args
-      return gf::apply_eval (sc, proc, gf::nil (sc));
-    gf::pointer p = rest;
-    while (gf::is_pair (gf::cdr (p))) p = gf::cdr (p);  // p is the last cons (an)
-    gf::pointer last = gf::car (p);
-    gf::pointer spliced;
-    if (gf::is_null (sc, last)) {
-      if (rest == p)                                 // only (proc ()) -> no args
-        spliced = gf::nil (sc);
-      else {                                         // drop the () tail
-        gf::pointer q = rest;
-        while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
-        gf::set_cdr (q, gf::nil (sc));
-        spliced = rest;
-      }
-    } else {
-      // last is not a list (e.g., string/handle from (apply proc (a "x")) where (a "x") is already proper) -> no splice
-      if (!gf::is_pair (last)) {
-        spliced = rest;
-      } else if (rest == p)                          // only (proc list) -> splice
-        spliced = last;
-      else {                                         // splice list after fixed args
-        gf::pointer q = rest;
-        while (gf::is_pair (gf::cdr (q)) && gf::cdr (q) != p) q = gf::cdr (q);
-        gf::set_cdr (q, last);
-        spliced = rest;
-      }
-    }
-    return gf::apply_eval (sc, proc, spliced);
-  }
+  // (apply ...) needs no special case: the generic path below goes through
+  // apply_eval, whose eval-loop entry pumps s7's deferred apply opcode to a
+  // value (the historical reason for hand-splicing here was that
+  // s7_apply_function returned the placeholder at face value -- gone since
+  // the eval-loop entry exists).
   return gf::apply_eval (sc, f, args_list);
 }
 // run : target-depth -> result
@@ -667,7 +626,6 @@ static gf::pointer vm_enter (gf::scheme* sc, gf::pointer args) {
 
 void glue_vm (gf::scheme* sc) {
   VM_CLOSURE_TYPE = gf::make_c_type (sc, "vm-closure");
-  g_apply_fn = gf::global_value (sc, gf::make_symbol (sc, "apply"));
   g_car_fn   = gf::global_value (sc, gf::make_symbol (sc, "car"));
   g_cdr_fn   = gf::global_value (sc, gf::make_symbol (sc, "cdr"));
   g_cons_fn  = gf::global_value (sc, gf::make_symbol (sc, "cons"));
