@@ -433,7 +433,20 @@
          (key (if (zero? level) key (string-append key "-o" (number->string level))))
          (gfo-file (string-append (compile-cache-dir) "/" key ".gfo"))
          (stamp (compile-file-stamp path)))
-    (let ((cached (gfo-load gfo-file stamp)))
+    ;; Dependency-tracked hit: the record stores fingerprints of the
+    ;; libraries the compiled program refers to via module-ref.
+    (let* ((rec (gfo-load-record gfo-file))
+           (cached (and (pair? rec) (eq? (car rec) 'gfo)
+                        (equal? (cadr rec) gfo-format-version)
+                        (equal? (caddr rec) stamp)
+                        (let ((deps (list-ref rec 4)))
+                          (cond ((null? deps) #t)
+                                ((pair? deps)
+                                 (equal? deps
+                                         (map library-dep-fingerprint
+                                              (map car deps))))
+                                (else #f)))
+                        (cadddr rec))))
       (if cached
         cached
         (let* ((sexp (compile-file-into path (program-library)))
@@ -442,8 +455,10 @@
                       (let ((f (module-ref the-expander-library 'optimize-on-load)))
                         (if (procedure? f)
                           (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
-                          sexp)))))
-          (gfo-write! gfo-file stamp opt)
+                          sexp))))
+               (deps (map library-dep-fingerprint
+                          (collect-cache-module-refs opt))))
+          (gfo-write! gfo-file stamp opt deps)
           opt)))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)

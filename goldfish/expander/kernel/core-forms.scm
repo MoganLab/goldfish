@@ -521,4 +521,5 @@
         (cons 'letrec-syntax core-letrec-syntax)
         (cons 'eval-when core-eval-when)))
 
-(module-define! the-expander-library 'core-form-handlers core-form-handlers)
+(module-define! the-expander-library
+  'core-form-handlers core-form-handlers)

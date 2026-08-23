@@ -92,6 +92,32 @@
                   (car parts)
                   (string-append acc "/" (car parts)))))))
 
+;;; library-dep-fingerprint : lib-name -> (name mtime size) | (name 'external)
+;;; Fingerprint a dependency's cache artifact when it exists -- so that a
+;;; regenerated dependency invalidates its consumers and invalidation
+;;; cascades down the import chain -- falling back to its source file.
+;;; Pure stat calls, no hashing: cheap enough for every cache check.
+(define (library-dep-fingerprint name)
+  (let* ((lib-file (library-file-name name))
+         (src (load-find-module-file lib-file))
+         (gfo (and src (library-gfo-path lib-file))))
+    (cond ((and gfo (file-exists? gfo))
+           (cons name (list (g_path-getmtime gfo) (g_path-getsize gfo))))
+          (src
+           (cons name (list (g_path-getmtime src) (g_path-getsize src))))
+          (else
+           ;; No on-disk home: runtime-registered or host-provided library,
+           ;; nothing to fingerprint.
+           (cons name 'external)))))
+
+(define (library-cache-deps recs self)
+  (let loop ((ls (collect-cache-module-refs recs)) (acc '()))
+    (if (null? ls)
+      (reverse acc)
+      (if (or (equal? (car ls) self) (member (car ls) acc))
+        (loop (cdr ls) acc)
+        (loop (cdr ls) (cons (car ls) acc))))))
+
 ;;; load-library! : name -> void
 ;;; Compile (registering the expand-time record, recursively loading imports)
 ;;; and evaluate (registering the runtime module) a define-library file.
@@ -747,9 +773,23 @@
               (cons lib-name *runtime-registered-libraries*)))
       (let ((lib-file (library-file-name lib-name)))
         (let ((gfo-file (library-gfo-path lib-file)))
+          ;; Dependency-tracked cache check: a hit requires the stored
+          ;; dependency fingerprints to still match, so regenerating a
+          ;; dependency invalidates its consumers.
           (let* ((src (and (auto-compile-enabled?)
                            (load-find-module-file lib-file)))
-                 (recs (and src (gfo-load gfo-file (compile-file-stamp src)))))
+                 (rec (and src (gfo-load-record gfo-file)))
+                 (recs (and (pair? rec) (eq? (car rec) 'gfo)
+                            (equal? (cadr rec) gfo-format-version)
+                            (equal? (caddr rec) (compile-file-stamp src))
+                            (let ((deps (list-ref rec 4)))
+                              (cond ((null? deps) #t)
+                                    ((pair? deps)
+                                     (equal? deps
+                                             (map library-dep-fingerprint
+                                                  (map car deps))))
+                                    (else #f)))
+                             (cadddr rec))))
             (if recs
               (dynamic-wind
                 (lambda ()
@@ -783,8 +823,10 @@
                            (let* ((stamp (compile-file-stamp file))
                                   (gfo-file (library-gfo-path lib-file)))
                              (let*-values (((recs ctx) (capture-file-cache forms)))
-                               (let ((recs (optimize-lib-cache-recs recs)))
-                                  (gfo-write! gfo-file stamp recs)
+                               (let* ((recs (optimize-lib-cache-recs recs))
+                                      (deps (map library-dep-fingerprint
+                                                 (library-cache-deps recs lib-name))))
+                                  (gfo-write! gfo-file stamp recs deps)
                                  (load-library-file-cached! recs))))
                            (begin
                              ;; Non-cacheable library: expand, optimize, then eval
@@ -1351,6 +1393,8 @@
     (module-define! the-expander-library 'restore-library-cache restore-library-cache)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
+    (module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
+    (module-define! the-expander-library 'library-dep-fingerprint library-dep-fingerprint)
     ;; load-library! evaluates a library's registration expression in the
     ;; host rootlet, so the runtime-registered marker (called from
     ;; library-register-expression) must also be visible there.  The cached

@@ -157,7 +157,17 @@
               (equal? (caddr rec) stamp)
               (cadddr rec)))))
 
-(define (gfo-write! gfo-file stamp payload)
+;; gfo-load-record : gfo-file -> full record | #f
+;; For callers that validate more than the stamp (dependency fingerprints):
+;; returns the whole (gfo version stamp payload extra) form, unchecked.
+(define (gfo-load-record gfo-file)
+  (and (file-exists? gfo-file)
+       (car (read-forms (open-input-file gfo-file)))))
+
+;; gfo-write! : gfo-file stamp payload [extra] -> bool
+;; `extra' (when given) is stored as the record's fifth field; readers that
+;; do not know about it ignore it via position-based access.
+(define (gfo-write! gfo-file stamp payload . extra)
   (if (getenv "GOLDFISH_CACHE_READONLY") #f
       (begin
         (gfo-ensure-parent! (gfo-dir) gfo-file)
@@ -166,7 +176,10 @@
           (let ((tmp (string-append gfo-file ".tmp")))
             (call-with-output-file tmp
               (lambda (p)
-                (if (defined? 'write-roundtrip) (write-roundtrip (list 'gfo gfo-format-version stamp payload) p)
-                    (write (list 'gfo gfo-format-version stamp payload) p))))
+                (if (defined? 'write-roundtrip)
+                    (write-roundtrip (list 'gfo gfo-format-version stamp payload
+                                           (if (null? extra) #f (car extra))) p)
+                    (write (list 'gfo gfo-format-version stamp payload
+                                 (if (null? extra) #f (car extra))) p))))
             (g_rename tmp gfo-file))
           (let-set! *s7* 'print-length old-length)))))
