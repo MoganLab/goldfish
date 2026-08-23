@@ -1,6 +1,6 @@
 (define-library (liii project)
   (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
-  (export project-root gfproject-tool-imports function-libraries)
+  (export project-root gfproject-tool-imports function-libraries function-doc-hint)
   (begin
 
     (define (normalize-string s)
@@ -156,7 +156,52 @@
                      (sorted-scm-files gdir))))
                 (sorted-children root))))
            (if (list? load-path) load-path '()))
-          (list-sort (lambda (a b) (string<? (string-append (symbol->string (car a)) "/" (symbol->string (cadr a)))
+                     (list-sort (lambda (a b) (string<? (string-append (symbol->string (car a)) "/" (symbol->string (cadr a)))
                                              (string-append (symbol->string (car b)) "/" (symbol->string (cadr b)))))
                      res))))
+
+    ;; -- function-doc-hint --
+
+    ;; shell-quote for backtick command lines shown in error hints
+    (define (shell-double-quote value)
+      (let loop ((i 0) (acc (list #\")))
+        (if (>= i (string-length value))
+          (string-append (list->string (reverse acc)) "\"")
+          (let ((ch (string-ref value i)))
+            (loop (+ i 1)
+                  (case ch
+                    [(#\\) (cons #\\ (cons #\\ acc))]
+                    [(#\") (cons #\" (cons #\\ acc))]
+                    [(#\$) (cons #\$ (cons #\\ acc))]
+                    [(#\`) (cons #\` (cons #\\ acc))]
+                    [else (cons ch acc)]))))))
+
+    (define (library-display-name entry)
+      (string-append "(" (symbol->string (car entry)) " " (symbol->string (cadr entry)) ")"))
+
+    ;; Full unbound-function hint text, or "" when NAME is not exported by
+    ;; any visible library.  PROGRAM is the CLI name used in the suggested
+    ;; doc commands.
+    (define (function-doc-hint name program)
+      (let ((libs (if (string? name) (function-libraries name) '())))
+        (cond
+          ((null? libs) "")
+          ((null? (cdr libs))
+           (let* ((entry (car libs))
+                  (org (symbol->string (car entry)))
+                  (mod (symbol->string (cadr entry))))
+             (string-append "Hint: function `" name "` exists in library `(" org " " mod ")`.\n"
+                            "Please import that library first: `(import (" org " " mod "))`.\n")))
+          (else
+           (string-append
+            "Hint: function `" name "` exists in multiple visible libraries:\n"
+            (apply string-append
+                   (map (lambda (e) (string-append "  " (library-display-name e) "\n")) libs))
+            "Try one of these commands to decide which library to use:\n"
+            (apply string-append
+                   (map (lambda (e)
+                          (string-append "  " program " doc "
+                                         (symbol->string (car e)) "/" (symbol->string (cadr e))
+                                         " " (shell-double-quote name) "\n"))
+                        libs)))))))
 ))

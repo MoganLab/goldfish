@@ -97,11 +97,9 @@ inline void glue_define (gf::scheme* sc, const char* name, const char* desc, gf:
 static gf::pointer f_goldfish_library (gf::scheme* sc, gf::pointer args);
 static gf::pointer f_load_path (gf::scheme* sc, gf::pointer args);
 
-static bool split_library_query (const string& query, string& group, string& library);
 
 static string find_goldfish_library ();
 
-static vector<string> visible_function_libraries (gf::scheme* sc, const string& function_name);
 
 void glue_njson (gf::scheme* sc);
 #ifdef GOLDFISH_ENABLE_HTTP
@@ -1010,30 +1008,8 @@ goldfish_shell_double_quote (const string& value) {
   return quoted;
 }
 
-static string
-goldfish_library_display_name (const string& library_query) {
-  string group;
-  string library;
-  if (!split_library_query (library_query, group, library)) {
-    return library_query;
-  }
-  return "(" + group + " " + library + ")";
-}
-
-static string
-goldfish_library_import_form (const string& library_query) {
-  string group;
-  string library;
-  if (!split_library_query (library_query, group, library)) {
-    return "";
-  }
-  return "(import (" + group + " " + library + "))";
-}
-
-static string
-goldfish_library_doc_command (const string& library_query, const string& function_name) {
-  return goldfish_cli_program_name () + " doc " + library_query + " " + goldfish_shell_double_quote (function_name);
-}
+static gf::pointer
+goldfish_eval_through_reader (gf::scheme* sc, const string& code);
 
 static string
 goldfish_append_doc_hint_if_needed (gf::scheme* sc, const string& errmsg) {
@@ -1051,42 +1027,29 @@ goldfish_append_doc_hint_if_needed (gf::scheme* sc, const string& errmsg) {
     formatted+= '\n';
   }
 
-  vector<string> library_queries;
-  try {
-    library_queries= visible_function_libraries (sc, function_name);
-  } catch (const std::exception&) {
-    library_queries.clear ();
+  // Hint text is produced by (liii project)'s function-doc-hint; the C++
+  // side only escapes literals and falls back when the module is missing.
+  string escaped_name;
+  for (char c : function_name) {
+    if (c == '\\' || c == '"') escaped_name+= '\\';
+    escaped_name+= c;
   }
-
-  if (library_queries.empty ()) {
-    formatted+=
-        "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) + "`\n";
-    formatted+=
-        "`" + goldfish_cli_program_name () + " doc` may show similarly named functions when there is no exact match.\n";
-    formatted+= "If it finds nothing similar, try searching the codebase with `git grep " +
-                goldfish_shell_double_quote (function_name) +
-                "`, implement that function yourself, or stop using it.\n";
-    return formatted;
+  string program= goldfish_cli_program_name ();
+  string escaped_program;
+  for (char c : program) {
+    if (c == '\\' || c == '"') escaped_program+= '\\';
+    escaped_program+= c;
   }
-
-  if (library_queries.size () == 1) {
-    string import_form= goldfish_library_import_form (library_queries.front ());
-    formatted+= "Hint: function `" + function_name + "` exists in library `" +
-                goldfish_library_display_name (library_queries.front ()) + "`.\n";
-    if (!import_form.empty ()) {
-      formatted+= "Please import that library first: `" + import_form + "`.\n";
-    }
-    return formatted;
-  }
-
-  formatted+= "Hint: function `" + function_name + "` exists in multiple visible libraries:\n";
-  for (const auto& library_query : library_queries) {
-    formatted+= "  " + goldfish_library_display_name (library_query) + "\n";
-  }
-  formatted+= "Try one of these commands to decide which library to use:\n";
-  for (const auto& library_query : library_queries) {
-    formatted+= "  " + goldfish_library_doc_command (library_query, function_name) + "\n";
-  }
+  gf::pointer hint= goldfish_eval_through_reader (
+      sc,
+      "(import (liii project))"
+      " (catch #t"
+      "   (lambda () (function-doc-hint \"" + escaped_name + "\" \"" + escaped_program + "\"))"
+      "   (lambda _ \"\"))");
+  string hint_text= (gf::is_string (hint)) ? gf::string (hint) : "";
+  formatted+= (hint_text.empty ())
+      ? "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) + "`\n"
+      : hint_text;
   return formatted;
 }
 
@@ -1968,49 +1931,6 @@ append_load_path_entries (gf::scheme* sc, const vector<string>& append_dirs) {
   if (changed) {
     set_load_path_entries (sc, entries);
   }
-}
-
-static bool
-split_library_query (const string& query, string& group, string& library) {
-  size_t slash_pos= query.find ('/');
-  if (slash_pos == string::npos || slash_pos == 0 || slash_pos == query.size () - 1) {
-    return false;
-  }
-  if (query.find ('/', slash_pos + 1) != string::npos) {
-    return false;
-  }
-  group  = query.substr (0, slash_pos);
-  library= query.substr (slash_pos + 1);
-  return true;
-}
-
-// "group/library" query strings for libraries exporting function-name.
-// Delegates to (liii project)'s function-libraries through the expander;
-// returns {} whenever the expander or the module is unavailable
-// (s7 mode), so error hints degrade gracefully.
-static vector<string>
-visible_function_libraries (gf::scheme* sc, const string& function_name) {
-  vector<string> queries;
-  if (!g_expander_online) {
-    return queries;
-  }
-  string         escaped;
-  for (char c : function_name) {
-    if (c == '\\' || c == '"') escaped += '\\';
-    escaped += c;
-  }
-  gf::pointer r= goldfish_eval_through_reader (
-      sc,
-      "(import (liii project))"
-      " (catch #t"
-      "    (lambda () (function-libraries \"" + escaped + "\"))"
-      "    (lambda _ '()))");
-  for (gf::pointer p= r; gf::is_pair (p); p= gf::cdr (p)) {
-    gf::pointer entry= gf::car (p);
-    if ((!gf::is_pair (entry)) || (!gf::is_symbol (gf::car (entry))) || (!gf::is_symbol (gf::cadr (entry)))) continue;
-    queries.emplace_back (string (gf::symbol_name (gf::car (entry))) + "/" + gf::symbol_name (gf::cadr (entry)));
-  }
-  return queries;
 }
 
 static StartupCliOptions

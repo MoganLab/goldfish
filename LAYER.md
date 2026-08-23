@@ -105,9 +105,9 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - fs/path/env/process（34）、time（7）、hash/base64（8）、http（8，可选编译）、subprocess/uuid/misc。
 
-### T3 下沉候补（当前在 C、Scheme 可表达，~38 个）
+### T3 下沉候补（空）
 
-- 判据：无 syscall、无外部编码表依赖的纯逻辑。现列：njson 全部 32（纯数据操作，留 C 仅因性能）、`g_string-split`、`g_char-upcase/downcase/alphabetic?/upper-case?/lower-case?`（字符表驱动）。
+- 初版曾列 njson、`g_string-split`、`g_char-*` 为可下沉项；逐项调查后否决——`g_char-*` 是 Unicode 全码点范围表驱动（表数据天然属于底层，s7 无等价物），`g_string-split` 是 UTF-8 感知热路径，njson 是明确的性能取舍。**T0-T2 即宿主的完整合同面**；后续新增 C 原语前应先论证为何不能用 Scheme 表达。
 - 已下沉实例：`liii/host-abi.scm`（108 个定义——exact/inexact 包装、list 系集合操作等 R7RS 语义修正层）。
 
 ## 演进债
