@@ -864,11 +864,9 @@
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (define (load-forms-sequentially forms)
     (for-each (lambda (d)
-                ;; Use the expander whenever it is up: the GOLDFISH_BOOTSTRAP
-                ;; s7-eval branch only applies to the seed phase (before this
-                ;; reader defines expand-eval).  At bootstrap-0 build-combined
-                ;; reaches the expander mid-file, so its later forms must go
-                ;; through expand-eval, not s7 eval.
+                ;; Use the expander whenever it is up: the s7-eval fallback
+                ;; only applies to the seed phase (before this reader defines
+                ;; expand-eval).
                 (if (defined? 'expand-eval)
                   (expand-eval d)
                   (eval d (rootlet))))
@@ -889,16 +887,14 @@
                                 (error 'read-error
                                        (string-append (caar errs) " in " path))
                                 (apply error 'read-error errs))))))))
-            (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                     (not (null? (library-names-in forms))))
+            (if (not (null? (library-names-in forms)))
               ;; A library file: load it through the library machinery so
               ;; `load' and `import' share the SAME library cache (one
               ;; expansion, one cached artifact) instead of compiling the
               ;; file twice with different engines.  The defs evaluate into
               ;; the rootlet, mirroring the old per-file compile.
               (for-each load-library! (library-names-in forms))
-              (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                       (auto-compile-enabled?)
+              (if (and (auto-compile-enabled?)
                        (not (any-macro-def? forms)))
                 ;; Compile the file once and execute the compiled artifact
                 ;; (the compile-cache hot and cold paths agree; Guile-style:

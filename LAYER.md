@@ -33,20 +33,20 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L1 tiny
 
 - **文件**：`src/liii_reader.cpp`（最小闭包读取器，只读已展开数据）+ `goldfish/liii/boot.scm`（裸码集合成员）。
-- **同层成员（物理住在 `liii/`，引导期加载）**：`goldfish/liii/host-abi.scm`（seed 经 liii_reader.cpp 载入 rootlet 的 R7RS 值面 + `*vm-deferred-forms*` 宿主行为面清单）、`goldfish/liii/bootstrap-macros.scm`(仅 GOLDFISH_BOOTSTRAP / EXPANDER_BOOT=from-source 时由 boot 条件加载)。
+- **同层成员（物理住在 `liii/`，引导期加载）**：`goldfish/liii/host-abi.scm`（seed 经 liii_reader.cpp 载入 rootlet 的 R7RS 值面 + `*vm-deferred-forms*` 宿主行为面清单）。
 - **不变式**：禁止依赖 expander；boot 前 `160` 行内必须加载 gfo 模块。
 
 ## L2 core-format
 
 - **文件**：`goldfish/core/gfo.scm`（`L2` 单源）。
 - **职责**：编译缓存契约——缓存布局（key 由源路径派生）、时效戳（须记录全部输入：源文件与内核产物）、读写与回退策略。
-- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo/prelude/reader/host-abi/bootstrap-macros/kernel-combined/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离，旧目录整体废弃可删；git 操作不改指纹（内容寻址），checkout/rebase 不失效。
+- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo/prelude/reader/host-abi/kernel-combined/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离，旧目录整体废弃可删；git 操作不改指纹（内容寻址），checkout/rebase 不失效。
 - **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。当前版本 `0`（开发期），`1` 保留给首个发布格式，发布时开发缓存自然失效。
 
 ## L3 expander-rt
 
 - **文件**：内核源码（`include` 清单）+ 自包含展开产物（生成物，属裸码集合）。
-- **职责**：展开时内核；源码由**上一代** expander 提前展开（分阶段自举），故源码层面全功能、仅受限内核标准库。
+- **职责**：展开时内核。源码由**上一代** expander 提前展开（自举唯一路径：已构建的 gf 加载提交的 artifact 启动 expander，运行 `expander/build-combined.scm` 重展内核源码；`tools/verify-kernel.sh` 校验不动点与再生产）。
 - **不变式**：不依赖 compiler 与更上层；`include` 清单与加载清单保持同步。
 
 ## L4 expander-lib

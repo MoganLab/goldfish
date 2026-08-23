@@ -1,6 +1,7 @@
 ;; build-combined.scm: expand goldfish/expander/kernel.scm into kernel-combined.scm.
 ;; Self-bootstrap: expander re-expands its own source (one lib, one expansion).
-;; EXPANDER_BOOT=from-source (bootstrap-0: s7 evals kernel) | from-artifact (N>=1: load artifact).
+;; Requires a running gf (the committed artifact boots the expander); the
+;; rebuilt artifact is verified against the commit by tools/verify-kernel.sh.
 ;; The seed/reader are already loaded by bin/gf; do not (load ...) them here.
 
 ;; A program (R7RS 5.1): the environment starts empty, so the internal
@@ -8,20 +9,6 @@
 ;; library (goldfish).
 (import (goldfish))
 
-(define (boot-from-source?)
-  (let ((v (getenv "EXPANDER_BOOT")))
-    (or (not v) (string=? v "from-source"))))
-
-(if (boot-from-source?)
-  ;; from-source: s7 evals kernel, then reader, then install (reader must precede install for X ...).
-  (begin
-    (load-source-file "expander/kernel/load-kernel.scm")
-    (load-expanded "liii/prelude.scm" 'base)
-    (load-expanded "liii/reader.scm")
-    (load-expanded "expander/lib/install.scm" '(expander lib install)))
-  ;; from-artifact: artifact+install already loaded by bin/gf; do not reload (would recreate record types).
-  (begin))
-;; Kernel let-values must resolve to our macros for pure core-lambda artifact.
 (install-standard-library!)
 
 (define output "goldfish/expander/kernel-combined.scm")

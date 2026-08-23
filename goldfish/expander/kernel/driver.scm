@@ -12,14 +12,13 @@
 ;;; This is the expander core only.  The user-space macro library (lib/) is
 ;;; a separate layer built on top of this core API (see lib/install.scm);
 ;;; it is NOT part of the expander core / the pre-expanded artifact.  The
-;;; bootstrap-0 host path loads it after this file via load-kernel.scm; the
 ;;; library path (goldfish/expander/kernel.scm) and the runtime load
 ;;; lib/install.scm separately after the artifact.
 ;;;
 ;;; The trailing module-define! registrations expose the driver entry points
 ;;; through the-expander-library; they are part of both the library body and
-;;; the bootstrap-0 host load (harmless duplication -- the artifact re-binds
-;;; the same names into the rootlet, so both resolve to the same values).
+;;; the artifact load (harmless duplication -- the artifact re-binds the same
+;;; names into the rootlet, so both resolve to the same values).
 
 (define (wrap-expression expr)
   (datum->syntax (make-syntax 'empty (stx-ctx-empty) the-base-library) expr))

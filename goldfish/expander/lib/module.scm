@@ -747,8 +747,7 @@
               (cons lib-name *runtime-registered-libraries*)))
       (let ((lib-file (library-file-name lib-name)))
         (let ((gfo-file (library-gfo-path lib-file)))
-          (let* ((src (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                           (auto-compile-enabled?)
+          (let* ((src (and (auto-compile-enabled?)
                            (load-find-module-file lib-file)))
                  (recs (and src (gfo-load gfo-file (compile-file-stamp src)))))
             (if recs
@@ -779,8 +778,7 @@
                       (load-library-guard
                        lib-name
                        (lambda ()
-                         (if (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                                  (auto-compile-enabled?)
+                         (if (and (auto-compile-enabled?)
                                   (library-file-cacheable? forms))
                            (let* ((stamp (compile-file-stamp file))
                                   (gfo-file (library-gfo-path lib-file)))

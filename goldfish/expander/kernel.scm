@@ -1,4 +1,4 @@
-;; kernel.scm (goldfish): re-expanded by expander to produce artifact; bootstrap-0 uses load-kernel.scm.
+;; kernel.scm (goldfish): re-expanded by the expander to produce kernel-combined.scm.
 
 (define-library (goldfish)
   (export

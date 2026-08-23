@@ -520,7 +520,6 @@
       ;; boot / loader
       load-source-file load-expanded load-find-module-file
       le-cache-files le-cache-valid? le-write-cache le-rootlet-copy
-      bootstrap-macros-installed?
       ;; install
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached

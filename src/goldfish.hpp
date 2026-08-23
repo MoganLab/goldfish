@@ -88,7 +88,7 @@ namespace fs= std::filesystem;
 
 // True once the B4 boot chain (expander artifact + lib layer) has loaded;
 // gates C++->Scheme call-ins that need expander-resolved modules like
-// (liii project).  Stays false under --mode s7 / GOLDFISH_BOOTSTRAP.
+// (liii project).  Stays false under --mode s7.
 static bool g_expander_online= false;
 
 inline void glue_define (gf::scheme* sc, const char* name, const char* desc, gf::function f, gf::int_ required,
@@ -1124,7 +1124,7 @@ goldfish_print_prefixed_scheme_error_message (gf::scheme* sc, const string& pref
 // form; returns the value of the last form. Uses s7_eval_c_string as the
 // outer evaluator so error reporting is unchanged. Once the expander is
 // loaded (expand-eval exists), each form goes through the expander and is
-// evaluated in the expander library; otherwise (bootstrap-only s7 mode) we
+// evaluated in the expander library; otherwise (--mode s7, no expander) we
 // fall back to the plain s7 eval.
 static gf::pointer
 goldfish_eval_through_reader (gf::scheme* sc, const string& code) {
@@ -1458,13 +1458,7 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
   // B4: load the Sets-of-Scopes expander core and its user-space macro library
   // so the expander is available to every gf invocation.  help/version return
   // before customize_goldfish_by_mode, so they stay fast.
-  // GOLDFISH_BOOTSTRAP skips this entire chain (and the phase-2 imports below):
-  // it is used to (re)build the expander artifact from scratch (bootstrap-0),
-  // where there is no self-hosted expander yet -- s7 evaluates the kernel
-  // sources directly and eval falls back to the plain s7 eval (see
-  // goldfish_eval_through_reader), so artifact and lib state stay absent.
-  bool gf_bootstrap = (getenv ("GOLDFISH_BOOTSTRAP") != nullptr);
-  if (mode != "s7" && !gf_bootstrap) {
+  if (mode != "s7") {
     gf::eval_c_string (sc, "(load-source-file \"expander/kernel-combined.scm\")");
     // Guile boot-9 style: base library functions (map/for-each) implemented
     // in Scheme, evaluated into the rootlet like the kernel artifact so the
@@ -1514,7 +1508,7 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
   // builds the extension layer on top of the r7rs-small standard libraries
   // (cf. Guile's ice-9).  Nothing else is ambient: an identifier used
   // without an import is an error.
-  if (!gf_bootstrap) {
+  {
     if (mode == "default" || mode == "liii") {
       goldfish_eval_through_reader (
           sc, "(import (goldfish) (scheme base) (scheme write) (scheme read)"
@@ -2225,7 +2219,7 @@ split_library_query (const string& query, string& group, string& library) {
 // "group/library" query strings for libraries exporting function-name.
 // Delegates to (liii project)'s function-libraries through the expander;
 // returns {} whenever the expander or the module is unavailable
-// (s7 mode / GOLDFISH_BOOTSTRAP), so error hints degrade gracefully.
+// (s7 mode), so error hints degrade gracefully.
 static vector<string>
 visible_function_libraries (gf::scheme* sc, const string& function_name) {
   vector<string> queries;

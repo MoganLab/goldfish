@@ -61,7 +61,7 @@
     (append
       (list "liii/boot.scm" "core/gfo.scm"
             "liii/prelude.scm" "liii/reader.scm"
-            "liii/host-abi.scm" "liii/bootstrap-macros.scm"
+            "liii/host-abi.scm"
             "expander/kernel-combined.scm" "compiler.scm")
       (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
       (map (lambda (n) (string-append "compiler/" n)) (gfo-scm-files "compiler"))))

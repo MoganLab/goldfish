@@ -1,6 +1,6 @@
 #!/bin/sh
 # Reproduction guard for the expander kernel artifact (LAYER.md 演进债
-# 「产物再生产校验」).  Verifies, with two cold-cache from-artifact builds:
+# 「产物再生产校验」).  Verifies, with two cold-cache rebuilds:
 #   1. fixpoint -- the two rebuilds are byte-identical to each other;
 #   2. reproduction -- the rebuilt artifact equals the committed
 #      goldfish/expander/kernel-combined.scm (source and artifact in sync).
@@ -21,11 +21,11 @@ trap 'rm -f "$committed" "$built1" "$built2"' EXIT
 cp "$artifact" "$committed"
 
 rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/goldfish/ccache"
-EXPANDER_BOOT=from-artifact ./bin/gf goldfish/expander/build-combined.scm >/dev/null
+./bin/gf goldfish/expander/build-combined.scm >/dev/null
 cp "$artifact" "$built1"
 
 rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/goldfish/ccache"
-EXPANDER_BOOT=from-artifact ./bin/gf goldfish/expander/build-combined.scm >/dev/null
+./bin/gf goldfish/expander/build-combined.scm >/dev/null
 cp "$artifact" "$built2"
 
 if ! cmp -s "$built1" "$built2"; then

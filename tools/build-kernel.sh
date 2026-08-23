@@ -1,6 +1,6 @@
 #!/bin/sh
 # Rebuild the expander kernel artifact (goldfish/expander/kernel-combined.scm)
-# from source via a cold-cache from-artifact bootstrap.
+# from source via a cold-cache rebuild (the committed artifact boots the expander).
 #
 # The cache wipe is not optional: warm-cache rebuilds may drift in internal
 # gensym numbering (lib-layer macro cache behavior), so only cold builds are
@@ -14,4 +14,4 @@ if [ ! -x bin/gf ]; then
 fi
 
 rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/goldfish/ccache"
-EXPANDER_BOOT=from-artifact ./bin/gf goldfish/expander/build-combined.scm
+./bin/gf goldfish/expander/build-combined.scm

@@ -59,8 +59,6 @@
 
 ;; Seed list utils + loader. Substrate (records/promises/module/vector-map)
 ;; lives in kernel/substrate.scm so the artifact is self-contained.
-;; bootstrap-macros.scm provides host define-record-type/let-values for
-;; bootstrap-0 (GOLDFISH_BOOTSTRAP / EXPANDER_BOOT=from-source).
 
 (define (load-find-module-file path)
   (if (file-exists? path)
@@ -92,7 +90,7 @@
                              (read-forms port)))
         (lambda () (close-input-port port))))))
 
-;; bootstrap-0 load: through expand-eval when up, else s7 eval. R7RS reader rebinds later.
+;; Seed load: through expand-eval when up, else s7 eval. R7RS reader rebinds later.
 (define (load file)
   (let ((path (load-find-module-file file)))
     (unless path
@@ -128,9 +126,7 @@
            (stamp (list (g_path-getmtime file) (g_path-getsize file)
                         (g_path-getmtime artifact) (g_path-getsize artifact))))
       (let ((gfo-file (gfo-path path)))
-        ;; bootstrap-0: s7 kernel may differ from committed artifact; force re-expand.
-        (let ((payload (and (not (getenv "GOLDFISH_BOOTSTRAP"))
-                            (gfo-load gfo-file stamp))))
+        (let ((payload (gfo-load gfo-file stamp)))
           (if payload
             (let ((bindings (car payload))
                   (sexp (cadr payload)))
@@ -153,9 +149,3 @@
                                            (exp-library-bindings lib)))))
                 (gfo-write! gfo-file stamp (list bindings (cons 'begin (map lower defs))))
                 (le-rootlet-copy bindings)))))))))))
-
-;; bootstrap-0 only: s7 evaluates kernel sources directly.
-(if (or (getenv "GOLDFISH_BOOTSTRAP")
-        (and (getenv "EXPANDER_BOOT")
-             (string=? (getenv "EXPANDER_BOOT") "from-source")))
-  (load-source-file "liii/bootstrap-macros.scm"))
