@@ -57,6 +57,7 @@ gfproject_tool_imports (gf::scheme* sc, const string& command) {
   for (gf::pointer p= r; gf::is_pair (p); p= gf::cdr (p)) {
     if (gf::is_string (gf::car (p))) out.push_back (gf::string (gf::car (p)));
   }
+  return out;
 }
 
 enum class gfproject_tool_prepare_error {
