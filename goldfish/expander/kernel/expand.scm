@@ -25,7 +25,7 @@
                 (or (eq? first #\:)
                     (eq? last #\:)))))))
 
-(define (expand-expr stx ctx)
+(define-public (expand-expr stx ctx)
   (cond
     ((not (syntax? stx))
      (values (if (symbol? stx) (list 'quote stx) stx) ctx))
@@ -34,7 +34,7 @@
     (else
      (expand-pair stx ctx))))
 
-(define (expand-list stxs ctx)
+(define-public (expand-list stxs ctx)
   (if (null? stxs)
       (values '() ctx)
       (let*-values (((a ctx1) (expand-expr (car stxs) ctx))
@@ -53,7 +53,7 @@
        (let ((n (exp-library-name lib)))
          (and (pair? n) (eq? (car n) 'program)))))
 
-(define (resolve-identifier stx ctx)
+(define-public (resolve-identifier stx ctx)
   (let ((name (context-resolve ctx stx)))
     (let ((binding (env-lookup (context-env ctx) name)))
       (if binding
@@ -177,7 +177,7 @@
 ;;; recursing into expression bodies -- recursing there re-expands
 ;;; continuation-passing macros (match.scm) exponentially.
 
-(define (expand-macro-once stx ctx proc)
+(define-public (expand-macro-once stx ctx proc)
   (let*-values (((scp-u ctx1) (context-alloc-scope ctx))
                 ((scp-i ctx2) (context-alloc-scope ctx1)))
     (let ((ph (context-phase ctx))
@@ -209,7 +209,7 @@
               (context-with-use-scopes (context-return ctx ctx5)
                                        (context-use-scopes ctx5))))))
 
-(define (make-syntax-introducer)
+(define-public (make-syntax-introducer)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "make-syntax-introducer: no expansion context"))
@@ -224,7 +224,7 @@
 ;;; introduced identifier to its use-site form and vice versa.  Outside a
 ;;; macro (no intro scope) it is the identity.
 
-(define (syntax-local-introduce stx)
+(define-public (syntax-local-introduce stx)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "syntax-local-introduce: no expansion context"))
@@ -235,7 +235,7 @@
             s
             (loop (stx-flip-scope s (car scps) ph) (cdr scps)))))))
 
-(define (syntax-local-value id)
+(define-public (syntax-local-value id)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "syntax-local-value: no expansion context"))
@@ -246,7 +246,7 @@
 ;;; Model LOCAL-BINDER: prune the accumulated use-site scopes (scps_u)
 ;;; off an identifier so it can serve as a binder in expanded output.
 
-(define (local-binder id)
+(define-public (local-binder id)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "local-binder: no expansion context"))
@@ -259,7 +259,7 @@
 ;;; and flip the result back.  Expansion always yields a syntax object
 ;;; (lowered later by `lower').
 
-(define (local-expand stx . maybe-rest)
+(define-public (local-expand stx . maybe-rest)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "local-expand: no expansion context"))
@@ -291,7 +291,7 @@
 ;;; already in expansion space; see the intdef.scm header for why).
 ;;; Sets current-expand-context like local-expand.
 
-(define (local-expand-body stx stops defs)
+(define-public (local-expand-body stx stops defs)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "local-expand-body: no expansion context"))
@@ -364,7 +364,7 @@
   (let ((h (car form)))
     (if (syntax? h) (syntax-form h) h)))
 
-(define (lower stx)
+(define-public (lower stx)
   (if (not (syntax? stx))
       stx
       (let ((form (syntax-form stx)))
@@ -385,9 +385,9 @@
   (scp-in defs-scp-in)
   (addr defs-addr))
 
-(define (defs-scope d) (defs-scp-in d))
+(define-public (defs-scope d) (defs-scp-in d))
 
-(define (new-defs)
+(define-public (new-defs)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "new-defs: no expansion context"))
@@ -398,7 +398,7 @@
         (set-current-expand-context! ctx3)
         (make-defs scp-in addr-env)))))
 
-(define (def-bind! defs id . maybe-transformer-stx)
+(define-public (def-bind! defs id . maybe-transformer-stx)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "def-bind!: no expansion context"))
@@ -433,7 +433,7 @@
                   (set-current-expand-context! ctx5)
                   (if #f #f)))))))))
 
-(define (expand-box val)
+(define-public (expand-box val)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "expand-box: no expansion context"))
@@ -442,13 +442,13 @@
         (set-current-expand-context! ctx2)
         addr))))
 
-(define (expand-unbox addr)
+(define-public (expand-unbox addr)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "expand-unbox: no expansion context"))
     (store-box-ref (context-store ctx) addr)))
 
-(define (expand-set-box! addr val)
+(define-public (expand-set-box! addr val)
   (let ((ctx (current-expand-context)))
     (unless ctx
       (error "expand-set-box!: no expansion context"))
@@ -494,25 +494,8 @@
 
 (define host-forms '(with-let sublet unlet))
 
-(module-define! the-expander-library 'expand-expr expand-expr)
-(module-define! the-expander-library 'expand-macro-once expand-macro-once)
-(module-define! the-expander-library 'expand-list expand-list)
-(module-define! the-expander-library 'lower lower)
-(module-define! the-expander-library 'resolve-identifier resolve-identifier)
 (module-define! the-expander-library 'program-library? program-library?)
-(module-define! the-expander-library 'local-expand local-expand)
-(module-define! the-expander-library 'local-expand-body local-expand-body)
-(module-define! the-expander-library 'make-syntax-introducer make-syntax-introducer)
-(module-define! the-expander-library 'syntax-local-introduce syntax-local-introduce)
-(module-define! the-expander-library 'syntax-local-value syntax-local-value)
-(module-define! the-expander-library 'local-binder local-binder)
 (module-define! the-expander-library 'make-defs make-defs)
 (module-define! the-expander-library 'defs? defs?)
 (module-define! the-expander-library 'defs-scp-in defs-scp-in)
-(module-define! the-expander-library 'defs-scope defs-scope)
 (module-define! the-expander-library 'defs-addr defs-addr)
-(module-define! the-expander-library 'new-defs new-defs)
-(module-define! the-expander-library 'def-bind! def-bind!)
-(module-define! the-expander-library 'expand-box expand-box)
-(module-define! the-expander-library 'expand-unbox expand-unbox)
-(module-define! the-expander-library 'expand-set-box! expand-set-box!)

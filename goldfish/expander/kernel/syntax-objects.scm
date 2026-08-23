@@ -34,13 +34,13 @@
 
 ;;; Syntax-object contexts (phase-indexed scope sets)
 
-(define (stx-ctx-empty) '())
+(define-public (stx-ctx-empty) '())
 
-(define (stx-ctx-at ctx phase)
+(define-public (stx-ctx-at ctx phase)
   (let ((entry (assoc phase ctx)))
     (if entry (cdr entry) '())))
 
-(define (stx-ctx-set ctx phase scopes)
+(define-public (stx-ctx-set ctx phase scopes)
   (let ((entry (assoc phase ctx)))
     (if entry
         (map (lambda (e)
@@ -50,10 +50,10 @@
              ctx)
         (cons (cons phase scopes) ctx))))
 
-(define (stx-ctx-add ctx phase scp)
+(define-public (stx-ctx-add ctx phase scp)
   (stx-ctx-set ctx phase (set-add (stx-ctx-at ctx phase) scp)))
 
-(define (stx-ctx-flip ctx phase scp)
+(define-public (stx-ctx-flip ctx phase scp)
   (stx-ctx-set ctx phase (set-flip (stx-ctx-at ctx phase) scp)))
 
 ;;; *current-intro-scope* : scope/#f
@@ -65,9 +65,9 @@
 
 (define *current-intro-scope* #f)
 
-(define (current-intro-scope) *current-intro-scope*)
+(define-public (current-intro-scope) *current-intro-scope*)
 
-(define (set-current-intro-scope! scp) (set! *current-intro-scope* scp))
+(define-public (set-current-intro-scope! scp) (set! *current-intro-scope* scp))
 
 ;;; stx-ctx-mark-intro : ctx phase -> ctx
 ;;; Add *current-intro-scope* to phase 0 of ctx.  Template nodes created
@@ -79,7 +79,7 @@
 ;;; allocated per macro use and hence guaranteed absent, so this is an
 ;;; O(#phases) cons instead of set-add's membership scan.
 
-(define (stx-ctx-mark-intro ctx phase)
+(define-public (stx-ctx-mark-intro ctx phase)
   (if (not *current-intro-scope*)
       ctx
       (let ((entry (assoc 0 ctx)))
@@ -128,15 +128,15 @@
 ;;; O(#phases) per node instead of O(#scopes).  Safe only when scp is
 ;;; guaranteed absent (context-alloc-scope output).
 
-(define (stx-add-scope-unchecked stx scp . maybe-phase)
+(define-public (stx-add-scope-unchecked stx scp . maybe-phase)
   (stx-apply-ctx stx
                  (lambda (ctx ph) (stx-ctx-add-unchecked ctx ph scp))
                  (if (null? maybe-phase) 0 (car maybe-phase))))
 
-(define (stx-ctx-prune ctx phase scps)
+(define-public (stx-ctx-prune ctx phase scps)
   (stx-ctx-set ctx phase (set-subtract (stx-ctx-at ctx phase) scps)))
 
-(define (syntax-scopes stx . maybe-phase)
+(define-public (syntax-scopes stx . maybe-phase)
   (stx-ctx-at (syntax-context stx)
               (if (null? maybe-phase) 0 (car maybe-phase))))
 
@@ -181,12 +181,12 @@
             (else
              (make-syntax form new-ctx lib)))))))
 
-(define (stx-add-scope stx scp . maybe-phase)
+(define-public (stx-add-scope stx scp . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-add ctx ph scp))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
 
-(define (stx-flip-scope stx scp . maybe-phase)
+(define-public (stx-flip-scope stx scp . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-flip ctx ph scp))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
@@ -197,12 +197,12 @@
 ;;; so one tree traversal replaces two (expand-macro-once flips the
 ;;; input twice: add scp-u then flip scp-i).
 
-(define (stx-add-then-flip stx scp-add scp-flip . maybe-phase)
+(define-public (stx-add-then-flip stx scp-add scp-flip . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-add-then-flip ctx ph scp-add scp-flip))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
 
-(define (stx-prune-scopes stx scps . maybe-phase)
+(define-public (stx-prune-scopes stx scps . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-prune ctx ph scps))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
@@ -211,13 +211,13 @@
 ;;; Flip by scp when scp is a real scope; a #f scp (model no-scope)
 ;;; leaves the syntax object unchanged.  Mirrors ph-stx-maybe-flip.
 
-(define (stx-maybe-flip stx scp phase)
+(define-public (stx-maybe-flip stx scp phase)
   (if scp (stx-flip-scope stx scp phase) stx))
 
 ;;; stx-set-library : syntax exp-library -> syntax
 ;;; Recursively retarget the home library of a syntax object.
 
-(define (stx-set-library stx lib)
+(define-public (stx-set-library stx lib)
   (let ((form (syntax-form stx)))
     (cond
       ((pair? form)
@@ -247,7 +247,7 @@
 
 ;;; syntax->datum : any -> datum
 
-(define (syntax->datum stx)
+(define-public (syntax->datum stx)
   (cond
     ((syntax? stx)
      (let ((form (syntax-form stx)))
@@ -267,7 +267,7 @@
 
 ;;; syntax-e : syntax -> datum/syntax-pair
 
-(define (syntax-e stx)
+(define-public (syntax-e stx)
   (unless (syntax? stx)
     (error "syntax-e: not a syntax object" stx))
   (let* ((form (syntax-form stx))
@@ -285,7 +285,7 @@
 
 ;;; datum->syntax : syntax/context datum [phase] -> syntax
 
-(define (datum->syntax ctx-source datum . maybe-phase)
+(define-public (datum->syntax ctx-source datum . maybe-phase)
   (let ((phase (if (null? maybe-phase) 0 (car maybe-phase))))
     (datum->stx-ctx-source ctx-source datum phase)))
 
@@ -318,7 +318,7 @@
 
 ;;; generate-temporaries : syntax-list -> (list syntax)
 
-(define (generate-temporaries lst)
+(define-public (generate-temporaries lst)
   (let ((ulst (syntax->datum lst)))
     (if (list? ulst)
         (map (lambda (_)
@@ -333,26 +333,5 @@
 (module-define! the-expander-library 'syntax-form syntax-form)
 (module-define! the-expander-library 'syntax-context syntax-context)
 (module-define! the-expander-library 'syntax-library syntax-library)
-(module-define! the-expander-library 'syntax-scopes syntax-scopes)
-(module-define! the-expander-library 'stx-ctx-empty stx-ctx-empty)
-(module-define! the-expander-library 'stx-ctx-at stx-ctx-at)
-(module-define! the-expander-library 'stx-ctx-set stx-ctx-set)
-(module-define! the-expander-library 'stx-ctx-add stx-ctx-add)
-(module-define! the-expander-library 'stx-ctx-flip stx-ctx-flip)
-(module-define! the-expander-library 'stx-ctx-prune stx-ctx-prune)
-(module-define! the-expander-library 'syntax->datum syntax->datum)
-(module-define! the-expander-library 'syntax-e syntax-e)
-(module-define! the-expander-library 'datum->syntax datum->syntax)
 (module-define! the-expander-library 'identifier? identifier?)
 (module-define! the-expander-library 'bound-identifier=? bound-identifier=?)
-(module-define! the-expander-library 'generate-temporaries generate-temporaries)
-(module-define! the-expander-library 'stx-add-scope stx-add-scope)
-(module-define! the-expander-library 'stx-flip-scope stx-flip-scope)
-(module-define! the-expander-library 'stx-add-then-flip stx-add-then-flip)
-(module-define! the-expander-library 'stx-maybe-flip stx-maybe-flip)
-(module-define! the-expander-library 'stx-prune-scopes stx-prune-scopes)
-(module-define! the-expander-library 'stx-set-library stx-set-library)
-(module-define! the-expander-library 'stx-add-scope-unchecked stx-add-scope-unchecked)
-(module-define! the-expander-library 'current-intro-scope current-intro-scope)
-(module-define! the-expander-library 'set-current-intro-scope! set-current-intro-scope!)
-(module-define! the-expander-library 'stx-ctx-mark-intro stx-ctx-mark-intro)
