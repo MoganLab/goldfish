@@ -10,7 +10,7 @@
 ;;; Syntax objects carry a reference to their home library; free identifiers
 ;;; resolve against it when scope-based (lexical) lookup fails.
 
-(define primitive-variables
+(define-public primitive-variables
   ;; The r7rs-small (scheme base) procedure set, plus the names re-exported
   ;; by the other standard libraries ((scheme write) / (scheme char) /
   ;; (scheme complex) / (scheme cxr) / (scheme eval) / (scheme file) /
@@ -151,7 +151,7 @@
 ;;; (scheme base) is a separate on-disk library that imports it and
 ;;; re-exports the standard surface, so user code never touches (goldfish)
 ;;; directly.
-(define the-base-library (make-exp-library '(goldfish)))
+(define-public the-base-library (make-exp-library '(goldfish)))
 
 (define (install-core-forms! lib)
   (for-each (lambda (entry)
@@ -167,9 +167,6 @@
 (install-primitives! the-base-library)
 (set-base-library! the-base-library)
 
-(define (initial-context)
+(define-public (initial-context)
   (context-empty))
 
-(module-define! the-expander-library 'initial-context initial-context)
-(module-define! the-expander-library 'primitive-variables primitive-variables)
-(module-define! the-expander-library 'the-base-library the-base-library)

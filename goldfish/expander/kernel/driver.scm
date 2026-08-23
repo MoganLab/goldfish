@@ -23,15 +23,15 @@
 (define (wrap-expression expr)
   (datum->syntax (make-syntax 'empty (stx-ctx-empty) the-base-library) expr))
 
-(define (expand-stx expr)
+(define-public (expand-stx expr)
   (let-values (((stx ctx)
                 (expand-expr (wrap-expression expr) (initial-context))))
     stx))
 
-(define (expand expr)
+(define-public (expand expr)
   (lower (expand-stx expr)))
 
-(define (compile-program exprs)
+(define-public (compile-program exprs)
 
   (let-values (((program ctx)
                 (compile-program* exprs (initial-context))))
@@ -43,7 +43,7 @@
 ;;; module forms + whatever its imports provide) and free identifiers that
 ;;; resolve nowhere are errors, not ambient base-library names.
 
-(define (compile-program-into exprs lib)
+(define-public (compile-program-into exprs lib)
   (let-values (((program ctx)
                 (compile-program* exprs (initial-context) lib)))
     (lower program)))
@@ -57,7 +57,7 @@
 ;;; This is the per-form entry point used by the REPL / load / eval path,
 ;;; keeping macro state across separate eval calls.
 
-(define (compile-toplevel expr)
+(define-public (compile-toplevel expr)
 
   (let ((lib the-base-library))
     (let ((stx (stx-set-library (wrap-expression expr) lib)))
@@ -70,10 +70,10 @@
 ;;; compile-file : string -> lowered core Scheme S-expression
 ;;; Read a source file with the R7RS reader and expand it as a program.
 
-(define (compile-file path)
+(define-public (compile-file path)
   (compile-program (call-with-input-file path read-forms)))
 
-(define (compile-file-into path lib)
+(define-public (compile-file-into path lib)
   (compile-program-into (call-with-input-file path read-forms) lib))
 
 (define (compile-program* exprs ctx . maybe-lib)
@@ -139,11 +139,4 @@
                 (loop (cdr exprs) ctx1 lib-defs
                       (append (reverse d) body) (+ n 1)))))))))))
 
-(module-define! the-expander-library 'expand-stx expand-stx)
-(module-define! the-expander-library 'expand expand)
-(module-define! the-expander-library 'compile-program compile-program)
-(module-define! the-expander-library 'compile-program-into compile-program-into)
-(module-define! the-expander-library 'compile-toplevel compile-toplevel)
-(module-define! the-expander-library 'compile-file compile-file)
-(module-define! the-expander-library 'compile-file-into compile-file-into)
 

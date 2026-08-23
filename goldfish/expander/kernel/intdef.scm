@@ -33,7 +33,7 @@
 ;;; definitions carry the output-flip scope until def-bind! normalizes
 ;;; it off (stx-flip-intro-off).
 
-(define (expand-body stxs ctx)
+(define-public (expand-body stxs ctx)
   (if (null? stxs)
       (error "expand-body: empty body")
       (let ((saved-ctx (current-expand-context)))
@@ -109,7 +109,7 @@
                     (expand-body-seq (cdr stxs) defs var-defs
                                      (cons deferred exprs) saved-ctx))))))))
 
-(define (expand-body-form stx ctx)
+(define-public (expand-body-form stx ctx)
   (let* ((stop-frame (map (lambda (name) (cons name (make-tstop-binding #f)))
                           body-stop-list))
          (ctx-stopped (context-with-env ctx (cons stop-frame (context-env ctx)))))
@@ -235,7 +235,7 @@
     (else
      (values (append (cdr (syntax-form form)) (cdr stxs)) var-defs exprs))))
 
-(define (parse-internal-define stx)
+(define-public (parse-internal-define stx)
   (let* ((form (syntax-form stx))
          (head (cadr form)))
     (cond
@@ -250,7 +250,7 @@
       (else
        (error "define: bad syntax in body" (syntax->datum stx))))))
 
-(define (build-lambda-stx src-stx param-stxs body-stxs)
+(define-public (build-lambda-stx src-stx param-stxs body-stxs)
   (let ((ctx (syntax-context src-stx))
         (lib (syntax-library src-stx)))
     (make-syntax (cons (make-syntax 'lambda ctx lib)
@@ -260,7 +260,3 @@
                              body-stxs))
                  ctx lib)))
 
-(module-define! the-expander-library 'expand-body expand-body)
-(module-define! the-expander-library 'expand-body-form expand-body-form)
-(module-define! the-expander-library 'parse-internal-define parse-internal-define)
-(module-define! the-expander-library 'build-lambda-stx build-lambda-stx)

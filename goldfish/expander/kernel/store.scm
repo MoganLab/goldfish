@@ -20,7 +20,7 @@
   (boxes store-boxes)
   (def-envs store-def-envs))
 
-(define (store-empty) (make-store 0 '() '() '()))
+(define-public (store-empty) (make-store 0 '() '() '()))
 
 ;;; Allocation
 
@@ -32,16 +32,16 @@
                         (store-boxes store)
                         (store-def-envs store)))))
 
-(define (store-alloc-name store id)
+(define-public (store-alloc-name store id)
   (store-alloc store (syntax-form id)))
 
-(define (store-alloc-scope store)
+(define-public (store-alloc-scope store)
   (store-alloc store 'scp))
 
-(define (store-alloc-box store)
+(define-public (store-alloc-box store)
   (store-alloc store 'box))
 
-(define (store-alloc-def-env store)
+(define-public (store-alloc-def-env store)
   (store-alloc store 'def-env))
 
 ;;; Binding resolution
@@ -69,7 +69,7 @@
        #f)
       (else (car matching)))))
 
-(define (store-bind store phase id name)
+(define-public (store-bind store phase id name)
   (let* ((sym (syntax-form id))
          (scopes (stx-ctx-at (syntax-context id) phase))
          (bind (make-bind phase scopes name))
@@ -86,7 +86,7 @@
                 (store-boxes store)
                 (store-def-envs store))))
 
-(define (store-resolve store phase id)
+(define-public (store-resolve store phase id)
   (let* ((sym (syntax-form id))
          (scopes (stx-ctx-at (syntax-context id) phase))
          (binds (filter (lambda (b) (= (bind-phase b) phase))
@@ -107,13 +107,13 @@
 
 ;;; Mutable boxes (used at expand-time, e.g. by defs model)
 
-(define (store-box-ref store addr)
+(define-public (store-box-ref store addr)
   (let ((entry (assoc addr (store-boxes store))))
     (if entry
         (cdr entry)
         (error "store-box-ref: unbound box" addr))))
 
-(define (store-box-set store addr value)
+(define-public (store-box-set store addr value)
   (let ((boxes (store-boxes store)))
     (make-store (store-counter store)
                 (store-bindings store)
@@ -128,13 +128,13 @@
 
 ;;; Definition-context environments
 
-(define (store-def-env-ref store addr)
+(define-public (store-def-env-ref store addr)
   (let ((entry (assoc addr (store-def-envs store))))
     (if entry
         (cdr entry)
         (error "store-def-env-ref: unbound def-env" addr))))
 
-(define (store-def-env-set store addr env)
+(define-public (store-def-env-set store addr env)
   (let ((def-envs (store-def-envs store)))
     (make-store (store-counter store)
                 (store-bindings store)
@@ -149,20 +149,9 @@
 
 ;;; Library exports
 
-(module-define! the-expander-library 'store-empty store-empty)
 (module-define! the-expander-library 'make-store make-store)
 (module-define! the-expander-library 'store? store?)
 (module-define! the-expander-library 'store-counter store-counter)
 (module-define! the-expander-library 'store-bindings store-bindings)
 (module-define! the-expander-library 'store-boxes store-boxes)
 (module-define! the-expander-library 'store-def-envs store-def-envs)
-(module-define! the-expander-library 'store-alloc-name store-alloc-name)
-(module-define! the-expander-library 'store-alloc-scope store-alloc-scope)
-(module-define! the-expander-library 'store-alloc-box store-alloc-box)
-(module-define! the-expander-library 'store-alloc-def-env store-alloc-def-env)
-(module-define! the-expander-library 'store-bind store-bind)
-(module-define! the-expander-library 'store-resolve store-resolve)
-(module-define! the-expander-library 'store-box-ref store-box-ref)
-(module-define! the-expander-library 'store-box-set store-box-set)
-(module-define! the-expander-library 'store-def-env-ref store-def-env-ref)
-(module-define! the-expander-library 'store-def-env-set store-def-env-set)

@@ -8,7 +8,7 @@
 ;;; ordinary macro (defined in lib/syntax-case.scm) and expands through
 ;;; the normal macro path.  eval-transformer is thus the sole eval seam.
 
-(define (make-syntax-rules-transformer stx . maybe-ctx)
+(define-public (make-syntax-rules-transformer stx . maybe-ctx)
   (let ((ctx (if (null? maybe-ctx) (context-empty) (car maybe-ctx))))
     (let-values (((proc _ _) (eval-transformer stx ctx)))
       proc)))
@@ -51,7 +51,7 @@
 ;;; cf. Racket's direct-eval, which likewise evaluates simple transformer
 ;;; expressions without compiling them).
 
-(define (eval-transformer stx ctx)
+(define-public (eval-transformer stx ctx)
   (let* ((stx (transformer-spec->procedure-form stx))
          (ph (context-phase ctx))
          (ctx-up (context-at-phase ctx (+ ph 1))))
@@ -65,5 +65,3 @@
 
 ;;; Library exports
 
-(module-define! the-expander-library 'make-syntax-rules-transformer make-syntax-rules-transformer)
-(module-define! the-expander-library 'eval-transformer eval-transformer)

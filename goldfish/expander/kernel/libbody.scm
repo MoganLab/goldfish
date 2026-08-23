@@ -18,7 +18,7 @@
        (identifier? (car (syntax-form stx)))
        (context-resolve ctx (car (syntax-form stx)))))
 
-(define (expand-library-body stxs lib ctx)
+(define-public (expand-library-body stxs lib ctx)
   (let loop ((stxs stxs) (ctx ctx) (var-defs '()) (exprs '()) (n 0))
     (when (> n 50000)
       (error "expand-library-body: expansion limit exceeded"))
@@ -102,7 +102,7 @@
 
 (define lib-output-source (make-syntax 'empty (stx-ctx-empty) #f))
 
-(define (expand-library-finalize var-defs exprs ctx)
+(define-public (expand-library-finalize var-defs exprs ctx)
   (set-current-expand-context! ctx)
   (let*-values (((defs ctx1)
                  (let loop ((ds var-defs) (c ctx) (out '()))
@@ -134,7 +134,7 @@
 ;;; Scan phase of a value definition: allocate the name and install the
 ;;; bindings (env + library table); the value expression is deferred.
 
-(define (expand-lib-define-bind stx lib ctx)
+(define-public (expand-lib-define-bind stx lib ctx)
   (let*-values (((id val-stx) (parse-internal-define stx)))
     ;; Macro alias: (define name macro) where macro resolves to a
     ;; transformer binding -- an s7 idiom (e.g. (liii raw-string)'s
@@ -162,7 +162,7 @@
               (exp-library-define! lib (syntax-form id) (make-toplevel-binding ref))
               (values (cons name val-stx) ctx)))))))
 
-(define (expand-lib-define-syntax stx lib ctx)
+(define-public (expand-lib-define-syntax stx lib ctx)
   (let* ((form (syntax-form stx))
          (id (cadr form))
          (transformer-stx (caddr form)))
@@ -174,10 +174,6 @@
                                     name
                                     (make-transformer-binding proc)))))))
 
-(module-define! the-expander-library 'expand-library-body expand-library-body)
-(module-define! the-expander-library 'expand-library-finalize expand-library-finalize)
-(module-define! the-expander-library 'expand-lib-define-bind expand-lib-define-bind)
-(module-define! the-expander-library 'expand-lib-define-syntax expand-lib-define-syntax)
 
 ;;; Macro transformer collection
 ;;; expand-lib-define-syntax records each library macro definition as
@@ -191,12 +187,10 @@
 
 (define *macro-records* '())
 
-(define (collect-macro-record! name sexp)
+(define-public (collect-macro-record! name sexp)
   (set! *macro-records* (cons (cons name sexp) *macro-records*)))
 
-(define (take-macro-records)
+(define-public (take-macro-records)
   (let ((r (reverse *macro-records*)))
     (set! *macro-records* '())
     r))
-(module-define! the-expander-library 'collect-macro-record! collect-macro-record!)
-(module-define! the-expander-library 'take-macro-records take-macro-records)
