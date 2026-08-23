@@ -694,8 +694,8 @@
 ;;; the defs do not compile).  The whole def list becomes one program (a
 ;;; shared code table + a sequential top), executed by one vm-load, so the
 ;;; definitions land in the rootlet exactly as (eval d (rootlet)) would.
-;;; GOLDFISH_NO_VM_DEFS forces the eval fallback.  The (goldfish compiler)
-;;; library family is exempted: once its defs are VM-loaded, to-bytecode
+;;; GOLDFISH_VM_DEFS=1 opts back into the bytecode VM.  The (goldfish
+;;; compiler) library family is always exempted: once its defs are VM-
 ;;; itself becomes a VM closure and compiling a later library runs a nested
 ;;; VM compile, whose shared state produces corrupted bytecode.  Returns #t
 ;;; if the VM ran.
@@ -708,9 +708,14 @@
     (vm-load ((module-ref compiler 'encode-bytecode) prog) env)))
 
 (define (vm-load-defs defs lib-name)
-  (if (or (null? defs) (getenv "GOLDFISH_NO_VM_DEFS")
+  ;; Default execution is plain s7 eval of the lowered core forms.  The
+  ;; bytecode VM is opt-in via GOLDFISH_VM_DEFS=1: measurements
+  ;; (benchmarks/measure-vm.sh) showed the cross-boundary cost outweighs
+  ;; the bytecode benefit on every tracked path.
+  (if (or (null? defs)
           (and (pair? lib-name) (eq? (car lib-name) 'goldfish)
-               (pair? (cdr lib-name)) (eq? (cadr lib-name) 'compiler)))
+               (pair? (cdr lib-name)) (eq? (cadr lib-name) 'compiler))
+          (not (getenv "GOLDFISH_VM_DEFS")))
     (for-each (lambda (d) (eval d (rootlet))) defs)
     (let ((prog
            (catch

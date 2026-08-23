@@ -27,9 +27,6 @@ main (int argc, char** argv) {
   SetConsoleOutputCP (65001);
 #endif
   setlocale (LC_ALL, "C.UTF-8");
-  if (argc >= 2 && std::string(argv[1]) == "test") {
-    setenv("GOLDFISH_NO_VM_DEFS", "1", 1);
-  }
   std::string gf_lib_dir= goldfish::find_goldfish_library ();
   const char* gf_lib    = gf_lib_dir.c_str ();
   gf::scheme*  sc        = goldfish::init_goldfish_scheme (gf_lib);

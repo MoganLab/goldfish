@@ -64,7 +64,8 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L6 vm
 
 - **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM）。
-- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。VM 单值传递：多值是宿主派生形式（`values`/`call-with-values` 为宿主过程，values 对象作为单值流经 VM 栈、由宿主 apply 拼接展开），无专用 opcode。已知边界：s7 将 `(values)` 与无 else `if` 归于同一 unspecified 对象，cwv 探测记零值（R7RS 对照 Guile 一致；代价为 void 流入多值语境记零个值）；严格 arity 寄存器化属可选精化而非正确性需求。
+- **定位（2026-08）**：**实验性优化层，默认关闭**——库 defs 与宏 transformer 默认以 lowered 核心 sexp 交 s7 直评，`GOLDFISH_VM_DEFS=1` opt-in。依据：调用密集 fib(26) 经 VM 慢 ~19%，库 import 慢 ~14%，启动持平（跨界成本超过字节码收益；复跑 `benchmarks/measure-vm.sh`）。保留为未来自研引擎的经验资产。
+- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。VM 单值传递：多值是宿主派生形式，无专用 opcode。错误传播经帧感知展开协议（见演进债）。严格 arity 寄存器化属可选精化而非正确性需求。
 - **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件；操作码编号与 `bytecode.scm` 的 `vm-opcodes` 保持同步——发布前可自由重编号（两侧一起改），首个发布版起冻结为 ABI。
 
 ## L7 loader
@@ -112,6 +113,6 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## 演进债
 
-- **缓存依赖追踪（已实现，2026-08）**：库 gfo 与程序缓存的记录追加第 5 字段——直接依赖的指纹表 `((lib-name mtime size) ...)`（取依赖的缓存产物，缺失时回退源文件；纯 stat 无哈希）。命中要求指纹仍匹配，故重生成依赖自动失效消费者并沿 import 链级联；无依赖的记录存空表。剩余已知限制：间接依赖靠产物 mtime 级联覆盖，秒级文件系统同秒双写极端场景未防护；mtime 精度维持 tbox 提供。
-- **错误穿越 VM 帧的重放（已修，2026-08，帧感知展开协议）**：VM 编译代码中 `(catch ...)` 的 body 经**嵌套 VM 闭包**抛错时，s7 的 error 展开会 LongJmp 到 catch 安装层的 jump buffer，跳过中间所有 C++ 帧——嵌套 run() 循环、vm_enter 清理、frames deque 与 stack 区域全部成为孤儿；死帧 pc 停在出错点的下一条指令上，handler 结果沿正常路径返回后 run() 会继续执行死帧（若停在中途 Call 指令上则从栈里乱弹参数二次调用——历史 "not enough arguments" 形态即此）。修复：**VM 在每次跨层调用登记边界快照，落地处先展开再执行 handler**。协议三端——`goldfish_vm_push_boundary/pop_boundary/s7_gf_vm_unwind`（extern "C"，实现在 goldfish_vm.cpp）；`s7_gf_apply_eval` 入口 push（volatile 局部保存 id，longjmp 后仍有效）、错误落地处在任何 handler 运行前调 unwind、正常返回 pop。unwind 将匹配边界及其上的全部快照作废，把每个受影响 VM 实例的 frames/stack 截断到最旧幸存快照，并恢复 g_vm_stack/g_current_vm 到边界时刻。ids 不复用，正常路径的 pop 对已展开 id 是 no-op。决定性探针：库 defs 内 `(catch #t (lambda () (+ 1 (car x))) h)`——基线产生二次乱调用，修复后正确返回 handler 值且实例可继续使用。原条目记录的两测试失败实为独立语义问题（均已另修）：njson-ref 缺"路径中途遇标量→key-error"检查；SRFI-165 的 `computation-with!` 以 unspecified 作 `values` 参数而 s7 将其折叠为空值序列。
-- **s7 的 values/unspecified 折叠（fork 内已知差异，不修）**：s7 的求值参数循环丢弃 no_value 值（`if (val != sc->no_value)` 才拼接参数），故 `(values unspecified)` 到达 `values` 时已是零参——折叠发生在 `values` 之前，cwv 层无法区分「真零值」与「单 unspecified」。修复需改动 s7 最热的求值路径（风险不可接受）；上游 11.9 改 cwv 定义同样无法两全。移植代码以 unspecified 进多值协议时会踩坑：SRFI-165 的 `computation-with!` 已绕过（改产 `'unspecified` 占位）。
+- **活跃债（仅此一项）——s7 的 values/unspecified 折叠**：s7 求值参数循环丢弃 no_value 值（`if (val != sc->no_value)` 才拼接参数），故 `(values unspecified)` 到达 `values` 时已是零参——折叠发生在 `values` 之前，cwv 层无法区分「真零值」与「单 unspecified」。修复需改 s7 最热的求值路径，风险不可接受。移植代码以 unspecified 进多值协议时会踩坑：SRFI-165 的 `computation-with!` 已绕过（产 `'unspecified` 占位）。
+- **已归档（2026-08）**：VM 错误穿越帧重放（帧感知展开协议，见 L6）；缓存依赖追踪（deps 指纹入 gfo 第 5 字段，见 L2/L4）；from-source 双自举路径（删除后 kernel 可用全语言设施）；工具分发 JSON 层；dispatch 缺 return 导致的间歇 segfault。
+

@@ -121,7 +121,16 @@
     (unless file
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
-      (let ((cached (gfo-load (install-cache-path path) stamp)))
+      ;; macro-cache format 3 stores transformers as serialized lowered
+      ;; forms; older caches carrying program-form transformers regenerate.
+      (let* ((full (gfo-load-record (install-cache-path path)))
+             (cached (and (pair? full) (eq? (car full) 'gfo) (= (length full) 5)
+                          (equal? (cadr full) gfo-format-version)
+                          (equal? (caddr full) stamp)
+                          (let ((payload (cadddr full)))
+                            (and (pair? payload) (eq? (car payload) 'macro-cache)
+                                 (= (cadr payload) 3)
+                                 payload)))))
         (if cached
           (install-cache-load! lib cached)
           (let*-values (((ctx defs macros bindings)
@@ -280,13 +289,15 @@
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings)
   (let ((gfo-file (install-cache-path path))
-        (rec (list 'macro-cache 2
+        ;; Transformers are stored as serialized lowered forms (pure s7);
+        ;; the symbolic-bytecode program form is no longer produced now
+        ;; that library defs execute through s7 by default.  Format bumped
+        ;; to 3 so caches carrying program-form transformers regenerate.
+        (rec (list 'macro-cache 3
                    (cons 'defs (map serialize-cache-sexp defs))
                    (cons 'macros
                          (map (lambda (r)
-                                (cons (car r)
-                                      (or (compile-transformer-to-program (cdr r))
-                                          (serialize-cache-sexp (cdr r)))))
+                                (cons (car r) (serialize-cache-sexp (cdr r))))
                               macros))
                    (cons 'bindings
                          (map (lambda (e)
