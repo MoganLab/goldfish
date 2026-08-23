@@ -178,10 +178,9 @@ target ("goldfish") do
 
     -- L2 core-format : gfo single source, loaded before the kernel
     add_installfiles("$(projectdir)/goldfish/(core/*.scm)", {prefixdir = "share/goldfish"})
-    -- L3 expander-rt : self-contained kernel artifact
-    add_installfiles("$(projectdir)/goldfish/(expander/kernel/*.scm)", {prefixdir = "share/goldfish/expander/kernel"})
+    -- L3 expander-rt : self-contained kernel artifact only -- kernel sources
+    -- and build-combined.scm are build-time material, not shipped
     add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    add_installfiles("$(projectdir)/goldfish/(expander/build-combined.scm)", {prefixdir = "share/goldfish/expander"})
     -- L4 expander-lib : no compiler/vm import, vm fallback via host primitive
     add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
     -- L5 compiler : pure, no s7/core/lib
