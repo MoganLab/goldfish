@@ -2,7 +2,7 @@
         (goldfish compiler ir)
         (goldfish compiler passes)
         (goldfish compiler bytecode)
-        (goldfish expander syntax-ir))
+        (goldfish compiler syntax-ir))
 
 ;; syntax->ir：展开后的 syntax 树直接转 IR record 树，binding-kind 保留。
 ;;

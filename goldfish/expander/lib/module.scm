@@ -521,9 +521,9 @@
                  (catch
                    #t
                    (lambda ()
-                     (if (not (runtime-registered? '(goldfish expander syntax-ir)))
-                       (load-library! '(goldfish expander syntax-ir)))
-                     (module-ref (lookup-module '(goldfish expander syntax-ir))
+                     (if (not (runtime-registered? '(goldfish compiler syntax-ir)))
+                       (load-library! '(goldfish compiler syntax-ir)))
+                     (module-ref (lookup-module '(goldfish compiler syntax-ir))
                                  'compile-syntax-defs))
                    (lambda (tag . info) #f))))
             (if (and (procedure? compile-syntax-defs))

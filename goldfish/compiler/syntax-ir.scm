@@ -33,7 +33,7 @@
 ;;; (kernel-combined.scm).  It is loaded after both the kernel and the
 ;;; compiler are available, and re-exports the IR constructors it needs.
 
-(define-library (goldfish expander syntax-ir)
+(define-library (goldfish compiler syntax-ir)
   (import (scheme base)
           (goldfish)
           (goldfish compiler ir)

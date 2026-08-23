@@ -33,6 +33,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L1 tiny
 
 - **文件**：`src/liii_reader.cpp`（最小闭包读取器，只读已展开数据）+ `goldfish/liii/boot.scm`（裸码集合成员）。
+- **同层成员（物理住在 `liii/`，引导期加载）**：`goldfish/liii/host-abi.scm`（seed 经 liii_reader.cpp 载入 rootlet 的 R7RS 值面 + `*vm-deferred-forms*` 宿主行为面清单）、`goldfish/liii/bootstrap-macros.scm`(仅 GOLDFISH_BOOTSTRAP / EXPANDER_BOOT=from-source 时由 boot 条件加载)。
 - **不变式**：禁止依赖 expander；boot 前 `160` 行内必须加载 gfo 模块。
 
 ## L2 core-format
@@ -55,7 +56,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L5 compiler
 
-- **文件**：`goldfish/compiler/*.scm`、`goldfish/compiler.scm`、`goldfish/expander/syntax-ir.scm`。
+- **文件**：`goldfish/compiler/*.scm`（含 `syntax-ir.scm`，syntax→IR 桥）、`goldfish/compiler.scm`。
 - **职责**：record IR 纯变换与 `lower`/`run-passes`；依赖面收窄为 `L2` 的格式契约，不依赖 `L4` 用户态库。
 - **不变式**：禁止 `s7_` 与 `goldfish/core|expander/lib` 导入。
 
@@ -90,5 +91,6 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 - **缓存阶段 2A/2B**：值库缓存与宏数据化，见 `CCACHE_NOTES.md`。
 - **VM 多值**：多值是宿主派生形式（`8a0c14c7` 移除早期 list 包装——全局重定义 `values` 会混用协议破坏引导链），VM 单值栈上 values 对象由宿主 apply 拼接；n≥1 各形态（cwv/let-values/apply/VM 闭包 producer）已验证正确。已知边界：s7 把 `(values)` 与无 else `if` 的 void 归于同一 unspecified 对象，`call-with-values` 以 eq? 探测将其视为零值（R7RS 零值语义，Guile/Racket 对照一致）；代价是 void 值流入多值语境记零个值（Guile 记一个）——边缘情形，记录在案。若未来需要严格值数寄存器化（Op::Values 记录 arity），属性能/语义精化而非正确性需求。另：曾疑似多值渗入的案例（auto-compile 下 `gfproject-load-config` 返回错位值）已查明与多值无关：根因是延迟求值 C 特殊形式（`catch`、`call/cc`、`dynamic-wind`、`call-with-*`/`with-*`）经 `s7_apply_function` 的 c_function 快速路径调用时只返回占位符 `#f`，VM 误当结果；已修（`62c228ae`，`s7_gf_apply_eval` 强制 eval 循环）。
 - **C++ 业务收尾**：`find_function` 等残留宿主业务迁至纯 Scheme，进一步收敛胶水阈值。
+- **目录整洁度（2026-08 审查）**：`expander/syntax-ir.scm` 已归位 `goldfish/compiler/`（库名同步改为 `(goldfish compiler syntax-ir)`）。遗留低优先项——`guenchi/` 仅含 json.scm 一个文件；`(goldfish match)`（顶层 match.scm，SRFI-262 自研）与 `(liii match)`（Alex Shinn 版）双 match 并存属刻意设计但易混淆；`repro-hygiene.scm` 为测试专用库住生产树；`pathlib-ref/`、`compat/` 为历史对照材料可归档；`repl/`（Node wasm REPL 服务端）为异构技术栈小岛，宜补 README 说明定位。
 - **产物再生产校验**：`xmake b verify-kernel` 已落地本地护栏——两次冷缓存 from-artifact 自举逐字节一致（fixpoint）且与已提交的 `kernel-combined.scm` 一致（再生产；不一致时提示 `xmake kernel` 重建）。重建入口 `xmake kernel`。剩余待办：接入 CI workflow。
 - **错误穿越 VM 帧的重放（未修）**：VM 编译代码中 `(catch ...)` 的 body 经**嵌套 VM 库闭包**抛错时（如 srfi-165 的 `computation-environment-ref`、njson 的 `g_njson-ref`）产生错误行为。机制已查明（2026-08 指令级追踪）：s7 的 error 展开扫描 eval 栈找到 OP_CATCH 后以 catch_jump LongJmp 到**最近的 jump buffer**——而 VM 通用调用路径的 `apply_eval` 在出错原语层插了自己的 buffer，于是 handler 在最深的 C 层执行、其返回值被交还给 run() 的 switch，当作出错原语的"正常返回值"push 回栈，**出错帧从错位点带着语义不符的值继续执行**（重放/assv 收到符号等皆为此派生）。宿主原语在 catch 同层直接抛错则无此问题（无中间 buffer）；库 defs 走 s7 eval（GOLDFISH_NO_VM_DEFS=1）正常。注意：62c228ae 之前（s7_apply_function 无 buffer）同场景是另一失败模式——longjmp 越过 run() 后无人恢复执行、孤儿帧滞留、调用链静默截断。两模式同根：**s7 的跨层恢复协议假设"被跳过的 C 帧无状态"，而 run() 的 frames deque / pc 违反此假设**。正确修复需 VM 自管 catch（catch 编为 VM opcode + C++ 层恢复）或与 s7 协商帧感知展开协议——独立任务。受影响测试：njson-ref-test、srfi-165-test（全套件仅此 2 个）。**已验证的失败教训（2026-08 B 方案实验）**：仅把通用调用按"延迟/非延迟名单"分流（普通原语走 s7_apply_function 直呼）会触发第三种模式——错误展开落在加载器层的陈旧 buffer，控制权劫持到加载器、当前程序静默放弃（exit=0 无输出）。分流前提是错误传播协议先收敛；未来任务的输入数据——完整延迟形式名单（与 s7.c 一一核对）：`catch call/cc call-with-current-continuation dynamic-wind apply call-with-input-string with-input-from-string call-with-input-file with-input-from-file call-with-output-string with-output-to-string call-with-output-file with-output-to-file`。

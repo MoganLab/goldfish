@@ -3,7 +3,7 @@
         (goldfish compiler ir)
         (goldfish compiler bytecode)
         (goldfish compiler passes)
-        (goldfish expander syntax-ir))
+        (goldfish compiler syntax-ir))
 
 ;; 端到端闭环测试：expander 展开 → syntax->ir（含 primitive-ref/lexical-ref）
 ;; → to-bytecode → VM 执行。

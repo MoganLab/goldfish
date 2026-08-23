@@ -187,7 +187,7 @@ target ("goldfish") do
     -- L5 compiler : pure, no s7/core/lib
     add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
-    add_installfiles("$(projectdir)/goldfish/(expander/syntax-ir.scm)", {prefixdir = "share/goldfish"})
+    add_installfiles("$(projectdir)/goldfish/(compiler/syntax-ir.scm)", {prefixdir = "share/goldfish"})
     -- user Scheme libs (r7rs + liii + guenchi, all via expander)
     add_installfiles("$(projectdir)/goldfish/(scheme/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(srfi/*.scm)", {prefixdir = "share/goldfish"})
