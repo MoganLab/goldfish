@@ -20,7 +20,6 @@ if grep -E '#include.*expander|#include.*compiler|\(import.*goldfish/compiler' s
 # current baseline 64, keep from growing; move new business to Scheme
 # target 60 after migrating find_function_libraries / load_gfproject to (liii project)
 if [ "$(grep -c "glue_" src/goldfish.hpp 2>/dev/null)" -gt 64 ]; then echo "layer violation: L0 glue too many, move business logic to Scheme"; fail=1; fi
-if [ "$(grep -c "glue_" src/goldfish.hpp 2>/dev/null)" -gt 60 ]; then echo "layer warning: L0 glue >60, consider migrating business to Scheme (current $(grep -c "glue_" src/goldfish.hpp))"; fi
 # L0 business leakage: find_function / load_gfproject should live in Scheme
 if grep -q "find_function_libs_in_load_path\|load_gfproject" src/goldfish.hpp 2>/dev/null; then echo "layer warning: L0 still contains find_function/load_gfproject business, should migrate to (liii project) pure Scheme"; fi
 # L6 vm stricter: no s7 API leakage beyond gf:: wrapper

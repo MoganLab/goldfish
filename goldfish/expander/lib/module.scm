@@ -185,9 +185,6 @@
   (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
                  (library-cache-level-suffix) ".gfo"))
 
-(define (library-cache-path lib-file) (library-gfo-path lib-file))
-(define (library-cache-meta-path lib-file) (library-gfo-path lib-file))
-
 ;;; parse-define-library-body : syntax -> (values exports body-stxs)
 ;;; Reuse parse-library-clauses (already defined below); body stxs are the
 ;;; raw clause forms (export/import filtered out) so macro specs can be
