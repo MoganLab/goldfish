@@ -18,12 +18,15 @@
   (import (scheme base)
     (scheme file)
     (scheme write)
+    (scheme process-context)
     (liii os)
     (liii path)
     (liii string)
     (liii sys)
   ) ;import
-  (export main run-goldcode)
+  (export main run-goldcode parse-profile-args resolve-profile
+    profile-settings-path claude-settings-path backup-and-remove-settings!
+  ) ;export
   (begin
 
     (define (stderr-line message)
@@ -120,23 +123,97 @@
       ) ;if
     ) ;define
 
-    (define (launch-claude)
-      (display "Launching Claude Code...")
-      (newline)
-      (os-call "claude --dangerously-skip-permissions")
+    (define (parse-profile-args args)
+      (let loop
+        ((rest (cdr args)))
+        (cond ((null? rest) #f)
+              ((and (member (car rest) '("--profile" "-p")) (not (null? (cdr rest))))
+               (cadr rest)
+              ) ;
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
     ) ;define
 
-    (define (run-goldcode)
+    (define (resolve-profile profile)
+      ;; 未指定 --profile 时使用默认配置 default
+      (or profile "default")
+    ) ;define
+
+    (define (profile-settings-path profile)
+      (path->string (path-join (path-home)
+                      (path ".claude")
+                      (path (string-append "settings.json." profile))
+                    ) ;path-join
+      ) ;path->string
+    ) ;define
+
+    (define (claude-settings-path)
+      (path->string (path-join (path-home) (path ".claude") (path "settings.json")))
+    ) ;define
+
+    (define (backup-and-remove-settings! settings backup)
+      ;; --settings 是合并加载，删除默认 settings 可避免残留键生效；
+      ;; 仅在无备份时备份，避免把后来的内容当成原始配置备份
+      (when (file-exists? settings)
+        (if (file-exists? backup)
+          (display "Backup already exists, keeping the original backup.")
+          (begin
+            (display "Backing up ")
+            (display settings)
+            (display " to ")
+            (display backup)
+            (path-copy settings backup)
+          ) ;begin
+        ) ;if
+        (newline)
+        (display "Removing ")
+        (display settings)
+        (display " to avoid residual keys taking effect.")
+        (newline)
+        (delete-file settings)
+      ) ;when
+    ) ;define
+
+    (define (launch-claude profile)
+      (display "Launching Claude Code...")
+      (newline)
+      (let ((settings (profile-settings-path (resolve-profile profile))))
+        ;; 先备份 settings.json 到 settings.json.default 并删除，
+        ;; 再检测 profile 是否存在
+        (backup-and-remove-settings! (claude-settings-path)
+          (profile-settings-path "default")
+        ) ;backup-and-remove-settings!
+        (if (file-exists? settings)
+          (let ((command (string-append "claude --dangerously-skip-permissions --settings \""
+                           settings
+                           "\""
+                         ) ;string-append
+                ) ;command
+               ) ;
+            (display command)
+            (newline)
+            (os-call command)
+          ) ;let
+          (begin
+            (stderr-line (string-append "Error: profile settings not found: " settings))
+            1
+          ) ;begin
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (run-goldcode profile)
       ;; Sync pre-commit hook
       (sync-pre-commit-hook)
 
       ;; Pull latest code and launch Claude Code
       (pull-latest-code)
-      (launch-claude)
+      (launch-claude profile)
     ) ;define
 
     (define (main)
-      (run-goldcode)
+      (run-goldcode (parse-profile-args (command-line)))
     ) ;define
 
   ) ;begin
