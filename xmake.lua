@@ -240,6 +240,10 @@ xpack ("goldfish")
     add_sourcefiles("(tests/**)")
     add_sourcefiles("(tools/**)")
     add_sourcefiles("(3rdparty/**)")
+    -- 排除 libcurl 配方在源码目录内的构建目录（xmake/packages/l/libcurl 用
+    -- build-<hash> 做 in-source 构建）：其 CMakeCache.txt 记录了打包机的绝对
+    -- 路径，随源码包复制到 deb 构建目录后 CMake 会因缓存路径不匹配而报错
+    add_sourcefiles("__remove_(3rdparty/curl-*/build-*/**)")
     add_sourcefiles("gfproject.json")
     add_sourcefiles("node-rules.json")
     on_load(function (package)
