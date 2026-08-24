@@ -25,7 +25,8 @@
     (liii sys)
   ) ;import
   (export main run-goldcode parse-profile-args resolve-profile
-    profile-settings-path
+    profile-settings-path claude-settings-path backup-settings-path
+    backup-and-remove-settings!
   ) ;export
   (begin
 
@@ -148,6 +149,25 @@
       ) ;path->string
     ) ;define
 
+    (define (claude-settings-path)
+      (path->string (path-join (path-home) (path ".claude") (path "settings.json")))
+    ) ;define
+
+    (define (backup-settings-path)
+      (string-append (claude-settings-path) ".gf-backup")
+    ) ;define
+
+    (define (backup-and-remove-settings! settings backup)
+      ;; --settings 是合并加载，删除默认 settings 可避免残留键生效；
+      ;; 仅在无备份时备份，避免把后来的内容当成原始配置备份
+      (when (file-exists? settings)
+        (when (not (file-exists? backup))
+          (path-copy settings backup)
+        ) ;when
+        (delete-file settings)
+      ) ;when
+    ) ;define
+
     (define (launch-claude profile)
       (display "Launching Claude Code...")
       (newline)
@@ -159,6 +179,7 @@
                          ) ;string-append
                 ) ;command
                ) ;
+            (backup-and-remove-settings! (claude-settings-path) (backup-settings-path))
             (display command)
             (newline)
             (os-call command)
