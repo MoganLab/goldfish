@@ -24,7 +24,9 @@
     (liii string)
     (liii sys)
   ) ;import
-  (export main run-goldcode parse-profile-args profile-settings-path)
+  (export main run-goldcode parse-profile-args resolve-profile
+    profile-settings-path
+  ) ;export
   (begin
 
     (define (stderr-line message)
@@ -133,6 +135,11 @@
       ) ;let
     ) ;define
 
+    (define (resolve-profile profile)
+      ;; 未指定 --profile 时使用默认配置 default
+      (or profile "default")
+    ) ;define
+
     (define (profile-settings-path profile)
       (path->string (path-join (path-home)
                       (path ".claude")
@@ -144,22 +151,19 @@
     (define (launch-claude profile)
       (display "Launching Claude Code...")
       (newline)
-      (if profile
-        (let ((settings (profile-settings-path profile)))
-          (if (file-exists? settings)
-            (os-call (string-append "claude --dangerously-skip-permissions --settings \""
-                       settings
-                       "\""
-                     ) ;string-append
-            ) ;os-call
-            (begin
-              (stderr-line (string-append "Error: profile settings not found: " settings))
-              1
-            ) ;begin
-          ) ;if
-        ) ;let
-        (os-call "claude --dangerously-skip-permissions")
-      ) ;if
+      (let ((settings (profile-settings-path (resolve-profile profile))))
+        (if (file-exists? settings)
+          (os-call (string-append "claude --dangerously-skip-permissions --settings \""
+                     settings
+                     "\""
+                   ) ;string-append
+          ) ;os-call
+          (begin
+            (stderr-line (string-append "Error: profile settings not found: " settings))
+            1
+          ) ;begin
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (run-goldcode profile)
