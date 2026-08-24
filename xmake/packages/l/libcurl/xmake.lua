@@ -1,12 +1,14 @@
 package("libcurl")
-    set_homepage("https://curl.se/")
+    set_homepage("https://curl.haxx.se/")
     set_description("The multiprotocol file transfer library.")
     set_license("MIT")
 
-    set_urls("https://curl.se/download/curl-$(version).tar.bz2")
-    add_urls("https://github.com/curl/curl/releases/download/curl-$(version).tar.bz2",
-        {version = function (version) return (version:gsub("%.", "_")) .. "/curl-" .. version end})
-    add_versions("8.11.1", "e9773ad1dfa21aedbfe8e1ef24c9478fa780b1b3d4f763c98dd04629b5e43485")
+    -- 直接使用仓库内 3rdparty/curl-8.21.0 源码构建（配方移植自 mogan，见 mogan
+    -- devel/2092.md、devel/0706.md）：系统 libcurl 与 xmake 静态 openssl 混链会导致
+    -- HTTPS 段错误；macOS 系统 libcurl（8.7.1）的 ws_flush 在 EAGAIN 下忙转，导致
+    -- 大帧 WebSocket 上行卡死；8.21.0 已修复（ws_flush 直接返回 CURLE_AGAIN）。
+    -- 不再从网络下载，故无 set_urls/add_versions。
+    set_sourcedir(path.join(os.scriptdir(), "../../../../3rdparty/curl-8.21.0"))
 
     add_configs("cares",    {description = "Enable c-ares support.", default = false, type = "boolean"})
     add_configs("openssl",  {description = "Enable OpenSSL for SSL/TLS.", default = nil, type = "boolean"})
@@ -28,10 +30,13 @@ package("libcurl")
 
     -- we init all configurations in on_load, because package("curl") need it.
     on_load(function (package)
-        if package:is_plat("linux", "android", "cross") then
-            -- if no TLS backend has been enabled nor disabled, enable openssl by default
+        -- curl 8.21 已删除 SecureTransport 后端（CURL_USE_SECTRANSP 选项不复存在，
+        -- 传了也是空操作，会编出无 TLS 的 curl），macOS 同样必须走 OpenSSL；
+        -- 且 curl 8.21 起要求 OpenSSL >= 3.0（lib/vtls/openssl.c 硬 #error），
+        -- 默认启用 openssl3，不要回退 openssl（xmake-repo 的 openssl 是 1.1.1-w）
+        if package:is_plat("linux", "android", "cross", "macosx", "iphoneos") then
             if package:config("openssl") == nil and package:config("openssl3") == nil and package:config("mbedtls") == nil then
-                package:config_set("openssl", true)
+                package:config_set("openssl3", true)
             end
         end
 
@@ -42,7 +47,11 @@ package("libcurl")
         elseif package:is_plat("linux") then
             package:add("syslinks", "pthread")
         elseif package:is_plat("windows", "mingw") then
-            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32")
+            -- libcurl 8.21（SCHANNEL）在 Windows 上的系统依赖（见其 CMakeLists.txt 的 CURL_LIBS）：
+            -- iphlpapi(if_nametoindex)、secur32(InitSecurityInterfaceA)、bcrypt(BCryptGenRandom)、
+            -- normaliz(IdnToAscii)。旧表缺这 4 个会导致消费方/test 链接报 LNK2019。
+            package:add("syslinks", "advapi32", "crypt32", "wldap32", "winmm", "ws2_32", "user32",
+                         "iphlpapi", "secur32", "bcrypt", "normaliz")
         end
 
         if package:is_plat("mingw") and is_subhost("msys") then
@@ -85,44 +94,44 @@ package("libcurl")
     end)
 
     on_install("windows", "mingw", "linux", "macosx", "iphoneos", "cross", "android", function (package)
-        local version = package:version()
-
-        local configs = {"-DBUILD_TESTING=OFF", "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF"}
+        -- 源码固定为 8.21.0（set_sourcedir），原 version:ge(...) 条件对 8.21 均取现代
+        -- 分支，故直接硬编码 CURL_USE_* 选项；set_sourcedir 不带版本号，不调用
+        -- package:version()（否则报 nil）。
+        -- vendored 源码已删去 docs/ 与 tests/（减体积），故关掉所有引用它们的 CMake 目标：
+        -- BUILD_EXAMPLES=OFF 跳过 docs/examples；禁用 Perl 跳过 docs/cmdline-opts 手册页 +
+        -- 测试（tests 已由 BUILD_TESTING=OFF 跳过）。只构建 libcurl 本体。
+        local configs = {"-DBUILD_TESTING=OFF", "-DBUILD_EXAMPLES=OFF",
+                         "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF",
+                         "-DCMAKE_DISABLE_FIND_PACKAGE_Perl=ON"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
 
-        if (package:is_plat("mingw") and version:ge("7.85")) then
+        if package:is_plat("mingw") then
             package:add("syslinks", "bcrypt")
         end
 
         local configopts = {cares    = "ENABLE_ARES",
-                            mbedtls  = (version:ge("7.81") and "CURL_USE_MBEDTLS" or "CMAKE_USE_MBEDTLS"),
+                            mbedtls  = "CURL_USE_MBEDTLS",
                             nghttp2  = "USE_NGHTTP2",
                             libidn2  = "USE_LIBIDN2",
                             zlib     = "CURL_ZLIB",
                             zstd     = "CURL_ZSTD",
                             brotli   = "CURL_BROTLI",
-                            libssh2  = (version:ge("7.81") and "CURL_USE_LIBSSH2" or "CMAKE_USE_LIBSSH2"),
+                            libssh2  = "CURL_USE_LIBSSH2",
                             libpsl   = "CURL_USE_LIBPSL"}
         for name, opt in pairs(configopts) do
             table.insert(configs, "-D" .. opt .. "=" .. (package:config(name) and "ON" or "OFF"))
         end
-        table.insert(configs, "-D" .. (version:ge("7.81") and "CURL_USE_OPENSSL" or "CMAKE_USE_OPENSSL") .. "=" .. ((package:config("openssl") or package:config("openssl3")) and "ON" or "OFF"))
+        table.insert(configs, "-DCURL_USE_OPENSSL=" .. ((package:config("openssl") or package:config("openssl3")) and "ON" or "OFF"))
 
         if not package:config("openldap") then
             table.insert(configs, "-DCURL_DISABLE_LDAP=ON")
         end
         if package:is_plat("windows", "mingw") then
-            table.insert(configs, (version:ge("7.80") and "-DCURL_USE_SCHANNEL=ON" or "-DCMAKE_USE_SCHANNEL=ON"))
-        end
-        if package:is_plat("macosx", "iphoneos") then
-            table.insert(configs, (version:ge("7.65") and "-DCURL_USE_SECTRANSP=ON" or "-DCMAKE_USE_DARWINSSL=ON"))
+            table.insert(configs, "-DCURL_USE_SCHANNEL=ON")
         end
         if package:is_plat("windows") then
             table.insert(configs, "-DCURL_STATIC_CRT=" .. (package:config("vs_runtime"):startswith("MT") and "ON" or "OFF"))
-        end
-        if package:is_plat("mingw") and version:le("7.85.0") then
-            io.replace("src/CMakeLists.txt", 'COMMAND ${CMAKE_COMMAND} -E echo "/* built-in manual is disabled, blank function */" > tool_hugehelp.c', "", {plain = true})
         end
         if package:is_plat("linux", "cross") then
             io.replace("CMakeLists.txt", "list(APPEND CURL_LIBS OpenSSL::SSL OpenSSL::Crypto)", "list(APPEND CURL_LIBS OpenSSL::SSL OpenSSL::Crypto dl)", {plain = true})
@@ -167,7 +176,12 @@ package("libcurl")
         handledependency("mbedtls", "mbedtls", "MBEDTLS_INCLUDE_DIRS", {MBEDTLS_LIBRARY = "mbedtls", MBEDX509_LIBRARY = "mbedx509", MBEDCRYPTO_LIBRARY = "mbedcrypto"})
         handledependency("zlib", "zlib", "ZLIB_INCLUDE_DIR", "ZLIB_LIBRARY")
         handledependency("zstd", "zstd", "Zstd_INCLUDE_DIR", "Zstd_LIBRARY")
-        import("package.tools.cmake").install(package, configs, {buildir = "build"})
+        -- 不同 config 的 libcurl 实例（顶层无 zlib + cpr ssl 的 zlib=true）若共享
+        -- buildir="build" 会复用同一 cmake 状态，构建产物可能引用已不存在的包路径
+        -- （如 zlib v1.3.1）导致 ninja 报 missing and no known rule（见 devel/2092.md）。
+        -- 按 package 实例（installdir 尾段 hash）拆分构建目录。
+        local builddir = "build-" .. (package:installdir():match("([^\\/]+)$") or "0")
+        import("package.tools.cmake").install(package, configs, {buildir = builddir})
     end)
 
     on_test(function (package)
