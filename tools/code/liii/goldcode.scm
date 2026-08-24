@@ -24,9 +24,7 @@
     (liii string)
     (liii sys)
   ) ;import
-  (export main run-goldcode parse-profile-args profile-settings-path
-    claude-settings-path backup-settings-path backup-settings!
-  ) ;export
+  (export main run-goldcode parse-profile-args profile-settings-path)
   (begin
 
     (define (stderr-line message)
@@ -143,39 +141,19 @@
       ) ;path->string
     ) ;define
 
-    (define (claude-settings-path)
-      (path->string (path-join (path-home) (path ".claude") (path "settings.json")))
-    ) ;define
-
-    (define (backup-settings-path)
-      (string-append (claude-settings-path) ".gf-backup")
-    ) ;define
-
-    (define (backup-settings! settings backup)
-      ;; 仅在无备份时备份原始 settings，避免把上次的 profile 内容备份进去
-      (when (and (file-exists? settings) (not (file-exists? backup)))
-        (path-copy settings backup)
-      ) ;when
-    ) ;define
-
     (define (launch-claude profile)
       (display "Launching Claude Code...")
       (newline)
-      (display "claude --dangerously-skip-permissions")
-      (newline)
       (if profile
-        (let ((settings (claude-settings-path))
-              (profile-file (profile-settings-path profile))
-              (backup (backup-settings-path))
-             ) ;
-          (if (file-exists? profile-file)
+        (let ((settings (profile-settings-path profile)))
+          (if (file-exists? settings)
+            (os-call (string-append "claude --dangerously-skip-permissions --settings \""
+                       settings
+                       "\""
+                     ) ;string-append
+            ) ;os-call
             (begin
-              (backup-settings! settings backup)
-              (path-copy profile-file settings)
-              (os-call "claude --dangerously-skip-permissions")
-            ) ;begin
-            (begin
-              (stderr-line (string-append "Error: profile settings not found: " profile-file))
+              (stderr-line (string-append "Error: profile settings not found: " settings))
               1
             ) ;begin
           ) ;if
