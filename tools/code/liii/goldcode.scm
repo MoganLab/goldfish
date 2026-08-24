@@ -18,12 +18,13 @@
   (import (scheme base)
     (scheme file)
     (scheme write)
+    (scheme process-context)
     (liii os)
     (liii path)
     (liii string)
     (liii sys)
   ) ;import
-  (export main run-goldcode)
+  (export main run-goldcode parse-profile-args profile-settings-path)
   (begin
 
     (define (stderr-line message)
@@ -120,23 +121,58 @@
       ) ;if
     ) ;define
 
-    (define (launch-claude)
-      (display "Launching Claude Code...")
-      (newline)
-      (os-call "claude --dangerously-skip-permissions")
+    (define (parse-profile-args args)
+      (let loop
+        ((rest (cdr args)))
+        (cond ((null? rest) #f)
+              ((and (member (car rest) '("--profile" "-p")) (not (null? (cdr rest))))
+               (cadr rest)
+              ) ;
+              (else (loop (cdr rest)))
+        ) ;cond
+      ) ;let
     ) ;define
 
-    (define (run-goldcode)
+    (define (profile-settings-path profile)
+      (path->string (path-join (path-home)
+                      (path ".claude")
+                      (path (string-append "settings.json." profile))
+                    ) ;path-join
+      ) ;path->string
+    ) ;define
+
+    (define (launch-claude profile)
+      (display "Launching Claude Code...")
+      (newline)
+      (if profile
+        (let ((settings (profile-settings-path profile)))
+          (if (file-exists? settings)
+            (os-call (string-append "claude --dangerously-skip-permissions --settings \""
+                       settings
+                       "\""
+                     ) ;string-append
+            ) ;os-call
+            (begin
+              (stderr-line (string-append "Error: profile settings not found: " settings))
+              1
+            ) ;begin
+          ) ;if
+        ) ;let
+        (os-call "claude --dangerously-skip-permissions")
+      ) ;if
+    ) ;define
+
+    (define (run-goldcode profile)
       ;; Sync pre-commit hook
       (sync-pre-commit-hook)
 
       ;; Pull latest code and launch Claude Code
       (pull-latest-code)
-      (launch-claude)
+      (launch-claude profile)
     ) ;define
 
     (define (main)
-      (run-goldcode)
+      (run-goldcode (parse-profile-args (command-line)))
     ) ;define
 
   ) ;begin
