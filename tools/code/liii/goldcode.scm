@@ -153,11 +153,16 @@
       (newline)
       (let ((settings (profile-settings-path (resolve-profile profile))))
         (if (file-exists? settings)
-          (os-call (string-append "claude --dangerously-skip-permissions --settings \""
-                     settings
-                     "\""
-                   ) ;string-append
-          ) ;os-call
+          (let ((command (string-append "claude --dangerously-skip-permissions --settings \""
+                           settings
+                           "\""
+                         ) ;string-append
+                ) ;command
+               ) ;
+            (display command)
+            (newline)
+            (os-call command)
+          ) ;let
           (begin
             (stderr-line (string-append "Error: profile settings not found: " settings))
             1
