@@ -4,9 +4,10 @@
 
 ;; backup-and-remove-settings!
 ;; gf code 启动 claude 前处理 ~/.claude/settings.json：
-;; 先备份到 <settings>.gf-backup（已有备份不覆盖），然后删除 settings 文件。
-;; 因为 claude --settings 是合并加载，删除默认 settings 可避免
-;; 其中未被 profile 文件覆盖的键残留生效。
+;; 先备份到 settings.json.default（已有备份不覆盖），然后删除 settings 文件。
+;; settings.json.default 正是 default profile 的加载文件，这样备份文件
+;; 和默认 profile 合二为一。因为 claude --settings 是合并加载，删除默认
+;; settings 可避免其中未被 profile 文件覆盖的键残留生效。
 ;;
 ;; 语法
 ;; ----
@@ -27,7 +28,7 @@
 
 (define settings (string-append tmp-dir "/gf-test-settings.json"))
 
-(define backup (string-append tmp-dir "/gf-test-settings.json.gf-backup"))
+(define backup (string-append tmp-dir "/gf-test-settings.json.default"))
 
 (define (cleanup!)
   (when (file-exists? settings)
