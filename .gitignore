@@ -39,3 +39,4 @@ tools/doc/tests/function-library-index.json
 .codex
 .sisyphus/
 .vscode/
+3rdparty/curl-8.21.0/build-*/

@@ -45,7 +45,12 @@ option("http")
 option_end()
 
 if has_config("http") and not is_plat("wasm") then
-    add_requires("cpr")
+    -- libcurl：统一用仓库内 3rdparty/curl-8.21.0 源码构建（xmake/packages/l/libcurl）。
+    -- 不能用系统 libcurl：cpr(ssl=true) 会同时链入 xmake 的静态 openssl，与系统
+    -- libcurl 依赖的动态 OpenSSL 混链时 ABI 不匹配，HTTPS 直接段错误（mogan devel/2092.md）
+    add_requires("libcurl", {system = false})
+    -- cpr 默认 ssl=false，会导致 libcurl 完全无法发起 HTTPS 请求，必须显式开启 ssl
+    add_requires("cpr", {system = false, configs = {ssl = true}})
 end
 
 -- S7 is now included as source files in src/ directory
