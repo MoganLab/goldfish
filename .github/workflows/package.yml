@@ -46,6 +46,9 @@ jobs:
     - name: git add safe directory
       run: git config --global --add safe.directory '*'
 
+    - name: de-gitee
+      run: sed -i '/gitee\.com/d' xmake/packages/s/s7/xmake.lua
+
     - name: Determine Version
       id: get_version
       run: |

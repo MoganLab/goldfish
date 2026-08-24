@@ -54,14 +54,8 @@ package("libcurl")
                          "iphlpapi", "secur32", "bcrypt", "normaliz")
         end
 
-        if package:is_plat("mingw") and is_subhost("msys") then
-            package:add("extsources", "pacman::curl")
-        elseif package:is_plat("linux") then
-            package:add("extsources", "pacman::curl", "apt::libcurl4-gnutls-dev", "apt::libcurl4-nss-dev", "apt::libcurl4-openssl-dev")
-        elseif package:is_plat("macosx") then
-            package:add("extsources", "brew::curl")
-        end
-
+        -- 只使用 3rdparty 内的 curl 源码构建，禁止回退到系统包
+        -- （CD 环境装了 devscripts/debhelper 会带入系统 libcurl，与静态 openssl 混链出问题）
         if package:is_plat("windows", "mingw") then
             if not package:config("shared") then
                 package:add("defines", "CURL_STATICLIB")
