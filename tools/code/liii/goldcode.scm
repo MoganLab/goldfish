@@ -156,9 +156,21 @@
       ;; --settings 是合并加载，删除默认 settings 可避免残留键生效；
       ;; 仅在无备份时备份，避免把后来的内容当成原始配置备份
       (when (file-exists? settings)
-        (when (not (file-exists? backup))
-          (path-copy settings backup)
-        ) ;when
+        (if (file-exists? backup)
+          (display "Backup already exists, keeping the original backup.")
+          (begin
+            (display "Backing up ")
+            (display settings)
+            (display " to ")
+            (display backup)
+            (path-copy settings backup)
+          ) ;begin
+        ) ;if
+        (newline)
+        (display "Removing ")
+        (display settings)
+        (display " to avoid residual keys taking effect.")
+        (newline)
         (delete-file settings)
       ) ;when
     ) ;define
