@@ -32,6 +32,7 @@ jobs:
           unzip \
           ca-certificates \
           build-essential \
+          pkg-config \
           devscripts \
           debhelper \
           ninja-build
