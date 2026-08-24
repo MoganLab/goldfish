@@ -20,6 +20,7 @@
           (goldfish match))
   (export core->ir
     ir->core
+    core-language core-form? core-node-of validate-core-sexp
     make-const const? const-source const-value
     make-void void? void-source
     make-define define? define-source define-name define-value
@@ -252,6 +253,49 @@
     ;; and self-evaluating atoms are left as-is; compound nodes become
     ;; records.  The tail of a core `if' with no alternative is #f.
 
+    ;; ------------------------------------------------------------------
+    ;; The core language.
+    ;;
+    ;; This table IS the specification of the surface forms that survive
+    ;; lowering -- the language s7 receives and the language a future VM
+    ;; compiles from (see LAYER.md 核心语言规格).  One entry per special
+    ;; form: (name ir-node grammar).  Anything NOT listed here is, by
+    ;; definition, an ordinary call.
+
+    (define core-language
+      '((quote         const   "(quote datum)")
+        (define        define  "(define name expr) | (define (name . formals) body...)")
+        (lambda        lambda  "(lambda formals body...)")
+        (if            if      "(if test then [else])")
+        (begin         begin   "(begin expr...)")
+        (let           let     "(let ((var init)...) body...); named let lowers to letrec+call")
+        (let*          let     "(let* ((var init)...) body...); lowers to nested lets")
+        (letrec        letrec  "(letrec ((var init)...) body...)")
+        (letrec*       letrec  "(letrec* ((var init)...) body...)")
+        (set!          set!    "(set! var expr)")))
+
+    ;; core-form? : symbol -> bool
+    (define (core-form? head)
+      (and (assq head core-language) #t))
+
+    ;; core-node-of : symbol -> symbol | #f
+    (define (core-node-of head)
+      (cond ((assq head core-language) => cadr)
+            (else #f)))
+
+    ;; validate-core-sexp : sexp -> (list offending-form) | #f
+    ;; Walk a lowered sexp; report the first compound form whose head is
+    ;; neither a core-language form nor a plain symbol.  #f means clean.
+    (define (validate-core-sexp x)
+      (cond
+        ((not (pair? x)) #f)
+        ((not (symbol? (car x))) (list x))
+        (else
+         (let loop ((parts x))
+           (cond ((null? parts) #f)
+                 ((validate-core-sexp (car parts)))
+                 (else (loop (cdr parts))))))))
+
     (define (core->ir sexp)
       (cond
         ((or (symbol? sexp) (not (pair? sexp))) sexp)
@@ -280,35 +324,35 @@
                 (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
              ((begin)
               (make-begin #f (map core->ir (cdr sexp))))
-              ((let)
-               (if (symbol? (cadr sexp))
-                 ;; named let: (let name ((v i) ...) body ...)
-                 ;;   -> (letrec ((name (lambda (v ...) body ...)))
-                 ;;              (name i ...))
-                 (let* ((name (cadr sexp))
-                        (bindings (caddr sexp))
-                        (body (cdddr sexp)))
-                   (make-letrec 'letrec
-                                (list (list name
-                                            (make-lambda #f (map car bindings)
-                                                         (map core->ir body))))
-                                (list (make-call #f name
-                                                 (map core->ir
-                                                      (map cadr bindings))))))
-                 (make-let #f
-                           (map (lambda (b) (list (car b) (core->ir (cadr b))))
-                                (cadr sexp))
-                           (map core->ir (cddr sexp)))))
-              ((let*)
-               ;; let*: sequential bindings -> nested lets (returns a single
-               ;; <let> record; the innermost body holds the expression list)
-               (let rec ((bs (cadr sexp)))
-                 (if (null? (cdr bs))
-                   (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
-                             (map core->ir (cddr sexp)))
-                   (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
-                             (list (rec (cdr bs)))))))
-              ((letrec letrec*)
+             ((let)
+              (if (symbol? (cadr sexp))
+                ;; named let: (let name ((v i) ...) body ...)
+                ;;   -> (letrec ((name (lambda (v ...) body ...)))
+                ;;              (name i ...))
+                (let* ((name (cadr sexp))
+                       (bindings (caddr sexp))
+                       (body (cdddr sexp)))
+                  (make-letrec 'letrec
+                               (list (list name
+                                           (make-lambda #f (map car bindings)
+                                                        (map core->ir body))))
+                               (list (make-call #f name
+                                                (map core->ir
+                                                     (map cadr bindings))))))
+                (make-let #f
+                          (map (lambda (b) (list (car b) (core->ir (cadr b))))
+                               (cadr sexp))
+                          (map core->ir (cddr sexp)))))
+             ((let*)
+              ;; let*: sequential bindings -> nested lets (returns a single
+              ;; <let> record; the innermost body holds the expression list)
+              (let rec ((bs (cadr sexp)))
+                (if (null? (cdr bs))
+                  (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
+                            (map core->ir (cddr sexp)))
+                  (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
+                            (list (rec (cdr bs)))))))
+             ((letrec letrec*)
               (make-letrec head
                            (map (lambda (b) (list (car b) (core->ir (cadr b))))
                                 (cadr sexp))
@@ -375,6 +419,4 @@
          (error "ir->core: unresolved lexical-ref (depth/index not datable)"
                 (lexical-ref-depth ir) (lexical-ref-index ir)))
         ((or (symbol? ir) (not (pair? ir))) ir)
-        (else (error "ir->core: unknown IR node" ir))))
-
-    )) ;begin
+        (else (error "ir->core: unknown IR node" ir))))))
