@@ -1090,7 +1090,7 @@ typedef struct heap_block_t {
   struct heap_block_t *next;
 } heap_block_t;
 
-typedef struct {
+typedef struct shared_info {
   s7_pointer *objs;
   int32_t size, top, ref, size2;
   bool has_hits;
@@ -2033,6 +2033,11 @@ s7_pointer lookup_1(s7_scheme *sc, const s7_pointer symbol);
 
 /* type predicates tables (decls) */
 extern bool t_procedure_p[NUM_TYPES];
+extern bool t_structure_p[NUM_TYPES];
+extern bool t_sequence_p[NUM_TYPES];
+extern bool t_vector_p[NUM_TYPES];
+
+void memclr(void *s, size_t n);
 extern bool t_any_closure_p[NUM_TYPES];
 extern s7_pointer a_procedure_string;
 
@@ -2544,5 +2549,54 @@ void symbol_set_id(s7_pointer sym, s7_int id);
 void slot_set_value_with_hook_1(s7_scheme *sc, s7_pointer slot, s7_pointer value);
 no_return void wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ);
 void immutable_object_error_nr(s7_scheme *sc, s7_pointer info);
+
+/* macros for s7_scheme_write.c (cycles/shared-info), mirrored from s7.c */
+#if S7_DEBUGGING
+void *Malloc(size_t bytes);
+void *Calloc(size_t nmemb, size_t size);
+void *Realloc(void *ptr, size_t size);
+#else
+#define Calloc(N, Size)    calloc(N, Size)
+#define Malloc(Size)       malloc(Size)
+#define Realloc(Ptr, Size) realloc(Ptr, Size)
+#endif
+#define c_object_set(Sc, p)            c_object_info(Sc, p)->set
+#define c_object_to_list(Sc, p)        c_object_info(Sc, p)->to_list
+#define c_pointer_info(p)              (T_Ptr(p))->object.cptr.info
+#define c_pointer_type(p)              (T_Ptr(p))->object.cptr.c_type
+#define clear_collected_and_shared(p)  clear_mid_type_bit(T_Seq(p), T_MID_COLLECTED | T_MID_SHARED) /* this can clear free cells = calloc */
+#define clear_cyclic_bits(p)           clear_type_bit(p, T_COLLECTED | T_SHARED | T_CYCLIC | T_CYCLIC_SET) /* not T_Seq, p can be free(!) */
+#define closure_body(p)                (T_Pair((T_Clo(p))->object.func.body))
+#define has_structure(P)               ((t_structure_p[type(P)]) && ((!is_t_vector(P)) || (!has_simple_elements(P))))
+#define hash_table_elements(p)         (T_Hsh(p))->object.hasher.elements /* block data (dx) */
+#define hash_table_entries(p)          hash_table_block(p)->nx.nx_uint
+#define hash_table_size(p)             ((T_Hsh(p))->object.hasher.mask + 1)
+#define is_any_vector(p)               t_vector_p[type(p)]
+#define is_c_pointer(p)                (type(p) == T_C_POINTER)
+#define is_collected_or_shared(p)      has_mid_type_bit(T_Seq(p), T_MID_COLLECTED | T_MID_SHARED)
+#define is_collected_unchecked(p)      has_mid_type_bit(p, T_MID_COLLECTED)
+#define is_hash_table(p)               (type(p) == T_HASH_TABLE)
+#define is_iterator(p)                 (type(p) == T_ITERATOR)
+#define is_sequence(P)                 ((t_sequence_p[type(P)]) || (has_methods(P)))
+#define is_shared(p)                   has_mid_type_bit(T_Seq(p), T_MID_SHARED)
+#define is_t_vector(p)                 (type(p) == T_VECTOR)
+#define iterator_sequence(p)           (T_Itr(p))->object.iter.seq
+#define return_with_end_temp(Temp)      do {s7_pointer Result = Temp; end_temp(Temp); return(Result);} while (0)
+#define set_collected(p)               set_mid_type_bit(T_Seq(p), T_MID_COLLECTED)
+#define set_cyclic(p)                  set_high_type_bit(T_Seq(p), T_SHORT_CYCLIC)
+#define set_shared(p)                  set_mid_type_bit(T_Seq(p), T_MID_SHARED)
+#define vector_element(p, i)           ((T_Nvc(p))->object.vector.elements.objects[i])
+#define T_COLLECTED                    (1 << (16 + 1))
+#define T_CYCLIC                       (1LL << (48 + 5))
+#define T_CYCLIC_SET                   (1LL << (48 + 6))
+#define T_MID_COLLECTED                (1 << 1)
+#define T_MID_SHARED                   (1 << 3)
+#define T_SHARED                       (1 << (16 + 3))
+#define T_SHORT_CYCLIC                 (1 << 5)
+#define c_object_info(Sc, p)           Sc->c_object_types[c_object_type(T_Obj(p))]
+#define has_simple_elements(p)         has_high_type_bit(T_Nvc(p), T_SIMPLE_ELEMENTS)
+#define hash_table_block(p)            (T_Hsh(p))->object.hasher.block
+#define T_SIMPLE_ELEMENTS              (1 << 8)
+#define c_object_type(p)               (T_Obj(p))->object.c_obj.type
 
 #endif /* S7_INTERNAL_H */

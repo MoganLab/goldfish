@@ -1074,7 +1074,7 @@ typedef struct heap_block_t {
   struct heap_block_t *next;
 } heap_block_t;
 
-typedef struct {
+typedef struct shared_info {
   s7_pointer *objs;
   int32_t size, top, ref, size2;
   bool has_hits;
@@ -20609,454 +20609,31 @@ static s7_pointer g_iterator_is_at_end(s7_scheme *sc, s7_pointer args)
 /* iterator-length and iterator-position run up against the function iterator */
 
 
-/* -------- cycles -------- */
-
-#define INITIAL_SHARED_INFO_SIZE 8
-
-static int32_t shared_ref(shared_info_t *ci, const s7_pointer p)
-{
-  /* from print after collecting refs, not called by equality check, only called in object_to_port_with_circle_check_1 */
-  s7_pointer *objs = ci->objs;
-  for (int32_t i = 0; i < ci->top; i++)
-    if (objs[i] == p)
-      {
-	int32_t val = ci->refs[i];
-	if (val > 0)
-	  ci->refs[i] = -ci->refs[i];
-	return(val);
-      }
-  return(0);
-}
-
-static void flip_ref(shared_info_t *ci, const s7_pointer p)
-{
-  s7_pointer *objs = ci->objs;
-  for (int32_t i = 0; i < ci->top; i++)
-    if (objs[i] == p)
-      {
-	ci->refs[i] = -ci->refs[i];
-	break;
-      }
-}
-
-static int32_t peek_shared_ref_1(shared_info_t *ci, const s7_pointer p)
-{
-  /* returns 0 if not found, otherwise the ref value for p */
-  s7_pointer *objs = ci->objs;
-  for (int32_t i = 0; i < ci->top; i++)
-    if (objs[i] == p)
-      return(ci->refs[i]);
-  return(0);
-}
-
-static int32_t peek_shared_ref(shared_info_t *ci, s7_pointer p)
-{
-  /* returns 0 if not found, otherwise the ref value for p */
-  return((is_collected_unchecked(p)) ? peek_shared_ref_1(ci, p) : 0);
-}
-
-static void enlarge_shared_info(shared_info_t *ci)
-{
-  ci->size *= 2;
-  ci->size2 = ci->size - 2;
-  ci->objs = (s7_pointer *)Realloc(ci->objs, ci->size * sizeof(s7_pointer));
-  ci->refs = (int32_t *)Realloc(ci->refs, ci->size * sizeof(int32_t));
-  ci->defined = (bool *)Realloc(ci->defined, ci->size * sizeof(bool));
-  /* this clearing is needed, memclr is not faster */
-  for (int32_t i = ci->top; i < ci->size; i++)
-    {
-      ci->refs[i] = 0;
-      ci->objs[i] = NULL;
-    }
-}
-
-static bool check_collected(s7_pointer top, shared_info_t *ci)
-{
-  const s7_pointer *objs_end = (s7_pointer *)(ci->objs + ci->top);
-  for (s7_pointer *p = ci->objs; p < objs_end; p++)
-    if ((*p) == top)
-      {
-	int32_t i = (int32_t)(p - ci->objs);
-	if (ci->refs[i] == 0)
-	  {
-	    ci->has_hits = true;
-	    ci->refs[i] = ++ci->ref;  /* if found, set the ref number */
-	  }
-	break;
-      }
-  set_cyclic(top);
-  return(true);
-}
-
-static bool collect_shared_info(s7_scheme *sc, shared_info_t *ci, s7_pointer top, bool stop_at_print_length);
-static bool hash_keys_not_cyclic(s7_scheme *sc, s7_pointer hash);
-
-static bool collect_vector_info(s7_scheme *sc, shared_info_t *ci, s7_pointer top, bool stop_at_print_length)
-{
-  s7_int plen;
-  bool cyclic = false;
-
-  if (stop_at_print_length)
-    {
-      plen = sc->print_length;
-      if (plen > vector_length(top))
-	plen = vector_length(top);
-    }
-  else plen = vector_length(top);
-  for (s7_int i = 0; i < plen; i++)
-    {
-      const s7_pointer vel = vector_element_unchecked(top, i);   /* "unchecked" because top might be rootlet, I think */
-      if ((has_structure(vel)) &&
-	  (collect_shared_info(sc, ci, vel, stop_at_print_length)))
-	{
-	  set_cyclic(vel);
-	  cyclic = true;
-	  if ((is_c_pointer(vel)) ||
-	      (is_iterator(vel)) ||
-	      (is_c_object(vel)))
-	    check_collected(top, ci);
-	}}
-  if (cyclic) set_cyclic(top);
-  return(cyclic);
-}
-
-static bool collect_shared_info(s7_scheme *sc, shared_info_t *ci, s7_pointer top, bool stop_at_print_length)
-{
-  /* look for top in current list.
-   * As we collect objects (guaranteed to have structure) we set the collected bit.  If we ever
-   *   encounter an object with that bit on, we've seen it before so we have a possible cycle.
-   *   Once the collection pass is done, we run through our list, and clear all these bits.
-   */
-  bool top_cyclic;
-
-  if (is_collected_or_shared(top))
-    return((!is_shared(top)) && (check_collected(top, ci)));
-
-  /* top not seen before -- add it to the list */
-  set_collected(top);
-  if (ci->top == ci->size)
-    enlarge_shared_info(ci);
-  ci->objs[ci->top++] = top;
-
-  top_cyclic = false;
-  /* now search the rest of this structure */
-  if (is_pair(top))
-    {
-      s7_pointer p;
-      if ((has_structure(car(top))) &&
-	  (collect_shared_info(sc, ci, car(top), stop_at_print_length)))
-	top_cyclic = true;
-
-      for (p = cdr(top); is_pair(p); p = cdr(p))
-	{
-	  if (is_collected_or_shared(p))
-	    {
-	      set_cyclic(top);
-	      set_cyclic(p);
-	      if (!is_shared(p))
-		return(check_collected(p, ci));
-	      if (!top_cyclic)
-		for (s7_pointer cp = top; cp != p; cp = cdr(cp)) set_shared(cp);
-	      return(top_cyclic);
-	    }
- 	  set_collected(p);
-	  if (ci->top == ci->size)
-	    enlarge_shared_info(ci);
-	  ci->objs[ci->top++] = p;
-	  if ((has_structure(car(p))) &&
-	      (collect_shared_info(sc, ci, car(p), stop_at_print_length)))
-	    top_cyclic = true;
-	}
-      if ((has_structure(p)) &&
-	  (collect_shared_info(sc, ci, p, stop_at_print_length)))
-	{
-	  set_cyclic(top);
-	  return(true);
-	}
-      if (!top_cyclic)
-	for (s7_pointer cp = top; is_pair(cp); cp = cdr(cp)) set_shared(cp);
-      else set_cyclic(top);
-      return(top_cyclic);
-    }
-  switch (type(top))
-    {
-    case T_VECTOR:
-      if (collect_vector_info(sc, ci, top, stop_at_print_length))
-	top_cyclic = true;
-      break;
-
-    case T_ITERATOR:
-      if ((is_sequence(iterator_sequence(top))) && /* might be a function with +iterator+ local */
-	  (collect_shared_info(sc, ci, iterator_sequence(top), stop_at_print_length)))
-	{
-	  if (peek_shared_ref(ci, iterator_sequence(top)) == 0)
-	    check_collected(iterator_sequence(top), ci);
-	  top_cyclic = true;
-	}
-      break;
-
-    case T_HASH_TABLE:
-      if (hash_table_entries(top) > 0)
-	{
-	  const s7_int len = (s7_int)hash_table_size(top);
-	  hash_entry_t **entries = hash_table_elements(top);
-	  const bool keys_safe = hash_keys_not_cyclic(sc, top);
-	  for (s7_int i = 0; i < len; i++)
-	    for (hash_entry_t *entry = entries[i]; entry; entry = hash_entry_next(entry))
-	      {
-		if ((!keys_safe) &&
-		    (has_structure(hash_entry_key(entry))) &&
-		    (collect_shared_info(sc, ci, hash_entry_key(entry), stop_at_print_length)))
-		  top_cyclic = true;
-		if ((has_structure(hash_entry_value(entry))) &&
-		    (collect_shared_info(sc, ci, hash_entry_value(entry), stop_at_print_length)))
-		  {
-		    if ((is_c_pointer(hash_entry_value(entry))) ||
-			(is_iterator(hash_entry_value(entry))) ||
-			(is_c_object(hash_entry_value(entry))))
-		      check_collected(top, ci);
-		    top_cyclic = true;
-		  }}}
-      break;
-
-    case T_SLOT: /* this can be hit if we somehow collect_shared_info on sc->rootlet via collect_vector_info (see the let case below) */
-      if ((has_structure(slot_value(top))) &&
-	  (collect_shared_info(sc, ci, slot_value(top), stop_at_print_length)))
-	top_cyclic = true;
-      break;
-
-    case T_LET:
-      if (top == sc->rootlet)
-	{
-	  if (collect_vector_info(sc, ci, top, stop_at_print_length))
-	    top_cyclic = true;
-	}
-      else
-	for (s7_pointer let = top; let; let = let_outlet(let))
-	  for (s7_pointer slot = let_slots(let); is_not_slot_end(slot); slot = next_slot(slot))
-	    if ((has_structure(slot_value(slot))) &&
-		(collect_shared_info(sc, ci, slot_value(slot), stop_at_print_length)))
-	      {
-		top_cyclic = true;
-		if ((is_c_pointer(slot_value(slot))) ||
-		    (is_iterator(slot_value(slot))) ||
-		    (is_c_object(slot_value(slot))))
-		  check_collected(top, ci);
-	      }
-      break;
-
-    case T_CLOSURE: case T_CLOSURE_STAR:
-      if (collect_shared_info(sc, ci, closure_body(top), stop_at_print_length))
-	{
-	  if (peek_shared_ref(ci, top) == 0)
-	    check_collected(top, ci);
-	  top_cyclic = true;
-	}
-      break;
-
-    case T_C_POINTER:
-      if ((has_structure(c_pointer_type(top))) &&
-	  (collect_shared_info(sc, ci, c_pointer_type(top), stop_at_print_length)))
-	{
-	  if (peek_shared_ref(ci, c_pointer_type(top)) == 0)
-	    check_collected(c_pointer_type(top), ci);
-	  top_cyclic = true;
-	}
-      if ((has_structure(c_pointer_info(top))) &&
-	  (collect_shared_info(sc, ci, c_pointer_info(top), stop_at_print_length)))
-	{
-	  if (peek_shared_ref(ci, c_pointer_info(top)) == 0)
-	    check_collected(c_pointer_info(top), ci);
-	  top_cyclic = true;
-	}
-      break;
-
-    case T_C_OBJECT:
-      if ((c_object_to_list(sc, top)) &&
-	  (c_object_set(sc, top)) &&
-	  (collect_shared_info(sc, ci, (*(c_object_to_list(sc, top)))(sc, set_plist_1(sc, top)), stop_at_print_length)))
-	{
-	  if (peek_shared_ref(ci, top) == 0)
-	    check_collected(top, ci);
-	  top_cyclic = true;
-	}
-      break;
-    }
-  if (!top_cyclic)
-    set_shared(top);
-  else set_cyclic(top);
-  return(top_cyclic);
-}
-
-static shared_info_t *make_shared_info(s7_scheme *sc)
-{
-  shared_info_t *ci = (shared_info_t *)Calloc(1, sizeof(shared_info_t));
-  ci->size = INITIAL_SHARED_INFO_SIZE;
-  ci->size2 = ci->size - 2;
-  ci->objs = (s7_pointer *)Malloc(ci->size * sizeof(s7_pointer));
-  ci->refs = (int32_t *)Calloc(ci->size, sizeof(int32_t));   /* finder expects 0 = unseen previously */
-  ci->defined = (bool *)Calloc(ci->size, sizeof(bool));
-  ci->cycle_port = sc->F;
-  ci->init_port = sc->F;
-  return(ci);
-}
-
-static void free_shared_info(shared_info_t *ci)
-{
-  if (ci)
-    {
-      free(ci->objs);
-      free(ci->refs);
-      free(ci->defined);
-      free(ci);
-    }
-}
-
-static inline shared_info_t *clear_shared_info(shared_info_t *ci)
-{
-  if (ci->top > 0)
-    {
-      memclr((void *)(ci->refs), ci->top * sizeof(int32_t));
-      memclr((void *)(ci->defined), ci->top * sizeof(bool));
-      for (int32_t i = 0; i < ci->top; i++)
-	clear_cyclic_bits(ci->objs[i]); /* LOOP_4 is not faster */
-      ci->top = 0;
-    }
-  ci->ref = 0;
-  ci->has_hits = false;
-  ci->ctr = 0;
-  return(ci);
-}
-
-static shared_info_t *load_shared_info(s7_scheme *sc, s7_pointer top, bool stop_at_print_length, shared_info_t *ci)
-{
-  /* for the printer, here only if is_structure(top) and top is not sc->rootlet */
-  bool no_problem = true;
-  s7_int stop_len;
-
-  /* check for simple cases first */
-  if (is_pair(top))
-    {
-      s7_pointer p = top;
-      if (stop_at_print_length)
-	{
-	  s7_pointer slow = top;
-	  stop_len = sc->print_length;
-	  for (s7_int k = 0; k < stop_len; k += 2)
-	    {
-	      if (!is_pair(p)) break;
-	      if (has_structure(car(p))) {no_problem = false; break;}
-	      p = cdr(p);
-	      if (!is_pair(p)) break;
-	      if (has_structure(car(p))) {no_problem = false; break;}
-	      p = cdr(p);
-	      slow = cdr(slow);
-	      if (p == slow) {no_problem = false; break;}
-	    }}
-      else
-	if (s7_list_length(sc, top) == 0) /* it is circular at the top level (following cdr) */
-	  no_problem = false;
-	else
-	  for (; is_pair(p); p = cdr(p))
-	    if (has_structure(car(p))) {no_problem = false; break;} /* perhaps (and (length > 0 via sequence_is_empty)) or vector typer etc */
-      if ((no_problem) &&
-	  (!is_null(p)) && (has_structure(p)))
-	no_problem = false;
-      if (no_problem) return(NULL);
-    }
-  else
-    if (is_t_vector(top)) /* any other vector can't happen */
-      {
-	stop_len = vector_length(top);
-	if ((stop_at_print_length) &&
-	    (stop_len > sc->print_length))
-	  stop_len = sc->print_length;
-	for (s7_int k = 0; k < stop_len; k++)
-	  if (has_structure(vector_element(top, k))) {no_problem = false; break;}
-	if (no_problem) return(NULL);
-      }
-
-    else /* added these 19-Oct-22 -- helps in tgc, but not much elsewhere */
-      if ((is_let(top)) && (top != sc->rootlet))
-	{
-	  for (s7_pointer let = top; (no_problem) && (let); let = let_outlet(let))
-	    for (s7_pointer slot = let_slots(let); is_not_slot_end(slot); slot = next_slot(slot))
-	      if (has_structure(slot_value(slot))) /* slot_symbol need not be checked? */
-		{no_problem = false; break;}
-	  if (no_problem) return(NULL);
-	}
-      else
-	if (is_hash_table(top))
-	  {
-	    hash_entry_t **entries = hash_table_elements(top);
-	    bool keys_safe = hash_keys_not_cyclic(sc, top);
-	    if (hash_table_entries(top) == 0) return(NULL);
-	    for (s7_int len = (s7_int)hash_table_size(top), i = 0; i < len; i++)
-	      for (hash_entry_t *entry = entries[i]; entry; entry = hash_entry_next(entry))
-		if (((!keys_safe) && (has_structure(hash_entry_key(entry)))) || (has_structure(hash_entry_value(entry))))
-		  {no_problem = false; break;}
-	    if (no_problem) return(NULL);
-	  }
-
-  if ((S7_DEBUGGING) && (is_any_vector(top)) && (!is_t_vector(top))) fprintf(stderr, "%s[%d]: got abnormal vector\n", __func__, __LINE__);
-  clear_shared_info(ci);
-  {
-    /* collect all pointers associated with top */
-    const bool cyclic = collect_shared_info(sc, ci, top, stop_at_print_length);
-    s7_pointer *ci_objs = ci->objs;
-    int32_t *ci_refs = ci->refs;
-    int32_t refs = 0;
-
-    for (int32_t i = 0; i < ci->top; i++)
-      clear_collected_and_shared(ci_objs[i]);
-    if (!cyclic)
-      return(NULL);
-    if (!(ci->has_hits))
-      return(NULL);
-
-    /* find if any were referenced twice (once for just being there, so twice=shared)
-     *   we know there's at least one such reference because has_hits is true.
-     */
-    for (int32_t i = 0; i < ci->top; i++)
-      if (ci_refs[i] > 0)
-	{
-	  set_collected(ci_objs[i]);
-	  if (i == refs)
-	    refs++;
-	  else
-	    {
-	      ci_objs[refs] = ci_objs[i];
-	      ci_refs[refs++] = ci_refs[i];
-	      ci_refs[i] = 0;
-	      ci_objs[i] = NULL;
-	    }}
-    ci->top = refs;
-    return(ci);
-  }
-}
-
-
-/* -------------------------------- cyclic-sequences -------------------------------- */
-static s7_pointer cyclic_sequences_p_p(s7_scheme *sc, s7_pointer obj)
-{
-  if (has_structure(obj))
-    {
-      shared_info_t *ci = (sc->object_out_locked) ? sc->circle_info : load_shared_info(sc, obj, false, sc->circle_info); /* false=don't stop at print length (vectors etc) */
-      if (ci)
-	{
-	  check_free_heap_size(sc, ci->top);
-	  begin_temp(sc->y, sc->nil);
-	  for (int32_t i = 0; i < ci->top; i++)
-	    sc->y = cons_unchecked(sc, ci->objs[i], sc->y);
-	  return_with_end_temp(sc->y);
-	}}
-  return(sc->nil);
-}
 
 /* g_cyclic_sequences is now defined in s7_scheme_predicate.c */
 #define H_cyclic_sequences "(cyclic-sequences obj) returns a list of elements that are cyclic."
 #define Q_cyclic_sequences s7_make_signature(sc, 2, sc->is_proper_list_symbol, sc->T)
 
+
+/* pair_append: general pair utility used by eval and the writer */
+s7_pointer pair_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
+{
+  s7_pointer p = cdr(a), tp;
+  gc_protect_via_stack(sc, b);
+  if (is_null(p))
+    tp = cons(sc, car(a), b);
+  else
+    {
+      s7_pointer np;
+      tp = list_1(sc, car(a));
+      set_gc_protected2(sc, tp);
+      for (np = tp; is_pair(p); p = cdr(p), np = cdr(np))
+	set_cdr(np, list_1(sc, car(p)));
+      set_cdr(np, b);
+    }
+  unstack_gc_protect(sc);
+  return(tp);
+}
 
 /* -------------------------------- object->port (display format etc) -------------------------------- */
 static int32_t circular_list_entries(s7_pointer lst)
@@ -23175,24 +22752,6 @@ static s7_pointer closure_name(s7_scheme *sc, s7_pointer closure)
   return(closure); /* desperation -- the parameter list (caar here) will cause endless confusion in OP_APPLY errors! */
 }
 
-static s7_pointer pair_append(s7_scheme *sc, s7_pointer a, s7_pointer b)
-{
-  s7_pointer p = cdr(a), tp;
-  gc_protect_via_stack(sc, b);
-  if (is_null(p))
-    tp = cons(sc, car(a), b);
-  else
-    {
-      s7_pointer np;
-      tp = list_1(sc, car(a));
-      set_gc_protected2(sc, tp);
-      for (np = tp; is_pair(p); p = cdr(p), np = cdr(np))
-	set_cdr(np, list_1(sc, car(p)));
-      set_cdr(np, b);
-    }
-  unstack_gc_protect(sc);
-  return(tp);
-}
 
 static void write_closure_readably_1(s7_scheme *sc, s7_pointer obj, s7_pointer arglist, s7_pointer body, s7_pointer port)
 {
@@ -31053,7 +30612,7 @@ static hash_entry_t *hash_equivalent(s7_scheme *sc, s7_pointer table, s7_pointer
   return(sc->unentry);
 }
 
-static bool hash_keys_not_cyclic(s7_scheme *sc, s7_pointer hash)
+bool hash_keys_not_cyclic(s7_scheme *sc, s7_pointer hash)
 {
   return((is_null(hash_table_procedures(hash))) &&
 	 (hash_table_mapper(hash) == default_hash_map) &&
