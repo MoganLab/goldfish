@@ -32,6 +32,14 @@ struct shared_info *load_shared_info(s7_scheme *sc, s7_pointer top, bool stop_at
 bool collect_shared_info(s7_scheme *sc, struct shared_info *ci, s7_pointer top, bool stop_at_print_length);
 s7_pointer cyclic_sequences_p_p(s7_scheme *sc, s7_pointer obj);
 
+/* object->port printer: entries used by s7.c */
+int32_t circular_list_entries(s7_pointer lst);
+s7_pointer find_closure(s7_scheme *sc, s7_pointer closure, s7_pointer current_let);
+s7_pointer find_typer(s7_scheme *sc, s7_pointer typer);
+const char *hash_table_typer_name(s7_scheme *sc, s7_pointer typer);
+s7_pointer closure_name(s7_scheme *sc, s7_pointer closure);
+void init_display_functions(void);
+
 /* Public API implementations */
 void s7_newline(s7_scheme *sc, s7_pointer port);
 s7_pointer s7_write(s7_scheme *sc, s7_pointer obj, s7_pointer port);
