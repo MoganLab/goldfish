@@ -406,6 +406,7 @@ s7_pointer s7i_eval(s7_scheme *sc, s7_int op);
 block_t *s7i_mallocate_port(s7_scheme *sc);
 void s7i_port_set_filename(s7_scheme *sc, s7_pointer port, const char *name, s7_int len);
 void push_input_port(s7_scheme *sc, s7_pointer new_port);
+bool hash_keys_not_cyclic(s7_scheme *sc, s7_pointer hash);
 /* method_or_bust/_p/_pp take s7_pointer symbols; declared in s7_scheme_read.c only
  * (s7_liii_string.c has its own same-named static helpers, so they can't live in a shared header) */
 
