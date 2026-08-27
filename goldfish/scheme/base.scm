@@ -267,6 +267,22 @@
     throw
   ) ;export
   (begin
+    ;; R7RS list? / length：覆盖 s7 的 host-ism（s7 list? 为 pair-or-null，
+    ;; length 对 dotted 返回负值），以 proper-list? 为准；其余序列类型
+    ;; 保持 s7 多态以兼容既有测试。
+    (define (list? x) (proper-list? x))
+    (define (length x)
+      (cond [(null? x) 0]
+            [(pair? x)
+             (if (proper-list? x)
+                 (let loop ((lst x) (n 0))
+                   (if (null? lst) n (loop (cdr lst) (+ n 1))))
+                 (error 'wrong-type-arg "length: not a proper list" x))]
+            [(string? x) (string-length x)]
+            [(vector? x) (vector-length x)]
+            [(bytevector? x) (bytevector-length x)]
+            [else #f]))
+
     ;; R7RS 辅助语法关键字（auxiliary syntax）：核心展开器按名字识别它们，
     ;; 这里绑定为空语法，使 (scheme base) 可以导出这些标识符。
     (define-syntax ...

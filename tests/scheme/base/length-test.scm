@@ -165,13 +165,13 @@
 (check (length 3.14) => #f)
 (check (length #\a) => #f)
 (check (length 'symbol) => #f)
-;; length 点对结构（improper lists）
-(check (length '(a . b)) => -1)
-(check (length (cons 1 2)) => -1)
-(check (length (cons 'a 'b)) => -1)
-(check (length '(a b . c)) => -2)
-(check (length '(x (a) . y)) => -2)
-(check (length '(a b c . d)) => -3)
+;; length 点对结构（improper lists）— R7RS 要求报错
+(check-catch 'wrong-type-arg (length '(a . b)))
+(check-catch 'wrong-type-arg (length (cons 1 2)))
+(check-catch 'wrong-type-arg (length (cons 'a 'b)))
+(check-catch 'wrong-type-arg (length '(a b . c)))
+(check-catch 'wrong-type-arg (length '(x (a) . y)))
+(check-catch 'wrong-type-arg (length '(a b c . d)))
 ;; length 特殊边界测试
 (check (length '(())) => 1)
 (check (length '(() () ())) => 3)

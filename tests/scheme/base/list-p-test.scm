@@ -119,11 +119,11 @@
 ;; list? 混合类型元素测试
 (check-true (list? '(a 1 "string" #t)))
 (check-true (list? '((list 1 2) (vector 3 4))))
-;; list? 点和边界情况
-(check-true (list? '(1 . 2)))
-(check-true (list? '(a b . c)))
+;; list? 点和边界情况 — R7RS 要求 improper/circular 为 #f
+(check-false (list? '(1 . 2)))
+(check-false (list? '(a b . c)))
 ;; list? 特殊结构测试
-(check-true (list? (let ((x '(1 2 3))) (set-cdr! (cddr x) x) x)))
+(check-false (list? (let ((x '(1 2 3))) (set-cdr! (cddr x) x) x)))
 ;; list? 非列表类型测试 - 全面覆盖
 (check-false (list? #t))
 (check-false (list? #f))

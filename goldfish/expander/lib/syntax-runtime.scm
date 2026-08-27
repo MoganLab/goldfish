@@ -17,6 +17,12 @@
 ;;; later.  Free procedures (map / assq / ...) resolve via the expander
 ;;; module's fallback to the host rootlet.
 
+;;; Host-compatibility shims (s7 list?/length are now R7RS proper)
+(define (pair-or-null? x) (or (pair? x) (null? x)))
+(define (dotted-length lst)
+  (let loop ((lst lst) (n 0))
+    (if (pair? lst) (loop (cdr lst) (+ n 1)) n)))
+
 ;;; Pattern matching
 ;;;
 ;;; Pattern trees.  The pattern a clause compiles to is a stx-tree (see
@@ -174,7 +180,7 @@
           (pattern-match* pat-tail (datum->syntax input-stx input-form) literals bindings))))
 
 (define (pattern-match-ellipsis elem-pat rest-pat input-form input-stx literals bindings)
-  (letrec* ((len (length input-form))
+  (letrec* ((len (dotted-length input-form))
             (rest-min (pattern-min-length rest-pat)))
     (if (< len rest-min)
         #f
@@ -361,10 +367,10 @@
                                   (patvars (cadr cl))
                                   (fender (caddr cl))
                                   (body (cadddr cl))
-                                  (form (if (syntax? input) (syntax-form input) input))
-                                  (bindings (if (list? form)
-                                                (pattern-match-list pat form input literals '())
-                                                (pattern-match* pat input literals '()))))
+                                   (form (if (syntax? input) (syntax-form input) input))
+                                   (bindings (if (pair-or-null? form)
+                                                 (pattern-match-list pat form input literals '())
+                                                 (pattern-match* pat input literals '()))))
                           (if bindings
                               (letrec* ((vals (map (lambda (p)
                                                      (letrec* ((e (assq p bindings)))
@@ -520,10 +526,10 @@
             (b (assq name bindings)))
     (if b
         (letrec* ((v (cdr b)))
-          (if (and (syntax? v) (list? (syntax-form v)))
-              (syntax-form v)
-              v))
-        (make-syntax (node-datum t)
+            (if (and (syntax? v) (pair-or-null? (syntax-form v)))
+               (syntax-form v)
+               v))
+         (make-syntax (node-datum t)
                      (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                      (node-lib (caddr node))))))
 
