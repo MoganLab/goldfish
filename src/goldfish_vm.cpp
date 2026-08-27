@@ -284,6 +284,25 @@ static VMClosure* vm_closure_of (gf::scheme* sc, gf::pointer f) {
   return static_cast<VMClosure*>(gf::c_object_value (cobj));
 }
 
+static std::vector<gf::pointer> pack_args_for_formals(gf::scheme* sc, gf::pointer formals,
+                                                        const std::vector<gf::pointer>& args) {
+  if (gf::is_symbol(formals)) {
+    std::vector<gf::pointer> packed(1);
+    packed[0] = build_args_list(sc, args);
+    return packed;
+  }
+  if (!gf::is_proper_list(sc, formals)) {
+    size_t fixed = 0;
+    for (gf::pointer p = formals; gf::is_pair(p); p = gf::cdr(p)) ++fixed;
+    size_t nfixed = std::min(fixed, args.size());
+    std::vector<gf::pointer> packed(args.begin(), args.begin() + nfixed);
+    std::vector<gf::pointer> rest(args.begin() + nfixed, args.end());
+    packed.push_back(build_args_list(sc, rest));
+    return packed;
+  }
+  return args;
+}
+
 // call_function : f (list arg) -> result or nullptr
 // A VM function pushes a frame and returns nullptr (the loop continues);
 // anything else is called with s7_call and its result returned.
@@ -291,27 +310,8 @@ static gf::pointer call_function (gf::scheme* sc, gf::pointer f, const std::vect
   VMClosure* vc = vm_closure_of (sc, f);
   if (vc != nullptr) {
     VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
-    if (gf::is_symbol (ci.formals)) {
-      // Rest closure: bundle the raw call args into one list, matching what
-      // s7's rest shell hands to vm-enter (frame_from_args expects the
-      // single packed list in args[0]).
-      std::vector<gf::pointer> packed (1);
-      packed[0] = build_args_list (sc, args);
-      push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
-    } else if (!gf::is_proper_list (sc, ci.formals)) {
-      // Dotted closure: bundle the args after the fixed formals into the
-      // single pre-bundled rest argument frame_from_args expects.
-      size_t fixed = 0;
-      for (gf::pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
-        ++fixed;
-      size_t nfixed = std::min (fixed, args.size ());
-      std::vector<gf::pointer> packed (args.begin (), args.begin () + nfixed);
-      std::vector<gf::pointer> rest (args.begin () + nfixed, args.end ());
-      packed.push_back (build_args_list (sc, rest));
-      push_frame (sc, vc->prog, vc->code_idx, packed, vc->captured, vc->global_env);
-    } else {
-      push_frame (sc, vc->prog, vc->code_idx, args, vc->captured, vc->global_env);
-    }
+    push_frame(sc, vc->prog, vc->code_idx, pack_args_for_formals(sc, ci.formals, args), vc->captured,
+               vc->global_env);
     return nullptr;
   }
   // Fast path: inline the hot primitives so a VM call does not pay for
@@ -497,35 +497,17 @@ static gf::pointer run (gf::scheme* sc, size_t target_depth) {
           // To anything else: the current frame ends; hand the callee's
           // value to the enclosing frame's region (or return it from run at
           // the target depth).
-          VMClosure* vc = vm_closure_of (sc, f);
-          if (vc != nullptr) {
-            VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
-            fr.pc = 0;
-            fr.code = &ci.instrs;
-            fr.prog = vc->prog;
-            fr.global_env = vc->global_env;
-            fr.captured = vc->captured;
-            if (gf::is_symbol (ci.formals)) {
-              // Rest closure: bundle the raw call args like call_function.
-              std::vector<gf::pointer> packed (1);
-              packed[0] = build_args_list (sc, args);
-              frame_from_args (sc, fr, ci, packed);
-            } else if (!gf::is_proper_list (sc, ci.formals)) {
-              // Dotted closure: bundle the rest after the fixed formals
-              // into the pre-bundled rest argument, like call_function.
-              size_t fixed = 0;
-              for (gf::pointer p = ci.formals; gf::is_pair (p); p = gf::cdr (p))
-                ++fixed;
-              size_t nfixed = std::min (fixed, args.size ());
-              std::vector<gf::pointer> packed (args.begin (), args.begin () + nfixed);
-              std::vector<gf::pointer> rest (args.begin () + nfixed, args.end ());
-              packed.push_back (build_args_list (sc, rest));
-              frame_from_args (sc, fr, ci, packed);
-            } else {
-              frame_from_args (sc, fr, ci, args);
+            VMClosure* vc = vm_closure_of (sc, f);
+            if (vc != nullptr) {
+              VMCodeInfo& ci = vc->prog->codes[vc->code_idx];
+              fr.pc = 0;
+              fr.code = &ci.instrs;
+              fr.prog = vc->prog;
+              fr.global_env = vc->global_env;
+              fr.captured = vc->captured;
+              frame_from_args(sc, fr, ci, pack_args_for_formals(sc, ci.formals, args));
+              continue;
             }
-            continue;  // loop re-reads fr (same object, but code/stack change)
-          }
           gf::pointer r = call_function (sc, f, args);
           g_current_vm->frames.pop_back ();
           if (g_current_vm->frames.size () > target_depth) {
