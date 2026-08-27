@@ -59,38 +59,19 @@
   (import (scheme base) (srfi srfi-1) (srfi srfi-13) (liii error))
   (begin
 
-    (define (length=? x scheme-list)
-      (when (not (integer? x))
-        (type-error "length=?: first parameter x must be an integer")
-      ) ;when
-      (when (< x 0)
-        (value-error "length=?: expected non-negative integer x but received ~d" x)
-      ) ;when
-      (cond ((and (= x 0) (null? scheme-list)) #t)
-            ((or (= x 0) (null? scheme-list)) #f)
-            (else (length=? (- x 1) (cdr scheme-list)))
-      ) ;cond
-    ) ;define
+    (define (length-cmp lst n)
+      (let loop ((lst lst) (i 0))
+        (cond ((null? lst) i)
+              ((pair? lst) (loop (cdr lst) (+ i 1)))
+              (else i))))
 
-    (define (length>? lst len)
-      (let loop
-        ((lst lst) (cnt 0))
-        (cond ((null? lst) (< len cnt))
-              ((pair? lst) (loop (cdr lst) (+ cnt 1)))
-              (else (< len cnt))
-        ) ;cond
-      ) ;let
-    ) ;define
+    (define (length=? x lst)
+      (when (not (integer? x)) (type-error "length=?: first parameter x must be an integer"))
+      (when (< x 0) (value-error "length=?: expected non-negative integer x but received ~d" x))
+      (= x (length-cmp lst x)))
 
-    (define (length>=? lst len)
-      (let loop
-        ((lst lst) (cnt 0))
-        (cond ((null? lst) (<= len cnt))
-              ((pair? lst) (loop (cdr lst) (+ cnt 1)))
-              (else (<= len cnt))
-        ) ;cond
-      ) ;let
-    ) ;define
+    (define (length>? lst len) (> (length-cmp lst len) len))
+    (define (length>=? lst len) (>= (length-cmp lst len) len))
 
     (define flat-map append-map)
 
@@ -160,20 +141,9 @@
       ) ;cond
     ) ;define
 
-    (define (not-null-list? l)
-      (cond ((pair? l) (or (null? (cdr l)) (pair? (cdr l))))
-            ((null? l) #f)
-            (else (error 'type-error "type mismatch"))
-      ) ;cond
-    ) ;define
-
-    (define (list-null? l)
-      (and (not (pair? l)) (null? l))
-    ) ;define
-
-    (define (list-not-null? l)
-      (and (pair? l) (or (null? (cdr l)) (pair? (cdr l))))
-    ) ;define
+    (define (not-null-list? l) (and (pair? l) #t))
+    (define list-null? null?)
+    (define list-not-null? not-null-list?)
 
     (define* (flatten lst (depth 1))
       (define (flatten-depth-iter rest depth res-node)

@@ -364,12 +364,11 @@
     ) ;define
 
     (define-syntax let-values
-      (lambda (stx)
-        (syntax-case stx ()
-          ((let-values () body ...) #'(let () body ...))
-          ((let-values ((vars init) rest ...) body ...)
-           #'(call-with-values (lambda () init)
-               (lambda vars (let-values (rest ...) body ...)))))))
+      (syntax-rules ()
+        ((let-values () body ...) (let () body ...))
+        ((let-values ((vars init) rest ...) body ...)
+         (call-with-values (lambda () init)
+           (lambda vars (let-values (rest ...) body ...))))))
 
     (define-syntax define-values
       (lambda (stx)
