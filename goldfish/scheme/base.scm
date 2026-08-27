@@ -371,23 +371,16 @@
            #'(call-with-values (lambda () init)
                (lambda vars (let-values (rest ...) body ...)))))))
 
-    (define-macro (define-values vars expression)
-      (let* ((tmp (next-fresh "tmp"))
-             (setters (let loop
-                        ((vs vars) (expr tmp) (acc '()))
-                        (if (null? vs)
-                          (reverse acc)
-                          (loop (cdr vs) (list 'cdr expr) (cons `(set! ,(car vs)
-                                                                   (car ,expr)) acc))
-                        ) ;if
-                      ) ;let
-             ) ;setters
-            ) ;
-        `(begin
-           ,@(map (lambda (v) `(define ,v (quote uninitialized))) vars)
-           (call-with-values (lambda () ,expression) (lambda ,tmp ,@setters)))
-      ) ;let*
-    ) ;define-macro
+    (define-syntax define-values
+      (lambda (stx)
+        (syntax-case stx ()
+          ((define-values (var ...) expr)
+           (with-syntax (((tmp ...) (generate-temporaries #'(var ...))))
+             #'(begin
+                 (define var (quote uninitialized)) ...
+                 (call-with-values (lambda () expr)
+                   (lambda (tmp ...) (set! var tmp) ...))))))))
+
     (define-macro (define-record-type type make ? . fields)
       (let ((rtd (next-record-rtd))
             (make-name (car make))
@@ -424,29 +417,21 @@
            (quote ,type))
       ) ;let
     ) ;define-macro
-    (define-macro (guard results . body)
-      ;; s7 的 catch handler 收到 (tag values-list)，
-      ;; 抛出的对象为 (car values-list)：
-      ;;   (raise 'x) 绑定 x；(error "msg" ...) 绑定 (msg ...) 错误对象。
-      ;; 仅当用户子句没有 else 时才追加重抛子句：无条件追加会产生双
-      ;; else，cond 只认末尾 else，首个 else 会被当作测试表达式展开。
-      (let ((clauses (cdr results))
-            (var (car results)))
-        `(let ((caught (catch ,#t
-                         (lambda ()
-                           (cons (quote normal)
-                             (call-with-values (lambda () ,@body) list)))
-                         (lambda (type info) (cons (quote raised) (car info))))))
-           (if (eq? (car caught) (quote raised))
-             (let ((,var (cdr caught)))
-               (cond ,@clauses
-                     ,@(if (let loop ((cs clauses))
+    (define-syntax guard
+      (lambda (stx)
+        (syntax-case stx ()
+          ((guard (var clause ...) body ...)
+           (let ((has-else (let loop ((cs (syntax->datum #'(clause ...))))
                              (cond ((null? cs) #f)
-                                   ((eq? (car (car cs)) (quote else)) #t)
-                                   (else (loop (cdr cs)))))
-                         '()
-                         (list (list (quote else) (list (quote raise) var))))))
-             (apply values (cdr caught)))))
-    ) ;define-macro
+                                   ((eq? (car (car cs)) 'else) #t)
+                                   (else (loop (cdr cs)))))))
+             (with-syntax ((extra (if has-else #'() #'((else (raise var))))))
+               #'(let ((caught (catch #t
+                                 (lambda () (cons 'normal (call-with-values (lambda () body ...) list)))
+                                 (lambda (type info) (cons 'raised (car info))))))
+                   (if (eq? (car caught) 'raised)
+                       (let ((var (cdr caught)))
+                         (cond clause ... . extra))
+                       (apply values (cdr caught))))))))))
   ) ;begin
 ) ;define-library
