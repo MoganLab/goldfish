@@ -1,6 +1,6 @@
 (define-library (liii project)
   (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
-  (export project-root gfproject-load-config gfproject-tool-imports function-libraries function-doc-hint)
+  (export project-root gfproject-load-config gfproject-tools gfproject-tool-imports function-libraries function-doc-hint)
   (begin
 
     (define (normalize-string s)
@@ -103,6 +103,13 @@
              (lib-tools (if lib-path (tools-alist (read-gfproject lib-path)) '()))
              (local-tools (if local-path (tools-alist (read-gfproject local-path)) '())))
         (string-append "{\"tools\":" (tools->json (merge-tools lib-tools local-tools)) "}")))
+
+    (define (gfproject-tools)
+      (let* ((lib-path (find-lib-gfproject))
+             (local-path (find-local-gfproject))
+             (lib-tools (if lib-path (tools-alist (read-gfproject lib-path)) '()))
+             (local-tools (if local-path (tools-alist (read-gfproject local-path)) '())))
+        (merge-tools lib-tools local-tools)))
 
     ;; Tool dispatch interface for the host: given a command name, return
     ;; the import expressions of the tool defined by gfproject.scm files,

@@ -20,7 +20,6 @@
     (scheme write)
     (scheme process-context)
     (liii sort)
-    (liii njson)
     (liii string)
     (liii argparse)
     (liii path)
@@ -34,52 +33,34 @@
   (begin
 
     (define (load-gfproject)
-      (string->njson (gfproject-load-config))
+      (gfproject-tools)
     ) ;define
 
     (define (get-tool-description tools tool-name lang)
-      "Get description for a tool in specified language"
-      (let* ((tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null)))
-             (desc (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool))) 'null (catch #t (lambda () (njson-ref tool (string-append "description" ""))) (lambda args 'null))))
-            ) ;
-        (if (or (eq? desc 'null) (and (njson? desc) (njson-null? desc)))
-          ""
-          (let ((lang-desc (catch #t (lambda () (njson-ref desc (string-append lang ""))) (lambda args 'null))))
-            (if (or (eq? lang-desc 'null) (and (njson? lang-desc) (njson-null? lang-desc)))
-              (let ((en-desc (catch #t (lambda () (njson-ref desc (string-append "en_US" ""))) (lambda args 'null))))
-                (if (or (eq? en-desc 'null) (and (njson? en-desc) (njson-null? en-desc))) "" (if (string? en-desc) en-desc ""))
-              ) ;let
-              (if (string? lang-desc) lang-desc "")
-            ) ;if
-          ) ;let
-        ) ;if
-      ) ;let*
-    ) ;define
-
-    (define (njson-empty? x)
-      "Check if njson-ref returned empty result (null)"
-      (or (eq? x 'null) (and (njson? x) (njson-null? x)) (and (string? x) (string-null? x)))
-    ) ;define
+      (let* ((tool (assq (string->symbol tool-name) tools))
+             (desc-alist (and tool (assq 'description (cdr tool))))
+             (desc (and desc-alist (cdr desc-alist))))
+        (if (not desc) ""
+          (let ((lang-desc (assq (string->symbol lang) desc))
+                (en-desc (assq 'en_US desc)))
+            (cond [lang-desc (let ((v (cdr lang-desc))) (if (string? v) v ""))]
+                  [en-desc (let ((v (cdr en-desc))) (if (string? v) v ""))]
+                  [else ""])))))
 
     (define (has-tool-implementation? tools tool-name)
-      "Check if a tool has Scheme implementation (has organization and module)"
-      (let ((tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null))))
-        (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool)))
-          #f
-          (let ((org (catch #t (lambda () (njson-ref tool (string-append "organization" ""))) (lambda args 'null)))
-                (mod (catch #t (lambda () (njson-ref tool (string-append "module" ""))) (lambda args 'null))))
-            (and (not (or (eq? org 'null) (and (njson? org) (njson-null? org)) (and (string? org) (string-null? org))))
-              (not (or (eq? mod 'null) (and (njson? mod) (njson-null? mod)) (and (string? mod) (string-null? mod))))
-              (> (string-length (if (string? org) org "")) 0)
-              (> (string-length (if (string? mod) mod "")) 0)
-            ) ;and
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;define
+      (let ((tool (assq (string->symbol tool-name) tools)))
+        (if (not tool) #f
+          (let ((org (assq 'organization (cdr tool)))
+                (mod (assq 'module (cdr tool))))
+            (and org mod
+                 (let ((org-v (cdr org)) (mod-v (cdr mod)))
+                   (and (pair? org-v) (pair? mod-v)
+                        (let ((org-s (cadr org)) (mod-s (cadr mod)))
+                          (and (symbol? org-s) (symbol? mod-s)
+                               (> (string-length (symbol->string org-s)) 0)
+                               (> (string-length (symbol->string mod-s)) 0))))))))))
 
     (define (display-version)
-      "Display version information"
       (display "Goldfish Scheme ")
       (display (version))
       (display " by LiiiLabs")
@@ -87,7 +68,6 @@
     ) ;define
 
     (define (display-command-line cmd desc . extra-lines)
-      "Display a command with its description, aligned to column 19"
       (display "  ")
       (display cmd)
       (let ((pad (- 19 (+ (string-length "  ") (string-length cmd)))))
@@ -107,10 +87,9 @@
     ) ;define
 
     (define (display-dynamic-commands tools)
-      "Display dynamic commands from gfproject.scm with one-line descriptions"
-      (let ((tool-names (list-sort string<? (njson-keys tools))))
+      (let ((tool-names (list-sort string<? (map (lambda (kv) (symbol->string (car kv))) tools))))
         (for-each (lambda (tool-name)
-                    (let ((desc (get-tool-description tools (string-append tool-name "") "en_US")))
+                    (let ((desc (get-tool-description tools tool-name "en_US")))
                       (display-command-line tool-name desc)
                     ) ;let
                   ) ;lambda
@@ -120,8 +99,7 @@
     ) ;define
 
     (define (display-help)
-      "Display help information matching the C++ display_help() format"
-      (let* ((config (load-gfproject)) (tools (njson-ref config (string-append "tools" ""))))
+      (let* ((tools (load-gfproject)))
         (display-version)
         (newline)
         (display "Commands:")
@@ -129,12 +107,11 @@
         (let ((help-desc (get-tool-description tools "help" "en_US")))
           (display-command-line "help" help-desc)
         ) ;let
-        (if (not (njson-empty? tools))
-          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help"))) (njson-keys tools))
-                ) ;other-tool-names
-               ) ;
+        (if (not (null? tools))
+          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help")))
+                                          (map (lambda (kv) (symbol->string (car kv))) tools))))
             (for-each (lambda (tool-name)
-                        (let ((desc (get-tool-description tools (string-append tool-name "") "en_US")))
+                        (let ((desc (get-tool-description tools tool-name "en_US")))
                           (display-command-line tool-name desc)
                         ) ;let
                       ) ;lambda
@@ -159,13 +136,9 @@
     ) ;define
 
     (define (find-tool-readme tool-name)
-      "Search for README.md in tools/<tool-name>/ directory"
       (let ((cwd (getcwd)))
         (if cwd
-          (let ((readme-path (path->string (path-join (path cwd) (path "tools") (path tool-name) (path "README.md"))
-                             ) ;path->string
-                ) ;readme-path
-               ) ;
+          (let ((readme-path (path->string (path-join (path cwd) (path "tools") (path tool-name) (path "README.md"))))) ;
             (if (file-exists? readme-path) readme-path #f)
           ) ;let
           #f
@@ -174,12 +147,9 @@
     ) ;define
 
     (define (display-tool-help tool-name)
-      "Display detailed help for a specific tool"
-      (let* ((config (load-gfproject))
-             (tools (njson-ref config (string-append "tools" "")))
-             (tool (catch #t (lambda () (njson-ref tools (string-append tool-name ""))) (lambda args 'null)))
-            ) ;
-        (if (or (eq? tool 'null) (and (njson? tool) (njson-null? tool)))
+      (let* ((tools (load-gfproject))
+             (tool (assq (string->symbol tool-name) tools)))
+        (if (not tool)
           (begin
             (display "Unknown command: ")
             (display tool-name)
@@ -209,7 +179,6 @@
     ) ;define
 
     (define (main)
-      "Main entry point for help command"
       (let ((parser (make-help-arg-parser)))
         (parser :parse-argv (command-line))
         (let ((positionals (parser :positionals)))
