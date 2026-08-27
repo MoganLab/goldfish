@@ -17,7 +17,6 @@
 ;;; later.  Free procedures (map / assq / ...) resolve via the expander
 ;;; module's fallback to the host rootlet.
 
-;;; Host-compatibility shims (s7 list?/length are now R7RS proper)
 (define (pair-or-null? x) (or (pair? x) (null? x)))
 (define (dotted-length lst)
   (let loop ((lst lst) (n 0))

@@ -24381,10 +24381,10 @@ s7_int s7_list_length(s7_scheme *sc, s7_pointer a) /* returns -len if list is do
     {
       if (!is_pair(fast)) return((is_null(fast)) ? i : -i);
       fast = cdr(fast);
-      if (!is_pair(fast)) return((is_null(fast)) ? (i + 1) : (-i - 1)); /* if unrolled further, it's a lot slower? */
+      if (!is_pair(fast)) return((is_null(fast)) ? (i + 1) : (-i - 1));
       fast = cdr(fast);
       slow = cdr(slow);
-      if (fast == slow)	return(0);
+      if (fast == slow) return(0);
     }
   return(0);
 }
@@ -27673,7 +27673,7 @@ static s7_int multivector_length(s7_scheme *sc, s7_pointer dim_list, s7_pointer 
 {
   s7_int len = 1;
   const s7_int num_dims = s7_list_length(sc, dim_list);
-  if (num_dims <= 0)                /* 0 if circular, negative if dotted */
+  if (num_dims <= 0)
     wrong_type_error_nr(sc, caller, 1, dim_list, a_proper_list_string);
   if (num_dims > sc->max_vector_dimensions)
     error_nr(sc, sc->out_of_range_symbol,
@@ -29721,7 +29721,7 @@ static s7_pointer g_sort(s7_scheme *sc, s7_pointer args)
     switch (type(data))
       {
       case T_PAIR:
-	len = s7_list_length(sc, data);            /* 0 here == infinite */
+	len = s7_list_length(sc, data);
 	if (len <= 0)
 	  error_nr(sc, sc->wrong_type_arg_symbol,
 		   set_elist_2(sc, wrap_string(sc, "sort! first argument should be a proper list: ~S", 48), data));
@@ -33275,14 +33275,13 @@ static s7_pointer g_dilambda(s7_scheme *sc, s7_pointer args)
 /* -------------------------------- arity -------------------------------- */
 static s7_pointer closure_arity_to_cons(s7_scheme *sc, s7_pointer clo, s7_pointer clo_args)
 {
-  /* clo_args is unprocessed -- it is exactly the list as used in the closure[*] definition */
   int32_t len;
-  if (is_symbol(clo_args))                  /* any number of args is ok */
+  if (is_symbol(clo_args))
     return(cons(sc, int_zero, max_arity));
   if (closure_arity_unknown(clo))
     closure_set_arity(clo, s7_list_length(sc, clo_args));
   len = closure_arity(clo);
-  if (len < 0)                              /* dotted list => rest arg, (length '(a b . c)) is -2 */
+  if (!s7_is_proper_list(sc, clo_args))
     return(cons(sc, make_integer(sc, -len), max_arity));
   return(cons(sc, make_integer(sc, len), make_integer_unchecked(sc, len)));
 }
@@ -33392,19 +33391,18 @@ s7_pointer s7_arity(s7_scheme *sc, s7_pointer obj)
 /* -------------------------------- aritable? -------------------------------- */
 static bool closure_is_aritable(s7_scheme *sc, s7_pointer clo, s7_pointer clo_args, int32_t args)
 {
-  /* clo_args is unprocessed -- it is exactly the list as used in the closure definition */
   s7_int len;
   if (args == 0) return(!is_pair(clo_args));
-  if (is_symbol(clo_args)) return(true); /* any number of args is ok */
+  if (is_symbol(clo_args)) return(true);
   len = closure_arity(clo);
   if (len == CLOSURE_ARITY_NOT_SET)
     {
       len = s7_list_length(sc, clo_args);
       closure_set_arity(clo, len);
     }
-  if (len < 0)                          /* dotted list => rest arg, (length '(a b . c)) is -2 */
-    return((-len) <= args);             /*   so we have enough to take care of the required args */
-  return(args == len);                  /* in a normal lambda list, there are no other possibilities */
+  if (!s7_is_proper_list(sc, clo_args))
+    return((-len) <= args);
+  return(args == len);
 }
 
 static bool closure_star_is_aritable(s7_scheme *sc, s7_pointer clo, s7_pointer clo_args, int32_t args)
@@ -34950,12 +34948,12 @@ static s7_pointer any_length(s7_scheme *sc, s7_pointer obj) {return(sc->F);}
 static s7_pointer pair_length(s7_scheme *sc, s7_pointer a)
 {
   s7_int i = 0;
-  s7_pointer slow = a, fast = a; /* we know a is a pair, don't start with fast = cdr(a)! else if a len = 3, we never match */
+  s7_pointer slow = a, fast = a;
   while (true)
     {
-      LOOP_4(fast = cdr(fast); i++; if (!is_pair(fast)) return(make_integer(sc, (is_null(fast)) ? i : -i)));
+      LOOP_4(fast = cdr(fast); i++; if (!is_pair(fast)) return(make_integer(sc, i)));
       slow = cdr(slow);
-      if (fast == slow)	return(real_infinity);
+      if (fast == slow) return(real_infinity);
     }
   return(real_infinity);
 }
@@ -36401,7 +36399,7 @@ static s7_pointer pair_fill(s7_scheme *sc, s7_pointer args) /* args=(list tree-t
 
   len = s7_list_length(sc, obj);
   end = len;
-  if (end < 0) end = -end; else {if (end == 0) end = 123123123;}
+  if (end < 0) end = -end; else if (end == 0) end = 123123123;
   if (!is_null(cddr(args)))
     {
       s7_pointer p = start_and_end(sc, sc->fill_symbol, args, 3, cddr(args), &start, &end);
@@ -60803,8 +60801,8 @@ static s7_pointer check_lambda_star_args(s7_scheme *sc, s7_pointer args, s7_poin
 		       set_elist_5(sc, wrap_string(sc, "~A parameter ~S is a dotted pair in (~S ~S ...)", 47),
 				   car(form), cur_par, car(form), cadr(form)));
 	    }
-	  if ((is_pair(cadr(cur_par))) &&                         /* (lambda* ((a (quote . -1))) ...) */
-	      (s7_list_length(sc, cadr(cur_par)) < 0))
+	  if ((is_pair(cadr(cur_par))) &&
+	      (!s7_is_proper_list(sc, cadr(cur_par))))
 	    error_nr(sc, sc->syntax_error_symbol,
 		     set_elist_5(sc, wrap_string(sc, "~A parameter ~S default value is not a proper list in (~S ~S ...)", 65),
 				 car(form), cur_par, car(form), cadr(form)));
@@ -65903,7 +65901,7 @@ static s7_pointer check_define_macro(s7_scheme *sc, opcode_t op, s7_pointer form
   if (!is_pair(cdr(sc->code)))                                    /* (define-macro (...)) */
     syntax_error_with_caller_nr(sc, "~A ~A, but no body?", 19, caller, mac_name);
 
-  if (s7_list_length(sc, cdr(sc->code)) < 0)                      /* (define-macro (hi) 1 . 2) */
+  if (!s7_is_proper_list(sc, cdr(sc->code)))
     error_nr(sc, sc->syntax_error_symbol,
 	     set_elist_3(sc, wrap_string(sc, "~A: macro body messed up, ~A", 28), caller, sc->code));
 
@@ -65950,7 +65948,7 @@ static s7_pointer check_macro(s7_scheme *sc, opcode_t op, s7_pointer form)
       check_lambda_args(sc, car(sc->code), NULL, form);
     }
   else set_car(sc->code, check_lambda_star_args(sc, args, NULL, form));
-  if (s7_list_length(sc, cdr(sc->code)) < 0)                   /* (macro () 1 . 2) */
+  if (!s7_is_proper_list(sc, cdr(sc->code)))
     error_nr(sc, sc->syntax_error_symbol,
 	     set_elist_3(sc, wrap_string(sc, "~A: macro body messed up, ~A", 28), caller, form));
 

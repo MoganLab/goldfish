@@ -267,9 +267,6 @@
     throw
   ) ;export
   (begin
-    ;; R7RS list? / length：覆盖 s7 的 host-ism（s7 list? 为 pair-or-null，
-    ;; length 对 dotted 返回负值），以 proper-list? 为准；其余序列类型
-    ;; 保持 s7 多态以兼容既有测试。
     (define (list? x) (proper-list? x))
     (define (length x)
       (cond [(null? x) 0]

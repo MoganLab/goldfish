@@ -116,7 +116,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - **活跃债（仅此一项）——s7 的 values/unspecified 折叠**：s7 求值参数循环丢弃 no_value 值（`if (val != sc->no_value)` 才拼接参数），故 `(values unspecified)` 到达 `values` 时已是零参——折叠发生在 `values` 之前，cwv 层无法区分「真零值」与「单 unspecified」。修复需改 s7 最热的求值路径，风险不可接受。移植代码以 unspecified 进多值协议时会踩坑：SRFI-165 的 `computation-with!` 已绕过（产 `'unspecified` 占位）。
 - **宏层前置工程——syntax-case 剩余缺口**（2026-08 排查）：
-  1. pattern 层 `dotted+ellipsis`（`(a ... . r)`）已修：`syntax-runtime.scm` 以 `pair-or-null?`/`dotted-length` 替代 `s7` `list?`/`length` 的 host-ism（`length` 对 dotted 返回 `-len`，`list?` 为 `pair-or-null`）；`s7` 本体该行为为有意设计（`H_length`/`H_is_list`），`goldfish` 在 `(scheme base)` 以 `proper-list?` 覆盖为 `R7RS`（`list?`/`length` 对 improper 报错，见 `goldfish/scheme/base.scm`），宿主保留 `O(1)` 语义供展开器内部复用。
-  2. template 层：`generate-temporaries` 多 temp 经 with-syntax + ellipsis splice 插入 lambda formals 后失 `identifier` 性质（"lambda: expected identifier"）；单 temp 路径正常。仍阻塞 `let-values/define-values` 等 `gensym` 类宏的 `syntax-case` 化，须先在 `Guile` 验证（`srfi-11` rest-lambda+解构为权威），再对齐 `goldfish`。
+  1. pattern 层 `dotted+ellipsis` 已修。
+  2. template 层：`generate-temporaries` 多 temp 经 with-syntax + ellipsis splice 插入 lambda formals 后失 `identifier` 性质；单 temp 路径正常。仍阻塞 `let-values/define-values` 等 `gensym` 类宏的 `syntax-case` 化。
 - **已归档（2026-08）**：VM 错误穿越帧重放（帧感知展开协议，见 L6）；缓存依赖追踪（deps 指纹入 gfo 第 5 字段，见 L2/L4）；from-source 双自举路径（删除后 kernel 可用全语言设施）；工具分发 JSON 层；dispatch 缺 return 导致的间歇 segfault。
 
