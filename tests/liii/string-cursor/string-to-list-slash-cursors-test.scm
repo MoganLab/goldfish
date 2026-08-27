@@ -31,6 +31,12 @@
 ;; 1. 返回新分配的列表
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符转换，支持 Unicode
 ;; 3. 性能：O(n)，n 为子串字符数
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确转换
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中提供了 string->list 函数
+;; 参见: gf doc liii/string "string->list"
 
 (check (string->list/cursors "abc") => '(#\a #\b #\c))
 (check (string->list/cursors "abc" 1 2) => '(#\b))

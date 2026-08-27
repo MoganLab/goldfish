@@ -36,6 +36,12 @@
 ;; 2. 结果始终为 cursor，即使 start/end 是整数索引
 ;; 3. 适用于 ASCII、中文、emoji 等各种 Unicode 字符
 ;; 4. 性能：O(n)，n 为字符串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确搜索
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-index 函数，返回整数索引
+;; 参见: gf doc liii/string "string-index"
 ;;
 ;; 错误处理
 ;; --------

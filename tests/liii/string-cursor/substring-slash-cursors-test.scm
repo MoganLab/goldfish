@@ -29,6 +29,12 @@
 ;; 2. start 和 end 必须同为游标或同为整数索引
 ;; 3. 与 (liii string) 中的 substring 功能类似，但支持游标参数
 ;; 4. 性能：O(n)，n 为子串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确截取
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中提供了 substring 函数，使用整数索引
+;; 参见: gf doc liii/string "substring"
 
 ;; 测试ASCII
 (let ((s "abcdef"))
