@@ -363,15 +363,14 @@
       ) ;let*
     ) ;define
 
-    (define-macro (let-values bindings . body)
-      (if (null? bindings)
-        `(let () ,@body)
-        (let ((b (car bindings)) (rest (cdr bindings)))
-          `(call-with-values (lambda () ,(cadr b))
-             (lambda ,(car b) (let-values ,rest ,@body)))
-        ) ;let
-      ) ;if
-    ) ;define-macro
+    (define-syntax let-values
+      (lambda (stx)
+        (syntax-case stx ()
+          ((let-values () body ...) #'(let () body ...))
+          ((let-values ((vars init) rest ...) body ...)
+           #'(call-with-values (lambda () init)
+               (lambda vars (let-values (rest ...) body ...)))))))
+
     (define-macro (define-values vars expression)
       (let* ((tmp (next-fresh "tmp"))
              (setters (let loop
