@@ -142,12 +142,13 @@
                                (equal? (syntax-form input) (pattern-leaf-datum pattern)))
                           bindings
                           (if (equal? input (pattern-leaf-datum pattern)) bindings #f))
-                      (if (not (syntax? input))
+                      (if (and (not (syntax? input)) (not (pair-or-null? input)))
                           #f
-                          (if (and (not (pair? (syntax-form input)))
-                                   (not (null? (syntax-form input))))
-                              #f
-                              (pattern-match-list pattern (syntax-form input) input literals bindings)))))))))
+                          (let ((input-form (if (syntax? input) (syntax-form input) input))
+                                (input-stx (if (syntax? input) input (make-syntax input '() #f))))
+                            (if (and (not (pair? input-form)) (not (null? input-form)))
+                                #f
+                                (pattern-match-list pattern input-form input-stx literals bindings))))))))))
 
 (define (pattern-match-list pat-list input-form input-stx literals bindings)
   (if (null? pat-list)
