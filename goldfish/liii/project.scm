@@ -1,6 +1,6 @@
 (define-library (liii project)
   (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
-  (export project-root gfproject-tool-imports function-libraries function-doc-hint)
+  (export project-root gfproject-load-config gfproject-tool-imports function-libraries function-doc-hint)
   (begin
 
     (define (normalize-string s)
@@ -54,6 +54,55 @@
 
     (define (tools-alist form)
       (let ((e (assoc 'tools form))) (if e (cdr e) '())))
+
+    (define (alist-merge base overlay)
+      (let loop ([bs base] [acc overlay])
+        (if (null? bs) acc
+          (let* ([kv (car bs)] [k (car kv)] [v (cdr kv)] [ex (assoc k acc)])
+            (if ex
+              (let ((merged-v (if (and (pair? v) (pair? (cdr ex)) (every pair? v) (every pair? (cdr ex)))
+                                (alist-merge v (cdr ex)) (cdr ex))))
+                (loop (cdr bs) (cons (cons k merged-v) (filter (lambda (e) (not (eq? (car e) k))) acc))))
+              (loop (cdr bs) (cons kv acc)))))))
+
+    (define (json-escape s)
+      (let loop ([i 0] [acc '()])
+        (if (>= i (string-length s)) (list->string (reverse acc))
+          (let ((c (string-ref s i)))
+            (cond [(char=? c #\") (loop (+ i 1) (cons #\" (cons #\\ acc)))]
+                  [(char=? c #\\) (loop (+ i 1) (cons #\\ (cons #\\ acc)))]
+                  [else (loop (+ i 1) (cons c acc))])))))
+
+    (define (value->json v)
+      (cond [(string? v) (string-append "\"" (json-escape v) "\"")]
+            [(symbol? v) (string-append "\"" (json-escape (symbol->string v)) "\"")]
+            [(number? v) (number->string v)]
+            [(boolean? v) (if v "true" "false")]
+            [(null? v) "null"]
+            [(pair? v)
+             (cond [(every pair? v)
+                    (string-append "{" (string-join (map (lambda (kv) (string-append "\"" (json-escape (symbol->string (car kv))) "\":" (value->json (cdr kv)))) v) ",") "}")]
+                   [else (string-append "[" (string-join (map value->json v) ",") "]")])]
+            [else "null"]))
+
+    (define (merge-tools lib-tools local-tools)
+      (let loop ([ls local-tools] [acc lib-tools])
+        (if (null? ls) acc
+          (let* ([kv (car ls)] [k (car kv)] [v (cdr kv)] [ex (assoc k acc)])
+            (if ex
+              (loop (cdr ls) (cons (cons k (alist-merge (cdr ex) v)) (filter (lambda (e) (not (eq? (car e) k))) acc)))
+              (loop (cdr ls) (cons kv acc)))))))
+
+    (define (tools->json tools)
+      (if (null? tools) "{}"
+        (string-append "{" (string-join (map (lambda (tool) (string-append "\"" (json-escape (symbol->string (car tool))) "\":" (value->json (cdr tool)))) tools) ",") "}")))
+
+    (define (gfproject-load-config)
+      (let* ((lib-path (find-lib-gfproject))
+             (local-path (find-local-gfproject))
+             (lib-tools (if lib-path (tools-alist (read-gfproject lib-path)) '()))
+             (local-tools (if local-path (tools-alist (read-gfproject local-path)) '())))
+        (string-append "{\"tools\":" (tools->json (merge-tools lib-tools local-tools)) "}")))
 
     ;; Tool dispatch interface for the host: given a command name, return
     ;; the import expressions of the tool defined by gfproject.scm files,

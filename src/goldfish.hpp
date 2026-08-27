@@ -1586,9 +1586,8 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
 
-  // 如果没有找到命令或没有参数，使用 help 命令
   if (argc <= 1 || command.empty ()) {
-    command= "help";
+    command= "repl";
   }
   if (command == "-e") {
     command= "eval";
