@@ -24349,11 +24349,12 @@ static s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- list? -------------------------------- */
-bool s7_is_list(s7_scheme *sc, s7_pointer p) {return(is_list(p));}
+bool s7_is_list(s7_scheme *sc, s7_pointer p) {return(s7_is_proper_list(sc, p));}
 
-static bool is_list_b(s7_pointer p) {return((is_pair(p)) || (type(p) == T_NIL));}
+bool s7_is_proper_list(s7_scheme *sc, s7_pointer lst); /* forward */
+static bool is_list_b(s7_pointer p) {return(s7_is_proper_list(NULL, p));}
 
-#define H_is_list "(list? obj) returns #t if obj is a pair or null"
+#define H_is_list "(list? obj) returns #t if obj is a proper list (R7RS-small)"
 #define Q_is_list sc->pl_bt
 /* g_is_list is now defined in s7_liii_list.c */
 
@@ -35040,11 +35041,15 @@ static s7_pointer s7_length(s7_scheme *sc, s7_pointer obj) {return((*length_func
 
 static s7_pointer g_length(s7_scheme *sc, s7_pointer args)
 {
-  #define H_length "(length obj) returns the length of obj, which can be a list, vector, string, input-port, or hash-table. \
-The length of a dotted list does not include the final cdr, and is returned as a negative number.  A circular \
-list has infinite length.  Length of anything else returns #f."
-  #define Q_length s7_make_signature(sc, 2, s7_make_signature(sc, 3, sc->is_integer_symbol, sc->is_infinite_symbol, sc->not_symbol), sc->T)
-  return((*length_functions[type_unchecked(car(args))])(sc, car(args)));
+  #define H_length "(length lst) returns the length of lst, which must be a proper list (R7RS-small). Vectors, strings and hash-tables have their own length; dotted or circular lists signal an error."
+  #define Q_length s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_proper_list_symbol)
+  s7_pointer obj = car(args);
+  if (is_pair(obj) || is_null(obj))
+    {
+      if (!s7_is_proper_list(sc, obj))
+        return(s7_wrong_type_arg_error(sc, "length", 1, obj, "a proper list"));
+    }
+  return((*length_functions[type_unchecked(obj)])(sc, obj));
 }
 
 
@@ -82957,7 +82962,7 @@ static void init_rootlet(s7_scheme *sc)
                                                        "(char? obj) returns #t if obj is a character",
                                                        sc->pl_bt, T_CHARACTER, just_mark_vector, true, b_is_char_setter);
   sc->is_string_symbol =          bool_defun("string?",	         is_string,	     0, T_STRING,       mark_simple_vector, true);
-  sc->is_list_symbol =            bool_defun("list?",	         is_list,	     0, T_FREE,         mark_vector_1,      false);
+  sc->is_list_symbol =            bool_defun("list?",	         is_proper_list,   0, T_FREE,         mark_vector_1,      false);
   sc->is_pair_symbol =            bool_defun("pair?",	         is_pair,	     0, T_PAIR,         mark_vector_1,      false);
   #define H_is_vector "(vector? obj) returns #t if obj is a vector"
   #define Q_is_vector sc->pl_bt
