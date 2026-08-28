@@ -104,8 +104,8 @@
     get-output-string
     guard
     if
-    ;; TODO: include 尚未实现（仅支持 define-library 体内的 include）
-    ;; TODO: include-ci 尚未实现
+    include
+    include-ci
     inexact
     inexact?
     input-port-open?
@@ -427,5 +427,35 @@
                        (let ((var (cdr caught)))
                          (cond clause ... . extra))
                        (apply values (cdr caught))))))))))
+
+    (define-syntax include
+      (lambda (stx)
+        (syntax-case stx ()
+          ((include filename ...)
+           (let ((forms (apply append
+                          (map (lambda (fn)
+                                 (let ((port (open-input-file fn)))
+                                   (let loop ((acc '()))
+                                     (let ((form (read port)))
+                                       (if (eof-object? form)
+                                         (begin (close-port port) (reverse acc))
+                                         (loop (cons form acc)))))))
+                               (syntax->datum #'(filename ...))))))
+             (datum->syntax stx `(begin ,@forms)))))))
+
+    (define-syntax include-ci
+      (lambda (stx)
+        (syntax-case stx ()
+          ((include-ci filename ...)
+           (let ((forms (apply append
+                          (map (lambda (fn)
+                                 (let ((port (open-input-file fn)))
+                                   (let loop ((acc '()))
+                                     (let ((form (read port)))
+                                       (if (eof-object? form)
+                                         (begin (close-port port) (reverse acc))
+                                         (loop (cons form acc)))))))
+                               (syntax->datum #'(filename ...))))))
+             (datum->syntax stx `(begin ,@forms)))))))
   ) ;begin
 ) ;define-library
