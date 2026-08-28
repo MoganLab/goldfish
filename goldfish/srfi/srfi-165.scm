@@ -317,79 +317,59 @@
       (lambda (env) (computation (updater env)))
     ) ;define
 
-    (define-macro (computation-fn . args)
-      (let ((clauses (car args)) (body (cdr args)))
-        (define (parse-clauses clauses)
-          (map (lambda (c)
-                 (if (pair? c)
-                   (let ((id (car c)) (var (cadr c)))
-                     (list id var (gensym "tmp"))
-                   ) ;let
-                   (let ((id c))
-                     (list id id (gensym "tmp"))
-                   ) ;let
-                 ) ;if
-               ) ;lambda
-            clauses
-          ) ;map
-        ) ;define
-        (let* ((parsed (parse-clauses clauses))
-               (env-sym (gensym "env"))
-               (ids (map car parsed))
-               (vars (map cadr parsed))
-               (tmps (map caddr parsed))
-              ) ;
-          `(let ,(map list tmps vars)
-             (computation-bind (computation-ask)
-               (lambda (,env-sym)
-                 (let ,(map (lambda (id tmp)
-                              `(,id (computation-environment-ref ,env-sym ,tmp)))
-                         ids
-                         tmps)
-                   ,@body))))
-        ) ;let*
-      ) ;let
-    ) ;define-macro
+    (define-syntax computation-fn
+      (lambda (stx)
+        (syntax-case stx ()
+          ((computation-fn ((id var) ...) body ...)
+           (with-syntax (((tmp ...) (generate-temporaries #'(var ...)))
+                         ((env) (generate-temporaries #'(env))))
+             #'(let ((tmp var) ...)
+                 (computation-bind (computation-ask)
+                   (lambda (env)
+                     (let ((id (computation-environment-ref env tmp)) ...)
+                       body ...))))))
+          ((computation-fn (id ...) body ...)
+           (with-syntax (((tmp ...) (generate-temporaries #'(id ...)))
+                         ((env) (generate-temporaries #'(env))))
+             #'(let ((tmp id) ...)
+                 (computation-bind (computation-ask)
+                   (lambda (env)
+                     (let ((id (computation-environment-ref env tmp)) ...)
+                        body ...)))))))))
 
-    (define-macro (computation-with . args)
-      (let ((bindings (car args)) (comps (cdr args)))
-        (let ((var-tmps (map (lambda (b) (gensym "var")) bindings))
-              (val-tmps (map (lambda (b) (gensym "val")) bindings))
-              (comp-tmps (map (lambda (c) (gensym "comp")) comps))
-             ) ;
-          `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps)
-                   (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps)
-                   (map (lambda (c ct) `(,ct ,c)) comps comp-tmps))
-             (computation-local (lambda (env)
-                                  (computation-environment-update env
-                                    ,@(apply append
-                                        (map list var-tmps val-tmps))))
-               (computation-each ,@comp-tmps)))
-        ) ;let
-      ) ;let
-    ) ;define-macro
+    (define-syntax computation-with
+      (lambda (stx)
+        (syntax-case stx ()
+          ((computation-with ((var val) ...) comp ...)
+           (let* ((var-tmps (syntax->datum (generate-temporaries #'(var ...))))
+                  (val-tmps (syntax->datum (generate-temporaries #'(val ...))))
+                  (comp-tmps (syntax->datum (generate-temporaries #'(comp ...))))
+                  (var-vals (syntax->datum #'(var ...)))
+                  (vals (syntax->datum #'(val ...)))
+                  (comps (syntax->datum #'(comp ...)))
+                  (flat (apply append (map list var-tmps val-tmps))))
+             (datum->syntax stx
+               `(let ,(append (map list var-tmps var-vals)
+                        (map list val-tmps vals)
+                        (map list comp-tmps comps))
+                  (computation-local (lambda (env) (computation-environment-update env ,@flat))
+                    (computation-each ,@comp-tmps)))))))))
 
-    (define-macro (computation-with! . bindings)
-      (let ((var-tmps (map (lambda (b) (gensym "var")) bindings))
-            (val-tmps (map (lambda (b) (gensym "val")) bindings))
-            (env-sym (gensym "env"))
-           ) ;
-        `(let ,(append (map (lambda (b vt) `(,vt ,(car b))) bindings var-tmps)
-                 (map (lambda (b vt) `(,vt ,(cadr b))) bindings val-tmps))
-           (computation-bind (computation-ask)
-             (lambda (,env-sym)
-               ,@(map (lambda (vt val-t)
-                        `(computation-environment-update! ,env-sym ,vt ,val-t))
-                   var-tmps
-                   val-tmps)
-               ;; NB: not (computation-pure (if #f #f)) -- s7's eval drops an
-               ;; unspecified argument before `values' sees it, so this
-               ;; would be a zero-value producer and the enclosing bind's
-               ;; consumer would be invoked with no arguments.  Yield a real
-               ;; placeholder instead; consumers of with! ignore it (_).
-               (make-computation (lambda (_compute) 'unspecified)))))
-      ) ;let
-    ) ;define-macro
+    (define-syntax computation-with!
+      (lambda (stx)
+        (syntax-case stx ()
+          ((computation-with! (var val) ...)
+           (let* ((var-tmps (syntax->datum (generate-temporaries #'(var ...))))
+                  (val-tmps (syntax->datum (generate-temporaries #'(val ...))))
+                  (var-vals (syntax->datum #'(var ...)))
+                  (vals (syntax->datum #'(val ...)))
+                  (env (car (syntax->datum (generate-temporaries #'(env))))))
+             (datum->syntax stx
+               `(let ,(append (map list var-tmps var-vals) (map list val-tmps vals))
+                  (computation-bind (computation-ask)
+                    (lambda (,env)
+                      ,@(map (lambda (vt val-t) `(computation-environment-update! ,env ,vt ,val-t)) var-tmps val-tmps)
+                      (make-computation (lambda (_compute) 'unspecified)))))))))))
 
     (define (computation-forked a . a*)
       (make-computation (lambda (compute)

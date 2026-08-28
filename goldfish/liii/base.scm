@@ -42,28 +42,29 @@
       ) ;if
     ) ;define
 
-    (define-macro (typed-lambda args . body)
-      (if (symbol? args)
-        (apply lambda args body)
-        (let ((new-args (copy args)))
-          (do ((p new-args (cdr p)))
-            ((not (pair? p)))
-            (if (pair? (car p)) (set-car! p (caar p)))
-          ) ;do
-          `(lambda ,new-args
-             ,@(map (lambda (arg)
-                      (if (pair? arg)
-                        `(unless (,(cadr arg) ,(car arg))
-                           (error 'type-error
-                             ,"~S is not ~S~%"
-                             (quote ,(car arg))
-                             (quote ,(cadr arg))))
-                        (values)))
-                 args)
-             ,@body)
-        ) ;let
-      ) ;if
-    ) ;define-macro
+    (define-syntax typed-lambda
+      (lambda (stx)
+        (syntax-case stx ()
+          ((typed-lambda args body ...)
+           (let ((args-datum (syntax->datum #'args))
+                 (body-datum (syntax->datum #'(body ...))))
+             (if (symbol? args-datum)
+               (datum->syntax stx `(lambda ,args-datum ,@body-datum))
+               (let ((new-args (let ((c (copy args-datum)))
+                                 (let loop ((p c))
+                                   (when (pair? p)
+                                     (when (pair? (car p)) (set-car! p (caar p)))
+                                     (loop (cdr p))))
+                                 c)))
+                 (datum->syntax stx
+                   `(lambda ,new-args
+                      ,@(map (lambda (arg)
+                               (if (pair? arg)
+                                 `(unless (,(cadr arg) ,(car arg))
+                                    (error 'type-error "~S is not ~S~%" ',(car arg) ',(cadr arg)))
+                                 '(values)))
+                          args-datum)
+                      ,@body-datum)))))))))
 
   ) ;begin
 ) ;define-library

@@ -380,42 +380,37 @@
                  (call-with-values (lambda () expr)
                    (lambda (tmp ...) (set! var tmp) ...))))))))
 
-    (define-macro (define-record-type type make ? . fields)
-      (let ((rtd (next-record-rtd))
-            (make-name (car make))
-            (make-params (cdr make))
-            (field-names (map car fields))
-            (acc-defs (let loop
-                        ((fs fields) (i 1))
-                        (if (null? fs)
-                          '()
-                          (let ((acc (cadr (car fs))))
-                            (cons `(define (,acc obj) (vector-ref obj ,i))
-                              (if (pair? (cddr (car fs)))
-                                (let ((mod (caddr (car fs))))
-                                  (cons `(define (,mod obj val)
-                                           (vector-set! obj ,i val)) (loop (cdr fs) (+ i 1)))
-                                ) ;let
-                                (loop (cdr fs) (+ i 1))
-                              ) ;if
-                            ) ;cons
-                          ) ;let
-                        ) ;if
-                      ) ;let
-            ) ;acc-defs
-           ) ;
-        `(begin
-           (define ,rtd (make-record-type (quote ,type) (quote ,field-names)))
-           ,@(if (keyword? type) (quote ()) `((define ,type ,rtd)))
-           (define (,make-name ,@make-params) (vector ,rtd ,@make-params))
-           (define (,? obj)
-             (and (vector? obj)
-               (positive? (vector-length obj))
-               (eq? (vector-ref obj 0) ,rtd)))
-           ,@acc-defs
-           (quote ,type))
-      ) ;let
-    ) ;define-macro
+    (define-syntax define-record-type
+      (lambda (stx)
+        (let* ((form (syntax->datum stx))
+               (type (cadr form))
+               (make-datum (caddr form))
+               (pred (cadddr form))
+               (fields (cddddr form))
+               (rtd (next-record-rtd))
+               (make-name (car make-datum))
+               (make-params (cdr make-datum))
+               (field-names (map car fields))
+               (acc-defs
+                 (let loop ((fs fields) (i 1))
+                   (if (null? fs)
+                     '()
+                     (let ((acc (cadr (car fs))))
+                       (cons `(define (,acc obj) (vector-ref obj ,i))
+                         (if (pair? (cddr (car fs)))
+                           (let ((mod (caddr (car fs))))
+                             (cons `(define (,mod obj val) (vector-set! obj ,i val))
+                               (loop (cdr fs) (+ i 1))))
+                           (loop (cdr fs) (+ i 1)))))))))
+          (datum->syntax stx
+            `(begin
+               (define ,rtd (make-record-type ',type ',field-names))
+               ,@(if (keyword? type) '() `((define ,type ,rtd)))
+               (define ,make-datum (vector ,rtd ,@make-params))
+               (define (,pred obj)
+                 (and (vector? obj) (positive? (vector-length obj)) (eq? (vector-ref obj 0) ,rtd)))
+               ,@acc-defs
+               ',type)))))
     (define-syntax guard
       (lambda (stx)
         (syntax-case stx ()
