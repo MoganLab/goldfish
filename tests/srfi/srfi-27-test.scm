@@ -1,5 +1,5 @@
 (import (srfi srfi-27) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (integer? (random-integer 10)) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

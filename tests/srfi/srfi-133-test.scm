@@ -1,5 +1,5 @@
 (import (srfi srfi-133) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (vector-copy '#(1 2 3) 1) => '#(2 3))
 (check-report)
 (if (check-failed?) (exit -1))

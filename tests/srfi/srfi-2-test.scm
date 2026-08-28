@@ -1,5 +1,5 @@
 (import (srfi srfi-2) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (and-let* ((x 1) (y 2)) (+ x y)) => 3)
 (check-report)
 (if (check-failed?) (exit -1))

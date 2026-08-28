@@ -1,5 +1,7 @@
 (import (srfi srfi-151) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (bitwise-and 6 3) => 2)
+(check (bitwise-ior 6 3) => 7)
+(check (bitwise-xor 6 3) => 5)
 (check-report)
 (if (check-failed?) (exit -1))
