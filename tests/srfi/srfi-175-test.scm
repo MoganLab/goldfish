@@ -1,5 +1,5 @@
 (import (srfi srfi-175) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (ascii-char? #\a) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

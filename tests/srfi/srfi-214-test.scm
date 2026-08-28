@@ -1,5 +1,5 @@
 (import (srfi srfi-214) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (flexvector? (flexvector 1 2 3)) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

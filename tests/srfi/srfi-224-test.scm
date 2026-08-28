@@ -1,5 +1,5 @@
 (import (srfi srfi-224) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (fxmapping? (fxmapping 1 2)) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

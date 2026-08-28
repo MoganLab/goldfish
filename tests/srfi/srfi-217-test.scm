@@ -1,5 +1,5 @@
 (import (srfi srfi-217) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (iset? (iset 1 2 3)) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

@@ -1,5 +1,6 @@
 (import (srfi srfi-128) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (comparator? (make-default-comparator)) => #t)
+(check (comparator? (make-equal-comparator)) => #t)
 (check-report)
 (if (check-failed?) (exit -1))

@@ -1,5 +1,6 @@
 (import (srfi srfi-117) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (list-queue? (make-list-queue '(1 2 3))) => #t)
+(check (list-queue-list (make-list-queue '(1 2))) => '(1 2))
 (check-report)
 (if (check-failed?) (exit -1))

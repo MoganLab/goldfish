@@ -1,5 +1,5 @@
 (import (srfi srfi-209) (srfi srfi-78))
 (check-set-mode! 'report-failed)
-(check #t => #t)
+(check (enum-type? (make-enum-type '(a b c))) => #t)
 (check-report)
 (if (check-failed?) (exit -1))
