@@ -47,19 +47,6 @@
                   [en-desc (let ((v (cdr en-desc))) (if (string? v) v ""))]
                   [else ""])))))
 
-    (define (has-tool-implementation? tools tool-name)
-      (let ((tool (assq (string->symbol tool-name) tools)))
-        (if (not tool) #f
-          (let ((org (assq 'organization (cdr tool)))
-                (mod (assq 'module (cdr tool))))
-            (and org mod
-                 (let ((org-v (cdr org)) (mod-v (cdr mod)))
-                   (and (pair? org-v) (pair? mod-v)
-                        (let ((org-s (cadr org)) (mod-s (cadr mod)))
-                          (and (symbol? org-s) (symbol? mod-s)
-                               (> (string-length (symbol->string org-s)) 0)
-                               (> (string-length (symbol->string mod-s)) 0))))))))))
-
     (define (display-version)
       (display "Goldfish Scheme ")
       (display (version))
@@ -107,18 +94,9 @@
         (let ((help-desc (get-tool-description tools "help" "en_US")))
           (display-command-line "help" help-desc)
         ) ;let
-        (if (not (null? tools))
-          (let ((other-tool-names (filter (lambda (name) (not (string=? name "help")))
-                                          (map (lambda (kv) (symbol->string (car kv))) tools))))
-            (for-each (lambda (tool-name)
-                        (let ((desc (get-tool-description tools tool-name "en_US")))
-                          (display-command-line tool-name desc)
-                        ) ;let
-                      ) ;lambda
-              (list-sort string<? other-tool-names)
-            ) ;for-each
-          ) ;let
-        ) ;if
+        (let ((other-tools (filter (lambda (kv) (not (eq? (car kv) 'help))) tools)))
+          (when (not (null? other-tools))
+            (display-dynamic-commands other-tools)))
         (display-command-line "FILE" "Load and evaluate Scheme code from FILE")
         (newline)
         (display "Options:")

@@ -135,41 +135,22 @@
 ;;; name instead of a (module-ref ...) that would need a runtime module
 ;;; the base library does not register.
 
-(define (emit-toplevel-ref ref src-stx)
+(define (needs-qualified-ref? ref src-stx)
   (let ((home (toplevel-ref-home ref)))
-    (cond
-      ((not home)
-       (make-syntax (toplevel-ref-gensym ref)
-                    (syntax-context src-stx) (syntax-library src-stx)))
-      ((eq? home (syntax-library src-stx))
-       (make-syntax (toplevel-ref-gensym ref)
-                    (syntax-context src-stx) (syntax-library src-stx)))
-      ((eq? home (base-library))
-       (make-syntax (toplevel-ref-gensym ref)
-                    (syntax-context src-stx) (syntax-library src-stx)))
-      ;; A program-library binding has no runtime module (its defs evaluate
-      ;; into the-expander-library under the gensym), so a reference from a
-      ;; macro's own library context must still emit the bare gensym --
-      ;; (module-ref '(program) ...) has nothing to look up, and set! on it
-      ;; needs the gensym too.
-      ((program-library? home)
-       (make-syntax (toplevel-ref-gensym ref)
-                    (syntax-context src-stx) (syntax-library src-stx)))
-      ;; A binding NOT exported from its home library (e.g. an internal
-      ;; helper referenced by one of the library's own macro templates,
-      ;; which R7RS resolves in the defining library's scope) has no
-      ;; runtime module entry -- the runtime module inlet holds only
-      ;; exports, and module-ref rejects the rest.  Emit the bare gensym:
-      ;; the library's defs define it in the rootlet, where the evaluating
-      ;; program (the-expander-library) sees it.
-      ((not (toplevel-ref-exported? ref))
-       (make-syntax (toplevel-ref-gensym ref)
-                    (syntax-context src-stx) (syntax-library src-stx)))
-      (else
-       (datum->syntax src-stx
-         (list 'module-ref
-               (list 'quote (exp-library-name home))
-               (list 'quote (toplevel-ref-original ref))))))))
+    (and home
+         (not (eq? home (syntax-library src-stx)))
+         (not (eq? home (base-library)))
+         (not (program-library? home))
+         (toplevel-ref-exported? ref))))
+
+(define (emit-toplevel-ref ref src-stx)
+  (if (needs-qualified-ref? ref src-stx)
+      (datum->syntax src-stx
+        (list 'module-ref
+              (list 'quote (exp-library-name (toplevel-ref-home ref)))
+              (list 'quote (toplevel-ref-original ref))))
+      (make-syntax (toplevel-ref-gensym ref)
+                   (syntax-context src-stx) (syntax-library src-stx))))
 
 ;;; expand-macro-once : run a transformer once and return its (flipped)
 ;;; output WITHOUT expanding it.  The body scan uses this to see the head

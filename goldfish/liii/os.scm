@@ -75,10 +75,6 @@
       (g_os-call command)
     ) ;define
 
-    (define (system command)
-      (g_system command)
-    ) ;define
-
     (define (access path mode)
       (cond ((eq? mode 'F_OK) (g_access path 0))
             ((eq? mode 'X_OK) (g_access path 128))
