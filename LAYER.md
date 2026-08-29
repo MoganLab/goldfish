@@ -38,9 +38,9 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L2 core-format
 
-- **文件**：`goldfish/core/gfo.scm`（`L2` 单源）。
-- **职责**：编译缓存契约——缓存布局（key 由源路径派生）、时效戳（须记录全部输入：源文件与内核产物）、读写与回退策略。
-- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo/prelude/reader/host-abi/kernel-combined/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离，旧目录整体废弃可删；git 操作不改指纹（内容寻址），checkout/rebase 不失效。
+- **文件**：`goldfish/core/gfo.scm` + `goldfish/core/ir.scm`（`L2` 双源：缓存契约与 tree-il IR 定义）。
+- **职责**：`gfo.scm` 负责编译缓存契约——缓存布局、时效戳、读写与回退；`ir.scm` 是权威的 tree-il/核心 IR 定义（record IR + `core-language` 表），供 `L4` expander 直出与 `L5` compiler 共享，避免 `L3->L5` 层违背。两者皆在内核之前加载，只依赖 `L0` 原语与 `liii` 基建。
+- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo+ir/prelude/reader/host-abi/kernel-combined/expander/tree-il/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离。
 - **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。当前版本 `0`（开发期），`1` 保留给首个发布格式，发布时开发缓存自然失效。
 
 ## L3 expander-rt
@@ -51,15 +51,15 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L4 expander-lib
 
-- **文件**：`goldfish/expander/lib/*.scm`、`goldfish/liii/reader.scm`。
-- **职责**：`cond-expand`/`syntax-case` 等用户态库与完整 reader；`vm` 以宿主原语回退（`vm-load`/`vm-enter` 经 `gf::` 调用），不直接依赖 `L6`。
-- **不变式**：禁止 `import (goldfish compiler)`；`gfo` 单源。
+- **文件**：`goldfish/expander/lib/*.scm`、`goldfish/expander/tree-il.scm`（expander 直出 tree-il 桥）、`goldfish/liii/reader.scm`。
+- **职责**：`cond-expand`/`syntax-case` 等用户态库与完整 reader；`tree-il.scm` 在展开后的 `syntax` 上重建 `IR`，直接产 `<primitive-ref>/<lexical-ref>` 且前置计算 `depth/index`，让 expander 成为 tree-il 的权威发射器；`vm` 以宿主原语回退（`vm-load`/`vm-enter` 经 `gf::` 调用），不直接依赖 `L6`。
+- **不变式**：禁止 `import (goldfish compiler)`（`core/ir` 除外，`core/ir` 为 L2 共享）；`gfo` 单源。
 
 ## L5 compiler
 
-- **文件**：`goldfish/compiler/*.scm`（含 `syntax-ir.scm`，syntax→IR 桥）、`goldfish/compiler.scm`。
-- **职责**：record IR 纯变换与 `lower`/`run-passes`；依赖面收窄为 `L2` 的格式契约，不依赖 `L4` 用户态库。
-- **不变式**：禁止 `s7_` 与 `goldfish/core|expander/lib` 导入。
+- **文件**：`goldfish/compiler/*.scm`（`syntax-ir.scm` 现为对 `expander/tree-il` 的薄包装）、`goldfish/compiler.scm`。
+- **职责**：record IR 纯变换与 `run-passes`；`core->ir/ir->core` 仅为 `s7` 回退路径保留，权威 IR 定义已下沉至 `L2`，`syntax->ir` 直出路径由 `L4` 提供，`L5` 仅消费 `L2` 的 `IR` 契约。
+- **不变式**：禁止 `s7_`；允许 `goldfish/core/ir`（L2 IR），仍禁止其他 `goldfish/core|expander/lib` 导入。
 
 ## L6 vm
 
@@ -100,7 +100,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - s7 `initialize_misc` 三件套：`make-hook`、`call-with-values`、`multiple-value-bind`（注意 cwv 的 unspecified 折叠差异，见演进债）。
 - 延迟形式名单：`catch call/cc call-with-current-continuation dynamic-wind apply` 及 8 个 `call-with-*` / `with-*` I/O 组合子。
-- **核心语言**（lowered 产物的语法面）：10 个 special forms——`quote define lambda if begin let let* letrec letrec* set!`——权威定义在 `goldfish/compiler/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
+- **核心语言**（tree-il 的语法面）：10 个 special forms——`quote define lambda if begin let let* letrec letrec* set!`——权威定义在 `goldfish/core/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
 - 其余为底层语言内建（算术/string/vector/hash-table/port…），按 R7RS-small + 必要扩展对齐，不逐一枚举。
 
 ### T2 平台能力（非语言；来自 OS/C 标准库，共 ~57 个 `g_*`）

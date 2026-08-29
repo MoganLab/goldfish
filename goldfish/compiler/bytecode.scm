@@ -28,7 +28,7 @@
 
 (define-library (goldfish compiler bytecode)
   (import (scheme base)
-          (goldfish compiler ir))
+          (goldfish core ir))
   (export to-bytecode
     encode-bytecode
     valid-bytecode?

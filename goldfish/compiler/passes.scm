@@ -12,7 +12,7 @@
 (define-library (goldfish compiler passes)
   (import (scheme base)
           (goldfish match)
-          (goldfish compiler ir))
+          (goldfish core ir))
   (export run-passes
     compile-defs
     constant-fold

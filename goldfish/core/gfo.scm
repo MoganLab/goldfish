@@ -59,10 +59,11 @@
   ;; mix so an interpreter change moves the directory too.
   (define files
     (append
-      (list "liii/boot.scm" "core/gfo.scm"
+      (list "liii/boot.scm" "core/gfo.scm" "core/ir.scm"
             "liii/prelude.scm" "liii/reader.scm"
             "liii/host-abi.scm"
-            "expander/kernel-combined.scm" "compiler.scm")
+            "expander/kernel-combined.scm" "compiler.scm"
+            "expander/tree-il.scm")
       (map (lambda (n) (string-append "expander/lib/" n)) (gfo-scm-files "expander/lib"))
       (map (lambda (n) (string-append "compiler/" n)) (gfo-scm-files "compiler"))))
   (define (feed acc f)

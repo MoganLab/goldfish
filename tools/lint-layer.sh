@@ -11,9 +11,9 @@ if grep "expander" src/liii_reader.cpp 2>/dev/null | grep -v "//" | grep -q .; t
 if ! head -n 160 goldfish/liii/boot.scm 2>/dev/null | grep -q 'load-source-file "core/gfo.scm"'; then echo "layer violation: L1 boot must load core/gfo.scm first"; fail=1; fi
 if grep -R "goldfish/compiler" goldfish/expander/kernel --include="*.scm" 2>/dev/null | grep -q .; then echo "layer violation: L3 kernel depends on compiler"; fail=1; fi
 if grep -n "goldfish/compiler" goldfish/expander/kernel-combined.scm 2>/dev/null | grep -q .; then echo "layer violation: L3 artifact depends on compiler"; fail=1; fi
-if grep -R "goldfish/compiler" goldfish/expander/lib --include="*.scm" goldfish/liii/reader.scm goldfish/core --include="*.scm" 2>/dev/null | grep -v "^.*:.*;;;" | grep -q .; then echo "layer violation: L4 must not import compiler"; fail=1; fi
+if grep -R "goldfish/compiler" goldfish/expander/lib goldfish/expander/tree-il.scm --include="*.scm" goldfish/liii/reader.scm goldfish/core --include="*.scm" 2>/dev/null | grep -v "^.*:.*;;;" | grep -v "goldfish/compiler/ir" | grep -q .; then echo "layer violation: L4 must not import compiler (except compiler/ir shim)"; fail=1; fi
 if grep -R --include="*.scm" "s7_" goldfish/compiler/ 2>/dev/null | grep -q .; then echo "layer violation: L5 must be pure no s7"; fail=1; fi
-if grep -R --include="*.scm" "goldfish/core\|goldfish/expander/lib" goldfish/compiler/ 2>/dev/null | grep -q .; then echo "layer violation: L5 must not import core/lib"; fail=1; fi
+if grep -R --include="*.scm" "goldfish/core\|goldfish/expander/lib" goldfish/compiler/ 2>/dev/null | grep -v "goldfish/core/ir" | grep -v "goldfish/compiler/ir" | grep -q .; then echo "layer violation: L5 must not import core/lib (except core/ir)"; fail=1; fi
 if grep -R --include="*.h" --include="*.hpp" --include="*.cpp" "goldfish/" src/goldfish_vm.cpp 2>/dev/null | grep -v "^.*//" | grep -q .; then echo "layer violation: L6 vm must not include Scheme files"; fail=1; fi
 if grep -E '#include.*expander|#include.*compiler|\(import.*goldfish/compiler' src/goldfish.hpp 2>/dev/null | grep -q .; then echo "layer violation: L7 loader must not include expander/compiler"; fail=1; fi
 # L0 glue minimal: keep g_xxx primitives only, business logic in Scheme (liii/*)

@@ -176,14 +176,15 @@ target ("goldfish") do
         add_defines("GOLDFISH_WITH_REPL")
     end
 
-    -- L2 core-format : gfo single source, loaded before the kernel
+    -- L2 core-format : gfo + ir (tree-il) shared IR, loaded before the kernel
     add_installfiles("$(projectdir)/goldfish/(core/*.scm)", {prefixdir = "share/goldfish"})
     -- L3 expander-rt : self-contained kernel artifact only -- kernel sources
     -- and build-combined.scm are build-time material, not shipped
     add_installfiles("$(projectdir)/goldfish/(expander/kernel-combined.scm)", {prefixdir = "share/goldfish/expander"})
-    -- L4 expander-lib : no compiler/vm import, vm fallback via host primitive
+    -- L4 expander-lib : tree-il bridge (goldfish/expander/tree-il.scm) lives here, no compiler/vm import except core/ir
     add_installfiles("$(projectdir)/goldfish/(expander/lib/*.scm)", {prefixdir = "share/goldfish/expander/lib"})
-    -- L5 compiler : pure, no s7/core/lib
+    add_installfiles("$(projectdir)/goldfish/(expander/tree-il.scm)", {prefixdir = "share/goldfish/expander"})
+    -- L5 compiler : pure, only core/ir allowed from L2
     add_installfiles("$(projectdir)/goldfish/(compiler/*.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler.scm)", {prefixdir = "share/goldfish"})
     add_installfiles("$(projectdir)/goldfish/(compiler/syntax-ir.scm)", {prefixdir = "share/goldfish"})
