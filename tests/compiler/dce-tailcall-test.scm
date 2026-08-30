@@ -6,6 +6,22 @@
 
 ;; 辅助：tail-call-positions 输出转回带标记 sexp（(tail-call ...) 包装）
 ;; 自实现递归，识别 (tail-call <ir>) 标记（ir->core 不处理它）。
+;; 全部使用权威 (goldfish core ir) API：<lambda> body 是 <lambda-case>，
+;; <begin> 是二元右嵌套 <seq>，<set!> 是 <lexical-set>。
+
+;; seq 树展平为表达式列表。
+(define (seq->list s)
+  (let loop ((s s) (acc '()))
+    (cond ((void? s) (reverse acc))
+          ((seq? s) (loop (seq-tail s) (cons (seq-head s) acc)))
+          (else (reverse (cons s acc))))))
+
+;; arity 分量重建 formals 列表。
+(define (arity->formals req opt rest)
+  (cond ((and (null? opt) rest) (append req rest))
+        ((and (null? opt) (not rest)) req)
+        (else (append req opt (if rest (list rest) '())))))
+
 (define (tc-sexp ir)
   (cond
     ((pair? ir)
@@ -13,35 +29,39 @@
        (list 'tail-call (tc-sexp (cadr ir)))
        (map tc-sexp ir)))
     ((const? ir)
-     (let ((v (const-value ir)))
+     (let ((v (const-exp ir)))
        (if (or (number? v) (string? v) (char? v) (boolean? v)
                (null? v) (eof-object? v))
          v
          (list 'quote v))))
     ((lambda? ir)
-     (let ((bs (lambda-body ir)))
+     (let* ((lc (lambda-body ir))
+            (bs (seq->list (lambda-case-body lc))))
        (cons 'lambda
-             (cons (lambda-formals ir)
+             (cons (arity->formals (lambda-case-req lc)
+                                   (lambda-case-opt lc)
+                                   (lambda-case-rest lc))
                    (if (and (pair? bs) (null? (cdr bs)))
                      (map tc-sexp bs)
                      (list (cons 'begin (map tc-sexp bs))))))))
-    ((if? ir)
-     (list 'if (tc-sexp (if-test ir)) (tc-sexp (if-then ir))
-           (if (if-else ir) (tc-sexp (if-else ir)) #f)))
-    ((begin? ir)
-     (cons 'begin (map tc-sexp (begin-body ir))))
+    ((conditional? ir)
+     (list 'if (tc-sexp (conditional-test ir))
+           (tc-sexp (conditional-consequent ir))
+           (if (conditional-alternate ir) (tc-sexp (conditional-alternate ir)) #f)))
+    ((seq? ir)
+     (cons 'begin (map tc-sexp (seq->list ir))))
     ((let? ir)
      (list 'let
-           (map (lambda (b) (list (car b) (tc-sexp (cadr b))))
-                (let-bindings ir))
-           (map tc-sexp (let-body ir))))
+           (map (lambda (n v) (list n (tc-sexp v)))
+                (let-names ir) (let-vals ir))
+           (map tc-sexp (seq->list (let-body ir)))))
     ((letrec? ir)
      (list 'letrec
-           (map (lambda (b) (list (car b) (tc-sexp (cadr b))))
-                (letrec-bindings ir))
-           (map tc-sexp (letrec-body ir))))
-    ((set!? ir)
-     (list 'set! (set!-target ir) (tc-sexp (set!-expr ir))))
+           (map (lambda (n v) (list n (tc-sexp v)))
+                (letrec-names ir) (letrec-vals ir))
+           (map tc-sexp (seq->list (letrec-body ir)))))
+    ((lexical-set? ir)
+     (list 'set! (lexical-set-name ir) (tc-sexp (lexical-set-exp ir))))
     ((call-with-values? ir)
      (list 'call-with-values (tc-sexp (cwv-producer ir))
            (tc-sexp (cwv-consumer ir))))

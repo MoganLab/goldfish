@@ -31,9 +31,9 @@
 ;; ===== 3. 词法绑定 -> <lexical-ref>（depth/index 前置）=====
 ;; (lambda (x) x)：body 引用 x，depth 0 index 0
 (check (let ((ir (expand->ir '(lambda (x) x))))
-         (let ((b (car (lambda-body ir))))
+         (let ((b (lambda-case-body (lambda-body ir))))
            (list (lambda? ir)
-                 (lambda-formals ir)
+                 (lambda-case-req (lambda-body ir))
                  (lexical-ref? b)
                  (lexical-ref-depth b)
                  (lexical-ref-index b))))
@@ -41,7 +41,7 @@
 
 ;; lambda 体内的 primitive 引用 + 词法参数
 (check (let ((ir (expand->ir '(lambda (x) (car x)))))
-         (let ((b (car (lambda-body ir))))
+         (let ((b (lambda-case-body (lambda-body ir))))
            (list (call? b)
                  (primitive-ref? (call-proc b))
                  (primitive-ref-name (call-proc b))
@@ -53,8 +53,8 @@
 
 ;; 嵌套 lambda：内层引用外层变量 depth 1
 (check (let ((ir (expand->ir '(lambda (x) (lambda (y) x)))))
-         (let ((inner (car (lambda-body ir))))
-           (let ((b (car (lambda-body inner))))
+         (let ((inner (lambda-case-body (lambda-body ir))))
+           (let ((b (lambda-case-body (lambda-body inner))))
              (list (lexical-ref? b)
                    (lexical-ref-depth b)
                    (lexical-ref-index b)))))
@@ -63,22 +63,22 @@
 ;; ===== 4. 复合结构 =====
 ;; if
 (check (let ((ir (expand->ir '(if (> x 0) 1 2))))
-         (list (if? ir)
-               (primitive-ref? (if-test ir))
-               (if-then ir)
-               (if-else ir)))
+         (list (conditional? ir)
+               (primitive-ref? (conditional-test ir))
+               (conditional-consequent ir)
+               (conditional-alternate ir)))
        => '(#t #f 1 2))
 
 ;; 无 else 的 if：expand-expr 以 (if #f #f) 补全 else，因此 if-else
 ;; 是空 if 树（与 core->ir 的 #f 语义等价：都求值为未指定值）
-(check (if? (if-else (expand->ir '(if x (f)))))
+(check (conditional? (conditional-alternate (expand->ir '(if x (f)))))
        => #t)
-(check (eq? (if-test (if-else (expand->ir '(if x (f))))) #f)
+(check (eq? (conditional-test (conditional-alternate (expand->ir '(if x (f))))) #f)
        => #t)
 
 ;; quote -> const
 (check (let ((ir (expand->ir '(quote foo))))
-         (list (const? ir) (const-value ir)))
+         (list (const? ir) (const-exp ir)))
        => '(#t foo))
 
 ;; 嵌套调用：call 的 proc 是 call
@@ -118,7 +118,7 @@
 ;; ===== 7. 词法寻址前置 =====
 ;; 词法引用产 <lexical-ref> 节点，depth/index 在展开层计算
 (check (let ((ir (expand->ir '(lambda (x) x))))
-         (let ((b (car (lambda-body ir))))
+         (let ((b (lambda-case-body (lambda-body ir))))
            (list (lexical-ref? b)
                  (lexical-ref-depth b)
                  (lexical-ref-index b))))
@@ -127,7 +127,7 @@
 ;; 双参数
 ;; 双参数：list 是 primitive-ref，args 是词法引用
 (check (let ((ir (expand->ir '(lambda (x y) (list x y)))))
-         (let ((call (car (lambda-body ir))))
+         (let ((call (lambda-case-body (lambda-body ir))))
            (list (primitive-ref? (call-proc call))
                  (primitive-ref-name (call-proc call))
                  (map (lambda (a)
@@ -137,8 +137,8 @@
 
 ;; 嵌套 lambda：内层引用外层变量 -> depth 1
 (check (let ((ir (expand->ir '(lambda (x) (lambda (y) x)))))
-         (let ((inner (car (lambda-body ir))))
-           (let ((b (car (lambda-body inner))))
+         (let ((inner (lambda-case-body (lambda-body ir))))
+           (let ((b (lambda-case-body (lambda-body inner))))
              (list (lexical-ref? b)
                    (lexical-ref-depth b)
                    (lexical-ref-index b)))))

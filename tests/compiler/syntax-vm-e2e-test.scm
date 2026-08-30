@@ -25,8 +25,8 @@
 (define irs1 (vm-load-syntax
               '((define (a-fact n)
                   (if (= n 0) 1 (* n (a-fact (- n 1))))))))
-(check (eval (list (define-name (car irs1)) 5) (rootlet)) => 120)
-(check (eval (list (define-name (car irs1)) 0) (rootlet)) => 1)
+(check (eval (list (toplevel-define-name (car irs1)) 5) (rootlet)) => 120)
+(check (eval (list (toplevel-define-name (car irs1)) 0) (rootlet)) => 1)
 
 ;; ===== 2. Scheme map + VM closure 回调 =====
 (define irs2 (vm-load-syntax
@@ -34,8 +34,8 @@
                   (map (lambda (x) (* x 2)) l))
                 (define (a-add2 a b)
                   (map + a b)))))
-(check (eval (list (define-name (car irs2)) (list 'quote '(1 2 3))) (rootlet)) => '(2 4 6))
-(check (eval (list (define-name (cadr irs2))
+(check (eval (list (toplevel-define-name (car irs2)) (list 'quote '(1 2 3))) (rootlet)) => '(2 4 6))
+(check (eval (list (toplevel-define-name (cadr irs2))
                    (list 'quote '(1 2)) (list 'quote '(10 20)))
              (rootlet))
        => '(11 22))
@@ -46,13 +46,13 @@
                   (letrec ((loop (lambda (i acc)
                                    (if (= i 0) acc (loop (- i 1) (cons i acc))))))
                     (loop n '()))))))
-(check (eval (list (define-name (car irs3)) 4) (rootlet)) => '(1 2 3 4))
+(check (eval (list (toplevel-define-name (car irs3)) 4) (rootlet)) => '(1 2 3 4))
 
 ;; ===== 4. 嵌套 lambda 捕获 =====
 (define irs4 (vm-load-syntax
               '((define (a-nest x)
                   (lambda (y) (+ x y))))))
-(check ((eval (list (define-name (car irs4)) 10) (rootlet)) 5) => 15)
+(check ((eval (list (toplevel-define-name (car irs4)) 10) (rootlet)) 5) => 15)
 
 ;; ===== 5. 宏展开形态（真实库代码）：cond / let* / and / or / when / unless =====
 (define irs-mac (vm-load-syntax
@@ -68,13 +68,13 @@
                      (and (> a 0) (> b 0)))
                    (define (a-when x)
                      (when (> x 0) (list 'pos x))))))
-(check (eval (list (define-name (car irs-mac)) -1) (rootlet)) => 'neg)
-(check (eval (list (define-name (car irs-mac)) 0) (rootlet)) => 'zero)
-(check (eval (list (define-name (car irs-mac)) 5) (rootlet)) => 'pos)
-(check (eval (list (define-name (cadr irs-mac)) 2 3) (rootlet)) => '(3 9))
-(check (eval (list (define-name (caddr irs-mac)) 1 2) (rootlet)) => #t)
-(check (eval (list (define-name (caddr irs-mac)) 1 -1) (rootlet)) => #f)
-(check (eval (list (define-name (cadddr irs-mac)) 3) (rootlet)) => '(pos 3))
+(check (eval (list (toplevel-define-name (car irs-mac)) -1) (rootlet)) => 'neg)
+(check (eval (list (toplevel-define-name (car irs-mac)) 0) (rootlet)) => 'zero)
+(check (eval (list (toplevel-define-name (car irs-mac)) 5) (rootlet)) => 'pos)
+(check (eval (list (toplevel-define-name (cadr irs-mac)) 2 3) (rootlet)) => '(3 9))
+(check (eval (list (toplevel-define-name (caddr irs-mac)) 1 2) (rootlet)) => #t)
+(check (eval (list (toplevel-define-name (caddr irs-mac)) 1 -1) (rootlet)) => #f)
+(check (eval (list (toplevel-define-name (cadddr irs-mac)) 3) (rootlet)) => '(pos 3))
 
 ;; ===== 6. do 循环（→ letrec loop）=====
 (define irs-do (vm-load-syntax
@@ -82,7 +82,7 @@
                     (do ((i 0 (+ i 1))
                          (acc '() (cons i acc)))
                         ((= i n) (reverse acc)))))))
-(check (eval (list (define-name (car irs-do)) 4) (rootlet)) => '(0 1 2 3))
+(check (eval (list (toplevel-define-name (car irs-do)) 4) (rootlet)) => '(0 1 2 3))
 
 ;; ===== 7. case =====
 (define irs-case (vm-load-syntax
@@ -91,15 +91,15 @@
                         ((1 2) 'small)
                         ((3 4) 'medium)
                         (else 'large))))))
-(check (eval (list (define-name (car irs-case)) 1) (rootlet)) => 'small)
-(check (eval (list (define-name (car irs-case)) 4) (rootlet)) => 'medium)
-(check (eval (list (define-name (car irs-case)) 9) (rootlet)) => 'large)
+(check (eval (list (toplevel-define-name (car irs-case)) 1) (rootlet)) => 'small)
+(check (eval (list (toplevel-define-name (car irs-case)) 4) (rootlet)) => 'medium)
+(check (eval (list (toplevel-define-name (car irs-case)) 9) (rootlet)) => 'large)
 
 ;; ===== 8. 字符串 + map（真实库场景）=====
 (define irs-str (vm-load-syntax
                  '((define (a-toupper s)
                      (list->string (map char-upcase (string->list s)))))))
-(check (eval (list (define-name (car irs-str)) (list 'quote "abc")) (rootlet)) => "ABC")
+(check (eval (list (toplevel-define-name (car irs-str)) (list 'quote "abc")) (rootlet)) => "ABC")
 
 ;; ===== 9. 真实库代码锚点（抽取 (liii list) 的自包含纯函数）=====
 (define (qv . xs) (list 'quote xs))
@@ -110,8 +110,8 @@
                      (cond ((and (= x 0) (null? scheme-list)) #t)
                            ((or (= x 0) (null? scheme-list)) #f)
                            (else (length=? (- x 1) (cdr scheme-list))))))))
-(check (eval (list (define-name (car irs-len)) 3 (qv 'a 'b 'c)) (rootlet)) => #t)
-(check (eval (list (define-name (car irs-len)) 2 (qv 'a 'b 'c)) (rootlet)) => #f)
+(check (eval (list (toplevel-define-name (car irs-len)) 3 (qv 'a 'b 'c)) (rootlet)) => #t)
+(check (eval (list (toplevel-define-name (car irs-len)) 2 (qv 'a 'b 'c)) (rootlet)) => #f)
 
 ;; length>? ：let loop + cond
 (define irs-gt (vm-load-syntax
@@ -121,8 +121,8 @@
                       (cond ((null? lst) (< len cnt))
                             ((pair? lst) (loop (cdr lst) (+ cnt 1)))
                             (else (< len cnt))))))))
-(check (eval (list (define-name (car irs-gt)) (qv 1 2 3 4) 2) (rootlet)) => #t)
-(check (eval (list (define-name (car irs-gt)) (qv 1 2) 5) (rootlet)) => #f)
+(check (eval (list (toplevel-define-name (car irs-gt)) (qv 1 2 3 4) 2) (rootlet)) => #t)
+(check (eval (list (toplevel-define-name (car irs-gt)) (qv 1 2) 5) (rootlet)) => #f)
 
 ;; list-drop ：unless/cond + let loop
 (define irs-drop (vm-load-syntax
@@ -134,9 +134,9 @@
                                     (cond ((null? rest) '())
                                           ((>= count n) rest)
                                           (else (loop (cdr rest) (+ count 1)))))))))))
-(check (eval (list (define-name (car irs-drop)) (qv 'a 'b 'c 'd) 2) (rootlet)) => '(c d))
-(check (eval (list (define-name (car irs-drop)) (qv 'a 'b) 0) (rootlet)) => '(a b))
-(check (eval (list (define-name (car irs-drop)) (qv 'a 'b) 5) (rootlet)) => '())
+(check (eval (list (toplevel-define-name (car irs-drop)) (qv 'a 'b 'c 'd) 2) (rootlet)) => '(c d))
+(check (eval (list (toplevel-define-name (car irs-drop)) (qv 'a 'b) 0) (rootlet)) => '(a b))
+(check (eval (list (toplevel-define-name (car irs-drop)) (qv 'a 'b) 5) (rootlet)) => '())
 
 ;; list-null? / list-not-null? ：and/or
 (define irs-null (vm-load-syntax
@@ -144,9 +144,9 @@
                       (and (not (pair? l)) (null? l)))
                     (define (list-not-null? l)
                       (and (pair? l) (or (null? (cdr l)) (pair? (cdr l))))))))
-(check (eval (list (define-name (car irs-null)) '()) (rootlet)) => #t)
-(check (eval (list (define-name (car irs-null)) (qv 'a)) (rootlet)) => #f)
-(check (eval (list (define-name (cadr irs-null)) (qv 'a)) (rootlet)) => #t)
+(check (eval (list (toplevel-define-name (car irs-null)) '()) (rootlet)) => #t)
+(check (eval (list (toplevel-define-name (car irs-null)) (qv 'a)) (rootlet)) => #f)
+(check (eval (list (toplevel-define-name (cadr irs-null)) (qv 'a)) (rootlet)) => #t)
 
 ;; ===== 10. flatten：内部 define + set-cdr! 共享结构 + 嵌套递归 =====
 (define irs-flat
@@ -168,8 +168,8 @@
            (flatten-depth-iter lst depth res)
            (cdr res)))
        (flatten-depth lst 1)))))
-(check (eval (list (define-name (car irs-flat)) (qv 1 '(2 3) 4)) (rootlet)) => '(1 2 3 4))
-(check (eval (list (define-name (car irs-flat)) (qv '(1 2) '(3 4))) (rootlet)) => '(1 2 3 4))
+(check (eval (list (toplevel-define-name (car irs-flat)) (qv 1 '(2 3) 4)) (rootlet)) => '(1 2 3 4))
+(check (eval (list (toplevel-define-name (car irs-flat)) (qv '(1 2) '(3 4))) (rootlet)) => '(1 2 3 4))
 
 ;; ===== 11. VM 库加载路径：vm-load-syntax-defs（含 passes）=====
 ;; 库代码经 syntax->ir → passes → bytecode → vm-load 到 the-expander-library
@@ -197,10 +197,10 @@
                                           (list constant-fold simplify-if)))
                   defs)))
     (vm-load (encode-bytecode (to-bytecode irs)) the-expander-library)
-    (check ((eval (define-name (car irs)) the-expander-library)
+    (check ((eval (toplevel-define-name (car irs)) the-expander-library)
             3 (list 'a 'b 'c))
            => #t)
-    (check ((eval (define-name (cadr irs)) the-expander-library)
+    (check ((eval (toplevel-define-name (cadr irs)) the-expander-library)
             (list 'a 'b 'c 'd) 2)
            => '(c d))))
 
@@ -214,7 +214,7 @@
                          (f 1)
                          (f 2))
                        (reverse acc))))))
-(check (eval (list (define-name (car irs-set))) (rootlet)) => '(1 2))
+(check (eval (list (toplevel-define-name (car irs-set))) (rootlet)) => '(1 2))
 
 ;; ===== 13. 嵌套 VM→VM 调用（非尾 + 尾调用 + 闭包捕获）=====
 ;; outer 内定义 VM 闭包 inner，先非尾调用（嵌套 VM 帧，返回值要传回
@@ -224,7 +224,7 @@
                       (let ((inner (lambda (y) (+ y 1))))
                         (let ((r (inner x)))
                           (inner r)))))))
-(check (eval (list (define-name (car irs-nest)) 5) (rootlet)) => 7)
+(check (eval (list (toplevel-define-name (car irs-nest)) 5) (rootlet)) => 7)
 
 ;; ===== 14. call-with-values 多值（回归：VM 内多值拼接）=====
 ;; 多值 producer（内联）+ consumer；单值 producer；无值 producer；
@@ -251,11 +251,11 @@
                                (lambda () (values x (+ x 1)))
                                (lambda (a b) (* a b)))))
                        (+ r 1))))))
-(check (eval (list (define-name (car irs-cwv)) 5) (rootlet)) => 15)
-(check (eval (list (define-name (cadr irs-cwv)) 5) (rootlet)) => 60)
-(check (eval (list (define-name (caddr irs-cwv))) (rootlet)) => 42)
-(check (eval (list (define-name (cadddr irs-cwv)) 5) (rootlet)) => 110)
-(check (eval (list (define-name (car (cddddr irs-cwv))) 3) (rootlet)) => 13)
+(check (eval (list (toplevel-define-name (car irs-cwv)) 5) (rootlet)) => 15)
+(check (eval (list (toplevel-define-name (cadr irs-cwv)) 5) (rootlet)) => 60)
+(check (eval (list (toplevel-define-name (caddr irs-cwv))) (rootlet)) => 42)
+(check (eval (list (toplevel-define-name (cadddr irs-cwv)) 5) (rootlet)) => 110)
+(check (eval (list (toplevel-define-name (car (cddddr irs-cwv))) 3) (rootlet)) => 13)
 
 ;; ===== 15. define-record-type（构造/访问/修改/类型区分/闭包捕获）=====
 (define irs-rec (vm-load-syntax
@@ -283,5 +283,5 @@
                               (point-x b))
                             xs)
                        (point-x b))))))
-(check (eval (list (define-name (list-ref irs-rec 12))) (rootlet)) => '(#t #t #f #f 3 4 9 9 5))
-(check (eval (list (define-name (list-ref irs-rec 13)) (list 'quote '(1 2 3))) (rootlet)) => 6)
+(check (eval (list (toplevel-define-name (list-ref irs-rec 12))) (rootlet)) => '(#t #t #f #f 3 4 9 9 5))
+(check (eval (list (toplevel-define-name (list-ref irs-rec 13)) (list 'quote '(1 2 3))) (rootlet)) => 6)

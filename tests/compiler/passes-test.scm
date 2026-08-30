@@ -53,7 +53,7 @@
        => #t)
 
 (check (let ((ir (simplify-if (core->ir '(if x 1 2)))))
-         (if? ir))
+         (conditional? ir))
        => #t)
 
 ;; ===== 5. inline：copy propagation + beta reduction =====
@@ -77,19 +77,24 @@
 (check (fold-sexp '(let ((f (lambda (x) (+ x 1)))) (f 2)) inline) => '(+ 2 1))
 
 ;; ===== 6. tail-call-positions =====
-;; 尾位置应用被 (tail-call ...) 包装
-(check (match (tail-call-positions (core->ir '(lambda (x) (if (> x 0) (f x) (g x)))))
-         (($lambda formals (($if test (tail-call th) (tail-call el))))
-          (list (ir->core th) (ir->core el)))
-         (_ 'no))
+;; 尾位置应用被 (tail-call ...) 包装。lambda body 是 <lambda-case>，
+;; 先经 lambda-body 取 case、再取 case-body 表达式。
+(check (let* ((ir (tail-call-positions (core->ir '(lambda (x) (if (> x 0) (f x) (g x))))))
+              (body (lambda-case-body (lambda-body ir))))
+         (match body
+           (($conditional test (tail-call th) (tail-call el))
+            (list (ir->core th) (ir->core el)))
+           (_ 'no)))
        => '((f x) (g x)))
 
 ;; 尾应用被标记，内层嵌套调用 (f x) 不标记
-(check (match (tail-call-positions (core->ir '(lambda (x) (+ 1 (f x)))))
-         (($lambda formals ((tail-call c)))
-          (list (ir->core (call-proc c))
-                (ir->core (cadr (call-args c)))))
-         (_ 'no))
+(check (let* ((ir (tail-call-positions (core->ir '(lambda (x) (+ 1 (f x))))))
+              (body (lambda-case-body (lambda-body ir))))
+         (match body
+           ((tail-call c)
+            (list (ir->core (call-proc c))
+                  (ir->core (cadr (call-args c)))))
+           (_ 'no)))
        => '(+ (f x)))
 
 ;; ===== 7. eliminate-dead-defs =====
@@ -99,7 +104,7 @@
                                      (define main (lambda () (used 1)))
                                      (register main))))
               (survivors (eliminate-dead-defs defs)))
-         (map (lambda (d) (define-name d)) survivors))
+         (map (lambda (d) (toplevel-define-name d)) survivors))
        => '(used main register))
 
 ;; 引用链保留：register 引用 b，b 引用 a
@@ -107,14 +112,14 @@
                                      (define b (lambda () (a)))
                                      (register b))))
               (survivors (eliminate-dead-defs defs)))
-         (map (lambda (d) (define-name d)) survivors))
+         (map (lambda (d) (toplevel-define-name d)) survivors))
        => '(a b register))
 
 ;; 自我递归的 def 若被引用保留
 (check (let* ((defs (map core->ir '((define loop (lambda (i) (if (= i 0) 0 (loop (- i 1)))))
                                      (register loop))))
               (survivors (eliminate-dead-defs defs)))
-         (map (lambda (d) (define-name d)) survivors))
+         (map (lambda (d) (toplevel-define-name d)) survivors))
        => '(loop register))
 
 (check-report)

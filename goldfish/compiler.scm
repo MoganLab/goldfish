@@ -35,6 +35,8 @@
     make-let let? let-source let-names let-gensyms let-vals let-body
     make-letrec letrec? letrec-source letrec-in-order? letrec-names letrec-gensyms letrec-vals letrec-body
     make-let-values let-values? let-values-source let-values-exp let-values-body
+    make-values values? values-source values-args
+    make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
     make-toplevel-ref toplevel-ref? toplevel-ref-source toplevel-ref-name
     make-toplevel-set toplevel-set? toplevel-set-source toplevel-set-name toplevel-set-exp
     make-toplevel-define toplevel-define? toplevel-define-source toplevel-define-name toplevel-define-exp

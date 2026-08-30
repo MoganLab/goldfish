@@ -18,9 +18,8 @@
           (goldfish match))
   (export $void $const $primitive-ref $lexical-ref $lexical-set
     $conditional $call $primcall $seq $lambda $lambda-case
-    $let $letrec $fix $let-values
-    $toplevel-ref $toplevel-set $toplevel-define $module-ref $module-set
-    $define $if $begin $set!)
+    $let $letrec $let-values $values $call-with-values
+    $toplevel-ref $toplevel-set $toplevel-define $module-ref $module-set)
   (begin
 
     (define-syntax $void
@@ -113,38 +112,6 @@
                   (list '=> 'lambda-case-body (cadddr (cddddr d)))
                   (list '=> 'lambda-case-alternate (car (cddddr (cddddr d)))))))))
 
-    (define-syntax $define
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'toplevel-define?
-                  (list '=> 'toplevel-define-name (cadr d))
-                  (list '=> 'toplevel-define-exp (caddr d)))))))
-
-    (define-syntax $if
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'conditional?
-                  (list '=> 'conditional-test (cadr d))
-                  (list '=> 'conditional-consequent (caddr d))
-                  (list '=> 'conditional-alternate (cadddr d)))))))
-
-    (define-syntax $begin
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'seq?
-                  (list '=> 'begin-body (cadr d)))))))
-
-    (define-syntax $set!
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'set!?
-                  (list '=> 'set!-target (cadr d))
-                  (list '=> 'set!-expr (caddr d)))))))
-
     (define-syntax $let
       (lambda (stx)
         (let ((d (syntax->datum stx)))
@@ -167,16 +134,6 @@
                   (list '=> 'letrec-vals (cadr (cddddr d)))
                   (list '=> 'letrec-body (caddr (cddddr d))))))))
 
-    (define-syntax $fix
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'fix?
-                  (list '=> 'fix-names (cadr d))
-                  (list '=> 'fix-gensyms (caddr d))
-                  (list '=> 'fix-vals (cadddr d))
-                  (list '=> 'fix-body (car (cddddr d))))))))
-
     (define-syntax $let-values
       (lambda (stx)
         (let ((d (syntax->datum stx)))
@@ -184,6 +141,21 @@
             (list '? 'let-values?
                   (list '=> 'let-values-exp (cadr d))
                   (list '=> 'let-values-body (caddr d)))))))
+
+    (define-syntax $values
+      (lambda (stx)
+        (let ((d (syntax->datum stx)))
+          (datum->syntax stx
+            (list '? 'values?
+                  (list '=> 'values-args (cadr d)))))))
+
+    (define-syntax $call-with-values
+      (lambda (stx)
+        (let ((d (syntax->datum stx)))
+          (datum->syntax stx
+            (list '? 'call-with-values?
+                  (list '=> 'cwv-producer (cadr d))
+                  (list '=> 'cwv-consumer (caddr d)))))))
 
     (define-syntax $toplevel-ref
       (lambda (stx)
