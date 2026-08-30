@@ -536,11 +536,12 @@
 (check-catch 'read-error (read-str (deep-nested 41000)))
 
 ;; the limit also applies to vector and quote abbreviation nesting
+;; NOTE: build the nested #(...) with one apply instead of an O(n^2)
+;; append loop -- the accumulator version copies up to ~1.6 GiB for
+;; n=41000, which trips the 2 GiB ulimit used by the test runner.
 (define (deep-vectors n)
-  (let loop ((i 0) (acc ""))
-    (if (= i n)
-      (string-append acc (make-string n #\)))
-      (loop (+ i 1) (string-append acc "#(")))))
+  (string-append (apply string-append (make-list n "#("))
+                 (make-string n #\))))
 (check (vector? (read-str (deep-vectors 100))) => #t)
 (check-catch 'read-error (read-str (deep-vectors 41000)))
 

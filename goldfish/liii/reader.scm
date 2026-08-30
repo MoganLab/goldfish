@@ -445,6 +445,8 @@
       (read-expr port ch))))
 
 (define (read-vector port)
+  (when (> *depth* *max-vector-depth*)
+    (error 'read-error "maximum nesting depth exceeded"))
   (let loop ((ch (next-non-whitespace port)) (acc '()))
     (if (eof-object? ch)
       (error 'read-error "unexpected end of input in vector")
@@ -610,6 +612,13 @@
 ;; segfaults at roughly 60k-70k nested levels on default C stacks, so refuse
 ;; to go deeper with a catchable read-error instead of crashing.
 (define *max-depth* 40000)
+;; The vector path (read-expr -> read-sharp -> read-vector) burns more C
+;; stack per level than the list path (read-expr -> read-parenthesized), so
+;; a deep #(...) overflows before the *max-depth* check trips (deep-vectors
+;; 41000 segfaulted).  Cap it lower so vectors fail with read-error too;
+;; 30000 is well under the measured overflow point (~38k) and above every
+;; legitimate use.
+(define *max-vector-depth* 30000)
 (define *depth* 0)
 
 (define (read-expr port ch)
