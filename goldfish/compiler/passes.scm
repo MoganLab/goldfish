@@ -346,14 +346,6 @@
     ;; Propagated bindings are kept in their let/letrec, so a reference
     ;; left behind by a depth cut is still bound.
 
-    (define (lambda-formals->list formals)
-      (if (symbol? formals)
-        (list formals)
-        (let loop ((f formals) (acc '()))
-          (cond ((null? f) (reverse acc))
-                ((pair? f) (loop (cdr f) (cons (car f) acc)))
-                (else (reverse (cons f acc)))))))
-
     ;; lambda-req : ir -> (list symbol) or #f
     ;; The required formal names of a lambda (via its lambda-case), or #f
     ;; if the body is not a lambda-case (degenerate).
