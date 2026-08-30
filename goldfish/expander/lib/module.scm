@@ -394,12 +394,42 @@
              ;; the old source-spec replay (extract-macro-specs), which could
              ;; not recognize every macro-defining form.
              (macros (map (lambda (m)
-                            (cons (car m)
-                                  (or (compile-transformer-to-program (cdr m))
-                                      (serialize-cache-sexp (cdr m)))))
-                          (take-collected-macros)))
-             (low-defs (map lower defs)))
-        (values (list name exports imports bindings macros low-defs) ctx1)))))
+                             (cons (car m)
+                                   (or (compile-transformer-to-program (cdr m))
+                                       (serialize-cache-sexp (cdr m)))))
+                           (take-collected-macros)))
+             (def-ir (cache-defs->ir defs ctx1)))
+        (values (list name exports imports bindings macros def-ir) ctx1)))))
+
+;;; cache-defs->ir : (list syntax) context -> (list ir|sexp)
+;;; Cache the defs as record tree-il (via syntax->ir/sexp) so the
+;;; optimized cache path keeps <primitive-ref> binding kinds through the
+;;; passes -- the lowered form core->ir sees loses that distinction.  The
+;;; IR serializes cleanly (records are plain vectors; gensym names are
+;;; interned symbols).  Falls back to lowered sexp when the compiler is not
+;;; loaded (bootstrap: compile-defs-cached could not ir->core it back) or
+;;; when (goldfish expander tree-il) is itself being captured (recursion
+;;; guard: loading it would trip the circular-dependency check).
+
+(define (cache-defs->ir defs ctx)
+  (if (or (not (runtime-registered? '(goldfish compiler)))
+          (member '(goldfish expander tree-il) *libraries-being-loaded*))
+    (map lower defs)
+    (let ((s2ir
+           (catch
+             #t
+             (lambda ()
+               (if (not (runtime-registered? '(goldfish expander tree-il)))
+                 (load-library! '(goldfish expander tree-il)))
+               (module-ref (lookup-module '(goldfish expander tree-il))
+                           'syntax->ir/sexp))
+             (lambda (tag . info) #f))))
+      (if (procedure? s2ir)
+        (catch
+          #t
+          (lambda () (map (lambda (d) (s2ir d ctx)) defs))
+          (lambda (tag . info) (map lower defs)))
+        (map lower defs)))))
 
 ;;; capture-file-cache : (list datum) -> (values (list lib-cache) context)
 ;;; Capture every define-library form in a file, in order, returning the
@@ -568,16 +598,18 @@
               (map lower defs)))
           (map lower defs))))))
 
-;;; compile-defs-cached : (list sexp) -> (list sexp)
-;;; Apply the compiler pipeline to ALREADY-LOWERED defs (the cached-file
-;;; path: capture-library-cache stores lowered sexp, since syntax objects
-;;; cannot be serialized).  This mirrors compile-defs-on-load but cannot
-;;; use syntax->ir -- the binding-kind information is gone after lower --
-;;; so it falls back to core->ir on the lowered sexp.
+;;; compile-defs-cached : (list ir|sexp) -> (list sexp)
+;;; Apply the compiler pipeline to a cache record's defs (the cached-file
+;;; path: capture-library-cache stores record tree-il via syntax->ir/sexp,
+;;; falling back to lowered sexp when the compiler is unavailable).  The
+;;; result is ALWAYS lowered sexp: it is what the s7 evaluator / VM eats
+;;; at load time, and the cache is shared across optimization levels.
+;;; IR defs run through run-passes directly (binding kinds preserved); a
+;;; lowered fallback def (bootstrap capture) is lifted with core->ir.
 
 (define (compile-defs-cached defs)
   (let ((level (optimization-level)))
-    (if (zero? level)
+    (if (and (zero? level) (or (null? defs) (not (vector? (car defs)))))
       defs
       (let ((compiler
              (catch
@@ -588,19 +620,31 @@
                  (lookup-module '(goldfish compiler)))
                (lambda (tag . info) #f))))
         (if (module? compiler)
-          (let ((compile-defs (module-ref compiler 'compile-defs))
+          (let ((run-passes (module-ref compiler 'run-passes))
+                (core->ir (module-ref compiler 'core->ir))
+                (ir->core (module-ref compiler 'ir->core))
                 (constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if))
-                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
-            (if lower-let
-              (if (>= level 2)
-                (let ((inline (module-ref compiler 'inline)))
-                  (compile-defs defs (list constant-fold inline simplify-if lower-let)))
-                (compile-defs defs (list constant-fold simplify-if lower-let)))
-              (if (>= level 2)
-                (let ((inline (module-ref compiler 'inline)))
-                  (compile-defs defs (list constant-fold inline simplify-if)))
-                (compile-defs defs (list constant-fold simplify-if)))))
+                (simplify-if (module-ref compiler 'simplify-if)))
+            ;; NOTE: lower-let is deliberately NOT in the pass set.  It
+            ;; lowers a <let> into a lambda-case whose formals restart slot
+            ;; numbering at 0, but syntax->ir's IR carries real lexical
+            ;; (depth . index) addresses computed against the enclosing
+            ;; frame (env-next-slot), so the lowered body's refs would
+            ;; point at the wrong slots.  lower-let was written for
+            ;; core->ir's placeholder addressing; bytecode/compile-let
+            ;; handles <let> directly, so it is not needed here.
+            (let ((ir-defs (if (or (null? defs) (vector? (car defs)))
+                              defs
+                              (map core->ir defs)))
+                  (passes (if (>= level 2)
+                              (let ((inline (module-ref compiler 'inline)))
+                                (list constant-fold inline simplify-if))
+                              (list constant-fold simplify-if))))
+              (map (lambda (d)
+                     (if (zero? level)
+                       (ir->core d)
+                       (ir->core (run-passes d passes))))
+                   ir-defs)))
           defs)))))
 
 ;;; optimize-on-load : sexp -> sexp

@@ -94,16 +94,24 @@
                 (else (reverse (cons f acc)))))))
 
     (define (formals->datum f)
-      (let ((d (if (syntax? f) (syntax->datum f) f)))
-        (cond ((symbol? d) d)
-              ((null? d) '())
-              ((pair? d)
-               (let loop ((p d) (acc '()))
-                 (cond ((null? p) (reverse acc))
-                       ((pair? p)
-                        (loop (cdr p) (cons (if (syntax? (car p)) (syntax->datum (car p)) (car p)) acc)))
-                       (else (reverse (cons (if (syntax? p) (syntax->datum p) p) acc))))))
-              (else d))))
+      ;; The formals datum with a DOTTED rest preserved: (l:2 . r:3) must
+      ;; stay (l:2 . r:3) so formals->arity recovers the rest parameter.
+      ;; Unwrapping to (l:2 r:3) loses it and the lambda-case gains an
+      ;; ordinary formal instead of the rest marker.
+      (cond
+        ((syntax? f) (formals->datum (syntax-form f)))
+        ((symbol? f) f)
+        ((null? f) '())
+        ((pair? f)
+         (let loop ((p f) (acc '()))
+           (cond ((null? p) (reverse acc))
+                 ((pair? p)
+                  (loop (cdr p)
+                        (cons (if (syntax? (car p)) (syntax->datum (car p)) (car p))
+                              acc)))
+                 (else (append (reverse acc)
+                               (if (syntax? p) (syntax->datum p) p))))))
+        (else f)))
 
     ;; formals->arity : formals -> (values req opt rest)
     ;; Split a formals list into Guile lambda-case arity parts.

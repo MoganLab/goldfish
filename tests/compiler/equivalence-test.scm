@@ -32,7 +32,10 @@
 (let* ((forms (call-with-input-file "goldfish/srfi/srfi-1.scm" read-forms))
        (recs (let*-values (((r c) (capture-file-cache forms))) r))
        (rec (car recs))
-       (defs (list-ref rec 5)))
+       ;; capture-file-cache now stores record tree-il (syntax->ir/sexp), so
+       ;; lift the defs back to lowered sexp for the s7 evaluator and find
+       ;; define names through the toplevel-define record.
+       (defs (map ir->core (list-ref rec 5))))
   (let ((compiled (compile-defs defs (list constant-fold inline simplify-if))))
     ;; 1. pass 管线可处理真实产物且结构保持
     (check (= (length compiled) (length defs)) => #t)

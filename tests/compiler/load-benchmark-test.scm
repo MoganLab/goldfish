@@ -26,7 +26,8 @@
 (let* ((forms (call-with-input-file "goldfish/srfi/srfi-1.scm" read-forms))
        (recs (let*-values (((r c) (capture-file-cache forms))) r))
        (rec (car recs))
-       (defs (list-ref rec 5))
+       ;; capture-file-cache stores record tree-il; lower it back for eval.
+       (defs (map ir->core (list-ref rec 5)))
        (e (inlet)))
   (for-each (lambda (d) (eval d e)) defs)
   (let ((take (gensym-name-of defs "take")))
