@@ -371,7 +371,11 @@
         (let* let "(let* ((var init)...) body...); lowers to nested lets")
         (letrec letrec "(letrec ((var init)...) body...)")
         (letrec* letrec "(letrec* ((var init)...) body...)")
-        (set! set! "(set! var expr)")))
+        (set! set! "(set! var expr)")
+        (values values "(values expr...); multiple values")
+        (call-with-values call-with-values "(call-with-values producer consumer)")
+        (module-ref module-ref "(module-ref 'lib 'name); cross-library reference")
+        (module-set module-set "(module-set 'lib 'name expr); cross-library assignment")))
 
     (define (core-form? head)
       (and (assq head core-language) #t))

@@ -144,7 +144,14 @@
          (_ 'no))
        => '(define f (lambda (x) (+ x 1))))
 
-;; ===== 5. 深层匹配重写（模拟一个 pass 的骨架）=====
+;; ===== 5. core-language 契约 =====
+;; core-form? 识别 core->ir 支持的全部 special-form 头（含派生形式）。
+(check (map core-form? '(quote define lambda if begin let let* letrec
+                          letrec* set! values call-with-values
+                          module-ref module-set))
+       => '(#t #t #t #t #t #t #t #t #t #t #t #t #t #t))
+
+;; ===== 6. 深层匹配重写（模拟一个 pass 的骨架）=====
 (check (match (core->ir '(f (g x)))
          (($call f (($call g (x)))) (list 'nested f g))
          (_ 'no))
