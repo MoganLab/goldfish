@@ -155,3 +155,19 @@
 
 ;; ===== 8. lexical-ref 字节码编译 =====
 ;; （to-bytecode 编译已在 syntax-vm-e2e-test 的端到端闭环中覆盖）
+
+;; ===== 9. rest formals 保持 dotted（回归）=====
+;; formals->datum 曾把 (l . r) 展平成 (l r)，使 lambda-case-rest 丢失，
+;; ir->core 还原出 (lambda (l r) ...) 而非 (lambda (l . r) ...)，进而破坏
+;; srfi-13 的 string-join 等按 rest 调用的函数（extract-params 收到裸分隔符）。
+(check (let*-values (((defs ctx) (expand-library-body
+                                  (list (wrap-expression '(define (f l . r) (car r))))
+                                  the-base-library
+                                  (initial-context))))
+         (let* ((ir (syntax->ir/sexp (car defs) ctx))
+                (core (ir->core ir))
+                (formals (cadr (caddr core))))
+           ;; (lambda (l . r) ...) restores a dotted formals list; the
+           ;; flattened (l r) regression would fail the symbol? tail check.
+           (and (pair? formals) (symbol? (cdr formals)))))
+       => #t)
