@@ -34,7 +34,6 @@
       lambda-case-inits lambda-case-gensyms lambda-case-body lambda-case-alternate
     make-let let? let-source let-names let-gensyms let-vals let-body
     make-letrec letrec? letrec-source letrec-in-order? letrec-names letrec-gensyms letrec-vals letrec-body
-    make-fix fix? fix-source fix-names fix-gensyms fix-vals fix-body
     make-let-values let-values? let-values-source let-values-exp let-values-body
     make-toplevel-ref toplevel-ref? toplevel-ref-source toplevel-ref-name
     make-toplevel-set toplevel-set? toplevel-set-source toplevel-set-name toplevel-set-exp

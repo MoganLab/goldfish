@@ -9,7 +9,6 @@
     make-lexical-set lexical-set? lexical-set-source lexical-set-name lexical-set-depth lexical-set-index lexical-set-exp
     make-let let? let-source let-names let-gensyms let-vals let-body
     make-letrec letrec? letrec-source letrec-in-order? letrec-names letrec-gensyms letrec-vals letrec-body
-    make-fix fix? fix-source fix-names fix-gensyms fix-vals fix-body
     make-let-values let-values? let-values-source let-values-exp let-values-body
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
@@ -103,14 +102,10 @@
     (define (letrec-gensyms x) (vector-ref x 4))
     (define (letrec-vals x) (vector-ref x 5))
     (define (letrec-body x) (vector-ref x 6))
-    (define (make-fix source names gensyms vals body) (vector 'fix source names gensyms vals body))
-    (define (fix? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'fix)))
-    (define (fix-source x) (vector-ref x 1))
-    (define (fix-names x) (vector-ref x 2))
-    (define (fix-gensyms x) (vector-ref x 3))
-    (define (fix-vals x) (vector-ref x 4))
-    (define (fix-body x) (vector-ref x 5))
     (define (make-let-values source exp body) (vector 'let-values source exp body))
+    ;; (No <fix> node: Guile's fix denotes a letrec without forward
+    ;; references; goldfish lowers named-let straight to <letrec>, so the
+    ;; node is never produced and was removed.)
     (define (make-toplevel-ref source name) (vector 'toplevel-ref source name))
     (define (toplevel-ref? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'toplevel-ref)))
     (define (toplevel-ref-source x) (vector-ref x 1))

@@ -15,8 +15,7 @@
   (export syntax->ir
     syntax->ir/sexp
     expand->ir
-    compile-syntax-defs
-    compile-syntax-program)
+    compile-syntax-defs)
   (begin
 
     ;; compile-syntax-defs : (list syntax) context (list pass) -> (list sexp)
@@ -26,8 +25,4 @@
           (reverse acc)
           (rec (cdr ds)
                (cons (ir->core (run-passes (syntax->ir/sexp (car ds) ctx) passes))
-                     acc)))))
-
-    ;; compile-syntax-program : (list syntax) context (list pass) -> program
-    (define (compile-syntax-program defs ctx passes)
-      (to-bytecode (map (lambda (d) (syntax->ir d ctx)) defs)))))
+                     acc)))))))

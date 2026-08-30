@@ -33,7 +33,6 @@
       lambda-case-inits lambda-case-gensyms lambda-case-body lambda-case-alternate
     make-let let? let-source let-names let-gensyms let-vals
     make-letrec letrec? letrec-source letrec-in-order? letrec-names letrec-gensyms letrec-vals
-    make-fix fix? fix-source fix-names fix-gensyms fix-vals fix-body
     make-let-values let-values? let-values-source let-values-exp let-values-body
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
@@ -147,13 +146,6 @@
     (define letrec-names core:letrec-names)
     (define letrec-gensyms core:letrec-gensyms)
     (define letrec-vals core:letrec-vals)
-    (define make-fix core:make-fix)
-    (define fix? core:fix?)
-    (define fix-source core:fix-source)
-    (define fix-names core:fix-names)
-    (define fix-gensyms core:fix-gensyms)
-    (define fix-vals core:fix-vals)
-    (define fix-body core:fix-body)
     (define make-let-values core:make-let-values)
     (define let-values? core:let-values?)
     (define let-values-source core:let-values-source)
