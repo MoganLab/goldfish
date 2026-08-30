@@ -1019,8 +1019,8 @@
 ;; Apply the active compiler pipeline to expanded defs (the per-form /
 ;; REPL path, mirroring the cached paths).  The defs are un-lowered syntax
 ;; objects, so the pipeline runs via syntax->ir, which keeps the
-;; binding-kind information (primitive references) that core->ir cannot
-;; see on lowered sexp.  compile-defs-on-load lives in the (goldfish)
+;; binding-kind information (primitive references).  compile-defs-on-load
+;; lives in the (goldfish)
 ;; library, not in this early seed's rootlet, so it is fetched via
 ;; module-ref; unavailable or failing, defs pass through unchanged
 ;; (optimization is optional).

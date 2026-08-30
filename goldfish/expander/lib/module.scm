@@ -420,9 +420,9 @@
 ;;; cache-defs->ir : (list syntax) context -> (list ir|sexp)
 ;;; Cache the defs as record tree-il (via syntax->ir/sexp) so the
 ;;; optimized cache path keeps <primitive-ref> binding kinds through the
-;;; passes -- the lowered form core->ir sees loses that distinction.  The
-;;; IR serializes cleanly (records are plain vectors; gensym names are
-;;; interned symbols).  Falls back to lowered sexp when the compiler is not
+;;; passes (lowered sexp loses that distinction).  The IR serializes
+;;; cleanly (records are plain vectors; gensym names are interned
+;;; symbols).  Falls back to lowered sexp when the compiler is not
 ;;; loaded (bootstrap: compile-defs-cached could not ir->core it back) or
 ;;; when (goldfish expander tree-il) is itself being captured (recursion
 ;;; guard: loading it would trip the circular-dependency check).
@@ -557,8 +557,8 @@
 ;;; The defs are UN-LOWERED syntax objects (the expand-library-body
 ;;; output), so the pipeline runs via syntax->ir: primitive references
 ;;; stay <primitive-ref> nodes through the passes.  The cached-file path
-;;; stores already-lowered sexp and is handled by optimize-lib-cache-recs
-;;; via compile-defs (core->ir on lowered sexp).
+;;; (compile-defs-cached) runs the same syntax->ir IR through the passes
+;;; and lowers it for the shared cache.
 
 ;;; compiler-module : -> module/#f
 ;;; Lazy-load (goldfish compiler); #f when unavailable (bootstrap phase,

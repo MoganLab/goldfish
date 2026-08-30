@@ -21,7 +21,7 @@
     make-call call? call-source call-proc call-args
     make-primcall primcall? primcall-source primcall-name primcall-args
     core-language core-form? core-node-of validate-core-sexp
-    core->ir ir->core)
+    ir->core)
   (begin
     (define (make-void source) (vector 'void source))
     (define (void? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'void)))
@@ -145,135 +145,11 @@
     (define (seq-source x) (vector-ref x 1))
     (define (seq-head x) (vector-ref x 2))
     (define (seq-tail x) (vector-ref x 3))
-    (define (lambda-formals->list formals)
-      (if (symbol? formals)
-        (list formals)
-        (let loop ((f formals) (acc '()))
-          (cond ((null? f) (reverse acc))
-                ((pair? f) (loop (cdr f) (cons (car f) acc)))
-                (else (reverse (cons f acc)))))))
-    (define (formals->arity f)
-      (cond
-        ((symbol? f) (list '() '() f))
-        (else
-         (let loop ((p f) (req '()) (opt '()) (rest #f))
-           (cond
-             ((null? p) (list (reverse req) (reverse opt) rest))
-             ((pair? p) (loop (cdr p) (cons (car p) req) opt rest))
-             (else (list (reverse req) (reverse opt) p)))))))
     (define (arity->formals req opt rest)
       (cond
         ((and (null? opt) rest) (append req rest))
         ((and (null? opt) (not rest)) req)
         (else (append req opt (if rest (list rest) '())))))
-    (define (core->ir sexp)
-      (cond
-        ((or (symbol? sexp) (not (pair? sexp))) sexp)
-        (else
-         (let ((head (car sexp)))
-           (case head
-             ((quote) (make-const #f (cadr sexp)))
-             ((define)
-              (if (symbol? (cadr sexp))
-                (make-toplevel-define #f (cadr sexp) (core->ir (caddr sexp)))
-                (let* ((df (cadr sexp))
-                       (dname (car df))
-                       (dformals (cdr df))
-                       (names (lambda-formals->list dformals))
-                       (arity (formals->arity dformals)))
-                  (make-toplevel-define #f dname
-                                       (make-lambda #f #f
-                                                    (make-lambda-case #f
-                                                                     (car arity) (cadr arity) (caddr arity)
-                                                                     #f '() names
-                                                                     (core->ir (cons 'begin (cddr sexp)))
-                                                                     #f))))))
-             ((lambda)
-              (let* ((dformals (cadr sexp))
-                     (names (lambda-formals->list dformals))
-                     (arity (formals->arity dformals)))
-                (make-lambda #f #f
-                             (make-lambda-case #f
-                                              (car arity) (cadr arity) (caddr arity)
-                                              #f '() names
-                                              (core->ir (cons 'begin (cddr sexp)))
-                                              #f))))
-             ((begin)
-              (let join ((exps (cdr sexp)))
-                (cond
-                  ((null? exps) (make-void #f))
-                  ((null? (cdr exps)) (core->ir (car exps)))
-                  (else (make-seq #f (core->ir (car exps)) (join (cdr exps)))))))
-             ((if)
-              (if (pair? (cdddr sexp))
-                (make-conditional #f (core->ir (cadr sexp)) (core->ir (caddr sexp))
-                                  (if (eq? (cadddr sexp) #f)
-                                    (make-const #f #f)
-                                    (core->ir (cadddr sexp))))
-                (make-conditional #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
-             ((let)
-              (if (symbol? (cadr sexp))
-                (let* ((name (cadr sexp))
-                       (bindings (caddr sexp))
-                       (body (cdddr sexp))
-                       (bnames (map car bindings)))
-                  (make-letrec 'letrec #f
-                               (list name) (list name)
-                               (list (make-lambda #f #f
-                                                  (make-lambda-case #f bnames '() #f #f '()
-                                                                   bnames
-                                                                   (core->ir (cons 'begin body))
-                                                                   #f)))
-                               (make-call #f name
-                                          (map (lambda (b) (core->ir (cadr b))) bindings))))
-                (let* ((bindings (cadr sexp))
-                       (bnames (map car bindings)))
-                  (make-let #f bnames bnames
-                            (map (lambda (b) (core->ir (cadr b))) bindings)
-                            (core->ir (cons 'begin (cddr sexp)))))))
-              ((let*)
-               (let rec ((bs (cadr sexp)))
-                 (if (null? (cdr bs))
-                   (make-let #f (list (caar bs)) (list (caar bs))
-                             (list (core->ir (cadar bs)))
-                             (core->ir (cons 'begin (cddr sexp))))
-                   (make-let #f (list (caar bs)) (list (caar bs))
-                             (list (core->ir (cadar bs)))
-                             (rec (cdr bs))))))
-             ((letrec letrec*)
-              (make-letrec head
-                           (eq? head 'letrec*)
-                           (map car (cadr sexp))
-                           (map car (cadr sexp))
-                           (map (lambda (b) (core->ir (cadr b))) (cadr sexp))
-                           (core->ir (cons 'begin (cddr sexp)))))
-             ((set!)
-              ;; core->ir works on lowered sexp with no binding info; the
-              ;; target type is unknown here, so emit a lexical-set with a
-              ;; name and a depth/index placeholder.
-              (make-lexical-set #f (cadr sexp) 0 0 (core->ir (caddr sexp))))
-             ((values)
-              (make-values #f (map core->ir (cdr sexp))))
-             ((call-with-values)
-              (make-call-with-values #f (core->ir (cadr sexp)) (core->ir (caddr sexp))))
-             ((module-ref)
-              ;; (module-ref (quote lib) (quote name)) is the cross-library
-              ;; reference emitted by emit-toplevel-ref; a plain
-              ;; (module-ref m name) application is a call.
-              (if (and (pair? (cadr sexp)) (eq? (caadr sexp) 'quote)
-                       (pair? (caddr sexp)) (eq? (caaddr sexp) 'quote))
-                (make-module-ref #f (cadr (cadr sexp)) (cadr (caddr sexp)) #t)
-                (make-call #f (core->ir head) (map core->ir (cdr sexp)))))
-             ((module-set)
-              ;; (module-set (quote lib) (quote name) exp) is the
-              ;; cross-library assignment; a plain (module-set m name v)
-              ;; application is a call.
-              (if (and (pair? (cadr sexp)) (eq? (caadr sexp) 'quote)
-                       (pair? (caddr sexp)) (eq? (caaddr sexp) 'quote))
-                (make-module-set #f (cadr (cadr sexp)) (cadr (caddr sexp)) #t
-                                 (core->ir (cadddr sexp)))
-                (make-call #f (core->ir head) (map core->ir (cdr sexp)))))
-             (else (make-call #f (core->ir head) (map core->ir (cdr sexp)))))))))
     (define (ir->core ir)
       (cond
         ((const? ir)

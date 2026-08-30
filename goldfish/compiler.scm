@@ -17,8 +17,7 @@
           (goldfish compiler patterns)
           (goldfish compiler passes)
           (goldfish compiler bytecode))
-  (export core->ir
-    ir->core
+  (export ir->core
     core-language core-form? core-node-of validate-core-sexp
     make-void void? void-source
     make-const const? const-source const-exp
@@ -48,7 +47,6 @@
     $let $letrec $let-values $values $call-with-values
     $toplevel-ref $toplevel-set $toplevel-define $module-ref $module-set
     run-passes
-    compile-defs
     constant-fold
     simplify-if
     inline

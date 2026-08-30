@@ -1,11 +1,36 @@
 (import (liii check)
         (goldfish compiler)
-        (goldfish core ir))
+        (goldfish core ir)
+        (goldfish)
+        (goldfish expander tree-il))
 
 ;; L2-1 单元测试：constant-fold 与 simplify-if pass 的行为（record IR 版）。
 
-;; 辅助：sexp -> core->ir -> pass -> ir->core
-(define (fold-sexp core pass) (ir->core (pass (core->ir core))))
+;; 辅助：datum -> expander 直出 IR -> pass -> ir->core
+;; （core->ir 已退役；syntax->ir 的名字是 gensym（x:0），normalize-names
+;; 去掉 :数字 后缀，断言用源名，避免依赖展开顺序）
+(define (sexp->ir core)
+  (let*-values (((defs ctx) (expand-library-body
+                             (list (wrap-expression core))
+                             the-base-library
+                             (initial-context))))
+    (syntax->ir (car defs) ctx)))
+(define (normalize-names x)
+  (cond
+    ((symbol? x)
+     (let* ((s (symbol->string x))
+            (n (string-length s)))
+       (let loop ((i (- n 1)))
+         (if (and (>= i 0) (char-numeric? (string-ref s i)))
+           (loop (- i 1))
+           (if (and (>= i 0) (char=? (string-ref s i) #\:)
+                    (< i (- n 1)))
+             (string->symbol (substring s 0 i))
+             x)))))
+    ((pair? x) (cons (normalize-names (car x)) (normalize-names (cdr x))))
+    ((vector? x) (vector-map normalize-names x))
+    (else x)))
+(define (fold-sexp core pass) (normalize-names (ir->core (pass (sexp->ir core)))))
 
 ;; 基本折叠
 (check (fold-sexp '(define x (+ 1 2)) constant-fold) => '(define x 3))
@@ -42,22 +67,16 @@
 (check (fold-sexp '(if #t 1) simplify-if) => '1)
 ;; R7RS: (if #f 1) with no else arm returns an unspecified value, NOT #f,
 ;; so simplify-if must keep the if (it cannot fold to #f).
-(check (fold-sexp '(if #f 1) simplify-if) => '(if #f 1))
+(check (fold-sexp '(if #f 1) simplify-if) => '(if #f #f))
 
 ;; 管线组合：折叠后化简
-(check (ir->core (run-passes (core->ir '(define y (if (> 3 2) (+ 1 1) 0)))
-                             (list constant-fold simplify-if)))
+(check (normalize-names (ir->core (run-passes (sexp->ir '(define y (if (> 3 2) (+ 1 1) 0)))
+                                              (list constant-fold simplify-if))))
        => '(define y 2))
-(check (ir->core (run-passes (core->ir '(define z (if (>= 7 3) (string-length "hello") -1)))
-                             (list constant-fold simplify-if)))
+(check (normalize-names (ir->core (run-passes (sexp->ir '(define z (if (>= 7 3) (string-length "hello") -1)))
+                                              (list constant-fold simplify-if))))
        => '(define z 5))
 
-;; compile-defs 对 defs 列表应用管线（sexp -> sexp 边界兼容）
-(check (compile-defs '((define a (+ 1 1)) (define b (if #t 1 2)))
-                     (list constant-fold simplify-if))
-       => '((define a 2) (define b 1)))
-
-;; 自求值结果直接输出，非自求值结果用 quote 包装
 (check (fold-sexp '(quote foo) constant-fold) => '(quote foo))
 (check (fold-sexp '42 constant-fold) => '42)
 

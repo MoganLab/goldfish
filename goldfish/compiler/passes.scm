@@ -21,7 +21,6 @@
           (goldfish compiler patterns)
           (goldfish core ir))
   (export run-passes
-    compile-defs
     constant-fold
     simplify-if
     lower-let
@@ -60,13 +59,10 @@
                             #f))
         (f lc)))
 
-    ;; compile-defs : (list sexp) (list pass) -> (list sexp)
-    ;; Apply the pipeline to each def of an expanded library body.  The
-    ;; boundary conversion keeps this interface sexp -> sexp (the load
-    ;; path evaluates the result with the host s7); passes themselves
-    ;; operate on the record IR.
-    (define (compile-defs defs passes)
-      (map (lambda (d) (ir->core (run-passes (core->ir d) passes))) defs))
+    ;; (compile-defs removed with core->ir: the pipeline's sexp interface
+    ;; rebuilt IR from lowered core sexp, which is gone.  The load path
+    ;; runs syntax->ir directly (compile-defs-on-load / compile-defs-cached);
+    ;; the legacy tests that fed core sexp were retired with it.)
 
     ;; ------------------------------------------------------------------
     ;; seq helpers: seq trees are binary right-nested <seq> nodes.

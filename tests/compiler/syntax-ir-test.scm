@@ -97,13 +97,13 @@
        => '(#t #t apply1))
 
 ;; ===== 6. compile-syntax-defs：库定义管线 =====
-;; syntax defs -> IR -> passes -> lowered sexp，与 core->ir 路径输出等价。
+;; syntax defs -> IR -> passes -> lowered sexp（core->ir 已退役）
 (check (let*-values (((defs ctx) (expand-library-body
                                   (list (wrap-expression '(define (f) (+ 1 2))))
                                   the-base-library
                                   (initial-context))))
          (equal? (compile-syntax-defs defs ctx (list constant-fold simplify-if))
-                 (compile-defs (map lower defs) (list constant-fold simplify-if))))
+                 '((define f:0 (lambda () 3)))))
        => #t)
 
 ;; primitive-ref 参与常量折叠：(+ 1 2) -> 3
