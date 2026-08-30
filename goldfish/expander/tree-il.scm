@@ -138,7 +138,7 @@
     ;; A lambda body is a SINGLE expression (possibly a seq tree or letrec).
     (define (seq->body exps) (list->seq exps))
 
-    (define (syntax->ir* stx ctx env resolve-lexical?)
+    (define (syntax->ir* stx ctx env)
       (cond
         ((not (syntax? stx)) stx)
         (else
@@ -149,8 +149,6 @@
                  (let*-values (((name kind) (resolve-name stx ctx)))
                    (let ((loc (env-lookup env name)))
                      (cond
-                       ((and loc resolve-lexical?)
-                        (make-lexical-ref #f name (car loc) (cdr loc)))
                        (loc
                         (make-lexical-ref #f name (car loc) (cdr loc)))
                        ((eq? kind 'primitive)
@@ -172,7 +170,7 @@
                      (let* ((dname (datum-of (cadr form)))
                             (env1 (env-add-bindings env (list (cons dname 0)))))
                        (make-toplevel-define #f dname
-                                             (syntax->ir* (caddr form) ctx env1 resolve-lexical?)))
+                                             (syntax->ir* (caddr form) ctx env1)))
                      (let* ((df (syntax-form (cadr form)))
                             (dname (datum-of (car df)))
                             (dformals (formals->datum (cdr df)))
@@ -182,7 +180,7 @@
                                                           (make-lambda-case #f dnames '() #f #f '()
                                                                            dnames
                                                                            (seq->body
-                                                                             (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env dnames) resolve-lexical?))
+                                                                             (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env dnames)))
                                                                                   (cddr form)))
                                                                            #f))))))
                   ((lambda)
@@ -193,20 +191,20 @@
                                     (make-lambda-case #f req opt rest #f '()
                                                      dnames
                                                      (seq->body
-                                                       (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env dnames) resolve-lexical?))
+                                                       (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env dnames)))
                                                             (cddr form)))
                                                      #f)))))
                   ((if)
                    (let ((else-stx (and (pair? (cdddr form)) (cadddr form))))
-                     (let ((test-ir (syntax->ir* (cadr form) ctx env resolve-lexical?))
-                           (then-ir (syntax->ir* (caddr form) ctx env resolve-lexical?))
+                     (let ((test-ir (syntax->ir* (cadr form) ctx env))
+                           (then-ir (syntax->ir* (caddr form) ctx env))
                            (else-ir (if else-stx
-                                      (let ((ir (syntax->ir* else-stx ctx env resolve-lexical?)))
+                                      (let ((ir (syntax->ir* else-stx ctx env)))
                                         (if (eq? ir #f) (make-const #f #f) ir))
                                       #f)))
                        (make-conditional #f test-ir then-ir else-ir))))
                   ((begin)
-                   (seq->body (map (lambda (b) (syntax->ir* b ctx env resolve-lexical?))
+                   (seq->body (map (lambda (b) (syntax->ir* b ctx env))
                                    (cdr form))))
                   ((let)
                    (if (symbol? (syntax-form (cadr form)))
@@ -220,12 +218,12 @@
                                                        (make-lambda-case #f bnames '() #f #f '()
                                                                         bnames
                                                                         (seq->body
-                                                                          (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env bnames) resolve-lexical?))
+                                                                          (map (lambda (b) (syntax->ir* b ctx (env-extend-frame env bnames)))
                                                                                body))
                                                                         #f)))
                                     (seq->body
                                       (list (make-call #f (make-toplevel-ref #f name)
-                                                       (map (lambda (b) (syntax->ir* (binding-init b) ctx env resolve-lexical?))
+                                                       (map (lambda (b) (syntax->ir* (binding-init b) ctx env))
                                                             bindings))))))
                      (let* ((bindings (syntax-form (cadr form)))
                             (bnames (map binding-name bindings))
@@ -238,10 +236,10 @@
                        (make-let #f
                                  bnames
                                  bnames
-                                 (map (lambda (b) (syntax->ir* (binding-init b) ctx env resolve-lexical?))
+                                 (map (lambda (b) (syntax->ir* (binding-init b) ctx env))
                                       bindings)
                                  (seq->body
-                                   (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
+                                   (map (lambda (b) (syntax->ir* b ctx env1))
                                         (cddr form)))))))
                   ((letrec letrec*)
                    (let* ((bindings (syntax-form (cadr form)))
@@ -256,15 +254,15 @@
                                   (eq? head-name 'letrec*)
                                   bnames
                                   bnames
-                                  (map (lambda (b) (syntax->ir* (binding-init b) ctx env1 resolve-lexical?))
+                                  (map (lambda (b) (syntax->ir* (binding-init b) ctx env1))
                                        bindings)
                                   (seq->body
-                                    (map (lambda (b) (syntax->ir* b ctx env1 resolve-lexical?))
+                                    (map (lambda (b) (syntax->ir* b ctx env1))
                                          (cddr form))))))
                   ((set!)
                    (let*-values (((name kind) (resolve-name (cadr form) ctx)))
-                     (let ((loc (and resolve-lexical? (env-lookup env name)))
-                           (rhs (syntax->ir* (caddr form) ctx env resolve-lexical?)))
+                     (let ((loc (env-lookup env name))
+                           (rhs (syntax->ir* (caddr form) ctx env)))
                        (cond
                          (loc (make-lexical-set #f name (car loc) (cdr loc) rhs))
                          ((eq? kind 'primitive)
@@ -281,8 +279,8 @@
                      (let ((lib (cadr (datum-of (cadr form))))
                            (name (cadr (datum-of (caddr form)))))
                        (make-module-ref #f lib name #t))
-                     (make-call #f (syntax->ir* head ctx env resolve-lexical?)
-                                (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))
+                     (make-call #f (syntax->ir* head ctx env)
+                                (map (lambda (a) (syntax->ir* a ctx env))
                                      (cdr form)))))
                   ((module-set)
                    ;; (module-set (quote lib) (quote name) exp) is the
@@ -294,36 +292,40 @@
                             (eq? (syntax-form (caddr form)) 'quote))
                      (let ((lib (cadr (datum-of (cadr form))))
                            (name (cadr (datum-of (caddr form))))
-                           (exp (syntax->ir* (cadddr form) ctx env resolve-lexical?)))
+                           (exp (syntax->ir* (cadddr form) ctx env)))
                        (make-module-set #f lib name #t exp))
-                     (make-call #f (syntax->ir* head ctx env resolve-lexical?)
-                                (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))
+                     (make-call #f (syntax->ir* head ctx env)
+                                (map (lambda (a) (syntax->ir* a ctx env))
                                      (cdr form)))))
                   ((toplevel-ref)
                    ;; (toplevel-ref name) with a literal name is the
                    ;; reference form; anything else is a call.
                    (if (symbol? (datum-of (cadr form)))
                      (make-toplevel-ref #f (datum-of (cadr form)))
-                     (make-call #f (syntax->ir* head ctx env resolve-lexical?)
-                                (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))
+                     (make-call #f (syntax->ir* head ctx env)
+                                (map (lambda (a) (syntax->ir* a ctx env))
                                      (cdr form)))))
                   ((values)
-                   (make-values #f (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))
+                   (make-values #f (map (lambda (a) (syntax->ir* a ctx env))
                                         (cdr form))))
                   ((call-with-values)
                    (make-call-with-values #f
-                                          (syntax->ir* (cadr form) ctx env resolve-lexical?)
-                                          (syntax->ir* (caddr form) ctx env resolve-lexical?)))
+                                          (syntax->ir* (cadr form) ctx env)
+                                          (syntax->ir* (caddr form) ctx env)))
                   (else
-                   (make-call #f (syntax->ir* head ctx env resolve-lexical?)
-                              (map (lambda (a) (syntax->ir* a ctx env resolve-lexical?))
+                   (make-call #f (syntax->ir* head ctx env)
+                              (map (lambda (a) (syntax->ir* a ctx env))
                                    (cdr form))))))))))))
 
     (define (syntax->ir stx ctx)
-      (syntax->ir* stx ctx '() #t))
+      (syntax->ir* stx ctx '()))
 
     (define (syntax->ir/sexp stx ctx)
-      (syntax->ir* stx ctx '() #f))
+      ;; Historical alias: compile-syntax-defs / the cache path used to ask
+      ;; for "no lexical resolution" on top-level defs; the walk resolves
+      ;; lexical refs regardless (a top-level def has an empty env anyway),
+      ;; so the two entries now behave identically.
+      (syntax->ir* stx ctx '()))
 
     (define (expand->ir expr)
       (let*-values (((stx ctx) (expand-expr (wrap-expression expr) (initial-context))))
