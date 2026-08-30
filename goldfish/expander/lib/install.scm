@@ -247,43 +247,10 @@
 ;;; install-cache-path : path -> gfo-file (unified .gfo)
 (define (install-cache-path path) (gfo-path path))
 
-;;; compile-transformer-to-program : sexp -> datum/#f
-;;; Compile a transformer's lowered form to a serialized VM bytecode
-;;; program.  The compiler is a load-path library; it is looked up (never
-;;; loaded here -- loading it from inside a library capture would recurse
-;;; while the compiler library itself is being captured), so only
-;;; libraries captured after the compiler has been loaded get bytecode
-;;; transformers; anything else (notably the compiler library's own
-;;; macros, and every boot macro, captured before the module system is up)
-;;; keeps its lowered form as the warm-start path.
-(define (compile-transformer-to-program lowered)
-  ;; Compile a transformer's lowered form to a serialized VM bytecode
-  ;; program (the fast warm-start path).  The VM interpreter has its own
-  ;; apply handling (call_function splices the final list argument of
-  ;; (apply ...) directly and calls the procedure, bypassing s7's deferred
-  ;; apply opcode), so define-macro transformers whose body applies a
-  ;; closure work from the cache.  GOLDFISH_NO_VM_TRANSFORMER=1 falls back
-  ;; to the lowered-form path (serialize-cache-sexp + eval).
-  (if (getenv "GOLDFISH_NO_VM_TRANSFORMER")
-    #f
-    (let ((compiler
-           (catch #t
-             (lambda ()
-               ;; lookup-module is an s7 primitive, not an exp-library export,
-               ;; so it is resolved as a free symbol (guarded by catch for the
-               ;; bootstrap phase where the module system is not up yet).  The
-               ;; compiler is preloaded by customize, so captures after that
-               ;; point compile transformers to bytecode programs.
-               (lookup-module '(goldfish compiler)))
-             (lambda (tag . info) #f))))
-      (if (module? compiler)
-        (catch #t
-          (lambda ()
-            (let ((to-bytecode (module-ref compiler 'to-bytecode))
-                  (core->ir (module-ref compiler 'core->ir)))
-              (serialize-cache-sexp (to-bytecode (list (core->ir lowered))))))
-          (lambda (tag . info) #f))
-        #f))))
+;;; (compile-transformer-to-program removed: the bytecode VM execution path
+;;; is retired, unified on s7.  Transformers are cached as serialized
+;;; lowered forms (serialize-cache-sexp) and restored by eval -- the
+;;; GOLDFISH_NO_VM_TRANSFORMER branch and the VM program caches are gone.)
 
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
@@ -381,9 +348,7 @@
     (for-each (lambda (r)
                 (let* ((name (car r))
                        (data (deserialize-cache-sexp (cdr r)))
-                       (proc (if (and (pair? data) (eq? (car data) 'program))
-                               (vm-load-cached-program data the-expander-library)
-                               (eval data the-expander-library))))
+                       (proc (eval data the-expander-library)))
                   (exp-library-define! lib name (make-transformer-binding proc))))
               macros)))
 
@@ -495,7 +460,6 @@
 ;; caches through one mechanism.
 (module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
 (module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
-(module-define! the-expander-library 'compile-transformer-to-program compile-transformer-to-program)
 
 ;;; ------------------------------------------------------------------------
 ;;; Internal runtime surface

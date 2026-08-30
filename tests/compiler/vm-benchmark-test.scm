@@ -1,6 +1,7 @@
 (import (liii check)
         (goldfish compiler)
         (goldfish)
+        (goldfish expander tree-il)
         (liii timeit))
 
 ;; M1 基准：VM vs s7 eval 性能对比。
@@ -12,15 +13,19 @@
 (define vm-defs
   '((define (fib-vm n) (if (< n 2) n (+ (fib-vm (- n 1)) (fib-vm (- n 2)))))
     (define (loop-vm i acc) (if (= i 0) acc (loop-vm (- i 1) (+ acc 1))))))
-;; Register the VM global names in the program library at COMPILE time (the
-;; VM registers them in the s7 rootlet at runtime; a strict program resolves
-;; identifiers only from its imports).
-(eval-when (expand)
-  (for-each (lambda (name)
-              (exp-library-define! (program-library) name
-                                   (make-primitive-binding name)))
-            '(fib-vm loop-vm)))
-(vm-load (encode-bytecode (to-bytecode (map core->ir vm-defs))) #f)
+;; 加载 VM defs 并绑定别名（syntax->ir 的顶层名是 gensym）
+(define (vm-load-defs defs)
+  (let*-values (((ds ctx) (expand-library-body
+                           (map wrap-expression defs)
+                           the-base-library
+                           (initial-context))))
+    (let ((irs (map (lambda (d) (syntax->ir d ctx)) ds)))
+      (vm-load (encode-bytecode (to-bytecode irs)) #f)
+      irs)))
+(define (vm-global ir) (eval (toplevel-define-name ir) (rootlet)))
+(define vm-irs (vm-load-defs vm-defs))
+(define fib-vm (vm-global (car vm-irs)))
+(define loop-vm (vm-global (cadr vm-irs)))
 
 ;; 等价性先验证
 (check (fib-s7 20) => 6765)

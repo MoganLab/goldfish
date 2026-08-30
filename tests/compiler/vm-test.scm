@@ -1,34 +1,52 @@
 (import (liii check)
         (goldfish compiler)
-        (goldfish))
+        (goldfish)
+        (goldfish expander tree-il))
 
 ;; 自研字节码 VM 单元测试：VM 执行结果与 s7 eval 等价。
 
-;; The VM registers globals in the s7 rootlet; a strict program resolves
-;; identifiers only from its imports, so the global names must be bound in
-;; the program library BEFORE the checks below are compiled.  eval-when
-;; (expand) runs at compile time: register each VM global as a primitive
-;; binding (a bare reference then resolves to the rootlet global).
-(eval-when (expand)
-  (for-each (lambda (name)
-              (exp-library-define! (program-library) name
-                                   (make-primitive-binding name)))
-            '(add sub fact loop mk f g h id rest-f)))
-
-;; 加载一组 defs 到 VM（一个 program，函数注册为全局）
+;; 加载一组 defs 到 VM（一个 program，函数注册为全局），返回 IR 列表。
+;; defs 经 expander 直出 IR（core->ir 已退役）；syntax->ir 的顶层 define
+;; 名是 gensym（add:0），所以用 toplevel-define-name 取 VM 注册的全局名。
 (define (vm-load-defs defs)
-  (vm-load (encode-bytecode (to-bytecode (map core->ir defs))) #f))
+  (let*-values (((ds ctx) (expand-library-body
+                           (map wrap-expression defs)
+                           the-base-library
+                           (initial-context))))
+    (let ((irs (map (lambda (d) (syntax->ir d ctx)) ds)))
+      (vm-load (encode-bytecode (to-bytecode irs)) #f)
+      irs)))
 
-(vm-load-defs '((define (add x y) (+ x y))
-                (define (sub x y) (- x y))
-                (define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))
-                (define (loop i acc) (if (= i 0) acc (loop (- i 1) (+ acc 1))))
-                (define (mk x) (lambda (y) (+ x y)))
-                (define (f) (values 1 2))
-                (define (g) (call-with-values (lambda () (values 1 2))
-                              (lambda (a b) (+ a b))))
-                (define (h x) (let ((a (+ x 1)) (b (* x 2))) (+ a b)))
-                (define (id x) x)))
+;; 单个 datum（define 或表达式）-> IR
+(define (sexp->ir core)
+  (let*-values (((defs ctx) (expand-library-body
+                             (list (wrap-expression core))
+                             the-base-library
+                             (initial-context))))
+    (syntax->ir (car defs) ctx)))
+
+;; VM 注册的全局函数（用 gensym 名从 rootlet 取）
+(define (vm-global ir) (eval (toplevel-define-name ir) (rootlet)))
+
+(define irs (vm-load-defs '((define (add x y) (+ x y))
+                            (define (sub x y) (- x y))
+                            (define (fact n) (if (= n 0) 1 (* n (fact (- n 1)))))
+                            (define (loop i acc) (if (= i 0) acc (loop (- i 1) (+ acc 1))))
+                            (define (mk x) (lambda (y) (+ x y)))
+                            (define (f) (values 1 2))
+                            (define (g) (call-with-values (lambda () (values 1 2))
+                                          (lambda (a b) (+ a b))))
+                            (define (h x) (let ((a (+ x 1)) (b (* x 2))) (+ a b)))
+                            (define (id x) x))))
+(define add (vm-global (list-ref irs 0)))
+(define sub (vm-global (list-ref irs 1)))
+(define fact (vm-global (list-ref irs 2)))
+(define loop (vm-global (list-ref irs 3)))
+(define mk (vm-global (list-ref irs 4)))
+(define f (vm-global (list-ref irs 5)))
+(define g (vm-global (list-ref irs 6)))
+(define h (vm-global (list-ref irs 7)))
+(define id (vm-global (list-ref irs 8)))
 
 ;; ===== 1. 基本算术调用 =====
 (check (add 3 4) => 7)
@@ -64,12 +82,15 @@
 (check (id "vm") => "vm")
 
 ;; ===== 9. 多 program：加载第二个 program 后，第一个的闭包仍有效 =====
-(define f2 (vm-load (encode-bytecode (to-bytecode (list (core->ir '(lambda (x) (+ x 100)))))) #f))
+(define f2ir (sexp->ir '(lambda (x) (+ x 100))))
+(define f2 (vm-load (encode-bytecode (to-bytecode (list f2ir))) #f))
 (check (f2 1) => 101)
 (check (add 3 4) => 7)
 
 ;; ===== 10. rest 参数 =====
-(vm-load (encode-bytecode (to-bytecode (list (core->ir '(define (rest-f . args) (length args)))))) #f)
+(define rest-f-ir (sexp->ir '(define (rest-f . args) (length args))))
+(vm-load (encode-bytecode (to-bytecode (list rest-f-ir))) #f)
+(define rest-f (vm-global rest-f-ir))
 (check (rest-f 1 2 3) => 3)
 (check (rest-f) => 0)
 

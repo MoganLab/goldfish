@@ -1,6 +1,7 @@
 (import (liii check)
         (goldfish compiler)
         (goldfish)
+        (goldfish expander tree-il)
         (srfi srfi-1)
         (srfi srfi-13))
 
@@ -9,33 +10,40 @@
 ;;   2. VM closure 作为 s7 map 回调被延迟 apply 返回空（goldfish_vm.cpp e64e48b2）
 ;;   3. procedural 宏 transformer 的 VM program 展开（deindent-impl 场景）
 
-(eval-when (expand)
-  (for-each (lambda (name)
-              (exp-library-define! (program-library) name
-                                   (make-primitive-binding name)))
-            '(vm-non-tail vm-nested vm-map vm-map-capture vm-deindent vm-fe vm-cwv
-              vm-if-then-map vm-if-then-for-each)))
-
+;; 加载一组 defs 到 VM，返回 IR 列表；syntax->ir 的顶层 define 名是
+;; gensym，所以用 vm-global 按 gensym 名取 VM 注册的全局。
 (define (vm-load-defs defs)
-  (vm-load (encode-bytecode (to-bytecode (map core->ir defs))) #f))
+  (let*-values (((ds ctx) (expand-library-body
+                           (map wrap-expression defs)
+                           the-base-library
+                           (initial-context))))
+    (let ((irs (map (lambda (d) (syntax->ir d ctx)) ds)))
+      (vm-load (encode-bytecode (to-bytecode irs)) #f)
+      irs)))
+(define (vm-global ir) (eval (toplevel-define-name ir) (rootlet)))
+
+;; 单个表达式 datum -> IR（core->ir 已退役）
+(define (sexp->ir core)
+  (let*-values (((stx ctx) (expand-expr (wrap-expression core) (initial-context))))
+    (syntax->ir stx ctx)))
 
 ;; ===== 1. 非尾位置的 let（绑定值含 letrec）=====
 ;; 修复前 compile-let 在非尾位置也 emit (return)，绑定值里的 letrec
 ;; 提前返回 loop 闭包而非完成 body。
-(vm-load-defs '((define (vm-non-tail x)
-                  (let ((a (letrec ((loop (lambda (i acc)
-                                            (if (= i 0) acc (loop (- i 1) (cons i acc))))))
-                             (loop x '()))))
-                    (append a (list x))))))
+(define vm-non-tail (vm-global (car (vm-load-defs '((define (vm-non-tail x)
+                                                    (let ((a (letrec ((loop (lambda (i acc)
+                                                                              (if (= i 0) acc (loop (- i 1) (cons i acc))))))
+                                                               (loop x '()))))
+                                                      (append a (list x)))))))))
 
 (check (vm-non-tail 3) => '(1 2 3 3))
 (check (vm-non-tail 0) => '(0))
 
 ;; 嵌套非尾 let：值必须在栈上，不能被外层 return 提前弹出
-(vm-load-defs '((define (vm-nested x)
-                  (let ((a (+ x 1)))
-                    (let ((b (* a 2)))
-                      (list a b))))))
+(define vm-nested (vm-global (car (vm-load-defs '((define (vm-nested x)
+                                                  (let ((a (+ x 1)))
+                                                    (let ((b (* a 2)))
+                                                      (list a b)))))))))
 
 (check (vm-nested 5) => '(6 12))
 (check (vm-nested 0) => '(1 2))
@@ -43,16 +51,16 @@
 ;; ===== 2. VM closure 作为 s7 map 回调 =====
 ;; 修复前 s7 的 map 对无法 cell-optimize 的 VM closure 壳走 OP_MAP_2
 ;; 延迟路径，返回 unspecified，收集值丢失（结果为 ()）。
-(vm-load-defs '((define (vm-map xs)
-                  (map (lambda (x) (* x 2)) xs))))
+(define vm-map (vm-global (car (vm-load-defs '((define (vm-map xs)
+                                                (map (lambda (x) (* x 2)) xs)))))))
 
 (check (vm-map '(1 2 3)) => '(2 4 6))
 (check (vm-map '()) => '())
 (check (vm-map '(7)) => '(14))
 
 ;; 多元素 + 捕获外层变量（闭包捕获经 map 回调）
-(vm-load-defs '((define (vm-map-capture xs n)
-                  (map (lambda (x) (+ x n)) xs))))
+(define vm-map-capture (vm-global (car (vm-load-defs '((define (vm-map-capture xs n)
+                                                        (map (lambda (x) (+ x n)) xs)))))))
 
 (check (vm-map-capture '(1 2) 10) => '(11 12))
 
@@ -61,23 +69,24 @@
 ;; 是 raw-string 库 deindent 宏在 VM program 下展开失败的完整复现。
 ;; 注意 defs 不经展开器，跨库的 srfi 函数用 module-ref 显式取出
 ;; （与展开器生成的 lowered 形式一致）。
-(vm-load-defs '((define (vm-deindent str)
-                  (let* ((lines (let loop ((start 1) (result '()))
-                                  (let ((nl ((module-ref '(srfi srfi-13) 'string-index)
-                                             str #\newline start (string-length str))))
-                                    (if (not nl)
-                                      (reverse (cons (substring str start (string-length str)) result))
-                                      (loop (+ nl 1) (cons (substring str start nl) result))))))
-                         (closing-line ((module-ref '(srfi srfi-1) 'last) lines))
-                         (ref-indent ((module-ref '(srfi srfi-13) 'string-count)
-                                      closing-line #\space))
-                         (content-lines ((module-ref '(srfi srfi-1) 'drop-right) lines 1)))
-                    ((module-ref '(srfi srfi-13) 'string-join)
-                     (map (lambda (line)
-                            (if ((module-ref '(srfi srfi-13) 'string-null?) line)
-                              "" (substring line ref-indent)))
-                          content-lines)
-                     "\n")))))
+(define vm-deindent
+  (vm-global (car (vm-load-defs '((define (vm-deindent str)
+                                    (let* ((lines (let loop ((start 1) (result '()))
+                                                    (let ((nl ((module-ref '(srfi srfi-13) 'string-index)
+                                                               str #\newline start (string-length str))))
+                                                      (if (not nl)
+                                                        (reverse (cons (substring str start (string-length str)) result))
+                                                        (loop (+ nl 1) (cons (substring str start nl) result))))))
+                                           (closing-line ((module-ref '(srfi srfi-1) 'last) lines))
+                                           (ref-indent ((module-ref '(srfi srfi-13) 'string-count)
+                                                        closing-line #\space))
+                                           (content-lines ((module-ref '(srfi srfi-1) 'drop-right) lines 1)))
+                                      ((module-ref '(srfi srfi-13) 'string-join)
+                                       (map (lambda (line)
+                                              (if ((module-ref '(srfi srfi-13) 'string-null?) line)
+                                                "" (substring line ref-indent)))
+                                             content-lines)
+                                       "\n"))))))))
 
 (check (vm-deindent "\n  a\n  b\n  ") => "a\nb")
 (check (vm-deindent "\n  a\n  ") => "a")
@@ -87,7 +96,7 @@
 ;; ===== 4. vm-load 直接加载 lambda（transformer 等价物）=====
 ;; 覆盖非尾 let + map 组合在闭包 body 里的执行。
 (define tr-non-tail
-  (vm-load (encode-bytecode (to-bytecode (list (core->ir '(lambda (x)
+  (vm-load (encode-bytecode (to-bytecode (list (sexp->ir '(lambda (x)
                                            (let* ((a (let loop ((i x) (acc '()))
                                                       (if (= i 0) acc (loop (- i 1) (cons i acc)))))
                                                   (b (length a)))
@@ -98,7 +107,7 @@
 (check (tr-non-tail 1) => 2)   ; '(1) 长度 1 → 2
 
 (define tr-map
-  (vm-load (encode-bytecode (to-bytecode (list (core->ir '(lambda (xs)
+  (vm-load (encode-bytecode (to-bytecode (list (sexp->ir '(lambda (xs)
                                            (map (lambda (x) (* x 3)) xs))))))
            #f))
 
@@ -111,10 +120,10 @@
 ;; VM 的 Call 指令拿不到回调结果。set-size-test 经 (liii set) 的
 ;; (define (set . elements) ... (for-each ...) result) 触发。
 ;; 回调用 set-car! 原地修改计数器，验证回调实际执行了 N 次。
-(vm-load-defs '((define (vm-fe x)
-                  (let ((acc (list 0)))
-                    (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
-                    (car acc)))))
+(define vm-fe (vm-global (car (vm-load-defs '((define (vm-fe x)
+                                              (let ((acc (list 0)))
+                                                (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
+                                                (car acc))))))))
 
 (check (vm-fe '(1 2 3)) => 3)
 (check (vm-fe '()) => 0)
@@ -126,8 +135,8 @@
 ;; splice 后清除多值标记，VM 的 is_multiple_value 检测不到，把 (1 2)
 ;; 当单个参数传给 consumer。json 库的 string->json 用 call-with-values
 ;; 接收 handle-escape-char 的多值，触发该 bug。
-(vm-load-defs '((define (vm-cwv p c)
-                  (call-with-values p c))))
+(define vm-cwv (vm-global (car (vm-load-defs '((define (vm-cwv p c)
+                                                (call-with-values p c)))))))
 
 (check (vm-cwv (lambda () (values 1 2)) +) => 3)
 (check (vm-cwv (lambda () (values 1 2)) list) => '(1 2))
@@ -137,16 +146,18 @@
 ;; 回归：map/for-each 快路径在 TailCall 分支未弹当前帧，结果被后续
 ;; 指令（if 的 else 臂）覆盖。json-keys 的 (if (json-object? json)
 ;; (map car json) '()) 触发——真分支的 tail map 返回空。
-(vm-load-defs '((define (vm-if-then-map json)
-                  (if (list? json)
-                    (map car json)
-                    '()))
-                (define (vm-if-then-for-each x)
-                  (let ((acc (list 0)))
-                    (if (pair? x)
-                      (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
-                      '())
-                    (car acc)))))
+(define vm-if-then-map
+  (vm-global (car (vm-load-defs '((define (vm-if-then-map json)
+                                    (if (list? json)
+                                      (map car json)
+                                      '())))))))
+(define vm-if-then-for-each
+  (vm-global (car (vm-load-defs '((define (vm-if-then-for-each x)
+                                    (let ((acc (list 0)))
+                                      (if (pair? x)
+                                        (for-each (lambda (y) (set-car! acc (+ (car acc) 1))) x)
+                                        '())
+                                      (car acc))))))))
 
 (check (vm-if-then-map '((b . 1) (a . 2))) => '(b a))
 (check (vm-if-then-map '()) => '())

@@ -394,9 +394,7 @@
              ;; the old source-spec replay (extract-macro-specs), which could
              ;; not recognize every macro-defining form.
              (macros (map (lambda (m)
-                             (cons (car m)
-                                   (or (compile-transformer-to-program (cdr m))
-                                       (serialize-cache-sexp (cdr m)))))
+                             (cons (car m) (serialize-cache-sexp (cdr m))))
                            (take-collected-macros)))
              (def-ir (cache-defs->ir defs ctx1)))
         (values (list name exports imports bindings macros def-ir) ctx1)))))
@@ -495,9 +493,7 @@
     (for-each (lambda (m)
                 (let* ((mname (car m))
                        (data (deserialize-cache-sexp (cdr m)))
-                       (proc (if (and (pair? data) (eq? (car data) 'program))
-                               (vm-load-cached-program data the-expander-library)
-                               (eval data the-expander-library))))
+                       (proc (eval data the-expander-library)))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
     ;; 4. Exports with no restored body/import binding are an error (they
@@ -618,39 +614,36 @@
 
 ;;; compile-defs-cached : (list ir|sexp) -> (list sexp)
 ;;; Apply the compiler pipeline to a cache record's defs (the cached-file
-;;; path: capture-library-cache stores record tree-il via syntax->ir/sexp,
-;;; falling back to lowered sexp when the compiler is unavailable).  The
-;;; result is ALWAYS lowered sexp: it is what the s7 evaluator / VM eats
-;;; at load time, and the cache is shared across optimization levels.
-;;; IR defs run through run-passes directly (binding kinds preserved); a
-;;; lowered fallback def (bootstrap capture) is lifted with core->ir.
+;;; path: capture-library-cache stores record tree-il via syntax->ir/sexp).
+;;; IR defs run through the passes and lower to sexp (what the s7 evaluator
+;;; eats); a lowered fallback def (bootstrap capture, when the compiler was
+;;; unavailable) is returned as-is -- the pipeline only ever sees the IR
+;;; records, core->ir is gone.
 
 (define (compile-defs-cached defs)
   (let ((level (optimization-level)))
-    (if (and (zero? level) (or (null? defs) (not (vector? (car defs)))))
+    (if (or (null? defs) (not (vector? (car defs))))
+      ;; Lowered fallback defs (bootstrap capture with the compiler
+      ;; unavailable / tree-il itself being captured) pass through as-is;
+      ;; the pipeline only ever optimizes the IR records.
       defs
       (let ((compiler (compiler-module)))
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
-                (core->ir (module-ref compiler 'core->ir))
                 (ir->core (module-ref compiler 'ir->core)))
             ;; NOTE: lower-let is deliberately NOT in the pass set.  It
             ;; lowers a <let> into a lambda-case whose formals restart slot
             ;; numbering at 0, but syntax->ir's IR carries real lexical
             ;; (depth . index) addresses computed against the enclosing
             ;; frame (env-next-slot), so the lowered body's refs would
-            ;; point at the wrong slots.  lower-let was written for
-            ;; core->ir's placeholder addressing; bytecode/compile-let
-            ;; handles <let> directly, so it is not needed here.
-            (let ((ir-defs (if (or (null? defs) (vector? (car defs)))
-                              defs
-                              (map core->ir defs)))
-                  (passes (compiler-pass-list compiler level)))
+            ;; point at the wrong slots.  bytecode/compile-let handles
+            ;; <let> directly, so lower-let is not needed.
+            (let ((passes (compiler-pass-list compiler level)))
               (map (lambda (d)
                      (if (zero? level)
                        (ir->core d)
                        (ir->core (run-passes d passes))))
-                   ir-defs)))
+                   defs)))
           defs)))))
 
 ;;; optimize-on-load : syntax context -> sexp
@@ -725,49 +718,15 @@
                 (vm-load-defs defs (lib-cache-name rec))))
             recs))
 
-;;; vm-load-defs : (list sexp) name -> bool
-;;; Evaluate a library's lowered defs through the VM when the (goldfish
-;;; compiler) library is available; fall back to s7 eval otherwise (or when
-;;; the defs do not compile).  The whole def list becomes one program (a
-;;; shared code table + a sequential top), executed by one vm-load, so the
-;;; definitions land in the rootlet exactly as (eval d (rootlet)) would.
-;;; GOLDFISH_VM_DEFS=1 opts back into the bytecode VM.  The (goldfish
-;;; compiler) library family is always exempted: once its defs are VM-
-;;; itself becomes a VM closure and compiling a later library runs a nested
-;;; VM compile, whose shared state produces corrupted bytecode.  Returns #t
-;;; if the VM ran.
-
-;;; vm-load-cached-program : program env -> value
-;;; Transformer caches store the symbolic bytecode program; encode it
-;;; into the positional vm-load ABI first.
-(define (vm-load-cached-program prog env)
-  (let ((compiler (lookup-module '(goldfish compiler))))
-    (vm-load ((module-ref compiler 'encode-bytecode) prog) env)))
+;;; vm-load-defs : (list sexp) -> void
+;;; Evaluate a library's lowered defs with plain s7 eval.  The bytecode VM
+;;; execution path is retired (unified on s7): measurements
+;;; (benchmarks/measure-vm.sh) showed the cross-boundary cost outweighs the
+;;; bytecode benefit.  to-bytecode / goldfish_vm.cpp stay as future-engine
+;;; assets exercised by vm-test / vm-benchmark / vm-transformer.
 
 (define (vm-load-defs defs lib-name)
-  ;; Default execution is plain s7 eval of the lowered core forms.  The
-  ;; bytecode VM is opt-in via GOLDFISH_VM_DEFS=1: measurements
-  ;; (benchmarks/measure-vm.sh) showed the cross-boundary cost outweighs
-  ;; the bytecode benefit on every tracked path.
-  (if (or (null? defs)
-          (and (pair? lib-name) (eq? (car lib-name) 'goldfish)
-               (pair? (cdr lib-name)) (eq? (cadr lib-name) 'compiler))
-          (not (getenv "GOLDFISH_VM_DEFS")))
-    (for-each (lambda (d) (eval d (rootlet))) defs)
-    (let ((prog
-           (catch
-             #t
-             (lambda ()
-               (let ((compiler (lookup-module '(goldfish compiler))))
-                 (and (module? compiler)
-                      (let ((encode (module-ref compiler 'encode-bytecode))
-                            (to-bytecode (module-ref compiler 'to-bytecode))
-                            (core->ir (module-ref compiler 'core->ir)))
-                        (encode (to-bytecode (map core->ir defs)))))))
-             (lambda (tag . info) #f))))
-      (if prog
-        (begin (vm-load prog #f) #t)
-        (begin (for-each (lambda (d) (eval d (rootlet))) defs) #f)))))
+  (for-each (lambda (d) (eval d (rootlet))) defs))
 
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
