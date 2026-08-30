@@ -65,7 +65,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L6 vm
 
 - **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM）。
-- **定位（2026-08）**：**实验性优化层，默认关闭**——库 defs 与宏 transformer 默认以 lowered 核心 sexp 交 s7 直评，`GOLDFISH_VM_DEFS=1` opt-in。依据：调用密集 fib(26) 经 VM 慢 ~19%，库 import 慢 ~14%，启动持平（跨界成本超过字节码收益；复跑 `benchmarks/measure-vm.sh`）。保留为未来自研引擎的经验资产。
+- **定位（2026-08）**：**实验性优化层，默认关闭**——库 defs 默认以 lowered 核心 sexp 交 s7 直评（`GOLDFISH_VM_DEFS=1` opt-in）；**macro transformer 例外**：缓存捕获时默认编译为 VM 字节码 program（`GOLDFISH_NO_VM_TRANSFORMER` opt-out），因为 transformer 是 warm-start 快路径、字节码执行收益明显。依据（defs 走 s7）：调用密集 fib(26) 经 VM 慢 ~19%，库 import 慢 ~14%，启动持平（跨界成本超过字节码收益；复跑 `benchmarks/measure-vm.sh`）。保留为未来自研引擎的经验资产。
 - **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。VM 单值传递：多值是宿主派生形式，无专用 opcode。错误传播经帧感知展开协议（见演进债）。严格 arity 寄存器化属可选精化而非正确性需求。
 - **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件；操作码编号与 `bytecode.scm` 的 `vm-opcodes` 保持同步——发布前可自由重编号（两侧一起改），首个发布版起冻结为 ABI。
 
