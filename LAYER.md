@@ -101,7 +101,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - s7 `initialize_misc` 三件套：`make-hook`、`call-with-values`、`multiple-value-bind`（注意 cwv 的 unspecified 折叠差异，见演进债）。
 - 延迟形式名单：`catch call/cc call-with-current-continuation dynamic-wind apply` 及 8 个 `call-with-*` / `with-*` I/O 组合子。
-- **核心语言**（tree-il 的语法面）：10 个 special forms——`quote define lambda if begin let let* letrec letrec* set!`——权威定义在 `goldfish/core/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
+- **核心语言**（tree-il 的语法面）：`quote define lambda if begin let let* letrec letrec* set!` 十个 special forms，加 `values call-with-values`（多值派生）与 `module-ref module-set`（跨库引用）——权威定义在 `goldfish/core/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
 - 其余为底层语言内建（算术/string/vector/hash-table/port…），按 R7RS-small + 必要扩展对齐，不逐一枚举。
 
 ### T2 平台能力（非语言；来自 OS/C 标准库，共 ~57 个 `g_*`）
