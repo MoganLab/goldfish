@@ -86,7 +86,8 @@
        => '(call + (x 1)))
 
 (check (match (core->ir '(lambda (x) (+ x 1)))
-         (($lambda formals body) (list 'lambda formals (map ir->core body)))
+         ((? lambda? ir)
+          (list 'lambda (lambda-formals ir) (map ir->core (lambda-body ir))))
          (_ 'no))
        => '(lambda (x) ((+ x 1))))
 

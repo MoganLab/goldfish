@@ -1,265 +1,382 @@
-;;; ir.scm -- L2: goldfish intermediate representation (record-based).
-;;;
-;;; Record-based, nanopass-friendly IR for the compiler and expander.
-;;; Previously lived in goldfish/compiler/ir.scm (L5); moved to L2
-;;; core so the expander (L3/L4) can emit tree-il directly without
-;;; violating LAYER.md L3->L5 / L5->L4 layer rules.
-;;;
-;;; The expander's expanded syntax now flows straight into these
-;;; records via (goldfish expander tree-il) / syntax->ir, and the
-;;; compiler passes consume the same records.  core->ir / ir->core
-;;; remain for the s7-eval fallback and for cached lowered sexp.
-;;;
-;;; Records use the self-hosted R7RS vector layout: (vector <rtd>
-;;; source field...).  The source field is currently always #f.
-;;;
-;;; Atoms (symbols and self-evaluating data) stay as themselves -- only
-;;; compound nodes are records.
-
 (define-library (goldfish core ir)
-  (import (scheme base)
-          (goldfish match))
-  (export core->ir
-    ir->core
-    core-language core-form? core-node-of validate-core-sexp
-    make-const const? const-source const-value
-    make-void void? void-source
-    make-define define? define-source define-name define-value
-    make-lambda lambda? lambda-source lambda-formals lambda-body
-    make-if if? if-source if-test if-then if-else
-    make-begin begin? begin-source begin-body
-    make-let let? let-source let-bindings let-body
-    make-letrec letrec? letrec-source letrec-bindings letrec-body
-    make-set! set!? set!-source set!-target set!-expr
-    make-call call? call-source call-proc call-args
+  (import (scheme base))
+  (export make-const const? const-source const-exp
     make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name
-    make-lexical-ref lexical-ref? lexical-ref-source lexical-ref-depth lexical-ref-index
+    make-lambda lambda? lambda-source lambda-meta lambda-body
+    make-lambda-case lambda-case? lambda-case-source lambda-case-req lambda-case-opt lambda-case-rest lambda-case-kw lambda-case-inits lambda-case-gensyms lambda-case-body lambda-case-alternate
+    make-toplevel-define toplevel-define? toplevel-define-source toplevel-define-name toplevel-define-exp
+    make-lexical-ref lexical-ref? lexical-ref-source lexical-ref-name lexical-ref-depth lexical-ref-index
+    make-lexical-set lexical-set? lexical-set-source lexical-set-name lexical-set-depth lexical-set-index lexical-set-exp
+    make-let let? let-source let-names let-gensyms let-vals let-body
+    make-letrec letrec? letrec-source letrec-in-order? letrec-names letrec-gensyms letrec-vals letrec-body
+    make-fix fix? fix-source fix-names fix-gensyms fix-vals fix-body
+    make-let-values let-values? let-values-source let-values-exp let-values-body
     make-values values? values-source values-args
     make-call-with-values call-with-values? cwv-source cwv-producer cwv-consumer
-    $const $void $define $lambda $if $begin $let $letrec $set! $call $values
-    $call-with-values)
+    make-toplevel-ref toplevel-ref? toplevel-ref-source toplevel-ref-name
+    make-toplevel-set toplevel-set? toplevel-set-source toplevel-set-name toplevel-set-exp
+    make-module-ref module-ref? module-ref-source module-ref-module module-ref-name module-ref-public?
+    make-module-set module-set? module-set-source module-set-module module-set-name module-set-public? module-set-exp
+    make-void void? void-source make-conditional conditional? conditional-source conditional-test conditional-consequent conditional-alternate
+    make-seq seq? seq-source seq-head seq-tail
+    make-call call? call-source call-proc call-args
+    make-primcall primcall? primcall-source primcall-name primcall-args
+    core-language core-form? core-node-of validate-core-sexp
+    core->ir ir->core)
   (begin
-
-    ;; ------------------------------------------------------------------
-    ;; IR node records.
-
-    (define-record-type <const>
-      (make-const source value)
-      const?
-      (source const-source)
-      (value const-value))
-
-    (define-record-type <void>
-      (make-void source)
-      void?
-      (source void-source))
-
-    (define-record-type <define>
-      (make-define source name value)
-      define?
-      (source define-source)
-      (name define-name)
-      (value define-value))
-
-    (define-record-type <lambda>
-      (make-lambda source formals body)
-      lambda?
-      (source lambda-source)
-      (formals lambda-formals)
-      (body lambda-body))
-
-    (define-record-type <if>
-      (make-if source test then else)
-      if?
-      (source if-source)
-      (test if-test)
-      (then if-then)
-      (else if-else))
-
-    (define-record-type <begin>
-      (make-begin source body)
-      begin?
-      (source begin-source)
-      (body begin-body))
-
-    (define-record-type <let>
-      (make-let source bindings body)
-      let?
-      (source let-source)
-      (bindings let-bindings)
-      (body let-body))
-
-    (define-record-type <letrec>
-      (make-letrec source bindings body)
-      letrec?
-      (source letrec-source)
-      (bindings letrec-bindings)
-      (body letrec-body))
-
-    (define-record-type <set!>
-      (make-set! source target expr)
-      set!?
-      (source set!-source)
-      (target set!-target)
-      (expr set!-expr))
-
-    (define-record-type <primitive-ref>
-      (make-primitive-ref source name)
-      primitive-ref?
-      (source primitive-ref-source)
-      (name primitive-ref-name))
-
-    (define-record-type <lexical-ref>
-      (make-lexical-ref source depth index)
-      lexical-ref?
-      (source lexical-ref-source)
-      (depth lexical-ref-depth)
-      (index lexical-ref-index))
-
-    (define-record-type <call>
-      (make-call source proc args)
-      call?
-      (source call-source)
-      (proc call-proc)
-      (args call-args))
-
-    (define-record-type <values>
-      (make-values source args)
-      values?
-      (source values-source)
-      (args values-args))
-
-    (define-record-type <call-with-values>
-      (make-call-with-values source producer consumer)
-      call-with-values?
-      (source cwv-source)
-      (producer cwv-producer)
-      (consumer cwv-consumer))
-
-    ;; ------------------------------------------------------------------
-    ;; Pattern-syntax: friendly pattern names for the IR nodes.
-
-    (define-syntax $const
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'const? (list '=> 'const-value (cadr d)))))))
-
-    (define-syntax $void
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'void? (list '=> 'void-source (cadr d)))))))
-
-    (define-syntax $define
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'define?
-                  (list '=> 'define-name (cadr d))
-                  (list '=> 'define-value (caddr d)))))))
-
-    (define-syntax $lambda
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'lambda?
-                  (list '=> 'lambda-formals (cadr d))
-                  (list '=> 'lambda-body (caddr d)))))))
-
-    (define-syntax $if
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'if?
-                  (list '=> 'if-test (cadr d))
-                  (list '=> 'if-then (caddr d))
-                  (list '=> 'if-else (cadddr d)))))))
-
-    (define-syntax $begin
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'begin?
-                  (list '=> 'begin-body (cadr d)))))))
-
-    (define-syntax $let
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'let?
-                  (list '=> 'let-bindings (cadr d))
-                  (list '=> 'let-body (caddr d)))))))
-
-    (define-syntax $letrec
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'letrec?
-                  (list '=> 'letrec-source (cadr d))
-                  (list '=> 'letrec-bindings (caddr d))
-                  (list '=> 'letrec-body (cadddr d)))))))
-
-    (define-syntax $set!
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'set!?
-                  (list '=> 'set!-target (cadr d))
-                  (list '=> 'set!-expr (caddr d)))))))
-
-    (define-syntax $call
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'call?
-                  (list '=> 'call-proc (cadr d))
-                  (list '=> 'call-args (caddr d)))))))
-
-    (define-syntax $primitive-ref
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'primitive-ref?
-                  (list '=> 'primitive-ref-name (cadr d)))))))
-
-    (define-syntax $lexical-ref
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'lexical-ref?
-                  (list '=> 'lexical-ref-depth (cadr d))
-                  (list '=> 'lexical-ref-index (caddr d)))))))
-
-    (define-syntax $values
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'values?
-                  (list '=> 'values-args (cadr d)))))))
-
-    (define-syntax $call-with-values
-      (lambda (stx)
-        (let ((d (syntax->datum stx)))
-          (datum->syntax stx
-            (list '? 'call-with-values?
-                  (list '=> 'cwv-producer (cadr d))
-                  (list '=> 'cwv-consumer (caddr d)))))))
-
-    ;; ------------------------------------------------------------------
-    ;; The core language.
+    (define (make-void source) (vector 'void source))
+    (define (void? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'void)))
+    (define (void-source x) (vector-ref x 1))
+    (define (make-const source exp) (vector 'const source exp))
+    (define (const? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'const)))
+    (define (const-source x) (vector-ref x 1))
+    (define (const-exp x) (vector-ref x 2))
+    (define (make-primitive-ref source name) (vector 'primitive-ref source name))
+    (define (primitive-ref? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'primitive-ref)))
+    (define (primitive-ref-source x) (vector-ref x 1))
+    (define (primitive-ref-name x) (vector-ref x 2))
+    (define (make-lexical-ref source name depth index) (vector 'lexical-ref source name depth index))
+    (define (lexical-ref? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'lexical-ref)))
+    (define (lexical-ref-source x) (vector-ref x 1))
+    (define (lexical-ref-name x) (vector-ref x 2))
+    (define (lexical-ref-depth x) (vector-ref x 3))
+    (define (lexical-ref-index x) (vector-ref x 4))
+    (define (make-lexical-set source name depth index exp) (vector 'lexical-set source name depth index exp))
+    (define (lexical-set? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'lexical-set)))
+    (define (lexical-set-source x) (vector-ref x 1))
+    (define (lexical-set-name x) (vector-ref x 2))
+    (define (lexical-set-depth x) (vector-ref x 3))
+    (define (lexical-set-index x) (vector-ref x 4))
+    (define (lexical-set-exp x) (vector-ref x 5))
+    (define (make-lambda source meta body) (vector 'lambda source meta body))
+    (define (lambda? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'lambda)))
+    (define (lambda-source x) (vector-ref x 1))
+    (define (lambda-meta x) (vector-ref x 2))
+    (define (lambda-body x) (vector-ref x 3))
+    (define (make-lambda-case source req opt rest kw inits gensyms body alternate)
+      (vector 'lambda-case source req opt rest kw inits gensyms body alternate))
+    (define (lambda-case? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'lambda-case)))
+    (define (lambda-case-source x) (vector-ref x 1))
+    (define (lambda-case-req x) (vector-ref x 2))
+    (define (lambda-case-opt x) (vector-ref x 3))
+    (define (lambda-case-rest x) (vector-ref x 4))
+    (define (lambda-case-kw x) (vector-ref x 5))
+    (define (lambda-case-inits x) (vector-ref x 6))
+    (define (lambda-case-gensyms x) (vector-ref x 7))
+    (define (lambda-case-body x) (vector-ref x 8))
+    (define (lambda-case-alternate x) (vector-ref x 9))
+    (define (make-toplevel-define source name exp) (vector 'toplevel-define source name exp))
+    (define (toplevel-define? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'toplevel-define)))
+    (define (toplevel-define-source x) (vector-ref x 1))
+    (define (toplevel-define-name x) (vector-ref x 2))
+    (define (toplevel-define-exp x) (vector-ref x 3))
+    (define (make-conditional source test consequent alternate) (vector 'conditional source test consequent alternate))
+    (define (conditional? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'conditional)))
+    (define (conditional-source x) (vector-ref x 1))
+    (define (conditional-test x) (vector-ref x 2))
+    (define (conditional-consequent x) (vector-ref x 3))
+    (define (conditional-alternate x) (vector-ref x 4))
+    (define (make-seq source head tail) (vector 'seq source head tail))
+    (define (make-call source proc args) (vector 'call source proc args))
+    (define (call? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'call)))
+    (define (call-source x) (vector-ref x 1))
+    (define (call-proc x) (vector-ref x 2))
+    (define (call-args x) (vector-ref x 3))
+    (define (make-primcall source name args) (vector 'primcall source name args))
+    (define (primcall? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'primcall)))
+    (define (primcall-source x) (vector-ref x 1))
+    (define (primcall-name x) (vector-ref x 2))
+    (define (primcall-args x) (vector-ref x 3))
+    (define (make-let source names gensyms vals body) (vector 'let source names gensyms vals body))
+    (define (let? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'let)))
+    (define (let-source x) (vector-ref x 1))
+    (define (let-names x) (vector-ref x 2))
+    (define (let-gensyms x) (vector-ref x 3))
+    (define (let-vals x) (vector-ref x 4))
+    (define (let-body x) (vector-ref x 5))
+    (define (make-letrec source in-order? names gensyms vals body)
+      (vector 'letrec source in-order? names gensyms vals body))
+    (define (letrec? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'letrec)))
+    (define (letrec-source x) (vector-ref x 1))
+    (define (letrec-in-order? x) (vector-ref x 2))
+    (define (letrec-names x) (vector-ref x 3))
+    (define (letrec-gensyms x) (vector-ref x 4))
+    (define (letrec-vals x) (vector-ref x 5))
+    (define (letrec-body x) (vector-ref x 6))
+    (define (make-fix source names gensyms vals body) (vector 'fix source names gensyms vals body))
+    (define (fix? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'fix)))
+    (define (fix-source x) (vector-ref x 1))
+    (define (fix-names x) (vector-ref x 2))
+    (define (fix-gensyms x) (vector-ref x 3))
+    (define (fix-vals x) (vector-ref x 4))
+    (define (fix-body x) (vector-ref x 5))
+    (define (make-let-values source exp body) (vector 'let-values source exp body))
+    (define (make-toplevel-ref source name) (vector 'toplevel-ref source name))
+    (define (toplevel-ref? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'toplevel-ref)))
+    (define (toplevel-ref-source x) (vector-ref x 1))
+    (define (toplevel-ref-name x) (vector-ref x 2))
+    (define (make-toplevel-set source name exp) (vector 'toplevel-set source name exp))
+    (define (toplevel-set? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'toplevel-set)))
+    (define (toplevel-set-source x) (vector-ref x 1))
+    (define (toplevel-set-name x) (vector-ref x 2))
+    (define (toplevel-set-exp x) (vector-ref x 3))
+    (define (make-module-ref source module name public?) (vector 'module-ref source module name public?))
+    (define (module-ref? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'module-ref)))
+    (define (module-ref-source x) (vector-ref x 1))
+    (define (module-ref-module x) (vector-ref x 2))
+    (define (module-ref-name x) (vector-ref x 3))
+    (define (module-ref-public? x) (vector-ref x 4))
+    (define (make-module-set source module name public? exp) (vector 'module-set source module name public? exp))
+    (define (module-set? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'module-set)))
+    (define (module-set-source x) (vector-ref x 1))
+    (define (module-set-module x) (vector-ref x 2))
+    (define (module-set-name x) (vector-ref x 3))
+    (define (module-set-public? x) (vector-ref x 4))
+    (define (module-set-exp x) (vector-ref x 5))
+    (define (let-values? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'let-values)))
+    (define (let-values-source x) (vector-ref x 1))
+    (define (let-values-exp x) (vector-ref x 2))
+    (define (let-values-body x) (vector-ref x 3))
+    (define (make-values source args) (vector 'values source args))
+    (define (values? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'values)))
+    (define (values-source x) (vector-ref x 1))
+    (define (values-args x) (vector-ref x 2))
+    (define (make-call-with-values source producer consumer) (vector 'call-with-values source producer consumer))
+    (define (call-with-values? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'call-with-values)))
+    (define (cwv-source x) (vector-ref x 1))
+    (define (cwv-producer x) (vector-ref x 2))
+    (define (cwv-consumer x) (vector-ref x 3))
+    (define (seq? x) (and (vector? x) (positive? (vector-length x)) (eq? (vector-ref x 0) 'seq)))
+    (define (seq-source x) (vector-ref x 1))
+    (define (seq-head x) (vector-ref x 2))
+    (define (seq-tail x) (vector-ref x 3))
+    (define (lambda-formals->list formals)
+      (if (symbol? formals)
+        (list formals)
+        (let loop ((f formals) (acc '()))
+          (cond ((null? f) (reverse acc))
+                ((pair? f) (loop (cdr f) (cons (car f) acc)))
+                (else (reverse (cons f acc)))))))
+    (define (formals->arity f)
+      (cond
+        ((symbol? f) (list '() '() f))
+        (else
+         (let loop ((p f) (req '()) (opt '()) (rest #f))
+           (cond
+             ((null? p) (list (reverse req) (reverse opt) rest))
+             ((pair? p) (loop (cdr p) (cons (car p) req) opt rest))
+             (else (list (reverse req) (reverse opt) p)))))))
+    (define (arity->formals req opt rest)
+      (cond
+        ((and (null? opt) rest) (append req rest))
+        ((and (null? opt) (not rest)) req)
+        (else (append req opt (if rest (list rest) '())))))
+    (define (core->ir sexp)
+      (cond
+        ((or (symbol? sexp) (not (pair? sexp))) sexp)
+        (else
+         (let ((head (car sexp)))
+           (case head
+             ((quote) (make-const #f (cadr sexp)))
+             ((define)
+              (if (symbol? (cadr sexp))
+                (make-toplevel-define #f (cadr sexp) (core->ir (caddr sexp)))
+                (let* ((df (cadr sexp))
+                       (dname (car df))
+                       (dformals (cdr df))
+                       (names (lambda-formals->list dformals))
+                       (arity (formals->arity dformals)))
+                  (make-toplevel-define #f dname
+                                       (make-lambda #f #f
+                                                    (make-lambda-case #f
+                                                                     (car arity) (cadr arity) (caddr arity)
+                                                                     #f '() names
+                                                                     (core->ir (cons 'begin (cddr sexp)))
+                                                                     #f))))))
+             ((lambda)
+              (let* ((dformals (cadr sexp))
+                     (names (lambda-formals->list dformals))
+                     (arity (formals->arity dformals)))
+                (make-lambda #f #f
+                             (make-lambda-case #f
+                                              (car arity) (cadr arity) (caddr arity)
+                                              #f '() names
+                                              (core->ir (cons 'begin (cddr sexp)))
+                                              #f))))
+             ((begin)
+              (let join ((exps (cdr sexp)))
+                (cond
+                  ((null? exps) (make-void #f))
+                  ((null? (cdr exps)) (core->ir (car exps)))
+                  (else (make-seq #f (core->ir (car exps)) (join (cdr exps)))))))
+             ((if)
+              (if (pair? (cdddr sexp))
+                (make-conditional #f (core->ir (cadr sexp)) (core->ir (caddr sexp))
+                                  (if (eq? (cadddr sexp) #f)
+                                    (make-const #f #f)
+                                    (core->ir (cadddr sexp))))
+                (make-conditional #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
+             ((let)
+              (if (symbol? (cadr sexp))
+                (let* ((name (cadr sexp))
+                       (bindings (caddr sexp))
+                       (body (cdddr sexp))
+                       (bnames (map car bindings)))
+                  (make-letrec 'letrec #f
+                               (list name) (list name)
+                               (list (make-lambda #f #f
+                                                  (make-lambda-case #f bnames '() #f #f '()
+                                                                   bnames
+                                                                   (core->ir (cons 'begin body))
+                                                                   #f)))
+                               (make-call #f name
+                                          (map (lambda (b) (core->ir (cadr b))) bindings))))
+                (let* ((bindings (cadr sexp))
+                       (bnames (map car bindings)))
+                  (make-let #f bnames bnames
+                            (map (lambda (b) (core->ir (cadr b))) bindings)
+                            (core->ir (cons 'begin (cddr sexp)))))))
+              ((let*)
+               (let rec ((bs (cadr sexp)))
+                 (if (null? (cdr bs))
+                   (make-let #f (list (caar bs)) (list (caar bs))
+                             (list (core->ir (cadar bs)))
+                             (core->ir (cons 'begin (cddr sexp))))
+                   (make-let #f (list (caar bs)) (list (caar bs))
+                             (list (core->ir (cadar bs)))
+                             (rec (cdr bs))))))
+             ((letrec letrec*)
+              (make-letrec head
+                           (eq? head 'letrec*)
+                           (map car (cadr sexp))
+                           (map car (cadr sexp))
+                           (map (lambda (b) (core->ir (cadr b))) (cadr sexp))
+                           (core->ir (cons 'begin (cddr sexp)))))
+             ((set!)
+              ;; core->ir works on lowered sexp with no binding info; the
+              ;; target type is unknown here, so emit a lexical-set with a
+              ;; name and a depth/index placeholder.
+              (make-lexical-set #f (cadr sexp) 0 0 (core->ir (caddr sexp))))
+             ((values)
+              (make-values #f (map core->ir (cdr sexp))))
+             ((call-with-values)
+              (make-call-with-values #f (core->ir (cadr sexp)) (core->ir (caddr sexp))))
+             ((module-ref)
+              ;; (module-ref (quote lib) (quote name)) is the cross-library
+              ;; reference emitted by emit-toplevel-ref; a plain
+              ;; (module-ref m name) application is a call.
+              (if (and (pair? (cadr sexp)) (eq? (caadr sexp) 'quote)
+                       (pair? (caddr sexp)) (eq? (caaddr sexp) 'quote))
+                (make-module-ref #f (cadr (cadr sexp)) (cadr (caddr sexp)) #t)
+                (make-call #f (core->ir head) (map core->ir (cdr sexp)))))
+             ((module-set)
+              ;; (module-set (quote lib) (quote name) exp) is the
+              ;; cross-library assignment; a plain (module-set m name v)
+              ;; application is a call.
+              (if (and (pair? (cadr sexp)) (eq? (caadr sexp) 'quote)
+                       (pair? (caddr sexp)) (eq? (caaddr sexp) 'quote))
+                (make-module-set #f (cadr (cadr sexp)) (cadr (caddr sexp)) #t
+                                 (core->ir (cadddr sexp)))
+                (make-call #f (core->ir head) (map core->ir (cdr sexp)))))
+             (else (make-call #f (core->ir head) (map core->ir (cdr sexp)))))))))
+    (define (ir->core ir)
+      (cond
+        ((const? ir)
+         (let ((v (const-exp ir)))
+           (if (or (number? v) (string? v) (char? v) (boolean? v)
+                   (null? v) (eof-object? v))
+             v
+             (list 'quote v))))
+        ((void? ir) (list 'quote 'void))
+        ((toplevel-define? ir)
+         (list 'define (toplevel-define-name ir)
+               (ir->core (toplevel-define-exp ir))))
+        ((lambda? ir)
+         (let ((body (lambda-body ir)))
+           (if (lambda-case? body)
+             (cons 'lambda
+                   (cons (arity->formals (lambda-case-req body)
+                                         (lambda-case-opt body)
+                                         (lambda-case-rest body))
+                         (list (ir->core (lambda-case-body body)))))
+             (list 'lambda (ir->core body)))))
+        ((conditional? ir)
+         (let ((alt (conditional-alternate ir)))
+           (if alt
+             (list 'if (ir->core (conditional-test ir)) (ir->core (conditional-consequent ir))
+                   (ir->core alt))
+             (list 'if (ir->core (conditional-test ir)) (ir->core (conditional-consequent ir))))))
+        ((seq? ir)
+         (cons 'begin
+           (let collect ((s ir))
+             (cond ((void? s) '())
+                   ((seq? s) (cons (ir->core (seq-head s)) (collect (seq-tail s))))
+                   (else (list (ir->core s)))))))
+        ((call? ir)
+         (cons (ir->core (call-proc ir)) (map ir->core (call-args ir))))
+        ((primcall? ir)
+         (cons (primcall-name ir) (map ir->core (primcall-args ir))))
+        ((primitive-ref? ir)
+         (primitive-ref-name ir))
+        ((toplevel-ref? ir)
+         (toplevel-ref-name ir))
+        ((lexical-ref? ir)
+         (lexical-ref-name ir))
+        ((module-ref? ir)
+         (list 'module-ref (list 'quote (module-ref-module ir))
+               (list 'quote (module-ref-name ir))))
+        ((lexical-set? ir)
+         (list 'set! (lexical-set-name ir) (ir->core (lexical-set-exp ir))))
+        ((toplevel-set? ir)
+         (list 'set! (toplevel-set-name ir) (ir->core (toplevel-set-exp ir))))
+        ((module-set? ir)
+         (list 'set! (list 'module-ref (list 'quote (module-set-module ir))
+                           (list 'quote (module-set-name ir)))
+               (ir->core (module-set-exp ir))))
+        ((let-values? ir)
+         (list 'call-with-values (ir->core (let-values-exp ir))
+               (ir->core (let-values-body ir))))
+        ((values? ir)
+         (cons 'values (map ir->core (values-args ir))))
+        ((call-with-values? ir)
+         (list 'call-with-values (ir->core (cwv-producer ir))
+               (ir->core (cwv-consumer ir))))
+        ((let? ir)
+         (cons 'let
+               (cons (map (lambda (n v) (list n (ir->core v)))
+                          (let-names ir) (let-vals ir))
+                     (if (seq? (let-body ir))
+                       (let collect ((s (let-body ir)))
+                         (cond ((void? s) '())
+                               ((seq? s) (cons (ir->core (seq-head s))
+                                               (collect (seq-tail s))))
+                               (else (list (ir->core s)))))
+                       (list (ir->core (let-body ir)))))))
+        ((letrec? ir)
+         (cons (if (letrec-in-order? ir) 'letrec* 'letrec)
+               (cons (map (lambda (n v) (list n (ir->core v)))
+                          (letrec-names ir) (letrec-vals ir))
+                     (if (seq? (letrec-body ir))
+                       (let collect ((s (letrec-body ir)))
+                         (cond ((void? s) '())
+                               ((seq? s) (cons (ir->core (seq-head s))
+                                               (collect (seq-tail s))))
+                               (else (list (ir->core s)))))
+                       (list (ir->core (letrec-body ir)))))))
+        ((or (symbol? ir) (not (pair? ir))) ir)
+        (else (error "ir->core: unknown IR node" ir))))
 
     (define core-language
-      '((quote         const   "(quote datum)")
-        (define        define  "(define name expr) | (define (name . formals) body...)")
-        (lambda        lambda  "(lambda formals body...)")
-        (if            if      "(if test then [else])")
-        (begin         begin   "(begin expr...)")
-        (let           let     "(let ((var init)...) body...); named let lowers to letrec+call")
-        (let*          let     "(let* ((var init)...) body...); lowers to nested lets")
-        (letrec        letrec  "(letrec ((var init)...) body...)")
-        (letrec*       letrec  "(letrec* ((var init)...) body...)")
-        (set!          set!    "(set! var expr)")))
+      '((quote const "(quote datum)")
+        (define toplevel-define "(define name expr) | (define (name . formals) body...)")
+        (lambda lambda "(lambda formals body...)")
+        (if conditional "(if test then [else])")
+        (begin seq "(begin expr...); joins to a binary seq")
+        (let let "(let ((var init)...) body...); named let lowers to letrec+call")
+        (let* let "(let* ((var init)...) body...); lowers to nested lets")
+        (letrec letrec "(letrec ((var init)...) body...)")
+        (letrec* letrec "(letrec* ((var init)...) body...)")
+        (set! set! "(set! var expr)")))
 
     (define (core-form? head)
       (and (assq head core-language) #t))
@@ -276,110 +393,4 @@
          (let loop ((parts x))
            (cond ((null? parts) #f)
                  ((validate-core-sexp (car parts)))
-                 (else (loop (cdr parts))))))))
-
-    (define (core->ir sexp)
-      (cond
-        ((or (symbol? sexp) (not (pair? sexp))) sexp)
-        (else
-         (let ((head (car sexp)))
-           (case head
-             ((quote) (make-const #f (cadr sexp)))
-             ((quote-syntax) (make-const #f (cadr sexp)))
-             ((define)
-              (if (symbol? (cadr sexp))
-                (make-define #f (cadr sexp) (core->ir (caddr sexp)))
-                (make-define #f (caadr sexp)
-                             (core->ir (cons 'lambda
-                                             (cons (cdadr sexp) (cddr sexp)))))))
-             ((lambda)
-              (make-lambda #f (cadr sexp) (map core->ir (cddr sexp))))
-             ((if)
-              (if (pair? (cdddr sexp))
-                (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp))
-                         (if (eq? (cadddr sexp) #f)
-                           (make-const #f #f)
-                           (core->ir (cadddr sexp))))
-                (make-if #f (core->ir (cadr sexp)) (core->ir (caddr sexp)) #f)))
-             ((begin)
-              (make-begin #f (map core->ir (cdr sexp))))
-             ((let)
-              (if (symbol? (cadr sexp))
-                (let* ((name (cadr sexp))
-                       (bindings (caddr sexp))
-                       (body (cdddr sexp)))
-                  (make-letrec 'letrec
-                               (list (list name
-                                           (make-lambda #f (map car bindings)
-                                                        (map core->ir body))))
-                               (list (make-call #f name
-                                                (map core->ir
-                                                     (map cadr bindings))))))
-                (make-let #f
-                          (map (lambda (b) (list (car b) (core->ir (cadr b))))
-                               (cadr sexp))
-                          (map core->ir (cddr sexp)))))
-             ((let*)
-              (let rec ((bs (cadr sexp)))
-                (if (null? (cdr bs))
-                  (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
-                            (map core->ir (cddr sexp)))
-                  (make-let #f (list (list (caar bs) (core->ir (cadar bs))))
-                            (list (rec (cdr bs)))))))
-             ((letrec letrec*)
-              (make-letrec head
-                           (map (lambda (b) (list (car b) (core->ir (cadr b))))
-                                (cadr sexp))
-                           (map core->ir (cddr sexp))))
-             ((set!)
-              (make-set! #f (cadr sexp) (core->ir (caddr sexp))))
-             (else
-              (make-call #f (core->ir head) (map core->ir (cdr sexp)))))))))
-
-    (define (ir->core ir)
-      (cond
-        ((const? ir)
-         (let ((v (const-value ir)))
-           (if (or (number? v) (string? v) (char? v) (boolean? v)
-                   (null? v) (eof-object? v))
-             v
-             (list 'quote v))))
-        ((define? ir) (list 'define (define-name ir) (ir->core (define-value ir))))
-        ((lambda? ir)
-         (cons 'lambda (cons (lambda-formals ir)
-                             (map ir->core (lambda-body ir)))))
-        ((if? ir)
-         (let ((else (if-else ir)))
-           (if else
-             (list 'if (ir->core (if-test ir)) (ir->core (if-then ir))
-                   (ir->core else))
-             (list 'if (ir->core (if-test ir)) (ir->core (if-then ir))))))
-        ((begin? ir)
-         (cons 'begin (map ir->core (begin-body ir))))
-        ((let? ir)
-         (cons 'let
-               (cons (map (lambda (b) (list (car b) (ir->core (cadr b))))
-                          (let-bindings ir))
-                     (map ir->core (let-body ir)))))
-        ((letrec? ir)
-         (let ((name (letrec-source ir)))
-           (cons (if (symbol? name) name 'letrec)
-                 (cons (map (lambda (b) (list (car b) (ir->core (cadr b))))
-                            (letrec-bindings ir))
-                       (map ir->core (letrec-body ir))))))
-        ((set!? ir)
-         (list 'set! (set!-target ir) (ir->core (set!-expr ir))))
-        ((values? ir)
-         (cons 'values (map ir->core (values-args ir))))
-        ((call-with-values? ir)
-         (list 'call-with-values (ir->core (cwv-producer ir))
-               (ir->core (cwv-consumer ir))))
-        ((call? ir)
-         (cons (ir->core (call-proc ir)) (map ir->core (call-args ir))))
-        ((primitive-ref? ir)
-         (primitive-ref-name ir))
-        ((lexical-ref? ir)
-         (error "ir->core: unresolved lexical-ref (depth/index not datable)"
-                (lexical-ref-depth ir) (lexical-ref-index ir)))
-        ((or (symbol? ir) (not (pair? ir))) ir)
-        (else (error "ir->core: unknown IR node" ir))))))
+                 (else (loop (cdr parts))))))))))

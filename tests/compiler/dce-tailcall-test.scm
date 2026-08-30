@@ -19,8 +19,12 @@
          v
          (list 'quote v))))
     ((lambda? ir)
-     (cons 'lambda (cons (lambda-formals ir)
-                         (map tc-sexp (lambda-body ir)))))
+     (let ((bs (lambda-body ir)))
+       (cons 'lambda
+             (cons (lambda-formals ir)
+                   (if (and (pair? bs) (null? (cdr bs)))
+                     (map tc-sexp bs)
+                     (list (cons 'begin (map tc-sexp bs))))))))
     ((if? ir)
      (list 'if (tc-sexp (if-test ir)) (tc-sexp (if-then ir))
            (if (if-else ir) (tc-sexp (if-else ir)) #f)))

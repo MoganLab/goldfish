@@ -1,10 +1,10 @@
 ;;; bytecode.scm -- L2: bytecode compilation front-end (IR version).
 ;;;
-;;; Compiles the record IR (goldfish/compiler/ir.scm) into a serializable
-;;; instruction sequence for the future C++ VM.  The bytecode is plain
-;;; data -- symbols, numbers, lists -- so it round-trips through write/read
-;;; and can be cached on disk.  The passes above remain the front-end;
-;;; only the executor is swapped.
+;;; Compiles the record IR (goldfish/core/ir.scm, Guile-aligned tree-il)
+;;; into a serializable instruction sequence for the future C++ VM.  The
+;;; bytecode is plain data -- symbols, numbers, lists -- so it round-trips
+;;; through write/read and can be cached on disk.  The passes above remain
+;;; the front-end; only the executor is swapped.
 ;;;
 ;;; Bytecode shape (a stack machine):
 ;;;   (program (code-table code...) (top instr...))
@@ -22,9 +22,9 @@
 ;;; the enclosing frame's slots, so ref/set-ref resolve through the
 ;;; captured chain.
 ;;;
-;;; Conventions:
-;;; - An application in tail position compiles to (tail-call n), a
-;;;   jump that never returns; otherwise (call n) pushes the result.
+;;; IR shape notes: <lambda> carries a single body (a <seq> tree / a
+;;; <letrec>); <begin> is a binary <seq>; <if> is <conditional>; <set!>
+;;; is typed (<lexical-set> / <toplevel-set>).
 
 (define-library (goldfish compiler bytecode)
   (import (scheme base)
@@ -149,6 +149,43 @@
               (list d (cdr cell))
               (loop (cdr es) (+ d 1)))))))
 
+    ;; lambda-req : ir -> (list symbol) or #f
+    ;; The required formal names of a lambda (via its lambda-case), or #f
+    ;; if the body is not a lambda-case (degenerate).
+    (define (lambda-req lam)
+      (let ((b (lambda-body lam)))
+        (if (lambda-case? b) (lambda-case-req b) #f)))
+
+    ;; lambda-formals : ir -> formals
+    ;; Reconstruct a formals list from a lambda's lambda-case arity.
+    (define (lambda-formals lam)
+      (let ((b (lambda-body lam)))
+        (if (lambda-case? b)
+          (let ((req (lambda-case-req b))
+                (opt (lambda-case-opt b))
+                (rest (lambda-case-rest b)))
+            (cond
+              ((and (null? opt) rest) (append req rest))
+              ((and (null? opt) (not rest)) req)
+              (else (append req opt (if rest (list rest) '())))))
+          '())))
+
+    ;; lambda-body-expr : ir -> ir
+    ;; The body EXPRESSION of a lambda (unwrapping its lambda-case).  The
+    ;; IR stores (make-lambda src meta body) where body is a <lambda-case>;
+    ;; the real expression is its lambda-case-body.
+    (define (lambda-body-expr lam)
+      (let ((b (lambda-body lam)))
+        (if (lambda-case? b) (lambda-case-body b) b)))
+
+    ;; seq->list : ir -> (list ir)
+    ;; Flatten a seq tree into a list of expressions (head first).
+    (define (seq->list s)
+      (let collect ((s s) (acc '()))
+        (cond ((void? s) (reverse acc))
+              ((seq? s) (collect (seq-tail s) (cons (seq-head s) acc)))
+              (else (reverse (cons s acc))))))
+
     ;; compile-lambda : formals body frame-envs code-add -> index
     ;; Compile a lambda literal into a code object, register it with
     ;; code-add, and return its index.  Each lambda has an independent
@@ -168,94 +205,122 @@
           (compile-body body #t envs emit next-label next-slot add-code)
           (add-code (list 'code slot-n formals (flush))))))
 
-    ;; compile-body : (list ir) bool frame-envs emit next-label next-slot
-    ;;                code-add -> void
-    ;; Non-final expressions are evaluated and popped; internal defines
-    ;; become frame slots bound with letrec* semantics.  tail? is whether
-    ;; the final expression is in tail position (emit (return) / tail-call):
-    ;; a let in non-tail position must leave its value on the stack instead.
+    ;; compile-body : ir bool frame-envs emit next-label next-slot code-add
+    ;;                -> void
+    ;; Compile a lambda body (a single expression, possibly a seq tree).
+    ;; Non-final expressions are evaluated and popped; the final
+    ;; expression is compiled in tail position.  tail? is whether the
+    ;; final expression is in tail position (emit (return) / tail-call).
     (define (compile-body body tail? envs emit next-label next-slot add-code)
-      (let loop ((bs body) (envs envs))
-        (cond
-          ((null? bs)
-           (error "to-bytecode: empty lambda body"))
-          ((and (define? (car bs)))
-           (let* ((d (car bs))
-                  (name (define-name d))
-                  (slot (next-slot))
-                  (new-alist (slot-env-extend (car envs) name slot))
-                  (new-envs (cons new-alist (cdr envs))))
-             (compile-expr (define-value d) new-envs emit next-label next-slot add-code)
-             (emit (list 'set-local slot))
+      (if (void? body)
+        (begin (emit '(const #f))
+               (emit '(return)))
+        (let ((es (seq->list body)))          ;; Internal (define name value) forms at the head of a lambda body
+          ;; lower to letrec slot bindings (the expander normally does this
+          ;; before to-bytecode; core->ir leaves them raw).
+          (let split ((es es) (defs '()))
+            (if (and (pair? es) (toplevel-define? (car es)))
+              (split (cdr es) (cons (car es) defs))
+              (if (null? defs)
+                (compile-body-seq es tail? envs emit next-label next-slot add-code)
+                (let* ((names (map toplevel-define-name (reverse defs)))
+                       (vals (map toplevel-define-exp (reverse defs)))
+                       (new-alist (fold-left (lambda (e n)
+                                               (slot-env-extend e n (next-slot)))
+                                             (car envs) names))
+                       (new-envs (cons new-alist (cdr envs))))
+                  (for-each (lambda (n v)
+                              (compile-expr v new-envs emit next-label next-slot add-code)
+                              (emit (list 'set-local (cdr (assq n new-alist))))
+                              (emit '(pop)))
+                            names vals)
+                  (compile-body-seq es tail? new-envs emit next-label next-slot add-code))))))))
+
+    ;; compile-body-seq : (list ir) bool frame-envs emit next-label next-slot code-add -> void
+    ;; Compile a flattened body expression list (already free of internal
+    ;; defines): the last expression is tail/expr compiled, earlier ones are
+    ;; compiled and popped.
+    (define (compile-body-seq es tail? envs emit next-label next-slot add-code)
+      (if (null? (cdr es))
+        (if tail?
+          (compile-tail (car es) envs emit next-label next-slot add-code)
+          (compile-expr (car es) envs emit next-label next-slot add-code))
+        (let loop ((bs es))
+          (cond
+            ((null? (cdr bs))
+             (if tail?
+               (compile-tail (car bs) envs emit next-label next-slot add-code)
+               (compile-expr (car bs) envs emit next-label next-slot add-code)))
+            (else
+             (compile-expr (car bs) envs emit next-label next-slot add-code)
              (emit '(pop))
-             (loop (cdr bs) new-envs)))
-          ((null? (cdr bs))
-           (if tail?
-             (compile-tail (car bs) envs emit next-label next-slot add-code)
-             (compile-expr (car bs) envs emit next-label next-slot add-code)))
-          (else
-           (compile-expr (car bs) envs emit next-label next-slot add-code)
-           (emit '(pop))
-           (loop (cdr bs) envs)))))
+             (loop (cdr bs)))))))
 
     ;; compile-tail : ir frame-envs emit next-label next-slot code-add -> void
     ;; Compile an expression whose value is the result of the enclosing
     ;; lambda: applications become tail calls, the value is left on the
     ;; stack for a trailing (return).
-    (define (compile-tail s envs emit next-label next-slot add-code)
-      (cond
+    (define (compile-tail s envs emit next-label next-slot add-code)      (cond
         [(lexical-ref? s)
          (if (= (lexical-ref-depth s) 0)
            (emit (list 'local (lexical-ref-index s)))
            (emit (list 'ref (lexical-ref-depth s) (lexical-ref-index s))))
          (emit '(return))]
+         [(toplevel-ref? s)
+          (emit (list 'global (toplevel-ref-name s)))
+          (emit '(return))]
+         [(module-ref? s)
+          (emit (list 'global 'module-ref))
+          (emit (list 'const (module-ref-module s)))
+          (emit (list 'const (module-ref-name s)))
+          (emit (list 'tail-call 2))]
         [(symbol? s)
          (compile-expr s envs emit next-label next-slot add-code)
          (emit '(return))]
         [(or (const? s) (void? s))
-         (emit (list 'const (if (const? s) (const-value s) (list 'quote 'void))))
+         (emit (list 'const (if (const? s) (const-exp s) #f)))
          (emit '(return))]
         [(lambda? s)
-         (emit (list 'closure (compile-lambda (lambda-formals s) (lambda-body s)
-                                              envs add-code)))
+         (emit (list 'closure (compile-lambda (lambda-formals s) (lambda-body-expr s)
+                                               envs add-code)))
          (emit '(return))]
-        [(if? s)
-         (let ((els (if-else s)))
-           (compile-expr (if-test s) envs emit next-label next-slot add-code)
+        [(conditional? s)
+         (let ((els (conditional-alternate s)))
+           (compile-expr (conditional-test s) envs emit next-label next-slot add-code)
            (let ((L (next-label)))
              (emit (list 'if-else L))
-             (compile-tail (if-then s) envs emit next-label next-slot add-code)
+             (compile-tail (conditional-consequent s) envs emit next-label next-slot add-code)
              (emit (list 'label L))
              (if els
                (compile-tail els envs emit next-label next-slot add-code)
                (begin
                  (emit '(const #f))
                  (emit '(return))))))]
-        [(begin? s)
-         (if (null? (begin-body s))
-           (begin
-             (emit '(const #f))
-             (emit '(return)))
-           (compile-body (begin-body s) #t envs emit next-label next-slot add-code))]
+        [(seq? s)
+         (compile-body s #t envs emit next-label next-slot add-code)]
         [(let? s)
-         (compile-let 'let (let-bindings s) (let-body s) #t envs emit
+         (compile-let 'let (let-names s) (let-vals s) (let-body s) #t envs emit
                       next-label next-slot add-code)]
         [(letrec? s)
-         (compile-let 'letrec (letrec-bindings s) (letrec-body s) #t envs emit
+         (compile-let 'letrec (letrec-names s) (letrec-vals s) (letrec-body s) #t envs emit
                       next-label next-slot add-code)]
-        [(set!? s)
-         (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
-         (let ((t (set!-target s))
-               (r (if (lexical-ref? (set!-target s)) #f (resolve-var envs (set!-target s)))))
-           (cond
-             ((lexical-ref? t)
-              (if (= (lexical-ref-depth t) 0)
-                (emit (list 'set-local (lexical-ref-index t)))
-                (emit (list 'set-ref (lexical-ref-depth t) (lexical-ref-index t)))))
-             ((and r (= (car r) 0))
-              (emit (list 'set-local (cadr r))))
-             (r (emit (list 'set-ref (car r) (cadr r))))
-             (else (emit (list 'store-global t)))))
+        [(let-values? s)
+         ;; call-with-values lowering: (let-values (producer) body) compiles
+         ;; producer, then body as a closure applied to the values.
+         (compile-expr (let-values-exp s) envs emit next-label next-slot add-code)
+         (emit (list 'call 1))
+         (compile-tail (let-values-body s) envs emit next-label next-slot add-code)]
+         [(lexical-set? s)
+          (compile-expr (lexical-set-exp s) envs emit next-label next-slot add-code)
+          (let ((r (resolve-var envs (lexical-set-name s))))
+            (cond ((and r (= (car r) 0))
+                   (emit (list 'set-local (cadr r))))
+                  (r (emit (list 'set-ref (car r) (cadr r))))
+                  (else (emit (list 'store-global (lexical-set-name s))))))
+          (emit '(return))]
+        [(toplevel-set? s)
+         (compile-expr (toplevel-set-exp s) envs emit next-label next-slot add-code)
+         (emit (list 'store-global (toplevel-set-name s)))
          (emit '(return))]
         [(call? s)
          (compile-expr (call-proc s) envs emit next-label next-slot add-code)
@@ -263,11 +328,27 @@
                      (compile-expr a envs emit next-label next-slot add-code))
                    (call-args s))
          (emit (list 'tail-call (length (call-args s))))]
-        [(not (pair? s))
-         (emit (list 'const s))
-         (emit '(return))]
-        [else
-         (error "to-bytecode: unknown expression" s)]))
+         [(primcall? s)
+          (emit (list 'global (primcall-name s)))
+          (for-each (lambda (a)
+                      (compile-expr a envs emit next-label next-slot add-code))
+                    (primcall-args s))
+          (emit (list 'tail-call (length (primcall-args s))))]
+         [(values? s)
+          (emit (list 'global 'values))
+          (for-each (lambda (a)
+                      (compile-expr a envs emit next-label next-slot add-code))
+                    (values-args s))
+          (emit (list 'tail-call (length (values-args s))))]
+         [(call-with-values? s)
+          (emit (list 'global 'call-with-values))
+          (compile-expr (cwv-producer s) envs emit next-label next-slot add-code)
+          (compile-expr (cwv-consumer s) envs emit next-label next-slot add-code)
+          (emit (list 'tail-call 2))]
+         [(not (pair? s))
+          (emit (list 'const s))
+          (emit '(return))]
+         [else          (error "to-bytecode: unknown expression" s)]))
 
     ;; compile-expr : ir frame-envs emit next-label next-slot code-add -> void
     ;; Compile an expression whose value is pushed onto the stack.
@@ -275,6 +356,13 @@
       (cond
         ((primitive-ref? s)
          (emit (list 'global (primitive-ref-name s))))
+        ((toplevel-ref? s)
+         (emit (list 'global (toplevel-ref-name s))))
+        ((module-ref? s)
+         (emit (list 'global 'module-ref))
+         (emit (list 'const (module-ref-module s)))
+         (emit (list 'const (module-ref-name s)))
+         (emit (list 'call 2)))
         ((lexical-ref? s)
          (if (= (lexical-ref-depth s) 0)
            (emit (list 'local (lexical-ref-index s)))
@@ -286,89 +374,108 @@
              (r (emit (list 'ref (car r) (cadr r))))
              (else (emit (list 'global s))))))
         ((or (const? s) (void? s))
-         (emit (list 'const (if (const? s) (const-value s) (list 'quote 'void)))))
+         (emit (list 'const (if (const? s) (const-exp s) #f))))
         ((lambda? s)
-         (emit (list 'closure (compile-lambda (lambda-formals s) (lambda-body s)
+         (emit (list 'closure (compile-lambda (lambda-formals s) (lambda-body-expr s)
                                               envs add-code))))
-        ((if? s)
-         (let ((else (if-else s)))
-           (compile-expr (if-test s) envs emit next-label next-slot add-code)
+        ((conditional? s)
+         (let ((else (conditional-alternate s)))
+           (compile-expr (conditional-test s) envs emit next-label next-slot add-code)
            (let ((L1 (next-label)) (L2 (next-label)))
              (emit (list 'if-else L1))
-             (compile-expr (if-then s) envs emit next-label next-slot add-code)
+             (compile-expr (conditional-consequent s) envs emit next-label next-slot add-code)
              (emit (list 'jump L2))
              (emit (list 'label L1))
              (if else
                (compile-expr else envs emit next-label next-slot add-code)
                (emit '(const #f)))
              (emit (list 'label L2)))))
-        ((begin? s)
-         (if (null? (begin-body s))
-           (emit '(const #f))
-           (let loop ((es (begin-body s)))
-             (if (null? (cdr es))
-               (compile-expr (car es) envs emit next-label next-slot add-code
-                 (emit '(pop))
-                 (loop (cdr es)))))))
+        ((seq? s)
+         (let ((es (seq->list s)))
+           (if (null? es)
+             (emit '(const #f))
+             (let loop ((bs es))
+               (if (null? (cdr bs))
+                 (compile-expr (car bs) envs emit next-label next-slot add-code)
+                 (begin
+                   (compile-expr (car bs) envs emit next-label next-slot add-code)
+                   (emit '(pop))
+                   (loop (cdr bs))))))))
         ((let? s)
-         (compile-let 'let (let-bindings s) (let-body s) #f envs emit
+         (compile-let 'let (let-names s) (let-vals s) (let-body s) #f envs emit
                       next-label next-slot add-code))
         ((letrec? s)
-         (compile-let 'letrec (letrec-bindings s) (letrec-body s) #f envs emit
+         (compile-let 'letrec (letrec-names s) (letrec-vals s) (letrec-body s) #f envs emit
                       next-label next-slot add-code))
-        ((set!? s)
-         (compile-expr (set!-expr s) envs emit next-label next-slot add-code)
-         (let ((t (set!-target s))
-               (r (if (lexical-ref? (set!-target s)) #f (resolve-var envs (set!-target s)))))
-           (cond
-             ((lexical-ref? t)
-              (if (= (lexical-ref-depth t) 0)
-                (emit (list 'set-local (lexical-ref-index t)))
-                (emit (list 'set-ref (lexical-ref-depth t) (lexical-ref-index t)))))
-             ((and r (= (car r) 0)) (emit (list 'set-local (cadr r))))
-             (r (emit (list 'set-ref (car r) (cadr r))))
-             (else (emit (list 'store-global t))))))
+        ((let-values? s)
+         (compile-expr (let-values-exp s) envs emit next-label next-slot add-code)
+         (emit (list 'call 1)))
+         ((lexical-set? s)
+          (compile-expr (lexical-set-exp s) envs emit next-label next-slot add-code)
+          (let ((r (resolve-var envs (lexical-set-name s))))
+            (cond ((and r (= (car r) 0))
+                   (emit (list 'set-local (cadr r))))
+                  (r (emit (list 'set-ref (car r) (cadr r))))
+                  (else (emit (list 'store-global (lexical-set-name s)))))))
+        ((toplevel-set? s)
+         (compile-expr (toplevel-set-exp s) envs emit next-label next-slot add-code)
+         (emit (list 'store-global (toplevel-set-name s))))
         ((call? s)
          (compile-expr (call-proc s) envs emit next-label next-slot add-code)
          (for-each (lambda (a)
                      (compile-expr a envs emit next-label next-slot add-code))
                    (call-args s))
          (emit (list 'call (length (call-args s)))))
-        ((not (pair? s))
-         (emit (list 'const s)))
-        (else
-         (error "to-bytecode: unknown expression" s
+         ((primcall? s)
+          (emit (list 'global (primcall-name s)))
+          (for-each (lambda (a)
+                      (compile-expr a envs emit next-label next-slot add-code))
+                    (primcall-args s))
+          (emit (list 'call (length (primcall-args s)))))
+         ((values? s)
+          (emit (list 'global 'values))
+          (for-each (lambda (a)
+                      (compile-expr a envs emit next-label next-slot add-code))
+                    (values-args s))
+          (emit (list 'call (length (values-args s)))))
+         ((call-with-values? s)
+          (emit (list 'global 'call-with-values))
+          (compile-expr (cwv-producer s) envs emit next-label next-slot add-code)
+          (compile-expr (cwv-consumer s) envs emit next-label next-slot add-code)
+          (emit (list 'call 2)))
+         ((not (pair? s))
+          (emit (list 'const s)))
+         (else
+          (error "to-bytecode: unknown expression" s))))
 
-           (error "to-bytecode: unknown expression" s)))))
-
-    ;; compile-let : head bindings body tail? frame-envs emit next-label next-slot code-add
-    (define (compile-let head bindings body tail? envs emit next-label next-slot add-code)
+    ;; compile-let : head names vals body tail? frame-envs emit next-label next-slot code-add
+    (define (compile-let head names vals body tail? envs emit next-label next-slot add-code)
       ;; set-local leaves the value on the stack (the uniform setter
       ;; convention), so every binding init is followed by an explicit pop.
       (if (eq? head 'let)
         ;; let: inits evaluated in the old env (parallel bindings)
-        (let* ((new-alist (fold-left (lambda (e b)
-                                       (slot-env-extend e (car b) (next-slot)))
-                                     (car envs) bindings))
+        (let* ((new-alist (fold-left (lambda (e n)
+                                       (slot-env-extend e n (next-slot)))
+                                     (car envs) names))
                (new-envs (cons new-alist (cdr envs))))
-          (for-each (lambda (b)
-                      (compile-expr (cadr b) envs emit next-label next-slot add-code)
+          (for-each (lambda (n v)
+                      (compile-expr v envs emit next-label next-slot add-code)
                       (emit (list 'set-local
-                                  (cdr (assq (car b) new-alist))))
+                                  (cdr (assq n new-alist))))
                       (emit '(pop)))
-                    bindings)
+                    names vals)
           (compile-body body tail? new-envs emit next-label next-slot add-code))
         ;; letrec/letrec*: slots allocated first, inits in the new env
-        (let* ((new-alist (fold-left (lambda (e b)
-                                       (slot-env-extend e (car b) (next-slot)))
-                                     (car envs) bindings))
+        (let* ((new-alist (fold-left (lambda (e n)
+                                       (slot-env-extend e n (next-slot)))
+                                     (car envs) names))
                (new-envs (cons new-alist (cdr envs))))
-          (for-each (lambda (b)
-                      (compile-expr (cadr b) new-envs emit next-label next-slot add-code)
+          (for-each (lambda (n v)
+                      (compile-expr v new-envs emit next-label next-slot add-code)
                       (emit (list 'set-local
-                                  (cdr (assq (car b) new-alist))))
+                                  (cdr (assq n new-alist))))
                       (emit '(pop)))
-                    bindings)
+                    names vals)
           (compile-body body tail? new-envs emit next-label next-slot add-code))))
 
     ;; to-bytecode : (list ir) -> program
@@ -387,17 +494,17 @@
           (define (next-slot) (let ((s slot-n)) (set! slot-n (+ slot-n 1)) s))
           (for-each
             (lambda (d)
-              (if (define? d)
+              (if (toplevel-define? d)
                 (begin
                   ;; A define value that is itself a let/letrec (not a
                   ;; lambda) compiles against a non-empty frame env for its
                   ;; slot allocation.  A lambda value must NOT see the empty
                   ;; top-level alist: it would shift nested-lambda capture
                   ;; depths by one (compiled refs vs the runtime chain).
-                  (compile-expr (define-value d)
-                                (if (lambda? (define-value d)) '() '(()))
+                  (compile-expr (toplevel-define-exp d)
+                                (if (lambda? (toplevel-define-exp d)) '() '(()))
                                 emit next-label next-slot add-code)
-                  (emit (list 'store-global (define-name d))))
+                  (emit (list 'store-global (toplevel-define-name d))))
                 ;; A top-level expression (a library registration side
                 ;; effect, say) compiles against a non-empty frame: lambda
                 ;; bodies never touch the top frame env, but an expression
@@ -444,7 +551,7 @@
         [(closure)
          (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)
               (< (cadr i) ncode))]
-        [(call tail-call values)
+        [(call tail-call)
          (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0))]
         [(if-else jump)
          (and (>= (length i) 2) (member (cadr i) labels))]

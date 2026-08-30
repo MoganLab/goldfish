@@ -1,17 +1,24 @@
 ;;; passes.scm -- L2: nanopass-style IR passes.
 ;;;
-;;; The compiler passes rewritten against the record IR (goldfish/compiler/ir.scm)
-;;; using (goldfish match) patterns ($const/$lambda/...).  A pass is a
-;;; function ir -> ir that rewrites the tree; run-passes applies a list of
-;;; passes in order.  The output is either converted back to core sexp for
-;;; the s7-eval path (ir->core) or fed to the bytecode compiler.
+;;; The compiler passes rewritten against the record IR (goldfish/core/ir.scm,
+;;; Guile-aligned tree-il).  A pass is a function ir -> ir that rewrites the
+;;; tree; run-passes applies a list of passes in order.  The output is either
+;;; converted back to core sexp for the s7-eval path (ir->core) or fed to the
+;;; bytecode compiler.
 ;;;
-;;; This library is the nanopass home of the pass pipeline that
-;;; compiler.scm (the s7-eval / load-path integration) consumes.
+;;; IR shape notes (Guile-aligned):
+;;;   - <begin> is a binary right-nested <seq> (head . tail); a single
+;;;     expression is NOT wrapped, an empty sequence is <void>.
+;;;   - <if> is <conditional> (test consequent alternate).
+;;;   - <set!> is typed: <lexical-set> / <toplevel-set>.
+;;;   - <lambda> carries a single body expression (possibly a <seq> tree or
+;;;     a <letrec>), never a body list.
+;;;   - top-level defs are <toplevel-define>.
 
 (define-library (goldfish compiler passes)
   (import (scheme base)
           (goldfish match)
+          (goldfish compiler patterns)
           (goldfish core ir))
   (export run-passes
     compile-defs
@@ -38,6 +45,21 @@
     (define (run-passes ir passes)
       (fold-left (lambda (s pass) (pass s)) ir passes))
 
+    ;; fold-lambda-body : ir pass -> ir
+    ;; Apply a pass to the body EXPRESSION of a lambda (the lambda-case
+    ;; body), rebuilding the lambda-case so passes recurse into closures.
+    (define (fold-lambda-body lc f)
+      (if (lambda-case? lc)
+        (make-lambda-case #f
+                          (lambda-case-req lc) (lambda-case-opt lc)
+                          (lambda-case-rest lc) (lambda-case-kw lc)
+                          (lambda-case-inits lc) (lambda-case-gensyms lc)
+                          (f (lambda-case-body lc))
+                          (if (lambda-case-alternate lc)
+                            (fold-lambda-body (lambda-case-alternate lc) f)
+                            #f))
+        (f lc)))
+
     ;; compile-defs : (list sexp) (list pass) -> (list sexp)
     ;; Apply the pipeline to each def of an expanded library body.  The
     ;; boundary conversion keeps this interface sexp -> sexp (the load
@@ -45,6 +67,34 @@
     ;; operate on the record IR.
     (define (compile-defs defs passes)
       (map (lambda (d) (ir->core (run-passes (core->ir d) passes))) defs))
+
+    ;; ------------------------------------------------------------------
+    ;; seq helpers: seq trees are binary right-nested <seq> nodes.
+    ;; seq-head/seq-tail recursion is O(1) in the tail, unlike a begin list.
+
+    ;; seq->list : ir -> (list ir)
+    ;; Flatten a seq tree into a list of expressions (head first).
+    (define (seq->list s)
+      (let collect ((s s) (acc '()))
+        (cond ((void? s) (reverse acc))
+              ((seq? s) (collect (seq-tail s) (cons (seq-head s) acc)))
+              (else (reverse (cons s acc))))))
+
+    ;; list->seq : (list ir) -> ir
+    ;; Join a list of expressions into a binary right-nested seq tree.
+    ;;   () -> <void>; (e) -> e; (e1 e2 ...) -> (seq e1 (seq e2 ...)).
+    (define (list->seq ls)
+      (cond
+        ((null? ls) (make-void #f))
+        ((null? (cdr ls)) (car ls))
+        (else (make-seq #f (car ls) (list->seq (cdr ls))))))
+
+    ;; seq-map : (ir -> ir) seq-tree -> seq-tree
+    ;; Rewrite every element of a seq tree with f, preserving the tree shape.
+    (define (seq-map f s)
+      (cond ((void? s) s)
+            ((seq? s) (make-seq #f (f (seq-head s)) (seq-map f (seq-tail s))))
+            (else (f s))))
 
     ;; ------------------------------------------------------------------
     ;; Foldable primitive table.  Only total, side-effect-free functions
@@ -116,7 +166,7 @@
                              (let ((a (car as)))
                                (cond
                                  ((const? a)
-                                  (loop (cdr as) (cons (const-value a) values)))
+                                  (loop (cdr as) (cons (const-exp a) values)))
                                  ((self-evaluating? a)
                                   (loop (cdr as) (cons a values)))
                                  (else #f)))))))))))
@@ -127,38 +177,47 @@
     (define (constant-fold ir)
       (match ir
         (($const v) ir)
-        (($define name value)
-         (make-define #f name (constant-fold value)))
-        (($lambda formals body ...)
-         (make-lambda #f formals (map constant-fold body)))
-        (($if test then else)
-         (make-if #f (constant-fold test) (constant-fold then)
-                  (if else (constant-fold else) #f)))
-        (($begin body ...)
-         (make-begin #f (map constant-fold body)))
-        (($let bindings body ...)
-         (make-let #f
-                   (map (lambda (b) (list (car b) (constant-fold (cadr b))))
-                        bindings)
-                   (map constant-fold body)))
-        (($letrec src bindings body ...)
-         (make-letrec src
-                      (map (lambda (b) (list (car b) (constant-fold (cadr b))))
-                           bindings)
-                      (map constant-fold body)))
-        (($set! name expr)
-         (make-set! #f name (constant-fold expr)))
-        (($values args ...)
-         (make-values #f (map constant-fold args)))
-        (($call-with-values p c)
-         (make-call-with-values #f (constant-fold p) (constant-fold c)))
+        ( (? void?) ir)
+        (($toplevel-define name value)
+         (make-toplevel-define #f name (constant-fold value)))
+        (($lambda meta body)
+         (make-lambda #f meta (fold-lambda-body body constant-fold)))
+        (($conditional test then else)
+         (make-conditional #f (constant-fold test) (constant-fold then)
+                           (if else (constant-fold else) #f)))
+        (($seq head tail)
+         (let ((h (constant-fold head))
+               (t (constant-fold tail)))
+           (cond
+             ((void? t) h)
+             ((and (void? h) (void? t)) (make-void #f))
+             (else (make-seq #f h t)))))
+        (($let names gensyms vals body)
+         (make-let #f names gensyms
+                   (map constant-fold vals)
+                   (constant-fold body)))
+        (($letrec src in-order? names gensyms vals body)
+         (make-letrec src in-order? names gensyms
+                      (map constant-fold vals)
+                      (constant-fold body)))
+        (($lexical-set name depth index expr)
+         (make-lexical-set #f name depth index (constant-fold expr)))
+        (($toplevel-set name expr)
+         (make-toplevel-set #f name (constant-fold expr)))
+        (($let-values exp body)
+         (make-let-values #f (constant-fold exp) (constant-fold body)))
         (($call proc args ...)
          (let ((p (constant-fold proc))
                (as (map constant-fold args)))
            (or (try-fold-call-ir p as)
                (make-call #f p as))))
+        (($primcall name args ...)
+         (or (try-fold-call-ir (make-primitive-ref #f name) args)
+             (make-primcall #f name (map constant-fold args))))
         (($primitive-ref name)
          (make-primitive-ref #f name))
+        (($lexical-ref name depth index)
+         (make-lexical-ref #f name depth index))
         ((? symbol? s) s)
         (_ ir)))
 
@@ -170,45 +229,50 @@
     ;; unspecified value, NOT #f, so it cannot be folded to #f.
     (define (const-boolean? ir val)
       (or (eq? ir val)
-          (and (const? ir) (eq? (const-value ir) val))))
+          (and (const? ir) (eq? (const-exp ir) val))))
 
     (define (simplify-if ir)
       (match ir
         (($const v) ir)
-        (($define name value)
-         (make-define #f name (simplify-if value)))
-        (($lambda formals body ...)
-         (make-lambda #f formals (map simplify-if body)))
-        (($if test then else)
+        ( (? void?) ir)
+        (($toplevel-define name value)
+         (make-toplevel-define #f name (simplify-if value)))
+        (($lambda meta body)
+         (make-lambda #f meta (fold-lambda-body body simplify-if)))
+        (($conditional test then else)
          (let* ((t (simplify-if test))
                 (th (simplify-if then))
                 (el (if else (simplify-if else) #f)))
            (cond
              ((const-boolean? t #t) th)
              ((const-boolean? t #f)
-              (if else el (make-if #f t th #f)))
-             (else (make-if #f t th el)))))
-        (($begin body ...)
-         (make-begin #f (map simplify-if body)))
-        (($let bindings body ...)
-         (make-let #f
-                   (map (lambda (b) (list (car b) (simplify-if (cadr b))))
-                        bindings)
-                   (map simplify-if body)))
-        (($letrec src bindings body ...)
-         (make-letrec src
-                      (map (lambda (b) (list (car b) (simplify-if (cadr b))))
-                           bindings)
-                      (map simplify-if body)))
-        (($set! name expr)
-         (make-set! #f name (simplify-if expr)))
-        (($values args ...)
-         (make-values #f (map simplify-if args)))
-        (($call-with-values p c)
-         (make-call-with-values #f (simplify-if p) (simplify-if c)))
-        (($call proc args ...)
+              (if else el (make-conditional #f t th #f)))
+             (else (make-conditional #f t th el)))))
+        (($seq head tail)
+         (make-seq #f (simplify-if head) (simplify-if tail)))
+        (($let names gensyms vals body)
+         (make-let #f names gensyms
+                   (map simplify-if vals)
+                   (simplify-if body)))
+        (($letrec src in-order? names gensyms vals body)
+         (make-letrec src in-order? names gensyms
+                      (map simplify-if vals)
+                      (simplify-if body)))
+        (($lexical-set name depth index expr)
+         (make-lexical-set #f name depth index (simplify-if expr)))
+         (($toplevel-set name expr)
+          (make-toplevel-set #f name (simplify-if expr)))
+         (($let-values exp body)
+          (make-let-values #f (simplify-if exp) (simplify-if body)))
+         (($call proc args ...)
          (make-call #f (simplify-if proc) (map simplify-if args)))
-         ((? symbol? s) s)
+        (($primcall name args ...)
+         (make-primcall #f name (map simplify-if args)))
+        (($primitive-ref name)
+         (make-primitive-ref #f name))
+        (($lexical-ref name depth index)
+         (make-lexical-ref #f name depth index))
+        ((? symbol? s) s)
         (_ ir)))
 
     ;; lower-let : ir -> ir
@@ -218,39 +282,49 @@
     (define (lower-let ir)
       (match ir
         (($const v) ir)
-        (($define name value)
-         (make-define #f name (lower-let value)))
-        (($lambda formals body ...)
-         (make-lambda #f formals (map lower-let body)))
-        (($if test then else)
-         (make-if #f (lower-let test) (lower-let then)
-                  (if else (lower-let else) #f)))
-        (($begin body ...)
-         (make-begin #f (map lower-let body)))
-        (($let bindings body ...)
-         (let ((names (map car bindings))
-               (vals (map (lambda (b) (lower-let (cadr b))) bindings))
-               (body2 (map lower-let body)))
-           (if (null? names)
-             (if (null? (cdr body2)) (car body2) (make-begin #f body2))
-             (make-call #f (make-lambda #f names body2) vals))))
-        (($letrec src bindings body ...)
-         (let ((names (map car bindings))
-               (vals (map cadr bindings))
-               (body2 (map lower-let body)))
-           (let ((inits (map lower-let vals))
-                 (tmp-bindings (map (lambda (n) (list n (make-const #f #f))) names)))
-             (lower-let (make-let #f tmp-bindings
-                          (append (map (lambda (n v) (make-set! #f n v)) names inits)
-                                  body2))))))
-        (($set! name expr)
-         (make-set! #f name (lower-let expr)))
-        (($values args ...)
-         (make-values #f (map lower-let args)))
-        (($call-with-values p c)
-         (make-call-with-values #f (lower-let p) (lower-let c)))
-        (($call proc args ...)
+        ( (? void?) ir)
+        (($toplevel-define name value)
+         (make-toplevel-define #f name (lower-let value)))
+        (($lambda meta body)
+         (make-lambda #f meta (fold-lambda-body body lower-let)))
+        (($conditional test then else)
+         (make-conditional #f (lower-let test) (lower-let then)
+                           (if else (lower-let else) #f)))
+        (($seq head tail)
+         (make-seq #f (lower-let head) (lower-let tail)))
+        (($let names gensyms vals body)
+         (if (null? names)
+           (lower-let body)
+           (make-call #f (make-lambda #f #f
+                                      (make-lambda-case #f names '() #f #f
+                                                        '() gensyms
+                                                        (lower-let body) #f))
+                      (map lower-let vals))))
+        (($letrec src in-order? names gensyms vals body)
+         (let ((inits (map lower-let vals))
+               (tmp-bindings (map (lambda (n) (list n (make-const #f #f))) names)))
+           (lower-let
+             (make-let #f names gensyms
+                       (map (lambda (n) (make-const #f #f)) names)
+                       (list->seq
+                         (append
+                           (map (lambda (n v) (make-lexical-set #f n 0 0 v))
+                                names inits)
+                           (list (lower-let body))))))))
+        (($lexical-set name depth index expr)
+         (make-lexical-set #f name depth index (lower-let expr)))
+         (($toplevel-set name expr)
+          (make-toplevel-set #f name (lower-let expr)))
+         (($let-values exp body)
+          (make-let-values #f (lower-let exp) (lower-let body)))
+         (($call proc args ...)
          (make-call #f (lower-let proc) (map lower-let args)))
+        (($primcall name args ...)
+         (make-primcall #f name (map lower-let args)))
+        (($primitive-ref name)
+         (make-primitive-ref #f name))
+        (($lexical-ref name depth index)
+         (make-lexical-ref #f name depth index))
         ((? symbol? s) s)
         (_ ir)))
 
@@ -280,24 +354,60 @@
                 ((pair? f) (loop (cdr f) (cons (car f) acc)))
                 (else (reverse (cons f acc)))))))
 
+    ;; lambda-req : ir -> (list symbol) or #f
+    ;; The required formal names of a lambda (via its lambda-case), or #f
+    ;; if the body is not a lambda-case (degenerate).
+    (define (lambda-req lam)
+      (let ((b (lambda-body lam)))
+        (if (lambda-case? b) (lambda-case-req b) #f)))
+
+    ;; lambda-case-formals : lambda-case -> formals
+    ;; Reconstruct a formals list from a lambda-case arity (req opt rest).
+    (define (lambda-case-formals lc)
+      (let ((req (lambda-case-req lc))
+            (opt (lambda-case-opt lc))
+            (rest (lambda-case-rest lc)))
+        (cond
+          ((and (null? opt) rest)
+           (append req rest))
+          ((and (null? opt) (not rest))
+           req)
+          (else
+           (append req opt (if rest (list rest) '()))))))
+
+    ;; lambda-formals : ir -> formals
+    ;; The full formals of a lambda (req/opt/rest reconstructed), or '() if
+    ;; the body is not a lambda-case.
+    (define (lambda-formals lam)
+      (let ((b (lambda-body lam)))
+        (if (lambda-case? b) (lambda-case-formals b) '())))
+
     ;; ir-children : ir -> (list ir)
     ;; The direct child expressions of a node (not atoms like formals or
-    ;; binding names).  A plain list (a lambda/let body, a call's args)
-    ;; yields its elements.
+    ;; binding names).  A seq tree yields its flattened elements; a
+    ;; lambda yields its single body.
     (define (ir-children ir)
       (cond
-        ((lambda? ir) (lambda-body ir))
-        ((define? ir) (list (define-value ir)))
-        ((if? ir) (if (if-else ir)
-                    (list (if-test ir) (if-then ir) (if-else ir))
-                    (list (if-test ir) (if-then ir))))
-        ((begin? ir) (begin-body ir))
-        ((let? ir) (append (map cadr (let-bindings ir)) (let-body ir)))
-        ((letrec? ir) (append (map cadr (letrec-bindings ir)) (letrec-body ir)))
-        ((set!? ir) (list (set!-expr ir)))
-        ((values? ir) (values-args ir))
-        ((call-with-values? ir) (list (cwv-producer ir) (cwv-consumer ir)))
+        ((lambda? ir) (list (lambda-body ir)))
+        ((toplevel-define? ir) (list (toplevel-define-exp ir)))
+        ((conditional? ir)
+         (if (conditional-alternate ir)
+           (list (conditional-test ir) (conditional-consequent ir) (conditional-alternate ir))
+           (list (conditional-test ir) (conditional-consequent ir))))
+        ((seq? ir) (seq->list ir))
+        ((let? ir) (append (let-vals ir) (list (let-body ir))))
+        ((letrec? ir) (append (letrec-vals ir) (list (letrec-body ir))))
+        ((let-values? ir) (list (let-values-exp ir) (let-values-body ir)))
+        ((lexical-set? ir) (list (lexical-set-exp ir)))
+        ((toplevel-set? ir) (list (toplevel-set-exp ir)))
         ((call? ir) (cons (call-proc ir) (call-args ir)))
+        ((primcall? ir) (primcall-args ir))
+        ((lambda-case? ir)
+         (if (lambda-case-alternate ir)
+           (list (lambda-case-body ir) (lambda-case-alternate ir))
+           (list (lambda-case-body ir))))
+        ((primitive-ref? ir) '())
+        ((lexical-ref? ir) '())
         ((pair? ir) ir)
         (else '())))
 
@@ -310,18 +420,18 @@
         (cond
           ((symbol? s) acc)
           ((or (const? s) (void? s)) acc)
-          ((set!? s)
-           (loop (set!-expr s)
-                 (if (member (set!-target s) acc)
+          ((lexical-set? s)
+           (loop (lexical-set-exp s)
+                 (if (member (lexical-set-name s) acc)
                    acc
-                   (cons (set!-target s) acc))))
+                   (cons (lexical-set-name s) acc))))
+          ((toplevel-set? s)
+           (loop (toplevel-set-exp s) acc))
           ((lambda? s)
-           (let loop2 ((bs (lambda-body s)) (acc acc))
-             (if (null? bs)
-               acc
-               (loop2 (cdr bs) (loop (car bs) acc)))))
-          ((define? s)
-           (let ((val (define-value s)))
+           (let ((b (lambda-body s)))
+             (loop b acc)))
+          ((toplevel-define? s)
+           (let ((val (toplevel-define-exp s)))
              (if (or (const? val) (void? val))
                acc
                (loop val acc))))
@@ -385,21 +495,19 @@
     ;; rest formal the remaining args become a (list ...) construction
     ;; (retained as a binding, never propagated, since it allocates).
     ;; Mismatched arity returns #f: leave the call alone.
-    (define (beta-bindings formals args)
-      (cond
-        ((symbol? formals)
-         (if (= (length args) 1) (list (list formals (car args))) #f))
-        (else
-         (let loop ((fs formals) (as args) (acc '()))
-           (cond
-             ((null? fs) (if (null? as) (reverse acc) #f))
-             ((symbol? fs)
-              (reverse (cons (list fs (if (null? as)
-                                        (make-const #f '())
-                                        (make-call #f 'list as)))
-                             acc)))
-             ((null? as) #f)
-             (else (loop (cdr fs) (cdr as) (cons (list (car fs) (car as)) acc))))))))
+    (define (beta-bindings req args)
+      (if (symbol? req)
+        (if (= (length args) 1) (list (list req (car args))) #f)
+        (let loop ((fs req) (as args) (acc '()))
+          (cond
+            ((null? fs) (if (null? as) (reverse acc) #f))
+            ((symbol? fs)
+             (reverse (cons (list fs (if (null? as)
+                                         (make-const #f '())
+                                         (make-call #f 'list as)))
+                            acc)))
+            ((null? as) #f)
+            (else (loop (cdr fs) (cdr as) (cons (list (car fs) (car as)) acc)))))))
 
     ;; collect-residual-free : ir -> (list symbol)
     ;; Free symbols of an inlined body, ENTERING lambda/let bodies (minus
@@ -411,36 +519,22 @@
           ((symbol? s) (if (member s acc) acc (cons s acc)))
           ((or (const? s) (void? s)) acc)
           ((lambda? s)
-           (let ((bound (lambda-formals->list (lambda-formals s))))
+           (let* ((b (lambda-body s))
+                  (bound (or (and (lambda-case? b) (lambda-case-req b)) '())))
              (filter (lambda (x) (not (member x bound)))
-                     (let loop2 ((bs (lambda-body s)) (acc acc))
-                       (if (null? bs)
-                         acc
-                         (loop2 (cdr bs) (loop (car bs) acc)))))))
+                     (loop b acc))))
           ((let? s)
-           (let ((bound (map car (let-bindings s))))
+           (let ((bound (let-names s)))
              (filter (lambda (x) (not (member x bound)))
-                     (let loop2 ((bs (let-bindings s))
-                                 (acc (let loop3 ((bd (let-body s)) (acc acc))
-                                        (if (null? bd)
-                                          acc
-                                          (loop3 (cdr bd) (loop (car bd) acc))))))
-                       (if (null? bs)
-                         acc
-                         (loop2 (cdr bs) (loop (cadr (car bs)) acc)))))))
+                     (let ((acc1 (loop (let-body s) acc)))
+                       (fold-left (lambda (a v) (loop v a)) acc1 (let-vals s))))))
           ((letrec? s)
-           (let ((bound (map car (letrec-bindings s))))
+           (let ((bound (letrec-names s)))
              (filter (lambda (x) (not (member x bound)))
-                     (let loop2 ((bs (letrec-bindings s))
-                                 (acc (let loop3 ((bd (letrec-body s)) (acc acc))
-                                        (if (null? bd)
-                                          acc
-                                          (loop3 (cdr bd) (loop (car bd) acc))))))
-                       (if (null? bs)
-                         acc
-                         (loop2 (cdr bs) (loop (cadr (car bs)) acc)))))))
-          ((define? s)
-           (let ((val (define-value s)))
+                     (let ((acc1 (loop (letrec-body s) acc)))
+                       (fold-left (lambda (a v) (loop v a)) acc1 (letrec-vals s))))))
+          ((toplevel-define? s)
+           (let ((val (toplevel-define-exp s)))
              (if (or (const? val) (void? val))
                acc
                (loop val acc))))
@@ -450,7 +544,7 @@
                acc
                (loop2 (cdr cs) (loop (car cs) acc))))))))
 
-    ;; prune-let-bindings : head (list binding) (list ir) -> ir
+    ;; prune-let-bindings : head names vals body-inl -> ir
     ;; After inlining the body, drop bindings whose name is no longer
     ;; referenced anywhere (binding values and body).  When none survive
     ;; the let collapses to its body.
@@ -460,29 +554,44 @@
              (and (not (pair? ir)) (not (vector? ir))))
          #t)
         ((lambda? ir) #t)
-        ((begin? ir)
-         (let loop ((es (begin-body ir)))
-           (if (null? es) #t (and (pure-ir? (car es)) (loop (cdr es))))))
-        ((if? ir) (and (pure-ir? (if-test ir))
-                       (pure-ir? (if-then ir))
-                       (or (not (if-else ir)) (pure-ir? (if-else ir)))))
-        ((values? ir)
-         (let loop ((es (values-args ir)))
-           (if (null? es) #t (and (pure-ir? (car es)) (loop (cdr es))))))
+        ((seq? ir)
+         (and (pure-ir? (seq-head ir)) (pure-ir? (seq-tail ir))))
+        ((conditional? ir)
+         (and (pure-ir? (conditional-test ir))
+              (pure-ir? (conditional-consequent ir))
+              (or (not (conditional-alternate ir))
+                  (pure-ir? (conditional-alternate ir)))))
         (else #f)))
 
-    (define (prune-let-bindings head src new-bindings body-inl)
+    (define (prune-let-bindings head names vals body-inl)
       (let* ((free (collect-residual-free
-                    (append (map (lambda (b) (cadr b)) new-bindings) body-inl)))
-             (survivors (filter (lambda (b)
-                                  (or (member (car b) free)
-                                      (not (pure-ir? (cadr b)))))
-                                new-bindings)))
-        (if (null? survivors)
-          (if (null? (cdr body-inl)) (car body-inl) (make-begin #f body-inl))
-          (if (eq? head 'let)
-            (make-let #f survivors body-inl)
-            (make-letrec src survivors body-inl)))))
+                    (append vals (list body-inl))))
+             (surviving-names
+               (filter (lambda (n) (member n free)) names))
+             (surviving-vals
+               (map (lambda (n) (cadr (assoc n (map list names vals))))
+                    surviving-names)))
+        (cond
+          ((null? surviving-names) body-inl)
+          ((eq? head 'let)
+           (make-let #f surviving-names surviving-names surviving-vals body-inl))
+          (else
+           (make-letrec #f (eq? head 'letrec*)
+                        surviving-names surviving-names surviving-vals body-inl)))))
+
+    ;; inline-walk-lambda-case : lambda-case env budget -> lambda-case
+    ;; Recurse a pass into a lambda's body expression (via its lambda-case).
+    (define (inline-walk-lambda-case lc env budget)
+      (if (lambda-case? lc)
+        (make-lambda-case #f
+                          (lambda-case-req lc) (lambda-case-opt lc)
+                          (lambda-case-rest lc) (lambda-case-kw lc)
+                          (lambda-case-inits lc) (lambda-case-gensyms lc)
+                          (inline-walk (lambda-case-body lc) env budget)
+                          (if (lambda-case-alternate lc)
+                            (inline-walk-lambda-case (lambda-case-alternate lc) env budget)
+                            #f))
+        (inline-walk lc env budget)))
 
     (define (inline-walk ir env budget)
       (if (inline-budget-spent? budget)
@@ -494,67 +603,81 @@
                (begin (inline-spend-effort! budget 1) (cdr v))
                ir)))
           ((or (const? ir) (void? ir)) ir)
+          ((primitive-ref? ir) ir)
+          ((lexical-ref? ir) ir)
           ((lambda? ir)
-           (let* ((formals (lambda-formals ir))
-                  (env1 (env-extend-vars env (lambda-formals->list formals))))
-             (make-lambda #f formals
-                          (map (lambda (e) (inline-walk e env1 budget))
-                               (lambda-body ir)))))
-          ((define? ir)
-           (make-define #f (define-name ir)
-                        (inline-walk (define-value ir) env budget)))
-          ((if? ir)
-           (make-if #f (inline-walk (if-test ir) env budget)
-                    (inline-walk (if-then ir) env budget)
-                    (if (if-else ir) (inline-walk (if-else ir) env budget) #f)))
-          ((begin? ir)
-           (make-begin #f (map (lambda (e) (inline-walk e env budget))
-                               (begin-body ir))))
-          ((set!? ir)
-           (make-set! #f (set!-target ir) (inline-walk (set!-expr ir) env budget)))
+           (let* ((b (lambda-body ir))
+                  (req (or (and (lambda-case? b) (lambda-case-req b)) '()))
+                  (env1 (env-extend-vars env req)))
+             (make-lambda #f (lambda-meta ir) (inline-walk-lambda-case b env1 budget))))
+          ((toplevel-define? ir)
+           (make-toplevel-define #f (toplevel-define-name ir)
+                                 (inline-walk (toplevel-define-exp ir) env budget)))
+          ((conditional? ir)
+           (make-conditional #f (inline-walk (conditional-test ir) env budget)
+                             (inline-walk (conditional-consequent ir) env budget)
+                             (if (conditional-alternate ir)
+                               (inline-walk (conditional-alternate ir) env budget)
+                               #f)))
+          ((seq? ir)
+           (make-seq #f (inline-walk (seq-head ir) env budget)
+                     (inline-walk (seq-tail ir) env budget)))
+          ((lexical-set? ir)
+           (make-lexical-set #f (lexical-set-name ir)
+                             (lexical-set-depth ir) (lexical-set-index ir)
+                             (inline-walk (lexical-set-exp ir) env budget)))
+          ((toplevel-set? ir)
+           (make-toplevel-set #f (toplevel-set-name ir)
+                              (inline-walk (toplevel-set-exp ir) env budget)))
           ((let? ir)
-           (let* ((bindings (let-bindings ir))
-                  (new-bindings
-                   (map (lambda (b) (list (car b) (inline-walk (cadr b) env budget)))
-                        bindings))
-                  (env1 (env-extend-safes env new-bindings
+           (let* ((names (let-names ir))
+                  (vals (let-vals ir))
+                  (new-vals (map (lambda (v) (inline-walk v env budget)) vals))
+                  (env1 (env-extend-safes env
+                                          (map list names new-vals)
                                           (collect-assigned (let-body ir))))
-                  (body-inl (map (lambda (e) (inline-walk e env1 budget))
-                                 (let-body ir))))
+                  (body-inl (inline-walk (let-body ir) env1 budget)))
              (inline-spend-effort! budget 1)
-             (prune-let-bindings 'let #f new-bindings body-inl)))
+             (prune-let-bindings 'let names new-vals body-inl)))
           ((letrec? ir)
-           (let* ((bindings (letrec-bindings ir))
-                  (names (map car bindings))
-                  (env0 (env-extend-vars env names))
-                  (assigned (collect-assigned (letrec-body ir)))
-                  (new-bindings
-                   (map (lambda (b) (list (car b) (inline-walk (cadr b) env0 budget)))
-                        bindings))
-                  (env1 (env-extend-safes env new-bindings assigned))
-                  (body-inl (map (lambda (e) (inline-walk e env1 budget))
-                                 (letrec-body ir))))
-              (inline-spend-effort! budget 1)
-              (prune-let-bindings 'letrec (letrec-source ir) new-bindings body-inl)))
-          ((values? ir)
-           (make-values #f (map (lambda (e) (inline-walk e env budget))
-                                (values-args ir))))
-          ((call-with-values? ir)
-           (make-call-with-values #f (inline-walk (cwv-producer ir) env budget)
-                                  (inline-walk (cwv-consumer ir) env budget)))
+           (let* ((names (letrec-names ir))
+                  (vals (letrec-vals ir))
+                  (assigned names)
+                  (env0 (env-extend-safes env (map list names vals) assigned))
+                  (new-vals (map (lambda (v) (inline-walk v env0 budget)) vals))
+                  (env1 (env-extend-safes env (map list names new-vals) assigned))
+                  (body-inl (inline-walk (letrec-body ir) env1 budget)))
+             (inline-spend-effort! budget 1)
+             (prune-let-bindings (if (letrec-in-order? ir) 'letrec* 'letrec)
+                                 names new-vals body-inl)))
+          ((let-values? ir)
+           (make-let-values #f (inline-walk (let-values-exp ir) env budget)
+                            (inline-walk (let-values-body ir) env budget)))
           ((call? ir)
            (let ((f (inline-walk (call-proc ir) env budget))
                  (args (map (lambda (a) (inline-walk a env budget))
                             (call-args ir))))
              (if (and (lambda? f) (not (inline-budget-spent? budget)))
-               (let ((bindings (beta-bindings (lambda-formals f) args)))
+               (let ((bindings (beta-bindings (or (lambda-formals f) '()) args)))
                  (if bindings
-                   (let ((let-form (make-let #f bindings (lambda-body f))))
+                   (let* ((lc (lambda-body f))
+                          (body (if (lambda-case? lc)
+                                   (lambda-case-body lc)
+                                   lc))
+                          (let-form (make-let #f
+                                              (map car bindings)
+                                              (map car bindings)
+                                              (map cadr bindings)
+                                              body)))
                      (inline-spend-effort! budget 2)
                      (inline-deepen! budget)
                      (inline-walk let-form env budget))
                    (make-call #f f args)))
                (make-call #f f args))))
+          ((primcall? ir)
+           (make-primcall #f (primcall-name ir)
+                          (map (lambda (a) (inline-walk a env budget))
+                               (primcall-args ir))))
           (else ir))))
 
     (define *inline-max-effort* 40000)
@@ -570,7 +693,7 @@
     ;; Tail positions in core IR:
     ;;   (lambda (formals) body ...)   last body expression
     ;;   (if test then else)           then and else
-    ;;   (begin e ...)                 last expression
+    ;;   (begin e ...)                 last expression (seq tail)
     ;;   (let/letrec/letrec* bs body)  last body expression
     ;;   (set! name e)                 e
     ;;   (values e ...)                no (multi-value return)
@@ -584,33 +707,57 @@
     ;; returned IR is NOT for direct evaluation.
 
     (define (tail-call-positions ir)
-      (define (mark-body body)
-        (if (null? body)
-          '()
-          (let* ((rev (reverse body))
-                 (last (mark-tail (car rev))))
-            (append (reverse (cdr rev)) (list last)))))
+      (define (mark-lambda-body lc)
+        (if (lambda-case? lc)
+          (make-lambda-case #f
+                            (lambda-case-req lc) (lambda-case-opt lc)
+                            (lambda-case-rest lc) (lambda-case-kw lc)
+                            (lambda-case-inits lc) (lambda-case-gensyms lc)
+                            (mark-tail (lambda-case-body lc))
+                            (if (lambda-case-alternate lc)
+                              (mark-lambda-body (lambda-case-alternate lc))
+                              #f))
+          (mark-tail lc)))
       (define (mark-tail s)
         (cond
           ((or (const? s) (void? s)) s)
           ((symbol? s) s)
+          ((primitive-ref? s) s)
+          ((lexical-ref? s) s)
           ((lambda? s)
-           (make-lambda #f (lambda-formals s) (mark-body (lambda-body s))))
-          ((if? s)
-           (make-if #f (if-test s) (mark-tail (if-then s))
-                    (if (if-else s) (mark-tail (if-else s)) #f)))
-          ((begin? s)
-           (make-begin #f (mark-body (begin-body s))))
+           (make-lambda #f (lambda-meta s) (mark-lambda-body (lambda-body s))))
+          ((conditional? s)
+           (make-conditional #f (conditional-test s)
+                             (mark-tail (conditional-consequent s))
+                             (if (conditional-alternate s)
+                               (mark-tail (conditional-alternate s))
+                               #f)))
+          ((seq? s)
+           (make-seq #f (seq-head s) (mark-tail (seq-tail s))))
           ((let? s)
-           (make-let #f (let-bindings s) (mark-body (let-body s))))
+           (make-let #f (let-names s) (let-gensyms s) (let-vals s)
+                     (mark-tail (let-body s))))
           ((letrec? s)
-           (make-letrec (letrec-source s) (letrec-bindings s) (mark-body (letrec-body s))))
-          ((set!? s)
-           (make-set! #f (set!-target s) (mark-tail (set!-expr s))))
-          ((call-with-values? s)
-           ;; consumer is invoked in tail position
-           (make-call-with-values #f (cwv-producer s) (mark-tail (cwv-consumer s))))
-          ((values? s) s)
+           (make-letrec (letrec-source s) (letrec-in-order? s)
+                        (letrec-names s) (letrec-gensyms s)
+                        (letrec-vals s) (mark-tail (letrec-body s))))
+          ((lexical-set? s)
+           (make-lexical-set #f (lexical-set-name s)
+                             (lexical-set-depth s) (lexical-set-index s)
+                             (mark-tail (lexical-set-exp s))))
+          ((toplevel-set? s)
+           (make-toplevel-set #f (toplevel-set-name s) (mark-tail (toplevel-set-exp s))))
+          ((let-values? s)
+           ;; consumer body is invoked in tail position
+           (make-let-values #f (let-values-exp s) (mark-tail (let-values-body s))))
+          ((call? s)
+           (let ((proc (call-proc s))
+                 (args (call-args s)))
+             (list 'tail-call
+                   (if (primitive-ref? proc)
+                     (make-primcall #f (primitive-ref-name proc) args)
+                     (make-call #f proc args)))))
+          ((primcall? s) s)
           (else
            ;; a bare application in tail position: wrap it
            (list 'tail-call s))))
@@ -636,34 +783,27 @@
         (cond
           ((symbol? s) (if (member s acc) acc (cons s acc)))
           ((or (const? s) (void? s)) acc)
+          ((primitive-ref? s) acc)
+          ((lexical-ref? s) acc)
           ((lambda? s)
-           (let* ((bound (lambda-formals->list (lambda-formals s))))
-             (let loop2 ((body (lambda-body s)) (acc acc))
-               (if (null? body)
-                 (filter (lambda (x) (not (member x bound))) acc)
-                 (loop2 (cdr body) (loop (car body) acc))))))
+           (let* ((b (lambda-body s))
+                  (bound (or (and (lambda-case? b) (lambda-case-req b)) '())))
+             (filter (lambda (x) (not (member x bound)))
+                     (loop b acc))))
           ((let? s)
-           (let ((bound (map car (let-bindings s))))
-             (let loop2 ((bs (let-bindings s)) (acc acc))
-               (if (null? bs)
-                 (let loop3 ((body (let-body s)) (acc acc))
-                   (if (null? body)
-                     (filter (lambda (x) (not (member x bound))) acc)
-                     (loop3 (cdr body) (loop (car body) acc))))
-                 (loop2 (cdr bs) (loop (cadr (car bs)) acc))))))
+           (let ((bound (let-names s)))
+             (filter (lambda (x) (not (member x bound)))
+                     (let ((acc1 (loop (let-body s) acc)))
+                       (fold-left (lambda (a v) (loop v a)) acc1 (let-vals s))))))
           ((letrec? s)
-           (let ((bound (map car (letrec-bindings s))))
-             (let loop2 ((bs (letrec-bindings s)) (acc acc))
-               (if (null? bs)
-                 (let loop3 ((body (letrec-body s)) (acc acc))
-                   (if (null? body)
-                     (filter (lambda (x) (not (member x bound))) acc)
-                     (loop3 (cdr body) (loop (car body) acc))))
-                 (loop2 (cdr bs) (loop (cadr (car bs)) acc))))))
-          ((define? s)
+           (let ((bound (letrec-names s)))
+             (filter (lambda (x) (not (member x bound)))
+                     (let ((acc1 (loop (letrec-body s) acc)))
+                       (fold-left (lambda (a v) (loop v a)) acc1 (letrec-vals s))))))
+          ((toplevel-define? s)
            ;; (define name value): collect from the value only; the name
            ;; is bound by this definition.
-           (let ((val (define-value s)))
+           (let ((val (toplevel-define-exp s)))
              (if (or (const? val) (void? val))
                acc
                (loop val acc))))
@@ -677,7 +817,7 @@
     ;; A def whose value is a plain lambda -- a safe DCE candidate (no
     ;; definition-time side effect).
     (define (lambda-valued-def? d)
-      (and (define? d) (lambda? (define-value d))))
+      (and (toplevel-define? d) (lambda? (toplevel-define-exp d))))
 
     (define (collect-all-free defs)
       (let loop ((ds defs) (acc '()))
@@ -691,7 +831,7 @@
         (let* ((alive (collect-all-free current))
                (survivors (filter (lambda (d)
                                     (or (not (lambda-valued-def? d))
-                                        (member (define-name d) alive)))
+                                        (member (toplevel-define-name d) alive)))
                                   current)))
           (if (equal? survivors current)
             survivors

@@ -19,8 +19,8 @@
          (list (call? ir)
                (primitive-ref? (call-proc ir))
                (primitive-ref-name (call-proc ir))
-               (call-args ir)))
-       => '(#t #t car (x)))
+               (toplevel-ref-name (car (call-args ir)))))
+       => '(#t #t car x))
 
 ;; 嵌套 primitive：外层 map 与内层 car 都是 primitive-ref
 (check (let ((ir (expand->ir '(map (lambda (y) (car y)) xs))))
@@ -85,15 +85,15 @@
 (check (let ((ir (expand->ir '((f x) y))))
          (list (call? ir)
                (call? (call-proc ir))
-               (call-args ir)))
-       => '(#t #t (y)))
+               (toplevel-ref-name (car (call-args ir)))))
+       => '(#t #t y))
 
-;; ===== 5. 非 primitive 的顶层引用保持符号 =====
+;; ===== 5. 非 primitive 的顶层引用保持名字 =====
 ;; 未绑定标识符保持名字（resolve 返回 #f 时不标记 primitive）
 (check (let ((ir (expand->ir '(apply1 f xs))))
          (list (call? ir)
-               (symbol? (call-proc ir))
-               (call-proc ir)))
+               (toplevel-ref? (call-proc ir))
+               (toplevel-ref-name (call-proc ir))))
        => '(#t #t apply1))
 
 ;; ===== 6. compile-syntax-defs：库定义管线 =====
