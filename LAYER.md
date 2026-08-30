@@ -58,8 +58,8 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ## L5 compiler
 
-- **文件**：`goldfish/compiler/*.scm`（`syntax-ir.scm` 现为对 `expander/tree-il` 的薄包装）、`goldfish/compiler.scm`。
-- **职责**：record IR 纯变换与 `run-passes`；`core->ir/ir->core` 仅为 `s7` 回退路径保留（非缓存 program 的 `optimize-on-load`、VM 的 `vm-load-defs`、`compile-defs` 测试面），权威 IR 定义已下沉至 `L2`，`syntax->ir` 直出路径由 `L4` 提供，`L5` 仅消费 `L2` 的 `IR` 契约。pass 集合不含 `lower-let`：它从 0 重启槽编号，会错位 `syntax->ir` 的真实 `(depth . index)` 词法地址（`lower-let` 只与 `core->ir` 的占位地址兼容，且字节码的 `compile-let` 已直接处理 `<let>`）。
+- **文件**：`goldfish/compiler/*.scm`（`syntax-ir.scm` 现为对 `expander/tree-il` 的薄包装；`ir.scm` 是 `core/ir` 的纯转发 + `$` 模式，无 legacy 节点 API）、`goldfish/compiler.scm`。
+- **职责**：record IR 纯变换与 `run-passes`；`core->ir/ir->core` 仅为 `s7` 回退路径保留（非缓存 program 的 `optimize-on-load`、VM 的 `vm-load-defs`、`compile-defs` 测试面），权威 IR 定义已下沉至 `L2`，`syntax->ir` 直出路径由 `L4` 提供，`L5` 仅消费 `L2` 的 `IR` 契约。pass 集合不含 `lower-let`：它从 0 重启槽编号，会错位 `syntax->ir` 的真实 `(depth . index)` 词法地址（`lower-let` 只与 `core->ir` 的占位地址兼容，且字节码的 `compile-let` 已直接处理 `<let>`）。`optimize-on-load` 因输入是 lowered program（`compile-program` 产物）走 `core->ir`，故仍可安全附带 `lower-let`。
 - **不变式**：禁止 `s7_`；允许 `goldfish/core/ir`（L2 IR），仍禁止其他 `goldfish/core|expander/lib` 导入。
 
 ## L6 vm
