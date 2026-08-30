@@ -53,12 +53,13 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 - **文件**：`goldfish/expander/lib/*.scm`、`goldfish/expander/tree-il.scm`（expander 直出 tree-il 桥）、`goldfish/liii/reader.scm`。
 - **职责**：`cond-expand`/`syntax-case` 等用户态库与完整 reader；`tree-il.scm` 在展开后的 `syntax` 上重建 `IR`，直接产 `<primitive-ref>/<lexical-ref>` 且前置计算 `depth/index`，让 expander 成为 tree-il 的权威发射器；`vm` 以宿主原语回退（`vm-load`/`vm-enter` 经 `gf::` 调用），不直接依赖 `L6`。
+- **缓存**：库缓存（`capture-library-cache`）存 `syntax->ir/sexp` 的 record tree-il（可序列化 vector），使缓存写路径的 passes 保留 `<primitive-ref>` binding kind；读缓存时统一降为 lowered sexp 供 s7/VM 求值。expander 输出对 primitive 引用带 `(primitive-ref name)` 标记（`lower` 还原为裸名）。
 - **不变式**：禁止 `import (goldfish compiler)`（`core/ir` 除外，`core/ir` 为 L2 共享）；`gfo` 单源。
 
 ## L5 compiler
 
 - **文件**：`goldfish/compiler/*.scm`（`syntax-ir.scm` 现为对 `expander/tree-il` 的薄包装）、`goldfish/compiler.scm`。
-- **职责**：record IR 纯变换与 `run-passes`；`core->ir/ir->core` 仅为 `s7` 回退路径保留，权威 IR 定义已下沉至 `L2`，`syntax->ir` 直出路径由 `L4` 提供，`L5` 仅消费 `L2` 的 `IR` 契约。
+- **职责**：record IR 纯变换与 `run-passes`；`core->ir/ir->core` 仅为 `s7` 回退路径保留（非缓存 program 的 `optimize-on-load`、VM 的 `vm-load-defs`、`compile-defs` 测试面），权威 IR 定义已下沉至 `L2`，`syntax->ir` 直出路径由 `L4` 提供，`L5` 仅消费 `L2` 的 `IR` 契约。pass 集合不含 `lower-let`：它从 0 重启槽编号，会错位 `syntax->ir` 的真实 `(depth . index)` 词法地址（`lower-let` 只与 `core->ir` 的占位地址兼容，且字节码的 `compile-let` 已直接处理 `<let>`）。
 - **不变式**：禁止 `s7_`；允许 `goldfish/core/ir`（L2 IR），仍禁止其他 `goldfish/core|expander/lib` 导入。
 
 ## L6 vm

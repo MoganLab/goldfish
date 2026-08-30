@@ -580,21 +580,18 @@
                                  'compile-syntax-defs))
                    (lambda (tag . info) #f))))
             (if (and (procedure? compile-syntax-defs))
+              ;; NOTE: lower-let is deliberately excluded (see
+              ;; compile-defs-cached): it restarts slot numbering at 0,
+              ;; misaddressing syntax->ir's real lexical (depth . index)
+              ;; refs when the let sits inside a lambda with outer formals.
               (if (>= level 2)
                 ;; level 2 adds the inliner (copy propagation + beta
                 ;; reduction).  Order: fold constants first (inliner relies
                 ;; on folded literals propagating), then inline, then clean
-                ;; up the ifs the inliner's pruning leaves behind, then lower
-                ;; let to lambda/call for the minimal VM core.
-                (let ((inline (module-ref compiler 'inline))
-                      (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
-                  (if lower-let
-                    (compile-syntax-defs defs ctx (list constant-fold inline simplify-if lower-let))
-                    (compile-syntax-defs defs ctx (list constant-fold inline simplify-if))))
-                (let ((lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
-                  (if lower-let
-                    (compile-syntax-defs defs ctx (list constant-fold simplify-if lower-let))
-                    (compile-syntax-defs defs ctx (list constant-fold simplify-if)))))
+                ;; up the ifs the inliner's pruning leaves behind.
+                (let ((inline (module-ref compiler 'inline)))
+                  (compile-syntax-defs defs ctx (list constant-fold inline simplify-if)))
+                (compile-syntax-defs defs ctx (list constant-fold simplify-if)))
               (map lower defs)))
           (map lower defs))))))
 
