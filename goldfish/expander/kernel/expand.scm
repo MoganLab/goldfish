@@ -93,8 +93,19 @@
                  ;; stopped identifier stays unexpanded, exactly as
                  ;; expand-pair handles stops.
                  (cond
-                   ((or (lexical-binding? binding) (primitive-binding? binding))
+                   ((lexical-binding? binding)
                     (values (make-syntax (binding-value binding)
+                                         (syntax-context stx)
+                                         (syntax-library stx))
+                            ctx))
+                   ((primitive-binding? binding)
+                    ;; Primitive marking: emit (primitive-ref name) so
+                    ;; downstream walks (lower, syntax->ir) recover the
+                    ;; binding KIND without re-resolving the identifier
+                    ;; (a bare symbol would lose the primitive/lexical/
+                    ;; toplevel distinction).  lower strips the marker
+                    ;; back to the bare name for the s7 evaluator.
+                    (values (make-syntax (list 'primitive-ref (binding-value binding))
                                          (syntax-context stx)
                                          (syntax-library stx))
                             ctx))
@@ -356,6 +367,10 @@
               (list 'quote (syntax->datum (cadr form))))
              ((and (pair? (cdr form)) (eq? (lower-head form) 'quote-syntax))
               (list 'quote (cadr form)))
+             ((and (pair? (cdr form)) (eq? (lower-head form) 'primitive-ref))
+              ;; (primitive-ref name) -> name: the s7 evaluator sees the
+              ;; bare primitive name, so lowering is the identity.
+              (syntax->datum (cadr form)))
              (else
               (map-spine lower form))))
           (else form)))))

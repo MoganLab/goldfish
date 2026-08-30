@@ -21,9 +21,10 @@
 ;;; and is imported by both the expander API and the compiler's
 ;;; syntax-ir wrapper.  No L3->L5 dependency.
 ;;;
-;;; TODO (kernel primitive marking): expand-atom will emit (primitive name)
-;;; for primitive references so this walk needs no binding re-resolution.
-;;; Until then, binding-kind is resolved here (the pre-marking phase).
+;;; Primitive marking: expand-atom emits (primitive-ref name) for primitive
+;;; references, so this walk recognizes the marker directly instead of
+;;; re-resolving the identifier; lexical/toplevel kinds are still resolved
+;;; here (lexical addressing is computed here regardless).
 
 (define-library (goldfish expander tree-il)
   (import (scheme base)
@@ -135,25 +136,27 @@
         (else
          (let ((form (syntax-form stx)))
            (cond
-             ((not (pair? form))
-              (if (symbol? form)
-                (let*-values (((name kind) (resolve-name stx ctx)))
-                  (let ((loc (env-lookup env name)))
-                    (cond
-                      ((and loc resolve-lexical?)
-                       (make-lexical-ref #f name (car loc) (cdr loc)))
-                      ((eq? kind 'primitive)
-                       (make-primitive-ref #f name))
-                      (loc
-                       (make-lexical-ref #f name (car loc) (cdr loc)))
-                      ((eq? kind 'toplevel)
-                       (make-toplevel-ref #f name))
-                      (else (make-toplevel-ref #f name)))))
-                form))
+              ((not (pair? form))
+               (if (symbol? form)
+                 (let*-values (((name kind) (resolve-name stx ctx)))
+                   (let ((loc (env-lookup env name)))
+                     (cond
+                       ((and loc resolve-lexical?)
+                        (make-lexical-ref #f name (car loc) (cdr loc)))
+                       (loc
+                        (make-lexical-ref #f name (car loc) (cdr loc)))
+                       ((eq? kind 'primitive)
+                        (make-primitive-ref #f name))
+                       (else (make-toplevel-ref #f name)))))
+                 form))
              (else
               (let ((head (car form))
                     (head-name (if (syntax? (car form)) (syntax-form (car form)) (car form))))
                 (case head-name
+                  ((primitive-ref)
+                   ;; (primitive-ref name) is emitted by expand-atom for
+                   ;; primitive references; no binding re-resolution needed.
+                   (make-primitive-ref #f (datum-of (cadr form))))
                   ((quote) (make-const #f (datum-of (cadr form))))
                   ((quote-syntax) (make-const #f (datum-of (cadr form))))
                   ((define)
