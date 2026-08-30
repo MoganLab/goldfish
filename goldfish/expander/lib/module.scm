@@ -555,22 +555,41 @@
 ;;; stores already-lowered sexp and is handled by optimize-lib-cache-recs
 ;;; via compile-defs (core->ir on lowered sexp).
 
+;;; compiler-module : -> module/#f
+;;; Lazy-load (goldfish compiler); #f when unavailable (bootstrap phase,
+;;; a load failure).  Compilation is an optimization, never a correctness
+;;; requirement, so every caller degrades gracefully on #f.
+
+(define (compiler-module)
+  (catch
+    #t
+    (lambda ()
+      (if (not (runtime-registered? '(goldfish compiler)))
+        (load-library! '(goldfish compiler)))
+      (lookup-module '(goldfish compiler)))
+    (lambda (tag . info) #f)))
+
+;;; compiler-pass-list : module level -> (list pass)
+;;; The active pass set: level 1 = constant-fold + simplify-if; level 2+
+;;; adds the inliner (copy propagation + beta reduction).  Order: fold
+;;; constants first (the inliner relies on folded literals propagating),
+;;; then inline, then clean up the ifs the inliner's pruning leaves
+;;; behind.  lower-let is deliberately absent (see compile-defs-cached).
+
+(define (compiler-pass-list compiler level)
+  (let ((constant-fold (module-ref compiler 'constant-fold))
+        (simplify-if (module-ref compiler 'simplify-if)))
+    (if (>= level 2)
+      (list constant-fold (module-ref compiler 'inline) simplify-if)
+      (list constant-fold simplify-if))))
+
 (define (compile-defs-on-load defs ctx)
   (let ((level (optimization-level)))
     (if (zero? level)
       (map lower defs)
-      (let ((compiler
-             (catch
-               #t
-               (lambda ()
-                 (if (not (runtime-registered? '(goldfish compiler)))
-                   (load-library! '(goldfish compiler)))
-                 (lookup-module '(goldfish compiler)))
-               (lambda (tag . info) #f))))
+      (let ((compiler (compiler-module)))
         (if (module? compiler)
-          (let ((constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if))
-                (compile-syntax-defs
+          (let ((compile-syntax-defs
                  (catch
                    #t
                    (lambda ()
@@ -584,14 +603,7 @@
               ;; compile-defs-cached): it restarts slot numbering at 0,
               ;; misaddressing syntax->ir's real lexical (depth . index)
               ;; refs when the let sits inside a lambda with outer formals.
-              (if (>= level 2)
-                ;; level 2 adds the inliner (copy propagation + beta
-                ;; reduction).  Order: fold constants first (inliner relies
-                ;; on folded literals propagating), then inline, then clean
-                ;; up the ifs the inliner's pruning leaves behind.
-                (let ((inline (module-ref compiler 'inline)))
-                  (compile-syntax-defs defs ctx (list constant-fold inline simplify-if)))
-                (compile-syntax-defs defs ctx (list constant-fold simplify-if)))
+              (compile-syntax-defs defs ctx (compiler-pass-list compiler level))
               (map lower defs)))
           (map lower defs))))))
 
@@ -608,20 +620,11 @@
   (let ((level (optimization-level)))
     (if (and (zero? level) (or (null? defs) (not (vector? (car defs)))))
       defs
-      (let ((compiler
-             (catch
-               #t
-               (lambda ()
-                 (if (not (runtime-registered? '(goldfish compiler)))
-                   (load-library! '(goldfish compiler)))
-                 (lookup-module '(goldfish compiler)))
-               (lambda (tag . info) #f))))
+      (let ((compiler (compiler-module)))
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
                 (core->ir (module-ref compiler 'core->ir))
-                (ir->core (module-ref compiler 'ir->core))
-                (constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if)))
+                (ir->core (module-ref compiler 'ir->core)))
             ;; NOTE: lower-let is deliberately NOT in the pass set.  It
             ;; lowers a <let> into a lambda-case whose formals restart slot
             ;; numbering at 0, but syntax->ir's IR carries real lexical
@@ -633,10 +636,7 @@
             (let ((ir-defs (if (or (null? defs) (vector? (car defs)))
                               defs
                               (map core->ir defs)))
-                  (passes (if (>= level 2)
-                              (let ((inline (module-ref compiler 'inline)))
-                                (list constant-fold inline simplify-if))
-                              (list constant-fold simplify-if))))
+                  (passes (compiler-pass-list compiler level)))
               (map (lambda (d)
                      (if (zero? level)
                        (ir->core d)
@@ -657,31 +657,20 @@
   (let ((level (optimization-level)))
     (if (zero? level)
       sexp
-      (let ((compiler
-             (catch
-               #t
-               (lambda ()
-                 (if (not (runtime-registered? '(goldfish compiler)))
-                   (load-library! '(goldfish compiler)))
-                 (lookup-module '(goldfish compiler)))
-               (lambda (tag . info) #f))))
+      (let ((compiler (compiler-module)))
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
-                (constant-fold (module-ref compiler 'constant-fold))
-                (simplify-if (module-ref compiler 'simplify-if))
-                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f)))
                 (core->ir (module-ref compiler 'core->ir))
-                (ir->core (module-ref compiler 'ir->core)))
+                (ir->core (module-ref compiler 'ir->core))
+                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
+            ;; optimize-on-load feeds lowered core sexp (compile-program's
+            ;; output), so it goes through core->ir.  lower-let is safe here
+            ;; (core->ir emits placeholder addressing) and kept: the VM core
+            ;; path wants let lowered to lambda/call.
             (ir->core
-             (if lower-let
-               (if (>= level 2)
-                 (let ((inline (module-ref compiler 'inline)))
-                   (run-passes (core->ir sexp) (list constant-fold inline simplify-if lower-let)))
-                 (run-passes (core->ir sexp) (list constant-fold simplify-if lower-let)))
-               (if (>= level 2)
-                 (let ((inline (module-ref compiler 'inline)))
-                   (run-passes (core->ir sexp) (list constant-fold inline simplify-if)))
-                 (run-passes (core->ir sexp) (list constant-fold simplify-if))))))
+              (run-passes (core->ir sexp)
+                          (append (compiler-pass-list compiler level)
+                                  (if lower-let (list lower-let) '())))))
           sexp)))))
 
 ;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)
