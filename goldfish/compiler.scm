@@ -1,8 +1,8 @@
 ;;; compiler.scm -- L2: the self-hosted compilation pipeline.
 ;;;
-;;; Aggregate library re-exporting the compiler front-end, split into
-;;; sub-libraries under goldfish/compiler/:
-;;;   (goldfish compiler ir)       -- record IR (tree-il, Guile-aligned)
+;;; Aggregate library re-exporting the compiler front-end:
+;;;   (goldfish core ir)          -- record IR (L2, tree-il, Guile-aligned)
+;;;   (goldfish compiler patterns) -- $ pattern-syntax aliases
 ;;;   (goldfish compiler passes)   -- nanopass-style IR passes
 ;;;   (goldfish compiler bytecode) -- IR -> bytecode + validation
 ;;;
@@ -13,7 +13,8 @@
 ;;; the existing test suite.
 
 (define-library (goldfish compiler)
-  (import (goldfish compiler ir)
+  (import (goldfish core ir)
+          (goldfish compiler patterns)
           (goldfish compiler passes)
           (goldfish compiler bytecode))
   (export core->ir
@@ -42,6 +43,10 @@
     make-toplevel-define toplevel-define? toplevel-define-source toplevel-define-name toplevel-define-exp
     make-module-ref module-ref? module-ref-source module-ref-module module-ref-name module-ref-public?
     make-module-set module-set? module-set-source module-set-module module-set-name module-set-public? module-set-exp
+    $void $const $primitive-ref $lexical-ref $lexical-set
+    $conditional $call $primcall $seq $lambda $lambda-case
+    $let $letrec $let-values $values $call-with-values
+    $toplevel-ref $toplevel-set $toplevel-define $module-ref $module-set
     run-passes
     compile-defs
     constant-fold

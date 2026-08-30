@@ -1,5 +1,5 @@
 (import (liii check)
-        (goldfish compiler ir)
+        (goldfish core ir)
         (goldfish compiler passes)
         (goldfish compiler bytecode)
         (goldfish compiler syntax-ir))

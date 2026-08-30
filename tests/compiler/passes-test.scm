@@ -1,6 +1,7 @@
 (import (liii check)
         (goldfish match)
-        (goldfish compiler ir)
+        (goldfish core ir)
+        (goldfish compiler patterns)
         (goldfish compiler passes))
 
 ;; pass 管线（record IR 版）单元测试。

@@ -1,6 +1,6 @@
 (import (liii check)
         (goldfish compiler)
-        (goldfish compiler ir))
+        (goldfish core ir))
 
 ;; L2-1 单元测试：constant-fold 与 simplify-if pass 的行为（record IR 版）。
 

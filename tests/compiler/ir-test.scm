@@ -1,6 +1,7 @@
 (import (liii check)
         (goldfish match)
-        (goldfish compiler ir))
+        (goldfish core ir)
+        (goldfish compiler patterns))
 
 ;; IR 转换与 record 匹配单元测试（权威 (goldfish core ir) API，无 shim 兼容层）。
 

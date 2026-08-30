@@ -1,6 +1,6 @@
 (import (liii check)
         (liii base)
-        (goldfish compiler ir)
+        (goldfish core ir)
         (goldfish compiler bytecode))
 
 ;; L2 字节码编译前端单元测试（record IR 版，词法寻址）。

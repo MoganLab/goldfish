@@ -1,6 +1,6 @@
 (import (liii check)
         (goldfish compiler)
-        (goldfish compiler ir))
+        (goldfish core ir))
 
 ;; L2-3 pass 扩展：尾调用标记 + 死代码消除 单元测试（record IR 版）。
 

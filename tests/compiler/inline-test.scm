@@ -1,6 +1,6 @@
 (import (liii check)
         (goldfish compiler)
-        (goldfish compiler ir))
+        (goldfish core ir))
 
 ;; L2-2 单元测试：inline pass（record IR 版）。
 

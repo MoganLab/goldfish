@@ -661,16 +661,14 @@
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
                 (core->ir (module-ref compiler 'core->ir))
-                (ir->core (module-ref compiler 'ir->core))
-                (lower-let (catch #t (lambda () (module-ref compiler 'lower-let)) (lambda _ #f))))
+                (ir->core (module-ref compiler 'ir->core)))
             ;; optimize-on-load feeds lowered core sexp (compile-program's
-            ;; output), so it goes through core->ir.  lower-let is safe here
-            ;; (core->ir emits placeholder addressing) and kept: the VM core
-            ;; path wants let lowered to lambda/call.
-            (ir->core
-              (run-passes (core->ir sexp)
-                          (append (compiler-pass-list compiler level)
-                                  (if lower-let (list lower-let) '())))))
+            ;; output), so it goes through core->ir.  lower-let is not in
+            ;; the pass list (the (goldfish compiler) aggregate never
+            ;; exported it, and it misaddresses syntax->ir's real lexical
+            ;; refs anyway); bytecode/compile-let handles <let> directly.
+            (ir->core (run-passes (core->ir sexp)
+                                  (compiler-pass-list compiler level))))
           sexp)))))
 
 ;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)
