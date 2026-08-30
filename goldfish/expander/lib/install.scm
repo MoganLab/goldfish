@@ -460,17 +460,20 @@
                         (cadddr rec))))
       (if cached
         cached
-        (let* ((sexp (compile-file-into path (program-library)))
-               (opt (if (zero? level)
-                      sexp
-                      (let ((f (module-ref the-expander-library 'optimize-on-load)))
-                        (if (procedure? f)
-                          (catch #t (lambda () (f sexp)) (lambda (type info) sexp))
-                          sexp))))
-               (deps (map library-dep-fingerprint
-                          (collect-cache-module-refs opt))))
-          (gfo-write! gfo-file stamp opt deps)
-          opt)))))
+        (let*-values (((prog ctx)
+                       (compile-program-into-syntax
+                         (call-with-input-file path read-forms)
+                         (program-library))))
+          (let* ((opt (if (zero? level)
+                         (lower prog)
+                         (let ((f (module-ref the-expander-library 'optimize-on-load)))
+                           (if (procedure? f)
+                             (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
+                             (lower prog)))))
+                 (deps (map library-dep-fingerprint
+                            (collect-cache-module-refs opt))))
+            (gfo-write! gfo-file stamp opt deps)
+            opt))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
 (module-define! the-expander-library 'gfo-dir gfo-dir)

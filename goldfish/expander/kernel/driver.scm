@@ -48,6 +48,19 @@
                 (compile-program* exprs (initial-context) lib)))
     (lower program)))
 
+;;; compile-program-syntax : (list datum) -> (values syntax context)
+;;; Expand a program to its fully-expanded syntax WITHOUT lowering, so the
+;;; optimize-on-load path can run syntax->ir and keep the primitive /
+;;; lexical binding kinds that lowering discards (R7RS 5.1 program
+;;; semantics: empty starting environment, free identifiers that resolve
+;;; nowhere are errors).
+
+(define-public (compile-program-syntax exprs)
+  (compile-program* exprs (initial-context)))
+
+(define-public (compile-program-into-syntax exprs lib)
+  (compile-program* exprs (initial-context) lib))
+
 ;;; compile-toplevel : datum -> lowered core Scheme S-expression
 ;;; Compile a single top-level form into the-base-library, so a top-level
 ;;; define-syntax registers the macro in the shared base library and later

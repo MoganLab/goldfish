@@ -17,6 +17,8 @@
     compile-file
     compile-program
     compile-program*
+    compile-program-syntax
+    compile-program-into-syntax
     compile-toplevel
     context-add-prune-scope
     context-add-use-scope

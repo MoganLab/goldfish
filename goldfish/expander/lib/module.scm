@@ -401,6 +401,24 @@
              (def-ir (cache-defs->ir defs ctx1)))
         (values (list name exports imports bindings macros def-ir) ctx1)))))
 
+;;; syntax-ir-fn : -> procedure/#f
+;;; Lazily resolve syntax->ir/sexp from (goldfish expander tree-il) (L4).
+;;; #f when the library is unavailable or is itself being captured (loading
+;;; it would trip the circular-dependency check); callers fall back to
+;;; lower.  Shared by cache-defs->ir and optimize-on-load.
+
+(define (syntax-ir-fn)
+  (if (member '(goldfish expander tree-il) *libraries-being-loaded*)
+    #f
+    (catch
+      #t
+      (lambda ()
+        (if (not (runtime-registered? '(goldfish expander tree-il)))
+          (load-library! '(goldfish expander tree-il)))
+        (module-ref (lookup-module '(goldfish expander tree-il))
+                    'syntax->ir/sexp))
+      (lambda (tag . info) #f))))
+
 ;;; cache-defs->ir : (list syntax) context -> (list ir|sexp)
 ;;; Cache the defs as record tree-il (via syntax->ir/sexp) so the
 ;;; optimized cache path keeps <primitive-ref> binding kinds through the
@@ -412,18 +430,9 @@
 ;;; guard: loading it would trip the circular-dependency check).
 
 (define (cache-defs->ir defs ctx)
-  (if (or (not (runtime-registered? '(goldfish compiler)))
-          (member '(goldfish expander tree-il) *libraries-being-loaded*))
+  (if (not (runtime-registered? '(goldfish compiler)))
     (map lower defs)
-    (let ((s2ir
-           (catch
-             #t
-             (lambda ()
-               (if (not (runtime-registered? '(goldfish expander tree-il)))
-                 (load-library! '(goldfish expander tree-il)))
-               (module-ref (lookup-module '(goldfish expander tree-il))
-                           'syntax->ir/sexp))
-             (lambda (tag . info) #f))))
+    (let ((s2ir (syntax-ir-fn)))
       (if (procedure? s2ir)
         (catch
           #t
@@ -644,32 +653,32 @@
                    ir-defs)))
           defs)))))
 
-;;; optimize-on-load : sexp -> sexp
-;;; Apply the active pass pipeline to a compiled PROGRAM (a single lowered
-;;; core-lambda sexp), mirroring compile-defs-on-load for libraries.  This
-;;; is the toplevel-script path: `load' compiles a file to one artifact and
-;;; evaluates it, so the passes run here -- at eval time -- instead of being
-;;; baked into the artifact cache (which is level-independent and shared
-;;; across optimization levels).  Level 0 or an unavailable compiler
-;;; library leaves the program untouched.
+;;; optimize-on-load : syntax context -> sexp
+;;; Apply the active pass pipeline to a fully-expanded PROGRAM (the
+;;; (values program ctx) of compile-program-syntax), mirroring
+;;; compile-defs-on-load for libraries.  It runs through syntax->ir so the
+;;; <primitive-ref> / <lexical-ref> binding kinds survive the passes
+;;; (compile-program's lowered output would force core->ir and lose them).
+;;; This is the toplevel-script path: `load' compiles a file to one
+;;; artifact and evaluates it, so the passes run here -- at eval time --
+;;; instead of being baked into the artifact cache.  Level 0 or an
+;;; unavailable compiler / tree-il library leaves the program lowered
+;;; unoptimized.
 
-(define (optimize-on-load sexp)
+(define (optimize-on-load program ctx)
   (let ((level (optimization-level)))
     (if (zero? level)
-      sexp
+      (lower program)
       (let ((compiler (compiler-module)))
         (if (module? compiler)
           (let ((run-passes (module-ref compiler 'run-passes))
-                (core->ir (module-ref compiler 'core->ir))
-                (ir->core (module-ref compiler 'ir->core)))
-            ;; optimize-on-load feeds lowered core sexp (compile-program's
-            ;; output), so it goes through core->ir.  lower-let is not in
-            ;; the pass list (the (goldfish compiler) aggregate never
-            ;; exported it, and it misaddresses syntax->ir's real lexical
-            ;; refs anyway); bytecode/compile-let handles <let> directly.
-            (ir->core (run-passes (core->ir sexp)
-                                  (compiler-pass-list compiler level))))
-          sexp)))))
+                (ir->core (module-ref compiler 'ir->core))
+                (s2ir (syntax-ir-fn)))
+            (if (procedure? s2ir)
+              (ir->core (run-passes (s2ir program ctx)
+                                    (compiler-pass-list compiler level)))
+              (lower program)))
+          (lower program))))))
 
 ;;; optimize-lib-cache-recs : (list lib-cache) -> (list lib-cache)
 ;;; Optimize each cache record's defs at the active optimization level.  A
@@ -859,10 +868,11 @@
                                   (gfo-write! gfo-file stamp recs deps)
                                  (load-library-file-cached! recs))))
                            (begin
-                             ;; Non-cacheable library: expand, optimize, then eval
-                             ;; the whole program (the pipeline still applies).
-                             (eval (optimize-on-load (compile-program forms))
-                                   (rootlet))
+                              ;; Non-cacheable library: expand, optimize, then eval
+                              ;; the whole program (the pipeline still applies).
+                              (let*-values (((prog ctx)
+                                             (compile-program-syntax forms)))
+                                (eval (optimize-on-load prog ctx) (rootlet)))
                              (set! *runtime-registered-libraries*
                                    (cons lib-name *runtime-registered-libraries*)))))))
                     (lambda ()
