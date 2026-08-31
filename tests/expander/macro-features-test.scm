@@ -16,17 +16,12 @@
   (syntax-rules ()
     ((_ (x y) ...) (list (+ x y) ...))))
 (check (pair-sum (1 2) (3 4)) => '(3 7))
-;; 双层嵌套 ellipsis (((x y) ...) ...)：匹配层已支持（回溯），但
-;; syntax-rules 定义层的 dotted pattern 尾（(keyword . pattern)）尚未
-;; 处理嵌套 ellipsis 规则。记录为已知缺口。
-(check (catch #t
-         (lambda ()
-           (eval '(define-syntax nested-map
-                    (syntax-rules ()
-                      ((_ ((x y) ...) ...) (list (list x y) ...) ...))))
-           (eval '(nested-map (1 2) (3 4))))
-         (lambda (tag . info) 'expansion-error))
-       => 'expansion-error)
+;; 双层嵌套 ellipsis (((x y) ...) ...) 的常见示例
+;; ((_ ((x y) ...) ...) (list (list x y) ...) ...) 在 Guile 中同样报
+;; "source expression failed to match any pattern"：规则被读取为 3 个
+;; 顶层元素（pattern、模板首、裸 `...`），不是合法 R7RS 规则，因此不是
+;; expander 特有缺口（与 letrec-syntax 的 fact 情形同类）。真正需要的
+;; 双层匹配（匹配层回溯）已在 syntax-runtime 支持（单层组依赖它）。
 
 ;; ===== 2. syntax-case guard/fender =====
 (define-syntax guarded
