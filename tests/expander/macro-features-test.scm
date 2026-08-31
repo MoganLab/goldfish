@@ -10,9 +10,15 @@
 ;;   - quasisyntax / unsyntax / unsyntax-splicing
 
 ;; ===== 1. nested ellipsis（双层）=====
-;; 现状：syntax-rules 的嵌套 ellipsis 模式在定义层就报
-;; "syntax-case: no matching clause"（pattern-match* 不支持 `...` 内嵌）。
-;; 记录为已知缺口；阶段3 实现 nested ellipsis 后启用下方正例。
+;; 单层组 ellipsis ((x y) ...)：匹配一个模式组消耗多个输入元素
+;; （R7RS），已支持。
+(define-syntax pair-sum
+  (syntax-rules ()
+    ((_ (x y) ...) (list (+ x y) ...))))
+(check (pair-sum (1 2) (3 4)) => '(3 7))
+;; 双层嵌套 ellipsis (((x y) ...) ...)：匹配层已支持（回溯），但
+;; syntax-rules 定义层的 dotted pattern 尾（(keyword . pattern)）尚未
+;; 处理嵌套 ellipsis 规则。记录为已知缺口。
 (check (catch #t
          (lambda ()
            (eval '(define-syntax nested-map

@@ -183,23 +183,44 @@
           bindings
           (pattern-match* pat-tail (datum->syntax input-stx input-form) literals bindings))))
 
+(define (list-head* lst n)
+  (if (= n 0) '() (cons (car lst) (list-head* (cdr lst) (- n 1)))))
+
+(define (list-tail* lst n)
+  (if (= n 0) lst (list-tail* (cdr lst) (- n 1))))
+
+;;; pattern-match-ellipsis : match (elem-pat ...) rest-pat against input.
+;;; Backtracking matcher.  Each ellipsis repeat consumes elem-pat matched
+;;; against ONE input element (a group pattern like (pat expr) matched
+;;; against a nested-group element -- the with-syntax case) OR against a
+;;; PREFIX of several elements (a flat group pattern like (x y) matched
+;;; against (1 2 3 4) with x=1,3 y=2,4 -- R7RS).  rest-pat is tried first
+;;; at every point so the input is split greedily towards the tail.
+
 (define (pattern-match-ellipsis elem-pat rest-pat input-form input-stx literals bindings)
-  (letrec* ((len (dotted-length input-form))
-            (rest-min (pattern-min-length rest-pat)))
-    (if (< len rest-min)
-        #f
-        (letrec* ((repeat-count (- len rest-min))
-                  (loop (lambda (i inputs accum-bindings)
-                          (if (= i repeat-count)
-                              (pattern-match-list rest-pat inputs input-stx literals accum-bindings)
-                              (letrec* ((elem-input (car inputs))
-                                        (elem-bindings (pattern-match-ellipsis-elem elem-pat elem-input literals)))
-                                (if (not elem-bindings)
-                                    #f
-                                    (loop (+ i 1)
-                                          (cdr inputs)
-                                          (merge-ellipsis-bindings elem-bindings accum-bindings))))))))
-          (loop 0 input-form bindings)))))
+  (letrec* ((rest-min (pattern-min-length rest-pat))
+            (try-rest
+             (lambda (inputs accum)
+               (if (< (dotted-length inputs) rest-min)
+                   #f
+                   (pattern-match-list rest-pat inputs input-stx literals accum))))
+            (try-elem
+             (lambda (inputs accum)
+               (if (not (pair? inputs))
+                   #f
+                   (let loop ((k 1))
+                     (if (> k (dotted-length inputs))
+                         #f
+                         (letrec* ((prefix (if (= k 1) (car inputs) (list-head* inputs k)))
+                                   (rest (if (= k 1) (cdr inputs) (list-tail* inputs k)))
+                                   (b (pattern-match* elem-pat prefix literals '())))
+                           (if b
+                               (letrec* ((acc2 (merge-ellipsis-bindings b accum)))
+                                 (or (try-rest rest acc2)
+                                     (try-elem rest acc2)))
+                               (loop (+ k 1))))))))))
+    (or (try-rest input-form bindings)
+        (try-elem input-form bindings))))
 
 (define (pattern-min-length pat-list)
   (if (null? pat-list)
