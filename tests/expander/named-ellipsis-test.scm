@@ -44,7 +44,18 @@
 (check (match-check-ellipsis (a . b) 'success 'failure) => 'failure)
 (check (match-check-ellipsis #(a b) 'success 'failure) => 'failure)
 
-;; ===== 6. 已知限制 =====
+;; ===== 6. ellipsis 转义（R6RS (... ...)）=====
+;; parse-template 已识别 (... ...) 产字面 `...' 节点；但字面 `...' 作为
+;; syntax 对象嵌在 datum 里，goldfish 展开器会递归展开它（当程序/值），
+;; 而非 Racket 那样保留 datum 为值。结果 quote 模板得到 `(...)'（列表）
+;; 而非 `...'，程序模板报 unbound。与 quasisyntax 的 `(syntax X)' 子模板
+;; 同一展开器限制（需支持 datum 嵌 syntax）。
+(define-syntax m-esc
+  (syntax-rules ()
+    ((_ x) '(... ...))))
+(check (pair? (m-esc 1)) => #t)
+
+;; ===== 7. 已知限制 =====
 ;; 自定义 ellipsis 时，规则里字面写的 `...' 不会被转义（Guile 会），
 ;; 也会被当作 ellipsis。记录为限制。
 

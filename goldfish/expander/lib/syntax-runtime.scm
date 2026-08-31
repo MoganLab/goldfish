@@ -447,7 +447,7 @@
             (cons 'l
                   (cons (syntax-context stx)
                         (cons (template-lib stx)
-                              (parse-list form patvars))))
+                              (parse-list stx form patvars))))
             (if (stx-vector? form)
                 (letrec* ((sctx (syntax-context stx))
                           (lib (template-lib stx))
@@ -458,10 +458,10 @@
                                       (vector->list form))))
                   (cons 'vec
                         (cons sctx
-                              (cons lib (parse-list elems patvars)))))
+                              (cons lib (parse-list stx elems patvars)))))
                 (list 'c (syntax-context stx) (template-lib stx) stx))))))
 
-(define (parse-list form patvars)
+(define (parse-list stx form patvars)
   (if (null? form)
       '()
       (if (syntax? form)
@@ -477,13 +477,24 @@
                               (template-lib form)
                               form)))
               (list (parse-template form patvars)))
-          (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
-              (cons (list 'e
-                          (template-vars (car form))
-                          (parse-template (car form) patvars))
-                    (parse-list (cddr form) patvars))
-              (cons (parse-template (car form) patvars)
-                    (parse-list (cdr form) patvars))))))
+          ;; R6RS ellipsis escape: (... ...) in a template produces a literal
+          ;; `...' -- the first `...' is the escape marker, the second the
+          ;; literal (Guile implements the same).  Must be checked before the
+          ;; plain ellipsis detection, which would otherwise read it as an
+          ;; ellipsis structure.
+          (if (and (pair? (cdr form))
+                   (ellipsis-datum? (car form))
+                   (ellipsis-datum? (cadr form)))
+              (cons (list 'c (syntax-context stx) (template-lib stx)
+                          (make-syntax '... (syntax-context stx) (template-lib stx)))
+                    (parse-list stx (cddr form) patvars))
+              (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
+                  (cons (list 'e
+                              (template-vars (car form))
+                              (parse-template (car form) patvars))
+                        (parse-list stx (cddr form) patvars))
+                  (cons (parse-template (car form) patvars)
+                        (parse-list stx (cdr form) patvars)))))))
 
 (define (fast-instantiate node bindings)
   (letrec* ((tag (node-datum (car node))))
