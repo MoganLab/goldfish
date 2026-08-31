@@ -1,4 +1,4 @@
-(import (liii check) (liii either) (liii os) (liii subprocess))
+(import (liii check) (liii either) (liii os) (liii string) (liii subprocess))
 
 ;; run-pipe
 ;; 将多个命令串联为管道（替代 shell 的 |）。
@@ -43,12 +43,26 @@
 ) ;when
 
 (when (os-windows?)
-  ;; run-pipe relies on :stdout 'capture internally, which doesn't work reliably on Windows
-  ;; multi-command pipe fails because capture returns empty string
-  (check (either-left? (run-pipe "python3 -c print('hello')" "python3 -c pass")) => #t)
-
-  ;; single command pipe succeeds because the command exits with 0 (though output is empty)
+  (check (either-right? (run-pipe "python3 -c \"print('hello world')\""
+                          "python3 -c \"import sys; print(sys.stdin.read().strip())\""
+                        ) ;run-pipe
+         ) ;either-right?
+    =>
+    #t
+  ) ;check
+  (check (string-trim-both (to-right (run-pipe "python3 -c \"print('hello world')\""
+                                       "python3 -c \"import sys; print(sys.stdin.read().strip())\""
+                                     ) ;run-pipe
+                           ) ;to-right
+         ) ;string-trim-both
+    =>
+    "hello world"
+  ) ;check
   (check (either-right? (run-pipe "python3 -c pass")) => #t)
+  (check (either-left? (run-pipe "python3 -c \"print('hello')\"" "python3 -c 1/0"))
+    =>
+    #t
+  ) ;check
 ) ;when
 
 (check-report)

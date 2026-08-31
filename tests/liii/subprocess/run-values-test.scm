@@ -1,4 +1,10 @@
-(import (liii check) (liii os) (liii path) (liii string) (liii subprocess) (scheme file))
+(import (liii check)
+  (liii os)
+  (liii path)
+  (liii string)
+  (liii subprocess)
+  (scheme file)
+) ;import
 
 ;; run-values
 ;; 执行命令并多值返回 stdout、stderr 和退出码。
@@ -119,6 +125,25 @@
 ) ;when
 
 (when (os-windows?)
+  (let-values (((out err code) (run-values "python3 -c \"print('hello')\"" :stdout 'capture)))
+    (check (string-trim-both out) => "hello")
+    (check (zero? code) => #t)
+  ) ;let-values
+
+  ;; :input
+  (let-values (((out err code)
+                (run-values "python3 -c \"import sys; print(sys.stdin.read().strip())\""
+                  :input
+                  "hello world"
+                  :stdout
+                  'capture
+                ) ;run-values
+               ) ;
+              ) ;
+    (check (string-trim-both out) => "hello world")
+    (check (zero? code) => #t)
+  ) ;let-values
+
   (let-values (((out err code) (run-values "python3 -c pass")))
     (check out => "")
     (check (zero? code) => #t)
@@ -131,26 +156,48 @@
 
   ;; :env (need to preserve PATH on Windows)
   (let ((path-env (getenv "PATH"))
-        (tmpfile (string-append (os-temp-dir) "/gf-run-values-env-win.txt")))
-    (when (file-exists? tmpfile) (delete-file tmpfile))
-    (let-values (((out err code) (run-values "python3 -c pass" :env `(("FOO" . "bar") ("PATH" . ,path-env)) :stdout tmpfile)))
-      (check (zero? code) => #t))
-    (when (file-exists? tmpfile) (delete-file tmpfile))
+        (tmpfile (string-append (os-temp-dir) "/gf-run-values-env-win.txt"))
+       ) ;
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
+    (let-values (((out err code)
+                  (run-values "python3 -c pass"
+                    :env
+                    `((,"FOO" . ,"bar") (,"PATH" . ,path-env))
+                    :stdout
+                    tmpfile
+                  ) ;run-values
+                 ) ;
+                ) ;
+      (check (zero? code) => #t)
+    ) ;let-values
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
   ) ;let
 
   ;; :timeout
-  (let-values (((out err code) (run-values "python3 -c \"import time; time.sleep(10)\"" :timeout 1)))
+  (let-values (((out err code)
+                (run-values "python3 -c \"import time; time.sleep(10)\"" :timeout 1)
+               ) ;
+              ) ;
     (check code => -1)
   ) ;let-values
 
   ;; :stdout to file
   (let ((tmpfile (string-append (os-temp-dir) "/gf-run-values-stdout-win.txt")))
-    (when (file-exists? tmpfile) (delete-file tmpfile))
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
     (let-values (((out err code) (run-values "python3 -c print('hello')" :stdout tmpfile)))
       (check out => "")
       (check (zero? code) => #t)
-      (check (path-read-text tmpfile) => "hello\n"))
-    (when (file-exists? tmpfile) (delete-file tmpfile))
+      (check (path-read-text tmpfile) => "hello\n")
+    ) ;let-values
+    (when (file-exists? tmpfile)
+      (delete-file tmpfile)
+    ) ;when
   ) ;let
 
   ;; :stdout 'discard
@@ -167,15 +214,29 @@
 
   ;; :stdin from file
   (let ((infile (string-append (os-temp-dir) "/gf-run-values-stdin-win.txt"))
-        (outfile (string-append (os-temp-dir) "/gf-run-values-stdin-out-win.txt")))
-    (when (file-exists? outfile) (delete-file outfile))
+        (outfile (string-append (os-temp-dir) "/gf-run-values-stdin-out-win.txt"))
+       ) ;
+    (when (file-exists? outfile)
+      (delete-file outfile)
+    ) ;when
     (call-with-output-file infile (lambda (p) (display "file content\n" p)))
-    (let ((cmd (string-append "python3 -c \"import sys; open('" (string-replace outfile "\\" "/") "','w').write(sys.stdin.read())\"")))
+    (let ((cmd (string-append "python3 -c \"import sys; open('"
+                 (string-replace outfile "\\" "/")
+                 "','w').write(sys.stdin.read())\""
+               ) ;string-append
+          ) ;cmd
+         ) ;
       (let-values (((out err code) (run-values cmd :stdin infile)))
-        (check (zero? code) => #t))
-      (check (path-read-text outfile) => "file content\n"))
-    (when (file-exists? infile) (delete-file infile))
-    (when (file-exists? outfile) (delete-file outfile))
+        (check (zero? code) => #t)
+      ) ;let-values
+      (check (path-read-text outfile) => "file content\n")
+    ) ;let
+    (when (file-exists? infile)
+      (delete-file infile)
+    ) ;when
+    (when (file-exists? outfile)
+      (delete-file outfile)
+    ) ;when
   ) ;let
 
   ;; :stdin 'null
