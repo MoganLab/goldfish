@@ -52,6 +52,31 @@
     (define (datum-of s)
       (if (syntax? s) (syntax->datum s) s))
 
+    ;;; quote-syntax-value : stx -> stx
+    ;;; A (quote-syntax <stx>) expression evaluates to the syntax object
+    ;;; ITSELF (Racket semantics), marked with the syntax-literal scope so
+    ;;; the expander keeps it as a value when a macro returns it or it is
+    ;;; spliced into a template datum.  Quasisyntax static parts are built
+    ;;; with make-syntax (qs-template) and never pass through this branch.
+
+    (define (quote-syntax-value syn)
+      (if (syntax? syn)
+          (make-syntax (syntax-form syn)
+                       (stx-ctx-add (syntax-context syn) 0 'syntax-literal)
+                       (syntax-library syn))
+          syn))
+
+    ;;; literal-syntax? : datum -> bool
+    ;;; Whether a datum is a syntax object marked with the syntax-literal
+    ;;; scope; (quote <literal-syntax>) keeps the syntax object as its value
+    ;;; (Racket) while plain datums are datumed.
+
+    (define (literal-syntax? d)
+      (and (syntax? d)
+           (let ((sctx (syntax-context d)))
+             (and (pair? sctx)
+                  (set-member? (stx-ctx-at sctx 0) 'syntax-literal)))))
+
     (define (env-lookup env name)
       (let loop ((es env) (d 0))
         (if (null? es)
@@ -171,8 +196,10 @@
                    ;; (primitive-ref name) is emitted by expand-atom for
                    ;; primitive references; no binding re-resolution needed.
                    (make-primitive-ref #f (datum-of (cadr form))))
-                  ((quote) (make-const #f (datum-of (cadr form))))
-                  ((quote-syntax) (make-const #f (datum-of (cadr form))))
+                  ((quote) (make-const #f (if (literal-syntax? (cadr form))
+                                              (cadr form)
+                                              (datum-of (cadr form)))))
+                  ((quote-syntax) (make-const #f (quote-syntax-value (cadr form))))
                   ((define)
                    (if (symbol? (syntax-form (cadr form)))
                      (let* ((dname (datum-of (cadr form)))

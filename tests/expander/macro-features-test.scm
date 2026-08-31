@@ -89,15 +89,15 @@
   (check (my-or #f #f #f) => #f))
 
 ;; ===== 8. quote-syntax 保留词法上下文 =====
-;; 已知缺口：quote-syntax 在表达式位置求值为 datum（foo）而非 syntax 对象
-;; （lower 渲染为 (quote <datum>) 时丢 syntax 身份），(syntax? (quote-syntax x))
-;; 为 #f。阶段3 修 lower 后启用下方正例。
+;; quote-syntax 在表达式位置求值为 syntax 对象（带字面 scope），宏返回它
+;; 或嵌入 datum 时展开器保留为值（Racket）。引用实际标识符 foo。
 (define-syntax qs
   (lambda (stx)
     (syntax-case stx ()
-      ((_ x) (with-syntax ((q (quote-syntax x)))
+      ((_ x) (with-syntax ((q (quote-syntax foo)))
                #'(quote q))))))
-(check (syntax? (qs whatever)) => #f)
+(check (syntax? (qs whatever)) => #t)
+(check (syntax->datum (qs whatever)) => 'foo)
 
 ;; ===== 9. 已知缺口探测 =====
 ;; 9a. 命名 ellipsis：字面量表列 `...` 应允许别名 ellipsis。

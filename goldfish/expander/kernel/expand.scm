@@ -47,6 +47,20 @@
 (define (literal-clean-ctx sctx)
   (stx-ctx-set sctx 0 (set-subtract (stx-ctx-at sctx 0) (set 'syntax-literal))))
 
+;;; quote-syntax-value : stx -> stx
+;;; A (quote-syntax <stx>) expression evaluates to the syntax object ITSELF
+;;; (Racket semantics), marked with the syntax-literal scope so the expander
+;;; keeps it as a value when the macro returns it or it is spliced into a
+;;; template datum.  Quasisyntax static parts are built with make-syntax
+;;; (qs-template) and never pass through this branch.
+
+(define (quote-syntax-value syn)
+  (if (syntax? syn)
+      (make-syntax (syntax-form syn)
+                   (stx-ctx-add (syntax-context syn) 0 'syntax-literal)
+                   (syntax-library syn))
+      syn))
+
 (define-public (expand-expr stx ctx)
   (cond
     ((not (syntax? stx))
@@ -391,9 +405,11 @@
           ((pair? form)
            (cond
              ((and (pair? (cdr form)) (eq? (lower-head form) 'quote))
-              (list 'quote (syntax->datum (cadr form))))
+              (list 'quote (if (syntax-literal? (cadr form))
+                               (cadr form)
+                               (syntax->datum (cadr form)))))
              ((and (pair? (cdr form)) (eq? (lower-head form) 'quote-syntax))
-              (list 'quote (cadr form)))
+              (list 'quote (quote-syntax-value (cadr form))))
              ((and (pair? (cdr form)) (eq? (lower-head form) 'primitive-ref))
               ;; (primitive-ref name) -> name: the s7 evaluator sees the
               ;; bare primitive name, so lowering is the identity.

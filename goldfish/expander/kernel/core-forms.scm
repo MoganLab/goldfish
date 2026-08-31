@@ -83,8 +83,11 @@
 ;;; quote
 
 (define (core-quote stx ctx)
-  (let ((datum (syntax->datum (stx-cadr stx))))
-    (values (datum->syntax stx `(quote ,datum)) ctx)))
+  (let ((d (stx-cadr stx)))
+    (values (datum->syntax stx
+             (list 'quote
+                   (if (syntax-literal? d) d (syntax->datum d))))
+            ctx)))
 
 ;;; syntax
 ;;; (syntax stx) -> (quote-syntax stx_pruned), where stx_pruned is the
@@ -469,19 +472,22 @@
 
 (define (qs-template stx ctx)
   ;; template stx -> core sexp evaluating to a syntax object.
-  ;; Static parts are emitted as (quote-syntax <datum>): quote-syntax is an
-  ;; internal form lower keeps as (quote <syntax>) WITHOUT datum-izing the
-  ;; operand, so the resulting syntax object stays a live syntax value when
-  ;; embedded in the constructed datum.  (A plain (quote <stx>) would be
-  ;; datum-ized by lower's quote branch, flattening the lexical identity.)
+  ;; Static parts are built with make-syntax (NOT (quote-syntax ...)): the
+  ;; quote-syntax branch of lower marks its operand with the syntax-literal
+  ;; scope so quote-syntax VALUES embedded in a datum stay values (Racket).
+  ;; A static part is CODE (the macro returns a syntax whose form is the
+  ;; template; the expander re-expands it as a program), so it must NOT
+  ;; carry that marker -- otherwise (list 1 2) would be kept as a value
+  ;; instead of evaluated.  make-syntax builds the same syntax object with
+  ;; the template's lexical context but no literal marker.
   (let ((form (syntax-form stx))
         (qctx (list 'quote (syntax-context stx)))
         (qlib (list 'quote (syntax-library stx))))
     (cond
       ((symbol? form)
-       (datum->syntax stx (list 'quote-syntax form)))
+       (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib)))
       ((null? form)
-       (datum->syntax stx (list 'quote-syntax '())))
+       (datum->syntax stx (list 'make-syntax (list 'quote '()) qctx qlib)))
       ((stx-vector? form)
        (datum->syntax stx
          (list 'make-syntax
@@ -507,7 +513,7 @@
                     qctx qlib))))))
       (else
        ;; number/char/boolean/string...
-       (datum->syntax stx (list 'quote-syntax form))))))
+       (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib))))))
 
 (define (core-quasisyntax stx ctx)
   (values (qs-template (stx-cadr stx) ctx) ctx))

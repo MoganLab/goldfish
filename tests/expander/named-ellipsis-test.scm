@@ -50,11 +50,11 @@
 (define-syntax m-esc
   (syntax-rules ()
     ((_ x) '(... ...))))
-(check (m-esc 1) => '...)
+(check (syntax->datum (m-esc 1)) => '...)
 (define-syntax m-esc-p
   (syntax-rules ()
     ((_ x) (list x (... ...)))))
-(check (m-esc-p 1) => '(1 ...))
+(check (syntax->datum (m-esc-p 1)) => '(1 ...))
 
 ;; ===== 7. 已知限制 =====
 ;; 自定义 ellipsis 时，规则里字面写的 `...' 不会被转义（Guile 会），

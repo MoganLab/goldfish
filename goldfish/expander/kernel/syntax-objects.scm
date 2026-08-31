@@ -297,23 +297,32 @@
 (define (datum->stx-ctx ctx lib phase datum)
   (unless (list? ctx)
     (error "datum->syntax: context source is neither syntax nor a scope-set context" ctx))
-  (cond
-    ((syntax? datum) datum)
-    ((pair? datum)
-     (make-syntax (map-spine (lambda (x) (datum->stx-ctx ctx lib phase x)) datum)
-                  ctx lib))
-    ((stx-vector? datum)
-     (make-syntax (vector-map (lambda (x) (datum->stx-ctx ctx lib phase x)) datum)
-                  ctx lib))
-    (else
-     ;; Tolerate s7-read quoted datums: inside `'(... 'x ...)'` the nested
-     ;; quote survives as s7's internal #_quote object (type `syntax?'),
-     ;; which our R7RS reader never produces.  Map it to the plain quote
-     ;; symbol so the expander sees a uniform `(quote ...)'.  Anything with
-     ;; a non-symbol/number/... s7 type in this position can only be such
-     ;; an internal syntax object, so the type test needs no captured
-     ;; constant and no host seam in the seed.
-     (make-syntax (if (eq? (type-of datum) 'syntax?) 'quote datum) ctx lib))))
+  ;; The syntax-literal scope is a marker for the expander's keep-as-value
+  ;; decision (quote-syntax VALUES and template literals), NOT lexical
+  ;; context.  A syntax object carrying it must not propagate it through
+  ;; datum->syntax: (datum->syntax (quote-syntax define-values) ...) would
+  ;; otherwise give the generated identifiers the literal marker and the
+  ;; expander would keep them as values instead of code.
+  (let ((clean-ctx (if (and (pair? ctx) (set-member? (stx-ctx-at ctx 0) 'syntax-literal))
+                       (stx-ctx-set ctx 0 (set-subtract (stx-ctx-at ctx 0) (set 'syntax-literal)))
+                       ctx)))
+    (cond
+      ((syntax? datum) datum)
+      ((pair? datum)
+       (make-syntax (map-spine (lambda (x) (datum->stx-ctx clean-ctx lib phase x)) datum)
+                    clean-ctx lib))
+      ((stx-vector? datum)
+       (make-syntax (vector-map (lambda (x) (datum->stx-ctx clean-ctx lib phase x)) datum)
+                    clean-ctx lib))
+      (else
+       ;; Tolerate s7-read quoted datums: inside `'(... 'x ...)'` the nested
+       ;; quote survives as s7's internal #_quote object (type `syntax?'),
+       ;; which our R7RS reader never produces.  Map it to the plain quote
+       ;; symbol so the expander sees a uniform `(quote ...)'.  Anything with
+       ;; a non-symbol/number/... s7 type in this position can only be such
+       ;; an internal syntax object, so the type test needs no captured
+       ;; constant and no host seam in the seed.
+       (make-syntax (if (eq? (type-of datum) 'syntax?) 'quote datum) clean-ctx lib)))))
 
 
 ;;; generate-temporaries : syntax-list -> (list syntax)
