@@ -141,7 +141,6 @@ target ("goldfish") do
     -- L1 tiny (bootstrap reader subset, no expander)
     add_files ("src/liii_reader.cpp")
     -- L6 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
-    add_files ("src/goldfish_vm.cpp")
     -- L7 loader (CLI/REPL/load-path dispatch only)
     add_files ("src/goldfish.cpp")
     add_packages("tbox")

@@ -4,19 +4,16 @@
 ;;;   (goldfish core ir)          -- record IR (L2, tree-il, Guile-aligned)
 ;;;   (goldfish compiler patterns) -- $ pattern-syntax aliases
 ;;;   (goldfish compiler passes)   -- nanopass-style IR passes
-;;;   (goldfish compiler bytecode) -- IR -> bytecode + validation
 ;;;
 ;;; The pipeline: the expander emits tree-il directly (syntax->ir); passes
-;;; rewrite the tree; either ir->core hands the result back to the s7
-;;; evaluator or to-bytecode emits the VM bytecode.  This aggregate keeps
-;;; the (goldfish compiler) interface for the load-path integration and
-;;; the existing test suite.
+;;; rewrite the tree; ir->core hands the result back to the s7 evaluator
+;;; (the single execution host).  This aggregate keeps the (goldfish
+;;; compiler) interface for the load-path integration and the test suite.
 
 (define-library (goldfish compiler)
   (import (goldfish core ir)
           (goldfish compiler patterns)
-          (goldfish compiler passes)
-          (goldfish compiler bytecode))
+          (goldfish compiler passes))
   (export ir->core
     core-language core-form? core-node-of validate-core-sexp
     make-void void? void-source
@@ -53,5 +50,5 @@
     eliminate-dead-defs
     tail-call-positions
     *foldable-functions*
-    to-bytecode
-    encode-bytecode))
+
+))

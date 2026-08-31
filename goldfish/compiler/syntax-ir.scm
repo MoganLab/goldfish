@@ -3,15 +3,14 @@
 ;;; The pure syntax->ir walk now lives in (goldfish expander tree-il)
 ;;; (L4) so the expander can emit tree-il directly.  This library
 ;;; remains as the compiler's facade: it re-exports the L4 bridge and
-;;; adds the pass/bytecode-aware helpers.
+;;; adds the pass-aware compile-syntax-defs.
 
 (define-library (goldfish compiler syntax-ir)
   (import (scheme base)
           (goldfish)
           (goldfish core ir)
           (goldfish expander tree-il)
-          (goldfish compiler passes)
-          (goldfish compiler bytecode))
+          (goldfish compiler passes))
   (export syntax->ir
     syntax->ir/sexp
     expand->ir

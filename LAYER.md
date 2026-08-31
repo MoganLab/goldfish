@@ -6,7 +6,7 @@ Goldfish 采用 8 层分层架构 `L0..L7`，依赖方向严格为 `Ln -> L_{<n}
 `tools/lint-layer.sh` 只是开发期快速检查的便利工具——它不可能覆盖所有情况，无需如产品代码般尽心维护。
 
 ```
-L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core-format ─> L1 tiny ─> L0 host
+L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core-format ─> L1 tiny ─> L0 host
 ```
 
 引导序列（裸码集合的加载顺序）：宿主求值 boot（`L1`）──> boot 加载 gfo（`L2`）──> 宿主加载内核产物（`L3`）──> expander 上线，此后一切经 gfo 缓存按需展开。
@@ -33,7 +33,7 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 ## L1 tiny
 
 - **文件**：`src/liii_reader.cpp`（最小闭包读取器，只读已展开数据）+ `goldfish/liii/boot.scm`（裸码集合成员）。
-- **同层成员（物理住在 `liii/`，引导期加载）**：`goldfish/liii/host-abi.scm`（seed 经 liii_reader.cpp 载入 rootlet 的 R7RS 值面 + `*vm-deferred-forms*` 宿主行为面清单）。
+- **同层成员（物理住在 `liii/`，引导期加载）**：`goldfish/liii/host-abi.scm`（seed 经 liii_reader.cpp 载入 rootlet 的 R7RS 值面）。
 - **不变式**：禁止依赖 expander；boot 前 `160` 行内必须加载 gfo 模块。
 
 ## L2 core-format
@@ -62,12 +62,9 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 - **职责**：record IR 纯变换与 `run-passes`；`core->ir` 已完全退役（所有路径——缓存库、非缓存库、程序文件、VM 加载——统一经 `syntax->ir` 直出，权威 IR 定义在 `L2`）；`ir->core` 仅保留为 s7 求值的最终格式（`lowered` 不再是 IR 的中间源）。pass 集合不含 `lower-let`：它从 0 重启槽编号，会错位 `syntax->ir` 的真实 `(depth . index)` 词法地址（字节码的 `compile-let` 已直接处理 `<let>`）；`(goldfish compiler)` 聚合也不导出它。
 - **不变式**：禁止 `s7_`；允许 `goldfish/core/ir`（L2 IR），仍禁止其他 `goldfish/core|expander/lib` 导入。
 
-## L6 vm
+## L6 (已移除)
 
-- **文件**：`src/goldfish_vm.cpp`（`gf::` only，per-program VM）。
-- **定位（2026-08）**：**执行路径已退役，统一 s7 直评**——库 defs 与 macro transformer 都以 lowered/serialized 形式交 s7（`GOLDFISH_VM_DEFS`/`GOLDFISH_NO_VM_TRANSFORMER` 开关已删）。依据：调用密集 fib(26) 经 VM 慢 ~19%，库 import 慢 ~14%，启动持平（跨界成本超过字节码收益）。**保留为未来自研引擎的经验资产**：`bytecode.scm` 的位置编码字节码 ABI（`vm-opcodes` ↔ C++ `Op` enum）、`goldfish_vm.cpp` 执行器与错误传播协议仍在，由 `vm-test`/`vm-transformer`/`syntax-vm-e2e` 作为看门狗覆盖；未来替换 s7 时从**缓存 IR** 直接 `to-bytecode`（无需再经 lowered 重建 IR）。
-- **职责**：执行**位置编码字节码**——四槽一组（opcode/payload/i0/i1）的扁平向量，操作码数字是与 `bytecode.scm` 的 `vm-opcodes` 共享的 ABI；标签解析在 Scheme 侧完成，C++ 不认识任何符号指令拼写。VM 单值传递：多值是宿主派生形式，无专用 opcode。错误传播经帧感知展开协议（见演进债）。严格 arity 寄存器化属可选精化而非正确性需求。
-- **不变式**：禁止 `s7_` 类型拼写与 `#include "goldfish/"` Scheme 文件；操作码编号与 `bytecode.scm` 的 `vm-opcodes` 保持同步——发布前可自由重编号（两侧一起改），首个发布版起冻结为 ABI。
+- **bytecode VM 层（2026-08 移除）**：早期实验的"位置编码字节码 VM"是混合架构——与 s7 并行的第二执行器，函数在 VM/s7 间跨界（fib(26) 慢 ~19% 的跨界税），且需维护双执行器 ABI/错误传播协议。**判断为错误方向**：自研引擎要快必须"完整替代"（无跨界），当前 VM 只是 1/10 原型。`bytecode.scm`、`goldfish_vm.cpp`、`s7_gf_apply_eval` 及帧感知展开协议已整体移除，s7 为唯一执行宿主。未来若做自研引擎，从 `syntax->ir` 的 **IR** 重新设计完整执行器。
 
 ## L7 loader
 
@@ -94,8 +91,8 @@ L7 loader ─> L6 vm ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt �
 
 ### T0 引擎本体（重写项）
 
-- 数据表示 + GC、求值循环/VM、错误传播协议（jump buffer 链、catcher 扫描，及 goldfish 的**帧感知展开钩子**三件套 `goldfish_vm_push_boundary/pop_boundary/s7_gf_vm_unwind`）。
-- `vm-load` / `vm-enter` 位置编码字节码 ABI（L6 契约）；tiny reader C 面（`g-tiny-read`/`g-read-token`/`g-read-string`/`g-delimiter?`/`g-tiny-load`/`g-undefined`）。
+- 数据表示 + GC、求值循环/VM、错误传播协议（jump buffer 链、catcher 扫描）。执行格式待定（旧的位置编码字节码 ABI 已随 L6 移除；未来从 `syntax->ir` 的 IR 重新设计）。
+- tiny reader C 面（`g-tiny-read`/`g-read-token`/`g-read-string`/`g-delimiter?`/`g-tiny-load`/`g-undefined`）。
 
 ### T1 语言必需原语（语义等价即可）
 

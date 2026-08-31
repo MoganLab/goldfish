@@ -1,7 +1,6 @@
 (import (liii check)
         (goldfish core ir)
         (goldfish compiler passes)
-        (goldfish compiler bytecode)
         (goldfish compiler syntax-ir))
 
 ;; syntax->ir：展开后的 syntax 树直接转 IR record 树，binding-kind 保留。
@@ -153,8 +152,7 @@
            (equal? out '((define sq:0 (lambda (x:2) (* x:2 x:2)))))))
        => #t)
 
-;; ===== 8. lexical-ref 字节码编译 =====
-;; （to-bytecode 编译已在 syntax-vm-e2e-test 的端到端闭环中覆盖）
+;; ===== 8. lexical-ref（地址信息已在前置）=====
 
 ;; ===== 9. rest formals 保持 dotted（回归）=====
 ;; formals->datum 曾把 (l . r) 展平成 (l r)，使 lambda-case-rest 丢失，

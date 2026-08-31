@@ -116,7 +116,6 @@ void glue_liii_os (gf::scheme* sc);
 void glue_liii_path (gf::scheme* sc);
 void glue_liii_string (gf::scheme* sc);
 void glue_subprocess_run_values (gf::scheme* sc);
-void glue_vm (gf::scheme* sc);
 
 inline gf::pointer
 string_vector_to_s7_vector (gf::scheme* sc, vector<string> v) {
@@ -687,7 +686,6 @@ glue_for_community_edition (gf::scheme* sc) {
   glue_liii_sys (sc);
   glue_liii_os (sc);
   glue_subprocess_run_values (sc);
-  glue_vm (sc);
   glue_liii_path (sc);
   glue_liii_list (sc);
   glue_liii_string (sc);
