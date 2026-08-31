@@ -108,15 +108,12 @@
          (lambda args 'expansion-error))
        => 'expansion-error)
 
-;; 9c. quasisyntax / unsyntax：当前完全缺失（reader 可读 #`/#, 但无法展开）。
-(check (catch #t
-         (lambda ()
-           (eval '(let-syntax ((m (lambda (stx)
-                                    (syntax-case stx ()
-                                      ((_ x) (with-syntax ((y #'x))
-                                               #`(list #,y)))))))
-                    (m 7))))
-         (lambda args 'expansion-error))
-       => 'expansion-error)
+;; 9c. quasisyntax / unsyntax：已实现（core-quasisyntax 翻译模板，
+;;     静态部分 quote-syntax、unsyntax 展开；完整测试见 quasisyntax-test.scm）。
+(check (let-syntax ((m (lambda (stx)
+                         (syntax-case stx ()
+                           ((_ x) #`(list #,x))))))
+          (m 7))
+       => '(7))
 
 (check-report)

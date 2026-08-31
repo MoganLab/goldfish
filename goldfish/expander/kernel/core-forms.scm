@@ -430,6 +430,88 @@
 (define (core-quasiquote stx ctx)
   (qq-expand (stx-cadr stx) ctx 1))
 
+;;; quasisyntax
+;;; (quasisyntax template) -> syntax object (Racket-style):
+;;;   - (syntax sub)      keeps sub verbatim as a syntax literal
+;;;   - (unsyntax e)      splices in e's value (a syntax object)
+;;;   - (unsyntax-splicing e) splices e's value (a list of syntax objects)
+;;; Free identifiers in the template keep their lexical binding (like
+;;; quote-syntax), so references to bindings outside the macro resolve
+;;; correctly.  The static parts are pre-built at expansion time and
+;;; embedded as (quote <syntax-object>); dynamic parts are expanded with
+;;; expand-expr.  Nested (quasisyntax ...) is kept verbatim (no depth
+;;; recursion) -- a deliberate simplification.
+
+(define (qs-splicing-form? stx)
+  (let ((form (syntax-form stx)))
+    (and (pair? form)
+         (let ((h (car form)))
+           (eq? (if (syntax? h) (syntax-form h) h) 'unsyntax-splicing)))))
+
+(define (qs-datum stx elems ctx)
+  ;; elems: a proper datum list of template elements -> core sexp building
+  ;; the datum list, splicing (unsyntax-splicing e) via append.  Elements are
+  ;; wrapped as syntax with the template's lexical info for qs-template.
+  (if (null? elems)
+    (datum->syntax stx (list 'quote '()))
+    (let ((first (datum->syntax stx (car elems))))
+      (if (qs-splicing-form? first)
+        ;; expand-expr returns (values sexp ctx): keep only the sexp.
+        (datum->syntax first
+          (list 'append
+                (let*-values (((sexp c) (expand-expr (stx-cadr first) ctx)))
+                  sexp)
+                (qs-datum stx (cdr elems) ctx)))
+        (datum->syntax first
+          (list 'cons
+                (qs-template first ctx)
+                (qs-datum stx (cdr elems) ctx)))))))
+
+(define (qs-template stx ctx)
+  ;; template stx -> core sexp evaluating to a syntax object.
+  ;; Static parts are emitted as (quote-syntax <datum>): quote-syntax is an
+  ;; internal form lower keeps as (quote <syntax>) WITHOUT datum-izing the
+  ;; operand, so the resulting syntax object stays a live syntax value when
+  ;; embedded in the constructed datum.  (A plain (quote <stx>) would be
+  ;; datum-ized by lower's quote branch, flattening the lexical identity.)
+  (let ((form (syntax-form stx))
+        (qctx (list 'quote (syntax-context stx)))
+        (qlib (list 'quote (syntax-library stx))))
+    (cond
+      ((symbol? form)
+       (datum->syntax stx (list 'quote-syntax form)))
+      ((null? form)
+       (datum->syntax stx (list 'quote-syntax '())))
+      ((stx-vector? form)
+       (datum->syntax stx
+         (list 'make-syntax
+               (list 'list->vector
+                     (qs-datum stx (vector->list form) ctx))
+               qctx qlib)))
+      ((pair? form)
+       (let ((head (car form))
+             (head-name (if (syntax? (car form)) (syntax-form (car form)) (car form))))
+         (cond
+           ((eq? head-name 'unsyntax)
+            ;; expand-expr returns (values sexp ctx): keep only the sexp.
+            (let*-values (((sexp c) (expand-expr (stx-cadr stx) ctx)))
+              sexp))
+           ((eq? head-name 'syntax)
+            (datum->syntax stx (list 'quote-syntax (cadr form))))
+           ((eq? head-name 'quasisyntax)
+            (datum->syntax stx (list 'quote-syntax form)))
+           (else
+            (datum->syntax stx
+              (list 'make-syntax
+                    (qs-datum stx form ctx)
+                    qctx qlib))))))
+      (else
+       ;; number/char/boolean/string...
+       (datum->syntax stx (list 'quote-syntax form))))))
+
+(define (core-quasisyntax stx ctx)
+  (values (qs-template (stx-cadr stx) ctx) ctx))
+
 ;;; eval-when : (eval-when (situation ...) expr ...) -> value
 ;;; R7RS 7.1.3.  situations are expand / load / eval (any subset):
 ;;;   - expand: exprs are evaluated at expand time, in the phase+1
@@ -510,6 +592,7 @@
         (cons 'quasiquote core-quasiquote)
         (cons 'quote-syntax core-quote-syntax)
         (cons 'syntax core-syntax)
+        (cons 'quasisyntax core-quasisyntax)
         (cons 'if core-if)
         (cons 'begin core-begin)
         (cons 'set! core-set!)
