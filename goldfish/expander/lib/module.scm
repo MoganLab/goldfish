@@ -743,18 +743,17 @@
                              (or (string? (caar info)) (symbol? (caar info))))
                         (let ((msg (caar info))
                               (args (cdar info)))
-                          (cond
-                            ((string? msg)
-                             ;; apply format only when there is a placeholder
-                             ;; to consume; otherwise appending is safe even
-                             ;; when s7's format would reject the extra args.
-                             (if (string-contains msg "~")
-                               (apply format #f msg args)
-                               (if (null? args)
-                                 msg
-                                 (string-append msg (apply string-append
-                                                 (map (lambda (a) (format #f " ~s" a)) args))))))
-                            (else msg))))
+                          (if (string? msg)
+                            ;; Pure append: never apply format to an arbitrary
+                            ;; underlying message (a ~ without matching args
+                            ;; made the guard die with a second error).  Each
+                            ;; arg is ~s-printed with a single-placeholder
+                            ;; format, which s7 accepts for any value.
+                            (if (null? args)
+                              msg
+                              (string-append msg (apply string-append
+                                              (map (lambda (a) (format #f " ~s" a)) args))))
+                            msg)))
                        ;; other raised objects (often an opaque/cyclic marker)
                        (else "malformed definition or expansion error"))))
         (error "import: failed to load library ~a: ~a" lib-name detail)))))
