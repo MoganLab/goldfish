@@ -157,9 +157,13 @@
       ;; remaining input (R7RS 7.3 dotted syntax-case patterns).
       (if (not (pair? pat-list))
           (pattern-match-tail pat-list input-form input-stx literals bindings)
-          (if (and (pair? (cdr pat-list))
-                   (ellipsis-datum? (cadr pat-list)))
-              (pattern-match-ellipsis (car pat-list) (cddr pat-list) input-form input-stx literals bindings)
+           (if (and (pair? (cdr pat-list))
+                    (ellipsis-datum? (cadr pat-list))
+                    ;; A `...' listed among the literals (syntax-rules (...))
+                    ;; is a LITERAL matching the identifier `...' itself, not
+                    ;; the ellipsis (R7RS portable match-check-ellipsis).
+                    (not (literal-identical? (cadr pat-list) literals)))
+               (pattern-match-ellipsis (car pat-list) (cddr pat-list) input-form input-stx literals bindings)
               (if (not (pair? input-form))
                   #f
                   (letrec* ((bindings2 (pattern-match* (car pat-list) (car input-form) literals bindings)))
@@ -202,10 +206,11 @@
       0
       (if (not (pair? pat-list))
           0
-          (if (and (pair? (cdr pat-list))
-                   (ellipsis-datum? (cadr pat-list)))
-              (pattern-min-length (cddr pat-list))
-              (+ 1 (pattern-min-length (cdr pat-list)))))))
+           (if (and (pair? (cdr pat-list))
+                    (ellipsis-datum? (cadr pat-list))
+                    (not (literal-identical? (cadr pat-list) literals)))
+               (pattern-min-length (cddr pat-list))
+               (+ 1 (pattern-min-length (cdr pat-list)))))))
 
 (define (pattern-match-ellipsis-elem elem-pat input literals)
   (pattern-match* elem-pat input literals '()))

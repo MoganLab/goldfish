@@ -199,55 +199,119 @@
                            clauses))))))))
 
 ;;; syntax-rules : (syntax-rules (lit ...) (pat tmpl) ...) -> transformer
-;;; A plain macro over syntax-case, mirroring Racket (syntax-rules is
-;;; itself derived from syntax-case).  Each (pat tmpl) clause becomes a
-;;; syntax-case clause (pat (syntax tmpl)); the generated transformer is
-;;; (lambda (tmp) (syntax-case tmp (lit ...) ...)).  Previously this
-;;; desugaring lived in the kernel seam (transformer.scm); moving it here
-;;; leaves eval-transformer as the only eval seam.
+;;; Also R7RS named ellipsis: (syntax-rules <ellipsis> (lit ...) (pat tmpl)
+;;; ...) uses <ellipsis> as the ellipsis marker in patterns/templates (Guile
+;;; behaves the same way).  A plain macro over syntax-case, mirroring Racket
+;;; (syntax-rules is itself derived from syntax-case).  Each (pat tmpl)
+;;; clause becomes a syntax-case clause (pat (syntax tmpl)); the generated
+;;; transformer is (lambda (tmp) (syntax-case tmp (lit ...) ...)).
+;;; Previously this desugaring lived in the kernel seam (transformer.scm);
+;;; moving it here leaves eval-transformer as the only eval seam.
+;;;
+;;; Named ellipsis is implemented by substitution: the custom marker is
+;;; replaced by `...' throughout every rule's pattern and template before
+;;; the transformer is built, so the pattern-matching runtime keeps
+;;; comparing against `...' (as R7RS requires, the custom marker then IS
+;;; the ellipsis).  Known limitation (documented in the tests): a literal
+;;; `...' that the user also writes inside a named-ellipsis rule is not
+;;; escaped, so it too would be read as the ellipsis -- Guile escapes it.
+
+(define (subst-ellipsis x e)
+  ;; Replace every identifier whose form is e with `...', recursing through
+  ;; syntax objects, datums, and embedded syntax values (syntax template
+  ;; instantiation nests syntax objects inside datums).
+  (cond
+    ((syntax? x)
+     (let ((form (syntax-form x)))
+       (cond
+         ((symbol? form)
+          (if (eq? form e)
+            (make-syntax '... (syntax-context x) (syntax-library x))
+            x))
+         ((pair? form)
+          (make-syntax (cons (subst-ellipsis (car form) e)
+                             (subst-ellipsis (cdr form) e))
+                       (syntax-context x) (syntax-library x)))
+         ((stx-vector? form)
+          (make-syntax (list->vector
+                        (map (lambda (d) (subst-ellipsis (datum->syntax x d) e))
+                             (vector->list form)))
+                       (syntax-context x) (syntax-library x)))
+         (else x))))
+    ((pair? x)
+     (cons (subst-ellipsis (car x) e) (subst-ellipsis (cdr x) e)))
+    ((vector? x)
+     (vector-map (lambda (d) (subst-ellipsis d e)) x))
+    ((eq? x e) '...)
+    (else x)))
+
+(define (sr-build-transformer def-stx tmp head lit rules)
+  ;; Build the (lambda (tmp) (syntax-case tmp lit clause...)) datum for the
+  ;; rules (each ((keyword . pattern) template)), replacing the rule head
+  ;; with the fresh pattern variable `head'.
+  (datum->syntax def-stx
+    (cons 'lambda
+          (cons (list tmp)
+                (list (cons 'syntax-case
+                            (cons tmp
+                                  (cons lit
+                                        (map (lambda (rule)
+                                               (letrec* ((rf (syntax-form rule))
+                                                         (pat (car rf))
+                                                         (tmpl (cadr rf)))
+                                                 (list (make-syntax
+                                                        (cons head (cdr (syntax-form pat)))
+                                                        (syntax-context def-stx)
+                                                        (syntax-library def-stx))
+                                                       (datum->syntax def-stx
+                                                         (list 'syntax tmpl)))))
+                                             rules)))))))))
 
 (define-syntax syntax-rules
   (lambda (macro-stx)
     (syntax-case macro-stx ()
+      ;; Default ellipsis: (syntax-rules (lit ...) ...).
+      ;; Each rule's pattern is ((keyword . pattern) template): the keyword
+      ;; is the pattern-keyword position (the macro name), matched against
+      ;; the macro-use head.  The generated transformer replaces it with a
+      ;; FRESH pattern variable `head' (make-fresh-name), so the head
+      ;; matches any keyword without binding anything the user can
+      ;; reference -- a template reference to the rule head is therefore a
+      ;; free/unbound identifier (R7RS/Guile semantics; ((a) (a)) errors
+      ;; instead of self-applying and looping).  A fresh variable, rather
+      ;; than the `_' wildcard, is required because `_' is the match.scm
+      ;; style literal-underscore marker: when the user lists `_' among the
+      ;; literals, `_' in body positions must match only the identifier `_'
+      ;; itself -- an `_' rule head would then stop matching real keywords.
+      ;; The transformer is built programmatically (datum->syntax) so the
+      ;; fresh head can be spliced into every clause pattern; its free
+      ;; identifiers (lambda / syntax-case / syntax / tmp) sit in the
+      ;; syntax-rules DEFINITION context, so they resolve to the base
+      ;; library with bare references -- hygiene requires this, and it
+      ;; avoids cross-library (module-ref (scsyntax) ...) refs.
       ((syntax-rules (lit ...) ((keyword . pattern) template) ...)
-       ;; Each rule's pattern is ((keyword . pattern) template): the keyword
-       ;; is the pattern-keyword position (the macro name), matched against
-       ;; the macro-use head.  The generated transformer replaces it with a
-       ;; FRESH pattern variable `head' (make-fresh-name), so the head
-       ;; matches any keyword without binding anything the user can
-       ;; reference -- a template reference to the rule head is therefore a
-       ;; free/unbound identifier (R7RS/Guile semantics; ((a) (a)) errors
-       ;; instead of self-applying and looping).  A fresh variable, rather
-       ;; than the `_' wildcard, is required because `_' is the match.scm
-       ;; style literal-underscore marker: when the user lists `_' among the
-       ;; literals, `_' in body positions must match only the identifier `_'
-       ;; itself -- an `_' rule head would then stop matching real keywords.
-       ;; The transformer is built programmatically (datum->syntax) so the
-       ;; fresh head can be spliced into every clause pattern; its free
-       ;; identifiers (lambda / syntax-case / syntax / tmp) sit in the
-       ;; syntax-rules DEFINITION context, so they resolve to the base
-       ;; library with bare references -- hygiene requires this, and it
-       ;; avoids cross-library (module-ref (scsyntax) ...) refs.
-        (letrec* ((def-stx (syntax (list)))
-                  (def-ctx (syntax-context def-stx))
-                  (def-lib (syntax-library def-stx))
-                  (tmp (make-syntax (make-fresh-name 'tmp) def-ctx def-lib))
-                  (head (make-syntax (make-fresh-name 'kw) def-ctx def-lib))
-                  (rules (syntax-form (syntax (((keyword . pattern) template) ...)))))
-          (datum->syntax def-stx
-            (cons 'lambda
-                  (cons (list tmp)
-                        (list (cons 'syntax-case
-                                    (cons tmp
-                                          (cons (syntax (lit ...))
-                                                (map
-                                                 (lambda (rule)
-                                                   (letrec* ((rf (syntax-form rule))
-                                                             (pat (car rf))
-                                                             (tmpl (cadr rf)))
-                                                     (list (make-syntax
-                                                            (cons head (cdr (syntax-form pat)))
-                                                            def-ctx def-lib)
-                                                           (datum->syntax def-stx
-                                                             (list 'syntax tmpl)))))
-                                                  rules)))))))))))))
+       (letrec* ((def-stx (syntax (list)))
+                 (def-ctx (syntax-context def-stx))
+                 (def-lib (syntax-library def-stx))
+                 (tmp (make-syntax (make-fresh-name 'tmp) def-ctx def-lib))
+                 (head (make-syntax (make-fresh-name 'kw) def-ctx def-lib)))
+         (sr-build-transformer
+           def-stx tmp head
+           (syntax (lit ...))
+           (syntax-form (syntax (((keyword . pattern) template) ...))))))
+      ;; R7RS named ellipsis: (syntax-rules <ellipsis> (lit ...) ...).
+      ;; The marker is substituted for `...' in every rule before the
+      ;; transformer is built (see subst-ellipsis).
+      ((syntax-rules ellipsis (lit ...) ((keyword . pattern) template) ...)
+       (identifier? #'ellipsis)
+       (letrec* ((def-stx (syntax (list)))
+                 (def-ctx (syntax-context def-stx))
+                 (def-lib (syntax-library def-stx))
+                 (e (syntax-form #'ellipsis))
+                 (tmp (make-syntax (make-fresh-name 'tmp) def-ctx def-lib))
+                 (head (make-syntax (make-fresh-name 'kw) def-ctx def-lib)))
+         (sr-build-transformer
+           def-stx tmp head
+           (syntax (lit ...))
+           (map (lambda (r) (subst-ellipsis r e))
+                (syntax-form (syntax (((keyword . pattern) template) ...))))))))))
