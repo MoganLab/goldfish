@@ -341,9 +341,9 @@
                   (when b
                     (exp-library-define! lib (car e) b))))
               bindings)
-    (for-each (lambda (sexp)
-                (eval (deserialize-cache-sexp sexp) the-expander-library))
-              defs)
+    (if (null? defs)
+      #f
+      (eval (cons 'begin (map deserialize-cache-sexp defs)) the-expander-library))
     (for-each (lambda (r)
                 (let* ((name (car r))
                        (data (deserialize-cache-sexp (cdr r)))

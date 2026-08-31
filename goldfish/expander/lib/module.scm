@@ -723,7 +723,7 @@
 ;;; cross-boundary cost outweighs the bytecode benefit.
 
 (define (eval-defs defs lib-name)
-  (for-each (lambda (d) (eval d (rootlet))) defs))
+  (eval (cons 'begin defs) (rootlet)))
 
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
@@ -741,9 +741,20 @@
                        ((and (pair? info)
                              (pair? (car info))
                              (or (string? (caar info)) (symbol? (caar info))))
-                        (if (string? (caar info))
-                          (apply format #f (car info))
-                          (car (car info))))
+                        (let ((msg (caar info))
+                              (args (cdar info)))
+                          (cond
+                            ((string? msg)
+                             ;; apply format only when there is a placeholder
+                             ;; to consume; otherwise appending is safe even
+                             ;; when s7's format would reject the extra args.
+                             (if (string-contains msg "~")
+                               (apply format #f msg args)
+                               (if (null? args)
+                                 msg
+                                 (string-append msg (apply string-append
+                                                 (map (lambda (a) (format #f " ~s" a)) args))))))
+                            (else msg))))
                        ;; other raised objects (often an opaque/cyclic marker)
                        (else "malformed definition or expansion error"))))
         (error "import: failed to load library ~a: ~a" lib-name detail)))))

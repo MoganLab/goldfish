@@ -196,14 +196,30 @@ f_load_path (gf::scheme* sc, gf::pointer args) {
   return gf::load_path (sc);
 }
 
+// A local override for a built-in command must live in tools/<cmd>/ or
+// tools/<cmd>.scm; when neither exists the command is not a project tool,
+// so the built-in handler can run without importing (liii project).
+static bool
+builtin_has_local_tool (const string& command) {
+  const string base= "tools/" + command;
+  return std::filesystem::exists (base) || std::filesystem::exists (base + ".scm");
+}
+
 static int
 goldfish_run_tool (gf::scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, gf::pointer old_port,
                    int gc_loc) {
   // Cheap guards before touching (liii project): paths and flags are never
-  // tool commands.  Built-in names stay dispatchable -- a project may
-  // override them.
+  // tool commands.  Built-in names with no local tools/ override short-circuit
+  // straight to the built-in handler -- the common path -- avoiding the
+  // (liii project) import (~50-100ms) on every eval/version/help/load/repl/run.
   if (!g_expander_online || command.empty () || command[0] == '-' || command.find ('/') != string::npos) {
     return -1;
+  }
+  if (command == "help" || command == "version" || command == "eval" || command == "load" ||
+      command == "repl" || command == "run") {
+    if (!builtin_has_local_tool (command)) {
+      return -1;
+    }
   }
 
   vector<string> imports= gfproject_tool_imports (sc, command);
