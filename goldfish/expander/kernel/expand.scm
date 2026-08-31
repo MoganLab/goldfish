@@ -25,10 +25,37 @@
                 (or (eq? first #\:)
                     (eq? last #\:)))))))
 
+;;; syntax-literal? : syntax -> bool
+;;; A template literal (from (syntax X) sub-templates and the (... ...)
+;;; ellipsis escape) is marked with the syntax-literal scope by the template
+;;; compiler (parse-template).  The expander keeps such a syntax object as a
+;;; datum VALUE instead of expanding it as code -- cf. Racket, where
+;;; datum-embedded syntax from quote-syntax is a value, not code.
+
+(define (syntax-literal? stx)
+  (and (syntax? stx)
+       (let ((ctx (syntax-context stx)))
+         (and (pair? ctx)
+              (set-member? (stx-ctx-at ctx 0) 'syntax-literal)))))
+
+;;; literal-clean-ctx : stx-ctx -> stx-ctx
+;;; Remove the syntax-literal scope from a context.  Used when emitting the
+;;; (quote-syntax <stx>) program form for a literal: that form is CODE, not a
+;;; literal datum, so it must not carry the marker (otherwise the compiler
+;;; would treat the whole (quote-syntax ...) as a constant literal).
+
+(define (literal-clean-ctx sctx)
+  (stx-ctx-set sctx 0 (set-subtract (stx-ctx-at sctx 0) (set 'syntax-literal))))
+
 (define-public (expand-expr stx ctx)
   (cond
     ((not (syntax? stx))
      (values (if (symbol? stx) (list 'quote stx) stx) ctx))
+    ((syntax-literal? stx)
+     (values (make-syntax (list 'quote-syntax stx)
+                          (literal-clean-ctx (syntax-context stx))
+                          (syntax-library stx))
+             ctx))
     ((not (pair? (syntax-form stx)))
      (expand-atom stx ctx))
     (else

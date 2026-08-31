@@ -443,11 +443,24 @@
         (if (memq form patvars)
             (list 'v form (syntax-context stx) (template-lib stx) stx)
             (list 'c (syntax-context stx) (template-lib stx) stx))
-        (if (pair? form)
-            (cons 'l
-                  (cons (syntax-context stx)
-                        (cons (template-lib stx)
-                              (parse-list stx form patvars))))
+        ;; (syntax X) sub-template and the (... ...) escape are single
+        ;; literal nodes, not list structures: parse-template must produce
+        ;; one c node so they stay a single datum element (a plain (pair? ...)
+        ;; branch would wrap them in an 'l node, adding an extra level).
+        (if (and (pair? form)
+                 (eq? (if (syntax? (car form)) (syntax-form (car form)) (car form))
+                      'syntax))
+            (list 'c (syntax-context stx) (template-lib stx)
+                  (cadr form) 'literal)
+            (if (and (pair? form)
+                     (ellipsis-datum? (car form))
+                     (ellipsis-datum? (cadr form)))
+                (list 'c (syntax-context stx) (template-lib stx) '... 'literal)
+                (if (pair? form)
+                    (cons 'l
+                          (cons (syntax-context stx)
+                                (cons (template-lib stx)
+                                      (parse-list stx form patvars))))
             (if (stx-vector? form)
                 (letrec* ((sctx (syntax-context stx))
                           (lib (template-lib stx))
@@ -459,7 +472,7 @@
                   (cons 'vec
                         (cons sctx
                               (cons lib (parse-list stx elems patvars)))))
-                (list 'c (syntax-context stx) (template-lib stx) stx))))))
+                (list 'c (syntax-context stx) (template-lib stx) stx))))))))
 
 (define (parse-list stx form patvars)
   (if (null? form)
@@ -477,31 +490,44 @@
                               (template-lib form)
                               form)))
               (list (parse-template form patvars)))
-          ;; R6RS ellipsis escape: (... ...) in a template produces a literal
-          ;; `...' -- the first `...' is the escape marker, the second the
-          ;; literal (Guile implements the same).  Must be checked before the
-          ;; plain ellipsis detection, which would otherwise read it as an
-          ;; ellipsis structure.
-          (if (and (pair? (cdr form))
-                   (ellipsis-datum? (car form))
-                   (ellipsis-datum? (cadr form)))
+          ;; (syntax X) literal sub-template: X is kept verbatim as a datum.
+          ;; The result is marked with the syntax-literal scope so the
+          ;; expander keeps it as a value instead of expanding it as code
+          ;; (cf. Racket's quote-syntax).
+          (if (and (pair? form) (eq? (car form) 'syntax))
               (cons (list 'c (syntax-context stx) (template-lib stx)
-                          (make-syntax '... (syntax-context stx) (template-lib stx)))
-                    (parse-list stx (cddr form) patvars))
-              (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
-                  (cons (list 'e
-                              (template-vars (car form))
-                              (parse-template (car form) patvars))
+                          (cadr form) 'literal)
+                    (parse-list stx (cdr form) patvars))
+              ;; R6RS ellipsis escape: (... ...) in a template produces a
+              ;; literal `...' -- the first `...' is the escape marker, the
+              ;; second the literal (Guile implements the same).  Must be
+              ;; checked before the plain ellipsis detection, which would
+              ;; otherwise read it as an ellipsis structure.
+              (if (and (pair? (cdr form))
+                       (ellipsis-datum? (car form))
+                       (ellipsis-datum? (cadr form)))
+                  (cons (list 'c (syntax-context stx) (template-lib stx)
+                              '... 'literal)
                         (parse-list stx (cddr form) patvars))
-                  (cons (parse-template (car form) patvars)
-                        (parse-list stx (cdr form) patvars)))))))
+                  (if (and (pair? (cdr form)) (ellipsis-datum? (cadr form)))
+                      (cons (list 'e
+                                  (template-vars (car form))
+                                  (parse-template (car form) patvars))
+                            (parse-list stx (cddr form) patvars))
+                      (cons (parse-template (car form) patvars)
+                            (parse-list stx (cdr form) patvars))))))))
 
 (define (fast-instantiate node bindings)
   (letrec* ((tag (node-datum (car node))))
     (if (eq? tag 'c)
-        (make-syntax (node-datum (cadddr node))
-                     (stx-ctx-mark-intro (node-datum (cadr node)) 0)
-                     (node-lib (caddr node)))
+        (letrec* ((literal? (and (pair? (cddddr node))
+                                 (eq? (car (cddddr node)) 'literal))))
+          (make-syntax (node-datum (cadddr node))
+                       (if literal?
+                         (stx-ctx-add (stx-ctx-mark-intro (node-datum (cadr node)) 0)
+                                      0 'syntax-literal)
+                         (stx-ctx-mark-intro (node-datum (cadr node)) 0))
+                       (node-lib (caddr node))))
         (if (eq? tag 'v)
             (letrec* ((b (assq (node-datum (cadr node)) bindings)))
               (if b

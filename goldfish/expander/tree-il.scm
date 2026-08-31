@@ -141,6 +141,14 @@
     (define (syntax->ir* stx ctx env)
       (cond
         ((not (syntax? stx)) stx)
+        ;; A template literal (marked with the syntax-literal scope by
+        ;; (syntax X) sub-templates and the (... ...) escape) is a datum
+        ;; VALUE, not code: lower it to a constant.  Matches expand-expr.
+        ((and (syntax? stx)
+              (let ((sctx (syntax-context stx)))
+                (and (pair? sctx)
+                     (set-member? (stx-ctx-at sctx 0) 'syntax-literal))))
+         (make-const #f (syntax->datum stx)))
         (else
          (let ((form (syntax-form stx)))
            (cond

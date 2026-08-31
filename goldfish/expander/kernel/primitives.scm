@@ -138,7 +138,7 @@
      ;; MKS/LIST/CAR/CDR/SE), used by procedural transformers
      syntax? syntax-e syntax-form syntax-context syntax-library make-syntax
      syntax->datum datum->syntax identifier?
-     stx-ctx-empty stx-set-library stx-ctx-at
+      stx-ctx-empty stx-set-library stx-ctx-at stx-ctx-add
      free-identifier=? bound-identifier=? generate-temporaries
      make-syntax-introducer syntax-local-introduce syntax-local-value
      local-expand local-binder

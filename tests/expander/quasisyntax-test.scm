@@ -43,9 +43,13 @@
        => +)
 
 ;; ===== 6. 已知缺口 =====
-;; 6a. (syntax X) 子模板：datum 嵌 syntax 对象，goldfish 展开器递归展开
-;;     （当程序，展开期崩溃），Racket 保留 datum 为值。需展开器支持
-;;     datum 嵌 syntax（quote-syntax 语义）。
+;; 6a. (syntax X) 子模板：产 syntax 对象（datum 嵌 syntax 值），展开器保留
+;;     为值（Racket 语义）；用户 syntax->datum 递归得 X 的 datum。
+(check (syntax->datum (let-syntax ((m (lambda (stx)
+                                        (syntax-case stx ()
+                                          ((_) (quasisyntax (list 1 (syntax (lit 2)))))))))
+                         (m)))
+       => '(1 (lit 2)))
 ;; 6b. 模板里裸标识符引用 with-syntax/pattern 绑定（如 `(list v)` 而非
 ;;     `(list #,v)`）：当前保留为自由词法引用（运行时未绑定）。Racket 的
 ;;     pattern 变量替换语义尚未在 quasisyntax 中实现。
