@@ -54,10 +54,28 @@
 (check (with-ws 10) => '(10 1))
 
 ;; ===== 4. generate-temporaries：防捕获 =====
-;; 已知缺口：generate-temporaries 返回的 identifier 本身合法（identifier? #t），
-;; 但模板实例化在绑定位置把它双包装（外层 syntax 的 form 变成 syntax 对象
-;; 而非 symbol），let->lambda 报 "lambda: expected identifier"（阶段3 修模板
-;; 实例化后启用：safe-swap / temp-shadows 正例）。
+;; 注意写法：模式须带括号 ((tmp) expr)——无括号 (tmp expr) 时 tmp 是
+;; ellipsis 变量，绑定整个生成列表，模板单值用会双包装（Guile 同样报
+;; "let: bad let"，不是 expander 缺陷）。
+(define-syntax swap!
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ a b)
+       (with-syntax (((tmp1 tmp2) (generate-temporaries #'(a b))))
+         #'(let ((tmp1 a)) (set! a b) (set! b tmp1)))))))
+(let ((x 1) (y 2))
+  (swap! x y)
+  (check x => 2)
+  (check y => 1))
+(define-syntax temp-shadow
+  (lambda (stx)
+    (syntax-case stx ()
+      ((_ x)
+       (with-syntax (((tmp) (generate-temporaries '(tmp))))
+         #'(let ((tmp 99))
+             (let ((x (+ x 1)))
+               (list tmp x))))))))
+(check (let ((tmp 5)) (temp-shadow tmp)) => '(99 6))
 
 ;; ===== 5. free-identifier=?：字面量匹配 =====
 (define-syntax literal-check
