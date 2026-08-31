@@ -256,10 +256,9 @@
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings)
   (let ((gfo-file (install-cache-path path))
-        ;; Transformers are stored as serialized lowered forms (pure s7);
-        ;; the symbolic-bytecode program form is no longer produced now
-        ;; that library defs execute through s7 by default.  Format bumped
-        ;; to 3 so caches carrying program-form transformers regenerate.
+        ;; Transformers are stored as serialized lowered forms (pure s7).
+        ;; Format bumped to 3 so caches carrying the retired program-form
+        ;; transformers regenerate.
         (rec (list 'macro-cache 3
                    (cons 'defs (map serialize-cache-sexp defs))
                    (cons 'macros

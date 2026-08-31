@@ -2,9 +2,8 @@
 ;;;
 ;;; The compiler passes rewritten against the record IR (goldfish/core/ir.scm,
 ;;; Guile-aligned tree-il).  A pass is a function ir -> ir that rewrites the
-;;; tree; run-passes applies a list of passes in order.  The output is either
-;;; converted back to core sexp for the s7-eval path (ir->core) or fed to the
-;;; bytecode compiler.
+;;; tree; run-passes applies a list of passes in order.  The output is
+;;; converted back to core sexp for the s7-eval path (ir->core).
 ;;;
 ;;; IR shape notes (Guile-aligned):
 ;;;   - <begin> is a binary right-nested <seq> (head . tail); a single
@@ -269,10 +268,9 @@
         (_ ir)))
 
     ;; (lower-let removed with core->ir: it existed to lower <let> into
-    ;; lambda/call for a minimal VM core, but was written against core->ir's
-    ;; placeholder addressing (it restarts slot numbering at 0 and would
-    ;; misaddress syntax->ir's real lexical refs); bytecode/compile-let
-    ;; handles <let> directly.)
+    ;; lambda/call for a minimal executor core, but was written against
+    ;; core->ir's placeholder addressing (it restarts slot numbering at 0 and
+    ;; would misaddress syntax->ir's real lexical refs).)
 
     ;; ------------------------------------------------------------------
     ;; inline (L2-2): the peval core -- copy propagation + beta reduction

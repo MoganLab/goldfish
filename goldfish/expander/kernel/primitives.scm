@@ -123,7 +123,7 @@
      s7-let-to-list s7-let-ref s7-let-set!
      s7-string-upcase s7-string-downcase
      unspecified unspecified? undefined undefined? record-instance fill! display*
-     let? sublet unlet with-let vm-load vm-enter
+     let? sublet unlet with-let
      random
      ;; C++ glue functions (g_*), exposed in the host rootlet
      g_access g_bytevector-base64-decode g_bytevector-base64-encode g_chdir

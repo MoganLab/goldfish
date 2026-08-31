@@ -1192,9 +1192,9 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
     // Guile boot-9 style: base library functions (map/for-each) implemented
     // in Scheme, evaluated into the rootlet like the kernel artifact so the
     // expander kernel, every library, and user programs all resolve the same
-    // definition by name (and the VM needs no map/for-each fast paths).
-    // Loaded AFTER the kernel (needs lambda/if/cons...) and BEFORE the
-    // compiler preload, so compile-time map references resolve to it.
+    // definition by name.  Loaded AFTER the kernel (needs lambda/if/cons...)
+    // and BEFORE the compiler preload, so compile-time map references resolve
+    // to it.
     gf::eval_c_string (sc, "(load-source-file \"expander/lib/base-functions.scm\")");
     // Load the minimal derived forms (let/cond/case/when/do/and/or plus
     // let-values/let*-values) into the base library, then the R7RS reader
@@ -1211,14 +1211,12 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
     gf::eval_c_string (sc, "(load-expanded \"liii/reader.scm\")");
     gf::eval_c_string (sc, "(load-expanded \"expander/lib/install.scm\" '(expander lib install))");
     gf::eval_c_string (sc, "(install-standard-library!)");
-    // Preload the compiler so library captures after this point compile
-    // transformer definitions to VM bytecode programs (compiled once,
-    // resolved references), instead of lowered forms that must be re-evaluated
-    // and re-resolved by name at every warm start.  load-library! is a plain
-    // function (resolvable in the rootlet), so this runs through s7 directly
-    // -- NOT goldfish_eval_through_reader -- to avoid importing (goldfish)
-    // into the session program library (which would leak the implementation
-    // surface into a strict r7rs program).
+    // Preload the compiler so library captures after this point hold
+    // resolved bindings instead of deferred name lookups.  load-library! is a
+    // plain function (resolvable in the rootlet), so this runs through s7
+    // directly -- NOT goldfish_eval_through_reader -- to avoid importing
+    // (goldfish) into the session program library (which would leak the
+    // implementation surface into a strict r7rs program).
     gf::eval_c_string (sc, "(load-library! '(goldfish compiler))");
     g_expander_online= true;
   }

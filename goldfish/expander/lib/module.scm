@@ -636,8 +636,7 @@
             ;; numbering at 0, but syntax->ir's IR carries real lexical
             ;; (depth . index) addresses computed against the enclosing
             ;; frame (env-next-slot), so the lowered body's refs would
-            ;; point at the wrong slots.  bytecode/compile-let handles
-            ;; <let> directly, so lower-let is not needed.
+            ;; point at the wrong slots.
             (let ((passes (compiler-pass-list compiler level)))
               (map (lambda (d)
                      (if (zero? level)
@@ -715,17 +714,15 @@
                                      (not (equal? lib (lib-cache-name rec))))
                               (load-library! lib)))
                           (apply append (map collect-cache-module-refs defs)))
-                (vm-load-defs defs (lib-cache-name rec))))
+                (eval-defs defs (lib-cache-name rec))))
             recs))
 
-;;; vm-load-defs : (list sexp) -> void
+;;; eval-defs : (list sexp) -> void
 ;;; Evaluate a library's lowered defs with plain s7 eval.  The bytecode VM
-;;; execution path is retired (unified on s7): measurements
-;;; (benchmarks/measure-vm.sh) showed the cross-boundary cost outweighs the
-;;; bytecode benefit.  to-bytecode / goldfish_vm.cpp stay as future-engine
-;;; assets exercised by vm-test / vm-benchmark / vm-transformer.
+;;; execution path is retired (unified on s7): measurements showed the
+;;; cross-boundary cost outweighs the bytecode benefit.
 
-(define (vm-load-defs defs lib-name)
+(define (eval-defs defs lib-name)
   (for-each (lambda (d) (eval d (rootlet))) defs))
 
 ;;; load-library-guard : name thunk -> value
