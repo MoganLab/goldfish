@@ -30,12 +30,9 @@
   (import (scheme base)
           (goldfish core ir))
   (export to-bytecode
-    encode-bytecode
-    valid-bytecode?
-    *bytecode-version*)
+    encode-bytecode)
   (begin
 
-    (define *bytecode-version* 2)
 
     ;; Opcode numbers must match the Op enum in src/goldfish_vm.cpp.
     ;; Pre-release the numbering is unstable: renumber freely, both
@@ -513,72 +510,5 @@
             defs)
           (list 'program
                 (cons 'code-table (get-codes))
-                (cons 'top (cons slot-n (flush)))))))
+                (cons 'top (cons slot-n (flush)))))))))
 
-    ;; ------------------------------------------------------------------
-    ;; Bytecode structural validation.
-    ;;
-    ;; valid-bytecode? : program -> boolean
-    ;; Check that every instruction is well-formed, local/closure
-    ;; indices are in range, and every jump target names an existing
-    ;; label.  Used by the test suite and as a sanity check before a
-    ;; program is handed to the VM backend.
-
-    (define (collect-instr-labels instr-lists)
-      (let loop ((ls instr-lists) (acc '()))
-        (if (null? ls)
-          acc
-          (loop (cdr ls)
-                (let loop2 ((is (car ls)) (acc acc))
-                  (if (null? is)
-                    acc
-                    (loop2 (cdr is)
-                           (if (and (pair? (car is)) (eq? (caar is) 'label))
-                             (cons (cadar is) acc)
-                             acc))))))))
-
-    (define (valid-instr? i labels ncode nlocals)
-      (case (car i)
-        [(const) (>= (length i) 2)]
-        [(global store-global)
-         (and (>= (length i) 2) (symbol? (cadr i)))]
-        [(local set-local)
-         (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)
-              (or (not nlocals) (< (cadr i) nlocals)))]
-        [(ref set-ref)
-         (and (>= (length i) 3) (integer? (cadr i)) (>= (cadr i) 1)
-              (integer? (caddr i)) (>= (caddr i) 0))]
-        [(closure)
-         (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0)
-              (< (cadr i) ncode))]
-        [(call tail-call)
-         (and (>= (length i) 2) (integer? (cadr i)) (>= (cadr i) 0))]
-        [(if-else jump)
-         (and (>= (length i) 2) (member (cadr i) labels))]
-        [(label) (and (>= (length i) 2) (member (cadr i) labels))]
-        [(return pop) (null? (cdr i))]
-        [else #f]))
-
-    (define (valid-bytecode? bc)
-      (and (pair? bc)
-           (eq? (car bc) 'program)
-           (pair? (cadr bc))
-           (eq? (caadr bc) 'code-table)
-           (pair? (caddr bc))
-           (eq? (caaddr bc) 'top)
-           (let* ((codes (cdadr bc))
-                  (top (cdaddr bc))
-                  (ncode (length codes))
-                  (labels (collect-instr-labels
-                           (append (map (lambda (c) (cadddr c)) codes)
-                                   (list (cdr top))))))
-             (and (every (lambda (code)
-                           (and (pair? code)
-                                (eq? (car code) 'code)
-                                (integer? (cadr code))
-                                (>= (cadr code) 0)
-                                (every (lambda (i)
-                                         (valid-instr? i labels ncode (cadr code)))
-                                       (cadddr code))))
-                         codes)
-                  (every (lambda (i) (valid-instr? i labels ncode #f)) (cdr top))))))))

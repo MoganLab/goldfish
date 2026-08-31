@@ -50,12 +50,8 @@
     constant-fold
     simplify-if
     inline
-    *inline-max-effort*
-    *inline-max-depth*
     eliminate-dead-defs
     tail-call-positions
     *foldable-functions*
     to-bytecode
-    encode-bytecode
-    valid-bytecode?
-    *bytecode-version*))
+    encode-bytecode))

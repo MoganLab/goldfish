@@ -23,10 +23,7 @@
   (export run-passes
     constant-fold
     simplify-if
-    lower-let
     inline
-    *inline-max-effort*
-    *inline-max-depth*
     eliminate-dead-defs
     tail-call-positions
     collect-free-symbols
@@ -271,58 +268,11 @@
         ((? symbol? s) s)
         (_ ir)))
 
-    ;; lower-let : ir -> ir
-    ;; Desugar let/letrec into lambda/call so the VM sees only core forms.
-    ;; let  ((x e) ...) body -> ((lambda (x ...) body) e ...)
-    ;; letrec ((x e) ...) body -> (let ((x #f) ...) (set! x e) ... body) lowered
-    (define (lower-let ir)
-      (match ir
-        (($const v) ir)
-        ( (? void?) ir)
-        (($toplevel-define name value)
-         (make-toplevel-define #f name (lower-let value)))
-        (($lambda meta body)
-         (make-lambda #f meta (fold-lambda-body body lower-let)))
-        (($conditional test then else)
-         (make-conditional #f (lower-let test) (lower-let then)
-                           (if else (lower-let else) #f)))
-        (($seq head tail)
-         (make-seq #f (lower-let head) (lower-let tail)))
-        (($let names gensyms vals body)
-         (if (null? names)
-           (lower-let body)
-           (make-call #f (make-lambda #f #f
-                                      (make-lambda-case #f names '() #f #f
-                                                        '() gensyms
-                                                        (lower-let body) #f))
-                      (map lower-let vals))))
-        (($letrec src in-order? names gensyms vals body)
-         (let ((inits (map lower-let vals))
-               (tmp-bindings (map (lambda (n) (list n (make-const #f #f))) names)))
-           (lower-let
-             (make-let #f names gensyms
-                       (map (lambda (n) (make-const #f #f)) names)
-                       (list->seq
-                         (append
-                           (map (lambda (n v) (make-lexical-set #f n 0 0 v))
-                                names inits)
-                           (list (lower-let body))))))))
-        (($lexical-set name depth index expr)
-         (make-lexical-set #f name depth index (lower-let expr)))
-         (($toplevel-set name expr)
-          (make-toplevel-set #f name (lower-let expr)))
-         (($let-values exp body)
-          (make-let-values #f (lower-let exp) (lower-let body)))
-         (($call proc args ...)
-         (make-call #f (lower-let proc) (map lower-let args)))
-        (($primcall name args ...)
-         (make-primcall #f name (map lower-let args)))
-        (($primitive-ref name)
-         (make-primitive-ref #f name))
-        (($lexical-ref name depth index)
-         (make-lexical-ref #f name depth index))
-        ((? symbol? s) s)
-        (_ ir)))
+    ;; (lower-let removed with core->ir: it existed to lower <let> into
+    ;; lambda/call for a minimal VM core, but was written against core->ir's
+    ;; placeholder addressing (it restarts slot numbering at 0 and would
+    ;; misaddress syntax->ir's real lexical refs); bytecode/compile-let
+    ;; handles <let> directly.)
 
     ;; ------------------------------------------------------------------
     ;; inline (L2-2): the peval core -- copy propagation + beta reduction
