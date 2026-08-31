@@ -76,8 +76,16 @@
 ;; ===== 7. let-syntax / letrec-syntax =====
 (let-syntax ((double (syntax-rules () ((_ x) (* 2 x)))))
   (check (double 21) => 42))
-;; 已知缺口：letrec-syntax 递归宏 hang（(fact 5) 展开死循环，进程无输出超时）。
-;; 阶段3 排查 letrec-syntax 的递归绑定后启用：(fact 5) => 120。
+;; letrec-syntax 递归绑定：递归宏靠模式匹配消耗参数终止（syntax-rules 展开期
+;; 不求值，所以 (fact (- n 1)) 这类依赖运行时值的递归在语法层固有无限 --
+;; Racket 同样如此，不是 expander 缺陷）。正确写法见下方 my-or。
+(letrec-syntax ((my-or
+                 (syntax-rules ()
+                   ((_) #f)
+                   ((_ e) e)
+                   ((_ e1 e2 ...) (let ((t e1)) (if t t (my-or e2 ...)))))))
+  (check (my-or #f #f 3) => 3)
+  (check (my-or #f #f #f) => #f))
 
 ;; ===== 8. quote-syntax 保留词法上下文 =====
 ;; 已知缺口：quote-syntax 在表达式位置求值为 datum（foo）而非 syntax 对象
