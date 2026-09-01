@@ -64,6 +64,8 @@
                                     #`(list y x)))))))
           (m 7))
        => '(7 7))
-;; 6c. 嵌套 quasisyntax（(quasisyntax (quasisyntax ...))）：当前按字面保留。
+;; 6c. 嵌套 quasisyntax（(quasisyntax (quasisyntax ...))）：内层按字面保留
+;;     （不递归求值）—— Racket 与 Guile 行为一致（已验证）；用 #,/#,@
+;;     才求值嵌套模板。
 
 (check-report)

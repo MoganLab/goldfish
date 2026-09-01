@@ -259,7 +259,10 @@
 (define (subst-ellipsis x e)
   ;; Replace every identifier whose form is e with `...', recursing through
   ;; syntax objects, datums, and embedded syntax values (syntax template
-  ;; instantiation nests syntax objects inside datums).
+  ;; instantiation nests syntax objects inside datums).  A literal `...'
+  ;; the user writes alongside the custom marker is escaped to the R6RS
+  ;; `(... ...)' form (matching Guile, which escapes it too) so the
+  ;; pattern-matching runtime does not read it as the ellipsis.
   (cond
     ((syntax? x)
      (let ((form (syntax-form x)))
@@ -267,7 +270,9 @@
          ((symbol? form)
           (if (eq? form e)
             (make-syntax '... (syntax-context x) (syntax-library x))
-            x))
+            (if (eq? form '...)
+              (make-syntax (list '... '...) (syntax-context x) (syntax-library x))
+              x)))
          ((pair? form)
           (make-syntax (cons (subst-ellipsis (car form) e)
                              (subst-ellipsis (cdr form) e))
@@ -283,6 +288,7 @@
     ((vector? x)
      (vector-map (lambda (d) (subst-ellipsis d e)) x))
     ((eq? x e) '...)
+    ((eq? x '...) (list '... '...))
     (else x)))
 
 (define (sr-build-transformer def-stx tmp head lit rules)

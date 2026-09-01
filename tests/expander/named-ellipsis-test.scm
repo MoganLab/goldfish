@@ -56,8 +56,16 @@
     ((_ x) (list x (... ...)))))
 (check (syntax->datum (m-esc-p 1)) => '(1 ...))
 
-;; ===== 7. 已知限制 =====
-;; 自定义 ellipsis 时，规则里字面写的 `...' 不会被转义（Guile 会），
-;; 也会被当作 ellipsis。记录为限制。
+;; ===== 7. 字面 `...' 转义 =====
+;; 自定义 ellipsis 规则里字面写 `...' 会被转义（R6RS (... ...) 形式），
+;; 匹配时按字面处理、不当作 ellipsis（Guile 同样如此）—— 所以
+;; `(m 1 2 3)` 匹配不上 `(_ x ...)`（展开时报 no matching clause）。
+(check (catch #t
+         (lambda ()
+           (expand-eval (quote (let-syntax ((m (syntax-rules :: ()
+                                                 ((_ x ...) (list x ...)))))
+                                  (m 1 2 3)))))
+         (lambda args (quote no-match)))
+       => 'no-match)
 
 (check-report)
