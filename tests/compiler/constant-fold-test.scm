@@ -31,6 +31,7 @@
     ((vector? x) (vector-map normalize-names x))
     (else x)))
 (define (fold-sexp core pass) (normalize-names (ir->core (pass (sexp->ir core)))))
+(define (pipe core ps) (normalize-names (ir->core (run-passes (sexp->ir core) ps))))
 
 ;; 基本折叠
 (check (fold-sexp '(define x (+ 1 2)) constant-fold) => '(define x 3))
@@ -79,5 +80,63 @@
 
 (check (fold-sexp '(quote foo) constant-fold) => '(quote foo))
 (check (fold-sexp '42 constant-fold) => '42)
+
+;; ===== inline (peval core): copy propagation + beta reduction + folding =====
+
+;; Propagation exposes a primitive call whose args are now constants; inline
+;; folds it (constant-fold alone cannot, it runs before propagation).
+(check (pipe '(define x (let ((a 13)) (* a a)))
+             (list constant-fold inline simplify-if))
+       => '(define x 169))
+(check (pipe '(define x (* 13 13))
+             (list constant-fold inline simplify-if))
+       => '(define x 169))
+;; The wingolog peval article's worked example.
+(check (pipe '(define r (let ((x 13)) (* x foo)))
+             (list constant-fold inline simplify-if))
+       => '(define r (* 13 foo)))
+;; beta reduction folds through.
+(check (pipe '(define r ((lambda (x) (+ x 2)) 3))
+             (list constant-fold inline simplify-if))
+       => '(define r 5))
+;; nested non-recursive inlining (compose).
+(check (pipe '(define r (let ((inc (lambda (n) (+ n 1))))
+                         (inc (inc (inc 0)))))
+             (list constant-fold inline simplify-if))
+       => '(define r 3))
+;; conditional folding inside inline (dead branch not walked).
+(check (pipe '(define r (if (= 3 0) 1 2))
+             (list constant-fold inline simplify-if))
+       => '(define r 2))
+(check (pipe '(define r (let ((c 3)) (if (= c 0) 1 c)))
+             (list constant-fold inline simplify-if))
+       => '(define r 3))
+
+;; ===== recursion unrolling (budget-bounded peval) =====
+
+;; A recursive letrec with a constant argument folds to a constant and the
+;; dead binding disappears.
+(check (pipe '(define r (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1)))))))
+                                   (loop 3)))
+             (list constant-fold inline simplify-if))
+       => '(define r 6))
+;; Named let (the s7 lowering ((letrec ((lp lam)) lp) 3 1)) folds the same.
+(check (pipe '(define r (let lp ((n 3) (acc 1))
+                          (if (= n 0) acc (lp (- n 1) (* acc n)))))
+             (list constant-fold inline simplify-if))
+       => '(define r 6))
+;; Mutual recursion folds through a known argument.
+(check (pipe '(define r (letrec ((even (lambda (n) (if (= n 0) #t (odd (- n 1)))))
+                                 (odd  (lambda (n) (if (= n 0) #f (even (- n 1))))))
+                            (even 10)))
+             (list constant-fold inline simplify-if))
+       => '(define r #t))
+;; An unknown argument is NOT unrolled: the recursive call stays a variable
+;; call (no residual bloat).
+(check (pipe '(define (f n)
+                (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1)))))))
+                  (loop n)))
+             (list constant-fold inline simplify-if))
+       => '(define f (lambda (n) (letrec ((loop (lambda (n) (if (= n 0) 1 (* n (loop (- n 1))))))) (loop n)))))
 
 (check-report)

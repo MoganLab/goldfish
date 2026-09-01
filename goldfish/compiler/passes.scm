@@ -252,11 +252,11 @@
                       (simplify-if body)))
         (($lexical-set name depth index expr)
          (make-lexical-set #f name depth index (simplify-if expr)))
-         (($toplevel-set name expr)
-          (make-toplevel-set #f name (simplify-if expr)))
-         (($let-values exp body)
-          (make-let-values #f (simplify-if exp) (simplify-if body)))
-         (($call proc args ...)
+        (($toplevel-set name expr)
+         (make-toplevel-set #f name (simplify-if expr)))
+        (($let-values exp body)
+         (make-let-values #f (simplify-if exp) (simplify-if body)))
+        (($call proc args ...)
          (make-call #f (simplify-if proc) (map simplify-if args)))
         (($primcall name args ...)
          (make-primcall #f name (map simplify-if args)))
@@ -402,14 +402,34 @@
     ;; known safe value to copy-propagate.
     (define *inline-var* (list 'inline-var))
 
+    ;; A recursive lambda (a letrec binding whose value refers to its own
+    ;; name) is stored as (recursive . lambda) instead of the raw lambda.
+    ;; The reference is NOT substituted eagerly: that would unroll the
+    ;; recursion even when the arguments are unknown, bloating the residual.
+    ;; Instead the call branch substitutes it only when every argument is a
+    ;; constant -- the recursion then folds through the constant (a
+    ;; termination argument), leaving a plain variable call otherwise.
+    (define *inline-rec-var* (list 'inline-rec-var))
+
     ;; lambda-self-referential? : symbol ir -> boolean
     ;; True when a lambda value refers to its own binding name anywhere in
-    ;; its body (a recursive function).  Propagating such a lambda would
-    ;; inline its own recursive calls -- unrolling the recursion until the
-    ;; effort budget cuts it off, bloating the residual code.  Leave
-    ;; recursive functions as variables.
+    ;; its body (a recursive function).
     (define (lambda-self-referential? name lambda-ir)
       (member name (collect-residual-free (lambda-body lambda-ir))))
+
+    ;; recursive-env-lambda : env symbol -> ir or #f
+    ;; The recursive lambda a name is bound to in env, or #f.
+    (define (recursive-env-lambda env name)
+      (let ((v (assq name env)))
+        (if (and v (pair? (cdr v)) (eq? (car (cdr v)) *inline-rec-var*))
+          (cdr (cdr v))
+          #f)))
+
+    ;; const-arg? : ir -> boolean
+    ;; A statically-known argument: a const record or a self-evaluating atom.
+    (define (const-arg? a)
+      (or (const? a)
+          (and (not (pair? a)) (not (symbol? a)) (not (vector? a)))))
 
     (define (env-extend-vars env names)
       (fold-left (lambda (e n) (cons (cons n *inline-var*) e)) env names))
@@ -417,12 +437,13 @@
       (fold-left (lambda (e b)
                    (cons (cons (car b)
                                (if (or (member (car b) assigned)
-                                       (not (safe-inline-value? (cadr b)))
-                                       (and (lambda? (cadr b))
-                                            (lambda-self-referential?
-                                             (car b) (cadr b))))
+                                       (not (safe-inline-value? (cadr b))))
                                  *inline-var*
-                                 (cadr b)))
+                                 (if (and (lambda? (cadr b))
+                                          (lambda-self-referential?
+                                           (car b) (cadr b)))
+                                   (cons *inline-rec-var* (cadr b))
+                                   (cadr b))))
                          e))
                  env bindings))
 
@@ -474,6 +495,13 @@
              (if (or (const? val) (void? val))
                acc
                (loop val acc))))
+          ((lexical-ref? s)
+           (if (member (lexical-ref-name s) acc) acc (cons (lexical-ref-name s) acc)))
+          ((lexical-set? s)
+           (let ((acc1 (if (member (lexical-set-name s) acc)
+                           acc
+                           (cons (lexical-set-name s) acc))))
+             (loop (lexical-set-exp s) acc1)))
           (else
            (let loop2 ((cs (ir-children s)) (acc acc))
              (if (null? cs)
@@ -500,10 +528,30 @@
         (else #f)))
 
     (define (prune-let-bindings head names vals body-inl)
-      (let* ((free (collect-residual-free
-                    (append vals (list body-inl))))
+      ;; A binding survives when its name is referenced in the residual body
+      ;; or in the value of another surviving binding.  A reference confined
+      ;; to its OWN value (a recursive lambda referring to itself) does not
+      ;; keep the binding: after inlining, a self-only binding is dead.  The
+      ;; surviving set is the closure of body references under "referenced
+      ;; by a surviving value", so mutual recursion survives as a whole.
+      (let* ((refs (map (lambda (n v) (cons n (collect-residual-free v)))
+                        names vals))
+             (body-free (collect-residual-free body-inl))
              (surviving-names
-               (filter (lambda (n) (member n free)) names))
+               (let grow ((alive (filter (lambda (n) (member n body-free)) names)))
+                 (let* ((referenced
+                         (apply append
+                                (map (lambda (n)
+                                       (let ((r (assoc n refs)))
+                                         (if r (cdr r) '())))
+                                     alive)))
+                        (new (filter (lambda (n)
+                                       (and (not (member n alive))
+                                            (member n referenced)))
+                                     names)))
+                   (if (null? new)
+                     alive
+                     (grow (append alive new))))))
              (surviving-vals
                (map (lambda (n) (cadr (assoc n (map list names vals))))
                     surviving-names)))
@@ -535,16 +583,22 @@
         (cond
           ((symbol? ir)
            (let ((v (assq ir env)))
-             (if (and v (not (eq? (cdr v) *inline-var*)))
-               (begin (inline-spend-effort! budget 1) (cdr v))
-               ir)))
+             (cond
+               ((and v (not (eq? (cdr v) *inline-var*))
+                     (not (and (pair? (cdr v))
+                               (eq? (car (cdr v)) *inline-rec-var*))))
+                (begin (inline-spend-effort! budget 1) (cdr v)))
+               (else ir))))
           ((or (const? ir) (void? ir)) ir)
           ((primitive-ref? ir) ir)
           ((lexical-ref? ir)
            (let ((v (assq (lexical-ref-name ir) env)))
-             (if (and v (not (eq? (cdr v) *inline-var*)))
-               (begin (inline-spend-effort! budget 1) (cdr v))
-               ir)))
+             (cond
+               ((and v (not (eq? (cdr v) *inline-var*))
+                     (not (and (pair? (cdr v))
+                               (eq? (car (cdr v)) *inline-rec-var*))))
+                (begin (inline-spend-effort! budget 1) (cdr v)))
+               (else ir))))
           ((lambda? ir)
            (let* ((b (lambda-body ir))
                   (req (or (and (lambda-case? b) (lambda-case-req b)) '()))
@@ -554,11 +608,23 @@
            (make-toplevel-define #f (toplevel-define-name ir)
                                  (inline-walk (toplevel-define-exp ir) env budget)))
           ((conditional? ir)
-           (make-conditional #f (inline-walk (conditional-test ir) env budget)
-                             (inline-walk (conditional-consequent ir) env budget)
-                             (if (conditional-alternate ir)
-                               (inline-walk (conditional-alternate ir) env budget)
-                               #f)))
+           (let ((test (inline-walk (conditional-test ir) env budget)))
+             (cond
+               ((const-boolean? test #t)
+                (inline-walk (conditional-consequent ir) env budget))
+               ((const-boolean? test #f)
+                (if (conditional-alternate ir)
+                  (inline-walk (conditional-alternate ir) env budget)
+                  ;; (if #f then) with no else arm: R7RS says the value is
+                  ;; unspecified, not #f -- mirror simplify-if and keep the
+                  ;; conditional with a dead consequent.
+                  (make-conditional #f test #f #f)))
+               (else
+                (make-conditional #f test
+                                  (inline-walk (conditional-consequent ir) env budget)
+                                  (if (conditional-alternate ir)
+                                    (inline-walk (conditional-alternate ir) env budget)
+                                    #f))))))
           ((seq? ir)
            (make-seq #f (inline-walk (seq-head ir) env budget)
                      (inline-walk (seq-tail ir) env budget)))
@@ -575,18 +641,25 @@
                   (new-vals (map (lambda (v) (inline-walk v env budget)) vals))
                   (env1 (env-extend-safes env
                                           (map list names new-vals)
-                                          (collect-assigned (let-body ir))))
+                                          (collect-assigned
+                                            (append vals (list (let-body ir))))))
                   (body-inl (inline-walk (let-body ir) env1 budget)))
              (inline-spend-effort! budget 1)
              (prune-let-bindings 'let names new-vals body-inl)))
           ((letrec? ir)
            (let* ((names (letrec-names ir))
                   (vals (letrec-vals ir))
-                  (assigned names)
-                  (env0 (env-extend-safes env (map list names vals) assigned))
+                  (assigned (collect-assigned
+                             (append vals (list (letrec-body ir)))))
+                  ;; Initializers are walked with their names as variables:
+                  ;; propagating a recursive lambda into its OWN definition
+                  ;; would unroll the recursion inside the initializer,
+                  ;; consuming the budget and bloating the stored closure.
+                  ;; Unrolling happens at call sites in the body instead.
+                  (env0 (env-extend-vars env names))
                   (new-vals (map (lambda (v) (inline-walk v env0 budget)) vals))
-                  (env1 (env-extend-safes env (map list names new-vals) assigned))
-                  (body-inl (inline-walk (letrec-body ir) env1 budget)))
+                   (env1 (env-extend-safes env (map list names new-vals) assigned))
+                   (body-inl (inline-walk (letrec-body ir) env1 budget)))
              (inline-spend-effort! budget 1)
              (prune-let-bindings (if (letrec-in-order? ir) 'letrec* 'letrec)
                                  names new-vals body-inl)))
@@ -594,30 +667,73 @@
            (make-let-values #f (inline-walk (let-values-exp ir) env budget)
                             (inline-walk (let-values-body ir) env budget)))
           ((call? ir)
-           (let ((f (inline-walk (call-proc ir) env budget))
-                 (args (map (lambda (a) (inline-walk a env budget))
-                            (call-args ir))))
-             (if (and (lambda? f) (not (inline-budget-spent? budget)))
-               (let ((bindings (beta-bindings (or (lambda-formals f) '()) args)))
-                 (if bindings
-                   (let* ((lc (lambda-body f))
-                          (body (if (lambda-case? lc)
-                                   (lambda-case-body lc)
-                                   lc))
-                          (let-form (make-let #f
-                                              (map car bindings)
-                                              (map car bindings)
-                                              (map cadr bindings)
-                                              body)))
-                     (inline-spend-effort! budget 2)
-                     (inline-deepen! budget)
-                     (inline-walk let-form env budget))
-                   (make-call #f f args)))
-               (make-call #f f args))))
+           ;; Normalize a named-let lowering ((letrec ((n lam)) (ref n)) a ...)
+           ;; into the call-inside-letrec shape (letrec ((n lam)) (n a ...))
+           ;; so the letrec branch unrolls the recursion at the call site.
+           (let ((p (call-proc ir)))
+             (if (and (letrec? p)
+                      (= (length (letrec-names p)) 1)
+                      (let ((b (letrec-body p)))
+                        (and (lexical-ref? b)
+                             (eq? (lexical-ref-name b)
+                                  (car (letrec-names p))))))
+               (inline-walk
+                 (make-letrec (letrec-source p) (letrec-in-order? p)
+                              (letrec-names p) (letrec-gensyms p)
+                              (letrec-vals p)
+                              (make-call #f (letrec-body p) (call-args ir)))
+                 env budget)
+               (let ((f (inline-walk (call-proc ir) env budget))
+                     (args (map (lambda (a) (inline-walk a env budget))
+                                (call-args ir))))
+                 (let ((rec-lam (and (lexical-ref? f)
+                                     (recursive-env-lambda env (lexical-ref-name f)))))
+                   (cond
+                     ;; A recursive call: unroll only when every argument is a
+                     ;; constant (the recursion then folds through it); leave a
+                     ;; plain variable call when an argument is unknown.
+                     ((and rec-lam (not (inline-budget-spent? budget)))
+                      (if (every const-arg? args)
+                        (let ((bindings (beta-bindings (or (lambda-formals rec-lam) '()) args)))
+                          (if bindings
+                            (let* ((lc (lambda-body rec-lam))
+                                   (body (if (lambda-case? lc)
+                                            (lambda-case-body lc)
+                                            lc))
+                                   (let-form (make-let #f
+                                                       (map car bindings)
+                                                       (map car bindings)
+                                                       (map cadr bindings)
+                                                       body)))
+                              (inline-spend-effort! budget 2)
+                              (inline-deepen! budget)
+                              (inline-walk let-form env budget))
+                            (make-call #f f args)))
+                        (make-call #f f args)))
+                     ((and (lambda? f) (not (inline-budget-spent? budget)))
+                      (let ((bindings (beta-bindings (or (lambda-formals f) '()) args)))
+                        (if bindings
+                          (let* ((lc (lambda-body f))
+                                 (body (if (lambda-case? lc)
+                                          (lambda-case-body lc)
+                                          lc))
+                                 (let-form (make-let #f
+                                                     (map car bindings)
+                                                     (map car bindings)
+                                                     (map cadr bindings)
+                                                     body)))
+                            (inline-spend-effort! budget 2)
+                            (inline-deepen! budget)
+                            (inline-walk let-form env budget))
+                          (make-call #f f args))))
+                     (else
+                      (or (try-fold-call-ir f args)
+                          (make-call #f f args)))))))))
           ((primcall? ir)
-           (make-primcall #f (primcall-name ir)
-                          (map (lambda (a) (inline-walk a env budget))
-                               (primcall-args ir))))
+           (let ((args (map (lambda (a) (inline-walk a env budget))
+                            (primcall-args ir))))
+             (or (try-fold-call-ir (make-primitive-ref #f (primcall-name ir)) args)
+                 (make-primcall #f (primcall-name ir) args))))
           (else ir))))
 
     (define *inline-max-effort* 40000)
@@ -775,6 +891,4 @@
                                   current)))
           (if (equal? survivors current)
             survivors
-            (loop survivors)))))
-
-    )) ;begin
+            (loop survivors)))))))

@@ -101,8 +101,12 @@
             (loop (cdr frame) (max max-idx (cdar frame)))))))
 
     (define (env-add-bindings env bindings)
+      ;; A binding form at top level (env empty) still establishes a lexical
+      ;; frame: without it a top-level letrec/let bound its names as
+      ;; toplevel refs, which copy propagation cannot follow and which
+      ;; prune-let-bindings dropped (leaving unbound names in the residual).
       (if (null? env)
-        env
+        (list bindings)
         (cons (append (car env) bindings) (cdr env))))
 
     (define (binding-name b)
