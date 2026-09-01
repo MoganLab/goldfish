@@ -1147,6 +1147,17 @@
 ;;; exp-library: its bindings' toplevel-ref homes refer back to the library
 ;;; itself, so a naive recursive writer loops forever.
 
+;;; exp-library-record? : any -> boolean
+;;; An <exp-library> record's bindings table holds every library binding
+;;; (transformers, live objects).  Serializing it is useless (bindings are
+;;; replayed from source by install-cache-load!) and can blow up the
+;;; graph walk, so exp-library records are written by name only (their
+;;; other fields are recovered on load).  Name is the record's second
+;;; field, always a list; the record has exactly three fields.
+(define (exp-library-record? v)
+  (and (= (vector-length v) 3)
+       (pair? (vector-ref v 1))))
+
 (define (write-roundtrip x p)
   (if (not (has-record? x))
     (let rec ((v x))
@@ -1208,7 +1219,10 @@
              (let ((seen* (cons (cons v #t) seen)))
                (let loop ((i 1))
                  (if (< i (vector-length v))
-                   (begin (walk (vector-ref v i) seen*) (loop (+ i 1))))))))
+                   (begin
+                     (if (not (and (= i 2) (exp-library-record? v)))
+                       (walk (vector-ref v i) seen*))
+                     (loop (+ i 1))))))))
           ((and (vector? v) (not (bytevector? v)) (not (record-instance? v)))
            (count-ref v)
            (if (not (assq v seen))
@@ -1310,7 +1324,7 @@
                (display "#g(exp-library " p)
                (wrt (vector-ref v 1))  ; name
                (display " " p)
-               (wrt (vector-ref v 2))  ; bindings
+               (wrt '())  ; bindings: replay from source on load
                (display ")" p))
               ((string=? name-str "<binding>")
                (display "#g(binding " p)

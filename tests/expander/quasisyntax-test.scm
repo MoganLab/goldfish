@@ -51,8 +51,19 @@
                          (m)))
        => '(1 (lit 2)))
 ;; 6b. 模板里裸标识符引用 with-syntax/pattern 绑定（如 `(list v)` 而非
-;;     `(list #,v)`）：当前保留为自由词法引用（运行时未绑定）。Racket 的
-;;     pattern 变量替换语义尚未在 quasisyntax 中实现。
+;;     `(list #,v)`）：Racket 语义 —— pattern 变量替换为值，自由标识符
+;;     保留词法引用，普通词法绑定（let）不替换（运行时 unbound）。
+(check (let-syntax ((m (lambda (stx)
+                         (syntax-case stx ()
+                           ((_ x) #`(list x))))))
+          (m 7))
+       => '(7))
+(check (let-syntax ((m (lambda (stx)
+                         (syntax-case stx ()
+                           ((_ x) (with-syntax ((y #'x))
+                                    #`(list y x)))))))
+          (m 7))
+       => '(7 7))
 ;; 6c. 嵌套 quasisyntax（(quasisyntax (quasisyntax ...))）：当前按字面保留。
 
 (check-report)

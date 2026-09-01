@@ -140,6 +140,40 @@
                                              (list 'lambda inner-patvars '#t)
                                              (list 'lambda inner-patvars body-xformed)))))))))
 
+              (qs-subst-mode-vars
+               (lambda (sub patvars outer-patvars sctx lib)
+                 ;; Bare pattern variables inside a (quasisyntax T)
+                 ;; template are rewritten to (unsyntax id), so the
+                 ;; expander splices in their VALUES at run time -- Racket
+                 ;; semantics, where quasisyntax substitutes pattern
+                 ;; variables while free identifiers keep their lexical
+                 ;; binding.  (syntax X), (unsyntax e),
+                 ;; (unsyntax-splicing e) and nested (quasisyntax ...) are
+                 ;; left untouched (the last because qs-template keeps a
+                 ;; nested quasisyntax verbatim).
+                 (letrec* ((all-pats (append patvars outer-patvars))
+                           (walk (lambda (s)
+                                   (let ((f (syntax-form s)))
+                                     (cond
+                                       ((symbol? f)
+                                        (if (memq f all-pats)
+                                            (make-syntax (list (make-syntax 'unsyntax sctx lib) s)
+                                                         sctx lib)
+                                            s))
+                                       ((pair? f)
+                                        (let ((hn (if (syntax? (car f))
+                                                      (syntax-form (car f))
+                                                      (car f))))
+                                          (if (memq hn '(syntax unsyntax unsyntax-splicing quasisyntax))
+                                              s
+                                              (make-syntax (spine-map (lambda (e) (walk e)) f)
+                                                           (syntax-context s) (syntax-library s)))))
+                                       ((stx-vector? f)
+                                        (make-syntax (list->vector (map walk (vector->list f)))
+                                                     (syntax-context s) (syntax-library s)))
+                                        (else s))))))
+                     (walk sub))))
+ 
               (transform-syntax-body
                (lambda (stx patvars outer-patvars sctx lib)
                  (letrec* ((form (syntax-form stx)))
@@ -154,9 +188,15 @@
                                             (cons (transform-syntax-body (cadr form) patvars outer-patvars sctx lib)
                                                   (cons (caddr form) (cdddr form))))
                                       (syntax-context stx) (syntax-library stx))
-                                     (if (eq? head 'with-syntax)
-                                         (expand-with-syntax stx form patvars outer-patvars sctx lib)
-                                         (generic-recurse form stx patvars outer-patvars sctx lib)))))
+                                      (if (eq? head 'with-syntax)
+                                          (expand-with-syntax stx form patvars outer-patvars sctx lib)
+                                          (if (eq? head 'quasisyntax)
+                                              (make-syntax
+                                               (cons (car form)
+                                                     (cons (qs-subst-mode-vars (cadr form) patvars outer-patvars sctx lib)
+                                                           '()))
+                                               (syntax-context stx) (syntax-library stx))
+                                              (generic-recurse form stx patvars outer-patvars sctx lib))))))
                            (generic-recurse form stx patvars outer-patvars sctx lib))
                        stx))))
 
