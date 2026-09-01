@@ -104,84 +104,16 @@
        o)
       (else o))))
 
-;;; Precomputed ASCII character-class tables for identifier parsing
-;;; (R7RS 7.1.1 <identifier>).  Chars >= 128 are valid in identifiers
-;;; (S7 extension), so the tables only cover 0-127 and the callers test
-;;; n >= 128 first.  Building the tables once at load time replaces a
-;;; per-character memv over a literal list -- a major reader hot path:
-;;; valid-identifier? classifies every character of every cached .gfo
-;;; record at startup (~500K calls).
-
-(define *identifier-initial-table* (make-vector 128 #f))
-(define *identifier-subsequent-table* (make-vector 128 #f))
-(define (id-class-init! tbl chars)
-  (for-each (lambda (ch)
-              (vector-set! tbl (char->integer ch) #t))
-            (string->list chars)))
-(id-class-init! *identifier-initial-table*
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!$%&*/:<=>?@^_~")
-(id-class-init! *identifier-subsequent-table*
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!$%&*/:<=>?@^_~+-.@")
-
 (define (char-digit? ch)
   (and (char? ch) (char<=? #\0 ch #\9)))
 
-(define (identifier-initial? ch)
-  (let ((n (char->integer ch)))
-    (or (>= n 128) (vector-ref *identifier-initial-table* n))))
-
-(define (identifier-subsequent? ch)
-  (let ((n (char->integer ch)))
-    (or (>= n 128) (vector-ref *identifier-subsequent-table* n))))
-
-(define (sign-subsequent? ch)
-  (or (identifier-initial? ch)
-      (memv ch '(#\+ #\- #\@))))
-
-(define (dot-subsequent? ch)
-  (or (sign-subsequent? ch) (eqv? ch #\.)))
-
 (define (valid-identifier? str)
-  ;; R7RS 7.1.1 <identifier>, for tokens not beginning with a vertical line
-  (let ((len (string-length str)))
-    (and (> len 0)
-      (let ((c0 (string-ref str 0)))
-        (cond
-          ((identifier-initial? c0)
-           (let loop ((i 1))
-             (if (= i len)
-               #t
-               (and (identifier-subsequent? (string-ref str i))
-                    (loop (+ i 1))))))
-          ((memv c0 '(#\+ #\-))
-           (if (= len 1)
-             #t
-             (let ((c1 (string-ref str 1)))
-               (cond
-                 ((eqv? c1 #\.)
-                  (and (> len 2)
-                       (dot-subsequent? (string-ref str 2))
-                       (let loop ((i 3))
-                         (if (= i len)
-                           #t
-                           (and (identifier-subsequent? (string-ref str i))
-                                (loop (+ i 1)))))))
-                 ((sign-subsequent? c1)
-                  (let loop ((i 2))
-                    (if (= i len)
-                      #t
-                      (and (identifier-subsequent? (string-ref str i))
-                           (loop (+ i 1))))))
-                 (else #f)))))
-          ((eqv? c0 #\.)
-           (and (> len 1)
-                (dot-subsequent? (string-ref str 1))
-                (let loop ((i 2))
-                  (if (= i len)
-                    #t
-                    (and (identifier-subsequent? (string-ref str i))
-                         (loop (+ i 1)))))))
-          (else #f))))))
+  ;; Native: the R7RS <identifier> check runs once per token read at
+  ;; startup (hundreds of thousands of calls); g-valid-identifier? scans
+  ;; the string in C++ with the same rules (chars >= 128 valid, the
+  ;; +-/ sign and dot cases).  For tokens not beginning with a vertical
+  ;; bar (|...| literals bypass this via read-expr).
+  (g-valid-identifier? str))
 
 (define (pure-imaginary-number str radix)
   ;; +i -i +2i -2i 2i 1.5i ... : real part omitted (s7 writes a bare

@@ -182,7 +182,7 @@ f_g_read_token (gf::scheme* sc, gf::pointer args) {
   gf::pointer port = gf::car (args);
   gf::pointer first_p = gf::cadr (args);
   gf::int_     first = gf::is_character (first_p) ? (gf::int_) gf::character (first_p)
-                                               : (gf::int_) first_p;
+                                                : (gf::int_) first_p;
   std::string tok;
   tok += (char) first;
   while (true) {
@@ -193,6 +193,80 @@ f_g_read_token (gf::scheme* sc, gf::pointer args) {
   }
   return gf::make_string (sc, tok.c_str ());
 }
+
+// R7RS 7.1.1 <identifier> char classes, mirroring the Scheme reader's
+// identifier-initial?/identifier-subsequent? (chars >= 128 are valid, S7
+// extension; the tables only cover 0-127).
+
+static bool id_initial (gf::int_ c) {
+  if (c < 0) return false;
+  if (c >= 128) return true;
+  static const bool tbl[128] = {false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,true,true,true,false,false,false,true,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,true,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,true,false};
+  return tbl[c];
+}
+
+static bool id_subsequent (gf::int_ c) {
+  if (c < 0) return false;
+  if (c >= 128) return true;
+  static const bool tbl[128] = {false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,true,true,true,false,false,false,true,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,true,true,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false,true,false};
+  return tbl[c];
+}
+
+static bool id_sign_subseq (gf::int_ c) {
+  return c == '+' || c == '-' || c == '@' || id_initial (c);
+}
+
+static bool id_dot_subseq (gf::int_ c) {
+  return c == '.' || id_sign_subseq (c);
+}
+
+// g-valid-identifier? : string -> boolean
+// R7RS <identifier> check for tokens NOT beginning with a vertical bar
+// (the Scheme reader routes |...| literals separately).  Mirrors the
+// Scheme valid-identifier? exactly; native because it runs once per
+// token read at startup (hundreds of thousands of calls).
+static gf::pointer
+f_g_valid_identifier_p (gf::scheme* sc, gf::pointer args) {
+  gf::pointer sp = gf::car (args);
+  if (!gf::is_string (sp))
+    return gf::f (sc);
+  std::string s = gf::string (sp);
+  size_t len = s.size ();
+  if (len == 0)
+    return gf::f (sc);
+  gf::int_ c0 = (unsigned char) s[0];
+  bool ok;
+  if (id_initial (c0)) {
+    ok = true;
+    for (size_t i = 1; i < len; i++)
+      if (!id_subsequent ((unsigned char) s[i])) { ok = false; break; }
+  } else if (c0 == '+' || c0 == '-') {
+    if (len == 1) {
+      ok = true;
+    } else {
+      gf::int_ c1 = (unsigned char) s[1];
+      if (c1 == '.') {
+        ok = len > 2 && id_dot_subseq ((unsigned char) s[2]);
+        for (size_t i = 3; ok && i < len; i++)
+          if (!id_subsequent ((unsigned char) s[i])) { ok = false; break; }
+      } else if (id_sign_subseq (c1)) {
+        ok = true;
+        for (size_t i = 2; i < len; i++)
+          if (!id_subsequent ((unsigned char) s[i])) { ok = false; break; }
+      } else {
+        ok = false;
+      }
+    }
+  } else if (c0 == '.') {
+    ok = len > 1 && id_dot_subseq ((unsigned char) s[1]);
+    for (size_t i = 2; ok && i < len; i++)
+      if (!id_subsequent ((unsigned char) s[i])) { ok = false; break; }
+  } else {
+    ok = false;
+  }
+  return ok ? gf::t (sc) : gf::f (sc);
+}
+
 
 // g-read-string : port [rdelim] -> string
 // Read a quoted string (the opening rdelim, normally ", already consumed),
@@ -529,6 +603,8 @@ glue_liii_reader (gf::scheme* sc) {
                       "(g-tiny-read port) => datum");
   gf::define_function (sc, "g-read-token", f_g_read_token, 2, 0, false,
                       "(g-read-token port first-char) => string; reads one token up to the Scheme reader's delimiter set");
+  gf::define_function (sc, "g-valid-identifier?", f_g_valid_identifier_p, 1, 0, false,
+                      "(g-valid-identifier? string) => boolean; R7RS <identifier> check (native: hot path at startup)");
   gf::define_function (sc, "g-read-string", f_g_read_string, 1, 1, false,
                       "(g-read-string port [rdelim]) => string; reads a quoted string (opening rdelim already consumed)");
   gf::define_function (sc, "g-delimiter?", f_g_delimiter_p, 1, 0, false,
