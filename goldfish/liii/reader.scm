@@ -104,19 +104,35 @@
        o)
       (else o))))
 
+;;; Precomputed ASCII character-class tables for identifier parsing
+;;; (R7RS 7.1.1 <identifier>).  Chars >= 128 are valid in identifiers
+;;; (S7 extension), so the tables only cover 0-127 and the callers test
+;;; n >= 128 first.  Building the tables once at load time replaces a
+;;; per-character memv over a literal list -- a major reader hot path:
+;;; valid-identifier? classifies every character of every cached .gfo
+;;; record at startup (~500K calls).
+
+(define *identifier-initial-table* (make-vector 128 #f))
+(define *identifier-subsequent-table* (make-vector 128 #f))
+(define (id-class-init! tbl chars)
+  (for-each (lambda (ch)
+              (vector-set! tbl (char->integer ch) #t))
+            (string->list chars)))
+(id-class-init! *identifier-initial-table*
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!$%&*/:<=>?@^_~")
+(id-class-init! *identifier-subsequent-table*
+                "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!$%&*/:<=>?@^_~+-.@")
+
 (define (char-digit? ch)
   (and (char? ch) (char<=? #\0 ch #\9)))
 
 (define (identifier-initial? ch)
-  (or (char-letter? ch)
-      (memv ch '(#\! #\$ #\% #\& #\* #\/ #\: #\< #\= #\> #\? #\@ #\^ #\_ #\~))
-      ;; S7 extension: non-ASCII characters are allowed in identifiers
-      (>= (char->integer ch) 128)))
+  (let ((n (char->integer ch)))
+    (or (>= n 128) (vector-ref *identifier-initial-table* n))))
 
 (define (identifier-subsequent? ch)
-  (or (identifier-initial? ch)
-      (char-digit? ch)
-      (memv ch '(#\+ #\- #\. #\@))))
+  (let ((n (char->integer ch)))
+    (or (>= n 128) (vector-ref *identifier-subsequent-table* n))))
 
 (define (sign-subsequent? ch)
   (or (identifier-initial? ch)
@@ -263,9 +279,8 @@
         (<= (char->integer #\A) n (char->integer #\F)))))
 
 (define (char-letter? ch)
-  (let ((n (char->integer ch)))
-    (or (<= (char->integer #\a) n (char->integer #\z))
-        (<= (char->integer #\A) n (char->integer #\Z)))))
+  (or (char<=? #\a ch #\z)
+      (char<=? #\A ch #\Z)))
 
 (define (hex-digit-value ch)
   (let ((n (char->integer ch)))
