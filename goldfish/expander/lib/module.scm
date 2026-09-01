@@ -526,22 +526,22 @@
 ;;; L2-2: how much self-hosted compilation runs on library defs before they
 ;;; evaluate.  The pipeline rewrites lowered core IR in place; its output is
 ;;; still s7-evaluable core lambda, so this changes no semantics -- only
-;;; constants folded and dead if branches removed.  Levels follow the -O0/1/2
-;;; convention:
+;;; constants folded, dead if branches removed, and (level 2) peval inlining.
+;;; Levels follow the -O0/1/2 convention (Guile-style; Guile defaults to 2):
 ;;;   0 : no compilation (defs evaluate as lowered)
-;;;   1 : default -- constant folding + if simplification
-;;;   2+: reserved for further passes (tail-call marking, inlining, ...)
+;;;   1 : constant folding + if simplification
+;;;   2 : default -- + the inline (peval) pass
 ;;; Controlled by GOLDFISH_OPT_LEVEL (0 disables compilation entirely);
-;;; unset defaults to 1.
+;;; unset defaults to 2.
 
 (define (optimization-level)
   (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
     (cond
-      ((not v) 1)
+      ((not v) 2)
       ((member v '("0" "no" "false" "off")) 0)
       (else
        (let ((n (string->number v)))
-         (if (and n (integer? n) (>= n 0)) n 1))))))
+         (if (and n (integer? n) (>= n 0)) n 2))))))
 
 ;;; compile-defs-on-load : (list syntax) context -> (list sexp)
 ;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
@@ -550,9 +550,8 @@
 ;;; of the library machinery itself.  A failure to load the compiler leaves
 ;;; the defs lowered-but-unoptimized (compilation is an optimization, never
 ;;; a correctness requirement).  The active pass set grows with the
-;;; optimization level; level 2+ currently enables the same core passes as
-;;; level 1 and reserves the slot for future passes (tail-call marking,
-;;; inlining).
+;;; optimization level: level 1 runs constant-fold + simplify-if, level 2
+;;; adds the inline (peval) pass.
 ;;;
 ;;; The defs are UN-LOWERED syntax objects (the expand-library-body
 ;;; output), so the pipeline runs via syntax->ir: primitive references

@@ -396,11 +396,11 @@
 (define (ccache-level)
   (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
     (cond
-      ((not v) 1)
+      ((not v) 2)
       ((member v '("0" "no" "false" "off")) 0)
       (else
        (let ((n (string->number v)))
-         (if (and n (integer? n) (>= n 0)) n 1))))))
+         (if (and n (integer? n) (>= n 0)) n 2))))))
 
 (define (compile-file-cached path)
   (let* ((key (cache-key-path path))
