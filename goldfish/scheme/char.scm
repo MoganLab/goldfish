@@ -15,7 +15,6 @@
 ;;
 
 (define-library (scheme char)
-  (import (goldfish))
   (export char-upcase
     char-downcase
     char-foldcase

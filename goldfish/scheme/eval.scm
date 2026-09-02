@@ -15,7 +15,6 @@
 ;;
 
 (define-library (scheme eval)
-  (import (goldfish))
   (import (scheme base) (goldfish))
   (export environment eval)
   (begin
