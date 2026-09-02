@@ -262,11 +262,13 @@
     (unless ctx
       (error "syntax-local-introduce: no expansion context"))
     (let* ((ph (context-phase ctx))
-           (stx1 (stx-maybe-flip stx (context-intro-scope ctx) ph)))
-      (let loop ((s stx1) (scps (context-use-scopes ctx)))
-        (if (null? scps)
-            s
-            (loop (stx-flip-scope s (car scps) ph) (cdr scps)))))))
+           (intro (context-intro-scope ctx))
+           (flips (if intro
+                      (cons intro (context-use-scopes ctx))
+                      (context-use-scopes ctx))))
+      ;; One tree walk for the intro flip plus every use-scope flip
+      ;; (scope set ops commute), instead of 1 + #use-scopes walks.
+      (stx-add-and-flip-many stx #f flips ph))))
 
 (define-public (syntax-local-value id)
   (let ((ctx (current-expand-context)))
@@ -372,8 +374,11 @@
          (env-unstops (env-map-values binding-unstop env-defs))
          (stop-frame (build-stop-frame ctx stops env-defs))
          (env-stops (cons stop-frame env-unstops))
-         (stx1 (if flip? (stx-maybe-flip stx scp-i ph) stx))
-         (stx2 (stx-add-scope stx1 scp-in ph)))
+         ;; One tree walk for the intro flip (when flip?) plus the defs
+         ;; intro-scope add (scope set ops commute).
+         (stx2 (stx-add-and-flip-many stx scp-in
+                                      (if (and flip? scp-i) (list scp-i) '())
+                                      ph)))
     (let*-values (((sexp ctx2) (expand-expr stx2 (context-with-env ctx env-stops))))
       (values (if flip? (stx-maybe-flip sexp scp-i ph) sexp)
               (context-with-use-scopes (context-return ctx ctx2)

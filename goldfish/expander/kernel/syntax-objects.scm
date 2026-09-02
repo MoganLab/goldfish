@@ -41,17 +41,26 @@
     (if entry (cdr entry) '())))
 
 (define-public (stx-ctx-set ctx phase scopes)
-  (let ((entry (assoc phase ctx)))
-    (if entry
-        (map (lambda (e)
-               (if (= (car e) phase)
-                   (cons phase scopes)
-                   e))
-             ctx)
-        (cons (cons phase scopes) ctx))))
+  ;; Fast path: single-entry context whose head entry is `phase` (the
+  ;; common case during expansion -- contexts are almost always just
+  ;; phase 0).  Avoids the assoc + map-rebuild per node.
+  (if (and (pair? ctx) (eq? (caar ctx) phase) (null? (cdr ctx)))
+    (list (cons phase scopes))
+    (let ((entry (assoc phase ctx)))
+      (if entry
+          (map (lambda (e)
+                 (if (= (car e) phase)
+                     (cons phase scopes)
+                     e))
+               ctx)
+          (cons (cons phase scopes) ctx)))))
 
 (define-public (stx-ctx-add ctx phase scp)
-  (stx-ctx-set ctx phase (set-add (stx-ctx-at ctx phase) scp)))
+  (if (and (pair? ctx) (eq? (caar ctx) phase) (null? (cdr ctx)))
+    (if (memq scp (cdar ctx))
+      ctx
+      (list (cons phase (cons scp (cdar ctx)))))
+    (stx-ctx-set ctx phase (set-add (stx-ctx-at ctx phase) scp))))
 
 (define-public (stx-ctx-flip ctx phase scp)
   (stx-ctx-set ctx phase (set-flip (stx-ctx-at ctx phase) scp)))
@@ -82,14 +91,17 @@
 (define-public (stx-ctx-mark-intro ctx phase)
   (if (not *current-intro-scope*)
       ctx
-      (let ((entry (assoc 0 ctx)))
-        (if entry
-            (map (lambda (e)
-                   (if (= (car e) 0)
-                       (cons 0 (cons *current-intro-scope* (cdr e)))
-                       e))
-                 ctx)
-            (cons (cons 0 (list *current-intro-scope*)) ctx)))))
+      (let ((scp *current-intro-scope*))
+        (if (and (pair? ctx) (eq? (caar ctx) 0) (null? (cdr ctx)))
+          (list (cons 0 (cons scp (cdar ctx))))
+          (let ((entry (assoc 0 ctx)))
+            (if entry
+                (map (lambda (e)
+                       (if (= (car e) 0)
+                           (cons 0 (cons scp (cdr e)))
+                           e))
+                     ctx)
+                (cons (cons 0 (list scp)) ctx)))))))
 
 ;;; stx-ctx-add-then-flip : ctx phase scp-add scp-flip -> ctx
 ;;; ADD then FLIP in one pass.  scp-add/scp-flip are assumed freshly
@@ -99,14 +111,16 @@
 ;;; path of expand-macro-once's input preprocessing.
 
 (define (stx-ctx-add-then-flip ctx phase scp-add scp-flip)
-  (let ((entry (assoc phase ctx)))
-    (if entry
-        (map (lambda (e)
-               (if (= (car e) phase)
-                   (cons phase (cons scp-flip (cons scp-add (cdr e))))
-                   e))
-             ctx)
-        (cons (cons phase (list scp-flip scp-add)) ctx))))
+  (if (and (pair? ctx) (eq? (caar ctx) phase) (null? (cdr ctx)))
+    (list (cons phase (cons scp-flip (cons scp-add (cdar ctx)))))
+    (let ((entry (assoc phase ctx)))
+      (if entry
+          (map (lambda (e)
+                 (if (= (car e) phase)
+                     (cons phase (cons scp-flip (cons scp-add (cdr e))))
+                     e))
+               ctx)
+          (cons (cons phase (list scp-flip scp-add)) ctx)))))
 
 ;;; stx-ctx-add-unchecked : ctx phase scp -> ctx
 ;;; Single-scope ADD assuming scp is freshly allocated (absent): an
@@ -114,14 +128,16 @@
 ;;; The expand-macro-once use-scope marking hot path calls this directly.
 
 (define (stx-ctx-add-unchecked ctx phase scp)
-  (let ((entry (assoc phase ctx)))
-    (if entry
-        (map (lambda (e)
-               (if (= (car e) phase)
-                   (cons phase (cons scp (cdr e)))
-                   e))
-             ctx)
-        (cons (cons phase (list scp)) ctx))))
+  (if (and (pair? ctx) (eq? (caar ctx) phase) (null? (cdr ctx)))
+    (list (cons phase (cons scp (cdar ctx))))
+    (let ((entry (assoc phase ctx)))
+      (if entry
+          (map (lambda (e)
+                 (if (= (car e) phase)
+                     (cons phase (cons scp (cdr e)))
+                     e))
+               ctx)
+          (cons (cons phase (list scp)) ctx)))))
 
 ;;; stx-add-scope-unchecked : syntax scp [phase] -> syntax
 ;;; Tree-wide ADD of a freshly-allocated scope: like stx-add-scope, but
@@ -201,6 +217,23 @@
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-add-then-flip ctx ph scp-add scp-flip))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
+
+;;; stx-add-and-flip-many : syntax scp-or-#f (list scp) [phase] -> syntax
+;;; One tree walk that ADDS scp-add (when non-#f) and FLIPS by each of
+;;; flips to every node's context.  Scope set ops commute, so a single
+;;; traversal replaces 1 + (length flips) separate stx-apply-ctx walks
+;;; (the local-expand / syntax-local-introduce hot paths).
+
+(define-public (stx-add-and-flip-many stx scp-add flips . maybe-phase)
+  (let ((phase (if (null? maybe-phase) 0 (car maybe-phase))))
+    (stx-apply-ctx stx
+      (lambda (ctx ph)
+        (let ((ctx1 (if scp-add (stx-ctx-add ctx ph scp-add) ctx)))
+          (let loop ((c ctx1) (fs flips))
+            (if (null? fs)
+              c
+              (loop (stx-ctx-flip c ph (car fs)) (cdr fs))))))
+      phase)))
 
 (define-public (stx-prune-scopes stx scps . maybe-phase)
   (stx-apply-ctx stx
