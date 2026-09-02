@@ -60,7 +60,7 @@
            (addr-env (defs-addr defs))
            (env-defs (store-def-env-ref (context-store ctx) addr-env))
            (env-unstops (env-map-values binding-unstop env-defs))
-           (stx1 (stx-add-scope-unchecked stx scp-in ph))
+           (stx1 (stx-add-scope stx scp-in ph))
            (ctx0 (context-with-env ctx env-unstops)))
       (let*-values (((form c) (scan-head-loop stx1 ctx0)))
         (let ((c1 (context-with-use-scopes (context-return ctx c)
@@ -103,9 +103,9 @@
                   (let*-values (((stxs1 var-defs1 exprs1)
                                  (scan-def-form rhead result stxs defs var-defs exprs)))
                     (expand-body-seq stxs1 defs var-defs1 exprs1 saved-ctx))
-                  (let ((deferred (stx-add-scope-unchecked stx
-                                                           (defs-scp-in defs)
-                                                           (context-phase ctx1))))
+                  (let ((deferred (stx-add-scope stx
+                                                 (defs-scp-in defs)
+                                                 (context-phase ctx1))))
                     (expand-body-seq (cdr stxs) defs var-defs
                                      (cons deferred exprs) saved-ctx))))))))
 

@@ -32,7 +32,7 @@
                            (values #f ctx2))))
           (let ((ctx4 (context-reset-use-scopes (context-add-prune-scope ctx3 scp))))
             (let*-values (((body-sexp ctx5)
-                           (expand-body (map (lambda (s) (stx-add-scope-unchecked s scp ph)) body-stxs) ctx4)))
+                           (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) ctx4)))
               (let ((params (if rest-name
                                 (append names rest-name)
                                 names)))
@@ -65,7 +65,7 @@
 ;;; expand-lambda-binding : syntax context scope phase -> (values name ctx)
 
 (define (expand-lambda-binding id ctx scp ph)
-  (let ((id (stx-add-scope-unchecked id scp ph)))
+  (let ((id (stx-add-scope id scp ph)))
     (require-identifier id "lambda: expected identifier")
     (let*-values (((name ctx1) (context-alloc-name ctx id)))
       (values name
@@ -214,7 +214,7 @@
         (let*-values (((inits ctx3)
                        (expand-letrec-inits binding-stxs ctx2 names scp ph)))
           (let*-values (((body-sexp ctx4)
-                         (expand-body (map (lambda (s) (stx-add-scope-unchecked s scp ph)) body-stxs) (context-reset-use-scopes (context-add-prune-scope ctx3 scp)))))
+                         (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) (context-reset-use-scopes (context-add-prune-scope ctx3 scp)))))
             (values (datum->syntax stx `(,form-name ,(map list names inits) ,body-sexp))
                     (context-return ctx ctx4))))))))
 
@@ -227,7 +227,7 @@
         (values (reverse names) c)
         (let* ((bs-stx (car bs))
                (b (syntax-form bs-stx))
-               (id (stx-add-scope-unchecked (car b) scp ph)))
+               (id (stx-add-scope (car b) scp ph)))
           (require-identifier id "letrec: expected identifier")
           (let*-values (((name c*) (context-alloc-name c id)))
             (loop (cdr bs)
@@ -242,7 +242,7 @@
         (values (reverse inits) c)
         (let* ((bs-stx (car bs))
                (b (syntax-form bs-stx))
-               (init-stx (stx-add-scope-unchecked (cadr b) scp ph)))
+               (init-stx (stx-add-scope (cadr b) scp ph)))
           (let*-values (((init-sexp c*) (expand-expr init-stx c)))
             (loop (cdr bs) c* (cons init-sexp inits)))))))
 
@@ -267,7 +267,7 @@
       (let*-values (((ctx2) (expand-syntax-bindings binding-stxs ctx1 scp ph)))
         (let ((ctx3 (context-reset-use-scopes (context-add-prune-scope ctx2 scp))))
           (let*-values (((sexp ctx4)
-                         (expand-body (map (lambda (s) (stx-add-scope-unchecked s scp ph)) body-stxs) ctx3)))
+                         (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) ctx3)))
             (values sexp (context-return ctx ctx4))))))))
 
 ;;; letrec-syntax
@@ -284,7 +284,7 @@
       (let*-values (((ctx2) (expand-syntax-bindings/rec binding-stxs ctx1 scp ph)))
         (let ((ctx3 (context-reset-use-scopes (context-add-prune-scope ctx2 scp))))
           (let*-values (((sexp ctx4)
-                         (expand-body (map (lambda (s) (stx-add-scope-unchecked s scp ph)) body-stxs) ctx3)))
+                         (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) ctx3)))
             (values sexp (context-return ctx ctx4))))))))
 
 (define (expand-syntax-bindings/rec binding-stxs ctx scp ph)
@@ -292,8 +292,8 @@
       (values ctx)
       (let* ((bs-stx (car binding-stxs))
              (b (syntax-form bs-stx))
-             (id (stx-add-scope-unchecked (car b) scp ph))
-             (transformer-stx (stx-add-scope-unchecked (cadr b) scp ph)))
+             (id (stx-add-scope (car b) scp ph))
+             (transformer-stx (stx-add-scope (cadr b) scp ph)))
         (require-identifier id "letrec-syntax: expected identifier")
         (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
           (let*-values (((name ctx1) (context-alloc-name ctx0 id)))
@@ -307,7 +307,7 @@
       (values ctx)
       (let* ((bs-stx (car binding-stxs))
              (b (syntax-form bs-stx))
-             (id (stx-add-scope-unchecked (car b) scp ph))
+             (id (stx-add-scope (car b) scp ph))
              (transformer-stx (cadr b)))
         (require-identifier id "let-syntax: expected identifier")
         (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
