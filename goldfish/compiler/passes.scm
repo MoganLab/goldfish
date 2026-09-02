@@ -411,19 +411,19 @@
     ;; termination argument), leaving a plain variable call otherwise.
     (define *inline-rec-var* (list 'inline-rec-var))
 
+    ;; A non-recursive lambda-typed binding is stored as (lambda . lam).
+    ;; Copying a lambda literal to several reference sites would allocate a
+    ;; fresh closure at each one, breaking eqv?/equal? identity on closures
+    ;; ((eq? p p) where p is let-bound).  So a lambda reference is never
+    ;; substituted in place; the call branch inlines it only at a direct
+    ;; application, where the closure is consumed and never observed.
+    (define *inline-lam* (list 'inline-lam))
+
     ;; lambda-self-referential? : symbol ir -> boolean
     ;; True when a lambda value refers to its own binding name anywhere in
     ;; its body (a recursive function).
     (define (lambda-self-referential? name lambda-ir)
       (member name (collect-residual-free (lambda-body lambda-ir))))
-
-    ;; recursive-env-lambda : env symbol -> ir or #f
-    ;; The recursive lambda a name is bound to in env, or #f.
-    (define (recursive-env-lambda env name)
-      (let ((v (assq name env)))
-        (if (and v (pair? (cdr v)) (eq? (car (cdr v)) *inline-rec-var*))
-          (cdr (cdr v))
-          #f)))
 
     ;; const-arg? : ir -> boolean
     ;; A statically-known argument: a const record or a self-evaluating atom.
@@ -435,16 +435,16 @@
       (fold-left (lambda (e n) (cons (cons n *inline-var*) e)) env names))
     (define (env-extend-safes env bindings assigned)
       (fold-left (lambda (e b)
-                   (cons (cons (car b)
-                               (if (or (member (car b) assigned)
-                                       (not (safe-inline-value? (cadr b))))
-                                 *inline-var*
-                                 (if (and (lambda? (cadr b))
-                                          (lambda-self-referential?
-                                           (car b) (cadr b)))
-                                   (cons *inline-rec-var* (cadr b))
-                                   (cadr b))))
-                         e))
+                   (let ((v (if (or (member (car b) assigned)
+                                    (not (safe-inline-value? (cadr b))))
+                              *inline-var*
+                              (if (lambda? (cadr b))
+                                (if (lambda-self-referential?
+                                     (car b) (cadr b))
+                                  (cons *inline-rec-var* (cadr b))
+                                  (cons *inline-lam* (cadr b)))
+                                (cadr b)))))
+                     (cons (cons (car b) v) e)))
                  env bindings))
 
     ;; beta-bindings : formals (list ir) -> (list (name value)) or #f
@@ -517,11 +517,15 @@
 
     ;; prune-let-bindings : head names vals body-inl -> ir
     ;; After inlining the body, drop bindings whose name is no longer
-    ;; referenced anywhere (binding values and body).  When none survive
-    ;; the let collapses to its body.
+    ;; referenced anywhere (binding values and body).  A binding whose
+    ;; value has an observable effect (a call, a set!, anything not
+    ;; pure-ir?) must survive even when unused: applicative order evaluates
+    ;; it in place (a discarded `(_ (validate ...))` binding would skip an
+    ;; error raise).  When none survive the let collapses to its body.
     (define (pure-ir? ir)
       (cond
-        ((or (const? ir) (void? ir) (primitive-ref? ir) (symbol? ir)
+        ((or (const? ir) (void? ir) (primitive-ref? ir) (toplevel-ref? ir)
+             (module-ref? ir) (symbol? ir) (lexical-ref? ir)
              (and (not (pair? ir)) (not (vector? ir))))
          #t)
         ((lambda? ir) #t)
@@ -532,6 +536,11 @@
               (pure-ir? (conditional-consequent ir))
               (or (not (conditional-alternate ir))
                   (pure-ir? (conditional-alternate ir)))))
+        ((primcall? ir) #t)
+        ((let? ir)
+         (and (every pure-ir? (let-vals ir)) (pure-ir? (let-body ir))))
+        ((letrec? ir)
+         (and (every pure-ir? (letrec-vals ir)) (pure-ir? (letrec-body ir))))
         (else #f)))
 
     (define (prune-let-bindings head names vals body-inl)
@@ -545,7 +554,12 @@
                         names vals))
              (body-free (collect-residual-free body-inl))
              (surviving-names
-               (let grow ((alive (filter (lambda (n) (member n body-free)) names)))
+               (let grow ((alive (filter (lambda (n)
+                                           (or (member n body-free)
+                                               (not (pure-ir?
+                                                     (cadr (assoc n
+                                                                  (map list names vals)))))))
+                                         names)))
                  (let* ((referenced
                          (apply append
                                 (map (lambda (n)
@@ -593,7 +607,8 @@
              (cond
                ((and v (not (eq? (cdr v) *inline-var*))
                      (not (and (pair? (cdr v))
-                               (eq? (car (cdr v)) *inline-rec-var*))))
+                               (memq (car (cdr v))
+                                     (list *inline-rec-var* *inline-lam*)))))
                 (begin (inline-spend-effort! budget 1) (cdr v)))
                (else ir))))
           ((or (const? ir) (void? ir)) ir)
@@ -603,7 +618,8 @@
              (cond
                ((and v (not (eq? (cdr v) *inline-var*))
                      (not (and (pair? (cdr v))
-                               (eq? (car (cdr v)) *inline-rec-var*))))
+                               (memq (car (cdr v))
+                                     (list *inline-rec-var* *inline-lam*)))))
                 (begin (inline-spend-effort! budget 1) (cdr v)))
                (else ir))))
           ((lambda? ir)
@@ -690,25 +706,40 @@
                               (letrec-vals p)
                               (make-call #f (letrec-body p) (call-args ir)))
                  env budget)
-               (let ((f (inline-walk (call-proc ir) env budget))
-                     (args (map (lambda (a) (inline-walk a env budget))
-                                (call-args ir))))
-                 (let ((rec-lam (and (lexical-ref? f)
-                                     (recursive-env-lambda env (lexical-ref-name f)))))
+                (let ((f (inline-walk (call-proc ir) env budget))
+                      (args (map (lambda (a) (inline-walk a env budget))
+                                 (call-args ir))))
+                  ;; The callable lambda when the proc is a let/letrec-bound
+                  ;; closure (a lexical-ref into env) or a source lambda
+                  ;; literal.  Bound closures are stored behind *inline-* /
+                  ;; *inline-rec-var* markers so a reference is never copied
+                  ;; (copying would allocate a fresh closure per site and
+                  ;; break eqv?/equal? on closures); only a direct application
+                  ;; inlines, consuming the closure unobserved.
+                  (let* ((name (and (lexical-ref? f) (lexical-ref-name f)))
+                         (env-val (and name (assq name env)))
+                         (env-lam (and env-val (pair? (cdr env-val))
+                                       (memq (car (cdr env-val))
+                                             (list *inline-rec-var* *inline-lam*))
+                                       (cdr (cdr env-val))))
+                         (env-rec? (and env-val (pair? (cdr env-val))
+                                        (eq? (car (cdr env-val)) *inline-rec-var*)))
+                         (lam (or env-lam (and (lambda? f) f)))
+                         (rec? (or env-rec? #f)))
                     (cond
                      ;; A recursive call: unroll only when every argument is a
                      ;; constant (the recursion then folds through it); leave a
                      ;; plain variable call when an argument is unknown.  A
                      ;; zero-argument call unrolls nothing (no termination
                      ;; argument to fold through), so it stays a variable call.
-                     ((and rec-lam (not (inline-budget-spent? budget)))
+                     ((and lam rec? (not (inline-budget-spent? budget)))
                       (if (and (pair? args) (every const-arg? args))
-                        (let ((bindings (beta-bindings (or (lambda-formals rec-lam) '()) args)))
+                        (let ((bindings (beta-bindings (or (lambda-formals lam) '()) args)))
                           (if bindings
-                            (let* ((lc (lambda-body rec-lam))
+                            (let* ((lc (lambda-body lam))
                                    (body (if (lambda-case? lc)
-                                            (lambda-case-body lc)
-                                            lc))
+                                             (lambda-case-body lc)
+                                             lc))
                                    (let-form (make-let #f
                                                        (map car bindings)
                                                        (map car bindings)
@@ -719,13 +750,13 @@
                               (inline-walk let-form env budget))
                             (make-call #f f args)))
                         (make-call #f f args)))
-                     ((and (lambda? f) (not (inline-budget-spent? budget)))
-                      (let ((bindings (beta-bindings (or (lambda-formals f) '()) args)))
+                     ((and lam (not rec?) (not (inline-budget-spent? budget)))
+                      (let ((bindings (beta-bindings (or (lambda-formals lam) '()) args)))
                         (if bindings
-                          (let* ((lc (lambda-body f))
+                          (let* ((lc (lambda-body lam))
                                  (body (if (lambda-case? lc)
-                                          (lambda-case-body lc)
-                                          lc))
+                                           (lambda-case-body lc)
+                                           lc))
                                  (let-form (make-let #f
                                                      (map car bindings)
                                                      (map car bindings)
