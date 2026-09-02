@@ -963,21 +963,22 @@
         (eval-defs (cdr defs) env)))))
 
 ;; optimize-expansion-defs : (list syntax) context -> (list sexp)
-;; Apply the active compiler pipeline to expanded defs (the per-form /
-;; REPL path, mirroring the cached paths).  The defs are un-lowered syntax
-;; objects, so the pipeline runs via syntax->ir, which keeps the
-;; binding-kind information (primitive references).  compile-defs-on-load
-;; lives in the (goldfish)
-;; library, not in this early seed's rootlet, so it is fetched via
-;; module-ref; unavailable or failing, defs pass through unchanged
-;; (optimization is optional).
+;; Session/REPL per-form path: eval the defs lowered, no compilation.
+;; Batch files and cached libraries get their optimization baked into their
+;; artifacts at cache-write time (optimize-on-load / optimize-lib-cache-recs
+;; -> compile-defs-cached), so running the peval pipeline here would only
+;; force-load the (goldfish compiler) library (~90ms) to optimize the
+;; trivial registration defs an import/define produces.  Compilation is
+;; never a correctness requirement (semantics-preserving), so lowering here
+;; only trades the rare REPL-peval speedup for a fast, compiler-free boot.
+;; The per-form defs are un-lowered syntax objects.
 
 (define (optimize-expansion-defs defs ctx)
-  (let ((f (catch
-             #t
-             (lambda () (module-ref the-expander-library 'compile-defs-on-load))
-             (lambda (type info) #f))))
-    (if (procedure? f) (f defs ctx) (map lower defs))))
+  ;; Session/REPL path: evaluate lowered.  Batch files and cached libraries
+  ;; already have optimized defs baked into their artifacts (optimize-on-load
+  ;; / optimize-lib-cache-recs at cache-write time), so peval here would
+  ;; force-load the compiler (~90ms) to optimize trivial registration defs.
+  (map lower defs))
 
 (define *eval-ctx* #f)
 

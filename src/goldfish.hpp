@@ -1211,13 +1211,14 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
     gf::eval_c_string (sc, "(load-expanded \"liii/reader.scm\")");
     gf::eval_c_string (sc, "(load-expanded \"expander/lib/install.scm\" '(expander lib install))");
     gf::eval_c_string (sc, "(install-standard-library!)");
-    // Preload the compiler so library captures after this point hold
-    // resolved bindings instead of deferred name lookups.  load-library! is a
-    // plain function (resolvable in the rootlet), so this runs through s7
-    // directly -- NOT goldfish_eval_through_reader -- to avoid importing
-    // (goldfish) into the session program library (which would leak the
-    // implementation surface into a strict r7rs program).
-    gf::eval_c_string (sc, "(load-library! '(goldfish compiler))");
+    // No compiler preload: the (goldfish compiler) library (~90ms to load)
+    // is now pulled in lazily, only when a capture/compile actually happens
+    // (cold compile-file-cached, library capture, or an OPT>0 import that
+    // goes through compile-defs-on-load).  Session top-level forms evaluate
+    // lowered (see optimize-expansion-defs in liii/reader.scm), so a plain
+    // batch run on a warm cache never touches the compiler.  Removing this
+    // unconditional preload cut a trivial-program r7rs boot from ~210ms to
+    // ~90ms (kernel 5 + lib-layer 40 + import 21 + program).
     g_expander_online= true;
   }
 
