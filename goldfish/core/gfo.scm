@@ -139,9 +139,23 @@
 ;;; the first release format, so dev caches invalidate on release.
 (define gfo-format-version 0)
 
+;;; gfo-read-datum : path -> datum
+;;; Read a cache file's single record through the native C++ bootstrap
+;;; reader when available: parsing a cached record with the pure-Scheme R7RS
+;;; reader costs far more (measured ~6-25x), and cache loads dominate warm
+;;; startup.  The tiny reader is extended to cover the full cache vocabulary
+;;; (lists holding the `...' symbol, multi-byte UTF-8 character literals,
+;;; #(...) vectors) and GC-protects its accumulating lists; objects it
+;;; builds evaluate identically to the pure-Scheme reader's.
+(define (gfo-read-datum file)
+  (let ((p (open-input-file file)))
+    (if (and (defined? 'g-tiny-read) (procedure? g-tiny-read))
+      (g-tiny-read p)
+      (car (read-forms p)))))
+
 (define (gfo-valid? gfo-file stamp)
   (and (file-exists? gfo-file)
-       (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
+       (let ((rec (gfo-read-datum gfo-file)))
          (and (pair? rec) (eq? (car rec) 'gfo)
               (equal? (cadr rec) gfo-format-version)
               (equal? (caddr rec) stamp)))))
@@ -152,7 +166,7 @@
 ;; payload on a hit must not parse the file twice.  Returns #f on miss.
 (define (gfo-load gfo-file stamp)
   (and (file-exists? gfo-file)
-       (let ((rec (car (read-forms (open-input-file gfo-file)))))
+       (let ((rec (gfo-read-datum gfo-file)))
          (and (pair? rec) (eq? (car rec) 'gfo)
               (equal? (cadr rec) gfo-format-version)
               (equal? (caddr rec) stamp)
@@ -163,7 +177,7 @@
 ;; returns the whole (gfo version stamp payload extra) form, unchecked.
 (define (gfo-load-record gfo-file)
   (and (file-exists? gfo-file)
-       (car (read-forms (open-input-file gfo-file)))))
+       (gfo-read-datum gfo-file)))
 
 ;; gfo-write! : gfo-file stamp payload [extra] -> bool
 ;; `extra' (when given) is stored as the record's fifth field; readers that

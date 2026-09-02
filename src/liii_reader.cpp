@@ -66,6 +66,51 @@ static gf::pointer tiny_read_form (gf::scheme* sc, gf::pointer port);
 
 static gf::pointer tiny_read_string_core (gf::scheme* sc, gf::pointer port, gf::int_ rdelim);
 
+// Read a #(...) vector: elements are read like a list (no dotted pair) into
+// a GC-protected list, then materialized as an s7 vector.
+static gf::pointer
+tiny_read_vector (gf::scheme* sc, gf::pointer port) {
+  tiny_next (sc, port);  // consume '('
+  gf::pointer head = gf::nil (sc);
+  gf::pointer tail = gf::nil (sc);
+  int head_loc = -1;
+  while (true) {
+    tiny_skip_ws (sc, port);
+    gf::int_ d = tiny_peek (sc, port);
+    if (d < 0)
+      return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                       gf::list (sc, gf::make_string (sc, "unterminated vector")));
+    if (d == ')') {
+      tiny_next (sc, port);
+      break;
+    }
+    gf::pointer el = tiny_read_form (sc, port);
+    if (head_loc < 0) {
+      head = gf::cons (sc, el, gf::nil (sc));
+      tail = head;
+      head_loc = gf::gc_protect (sc, head);
+    } else {
+      gf::pointer cell = gf::cons (sc, el, gf::nil (sc));
+      gf::set_cdr (tail, cell);
+      tail = cell;
+    }
+  }
+  // count elements, then fill the vector
+  int n = 0;
+  for (gf::pointer p = head; !gf::is_null (sc, p); p = gf::cdr (p))
+    n++;
+  gf::pointer vec = gf::make_vector (sc, n);
+  int i = 0;
+  for (gf::pointer p = head; !gf::is_null (sc, p); p = gf::cdr (p)) {
+    gf::vector_set (sc, vec, i, gf::car (p));
+    i++;
+  }
+  if (head_loc >= 0)
+    gf::gc_unprotect_at (sc, head_loc);
+  return vec;
+}
+
+
 static gf::pointer
 tiny_read_string (gf::scheme* sc, gf::pointer port) {
   tiny_next (sc, port);  // consume "
@@ -78,6 +123,21 @@ tiny_read_char (gf::scheme* sc, gf::pointer port) {
   if (c < 0) {
     return gf::error (sc, gf::make_symbol (sc, "read-error"),
                      gf::list (sc, gf::make_string (sc, "unexpected end of input in character")));
+  }
+  // A character literal may be a multi-byte UTF-8 code point (written bare
+  // as e.g. #\　): decode the continuation bytes when the first byte is a
+  // UTF-8 lead byte, so the literal reads back as the full code point.
+  if (c >= 0xc2 && c <= 0xf4) {
+    int extra = (c <= 0xdf) ? 1 : (c <= 0xef) ? 2 : 3;
+    int v = c & ((c <= 0xdf) ? 0x1f : (c <= 0xef) ? 0x0f : 0x07);
+    for (int i = 0; i < extra; i++) {
+      gf::int_ b = tiny_next (sc, port);
+      if (b < 0x80 || b > 0xbf)
+        return gf::error (sc, gf::make_symbol (sc, "read-error"),
+                         gf::list (sc, gf::make_string (sc, "invalid UTF-8 in character")));
+      v = (v << 6) | (b & 0x3f);
+    }
+    return gf::make_character (sc, v);
   }
   // hex escape: #\x followed by hex digits (or #\x alone = the char x)
   if (c == 'x' || c == 'X') {
@@ -396,47 +456,62 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
     gf::pointer head = gf::nil (sc);
     gf::pointer tail = gf::nil (sc);
     bool first = true;
+    int head_loc = -1;   // gf::gc_protect loc once the list is allocated
     while (true) {
       tiny_skip_ws (sc, port);
       gf::int_ d = tiny_peek (sc, port);
       if (d < 0) {
+        if (head_loc >= 0)
+          gf::gc_unprotect_at (sc, head_loc);
         return gf::error (sc, gf::make_symbol (sc, "read-error"),
                          gf::list (sc, gf::make_string (sc, "unterminated list")));
       }
       if (d == close) {
         tiny_next (sc, port);
+        if (head_loc >= 0)
+          gf::gc_unprotect_at (sc, head_loc);
         return head;
       }
-      if (d == '.' && (first || true)) {
-        // dotted pair: require a delimiter after the dot
-        gf::int_ after = tiny_peek (sc, port);
-        (void) after;
-        // peek past '.' without consuming: the dot is standalone iff the
-        // following char is a delimiter
+      gf::pointer el;
+      if (d == '.') {
+        // A '.' at an element position is a standalone dot (dotted pair)
+        // iff the following char is a delimiter; otherwise it is the start
+        // of a symbol token (e.g. the ellipsis `...'), which is read as an
+        // ordinary element.
         tiny_next (sc, port);
         if (tiny_is_delim (tiny_peek (sc, port))) {
           if (first) {
+            if (head_loc >= 0)
+              gf::gc_unprotect_at (sc, head_loc);
             return gf::error (sc, gf::make_symbol (sc, "read-error"),
                              gf::list (sc, gf::make_string (sc, "dot with no element")));
           }
           gf::pointer b = tiny_read_form (sc, port);
           tiny_skip_ws (sc, port);
           if (tiny_peek (sc, port) != close) {
+            gf::gc_unprotect_at (sc, head_loc);
             return gf::error (sc, gf::make_symbol (sc, "read-error"),
                              gf::list (sc, gf::make_string (sc, "bad dotted pair")));
           }
           tiny_next (sc, port);
           gf::set_cdr (tail, b);
+          gf::gc_unprotect_at (sc, head_loc);
           return head;
         }
-        // not a standalone dot: fall through and read it as a token
-        return tiny_read_token (sc, port, '.');
+        // not a standalone dot: '.' starts the token (already consumed);
+        // read the rest and continue the list with it as an element.
+        el = tiny_read_token (sc, port, '.');
+      } else {
+        el = tiny_read_form (sc, port);
       }
-      gf::pointer el = tiny_read_form (sc, port);
       if (first) {
         head = gf::cons (sc, el, gf::nil (sc));
         tail = head;
         first = false;
+        // The accumulating list is only reachable from this C++ frame; a GC
+        // during a deep read (large cached records) would otherwise collect
+        // it, returning dangling cells (<free cell!>).  Protect until done.
+        head_loc = gf::gc_protect (sc, head);
       } else {
         gf::pointer cell = gf::cons (sc, el, gf::nil (sc));
         gf::set_cdr (tail, cell);
@@ -477,6 +552,7 @@ tiny_read_form (gf::scheme* sc, gf::pointer port) {
     if (d == 't') { tiny_next (sc, port); return gf::t (sc); }
     if (d == 'f') { tiny_next (sc, port); return gf::f (sc); }
     if (d == '\\') { tiny_next (sc, port); return tiny_read_char (sc, port); }
+    if (d == '(') { return tiny_read_vector (sc, port); }
     if (d == 'x' || d == 'X') {
       // #x hexadecimal integer (bootstrap: only hex radix is needed)
       tiny_next (sc, port);
