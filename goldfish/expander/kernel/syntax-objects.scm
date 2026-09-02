@@ -228,7 +228,7 @@
   (let ((phase (if (null? maybe-phase) 0 (car maybe-phase))))
     (stx-apply-ctx stx
       (lambda (ctx ph)
-        (let ((ctx1 (if scp-add (stx-ctx-add ctx ph scp-add) ctx)))
+        (let ((ctx1 (if scp-add (stx-ctx-add-unchecked ctx ph scp-add) ctx)))
           (let loop ((c ctx1) (fs flips))
             (if (null? fs)
               c
