@@ -469,7 +469,11 @@
     ;; collect-residual-free : ir -> (list symbol)
     ;; Free symbols of an inlined body, ENTERING lambda/let bodies (minus
     ;; their bindings) but not const data.  Used to decide which let
-    ;; bindings are still referenced after copy propagation.
+    ;; bindings are still referenced after copy propagation.  A binding
+    ;; only shadows references INSIDE its own scope: the outer accumulator
+    ;; (references from enclosing code) must survive a nested let/lambda
+    ;; even when the nested binding reuses the same name (copy propagation
+    ;; and recursion unrolling nest copies that share binding names).
     (define (collect-residual-free ir)
       (let loop ((s ir) (acc '()))
         (cond
@@ -477,19 +481,24 @@
           ((or (const? s) (void? s)) acc)
           ((lambda? s)
            (let* ((b (lambda-body s))
-                  (bound (or (and (lambda-case? b) (lambda-case-req b)) '())))
-             (filter (lambda (x) (not (member x bound)))
-                     (loop b acc))))
+                  (bound (or (and (lambda-case? b) (lambda-case-req b)) '()))
+                  (inner (filter (lambda (x) (not (member x bound)))
+                                 (loop b '()))))
+             (fold-left (lambda (a x) (if (member x a) a (cons x a))) acc inner)))
           ((let? s)
-           (let ((bound (let-names s)))
-             (filter (lambda (x) (not (member x bound)))
-                     (let ((acc1 (loop (let-body s) acc)))
-                       (fold-left (lambda (a v) (loop v a)) acc1 (let-vals s))))))
+           (let* ((bound (let-names s))
+                  (inner (filter (lambda (x) (not (member x bound)))
+                                 (fold-left (lambda (a v) (loop v a))
+                                            (loop (let-body s) '())
+                                            (let-vals s)))))
+             (fold-left (lambda (a x) (if (member x a) a (cons x a))) acc inner)))
           ((letrec? s)
-           (let ((bound (letrec-names s)))
-             (filter (lambda (x) (not (member x bound)))
-                     (let ((acc1 (loop (letrec-body s) acc)))
-                       (fold-left (lambda (a v) (loop v a)) acc1 (letrec-vals s))))))
+           (let* ((bound (letrec-names s))
+                  (inner (filter (lambda (x) (not (member x bound)))
+                                 (fold-left (lambda (a v) (loop v a))
+                                            (loop (letrec-body s) '())
+                                            (letrec-vals s)))))
+             (fold-left (lambda (a x) (if (member x a) a (cons x a))) acc inner)))
           ((toplevel-define? s)
            (let ((val (toplevel-define-exp s)))
              (if (or (const? val) (void? val))
@@ -498,10 +507,8 @@
           ((lexical-ref? s)
            (if (member (lexical-ref-name s) acc) acc (cons (lexical-ref-name s) acc)))
           ((lexical-set? s)
-           (let ((acc1 (if (member (lexical-set-name s) acc)
-                           acc
-                           (cons (lexical-set-name s) acc))))
-             (loop (lexical-set-exp s) acc1)))
+           (loop (lexical-set-exp s)
+                 (if (member (lexical-set-name s) acc) acc (cons (lexical-set-name s) acc))))
           (else
            (let loop2 ((cs (ir-children s)) (acc acc))
              (if (null? cs)
