@@ -889,9 +889,8 @@
 ;;; read-goldfish-record : port -> record
 ;;; Read #g(tag field ...) -- the write-roundtrip serialization of a
 ;;; vector-layout record -- and rebuild the record with its type intact.
-;;; Field values are ordinary data (read recursively); exp-library bindings
-;;; are an alist (name . binding) pairs, read as proper lists and converted
-;;; back to dotted pairs.
+;;; Field values are ordinary data (read recursively); an exp-library's
+;;; second field is its bucket vector, restored verbatim.
 
 (define (read-goldfish-record port)
   ;; Read one field: skip whitespace/comments and read via read-expr, NOT
@@ -913,15 +912,14 @@
            (error 'read-error "malformed #g(syntax ...)"))))
       ((exp-library)
        (let ((name (read-field))
-             (bindings (read-field)))
+             (buckets (read-field)))
          (if (eqv? (peek port) #\))
            (begin
              (next port)
              (let ((lib (make-exp-library name)))
-               (for-each (lambda (e)
-                           (if (pair? e)
-                             (exp-library-define! lib (car e) (cdr e))))
-                         bindings)
+               (if (vector? buckets)
+                 (set-exp-library-buckets! lib buckets)
+                 (error 'read-error "malformed #g(exp-library ...)"))
                lib))
            (error 'read-error "malformed #g(exp-library ...)"))))
       ((binding)
@@ -1168,8 +1166,7 @@
                (let loop ((i 1))
                  (if (< i (vector-length v))
                    (begin
-                     (if (not (and (= i 2) (exp-library-record? v)))
-                       (walk (vector-ref v i) seen*))
+                     (walk (vector-ref v i) seen*)
                      (loop (+ i 1))))))))
           ((and (vector? v) (not (bytevector? v)) (not (record-instance? v)))
            (count-ref v)
@@ -1272,7 +1269,12 @@
                (display "#g(exp-library " p)
                (wrt (vector-ref v 1))  ; name
                (display " " p)
-               (wrt '())  ; bindings: replay from source on load
+               ;; The bucket vector round-trips so a serialized library is
+               ;; not empty on load.  It must be the STORED vector, not a
+               ;; materialized alist: the writer's cycle detection compares
+               ;; object identity, and fresh alist pairs would hide the
+               ;; self-referential bindings (home -> this library).
+               (wrt (vector-ref v 2))
                (display ")" p))
               ((string=? name-str "<binding>")
                (display "#g(binding " p)

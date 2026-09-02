@@ -16,6 +16,7 @@
 
 #include "gf.h"
 #include <string>
+#include <cstdlib>
 
 namespace goldfish {
 
@@ -210,6 +211,19 @@ tiny_read_token (gf::scheme* sc, gf::pointer port, gf::int_ first) {
     if (neg)
       v = -v;
     return gf::make_integer (sc, (gf::int_) v);
+  }
+  // real?  cached libraries serialize float constants (e.g. 1e-12, 2.5e3,
+  // .5), so a token starting with a digit or '.' after an optional sign is
+  // tried as a number and only accepted when strtod consumes the whole
+  // token (a partial parse -- 1e, 1d3, 123abc -- stays a symbol).
+  if (i < tok.size ()) {
+    char c0= tok[i];
+    if ((c0 >= '0' && c0 <= '9') || c0 == '.') {
+      char* end= nullptr;
+      double d= std::strtod (tok.c_str (), &end);
+      if (end == tok.c_str () + static_cast<std::ptrdiff_t> (tok.size ()))
+        return gf::make_real (sc, d);
+    }
   }
   return gf::make_symbol (sc, tok.c_str ());
 }
