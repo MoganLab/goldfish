@@ -65,6 +65,7 @@
 (call-with-output-file (string-append badlib-sub "/bad-body-lib.scm")
   (lambda (p)
     (write '(define-library (gf bad-body-lib)
+              (import (goldfish))
               (export x)
               (begin (define x (let-syntax ((x 1)) x))))
            p)

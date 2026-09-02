@@ -1,4 +1,5 @@
 (define-library (liii project)
+  (import (goldfish))
   (import (scheme base) (liii base) (liii os) (liii path) (liii sort) (liii string) (liii list))
   (export project-root gfproject-load-config gfproject-tools gfproject-tool-imports function-libraries function-doc-hint)
   (begin

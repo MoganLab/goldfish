@@ -19,6 +19,7 @@
 ;;  SOFTWARE.
 
 (define-library (guenchi json)
+  (import (goldfish))
   (import (liii base)
     (liii chez)
     (liii alist)

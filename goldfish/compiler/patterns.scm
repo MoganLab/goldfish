@@ -14,6 +14,7 @@
 ;;; in field order after source.
 
 (define-library (goldfish compiler patterns)
+  (import (goldfish))
   (import (scheme base)
           (goldfish match))
   (export $void $const $primitive-ref $lexical-ref $lexical-set

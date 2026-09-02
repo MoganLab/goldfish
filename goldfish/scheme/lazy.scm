@@ -22,6 +22,7 @@
 ;; （见 expander/kernel/substrate.scm 与 liii/host-abi.scm）。
 
 (define-library (scheme lazy)
+  (import (goldfish))
   (import (scheme base) (goldfish))
   (export delay
     delay-force

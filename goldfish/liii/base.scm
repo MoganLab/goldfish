@@ -1,4 +1,5 @@
 (define-library (liii base)
+  (import (goldfish))
   (import (scheme base) (srfi srfi-2) (srfi srfi-8) (goldfish))
   (export and-let*
     receive

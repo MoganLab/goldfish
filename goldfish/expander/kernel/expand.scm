@@ -86,8 +86,9 @@
 ;;; True for a top-level program library (R7RS 5.1: a program's initial
 ;;; environment is empty -- its bindings come only from its imports, and
 ;;; free identifiers that resolve nowhere are errors, not ambient host
-;;; names).  Library bodies (define-library) are NOT program libraries:
-;;; their free names may still fall back to the base library / rootlet.
+;;; names).  A library body is resolved the same way (its own defines and
+;;; imports only); the difference is only that a body identifier left
+;;; unresolved stays bare and binds at run time in the host rootlet.
 
 (define (program-library? lib)
   (and lib
@@ -100,21 +101,20 @@
       (if binding
           (values name binding)
           (let ((lib (syntax-library stx)))
-            ;; R7RS 5.1 program strictness: a program uses only what it
-            ;; imports (its environment starts empty and accumulates imports),
-            ;; so a program identifier never falls back to the implementation
-            ;; library.  Real libraries share the implementation substrate,
-            ;; so they resolve unbound names against the base library.
-            (if (program-library? lib)
-                (values name (and lib (exp-library-ref-strict lib name)))
-                (let ((lib-binding (and lib (exp-library-ref lib name))))
-                  (if lib-binding
-                      (values name lib-binding)
-                      (let ((base-binding (let ((bl (base-library)))
-                                            (and bl (exp-library-ref bl name)))))
-                        (if base-binding
-                            (values name base-binding)
-                            (values name #f)))))))))))
+            ;; A library (or program) sees only its own defines and its
+            ;; imports: there is no ambient implementation library, and
+            ;; R7RS 5.1 program strictness (a program's environment starts
+            ;; empty and accumulates its imports) falls out of the same
+            ;; lookup.  Home-less identifiers (syntax-library #f) are only
+            ;; ever produced by the kernel's own body lowering, which emits
+            ;; bare core references (lambda/letrec*/...); those resolve
+            ;; against the base substrate directly.
+            (if lib
+                (if (program-library? lib)
+                    (values name (exp-library-ref-strict lib name))
+                    (values name (exp-library-ref lib name)))
+                (let ((bl (base-library)))
+                  (values name (and bl (exp-library-ref-own bl name))))))))))
 
 (define (expand-atom stx ctx)
   (let ((form (syntax-form stx)))

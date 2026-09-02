@@ -11,6 +11,7 @@
 ;;; compiler) interface for the load-path integration and the test suite.
 
 (define-library (goldfish compiler)
+  (import (goldfish))
   (import (goldfish core ir)
           (goldfish compiler patterns)
           (goldfish compiler passes))

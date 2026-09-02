@@ -27,6 +27,7 @@
 ;;; here (lexical addressing is computed here regardless).
 
 (define-library (goldfish expander tree-il)
+  (import (goldfish))
   (import (scheme base)
           (goldfish)
           (goldfish core ir))

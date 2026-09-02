@@ -15,6 +15,7 @@
 ;;;   - top-level defs are <toplevel-define>.
 
 (define-library (goldfish compiler passes)
+  (import (goldfish))
   (import (scheme base)
           (goldfish match)
           (goldfish compiler patterns)

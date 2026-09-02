@@ -1,4 +1,5 @@
 (define-library (goldfish core ir)
+  (import (goldfish))
   (import (scheme base))
   (export make-const const? const-source const-exp
     make-primitive-ref primitive-ref? primitive-ref-source primitive-ref-name

@@ -1,4 +1,5 @@
 (define-library (goldfish repro-hygiene)
+  (import (goldfish))
   (import (scheme base))
   (export gen-defval
     gen-defval2

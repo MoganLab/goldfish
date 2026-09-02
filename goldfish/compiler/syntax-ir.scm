@@ -6,6 +6,7 @@
 ;;; adds the pass-aware compile-syntax-defs.
 
 (define-library (goldfish compiler syntax-ir)
+  (import (goldfish))
   (import (scheme base)
           (goldfish)
           (goldfish core ir)

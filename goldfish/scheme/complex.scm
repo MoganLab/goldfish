@@ -18,6 +18,7 @@
 ;; ; Complex number operations
 
 (define-library (scheme complex)
+  (import (goldfish))
   (export make-rectangular make-polar real-part imag-part magnitude angle)
   (import (scheme base) (goldfish))
 ) ;define-library

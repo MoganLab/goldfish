@@ -19,6 +19,7 @@
 ;; exact/inexact 以 R5RS 名字 inexact->exact / exact->inexact 导出）。
 
 (define-library (scheme r5rs)
+  (import (goldfish))
   (import (scheme base) (scheme char) (scheme complex) (scheme cxr) (goldfish))
   (export
     * + - / < <= = > >= abs acos and angle append apply asin assoc assq assv

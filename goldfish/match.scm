@@ -26,6 +26,7 @@
 ;;; forms) are compiled to a small NFA virtual machine.
 
 (define-library (goldfish match)
+  (import (goldfish))
   (import (scheme base)
           (scheme case-lambda))
   (export match
