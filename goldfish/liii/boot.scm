@@ -121,6 +121,16 @@
                     the-base-library
                     (make-exp-library (car maybe-lib)))
                   (make-exp-library '(liii reader))))
+           ;; Seed files (reader.scm, install.scm, ...) expand in a bare
+           ;; library whose only import is the implementation library
+           ;; itself: there is no ambient base, so link the base library
+           ;; on as an explicit use.  The base's live buckets are consulted
+           ;; (its accessor reads the current vector), so names the base
+           ;; gains later remain visible -- the same dynamic view the old
+           ;; ambient fallback gave.
+           (dummy (when (and (base-library)
+                             (not (eq? lib (base-library))))
+                    (exp-library-add-use! lib (base-library))))
            (artifact (or (load-find-module-file "expander/kernel-combined.scm")
                          "expander/kernel-combined.scm"))
            (stamp (list (g_path-getmtime file) (g_path-getsize file)

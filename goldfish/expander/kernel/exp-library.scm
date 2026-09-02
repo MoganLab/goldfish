@@ -83,16 +83,12 @@
       (exp-library-use-ref lib name)))
 
 (define (exp-library-ref lib name)
-  ;; own defines, then the shared import views, then the base
-  ;; (implementation) library: real libraries share the implementation
-  ;; substrate instead of each copying its ~830 bindings at import.
-  ;; Program strictness is enforced by resolve-identifier, which uses
-  ;; exp-library-ref-strict for program libraries.
-  (or (exp-library-ref-strict lib name)
-      (let ((base *base-library*))
-        (and base
-             (not (eq? lib base))
-             (exp-library-ref-own base name)))))
+  ;; own defines, then the shared import views.  There is no ambient base:
+  ;; a library (or program) resolves only what it defines and imports
+  ;; (goldfish is imported like any other library).  Program strictness is
+  ;; kept by resolve-identifier (expand.scm).
+  (or (exp-library-ref-own lib name)
+      (exp-library-use-ref lib name)))
 
 (define (exp-library-define! lib name value)
   (let* ((buckets (exp-library-buckets lib))

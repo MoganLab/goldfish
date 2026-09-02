@@ -874,13 +874,11 @@
 ;;; binding objects are shared either way, so emit and runtime linking are
 ;;; unchanged.
 
-;;; The implementation library (goldfish, the base) is ambient for real
-;;; library bodies: exp-library-ref falls back to it, so plain/only/except
-;;; imports of it add no view (the names resolve there without a per-library
-;;; copy -- ~20 base imports re-copied the table every warm boot, ~50ms).
-;;; prefix/rename still build a view, because they introduce names (g:foo)
-;;; the ambient fallback does not provide.  A program library has no ambient
-;;; base (R7RS 5.1) and records every import as a view.
+;;; The implementation library (goldfish) is imported like any other: it is
+;;; not ambient, so a library (or program) body only sees names it imports.
+;;; goldfish's exports are its live binding table (~830 names), so an
+;;; import of it -- one shared view, reused by every importer -- exposes
+;;; the substrate a system library is written against.
 
 (define *interface-cache* '())
 
@@ -945,53 +943,41 @@
 (define (import-except-into-library! lib spec)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
-    (unless (ambient-base-import? lib lib-name)
-      (let ((rec (source-record lib-name)))
-        (exp-library-add-use! lib
-          (import-view lib-name
-                       (let loop ((ns (lib-record-exports rec)) (acc '()))
-                         (if (null? ns)
-                           acc
-                           (if (memq (car ns) ids)
-                             (loop (cdr ns) acc)
-                             (loop (cdr ns)
-                                   (cons (cons (car ns) (car ns)) acc)))))
-                       (cons 'except ids) #t))))))
-
-;;; ambient-base-import? : lib lib-name -> boolean
-;;; True when a REAL library body imports the implementation library plain/
-;;; only/except: the ambient base fallback already exposes those names, so no
-;;; view is recorded.
-(define (ambient-base-import? lib lib-name)
-  (and (not (program-library? lib))
-       (base-library)
-       (equal? lib-name (exp-library-name (base-library)))))
-
-(define (import-plain-into-library! lib lib-name)
-  (unless (ambient-base-import? lib lib-name)
     (let ((rec (source-record lib-name)))
       (exp-library-add-use! lib
         (import-view lib-name
-                     (map (lambda (n) (cons n n))
-                          (lib-record-exports rec))
-                     'plain #t)))))
+                     (let loop ((ns (lib-record-exports rec)) (acc '()))
+                       (if (null? ns)
+                         acc
+                         (if (memq (car ns) ids)
+                           (loop (cdr ns) acc)
+                           (loop (cdr ns)
+                                 (cons (cons (car ns) (car ns)) acc)))))
+                     (cons 'except ids) #t)))))
+
+(define (import-plain-into-library! lib lib-name)
+  (let ((rec (source-record lib-name)))
+    (exp-library-add-use! lib
+      (import-view lib-name
+                   (map (lambda (n) (cons n n))
+                        (lib-record-exports rec))
+                   'plain #t))))
 
 (define (import-only-into-library! lib spec)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
-    (unless (ambient-base-import? lib lib-name)
-      (let ((rec (source-record lib-name)))
-        (let loop ((ids* ids) (pairs '()))
-          (if (null? ids*)
-            ;; An only-import selecting nothing (unknown ids) adds an empty
-            ;; view; skip it entirely.
-            (if (null? pairs)
-              #t
-              (exp-library-add-use! lib
-                (import-view lib-name pairs (cons 'only ids) #f)))
-            (if (memq (car ids*) (lib-record-exports rec))
-              (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
-              (loop (cdr ids*) pairs))))))))
+    (let ((rec (source-record lib-name)))
+      (let loop ((ids* ids) (pairs '()))
+        (if (null? ids*)
+          ;; An only-import selecting nothing (unknown ids) adds an empty
+          ;; view; skip it entirely.
+          (if (null? pairs)
+            #t
+            (exp-library-add-use! lib
+              (import-view lib-name pairs (cons 'only ids) #f)))
+          (if (memq (car ids*) (lib-record-exports rec))
+            (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
+            (loop (cdr ids*) pairs)))))))
 
 (define (import-prefix-into-library! lib spec)
   (let* ((lib-name (cadr spec))
