@@ -688,12 +688,14 @@
                                 (call-args ir))))
                  (let ((rec-lam (and (lexical-ref? f)
                                      (recursive-env-lambda env (lexical-ref-name f)))))
-                   (cond
+                    (cond
                      ;; A recursive call: unroll only when every argument is a
                      ;; constant (the recursion then folds through it); leave a
-                     ;; plain variable call when an argument is unknown.
+                     ;; plain variable call when an argument is unknown.  A
+                     ;; zero-argument call unrolls nothing (no termination
+                     ;; argument to fold through), so it stays a variable call.
                      ((and rec-lam (not (inline-budget-spent? budget)))
-                      (if (every const-arg? args)
+                      (if (and (pair? args) (every const-arg? args))
                         (let ((bindings (beta-bindings (or (lambda-formals rec-lam) '()) args)))
                           (if bindings
                             (let* ((lc (lambda-body rec-lam))
