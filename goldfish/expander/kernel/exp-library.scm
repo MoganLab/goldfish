@@ -35,16 +35,27 @@
           (modulo h el-map-bucket-count)
           (loop (+ i 1) (+ (* h 33) (char->integer (string-ref s i)))))))))
 
-(define (exp-library-ref lib name)
-  ;; name is a symbol for real lookups, but resolve-identifier can hand this
-  ;; a raw syntax object (its context-resolve fall-through) -- assq tolerated
-  ;; any key by simply never matching, so a non-symbol reads as #f.
+;; exp-library-ref-own : lib name -> binding/#f
+;; Lookup in the library's own table only.
+(define (exp-library-ref-own lib name)
   (if (symbol? name)
     (let ((e (assq name
                    (vector-ref (exp-library-buckets lib)
                                (el-map-hash name)))))
       (and e (cdr e)))
     #f))
+
+(define (exp-library-ref lib name)
+  ;; own table, then the base (implementation) library: libraries share the
+  ;; implementation substrate instead of each copying its ~830 bindings at
+  ;; import (import-plain-into-library! no longer materializes (goldfish)).
+  ;; Program strictness is enforced by resolve-identifier, which uses
+  ;; exp-library-ref-own for program libraries.
+  (or (exp-library-ref-own lib name)
+      (let ((base *base-library*))
+        (and base
+             (not (eq? lib base))
+             (exp-library-ref-own base name)))))
 
 (define (exp-library-define! lib name value)
   (let* ((buckets (exp-library-buckets lib))

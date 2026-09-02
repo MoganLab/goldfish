@@ -100,11 +100,16 @@
       (if binding
           (values name binding)
           (let ((lib (syntax-library stx)))
-            (let ((lib-binding (and lib (exp-library-ref lib name))))
-              (if lib-binding
-                  (values name lib-binding)
-                  (if (program-library? lib)
-                      (values name #f)
+            ;; R7RS 5.1 program strictness: a program uses only what it
+            ;; imports (its environment starts empty and accumulates imports),
+            ;; so a program identifier never falls back to the implementation
+            ;; library.  Real libraries share the implementation substrate,
+            ;; so they resolve unbound names against the base library.
+            (if (program-library? lib)
+                (values name (and lib (exp-library-ref-own lib name)))
+                (let ((lib-binding (and lib (exp-library-ref lib name))))
+                  (if lib-binding
+                      (values name lib-binding)
                       (let ((base-binding (let ((bl (base-library)))
                                             (and bl (exp-library-ref bl name)))))
                         (if base-binding

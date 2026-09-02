@@ -910,18 +910,26 @@
   ;; scsyntax/scheme/base.scm which re-exports the standard surface.
   ;; Exports are computed at import time so base macros installed later
   ;; (standard.scm) are included.
+  ;; Importing the base (implementation) library into a real library does
+  ;; NOT materialize its ~830 bindings: exp-library-ref falls back to the
+  ;; base library, so the names resolve there without a per-library copy
+  ;; (measured: ~20 base imports re-copy the table every warm boot, ~50ms).
+  ;; A program library still materializes its imports (R7RS 5.1: a
+  ;; program's environment is exactly its imports, resolved strictly).
   (let* ((base (base-library))
          (base? (and base (equal? lib-name (exp-library-name base))))
+         (skip? (and base? (not (program-library? lib))))
          (src (if base? base (lib-record-library (library-record lib-name))))
          (exports (if base?
                       (map car (exp-library-bindings base))
                       (lib-record-exports (library-record lib-name)))))
-    (for-each (lambda (name)
-                (let ((binding (exp-library-ref src name)))
-                  (unless binding
-                    (error "import: exported identifier has no binding" name))
-                  (exp-library-define! lib name binding)))
-              exports)))
+    (unless skip?
+      (for-each (lambda (name)
+                  (let ((binding (exp-library-ref src name)))
+                    (unless binding
+                      (error "import: exported identifier has no binding" name))
+                    (exp-library-define! lib name binding)))
+                exports))))
 
 (define (import-only-into-library! lib spec)
   (let* ((lib-name (cadr spec))
