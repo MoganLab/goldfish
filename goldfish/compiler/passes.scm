@@ -231,14 +231,17 @@
          (make-toplevel-define #f name (simplify-if value)))
         (($lambda meta body)
          (make-lambda #f meta (fold-lambda-body body simplify-if)))
-        (($conditional test then else)
+        (($conditional test then alt)
          (let* ((t (simplify-if test))
                 (th (simplify-if then))
-                (el (if else (simplify-if else) #f)))
+                (el (if alt
+                      (let ((e (simplify-if alt)))
+                        (if (vector? e) e (make-const #f e)))
+                      #f)))
            (cond
              ((const-boolean? t #t) th)
              ((const-boolean? t #f)
-              (if else el (make-conditional #f t th #f)))
+              (if el el (make-conditional #f t th #f)))
              (else (make-conditional #f t th el)))))
         (($seq head tail)
          (make-seq #f (simplify-if head) (simplify-if tail)))
@@ -646,7 +649,15 @@
                 (make-conditional #f test
                                   (inline-walk (conditional-consequent ir) env budget)
                                   (if (conditional-alternate ir)
-                                    (inline-walk (conditional-alternate ir) env budget)
+                                    ;; A walked alternate may be a bare
+                                    ;; self-evaluating atom (a `#f' literal
+                                    ;; stays raw in the IR); store it as a
+                                    ;; const node so the alternate slot never
+                                    ;; holds scheme #f -- which is also the
+                                    ;; "no alternate" marker.
+                                    (let ((a (inline-walk (conditional-alternate ir)
+                                                          env budget)))
+                                      (if (vector? a) a (make-const #f a)))
                                     #f))))))
           ((seq? ir)
            (make-seq #f (inline-walk (seq-head ir) env budget)
