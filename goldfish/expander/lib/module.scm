@@ -865,9 +865,62 @@
 ;;; R7RS adapter
 ;;; ------------------------------------------------------------------------
 
-;;; Import specs: (only lib id ...) / (prefix lib p) / (rename lib (from to) ...)
-;;; / plain library name.  Copies exported bindings from the source library
-;;; into the target library.
+;;; Import specs: (only lib id ...) / (except lib id ...) / (prefix lib p) /
+;;; (rename lib (from to) ...) / plain library name.  An import records a
+;;; SHARED view of the source library -- an interface exp-library holding the
+;;; source's exported bindings, built once and reused by every importer -- on
+;;; the target's uses, instead of copying the source's export table into the
+;;; target's own buckets.  Resolution walks own then the uses (exp-library.scm);
+;;; binding objects are shared either way, so emit and runtime linking are
+;;; unchanged.
+
+;;; The implementation library (goldfish, the base) is ambient for real
+;;; library bodies: exp-library-ref falls back to it, so plain/only/except
+;;; imports of it add no view (the names resolve there without a per-library
+;;; copy -- ~20 base imports re-copied the table every warm boot, ~50ms).
+;;; prefix/rename still build a view, because they introduce names (g:foo)
+;;; the ambient fallback does not provide.  A program library has no ambient
+;;; base (R7RS 5.1) and records every import as a view.
+
+(define *interface-cache* '())
+
+;;; base-lib-record : -> lib-record
+;;; The implementation kernel is not an on-disk library; treat it as a record
+;;; of its live bindings so imports of it work too.
+(define (base-lib-record)
+  (make-lib-record (base-library)
+                   (map car (exp-library-bindings (base-library)))))
+
+;;; source-record : lib-name -> (exp-library . exports)
+(define (source-record lib-name)
+  (if (and (base-library)
+           (equal? lib-name (exp-library-name (base-library))))
+    (base-lib-record)
+    (library-record lib-name)))
+
+;;; import-view : lib-name (list (visible-name . src-name)) modkey strict? -> view
+;;; Build (or reuse) the shared interface exp-library whose own buckets map
+;;; each visible name to the source's exported binding.  A name whose binding
+;;; is missing errors when strict?, and is skipped otherwise (only-imports).
+(define (import-view lib-name pairs modkey strict?)
+  (let* ((rec (source-record lib-name))
+         (src (lib-record-library rec))
+         (key (cons (cons src modkey) lib-name)))
+    (let ((e (assoc key *interface-cache*)))
+      (if e
+        (cdr e)
+        (let ((iface (make-exp-library (exp-library-name src))))
+          (for-each (lambda (p)
+                      (let ((binding (exp-library-ref src (cdr p))))
+                        (if binding
+                          (exp-library-define! iface (car p) binding)
+                          (when strict?
+                            (error "import: exported identifier has no binding"
+                                   (cdr p) lib-name)))))
+                    pairs)
+          (set! *interface-cache*
+                (cons (cons key iface) *interface-cache*))
+          iface)))))
 
 (define (import-into-library! lib imports)
   (for-each (lambda (spec-group)
@@ -891,94 +944,82 @@
 
 (define (import-except-into-library! lib spec)
   (let* ((lib-name (cadr spec))
-         (ids (cddr spec))
-         (rec (library-record lib-name)))
-    (let ((src (lib-record-library rec))
-          (exports (lib-record-exports rec)))
-      (for-each (lambda (name)
-                  (unless (memq name ids)
-                    (let ((binding (exp-library-ref src name)))
-                      (when binding
-                        (exp-library-define! lib name binding)))))
-                exports))))
+         (ids (cddr spec)))
+    (unless (ambient-base-import? lib lib-name)
+      (let ((rec (source-record lib-name)))
+        (exp-library-add-use! lib
+          (import-view lib-name
+                       (let loop ((ns (lib-record-exports rec)) (acc '()))
+                         (if (null? ns)
+                           acc
+                           (if (memq (car ns) ids)
+                             (loop (cdr ns) acc)
+                             (loop (cdr ns)
+                                   (cons (cons (car ns) (car ns)) acc)))))
+                       (cons 'except ids) #t))))))
+
+;;; ambient-base-import? : lib lib-name -> boolean
+;;; True when a REAL library body imports the implementation library plain/
+;;; only/except: the ambient base fallback already exposes those names, so no
+;;; view is recorded.
+(define (ambient-base-import? lib lib-name)
+  (and (not (program-library? lib))
+       (base-library)
+       (equal? lib-name (exp-library-name (base-library)))))
 
 (define (import-plain-into-library! lib lib-name)
-  ;; (scsyntax): the implementation kernel module is the primitive library
-  ;; itself, not a registered on-disk library.  Import all of its live
-  ;; bindings so the common `(import (scsyntax))' idiom works; the
-  ;; r7rs-small `(import (scheme base))' loads the on-disk
-  ;; scsyntax/scheme/base.scm which re-exports the standard surface.
-  ;; Exports are computed at import time so base macros installed later
-  ;; (standard.scm) are included.
-  ;; Importing the base (implementation) library into a real library does
-  ;; NOT materialize its ~830 bindings: exp-library-ref falls back to the
-  ;; base library, so the names resolve there without a per-library copy
-  ;; (measured: ~20 base imports re-copy the table every warm boot, ~50ms).
-  ;; A program library still materializes its imports (R7RS 5.1: a
-  ;; program's environment is exactly its imports, resolved strictly).
-  (let* ((base (base-library))
-         (base? (and base (equal? lib-name (exp-library-name base))))
-         (skip? (and base? (not (program-library? lib))))
-         (src (if base? base (lib-record-library (library-record lib-name))))
-         (exports (if base?
-                      (map car (exp-library-bindings base))
-                      (lib-record-exports (library-record lib-name)))))
-    (unless skip?
-      (for-each (lambda (name)
-                  (let ((binding (exp-library-ref src name)))
-                    (unless binding
-                      (error "import: exported identifier has no binding" name))
-                    (exp-library-define! lib name binding)))
-                exports))))
+  (unless (ambient-base-import? lib lib-name)
+    (let ((rec (source-record lib-name)))
+      (exp-library-add-use! lib
+        (import-view lib-name
+                     (map (lambda (n) (cons n n))
+                          (lib-record-exports rec))
+                     'plain #t)))))
 
 (define (import-only-into-library! lib spec)
   (let* ((lib-name (cadr spec))
-         (ids (cddr spec))
-         (rec (library-record lib-name)))
-    (let ((src (lib-record-library rec))
-          (exports (lib-record-exports rec)))
-      ;; Tolerate ids the source library does not export (s7's (import
-      ;; (only ...)) does): scheme/time.scm imports s7-round from
-      ;; (scheme base), which the goldfish scheme/base does not export but
-      ;; s7's r7rs library does.
-      (for-each (lambda (id)
-                  (when (memq id exports)
-                    (let ((binding (exp-library-ref src id)))
-                      (when binding
-                        (exp-library-define! lib id binding)))))
-                ids))))
+         (ids (cddr spec)))
+    (unless (ambient-base-import? lib lib-name)
+      (let ((rec (source-record lib-name)))
+        (let loop ((ids* ids) (pairs '()))
+          (if (null? ids*)
+            ;; An only-import selecting nothing (unknown ids) adds an empty
+            ;; view; skip it entirely.
+            (if (null? pairs)
+              #t
+              (exp-library-add-use! lib
+                (import-view lib-name pairs (cons 'only ids) #f)))
+            (if (memq (car ids*) (lib-record-exports rec))
+              (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
+              (loop (cdr ids*) pairs))))))))
 
 (define (import-prefix-into-library! lib spec)
   (let* ((lib-name (cadr spec))
-         (prefix (caddr spec))
-         (rec (library-record lib-name)))
-    (let ((src (lib-record-library rec))
-          (exports (lib-record-exports rec)))
-      (for-each (lambda (name)
-                  (let ((binding (exp-library-ref src name)))
-                    (unless binding
-                      (error "import: exported identifier has no binding" name))
-                    (let ((prefixed (string->symbol
-                                     (string-append (symbol->string prefix)
-                                                    (symbol->string name)))))
-                      (exp-library-define! lib prefixed binding))))
-                exports))))
+         (prefix (caddr spec)))
+    (let ((rec (source-record lib-name)))
+      (exp-library-add-use! lib
+        (import-view lib-name
+                     (map (lambda (name)
+                            (cons (string->symbol
+                                   (string-append (symbol->string prefix)
+                                                  (symbol->string name)))
+                                  name))
+                          (lib-record-exports rec))
+                     (cons 'prefix prefix) #t)))))
 
 (define (import-rename-into-library! lib spec)
   (let* ((lib-name (cadr spec))
-         (renames (cddr spec))
-         (rec (library-record lib-name)))
-    (let ((src (lib-record-library rec))
-          (exports (lib-record-exports rec)))
-      (for-each (lambda (name)
-                  (let ((binding (exp-library-ref src name)))
-                    (unless binding
-                      (error "import: exported identifier has no binding" name))
-                    (let ((rename-entry (assq name renames)))
-                      (if rename-entry
-                          (exp-library-define! lib (cadr rename-entry) binding)
-                          (exp-library-define! lib name binding)))))
-                exports))))
+         (renames (cddr spec)))
+    (let ((rec (source-record lib-name)))
+      (exp-library-add-use! lib
+        (import-view lib-name
+                     (map (lambda (name)
+                            (let ((rename-entry (assq name renames)))
+                              (if rename-entry
+                                (cons (cadr rename-entry) name)
+                                (cons name name))))
+                          (lib-record-exports rec))
+                     (cons 'rename renames) #t)))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
 
@@ -1090,13 +1131,14 @@
             ;; bare host-rootlet name: the s7 dependency of every export is
             ;; declared where it is imported.  No binding at all is an
             ;; error -- the library's API must state where each name comes
-            ;; from.
+            ;; from.  Exports are NOT copied into the library's own table:
+            ;; importers see them through this library's shared export view,
+            ;; built on demand from lib-record-exports (see import-view).
             (for-each (lambda (export)
                         (let ((binding (exp-library-ref lib export)))
                           (unless binding
                             (error "define-library: export has no binding"
                                    export name))
-                          (exp-library-define! lib export binding)
                           (when (toplevel-binding? binding)
                             (set-toplevel-ref-exported! (binding-value binding) #t))))
                       exports)

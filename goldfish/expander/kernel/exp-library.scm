@@ -6,23 +6,33 @@
 ;;; to their home library; free identifiers resolve against it.
 ;;;
 ;;; The binding table is a vector of buckets (each a small assoc list)
-;;; indexed by a cheap symbol hash: libraries grow to ~10^3 bindings
-;;; (imports copy the source's export table), and identifier resolution
-;;; refs that table constantly, so a flat assoc list makes each ref scan
-;;; the whole table.  Uses only the pure-Scheme primitives the seed already
-;;; runs on (no hash-table dependency); exp-library-bindings materializes
-;;; the alist for the few enumeration callers.
+;;; indexed by a cheap symbol hash: a library's own defines grow to
+;;; ~10^2 bindings, and identifier resolution refs that table constantly,
+;;; so a flat assoc list would make each ref scan the whole table.  Uses
+;;; only the pure-Scheme primitives the seed already runs on (no
+;;; hash-table dependency); exp-library-bindings materializes the alist
+;;; for the few enumeration callers.
+;;;
+;;; Imports are shared views, not copies: importing a library pushes an
+;;; interface library (an exp-library whose OWN buckets are the source's
+;;; exported bindings, built once and shared by every importer) onto the
+;;; target's `uses'.  A library therefore holds only its own defines;
+;;; resolution walks own, then each use in turn, then the base library
+;;; (the shared implementation substrate; programs stop before it).  This
+;;; mirrors Guile, where a module stores its own bindings and importers
+;;; reference the module's single public interface instead of copying.
 
 (define-record-type/public <exp-library>
-  (%make-exp-library name buckets)
+  (%make-exp-library name buckets uses)
   exp-library?
   (name exp-library-name)
-  (buckets exp-library-buckets set-exp-library-buckets!))
+  (buckets exp-library-buckets set-exp-library-buckets!)
+  (uses exp-library-uses set-exp-library-uses!))
 
 (define el-map-bucket-count 256)
 
 (define (make-exp-library name)
-  (%make-exp-library name (make-vector el-map-bucket-count '())))
+  (%make-exp-library name (make-vector el-map-bucket-count '()) '()))
 
 ;; el-map-hash : symbol -> bucket index
 ;; djb2-style over the symbol's printed name; cheap for the identifiers a
@@ -45,13 +55,40 @@
       (and e (cdr e)))
     #f))
 
-(define (exp-library-ref lib name)
-  ;; own table, then the base (implementation) library: libraries share the
-  ;; implementation substrate instead of each copying its ~830 bindings at
-  ;; import (import-plain-into-library! no longer materializes (goldfish)).
-  ;; Program strictness is enforced by resolve-identifier, which uses
-  ;; exp-library-ref-own for program libraries.
+;; exp-library-use-ref : lib name -> binding/#f
+;; Lookup across the library's shared import views, newest first (the
+;; most recent import of a name shadows earlier ones, matching the old
+;; copy-into-own model where the last import overwrote).
+(define (exp-library-use-ref lib name)
+  (let loop ((uses (exp-library-uses lib)))
+    (if (pair? uses)
+      (or (exp-library-ref-own (car uses) name)
+          (loop (cdr uses)))
+      #f)))
+
+;; exp-library-add-use! : lib view -> void
+;; Record an imported interface (a shared export snapshot, itself an
+;; exp-library).  Idempotent: re-importing the same view is a no-op.
+(define (exp-library-add-use! lib view)
+  (if (memq view (exp-library-uses lib))
+    #f
+    (set-exp-library-uses! lib (cons view (exp-library-uses lib)))))
+
+;; exp-library-ref-strict : lib name -> binding/#f
+;; What a program library sees: its own defines plus its imports, never
+;; the ambient base (R7RS 5.1: a program's environment is exactly its
+;; imports).  Used by resolve-identifier for program libraries.
+(define (exp-library-ref-strict lib name)
   (or (exp-library-ref-own lib name)
+      (exp-library-use-ref lib name)))
+
+(define (exp-library-ref lib name)
+  ;; own defines, then the shared import views, then the base
+  ;; (implementation) library: real libraries share the implementation
+  ;; substrate instead of each copying its ~830 bindings at import.
+  ;; Program strictness is enforced by resolve-identifier, which uses
+  ;; exp-library-ref-strict for program libraries.
+  (or (exp-library-ref-strict lib name)
       (let ((base *base-library*))
         (and base
              (not (eq? lib base))

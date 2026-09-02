@@ -106,7 +106,7 @@
             ;; library.  Real libraries share the implementation substrate,
             ;; so they resolve unbound names against the base library.
             (if (program-library? lib)
-                (values name (and lib (exp-library-ref-own lib name)))
+                (values name (and lib (exp-library-ref-strict lib name)))
                 (let ((lib-binding (and lib (exp-library-ref lib name))))
                   (if lib-binding
                       (values name lib-binding)
