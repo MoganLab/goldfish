@@ -141,18 +141,21 @@
 
 (define (gfo-valid? gfo-file stamp)
   (and (file-exists? gfo-file)
-       (let ((rec (call-with-input-file gfo-file (lambda (p) (car (read-forms p))))))
+       (let ((rec (g-read-gfo-file gfo-file)))
          (and (pair? rec) (eq? (car rec) 'gfo)
               (equal? (cadr rec) gfo-format-version)
               (equal? (caddr rec) stamp)))))
 
 ;; gfo-load : gfo-file stamp -> payload | #f
 ;; Single-pass variant of the gfo-valid? + gfo-read pair: parsing a cached
-;; record is expensive (pure-Scheme reader), so callers that need the
-;; payload on a hit must not parse the file twice.  Returns #f on miss.
+;; record is expensive, so callers that need the payload on a hit must not
+;; parse the file twice.  Returns #f on miss.  Parsing is native
+;; (g-read-gfo-file, liii_reader.cpp) -- the .gfo is write-roundtrip's data
+;; subset, and the pure-Scheme reader's per-token dispatch was the dominant
+;; warm-load cost.
 (define (gfo-load gfo-file stamp)
   (and (file-exists? gfo-file)
-       (let ((rec (car (read-forms (open-input-file gfo-file)))))
+       (let ((rec (g-read-gfo-file gfo-file)))
          (and (pair? rec) (eq? (car rec) 'gfo)
               (equal? (cadr rec) gfo-format-version)
               (equal? (caddr rec) stamp)
@@ -163,7 +166,7 @@
 ;; returns the whole (gfo version stamp payload extra) form, unchecked.
 (define (gfo-load-record gfo-file)
   (and (file-exists? gfo-file)
-       (car (read-forms (open-input-file gfo-file)))))
+       (g-read-gfo-file gfo-file)))
 
 ;; gfo-write! : gfo-file stamp payload [extra] -> bool
 ;; `extra' (when given) is stored as the record's fifth field; readers that
