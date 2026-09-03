@@ -1676,6 +1676,61 @@
     (eval (list 'define 'eval-in-program-environment %eval-in-program-environment)
           (rootlet))))
 
+;;; file-import-libs : file -> (list name)
+;;; Bottom libs named by every (import ...) form in a file: top-level ones
+;;; (a program) and the import clauses of its define-library forms.
+(define (file-import-libs file)
+  (let ((forms (call-with-input-file file read-forms)))
+    (let loop ((fs forms) (acc '()))
+      (if (null? fs)
+        acc
+        (let ((f (car fs)))
+          (cond
+            ((and (pair? f) (eq? (car f) 'import))
+             (loop (cdr fs) (append (collect-import-clause-libs f) acc)))
+            ((and (pair? f) (eq? (car f) 'define-library))
+             (let collect ((cs (cddr f)) (a acc))
+               (if (null? cs)
+                 (loop (cdr fs) a)
+                 (let ((c (car cs)))
+                   (if (and (pair? c) (eq? (car c) 'import))
+                     (collect (cdr cs) (append (collect-import-clause-libs c) a))
+                     (collect (cdr cs) a))))))
+            (else (loop (cdr fs) acc))))))))
+
+;;; file-defined-libraries : file -> (list name)
+;;; Names of the libraries a file defines at top level.
+(define (file-defined-libraries file)
+  (let ((forms (call-with-input-file file read-forms)))
+    (let loop ((fs forms) (acc '()))
+      (if (null? fs)
+        (reverse acc)
+        (let ((f (car fs)))
+          (loop (cdr fs)
+                (if (and (pair? f) (eq? (car f) 'define-library)
+                         (pair? (cdr f)))
+                  (cons (syntax->datum (cadr f)) acc)
+                  acc)))))))
+
+;;; warm-file! : file -> (list name)
+;;; Compile a program (or library) file's whole library closure into the
+;;; cache -- the `gf compile` backend.  Loading each library (load-library!)
+;;; writes its cache artifact without executing the file's own top-level
+;;; forms, so `gf compile app.scm` precompiles everything app.scm needs and
+;;; later runs are pure cache hits.
+(define (warm-file! file)
+  (let* ((defined (file-defined-libraries file))
+         (imports (transitive-lib-closure (file-import-libs file))))
+    (for-each (lambda (n)
+                (unless (runtime-registered? n)
+                  (load-library! n)))
+              imports)
+    (for-each (lambda (n)
+                (unless (runtime-registered? n)
+                  (load-library! n)))
+              defined)
+    (append imports defined)))
+
 ;;; ------------------------------------------------------------------------
 ;;; Exports (wrapped in a define so install-library-forms! runs them)
 ;;; ------------------------------------------------------------------------
@@ -1700,6 +1755,7 @@
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
     (module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
     (module-define! the-expander-library 'library-dep-fingerprint library-dep-fingerprint)
+    (module-define! the-expander-library 'warm-file! warm-file!)
     ;; load-library! evaluates a library's registration expression in the
     ;; host rootlet, so the runtime-registered marker (called from
     ;; library-register-expression) must also be visible there.  The cached

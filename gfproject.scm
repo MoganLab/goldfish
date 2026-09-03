@@ -58,6 +58,12 @@
       (description
         (en_US "Enter interactive REPL mode")
         (zh_CN "进入交互式 REPL 模式")))
+    (compile
+      (organization liii)
+      (module goldcompile)
+      (description
+        (en_US "Precompile a program's libraries into the cache (guild compile)")
+        (zh_CN "预编译程序依赖的库到缓存（对应 guild compile）")))
     (code
       (organization liii)
       (module goldcode)

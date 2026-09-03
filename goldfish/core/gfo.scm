@@ -1,9 +1,15 @@
 (define (gfo-base-dir)
-  (let ((xdg (getenv "XDG_CACHE_HOME")))
-    (string-append
-      (if (and xdg (not (string=? xdg ""))) xdg
-        (string-append (or (getenv "HOME") "/tmp") "/.cache"))
-      "/goldfish/ccache")))
+  ;; GOLDFISH_CACHE_DIR relocates the whole ccache root (the directory that
+  ;; would otherwise be ~/.cache/goldfish/ccache): an installer can point a
+  ;; read-only, prebuilt cache here (paired with GOLDFISH_CACHE_READONLY).
+  (let ((override (getenv "GOLDFISH_CACHE_DIR")))
+    (if (and override (not (string=? override "")))
+      override
+      (let ((xdg (getenv "XDG_CACHE_HOME")))
+        (string-append
+          (if (and xdg (not (string=? xdg ""))) xdg
+            (string-append (or (getenv "HOME") "/tmp") "/.cache"))
+          "/goldfish/ccache")))))
 
 ;;; --- cache identity: pipeline version directory -------------------------
 ;;; The cache directory is qualified by a content hash of every pipeline
