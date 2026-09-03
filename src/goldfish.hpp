@@ -1242,8 +1242,7 @@ customize_goldfish_by_mode (gf::scheme* sc, string mode, const char* gf_lib) {
           sc, "(import (goldfish) (scheme base) (scheme write) (scheme read)"
               " (scheme file) (scheme process-context) (scheme time)"
               " (scheme inexact) (scheme char) (scheme complex) (scheme cxr)"
-              " (scheme eval) (scheme case-lambda) (liii base) (liii error)"
-              " (liii string))");
+              " (scheme eval) (scheme case-lambda) (liii base) (liii error))");
     }
     else if (mode == "scheme") {
       goldfish_eval_through_reader (sc, "(import (scheme base) (liii base) (liii error))");

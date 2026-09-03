@@ -1,5 +1,6 @@
 (import (liii check)
-  (rename (srfi srfi-78) (check-reset! srfi-78-check-reset!))
+  (rename (except (srfi srfi-78) check check-approx check-report check-set-mode!)
+          (check-reset! srfi-78-check-reset!))
 ) ;import
 
 
