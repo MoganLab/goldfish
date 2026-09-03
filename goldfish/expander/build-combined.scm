@@ -37,6 +37,13 @@
          (body-stxs (caddr res)))
     (let ((lib (make-exp-library '(goldfish))))
       (import-into-library! lib imports)
+      ;; Self-bootstrap: the kernel body legitimately refers to the host
+      ;; substrate (primitives, record helpers, the expander API) that the
+      ;; running artifact carries in the base library.  Library-body
+      ;; resolution is strict now (db407799), so make that substrate an
+      ;; explicit use of the library being rebuilt -- the pre-db ambient
+      ;; fallback, scoped to this one self-hosting build.
+      (import-into-library! lib '(((goldfish))))
       (let ((b (exp-library-ref the-base-library 'define-record-type)))
         (when b (exp-library-define! lib 'define-record-type b)))
       (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
