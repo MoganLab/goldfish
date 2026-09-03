@@ -927,18 +927,92 @@
                         spec-group))
             imports))
 
+;;; R7RS import-set grammar: an <import set> is a library name or a
+;;; modifier applied to a (possibly nested) <import set>:
+;;;   (only <set> id ...)  (except <set> id ...)
+;;;   (prefix <set> id)    (rename <set> (from to) ...)
+;;; Each import set bottoms out in exactly one library.  Depth-1 sets (a
+;;; modifier directly over a library name) take the original fast handlers
+;;; below; a NESTED set (a modifier over another modifier) is reduced by
+;;; import-set-pairs to its source library plus the (visible . original)
+;;; mapping, then resolved through import-view.  import-set-pairs works on
+;;; names only, so an only-import never pulls or resolves names it does not
+;;; select.
+
+(define (import-set-modifier? x)
+  (and (pair? x) (memq (car x) '(only except prefix rename))))
+
+(define (import-set-pairs spec)
+  (if (import-set-modifier? spec)
+    (let* ((kind (car spec))
+           (inner (cadr spec))
+           (rest (cddr spec)))
+      (call-with-values
+        (lambda () (import-set-pairs inner))
+        (lambda (lib-name pairs)
+          (values lib-name
+                  (case kind
+                    ((only)
+                     (let ((ids rest))
+                       (filter (lambda (p) (memq (car p) ids)) pairs)))
+                    ((except)
+                     (let ((ids rest))
+                       (filter (lambda (p) (not (memq (car p) ids))) pairs)))
+                    ((prefix)
+                     (let ((pre (car rest)))
+                       (map (lambda (p)
+                              (cons (string->symbol
+                                     (string-append (symbol->string pre)
+                                                    (symbol->string (car p))))
+                                    (cdr p)))
+                            pairs)))
+                    ((rename)
+                     (let ((ms rest))
+                       (map (lambda (p)
+                              (let ((e (assq (car p) ms)))
+                                (if e (cons (cadr e) (cdr p)) p)))
+                            pairs)))
+                    (else (error "import: bad import-set" spec)))))))
+    ;; A bare library name: its whole export list, identity-mapped.
+    (values spec
+            (map (lambda (n) (cons n n))
+                 (lib-record-exports (source-record spec))))))
+
+;;; import-set-view : nested-set -> view/#f
+;;; The shared interface view for a NESTED import set, or #f when it selects
+;;; nothing.  Only an outer only tolerates a missing binding (unselected
+;;; names were already filtered out); other modifiers resolve strictly.
+(define (import-set-view spec)
+  (call-with-values
+    (lambda () (import-set-pairs spec))
+    (lambda (lib-name pairs)
+      (if (null? pairs)
+        #f
+        (let ((outer (car spec)))
+          (import-view lib-name pairs spec (not (eq? outer 'only))))))))
+
 (define (import-spec-into-library! lib spec)
-  (cond
-    ((and (pair? spec) (eq? (car spec) 'only))
-     (import-only-into-library! lib spec))
-    ((and (pair? spec) (eq? (car spec) 'except))
-     (import-except-into-library! lib spec))
-    ((and (pair? spec) (eq? (car spec) 'prefix))
-     (import-prefix-into-library! lib spec))
-    ((and (pair? spec) (eq? (car spec) 'rename))
-     (import-rename-into-library! lib spec))
-    (else
-     (import-plain-into-library! lib spec))))
+  (if (and (pair? spec)
+           (pair? (cdr spec))
+           (pair? (cadr spec))
+           (import-set-modifier? (cadr spec)))
+    ;; Nested import set (a modifier over another modifier).
+    (let ((iface (import-set-view spec)))
+      (when iface
+        (exp-library-add-use! lib iface)))
+    ;; Depth-1 set: a modifier directly over a library name, or a bare
+    ;; library name.
+    (cond
+      ((and (pair? spec) (eq? (car spec) 'only))
+       (import-only-into-library! lib spec))
+      ((and (pair? spec) (eq? (car spec) 'except))
+       (import-except-into-library! lib spec))
+      ((and (pair? spec) (eq? (car spec) 'prefix))
+       (import-prefix-into-library! lib spec))
+      ((and (pair? spec) (eq? (car spec) 'rename))
+       (import-rename-into-library! lib spec))
+      (else
+       (import-plain-into-library! lib spec)))))
 
 (define (import-except-into-library! lib spec)
   (let* ((lib-name (cadr spec))
