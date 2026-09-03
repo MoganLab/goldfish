@@ -364,16 +364,28 @@
                     (if (null? vs)
                         (reverse result)
                         (letrec* ((binding (assq (car vs) bindings)))
-                          ;; A template variable whose ellipsis matched fewer
-                          ;; times than the outer ellipsis repeats (e.g. a
-                          ;; `(var init step ...)' binding where `step' bound
-                          ;; nothing but `var' bound one element) is omitted
-                          ;; from the indexed bindings: the inner ellipsis
-                          ;; then sees no value and contributes nothing.
-                          (if (and binding (< i (length (cdr binding))))
-                              (loop (cdr vs)
-                                    (cons (cons (car vs) (list-ref (cdr binding) i)) result))
-                              (loop (cdr vs) result)))))))
+                          (cond
+                            ;; A variable bound to a list (this ellipsis
+                            ;; repeats over it): index it by the current
+                            ;; repeat.  If its list is shorter than the
+                            ;; repeat count (an inner ellipsis variable that
+                            ;; matched nothing at this index), omit it so the
+                            ;; inner template contributes nothing.
+                            ((and binding (list? (cdr binding)))
+                             (if (< i (length (cdr binding)))
+                                 (loop (cdr vs)
+                                       (cons (cons (car vs) (list-ref (cdr binding) i))
+                                             result))
+                                 (loop (cdr vs) result)))
+                            ;; A scalar variable (a plain pattern variable or
+                            ;; with-syntax binding used inside an ellipsis
+                            ;; element but not part of the repeated group) is
+                            ;; constant across the repeats: keep it whole.
+                            (binding
+                             (loop (cdr vs)
+                                   (cons (cons (car vs) (cdr binding)) result)))
+                            ;; A free template identifier (no binding).
+                            (else (loop (cdr vs) result))))))))
     (loop vars '())))
 
 ;;; syntax-case-dispatch : input literals-stx (list clause-spec) -> syntax
