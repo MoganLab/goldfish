@@ -951,15 +951,17 @@
 
 ;;; add-import-view! : lib lib-name iface -> void
 ;;; Record a shared import view on lib after enforcing Racket-style import
-;;; conflicts: a name already resolvable from an earlier import with a
+;;; conflicts: a name already resolvable from ANY earlier import with a
 ;;; DIFFERENT binding that neither the implementation library nor the
 ;;; substrate provides is an error (R7RS: importing the same identifier more
-;;; than once).  The implementation library freely overlaps (whichever side
-;;; of an overlay it lands on), overrides of substrate bindings (host
-;;; primitives / base-home toplevels) are allowed, and re-exports of the
-;;; same binding are fine.  Own defines are not consulted (they may shadow
-;;; an import; resolve is own-first).  A genuine peer-peer collision must be
-;;; resolved with an explicit import set ((except ...), (rename ...), ...).
+;;; than once).  Every supplier is checked, not just the newest, so a name
+;;; provided three ways is caught whenever two of them bind it differently.
+;;; The implementation library freely overlaps (whichever side of an overlay
+;;; it lands on), overrides of substrate bindings (host primitives /
+;;; base-home toplevels) are allowed, and re-exports of the same binding are
+;;; fine.  Own defines are not consulted (they may shadow an import; resolve
+;;; is own-first).  A genuine peer-peer collision must be resolved with an
+;;; explicit import set ((except ...), (rename ...), ...).
 (define (add-import-view! lib iface)
   (let ((base-name (and (base-library)
                         (exp-library-name (base-library)))))
@@ -969,19 +971,29 @@
       (let loop ((entries (exp-library-bindings iface)))
         (if (pair? entries)
           (let* ((name (caar entries))
-                 (binding (cdar entries))
-                 (existing (exp-library-use-ref lib name)))
-            (if (and existing (not (eq? existing binding)))
-              (let ((view (supplying-view lib name)))
-                (if (or (and base-name
-                             (equal? (exp-library-name view) base-name))
-                        (base-sourced-binding? existing)
-                        (base-sourced-binding? binding))
-                  (loop (cdr entries))
-                  (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
-                         name (and view (exp-library-name view))
-                         (exp-library-name iface))))
-              (loop (cdr entries))))
+                 (binding (cdar entries)))
+            (let scan ((uses (exp-library-uses lib)))
+              (cond
+                ((null? uses)
+                 (loop (cdr entries)))
+                ((not (exp-library-ref-own (car uses) name))
+                 (scan (cdr uses)))
+                ((eq? (exp-library-ref-own (car uses) name) binding)
+                 ;; Same binding through this supplier (a re-export chain).
+                 (scan (cdr uses)))
+                ((or (and base-name
+                          (equal? (exp-library-name (car uses)) base-name))
+                     (base-sourced-binding?
+                      (exp-library-ref-own (car uses) name))
+                     (base-sourced-binding? binding))
+                 ;; Substrate overlay: this supplier or the new binding comes
+                 ;; from the implementation library / host.
+                 (scan (cdr uses)))
+                (else
+                 (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
+                        name
+                        (exp-library-name (car uses))
+                        (exp-library-name iface))))))
           (exp-library-add-use! lib iface))))))
 
 ;;; R7RS import-set grammar: an <import set> is a library name or a
