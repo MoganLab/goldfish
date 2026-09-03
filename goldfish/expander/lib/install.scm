@@ -402,12 +402,47 @@
        (let ((n (string->number v)))
          (if (and n (integer? n) (>= n 0)) n 2))))))
 
+;;; Program-file import deps: bottom libs named by top-level (import ...)
+;;; forms (flattening begin), so macro providers are fingerprinted too.
+;;; (import-set-lib-name duplicates module.scm's; the expander lib files are
+;;; separate modules and share nothing but the registered surface.)
+(define (import-set-lib-name spec)
+  (if (and (pair? spec)
+           (memq (car spec) '(only except prefix rename)))
+    (import-set-lib-name (cadr spec))
+    spec))
+(define (program-import-libs forms)
+  (define (add-lib n acc)
+    (if (and (pair? n) (not (member n acc))) (cons n acc) acc))
+  (define (scan-specs specs acc)
+    (if (null? specs)
+      acc
+      (scan-specs (cdr specs) (add-lib (import-set-lib-name (car specs)) acc))))
+  (define (scan-form f acc)
+    (if (and (pair? f) (eq? (car f) 'import))
+      (scan-specs (cdr f) acc)
+      (if (and (pair? f) (eq? (car f) 'begin))
+        (let loop ((fs (cdr f)) (a acc))
+          (if (null? fs) a (loop (cdr fs) (scan-form (car fs) a))))
+        acc)))
+  (let loop ((fs forms) (acc '()))
+    (if (null? fs) (reverse acc) (loop (cdr fs) (scan-form (car fs) acc)))))
+
+(define (dedup-libs ls)
+  (let loop ((ls ls) (acc '()))
+    (if (null? ls)
+      (reverse acc)
+      (if (member (car ls) acc)
+        (loop (cdr ls) acc)
+        (loop (cdr ls) (cons (car ls) acc))))))
+
 (define (compile-file-cached path)
   (let* ((key (cache-key-path path))
          (level (ccache-level))
          (key (if (zero? level) key (string-append key "-o" (number->string level))))
          (gfo-file (string-append (compile-cache-dir) "/" key ".gfo"))
-         (stamp (compile-file-stamp path)))
+         (stamp (compile-file-stamp path))
+         (forms (call-with-input-file path read-forms)))
     ;; Dependency-tracked hit: the record stores fingerprints of the
     ;; libraries the compiled program refers to via module-ref.
     (let* ((rec (gfo-load-record gfo-file))
@@ -425,17 +460,21 @@
       (if cached
         cached
         (let*-values (((prog ctx)
-                       (compile-program-into-syntax
-                         (call-with-input-file path read-forms)
+                       (compile-program-into-syntax forms
                          (program-library))))
           (let* ((opt (if (zero? level)
-                         (lower prog)
-                         (let ((f (module-ref the-expander-library 'optimize-on-load)))
-                           (if (procedure? f)
-                             (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
-                             (lower prog)))))
+                          (lower prog)
+                          (let ((f (module-ref the-expander-library 'optimize-on-load)))
+                            (if (procedure? f)
+                              (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
+                              (lower prog)))))
+                 ;; Macro-provider dependencies: a pure syntax macro leaves
+                 ;; no module-ref in the expanded program, so also fingerprint
+                 ;; every library named by a top-level (import ...) form.
                  (deps (map library-dep-fingerprint
-                            (collect-cache-module-refs opt))))
+                            (dedup-libs
+                              (append (collect-cache-module-refs opt)
+                                      (program-import-libs forms))))))
             (gfo-write! gfo-file stamp opt deps)
             opt))))))
 

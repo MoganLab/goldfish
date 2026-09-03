@@ -93,22 +93,19 @@
                   (string-append acc "/" (car parts)))))))
 
 ;;; library-dep-fingerprint : lib-name -> (name mtime size) | (name 'external)
-;;; Fingerprint a dependency's cache artifact when it exists -- so that a
-;;; regenerated dependency invalidates its consumers and invalidation
-;;; cascades down the import chain -- falling back to its source file.
+;;; Fingerprint a dependency by its SOURCE file stamp.  Deliberately NOT its
+;;; cache artifact: consumers validate before their dependencies reload, so
+;;; an artifact-based fingerprint would compare against the dependency's
+;;; still-stale cache and miss the edit.  A source edit changes the stamp
+;;; immediately, invalidating the consumer on its very next load.
 ;;; Pure stat calls, no hashing: cheap enough for every cache check.
 (define (library-dep-fingerprint name)
-  (let* ((lib-file (library-file-name name))
-         (src (load-find-module-file lib-file))
-         (gfo (and src (library-gfo-path lib-file))))
-    (cond ((and gfo (file-exists? gfo))
-           (cons name (list (g_path-getmtime gfo) (g_path-getsize gfo))))
-          (src
-           (cons name (list (g_path-getmtime src) (g_path-getsize src))))
-          (else
-           ;; No on-disk home: runtime-registered or host-provided library,
-           ;; nothing to fingerprint.
-           (cons name 'external)))))
+  (let ((src (load-find-module-file (library-file-name name))))
+    (if src
+      (cons name (list (g_path-getmtime src) (g_path-getsize src)))
+      ;; No on-disk home: runtime-registered or host-provided library,
+      ;; nothing to fingerprint.
+      (cons name 'external))))
 
 (define (library-cache-deps recs self)
   (let loop ((ls (collect-cache-module-refs recs)) (acc '()))
@@ -117,6 +114,108 @@
       (if (or (equal? (car ls) self) (member (car ls) acc))
         (loop (cdr ls) acc)
         (loop (cdr ls) (cons (car ls) acc))))))
+
+;;; Macro-provider dependencies: a consumer's cached defs bake in the
+;;; expansions of the macros it imported, but a pure syntax macro leaves no
+;;; module-ref behind, so module-ref collection alone misses the provider --
+;;; editing its source would never invalidate the consumer.  Every library
+;;; the file imports is therefore a dependency too.  The whole transitive
+;;; closure is fingerprinted (source stamps), so a change anywhere in the
+;;; import graph invalidates every consumer whose baked output could have
+;;; been affected.
+
+(define (import-set-lib-name spec)
+  ;; Bottom out of R7RS import sets: a library name, or a modifier applied
+  ;; to a (possibly nested) set.
+  (if (and (pair? spec)
+           (memq (car spec) '(only except prefix rename)))
+    (import-set-lib-name (cadr spec))
+    spec))
+
+;;; collect-import-clause-libs : form -> (list name)
+;;; Bottom library names of one (import spec ...) clause.
+(define (collect-import-clause-libs clause)
+  (let add ((specs (cdr clause)) (acc '()))
+    (if (null? specs)
+      acc
+      (let ((n (import-set-lib-name (car specs))))
+        (if (and (pair? n) (member n acc))
+          (add (cdr specs) acc)
+          (add (cdr specs) (if (pair? n) (cons n acc) acc)))))))
+
+;;; lib-source-import-libs : file -> (list name)
+;;; Bottom libs named by the (import ...) clauses of a library file's
+;;; define-library forms (its direct imports, from the source -- cache-free,
+;;; so the closure can be walked without first restoring dependencies).
+(define (lib-source-import-libs file)
+  (if (not (file-exists? file))
+    '()
+    (let ((forms (call-with-input-file file read-forms)))
+      (let loop ((fs forms) (acc '()))
+        (if (null? fs)
+          acc
+          (let* ((f (car fs))
+                 (added (if (and (pair? f) (eq? (car f) 'define-library))
+                          (let collect ((cs (cddr f)) (a '()))
+                            (if (null? cs)
+                              a
+                              (let ((c (car cs)))
+                                (if (and (pair? c) (eq? (car c) 'import))
+                                  (collect (cdr cs) (append (collect-import-clause-libs c) a))
+                                  (collect (cdr cs) a)))))
+                          '())))
+            (loop (cdr fs) (append added acc))))))))
+
+;;; transitive-lib-closure : (list name) -> (list name)
+;;; BFS closure over import edges, skipping already-seen libraries.
+(define (transitive-lib-closure names)
+  (let loop ((queue names) (acc '()))
+    (if (null? queue)
+      (reverse acc)
+      (let ((n (car queue)))
+        (if (member n acc)
+          (loop (cdr queue) acc)
+          (let ((f (load-find-module-file (library-file-name n))))
+            (loop (append (cdr queue)
+                          (if f (lib-source-import-libs f) '()))
+                  (cons n acc))))))))
+
+(define (cache-record-import-libs rec)
+  (let ((imports (lib-cache-imports rec)))
+    (let loop ((groups imports) (acc '()))
+      (if (null? groups)
+        acc
+        (let group ((specs (car groups)) (a acc))
+          (if (null? specs)
+            (loop (cdr groups) a)
+            (let ((n (import-set-lib-name (car specs))))
+              (if (and (pair? n) (member n a))
+                (group (cdr specs) a)
+                (group (cdr specs) (if (pair? n) (cons n a) a))))))))))
+
+(define (library-import-deps recs self)
+  (let loop ((rs recs) (acc '()))
+    (if (null? rs)
+      acc
+      (let ((ls (cache-record-import-libs (car rs))))
+        (loop (cdr rs)
+              (let add ((ns ls) (a acc))
+                (if (null? ns)
+                  a
+                  (if (or (equal? (car ns) self) (member (car ns) a))
+                    (add (cdr ns) a)
+                    (add (cdr ns) (cons (car ns) a))))))))))
+
+;;; library-all-deps : recs self -> (list name)
+;;; Every library this file can be invalidated by, transitively: the
+;;; module-ref targets plus every library the file imports, closed over each
+;;; dependency's own imports (a pure-syntax macro provider leaves no
+;;; module-ref, and a change deep in the graph can still alter what a macro
+;;; here expands to).
+(define (library-all-deps recs self)
+  (transitive-lib-closure
+    (append (library-cache-deps recs self)
+            (library-import-deps recs self))))
 
 ;;; load-library! : name -> void
 ;;; Compile (registering the expand-time record, recursively loading imports)
@@ -826,11 +925,11 @@
                                   (library-file-cacheable? forms))
                            (let* ((stamp (compile-file-stamp file))
                                   (gfo-file (library-gfo-path lib-file)))
-                             (let*-values (((recs ctx) (capture-file-cache forms)))
-                               (let* ((recs (optimize-lib-cache-recs recs))
-                                      (deps (map library-dep-fingerprint
-                                                 (library-cache-deps recs lib-name))))
-                                  (gfo-write! gfo-file stamp recs deps)
+                              (let*-values (((recs ctx) (capture-file-cache forms)))
+                                (let* ((recs (optimize-lib-cache-recs recs))
+                                       (deps (map library-dep-fingerprint
+                                                  (library-all-deps recs lib-name))))
+                                   (gfo-write! gfo-file stamp recs deps)
                                  (load-library-file-cached! recs))))
                            (begin
                               ;; Non-cacheable library: expand, optimize, then eval
