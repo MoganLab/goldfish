@@ -37,7 +37,7 @@
     (liii error)
     (liii hash-table)
     (liii list)
-    (liii os)
+    (except (liii os) remove)
     (liii path)
     (liii string)
   ) ;import

@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii subprocess))
+(import (liii check) (except (liii os) remove) (liii subprocess))
 
 ;; run-set!
 ;; 为符号命令注册解析方式。

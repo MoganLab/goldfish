@@ -927,6 +927,63 @@
                         spec-group))
             imports))
 
+;;; base-sourced-binding? : binding -> boolean
+;;; True for a binding that comes from the implementation substrate: a host
+;;; primitive, or a toplevel whose home is the base library.  The R7RS /
+;;; liii layers intentionally override substrate names, so an import may
+;;; shadow a substrate-sourced binding freely.
+(define (base-sourced-binding? b)
+  (let ((bl (base-library)))
+    (and bl
+         (or (primitive-binding? b)
+             (and (toplevel-binding? b)
+                  (eq? (toplevel-ref-home (binding-value b)) bl))))))
+
+;;; supplying-view : lib name -> view/#f
+;;; The import view (in uses order) through which name is currently visible.
+(define (supplying-view lib name)
+  (let loop ((uses (exp-library-uses lib)))
+    (if (pair? uses)
+      (if (exp-library-ref-own (car uses) name)
+        (car uses)
+        (loop (cdr uses)))
+      #f)))
+
+;;; add-import-view! : lib lib-name iface -> void
+;;; Record a shared import view on lib after enforcing Racket-style import
+;;; conflicts: a name already resolvable from an earlier import with a
+;;; DIFFERENT binding that neither the implementation library nor the
+;;; substrate provides is an error (R7RS: importing the same identifier more
+;;; than once).  The implementation library freely overlaps (whichever side
+;;; of an overlay it lands on), overrides of substrate bindings (host
+;;; primitives / base-home toplevels) are allowed, and re-exports of the
+;;; same binding are fine.  Own defines are not consulted (they may shadow
+;;; an import; resolve is own-first).  A genuine peer-peer collision must be
+;;; resolved with an explicit import set ((except ...), (rename ...), ...).
+(define (add-import-view! lib iface)
+  (let ((base-name (and (base-library)
+                        (exp-library-name (base-library)))))
+    (if (and base-name
+             (equal? (exp-library-name iface) base-name))
+      (exp-library-add-use! lib iface)
+      (let loop ((entries (exp-library-bindings iface)))
+        (if (pair? entries)
+          (let* ((name (caar entries))
+                 (binding (cdar entries))
+                 (existing (exp-library-use-ref lib name)))
+            (if (and existing (not (eq? existing binding)))
+              (let ((view (supplying-view lib name)))
+                (if (or (and base-name
+                             (equal? (exp-library-name view) base-name))
+                        (base-sourced-binding? existing)
+                        (base-sourced-binding? binding))
+                  (loop (cdr entries))
+                  (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
+                         name (and view (exp-library-name view))
+                         (exp-library-name iface))))
+              (loop (cdr entries))))
+          (exp-library-add-use! lib iface))))))
+
 ;;; R7RS import-set grammar: an <import set> is a library name or a
 ;;; modifier applied to a (possibly nested) <import set>:
 ;;;   (only <set> id ...)  (except <set> id ...)
@@ -999,7 +1056,7 @@
     ;; Nested import set (a modifier over another modifier).
     (let ((iface (import-set-view spec)))
       (when iface
-        (exp-library-add-use! lib iface)))
+        (add-import-view! lib iface)))
     ;; Depth-1 set: a modifier directly over a library name, or a bare
     ;; library name.
     (cond
@@ -1018,7 +1075,7 @@
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
     (let ((rec (source-record lib-name)))
-      (exp-library-add-use! lib
+      (add-import-view! lib
         (import-view lib-name
                      (let loop ((ns (lib-record-exports rec)) (acc '()))
                        (if (null? ns)
@@ -1031,7 +1088,7 @@
 
 (define (import-plain-into-library! lib lib-name)
   (let ((rec (source-record lib-name)))
-    (exp-library-add-use! lib
+    (add-import-view! lib
       (import-view lib-name
                    (map (lambda (n) (cons n n))
                         (lib-record-exports rec))
@@ -1047,7 +1104,7 @@
           ;; view; skip it entirely.
           (if (null? pairs)
             #t
-            (exp-library-add-use! lib
+            (add-import-view! lib
               (import-view lib-name pairs (cons 'only ids) #f)))
           (if (memq (car ids*) (lib-record-exports rec))
             (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
@@ -1057,7 +1114,7 @@
   (let* ((lib-name (cadr spec))
          (prefix (caddr spec)))
     (let ((rec (source-record lib-name)))
-      (exp-library-add-use! lib
+      (add-import-view! lib
         (import-view lib-name
                      (map (lambda (name)
                             (cons (string->symbol
@@ -1071,7 +1128,7 @@
   (let* ((lib-name (cadr spec))
          (renames (cddr spec)))
     (let ((rec (source-record lib-name)))
-      (exp-library-add-use! lib
+      (add-import-view! lib
         (import-view lib-name
                      (map (lambda (name)
                             (let ((rename-entry (assq name renames)))

@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii subprocess))
+(import (liii check) (except (liii os) remove) (liii subprocess))
 
 ;; run-allow!
 ;; 设置符号命令白名单。

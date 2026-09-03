@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii subprocess))
+(import (liii check) (except (liii os) remove) (liii subprocess))
 
 ;; run-ban!
 ;; 显式禁止某个符号命令或字符串命令。

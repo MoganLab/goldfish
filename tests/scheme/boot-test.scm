@@ -1,4 +1,4 @@
-(import (liii list) (liii check) (liii os) (liii path)
+(import (liii list) (liii check) (except (liii os) remove) (liii path)
         (goldfish))
 (check-set-mode! 'report-failed)
 (when (not (os-windows?))

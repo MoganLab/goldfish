@@ -1,4 +1,4 @@
-(import (liii check) (liii os) (liii subprocess) (liii path))
+(import (liii check) (except (liii os) remove) (liii subprocess) (liii path))
 
 (when (os-linux?)
   ;; run basic tests

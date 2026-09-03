@@ -18,7 +18,7 @@
   (import (scheme base)
     (scheme process-context)
     (liii sort)
-    (liii list)
+    (except (liii list) remove)
     (liii string)
     (liii argparse)
     (liii goldtool-changed)

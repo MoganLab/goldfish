@@ -15,7 +15,7 @@
 ;;
 
 (define-library (liii goldtool-changed)
-  (import (scheme base) (liii list) (liii os) (liii path) (liii string))
+  (import (scheme base) (liii list) (except (liii os) remove) (liii path) (liii string))
   (export changed-files-since
     changed-existing-files-since
     changed-scheme-files-since
