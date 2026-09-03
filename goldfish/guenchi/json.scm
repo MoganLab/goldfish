@@ -321,25 +321,26 @@
                        (when (> i 0)
                          (display "," out)
                        ) ;when
-                       (if (null? d)
-                         (display "{}" out)
-                         (begin
-                           (let ((len (length d)))
-                             (when (not (or (= len 0) (= len -1) (>= len 2)))
-                               (value-error d " must be null, pair, or list with at least 2 elements")
-                             ) ;when
-                           ) ;let
-                           (let ((k (loose-car d)) (v (loose-cdr d)))
-                             (write-scalar k)
-                             (display ":" out)
-                             (cond ((null? v) (display "{}" out))
-                                   ((list? v) (write-json v))
-                                   ((vector? v) (write-json v))
-                                   (else (write-scalar v))
-                             ) ;cond
-                           ) ;let
-                         ) ;begin
-                       ) ;if
+                       (cond
+                         ((null? d)
+                          (display "{}" out)
+                         ) ;
+                         ((or (not (pair? d)) (null? (cdr d)))
+                          ;; an object entry must be (key . value); a bare
+                          ;; (key) has no value and is malformed.
+                          (value-error d " must be a (key . value) pair")
+                         ) ;
+                         (else
+                          (let ((k (car d)) (v (cdr d)))
+                            (write-scalar k)
+                            (display ":" out)
+                            (cond ((or (pair? v) (vector? v))
+                                   (write-json v))
+                                  (else (write-scalar v))
+                            ) ;cond
+                          ) ;let
+                         ) ;else
+                       ) ;cond
                        (loop (cdr lst) (+ i 1))
                      ) ;let
                    ) ;unless

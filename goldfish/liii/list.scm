@@ -56,8 +56,16 @@
     list-take-right
     list-drop-right
   ) ;export
-  (import (scheme base) (srfi srfi-1) (srfi srfi-13) (liii error))
+   (import (scheme base)
+     (rename (srfi srfi-1) (fold srfi-1-fold))
+     (srfi srfi-13) (liii error))
   (begin
+
+    ;; (liii list) re-exports SRFI-1's fold.  The substrate also binds fold
+    ;; (a legacy accum-first fold in boot), which would otherwise win the
+    ;; name and shadow the SRFI-1 one here; alias it explicitly so the
+    ;; exported binding is SRFI-1's.
+    (define fold srfi-1-fold)
 
     (define (length-cmp lst n)
       (let loop ((lst lst) (i 0))
@@ -141,24 +149,44 @@
       ) ;cond
     ) ;define
 
-    (define (not-null-list? l) (and (pair? l) #t))
+    (define (not-null-list? l)
+      ;; asserts its argument is a list: a non-list raises type-error, the
+      ;; empty list and improper lists answer #f.
+      (cond ((null? l) #f)
+            ((pair? l) (and (list? l) #t))
+            (else (type-error "not-null-list?: expected a list, got ~s" l))))
     (define list-null? null?)
-    (define list-not-null? not-null-list?)
+    (define (list-not-null? l)
+      ;; total predicate: #t iff l is a non-empty proper list.
+      (and (not (null? l)) (pair? l) (list? l)))
 
+    ;; One flattening pass: every list element is spliced in place of its own
+    ;; brackets; an empty list contributes nothing (its brackets vanish);
+    ;; non-list elements are kept.  (flatten lst d) applies this pass d times
+    ;; for an integer d >= 0, so depth 0 is the identity and an empty list
+    ;; survives until the layer that opens it is reached.  'deepest (and any
+    ;; negative depth) flattens to the fixed point.
+    (define (flatten-once l)
+      (let loop ((lst l) (r '()))
+        (cond ((null? lst) (reverse r))
+              ((null? (car lst)) (loop (cdr lst) r))
+              ((not (pair? (car lst))) (loop (cdr lst) (cons (car lst) r)))
+              (else (loop (cdr lst) (append (reverse (car lst)) r))))))
+    (define (flatten-all l)
+      (let loop ((cur l))
+        (let ((nxt (flatten-once cur)))
+          (if (equal? nxt cur) nxt (loop nxt)))))
+    (define (flatten-depth l d)
+      (if (= d 0) l (flatten-depth (flatten-once l) (- d 1))))
     (define* (flatten lst (depth 1))
-      (define (flatten-iter rest depth res-node)
-        (if (null? rest) res-node
-            (let ((first (car rest)) (tail (cdr rest)))
-              (cond ((pair? first)
-                     (if (or (eq? depth 'deepest) (> depth 0))
-                         (flatten-iter tail depth (flatten-iter first (if (eq? depth 'deepest) 'deepest (- depth 1)) res-node))
-                         (begin (set-cdr! res-node (cons first '())) (flatten-iter tail depth (cdr res-node)))))
-                    ((null? first) (flatten-iter tail depth res-node))
-                    (else (set-cdr! res-node (cons first '())) (flatten-iter tail depth (cdr res-node)))))))
-      (define (flatten-with depth)
-        (let ((res (cons #f '()))) (flatten-iter lst depth res) (cdr res)))
-      (cond ((or (eq? depth 'deepest) (integer? depth)) (flatten-with depth))
-            (else (type-error (string-append "flatten: depth should be 'deepest or integer, got ~A") depth))))
+      (cond ((or (eq? depth 'deepest)
+                 (and (integer? depth) (negative? depth)))
+             (flatten-all lst))
+            ((and (integer? depth) (>= depth 0))
+             (flatten-depth lst depth))
+            (else
+             (type-error (string-append "flatten: depth should be 'deepest or integer, got ~A")
+                         depth))))
 
   ) ;begin
 ) ;define-library

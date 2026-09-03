@@ -317,25 +317,23 @@
       (lambda (env) (computation (updater env)))
     ) ;define
 
+    ;; Bind each id to the value its variable holds in the current
+    ;; environment, then run body in that scope.  Variables are plain
+    ;; identifiers (read once inside the environment lambda), so no
+    ;; temporaries are needed; the expansion uses only pattern variables.
     (define-syntax computation-fn
       (lambda (stx)
         (syntax-case stx ()
           ((computation-fn ((id var) ...) body ...)
-           (with-syntax (((tmp ...) (generate-temporaries #'(var ...)))
-                         ((env) (generate-temporaries #'(env))))
-             #'(let ((tmp var) ...)
-                 (computation-bind (computation-ask)
-                   (lambda (env)
-                     (let ((id (computation-environment-ref env tmp)) ...)
-                       body ...))))))
+           #'(computation-bind (computation-ask)
+               (lambda (env)
+                 (let ((id (computation-environment-ref env var)) ...)
+                   body ...))))
           ((computation-fn (id ...) body ...)
-           (with-syntax (((tmp ...) (generate-temporaries #'(id ...)))
-                         ((env) (generate-temporaries #'(env))))
-             #'(let ((tmp id) ...)
-                 (computation-bind (computation-ask)
-                   (lambda (env)
-                     (let ((id (computation-environment-ref env tmp)) ...)
-                        body ...)))))))))
+           #'(computation-bind (computation-ask)
+               (lambda (env)
+                 (let ((id (computation-environment-ref env id)) ...)
+                   body ...)))))))
 
     (define-syntax computation-with
       (lambda (stx)
