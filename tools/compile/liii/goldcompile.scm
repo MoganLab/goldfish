@@ -1,51 +1,41 @@
 ;;
 ;; gf compile -- compile scheme sources into the goldfish cache (guild compile)
 ;;
-;; For each FILE, compile its whole transitive library closure into the
-;; ccache without executing the file's own top-level forms.  A user (or an
+;; For each FILE, compile its transitive library closure into the ccache
+;; without executing the file's own top-level forms.  A user (or an
 ;; installer script) runs this once after installing a program; every later
-;; run then hits the cache and pays only interpreter startup.  Mirror of
-;; Guile's `guild compile`, whose default output is the compile cache.
+;; run then hits the cache and pays only interpreter startup.
 ;;
 ;; The cache root is the usual ~/.cache/goldfish/ccache unless
 ;; GOLDFISH_CACHE_DIR points elsewhere (read-only prebuilt caches pair it
 ;; with GOLDFISH_CACHE_READONLY).
 ;;
-;; The warming itself runs in a fresh `gf` subprocess (the tool library
-;; cannot reach the expander's module-define! API): the subprocess imports
-;; (goldfish), whose program surface exposes warm-file! / compile-file-cached.
+;; warm-file! lives in the base module; it is also mirrored into the host
+;; rootlet (module.scm) so this tool library can call it bare -- importing
+;; (goldfish) would bind the name to a module toplevel that a tool library
+;; cannot resolve.
 
 (define-library (liii goldcompile)
   (import (scheme base)
     (liii argparse)
     (liii sys)
-    (liii os)
   ) ;import
   (export main)
   (begin
 
     (define (compile-one file)
-      (let* ((tag (number->string (getpid)))
-             (script (string-append (os-temp-dir) "/gf-compile-" tag ".scm"))
-             (cmd (string-append (executable) " -m liii '" script "'")))
-        (call-with-output-file script
-          (lambda (p)
-            (display "(import (goldfish))\n" p)
-            (display "(warm-file! " p)
-            (write file p)
-            (display ")\n" p)
-            (display "(catch #t\n" p)
-            (display "  (lambda () (compile-file-cached " p)
-            (write file p)
-            (display "))\n" p)
-            (display "  (lambda (tag . info) #f))\n" p)))
-        (display "compile: ") (display file) (newline)
-        (let ((out (os-call cmd)))
-          (when (and (number? out) (not (= out 0)))
-            (display (string-append "gf compile: subprocess failed ("
-                                    (number->string out) ")\n")
-                     (current-error-port))))
-        (os-call (string-append "rm -f '" script "'"))))
+      (display "compile: ") (display file) (newline)
+      (catch #t
+        (lambda ()
+          (let ((warmed (warm-file! file)))
+            (display "  libraries: ")
+            (display (length warmed))
+            (newline)))
+        (lambda (tag . info)
+          (display "gf compile: failed on " (current-error-port))
+          (display file (current-error-port))
+          (newline (current-error-port))
+          (exit -1))))
 
     (define (main)
       "Main entry point for the compile command"

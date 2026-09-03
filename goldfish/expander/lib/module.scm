@@ -1714,22 +1714,20 @@
 
 ;;; warm-file! : file -> (list name)
 ;;; Compile a program (or library) file's whole library closure into the
-;;; cache -- the `gf compile` backend.  Loading each library (load-library!)
-;;; writes its cache artifact without executing the file's own top-level
-;;; forms, so `gf compile app.scm` precompiles everything app.scm needs and
-;;; later runs are pure cache hits.
+;;; cache -- the `gf compile` backend.  load-library! loads (and therefore
+;;; compiles + caches) a library's imports recursively, so warming only
+;;; needs the file's DIRECT imports plus any library it defines itself;
+;;; no source-file sweep of the closure is required.  The file's own
+;;; top-level forms are never evaluated, so `gf compile app.scm`
+;;; precompiles everything app.scm needs and later runs are pure cache hits.
 (define (warm-file! file)
-  (let* ((defined (file-defined-libraries file))
-         (imports (transitive-lib-closure (file-import-libs file))))
+  (let* ((targets (append (file-defined-libraries file)
+                          (file-import-libs file))))
     (for-each (lambda (n)
                 (unless (runtime-registered? n)
                   (load-library! n)))
-              imports)
-    (for-each (lambda (n)
-                (unless (runtime-registered? n)
-                  (load-library! n)))
-              defined)
-    (append imports defined)))
+              targets)
+    targets))
 
 ;;; ------------------------------------------------------------------------
 ;;; Exports (wrapped in a define so install-library-forms! runs them)
@@ -1767,4 +1765,6 @@
     (eval (list 'define 'runtime-registered? runtime-registered?)
           (rootlet))
     (eval (list 'define 'load-library! load-library!)
+          (rootlet))
+    (eval (list 'define 'warm-file! warm-file!)
           (rootlet))))
