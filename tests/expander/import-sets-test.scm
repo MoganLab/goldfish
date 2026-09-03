@@ -94,3 +94,34 @@
          (lambda () (load-library! '(ct one-reexport)) 'ok)
          (lambda args 'error))
        => 'ok)
+
+;; ===== 3. Composition edges =====
+;; only over a renamed set: the new name is what only selects.
+(import (only (rename (liii os) (os-temp-dir tmp-dir-fn)) tmp-dir-fn))
+(check (procedure? tmp-dir-fn) => #t)
+;; partial rename keeps unrenamed exports under their own names.
+(import (rename (liii os) (os-sep slash)))
+(check (string? slash) => #t)
+(check (procedure? mkdir) => #t)
+;; prefix of a rename: prefix applies to the name as renamed.
+(import (prefix (rename (liii os) (os-sep sep2)) pre-))
+(check (string? pre-sep2) => #t)
+;; depth-3 nesting: prefix over except over only.
+(import (prefix (except (only (liii os) mkdir rmdir) rmdir) oo-))
+(check (procedure? oo-mkdir) => #t)
+;; excepting an id the source does not export is a no-op.
+(import (except (liii os) no-such-os-export))
+(check (procedure? rmdir) => #t)
+
+;; A rename that collapses two different exports onto one name is an error
+;; when the import set is actually applied.
+(call-with-output-file (string-append fixture-sub "/dup-rename.scm")
+  (lambda (p)
+    (write '(define-library (ct dup-rename)
+              (import (rename (liii os) (os-sep dx) (mkdir dx)))
+              (export dx)
+              (define dx 0))
+           p)
+    (newline p)))
+(check (import-error-message (lambda () (load-library! '(ct dup-rename))))
+       => "import: dx bound more than once with different bindings")

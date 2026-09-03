@@ -116,7 +116,8 @@
   (import (scheme base)
     (scheme case-lambda)
     (srfi srfi-1)
-    (rename (liii bitwise) (ash arithmetic-shift))
+    (rename (except (liii bitwise) arithmetic-shift)
+            (ash arithmetic-shift))
   ) ;import
 
   (begin

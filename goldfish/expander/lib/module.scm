@@ -909,11 +909,21 @@
         (cdr e)
         (let ((iface (make-exp-library (exp-library-name src))))
           (for-each (lambda (p)
-                      (let ((binding (exp-library-ref src (cdr p))))
+                      (let* ((visible (car p))
+                             (binding (exp-library-ref src (cdr p))))
                         (if binding
-                          (exp-library-define! iface (car p) binding)
+                          (let ((prior (exp-library-ref-own iface visible)))
+                            (if prior
+                              ;; A modifier stack that lands two DIFFERENT
+                              ;; bindings on one visible name (a rename that
+                              ;; collapses two exports, say) is ambiguous.
+                              (if (eq? prior binding)
+                                #f
+                                (error "import: ~a bound more than once with different bindings (~a)"
+                                       visible lib-name))
+                              (exp-library-define! iface visible binding)))
                           (when strict?
-                            (error "import: exported identifier has no binding"
+                            (error "import: ~a has no binding in ~a"
                                    (cdr p) lib-name)))))
                     pairs)
           (set! *interface-cache*
@@ -1037,10 +1047,22 @@
                             pairs)))
                     ((rename)
                      (let ((ms rest))
-                       (map (lambda (p)
-                              (let ((e (assq (car p) ms)))
-                                (if e (cons (cadr e) (cdr p)) p)))
-                            pairs)))
+                       (let ((mapped
+                              (map (lambda (p)
+                                     (let ((e (assq (car p) ms)))
+                                       (if e (cons (cadr e) (cdr p)) p)))
+                                   pairs)))
+                         ;; Renaming two distinct identifiers to one visible
+                         ;; name would import that name twice with different
+                         ;; bindings -- a malformed set.
+                         (let dup-check ((ls mapped))
+                           (if (pair? ls)
+                             (if (assq (caar ls) (cdr ls))
+                               (error "import: ~a bound more than once with different bindings"
+                                      (caar ls))
+                               (dup-check (cdr ls)))
+                             #f))
+                         mapped)))
                     (else (error "import: bad import-set" spec)))))))
     ;; A bare library name: its whole export list, identity-mapped.
     (values spec
