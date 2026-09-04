@@ -57,6 +57,7 @@ GF_FWD(int_, integer, (pointer p), s7_integer(p))
 GF_FWD(pointer, make_integer, (scheme* sc, int_ num), s7_make_integer(sc, num))
 GF_FWD(double_, real, (pointer p), s7_real(p))
 GF_FWD(pointer, make_real, (scheme* sc, double_ num), s7_make_real(sc, num))
+GF_FWD(pointer, make_ratio, (scheme* sc, int_ num, int_ den), s7_make_ratio(sc, num, den))
 GF_FWD(double_, number_to_real, (scheme* sc, pointer x), s7_number_to_real(sc, x))
 
 GF_FWD(const char*, string, (pointer p), s7_string(p))

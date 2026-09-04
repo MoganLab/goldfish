@@ -212,6 +212,33 @@ tiny_read_token (gf::scheme* sc, gf::pointer port, gf::int_ first) {
       v = -v;
     return gf::make_integer (sc, (gf::int_) v);
   }
+  // rational?  a single '/', whole-digit numerator/denominator on both
+  // sides (e.g. 4881175/2).  Cached libraries serialize exact ratios this
+  // way, and strtod cannot consume them, so parse them before the real
+  // branch; a denominator of zero or a malformed token stays a symbol.
+  size_t slash = tok.find ('/', i);
+  if (slash != std::string::npos && slash > i &&
+      slash + 1 < tok.size () &&
+      tok.find ('/', slash + 1) == std::string::npos) {
+    bool ok = true;
+    for (size_t k = i; ok && k < slash; k++)
+      ok = (tok[k] >= '0' && tok[k] <= '9');
+    for (size_t k = slash + 1; ok && k < tok.size (); k++)
+      ok = (tok[k] >= '0' && tok[k] <= '9');
+    if (ok) {
+      long long num = 0;
+      long long den = 0;
+      for (size_t k = i; k < slash; k++)
+        num = num * 10 + (tok[k] - '0');
+      for (size_t k = slash + 1; k < tok.size (); k++)
+        den = den * 10 + (tok[k] - '0');
+      if (den != 0) {
+        if (neg)
+          num = -num;
+        return gf::make_ratio (sc, (gf::int_) num, (gf::int_) den);
+      }
+    }
+  }
   // real?  cached libraries serialize float constants (e.g. 1e-12, 2.5e3,
   // .5), so a token starting with a digit or '.' after an optional sign is
   // tried as a number and only accepted when strtod consumes the whole
