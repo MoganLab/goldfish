@@ -401,6 +401,7 @@
     ;; 来计算 TAI（国际原子时）与 UTC 之间的差值。
     ;; 该表包含了自1972年UTC系统引入闰秒机制以来，所有闰秒生效的时刻（Unix时间戳）
     ;; 以及从该时刻起，TAI 领先 UTC 的总秒数。
+    ;; 1972 年之前视为 TAI = UTC（与 Guile 的 srfi-19 一致；表中无此前数据）。
     ;;
     ;; 表格结构：((生效时间戳1 . 总偏移量1) (生效时间戳2 . 总偏移量2) ...)
     ;; 数据排列：最新的条目（时间戳最大）在前。
@@ -453,7 +454,7 @@
     (define (priv:leap-second-delta s)
       (let lp
         ((table priv:leap-second-table))
-        (cond ((null? table) 10)
+        (cond ((null? table) 0)
               ((>= s (caar table)) (cdar table))
               (else (lp (cdr table)))
         ) ;cond
@@ -544,7 +545,8 @@
     ) ;define*
 
     (define (current-julian-day)
-      (error 'todo "TODO")
+      ;; 1970 epoch: JD 2440587.5 (counted from noon); current-date 0 = UTC.
+      (date->julian-day (current-date 0))
     ) ;define
 
     (define* (current-time (clock-type TIME-UTC))
@@ -735,7 +737,7 @@
     (define (priv:tai->utc-seconds tai-sec)
       (let lp
         ((table priv:leap-second-table))
-        (cond ((null? table) (- tai-sec 10))
+        (cond ((null? table) tai-sec)
               (else (let* ((utc-start (caar table)) (delta (cdar table)) (tai-start (+ utc-start delta)))
                       (if (>= tai-sec tai-start) (- tai-sec delta) (lp (cdr table)))
                     ) ;let*
