@@ -1063,6 +1063,42 @@
          #f))
       (else #f))))
 
+;;; has-cycle? : datum -> bool
+;;; Whether a record-free datum contains a cycle among pairs/vectors.  The
+;;; single-pass writer cannot label cycles (labels would not survive the
+;;; tiny-reader cache path), so one is a serialization error, not a hang.
+;;; Cycle detection is memoized so shared but acyclic graphs are not
+;;; re-walked per path.  Only called after has-record? is false.
+
+(define (has-cycle? x)
+  (let ((expanded '()))
+    (define (expand! v)
+      (if (assq v expanded)
+        #f
+        (begin (set! expanded (cons (cons v #t) expanded)) #t)))
+    (let descend ((v x) (stack '()))
+      (cond
+        ((pair? v)
+         (cond
+           ((memq v stack) #t)
+           ((not (expand! v)) #f)
+           (else
+            (let ((st (cons v stack)))
+              (or (descend (car v) st)
+                  (descend (cdr v) st))))))
+        ((and (vector? v) (not (bytevector? v)))
+         (cond
+           ((memq v stack) #t)
+           ((not (expand! v)) #f)
+           (else
+            (let ((st (cons v stack)))
+              (let loop ((i 0))
+                (if (< i (vector-length v))
+                  (or (descend (vector-ref v i) st)
+                      (loop (+ i 1)))
+                  #f))))))
+        (else #f)))))
+
 ;;; write-roundtrip : datum port -> void
 ;;; A writer whose output the R7RS reader (this file) reads back to an equal
 ;;; value, including records and shared/cyclic structure.  Plain data (no
@@ -1075,40 +1111,43 @@
 
 (define (write-roundtrip x p)
   (if (not (has-record? x))
-    (let rec ((v x))
-      (cond
-        ((symbol? v) (write-roundtrip-symbol v p))
-        ((pair? v)
-         (display #\( p)
-         (let loop ((y v))
-           (cond
-             ((pair? y)
-              (rec (car y))
-              (if (pair? (cdr y))
-                (begin (display #\space p) (loop (cdr y)))
-                (if (null? (cdr y))
-                  #f
-                  (begin
-                    (display " . " p)
-                    (rec (cdr y))))))
-             ((null? y) #f)
-             (else
-              (display " . " p)
-              (rec y))))
-         (display #\) p))
-        ((null? v) (display "()" p))
-        ((vector? v)
-         (display "#(" p)
-         (let loop ((i 0))
-           (if (< i (vector-length v))
-             (begin
-               (if (> i 0) (display #\space p))
-               (rec (vector-ref v i))
-               (loop (+ i 1)))))
-         (display ")" p))
-        ((procedure? v)
-         (error "write-roundtrip: cannot serialize a procedure" v))
-        (else (write v p))))
+    (begin
+      (when (has-cycle? x)
+        (error "write-roundtrip: cannot serialize a cyclic datum without records" x))
+      (let rec ((v x))
+        (cond
+          ((symbol? v) (write-roundtrip-symbol v p))
+          ((pair? v)
+           (display #\( p)
+           (let loop ((y v))
+             (cond
+               ((pair? y)
+                (rec (car y))
+                (if (pair? (cdr y))
+                  (begin (display #\space p) (loop (cdr y)))
+                  (if (null? (cdr y))
+                    #f
+                    (begin
+                      (display " . " p)
+                      (rec (cdr y))))))
+               ((null? y) #f)
+               (else
+                (display " . " p)
+                (rec y))))
+           (display #\) p))
+          ((null? v) (display "()" p))
+          ((vector? v)
+           (display "#(" p)
+           (let loop ((i 0))
+             (if (< i (vector-length v))
+               (begin
+                 (if (> i 0) (display #\space p))
+                 (rec (vector-ref v i))
+                 (loop (+ i 1)))))
+           (display ")" p))
+          ((procedure? v)
+           (error "write-roundtrip: cannot serialize a procedure" v))
+          (else (write v p)))))
     ;; Graph-aware pass (data contains records): count references, then
     ;; output with #n=/#n# labels for shared/cyclic containers.
     (let ((counts '()))
@@ -1206,17 +1245,20 @@
             (cond
               ((pair? y)
                (wrt (car y))
-               (if (pair? (cdr y))
-                 (begin (display #\space p) (loop (cdr y)))
-                 (if (null? (cdr y))
-                   #f
-                   (begin
-                     (display " . " p)
-                     (wrt (cdr y))))))
+               (let ((tail (cdr y)))
+                 (cond
+                   ((pair? tail)
+                    (if (shared? tail)
+                      ;; The tail is (or was) written elsewhere: close the
+                      ;; spine with a dotted label/ref so the reader
+                      ;; rebuilds the shared cdr instead of duplicating it
+                      ;; (and so a cyclic spine terminates).
+                      (begin (display " . " p) (wrt tail))
+                      (begin (display #\space p) (loop tail))))
+                   ((null? tail) #f)
+                   (else (display " . " p) (wrt tail)))))
               ((null? y) #f)
-              (else
-               (display " . " p)
-               (wrt y))))
+              (else (display " . " p) (wrt y))))
           (display #\) p))
         (define (wrt-vector v)
           (display "#(" p)
