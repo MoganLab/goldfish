@@ -42,7 +42,7 @@
             (car (m))))
        => +)
 
-;; ===== 6. 已知缺口 =====
+;; ===== 6. 语义确认（对齐 Racket / Guile）=====
 ;; 6a. (syntax X) 子模板：产 syntax 对象（datum 嵌 syntax 值），展开器保留
 ;;     为值（Racket 语义）；用户 syntax->datum 递归得 X 的 datum。
 (check (syntax->datum (let-syntax ((m (lambda (stx)

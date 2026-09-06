@@ -4,10 +4,9 @@
 ;;
 ;; 已实现：自托管 syntax-case（对象级宏）、syntax-rules、with-syntax、
 ;; 模板预编译、guard/fender、vector/dotted ellipsis、define-macro。
-;; 已知缺口（记录于测试尾部的 check-false 断言）：
-;;   - 命名/自定义 ellipsis（字面量表列 `...`）
-;;   - ellipsis 转义（(... ...)）
-;;   - quasisyntax / unsyntax / unsyntax-splicing
+;; 曾列为缺口的命名/自定义 ellipsis、ellipsis 转义与 quasisyntax 现已实现，
+;; 各自由 named-ellipsis-test.scm / syntax-template-ellipsis-test.scm /
+;; quasisyntax-test.scm 独立覆盖。
 
 ;; ===== 1. nested ellipsis（双层）=====
 ;; 单层组 ellipsis ((x y) ...)：匹配一个模式组消耗多个输入元素
@@ -117,26 +116,9 @@
 (check (syntax? (qs whatever)) => #t)
 (check (syntax->datum (qs whatever)) => 'foo)
 
-;; ===== 9. 已知缺口探测 =====
-;; 9a. 命名 ellipsis：字面量表列 `...` 应允许别名 ellipsis。
-;; R7RS portable match-check-ellipsis 惯用法。当前实现不支持。
-(check (catch #t
-         (lambda ()
-           (eval '(let-syntax ((m (syntax-rules (...) ((_ ...) 'ok))))
-                    (m x y z))))
-         (lambda args 'expansion-error))
-       => 'expansion-error)
-
-;; 9b. ellipsis 转义：(... ...) 应产出一个字面 ...（R6RS）。当前不支持。
-(check (catch #t
-         (lambda ()
-           (eval '(let-syntax ((m (syntax-rules () ((_ x) '(... ...)))))
-                    (m 1))))
-         (lambda args 'expansion-error))
-       => 'expansion-error)
-
-;; 9c. quasisyntax / unsyntax：已实现（core-quasisyntax 翻译模板，
-;;     静态部分 quote-syntax、unsyntax 展开；完整测试见 quasisyntax-test.scm）。
+;; ===== 9. quasisyntax 冒烟 =====
+;; 实现：core-quasisyntax 翻译模板（静态部分 quote-syntax、unsyntax 展开）；
+;; 完整覆盖见 quasisyntax-test.scm。
 (check (let-syntax ((m (lambda (stx)
                          (syntax-case stx ()
                            ((_ x) #`(list #,x))))))
