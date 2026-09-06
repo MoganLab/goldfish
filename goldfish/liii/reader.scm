@@ -960,22 +960,13 @@
         r
         (eval-defs (cdr defs) env)))))
 
-;; optimize-expansion-defs : (list syntax) context -> (list sexp)
-;; Session/REPL per-form path: eval the defs lowered, no compilation.
-;; Batch files and cached libraries get their optimization baked into their
-;; artifacts at cache-write time (optimize-on-load / optimize-lib-cache-recs
-;; -> compile-defs-cached), so running the peval pipeline here would only
-;; force-load the (goldfish compiler) library (~90ms) to optimize the
-;; trivial registration defs an import/define produces.  Compilation is
-;; never a correctness requirement (semantics-preserving), so lowering here
-;; only trades the rare REPL-peval speedup for a fast, compiler-free boot.
-;; The per-form defs are un-lowered syntax objects.
-
 (define (optimize-expansion-defs defs ctx)
-  ;; Session/REPL path: evaluate lowered.  Batch files and cached libraries
-  ;; already have optimized defs baked into their artifacts (optimize-on-load
-  ;; / optimize-lib-cache-recs at cache-write time), so peval here would
-  ;; force-load the compiler (~90ms) to optimize trivial registration defs.
+  ;; Session/REPL path: eval the defs lowered, no compilation.  Batch files
+  ;; and cached libraries get their optimization baked into their artifacts
+  ;; at cache-write time (optimize-on-load / optimize-lib-cache-recs ->
+  ;; compile-defs-cached), so running the peval pipeline here would only
+  ;; force-load the (goldfish compiler) library (~90ms) to optimize the
+  ;; trivial registration defs an import/define produces.
   (map lower defs))
 
 (define *eval-ctx* #f)
@@ -1036,17 +1027,6 @@
                          s)
         (display #\| p)))))
 
-;;; write-roundtrip : datum port -> void
-;;; Graph-aware writer: the two-pass Racket print-graph scheme.  Pass 1
-;;; walks the datum (with an eq? table) counting how many times each
-;;; container -- pair, vector, or vector-layout record -- is referenced;
-;;; containers referenced more than once (or self-referentially, e.g. an
-;;; exp-library whose toplevel-ref bindings point back at it) get a #n= on
-;;; first output and #n# afterwards, which read-label/read-sharp parse back
-;;; to the shared object.  This is essential for exp-library records: their
-;;; bindings alist's toplevel-ref homes refer back to the library itself,
-;;; so a naive recursive writer loops forever.
-
 ;;; has-record? : datum -> bool
 ;;; Quick scan whether a datum contains any vector-layout record.  Cached
 ;;; expansions (lower core) are plain data -- symbols, pairs, vectors,
@@ -1092,17 +1072,6 @@
 ;;; parse them back to shared objects).  The graph pass is required for
 ;;; exp-library: its bindings' toplevel-ref homes refer back to the library
 ;;; itself, so a naive recursive writer loops forever.
-
-;;; exp-library-record? : any -> boolean
-;;; An <exp-library> record's bindings table holds every library binding
-;;; (transformers, live objects).  Serializing it is useless (bindings are
-;;; replayed from source by install-cache-load!) and can blow up the
-;;; graph walk, so exp-library records are written by name only (their
-;;; other fields are recovered on load).  Name is the record's second
-;;; field, always a list; the record has exactly three fields.
-(define (exp-library-record? v)
-  (and (= (vector-length v) 3)
-       (pair? (vector-ref v 1))))
 
 (define (write-roundtrip x p)
   (if (not (has-record? x))

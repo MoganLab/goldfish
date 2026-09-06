@@ -24,7 +24,6 @@
 ;; compat aliases for previous API
 (define compile-cache-dir gfo-dir)
 (define cache-key-path gfo-key)
-(define cache-separator? gfo-separator?)
 (define ensure-cache-parent! gfo-ensure-parent!)
 (define compile-file-stamp gfo-stamp)
 (define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
@@ -247,11 +246,6 @@
 ;;; install-cache-path : path -> gfo-file (unified .gfo)
 (define (install-cache-path path) (gfo-path path))
 
-;;; (compile-transformer-to-program removed: the bytecode VM execution path
-;;; is retired, unified on s7.  Transformers are cached as serialized
-;;; lowered forms (serialize-cache-sexp) and restored by eval -- the
-;;; GOLDFISH_NO_VM_TRANSFORMER branch and the VM program caches are gone.)
-
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings)
@@ -311,24 +305,15 @@
 
 ;;; install-cache-load! : exp-library cache-datum -> void
 ;;; Warm start: evaluate the cached value definitions and rebuild the macro
-;;; transformers from their cached forms, registering them in the library
-;;; (exp-library-define!) -- the same binding install that
-;;; expand-lib-define-syntax performs, minus the re-expansion.  A cached
-;;; transformer is either a serialized VM bytecode program (compiled when
-;;; the compiler library was available at save time) or a lowered form;
-;;; a program is loaded through vm-load (a VM closure), otherwise the form
-;;; is evaluated (cf. Racket's direct-eval).
+;;; transformers from their cached lowered forms, registering them in the
+;;; library (exp-library-define!) -- the same binding install that
+;;; expand-lib-define-syntax performs, minus the re-expansion
+;;; (cf. Racket's direct-eval).
 
 (define (install-cache-load! lib rec)
   (let ((bindings (cdr (assq 'bindings rec)))
         (defs (cdr (assq 'defs rec)))
         (macros (cdr (assq 'macros rec))))
-    ;; Restore the binding table from the cached structured info (the same
-    ;; (toplevel gensym home original exported?) tuples the libcache uses),
-    ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
-    ;; is inlined here (install-depurify-binding) because install-cache-load!
-    ;; runs while module.scm itself is being installed, before module.scm's
-    ;; depurify-binding is defined.
     ;; Restore the binding table from the cached structured info (the same
     ;; (toplevel gensym home original exported?) tuples the libcache uses),
     ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
@@ -577,10 +562,10 @@
       (exp-library-define! the-base-library name (make-primitive-binding name)))
     '(;; reader
       read read-forms read-line read-string read-char write-roundtrip load
-      expand-eval eval-forms auto-compile-enabled?
+      expand-eval auto-compile-enabled?
       ;; boot / loader
       load-source-file load-expanded load-find-module-file
-      le-cache-files le-cache-valid? le-write-cache le-rootlet-copy
+      le-rootlet-copy
       ;; install
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached

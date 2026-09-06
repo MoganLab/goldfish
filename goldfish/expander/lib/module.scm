@@ -5,14 +5,14 @@
 ;;;
 ;;;   * Minimal module API (kernel): a module is an exp-library plus a
 ;;;     registry entry (exp-library . export-names).  expand-library-body
-;;;     (expand/libbody.scm) expands a module body, installing its defines
-;;;     into the library.  The driver knows nothing about R7RS; it only
-;;;     dispatches top-level forms whose head resolves to a `module-form'
-;;;     binding (see context.scm).
+;;;     (expander/kernel/libbody.scm) expands a module body, installing its
+;;;     defines into the library.  The driver knows nothing about R7RS; it
+;;;     only dispatches top-level forms whose head resolves to a
+;;;     `module-form' binding (see expander/kernel/context.scm).
 ;;;
 ;;;   * Runtime modules (Guile-style, S2): define-library also emits a
 ;;;     registration expression (make-module/module-define!/register-module,
-;;;     see common/prelude.scm) so libraries have runtime identity; cross-
+;;;     see liii/prelude.scm) so libraries have runtime identity; cross-
 ;;;     library references are emitted as (module-ref 'lib 'name).  References
 ;;;     within the defining library stay bare gensyms.  Exported bindings are
 ;;;     immutable (set! on them is an expansion error): the module inlet holds
@@ -28,9 +28,9 @@
 ;;;     to the R7RS forms (explicit-body semantics).  All surface forms are
 ;;;     installed into the-base-library as module-form bindings.
 ;;;
-;;; The kernel core keeps only: exp-library (module/exp-library.scm),
-;;; expand-library-body (expand/libbody.scm), the binding types, and the
-;;; runtime module substrate (common/prelude.scm).
+;;; The kernel core keeps only: exp-library (expander/kernel/exp-library.scm),
+;;; expand-library-body (expander/kernel/libbody.scm), the binding types, and
+;;; the runtime module substrate (liii/prelude.scm).
 
 ;;; ------------------------------------------------------------------------
 ;;; Minimal module API
@@ -284,11 +284,6 @@
   (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
                  (library-cache-level-suffix) ".gfo"))
 
-;;; parse-define-library-body : syntax -> (values exports body-stxs)
-;;; Reuse parse-library-clauses (already defined below); body stxs are the
-;;; raw clause forms (export/import filtered out) so macro specs can be
-;;; extracted as source datums.
-
 ;;; extract-exports : syntax -> (list symbol)
 
 (define (extract-exports form)
@@ -302,112 +297,14 @@
                                (eq? (syntax-form (car (syntax-form cl))) 'export)))
                         (cddr form))))))
 
-;;; extract-macro-specs : syntax -> (list syntax)
-;;; Each macro definition body form as its SYNTAX OBJECT (not datum), so the
-;;; hygienic scope information of a syntax-rules macro spec survives into the
-;;; cache: re-expanding a datum spec from scratch would not reproduce the
-;;; scope sets of the original definition, breaking hygiene for complex
-;;; macros (e.g. liii match).  define-syntax directly, and
-;;; define-macro/defmacro (s7 compatibility macros that expand to
-;;; define-syntax) as their own source forms.  begin forms are spliced.
-
-(define (extract-macro-specs form)
-  (let ((form (syntax-form form)))
-    (let loop ((clauses (cddr form)) (acc '()))
-      (if (null? clauses)
-        (reverse acc)
-        (let ((clause (syntax-form (car clauses))))
-          (if (not (pair? clause))
-            (loop (cdr clauses) acc)
-            (let ((head (car clause)))
-              (cond
-                ((and (identifier? head) (eq? (syntax-form head) 'begin))
-                 (loop (append (cdr clause) (cdr clauses)) acc))
-                ((and (identifier? head) (eq? (syntax-form head) 'cond-expand))
-                 ;; Expand the cond-expand ONE macro step (scan-lib-head
-                 ;; stops at the definition head), splicing the selected
-                 ;; branch as (begin ...), then recurse: macros defined
-                 ;; inside the selected branch (e.g. liii match's
-                 ;; match-check-identifier) are top-level defines and must
-                 ;; be replayed too.  Full expand-expr would descend into
-                 ;; the branch and choke on the define-syntax forms.
-                 (let*-values (((expanded ctx1)
-                                (scan-lib-head (car clauses) (initial-context))))
-                   (loop (cdr clauses)
-                         (append (extract-macro-specs-of-syntax expanded)
-                                 acc))))
-                ((and (identifier? head) (memq (syntax-form head)
-                                               '(define-syntax define-macro defmacro)))
-                 (loop (cdr clauses)
-                       (cons (car clauses) acc)))
-                (else (loop (cdr clauses) acc))))))))))
-
-;;; extract-macro-specs-of-syntax : syntax -> (list syntax)
-;;; Extract macro definition forms from an already-expanded syntax object
-;;; (e.g. the result of expanding a cond-expand), walking begin wrappers.
-
-(define (extract-macro-specs-of-syntax stx)
-  (let ((form (syntax-form stx)))
-    (cond
-      ((and (pair? form) (eq? (syntax-form (car form)) 'begin))
-       (apply append (map extract-macro-specs-of-syntax (cdr form))))
-      ((and (pair? form) (memq (syntax-form (car form))
-                               '(define-syntax define-macro defmacro)))
-       (list stx))
-      (else '()))))
-
-;;; purify-syntax-tree : syntax exp-library -> syntax
-;;; Replace every exp-library reference in a syntax tree with a (libref name)
-;;; descriptor so the tree survives write-roundtrip (a syntax record's
-;;; library field points at an exp-library whose bindings table contains
-;;; closures).  depurify-syntax-tree restores the references from the
-;;; registry.
-
-(define (purify-syntax-tree stx)
-  (cond
-    ((syntax? stx)
-     (let ((form (syntax-form stx))
-           (ctx (syntax-context stx))
-           (lib (syntax-library stx)))
-       (make-syntax
-         (cond ((pair? form) (map-spine purify-syntax-tree form))
-               ((vector? form) (vector-map purify-syntax-tree form))
-               (else form))
-         ctx
-         (if (and lib (exp-library? lib))
-           (list 'libref (exp-library-name lib))
-           lib))))
-    ((pair? stx) (cons (purify-syntax-tree (car stx)) (purify-syntax-tree (cdr stx))))
-    ((vector? stx) (vector-map purify-syntax-tree stx))
-    (else stx)))
-
-(define (depurify-syntax-tree stx)
-  (cond
-    ((syntax? stx)
-     (let ((form (syntax-form stx))
-           (ctx (syntax-context stx))
-           (lib (syntax-library stx)))
-       (make-syntax
-         (cond ((pair? form) (map-spine depurify-syntax-tree form))
-               ((vector? form) (vector-map depurify-syntax-tree form))
-               (else form))
-         ctx
-         (if (and (pair? lib) (eq? (car lib) 'libref))
-           (let ((rec (library-registry-ref (cadr lib))))
-             (and rec (lib-record-library rec)))
-           lib))))
-    ((pair? stx) (cons (depurify-syntax-tree (car stx)) (depurify-syntax-tree (cdr stx))))
-    ((vector? stx) (vector-map depurify-syntax-tree stx))
-    (else stx)))
-
 ;;; purify-binding : binding -> datum
 ;;; A serializable description of a library binding.  Value bindings
 ;;; (toplevel/primitive) are pure data; transformer/core-form/module-form
 ;;; bindings cannot be serialized (their value is a closure), so a macro
 ;;; binding is recorded as the symbol 'transformer and replayed from its
-;;; source spec (extract-macro-specs).  A library whose bindings contain a
-;;; core-form/module-form value (e.g. an exported define-library handler) is
-;;; not cacheable and is signalled here.
+;;; source spec.  A library whose bindings contain a core-form/module-form
+;;; value (e.g. an exported define-library handler) is not cacheable and is
+;;; signalled here.
 
 (define (purify-binding b)
   (let ((kind (binding-kind b)))
@@ -489,9 +386,9 @@
              ;; forms, the same mechanism the boot library installs use:
              ;; expand-library-body collected them as (name . lowered) while
              ;; this define-library body expanded, and warm start
-             ;; re-evaluates them (cf. Racket's direct-eval).  This replaces
-             ;; the old source-spec replay (extract-macro-specs), which could
-             ;; not recognize every macro-defining form.
+             ;; re-evaluates them (cf. Racket's direct-eval).  This replaced
+             ;; the old source-spec replay, which could not recognize every
+             ;; macro-defining form.
              (macros (map (lambda (m)
                              (cons (car m) (serialize-cache-sexp (cdr m))))
                            (take-collected-macros)))
@@ -586,9 +483,9 @@
     ;; 3. Rebuild this library's own macro transformers from their cached
     ;;    lowered forms: re-evaluating each form yields the transformer,
     ;;    which is registered exactly as expand-lib-define-syntax does.
-    ;;    This replaces the source-spec replay (extract-macro-specs +
-    ;;    expand-library-body), and is the same mechanism the boot library
-    ;;    installs use -- one cache path for standard and user libraries.
+    ;;    This replaced the source-spec replay + expand-library-body, and is
+    ;;    the same mechanism the boot library installs use -- one cache path
+    ;;    for standard and user libraries.
     (for-each (lambda (m)
                 (let* ((mname (car m))
                        (data (deserialize-cache-sexp (cdr m)))
@@ -816,9 +713,8 @@
             recs))
 
 ;;; eval-defs : (list sexp) -> void
-;;; Evaluate a library's lowered defs with plain s7 eval.  The bytecode VM
-;;; execution path is retired (unified on s7): measurements showed the
-;;; cross-boundary cost outweighs the bytecode benefit.
+;;; Evaluate a library's lowered defs with plain s7 eval (the unified
+;;; execution host).
 
 (define (eval-defs defs lib-name)
   (eval (cons 'begin defs) (rootlet)))
@@ -1047,16 +943,6 @@
          (or (primitive-binding? b)
              (and (toplevel-binding? b)
                   (eq? (toplevel-ref-home (binding-value b)) bl))))))
-
-;;; supplying-view : lib name -> view/#f
-;;; The import view (in uses order) through which name is currently visible.
-(define (supplying-view lib name)
-  (let loop ((uses (exp-library-uses lib)))
-    (if (pair? uses)
-      (if (exp-library-ref-own (car uses) name)
-        (car uses)
-        (loop (cdr uses)))
-      #f)))
 
 ;;; add-import-view! : lib lib-name iface -> void
 ;;; Record a shared import view on lib after enforcing Racket-style import
@@ -1365,15 +1251,6 @@
         (library-registry-set! name (make-lib-record lib exports))
         (let ((body-stxs (map (lambda (s) (stx-set-library s lib)) body-stxs)))
           (let*-values (((defs ctx1) (expand-library-body body-stxs lib ctx)))
-            ;; An exported identifier not defined in the library body is
-            ;; inherited from the base library when the base library has it
-            ;; (host primitives / core forms / ambient syntax re-exported
-            ;; without a body definition, as goldfish/scheme/base.scm does);
-            ;; otherwise it falls back to a host primitive reference resolved
-            ;; at eval time (the scheme base library exports the full s7
-            ;; r7rs procedure set, most of which is never defined in its
-            ;; body).  No binding at all is NOT an error: the host s7
-            ;; environment loads scheme/base.scm with the same tolerance.
             ;; An exported identifier not defined in the library body must
             ;; resolve from an explicitly imported library (e.g. (scheme
             ;; base) imports (goldfish) and re-exports the host surface).

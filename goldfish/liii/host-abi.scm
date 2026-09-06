@@ -194,7 +194,7 @@
 ;;; ---- promises -----------------------------------------------------
 
 ;;; R7RS make-promise returns obj unchanged when obj is already a promise;
-;;; otherwise it wraps obj in a lazy promise (see boot.scm's
+;;; otherwise it wraps obj in a lazy promise (see expander/kernel/substrate.scm's
 ;;; make-lazy-promise / force for the representation and semantics).
 (define (make-promise obj)
   (if (promise? obj) obj (make-lazy-promise (lambda () obj))))

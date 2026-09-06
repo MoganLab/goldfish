@@ -7,7 +7,7 @@
 ;;;
 ;;;   syntax-case-dispatch  run-time clause dispatcher
 ;;;   pattern-match*        pattern matching (literals via free-identifier=?)
-;;;   instantiate           template instantiation (the `syntax' contents)
+;;;   fast-instantiate      precompiled (syntax T) template instantiation
 ;;;
 ;;; This is ordinary object-level R7RS source, expanded by the expander
 ;;; itself (install-library-file!) and installed before lib/syntax-case.scm
@@ -85,10 +85,6 @@
                 #f
                 (not (literal-identical? pat literals)))))
       #f))
-
-(define (pattern-match pattern input literals)
-  (letrec* ((bindings (pattern-match* pattern input literals '())))
-    (if bindings (reverse bindings) #f)))
 
 (define (literal-matches? pattern input literals)
   (if (syntax? input)
@@ -233,9 +229,6 @@
                (pattern-min-length (cddr pat-list))
                (+ 1 (pattern-min-length (cdr pat-list)))))))
 
-(define (pattern-match-ellipsis-elem elem-pat input literals)
-  (pattern-match* elem-pat input literals '()))
-
 (define (merge-ellipsis-bindings elem-bindings accum)
   (if (null? elem-bindings)
       accum
@@ -249,97 +242,9 @@
             (merge-ellipsis-bindings (cdr elem-bindings)
                                      (cons (list var val) accum))))))
 
-;;; Template instantiation
-;;;
-;;; instantiate : syntax bindings -> syntax
-;;;
-;;; This is the `syntax` (#') template form, implemented as a procedure.
-;;; The template is kept as a syntax object: identifiers retain the
-;;; definition-site scopes and home library, so free identifiers in the
-;;; output resolve at the macro definition site (referential
-;;; transparency, cf. core-model reftrans example).  Pattern variables
-;;; are replaced with their bound input syntax; the expand-macro flip
-;;; mechanism distinguishes introduced from use-site syntax.
-
-(define (ellipsis-stx? x)
-  (if (syntax? x) (eq? (syntax-form x) '...) #f))
-
-(define (instantiate template bindings)
-  (instantiate* template bindings))
-
-(define (instantiate* template bindings)
-  (letrec* ((form (syntax-form template)))
-    (if (symbol? form)
-        (letrec* ((binding (assq form bindings)))
-          (if binding
-              (cdr binding)
-              ;; A free template identifier (not a pattern variable):
-              ;; introduced by the macro, so it picks up the current
-              ;; introduction scope (on every phase the template carries).
-              (make-syntax (syntax-form template)
-                           (stx-ctx-mark-intro (syntax-context template) 0)
-                           (syntax-library template))))
-        (if (pair? form)
-            (make-syntax (instantiate-list form bindings)
-                         (stx-ctx-mark-intro (syntax-context template) 0)
-                         (syntax-library template))
-            ;; Vector template (e.g. match.scm's #(vec ...)): elements may
-            ;; be raw datums (vectors are wrapped whole), so wrap them as
-            ;; syntax, instantiate as a list, and rebuild the vector.
-            (if (stx-vector? form)
-                (letrec* ((elems (map (lambda (e)
-                                        (if (syntax? e)
-                                            e
-                                            (make-syntax e (syntax-context template)
-                                                         (syntax-library template))))
-                                      (vector->list form))))
-                  (make-syntax (list->vector (instantiate-list elems bindings))
-                               (stx-ctx-mark-intro (syntax-context template) 0)
-                               (syntax-library template)))
-                template)))))
-
-(define (instantiate-list elems bindings)
-  (if (null? elems)
-      '()
-      ;; Dotted tail: a syntax object wrapping a pattern variable; splice
-      ;; its bound value's contents as the improper tail.  A list-valued
-      ;; tail splices its elements ((list . x) with x=(1 2 3) -> (list 1 2 3));
-      ;; a single-valued tail stays a syntax object so the tree remains
-      ;; fully wrapped (Racket keeps every leaf a syntax object) -- unwrapping
-      ;; a single symbol here produced a bare `x' that broke stx-flip-scope.
-      (if (and (syntax? elems) (symbol? (syntax-form elems)))
-          (letrec* ((binding (assq (syntax-form elems) bindings)))
-            (if binding
-                (letrec* ((v (cdr binding)))
-                  (if (and (syntax? v) (list? (syntax-form v)))
-                      (syntax-form v)
-                      v))
-                elems))
-          (if (and (pair? (cdr elems))
-                   (ellipsis-stx? (cadr elems)))
-              (append (instantiate-ellipsis (car elems) bindings)
-                      (instantiate-list (cddr elems) bindings))
-              (cons (instantiate* (car elems) bindings)
-                    (instantiate-list (cdr elems) bindings))))))
-
-(define (instantiate-ellipsis elem-template bindings)
-  (letrec* ((vars (template-vars elem-template))
-            (len (letrec* ((loop (lambda (vs)
-                                   (if (null? vs)
-                                       0
-                                       (letrec* ((entry (assq (node-datum (car vs)) bindings)))
-                                         (if (and entry (list? (cdr entry)))
-                                             (length (cdr entry))
-                                             (loop (cdr vs))))))))
-                    (loop vars)))
-            (loop (lambda (i results)
-                    (if (= i len)
-                        (reverse results)
-                        (letrec* ((indexed-bindings (index-bindings vars bindings i)))
-                          (loop (+ i 1)
-                                (cons (instantiate* elem-template indexed-bindings)
-                                      results)))))))
-    (loop 0 '())))
+;;; Template variables (used by the precompiled template machinery below).
+;;; parse-template scans a (syntax T) template for pattern-variable names;
+;;; fast-instantiate resolves (v ...) nodes against the run-time bindings.
 
 (define (template-vars template)
   (letrec* ((form (syntax-form template)))
@@ -359,32 +264,27 @@
           (append (template-vars (car lst))
                   (template-vars-list (cdr lst))))))
 
+;;; index-bindings : (list symbol) (list (symbol . value)) i -> bindings
+;;; Build the per-repeat bindings for fast-instantiate-ellipsis: list-valued
+;;; variables are indexed at repeat i (a shorter list contributes nothing),
+;;; scalar variables stay constant across the repeats, and free template
+;;; identifiers are dropped.
+
 (define (index-bindings vars bindings i)
   (letrec* ((loop (lambda (vs result)
                     (if (null? vs)
                         (reverse result)
                         (letrec* ((binding (assq (car vs) bindings)))
                           (cond
-                            ;; A variable bound to a list (this ellipsis
-                            ;; repeats over it): index it by the current
-                            ;; repeat.  If its list is shorter than the
-                            ;; repeat count (an inner ellipsis variable that
-                            ;; matched nothing at this index), omit it so the
-                            ;; inner template contributes nothing.
                             ((and binding (list? (cdr binding)))
                              (if (< i (length (cdr binding)))
                                  (loop (cdr vs)
                                        (cons (cons (car vs) (list-ref (cdr binding) i))
                                              result))
                                  (loop (cdr vs) result)))
-                            ;; A scalar variable (a plain pattern variable or
-                            ;; with-syntax binding used inside an ellipsis
-                            ;; element but not part of the repeated group) is
-                            ;; constant across the repeats: keep it whole.
                             (binding
                              (loop (cdr vs)
                                    (cons (cons (car vs) (cdr binding)) result)))
-                            ;; A free template identifier (no binding).
                             (else (loop (cdr vs) result))))))))
     (loop vars '())))
 
@@ -446,9 +346,8 @@
 ;;; A template node's library slot used to carry the LIVE exp-library
 ;;; record (whose bindings hold transformers), which made the compiled
 ;;; transformer datum unserializable.  parse-template now emits a
-;;; serializable (libref name) descriptor (the same descriptor module.scm's
-;;; purify-syntax-tree uses); fast-instantiate resolves it back to the
-;;; live library at run time via the library registry.
+;;; serializable (libref name) descriptor; fast-instantiate resolves it
+;;; back to the live library at run time via the library registry.
 
 (define (template-lib stx)
   (let ((lib (syntax-library stx)))

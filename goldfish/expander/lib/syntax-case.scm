@@ -19,9 +19,9 @@
 ;;; The transformer compiles each clause to a run-time spec consumed by
 ;;; syntax-case-dispatch (expansion-time runtime, lib/syntax-runtime.scm):
 ;;; pattern matching stays in the dispatcher, and each (syntax T) in a
-;;; fender/body is rewritten to an explicit
-;;;   (instantiate (syntax T) (list (cons 'p p) ...))
-;;; call so pattern variables are substituted at run time.
+;;; fender/body is precompiled by parse-template into a structure tree and
+;;; substituted at run time by fast-instantiate (build-instantiate-call),
+;;; so pattern variables resolve against the run-time bindings.
 
 (define-syntax syntax-case
   (lambda (macro-stx)
