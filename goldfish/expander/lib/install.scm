@@ -436,6 +436,34 @@
         (loop (cdr ls) acc)
         (loop (cdr ls) (cons (car ls) acc))))))
 
+;; contains-procedure? : any -> bool
+;; write-roundtrip refuses live procedures.  A datum-embedded syntax value
+;; keeps a reference to the session (program) exp-library, whose buckets
+;; hold runtime closures (module-form handlers, ...), so an artifact that
+;; embeds one is not cacheable; re-expand it every run instead of letting
+;; the cache write fail.  (Plain quote-syntax constants carry no library
+;; back-reference and do cache fine.)
+
+(define (contains-procedure? x)
+  (let ((expanded '()))
+    (define (first-time? v)
+      (if (assq v expanded)
+        #f
+        (begin (set! expanded (cons (cons v #t) expanded)) #t)))
+    (let walk ((v x))
+      (cond
+        ((procedure? v) #t)
+        ((pair? v)
+         (and (first-time? v)
+              (or (walk (car v)) (walk (cdr v)))))
+        ((and (vector? v) (not (bytevector? v)))
+         (and (first-time? v)
+              (let loop ((i 0))
+                (if (< i (vector-length v))
+                  (or (walk (vector-ref v i)) (loop (+ i 1)))
+                  #f))))
+        (else #f)))))
+
 (define (compile-file-cached path)
   (let* ((key (cache-key-path path))
          (level (ccache-level))
@@ -468,14 +496,16 @@
                             (if (procedure? f)
                               (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
                               (lower prog)))))
-                 ;; Macro-provider dependencies: a pure syntax macro leaves
-                 ;; no module-ref in the expanded program, so also fingerprint
-                 ;; every library named by a top-level (import ...) form.
-                 (deps (map library-dep-fingerprint
-                            (dedup-libs
-                              (append (collect-cache-module-refs opt)
-                                      (program-import-libs forms))))))
-            (gfo-write! gfo-file stamp opt deps)
+                 (cacheable (not (contains-procedure? opt))))
+            (when cacheable
+              ;; Macro-provider dependencies: a pure syntax macro leaves
+              ;; no module-ref in the expanded program, so also fingerprint
+              ;; every library named by a top-level (import ...) form.
+              (let ((deps (map library-dep-fingerprint
+                               (dedup-libs
+                                 (append (collect-cache-module-refs opt)
+                                         (program-import-libs forms))))))
+                (gfo-write! gfo-file stamp opt deps)))
             opt))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
