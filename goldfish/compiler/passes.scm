@@ -24,10 +24,6 @@
     constant-fold
     simplify-if
     inline
-    eliminate-dead-defs
-    tail-call-positions
-    collect-free-symbols
-    lambda-valued-def?
     *foldable-functions*)
   (begin
 
@@ -72,22 +68,6 @@
         (cond ((void? s) (reverse acc))
               ((seq? s) (collect (seq-tail s) (cons (seq-head s) acc)))
               (else (reverse (cons s acc))))))
-
-    ;; list->seq : (list ir) -> ir
-    ;; Join a list of expressions into a binary right-nested seq tree.
-    ;;   () -> <void>; (e) -> e; (e1 e2 ...) -> (seq e1 (seq e2 ...)).
-    (define (list->seq ls)
-      (cond
-        ((null? ls) (make-void #f))
-        ((null? (cdr ls)) (car ls))
-        (else (make-seq #f (car ls) (list->seq (cdr ls))))))
-
-    ;; seq-map : (ir -> ir) seq-tree -> seq-tree
-    ;; Rewrite every element of a seq tree with f, preserving the tree shape.
-    (define (seq-map f s)
-      (cond ((void? s) s)
-            ((seq? s) (make-seq #f (f (seq-head s)) (seq-map f (seq-tail s))))
-            (else (f s))))
 
     ;; ------------------------------------------------------------------
     ;; Foldable primitive table.  Only total, side-effect-free functions
@@ -293,13 +273,6 @@
     ;; inlining them, keeping the rewrite O(N) and bounding code growth.
     ;; Propagated bindings are kept in their let/letrec, so a reference
     ;; left behind by a depth cut is still bound.
-
-    ;; lambda-req : ir -> (list symbol) or #f
-    ;; The required formal names of a lambda (via its lambda-case), or #f
-    ;; if the body is not a lambda-case (degenerate).
-    (define (lambda-req lam)
-      (let ((b (lambda-body lam)))
-        (if (lambda-case? b) (lambda-case-req b) #f)))
 
     ;; lambda-case-formals : lambda-case -> formals
     ;; Reconstruct a formals list from a lambda-case arity (req opt rest).
@@ -796,151 +769,4 @@
       (inline-walk ir '() (make-inline-budget *inline-max-effort* *inline-max-depth*)))
 
     ;; ------------------------------------------------------------------
-    ;; Tail-call position analysis (L2-3 backend prerequisite, IR version).
-    ;;
-    ;; Tail positions in core IR:
-    ;;   (lambda (formals) body ...)   last body expression
-    ;;   (if test then else)           then and else
-    ;;   (begin e ...)                 last expression (seq tail)
-    ;;   (let/letrec/letrec* bs body)  last body expression
-    ;;   (set! name e)                 e
-    ;;   (values e ...)                no (multi-value return)
-    ;;   (call-with-values p c)        consumer c is invoked in tail
-    ;;                                 position of the whole form
-    ;;
-    ;; tail-call-positions : ir -> ir
-    ;; Mark every subexpression that sits in a tail position by wrapping
-    ;; it as (tail-call <ir>).  The wrapper is the analysis product:
-    ;; backends consume it to emit jumps instead of push-calls.  The
-    ;; returned IR is NOT for direct evaluation.
-
-    (define (tail-call-positions ir)
-      (define (mark-lambda-body lc)
-        (if (lambda-case? lc)
-          (make-lambda-case #f
-                            (lambda-case-req lc) (lambda-case-opt lc)
-                            (lambda-case-rest lc) (lambda-case-kw lc)
-                            (lambda-case-inits lc) (lambda-case-gensyms lc)
-                            (mark-tail (lambda-case-body lc))
-                            (if (lambda-case-alternate lc)
-                              (mark-lambda-body (lambda-case-alternate lc))
-                              #f))
-          (mark-tail lc)))
-      (define (mark-tail s)
-        (cond
-          ((or (const? s) (void? s)) s)
-          ((symbol? s) s)
-          ((primitive-ref? s) s)
-          ((lexical-ref? s) s)
-          ((lambda? s)
-           (make-lambda #f (lambda-meta s) (mark-lambda-body (lambda-body s))))
-          ((conditional? s)
-           (make-conditional #f (conditional-test s)
-                             (mark-tail (conditional-consequent s))
-                             (if (conditional-alternate s)
-                               (mark-tail (conditional-alternate s))
-                               #f)))
-          ((seq? s)
-           (make-seq #f (seq-head s) (mark-tail (seq-tail s))))
-          ((let? s)
-           (make-let #f (let-names s) (let-gensyms s) (let-vals s)
-                     (mark-tail (let-body s))))
-          ((letrec? s)
-           (make-letrec (letrec-source s) (letrec-in-order? s)
-                        (letrec-names s) (letrec-gensyms s)
-                        (letrec-vals s) (mark-tail (letrec-body s))))
-          ((lexical-set? s)
-           (make-lexical-set #f (lexical-set-name s)
-                             (lexical-set-depth s) (lexical-set-index s)
-                             (mark-tail (lexical-set-exp s))))
-          ((toplevel-set? s)
-           (make-toplevel-set #f (toplevel-set-name s) (mark-tail (toplevel-set-exp s))))
-          ((let-values? s)
-           ;; consumer body is invoked in tail position
-           (make-let-values #f (let-values-exp s) (mark-tail (let-values-body s))))
-          ((call? s)
-           (let ((proc (call-proc s))
-                 (args (call-args s)))
-             (list 'tail-call
-                   (if (primitive-ref? proc)
-                     (make-primcall #f (primitive-ref-name proc) args)
-                     (make-call #f proc args)))))
-          ((primcall? s) s)
-          (else
-           ;; a bare application in tail position: wrap it
-           (list 'tail-call s))))
-      (mark-tail ir))
-
-    ;; ------------------------------------------------------------------
-    ;; Dead code elimination at the defs level (IR version).
-    ;;
-    ;; eliminate-dead-defs : (list ir) -> (list ir)
-    ;; Drop top-level (define name value) defs whose name is never
-    ;; referenced by any surviving def or by the registration/other forms
-    ;; (directly or transitively).  Only lambda-valued defs are
-    ;; candidates: a non-lambda value (constant, call) may have side
-    ;; effects at definition time and is always kept.  Iterates to a
-    ;; fixpoint because deleting one def can make another unreferenced.
-
-    ;; collect-free-symbols : ir -> (list symbol)
-    ;; Free symbols of an expression: identifiers in operator and operand
-    ;; positions, not counting lambda formals / let bindings (bound), and
-    ;; not entering const data.
-    (define (collect-free-symbols ir)
-      (let loop ((s ir) (acc '()))
-        (cond
-          ((symbol? s) (if (member s acc) acc (cons s acc)))
-          ((or (const? s) (void? s)) acc)
-          ((primitive-ref? s) acc)
-          ((lexical-ref? s) acc)
-          ((lambda? s)
-           (let* ((b (lambda-body s))
-                  (bound (or (and (lambda-case? b) (lambda-case-req b)) '())))
-             (filter (lambda (x) (not (member x bound)))
-                     (loop b acc))))
-          ((let? s)
-           (let ((bound (let-names s)))
-             (filter (lambda (x) (not (member x bound)))
-                     (let ((acc1 (loop (let-body s) acc)))
-                       (fold-left (lambda (a v) (loop v a)) acc1 (let-vals s))))))
-          ((letrec? s)
-           (let ((bound (letrec-names s)))
-             (filter (lambda (x) (not (member x bound)))
-                     (let ((acc1 (loop (letrec-body s) acc)))
-                       (fold-left (lambda (a v) (loop v a)) acc1 (letrec-vals s))))))
-          ((toplevel-define? s)
-           ;; (define name value): collect from the value only; the name
-           ;; is bound by this definition.
-           (let ((val (toplevel-define-exp s)))
-             (if (or (const? val) (void? val))
-               acc
-               (loop val acc))))
-          (else
-           (let loop2 ((cs (ir-children s)) (acc acc))
-             (if (null? cs)
-               acc
-               (loop2 (cdr cs) (loop (car cs) acc))))))))
-
-    ;; lambda-valued-def? : ir -> boolean
-    ;; A def whose value is a plain lambda -- a safe DCE candidate (no
-    ;; definition-time side effect).
-    (define (lambda-valued-def? d)
-      (and (toplevel-define? d) (lambda? (toplevel-define-exp d))))
-
-    (define (collect-all-free defs)
-      (let loop ((ds defs) (acc '()))
-        (if (null? ds)
-          acc
-          (loop (cdr ds)
-                (append (collect-free-symbols (car ds)) acc)))))
-
-    (define (eliminate-dead-defs defs)
-      (let loop ((current defs))
-        (let* ((alive (collect-all-free current))
-               (survivors (filter (lambda (d)
-                                    (or (not (lambda-valued-def? d))
-                                        (member (toplevel-define-name d) alive)))
-                                  current)))
-          (if (equal? survivors current)
-            survivors
-            (loop survivors)))))))
+))

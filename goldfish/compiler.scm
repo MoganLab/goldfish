@@ -40,16 +40,14 @@
     make-toplevel-define toplevel-define? toplevel-define-source toplevel-define-name toplevel-define-exp
     make-module-ref module-ref? module-ref-source module-ref-module module-ref-name module-ref-public?
     make-module-set module-set? module-set-source module-set-module module-set-name module-set-public? module-set-exp
-    $void $const $primitive-ref $lexical-ref $lexical-set
-    $conditional $call $primcall $seq $lambda $lambda-case
-    $let $letrec $let-values $values $call-with-values
-    $toplevel-ref $toplevel-set $toplevel-define $module-ref $module-set
+    $const $primitive-ref $lexical-ref $lexical-set
+    $conditional $call $primcall $seq $lambda
+    $let $letrec $let-values
+    $toplevel-set $toplevel-define
     run-passes
     constant-fold
     simplify-if
     inline
-    eliminate-dead-defs
-    tail-call-positions
     *foldable-functions*
 
 ))
