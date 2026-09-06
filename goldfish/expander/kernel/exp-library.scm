@@ -57,8 +57,7 @@
 
 ;; exp-library-use-ref : lib name -> binding/#f
 ;; Lookup across the library's shared import views, newest first (the
-;; most recent import of a name shadows earlier ones, matching the old
-;; copy-into-own model where the last import overwrote).
+;; most recent import of a name shadows earlier ones).
 (define (exp-library-use-ref lib name)
   (let loop ((uses (exp-library-uses lib)))
     (if (pair? uses)

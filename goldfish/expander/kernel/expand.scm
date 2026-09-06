@@ -397,8 +397,8 @@
 ;;;                        output; syntax->datum normalizes it back)
 ;;;   (quote-syntax <x>) -> (quote <syntax>)   syntax literal: s7's eval
 ;;;                        of a quoted inlet yields the syntax object
-;;;                        itself (expansion of `syntax'; instantiate in
-;;;                        transformer code consumes it)
+;;;                        itself (the expansion of `syntax'; template
+;;;                        instantiation in transformer code consumes it)
 
 ;;; lower-head : the leading symbol of a pair form, whether the head is a
 ;;; syntax identifier or a raw symbol (expand-expr's non-syntax fallback

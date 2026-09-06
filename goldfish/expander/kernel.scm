@@ -453,7 +453,6 @@
     round
     set-car!
     set-cdr!
-    set-current-intro-scope!
     sin
     sqrt
     string

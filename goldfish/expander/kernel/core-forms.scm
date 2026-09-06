@@ -95,7 +95,8 @@
 ;;; current phase.  quote-syntax is an internal form (cf. Racket): it
 ;;; passes through expansion untouched and `lower' renders it as
 ;;; (quote <syntax>), so the quoted value stays a syntax object --
-;;; instantiate (transformer code) and the pruning tests rely on this.
+;;; template instantiation (transformer code) and the pruning tests rely
+;;; on this.
 ;;; Plain `quote' datums its content instead.
 
 (define (core-syntax stx ctx)
