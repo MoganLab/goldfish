@@ -1151,31 +1151,37 @@
       (define (count-of v)
         (let ((e (assq v counts)))
           (if e (cdr e) 0)))
-      (let walk ((v x) (seen '()))
-        (cond
-          ((pair? v)
-           (count-ref v)
-           (if (not (assq v seen))
-             (let ((seen* (cons (cons v #t) seen)))
-               (walk (car v) seen*)
-               (walk (cdr v) seen*))))
-          ((record-instance? v)
-           (count-ref v)
-           (if (not (assq v seen))
-             (let ((seen* (cons (cons v #t) seen)))
+      ;; Reference counting walks the shared exp-library graph (binding
+      ;; values' toplevel-ref homes point back at their library).  A
+      ;; per-path `seen' list re-walks a shared subtree once per path that
+      ;; reaches it, which explodes on such graphs; count from a single
+      ;; memoized expansion instead (count-ref still fires on every
+      ;; incoming edge, so counts stay the true reference counts).
+      (let ((expanded '()))
+        (define (expand! v)
+          (if (assq v expanded)
+            #f
+            (begin (set! expanded (cons (cons v #t) expanded)) #t)))
+        (let walk ((v x))
+          (cond
+            ((pair? v)
+             (count-ref v)
+             (when (expand! v)
+               (walk (car v))
+               (walk (cdr v))))
+            ((record-instance? v)
+             (count-ref v)
+             (when (expand! v)
                (let loop ((i 1))
                  (if (< i (vector-length v))
-                   (begin
-                     (walk (vector-ref v i) seen*)
-                     (loop (+ i 1))))))))
-          ((and (vector? v) (not (bytevector? v)) (not (record-instance? v)))
-           (count-ref v)
-           (if (not (assq v seen))
-             (let ((seen* (cons (cons v #t) seen)))
+                   (begin (walk (vector-ref v i)) (loop (+ i 1)))))))
+            ((and (vector? v) (not (bytevector? v)) (not (record-instance? v)))
+             (count-ref v)
+             (when (expand! v)
                (let loop ((i 0))
                  (if (< i (vector-length v))
-                   (begin (walk (vector-ref v i) seen*) (loop (+ i 1))))))))
-          (else #f)))
+                   (begin (walk (vector-ref v i)) (loop (+ i 1)))))))
+            (else #f))))
       (let ((labels '())
             (next-label 0))
         (define (shared? v) (> (count-of v) 1))
