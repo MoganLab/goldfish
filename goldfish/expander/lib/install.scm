@@ -422,12 +422,15 @@
         (loop (cdr ls) (cons (car ls) acc))))))
 
 ;; contains-procedure? : any -> bool
-;; write-roundtrip refuses live procedures.  A datum-embedded syntax value
-;; keeps a reference to the session (program) exp-library, whose buckets
-;; hold runtime closures (module-form handlers, ...), so an artifact that
-;; embeds one is not cacheable; re-expand it every run instead of letting
-;; the cache write fail.  (Plain quote-syntax constants carry no library
-;; back-reference and do cache fine.)
+;; A lowered program's datum-embedded syntax value (a quasisyntax
+;; sub-template kept as a value, cf. Racket) keeps a reference to the
+;; session (program) exp-library, whose buckets hold runtime closures
+;; (module-form handlers, ...).  Serializing the live opt therefore fails
+;; on write-roundtrip.  compile-file-cached degrades such values to plain
+;; text before writing (serialize-cache-sexp); this walk is the final gate
+;; on the degraded payload -- a live procedure that survived degradation
+;; means the artifact is genuinely uncacheable and is skipped (re-expand
+;; every run) instead of letting the cache write fail.
 
 (define (contains-procedure? x)
   (let ((expanded '()))
@@ -469,7 +472,19 @@
                                          (map library-dep-fingerprint
                                               (map car deps))))
                                 (else #f)))
-                        (cadddr rec))))
+                        ;; A degraded payload ((program-cache 1 <text>))
+                        ;; rebuilds its embedded syntax constants (stx*
+                        ;; text -> live records); untagged payloads are the
+                        ;; plain lowered form, returned as-is.  The tag
+                        ;; cannot collide with a lowered program: its head
+                        ;; symbols are gensym'd or core forms, so a valid
+                        ;; expansion never lowers to (program-cache 1 ...).
+                        (let ((payload (cadddr rec)))
+                          (if (and (pair? payload)
+                                   (eq? (car payload) 'program-cache)
+                                   (equal? (cadr payload) 1))
+                            (deserialize-cache-sexp (caddr payload))
+                            payload)))))
       (if cached
         cached
         (let*-values (((prog ctx)
@@ -481,7 +496,18 @@
                             (if (procedure? f)
                               (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
                               (lower prog)))))
-                 (cacheable (not (contains-procedure? opt))))
+                 ;; Datum-embedded syntax values (quote-syntax constants
+                 ;; nested in value positions) keep a live back-reference
+                 ;; to the session (program) exp-library, which
+                 ;; write-roundtrip cannot serialize.  Degrade them to
+                 ;; stx* text (the macro-cache format) before writing; the
+                 ;; in-memory opt stays live.  Record-free programs take
+                 ;; the plain path, byte-identical to the previous format.
+                 (live? (has-record? opt))
+                 (pure (if live? (serialize-cache-sexp opt) opt))
+                 (cacheable (and (not (contains-procedure? pure))
+                                 (not (has-record? pure))))
+                 (payload (if live? (list 'program-cache 1 pure) pure)))
             (when cacheable
               ;; Macro-provider dependencies: a pure syntax macro leaves
               ;; no module-ref in the expanded program, so also fingerprint
@@ -490,7 +516,7 @@
                                (dedup-libs
                                  (append (collect-cache-module-refs opt)
                                          (program-import-libs forms))))))
-                (gfo-write! gfo-file stamp opt deps)))
+                (gfo-write! gfo-file stamp payload deps)))
             opt))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
