@@ -120,15 +120,13 @@
     (unless file
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
-      ;; macro-cache format 3 stores transformers as serialized lowered
-      ;; forms; older caches carrying program-form transformers regenerate.
       (let* ((full (gfo-load-record (install-cache-path path)))
              (cached (and (pair? full) (eq? (car full) 'gfo) (= (length full) 5)
                           (equal? (cadr full) gfo-format-version)
                           (equal? (caddr full) stamp)
                           (let ((payload (cadddr full)))
-                            (and (pair? payload) (eq? (car payload) 'macro-cache)
-                                 (= (cadr payload) 3)
+                            (and (bundle? payload)
+                                 (eq? (bundle-kind payload) 'module)
                                  payload)))))
         (if cached
           (install-cache-load! lib cached)
@@ -140,18 +138,21 @@
   (install-library-file! the-base-library "expander/lib/standard.scm"))
 
 ;;; ---------------------------------------------------------------------------
-;;; Macro definition cache.
+;;; Cache bundles.
 ;;;
-;;; A transformer is a closure and cannot be written.  Its lowered core
-;;; S-expression is serializable, though: syntax objects become
-;;; (stx form ctx (lib name)) -- their context is a list of (phase . scope)
-;;; entries whose scopes are plain symbols (scp:N), so it round-trips
-;;; through the R7RS reader/writer -- and evaluating that form again at
-;;; warm start rebuilds the transformer without re-running the expander
-;;; (cf. Racket's direct-eval: simple transformer expressions are likewise
-;;; evaluated rather than compiled).  Value definitions are cached the same
-;;; way.  The cache is invalidated by the source file's mtime and size
-;;; (compile-file-stamp), same scheme as the Guile-style ccache below.
+;;; Every expander-produced cache artifact -- a boot / user library install
+;;; (kind `module') and a compiled toplevel program (kind `program') -- is
+;;; one bundle record: (bundle <version> <kind> <section>*), where sections
+;;; are tagged lists ((defs s*) (macros (name . s)*) (bindings ...) /
+;;; (exprs s*)) and every s is serialize-cache-sexp output: syntax objects
+;;; become (stx form ctx (lib name)) -- their context is a list of
+;;; (phase . scope) entries whose scopes are plain symbols (scp:N), so it
+;;; round-trips through the bootstrap reader -- and evaluating a stored
+;;; form again at warm start rebuilds the transformer / definition without
+;;; re-running the expander (cf. Racket's direct-eval: simple transformer
+;;; expressions are likewise evaluated rather than compiled).  The cache is
+;;; invalidated by the source file's mtime and size (compile-file-stamp),
+;;; same scheme as the Guile-style ccache below.
 
 ;;; serialize-cache-sexp : any -> datum
 ;;; Lowered transformer forms are DAGs: the same syntax object (and the same
@@ -183,6 +184,16 @@
         ;; reference instead, resolved back at load time.
         ((exp-library? y)
          (list 'lib* (exp-library-name y)))
+        ;; The serializer is the single arbiter of what persists.  A live
+        ;; procedure or a foreign record cannot be rebuilt at load, so it
+        ;; is an error -- never a silent pass-through (the write-roundtrip
+        ;; #g output for it would be unreadable by the bootstrap cache
+        ;; reader anyway).  Callers that can live without a cache entry
+        ;; catch the error and re-expand every run instead.
+        ((record-instance? y)
+         (error "serialize-cache-sexp: cannot serialize a record" y))
+        ((procedure? y)
+         (error "serialize-cache-sexp: cannot serialize a procedure" y))
         ((pair? y)
          (let ((result (cons #f #f)))
            (set! memo (cons (cons y result) memo))
@@ -243,6 +254,34 @@
         ((and (vector? y) (not (bytevector? y))) (vector-map loop y))
         (else y)))))
 
+;;; Bundle schema: (bundle <version> <kind> <section>*).  Kinds and their
+;;; sections:
+;;;   module  (defs s*) (macros (name . s)*) (bindings (name . s)*)
+;;;   program (exprs s*) -- one entry per compiled program, currently the
+;;;                          whole lowered form
+;;; Every s is serialize-cache-sexp output, so a bundle is plain text the
+;;; bootstrap reader parses directly.
+
+(define bundle-format-version 1)
+
+(define (make-bundle kind . sections)
+  ;; NB: no cons* -- install.scm's seed-boot eval environment does not
+  ;; see the host rootlet's native bindings; only special forms (let*
+  ;; -values et al) and the implementation library's own names resolve.
+  (cons 'bundle
+        (cons bundle-format-version
+              (cons kind sections))))
+
+(define (bundle? x)
+  (and (pair? x) (eq? (car x) 'bundle)
+       (equal? (cadr x) bundle-format-version)))
+
+(define (bundle-kind x)
+  (caddr x))
+
+(define (bundle-section x tag)
+  (assq tag (cdddr x)))
+
 ;;; install-cache-path : path -> gfo-file (unified .gfo)
 (define (install-cache-path path) (gfo-path path))
 
@@ -250,19 +289,16 @@
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings)
   (let ((gfo-file (install-cache-path path))
-        ;; Transformers are stored as serialized lowered forms (pure s7).
-        ;; Format bumped to 3 so caches carrying the retired program-form
-        ;; transformers regenerate.
-        (rec (list 'macro-cache 3
-                   (cons 'defs (map serialize-cache-sexp defs))
-                   (cons 'macros
-                         (map (lambda (r)
-                                (cons (car r) (serialize-cache-sexp (cdr r))))
-                              macros))
-                   (cons 'bindings
-                         (map (lambda (e)
-                                (cons (car e) (serialize-cache-sexp (cdr e))))
-                              bindings)))))
+        (rec (make-bundle 'module
+               (cons 'defs (map serialize-cache-sexp defs))
+               (cons 'macros
+                     (map (lambda (r)
+                            (cons (car r) (serialize-cache-sexp (cdr r))))
+                          macros))
+               (cons 'bindings
+                     (map (lambda (e)
+                            (cons (car e) (serialize-cache-sexp (cdr e))))
+                          bindings)))))
     (gfo-write! gfo-file stamp rec)))
 
 ;;; install-depurify-binding : datum exp-library -> binding/#f
@@ -311,9 +347,10 @@
 ;;; (cf. Racket's direct-eval).
 
 (define (install-cache-load! lib rec)
-  (let ((bindings (cdr (assq 'bindings rec)))
-        (defs (cdr (assq 'defs rec)))
-        (macros (cdr (assq 'macros rec))))
+  (let ((sections (cdddr rec)))
+    (let ((bindings (cdr (assq 'bindings sections)))
+          (defs (cdr (assq 'defs sections)))
+          (macros (cdr (assq 'macros sections))))
     ;; Restore the binding table from the cached structured info (the same
     ;; (toplevel gensym home original exported?) tuples the libcache uses),
     ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
@@ -334,7 +371,7 @@
                        (data (deserialize-cache-sexp (cdr r)))
                        (proc (eval data the-expander-library)))
                   (exp-library-define! lib name (make-transformer-binding proc))))
-              macros)))
+              macros))))
 
 ;;; Boot: install the user-space macro layer into the base library.  Order:
 ;;; syntax-runtime (value definitions: pattern matching / instantiation /
@@ -421,37 +458,6 @@
         (loop (cdr ls) acc)
         (loop (cdr ls) (cons (car ls) acc))))))
 
-;; contains-procedure? : any -> bool
-;; A lowered program's datum-embedded syntax value (a quasisyntax
-;; sub-template kept as a value, cf. Racket) keeps a reference to the
-;; session (program) exp-library, whose buckets hold runtime closures
-;; (module-form handlers, ...).  Serializing the live opt therefore fails
-;; on write-roundtrip.  compile-file-cached degrades such values to plain
-;; text before writing (serialize-cache-sexp); this walk is the final gate
-;; on the degraded payload -- a live procedure that survived degradation
-;; means the artifact is genuinely uncacheable and is skipped (re-expand
-;; every run) instead of letting the cache write fail.
-
-(define (contains-procedure? x)
-  (let ((expanded '()))
-    (define (first-time? v)
-      (if (assq v expanded)
-        #f
-        (begin (set! expanded (cons (cons v #t) expanded)) #t)))
-    (let walk ((v x))
-      (cond
-        ((procedure? v) #t)
-        ((pair? v)
-         (and (first-time? v)
-              (or (walk (car v)) (walk (cdr v)))))
-        ((and (vector? v) (not (bytevector? v)))
-         (and (first-time? v)
-              (let loop ((i 0))
-                (if (< i (vector-length v))
-                  (or (walk (vector-ref v i)) (loop (+ i 1)))
-                  #f))))
-        (else #f)))))
-
 (define (compile-file-cached path)
   (let* ((key (cache-key-path path))
          (level (ccache-level))
@@ -472,19 +478,16 @@
                                          (map library-dep-fingerprint
                                               (map car deps))))
                                 (else #f)))
-                        ;; A degraded payload ((program-cache 1 <text>))
-                        ;; rebuilds its embedded syntax constants (stx*
-                        ;; text -> live records); untagged payloads are the
-                        ;; plain lowered form, returned as-is.  The tag
-                        ;; cannot collide with a lowered program: its head
-                        ;; symbols are gensym'd or core forms, so a valid
-                        ;; expansion never lowers to (program-cache 1 ...).
+                        ;; A program bundle holds one exprs section with
+                        ;; the serialized lowered program; deserialize
+                        ;; rebuilds its embedded syntax constants as live
+                        ;; records.
                         (let ((payload (cadddr rec)))
-                          (if (and (pair? payload)
-                                   (eq? (car payload) 'program-cache)
-                                   (equal? (cadr payload) 1))
-                            (deserialize-cache-sexp (caddr payload))
-                            payload)))))
+                          (and (bundle? payload)
+                               (eq? (bundle-kind payload) 'program)
+                               (let ((exprs (bundle-section payload 'exprs)))
+                                 (and (pair? exprs)
+                                      (deserialize-cache-sexp (cadr exprs)))))))))
       (if cached
         cached
         (let*-values (((prog ctx)
@@ -496,19 +499,19 @@
                             (if (procedure? f)
                               (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
                               (lower prog)))))
-                 ;; Datum-embedded syntax values (quote-syntax constants
-                 ;; nested in value positions) keep a live back-reference
-                 ;; to the session (program) exp-library, which
-                 ;; write-roundtrip cannot serialize.  Degrade them to
-                 ;; stx* text (the macro-cache format) before writing; the
-                 ;; in-memory opt stays live.  Record-free programs take
-                 ;; the plain path, byte-identical to the previous format.
-                 (live? (has-record? opt))
-                 (pure (if live? (serialize-cache-sexp opt) opt))
-                 (cacheable (and (not (contains-procedure? pure))
-                                 (not (has-record? pure))))
-                 (payload (if live? (list 'program-cache 1 pure) pure)))
-            (when cacheable
+                 ;; serialize-cache-sexp is the single arbiter of what
+                 ;; persists: datum-embedded syntax values degrade to stx*
+                 ;; text (their live back-reference to the session
+                 ;; (program) library is replaced by its name), and
+                 ;; anything unserializable raises -- such an artifact
+                 ;; gets no cache entry and is re-expanded every run.
+                 ;; The in-memory opt stays live either way.
+                 (bundle (catch #t
+                           (lambda ()
+                             (make-bundle 'program
+                               (list 'exprs (serialize-cache-sexp opt))))
+                           (lambda args #f))))
+            (when bundle
               ;; Macro-provider dependencies: a pure syntax macro leaves
               ;; no module-ref in the expanded program, so also fingerprint
               ;; every library named by a top-level (import ...) form.
@@ -516,7 +519,7 @@
                                (dedup-libs
                                  (append (collect-cache-module-refs opt)
                                          (program-import-libs forms))))))
-                (gfo-write! gfo-file stamp payload deps)))
+                (gfo-write! gfo-file stamp bundle deps)))
             opt))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
