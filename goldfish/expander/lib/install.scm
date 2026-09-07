@@ -184,12 +184,8 @@
         ;; reference instead, resolved back at load time.
         ((exp-library? y)
          (list 'lib* (exp-library-name y)))
-        ;; The serializer is the single arbiter of what persists.  A live
-        ;; procedure or a foreign record cannot be rebuilt at load, so it
-        ;; is an error -- never a silent pass-through (the write-roundtrip
-        ;; #g output for it would be unreadable by the bootstrap cache
-        ;; reader anyway).  Callers that can live without a cache entry
-        ;; catch the error and re-expand every run instead.
+        ;; Unserializable values raise: compile-file-cached catches and
+        ;; skips the cache entry rather than writing one that cannot load.
         ((record-instance? y)
          (error "serialize-cache-sexp: cannot serialize a record" y))
         ((procedure? y)
@@ -265,9 +261,6 @@
 (define bundle-format-version 1)
 
 (define (make-bundle kind . sections)
-  ;; NB: no cons* -- install.scm's seed-boot eval environment does not
-  ;; see the host rootlet's native bindings; only special forms (let*
-  ;; -values et al) and the implementation library's own names resolve.
   (cons 'bundle
         (cons bundle-format-version
               (cons kind sections))))

@@ -141,10 +141,9 @@
 
 ;;; gfo-format-version : cache record layout version.  A record carrying a
 ;;; different version is a cache miss and regenerates (users never clear
-;;; caches by hand).  1 is the first bundle-schema format: expander-produced
-;;; payloads are (bundle <version> <kind> <section>*) records (see
-;;; expander/lib/install.scm).
-(define gfo-format-version 1)
+;;; caches by hand).  0 marks the in-development format; 1 is reserved for
+;;; the first release format, so dev caches invalidate on release.
+(define gfo-format-version 0)
 
 ;;; gfo-read-datum : path -> datum
 ;;; Read a cache file's single record through the native C++ bootstrap
