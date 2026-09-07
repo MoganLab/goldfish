@@ -33,8 +33,17 @@ f_bytevector_base64_decode (s7_scheme* sc, s7_pointer args) {
                          "bytevector-base64-decode: input must be bytevector", arg);
   }
 
-  s7_int   in_len= s7_integer (s7_cadr (args));
-  uint8_t* in    = (uint8_t*) s7_byte_vector_elements (arg);
+  s7_pointer len_arg= s7_cadr (args);
+  if (!s7_is_integer (len_arg)) {
+    return base64_error (sc, "bytevector-base64-decode", "type-error",
+                         "bytevector-base64-decode: length must be an integer", len_arg);
+  }
+  s7_int in_len= s7_integer (len_arg);
+  if ((in_len < 0) || (in_len > s7_vector_length (arg))) {
+    return base64_error (sc, "bytevector-base64-decode", "value-error", "bytevector-base64-decode: length out of range",
+                         len_arg);
+  }
+  uint8_t* in= (uint8_t*) s7_byte_vector_elements (arg);
 
   if (in_len % 4 != 0) {
     return base64_error (sc, "bytevector-base64-decode", "value-error",
@@ -112,8 +121,17 @@ f_bytevector_base64_encode (s7_scheme* sc, s7_pointer args) {
                          "bytevector-base64-encode: input must be bytevector", arg);
   }
 
-  s7_int   in_len= s7_integer (s7_cadr (args));
-  uint8_t* in    = (uint8_t*) s7_byte_vector_elements (arg);
+  s7_pointer len_arg= s7_cadr (args);
+  if (!s7_is_integer (len_arg)) {
+    return base64_error (sc, "bytevector-base64-encode", "type-error",
+                         "bytevector-base64-encode: length must be an integer", len_arg);
+  }
+  s7_int in_len= s7_integer (len_arg);
+  if ((in_len < 0) || (in_len > s7_vector_length (arg))) {
+    return base64_error (sc, "bytevector-base64-encode", "value-error", "bytevector-base64-encode: length out of range",
+                         len_arg);
+  }
+  uint8_t* in= (uint8_t*) s7_byte_vector_elements (arg);
 
   static const uint8_t encode_table[64]= {
       'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',
