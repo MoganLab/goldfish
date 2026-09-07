@@ -97,17 +97,6 @@
 
 (define-public (resolve-identifier stx ctx)
   (let ((name (context-resolve ctx stx)))
-    (when (and (symbol? (syntax-form stx))
-               (eq? (syntax-form stx) 'helper))
-      (let ((p (current-error-port)))
-        (display "DBG resolve helper: " p)
-        (write (list 'store-name name
-                     'phase (context-phase ctx)
-                     'in-store? (and name (not (eq? name #f)))
-                     'lib (and (syntax-library stx)
-                               (exp-library-name (syntax-library stx))))
-                p)
-        (newline p)))
     (let ((binding (env-lookup (context-env ctx) name)))
       (if binding
           (values name binding)
@@ -120,10 +109,15 @@
             ;; ever produced by the kernel's own body lowering, which emits
             ;; bare core references (lambda/letrec*/...); those resolve
             ;; against the base substrate directly.
+            ;;
+            ;; The store resolves eval-when (expand) defines to gensyms
+            ;; whose env entries do not survive context-return, so the
+            ;; bucket fallback must use the SOURCE identifier -- the
+            ;; buckets are keyed by source names, not gensyms.
             (if lib
                 (if (program-library? lib)
-                    (values name (exp-library-ref-strict lib name))
-                    (values name (exp-library-ref lib name)))
+                    (values name (exp-library-ref-strict lib (syntax-form stx)))
+                    (values name (exp-library-ref lib (syntax-form stx))))
                 (let ((bl (base-library)))
                   (values name (and bl (exp-library-ref-own bl name))))))))))
 
@@ -171,8 +165,7 @@
                    (else
                     (error "expand-atom: cannot inline live binding value"
                            form binding))))
-                (else
-                 (if (program-library? (syntax-library stx))
+                (else                 (if (program-library? (syntax-library stx))
                      ;; Same error tag as the host evaluator's unbound
                      ;; reference (s7 signals 'unbound-variable at eval
                      ;; time), so (catch 'unbound-variable ...) / check-catch

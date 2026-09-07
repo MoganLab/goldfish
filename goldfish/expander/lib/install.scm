@@ -507,8 +507,17 @@
                  ;; The in-memory opt stays live either way.
                  (bundle (catch #t
                            (lambda ()
-                             (make-bundle 'program
-                               (list 'exprs (serialize-cache-sexp opt))))
+                             ;; eval-when (expand) defines are session-local:
+                             ;; an artifact referencing one cannot survive a
+                             ;; warm start -- skip the cache when one leaked
+                             ;; into run-time position (the file still runs
+                             ;; correctly, it just re-expands every load).
+                             ;; Walk the DATUM: the -o2 opt is a syntax
+                             ;; object whose context/store graph is cyclic.
+                             (and (not (tree-contains-any? (syntax->datum opt)
+                                                           *expand-region-defs*))
+                                  (make-bundle 'program
+                                               (list 'exprs (serialize-cache-sexp opt)))))
                            (lambda args #f))))
             (when bundle
               ;; Macro-provider dependencies: a pure syntax macro leaves
@@ -546,6 +555,9 @@
 (module-define! the-expander-library 'bundle? bundle?)
 (module-define! the-expander-library 'bundle-kind bundle-kind)
 (module-define! the-expander-library 'bundle-section bundle-section)
+(module-define! the-expander-library 'tree-contains-any? tree-contains-any?)
+(module-define! the-expander-library 'expand-region-defs expand-region-defs)
+(module-define! the-expander-library 'expand-region-defs-clear! expand-region-defs-clear!)
 
 ;;; ------------------------------------------------------------------------
 ;;; Internal runtime surface

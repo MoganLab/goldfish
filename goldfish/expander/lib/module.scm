@@ -827,13 +827,31 @@
                                      (library-file-cacheable? forms))
                               (let* ((stamp (compile-file-stamp file))
                                      (gfo-file (library-gfo-path lib-file)))
+                                ;; eval-when (expand) / begin-for-syntax
+                                ;; defines are session-local: a cached def
+                                ;; or transformer referencing one cannot
+                                ;; survive a warm start.  Skip the cache
+                                ;; when one leaked into the library (the
+                                ;; file still loads correctly -- it just
+                                ;; re-expands on every import).
+                                (expand-region-defs-clear!)
                                 (let*-values (((recs ctx) (capture-file-cache forms)))
                                   (let* ((recs (optimize-lib-cache-recs recs))
                                          (deps (map library-dep-fingerprint
-                                                    (library-all-deps recs lib-name))))
-                                    (gfo-write! gfo-file stamp
-                                                (make-bundle 'libraries (cons 'libs recs))
-                                                deps)
+                                                    (library-all-deps recs lib-name)))
+                                         (cacheable?
+                                          (not (tree-contains-any?
+                                                (append (apply append
+                                                          (map lib-cache-defs recs))
+                                                        (apply append
+                                                          (map lib-cache-macros recs))
+                                                        (apply append
+                                                          (map lib-cache-bindings recs)))
+                                                (expand-region-defs)))))
+                                    (if cacheable?
+                                      (gfo-write! gfo-file stamp
+                                                  (make-bundle 'libraries (cons 'libs recs))
+                                                  deps))
                                     (load-library-file-cached! recs))))
                            (begin
                               ;; Non-cacheable library: expand, optimize, then eval

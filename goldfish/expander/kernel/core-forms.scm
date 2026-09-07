@@ -564,14 +564,17 @@
                             ;; context see the macro / value.
                             (expand-library-body (list (car es))
                                                  (syntax-library (car es)) c)))
-               (eval (if (null? defs)
-                       '(if #f #f)
-                       (lower (cons 'begin defs)))
-                     the-expander-library)
-               (when (pair? defs)
-                 (display "DBG define-eval: " (current-error-port))
-                 (write (syntax->datum (car defs)) (current-error-port))
-                 (newline (current-error-port)))
+               ;; Each def is a syntax object: lower individually (a raw
+               ;; (cons 'begin defs) spine mixes datums and syntax objects,
+               ;; which lower passes through unstripped -- s7 would then
+               ;; eval syntax objects as no-ops and nothing gets bound).
+               (for-each
+                 (lambda (d)
+                   ;; Record the gensym for the caching layer's leak check.
+                   (set! *expand-region-defs*
+                         (cons (cadr (syntax->datum d)) *expand-region-defs*))
+                   (eval (lower d) the-expander-library))
+                 defs)
                (loop (cdr es) c1)))
             ((eq? head 'define-syntax)
              ;; Registration at the caller phase (the macro is used there);
@@ -595,6 +598,46 @@
         (error "eval-when: invalid situation" sit-datum)))
     sit-datum))
 
+;;; Expand-time (eval-when (expand) / begin-for-syntax) definitions are
+;;; session-local: their values exist only in the compiling process, and
+;;; a cached artifact that references one cannot survive a warm start.
+;;; eval-when-expand! records the gensyms it allocates here; the caching
+;;; layer checks the artifact for these symbols and skips the cache when
+;;; one leaked into run-time position.
+
+(define *expand-region-defs* '())
+
+(define-public (expand-region-defs)
+  *expand-region-defs*)
+
+(define-public (expand-region-defs-clear!)
+  (set! *expand-region-defs* '()))
+
+(define-public (tree-contains-any? x names)
+  ;; Memoized on container nodes (pairs / vectors / records): shared
+  ;; substructure is walked once and cyclic structures terminate.  Atoms
+  ;; cannot cycle and are not memoized.
+  (let ((seen '()))
+    (let loop ((v x))
+      (cond
+        ((pair? v)
+         (if (memq v seen)
+           #f
+           (begin
+             (set! seen (cons v seen))
+             (or (loop (car v)) (loop (cdr v))))))
+        ((vector? v)
+         (if (memq v seen)
+           #f
+           (begin
+             (set! seen (cons v seen))
+             (let result ((i 0))
+               (if (>= i (vector-length v))
+                 #f
+                 (or (loop (vector-ref v i)) (result (+ i 1))))))))
+        ((symbol? v) (if (memq v names) #t #f))
+        (else #f)))))
+
 (define (core-eval-when stx ctx)
   (let* ((form (syntax-form stx))
          (sit-datum (map syntax->datum (syntax-form (cadr form))))
@@ -610,6 +653,16 @@
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
         (values (datum->syntax stx '(if #f #f)) ctx1)))))
+
+;;; begin-for-syntax : (begin-for-syntax form ...) -> void
+;;; Racket-style surface for the flat expand-time region: the forms are
+;;; expanded and evaluated at expand time exactly like eval-when-expand!,
+;;; and nothing is emitted into the output (R7RS-at-phase-0 semantics).
+;;; Region rules apply: defines here are visible to sibling transformers.
+
+(define (core-begin-for-syntax stx ctx)
+  (let*-values (((ctx1) (eval-when-expand! (cddr (syntax-form stx)) ctx)))
+    (values (datum->syntax stx '(if #f #f)) ctx1)))
 
 ;;; Core form table
 
@@ -633,7 +686,8 @@
         (cons 'define-syntax core-define-syntax)
         (cons 'let-syntax core-let-syntax)
         (cons 'letrec-syntax core-letrec-syntax)
-        (cons 'eval-when core-eval-when)))
+        (cons 'eval-when core-eval-when)
+        (cons 'begin-for-syntax core-begin-for-syntax)))
 
 (module-define! the-expander-library
   'core-form-handlers core-form-handlers)
