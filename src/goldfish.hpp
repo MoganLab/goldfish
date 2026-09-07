@@ -255,9 +255,9 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
 #else
   std::string path_sep= ":";
 #endif
-  std::string          ret;
-  tb_size_t            size       = 0;
-  s7_pointer           key_arg    = s7_car (args);
+  std::string ret;
+  tb_size_t   size   = 0;
+  s7_pointer  key_arg= s7_car (args);
   if (!s7_is_string (key_arg)) {
     return s7_wrong_type_arg_error (sc, "get-environment-variable", 1, key_arg, "a string");
   }
