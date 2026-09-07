@@ -13,6 +13,7 @@
 ;; compile-file-cached 冷/热路径验证读回命中逻辑。
 
 (define serialize (module-ref the-expander-library 'serialize-cache-sexp))
+(define gfo-version (module-ref the-expander-library 'gfo-format-version))
 (define deserialize (module-ref the-expander-library 'deserialize-cache-sexp))
 
 ;; 产物是纯文本：完整 reader 直接可读（有 #g/标签则这里先炸）。
@@ -63,12 +64,22 @@
 
 ;; compile-file-cached 按优化级别在 key-<oN>.gfo 里找缓存；把手工组装的
 ;; 记录写到所有候选路径，无论运行在哪一级都能命中。
+;; 创建 FILE 的各级目录（fresh cache 下目录不存在）。
+(define (ensure-parent-dir! file)
+  (let loop ((i 1))
+    (when (< i (string-length file))
+      (when (char=? (string-ref file i) #\/)
+        (let ((d (substring file 0 i)))
+          (unless (file-exists? d) (mkdir d))))
+      (loop (+ i 1)))))
+
 (define (write-artifact! src rec)
   (let ((base (string-append (compile-cache-dir) "/" (cache-key-path src))))
     (for-each (lambda (suffix)
-                (call-with-output-file
-                  (string-append base suffix ".gfo")
-                  (lambda (p) (write rec p))))
+                (let ((f (string-append base suffix ".gfo")))
+                  (ensure-parent-dir! f)
+                  (call-with-output-file f
+                    (lambda (p) (write rec p)))))
               '("" "-o1" "-o2" "-o3"))))
 
 ;; ===== 1. 序列化器是唯一裁判：不可序列化值 raise =====
@@ -85,7 +96,7 @@
 
 (let* ((cold (compile-file-cached src6a))
        (exprs (serialize cold))
-       (rec (list 'gfo 1 (compile-file-stamp src6a)
+       (rec (list 'gfo gfo-version (compile-file-stamp src6a)
                   (list 'bundle 1 'program (list 'exprs exprs))
                   '(((goldfish) . external)))))
   ;; 冷路径返回活 opt：嵌入的 syntax 常量在内存里是活记录
@@ -118,7 +129,7 @@
 
 (let* ((cold (compile-file-cached src-plain))
        (exprs (serialize cold))
-       (rec (list 'gfo 1 (compile-file-stamp src-plain)
+       (rec (list 'gfo gfo-version (compile-file-stamp src-plain)
                   (list 'bundle 1 'program (list 'exprs exprs))
                   '(((goldfish) . external)))))
   (check-true (and (pair? exprs) (eq? (car exprs) 'define)))

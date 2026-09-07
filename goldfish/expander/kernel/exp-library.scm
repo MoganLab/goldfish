@@ -78,8 +78,17 @@
 ;; the ambient base (R7RS 5.1: a program's environment is exactly its
 ;; imports).  Used by resolve-identifier for program libraries.
 (define (exp-library-ref-strict lib name)
-  (or (exp-library-ref-own lib name)
-      (exp-library-use-ref lib name)))
+  (let ((r (or (exp-library-ref-own lib name)
+               (exp-library-use-ref lib name))))
+    (when (eq? name 'helper)
+      (let ((p (current-error-port)))
+        (display "DBG strict helper: " p)
+        (write (list 'lib (exp-library-name lib)
+                     'own (catch #t (lambda () (exp-library-ref-own lib name)) (lambda a 'err))
+                     'found (if r #t #f))
+                p)
+        (newline p)))
+    r))
 
 (define (exp-library-ref lib name)
   ;; own defines, then the shared import views.  There is no ambient base:

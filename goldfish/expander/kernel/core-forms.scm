@@ -537,6 +537,14 @@
   ;; (definition) context; other exprs are expanded as expressions.
   ;; Effects land in the expander library / rootlet (s7 eval falls back
   ;; to the rootlet for names the expander library does not define).
+  ;;
+  ;; The body is one flat expand-time region: a define-syntax inside it
+  ;; binds a macro usable by the SURROUNDING phase (its uses there run
+  ;; the transformer now), and its transformer body must see the region's
+  ;; own defines -- so the RHS expands at the region phase (ph+1, where
+  ;; the defines registered), not ph+2.  Processing the define-syntax at
+  ;; the caller phase (ph) gives exactly that: registration at ph, RHS at
+  ;; ph+1.
   (let* ((ph (context-phase ctx))
          (ctx-up (context-at-phase ctx (+ ph 1))))
     (let loop ((es exprs) (c ctx-up))
@@ -546,23 +554,39 @@
                (head (and (pair? form)
                           (identifier? (car form))
                           (context-resolve c (car form)))))
-          (if (memq head '(define define-syntax))
-            (let*-values (((defs c1)
-                           ;; Register the expand-time definition in the
-                           ;; library the form expands against (the program
-                           ;; library for a strict program, the base library
-                           ;; otherwise), so later forms in the SAME library
-                           ;; context see the macro / value.
-                           (expand-library-body (list (car es))
-                                                (syntax-library (car es)) c)))
-              (eval (if (null? defs)
-                      '(if #f #f)
-                      (lower (cons 'begin defs)))
-                    the-expander-library)
-              (loop (cdr es) c1))
-            (let*-values (((sexp c1) (expand-expr (car es) c)))
-              (eval (lower sexp) the-expander-library)
-              (loop (cdr es) c1))))))))
+          (cond
+            ((eq? head 'define)
+             (let*-values (((defs c1)
+                            ;; Register the expand-time definition in the
+                            ;; library the form expands against (the program
+                            ;; library for a strict program, the base library
+                            ;; otherwise), so later forms in the SAME library
+                            ;; context see the macro / value.
+                            (expand-library-body (list (car es))
+                                                 (syntax-library (car es)) c)))
+               (eval (if (null? defs)
+                       '(if #f #f)
+                       (lower (cons 'begin defs)))
+                     the-expander-library)
+               (when (pair? defs)
+                 (display "DBG define-eval: " (current-error-port))
+                 (write (syntax->datum (car defs)) (current-error-port))
+                 (newline (current-error-port)))
+               (loop (cdr es) c1)))
+            ((eq? head 'define-syntax)
+             ;; Registration at the caller phase (the macro is used there);
+             ;; the RHS expands at ph+1, where the region's defines live.
+             ;; Both go through `c' so the latest store threads through --
+             ;; passing the stale caller ctx would fork the store and lose
+             ;; the region's defines.
+             (let*-values (((c0) (context-at-phase c ph))
+                           ((c1) (expand-lib-define-syntax
+                                  (car es) (syntax-library (car es)) c0)))
+               (loop (cdr es) (context-at-phase c1 (+ ph 1)))))
+            (else
+             (let*-values (((sexp c1) (expand-expr (car es) c)))
+               (eval (lower sexp) the-expander-library)
+               (loop (cdr es) c1)))))))))
 
 (define (check-eval-when-situations sit-datum stx)
   (for-each

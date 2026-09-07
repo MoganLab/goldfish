@@ -97,6 +97,17 @@
 
 (define-public (resolve-identifier stx ctx)
   (let ((name (context-resolve ctx stx)))
+    (when (and (symbol? (syntax-form stx))
+               (eq? (syntax-form stx) 'helper))
+      (let ((p (current-error-port)))
+        (display "DBG resolve helper: " p)
+        (write (list 'store-name name
+                     'phase (context-phase ctx)
+                     'in-store? (and name (not (eq? name #f)))
+                     'lib (and (syntax-library stx)
+                               (exp-library-name (syntax-library stx))))
+                p)
+        (newline p)))
     (let ((binding (env-lookup (context-env ctx) name)))
       (if binding
           (values name binding)
