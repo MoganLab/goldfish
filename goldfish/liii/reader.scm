@@ -699,19 +699,6 @@
   (let ((v (getenv "GOLDFISH_AUTO_COMPILE")))
     (not (and v (member v '("0" "no" "false" "off"))))))
 
-(define (contains-macro-def? form)
-  (and (pair? form)
-       (let ((h (car form)))
-         (cond ((memq h '(define-syntax define-macro)) #t)
-               ((eq? h 'begin) (any-macro-def? (cdr form)))
-               ((eq? h 'define-library) (any-macro-def? (cddr form)))
-               (else #f)))))
-
-(define (any-macro-def? forms)
-  (cond ((null? forms) #f)
-        ((contains-macro-def? (car forms)) #t)
-        (else (any-macro-def? (cdr forms)))))
-
 (define (collect-module-refs sexp)
   (let loop ((x sexp) (acc '()))
     (cond
@@ -850,15 +837,20 @@
               ;; file twice with different engines.  The defs evaluate into
               ;; the rootlet, mirroring the old per-file compile.
               (for-each load-library! (library-names-in forms))
-              (if (and (auto-compile-enabled?)
-                       (not (any-macro-def? forms)))
+              (if (auto-compile-enabled?)
                 ;; Compile the file once and execute the compiled artifact
                 ;; (the compile-cache hot and cold paths agree; Guile-style:
-                ;; eval-when (expand) side effects run once, at compile time).
-                ;; A non-cacheable artifact (unresolved free symbols) or an
-                ;; artifact that fails to eval falls back to per-form loading.
-                (let ((sexp (compile-file-cached path)))
-                  (if (cacheable-expansion? sexp)
+                ;; eval-when (expand) side effects -- including macro
+                ;; transformer evaluation -- run once, at compile time).
+                ;; A file that cannot be compiled (an eval-when (expand)
+                ;; form whose expansion needs runtime values the artifact
+                ;; cannot carry), a non-cacheable artifact (unresolved free
+                ;; symbols) or an artifact that fails to eval falls back to
+                ;; per-form loading.
+                (let ((sexp (catch #t
+                              (lambda () (compile-file-cached path))
+                              (lambda (type info) #f))))
+                  (if (and sexp (cacheable-expansion? sexp))
                     (catch #t
                       (lambda ()
                         (for-each (lambda (lib)
