@@ -104,7 +104,11 @@ glue_os_type (s7_scheme* sc) {
 
 static s7_pointer
 f_os_call (s7_scheme* sc, s7_pointer args) {
-  const char*       cmd_c= s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return s7_wrong_type_arg_error (sc, "os-call", 1, cmd_arg, "a string");
+  }
+  const char*       cmd_c= s7_string (cmd_arg);
   tb_process_attr_t attr = {tb_null};
   attr.flags             = TB_PROCESS_FLAG_NO_WINDOW;
   int ret;
