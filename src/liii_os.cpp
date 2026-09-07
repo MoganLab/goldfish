@@ -263,8 +263,16 @@ glue_remove_file (s7_scheme* sc) {
 
 static s7_pointer
 f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src= s7_string (s7_car (args));
-  const char* dst= s7_string (s7_cadr (args));
+  s7_pointer src_arg= s7_car (args);
+  if (!s7_is_string (src_arg)) {
+    return s7_wrong_type_arg_error (sc, "rename", 1, src_arg, "a string");
+  }
+  s7_pointer dst_arg= s7_cadr (args);
+  if (!s7_is_string (dst_arg)) {
+    return s7_wrong_type_arg_error (sc, "rename", 2, dst_arg, "a string");
+  }
+  const char* src= s7_string (src_arg);
+  const char* dst= s7_string (dst_arg);
   try {
     fs::rename (src, dst);
     return s7_make_boolean (sc, true);

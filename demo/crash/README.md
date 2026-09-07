@@ -11,15 +11,17 @@ bin/gf demo/crash/<文件名>; echo "exit=$?"
 
 每个片段均已 3 次重复验证稳定复现。
 
-历史条目：`h01-os-call-public-integer.scm`（os-call 传入非字符串段错误）
-已在 devel/0142.md 修复，修复验证完成后移除。
+历史条目：
+- `h01-os-call-public-integer.scm`（os-call 传入非字符串段错误）
+  已在 devel/0142.md 修复，修复验证完成后移除。
+- `c09-g_rename-integer.scm`（g_rename 传入非字符串段错误）
+  已在 devel/0144.md 修复，修复验证完成后移除。
 
 ## 已确认的崩溃点
 
 | 文件 | 触发代码 | 信号 | 根因 |
 |---|---|---|---|
 | h02-which-public-integer.scm | `(import (liii sys)) (which 123)` | SIGABRT | **公开 API**。`sys.scm` 的 `which` 直接透传 `g_which`，`goldfish.hpp` 的 `f_which` 用垃圾指针构造 `std::string`，空指针抛 `std::logic_error` 未捕获 |
-| c09-g_rename-integer.scm | `(g_rename 1 2)` | SIGSEGV | `liii_os.cpp` 的 `f_rename` 对两个参数都未做类型检查，垃圾指针传入 `std::filesystem::rename` |
 | c11-g_listdir-integer.scm | `(g_listdir 99)` | SIGABRT | `liii_os.cpp` 的 `f_listdir` 未检查参数类型，`s7_string()` 得到空指针后构造 `std::string` 抛 `std::logic_error` |
 | f03-base64-encode-oob-length.scm | `(g_bytevector-base64-encode (make-bytevector 4 65) 1073741824)` | SIGSEGV | `liii_base64.cpp` 的长度参数不校验是否超过 bytevector 实际大小，编码循环按声明长度越界读取 1GB |
 
