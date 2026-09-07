@@ -538,11 +538,6 @@
   ;; Effects land in the expander library / rootlet (s7 eval falls back
   ;; to the rootlet for names the expander library does not define).
   ;;
-  ;; The region's home library: maybe-lib when the caller knows it (a
-  ;; library body: the library; a toplevel program: the program library),
-  ;; else the subform's own tag.  The region defines register there so
-  ;; later transformer bodies in the same region resolve them.
-  ;;
   ;; The body is one flat expand-time region: a define-syntax inside it
   ;; binds a macro usable by the SURROUNDING phase (its uses there run
   ;; the transformer now), and its transformer body must see the region's
@@ -571,7 +566,7 @@
                                                  (or (and (pair? maybe-lib)
                                                           (car maybe-lib))
                                                      (syntax-library (car es))
-                                                     the-base-library))
+                                                     the-base-library)
                                                  c)))
                ;; Each def is a syntax object: lower individually (a raw
                ;; (cons 'begin defs) spine mixes datums and syntax objects,
@@ -598,7 +593,7 @@
             (else
              (let*-values (((sexp c1) (expand-expr (car es) c)))
                (eval (lower sexp) the-expander-library)
-               (loop (cdr es) c1))))))))
+               (loop (cdr es) c1)))))))))
 
 (define (check-eval-when-situations sit-datum stx)
   (for-each
@@ -657,7 +652,7 @@
     (let*-values (((ctx1)
                    (if do-expand
                      (eval-when-expand! exprs ctx the-base-library)
-                     (values ctx)))))
+                     (values ctx))))
       (if do-keep
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
@@ -670,7 +665,7 @@
 ;;; Region rules apply: defines here are visible to sibling transformers.
 
 (define (core-begin-for-syntax stx ctx)
-  (let*-values (((ctx1) (eval-when-expand! (cddr (syntax-form stx)) ctx the-base-library))))
+  (let*-values (((ctx1) (eval-when-expand! (cdr (syntax-form stx)) ctx the-base-library)))
     (values (datum->syntax stx '(if #f #f)) ctx1)))
 
 ;;; Core form table

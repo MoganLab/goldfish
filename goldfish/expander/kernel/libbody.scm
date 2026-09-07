@@ -58,7 +58,7 @@
              ;; evaluated at expand time (into this library) and nothing
              ;; is emitted into the body.
              (let*-values (((ctx1)
-                            (eval-when-expand! (cddr (syntax-form stx)) ctx lib)))
+                            (eval-when-expand! (cdr (syntax-form stx)) ctx lib)))
                (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))
             (else
              ;; Macro-headed form (e.g. define-macro): expand the head one
