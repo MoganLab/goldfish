@@ -18,12 +18,13 @@ bin/gf demo/crash/<文件名>; echo "exit=$?"
   已在 devel/0143.md 修复，修复验证完成后移除。
 - `c09-g_rename-integer.scm`（g_rename 传入非字符串段错误）
   已在 devel/0144.md 修复，修复验证完成后移除。
+- `c11-g_listdir-integer.scm`（g_listdir 传入非字符串 abort）
+  已在 devel/0145.md 修复，修复验证完成后移除。
 
 ## 已确认的崩溃点
 
 | 文件 | 触发代码 | 信号 | 根因 |
 |---|---|---|---|
-| c11-g_listdir-integer.scm | `(g_listdir 99)` | SIGABRT | `liii_os.cpp` 的 `f_listdir` 未检查参数类型，`s7_string()` 得到空指针后构造 `std::string` 抛 `std::logic_error` |
 | f03-base64-encode-oob-length.scm | `(g_bytevector-base64-encode (make-bytevector 4 65) 1073741824)` | SIGSEGV | `liii_base64.cpp` 的长度参数不校验是否超过 bytevector 实际大小，编码循环按声明长度越界读取 1GB |
 
 ## 涉及的共同根因
