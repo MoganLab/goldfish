@@ -44,7 +44,7 @@
                (check-eval-when-situations sit-datum stx)
                (let*-values (((ctx1)
                               (if (memq 'expand sit-datum)
-                                (eval-when-expand! body-exprs ctx)
+                                (eval-when-expand! body-exprs ctx lib)
                                 (values ctx))))
                  (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
                    (loop (append body-exprs (cdr stxs))
@@ -53,6 +53,13 @@
             ((eq? resolved 'begin)
              (loop (append (cdr (syntax-form stx)) (cdr stxs))
                    ctx var-defs exprs (+ n 1)))
+            ((eq? resolved 'begin-for-syntax)
+             ;; Flat expand-time region: the forms are expanded and
+             ;; evaluated at expand time (into this library) and nothing
+             ;; is emitted into the body.
+             (let*-values (((ctx1)
+                            (eval-when-expand! (cddr (syntax-form stx)) ctx lib)))
+               (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))
             (else
              ;; Macro-headed form (e.g. define-macro): expand the head one
              ;; step at a time until the definition kind is revealed, WITHOUT

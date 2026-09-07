@@ -529,7 +529,7 @@
 ;;;     the program is loaded / when eval'd).
 ;;; At least one situation must be present.
 
-(define (eval-when-expand! exprs ctx)
+(define (eval-when-expand! exprs ctx . maybe-lib)
   ;; Evaluate each expr at phase+1 in the implementation environment,
   ;; threading the phase+1 expansion context through the exprs (so later
   ;; exprs see the expansion-time bindings made by earlier ones) and
@@ -537,6 +537,11 @@
   ;; (definition) context; other exprs are expanded as expressions.
   ;; Effects land in the expander library / rootlet (s7 eval falls back
   ;; to the rootlet for names the expander library does not define).
+  ;;
+  ;; The region's home library: maybe-lib when the caller knows it (a
+  ;; library body: the library; a toplevel program: the program library),
+  ;; else the subform's own tag.  The region defines register there so
+  ;; later transformer bodies in the same region resolve them.
   ;;
   ;; The body is one flat expand-time region: a define-syntax inside it
   ;; binds a macro usable by the SURROUNDING phase (its uses there run
@@ -563,7 +568,11 @@
                             ;; otherwise), so later forms in the SAME library
                             ;; context see the macro / value.
                             (expand-library-body (list (car es))
-                                                 (syntax-library (car es)) c)))
+                                                 (or (and (pair? maybe-lib)
+                                                          (car maybe-lib))
+                                                     (syntax-library (car es))
+                                                     the-base-library))
+                                                 c)))
                ;; Each def is a syntax object: lower individually (a raw
                ;; (cons 'begin defs) spine mixes datums and syntax objects,
                ;; which lower passes through unstripped -- s7 would then
@@ -589,7 +598,7 @@
             (else
              (let*-values (((sexp c1) (expand-expr (car es) c)))
                (eval (lower sexp) the-expander-library)
-               (loop (cdr es) c1)))))))))
+               (loop (cdr es) c1))))))))
 
 (define (check-eval-when-situations sit-datum stx)
   (for-each
@@ -647,8 +656,8 @@
     (check-eval-when-situations sit-datum stx)
     (let*-values (((ctx1)
                    (if do-expand
-                     (eval-when-expand! exprs ctx)
-                     (values ctx))))
+                     (eval-when-expand! exprs ctx the-base-library)
+                     (values ctx)))))
       (if do-keep
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
@@ -661,7 +670,7 @@
 ;;; Region rules apply: defines here are visible to sibling transformers.
 
 (define (core-begin-for-syntax stx ctx)
-  (let*-values (((ctx1) (eval-when-expand! (cddr (syntax-form stx)) ctx)))
+  (let*-values (((ctx1) (eval-when-expand! (cddr (syntax-form stx)) ctx the-base-library))))
     (values (datum->syntax stx '(if #f #f)) ctx1)))
 
 ;;; Core form table

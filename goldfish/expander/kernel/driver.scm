@@ -129,7 +129,7 @@
                      (check-eval-when-situations sit-datum stx)
                      (let*-values (((ctx1)
                                     (if (memq 'expand sit-datum)
-                                      (eval-when-expand! wbody ctx)
+                                      (eval-when-expand! wbody ctx lib)
                                       (values ctx))))
                        (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
                          (loop (append wbody (cdr exprs)) ctx1
