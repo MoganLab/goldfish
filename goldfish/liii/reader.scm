@@ -699,6 +699,15 @@
   (let ((v (getenv "GOLDFISH_AUTO_COMPILE")))
     (not (and v (member v '("0" "no" "false" "off"))))))
 
+;; A file falling back to per-form loading re-expands -- and re-runs
+;; expand-time side effects -- on every load; say so, so the slowdown is
+;; visible rather than silent.
+(define (note-per-form path)
+  (let ((p (current-output-port)))
+    (display ";;; note: " p)
+    (display path p)
+    (display " could not be compiled; loading per form\n" p)))
+
 (define (collect-module-refs sexp)
   (let loop ((x sexp) (acc '()))
     (cond
@@ -846,7 +855,9 @@
                 ;; form whose expansion needs runtime values the artifact
                 ;; cannot carry), a non-cacheable artifact (unresolved free
                 ;; symbols) or an artifact that fails to eval falls back to
-                ;; per-form loading.
+                ;; per-form loading; each fallback notes on stderr, since a
+                ;; file loaded per form re-expands (and re-runs expand-time
+                ;; side effects) on every load.
                 (let ((sexp (catch #t
                               (lambda () (compile-file-cached path))
                               (lambda (type info) #f))))
@@ -864,8 +875,11 @@
                         ;; resolve in the-expander-library.
                         (eval sexp the-expander-library))
                       (lambda (type info)
+                        (note-per-form path)
                         (load-forms-sequentially forms)))
-                    (load-forms-sequentially forms)))
+                    (begin
+                      (note-per-form path)
+                      (load-forms-sequentially forms))))
                 (load-forms-sequentially forms))))))
       (else (loop (cdr cands))))))
 ;; Rebind read-forms to the R7RS reader now that `read' is ours: the seed
