@@ -148,7 +148,11 @@ f_version (s7_scheme* sc, s7_pointer args) {
 
 static s7_pointer
 f_delete_file (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return s7_wrong_type_arg_error (sc, "delete-file", 1, path_arg, "a string");
+  }
+  const char* path_c= s7_string (path_arg);
   return s7_make_boolean (sc, tb_file_remove (path_c));
 }
 
@@ -253,7 +257,11 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
 #endif
   std::string          ret;
   tb_size_t            size       = 0;
-  const char*          key        = s7_string (s7_car (args));
+  s7_pointer           key_arg    = s7_car (args);
+  if (!s7_is_string (key_arg)) {
+    return s7_wrong_type_arg_error (sc, "get-environment-variable", 1, key_arg, "a string");
+  }
+  const char*          key        = s7_string (key_arg);
   tb_environment_ref_t environment= tb_environment_init ();
   if (environment) {
     size= tb_environment_load (environment, key);
@@ -379,12 +387,20 @@ which_access_check (const char* path) {
 
 static s7_pointer
 f_which (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c        = s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return s7_wrong_type_arg_error (sc, "which", 1, cmd_arg, "a string");
+  }
+  const char* cmd_c        = s7_string (cmd_arg);
   s7_pointer  path_arg     = s7_cdr (args);
   const char* path_override= nullptr;
 
   if (s7_is_pair (path_arg)) {
-    path_override= s7_string (s7_car (path_arg));
+    s7_pointer path= s7_car (path_arg);
+    if (!s7_is_string (path)) {
+      return s7_wrong_type_arg_error (sc, "which", 2, path, "a string");
+    }
+    path_override= s7_string (path);
   }
 
   string         cmd_str (cmd_c);
