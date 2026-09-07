@@ -788,7 +788,13 @@
                                              (map library-dep-fingerprint
                                                   (map car deps))))
                                     (else #f)))
-                             (cadddr rec))))
+                            ;; A libraries bundle holds one record per
+                            ;; define-library form in the file, in order.
+                            (let ((payload (cadddr rec)))
+                              (and (bundle? payload)
+                                   (eq? (bundle-kind payload) 'libraries)
+                                   (let ((libs (bundle-section payload 'libs)))
+                                     (and (pair? libs) (cdr libs))))))))
             (if recs
               (dynamic-wind
                 (lambda ()
@@ -817,16 +823,18 @@
                       (load-library-guard
                        lib-name
                        (lambda ()
-                         (if (and (auto-compile-enabled?)
-                                  (library-file-cacheable? forms))
-                           (let* ((stamp (compile-file-stamp file))
-                                  (gfo-file (library-gfo-path lib-file)))
-                              (let*-values (((recs ctx) (capture-file-cache forms)))
-                                (let* ((recs (optimize-lib-cache-recs recs))
-                                       (deps (map library-dep-fingerprint
-                                                  (library-all-deps recs lib-name))))
-                                   (gfo-write! gfo-file stamp recs deps)
-                                 (load-library-file-cached! recs))))
+                            (if (and (auto-compile-enabled?)
+                                     (library-file-cacheable? forms))
+                              (let* ((stamp (compile-file-stamp file))
+                                     (gfo-file (library-gfo-path lib-file)))
+                                (let*-values (((recs ctx) (capture-file-cache forms)))
+                                  (let* ((recs (optimize-lib-cache-recs recs))
+                                         (deps (map library-dep-fingerprint
+                                                    (library-all-deps recs lib-name))))
+                                    (gfo-write! gfo-file stamp
+                                                (make-bundle 'libraries (cons 'libs recs))
+                                                deps)
+                                    (load-library-file-cached! recs))))
                            (begin
                               ;; Non-cacheable library: expand, optimize, then eval
                               ;; the whole program (the pipeline still applies).

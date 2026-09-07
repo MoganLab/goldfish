@@ -252,9 +252,15 @@
 
 ;;; Bundle schema: (bundle <version> <kind> <section>*).  Kinds and their
 ;;; sections:
-;;;   module  (defs s*) (macros (name . s)*) (bindings (name . s)*)
-;;;   program (exprs s*) -- one entry per compiled program, currently the
+;;;   module    (defs s*) (macros (name . s)*) (bindings (name . s)*)
+;;;             -- one boot / user library file, one library
+;;;   program   (exprs s*) -- one entry per compiled program, currently the
 ;;;                          whole lowered form
+;;;   libraries (libs rec*) -- a user library file holding one or more
+;;;             define-library forms; each rec is
+;;;             (name exports imports bindings macros ir-defs), where
+;;;             bindings/macros are purified descriptions and ir-defs are
+;;;             the file's defs already optimized for the active level
 ;;; Every s is serialize-cache-sexp output, so a bundle is plain text the
 ;;; bootstrap reader parses directly.
 
@@ -521,6 +527,7 @@
 (module-define! the-expander-library 'gfo-path gfo-path)
 (module-define! the-expander-library 'gfo-stamp gfo-stamp)
 (module-define! the-expander-library 'gfo-valid? gfo-valid?)
+(module-define! the-expander-library 'gfo-format-version gfo-format-version)
 (module-define! the-expander-library 'gfo-load gfo-load)
 (module-define! the-expander-library 'gfo-write! gfo-write!)
 ;; legacy aliases for previous API
@@ -535,6 +542,10 @@
 ;; caches through one mechanism.
 (module-define! the-expander-library 'serialize-cache-sexp serialize-cache-sexp)
 (module-define! the-expander-library 'deserialize-cache-sexp deserialize-cache-sexp)
+(module-define! the-expander-library 'make-bundle make-bundle)
+(module-define! the-expander-library 'bundle? bundle?)
+(module-define! the-expander-library 'bundle-kind bundle-kind)
+(module-define! the-expander-library 'bundle-section bundle-section)
 
 ;;; ------------------------------------------------------------------------
 ;;; Internal runtime surface
