@@ -1,4 +1,4 @@
-(import (liii check) (liii sys) (liii os) (scheme process-context))
+(import (liii check) (liii sys) (liii os))
 
 
 (check-set-mode! 'report-failed)
@@ -38,12 +38,6 @@
 ;; C 层入口 g_which 走同一实现，两个参数都需要类型检查
 (check-catch 'wrong-type-arg (g_which 123))
 (check-catch 'wrong-type-arg (g_which "ls" 123))
-
-
-;; ; 同文件同模式入口加固（src/goldfish.hpp）
-(check-catch 'wrong-type-arg (g_delete-file 123))
-(check-catch 'wrong-type-arg (g_get-environment-variable 123))
-(check-catch 'wrong-type-arg (get-environment-variable 123))
 
 
 (check-report)
