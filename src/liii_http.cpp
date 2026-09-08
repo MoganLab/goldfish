@@ -317,7 +317,8 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
   if (s7_is_list (sc, files) && !s7_is_null (sc, files)) {
     if (!check_string_alist (sc, body_or_data)) {
-      return string_type_error (sc, "http-post: multipart data must be an association list of string pairs", body_or_data);
+      return string_type_error (sc, "http-post: multipart data must be an association list of string pairs",
+                                body_or_data);
     }
   }
   else {
@@ -326,10 +327,10 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     }
   }
 
-  const char*     url         = s7_string (url_arg);
-  cpr::Parameters cpr_params  = to_cpr_parameters (sc, params);
-  cpr::Header     cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies    cpr_proxies = to_cpr_proxies (sc, proxy);
+  const char*     url        = s7_string (url_arg);
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
+  cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
 
   cpr::Session session;
   session.SetUrl (cpr::Url (url));

@@ -34,9 +34,12 @@ bin/gf doc --build-json
 文档来源是 `tests/` 目录下的 `*-test.scm` 测试文件。为函数添加文档时，只需在对应库的路径下创建 `函数名-test.scm` 测试文件，然后执行 `bin/gf doc --build-json` 更新索引。
 
 ### gf fmt - 代码格式化工具
-`gf fmt` 用于自动格式化 Scheme 代码（调整缩进、换行等）。
+`gf fmt` 用于自动格式化 Scheme 代码（调整缩进、换行等），会自动跳过已缓存的未变更文件。
 
 ```bash
+# 直接格式化整个仓库（推荐，自动跳过缓存文件）
+bin/gf fmt
+
 # 格式化单个文件（原地修改）
 bin/gf fmt goldfish/liii/os.scm
 
@@ -77,9 +80,8 @@ bin/gf test tools/fmt/tests/liii/goldfmt-scan/scan-string-test.scm
 # 1. 构建
 xmake b goldfish
 
-# 2. 格式化代码
-bin/gf fmt goldfish/liii/xxx.scm
-bin/gf fmt tests/goldfish/liii/xxx-test.scm
+# 2. 格式化代码（直接对整个仓库执行即可，自动跳过缓存文件）
+bin/gf fmt
 
 # 3. 运行测试
 bin/gf tests/goldfish/liii/xxx-test.scm
@@ -126,25 +128,12 @@ bin/gf tests/goldfish/liii/xxx-test.scm
 - 在 C/C++ 胶水层使用 `s7_error(sc, s7_make_symbol(sc, "type-error"), ...)`
 - 测试用例使用 `(check-catch 'type-error ...)`
 
-### define-case-class 使用建议
-`define-case-class` 通过宏实现，有显著的性能开销：
-- 方法调用需要通过字符串匹配和动态查找
-- 每次调用都有额外的运行时开销
-- 不适合高频调用的场景
-
-**使用建议**：
-- 适合手写代码和原型开发
-- **不推荐用于 AI 生成的代码**（AI 可能会过度使用）
-- **不推荐用于生产环境部署**（性能敏感场景）
-
-对于性能敏感的场景，建议使用普通的函数和 record-type 替代。
-
 ### 分支命名规范
-- 分支名格式：`$USER/x_y/descr`
+- 分支名格式：`$USER/dddd/descr`
   - `$USER`：当前用户名
-  - `x_y`：任务编号，如 `201_10`
+  - `dddd`：四位任务编号，如 `0149`
   - `descr`：简短的任务描述，使用下划线连接
-- 示例：`da/201_10/doc_update`
+- 示例：`da/0149/http_head`
 
 ### 提交信息格式
 - 使用单行格式：`[x_y] 简短描述`
