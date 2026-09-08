@@ -62,4 +62,8 @@
   (check (path-dir? "Z:/definitely/not/exist") => #f)
 ) ;when
 
+;; 错误测试
+(check-catch 'type-error (path-dir? #\a))
+(check-catch 'type-error (path-dir? 123))
+
 (check-report)

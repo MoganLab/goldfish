@@ -37,4 +37,8 @@
   (check (path-file? "C:/Windows") => #f)
 ) ;when
 
+;; 错误测试
+(check-catch 'type-error (path-file? #\a))
+(check-catch 'type-error (path-file? 123))
+
 (check-report)

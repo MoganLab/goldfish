@@ -31,4 +31,10 @@
   (path-unlink dst)
 ) ;let
 
+;; 错误测试
+(check-catch 'type-error (path-copy #\a "x"))
+(check-catch 'type-error (path-copy "x" #\a))
+(check-catch 'type-error (path-copy 123 "x"))
+(check-catch 'type-error (path-copy "x" 123))
+
 (check-report)

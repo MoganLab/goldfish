@@ -81,4 +81,7 @@
   (path-read-bytes (path "/this/file/does/not/exist"))
 ) ;check-catch
 
+(check-catch 'type-error (path-read-bytes #\a))
+(check-catch 'type-error (path-read-bytes 123))
+
 (check-report)

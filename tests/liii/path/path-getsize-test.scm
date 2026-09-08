@@ -52,4 +52,7 @@
   (path-getsize (path "/this/file/does/not/exist"))
 ) ;check-catch
 
+(check-catch 'type-error (path-getsize #\a))
+(check-catch 'type-error (path-getsize 123))
+
 (check-report)

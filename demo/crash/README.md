@@ -17,17 +17,6 @@ s7 的字符是标记立即数，`s7_string` 底层 `(T_Str(p))->object.string.s
 （`s7_internal.h`，`T_Str(P) = P`）会把立即数当 cell 指针解引用低地址，
 必然 SIGSEGV；而整数是堆 cell，其垃圾值经常碰巧可读，只是静默返回错误结果。
 
-## C 层入口 — path 模块（liii_path.cpp）
-
-| 文件 | 触发代码 | 信号 |
-|---|---|---|
-| c20-g_isdir-char.scm | `(g_isdir #\a)` | SIGSEGV |
-| c21-g_isfile-char.scm | `(g_isfile #\a)` | SIGSEGV |
-| c22-g_path-getsize-char.scm | `(g_path-getsize #\a)` | SIGSEGV |
-| c23-g_path-read-text-char.scm | `(g_path-read-text #\a)` | SIGSEGV |
-| c24-g_path-read-bytes-char.scm | `(g_path-read-bytes #\a)` | SIGSEGV |
-| c25-g_path-copy-char.scm | `(g_path-copy #\a "x")` | SIGSEGV |
-
 ## C 层入口 — http 模块（liii_http.cpp）
 
 | 文件 | 触发代码 | 信号 | 根因 |
@@ -60,6 +49,9 @@ http 崩溃仅能从根环境 `g_http-*` 直接触发。
 - `c26-g_md5-char.scm` ~ `c31-g_sha256-by-file-char.scm`、`p01`、`p02`
   （hashlib 模块全部 6 个 C 胶水函数 `g_md5`、`g_md5-by-file`、`g_sha1`、`g_sha1-by-file`、`g_sha256`、`g_sha256-by-file` 及公开包装传入非字符串段错误）
   已在 devel/0147.md 修复。
+- `c20-g_isdir-char.scm` ~ `c25-g_path-copy-char.scm`
+  （path 模块全部 C 胶水函数 `g_isdir`、`g_isfile`、`g_path-getsize`、`g_path-read-text`、`g_path-read-bytes`、`g_path-write-text`、`g_path-write-bytes`、`g_path-append-text`、`g_path-touch`、`g_path-copy` 及公开包装传入非字符串/非法类型参数段错误）
+  已在 devel/0150.md 修复。
 
 ## 仍然有效的旧发现
 
