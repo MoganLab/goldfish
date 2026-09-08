@@ -199,3 +199,17 @@ spec (syntax record) → 净化 (library→(libref name)) → write-roundtrip
 - 泄漏按构造不可能：删除 `*expand-region-defs*` 记录、
   两处 `tree-contains-any?` 缓存跳过及相关导出/测试（净删）。
   两写入点改为无条件缓存（序列化失败仍是唯一跳过条件）。
+
+## Per-unit expand 环境 + 缓存统一（2026-09-09，jinser/sos-expander）
+
+- 编译单元（每次 install/compile/load/eval）经
+  `call-with-fresh-expand-unit` 绑定独立 expand 环境（sublet inlet）
+  与 region 库；region define、transformer 求值、宏重放进单元环境，
+  同名 gensym 跨单元不共享。
+- 修复混态冷捕获崩溃（let*-values unbound）的两个根因：
+  1. `install-cache-save!` 写缓存未带 deps，第 5 槽为 #f，
+     统一校验门视为失配 → lib 层安装缓存每 boot 必 MISS 重展开；
+  2. `load-expanded` 的 seed 只存/放值 defs，不携带宏记录 —— 暖 boot
+     里 prelude 宏缺席，MISS 触发的重展开把未展开宏调用（let*-values）
+     烧进 live 代码与缓存。seed 现携带宏并在 HIT 时先重放。
+- install-cache deps 按统一协议写 transitive import 闭包（boot 文件为空）。
