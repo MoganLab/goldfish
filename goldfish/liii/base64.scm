@@ -5,9 +5,7 @@
   ) ;export
   (begin
     (define bytevector-base64-encode
-      (typed-lambda ((bv bytevector?))
-        (g_bytevector-base64-encode bv (bytevector-length bv))
-      ) ;typed-lambda
+      (typed-lambda ((bv bytevector?)) (g_bytevector-base64-encode bv))
     ) ;define
 
     (define string-base64-encode
@@ -23,8 +21,8 @@
       ) ;cond
     ) ;define
 
-    (define (bytevector-base64-decode bv)
-      (g_bytevector-base64-decode bv (bytevector-length bv))
+    (define bytevector-base64-decode
+      (typed-lambda ((bv bytevector?)) (g_bytevector-base64-decode bv))
     ) ;define
 
     (define string-base64-decode
