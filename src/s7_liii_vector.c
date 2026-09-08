@@ -747,9 +747,39 @@ s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer g_int_vector_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_univect_ref_int(sc, args));
+}
+
 s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_int_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer ivec = s7_car(args);
+  s7_pointer index;
+  s7_int ind1, ind2;
+  if (!s7_is_int_vector(ivec))
+    return(s7i_method_or_bust(sc, ivec, "int-vector-ref", args, "an int-vector", 1));
+  if (s7_vector_rank(ivec) != 2)
+    return(s7i_univect_ref_int(sc, args));
+  index = s7_cadr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 2));
+  ind1 = s7_number_to_integer(sc, index);
+  if ((ind1 < 0) || (ind1 >= s7_vector_dimension(ivec, 0)))
+    return(s7_out_of_range_error(sc, "int-vector-ref", 2, index, (ind1 < 0) ? "it is negative" : "it is too large"));
+  index = s7_caddr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 3));
+  ind2 = s7_number_to_integer(sc, index);
+  if ((ind2 < 0) || (ind2 >= s7_vector_dimension(ivec, 1)))
+    return(s7_out_of_range_error(sc, "int-vector-ref", 3, index, (ind2 < 0) ? "it is negative" : "it is too large"));
+  ind1 = ind1 * s7i_vector_offset(ivec, 0) + ind2;
+  return(s7_make_integer(sc, s7_int_vector_ref(ivec, ind1)));
 }
 
 s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args)

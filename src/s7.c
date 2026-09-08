@@ -25070,14 +25070,15 @@ static s7_pointer float_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_point
 }
 
 /* -------------------------------- int-vector-ref -------------------------------- */
-static s7_pointer g_int_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_int_vector_ref "(int-vector-ref v ...) returns an element of the int-vector v."
+#define Q_int_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                           s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_int_vector_symbol), \
+                           sc->is_int_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_int(s7_scheme *sc, s7_pointer args)
 {
-  #define H_int_vector_ref "(int-vector-ref v ...) returns an element of the int-vector v."
-  #define Q_int_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_int_vector_symbol), \
-                             sc->is_int_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->int_vector_ref_symbol, T_INT_VECTOR));
 }
+/* g_int_vector_ref, g_iv_ref_3 migrated to s7_liii_vector.c */
 
 static s7_int int_vector_ref_i_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(int_vector(vec, index));}
 static s7_pointer int_vector_ref_p_pi_direct(s7_scheme *sc, s7_pointer vec, s7_int index) {return(make_integer(sc, int_vector(vec, index)));}
@@ -25126,31 +25127,6 @@ static inline s7_pointer int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_p
 }
 
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(int_vector_ref_p_pp(sc, vec, index));}
-
-static s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer ivec = car(args);
-  s7_pointer index;
-  s7_int ind1, ind2;
-  if (!is_int_vector(ivec))
-    return(method_or_bust(sc, ivec, sc->int_vector_ref_symbol, args, sc->type_names[T_INT_VECTOR], 1));
-  if (vector_rank(ivec) != 2)
-    return(univect_ref(sc, args, sc->int_vector_ref_symbol, T_INT_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind1 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind1 < 0) || (ind1 >= vector_dimension(ivec, 0)))
-    out_of_range_error_nr(sc, sc->int_vector_ref_symbol, int_two, index, (ind1 < 0) ? it_is_negative_string : it_is_too_large_string);
-  index = caddr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_ref_symbol, args, sc->type_names[T_INTEGER], 3));
-  ind2 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind2 < 0) || (ind2 >= vector_dimension(ivec, 1)))
-    out_of_range_error_nr(sc, sc->int_vector_ref_symbol, int_three, index, (ind2 < 0) ? it_is_negative_string : it_is_too_large_string);
-  ind1 = ind1 * vector_offset(ivec, 0) + ind2;
-  return(make_integer(sc, int_vector(ivec, ind1)));
-}
 
 static s7_pointer int_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
