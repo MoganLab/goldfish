@@ -25248,12 +25248,13 @@ static s7_pointer byte_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_
 
 
 /* -------------------------------- byte-vector-set -------------------------------- */
-static s7_pointer g_byte_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_byte_vector_set "(byte-vector-set! vect index byte) sets the index-th element of the byte-vector vect to the integer byte"
+#define Q_byte_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_byte_symbol, sc->is_byte_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args)
 {
-  #define H_byte_vector_set "(byte-vector-set! vect index byte) sets the index-th element of the byte-vector vect to the integer byte"
-  #define Q_byte_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_byte_symbol, sc->is_byte_vector_symbol, sc->is_integer_symbol)
   return(univect_set(sc, args, sc->byte_vector_set_symbol, T_BYTE_VECTOR));
 }
+/* g_byte_vector_set, g_bv_set_3 migrated to s7_liii_vector.c */
 
 static s7_int byte_vector_set_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index, s7_int byte)
 {
@@ -25285,35 +25286,6 @@ static s7_int byte_vector_set_i_7piii(s7_scheme *sc, s7_pointer vec, s7_int inde
     out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_three, wrap_integer(sc, index2), (index2 < 0) ? it_is_negative_string : it_is_too_large_string);
   byte_vector(vec, index2 + (index1 * vector_offset(vec, 0))) = byte;
   return(byte);
-}
-
-static s7_pointer g_bv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index, value;
-  s7_int ind;
-  if (!is_byte_vector(vec))
-    return(method_or_bust(sc, vec, sc->byte_vector_set_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_set(sc, args, sc->byte_vector_set_symbol, T_BYTE_VECTOR));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->byte_vector_set_symbol, vec));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->byte_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  value = caddr(args);
-  if (!s7_is_integer(value))
-    return(method_or_bust(sc, value, sc->byte_vector_set_symbol, args, sc->type_names[T_INTEGER], 3));
-  {
-    s7_int byte = s7_integer_clamped_if_gmp(sc, value);
-    if ((byte < 0) || (byte > 255))
-      wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 3, value, an_unsigned_byte_string);
-    byte_vector(vec, ind) = (uint8_t)byte;
-  }
-  return(value);
 }
 
 static s7_pointer byte_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
