@@ -75,4 +75,8 @@
   (delete-file (path->string relative-file))
 ) ;let
 
+;; 错误测试
+(check-catch 'type-error (path-touch #\a))
+(check-catch 'type-error (path-touch 123))
+
 (check-report)

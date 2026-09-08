@@ -75,5 +75,7 @@
 (check-catch 'type-error
   (path-write-text (path-join (path-temp-dir) "test.txt") 123)
 ) ;check-catch
+(check-catch 'type-error (path-write-text #\a "hello"))
+(check-catch 'type-error (path-write-text 123 "hello"))
 
 (check-report)

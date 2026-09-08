@@ -42,4 +42,14 @@
   (delete-file (path->string append-missing-file))
 ) ;let
 
+;; 错误处理测试
+(check-catch 'type-error (path-append-text #\a "hello"))
+(check-catch 'type-error (path-append-text 123 "hello"))
+(check-catch 'type-error
+  (path-append-text (path-join (path-temp-dir) "test.txt") 123)
+) ;check-catch
+(check-catch 'type-error
+  (path-append-text (path-join (path-temp-dir) "test.txt") #\a)
+) ;check-catch
+
 (check-report)

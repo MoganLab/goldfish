@@ -55,5 +55,7 @@
 (check-catch 'type-error
   (path-write-bytes (path-join (path-temp-dir) "x.bin") "not bytes")
 ) ;check-catch
+(check-catch 'type-error (path-write-bytes #\a #u8(1 2 3)))
+(check-catch 'type-error (path-write-bytes 123 #u8(1 2 3)))
 
 (check-report)

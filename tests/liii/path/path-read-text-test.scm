@@ -79,6 +79,9 @@
   (path-read-text (path "/this/file/does/not/exist"))
 ) ;check-catch
 
+(check-catch 'type-error (path-read-text #\a))
+(check-catch 'type-error (path-read-text 123))
+
 ;; 测试 \r\n 自动转换为 \n
 (let ((crlf-file (path-join (path-temp-dir) "path-read-text-crlf.txt")))
   (when (path-exists? crlf-file)
