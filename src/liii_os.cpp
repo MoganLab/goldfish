@@ -320,7 +320,7 @@ static s7_pointer
 f_listdir (s7_scheme* sc, s7_pointer args) {
   s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
-    return s7_wrong_type_arg_error (sc, "listdir", 1, path_arg, "a string");
+    return string_type_error (sc, "listdir: path must be a string", path_arg);
   }
   const char*    path_c= s7_string (path_arg);
   vector<string> entries;
