@@ -171,6 +171,41 @@ to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
   return cpr::Part (name, value, content_type);
 }
 
+static bool
+check_multipart_part_spec (s7_scheme* sc, s7_pointer part_spec) {
+  if (!s7_is_list (sc, part_spec)) {
+    return false;
+  }
+  s7_pointer iter= part_spec;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer entry= s7_car (iter);
+    if (!s7_is_pair (entry)) {
+      return false;
+    }
+    s7_pointer key= s7_car (entry);
+    if (!s7_is_symbol (key) && !s7_is_string (key)) {
+      return false;
+    }
+    if (!s7_is_string (s7_cdr (entry))) {
+      return false;
+    }
+    iter= s7_cdr (iter);
+  }
+  return true;
+}
+
+static bool
+check_multipart_files (s7_scheme* sc, s7_pointer files) {
+  s7_pointer iter= files;
+  while (!s7_is_null (sc, iter)) {
+    if (!check_multipart_part_spec (sc, s7_car (iter))) {
+      return false;
+    }
+    iter= s7_cdr (iter);
+  }
+  return true;
+}
+
 static void
 append_cpr_multipart_file_parts (s7_scheme* sc, s7_pointer files, std::vector<cpr::Part>& parts) {
   s7_pointer iter= files;
@@ -309,13 +344,20 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   if (!check_string_alist (sc, proxy)) {
     return string_type_error (sc, "http-post: proxy must be an association list of string pairs", proxy);
   }
-  s7_pointer files   = s7_cadr (s7_cddddr (args));
+  s7_pointer files= s7_cadr (s7_cddddr (args));
+  if (!s7_is_list (sc, files)) {
+    return string_type_error (sc, "http-post: files must be a list of multipart part specs", files);
+  }
   s7_pointer callback= s7_list_ref (sc, args, 6);
   if (!s7_is_boolean (callback) && !s7_is_procedure (callback)) {
     return string_type_error (sc, "http-post: callback must be a procedure or boolean", callback);
   }
 
-  if (s7_is_list (sc, files) && !s7_is_null (sc, files)) {
+  if (!s7_is_null (sc, files)) {
+    if (!check_multipart_files (sc, files)) {
+      return string_type_error (
+          sc, "http-post: each files entry must be a list of (key . value) pairs with string values", files);
+    }
     if (!check_string_alist (sc, body_or_data)) {
       return string_type_error (sc, "http-post: multipart data must be an association list of string pairs",
                                 body_or_data);
@@ -340,7 +382,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
     session.SetProxies (cpr_proxies);
   }
 
-  if (s7_is_list (sc, files) && !s7_is_null (sc, files)) {
+  if (!s7_is_null (sc, files)) {
     session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
   }
   else {
