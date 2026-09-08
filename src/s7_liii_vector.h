@@ -16,6 +16,7 @@ extern "C" {
 #endif
 
 s7_pointer g_is_vector(s7_scheme *sc, s7_pointer args);
+s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_float_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_int_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_byte_vector(s7_scheme *sc, s7_pointer args);

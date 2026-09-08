@@ -23781,39 +23781,9 @@ s7_pointer s7_array_to_list(s7_scheme *sc, s7_int num_values, s7_pointer *array)
 }
 
 #if !WITH_PURE_S7
-static s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_to_list "(vector->list v (start 0) end) returns the elements of the vector v as a list; (map values v)"
-  #define Q_vector_to_list s7_make_signature(sc, 4, sc->is_proper_list_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  s7_int start = 0, end;
-  const s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_to_list_symbol, args, sc->type_names[T_VECTOR]));
-  end = vector_length(vec);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->vector_to_list_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(sc->nil);
-    }
-  if ((end - start) > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_5(sc, wrap_string(sc, "vector->list length ~D, (- ~D ~D), is greater than (*s7* 'max-list-length), ~D", 78),
-			 wrap_integer(sc, end - start), wrap_integer(sc, end), wrap_integer(sc, start),
-			 wrap_integer(sc, sc->max_list_length)));
-
-  check_free_heap_size(sc, end - start);
-  begin_temp(sc->temp6, sc->nil);
-  gc_protect_via_stack(sc, vec);
-  if (is_t_vector(vec))
-    for (s7_int i = end - 1; i >= start; i--) sc->temp6 = cons_unchecked(sc, vector_element(vec, i), sc->temp6);
-  else for (s7_int i = end - 1; i >= start; i--) sc->temp6 = cons_unchecked(sc, vector_getter(vec)(sc, vec, i), sc->temp6);
-  unstack_gc_protect(sc);
-  return_with_end_temp(sc->temp6);
-}
-
-/* vector_to_list_p_p migrated to s7_liii_vector.c */
+#define H_vector_to_list "(vector->list v (start 0) end) returns the elements of the vector v as a list; (map values v)"
+#define Q_vector_to_list s7_make_signature(sc, 4, sc->is_proper_list_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_vector_to_list, vector_to_list_p_p migrated to s7_liii_vector.c */
 #endif
 
 

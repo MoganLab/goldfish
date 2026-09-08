@@ -28,8 +28,25 @@
 (check (vector->list #("x" "y")) => '("x" "y"))
 (check (length (vector->list #(a b c d))) => 4)
 (check (car (vector->list #(1 2 3))) => 1)
+
+;; 带 start 和 end 参数
+(check (vector->list #(0 1 2 3) 2) => '(2 3))
+(check (vector->list #(0 1 2 3) 1 3) => '(1 2))
+(check (vector->list #(0 1 2 3) 2 2) => '())
+(check (vector->list #() 0 0) => '())
+
+;; byte-vector 支持
+(check (vector->list #u8(10 20 30)) => '(10 20 30))
+(check (vector->list #u8(10 20 30) 1 3) => '(20 30))
+
 (check-catch 'wrong-number-of-args (vector->list))
+(check-catch 'wrong-number-of-args (vector->list #(1 2) 0 1 2))
 (check-catch 'wrong-type-arg (vector->list '()))
 (check-catch 'wrong-type-arg (vector->list "abc"))
+(check-catch 'wrong-type-arg (vector->list #(1 2 3) "0"))
+(check-catch 'wrong-type-arg (vector->list #(1 2 3) 0 "1"))
+(check-catch 'out-of-range (vector->list #(1 2 3) -1))
+(check-catch 'out-of-range (vector->list #(1 2 3) 0 4))
+(check-catch 'out-of-range (vector->list #(1 2 3) 2 1))
 
 (check-report)

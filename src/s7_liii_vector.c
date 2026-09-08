@@ -357,6 +357,45 @@ s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
   return(g_vector(sc, lst));
 }
 
+s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args)
+{
+  s7_int start = 0, end;
+  const s7_pointer vec = s7_car(args);
+
+  if (!s7i_is_any_vector(vec))
+    return(s7i_sole_arg_method_or_bust(sc, vec, "vector->list", args, "a vector"));
+  end = s7_vector_length(vec);
+  if (!s7_is_null(sc, s7_cdr(args)))
+    {
+      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "vector->list"), args, 2, s7_cdr(args), &start, &end);
+      if (!s7i_is_unused(sc, p)) return(p);
+      if (start == end) return(s7_nil(sc));
+    }
+  else
+    if (end == 0) return(s7_nil(sc));
+
+  if ((end - start) > s7i_max_list_length(sc))
+    return(s7_out_of_range_error(sc, "vector->list", 2, s7_make_integer(sc, end - start), "it is too large"));
+
+  {
+    s7_pointer anchor = s7_cons(sc, vec, s7_nil(sc));
+    s7_gc_protect_via_stack(sc, anchor);
+    if (s7i_is_t_vector(vec))
+      {
+        for (s7_int i = end - 1; i >= start; i--)
+          s7_set_cdr(anchor, s7_cons(sc, s7i_vector_element(vec, i), s7_cdr(anchor)));
+      }
+    else
+      {
+        for (s7_int i = end - 1; i >= start; i--)
+          s7_set_cdr(anchor, s7_cons(sc, s7i_vector_getter_ref(sc, vec, i), s7_cdr(anchor)));
+      }
+    s7_pointer result = s7_cdr(anchor);
+    s7_gc_unprotect_via_stack(sc, anchor);
+    return(result);
+  }
+}
+
 s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer pred = s7_car(args);
