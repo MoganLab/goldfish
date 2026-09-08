@@ -157,12 +157,26 @@
 
 ;; 长列表 drop 测试（防 GC 回收中间未保护的 pair 导致 Use-After-Free）
 (let* ((len 500)
-       (alist (let loop ((i 0) (acc '()))
+       (alist (let loop
+                ((i 0) (acc '()))
                 (if (= i len)
-                    acc
-                    (loop (+ i 1) (cons (cons (string->symbol (string-append "k" (number->string i))) i) acc)))))
-       (res (json-drop alist (lambda (k) #f))))
+                  acc
+                  (loop (+ i 1)
+                    (cons (cons (string->symbol (string-append "k" (number->string i))) i) acc)
+                  ) ;loop
+                ) ;if
+              ) ;let
+       ) ;alist
+       (res (json-drop alist (lambda (k) #f)))
+      ) ;
   (check (length res) => len)
+) ;let*
+
+;; 迭代期间回调造环导致死循环防护
+(let* ((j (list (cons 'a 1) (cons 'b 2)))
+       (res (json-drop j (lambda (k) (set-cdr! j j) #f)))
+      ) ;
+  (check-true (list? res))
 ) ;let*
 
 (check-report)
