@@ -48,6 +48,16 @@
 ) ;check
 
 
+(check (delete-duplicates '("a" "b" "a") string=?) => '("a" "b"))
+(check (delete-duplicates '(#\a #\b #\a) char=?) => '(#\a #\b))
+(check (delete-duplicates '(1 2 1 3 2) =) => '(1 2 3))
+(check (delete-duplicates '(a b a c b) eq?) => '(a b c))
+(check (delete-duplicates '((1) (2) (1)) equal?) => '((1) (2)))
+(check (delete-duplicates '(#f #f #t #f)) => '(#f #t))
+
+;; 大列表去重（哈希表优化应在毫秒级完成）
+(check (length (delete-duplicates (append (iota 10000) (iota 10000)))) => 10000)
+
 (check (catch 'wrong-type-arg
          (lambda () (check (delete-duplicates (list 1 1 2 3) 'not-pred) => 1))
          (lambda args #t)
