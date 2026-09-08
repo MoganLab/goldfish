@@ -316,4 +316,26 @@
   "'(operator_field \"$\"\n   \"@\"\n   \"%%\"\n   \"%\"\n   ;; comment\n )"
 ) ;check
 
+;; issue 991: let* 绑定值位置的跨行 #(...) vector 字面量缩进
+(check (format-string #"IN"(let* ((sid "s1")
+       (messages #((("role" . "user") ("content" . "hi"))
+                   (("role" . "assistant") ("content" . "ok"))
+                  )
+       )
+      )
+  (foo sid messages)
+)
+"IN")
+  =>
+  #"OUT"(let* ((sid "s1")
+       (messages #((("role" . "user") ("content" . "hi"))
+                   (("role" . "assistant") ("content" . "ok"))
+                  ) ;#
+       ) ;messages
+      ) ;
+  (foo sid messages)
+) ;let*
+"OUT"
+)
+
 (check-report)
