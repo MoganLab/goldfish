@@ -41,6 +41,8 @@
 
 
 (check (not-null-list? '(a . b)) => #f)
+(check (not-null-list? '(a b . c)) => #f)
+(check (not-null-list? '(1 2 3 . 4)) => #f)
 
 
 (check-catch 'type-error (not-null-list? 1))

@@ -39,6 +39,8 @@
 (check (list-not-null? '(a b c)) => #t)
 (check (list-not-null? ()) => #f)
 (check (list-not-null? '(a . b)) => #f)
+(check (list-not-null? '(a b . c)) => #f)
+(check (list-not-null? '(1 2 3 . 4)) => #f)
 (check (list-not-null? 1) => #f)
 
 
