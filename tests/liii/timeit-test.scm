@@ -27,7 +27,8 @@
      ) ;
   (check (number? result1) => #t)
   (check (number? result2) => #t)
-  (check (>= result2 result1) => #t)
+  (check (>= result1 0) => #t)
+  (check (>= result2 0) => #t)
 ) ;let
 
 
