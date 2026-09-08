@@ -147,4 +147,59 @@
   (check (datum-contains? datum 1) => #f))
 (delete-file src7)
 
+;; ===== 8. 编译单元隔离：同名区域 define 不跨单元串值 =====
+;; file1 -> file2 -> 重编译 file1：各单元在自己的 expand 环境求值，
+;; 同名 helper 互不覆盖，重编译仍折叠 file1 自己的值（42，而非 file2 的 120）。
+(define src8a
+  (write-program "ewx-8a"
+    "(import (goldfish))\n"
+    "(eval-when (expand) (define (helper x) (+ x 1)))\n"
+    "(define-syntax m\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (* 2 (unsyntax (helper 20))))))))\n"
+    "(define value (m))\n"))
+(define src8b
+  (write-program "ewx-8b"
+    "(import (goldfish))\n"
+    "(eval-when (expand) (define (helper x) (* x 10)))\n"
+    "(define-syntax k\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (* 1 (unsyntax (helper 12))))))))\n"
+    "(define value (k))\n"))
+(clear-artifact! src8a)
+(check (datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t)
+(clear-artifact! src8b)
+(check (datum-contains? (syntax->datum (compile-file-cached src8b)) 120) => #t)
+;; 重编译 file1（源未变，产物已清）：折叠回 file1 自己的 helper
+(check (datum-contains? (syntax->datum (compile-file-cached src8a)) 42) => #t)
+(check (datum-contains? (syntax->datum (compile-file-cached src8a)) 120) => #f)
+(delete-file src8a)
+(delete-file src8b)
+
+;; ===== 9. 编译单元隔离：跨文件 phase+1 引用不可见 =====
+;; file1 的区域 define 只活在 file1 的单元里；同进程后编译的 file2
+;; 在 transformer 体里引用它必须 unbound-variable（旧共享 region 库
+;; 的实现会泄漏解析成功）。
+(define src9a
+  (write-program "ewx-9a"
+    "(import (goldfish))\n"
+    "(eval-when (expand) (define secret 99))\n"
+    "(define value 1)\n"))
+(define src9b
+  (write-program "ewx-9b"
+    "(import (goldfish))\n"
+    "(define-syntax m\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (unsyntax secret))))))\n"
+    "(define value (m))\n"))
+(clear-artifact! src9a)
+(clear-artifact! src9b)
+(compile-file-cached src9a)
+(check-catch 'unbound-variable (compile-file-cached src9b))
+(delete-file src9a)
+(delete-file src9b)
+
 (check-report)
