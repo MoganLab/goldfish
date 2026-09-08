@@ -42,5 +42,17 @@
 (check-catch 'wrong-type-arg (vector-filter 1 #(1 2 3)))
 (check-catch 'wrong-type-arg (vector-filter even? '(1 2 3)))
 
+(let* ((n 10000) (v (make-vector n 0)))
+  (do ((i 0 (+ i 1)))
+    ((= i n))
+    (vector-set! v i i)
+  ) ;do
+  (let ((filtered (vector-filter even? v)))
+    (check (vector-length filtered) => (/ n 2))
+    (check (vector-ref filtered 0) => 0)
+    (check (vector-ref filtered (- (/ n 2) 1)) => (- n 2))
+  ) ;let
+) ;let*
+
 
 (check-report)
