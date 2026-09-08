@@ -151,7 +151,11 @@ glue_os_call (s7_scheme* sc) {
 
 static s7_pointer
 f_system (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c= s7_string (s7_car (args));
+  s7_pointer cmd_arg= s7_car (args);
+  if (!s7_is_string (cmd_arg)) {
+    return string_type_error (sc, "system: command must be a string", cmd_arg);
+  }
+  const char* cmd_c= s7_string (cmd_arg);
   int         ret  = (int) std::system (cmd_c);
   return s7_make_integer (sc, ret);
 }
@@ -165,8 +169,16 @@ glue_system (s7_scheme* sc) {
 
 static s7_pointer
 f_access (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
-  int         mode  = s7_integer ((s7_cadr (args)));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "access: path must be a string", path_arg);
+  }
+  s7_pointer mode_arg= s7_cadr (args);
+  if (!s7_is_integer (mode_arg)) {
+    return string_type_error (sc, "access: mode must be an integer", mode_arg);
+  }
+  const char* path_c= s7_string (path_arg);
+  int         mode  = s7_integer (mode_arg);
   bool        ret   = false;
   if (mode == 0) {
     tb_file_info_t info;
@@ -188,8 +200,16 @@ glue_access (s7_scheme* sc) {
 
 static s7_pointer
 f_set_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* key  = s7_string (s7_car (args));
-  const char* value= s7_string (s7_cadr (args));
+  s7_pointer key_arg= s7_car (args);
+  if (!s7_is_string (key_arg)) {
+    return string_type_error (sc, "setenv: key must be a string", key_arg);
+  }
+  s7_pointer value_arg= s7_cadr (args);
+  if (!s7_is_string (value_arg)) {
+    return string_type_error (sc, "setenv: value must be a string", value_arg);
+  }
+  const char* key  = s7_string (key_arg);
+  const char* value= s7_string (value_arg);
   return s7_make_boolean (sc, tb_environment_set (key, value));
 }
 
@@ -202,7 +222,11 @@ glue_setenv (s7_scheme* sc) {
 
 static s7_pointer
 f_unset_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* env_name= s7_string (s7_car (args));
+  s7_pointer env_arg= s7_car (args);
+  if (!s7_is_string (env_arg)) {
+    return string_type_error (sc, "unsetenv: key must be a string", env_arg);
+  }
+  const char* env_name= s7_string (env_arg);
   return s7_make_boolean (sc, tb_environment_remove (env_name));
 }
 
@@ -229,7 +253,11 @@ glue_os_temp_dir (s7_scheme* sc) {
 
 static s7_pointer
 f_mkdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "mkdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_create (dir_c));
 }
 
@@ -242,7 +270,11 @@ glue_mkdir (s7_scheme* sc) {
 
 static s7_pointer
 f_rmdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "rmdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_remove (dir_c));
 }
 
@@ -255,7 +287,11 @@ glue_rmdir (s7_scheme* sc) {
 
 static s7_pointer
 f_remove_file (s7_scheme* sc, s7_pointer args) {
-  const char* path   = s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "remove-file: path must be a string", path_arg);
+  }
+  const char* path   = s7_string (path_arg);
   bool        success= tb_file_remove (path);
   return s7_make_boolean (sc, success);
 }
@@ -296,7 +332,11 @@ glue_rename (s7_scheme* sc) {
 
 static s7_pointer
 f_chdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
+  s7_pointer dir_arg= s7_car (args);
+  if (!s7_is_string (dir_arg)) {
+    return string_type_error (sc, "chdir: path must be a string", dir_arg);
+  }
+  const char* dir_c= s7_string (dir_arg);
   return s7_make_boolean (sc, tb_directory_current_set (dir_c));
 }
 

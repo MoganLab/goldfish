@@ -21,6 +21,11 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
+;; 错误
+;; ----
+;; type-error
+;; 当 path 不是字符串时抛出错误。
+;;
 ;; 说明
 ;; ----
 ;; 只能删除空目录，如果目录不为空会失败。
@@ -43,6 +48,11 @@
   (check-true (rmdir test-dir))
   (check-false (file-exists? test-dir))
 ) ;let*
+
+
+;; ; 错误测试
+(check-catch 'type-error (rmdir #\a))
+(check-catch 'type-error (rmdir 123))
 
 
 (check-report)

@@ -23,6 +23,9 @@
 ;;
 ;; 错误
 ;; ----
+;; type-error
+;; 当 path 不是字符串时抛出错误。
+;;
 ;; file-not-found-error
 ;; 当目录不存在时抛出错误。
 
@@ -59,6 +62,8 @@
 
 
 ;; ; 错误测试
+(check-catch 'type-error (chdir #\a))
+(check-catch 'type-error (chdir 123))
 (check-catch 'file-not-found-error (chdir "/nonexistent/directory"))
 
 
