@@ -25212,14 +25212,15 @@ static s7_pointer int_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t
 
 
 /* -------------------------------- byte-vector-ref -------------------------------- */
-static s7_pointer g_byte_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_byte_vector_ref "(byte-vector-ref vect index) returns the byte at the index-th element of the byte-vector vect"
+#define Q_byte_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                            s7_make_signature(sc, 2, sc->is_byte_symbol, sc->is_byte_vector_symbol), \
+                            sc->is_byte_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_byte(s7_scheme *sc, s7_pointer args)
 {
-  #define H_byte_vector_ref "(byte-vector-ref vect index) returns the byte at the index-th element of the byte-vector vect"
-  #define Q_byte_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                              s7_make_signature(sc, 2, sc->is_byte_symbol, sc->is_byte_vector_symbol), \
-                              sc->is_byte_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
 }
+/* g_byte_vector_ref, g_bv_ref_2, g_bv_ref_3 migrated to s7_liii_vector.c */
 
 static s7_int byte_vector_ref_i_7pi(s7_scheme *sc, s7_pointer vec, s7_int index)
 {
@@ -25239,49 +25240,6 @@ static s7_int byte_vector_ref_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index
 
 /* byte_vector_ref_p_pi_direct migrated to s7_liii_vector.c */
 static s7_int byte_vector_ref_i_7pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index)    {return(byte_vector(vec, index));}
-
-static s7_pointer g_bv_ref_2(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index;
-  s7_int ind;
-  if (!is_byte_vector(vec))
-    return(method_or_bust(sc, vec, sc->byte_vector_ref_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(small_int(byte_vector(vec, ind)));
-}
-
-static s7_pointer g_bv_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer iv = car(args);
-  s7_pointer index;
-  s7_int ind1, ind2;
-  if (!is_byte_vector(iv))
-    return(method_or_bust(sc, iv, sc->byte_vector_ref_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(iv) != 2)
-    return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind1 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind1 < 0) || (ind1 >= vector_dimension(iv, 0)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_two, index, (ind1 < 0) ? it_is_negative_string : it_is_too_large_string);
-  index = caddr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 3));
-  ind2 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind2 < 0) || (ind2 >= vector_dimension(iv, 1)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_three, index, (ind2 < 0) ? it_is_negative_string : it_is_too_large_string);
-  ind1 = ind1 * vector_offset(iv, 0) + ind2;
-  return(small_int(byte_vector(iv, ind1)));
-}
 
 static s7_pointer byte_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
