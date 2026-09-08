@@ -125,3 +125,25 @@
     (newline p)))
 (check (import-error-message (lambda () (load-library! '(ct dup-rename))))
        => "import: dx bound more than once with different bindings")
+
+;; ===== 4. R7RS `for' level specs =====
+;; (for import-set level ...) chooses the phases an import is visible at.
+;; Resolution is phase-blind today, so the levels are accepted and the
+;; inner set is imported; the shape is validated (at least one level).
+(import (for (liii os) run expand))
+(check (procedure? mkdir) => #t)
+(import (for (only (liii os) os-temp-dir) expand))
+(check (procedure? os-temp-dir) => #t)
+(import (for (prefix (liii os) ff-) run))
+(check (procedure? ff-mkdir) => #t)
+;; a for spec without levels is an error
+(call-with-output-file (string-append fixture-sub "/for-nolevel.scm")
+  (lambda (p)
+    (write '(define-library (ct for-nolevel)
+              (import (for (scheme base)))
+              (export x)
+              (define x 0))
+           p)
+    (newline p)))
+(check (import-error-message (lambda () (load-library! '(ct for-nolevel))))
+       => "import: for spec needs an import set and at least one level")

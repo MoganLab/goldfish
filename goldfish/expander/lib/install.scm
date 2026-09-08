@@ -443,7 +443,7 @@
 ;;; separate modules and share nothing but the registered surface.)
 (define (import-set-lib-name spec)
   (if (and (pair? spec)
-           (memq (car spec) '(only except prefix rename)))
+           (memq (car spec) '(only except prefix rename for)))
     (import-set-lib-name (cadr spec))
     spec))
 (define (program-import-libs forms)

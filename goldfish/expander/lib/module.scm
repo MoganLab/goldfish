@@ -125,10 +125,10 @@
 ;;; been affected.
 
 (define (import-set-lib-name spec)
-  ;; Bottom out of R7RS import sets: a library name, or a modifier applied
-  ;; to a (possibly nested) set.
+  ;; Bottom out of R7RS import sets: a library name, a modifier applied
+  ;; to a (possibly nested) set, or a `for' level spec around either.
   (if (and (pair? spec)
-           (memq (car spec) '(only except prefix rename)))
+           (memq (car spec) '(only except prefix rename for)))
     (import-set-lib-name (cadr spec))
     spec))
 
@@ -1094,27 +1094,37 @@
           (import-view lib-name pairs spec (not (eq? outer 'only))))))))
 
 (define (import-spec-into-library! lib spec)
-  (if (and (pair? spec)
-           (pair? (cdr spec))
-           (pair? (cadr spec))
-           (import-set-modifier? (cadr spec)))
-    ;; Nested import set (a modifier over another modifier).
-    (let ((iface (import-set-view spec)))
-      (when iface
-        (add-import-view! lib iface)))
+  (cond
+    ((and (pair? spec) (eq? (car spec) 'for))
+     ;; R7RS (for import-set level ...): the levels (run / expand / during)
+     ;; choose the phases the import is visible at.  Resolution is
+     ;; phase-blind today -- every import is visible at every phase -- so
+     ;; the inner set is imported regardless of the levels; only the shape
+     ;; is honored (an R7RS import clause would otherwise be read as a
+     ;; library named `for').
+     (if (and (pair? (cdr spec)) (pair? (cddr spec)))
+         (import-spec-into-library! lib (cadr spec))
+         (error 'import "for spec needs an import set and at least one level" spec)))
+    ((and (pair? spec)
+          (pair? (cdr spec))
+          (pair? (cadr spec))
+          (import-set-modifier? (cadr spec)))
+     ;; Nested import set (a modifier over another modifier).
+     (let ((iface (import-set-view spec)))
+       (when iface
+         (add-import-view! lib iface))))
     ;; Depth-1 set: a modifier directly over a library name, or a bare
     ;; library name.
-    (cond
-      ((and (pair? spec) (eq? (car spec) 'only))
-       (import-only-into-library! lib spec))
-      ((and (pair? spec) (eq? (car spec) 'except))
-       (import-except-into-library! lib spec))
-      ((and (pair? spec) (eq? (car spec) 'prefix))
-       (import-prefix-into-library! lib spec))
-      ((and (pair? spec) (eq? (car spec) 'rename))
-       (import-rename-into-library! lib spec))
-      (else
-       (import-plain-into-library! lib spec)))))
+    ((and (pair? spec) (eq? (car spec) 'only))
+     (import-only-into-library! lib spec))
+    ((and (pair? spec) (eq? (car spec) 'except))
+     (import-except-into-library! lib spec))
+    ((and (pair? spec) (eq? (car spec) 'prefix))
+     (import-prefix-into-library! lib spec))
+    ((and (pair? spec) (eq? (car spec) 'rename))
+     (import-rename-into-library! lib spec))
+    (else
+     (import-plain-into-library! lib spec))))
 
 (define (import-except-into-library! lib spec)
   (let* ((lib-name (cadr spec))
