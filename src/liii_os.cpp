@@ -318,7 +318,11 @@ tb_directory_walk_func (tb_char_t const* path, tb_file_info_t const* info, tb_cp
 
 static s7_pointer
 f_listdir (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
+  s7_pointer path_arg= s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "listdir: path must be a string", path_arg);
+  }
+  const char*    path_c= s7_string (path_arg);
   vector<string> entries;
   s7_pointer     ret= s7_make_vector (sc, 0);
   tb_directory_walk (path_c, 0, tb_false, tb_directory_walk_func, &entries);
@@ -327,7 +331,7 @@ f_listdir (s7_scheme* sc, s7_pointer args) {
   string path_s      = string (path_c);
   int    path_N      = path_s.size ();
   int    path_slash_N= path_N;
-  char   last_ch     = path_s[path_N - 1];
+  char   last_ch     = (path_N > 0) ? path_s[path_N - 1] : '\0';
 #if defined(TB_CONFIG_OS_WINDOWS)
   if (last_ch != '/' && last_ch != '\\') {
     path_slash_N= path_slash_N + 1;

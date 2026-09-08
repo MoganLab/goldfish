@@ -66,3 +66,11 @@
 
 
 (check-report)
+
+
+;; ; C 层入口 g_listdir 参数类型测试
+;; path 必须是 string?，C++ 层需要类型守卫，
+;; 避免把非字符串对象当作 C 字符串指针导致崩溃 (devel/0145.md)
+(check-catch 'type-error (g_listdir 99))
+(check-catch 'type-error (g_listdir 'dir))
+(check-catch 'type-error (g_listdir #t))
