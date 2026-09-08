@@ -38,5 +38,11 @@
 (check-false (json-object? #(1 2)))
 (check-false (json-object? "{}"))
 (check-false (json-object? '(1 2 3)))
+(check-false (json-object? '(a . 1)))
+
+(let ((c (list (cons 'a 1))))
+  (set-cdr! c c)
+  (check-false (json-object? c))
+) ;let
 
 (check-report)

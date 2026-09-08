@@ -192,4 +192,14 @@
 (check (eq? (json-set '((a . 1)) #f 0) (if #f #f)) => #t)
 (check-catch 'wrong-type-arg (json-set #(1 2) #f 0))
 
+;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
+(let* ((j (list (cons 'a 1) (cons 'b 2)))
+       (res (json-set j (lambda (k)
+                          (when (eq? k 'a)
+                            (set-cdr! (cdr j) (list (cons 'c 3))))
+                          #f)
+                      0)))
+  (check-true (list? res))
+) ;let*
+
 (check-report)
