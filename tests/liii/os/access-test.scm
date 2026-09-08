@@ -25,6 +25,11 @@
 ;; boolean?
 ;; 如果有指定权限返回 #t，否则返回 #f。
 ;;
+;; 错误
+;; ----
+;; type-error
+;; 当 path 不是字符串时抛出错误。
+;;
 ;; 说明
 ;; ----
 ;; 检查当前进程对指定文件的访问权限。
@@ -37,6 +42,11 @@
   (check-false (access "/root" 'W_OK))
   (check-true (access (executable) 'X_OK))
 ) ;when
+
+
+;; ; 错误测试
+(check-catch 'type-error (access #\a 'F_OK))
+(check-catch 'type-error (access 123 'F_OK))
 
 
 (check-report)

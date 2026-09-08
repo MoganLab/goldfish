@@ -51,6 +51,7 @@
 
 ;; ; 错误测试
 (check-catch 'type-error (remove 123))
+(check-catch 'type-error (remove #\a))
 (check-catch 'file-not-found-error (remove "/nonexistent/file"))
 
 

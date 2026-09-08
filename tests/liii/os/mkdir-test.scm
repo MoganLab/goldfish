@@ -23,6 +23,9 @@
 ;;
 ;; 错误
 ;; ----
+;; type-error
+;; 当 path 不是字符串时抛出错误。
+;;
 ;; file-exists-error
 ;; 当目录已存在时抛出错误。
 ;;
@@ -54,6 +57,11 @@
     (rmdir "/tmp/test_124")
   ) ;when
 ) ;when
+
+
+;; ; 错误测试
+(check-catch 'type-error (mkdir #\a))
+(check-catch 'type-error (mkdir 123))
 
 
 (check-report)

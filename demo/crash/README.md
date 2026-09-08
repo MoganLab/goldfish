@@ -17,24 +17,6 @@ s7 的字符是标记立即数，`s7_string` 底层 `(T_Str(p))->object.string.s
 （`s7_internal.h`，`T_Str(P) = P`）会把立即数当 cell 指针解引用低地址，
 必然 SIGSEGV；而整数是堆 cell，其垃圾值经常碰巧可读，只是静默返回错误结果。
 
-## 公开 API 级崩溃（最严重，包装层裸透传）
-
-| 文件 | 触发代码 | 信号 | 根因 |
-|---|---|---|---|
-| p03-os-unsetenv-char.scm | `(import (liii os)) (unsetenv #\a)` | SIGSEGV | `os.scm` 的 `unsetenv` 直接透传 `g_unsetenv` |
-
-## C 层入口（g_*）崩溃 — os 模块（liii_os.cpp）
-
-| 文件 | 触发代码 | 信号 |
-|---|---|---|
-| c13-g_unsetenv-char.scm | `(g_unsetenv #\a)` | SIGSEGV |
-| c14-g_mkdir-char.scm | `(g_mkdir #\a)` | SIGSEGV |
-| c15-g_rmdir-char.scm | `(g_rmdir #\a)` | SIGSEGV |
-| c16-g_remove-file-char.scm | `(g_remove-file #\a)` | SIGSEGV |
-| c17-g_chdir-char.scm | `(g_chdir #\a)` | SIGSEGV |
-| c18-g_access-char.scm | `(g_access #\a 0)` | SIGSEGV |
-| c19-g_setenv-char.scm | `(g_setenv #\a "v")` | SIGSEGV |
-
 ## C 层入口 — path 模块（liii_path.cpp）
 
 | 文件 | 触发代码 | 信号 |
@@ -72,6 +54,9 @@ http 崩溃仅能从根环境 `g_http-*` 直接触发。
   已在 devel/0144.md 修复。
 - `c11-g_listdir-integer.scm`（g_listdir 传入非字符串 abort）
   已在 devel/0145.md 修复。
+- `c13-g_unsetenv-char.scm` ~ `c19-g_setenv-char.scm`、`p03-os-unsetenv-char.scm`
+  （os 模块 C 胶水函数 `g_unsetenv`、`g_mkdir`、`g_rmdir`、`g_remove-file`、`g_chdir`、`g_access`、`g_setenv` 及公开包装传入非字符串段错误）
+  已在 devel/0148.md 修复。
 - `c26-g_md5-char.scm` ~ `c31-g_sha256-by-file-char.scm`、`p01`、`p02`
   （hashlib 模块全部 6 个 C 胶水函数 `g_md5`、`g_md5-by-file`、`g_sha1`、`g_sha1-by-file`、`g_sha256`、`g_sha256-by-file` 及公开包装传入非字符串段错误）
   已在 devel/0147.md 修复。

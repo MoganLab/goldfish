@@ -21,6 +21,11 @@
 ;; boolean?
 ;; 成功返回 #t。
 ;;
+;; 错误
+;; ----
+;; type-error
+;; 当 key 不是字符串时抛出错误。
+;;
 ;; 说明
 ;; ----
 ;; 删除指定的环境变量，如果变量不存在则不执行任何操作。
@@ -35,6 +40,11 @@
 
 ;; ; 测试删除不存在的变量
 (check-true (unsetenv "NONEXISTENT_VAR_12345"))
+
+
+;; ; 错误测试
+(check-catch 'type-error (unsetenv #\a))
+(check-catch 'type-error (unsetenv 123))
 
 
 (check-report)
