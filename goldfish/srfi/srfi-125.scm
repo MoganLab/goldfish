@@ -80,6 +80,7 @@
     ) ;define
 
     (define (hash-table-ref/default ht key default)
+      (assert-hash-table-type ht hash-table-ref/default)
       (or (hash-table-ref ht key)
         (if (and (procedure? default) (aritable? default 0)) (default) default)
       ) ;or
@@ -111,10 +112,18 @@
     ) ;define
 
     (define (hash-table-update! ht key value)
+      (assert-hash-table-type ht hash-table-update!)
       (hash-table-set! ht key value)
     ) ;define
 
     (define (hash-table-update!/default ht key updater default)
+      (assert-hash-table-type ht hash-table-update!/default)
+      (when (not (procedure? updater))
+        (error 'type-error
+          hash-table-update!/default
+          "this parameter must be typed as procedure"
+        ) ;error
+      ) ;when
       (hash-table-set! ht key (updater (hash-table-ref/default ht key default)))
     ) ;define
 
@@ -142,6 +151,9 @@
     ) ;define
 
     (define (hash-table-find proc ht failure)
+      (when (not (procedure? proc))
+        (error 'type-error hash-table-find "this parameter must be typed as procedure")
+      ) ;when
       (assert-hash-table-type ht hash-table-find)
       (let ((keys (hash-table-keys ht)))
         (let loop
@@ -163,6 +175,9 @@
     ) ;define
 
     (define (hash-table-fold proc seed ht)
+      (when (not (procedure? proc))
+        (error 'type-error hash-table-fold "this parameter must be typed as procedure")
+      ) ;when
       (assert-hash-table-type ht hash-table-fold)
       (let ((result seed))
         (hash-table-for-each (lambda (k v) (set! result (proc k v result))) ht)

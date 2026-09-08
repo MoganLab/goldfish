@@ -1,4 +1,4 @@
-(import (liii check) (liii hash-table))
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -61,6 +61,11 @@
 (let ((empty-ht (make-hash-table)))
   (check (hash-table-find (lambda (k v) #t) empty-ht 'empty) => 'empty)
 ) ;let
+
+
+(check-catch 'type-error (hash-table-find "not-a-procedure" (make-hash-table) 'not-found))
+(check-catch 'type-error (hash-table-find (lambda (k v) #t) "not-a-table" 'not-found))
+
 
 
 (check-report)

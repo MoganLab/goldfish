@@ -1,4 +1,4 @@
-(import (liii check) (liii hash-table))
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -46,6 +46,12 @@
 
 
 (check-false (hash-table-contains? (make-hash-table) 'missing))
+
+
+(check-catch 'type-error (hash-table-contains? "not-a-table" 'key))
+(check-catch 'type-error (hash-table-contains? 123 'key))
+(check-catch 'type-error (hash-table-contains? '((a . 1)) 'key))
+
 
 
 (check-report)

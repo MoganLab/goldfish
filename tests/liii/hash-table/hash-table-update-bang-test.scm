@@ -50,6 +50,8 @@
 
 
 (check-catch 'type-error (hash-table-update! "not-a-table" 'key 'value))
+(check-catch 'type-error (hash-table-update! 123 'key 'value))
+(check-catch 'type-error (hash-table-update! '((a . 1)) 'key 'value))
 
 
 (check-report)
