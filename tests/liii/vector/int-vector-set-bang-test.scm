@@ -70,5 +70,21 @@
 
 (check-catch 'wrong-type-arg (int-vector-set! (vector 1 2 3) 0 100))
 
+;; 二维 int-vector 赋值测试
+(let ((m (make-int-vector '(2 3) 0)))
+  (int-vector-set! m 0 1 12)
+  (int-vector-set! m 1 2 25)
+  (check (int-vector-ref m 0 1) => 12)
+  (check (int-vector-ref m 1 2) => 25)
+  (check-catch 'out-of-range (int-vector-set! m -1 0 1))
+  (check-catch 'out-of-range (int-vector-set! m 2 0 1))
+  (check-catch 'out-of-range (int-vector-set! m 0 3 1))
+) ;let
+
+;; 不可变 int-vector 检查
+(let ((v (immutable! (int-vector 1 2))))
+  (check-catch 'immutable-error (int-vector-set! v 0 3))
+) ;let
+
 
 (check-report)

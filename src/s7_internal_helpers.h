@@ -348,6 +348,7 @@ s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
 s7_pointer s7i_univect_ref_int(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_int(s7_scheme *sc, s7_pointer args);
 
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);

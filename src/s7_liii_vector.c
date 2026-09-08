@@ -782,6 +782,37 @@ s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
   return(s7_make_integer(sc, s7_int_vector_ref(ivec, ind1)));
 }
 
+s7_pointer g_int_vector_set(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_univect_set_int(sc, args));
+}
+
+s7_pointer g_iv_set_3(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer vec = s7_car(args);
+  s7_pointer index;
+  s7_int ind;
+  if (!s7_is_int_vector(vec))
+    return(s7i_method_or_bust(sc, vec, "int-vector-set!", args, "an int-vector", 1));
+  if (s7_vector_rank(vec) != 1)
+    return(s7i_univect_set_int(sc, args));
+  if (s7i_is_immutable_vector(vec))
+    immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "int-vector-set!"), vec));
+  index = s7_cadr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "int-vector-set!", args, "an integer", 2));
+  ind = s7_number_to_integer(sc, index);
+  if ((ind < 0) || (ind >= s7_vector_length(vec)))
+    return(s7_out_of_range_error(sc, "int-vector-set!", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
+  {
+    s7_pointer value = s7_caddr(args);
+    if (!s7_is_integer(value))
+      return(s7i_method_or_bust(sc, value, "int-vector-set!", args, "an integer", 3));
+    s7_int_vector_set(vec, ind, s7_number_to_integer(sc, value));
+    return(value);
+  }
+}
+
 s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_complex_vector_set_p_ppp(sc, s7_car(args), s7_cadr(args), s7_caddr(args)));

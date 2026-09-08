@@ -25135,12 +25135,13 @@ static s7_pointer int_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t
 
 
 /* -------------------------------- int-vector-set! -------------------------------- */
-static s7_pointer g_int_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_int_vector_set "(int-vector-set! v i ... value) sets the i-th element of the int-vector v to value."
+#define Q_int_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_int_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_set_int(s7_scheme *sc, s7_pointer args)
 {
-  #define H_int_vector_set "(int-vector-set! v i ... value) sets the i-th element of the int-vector v to value."
-  #define Q_int_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_int_vector_symbol, sc->is_integer_symbol)
   return(univect_set(sc, args, sc->int_vector_set_symbol, T_INT_VECTOR));
 }
+/* g_int_vector_set, g_iv_set_3 migrated to s7_liii_vector.c */
 
 static s7_int int_vector_set_i_7pii_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_int x) {int_vector(vec, index) = x; return(x);}
 
@@ -25202,32 +25203,6 @@ static s7_pointer int_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer
       if (S7_DEBUGGING) fprintf(stderr, "fell through %s[%d]\n", __func__, __LINE__);
     }
   return(value);
-}
-
-static s7_pointer g_iv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index;
-  s7_int ind;
-  if (!is_int_vector(vec))
-    return(method_or_bust(sc, vec, sc->int_vector_set_symbol, args, sc->type_names[T_INT_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_set(sc, args, sc->int_vector_set_symbol, T_INT_VECTOR));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->int_vector_set_symbol, vec));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  {
-    s7_pointer value = caddr(args);
-    if (!s7_is_integer(value))
-      return(method_or_bust(sc, value, sc->int_vector_set_symbol, args, sc->type_names[T_INTEGER], 3));
-    int_vector(vec, ind) = s7_integer_clamped_if_gmp(sc, value);
-    return(value);
-  }
 }
 
 static s7_pointer int_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)

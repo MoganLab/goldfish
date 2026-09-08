@@ -59,6 +59,8 @@ s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_int_vector_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_int_vector_set(s7_scheme *sc, s7_pointer args);
+s7_pointer g_iv_set_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args);
 
