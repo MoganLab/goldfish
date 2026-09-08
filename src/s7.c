@@ -24559,7 +24559,8 @@ s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
   return(s7_copy_1(sc, sc->int_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
-static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_byte_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_byte_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;

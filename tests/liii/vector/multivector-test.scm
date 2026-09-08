@@ -27,4 +27,12 @@
   (check (int-vector-ref m 1 2) => 6)
 ) ;let
 
+;; 多维 byte-vector 字面量 #2u(...)
+(let ((m (eval-string "#2u((10 20 30) (40 50 60))")))
+  (check (bytevector? m) => #t)
+  (check (vector-dimensions m) => '(2 3))
+  (check (bytevector-u8-ref m 0 0) => 10)
+  (check (bytevector-u8-ref m 1 2) => 60)
+) ;let
+
 (check-report)
