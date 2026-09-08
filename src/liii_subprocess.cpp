@@ -62,6 +62,9 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
     if (!s7_is_pair (env_arg)) {
       return subprocess_type_error (sc, "g_subprocess-run-values: env must be an alist", env_arg);
     }
+    if (!s7_is_proper_list (sc, env_arg)) {
+      return subprocess_type_error (sc, "g_subprocess-run-values: env must be a proper list", env_arg);
+    }
     s7_pointer env_alist= env_arg;
     while (s7_is_pair (env_alist)) {
       s7_pointer item= s7_car (env_alist);

@@ -239,7 +239,7 @@
 
     (define (%valid-env? env)
       (or (not env)
-        (and (list? env)
+        (and (proper-list? env)
           (every (lambda (x) (and (pair? x) (string? (car x)) (string? (cdr x)))) env)
         ) ;and
       ) ;or

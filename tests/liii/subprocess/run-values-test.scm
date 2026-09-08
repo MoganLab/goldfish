@@ -258,4 +258,11 @@
 (check-catch 'type-error (run-values "true" :env '(42)))
 (check-catch 'type-error (run-values "true" :env 42))
 
+;; 环形 env 防御回归测试
+(let ((cyclic-env (list (cons "KEY" "val"))))
+  (set-cdr! cyclic-env cyclic-env)
+  (check-catch 'type-error (run-values "true" :env cyclic-env))
+  (check-catch 'type-error (g_subprocess-run-values '("true") #f cyclic-env))
+) ;let
+
 (check-report)
