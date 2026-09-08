@@ -196,13 +196,23 @@
 ;; gfo-write! : gfo-file stamp payload [extra] -> bool
 ;; `extra' (when given) is stored as the record's fifth field; readers that
 ;; do not know about it ignore it via position-based access.
+;; Once a cache write has failed (a read-only cache root, for instance)
+;; stop attempting further writes this session: each file would only
+;; pay a failed mkdir/write per entry.
+(define *gfo-write-broken* #f)
+
 (define (gfo-write! gfo-file stamp payload . extra)
-  (if (getenv "GOLDFISH_CACHE_READONLY") #f
-      (begin
+  (if (or (getenv "GOLDFISH_CACHE_READONLY") *gfo-write-broken*) #f
+      (catch #t
+        (lambda ()
         (gfo-ensure-parent! (gfo-dir) gfo-file)
         (let ((old-length (*s7* 'print-length)))
           (let-set! *s7* 'print-length 1000000)
-          (let ((tmp (string-append gfo-file ".tmp")))
+          ;; The tmp name carries the pid: two processes compiling the same
+          ;; cache entry concurrently would otherwise interleave writes into
+          ;; one shared tmp file and rename a torn record into place.
+          (let ((tmp (string-append gfo-file ".tmp."
+                                    (number->string (g_getpid)))))
             (call-with-output-file tmp
               (lambda (p)
                 (if (defined? 'write-roundtrip)
@@ -211,4 +221,7 @@
                     (write (list 'gfo gfo-format-version stamp payload
                                  (if (null? extra) #f (car extra))) p))))
             (g_rename tmp gfo-file))
-          (let-set! *s7* 'print-length old-length)))))
+          (let-set! *s7* 'print-length old-length)))
+        (lambda args
+          (set! *gfo-write-broken* #t)
+          #f))))
