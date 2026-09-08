@@ -64,11 +64,24 @@
 (check-false (list-sorted? char<? '(#\b #\a)))
 
 ;; 错误：lst 不是正规列表
-(check-catch 'wrong-type-arg (list-sorted? < '(1 2 . 3)))
-(check-catch 'wrong-type-arg (list-sorted? < 3))
+(check-catch 'type-error (list-sorted? < '(1 2 . 3)))
+(check-catch 'type-error (list-sorted? < 3))
+
+;; 错误：环形列表
+(let ((l (list 1 1)))
+  (set-cdr! (cdr l) l)
+  (check-catch 'type-error (list-sorted? < l)))
+
+(let ((l (list 1 2 3)))
+  (set-cdr! (cddr l) l)
+  (check-catch 'type-error (list-sorted? < l)))
+
+(let ((l (list 1)))
+  (set-cdr! l l)
+  (check-catch 'type-error (list-sorted? < l)))
 
 ;; 错误：cmp 不是过程
-(check-catch 'wrong-type-arg (list-sorted? 3 '(1 2 3)))
+(check-catch 'type-error (list-sorted? 3 '(1 2 3)))
 
 
 ;; 配合排序函数使用
