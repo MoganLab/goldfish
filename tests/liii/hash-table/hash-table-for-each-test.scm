@@ -45,4 +45,16 @@
 ) ;let
 
 
+(let ((ht (make-hash-table)) (visited '()))
+  (hash-table-set! ht 'a 1 'b 2 'c 3)
+  ;; 在遍历中修改/清空当前哈希表，应保证基于快照安全完成已存在元素的遍历
+  (hash-table-for-each (lambda (k v) (set! visited (cons k visited)) (hash-table-clear! ht))
+    ht
+  ) ;hash-table-for-each
+  (check (length visited) => 3)
+  (check (hash-table-empty? ht) => #t)
+) ;let
+
+
+
 (check-report)
