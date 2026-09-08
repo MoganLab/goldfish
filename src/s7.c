@@ -27396,15 +27396,12 @@ static s7_uint hash_map_vector(s7_scheme *sc, s7_pointer table, s7_pointer key)
 static s7_uint hash_map_closure(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
   const s7_pointer f = hash_table_procedures_mapper(table);
-  if (f == sc->unused)
-    error_nr(sc, make_symbol(sc, "hash-map-recursion", 18),
-	     set_elist_1(sc, wrap_string(sc, "hash-table map function called recursively", 42)));
-  /* check_stack_size(sc); -- perhaps clear typers as well here or save/restore hash-table-procedures */
+  if ((!is_any_c_function(f)) && (!is_any_closure(f)))
+    error_nr(sc, sc->wrong_type_arg_symbol,
+	     set_elist_2(sc, wrap_string(sc, "hash-table map function is not a procedure: ~S", 46), f));
   gc_protect_via_stack(sc, f);
-  hash_table_set_procedures_mapper(table, sc->F);
   sc->value = s7_call(sc, f, set_plist_1(sc, key));
   unstack_gc_protect(sc);
-  hash_table_set_procedures_mapper(table, f);
   if (!s7_is_integer(sc->value))
     error_nr(sc, sc->wrong_type_arg_symbol,
 	     set_elist_2(sc, wrap_string(sc, "hash-table map function should return an integer: ~S", 52), sc->value));
