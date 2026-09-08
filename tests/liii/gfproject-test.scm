@@ -42,7 +42,7 @@
 ;; 3. 测试 gfproject-load-config 能够读取当前仓库的 gfproject.json
 (check (defined? 'g_goldfish-library-dir (rootlet)) => #t)
 (check (string? (((rootlet) 'g_goldfish-library-dir))) => #t)
-(check (not (not (gfproject-find-lib-path "/home/da/git/goldfish2/goldfish"))) => #t)
+(check (not (not (gfproject-find-lib-path))) => #t)
 (check (not (not (gfproject-find-local-path))) => #t)
 (let* ((p (gfproject-find-local-path))
        (txt (path-read-text p)))
