@@ -46,9 +46,7 @@
        (datum (syntax->datum opt)))
   (check-true (pair? datum))
   ;; transformer 在展开期运行：helper 调用折叠为常量 42
-  (check-true (datum-contains? datum 42))
-  ;; 产物不含区域 gensym：缓存自包含，可跨会话
-  (check (tree-contains-any? datum (expand-region-defs)) => #f))
+  (check-true (datum-contains? datum 42)))
 (delete-file src1)
 
 ;; ===== 2. begin-for-syntax：同一机制的 Racket 风格表面 =====
@@ -64,10 +62,9 @@
 (let* ((opt (begin (clear-artifact! src2)
                    (compile-file-cached src2)))
        (datum (syntax->datum opt)))
-  ;; 同进程先后两个 compile 各自的区域：后一区域定义同名 helper 覆盖
-  ;; 桶回退，本文件折叠为 120（上一区域的 42 不应出现在本产物里）。
-  (check-true (datum-contains? datum 120))
-  (check (tree-contains-any? datum (expand-region-defs)) => #f))
+  ;; 同进程先后两个 compile 各自的区域：后一区域定义同名 helper，
+  ;; 本文件折叠为 120（上一区域的 42 不应出现在本产物里）。
+  (check-true (datum-contains? datum 120)))
 (delete-file src2)
 
 ;; ===== 3. 合并区域：define 与 define-syntax 同处一个 eval-when =====
@@ -84,8 +81,7 @@
 (let* ((opt (begin (clear-artifact! src3)
                    (compile-file-cached src3)))
        (datum (syntax->datum opt)))
-  (check-true (datum-contains? datum 42))
-  (check (tree-contains-any? datum (expand-region-defs)) => #f))
+  (check-true (datum-contains? datum 42)))
 (delete-file src3)
 
 ;; ===== 4. 区域 define 不可见于运行期：编译期静态错误 =====
@@ -121,9 +117,8 @@
 (when (file-exists? out5) (delete-file out5))
 
 ;; ===== 6. 嵌套区域：begin-for-syntax 内的 eval-when (expand) =====
-;; 内层 core 形式的区域宿主库取自其 syntax 的 library（随外层所在
-;; program/library），否则内层 define 注册进 base 库，program 里后续
-;; transformer 体解析不到（曾因此整体编译失败回退逐 form）。
+;; 内层 region define 进专用 region 库（phase+1 可见），外层 program
+;; 的后续 transformer 体经 phase 门控解析到。
 (define src6
   (write-program "ewx-6"
     "(import (goldfish))\n"
@@ -136,8 +131,7 @@
 (let* ((opt (begin (clear-artifact! src6)
                    (compile-file-cached src6)))
        (datum (syntax->datum opt)))
-  (check-true (datum-contains? datum 40))
-  (check (tree-contains-any? datum (expand-region-defs)) => #f))
+  (check-true (datum-contains? datum 40)))
 (delete-file src6)
 
 ;; ===== 7. 同秒同大小改写：内容哈希戳防陈旧命中 =====

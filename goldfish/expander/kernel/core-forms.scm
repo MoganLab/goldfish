@@ -541,8 +541,11 @@
   ;; Evaluate each expr at phase+1 in the implementation environment,
   ;; threading the phase+1 expansion context through the exprs (so later
   ;; exprs see the expansion-time bindings made by earlier ones) and
-  ;; merging it back.  A definition expr is expanded in a library
-  ;; (definition) context; other exprs are expanded as expressions.
+  ;; merging it back.  A value definition is expanded into the
+  ;; dedicated region library (definition context); other exprs are
+  ;; expanded as expressions.  maybe-lib is accepted for call-site
+  ;; compatibility and ignored: value defines never land in the
+  ;; enclosing library.
   ;; Effects land in the expander library / rootlet (s7 eval falls back
   ;; to the rootlet for names the expander library does not define).
   ;;
@@ -567,13 +570,12 @@
               (let*-values (((defs c1)
                              ;; Register the expand-time definition in the
                              ;; dedicated region library, NOT the enclosing
-                             ;; one: the binding must be visible to sibling
-                             ;; transformer bodies (phase+1, via the
-                             ;; threaded store) but invisible at phase 0.
-                             ;; maybe-lib / the form's home library are
-                             ;; deliberately ignored here; macros
-                             ;; (define-syntax below) still register in
-                             ;; the enclosing library.
+                             ;; one: the binding is visible to sibling
+                             ;; transformer bodies (phase+1 lookup) but
+                             ;; invisible at phase 0.  The enclosing
+                             ;; library is deliberately ignored here;
+                             ;; macros (define-syntax below) still
+                             ;; register there.
                              (expand-library-body (list (car es))
                                                   *expand-region-library*
                                                   c)))
@@ -581,13 +583,10 @@
                ;; (cons 'begin defs) spine mixes datums and syntax objects,
                ;; which lower passes through unstripped -- s7 would then
                ;; eval syntax objects as no-ops and nothing gets bound).
-               (for-each
-                 (lambda (d)
-                   ;; Record the gensym for the caching layer's leak check.
-                   (set! *expand-region-defs*
-                         (cons (cadr (syntax->datum d)) *expand-region-defs*))
-                   (eval (lower d) the-expander-library))
-                 defs)
+                (for-each
+                  (lambda (d)
+                    (eval (lower d) the-expander-library))
+                  defs)
                (loop (cdr es) c1)))
             ((eq? head 'define-syntax)
              ;; Registration at the caller phase (the macro is used there);
@@ -612,44 +611,11 @@
     sit-datum))
 
 ;;; Expand-time (eval-when (expand) / begin-for-syntax) definitions are
-;;; session-local: their values exist only in the compiling process, and
-;;; a cached artifact that references one cannot survive a warm start.
-;;; eval-when-expand! records the gensyms it allocates here; the caching
-;;; layer checks the artifact for these symbols and skips the cache when
-;;; one leaked into run-time position.
-
-(define *expand-region-defs* '())
-
-(define-public (expand-region-defs)
-  *expand-region-defs*)
-
-(define-public (expand-region-defs-clear!)
-  (set! *expand-region-defs* '()))
-
-(define-public (tree-contains-any? x names)
-  ;; Memoized on container nodes (pairs / vectors / records): shared
-  ;; substructure is walked once and cyclic structures terminate.  Atoms
-  ;; cannot cycle and are not memoized.
-  (let ((seen '()))
-    (let loop ((v x))
-      (cond
-        ((pair? v)
-         (if (memq v seen)
-           #f
-           (begin
-             (set! seen (cons v seen))
-             (or (loop (car v)) (loop (cdr v))))))
-        ((vector? v)
-         (if (memq v seen)
-           #f
-           (begin
-             (set! seen (cons v seen))
-             (let result ((i 0))
-               (if (>= i (vector-length v))
-                 #f
-                 (or (loop (vector-ref v i)) (result (+ i 1))))))))
-        ((symbol? v) (if (memq v names) #t #f))
-        (else #f)))))
+;;; session-local: their values exist only in the compiling process.
+;;; No leak check is needed -- region bindings live in
+;;; *expand-region-library*, visible only at phase >= 1, so a phase-0
+;;; artifact cannot name them (such a reference fails loudly at
+;;; expansion time instead).
 
 (define (core-eval-when stx ctx)
   (let* ((form (syntax-form stx))
@@ -658,15 +624,16 @@
          (do-expand (memq 'expand sit-datum))
          (do-keep (or (memq 'load sit-datum) (memq 'eval sit-datum))))
     (check-eval-when-situations sit-datum stx)
-     (let*-values (((ctx1)
-                    (if do-expand
-                      ;; The region's home library is the library the form
-                      ;; expands against (its syntax's library), not a fixed
-                      ;; one: a core eval-when nested in a program or another
-                      ;; region registers there, so sibling transformer
-                      ;; bodies resolve its defines.
-                      (eval-when-expand! exprs ctx (syntax-library stx))
-                      (values ctx))))
+      (let*-values (((ctx1)
+                     (if do-expand
+                       ;; Value defines register in the dedicated region
+                       ;; library (visible only at phase >= 1); macros
+                       ;; register in the enclosing library for the
+                       ;; surrounding phase.  The syntax's library picks
+                       ;; the macro home, so nesting in a program or
+                       ;; another region still works.
+                       (eval-when-expand! exprs ctx (syntax-library stx))
+                       (values ctx))))
       (if do-keep
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
@@ -679,8 +646,8 @@
 ;;; Region rules apply: defines here are visible to sibling transformers.
 
 (define (core-begin-for-syntax stx ctx)
-  ;; Same home-library rule as core-eval-when: the syntax's library, so a
-  ;; begin-for-syntax nested in a program / another region registers there.
+  ;; The syntax's library picks the macro home (as in core-eval-when),
+  ;; so nesting in a program / another region still works.
   (let*-values (((ctx1) (eval-when-expand! (cdr (syntax-form stx)) ctx (syntax-library stx))))
     (values (datum->syntax stx '(if #f #f)) ctx1)))
 
