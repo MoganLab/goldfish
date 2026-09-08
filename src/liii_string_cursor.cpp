@@ -411,19 +411,22 @@ f_substring_cursors (s7_scheme* sc, s7_pointer args) {
       return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end cursor out of range", b);
   }
   else {
-    byte_end= 0;
-    for (s7_int i= 0; i < ib; i++) {
-      if (byte_end >= len) return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
-      byte_end= utf8_advance (s, byte_end);
-    }
+    if (ia > ib) return liii_string_cursor_value_error (sc, "substring/cursors: start must be <= end");
     byte_start= 0;
     for (s7_int i= 0; i < ia; i++) {
-      if (byte_start >= len) return liii_string_cursor_value_error (sc, "substring/cursors: start index out of range");
+      if (byte_start >= len)
+        return liii_string_cursor_out_of_range_error (sc, "substring/cursors: start index out of range", a);
       byte_start= utf8_advance (s, byte_start);
     }
+    byte_end= byte_start;
+    for (s7_int i= ia; i < ib; i++) {
+      if (byte_end >= len)
+        return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end index out of range", b);
+      byte_end= utf8_advance (s, byte_end);
+    }
   }
-  if (byte_start > byte_end || byte_end > len)
-    return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
+  if (byte_start > byte_end) return liii_string_cursor_value_error (sc, "substring/cursors: start must be <= end");
+  if (byte_end > len) return liii_string_cursor_out_of_range_error (sc, "substring/cursors: end index out of range", b);
 
   s7_pointer result= s7_make_string_with_length (sc, "", byte_end - byte_start);
   memcpy ((char*) s7_string (result), s + byte_start, byte_end - byte_start);
