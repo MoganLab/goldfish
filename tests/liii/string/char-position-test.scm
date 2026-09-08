@@ -44,4 +44,13 @@
 (check (char-position "aeiou" "hello world") => 1)
 (check (char-position "xyz" "hello world") => #f)
 
+;; 边界情况：查找 #\null 字符
+;; 若字符串中不包含 #\null，应返回 #f，而非返回末尾越界索引 (string-length str)
+(check (char-position #\null "hello") => #f)
+(check (char-position #\null "") => #f)
+
+;; 非 ASCII Unicode 字符：码点超过 0xFF 时不应截断低 8 位匹配
+;; U+0161 的低 8 位为 0x61 即 #\a，不能误匹配 "cat" 中的 #\a
+(check (char-position #\š "cat") => #f)
+
 (check-report)
