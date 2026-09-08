@@ -111,9 +111,9 @@
 (check-report)
 
 
-;; ; C 层入口 g_rename 参数类型测试
+;; ; C 层入口 g_rename 参数类型测试（type-error 为 (liii error) 约定）
 ;; src/dst 必须是 string?，C++ 层需要类型守卫，
 ;; 避免把非字符串对象当作 C 字符串指针导致段错误 (devel/0144.md)
-(check-catch 'wrong-type-arg (g_rename 1 2))
-(check-catch 'wrong-type-arg (g_rename "src" 2))
-(check-catch 'wrong-type-arg (g_rename 1 "dst"))
+(check-catch 'type-error (g_rename 1 2))
+(check-catch 'type-error (g_rename "src" 2))
+(check-catch 'type-error (g_rename 1 "dst"))
