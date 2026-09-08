@@ -145,6 +145,10 @@ f_string_join (s7_scheme* sc, s7_pointer args) {
     rest= s7_cdr (rest);
   }
 
+  if (!s7_is_proper_list (sc, l)) {
+    return liii_string_type_error (sc, "string-join: first parameter must be a proper list", l);
+  }
+
   string_join_grammar grammar      = string_join_grammar::infix;
   bool                grammar_valid= true;
   if (!s7_is_null (sc, rest)) {
