@@ -1681,7 +1681,7 @@ no_return void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info);
   }
 
 /* inline_make_let_with_slot (decl) */
-extern inline s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old_let, s7_pointer symbol, s7_pointer value);
+s7_pointer inline_make_let_with_slot(s7_scheme *sc, s7_pointer old_let, s7_pointer symbol, s7_pointer value);
 
 /* is_any_closure (macro) */
 #define is_any_closure(P)              t_any_closure_p[type(P)]
@@ -1755,10 +1755,10 @@ s7_pointer lookup(s7_scheme *sc, const s7_pointer symbol);
 s7_pointer make_let(s7_scheme *sc, s7_pointer old_let);
 
 /* make_simple_vector (decl) */
-extern inline s7_pointer make_simple_vector(s7_scheme *sc, s7_int len);
+s7_pointer make_simple_vector(s7_scheme *sc, s7_int len);
 
 /* mallocate_block (decl) */
-extern inline block_t *mallocate_block(s7_scheme *sc);
+block_t *mallocate_block(s7_scheme *sc);
 
 /* mark_stack_1 (decl) */
 void mark_stack_1(s7_pointer stack, s7_int top);
@@ -2040,7 +2040,7 @@ extern bool t_vector_p[NUM_TYPES];
 void memclr(void *s, size_t n);
 
 /* function decls for s7_scheme_write.c (object->port), definitions live in s7.c */
-extern inline void liberate(s7_scheme *sc, block_t *blk);
+void liberate(s7_scheme *sc, block_t *blk);
 char *pos_int_to_str(s7_scheme *sc, s7_int num, s7_int *len, char endc);
 char *pos_int_to_str_direct(s7_scheme *sc, s7_int num);
 char *pos_int_to_str_direct_1(s7_scheme *sc, s7_int num);
