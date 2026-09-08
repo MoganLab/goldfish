@@ -86,6 +86,9 @@
 (check-catch 'wrong-type-arg (count even? '(1 2 . 3)))
 (check-catch 'wrong-type-arg (count even? '(2 4 . 6)))
 
+;; 循环列表参数
+(check-catch 'wrong-type-arg (count even? (circular-list 1 2)))
+
 ;; 多列表形式中的点列表和非列表参数
 (check-catch 'wrong-type-arg (count = '(1 2 3) '(1 2 . 3)))
 (check-catch 'wrong-type-arg (count = '(1 2 3) 3))

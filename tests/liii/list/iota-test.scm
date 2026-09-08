@@ -72,6 +72,10 @@
 (check-catch 'type-error (iota 3.5))
 (check-catch 'type-error (iota 3 5.5))
 (check-catch 'type-error (iota 3 2 0.5))
+(check-catch 'value-error (iota 2 9223372036854775807 1))
+(check-catch 'value-error (iota 2 -9223372036854775808 -1))
+(check-catch 'value-error (iota 3 4611686018427387904 4611686018427387904))
+(check-catch 'value-error (iota 9223372036854775807 0 2))
 
 
 (check-report)
