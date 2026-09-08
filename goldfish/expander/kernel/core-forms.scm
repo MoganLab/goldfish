@@ -529,6 +529,14 @@
 ;;;     the program is loaded / when eval'd).
 ;;; At least one situation must be present.
 
+;;; Expand-time region library: eval-when (expand) / begin-for-syntax
+;;; defines install here, never into the enclosing library's buckets.
+;;; A phase-0 reference to a region name therefore misses (unbound)
+;;; instead of resolving through the source-name fallback -- region
+;;; bindings are visible only at phase+1 via the threaded store.
+
+(define *expand-region-library* (make-exp-library '(expand-region)))
+
 (define (eval-when-expand! exprs ctx . maybe-lib)
   ;; Evaluate each expr at phase+1 in the implementation environment,
   ;; threading the phase+1 expansion context through the exprs (so later
@@ -556,18 +564,19 @@
                           (context-resolve c (car form)))))
           (cond
             ((eq? head 'define)
-             (let*-values (((defs c1)
-                            ;; Register the expand-time definition in the
-                            ;; library the form expands against (the program
-                            ;; library for a strict program, the base library
-                            ;; otherwise), so later forms in the SAME library
-                            ;; context see the macro / value.
-                            (expand-library-body (list (car es))
-                                                 (or (and (pair? maybe-lib)
-                                                          (car maybe-lib))
-                                                     (syntax-library (car es))
-                                                     the-base-library)
-                                                 c)))
+              (let*-values (((defs c1)
+                             ;; Register the expand-time definition in the
+                             ;; dedicated region library, NOT the enclosing
+                             ;; one: the binding must be visible to sibling
+                             ;; transformer bodies (phase+1, via the
+                             ;; threaded store) but invisible at phase 0.
+                             ;; maybe-lib / the form's home library are
+                             ;; deliberately ignored here; macros
+                             ;; (define-syntax below) still register in
+                             ;; the enclosing library.
+                             (expand-library-body (list (car es))
+                                                  *expand-region-library*
+                                                  c)))
                ;; Each def is a syntax object: lower individually (a raw
                ;; (cons 'begin defs) spine mixes datums and syntax objects,
                ;; which lower passes through unstripped -- s7 would then
