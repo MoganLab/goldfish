@@ -70,9 +70,11 @@
 
 (let ((v #(1 2 3)))
   (check-catch 'out-of-range (reverse-vector->list v -1))
+  (check-catch 'out-of-range (reverse-vector->list v -1 0))
   (check-catch 'out-of-range (reverse-vector->list v 4))
   (check-catch 'out-of-range (reverse-vector->list v 2 5))
   (check-catch 'out-of-range (reverse-vector->list v 3 2))
+  (check-catch 'out-of-range (reverse-vector->list #() 1 0))
 ) ;let
 
 
