@@ -69,6 +69,12 @@ string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
   return ret;
 }
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_os_arch (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, TB_ARCH_STRING);
@@ -263,8 +269,16 @@ glue_remove_file (s7_scheme* sc) {
 
 static s7_pointer
 f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src= s7_string (s7_car (args));
-  const char* dst= s7_string (s7_cadr (args));
+  s7_pointer src_arg= s7_car (args);
+  if (!s7_is_string (src_arg)) {
+    return string_type_error (sc, "rename: src must be a string", src_arg);
+  }
+  s7_pointer dst_arg= s7_cadr (args);
+  if (!s7_is_string (dst_arg)) {
+    return string_type_error (sc, "rename: dst must be a string", dst_arg);
+  }
+  const char* src= s7_string (src_arg);
+  const char* dst= s7_string (dst_arg);
   try {
     fs::rename (src, dst);
     return s7_make_boolean (sc, true);
