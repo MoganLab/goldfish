@@ -120,9 +120,11 @@ f_string_split (s7_scheme* sc, s7_pointer args) {
   s7_gc_protect_via_stack (sc, head);
   s7_pointer tail= head;
   for (const auto& part : parts) {
+    s7_pointer next_cell= s7_cons (sc, s7_nil (sc), s7_nil (sc));
+    s7_set_cdr (tail, next_cell);
+    tail          = next_cell;
     s7_pointer str= s7_make_string_with_length (sc, s + part.first, (s7_int) part.second);
-    s7_set_cdr (tail, s7_cons (sc, str, s7_nil (sc)));
-    tail= s7_cdr (tail);
+    s7_set_car (tail, str);
   }
   s7_gc_unprotect_via_stack (sc, head);
   return s7_cdr (head);
