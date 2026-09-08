@@ -649,10 +649,15 @@
          (do-expand (memq 'expand sit-datum))
          (do-keep (or (memq 'load sit-datum) (memq 'eval sit-datum))))
     (check-eval-when-situations sit-datum stx)
-    (let*-values (((ctx1)
-                   (if do-expand
-                     (eval-when-expand! exprs ctx the-base-library)
-                     (values ctx))))
+     (let*-values (((ctx1)
+                    (if do-expand
+                      ;; The region's home library is the library the form
+                      ;; expands against (its syntax's library), not a fixed
+                      ;; one: a core eval-when nested in a program or another
+                      ;; region registers there, so sibling transformer
+                      ;; bodies resolve its defines.
+                      (eval-when-expand! exprs ctx (syntax-library stx))
+                      (values ctx))))
       (if do-keep
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
@@ -665,7 +670,9 @@
 ;;; Region rules apply: defines here are visible to sibling transformers.
 
 (define (core-begin-for-syntax stx ctx)
-  (let*-values (((ctx1) (eval-when-expand! (cdr (syntax-form stx)) ctx the-base-library)))
+  ;; Same home-library rule as core-eval-when: the syntax's library, so a
+  ;; begin-for-syntax nested in a program / another region registers there.
+  (let*-values (((ctx1) (eval-when-expand! (cdr (syntax-form stx)) ctx (syntax-library stx))))
     (values (datum->syntax stx '(if #f #f)) ctx1)))
 
 ;;; Core form table

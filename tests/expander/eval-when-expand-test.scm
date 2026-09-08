@@ -66,10 +66,9 @@
 (let* ((opt (begin (clear-artifact! src2)
                    (compile-file-cached src2)))
        (datum (syntax->datum opt)))
-  ;; 已知问题（P4.1）：同进程多区域定义同名 helper 时，桶回退可能解析到
-  ;; 上一区域的绑定（此处 42 而非 120）。区域机制本身工作（见 section 3），
-  ;; 跨区域同名冲突的解析次序待后续修复。
-  (check-true (pair? datum))
+  ;; 同进程先后两个 compile 各自的区域：后一区域定义同名 helper 覆盖
+  ;; 桶回退，本文件折叠为 120（上一区域的 42 不应出现在本产物里）。
+  (check-true (datum-contains? datum 120))
   (check (tree-contains-any? datum (expand-region-defs)) => #f))
 (delete-file src2)
 
@@ -128,5 +127,25 @@
 (check (call-with-input-file out5 read) => #t)
 (delete-file src5)
 (when (file-exists? out5) (delete-file out5))
+
+;; ===== 6. 嵌套区域：begin-for-syntax 内的 eval-when (expand) =====
+;; 内层 core 形式的区域宿主库取自其 syntax 的 library（随外层所在
+;; program/library），否则内层 define 注册进 base 库，program 里后续
+;; transformer 体解析不到（曾因此整体编译失败回退逐 form）。
+(define src6
+  (write-program "ewx-6"
+    "(import (goldfish))\n"
+    "(begin-for-syntax (eval-when (expand) (define (h2 x) (* x 5))))\n"
+    "(define-syntax m2\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (* 2 (unsyntax (h2 4))))))))\n"
+    "(define value (m2))\n"))
+(let* ((opt (begin (clear-artifact! src6)
+                   (compile-file-cached src6)))
+       (datum (syntax->datum opt)))
+  (check-true (datum-contains? datum 40))
+  (check (tree-contains-any? datum (expand-region-defs)) => #f))
+(delete-file src6)
 
 (check-report)
