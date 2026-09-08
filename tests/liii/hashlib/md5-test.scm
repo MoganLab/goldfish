@@ -41,6 +41,8 @@
 (check (md5 "!@#$%^&*()") => "05b28d17a7b6e7024b6e5d8cc43a8bf7")
 (check (md5 "Hello") => "8b1a9953c4611296a827abf8c47804d7")
 
-
+;; 异常情况测试：非字符串参数
+(check-catch 'type-error (md5 #\a))
+(check-catch 'type-error (md5 123))
 
 (check-report)

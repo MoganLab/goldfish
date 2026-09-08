@@ -59,6 +59,8 @@
   "185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969"
 ) ;check
 
-
+;; 异常情况测试：非字符串参数
+(check-catch 'type-error (sha256 #\a))
+(check-catch 'type-error (sha256 123))
 
 (check-report)

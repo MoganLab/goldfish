@@ -41,6 +41,8 @@
 (check (sha1 "!@#$%^&*()") => "bf24d65c9bb05b9b814a966940bcfa50767c8a8d")
 (check (sha1 "Hello") => "f7ff9e8b7bb2e09b70935a5d785e0cc5d9d0abf0")
 
-
+;; 异常情况测试：非字符串参数
+(check-catch 'type-error (sha1 #\a))
+(check-catch 'type-error (sha1 123))
 
 (check-report)
