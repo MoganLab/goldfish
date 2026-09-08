@@ -1153,7 +1153,7 @@ glue_json_push (s7_scheme* sc) {
 // guenchi json-drop 的单层语义：x 已校验为 JSON 对象或数组
 // v 为过程时按键（数组为索引）谓词筛选，否则按 equal? 匹配键（数组为索引）
 static s7_pointer
-json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
+json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len) {
   bool use_pred= s7_is_procedure (v);
   if (s7_is_vector (x)) {
     s7_int      n    = s7_vector_length (x);
@@ -1179,14 +1179,16 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
   }
   // 对象（alist）：删除键命中的条目，未命中的条目复用原序对；命中后从尾向头 cons
   std::vector<s7_pointer> kept;
-  kept.reserve (16);
-  s7_pointer p= x;
-  while (s7_is_pair (p)) {
+  kept.reserve (len > 0 ? len : 16);
+  s7_pointer p   = x;
+  s7_int     step= 0;
+  while (s7_is_pair (p) && step < len) {
     s7_pointer entry= s7_car (p);
     bool       hit  = use_pred ? (s7_call (sc, v, s7_list (sc, 1, s7_car (entry))) != s7_f (sc))
                                : s7_is_equal (sc, s7_car (entry), v);
     if (!hit) kept.push_back (entry);
     p= s7_cdr (p);
+    step++;
   }
   s7_pointer lst= s7_nil (sc);
   s7_gc_on (sc, false);
@@ -1208,7 +1210,7 @@ json_drop_dispatch (s7_scheme* sc, s7_pointer x, s7_pointer keys) {
   if (json_is_null_object (sc, x)) return x;
   if (s7_is_null (sc, s7_cdr (keys))) {
     // 单键
-    return json_guenchi_drop (sc, x, s7_car (keys));
+    return json_guenchi_drop (sc, x, s7_car (keys), len);
   }
   // 多键：经 json-set 的单层语义逐层下钻，叶层对旧值在 C++ 内递归 drop
   json_setter st;
