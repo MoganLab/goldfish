@@ -112,4 +112,15 @@
 (check (json->string (string #\a #\nul #\b)) => "\"a\\u0000b\"")
 (check (json->string (string #\x01)) => "\"\\u0001\"")
 
+;; 循环引用 / 环状结构测试（防止死循环和栈溢出 Crash）
+(let ((circ (list (cons 'a 1))))
+  (set-cdr! circ circ)
+  (check-catch 'value-error (json->string circ))
+) ;let
+
+(let ((v (vector #f)))
+  (vector-set! v 0 v)
+  (check-catch 'value-error (json->string v))
+) ;let
+
 (check-report)
