@@ -660,6 +660,13 @@ glue_liii_datetime (s7_scheme* sc) {
 }
 
 // -------------------------------- iota --------------------------------
+#ifndef S7_INT64_MAX
+#define S7_INT64_MAX 9223372036854775807LL
+#endif
+#ifndef S7_INT64_MIN
+#define S7_INT64_MIN (int64_t) (-S7_INT64_MAX - 1LL)
+#endif
+
 static inline bool
 safe_multiply (s7_int a, s7_int b, s7_int* res) {
 #if defined(__GNUC__) || defined(__clang__)
@@ -669,23 +676,21 @@ safe_multiply (s7_int a, s7_int b, s7_int* res) {
     *res= 0;
     return false;
   }
-  constexpr s7_int max_val= std::numeric_limits<s7_int>::max ();
-  constexpr s7_int min_val= std::numeric_limits<s7_int>::min ();
   if (a > 0) {
     if (b > 0) {
-      if (a > max_val / b) return true;
+      if (a > S7_INT64_MAX / b) return true;
     }
     else {
-      if (b < min_val / a) return true;
+      if (b < S7_INT64_MIN / a) return true;
     }
   }
   else {
     if (b > 0) {
-      if (a < min_val / b) return true;
+      if (a < S7_INT64_MIN / b) return true;
     }
     else {
-      if (a == min_val || b == min_val) return true;
-      if (-a > max_val / (-b)) return true;
+      if (a == S7_INT64_MIN || b == S7_INT64_MIN) return true;
+      if (-a > S7_INT64_MAX / (-b)) return true;
     }
   }
   *res= a * b;
@@ -698,10 +703,8 @@ safe_add (s7_int a, s7_int b, s7_int* res) {
 #if defined(__GNUC__) || defined(__clang__)
   return __builtin_add_overflow (a, b, res);
 #else
-  constexpr s7_int max_val= std::numeric_limits<s7_int>::max ();
-  constexpr s7_int min_val= std::numeric_limits<s7_int>::min ();
-  if (b > 0 && a > max_val - b) return true;
-  if (b < 0 && a < min_val - b) return true;
+  if (b > 0 && a > S7_INT64_MAX - b) return true;
+  if (b < 0 && a < S7_INT64_MIN - b) return true;
   *res= a + b;
   return false;
 #endif
