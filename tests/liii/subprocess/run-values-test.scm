@@ -265,4 +265,11 @@
   (check-catch 'type-error (g_subprocess-run-values '("true") #f cyclic-env))
 ) ;let
 
+;; 环形 command 防御回归测试
+(let ((cyclic-cmd (list 'true "arg")))
+  (set-cdr! (cdr cyclic-cmd) cyclic-cmd)
+  (check-catch 'type-error (run-values cyclic-cmd))
+  (check-catch 'type-error (g_subprocess-run-values cyclic-cmd))
+) ;let
+
 (check-report)

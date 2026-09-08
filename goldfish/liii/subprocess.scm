@@ -118,6 +118,13 @@
 
     (define (%command->exec-spec command)
       (cond ((string? command) command)
+            ((not (proper-list? command))
+             (type-error (format #f
+                           "Command must be a proper list or a string, got: ~a"
+                           (object->string command)
+                         ) ;format
+             ) ;type-error
+            ) ;
             ((and (pair? command) (symbol? (car command)))
              (%resolve-symbol-command (car command) (cdr command))
             ) ;

@@ -46,6 +46,10 @@ f_subprocess_run_values (s7_scheme* sc, s7_pointer args) {
   s7_pointer cmd_arg= s7_car (args);
   args              = s7_cdr (args);
 
+  if (!s7_is_string (cmd_arg) && !s7_is_proper_list (sc, cmd_arg)) {
+    return subprocess_type_error (sc, "g_subprocess-run-values: command must be a proper list or a string", cmd_arg);
+  }
+
   const char* cwd= nullptr;
   if (s7_is_pair (args) && s7_is_string (s7_car (args))) {
     cwd = s7_string (s7_car (args));
