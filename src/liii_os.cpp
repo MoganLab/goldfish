@@ -112,7 +112,7 @@ static s7_pointer
 f_os_call (s7_scheme* sc, s7_pointer args) {
   s7_pointer cmd_arg= s7_car (args);
   if (!s7_is_string (cmd_arg)) {
-    return s7_wrong_type_arg_error (sc, "os-call", 1, cmd_arg, "a string");
+    return string_type_error (sc, "os-call: command must be a string", cmd_arg);
   }
   const char*       cmd_c= s7_string (cmd_arg);
   tb_process_attr_t attr = {tb_null};
