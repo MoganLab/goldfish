@@ -35,4 +35,12 @@
   (check (bytevector-u8-ref m 1 2) => 60)
 ) ;let
 
+;; 多维 float-vector 字面量 #2r(...)
+(let ((m (eval-string "#2r((1.5 2.5) (3.5 4.5))")))
+  (check (float-vector? m) => #t)
+  (check (vector-dimensions m) => '(2 2))
+  (check (float-vector-ref m 0 0) => 1.5)
+  (check (float-vector-ref m 1 1) => 4.5)
+) ;let
+
 (check-report)
