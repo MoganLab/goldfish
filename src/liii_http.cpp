@@ -30,6 +30,30 @@ namespace goldfish {
 using std::string;
 using std::vector;
 
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
+static bool
+check_string_alist (s7_scheme* sc, s7_pointer alist) {
+  if (!s7_is_list (sc, alist)) {
+    return false;
+  }
+  s7_pointer iter= alist;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair= s7_car (iter);
+    if (!s7_is_pair (pair)) {
+      return false;
+    }
+    if (!s7_is_string (s7_car (pair)) || !s7_is_string (s7_cdr (pair))) {
+      return false;
+    }
+    iter= s7_cdr (iter);
+  }
+  return true;
+}
+
 static s7_pointer
 error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
   s7_pointer ht= s7_make_hash_table (sc, 4);
@@ -176,7 +200,11 @@ to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
 
 static s7_pointer
 f_http_head (s7_scheme* sc, s7_pointer args) {
-  const char*  url= s7_string (s7_car (args));
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-head: url must be a string", url_arg);
+  }
+  const char*  url= s7_string (url_arg);
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
   cpr::Response r= session.Head ();
@@ -194,11 +222,28 @@ glue_http_head (s7_scheme* sc) {
 
 static s7_pointer
 f_http_get (s7_scheme* sc, s7_pointer args) {
-  const char*     url        = s7_string (s7_car (args));
-  s7_pointer      params     = s7_cadr (args);
-  s7_pointer      headers    = s7_caddr (args);
-  s7_pointer      proxy      = s7_cadddr (args);
-  s7_pointer      callback   = s7_car (s7_cddddr (args));
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-get: url must be a string", url_arg);
+  }
+  s7_pointer params= s7_cadr (args);
+  if (!check_string_alist (sc, params)) {
+    return string_type_error (sc, "http-get: params must be an association list of string pairs", params);
+  }
+  s7_pointer headers= s7_caddr (args);
+  if (!check_string_alist (sc, headers)) {
+    return string_type_error (sc, "http-get: headers must be an association list of string pairs", headers);
+  }
+  s7_pointer proxy= s7_cadddr (args);
+  if (!check_string_alist (sc, proxy)) {
+    return string_type_error (sc, "http-get: proxy must be an association list of string pairs", proxy);
+  }
+  s7_pointer callback= s7_car (s7_cddddr (args));
+  if (!s7_is_boolean (callback) && !s7_is_procedure (callback)) {
+    return string_type_error (sc, "http-get: callback must be a procedure or boolean", callback);
+  }
+
+  const char*     url        = s7_string (url_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
@@ -207,7 +252,7 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
   session.SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (!s7_is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
 
@@ -247,13 +292,41 @@ glue_http_get (s7_scheme* sc) {
 
 static s7_pointer
 f_http_post (s7_scheme* sc, s7_pointer args) {
-  const char*     url         = s7_string (s7_car (args));
-  s7_pointer      params      = s7_cadr (args);
-  s7_pointer      body_or_data= s7_caddr (args);
-  s7_pointer      headers     = s7_cadddr (args);
-  s7_pointer      proxy       = s7_car (s7_cddddr (args));
-  s7_pointer      files       = s7_cadr (s7_cddddr (args));
-  s7_pointer      callback    = s7_list_ref (sc, args, 6);
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-post: url must be a string", url_arg);
+  }
+  s7_pointer params= s7_cadr (args);
+  if (!check_string_alist (sc, params)) {
+    return string_type_error (sc, "http-post: params must be an association list of string pairs", params);
+  }
+  s7_pointer body_or_data= s7_caddr (args);
+  s7_pointer headers     = s7_cadddr (args);
+  if (!check_string_alist (sc, headers)) {
+    return string_type_error (sc, "http-post: headers must be an association list of string pairs", headers);
+  }
+  s7_pointer proxy= s7_car (s7_cddddr (args));
+  if (!check_string_alist (sc, proxy)) {
+    return string_type_error (sc, "http-post: proxy must be an association list of string pairs", proxy);
+  }
+  s7_pointer files   = s7_cadr (s7_cddddr (args));
+  s7_pointer callback= s7_list_ref (sc, args, 6);
+  if (!s7_is_boolean (callback) && !s7_is_procedure (callback)) {
+    return string_type_error (sc, "http-post: callback must be a procedure or boolean", callback);
+  }
+
+  if (s7_is_list (sc, files) && !s7_is_null (sc, files)) {
+    if (!check_string_alist (sc, body_or_data)) {
+      return string_type_error (sc, "http-post: multipart data must be an association list of string pairs", body_or_data);
+    }
+  }
+  else {
+    if (!s7_is_string (body_or_data)) {
+      return string_type_error (sc, "http-post: body must be a string", body_or_data);
+    }
+  }
+
+  const char*     url         = s7_string (url_arg);
   cpr::Parameters cpr_params  = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers = to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies = to_cpr_proxies (sc, proxy);
@@ -262,7 +335,7 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
   session.SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (!s7_is_null (sc, proxy)) {
     session.SetProxies (cpr_proxies);
   }
 
@@ -385,17 +458,30 @@ process_async_http_callbacks () {
 // Start an async HTTP GET request
 static s7_pointer
 f_http_async_get (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  s7_pointer  headers = s7_caddr (args);
-  s7_pointer  proxy   = s7_cadddr (args);
-  s7_pointer  callback= s7_car (s7_cddddr (args));
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-async-get: url must be a string", url_arg);
+  }
+  s7_pointer params= s7_cadr (args);
+  if (!check_string_alist (sc, params)) {
+    return string_type_error (sc, "http-async-get: params must be an association list of string pairs", params);
+  }
+  s7_pointer headers= s7_caddr (args);
+  if (!check_string_alist (sc, headers)) {
+    return string_type_error (sc, "http-async-get: headers must be an association list of string pairs", headers);
+  }
+  s7_pointer proxy= s7_cadddr (args);
+  if (!check_string_alist (sc, proxy)) {
+    return string_type_error (sc, "http-async-get: proxy must be an association list of string pairs", proxy);
+  }
+  s7_pointer callback= s7_car (s7_cddddr (args));
 
   if (!s7_is_procedure (callback)) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 2, s7_make_string (sc, "http-async-get: callback must be a procedure"), callback));
   }
 
+  const char*     url        = s7_string (url_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
@@ -408,7 +494,7 @@ f_http_async_get (s7_scheme* sc, s7_pointer args) {
   session->SetUrl (cpr::Url (url));
   session->SetParameters (cpr_params);
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (!s7_is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 
@@ -439,18 +525,35 @@ glue_http_async_get (s7_scheme* sc) {
 // Start an async HTTP POST request
 static s7_pointer
 f_http_async_post (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  const char* body    = s7_string (s7_caddr (args));
-  s7_pointer  headers = s7_cadddr (args);
-  s7_pointer  proxy   = s7_car (s7_cddddr (args));
-  s7_pointer  callback= s7_cadr (s7_cddddr (args));
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-async-post: url must be a string", url_arg);
+  }
+  s7_pointer params= s7_cadr (args);
+  if (!check_string_alist (sc, params)) {
+    return string_type_error (sc, "http-async-post: params must be an association list of string pairs", params);
+  }
+  s7_pointer body_arg= s7_caddr (args);
+  if (!s7_is_string (body_arg)) {
+    return string_type_error (sc, "http-async-post: body must be a string", body_arg);
+  }
+  s7_pointer headers= s7_cadddr (args);
+  if (!check_string_alist (sc, headers)) {
+    return string_type_error (sc, "http-async-post: headers must be an association list of string pairs", headers);
+  }
+  s7_pointer proxy= s7_car (s7_cddddr (args));
+  if (!check_string_alist (sc, proxy)) {
+    return string_type_error (sc, "http-async-post: proxy must be an association list of string pairs", proxy);
+  }
+  s7_pointer callback= s7_cadr (s7_cddddr (args));
 
   if (!s7_is_procedure (callback)) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 2, s7_make_string (sc, "http-async-post: callback must be a procedure"), callback));
   }
 
+  const char*     url        = s7_string (url_arg);
+  const char*     body       = s7_string (body_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
@@ -464,7 +567,7 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
   session->SetParameters (cpr_params);
   session->SetBody (cpr::Body (body));
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (!s7_is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 
@@ -494,17 +597,30 @@ glue_http_async_post (s7_scheme* sc) {
 // Start an async HTTP HEAD request
 static s7_pointer
 f_http_async_head (s7_scheme* sc, s7_pointer args) {
-  const char* url     = s7_string (s7_car (args));
-  s7_pointer  params  = s7_cadr (args);
-  s7_pointer  headers = s7_caddr (args);
-  s7_pointer  proxy   = s7_cadddr (args);
-  s7_pointer  callback= s7_car (s7_cddddr (args));
+  s7_pointer url_arg= s7_car (args);
+  if (!s7_is_string (url_arg)) {
+    return string_type_error (sc, "http-async-head: url must be a string", url_arg);
+  }
+  s7_pointer params= s7_cadr (args);
+  if (!check_string_alist (sc, params)) {
+    return string_type_error (sc, "http-async-head: params must be an association list of string pairs", params);
+  }
+  s7_pointer headers= s7_caddr (args);
+  if (!check_string_alist (sc, headers)) {
+    return string_type_error (sc, "http-async-head: headers must be an association list of string pairs", headers);
+  }
+  s7_pointer proxy= s7_cadddr (args);
+  if (!check_string_alist (sc, proxy)) {
+    return string_type_error (sc, "http-async-head: proxy must be an association list of string pairs", proxy);
+  }
+  s7_pointer callback= s7_car (s7_cddddr (args));
 
   if (!s7_is_procedure (callback)) {
     return s7_error (sc, s7_make_symbol (sc, "type-error"),
                      s7_list (sc, 2, s7_make_string (sc, "http-async-head: callback must be a procedure"), callback));
   }
 
+  const char*     url        = s7_string (url_arg);
   cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
   cpr::Header     cpr_headers= to_cpr_headers (sc, headers);
   cpr::Proxies    cpr_proxies= to_cpr_proxies (sc, proxy);
@@ -517,7 +633,7 @@ f_http_async_head (s7_scheme* sc, s7_pointer args) {
   session->SetUrl (cpr::Url (url));
   session->SetParameters (cpr_params);
   session->SetHeader (cpr_headers);
-  if (s7_is_list (sc, proxy) && !s7_is_null (sc, proxy)) {
+  if (!s7_is_null (sc, proxy)) {
     session->SetProxies (cpr_proxies);
   }
 

@@ -2,9 +2,15 @@
 
 (check-set-mode! 'report-failed)
 
+;; 公开接口 http-head 参数类型测试 (devel/0149.md)
+(check-catch 'type-error (http-head 42))
+(check-catch 'type-error (http-head #\a))
+(check-catch 'type-error (http-head 'invalid))
+
 ;; 环境检查：需要设置 GOLDFISH_TEST_HTTP 环境变量才执行测试
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
   (when (not env)
+    (check-report)
     (exit 0)
   ) ;when
 ) ;let

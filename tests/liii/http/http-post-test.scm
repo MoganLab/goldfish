@@ -1,13 +1,27 @@
 (import (liii check) (liii http) (liii string) (liii json) (liii os))
 
+(check-set-mode! 'report-failed)
+
+;; 公开接口 http-post 参数类型测试 (devel/0149.md)
+(check-catch 'type-error (http-post 42))
+(check-catch 'type-error (http-post #\a))
+(check-catch 'type-error (http-post 'invalid))
+(check-catch 'type-error (http-post "http://x/" :params 42))
+(check-catch 'type-error (http-post "http://x/" :params '(42)))
+(check-catch 'type-error (http-post "http://x/" :headers 42))
+(check-catch 'type-error (http-post "http://x/" :headers '(42)))
+(check-catch 'type-error (http-post "http://x/" :proxy 42))
+(check-catch 'type-error (http-post "http://x/" :proxy '(42)))
+(check-catch 'type-error (http-post "http://x/" :files 42))
+(check-catch 'type-error (http-post "http://x/" :files '(42)))
+
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
   (when (not env)
+    (check-report)
     (exit 0)
   ) ;when
 ) ;let
-
-(check-set-mode! 'report-failed)
 
 
 
@@ -119,13 +133,8 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-post "https://httpbin.org/post"
-              :stream
-              #t
-              :data
-              "Simple streaming POST test"
-              :output-file
-              output-file
+            (http-post "https://httpbin.org/post" :stream #t :data
+              "Simple streaming POST test" :output-file output-file
             ) ;http-post
           ) ;begin
        ) ;r
