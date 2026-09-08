@@ -47,10 +47,6 @@
 (let* ((p (gfproject-find-local-path))
        (txt (path-read-text p)))
   (check (string? txt) => #t))
-(check (string? (gfproject-load-config-string)) => #t)
-(check (json-contains-key? (string->json (gfproject-load-config-string)) "tools") => #t)
-(check (string? (g_gfproject-load-config)) => #t)
-(check (json-contains-key? (string->json (g_gfproject-load-config)) "tools") => #t)
 (let* ((config (gfproject-load-config))
        (tools (gfproject-extract-tools config)))
   (check (json-contains-key? tools "doc") => #t)
@@ -66,7 +62,6 @@
 
 (let ((bundle (gfproject-resolve-tool-bundle "doc")))
   (check (not (not bundle)) => #t)
-  (check (cdr (assoc "has-merged-tool" bundle)) => #t)
   (check (json-ref (cdr (assoc "merged-tool" bundle)) "module") => "golddoc"))
 
 (check (gfproject-resolve-tool "non-existent-tool-xyz") => #f)

@@ -19,53 +19,50 @@
     (scheme write)
     (liii base)
     (liii json)
+    (liii list)
     (liii os)
     (liii path)
   ) ;import
   (export gfproject-get-gf-lib gfproject-find-lib-path gfproject-find-local-path
-    gfproject-read-file gfproject-extract-tools gfproject-deep-merge
-    gfproject-load-config-bundle gfproject-load-config
-    gfproject-load-config-string gfproject-find-tool-root gfproject-resolve-tool
+    gfproject-extract-tools gfproject-deep-merge gfproject-load-config-bundle
+    gfproject-load-config gfproject-find-tool-root gfproject-resolve-tool
     gfproject-resolve-tool-bundle gfproject-prepare-and-run-tool
-    gfproject-run-tool g_gfproject-load-config
+    gfproject-run-tool
   ) ;export
 
   (begin
 
     (define (gfproject-get-gf-lib)
-      (cond ((and (defined? 'rootlet) (defined? 'g_goldfish-library-dir (rootlet)))
-             (((rootlet) 'g_goldfish-library-dir))
-            ) ;
-            ((defined? 'g_goldfish-library-dir) (g_goldfish-library-dir))
-            (else #f)
-      ) ;cond
+      (g_goldfish-library-dir)
+    ) ;define
+
+    (define (gfproject--opt-gf-lib opt-gf-lib)
+      (if (and (pair? opt-gf-lib) (string? (car opt-gf-lib)))
+        (car opt-gf-lib)
+        (gfproject-get-gf-lib)
+      ) ;if
+    ) ;define
+
+    (define (bundle-ref bundle key)
+      (cdr (assoc key bundle))
     ) ;define
 
     (define (gfproject-find-local-path)
-      (let ((p (path-join (getcwd) "gfproject.json")))
-        (if (path-file? p) (path->string p) #f)
+      (let ((root (g_project-root)))
+        (and root (path->string (path-join root "gfproject.json")))
       ) ;let
     ) ;define
 
     (define (gfproject-find-lib-path . opt-gf-lib)
-      (let ((gf-lib (if (and (pair? opt-gf-lib) (string? (car opt-gf-lib)))
-                      (car opt-gf-lib)
-                      (gfproject-get-gf-lib)
-                    ) ;if
-            ) ;gf-lib
-           ) ;
-        (if gf-lib
-          (let ((p1 (path-join gf-lib "gfproject.json"))
-                (p2 (path-join (path-parent gf-lib) "gfproject.json"))
-               ) ;
-            (cond ((path-file? p1) (path->string p1))
-                  ((path-file? p2) (path->string p2))
-                  (else #f)
-            ) ;cond
-          ) ;let
-          #f
-        ) ;if
-      ) ;let
+      (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
+             (p1 (path-join gf-lib "gfproject.json"))
+             (p2 (path-join (path-parent gf-lib) "gfproject.json"))
+            ) ;
+        (cond ((path-file? p1) (path->string p1))
+              ((path-file? p2) (path->string p2))
+              (else #f)
+        ) ;cond
+      ) ;let*
     ) ;define
 
     (define (gfproject-read-file path)
@@ -134,157 +131,96 @@
         (list (cons "lib_config" lib-config)
           (cons "local_config" local-config)
           (cons "merged_config" merged-config)
+          (cons "lib_tools" lib-tools)
+          (cons "local_tools" local-tools)
+          (cons "merged_tools" merged-tools)
         ) ;list
       ) ;let*
     ) ;define
 
     (define (gfproject-load-config . opt-gf-lib)
-      (let ((bundle (apply gfproject-load-config-bundle opt-gf-lib)))
-        (cdr (assoc "merged_config" bundle))
-      ) ;let
+      (bundle-ref (apply gfproject-load-config-bundle opt-gf-lib) "merged_config")
     ) ;define
-
-    (define (gfproject-load-config-string . opt-gf-lib)
-      (json->string (apply gfproject-load-config opt-gf-lib))
-    ) ;define
-
-    (define g_gfproject-load-config gfproject-load-config-string)
 
     (define (gfproject-find-tool-root command . opt-gf-lib)
-      (let* ((gf-lib (if (and (pair? opt-gf-lib) (string? (car opt-gf-lib)))
-                       (car opt-gf-lib)
-                       (gfproject-get-gf-lib)
-                     ) ;if
-             ) ;gf-lib
+      (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
              (candidates (list (path-join (getcwd) "tools" command)
-                           (if gf-lib (path-join gf-lib "tools" command) #f)
-                           (if gf-lib (path-join (path-parent gf-lib) "tools" command) #f)
+                           (path-join gf-lib "tools" command)
+                           (path-join (path-parent gf-lib) "tools" command)
                          ) ;list
              ) ;candidates
+             (found (find path-dir? candidates))
             ) ;
-        (let loop
-          ((cs candidates))
-          (cond ((null? cs) #f)
-                ((not (car cs)) (loop (cdr cs)))
-                ((path-dir? (car cs)) (path->string (car cs)))
-                (else (loop (cdr cs)))
-          ) ;cond
-        ) ;let
+        (and found (path->string found))
       ) ;let*
     ) ;define
 
     (define (gfproject-resolve-tool command . opt-gf-lib)
       (let* ((bundle (apply gfproject-load-config-bundle opt-gf-lib))
-             (merged-config (cdr (assoc "merged_config" bundle)))
-             (merged-tools (gfproject-extract-tools merged-config))
-             (has-merged? (json-contains-key? merged-tools command))
+             (merged-tools (bundle-ref bundle "merged_tools"))
             ) ;
-        (if (not has-merged?) #f (json-ref merged-tools command))
+        (and (json-contains-key? merged-tools command) (json-ref merged-tools command))
       ) ;let*
     ) ;define
 
     (define (gfproject-resolve-tool-bundle command . opt-gf-lib)
       (let* ((bundle (apply gfproject-load-config-bundle opt-gf-lib))
-             (local-config (cdr (assoc "local_config" bundle)))
-             (lib-config (cdr (assoc "lib_config" bundle)))
-             (merged-config (cdr (assoc "merged_config" bundle)))
-             (local-tools (gfproject-extract-tools local-config))
-             (lib-tools (gfproject-extract-tools lib-config))
-             (merged-tools (gfproject-extract-tools merged-config))
-             (has-local? (json-contains-key? local-tools command))
+             (local-tools (bundle-ref bundle "local_tools"))
+             (lib-tools (bundle-ref bundle "lib_tools"))
+             (merged-tools (bundle-ref bundle "merged_tools"))
              (has-lib? (json-contains-key? lib-tools command))
-             (has-merged? (json-contains-key? merged-tools command))
             ) ;
-        (if (not has-merged?)
-          #f
-          (list (cons "has-local-override" has-local?)
+        (and (json-contains-key? merged-tools command)
+          (list (cons "has-local-override" (json-contains-key? local-tools command))
             (cons "has-lib-tool" has-lib?)
-            (cons "has-merged-tool" has-merged?)
             (cons "merged-tool" (json-ref merged-tools command))
             (cons "lib-tool" (if has-lib? (json-ref lib-tools command) '(())))
           ) ;list
-        ) ;if
+        ) ;and
       ) ;let*
     ) ;define
 
     (define (gfproject-prepare-and-run-tool command tool-config gf-lib allow-fallback)
-      (if (not (json-object? tool-config))
+      (define (fail . parts)
         (if allow-fallback
           #f
           (begin
-            (display (string-append "Error: Tool '" command "' config must be a JSON object.\n")
-              (current-error-port)
-            ) ;display
+            (for-each (lambda (p) (display p (current-error-port))) parts)
             1
           ) ;begin
         ) ;if
-        (let ((org (json-ref tool-config "organization"))
-              (module (json-ref tool-config "module"))
+      ) ;define
+      (if (not (json-object? tool-config))
+        (fail "Error: Tool '" command "' config must be a JSON object.\n")
+        (let ((org (json-ref-string tool-config "organization" #f))
+              (module (json-ref-string tool-config "module" #f))
              ) ;
-          (if (or (not (string? org)) (not (string? module)))
-            (if allow-fallback
-              #f
-              (begin
-                (display (string-append "Error: Tool '"
-                           command
-                           "' is not fully implemented (missing organization or module).\n"
-                         ) ;string-append
-                  (current-error-port)
-                ) ;display
-                1
-              ) ;begin
-            ) ;if
+          (if (or (not org) (not module))
+            (fail "Error: Tool '"
+              command
+              "' is not fully implemented (missing organization or module).\n"
+            ) ;fail
             (let ((tool-root (gfproject-find-tool-root command gf-lib)))
               (if (not tool-root)
-                (if allow-fallback
-                  #f
-                  (begin
-                    (display (string-append "Error: tools/" command "/" org " directory not found.\n")
-                      (current-error-port)
-                    ) ;display
-                    1
-                  ) ;begin
-                ) ;if
+                (fail "Error: tools/" command "/" org " directory not found.\n")
                 (begin
                   (set! *load-path* (cons tool-root *load-path*))
-                  (let* ((import-ok #t)
-                         (import-err "")
-                         (_ (catch #t
-                              (lambda ()
-                                (eval `(import (,(string->symbol org)
-                                                ,(string->symbol module))) (rootlet))
-                              ) ;lambda
-                              (lambda (tag info)
-                                (set! import-ok #f)
-                                (set! import-err (if (pair? info) (car info) "import failed"))
-                              ) ;lambda
-                            ) ;catch
-                         ) ;_
-                        ) ;
-                    (if (not import-ok)
-                      (if allow-fallback
-                        #f
-                        (begin
-                          (display (string-append "Error importing (" org " " module "):\n")
-                            (current-error-port)
-                          ) ;display
-                          (display import-err (current-error-port))
-                          (newline (current-error-port))
-                          1
-                        ) ;begin
-                      ) ;if
+                  (let ((import-err (catch #t
+                                      (lambda ()
+                                        (eval `(import (,(string->symbol org)
+                                                        ,(string->symbol module))) (rootlet))
+                                        #f
+                                      ) ;lambda
+                                      (lambda (tag info) (if (pair? info) (car info) "import failed"))
+                                    ) ;catch
+                        ) ;import-err
+                       ) ;
+                    (if import-err
+                      (fail "Error importing (" org " " module "):\n" import-err "\n")
                       (let ((main-proc (catch #t (lambda () (eval 'main (rootlet))) (lambda (tag info) #f)))
                            ) ;
                         (if (not (procedure? main-proc))
-                          (if allow-fallback
-                            #f
-                            (begin
-                              (display (string-append "Error: Failed to find main function in (" org " " module ").\n")
-                                (current-error-port)
-                              ) ;display
-                              1
-                            ) ;begin
-                          ) ;if
+                          (fail "Error: Failed to find main function in (" org " " module ").\n")
                           (let ((res (catch #t
                                        (lambda () (main-proc))
                                        (lambda (tag info) (display (format #f "~A\n" info) (current-error-port)) 1)
@@ -296,7 +232,7 @@
                         ) ;if
                       ) ;let
                     ) ;if
-                  ) ;let*
+                  ) ;let
                 ) ;begin
               ) ;if
             ) ;let
@@ -309,15 +245,11 @@
       (let ((bundle (apply gfproject-resolve-tool-bundle command opt-gf-lib)))
         (if (not bundle)
           #f
-          (let* ((gf-lib (if (and (pair? opt-gf-lib) (string? (car opt-gf-lib)))
-                           (car opt-gf-lib)
-                           (gfproject-get-gf-lib)
-                         ) ;if
-                 ) ;gf-lib
-                 (has-local? (cdr (assoc "has-local-override" bundle)))
-                 (has-lib? (cdr (assoc "has-lib-tool" bundle)))
-                 (merged-tool (cdr (assoc "merged-tool" bundle)))
-                 (lib-tool (cdr (assoc "lib-tool" bundle)))
+          (let* ((gf-lib (gfproject--opt-gf-lib opt-gf-lib))
+                 (has-local? (bundle-ref bundle "has-local-override"))
+                 (has-lib? (bundle-ref bundle "has-lib-tool"))
+                 (merged-tool (bundle-ref bundle "merged-tool"))
+                 (lib-tool (bundle-ref bundle "lib-tool"))
                  (builtin-fallback? (member command '("help" "version" "eval"
                                                       "load" "repl" "run"))
                  ) ;builtin-fallback?
