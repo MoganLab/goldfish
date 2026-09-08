@@ -338,4 +338,35 @@
 "OUT"
 )
 
+(check (format-string #"IN"(let ((x 1))
+  (let ((y 2))
+    (let ((z 3))
+      (let ((w 4))
+        (let* ((load-file "test")
+               (messages (if load-file (string->json (path-read-text load-file)) #()))
+              )
+          messages
+        )
+      )
+    )
+  )
+)
+"IN")
+  =>
+  #"OUT"(let ((x 1))
+  (let ((y 2))
+    (let ((z 3))
+      (let ((w 4))
+        (let* ((load-file "test")
+               (messages (if load-file (string->json (path-read-text load-file)) #()))
+              ) ;
+          messages
+        ) ;let*
+      ) ;let
+    ) ;let
+  ) ;let
+) ;let
+"OUT"
+)
+
 (check-report)

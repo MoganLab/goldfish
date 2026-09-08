@@ -437,10 +437,12 @@
 
     (define (format-reader-vector-at datum indent)
       (let ((candidate (format-reader-vector-inline datum)))
-        (if (and (not (reader-datum-contains-newline-marker? datum))
-              (not (string-contains-newline? candidate))
-              (<= (+ indent (string-length candidate)) max-inline-length)
-            ) ;and
+        (if (or (= (vector-length datum) 0)
+              (and (not (reader-datum-contains-newline-marker? datum))
+                (not (string-contains-newline? candidate))
+                (<= (+ indent (string-length candidate)) max-inline-length)
+              ) ;and
+            ) ;or
           candidate
           (format-reader-vector-multiline datum indent)
         ) ;if
@@ -982,13 +984,20 @@
       ) ;let*
     ) ;define
 
+    (define (emit-atom! node writer column)
+      (let ((left-line (writer-line writer)))
+        (emit-string! writer (format-inline-atom-or-quote-at (atom-value node) column))
+        (positioned-atom node column left-line (writer-line writer))
+      ) ;let
+    ) ;define
+
     ;; ; emit-inline! 输出单行节点，并返回写入了位置信息的新节点。
     ;; ; 原始 node 保持不变，formatter 的布局结果只存在于返回的新树中。
     (define (emit-inline! node writer column)
       (cond ((comment-node? node) (emit-comment! node writer column))
             ((atom? node)
              (let ((left-line (writer-line writer)))
-               (emit-string! writer (format-inline-atom-or-quote-at (atom-value node) column))
+               (emit-string! writer (format-inline-atom-or-quote (atom-value node)))
                (positioned-atom node column left-line (writer-line writer))
              ) ;let
             ) ;
@@ -1110,7 +1119,7 @@
     ;; ; walk 是核心 DFS 入口：从当前行的 column 列输出 node，并返回带位置信息的新 node。
     (define (walk! node writer column)
       (cond ((comment-node? node) (emit-comment! node writer column))
-            ((atom? node) (emit-inline! node writer column))
+            ((atom? node) (emit-atom! node writer column))
             ((can-inline? node) (emit-inline! node writer column))
             (else (walk-env! node writer column))
       ) ;cond
