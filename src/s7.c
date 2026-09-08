@@ -24120,7 +24120,6 @@ s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 /* g_vector_ref_2 is now defined in s7_liii_vector.c */
 
 /* -------- s7i_ bridges for vector p_p migration to s7_liii_vector.c -------- */
-static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args);
 bool s7i_is_any_vector(s7_pointer p) {return(is_any_vector(p));}
 bool s7i_is_t_vector(s7_pointer p) {return(is_t_vector(p));}
 bool s7i_is_typed_vector(s7_pointer p) {return(is_typed_vector(p));}
@@ -24164,137 +24163,16 @@ static s7_pointer vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t arg
 
 
 /* -------------------------------- vector-set! -------------------------------- */
-static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_set "(vector-set! v i ... value) sets the i-th element of vector v to value."
-  #define Q_vector_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
-
-  const s7_pointer vec = car(args);
-  s7_pointer val;
-  s7_int index;
-
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_set_symbol, args, sc->type_names[T_VECTOR], 1));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->vector_set_symbol, vec));
-  if (vector_length(vec) == 0)
-    out_of_range_error_nr(sc, sc->vector_set_symbol, int_one, vec, it_is_too_large_string);
-
-  if (vector_rank(vec) > 1)
-    {
-      s7_int i;
-      s7_pointer index_list;
-      index = 0;
-      for (index_list = cdr(args), i = 0; (is_pair(cdr(index_list))) && (i < vector_ndims(vec)); index_list = cdr(index_list), i++)
-	{
-	  s7_int n;
-	  const s7_pointer ind = car(index_list);
-	  if (!s7_is_integer(ind))
-	    return(method_or_bust(sc, ind, sc->vector_set_symbol, args, sc->type_names[T_INTEGER], i + 2));
-          n = s7_integer_clamped_if_gmp(sc, ind);
-	  if ((n < 0) || (n >= vector_dimension(vec, i)))
-	    out_of_range_error_nr(sc, sc->vector_set_symbol, wrap_integer(sc, i + 2), ind, (n < 0) ? it_is_negative_string : it_is_too_large_string);
-	  index += n * vector_offset(vec, i);
-	}
-      if (is_not_null(cdr(index_list)))
-	wrong_number_of_arguments_error_nr(sc, "too many arguments for vector-set!: ~S", 38, args);
-      if (i != vector_ndims(vec))
-	wrong_number_of_arguments_error_nr(sc, "not enough arguments for vector-set!: ~S", 40, args);
-
-      /* since vector-ref can return a subvector (if not passed enough args), it might be interesting to
-       *   also set a complete subvector via set!, but would that introduce ambiguity?  Only copy the vector
-       *   if at least one index is missing, and the value fits.  It also makes error detection harder,
-       *   but so does the current vector-ref handling.  Can't decide...
-       *   (define v (make-vector '(2 3) 0)) (vector-set! v 0 #(1 2 3)) -> error, but (vector-ref v 0) -> #(0 0 0)
-       * Other possible additions: complex-vector and string-vector.
-       */
-      val = car(index_list);
-    }
-  else
-    {
-      const s7_pointer ind = cadr(args);
-      if (!s7_is_integer(ind))
-	return(method_or_bust(sc, ind, sc->vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-      index = s7_integer_clamped_if_gmp(sc, ind);
-      if ((index < 0) || (index >= vector_length(vec)))
-	out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, ind, (index < 0) ? it_is_negative_string : it_is_too_large_string);
-      if (is_not_null(cdddr(args)))
-	{
-	  const s7_pointer new_vec = vector_getter(vec)(sc, vec, index);
-	  if (!is_any_vector(new_vec))
-	    wrong_number_of_arguments_error_nr(sc, "too many arguments for vector-set!: ~S", 38, args);
-	  return(g_vector_set(sc, set_ulist_1(sc, new_vec, cddr(args))));
-	}
-      val = caddr(args);
-    }
-  if (is_typed_t_vector(vec))
-    return(typed_vector_setter(sc, vec, index, val));
-  if (is_t_vector(vec))
-    vector_element(vec, index) = val;
-  else vector_setter(vec)(sc, vec, index, val);
-  return(val);
-}
+#define H_vector_set "(vector-set! v i ... value) sets the i-th element of vector v to value."
+#define Q_vector_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
+/* g_vector_set, g_vector_set_3, g_vector_set_4 migrated to s7_liii_vector.c */
 
 /* vector_set_p_pip, vector_set_p_pip_unchecked, vector_set_p_piip,
    vector_set_p_piip_direct, typed_vector_set_p_pip_unchecked,
    typed_vector_set_p_piip_direct, t_vector_set_p_pip_direct,
    typed_t_vector_set_p_pip_direct migrated to s7_liii_vector.c */
 
-static s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args)
-{
-  /* (vector-set! vector index value) */
-  const s7_pointer vec = car(args);
-  s7_pointer ind;
-  s7_int index;
-
-  if (!is_any_vector(vec))
-    return(g_vector_set(sc, args));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->vector_set_symbol, vec));
-  if (vector_rank(vec) > 1)
-    return(g_vector_set(sc, args));
-
-  ind = cadr(args);
-  if (!s7_is_integer(ind))
-    return(g_vector_set(sc, args));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-  if ((index < 0) || (index >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  {
-    s7_pointer val = caddr(args);
-    if (is_typed_t_vector(vec))
-      return(typed_vector_setter(sc, vec, index, val));
-    if (is_t_vector(vec))
-      vector_element(vec, index) = val;
-    else vector_setter(vec)(sc, vec, index, val);
-    return(val);
-  }
-}
-
 /* vector_set_p_ppp migrated to s7_liii_vector.c */
-
-static s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args), ip1 = cadr(args), ip2 = caddr(args);
-  s7_pointer val;
-  s7_int i1, i2;
-  if ((!is_any_vector(vec)) ||
-      (vector_rank(vec) != 2) || (is_immutable_vector(vec)) ||
-      (!s7_is_integer(ip1)) || (!s7_is_integer(ip2)))
-    return(g_vector_set(sc, args));
-  i1 = s7_integer_clamped_if_gmp(sc, ip1);
-  i2 = s7_integer_clamped_if_gmp(sc, ip2);
-  if ((i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_set(sc, args));
-  val = cadddr(args);
-  if (is_typed_t_vector(vec))
-    return(typed_vector_setter(sc, vec, i2 + (i1 * vector_offset(vec, 0)), val));
-  if (is_t_vector(vec))
-    vector_element(vec, i2 + (i1 * vector_offset(vec, 0))) = val;
-  else vector_setter(vec)(sc, vec, i2 + (i1 * vector_offset(vec, 0)), val);
-  return(val);
-}
 
 static s7_pointer vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {

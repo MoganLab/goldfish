@@ -517,6 +517,122 @@ s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
   return(g_vector_ref(sc, args));
 }
 
+s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer vec = s7_car(args);
+  s7_pointer val;
+  s7_int index;
+
+  if (!s7i_is_any_vector(vec))
+    return(s7i_method_or_bust(sc, vec, "vector-set!", args, "a vector", 1));
+  if (s7i_is_immutable_vector(vec))
+    immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "vector-set!"), vec));
+  if (s7_vector_length(vec) == 0)
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, 1), vec, it_is_too_large_string);
+
+  if (s7_vector_rank(vec) > 1)
+    {
+      s7_int i;
+      s7_pointer index_list;
+      index = 0;
+      s7_int rank = s7_vector_rank(vec);
+      for (index_list = s7_cdr(args), i = 0; (s7_is_pair(s7_cdr(index_list))) && (i < rank); index_list = s7_cdr(index_list), i++)
+        {
+          s7_int n;
+          const s7_pointer ind = s7_car(index_list);
+          if (!s7_is_integer(ind))
+            return(s7i_method_or_bust(sc, ind, "vector-set!", args, "an integer", i + 2));
+          n = s7_number_to_integer(sc, ind);
+          if ((n < 0) || (n >= s7_vector_dimension(vec, i)))
+            out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, i + 2), ind, (n < 0) ? it_is_negative_string : it_is_too_large_string);
+          index += n * s7i_vector_offset(vec, i);
+        }
+      if (!s7_is_null(sc, s7_cdr(index_list)))
+        return(s7_wrong_number_of_args_error(sc, "vector-set!", args));
+      if (i != rank)
+        return(s7_wrong_number_of_args_error(sc, "vector-set!", args));
+
+      val = s7_car(index_list);
+    }
+  else
+    {
+      const s7_pointer ind = s7_cadr(args);
+      if (!s7_is_integer(ind))
+        return(s7i_method_or_bust(sc, ind, "vector-set!", args, "an integer", 2));
+      index = s7_number_to_integer(sc, ind);
+      if ((index < 0) || (index >= s7_vector_length(vec)))
+        out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, 2), ind, (index < 0) ? it_is_negative_string : it_is_too_large_string);
+      if (!s7_is_null(sc, s7_cdddr(args)))
+        {
+          const s7_pointer new_vec = s7i_vector_getter_ref(sc, vec, index);
+          if (!s7i_is_any_vector(new_vec))
+            return(s7_wrong_number_of_args_error(sc, "vector-set!", args));
+          return(g_vector_set(sc, s7_cons(sc, new_vec, s7_cddr(args))));
+        }
+      val = s7_caddr(args);
+    }
+  if (s7i_is_typed_t_vector(vec))
+    return(s7i_typed_vector_setter(sc, vec, index, val));
+  if (s7i_is_t_vector(vec))
+    s7i_vector_element_set(vec, index, val);
+  else s7i_vector_setter_set(sc, vec, index, val);
+  return(val);
+}
+
+s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args)
+{
+  /* (vector-set! vector index value) */
+  const s7_pointer vec = s7_car(args);
+  s7_pointer ind;
+  s7_int index;
+
+  if (!s7i_is_any_vector(vec))
+    return(g_vector_set(sc, args));
+  if (s7i_is_immutable_vector(vec))
+    immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "vector-set!"), vec));
+  if (s7_vector_rank(vec) > 1)
+    return(g_vector_set(sc, args));
+
+  ind = s7_cadr(args);
+  if (!s7_is_integer(ind))
+    return(g_vector_set(sc, args));
+  index = s7_number_to_integer(sc, ind);
+  if ((index < 0) || (index >= s7_vector_length(vec)))
+    out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, 2), s7i_wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  {
+    s7_pointer val = s7_caddr(args);
+    if (s7i_is_typed_t_vector(vec))
+      return(s7i_typed_vector_setter(sc, vec, index, val));
+    if (s7i_is_t_vector(vec))
+      s7i_vector_element_set(vec, index, val);
+    else s7i_vector_setter_set(sc, vec, index, val);
+    return(val);
+  }
+}
+
+s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer vec = s7_car(args), ip1 = s7_cadr(args), ip2 = s7_caddr(args);
+  s7_pointer val;
+  s7_int i1, i2;
+  if ((!s7i_is_any_vector(vec)) ||
+      (s7_vector_rank(vec) != 2) || (s7i_is_immutable_vector(vec)) ||
+      (!s7_is_integer(ip1)) || (!s7_is_integer(ip2)))
+    return(g_vector_set(sc, args));
+  i1 = s7_number_to_integer(sc, ip1);
+  i2 = s7_number_to_integer(sc, ip2);
+  if ((i1 < 0) || (i2 < 0) ||
+      (i1 >= s7_vector_dimension(vec, 0)) || (i2 >= s7_vector_dimension(vec, 1)))
+    return(g_vector_set(sc, args));
+  val = s7_cadddr(args);
+  if (s7i_is_typed_t_vector(vec))
+    return(s7i_typed_vector_setter(sc, vec, i2 + (i1 * s7i_vector_offset(vec, 0)), val));
+  if (s7i_is_t_vector(vec))
+    s7i_vector_element_set(vec, i2 + (i1 * s7i_vector_offset(vec, 0)), val);
+  else s7i_vector_setter_set(sc, vec, i2 + (i1 * s7i_vector_offset(vec, 0)), val);
+  return(val);
+}
+
 s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_complex_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
