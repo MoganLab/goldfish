@@ -251,4 +251,11 @@
   ) ;let-values
 ) ;when
 
+;; :env 参数类型检查回归测试
+(check-catch 'type-error (run-values "true" :env '((#\a . "1"))))
+(check-catch 'type-error (run-values "true" :env '((42 . "1"))))
+(check-catch 'type-error (run-values "true" :env '(("FOO" . 42))))
+(check-catch 'type-error (run-values "true" :env '(42)))
+(check-catch 'type-error (run-values "true" :env 42))
+
 (check-report)

@@ -237,6 +237,14 @@
       ) ;or
     ) ;define
 
+    (define (%valid-env? env)
+      (or (not env)
+        (and (list? env)
+          (every (lambda (x) (and (pair? x) (string? (car x)) (string? (cdr x)))) env)
+        ) ;and
+      ) ;or
+    ) ;define
+
     (define (run-values command . opts)
       (let ((cwd (%keyword-value :cwd opts #f))
             (env (%keyword-value :env opts #f))
@@ -267,6 +275,9 @@
                          stderr
                        ) ;format
           ) ;value-error
+        ) ;unless
+        (unless (%valid-env? env)
+          (type-error "run-values: :env must be a list of (key . value) string pairs")
         ) ;unless
         (when cwd
           (set! orig-dir (getcwd))
