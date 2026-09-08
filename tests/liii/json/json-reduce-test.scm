@@ -202,12 +202,23 @@
 
 ;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
 (let* ((j (list (cons 'a 1) (cons 'b 2)))
-       (res (json-reduce j (lambda (k)
-                             (when (eq? k 'a)
-                               (set-cdr! (cdr j) (list (cons 'c 3))))
-                             #f)
-                         (lambda (k v) v))))
+       (res (json-reduce j
+              (lambda (k) (when (eq? k 'a) (set-cdr! (cdr j) (list (cons 'c 3)))) #f)
+              (lambda (k v) v)
+            ) ;json-reduce
+       ) ;res
+      ) ;
   (check-true (list? res))
 ) ;let*
+
+;; 迭代期间列表被谓词修改改短时抛出 value-error（防止残留未填充骨架）
+(check-catch 'value-error
+  (let ((j (list (cons 'a 1) (cons 'b 2))))
+    (json-reduce j
+      (lambda (k) (when (eq? k 'a) (set-cdr! j '())) #f)
+      (lambda (k v) v)
+    ) ;json-reduce
+  ) ;let
+) ;check-catch
 
 (check-report)
