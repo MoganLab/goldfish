@@ -7,7 +7,7 @@
 ;;
 ;; 语法
 ;; ----
-;; (path-mkdir path-value parents: bool exist-ok: bool) 或 (path-mkdir p)
+;; (path-mkdir path-value :parents bool :exist-ok bool) 或 (path-mkdir p)
 ;;
 ;; 返回值
 ;; ------
@@ -39,20 +39,22 @@
   (path-mkdir base)
   (check-true (path-dir? base))
 
-  ;; 2. exist-ok=#f 默认,已存在时报错
+  ;; exist-ok=#f 默认,已存在时报错
   (check (guard (ex (else 'caught)) (path-mkdir base)) => 'caught)
-  ;; exist-ok=#t 已存在不报错
-  (check (path-mkdir base exist-ok: #t) => #t)
+  ;; :exist-ok #t 已存在不报错
+  (check (path-mkdir base :exist-ok #t) => #t)
 
-  ;; 3. parents=#t 递归创建多级
+  ;; 3. :parents #t 递归创建多级
   (let ((deep (path-join base "a" "b" "c")))
-    (path-mkdir deep parents: #t)
+    (path-mkdir deep :parents #t)
     (check-true (path-dir? deep))
-    ;; parents:#t 但叶子已存在且 exist-ok:#f(默认)时报错(对齐 pathlib)
-    (check-catch 'file-exists-error (path-mkdir deep parents: #t))
+    ;; :parents #t 但叶子已存在且 :exist-ok #f(默认)时报错(对齐 pathlib)
+    (check-catch 'file-exists-error (path-mkdir deep :parents #t))
+    ;; :parents #t 且 :exist-ok #t 时不报错
+    (check (path-mkdir deep :parents #t :exist-ok #t) => #t)
   ) ;let
 
-  ;; 4. parents=#f 缺中间目录时报错
+  ;; 4. :parents #f 缺中间目录时报错
   (let ((missing (path-join base "nope" "deep")))
     (check (guard (ex (else 'caught)) (path-mkdir missing)) => 'caught)
   ) ;let
