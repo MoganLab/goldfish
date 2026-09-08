@@ -115,7 +115,7 @@ sha_file_to_hex (const char* path, tb_size_t mode, tb_size_t digest_size, tb_cha
 
 static s7_pointer
 f_md5 (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  str_arg      = s7_car (args);
+  s7_pointer str_arg= s7_car (args);
   if (!s7_is_string (str_arg)) {
     return string_type_error (sc, "md5: parameter must be a string", str_arg);
   }
@@ -143,7 +143,7 @@ glue_md5 (s7_scheme* sc) {
 
 static s7_pointer
 f_md5_file (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  path_arg      = s7_car (args);
+  s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
     return string_type_error (sc, "md5-by-file: path must be a string", path_arg);
   }
@@ -164,7 +164,7 @@ glue_md5_file (s7_scheme* sc) {
 
 static s7_pointer
 f_sha1 (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  str_arg      = s7_car (args);
+  s7_pointer str_arg= s7_car (args);
   if (!s7_is_string (str_arg)) {
     return string_type_error (sc, "sha1: parameter must be a string", str_arg);
   }
@@ -192,7 +192,7 @@ glue_sha1 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha1_file (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  path_arg      = s7_car (args);
+  s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
     return string_type_error (sc, "sha1-by-file: path must be a string", path_arg);
   }
@@ -213,7 +213,7 @@ glue_sha1_file (s7_scheme* sc) {
 
 static s7_pointer
 f_sha256 (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  str_arg      = s7_car (args);
+  s7_pointer str_arg= s7_car (args);
   if (!s7_is_string (str_arg)) {
     return string_type_error (sc, "sha256: parameter must be a string", str_arg);
   }
@@ -241,7 +241,7 @@ glue_sha256 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha256_file (s7_scheme* sc, s7_pointer args) {
-  s7_pointer  path_arg      = s7_car (args);
+  s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
     return string_type_error (sc, "sha256-by-file: path must be a string", path_arg);
   }
