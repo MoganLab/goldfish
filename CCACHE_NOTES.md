@@ -190,3 +190,12 @@ spec (syntax record) → 净化 (library→(libref name)) → write-roundtrip
 - 修复后发现 `(liii logging)` 展开失败根因：`core-set!`（core-forms.scm）展开 SRFI-17 广义 set! 时误调 `(expand-list var-stx arg-stxs ctx1)`（3 参），expand-list 只收 2 参 → 修复为 `(expand-list arg-stxs ctx1)`，重新自举生成 artifact
 - **修复后：冷/热加载 100/100 全部成功**，缓存文件 100 个
 - 结论：宏缓存重建对全部 100 个库覆盖正确
+
+## Phase 门控 region（2026-09-08，bba6c5cf + 7b976d4f）
+
+- `eval-when (expand)` / `begin-for-syntax` 的值定义改入专用
+  `*expand-region-library*`，`resolve-identifier` 仅在 phase>=1 回退
+  查它。phase-0 引用即 `unbound-variable` 静态错误（Racket 语义）。
+- 泄漏按构造不可能：删除 `*expand-region-defs*` 记录、
+  两处 `tree-contains-any?` 缓存跳过及相关导出/测试（净删）。
+  两写入点改为无条件缓存（序列化失败仍是唯一跳过条件）。
