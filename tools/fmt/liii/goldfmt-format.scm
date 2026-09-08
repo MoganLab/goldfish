@@ -988,7 +988,7 @@
       (cond ((comment-node? node) (emit-comment! node writer column))
             ((atom? node)
              (let ((left-line (writer-line writer)))
-               (emit-string! writer (format-inline-atom-or-quote (atom-value node)))
+               (emit-string! writer (format-inline-atom-or-quote-at (atom-value node) column))
                (positioned-atom node column left-line (writer-line writer))
              ) ;let
             ) ;

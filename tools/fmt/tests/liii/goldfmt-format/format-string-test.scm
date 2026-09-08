@@ -330,7 +330,7 @@
   #"OUT"(let* ((sid "s1")
        (messages #((("role" . "user") ("content" . "hi"))
                    (("role" . "assistant") ("content" . "ok"))
-                  ) ;#
+                 ) ;#
        ) ;messages
       ) ;
   (foo sid messages)
