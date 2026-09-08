@@ -70,6 +70,9 @@
   (string-cursor-forward "abc" (string-cursor-start "abc") 4)
 ) ;check-catch
 
+;; 测试游标越界报错
+(check-catch 'out-of-range (string-cursor-forward "a" -2000000000 -1))
+
 ;; 测试使用整数索引
 (let* ((s "abc") (fwd (string-cursor-forward s 0 2)))
   (check (string-cursor->index s fwd) => 2)

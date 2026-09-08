@@ -57,6 +57,9 @@
   ) ;let
 ) ;check-catch
 
+;; 测试游标越界报错
+(check-catch 'out-of-range (string-cursor-prev "a" -2000000000))
+
 ;; 测试使用整数索引
 (let* ((s "abc") (prev (string-cursor-prev s 2)))
   (check (string-cursor->index s prev) => 1)
