@@ -13,7 +13,7 @@
 (parse-doc-args '("bin/gf" "doc" "liii/string"))
 
 ;; 示例2：把导出名映射成测试文件 stem
-(exported-name->test-stem "njson-set!")
+(exported-name->test-stem "hash-table-set!")
 
 ;; 示例3：计算模糊匹配编辑距离
 (bounded-levenshtein-distance "string-spilt" "string-split")

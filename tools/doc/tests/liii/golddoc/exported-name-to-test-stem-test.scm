@@ -30,7 +30,7 @@
 
 (check (exported-name->test-stem "string-split") => "string-split")
 (check (exported-name->test-stem "string->list") => "string-to-list")
-(check (exported-name->test-stem "njson-set!") => "njson-set-bang")
+(check (exported-name->test-stem "set-car!") => "set-car-bang")
 (check (exported-name->test-stem "truncate/") => "truncate-slash")
 (check (exported-name->test-stem "hash-table-update!/default")
   =>

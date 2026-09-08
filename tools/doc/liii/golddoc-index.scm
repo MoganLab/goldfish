@@ -18,7 +18,7 @@
   (import (scheme base)
     (liii golddoc-args)
     (liii golddoc-library)
-    (liii njson)
+    (liii json)
     (liii path)
     (liii set)
     (liii string)
@@ -51,7 +51,16 @@
     ) ;define
 
     (define (normalize-object-alist value)
-      (if (equal? value '(())) '() value)
+      (if (or (not (pair? value)) (equal? value '(())))
+        '()
+        (map (lambda (entry)
+               (cons (car entry)
+                 (if (vector? (cdr entry)) (vector->list (cdr entry)) (cdr entry))
+               ) ;cons
+             ) ;lambda
+          value
+        ) ;map
+      ) ;if
     ) ;define
 
     (define (index-entry->library-query entry)
@@ -134,13 +143,12 @@
         ((index-paths (find-function-index-paths)) (merged '()))
         (if (null? index-paths)
           merged
-          (let ((entries (let-njson ((root (file->njson (car index-paths))))
-                           (normalize-object-alist (njson-object->alist root))
-                         ) ;let-njson
-                ) ;entries
-               ) ;
+          (let* ((text (path-read-text (car index-paths)))
+                 (parsed (string->json text))
+                 (entries (normalize-object-alist parsed))
+                ) ;
             (loop (cdr index-paths) (merge-function-index-entries merged entries))
-          ) ;let
+          ) ;let*
         ) ;if
       ) ;let
     ) ;define

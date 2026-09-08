@@ -107,7 +107,6 @@ static string find_goldfish_library ();
 
 static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
 
-void glue_njson (s7_scheme* sc);
 #ifdef GOLDFISH_ENABLE_HTTP
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
@@ -801,7 +800,6 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_char (sc);
   glue_r7rs_library (sc);
   glue_liii_record (sc);
-  glue_njson (sc);
 #ifdef GOLDFISH_ENABLE_HTTP
   glue_http (sc);
   glue_http_async (sc);

@@ -18,7 +18,7 @@
   (import (scheme base)
     (scheme read)
     (liii golddoc-library)
-    (liii njson)
+    (liii json)
     (liii os)
     (liii path)
     (liii sort)
@@ -227,9 +227,7 @@
                ;; 当索引为空时，使用空对象 '(()) 代替空列表
                (normalized-json-value (if (null? json-value) '(()) json-value))
               ) ;
-          (let-njson ((index-json (json->njson normalized-json-value)))
-            (njson->file index-path index-json)
-          ) ;let-njson
+          (path-write-text index-path (json->string normalized-json-value))
         ) ;let*
         index-path
       ) ;let

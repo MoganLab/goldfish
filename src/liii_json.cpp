@@ -748,7 +748,7 @@ f_string_to_json (s7_scheme* sc, s7_pointer args) {
     // 空输入/纯空白输入：保持历史行为返回 eof-object
     return s7_eof_object (sc);
   }
-  // 解析+构造期间关闭 GC（参考 njson 的做法）：解析过程不中断、不回调 Scheme，
+  // 解析+构造期间关闭 GC：解析过程不中断、不回调 Scheme，
   // 中间对象以裸指针暂存于 C++ 容器中安全；结束后恢复
   s7_gc_on (sc, false);
   s7_pointer result= json_parse_value (&p);
