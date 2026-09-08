@@ -226,6 +226,53 @@ s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
   return(s7_make_float_vector(sc, len, 0, NULL));
 }
 
+s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer size = s7_car(args);
+  s7_int len = 0;
+
+  if (s7_is_pair(size))
+    {
+      s7_pointer init;
+      if (s7_is_pair(s7_cdr(args)))
+        {
+          init = s7_cadr(args);
+          if (!s7_is_number(init))
+            return(s7i_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
+        }
+      else init = s7_make_real(sc, 0.0);
+      return(s7i_make_vector_1(sc, s7i_set_plist_2(sc, size, init), s7_make_symbol(sc, "make-complex-vector")));
+    }
+
+  if (!s7_is_integer(size))
+    return(s7i_method_or_bust(sc, size, "make-complex-vector", args, "an integer or a list of integers", 1));
+
+  len = s7_number_to_integer(sc, size);
+  if (len < 0)
+    return(s7_out_of_range_error(sc, "make-complex-vector", 1, size, "it is negative"));
+  if (len > s7i_max_vector_length(sc))
+    return(s7_out_of_range_error(sc, "make-complex-vector", 1, size, "it is too large"));
+
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      s7_pointer init = s7_cadr(args);
+      if (!s7_is_number(init))
+        return(s7i_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
+      {
+        s7_pointer vect = s7_make_complex_vector(sc, len, 0, NULL);
+        s7_complex z = s7i_to_c_complex(init);
+        if (len > 0 && (creal(z) != 0.0 || cimag(z) != 0.0))
+          {
+            s7_complex *complexes = s7_complex_vector_elements(vect);
+            for (s7_int i = 0; i < len; i++) complexes[i] = z;
+          }
+        return(vect);
+      }
+    }
+
+  return(s7_make_complex_vector(sc, len, 0, NULL));
+}
+
 s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_int len = s7_list_length(sc, args);

@@ -45,9 +45,24 @@
   (check-true (complex-vector? v))
 ) ;let
 
+(let ((v (make-complex-vector 3 1.0+2.0i)))
+  (check (complex-vector-ref v 0) => 1.0+2.0i)
+  (check (complex-vector-ref v 2) => 1.0+2.0i)
+) ;let
+
+(let ((mv (make-complex-vector '(2 3) 2.0+3.0i)))
+  (check-true (complex-vector? mv))
+  (check (vector-dimensions mv) => '(2 3))
+  (check (complex-vector-ref mv 1 2) => 2.0+3.0i)
+) ;let
+
 
 (check-catch 'wrong-type-arg (make-complex-vector 'not-a-number))
 (check-catch 'wrong-type-arg (make-complex-vector 3 'not-a-complex))
+(check-catch 'out-of-range (make-complex-vector -1))
+(check-catch 'out-of-range (make-complex-vector -1 1.0+1.0i))
+(check-catch 'wrong-number-of-args (make-complex-vector))
+(check-catch 'wrong-number-of-args (make-complex-vector 1 2 3))
 
 
 (check-report)
