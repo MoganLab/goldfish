@@ -16615,6 +16615,11 @@ s7_int s7i_max_string_length(s7_scheme *sc)
   return(sc->max_string_length);
 }
 
+s7_int s7i_max_vector_length(s7_scheme *sc)
+{
+  return(sc->max_vector_length);
+}
+
 s7_int s7i_max_list_length(s7_scheme *sc)
 {
   return(sc->max_list_length);
@@ -24706,46 +24711,10 @@ static s7_pointer make_int_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 
 
 /* -------------------------------- make-byte-vector -------------------------------- */
-static s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_byte_vector "(make-byte-vector len (byte 0)) makes a byte-vector of length len filled with byte."
-  #define Q_make_byte_vector s7_make_signature(sc, 3, sc->is_byte_vector_symbol, \
-                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_byte_symbol)
-  s7_int len = 0, ib = 0;
-  s7_pointer size = car(args), init;
-
-  if (!is_pair(size))
-    {
-      if (!s7_is_integer(size))
-	return(method_or_bust(sc, size, sc->make_byte_vector_symbol, args, sc->type_names[T_INTEGER], 1));
-      len = s7_integer_clamped_if_gmp(sc, size);
-      if (len < 0)
-	out_of_range_error_nr(sc, sc->make_byte_vector_symbol, int_one, size, it_is_negative_string);
-      if (len > sc->max_vector_length)
-	error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-byte-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 80),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-    }
-  if (is_pair(cdr(args)))
-    {
-      init = cadr(args);
-      if (!s7_is_integer(init))
-	return(method_or_bust(sc, init, sc->make_byte_vector_symbol, args, sc->type_names[T_INTEGER], 2));
-      ib = s7_integer_clamped_if_gmp(sc, init);
-      if ((ib < 0) || (ib > 255))
-	wrong_type_error_nr(sc, sc->make_byte_vector_symbol, 2, init, an_unsigned_byte_string);
-    }
-  else init = int_zero;
-
- if (!s7_is_integer(size))
-   return(s7i_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
- {
-   s7_pointer result = make_simple_byte_vector(sc, len);
-   if (len > 0) /* make-byte-vector 2) should return #u(0 0) so we always need to fill */
-     local_memset((void *)(byte_vector_bytes(result)), ib, len);
-   return(result);
- }
-}
+#define H_make_byte_vector "(make-byte-vector len (byte 0)) makes a byte-vector of length len filled with byte."
+#define Q_make_byte_vector s7_make_signature(sc, 3, sc->is_byte_vector_symbol, \
+                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_byte_symbol)
+/* g_make_byte_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_byte_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 {

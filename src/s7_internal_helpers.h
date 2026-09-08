@@ -85,6 +85,7 @@ s7_int s7i_position_of(const s7_pointer p, s7_pointer args);
 s7_pointer s7i_nil_string(void);
 s7_pointer s7i_make_empty_string(s7_scheme *sc, s7_int len, char fill);
 s7_int s7i_max_string_length(s7_scheme *sc);
+s7_int s7i_max_vector_length(s7_scheme *sc);
 s7_int s7i_max_list_length(s7_scheme *sc);
 
 s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);

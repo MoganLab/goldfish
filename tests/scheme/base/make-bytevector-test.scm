@@ -53,6 +53,10 @@
 (check (make-bytevector 4 0) => #u8(0 0 0 0))
 (check (make-bytevector 3 170) => #u8(170 170 170))
 (check (make-bytevector 8 255) => #u8(255 255 255 255 255 255 255 255))
+;; 多维 bytevector 测试
+(check (bytevector? (make-bytevector '(2 3) 5)) => #t)
+(check (vector-dimensions (make-bytevector '(2 3) 5)) => '(2 3))
+(check (bytevector-u8-ref (make-bytevector '(2 3) 5) 1 2) => 5)
 ;; 错误处理测试
 (check-catch 'out-of-range (make-bytevector -5))
 (check-catch 'wrong-type-arg (make-bytevector 3 256))

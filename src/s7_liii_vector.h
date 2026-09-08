@@ -23,6 +23,7 @@ s7_pointer g_is_byte_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_is_complex_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_string_to_byte_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args);
+s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_int_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args);
