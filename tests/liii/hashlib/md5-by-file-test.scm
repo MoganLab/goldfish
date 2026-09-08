@@ -43,6 +43,8 @@
   (delete-file tmp-file)
 ) ;let
 
-
+;; 异常情况测试：非字符串参数
+(check-catch 'type-error (md5-by-file #\a))
+(check-catch 'type-error (md5-by-file 123))
 
 (check-report)

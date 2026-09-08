@@ -143,7 +143,11 @@ glue_md5 (s7_scheme* sc) {
 
 static s7_pointer
 f_md5_file (s7_scheme* sc, s7_pointer args) {
-  const char* path          = s7_string (s7_car (args));
+  s7_pointer  path_arg      = s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "md5-by-file: path must be a string", path_arg);
+  }
+  const char* path          = s7_string (path_arg);
   tb_char_t   hex_output[33]= {0};
   if (!md5_file_to_hex (path, hex_output)) {
     return s7_make_boolean (sc, false);
@@ -160,7 +164,11 @@ glue_md5_file (s7_scheme* sc) {
 
 static s7_pointer
 f_sha1 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
+  s7_pointer  str_arg      = s7_car (args);
+  if (!s7_is_string (str_arg)) {
+    return string_type_error (sc, "sha1: parameter must be a string", str_arg);
+  }
+  const char* search_string= s7_string (str_arg);
   tb_size_t   len          = tb_strlen (search_string);
   tb_byte_t   digest[20];
   tb_char_t   hex_output[41]= {0};
@@ -184,7 +192,11 @@ glue_sha1 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha1_file (s7_scheme* sc, s7_pointer args) {
-  const char* path          = s7_string (s7_car (args));
+  s7_pointer  path_arg      = s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "sha1-by-file: path must be a string", path_arg);
+  }
+  const char* path          = s7_string (path_arg);
   tb_char_t   hex_output[41]= {0};
   if (!sha_file_to_hex (path, 160, 20, hex_output)) {
     return s7_make_boolean (sc, false);
@@ -201,7 +213,11 @@ glue_sha1_file (s7_scheme* sc) {
 
 static s7_pointer
 f_sha256 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
+  s7_pointer  str_arg      = s7_car (args);
+  if (!s7_is_string (str_arg)) {
+    return string_type_error (sc, "sha256: parameter must be a string", str_arg);
+  }
+  const char* search_string= s7_string (str_arg);
   tb_size_t   len          = tb_strlen (search_string);
   tb_byte_t   digest[32];
   tb_char_t   hex_output[65]= {0};
@@ -225,7 +241,11 @@ glue_sha256 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha256_file (s7_scheme* sc, s7_pointer args) {
-  const char* path          = s7_string (s7_car (args));
+  s7_pointer  path_arg      = s7_car (args);
+  if (!s7_is_string (path_arg)) {
+    return string_type_error (sc, "sha256-by-file: path must be a string", path_arg);
+  }
+  const char* path          = s7_string (path_arg);
   tb_char_t   hex_output[65]= {0};
   if (!sha_file_to_hex (path, 256, 32, hex_output)) {
     return s7_make_boolean (sc, false);

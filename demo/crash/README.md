@@ -21,11 +21,7 @@ s7 的字符是标记立即数，`s7_string` 底层 `(T_Str(p))->object.string.s
 
 | 文件 | 触发代码 | 信号 | 根因 |
 |---|---|---|---|
-| p02-hashlib-sha256-char.scm | `(import (liii hashlib)) (sha256 #\a)` | SIGSEGV | 同上 |
 | p03-os-unsetenv-char.scm | `(import (liii os)) (unsetenv #\a)` | SIGSEGV | `os.scm` 的 `unsetenv` 直接透传 `g_unsetenv` |
-
-注：`(liii hashlib)` 的 `sha1`/`sha256`/`md5-by-file`/`sha1-by-file`/`sha256-by-file`
-与 `md5` 同构，均裸透传。
 
 ## C 层入口（g_*）崩溃 — os 模块（liii_os.cpp）
 
@@ -49,16 +45,6 @@ s7 的字符是标记立即数，`s7_string` 底层 `(T_Str(p))->object.string.s
 | c23-g_path-read-text-char.scm | `(g_path-read-text #\a)` | SIGSEGV |
 | c24-g_path-read-bytes-char.scm | `(g_path-read-bytes #\a)` | SIGSEGV |
 | c25-g_path-copy-char.scm | `(g_path-copy #\a "x")` | SIGSEGV |
-
-## C 层入口 — hashlib 模块（liii_hashlib.cpp）
-
-| 文件 | 触发代码 | 信号 |
-|---|---|---|
-| c27-g_md5-by-file-char.scm | `(g_md5-by-file #\a)` | SIGSEGV |
-| c28-g_sha1-char.scm | `(g_sha1 #\a)` | SIGSEGV |
-| c29-g_sha1-by-file-char.scm | `(g_sha1-by-file #\a)` | SIGSEGV |
-| c30-g_sha256-char.scm | `(g_sha256 #\a)` | SIGSEGV |
-| c31-g_sha256-by-file-char.scm | `(g_sha256-by-file #\a)` | SIGSEGV |
 
 ## C 层入口 — http 模块（liii_http.cpp）
 
@@ -86,7 +72,8 @@ http 崩溃仅能从根环境 `g_http-*` 直接触发。
   已在 devel/0144.md 修复。
 - `c11-g_listdir-integer.scm`（g_listdir 传入非字符串 abort）
   已在 devel/0145.md 修复。
-- `c26-g_md5-char.scm`（g_md5 传入非字符串段错误，同时修复公开接口 `md5` 的 `p01-hashlib-md5-char.scm`）
+- `c26-g_md5-char.scm` ~ `c31-g_sha256-by-file-char.scm`、`p01`、`p02`
+  （hashlib 模块全部 6 个 C 胶水函数 `g_md5`、`g_md5-by-file`、`g_sha1`、`g_sha1-by-file`、`g_sha256`、`g_sha256-by-file` 及公开包装传入非字符串段错误）
   已在 devel/0147.md 修复。
 
 ## 仍然有效的旧发现
