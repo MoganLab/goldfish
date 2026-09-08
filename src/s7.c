@@ -24153,28 +24153,7 @@ s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_p
   return(val);
 }
 
-static s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer i1, i2;
-  s7_int ix, iy;
-
-  if (!is_any_vector(vec)) return(g_vector_ref(sc, args));
-  if (vector_rank(vec) != 2) return(g_vector_ref(sc, args));
-  i1 = cadr(args);
-  if (!s7_is_integer(i1)) return(g_vector_ref(sc, args));
-  i2 = caddr(args);
-  if (!s7_is_integer(i2)) return(g_vector_ref(sc, args));
-  ix = s7_integer_clamped_if_gmp(sc, i1);
-  iy = s7_integer_clamped_if_gmp(sc, i2);
-  if ((ix >= 0) && (iy >= 0) &&
-      (ix < vector_dimension(vec, 0)) && (iy < vector_dimension(vec, 1)))
-    {
-      s7_int index = (ix * vector_offset(vec, 0)) + iy; /* vector_offset(vec, 1) == 1 */
-      return(vector_getter(vec)(sc, vec, index));
-    }
-  return(g_vector_ref(sc, args));
-}
+/* g_vector_ref_3 migrated to s7_liii_vector.c */
 
 static s7_pointer vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {

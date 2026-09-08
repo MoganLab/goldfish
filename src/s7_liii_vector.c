@@ -494,6 +494,29 @@ s7_pointer g_vector_ref_2(s7_scheme *sc, s7_pointer args)
   return(s7i_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
 }
 
+s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer vec = s7_car(args);
+  s7_pointer i1, i2;
+  s7_int ix, iy;
+
+  if (!s7i_is_any_vector(vec)) return(g_vector_ref(sc, args));
+  if (s7_vector_rank(vec) != 2) return(g_vector_ref(sc, args));
+  i1 = s7_cadr(args);
+  if (!s7_is_integer(i1)) return(g_vector_ref(sc, args));
+  i2 = s7_caddr(args);
+  if (!s7_is_integer(i2)) return(g_vector_ref(sc, args));
+  ix = s7_number_to_integer(sc, i1);
+  iy = s7_number_to_integer(sc, i2);
+  if ((ix >= 0) && (iy >= 0) &&
+      (ix < s7_vector_dimension(vec, 0)) && (iy < s7_vector_dimension(vec, 1)))
+    {
+      s7_int index = (ix * s7i_vector_offset(vec, 0)) + iy;
+      return(s7i_vector_getter_ref(sc, vec, index));
+    }
+  return(g_vector_ref(sc, args));
+}
+
 s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_complex_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));

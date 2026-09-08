@@ -29,6 +29,20 @@
 (check (vector-ref #(a b c) 2) => 'c)
 (check (vector-ref #(1) 0) => 1)
 (check (vector-ref #("x" "y") 1) => "y")
+
+;; 二维向量测试（覆盖 g_vector_ref_3）
+(let ((m (make-vector '(2 3) 0)))
+  (vector-set! m 0 1 42)
+  (vector-set! m 1 2 99)
+  (check (vector-ref m 0 1) => 42)
+  (check (vector-ref m 1 2) => 99)
+  (check-catch 'out-of-range (vector-ref m -1 0))
+  (check-catch 'out-of-range (vector-ref m 2 0))
+  (check-catch 'out-of-range (vector-ref m 0 3))
+  (check-catch 'wrong-type-arg (vector-ref m "0" 1))
+  (check-catch 'wrong-type-arg (vector-ref m 0 "1"))
+) ;let
+
 (check-catch 'wrong-number-of-args (vector-ref #(1)))
 (check-catch 'wrong-type-arg (vector-ref '() 0))
 (check-catch 'wrong-type-arg (vector-ref #(1) 'a))
