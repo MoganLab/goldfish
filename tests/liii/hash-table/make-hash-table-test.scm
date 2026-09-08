@@ -57,4 +57,24 @@
 (check-catch 'type-error (make-hash-table 1))
 
 
+(let* ((count 0)
+       (faulty-hash (lambda (x)
+                      (set! count (+ count 1))
+                      (if (= count 1) (error 'hash-fault "temporary hash error") 1)
+                    ) ;lambda
+       ) ;faulty-hash
+       (comp (make-comparator number? = #f faulty-hash))
+       (ht (make-hash-table comp))
+      ) ;
+  (catch 'hash-fault
+    (lambda () (hash-table-set! ht 10 'val1))
+    (lambda (type info) #f)
+  ) ;catch
+  (hash-table-set! ht 20 'val2)
+  (check (hash-table-ref ht 20) => 'val2)
+) ;let*
+
+
+
+
 (check-report)
