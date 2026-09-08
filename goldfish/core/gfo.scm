@@ -137,7 +137,15 @@
               (loop (+ j 1)))))))))
 
 (define (gfo-stamp path)
-  (list (g_path-getmtime path) (g_path-getsize path)))
+  ;; mtime is second-granular: a same-second same-size rewrite (a
+  ;; single-character edit) would otherwise stale-hit with the old
+  ;; content.  The content hash closes that window; when it cannot be
+  ;; computed (unreadable file) the pair degrades to the old shape and
+  ;; the caller errors on the missing source anyway.
+  (let ((md5 (g_md5-by-file path)))
+    (if md5
+        (list (g_path-getmtime path) (g_path-getsize path) md5)
+        (list (g_path-getmtime path) (g_path-getsize path)))))
 
 ;;; gfo-format-version : cache record layout version.  A record carrying a
 ;;; different version is a cache miss and regenerates (users never clear

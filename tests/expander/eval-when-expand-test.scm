@@ -148,4 +148,17 @@
   (check (tree-contains-any? datum (expand-region-defs)) => #f))
 (delete-file src6)
 
+;; ===== 7. 同秒同大小改写：内容哈希戳防陈旧命中 =====
+;; mtime 是秒级：单字符改写（同字节长度、同一秒内）曾会陈旧命中旧缓存。
+;; gfo-stamp 现含内容 md5，改写后必须重编译出新值。
+(define src7 (write-program "ewx-7" "(import (goldfish))\n(define v 1)\n"))
+(clear-artifact! src7)
+(check (datum-contains? (syntax->datum (compile-file-cached src7)) 1) => #t)
+;; 同字节长度改写：1 -> 2
+(write-program "ewx-7" "(import (goldfish))\n(define v 2)\n")
+(let ((datum (syntax->datum (compile-file-cached src7))))
+  (check (datum-contains? datum 2) => #t)
+  (check (datum-contains? datum 1) => #f))
+(delete-file src7)
+
 (check-report)

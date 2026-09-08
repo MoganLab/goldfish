@@ -133,8 +133,12 @@
                     (exp-library-add-use! lib (base-library))))
            (artifact (or (load-find-module-file "expander/kernel-combined.scm")
                          "expander/kernel-combined.scm"))
+           ;; Content hashes close the same-second same-size stale-hit
+           ;; window (mtimes are second-granular); same as gfo-stamp.
            (stamp (list (g_path-getmtime file) (g_path-getsize file)
-                        (g_path-getmtime artifact) (g_path-getsize artifact))))
+                        (g_md5-by-file file)
+                        (g_path-getmtime artifact) (g_path-getsize artifact)
+                        (g_md5-by-file artifact))))
       (let ((gfo-file (gfo-path path)))
         (let ((payload (gfo-load gfo-file stamp)))
           (if payload
