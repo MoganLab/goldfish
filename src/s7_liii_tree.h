@@ -17,6 +17,7 @@ extern "C" {
 s7_pointer g_tree_is_cyclic(s7_scheme *sc, s7_pointer args);
 s7_pointer g_tree_leaves(s7_scheme *sc, s7_pointer args);
 s7_pointer g_tree_memq(s7_scheme *sc, s7_pointer args);
+s7_pointer g_tree_member(s7_scheme *sc, s7_pointer args);
 s7_pointer g_tree_set_memq(s7_scheme *sc, s7_pointer args);
 s7_pointer g_tree_set_memq_syms(s7_scheme *sc, s7_pointer args);
 s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args);
@@ -31,6 +32,8 @@ bool s7_tree_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
 bool tree_memq_1(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
 bool tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
 bool tree_including_quote_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree);
+
+bool tree_member(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_pointer compare);
 
 bool tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
 s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
@@ -49,6 +52,9 @@ s7_int tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_in
 
 #define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
 #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
+
+#define H_tree_member "(tree-member obj tree [compare]) returns #t if obj is in tree, using compare (defaulting to equal?)"
+#define Q_tree_member s7_make_signature(sc, 4, sc->is_boolean_symbol, sc->T, sc->is_list_symbol, sc->is_procedure_symbol)
 
 #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
 #define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
