@@ -119,6 +119,13 @@ bin/gf tests/goldfish/liii/xxx-test.scm
 ;; Licensed under the Apache License, Version 2.0 ...
 ```
 
+### 类型错误命名规范
+对于新增的代码，优先使用 `type-error` 而不是 `wrong-type-arg`：
+- `type-error` 命名更规范且容易记忆，符合 Goldfish Scheme 错误体系规范
+- 在 Scheme 包装层使用 `(type-error ...)`
+- 在 C/C++ 胶水层使用 `s7_error(sc, s7_make_symbol(sc, "type-error"), ...)`
+- 测试用例使用 `(check-catch 'type-error ...)`
+
 ### define-case-class 使用建议
 `define-case-class` 通过宏实现，有显著的性能开销：
 - 方法调用需要通过字符串匹配和动态查找
