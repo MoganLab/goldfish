@@ -1010,6 +1010,10 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
     p   = s7_cdr (p);
   }
   s7_gc_unprotect_via_stack (sc, head);
+  if (s7_is_pair (tail)) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+  }
   return head;
 }
 
@@ -1317,6 +1321,10 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
     p   = s7_cdr (p);
   }
   s7_gc_unprotect_via_stack (sc, head);
+  if (s7_is_pair (tail)) {
+    return s7_error (sc, s7_make_symbol (sc, "value-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "JSON object modified during iteration"), x));
+  }
   return head;
 }
 
