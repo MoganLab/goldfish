@@ -682,9 +682,39 @@ s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args)
   return(s7i_complex_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
 }
 
+s7_pointer g_float_vector_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_univect_ref_float(sc, args));
+}
+
 s7_pointer g_fv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_float_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_fv_ref_3(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer fv = s7_car(args);
+  s7_pointer index;
+  s7_int ind1, ind2;
+  if (!s7_is_float_vector(fv))
+    return(s7i_method_or_bust(sc, fv, "float-vector-ref", args, "a float-vector", 1));
+  if (s7_vector_rank(fv) != 2)
+    return(s7i_univect_ref_float(sc, args));
+  index = s7_cadr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 2));
+  ind1 = s7_number_to_integer(sc, index);
+  if ((ind1 < 0) || (ind1 >= s7_vector_dimension(fv, 0)))
+    return(s7_out_of_range_error(sc, "float-vector-ref", 2, index, (ind1 < 0) ? "it is negative" : "it is too large"));
+  index = s7_caddr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 3));
+  ind2 = s7_number_to_integer(sc, index);
+  if ((ind2 < 0) || (ind2 >= s7_vector_dimension(fv, 1)))
+    return(s7_out_of_range_error(sc, "float-vector-ref", 3, index, (ind2 < 0) ? "it is negative" : "it is too large"));
+  ind1 = ind1 * s7i_vector_offset(fv, 0) + ind2;
+  return(s7_make_real(sc, s7_float_vector_ref(fv, ind1)));
 }
 
 s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args)

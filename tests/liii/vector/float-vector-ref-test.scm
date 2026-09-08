@@ -55,6 +55,17 @@
   (check (float-vector-ref v 2) => 3.0)
 ) ;let
 
+;; 二维 float-vector 读取测试（覆盖 g_fv_ref_3）
+(let ((m (make-float-vector '(2 3) 1.25)))
+  (check (float-vector-ref m 0 0) => 1.25)
+  (check (float-vector-ref m 1 2) => 1.25)
+  (check-catch 'out-of-range (float-vector-ref m -1 0))
+  (check-catch 'out-of-range (float-vector-ref m 2 0))
+  (check-catch 'out-of-range (float-vector-ref m 0 3))
+  (check-catch 'wrong-type-arg (float-vector-ref m "0" 1))
+  (check-catch 'wrong-type-arg (float-vector-ref m 0 "1"))
+) ;let
+
 
 (check-catch 'wrong-type-arg (float-vector-ref 'not-a-vector 0))
 (check-catch 'wrong-type-arg (float-vector-ref (vector 1.0 2.0 3.0) 0))
