@@ -51,6 +51,7 @@
 
 (check-catch 'out-of-range (vector-copy! b -1 a))
 (check-catch 'out-of-range (vector-copy! b 0 a -1))
+(check-catch 'out-of-range (vector-copy! b 0 a -1 0))
 (check-catch 'out-of-range (vector-copy! b 0 a 6))
 (check-catch 'out-of-range (vector-copy! b 0 a 0 6))
 (check-catch 'out-of-range (vector-copy! b 0 a 2 1))
