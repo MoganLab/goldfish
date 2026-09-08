@@ -930,6 +930,11 @@ s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
   return(s7i_float_multivector_1(sc, dims, data));
 }
 
+s7_pointer g_complex_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+{
+  return(s7i_complex_multivector_1(sc, dims, data));
+}
+
 s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);

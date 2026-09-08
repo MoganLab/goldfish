@@ -43,4 +43,12 @@
   (check (float-vector-ref m 1 1) => 4.5)
 ) ;let
 
+;; 多维 complex-vector 字面量 #2c(...)
+(let ((m (eval-string "#2c((1.0+2.0i 3.0+4.0i) (5.0+6.0i 7.0+8.0i))")))
+  (check (complex-vector? m) => #t)
+  (check (vector-dimensions m) => '(2 2))
+  (check (complex-vector-ref m 0 0) => 1.0+2.0i)
+  (check (complex-vector-ref m 1 1) => 7.0+8.0i)
+) ;let
+
 (check-report)

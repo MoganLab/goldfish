@@ -73,6 +73,7 @@ s7_pointer g_multivector(s7_scheme *sc, s7_int dims, s7_pointer data);
 s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data);
 s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data);
 s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer g_complex_multivector(s7_scheme *sc, s7_int dims, s7_pointer data);
 s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args);
 
 #if !WITH_PURE_S7
