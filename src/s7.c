@@ -24494,69 +24494,10 @@ It is a function that checks the new value, returning #f if the value is not acc
 
 
 /* -------------------------------- make-float-vector -------------------------------- */
-static s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_float_vector "(make-float-vector len (init 0.0)) returns a float-vector."
-  #define Q_make_float_vector s7_make_signature(sc, 3, \
-                                sc->is_float_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_real_symbol)
-  s7_pointer size = car(args); /* can be a pair if multiple dimensions */
-  s7_int len;
-
-  if ((is_pair(cdr(args))) || (!s7_is_integer(size)))
-    {
-      s7_pointer init;
-      if (is_pair(cdr(args)))
-	{
-	  init = cadr(args);
-	  if (!is_real(init))
-	    return(method_or_bust(sc, init, sc->make_float_vector_symbol, args, sc->type_names[T_REAL], 2));
-	  if (is_rational(init))
-	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
-	}
-      else init = real_zero;
-      if (s7_is_integer(size))
-	len = s7_integer_clamped_if_gmp(sc, size);
-      else
-	{
-	  if (!is_pair(size))
-	    return(method_or_bust(sc, size, sc->make_float_vector_symbol, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
-	  len = multivector_length(sc, size, sc->make_float_vector_symbol);
-	}
-      {
-	s7_pointer vect = make_vector_1(sc, len, NOT_FILLED, T_FLOAT_VECTOR);
-	float_vector_fill(vect, s7_real(init));
-	if (!s7_is_integer(size))
-	  return(make_multivector(sc, vect, size));
-	add_vector(sc, vect);
-	return(vect);
-      }}
-  len = s7_integer_clamped_if_gmp(sc, size);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_float_vector_symbol, int_one, size, it_is_negative_string);
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-float-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 81),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-  {
-    block_t *arr = mallocate_vector(sc, len * sizeof(s7_double));
-    s7_pointer vect;
-    new_cell(sc, vect, T_FLOAT_VECTOR | T_SAFE_PROCEDURE);
-    vector_length(vect) = len;
-    vector_block(vect) = arr;
-    float_vector_floats(vect) = (s7_double *)block_data(arr);
-    if (len > 0)
-      {
-	if (STEP_8(len))
-	  memclr64((void *)float_vector_floats(vect), len * sizeof(s7_double));
-	else memclr((void *)float_vector_floats(vect), len * sizeof(s7_double));
-      }
-    vector_set_dimension_info(vect, NULL);
-    vector_getter(vect) = float_vector_getter;
-    vector_setter(vect) = float_vector_setter;
-    add_vector(sc, vect);
-    return(vect);
-  }
-}
+#define H_make_float_vector "(make-float-vector len (init 0.0)) returns a float-vector."
+#define Q_make_float_vector s7_make_signature(sc, 3, \
+                              sc->is_float_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_real_symbol)
+/* g_make_float_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_float_vector_p_pp(s7_scheme *sc, s7_pointer len, s7_pointer fill)
 {
