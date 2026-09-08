@@ -164,13 +164,13 @@
 
     (define hash-table-for-each
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (x) (proc (car x) (cdr x))) ht)
+        (for-each (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
       ) ;typed-lambda
     ) ;define
 
     (define hash-table-map->list
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (map (lambda (x) (proc (car x) (cdr x))) ht)
+        (map (lambda (entry) (proc (car entry) (cdr entry))) (map values ht))
       ) ;typed-lambda
     ) ;define
 
