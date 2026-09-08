@@ -19,6 +19,11 @@
 
 namespace goldfish {
 
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
   s7_pointer cur_env= s7_curlet (sc);
@@ -110,7 +115,11 @@ sha_file_to_hex (const char* path, tb_size_t mode, tb_size_t digest_size, tb_cha
 
 static s7_pointer
 f_md5 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
+  s7_pointer  str_arg      = s7_car (args);
+  if (!s7_is_string (str_arg)) {
+    return string_type_error (sc, "md5: parameter must be a string", str_arg);
+  }
+  const char* search_string= s7_string (str_arg);
   tb_size_t   len          = tb_strlen (search_string);
   tb_byte_t   digest[16];
   tb_char_t   hex_output[33]= {0};
