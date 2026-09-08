@@ -79,6 +79,10 @@
 ;; 第一个参数必须是正规列表
 (check-catch 'type-error (string-join "ab" ":"))
 (check-catch 'type-error (string-join '("a" . "b") ":"))
+(let ((cl (list "a" "b")))
+  (set-cdr! (cdr cl) cl)
+  (check-catch 'type-error (string-join cl ":"))
+) ;let
 
 ;; 空字符串元素边界测试
 (check (string-join '("" "") ":") => ":")
