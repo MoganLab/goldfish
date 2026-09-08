@@ -30,4 +30,7 @@
 (check-catch 'value-error (string-cursor-diff "abc" -1 2))
 (check-catch 'value-error (string-cursor-diff "abc" 0 -1))
 
+;; 测试游标越界报错
+(check-catch 'out-of-range (string-cursor-diff "a" -2 -2000000002))
+
 (check-report)
