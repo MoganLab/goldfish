@@ -24489,7 +24489,8 @@ static no_return void multivector_error_nr(s7_scheme *sc, const char *message, s
 		       s7_make_string_wrapper(sc, message), data));
 }
 
-static s7_pointer g_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   /* get the dimension bounds from data, make the new vector, fill it from data
    * dims needs to be s7_int so we can at least give correct error messages.
