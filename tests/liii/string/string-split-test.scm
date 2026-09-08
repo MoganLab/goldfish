@@ -102,4 +102,17 @@
 (check-catch 'wrong-number-of-args (string-split "abc"))
 (check-catch 'wrong-number-of-args (string-split "abc" "," "extra"))
 
+;; GC 压力与大量切片完整性测试
+(let* ((n 10000) (src (make-string n #\,)) (res (string-split src ",")))
+  (check (length res) => (+ n 1))
+  (check-true (let loop
+                ((lst res))
+                (cond ((null? lst) #t)
+                      ((not (string-null? (car lst))) #f)
+                      (else (loop (cdr lst)))
+                ) ;cond
+              ) ;let
+  ) ;check-true
+) ;let*
+
 (check-report)
