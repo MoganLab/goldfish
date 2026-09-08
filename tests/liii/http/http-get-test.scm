@@ -1,13 +1,25 @@
 (import (liii check) (liii http) (liii string) (liii os) (scheme file))
 
+(check-set-mode! 'report-failed)
+
+;; 公开接口 http-get 参数类型测试 (devel/0149.md)
+(check-catch 'type-error (http-get 42))
+(check-catch 'type-error (http-get #\a))
+(check-catch 'type-error (http-get 'invalid))
+(check-catch 'type-error (http-get "http://x/" :params 42))
+(check-catch 'type-error (http-get "http://x/" :params '(42)))
+(check-catch 'type-error (http-get "http://x/" :headers 42))
+(check-catch 'type-error (http-get "http://x/" :headers '(42)))
+(check-catch 'type-error (http-get "http://x/" :proxy 42))
+(check-catch 'type-error (http-get "http://x/" :proxy '(42)))
+
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
   (when (not env)
+    (check-report)
     (exit 0)
   ) ;when
 ) ;let
-
-(check-set-mode! 'report-failed)
 
 (define (binary-file-size path)
   (let ((port (open-binary-input-file path)))
@@ -133,11 +145,8 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-get "https://jsonplaceholder.typicode.com/posts/1"
-              :stream
-              #t
-              :output-file
-              output-file
+            (http-get "https://jsonplaceholder.typicode.com/posts/1" :stream #t
+              :output-file output-file
             ) ;http-get
           ) ;begin
        ) ;r
@@ -180,11 +189,8 @@
             (when (file-exists? output-file)
               (delete-file output-file)
             ) ;when
-            (http-get "https://proof.ovh.net/files/1Mb.dat"
-              :stream
-              #t
-              :output-file
-              output-file
+            (http-get "https://proof.ovh.net/files/1Mb.dat" :stream #t
+              :output-file output-file
             ) ;http-get
           ) ;begin
        ) ;r
