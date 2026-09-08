@@ -78,7 +78,9 @@
     ) ;define
 
     (define (hash-table-ref/default ht key default)
-      (or (hash-table-ref ht key) (if (procedure? default) (default) default))
+      (or (hash-table-ref ht key)
+        (if (and (procedure? default) (aritable? default 0)) (default) default)
+      ) ;or
     ) ;define
 
     (define (hash-table-set! ht . rest)
