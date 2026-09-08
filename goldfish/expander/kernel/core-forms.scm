@@ -529,13 +529,49 @@
 ;;;     the program is loaded / when eval'd).
 ;;; At least one situation must be present.
 
-;;; Expand-time region library: eval-when (expand) / begin-for-syntax
-;;; defines install here, never into the enclosing library's buckets.
-;;; A phase-0 reference to a region name therefore misses (unbound)
-;;; instead of resolving through the source-name fallback -- region
-;;; bindings are visible only at phase+1 via the threaded store.
+;;; Compilation-unit dynamic extent.
+;;;
+;;; A compilation unit (one program/library/boot file compile, one file
+;;; load, one eval) binds a fresh expand-time environment and a fresh
+;;; region library via call-with-fresh-expand-unit:
+;;;   expand env     -- an s7 inlet chained to the-expander-library, so
+;;;      the expander API stays a live view; region defines and
+;;;      transformer procedures evaluate here, hence same-named gensyms
+;;;      from different units never share a binding.
+;;;   region library -- the exp-library holding the unit's phase+1
+;;;      (eval-when (expand) / begin-for-syntax) value bindings,
+;;;      consulted only at phase >= 1 (see resolve-identifier).
+;;; Leaf entry points outside any unit (expand-eval, the REPL) inherit
+;;; the shared roots: the-expander-library and *boot-region-library*.
 
-(define *expand-region-library* (make-exp-library '(expand-region)))
+(define *unit-expand-env* #f)
+(define *unit-region-library* #f)
+
+(define *boot-region-library* (make-exp-library '(expand-region)))
+
+(define-public (current-expand-env)
+  (or *unit-expand-env* the-expander-library))
+
+(define-public (current-region-library)
+  (or *unit-region-library* *boot-region-library*))
+
+(define-public (call-with-fresh-expand-unit thunk)
+  ;; Bind the unit's expand env and region library for thunk's dynamic
+  ;; extent.  Old values are saved and restored, so units nest (a load
+  ;; triggered during another unit's expansion is a unit of its own and
+  ;; the outer one resumes afterwards).
+  (let ((env (sublet the-expander-library))
+        (region-lib (make-exp-library '(expand-region)))
+        (outer-env *unit-expand-env*)
+        (outer-region *unit-region-library*))
+    (dynamic-wind
+      (lambda ()
+        (set! *unit-expand-env* env)
+        (set! *unit-region-library* region-lib))
+      thunk
+      (lambda ()
+        (set! *unit-expand-env* outer-env)
+        (set! *unit-region-library* outer-region)))))
 
 (define (eval-when-expand! exprs ctx . maybe-lib)
   ;; Evaluate each expr at phase+1 in the implementation environment,
@@ -577,15 +613,15 @@
                              ;; macros (define-syntax below) still
                              ;; register there.
                              (expand-library-body (list (car es))
-                                                  *expand-region-library*
+                                                  (current-region-library)
                                                   c)))
-               ;; Each def is a syntax object: lower individually (a raw
-               ;; (cons 'begin defs) spine mixes datums and syntax objects,
-               ;; which lower passes through unstripped -- s7 would then
-               ;; eval syntax objects as no-ops and nothing gets bound).
+                ;; Each def is a syntax object: lower individually (a raw
+                ;; (cons 'begin defs) spine mixes datums and syntax objects,
+                ;; which lower passes through unstripped -- s7 would then
+                ;; eval syntax objects as no-ops and nothing gets bound).
                 (for-each
                   (lambda (d)
-                    (eval (lower d) the-expander-library))
+                    (eval (lower d) (current-expand-env)))
                   defs)
                (loop (cdr es) c1)))
             ((eq? head 'define-syntax)
@@ -599,9 +635,12 @@
                                   (car es) (syntax-library (car es)) c0)))
                (loop (cdr es) (context-at-phase c1 (+ ph 1)))))
             (else
-             (let*-values (((sexp c1) (expand-expr (car es) c)))
-               (eval (lower sexp) the-expander-library)
-               (loop (cdr es) c1)))))))))
+              (let*-values (((sexp c1) (expand-expr (car es) c)))
+                ;; Effects on shared state (set! of a rootlet variable)
+                ;; resolve through the unit env's outlet chain; genuinely
+                ;; new expand-time bindings belong to the unit alone.
+                (eval (lower sexp) (current-expand-env))
+                (loop (cdr es) c1)))))))))
 
 (define (check-eval-when-situations sit-datum stx)
   (for-each
@@ -611,9 +650,9 @@
     sit-datum))
 
 ;;; Expand-time (eval-when (expand) / begin-for-syntax) definitions are
-;;; session-local: their values exist only in the compiling process.
-;;; No leak check is needed -- region bindings live in
-;;; *expand-region-library*, visible only at phase >= 1, so a phase-0
+;;; session-local: their values exist only in the compiling unit's
+;;; expand env.  No leak check is needed -- region bindings live in the
+;;; unit's region library, visible only at phase >= 1, so a phase-0
 ;;; artifact cannot name them (such a reference fails loudly at
 ;;; expansion time instead).
 

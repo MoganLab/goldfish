@@ -110,12 +110,11 @@
             ;; bare core references (lambda/letrec*/...); those resolve
             ;; against the base substrate directly.
             ;;
-            ;; Expand-time region bindings (eval-when (expand) /
-            ;; begin-for-syntax defines, kept in
-            ;; *expand-region-library*) are visible only at phase >= 1:
-            ;; sibling transformer bodies resolve them here by source
-            ;; name (their store scopes do not line up across the
-            ;; region boundary, and env entries do not survive
+            ;; Expand-time region bindings (the unit's region library,
+            ;; see call-with-fresh-expand-unit) are visible only at
+            ;; phase >= 1: sibling transformer bodies resolve them here
+            ;; by source name (their store scopes do not line up across
+            ;; the region boundary, and env entries do not survive
             ;; context-return).  Phase-0 references miss, so no
             ;; session-local gensym leaks into a cached artifact.
             (if lib
@@ -124,7 +123,7 @@
                                  (exp-library-ref lib (syntax-form stx)))))
                   (if (or found (zero? (context-phase ctx)))
                     (values name found)
-                    (values name (exp-library-ref-own *expand-region-library*
+                    (values name (exp-library-ref-own (current-region-library)
                                                      (syntax-form stx)))))
                 (let ((bl (base-library)))
                   (values name (and bl (exp-library-ref-own bl name))))))))))

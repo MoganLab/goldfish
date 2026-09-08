@@ -44,11 +44,12 @@
 ;;; (syntax-rules, and syntax-case in transformer position) are first desugared
 ;;; to a procedural transformer; the result is then expanded at phase+1
 ;;; (phases-model let-syntax rule), lowered to core Scheme, and evaluated
-;;; to a procedure in the expander API module (s7 eval falls back to
-;;; rootlet for names the module does not define).  The lowered core
-;;; S-expression is returned as a third value so library installs can
-;;; cache the transformer (the only serializable form of a transformer;
-;;; cf. Racket's direct-eval, which likewise evaluates simple transformer
+;;; to a procedure in the current unit's expand env (s7 eval falls back
+;;; through its outlet chain to the-expander-library and the rootlet for
+;;; names the unit does not define).  The lowered core S-expression is
+;;; returned as a third value so library installs can cache the
+;;; transformer (the only serializable form of a transformer; cf.
+;;; Racket's direct-eval, which likewise evaluates simple transformer
 ;;; expressions without compiling them).
 
 (define-public (eval-transformer stx ctx)
@@ -57,7 +58,7 @@
          (ctx-up (context-at-phase ctx (+ ph 1))))
     (let*-values (((sexp ctx2) (expand-expr stx ctx-up)))
       (let* ((lowered (lower sexp)))
-        (let ((proc (eval lowered the-expander-library)))
+        (let ((proc (eval lowered (current-expand-env))))
           (unless (procedure? proc)
             (error "eval-transformer: transformer must evaluate to a procedure"
                    (syntax->datum stx)))
