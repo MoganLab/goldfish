@@ -72,5 +72,9 @@
 (check-catch 'type-error (g_listdir 'dir))
 (check-catch 'type-error (g_listdir #t))
 
+;; ; 空字符串路径防越界读取回归测试 (devel/0145.md)
+(check (g_listdir "") => #())
+
+
 
 (check-report)
