@@ -66,5 +66,11 @@
   #t
 ) ;check
 
+;; 比较器与元素类型不匹配时，哈希路径下不匹配的元素静默保留（不报错）(devel/0156.md)
+;; 注意：这是哈希优化带来的语义变化，修复前走 O(n^2) 扫描路径会抛 wrong-type-arg
+(check (delete-duplicates (list 1 "a" 1) =) => (list 1 "a"))
+(check (delete-duplicates (list "a" 1 "a") string=?) => (list "a" 1))
+(check (delete-duplicates (list #\a 1 #\a) char=?) => (list #\a 1))
+
 
 (check-report)
