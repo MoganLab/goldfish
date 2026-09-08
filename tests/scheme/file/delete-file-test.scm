@@ -16,6 +16,8 @@
 ) ;check-catch
 ;; 测试删除参数类型错误
 (check-catch 'type-error (delete-file 123))
+;; C 层入口 g_delete-file 走同一实现 (devel/0143.md)
+(check-catch 'type-error (g_delete-file 123))
 ;; 测试删除中文文件名
 
 (define chinese-file "tests/scheme/file/中文删除.txt")
