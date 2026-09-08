@@ -1375,7 +1375,7 @@ struct s7_scheme {
              symbol_symbol, symbol_to_dynamic_value_symbol, symbol_initial_value_symbol,
              symbol_to_keyword_symbol, symbol_to_string_symbol, symbol_to_value_symbol,
              tan_symbol, tanh_symbol, throw_symbol, string_to_byte_vector_symbol,
-             tree_count_symbol, tree_leaves_symbol, tree_memq_symbol, tree_set_memq_symbol, tree_is_cyclic_symbol, truncate_symbol, type_of_symbol,
+             tree_count_symbol, tree_leaves_symbol, tree_memq_symbol, tree_member_symbol, tree_set_memq_symbol, tree_is_cyclic_symbol, truncate_symbol, type_of_symbol,
              unlet_symbol,
              values_symbol, varlet_symbol, vector_append_symbol, vector_dimension_symbol, vector_dimensions_symbol, vector_fill_symbol,
              vector_rank_symbol, vector_ref_symbol, vector_set_symbol, vector_symbol, vector_typer_symbol,

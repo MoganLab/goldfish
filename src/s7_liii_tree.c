@@ -266,6 +266,81 @@ bool tree_including_quote_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)  
   return(false);
 }
 
+/* ---------------- tree-member ---------------- */
+
+static inline bool tree_node_matches(s7_scheme *sc, s7_pointer obj, s7_pointer node, s7_pointer compare)
+{
+  if (!compare)
+    return s7_is_equal(sc, obj, node);
+
+  if (is_pair(node) && !is_pair(obj))
+    return false;
+  if (is_null(node) && !is_null(obj))
+    return false;
+
+  return s7_call(sc, compare, s7_list(sc, 2, obj, node)) != sc->F;
+}
+
+static bool tree_member_1(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_pointer compare)
+{
+  if (tree_node_matches(sc, obj, tree, compare))
+    return true;
+  if (!is_pair(tree))
+    return false;
+  do {
+    if (tree_node_matches(sc, obj, car(tree), compare))
+      return true;
+    if (is_pair(car(tree)))
+      {
+	s7_pointer cp = car(tree);
+	do {
+	  if (tree_node_matches(sc, obj, car(cp), compare))
+	    return true;
+	  if (is_pair(car(cp)))
+	    {
+	      if (tree_member_1(sc, obj, car(cp), compare))
+		return true;
+	    }
+	  cp = cdr(cp);
+	  if (tree_node_matches(sc, obj, cp, compare))
+	    return true;
+	} while (is_pair(cp));
+      }
+    tree = cdr(tree);
+    if (tree_node_matches(sc, obj, tree, compare))
+      return true;
+  } while (is_pair(tree));
+  return false;
+}
+
+bool tree_member(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_pointer compare)
+{
+  if (!is_list(tree))
+    {
+      if (!has_active_methods(sc, tree))
+	wrong_type_error_nr(sc, sc->tree_member_symbol, 2, tree, a_list_string);
+      s7_pointer m_args = (compare) ? s7_list(sc, 3, obj, tree, compare) : set_mlist_2(sc, obj, tree);
+      return(find_and_apply_method(sc, tree, sc->tree_member_symbol, m_args) != sc->F);
+    }
+  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
+    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-member: tree is cyclic: ~S", 31), tree));
+  return tree_member_1(sc, obj, tree, compare);
+}
+
+s7_pointer g_tree_member(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer obj = car(args);
+  s7_pointer tree = cadr(args);
+  s7_pointer compare = NULL;
+  if (is_pair(cddr(args)))
+    {
+      compare = caddr(args);
+      if (!s7_is_procedure(compare))
+	wrong_type_error_nr(sc, sc->tree_member_symbol, 3, compare, wrap_string(sc, "a procedure", 11));
+    }
+  return make_boolean(sc, tree_member(sc, obj, tree, compare));
+}
+
 /* ---------------- tree-set-memq ---------------- */
 
 static inline bool pair_set_memq(s7_scheme *sc, s7_pointer tree)
