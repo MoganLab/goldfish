@@ -44,10 +44,10 @@
   (check (path-name doc-path) => "plus-test.scm")
 ) ;let
 
-(let ((doc-path (function-doc-path "liii/njson" "njson-set!")))
+(let ((doc-path (function-doc-path "liii/hash-table" "hash-table-set!")))
   (check-true (string? doc-path))
   (check-true (path-file? doc-path))
-  (check (path-name doc-path) => "njson-set-bang-test.scm")
+  (check (path-name doc-path) => "hash-table-set-bang-test.scm")
 ) ;let
 
 (let ((doc-path (function-doc-path "scheme/base" "truncate/")))

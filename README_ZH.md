@@ -40,7 +40,6 @@
 | [(liii http-async)](goldfish/liii/http-async.scm) | 异步 HTTP 客户端库             | `http-async-get`, `http-wait-all`                                  |
 | [(liii http-common)](goldfish/liii/http-common.scm) | HTTP 模块共享辅助库           | `http-ok?`                                                         |
 | [(liii json)](goldfish/liii/json.scm)             | JSON 解析和操作                 | `string->json`, `json->string`                                     |
-| [(liii njson)](goldfish/liii/njson.scm)           | 可变 JSON 与丰富操作            | `json->njson`, `njson-ref`, `njson-deep-merge`                      |
 | [(liii subprocess)](goldfish/liii/subprocess.scm) | 子进程管理                      | `run`, `run-pipe`, `run-sequence`                                   |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 编解码                   | `base64-encode`, `base64-decode`                                    |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | 信息摘要                        | `md5`, `sha1`, `sha256`                                             |

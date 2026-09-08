@@ -89,10 +89,6 @@ add_requires("argh v1.3.2")
 local NLOHMANN_JSON_VERSION = "v3.11.3"
     add_requires("nlohmann_json")
 
-
-local JSON_SCHEMA_VALIDATOR_VERSION = "2.4.0"
-    add_requires("json_schema_validator")
-
 target ("goldfish") do
     set_languages("c++17")
     set_targetdir("$(projectdir)/bin/")
@@ -109,7 +105,6 @@ target ("goldfish") do
     end
     add_files ("src/goldfish.cpp")
     add_files ("src/liii_subprocess.cpp")
-    add_files ("src/liii_njson.cpp")
     if has_config("http") and not is_plat("wasm") then
         add_files ("src/liii_http.cpp")
         add_defines("GOLDFISH_ENABLE_HTTP")
@@ -151,7 +146,6 @@ target ("goldfish") do
     add_packages("tbox")
     add_packages("argh")
     add_packages("nlohmann_json")
-    add_packages("json_schema_validator")
     if has_config("http") and not is_plat("wasm") then
         add_packages("cpr")
     end
@@ -195,7 +189,7 @@ target("goldfish_repl_wasm")
     set_languages("c++17")
     set_targetdir("$(projectdir)/repl/")
     add_files("src/goldfish_repl.cpp")
-    add_packages("tbox", "argh", "nlohmann_json", "json_schema_validator")
+    add_packages("tbox", "argh", "nlohmann_json")
     add_defines("GOLDFISH_ENABLE_REPL")
 
     -- S7 configuration from original 3rdparty/s7/xmake.lua

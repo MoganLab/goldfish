@@ -40,7 +40,6 @@ Just like S7 Scheme, [src/goldfish.hpp](src/goldfish.hpp) and [src/goldfish.cpp]
 | [(liii http-async)](goldfish/liii/http-async.scm) | Async HTTP client library            | `http-async-get`, `http-wait-all`                                |
 | [(liii http-common)](goldfish/liii/http-common.scm) | Shared helpers for http modules   | `http-ok?`                                                       |
 | [(liii json)](goldfish/liii/json.scm)             | JSON parsing and manipulation        | `string->json`, `json->string`                                   |
-| [(liii njson)](goldfish/liii/njson.scm)           | Mutable JSON with rich operations    | `json->njson`, `njson-ref`, `njson-deep-merge`                    |
 | [(liii subprocess)](goldfish/liii/subprocess.scm) | Subprocess management                | `run`, `run-pipe`, `run-sequence`                                 |
 | [(liii base64)](goldfish/liii/base64.scm)         | Base64 encoding and decoding         | `base64-encode`, `base64-decode`                                  |
 | [(liii hashlib)](goldfish/liii/hashlib.scm)       | Message digests                      | `md5`, `sha1`, `sha256`                                           |
