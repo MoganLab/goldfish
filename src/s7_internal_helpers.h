@@ -343,6 +343,12 @@ s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointe
 s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
 
+/* small_symbol_set bridges for s7_liii_tree.c migration */
+void s7i_begin_small_symbol_set(s7_scheme *sc);
+void s7i_end_small_symbol_set(s7_scheme *sc);
+s7_pointer s7i_add_symbol_to_small_symbol_set(s7_scheme *sc, s7_pointer sym);
+bool s7i_symbol_is_in_small_symbol_set(s7_scheme *sc, s7_pointer sym);
+
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
 

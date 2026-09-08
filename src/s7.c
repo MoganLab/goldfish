@@ -414,6 +414,7 @@
 #include "s7_liii_hash_table.h"
 #include "s7_liii_list.h"
 #include "s7_liii_vector.h"
+#include "s7_liii_tree.h"
 #include "s7_scheme_cxr.h"
 #include "s7_module.h"
 #include "s7_dtoa.h"
@@ -6220,7 +6221,7 @@ s7_pointer s7i_apply_boolean_method(s7_scheme *sc, s7_pointer obj, s7_pointer me
 
 static s7_pointer apply_method_closure(s7_scheme *sc, s7_pointer func, s7_pointer args);
 
-static s7_pointer find_and_apply_method(s7_scheme *sc, s7_pointer obj, s7_pointer sym, s7_pointer args) /* slower if inline */
+s7_pointer find_and_apply_method(s7_scheme *sc, s7_pointer obj, s7_pointer sym, s7_pointer args) /* slower if inline */
 {
   s7_pointer func = find_method_with_let(sc, obj, sym); /* perhaps find_and_apply_c_object_method for g_c_object_let */
   /* fprintf(stderr, "%s[%d]: %s\n", __func__, __LINE__, display(args)); */
@@ -9093,6 +9094,11 @@ static /* inline */ void clear_small_symbol_set(s7_scheme *sc)
 #define end_small_symbol_set(Sc)
 #endif
 
+void s7i_begin_small_symbol_set(s7_scheme *sc) { begin_small_symbol_set(sc); }
+void s7i_end_small_symbol_set(s7_scheme *sc) { end_small_symbol_set(sc); }
+s7_pointer s7i_add_symbol_to_small_symbol_set(s7_scheme *sc, s7_pointer sym) { return(add_symbol_to_small_symbol_set(sc, sym)); }
+bool s7i_symbol_is_in_small_symbol_set(s7_scheme *sc, s7_pointer sym) { return(symbol_is_in_small_symbol_set(sc, sym)); }
+
 /* -------- big symbol set -------- */
 #define symbol_is_in_big_symbol_set(Sc, Sym) (big_symbol_tag(Sym) == Sc->big_symbol_tag)
 #define clear_big_symbol_set(Sc) Sc->big_symbol_tag++
@@ -10329,84 +10335,7 @@ static inline s7_pointer copy_tree(s7_scheme *sc, s7_pointer tree)
 
 
 /* -------------------------------- tree-cyclic? -------------------------------- */
-#define TREE_NOT_CYCLIC 0
-#define TREE_CYCLIC 1
-#define TREE_HAS_PAIRS 2
-
-static int32_t tree_is_cyclic_or_has_pairs(s7_scheme *sc, s7_pointer tree)
-{
-  s7_pointer fast = tree, slow = tree; /* we assume tree is a pair */
-  bool has_pairs = false;
-  while (true)
-    {
-      if (tree_is_collected(fast)) return(TREE_CYCLIC);
-      if ((!has_pairs) && (is_unquoted_pair(sc, car(fast)))) has_pairs = true;
-      fast = cdr(fast);
-      if (!is_pair(fast)) return((has_pairs) ? TREE_HAS_PAIRS : TREE_NOT_CYCLIC);
-
-      if (tree_is_collected(fast)) return(TREE_CYCLIC);
-      if ((!has_pairs) && (is_unquoted_pair(sc, car(fast)))) has_pairs = true;
-      fast = cdr(fast);
-      if (!is_pair(fast)) return((has_pairs) ? TREE_HAS_PAIRS : TREE_NOT_CYCLIC);
-
-      slow = cdr(slow);
-      if (fast == slow) return(TREE_CYCLIC);
-    }
-  return(TREE_HAS_PAIRS); /* not reached */
-}
-
-/* we can't use shared_info here because tree_is_cyclic may be called in the midst of output that depends on sc->circle_info */
-
-static bool tree_is_cyclic_1(s7_scheme *sc, s7_pointer tree)
-{
-  for (s7_pointer p = tree; is_pair(p); p = cdr(p))
-    {
-      tree_set_collected(p);
-      if (sc->tree_pointers_top == sc->tree_pointers_size)
-	{
-	  if (sc->tree_pointers_size == 0)
-	    {
-	      sc->tree_pointers_size = 8;
-	      sc->tree_pointers = (s7_pointer *)Malloc(sc->tree_pointers_size * sizeof(s7_pointer));
-	    }
-	  else
-	    {
-	      sc->tree_pointers_size *= 2;
-	      sc->tree_pointers = (s7_pointer *)Realloc(sc->tree_pointers, sc->tree_pointers_size * sizeof(s7_pointer));
-	    }}
-      sc->tree_pointers[sc->tree_pointers_top++] = p;
-      if (is_unquoted_pair(sc, car(p)))
-	{
-	  const int32_t old_top = sc->tree_pointers_top;
-	  const int32_t result = tree_is_cyclic_or_has_pairs(sc, car(p));
-	  if ((result == TREE_CYCLIC) || (tree_is_cyclic_1(sc, car(p))))
-	    return(true);
-	  for (int32_t i = old_top; i < sc->tree_pointers_top; i++)
-	    tree_clear_collected(sc->tree_pointers[i]);
-	  sc->tree_pointers_top = old_top;
-	}}
-  return(false);
-}
-
-bool tree_is_cyclic(s7_scheme *sc, s7_pointer tree)
-{
-  int32_t result;
-  if (!is_pair(tree)) return(false);
-  result = tree_is_cyclic_or_has_pairs(sc, tree);
-  if (result == TREE_NOT_CYCLIC) return(false);
-  if (result == TREE_CYCLIC) return(true);
-  result = tree_is_cyclic_1(sc, tree);
-  for (int32_t i = 0; i < sc->tree_pointers_top; i++)
-    tree_clear_collected(sc->tree_pointers[i]);
-  sc->tree_pointers_top = 0;
-  return(result);
-}
-
-/* g_tree_is_cyclic migrated to s7_scheme_predicate.c */
-#define H_tree_is_cyclic "(tree-cyclic? tree) returns #t if the tree has a cycle."
-#define Q_tree_is_cyclic sc->pl_bt
-
-static inline s7_int tree_len(s7_scheme *sc, s7_pointer p);
+/* tree_is_cyclic, g_tree_is_cyclic migrated to s7_liii_tree.c */
 
 static s7_pointer copy_body(s7_scheme *sc, s7_pointer p)
 {
@@ -17090,7 +17019,7 @@ s7_pointer s7i_c_pointer_info_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_poin
 s7_pointer s7i_c_pointer_type_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_type_p_p(sc, cptr));}
 
 /* bridge functions for g_tree_is_cyclic and g_type_of migration */
-bool s7i_tree_is_cyclic(s7_scheme *sc, s7_pointer p) {return(tree_is_cyclic(sc, p));}
+/* s7i_tree_is_cyclic migrated to s7_liii_tree.c */
 s7_pointer s7i_type_of(s7_scheme *sc, s7_pointer p) {return(sc->type_to_typers[type(p)]);}
 
 /* g_string_cmp, g_string_cmp_not, g_strings_are_equal, g_strings_are_less, g_strings_are_greater,
@@ -21136,319 +21065,8 @@ void s7_list_to_array(s7_scheme *sc, s7_pointer list, s7_pointer *array, int32_t
   for (; i < len; i++) array[i] = sc->undefined;
 }
 
-
-/* ---------------- tree-leaves ---------------- */
-static inline s7_int tree_len_1(s7_scheme *sc, s7_pointer p)
-{
-  s7_int sum;
-  for (sum = 0; is_pair(p); p = cdr(p))
-    {
-      s7_pointer cp = car(p);
-      if ((!is_pair(cp)) ||
-	  (is_quote(sc, car(cp))))
-	sum++;
-      else
-	{
-	  do {
-	    s7_pointer ccp = car(cp);
-	    if ((!is_pair(ccp)) ||
-		(is_quote(sc, car(ccp))))
-	      sum++;
-	    else
-	      {
-		do {
-		  s7_pointer cccp = car(ccp);
-		  if ((!is_pair(cccp)) ||
-		      (is_quote(sc, car(cccp))))
-		    sum++;
-		  else sum += tree_len_1(sc, cccp);
-		  ccp = cdr(ccp);
-		} while (is_pair(ccp));
-		if (!is_null(ccp)) sum++;
-	      }
-	    cp = cdr(cp);
-	    } while (is_pair(cp));
-	  if (!is_null(cp)) sum++;
-	}}
-  return((is_null(p)) ? sum : sum + 1);
-}
-
-static inline s7_int tree_len(s7_scheme *sc, s7_pointer tree)
-{
-  if (is_null(tree))
-    return(0);
-  if ((!is_pair(tree)) || (is_quote(sc, car(tree))))
-    return(1);
-  return(tree_len_1(sc, tree));
-}
-
-static s7_int tree_leaves_i_7p(s7_scheme *sc, s7_pointer tree)
-{
-  if (!is_pair(tree))
-    {
-      if (is_null(tree)) return(0);
-      if (!has_active_methods(sc, tree))
-	sole_arg_wrong_type_error_nr(sc, sc->tree_leaves_symbol, tree, a_list_string);
-      return(integer(find_and_apply_method(sc, tree, sc->tree_leaves_symbol, set_mlist_1(sc, tree))));
-    }
-  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-leaves: tree is cyclic: ~S", 31), tree));
-  return(tree_len(sc, tree));
-}
-
-/* tree_leaves_p_p migrated to s7_liii_list.c */
-
-/* g_tree_leaves is now defined in s7_scheme_predicate.c */
-#define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
-#define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
-
-
-/* ---------------- tree-memq ---------------- */
-static inline bool tree_memq_1(s7_scheme *sc, s7_pointer sym, s7_pointer tree)    /* sym need not be a symbol */
-{
-  if (is_quote(sc, car(tree)))
-    return((!is_symbol(sym)) && (!is_pair(sym)) && (is_pair(cdr(tree))) && (sym == cadr(tree)));
-  do {
-    if (sym == car(tree))
-      return(true);
-    if (is_pair(car(tree)))
-      {
-	s7_pointer cp = car(tree);
-	if (is_quote(sc, car(cp)))
-	  {
-	    if ((!is_symbol(sym)) && (!is_pair(sym)) && (is_pair(cdr(cp))) && (sym == cadr(cp)))
-	      return(true);
-	  }
-	else
-	  do {
-	      if (sym == car(cp))
-		return(true);
-	      if ((is_pair(car(cp))) && (tree_memq_1(sc, sym, car(cp))))
-		return(true);
-	      cp = cdr(cp);
-	      if (sym == cp)
-		return(true);
-	    } while (is_pair(cp));
-      }
-    tree = cdr(tree);
-    if (sym == tree)
-      return(true);
-  } while (is_pair(tree));
-  return(false);
-}
-
-bool s7_tree_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
-{
-  if (sym == tree) return(true);
-  if (!is_pair(tree)) return(false); /* this happens a lot */
-  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-memq: tree is cyclic: ~S", 29), tree));
-  return(tree_memq_1(sc, sym, tree));
-}
-
-static bool tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
-{
-  if (!is_list(tree))
-    {
-      if (!has_active_methods(sc, tree))
-	wrong_type_error_nr(sc, sc->tree_memq_symbol, 2, tree, a_list_string);
-      return(find_and_apply_method(sc, tree, sc->tree_memq_symbol, set_mlist_2(sc, sym, tree)) != sc->F);
-    }
-  return(s7_tree_memq(sc, sym, tree));
-}
-
-/* g_tree_memq is now defined in s7_scheme_predicate.c */
-#define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
-#define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
-
-static /* inline */ bool tree_including_quote_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)    /* sym need not be a symbol */
-{
-  do {
-    if (sym == car(tree))
-      return(true);
-    if (is_pair(car(tree)))
-      {
-	s7_pointer cp = car(tree);
-	do {
-	  if (sym == car(cp))
-	    return(true);
-	  if ((is_pair(car(cp))) && (tree_including_quote_memq(sc, sym, car(cp))))
-	    return(true);
-	  cp = cdr(cp);
-	  if (sym == cp)
-	    return(true);
-	} while (is_pair(cp));
-      }
-    tree = cdr(tree);
-    if (sym == tree)
-      return(true);
-  } while (is_pair(tree));
-  return(false);
-}
-
-
-/* ---------------- tree-set-memq ---------------- */
-static inline bool pair_set_memq(s7_scheme *sc, s7_pointer tree)
-{
-  while (true)
-    {
-      s7_pointer p = car(tree);
-      if (is_symbol(p))
-	{
-	  if (symbol_is_in_small_symbol_set(sc, p))
-	    return(true);
-	}
-      else
-	if ((is_unquoted_pair(sc, p)) &&
-	    (pair_set_memq(sc, p)))
-	  return(true);
-      tree = cdr(tree);
-      if (!is_pair(tree)) break;
-    }
-  return((is_symbol(tree)) && (symbol_is_in_small_symbol_set(sc, tree)));
-}
-
-static bool tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
-{
-  bool non_symbols = false;
-  if (!is_list(syms))
-    {
-      if (!has_active_methods(sc, syms))
-	wrong_type_error_nr(sc, sc->tree_set_memq_symbol, 1, syms, a_list_string);
-      return(find_and_apply_method(sc, syms, sc->tree_set_memq_symbol, set_mlist_2(sc, syms, tree)) != sc->F);
-    }
-  if (!is_pair(tree))
-    {
-      if (is_null(tree)) return(false);
-      /* (define (func) (do ((i 0 (+ i 1)) (var #f)) ((= i 1) var) (set! var (tree-set-memq (list) (block))))) (func) */
-      if (!has_active_methods(sc, tree))
-	wrong_type_error_nr(sc, sc->tree_set_memq_symbol, 2, tree, a_list_string);
-      return(find_and_apply_method(sc, tree, sc->tree_set_memq_symbol, set_mlist_2(sc, syms, tree)) != sc->F);
-    }
-  if (is_null(syms)) return(false);
-  if (sc->safety > no_safety)
-    {
-      if (tree_is_cyclic(sc, syms))
-	error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-set-memq: symbol list is cyclic: ~S", 40), syms));
-      if (tree_is_cyclic(sc, tree))
-	error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-set-memq: tree is cyclic: ~S", 33), tree));
-    }
-  begin_small_symbol_set(sc);
-  for (s7_pointer p = syms; is_pair(p); p = cdr(p))
-    if (is_symbol(car(p)))
-      add_symbol_to_small_symbol_set(sc, car(p));
-    else non_symbols = true;
-  {
-    bool result = pair_set_memq(sc, tree);
-    end_small_symbol_set(sc);
-    if (result) return(true);
-  }
-  if (non_symbols)
-    for (s7_pointer p = syms; is_pair(p); p = cdr(p))
-      if ((!is_symbol(car(p))) &&
-	  (s7_tree_memq(sc, car(p), tree)))
-	return(true);
-  return(false);
-}
-
-/* tree_set_memq_p_pp migrated to s7_liii_list.c */
-
-/* g_tree_set_memq is now defined in s7_scheme_predicate.c */
-#define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
-#define Q_tree_set_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->is_list_symbol, sc->is_list_symbol)
-
-static s7_pointer tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
-{
-  if (!is_pair(tree))
-    {
-      if (is_null(tree)) return(sc->F);
-      if (!has_active_methods(sc, tree))
-	wrong_type_error_nr(sc, sc->tree_set_memq_symbol, 2, tree, a_list_string);
-      return(find_and_apply_method(sc, tree, sc->tree_set_memq_symbol, set_mlist_2(sc, syms, tree)));
-    }
-  if (is_quote(sc, car(tree))) return(sc->F);
-  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-set-memq: tree is cyclic: ~S", 33), tree));
-  begin_small_symbol_set(sc);
-  for (s7_pointer p = syms; is_pair(p); p = cdr(p))
-    add_symbol_to_small_symbol_set(sc, car(p));
-  {
-    bool result = pair_set_memq(sc, tree);
-    end_small_symbol_set(sc);
-    return(make_boolean(sc, result));
-  }
-}
-
-/* g_tree_set_memq_syms migrated to s7_scheme_predicate.c */
-
-/* bridge for g_tree_set_memq_syms migration */
-s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b)
-{
-  return(tree_set_memq_syms_direct(sc, a, b));
-}
-
-static s7_pointer tree_set_memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
-{
-  if ((is_proper_quote(sc, cadr(expr))) &&   /* not (tree-set-memq (quote) ...) */
-      (is_pair(cadadr(expr))))               /*  (tree-set-memq '(...)...) */
-    {
-      for (s7_pointer p = cadadr(expr); is_pair(p); p = cdr(p))
-	if (!is_symbol(car(p)))
-	  return(func);
-      return(sc->tree_set_memq_syms);
-    }
-  return(func);
-}
-
-
-/* ---------------- tree-count ---------------- */
-static s7_int tree_count(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count)
-{
-  if (tree == obj) return(count + 1);
-  if ((!is_pair(tree)) || (is_quote(sc, car(tree)))) return(count);
-  return(tree_count(sc, obj, cdr(tree), tree_count(sc, obj, car(tree), count)));
-}
-
-static inline s7_int tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_int count, s7_int top)
-{
-  if (tree == obj) return(count + 1);
-  if ((!is_pair(tree)) || (is_quote(sc, car(tree)))) return(count);
-  do {
-    count = tree_count_at_least(sc, obj, car(tree), count, top);
-    if (count >= top) return(count);
-    tree = cdr(tree);
-    if (tree == obj) return(count + 1);
-  } while (is_pair(tree));
-  return(count);
-}
-
-static s7_pointer g_tree_count(s7_scheme *sc, s7_pointer args)
-{
-  #define H_tree_count "(tree-count obj tree max-count) returns how many times obj is in tree (using eq?), stopping at max-count (if specified)"
-  #define Q_tree_count s7_make_signature(sc, 4, sc->is_integer_symbol, sc->T, sc->is_list_symbol, sc->is_integer_symbol)
-  const s7_pointer obj = car(args), tree = cadr(args);
-  s7_pointer count;
-
-  if (!is_pair(tree))
-    {
-      if ((is_pair(cddr(args))) &&
-	  (!s7_is_integer(caddr(args))))
-	wrong_type_error_nr(sc, sc->tree_count_symbol, 3, caddr(args), sc->type_names[T_INTEGER]);
-      if (is_null(tree)) return(int_zero);
-      if (!has_active_methods(sc, tree))
-	wrong_type_error_nr(sc, sc->tree_count_symbol, 2, tree, a_list_string);
-      return(find_and_apply_method(sc, tree, sc->tree_count_symbol, set_mlist_2(sc, obj, tree)));
-    }
-  if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-count: tree is cyclic: ~S", 30), tree));
-  if (is_null(cddr(args)))
-    return(make_integer(sc, tree_count(sc, obj, tree, 0)));
-  count = caddr(args);
-  if (!s7_is_integer(count))
-    wrong_type_error_nr(sc, sc->tree_count_symbol, 3, count, sc->type_names[T_INTEGER]);
-  return(make_integer(sc, tree_count_at_least(sc, obj, tree, 0, s7_integer_clamped_if_gmp(sc, count))));
-}
-
+/* ---------------- tree-leaves, tree-memq, tree-set-memq, tree-count ---------------- */
+/* migrated to s7_liii_tree.c */
 
 /* -------------------------------- pair? -------------------------------- */
 #define H_is_pair "(pair? obj) returns #t if obj is a pair (a non-empty list)"
@@ -22466,8 +22084,7 @@ s7_pointer s7i_methods_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *met
 s7_pointer s7i_assoc_1(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(assoc_1(sc, obj, lst));}
 s7_pointer s7i_memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memv_number(sc, obj, lst));}
 s7_pointer s7i_member(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(member(sc, obj, lst));}
-s7_int s7i_tree_len(s7_scheme *sc, s7_pointer p) {return(tree_len(sc, p));}
-bool s7i_tree_is_cyclic_checked(s7_scheme *sc, s7_pointer tree) {return((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)));}
+/* s7i_tree_len, s7i_tree_is_cyclic_checked migrated to s7_liii_tree.c */
 
 static s7_pointer g_member(s7_scheme *sc, s7_pointer args)
 {
@@ -34021,14 +33638,13 @@ static s7_pointer object_to_let_p_p(s7_scheme *sc, s7_pointer obj)
 /* bridge functions for s7_scheme_predicate.c migration (round 2) */
 s7_pointer s7i_c_pointer_weak1_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_weak1_p_p(sc, cptr));}
 s7_pointer s7i_c_pointer_weak2_p_p(s7_scheme *sc, s7_pointer cptr) {return(c_pointer_weak2_p_p(sc, cptr));}
-s7_pointer s7i_tree_leaves_p_p(s7_scheme *sc, s7_pointer p) {return(tree_leaves_p_p(sc, p));}
+/* s7i_tree_leaves_p_p migrated to s7_liii_tree.c */
 s7_pointer s7i_cyclic_sequences_p_p(s7_scheme *sc, s7_pointer p) {return(cyclic_sequences_p_p(sc, p));}
 s7_pointer s7i_object_to_let_p_p(s7_scheme *sc, s7_pointer p) {return(object_to_let_p_p(sc, p));}
 s7_pointer s7i_pair_line_number_p_p(s7_scheme *sc, s7_pointer p) {return(pair_line_number_p_p(sc, p));}
 s7_pointer s7i_reverse_p_p(s7_scheme *sc, s7_pointer p) {return(reverse_p_p(sc, p));}
 s7_pointer s7i_port_line_number_p_p(s7_scheme *sc, s7_pointer p) {return(port_line_number_p_p(sc, p));}
-bool s7i_tree_memq_b_7pp(s7_scheme *sc, s7_pointer sym, s7_pointer tree) {return(tree_memq_b_7pp(sc, sym, tree));}
-bool s7i_tree_set_memq_b_7pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree) {return(tree_set_memq_b_7pp(sc, syms, tree));}
+/* s7i_tree_memq_b_7pp, s7i_tree_set_memq_b_7pp migrated to s7_liii_tree.c */
 s7_pointer s7i_unlet_disabled(s7_scheme *sc) {return(sc->unlet_disabled);}
 s7_pointer s7i_curlet(s7_scheme *sc) {return(sc->curlet);}
 void s7i_capture_let_counter_inc(s7_scheme *sc) {sc->capture_let_counter++;}
