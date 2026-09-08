@@ -48,4 +48,10 @@
 ) ;let
 
 
+(let ((ht (make-hash-table)) (fn (lambda (x) (+ x 1))))
+  (check ((hash-table-ref/default ht 'not-exist fn) 5) => 6)
+) ;let
+
+
+
 (check-report)

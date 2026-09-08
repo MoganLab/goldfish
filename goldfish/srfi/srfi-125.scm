@@ -66,10 +66,12 @@
     ) ;define
 
     (define (hash-table-contains? ht key)
+      (assert-hash-table-type ht hash-table-contains?)
       (not (not (hash-table-ref ht key)))
     ) ;define
 
     (define (hash-table-empty? ht)
+      (assert-hash-table-type ht hash-table-empty?)
       (zero? (hash-table-size ht))
     ) ;define
 
@@ -78,7 +80,9 @@
     ) ;define
 
     (define (hash-table-ref/default ht key default)
-      (or (hash-table-ref ht key) (if (procedure? default) (default) default))
+      (or (hash-table-ref ht key)
+        (if (and (procedure? default) (aritable? default 0)) (default) default)
+      ) ;or
     ) ;define
 
     (define (hash-table-set! ht . rest)
@@ -115,14 +119,17 @@
     ) ;define
 
     (define (hash-table-clear! ht)
+      (assert-hash-table-type ht hash-table-clear!)
       (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
     ) ;define
 
     (define (hash-table-keys ht)
+      (assert-hash-table-type ht hash-table-keys)
       (map car ht)
     ) ;define
 
     (define (hash-table-values ht)
+      (assert-hash-table-type ht hash-table-values)
       (map cdr ht)
     ) ;define
 
@@ -135,6 +142,7 @@
     ) ;define
 
     (define (hash-table-find proc ht failure)
+      (assert-hash-table-type ht hash-table-find)
       (let ((keys (hash-table-keys ht)))
         (let loop
           ((keys keys))

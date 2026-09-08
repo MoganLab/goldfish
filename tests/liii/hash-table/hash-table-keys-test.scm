@@ -1,4 +1,4 @@
-(import (liii check) (liii hash-table))
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -41,6 +41,11 @@
   (hash-table-set! ht 'k1 'v1)
   (check (hash-table-keys ht) => '(k1))
 ) ;let
+
+
+(check-catch 'type-error (hash-table-keys '((k1 . v1))))
+(check-catch 'type-error (hash-table-keys 123))
+
 
 
 (check-report)
