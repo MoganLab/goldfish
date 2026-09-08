@@ -1415,7 +1415,7 @@ struct s7_scheme {
   s7_pointer add_1x, add_2, add_3, add_4, add_i_random, add_x1, append_2, ash_ic, ash_ii, bv_ref_2, bv_ref_3, bv_set_3,
              cdr_let_ref, cdr_let_set, char_equal_2, char_greater_2, char_less_2, char_position_csi, complex_wrapped, curlet_ref, cv_ref_2, cv_set_3,
              display_2, display_f, dynamic_wind_body, dynamic_wind_init, dynamic_wind_unchecked,
-             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, fv_set_unchecked, geq_2,
+             format_as_objstr, format_f, format_just_control_string, format_no_column, fv_ref_2, fv_ref_3, fv_set_3, geq_2,
              get_output_string_uncopied, hash_table_2, hash_table_ref_2, int_log2, is_defined_in_rootlet, is_defined_in_unlet, iv_ref_2, iv_ref_3, iv_set_3,
              list_0, list_1, list_2, list_3, list_4, list_ref_at_0, list_ref_at_1, list_ref_at_2, list_set_i,
              logand_2, logand_ii, logior_ii, logior_2, logxor_2, memq_2, memq_3, memq_4, memq_any, multiply_3,
