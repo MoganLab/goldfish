@@ -24807,14 +24807,15 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
 
 
 /* -------------------------------- complex-vector-ref -------------------------------- */
-static s7_pointer g_complex_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_complex_vector_ref "(complex-vector-ref v ...) returns an element of the complex-vector v."
+#define Q_complex_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                             s7_make_signature(sc, 2, sc->is_complex_symbol, sc->is_complex_vector_symbol), \
+                             sc->is_complex_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args)
 {
-  #define H_complex_vector_ref "(complex-vector-ref v ...) returns an element of the complex-vector v."
-  #define Q_complex_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                               s7_make_signature(sc, 2, sc->is_complex_symbol, sc->is_complex_vector_symbol), \
-                               sc->is_complex_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->complex_vector_ref_symbol, T_COMPLEX_VECTOR));
 }
+/* g_complex_vector_ref migrated to s7_liii_vector.c */
 
 static s7_pointer complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index)
 {

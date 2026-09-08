@@ -35,8 +35,19 @@
 
 
 (let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
-  (check-true (number? (complex-vector-ref v 0)))
-  (check-true (number? (complex-vector-ref v 1)))
+  (check (complex-vector-ref v 0) => 1.0+2.0i)
+  (check (complex-vector-ref v 1) => 3.0+4.0i)
+) ;let
+
+;; 多维 complex-vector 读取测试
+(let ((m (make-complex-vector '(2 3) 5.0+6.0i)))
+  (check (complex-vector-ref m 0 0) => 5.0+6.0i)
+  (check (complex-vector-ref m 1 2) => 5.0+6.0i)
+  (check-catch 'out-of-range (complex-vector-ref m -1 0))
+  (check-catch 'out-of-range (complex-vector-ref m 2 0))
+  (check-catch 'out-of-range (complex-vector-ref m 0 3))
+  (check-catch 'wrong-type-arg (complex-vector-ref m "0" 1))
+  (check-catch 'wrong-type-arg (complex-vector-ref m 0 "1"))
 ) ;let
 
 

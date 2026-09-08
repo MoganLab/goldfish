@@ -50,6 +50,7 @@ s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args);
+s7_pointer g_complex_vector_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_float_vector_ref(s7_scheme *sc, s7_pointer args);
 s7_pointer g_fv_ref_2(s7_scheme *sc, s7_pointer args);

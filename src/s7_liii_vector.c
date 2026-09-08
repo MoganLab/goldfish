@@ -677,6 +677,11 @@ s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args)
   return(val);
 }
 
+s7_pointer g_complex_vector_ref(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_univect_ref_complex(sc, args));
+}
+
 s7_pointer g_cv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_complex_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));
