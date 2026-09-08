@@ -113,6 +113,18 @@
                       (eval (cdr e) the-expander-library)))
             bindings))
 
+;; The seed's macro records: expand-library-body registers transformers
+;; into the target library as a side effect of the cold expansion, but a
+;; warm replay evals only the value defs -- without an explicit record the
+;; library would come back macro-less, and any later re-expansion against
+;; it (e.g. an edited lib-layer file installing at the artifact's top
+;; level) would leave its macros unexpanded.  Mirrors install.scm's
+;; take-collected-macros; tolerates a kernel predating the collector.
+(define (le-take-macro-records)
+  (if (memq 'take-macro-records (module-exports the-expander-library))
+    ((module-ref the-expander-library 'take-macro-records))
+    '()))
+
 (define (load-expanded path . maybe-lib)
   (let ((file (load-find-module-file path)))
     (unless file (error "load-expanded: file not found" path))
@@ -143,7 +155,15 @@
         (let ((payload (gfo-load gfo-file stamp)))
           (if payload
             (let ((bindings (car payload))
-                  (sexp (cadr payload)))
+                  (sexp (cadr payload))
+                  (macros (if (pair? (cddr payload)) (caddr payload) '())))
+              ;; Replay the transformer registrations before the defs, so
+              ;; expansion-time machinery is whole when the defs eval.
+              (for-each
+                (lambda (m)
+                  (exp-library-define! lib (car m)
+                    (make-transformer-binding (eval (cdr m) the-expander-library))))
+                macros)
               (eval sexp the-expander-library)
               (le-rootlet-copy bindings))
           (let* ((forms (read-forms (open-input-file file)))
@@ -152,6 +172,7 @@
             (call-with-values
               (lambda () (expand-library-body stxs lib (initial-context)))
               (lambda (defs ctx)
+              (let ((macros (le-take-macro-records)))
               (for-each (lambda (d) (eval (lower d) the-expander-library)) defs)
               (let ((bindings (map (lambda (e)
                                      (let ((name (car e)) (b (cdr e)))
@@ -161,5 +182,5 @@
                                    (filter (lambda (e)
                                              (toplevel-binding? (cdr e)))
                                            (exp-library-bindings lib)))))
-                (gfo-write! gfo-file stamp (list bindings (cons 'begin (map lower defs))))
-                (le-rootlet-copy bindings)))))))))))
+                (gfo-write! gfo-file stamp (list bindings (cons 'begin (map lower defs)) macros))
+                (le-rootlet-copy bindings))))))))))))
