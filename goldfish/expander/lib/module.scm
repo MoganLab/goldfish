@@ -82,30 +82,11 @@
 ;;; load-find-module-file).  The file must contain define-library forms; it
 ;;; is compiled (registering the expand-time record, recursively loading
 ;;; imports) and evaluated (registering the runtime module).
-
-(define (library-file-name lib-name)
-  (let loop ((parts (map symbol->string lib-name)) (acc ""))
-    (if (null? parts)
-        (string-append acc ".scm")
-        (loop (cdr parts)
-              (if (string=? acc "")
-                  (car parts)
-                  (string-append acc "/" (car parts)))))))
-
-;;; library-dep-fingerprint : lib-name -> (name mtime size) | (name 'external)
-;;; Fingerprint a dependency by its SOURCE file stamp.  Deliberately NOT its
-;;; cache artifact: consumers validate before their dependencies reload, so
-;;; an artifact-based fingerprint would compare against the dependency's
-;;; still-stale cache and miss the edit.  A source edit changes the stamp
-;;; immediately, invalidating the consumer on its very next load.
-;;; Pure stat calls, no hashing: cheap enough for every cache check.
-(define (library-dep-fingerprint name)
-  (let ((src (load-find-module-file (library-file-name name))))
-    (if src
-      (cons name (list (g_path-getmtime src) (g_path-getsize src)))
-      ;; No on-disk home: runtime-registered or host-provided library,
-      ;; nothing to fingerprint.
-      (cons name 'external))))
+;;;
+;;; (File-name mapping, dependency fingerprints, the import-graph walk,
+;;; the cache key/validity backend, and the module-ref collector all live
+;;; in the unified cache backend in lib/install.scm; this file uses them
+;;; through the shared expander namespace.)
 
 (define (library-cache-deps recs self)
   (let loop ((ls (collect-cache-module-refs recs)) (acc '()))
@@ -122,63 +103,13 @@
 ;;; the file imports is therefore a dependency too.  The whole transitive
 ;;; closure is fingerprinted (source stamps), so a change anywhere in the
 ;;; import graph invalidates every consumer whose baked output could have
-;;; been affected.
+;;; been affected.  (Import-set bottoming, clause collection, the source
+;;; walk, and the BFS closure live in the install.scm backend.)
 
-(define (import-set-lib-name spec)
-  ;; Bottom out of R7RS import sets: a library name, a modifier applied
-  ;; to a (possibly nested) set, or a `for' level spec around either.
-  (if (and (pair? spec)
-           (memq (car spec) '(only except prefix rename for)))
-    (import-set-lib-name (cadr spec))
-    spec))
+;;; (collect-import-clause-libs lives in the install.scm backend.)
 
-;;; collect-import-clause-libs : form -> (list name)
-;;; Bottom library names of one (import spec ...) clause.
-(define (collect-import-clause-libs clause)
-  (let add ((specs (cdr clause)) (acc '()))
-    (if (null? specs)
-      acc
-      (let ((n (import-set-lib-name (car specs))))
-        (if (and (pair? n) (member n acc))
-          (add (cdr specs) acc)
-          (add (cdr specs) (if (pair? n) (cons n acc) acc)))))))
-
-;;; lib-source-import-libs : file -> (list name)
-;;; Bottom libs named by the (import ...) clauses of a library file's
-;;; define-library forms (its direct imports, from the source -- cache-free,
-;;; so the closure can be walked without first restoring dependencies).
-(define (lib-source-import-libs file)
-  (if (not (file-exists? file))
-    '()
-    (let ((forms (call-with-input-file file read-forms)))
-      (let loop ((fs forms) (acc '()))
-        (if (null? fs)
-          acc
-          (let* ((f (car fs))
-                 (added (if (and (pair? f) (eq? (car f) 'define-library))
-                          (let collect ((cs (cddr f)) (a '()))
-                            (if (null? cs)
-                              a
-                              (let ((c (car cs)))
-                                (if (and (pair? c) (eq? (car c) 'import))
-                                  (collect (cdr cs) (append (collect-import-clause-libs c) a))
-                                  (collect (cdr cs) a)))))
-                          '())))
-            (loop (cdr fs) (append added acc))))))))
-
-;;; transitive-lib-closure : (list name) -> (list name)
-;;; BFS closure over import edges, skipping already-seen libraries.
-(define (transitive-lib-closure names)
-  (let loop ((queue names) (acc '()))
-    (if (null? queue)
-      (reverse acc)
-      (let ((n (car queue)))
-        (if (member n acc)
-          (loop (cdr queue) acc)
-          (let ((f (load-find-module-file (library-file-name n))))
-            (loop (append (cdr queue)
-                          (if f (lib-source-import-libs f) '()))
-                  (cons n acc))))))))
+;;; (lib-source-import-libs and transitive-lib-closure live in the
+;;; install.scm backend.)
 
 (define (cache-record-import-libs rec)
   (let ((imports (lib-cache-imports rec)))
@@ -228,22 +159,23 @@
 ;;; captured into the ccache as a library cache record (bindings + macro
 ;;; specs + lowered defs), and later loads rebuild the expand-time registry,
 ;;; replay the macro definitions, and eval the lowered defs.  The cache is a
-;;; compiled artifact of the source, used only when the source's mtime+size
-;;; still matches (the whole-file loader's ccache still serves non-library
-;;; files).  A file with any non-library top-level form falls back to the
-;;; previous compile-program path.
+;;; compiled artifact of the source, used only while the unified validity
+;;; gate holds (source stamp plus the transitive dependency fingerprints;
+;;; see cache-load-checked in lib/install.scm).  A file with any
+;;; non-library top-level form falls back to the previous compile-program
+;;; path.
 
 (define *libraries-being-loaded* '())
 
 ;;; Library-cache capture helpers.
 ;;;
 ;;; A library cache record is
-;;;   (name exports ((id . binding-desc) ...) ((id . macro-spec) ...) defs)
+;;;   (name exports ((id . binding-desc) ...) ((id . lowered-macro) ...) defs)
 ;;; where defs are the lowered value/registration forms, binding-desc is the
-;;; purifiable description of a value binding, and each macro-spec is the
-;;; source datum of a (define-syntax id spec) body form.  On cache hit the
-;;; exp-library is rebuilt from the binding descriptions, the macros are
-;;; replayed with expand-lib-define-syntax, and defs are evaluated.
+;;; purifiable description of a value binding, and each lowered-macro is the
+;;; cached transformer form (re-evaluated in the loading unit's expand env
+;;; on a hit).  On cache hit the exp-library is rebuilt from the binding
+;;; descriptions, the macros are replayed, and defs are evaluated.
 
 ;;; library-top-level? : datum -> bool
 ;;; Whether every top-level form in a loaded file is a define-library.
@@ -264,25 +196,10 @@
            ((library-top-level? (car fs)) (loop (cdr fs)))
            (else #f)))))
 
-;;; library-cache-path : string -> string
-;;; The ccache file for a library source file: the same key space as
-;;; compile-file-cached but a distinct extension so the two kinds of cache
-;;; cannot collide.  The key is the library's relative file name (e.g.
-;;; "srfi/srfi-13.scm").
-
-;;; library-cache-level-suffix : -> string
-;;; Library caches are stored ALREADY OPTIMIZED for the active optimization
-;;; level (see optimize-lib-cache-recs), so the level is part of the cache
-;;; key: levels are kept separate and re-loading a cached library does not
-;;; re-run the passes.  Level 0 keeps the plain key (unoptimized).
-
-(define (library-cache-level-suffix)
-  (let ((level (optimization-level)))
-    (if (zero? level) "" (string-append "-o" (number->string level)))))
-
-(define (library-gfo-path lib-file)
-  (string-append (compile-cache-dir) "/" (cache-key-path lib-file)
-                 (library-cache-level-suffix) ".gfo"))
+;;; Library cache keys use the unified backend (cache-file-for): the
+;;; library's relative file name (e.g. "srfi/srfi-13.scm") mirrored
+;;; under the versioned cache dir, suffixed by optimization level
+;;; (caches store defs already optimized, so levels stay separate).
 
 ;;; extract-exports : syntax -> (list symbol)
 
@@ -382,16 +299,16 @@
                                       (memq (binding-kind (cdr e))
                                             '(toplevel primitive transformer)))
                                     (exp-library-bindings lib1))))
-             ;; Macro definitions are cached as their LOWERED transformer
-             ;; forms, the same mechanism the boot library installs use:
-             ;; expand-library-body collected them as (name . lowered) while
-             ;; this define-library body expanded, and warm start
-             ;; re-evaluates them (cf. Racket's direct-eval).  This replaced
-             ;; the old source-spec replay, which could not recognize every
-             ;; macro-defining form.
-             (macros (map (lambda (m)
-                             (cons (car m) (serialize-cache-sexp (cdr m))))
-                           (take-collected-macros)))
+              ;; Macro definitions are cached as their LOWERED transformer
+              ;; forms, the same mechanism the boot library installs use:
+              ;; expand-library-body collected them as (name . lowered) while
+              ;; this define-library body expanded, and warm start
+              ;; re-evaluates them (cf. Racket's direct-eval).  This replaced
+              ;; the old source-spec replay, which could not recognize every
+              ;; macro-defining form.
+              (macros (map (lambda (m)
+                              (cons (car m) (serialize-cache-sexp (cdr m))))
+                            (take-collected-macros)))
              (def-ir (cache-defs->ir defs ctx1)))
         (values (list name exports imports bindings macros def-ir) ctx1)))))
 
@@ -481,15 +398,17 @@
               bindings)
     (library-registry-set! name (make-lib-record lib exports))
     ;; 3. Rebuild this library's own macro transformers from their cached
-    ;;    lowered forms: re-evaluating each form yields the transformer,
-    ;;    which is registered exactly as expand-lib-define-syntax does.
+    ;;    lowered forms: re-evaluating each form in the current unit's
+    ;;    expand env yields the transformer (exactly where a cold
+    ;;    expansion would put it), which is registered exactly as
+    ;;    expand-lib-define-syntax does.
     ;;    This replaced the source-spec replay + expand-library-body, and is
     ;;    the same mechanism the boot library installs use -- one cache path
     ;;    for standard and user libraries.
     (for-each (lambda (m)
                 (let* ((mname (car m))
                        (data (deserialize-cache-sexp (cdr m)))
-                       (proc (eval data the-expander-library)))
+                       (proc (eval data (current-expand-env))))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
     ;; 4. Exports with no restored body/import binding are an error (they
@@ -501,43 +420,14 @@
               exports)
     lib))
 
-;;; collect-cache-module-refs : datum -> (list name)
-;;; Collect library names referenced as (module-ref 'lib 'name) in a cached
-;;; definition, so dependencies are loaded before the defs are evaluated.
-
-(define (collect-cache-module-refs x)
-  (let loop ((v x) (acc '()))
-    (cond
-      ((and (pair? v) (eq? (car v) 'module-ref))
-       (let ((rest (cdr v)))
-         (loop (cdr v)
-               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
-                 (let ((lib (cadar rest)))
-                   (if (member lib acc) acc (cons lib acc)))
-                 acc))))
-      ((pair? v) (loop (car v) (loop (cdr v) acc)))
-      (else acc))))
+;;; (collect-cache-module-refs lives in the install.scm backend.)
 
 ;;; optimization-level : -> integer
-;;; L2-2: how much self-hosted compilation runs on library defs before they
-;;; evaluate.  The pipeline rewrites lowered core IR in place; its output is
-;;; still s7-evaluable core lambda, so this changes no semantics -- only
-;;; constants folded, dead if branches removed, and (level 2) peval inlining.
-;;; Levels follow the -O0/1/2 convention (Guile-style; Guile defaults to 2):
-;;;   0 : no compilation (defs evaluate as lowered)
-;;;   1 : constant folding + if simplification
-;;;   2 : default -- + the inline (peval) pass
-;;; Controlled by GOLDFISH_OPT_LEVEL (0 disables compilation entirely);
-;;; unset defaults to 2.
+;;; One implementation (cache-level in the install.scm backend); this
+;;; name stays for compatibility.  Levels follow the -O0/1/2 convention
+;;; (Guile-style; Guile defaults to 2); GOLDFISH_OPT_LEVEL controls it.
 
-(define (optimization-level)
-  (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
-    (cond
-      ((not v) 2)
-      ((member v '("0" "no" "false" "off")) 0)
-      (else
-       (let ((n (string->number v)))
-         (if (and n (integer? n) (>= n 0)) n 2))))))
+(define (optimization-level) (cache-level))
 
 ;;; compile-defs-on-load : (list syntax) context -> (list sexp)
 ;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
@@ -755,6 +645,16 @@
 (define (load-library! lib-name)
   (when (member lib-name *libraries-being-loaded*)
     (error "import: circular library dependency" lib-name))
+  ;; One compilation unit per load: the cold capture and the warm replay
+  ;; each evaluate the file's expand-time code in a fresh env, so
+  ;; same-named gensyms from different libraries never share a binding.
+  ;; (A nested load during expansion gets its own unit; the outer one
+  ;; resumes afterwards.  The kernel-name fast path needs no unit.)
+  (call-with-fresh-expand-unit
+    (lambda ()
+      (load-library-in-unit! lib-name))))
+
+(define (load-library-in-unit! lib-name)
   (let ((base (base-library)))
     (if (and base (equal? lib-name (exp-library-name base)))
       (begin
@@ -771,30 +671,17 @@
         (set! *runtime-registered-libraries*
               (cons lib-name *runtime-registered-libraries*)))
       (let ((lib-file (library-file-name lib-name)))
-        (let ((gfo-file (library-gfo-path lib-file)))
-          ;; Dependency-tracked cache check: a hit requires the stored
-          ;; dependency fingerprints to still match, so regenerating a
-          ;; dependency invalidates its consumers.
+        (let ((gfo-file (cache-file-for (cache-key-path lib-file))))
           (let* ((src (and (auto-compile-enabled?)
                            (load-find-module-file lib-file)))
-                 (rec (and src (gfo-load-record gfo-file)))
-                 (recs (and (pair? rec) (eq? (car rec) 'gfo)
-                            (equal? (cadr rec) gfo-format-version)
-                            (equal? (caddr rec) (compile-file-stamp src))
-                            (let ((deps (list-ref rec 4)))
-                              (cond ((null? deps) #t)
-                                    ((pair? deps)
-                                     (equal? deps
-                                             (map library-dep-fingerprint
-                                                  (map car deps))))
-                                    (else #f)))
-                            ;; A libraries bundle holds one record per
-                            ;; define-library form in the file, in order.
-                            (let ((payload (cadddr rec)))
-                              (and (bundle? payload)
-                                   (eq? (bundle-kind payload) 'libraries)
-                                   (let ((libs (bundle-section payload 'libs)))
-                                     (and (pair? libs) (cdr libs))))))))
+                 ;; A libraries bundle holds one record per
+                 ;; define-library form in the file, in order.
+                 (payload (and src (cache-load-checked gfo-file
+                                                       (compile-file-stamp src))))
+                 (recs (and (bundle? payload)
+                            (eq? (bundle-kind payload) 'libraries)
+                            (let ((libs (bundle-section payload 'libs)))
+                              (and (pair? libs) (cdr libs))))))
             (if recs
               (dynamic-wind
                 (lambda ()
@@ -823,10 +710,10 @@
                       (load-library-guard
                        lib-name
                        (lambda ()
-                            (if (and (auto-compile-enabled?)
-                                     (library-file-cacheable? forms))
-                              (let* ((stamp (compile-file-stamp file))
-                                     (gfo-file (library-gfo-path lib-file)))
+                             (if (and (auto-compile-enabled?)
+                                      (library-file-cacheable? forms))
+                               (let* ((stamp (compile-file-stamp file))
+                                      (gfo-file (cache-file-for (cache-key-path lib-file))))
                                 (let*-values (((recs ctx) (capture-file-cache forms)))
                                   (let* ((recs (optimize-lib-cache-recs recs))
                                          (deps (map library-dep-fingerprint
@@ -1551,14 +1438,18 @@
   (let ((lib (let-ref env *program-environment-key*)))
     (if (not (and (exp-library? lib) lib))
         (eval expr env)
-        (let* ((stx (stx-set-library (wrap-expression expr) lib))
-               (ctx (initial-context)))
-          (let*-values (((defs ctx1) (expand-library-body (list stx) lib ctx)))
-            (let loop ((ds defs))
-              (if (null? ds)
-                  #f
-                  (let ((r (eval (lower (car ds)) the-expander-library)))
-                    (if (null? (cdr ds)) r (loop (cdr ds)))))))))))
+        ;; One compilation unit per eval: expand-time state never leaks
+        ;; between eval calls.
+        (call-with-fresh-expand-unit
+          (lambda ()
+            (let* ((stx (stx-set-library (wrap-expression expr) lib))
+                   (ctx (initial-context)))
+              (let*-values (((defs ctx1) (expand-library-body (list stx) lib ctx)))
+                (let loop ((ds defs))
+                  (if (null? ds)
+                      #f
+                      (let ((r (eval (lower (car ds)) the-expander-library)))
+                        (if (null? (cdr ds)) r (loop (cdr ds)))))))))))))
 
 (define %environment-api-installed!
   (begin
@@ -1646,8 +1537,13 @@
     (module-define! the-expander-library 'restore-library-cache restore-library-cache)
     (module-define! the-expander-library 'lib-record-library lib-record-library)
     (module-define! the-expander-library 'lib-record-exports lib-record-exports)
-    (module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
-    (module-define! the-expander-library 'library-dep-fingerprint library-dep-fingerprint)
+    ;; (No compat re-exports for the backend helpers that moved to
+    ;; install.scm: a module-define! value is evaluated EAGERLY at install
+    ;; time, when another file's source names are not rootlet-visible yet
+    ;; (lib-layer defines bind gensyms in the-expander-library; source
+    ;; names land in the rootlet only after each file finishes loading).
+    ;; Cross-file references belong in procedure bodies (deferred), never
+    ;; in top-level value position.)
     (module-define! the-expander-library 'warm-file! warm-file!)
     ;; load-library! evaluates a library's registration expression in the
     ;; host rootlet, so the runtime-registered marker (called from

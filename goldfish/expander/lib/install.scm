@@ -27,6 +27,198 @@
 (define ensure-cache-parent! gfo-ensure-parent!)
 (define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
 
+;;; ---------------------------------------------------------------------------
+;;; Unified cache backend.
+;;;
+;;; Every expander cache entry -- a boot library install (kind `module'),
+;;; a compiled toplevel program (kind `program'), a user library file
+;;; (kind `libraries') -- shares one key scheme, one validity gate, and
+;;; one dependency protocol:
+;;;   key   : <path-mirror>[-o<level>].gfo under the versioned cache dir.
+;;;           Every kind carries the optimization-level suffix (boot
+;;;           installs included: optimized defs must not serve level 0).
+;;;   stamp : the source content stamp (see gfo-stamp) plus the kernel
+;;;           artifact stamp.
+;;;   deps  : ((lib . fingerprint) ...) over the file's TRANSITIVE
+;;;           import closure.  A fingerprint is (mtime size md5), or the
+;;;           symbol external for sourceless libraries; fingerprints are
+;;;           recomputed from the stored names on every check, so an edit
+;;;           anywhere in the graph invalidates its consumers.
+
+;;; library-file-name : lib-name -> rel-path
+;;; A library name (foo bar) maps to the file "foo/bar.scm".
+
+(define (library-file-name lib-name)
+  (let loop ((parts (map symbol->string lib-name)) (acc ""))
+    (if (null? parts)
+        (string-append acc ".scm")
+        (loop (cdr parts)
+              (if (string=? acc "")
+                  (car parts)
+                  (string-append acc "/" (car parts)))))))
+
+;;; library-dep-fingerprint : lib-name -> (name mtime size md5) | (name 'external)
+;;; Fingerprint a dependency by its SOURCE file.  Deliberately NOT its
+;;; cache artifact: consumers validate before their dependencies reload,
+;;; so an artifact-based fingerprint would compare against the
+;;; dependency's still-stale cache and miss the edit.  The content hash
+;;; closes the same-second same-size rewrite window that mtime+size
+;;; alone leave open.  Pure stat+hash calls, no expansion.
+
+(define (library-dep-fingerprint name)
+  (let ((src (load-find-module-file (library-file-name name))))
+    (if src
+      (cons name (list (g_path-getmtime src) (g_path-getsize src)
+                       (g_md5-by-file src)))
+      ;; No on-disk home: runtime-registered or host-provided library,
+      ;; nothing to fingerprint.
+      (cons name 'external))))
+
+;;; import-set-lib-name : import-spec -> lib-name
+;;; Bottom out of R7RS import sets: a library name, a modifier applied
+;;; to a (possibly nested) set, or a `for' level spec around either.
+
+(define (import-set-lib-name spec)
+  (if (and (pair? spec)
+           (memq (car spec) '(only except prefix rename for)))
+    (import-set-lib-name (cadr spec))
+    spec))
+
+;;; collect-import-clause-libs : form -> (list name)
+;;; Bottom library names of one (import spec ...) clause.
+
+(define (collect-import-clause-libs clause)
+  (let add ((specs (cdr clause)) (acc '()))
+    (if (null? specs)
+      acc
+      (let ((n (import-set-lib-name (car specs))))
+        (if (and (pair? n) (member n acc))
+          (add (cdr specs) acc)
+          (add (cdr specs) (if (pair? n) (cons n acc) acc)))))))
+
+;;; lib-source-import-libs : file -> (list name)
+;;; Bottom libs named by the (import ...) clauses of a library file's
+;;; define-library forms (its direct imports, from the source --
+;;; cache-free, so the closure can be walked without first restoring
+;;; dependencies).
+
+(define (lib-source-import-libs file)
+  (if (not (file-exists? file))
+    '()
+    (let ((forms (call-with-input-file file read-forms)))
+      (let loop ((fs forms) (acc '()))
+        (if (null? fs)
+          acc
+          (let* ((f (car fs))
+                 (added (if (and (pair? f) (eq? (car f) 'define-library))
+                          (let collect ((cs (cddr f)) (a '()))
+                            (if (null? cs)
+                              a
+                              (let ((c (car cs)))
+                                (if (and (pair? c) (eq? (car c) 'import))
+                                  (collect (cdr cs) (append (collect-import-clause-libs c) a))
+                                  (collect (cdr cs) a)))))
+                          '())))
+            (loop (cdr fs) (append added acc))))))))
+
+;;; transitive-lib-closure : (list name) -> (list name)
+;;; BFS closure over import edges, skipping already-seen libraries.
+
+(define (transitive-lib-closure names)
+  (let loop ((queue names) (acc '()))
+    (if (null? queue)
+      (reverse acc)
+      (let ((n (car queue)))
+        (if (member n acc)
+          (loop (cdr queue) acc)
+          (let ((f (load-find-module-file (library-file-name n))))
+            (loop (append (cdr queue)
+                          (if f (lib-source-import-libs f) '()))
+                  (cons n acc))))))))
+
+;;; collect-cache-module-refs : datum -> (list name)
+;;; Library names referenced as (module-ref 'lib 'name) anywhere in a
+;;; cached definition or expanded program -- function or argument
+;;; position: the dependencies a warm replay must have loaded before
+;;; evaluating the defs.
+
+(define (collect-cache-module-refs x)
+  (let loop ((v x) (acc '()))
+    (cond
+      ((and (pair? v) (eq? (car v) 'module-ref))
+       (let ((rest (cdr v)))
+         (loop (cdr v)
+               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
+                 (let ((lib (cadar rest)))
+                   (if (member lib acc) acc (cons lib acc)))
+                 acc))))
+      ((pair? v) (loop (car v) (loop (cdr v) acc)))
+      (else acc))))
+
+;;; program-all-deps : forms opt -> (list name)
+;;; Every library a compiled program can be invalidated by,
+;;; transitively: the module-ref targets in the expanded output plus
+;;; every library named by a top-level (import ...) form, closed over
+;;; each dependency's own imports (a pure-syntax macro provider leaves
+;;; no module-ref behind, and a change deep in the graph can still
+;;; alter what a macro here expands to).
+
+(define (program-all-deps forms opt)
+  (transitive-lib-closure
+    (dedup-libs (append (collect-cache-module-refs opt)
+                        (program-import-libs forms)))))
+
+;;; cache-level : -> integer
+;;; L2-2 / program level: how much self-hosted compilation runs before
+;;; defs evaluate (the -O0/1/2 convention; unset defaults to 2).
+;;; Controlled by GOLDFISH_OPT_LEVEL (0 disables compilation entirely).
+
+(define (cache-level)
+  (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
+    (cond
+      ((not v) 2)
+      ((member v '("0" "no" "false" "off")) 0)
+      (else
+        (let ((n (string->number v)))
+          (if (and n (integer? n) (>= n 0)) n 2))))))
+
+;;; cache-level-suffix : -> string
+;;; Library/program caches store defs ALREADY OPTIMIZED for the active
+;;; level, so the level is part of the key.  Level 0 keeps the plain key.
+
+(define (cache-level-suffix)
+  (let ((level (cache-level)))
+    (if (zero? level) "" (string-append "-o" (number->string level)))))
+
+;;; cache-file-for : path -> gfo-file
+;;; The single key builder for every cache kind: the source path
+;;; mirrored under the versioned cache dir, suffixed by level.
+
+(define (cache-file-for path)
+  (string-append (compile-cache-dir) "/" (cache-key-path path)
+                 (cache-level-suffix) ".gfo"))
+
+;;; cache-load-checked : gfo-file stamp -> payload/#f
+;;; The single validity gate for every cache kind: envelope shape,
+;;; format version, source stamp, then the stored dependency
+;;; fingerprints (recomputed from the dependency sources).  Callers
+;;; check the bundle kind and extract their sections.
+
+(define (cache-load-checked gfo-file stamp)
+  (let ((rec (gfo-load-record gfo-file)))
+    (and (pair? rec) (eq? (car rec) 'gfo)
+         (equal? (cadr rec) gfo-format-version)
+         (equal? (caddr rec) stamp)
+         (let ((stored-deps (if (> (length rec) 4) (list-ref rec 4) '())))
+           ;; #f is the pre-dep-protocol marker gfo-write! stores when a
+           ;; writer passes no deps; treat it like an empty list.
+           (and (or (not stored-deps) (null? stored-deps)
+                    (and (pair? stored-deps)
+                         (equal? stored-deps
+                                 (map library-dep-fingerprint
+                                      (map car stored-deps)))))
+                (cadddr rec))))))
+
 ;; Cache stamps must cover the kernel artifact as well as the source:
 ;; a rebuilt artifact shifts gensym allocation, so warm-start re-eval of
 ;; cached macro records (whose lowered forms embed those gensyms) breaks
@@ -130,24 +322,35 @@
 ;;; by mtime/size, so warm starts skip re-expansion.
 
 (define (install-library-file! lib path)
+  ;; One compilation unit per file: the cold expansion and the warm
+  ;; replay each evaluate the file's expand-time code in a fresh env.
+  (call-with-fresh-expand-unit
+    (lambda ()
+      (install-library-file-in-unit! lib path))))
+
+(define (install-library-file-in-unit! lib path)
   (let ((file (load-find-module-file path)))
     (unless file
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
-      (let* ((full (gfo-load-record (install-cache-path path)))
-             (cached (and (pair? full) (eq? (car full) 'gfo) (= (length full) 5)
-                          (equal? (cadr full) gfo-format-version)
-                          (equal? (caddr full) stamp)
-                          (let ((payload (cadddr full)))
-                            (and (bundle? payload)
-                                 (eq? (bundle-kind payload) 'module)
-                                 payload)))))
+      (let* ((payload (cache-load-checked (install-cache-path path) stamp))
+             (cached (and (bundle? payload)
+                          (eq? (bundle-kind payload) 'module)
+                          payload)))
         (if cached
           (install-cache-load! lib cached)
-          (let*-values (((ctx defs macros bindings)
-                         (install-library-forms! lib (call-with-input-file file read-forms))))
-            (install-cache-save! path stamp defs macros bindings)
-            ctx))))))
+          (let* ((forms (call-with-input-file file read-forms))
+                 ;; Dependency fingerprints over the file's transitive
+                 ;; import closure (empty for the boot files, which are
+                 ;; plain sources with no import clauses; their capture
+                 ;; is keyed by source + kernel artifact stamps).
+                 (deps (map library-dep-fingerprint
+                            (transitive-lib-closure
+                              (program-import-libs forms)))))
+            (let*-values (((ctx defs macros bindings)
+                           (install-library-forms! lib forms)))
+              (install-cache-save! path stamp defs macros bindings deps)
+              ctx)))))))
 (define (install-standard-library!)
   (install-library-file! the-base-library "expander/lib/standard.scm"))
 
@@ -296,11 +499,11 @@
   (assq tag (cdddr x)))
 
 ;;; install-cache-path : path -> gfo-file (unified .gfo)
-(define (install-cache-path path) (gfo-path path))
+(define (install-cache-path path) (cache-file-for path))
 
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
-(define (install-cache-save! path stamp defs macros bindings)
+(define (install-cache-save! path stamp defs macros bindings deps)
   (let ((gfo-file (install-cache-path path))
         (rec (make-bundle 'module
                (cons 'defs (map serialize-cache-sexp defs))
@@ -312,7 +515,10 @@
                      (map (lambda (e)
                             (cons (car e) (serialize-cache-sexp (cdr e))))
                           bindings)))))
-    (gfo-write! gfo-file stamp rec)))
+    ;; The dep list must be written explicitly: a record with no deps slot
+    ;; stores #f, which the validity gate would read as a mismatch and
+    ;; invalidate the entry on every check.
+    (gfo-write! gfo-file stamp rec deps)))
 
 ;;; install-depurify-binding : datum exp-library -> binding/#f
 ;;; Rebuild a value binding from its cached description, mirroring
@@ -382,7 +588,10 @@
     (for-each (lambda (r)
                 (let* ((name (car r))
                        (data (deserialize-cache-sexp (cdr r)))
-                       (proc (eval data the-expander-library)))
+                       ;; Rebuild the transformer in the current unit's
+                       ;; expand env (not the shared expander module),
+                       ;; exactly where a cold expansion would put it.
+                       (proc (eval data (current-expand-env))))
                   (exp-library-define! lib name (make-transformer-binding proc))))
               macros))))
 
@@ -423,29 +632,16 @@
 ;;; compile-write-cache is defined up top, before
 ;;; the boot installs.)
 
-;; ccache-level : -> integer
-;; The optimization level to bake into compile-file-cached artifacts.
-;; Mirrors module.scm's optimization-level, but install.scm loads before
-;; module.scm, so it cannot call that procedure.
+;;; ccache-level : -> integer
+;;; The optimization level to bake into compile-file-cached artifacts.
+;;; One implementation (cache-level, defined up top with the backend);
+;;; this name stays for compatibility.
 
-(define (ccache-level)
-  (let ((v (getenv "GOLDFISH_OPT_LEVEL")))
-    (cond
-      ((not v) 2)
-      ((member v '("0" "no" "false" "off")) 0)
-      (else
-       (let ((n (string->number v)))
-         (if (and n (integer? n) (>= n 0)) n 2))))))
+(define (ccache-level) (cache-level))
 
 ;;; Program-file import deps: bottom libs named by top-level (import ...)
 ;;; forms (flattening begin), so macro providers are fingerprinted too.
-;;; (import-set-lib-name duplicates module.scm's; the expander lib files are
-;;; separate modules and share nothing but the registered surface.)
-(define (import-set-lib-name spec)
-  (if (and (pair? spec)
-           (memq (car spec) '(only except prefix rename for)))
-    (import-set-lib-name (cadr spec))
-    spec))
+;;; import-set-lib-name is the backend's (it also unwraps `for' specs).
 (define (program-import-libs forms)
   (define (add-lib n acc)
     (if (and (pair? n) (not (member n acc))) (cons n acc) acc))
@@ -472,35 +668,27 @@
         (loop (cdr ls) (cons (car ls) acc))))))
 
 (define (compile-file-cached path)
-  (let* ((key (cache-key-path path))
-         (level (ccache-level))
-         (key (if (zero? level) key (string-append key "-o" (number->string level))))
-         (gfo-file (string-append (compile-cache-dir) "/" key ".gfo"))
+  ;; One compilation unit per call: expand-time state (region bindings,
+  ;; transformer closures) is isolated from every other compile in the
+  ;; session; the hot path needs no unit (it only reads data).
+  (call-with-fresh-expand-unit
+    (lambda ()
+      (compile-file-cached-in-unit path))))
+
+(define (compile-file-cached-in-unit path)
+  (let* ((level (cache-level))
+         (gfo-file (cache-file-for (cache-key-path path)))
          (stamp (compile-file-stamp path))
          (forms (call-with-input-file path read-forms)))
-    ;; Dependency-tracked hit: the record stores fingerprints of the
-    ;; libraries the compiled program refers to via module-ref.
-    (let* ((rec (gfo-load-record gfo-file))
-           (cached (and (pair? rec) (eq? (car rec) 'gfo)
-                        (equal? (cadr rec) gfo-format-version)
-                        (equal? (caddr rec) stamp)
-                        (let ((deps (list-ref rec 4)))
-                          (cond ((null? deps) #t)
-                                ((pair? deps)
-                                 (equal? deps
-                                         (map library-dep-fingerprint
-                                              (map car deps))))
-                                (else #f)))
-                        ;; A program bundle holds one exprs section with
-                        ;; the serialized lowered program; deserialize
-                        ;; rebuilds its embedded syntax constants as live
-                        ;; records.
-                        (let ((payload (cadddr rec)))
-                          (and (bundle? payload)
-                               (eq? (bundle-kind payload) 'program)
-                               (let ((exprs (bundle-section payload 'exprs)))
-                                 (and (pair? exprs)
-                                      (deserialize-cache-sexp (cadr exprs)))))))))
+    ;; A program bundle holds one exprs section with the serialized
+    ;; lowered program; deserialize rebuilds its embedded syntax
+    ;; constants as live records.
+    (let* ((payload (cache-load-checked gfo-file stamp))
+           (cached (and (bundle? payload)
+                        (eq? (bundle-kind payload) 'program)
+                        (let ((exprs (bundle-section payload 'exprs)))
+                          (and (pair? exprs)
+                               (deserialize-cache-sexp (cadr exprs)))))))
       (if cached
         cached
         (let*-values (((prog ctx)
@@ -512,29 +700,24 @@
                             (if (procedure? f)
                               (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
                               (lower prog)))))
-                  ;; serialize-cache-sexp is the single arbiter of what
-                  ;; persists: datum-embedded syntax values degrade to stx*
-                  ;; text (their live back-reference to the session
-                  ;; (program) library is replaced by its name), and
-                  ;; anything unserializable raises -- such an artifact
-                  ;; gets no cache entry and is re-expanded every run.
-                  ;; The in-memory opt stays live either way.
-                  ;; (Region bindings cannot leak here: they resolve only
-                  ;; at phase >= 1, so a phase-0 artifact cannot name
-                  ;; them -- a stray reference fails at expansion time.)
-                  (bundle (catch #t
-                            (lambda ()
-                              (make-bundle 'program
-                                           (list 'exprs (serialize-cache-sexp opt))))
-                            (lambda args #f))))
+                 ;; serialize-cache-sexp is the single arbiter of what
+                 ;; persists: datum-embedded syntax values degrade to stx*
+                 ;; text (their live back-reference to the session
+                 ;; (program) library is replaced by its name), and
+                 ;; anything unserializable raises -- such an artifact
+                 ;; gets no cache entry and is re-expanded every run.
+                 ;; The in-memory opt stays live either way.
+                 ;; (Region bindings cannot leak here: they resolve only
+                 ;; at phase >= 1, so a phase-0 artifact cannot name
+                 ;; them -- a stray reference fails at expansion time.)
+                 (bundle (catch #t
+                           (lambda ()
+                             (make-bundle 'program
+                                          (list 'exprs (serialize-cache-sexp opt))))
+                           (lambda args #f))))
             (when bundle
-              ;; Macro-provider dependencies: a pure syntax macro leaves
-              ;; no module-ref in the expanded program, so also fingerprint
-              ;; every library named by a top-level (import ...) form.
               (let ((deps (map library-dep-fingerprint
-                               (dedup-libs
-                                 (append (collect-cache-module-refs opt)
-                                         (program-import-libs forms))))))
+                               (program-all-deps forms opt))))
                 (gfo-write! gfo-file stamp bundle deps)))
             opt))))))
 

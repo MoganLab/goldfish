@@ -833,6 +833,14 @@
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (define (load-forms-sequentially forms)
+    ;; One compilation unit for the file's per-form fallback: a multi-form
+    ;; expand-time region still resolves here, isolated from every other
+    ;; file's compile.  (The whole-compile attempt binds its own unit
+    ;; inside compile-file-cached.)
+    (call-with-fresh-expand-unit
+      (lambda ()
+        (load-forms-sequentially-in-unit forms))))
+  (define (load-forms-sequentially-in-unit forms)
     ;; Expansion errors carry no source positions (syntax objects do not
     ;; track them), so the loader at least tags the file and form ordinal:
     ;; re-raise any error from a form with a locating prefix.
