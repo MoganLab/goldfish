@@ -699,6 +699,24 @@
   (let ((v (getenv "GOLDFISH_AUTO_COMPILE")))
     (not (and v (member v '("0" "no" "false" "off"))))))
 
+;; The compile fallback notes that a file fell back to per-form loading
+;; but swallows the underlying error (it is usually irrelevant -- missing
+;; runtime values at compile time are exactly what the fallback exists
+;; for).  Set GOLDFISH_AUTO_COMPILE_DEBUG to see the caught error when a
+;; file that should compile keeps falling back.
+(define (auto-compile-debug-enabled?)
+  (let ((v (getenv "GOLDFISH_AUTO_COMPILE_DEBUG")))
+    (and v (not (member v '("0" "no" "false" "off"))))))
+
+(define (note-compile-failure path type info)
+  (when (auto-compile-debug-enabled?)
+    (let ((p (current-error-port)))
+      (display ";;; note: " p)
+      (display path p)
+      (display " failed to compile: " p)
+      (write type p) (display " " p) (write info p)
+      (newline p))))
+
 ;; A file falling back to per-form loading re-expands -- and re-runs
 ;; expand-time side effects -- on every load; say so, so the slowdown is
 ;; visible rather than silent.
@@ -860,7 +878,9 @@
                 ;; side effects) on every load.
                 (let ((sexp (catch #t
                               (lambda () (compile-file-cached path))
-                              (lambda (type info) #f))))
+                              (lambda (type info)
+                                (note-compile-failure path type info)
+                                #f))))
                   (if (and sexp (cacheable-expansion? sexp))
                     (catch #t
                       (lambda ()
@@ -875,6 +895,7 @@
                         ;; resolve in the-expander-library.
                         (eval sexp the-expander-library))
                       (lambda (type info)
+                        (note-compile-failure path type info)
                         (note-per-form path)
                         (load-forms-sequentially forms)))
                     (begin
