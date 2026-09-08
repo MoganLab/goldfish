@@ -69,6 +69,12 @@ string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
   return ret;
 }
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_os_arch (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, TB_ARCH_STRING);
@@ -106,7 +112,7 @@ static s7_pointer
 f_os_call (s7_scheme* sc, s7_pointer args) {
   s7_pointer cmd_arg= s7_car (args);
   if (!s7_is_string (cmd_arg)) {
-    return s7_wrong_type_arg_error (sc, "os-call", 1, cmd_arg, "a string");
+    return string_type_error (sc, "os-call: command must be a string", cmd_arg);
   }
   const char*       cmd_c= s7_string (cmd_arg);
   tb_process_attr_t attr = {tb_null};
