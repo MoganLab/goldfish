@@ -714,8 +714,9 @@ static inline s7_pointer
 iota_list (s7_scheme* sc, s7_int count, s7_int last_val, s7_int step) {
   s7_pointer res= s7_nil (sc);
   s7_int     val= last_val;
-  for (; count > 0; count--) {
+  while (true) {
     res= s7_cons (sc, s7_make_integer (sc, val), res);
+    if (--count == 0) break;
     val-= step;
   }
   return res;
