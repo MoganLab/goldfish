@@ -417,8 +417,10 @@ f_substring_cursors (s7_scheme* sc, s7_pointer args) {
       byte_end= utf8_advance (s, byte_end);
     }
     byte_start= 0;
-    for (s7_int i= 0; i < ia; i++)
+    for (s7_int i= 0; i < ia; i++) {
+      if (byte_start >= len) return liii_string_cursor_value_error (sc, "substring/cursors: start index out of range");
       byte_start= utf8_advance (s, byte_start);
+    }
   }
   if (byte_start > byte_end || byte_end > len)
     return liii_string_cursor_value_error (sc, "substring/cursors: end index out of range");
