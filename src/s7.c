@@ -24390,9 +24390,9 @@ s7_int s7_vector_rank(s7_pointer vec) {return((s7_int)(vector_rank(vec)));}
 
 
 /* -------------------------------- vector-typer -------------------------------- */
-/* g_vector_typer is now defined in s7_liii_vector.c */
+/* g_vector_typer, g_set_vector_typer migrated to s7_liii_vector.c */
 
-static s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = car(args), typer = cadr(args);
 

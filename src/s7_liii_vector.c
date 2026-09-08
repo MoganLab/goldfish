@@ -454,6 +454,11 @@ s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args)
   return(s7_f(sc));
 }
 
+s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_set_vector_typer_1(sc, args));
+}
+
 s7_pointer g_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_int len = s7_list_length(sc, args);

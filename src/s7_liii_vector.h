@@ -39,6 +39,7 @@ s7_pointer g_subvector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_subvector_position(s7_scheme *sc, s7_pointer args);
 s7_pointer g_subvector_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args);
+s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args);
