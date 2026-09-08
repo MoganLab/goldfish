@@ -833,14 +833,39 @@
 (define (load file)
   (define dirs (if (list? *load-path*) *load-path* (list *load-path*)))
   (define (load-forms-sequentially forms)
-    (for-each (lambda (d)
-                ;; Use the expander whenever it is up: the s7-eval fallback
-                ;; only applies to the seed phase (before this reader defines
-                ;; expand-eval).
-                (if (defined? 'expand-eval)
-                  (expand-eval d)
-                  (eval d (rootlet))))
-              forms))
+    ;; Expansion errors carry no source positions (syntax objects do not
+    ;; track them), so the loader at least tags the file and form ordinal:
+    ;; re-raise any error from a form with a locating prefix.
+    (let loop ((fs forms) (n 1))
+      (if (null? fs)
+        #f
+        (let ((d (car fs)))
+          (catch #t
+            (lambda ()
+              ;; Use the expander whenever it is up: the s7-eval fallback
+              ;; only applies to the seed phase (before this reader defines
+              ;; expand-eval).
+              (if (defined? 'expand-eval)
+                (expand-eval d)
+                (eval d (rootlet))))
+            (lambda args
+              ;; s7 packs an error's args as (type info): the handler's
+              ;; second value is the arglist of the error call.  Prefix the
+              ;; locating context onto the info's message string (or as its
+              ;; first element when the error has no message string).
+              (let* ((type (car args))
+                     (info (cond ((and (pair? (cdr args)) (null? (cddr args))
+                                       (pair? (cadr args)))
+                                  (cadr args))
+                                 ((pair? (cdr args)) (cdr args))
+                                 (else '())))
+                     (ctx (string-append "while loading " file
+                                         " form " (number->string n) ": ")))
+                (if (and (pair? info) (string? (car info)))
+                  (apply error type
+                         (cons (string-append ctx (car info)) (cdr info)))
+                  (apply error type (cons ctx info))))))
+          (loop (cdr fs) (+ n 1))))))
   (let loop ((cands (cons file (map (lambda (d) (string-append d "/" file)) dirs))))
     (cond
       ((null? cands)
