@@ -420,6 +420,11 @@ s7_pointer g_is_subvector(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer g_subvector(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_subvector_1(sc, args));
+}
+
 s7_pointer g_subvector_position(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer p = s7_car(args);

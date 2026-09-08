@@ -23887,12 +23887,13 @@ static inline vdims_t *list_to_vdims(s7_scheme *sc, s7_pointer lst)
   return(vd);
 }
 
-static s7_pointer g_subvector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector "(subvector original-vector (start 0) (end original-vector-len) new-dimensions) returns \
+#define H_subvector "(subvector original-vector (start 0) (end original-vector-len) new-dimensions) returns \
 a vector that points to the same elements as the original-vector but with different starting point, end point, and dimensional info."
-  #define Q_subvector s7_make_signature(sc, 5, sc->is_subvector_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol, sc->is_pair_symbol)
+#define Q_subvector s7_make_signature(sc, 5, sc->is_subvector_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol, sc->is_pair_symbol)
+/* g_subvector migrated to s7_liii_vector.c */
 
+s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
+{
   /* (let ((v1 #2d((1 2 3) (4 5 6)))) (let ((v2 (subvector v1 0 6))) v2)) -> #(1 2 3 4 5 6)
    * (let ((v1 #(1 2 3 4 5 6))) (let ((v2 (subvector v1 0 6 '(3 2)))) v2)) -> #2D((1 2) (3 4) (5 6))
    */
