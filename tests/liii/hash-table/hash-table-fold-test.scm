@@ -1,4 +1,4 @@
-(import (liii check) (liii hash-table))
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -46,6 +46,11 @@
 
 
 (check (hash-table-fold (lambda (k v acc) (+ acc v)) 10 (hash-table)) => 10)
+
+
+(check-catch 'type-error (hash-table-fold "not-a-procedure" 0 (make-hash-table)))
+(check-catch 'type-error (hash-table-fold (lambda (k v acc) acc) 0 "not-a-table"))
+
 
 
 (check-report)

@@ -1,4 +1,4 @@
-(import (liii check) (liii hash-table))
+(import (liii check) (liii error) (liii hash-table))
 
 
 (check-set-mode! 'report-failed)
@@ -51,6 +51,11 @@
 (let ((ht (make-hash-table)) (fn (lambda (x) (+ x 1))))
   (check ((hash-table-ref/default ht 'not-exist fn) 5) => 6)
 ) ;let
+
+
+(check-catch 'type-error (hash-table-ref/default "not-a-table" 'key 'default))
+(check-catch 'type-error (hash-table-ref/default 123 'key 'default))
+(check-catch 'type-error (hash-table-ref/default '((a . 1)) 'key 'default))
 
 
 
