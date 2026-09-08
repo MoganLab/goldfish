@@ -70,5 +70,13 @@
 
 (check-catch 'wrong-type-arg (float-vector-set! (vector 1.0 2.0 3.0) 0 100.0))
 
+(let ((v (float-vector 1.0 2.0 3.0)))
+  (define (foo vec idx)
+    (float-vector-set! vec idx (if #t 1.0 (float-vector-ref vec idx)))
+  ) ;define
+  (check-catch 'out-of-range (foo v 100000000))
+  (check-catch 'out-of-range (foo v -1))
+) ;let
+
 
 (check-report)

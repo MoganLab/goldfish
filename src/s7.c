@@ -25517,11 +25517,9 @@ static bool find_matching_ref(s7_scheme *sc, const s7_pointer getter, s7_pointer
   return(false);
 }
 
-static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
+static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
-  if (args == 3)
-    return((find_matching_ref(sc, sc->float_vector_ref_symbol, expr)) ? sc->fv_set_unchecked : sc->fv_set_3);
-  return(func);
+  return((args == 3) ? sc->fv_set_3 : func);
 }
 
 static s7_double float_vector_set_d_7pid_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_double x) {float_vector(vec, index) = x; return(x);}
