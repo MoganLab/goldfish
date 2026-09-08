@@ -395,4 +395,16 @@
   ) ;define-library
 ) ;check-catch
 
+;; 验证 set! *load-path* 对非法值的防御
+(check-catch 'type-error (set! *load-path* 123))
+(check-catch 'type-error (set! *load-path* "not-a-list"))
+(check-catch 'type-error (set! *load-path* (cons "a" "b")))
+(check-catch 'type-error
+  (let ((p (list "foo")))
+    (set-cdr! p p)
+    (set! *load-path* p)
+  ) ;let
+) ;check-catch
+(check-catch 'type-error (set! *load-path* (list 123)))
+
 (check-report "\n\nCheck report of boot-test.scm => ")
