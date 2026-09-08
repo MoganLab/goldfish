@@ -86,4 +86,11 @@
 
 ;; 测试混合 index/cursor 参数应该报错
 (check-catch 'type-error (substring/cursors "abc" 0 (string-cursor-end "abc")))
+
+;; C 层入口 g_substring/cursors 索引路径越界防护测试 (devel/0152.md)
+;; 索引模式下 byte_start 前进循环必须有 >= len 守卫，
+;; 否则 start 超过字符数时会越界读内存（大 start 还会长时间空转甚至段错误）
+(check-catch 'value-error (g_substring/cursors "ab" 4 2))
+(check-catch 'value-error (g_substring/cursors "中文" 3 2))
+(check-catch 'value-error (g_substring/cursors "ab" 100000000 0))
 (check-report)
