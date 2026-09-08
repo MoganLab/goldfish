@@ -57,21 +57,47 @@
 
 ;; exp-library-use-ref : lib name -> binding/#f
 ;; Lookup across the library's shared import views, newest first (the
-;; most recent import of a name shadows earlier ones).
+;; most recent import of a name shadows earlier ones).  Each use is a
+;; (view . level) pair; the ungated walk ignores levels and is for
+;; callers outside identifier resolution (cache restore, export checks).
 (define (exp-library-use-ref lib name)
   (let loop ((uses (exp-library-uses lib)))
     (if (pair? uses)
-      (or (exp-library-ref-own (car uses) name)
+      (or (exp-library-ref-own (caar uses) name)
           (loop (cdr uses)))
       #f)))
 
-;; exp-library-add-use! : lib view -> void
+;; exp-library-use-ref-at-phase : lib name phase -> binding/#f
+;; Phase-aware walk: a use registered at level N is visible at phase N
+;; and above (`run' imports register at 0 and are visible everywhere).
+;; A newer view gated out at this phase lets older uses shine through.
+(define (exp-library-use-ref-at-phase lib name phase)
+  (let loop ((uses (exp-library-uses lib)))
+    (if (pair? uses)
+      (if (>= phase (cdar uses))
+        (or (exp-library-ref-own (caar uses) name)
+            (loop (cdr uses)))
+        (loop (cdr uses)))
+      #f)))
+
+;; exp-library-add-use! : lib view [level] -> void
 ;; Record an imported interface (a shared export snapshot, itself an
-;; exp-library).  Idempotent: re-importing the same view is a no-op.
-(define (exp-library-add-use! lib view)
-  (if (memq view (exp-library-uses lib))
-    #f
-    (set-exp-library-uses! lib (cons view (exp-library-uses lib)))))
+;; exp-library) at a visibility level (R7RS `for' import levels; 0 =
+;; plain/run).  Idempotent per view; re-importing at a lower level
+;; widens visibility (a lib imported for both run and expand is
+;; everywhere-visible).
+(define (exp-library-add-use! lib view . maybe-level)
+  (let ((level (if (pair? maybe-level) (car maybe-level) 0)))
+    (let scan ((uses (exp-library-uses lib)))
+      (cond
+        ((null? uses)
+         (set-exp-library-uses! lib (cons (cons view level)
+                                          (exp-library-uses lib))))
+        ((eq? (caar uses) view)
+         (if (< level (cdar uses))
+           (set-cdr! (car uses) level)
+           #f))
+        (else (scan (cdr uses)))))))
 
 ;; exp-library-ref-strict : lib name -> binding/#f
 ;; What a program library sees: its own defines plus its imports, never
@@ -81,11 +107,26 @@
   (let ((r (or (exp-library-ref-own lib name)
                (exp-library-use-ref lib name))))    r))
 
+;; exp-library-ref-at-phase / exp-library-ref-strict-at-phase :
+;; lib name phase -> binding/#f
+;; Identifier-resolution lookups: own defines are phase-blind (a
+;; transformer body may call a sibling phase-0 helper), imported views
+;; are gated by their `for' levels.
+(define (exp-library-ref-at-phase lib name phase)
+  (or (exp-library-ref-own lib name)
+      (exp-library-use-ref-at-phase lib name phase)))
+
+(define (exp-library-ref-strict-at-phase lib name phase)
+  (or (exp-library-ref-own lib name)
+      (exp-library-use-ref-at-phase lib name phase)))
+
 (define (exp-library-ref lib name)
   ;; own defines, then the shared import views.  There is no ambient base:
   ;; a library (or program) resolves only what it defines and imports
   ;; (goldfish is imported like any other library).  Program strictness is
-  ;; kept by resolve-identifier (expand.scm).
+  ;; kept by resolve-identifier (expand.scm), which uses the phase-aware
+  ;; variants; this ungated walk serves the non-resolution callers
+  ;; (cache restore, export checks).
   (or (exp-library-ref-own lib name)
       (exp-library-use-ref lib name)))
 

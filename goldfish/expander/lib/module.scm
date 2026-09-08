@@ -839,7 +839,7 @@
              (and (toplevel-binding? b)
                   (eq? (toplevel-ref-home (binding-value b)) bl))))))
 
-;;; add-import-view! : lib lib-name iface -> void
+;;; add-import-view! : lib lib-name iface [level] -> void
 ;;; Record a shared import view on lib after enforcing Racket-style import
 ;;; conflicts: a name already resolvable from ANY earlier import with a
 ;;; DIFFERENT binding that neither the implementation library nor the
@@ -851,40 +851,43 @@
 ;;; base-home toplevels) are allowed, and re-exports of the same binding are
 ;;; fine.  Own defines are not consulted (they may shadow an import; resolve
 ;;; is own-first).  A genuine peer-peer collision must be resolved with an
-;;; explicit import set ((except ...), (rename ...), ...).
-(define (add-import-view! lib iface)
-  (let ((base-name (and (base-library)
-                        (exp-library-name (base-library)))))
-    (if (and base-name
-             (equal? (exp-library-name iface) base-name))
-      (exp-library-add-use! lib iface)
-      (let loop ((entries (exp-library-bindings iface)))
-        (if (pair? entries)
-          (let* ((name (caar entries))
-                 (binding (cdar entries)))
-            (let scan ((uses (exp-library-uses lib)))
-              (cond
-                ((null? uses)
-                 (loop (cdr entries)))
-                ((not (exp-library-ref-own (car uses) name))
-                 (scan (cdr uses)))
-                ((eq? (exp-library-ref-own (car uses) name) binding)
-                 ;; Same binding through this supplier (a re-export chain).
-                 (scan (cdr uses)))
-                ((or (and base-name
-                          (equal? (exp-library-name (car uses)) base-name))
-                     (base-sourced-binding?
-                      (exp-library-ref-own (car uses) name))
-                     (base-sourced-binding? binding))
-                 ;; Substrate overlay: this supplier or the new binding comes
-                 ;; from the implementation library / host.
-                 (scan (cdr uses)))
-                (else
-                 (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
-                        name
-                        (exp-library-name (car uses))
-                        (exp-library-name iface))))))
-          (exp-library-add-use! lib iface))))))
+;;; explicit import set ((except ...), (rename ...), ...).  level is the
+;;; R7RS `for' visibility level (0 = plain/run; the view is shared across
+;;; importers, the level lives on the importing side's use entry).
+(define (add-import-view! lib iface . maybe-level)
+  (let ((level (if (pair? maybe-level) (car maybe-level) 0)))
+    (let ((base-name (and (base-library)
+                          (exp-library-name (base-library)))))
+      (if (and base-name
+               (equal? (exp-library-name iface) base-name))
+        (exp-library-add-use! lib iface level)
+        (let loop ((entries (exp-library-bindings iface)))
+          (if (pair? entries)
+            (let* ((name (caar entries))
+                   (binding (cdar entries)))
+              (let scan ((uses (exp-library-uses lib)))
+                (cond
+                  ((null? uses)
+                   (loop (cdr entries)))
+                  ((not (exp-library-ref-own (caar uses) name))
+                   (scan (cdr uses)))
+                  ((eq? (exp-library-ref-own (caar uses) name) binding)
+                   ;; Same binding through this supplier (a re-export chain).
+                   (scan (cdr uses)))
+                  ((or (and base-name
+                            (equal? (exp-library-name (caar uses)) base-name))
+                       (base-sourced-binding?
+                        (exp-library-ref-own (caar uses) name))
+                       (base-sourced-binding? binding))
+                   ;; Substrate overlay: this supplier or the new binding comes
+                   ;; from the implementation library / host.
+                   (scan (cdr uses)))
+                  (else
+                   (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
+                          name
+                          (exp-library-name (caar uses))
+                          (exp-library-name iface))))))
+            (exp-library-add-use! lib iface level)))))))
 
 ;;; R7RS import-set grammar: an <import set> is a library name or a
 ;;; modifier applied to a (possibly nested) <import set>:
@@ -962,18 +965,51 @@
         (let ((outer (car spec)))
           (import-view lib-name pairs spec (not (eq? outer 'only))))))))
 
+;;; import-level-number : level-datum -> integer
+;;; R7RS import levels: run = 0, expand/syntax = 1, (meta n) = n.
+;;; Visibility is "at the level and above".
+
+(define (import-level-number level)
+  (cond
+    ((eq? level 'run) 0)
+    ((memq level '(expand syntax)) 1)
+    ((and (pair? level) (eq? (car level) 'meta)
+          (pair? (cdr level)) (integer? (cadr level)))
+     (cadr level))
+    (else (error 'import "bad import level" level))))
+
+;;; import-spec-level : (for set level+) -> integer
+;;; Multiple levels: the minimum -- availability is "level and above",
+;;; so the union of the requested levels is the lowest of them.
+
+(define (import-spec-level spec)
+  (let loop ((levels (cddr spec)) (acc #f))
+    (if (null? levels)
+      acc
+      (loop (cdr levels)
+            (let ((n (import-level-number (car levels))))
+              (if acc (min acc n) n))))))
+
 (define (import-spec-into-library! lib spec)
   (cond
     ((and (pair? spec) (eq? (car spec) 'for))
-     ;; R7RS (for import-set level ...): the levels (run / expand / during)
-     ;; choose the phases the import is visible at.  Resolution is
-     ;; phase-blind today -- every import is visible at every phase -- so
-     ;; the inner set is imported regardless of the levels; only the shape
-     ;; is honored (an R7RS import clause would otherwise be read as a
-     ;; library named `for').
+     ;; R7RS (for import-set level ...): the levels choose the phases the
+     ;; import is visible at (the view is registered on the importing
+     ;; library with that level; resolve-identifier consults it at phase
+     ;; >= level).  The inner set bottoms out in the same library as a
+     ;; plain import, so dependency loading and cache records are
+     ;; unaffected.
      (if (and (pair? (cdr spec)) (pair? (cddr spec)))
-         (import-spec-into-library! lib (cadr spec))
+         (if (and (pair? (cadr spec)) (eq? (car (cadr spec)) 'for))
+             (error 'import "for spec wraps an import set, not another for" spec)
+             (import-spec-clause-into-library! lib (cadr spec)
+                                               (import-spec-level spec)))
          (error 'import "for spec needs an import set and at least one level" spec)))
+    (else
+     (import-spec-clause-into-library! lib spec 0))))
+
+(define (import-spec-clause-into-library! lib spec level)
+  (cond
     ((and (pair? spec)
           (pair? (cdr spec))
           (pair? (cadr spec))
@@ -981,21 +1017,21 @@
      ;; Nested import set (a modifier over another modifier).
      (let ((iface (import-set-view spec)))
        (when iface
-         (add-import-view! lib iface))))
+         (add-import-view! lib iface level))))
     ;; Depth-1 set: a modifier directly over a library name, or a bare
     ;; library name.
     ((and (pair? spec) (eq? (car spec) 'only))
-     (import-only-into-library! lib spec))
+     (import-only-into-library! lib spec level))
     ((and (pair? spec) (eq? (car spec) 'except))
-     (import-except-into-library! lib spec))
+     (import-except-into-library! lib spec level))
     ((and (pair? spec) (eq? (car spec) 'prefix))
-     (import-prefix-into-library! lib spec))
+     (import-prefix-into-library! lib spec level))
     ((and (pair? spec) (eq? (car spec) 'rename))
-     (import-rename-into-library! lib spec))
+     (import-rename-into-library! lib spec level))
     (else
-     (import-plain-into-library! lib spec))))
+     (import-plain-into-library! lib spec level))))
 
-(define (import-except-into-library! lib spec)
+(define (import-except-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
     (let ((rec (source-record lib-name)))
@@ -1008,17 +1044,20 @@
                            (loop (cdr ns) acc)
                            (loop (cdr ns)
                                  (cons (cons (car ns) (car ns)) acc)))))
-                     (cons 'except ids) #t)))))
+                     (cons 'except ids) #t)
+        level))))
 
-(define (import-plain-into-library! lib lib-name)
-  (let ((rec (source-record lib-name)))
+(define (import-plain-into-library! lib spec level)
+  (let* ((lib-name spec)
+         (rec (source-record lib-name)))
     (add-import-view! lib
       (import-view lib-name
                    (map (lambda (n) (cons n n))
                         (lib-record-exports rec))
-                   'plain #t))))
+                   'plain #t)
+      level)))
 
-(define (import-only-into-library! lib spec)
+(define (import-only-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
     (let ((rec (source-record lib-name)))
@@ -1029,12 +1068,13 @@
           (if (null? pairs)
             #t
             (add-import-view! lib
-              (import-view lib-name pairs (cons 'only ids) #f)))
+              (import-view lib-name pairs (cons 'only ids) #f)
+              level))
           (if (memq (car ids*) (lib-record-exports rec))
             (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
             (loop (cdr ids*) pairs)))))))
 
-(define (import-prefix-into-library! lib spec)
+(define (import-prefix-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (prefix (caddr spec)))
     (let ((rec (source-record lib-name)))
@@ -1046,9 +1086,10 @@
                                                   (symbol->string name)))
                                   name))
                           (lib-record-exports rec))
-                     (cons 'prefix prefix) #t)))))
+                     (cons 'prefix prefix) #t)
+        level))))
 
-(define (import-rename-into-library! lib spec)
+(define (import-rename-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (renames (cddr spec)))
     (let ((rec (source-record lib-name)))
@@ -1060,7 +1101,8 @@
                                 (cons (cadr rename-entry) name)
                                 (cons name name))))
                           (lib-record-exports rec))
-                     (cons 'rename renames) #t)))))
+                     (cons 'rename renames) #t)
+        level))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
 
