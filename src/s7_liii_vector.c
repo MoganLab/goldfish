@@ -481,6 +481,40 @@ s7_pointer g_vector_3(s7_scheme *sc, s7_pointer args)
   return(vec);
 }
 
+s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer p = args;
+  if (s7_is_null(sc, args))
+    return(s7_make_vector(sc, 0));
+
+  if ((s7_is_null(sc, s7_cdr(args))) &&
+      (s7i_is_any_vector(s7_car(args))))
+    return(s7_vector_copy(sc, s7_car(args)));
+
+  for (int32_t i = 0; s7_is_pair(p); p = s7_cdr(p), i++)
+    {
+      const s7_pointer vect = s7_car(p);
+      if (!s7i_is_any_vector(vect))
+        {
+          s7_pointer func = s7_method(sc, vect, s7_make_symbol(sc, "vector-append"));
+          if (func != s7_undefined(sc))
+            {
+              if (i == 0)
+                return(s7_apply_function(sc, func, args));
+              s7_pointer front = s7_nil(sc);
+              s7_pointer arglist = args;
+              for (int32_t k = 0; k < i; k++, arglist = s7_cdr(arglist))
+                front = s7_cons(sc, s7_car(arglist), front);
+              front = s7_reverse(sc, front);
+              s7_pointer vec = g_vector_append(sc, front);
+              return(s7_apply_function(sc, func, s7_cons(sc, vec, p)));
+            }
+          return(s7_wrong_type_arg_error(sc, "vector-append", i + 1, vect, "a vector"));
+        }
+    }
+  return(s7i_vector_append(sc, args, (uint8_t)s7i_type(s7_car(args)), s7_make_symbol(sc, "vector-append")));
+}
+
 s7_pointer g_vector_ref(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);

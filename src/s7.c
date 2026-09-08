@@ -23554,55 +23554,9 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 /* g_vector_fill is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-append -------------------------------- */
-s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
-static s7_pointer copy_source_no_dest(s7_scheme *sc, s7_pointer source, s7_pointer args);
-
-static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
-{
-  /* returns a one-dimensional vector.  To handle multidimensional vectors, we'd need to
-   *   ensure all the dimensional data matches (rank, size of each dimension except the last etc),
-   *   which is too much trouble.
-   */
-  #define H_vector_append "(vector-append . vectors) returns a new (1-dimensional) vector containing the elements of its vector arguments."
-  #define Q_vector_append sc->pcl_v
-
-  s7_pointer p = args;
-  if (is_null(args))
-    return(make_simple_vector(sc, 0));
-
-  if ((is_null(cdr(args))) &&
-      (is_any_vector(car(args))))
-    return(copy_source_no_dest(sc, car(args), args));
-
-  for (int32_t i = 0; is_pair(p); p = cdr(p), i++)
-    {
-      const s7_pointer vect = car(p);
-      if (!is_any_vector(vect))
-	{
-	  if (has_active_methods(sc, vect))
-	    {
-	      const s7_pointer func = find_method_with_let(sc, vect, sc->vector_append_symbol);
-	      if (func != sc->undefined)
-		{
-		  s7_pointer lst, vec, new_vec, arglist = args;
-		  if (i == 0)
-		    return(s7_apply_function(sc, func, args));
-		  sc->temp7 = make_list(sc, i, sc->unused); /* we have to copy the arglist here */
-		  lst = sc->temp7;
-		  for (int32_t k = 0; k < i; k++, arglist = cdr(arglist), lst = cdr(lst))
-		    set_car(lst, car(arglist));
-		  vec = g_vector_append(sc, sc->temp7);
-		  new_vec = s7_apply_function(sc, func, set_ulist_1(sc, vec, p));
-		  if ((S7_DEBUGGING) && (!is_pair(sc->temp7))) fprintf(stderr, "%s[%d]: temp7: %s\n", __func__, __LINE__, display(sc->temp7));
-		  sc->temp7 = sc->unused;
-		  return(new_vec);
-		}}
-	  wrong_type_error_nr(sc, sc->vector_append_symbol, i + 1, vect, sc->type_names[T_VECTOR]);
-	}}
-  return(s7i_vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
-}
-
-/* vector_append_p_pp, vector_append_p_ppp migrated to s7_liii_vector.c */
+#define H_vector_append "(vector-append . vectors) returns a new (1-dimensional) vector containing the elements of its vector arguments."
+#define Q_vector_append sc->pcl_v
+/* g_vector_append, vector_append_p_pp, vector_append_p_ppp migrated to s7_liii_vector.c */
 #endif
 
 
