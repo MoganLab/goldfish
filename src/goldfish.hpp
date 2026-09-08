@@ -660,6 +660,53 @@ glue_liii_datetime (s7_scheme* sc) {
 }
 
 // -------------------------------- iota --------------------------------
+static inline bool
+safe_multiply (s7_int a, s7_int b, s7_int* res) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_mul_overflow (a, b, res);
+#else
+  if (a == 0 || b == 0) {
+    *res= 0;
+    return false;
+  }
+  constexpr s7_int max_val= std::numeric_limits<s7_int>::max ();
+  constexpr s7_int min_val= std::numeric_limits<s7_int>::min ();
+  if (a > 0) {
+    if (b > 0) {
+      if (a > max_val / b) return true;
+    }
+    else {
+      if (b < min_val / a) return true;
+    }
+  }
+  else {
+    if (b > 0) {
+      if (a < min_val / b) return true;
+    }
+    else {
+      if (a == min_val || b == min_val) return true;
+      if (-a > max_val / (-b)) return true;
+    }
+  }
+  *res= a * b;
+  return false;
+#endif
+}
+
+static inline bool
+safe_add (s7_int a, s7_int b, s7_int* res) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_add_overflow (a, b, res);
+#else
+  constexpr s7_int max_val= std::numeric_limits<s7_int>::max ();
+  constexpr s7_int min_val= std::numeric_limits<s7_int>::min ();
+  if (b > 0 && a > max_val - b) return true;
+  if (b < 0 && a < min_val - b) return true;
+  *res= a + b;
+  return false;
+#endif
+}
+
 static inline s7_pointer
 iota_list (s7_scheme* sc, s7_int count, s7_int last_val, s7_int step) {
   s7_pointer res= s7_nil (sc);
@@ -697,7 +744,7 @@ iota_list_p_ppp (s7_scheme* sc, s7_pointer count, s7_pointer start, s7_pointer s
   s7_int stp= s7_integer (step);
   s7_int mul_res;
   s7_int last_val;
-  if (__builtin_mul_overflow (stp, cnt - 1, &mul_res) || __builtin_add_overflow (st, mul_res, &last_val)) {
+  if (safe_multiply (stp, cnt - 1, &mul_res) || safe_add (st, mul_res, &last_val)) {
     return s7_error (sc, s7_make_symbol (sc, "value-error"),
                      s7_list (sc, 2, s7_make_string (sc, "iota: integer overflow"), count));
   }
