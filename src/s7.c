@@ -24544,7 +24544,8 @@ s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
   }
 }
 
-static s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_int_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;

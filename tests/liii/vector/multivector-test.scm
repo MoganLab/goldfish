@@ -19,4 +19,12 @@
   (check (vector-ref m 1 1 1) => 8)
 ) ;let
 
+;; 多维 int-vector 字面量 #2i(...)
+(let ((m (eval-string "#2i((1 2 3) (4 5 6))")))
+  (check (int-vector? m) => #t)
+  (check (vector-dimensions m) => '(2 3))
+  (check (int-vector-ref m 0 0) => 1)
+  (check (int-vector-ref m 1 2) => 6)
+) ;let
+
 (check-report)

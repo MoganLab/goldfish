@@ -354,6 +354,7 @@ s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_univect_set_complex(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
 
 /* bridge functions for g_tree_set_memq_syms migration */
 s7_pointer s7i_tree_set_memq_syms_direct(s7_scheme *sc, s7_pointer a, s7_pointer b);
