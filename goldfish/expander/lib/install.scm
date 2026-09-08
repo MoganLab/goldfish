@@ -25,8 +25,22 @@
 (define compile-cache-dir gfo-dir)
 (define cache-key-path gfo-key)
 (define ensure-cache-parent! gfo-ensure-parent!)
-(define compile-file-stamp gfo-stamp)
 (define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
+
+;; Cache stamps must cover the kernel artifact as well as the source:
+;; a rebuilt artifact shifts gensym allocation, so warm-start re-eval of
+;; cached macro records (whose lowered forms embed those gensyms) breaks
+;; against the new boot chain even though the source never changed.
+;; Memoized: one session boots with one artifact.
+(define *kernel-artifact-stamp* #f)
+(define (kernel-artifact-stamp)
+  (or *kernel-artifact-stamp*
+      (let ((artifact (or (load-find-module-file "expander/kernel-combined.scm")
+                          "expander/kernel-combined.scm")))
+        (set! *kernel-artifact-stamp* (gfo-stamp artifact))
+        *kernel-artifact-stamp*)))
+(define (compile-file-stamp path)
+  (append (gfo-stamp path) (kernel-artifact-stamp)))
 
 ;;; take-collected-macros : -> (list (name . sexp))
 ;;; Fetch and clear the kernel's collected macro records.  Tolerates an
