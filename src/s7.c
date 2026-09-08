@@ -24860,13 +24860,14 @@ static s7_pointer complex_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int
 
 
 /* -------------------------------- complex-vector-set! -------------------------------- */
-static s7_pointer g_complex_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_complex_vector_set "(complex-vector-set! v i ... value) sets the i-th element of the complex-vector v to value."
+#define Q_complex_vector_set s7_make_circular_signature(sc, 3, 4, \
+                             sc->is_complex_symbol, sc->is_complex_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_number_at_end_symbol)
+s7_pointer s7i_univect_set_complex(s7_scheme *sc, s7_pointer args)
 {
-  #define H_complex_vector_set "(complex-vector-set! v i ... value) sets the i-th element of the complex-vector v to value."
-  #define Q_complex_vector_set s7_make_circular_signature(sc, 3, 4, \
-                               sc->is_complex_symbol, sc->is_complex_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_number_at_end_symbol)
   return(univect_set(sc, args, sc->complex_vector_set_symbol, T_COMPLEX_VECTOR));
 }
+/* g_complex_vector_set migrated to s7_liii_vector.c */
 
 
 static s7_pointer complex_vector_set_p_pip(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value)

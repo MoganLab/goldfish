@@ -40,18 +40,34 @@
 
 (let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
   (complex-vector-set! v 0 100.0+200.0i)
-  (check-true (number? (complex-vector-ref v 0)))
+  (check (complex-vector-ref v 0) => 100.0+200.0i)
 ) ;let
 
 
 (let ((v (make-complex-vector 5)))
   (complex-vector-set! v 2 3.14+2.71i)
-  (check-true (number? (complex-vector-ref v 2)))
+  (check (complex-vector-ref v 2) => 3.14+2.71i)
 ) ;let
 
 
 (let ((v (complex-vector 1.0+1.0i 2.0+2.0i)))
   (check-true (complex-vector? v))
+) ;let
+
+;; 二维 complex-vector 修改测试
+(let ((m (make-complex-vector '(2 3) 0.0)))
+  (complex-vector-set! m 0 1 1.0+2.0i)
+  (complex-vector-set! m 1 2 3.0+4.0i)
+  (check (complex-vector-ref m 0 1) => 1.0+2.0i)
+  (check (complex-vector-ref m 1 2) => 3.0+4.0i)
+  (check-catch 'out-of-range (complex-vector-set! m -1 0 1.0+1.0i))
+  (check-catch 'out-of-range (complex-vector-set! m 2 0 1.0+1.0i))
+  (check-catch 'out-of-range (complex-vector-set! m 0 3 1.0+1.0i))
+) ;let
+
+;; 不可变 complex-vector 检查
+(let ((v (immutable! (complex-vector 1.0+1.0i 2.0+2.0i))))
+  (check-catch 'immutable-error (complex-vector-set! v 0 3.0+3.0i))
 ) ;let
 
 

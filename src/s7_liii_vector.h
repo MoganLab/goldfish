@@ -68,6 +68,7 @@ s7_pointer g_bv_ref_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_byte_vector_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_bv_set_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_cv_set_3(s7_scheme *sc, s7_pointer args);
+s7_pointer g_complex_vector_set(s7_scheme *sc, s7_pointer args);
 s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args);
 
 #if !WITH_PURE_S7
