@@ -1111,22 +1111,7 @@ s7_pointer g_list_set_i(s7_scheme *sc, s7_pointer args)
 extern s7_pointer a_list_string, an_association_list_string, a_proper_list_string;
 extern s7_pointer it_is_negative_string, it_is_too_large_string;
 
-s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree)
-{
-  if (s7_is_list(sc, tree))
-    {
-      if (s7i_tree_is_cyclic_checked(sc, tree))
-	s7i_error_nr(sc, s7_make_symbol(sc, "wrong-type-arg"),
-		     s7i_set_elist_2(sc, s7i_wrap_string(sc, "tree-leaves: tree is cyclic: ~S", 31), tree));
-      return(s7_make_integer(sc, s7i_tree_len(sc, tree)));
-    }
-  return(s7i_method_or_bust_p(sc, tree, "tree-leaves", "a list"));
-}
-
-s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree)
-{
-  return(s7_make_boolean(sc, s7i_tree_set_memq_b_7pp(sc, syms, tree)));
-}
+/* tree_leaves_p_p, tree_set_memq_p_pp migrated to s7_liii_tree.c */
 
 s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg) {return(s7_make_boolean(sc, s7_is_proper_list(sc, arg)));}
 

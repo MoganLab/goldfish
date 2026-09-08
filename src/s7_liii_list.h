@@ -76,8 +76,7 @@ s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t 
 /* optimizer typed-arg (p_p) functions, migrated from s7.c;
    the optimizer compares these pointers, so each has a single
    extern definition in s7_liii_list.c */
-s7_pointer tree_leaves_p_p(s7_scheme *sc, s7_pointer tree);
-s7_pointer tree_set_memq_p_pp(s7_scheme *sc, s7_pointer syms, s7_pointer tree);
+/* tree_leaves_p_p, tree_set_memq_p_pp migrated to s7_liii_tree.h */
 s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg);
 s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init);
 s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index);
