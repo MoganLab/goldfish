@@ -24998,38 +24998,14 @@ static s7_pointer float_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32
 
 
 /* -------------------------------- float-vector-set! -------------------------------- */
-static s7_pointer g_float_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_float_vector_set "(float-vector-set! v i ... value) sets the i-th element of the float-vector v to value."
+#define Q_float_vector_set s7_make_circular_signature(sc, 3, 4, \
+                             sc->is_real_symbol, sc->is_float_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_real_at_end_symbol)
+s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args)
 {
-  #define H_float_vector_set "(float-vector-set! v i ... value) sets the i-th element of the float-vector v to value."
-  #define Q_float_vector_set s7_make_circular_signature(sc, 3, 4, \
-                               sc->is_real_symbol, sc->is_float_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_real_at_end_symbol)
   return(univect_set(sc, args, sc->float_vector_set_symbol, T_FLOAT_VECTOR));
 }
-
-static s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer fv = car(args);
-  s7_pointer index;
-  if (!is_float_vector(fv))
-    return(method_or_bust(sc, fv, sc->float_vector_set_symbol, args, sc->type_names[T_FLOAT_VECTOR], 1));
-  if (vector_rank(fv) != 1)
-    return(univect_set(sc, args, sc->float_vector_set_symbol, T_FLOAT_VECTOR));
-  if (is_immutable_vector(fv))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->float_vector_set_symbol, fv));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->float_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  {
-    s7_int ind = s7_integer_clamped_if_gmp(sc, index);
-    s7_pointer value = caddr(args);
-    if ((ind < 0) || (ind >= vector_length(fv)))
-      out_of_range_error_nr(sc, sc->float_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-    if (!is_real(value))
-      return(method_or_bust(sc, value, sc->float_vector_set_symbol, args, sc->type_names[T_REAL], 3));
-    float_vector(fv, ind) = s7_real(value);
-    return(value);
-  }
-}
+/* g_float_vector_set, g_fv_set_3 migrated to s7_liii_vector.c */
 
 static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {

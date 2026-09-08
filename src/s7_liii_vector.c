@@ -717,6 +717,36 @@ s7_pointer g_fv_ref_3(s7_scheme *sc, s7_pointer args)
   return(s7_make_real(sc, s7_float_vector_ref(fv, ind1)));
 }
 
+s7_pointer g_float_vector_set(s7_scheme *sc, s7_pointer args)
+{
+  return(s7i_univect_set_float(sc, args));
+}
+
+s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer fv = s7_car(args);
+  s7_pointer index;
+  if (!s7_is_float_vector(fv))
+    return(s7i_method_or_bust(sc, fv, "float-vector-set!", args, "a float-vector", 1));
+  if (s7_vector_rank(fv) != 1)
+    return(s7i_univect_set_float(sc, args));
+  if (s7i_is_immutable_vector(fv))
+    immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "float-vector-set!"), fv));
+  index = s7_cadr(args);
+  if (!s7_is_integer(index))
+    return(s7i_method_or_bust(sc, index, "float-vector-set!", args, "an integer", 2));
+  {
+    s7_int ind = s7_number_to_integer(sc, index);
+    s7_pointer value = s7_caddr(args);
+    if ((ind < 0) || (ind >= s7_vector_length(fv)))
+      return(s7_out_of_range_error(sc, "float-vector-set!", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
+    if (!s7_is_real(value))
+      return(s7i_method_or_bust(sc, value, "float-vector-set!", args, "a real", 3));
+    s7_float_vector_set(fv, ind, s7_number_to_real(sc, value));
+    return(value);
+  }
+}
+
 s7_pointer g_iv_ref_2(s7_scheme *sc, s7_pointer args)
 {
   return(s7i_int_vector_ref_p_pp(sc, s7_car(args), s7_cadr(args)));

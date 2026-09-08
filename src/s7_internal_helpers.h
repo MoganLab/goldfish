@@ -345,6 +345,7 @@ s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointe
 /* bridge functions for g_fv_ref_2, g_iv_ref_2 migration */
 s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
 s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
 
 /* bridge functions for g_tree_set_memq_syms migration */
