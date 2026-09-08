@@ -155,4 +155,14 @@
 (check-catch 'type-error (json-drop "not-a-json" 'key))
 (check-catch 'type-error (json-drop 123 'key))
 
+;; 长列表 drop 测试（防 GC 回收中间未保护的 pair 导致 Use-After-Free）
+(let* ((len 500)
+       (alist (let loop ((i 0) (acc '()))
+                (if (= i len)
+                    acc
+                    (loop (+ i 1) (cons (cons (string->symbol (string-append "k" (number->string i))) i) acc)))))
+       (res (json-drop alist (lambda (k) #f))))
+  (check (length res) => len)
+) ;let*
+
 (check-report)

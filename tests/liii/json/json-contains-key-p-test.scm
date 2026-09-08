@@ -45,4 +45,9 @@
 (check-false (json-contains-key? (string->json "{}") "a"))
 (check-false (json-contains-key? #(1 2 3) 0))
 
+(let ((c (list (cons 'a 1))))
+  (set-cdr! c c)
+  (check-false (json-contains-key? c 'a))
+) ;let
+
 (check-report)

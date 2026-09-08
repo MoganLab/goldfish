@@ -123,4 +123,16 @@
   (check-catch 'value-error (json->string v))
 ) ;let
 
+;; 单个 entry 内部成环
+(let ((entry (cons 'a 1)))
+  (set-cdr! entry entry)
+  (check-catch 'value-error (json->string (list entry)))
+) ;let
+
+;; 嵌套深度超限（超过 1000 层抛 value-error 防爆栈 Crash）
+(let loop ((i 0) (v 1))
+  (if (= i 1001)
+      (check-catch 'value-error (json->string v))
+      (loop (+ i 1) (vector v))))
+
 (check-report)

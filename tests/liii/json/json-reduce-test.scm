@@ -200,5 +200,14 @@
 (check-catch 'type-error (json-reduce "not-a-json" 'key (lambda (k v) v)))
 (check-catch 'type-error (json-reduce 123 'key (lambda (k v) v)))
 
+;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
+(let* ((j (list (cons 'a 1) (cons 'b 2)))
+       (res (json-reduce j (lambda (k)
+                             (when (eq? k 'a)
+                               (set-cdr! (cdr j) (list (cons 'c 3))))
+                             #f)
+                         (lambda (k v) v))))
+  (check-true (list? res))
+) ;let*
 
 (check-report)

@@ -174,4 +174,7 @@
 (check (string->json "{\"a\": \"it's\"}") => '(("a" . "it's")))
 (check (string->json "[\"don't\"]") => #("don't"))
 
+;;; 超大整数回退
+(check-true (number? (string->json "10000000000000000000000000000000000000000000000000000000000000000000000000000000")))
+
 (check-report)

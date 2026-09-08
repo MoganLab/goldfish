@@ -46,5 +46,9 @@
 (check (json-keys (string->json "[1,2,3]")) => '())
 (check (json-keys (string->json "{}")) => '())
 
+(let ((c (list (cons 'a 1))))
+  (set-cdr! c c)
+  (check (json-keys c) => '())
+) ;let
 
 (check-report)

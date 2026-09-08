@@ -23,6 +23,9 @@
 
 namespace goldfish {
 
+// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
+#define JSON_MAX_DEPTH 1000
+
 // json->string 的 C++ 实现，语义与历史上 (guenchi json) 中的 Scheme 实现完全一致：
 //   - vector   => JSON 数组
 //   - 序对列表  => JSON 对象（键为符号时输出宽松格式，即不带引号）
@@ -131,7 +134,7 @@ json_pair_chain_length (s7_scheme* sc, s7_pointer x) {
       len++;
       fast= s7_cdr (fast);
       slow= s7_cdr (slow);
-      if (fast == slow) return -1; // cycle detected
+      if (fast == slow) return -2; // cycle detected
     }
   }
   if (!s7_is_null (sc, fast)) return -1;
@@ -178,6 +181,11 @@ static void
 json_write_value_rec (s7_scheme* sc, s7_pointer x, std::string& out, std::vector<s7_pointer>& ancestors) {
   if (json_is_null_object (sc, x)) {
     out+= "{}";
+    return;
+  }
+  if (ancestors.size () >= JSON_MAX_DEPTH) {
+    s7_error (sc, s7_make_symbol (sc, "value-error"),
+              s7_list (sc, 2, x, s7_make_string (sc, "JSON nesting depth exceeds maximum limit")));
     return;
   }
   if (s7_is_vector (x) || s7_is_pair (x)) {
@@ -381,9 +389,6 @@ struct json_parser {
   s7_int      depth; // 当前容器嵌套深度
 };
 
-// 嵌套深度上限：防止恶意/损坏输入导致 C++ 递归爆栈（JSONTestSuite 最深合法用例为 500 层）
-#define JSON_MAX_DEPTH 1000
-
 static void
 json_skip_ws (json_parser* p) {
   while (p->pos < p->len) {
@@ -545,6 +550,7 @@ json_parse_number (json_parser* p) {
   s7_gc_protect_via_stack (sc, txt);
   s7_pointer num= s7_call (sc, cached_string_to_number, s7_list (sc, 1, txt));
   s7_gc_unprotect_via_stack (sc, txt);
+  if (!s7_is_number (num)) return NULL;
   return num;
 }
 
@@ -983,7 +989,7 @@ json_guenchi_set (s7_scheme* sc, s7_pointer x, s7_pointer v, s7_int len, const j
   }
   s7_pointer p= x;
   tail        = head;
-  while (s7_is_pair (p)) {
+  while (s7_is_pair (p) && s7_is_pair (tail)) {
     s7_pointer entry= s7_car (p);
     bool       replace;
     if (map_all) replace= true;
@@ -1183,8 +1189,10 @@ json_guenchi_drop (s7_scheme* sc, s7_pointer x, s7_pointer v) {
     p= s7_cdr (p);
   }
   s7_pointer lst= s7_nil (sc);
+  s7_gc_on (sc, false);
   for (size_t i= kept.size (); i > 0; i--)
     lst= s7_cons (sc, kept[i - 1], lst);
+  s7_gc_on (sc, true);
   return lst;
 }
 
@@ -1292,7 +1300,7 @@ json_guenchi_reduce (s7_scheme* sc, s7_pointer x, s7_pointer v, const json_reduc
   }
   s7_pointer p= x;
   tail        = head;
-  while (s7_is_pair (p)) {
+  while (s7_is_pair (p) && s7_is_pair (tail)) {
     s7_pointer entry= s7_car (p);
     s7_pointer k    = s7_car (entry);
     bool hit= truthy ? true : (use_pred ? (s7_call (sc, v, s7_list (sc, 1, k)) != s7_f (sc)) : s7_is_equal (sc, k, v));
