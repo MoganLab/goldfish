@@ -142,6 +142,43 @@ s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
   }
 }
 
+s7_pointer g_make_int_vector(s7_scheme *sc, s7_pointer args)
+{
+  s7_int len = 0;
+  s7_pointer size = s7_car(args), init;
+
+  if (!s7_is_pair(size))
+    {
+      if (!s7_is_integer(size))
+        return(s7i_method_or_bust(sc, size, "make-int-vector", args, "an integer", 1));
+      len = s7_number_to_integer(sc, size);
+      if (len < 0)
+        return(s7_out_of_range_error(sc, "make-int-vector", 1, size, "it is negative"));
+      if (len > s7i_max_vector_length(sc))
+        return(s7_out_of_range_error(sc, "make-int-vector", 1, size, "it is too large"));
+    }
+  if (s7_is_pair(s7_cdr(args)))
+    {
+      init = s7_cadr(args);
+      if (!s7_is_integer(init))
+        return(s7i_method_or_bust(sc, init, "make-int-vector", args, "an integer", 2));
+    }
+  else init = s7_make_integer(sc, 0);
+
+  if (!s7_is_integer(size))
+    return(s7i_make_vector_1(sc, s7i_set_plist_2(sc, size, init), s7_make_symbol(sc, "make-int-vector")));
+  {
+    s7_pointer result = s7_make_int_vector(sc, len, 0, NULL);
+    s7_int init_val = s7_number_to_integer(sc, init);
+    if (len > 0 && init_val != 0)
+      {
+        s7_int *ints = s7_int_vector_elements(result);
+        for (s7_int i = 0; i < len; i++) ints[i] = init_val;
+      }
+    return(result);
+  }
+}
+
 s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_int len = s7_list_length(sc, args);

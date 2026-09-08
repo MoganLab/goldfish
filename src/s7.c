@@ -24638,68 +24638,10 @@ static s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- make-int-vector -------------------------------- */
-static s7_pointer g_make_int_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_int_vector "(make-int-vector len (init 0)) returns an int-vector."
-  #define Q_make_int_vector s7_make_signature(sc, 3, sc->is_int_vector_symbol, \
-                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_integer_symbol)
-  s7_pointer size = car(args);
-  s7_int len;
-
-  if ((is_pair(cdr(args))) ||
-      (!s7_is_integer(size)))
-    {
-      s7_pointer init;
-      if (is_pair(cdr(args)))
-	{
-	  init = cadr(args);
-	  if (!s7_is_integer(init))
-	    return(method_or_bust(sc, init, sc->make_int_vector_symbol, args, sc->type_names[T_INTEGER], 2));
-	}
-      else init = int_zero;
-      if (s7_is_integer(size))
-	len = s7_integer_clamped_if_gmp(sc, size);
-      else
-	{
-	  if (!is_pair(size))
-	    return(method_or_bust(sc, size, sc->make_int_vector_symbol, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
-	  len = multivector_length(sc, size, sc->make_int_vector_symbol);
-	}
-      {
-	s7_pointer vect = make_vector_1(sc, len, NOT_FILLED, T_INT_VECTOR);
-	int_vector_fill(vect, s7_integer_clamped_if_gmp(sc, init));
-	if (!s7_is_integer(size))
-	  return(make_multivector(sc, vect, size));
-	add_vector(sc, vect);
-	return(vect);
-      }}
-  len = s7_integer_clamped_if_gmp(sc, size);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_int_vector_symbol, int_one, size, it_is_negative_string);
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-int-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 79),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-  {
-    block_t *arr = mallocate_vector(sc, len * sizeof(s7_int));
-    s7_pointer vect;
-    new_cell(sc, vect, T_INT_VECTOR | T_SAFE_PROCEDURE);
-    vector_length(vect) = len;
-    vector_block(vect) = arr;
-    int_vector_ints(vect) = (s7_int *)block_data(arr);
-    if (len > 0)
-      {
-	if (STEP_8(len))
-	  memclr64((void *)int_vector_ints(vect), len * sizeof(s7_int));
-	else memclr((void *)int_vector_ints(vect), len * sizeof(s7_int));
-      }
-    vector_set_dimension_info(vect, NULL);
-    vector_getter(vect) = int_vector_getter;
-    vector_setter(vect) = int_vector_setter;
-    add_vector(sc, vect);
-    return(vect);
-  }
-}
+#define H_make_int_vector "(make-int-vector len (init 0)) returns an int-vector."
+#define Q_make_int_vector s7_make_signature(sc, 3, sc->is_int_vector_symbol, \
+                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_integer_symbol)
+/* g_make_int_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_int_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 {

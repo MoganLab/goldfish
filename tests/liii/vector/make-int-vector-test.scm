@@ -48,9 +48,18 @@
   (check (int-vector-ref v 4) => 42)
 ) ;let
 
+(let ((mv (make-int-vector '(2 3) 7)))
+  (check (int-vector? mv) => #t)
+  (check (vector-dimensions mv) => '(2 3))
+  (check (int-vector-ref mv 1 2) => 7)
+) ;let
+
 
 (check-catch 'wrong-type-arg (make-int-vector 'not-a-number))
 (check-catch 'wrong-type-arg (make-int-vector 3 'not-an-integer))
+(check-catch 'out-of-range (make-int-vector -1))
+(check-catch 'wrong-number-of-args (make-int-vector))
+(check-catch 'wrong-number-of-args (make-int-vector 1 2 3))
 
 
 (check-report)
