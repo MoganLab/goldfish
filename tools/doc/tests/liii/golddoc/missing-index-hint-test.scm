@@ -1,8 +1,7 @@
-;; 添加 tools/golddoc 到 load path，以便导入 (liii golddoc)
-;; 注意：假设运行测试时工作目录是项目根目录
-(set! *load-path* (cons "tools/golddoc" *load-path*))
+;; 添加 tools/doc 到 load path，以便导入 (liii golddoc)
+(set! *load-path* (append (list "tools/doc" ".") *load-path*))
 
-(import (liii check) (liii os) (liii path) (liii string) (liii sys))
+(import (liii check) (liii golddoc) (liii list) (liii os) (liii path) (liii string) (liii sys))
 
 (check-set-mode! 'report-failed)
 
@@ -15,16 +14,48 @@
   (os-call (string-append "sh -c \"" command "\""))
 ) ;define
 
+(define (unique-strings items)
+  (let loop
+    ((rest items) (acc '()))
+    (cond ((null? rest) (reverse acc))
+          ((member (car rest) acc) (loop (cdr rest) acc))
+          (else (loop (cdr rest) (cons (car rest) acc)))
+    ) ;cond
+  ) ;let
+) ;define
+
+(define (collect-existing-index-paths)
+  (let* ((repo-root (path-parent (path-parent (executable))))
+         (candidates (append (find-function-index-paths)
+                       (list (path-join "tests" "function-library-index.json")
+                         (path-join ".." ".." "tests" "function-library-index.json")
+                         (path-join "tools" "doc" "tests" "function-library-index.json")
+                         (path-join repo-root "tests" "function-library-index.json")
+                         (path-join repo-root "tools" "doc" "tests" "function-library-index.json")
+                       ) ;list
+                     ) ;append
+         ) ;candidates
+         (resolved-paths (map (lambda (p) (path->string (path-resolve p)))
+                           (filter path-file? candidates)
+                         ) ;map
+         ) ;resolved-paths
+        ) ;
+    (unique-strings resolved-paths)
+  ) ;let*
+) ;define
+
 (when (not (os-windows?))
-  (let* ((index-path (path-join "tests" "function-library-index.json"))
+  (let* ((index-paths (collect-existing-index-paths))
+         (saved-entries (map (lambda (p) (cons p (path-read-text p))) index-paths))
          (output-path (path-join (path-temp-dir)
                         (string-append "golddoc-missing-index-" (number->string (getpid)) ".log")
                       ) ;path-join
          ) ;output-path
-         (saved-index-text (and (path-file? index-path) (path-read-text index-path)))
         ) ;
     (path-unlink output-path #t)
-    (dynamic-wind (lambda () (if saved-index-text (path-unlink index-path #t) #f))
+    (dynamic-wind (lambda ()
+                    (for-each (lambda (p) (path-unlink p #t)) index-paths)
+                  ) ;lambda
       (lambda ()
         (run-shell-command (string-append (executable)
                              " doc 'alist->fxmapping/combinator' > "
@@ -45,7 +76,11 @@
       ) ;lambda
       (lambda ()
         (path-unlink output-path #t)
-        (if saved-index-text (path-write-text index-path saved-index-text) #f)
+        (for-each (lambda (entry)
+                    (path-write-text (car entry) (cdr entry))
+                  ) ;lambda
+          saved-entries
+        ) ;for-each
       ) ;lambda
     ) ;dynamic-wind
   ) ;let*
