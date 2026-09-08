@@ -15,6 +15,15 @@
 (check-catch 'type-error (http-post "http://x/" :files 42))
 (check-catch 'type-error (http-post "http://x/" :files '(42)))
 
+;; C 层入口 g_http-post 的 files 参数类型测试 (devel/0149.md)
+;; files 必须是 part-spec 列表；每个 part-spec 是 (key . value) 组成的 proper list，
+;; key 为 string/symbol，value 为 string，否则 C++ 层 s7_car/s7_string 直接解引用导致段错误
+(check-catch 'type-error (g_http-post "http://x/" '() "" '() '() 42 #f))
+(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(#\a) #f))
+(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '((#\a . "v")) #f))
+(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(("name" . 42)) #f))
+(check-catch 'type-error (g_http-post "http://x/" '() '() '() '() '(("name" "v")) #f))
+
 ;; 环境检查
 (let ((env (getenv "GOLDFISH_TEST_HTTP")))
   (when (not env)
