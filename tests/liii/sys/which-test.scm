@@ -30,14 +30,14 @@
 
 
 ;; ; 参数类型测试
-;; cmd 必须是 string?，传入其他类型应报 wrong-type-arg，
+;; cmd 必须是 string?，传入其他类型应报 type-error，
 ;; 而不是把对象当作 C 字符串指针导致崩溃 (devel/0143.md)
-(check-catch 'wrong-type-arg (which 123))
-(check-catch 'wrong-type-arg (which 'ls))
-(check-catch 'wrong-type-arg (which "ls" 123))
+(check-catch 'type-error (which 123))
+(check-catch 'type-error (which 'ls))
+(check-catch 'type-error (which "ls" 123))
 ;; C 层入口 g_which 走同一实现，两个参数都需要类型检查
-(check-catch 'wrong-type-arg (g_which 123))
-(check-catch 'wrong-type-arg (g_which "ls" 123))
+(check-catch 'type-error (g_which 123))
+(check-catch 'type-error (g_which "ls" 123))
 
 
 (check-report)

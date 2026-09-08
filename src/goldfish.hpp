@@ -141,6 +141,12 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func);
 }
 
+// 抛出 (liii error) 约定的 type-error，irritant 为出错的参数
+inline s7_pointer
+string_type_error (s7_scheme* sc, const char* msg, s7_pointer arg) {
+  return s7_error (sc, s7_make_symbol (sc, "type-error"), s7_list (sc, 2, s7_make_string (sc, msg), arg));
+}
+
 static s7_pointer
 f_version (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, GOLDFISH_VERSION);
@@ -150,7 +156,7 @@ static s7_pointer
 f_delete_file (s7_scheme* sc, s7_pointer args) {
   s7_pointer path_arg= s7_car (args);
   if (!s7_is_string (path_arg)) {
-    return s7_wrong_type_arg_error (sc, "delete-file", 1, path_arg, "a string");
+    return string_type_error (sc, "delete-file: path must be a string", path_arg);
   }
   const char* path_c= s7_string (path_arg);
   return s7_make_boolean (sc, tb_file_remove (path_c));
@@ -259,7 +265,7 @@ f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
   tb_size_t   size   = 0;
   s7_pointer  key_arg= s7_car (args);
   if (!s7_is_string (key_arg)) {
-    return s7_wrong_type_arg_error (sc, "get-environment-variable", 1, key_arg, "a string");
+    return string_type_error (sc, "get-environment-variable: key must be a string", key_arg);
   }
   const char*          key        = s7_string (key_arg);
   tb_environment_ref_t environment= tb_environment_init ();
@@ -389,7 +395,7 @@ static s7_pointer
 f_which (s7_scheme* sc, s7_pointer args) {
   s7_pointer cmd_arg= s7_car (args);
   if (!s7_is_string (cmd_arg)) {
-    return s7_wrong_type_arg_error (sc, "which", 1, cmd_arg, "a string");
+    return string_type_error (sc, "which: cmd must be a string", cmd_arg);
   }
   const char* cmd_c        = s7_string (cmd_arg);
   s7_pointer  path_arg     = s7_cdr (args);
@@ -398,7 +404,7 @@ f_which (s7_scheme* sc, s7_pointer args) {
   if (s7_is_pair (path_arg)) {
     s7_pointer path= s7_car (path_arg);
     if (!s7_is_string (path)) {
-      return s7_wrong_type_arg_error (sc, "which", 2, path, "a string");
+      return string_type_error (sc, "which: path must be a string", path);
     }
     path_override= s7_string (path);
   }

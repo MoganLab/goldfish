@@ -21,10 +21,10 @@
 (check (get-environment-variable "NO_SUCH_ENV_0143") => #f)
 
 ;; ; 参数类型测试
-;; key 必须是 string?，传入其他类型应报 wrong-type-arg
+;; key 必须是 string?，传入其他类型应报 type-error
 ;; 而不是把对象当作 C 字符串指针导致崩溃 (devel/0143.md)
-(check-catch 'wrong-type-arg (get-environment-variable 123))
+(check-catch 'type-error (get-environment-variable 123))
 ;; C 层入口 g_get-environment-variable 走同一实现
-(check-catch 'wrong-type-arg (g_get-environment-variable 123))
+(check-catch 'type-error (g_get-environment-variable 123))
 
 (check-report)
