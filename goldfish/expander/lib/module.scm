@@ -52,24 +52,50 @@
 
 (define *runtime-registered-libraries* '())
 
-(define (runtime-registered? name)
-  (member name *runtime-registered-libraries*))
+(define (registry-key level name)
+  (let ((lvl (if (pair? level) (car level)
+               (if (integer? level) level 0))))
+    (if (or (not lvl) (= lvl 0)) name (cons lvl name))))
 
-(define (runtime-registered-add! name)
-  (unless (member name *runtime-registered-libraries*)
-    (set! *runtime-registered-libraries*
-          (cons name *runtime-registered-libraries*)))
+(define (registry-level-arg maybe-level)
+  (if (pair? maybe-level) (car maybe-level) 0))
+
+(define (runtime-registered? name . maybe-level)
+  (let ((key (registry-key (registry-level-arg maybe-level) name)))
+    (member key *runtime-registered-libraries*)))
+
+(define (runtime-registered-add! name . maybe-level)
+  (let ((key (registry-key (registry-level-arg maybe-level) name)))
+    (unless (member key *runtime-registered-libraries*)
+      (set! *runtime-registered-libraries*
+            (cons key *runtime-registered-libraries*))))
   name)
 
-(define (library-registry-ref name)
-  (let ((entry (assoc name *library-registry*)))
-    (and entry (cdr entry))))
+(define (library-registry-ref name . maybe-level)
+  (let ((key (registry-key (registry-level-arg maybe-level) name)))
+    (let ((entry (assoc key *library-registry*)))
+      (and entry (cdr entry)))))
 
-(define (library-registry-set! name record)
-  (set! *library-registry*
-        (cons (cons name record)
-              (filter (lambda (e) (not (equal? (car e) name)))
-                      *library-registry*))))
+(define (library-registry-set! name record . maybe-level)
+  (let ((key (registry-key (registry-level-arg maybe-level) name)))
+    (set! *library-registry*
+          (cons (cons key record)
+                (filter (lambda (e) (not (equal? (car e) key)))
+                        *library-registry*)))))
+
+(define *library-instance-inlets* '())
+
+(define (instance-inlet-ref name level)
+  (let ((key (registry-key level name)))
+    (let ((e (assoc key *library-instance-inlets*)))
+      (and e (cdr e)))))
+
+(define (instance-inlet-set! name level inlet)
+  (let ((key (registry-key level name)))
+    (set! *library-instance-inlets*
+          (cons (cons key inlet)
+                (filter (lambda (e) (not (equal? (car e) key)))
+                        *library-instance-inlets*)))))
 
 (define (make-lib-record lib exports)
   (cons lib exports))
@@ -380,8 +406,9 @@
 ;;; re-register it.  Returns the rebuilt library (defs are evaluated by the
 ;;; caller).
 
-(define (restore-library-cache rec)
-  (let* ((name (lib-cache-name rec))
+(define (restore-library-cache rec . maybe-level)
+  (let* ((level (registry-level-arg maybe-level))
+         (name (lib-cache-name rec))
          (exports (lib-cache-exports rec))
          (imports (lib-cache-imports rec))
          (bindings (lib-cache-bindings rec))
@@ -396,7 +423,7 @@
                 (let ((d (depurify-binding (cdr e) lib)))
                   (when d (exp-library-define! lib (car e) d))))
               bindings)
-    (library-registry-set! name (make-lib-record lib exports))
+    (library-registry-set! name (make-lib-record lib exports) level)
     ;; 3. Rebuild this library's own macro transformers from their cached
     ;;    lowered forms: re-evaluating each form in the current unit's
     ;;    expand env yields the transformer (exactly where a cold
@@ -585,29 +612,26 @@
 ;;; cross-library value reference resolves at eval time.  The defs are
 ;;; already optimized for the active level (caches store optimized defs).
 
-(define (load-library-file-cached! recs)
-  (for-each (lambda (rec)
-              (let ((defs (lib-cache-defs rec)))
-                ;; Preload only the dependencies of the cached defs, never
-                ;; the library itself: its defs may reference it through
-                ;; (module-ref '(name ...) ...) (a library's own value
-                ;; definitions can refer to each other), and re-entering
-                ;; load-library! for the library being loaded trips the
-                ;; circular-dependency guard.
-                (for-each (lambda (lib)
-                            (if (and (not (runtime-registered? lib))
-                                     (not (equal? lib (lib-cache-name rec))))
-                              (load-library! lib)))
-                          (apply append (map collect-cache-module-refs defs)))
-                (eval-defs defs (lib-cache-name rec))))
-            recs))
+(define (load-library-file-cached! recs . maybe-level)
+  (let ((level (registry-level-arg maybe-level)))
+    (for-each (lambda (rec)
+                (let ((defs (lib-cache-defs rec)))
+                  (for-each (lambda (lib)
+                              (if (and (not (runtime-registered? lib))
+                                       (not (equal? lib (lib-cache-name rec))))
+                                (load-library! lib)))
+                            (apply append (map collect-cache-module-refs defs)))
+                  (eval-defs defs (lib-cache-name rec) level)))
+              recs)))
 
-;;; eval-defs : (list sexp) -> void
-;;; Evaluate a library's lowered defs with plain s7 eval (the unified
-;;; execution host).
+;;; eval-defs : (list sexp) name [level] -> void
+;;; Level 0 evaluates in the rootlet; level >= 1 in the unit inlet.
 
-(define (eval-defs defs lib-name)
-  (eval (cons 'begin defs) (rootlet)))
+(define (eval-defs defs lib-name . maybe-level)
+  (let ((level (registry-level-arg maybe-level)))
+    (if (and (integer? level) (> level 0))
+      (eval (cons 'begin defs) (current-expand-env))
+      (eval (cons 'begin defs) (rootlet)))))
 
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
@@ -642,19 +666,21 @@
                        (else "malformed definition or expansion error"))))
         (error "import: failed to load library ~a: ~a" lib-name detail)))))
 
-(define (load-library! lib-name)
-  (when (member lib-name *libraries-being-loaded*)
-    (error "import: circular library dependency" lib-name))
-  ;; One compilation unit per load: the cold capture and the warm replay
-  ;; each evaluate the file's expand-time code in a fresh env, so
-  ;; same-named gensyms from different libraries never share a binding.
-  ;; (A nested load during expansion gets its own unit; the outer one
-  ;; resumes afterwards.  The kernel-name fast path needs no unit.)
-  (call-with-fresh-expand-unit
-    (lambda ()
-      (load-library-in-unit! lib-name))))
+(define (load-library! lib-name . maybe-level)
+  (let ((level (registry-level-arg maybe-level))
+        (key (registry-key (registry-level-arg maybe-level) lib-name)))
+    (when (member key *libraries-being-loaded*)
+      (error "import: circular library dependency" lib-name))
+    (let ((inlet (call-with-fresh-expand-unit
+                   (lambda ()
+                     (load-library-in-unit! lib-name level)
+                     (and (> level 0) (current-expand-env))))))
+      (when (and (> level 0) inlet)
+        (instance-inlet-set! lib-name level inlet)))))
 
-(define (load-library-in-unit! lib-name)
+(define (load-library-in-unit! lib-name . maybe-level)
+  (define level (registry-level-arg maybe-level))
+  (define load-key (registry-key level lib-name))
   (let ((base (base-library)))
     (if (and base (equal? lib-name (exp-library-name base)))
       (begin
@@ -668,8 +694,8 @@
         (unless (library-registry-ref lib-name)
           (library-registry-set! lib-name
             (make-lib-record base (map car (exp-library-bindings base)))))
-        (set! *runtime-registered-libraries*
-              (cons lib-name *runtime-registered-libraries*)))
+        (unless (runtime-registered? lib-name)
+          (runtime-registered-add! lib-name)))
       (let ((lib-file (library-file-name lib-name)))
         (let ((gfo-file (cache-file-for (cache-key-path lib-file))))
           (let* ((src (and (auto-compile-enabled?)
@@ -686,16 +712,18 @@
               (dynamic-wind
                 (lambda ()
                   (set! *libraries-being-loaded*
-                        (cons lib-name *libraries-being-loaded*)))
+                        (cons load-key *libraries-being-loaded*)))
                 (lambda ()
                   (load-library-guard
                    lib-name
                    (lambda ()
-                     (for-each restore-library-cache recs)
-                     (load-library-file-cached! recs))))
+                     (for-each (lambda (r) (restore-library-cache r level)) recs)
+                     (load-library-file-cached! recs level)
+                     (when (> level 0)
+                       (for-each (lambda (r) (runtime-registered-add! (lib-cache-name r) level)) recs)))))
                 (lambda ()
                   (set! *libraries-being-loaded*
-                        (filter (lambda (n) (not (equal? n lib-name)))
+                        (filter (lambda (n) (not (equal? n load-key)))
                                 *libraries-being-loaded*))))
               ;; No cache (or stale): load and compile the source file.
               (let ((file (load-find-module-file lib-file)))
@@ -705,7 +733,7 @@
                   (dynamic-wind
                     (lambda ()
                       (set! *libraries-being-loaded*
-                            (cons lib-name *libraries-being-loaded*)))
+                            (cons load-key *libraries-being-loaded*)))
                     (lambda ()
                       (load-library-guard
                        lib-name
@@ -721,34 +749,44 @@
                                     (gfo-write! gfo-file stamp
                                                 (make-bundle 'libraries (cons 'libs recs))
                                                 deps)
-                                    (load-library-file-cached! recs))))
+                                    (when (> level 0)
+                                      (for-each (lambda (r)
+                                                  (let ((n (lib-cache-name r)))
+                                                    (let ((bare (library-registry-ref n)))
+                                                      (when bare
+                                                        (library-registry-set! n bare level)))))
+                                                recs))
+                                    (load-library-file-cached! recs level)
+                                    (when (> level 0)
+                                      (for-each (lambda (r) (runtime-registered-add! (lib-cache-name r) level)) recs)))))
                            (begin
-                              ;; Non-cacheable library: expand, optimize, then eval
-                              ;; the whole program (the pipeline still applies).
                               (let*-values (((prog ctx)
                                              (compile-program-syntax forms)))
-                                (eval (optimize-on-load prog ctx) (rootlet)))
-                             (set! *runtime-registered-libraries*
-                                   (cons lib-name *runtime-registered-libraries*)))))))
+                                (if (> level 0)
+                                  (eval (optimize-on-load prog ctx) (current-expand-env))
+                                  (eval (optimize-on-load prog ctx) (rootlet))))
+                             (runtime-registered-add! lib-name level)
+                             (when (> level 0)
+                               (let ((bare (library-registry-ref lib-name)))
+                                 (when bare
+                                   (library-registry-set! lib-name bare level)))))))))
                     (lambda ()
                       (set! *libraries-being-loaded*
-                            (filter (lambda (n) (not (equal? n lib-name)))
+                            (filter (lambda (n) (not (equal? n load-key)))
                                     *libraries-being-loaded*)))))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
 
-(define (library-record lib-name)
+(define (library-record lib-name . maybe-level)
+  (define level (registry-level-arg maybe-level))
   (let ((base (base-library)))
     (if (and base (equal? lib-name (exp-library-name base)))
-        ;; (scsyntax): the implementation kernel is not an on-disk library;
-        ;; treat it as a record of its live bindings so only/prefix/rename
-        ;; imports of it work too.
         (make-lib-record base (map car (exp-library-bindings base)))
-        (or (let ((rec (library-registry-ref lib-name)))
-              (and rec (runtime-registered? lib-name) rec))
-            (begin (load-library! lib-name)
-                   (library-registry-ref lib-name))
+        (or (let ((rec (library-registry-ref lib-name level)))
+              (and rec (runtime-registered? lib-name level) rec))
+            (begin (load-library! lib-name level)
+                   (library-registry-ref lib-name level))
             (error "import: unknown library" lib-name)))))
 
 ;;; ------------------------------------------------------------------------
@@ -779,21 +817,20 @@
   (make-lib-record (base-library)
                    (map car (exp-library-bindings (base-library)))))
 
-;;; source-record : lib-name -> (exp-library . exports)
-(define (source-record lib-name)
+;;; source-record : lib-name [level] -> (exp-library . exports)
+(define (source-record lib-name . maybe-level)
+  (define level (registry-level-arg maybe-level))
   (if (and (base-library)
            (equal? lib-name (exp-library-name (base-library))))
     (base-lib-record)
-    (library-record lib-name)))
+    (library-record lib-name level)))
 
-;;; import-view : lib-name (list (visible-name . src-name)) modkey strict? -> view
-;;; Build (or reuse) the shared interface exp-library whose own buckets map
-;;; each visible name to the source's exported binding.  A name whose binding
-;;; is missing errors when strict?, and is skipped otherwise (only-imports).
-(define (import-view lib-name pairs modkey strict?)
-  (let* ((rec (source-record lib-name))
+;;; import-view : lib-name pairs modkey strict? [level] -> view
+(define (import-view lib-name pairs modkey strict? . maybe-level)
+  (define level (registry-level-arg maybe-level))
+  (let* ((rec (source-record lib-name level))
          (src (lib-record-library rec))
-         (key (cons (cons src modkey) lib-name)))
+         (key (cons (cons src modkey) (cons level lib-name))))
     (let ((e (assoc key *interface-cache*)))
       (if e
         (cdr e)
@@ -879,8 +916,9 @@
                        (base-sourced-binding?
                         (exp-library-ref-own (caar uses) name))
                        (base-sourced-binding? binding))
-                   ;; Substrate overlay: this supplier or the new binding comes
-                   ;; from the implementation library / host.
+                   (scan (cdr uses)))
+                  ((equal? (exp-library-name (caar uses))
+                           (exp-library-name iface))
                    (scan (cdr uses)))
                   (else
                    (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
@@ -952,18 +990,16 @@
             (map (lambda (n) (cons n n))
                  (lib-record-exports (source-record spec))))))
 
-;;; import-set-view : nested-set -> view/#f
-;;; The shared interface view for a NESTED import set, or #f when it selects
-;;; nothing.  Only an outer only tolerates a missing binding (unselected
-;;; names were already filtered out); other modifiers resolve strictly.
-(define (import-set-view spec)
+;;; import-set-view : nested-set [level] -> view/#f
+(define (import-set-view spec . maybe-level)
+  (define level (registry-level-arg maybe-level))
   (call-with-values
     (lambda () (import-set-pairs spec))
     (lambda (lib-name pairs)
       (if (null? pairs)
         #f
         (let ((outer (car spec)))
-          (import-view lib-name pairs spec (not (eq? outer 'only))))))))
+          (import-view lib-name pairs spec (not (eq? outer 'only)) level))))))
 
 ;;; import-level-number : level-datum -> integer
 ;;; R7RS import levels: run = 0, expand/syntax = 1, (meta n) = n.
@@ -1015,7 +1051,7 @@
           (pair? (cadr spec))
           (import-set-modifier? (cadr spec)))
      ;; Nested import set (a modifier over another modifier).
-     (let ((iface (import-set-view spec)))
+     (let ((iface (import-set-view spec level)))
        (when iface
          (add-import-view! lib iface level))))
     ;; Depth-1 set: a modifier directly over a library name, or a bare
@@ -1034,7 +1070,7 @@
 (define (import-except-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
-    (let ((rec (source-record lib-name)))
+    (let ((rec (source-record lib-name level)))
       (add-import-view! lib
         (import-view lib-name
                      (let loop ((ns (lib-record-exports rec)) (acc '()))
@@ -1044,23 +1080,23 @@
                            (loop (cdr ns) acc)
                            (loop (cdr ns)
                                  (cons (cons (car ns) (car ns)) acc)))))
-                     (cons 'except ids) #t)
+                     (cons 'except ids) #t level)
         level))))
 
 (define (import-plain-into-library! lib spec level)
   (let* ((lib-name spec)
-         (rec (source-record lib-name)))
+         (rec (source-record lib-name level)))
     (add-import-view! lib
       (import-view lib-name
                    (map (lambda (n) (cons n n))
                         (lib-record-exports rec))
-                   'plain #t)
+                   'plain #t level)
       level)))
 
 (define (import-only-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (ids (cddr spec)))
-    (let ((rec (source-record lib-name)))
+    (let ((rec (source-record lib-name level)))
       (let loop ((ids* ids) (pairs '()))
         (if (null? ids*)
           ;; An only-import selecting nothing (unknown ids) adds an empty
@@ -1068,7 +1104,7 @@
           (if (null? pairs)
             #t
             (add-import-view! lib
-              (import-view lib-name pairs (cons 'only ids) #f)
+              (import-view lib-name pairs (cons 'only ids) #f level)
               level))
           (if (memq (car ids*) (lib-record-exports rec))
             (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
@@ -1077,7 +1113,7 @@
 (define (import-prefix-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (prefix (caddr spec)))
-    (let ((rec (source-record lib-name)))
+    (let ((rec (source-record lib-name level)))
       (add-import-view! lib
         (import-view lib-name
                      (map (lambda (name)
@@ -1086,13 +1122,13 @@
                                                   (symbol->string name)))
                                   name))
                           (lib-record-exports rec))
-                     (cons 'prefix prefix) #t)
+                     (cons 'prefix prefix) #t level)
         level))))
 
 (define (import-rename-into-library! lib spec level)
   (let* ((lib-name (cadr spec))
          (renames (cddr spec)))
-    (let ((rec (source-record lib-name)))
+    (let ((rec (source-record lib-name level)))
       (add-import-view! lib
         (import-view lib-name
                      (map (lambda (name)
@@ -1101,7 +1137,7 @@
                                 (cons (cadr rename-entry) name)
                                 (cons name name))))
                           (lib-record-exports rec))
-                     (cons 'rename renames) #t)
+                     (cons 'rename renames) #t level)
         level))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.

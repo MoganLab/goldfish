@@ -1,8 +1,8 @@
-# PHASE_DESIGN — 相位实例化模型(v2,单线设计)
+# PHASE_DESIGN — 相位实例化模型(v3,单线设计)
 
-状态:讨论稿 v2。取代前一版(v1 的回退链、min-merge、visit-only
-判定位全部废弃——它们是迁就单实例模型的补丁;本版改实例化模型
-本身,补丁不再需要)。
+状态: v3 落地。v2 的 exact-phase 解析已合入;per-level 实例化
+已实现(见 §4);v1 补丁(回退链、min-merge、visit-only 判定位)
+保持废弃。远期项经 census 无现实用户,保持 deferred(见 §5 末)。
 
 目标:**Racket 式语义、正确实现、无 workaround、无回退多路、
 单线代码。**
@@ -76,8 +76,10 @@ inlet 里)。这是 goldfish 生态的既有惯用法,**在一个实例内部保
 ## 4. 实现面(全部复用已有机制,无新设施)
 
 1. **实例化 = unit**:load 库时 `call-with-fresh-expand-unit` +
-   在 inlet 里求值缓存产物(defs 与宏 replay 同 inlet)。region
-   store、缓存记录均不变;
+   在 inlet 里求值缓存产物(level 0 沿用 rootlet 零迁移;level ≥ 1
+   在 unit inlet 求值,registry 持有 inlet 防 GC)。region store、
+   缓存记录格式均不变;registry/runtime/being-loaded 按 level 键
+   (level 0 裸名,level ≥ 1 为 (level . name)),同库豁免冲突检查;
 2. **registry / 视图键**:库实例按 (源库, level) 区分;视图注册
    时携带 level(已实现),去掉 merge;
 3. **解析**:exp-library-ref-at-phase 改为"level ≤ q 取最高"的
@@ -92,9 +94,13 @@ unit 包裹在 (1),机制已有。
 - ewx-6:去内层冗余 eval-when(Racket 规范形);
 - case 11(at2): RHS 精确 store[2] → 20(已验证的结构,保留);
 - 新增:multi-level 双实例用例(X 的 plain 实例与 expand 实例
-  变异互不可见;体跑两次的副作用计数);
-- case 5(ewx-5)保持:per-form 语义不变;
-- 全量 --all 为最终门。
+  变异互不可见;体跑两次的副作用计数)
+  → 已落地 `tests/expander/import-perlevel-test.scm`(11 checks);
+- case 5(ewx-5)保持:per-form 语义不变(需专用设计,本次不做);
+- 全量 --all 为最终门 → 2026-09-09 补跑 1552/1552 全绿。
+- 远期(phase≥2 缓存分段、visit-only):census 显示零现实用户
+  ((meta 2) 仅一处负向测试;visit-only 无 import 语义诉求),
+  per-level 通用键已覆盖任意 level 正确性,优化延后。
 
 ## 6. 与 Racket 的最终分歧清单(全部为单条规则,非补丁)
 
