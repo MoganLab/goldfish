@@ -39,7 +39,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时
-;; wrong-type-arg 当vec不是向量，或start/end不是整数时
+;; type-error 当vec不是向量，或start/end不是整数时
 
 
 (let ((v (vector 1 2 3 4)))
@@ -156,9 +156,9 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (vector-fill! 'not-a-vector 42))
-(check-catch 'wrong-type-arg (vector-fill! #(1 2 3) 42 'not-a-number))
-(check-catch 'wrong-type-arg (vector-fill! #(1 2 3) 42 0 'not-a-number))
+(check-catch 'type-error (vector-fill! 'not-a-vector 42))
+(check-catch 'type-error (vector-fill! #(1 2 3) 42 'not-a-number))
+(check-catch 'type-error (vector-fill! #(1 2 3) 42 0 'not-a-number))
 
 
 (let ((v #(1 2 3)))

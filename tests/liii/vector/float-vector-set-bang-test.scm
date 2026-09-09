@@ -33,8 +33,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当vec不是float-vector时
-;; wrong-type-arg 当value不是实数时
+;; type-error 当vec不是float-vector时
+;; type-error 当value不是实数时
 ;; out-of-range 当索引越界时
 
 
@@ -62,13 +62,13 @@
 
 
 (let ((v (float-vector 1.0 2.0)))
-  (check-catch 'wrong-type-arg (float-vector-set! v 0 'not-a-number))
+  (check-catch 'type-error (float-vector-set! v 0 'not-a-number))
   (check-catch 'out-of-range (float-vector-set! v 5 100.0))
   (check-catch 'out-of-range (float-vector-set! v -1 100.0))
 ) ;let
 
 
-(check-catch 'wrong-type-arg (float-vector-set! (vector 1.0 2.0 3.0) 0 100.0))
+(check-catch 'type-error (float-vector-set! (vector 1.0 2.0 3.0) 0 100.0))
 
 (let ((v (float-vector 1.0 2.0 3.0)))
   (define (foo vec idx)

@@ -27,11 +27,11 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当任一参数不是整数时
+;; type-error 当任一参数不是整数时
 
 
 (check-true (vector? (int-vector 1 2 3)))
-(check-catch 'wrong-type-arg (int-vector 1 2 'a))
+(check-catch 'type-error (int-vector 1 2 'a))
 
 
 (check-report)

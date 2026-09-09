@@ -27,14 +27,14 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当任一参数不是数字时
+;; type-error 当任一参数不是数字时
 
 
 (check-true (vector? (float-vector 1.0 2.0 3.0)))
 (check-true (float-vector? (float-vector 1.0 2.0 3.0)))
 (check (float-vector 1.0 2.0 3.0) => #(1.0 2.0 3.0))
 (check (float-vector 1 2 3) => #(1.0 2.0 3.0))
-(check-catch 'wrong-type-arg (float-vector 1.0 2.0 'a))
+(check-catch 'type-error (float-vector 1.0 2.0 'a))
 
 
 (let ((v (float-vector)))

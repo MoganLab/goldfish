@@ -35,8 +35,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当vec不是complex-vector时
-;; wrong-type-arg 当value不是复数时
+;; type-error 当vec不是complex-vector时
+;; type-error 当value不是复数时
 ;; out-of-range 当索引越界时
 
 
@@ -83,16 +83,16 @@
 
 
 (let ((v (complex-vector 1.0+2.0i 3.0+4.0i)))
-  (check-catch 'wrong-type-arg (complex-vector-set! v 0 'not-a-complex))
+  (check-catch 'type-error (complex-vector-set! v 0 'not-a-complex))
   (check-catch 'out-of-range (complex-vector-set! v 5 1.0+2.0i))
   (check-catch 'out-of-range (complex-vector-set! v -1 1.0+2.0i))
 ) ;let
 
 
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (complex-vector-set! (vector 1.0+2.0i 3.0+4.0i) 0 5.0+6.0i)
 ) ;check-catch
-(check-catch 'wrong-type-arg (complex-vector-set! (int-vector 1 2) 0 3.0+4.0i))
+(check-catch 'type-error (complex-vector-set! (int-vector 1 2) 0 3.0+4.0i))
 
 
 (check-report)

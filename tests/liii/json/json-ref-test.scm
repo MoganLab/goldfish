@@ -88,11 +88,11 @@
 (check (json-ref '((a . #(10 20 30))) 'a 1) => 20)
 (check (json-ref #(((x . 1))) 0 'x) => 1)
 
-;; 数组索引错误：越界抛 out-of-range，非整数索引抛 wrong-type-arg
+;; 数组索引错误：越界抛 out-of-range，非整数索引抛 type-error
 (check-catch 'out-of-range (json-ref #(1 2) 5))
 (check-catch 'out-of-range (json-ref #(1 2) -1))
-(check-catch 'wrong-type-arg (json-ref #(1 2) 'a))
-(check-catch 'wrong-type-arg (json-ref #(1 2) 1.5))
+(check-catch 'type-error (json-ref #(1 2) 'a))
+(check-catch 'type-error (json-ref #(1 2) 1.5))
 
 ;; 中间层不是对象/数组时抛 type-error（每层都做结构校验）
 (check-catch 'type-error (json-ref '((a . 1)) 'a 'b))

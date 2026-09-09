@@ -30,7 +30,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当proc不是过程，或任一参数不是向量时
+;; type-error 当proc不是过程，或任一参数不是向量时
 
 
 (check (vector-map (lambda (x) (* x 2)) #(1 2 3)) => #(2 4 6))
@@ -42,8 +42,8 @@
 (check (vector-map cons #(a b c) #(1 2 3)) => #((a . 1) (b . 2) (c . 3)))
 (check (vector-map (lambda (x) (* x 2)) #()) => #())
 (check (vector-map (lambda (x) (+ x 10)) #(5)) => #(15))
-(check-catch 'wrong-type-arg (vector-map 'not-a-proc #(1 2 3)))
-(check-catch 'wrong-type-arg (vector-map + 'not-a-vector))
+(check-catch 'type-error (vector-map 'not-a-proc #(1 2 3)))
+(check-catch 'type-error (vector-map + 'not-a-vector))
 
 
 (check-report)

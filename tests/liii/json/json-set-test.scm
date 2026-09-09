@@ -190,7 +190,7 @@
 
 ;; 键 #f 的历史怪癖：guenchi 实现落入 (if v ...) 无 else 分支，结果为 #<unspecified>
 (check (eq? (json-set '((a . 1)) #f 0) (if #f #f)) => #t)
-(check-catch 'wrong-type-arg (json-set #(1 2) #f 0))
+(check-catch 'type-error (json-set #(1 2) #f 0))
 
 ;; 迭代期间列表被谓词修改变长时的越界保护（防止非法写 nil 导致 Crash）
 (let* ((j (list (cons 'a 1) (cons 'b 2)))

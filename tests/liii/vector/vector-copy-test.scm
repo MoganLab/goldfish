@@ -36,7 +36,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时
-;; wrong-type-arg 当vec不是向量，或start/end不是整数时
+;; type-error 当vec不是向量，或start/end不是整数时
 
 
 (check (vector-copy #(0 1 2 3)) => #(0 1 2 3))
@@ -102,9 +102,9 @@
 (check (vector-copy #(0 1 2 3) 3 4) => #(3))
 
 
-(check-catch 'wrong-type-arg (vector-copy 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-copy #(1 2 3) 'not-a-number))
-(check-catch 'wrong-type-arg (vector-copy #(1 2 3) 0 'not-a-number))
+(check-catch 'type-error (vector-copy 'not-a-vector))
+(check-catch 'type-error (vector-copy #(1 2 3) 'not-a-number))
+(check-catch 'type-error (vector-copy #(1 2 3) 0 'not-a-number))
 
 
 (let ((v #(1 2 3)))

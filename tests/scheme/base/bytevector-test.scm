@@ -27,7 +27,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当任何参数不是在0-255范围内的整数时抛出错误。
 ;; bytevector 基本测试
 (check (bytevector) => #u8())
@@ -44,8 +44,8 @@
 (check (bytevector 85 170) => #u8(85 170))
 (check (bytevector 1 2 3 4 5 6 7 8 9 10) => #u8(1 2 3 4 5 6 7 8 9 10))
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (bytevector 256))
-(check-catch 'wrong-type-arg (bytevector -1))
-(check-catch 'wrong-type-arg (bytevector 123.0))
-(check-catch 'wrong-type-arg (bytevector 123 #u8(1 2 3)))
+(check-catch 'type-error (bytevector 256))
+(check-catch 'type-error (bytevector -1))
+(check-catch 'type-error (bytevector 123.0))
+(check-catch 'type-error (bytevector 123 #u8(1 2 3)))
 (check-report)

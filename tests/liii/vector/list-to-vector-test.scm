@@ -27,7 +27,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当lst不是正规列表时
+;; type-error 当lst不是正规列表时
 
 
 (check (list->vector '()) => #())
@@ -40,8 +40,8 @@
   #(1 2.5 "hello" symbol #\c #t #f)
 ) ;check
 (check (list->vector '((1 2) (3 4))) => #((1 2) (3 4)))
-(check-catch 'wrong-type-arg (list->vector 'not-a-list))
-(check-catch 'wrong-type-arg (list->vector '(1 2 . 3)))
+(check-catch 'type-error (list->vector 'not-a-list))
+(check-catch 'type-error (list->vector '(1 2 . 3)))
 
 
 (check-report)

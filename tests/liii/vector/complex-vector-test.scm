@@ -27,12 +27,12 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当任一参数不是复数时
+;; type-error 当任一参数不是复数时
 
 
 (check-true (vector? (complex-vector 1.0+2.0i 3.0+4.0i)))
 (check-true (complex-vector? (complex-vector 1.0+2.0i 3.0+4.0i)))
-(check-catch 'wrong-type-arg (complex-vector 1.0+2.0i 'a))
+(check-catch 'type-error (complex-vector 1.0+2.0i 'a))
 
 
 (let ((v (complex-vector)))

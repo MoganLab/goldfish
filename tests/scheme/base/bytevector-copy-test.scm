@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当bv不是字节向量抛出错误。
 ;;
 ;; out-of-range
@@ -53,8 +53,8 @@
   (check (bytevector-copy bv 1 4) => #u8(2 3 4))
 ) ;let
 ;; 错误处理
-(check-catch 'wrong-type-arg (bytevector-copy 123))
-(check-catch 'wrong-type-arg (bytevector-copy "hello"))
+(check-catch 'type-error (bytevector-copy 123))
+(check-catch 'type-error (bytevector-copy "hello"))
 (check-catch 'out-of-range (bytevector-copy #u8(1 2 3) -1))
 (check-catch 'out-of-range (bytevector-copy #u8(1 2 3) 4))
 (check-catch 'out-of-range (bytevector-copy #u8(1 2 3) 0 5))

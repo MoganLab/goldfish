@@ -36,7 +36,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出字符串边界或start大于end时
-;; wrong-type-arg 当str不是字符串，或start/end不是整数时
+;; type-error 当str不是字符串，或start/end不是整数时
 
 
 (check (string->vector "0123") => (vector #\0 #\1 #\2 #\3))

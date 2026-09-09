@@ -86,7 +86,7 @@ s7_pointer g_string_to_byte_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer str = s7_car(args);
   if (!s7_is_string(str))
-    return(s7i_method_or_bust_p(sc, str, "string->byte-vector", "a string"));
+    return(s7i_vector_method_or_bust_p(sc, str, "string->byte-vector", "a string"));
   {
     s7_int len = s7_string_length(str);
     s7_pointer bv = s7_make_byte_vector(sc, len, 0, NULL);
@@ -99,7 +99,7 @@ s7_pointer g_byte_vector_to_string(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer bv = s7_car(args);
   if (!s7_is_byte_vector(bv))
-    return(s7i_method_or_bust_p(sc, bv, "byte-vector->string", "a byte-vector"));
+    return(s7i_vector_method_or_bust_p(sc, bv, "byte-vector->string", "a byte-vector"));
   {
     s7_int len = s7_vector_length(bv);
     return(s7_make_string_with_length(sc, (const char *)s7_byte_vector_elements(bv), len));
@@ -114,7 +114,7 @@ s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(size))
     {
       if (!s7_is_integer(size))
-        return(s7i_method_or_bust(sc, size, "make-byte-vector", args, "an integer", 1));
+        return(s7i_vector_method_or_bust(sc, size, "make-byte-vector", args, "an integer", 1));
       len = s7_number_to_integer(sc, size);
       if (len < 0)
         return(s7_out_of_range_error(sc, "make-byte-vector", 1, size, "it is negative"));
@@ -125,10 +125,10 @@ s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
     {
       init = s7_cadr(args);
       if (!s7_is_integer(init))
-        return(s7i_method_or_bust(sc, init, "make-byte-vector", args, "an integer", 2));
+        return(s7i_vector_method_or_bust(sc, init, "make-byte-vector", args, "an integer", 2));
       ib = s7_number_to_integer(sc, init);
       if ((ib < 0) || (ib > 255))
-        return(s7_wrong_type_arg_error(sc, "make-byte-vector", 2, init, "a byte"));
+        return(s7_type_error(sc, "make-byte-vector", 2, init, "a byte"));
     }
   else init = s7_make_integer(sc, 0);
 
@@ -150,7 +150,7 @@ s7_pointer g_make_int_vector(s7_scheme *sc, s7_pointer args)
   if (!s7_is_pair(size))
     {
       if (!s7_is_integer(size))
-        return(s7i_method_or_bust(sc, size, "make-int-vector", args, "an integer", 1));
+        return(s7i_vector_method_or_bust(sc, size, "make-int-vector", args, "an integer", 1));
       len = s7_number_to_integer(sc, size);
       if (len < 0)
         return(s7_out_of_range_error(sc, "make-int-vector", 1, size, "it is negative"));
@@ -161,7 +161,7 @@ s7_pointer g_make_int_vector(s7_scheme *sc, s7_pointer args)
     {
       init = s7_cadr(args);
       if (!s7_is_integer(init))
-        return(s7i_method_or_bust(sc, init, "make-int-vector", args, "an integer", 2));
+        return(s7i_vector_method_or_bust(sc, init, "make-int-vector", args, "an integer", 2));
     }
   else init = s7_make_integer(sc, 0);
 
@@ -191,14 +191,14 @@ s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
         {
           init = s7_cadr(args);
           if (!s7_is_real(init))
-            return(s7i_method_or_bust(sc, init, "make-float-vector", args, "a real", 2));
+            return(s7i_vector_method_or_bust(sc, init, "make-float-vector", args, "a real", 2));
         }
       else init = s7_make_real(sc, 0.0);
       return(s7i_make_vector_1(sc, s7i_set_plist_2(sc, size, init), s7_make_symbol(sc, "make-float-vector")));
     }
 
   if (!s7_is_integer(size))
-    return(s7i_method_or_bust(sc, size, "make-float-vector", args, "an integer or a list of integers", 1));
+    return(s7i_vector_method_or_bust(sc, size, "make-float-vector", args, "an integer or a list of integers", 1));
 
   len = s7_number_to_integer(sc, size);
   if (len < 0)
@@ -210,7 +210,7 @@ s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
     {
       s7_pointer init = s7_cadr(args);
       if (!s7_is_real(init))
-        return(s7i_method_or_bust(sc, init, "make-float-vector", args, "a real", 2));
+        return(s7i_vector_method_or_bust(sc, init, "make-float-vector", args, "a real", 2));
       {
         s7_pointer vect = s7_make_float_vector(sc, len, 0, NULL);
         s7_double d = s7_number_to_real(sc, init);
@@ -238,14 +238,14 @@ s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
         {
           init = s7_cadr(args);
           if (!s7_is_number(init))
-            return(s7i_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
+            return(s7i_vector_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
         }
       else init = s7_make_real(sc, 0.0);
       return(s7i_make_vector_1(sc, s7i_set_plist_2(sc, size, init), s7_make_symbol(sc, "make-complex-vector")));
     }
 
   if (!s7_is_integer(size))
-    return(s7i_method_or_bust(sc, size, "make-complex-vector", args, "an integer or a list of integers", 1));
+    return(s7i_vector_method_or_bust(sc, size, "make-complex-vector", args, "an integer or a list of integers", 1));
 
   len = s7_number_to_integer(sc, size);
   if (len < 0)
@@ -257,7 +257,7 @@ s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
     {
       s7_pointer init = s7_cadr(args);
       if (!s7_is_number(init))
-        return(s7i_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
+        return(s7i_vector_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
       {
         s7_pointer vect = s7_make_complex_vector(sc, len, 0, NULL);
         s7_vector_fill(sc, vect, init);
@@ -282,7 +282,7 @@ s7_pointer g_float_vector(s7_scheme *sc, s7_pointer args)
       {
         s7_pointer num = s7_car(nums);
         if (!s7_is_real(num))
-          return(s7i_method_or_bust(sc, num, "float-vector", args, "a real", i + 1));
+          return(s7i_vector_method_or_bust(sc, num, "float-vector", args, "a real", i + 1));
         s7_float_vector_set(vec, i, s7_real(num));
       }
     return(vec);
@@ -303,7 +303,7 @@ s7_pointer g_int_vector(s7_scheme *sc, s7_pointer args)
       {
         s7_pointer num = s7_car(arglist);
         if (!s7_is_integer(num))
-          return(s7i_method_or_bust(sc, num, "int-vector", args, "an integer", i + 1));
+          return(s7i_vector_method_or_bust(sc, num, "int-vector", args, "an integer", i + 1));
         s7_int_vector_set(vec, i, s7_integer(num));
       }
     return(vec);
@@ -325,10 +325,10 @@ s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
         s7_pointer byte = s7_car(arglist);
         s7_int b;
         if (!s7_is_integer(byte))
-          return(s7i_method_or_bust(sc, byte, "byte-vector", args, "an integer", i + 1));
+          return(s7i_vector_method_or_bust(sc, byte, "byte-vector", args, "an integer", i + 1));
         b = s7_integer(byte);
         if ((b < 0) || (b > 255))
-          return(s7_wrong_type_arg_error(sc, "byte-vector", i + 1, byte, "a byte"));
+          return(s7_type_error(sc, "byte-vector", i + 1, byte, "a byte"));
         s7_byte_vector_set(vec, i, (uint8_t)b);
       }
     return(vec);
@@ -349,7 +349,7 @@ s7_pointer g_complex_vector(s7_scheme *sc, s7_pointer args)
       {
         s7_pointer num = s7_car(arglist);
         if (!s7_is_number(num))
-          return(s7i_method_or_bust(sc, num, "complex-vector", args, "a number", i + 1));
+          return(s7i_vector_method_or_bust(sc, num, "complex-vector", args, "a number", i + 1));
         s7_complex_vector_elements(vec)[i] = s7i_to_c_complex(num);
       }
     return(vec);
@@ -360,7 +360,7 @@ s7_pointer g_vector_rank(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);
   if (!s7_is_vector(vec))
-    return(s7i_sole_arg_method_or_bust(sc, vec, "vector-rank", args, "a vector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, vec, "vector-rank", args, "a vector"));
   return(s7_make_integer(sc, s7_vector_rank(vec)));
 }
 
@@ -371,9 +371,9 @@ s7_pointer g_vector_dimension(s7_scheme *sc, s7_pointer args)
   s7_int n;
 
   if (!s7_is_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "vector-dimension", args, "a vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "vector-dimension", args, "a vector", 1));
   if (!s7_is_integer(dim))
-    return(s7i_method_or_bust(sc, dim, "vector-dimension", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, dim, "vector-dimension", args, "an integer", 2));
 
   n = s7_number_to_integer(sc, dim);
   if (n < 0)
@@ -388,7 +388,7 @@ s7_pointer g_vector_dimensions(s7_scheme *sc, s7_pointer args)
   s7_pointer vec = s7_car(args);
 
   if (!s7_is_vector(vec))
-    return(s7i_sole_arg_method_or_bust(sc, vec, "vector-dimensions", args, "a vector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, vec, "vector-dimensions", args, "a vector"));
 
   {
     s7_int rank = s7_vector_rank(vec);
@@ -424,7 +424,7 @@ s7_pointer g_subvector_position(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer p = s7_car(args);
   if (!s7i_is_subvector(p))
-    return(s7i_sole_arg_method_or_bust(sc, p, "subvector-position", args, "a subvector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, p, "subvector-position", args, "a subvector"));
   return(s7_make_integer(sc, s7i_subvector_position(p)));
 }
 
@@ -432,7 +432,7 @@ s7_pointer g_subvector_vector(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer p = s7_car(args);
   if (!s7i_is_subvector(p))
-    return(s7i_sole_arg_method_or_bust(sc, p, "subvector-vector", args, "a subvector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, p, "subvector-vector", args, "a subvector"));
   return(s7i_subvector_vector(sc, p));
 }
 
@@ -440,7 +440,7 @@ s7_pointer g_vector_typer(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);
   if (!s7_is_vector(vec))
-    return(s7i_sole_arg_method_or_bust(sc, vec, "vector-typer", args, "a vector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, vec, "vector-typer", args, "a vector"));
   if (s7i_is_typed_t_vector(vec)) return(s7i_typed_vector_typer(sc, vec));
   if (s7_is_float_vector(vec)) return(s7_symbol_value(sc, s7_make_symbol(sc, "float?")));
   if (s7_is_int_vector(vec)) return(s7_symbol_value(sc, s7_make_symbol(sc, "integer?")));
@@ -514,7 +514,7 @@ s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
               s7_pointer vec = g_vector_append(sc, front);
               return(s7_apply_function(sc, func, s7_cons(sc, vec, p)));
             }
-          return(s7_wrong_type_arg_error(sc, "vector-append", i + 1, vect, "a vector"));
+          return(s7_type_error(sc, "vector-append", i + 1, vect, "a vector"));
         }
     }
   return(s7i_vector_append(sc, args, (uint8_t)s7i_type(s7_car(args)), s7_make_symbol(sc, "vector-append")));
@@ -524,7 +524,7 @@ s7_pointer g_vector_ref(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);
   if (!s7_is_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "vector-ref", args, "a vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "vector-ref", args, "a vector", 1));
   return(s7i_vector_ref_1(sc, vec, s7_cdr(args)));
 }
 
@@ -563,7 +563,7 @@ s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
   s7_int index;
 
   if (!s7i_is_any_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "vector-set!", args, "a vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "vector-set!", args, "a vector", 1));
   if (s7i_is_immutable_vector(vec))
     immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "vector-set!"), vec));
   if (s7_vector_length(vec) == 0)
@@ -580,7 +580,7 @@ s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
           s7_int n;
           const s7_pointer ind = s7_car(index_list);
           if (!s7_is_integer(ind))
-            return(s7i_method_or_bust(sc, ind, "vector-set!", args, "an integer", i + 2));
+            return(s7i_vector_method_or_bust(sc, ind, "vector-set!", args, "an integer", i + 2));
           n = s7_number_to_integer(sc, ind);
           if ((n < 0) || (n >= s7_vector_dimension(vec, i)))
             out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, i + 2), ind, (n < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -597,7 +597,7 @@ s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
     {
       const s7_pointer ind = s7_cadr(args);
       if (!s7_is_integer(ind))
-        return(s7i_method_or_bust(sc, ind, "vector-set!", args, "an integer", 2));
+        return(s7i_vector_method_or_bust(sc, ind, "vector-set!", args, "an integer", 2));
       index = s7_number_to_integer(sc, ind);
       if ((index < 0) || (index >= s7_vector_length(vec)))
         out_of_range_error_nr(sc, s7_make_symbol(sc, "vector-set!"), s7i_wrap_integer(sc, 2), ind, (index < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -698,18 +698,18 @@ s7_pointer g_fv_ref_3(s7_scheme *sc, s7_pointer args)
   s7_pointer index;
   s7_int ind1, ind2;
   if (!s7_is_float_vector(fv))
-    return(s7i_method_or_bust(sc, fv, "float-vector-ref", args, "a float-vector", 1));
+    return(s7i_vector_method_or_bust(sc, fv, "float-vector-ref", args, "a float-vector", 1));
   if (s7_vector_rank(fv) != 2)
     return(s7i_univect_ref_float(sc, args));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 2));
   ind1 = s7_number_to_integer(sc, index);
   if ((ind1 < 0) || (ind1 >= s7_vector_dimension(fv, 0)))
     return(s7_out_of_range_error(sc, "float-vector-ref", 2, index, (ind1 < 0) ? "it is negative" : "it is too large"));
   index = s7_caddr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 3));
+    return(s7i_vector_method_or_bust(sc, index, "float-vector-ref", args, "an integer", 3));
   ind2 = s7_number_to_integer(sc, index);
   if ((ind2 < 0) || (ind2 >= s7_vector_dimension(fv, 1)))
     return(s7_out_of_range_error(sc, "float-vector-ref", 3, index, (ind2 < 0) ? "it is negative" : "it is too large"));
@@ -727,21 +727,21 @@ s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
   const s7_pointer fv = s7_car(args);
   s7_pointer index;
   if (!s7_is_float_vector(fv))
-    return(s7i_method_or_bust(sc, fv, "float-vector-set!", args, "a float-vector", 1));
+    return(s7i_vector_method_or_bust(sc, fv, "float-vector-set!", args, "a float-vector", 1));
   if (s7_vector_rank(fv) != 1)
     return(s7i_univect_set_float(sc, args));
   if (s7i_is_immutable_vector(fv))
     immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "float-vector-set!"), fv));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "float-vector-set!", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "float-vector-set!", args, "an integer", 2));
   {
     s7_int ind = s7_number_to_integer(sc, index);
     s7_pointer value = s7_caddr(args);
     if ((ind < 0) || (ind >= s7_vector_length(fv)))
       return(s7_out_of_range_error(sc, "float-vector-set!", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
     if (!s7_is_real(value))
-      return(s7i_method_or_bust(sc, value, "float-vector-set!", args, "a real", 3));
+      return(s7i_vector_method_or_bust(sc, value, "float-vector-set!", args, "a real", 3));
     s7_float_vector_set(fv, ind, s7_number_to_real(sc, value));
     return(value);
   }
@@ -763,18 +763,18 @@ s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
   s7_pointer index;
   s7_int ind1, ind2;
   if (!s7_is_int_vector(ivec))
-    return(s7i_method_or_bust(sc, ivec, "int-vector-ref", args, "an int-vector", 1));
+    return(s7i_vector_method_or_bust(sc, ivec, "int-vector-ref", args, "an int-vector", 1));
   if (s7_vector_rank(ivec) != 2)
     return(s7i_univect_ref_int(sc, args));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 2));
   ind1 = s7_number_to_integer(sc, index);
   if ((ind1 < 0) || (ind1 >= s7_vector_dimension(ivec, 0)))
     return(s7_out_of_range_error(sc, "int-vector-ref", 2, index, (ind1 < 0) ? "it is negative" : "it is too large"));
   index = s7_caddr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 3));
+    return(s7i_vector_method_or_bust(sc, index, "int-vector-ref", args, "an integer", 3));
   ind2 = s7_number_to_integer(sc, index);
   if ((ind2 < 0) || (ind2 >= s7_vector_dimension(ivec, 1)))
     return(s7_out_of_range_error(sc, "int-vector-ref", 3, index, (ind2 < 0) ? "it is negative" : "it is too large"));
@@ -793,21 +793,21 @@ s7_pointer g_iv_set_3(s7_scheme *sc, s7_pointer args)
   s7_pointer index;
   s7_int ind;
   if (!s7_is_int_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "int-vector-set!", args, "an int-vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "int-vector-set!", args, "an int-vector", 1));
   if (s7_vector_rank(vec) != 1)
     return(s7i_univect_set_int(sc, args));
   if (s7i_is_immutable_vector(vec))
     immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "int-vector-set!"), vec));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "int-vector-set!", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "int-vector-set!", args, "an integer", 2));
   ind = s7_number_to_integer(sc, index);
   if ((ind < 0) || (ind >= s7_vector_length(vec)))
     return(s7_out_of_range_error(sc, "int-vector-set!", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
   {
     s7_pointer value = s7_caddr(args);
     if (!s7_is_integer(value))
-      return(s7i_method_or_bust(sc, value, "int-vector-set!", args, "an integer", 3));
+      return(s7i_vector_method_or_bust(sc, value, "int-vector-set!", args, "an integer", 3));
     s7_int_vector_set(vec, ind, s7_number_to_integer(sc, value));
     return(value);
   }
@@ -824,12 +824,12 @@ s7_pointer g_bv_ref_2(s7_scheme *sc, s7_pointer args)
   s7_pointer index;
   s7_int ind;
   if (!s7_is_byte_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "byte-vector-ref", args, "a byte-vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "byte-vector-ref", args, "a byte-vector", 1));
   if (s7_vector_rank(vec) != 1)
     return(s7i_univect_ref_byte(sc, args));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 2));
   ind = s7_number_to_integer(sc, index);
   if ((ind < 0) || (ind >= s7_vector_length(vec)))
     return(s7_out_of_range_error(sc, "byte-vector-ref", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
@@ -842,18 +842,18 @@ s7_pointer g_bv_ref_3(s7_scheme *sc, s7_pointer args)
   s7_pointer index;
   s7_int ind1, ind2;
   if (!s7_is_byte_vector(iv))
-    return(s7i_method_or_bust(sc, iv, "byte-vector-ref", args, "a byte-vector", 1));
+    return(s7i_vector_method_or_bust(sc, iv, "byte-vector-ref", args, "a byte-vector", 1));
   if (s7_vector_rank(iv) != 2)
     return(s7i_univect_ref_byte(sc, args));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 2));
   ind1 = s7_number_to_integer(sc, index);
   if ((ind1 < 0) || (ind1 >= s7_vector_dimension(iv, 0)))
     return(s7_out_of_range_error(sc, "byte-vector-ref", 2, index, (ind1 < 0) ? "it is negative" : "it is too large"));
   index = s7_caddr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 3));
+    return(s7i_vector_method_or_bust(sc, index, "byte-vector-ref", args, "an integer", 3));
   ind2 = s7_number_to_integer(sc, index);
   if ((ind2 < 0) || (ind2 >= s7_vector_dimension(iv, 1)))
     return(s7_out_of_range_error(sc, "byte-vector-ref", 3, index, (ind2 < 0) ? "it is negative" : "it is too large"));
@@ -872,24 +872,24 @@ s7_pointer g_bv_set_3(s7_scheme *sc, s7_pointer args)
   s7_pointer index, value;
   s7_int ind;
   if (!s7_is_byte_vector(vec))
-    return(s7i_method_or_bust(sc, vec, "byte-vector-set!", args, "a byte-vector", 1));
+    return(s7i_vector_method_or_bust(sc, vec, "byte-vector-set!", args, "a byte-vector", 1));
   if (s7_vector_rank(vec) != 1)
     return(s7i_univect_set_byte(sc, args));
   if (s7i_is_immutable_vector(vec))
     immutable_object_error_nr(sc, s7i_set_elist_3(sc, immutable_error_string, s7_make_symbol(sc, "byte-vector-set!"), vec));
   index = s7_cadr(args);
   if (!s7_is_integer(index))
-    return(s7i_method_or_bust(sc, index, "byte-vector-set!", args, "an integer", 2));
+    return(s7i_vector_method_or_bust(sc, index, "byte-vector-set!", args, "an integer", 2));
   ind = s7_number_to_integer(sc, index);
   if ((ind < 0) || (ind >= s7_vector_length(vec)))
     return(s7_out_of_range_error(sc, "byte-vector-set!", 2, index, (ind < 0) ? "it is negative" : "it is too large"));
   value = s7_caddr(args);
   if (!s7_is_integer(value))
-    return(s7i_method_or_bust(sc, value, "byte-vector-set!", args, "an integer", 3));
+    return(s7i_vector_method_or_bust(sc, value, "byte-vector-set!", args, "an integer", 3));
   {
     s7_int byte = s7_number_to_integer(sc, value);
     if ((byte < 0) || (byte > 255))
-      return(s7_wrong_type_arg_error(sc, "byte-vector-set!", 3, value, "a byte"));
+      return(s7_type_error(sc, "byte-vector-set!", 3, value, "a byte"));
     s7_byte_vector_set(vec, ind, (uint8_t)byte);
   }
   return(value);
@@ -936,7 +936,7 @@ s7_pointer g_list_to_vector(s7_scheme *sc, s7_pointer args)
   if (s7_is_null(sc, lst))
     return(s7_make_vector(sc, 0));
   if (!s7_is_proper_list(sc, lst))
-    return(s7i_method_or_bust_p(sc, lst, "list->vector", "a proper list"));
+    return(s7i_vector_method_or_bust_p(sc, lst, "list->vector", "a proper list"));
   return(g_vector(sc, lst));
 }
 
@@ -946,11 +946,11 @@ s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args)
   const s7_pointer vec = s7_car(args);
 
   if (!s7i_is_any_vector(vec))
-    return(s7i_sole_arg_method_or_bust(sc, vec, "vector->list", args, "a vector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, vec, "vector->list", args, "a vector"));
   end = s7_vector_length(vec);
   if (!s7_is_null(sc, s7_cdr(args)))
     {
-      s7_pointer p = s7i_start_and_end(sc, s7_make_symbol(sc, "vector->list"), args, 2, s7_cdr(args), &start, &end);
+      s7_pointer p = s7i_vector_start_and_end(sc, s7_make_symbol(sc, "vector->list"), args, 2, s7_cdr(args), &start, &end);
       if (!s7i_is_unused(sc, p)) return(p);
       if (start == end) return(s7_nil(sc));
     }
@@ -984,9 +984,9 @@ s7_pointer g_vector_filter(s7_scheme *sc, s7_pointer args)
   s7_pointer pred = s7_car(args);
   s7_pointer vec = s7_cadr(args);
   if (!s7_is_procedure(pred))
-    return(s7_wrong_type_arg_error(sc, "vector-filter", 1, pred, "a procedure"));
+    return(s7_type_error(sc, "vector-filter", 1, pred, "a procedure"));
   if (!s7_is_vector(vec))
-    return(s7_wrong_type_arg_error(sc, "vector-filter", 2, vec, "a vector"));
+    return(s7_type_error(sc, "vector-filter", 2, vec, "a vector"));
   /* args may live in evaluator-recycled cells, so keep pred and vec in our own
    * pair, with the result vector as the anchor's cdr; everything stays
    * GC-reachable while pred runs */
@@ -1024,21 +1024,21 @@ s7_pointer g_vector_length(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = s7_car(args);
   if (!s7_is_vector(vec))
-    return(s7i_sole_arg_method_or_bust(sc, vec, "vector-length", args, "a vector"));
+    return(s7i_vector_sole_arg_method_or_bust(sc, vec, "vector-length", args, "a vector"));
   return(s7_make_integer(sc, s7_vector_length(vec)));
 }
 
 s7_int vector_length_i_7p(s7_scheme *sc, s7_pointer vec)
 {
   if (!s7_is_vector(vec))
-    return(s7_integer(s7i_method_or_bust_p(sc, vec, "vector-length", "a vector")));
+    return(s7_integer(s7i_vector_method_or_bust_p(sc, vec, "vector-length", "a vector")));
   return(s7_vector_length(vec));
 }
 
 s7_pointer vector_length_p_p(s7_scheme *sc, s7_pointer vec)
 {
   if (!s7_is_vector(vec))
-    return(s7i_method_or_bust_p(sc, vec, "vector-length", "a vector"));
+    return(s7i_vector_method_or_bust_p(sc, vec, "vector-length", "a vector"));
   return(s7_make_integer(sc, s7_vector_length(vec)));
 }
 
@@ -1061,7 +1061,7 @@ s7_pointer vector_append_p_ppp(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_p
 s7_pointer vector_to_list_p_p(s7_scheme *sc, s7_pointer vec)
 {
   if (!s7i_is_any_vector(vec))
-    return(s7i_method_or_bust_p(sc, vec, "vector->list", "vector"));
+    return(s7i_vector_method_or_bust_p(sc, vec, "vector->list", "vector"));
   return(s7_vector_to_list(sc, vec));
 }
 

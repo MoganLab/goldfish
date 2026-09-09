@@ -33,7 +33,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当vec不是向量，或proc不是过程时
+;; type-error 当vec不是向量，或proc不是过程时
 
 
 (check (vector-fold + 0 #(1 2 3 4)) => 10)
@@ -49,6 +49,8 @@
 (check (vector-fold * 1 #(5)) => 5)
 (check (vector-fold string-append "" #("a" "b" "c")) => "cba")
 (check (vector-fold (lambda (x acc) (and acc x)) #t #(#t #t #f)) => #f)
+(check-catch 'type-error (vector-fold 'not-a-proc 0 #(1 2 3)))
+(check-catch 'type-error (vector-fold + 0 'not-a-vector))
 
 
 (check-report)

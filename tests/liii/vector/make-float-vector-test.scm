@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当k不是合法整数或fill不是实数时
+;; type-error 当k不是合法整数或fill不是实数时
 
 
 (check-true (float-vector? (make-float-vector 0)))
@@ -61,8 +61,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (make-float-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-float-vector 3 'not-a-number))
+(check-catch 'type-error (make-float-vector 'not-a-number))
+(check-catch 'type-error (make-float-vector 3 'not-a-number))
 (check-catch 'out-of-range (make-float-vector -1))
 (check-catch 'out-of-range (make-float-vector -1 2.0))
 (check-catch 'wrong-number-of-args (make-float-vector))

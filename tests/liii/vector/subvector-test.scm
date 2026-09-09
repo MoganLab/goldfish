@@ -21,7 +21,7 @@
 
 ;; 边界错误
 (let ((v #(1 2 3)))
-  (check-catch 'wrong-type-arg (subvector 'not-a-vector))
+  (check-catch 'type-error (subvector 'not-a-vector))
   (check-catch 'out-of-range (subvector v -1 2))
   (check-catch 'out-of-range (subvector v 0 4))
   (check-catch 'out-of-range (subvector v 2 1))

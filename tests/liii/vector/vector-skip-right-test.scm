@@ -30,7 +30,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当pred不是过程，或vec不是向量时
+;; type-error 当pred不是过程，或vec不是向量时
 
 
 (check (vector-skip-right even? #(1 2 3 4)) => 2)
@@ -46,6 +46,8 @@
 ) ;check
 (check (vector-skip-right (lambda (x) (eq? x #t)) #(#t #t #f #t)) => 2)
 (check (vector-skip-right (lambda (x) (> x 0)) #(1 2 3 4)) => #f)
+(check-catch 'type-error (vector-skip-right 'not-a-proc #(1 2 3)))
+(check-catch 'type-error (vector-skip-right even? 'not-a-vector))
 (check (vector-skip-right (lambda (x) (char-alphabetic? x)) #(#\a #\b #\c))
   =>
   #f

@@ -62,14 +62,14 @@
   (check-catch 'out-of-range (bytevector-u8-ref m -1 0))
   (check-catch 'out-of-range (bytevector-u8-ref m 2 0))
   (check-catch 'out-of-range (bytevector-u8-ref m 0 3))
-  (check-catch 'wrong-type-arg (bytevector-u8-ref m "0" 1))
-  (check-catch 'wrong-type-arg (bytevector-u8-ref m 0 "1"))
+  (check-catch 'type-error (bytevector-u8-ref m "0" 1))
+  (check-catch 'type-error (bytevector-u8-ref m 0 "1"))
 ) ;let
 
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (bytevector-u8-ref 123 0))
-(check-catch 'wrong-type-arg (bytevector-u8-ref "hello" 0))
-(check-catch 'wrong-type-arg (bytevector-u8-ref #u8(1 2 3) 1.5))
+(check-catch 'type-error (bytevector-u8-ref 123 0))
+(check-catch 'type-error (bytevector-u8-ref "hello" 0))
+(check-catch 'type-error (bytevector-u8-ref #u8(1 2 3) 1.5))
 (check-catch 'out-of-range (bytevector-u8-ref #u8() 0))
 (check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) -1))
 (check-catch 'out-of-range (bytevector-u8-ref #u8(1 2 3) 3))

@@ -39,13 +39,13 @@
   (check-catch 'out-of-range (vector-ref m -1 0))
   (check-catch 'out-of-range (vector-ref m 2 0))
   (check-catch 'out-of-range (vector-ref m 0 3))
-  (check-catch 'wrong-type-arg (vector-ref m "0" 1))
-  (check-catch 'wrong-type-arg (vector-ref m 0 "1"))
+  (check-catch 'type-error (vector-ref m "0" 1))
+  (check-catch 'type-error (vector-ref m 0 "1"))
 ) ;let
 
 (check-catch 'wrong-number-of-args (vector-ref #(1)))
-(check-catch 'wrong-type-arg (vector-ref '() 0))
-(check-catch 'wrong-type-arg (vector-ref #(1) 'a))
+(check-catch 'type-error (vector-ref '() 0))
+(check-catch 'type-error (vector-ref #(1) 'a))
 (check-catch 'out-of-range (vector-ref #() 0))
 (check-catch 'out-of-range (vector-ref #(a) 1))
 (check-catch 'out-of-range (vector-ref #(a b) -1))

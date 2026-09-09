@@ -170,8 +170,8 @@
   (check j1 => #(10 20 30))
 ) ;let*
 
-;; 数组 #f 键：历史怪癖，(list->vector x) 抛 wrong-type-arg（与 json-set 的 #f 键一致）
-(check-catch 'wrong-type-arg (json-reduce #(1 2 3) #f (lambda (k v) v)))
+;; 数组 #f 键：历史怪癖，(list->vector x) 抛 type-error（与 json-set 的 #f 键一致）
+(check-catch 'type-error (json-reduce #(1 2 3) #f (lambda (k v) v)))
 
 ;; 对象 #f 键原样返回
 (let* ((j0 '((a . 1))))

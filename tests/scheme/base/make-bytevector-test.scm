@@ -31,7 +31,7 @@
 ;; --------
 ;; out-of-range
 ;; 当k小于0时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当任何参数不正确时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
@@ -59,10 +59,10 @@
 (check (bytevector-u8-ref (make-bytevector '(2 3) 5) 1 2) => 5)
 ;; 错误处理测试
 (check-catch 'out-of-range (make-bytevector -5))
-(check-catch 'wrong-type-arg (make-bytevector 3 256))
-(check-catch 'wrong-type-arg (make-bytevector 2 -1))
-(check-catch 'wrong-type-arg (make-bytevector 3.5))
-(check-catch 'wrong-type-arg (make-bytevector "hello"))
+(check-catch 'type-error (make-bytevector 3 256))
+(check-catch 'type-error (make-bytevector 2 -1))
+(check-catch 'type-error (make-bytevector 3.5))
+(check-catch 'type-error (make-bytevector "hello"))
 (check-catch 'wrong-number-of-args (make-bytevector))
 (check-catch 'wrong-number-of-args (make-bytevector 1 2 3))
 (check-report)

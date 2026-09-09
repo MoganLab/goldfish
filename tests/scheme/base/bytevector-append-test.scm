@@ -36,6 +36,6 @@
     (check result => #u8(99 2 3))
   ) ;let
 ) ;let
-(check-catch 'wrong-type-arg (bytevector-append #u8(1) 'a))
+(check-catch 'type-error (bytevector-append #u8(1) 'a))
 
 (check-report)

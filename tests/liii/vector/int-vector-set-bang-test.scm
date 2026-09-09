@@ -33,8 +33,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当vec不是int-vector时
-;; wrong-type-arg 当value不是整数时
+;; type-error 当vec不是int-vector时
+;; type-error 当value不是整数时
 ;; out-of-range 当索引越界时
 
 
@@ -61,14 +61,14 @@
 
 
 (let ((v (int-vector 1 2)))
-  (check-catch 'wrong-type-arg (int-vector-set! v 0 'not-an-integer))
-  (check-catch 'wrong-type-arg (int-vector-set! v 0 3.14))
+  (check-catch 'type-error (int-vector-set! v 0 'not-an-integer))
+  (check-catch 'type-error (int-vector-set! v 0 3.14))
   (check-catch 'out-of-range (int-vector-set! v 5 100))
   (check-catch 'out-of-range (int-vector-set! v -1 100))
 ) ;let
 
 
-(check-catch 'wrong-type-arg (int-vector-set! (vector 1 2 3) 0 100))
+(check-catch 'type-error (int-vector-set! (vector 1 2 3) 0 100))
 
 ;; 二维 int-vector 赋值测试
 (let ((m (make-int-vector '(2 3) 0)))

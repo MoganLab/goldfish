@@ -28,7 +28,7 @@
 ;; --------
 ;; out-of-range
 ;; 当k小于0或大于等于字节向量长度时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当byte不是0-255之间的整数时抛出错误。
 (let ((bv (bytevector 1 2 3 4 5)))
   (bytevector-u8-set! bv 1 4)
@@ -63,8 +63,8 @@
 (check-catch 'out-of-range (bytevector-u8-set! #u8() 0 5))
 (check-catch 'out-of-range (bytevector-u8-set! #u8(1 2 3) -1 5))
 (check-catch 'out-of-range (bytevector-u8-set! #u8(1 2 3) 3 5))
-(check-catch 'wrong-type-arg (bytevector-u8-set! 123 0 5))
-(check-catch 'wrong-type-arg (bytevector-u8-set! "hello" 0 5))
-(check-catch 'wrong-type-arg (bytevector-u8-set! #u8(1 2 3) 1 256))
-(check-catch 'wrong-type-arg (bytevector-u8-set! #u8(1 2 3) 1 -1))
+(check-catch 'type-error (bytevector-u8-set! 123 0 5))
+(check-catch 'type-error (bytevector-u8-set! "hello" 0 5))
+(check-catch 'type-error (bytevector-u8-set! #u8(1 2 3) 1 256))
+(check-catch 'type-error (bytevector-u8-set! #u8(1 2 3) 1 -1))
 (check-report)

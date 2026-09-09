@@ -45,9 +45,9 @@
   (vector-copy! v 0 v 1)
   (check v => #(b c c))
 ) ;let
-(check-catch 'wrong-type-arg (vector-copy! #(1) 0))
-(check-catch 'wrong-type-arg (vector-copy! '() 0 #(1)))
-(check-catch 'wrong-type-arg (vector-copy! #(1) 'a #(1)))
+(check-catch 'type-error (vector-copy! #(1) 0))
+(check-catch 'type-error (vector-copy! '() 0 #(1)))
+(check-catch 'type-error (vector-copy! #(1) 'a #(1)))
 (check-catch 'out-of-range (vector-copy! #(a) 1 #(b)))
 (check-catch 'out-of-range (vector-copy! #(a) -1 #(b)))
 

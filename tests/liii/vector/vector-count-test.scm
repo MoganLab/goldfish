@@ -30,7 +30,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当pred不是过程，或vec不是向量时
+;; type-error 当pred不是过程，或vec不是向量时
 
 
 (check (vector-count even? #()) => 0)
@@ -46,6 +46,8 @@
 (check (vector-count even? #(43)) => 0)
 (check (vector-count (lambda (x) (> x 5)) #(1 6 2 7 3 8)) => 3)
 (check (vector-count (lambda (x) (char=? x #\a)) #(#\a #\b #\a #\c)) => 2)
+(check-catch 'type-error (vector-count 'not-a-proc #(1 2 3)))
+(check-catch 'type-error (vector-count even? 'not-a-vector))
 
 
 (check-report)

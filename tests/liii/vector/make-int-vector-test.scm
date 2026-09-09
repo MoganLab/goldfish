@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当k不是合法整数时
+;; type-error 当k不是合法整数时
 
 
 (check (int-vector? (make-int-vector 0)) => #t)
@@ -55,8 +55,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (make-int-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-int-vector 3 'not-an-integer))
+(check-catch 'type-error (make-int-vector 'not-a-number))
+(check-catch 'type-error (make-int-vector 3 'not-an-integer))
 (check-catch 'out-of-range (make-int-vector -1))
 (check-catch 'wrong-number-of-args (make-int-vector))
 (check-catch 'wrong-number-of-args (make-int-vector 1 2 3))

@@ -1388,7 +1388,7 @@ struct s7_scheme {
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
              unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
-             wrong_number_of_args_symbol, wrong_type_arg_symbol;
+             wrong_number_of_args_symbol, wrong_type_arg_symbol, type_error_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
   s7_pointer  byte_vector_signature, c_object_signature, float_vector_signature, hash_table_signature, int_vector_signature,
@@ -6074,6 +6074,31 @@ void s7i_wrong_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s
   wrong_type_error_nr(sc, caller, arg_num, arg, typ);
 }
 
+void sole_arg_type_error_nr(s7_scheme *sc, s7_pointer caller, s7_pointer arg, s7_pointer typ)
+{
+  set_wlist_4(cdr(sc->sole_arg_wrong_type_info), caller, arg, object_type_name(sc, arg), typ);
+  error_nr(sc, sc->type_error_symbol, sc->sole_arg_wrong_type_info);
+}
+
+/* Inline */ no_return void type_error_nr(s7_scheme *sc, s7_pointer caller, s7_int arg_num, s7_pointer arg, s7_pointer typ)
+{
+  s7_pointer p = cdr(sc->wrong_type_arg_info);
+  set_car(p, caller);                    p = cdr(p);
+  set_car(p, (is_small_int(arg_num)) ? small_int(arg_num) : wrap_integer(sc, arg_num)); p = cdr(p);
+  set_car(p, arg);                       p = cdr(p);
+  set_car(p, object_type_name(sc, arg)); p = cdr(p);
+  set_car(p, typ);
+  error_nr(sc, sc->type_error_symbol, sc->wrong_type_arg_info);
+}
+
+s7_pointer s7_type_error(s7_scheme *sc, const char *caller, s7_int arg_n, s7_pointer arg, const char *descr)
+{
+  if (arg_n > 0)
+    type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), arg_n, arg, wrap_string(sc, descr, safe_strlen(descr)));
+  sole_arg_type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), arg, wrap_string(sc, descr, safe_strlen(descr)));
+  return(sc->type_error_symbol);
+}
+
 s7_pointer s7_wrong_type_arg_error(s7_scheme *sc, const char *caller, s7_int arg_n, s7_pointer arg, const char *descr)
 {
   if (arg_n > 0)
@@ -6320,6 +6345,57 @@ s7_pointer s7i_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char
 bool s7i_sole_arg_method_or_bust_bool(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name)
 {
   return s7i_sole_arg_method_or_bust(sc, obj, method_name, args, type_name) != sc->F;
+}
+
+static s7_pointer vector_method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ, int32_t num)
+{
+  if (!has_active_methods(sc, obj)) type_error_nr(sc, method, num, obj, typ);
+  return(find_and_apply_method(sc, obj, method, args));
+}
+
+s7_pointer s7i_vector_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name,
+                                     s7_pointer args, const char *type_name, s7_int arg_pos)
+{
+  return(vector_method_or_bust(sc, obj,
+                               s7_make_symbol(sc, method_name),
+                               args,
+                               wrap_string(sc, type_name, safe_strlen(type_name)),
+                               (int32_t)arg_pos));
+}
+
+static s7_pointer vector_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer args, s7_pointer typ)
+{
+  if (!has_active_methods(sc, obj)) sole_arg_type_error_nr(sc, method, obj, typ);
+  return(find_and_apply_method(sc, obj, method, args));
+}
+
+s7_pointer s7i_vector_sole_arg_method_or_bust(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer args, const char *type_name)
+{
+  return(vector_sole_arg_method_or_bust(sc, obj, s7_make_symbol(sc, method_name), args, wrap_string(sc, type_name, safe_strlen(type_name))));
+}
+
+static s7_pointer vector_method_or_bust_p(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer typ)
+{
+  if (!has_active_methods(sc, obj)) sole_arg_type_error_nr(sc, method, obj, typ);
+  return(find_and_apply_method(sc, obj, method, set_mlist_1(sc, obj)));
+}
+
+s7_pointer s7i_vector_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name)
+{
+  return(vector_method_or_bust_p(sc, obj, s7_make_symbol(sc, method_name), wrap_string(sc, type_name, safe_strlen(type_name))));
+}
+
+static s7_pointer vector_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, s7_pointer method, s7_pointer x1, s7_pointer x2, s7_pointer typ, int32_t num)
+{
+  if (!has_active_methods(sc, obj)) type_error_nr(sc, method, num, obj, typ);
+  return(find_and_apply_method(sc, obj, method, set_mlist_2(sc, x1, x2)));
+}
+
+static s7_pointer vector_method_or_bust_ppp(s7_scheme *sc, s7_pointer obj, s7_pointer method,
+					     s7_pointer x1, s7_pointer x2, s7_pointer x3, s7_pointer typ, int32_t num)
+{
+  if (!has_active_methods(sc, obj)) type_error_nr(sc, method, num, obj, typ);
+  return(find_and_apply_method(sc, obj, method, set_qlist_3(sc, x1, x2, x3)));
 }
 
 s7_double s7i_default_rationalize_error(s7_scheme *sc) {return(sc->default_rationalize_error);}
@@ -20592,6 +20668,33 @@ s7_pointer s7i_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, 
   return start_and_end(sc, caller, args, position, index_args, start, end);
 }
 
+s7_pointer s7i_vector_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end)
+{
+  const s7_pointer pstart = car(index_args);
+  s7_int index;
+
+  if (!s7_is_integer(pstart))
+    return(vector_method_or_bust(sc, pstart, caller, args, sc->type_names[T_INTEGER], position));
+  index = s7_integer_clamped_if_gmp(sc, pstart);
+  if ((index < 0) ||
+      (index > *end))
+    out_of_range_error_nr(sc, caller, small_int(position), pstart, (index < 0) ? it_is_negative_string : it_is_too_large_string);
+  *start = index;
+
+  if (is_pair(cdr(index_args)))
+    {
+      const s7_pointer pend = cadr(index_args);
+      if (!s7_is_integer(pend))
+	return(vector_method_or_bust(sc, pend, caller, args, sc->type_names[T_INTEGER], position + 1));
+      index = s7_integer_clamped_if_gmp(sc, pend);
+      if ((index < *start) ||
+	  (index > *end))
+	out_of_range_error_nr(sc, caller, small_int(position + 1), pend, (index < *start) ? it_is_too_small_string : it_is_too_large_string);
+      *end = index;
+    }
+  return(sc->unused);
+}
+
 bool s7i_is_unused(s7_scheme *sc, s7_pointer p)
 {
   return p == sc->unused;
@@ -22553,7 +22656,7 @@ void port_write_vector_typer(s7_scheme *sc, s7_pointer vect, s7_pointer port)
 static no_return void typed_vector_type_error_nr(s7_scheme *sc, s7_pointer vec, s7_pointer val)
 {
   const char *descr = typed_vector_typer_name(sc, vec);
-  error_nr(sc, sc->wrong_type_arg_symbol,
+  error_nr(sc, sc->type_error_symbol,
 	   set_elist_3(sc, wrap_string(sc, "vector-set! new value ~$ is rejected by the vector's vector-typer, ~A", 69),
 		       val, wrap_string(sc, descr, safe_strlen(descr))));
 }
@@ -22577,7 +22680,7 @@ static s7_pointer int_vector_setter(s7_scheme *sc, s7_pointer vec, s7_int loc, s
 {
   if (s7_is_integer(val))
     int_vector(vec, loc) = s7_integer_clamped_if_gmp(sc, val);
-  else wrong_type_error_nr(sc, sc->int_vector_set_symbol, 3, val, sc->type_names[T_INTEGER]);
+  else type_error_nr(sc, sc->int_vector_set_symbol, 3, val, sc->type_names[T_INTEGER]);
   return(val);
 }
 
@@ -22597,10 +22700,10 @@ static s7_pointer byte_vector_setter(s7_scheme *sc, s7_pointer vec, s7_int loc, 
 {
   s7_int byte;
   if (!s7_is_integer(val))
-    wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 3, val, sc->type_names[T_INTEGER]);
+    type_error_nr(sc, sc->byte_vector_set_symbol, 3, val, sc->type_names[T_INTEGER]);
   byte = s7_integer_clamped_if_gmp(sc, val);
   if ((byte < 0) || (byte >= 256))
-    wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 3, val, wrap_string(sc, "a byte", 6));
+    type_error_nr(sc, sc->byte_vector_set_symbol, 3, val, wrap_string(sc, "a byte", 6));
   byte_vector(vec, loc) = (uint8_t)byte;
   return(val);
 }
@@ -23030,22 +23133,22 @@ void s7_vector_fill(s7_scheme *sc, s7_pointer vec, s7_pointer obj)
     {
     case T_FLOAT_VECTOR:
       if (!is_real(obj))
-	wrong_type_error_nr(sc, wrap_string(sc, "float-vector fill!", 18), 2, obj, sc->type_names[T_REAL]);
+	type_error_nr(sc, wrap_string(sc, "float-vector fill!", 18), 2, obj, sc->type_names[T_REAL]);
       float_vector_fill(vec, s7_real(obj));
       break;
     case T_INT_VECTOR:
       if (!s7_is_integer(obj)) /* possibly a bignum */
-	wrong_type_error_nr(sc, wrap_string(sc, "int-vector fill!", 16), 2, obj, sc->type_names[T_INTEGER]);
+	type_error_nr(sc, wrap_string(sc, "int-vector fill!", 16), 2, obj, sc->type_names[T_INTEGER]);
       int_vector_fill(vec, s7_integer_clamped_if_gmp(sc, obj));
       break;
     case T_BYTE_VECTOR:
       if (!is_byte(obj))
-	wrong_type_error_nr(sc, wrap_string(sc, "byte-vector fill!", 17), 2, obj, wrap_string(sc, "a byte", 6));
+	type_error_nr(sc, wrap_string(sc, "byte-vector fill!", 17), 2, obj, wrap_string(sc, "a byte", 6));
       byte_vector_fill(vec, (uint8_t)s7_integer_clamped_if_gmp(sc, obj));
       break;
     case T_COMPLEX_VECTOR:
       if (!is_number(obj))
-	wrong_type_error_nr(sc, wrap_string(sc, "complex-vector fill!", 20), 2, obj, sc->type_names[T_COMPLEX]);
+	type_error_nr(sc, wrap_string(sc, "complex-vector fill!", 20), 2, obj, sc->type_names[T_COMPLEX]);
       complex_vector_fill(vec, s7_to_c_complex(obj));
       break;
     case T_VECTOR:
@@ -23075,7 +23178,7 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
       /* not two_methods (and fill!) here else we get stuff like:
        *   (let ((e (openlet (inlet 'fill! (lambda (obj val) (string-fill! (obj 'value) val)) 'value "01234")))) (vector-fill! e #\a) (e 'value)) -> "aaaaa"
        */
-      wrong_type_error_nr(sc, caller, 1, vect, sc->type_names[T_VECTOR]);
+      type_error_nr(sc, caller, 1, vect, sc->type_names[T_VECTOR]);
     }
   if (is_immutable_vector(vect))
     immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, caller, vect));
@@ -23085,18 +23188,18 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
       (typed_vector_typer_call(sc, vect, set_plist_1(sc, fill)) == sc->F))
     {
       const char *tstr = make_type_name(sc, typed_vector_typer_name(sc, vect), indefinite_article);
-      wrong_type_error_nr(sc, wrap_string(sc, "vector fill!", 12), 2, fill, wrap_string(sc, tstr, safe_strlen(tstr)));
+      type_error_nr(sc, wrap_string(sc, "vector fill!", 12), 2, fill, wrap_string(sc, tstr, safe_strlen(tstr)));
     }
   if (is_float_vector(vect))
     {
       if (!is_real(fill)) /* possibly a bignum */
-	return(method_or_bust(sc, fill, caller, args, sc->type_names[T_REAL], 2));
+	return(vector_method_or_bust(sc, fill, caller, args, sc->type_names[T_REAL], 2));
     }
   else
     if ((is_int_vector(vect)) || (is_byte_vector(vect)))
       {
 	if (!s7_is_integer(fill))
-	  return(method_or_bust(sc, fill, caller, args, sc->type_names[T_INTEGER], 2));
+	  return(vector_method_or_bust(sc, fill, caller, args, sc->type_names[T_INTEGER], 2));
 	if ((is_byte_vector(vect)) &&
 	    ((s7_integer_clamped_if_gmp(sc, fill) < 0) || (s7_integer_clamped_if_gmp(sc, fill) > 255)))
 	  error_nr(sc, sc->out_of_range_symbol,
@@ -23106,7 +23209,7 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
       if (is_complex_vector(vect))
 	{
 	  if (!is_number(fill)) /* possibly a bignum */
-	    return(method_or_bust(sc, fill, caller, args, sc->type_names[T_COMPLEX], 2));
+	    return(vector_method_or_bust(sc, fill, caller, args, sc->type_names[T_COMPLEX], 2));
 	}
   {
     s7_int start = 0, end = vector_length(vect);
@@ -23519,7 +23622,7 @@ s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
   s7_int new_len, orig_len, offset = 0;
 
   if (!is_any_vector(orig))
-    return(method_or_bust(sc, orig, sc->subvector_symbol, args, sc->type_names[T_VECTOR], 1));
+    return(vector_method_or_bust(sc, orig, sc->subvector_symbol, args, sc->type_names[T_VECTOR], 1));
 
   orig_len = vector_length(orig);
   new_len = orig_len;
@@ -23528,7 +23631,7 @@ s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
     {
       const s7_pointer start = cadr(args);
       if (!s7_is_integer(start))
-	return(method_or_bust(sc, start, sc->subvector_symbol, args, sc->type_names[T_INTEGER], 2));
+	return(vector_method_or_bust(sc, start, sc->subvector_symbol, args, sc->type_names[T_INTEGER], 2));
       offset = s7_integer_clamped_if_gmp(sc, start);
       if ((offset < 0) || (offset > orig_len))  /* we need this if, for example, offset == 9223372036854775807 */
 	out_of_range_error_nr(sc, sc->subvector_symbol, int_two, start, (offset < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -23539,7 +23642,7 @@ s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
 	  const s7_pointer end = caddr(args);
 	  s7_int new_end;
 	  if (!s7_is_integer(end))
-	    return(method_or_bust(sc, end, sc->subvector_symbol, args, sc->type_names[T_INTEGER], 3));
+	    return(vector_method_or_bust(sc, end, sc->subvector_symbol, args, sc->type_names[T_INTEGER], 3));
 	  new_end = s7_integer_clamped_if_gmp(sc, end);
 	  if ((new_end < 0) || (new_end > orig_len))
 	    out_of_range_error_nr(sc, sc->subvector_symbol, int_three, end, (new_end < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -23552,13 +23655,13 @@ s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
 	      const s7_pointer dims = cadddr(args);
 	      if ((is_null(dims)) ||
 		  (!s7_is_proper_list(sc, dims)))
-		return(method_or_bust(sc, dims, sc->subvector_symbol, args, sc->type_names[T_PAIR], 4));
+		return(vector_method_or_bust(sc, dims, sc->subvector_symbol, args, sc->type_names[T_PAIR], 4));
 
 	      for (s7_pointer dim_list = dims; is_pair(dim_list); dim_list = cdr(dim_list))
 		if ((!s7_is_integer(car(dim_list)))        ||       /* (subvector v '((1 2) (3 4))) */
 		    (s7_integer_clamped_if_gmp(sc, car(dim_list)) > orig_len) ||
 		    (s7_integer_clamped_if_gmp(sc, car(dim_list)) < 0))
-		  error_nr(sc, sc->wrong_type_arg_symbol,
+		  error_nr(sc, sc->type_error_symbol,
 			   set_elist_1(sc, wrap_string(sc, "a subvector must fit in the original vector", 43)));
 
 	      vd = list_to_vdims(sc, dims);
@@ -23630,7 +23733,7 @@ s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
 	  s7_int n;
 	  const s7_pointer ind = car(index_list);
 	  if (!s7_is_integer(ind))
-	    return(method_or_bust(sc, ind, sc->vector_ref_symbol, set_ulist_1(sc, vect, indices), sc->type_names[T_INTEGER], i + 2));
+	    return(vector_method_or_bust(sc, ind, sc->vector_ref_symbol, set_ulist_1(sc, vect, indices), sc->type_names[T_INTEGER], i + 2));
           n = s7_integer_clamped_if_gmp(sc, ind);
 	  if ((n < 0) || (n >= vector_dimension(vect, i)))
 	    out_of_range_error_nr(sc, sc->vector_ref_symbol, wrap_integer(sc, i + 2), ind, (n < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -23654,7 +23757,7 @@ s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices)
       const s7_pointer ind = car(indices);
       /* (let ((hi (make-vector 3 0.0)) (sum 0.0)) (do ((i 0 (+ i 1))) ((= i 3)) (set! sum (+ sum (hi i)))) sum) */
       if (!s7_is_integer(ind))
-	return(method_or_bust(sc, ind, sc->vector_ref_symbol, set_ulist_1(sc, vect, indices), sc->type_names[T_INTEGER], 2));
+	return(vector_method_or_bust(sc, ind, sc->vector_ref_symbol, set_ulist_1(sc, vect, indices), sc->type_names[T_INTEGER], 2));
       index = s7_integer_clamped_if_gmp(sc, ind);
       if ((index < 0) || (index >= vector_length(vect)))
 	out_of_range_error_nr(sc, sc->vector_ref_symbol, int_two, ind, (index < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -23759,7 +23862,7 @@ static s7_int multivector_length(s7_scheme *sc, s7_pointer dim_list, s7_pointer 
   s7_int len = 1;
   const s7_int num_dims = s7_list_length(sc, dim_list);
   if (num_dims <= 0)                /* 0 if circular, negative if dotted */
-    wrong_type_error_nr(sc, caller, 1, dim_list, a_proper_list_string);
+    type_error_nr(sc, caller, 1, dim_list, a_proper_list_string);
   if (num_dims > sc->max_vector_dimensions)
     error_nr(sc, sc->out_of_range_symbol,
 	     set_elist_3(sc, wrap_string(sc, "~S specifies too many dimensions: '~S, but (*s7* 'max-vector-dimensions) is ~D", 78),
@@ -23768,7 +23871,7 @@ static s7_int multivector_length(s7_scheme *sc, s7_pointer dim_list, s7_pointer 
     {
       const s7_pointer dim = car(dims);
       if (!s7_is_integer(dim))
-	wrong_type_error_nr(sc, caller, position_of(dims, dim_list), dim, sc->type_names[T_INTEGER]);
+	type_error_nr(sc, caller, position_of(dims, dim_list), dim, sc->type_names[T_INTEGER]);
 #if HAVE_OVERFLOW_CHECKS
       if (multiply_overflow(len, s7_integer_clamped_if_gmp(sc, dim), &len)) /* or better perhaps len > sc->max_vector_length */
 	out_of_range_error_nr(sc, caller, wrap_integer(sc, position_of(dims, dim_list)), dim, it_is_too_large_string);
@@ -23776,7 +23879,7 @@ static s7_int multivector_length(s7_scheme *sc, s7_pointer dim_list, s7_pointer 
       len *= s7_integer_clamped_if_gmp(sc, dim);
 #endif
       if (len < 0)
-	wrong_type_error_nr(sc, caller, position_of(dims, dim_list), dim, a_non_negative_integer_string);
+	type_error_nr(sc, caller, position_of(dims, dim_list), dim, a_non_negative_integer_string);
     }
   return(len);
 }
@@ -23787,9 +23890,9 @@ static void check_vector_typer_c_function(s7_scheme *sc, s7_pointer caller, s7_p
   if ((sig != sc->pl_bt) &&
       (is_pair(sig)) &&
       ((car(sig) != sc->is_boolean_symbol) || (cadr(sig) != sc->T) || (!is_null(cddr(sig)))))
-    wrong_type_error_nr(sc, caller, 2, typf, wrap_string(sc, "a boolean procedure", 19));
+    type_error_nr(sc, caller, 2, typf, wrap_string(sc, "a boolean procedure", 19));
   if (!c_function_name(typf))
-    wrong_type_error_nr(sc, caller, 2, typf, wrap_string(sc, "a named function", 16));
+    type_error_nr(sc, caller, 2, typf, wrap_string(sc, "a named function", 16));
   if (!c_function_marker(typf))
     c_function_set_marker(typf, mark_vector_1);
 }
@@ -23814,14 +23917,14 @@ s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
     {
       len = s7_integer_clamped_if_gmp(sc, dims);
       if (len < 0)
-	wrong_type_error_nr(sc, caller, 1, dims, a_non_negative_integer_string);
+	type_error_nr(sc, caller, 1, dims, a_non_negative_integer_string);
     }
   else
     {
       if (!is_pair(dims))
-	return(method_or_bust(sc, dims, caller, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
+	return(vector_method_or_bust(sc, dims, caller, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
       if (!s7_is_integer(car(dims)))
-	wrong_type_error_nr(sc, caller, 1, car(dims), sc->type_names[T_INTEGER]);
+	type_error_nr(sc, caller, 1, car(dims), sc->type_names[T_INTEGER]);
       len = (is_null(cdr(dims))) ? s7_integer_clamped_if_gmp(sc, car(dims)) : multivector_length(sc, dims, caller);
     }
 
@@ -23845,11 +23948,11 @@ s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 	  if ((!is_c_function(typf)) &&
 	      (!is_any_closure(typf)) &&
 	      (typf != sc->T))  /* default value */
-	    wrong_type_error_nr(sc, caller, 3, typf, wrap_string(sc, "a built-in procedure, a closure or #t", 37));
+	    type_error_nr(sc, caller, 3, typf, wrap_string(sc, "a built-in procedure, a closure or #t", 37));
 	  if (is_any_closure(typf))
 	    {
 	      if (!is_symbol(find_closure(sc, typf, closure_let(typf))))
-		wrong_type_error_nr(sc, caller, 3, typf, wrap_string(sc, "a named function", 16));
+		type_error_nr(sc, caller, 3, typf, wrap_string(sc, "a named function", 16));
 	      /* the name is needed primarily by the error handler: "vector-set! third argument, ..., is a ... but should be a <...>" */
 	    }
 	  else
@@ -23857,25 +23960,25 @@ s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 	      {
 		if (typf == global_value(sc->is_float_symbol))
 		  {
-		    if (!is_real(fill)) wrong_type_error_nr(sc, caller, 2, fill, sc->type_names[T_REAL]);
+		    if (!is_real(fill)) type_error_nr(sc, caller, 2, fill, sc->type_names[T_REAL]);
 		    result_type = T_FLOAT_VECTOR;
 		  }
 		else
 		  if (typf == global_value(sc->is_integer_symbol))
 		    {
-		      if (!s7_is_integer(fill)) wrong_type_error_nr(sc, caller, 2, fill, sc->type_names[T_INTEGER]);
+		      if (!s7_is_integer(fill)) type_error_nr(sc, caller, 2, fill, sc->type_names[T_INTEGER]);
 		      result_type = T_INT_VECTOR;
 		    }
 		  else
 		    if (typf == global_value(sc->is_byte_symbol))
 		      {
-			if (!is_byte(fill)) wrong_type_error_nr(sc, caller, 2, fill, an_unsigned_byte_string);
+			if (!is_byte(fill)) type_error_nr(sc, caller, 2, fill, an_unsigned_byte_string);
 			result_type = T_BYTE_VECTOR;
 		      }
 		    else
 		      if (typf == global_value(sc->is_complex_symbol))
 			{
-			  if (!is_number(fill)) wrong_type_error_nr(sc, caller, 2, fill, sc->type_names[T_COMPLEX]);
+			  if (!is_number(fill)) type_error_nr(sc, caller, 2, fill, sc->type_names[T_COMPLEX]);
 			  result_type = T_COMPLEX_VECTOR;
 			}
 		      else check_vector_typer_c_function(sc, caller, typf);
@@ -23888,7 +23991,7 @@ s7_pointer s7i_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
       (s7_apply_function(sc, typf, set_plist_1(sc, fill)) == sc->F))
     {
       const char *tstr = make_type_name(sc, (is_c_function(typf)) ? c_function_name(typf) : symbol_name(find_closure(sc, typf, closure_let(typf))), indefinite_article);
-      wrong_type_error_nr(sc, sc->make_vector_symbol, 2, fill, wrap_string(sc, tstr, safe_strlen(tstr)));
+      type_error_nr(sc, sc->make_vector_symbol, 2, fill, wrap_string(sc, tstr, safe_strlen(tstr)));
     }
   {
     s7_pointer vec = make_vector_1(sc, len, NOT_FILLED, result_type);
@@ -23978,7 +24081,7 @@ static s7_pointer make_byte_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 	     set_elist_3(sc, wrap_string(sc, "make-byte-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 80),
 			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
   if ((init < 0) || (init > 255))
-    wrong_type_error_nr(sc, sc->make_byte_vector_symbol, 2, wrap_integer(sc, init), an_unsigned_byte_string);
+    type_error_nr(sc, sc->make_byte_vector_symbol, 2, wrap_integer(sc, init), an_unsigned_byte_string);
   {
     s7_pointer bvect = make_simple_byte_vector(sc, len);
     if (len > 0)
@@ -24014,7 +24117,7 @@ s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args)
   s7_pointer vec = car(args), typer = cadr(args);
 
   if (!is_any_vector(vec))
-    wrong_type_error_nr(sc, wrap_string(sc, "set! vector-typer", 17), 1, vec, sc->type_names[T_VECTOR]);
+    type_error_nr(sc, wrap_string(sc, "set! vector-typer", 17), 1, vec, sc->type_names[T_VECTOR]);
   if (is_immutable_vector(vec))
     immutable_object_error_nr(sc, set_elist_2(sc, wrap_string(sc, "~S is immutable so its vector-typer can't be set!", 49), vec));
   if (!is_t_vector(vec))
@@ -24023,7 +24126,7 @@ s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args)
 	  ((is_float_vector(vec)) && (typer != global_value(sc->is_float_symbol))) ||
 	  ((is_complex_vector(vec)) && (typer != global_value(sc->is_number_symbol))) ||
 	  ((is_byte_vector(vec)) && (typer != global_value(sc->is_byte_symbol))))
-	error_nr(sc, sc->wrong_type_arg_symbol, set_elist_3(sc, wrap_string(sc, "vector-typer can't set ~S typer to ~S", 37), vec, typer));
+	error_nr(sc, sc->type_error_symbol, set_elist_3(sc, wrap_string(sc, "vector-typer can't set ~S typer to ~S", 37), vec, typer));
       return(typer);
     }
   if (is_boolean(typer))
@@ -24042,10 +24145,10 @@ s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args)
 	{
 	  s7_pointer typer_name;
 	  if (!is_any_closure(typer))
-	    wrong_type_error_nr(sc, sc->vector_typer_symbol, 2, typer, wrap_string(sc, "a built-in procedure, a closure, #f or #t", 41));
+	    type_error_nr(sc, sc->vector_typer_symbol, 2, typer, wrap_string(sc, "a built-in procedure, a closure, #f or #t", 41));
 	  typer_name = find_typer(sc, typer);
 	  if (!is_symbol(typer_name))
-	    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "can't set! vector-typer to ~A because it has no name", 52), typer));
+	    error_nr(sc, sc->type_error_symbol, set_elist_2(sc, wrap_string(sc, "can't set! vector-typer to ~A because it has no name", 52), typer));
 	}
       set_typed_vector(vec);
       typed_vector_set_typer(vec, typer);
@@ -24171,7 +24274,7 @@ s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_t_integer(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#i(...)", 7), i + 1, src[i], sc->type_names[T_INTEGER]);
+      type_error_nr(sc, wrap_string(sc, "#i(...)", 7), i + 1, src[i], sc->type_names[T_INTEGER]);
   sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_int_vector_symbol);
   return(s7_copy_1(sc, sc->int_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
@@ -24186,7 +24289,7 @@ s7_pointer s7i_byte_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_byte(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
+      type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
   sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
@@ -24201,7 +24304,7 @@ s7_pointer s7i_float_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_real(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#r(...)", 7), i + 1, src[i], sc->type_names[T_REAL]);
+      type_error_nr(sc, wrap_string(sc, "#r(...)", 7), i + 1, src[i], sc->type_names[T_REAL]);
   sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_float_vector_symbol);
   return(s7_copy_1(sc, sc->float_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
@@ -24216,7 +24319,7 @@ s7_pointer s7i_complex_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_number(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#c(...)", 7), i + 1, src[i], sc->type_names[T_COMPLEX]);
+      type_error_nr(sc, wrap_string(sc, "#c(...)", 7), i + 1, src[i], sc->type_names[T_COMPLEX]);
   sc->args = s7i_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), real_zero), sc->make_complex_vector_symbol);
   return(s7_copy_1(sc, sc->complex_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
@@ -24304,13 +24407,13 @@ static s7_pointer univect_ref(s7_scheme *sc, s7_pointer args, s7_pointer caller,
   s7_int ind;
 
   if (type(vec) != typ)
-    return(method_or_bust(sc, vec, caller, args, sc->type_names[typ], 1));
+    return(vector_method_or_bust(sc, vec, caller, args, sc->type_names[typ], 1));
 
   if (vector_rank(vec) == 1)
     {
       index = cadr(args);
       if (!s7_is_integer(index))
-	return(method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], 2));
+	return(vector_method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], 2));
       ind = s7_integer_clamped_if_gmp(sc, index);
       if ((ind < 0) || (ind >= vector_length(vec)))
 	sole_arg_out_of_range_error_nr(sc, caller, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -24327,7 +24430,7 @@ static s7_pointer univect_ref(s7_scheme *sc, s7_pointer args, s7_pointer caller,
 	  s7_int n;
 	  index = car(indices);
 	  if (!s7_is_integer(index))
-	    return(method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], i + 2));
+	    return(vector_method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], i + 2));
 	  n = s7_integer_clamped_if_gmp(sc, index);
 	  if ((n < 0) || (n >= vector_dimension(vec, i)))
 	    out_of_range_error_nr(sc, caller, wrap_integer(sc, i + 2), index, (n < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -24354,7 +24457,7 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
   s7_int ind;
 
   if (type(vec) != typ)
-    return(method_or_bust(sc, vec, caller, args, sc->type_names[typ], 1));
+    return(vector_method_or_bust(sc, vec, caller, args, sc->type_names[typ], 1));
   if (is_immutable_vector(vec))
     immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, caller, vec));
 
@@ -24368,7 +24471,7 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
 	  s7_int n;
 	  index = car(indices);
 	  if (!s7_is_integer(index))
-	    return(method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], i + 2));
+	    return(vector_method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], i + 2));
 	  n = s7_integer_clamped_if_gmp(sc, index);
 	  if ((n < 0) || (n >= vector_dimension(vec, i)))
 	    out_of_range_error_nr(sc, caller, wrap_integer(sc, i + 2), index, (n < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -24388,7 +24491,7 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
       /* from (set! (v) val) after optimization into op_set_opsq_a which is completely confused -- set! gets v's setter (float-vector-set!) */
       index = car(indices);
       if (!s7_is_integer(index))
-	return(method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], 2));
+	return(vector_method_or_bust(sc, index, caller, args, sc->type_names[T_INTEGER], 2));
       ind = s7_integer_clamped_if_gmp(sc, index);
       if ((ind < 0) || (ind >= vector_length(vec)))
 	out_of_range_error_nr(sc, caller, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -24401,27 +24504,27 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
   if (typ == T_FLOAT_VECTOR)
     {
       if (!is_real(val))
-	return(method_or_bust(sc, val, caller, args, sc->type_names[T_REAL], 3));
+	return(vector_method_or_bust(sc, val, caller, args, sc->type_names[T_REAL], 3));
       float_vector(vec, ind) = s7_real(val);
     }
   else
     if (typ == T_INT_VECTOR)
       {
 	if (!s7_is_integer(val))
-	  return(method_or_bust(sc, val, caller, args, sc->type_names[T_INTEGER], 3));
+	  return(vector_method_or_bust(sc, val, caller, args, sc->type_names[T_INTEGER], 3));
 	int_vector(vec, ind) = s7_integer_clamped_if_gmp(sc, val);
       }
     else
       if (typ == T_BYTE_VECTOR)
 	{
 	  if (!is_byte(val))
-	    return(method_or_bust(sc, val, caller, args, sc->type_names[T_INTEGER], 3));
+	    return(vector_method_or_bust(sc, val, caller, args, sc->type_names[T_INTEGER], 3));
 	  byte_vector(vec, ind) = (uint8_t)s7_integer_clamped_if_gmp(sc, val);
 	}
       else
 	{
 	  if (!is_number(val))
-	    return(method_or_bust(sc, val, caller, args, sc->type_names[T_COMPLEX], 3));
+	    return(vector_method_or_bust(sc, val, caller, args, sc->type_names[T_COMPLEX], 3));
 	  complex_vector(vec, ind) = s7_to_c_complex(val);
 	}
   return(val);
@@ -24442,11 +24545,11 @@ s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args)
 static s7_pointer complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index)
 {
   if (!is_complex_vector(vec))
-    return(method_or_bust_pp(sc, vec, sc->complex_vector_ref_symbol, vec, index, sc->type_names[T_COMPLEX_VECTOR], 1));
+    return(vector_method_or_bust_pp(sc, vec, sc->complex_vector_ref_symbol, vec, index, sc->type_names[T_COMPLEX_VECTOR], 1));
   if (vector_rank(vec) != 1)
     return(univect_ref(sc, set_plist_2(sc, vec, index), sc->complex_vector_ref_symbol, T_COMPLEX_VECTOR));
   if (!s7_is_integer(index))
-    return(method_or_bust_pp(sc, index, sc->complex_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
+    return(vector_method_or_bust_pp(sc, index, sc->complex_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
   {
     s7_int ind = s7_integer_clamped_if_gmp(sc, index);
     if ((ind < 0) || (ind >= vector_length(vec)))
@@ -24517,15 +24620,15 @@ static s7_pointer complex_vector_set_p_pip_direct(s7_scheme *sc, s7_pointer vec,
 static s7_pointer complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer index, s7_pointer value)
 {
   if (!is_complex_vector(vec))
-    return(method_or_bust_ppp(sc, vec, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_COMPLEX_VECTOR], 1));
+    return(vector_method_or_bust_ppp(sc, vec, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_COMPLEX_VECTOR], 1));
   if (vector_rank(vec) != 1)
     return(univect_set(sc, set_plist_3(sc, vec, index, value), sc->complex_vector_set_symbol, T_COMPLEX_VECTOR));
   if (is_immutable_vector(vec))
     immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->complex_vector_set_symbol, vec));
   if (!s7_is_integer(index))
-    return(method_or_bust_ppp(sc, index, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 2));
+    return(vector_method_or_bust_ppp(sc, index, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 2));
   if (!s7_is_number(value))
-    return(method_or_bust_ppp(sc, value, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_COMPLEX], 3));
+    return(vector_method_or_bust_ppp(sc, value, sc->complex_vector_set_symbol, vec, index, value, sc->type_names[T_COMPLEX], 3));
   {
     s7_int i = integer(index);
     if ((i < 0) || (i >= vector_length(vec)))
@@ -24559,11 +24662,11 @@ s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args)
 static inline s7_pointer float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index)
 {
   if (!is_float_vector(vec))
-    return(method_or_bust_pp(sc, vec, sc->float_vector_ref_symbol, vec, index, sc->type_names[T_FLOAT_VECTOR], 1));
+    return(vector_method_or_bust_pp(sc, vec, sc->float_vector_ref_symbol, vec, index, sc->type_names[T_FLOAT_VECTOR], 1));
   if (vector_rank(vec) != 1)
     return(univect_ref(sc, set_plist_2(sc, vec, index), sc->float_vector_ref_symbol, T_FLOAT_VECTOR));
   if (!s7_is_integer(index))
-    return(method_or_bust_pp(sc, index, sc->float_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
+    return(vector_method_or_bust_pp(sc, index, sc->float_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
   {
     s7_int ind = s7_integer_clamped_if_gmp(sc, index);
     if ((ind < 0) || (ind >= vector_length(vec)))
@@ -24688,7 +24791,7 @@ static s7_pointer float_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_point
   if ((index < 0) || (index >= vector_length(vec)))
     out_of_range_error_nr(sc, sc->float_vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
   if (!is_real(val))
-    wrong_type_error_nr(sc, sc->float_vector_set_symbol, 3, val, sc->type_names[T_REAL]);
+    type_error_nr(sc, sc->float_vector_set_symbol, 3, val, sc->type_names[T_REAL]);
   float_vector(vec, index) = (is_t_real(val)) ? real(val) : s7_real(val);
   return(val);
 }
@@ -24739,11 +24842,11 @@ static inline s7_pointer int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_p
 {
   s7_int ind;
   if (!is_int_vector(vec))
-    return(method_or_bust_pp(sc, vec, sc->int_vector_ref_symbol, vec, index, sc->type_names[T_INT_VECTOR], 1));
+    return(vector_method_or_bust_pp(sc, vec, sc->int_vector_ref_symbol, vec, index, sc->type_names[T_INT_VECTOR], 1));
   if (vector_rank(vec) != 1)
     return(univect_ref(sc, set_plist_2(sc, vec, index), sc->int_vector_ref_symbol, T_INT_VECTOR));
   if (!s7_is_integer(index))
-    return(method_or_bust_pp(sc, index, sc->int_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
+    return(vector_method_or_bust_pp(sc, index, sc->int_vector_ref_symbol, vec, index, sc->type_names[T_INTEGER], 2));
   ind = s7_integer_clamped_if_gmp(sc, index);
   if ((ind < 0) || (ind >= vector_length(vec)))
     out_of_range_error_nr(sc, sc->int_vector_ref_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -24814,16 +24917,16 @@ static s7_pointer int_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer
   else
     {
       if (!is_int_vector(vec))
-	return(method_or_bust_ppp(sc, vec, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INT_VECTOR], 1));
+	return(vector_method_or_bust_ppp(sc, vec, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INT_VECTOR], 1));
       if (vector_rank(vec) != 1)
 	return(univect_set(sc, set_plist_3(sc, vec, index, value), sc->int_vector_set_symbol, T_INT_VECTOR));
       if (is_immutable_vector(vec))
 	immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->int_vector_set_symbol, vec));
       /* (int-vector-set!  #i() `(x 1) (abs x)) in a do loop in a function... */
       if (!s7_is_integer(index))
-	return(method_or_bust_ppp(sc, index, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 2));
+	return(vector_method_or_bust_ppp(sc, index, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 2));
       if (!s7_is_integer(value))
-	return(method_or_bust_ppp(sc, value, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 3));
+	return(vector_method_or_bust_ppp(sc, value, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 3));
       if (S7_DEBUGGING) fprintf(stderr, "fell through %s[%d]\n", __func__, __LINE__);
     }
   return(value);
@@ -24883,9 +24986,9 @@ s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args)
 static s7_int byte_vector_set_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index, s7_int byte)
 {
   if (!is_byte_vector(vec))
-    wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 1, vec, a_byte_vector_string);
+    type_error_nr(sc, sc->byte_vector_set_symbol, 1, vec, a_byte_vector_string);
   if ((byte < 0) || (byte > 255))
-    wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 3, wrap_integer(sc, byte), an_unsigned_byte_string);
+    type_error_nr(sc, sc->byte_vector_set_symbol, 3, wrap_integer(sc, byte), an_unsigned_byte_string);
   if ((index < 0) || (index >= byte_vector_length(vec)))
     out_of_range_error_nr(sc, sc->byte_vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
   byte_vector(vec, index) = (uint8_t)byte;
@@ -24903,7 +25006,7 @@ static s7_int byte_vector_set_i_7pii_direct(s7_scheme *unused_sc, s7_pointer vec
 static s7_int byte_vector_set_i_7piii(s7_scheme *sc, s7_pointer vec, s7_int index1, s7_int index2, s7_int byte)
 {
   if ((byte < 0) || (byte > 255))
-    wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 4, wrap_integer(sc, byte), an_unsigned_byte_string);
+    type_error_nr(sc, sc->byte_vector_set_symbol, 4, wrap_integer(sc, byte), an_unsigned_byte_string);
   if ((index1 < 0) || (index1 >= vector_dimension(vec, 0)))
     out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_two, wrap_integer(sc, index1), (index1 < 0) ? it_is_negative_string : it_is_too_large_string);
   if ((index2 < 0) || (index2 >= vector_dimension(vec, 1)))
@@ -62762,7 +62865,7 @@ static bool set_pair3(s7_scheme *sc, s7_pointer obj, s7_pointer arg, s7_pointer 
 	{
 	  s7_int index;
 	  if (!is_t_integer(arg))
-	    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), sc->code));
+	    error_nr(sc, sc->type_error_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), sc->code));
 	  index = integer(arg);
 	  if (index < 0)
 	    error_nr(sc, sc->out_of_range_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must not be negative: ~S", 43), sc->code));
@@ -63394,7 +63497,7 @@ static goto_t set_implicit_vector(s7_scheme *sc, s7_pointer vect, s7_pointer ind
 		  if (!s7_is_integer(index))
 		    {
 		      if (in_heap(args)) unstack_gc_protect(sc);
-		      error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), form));
+		      error_nr(sc, sc->type_error_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), form));
 		    }
 		  set_car(pa, index);
 		}
@@ -63422,7 +63525,7 @@ static goto_t set_implicit_vector(s7_scheme *sc, s7_pointer vect, s7_pointer ind
       if (is_symbol(index))
 	index = lookup_checked(sc, index);
       if (!s7_is_integer(index))
-	error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), sc->code));
+	error_nr(sc, sc->type_error_symbol, set_elist_2(sc, wrap_string(sc, "vector-set!: index must be an integer: ~S", 41), sc->code));
       ind = s7_integer_clamped_if_gmp(sc, index);
       if ((ind < 0) || (ind >= vector_length(vect)))
 	out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -79576,6 +79679,7 @@ then returns each var to its original value."
   sc->syntax_error_symbol =         make_symbol(sc, "syntax-error", 12);
   sc->unbound_variable_symbol =     make_symbol(sc, "unbound-variable", 16);
   sc->wrong_type_arg_symbol =       make_symbol(sc, "wrong-type-arg", 14);
+  sc->type_error_symbol =            make_symbol(sc, "type-error", 10);
   sc->wrong_number_of_args_symbol = make_symbol(sc, "wrong-number-of-args", 20);
   sc->format_error_symbol =         make_symbol(sc, "format-error", 12);
   sc->autoload_error_symbol =       make_symbol(sc, "autoload-error", 14);

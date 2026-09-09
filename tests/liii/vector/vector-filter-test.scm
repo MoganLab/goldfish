@@ -30,7 +30,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当pred不是过程，或vec不是向量时
+;; type-error 当pred不是过程，或vec不是向量时
 
 
 (check (vector-filter even? #(1 2 3 4 5 6)) => #(2 4 6))
@@ -39,8 +39,8 @@
 (check (vector-filter (lambda (x) #t) #()) => #())
 (check (vector-filter (lambda (x) #f) #(1 2 3)) => #())
 
-(check-catch 'wrong-type-arg (vector-filter 1 #(1 2 3)))
-(check-catch 'wrong-type-arg (vector-filter even? '(1 2 3)))
+(check-catch 'type-error (vector-filter 1 #(1 2 3)))
+(check-catch 'type-error (vector-filter even? '(1 2 3)))
 
 (let* ((n 10000) (v (make-vector n 0)))
   (do ((i 0 (+ i 1)))

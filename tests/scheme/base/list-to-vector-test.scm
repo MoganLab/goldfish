@@ -29,7 +29,7 @@
 (check (vector-length (list->vector '(a b c d))) => 4)
 (check (vector-ref (list->vector '(1 2 3)) 0) => 1)
 (check-catch 'wrong-number-of-args (list->vector))
-(check-catch 'wrong-type-arg (list->vector 'a))
-(check-catch 'wrong-type-arg (list->vector #(1 2)))
+(check-catch 'type-error (list->vector 'a))
+(check-catch 'type-error (list->vector #(1 2)))
 
 (check-report)

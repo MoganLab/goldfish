@@ -27,7 +27,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当任一参数不是向量时
+;; type-error 当任一参数不是向量时
 
 
 (check (vector-append) => #())
@@ -67,9 +67,9 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (vector-append 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-append #(1 2) 'not-a-vector))
-(check-catch 'wrong-type-arg (vector-append #(1 2) 3 #(4 5)))
+(check-catch 'type-error (vector-append 'not-a-vector))
+(check-catch 'type-error (vector-append #(1 2) 'not-a-vector))
+(check-catch 'type-error (vector-append #(1 2) 3 #(4 5)))
 
 
 (check-report)

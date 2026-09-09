@@ -30,7 +30,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当proc不是过程，或任一参数不是向量时
+;; type-error 当proc不是过程，或任一参数不是向量时
 
 
 (check (let ((lst (make-list 5)))
@@ -93,8 +93,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (vector-for-each 'not-a-proc #(1 2 3)))
-(check-catch 'wrong-type-arg (vector-for-each + 'not-a-vector))
+(check-catch 'type-error (vector-for-each 'not-a-proc #(1 2 3)))
+(check-catch 'type-error (vector-for-each + 'not-a-vector))
 
 
 (check-report)
