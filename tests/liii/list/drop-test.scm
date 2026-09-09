@@ -54,7 +54,7 @@
 ;; 错误处理
 ;; --------
 ;; - out-of-range：当k超过列表长度时
-;; - wrong-type-arg：当list不是列表或k不是整数类型时
+;; - type-error：当list不是列表或k不是整数类型时
 
 
 (check (drop '(1 2 3 4) 2) => '(3 4))
@@ -117,8 +117,8 @@
 (check-catch 'out-of-range (drop '(1 2 3 4) 5))
 (check-catch 'out-of-range (drop '(1 2 3 . 4) 4))
 (check-catch 'out-of-range (drop '(1 2 3 4) -1))
-(check-catch 'wrong-type-arg (drop "not a list" 2))
-(check-catch 'wrong-type-arg (drop '(1 2 3) "not a number"))
+(check-catch 'type-error (drop "not a list" 2))
+(check-catch 'type-error (drop '(1 2 3) "not a number"))
 
 
 (check-report)

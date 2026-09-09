@@ -42,4 +42,8 @@
 (check (drop-while (lambda (x) (not (= x 1))) '(1 2 3)) => '(1 2 3))
 
 
+(check-catch 'type-error (drop-while 1 '(1 2 3)))
+(check-catch 'type-error (drop-while even? 1))
+
+
 (check-report)

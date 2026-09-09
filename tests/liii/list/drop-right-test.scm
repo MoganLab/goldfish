@@ -53,7 +53,7 @@
 ;; 错误处理
 ;; --------
 ;; - out-of-range：当k超过列表长度时
-;; - wrong-type-arg：当list不是列表或k不是整数类型时
+;; - type-error：当list不是列表或k不是整数类型时
 
 
 (check (drop-right '(1 2 3 4) 2) => '(1 2))
@@ -118,8 +118,8 @@
 (check-catch 'out-of-range (drop-right '(1 2 3 4) 5))
 (check-catch 'out-of-range (drop-right '(1 2 3 4) -1))
 (check-catch 'out-of-range (drop-right '(1 2 3 . 4) 4))
-(check-catch 'wrong-type-arg (drop-right "not a list" 2))
-(check-catch 'wrong-type-arg (drop-right '(1 2 3) "not a number"))
+(check-catch 'type-error (drop-right "not a list" 2))
+(check-catch 'type-error (drop-right '(1 2 3) "not a number"))
 
 
 ;; drop-right 总是创建新的列表结构，即使 k 为 0 也不共享节点

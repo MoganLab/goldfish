@@ -58,13 +58,7 @@
 ;; 大列表去重（哈希表优化应在毫秒级完成）
 (check (length (delete-duplicates (append (iota 10000) (iota 10000)))) => 10000)
 
-(check (catch 'wrong-type-arg
-         (lambda () (check (delete-duplicates (list 1 1 2 3) 'not-pred) => 1))
-         (lambda args #t)
-       ) ;catch
-  =>
-  #t
-) ;check
+(check-catch 'type-error (delete-duplicates (list 1 1 2 3) 'not-pred))
 
 ;; 比较器与元素类型不匹配时，哈希路径下不匹配的元素静默保留（不报错）(devel/0156.md)
 ;; 注意：这是哈希优化带来的语义变化，修复前走 O(n^2) 扫描路径会抛 wrong-type-arg

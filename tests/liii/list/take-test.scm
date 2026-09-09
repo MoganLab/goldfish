@@ -44,8 +44,8 @@
 ;;
 ;; 错误处理
 ;; -----
-;; wrong-type-arg 当list不是列表或k不是整数类型时
-;; out-of-range 当k超过列表长度或k为负数时
+;; type-error 当list不是列表、k不是整数类型或列表长度不足k时
+;; out-of-range 当k为负数时
 
 
 (check (take '(1 2 3 4) 3) => '(1 2 3))
@@ -53,8 +53,8 @@
 (check (take '(1 2 3 . 4) 3) => '(1 2 3))
 
 
-(check-catch 'wrong-type-arg (take '(1 2 3 4) 5))
-(check-catch 'wrong-type-arg (take '(1 2 3 . 4) 4))
+(check-catch 'type-error (take '(1 2 3 4) 5))
+(check-catch 'type-error (take '(1 2 3 . 4) 4))
 
 
 (check (take '() 0) => '())
@@ -71,9 +71,9 @@
 (check (take (iota 10) 5) => '(0 1 2 3 4))
 
 
-(check-catch 'wrong-type-arg (take '(1 2 3) -1))
-(check-catch 'wrong-type-arg (take "not a list" 2))
-(check-catch 'wrong-type-arg (take '(1 2 3) "not a number"))
+(check-catch 'type-error (take '(1 2 3) -1))
+(check-catch 'type-error (take "not a list" 2))
+(check-catch 'type-error (take '(1 2 3) "not a number"))
 
 
 ;; take 总是创建新的列表结构，即使取走全部元素也不共享节点

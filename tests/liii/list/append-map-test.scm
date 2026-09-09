@@ -78,4 +78,8 @@
 ) ;let*
 
 
+(check-catch 'type-error (append-map 1 '(1 2 3)))
+(check-catch 'type-error (append-map list 1))
+
+
 (check-report)

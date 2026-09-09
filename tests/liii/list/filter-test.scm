@@ -134,8 +134,8 @@
 
 
 ;; 错误用例：非列表参数
-(check-catch 'wrong-type-arg (filter even? 5))
-(check-catch 'wrong-type-arg (filter even? '(1 2 . 3)))
+(check-catch 'type-error (filter even? 5))
+(check-catch 'type-error (filter even? '(1 2 . 3)))
 
 ;; 空列表不会调用 pred，pred 不是函数也不报错
 (check (filter 5 '()) => '())

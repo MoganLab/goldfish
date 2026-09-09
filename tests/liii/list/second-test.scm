@@ -28,8 +28,8 @@
 (check (second '(1 2 3 4 5 6 7 8 9 10)) => 2)
 
 
-(check-catch 'wrong-type-arg (second '(left . right)))
-(check-catch 'wrong-type-arg (second '(1)))
+(check-catch 'type-error (second '(left . right)))
+(check-catch 'type-error (second '(1)))
 
 
 (check-report)

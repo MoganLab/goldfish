@@ -80,22 +80,22 @@
 ;; 非法参数
 
 ;; pred 不是过程
-(check-catch 'wrong-type-arg (list-index 3 '(1 2)))
+(check-catch 'type-error (list-index 3 '(1 2)))
 
 ;; 非列表参数
-(check-catch 'wrong-type-arg (list-index even? 3))
+(check-catch 'type-error (list-index even? 3))
 
 ;; 点列表：遍历到非正规尾部仍未命中即报错；命中点在尾部之前则正常返回
-(check-catch 'wrong-type-arg (list-index odd? '(2 4 . 6)))
+(check-catch 'type-error (list-index odd? '(2 4 . 6)))
 (check (list-index even? '(2 4 . 6)) => 0)
 
 ;; 循环列表参数：未命中时检测到环报错，避免死循环；命中点在环内之前则正常返回
 (check (list-index even? (circular-list 1 2)) => 1)
-(check-catch 'wrong-type-arg (list-index even? (circular-list 1 3)))
+(check-catch 'type-error (list-index even? (circular-list 1 3)))
 
 ;; 多列表形式中的点列表和非列表参数（预先做正规性检查）
-(check-catch 'wrong-type-arg (list-index = '(1 2 3) '(1 2 . 3)))
-(check-catch 'wrong-type-arg (list-index = '(1 2 3) 3))
+(check-catch 'type-error (list-index = '(1 2 3) '(1 2 . 3)))
+(check-catch 'type-error (list-index = '(1 2 3) 3))
 
 
 (check-report)
