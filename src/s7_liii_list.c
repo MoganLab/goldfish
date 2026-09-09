@@ -476,6 +476,31 @@ s7_pointer g_list_ref(s7_scheme *sc, s7_pointer args)
   return(s7_car(p));
 }
 
+s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_pair(s7_car(args))) return(s7_caar(args));
+  return(s7i_method_or_bust(sc, s7_car(args), "list-ref", args, "a pair", 1));
+}
+
+s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst)) return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_cadr(lst));
+}
+
+s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if ((!s7_is_pair(s7_cdr(lst))) || (!s7_is_pair(s7_cddr(lst))))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_caddr(lst));
+}
+
 s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);
@@ -1025,6 +1050,72 @@ s7_pointer g_list(s7_scheme *sc, s7_pointer args)
   return(s7i_copy_proper_list(sc, args));
 }
 
+s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
+{
+  return(make_list_p_pp(sc, s7_car(args), (s7_is_pair(s7_cdr(args))) ? s7_cadr(args) : s7_f(sc)));
+}
+
+s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
+{
+  s7_pointer p;
+  if (s7_is_null(sc, a)) return(b);
+  p = a;
+  while (!s7_is_null(sc, s7_cdr(p))) p = s7_cdr(p);
+  s7_set_cdr(p, b);
+  return(a);
+}
+
+s7_pointer s7_reverse(s7_scheme *sc, s7_pointer a)
+{
+  s7_pointer lst, p;
+  if (s7_is_null(sc, a)) return(a);
+  if (!s7_is_pair(s7_cdr(a)))
+    return((s7_is_null(sc, s7_cdr(a))) ? s7_cons(sc, s7_car(a), s7_nil(sc)) : s7_cons(sc, s7_cdr(a), s7_car(a)));
+
+  s7_pointer res = s7_cons(sc, s7_car(a), s7_nil(sc));
+  s7_gc_protect_via_stack(sc, res);
+  for (lst = s7_cdr(a), p = a; s7_is_pair(lst); lst = s7_cdr(lst), p = s7_cdr(p))
+    {
+      res = s7_cons(sc, s7_car(lst), res);
+      if (s7_is_pair(s7_cdr(lst)))
+        {
+          lst = s7_cdr(lst);
+          res = s7_cons(sc, s7_car(lst), res);
+        }
+      if (lst == p)
+        break;
+    }
+  if (!s7_is_null(sc, lst))
+    res = s7_cons(sc, lst, res);
+  s7_gc_unprotect_via_stack(sc, res);
+  return(res);
+}
+
+s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
+{
+  s7_pointer p, result;
+  if (s7_is_null(sc, list)) return(term);
+  p = list;
+  result = term;
+  while (true)
+    {
+      s7_pointer q = s7_cdr(p);
+      if (s7_is_null(sc, q))
+        {
+          s7_set_cdr(p, result);
+          return(p);
+        }
+      if ((s7_is_pair(q)) && (!s7_is_immutable(q)))
+        {
+          s7_set_cdr(p, result);
+          result = p;
+          p = q;
+        }
+      else return(s7_nil(sc));
+    }
+  return(result);
+}
+
 s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
 {
   #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
@@ -1130,6 +1221,22 @@ s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
 		 s7i_set_elist_3(sc, s7i_wrap_string(sc, "make-list length argument ~D is greater than (*s7* 'max-list-length), ~D", 72),
 				 s7i_wrap_integer(sc, len), s7i_wrap_integer(sc, s7i_max_list_length(sc))));
   return(s7_make_list(sc, len, init));
+}
+
+s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1)
+{
+  s7i_set_sc_value(sc, p1);
+  return(s7_cons(sc, p1, s7_nil(sc)));
+}
+
+s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_nil(sc))));
+}
+
+s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_cons(sc, p3, s7_nil(sc)))));
 }
 
 s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index)
@@ -1291,6 +1398,61 @@ s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p)
   if (!s7_is_pair(s7_car(p))) sole_arg_wrong_type_error_nr(sc, s7_make_symbol(sc, "assoc"), p, an_association_list_string);
   if (s7i_is_simple(obj)) return(s7_assq(sc, obj, p));
   return(s7i_assoc_1(sc, obj, p));
+}
+
+s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  s7_pointer slow = lst;
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+      slow = s7_cdr(slow);
+      if (lst == slow) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
+{
+  return(memq_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  const s7_pointer obj = s7_car(args);
+  while (true)
+    {
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer obj = s7_car(args);
+  s7_pointer lst = s7_cadr(args);
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+    }
+  return(s7_f(sc));
 }
 
 s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)

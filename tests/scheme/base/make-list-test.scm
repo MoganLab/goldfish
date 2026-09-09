@@ -243,5 +243,7 @@
 ;; 错误参数类型测试
 (check-catch 'wrong-number-of-args (make-list))
 (check-catch 'wrong-number-of-args (make-list 3 'x 'extra))
+(check-catch 'out-of-range (make-list -1))
 (check-catch 'out-of-range (make-list -1 'x))
+(check-catch 'wrong-type-arg (make-list "a"))
 (check-report)

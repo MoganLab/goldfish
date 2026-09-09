@@ -102,4 +102,10 @@
 ;; 长列表测试
 (check (reverse (map (lambda (x) (* x x)) '(1 2 3 4 5))) => '(25 16 9 4 1))
 (check (reverse (filter even? '(1 2 3 4 5 6 7 8))) => '(8 6 4 2))
+;; 异常与点对结构测试
+(check (reverse '(1 . 2)) => '(2 . 1))
+(check-catch 'wrong-number-of-args (reverse))
+(check-catch 'wrong-number-of-args (reverse '(1) '(2)))
+(check-catch 'wrong-type-arg (reverse 123))
+
 (check-report)

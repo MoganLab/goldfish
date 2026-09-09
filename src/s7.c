@@ -21309,12 +21309,9 @@ s7_pointer s7_make_list(s7_scheme *sc, s7_int len, s7_pointer init) {return(make
 
 /* make_list_p_pp migrated to s7_liii_list.c */
 
-static s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_list "(make-list length (initial-element #f)) returns a list of 'length' elements whose value is 'initial-element'."
-  #define Q_make_list s7_make_signature(sc, 3, sc->is_proper_list_symbol, sc->is_integer_symbol, sc->T)
-  return(make_list_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : sc->F));
-}
+#define H_make_list "(make-list length (initial-element #f)) returns a list of 'length' elements whose value is 'initial-element'."
+#define Q_make_list s7_make_signature(sc, 3, sc->is_proper_list_symbol, sc->is_integer_symbol, sc->T)
+/* g_make_list is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- list-ref -------------------------------- */
@@ -21468,11 +21465,7 @@ static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args,
 
 /* car_p_p migrated to s7_liii_list.c */
 
-static s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
-{
-  if (is_pair(car(args))) return(caar(args));
-  return(method_or_bust(sc, car(args), sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1)); /* 1=arg num if error */
-}
+/* g_list_ref_at_0 is now defined in s7_liii_list.c */
 
 #define H_set_car "(set-car! pair val) sets the pair's first element to val"
 #define Q_set_car s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
@@ -21526,13 +21519,7 @@ static Inline s7_pointer inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointe
 
 /* cadr_p_p is now defined in s7_scheme_cxr.c */
 
-static s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(method_or_bust(sc, lst, sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1));
-  if (!is_pair(cdr(lst))) out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, cadr(args), it_is_too_large_string);
-  return(cadr(lst));
-}
+/* g_list_ref_at_1 is now defined in s7_liii_list.c */
 
 
 /* -------- cdar -------- */
@@ -21585,15 +21572,7 @@ static s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
 
 /* caddr_p_p is now defined in s7_scheme_cxr.c */
 
-static s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = car(args);
-  if (!is_pair(lst))
-    return(method_or_bust(sc, lst, sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1));
-  if ((!is_pair(cdr(lst))) || (!is_pair(cddr(lst))))
-    out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, cadr(args), it_is_too_large_string);
-  return(caddr(lst));
-}
+/* g_list_ref_at_2 is now defined in s7_liii_list.c */
 
 /* -------- cdddr -------- */
 /* cdddr_p_p is now defined in s7_scheme_cxr.c */
@@ -22008,32 +21987,9 @@ static s7_pointer assoc_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7
 
 
 /* ---------------- member, memv, memq ---------------- */
-s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  s7_pointer slow = lst;
-  while (true)
-    {
-      LOOP_4(if (obj == car(lst)) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-      slow = cdr(slow);
-      if (lst == slow) return(sc->F);
-    }
-  return(sc->F);
-}
-
-/* memq_p_pp migrated to s7_liii_list.c */
-
-static s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_memq "(memq obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memq uses eq?"
-  #define Q_memq sc->pl_tl
-
-  const s7_pointer obj = car(args), lst = cadr(args);
-  if (is_pair(lst))
-    return(s7_memq(sc, obj, lst));
-  if (is_null(lst))
-    return(sc->F);
-  return(method_or_bust_pp(sc, lst, sc->memq_symbol, obj, lst, a_list_string, 2));
-}
+/* s7_memq, g_memq migrated to s7_liii_list.c */
+#define H_memq "(memq obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memq uses eq?"
+#define Q_memq sc->pl_tl
 
 /* I think (memq 'c '(a b . c)) should return #f because otherwise (memq () ...) would return the () at the end */
 /* if memq's list is a quoted list, it won't be changing, so we can tell ahead of time that it is a proper list, and what its length is */
@@ -22044,35 +22000,13 @@ s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {retur
 
 /* memq_3_p_pp migrated to s7_liii_list.c */
 
-static s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = cadr(args);
-  const s7_pointer obj = car(args);
-  while (true)
-    {
-      if (obj == car(lst)) return(lst); /* grandma gcc doesn't want me to include the next line here. */
-      lst = cdr(lst);
-      if (obj == car(lst)) return(lst);
-      lst = cdr(lst);
-      if (obj == car(lst)) return(lst);
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-    }
-  return(sc->F);
-}
+/* g_memq_3 migrated to s7_liii_list.c */
 
 /* memq_4_p_pp migrated to s7_liii_list.c */
 
 s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_4_p_pp(sc, obj, lst));}
 
-static s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
-{
-  /* no circular list check needed in this case */
-  const s7_pointer obj = car(args);
-  s7_pointer lst = cadr(args);
-  while (true) {LOOP_4(if (obj == car(lst)) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));}
-  return(sc->F);
-}
+/* g_memq_any migrated to s7_liii_list.c */
 
 static s7_pointer memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
 {
@@ -22388,9 +22322,7 @@ static s7_pointer list_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_
   return((args == 4) ? sc->list_4 : func);
 }
 
-s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1) {return(list_1(sc, sc->value = p1));}
-static s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2) {return(list_2(sc, p1, p2));}
-static s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3) {return(list_3(sc, p1, p2, p3));}
+/* list_p_p, list_p_pp, list_p_ppp migrated to s7_liii_list.c */
 /* if the GC sees a free cell here, protect it in the caller, not here, but sometimes the GC is called here! */
 
 const char *ordinal[11] = {"zeroth", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"};
@@ -22603,16 +22535,7 @@ static s7_pointer g_list_append(s7_scheme *sc, s7_pointer args)
   return(tp);
 }
 
-static s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
-{
-  /* tack b onto the end of a without copying either -- 'a' is changed! */
-  s7_pointer p;
-  if (is_null(a)) return(b);
-  p = a;
-  while (is_not_null(cdr(p))) p = cdr(p);
-  set_cdr(p, b);
-  return(a);
-}
+/* append_in_place migrated to s7_liii_list.c */
 
 
 /* -------------------------------- vectors -------------------------------- */
@@ -31743,29 +31666,7 @@ s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 
 
 /* -------------------------------- reverse -------------------------------- */
-s7_pointer s7_reverse(s7_scheme *sc, s7_pointer a) /* just pairs */
-{
-  /* reverse list -- produce new list (other code assumes this function does not return the original!) */
-  s7_pointer lst, p;
-
-  if (is_null(a)) return(a);
-  if (!is_pair(cdr(a)))
-    return((is_null(cdr(a))) ? list_1(sc, car(a)) : cons(sc, cdr(a), car(a)));  /* don't return 'a' itself */
-  begin_temp(sc->y, list_1(sc, car(a)));
-  for (lst = cdr(a), p = a; is_pair(lst); lst = cdr(lst), p = cdr(p))
-    {
-      sc->y = cons(sc, car(lst), sc->y);
-      if (is_pair(cdr(lst)))
-	{
-	  lst = cdr(lst);
-	  sc->y = cons_unchecked(sc, car(lst), sc->y);
-	}
-      if (lst == p) /* this can take awhile to notice there's a cycle, but what does the caller expect? */
-	break;
-    }
-  sc->y = (is_null(lst)) ? sc->y : cons(sc, lst, sc->y);    /* ?? this means that (reverse '(1 2 . 3)) returns '(3 2 1) -- we used to return () here */
-  return_with_end_temp(sc->y);
-}
+/* s7_reverse migrated to s7_liii_list.c */
 
 /* s7_reverse sometimes tacks extra nodes on the end of a reversed circular list (it detects the cycle too late)
  *  (let ((lst (list 0))) (set! (cdr lst) lst) (reverse lst)) -> (#1=(0 . #1#) 0 0 0)
@@ -31904,30 +31805,7 @@ static s7_pointer reverse_p_p(s7_scheme *sc, s7_pointer obj)
 also accepts a string or vector argument."
 #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
 
-static s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
-{
-  s7_pointer p, result;
-  if (is_null(list)) return(term);
-  p = list;
-  result = term;
-  while (true)
-    {
-      s7_pointer q = cdr(p);
-      if (is_null(q))
-	{
-	  set_cdr(p, result);
-	  return(p);
-	}
-      if ((is_pair(q)) && (!is_immutable_pair(q)))
-	{
-	  set_cdr(p, result);
-	  result = p;
-	  p = q;
-	}
-      else return(sc->nil); /* improper or immutable */
-    }
-  return(result);
-}
+/* any_list_reverse_in_place migrated to s7_liii_list.c */
 
 static s7_pointer string_or_byte_vector_reverse_in_place(s7_scheme *sc, s7_pointer str)
 {
@@ -81565,6 +81443,7 @@ s7_pointer s7i_format_no_column(s7_scheme *sc) { return sc->format_no_column; }
 
 s7_pointer s7i_an_output_port_string(void) { return an_output_port_string; }
 s7_pointer s7i_a_format_port_string(void) { return a_format_port_string; }
+void s7i_set_sc_value(s7_scheme *sc, s7_pointer val) { sc->value = val; }
 
 s7_int s7i_FORMAT_PORT_LENGTH(void) { return FORMAT_PORT_LENGTH; }
 

@@ -69,4 +69,8 @@
   (check (reverse! vec) => #(3 2 1))
 ) ;let
 
+;; 异常情况测试
+(check-catch 'wrong-type-arg (reverse! '(1 2 . 3)))
+(check-catch 'wrong-type-arg (reverse! 123))
+
 (check-report)
