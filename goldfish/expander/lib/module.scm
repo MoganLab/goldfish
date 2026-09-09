@@ -83,6 +83,66 @@
                 (filter (lambda (e) (not (equal? (car e) key)))
                         *library-registry*)))))
 
+(define *perlevel-saved-runtime* '())
+
+(define *perlevel-saved-modules* '())
+
+(define (perlevel-snapshot-modules! recs)
+  (set! *perlevel-saved-modules*
+        (map (lambda (r)
+               (let ((n (lib-cache-name r)))
+                 (cons n (catch #t
+                           (lambda () (lookup-module n))
+                           (lambda args #f)))))
+             recs)))
+
+(define (perlevel-note-load! recs level saved-runtime saved-modules)
+  (for-each
+    (lambda (r)
+      (let ((n (lib-cache-name r)))
+        (runtime-registered-add! n level)
+        (when (and (not (member n saved-runtime))
+                   (member n *runtime-registered-libraries*))
+          (set! *runtime-registered-libraries*
+                (filter (lambda (k) (not (equal? k n)))
+                        *runtime-registered-libraries*)))))
+    recs)
+  ;; Level>=1 defs register throwaway same-named runtime modules as a side
+  ;; effect; restore any pre-existing level-0 modules so phase-0
+  ;; module-ref keeps resolving to level-0 cells.
+  (for-each (lambda (e)
+              (when (cdr e) (register-module (cdr e))))
+            saved-modules))
+
+(define *perlevel-saved-records* '())
+
+(define (perlevel-snapshot-records forms)
+  (let loop ((fs forms) (acc '()))
+    (if (null? fs)
+      acc
+      (let ((f (car fs)))
+        (if (and (pair? f) (eq? (car f) 'define-library) (pair? (cdr f)))
+          (let ((n (cadr f)))
+            (loop (cdr fs) (cons (cons n (library-registry-ref n)) acc)))
+          (loop (cdr fs) acc))))))
+
+(define (perlevel-rebuild! recs level saved-records)
+  (for-each
+    (lambda (r)
+      (let ((n (lib-cache-name r)))
+        (set! *library-registry*
+              (filter (lambda (e) (not (equal? (car e) n)))
+                      *library-registry*))))
+    recs)
+  ;; Re-add pre-existing valid bare instances clobbered by capture
+  ;; (capture registers bare as a side effect, overwriting them).
+  (for-each
+    (lambda (e)
+      (when (and (cdr e) (runtime-registered? (car e)))
+        (library-registry-set! (car e) (cdr e))))
+    saved-records)
+  (for-each (lambda (r) (restore-library-cache r level)) recs))
+
 (define *library-instance-inlets* '())
 
 (define (instance-inlet-ref name level)
@@ -714,13 +774,15 @@
                   (set! *libraries-being-loaded*
                         (cons load-key *libraries-being-loaded*)))
                 (lambda ()
+                  (set! *perlevel-saved-runtime* *runtime-registered-libraries*)
+                  (perlevel-snapshot-modules! recs)
                   (load-library-guard
                    lib-name
                    (lambda ()
                      (for-each (lambda (r) (restore-library-cache r level)) recs)
                      (load-library-file-cached! recs level)
                      (when (> level 0)
-                       (for-each (lambda (r) (runtime-registered-add! (lib-cache-name r) level)) recs)))))
+                       (perlevel-note-load! recs level *perlevel-saved-runtime* *perlevel-saved-modules*)))))
                 (lambda ()
                   (set! *libraries-being-loaded*
                         (filter (lambda (n) (not (equal? n load-key)))
@@ -730,6 +792,7 @@
                 (unless file
                   (error "import: unknown library" lib-name))
                 (let ((forms (call-with-input-file file read-forms)))
+                  (set! *perlevel-saved-records* (perlevel-snapshot-records forms))
                   (dynamic-wind
                     (lambda ()
                       (set! *libraries-being-loaded*
@@ -749,16 +812,13 @@
                                     (gfo-write! gfo-file stamp
                                                 (make-bundle 'libraries (cons 'libs recs))
                                                 deps)
+                                    (set! *perlevel-saved-runtime* *runtime-registered-libraries*)
+                                    (perlevel-snapshot-modules! recs)
                                     (when (> level 0)
-                                      (for-each (lambda (r)
-                                                  (let ((n (lib-cache-name r)))
-                                                    (let ((bare (library-registry-ref n)))
-                                                      (when bare
-                                                        (library-registry-set! n bare level)))))
-                                                recs))
+                                      (perlevel-rebuild! recs level *perlevel-saved-records*))
                                     (load-library-file-cached! recs level)
                                     (when (> level 0)
-                                      (for-each (lambda (r) (runtime-registered-add! (lib-cache-name r) level)) recs)))))
+                                      (perlevel-note-load! recs level *perlevel-saved-runtime* *perlevel-saved-modules*)))))
                            (begin
                               (let*-values (((prog ctx)
                                              (compile-program-syntax forms)))

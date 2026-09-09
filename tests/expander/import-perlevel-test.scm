@@ -1,14 +1,13 @@
 (import (liii check) (goldfish) (liii os))
 
-;; per-level 实例化：同库不同 level 独立求值 cells。
+;; per-level 实例化：同库不同 level 独立实例。
 ;;
 ;; - registry 按 level 键：level 0 裸名，level >= 1 为 (level . name)；
-;; - 同库 plain + expand 并存时体各跑一次（共享计数器验证两次）；
+;; - 同库 plain + expand 并存时体各跑一次（共享计数器验证）；
+;; - 两实例 exp-library 对象与绑定对象分离（同 gensym 符号，
+;;   不同 binding 对象，各自 inlet 求值即不同 cell）；
 ;; - add-import-view! 同库豁免，plain + expand 并存不报冲突；
-;; - 两实例求值 cells 隔离（level 0 在 rootlet，level 1 在持有 inlet；
-;;   冷缓存首载的两个 registry 项暂共享同一 exp-library 对象，
-;;   但 baked gensym 在不同 inlet 求值即不同 cell，变异隔离成立；
-;;   绑定对象彻底分离待运行时模块按 level 命名后补足）。
+;; - level-1 首载不污染 bare 注册（门控不被欺骗）。
 
 (define fixture-dir (os-temp-dir))
 (define fixture-sub (string-append fixture-dir "/plvl"))
@@ -24,6 +23,17 @@
                 (define (counter-bump!) (vector-set! nbox 0 (+ (vector-ref nbox 0) 1)))
                 (define (counter-get) (vector-ref nbox 0))
                 (define (counter-reset!) (vector-set! nbox 0 0))))
+           p)
+    (newline p)))
+
+(call-with-output-file (string-append fixture-sub "/solo.scm")
+  (lambda (p)
+    (write '(define-library (plvl solo)
+              (import (goldfish) (plvl counter))
+              (export sv)
+              (begin
+                (define sv (vector 1))
+                (define _load (begin (counter-bump!) 0))))
            p)
     (newline p)))
 
@@ -49,6 +59,19 @@
 (define (plvl-counter-get) ((module-ref '(plvl counter) 'counter-get)))
 (plvl-counter-reset!)
 
+;; ===== 0. level-1 首载不污染 bare =====
+(load-library! '(plvl solo) 1)
+(check (plvl-counter-get) => 1)
+(check (library-registry-ref '(plvl solo)) => #f)
+(check (if (runtime-registered? '(plvl solo)) #t #f) => #f)
+(check-true (if (library-registry-ref '(plvl solo) 1) #t #f))
+(check-true (if (runtime-registered? '(plvl solo) 1) #t #f))
+(load-library! '(plvl solo))
+(check (plvl-counter-get) => 2)
+(check-true (if (and (library-registry-ref '(plvl solo))
+                     (library-registry-ref '(plvl solo) 1)) #t #f))
+(plvl-counter-reset!)
+
 ;; 同库两 level 各实例化一次。
 (load-library! '(plvl dual))
 (load-library! '(plvl dual) 1)
@@ -56,10 +79,15 @@
 ;; ===== 1. 体跑两次 =====
 (check (plvl-counter-get) => 2)
 
-;; ===== 2. 两 registry 项独立（per-level 键）=====
+;; ===== 2. 两 registry 项独立（对象与绑定分离）=====
 (define rec0 (library-registry-ref '(plvl dual)))
 (define rec1 (library-registry-ref '(plvl dual) 1))
 (check-true (if (and rec0 rec1) #t #f))
+(check-true (if (not (eq? (car rec0) (car rec1))) #t #f))
+(define b0 (exp-library-ref (car rec0) 'get-v))
+(define b1 (exp-library-ref (car rec1) 'get-v))
+(check-true (if (and b0 b1) #t #f))
+(check-true (if (not (eq? b0 b1)) #t #f))
 ;; 同一 level 经 library-record 复用，不再跑体。
 (library-record '(plvl dual))
 (library-record '(plvl dual) 1)
@@ -84,6 +112,43 @@
 (vector-set! (eval g1 inlet1) 0 77)
 (check (vector-ref (eval g1 inlet1) 0) => 77)
 (check (vector-ref (eval g0 (rootlet)) 0) => 99)
+
+;; ===== 3b. level-0 运行时模块不被 level-1 加载覆盖 =====
+;; 此时 level-0 vbox 为 99，level-1 为 77；module-ref 应命中 level-0。
+(check ((module-ref '(plvl dual) 'get-v)) => 99)
+
+;; ===== 3c. 显式第三层：(meta 2) 独立实例 =====
+(load-library! '(plvl dual) 2)
+(define rec2 (library-registry-ref '(plvl dual) 2))
+(check-true (if rec2 #t #f))
+(check-true (if (and (not (eq? (car rec2) (car rec0)))
+                     (not (eq? (car rec2) (car rec1)))) #t #f))
+(check-true (if (runtime-registered? '(plvl dual) 2) #t #f))
+;; level-0 注册不受影响。
+(check-true (if (and (library-registry-ref '(plvl dual))
+                     (runtime-registered? '(plvl dual))) #t #f))
+;; 第三实例 cells 独立，初值 10；改动不影响前两层。
+(define inlet2 (instance-inlet-ref '(plvl dual) 2))
+(check-true (if inlet2 #t #f))
+(define vb2 (exp-library-ref (car rec2) 'vbox))
+(define g2 (toplevel-ref-gensym (binding-value vb2)))
+(check (vector-ref (eval g2 inlet2) 0) => 10)
+(vector-set! (eval g2 inlet2) 0 55)
+(check (vector-ref (eval g2 inlet2) 0) => 55)
+(check (vector-ref (eval g0 (rootlet)) 0) => 99)
+(check (vector-ref (eval g1 inlet1) 0) => 77)
+;; level-0 运行时模块仍完好。
+(check ((module-ref '(plvl dual) 'get-v)) => 99)
+
+;; ===== 3d. 三层解析：phase 取最高 level ≤ 相位 =====
+(define b2 (exp-library-ref (car rec2) 'get-v))
+(define probe (make-exp-library '(plvl probe)))
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 0) 0)
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 1) 1)
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 2) 2)
+(check (if (eq? (exp-library-ref-at-phase probe 'get-v 0) b0) #t #f) => #t)
+(check (if (eq? (exp-library-ref-at-phase probe 'get-v 1) b1) #t #f) => #t)
+(check (if (eq? (exp-library-ref-at-phase probe 'get-v 2) b2) #t #f) => #t)
 
 ;; ===== 4. 同库豁免：plain + expand 并存不报冲突 =====
 (define (write-program name . texts)
