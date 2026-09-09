@@ -53,7 +53,21 @@ gfproject_tool_imports (gf::scheme* sc, const string& command) {
       "(import (liii project))"
       " (catch #t"
       "   (lambda () (gfproject-tool-imports " + lit + "))"
-      "   (lambda _ '()))");
+      "   (lambda args"
+      "     (display \";;; note: project tool dispatch failed: \" (current-error-port))"
+      "     (write (car args) (current-error-port))"
+      "     (newline (current-error-port))"
+      "     '()))");
+  // A broken (liii project) used to vanish here, so every dynamic command
+  // (notably `test') surfaced only as "Unknown command: <cmd>".  Both the
+  // catch above and a failed import leave a note on the captured error
+  // port; surface it before falling through, then reset the port so the
+  // note does not leak into a later tool attempt's error output.
+  const char* dispatch_err= gf::get_output_string (sc, gf::current_error_port (sc));
+  if (dispatch_err && *dispatch_err) {
+    std::cerr << dispatch_err;
+    goldfish_reset_captured_error_port (sc);
+  }
   for (gf::pointer p= r; gf::is_pair (p); p= gf::cdr (p)) {
     if (gf::is_string (gf::car (p))) out.push_back (gf::string (gf::car (p)));
   }
