@@ -68,24 +68,29 @@
       #f)))
 
 ;; exp-library-use-ref-at-phase : lib name phase -> binding/#f
-;; Phase-aware walk: a use registered at level N is visible at phase N
-;; and above (`run' imports register at 0 and are visible everywhere).
-;; A newer view gated out at this phase lets older uses shine through.
+;; Resolution formula: among import views at level <= phase that bind
+;; NAME, the highest level wins; ties resolve newest-first (the most
+;; recent import of a level shadows earlier ones at that level).
+;; A view at level n > phase is simply not a candidate; there is no
+;; fallback across levels.  Level-0 views are candidates at every
+;; phase (substrate rule: plain imports are unrestricted).
 (define (exp-library-use-ref-at-phase lib name phase)
-  (let loop ((uses (exp-library-uses lib)))
-    (if (pair? uses)
-      (if (>= phase (cdar uses))
-        (or (exp-library-ref-own (caar uses) name)
-            (loop (cdr uses)))
-        (loop (cdr uses)))
-      #f)))
+  (let scan ((uses (exp-library-uses lib)) (best #f) (best-lvl -1))
+    (if (null? uses)
+      best
+      (let* ((lvl (cdar uses))
+             (b (if (<= lvl phase) (exp-library-ref-own (caar uses) name) #f))
+             (better (and b (> lvl best-lvl))))
+        (scan (cdr uses)
+              (if better b best)
+              (if better lvl best-lvl))))))
 
 ;; exp-library-add-use! : lib view [level] -> void
 ;; Record an imported interface (a shared export snapshot, itself an
 ;; exp-library) at a visibility level (R7RS `for' import levels; 0 =
-;; plain/run).  Idempotent per view; re-importing at a lower level
-;; widens visibility (a lib imported for both run and expand is
-;; everywhere-visible).
+;; plain/run).  Registering the same view at the same level again is a
+;; no-op; a different level is a separate entry -- requiring a library
+;; at two phases yields two instantiations, as in Racket.
 (define (exp-library-add-use! lib view . maybe-level)
   (let ((level (if (pair? maybe-level) (car maybe-level) 0)))
     (let scan ((uses (exp-library-uses lib)))
@@ -93,10 +98,7 @@
         ((null? uses)
          (set-exp-library-uses! lib (cons (cons view level)
                                           (exp-library-uses lib))))
-        ((eq? (caar uses) view)
-         (if (< level (cdar uses))
-           (set-cdr! (car uses) level)
-           #f))
+        ((and (eq? (caar uses) view) (= (cdar uses) level)) #f)
         (else (scan (cdr uses)))))))
 
 ;; exp-library-ref-strict : lib name -> binding/#f

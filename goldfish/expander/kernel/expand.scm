@@ -112,11 +112,9 @@
             ;;
             ;; Expand-time region bindings (the per-phase region stores,
             ;; see call-with-fresh-expand-unit) resolve in the store for
-            ;; the CURRENT phase first, then fall back to the other
-            ;; stores (single-store era compatibility: a helper from any
-            ;; nesting level stays visible to surrounding transformer
-            ;; code).  Phase-0 references miss, so no session-local
-            ;; gensym leaks into a cached artifact.
+            ;; exactly the current phase -- no cross-phase fallback.
+            ;; Phase-0 references miss, so no session-local gensym
+            ;; leaks into a cached artifact.
             ;; Imported views are gated by their R7RS `for' levels
             ;; (run = everywhere, expand = phase >= 1); own defines are
             ;; phase-blind (a transformer body may call a sibling
