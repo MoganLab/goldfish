@@ -22367,9 +22367,7 @@ static s7_pointer list_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_
   return((args == 4) ? sc->list_4 : func);
 }
 
-s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1) {return(list_1(sc, sc->value = p1));}
-static s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2) {return(list_2(sc, p1, p2));}
-static s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3) {return(list_3(sc, p1, p2, p3));}
+/* list_p_p, list_p_pp, list_p_ppp migrated to s7_liii_list.c */
 /* if the GC sees a free cell here, protect it in the caller, not here, but sometimes the GC is called here! */
 
 const char *ordinal[11] = {"zeroth", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"};
@@ -81544,6 +81542,7 @@ s7_pointer s7i_format_no_column(s7_scheme *sc) { return sc->format_no_column; }
 
 s7_pointer s7i_an_output_port_string(void) { return an_output_port_string; }
 s7_pointer s7i_a_format_port_string(void) { return a_format_port_string; }
+void s7i_set_sc_value(s7_scheme *sc, s7_pointer val) { sc->value = val; }
 
 s7_int s7i_FORMAT_PORT_LENGTH(void) { return FORMAT_PORT_LENGTH; }
 

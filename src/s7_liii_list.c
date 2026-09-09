@@ -1162,6 +1162,22 @@ s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
   return(s7_make_list(sc, len, init));
 }
 
+s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1)
+{
+  s7i_set_sc_value(sc, p1);
+  return(s7_cons(sc, p1, s7_nil(sc)));
+}
+
+s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_nil(sc))));
+}
+
+s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3)
+{
+  return(s7_cons(sc, p1, s7_cons(sc, p2, s7_cons(sc, p3, s7_nil(sc)))));
+}
+
 s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index)
 {
   s7_pointer p = lst;

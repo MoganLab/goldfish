@@ -527,6 +527,7 @@ s7_pointer s7i_format_string_3(s7_scheme *sc);
 s7_pointer s7i_format_string_4(s7_scheme *sc);
 s7_pointer s7i_an_output_port_string(void);
 s7_pointer s7i_a_format_port_string(void);
+void s7i_set_sc_value(s7_scheme *sc, s7_pointer val);
 s7_int s7i_FORMAT_PORT_LENGTH(void);
 const int32_t *s7i_digits(void);
 const bool *s7i_white_space(void);

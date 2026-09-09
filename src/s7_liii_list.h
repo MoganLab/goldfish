@@ -83,6 +83,9 @@ s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t 
 /* tree_leaves_p_p, tree_set_memq_p_pp migrated to s7_liii_tree.h */
 s7_pointer is_proper_list_p_p(s7_scheme *sc, s7_pointer arg);
 s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init);
+s7_pointer list_p_p(s7_scheme *sc, s7_pointer p1);
+s7_pointer list_p_pp(s7_scheme *sc, s7_pointer p1, s7_pointer p2);
+s7_pointer list_p_ppp(s7_scheme *sc, s7_pointer p1, s7_pointer p2, s7_pointer p3);
 s7_pointer list_ref_p_pi_unchecked(s7_scheme *sc, s7_pointer lst, s7_int index);
 s7_pointer list_ref_p_pi(s7_scheme *sc, s7_pointer lst, s7_int index);
 s7_pointer list_ref_p_pp(s7_scheme *sc, s7_pointer lst, s7_pointer index);
