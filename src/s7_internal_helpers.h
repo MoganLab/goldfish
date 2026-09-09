@@ -85,6 +85,7 @@ s7_int s7i_position_of(const s7_pointer p, s7_pointer args);
 s7_pointer s7i_nil_string(void);
 s7_pointer s7i_make_empty_string(s7_scheme *sc, s7_int len, char fill);
 s7_int s7i_max_string_length(s7_scheme *sc);
+s7_int s7i_max_vector_length(s7_scheme *sc);
 s7_int s7i_max_list_length(s7_scheme *sc);
 
 s7_pointer s7i_string_append_1(s7_scheme *sc, s7_pointer args, s7_pointer caller);
@@ -276,8 +277,10 @@ s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y);
 bool s7i_is_subvector(s7_pointer p);
 s7_int s7i_subvector_position(s7_pointer p);
 s7_pointer s7i_subvector_vector(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args);
 bool s7i_is_typed_t_vector(s7_pointer p);
 s7_pointer s7i_typed_vector_typer(s7_scheme *sc, s7_pointer p);
+s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args);
 
 s7_pointer s7i_vector_ref_1(s7_scheme *sc, s7_pointer vect, s7_pointer indices);
 s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind);
@@ -341,7 +344,20 @@ s7_pointer s7i_complex_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointe
 
 /* bridge functions for g_fv_ref_2, g_iv_ref_2 migration */
 s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args);
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index);
+s7_pointer s7i_univect_ref_int(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_int(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_ref_byte(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_univect_set_complex(s7_scheme *sc, s7_pointer args);
+s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_byte_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_float_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
+s7_pointer s7i_complex_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data);
 
 /* small_symbol_set bridges for s7_liii_tree.c migration */
 void s7i_begin_small_symbol_set(s7_scheme *sc);

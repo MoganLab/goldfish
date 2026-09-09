@@ -42,6 +42,23 @@
   (bytevector-u8-set! bv 0 10)
   (check bv => #u8(10))
 ) ;let
+
+;; 二维 bytevector 修改测试
+(let ((m (make-bytevector '(2 3) 0)))
+  (bytevector-u8-set! m 0 1 12)
+  (bytevector-u8-set! m 1 2 250)
+  (check (bytevector-u8-ref m 0 1) => 12)
+  (check (bytevector-u8-ref m 1 2) => 250)
+  (check-catch 'out-of-range (bytevector-u8-set! m -1 0 1))
+  (check-catch 'out-of-range (bytevector-u8-set! m 2 0 1))
+  (check-catch 'out-of-range (bytevector-u8-set! m 0 3 1))
+) ;let
+
+;; 不可变 bytevector 检查
+(let ((bv (immutable! (bytevector 1 2))))
+  (check-catch 'immutable-error (bytevector-u8-set! bv 0 3))
+) ;let
+
 ;; 错误处理测试
 (check-catch 'out-of-range (bytevector-u8-set! #u8() 0 5))
 (check-catch 'out-of-range (bytevector-u8-set! #u8(1 2 3) -1 5))

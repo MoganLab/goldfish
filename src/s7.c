@@ -16544,6 +16544,11 @@ s7_int s7i_max_string_length(s7_scheme *sc)
   return(sc->max_string_length);
 }
 
+s7_int s7i_max_vector_length(s7_scheme *sc)
+{
+  return(sc->max_vector_length);
+}
+
 s7_int s7i_max_list_length(s7_scheme *sc)
 {
   return(sc->max_list_length);
@@ -23166,55 +23171,9 @@ s7_pointer s7i_vector_fill_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 /* g_vector_fill is now defined in s7_liii_vector.c */
 
 /* -------------------------------- vector-append -------------------------------- */
-s7_pointer s7i_vector_append(s7_scheme *sc, s7_pointer args, uint8_t typ, s7_pointer caller);
-static s7_pointer copy_source_no_dest(s7_scheme *sc, s7_pointer source, s7_pointer args);
-
-static s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
-{
-  /* returns a one-dimensional vector.  To handle multidimensional vectors, we'd need to
-   *   ensure all the dimensional data matches (rank, size of each dimension except the last etc),
-   *   which is too much trouble.
-   */
-  #define H_vector_append "(vector-append . vectors) returns a new (1-dimensional) vector containing the elements of its vector arguments."
-  #define Q_vector_append sc->pcl_v
-
-  s7_pointer p = args;
-  if (is_null(args))
-    return(make_simple_vector(sc, 0));
-
-  if ((is_null(cdr(args))) &&
-      (is_any_vector(car(args))))
-    return(copy_source_no_dest(sc, car(args), args));
-
-  for (int32_t i = 0; is_pair(p); p = cdr(p), i++)
-    {
-      const s7_pointer vect = car(p);
-      if (!is_any_vector(vect))
-	{
-	  if (has_active_methods(sc, vect))
-	    {
-	      const s7_pointer func = find_method_with_let(sc, vect, sc->vector_append_symbol);
-	      if (func != sc->undefined)
-		{
-		  s7_pointer lst, vec, new_vec, arglist = args;
-		  if (i == 0)
-		    return(s7_apply_function(sc, func, args));
-		  sc->temp7 = make_list(sc, i, sc->unused); /* we have to copy the arglist here */
-		  lst = sc->temp7;
-		  for (int32_t k = 0; k < i; k++, arglist = cdr(arglist), lst = cdr(lst))
-		    set_car(lst, car(arglist));
-		  vec = g_vector_append(sc, sc->temp7);
-		  new_vec = s7_apply_function(sc, func, set_ulist_1(sc, vec, p));
-		  if ((S7_DEBUGGING) && (!is_pair(sc->temp7))) fprintf(stderr, "%s[%d]: temp7: %s\n", __func__, __LINE__, display(sc->temp7));
-		  sc->temp7 = sc->unused;
-		  return(new_vec);
-		}}
-	  wrong_type_error_nr(sc, sc->vector_append_symbol, i + 1, vect, sc->type_names[T_VECTOR]);
-	}}
-  return(s7i_vector_append(sc, args, type(car(args)), sc->vector_append_symbol));
-}
-
-/* vector_append_p_pp, vector_append_p_ppp migrated to s7_liii_vector.c */
+#define H_vector_append "(vector-append . vectors) returns a new (1-dimensional) vector containing the elements of its vector arguments."
+#define Q_vector_append sc->pcl_v
+/* g_vector_append, vector_append_p_pp, vector_append_p_ppp migrated to s7_liii_vector.c */
 #endif
 
 
@@ -23398,39 +23357,9 @@ s7_pointer s7_array_to_list(s7_scheme *sc, s7_int num_values, s7_pointer *array)
 }
 
 #if !WITH_PURE_S7
-static s7_pointer g_vector_to_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_to_list "(vector->list v (start 0) end) returns the elements of the vector v as a list; (map values v)"
-  #define Q_vector_to_list s7_make_signature(sc, 4, sc->is_proper_list_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
-
-  s7_int start = 0, end;
-  const s7_pointer vec = car(args);
-  if (!is_any_vector(vec))
-    return(sole_arg_method_or_bust(sc, vec, sc->vector_to_list_symbol, args, sc->type_names[T_VECTOR]));
-  end = vector_length(vec);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer p = start_and_end(sc, sc->vector_to_list_symbol, args, 2, cdr(args), &start, &end);
-      if (p != sc->unused) return(p);
-      if (start == end) return(sc->nil);
-    }
-  if ((end - start) > sc->max_list_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_5(sc, wrap_string(sc, "vector->list length ~D, (- ~D ~D), is greater than (*s7* 'max-list-length), ~D", 78),
-			 wrap_integer(sc, end - start), wrap_integer(sc, end), wrap_integer(sc, start),
-			 wrap_integer(sc, sc->max_list_length)));
-
-  check_free_heap_size(sc, end - start);
-  begin_temp(sc->temp6, sc->nil);
-  gc_protect_via_stack(sc, vec);
-  if (is_t_vector(vec))
-    for (s7_int i = end - 1; i >= start; i--) sc->temp6 = cons_unchecked(sc, vector_element(vec, i), sc->temp6);
-  else for (s7_int i = end - 1; i >= start; i--) sc->temp6 = cons_unchecked(sc, vector_getter(vec)(sc, vec, i), sc->temp6);
-  unstack_gc_protect(sc);
-  return_with_end_temp(sc->temp6);
-}
-
-/* vector_to_list_p_p migrated to s7_liii_vector.c */
+#define H_vector_to_list "(vector->list v (start 0) end) returns the elements of the vector v as a list; (map values v)"
+#define Q_vector_to_list s7_make_signature(sc, 4, sc->is_proper_list_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol)
+/* g_vector_to_list, vector_to_list_p_p migrated to s7_liii_vector.c */
 #endif
 
 
@@ -23575,12 +23504,13 @@ static inline vdims_t *list_to_vdims(s7_scheme *sc, s7_pointer lst)
   return(vd);
 }
 
-static s7_pointer g_subvector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_subvector "(subvector original-vector (start 0) (end original-vector-len) new-dimensions) returns \
+#define H_subvector "(subvector original-vector (start 0) (end original-vector-len) new-dimensions) returns \
 a vector that points to the same elements as the original-vector but with different starting point, end point, and dimensional info."
-  #define Q_subvector s7_make_signature(sc, 5, sc->is_subvector_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol, sc->is_pair_symbol)
+#define Q_subvector s7_make_signature(sc, 5, sc->is_subvector_symbol, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_symbol, sc->is_pair_symbol)
+/* g_subvector migrated to s7_liii_vector.c */
 
+s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
+{
   /* (let ((v1 #2d((1 2 3) (4 5 6)))) (let ((v2 (subvector v1 0 6))) v2)) -> #(1 2 3 4 5 6)
    * (let ((v1 #(1 2 3 4 5 6))) (let ((v2 (subvector v1 0 6 '(3 2)))) v2)) -> #2D((1 2) (3 4) (5 6))
    */
@@ -23762,7 +23692,6 @@ s7_pointer s7i_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer ind)
 /* g_vector_ref_2 is now defined in s7_liii_vector.c */
 
 /* -------- s7i_ bridges for vector p_p migration to s7_liii_vector.c -------- */
-static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args);
 bool s7i_is_any_vector(s7_pointer p) {return(is_any_vector(p));}
 bool s7i_is_t_vector(s7_pointer p) {return(is_t_vector(p));}
 bool s7i_is_typed_vector(s7_pointer p) {return(is_typed_vector(p));}
@@ -23795,28 +23724,7 @@ s7_pointer s7i_vector_append_3(s7_scheme *sc, s7_pointer v1, s7_pointer v2, s7_p
   return(val);
 }
 
-static s7_pointer g_vector_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer i1, i2;
-  s7_int ix, iy;
-
-  if (!is_any_vector(vec)) return(g_vector_ref(sc, args));
-  if (vector_rank(vec) != 2) return(g_vector_ref(sc, args));
-  i1 = cadr(args);
-  if (!s7_is_integer(i1)) return(g_vector_ref(sc, args));
-  i2 = caddr(args);
-  if (!s7_is_integer(i2)) return(g_vector_ref(sc, args));
-  ix = s7_integer_clamped_if_gmp(sc, i1);
-  iy = s7_integer_clamped_if_gmp(sc, i2);
-  if ((ix >= 0) && (iy >= 0) &&
-      (ix < vector_dimension(vec, 0)) && (iy < vector_dimension(vec, 1)))
-    {
-      s7_int index = (ix * vector_offset(vec, 0)) + iy; /* vector_offset(vec, 1) == 1 */
-      return(vector_getter(vec)(sc, vec, index));
-    }
-  return(g_vector_ref(sc, args));
-}
+/* g_vector_ref_3 migrated to s7_liii_vector.c */
 
 static s7_pointer vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
@@ -23827,137 +23735,16 @@ static s7_pointer vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t arg
 
 
 /* -------------------------------- vector-set! -------------------------------- */
-static s7_pointer g_vector_set(s7_scheme *sc, s7_pointer args)
-{
-  #define H_vector_set "(vector-set! v i ... value) sets the i-th element of vector v to value."
-  #define Q_vector_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
-
-  const s7_pointer vec = car(args);
-  s7_pointer val;
-  s7_int index;
-
-  if (!is_any_vector(vec))
-    return(method_or_bust(sc, vec, sc->vector_set_symbol, args, sc->type_names[T_VECTOR], 1));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->vector_set_symbol, vec));
-  if (vector_length(vec) == 0)
-    out_of_range_error_nr(sc, sc->vector_set_symbol, int_one, vec, it_is_too_large_string);
-
-  if (vector_rank(vec) > 1)
-    {
-      s7_int i;
-      s7_pointer index_list;
-      index = 0;
-      for (index_list = cdr(args), i = 0; (is_pair(cdr(index_list))) && (i < vector_ndims(vec)); index_list = cdr(index_list), i++)
-	{
-	  s7_int n;
-	  const s7_pointer ind = car(index_list);
-	  if (!s7_is_integer(ind))
-	    return(method_or_bust(sc, ind, sc->vector_set_symbol, args, sc->type_names[T_INTEGER], i + 2));
-          n = s7_integer_clamped_if_gmp(sc, ind);
-	  if ((n < 0) || (n >= vector_dimension(vec, i)))
-	    out_of_range_error_nr(sc, sc->vector_set_symbol, wrap_integer(sc, i + 2), ind, (n < 0) ? it_is_negative_string : it_is_too_large_string);
-	  index += n * vector_offset(vec, i);
-	}
-      if (is_not_null(cdr(index_list)))
-	wrong_number_of_arguments_error_nr(sc, "too many arguments for vector-set!: ~S", 38, args);
-      if (i != vector_ndims(vec))
-	wrong_number_of_arguments_error_nr(sc, "not enough arguments for vector-set!: ~S", 40, args);
-
-      /* since vector-ref can return a subvector (if not passed enough args), it might be interesting to
-       *   also set a complete subvector via set!, but would that introduce ambiguity?  Only copy the vector
-       *   if at least one index is missing, and the value fits.  It also makes error detection harder,
-       *   but so does the current vector-ref handling.  Can't decide...
-       *   (define v (make-vector '(2 3) 0)) (vector-set! v 0 #(1 2 3)) -> error, but (vector-ref v 0) -> #(0 0 0)
-       * Other possible additions: complex-vector and string-vector.
-       */
-      val = car(index_list);
-    }
-  else
-    {
-      const s7_pointer ind = cadr(args);
-      if (!s7_is_integer(ind))
-	return(method_or_bust(sc, ind, sc->vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-      index = s7_integer_clamped_if_gmp(sc, ind);
-      if ((index < 0) || (index >= vector_length(vec)))
-	out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, ind, (index < 0) ? it_is_negative_string : it_is_too_large_string);
-      if (is_not_null(cdddr(args)))
-	{
-	  const s7_pointer new_vec = vector_getter(vec)(sc, vec, index);
-	  if (!is_any_vector(new_vec))
-	    wrong_number_of_arguments_error_nr(sc, "too many arguments for vector-set!: ~S", 38, args);
-	  return(g_vector_set(sc, set_ulist_1(sc, new_vec, cddr(args))));
-	}
-      val = caddr(args);
-    }
-  if (is_typed_t_vector(vec))
-    return(typed_vector_setter(sc, vec, index, val));
-  if (is_t_vector(vec))
-    vector_element(vec, index) = val;
-  else vector_setter(vec)(sc, vec, index, val);
-  return(val);
-}
+#define H_vector_set "(vector-set! v i ... value) sets the i-th element of vector v to value."
+#define Q_vector_set s7_make_circular_signature(sc, 3, 4, sc->T, sc->is_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_any_at_end_symbol)
+/* g_vector_set, g_vector_set_3, g_vector_set_4 migrated to s7_liii_vector.c */
 
 /* vector_set_p_pip, vector_set_p_pip_unchecked, vector_set_p_piip,
    vector_set_p_piip_direct, typed_vector_set_p_pip_unchecked,
    typed_vector_set_p_piip_direct, t_vector_set_p_pip_direct,
    typed_t_vector_set_p_pip_direct migrated to s7_liii_vector.c */
 
-static s7_pointer g_vector_set_3(s7_scheme *sc, s7_pointer args)
-{
-  /* (vector-set! vector index value) */
-  const s7_pointer vec = car(args);
-  s7_pointer ind;
-  s7_int index;
-
-  if (!is_any_vector(vec))
-    return(g_vector_set(sc, args));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->vector_set_symbol, vec));
-  if (vector_rank(vec) > 1)
-    return(g_vector_set(sc, args));
-
-  ind = cadr(args);
-  if (!s7_is_integer(ind))
-    return(g_vector_set(sc, args));
-  index = s7_integer_clamped_if_gmp(sc, ind);
-  if ((index < 0) || (index >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->vector_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
-  {
-    s7_pointer val = caddr(args);
-    if (is_typed_t_vector(vec))
-      return(typed_vector_setter(sc, vec, index, val));
-    if (is_t_vector(vec))
-      vector_element(vec, index) = val;
-    else vector_setter(vec)(sc, vec, index, val);
-    return(val);
-  }
-}
-
 /* vector_set_p_ppp migrated to s7_liii_vector.c */
-
-static s7_pointer g_vector_set_4(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args), ip1 = cadr(args), ip2 = caddr(args);
-  s7_pointer val;
-  s7_int i1, i2;
-  if ((!is_any_vector(vec)) ||
-      (vector_rank(vec) != 2) || (is_immutable_vector(vec)) ||
-      (!s7_is_integer(ip1)) || (!s7_is_integer(ip2)))
-    return(g_vector_set(sc, args));
-  i1 = s7_integer_clamped_if_gmp(sc, ip1);
-  i2 = s7_integer_clamped_if_gmp(sc, ip2);
-  if ((i1 < 0) || (i2 < 0) ||
-      (i1 >= vector_dimension(vec, 0)) || (i2 >= vector_dimension(vec, 1)))
-    return(g_vector_set(sc, args));
-  val = cadddr(args);
-  if (is_typed_t_vector(vec))
-    return(typed_vector_setter(sc, vec, i2 + (i1 * vector_offset(vec, 0)), val));
-  if (is_t_vector(vec))
-    vector_element(vec, i2 + (i1 * vector_offset(vec, 0))) = val;
-  else vector_setter(vec)(sc, vec, i2 + (i1 * vector_offset(vec, 0)), val);
-  return(val);
-}
 
 static s7_pointer vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
@@ -24136,69 +23923,10 @@ It is a function that checks the new value, returning #f if the value is not acc
 
 
 /* -------------------------------- make-float-vector -------------------------------- */
-static s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_float_vector "(make-float-vector len (init 0.0)) returns a float-vector."
-  #define Q_make_float_vector s7_make_signature(sc, 3, \
-                                sc->is_float_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_real_symbol)
-  s7_pointer size = car(args); /* can be a pair if multiple dimensions */
-  s7_int len;
-
-  if ((is_pair(cdr(args))) || (!s7_is_integer(size)))
-    {
-      s7_pointer init;
-      if (is_pair(cdr(args)))
-	{
-	  init = cadr(args);
-	  if (!is_real(init))
-	    return(method_or_bust(sc, init, sc->make_float_vector_symbol, args, sc->type_names[T_REAL], 2));
-	  if (is_rational(init))
-	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
-	}
-      else init = real_zero;
-      if (s7_is_integer(size))
-	len = s7_integer_clamped_if_gmp(sc, size);
-      else
-	{
-	  if (!is_pair(size))
-	    return(method_or_bust(sc, size, sc->make_float_vector_symbol, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
-	  len = multivector_length(sc, size, sc->make_float_vector_symbol);
-	}
-      {
-	s7_pointer vect = make_vector_1(sc, len, NOT_FILLED, T_FLOAT_VECTOR);
-	float_vector_fill(vect, s7_real(init));
-	if (!s7_is_integer(size))
-	  return(make_multivector(sc, vect, size));
-	add_vector(sc, vect);
-	return(vect);
-      }}
-  len = s7_integer_clamped_if_gmp(sc, size);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_float_vector_symbol, int_one, size, it_is_negative_string);
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-float-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 81),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-  {
-    block_t *arr = mallocate_vector(sc, len * sizeof(s7_double));
-    s7_pointer vect;
-    new_cell(sc, vect, T_FLOAT_VECTOR | T_SAFE_PROCEDURE);
-    vector_length(vect) = len;
-    vector_block(vect) = arr;
-    float_vector_floats(vect) = (s7_double *)block_data(arr);
-    if (len > 0)
-      {
-	if (STEP_8(len))
-	  memclr64((void *)float_vector_floats(vect), len * sizeof(s7_double));
-	else memclr((void *)float_vector_floats(vect), len * sizeof(s7_double));
-      }
-    vector_set_dimension_info(vect, NULL);
-    vector_getter(vect) = float_vector_getter;
-    vector_setter(vect) = float_vector_setter;
-    add_vector(sc, vect);
-    return(vect);
-  }
-}
+#define H_make_float_vector "(make-float-vector len (init 0.0)) returns a float-vector."
+#define Q_make_float_vector s7_make_signature(sc, 3, \
+                              sc->is_float_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_real_symbol)
+/* g_make_float_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_float_vector_p_pp(s7_scheme *sc, s7_pointer len, s7_pointer fill)
 {
@@ -24214,134 +23942,17 @@ static s7_pointer make_float_vector_p_pp(s7_scheme *sc, s7_pointer len, s7_point
 
 
 /* -------------------------------- make-complex-vector -------------------------------- */
-static s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_complex_vector "(make-complex-vector len (init 0.0)) returns a complex-vector."
-  #define Q_make_complex_vector s7_make_signature(sc, 3, \
-                                sc->is_complex_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_complex_symbol)
-  s7_pointer size = car(args);
-  s7_int len;
-
-  if ((is_pair(cdr(args))) || (!s7_is_integer(size)))
-    {
-      s7_pointer init;
-      if (is_pair(cdr(args)))
-	{
-	  init = cadr(args);
-	  if (!is_number(init))
-	    return(method_or_bust(sc, init, sc->make_complex_vector_symbol, args, sc->type_names[T_COMPLEX], 2));
-	  if (is_rational(init))
-	    return(s7i_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
-	}
-      else init = real_zero;
-      if (s7_is_integer(size))
-	len = s7_integer_clamped_if_gmp(sc, size);
-      else
-	{
-	  if (!is_pair(size))
-	    return(method_or_bust(sc, size, sc->make_complex_vector_symbol, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
-	  len = multivector_length(sc, size, sc->make_complex_vector_symbol);
-	}
-      {
-	s7_pointer vect = make_vector_1(sc, len, NOT_FILLED, T_COMPLEX_VECTOR);
-	complex_vector_fill(vect, s7_to_c_complex(init));
-	if (!s7_is_integer(size))
-	  return(make_multivector(sc, vect, size));
-	add_vector(sc, vect);
-	return(vect);
-      }}
-  len = s7_integer_clamped_if_gmp(sc, size);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_complex_vector_symbol, int_one, size, it_is_negative_string);
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-complex-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 81),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-  {
-    block_t *arr = mallocate_vector(sc, len * sizeof(s7_complex));
-    s7_pointer vect;
-    new_cell(sc, vect, T_COMPLEX_VECTOR | T_SAFE_PROCEDURE);
-    vector_length(vect) = len;
-    vector_block(vect) = arr;
-    complex_vector_complexes(vect) = (s7_complex *)block_data(arr);
-    if (len > 0)
-      {
-	if (STEP_8(len))
-	  memclr64((void *)complex_vector_complexes(vect), len * sizeof(s7_complex));
-	else memclr((void *)complex_vector_complexes(vect), len * sizeof(s7_complex));
-      }
-    vector_set_dimension_info(vect, NULL);
-    vector_getter(vect) = complex_vector_getter;
-    vector_setter(vect) = complex_vector_setter;
-    add_vector(sc, vect);
-    return(vect);
-  }
-}
+#define H_make_complex_vector "(make-complex-vector len (init 0.0)) returns a complex-vector."
+#define Q_make_complex_vector s7_make_signature(sc, 3, \
+                              sc->is_complex_vector_symbol, s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_complex_symbol)
+/* g_make_complex_vector migrated to s7_liii_vector.c */
 
 
 /* -------------------------------- make-int-vector -------------------------------- */
-static s7_pointer g_make_int_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_int_vector "(make-int-vector len (init 0)) returns an int-vector."
-  #define Q_make_int_vector s7_make_signature(sc, 3, sc->is_int_vector_symbol, \
-                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_integer_symbol)
-  s7_pointer size = car(args);
-  s7_int len;
-
-  if ((is_pair(cdr(args))) ||
-      (!s7_is_integer(size)))
-    {
-      s7_pointer init;
-      if (is_pair(cdr(args)))
-	{
-	  init = cadr(args);
-	  if (!s7_is_integer(init))
-	    return(method_or_bust(sc, init, sc->make_int_vector_symbol, args, sc->type_names[T_INTEGER], 2));
-	}
-      else init = int_zero;
-      if (s7_is_integer(size))
-	len = s7_integer_clamped_if_gmp(sc, size);
-      else
-	{
-	  if (!is_pair(size))
-	    return(method_or_bust(sc, size, sc->make_int_vector_symbol, args, wrap_string(sc, "an integer or a list of integers", 32), 1));
-	  len = multivector_length(sc, size, sc->make_int_vector_symbol);
-	}
-      {
-	s7_pointer vect = make_vector_1(sc, len, NOT_FILLED, T_INT_VECTOR);
-	int_vector_fill(vect, s7_integer_clamped_if_gmp(sc, init));
-	if (!s7_is_integer(size))
-	  return(make_multivector(sc, vect, size));
-	add_vector(sc, vect);
-	return(vect);
-      }}
-  len = s7_integer_clamped_if_gmp(sc, size);
-  if (len < 0)
-    out_of_range_error_nr(sc, sc->make_int_vector_symbol, int_one, size, it_is_negative_string);
-  if (len > sc->max_vector_length)
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-int-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 79),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-  {
-    block_t *arr = mallocate_vector(sc, len * sizeof(s7_int));
-    s7_pointer vect;
-    new_cell(sc, vect, T_INT_VECTOR | T_SAFE_PROCEDURE);
-    vector_length(vect) = len;
-    vector_block(vect) = arr;
-    int_vector_ints(vect) = (s7_int *)block_data(arr);
-    if (len > 0)
-      {
-	if (STEP_8(len))
-	  memclr64((void *)int_vector_ints(vect), len * sizeof(s7_int));
-	else memclr((void *)int_vector_ints(vect), len * sizeof(s7_int));
-      }
-    vector_set_dimension_info(vect, NULL);
-    vector_getter(vect) = int_vector_getter;
-    vector_setter(vect) = int_vector_setter;
-    add_vector(sc, vect);
-    return(vect);
-  }
-}
+#define H_make_int_vector "(make-int-vector len (init 0)) returns an int-vector."
+#define Q_make_int_vector s7_make_signature(sc, 3, sc->is_int_vector_symbol, \
+                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_integer_symbol)
+/* g_make_int_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_int_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 {
@@ -24353,46 +23964,10 @@ static s7_pointer make_int_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 
 
 /* -------------------------------- make-byte-vector -------------------------------- */
-static s7_pointer g_make_byte_vector(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_byte_vector "(make-byte-vector len (byte 0)) makes a byte-vector of length len filled with byte."
-  #define Q_make_byte_vector s7_make_signature(sc, 3, sc->is_byte_vector_symbol, \
-                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_byte_symbol)
-  s7_int len = 0, ib = 0;
-  s7_pointer size = car(args), init;
-
-  if (!is_pair(size))
-    {
-      if (!s7_is_integer(size))
-	return(method_or_bust(sc, size, sc->make_byte_vector_symbol, args, sc->type_names[T_INTEGER], 1));
-      len = s7_integer_clamped_if_gmp(sc, size);
-      if (len < 0)
-	out_of_range_error_nr(sc, sc->make_byte_vector_symbol, int_one, size, it_is_negative_string);
-      if (len > sc->max_vector_length)
-	error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_3(sc, wrap_string(sc, "make-byte-vector first argument ~D is greater than (*s7* 'max-vector-length), ~D", 80),
-			 wrap_integer(sc, len), wrap_integer(sc, sc->max_vector_length)));
-    }
-  if (is_pair(cdr(args)))
-    {
-      init = cadr(args);
-      if (!s7_is_integer(init))
-	return(method_or_bust(sc, init, sc->make_byte_vector_symbol, args, sc->type_names[T_INTEGER], 2));
-      ib = s7_integer_clamped_if_gmp(sc, init);
-      if ((ib < 0) || (ib > 255))
-	wrong_type_error_nr(sc, sc->make_byte_vector_symbol, 2, init, an_unsigned_byte_string);
-    }
-  else init = int_zero;
-
- if (!s7_is_integer(size))
-   return(s7i_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_byte_vector_symbol));
- {
-   s7_pointer result = make_simple_byte_vector(sc, len);
-   if (len > 0) /* make-byte-vector 2) should return #u(0 0) so we always need to fill */
-     local_memset((void *)(byte_vector_bytes(result)), ib, len);
-   return(result);
- }
-}
+#define H_make_byte_vector "(make-byte-vector len (byte 0)) makes a byte-vector of length len filled with byte."
+#define Q_make_byte_vector s7_make_signature(sc, 3, sc->is_byte_vector_symbol, \
+                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_pair_symbol), sc->is_byte_symbol)
+/* g_make_byte_vector migrated to s7_liii_vector.c */
 
 static s7_pointer make_byte_vector_p_ii(s7_scheme *sc, s7_int len, s7_int init)
 {
@@ -24432,9 +24007,9 @@ s7_int s7_vector_rank(s7_pointer vec) {return((s7_int)(vector_rank(vec)));}
 
 
 /* -------------------------------- vector-typer -------------------------------- */
-/* g_vector_typer is now defined in s7_liii_vector.c */
+/* g_vector_typer, g_set_vector_typer migrated to s7_liii_vector.c */
 
-static s7_pointer g_set_vector_typer(s7_scheme *sc, s7_pointer args)
+s7_pointer s7i_set_vector_typer_1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer vec = car(args), typer = cadr(args);
 
@@ -24531,7 +24106,8 @@ static no_return void multivector_error_nr(s7_scheme *sc, const char *message, s
 		       s7_make_string_wrapper(sc, message), data));
 }
 
-static s7_pointer g_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   /* get the dimension bounds from data, make the new vector, fill it from data
    * dims needs to be s7_int so we can at least give correct error messages.
@@ -24585,7 +24161,8 @@ static s7_pointer g_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
   }
 }
 
-static s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_int_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_int_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;
@@ -24599,7 +24176,8 @@ static s7_pointer g_int_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
   return(s7_copy_1(sc, sc->int_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
-static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_byte_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_byte_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;
@@ -24613,7 +24191,8 @@ static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
-static s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_float_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_float_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;
@@ -24627,7 +24206,8 @@ static s7_pointer g_float_multivector(s7_scheme *sc, s7_int dims, s7_pointer dat
   return(s7_copy_1(sc, sc->float_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }
 
-static s7_pointer g_complex_multivector(s7_scheme *sc, s7_int dims, s7_pointer data)
+/* g_complex_multivector migrated to s7_liii_vector.c */
+s7_pointer s7i_complex_multivector_1(s7_scheme *sc, s7_int dims, s7_pointer data)
 {
   s7_pointer *src;
   s7_int len;
@@ -24849,14 +24429,15 @@ static s7_pointer univect_set(s7_scheme *sc, s7_pointer args, s7_pointer caller,
 
 
 /* -------------------------------- complex-vector-ref -------------------------------- */
-static s7_pointer g_complex_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_complex_vector_ref "(complex-vector-ref v ...) returns an element of the complex-vector v."
+#define Q_complex_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                             s7_make_signature(sc, 2, sc->is_complex_symbol, sc->is_complex_vector_symbol), \
+                             sc->is_complex_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_complex(s7_scheme *sc, s7_pointer args)
 {
-  #define H_complex_vector_ref "(complex-vector-ref v ...) returns an element of the complex-vector v."
-  #define Q_complex_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                               s7_make_signature(sc, 2, sc->is_complex_symbol, sc->is_complex_vector_symbol), \
-                               sc->is_complex_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->complex_vector_ref_symbol, T_COMPLEX_VECTOR));
 }
+/* g_complex_vector_ref migrated to s7_liii_vector.c */
 
 static s7_pointer complex_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index)
 {
@@ -24901,13 +24482,14 @@ static s7_pointer complex_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int
 
 
 /* -------------------------------- complex-vector-set! -------------------------------- */
-static s7_pointer g_complex_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_complex_vector_set "(complex-vector-set! v i ... value) sets the i-th element of the complex-vector v to value."
+#define Q_complex_vector_set s7_make_circular_signature(sc, 3, 4, \
+                             sc->is_complex_symbol, sc->is_complex_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_number_at_end_symbol)
+s7_pointer s7i_univect_set_complex(s7_scheme *sc, s7_pointer args)
 {
-  #define H_complex_vector_set "(complex-vector-set! v i ... value) sets the i-th element of the complex-vector v to value."
-  #define Q_complex_vector_set s7_make_circular_signature(sc, 3, 4, \
-                               sc->is_complex_symbol, sc->is_complex_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_number_at_end_symbol)
   return(univect_set(sc, args, sc->complex_vector_set_symbol, T_COMPLEX_VECTOR));
 }
+/* g_complex_vector_set migrated to s7_liii_vector.c */
 
 
 static s7_pointer complex_vector_set_p_pip(s7_scheme *sc, s7_pointer vec, s7_int index, s7_pointer value)
@@ -24964,14 +24546,15 @@ static s7_pointer complex_vector_set_chooser(s7_scheme *sc, s7_pointer func, int
 
 
 /* -------------------------------- float-vector-ref -------------------------------- */
-static s7_pointer g_float_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_float_vector_ref "(float-vector-ref v ...) returns an element of the float-vector v."
+#define Q_float_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                             s7_make_signature(sc, 2, sc->is_float_symbol, sc->is_float_vector_symbol), \
+                             sc->is_float_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_float(s7_scheme *sc, s7_pointer args)
 {
-  #define H_float_vector_ref "(float-vector-ref v ...) returns an element of the float-vector v."
-  #define Q_float_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                               s7_make_signature(sc, 2, sc->is_float_symbol, sc->is_float_vector_symbol), \
-                               sc->is_float_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->float_vector_ref_symbol, T_FLOAT_VECTOR));
 }
+/* g_float_vector_ref, g_fv_ref_3 migrated to s7_liii_vector.c */
 
 static inline s7_pointer float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index)
 {
@@ -24990,31 +24573,6 @@ static inline s7_pointer float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7
 }
 
 s7_pointer s7i_float_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(float_vector_ref_p_pp(sc, vec, index));}
-
-static s7_pointer g_fv_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer fv = car(args);
-  s7_pointer index;
-  s7_int ind1, ind2;
-  if (!is_float_vector(fv))
-    return(method_or_bust(sc, fv, sc->float_vector_ref_symbol, args, sc->type_names[T_FLOAT_VECTOR], 1));
-  if (vector_rank(fv) != 2)
-    return(univect_ref(sc, args, sc->float_vector_ref_symbol, T_FLOAT_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->float_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind1 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind1 < 0) || (ind1 >= vector_dimension(fv, 0)))
-    out_of_range_error_nr(sc, sc->float_vector_ref_symbol, int_two, index, (ind1 < 0) ? it_is_negative_string : it_is_too_large_string);
-  index = caddr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->float_vector_ref_symbol, args, sc->type_names[T_INTEGER], 3));
-  ind2 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind2 < 0) || (ind2 >= vector_dimension(fv, 1)))
-    out_of_range_error_nr(sc, sc->float_vector_ref_symbol, int_three, index, (ind2 < 0) ? it_is_negative_string : it_is_too_large_string);
-  ind1 = ind1 * vector_offset(fv, 0) + ind2;
-  return(make_real(sc, float_vector(fv, ind1)));
-}
 
 static inline s7_int ref_check_index(s7_scheme *sc, s7_pointer vec, s7_int index)
 {
@@ -25064,38 +24622,14 @@ static s7_pointer float_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32
 
 
 /* -------------------------------- float-vector-set! -------------------------------- */
-static s7_pointer g_float_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_float_vector_set "(float-vector-set! v i ... value) sets the i-th element of the float-vector v to value."
+#define Q_float_vector_set s7_make_circular_signature(sc, 3, 4, \
+                             sc->is_real_symbol, sc->is_float_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_real_at_end_symbol)
+s7_pointer s7i_univect_set_float(s7_scheme *sc, s7_pointer args)
 {
-  #define H_float_vector_set "(float-vector-set! v i ... value) sets the i-th element of the float-vector v to value."
-  #define Q_float_vector_set s7_make_circular_signature(sc, 3, 4, \
-                               sc->is_real_symbol, sc->is_float_vector_symbol, sc->is_integer_symbol, sc->is_integer_or_real_at_end_symbol)
   return(univect_set(sc, args, sc->float_vector_set_symbol, T_FLOAT_VECTOR));
 }
-
-static s7_pointer g_fv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer fv = car(args);
-  s7_pointer index;
-  if (!is_float_vector(fv))
-    return(method_or_bust(sc, fv, sc->float_vector_set_symbol, args, sc->type_names[T_FLOAT_VECTOR], 1));
-  if (vector_rank(fv) != 1)
-    return(univect_set(sc, args, sc->float_vector_set_symbol, T_FLOAT_VECTOR));
-  if (is_immutable_vector(fv))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->float_vector_set_symbol, fv));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->float_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  {
-    s7_int ind = s7_integer_clamped_if_gmp(sc, index);
-    s7_pointer value = caddr(args);
-    if ((ind < 0) || (ind >= vector_length(fv)))
-      out_of_range_error_nr(sc, sc->float_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-    if (!is_real(value))
-      return(method_or_bust(sc, value, sc->float_vector_set_symbol, args, sc->type_names[T_REAL], 3));
-    float_vector(fv, ind) = s7_real(value);
-    return(value);
-  }
-}
+/* g_float_vector_set, g_fv_set_3 migrated to s7_liii_vector.c */
 
 static s7_pointer float_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
@@ -25160,14 +24694,15 @@ static s7_pointer float_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_point
 }
 
 /* -------------------------------- int-vector-ref -------------------------------- */
-static s7_pointer g_int_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_int_vector_ref "(int-vector-ref v ...) returns an element of the int-vector v."
+#define Q_int_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                           s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_int_vector_symbol), \
+                           sc->is_int_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_int(s7_scheme *sc, s7_pointer args)
 {
-  #define H_int_vector_ref "(int-vector-ref v ...) returns an element of the int-vector v."
-  #define Q_int_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                             s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_int_vector_symbol), \
-                             sc->is_int_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->int_vector_ref_symbol, T_INT_VECTOR));
 }
+/* g_int_vector_ref, g_iv_ref_3 migrated to s7_liii_vector.c */
 
 static s7_int int_vector_ref_i_pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index) {return(int_vector(vec, index));}
 static s7_pointer int_vector_ref_p_pi_direct(s7_scheme *sc, s7_pointer vec, s7_int index) {return(make_integer(sc, int_vector(vec, index)));}
@@ -25217,31 +24752,6 @@ static inline s7_pointer int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_p
 
 s7_pointer s7i_int_vector_ref_p_pp(s7_scheme *sc, s7_pointer vec, s7_pointer index) {return(int_vector_ref_p_pp(sc, vec, index));}
 
-static s7_pointer g_iv_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer ivec = car(args);
-  s7_pointer index;
-  s7_int ind1, ind2;
-  if (!is_int_vector(ivec))
-    return(method_or_bust(sc, ivec, sc->int_vector_ref_symbol, args, sc->type_names[T_INT_VECTOR], 1));
-  if (vector_rank(ivec) != 2)
-    return(univect_ref(sc, args, sc->int_vector_ref_symbol, T_INT_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind1 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind1 < 0) || (ind1 >= vector_dimension(ivec, 0)))
-    out_of_range_error_nr(sc, sc->int_vector_ref_symbol, int_two, index, (ind1 < 0) ? it_is_negative_string : it_is_too_large_string);
-  index = caddr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_ref_symbol, args, sc->type_names[T_INTEGER], 3));
-  ind2 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind2 < 0) || (ind2 >= vector_dimension(ivec, 1)))
-    out_of_range_error_nr(sc, sc->int_vector_ref_symbol, int_three, index, (ind2 < 0) ? it_is_negative_string : it_is_too_large_string);
-  ind1 = ind1 * vector_offset(ivec, 0) + ind2;
-  return(make_integer(sc, int_vector(ivec, ind1)));
-}
-
 static s7_pointer int_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
   return((args == 2) ? sc->iv_ref_2 : ((args == 3) ? sc->iv_ref_3 : func));
@@ -25249,12 +24759,13 @@ static s7_pointer int_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t
 
 
 /* -------------------------------- int-vector-set! -------------------------------- */
-static s7_pointer g_int_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_int_vector_set "(int-vector-set! v i ... value) sets the i-th element of the int-vector v to value."
+#define Q_int_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_int_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_set_int(s7_scheme *sc, s7_pointer args)
 {
-  #define H_int_vector_set "(int-vector-set! v i ... value) sets the i-th element of the int-vector v to value."
-  #define Q_int_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_integer_symbol, sc->is_int_vector_symbol, sc->is_integer_symbol)
   return(univect_set(sc, args, sc->int_vector_set_symbol, T_INT_VECTOR));
 }
+/* g_int_vector_set, g_iv_set_3 migrated to s7_liii_vector.c */
 
 static s7_int int_vector_set_i_7pii_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index, s7_int x) {int_vector(vec, index) = x; return(x);}
 
@@ -25318,32 +24829,6 @@ static s7_pointer int_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer
   return(value);
 }
 
-static s7_pointer g_iv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index;
-  s7_int ind;
-  if (!is_int_vector(vec))
-    return(method_or_bust(sc, vec, sc->int_vector_set_symbol, args, sc->type_names[T_INT_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_set(sc, args, sc->int_vector_set_symbol, T_INT_VECTOR));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->int_vector_set_symbol, vec));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->int_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  {
-    s7_pointer value = caddr(args);
-    if (!s7_is_integer(value))
-      return(method_or_bust(sc, value, sc->int_vector_set_symbol, args, sc->type_names[T_INTEGER], 3));
-    int_vector(vec, ind) = s7_integer_clamped_if_gmp(sc, value);
-    return(value);
-  }
-}
-
 static s7_pointer int_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
   return((args == 3) ? sc->iv_set_3 : func);
@@ -25351,14 +24836,15 @@ static s7_pointer int_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t
 
 
 /* -------------------------------- byte-vector-ref -------------------------------- */
-static s7_pointer g_byte_vector_ref(s7_scheme *sc, s7_pointer args)
+#define H_byte_vector_ref "(byte-vector-ref vect index) returns the byte at the index-th element of the byte-vector vect"
+#define Q_byte_vector_ref s7_make_circular_signature(sc, 2, 3, \
+                            s7_make_signature(sc, 2, sc->is_byte_symbol, sc->is_byte_vector_symbol), \
+                            sc->is_byte_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_ref_byte(s7_scheme *sc, s7_pointer args)
 {
-  #define H_byte_vector_ref "(byte-vector-ref vect index) returns the byte at the index-th element of the byte-vector vect"
-  #define Q_byte_vector_ref s7_make_circular_signature(sc, 2, 3, \
-                              s7_make_signature(sc, 2, sc->is_byte_symbol, sc->is_byte_vector_symbol), \
-                              sc->is_byte_vector_symbol, sc->is_integer_symbol)
   return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
 }
+/* g_byte_vector_ref, g_bv_ref_2, g_bv_ref_3 migrated to s7_liii_vector.c */
 
 static s7_int byte_vector_ref_i_7pi(s7_scheme *sc, s7_pointer vec, s7_int index)
 {
@@ -25379,49 +24865,6 @@ static s7_int byte_vector_ref_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index
 /* byte_vector_ref_p_pi_direct migrated to s7_liii_vector.c */
 static s7_int byte_vector_ref_i_7pi_direct(s7_scheme *unused_sc, s7_pointer vec, s7_int index)    {return(byte_vector(vec, index));}
 
-static s7_pointer g_bv_ref_2(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index;
-  s7_int ind;
-  if (!is_byte_vector(vec))
-    return(method_or_bust(sc, vec, sc->byte_vector_ref_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  return(small_int(byte_vector(vec, ind)));
-}
-
-static s7_pointer g_bv_ref_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer iv = car(args);
-  s7_pointer index;
-  s7_int ind1, ind2;
-  if (!is_byte_vector(iv))
-    return(method_or_bust(sc, iv, sc->byte_vector_ref_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(iv) != 2)
-    return(univect_ref(sc, args, sc->byte_vector_ref_symbol, T_BYTE_VECTOR));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind1 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind1 < 0) || (ind1 >= vector_dimension(iv, 0)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_two, index, (ind1 < 0) ? it_is_negative_string : it_is_too_large_string);
-  index = caddr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_ref_symbol, args, sc->type_names[T_INTEGER], 3));
-  ind2 = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind2 < 0) || (ind2 >= vector_dimension(iv, 1)))
-    out_of_range_error_nr(sc, sc->byte_vector_ref_symbol, int_three, index, (ind2 < 0) ? it_is_negative_string : it_is_too_large_string);
-  ind1 = ind1 * vector_offset(iv, 0) + ind2;
-  return(small_int(byte_vector(iv, ind1)));
-}
-
 static s7_pointer byte_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)
 {
   return((args == 2) ? sc->bv_ref_2 : ((args == 3) ? sc->bv_ref_3 : func));
@@ -25429,12 +24872,13 @@ static s7_pointer byte_vector_ref_chooser(s7_scheme *sc, s7_pointer func, int32_
 
 
 /* -------------------------------- byte-vector-set -------------------------------- */
-static s7_pointer g_byte_vector_set(s7_scheme *sc, s7_pointer args)
+#define H_byte_vector_set "(byte-vector-set! vect index byte) sets the index-th element of the byte-vector vect to the integer byte"
+#define Q_byte_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_byte_symbol, sc->is_byte_vector_symbol, sc->is_integer_symbol)
+s7_pointer s7i_univect_set_byte(s7_scheme *sc, s7_pointer args)
 {
-  #define H_byte_vector_set "(byte-vector-set! vect index byte) sets the index-th element of the byte-vector vect to the integer byte"
-  #define Q_byte_vector_set s7_make_circular_signature(sc, 2, 3, sc->is_byte_symbol, sc->is_byte_vector_symbol, sc->is_integer_symbol)
   return(univect_set(sc, args, sc->byte_vector_set_symbol, T_BYTE_VECTOR));
 }
+/* g_byte_vector_set, g_bv_set_3 migrated to s7_liii_vector.c */
 
 static s7_int byte_vector_set_i_7pii(s7_scheme *sc, s7_pointer vec, s7_int index, s7_int byte)
 {
@@ -25466,35 +24910,6 @@ static s7_int byte_vector_set_i_7piii(s7_scheme *sc, s7_pointer vec, s7_int inde
     out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_three, wrap_integer(sc, index2), (index2 < 0) ? it_is_negative_string : it_is_too_large_string);
   byte_vector(vec, index2 + (index1 * vector_offset(vec, 0))) = byte;
   return(byte);
-}
-
-static s7_pointer g_bv_set_3(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer vec = car(args);
-  s7_pointer index, value;
-  s7_int ind;
-  if (!is_byte_vector(vec))
-    return(method_or_bust(sc, vec, sc->byte_vector_set_symbol, args, sc->type_names[T_BYTE_VECTOR], 1));
-  if (vector_rank(vec) != 1)
-    return(univect_set(sc, args, sc->byte_vector_set_symbol, T_BYTE_VECTOR));
-  if (is_immutable_vector(vec))
-    immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->byte_vector_set_symbol, vec));
-  index = cadr(args);
-  if (!s7_is_integer(index))
-    return(method_or_bust(sc, index, sc->byte_vector_set_symbol, args, sc->type_names[T_INTEGER], 2));
-  ind = s7_integer_clamped_if_gmp(sc, index);
-  if ((ind < 0) || (ind >= vector_length(vec)))
-    out_of_range_error_nr(sc, sc->byte_vector_set_symbol, int_two, index, (ind < 0) ? it_is_negative_string : it_is_too_large_string);
-  value = caddr(args);
-  if (!s7_is_integer(value))
-    return(method_or_bust(sc, value, sc->byte_vector_set_symbol, args, sc->type_names[T_INTEGER], 3));
-  {
-    s7_int byte = s7_integer_clamped_if_gmp(sc, value);
-    if ((byte < 0) || (byte > 255))
-      wrong_type_error_nr(sc, sc->byte_vector_set_symbol, 3, value, an_unsigned_byte_string);
-    byte_vector(vec, ind) = (uint8_t)byte;
-  }
-  return(value);
 }
 
 static s7_pointer byte_vector_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer unused_expr)

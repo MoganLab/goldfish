@@ -54,9 +54,19 @@
   (check (float-vector-ref v 1) => 42.0)
 ) ;let
 
+(let ((mv (make-float-vector '(2 3) 1.5)))
+  (check (float-vector? mv) => #t)
+  (check (vector-dimensions mv) => '(2 3))
+  (check (float-vector-ref mv 1 2) => 1.5)
+) ;let
+
 
 (check-catch 'wrong-type-arg (make-float-vector 'not-a-number))
 (check-catch 'wrong-type-arg (make-float-vector 3 'not-a-number))
+(check-catch 'out-of-range (make-float-vector -1))
+(check-catch 'out-of-range (make-float-vector -1 2.0))
+(check-catch 'wrong-number-of-args (make-float-vector))
+(check-catch 'wrong-number-of-args (make-float-vector 1 2.0 3))
 
 
 (check-report)

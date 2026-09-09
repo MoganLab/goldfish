@@ -37,7 +37,20 @@
     (check result => #(x b c))
   ) ;let
 ) ;let
+
+;; 特化向量连接测试
+(check (vector-append #u8(1 2) #u8(3 4)) => #u8(1 2 3 4))
+(check (vector-append (int-vector 1 2) (int-vector 3 4))
+  =>
+  (int-vector 1 2 3 4)
+) ;check
+(check (vector-append (float-vector 1.0) (float-vector 2.0 3.0))
+  =>
+  (float-vector 1.0 2.0 3.0)
+) ;check
+
 (check-catch 'wrong-type-arg (vector-append 'a))
 (check-catch 'wrong-type-arg (vector-append #(1) 'a))
+(check-catch 'wrong-type-arg (vector-append #(1) #(2) 'a))
 
 (check-report)

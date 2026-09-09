@@ -54,6 +54,18 @@
 (check (bytevector-u8-ref (string->utf8 "XYZ") 0) => 88)
 (check (bytevector-u8-ref (string->utf8 "XYZ") 1) => 89)
 (check (bytevector-u8-ref (string->utf8 "A") 0) => 65)
+
+;; 二维 bytevector 测试（覆盖 g_bv_ref_3）
+(let ((m (make-bytevector '(2 3) 77)))
+  (check (bytevector-u8-ref m 0 0) => 77)
+  (check (bytevector-u8-ref m 1 2) => 77)
+  (check-catch 'out-of-range (bytevector-u8-ref m -1 0))
+  (check-catch 'out-of-range (bytevector-u8-ref m 2 0))
+  (check-catch 'out-of-range (bytevector-u8-ref m 0 3))
+  (check-catch 'wrong-type-arg (bytevector-u8-ref m "0" 1))
+  (check-catch 'wrong-type-arg (bytevector-u8-ref m 0 "1"))
+) ;let
+
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (bytevector-u8-ref 123 0))
 (check-catch 'wrong-type-arg (bytevector-u8-ref "hello" 0))

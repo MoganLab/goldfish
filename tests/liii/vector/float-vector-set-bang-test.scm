@@ -78,5 +78,21 @@
   (check-catch 'out-of-range (foo v -1))
 ) ;let
 
+;; 二维 float-vector 赋值测试
+(let ((m (make-float-vector '(2 3) 0.0)))
+  (float-vector-set! m 0 1 12.5)
+  (float-vector-set! m 1 2 25.0)
+  (check (float-vector-ref m 0 1) => 12.5)
+  (check (float-vector-ref m 1 2) => 25.0)
+  (check-catch 'out-of-range (float-vector-set! m -1 0 1.0))
+  (check-catch 'out-of-range (float-vector-set! m 2 0 1.0))
+  (check-catch 'out-of-range (float-vector-set! m 0 3 1.0))
+) ;let
+
+;; 不可变 float-vector 检查
+(let ((v (immutable! (float-vector 1.0 2.0))))
+  (check-catch 'immutable-error (float-vector-set! v 0 3.0))
+) ;let
+
 
 (check-report)

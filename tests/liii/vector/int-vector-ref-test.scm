@@ -48,6 +48,17 @@
   (check (int-vector-ref v 2) => 99)
 ) ;let
 
+;; 二维 int-vector 读取测试（覆盖 g_iv_ref_3）
+(let ((m (make-int-vector '(2 3) 42)))
+  (check (int-vector-ref m 0 0) => 42)
+  (check (int-vector-ref m 1 2) => 42)
+  (check-catch 'out-of-range (int-vector-ref m -1 0))
+  (check-catch 'out-of-range (int-vector-ref m 2 0))
+  (check-catch 'out-of-range (int-vector-ref m 0 3))
+  (check-catch 'wrong-type-arg (int-vector-ref m "0" 1))
+  (check-catch 'wrong-type-arg (int-vector-ref m 0 "1"))
+) ;let
+
 
 (check-catch 'wrong-type-arg (int-vector-ref 'not-a-vector 0))
 (check-catch 'wrong-type-arg (int-vector-ref (vector 1 2 3) 0))

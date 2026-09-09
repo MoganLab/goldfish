@@ -38,6 +38,32 @@
   (vector-set! v 1 99)
   (check v => #(1 99 3))
 ) ;let
+
+;; 二维向量特化更新（覆盖 g_vector_set_4）
+(let ((m (make-vector '(2 3) 0)))
+  (vector-set! m 0 1 10)
+  (vector-set! m 1 2 20)
+  (check (vector-ref m 0 1) => 10)
+  (check (vector-ref m 1 2) => 20)
+  (check-catch 'out-of-range (vector-set! m -1 0 1))
+  (check-catch 'out-of-range (vector-set! m 2 0 1))
+  (check-catch 'out-of-range (vector-set! m 0 3 1))
+  (check-catch 'wrong-type-arg (vector-set! m "0" 1 2))
+  (check-catch 'wrong-type-arg (vector-set! m 0 "1" 2))
+) ;let
+
+;; 三维向量多维更新（覆盖 g_vector_set 多维分支）
+(let ((m (make-vector '(2 2 2) 0)))
+  (vector-set! m 1 0 1 99)
+  (check (vector-ref m 1 0 1) => 99)
+  (check-catch 'wrong-number-of-args (vector-set! m 1 0 1 2 3))
+) ;let
+
+;; 不可变向量检查
+(let ((v (immutable! (vector 1 2 3))))
+  (check-catch 'immutable-error (vector-set! v 0 10))
+) ;let
+
 (check-catch 'wrong-number-of-args (vector-set! #(1)))
 (check-catch 'wrong-number-of-args (vector-set! #(1) 0))
 (check-catch 'wrong-number-of-args (vector-set! #(1) 0 0 0))
