@@ -22535,16 +22535,7 @@ static s7_pointer g_list_append(s7_scheme *sc, s7_pointer args)
   return(tp);
 }
 
-static s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
-{
-  /* tack b onto the end of a without copying either -- 'a' is changed! */
-  s7_pointer p;
-  if (is_null(a)) return(b);
-  p = a;
-  while (is_not_null(cdr(p))) p = cdr(p);
-  set_cdr(p, b);
-  return(a);
-}
+/* append_in_place migrated to s7_liii_list.c */
 
 
 /* -------------------------------- vectors -------------------------------- */

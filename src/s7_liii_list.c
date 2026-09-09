@@ -1055,6 +1055,16 @@ s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
   return(make_list_p_pp(sc, s7_car(args), (s7_is_pair(s7_cdr(args))) ? s7_cadr(args) : s7_f(sc)));
 }
 
+s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
+{
+  s7_pointer p;
+  if (s7_is_null(sc, a)) return(b);
+  p = a;
+  while (!s7_is_null(sc, s7_cdr(p))) p = s7_cdr(p);
+  s7_set_cdr(p, b);
+  return(a);
+}
+
 s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
 {
   #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"
