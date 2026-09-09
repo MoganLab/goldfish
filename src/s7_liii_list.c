@@ -1065,6 +1065,57 @@ s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b)
   return(a);
 }
 
+s7_pointer s7_reverse(s7_scheme *sc, s7_pointer a)
+{
+  s7_pointer lst, p;
+  if (s7_is_null(sc, a)) return(a);
+  if (!s7_is_pair(s7_cdr(a)))
+    return((s7_is_null(sc, s7_cdr(a))) ? s7_cons(sc, s7_car(a), s7_nil(sc)) : s7_cons(sc, s7_cdr(a), s7_car(a)));
+
+  s7_pointer res = s7_cons(sc, s7_car(a), s7_nil(sc));
+  s7_gc_protect_via_stack(sc, res);
+  for (lst = s7_cdr(a), p = a; s7_is_pair(lst); lst = s7_cdr(lst), p = s7_cdr(p))
+    {
+      res = s7_cons(sc, s7_car(lst), res);
+      if (s7_is_pair(s7_cdr(lst)))
+        {
+          lst = s7_cdr(lst);
+          res = s7_cons(sc, s7_car(lst), res);
+        }
+      if (lst == p)
+        break;
+    }
+  if (!s7_is_null(sc, lst))
+    res = s7_cons(sc, lst, res);
+  s7_gc_unprotect_via_stack(sc, res);
+  return(res);
+}
+
+s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
+{
+  s7_pointer p, result;
+  if (s7_is_null(sc, list)) return(term);
+  p = list;
+  result = term;
+  while (true)
+    {
+      s7_pointer q = s7_cdr(p);
+      if (s7_is_null(sc, q))
+        {
+          s7_set_cdr(p, result);
+          return(p);
+        }
+      if ((s7_is_pair(q)) && (!s7_is_immutable(q)))
+        {
+          s7_set_cdr(p, result);
+          result = p;
+          p = q;
+        }
+      else return(s7_nil(sc));
+    }
+  return(result);
+}
+
 s7_pointer g_list_set_1(s7_scheme *sc, s7_pointer lst, s7_pointer args, int32_t arg_num)
 {
   #define H_list_set "(list-set! lst i ... val) sets the i-th element (0-based) of the list to val"

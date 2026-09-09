@@ -62,6 +62,7 @@ s7_pointer g_cons(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list(s7_scheme *sc, s7_pointer args);
 s7_pointer g_make_list(s7_scheme *sc, s7_pointer args);
 s7_pointer append_in_place(s7_scheme *sc, s7_pointer a, s7_pointer b);
+s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list);
 s7_pointer g_memq(s7_scheme *sc, s7_pointer args);
 s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args);
 s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args);

@@ -31666,29 +31666,7 @@ s7_pointer s7i_copy_1(s7_scheme *sc, s7_pointer caller, s7_pointer args)
 
 
 /* -------------------------------- reverse -------------------------------- */
-s7_pointer s7_reverse(s7_scheme *sc, s7_pointer a) /* just pairs */
-{
-  /* reverse list -- produce new list (other code assumes this function does not return the original!) */
-  s7_pointer lst, p;
-
-  if (is_null(a)) return(a);
-  if (!is_pair(cdr(a)))
-    return((is_null(cdr(a))) ? list_1(sc, car(a)) : cons(sc, cdr(a), car(a)));  /* don't return 'a' itself */
-  begin_temp(sc->y, list_1(sc, car(a)));
-  for (lst = cdr(a), p = a; is_pair(lst); lst = cdr(lst), p = cdr(p))
-    {
-      sc->y = cons(sc, car(lst), sc->y);
-      if (is_pair(cdr(lst)))
-	{
-	  lst = cdr(lst);
-	  sc->y = cons_unchecked(sc, car(lst), sc->y);
-	}
-      if (lst == p) /* this can take awhile to notice there's a cycle, but what does the caller expect? */
-	break;
-    }
-  sc->y = (is_null(lst)) ? sc->y : cons(sc, lst, sc->y);    /* ?? this means that (reverse '(1 2 . 3)) returns '(3 2 1) -- we used to return () here */
-  return_with_end_temp(sc->y);
-}
+/* s7_reverse migrated to s7_liii_list.c */
 
 /* s7_reverse sometimes tacks extra nodes on the end of a reversed circular list (it detects the cycle too late)
  *  (let ((lst (list 0))) (set! (cdr lst) lst) (reverse lst)) -> (#1=(0 . #1#) 0 0 0)
@@ -31827,30 +31805,7 @@ static s7_pointer reverse_p_p(s7_scheme *sc, s7_pointer obj)
 also accepts a string or vector argument."
 #define Q_reverse s7_make_signature(sc, 2, sc->is_sequence_symbol, sc->is_sequence_symbol)
 
-static s7_pointer any_list_reverse_in_place(s7_scheme *sc, s7_pointer term, s7_pointer list)
-{
-  s7_pointer p, result;
-  if (is_null(list)) return(term);
-  p = list;
-  result = term;
-  while (true)
-    {
-      s7_pointer q = cdr(p);
-      if (is_null(q))
-	{
-	  set_cdr(p, result);
-	  return(p);
-	}
-      if ((is_pair(q)) && (!is_immutable_pair(q)))
-	{
-	  set_cdr(p, result);
-	  result = p;
-	  p = q;
-	}
-      else return(sc->nil); /* improper or immutable */
-    }
-  return(result);
-}
+/* any_list_reverse_in_place migrated to s7_liii_list.c */
 
 static s7_pointer string_or_byte_vector_reverse_in_place(s7_scheme *sc, s7_pointer str)
 {
