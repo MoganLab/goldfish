@@ -280,4 +280,30 @@
 ;; 点对结构测试
 (check (memq 'center '(left center right top)) => '(center right top))
 (check (memq 'middle '(begin middle end)) => '(middle end))
+(check (memq 'a '(a b . c)) => '(a b . c))
+(check (memq 'b '(a b . c)) => '(b . c))
+(check (memq 'c '(a b . c)) => #f)
+
+;; 长度 2、3、4 及其倍数优化特化分支测试
+(check (memq 'y '(x y)) => '(y))
+(check (memq 'z '(x y)) => #f)
+(check (memq 'c '(a b c)) => '(c))
+(check (memq 'z '(a b c)) => #f)
+(check (memq 'd '(a b c d)) => '(d))
+(check (memq 'z '(a b c d)) => #f)
+(check (memq 'h '(a b c d e f g h)) => '(h))
+(check (memq 'z '(a b c d e f g h)) => #f)
+
+;; 环形列表检测
+(let ((lst (list 'p 'q 'r)))
+  (set-cdr! (cddr lst) lst)
+  (check (car (memq 'q lst)) => 'q)
+  (check (memq 'not-found lst) => #f))
+
+;; 错误处理测试
+(check-catch 'wrong-number-of-args (memq 'a))
+(check-catch 'wrong-number-of-args (memq 'a '(a) 'extra))
+(check-catch 'wrong-type-arg (memq 'a 123))
+(check-catch 'wrong-type-arg (memq 'a "string"))
+
 (check-report)
