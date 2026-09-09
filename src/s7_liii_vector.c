@@ -260,12 +260,7 @@ s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
         return(s7i_method_or_bust(sc, init, "make-complex-vector", args, "a number", 2));
       {
         s7_pointer vect = s7_make_complex_vector(sc, len, 0, NULL);
-        s7_complex z = s7i_to_c_complex(init);
-        if (len > 0 && (creal(z) != 0.0 || cimag(z) != 0.0))
-          {
-            s7_complex *complexes = s7_complex_vector_elements(vect);
-            for (s7_int i = 0; i < len; i++) complexes[i] = z;
-          }
+        s7_vector_fill(sc, vect, init);
         return(vect);
       }
     }
