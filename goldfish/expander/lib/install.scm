@@ -816,6 +816,7 @@
       base-library set-base-library! exp-library?
       exp-library-name exp-library-bindings set-exp-library-bindings!
       exp-library-ref exp-library-define!
+      exp-library-uses exp-library-ref-own exp-library-ref-at-phase
       binding? binding-kind binding-value make-binding
       lexical-binding? toplevel-binding? primitive-binding?
       transformer-binding? core-form-binding? module-form-binding?

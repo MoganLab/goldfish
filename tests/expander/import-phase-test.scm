@@ -112,4 +112,21 @@
 (check-true (pair? (syntax->datum (compile-fresh src7))))
 (delete-file src7)
 
+;; ===== 7. 暖恢复路径：缓存记录的原始 spec 经 restore 保留 level =====
+;; restore-library-cache 用记录里的原始 import spec 重建导入视图（捕获
+;; 记录存的正是原始 spec）；手工构造一条同构记录，断言重建的库带着
+;; level 门控（liii check 视图 level = 1，phase-0 不可见）。
+(define rec (list '(forp v) '()
+                  '(((goldfish) (for (liii check) expand)))
+                  '() '() '()))
+(define vlib (restore-library-cache rec))
+(let find ((uses (exp-library-uses vlib)))
+  (cond
+    ((null? uses) #f)
+    ((equal? '(liii check) (exp-library-name (caar uses)))
+     (check (cdar uses) => 1)
+     (check-false (exp-library-ref-at-phase vlib 'check-true 0))
+     (check-true (if (exp-library-ref-at-phase vlib 'check-true 1) #t #f)))
+    (else (find (cdr uses)))))
+
 (check-report)
