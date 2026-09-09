@@ -53,6 +53,9 @@ s7_pointer g_set_car(s7_scheme *sc, s7_pointer args);
 s7_pointer g_set_cdr(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_list_ref(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args);
+s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args);
 s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args);
 
 s7_pointer g_cons(s7_scheme *sc, s7_pointer args);

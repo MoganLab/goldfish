@@ -476,6 +476,31 @@ s7_pointer g_list_ref(s7_scheme *sc, s7_pointer args)
   return(s7_car(p));
 }
 
+s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
+{
+  if (s7_is_pair(s7_car(args))) return(s7_caar(args));
+  return(s7i_method_or_bust(sc, s7_car(args), "list-ref", args, "a pair", 1));
+}
+
+s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst)) return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if (!s7_is_pair(s7_cdr(lst)))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_cadr(lst));
+}
+
+s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_car(args);
+  if (!s7_is_pair(lst))
+    return(s7i_method_or_bust(sc, lst, "list-ref", args, "a pair", 1));
+  if ((!s7_is_pair(s7_cdr(lst))) || (!s7_is_pair(s7_cddr(lst))))
+    return(s7_out_of_range_error(sc, "list-ref", 2, s7_cadr(args), "it is too large"));
+  return(s7_caddr(lst));
+}
+
 s7_pointer g_list_tail(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer lst = s7_car(args);

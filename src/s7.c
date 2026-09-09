@@ -21465,11 +21465,7 @@ static s7_pointer list_set_chooser(s7_scheme *sc, s7_pointer func, int32_t args,
 
 /* car_p_p migrated to s7_liii_list.c */
 
-static s7_pointer g_list_ref_at_0(s7_scheme *sc, s7_pointer args)
-{
-  if (is_pair(car(args))) return(caar(args));
-  return(method_or_bust(sc, car(args), sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1)); /* 1=arg num if error */
-}
+/* g_list_ref_at_0 is now defined in s7_liii_list.c */
 
 #define H_set_car "(set-car! pair val) sets the pair's first element to val"
 #define Q_set_car s7_make_signature(sc, 3, sc->T, sc->is_pair_symbol, sc->T)
@@ -21523,13 +21519,7 @@ static Inline s7_pointer inline_set_cdr(s7_scheme *sc, s7_pointer lst, s7_pointe
 
 /* cadr_p_p is now defined in s7_scheme_cxr.c */
 
-static s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = car(args);
-  if (!is_pair(lst)) return(method_or_bust(sc, lst, sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1));
-  if (!is_pair(cdr(lst))) out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, cadr(args), it_is_too_large_string);
-  return(cadr(lst));
-}
+/* g_list_ref_at_1 is now defined in s7_liii_list.c */
 
 
 /* -------- cdar -------- */
@@ -21582,15 +21572,7 @@ static s7_pointer g_list_ref_at_1(s7_scheme *sc, s7_pointer args)
 
 /* caddr_p_p is now defined in s7_scheme_cxr.c */
 
-static s7_pointer g_list_ref_at_2(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = car(args);
-  if (!is_pair(lst))
-    return(method_or_bust(sc, lst, sc->list_ref_symbol, args, sc->type_names[T_PAIR], 1));
-  if ((!is_pair(cdr(lst))) || (!is_pair(cddr(lst))))
-    out_of_range_error_nr(sc, sc->list_ref_symbol, int_two, cadr(args), it_is_too_large_string);
-  return(caddr(lst));
-}
+/* g_list_ref_at_2 is now defined in s7_liii_list.c */
 
 /* -------- cdddr -------- */
 /* cdddr_p_p is now defined in s7_scheme_cxr.c */
