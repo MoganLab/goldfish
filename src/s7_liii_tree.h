@@ -50,10 +50,10 @@ s7_int tree_count_at_least(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_in
 #define H_tree_leaves "(tree-leaves tree) returns the number of leaves in the tree"
 #define Q_tree_leaves s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_list_symbol)
 
-#define H_tree_memq "(tree-memq obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
+#define H_tree_memq "(tree-memq? obj tree) is a tree-oriented version of memq, but returning #t if the object is in the tree."
 #define Q_tree_memq s7_make_signature(sc, 3, sc->is_boolean_symbol, sc->T, sc->is_list_symbol)
 
-#define H_tree_member "(tree-member obj tree [compare]) returns #t if obj is in tree, using compare (defaulting to equal?)"
+#define H_tree_member "(tree-member? obj tree [compare]) returns #t if obj is in tree, using compare (defaulting to equal?)"
 #define Q_tree_member s7_make_signature(sc, 4, sc->is_boolean_symbol, sc->T, sc->is_list_symbol, sc->is_procedure_symbol)
 
 #define H_tree_set_memq "(tree-set-memq symbols tree) returns #t if any of the list of symbols is in the tree"
