@@ -27,8 +27,8 @@
 (check (vector->string #(#\a #\b #\c)) => "abc")
 (check (vector->string #(#\1 #\2)) => "12")
 (check (string-length (vector->string #(#\x #\y #\z))) => 3)
-(check-catch 'wrong-type-arg (vector->string))
+(check-catch 'type-error (vector->string))
 (check (vector->string '()) => "")
-(check-catch 'wrong-type-arg (vector->string #(1 2)))
+(check-catch 'type-error (vector->string #(1 2)))
 
 (check-report)

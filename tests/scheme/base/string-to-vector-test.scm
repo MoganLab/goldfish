@@ -28,7 +28,7 @@
 (check (string->vector "12") => #(#\1 #\2))
 (check (vector-length (string->vector "xyz")) => 3)
 (check (vector-ref (string->vector "abc") 0) => #\a)
-(check-catch 'wrong-type-arg (string->vector))
+(check-catch 'type-error (string->vector))
 (check (string->vector '()) => #())
 (check (string->vector #(1 2)) => #(1 2))
 

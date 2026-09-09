@@ -36,7 +36,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出向量边界或start大于end时
-;; wrong-type-arg 当vec不是向量、start/end不是整数，或区间内含有非字符元素时
+;; type-error 当vec不是向量、start/end不是整数，或区间内含有非字符元素时
 
 
 (check (vector->string (vector #\0 #\1 #\2 #\3)) => "0123")
@@ -48,7 +48,7 @@
 (check (vector->string (vector #\0 #\1 #\2 #\3) 1 2) => "1")
 (check-catch 'out-of-range (vector->string (vector #\0 #\1 #\2 #\3) 2 10))
 (check (vector->string (vector 0 1 #\2 3 4) 2 3) => "2")
-(check-catch 'wrong-type-arg (vector->string (vector 0 1 #\2 3 4) 1 3))
+(check-catch 'type-error (vector->string (vector 0 1 #\2 3 4) 1 3))
 
 
 (check-report)

@@ -13,7 +13,7 @@
   (check (vector-typer v) => integer?)
   (vector-set! v 0 10)
   (check (vector-ref v 0) => 10)
-  (check-catch 'wrong-type-arg (vector-set! v 0 "not-int"))
+  (check-catch 'type-error (vector-set! v 0 "not-int"))
 ) ;let
 
 ;; 重置 vector-typer 为 #f
@@ -32,8 +32,8 @@
 (check (vector-typer (complex-vector 1.0+2.0i)) => number?)
 
 ;; 错误情况
-(check-catch 'wrong-type-arg (set! (vector-typer 'not-a-vector) integer?))
-(check-catch 'wrong-type-arg
+(check-catch 'type-error (set! (vector-typer 'not-a-vector) integer?))
+(check-catch 'type-error
   (let ((v (vector 1 2)))
     (set! (vector-typer v) "not-a-func")
   ) ;let

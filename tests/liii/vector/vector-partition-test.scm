@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当pred不是过程，或vec不是向量时
+;; type-error 当pred不是过程，或vec不是向量时
 
 
 (define (vector-partition->list pred v)
@@ -45,6 +45,8 @@
 (check (vector-partition->list even? #()) => '(#() 0))
 (check (vector-partition->list even? #(1 3 5 7 9)) => '(#(1 3 5 7 9) 0))
 (check (vector-partition->list even? #(1 3 4 7 8)) => '(#(4 8 1 3 7) 2))
+(check-catch 'type-error (vector-partition 'not-a-proc #(1 2 3)))
+(check-catch 'type-error (vector-partition even? 'not-a-vector))
 
 
 (check-report)

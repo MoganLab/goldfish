@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当vec不是complex-vector时
+;; type-error 当vec不是complex-vector时
 ;; out-of-range 当索引越界时
 
 
@@ -58,8 +58,8 @@
   (check-catch 'out-of-range (complex-vector-ref m -1 0))
   (check-catch 'out-of-range (complex-vector-ref m 2 0))
   (check-catch 'out-of-range (complex-vector-ref m 0 3))
-  (check-catch 'wrong-type-arg (complex-vector-ref m "0" 1))
-  (check-catch 'wrong-type-arg (complex-vector-ref m 0 "1"))
+  (check-catch 'type-error (complex-vector-ref m "0" 1))
+  (check-catch 'type-error (complex-vector-ref m 0 "1"))
 ) ;let
 
 
@@ -70,9 +70,9 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (complex-vector-ref 'not-a-vector 0))
-(check-catch 'wrong-type-arg (complex-vector-ref (vector 1.0+2.0i 3.0+4.0i) 0))
-(check-catch 'wrong-type-arg (complex-vector-ref (int-vector 1 2) 0))
+(check-catch 'type-error (complex-vector-ref 'not-a-vector 0))
+(check-catch 'type-error (complex-vector-ref (vector 1.0+2.0i 3.0+4.0i) 0))
+(check-catch 'type-error (complex-vector-ref (int-vector 1 2) 0))
 (check-catch 'out-of-range
   (complex-vector-ref (complex-vector 1.0+2.0i 3.0+4.0i) 5)
 ) ;check-catch

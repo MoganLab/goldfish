@@ -49,8 +49,8 @@
   (float-vector 1.0 2.0 3.0)
 ) ;check
 
-(check-catch 'wrong-type-arg (vector-append 'a))
-(check-catch 'wrong-type-arg (vector-append #(1) 'a))
-(check-catch 'wrong-type-arg (vector-append #(1) #(2) 'a))
+(check-catch 'type-error (vector-append 'a))
+(check-catch 'type-error (vector-append #(1) 'a))
+(check-catch 'type-error (vector-append #(1) #(2) 'a))
 
 (check-report)

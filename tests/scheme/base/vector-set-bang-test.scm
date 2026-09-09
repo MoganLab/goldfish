@@ -48,8 +48,8 @@
   (check-catch 'out-of-range (vector-set! m -1 0 1))
   (check-catch 'out-of-range (vector-set! m 2 0 1))
   (check-catch 'out-of-range (vector-set! m 0 3 1))
-  (check-catch 'wrong-type-arg (vector-set! m "0" 1 2))
-  (check-catch 'wrong-type-arg (vector-set! m 0 "1" 2))
+  (check-catch 'type-error (vector-set! m "0" 1 2))
+  (check-catch 'type-error (vector-set! m 0 "1" 2))
 ) ;let
 
 ;; 三维向量多维更新（覆盖 g_vector_set 多维分支）
@@ -67,8 +67,8 @@
 (check-catch 'wrong-number-of-args (vector-set! #(1)))
 (check-catch 'wrong-number-of-args (vector-set! #(1) 0))
 (check-catch 'wrong-number-of-args (vector-set! #(1) 0 0 0))
-(check-catch 'wrong-type-arg (vector-set! '() 0 'a))
-(check-catch 'wrong-type-arg (vector-set! #(1) 'a 'b))
+(check-catch 'type-error (vector-set! '() 0 'a))
+(check-catch 'type-error (vector-set! #(1) 'a 'b))
 (check-catch 'out-of-range (vector-set! #() 0 'a))
 (check-catch 'out-of-range (vector-set! #(a) 1 'b))
 (check-catch 'out-of-range (vector-set! #(a b) -1 'c))

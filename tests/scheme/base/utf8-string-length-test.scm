@@ -34,6 +34,6 @@
 ;; 韩文测试
 (check (utf8-string-length "안녕하세요") => 5)
 ;; 错误测试
-(check-catch 'wrong-type-arg (utf8-string-length 123))
-(check-catch 'wrong-type-arg (utf8-string-length 'symbol))
+(check-catch 'type-error (utf8-string-length 123))
+(check-catch 'type-error (utf8-string-length 'symbol))
 (check-report)

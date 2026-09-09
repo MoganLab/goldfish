@@ -1404,7 +1404,7 @@ struct s7_scheme {
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
              unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
-             wrong_number_of_args_symbol, wrong_type_arg_symbol;
+             wrong_number_of_args_symbol, wrong_type_arg_symbol, type_error_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
   s7_pointer  byte_vector_signature, c_object_signature, float_vector_signature, hash_table_signature, int_vector_signature,

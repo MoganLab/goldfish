@@ -30,8 +30,8 @@
 (check (make-vector 2 'x) => #(x x))
 (check (make-vector 1 42) => #(42))
 (check-catch 'wrong-number-of-args (make-vector))
-(check-catch 'wrong-type-arg (make-vector -1))
-(check-catch 'wrong-type-arg (make-vector 'a))
-(check-catch 'wrong-type-arg (make-vector 1.5))
+(check-catch 'type-error (make-vector -1))
+(check-catch 'type-error (make-vector 'a))
+(check-catch 'type-error (make-vector 1.5))
 
 (check-report)

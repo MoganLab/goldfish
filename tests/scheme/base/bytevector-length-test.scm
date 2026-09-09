@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是字节向量时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。

@@ -34,7 +34,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当k超出向量边界时
-;; wrong-type-arg 当vec不是向量，或k不是整数时
+;; type-error 当vec不是向量，或k不是整数时
 
 
 (let ((v #(1 2 3)))
@@ -48,6 +48,10 @@
   (vector-set! v 3 'y)
   (check v => #(x b c y))
 ) ;let
+
+
+(check-catch 'type-error (vector-set! 'not-a-vector 0 42))
+(check-catch 'type-error (vector-set! (vector 1 2 3) 'not-an-integer 42))
 
 
 (let ((v #(42)))

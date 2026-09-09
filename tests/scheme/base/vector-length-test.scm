@@ -29,7 +29,7 @@
 (check (vector-length (vector 'a 'b 'c 'd)) => 4)
 (check-catch 'wrong-number-of-args (vector-length))
 (check-catch 'wrong-number-of-args (vector-length #(1) #(2)))
-(check-catch 'wrong-type-arg (vector-length '()))
-(check-catch 'wrong-type-arg (vector-length "abc"))
+(check-catch 'type-error (vector-length '()))
+(check-catch 'type-error (vector-length "abc"))
 
 (check-report)

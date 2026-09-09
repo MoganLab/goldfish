@@ -35,7 +35,7 @@
 (check (computation-environment-ref env-1 var-x) => 100)
 (check (computation-environment-ref env-1 var-y) => 200)
 
-(check-catch 'wrong-type-arg (computation-environment-ref 'not-env var-x))
+(check-catch 'type-error (computation-environment-ref 'not-env var-x))
 
 
 

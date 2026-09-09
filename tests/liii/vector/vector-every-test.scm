@@ -30,12 +30,14 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当pred不是过程，或vec不是向量时
+;; type-error 当pred不是过程，或vec不是向量时
 
 
 (check (vector-every odd? #()) => #t)
 (check (vector-every odd? #(1 3 5 7 9)) => #t)
 (check (vector-every odd? #(1 3 4 7 8)) => #f)
+(check-catch 'type-error (vector-every 'not-a-proc #(1 3 5)))
+(check-catch 'type-error (vector-every odd? 'not-a-vector))
 
 
 (check-report)

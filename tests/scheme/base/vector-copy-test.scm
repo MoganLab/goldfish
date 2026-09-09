@@ -39,8 +39,8 @@
     (check copy => #(x b c))
   ) ;let
 ) ;let
-(check-catch 'wrong-type-arg (vector-copy))
-(check-catch 'wrong-type-arg (vector-copy '()))
+(check-catch 'type-error (vector-copy))
+(check-catch 'type-error (vector-copy '()))
 (check-catch 'out-of-range (vector-copy #(a) 2))
 (check-catch 'out-of-range (vector-copy #(a) -1))
 

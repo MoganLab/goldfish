@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当k不是合法整数或fill不是复数时
+;; type-error 当k不是合法整数或fill不是复数时
 
 
 (check-true (complex-vector? (make-complex-vector 0)))
@@ -65,8 +65,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (make-complex-vector 'not-a-number))
-(check-catch 'wrong-type-arg (make-complex-vector 3 'not-a-complex))
+(check-catch 'type-error (make-complex-vector 'not-a-number))
+(check-catch 'type-error (make-complex-vector 3 'not-a-complex))
 (check-catch 'out-of-range (make-complex-vector -1))
 (check-catch 'out-of-range (make-complex-vector -1 1.0+1.0i))
 (check-catch 'wrong-number-of-args (make-complex-vector))
