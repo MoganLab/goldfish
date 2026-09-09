@@ -182,4 +182,22 @@
 ;; 附加的列表操作场景测试
 (check (list-ref '(apple banana cherry date elderberry) 2) => 'cherry)
 (check (list-ref (list 'symbol 42 #t "string" 3.14) 3) => "string")
+;; 常量索引 0, 1, 2 特化测试（覆盖 g_list_ref_at_0/1/2 分支）
+(check (list-ref '(10 20 30) 0) => 10)
+(check (list-ref '(10 20 30) 1) => 20)
+(check (list-ref '(10 20 30) 2) => 30)
+(check (list-ref '(first) 0) => 'first)
+(check (list-ref '(first second) 1) => 'second)
+(check (list-ref '(first second third) 2) => 'third)
+(check-catch 'wrong-type-arg (list-ref '() 0))
+(check-catch 'wrong-type-arg (list-ref '() 1))
+(check-catch 'wrong-type-arg (list-ref '() 2))
+(check-catch 'wrong-type-arg (list-ref 42 0))
+(check-catch 'wrong-type-arg (list-ref 42 1))
+(check-catch 'wrong-type-arg (list-ref 42 2))
+(check-catch 'out-of-range (list-ref '(first) 1))
+(check-catch 'out-of-range (list-ref '(first) 2))
+(check-catch 'out-of-range (list-ref '(first second) 2))
+(check-catch 'out-of-range (list-ref '(a . b) 2))
+
 (check-report)
