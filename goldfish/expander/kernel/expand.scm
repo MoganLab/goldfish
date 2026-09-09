@@ -110,13 +110,13 @@
             ;; bare core references (lambda/letrec*/...); those resolve
             ;; against the base substrate directly.
             ;;
-            ;; Expand-time region bindings (the unit's region library,
-            ;; see call-with-fresh-expand-unit) are visible only at
-            ;; phase >= 1: sibling transformer bodies resolve them here
-            ;; by source name (their store scopes do not line up across
-            ;; the region boundary, and env entries do not survive
-            ;; context-return).  Phase-0 references miss, so no
-            ;; session-local gensym leaks into a cached artifact.
+            ;; Expand-time region bindings (the per-phase region stores,
+            ;; see call-with-fresh-expand-unit) resolve in the store for
+            ;; the CURRENT phase first, then fall back to the other
+            ;; stores (single-store era compatibility: a helper from any
+            ;; nesting level stays visible to surrounding transformer
+            ;; code).  Phase-0 references miss, so no session-local
+            ;; gensym leaks into a cached artifact.
             ;; Imported views are gated by their R7RS `for' levels
             ;; (run = everywhere, expand = phase >= 1); own defines are
             ;; phase-blind (a transformer body may call a sibling
@@ -129,8 +129,8 @@
                                   lib (syntax-form stx) (context-phase ctx)))))
                   (if (or found (zero? (context-phase ctx)))
                     (values name found)
-                    (values name (exp-library-ref-own (current-region-library)
-                                                     (syntax-form stx)))))
+                    (values name (region-lookup (context-phase ctx)
+                                                (syntax-form stx)))))
                 (let ((bl (base-library)))
                   (values name (and bl (exp-library-ref-own bl name))))))))))
 

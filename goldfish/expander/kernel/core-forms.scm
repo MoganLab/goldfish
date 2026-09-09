@@ -532,46 +532,81 @@
 ;;; Compilation-unit dynamic extent.
 ;;;
 ;;; A compilation unit (one program/library/boot file compile, one file
-;;; load, one eval) binds a fresh expand-time environment and a fresh
-;;; region library via call-with-fresh-expand-unit:
+;;; load, one eval) binds a fresh expand-time environment and fresh
+;;; region libraries via call-with-fresh-expand-unit:
 ;;;   expand env     -- an s7 inlet chained to the-expander-library, so
 ;;;      the expander API stays a live view; region defines and
 ;;;      transformer procedures evaluate here, hence same-named gensyms
 ;;;      from different units never share a binding.
-;;;   region library -- the exp-library holding the unit's phase+1
-;;;      (eval-when (expand) / begin-for-syntax) value bindings,
-;;;      consulted only at phase >= 1 (see resolve-identifier).
+;;;   region libraries -- one exp-library per HOME phase, holding that
+;;;      phase's (eval-when (expand) / begin-for-syntax) value
+;;;      definitions; a store at phase k is consulted only at phase k
+;;;      (see resolve-identifier), so same-named helpers at different
+;;;      nesting levels do not collide and a deeper store does not leak
+;;;      into a shallower expansion.  Created on demand: nesting depth
+;;;      is unbounded.
 ;;; Leaf entry points outside any unit (expand-eval, the REPL) inherit
-;;; the shared roots: the-expander-library and *boot-region-library*.
+;;; the shared roots: the-expander-library and the boot region stores.
 
 (define *unit-expand-env* #f)
-(define *unit-region-library* #f)
+(define *unit-region-libraries* #f)
 
-(define *boot-region-library* (make-exp-library '(expand-region)))
+(define *boot-region-libraries* '())
 
 (define-public (current-expand-env)
   (or *unit-expand-env* the-expander-library))
 
-(define-public (current-region-library)
-  (or *unit-region-library* *boot-region-library*))
+;; The active store assoc: the unit's, else the boot one.  Both grow on
+;; demand (current-region-library-at); a unit's assoc is discarded with
+;; its dynamic extent.
+(define (*region-stores*)
+  (or *unit-region-libraries* *boot-region-libraries*))
+
+(define-public (current-region-library-at ph)
+  ;; The region library for home phase PH.  A define evaluated at
+  ;; context phase ph-1 (eval-when (expand) / begin-for-syntax nesting)
+  ;; registers here and resolves at phase ph first.
+  (let* ((hit (assv ph (*region-stores*))))
+    (or (and hit (cdr hit))
+        (let ((lib (make-exp-library `(expand-region ,ph))))
+          (if *unit-region-libraries*
+            (set! *unit-region-libraries*
+                  (cons (cons ph lib) *unit-region-libraries*))
+            (set! *boot-region-libraries*
+                  (cons (cons ph lib) *boot-region-libraries*)))
+          lib))))
+
+(define-public (region-lookup ph name)
+  ;; Resolve an expand-time binding for a phase-ph expansion: the
+  ;; home-phase store first (same-named helpers at different nesting
+  ;; levels stay distinct), then the other stores as a compatibility
+  ;; fallback -- single-store era semantics, where a helper from any
+  ;; nesting level stays visible to surrounding transformer code
+  ;; (Racket gates this strictly; deliberate divergence).
+  (let ((hit (exp-library-ref-own (current-region-library-at ph) name)))
+    (or hit
+        (let scan ((stores (*region-stores*)))
+          (if (null? stores)
+            #f
+            (or (exp-library-ref-own (cdr (car stores)) name)
+                (scan (cdr stores))))))))
 
 (define-public (call-with-fresh-expand-unit thunk)
-  ;; Bind the unit's expand env and region library for thunk's dynamic
+  ;; Bind the unit's expand env and region stores for thunk's dynamic
   ;; extent.  Old values are saved and restored, so units nest (a load
   ;; triggered during another unit's expansion is a unit of its own and
   ;; the outer one resumes afterwards).
   (let ((env (sublet the-expander-library))
-        (region-lib (make-exp-library '(expand-region)))
         (outer-env *unit-expand-env*)
-        (outer-region *unit-region-library*))
+        (outer-stores *unit-region-libraries*))
     (dynamic-wind
       (lambda ()
         (set! *unit-expand-env* env)
-        (set! *unit-region-library* region-lib))
+        (set! *unit-region-libraries* '()))
       thunk
       (lambda ()
         (set! *unit-expand-env* outer-env)
-        (set! *unit-region-library* outer-region)))))
+        (set! *unit-region-libraries* outer-stores)))))
 
 (define (eval-when-expand! exprs ctx . maybe-lib)
   ;; Evaluate each expr at phase+1 in the implementation environment,
@@ -604,16 +639,18 @@
           (cond
             ((eq? head 'define)
               (let*-values (((defs c1)
-                             ;; Register the expand-time definition in the
-                             ;; dedicated region library, NOT the enclosing
+                             ;; Register the expand-time definition in this
+                             ;; region's store (the phase the define resolves
+                             ;; at -- c is ctx-up, ph+1), NOT the enclosing
                              ;; one: the binding is visible to sibling
-                             ;; transformer bodies (phase+1 lookup) but
-                             ;; invisible at phase 0.  The enclosing
-                             ;; library is deliberately ignored here;
-                             ;; macros (define-syntax below) still
-                             ;; register there.
+                             ;; transformer bodies (same-phase lookup) but
+                             ;; invisible at phase 0 and at other phases.
+                             ;; The enclosing library is deliberately
+                             ;; ignored here; macros (define-syntax below)
+                             ;; still register there.
                              (expand-library-body (list (car es))
-                                                  (current-region-library)
+                                                  (current-region-library-at
+                                                   (context-phase c))
                                                   c)))
                 ;; Each def is a syntax object: lower individually (a raw
                 ;; (cons 'begin defs) spine mixes datums and syntax objects,
@@ -652,9 +689,9 @@
 ;;; Expand-time (eval-when (expand) / begin-for-syntax) definitions are
 ;;; session-local: their values exist only in the compiling unit's
 ;;; expand env.  No leak check is needed -- region bindings live in the
-;;; unit's region library, visible only at phase >= 1, so a phase-0
-;;; artifact cannot name them (such a reference fails loudly at
-;;; expansion time instead).
+;;; unit's per-phase region stores, visible only at their own phase, so
+;;; a phase-0 artifact cannot name them (such a reference fails loudly
+;;; at expansion time instead).
 
 (define (core-eval-when stx ctx)
   (let* ((form (syntax-form stx))
