@@ -202,4 +202,26 @@
 (delete-file src9a)
 (delete-file src9b)
 
+;; ===== 10. 任意相位：嵌套 begin-for-syntax 上的 phase-2 机制 =====
+;; 外层 begin-for-syntax 的上下文是 phase 1，其内层再 +1：deep 进
+;; store[2]，inner 的 RHS 在 phase 2 展开精确命中（21）。同名的
+;; phase-1 deep（store[1]）按精确相位优先：ph1use 折出 200，互不串值。
+;; （程序为 tests/expander/resources/ 下的真实文件，避免字符串括号
+;; 计数；compile-fresh = 全新严格程序库，各用例互不串染。）
+(define (compile-fresh src)
+  (compile-file-into src (make-program-library)))
+(let ((datum (syntax->datum
+              (compile-fresh "tests/expander/resources/ewx-phase2.scm"))))
+  (check (datum-contains? datum 21) => #t)
+  (check (datum-contains? datum 200) => #t))
+
+;; ===== 11. 无界深度：跨 store 回退联通 =====
+;; d2 在 store[2]，at2 的 RHS 在 phase 1 展开：精确未命中后经回退
+;; 从 store[2] 取到——(d2 10) = 20 折进顶层产物。
+(check (datum-contains?
+         (syntax->datum
+           (compile-fresh "tests/expander/resources/ewx-cross.scm"))
+         20)
+       => #t)
+
 (check-report)
