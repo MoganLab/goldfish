@@ -21309,12 +21309,9 @@ s7_pointer s7_make_list(s7_scheme *sc, s7_int len, s7_pointer init) {return(make
 
 /* make_list_p_pp migrated to s7_liii_list.c */
 
-static s7_pointer g_make_list(s7_scheme *sc, s7_pointer args)
-{
-  #define H_make_list "(make-list length (initial-element #f)) returns a list of 'length' elements whose value is 'initial-element'."
-  #define Q_make_list s7_make_signature(sc, 3, sc->is_proper_list_symbol, sc->is_integer_symbol, sc->T)
-  return(make_list_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : sc->F));
-}
+#define H_make_list "(make-list length (initial-element #f)) returns a list of 'length' elements whose value is 'initial-element'."
+#define Q_make_list s7_make_signature(sc, 3, sc->is_proper_list_symbol, sc->is_integer_symbol, sc->T)
+/* g_make_list is now defined in s7_liii_list.c */
 
 
 /* -------------------------------- list-ref -------------------------------- */
