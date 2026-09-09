@@ -69354,7 +69354,7 @@ static void op_safe_closure_sc(s7_scheme *sc)           /* sc->code: (close3 x 2
   sc->code = car(sc->code);
 }
 
-static void op_safe_closure_sc_o(s7_scheme *sc)         /* sc->code: (tree-member c d) */
+static void op_safe_closure_sc_o(s7_scheme *sc)         /* sc->code: (tree-member? c d) */
 {
   const s7_pointer func = opt1_lambda(sc->code);
   set_curlet(sc, update_let_with_two_slots(sc, closure_let(func), lookup(sc, cadr(sc->code)), opt2_con(sc->code)));
@@ -69446,7 +69446,7 @@ static void op_safe_closure_aa(s7_scheme *sc)             /* sc->code: (close3 1
   sc->code = car(body);
 }
 
-static inline void op_safe_closure_aa_o(s7_scheme *sc)    /* sc->code: (tree-member 1 '(2 3 (4 1) 5)) */
+static inline void op_safe_closure_aa_o(s7_scheme *sc)    /* sc->code: (tree-member? 1 '(2 3 (4 1) 5)) */
 {
   const s7_pointer args = cdr(sc->code);
   const s7_pointer func = opt1_lambda(sc->code);
@@ -80930,8 +80930,8 @@ in the file, or by the function."
   set_scope_safe(global_value(sc->apply_values_symbol));
 
   sc->tree_leaves_symbol =    defun("tree-leaves",   tree_leaves,    1, 0, false);
-  sc->tree_memq_symbol =      defun("tree-memq",     tree_memq,      2, 0, false);
-  sc->tree_member_symbol =    defun("tree-member",   tree_member,    2, 1, false);
+  sc->tree_memq_symbol =      defun("tree-memq?",    tree_memq,      2, 0, false);
+  sc->tree_member_symbol =    defun("tree-member?",  tree_member,    2, 1, false);
   sc->tree_set_memq_symbol =  defun("tree-set-memq", tree_set_memq,  2, 0, false);
   sc->tree_count_symbol =     defun("tree-count",    tree_count,     2, 1, false);
   sc->tree_is_cyclic_symbol = defun("tree-cyclic?",  tree_is_cyclic, 1, 0, false);

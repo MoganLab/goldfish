@@ -221,7 +221,7 @@ bool s7_tree_memq(s7_scheme *sc, s7_pointer sym, s7_pointer tree)
   if (sym == tree) return(true);
   if (!is_pair(tree)) return(false); /* this happens a lot */
   if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-memq: tree is cyclic: ~S", 29), tree));
+    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-memq?: tree is cyclic: ~S", 30), tree));
   return(tree_memq_1(sc, sym, tree));
 }
 
@@ -323,7 +323,7 @@ bool tree_member(s7_scheme *sc, s7_pointer obj, s7_pointer tree, s7_pointer comp
       return(find_and_apply_method(sc, tree, sc->tree_member_symbol, m_args) != sc->F);
     }
   if ((sc->safety > no_safety) && (tree_is_cyclic(sc, tree)))
-    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-member: tree is cyclic: ~S", 31), tree));
+    error_nr(sc, sc->wrong_type_arg_symbol, set_elist_2(sc, wrap_string(sc, "tree-member?: tree is cyclic: ~S", 32), tree));
   return tree_member_1(sc, obj, tree, compare);
 }
 
