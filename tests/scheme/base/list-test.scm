@@ -310,4 +310,27 @@
 (check (test-list-wrapper 1 2 3) => '(1 2 3))
 (check (test-list-wrapper 'a 'b 'c 'd) => '(a b c d))
 (check (test-list-wrapper) => '())
+;; 针对优化器特化 1、2、3 参数及 0、4 参数特化的验证
+(check (list) => '())
+(check (list 1) => '(1))
+(check (list 1 2) => '(1 2))
+(check (list 1 2 3) => '(1 2 3))
+(check (list 1 2 3 4) => '(1 2 3 4))
+
+;; 在局部绑定与表达式中调用优化特化
+(let ((x 10))
+  (check (list x) => '(10)))
+(let ((x 10) (y 20))
+  (check (list x y) => '(10 20)))
+(let ((x 10) (y 20) (z 30))
+  (check (list x y z) => '(10 20 30)))
+
+;; 验证作为闭包体内的返回值
+(define (make-triple a b c) (list a b c))
+(check (make-triple 'p 'q 'r) => '(p q r))
+(define (make-pair a b) (list a b))
+(check (make-pair 'x 'y) => '(x y))
+(define (make-single a) (list a))
+(check (make-single 'k) => '(k))
+
 (check-report)
