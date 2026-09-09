@@ -33,7 +33,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当应用于空列表时抛出。
+;; type-error 当应用于非 pair 对象（如空列表）时抛出。
 ;;
 ;; 示例
 ;; ----
@@ -48,7 +48,7 @@
 (check (first '(42)) => 42)
 
 
-(check-catch 'wrong-type-arg (first '()))
+(check-catch 'type-error (first '()))
 
 
 (check (first '(a)) => 'a)

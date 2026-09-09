@@ -39,12 +39,12 @@
 (check (any even? '(1 2 . 3)) => #t)
 
 
-;; 非列表参数，抛出 wrong-type-arg
-(check-catch 'wrong-type-arg (any even? 3))
+;; 非列表参数，抛出 type-error
+(check-catch 'type-error (any even? 3))
 
 
-;; 点列表：遍历到非正规尾部仍未命中，抛出 wrong-type-arg
-(check-catch 'wrong-type-arg (any odd? '(2 . 3)))
+;; 点列表：遍历到非正规尾部仍未命中，抛出 type-error
+(check-catch 'type-error (any odd? '(2 . 3)))
 
 
 (check-report)

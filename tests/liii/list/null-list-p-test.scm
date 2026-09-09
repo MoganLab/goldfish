@@ -32,4 +32,8 @@
 (check (null-list? '(1 2)) => #f)
 
 
+(check-catch 'type-error (null-list? 1))
+(check-catch 'type-error (null-list? "str"))
+
+
 (check-report)

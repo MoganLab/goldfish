@@ -43,7 +43,7 @@
 ;; 错误处理
 ;; -----
 ;; out-of-range 当k超过列表长度或k为负数时
-;; wrong-type-arg 当list不是列表或k不是整数类型时
+;; type-error 当list不是列表或k不是整数类型时
 
 
 (check (take-right '(1 2 3 4) 3) => '(2 3 4))
@@ -72,8 +72,8 @@
 (check-catch 'out-of-range (take-right '(1 2 3 4) 5))
 (check-catch 'out-of-range (take-right '(1 2 3 . 4) 4))
 (check-catch 'out-of-range (take-right '(1 2 3) -1))
-(check-catch 'wrong-type-arg (take-right "not a list" 2))
-(check-catch 'wrong-type-arg (take-right '(1 2 3) "not a number"))
+(check-catch 'type-error (take-right "not a list" 2))
+(check-catch 'type-error (take-right '(1 2 3) "not a number"))
 
 
 ;; take-right 与原列表共享节点：返回的是原列表的子列表

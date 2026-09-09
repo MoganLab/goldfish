@@ -67,8 +67,8 @@
   "abc"
 ) ;check
 
-;; 单列表点列表抛 wrong-type-arg
-(check-catch 'wrong-type-arg (fold-right + 0 '(1 2 . 3)))
+;; 单列表点列表抛 type-error
+(check-catch 'type-error (fold-right + 0 '(1 2 . 3)))
 
 ;; 单列表路径深层右折叠不消耗 Scheme 栈
 (let ((l (iota 100000)))

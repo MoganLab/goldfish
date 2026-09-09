@@ -55,4 +55,8 @@
 ) ;check
 
 
+(check-catch 'type-error (reduce-right 1 0 '(1 2 3)))
+(check-catch 'type-error (reduce-right + 0 1))
+
+
 (check-report)

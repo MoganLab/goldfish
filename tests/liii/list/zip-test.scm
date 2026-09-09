@@ -51,7 +51,11 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当任何参数不是列表类型时可能抛出
+;; type-error 当任何参数不是列表类型时抛出
+
+
+(check-catch 'type-error (zip 1 2))
+(check-catch 'type-error (zip '(1 2) 3))
 
 
 (check (zip '(1 2 3) '(a b c)) => '((1 a) (2 b) (3 c)))

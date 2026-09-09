@@ -28,4 +28,8 @@
 (check (tenth '(1 2 3 4 5 6 7 8 9 10)) => 10)
 
 
+(check-catch 'type-error (tenth '(1 2 3 4 5 6 7 8 9)))
+(check-catch 'type-error (tenth 'not-a-list))
+
+
 (check-report)

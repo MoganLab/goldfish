@@ -28,4 +28,8 @@
 (check (fourth '(1 2 3 4 5 6)) => 4)
 
 
+(check-catch 'type-error (fourth '(1 2 3)))
+(check-catch 'type-error (fourth 'not-a-list))
+
+
 (check-report)

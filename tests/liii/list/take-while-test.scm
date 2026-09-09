@@ -45,4 +45,8 @@
 (check (take-while (lambda (x) (< x 3)) '(1 2 3 0)) => '(1 2))
 
 
+(check-catch 'type-error (take-while 1 '(1 2 3)))
+(check-catch 'type-error (take-while even? 1))
+
+
 (check-report)

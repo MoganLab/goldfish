@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 如果 clist 不是列表类型。
+;; type-error 如果 clist 不是列表类型。
 ;;
 ;; 示例
 ;; ----
@@ -58,12 +58,12 @@
 (check (find even? '(1 2 . 3)) => 2)
 
 
-;; 非列表参数，抛出 wrong-type-arg
-(check-catch 'wrong-type-arg (find even? 3))
+;; 非列表参数，抛出 type-error
+(check-catch 'type-error (find even? 3))
 
 
-;; 点列表：遍历到非正规尾部仍未命中，抛出 wrong-type-arg
-(check-catch 'wrong-type-arg (find odd? '(2 . 3)))
+;; 点列表：遍历到非正规尾部仍未命中，抛出 type-error
+(check-catch 'type-error (find odd? '(2 . 3)))
 
 
 (check-report)

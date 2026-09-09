@@ -34,4 +34,8 @@
 ) ;check
 
 
+(check-catch 'type-error (partition 1 '(1 2 3)))
+(check-catch 'type-error (partition even? 1))
+
+
 (check-report)

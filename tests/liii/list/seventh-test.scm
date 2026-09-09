@@ -28,4 +28,8 @@
 (check (seventh '(1 2 3 4 5 6 7 8 9 10)) => 7)
 
 
+(check-catch 'type-error (seventh '(1 2 3 4 5 6)))
+(check-catch 'type-error (seventh 'not-a-list))
+
+
 (check-report)

@@ -28,4 +28,8 @@
 (check (eighth '(1 2 3 4 5 6 7 8 9 10)) => 8)
 
 
+(check-catch 'type-error (eighth '(1 2 3 4 5 6 7)))
+(check-catch 'type-error (eighth 'not-a-list))
+
+
 (check-report)

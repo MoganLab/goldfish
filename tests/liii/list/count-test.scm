@@ -77,21 +77,21 @@
 ;; 非法参数
 
 ;; pred 不是过程
-(check-catch 'wrong-type-arg (count 3 '(1 2)))
+(check-catch 'type-error (count 3 '(1 2)))
 
 ;; 非列表参数
-(check-catch 'wrong-type-arg (count even? 3))
+(check-catch 'type-error (count even? 3))
 
 ;; 点列表：count 总是遍历完整列表，到达非正规尾部即报错
-(check-catch 'wrong-type-arg (count even? '(1 2 . 3)))
-(check-catch 'wrong-type-arg (count even? '(2 4 . 6)))
+(check-catch 'type-error (count even? '(1 2 . 3)))
+(check-catch 'type-error (count even? '(2 4 . 6)))
 
 ;; 循环列表参数
-(check-catch 'wrong-type-arg (count even? (circular-list 1 2)))
+(check-catch 'type-error (count even? (circular-list 1 2)))
 
 ;; 多列表形式中的点列表和非列表参数
-(check-catch 'wrong-type-arg (count = '(1 2 3) '(1 2 . 3)))
-(check-catch 'wrong-type-arg (count = '(1 2 3) 3))
+(check-catch 'type-error (count = '(1 2 3) '(1 2 . 3)))
+(check-catch 'type-error (count = '(1 2 3) 3))
 
 
 (check-report)

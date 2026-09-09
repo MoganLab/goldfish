@@ -48,13 +48,7 @@
 (check (delete 1 (list)) => (list))
 
 
-(check (catch 'wrong-type-arg
-         (lambda () (check (delete 1 (list 1 2 3 4) 'not-pred) => 1))
-         (lambda args #t)
-       ) ;catch
-  =>
-  #t
-) ;check
+(check-catch 'type-error (delete 1 (list 1 2 3 4) 'not-pred))
 
 
 (check-report)

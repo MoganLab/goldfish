@@ -35,4 +35,8 @@
 (check (remove even? '(-2 -1 0 1 2)) => '(-1 1))
 
 
+(check-catch 'type-error (remove 1 '(1 2 3)))
+(check-catch 'type-error (remove even? 1))
+
+
 (check-report)

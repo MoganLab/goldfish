@@ -36,7 +36,7 @@
 (check (last '(b . c)) => 'b)
 
 
-(check-catch 'wrong-type-arg (last '()))
+(check-catch 'type-error (last '()))
 
 
 (check-report)

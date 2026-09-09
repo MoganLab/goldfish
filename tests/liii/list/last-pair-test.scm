@@ -45,7 +45,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当应用于空列表或参数不是点对/列表时抛出。
+;; type-error 当应用于空列表或参数不是点对/列表时抛出。
 
 
 (check (last-pair '(c)) => '(c))
@@ -82,8 +82,8 @@
 (check (last-pair '(() [] {})) => '({}))
 
 
-(check-catch 'wrong-type-arg (last-pair '()))
-(check-catch 'wrong-type-arg (last-pair 'not-a-list))
+(check-catch 'type-error (last-pair '()))
+(check-catch 'type-error (last-pair 'not-a-list))
 
 
 (check-report)
