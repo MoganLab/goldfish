@@ -21987,32 +21987,9 @@ static s7_pointer assoc_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7
 
 
 /* ---------------- member, memv, memq ---------------- */
-s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
-{
-  s7_pointer slow = lst;
-  while (true)
-    {
-      LOOP_4(if (obj == car(lst)) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-      slow = cdr(slow);
-      if (lst == slow) return(sc->F);
-    }
-  return(sc->F);
-}
-
-/* memq_p_pp migrated to s7_liii_list.c */
-
-static s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_memq "(memq obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memq uses eq?"
-  #define Q_memq sc->pl_tl
-
-  const s7_pointer obj = car(args), lst = cadr(args);
-  if (is_pair(lst))
-    return(s7_memq(sc, obj, lst));
-  if (is_null(lst))
-    return(sc->F);
-  return(method_or_bust_pp(sc, lst, sc->memq_symbol, obj, lst, a_list_string, 2));
-}
+/* s7_memq, g_memq migrated to s7_liii_list.c */
+#define H_memq "(memq obj list) looks for obj in list and returns the list from that point if it is found, otherwise #f. memq uses eq?"
+#define Q_memq sc->pl_tl
 
 /* I think (memq 'c '(a b . c)) should return #f because otherwise (memq () ...) would return the () at the end */
 /* if memq's list is a quoted list, it won't be changing, so we can tell ahead of time that it is a proper list, and what its length is */
@@ -22023,35 +22000,13 @@ s7_pointer s7i_memq_2_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {retur
 
 /* memq_3_p_pp migrated to s7_liii_list.c */
 
-static s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
-{
-  s7_pointer lst = cadr(args);
-  const s7_pointer obj = car(args);
-  while (true)
-    {
-      if (obj == car(lst)) return(lst); /* grandma gcc doesn't want me to include the next line here. */
-      lst = cdr(lst);
-      if (obj == car(lst)) return(lst);
-      lst = cdr(lst);
-      if (obj == car(lst)) return(lst);
-      lst = cdr(lst);
-      if (!is_pair(lst)) return(sc->F);
-    }
-  return(sc->F);
-}
+/* g_memq_3 migrated to s7_liii_list.c */
 
 /* memq_4_p_pp migrated to s7_liii_list.c */
 
 s7_pointer s7i_memq_4_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst) {return(memq_4_p_pp(sc, obj, lst));}
 
-static s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
-{
-  /* no circular list check needed in this case */
-  const s7_pointer obj = car(args);
-  s7_pointer lst = cadr(args);
-  while (true) {LOOP_4(if (obj == car(lst)) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));}
-  return(sc->F);
-}
+/* g_memq_any migrated to s7_liii_list.c */
 
 static s7_pointer memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_args, s7_pointer expr)
 {

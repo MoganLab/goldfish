@@ -1339,6 +1339,61 @@ s7_pointer assoc_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer p)
   return(s7i_assoc_1(sc, obj, p));
 }
 
+s7_pointer s7_memq(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
+{
+  s7_pointer slow = lst;
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+      slow = s7_cdr(slow);
+      if (lst == slow) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq(s7_scheme *sc, s7_pointer args)
+{
+  return(memq_p_pp(sc, s7_car(args), s7_cadr(args)));
+}
+
+s7_pointer g_memq_3(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer lst = s7_cadr(args);
+  const s7_pointer obj = s7_car(args);
+  while (true)
+    {
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (obj == s7_car(lst)) return(lst);
+      lst = s7_cdr(lst);
+      if (!s7_is_pair(lst)) return(s7_f(sc));
+    }
+  return(s7_f(sc));
+}
+
+s7_pointer g_memq_any(s7_scheme *sc, s7_pointer args)
+{
+  const s7_pointer obj = s7_car(args);
+  s7_pointer lst = s7_cadr(args);
+  while (true)
+    {
+      for (int32_t k = 0; k < 4; k++)
+        {
+          if (obj == s7_car(lst)) return(lst);
+          lst = s7_cdr(lst);
+          if (!s7_is_pair(lst)) return(s7_f(sc));
+        }
+    }
+  return(s7_f(sc));
+}
+
 s7_pointer memq_p_pp(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 {
   return((s7_is_pair(lst)) ? s7_memq(sc, obj, lst) :
