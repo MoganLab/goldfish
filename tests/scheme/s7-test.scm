@@ -136,4 +136,36 @@
 (check-catch 'unbound-variable (undefined-symbol-xyzab))
 (check-catch 'unbound-variable (undefined-symbol-xyzabc))
 
+(check (catch 'unbound-variable
+         (lambda () (eval '(tree-memq! 1 2)))
+         (lambda (tag info) (apply format #f info))
+       ) ;catch
+  =>
+  "unbound variable tree-memq! in (tree-memq! 1 2), perhaps tree-memq??"
+) ;check
+
+(check (catch 'unbound-variable
+         (lambda () (eval '(tree-member! 1 2)))
+         (lambda (tag info) (apply format #f info))
+       ) ;catch
+  =>
+  "unbound variable tree-member! in (tree-member! 1 2), perhaps tree-member??"
+) ;check
+
+(check (catch 'unbound-variable
+         (lambda () (eval '(tree-memx 1 2)))
+         (lambda (tag info) (apply format #f info))
+       ) ;catch
+  =>
+  "unbound variable tree-memx in (tree-memx 1 2)"
+) ;check
+
+(check (catch 'unbound-variable
+         (lambda () (let ((tree-memq? #t)) (eval '(tree-memq 1 2) (curlet))))
+         (lambda (tag info) (apply format #f info))
+       ) ;catch
+  =>
+  "unbound variable tree-memq in (tree-memq 1 2), perhaps tree-memq??"
+) ;check
+
 (check-report)
