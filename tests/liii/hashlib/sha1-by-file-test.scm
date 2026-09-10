@@ -1,4 +1,9 @@
-(import (liii check) (liii hashlib) (liii path))
+(import (liii check) (liii hashlib) (liii path) (liii os))
+
+;; NOTE: the temp path carries the pid -- sha1/md5/sha256-by-file tests
+;; share this directory and run in parallel workers under `gf test --all`.
+(define hashlib-tmp-file
+  (string-append "tests/resources/hashlib-test-temp-" (number->string (getpid)) ".txt"))
 
 
 (check-set-mode! 'report-failed)
@@ -29,7 +34,7 @@
 
 
 ;; ; 基本功能测试：文件哈希与字符串哈希一致
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt") (content "hello"))
+(let ((tmp-file hashlib-tmp-file) (content "hello"))
   (path-write-text tmp-file content)
   (check (sha1-by-file tmp-file) => (sha1 content))
   (delete-file tmp-file)
@@ -37,7 +42,7 @@
 
 
 ;; ; 边界测试：空文件
-(let ((tmp-file "tests/resources/hashlib-test-temp.txt"))
+(let ((tmp-file hashlib-tmp-file))
   (path-write-text tmp-file "")
   (check (sha1-by-file tmp-file) => (sha1 ""))
   (delete-file tmp-file)
