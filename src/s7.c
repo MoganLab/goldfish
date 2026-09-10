@@ -31336,6 +31336,12 @@ static void resize_hash_table(s7_scheme *sc, s7_pointer table)
   const s7_uint hash_mask = new_size - 1;
   block_t *new_block = (block_t *)callocate(sc, new_size * sizeof(hash_entry_t *));
   hash_entry_t **new_els = (hash_entry_t **)(block_data(new_block));
+  /* The mask leads the block during the move: between the mask update and
+     the block/elements updates a GC would mark this table with the new
+     (bigger) size and the old (smaller) block, walking off the old block's
+     end.  Keep the collector off until the table is consistent again.  */
+  const bool gc_was_off = sc->gc_off;
+  sc->gc_off = true;
   hash_table_mask(table) = hash_mask; /* was new_size - 1 14-Jun-21 */
   for (s7_uint i = 0; i < old_size; i++)
     {
@@ -31352,6 +31358,7 @@ static void resize_hash_table(s7_scheme *sc, s7_pointer table)
   liberate(sc, hash_table_block(table));
   hash_table_set_block(table, new_block);
   hash_table_elements(table) = new_els;
+  sc->gc_off = gc_was_off;
   hash_table_set_procedures(table, dproc);
   hash_table_entries(table) = entries;
 }
