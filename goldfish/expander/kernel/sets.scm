@@ -23,8 +23,8 @@
 (define (set-remove st element)
   ;; Scope sets are duplicate-free lists, so the first match is the only
   ;; match: stop the scan as soon as it is found.  expand-macro-once's
-  ;; output flip removes the intro scope that stx-ctx-add-then-flip just
-  ;; consed at the head of the set, so this is O(1) on the hot path.
+  ;; output flip removes the intro scope just consed at the head of the
+  ;; set, so this is O(1) on the hot path.
   (let loop ((rest st) (acc '()))
     (cond
       ((null? rest) (reverse acc))

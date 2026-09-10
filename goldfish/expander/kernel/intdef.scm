@@ -136,7 +136,7 @@
 (define (expand-body-finalize defs var-defs exprs ctx)
   (if (null? exprs)
       (expand-body-finalize defs var-defs
-                            (list (datum->syntax body-output-source '(if #f #f))) ctx)
+                            (list (datum->syntax body-output-source void-expr)) ctx)
       (let* ((scp-in (defs-scp-in defs))
              (ph (context-phase ctx))
              ;; Flatten var-defs: a plain define contributes (name init);

@@ -5,6 +5,11 @@
 ;;;
 ;;; Output is a plain core Scheme S-expression.
 
+;;; void-expr: the empty-body value.  Defined here (ahead of intdef /
+;;; core-forms / libbody / driver in the include order) so all body
+;;; finalizers share one constant instead of inlining '(if #f #f).
+(define void-expr '(if #f #f))
+
 (define (self-evaluating? x)
   (or (number? x) (boolean? x) (string? x) (char? x)
       (bytevector? x)))
@@ -492,7 +497,7 @@
                        (ctx4 (context-with-store ctx3 (store-def-env-set store addr-env env-new)))
                        (ctx5 (context-extend-env ctx4 name (make-transformer-binding proc))))
                   (set-current-expand-context! ctx5)
-                  (if #f #f)))))))))
+                  name))))))))
 
 (define-public (expand-box val)
   (let ((ctx (current-expand-context)))

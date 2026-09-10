@@ -26,11 +26,7 @@
 (define (stx-vector? x)
   (and (vector? x)
        (not (bytevector? x))
-       (not (and (positive? (vector-length x))
-                 (let ((d (vector-ref x 0)))
-                   (and (vector? d)
-                        (positive? (vector-length d))
-                        (eq? (vector-ref d 0) 'record-type)))))))
+       (not (record-instance? x))))
 
 ;;; Syntax-object contexts (phase-indexed scope sets)
 
@@ -81,14 +77,15 @@
 ;;; stx-ctx-mark-intro : ctx phase -> ctx
 ;;; Add *current-intro-scope* to phase 0 of ctx.  Template nodes created
 ;;; by instantiation at the current macro expansion are introduced
-;;; syntax; the eager output-flip model pins scp_i on the macro use's
-;;; phase (0 for ordinary, 1 for transformer-position templates -- the
-;;; latter stay unmarked here, matching the eager model's single-phase
-;;; flip and avoiding scope pollution across phases).  scp_i is freshly
-;;; allocated per macro use and hence guaranteed absent, so this is an
-;;; O(#phases) cons instead of set-add's membership scan.
+;;; syntax; the eager output-flip model pins scp_i on phase 0 (all live
+;;; callers pass 0; transformer-position templates stay unmarked by never
+;;; calling here).  `phase` is accepted for call-site uniformity and must
+;;; be 0.  scp_i is freshly allocated per macro use and hence guaranteed
+;;; absent, so this is an O(#phases) cons instead of set-add's scan.
 
 (define-public (stx-ctx-mark-intro ctx phase)
+  (unless (= phase 0)
+    (error "stx-ctx-mark-intro: phase must be 0" phase))
   (if (not *current-intro-scope*)
       ctx
       (let ((scp *current-intro-scope*))
@@ -102,25 +99,6 @@
                            e))
                      ctx)
                 (cons (cons 0 (list scp)) ctx)))))))
-
-;;; stx-ctx-add-then-flip : ctx phase scp-add scp-flip -> ctx
-;;; ADD then FLIP in one pass.  scp-add/scp-flip are assumed freshly
-;;; allocated (context-alloc-scope), hence guaranteed absent from the
-;;; phase's scope set, so both ops are O(1) conses instead of the
-;;; O(#scopes) membership scan in set-add/set-flip.  This is the hot
-;;; path of expand-macro-once's input preprocessing.
-
-(define (stx-ctx-add-then-flip ctx phase scp-add scp-flip)
-  (if (and (pair? ctx) (eq? (caar ctx) phase) (null? (cdr ctx)))
-    (list (cons phase (cons scp-flip (cons scp-add (cdar ctx)))))
-    (let ((entry (assoc phase ctx)))
-      (if entry
-          (map (lambda (e)
-                 (if (= (car e) phase)
-                     (cons phase (cons scp-flip (cons scp-add (cdr e))))
-                     e))
-               ctx)
-          (cons (cons phase (list scp-flip scp-add)) ctx)))))
 
 ;;; stx-ctx-add-unchecked : ctx phase scp -> ctx
 ;;; Single-scope ADD assuming scp is freshly allocated (absent): an
@@ -205,17 +183,6 @@
 (define-public (stx-flip-scope stx scp . maybe-phase)
   (stx-apply-ctx stx
                   (lambda (ctx ph) (stx-ctx-flip ctx ph scp))
-                  (if (null? maybe-phase) 0 (car maybe-phase))))
-
-;;; stx-add-then-flip : syntax scp-add scp-flip [phase] -> syntax
-;;; Single pass applying ADD then FLIP to every node's context.  The two
-;;; scope ops commute (both are set operations on the phase's scope set),
-;;; so one tree traversal replaces two (expand-macro-once flips the
-;;; input twice: add scp-u then flip scp-i).
-
-(define-public (stx-add-then-flip stx scp-add scp-flip . maybe-phase)
-  (stx-apply-ctx stx
-                  (lambda (ctx ph) (stx-ctx-add-then-flip ctx ph scp-add scp-flip))
                   (if (null? maybe-phase) 0 (car maybe-phase))))
 
 ;;; stx-add-and-flip-many : syntax scp-or-#f (list scp) [phase] -> syntax

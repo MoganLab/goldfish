@@ -4,7 +4,6 @@
   (export
     *base-library*
     base-library
-    biggest-subset
     binding-unstop
     body-def-head
     body-output-source
@@ -162,7 +161,6 @@
     set-subtract
     set-union
     stopped-form?
-    store-alloc
     store-alloc-box
     store-alloc-def-env
     store-alloc-name
@@ -173,16 +171,12 @@
     store-def-env-ref
     store-def-env-set
     store-empty
-    store-lookup
     store-resolve
     stx-add-scope
     stx-add-scope-unchecked
-    stx-add-then-flip
     stx-apply-ctx
     stx-cadr
     stx-ctx-add
-    stx-ctx-add-then-flip
-    stx-ctx-add-unchecked
     stx-ctx-at
     stx-ctx-empty
     stx-ctx-flip

@@ -77,7 +77,7 @@
       (let*-values (((defs ctx)
                      (expand-library-body (list stx) lib (initial-context))))
         (if (null? defs)
-          '(if #f #f)
+          void-expr
           (lower (car defs)))))))
 
 ;;; compile-file : string -> lowered core Scheme S-expression
@@ -101,7 +101,7 @@
     (if (null? exprs)
       (values (if (null? body)
                 (if (null? lib-defs)
-                  (wrap-expression '(if #f #f))
+                  (wrap-expression void-expr)
                   (wrap-expression (cons 'begin (reverse lib-defs))))
                 (wrap-expression
                   (cons 'begin (append (reverse lib-defs) (reverse body)))))

@@ -360,11 +360,9 @@
       (syntax->ir* stx ctx '()))
 
     (define (syntax->ir/sexp stx ctx)
-      ;; Historical alias: compile-syntax-defs / the cache path used to ask
-      ;; for "no lexical resolution" on top-level defs; the walk resolves
-      ;; lexical refs regardless (a top-level def has an empty env anyway),
-      ;; so the two entries now behave identically.
-      (syntax->ir* stx ctx '()))
+      ;; Compat alias: identical to syntax->ir (kept for the cache path
+      ;; and compiler wrapper call sites).
+      (syntax->ir stx ctx))
 
     (define (expand->ir expr)
       (let*-values (((stx ctx) (expand-expr (wrap-expression expr) (initial-context))))

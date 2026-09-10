@@ -8,9 +8,13 @@
   (unless (identifier? stx)
     (error msg stx)))
 
-(define (stx-cadr stx) (cadr (syntax-form stx)))
+(define (stx-cadr stx)
+  (let ((form (syntax-form stx)))
+    (if (and (pair? form) (pair? (cdr form)))
+        (cadr form)
+        (error "malformed syntax: expected (head arg ...)" stx))))
 
-(define void-expr '(if #f #f))
+;;; void-expr lives in expand.scm (earlier in the include order).
 
 ;;; lambda
 ;;; Parameter lists follow R7RS 7.3: proper (x y), rest-only x, or
@@ -152,7 +156,7 @@
         ;; statements in begin bodies; cf. the (expected (begin (define
         ;; ans 42) (expt ...))) idiom in liii/packrat's tests).
         (if (null? body)
-            (values (datum->syntax stx '(if #f #f)) ctx)
+            (values (datum->syntax stx void-expr) ctx)
             (let*-values (((body-sexp ctx1) (expand-body body ctx)))
               (values body-sexp ctx1))))))
 
@@ -453,23 +457,18 @@
            (eq? (if (syntax? h) (syntax-form h) h) 'unsyntax-splicing)))))
 
 (define (qs-datum stx elems ctx)
-  ;; elems: a proper datum list of template elements -> core sexp building
-  ;; the datum list, splicing (unsyntax-splicing e) via append.  Elements are
-  ;; wrapped as syntax with the template's lexical info for qs-template.
+  ;; elems: a proper datum list of template elements -> (values code ctx').
+  ;; Threads ctx like qq-list so unsyntax use-scopes/store updates survive.
   (if (null? elems)
-    (datum->syntax stx (list 'quote '()))
+    (values (datum->syntax stx (list 'quote '())) ctx)
     (let ((first (datum->syntax stx (car elems))))
       (if (qs-splicing-form? first)
-        ;; expand-expr returns (values sexp ctx): keep only the sexp.
-        (datum->syntax first
-          (list 'append
-                (let*-values (((sexp c) (expand-expr (stx-cadr first) ctx)))
-                  sexp)
-                (qs-datum stx (cdr elems) ctx)))
-        (datum->syntax first
-          (list 'cons
-                (qs-template first ctx)
-                (qs-datum stx (cdr elems) ctx)))))))
+        (let*-values (((sexp ctx1) (expand-expr (stx-cadr first) ctx))
+                      ((rest ctx2) (qs-datum stx (cdr elems) ctx1)))
+          (values (datum->syntax first (list 'append sexp rest)) ctx2))
+        (let*-values (((head ctx1) (qs-template first ctx))
+                      ((rest ctx2) (qs-datum stx (cdr elems) ctx1)))
+          (values (datum->syntax first (list 'cons head rest)) ctx2))))))
 
 (define (qs-template stx ctx)
   ;; template stx -> core sexp evaluating to a syntax object.
@@ -486,38 +485,34 @@
         (qlib (list 'quote (syntax-library stx))))
     (cond
       ((symbol? form)
-       (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib)))
+       (values (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib)) ctx))
       ((null? form)
-       (datum->syntax stx (list 'make-syntax (list 'quote '()) qctx qlib)))
+       (values (datum->syntax stx (list 'make-syntax (list 'quote '()) qctx qlib)) ctx))
       ((stx-vector? form)
-       (datum->syntax stx
-         (list 'make-syntax
-               (list 'list->vector
-                     (qs-datum stx (vector->list form) ctx))
-               qctx qlib)))
+       (let*-values (((inner ctx1) (qs-datum stx (vector->list form) ctx)))
+         (values (datum->syntax stx
+                   (list 'make-syntax (list 'list->vector inner) qctx qlib))
+                 ctx1)))
       ((pair? form)
        (let ((head (car form))
              (head-name (if (syntax? (car form)) (syntax-form (car form)) (car form))))
          (cond
            ((eq? head-name 'unsyntax)
-            ;; expand-expr returns (values sexp ctx): keep only the sexp.
-            (let*-values (((sexp c) (expand-expr (stx-cadr stx) ctx)))
-              sexp))
+            (expand-expr (stx-cadr stx) ctx))
            ((eq? head-name 'syntax)
-            (datum->syntax stx (list 'quote-syntax (cadr form))))
+            (values (datum->syntax stx (list 'quote-syntax (cadr form))) ctx))
            ((eq? head-name 'quasisyntax)
-            (datum->syntax stx (list 'quote-syntax form)))
+            (values (datum->syntax stx (list 'quote-syntax form)) ctx))
            (else
-            (datum->syntax stx
-              (list 'make-syntax
-                    (qs-datum stx form ctx)
-                    qctx qlib))))))
+            (let*-values (((inner ctx1) (qs-datum stx form ctx)))
+              (values (datum->syntax stx (list 'make-syntax inner qctx qlib))
+                      ctx1))))))
       (else
        ;; number/char/boolean/string...
-       (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib))))))
+       (values (datum->syntax stx (list 'make-syntax (list 'quote form) qctx qlib)) ctx)))))
 
 (define (core-quasisyntax stx ctx)
-  (values (qs-template (stx-cadr stx) ctx) ctx))
+  (qs-template (stx-cadr stx) ctx))
 
 ;;; eval-when : (eval-when (situation ...) expr ...) -> value
 ;;; R7RS 7.1.3.  situations are expand / load / eval (any subset):
@@ -713,7 +708,7 @@
       (if do-keep
         (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
           (values (datum->syntax stx (cons 'begin sexps)) ctx2))
-        (values (datum->syntax stx '(if #f #f)) ctx1)))))
+        (values (datum->syntax stx void-expr) ctx1)))))
 
 ;;; begin-for-syntax : (begin-for-syntax form ...) -> void
 ;;; Racket-style surface for the flat expand-time region: the forms are
@@ -725,7 +720,7 @@
   ;; The syntax's library picks the macro home (as in core-eval-when),
   ;; so nesting in a program / another region still works.
   (let*-values (((ctx1) (eval-when-expand! (cdr (syntax-form stx)) ctx (syntax-library stx))))
-    (values (datum->syntax stx '(if #f #f)) ctx1)))
+    (values (datum->syntax stx void-expr) ctx1)))
 
 ;;; Core form table
 

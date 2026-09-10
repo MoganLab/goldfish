@@ -152,7 +152,7 @@
       (if (transformer-binding? vbinding)
           (let*-values (((name ctx2) (context-alloc-name ctx id)))
             (exp-library-define! lib (syntax-form id) vbinding)
-            (values (cons name (datum->syntax val-stx '(if #f #f)))
+            (values (cons name (datum->syntax val-stx void-expr))
                     (context-extend-env ctx2 name vbinding)))
           (let* ((ph (context-phase ctx))
                  (scp-i (context-intro-scope ctx))

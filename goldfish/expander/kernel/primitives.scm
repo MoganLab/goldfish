@@ -30,7 +30,7 @@
      number->string string->number
      gcd lcm max min numerator denominator
      not boolean? boolean=?
-     exact-integer? integer?
+     exact-integer?
      cons car cdr set-car! set-cdr!
      caar cadr cdar cddr caaar caadr cadar caddr cdaar cdadr cddar cdddr
      caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr
@@ -73,7 +73,7 @@
      make-parameter
      catch throw with-exception-handler raise-continuable
      rootlet inlet curlet dynamic-let?
-     pi exact-integer-sqrt
+     pi
      port? input-port? output-port? textual-port? binary-port?
      input-port-open? output-port-open?
      current-input-port current-output-port current-error-port
