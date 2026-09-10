@@ -986,7 +986,7 @@ s7_pointer g_take(s7_scheme *sc, s7_pointer args)
     return list_type_error(sc, "take", k, "second argument must be an integer");
   s7_int n = s7_integer(k);
   if (n < 0)
-    return list_type_error(sc, "take", k, "second argument must be a non-negative integer");
+    return(s7_out_of_range_error(sc, "take", 2, k, "it is negative"));
   if (!s7_is_pair(lst) && !s7_is_null(sc, lst))
     return list_type_error(sc, "take", lst, "first argument must be a list");
   if (n == 0) return(s7_nil(sc));

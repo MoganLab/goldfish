@@ -71,7 +71,7 @@
 (check (take (iota 10) 5) => '(0 1 2 3 4))
 
 
-(check-catch 'type-error (take '(1 2 3) -1))
+(check-catch 'out-of-range (take '(1 2 3) -1))
 (check-catch 'type-error (take "not a list" 2))
 (check-catch 'type-error (take '(1 2 3) "not a number"))
 
