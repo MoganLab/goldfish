@@ -101,26 +101,32 @@
         ((and (eq? (caar uses) view) (= (cdar uses) level)) #f)
         (else (scan (cdr uses)))))))
 
-;; exp-library-ref-strict : lib name -> binding/#f
-;; What a program library sees: its own defines plus its imports, never
-;; the ambient base (R7RS 5.1: a program's environment is exactly its
-;; imports).  Used by resolve-identifier for program libraries.
-(define (exp-library-ref-strict lib name)
-  (let ((r (or (exp-library-ref-own lib name)
-               (exp-library-use-ref lib name))))    r))
+;; own-binding-visible-at-phase? : binding phase -> bool
+;; Own bindings are phase-scoped by kind (Racket-consistent): value
+;; (toplevel) definitions live at phase 0; macro (transformer) bindings
+;; are dispatch keywords, visible at every phase a form can be expanded
+;; at (a phase-0 body derives through them, and transformer bodies use
+;; them at phase >= 1); system kinds (primitive / core-form /
+;; module-form) are phase-free.  A transformer body cannot call a
+;; sibling phase-0 helper -- expansion-time helpers come from regions,
+;; imports (substrate), or the implementation's expansion-machinery
+;; primitives.
 
-;; exp-library-ref-at-phase / exp-library-ref-strict-at-phase :
-;; lib name phase -> binding/#f
-;; Identifier-resolution lookups: own defines are phase-blind (a
-;; transformer body may call a sibling phase-0 helper), imported views
-;; are gated by their `for' levels.
+(define (own-binding-visible-at-phase? b phase)
+  (let ((k (binding-kind b)))
+    (if (eq? k 'toplevel)
+      (= phase 0)
+      #t)))
+
+;; exp-library-ref-at-phase : lib name phase -> binding/#f
+;; Identifier-resolution lookup: own bindings per the kind gate above,
+;; then imported views gated by their `for' levels.
+
 (define (exp-library-ref-at-phase lib name phase)
-  (or (exp-library-ref-own lib name)
-      (exp-library-use-ref-at-phase lib name phase)))
-
-(define (exp-library-ref-strict-at-phase lib name phase)
-  (or (exp-library-ref-own lib name)
-      (exp-library-use-ref-at-phase lib name phase)))
+  (let ((own (exp-library-ref-own lib name)))
+    (if own
+        (and (own-binding-visible-at-phase? own phase) own)
+        (exp-library-use-ref-at-phase lib name phase))))
 
 (define (exp-library-ref lib name)
   ;; own defines, then the shared import views.  There is no ambient base:

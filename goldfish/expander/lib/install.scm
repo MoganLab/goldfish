@@ -603,10 +603,53 @@
 ;;; core-macros' let / and / or), then standard.
 
 (install-library-file! the-base-library "expander/lib/syntax-runtime.scm")
+
+;;; Expansion-time helper surface of the boot macro layer (v5): own value
+;;; definitions are phase-0 only, so helpers called from a transformer body
+;;; (parse-template inside the syntax-case transformer, the cond-expand
+;;; feature checker, the record-macro expanders) need phase-free
+;;; resolution: a primitive binding (emitting the bare name) passes the
+;;; phase gate at expansion time, and the host binding under the source
+;;; name gives the emitted reference its run-time meaning -- exactly like
+;;; the kernel syntax API (datum->syntax ...).  These names are part of
+;;; the implementation's expansion machinery, not a user-facing phase
+;;; exception: a user library's own value definitions stay phase-0.
+;;; Call before the defining file installs (gate) and again after (host
+;;; binding); the first call no-ops when the definition is not there yet.
+
+(define (install-expansion-helper! name)
+  (let ((b (exp-library-ref-own the-base-library name)))
+    (if b
+      (module-define! the-expander-library name
+        (eval (toplevel-ref-gensym (binding-value b)) the-expander-library)))
+    (exp-library-define! the-base-library name (make-primitive-binding name))))
+
+(install-expansion-helper! 'parse-template)
+(install-expansion-helper! 'syntax-case-dispatch)
+(install-expansion-helper! 'fast-instantiate)
+(install-expansion-helper! 'sr-build-transformer)
+(install-expansion-helper! 'subst-ellipsis)
 (install-library-file! the-base-library "expander/lib/syntax-case.scm")
+(install-expansion-helper! 'sr-build-transformer)
+(install-expansion-helper! 'subst-ellipsis)
+
+(install-expansion-helper! 'dr-field-datum)
+(install-expansion-helper! 'dr-record-defs)
+(install-expansion-helper! 'dr-register-def)
+(install-expansion-helper! 'dr-interleave-register)
 (install-library-file! the-base-library "expander/lib/define-record-type.scm")
+(install-expansion-helper! 'dr-field-datum)
+(install-expansion-helper! 'dr-record-defs)
+(install-expansion-helper! 'dr-register-def)
+(install-expansion-helper! 'dr-interleave-register)
+
 (install-library-file! the-base-library "expander/lib/core-macros.scm")
+
+(install-expansion-helper! 'cond-expand-feature-satisfied?)
+(install-expansion-helper! '*cond-expand-features*)
 (install-library-file! the-base-library "expander/lib/cond-expand.scm")
+(install-expansion-helper! 'cond-expand-feature-satisfied?)
+(install-expansion-helper! '*cond-expand-features*)
 ;; s7 define-macro compatibility shim (depends on syntax-case).
 (install-library-file! the-base-library "expander/lib/defmacro.scm")
 ;; s7 define* / lambda* compatibility shim (depends on syntax-case).
@@ -826,7 +869,7 @@
       ;; substrate accessors not module-define!'d in the kernel
       make-record-type record-type? record-type-name record-type-fields
       record-instance? record-predicate record-accessor record-modifier
-      record-field-index next-fresh next-record-rtd
+      record-field-index next-fresh make-fresh-name next-record-rtd
       lookup-module module? make-module module-name module-ref module-define!
       context-empty context-resolve env-lookup context-env
       syntax? syntax-e syntax-form syntax-context syntax-library

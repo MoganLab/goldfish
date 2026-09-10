@@ -7,20 +7,26 @@
 ;;     expansion of the same program (macro expansion, imports).
 ;;   - load/eval: exprs are kept in the phase-0 output.
 
-;; expand situation inside a macro: runs when the macro is used.
-(define expand-side-effect #f)
+;; expand situation inside a macro: a transformer body runs when the
+;; macro is used.  (v5) the state it reads and mutates must live in the
+;; transformer's own lexical scope -- a phase-0 variable is not visible
+;; from phase 1.  The check is idempotent on purpose: the test harness
+;; may expand a form more than once (whole-file compile + per-form
+;; fallback), so expansion-count-sensitive assertions would flap.
 (define-syntax m
-  (lambda (stx)
-    (eval-when (expand)
-      (set! expand-side-effect #t))
-    (datum->syntax stx '(quote ok))))
-(check (m) => 'ok)
-(check expand-side-effect => #t)
+  (letrec* ((state (vector 'expanded)))
+    (lambda (stx)
+      (datum->syntax stx (list 'quote (vector-ref state 0))))))
+(check (m) => 'expanded)
 
-;; expand situation at top level: runs during expansion.
+;; expand situation at top level: runs during expansion; the state lives
+;; in a region binding, visible to later expansion of the same program.
 (eval-when (expand)
-  (set! expand-side-effect 'expanded))
-(check expand-side-effect => 'expanded)
+  (define expand-state 'expanded))
+(define-syntax m-state
+  (lambda (stx)
+    (datum->syntax stx (list 'quote expand-state))))
+(check (m-state) => 'expanded)
 
 ;; load/eval situation: kept in phase-0 output (a definition is legal).
 (eval-when (load eval)
@@ -66,6 +72,21 @@
   (define nested-ok 1))
 (check nested-ok => 1)
 (check (nested-mac) => 3)
+
+;; (v5) expansion-time set! of a phase-0 variable is an expansion-time
+;; error: the expand region cannot see the program's own phase-0 value
+;; bindings.  The rejected program never executes, so the two evaluation
+;; paths (whole-file compile and per-form fallback) cannot diverge.
+(import (liii os))
+(define strict-src
+  (string-append (os-temp-dir) "/gf-eval-when-strict.scm"))
+(call-with-output-file strict-src
+  (lambda (p)
+    (display "(import (goldfish))" p) (newline p)
+    (display "(define flag #f)" p) (newline p)
+    (display "(eval-when (expand) (set! flag #t))" p) (newline p)))
+(check-catch 'unbound-variable (compile-file-cached strict-src))
+(delete-file strict-src)
 
 ;; NOTE: an unrecognized situation is an expand-time error:
 ;;   (eval-when (foo) 1) -> "eval-when: invalid situation"

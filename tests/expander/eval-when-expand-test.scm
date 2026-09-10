@@ -96,32 +96,18 @@
 (check-catch 'unbound-variable (compile-file-cached src4))
 (delete-file src4)
 
-;; ===== 5. 展开期 set! 运行期变量：双重执行语义（已知问题，暂跳过）=====
-;; 该场景存在两条合法执行路径，产物语义不同：
-;;   整编译路径：expand-time set! 在编译期运行（flag:NN=#t），产物中的
-;;     (define flag:NN #f) 随后覆盖之，写入 #f；
-;;   per-form 路径：展开/求值交错，写入 #t。
-;; 且 gf test 对文件整体编译成功后会执行产物、又在失败时逐 form 重跑，
-;; 两次执行的缓存状态不同 → 本用例在冷/热缓存间翻flip。
-;; 待决：expand-time set! 运行期变量的产物语义需要专门设计（见
-;; PHASE_DESIGN.md §5.2），在此之前跳过本用例。
+;; ===== 5. 展开期 set! 运行期变量：编译期拒绝（v5 严格相位） =====
+;; 展开区域看不到本程序的 phase-0 值绑定：set! 在展开期即报
+;; unbound-variable，程序从不执行。此前整编译与 per-form 两条路径
+;; 的产物分歧（#f/#t 翻转）随编译期拒绝一并消失。
 (define src5 (string-append (os-temp-dir) "/gf-ewx-5.scm"))
-(define out5 (string-append (os-temp-dir) "/gf-ewx-5.out"))
 (call-with-output-file src5
   (lambda (p)
     (display "(import (goldfish))" p) (newline p)
     (display "(define flag #f)" p) (newline p)
-    (display "(eval-when (expand) (set! flag #t))" p) (newline p)
-    (display (string-append "(call-with-output-file \"" out5
-                            "\" (lambda (p) (write flag p)))") p)
-    (newline p)))
-(when (file-exists? out5) (delete-file out5))
-(clear-artifact! src5)
-(load src5)
-(check-true (file-exists? out5))
-;; (check (call-with-input-file out5 read) => #t)
+    (display "(eval-when (expand) (set! flag #t))" p) (newline p)))
+(check-catch 'unbound-variable (compile-file-cached src5))
 (delete-file src5)
-(when (file-exists? out5) (delete-file out5))
 
 ;; ===== 6. 嵌套区域：begin-for-syntax 助手对外层 transformer 可见 =====
 ;; h2 定义于 begin-for-syntax（store[1]），m2 的体在 phase 1 展开，
@@ -231,5 +217,51 @@
            (compile-fresh "tests/expander/resources/ewx-cross.scm"))
          70)
        => #t)
+
+;; ===== 12. v5 严格相位：transformer 体不可见本程序 phase-0 值 =====
+;; 单一规则、两条路径同断言：program 与 library 的 capture 都在
+;; 展开期报 unbound-variable。region 助手（case 1/6）与 substrate
+;; 导入（一切 lambda 宏的 syntax API）不受影响。
+(define src12
+  (write-program "ewx-strict-program"
+    "(import (goldfish))\n"
+    "(define (runtime-helper x) (* x 2))\n"
+    "(define-syntax m12\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (* 1 (unsyntax (runtime-helper 3))))))))\n"
+    "(define value (m12))\n"))
+(check-catch 'unbound-variable (compile-file-cached src12))
+(delete-file src12)
+
+(define src12-lib
+  (write-program "ewx-strict-lib"
+    "(define-library (ewx strict-lib)\n"
+    "  (import (goldfish))\n"
+    "  (export v)\n"
+    "  (begin\n"
+    "    (define (runtime-helper x) (* x 2))\n"
+    "    (define-syntax m12\n"
+    "      (lambda (stx)\n"
+    "        (syntax-case stx ()\n"
+    "          ((_) (quasisyntax (* 1 (unsyntax (runtime-helper 3))))))))\n"
+    "    (define value (m12))))\n"))
+(check-catch 'unbound-variable (compile-file-cached src12-lib))
+(delete-file src12-lib)
+
+;; ===== 13. v5 合法来路：region 助手（phase 精确）与 substrate 导入 =====
+;; region 定义的助手在 phase 1 可用（折叠 8）；经 plain 导入的
+;; (goldfish) 运行时 API（make-fresh-name）在任意相位可用。
+(define src13
+  (write-program "ewx-legal-helpers"
+    "(import (goldfish))\n"
+    "(eval-when (expand) (define (region-helper x) (+ x 3)))\n"
+    "(define-syntax m13\n"
+    "  (lambda (stx)\n"
+    "    (syntax-case stx ()\n"
+    "      ((_) (quasisyntax (* 1 (unsyntax (region-helper 5))))))))\n"
+    "(define value (m13))\n"))
+(check (datum-contains? (syntax->datum (compile-file-cached src13)) 8) => #t)
+(delete-file src13)
 
 (check-report)

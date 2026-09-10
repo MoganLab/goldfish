@@ -1,10 +1,10 @@
 # PHASE_DESIGN — 相位实例化模型(v5,own 绑定严格相位)
 
-状态: v4 已落地(per-level 实例化、N 层闭环)。v5 为已定方向、
-待实施:移除最后的 own-defs 分歧——**own 值绑定只在 phase 0
-可见**(Racket 一致);ewx-5 场景随之变为编译期错误,整编译与
-per-form 不再有分歧。v1 补丁(回退链、min-merge、visit-only
-判定位)保持废弃;phase≥2 缓存分段 deferred(无性能用户)。
+状态: v4 已落地(per-level 实例化、N 层闭环)。v5 已实施:own 值
+绑定只在 phase 0 可见(Racket 一致);ewx-5 场景变为编译期错误,
+整编译与 per-form 不再有分歧。生态迁移实录见 §3。v1 补丁(回退链、
+min-merge、visit-only 判定位)保持废弃;phase≥2 缓存分段
+deferred(无性能用户)。
 
 目标:**Racket 式语义、正确实现、无 workaround、无回退多路、
 单线代码。**
@@ -74,7 +74,7 @@ home 相位),或**另一库的 plain 导入**(substrate,全相位)。
   合一,严格性不分 program/library;
 - ~~"own 定义跨相位可见(实例内)"分歧行~~。
 
-## 3. 承重普查(2026-09-10,决定迁移面)
+## 3. 承重普查与迁移实录(v5 落地)
 
 不受影响(纯模板宏,模板引用在使用点 phase 0;或纯 substrate):
 
@@ -82,46 +82,53 @@ home 相位),或**另一库的 plain 导入**(substrate,全相位)。
   过程式,无 phase-1 代码);
 - liii/match.scm:约 50 个宏全部 syntax-rules;
 - liii/prelude.scm、liii/reader.scm 的 lambda 宏:体只调 s7 原语
-  与 substrate 可见的 syntax API(make-fresh-name 在 kernel)。
+  与 substrate 可见的 syntax API。
 
-需迁移(展开期调用了 own 值定义):
+需迁移(展开期调用了 own 值定义),三种机制各按其场景:
 
-- lib/syntax-case.scm + syntax-runtime.scm:parse-template 在
-  transformer 执行期被调用(build-instantiate-call)→ 装置拆为
-  一等库(§4),实现库 plain 导入;
-- lib/cond-expand.scm:1 个助手(cond-expand-feature-satisfied?)
-  → bfs region-ify;
-- lib/define-record-type.scm:dr-* 助手 → bfs region-ify(纯展开期
-  用途,无运行期用户,机械);
-- lib/defmacro.scm:install-defmacro-transformer 只进输出(phase 0)
-  安全;by-identifier 形态按 §2 文档化,仓库内无用户。
+- **实现库 boot 层(install.scm)**:`install-expansion-helper!` --
+  parse-template、syntax-case-dispatch、fast-instantiate、
+  sr-build-transformer、subst-ellipsis、cond-expand 助手、dr-*
+  助手,注册为 primitive binding(相位无关,裸名发射,与内核
+  syntax API 同类);boot 文件的 define 以 gensym 落 module,源名
+  从不在 host 可见,故须同时 module-define! 源名供求值期解析;
+- **liii/check.scm、liii/njson.scm**:小助手集合,内联为
+  transformer 的 letrec*(syntax-case.scm 自包含惯用法;boot 文件
+  与普通库的缓存都不携带 region 内容,region-ify 不可用);
+- **goldfish/match.scm**:拆出 `(goldfish match expansion)`
+  (goldfish/match/expansion.scm,约 35 个展开期函数),match.scm
+  plain 导入它(substrate 规则 → 全相位),Racket 的
+  match/expander + match/runtime 同型切分。
 
-已否决的方案,勿复活:**逐相位塔**(region-ify parse-template 后
-按嵌套 bfs 补相位 2、3、…)——给语义设相位上限,是 adhoc;
-"任意相位可用"必须由解析公式的 ∀q 性质给出(原则三)。
+已否决的方案,勿复活:**逐相位塔**(region-ify 后按嵌套 bfs 补
+相位 2、3、…)——给语义设相位上限,是 adhoc;"任意相位可用"
+由解析公式的 ∀q 性质给出(原则三)。
 
-## 4. 实现面
+## 4. 实现面(已落地)
 
-1. **装置成为一等库**:syntax-runtime.scm(本就是 core-forms-only,
-   引导梯最底层)在 driver 处注册为独立的库;实现库对它
-   plain 导入(level 0 视图 → substrate → 全相位可见),并把
-   输出侧名字(syntax-case-dispatch、fast-instantiate 等)并入
-   实现库导出表,用户侧零迁移。顺序:先拆库(纯增量,boot
-   不变),后上严格门,否则引导中断;
-2. **解析单线化**:expand.scm resolve 中 program/library 双分支
-   (ref-strict-at-phase vs ref-at-phase)合一;own 子句加
-   binding-kind × 相位门(值→0,宏→≥1),region 查找不变;
-   exp-library.scm 两个同名函数合一;
-3. **cond-expand / define-record-type**:助手 region-ify;
-4. **缓存**:记录格式零变化(严格性在解析端);kernel 重建 +
+1. **解析单线化**:expand.scm resolve 中 program/library 双分支
+   合一;exp-library-ref-at-phase / ref-strict-at-phase 两函数
+   合一,own 子句加 kind×相位门。门语义的最终形态:值(toplevel)
+   绑定仅 phase 0;**transformer 绑定是派发关键字,全相位可见**
+   (phase-0 形体经它派生,transformer 体在 phase ≥1 也用它 --
+   最初版把 transformer 限到 ≥1,boot 的 let*-values 立即失展开,
+   已纠正);region 绑定仅 home 相位(已落地);
+2. **strict 变体删除**:exp-library-ref-strict(-at-phase) 是
+   从未实现的占位,删;
+3. **迁移**:见 §3;
+4. **顺手修复**:make-fresh-name 在 kernel.scm 导出表中但缺席
+   internal-names 注册,(import (goldfish)) 实际交付不了 --
+   已补注册;
+5. **缓存**:记录格式零变化(严格性在解析端);kernel 重建 +
    ccache 清。
 
 ## 5. 测试
 
 - ewx-5 改写为 `check-catch 'unbound-variable`(与 case 4 对偶,
-  翻 flip 消失);
-- 新增:transformer 引 own 值 define → 错;引 region define → 成;
-  引 substrate 导入 → 成;program 与 library 同规则(双分支已合);
+  翻 flip 消失);eval-when-test 的旧语义用例(set! phase-0 变量)
+  同步改写为 v5 合法形,并附同断言;
+- 新增(case 12/13):transformer 引 own 值 define → 错,program
+  与 library 两路径同断言;region 助手 → 成;substrate 导入 → 成;
 - per-level 双实例(体跑两次、变异隔离、`(meta 2)` 第三实例)不变;
 - 全量 --all 为最终门。
 
