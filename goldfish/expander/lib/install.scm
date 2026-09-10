@@ -885,7 +885,7 @@
       library-registry-ref library-record load-library! load-library-file-cached!
       library-file-cacheable? capture-file-cache restore-library-cache
       capture-library-cache lib-record-library lib-record-exports
-      runtime-registered-add! runtime-registered?
+      runtime-registered-add! runtime-registered? register-runtime-module
       make-program-library program-library reset-program-library!
       make-program-environment eval-in-program-environment)))
 

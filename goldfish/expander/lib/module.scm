@@ -83,37 +83,6 @@
                 (filter (lambda (e) (not (equal? (car e) key)))
                         *library-registry*)))))
 
-(define *perlevel-saved-runtime* '())
-
-(define *perlevel-saved-modules* '())
-
-(define (perlevel-snapshot-modules! recs)
-  (set! *perlevel-saved-modules*
-        (map (lambda (r)
-               (let ((n (lib-cache-name r)))
-                 (cons n (catch #t
-                           (lambda () (lookup-module n))
-                           (lambda args #f)))))
-             recs)))
-
-(define (perlevel-note-load! recs level saved-runtime saved-modules)
-  (for-each
-    (lambda (r)
-      (let ((n (lib-cache-name r)))
-        (runtime-registered-add! n level)
-        (when (and (not (member n saved-runtime))
-                   (member n *runtime-registered-libraries*))
-          (set! *runtime-registered-libraries*
-                (filter (lambda (k) (not (equal? k n)))
-                        *runtime-registered-libraries*)))))
-    recs)
-  ;; Level>=1 defs register throwaway same-named runtime modules as a side
-  ;; effect; restore any pre-existing level-0 modules so phase-0
-  ;; module-ref keeps resolving to level-0 cells.
-  (for-each (lambda (e)
-              (when (cdr e) (register-module (cdr e))))
-            saved-modules))
-
 (define *perlevel-saved-records* '())
 
 (define (perlevel-snapshot-records forms)
@@ -681,7 +650,12 @@
                                        (not (equal? lib (lib-cache-name rec))))
                                 (load-library! lib)))
                             (apply append (map collect-cache-module-refs defs)))
-                  (eval-defs defs (lib-cache-name rec) level)))
+                  (eval-defs defs (lib-cache-name rec) level)
+                  (if (> level 0)
+                    ;; No runtime module was registered (eval-defs drops
+                    ;; the baked registration at level >= 1); mark the
+                    ;; level-keyed instance loaded.
+                    (runtime-registered-add! (lib-cache-name rec) level))))
               recs)))
 
 ;;; eval-defs : (list sexp) name [level] -> void
@@ -690,7 +664,16 @@
 (define (eval-defs defs lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (if (and (integer? level) (> level 0))
-      (eval (cons 'begin defs) (current-expand-env))
+      ;; A level >= 1 instance registers no runtime module: the baked
+      ;; (register-runtime-module ...) is dropped, since expansion-time
+      ;; references resolve through inlet cells and the registration
+      ;; would only clobber the level-0 module of the same name.
+      (eval (cons 'begin
+                  (filter (lambda (d)
+                            (not (and (pair? d)
+                                      (eq? (car d) 'register-runtime-module))))
+                          defs))
+            (current-expand-env))
       (eval (cons 'begin defs) (rootlet)))))
 
 ;;; load-library-guard : name thunk -> value
@@ -774,15 +757,11 @@
                   (set! *libraries-being-loaded*
                         (cons load-key *libraries-being-loaded*)))
                 (lambda ()
-                  (set! *perlevel-saved-runtime* *runtime-registered-libraries*)
-                  (perlevel-snapshot-modules! recs)
                   (load-library-guard
                    lib-name
                    (lambda ()
                      (for-each (lambda (r) (restore-library-cache r level)) recs)
-                     (load-library-file-cached! recs level)
-                     (when (> level 0)
-                       (perlevel-note-load! recs level *perlevel-saved-runtime* *perlevel-saved-modules*)))))
+                     (load-library-file-cached! recs level))))
                 (lambda ()
                   (set! *libraries-being-loaded*
                         (filter (lambda (n) (not (equal? n load-key)))
@@ -812,13 +791,9 @@
                                     (gfo-write! gfo-file stamp
                                                 (make-bundle 'libraries (cons 'libs recs))
                                                 deps)
-                                    (set! *perlevel-saved-runtime* *runtime-registered-libraries*)
-                                    (perlevel-snapshot-modules! recs)
                                     (when (> level 0)
                                       (perlevel-rebuild! recs level *perlevel-saved-records*))
-                                    (load-library-file-cached! recs level)
-                                    (when (> level 0)
-                                      (perlevel-note-load! recs level *perlevel-saved-runtime* *perlevel-saved-modules*)))))
+                                    (load-library-file-cached! recs level))))
                            (begin
                               (let*-values (((prog ctx)
                                              (compile-program-syntax forms)))
@@ -1393,25 +1368,41 @@
     ;; (quasiquote ...) form does not implement unquote-splicing (only its
     ;; native reader's #_list-values representation does), so backquote
     ;; templates with ,@ fail when the kernel is host-loaded through our
-    ;; reader.  The datum is identical either way.
-    (cons 'let
-          (cons (list (list 'm (list 'make-module (list 'quote name))))
-                (append (map (lambda (entry)
-                               (let ((v (cdr entry)))
-                                 (if (and (pair? v) (eq? (car v) 'catch))
-                                     ;; Primitive re-export: the entry is a
-                                     ;; full catch-wrapped module-define! (the
-                                     ;; module-define! itself may fail on an s7
-                                     ;; constant name such as unlet, so the
-                                     ;; whole call must sit inside the catch).
-                                     v
-                                     (list 'module-define! 'm
-                                           (list 'quote (car entry))
-                                           v))))
-                             entries)
-                        (list (list 'register-module 'm)
-                              (list 'runtime-registered-add!
-                                    (list 'quote name))))))))
+    ;; reader.  The datum is identical either way.  The registration is
+    ;; wrapped in a self-describing form so the loader can drop it from
+    ;; level >= 1 loads (see register-runtime-module).
+    (list 'register-runtime-module
+          (list 'quote name)
+          (list 'lambda '()
+                (cons 'let
+                      (cons (list (list 'm (list 'make-module (list 'quote name))))
+                            (append (map (lambda (entry)
+                                           (let ((v (cdr entry)))
+                                             (if (and (pair? v) (eq? (car v) 'catch))
+                                                 ;; Primitive re-export: the entry is a
+                                                 ;; full catch-wrapped module-define! (the
+                                                 ;; module-define! itself may fail on an s7
+                                                 ;; constant name such as unlet, so the
+                                                 ;; whole call must sit inside the catch).
+                                                 v
+                                                 (list 'module-define! 'm
+                                                       (list 'quote (car entry))
+                                                       v))))
+                                         entries)
+                                    (list (list 'register-module 'm)
+                                          (list 'runtime-registered-add!
+                                                (list 'quote name))))))))))
+
+;;; register-runtime-module : name thunk -> module
+;;; The entry point baked into library artifacts (see
+;;; library-register-expression).  The loader drops this form from
+;;; level >= 1 loads: a level >= 1 instance has no runtime module --
+;;; expansion-time references resolve through inlet cells -- so the
+;;; registration would only clobber the level-0 module of the same
+;;; name.  At level 0 the thunk runs unchanged.
+
+(define (register-runtime-module name thunk)
+  (thunk))
 
 ;;; expand-import : syntax context -> (values defs ctx)
 ;;; Top-level import: installs the imported bindings into the-base-library so
@@ -1668,6 +1659,7 @@
     (module-define! the-expander-library 'install-module-forms! install-module-forms!)
     (module-define! the-expander-library 'library-registry-ref library-registry-ref)
     (module-define! the-expander-library 'runtime-registered-add! runtime-registered-add!)
+    (module-define! the-expander-library 'register-runtime-module register-runtime-module)
     (module-define! the-expander-library 'runtime-registered? runtime-registered?)
     (module-define! the-expander-library 'load-library! load-library!)
     (module-define! the-expander-library 'library-file-cacheable? library-file-cacheable?)
@@ -1684,7 +1676,8 @@
     ;; in top-level value position.)
     (module-define! the-expander-library 'warm-file! warm-file!)
     ;; load-library! evaluates a library's registration expression in the
-    ;; host rootlet, so the runtime-registered marker (called from
+    ;; host rootlet, so the runtime-registered marker and the baked
+    ;; registration entry point (both called from
     ;; library-register-expression) must also be visible there.  The cached
     ;; whole-file loader (reader.scm load) also calls load-library! /
     ;; runtime-registered? to preload libraries a cached expansion refers
@@ -1692,6 +1685,8 @@
     (eval (list 'define 'runtime-registered-add! runtime-registered-add!)
           (rootlet))
     (eval (list 'define 'runtime-registered? runtime-registered?)
+          (rootlet))
+    (eval (list 'define 'register-runtime-module register-runtime-module)
           (rootlet))
     (eval (list 'define 'load-library! load-library!)
           (rootlet))
