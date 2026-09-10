@@ -11,7 +11,7 @@
 ;;; Installed after lib/core-macros.scm (so let / and / or / cond are
 ;;; available), matching the previous kernel boot order.
 
-(define *cond-expand-features* '(r7rs scsyntax-impl))
+(define *cond-expand-features* '(r7rs goldfish))
 
 (define (cond-expand-feature-satisfied? req)
   (let ((form (syntax-form req)))

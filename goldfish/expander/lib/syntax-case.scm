@@ -43,7 +43,7 @@
                                                  #t
                                                  (if (eq? form '...)
                                                      #t
-                                                     (if (and (identifier? p) (literal-id? p))
+                                                     (if (literal-id? p)
                                                          #t
                                                          (memq form vars))))
                                              (if #f #f)
@@ -56,6 +56,12 @@
                                                  (for-each walk (vector->list form))
                                                  (if #f #f)))))))
                            (literal-id?
+                            ;; Local twin of syntax-runtime's
+                            ;; literal-identical?: this file is installed
+                            ;; before the pattern runtime it would call and
+                            ;; cross-file expand-time helpers must be gated
+                            ;; primitives (install.scm), so the walk keeps
+                            ;; its own copy.
                             (lambda (p)
                               (let loop ((ls literal-ids))
                                 (if (null? ls)

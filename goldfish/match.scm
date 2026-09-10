@@ -71,15 +71,17 @@
     ;; Match violation (SRFI-262 condition).
 
     (define-record-type &match
-      (%make-match-condition)
+      (%make-match-condition irritants)
       &match?
       (irritants match-condition-irritants))
 
-    (define (make-match-violation)
-      (list 'match-violation))
+    ;; SRFI-262 violation condition: the generated fail paths raise it
+    ;; without irritants; user code may attach them.
+    (define (make-match-violation . irritants)
+      (%make-match-condition irritants))
 
     (define (match-violation? x)
-      (and (pair? x) (eq? (car x) 'match-violation)))
+      (&match? x))
 
     ;; ------------------------------------------------------------------
     ;; match-ellipsis? : syntax-or-datum -> boolean
@@ -281,7 +283,8 @@
                        (%vm-kill-thread! vm thread))))
                   ((end)
                    (set! maybe-match (%thread-registers thread))
-                   (%vm-kill-thread! vm thread)))))))        (%vm-swap-threads! vm)
+                   (%vm-kill-thread! vm thread)))))))
+        (%vm-swap-threads! vm)
         (let ((ft (%vm-finished-thread vm)))
           (if ft (%thread-registers ft) maybe-match))))
 

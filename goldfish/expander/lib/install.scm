@@ -200,9 +200,7 @@
 
 (define (cache-load-checked gfo-file stamp)
   (let ((rec (gfo-load-record gfo-file)))
-    (and (pair? rec) (eq? (car rec) 'gfo)
-         (equal? (cadr rec) gfo-format-version)
-         (equal? (caddr rec) stamp)
+    (and (gfo-envelope-ok? rec stamp)
          (let ((stored-deps (if (> (length rec) 4) (list-ref rec 4) '())))
            ;; #f is the pre-dep-protocol marker gfo-write! stores when a
            ;; writer passes no deps; treat it like an empty list.
@@ -355,6 +353,7 @@
                            (install-library-forms! lib forms)))
               (install-cache-save! path stamp defs macros bindings deps)
               ctx)))))))
+
 (define (install-standard-library!)
   (install-library-file! the-base-library "expander/lib/standard.scm"))
 
@@ -749,7 +748,7 @@
                           (lower prog)
                           (let ((f (module-ref the-expander-library 'optimize-on-load)))
                             (if (procedure? f)
-                              (catch #t (lambda () (f prog ctx)) (lambda (type info) (lower prog)))
+                              (catch #t (lambda () (f prog ctx)) (lambda args (lower prog)))
                               (lower prog)))))
                  ;; serialize-cache-sexp is the single arbiter of what
                  ;; persists: datum-embedded syntax values degrade to stx*

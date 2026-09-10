@@ -547,8 +547,7 @@
            (cond
              ((eqv? (peek port) #\@)
               (next port)
-              (list 'unsyntax-splicing (read-subexpression port "subexpression of #,@"))
-             )
+              (list 'unsyntax-splicing (read-subexpression port "subexpression of #,@")))
              (else
                (list 'unsyntax (read-subexpression port "unsyntax expression")))))
           (else

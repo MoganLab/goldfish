@@ -167,12 +167,19 @@
       (g-tiny-read p)
       (car (read-forms p)))))
 
+;; gfo-envelope-ok? : record stamp -> bool
+;; The envelope half of cache validation -- shape, format version, source
+;; stamp -- shared by every validity gate (gfo-valid?, gfo-load, and the
+;; dep-fingerprint gate in lib/install.scm).
+(define (gfo-envelope-ok? rec stamp)
+  (and (pair? rec) (eq? (car rec) 'gfo)
+       (equal? (cadr rec) gfo-format-version)
+       (equal? (caddr rec) stamp)))
+
 (define (gfo-valid? gfo-file stamp)
   (and (file-exists? gfo-file)
        (let ((rec (gfo-read-datum gfo-file)))
-         (and (pair? rec) (eq? (car rec) 'gfo)
-              (equal? (cadr rec) gfo-format-version)
-              (equal? (caddr rec) stamp)))))
+         (gfo-envelope-ok? rec stamp))))
 
 ;; gfo-load : gfo-file stamp -> payload | #f
 ;; Single-pass variant of the gfo-valid? + gfo-read pair: parsing a cached
@@ -181,9 +188,7 @@
 (define (gfo-load gfo-file stamp)
   (and (file-exists? gfo-file)
        (let ((rec (gfo-read-datum gfo-file)))
-         (and (pair? rec) (eq? (car rec) 'gfo)
-              (equal? (cadr rec) gfo-format-version)
-              (equal? (caddr rec) stamp)
+         (and (gfo-envelope-ok? rec stamp)
               (cadddr rec)))))
 
 ;; gfo-load-record : gfo-file -> full record | #f

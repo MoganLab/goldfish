@@ -182,9 +182,6 @@
 (define (list-head* lst n)
   (if (= n 0) '() (cons (car lst) (list-head* (cdr lst) (- n 1)))))
 
-(define (list-tail* lst n)
-  (if (= n 0) lst (list-tail* (cdr lst) (- n 1))))
-
 ;;; pattern-match-ellipsis : match (elem-pat ...) rest-pat against input.
 ;;; Backtracking matcher.  Each ellipsis repeat consumes elem-pat matched
 ;;; against ONE input element (a group pattern like (pat expr) matched
@@ -208,7 +205,7 @@
                      (if (> k (dotted-length inputs))
                          #f
                          (letrec* ((prefix (if (= k 1) (car inputs) (list-head* inputs k)))
-                                   (rest (if (= k 1) (cdr inputs) (list-tail* inputs k)))
+                                   (rest (if (= k 1) (cdr inputs) (list-tail inputs k)))
                                    (b (pattern-match* elem-pat prefix literals '())))
                            (if b
                                (letrec* ((acc2 (merge-ellipsis-bindings b accum)))
