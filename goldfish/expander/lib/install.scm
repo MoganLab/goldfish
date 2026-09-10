@@ -623,32 +623,32 @@
         (eval (toplevel-ref-gensym (binding-value b)) the-expander-library)))
     (exp-library-define! the-base-library name (make-primitive-binding name))))
 
-(install-expansion-helper! 'parse-template)
-(install-expansion-helper! 'syntax-case-dispatch)
-(install-expansion-helper! 'fast-instantiate)
-(install-expansion-helper! 'sr-build-transformer)
-(install-expansion-helper! 'subst-ellipsis)
-(install-library-file! the-base-library "expander/lib/syntax-case.scm")
-(install-expansion-helper! 'sr-build-transformer)
-(install-expansion-helper! 'subst-ellipsis)
+;;; install-with-helpers! : lib path gate-names capture-names -> void
+;;; Install a boot file whose transformer bodies call own helpers: gate
+;;; every name as a primitive first (phase-free resolution while the file
+;;; itself expands; the capture no-ops for names not defined yet), install
+;;; the file, then capture the values of the names it defines.  The two
+;;; lists differ when earlier files already defined some helpers.
 
-(install-expansion-helper! 'dr-field-datum)
-(install-expansion-helper! 'dr-record-defs)
-(install-expansion-helper! 'dr-register-def)
-(install-expansion-helper! 'dr-interleave-register)
-(install-library-file! the-base-library "expander/lib/define-record-type.scm")
-(install-expansion-helper! 'dr-field-datum)
-(install-expansion-helper! 'dr-record-defs)
-(install-expansion-helper! 'dr-register-def)
-(install-expansion-helper! 'dr-interleave-register)
+(define (install-with-helpers! lib path gate-names capture-names)
+  (for-each install-expansion-helper! gate-names)
+  (install-library-file! lib path)
+  (for-each install-expansion-helper! capture-names))
+
+(install-with-helpers! the-base-library "expander/lib/syntax-case.scm"
+  '(parse-template syntax-case-dispatch fast-instantiate
+                   sr-build-transformer subst-ellipsis)
+  '(sr-build-transformer subst-ellipsis))
+
+(install-with-helpers! the-base-library "expander/lib/define-record-type.scm"
+  '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register)
+  '(dr-field-datum dr-record-defs dr-register-def dr-interleave-register))
 
 (install-library-file! the-base-library "expander/lib/core-macros.scm")
 
-(install-expansion-helper! 'cond-expand-feature-satisfied?)
-(install-expansion-helper! '*cond-expand-features*)
-(install-library-file! the-base-library "expander/lib/cond-expand.scm")
-(install-expansion-helper! 'cond-expand-feature-satisfied?)
-(install-expansion-helper! '*cond-expand-features*)
+(install-with-helpers! the-base-library "expander/lib/cond-expand.scm"
+  '(cond-expand-feature-satisfied? *cond-expand-features*)
+  '(cond-expand-feature-satisfied? *cond-expand-features*))
 ;; s7 define-macro compatibility shim (depends on syntax-case).
 (install-library-file! the-base-library "expander/lib/defmacro.scm")
 ;; s7 define* / lambda* compatibility shim (depends on syntax-case).
