@@ -744,12 +744,12 @@
         (let*-values (((prog ctx)
                        (compile-program-into-syntax forms
                          (program-library))))
+          ;; optimize-on-load itself degrades to `lower' when the compiler
+          ;; or tree-il bridge is unavailable (level 0 included), so the
+          ;; call is direct like every other cross-module body reference.
           (let* ((opt (if (zero? level)
                           (lower prog)
-                          (let ((f (module-ref the-expander-library 'optimize-on-load)))
-                            (if (procedure? f)
-                              (catch #t (lambda () (f prog ctx)) (lambda args (lower prog)))
-                              (lower prog)))))
+                          (optimize-on-load prog ctx)))
                  ;; serialize-cache-sexp is the single arbiter of what
                  ;; persists: datum-embedded syntax values degrade to stx*
                  ;; text (their live back-reference to the session
@@ -799,10 +799,15 @@
 ;;; rootlet and the-expander-library, NOT in the (goldfish) base library's
 ;;; binding table -- so `(import (goldfish))' does not provide them to a
 ;;; strict program.  Internal scripts (build-combined.scm, the tools/, the
-;;; goldtest runner) are programs too and import (goldfish); register the
-;;; runtime internals there as primitive bindings so those scripts resolve
-;;; them.  (The reference emits the bare name, which the host rootlet /
-;;; the-expander-library resolves at eval time.)
+;;; goldtest runner) are programs too and import (goldfish); two
+;;; complementary registrations make them resolve:
+;;;
+;;;   * the dynamic scan registers every the-expander-library export that
+;;;     is a runtime VALUE (core forms and module forms keep their real
+;;;     bindings; only value functions become primitives);
+;;;   * %internal-names below is the explicitly audited surface -- the
+;;;     names the scan cannot see (rootlet-bound host names, s7 host
+;;;     forms, kernel defines never module-define!'d), as data.
 
 (define %internal-surface-registered!
   (for-each
@@ -822,20 +827,8 @@
                      (not (not (module-ref the-expander-library name)))))
               (module-exports the-expander-library)))))
 
-;;; ------------------------------------------------------------------------
-;;; Internal runtime surface (explicit names)
-;;; ------------------------------------------------------------------------
-;;; The reader / boot / install runtime functions live in the host rootlet
-;;; and the-expander-library, NOT in the (goldfish) base library's binding
-;;; table -- so `(import (goldfish))' does not provide them to a strict
-;;; program.  Internal scripts (build-combined.scm, the tools/, the
-;;; goldtest runner) are programs too and import (goldfish); register the
-;;; runtime internals there as primitive bindings so those scripts resolve
-;;; them.  (The reference emits the bare name, which the host rootlet /
-;;; the-expander-library resolves at eval time.)
-
-;;; %internal-names: the audited surface below, as data, so the
-;;; end-of-install assert can check every entry resolves.
+;;; %internal-names: the audited surface above, as data, so the
+;;; post-boot assert can check every entry resolves.
 (define %internal-names
     '(;; reader
       read read-forms read-line read-string read-char write-roundtrip load

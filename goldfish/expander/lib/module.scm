@@ -254,14 +254,7 @@
 (define (syntax-ir-fn)
   (if (instance-loading? '(goldfish expander tree-il))
     #f
-    (catch
-      #t
-      (lambda ()
-        (if (not (runtime-registered? '(goldfish expander tree-il)))
-          (load-library! '(goldfish expander tree-il)))
-        (module-ref (lookup-module '(goldfish expander tree-il))
-                    'syntax->ir/sexp))
-      (lambda (tag . info) #f))))
+    (lazy-module-ref '(goldfish expander tree-il) 'syntax->ir/sexp)))
 
 ;;; cache-defs->ir : (list syntax) context -> (list ir|sexp)
 ;;; Cache the defs as record tree-il (via syntax->ir/sexp) so the
@@ -369,9 +362,10 @@
      lib))
 
 ;;; Per-level instances (moved after the cache section: rebuild calls
-;;; lib-cache-name and restore-library-cache above).
-
-(define *perlevel-saved-records* '())
+;;; lib-cache-name and restore-library-cache above).  A cold capture
+;;; registers bare rows as a side effect; the loader snapshots the file's
+;;; pre-existing bare rows before capturing and hands them back to
+;;; perlevel-rebuild!.
 
 (define (perlevel-snapshot-records forms)
   (let loop ((fs forms) (acc '()))
@@ -425,13 +419,7 @@
 ;;; requirement, so every caller degrades gracefully on #f.
 
 (define (compiler-module)
-  (catch
-    #t
-    (lambda ()
-      (if (not (runtime-registered? '(goldfish compiler)))
-        (load-library! '(goldfish compiler)))
-      (lookup-module '(goldfish compiler)))
-    (lambda (tag . info) #f)))
+  (lazy-module '(goldfish compiler)))
 
 ;;; compiler-pass-list : module level -> (list pass)
 ;;; The active pass set: level 1 = constant-fold + simplify-if; level 2+
@@ -454,15 +442,9 @@
       (let ((compiler (compiler-module)))
         (if (module? compiler)
           (let ((compile-syntax-defs
-                 (catch
-                   #t
-                   (lambda ()
-                     (if (not (runtime-registered? '(goldfish compiler syntax-ir)))
-                       (load-library! '(goldfish compiler syntax-ir)))
-                     (module-ref (lookup-module '(goldfish compiler syntax-ir))
-                                 'compile-syntax-defs))
-                   (lambda (tag . info) #f))))
-            (if (and (procedure? compile-syntax-defs))
+                 (lazy-module-ref '(goldfish compiler syntax-ir)
+                                  'compile-syntax-defs)))
+            (if (procedure? compile-syntax-defs)
               ;; NOTE: lower-let is deliberately excluded (see
               ;; compile-defs-cached): it restarts slot numbering at 0,
               ;; misaddressing syntax->ir's real lexical (depth . index)
@@ -635,6 +617,28 @@
                        (else "malformed definition or expansion error"))))
         (error "import: failed to load library ~a: ~a" lib-name detail)))))
 
+;;; lazy-module : name -> module/#f
+;;; Load a runtime library on demand and return its module; #f on failure.
+;;; lazy-module-ref adds an export lookup.  The optional-capability idiom:
+;;; the compiler and the IR bridge are optimizations, never correctness
+;;; requirements, so their consumers degrade gracefully on #f.
+
+(define (lazy-module name)
+  (catch
+    #t
+    (lambda ()
+      (if (not (runtime-registered? name))
+        (load-library! name))
+      (lookup-module name))
+    (lambda args #f)))
+
+(define (lazy-module-ref name export)
+  (let ((m (lazy-module name)))
+    (and m
+         (catch #t
+           (lambda () (module-ref m export))
+           (lambda args #f)))))
+
 (define (load-library! lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (when (instance-loading? lib-name level)
@@ -664,67 +668,69 @@
             (make-lib-record base (map car (exp-library-bindings base)))))
         (unless (runtime-registered? lib-name)
           (runtime-registered-add! lib-name)))
-      (let ((lib-file (library-file-name lib-name)))
-        ;; cache-file-for already applies gfo-key; pass the path directly.
-        (let ((gfo-file (cache-file-for lib-file)))
-          (let* ((src (and (auto-compile-enabled?)
-                           (load-find-module-file lib-file)))
-                 ;; A libraries bundle holds one record per
-                 ;; define-library form in the file, in order.
-                 (payload (and src (cache-load-checked gfo-file
-                                                       (compile-file-stamp src))))
-                 (recs (and (bundle? payload)
-                            (eq? (bundle-kind payload) 'libraries)
-                            (let ((libs (bundle-section payload 'libs)))
-                              (and (pair? libs) (cdr libs))))))
-            (if recs
+      (let* ((lib-file (library-file-name lib-name))
+             ;; Resolve once for the stamp and the read: the unresolved
+             ;; spelling degrades to a (-1 -1) stamp (mirrors
+             ;; compile-file-cached-in-unit).
+             (file (load-find-module-file lib-file))
+             ;; cache-file-for already applies gfo-key; pass the path directly.
+             (gfo-file (cache-file-for lib-file))
+             (src (and (auto-compile-enabled?) file))
+             (payload (and src (cache-load-checked gfo-file
+                                                   (compile-file-stamp src))))
+             (recs (and (bundle? payload)
+                        (eq? (bundle-kind payload) 'libraries)
+                        (let ((libs (bundle-section payload 'libs)))
+                          (and (pair? libs) (cdr libs))))))
+        (if recs
+          (dynamic-wind
+            (lambda () (loading-guard-push! load-key))
+            (lambda ()
+              (load-library-guard
+               lib-name
+               (lambda ()
+                 (for-each (lambda (r) (restore-library-cache r level)) recs)
+                 (load-library-file-cached! recs level))))
+            (lambda () (loading-guard-pop! load-key)))
+          ;; No cache (or stale): load and compile the source file.
+          (begin
+            (unless file
+              (error "import: unknown library" lib-name))
+            (let* ((forms (call-with-input-file file read-forms))
+                   ;; Registry rows the capture below would clobber (bare
+                   ;; entries for this file's libraries), for the rebuild.
+                   (saved (perlevel-snapshot-records forms)))
               (dynamic-wind
                 (lambda () (loading-guard-push! load-key))
                 (lambda ()
                   (load-library-guard
                    lib-name
                    (lambda ()
-                     (for-each (lambda (r) (restore-library-cache r level)) recs)
-                     (load-library-file-cached! recs level))))
-                (lambda () (loading-guard-pop! load-key)))
-              ;; No cache (or stale): load and compile the source file.
-              (let ((file (load-find-module-file lib-file)))
-                (unless file
-                  (error "import: unknown library" lib-name))
-                (let ((forms (call-with-input-file file read-forms)))
-                  (set! *perlevel-saved-records* (perlevel-snapshot-records forms))
-                  (dynamic-wind
-                    (lambda () (loading-guard-push! load-key))
-                    (lambda ()
-                      (load-library-guard
-                       lib-name
-                       (lambda ()
-                             (if (and (auto-compile-enabled?)
-                                      (library-file-cacheable? forms))
-                               (let* ((stamp (compile-file-stamp file))
-                                      (gfo-file (cache-file-for lib-file)))
-                                (let*-values (((recs ctx) (capture-file-cache forms)))
-                                  (let* ((recs (optimize-lib-cache-recs recs))
-                                         (deps (map library-dep-fingerprint
-                                                    (library-all-deps recs lib-name))))
-                                    (gfo-write! gfo-file stamp
-                                                (make-bundle 'libraries (cons 'libs recs))
-                                                deps)
-                                    (when (> level 0)
-                                      (perlevel-rebuild! recs level *perlevel-saved-records*))
-                                    (load-library-file-cached! recs level))))
-                           (begin
-                              (let*-values (((prog ctx)
-                                             (compile-program-syntax forms)))
-                                (if (> level 0)
-                                  (eval (optimize-on-load prog ctx) (current-expand-env))
-                                  (eval (optimize-on-load prog ctx) (rootlet))))
-                             (runtime-registered-add! lib-name level)
+                     (if (and (auto-compile-enabled?)
+                              (library-file-cacheable? forms))
+                       (let ((stamp (compile-file-stamp file)))
+                         (let*-values (((recs ctx) (capture-file-cache forms)))
+                           (let ((recs (optimize-lib-cache-recs recs))
+                                 (deps (map library-dep-fingerprint
+                                            (library-all-deps recs lib-name))))
+                             (gfo-write! gfo-file stamp
+                                         (make-bundle 'libraries (cons 'libs recs))
+                                         deps)
                              (when (> level 0)
-                               (let ((bare (library-registry-ref lib-name)))
-                                 (when bare
-                                   (library-registry-set! lib-name bare level)))))))))
-                    (lambda () (loading-guard-pop! load-key))))))))))))
+                               (perlevel-rebuild! recs level saved))
+                             (load-library-file-cached! recs level))))
+                       (begin
+                         (let*-values (((prog ctx)
+                                        (compile-program-syntax forms)))
+                           (if (> level 0)
+                             (eval (optimize-on-load prog ctx) (current-expand-env))
+                             (eval (optimize-on-load prog ctx) (rootlet))))
+                         (runtime-registered-add! lib-name level)
+                         (when (> level 0)
+                           (let ((bare (library-registry-ref lib-name)))
+                             (when bare
+                               (library-registry-set! lib-name bare level)))))))))
+                (lambda () (loading-guard-pop! load-key))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
@@ -932,30 +938,20 @@
           pairs))
     (else (error "import: bad import-set kind" kind))))
 
-(define (import-set-pairs spec)
+;;; import-set-pairs : spec level -> (values lib-name (list (visible . original)))
+(define (import-set-pairs spec level)
   (if (import-set-modifier? spec)
     (let* ((kind (car spec))
            (inner (cadr spec))
            (rest (cddr spec)))
       (call-with-values
-        (lambda () (import-set-pairs inner))
+        (lambda () (import-set-pairs inner level))
         (lambda (lib-name pairs)
           (values lib-name (apply-import-modifier kind rest pairs)))))
     ;; A bare library name: its whole export list, identity-mapped.
     (values spec
             (map (lambda (n) (cons n n))
-                 (lib-record-exports (source-record spec))))))
-
-;;; import-set-view : nested-set [level] -> view/#f
-(define (import-set-view spec . maybe-level)
-  (define level (registry-level-arg maybe-level))
-  (call-with-values
-    (lambda () (import-set-pairs spec))
-    (lambda (lib-name pairs)
-      (if (null? pairs)
-        #f
-        (let ((outer (car spec)))
-          (import-view lib-name pairs (not (eq? outer 'only)) level))))))
+                 (lib-record-exports (source-record spec level))))))
 
 ;;; import-level-number : level-datum -> integer
 ;;; R7RS import levels: run = 0, expand/syntax = 1, (meta n) = n.
@@ -1003,39 +999,24 @@
     (else
      (import-spec-clause-into-library! lib spec 0))))
 
+;;; import-spec-clause-into-library! : lib spec level -> void
+;;; One path for every import-set shape (bare library name, depth-1
+;;; modifier, nested modifiers): reduce to (lib-name . pairs) via
+;;; import-set-pairs, build the shared view, record it.  An only-import
+;;; selecting nothing (unknown ids) adds no view; a non-only modifier that
+;;; maps everything away still adds its (empty) view -- the import was
+;;; declared, it just selects nothing.
+
 (define (import-spec-clause-into-library! lib spec level)
-  (cond
-    ((and (pair? spec)
-          (pair? (cdr spec))
-          (pair? (cadr spec))
-          (import-set-modifier? (cadr spec)))
-     ;; Nested import set (a modifier over another modifier).
-     (let ((iface (import-set-view spec level)))
-       (when iface
-         (add-import-view! lib iface level))))
-    ;; Depth-1 set: a modifier directly over a library name, or a bare
-    ;; library name -- all through the shared pair core.
-    ((and (pair? spec) (memq (car spec) '(only except prefix rename)))
-     (import-depth1-into-library! lib (car spec) (cadr spec) (cddr spec) level))
-    (else
-     (import-depth1-into-library! lib 'plain spec '() level))))
-
-;;; import-depth1-into-library! : lib kind lib-name args level -> void
-;;; The single depth-1 handler: identity pairs over the source exports,
-;;; mapped by the shared apply-import-modifier core.  An only-import
-;;; selecting nothing (unknown ids) adds an empty view; skip it entirely
-;;; (mirrors import-set-view's null-pairs #f).
-
-(define (import-depth1-into-library! lib kind lib-name args level)
-  (let ((rec (source-record lib-name level)))
-    (let ((pairs (apply-import-modifier kind args
-                   (map (lambda (n) (cons n n))
-                        (lib-record-exports rec)))))
-      (if (and (null? pairs) (eq? kind 'only))
-        #t
-        (add-import-view! lib
-          (import-view lib-name pairs (not (eq? kind 'only)) level)
-          level)))))
+  (call-with-values
+    (lambda () (import-set-pairs spec level))
+    (lambda (lib-name pairs)
+      (let ((only? (and (pair? spec) (eq? (car spec) 'only))))
+        (if (and only? (null? pairs))
+          #t
+          (add-import-view! lib
+                            (import-view lib-name pairs (not only?) level)
+                            level))))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
 
