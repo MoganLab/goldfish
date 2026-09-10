@@ -194,7 +194,7 @@
 ;;; at every point so the input is split greedily towards the tail.
 
 (define (pattern-match-ellipsis elem-pat rest-pat input-form input-stx literals bindings)
-  (letrec* ((rest-min (pattern-min-length rest-pat))
+  (letrec* ((rest-min (pattern-min-length rest-pat literals))
             (try-rest
              (lambda (inputs accum)
                (if (< (dotted-length inputs) rest-min)
@@ -218,16 +218,19 @@
     (or (try-rest input-form bindings)
         (try-elem input-form bindings))))
 
-(define (pattern-min-length pat-list)
-  (if (null? pat-list)
-      0
-      (if (not (pair? pat-list))
-          0
-           (if (and (pair? (cdr pat-list))
-                    (ellipsis-datum? (cadr pat-list))
-                    (not (literal-identical? (cadr pat-list) literals)))
-               (pattern-min-length (cddr pat-list))
-               (+ 1 (pattern-min-length (cdr pat-list)))))))
+;; pattern-min-length : pat-list literals -> integer
+;; Minimum input length rest-pat can still match: used to bound the
+;; backtracking split in pattern-match-ellipsis.  `literals' threads the
+;; same guard as pattern-match-list -- a `...' among the literals is a
+;; literal, not a repeat.
+(define (pattern-min-length pat-list literals)
+  (cond [(null? pat-list)       0]
+        [(not (pair? pat-list)) 0]
+        [(and (pair? (cdr pat-list))
+              (ellipsis-datum? (cadr pat-list))
+              (not (literal-identical? (cadr pat-list) literals)))
+         (pattern-min-length (cddr pat-list) literals)]
+        [else                   (+ 1 (pattern-min-length (cdr pat-list) literals))]))
 
 (define (merge-ellipsis-bindings elem-bindings accum)
   (if (null? elem-bindings)

@@ -33,4 +33,20 @@
             (compute (computation-fn ((v cf-var)) (computation-pure v))))))))
   => 999)
 
+;; 同级双省略号模式（rest 尾部还有第二个 `...'）：pattern-min-length 的
+;; 省略号守卫必须收到 literals（回归：参数未穿透 -> 展开期 unbound）。
+;; 拆分朝尾部贪心：rest 组优先拿满，a... 留空。
+(define-syntax double-ellipsis
+  (syntax-rules ()
+    ((_ a ... b ...)
+     (list (list a ...) (list b ...)))))
+(check (double-ellipsis 1 2 3) => '(() (1 2 3)))
+
+;; 第二省略号后还有定长尾巴：min-length 走省略号分支后再 +1。
+(define-syntax double-ellipsis-tail
+  (syntax-rules ()
+    ((_ a ... b ... c)
+     (list (list a ...) (list b ...) c))))
+(check (double-ellipsis-tail 1 2 3 4) => '(() (1 2 3) 4))
+
 (check-report)
