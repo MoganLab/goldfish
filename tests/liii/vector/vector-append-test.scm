@@ -72,4 +72,42 @@
 (check-catch 'type-error (vector-append #(1 2) 3 #(4 5)))
 
 
+;; openlet 方法分派测试与 GC 压力测试
+(let ((o (openlet (inlet 'vector-append (lambda (self . rest) (apply vector-append #(0) rest)))
+         ) ;openlet
+      ) ;o
+     ) ;
+  (check (vector-append o #(1 2)) => #(0 1 2))
+) ;let
+
+(let ((o (openlet (inlet 'vector-append (lambda (vec self) (vector-append vec #(99)))))
+      ) ;o
+     ) ;
+  (check (vector-append #(1 2) o) => #(1 2 99))
+) ;let
+
+(let ((o (openlet (inlet 'vector-append
+                    (lambda (vec self . rest) (apply vector-append vec #(99) rest))
+                  ) ;inlet
+         ) ;openlet
+      ) ;o
+     ) ;
+  (check (vector-append #(1) #(2) o #(3) #(4)) => #(1 2 99 3 4))
+) ;let
+
+;; GC 压力回归测试：openlet vector-append 方法内触发 GC
+(let ((v #(1 2)))
+  (do ((i 0 (+ i 1)))
+    ((= i 100))
+    (let ((o (openlet (inlet 'vector-append (lambda (vec self) (gc) (vector-append vec #(3))))
+             ) ;openlet
+          ) ;o
+         ) ;
+      (check (vector-append v o) => #(1 2 3))
+    ) ;let
+  ) ;do
+) ;let
+
+
+
 (check-report)
