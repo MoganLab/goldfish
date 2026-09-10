@@ -789,17 +789,19 @@
     (library-record lib-name level)))
 
 ;;; import-view : lib-name pairs strict? [level] -> view
-;;; The cache key is the reduced pairs (plus source, level, and library):
-;;; the iface is built solely from them, so two spellings of one set
-;;; (nested vs depth-1) share the entry when they reduce identically.
-;;; A canonical (kind . args) tag could not key this: it would falsely
-;;; merge sets whose innards differ.  The cache is session-local, so the
-;;; wider key costs no migration.
+;;; The cache key is the reduced pairs themselves (plus source, level,
+;;; and library): the iface is built solely from them, so two spellings
+;;; of one set (nested vs depth-1) share the entry when they reduce
+;;; identically.  A canonical (kind . args) tag could not key this: it
+;;; would falsely merge sets whose innards differ.  Key on structure,
+;;; not on a formatted string: s7's ~s obeys print-length and truncates
+;;; long pair lists into colliding prefixes.  The cache is session-local,
+;;; so the wider key costs no migration.
 (define (import-view lib-name pairs strict? . maybe-level)
   (define level (registry-level-arg maybe-level))
   (let* ((rec (source-record lib-name level))
          (src (lib-record-library rec))
-         (key (cons src (cons level (cons lib-name (format #f "~s" pairs))))))
+         (key (list src level lib-name pairs)))
     (let ((e (assoc key *interface-cache*)))
       (if e
         (cdr e)
