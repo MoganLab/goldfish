@@ -240,7 +240,7 @@
 ;;; install-binding-desc : binding -> datum/#f
 ;;; The install cache needs each value definition's (gensym home original
 ;;; exported?) tuple to rebuild the binding table at warm start.  Shared
-;;; extraction core (module-cache.scm's strict purify-binding is a thin
+;;; extraction core (module.scm's strict purify-binding is a thin
 ;;; fail-fast adapter over this); #f on unsupported kinds so the caller
 ;;; can filter.  Lives here because install.scm loads before module.scm
 ;;; (and install-library-forms! runs while module.scm itself installs).
@@ -522,11 +522,12 @@
     (gfo-write! gfo-file stamp rec deps)))
 
 ;;; install-depurify-binding : datum exp-library [strict?] -> binding/#f
-;;; The single depurify implementation (module-cache.scm's copy deleted):
-;;; rebuild a value binding from its cached description.  home (libref
-;;; name) resolves to self-lib for the library itself, else the registry
-;;; record for another (already loaded) library.  Strict #t selects the
-;;; module-cache restore contract -- an unregistered home is #f.  Default
+;;; The single depurify implementation (one copy serves both the install
+;;; and library caches): rebuild a value binding from its cached
+;;; description.  home (libref name) resolves to self-lib for the
+;;; library itself, else the registry record for another (already loaded)
+;;; library.  Strict #t selects the library-cache restore contract --
+;;; an unregistered home is #f.  Default
 ;;; (boot installs, incl. installing module.scm itself, before the
 ;;; registry exists): fall back to self-lib, whose gensym the s7
 ;;; environment binds during defs evaluation.
@@ -572,7 +573,7 @@
     ;; Restore the binding table from the cached structured info (the same
     ;; (toplevel gensym home original exported?) tuples the libcache uses),
     ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
-    ;; lives here (not in module-cache.scm) because install-cache-load!
+    ;; lives here (in the boot-installed layer) because install-cache-load!
     ;; runs while module.scm itself is being installed.
     (for-each (lambda (e)
                 (let ((b (install-depurify-binding
