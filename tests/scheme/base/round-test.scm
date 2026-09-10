@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是实数，抛出错误。
 ;; wrong-number-of-args
 ;; 如果参数数量不为一，抛出错误。
@@ -73,9 +73,9 @@
 (check (round -2/3) => -1)
 (check (round -3/4) => -1)
 ;; 测试错误情况
-(check-catch 'wrong-type-arg (round "not a number"))
-(check-catch 'wrong-type-arg (round 'symbol))
-(check-catch 'wrong-type-arg (round 1.0+2.0i))
+(check-catch 'type-error (round "not a number"))
+(check-catch 'type-error (round 'symbol))
+(check-catch 'type-error (round 1.0+2.0i))
 (check-catch 'wrong-number-of-args (round))
 (check-catch 'wrong-number-of-args (round 1 2))
 (check-report)

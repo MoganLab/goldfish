@@ -43,7 +43,7 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当proc不是procedure?类型时
-;; wrong-type-arg 当s不是字符串类型时
+;; type-error 当s不是字符串类型时
 ;; out-of-range 当start/end超出字符串索引范围或start > end时
 
 ;; 基本功能测试 - 空字符串

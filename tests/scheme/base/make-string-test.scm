@@ -31,7 +31,7 @@
 ;; --------
 ;; out-of-range
 ;; 当 k 为负数时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当 k 不是精确整数或 char 不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为 1 或 2 个时抛出错误。
@@ -49,8 +49,8 @@
 ) ;let
 (check-catch 'out-of-range (make-string -1))
 (check-catch 'out-of-range (make-string -5 #\a))
-(check-catch 'wrong-type-arg (make-string 3.5))
-(check-catch 'wrong-type-arg (make-string 3 "a"))
+(check-catch 'type-error (make-string 3.5))
+(check-catch 'type-error (make-string 3 "a"))
 (check-catch 'wrong-number-of-args (make-string))
 (check-catch 'wrong-number-of-args (make-string 3 #\a #\b))
 (check-catch 'out-of-range (make-string 1 #\中))
@@ -60,7 +60,7 @@
 (check (list->string '()) => "")
 (check (string-length "MathAgape") => 9)
 (check (string-length "") => 0)
-(check (catch 'wrong-type-arg
+(check (catch 'type-error
          (lambda () (string-length 'not-a-string))
          (lambda args #t)
        ) ;catch

@@ -25,7 +25,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -43,6 +43,6 @@
 (when (not (os-windows?))
   (check (exp 1.0+2.0i) => -1.1312043837568135+2.4717266720048188i)
 ) ;when
-(check-catch 'wrong-type-arg (exp "hello"))
+(check-catch 'type-error (exp "hello"))
 (check-catch 'wrong-number-of-args (exp))
 (check-report)

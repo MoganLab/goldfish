@@ -28,7 +28,7 @@
 ;; ----
 ;; division-by-zero
 ;; 当除数为零时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数字时抛出错误。
 (check (quotient 11 2) => 5)
 (check (quotient 11 -2) => -5)
@@ -56,8 +56,8 @@
 (check (quotient 10.5 -3.0) => -3)
 (check (quotient -10.5 3.0) => -3)
 (check (quotient -10.5 -3.0) => 3)
-(check-catch 'wrong-type-arg (quotient 1.0+1.0i 2))
-(check-catch 'wrong-type-arg (quotient 'hello 2))
+(check-catch 'type-error (quotient 1.0+1.0i 2))
+(check-catch 'type-error (quotient 'hello 2))
 (check-catch 'wrong-number-of-args (quotient 10))
 (check-catch 'wrong-number-of-args (quotient 5 3 2))
 (check-report)

@@ -27,7 +27,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 1.当参数不是序对（如空列表 '()、数字、字符串等）时抛出错误。
 ;; 2.序队结构中的元素数量少于三个元素
 ;; cddr
@@ -56,7 +56,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 1.当参数不是序对（如空列表 '()、数字、字符串等）时抛出错误。
 ;; 2.序队结构中的元素数量少于三个元素
 ;; cddr
@@ -85,7 +85,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 1.当参数不是序对（如空列表 '()、数字、字符串等）时抛出错误。
 ;; 2.序队结构中的元素数量少于三个元素
 (check (cddr '(a b c . d)) => '(c . d))
@@ -93,10 +93,10 @@
 (check (cddr '(1 2 . 3)) => 3)
 (check (cddr '((a b) c . d)) => 'd)
 (check (cddr (cons 'a (cons 'b (cons 'c 'd)))) => '(c . d))
-(check-catch 'wrong-type-arg (cddr '()))
-(check-catch 'wrong-type-arg (cddr 123))
-(check-catch 'wrong-type-arg (cddr "hello"))
-(check-catch 'wrong-type-arg (cddr #t))
+(check-catch 'type-error (cddr '()))
+(check-catch 'type-error (cddr 123))
+(check-catch 'type-error (cddr "hello"))
+(check-catch 'type-error (cddr #t))
 (check-catch 'wrong-number-of-args (cddr))
 (check-catch 'wrong-number-of-args (cddr '(1 2) '(3 4)))
 ;; cddr边界条件测试补充

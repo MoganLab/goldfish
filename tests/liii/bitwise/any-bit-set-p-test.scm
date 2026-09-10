@@ -39,7 +39,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -92,15 +92,15 @@
 (check (any-bit-set? 0 -1) => #f)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (any-bit-set? "string" 1))
-(check-catch 'wrong-type-arg (any-bit-set? 1 "string"))
-(check-catch 'wrong-type-arg (any-bit-set? 3.14 2))
-(check-catch 'wrong-type-arg (any-bit-set? 1 3.14))
-(check-catch 'wrong-type-arg (any-bit-set? #\a 1))
-(check-catch 'wrong-type-arg (any-bit-set? 1 #\a))
-(check-catch 'wrong-type-arg (any-bit-set? '(1 2) 3))
-(check-catch 'wrong-type-arg (any-bit-set? 1 '(2 3)))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (any-bit-set? "string" 1))
+(check-catch 'type-error (any-bit-set? 1 "string"))
+(check-catch 'type-error (any-bit-set? 3.14 2))
+(check-catch 'type-error (any-bit-set? 1 3.14))
+(check-catch 'type-error (any-bit-set? #\a 1))
+(check-catch 'type-error (any-bit-set? 1 #\a))
+(check-catch 'type-error (any-bit-set? '(1 2) 3))
+(check-catch 'type-error (any-bit-set? 1 '(2 3)))
 
 
 

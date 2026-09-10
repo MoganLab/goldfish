@@ -47,7 +47,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
@@ -110,13 +110,13 @@
 (check (bit-field-set -8 0 2) => -5)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bit-field-set "string" 0 4))
-(check-catch 'wrong-type-arg (bit-field-set 1 "string" 4))
-(check-catch 'wrong-type-arg (bit-field-set 1 0 "string"))
-(check-catch 'wrong-type-arg (bit-field-set 3.14 0 4))
-(check-catch 'wrong-type-arg (bit-field-set 1 3.14 4))
-(check-catch 'wrong-type-arg (bit-field-set 1 0 3.14))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bit-field-set "string" 0 4))
+(check-catch 'type-error (bit-field-set 1 "string" 4))
+(check-catch 'type-error (bit-field-set 1 0 "string"))
+(check-catch 'type-error (bit-field-set 3.14 0 4))
+(check-catch 'type-error (bit-field-set 1 3.14 4))
+(check-catch 'type-error (bit-field-set 1 0 3.14))
 
 
 ;; ; 错误处理测试 - out-of-range

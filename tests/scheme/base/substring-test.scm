@@ -38,7 +38,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当参数类型不正确时。
+;; type-error 当参数类型不正确时。
 ;; out-of-range 当 start 或 end 超出字符串范围时。
 
 ;; 基本 ASCII 测试

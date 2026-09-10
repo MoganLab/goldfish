@@ -21,7 +21,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果存在任何参数不是数字，抛出错误。
 (check (+) => 0)
 (check (+ 1) => 1)
@@ -46,9 +46,9 @@
 (check (+ 1e+308 1e+308) => +inf.0)
 (check (+ -1e+308 -1e+308) => -inf.0)
 (check (+ 9223372036854775807 1) => -9223372036854775808)
-(check-catch 'wrong-type-arg (+ 'hello 7))
-(check-catch 'wrong-type-arg (+ "world" 7))
-(check-catch 'wrong-type-arg (+ #t 7))
-(check-catch 'wrong-type-arg (+ '(1 3 5) 7))
+(check-catch 'type-error (+ 'hello 7))
+(check-catch 'type-error (+ "world" 7))
+(check-catch 'type-error (+ #t 7))
+(check-catch 'type-error (+ '(1 3 5) 7))
 (check-catch 'unbound-variable (+ 1.0+1.0i 2i))
 (check-report)

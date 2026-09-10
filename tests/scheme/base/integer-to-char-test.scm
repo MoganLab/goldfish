@@ -27,7 +27,7 @@
 ;; --------
 ;; out-of-range
 ;; 当码点超出有效范围时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -73,7 +73,7 @@
 ;; 超出 Unicode 范围测试
 (check-catch 'out-of-range (integer->char 1114112))
 (check-catch 'out-of-range (integer->char 1114112))
-(check-catch 'wrong-type-arg (integer->char 65.0))
+(check-catch 'type-error (integer->char 65.0))
 (check-catch 'wrong-number-of-args (integer->char))
 (check-catch 'wrong-number-of-args (integer->char 65 66))
 (check-report)

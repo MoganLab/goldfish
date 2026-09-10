@@ -20,15 +20,15 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 参数不是序对，或者 cdr/car 链上的某一层不是序对时抛出错误。
 (check (caadr '(1 (2 3))) => 2)
 (check (caadr '(1 (a b) c)) => 'a)
 (check (caadr (cons 0 (cons (cons 'x 'y) 2))) => 'x)
-(check-catch 'wrong-type-arg (caadr '(1 ())))
-(check-catch 'wrong-type-arg (caadr '(1 2)))
-(check-catch 'wrong-type-arg (caadr '((1 2))))
-(check-catch 'wrong-type-arg (caadr 'a))
-(check-catch 'wrong-type-arg (caadr "hello"))
-(check-catch 'wrong-type-arg (caadr '()))
+(check-catch 'type-error (caadr '(1 ())))
+(check-catch 'type-error (caadr '(1 2)))
+(check-catch 'type-error (caadr '((1 2))))
+(check-catch 'type-error (caadr 'a))
+(check-catch 'type-error (caadr "hello"))
+(check-catch 'type-error (caadr '()))
 (check-report)

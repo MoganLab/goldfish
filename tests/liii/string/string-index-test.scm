@@ -51,7 +51,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
@@ -138,7 +138,7 @@
 (check (string-index "abc" char-whitespace?) => #f)
 (check (string-index "12345" char-alphabetic?) => #f)
 
-(check-catch 'wrong-type-arg (string-index 123 #\a))
+(check-catch 'type-error (string-index 123 #\a))
 (check-catch 'type-error (string-index "hello" "a"))
 (check-catch 'type-error (string-index "hello" 123))
 (check-catch 'type-error (string-index "hello" '(a)))

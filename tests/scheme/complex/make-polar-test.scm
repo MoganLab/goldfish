@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是实数类型时抛出错误。
+;; type-error 当参数不是实数类型时抛出错误。
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
 ;; Test make-polar
 (check (real-part (make-polar 2 0)) => 2.0)
@@ -41,7 +41,7 @@
 (check (< (real-part (make-polar 1 1.5707963267948966)) 0.001) => #t)
 (check (> (imag-part (make-polar 1 1.5707963267948966)) 0.999) => #t)
 ;; Error handling
-(check-catch 'wrong-type-arg (make-polar "x" 1))
-(check-catch 'wrong-type-arg (make-polar 1 "x"))
+(check-catch 'type-error (make-polar "x" 1))
+(check-catch 'type-error (make-polar 1 "x"))
 (check-catch 'wrong-number-of-args (make-polar 1))
 (check-report)

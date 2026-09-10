@@ -32,7 +32,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数或超出范围时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -52,7 +52,7 @@
 (check (acos 3/4) => 0.7227342478134157)
 (check (acos 2/3) => 0.8410686705679303)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (acos "hello"))
+(check-catch 'type-error (acos "hello"))
 (check-catch 'wrong-number-of-args (acos))
 (check-catch 'wrong-number-of-args (acos 1 2))
 (check-report)

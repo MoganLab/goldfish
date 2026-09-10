@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -37,7 +37,7 @@
 ;; 有理数测试
 (check (tan 1/2) => 0.5463024898437905)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (tan "hello"))
+(check-catch 'type-error (tan "hello"))
 (check-catch 'wrong-number-of-args (tan))
 (check-catch 'wrong-number-of-args (tan 1 2))
 (check-report)

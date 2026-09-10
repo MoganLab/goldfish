@@ -27,7 +27,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;   当 `port` 不是输入端口时抛出。
 ;; read-error
 ;;   当输入不是合法的 Scheme datum 时抛出。
@@ -58,7 +58,7 @@
 ) ;check
 (check (let ((port (open-input-string "()"))) (read port)) => '())
 (check-true (let ((port (open-input-string ""))) (eof-object? (read port))))
-(check-catch 'wrong-type-arg (read 123))
+(check-catch 'type-error (read 123))
 
 ;; 符号驻留（interning）：重复读取同名符号必须 eq?
 (check-true (eq? (with-input-from-string "define" (lambda () (read))) 'define))

@@ -20,14 +20,14 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是整数类型
 (check-true (even? 0))
 (check-false (even? 1))
-(check-catch 'wrong-type-arg (even? 0.0))
-(check-catch 'wrong-type-arg (even? 1.0))
-(check-catch 'wrong-type-arg (even? 1.0+1.0i))
-(check-catch 'wrong-type-arg (even? #\A))
-(check-catch 'wrong-type-arg (even? #t))
-(check-catch 'wrong-type-arg (even? #f))
+(check-catch 'type-error (even? 0.0))
+(check-catch 'type-error (even? 1.0))
+(check-catch 'type-error (even? 1.0+1.0i))
+(check-catch 'type-error (even? #\A))
+(check-catch 'type-error (even? #t))
+(check-catch 'type-error (even? #f))
 (check-report)

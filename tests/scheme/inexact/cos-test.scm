@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -49,7 +49,7 @@
   (check (cos 1.0+2.0i) => 2.0327230070196656-3.0518977991518i)
 ) ;when
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (cos "hello"))
+(check-catch 'type-error (cos "hello"))
 (check-catch 'wrong-number-of-args (cos))
 (check-catch 'wrong-number-of-args (cos 1 2))
 (check-report)

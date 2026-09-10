@@ -31,7 +31,7 @@
 ;; ------
 ;; out-of-range
 ;; 当z <= 0或base <= 0时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当参数类型错误时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
@@ -62,7 +62,7 @@
 (check (log -1) => 0.0+3.141592653589793i)
 (check (log 3 1) => +inf.0)
 (check-catch 'out-of-range (log 10 0))
-(check-catch 'wrong-type-arg (log "a"))
+(check-catch 'type-error (log "a"))
 (check-catch 'wrong-number-of-args (log))
 (check-catch 'wrong-number-of-args (log 12 4 5))
 (check-report)

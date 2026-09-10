@@ -52,7 +52,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不是3个时抛出错误。
@@ -135,12 +135,12 @@
 ) ;check
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bitwise-if "string" 1 2))
-(check-catch 'wrong-type-arg (bitwise-if 1 "string" 2))
-(check-catch 'wrong-type-arg (bitwise-if 1 2 "string"))
-(check-catch 'wrong-type-arg (bitwise-if 1.5 2 3))
-(check-catch 'wrong-type-arg (bitwise-if #\a 2 3))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bitwise-if "string" 1 2))
+(check-catch 'type-error (bitwise-if 1 "string" 2))
+(check-catch 'type-error (bitwise-if 1 2 "string"))
+(check-catch 'type-error (bitwise-if 1.5 2 3))
+(check-catch 'type-error (bitwise-if #\a 2 3))
 
 
 ;; ; 错误处理测试 - wrong-number-of-args

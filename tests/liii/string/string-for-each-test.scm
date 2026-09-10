@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当proc不是过程类型时
+;; type-error 当proc不是过程类型时
 ;; type-error 当str不是字符串类型时
 ;;
 ;; 相关实现
@@ -137,10 +137,10 @@
   #t
 ) ;check
 
-(check-catch 'wrong-type-arg (string-for-each 123 "hello"))
-(check-catch 'wrong-type-arg (string-for-each (lambda (x) x) 123))
-(check-catch 'wrong-type-arg (string-for-each "not-function" "hello"))
-(check-catch 'wrong-type-arg (string-for-each ascii-upcase 123))
+(check-catch 'type-error (string-for-each 123 "hello"))
+(check-catch 'type-error (string-for-each (lambda (x) x) 123))
+(check-catch 'type-error (string-for-each "not-function" "hello"))
+(check-catch 'type-error (string-for-each ascii-upcase 123))
 
 (check (let ((ascii-sum 0))
          (string-for-each (lambda (c) (set! ascii-sum (+ ascii-sum (char->integer c))))

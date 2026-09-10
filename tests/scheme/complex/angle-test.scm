@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是数值类型时抛出错误。
+;; type-error 当参数不是数值类型时抛出错误。
 ;; Test angle with real numbers
 (check (angle 1) => 0)
 (check (angle -1) => 3.141592653589793)
@@ -39,5 +39,5 @@
 (check (> (angle 1.0+1.0i) 0.78) => #t)
 (check (< (angle 1.0+1.0i) 0.79) => #t)
 ;; Error handling
-(check-catch 'wrong-type-arg (angle "x"))
+(check-catch 'type-error (angle "x"))
 (check-report)

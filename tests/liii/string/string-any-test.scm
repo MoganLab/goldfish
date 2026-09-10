@@ -51,7 +51,7 @@
 ;; ----
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
-;; wrong-type-arg 当str不是字符串时
+;; type-error 当str不是字符串时
 ;;
 ;; 相关实现
 ;; --------
@@ -86,7 +86,7 @@
 
 ;; 错误处理
 (check-catch 'type-error (string-any 123 "hello"))
-(check-catch 'wrong-type-arg (string-any char-alphabetic? 123))
+(check-catch 'type-error (string-any char-alphabetic? 123))
 (check-catch 'out-of-range (string-any char-alphabetic? "hello" -1))
 (check-catch 'out-of-range (string-any char-alphabetic? "hello" 0 6))
 

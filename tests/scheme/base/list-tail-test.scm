@@ -33,7 +33,7 @@
 ;; --------
 ;; out-of-range
 ;; 当索引 k 为负数或超出列表长度时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当 list 参数不是列表类型时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不等于 2 时抛出错误。
@@ -110,9 +110,9 @@
 (check (list-tail (append '(1 2) '(3 4 5)) 3) => '(4 5))
 (check (list-tail (reverse '(5 4 3 2 1)) 2) => '(3 4 5))
 ;; 错误参数测试
-(check-catch 'wrong-type-arg (list-tail 123 0))
-(check-catch 'wrong-type-arg (list-tail "string" 1))
-(check-catch 'wrong-type-arg (list-tail #t 0))
+(check-catch 'type-error (list-tail 123 0))
+(check-catch 'type-error (list-tail "string" 1))
+(check-catch 'type-error (list-tail #t 0))
 ;; 索引越界测试
 (check-catch 'out-of-range (list-tail '(a b c) -1))
 (check-catch 'out-of-range (list-tail '(a b c) 4))
@@ -177,10 +177,10 @@
 (check-catch 'out-of-range (list-tail '(a b c) -10))
 (check-catch 'out-of-range (list-tail '() -1))
 ;; 边界测试集10：类型错误边界
-(check-catch 'wrong-type-arg (list-tail "not-a-list" 0))
-(check-catch 'wrong-type-arg (list-tail 123 1))
-(check-catch 'wrong-type-arg (list-tail #t 0))
-(check-catch 'wrong-type-arg (list-tail #(a b c) 1))
+(check-catch 'type-error (list-tail "not-a-list" 0))
+(check-catch 'type-error (list-tail 123 1))
+(check-catch 'type-error (list-tail #t 0))
+(check-catch 'type-error (list-tail #(a b c) 1))
 ;; 补充边界测试：复杂嵌套和深度结构
 (check (list-tail '((a (b (c))) d (e (f))) 1) => '(d (e (f))))
 (check (list-tail '(1 2 (3 (4 (5))) 6 7) 2) => '((3 (4 (5))) 6 7))

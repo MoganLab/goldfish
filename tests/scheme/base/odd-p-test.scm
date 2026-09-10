@@ -20,14 +20,14 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是整数类型
 (check-true (odd? 1))
 (check-false (odd? 0))
-(check-catch 'wrong-type-arg (odd? 1.0+1.0i))
-(check-catch 'wrong-type-arg (odd? 1.0))
-(check-catch 'wrong-type-arg (odd? 0.0))
-(check-catch 'wrong-type-arg (odd? #\A))
-(check-catch 'wrong-type-arg (odd? #t))
-(check-catch 'wrong-type-arg (odd? #f))
+(check-catch 'type-error (odd? 1.0+1.0i))
+(check-catch 'type-error (odd? 1.0))
+(check-catch 'type-error (odd? 0.0))
+(check-catch 'type-error (odd? #\A))
+(check-catch 'type-error (odd? #t))
+(check-catch 'type-error (odd? #f))
 (check-report)

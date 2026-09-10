@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是实数类型时抛出错误。
+;; type-error 当参数不是实数类型时抛出错误。
 ;; wrong-number-of-args 当参数个数错误时抛出错误。
 ;; Test make-rectangular
 (check (make-rectangular 3 0) => 3)
@@ -36,7 +36,7 @@
 (check (real-part (make-rectangular 3 4)) => 3.0)
 (check (imag-part (make-rectangular 3 4)) => 4.0)
 ;; Error handling
-(check-catch 'wrong-type-arg (make-rectangular "x" 1))
-(check-catch 'wrong-type-arg (make-rectangular 1 "x"))
+(check-catch 'type-error (make-rectangular "x" 1))
+(check-catch 'type-error (make-rectangular 1 "x"))
 (check-catch 'wrong-number-of-args (make-rectangular 1))
 (check-report)

@@ -90,14 +90,14 @@
   (check (tree-memq? t t) => #t))
 
 ;; 异常测试：非列表树结构
-(check-catch 'wrong-type-arg (tree-memq? 'a 123))
+(check-catch 'type-error (tree-memq? 'a 123))
 
 ;; 异常测试：开启 safety 时的循环列表检测
 (let ((cyclic-tree (list 'a 'b))
       (old-safety (*s7* 'safety)))
   (set-cdr! (cdr cyclic-tree) cyclic-tree)
   (set! (*s7* 'safety) 1)
-  (check-catch 'wrong-type-arg (tree-memq? 'a cyclic-tree))
+  (check-catch 'type-error (tree-memq? 'a cyclic-tree))
   (set! (*s7* 'safety) old-safety))
 
 (check-report)

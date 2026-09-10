@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是字符时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量少于2个时抛出错误。
@@ -62,9 +62,9 @@
 (check (char=? #\a #\b #\c #\d) => #f)
 (check (char=? #\A #\B #\C) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (char=? 1 #\A))
-(check-catch 'wrong-type-arg (char=? #\A 'symbol))
-(check-catch 'wrong-type-arg (char=? 123 #\a))
+(check-catch 'type-error (char=? 1 #\A))
+(check-catch 'type-error (char=? #\A 'symbol))
+(check-catch 'type-error (char=? 123 #\a))
 (check-catch 'wrong-number-of-args (char=?))
 (check-catch 'wrong-number-of-args (char=? #\A))
 ;; Unicode 字符测试

@@ -302,9 +302,9 @@
   '(:keyword . "special")
 ) ;check
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (assv 'key "not-association-list"))
-(check-catch 'wrong-type-arg (assv 'key 123))
-(check-catch 'wrong-type-arg (assv 'key #t))
+(check-catch 'type-error (assv 'key "not-association-list"))
+(check-catch 'type-error (assv 'key 123))
+(check-catch 'type-error (assv 'key #t))
 ;; 参数数量错误测试
 (check-catch 'wrong-number-of-args (assv))
 (check-catch 'wrong-number-of-args (assv 'key))

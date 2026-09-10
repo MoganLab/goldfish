@@ -245,5 +245,5 @@
 (check-catch 'wrong-number-of-args (make-list 3 'x 'extra))
 (check-catch 'out-of-range (make-list -1))
 (check-catch 'out-of-range (make-list -1 'x))
-(check-catch 'wrong-type-arg (make-list "a"))
+(check-catch 'type-error (make-list "a"))
 (check-report)

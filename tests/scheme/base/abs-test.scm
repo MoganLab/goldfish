@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -54,9 +54,9 @@
 (check (abs 1/3) => 1/3)
 (check (abs -1/3) => 1/3)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (abs 1.0+2.0i))
-(check-catch 'wrong-type-arg (abs "hello"))
-(check-catch 'wrong-type-arg (abs 'symbol))
+(check-catch 'type-error (abs 1.0+2.0i))
+(check-catch 'type-error (abs "hello"))
+(check-catch 'type-error (abs 'symbol))
 (check-catch 'wrong-number-of-args (abs))
 (check-catch 'wrong-number-of-args (abs 1 2 3))
 (check-report)

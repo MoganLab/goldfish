@@ -42,7 +42,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当 index 或 i 参数不是整数时抛出错误。
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
@@ -101,13 +101,13 @@
 (check (copy-bit 1 -3 #f) => -3)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (copy-bit "string" 1 #t))
-(check-catch 'wrong-type-arg (copy-bit 1 "string" #t))
-(check-catch 'wrong-type-arg (copy-bit 3.14 2 #t))
-(check-catch 'wrong-type-arg (copy-bit 1 3.14 #t))
-(check-catch 'wrong-type-arg (copy-bit #\a 1 #t))
-(check-catch 'wrong-type-arg (copy-bit 1 #\a #t))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (copy-bit "string" 1 #t))
+(check-catch 'type-error (copy-bit 1 "string" #t))
+(check-catch 'type-error (copy-bit 3.14 2 #t))
+(check-catch 'type-error (copy-bit 1 3.14 #t))
+(check-catch 'type-error (copy-bit #\a 1 #t))
+(check-catch 'type-error (copy-bit 1 #\a #t))
 
 
 ;; ; 错误处理测试 - out-of-range

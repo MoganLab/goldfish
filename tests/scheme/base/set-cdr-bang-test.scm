@@ -32,7 +32,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -79,7 +79,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -126,7 +126,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -211,10 +211,10 @@
   (check lst => '(head second-element . final))
 ) ;let
 ;; set-cdr!错误处理测试
-(check-catch 'wrong-type-arg (set-cdr! 123 'value))
-(check-catch 'wrong-type-arg (set-cdr! '() 'value))
-(check-catch 'wrong-type-arg (set-cdr! "string" 'value))
-(check-catch 'wrong-type-arg (set-cdr! #t 'value))
+(check-catch 'type-error (set-cdr! 123 'value))
+(check-catch 'type-error (set-cdr! '() 'value))
+(check-catch 'type-error (set-cdr! "string" 'value))
+(check-catch 'type-error (set-cdr! #t 'value))
 ;; 测试参数数量错误
 (check-catch 'wrong-number-of-args (set-cdr! (cons 1 2)))
 (check-catch 'wrong-number-of-args (set-cdr! (cons 1 2) 'a 'b))

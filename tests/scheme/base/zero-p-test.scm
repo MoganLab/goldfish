@@ -20,7 +20,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是数值类型
 (check-true (zero? 0))
 (check-true (zero? 0.0))
@@ -34,10 +34,10 @@
 (check-false (zero? -inf.0))
 (check-false (zero? +nan.0))
 (check-false (zero? 1.0+1.0i))
-(check-catch 'wrong-type-arg (zero? #\A))
-(check-catch 'wrong-type-arg (zero? #t))
-(check-catch 'wrong-type-arg (zero? #f))
-(check-catch 'wrong-type-arg (zero? "not-a-number"))
-(check-catch 'wrong-type-arg (zero? 'symbol))
-(check-catch 'wrong-type-arg (zero? '(1 2 3)))
+(check-catch 'type-error (zero? #\A))
+(check-catch 'type-error (zero? #t))
+(check-catch 'type-error (zero? #f))
+(check-catch 'type-error (zero? "not-a-number"))
+(check-catch 'type-error (zero? 'symbol))
+(check-catch 'type-error (zero? '(1 2 3)))
 (check-report)

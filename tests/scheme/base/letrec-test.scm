@@ -39,5 +39,5 @@
 ) ;define
 (check (test-letrec) => (list #t #f))
 ;; letrec 限制：init 表达式不能立即使用其他绑定值
-(check-catch 'wrong-type-arg (letrec ((a 1) (b (+ a 1))) (list a b)))
+(check-catch 'type-error (letrec ((a 1) (b (+ a 1))) (list a b)))
 (check-report)

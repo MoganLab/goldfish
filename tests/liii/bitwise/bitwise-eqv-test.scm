@@ -38,7 +38,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -77,12 +77,12 @@
 ) ;check
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bitwise-eqv "string" 1))
-(check-catch 'wrong-type-arg (bitwise-eqv 1 'symbol))
-(check-catch 'wrong-type-arg (bitwise-eqv 3.14 2))
-(check-catch 'wrong-type-arg (bitwise-eqv #\a 1))
-(check-catch 'wrong-type-arg (bitwise-eqv '(1 2) 3))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bitwise-eqv "string" 1))
+(check-catch 'type-error (bitwise-eqv 1 'symbol))
+(check-catch 'type-error (bitwise-eqv 3.14 2))
+(check-catch 'type-error (bitwise-eqv #\a 1))
+(check-catch 'type-error (bitwise-eqv '(1 2) 3))
 
 
 

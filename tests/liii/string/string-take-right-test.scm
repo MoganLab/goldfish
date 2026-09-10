@@ -34,7 +34,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当k大于字符串长度或k为负数时
-;; wrong-type-arg 当str不是字符串类型或k不是整数类型时
+;; type-error 当str不是字符串类型或k不是整数类型时
 
 ;;
 ;; 相关实现
@@ -60,9 +60,9 @@
 (check-catch 'out-of-range (string-take-right "MathAgape" 20))
 (check-catch 'out-of-range (string-take-right "" 1))
 (check-catch 'out-of-range (string-take-right "Hello" -1))
-(check-catch 'wrong-type-arg (string-take-right 123 4))
-(check-catch 'wrong-type-arg (string-take-right "MathAgape" "4"))
-(check-catch 'wrong-type-arg (string-take-right "MathAgape" 4.5))
-(check-catch 'wrong-type-arg (string-take-right "MathAgape" 'a))
+(check-catch 'type-error (string-take-right 123 4))
+(check-catch 'type-error (string-take-right "MathAgape" "4"))
+(check-catch 'type-error (string-take-right "MathAgape" 4.5))
+(check-catch 'type-error (string-take-right "MathAgape" 'a))
 
 (check-report)

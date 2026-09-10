@@ -49,7 +49,7 @@
 ;; ----
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
-;; wrong-type-arg 当str不是字符串时
+;; type-error 当str不是字符串时
 ;;
 ;; 相关实现
 ;; --------

@@ -39,8 +39,8 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当str不是字符串类型时
-;; wrong-type-arg 当char不是字符类型时
+;; type-error 当str不是字符串类型时
+;; type-error 当char不是字符类型时
 ;; out-of-range 当start/end超出字符串索引范围时
 
 (check (string-tokenize "a b c") => '("a" "b" "c"))
@@ -119,9 +119,9 @@
   '("中文" "测试" "功能")
 ) ;check
 
-(check-catch 'wrong-type-arg (string-tokenize 123))
+(check-catch 'type-error (string-tokenize 123))
 (check-catch 'type-error (string-tokenize "hello" "not-a-char"))
-(check-catch 'wrong-type-arg (string-tokenize "hello" #\h 1.5))
+(check-catch 'type-error (string-tokenize "hello" #\h 1.5))
 (check-catch 'out-of-range (string-tokenize "hello" #\space -1))
 (check-catch 'out-of-range (string-tokenize "hello" #\space 0 10))
 (check-catch 'out-of-range (string-tokenize "" #\space 1))

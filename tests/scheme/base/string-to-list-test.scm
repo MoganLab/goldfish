@@ -29,9 +29,9 @@
 (check (length (string->list "hello")) => 5)
 (check (car (string->list "xyz")) => #\x)
 (check (string->list "abcde" 1 4) => '(#\b #\c #\d))
-(check-catch 'wrong-type-arg (string->list '()))
-(check-catch 'wrong-type-arg (string->list '(#\a)))
+(check-catch 'type-error (string->list '()))
+(check-catch 'type-error (string->list '(#\a)))
 (check-catch 'wrong-number-of-args (string->list))
-(check-catch 'wrong-type-arg (string->list "a" "b"))
+(check-catch 'type-error (string->list "a" "b"))
 
 (check-report)

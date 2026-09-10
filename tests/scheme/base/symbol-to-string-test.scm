@@ -20,7 +20,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是符号类型，抛出错误。
 ;;
 ;; 说明
@@ -60,10 +60,10 @@
 ) ;check
 (check (symbol->string (string->symbol "sym$bol")) => "sym$bol")
 ;; 错误测试
-(check-catch 'wrong-type-arg (symbol->string 123))
-(check-catch 'wrong-type-arg (symbol->string "symbol"))
-(check-catch 'wrong-type-arg (symbol->string #f))
-(check-catch 'wrong-type-arg (symbol->string '()))
+(check-catch 'type-error (symbol->string 123))
+(check-catch 'type-error (symbol->string "symbol"))
+(check-catch 'type-error (symbol->string #f))
+(check-catch 'type-error (symbol->string '()))
 (check-catch 'wrong-number-of-args (symbol->string 'a 'b))
 (check-catch 'wrong-number-of-args (symbol->string))
 ;; 往返转换测试

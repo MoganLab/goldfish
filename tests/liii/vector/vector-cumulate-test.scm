@@ -34,7 +34,7 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当vec不是向量时
-;; wrong-type-arg 当proc无法应用到对应参数时
+;; type-error 当proc无法应用到对应参数时
 
 
 (check (vector-cumulate + 0 '#(1 2 3 4)) => #(1 3 6 10))
@@ -46,7 +46,7 @@
 (check-catch 'wrong-number-of-args
   (vector-cumulate (lambda (x) 'a) 0 '#(1 2 3))
 ) ;check-catch
-(check-catch 'wrong-type-arg (vector-cumulate + '(1) '#(1 2 3)))
+(check-catch 'type-error (vector-cumulate + '(1) '#(1 2 3)))
 (check (vector-cumulate (lambda (x y) (+ x 2)) 0 '#('a 'b 'c)) => #(2 4 6))
 
 

@@ -29,7 +29,7 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 参数数量不足两个时抛出。
-;; wrong-type-arg
+;; type-error
 ;; 任一参数不是数字时抛出。
 
 ;; 基础整数比较
@@ -78,9 +78,9 @@
 (check-catch 'wrong-number-of-args (= 1))
 
 ;; 错误处理：类型错误
-(check-catch 'wrong-type-arg (= 1 'a))
-(check-catch 'wrong-type-arg (= 1 "hello"))
-(check-catch 'wrong-type-arg (= 1 '(1 2)))
-(check-catch 'wrong-type-arg (= #t 1))
+(check-catch 'type-error (= 1 'a))
+(check-catch 'type-error (= 1 "hello"))
+(check-catch 'type-error (= 1 '(1 2)))
+(check-catch 'type-error (= #t 1))
 
 (check-report)

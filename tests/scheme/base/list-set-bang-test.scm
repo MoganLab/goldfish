@@ -40,8 +40,8 @@
 ;; - k = list.length - 1: 修改列表最后一个元素
 ;; - k < 0: 抛出out-of-range异常
 ;; - k >= list.length: 抛出out-of-range异常
-;; - 空列表参数：抛出wrong-type-arg异常
-;; - 非列表参数：抛出wrong-type-arg异常
+;; - 空列表参数：抛出type-error异常
+;; - 非列表参数：抛出type-error异常
 ;; 
 ;; 性能特征
 ;; --------
@@ -60,7 +60,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型或参数数量错误时抛出。
 ;; out-of-range
 ;;     当索引k为负数、超出列表长度或参数类型错误时抛出。
@@ -117,8 +117,8 @@
 ;; - k = list.length - 1: 修改列表最后一个元素
 ;; - k < 0: 抛出out-of-range异常
 ;; - k >= list.length: 抛出out-of-range异常
-;; - 空列表参数：抛出wrong-type-arg异常
-;; - 非列表参数：抛出wrong-type-arg异常
+;; - 空列表参数：抛出type-error异常
+;; - 非列表参数：抛出type-error异常
 ;; 
 ;; 性能特征
 ;; --------
@@ -137,7 +137,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型或参数数量错误时抛出。
 ;; out-of-range
 ;;     当索引k为负数、超出列表长度或参数类型错误时抛出。
@@ -194,8 +194,8 @@
 ;; - k = list.length - 1: 修改列表最后一个元素
 ;; - k < 0: 抛出out-of-range异常
 ;; - k >= list.length: 抛出out-of-range异常
-;; - 空列表参数：抛出wrong-type-arg异常
-;; - 非列表参数：抛出wrong-type-arg异常
+;; - 空列表参数：抛出type-error异常
+;; - 非列表参数：抛出type-error异常
 ;; 
 ;; 性能特征
 ;; --------
@@ -214,7 +214,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型或参数数量错误时抛出。
 ;; out-of-range
 ;;     当索引k为负数、超出列表长度或参数类型错误时抛出。
@@ -253,7 +253,7 @@
 ) ;let
 ;; 空列表面界测试
 (let ((lst (list)))
-  (check-catch 'wrong-type-arg (list-set! lst 0 'value))
+  (check-catch 'type-error (list-set! lst 0 'value))
 ) ;let
 ;; 各种数据类型测试
 (let ((lst (list 1 "text" #t 'symbol)))
@@ -345,10 +345,10 @@
   (check lst => '(#t #f 42 "hello"))
 ) ;let
 ;; 错误参数类型测试
-(check-catch 'wrong-type-arg (list-set! 123 0 'value))
-(check-catch 'wrong-type-arg (list-set! "string" 1 'value))
-(check-catch 'wrong-type-arg (list-set! #t 0 'value))
-(check-catch 'wrong-type-arg (list-set! 'symbol 1 'value))
+(check-catch 'type-error (list-set! 123 0 'value))
+(check-catch 'type-error (list-set! "string" 1 'value))
+(check-catch 'type-error (list-set! #t 0 'value))
+(check-catch 'type-error (list-set! 'symbol 1 'value))
 ;; 索引越界测试
 (let ((lst (list 'a 'b 'c)))
   (check-catch 'out-of-range (list-set! lst -1 'value))

@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -56,7 +56,7 @@
   (check (sin 1.0+2.0i) => 3.165778513216168+1.9596010414216063i)
 ) ;when
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (sin "hello"))
+(check-catch 'type-error (sin "hello"))
 (check-catch 'wrong-number-of-args (sin))
 (check-catch 'wrong-number-of-args (sin 1 2))
 (check-report)

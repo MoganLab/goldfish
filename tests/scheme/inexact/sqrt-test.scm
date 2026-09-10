@@ -40,7 +40,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数值时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1时抛出错误。
@@ -69,8 +69,8 @@
 (check (sqrt 10000) => 100)
 (check (sqrt 1000000.0) => 1000.0)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (sqrt "hello"))
-(check-catch 'wrong-type-arg (sqrt 'symbol))
+(check-catch 'type-error (sqrt "hello"))
+(check-catch 'type-error (sqrt 'symbol))
 (check-catch 'wrong-number-of-args (sqrt))
 (check-catch 'wrong-number-of-args (sqrt 1 2))
 (check-report)

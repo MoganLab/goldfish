@@ -33,7 +33,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg 当参数不是数值类型时抛出错误。
+;; type-error 当参数不是数值类型时抛出错误。
 ;; Test real-part with complex numbers
 (check (real-part (make-rectangular 3 4)) => 3.0)
 (check (real-part (make-rectangular -3 4)) => -3.0)

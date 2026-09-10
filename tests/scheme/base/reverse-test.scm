@@ -106,6 +106,6 @@
 (check (reverse '(1 . 2)) => '(2 . 1))
 (check-catch 'wrong-number-of-args (reverse))
 (check-catch 'wrong-number-of-args (reverse '(1) '(2)))
-(check-catch 'wrong-type-arg (reverse 123))
+(check-catch 'type-error (reverse 123))
 
 (check-report)

@@ -43,7 +43,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 ;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
@@ -127,7 +127,7 @@
 (check (string-skip-right "abcABC" char-upper-case?) => 2)
 
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (string-skip-right 123 #\a))
+(check-catch 'type-error (string-skip-right 123 #\a))
 (check-catch 'type-error (string-skip-right "hello" "a"))
 (check-catch 'type-error (string-skip-right "hello" 123))
 (check-catch 'type-error (string-skip-right "hello" '(a)))

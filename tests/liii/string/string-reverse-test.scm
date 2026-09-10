@@ -33,7 +33,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当start/end超出字符串索引范围时
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 ;;
 ;; 相关实现
 ;; --------
@@ -158,9 +158,9 @@
 (check-catch 'out-of-range (string-reverse "test" 0 5))
 (check-catch 'out-of-range (string-reverse "" 1))
 
-(check-catch 'wrong-type-arg (string-reverse 123))
-(check-catch 'wrong-type-arg (string-reverse "hello" "not-number"))
-(check-catch 'wrong-type-arg (string-reverse "hello" 1.5))
-(check-catch 'wrong-type-arg (string-reverse "hello" 1 2.5))
+(check-catch 'type-error (string-reverse 123))
+(check-catch 'type-error (string-reverse "hello" "not-number"))
+(check-catch 'type-error (string-reverse "hello" 1.5))
+(check-catch 'type-error (string-reverse "hello" 1 2.5))
 
 (check-report)

@@ -39,7 +39,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
@@ -107,13 +107,13 @@
 (check (bit-set? 1 -3) => #f)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bit-set? "string" 1))
-(check-catch 'wrong-type-arg (bit-set? 1 "string"))
-(check-catch 'wrong-type-arg (bit-set? 3.14 2))
-(check-catch 'wrong-type-arg (bit-set? 1 3.14))
-(check-catch 'wrong-type-arg (bit-set? #\a 1))
-(check-catch 'wrong-type-arg (bit-set? 1 #\a))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bit-set? "string" 1))
+(check-catch 'type-error (bit-set? 1 "string"))
+(check-catch 'type-error (bit-set? 3.14 2))
+(check-catch 'type-error (bit-set? 1 3.14))
+(check-catch 'type-error (bit-set? #\a 1))
+(check-catch 'type-error (bit-set? 1 #\a))
 
 
 ;; ; 错误处理测试 - out-of-range

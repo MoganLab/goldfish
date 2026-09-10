@@ -267,7 +267,7 @@
 (check (append '(1 2) 3) => '(1 2 . 3))
 (check (append '() 3) => 3)
 (check (append '(a) '(b) '(c) '(d)) => '(a b c d))
-(check-catch 'wrong-type-arg (append 1 '(2)))
-(check-catch 'wrong-type-arg (append '(1 . 2) '(3)))
+(check-catch 'type-error (append 1 '(2)))
+(check-catch 'type-error (append '(1 . 2) '(3)))
 
 (check-report)

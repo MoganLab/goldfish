@@ -25,8 +25,8 @@
 (check (cdar '((a b c) d)) => '(b c))
 (check (cdar '((a) b)) => '())
 (check (cdar '(((a) b) c)) => '(b))
-(check-catch 'wrong-type-arg (cdar '()))
-(check-catch 'wrong-type-arg (cdar 'a))
+(check-catch 'type-error (cdar '()))
+(check-catch 'type-error (cdar 'a))
 (check-catch 'wrong-number-of-args (cdar))
 (check-catch 'wrong-number-of-args (cdar '((a b) c) 'x))
 

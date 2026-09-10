@@ -40,7 +40,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -103,15 +103,15 @@
 (check (every-bit-set? 7 2) => (= (bitwise-and 7 2) 7))
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (every-bit-set? "string" 1))
-(check-catch 'wrong-type-arg (every-bit-set? 1 "string"))
-(check-catch 'wrong-type-arg (every-bit-set? 3.14 2))
-(check-catch 'wrong-type-arg (every-bit-set? 1 3.14))
-(check-catch 'wrong-type-arg (every-bit-set? #\a 1))
-(check-catch 'wrong-type-arg (every-bit-set? 1 #\a))
-(check-catch 'wrong-type-arg (every-bit-set? '(1 2) 3))
-(check-catch 'wrong-type-arg (every-bit-set? 1 '(2 3)))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (every-bit-set? "string" 1))
+(check-catch 'type-error (every-bit-set? 1 "string"))
+(check-catch 'type-error (every-bit-set? 3.14 2))
+(check-catch 'type-error (every-bit-set? 1 3.14))
+(check-catch 'type-error (every-bit-set? #\a 1))
+(check-catch 'type-error (every-bit-set? 1 #\a))
+(check-catch 'type-error (every-bit-set? '(1 2) 3))
+(check-catch 'type-error (every-bit-set? 1 '(2 3)))
 
 
 

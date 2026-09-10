@@ -35,7 +35,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是字符串类型时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1个时抛出错误。
@@ -87,11 +87,11 @@
 (check (string-length (string-append "" "")) => 0)
 (check (string-length (string-append "a" "b")) => 2)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (string-length 123))
-(check-catch 'wrong-type-arg (string-length 'symbol))
-(check-catch 'wrong-type-arg (string-length #t))
-(check-catch 'wrong-type-arg (string-length '()))
-(check-catch 'wrong-type-arg (string-length #(1 2 3)))
+(check-catch 'type-error (string-length 123))
+(check-catch 'type-error (string-length 'symbol))
+(check-catch 'type-error (string-length #t))
+(check-catch 'type-error (string-length '()))
+(check-catch 'type-error (string-length #(1 2 3)))
 (check-catch 'wrong-number-of-args (string-length))
 (check-catch 'wrong-number-of-args (string-length "hello" "world"))
 (check-catch 'wrong-number-of-args (string-length "hello" 1))
