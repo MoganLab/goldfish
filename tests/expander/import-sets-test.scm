@@ -247,6 +247,9 @@
 ;; the rebuilt library.  Value aliases ride the bindings section, but a
 ;; macro alias is absent from the macro replay section -- without the
 ;; record's rename specs the restore's export check fails.
+;; NOTE: do NOT assert on .gfo files here -- the test runner sets
+;; GOLDFISH_CACHE_READONLY=1 (goldtest.scm), so fixture loads never
+;; write entries; this direct rebuild is the warm-restore proof.
 (define (xr-restore-ref leaf id)
   (let ((forms (call-with-input-file (xr-fixture-path leaf) read-forms)))
     (call-with-values
