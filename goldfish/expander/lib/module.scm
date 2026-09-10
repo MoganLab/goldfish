@@ -600,6 +600,20 @@
             (current-expand-env))
       (eval (cons 'begin defs) (rootlet)))))
 
+;;; loading-guard-push! / loading-guard-pop! : key -> void
+;;; Push key onto *libraries-being-loaded* for a load's dynamic extent
+;;; (circular-load detection in load-library!), popping on exit.  The
+;;; four push/filter-pop pairs in load-library-in-unit! share these.
+
+(define (loading-guard-push! key)
+  (set! *libraries-being-loaded*
+        (cons key *libraries-being-loaded*)))
+
+(define (loading-guard-pop! key)
+  (set! *libraries-being-loaded*
+        (filter (lambda (n) (not (equal? n key)))
+                *libraries-being-loaded*)))
+
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
 ;;; malformed definition, an expansion error, ...) is reported with the
@@ -681,19 +695,14 @@
                               (and (pair? libs) (cdr libs))))))
             (if recs
               (dynamic-wind
-                (lambda ()
-                  (set! *libraries-being-loaded*
-                        (cons load-key *libraries-being-loaded*)))
+                (lambda () (loading-guard-push! load-key))
                 (lambda ()
                   (load-library-guard
                    lib-name
                    (lambda ()
                      (for-each (lambda (r) (restore-library-cache r level)) recs)
                      (load-library-file-cached! recs level))))
-                (lambda ()
-                  (set! *libraries-being-loaded*
-                        (filter (lambda (n) (not (equal? n load-key)))
-                                *libraries-being-loaded*))))
+                (lambda () (loading-guard-pop! load-key)))
               ;; No cache (or stale): load and compile the source file.
               (let ((file (load-find-module-file lib-file)))
                 (unless file
@@ -701,9 +710,7 @@
                 (let ((forms (call-with-input-file file read-forms)))
                   (set! *perlevel-saved-records* (perlevel-snapshot-records forms))
                   (dynamic-wind
-                    (lambda ()
-                      (set! *libraries-being-loaded*
-                            (cons load-key *libraries-being-loaded*)))
+                    (lambda () (loading-guard-push! load-key))
                     (lambda ()
                       (load-library-guard
                        lib-name
@@ -733,10 +740,7 @@
                                (let ((bare (library-registry-ref lib-name)))
                                  (when bare
                                    (library-registry-set! lib-name bare level)))))))))
-                    (lambda ()
-                      (set! *libraries-being-loaded*
-                            (filter (lambda (n) (not (equal? n load-key)))
-                                    *libraries-being-loaded*)))))))))))))
+                    (lambda () (loading-guard-pop! load-key))))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
