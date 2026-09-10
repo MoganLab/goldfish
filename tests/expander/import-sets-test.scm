@@ -24,7 +24,7 @@
                (pair? (car info))
                (string? (caar info)))
         (let ([payload (car info)])
-          (if (and (equal? (car payload) "import: failed to load library ~a: ~a")
+          (if (and (equal? (car payload) "failed to load library ~a: ~a")
                    (= (length payload) 3))
             (caddr payload)
             (car payload)))

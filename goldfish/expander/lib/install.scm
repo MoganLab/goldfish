@@ -280,7 +280,7 @@
         (for-each (lambda (sexp)
                     (if (and (pair? sexp) (eq? (car sexp) 'define))
                       (eval sexp the-expander-library)
-                      (error "install-library-forms!: expected value definition"
+                      (error 'install-library-forms! "expected value definition"
                              sexp)))
                   sexps)
         ;; Only this file's own value definitions belong in its cache, not
@@ -324,7 +324,7 @@
 (define (install-library-file-in-unit! lib path)
   (let ((file (load-find-module-file path)))
     (unless file
-      (error "install-library-file!: file not found" path))
+      (error 'install-library-file! "file not found" path))
     ;; Stamp the RESOLVED file: stamping the unresolved repo-relative path
     ;; degrades to (-1 -1) (it never resolves against the process CWD),
     ;; leaving the pipeline-fingerprint directory as the only invalidation.
@@ -407,9 +407,9 @@
         ;; Unserializable values raise: compile-file-cached catches and
         ;; skips the cache entry rather than writing one that cannot load.
         ((record-instance? y)
-         (error "serialize-cache-sexp: cannot serialize a record" y))
+         (error 'serialize-cache-sexp "cannot serialize a record" y))
         ((procedure? y)
-         (error "serialize-cache-sexp: cannot serialize a procedure" y))
+         (error 'serialize-cache-sexp "cannot serialize a procedure" y))
         ((pair? y)
          (let ((result (cons #f #f)))
            (set! memo (cons (cons y result) memo))

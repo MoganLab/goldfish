@@ -305,7 +305,7 @@
                        (cond
                          (loc (make-lexical-set #f name (car loc) (cdr loc) rhs))
                          ((eq? kind 'primitive)
-                          (error "set!: cannot assign to primitive" name))
+                          (error 'set! "cannot assign to primitive" name))
                          (else (make-toplevel-set #f name rhs))))))
                   ((module-ref)
                    ;; (module-ref (quote lib) (quote name)) is the

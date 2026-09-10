@@ -215,7 +215,7 @@
                             (body-stx (if (= 2 (length rest)) (cadr rest) (car rest)))
                             (patvars (pattern-variables pattern-stx literal-ids)))
                     (if (not (or (= 1 (length rest)) (= 2 (length rest))))
-                        (error "syntax-case: expected a pattern, an optional guard expression, and an expression"
+                        (error 'syntax-case "expected a pattern, an optional guard expression, and an expression"
                                clause-stx)
                         (list 'list
                               (list 'syntax pattern-stx)

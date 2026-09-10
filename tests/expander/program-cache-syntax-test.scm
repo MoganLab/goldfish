@@ -83,7 +83,7 @@
               '("" "-o1" "-o2" "-o3"))))
 
 ;; ===== 1. 序列化器是唯一裁判：不可序列化值 raise =====
-(check-catch 'no-catch (serialize (list 1 (lambda (x) x))))
+(check-catch 'serialize-cache-sexp (serialize (list 1 (lambda (x) x))))
 (check (serialize (list 1 '(a b))) => '(1 (a b)))
 
 ;; ===== 2. 6a 型程序：exprs 降级为 stx*，读回重建活记录 =====

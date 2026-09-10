@@ -12,7 +12,7 @@
   (let ((form (syntax-form stx)))
     (if (and (pair? form) (pair? (cdr form)))
         (cadr form)
-        (error "malformed syntax: expected (head arg ...)" stx))))
+        (error 'malformed-syntax "expected (head arg ...)" stx))))
 
 ;;; void-expr lives in expand.scm (earlier in the include order).
 
@@ -58,12 +58,12 @@
          ((null? p) (values (reverse fixed) #f))
          ((identifier? p) (values (reverse fixed)
                                   p))
-         (else (error "lambda: malformed parameter list"
+         (else (error 'lambda "malformed parameter list"
                       (syntax->datum params-stx))))))
     ((and (syntax? params-stx) (null? (syntax-form params-stx)))
      (values '() #f))
     (else
-     (error "lambda: malformed parameter list"
+     (error 'lambda "malformed parameter list"
             (syntax->datum params-stx)))))
 
 ;;; expand-lambda-binding : syntax context scope phase -> (values name ctx)
@@ -131,7 +131,7 @@
                      ((e-sexp c3) (expand-expr (cadddr form) c2)))
          (values (datum->syntax stx `(if ,c-sexp ,t-sexp ,e-sexp)) c3)))
       (else
-       (error "if: expected (if cond then [else])" form)))))
+       (error 'if "expected (if cond then [else])" form)))))
 
 ;;; begin
 ;;; A begin with a stopped (tstop-headed) subform is returned unexpanded
@@ -169,7 +169,7 @@
 (define (core-set! stx ctx)
   (let ((form (syntax-form stx)))
     (unless (= 3 (length form))
-      (error "set!: expected (set! var val)" form))
+      (error 'set! "expected (set! var val)" form))
     (let ((var-stx (cadr form))
           (val-stx (caddr form)))
       (if (pair? (syntax-form var-stx))
@@ -187,12 +187,12 @@
           (let*-values (((name binding) (resolve-identifier var-stx ctx)))
             (cond
               ((core-form-binding? binding)
-               (error "set!: cannot assign keyword" (syntax-form var-stx)))
+               (error 'set! "cannot assign keyword" (syntax-form var-stx)))
               ((primitive-binding? binding)
-               (error "set!: cannot assign primitive" (syntax-form var-stx)))
+               (error 'set! "cannot assign primitive" (syntax-form var-stx)))
               ((and (toplevel-binding? binding)
                     (toplevel-ref-exported? (binding-value binding)))
-               (error "set!: cannot assign exported module binding"
+               (error 'set! "cannot assign exported module binding"
                       (syntax-form var-stx))))
             (let*-values (((val-sexp ctx1) (expand-expr val-stx ctx)))
               (let ((target (if (toplevel-binding? binding)
@@ -254,12 +254,12 @@
 ;;; define (not valid in expression position)
 
 (define (core-define stx ctx)
-  (error "define: not valid in expression position" (syntax-form stx)))
+  (error 'define "not valid in expression position" (syntax-form stx)))
 
 ;;; define-syntax (not valid in expression position)
 
 (define (core-define-syntax stx ctx)
-  (error "define-syntax: not valid in expression position" (syntax-form stx)))
+  (error 'define-syntax "not valid in expression position" (syntax-form stx)))
 
 ;;; let-syntax
 
@@ -409,7 +409,7 @@
                           ctx1))))
            ((eq? head 'unquote-splicing)
             (if (= depth 1)
-                (error "unquote-splicing outside list context")
+                (error 'quasiquote "unquote-splicing outside list context")
                 (let*-values (((inner ctx1)
                                (qq-expand (stx-cadr stx) ctx (- depth 1))))
                   (values (datum->syntax stx
@@ -673,7 +673,7 @@
   (for-each
     (lambda (s)
       (unless (memq s '(expand load eval))
-        (error "eval-when: invalid situation" sit-datum)))
+        (error 'eval-when "invalid situation" sit-datum)))
     sit-datum))
 
 ;;; Expand-time (eval-when (expand) / begin-for-syntax) definitions are

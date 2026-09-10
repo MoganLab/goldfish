@@ -19,39 +19,39 @@
         #f))))
 
 ;; ===== 1. eval-transformer：let-syntax 绑定非 transformer =====
-(check-catch 'no-catch (expand-eval '(let-syntax ((x 1)) x)))
+(check-catch 'eval-transformer (expand-eval '(let-syntax ((x 1)) x)))
 (check (expand-error-message
          (lambda () (expand-eval '(let-syntax ((x 1)) x))))
-       => "eval-transformer: transformer must evaluate to a procedure")
+       => "transformer must evaluate to a procedure")
 
 ;; ===== 2. eval-when 非法 situation =====
-(check-catch 'no-catch (expand-eval '(eval-when (bogus-situation) 1)))
+(check-catch 'eval-when (expand-eval '(eval-when (bogus-situation) 1)))
 (check (expand-error-message
          (lambda () (expand-eval '(eval-when (bogus-situation) 1))))
-       => "eval-when: invalid situation")
+       => "invalid situation")
 
 ;; ===== 3. syntax-rules 无匹配子句 =====
-(check-catch 'no-catch
+(check-catch 'syntax-case
   (expand-eval '(let-syntax ((m (syntax-rules () ((_ x) x)))) (m))))
 
 ;; ===== 4. 宏展开产出畸形 core 形式（if 缺分支）=====
-(check-catch 'no-catch
+(check-catch 'if
   (expand-eval '(let-syntax ((m (syntax-rules () ((_) (if))))) (m))))
 
 ;; ===== 5. load 坏文件：展开错误经 load 抛出 =====
 (call-with-output-file "/tmp/gf-macro-error-bad.scm"
   (lambda (p) (write '(eval-when (bogus-situation) 1) p) (newline p)))
-(check-catch 'no-catch (load "/tmp/gf-macro-error-bad.scm"))
+(check-catch 'eval-when (load "/tmp/gf-macro-error-bad.scm"))
 
 ;; ===== 6. load-library! 未知库 =====
-(check-catch 'no-catch (load-library! '(no-such-library-here)))
+(check-catch 'import (load-library! '(no-such-library-here)))
 (check (catch #t
          (lambda () (load-library! '(no-such-library-here)))
          (lambda (tag . info)
            (if (and (pair? info) (pair? (car info)) (string? (caar info)))
              (caar info)
              #f)))
-       => "import: unknown library")
+       => "unknown library")
 
 ;; ===== 7. load-library-guard：库体编译期错误报库名（回归 #format-bug）=====
 ;; 库存在但库体展开失败时，guard 把展开错误转成带库名的消息
@@ -83,6 +83,6 @@
   (check (string-contains (caar r) "failed to load library") => #t)
   (check (if (member '(gf bad-body-lib) (cdar r)) #t #f) => #t)
   (check (pair? (cdr (cdar r))) => #t)
-  (check (string-contains (car (cdr (cdar r))) "eval-transformer") => #t))
+  (check (string-contains (car (cdr (cdar r))) "transformer must evaluate to a procedure") => #t))
 
 (check-report)

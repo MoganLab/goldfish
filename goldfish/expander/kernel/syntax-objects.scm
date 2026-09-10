@@ -85,7 +85,7 @@
 
 (define-public (stx-ctx-mark-intro ctx phase)
   (unless (= phase 0)
-    (error "stx-ctx-mark-intro: phase must be 0" phase))
+    (error 'stx-ctx-mark-intro "phase must be 0" phase))
   (if (not *current-intro-scope*)
       ctx
       (let ((scp *current-intro-scope*))
@@ -239,7 +239,7 @@
 
 (define (bound-identifier=? id1 id2 . maybe-phase)
   (unless (and (identifier? id1) (identifier? id2))
-    (error "bound-identifier=?: not identifiers" id1 id2))
+    (error 'bound-identifier=? "not identifiers" id1 id2))
   (let ((phase (if (null? maybe-phase) 0 (car maybe-phase))))
     (and (eq? (syntax-form id1) (syntax-form id2))
          (set=? (syntax-scopes id1 phase)
@@ -269,7 +269,7 @@
 
 (define-public (syntax-e stx)
   (unless (syntax? stx)
-    (error "syntax-e: not a syntax object" stx))
+    (error 'syntax-e "not a syntax object" stx))
   (let* ((form (syntax-form stx))
          (ctx  (syntax-context stx))
          (lib  (syntax-library stx))
@@ -296,7 +296,7 @@
 
 (define (datum->stx-ctx ctx lib phase datum)
   (unless (list? ctx)
-    (error "datum->syntax: context source is neither syntax nor a scope-set context" ctx))
+    (error 'datum->syntax "context source is neither syntax nor a scope-set context" ctx))
   ;; The syntax-literal scope is a marker for the expander's keep-as-value
   ;; decision (quote-syntax VALUES and template literals), NOT lexical
   ;; context.  A syntax object carrying it must not propagate it through
@@ -341,7 +341,7 @@
         (map (lambda (_)
                (make-syntax (make-fresh-name 't) (stx-ctx-empty) #f))
              ulst)
-        (error "generate-temporaries: not a proper list" lst))))
+        (error 'generate-temporaries "not a proper list" lst))))
 
 ;;; Library exports
 

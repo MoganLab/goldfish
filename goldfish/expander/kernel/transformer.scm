@@ -55,6 +55,6 @@
       (let* ((lowered (lower sexp)))
         (let ((proc (eval lowered (current-expand-env))))
           (unless (procedure? proc)
-            (error "eval-transformer: transformer must evaluate to a procedure"
+            (error 'eval-transformer "transformer must evaluate to a procedure"
                    (syntax->datum stx)))
           (values proc (context-return ctx ctx2) lowered))))))

@@ -148,9 +148,9 @@
             (let*-values (((name binding) (resolve-identifier stx ctx)))
               (cond
                 ((core-form-binding? binding)
-                 (error "expand-atom: keyword used as expression" form))
+                 (error 'expand-atom "keyword used as expression" form))
                 ((transformer-binding? binding)
-                 (error "expand-atom: macro used as expression" form))
+                 (error 'expand-atom "macro used as expression" form))
                 ((toplevel-binding? binding)
                  (values (emit-toplevel-ref (binding-value binding) stx) ctx))
                 (binding
@@ -182,7 +182,7 @@
                    ((tstop-binding? binding)
                     (values stx ctx))
                    (else
-                    (error "expand-atom: cannot inline live binding value"
+                    (error 'expand-atom "cannot inline live binding value"
                            form binding))))
                    (else (if (program-library? (syntax-library stx))
                      ;; Same error tag as the host evaluator's unbound
@@ -274,7 +274,7 @@
           (let ((output (proc input)))
             (set-current-intro-scope! old-intro)
             (if (not (syntax? output))
-                (error "syntax-case: macro output is not a syntax object"
+                (error 'syntax-case "macro output is not a syntax object"
                        output)
                 (values output
                         (current-expand-context)))))))))
@@ -287,7 +287,7 @@
 (define-public (make-syntax-introducer)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "make-syntax-introducer: no expansion context"))
+      (error 'make-syntax-introducer "no expansion context"))
     (let*-values (((scp ctx1) (context-alloc-scope ctx)))
       (set-current-expand-context! ctx1)
       (let ((ph (context-phase ctx)))
@@ -302,7 +302,7 @@
 (define-public (syntax-local-introduce stx)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "syntax-local-introduce: no expansion context"))
+      (error 'syntax-local-introduce "no expansion context"))
     (let* ((ph (context-phase ctx))
            (intro (context-intro-scope ctx))
            (flips (if intro
@@ -315,7 +315,7 @@
 (define-public (syntax-local-value id)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "syntax-local-value: no expansion context"))
+      (error 'syntax-local-value "no expansion context"))
     (let*-values (((name binding) (resolve-identifier id ctx)))
       binding)))
 
@@ -326,7 +326,7 @@
 (define-public (local-binder id)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "local-binder: no expansion context"))
+      (error 'local-binder "no expansion context"))
     (stx-prune-scopes id (context-use-scopes ctx) (context-phase ctx))))
 
 ;;; local-expand : syntax [stops] -> syntax
@@ -339,7 +339,7 @@
 (define-public (local-expand stx . maybe-rest)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "local-expand: no expansion context"))
+      (error 'local-expand "no expansion context"))
     (let ((stops (if (null? maybe-rest) '() (car maybe-rest)))
           (maybe-defs (if (or (null? maybe-rest) (null? (cdr maybe-rest)))
                           #f
@@ -371,7 +371,7 @@
 (define-public (local-expand-body stx stops defs)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "local-expand-body: no expansion context"))
+      (error 'local-expand-body "no expansion context"))
     (let*-values (((result ctx1)
                    (ctx-local-expand-defs* ctx stx stops defs #f)))
       (set-current-expand-context! ctx1)
@@ -474,7 +474,7 @@
 (define-public (new-defs)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "new-defs: no expansion context"))
+      (error 'new-defs "no expansion context"))
     (let*-values (((scp-in ctx1) (context-alloc-scope ctx))
                   ((addr-env ctx2) (context-alloc-def-env ctx1)))
       (let* ((store (store-def-env-set (context-store ctx2) addr-env (context-env ctx)))
@@ -485,7 +485,7 @@
 (define-public (def-bind! defs id . maybe-transformer-stx)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "def-bind!: no expansion context"))
+      (error 'def-bind! "no expansion context"))
     (let* ((scp-in (defs-scp-in defs))
            (addr-env (defs-addr defs))
            (ph (context-phase ctx))
@@ -520,7 +520,7 @@
 (define-public (expand-box val)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "expand-box: no expansion context"))
+      (error 'expand-box "no expansion context"))
     (let*-values (((addr ctx1) (context-alloc-box ctx)))
       (let ((ctx2 (context-with-store ctx1 (store-box-set (context-store ctx1) addr val))))
         (set-current-expand-context! ctx2)
@@ -529,13 +529,13 @@
 (define-public (expand-unbox addr)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "expand-unbox: no expansion context"))
+      (error 'expand-unbox "no expansion context"))
     (store-box-ref (context-store ctx) addr)))
 
 (define-public (expand-set-box! addr val)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "expand-set-box!: no expansion context"))
+      (error 'expand-set-box! "no expansion context"))
     (set-current-expand-context!
      (context-with-store ctx (store-box-set (context-store ctx) addr val)))
     val))

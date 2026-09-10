@@ -59,7 +59,7 @@
 
 (define (record-field-index rtd field)
   (let loop ((fs (record-type-fields rtd)) (i 1))
-    (cond ((null? fs) (error "record: no such field" field))
+    (cond ((null? fs) (error 'record "no such field" field))
           ((eq? (car fs) field) i)
           (else (loop (cdr fs) (+ i 1))))))
 
@@ -224,7 +224,7 @@
 (define (module-ref m name)
   (let ((m (if (module? m) m (lookup-module m))))
     (unless (memq name (let-ref m '__exports))
-      (error "module-ref: not exported" name))
+      (error 'module-ref "not exported" name))
     (let-ref m name)))
 
 ;;; A cross-library value reference is lowered to (module-ref 'home 'name);
@@ -248,7 +248,7 @@
 (define (lookup-module name)
   (let ((entry (assoc name *module-registry*)))
     (unless entry
-      (error "lookup-module: unknown module" name))
+      (error 'lookup-module "unknown module" name))
     (cdr entry)))
 
 (define the-expander-library

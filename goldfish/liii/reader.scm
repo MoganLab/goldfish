@@ -1159,7 +1159,7 @@
   (if (not (has-record? x))
     (begin
       (when (has-cycle? x)
-        (error "write-roundtrip: cannot serialize a cyclic datum without records" x))
+        (error 'write-roundtrip "cannot serialize a cyclic datum without records" x))
       (let rec ((v x))
         (cond
           ((symbol? v) (write-roundtrip-symbol v p))
@@ -1192,7 +1192,7 @@
                  (loop (+ i 1)))))
            (display ")" p))
           ((procedure? v)
-           (error "write-roundtrip: cannot serialize a procedure" v))
+           (error 'write-roundtrip "cannot serialize a procedure" v))
           (else (write v p)))))
     ;; Graph-aware pass (data contains records): count references, then
     ;; output with #n=/#n# labels for shared/cyclic containers.
@@ -1283,7 +1283,7 @@
                  (begin (write-mark v) (wrt-vector v)))
                (wrt-vector v)))
             ((procedure? v)
-             (error "write-roundtrip: cannot serialize a procedure" v))
+             (error 'write-roundtrip "cannot serialize a procedure" v))
             (else (write v p))))
         (define (wrt-pair v)
           (display #\( p)

@@ -35,7 +35,7 @@
 
 (define-public (expand-body stxs ctx)
   (if (null? stxs)
-      (error "expand-body: empty body")
+      (error 'expand-body "empty body")
       (let ((saved-ctx (current-expand-context)))
         (set-current-expand-context! ctx)
         (let ((defs (new-defs)))
@@ -52,7 +52,7 @@
 (define (scan-body-form stx defs)
   (let ((ctx (current-expand-context)))
     (unless ctx
-      (error "scan-body-form: no expansion context"))
+      (error 'scan-body-form "no expansion context"))
     (let* ((ph (context-phase ctx))
            (scp-in (defs-scp-in defs))
            (addr-env (defs-addr defs))
@@ -246,7 +246,7 @@
          (values (car (syntax-form head))
                  (build-lambda-stx stx params (cddr form)))))
       (else
-       (error "define: bad syntax in body" (syntax->datum stx))))))
+       (error 'define "bad syntax in body" (syntax->datum stx))))))
 
 (define-public (build-lambda-stx src-stx param-stxs body-stxs)
   (let ((ctx (syntax-context src-stx))

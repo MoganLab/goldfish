@@ -190,7 +190,7 @@
 
 (define (purify-binding b)
   (or (install-binding-desc b)
-      (error "purify-binding: library not cacheable (unsupported binding)"
+      (error 'purify-binding "library not cacheable (unsupported binding)"
              (binding-kind b))))
 
 ;;; depurify restores through install-depurify-binding with the strict
@@ -348,7 +348,7 @@
      (for-each (lambda (r)
                  (let ((binding (exp-library-ref lib (cdr r))))
                    (unless binding
-                     (error "define-library: export has no binding"
+                     (error 'define-library "export has no binding"
                             (cdr r) name))
                    (exp-library-define! lib (car r) binding)))
                (lib-cache-renames rec))
@@ -357,7 +357,7 @@
      ;;    requires every export to resolve from the body or an import).
      (for-each (lambda (export)
                  (unless (exp-library-ref lib export)
-                   (error "define-library: export has no binding" export name)))
+                   (error 'define-library "export has no binding" export name)))
                exports)
      lib))
 
@@ -615,7 +615,7 @@
                             msg)))
                        ;; other raised objects (often an opaque/cyclic marker)
                        (else "malformed definition or expansion error"))))
-        (error "import: failed to load library ~a: ~a" lib-name detail)))))
+        (error 'import "failed to load library ~a: ~a" lib-name detail)))))
 
 ;;; lazy-module : name -> module/#f
 ;;; Load a runtime library on demand and return its module; #f on failure.
@@ -642,7 +642,7 @@
 (define (load-library! lib-name . maybe-level)
   (let ((level (registry-level-arg maybe-level)))
     (when (instance-loading? lib-name level)
-      (error "import: circular library dependency" lib-name))
+      (error 'import "circular library dependency" lib-name))
     (let ((inlet (call-with-fresh-expand-unit
                    (lambda ()
                      (load-library-in-unit! lib-name level)
@@ -695,7 +695,7 @@
           ;; No cache (or stale): load and compile the source file.
           (begin
             (unless file
-              (error "import: unknown library" lib-name))
+              (error 'import "unknown library" lib-name))
             (let* ((forms (call-with-input-file file read-forms))
                    ;; Registry rows the capture below would clobber (bare
                    ;; entries for this file's libraries), for the rebuild.
@@ -744,7 +744,7 @@
               (and rec (runtime-registered? lib-name level) rec))
             (begin (load-library! lib-name level)
                    (library-registry-ref lib-name level))
-            (error "import: unknown library" lib-name)))))
+            (error 'import "unknown library" lib-name)))))
 
 ;;; ------------------------------------------------------------------------
 ;;; R7RS adapter
@@ -811,11 +811,11 @@
                               ;; collapses two exports, say) is ambiguous.
                               (if (eq? prior binding)
                                 #f
-                                (error "import: ~a bound more than once with different bindings (~a)"
+                                (error 'import "~a bound more than once with different bindings (~a)"
                                        visible lib-name))
                               (exp-library-define! iface visible binding)))
                           (when strict?
-                            (error "import: ~a has no binding in ~a"
+                            (error 'import "~a has no binding in ~a"
                                    (cdr p) lib-name)))))
                     pairs)
           (set! *interface-cache*
@@ -886,7 +886,7 @@
                            (exp-library-name iface))
                    (scan (cdr uses)))
                   (else
-                   (error "import: ~a already imported with a different binding (~a earlier vs ~a new)"
+                   (error 'import "~a already imported with a different binding (~a earlier vs ~a new)"
                           name
                           (exp-library-name (caar uses))
                           (exp-library-name iface))))))
@@ -936,7 +936,7 @@
             (let ((e (assq (car p) args)))
               (if e (cons (cadr e) (cdr p)) p)))
           pairs))
-    (else (error "import: bad import-set kind" kind))))
+    (else (error 'import "bad import-set kind" kind))))
 
 ;;; import-set-pairs : spec level -> (values lib-name (list (visible . original)))
 (define (import-set-pairs spec level)
@@ -1158,11 +1158,11 @@
                               (from (cdr r)))
                           (let ((binding (exp-library-ref lib from)))
                             (unless binding
-                              (error "define-library: export has no binding"
+                              (error 'define-library "export has no binding"
                                      from name))
                             (let ((prior (exp-library-ref-own lib to)))
                               (when (and prior (not (eq? prior binding)))
-                                (error "define-library: export rename target already bound"
+                                (error 'define-library "export rename target already bound"
                                        to name)))
                             (exp-library-define! lib to binding)
                             (when (toplevel-binding? binding)
@@ -1172,7 +1172,7 @@
             (for-each (lambda (export)
                         (let ((binding (exp-library-ref lib export)))
                           (unless binding
-                            (error "define-library: export has no binding"
+                            (error 'define-library "export has no binding"
                                    export name))
                           (when (toplevel-binding? binding)
                             (set-toplevel-ref-exported! (binding-value binding) #t))))
@@ -1253,7 +1253,7 @@
                        ;; value to store.
                        acc)
                       (else
-                       (error "define-library: cannot export binding" export)))))
+                       (error 'define-library "cannot export binding" export)))))
                 '()
                 exports))))
     ;; Built with list/append, not backquote: s7's eval of the standard

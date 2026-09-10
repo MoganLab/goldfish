@@ -102,7 +102,7 @@
                         (bind-name (car bs))
                         (loop (cdr bs)))))
               (if (any (lambda (b) (set<=? (bind-scopes b) scopes)) binds)
-                  (error "ambiguous reference" sym)
+                  (error 'ambiguous-reference "ambiguous reference" sym)
                   sym))))))
 
 ;;; Mutable boxes (used at expand-time, e.g. by defs model)
@@ -111,7 +111,7 @@
   (let ((entry (assoc addr (store-boxes store))))
     (if entry
         (cdr entry)
-        (error "store-box-ref: unbound box" addr))))
+        (error 'store-box-ref "unbound box" addr))))
 
 (define-public (store-box-set store addr value)
   (let ((boxes (store-boxes store)))
@@ -132,7 +132,7 @@
   (let ((entry (assoc addr (store-def-envs store))))
     (if entry
         (cdr entry)
-        (error "store-def-env-ref: unbound def-env" addr))))
+        (error 'store-def-env-ref "unbound def-env" addr))))
 
 (define-public (store-def-env-set store addr env)
   (let ((def-envs (store-def-envs store)))

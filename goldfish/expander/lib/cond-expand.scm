@@ -38,7 +38,7 @@
 (define-syntax cond-expand
   (lambda (stx)
     (syntax-case stx (else)
-      ((_) (error "cond-expand: no matching feature requirement"
+      ((_) (error 'cond-expand "no matching feature requirement"
                  (syntax->datum stx)))
       ((_ (else body ...))
        #'(begin body ...))

@@ -236,7 +236,7 @@
                                (else (list (ir->core s)))))
                        (list (ir->core (letrec-body ir)))))))
         ((or (symbol? ir) (not (pair? ir))) ir)
-        (else (error "ir->core: unknown IR node" ir))))
+        (else (error 'ir->core "unknown IR node" ir))))
 
     (define core-language
       '((quote const "(quote datum)")

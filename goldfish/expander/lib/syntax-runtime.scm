@@ -298,7 +298,7 @@
   (letrec* ((literals (if (syntax? literals-stx) (syntax-form literals-stx) '()))
             (loop (lambda (cls)
                     (if (null? cls)
-                        (error "syntax-case: no matching clause"
+                        (error 'syntax-case "no matching clause"
                                (if (syntax? input) (syntax->datum input) input))
                         (letrec* ((cl (car cls))
                                   (pat (pattern-tree (car cl)))
@@ -475,7 +475,7 @@
                     (make-syntax (list->vector (fast-instantiate-segs (cdddr node) bindings))
                                  (stx-ctx-mark-intro (node-datum (cadr node)) 0)
                                  (node-lib (caddr node)))
-                    (error "fast-instantiate: bad node" node)))))))
+                    (error 'fast-instantiate "bad node" node)))))))
 
 (define (fast-instantiate-segs segs bindings)
   (if (null? segs)

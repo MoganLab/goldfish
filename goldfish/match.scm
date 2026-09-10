@@ -316,7 +316,7 @@
           (let ((expr (syntax->datum (cadr form)))
                 (clauses (map syntax-form (cddr form))))
             (if (null? clauses)
-              (error "match: no clauses")
+              (error 'match "no clauses")
               (let ((code
                      (let loop ((cls clauses))
                        (if (null? (cdr cls))
@@ -363,7 +363,7 @@
         (let ((form (syntax-form stx)))
           (let ((clauses (cdr form)))
             (if (null? clauses)
-              (error "match-lambda: no clauses")
+              (error 'match-lambda "no clauses")
               (let* ((groups
                       (let loop ((cls clauses) (acc '()))
                         (if (null? cls)
@@ -587,7 +587,7 @@
       (lambda (stx)
         (let ((form (syntax-form stx)))
           (if (< (length form) 4)
-            (error "if-match: malformed form")
+            (error 'if-match "malformed form")
             (let* ((binds (syntax-form (cadr form)))
                    (groups (map (lambda (b) (syntax-form b)) binds))
                    (pats (map car groups))

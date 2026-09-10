@@ -21,7 +21,7 @@
 (define-public (expand-library-body stxs lib ctx)
   (let loop ((stxs stxs) (ctx ctx) (var-defs '()) (exprs '()) (n 0))
     (when (> n 50000)
-      (error "expand-library-body: expansion limit exceeded"))
+      (error 'expand-library-body "expansion limit exceeded"))
     (if (null? stxs)
         (expand-library-finalize (reverse var-defs) (reverse exprs) ctx)
         (let* ((stx (car stxs))

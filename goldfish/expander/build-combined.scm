@@ -17,7 +17,7 @@
 (define (kernel-library-form)
   (let ((file "goldfish/expander/kernel.scm"))
     (unless (file-exists? file)
-      (error "build-combined: kernel library not found" file))
+      (error 'build-combined "kernel library not found" file))
     (car (read-forms (open-input-file file)))))
 
 ;; Drop base PRIMITIVE bindings so value defs win (otherwise bare names fail at load).
@@ -63,7 +63,7 @@
                         (filter (lambda (e) (eq? (binding-kind (cdr e)) 'toplevel))
                                 (exp-library-bindings lib)))))
             (when (pair? stray-prims)
-              (error "build-combined: kernel exports reference unexpected primitives"
+              (error 'build-combined "kernel exports reference unexpected primitives"
                      stray-prims))
             (let* ((artifact (append (map lower defs) re-bindings))
                    (artifact (cons 'begin artifact)))

@@ -133,7 +133,7 @@
              (body     '())
              (n        0))
     (when (> n 50000)
-      (error "compile-program*: expansion limit exceeded"))
+      (error 'compile-program* "expansion limit exceeded"))
     (if (null? exprs)
       (values (if (null? body)
                 (if (null? lib-defs)

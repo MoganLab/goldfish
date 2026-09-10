@@ -277,5 +277,5 @@
 (define (free-identifier=? id1 id2 . maybe-ctx)
   (let ((ctx (if (null? maybe-ctx) (current-expand-context) (car maybe-ctx))))
     (unless ctx
-      (error "free-identifier=?: no expansion context"))
+      (error 'free-identifier=? "no expansion context"))
     (eq? (context-resolve ctx id1) (context-resolve ctx id2))))

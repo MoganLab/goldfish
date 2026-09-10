@@ -121,7 +121,7 @@
                     (let ((result (tx pat)))
                       (if (syntax? result)
                         (expand-pattern result)
-                        (error "define-pattern-syntax: transformer must return syntax"
+                        (error 'define-pattern-syntax "transformer must return syntax"
                                result)))
                     (if (proper-list? d)
                       (cons 'seq-list (map expand-pattern form))
@@ -191,7 +191,7 @@
                (loop (cddr more)
                      (cons (list 'seq:many (car b) (cadr b) (car more)) acc)))))
           ((ell? (car more))
-           (error "match: incorrect use of ellipsis in sequence pattern"))
+           (error 'match "incorrect use of ellipsis in sequence pattern"))
           (else
            (loop (cdr more) (cons (list 'seq:one (car more)) acc))))))
 
@@ -292,17 +292,17 @@
                    (expand-quasiquote (cadr f) (- d 1)))))
           ((and (pair? f) (eq? (car f) 'unquote))
            (if (= d 0)
-             (error "quasiquote: multi-subform unquote pattern used outside splicing context")
-             (error "quasiquote: malformed unquote pattern")))
+             (error 'quasiquote "multi-subform unquote pattern used outside splicing context")
+             (error 'quasiquote "malformed unquote pattern")))
           ((and (pair? f) (eq? (car f) 'unquote-splicing))
            (if (= d 0)
-             (error "quasiquote: multi-subform unquote-splicing pattern used outside splicing context")
+             (error 'quasiquote "multi-subform unquote-splicing pattern used outside splicing context")
              (cons 'list
                    (cons (list 'quote 'unquote-splicing)
                          (map (lambda (q) (expand-quasiquote q (- d 1)))
                               (cdr f))))))
           ((ell? x)
-           (error "quasiquote: ellipsis used in pattern outside of splicing context"))
+           (error 'quasiquote "ellipsis used in pattern outside of splicing context"))
           ((pair? f)
            (let ((rev (reverse f)))
              (cond
@@ -390,10 +390,10 @@
                (let ((y (cadr x)))
                  (if (symbol? y)
                    (loop (cdr more) (cons '... (cons y acc)))
-                   (error "unquote-splicing: only identifiers can be used with unquote-splicing"
+                   (error 'unquote-splicing "only identifiers can be used with unquote-splicing"
                           y))))
               ((and (pair? x) (eq? (car x) 'unquote-splicing) (= d 0))
-               (error "unquote-splicing: malformed unquote-splicing in pattern"))
+               (error 'unquote-splicing "malformed unquote-splicing in pattern"))
               (else
                (loop (cdr more)
                      (cons (if (or (ell? x) (and (pair? x) (ell? (car x))))
@@ -462,7 +462,7 @@
                      (car (cddddr pat)) (cadr (cddddr pat))
                      (cddr (cddddr pat))
                      subject fail success binds)))
-        (else (error "match: unknown pattern" pat))))
+        (else (error 'match "unknown pattern" pat))))
 
     (define (gen-and-pred* proc subs subject fail success binds)
       (if (null? subs)
@@ -895,7 +895,7 @@
            (let ((first (collect-vars (cadr pat))))
              (for-each (lambda (b)
                          (if (not (equal? (collect-vars b) first))
-                           (error "match: or branches bind different variables")))
+                           (error 'match "or branches bind different variables")))
                        (cddr pat))
              first)))
         (else
