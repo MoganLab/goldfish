@@ -239,10 +239,11 @@
 
 ;;; install-binding-desc : binding -> datum/#f
 ;;; The install cache needs each value definition's (gensym home original
-;;; exported?) tuple to rebuild the binding table at warm start.  This is the
-;;; same extraction lib/module.scm's purify-binding performs, inlined here
-;;; because install.scm loads before module.scm (and install-library-forms!
-;;; is used while module.scm itself is being installed).
+;;; exported?) tuple to rebuild the binding table at warm start.  Shared
+;;; extraction core (module-cache.scm's strict purify-binding is a thin
+;;; fail-fast adapter over this); #f on unsupported kinds so the caller
+;;; can filter.  Lives here because install.scm loads before module.scm
+;;; (and install-library-forms! runs while module.scm itself installs).
 (define (install-binding-desc b)
   (let ((kind (binding-kind b)))
     (cond
@@ -517,43 +518,41 @@
     ;; invalidate the entry on every check.
     (gfo-write! gfo-file stamp rec deps)))
 
-;;; install-depurify-binding : datum exp-library -> binding/#f
-;;; Rebuild a value binding from its cached description, mirroring
-;;; module.scm's depurify-binding.  Inlined here because install-cache-load!
-;;; runs while module.scm itself is being installed, before that procedure
-;;; is defined.  home (libref name) resolves to self-lib when the binding
-;;; belongs to the library being loaded; other homes go through the module
-;;; registry when it is available (warm start), else #f.
-(define (install-depurify-binding desc self-lib)
-  (if (eq? desc 'transformer)
-    #f
-    (let ((kind (car desc)))
-      (cond
-        ((eq? kind 'toplevel)
-         (let* ((gensym (cadr desc))
-                (home-desc (caddr desc))
-                (original (cadddr desc))
-                (exported? (car (cddddr desc)))
-                (home (if (and (pair? home-desc) (eq? (car home-desc) 'libref))
-                        (let ((home-name (cadr home-desc)))
-                          (if (equal? home-name (exp-library-name self-lib))
-                            self-lib
-                            (or (and (defined? 'library-registry-ref)
-                                     (let ((rec (library-registry-ref home-name)))
-                                       (and rec (lib-record-library rec))))
-                                ;; Registry unavailable (module.scm is still
-                                ;; being installed) or the home is not
-                                ;; registered yet: fall back to the library
-                                ;; being rebuilt.  A toplevel ref with this
-                                ;; home emits its gensym, which the s7
-                                ;; environment binds during defs evaluation.
-                                self-lib)))
-                        home-desc)))
-           (make-toplevel-binding
-             (make-toplevel-ref gensym home original exported?))))
-        ((eq? kind 'primitive)
-         (make-primitive-binding (cadr desc)))
-        (else #f)))))
+;;; install-depurify-binding : datum exp-library [strict?] -> binding/#f
+;;; The single depurify implementation (module-cache.scm's copy deleted):
+;;; rebuild a value binding from its cached description.  home (libref
+;;; name) resolves to self-lib for the library itself, else the registry
+;;; record for another (already loaded) library.  Strict #t selects the
+;;; module-cache restore contract -- an unregistered home is #f.  Default
+;;; (boot installs, incl. installing module.scm itself, before the
+;;; registry exists): fall back to self-lib, whose gensym the s7
+;;; environment binds during defs evaluation.
+(define (install-depurify-binding desc self-lib . maybe-strict)
+  (let ((strict? (and (pair? maybe-strict) (car maybe-strict))))
+    (if (eq? desc 'transformer)
+      #f
+      (let ((kind (car desc)))
+        (cond
+          ((eq? kind 'toplevel)
+           (let* ((gensym (cadr desc))
+                  (home-desc (caddr desc))
+                  (original (cadddr desc))
+                  (exported? (car (cddddr desc)))
+                  (home (if (and (pair? home-desc) (eq? (car home-desc) 'libref))
+                          (let ((home-name (cadr home-desc)))
+                            (if (equal? home-name (exp-library-name self-lib))
+                              self-lib
+                              (let ((rec (and (or strict? (defined? 'library-registry-ref))
+                                              (library-registry-ref home-name))))
+                                (cond ((and rec (lib-record-library rec)))
+                                      (strict? #f)
+                                      (else self-lib)))))
+                          home-desc)))
+             (make-toplevel-binding
+               (make-toplevel-ref gensym home original exported?))))
+          ((eq? kind 'primitive)
+           (make-primitive-binding (cadr desc)))
+          (else #f))))))
 
 ;;; install-cache-load! : exp-library cache-datum -> void
 ;;; Warm start: evaluate the cached value definitions and rebuild the macro
@@ -570,9 +569,8 @@
     ;; Restore the binding table from the cached structured info (the same
     ;; (toplevel gensym home original exported?) tuples the libcache uses),
     ;; mirroring expand-lib-define-bind's exp-library-define!.  The rebuild
-    ;; is inlined here (install-depurify-binding) because install-cache-load!
-    ;; runs while module.scm itself is being installed, before module.scm's
-    ;; depurify-binding is defined.
+    ;; lives here (not in module-cache.scm) because install-cache-load!
+    ;; runs while module.scm itself is being installed.
     (for-each (lambda (e)
                 (let ((b (install-depurify-binding
                           (deserialize-cache-sexp (cdr e)) lib)))
@@ -654,7 +652,11 @@
 ;; The R7RS library surface (define-library/import/define-module/use-modules)
 ;; is self-hosted lib-layer code, not part of the core artifact; installing
 ;; it registers the module-form bindings in the-base-library (the trailing
-;; define in lib/module.scm runs install-module-forms!).
+;; define in lib/module.scm runs install-module-forms!).  The registry
+;; prefix lives in module-registry.scm (installed first: everything below
+;; references it, and cross-file references must point backward -- the
+;; loader/cache/import/expand core is mutually recursive and stays whole).
+(install-library-file! the-base-library "expander/lib/module-registry.scm")
 (install-library-file! the-base-library "expander/lib/module.scm")
 
 (module-define! the-expander-library 'install-library-forms! install-library-forms!)

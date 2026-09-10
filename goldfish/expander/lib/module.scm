@@ -31,106 +31,18 @@
 ;;; The kernel core keeps only: exp-library (expander/kernel/exp-library.scm),
 ;;; expand-library-body (expander/kernel/libbody.scm), the binding types, and
 ;;; the runtime module substrate (liii/prelude.scm).
+;;;
+;;; Split boundary (do not move code across it lightly): each lib file
+;;; installs as one unit, so a file may only reference names bound by
+;;; earlier files (same-file forward refs hoist, cross-file ones go
+;;; unbound).  Only the registry prefix satisfied this (now
+;;; module-registry.scm); loader/cache/import/expand are mutually
+;;; recursive (capture needs expand-define-library, the loader needs
+;;; import-spec + capture) and stay whole in this file.
 
-;;; ------------------------------------------------------------------------
-;;; Minimal module API
-;;; ------------------------------------------------------------------------
 
-;;; Registry: maps module name -> (exp-library . export-names)
-
-(define *library-registry* '())
-
-;;; Libraries whose runtime module (the register expression) has been
-;;; evaluated.  The expand-time registry (above) is populated by
-;;; expand-define-library during compilation, which may happen without the
-;;; runtime registration expression ever running (a library compiled but
-;;; never evaluated, e.g. by a compile-only driver).  A registration
-;;; expression refers to dependencies as (module-ref 'lib 'name), which
-;;; resolves against the runtime module registry -- so a library that has
-;;; expand-time state but no runtime module must be loaded (evaluated)
-;;; before its dependents can be registered.
-
-(define *runtime-registered-libraries* '())
-
-(define (registry-key level name)
-  (let ((lvl (if (pair? level) (car level)
-               (if (integer? level) level 0))))
-    (if (or (not lvl) (= lvl 0)) name (cons lvl name))))
-
-(define (registry-level-arg maybe-level)
-  (if (pair? maybe-level) (car maybe-level) 0))
-
-(define (runtime-registered? name . maybe-level)
-  (let ((key (registry-key (registry-level-arg maybe-level) name)))
-    (member key *runtime-registered-libraries*)))
-
-(define (runtime-registered-add! name . maybe-level)
-  (let ((key (registry-key (registry-level-arg maybe-level) name)))
-    (unless (member key *runtime-registered-libraries*)
-      (set! *runtime-registered-libraries*
-            (cons key *runtime-registered-libraries*))))
-  name)
-
-(define (library-registry-ref name . maybe-level)
-  (let ((key (registry-key (registry-level-arg maybe-level) name)))
-    (let ((entry (assoc key *library-registry*)))
-      (and entry (cdr entry)))))
-
-(define (library-registry-set! name record . maybe-level)
-  (let ((key (registry-key (registry-level-arg maybe-level) name)))
-    (set! *library-registry*
-          (cons (cons key record)
-                (filter (lambda (e) (not (equal? (car e) key)))
-                        *library-registry*)))))
-
-(define *perlevel-saved-records* '())
-
-(define (perlevel-snapshot-records forms)
-  (let loop ((fs forms) (acc '()))
-    (if (null? fs)
-      acc
-      (let ((f (car fs)))
-        (if (and (pair? f) (eq? (car f) 'define-library) (pair? (cdr f)))
-          (let ((n (cadr f)))
-            (loop (cdr fs) (cons (cons n (library-registry-ref n)) acc)))
-          (loop (cdr fs) acc))))))
-
-(define (perlevel-rebuild! recs level saved-records)
-  (for-each
-    (lambda (r)
-      (let ((n (lib-cache-name r)))
-        (set! *library-registry*
-              (filter (lambda (e) (not (equal? (car e) n)))
-                      *library-registry*))))
-    recs)
-  ;; Re-add pre-existing valid bare instances clobbered by capture
-  ;; (capture registers bare as a side effect, overwriting them).
-  (for-each
-    (lambda (e)
-      (when (and (cdr e) (runtime-registered? (car e)))
-        (library-registry-set! (car e) (cdr e))))
-    saved-records)
-  (for-each (lambda (r) (restore-library-cache r level)) recs))
-
-(define *library-instance-inlets* '())
-
-(define (instance-inlet-ref name level)
-  (let ((key (registry-key level name)))
-    (let ((e (assoc key *library-instance-inlets*)))
-      (and e (cdr e)))))
-
-(define (instance-inlet-set! name level inlet)
-  (let ((key (registry-key level name)))
-    (set! *library-instance-inlets*
-          (cons (cons key inlet)
-                (filter (lambda (e) (not (equal? (car e) key)))
-                        *library-instance-inlets*)))))
-
-(define (make-lib-record lib exports)
-  (cons lib exports))
-
-(define (lib-record-library rec) (car rec))
-(define (lib-record-exports rec) (cdr rec))
+;;; Registry and instance state live in lib/module-registry.scm
+;;; (installed just before this file).
 
 ;;; On-demand file loading.  A library name (foo bar) maps to the file
 ;;; "foo/bar.scm" searched over *load-path* (via the loader's single
@@ -270,60 +182,21 @@
                         (cddr form))))))
 
 ;;; purify-binding : binding -> datum
-;;; A serializable description of a library binding.  Value bindings
-;;; (toplevel/primitive) are pure data; transformer/core-form/module-form
-;;; bindings cannot be serialized (their value is a closure), so a macro
-;;; binding is recorded as the symbol 'transformer and replayed from its
-;;; source spec.  A library whose bindings contain a core-form/module-form
-;;; value (e.g. an exported define-library handler) is not cacheable and is
-;;; signalled here.
+;;; Strict capture variant over the shared install-binding-desc core:
+;;; transformer/core-form/module-form bindings cannot be serialized (their
+;;; value is a closure), so a macro binding is recorded as the symbol
+;;; 'transformer and replayed from its source spec.  A library whose
+;;; bindings contain a core-form/module-form value (e.g. an exported
+;;; define-library handler) is not cacheable and is signalled here.
 
 (define (purify-binding b)
-  (let ((kind (binding-kind b)))
-    (cond
-      ((eq? kind 'toplevel)
-       (let ((ref (binding-value b)))
-         (list 'toplevel
-               (toplevel-ref-gensym ref)
-               (let ((home (toplevel-ref-home ref)))
-                 (if home (list 'libref (exp-library-name home)) #f))
-               (toplevel-ref-original ref)
-               (toplevel-ref-exported? ref))))
-      ((eq? kind 'primitive)
-       (list 'primitive (binding-value b)))
-      ((eq? kind 'transformer)
-       'transformer)
-      (else
-       (error "purify-binding: library not cacheable (unsupported binding)"
-              kind)))))
+  (or (install-binding-desc b)
+      (error "purify-binding: library not cacheable (unsupported binding)"
+             (binding-kind b))))
 
-;;; depurify-binding : datum exp-library -> binding/#f
-;;; Rebuild a value binding from its description.  home (libref name) is
-;;; resolved to the library's own record for the library itself, or the
-;;; registry record for another (already loaded) library.  'transformer is
-;;; #f here -- macros are replayed separately.
-
-(define (depurify-binding desc self-lib)
-  (if (eq? desc 'transformer)
-    #f
-    (let ((kind (car desc)))
-      (cond
-        ((eq? kind 'toplevel)
-         (let* ((gensym (cadr desc))
-                (home-desc (caddr desc))
-                (original (cadddr desc))
-                (exported? (car (cddddr desc)))
-                (home (if (and (pair? home-desc) (eq? (car home-desc) 'libref))
-                        (let ((home-name (cadr home-desc)))
-                          (if (equal? home-name (exp-library-name self-lib))
-                            self-lib
-                            (let ((rec (library-registry-ref home-name)))
-                              (and rec (lib-record-library rec)))))
-                        home-desc)))
-           (make-toplevel-binding (make-toplevel-ref gensym home original exported?))))
-        ((eq? kind 'primitive)
-         (make-primitive-binding (cadr desc)))
-        (else #f)))))
+;;; depurify restores through install-depurify-binding with the strict
+;;; flag (unregistered homes are #f: the registry is fully available on
+;;; this path, unlike the boot installs).
 
 ;;; capture-library-cache : syntax exp-library context
 ;;;                             -> (values (list name exports bindings macros defs) context)
@@ -449,7 +322,7 @@
     ;; 2. Restore this library's own value bindings (toplevel-ref homes that
     ;;    point at the library itself resolve to the rebuilt library).
     (for-each (lambda (e)
-                (let ((d (depurify-binding (cdr e) lib)))
+                (let ((d (install-depurify-binding (cdr e) lib #t)))
                   (when d (exp-library-define! lib (car e) d))))
               bindings)
     (library-registry-set! name (make-lib-record lib exports) level)
@@ -475,6 +348,38 @@
                   (error "define-library: export has no binding" export name)))
               exports)
     lib))
+
+;;; Per-level instances (moved after the cache section: rebuild calls
+;;; lib-cache-name and restore-library-cache above).
+
+(define *perlevel-saved-records* '())
+
+(define (perlevel-snapshot-records forms)
+  (let loop ((fs forms) (acc '()))
+    (if (null? fs)
+      acc
+      (let ((f (car fs)))
+        (if (and (pair? f) (eq? (car f) 'define-library) (pair? (cdr f)))
+          (let ((n (cadr f)))
+            (loop (cdr fs) (cons (cons n (library-registry-ref n)) acc)))
+          (loop (cdr fs) acc))))))
+
+(define (perlevel-rebuild! recs level saved-records)
+  (for-each
+    (lambda (r)
+      (let ((n (lib-cache-name r)))
+        (set! *library-registry*
+              (filter (lambda (e) (not (equal? (car e) n)))
+                      *library-registry*))))
+    recs)
+  ;; Re-add pre-existing valid bare instances clobbered by capture
+  ;; (capture registers bare as a side effect, overwriting them).
+  (for-each
+    (lambda (e)
+      (when (and (cdr e) (runtime-registered? (car e)))
+        (library-registry-set! (car e) (cdr e))))
+    saved-records)
+  (for-each (lambda (r) (restore-library-cache r level)) recs))
 
 ;;; (collect-cache-module-refs lives in the install.scm backend.)
 ;;; Levels follow the -O0/1/2 convention (Guile-style; Guile defaults to
