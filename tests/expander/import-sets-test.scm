@@ -1,4 +1,4 @@
-(import (liii check) (goldfish) (liii os))
+(import (liii check) (goldfish) (liii os) (srfi srfi-13))
 
 ;; Import-set semantics regression: nested R7RS import sets and
 ;; Racket-style import conflicts.
@@ -11,6 +11,8 @@
 ;; Import errors surface through the expander's runtime entry points
 ;; (load-library!), so they are assertable in-process.
 
+;; Contract: #f if thunk raised nothing, else the guard's rendered
+;; detail when wrapped, otherwise the raw error template head.
 (define (import-error-message thunk)
   (catch #t
     thunk
@@ -18,8 +20,21 @@
       (if (and (pair? info)
                (pair? (car info))
                (string? (caar info)))
-        (caar info)
+        (let ([payload (car info)])
+          (if (and (equal? (car payload) "import: failed to load library ~a: ~a")
+                   (= (length payload) 3))
+            (caddr payload)
+            (car payload)))
         #f))))
+
+;; Substring assertions survive message rewording; a silenced import
+;; yields #f (not a string), so a disabled check still fails loudly.
+(define (detail-mentions? detail . fragments)
+  (and (string? detail)
+       (let loop ([fs fragments])
+         (or (null? fs)
+             (and (string-contains detail (car fs))
+                  (loop (cdr fs)))))))
 
 ;; ===== 1. Nested import sets compose =====
 ;; Names are drawn from (liii os) so they are not already ambient in the
@@ -27,7 +42,7 @@
 (import (only (liii os) mkdir rmdir os-sep))
 (check (procedure? mkdir) => #t)
 (check (procedure? rmdir) => #t)
-(check (string? os-sep) => #t)
+(check (char? (os-sep)) => #t)
 
 (import (prefix (only (liii os) os-temp-dir) zz-))
 (check (procedure? zz-os-temp-dir) => #t)
@@ -43,8 +58,12 @@
 ;; ===== 2. Import conflicts are errors (Racket-style) =====
 ;; Two peer libraries bind the same exported name differently; a library
 ;; importing both is an error at import time.
-(define fixture-dir (os-temp-dir))
+;; Per-run root (pid-suffixed) so concurrent `gf test -j` workers and
+;; leftover fixture trees never share library files.  The `ct/` leaf is
+;; fixed: (ct one) resolves to <root>/ct/one.scm through *load-path*.
+(define fixture-dir (string-append (os-temp-dir) "/ct-" (number->string (getpid))))
 (define fixture-sub (string-append fixture-dir "/ct"))
+(catch #t (lambda () (mkdir fixture-dir)) (lambda args #f))
 (catch #t (lambda () (mkdir fixture-sub)) (lambda args #f))
 (call-with-output-file (string-append fixture-sub "/one.scm")
   (lambda (p)
@@ -78,8 +97,8 @@
               (export ct-name))
            p)
     (newline p)))
-(if (not (member fixture-dir *load-path*))
-  (set! *load-path* (cons fixture-dir *load-path*)))
+(and (not (member fixture-dir *load-path*))
+     (set! *load-path* (cons fixture-dir *load-path*)))
 
 ;; single import is fine
 (check (catch #t
@@ -87,8 +106,9 @@
          (lambda args 'error))
        => 'ok)
 ;; importing two conflicting peers is an error mentioning the name
-(check (import-error-message (lambda () (load-library! '(ct both))))
-       => "import: ct-name already imported with a different binding")
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(ct both))))
+                             "already imported with a different binding" "ct-name")
+       => #t)
 ;; the same binding reaching a library through a re-export path is fine
 (check (catch #t
          (lambda () (load-library! '(ct one-reexport)) 'ok)
@@ -101,11 +121,11 @@
 (check (procedure? tmp-dir-fn) => #t)
 ;; partial rename keeps unrenamed exports under their own names.
 (import (rename (liii os) (os-sep slash)))
-(check (string? slash) => #t)
+(check (char? (slash)) => #t)
 (check (procedure? mkdir) => #t)
 ;; prefix of a rename: prefix applies to the name as renamed.
 (import (prefix (rename (liii os) (os-sep sep2)) pre-))
-(check (string? pre-sep2) => #t)
+(check (char? (pre-sep2)) => #t)
 ;; depth-3 nesting: prefix over except over only.
 (import (prefix (except (only (liii os) mkdir rmdir) rmdir) oo-))
 (check (procedure? oo-mkdir) => #t)
@@ -123,8 +143,9 @@
               (define dx 0))
            p)
     (newline p)))
-(check (import-error-message (lambda () (load-library! '(ct dup-rename))))
-       => "import: dx bound more than once with different bindings")
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(ct dup-rename))))
+                             "bound more than once with different bindings" "dx")
+       => #t)
 
 ;; ===== 4. R7RS `for' level specs =====
 ;; (for import-set level ...) chooses the phases an import is visible at.
@@ -145,5 +166,8 @@
               (define x 0))
            p)
     (newline p)))
-(check (import-error-message (lambda () (load-library! '(ct for-nolevel))))
-       => "import: for spec needs an import set and at least one level")
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(ct for-nolevel))))
+                             "for spec needs an import set and at least one level")
+       => #t)
+
+(check-report)

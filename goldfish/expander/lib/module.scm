@@ -681,7 +681,10 @@
 ;;; malformed definition, an expansion error, ...) is reported with the
 ;;; library name and the underlying message instead of escaping as a
 ;;; bare `no-catch (#t)` with no location.  s7's (error msg args ...)
-;;; surfaces to the handler as info = ((msg args ...) ...).
+;;; surfaces to the handler as info = ((msg args ...) ...).  The raise
+;;; below keeps template+args shape on purpose: a single-string (error s)
+;;; escalates to a no-catch throw that the per-form loader re-wraps,
+;;; hiding library and cause from in-process catchers.
 (define (load-library-guard lib-name thunk)
   (catch
     #t

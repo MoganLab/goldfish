@@ -83,3 +83,14 @@
                 (display " -> ") (write (extract-export (cadr f)))
                 (newline))))
           fails)
+
+;; Enforcing tail: the audit fails (nonzero exit via uncaught error)
+;; if any library still carries an export with no binding.
+(let ([bad (let loop ([ls   fails]
+                      [acc '()])
+             (cond [(null? ls) acc]
+                   [(and (pair? (car ls)) (cadar ls))
+                    (loop (cdr ls) (cons (caar ls) acc))]
+                   [else        (loop (cdr ls) acc)]))])
+  (and (not (null? bad))
+       (error "export-strict-audit: libraries with unbound exports" bad)))
