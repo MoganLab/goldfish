@@ -506,13 +506,21 @@ s7_pointer g_vector_append(s7_scheme *sc, s7_pointer args)
             {
               if (i == 0)
                 return(s7_apply_function(sc, func, args));
-              s7_pointer front = s7_nil(sc);
+
+              /* args may live in evaluator-recycled cells, so keep func and p in our own
+               * anchor pair, with the working list as the anchor's cdr; everything stays
+               * GC-reachable across recursive append and method apply */
+              s7_pointer anchor = s7_cons(sc, s7_cons(sc, func, p), s7_nil(sc));
+              s7_gc_protect_via_stack(sc, anchor);
               s7_pointer arglist = args;
               for (int32_t k = 0; k < i; k++, arglist = s7_cdr(arglist))
-                front = s7_cons(sc, s7_car(arglist), front);
-              front = s7_reverse(sc, front);
-              s7_pointer vec = g_vector_append(sc, front);
-              return(s7_apply_function(sc, func, s7_cons(sc, vec, p)));
+                s7_set_cdr(anchor, s7_cons(sc, s7_car(arglist), s7_cdr(anchor)));
+              s7_set_cdr(anchor, s7_reverse(sc, s7_cdr(anchor)));
+              s7_set_cdr(anchor, g_vector_append(sc, s7_cdr(anchor)));
+              s7_set_cdr(anchor, s7_cons(sc, s7_cdr(anchor), p));
+              s7_pointer result = s7_apply_function(sc, func, s7_cdr(anchor));
+              s7_gc_unprotect_via_stack(sc, anchor);
+              return(result);
             }
           return(s7_type_error(sc, "vector-append", i + 1, vect, "a vector"));
         }
