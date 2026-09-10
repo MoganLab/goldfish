@@ -27,4 +27,13 @@
   (check-catch 'out-of-range (subvector v 2 1))
 ) ;let
 
+(let ((v #(1 2 3 4 5 6)))
+  (check-catch 'value-error (subvector v 0 6 '(2 2)))
+  (check-catch 'value-error (subvector v 0 6 '(3 3)))
+  (check-catch 'value-error (subvector v 1 5 '(3 2)))
+  (check-catch 'type-error (subvector v 0 6 '((1 2) (3 4))))
+  (check-catch 'type-error (subvector v 0 6 '(7 1)))
+  (check-catch 'type-error (subvector v 0 6 '(-1 1)))
+) ;let
+
 (check-report)

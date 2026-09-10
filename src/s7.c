@@ -1388,7 +1388,7 @@ struct s7_scheme {
              read_error_symbol, readable_keyword, rest_keyword, set_symbol, string_read_error_symbol, symbol_table_symbol,
              syntax_error_symbol, trace_in_symbol, type_symbol, unbound_variable_symbol, unless_symbol,
              unquote_symbol, value_symbol, when_symbol, with_baffle_symbol, with_let_symbol, write_keyword,
-             wrong_number_of_args_symbol, wrong_type_arg_symbol, type_error_symbol;
+             wrong_number_of_args_symbol, wrong_type_arg_symbol, type_error_symbol, value_error_symbol;
 
   /* signatures of sequences used as applicable objects: ("hi" 1) */
   s7_pointer  byte_vector_signature, c_object_signature, float_vector_signature, hash_table_signature, int_vector_signature,
@@ -23600,7 +23600,7 @@ s7_pointer s7i_subvector_1(s7_scheme *sc, s7_pointer args)
 	      if (new_len != new_end - offset)
 		{
 		  liberate(sc, vd); /* 14-Sep-23 */
-		  error_nr(sc, sc->wrong_type_arg_symbol,
+		  error_nr(sc, sc->value_error_symbol,
 			   set_elist_4(sc, wrap_string(sc, "subvector dimensional length, ~D, does not match the start and end positions: ~S to ~S~%", 88),
 				       wrap_integer(sc, new_len), start, end));
 		}
@@ -79558,6 +79558,7 @@ then returns each var to its original value."
   sc->unbound_variable_symbol =     make_symbol(sc, "unbound-variable", 16);
   sc->wrong_type_arg_symbol =       make_symbol(sc, "wrong-type-arg", 14);
   sc->type_error_symbol =            make_symbol(sc, "type-error", 10);
+  sc->value_error_symbol =           make_symbol(sc, "value-error", 11);
   sc->wrong_number_of_args_symbol = make_symbol(sc, "wrong-number-of-args", 20);
   sc->format_error_symbol =         make_symbol(sc, "format-error", 12);
   sc->autoload_error_symbol =       make_symbol(sc, "autoload-error", 14);
