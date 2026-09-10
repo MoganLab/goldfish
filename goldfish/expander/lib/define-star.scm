@@ -1,4 +1,4 @@
-;;; define-star.scm
+;;; define-star.scm -- LEGACY s7-compat, not R7RS.
 ;;; s7 define* / lambda* compatibility layer.
 ;;;
 ;;;   (define* (f a (b 2) (c 3)) body ...)

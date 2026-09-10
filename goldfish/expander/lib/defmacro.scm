@@ -1,4 +1,4 @@
-;;; defmacro.scm
+;;; defmacro.scm -- LEGACY s7-compat, not R7RS.
 ;;; s7 define-macro compatibility layer (cf. Guile's ice-9/boot-9.scm
 ;;; defmacros).  A defmacro is a NON-HYGIENIC macro: its transformer is an
 ;;; ordinary procedure applied to the DATUM argument list of the macro

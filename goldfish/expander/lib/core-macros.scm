@@ -12,8 +12,8 @@
 ;;; internal define) stays primitive -- see PLAN-core-module.md.
 ;;;
 ;;; syntax-case and cond-expand are NOT defined here: they are
-;;; irreducibly procedural and installed by the kernel
-;;; (boot/primitives.scm) before this file is expanded.
+;;; irreducibly procedural and installed by lib/install.scm
+;;; before this file is expanded.
 
 (define-syntax with-syntax
   (syntax-rules ()

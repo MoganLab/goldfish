@@ -21,12 +21,14 @@
        (if test
            (begin expr ...)
            (begin command ...
-                  (loop (do-step var step ...) ...)))))))
+                  (loop (do-step% var step ...) ...)))))))
 
-(define-syntax do-step
+;;; do-step%: internal helper of `do` (not R7RS surface).  Hygienic
+;;; reference, so the % name never leaks into user code.
+(define-syntax do-step%
   (syntax-rules ()
-    ((do-step var) var)
-    ((do-step var step) step)))
+    ((do-step% var) var)
+    ((do-step% var step) step)))
 
 (define-syntax delay
   (syntax-rules ()
