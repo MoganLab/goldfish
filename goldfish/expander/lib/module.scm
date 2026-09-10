@@ -56,12 +56,8 @@
 ;;; through the shared expander namespace.)
 
 (define (library-cache-deps recs self)
-  (let loop ((ls (collect-cache-module-refs recs)) (acc '()))
-    (if (null? ls)
-      (reverse acc)
-      (if (or (equal? (car ls) self) (member (car ls) acc))
-        (loop (cdr ls) acc)
-        (loop (cdr ls) (cons (car ls) acc))))))
+  (filter (lambda (n) (not (equal? n self)))
+          (dedup-libs (collect-cache-module-refs recs))))
 
 ;;; Macro-provider dependencies: a consumer's cached defs bake in the
 ;;; expansions of the macros it imported, but a pure syntax macro leaves no
@@ -87,9 +83,7 @@
           (if (null? specs)
             (loop (cdr groups) a)
             (let ((n (import-set-lib-name (car specs))))
-              (if (and (pair? n) (member n a))
-                (group (cdr specs) a)
-                (group (cdr specs) (if (pair? n) (cons n a) a))))))))))
+              (group (cdr specs) (if (pair? n) (adjoin-lib n a) a)))))))))
 
 (define (library-import-deps recs self)
   (let loop ((rs recs) (acc '()))
@@ -100,9 +94,9 @@
               (let add ((ns ls) (a acc))
                 (if (null? ns)
                   a
-                  (if (or (equal? (car ns) self) (member (car ns) a))
+                  (if (equal? (car ns) self)
                     (add (cdr ns) a)
-                    (add (cdr ns) (cons (car ns) a))))))))))
+                    (add (cdr ns) (adjoin-lib (car ns) a))))))))))
 
 ;;; library-all-deps : recs self -> (list name)
 ;;; Every library this file can be invalidated by, transitively: the

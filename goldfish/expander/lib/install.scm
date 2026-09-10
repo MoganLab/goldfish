@@ -682,7 +682,7 @@
 ;;; import-set-lib-name is the backend's (it also unwraps `for' specs).
 (define (program-import-libs forms)
   (define (add-lib n acc)
-    (if (and (pair? n) (not (member n acc))) (cons n acc) acc))
+    (if (pair? n) (adjoin-lib n acc) acc))
   (define (scan-specs specs acc)
     (if (null? specs)
       acc
@@ -697,13 +697,20 @@
   (let loop ((fs forms) (acc '()))
     (if (null? fs) (reverse acc) (loop (cdr fs) (scan-form (car fs) acc)))))
 
+;;; adjoin-lib : any (list any) -> (list any)
+;;; Cons x unless already present: the dedup-accumulator step shared by
+;;; the dep/import collectors.  Only this idiom is shared, not the loops
+;;; (each keeps its own traversal order and extra filters, which validity
+;;; does not depend on -- but review diffs stay local).
+
+(define (adjoin-lib x acc)
+  (if (member x acc) acc (cons x acc)))
+
 (define (dedup-libs ls)
   (let loop ((ls ls) (acc '()))
     (if (null? ls)
       (reverse acc)
-      (if (member (car ls) acc)
-        (loop (cdr ls) acc)
-        (loop (cdr ls) (cons (car ls) acc))))))
+      (loop (cdr ls) (adjoin-lib (car ls) acc)))))
 
 (define (compile-file-cached path)
   ;; One compilation unit per call: expand-time state (region bindings,
