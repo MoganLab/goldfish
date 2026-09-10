@@ -2,9 +2,10 @@
 
 状态: v4 已落地(per-level 实例化、N 层闭环)。v5 已实施:own 值
 绑定只在 phase 0 可见(Racket 一致);ewx-5 场景变为编译期错误,
-整编译与 per-form 不再有分歧。生态迁移实录见 §3。v1 补丁(回退链、
-min-merge、visit-only 判定位)保持废弃;phase≥2 缓存分段
-deferred(无性能用户)。
+整编译与 per-form 不再有分歧。导入可见性为精确相位:level 0 持久
+全域,更高 level 只在 home 相位,多 level `for` = 逐 level 并集。
+生态迁移实录见 §3。v1 补丁(回退链、min-merge、visit-only 判定位)
+保持废弃;phase≥2 缓存分段 deferred(无性能用户)。
 
 目标:**Racket 式语义、正确实现、无 workaround、无回退多路、
 单线代码。**
@@ -28,12 +29,16 @@ level ≥ 1 为 (level . name)),同库豁免冲突检查;level ≥ 1 实例
 
 在相位 q 解析名字 x 时,对 x 的各导入视图:
 
-> **取 level ≤ q 中 level 最高者;若无任何视图,视为未绑定。**
+> **level 0 的视图在任意相位都是候选;level n > 0 的视图只在相位 n
+> 是候选;候选中取 level 最高者,若无任何视图,视为未绑定。**
 
-- plain 导入(level 0):0 ≤ q 恒成立 → **所有相位可见**(substrate
-  规则,ergonomics,文档化分歧——见 §6,是唯一保留分歧);
-- `(for X expand)`(level 1):只在相位 1 可见;
-- 同库 multi-level:高 level 在其相位内遮蔽 level 0。
+- plain 导入(level 0):**所有相位可见**(substrate 规则,
+  ergonomics,文档化分歧——见 §6,是唯一保留分歧);
+- `(for X expand)`(level 1):只在相位 1 可见(精确相位,阈值模型
+  对 phase ≥ 2 的泄漏不存在);
+- 同库 multi-level:候选中高 level 遮蔽 level 0;
+- `(for X run expand)` 多 level:逐 level 各注册一视图并各自
+  实例化(并集,非 min)。
 
 Region store 只做精确相位:store[k] 的定义仅在相位 k 可见。
 
@@ -65,6 +70,7 @@ home 相位),或**另一库的 plain 导入**(substrate,全相位)。
 | transformer 体引用本库 phase-0 值 define | 展开期 unbound-variable(编译期错误;与 case 4 的 region→运行期引用对偶) |
 | ewx-5(eval-when (expand) 中 set! 运行期变量) | 同上,编译期拒绝——两执行路径不再有分歧,冷/热翻 flip 消失 |
 | define-macro m 某标识符(体引用 use-site 库 own define) | 展开期 unbound;经 plain 导入的助手仍可用(substrate) |
+| 库体内引用被 level 门挡掉的导入名 | 展开期 unbound-variable(不再 rootlet 运气;never-imported 名仍 bare 发射,self-hosting 宏层依赖) |
 | REPL / per-form 路径 | 同一规则(行为单一;Racket REPL 同性) |
 
 不需要的东西(相对 v1/v4 全部删除):
@@ -131,6 +137,8 @@ home 相位),或**另一库的 plain 导入**(substrate,全相位)。
 - 新增(case 12/13):transformer 引 own 值 define → 错,program
   与 library 两路径同断言;region 助手 → 成;substrate 导入 → 成;
 - per-level 双实例(体跑两次、变异隔离、`(meta 2)` 第三实例)不变;
+- 精确相位与多 level 并集:import-perlevel-test 3e/3f;库体
+  for-gated miss:import-sets-test §6;
 - 全量 --all 为最终门。
 
 ## 6. 与 Racket 的分歧清单(唯一一条)
