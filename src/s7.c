@@ -31972,8 +31972,8 @@ static s7_pointer reverse_pair_in_place(s7_scheme *sc, s7_pointer obj, s7_pointe
     if (is_null(lst))
       {
 	if (!s7_is_proper_list(sc, obj))
-	  wrong_type_error_nr(sc, sc->reverseb_symbol, 1, car(args), wrap_string(sc, "a proper list", 13));
-	wrong_type_error_nr(sc, sc->reverseb_symbol, 1, car(args), wrap_string(sc, "a mutable proper list", 21));
+	  type_error_nr(sc, sc->reverseb_symbol, 1, car(args), wrap_string(sc, "a proper list", 13));
+	type_error_nr(sc, sc->reverseb_symbol, 1, car(args), wrap_string(sc, "a mutable proper list", 21));
       }
     return(lst);
   }
@@ -31993,12 +31993,12 @@ static s7_pointer reverse_in_place_via_method(s7_scheme *sc, s7_pointer obj)
     {
       if (is_simple_sequence(obj))
 	immutable_object_error_nr(sc, set_elist_3(sc, immutable_error_string, sc->reverseb_symbol, obj));
-      sole_arg_wrong_type_error_nr(sc, sc->reverseb_symbol, obj, a_sequence_string);
+      sole_arg_type_error_nr(sc, sc->reverseb_symbol, obj, a_sequence_string);
     }
   if ((is_simple_sequence(obj)) &&
       (!has_active_methods(sc, obj)))
-    sole_arg_wrong_type_error_nr(sc, sc->reverseb_symbol, obj, wrap_string(sc, "a vector, string, or list", 25));
-  return(method_or_bust_p(sc, obj, sc->reverseb_symbol, a_sequence_string));
+    sole_arg_type_error_nr(sc, sc->reverseb_symbol, obj, wrap_string(sc, "a vector, string, or list", 25));
+  return(vector_method_or_bust_p(sc, obj, sc->reverseb_symbol, a_sequence_string));
 }
 
 static s7_pointer g_reverse_in_place(s7_scheme *sc, s7_pointer args)
