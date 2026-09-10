@@ -246,7 +246,11 @@
 ;;; context-return : caller-ctx result-ctx -> ctx
 ;;; In the models, env and scps_p flow downward while the store threads
 ;;; through.  On returning from a subexpression, keep the resulting
-;;; store but restore everything else from the caller.
+;;; store but restore everything else from the caller -- use-scopes
+;;; NEVER propagate implicitly.  Dropping is the safe default (macro
+;;; machinery resets scopes deliberately for hygiene isolation); the
+;;; three call sites that must continue with the result's resolution
+;;; context use context-return-with-scopes instead.  Pick explicitly.
 
 (define-public (context-return caller-ctx result-ctx)
   (make-context (context-phase caller-ctx)
@@ -256,6 +260,17 @@
                 (context-prune-scopes caller-ctx)
                 (context-defctx caller-ctx)
                 (context-intro-scope caller-ctx)))
+
+;;; context-return-with-scopes : caller-ctx result-ctx -> ctx
+;;; Like context-return, but continue with the RESULT's use-scopes
+;;; (macro-output re-expansion, scan-head loops, local-expand).  The
+;;; result scopes already thread the caller's (expansion accumulates,
+;;; resets prune deliberately), so taking them is continuation, not
+;;; union -- a union would resurrect scopes resets just dropped.
+
+(define-public (context-return-with-scopes caller-ctx result-ctx)
+  (context-with-use-scopes (context-return caller-ctx result-ctx)
+                           (context-use-scopes result-ctx)))
 
 ;;; free-identifier=? : syntax syntax [context] -> bool
 

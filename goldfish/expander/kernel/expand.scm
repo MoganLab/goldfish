@@ -260,9 +260,7 @@
 (define (expand-macro stx ctx proc)
   (let*-values (((output ctx4) (expand-macro-once stx ctx proc)))
     (let*-values (((sexp ctx5) (expand-expr output ctx4)))
-      (values sexp
-              (context-with-use-scopes (context-return ctx ctx5)
-                                       (context-use-scopes ctx5))))))
+      (values sexp (context-return-with-scopes ctx ctx5)))))
 
 (define-public (make-syntax-introducer)
   (let ((ctx (current-expand-context)))
@@ -377,8 +375,7 @@
          (stx1 (stx-maybe-flip stx scp-i ph)))
     (let*-values (((sexp ctx2) (expand-expr stx1 (context-with-env ctx env-stops))))
       (values (stx-maybe-flip sexp scp-i ph)
-              (context-with-use-scopes (context-return ctx ctx2)
-                                       (context-use-scopes ctx2))))))
+              (context-return-with-scopes ctx ctx2)))))
 
 (define (ctx-local-expand-defs ctx stx stops defs)
   (ctx-local-expand-defs* ctx stx stops defs #t))
@@ -403,8 +400,7 @@
                                       ph)))
     (let*-values (((sexp ctx2) (expand-expr stx2 (context-with-env ctx env-stops))))
       (values (if flip? (stx-maybe-flip sexp scp-i ph) sexp)
-              (context-with-use-scopes (context-return ctx ctx2)
-                                       (context-use-scopes ctx2))))))
+              (context-return-with-scopes ctx ctx2)))))
 
 ;;; lower : syntax -> sexp
 ;;; Lower a fully-expanded syntax object to an evaluable core Scheme

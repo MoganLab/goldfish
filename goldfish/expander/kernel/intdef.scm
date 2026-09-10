@@ -61,8 +61,7 @@
            (stx1 (stx-add-scope stx scp-in ph))
            (ctx0 (context-with-env ctx env-unstops)))
       (let*-values (((form c) (scan-head-loop stx1 ctx0)))
-        (let ((c1 (context-with-use-scopes (context-return ctx c)
-                                           (context-use-scopes c))))
+        (let ((c1 (context-return-with-scopes ctx c)))
           (set-current-expand-context! c1)
           form)))))
 
