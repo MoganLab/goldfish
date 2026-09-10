@@ -32,7 +32,7 @@
 ;; out-of-range
 ;; 当k为负数或大于等于字符串长度时抛出错误。
 ;;
-;; wrong-type-arg
+;; type-error
 ;; 当string不是字符串或k不是精确整数时抛出错误。
 ;;
 ;; 错误
@@ -60,8 +60,8 @@
 (check-catch 'out-of-range (string-ref "" 0))
 (check-catch 'out-of-range (string-ref "abc" 3))
 (check-catch 'out-of-range (string-ref "a" 1))
-(check-catch 'wrong-type-arg (string-ref 123 0))
-(check-catch 'wrong-type-arg (string-ref "hello" 1.5))
+(check-catch 'type-error (string-ref 123 0))
+(check-catch 'type-error (string-ref "hello" 1.5))
 (check-catch 'wrong-number-of-args (string-ref "hello"))
 (check-catch 'wrong-number-of-args (string-ref "hello" 1 2))
 (check (string-append "Math" "Agape") => "MathAgape")

@@ -23,7 +23,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当第一个参数不是字符时抛出。
 
 (define (capture-output thunk)
@@ -38,7 +38,7 @@
   =>
   " B"
 ) ;check
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (let ((port (open-output-string)))
     (write-char 1 port)
   ) ;let

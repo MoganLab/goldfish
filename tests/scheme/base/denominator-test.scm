@@ -21,7 +21,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是有理数时抛出错误。
 ;; denominator测试
 (check (denominator 1/2) => 2)

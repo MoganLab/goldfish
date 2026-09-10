@@ -39,7 +39,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -93,12 +93,12 @@
 (check (first-set-bit -6) => 1)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (first-set-bit "string"))
-(check-catch 'wrong-type-arg (first-set-bit 'symbol))
-(check-catch 'wrong-type-arg (first-set-bit 3.14))
-(check-catch 'wrong-type-arg (first-set-bit #\a))
-(check-catch 'wrong-type-arg (first-set-bit '(1 2)))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (first-set-bit "string"))
+(check-catch 'type-error (first-set-bit 'symbol))
+(check-catch 'type-error (first-set-bit 3.14))
+(check-catch 'type-error (first-set-bit #\a))
+(check-catch 'type-error (first-set-bit '(1 2)))
 
 
 

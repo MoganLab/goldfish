@@ -33,7 +33,7 @@
 (check (utf8->string #u8(228 184 150 231 149 140)) => "世界")
 (check (utf8->string #u8(97 98 99) 1) => "bc")
 (check (utf8->string #u8(97 98 99) 0 2) => "ab")
-(check-catch 'wrong-type-arg (utf8->string))
+(check-catch 'type-error (utf8->string))
 (check (utf8->string '()) => "")
 (check-catch 'value-error (utf8->string #u8(255)))
 

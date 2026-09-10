@@ -39,7 +39,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; 当 lst 不是列表时抛出 wrong-type-arg 错误。
+;; 当 lst 不是列表时抛出 type-error 错误。
 
 ;; 基本升序排序：精确内容断言
 (check (list-sort! < (list 3 1 4 1 5 9 2 6 5)) => '(1 1 2 3 4 5 5 6 9))
@@ -97,6 +97,6 @@
 (check (list-sort! < (reverse (iota 10))) => (iota 10))
 
 ;; 错误处理：非列表参数
-(check-catch 'wrong-type-arg (list-sort! < 42))
+(check-catch 'type-error (list-sort! < 42))
 
 (check-report)

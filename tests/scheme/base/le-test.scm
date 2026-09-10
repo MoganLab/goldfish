@@ -28,7 +28,7 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 参数数量不足两个时抛出。
-;; wrong-type-arg
+;; type-error
 ;; 任一参数不是实数时抛出。
 (check (<= 1 2) => #t)
 (check (<= 2 1) => #f)
@@ -48,6 +48,6 @@
 (check (<= 0.0 0.0) => #t)
 (check-catch 'wrong-number-of-args (<=))
 (check-catch 'wrong-number-of-args (<= 1))
-(check-catch 'wrong-type-arg (<= 1 'a))
-(check-catch 'wrong-type-arg (<= "hello" 2))
+(check-catch 'type-error (<= 1 'a))
+(check-catch 'type-error (<= "hello" 2))
 (check-report)

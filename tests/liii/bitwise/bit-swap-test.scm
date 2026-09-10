@@ -42,7 +42,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
@@ -85,13 +85,13 @@
 ;; ; 注意：bit-swap 对较大的整数可能抛出 out-of-range 错误，因此省略这些测试
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bit-swap "string" 0 1))
-(check-catch 'wrong-type-arg (bit-swap 1 "string" 2))
-(check-catch 'wrong-type-arg (bit-swap 1 2 "string"))
-(check-catch 'wrong-type-arg (bit-swap 3.14 0 1))
-(check-catch 'wrong-type-arg (bit-swap 1 3.14 2))
-(check-catch 'wrong-type-arg (bit-swap 1 2 3.14))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bit-swap "string" 0 1))
+(check-catch 'type-error (bit-swap 1 "string" 2))
+(check-catch 'type-error (bit-swap 1 2 "string"))
+(check-catch 'type-error (bit-swap 3.14 0 1))
+(check-catch 'type-error (bit-swap 1 3.14 2))
+(check-catch 'type-error (bit-swap 1 2 3.14))
 
 
 ;; ; 错误处理测试 - out-of-range

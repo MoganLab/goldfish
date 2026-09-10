@@ -53,7 +53,7 @@
 ;; 错误处理
 ;; --------
 ;; - out-of-range：当k超过列表长度或k为负数时
-;; - wrong-type-arg：当list不是列表或k不是整数类型时
+;; - type-error：当list不是列表或k不是整数类型时
 
 
 (check (list (split-at '(1 2 3 4 5) 3)) => '((1 2 3) (4 5)))

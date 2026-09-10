@@ -31,7 +31,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -72,7 +72,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -113,7 +113,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当第一个参数不是序对（如空列表、数字、字符串等）时抛出错误。
 ;; wrong-number-of-args
 ;;     当参数数量不等于2时抛出错误。
@@ -183,10 +183,10 @@
   (check (cdr alist) => '(b c d e))
 ) ;let
 ;; set-car!错误处理测试
-(check-catch 'wrong-type-arg (set-car! 123 'value))
-(check-catch 'wrong-type-arg (set-car! '() 'value))
-(check-catch 'wrong-type-arg (set-car! "string" 'value))
-(check-catch 'wrong-type-arg (set-car! #t 'value))
+(check-catch 'type-error (set-car! 123 'value))
+(check-catch 'type-error (set-car! '() 'value))
+(check-catch 'type-error (set-car! "string" 'value))
+(check-catch 'type-error (set-car! #t 'value))
 ;; 测试参数数量错误
 (check-catch 'wrong-number-of-args (set-car! (cons 1 2)))
 (check-catch 'wrong-number-of-args (set-car! (cons 1 2) 'a 'b))

@@ -20,14 +20,14 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 参数不是序对，或者 cdr 链上的某一层不是序对时抛出错误。
 (check (caddr '(1 2 3 4)) => 3)
 (check (caddr '(a b c)) => 'c)
 (check (caddr (cons 1 (cons 2 (cons 'x 'y)))) => 'x)
-(check-catch 'wrong-type-arg (caddr '(1 2)))
-(check-catch 'wrong-type-arg (caddr '(1)))
-(check-catch 'wrong-type-arg (caddr 'a))
-(check-catch 'wrong-type-arg (caddr 123))
-(check-catch 'wrong-type-arg (caddr '()))
+(check-catch 'type-error (caddr '(1 2)))
+(check-catch 'type-error (caddr '(1)))
+(check-catch 'type-error (caddr 'a))
+(check-catch 'type-error (caddr 123))
+(check-catch 'type-error (caddr '()))
 (check-report)

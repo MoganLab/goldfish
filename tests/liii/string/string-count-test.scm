@@ -152,7 +152,7 @@
 ;; 参数数量错误测试
 (check-catch 'wrong-number-of-args (string-count))
 (check-catch 'wrong-number-of-args (string-count "hello"))
-(check-catch 'wrong-type-arg (string-count "hello" #\l "invalid"))
+(check-catch 'type-error (string-count "hello" #\l "invalid"))
 
 ;; 范围越界测试
 (check-catch 'out-of-range (string-count "hello" #\l -1))

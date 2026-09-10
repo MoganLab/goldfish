@@ -41,7 +41,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -98,17 +98,17 @@
 (check (bitwise-and 2 2 2) => 2)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bitwise-and "string" 1))
-(check-catch 'wrong-type-arg (bitwise-and 1 'symbol))
-(check-catch 'wrong-type-arg (bitwise-and 3.14 2))
-(check-catch 'wrong-type-arg (bitwise-and #\a 1))
-(check-catch 'wrong-type-arg (bitwise-and '(1 2) 3))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bitwise-and "string" 1))
+(check-catch 'type-error (bitwise-and 1 'symbol))
+(check-catch 'type-error (bitwise-and 3.14 2))
+(check-catch 'type-error (bitwise-and #\a 1))
+(check-catch 'type-error (bitwise-and '(1 2) 3))
 
 
 ;; ; 多参数错误处理测试
-(check-catch 'wrong-type-arg (bitwise-and 1 2 3 "four"))
-(check-catch 'wrong-type-arg (bitwise-and 1 2 "three" 4))
+(check-catch 'type-error (bitwise-and 1 2 3 "four"))
+(check-catch 'type-error (bitwise-and 1 2 "three" 4))
 
 
 

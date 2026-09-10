@@ -51,7 +51,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当len为负数时
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 
 ;;
 ;; 相关实现

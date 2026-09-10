@@ -123,10 +123,10 @@
 (check (pare? (vector)) => #f)
 (check (pare? '()) => #f)
 ;; 访问器/修改器作用于错误类型时报错
-(check-catch 'wrong-type-arg (kar 3))
-(check-catch 'wrong-type-arg (kar "abc"))
-(check-catch 'wrong-type-arg (kar (cons 1 2)))
-(check-catch 'wrong-type-arg (set-kar! (cons 1 2) 3))
+(check-catch 'type-error (kar 3))
+(check-catch 'type-error (kar "abc"))
+(check-catch 'type-error (kar (cons 1 2)))
+(check-catch 'type-error (set-kar! (cons 1 2) 3))
 ;; 参数个数错误
 (check-catch 'wrong-number-of-args (kons 1))
 (check-catch 'wrong-number-of-args (kons 1 2 3))

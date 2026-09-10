@@ -24,7 +24,7 @@
 ;; 
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 若 list 不是有效列表（如非列表结构），可能引发类型错误。
 ;; 
 ;; 额外信息
@@ -54,7 +54,7 @@
 ;; 
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 若 list 不是有效列表（如非列表结构），可能引发类型错误。
 ;; 
 ;; 额外信息
@@ -84,14 +84,14 @@
 ;; 
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 若 list 不是有效列表（如非列表结构），可能引发类型错误。
 ;; 
 ;; 额外信息
 ;; ----
 ;; 使用 equal? 进行元素比较（支持复杂类型如字符串 "1"、点对 (1 . 2) 和列表 (1 2)）。
 ;; 匹配时返回 原始列表的尾部片段（保留原内存结构），而非复制新列表。
-(check-catch 'wrong-type-arg (member 0 "text"))
+(check-catch 'type-error (member 0 "text"))
 (check (member 2 '(1 2 3)) => '(2 3))
 (check (member 0 '(1 2 3)) => #f)
 (check (member 0 '()) => #f)

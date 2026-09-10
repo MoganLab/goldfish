@@ -27,7 +27,7 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 参数数量不为1时抛出。
-;; wrong-type-arg
+;; type-error
 ;; 参数不是数字时抛出。
 (check (inexact 1) => 1.0)
 (check (inexact 0) => 0.0)
@@ -39,6 +39,6 @@
 (check (inexact 0.0) => 0.0)
 (check-catch 'wrong-number-of-args (inexact))
 (check-catch 'wrong-number-of-args (inexact 1 2))
-(check-catch 'wrong-type-arg (inexact 'a))
-(check-catch 'wrong-type-arg (inexact "hello"))
+(check-catch 'type-error (inexact 'a))
+(check-catch 'type-error (inexact "hello"))
 (check-report)

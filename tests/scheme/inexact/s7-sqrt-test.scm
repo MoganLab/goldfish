@@ -29,7 +29,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数值时抛出错误。
 ;; s7-sqrt 基本测试
 (check (s7-sqrt 9) => 3)
@@ -45,6 +45,6 @@
 (check (exact? (s7-sqrt 4)) => #t)
 (check (exact? (s7-sqrt 4.0)) => #f)
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (s7-sqrt "hello"))
+(check-catch 'type-error (s7-sqrt "hello"))
 (check-catch 'wrong-number-of-args (s7-sqrt))
 (check-report)

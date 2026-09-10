@@ -40,7 +40,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -93,17 +93,17 @@
 (check (bitwise-xor 2147483647 -2147483648) => -1)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (bitwise-xor "string" 1))
-(check-catch 'wrong-type-arg (bitwise-xor 1 'symbol))
-(check-catch 'wrong-type-arg (bitwise-xor 3.14 2))
-(check-catch 'wrong-type-arg (bitwise-xor #\a 1))
-(check-catch 'wrong-type-arg (bitwise-xor '(1 2) 3))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (bitwise-xor "string" 1))
+(check-catch 'type-error (bitwise-xor 1 'symbol))
+(check-catch 'type-error (bitwise-xor 3.14 2))
+(check-catch 'type-error (bitwise-xor #\a 1))
+(check-catch 'type-error (bitwise-xor '(1 2) 3))
 
 
 ;; ; 多参数错误处理测试
-(check-catch 'wrong-type-arg (bitwise-xor 1 2 3 "four"))
-(check-catch 'wrong-type-arg (bitwise-xor 1 2 "three" 4))
+(check-catch 'type-error (bitwise-xor 1 2 3 "four"))
+(check-catch 'type-error (bitwise-xor 1 2 "three" 4))
 
 
 

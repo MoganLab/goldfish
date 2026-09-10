@@ -21,7 +21,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果存在任何参数不是数字，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有提供参数，抛出错误。
@@ -48,9 +48,9 @@
 (check (nan? (- 1 2 +nan.0)) => #t)
 (check (nan? (- +inf.0 +inf.0)) => #t)
 (check-catch 'wrong-number-of-args (-))
-(check-catch 'wrong-type-arg (- 'hello 7))
-(check-catch 'wrong-type-arg (- "world" 7))
-(check-catch 'wrong-type-arg (- #f 7))
-(check-catch 'wrong-type-arg (- '(1 3 5) 7))
+(check-catch 'type-error (- 'hello 7))
+(check-catch 'type-error (- "world" 7))
+(check-catch 'type-error (- #f 7))
+(check-catch 'type-error (- '(1 3 5) 7))
 (check-catch 'unbound-variable (- 1.0+1.0i 2i))
 (check-report)

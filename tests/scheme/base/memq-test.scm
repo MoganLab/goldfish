@@ -60,7 +60,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或数量错误时抛出。
 ;; 
 ;; 应用注意
@@ -137,7 +137,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或数量错误时抛出。
 ;; 
 ;; 应用注意
@@ -214,7 +214,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或数量错误时抛出。
 ;; 
 ;; 应用注意
@@ -303,7 +303,7 @@
 ;; 错误处理测试
 (check-catch 'wrong-number-of-args (memq 'a))
 (check-catch 'wrong-number-of-args (memq 'a '(a) 'extra))
-(check-catch 'wrong-type-arg (memq 'a 123))
-(check-catch 'wrong-type-arg (memq 'a "string"))
+(check-catch 'type-error (memq 'a 123))
+(check-catch 'type-error (memq 'a "string"))
 
 (check-report)

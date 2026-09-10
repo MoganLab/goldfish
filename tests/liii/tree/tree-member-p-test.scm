@@ -100,15 +100,15 @@
 (check (tree-member? 4 '(1 (3 (6 7))) (lambda (target x) (and (number? x) (even? x)))) => #t)
 
 ;; 11. 异常测试
-(check-catch 'wrong-type-arg (tree-member? 'a 123))
-(check-catch 'wrong-type-arg (tree-member? 'a '(a b) 123))
+(check-catch 'type-error (tree-member? 'a 123))
+(check-catch 'type-error (tree-member? 'a '(a b) 123))
 
 ;; 循环列表检测（开启 safety 时）
 (let ((cyclic-tree (list 'a 'b))
       (old-safety (*s7* 'safety)))
   (set-cdr! (cdr cyclic-tree) cyclic-tree)
   (set! (*s7* 'safety) 1)
-  (check-catch 'wrong-type-arg (tree-member? 'a cyclic-tree))
+  (check-catch 'type-error (tree-member? 'a cyclic-tree))
   (set! (*s7* 'safety) old-safety))
 
 (check-report)

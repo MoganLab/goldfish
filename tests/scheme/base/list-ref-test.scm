@@ -38,7 +38,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型（如空列表'()、数字、字符串等）时抛出错误。
 ;; 
 ;; out-of-range
@@ -80,7 +80,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型（如空列表'()、数字、字符串等）时抛出错误。
 ;; 
 ;; out-of-range
@@ -122,7 +122,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当list参数不是pair?类型（如空列表'()、数字、字符串等）时抛出错误。
 ;; 
 ;; out-of-range
@@ -165,10 +165,10 @@
 (check (list-ref '(a b c) 1) => 'b)
 (check (list-ref '(a b c) 2) => 'c)
 ;; 错误情况测试
-(check-catch 'wrong-type-arg (list-ref '() 0))
-(check-catch 'wrong-type-arg (list-ref 123 0))
-(check-catch 'wrong-type-arg (list-ref "string" 1))
-(check-catch 'wrong-type-arg (list-ref #t 1))
+(check-catch 'type-error (list-ref '() 0))
+(check-catch 'type-error (list-ref 123 0))
+(check-catch 'type-error (list-ref "string" 1))
+(check-catch 'type-error (list-ref #t 1))
 ;; 索引越界测试
 (check-catch 'out-of-range (list-ref '(a b c) -1))
 (check-catch 'out-of-range (list-ref '(a b c) 3))
@@ -189,12 +189,12 @@
 (check (list-ref '(first) 0) => 'first)
 (check (list-ref '(first second) 1) => 'second)
 (check (list-ref '(first second third) 2) => 'third)
-(check-catch 'wrong-type-arg (list-ref '() 0))
-(check-catch 'wrong-type-arg (list-ref '() 1))
-(check-catch 'wrong-type-arg (list-ref '() 2))
-(check-catch 'wrong-type-arg (list-ref 42 0))
-(check-catch 'wrong-type-arg (list-ref 42 1))
-(check-catch 'wrong-type-arg (list-ref 42 2))
+(check-catch 'type-error (list-ref '() 0))
+(check-catch 'type-error (list-ref '() 1))
+(check-catch 'type-error (list-ref '() 2))
+(check-catch 'type-error (list-ref 42 0))
+(check-catch 'type-error (list-ref 42 1))
+(check-catch 'type-error (list-ref 42 2))
 (check-catch 'out-of-range (list-ref '(first) 1))
 (check-catch 'out-of-range (list-ref '(first) 2))
 (check-catch 'out-of-range (list-ref '(first second) 2))

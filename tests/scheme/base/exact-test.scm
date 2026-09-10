@@ -28,7 +28,7 @@
 ;; --------
 ;; wrong-number-of-args
 ;; 参数数量不为1时抛出。
-;; wrong-type-arg
+;; type-error
 ;; 参数不是实数时抛出。
 (check (exact 1) => 1)
 (check (exact 0) => 0)
@@ -41,7 +41,7 @@
 (check (exact 0.0) => 0)
 (check-catch 'wrong-number-of-args (exact))
 (check-catch 'wrong-number-of-args (exact 1 2))
-(check-catch 'wrong-type-arg (exact 'a))
-(check-catch 'wrong-type-arg (exact "hello"))
-(check-catch 'wrong-type-arg (exact 1.0+2.0i))
+(check-catch 'type-error (exact 'a))
+(check-catch 'type-error (exact "hello"))
+(check-catch 'type-error (exact 1.0+2.0i))
 (check-report)

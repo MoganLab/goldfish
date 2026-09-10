@@ -68,7 +68,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或参数数量错误时抛出。
 ;; 
 ;; 与memq、member的精确分工
@@ -161,7 +161,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或参数数量错误时抛出。
 ;; 
 ;; 与memq、member的精确分工
@@ -254,7 +254,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;;     当参数类型不匹配或参数数量错误时抛出。
 ;; 
 ;; 与memq、member的精确分工
@@ -361,9 +361,9 @@
 ;; 向量与字符混合测试
 (check (memv 3.14 '(#(1 2) 3.14 #\a "test")) => '(3.14 #\a "test"))
 ;; 错误参数类型测试
-(check-catch 'wrong-type-arg (memv 0 "not a list"))
-(check-catch 'wrong-type-arg (memv 0 123))
-(check-catch 'wrong-type-arg (memv 0 #t))
+(check-catch 'type-error (memv 0 "not a list"))
+(check-catch 'type-error (memv 0 123))
+(check-catch 'type-error (memv 0 #t))
 ;; 参数数量错误测试
 (check-catch 'wrong-number-of-args (memv))
 (check-catch 'wrong-number-of-args (memv 1))

@@ -39,7 +39,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 ;; out-of-range 当start或end超出字符串索引范围时
 ;; out-of-range 当start > end时
 
@@ -71,8 +71,8 @@
 (check-true (equal? (string-copy "🌟🎉" 0 4) "🌟"))
 (check-true (equal? (string-copy "🌟🎉" 4 8) "🎉"))
 
-(check-catch 'wrong-type-arg (string-copy 123))
-(check-catch 'wrong-type-arg (string-copy 'hello))
+(check-catch 'type-error (string-copy 123))
+(check-catch 'type-error (string-copy 'hello))
 (check-catch 'out-of-range (string-copy "hello" -1))
 (check-catch 'out-of-range (string-copy "hello" 10))
 (check-catch 'out-of-range (string-copy "hello" 0 10))
@@ -80,8 +80,8 @@
 (check-catch 'out-of-range (string-copy "hello" 3 2))
 (check-catch 'out-of-range (string-copy "hello" 4 3))
 
-(check-catch 'wrong-type-arg (string-copy "hello" "a"))
-(check-catch 'wrong-type-arg (string-copy "hello" 1.5))
-(check-catch 'wrong-type-arg (string-copy "hello" 1 4.5))
+(check-catch 'type-error (string-copy "hello" "a"))
+(check-catch 'type-error (string-copy "hello" 1.5))
+(check-catch 'type-error (string-copy "hello" 1 4.5))
 
 (check-report)

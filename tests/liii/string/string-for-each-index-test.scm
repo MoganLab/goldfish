@@ -36,7 +36,7 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当proc不是procedure?类型时
-;; wrong-type-arg 当str不是字符串类型时
+;; type-error 当str不是字符串类型时
 ;; out-of-range 当start/end超出字符串索引范围时
 
 (check (string-for-each-index (lambda (i c acc) (cons (list i c) acc)) "hello")

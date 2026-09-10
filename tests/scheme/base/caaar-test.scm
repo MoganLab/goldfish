@@ -20,15 +20,15 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 参数不是序对，或者 car 链上的某一层不是序对时抛出错误。
 (check (caaar '(((1 2)))) => 1)
 (check (caaar '(((a b) c) d)) => 'a)
 (check (caaar (cons (cons (cons 1 2) 3) 4)) => 1)
 (check (caaar '(((() 5)) 6)) => '())
-(check-catch 'wrong-type-arg (caaar '((1 2))))
-(check-catch 'wrong-type-arg (caaar '(1 (2 3))))
-(check-catch 'wrong-type-arg (caaar 'a))
-(check-catch 'wrong-type-arg (caaar 123))
-(check-catch 'wrong-type-arg (caaar '()))
+(check-catch 'type-error (caaar '((1 2))))
+(check-catch 'type-error (caaar '(1 (2 3))))
+(check-catch 'type-error (caaar 'a))
+(check-catch 'type-error (caaar 123))
+(check-catch 'type-error (caaar '()))
 (check-report)

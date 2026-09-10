@@ -33,7 +33,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数值或进制不是精确的整数时抛出错误。
 ;; out-of-range
 ;; 当进制不在2到16范围内时抛出错误。
@@ -89,11 +89,11 @@
 (check (number->string -128 16) => "-80")
 (check (number->string 1023 2) => "1111111111")
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (number->string 'not-a-number))
-(check-catch 'wrong-type-arg (number->string 123 'not-a-number))
+(check-catch 'type-error (number->string 'not-a-number))
+(check-catch 'type-error (number->string 123 'not-a-number))
 (check-catch 'out-of-range (number->string 123 1))
 (check-catch 'out-of-range (number->string 123 37))
-(check-catch 'wrong-type-arg (number->string 123 3.5))
+(check-catch 'type-error (number->string 123 3.5))
 (check-catch 'wrong-number-of-args (number->string))
 (check-catch 'wrong-number-of-args (number->string 123 2 3))
 (check-report)

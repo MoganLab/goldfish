@@ -22,7 +22,7 @@
 ;; (check-set-mode! 'report-failed)
 ;; (check (string-length "goldfish") => 8)
 ;; (check-false (null? '(a b)))
-;; (check-catch 'wrong-type-arg (car 123))
+;; (check-catch 'type-error (car 123))
 ;; (check-report)
 ;;
 ;; 示例3：`report` 模式

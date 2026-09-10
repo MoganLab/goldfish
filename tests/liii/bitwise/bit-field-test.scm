@@ -47,7 +47,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 ;; out-of-range
 ;; 当位索引超出有效范围（0-63）时抛出错误。
@@ -118,17 +118,17 @@
 (check-catch 'out-of-range (bit-field 65535 16 32))
 
 
-;; ; 错误处理测试 - wrong-type-arg
+;; ; 错误处理测试 - type-error
 ;; ; 注意：S7 Scheme 的错误类型可能与标准不同
-(check-catch 'wrong-type-arg (bit-field "string" 0 4))
-;; ; (check-catch 'wrong-type-arg
+(check-catch 'type-error (bit-field "string" 0 4))
+;; ; (check-catch 'type-error
 ;; ;              (bit-field 1 "string" 4))  ; 这个测试会失败，错误类型不同
-;; ; (check-catch 'wrong-type-arg
+;; ; (check-catch 'type-error
 ;; ;              (bit-field 1 0 "string"))  ; 这个测试会失败，错误类型不同
-(check-catch 'wrong-type-arg (bit-field 3.14 0 4))
-;; ; (check-catch 'wrong-type-arg
+(check-catch 'type-error (bit-field 3.14 0 4))
+;; ; (check-catch 'type-error
 ;; ;              (bit-field 1 3.14 4))      ; 这个测试会失败，错误类型不同
-;; ; (check-catch 'wrong-type-arg
+;; ; (check-catch 'type-error
 ;; ;              (bit-field 1 0 3.14))      ; 这个测试会失败，错误类型不同
 
 

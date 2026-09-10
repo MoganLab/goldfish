@@ -26,7 +26,7 @@
 ;; --------
 ;; division-by-zero
 ;; 当除数为零时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是实数时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为二时抛出错误。
@@ -41,8 +41,8 @@
 (check (remainder 16 5) => 1)
 (check (remainder 11/2 3) => 5/2)
 (check-catch 'division-by-zero (remainder 5 0))
-(check-catch 'wrong-type-arg (remainder 5 "hello"))
-(check-catch 'wrong-type-arg (remainder 2.0+8.0i 5))
+(check-catch 'type-error (remainder 5 "hello"))
+(check-catch 'type-error (remainder 2.0+8.0i 5))
 (check-catch 'wrong-number-of-args (remainder 5))
 (check-catch 'wrong-number-of-args (remainder 5 2 3))
 (check-report)

@@ -28,7 +28,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果存在任何参数不是数字类型，则抛出此错误
 ;; division-by-zero
 ;; 除数为零时抛出此错误
@@ -63,8 +63,8 @@
 (check-catch 'division-by-zero (/ 5 0))
 (check-catch 'division-by-zero (/ 1 0 2))
 (check-catch 'division-by-zero (/ 0))
-(check-catch 'wrong-type-arg (/ 'hello 7))
-(check-catch 'wrong-type-arg (/ "world" 7))
-(check-catch 'wrong-type-arg (/ 5 #t))
+(check-catch 'type-error (/ 'hello 7))
+(check-catch 'type-error (/ "world" 7))
+(check-catch 'type-error (/ 5 #t))
 (check-catch 'wrong-number-of-args (/))
 (check-report)

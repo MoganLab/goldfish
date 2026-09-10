@@ -18,7 +18,7 @@
 ;; 3. 为边界条件和失败路径补充回归测试。
 
 
-(check-catch 'wrong-type-arg (car 123))
+(check-catch 'type-error (car 123))
 (check-catch 'wrong-number-of-args (car))
 (check-catch 'wrong-number-of-args (car '(1 2) '(3 4)))
 

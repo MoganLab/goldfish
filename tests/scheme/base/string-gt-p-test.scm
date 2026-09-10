@@ -37,7 +37,7 @@
 (check (string>? "c" "b" "b") => #f)
 (check-catch 'wrong-number-of-args (string>?))
 (check-catch 'wrong-number-of-args (string>? "a"))
-(check-catch 'wrong-type-arg (string>? 'a "b"))
-(check-catch 'wrong-type-arg (string>? "a" 1))
+(check-catch 'type-error (string>? 'a "b"))
+(check-catch 'type-error (string>? "a" 1))
 
 (check-report)

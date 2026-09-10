@@ -87,11 +87,11 @@
 ) ;let
 
 ;; 库名必须是 proper list，元素为 symbol 或非负整数（R7RS）
-(check-catch 'wrong-type-arg (g_library-defined? "not-a-list"))
-(check-catch 'wrong-type-arg (g_library-defined? '(a . b)))
-(check-catch 'wrong-type-arg (g_library-register! '(a 1.5) (inlet)))
-(check-catch 'wrong-type-arg (g_library-register! '(a -1) (inlet)))
-(check-catch 'wrong-type-arg (g_library-register! '(a) 42))
+(check-catch 'type-error (g_library-defined? "not-a-list"))
+(check-catch 'type-error (g_library-defined? '(a . b)))
+(check-catch 'type-error (g_library-register! '(a 1.5) (inlet)))
+(check-catch 'type-error (g_library-register! '(a -1) (inlet)))
+(check-catch 'type-error (g_library-register! '(a) 42))
 
 ;; [0112_2] C 实现的 define-library
 (define-library (goldfish test-lib-1)
@@ -172,7 +172,7 @@
 ) ;check-catch
 
 ;; 非法库名：报错
-(check-catch 'wrong-type-arg (define-library "not-a-list" (export x)))
+(check-catch 'type-error (define-library "not-a-list" (export x)))
 
 ;; [0112_3] C 实现的 import：嵌套修饰符（旧 Scheme 实现不支持）
 (let* ((probe-root (path-join (path-temp-dir)
@@ -224,8 +224,8 @@
 ) ;let*
 
 ;; 非法 import set：报错
-(check-catch 'wrong-type-arg (import "not-a-library-name"))
-(check-catch 'wrong-type-arg (import 42))
+(check-catch 'type-error (import "not-a-library-name"))
+(check-catch 'type-error (import 42))
 ;; 修饰符结构不完整：报错
 (check-catch 'syntax-error (import (only)))
 

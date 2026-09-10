@@ -79556,8 +79556,8 @@ then returns each var to its original value."
   sc->string_read_error_symbol =    make_symbol(sc, "string-read-error", 17);
   sc->syntax_error_symbol =         make_symbol(sc, "syntax-error", 12);
   sc->unbound_variable_symbol =     make_symbol(sc, "unbound-variable", 16);
-  sc->wrong_type_arg_symbol =       make_symbol(sc, "wrong-type-arg", 14);
   sc->type_error_symbol =            make_symbol(sc, "type-error", 10);
+  sc->wrong_type_arg_symbol =       sc->type_error_symbol;
   sc->value_error_symbol =           make_symbol(sc, "value-error", 11);
   sc->wrong_number_of_args_symbol = make_symbol(sc, "wrong-number-of-args", 20);
   sc->format_error_symbol =         make_symbol(sc, "format-error", 12);

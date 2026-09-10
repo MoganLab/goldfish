@@ -23,7 +23,7 @@
 ;; ----
 ;; division-by-zero
 ;; 当除数为零时抛出错误。
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是数字时抛出错误。
 (check (floor-quotient 11 2) => 5)
 (check (floor-quotient 11 -2) => -6)
@@ -35,7 +35,7 @@
 (check (floor-quotient -10 -2) => 5)
 (check-catch 'division-by-zero (floor-quotient 11 0))
 (check-catch 'division-by-zero (floor-quotient 0 0))
-(check-catch 'wrong-type-arg (floor-quotient 1.0+1.0i 2))
+(check-catch 'type-error (floor-quotient 1.0+1.0i 2))
 (check (floor-quotient 0 2) => 0)
 (check (floor-quotient 0 -2) => 0)
 (check (receive (q r) (floor/ 11 3) q) => 3)

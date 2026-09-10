@@ -27,7 +27,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是序对（如空列表 '()、数字、字符串等）时抛出错误。
 (check (car '(a b c . d)) => 'a)
 (check (car '(a b c)) => 'a)
@@ -48,13 +48,13 @@
 (check (car '(a . b)) => 'a)
 (check (car (cons 1 2)) => 1)
 (check (car (cons 'a (cons 'b 'c))) => 'a)
-(check-catch 'wrong-type-arg (car '()))
+(check-catch 'type-error (car '()))
 ;; car 异常边界测试
-(check-catch 'wrong-type-arg (car 123))
-(check-catch 'wrong-type-arg (car "hello"))
-(check-catch 'wrong-type-arg (car #t))
-(check-catch 'wrong-type-arg (car #\a))
-(check-catch 'wrong-type-arg (car #(a b c)))
+(check-catch 'type-error (car 123))
+(check-catch 'type-error (car "hello"))
+(check-catch 'type-error (car #t))
+(check-catch 'type-error (car #\a))
+(check-catch 'type-error (car #(a b c)))
 (check-catch 'wrong-number-of-args (car))
 (check-catch 'wrong-number-of-args (car '(1 2) '(3 4)))
 ;; 补充边界条件测试 - 完善car边界条件
@@ -99,9 +99,9 @@
   =>
   '(define f (lambda (x) x))
 ) ;check
-(check-catch 'wrong-type-arg (car #f))
-(check-catch 'wrong-type-arg (car '[]))
-(check-catch 'wrong-type-arg (car '()))
+(check-catch 'type-error (car #f))
+(check-catch 'type-error (car '[]))
+(check-catch 'type-error (car '()))
 (check-catch 'wrong-number-of-args (car 42 84))
-(check-catch 'wrong-type-arg (car '*))
+(check-catch 'type-error (car '*))
 (check-report)

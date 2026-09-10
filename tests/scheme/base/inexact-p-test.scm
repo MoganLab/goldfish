@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是数字类型，抛出错误。
 ;; 基本测试
 (check-false (inexact? 42))
@@ -69,8 +69,8 @@
 (check-true (inexact? 1.7976931348623157e+308))
 (check-true (inexact? 2.2250738585072014e-308))
 ;; 错误测试
-(check-catch 'wrong-type-arg (inexact? "not a number"))
-(check-catch 'wrong-type-arg (inexact? 'symbol))
+(check-catch 'type-error (inexact? "not a number"))
+(check-catch 'type-error (inexact? 'symbol))
 (let ((zero-int 0))
   (check-true (and (integer? zero-int) (zero? zero-int)))
 ) ;let
@@ -82,7 +82,7 @@
 ) ;let
 (check-false (zero? 1.0+1.0i))
 (check-false (zero? 3))
-(check-catch 'wrong-type-arg (zero? #\A))
-(check-catch 'wrong-type-arg (zero? #t))
-(check-catch 'wrong-type-arg (zero? #f))
+(check-catch 'type-error (zero? #\A))
+(check-catch 'type-error (zero? #t))
+(check-catch 'type-error (zero? #f))
 (check-report)

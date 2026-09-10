@@ -51,7 +51,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; 当 seq 不是序列时抛出 wrong-type-arg 错误；
+;; 当 seq 不是序列时抛出 type-error 错误；
 ;; 当 less? 不是可接受两个参数的函数时抛出错误。
 
 ;; 列表排序：升序与降序
@@ -98,7 +98,7 @@
 ) ;check
 
 ;; 错误处理：非序列参数
-(check-catch 'wrong-type-arg (sort! 42 <))
-(check-catch 'wrong-type-arg (sort! #t <))
+(check-catch 'type-error (sort! 42 <))
+(check-catch 'type-error (sort! #t <))
 
 (check-report)

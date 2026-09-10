@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是序对时抛出错误。
 
 (check (cdr '(a b c . d)) => '(b c . d))
@@ -35,10 +35,10 @@
 (check (cdr '((a b) . c)) => 'c)
 (check (cdr (cons 1 2)) => 2)
 (check (cdr (cons 'a 'b)) => 'b)
-(check-catch 'wrong-type-arg (cdr '()))
-(check-catch 'wrong-type-arg (cdr 123))
-(check-catch 'wrong-type-arg (cdr "hello"))
-(check-catch 'wrong-type-arg (cdr #t))
+(check-catch 'type-error (cdr '()))
+(check-catch 'type-error (cdr 123))
+(check-catch 'type-error (cdr "hello"))
+(check-catch 'type-error (cdr #t))
 (check-catch 'wrong-number-of-args (cdr))
 (check-catch 'wrong-number-of-args (cdr '(1 2) '(3 4)))
 ;; cdr边界条件测试补充

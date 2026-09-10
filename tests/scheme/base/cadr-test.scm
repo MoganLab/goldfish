@@ -29,7 +29,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是序对（如空列表 '()、数字、字符串等）或序对的cadr不是序对时抛出错误。
 ;; 
 ;; 边界条件
@@ -77,7 +77,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是序对（如空列表 '()、数字、字符串等）或序对的cadr不是序对时抛出错误。
 ;; 
 ;; 边界条件
@@ -125,7 +125,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是序对（如空列表 '()、数字、字符串等）或序对的cadr不是序对时抛出错误。
 ;; 
 ;; 边界条件
@@ -149,14 +149,14 @@
 (check (cadr '(a b)) => 'b)
 (check (cadr '(a b c)) => 'b)
 (check (cadr '(1 2 3 4 5)) => 2)
-(check-catch 'wrong-type-arg (cadr '(a . b)))
+(check-catch 'type-error (cadr '(a . b)))
 (check (cadr '(a b . rest)) => 'b)
 (check (cadr '((a . b) c)) => 'c)
 ;; cadr 边界测试
 (check (cadr '(a b)) => 'b)
-(check-catch 'wrong-type-arg (cadr '(only)))
+(check-catch 'type-error (cadr '(only)))
 (check (cadr '(pair single)) => 'single)
-(check-catch 'wrong-type-arg (cadr '(a . b)))
+(check-catch 'type-error (cadr '(a . b)))
 ;; 数据类型边界测试
 (check (cadr '(42 string symbol #t)) => 'string)
 (check (cadr '("hello" "world" "test")) => "world")
@@ -183,15 +183,15 @@
 ;; Unicode和字符串边界测试
 (check (cadr '("中文" "测试" "验证")) => "测试")
 (check (cadr '(#\中 #\文 #\字)) => #\文)
-(check-catch 'wrong-type-arg (cadr '()))
-(check-catch 'wrong-type-arg (cadr 123))
-(check-catch 'wrong-type-arg (cadr "string"))
-(check-catch 'wrong-type-arg (cadr #t))
-(check-catch 'wrong-type-arg (cadr #\a))
-(check-catch 'wrong-type-arg (cadr #(a b)))
+(check-catch 'type-error (cadr '()))
+(check-catch 'type-error (cadr 123))
+(check-catch 'type-error (cadr "string"))
+(check-catch 'type-error (cadr #t))
+(check-catch 'type-error (cadr #\a))
+(check-catch 'type-error (cadr #(a b)))
 ;; 单元素边界异常测试
-(check-catch 'wrong-type-arg (cadr '(single)))
-(check-catch 'wrong-type-arg (cadr '(all)))
+(check-catch 'type-error (cadr '(single)))
+(check-catch 'type-error (cadr '(all)))
 ;; 构造器与操作函数链式测试
 (check (cadr (list 'car 'cdr 'cons 'append)) => 'cdr)
 ;; =======================================
@@ -199,8 +199,8 @@
 ;; 根据 201_12.md 要求补充边界值和数据兼容性测试
 ;; =======================================
 ;; 边界测试集1：空结构边界
-(check-catch 'wrong-type-arg (cadr (cons 'a 'b)))
-(check-catch 'wrong-type-arg (cadr (cons 'a '())))
+(check-catch 'type-error (cadr (cons 'a 'b)))
+(check-catch 'type-error (cadr (cons 'a '())))
 ;; 边界测试集2：极限长度边界
 (check (cadr (make-list 1000 'x)) => 'x)
 (check (cadr (append '(a) (make-list 999 'x))) => 'x)
@@ -211,7 +211,7 @@
 ;; 边界测试集4：Unicode边界测试
 (check (cadr '("特殊&符号" "正常字符串")) => "正常字符串")
 ;; 边界测试集5：复合结构异常边界
-(check-catch 'wrong-type-arg (cadr (vector 'a 'b)))
+(check-catch 'type-error (cadr (vector 'a 'b)))
 (check-catch 'wrong-number-of-args (cadr))
 (check-catch 'wrong-number-of-args (cadr '(a b) '(c d)))
 (check-report)

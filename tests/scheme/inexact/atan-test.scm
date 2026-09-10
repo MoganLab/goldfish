@@ -31,7 +31,7 @@
 ;;
 ;; 错误处理
 ;; ------
-;; wrong-type-arg
+;; type-error
 ;; 当参数类型错误时抛出错误。
 ;; wrong-number-of-args
 ;; 当参数数量不为1或2个时抛出错误。
@@ -64,8 +64,8 @@
   (check (atan 1.0+2.0i) => 1.3389725222944935+0.40235947810852507i)
 ) ;when
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (atan "hello"))
+(check-catch 'type-error (atan "hello"))
 (check-catch 'wrong-number-of-args (atan))
 (check-catch 'wrong-number-of-args (atan 1 2 3))
-(check-catch 'wrong-type-arg (atan 1 "hello"))
+(check-catch 'type-error (atan 1 "hello"))
 (check-report)

@@ -20,7 +20,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 如果参数不是字符串类型，抛出错误。
 ;; wrong-number-of-args
 ;; 如果没有参数或参数数量超过一个，抛出错误。
@@ -55,8 +55,8 @@
   (string->symbol "symbol_with_underscore")
 ) ;check
 ;; 错误处理测试
-(check-catch 'wrong-type-arg (string->symbol 123))
-(check-catch 'wrong-type-arg (string->symbol 'symbol))
+(check-catch 'type-error (string->symbol 123))
+(check-catch 'type-error (string->symbol 'symbol))
 (check-catch 'wrong-number-of-args (string->symbol "a" "b"))
 (check-catch 'wrong-number-of-args (string->symbol))
 ;; 保留字符号化

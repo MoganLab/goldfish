@@ -27,7 +27,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 出现以下情况时抛出错误：
 ;; 1. 参数不是序对或列表类型（如空列表 '()、数字、字符串等）
 ;; 2. 序对结构的第一个元素本身不是序对或列表（如原子或空列表）
@@ -57,7 +57,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 出现以下情况时抛出错误：
 ;; 1. 参数不是序对或列表类型（如空列表 '()、数字、字符串等）
 ;; 2. 序对结构的第一个元素本身不是序对或列表（如原子或空列表）
@@ -87,7 +87,7 @@
 ;; 
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 出现以下情况时抛出错误：
 ;; 1. 参数不是序对或列表类型（如空列表 '()、数字、字符串等）
 ;; 2. 序对结构的第一个元素本身不是序对或列表（如原子或空列表）
@@ -116,15 +116,15 @@
   (check (caar nested) => (cons 1 2))
 ) ;let
 ;; 涉及空列表的测试
-(check-catch 'wrong-type-arg (caar '(() . c)))
-(check-catch 'wrong-type-arg (caar '(())))
+(check-catch 'type-error (caar '(() . c)))
+(check-catch 'type-error (caar '(())))
 ;; 非法参数类型错误
-(check-catch 'wrong-type-arg (caar 'a))
-(check-catch 'wrong-type-arg (caar 123))
-(check-catch 'wrong-type-arg (caar "hello"))
-(check-catch 'wrong-type-arg (caar #f))
-(check-catch 'wrong-type-arg (caar '()))
-(check-catch 'wrong-type-arg (caar '(a b . c)))
+(check-catch 'type-error (caar 'a))
+(check-catch 'type-error (caar 123))
+(check-catch 'type-error (caar "hello"))
+(check-catch 'type-error (caar #f))
+(check-catch 'type-error (caar '()))
+(check-catch 'type-error (caar '(a b . c)))
 ;; 返回不同类型测试
 (check (caar '(("string" "another") 42)) => "string")
 (check (caar '((123 456) 789)) => 123)

@@ -20,13 +20,13 @@
 ;;
 ;; 错误处理
 ;; --------
-;; wrong-type-arg
+;; type-error
 ;; 参数不是序对，或者 car/cdr 链上的某一层不是序对时抛出错误。
 (check (caddar '((1 2 3 4))) => 3)
 (check (caddar '((a b c) d)) => 'c)
 (check (caddar (cons (cons 1 (cons 2 (cons 3 4))) 5)) => 3)
-(check-catch 'wrong-type-arg (caddar '((1 2))))
-(check-catch 'wrong-type-arg (caddar '(1 2 3)))
-(check-catch 'wrong-type-arg (caddar 'a))
-(check-catch 'wrong-type-arg (caddar '()))
+(check-catch 'type-error (caddar '((1 2))))
+(check-catch 'type-error (caddar '(1 2 3)))
+(check-catch 'type-error (caddar 'a))
+(check-catch 'type-error (caddar '()))
 (check-report)

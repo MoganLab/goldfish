@@ -36,7 +36,7 @@
 ;;
 ;; 错误
 ;; ----
-;; wrong-type-arg
+;; type-error
 ;; 当参数不是整数时抛出错误。
 
 
@@ -48,12 +48,12 @@
 (check (integer-length 65535) => 16)
 
 
-;; ; 错误处理测试 - wrong-type-arg
-(check-catch 'wrong-type-arg (integer-length "string"))
-(check-catch 'wrong-type-arg (integer-length 'symbol))
-(check-catch 'wrong-type-arg (integer-length 3.14))
-(check-catch 'wrong-type-arg (integer-length #\a))
-(check-catch 'wrong-type-arg (integer-length '(1 2)))
+;; ; 错误处理测试 - type-error
+(check-catch 'type-error (integer-length "string"))
+(check-catch 'type-error (integer-length 'symbol))
+(check-catch 'type-error (integer-length 3.14))
+(check-catch 'type-error (integer-length #\a))
+(check-catch 'type-error (integer-length '(1 2)))
 
 
 

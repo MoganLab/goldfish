@@ -37,7 +37,7 @@
 ;; out-of-range
 ;; 当索引k为负数或大于等于字符串长度时抛出错误。
 ;;
-;; wrong-type-arg
+;; type-error
 ;; 当string不是字符串、k不是精确整数、char不是字符时抛出错误。
 ;; string-set! 基础测试
 (let ((str (string-copy "hello")))
@@ -110,10 +110,10 @@
   (check-catch 'out-of-range (string-set! str 0 #\x))
 ) ;let
 ;; 类型错误测试
-(check-catch 'wrong-type-arg (string-set! 123 0 #\A))
-(check-catch 'wrong-type-arg (string-set! "hello" 0.5 #\A))
-(check-catch 'wrong-type-arg (string-set! "hello" 0 123))
-(check-catch 'wrong-type-arg (string-set! "hello" 1 "A"))
+(check-catch 'type-error (string-set! 123 0 #\A))
+(check-catch 'type-error (string-set! "hello" 0.5 #\A))
+(check-catch 'type-error (string-set! "hello" 0 123))
+(check-catch 'type-error (string-set! "hello" 1 "A"))
 ;; 参数数量错误测试
 (check-catch 'wrong-number-of-args (string-set!))
 (check-catch 'wrong-number-of-args (string-set! "hello"))
