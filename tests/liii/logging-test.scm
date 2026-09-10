@@ -1,4 +1,8 @@
-(import (liii check) (liii string) (liii logging))
+(import (liii check)
+        (liii string)
+        (liii path)
+        (scheme file)
+        (liii logging))
 
 ;; (liii logging) 测试用例
 
@@ -21,6 +25,28 @@
 
 ;; current-log-callback 默认值是过程
 (check (procedure? (current-log-callback)) => #t)
+
+;; current-log-level 默认值为 WARNING (与 Python 对齐)
+(check (current-log-level) => WARNING)
+
+;; 未配置时默认输出到 stderr，且默认过滤 INFO、放行 WARNING
+(let* ((p (open-output-string))
+       (old-err (set-current-error-port p)))
+  ;; 默认级别 WARNING 下，log-info 应该被过滤
+  (log-info "this should be filtered")
+  ;; log-warning 应该默认输出到 stderr
+  (log-warning "default warning to stderr")
+  ;; 恢复 stderr
+  (set-current-error-port old-err)
+  (let ((output (get-output-string p)))
+    (check (string-contains? output "default warning to stderr") => #t)
+    (check (string-contains? output "WARNING") => #t)
+    (check (string-contains? output "this should be filtered") => #f)
+  ) ;let
+) ;let
+
+;; 设置为 DEBUG 级别测试各级别的发送与回调
+(log-set-level! DEBUG)
 
 ;; send-log 兼容 SRFI-215
 (set! *last-msg* #f)
@@ -77,7 +103,7 @@
 (check (cdr (assq 'MESSAGE *last-msg*)) => "should pass filter")
 
 ;; 恢复默认级别
-(log-set-level! DEBUG)
+(log-set-level! WARNING)
 
 ;; current-log-format 默认值
 (check (string? (current-log-format)) => #t)
@@ -109,7 +135,39 @@
 (check (log-message-field '((SEVERITY . 3)) 'MISSING) => #f)
 
 ;; 恢复默认回调
-(log-set-callback! (lambda (log-entry) (values)))
+(log-set-callback! (make-stderr-handler))
+
+;; default-log-handler 自动 flush 测试
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-default-handler.log")))
+       (p (open-output-file test-log "w")))
+  (default-log-handler '((SEVERITY . 6) (MESSAGE . "default handler flush")) p)
+  ;; 不关闭 p，直接另开 input-file 读取；若已自动 flush，应能立即读到内容
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "default handler flush") => #t))
+  (close-output-port p)
+  (delete-file test-log))
+
+;; make-file-handler 自动 flush 测试
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-file-handler.log")))
+       (handler (make-file-handler test-log)))
+  ;; 写入一条日志（端口保持打开，未关闭，未手动调用 log-flush!）
+  (handler '((SEVERITY . 6) (MESSAGE . "file handler flush")))
+  ;; 立即读取验证内容已刷新到文件
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "file handler flush") => #t)
+    (check (string-contains? content "INFO") => #t))
+  ;; 清理
+  (log-set-callback! (make-stderr-handler))
+  (delete-file test-log))
+
+;; log-warning 配合 log-set-file-handler! 自动 flush 测试
+(let ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-set-file.log"))))
+  (log-set-file-handler! test-log)
+  (log-warning "auto flush from log-warning")
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "auto flush from log-warning") => #t))
+  (log-set-callback! (make-stderr-handler))
+  (delete-file test-log))
 
 ;; send-log 参数类型错误测试
 (check-catch 'type-error (send-log -1 "bad"))

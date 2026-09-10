@@ -68,8 +68,7 @@
 
     ;; 内部状态变量
     (define *log-fields* '())
-    (define *log-callback* (lambda (log-entry) (values)))
-    (define *log-level* DEBUG)
+    (define *log-level* WARNING)
     (define *log-format* "%(asctime)s [%(levelname)s] %(message)s")
     (define *log-file-port* #f)
 
@@ -155,14 +154,12 @@
               ) ;
           (if callback
             (callback `((SEVERITY . ,severity) (MESSAGE . ,message) ,@alist))
-            ;; 默认行为：ERROR 及以上到 stderr，其他到 stdout
-            (let ((port (if (<= severity ERROR) (current-error-port) (current-output-port))))
-              (default-log-handler `((SEVERITY . ,severity)
-                                     (MESSAGE . ,message)
-                                     ,@alist)
-                port
-              ) ;default-log-handler
-            ) ;let
+            ;; 默认行为：输出到 stderr
+            (default-log-handler `((SEVERITY . ,severity)
+                                   (MESSAGE . ,message)
+                                   ,@alist)
+              (current-error-port)
+            ) ;default-log-handler
           ) ;if
         ) ;let*
       ) ;when
@@ -270,6 +267,7 @@
             ) ;
         (display formatted port)
         (newline port)
+        (flush-output-port port)
       ) ;let*
     ) ;define
 
@@ -281,6 +279,9 @@
     (define (make-stderr-handler)
       (lambda (msg) (default-log-handler msg (current-error-port)))
     ) ;define
+
+    ;; 默认回调：输出到 stderr
+    (define *log-callback* (make-stderr-handler))
 
     ;; ============== 文件处理器 ==============
     (define (make-file-handler path)
@@ -314,6 +315,7 @@
                 ) ;
             (display line port)
             (newline port)
+            (flush-output-port port)
           ) ;let*
         ) ;lambda
       ) ;let
