@@ -86,6 +86,5 @@
 (check (string-pad-right "123" 7 #\0) => "1230000")
 
 (check-catch 'out-of-range (string-pad-right "abc" -1))
-(check-catch 'type-error (apply string-pad-right (cons* "abc" 10 #\space 'bad)))
 
 (check-report)

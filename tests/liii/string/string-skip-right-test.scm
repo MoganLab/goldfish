@@ -44,7 +44,7 @@
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当str不是字符串类型时
-;; wrong-type-arg 当char/pred?不是字符或谓词时
+;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
 ;; 基本功能测试
@@ -128,9 +128,9 @@
 
 ;; 错误处理测试
 (check-catch 'wrong-type-arg (string-skip-right 123 #\a))
-(check-catch 'wrong-type-arg (string-skip-right "hello" "a"))
-(check-catch 'wrong-type-arg (string-skip-right "hello" 123))
-(check-catch 'wrong-type-arg (string-skip-right "hello" '(a)))
+(check-catch 'type-error (string-skip-right "hello" "a"))
+(check-catch 'type-error (string-skip-right "hello" 123))
+(check-catch 'type-error (string-skip-right "hello" '(a)))
 (check-catch 'out-of-range (string-skip-right "hello" #\a -1))
 (check-catch 'out-of-range (string-skip-right "hello" #\a 0 6))
 (check-catch 'out-of-range (string-skip-right "hello" #\a 3 2))

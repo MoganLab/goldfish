@@ -317,7 +317,7 @@
 
     (define (floor/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "floor/: parameters must be real numbers")
+        (error 'type-error "floor/: parameters must be real numbers")
       ) ;when
       (when (zero? y)
         (error 'division-by-zero "floor/: division by zero")
@@ -339,7 +339,7 @@
 
     (define (truncate/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "truncate/: parameters must be real numbers")
+        (error 'type-error "truncate/: parameters must be real numbers")
       ) ;when
       (when (zero? y)
         (error 'division-by-zero "truncate/: division by zero")

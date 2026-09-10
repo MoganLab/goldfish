@@ -52,7 +52,7 @@
 ;; 错误处理
 ;; ----
 ;; wrong-type-arg 当str不是字符串类型时
-;; wrong-type-arg 当char/pred?不是字符或谓词时
+;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
 ;;
@@ -139,9 +139,9 @@
 (check (string-index "12345" char-alphabetic?) => #f)
 
 (check-catch 'wrong-type-arg (string-index 123 #\a))
-(check-catch 'wrong-type-arg (string-index "hello" "a"))
-(check-catch 'wrong-type-arg (string-index "hello" 123))
-(check-catch 'wrong-type-arg (string-index "hello" '(a)))
+(check-catch 'type-error (string-index "hello" "a"))
+(check-catch 'type-error (string-index "hello" 123))
+(check-catch 'type-error (string-index "hello" '(a)))
 (check-catch 'out-of-range (string-index "hello" #\a -1))
 (check-catch 'out-of-range (string-index "hello" #\a 0 6))
 (check-catch 'out-of-range (string-index "hello" #\a 3 2))

@@ -36,7 +36,7 @@
 
 
 ;; 空队列报错
-(check-catch 'wrong-type-arg (list-queue-remove-back! (list-queue)))
+(check-catch 'type-error (list-queue-remove-back! (list-queue)))
 
 
 (check-report)

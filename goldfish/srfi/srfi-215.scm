@@ -80,8 +80,8 @@
 
     ;; send-log: 发送日志消息
     (define (send-log severity message . plist)
-      (unless (and (exact? severity) (integer? severity) (<= 0 severity 7))
-        (error 'wrong-type-arg
+      (unless (and (number? severity) (exact? severity) (integer? severity) (<= 0 severity 7))
+        (error 'type-error
           "send-log: expected a severity from 0 to 7"
           severity
           message
@@ -89,7 +89,7 @@
         ) ;error
       ) ;unless
       (unless (string? message)
-        (error 'wrong-type-arg
+        (error 'type-error
           "send-log: expected message to be a string"
           severity
           message

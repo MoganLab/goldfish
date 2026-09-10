@@ -44,7 +44,7 @@
 ;; 错误处理
 ;; ----
 ;; type-error 当str不是字符串类型时
-;; wrong-type-arg 当char/pred?不是字符或谓词时
+;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 
 ;; 基本功能测试 - 字符参数
@@ -145,9 +145,9 @@
 
 ;; 错误处理测试
 (check-catch 'type-error (string-count 123 #\a))
-(check-catch 'wrong-type-arg (string-count "hello" 123))
-(check-catch 'wrong-type-arg (string-count "hello" "a"))
-(check-catch 'wrong-type-arg (string-count "hello" '(a b c)))
+(check-catch 'type-error (string-count "hello" 123))
+(check-catch 'type-error (string-count "hello" "a"))
+(check-catch 'type-error (string-count "hello" '(a b c)))
 
 ;; 参数数量错误测试
 (check-catch 'wrong-number-of-args (string-count))
