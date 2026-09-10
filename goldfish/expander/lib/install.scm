@@ -772,6 +772,9 @@
             opt))))))
 
 (module-define! the-expander-library 'compile-file-cached compile-file-cached)
+;; reader.scm's `load' preloads the deps of a compiled program artifact
+;; through this (the same collector the cache writer uses).
+(module-define! the-expander-library 'collect-cache-module-refs collect-cache-module-refs)
 (module-define! the-expander-library 'gfo-dir gfo-dir)
 (module-define! the-expander-library 'gfo-key gfo-key)
 (module-define! the-expander-library 'gfo-path gfo-path)
@@ -842,7 +845,7 @@
       compile-file-stamp
       ;; gfo backend canonical names (cache paths/keys for tools/tests)
       gfo-dir gfo-key
-      cacheable-expansion? collect-module-refs
+      cacheable-expansion?
       install-cache-save! install-cache-load!
       ;; kernel entry points (expand-time API not already exported)
       expand expand-stx expand-library-body expand-library-finalize

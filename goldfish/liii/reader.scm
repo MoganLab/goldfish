@@ -725,20 +725,6 @@
     (display path p)
     (display " could not be compiled; loading per form\n" p)))
 
-(define (collect-module-refs sexp)
-  (let loop ((x sexp) (acc '()))
-    (cond
-      ((and (pair? x) (eq? (car x) 'module-ref))
-       (let ((rest (cdr x)))
-         (loop (cdr x)
-               (if (and (pair? rest) (pair? (car rest)) (eq? (caar rest) 'quote))
-                 (let ((lib (cadar rest)))
-                   (if (member lib acc) acc (cons lib acc)))
-                 acc))))
-      ((pair? x)
-       (loop (car x) (loop (cdr x) acc)))
-      (else acc))))
-
 ;;; formals->names : formals -> (list symbol)
 ;;; Turn a lambda formals list into the list of parameter names, handling
 ;;; dotted formals (lambda (x . rest) ...).
@@ -919,7 +905,7 @@
                         (for-each (lambda (lib)
                                     (if (not (runtime-registered? lib))
                                       (load-library! lib)))
-                                  (collect-module-refs sexp))
+                                  (collect-cache-module-refs sexp))
                         ;; Evaluate the compiled artifact in
                         ;; the-expander-library, not the rootlet: the
                         ;; lowered defs reference library bindings by
@@ -1008,8 +994,9 @@
 ;;; (wrap-expression, expand-library-body, ...) resolve dynamically from the
 ;;; rootlet, so this definition predates the expander load.
 ;;;
-;;; A plain recursive helper (not a named let) evaluates the defs: s7's
-;;; named-let (tail) context misbehaves with `eval' on lower's output.
+;;; The library-cache counterpart of this loop lives in module.scm
+;;; (eval-defs, level-aware).  A plain recursive helper (not a named let)
+;;; evaluates the defs here for symmetry with it; both work.
 
 (define (eval-defs defs env)
   (if (null? defs)
@@ -1019,13 +1006,13 @@
         r
         (eval-defs (cdr defs) env)))))
 
-(define (optimize-expansion-defs defs ctx)
-  ;; Session/REPL path: eval the defs lowered, no compilation.  Batch files
-  ;; and cached libraries get their optimization baked into their artifacts
-  ;; at cache-write time (optimize-on-load / optimize-lib-cache-recs ->
-  ;; compile-defs-cached), so running the peval pipeline here would only
-  ;; force-load the (goldfish compiler) library (~90ms) to optimize the
-  ;; trivial registration defs an import/define produces.
+;; Session/REPL defs are evaluated lowered, never compiled: batch files and
+;; cached libraries bake their optimization into artifacts at cache-write
+;; time (optimize-on-load / optimize-lib-cache-recs -> compile-defs-cached),
+;; so compiling here would only force-load the (goldfish compiler) library
+;; (~90ms) to optimize the trivial registration defs an import/define
+;; produces.
+(define (session-defs defs)
   (map lower defs))
 
 (define *eval-ctx* #f)
@@ -1047,11 +1034,11 @@
       (let*-values (((name binding) (resolve-identifier head ctx))
                     ((defs ctx1) ((binding-value binding) stx ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (optimize-expansion-defs defs ctx1) the-expander-library))
+        (eval-defs (session-defs defs) the-expander-library))
       (let*-values (((defs ctx1)
                      (expand-library-body (list stx) lib ctx)))
         (set! *eval-ctx* ctx1)
-        (eval-defs (optimize-expansion-defs defs ctx1) the-expander-library)))))
+        (eval-defs (session-defs defs) the-expander-library)))))
 
 ;;; ------------------------------------------------------------------------
 ;;; write-roundtrip : datum port -> void
