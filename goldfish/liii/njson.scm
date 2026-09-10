@@ -102,67 +102,59 @@
       (g_njson-boolean? x)
     ) ;define
 
-    (define (njson%%single-binding? x)
-      (and (pair? x) (symbol? (car x)) (pair? (cdr x)) (null? (cddr x)))
-    ) ;define
-
-    (define (njson%%binding-list? xs)
-      (and (pair? xs)
-        (let loop
-          ((rest xs))
-          (and (pair? rest)
-            (njson%%single-binding? (car rest))
-            (or (null? (cdr rest)) (loop (cdr rest)))
-          ) ;and
-        ) ;let
-      ) ;and
-    ) ;define
-
-    (define (njson%%normalize-bindings binding)
-      (cond ((njson%%single-binding? binding) (list binding))
-            ((njson%%binding-list? binding) binding)
-            (else #f)
-      ) ;cond
-    ) ;define
-
-    (define (njson%%expand-with-value-bindings bindings body)
-      (if (null? bindings)
-        `(begin ,@body)
-        (let* ((binding (car bindings))
-               (var (car binding))
-               (value-expr (cadr binding))
-               (inner (njson%%expand-with-value-bindings (cdr bindings) body))
-               (released? (gensym "njson-released?"))
-              ) ;
-          ;; Ignore type-error in the finalizer so callers can free inside body safely.
-          `(let ((,var ,value-expr))
-             (if (njson? ,var)
-               (let ((,released? ,#f))
-                 (dynamic-wind (lambda () #f)
-                   (lambda ,() ,inner)
-                   (lambda ,()
-                     (when (not ,released?)
-                       (set! ,released? ,#t)
-                       (catch 'type-error
-                         (lambda ,() (njson-free ,var))
-                         (lambda args #f))))))
-               ,inner))
-        ) ;let*
-      ) ;if
-    ) ;define
-
+    ;; Self-contained transformer (v5): the binding helpers are
+    ;; letrec*-bound inside the closure -- own value definitions are
+    ;; phase-0 only, so expansion-time helpers cannot be sibling defines.
     (define-syntax let-njson
       (lambda (stx)
-        (syntax-case stx ()
-          ((_ binding body ...)
-           (let ((binding-datum (syntax->datum #'binding))
-                 (body-datum (syntax->datum #'(body ...))))
-             (let ((bindings (njson%%normalize-bindings binding-datum)))
-               (datum->syntax stx
-                 (if bindings
-                     (njson%%expand-with-value-bindings bindings body-datum)
-                     `(type-error "let-njson: expected (var value) or non-empty ((var value) ...)"
-                        (quote ,binding-datum))))))))))
+        (letrec* ((single-binding?
+                   (lambda (x)
+                     (and (pair? x) (symbol? (car x)) (pair? (cdr x)) (null? (cddr x)))))
+                  (binding-list?
+                   (lambda (xs)
+                     (and (pair? xs)
+                       (let loop
+                         ((rest xs))
+                         (and (pair? rest)
+                           (single-binding? (car rest))
+                           (or (null? (cdr rest)) (loop (cdr rest))))))))
+                  (normalize-bindings
+                   (lambda (binding)
+                     (cond ((single-binding? binding) (list binding))
+                           ((binding-list? binding) binding)
+                           (else #f))))
+                  (expand-with-value-bindings
+                   (lambda (bindings body)
+                     (if (null? bindings)
+                       `(begin ,@body)
+                       (let* ((binding (car bindings))
+                              (var (car binding))
+                              (value-expr (cadr binding))
+                              (inner (expand-with-value-bindings (cdr bindings) body))
+                              (released? (gensym "njson-released?")))
+                         ;; Ignore type-error in the finalizer so callers can free inside body safely.
+                         `(let ((,var ,value-expr))
+                            (if (njson? ,var)
+                              (let ((,released? ,#f))
+                                (dynamic-wind (lambda () #f)
+                                  (lambda ,() ,inner)
+                                  (lambda ,()
+                                    (when (not ,released?)
+                                      (set! ,released? ,#t)
+                                      (catch 'type-error
+                                        (lambda ,() (njson-free ,var))
+                                        (lambda args #f))))))
+                              ,inner)))))))
+          (syntax-case stx ()
+            ((_ binding body ...)
+             (let ((binding-datum (syntax->datum #'binding))
+                   (body-datum (syntax->datum #'(body ...))))
+               (let ((bindings (normalize-bindings binding-datum)))
+                 (datum->syntax stx
+                   (if bindings
+                       (expand-with-value-bindings bindings body-datum)
+                       `(type-error "let-njson: expected (var value) or non-empty ((var value) ...)"
+                          (quote ,binding-datum)))))))))))
 
     (define (njson-free x)
       (unless (njson? x)
