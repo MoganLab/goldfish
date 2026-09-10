@@ -143,9 +143,9 @@
 ;; ===== 3d. 三层解析：phase 取最高 level ≤ 相位 =====
 (define b2 (exp-library-ref (car rec2) 'get-v))
 (define probe (make-exp-library '(plvl probe)))
-(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 0) 0)
-(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 1) 1)
-(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) 'plain #t 2) 2)
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) #t 0) 0)
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) #t 1) 1)
+(add-import-view! probe (import-view '(plvl dual) '((get-v . get-v)) #t 2) 2)
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 0) b0) #t #f) => #t)
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 1) b1) #t #f) => #t)
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 2) b2) #t #f) => #t)

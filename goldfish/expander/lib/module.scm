@@ -788,12 +788,18 @@
     (base-lib-record)
     (library-record lib-name level)))
 
-;;; import-view : lib-name pairs modkey strict? [level] -> view
-(define (import-view lib-name pairs modkey strict? . maybe-level)
+;;; import-view : lib-name pairs strict? [level] -> view
+;;; The cache key is the reduced pairs (plus source, level, and library):
+;;; the iface is built solely from them, so two spellings of one set
+;;; (nested vs depth-1) share the entry when they reduce identically.
+;;; A canonical (kind . args) tag could not key this: it would falsely
+;;; merge sets whose innards differ.  The cache is session-local, so the
+;;; wider key costs no migration.
+(define (import-view lib-name pairs strict? . maybe-level)
   (define level (registry-level-arg maybe-level))
   (let* ((rec (source-record lib-name level))
          (src (lib-record-library rec))
-         (key (cons (cons src modkey) (cons level lib-name))))
+         (key (cons src (cons level (cons lib-name (format #f "~s" pairs))))))
     (let ((e (assoc key *interface-cache*)))
       (if e
         (cdr e)
@@ -959,7 +965,7 @@
       (if (null? pairs)
         #f
         (let ((outer (car spec)))
-          (import-view lib-name pairs spec (not (eq? outer 'only)) level))))))
+          (import-view lib-name pairs (not (eq? outer 'only)) level))))))
 
 ;;; import-level-number : level-datum -> integer
 ;;; R7RS import levels: run = 0, expand/syntax = 1, (meta n) = n.
@@ -1017,24 +1023,17 @@
     ;; Depth-1 set: a modifier directly over a library name, or a bare
     ;; library name -- all through the shared pair core.
     ((and (pair? spec) (memq (car spec) '(only except prefix rename)))
-     (let* ((kind (car spec))
-            (args (cddr spec))
-            ;; View tags keep their historical shapes (the interface
-            ;; cache keys on them; content is unchanged either way).
-            (tag (if (eq? kind 'prefix)
-                   (cons kind (car args))
-                   (cons kind args))))
-       (import-depth1-into-library! lib kind (cadr spec) args tag level)))
+     (import-depth1-into-library! lib (car spec) (cadr spec) (cddr spec) level))
     (else
-     (import-depth1-into-library! lib 'plain spec '() 'plain level))))
+     (import-depth1-into-library! lib 'plain spec '() level))))
 
-;;; import-depth1-into-library! : lib kind lib-name args tag level -> void
+;;; import-depth1-into-library! : lib kind lib-name args level -> void
 ;;; The single depth-1 handler: identity pairs over the source exports,
 ;;; mapped by the shared apply-import-modifier core.  An only-import
 ;;; selecting nothing (unknown ids) adds an empty view; skip it entirely
 ;;; (mirrors import-set-view's null-pairs #f).
 
-(define (import-depth1-into-library! lib kind lib-name args tag level)
+(define (import-depth1-into-library! lib kind lib-name args level)
   (let ((rec (source-record lib-name level)))
     (let ((pairs (apply-import-modifier kind args
                    (map (lambda (n) (cons n n))
@@ -1042,7 +1041,7 @@
       (if (and (null? pairs) (eq? kind 'only))
         #t
         (add-import-view! lib
-          (import-view lib-name pairs tag (not (eq? kind 'only)) level)
+          (import-view lib-name pairs (not (eq? kind 'only)) level)
           level)))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
