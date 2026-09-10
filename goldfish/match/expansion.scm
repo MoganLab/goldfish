@@ -591,11 +591,13 @@
                                                        (list '%make-instruction ''test a-id '#f))
                                             (many-0-max (+ atp min) max* a-id)))))))))))))
 
-    ;; gen-seq* : symbol symbol (list state) datum datum
-    ;;            (list test-pattern) subject fail success binds
-    ;;            -> (values code binds)
-    ;;   NFA-based ordered/partial sequence matching.
-    (define (gen-seq* kind name state term ref tests subject fail success binds)
+    ;; seq-plan / seq-test-bindings / seq-action-bindings / seq-reg-binds :
+    ;; the register plan and per-test compilation shared by every sequence
+    ;; matcher (gen-seq*, gen-unordered*).  One register per pattern
+    ;; variable; the per-test action update shape is the only variant
+    ;; (ordered sequences push captured registers, unordered ones do not).
+
+    (define (seq-plan tests binds)
       (let* ((all-vars (apply append
                               (map (lambda (tp) (cadr tp)) tests)))
              (list-vars (apply append
@@ -605,75 +607,90 @@
                                     tests)))
              (tmp-vars (map (lambda (v)
                               (let ((entry (assq v binds))) (if entry (cdr entry) (car (generate-temporaries (list v))))))
-                            all-vars))
-             (binds0 (append (map cons all-vars tmp-vars) binds))
-             (n-reg (length all-vars))
-             (n-tests (length tests))
-             (test-ids (map (lambda (_)
-                              (car (generate-temporaries (list 't))))
-                            tests))
-             (action-ids (map (lambda (_)
-                                (car (generate-temporaries (list 'a))))
-                              tests))
-             (test-bindings
-              (map (lambda (tp tid)
-                     (let* ((core (last-elem tp))
-                            (sub-vars (cadr tp))
-                            (sub-tmps (map (lambda (v)
-                                             (cdr (assq v binds0)))
-                                           sub-vars)))
-                       (call-with-values
-                         (lambda ()
-                           (gen* core 'input '#f
-                                 (cons 'list (cons #t sub-tmps))
-                                 binds0))
-                         (lambda (code ignored)
-                           (list tid `(lambda (input) ,code))))))
-                   tests test-ids))
-             (action-bindings
-              (let loop ((more tests) (tids test-ids) (aids action-ids)
-                         (off 0) (acc '()))
-                (if (null? more)
-                  (reverse acc)
-                  (let* ((tp (car more))
-                         (test-id (car tids))
-                         (action-id (car aids))
-                         (n-vars (length (cadr tp)))
-                         (is-many (eq? (car tp) 'seq:many))
-                         (updates
-                          (apply append (map
+                            all-vars)))
+        (values all-vars list-vars tmp-vars
+                (append (map cons all-vars tmp-vars) binds)
+                (length all-vars))))
+
+    (define (seq-test-bindings tests test-ids binds0)
+      (map (lambda (tp tid)
+             (let* ((core (last-elem tp))
+                    (sub-vars (cadr tp))
+                    (sub-tmps (map (lambda (v)
+                                     (cdr (assq v binds0)))
+                                   sub-vars)))
+               (call-with-values
+                 (lambda ()
+                   (gen* core 'input '#f
+                         (cons 'list (cons #t sub-tmps))
+                         binds0))
+                 (lambda (code ignored)
+                   (list tid `(lambda (input) ,code))))))
+           tests test-ids))
+
+    (define (seq-action-bindings tests test-ids action-ids updates-for)
+      (let loop ((more tests) (tids test-ids) (aids action-ids)
+                 (off 0) (acc '()))
+        (if (null? more)
+          (reverse acc)
+          (let* ((tp (car more))
+                 (test-id (car tids))
+                 (action-id (car aids))
+                 (updates (updates-for tp off)))
+            (loop (cdr more) (cdr tids) (cdr aids) (+ (length (cadr tp)) off)
+                  (cons
+                   (list action-id
+                         `(lambda (input regs)
+                            (let ((vals (,test-id input)))
+                              (if vals
+                                (%registers-set! regs ,@updates)
+                                #f))))
+                   acc))))))
+
+    (define (seq-reg-binds all-vars list-vars tmp-vars table)
+      (let loop ((i 0) (vs all-vars) (tmps tmp-vars) (acc '()))
+        (if (null? vs)
+          (reverse acc)
+          (loop (+ i 1) (cdr vs) (cdr tmps)
+                (cons (list (car tmps)
+                            (if (memq (car vs) list-vars)
+                              `(reverse (%register-ref ,table ,i))
+                              `(%register-ref ,table ,i)))
+                      acc)))))
+
+    ;; gen-seq* : symbol symbol (list state) datum datum
+    ;;            (list test-pattern) subject fail success binds
+    ;;            -> (values code binds)
+    ;;   NFA-based ordered/partial sequence matching.
+    (define (gen-seq* kind name state term ref tests subject fail success binds)
+      (let*-values (((all-vars list-vars tmp-vars binds0 n-reg)
+                     (seq-plan tests binds))
+                    ((n-tests) (length tests))
+                    ((test-ids) (map (lambda (_)
+                                       (car (generate-temporaries (list 't))))
+                                     tests))
+                    ((action-ids) (map (lambda (_)
+                                         (car (generate-temporaries (list 'a))))
+                                       tests))
+                    ((test-bindings) (seq-test-bindings tests test-ids binds0))
+                    ((action-bindings)
+                     (seq-action-bindings tests test-ids action-ids
+                       (lambda (tp off)
+                         (apply append (map
                                          (lambda (i)
                                            (let ((idx (+ off i)))
-                                             (if is-many
+                                             (if (eq? (car tp) 'seq:many)
                                                (list idx
                                                      `(cons (list-ref vals ,(+ i 1))
                                                             (%register-ref regs ,idx)))
                                                (list idx
                                                      `(list-ref vals ,(+ i 1))))))
-                                         (seq-range n-vars)))))
-                    (loop (cdr more) (cdr tids) (cdr aids) (+ off n-vars)
-                          (cons
-                           (list action-id
-                                 `(lambda (input regs)
-                                    (let ((vals (,test-id input)))
-                                      (if vals
-                                        (%registers-set! regs ,@updates)
-                                        #f))))
-                           acc))))))
-             (instructions (cons 'vector
-                                 (gen-instructions tests action-ids)))
-             (reg-binds
-              (let loop ((i 0) (vs all-vars) (tmps tmp-vars) (acc '()))
-                (if (null? vs)
-                  (reverse acc)
-                  (loop (+ i 1) (cdr vs) (cdr tmps)
-                        (cons (list (car tmps)
-                                    (if (memq (car vs) list-vars)
-                                      `(reverse (%register-ref result ,i))
-                                      `(%register-ref result ,i)))
-                              acc)))))
-             (partial? (eq? kind 'partial))
-             (run-code
+                                         (seq-range (length (cadr tp))))))))
+                    ((instructions) (cons 'vector
+                                          (gen-instructions tests action-ids)))
+                    ((reg-binds) (seq-reg-binds all-vars list-vars tmp-vars 'result))
+                    ((partial?) (eq? kind 'partial))
+                    ((run-code)
               `(let ((,name ,subject))
                  (let ((current-match #f))
                    (let loop ,(map (lambda (s) (list (car s) (cadr s)))
@@ -713,108 +730,60 @@
     ;; gen-unordered* : like gen-seq* but with backtracking search
     ;;   (used by seq/unordered and lset).
     (define (gen-unordered* name state term ref tests subject fail success binds)
-      (let* (             (rest? (and (not (null? tests))
-                         (let ((last (last-elem tests)))
-                           (and (eq? (car last) 'seq:many)
-                                (= (caddr last) 0)
-                                (eq? (cadddr last) #t)))))
-             (fixed (if rest? (drop-right tests 1) tests))
-             (all-vars (apply append
-                              (map (lambda (tp) (cadr tp)) tests)))
-             (list-vars (apply append
-                               (map (lambda (tp)
-                                      (if (eq? (car tp) 'seq:many)
-                                        (cadr tp) '()))
-                                    tests)))
-             (tmp-vars (map (lambda (v)
-                              (let ((entry (assq v binds))) (if entry (cdr entry) (car (generate-temporaries (list v))))))
-                            all-vars))
-             (binds0 (append (map cons all-vars tmp-vars) binds))
-             (n-reg (length all-vars))
-             (n-tests (length fixed))
-             (test-ids (map (lambda (_)
-                              (car (generate-temporaries (list 't))))
-                            fixed))
-             (action-ids (map (lambda (_)
-                                (car (generate-temporaries (list 'a))))
-                              fixed))
-             (rest-action-id (if rest?
-                               (car (generate-temporaries (list 'a)))
-                               #f))
-             (rest-test-id (if rest? (car (generate-temporaries (list 'r))) #f))
-             (rest-tp (if rest? (last-elem tests) #f))
-             (rest-vars (if rest? (cadr rest-tp) '()))
-             (rest-offset (if rest? (- (length all-vars) (length rest-vars)) 0))
-             (rest-test-binding
-              (if rest?
-                (let* ((core (last-elem rest-tp))
-                       (sub-tmps (map (lambda (v)
-                                        (cdr (assq v binds0)))
-                                      rest-vars)))
-                  (call-with-values
-                    (lambda ()
-                      (gen* core 'input '#f
-                            (cons 'list (cons #t sub-tmps))
-                            binds0))
-                    (lambda (code ignored)
-                      (list rest-test-id `(lambda (input) ,code)))))
-                '()))
-             (test-bindings
-              (map (lambda (tp tid)
-                     (let* ((core (last-elem tp))
-                            (sub-vars (cadr tp))
-                            (sub-tmps (map (lambda (v)
-                                             (cdr (assq v binds0)))
-                                           sub-vars)))
-                       (call-with-values
-                         (lambda ()
-                           (gen* core 'input '#f
-                                 (cons 'list (cons #t sub-tmps))
-                                 binds0))
-                         (lambda (code ignored)
-                           (list tid `(lambda (input) ,code))))))
-                   fixed test-ids))
-             (action-bindings
-              (let loop ((more fixed) (tids test-ids) (aids action-ids)
-                         (off 0) (acc '()))
-                (if (null? more)
-                  (reverse acc)
-                  (let* ((tp (car more))
-                         (test-id (car tids))
-                         (action-id (car aids))
-                         (n-vars (length (cadr tp)))
-                         (updates
-                          (apply append (map
+      (let*-values (((rest?)
+                     (and (not (null? tests))
+                          (let ((last (last-elem tests)))
+                            (and (eq? (car last) 'seq:many)
+                                 (= (caddr last) 0)
+                                 (eq? (cadddr last) #t)))))
+                    ((fixed) (if rest? (drop-right tests 1) tests))
+                    ((all-vars list-vars tmp-vars binds0 n-reg)
+                     (seq-plan tests binds))
+                    ((n-tests) (length fixed))
+                    ((test-ids) (map (lambda (_)
+                                       (car (generate-temporaries (list 't))))
+                                     fixed))
+                    ((action-ids) (map (lambda (_)
+                                         (car (generate-temporaries (list 'a))))
+                                       fixed))
+                    ((test-bindings) (seq-test-bindings fixed test-ids binds0))
+                    ((action-bindings)
+                     (seq-action-bindings fixed test-ids action-ids
+                       (lambda (tp off)
+                         (apply append (map
                                          (lambda (i)
                                            (let ((idx (+ off i)))
                                              (list idx `(list-ref vals ,(+ i 1)))))
-                                         (seq-range n-vars)))))
-                    (loop (cdr more) (cdr tids) (cdr aids) (+ off n-vars)
-                          (cons
-                           (list action-id
-                                 `(lambda (input regs)
-                                    (let ((vals (,test-id input)))
-                                      (if vals
-                                        (%registers-set! regs ,@updates)
-                                        #f))))
-                           acc))))))
-             (all-matched-bits (if (= n-tests 0) 0
-                                 (let loop ((i 0) (bits 0))
-                                   (if (>= i n-tests)
-                                     bits
-                                     (loop (+ i 1)
-                                           (logior 1 (ash bits 1)))))))
-             (reg-binds
-              (let loop ((i 0) (vs all-vars) (tmps tmp-vars) (acc '()))
-                (if (null? vs)
-                  (reverse acc)
-                  (loop (+ i 1) (cdr vs) (cdr tmps)
-                        (cons (list (car tmps)
-                                    (if (memq (car vs) list-vars)
-                                      `(reverse (%register-ref registers ,i))
-                                      `(%register-ref registers ,i)))
-                              acc)))))
-              (run-code
+                                         (seq-range (length (cadr tp))))))))
+                    ((rest-action-id) (if rest?
+                                          (car (generate-temporaries (list 'a)))
+                                          #f))
+                    ((rest-test-id) (if rest? (car (generate-temporaries (list 'r))) #f))
+                    ((rest-tp) (if rest? (last-elem tests) #f))
+                    ((rest-vars) (if rest? (cadr rest-tp) '()))
+                    ((rest-offset) (if rest? (- (length all-vars) (length rest-vars)) 0))
+                    ((rest-test-binding)
+                     (if rest?
+                       (let* ((core (last-elem rest-tp))
+                              (sub-tmps (map (lambda (v)
+                                               (cdr (assq v binds0)))
+                                             rest-vars)))
+                         (call-with-values
+                           (lambda ()
+                             (gen* core 'input '#f
+                                   (cons 'list (cons #t sub-tmps))
+                                   binds0))
+                           (lambda (code ignored)
+                             (list rest-test-id `(lambda (input) ,code)))))
+                       '()))
+                    ((all-matched-bits) (if (= n-tests 0) 0
+                                            (let loop ((i 0) (bits 0))
+                                              (if (>= i n-tests)
+                                                bits
+                                                (loop (+ i 1)
+                                                      (logior 1 (ash bits 1)))))))
+                    ((reg-binds) (seq-reg-binds all-vars list-vars tmp-vars 'registers))
+                    ((run-code)
                (let* ((steps (map (lambda (s) (caddr s)) state))
                       (pl-idx (car (generate-temporaries (list 'pl-idx))))
                       (pattern-loop
