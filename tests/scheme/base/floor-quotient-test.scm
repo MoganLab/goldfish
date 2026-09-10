@@ -68,6 +68,6 @@
 (check (receive (q r) (floor/ 0 5) r) => 0)
 (check-catch 'division-by-zero (floor/ 11 0))
 (check-catch 'division-by-zero (floor/ 0 0))
-(check-catch 'wrong-type-arg (floor/ 1.0+1.0i 2))
-(check-catch 'wrong-type-arg (floor/ 5 #t))
+(check-catch 'type-error (floor/ 1.0+1.0i 2))
+(check-catch 'type-error (floor/ 5 #t))
 (check-report)

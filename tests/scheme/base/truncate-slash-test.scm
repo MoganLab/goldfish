@@ -34,6 +34,6 @@
 (check (receive (q r) (truncate/ 0 5) r) => 0)
 (check-catch 'division-by-zero (truncate/ 11 0))
 (check-catch 'division-by-zero (truncate/ 0 0))
-(check-catch 'wrong-type-arg (truncate/ 1.0+1.0i 2))
-(check-catch 'wrong-type-arg (truncate/ 5 #t))
+(check-catch 'type-error (truncate/ 1.0+1.0i 2))
+(check-catch 'type-error (truncate/ 5 #t))
 (check-report)

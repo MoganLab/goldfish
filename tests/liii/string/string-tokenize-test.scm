@@ -120,7 +120,7 @@
 ) ;check
 
 (check-catch 'wrong-type-arg (string-tokenize 123))
-(check-catch 'wrong-type-arg (string-tokenize "hello" "not-a-char"))
+(check-catch 'type-error (string-tokenize "hello" "not-a-char"))
 (check-catch 'wrong-type-arg (string-tokenize "hello" #\h 1.5))
 (check-catch 'out-of-range (string-tokenize "hello" #\space -1))
 (check-catch 'out-of-range (string-tokenize "hello" #\space 0 10))

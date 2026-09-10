@@ -444,7 +444,7 @@
                                  ) ;
                                  ((() #<>) `(lambda (results)
                                               (make-result ,body results)))
-                                 (else (type-error? 'wrong-type-arg))
+                                 (else (type-error "invalid pattern in packrat-lambda" pattern))
                                 ) ;case*
                               ) ;lambda
                ) ;parse-pattern

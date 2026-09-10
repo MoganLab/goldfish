@@ -378,5 +378,8 @@
 (check (if-expr? '(if (> x 0) x (- x))) => '(if-expr (> x 0) x (- x)))
 (check (if-expr? '(if flag then)) => #f)
 
+;; 非法模式或非过程错误测试
+(let ((not-a-func 42))
+  (check-catch 'type-error (case* '(1) (((#<x:not-a-func>)) #t))))
 
 (check-report)

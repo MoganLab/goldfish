@@ -37,7 +37,7 @@
 
 
 ;; 空队列报错
-(check-catch 'wrong-type-arg (list-queue-front (list-queue)))
+(check-catch 'type-error (list-queue-front (list-queue)))
 
 
 (check-report)

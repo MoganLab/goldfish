@@ -47,7 +47,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当char/pred?不是字符或谓词时
+;; type-error 当char/pred?不是字符或谓词时
 ;; out-of-range 当start/end超出字符串索引范围时
 ;; wrong-type-arg 当str不是字符串时
 ;;
@@ -83,8 +83,8 @@
 (check-true (string-every char-alphabetic? "abc" 0 0))
 
 ;; 错误处理
-(check-catch 'wrong-type-arg (string-every 1 "012345"))
-(check-catch 'wrong-type-arg (string-every "012345" "012345"))
+(check-catch 'type-error (string-every 1 "012345"))
+(check-catch 'type-error (string-every "012345" "012345"))
 (check-catch 'out-of-range (string-every char-numeric? "ab234f" 2 7))
 (check-catch 'out-of-range (string-every char-numeric? "ab234f" 2 1))
 
