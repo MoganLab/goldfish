@@ -107,10 +107,12 @@
 ;; are dispatch keywords, visible at every phase a form can be expanded
 ;; at (a phase-0 body derives through them, and transformer bodies use
 ;; them at phase >= 1); system kinds (primitive / core-form /
-;; module-form) are phase-free.  A transformer body cannot call a
-;; sibling phase-0 helper -- expansion-time helpers come from regions,
-;; imports (substrate), or the implementation's expansion-machinery
-;; primitives.
+;; module-form) are phase-free.  A transformer body that names a sibling
+;; phase-0 helper misses this gate (such calls stay bare and rebind to
+;; the expansion-machinery copies at eval -- the self-hosting macro
+;; layer relies on it, see install-expansion-helper!); sanctioned
+;; expansion-time helpers come from regions, imports (substrate), or the
+;; implementation's expansion-machinery primitives.
 
 (define (own-binding-visible-at-phase? b phase)
   (let ((k (binding-kind b)))

@@ -93,7 +93,12 @@
 ;;; free identifiers that resolve nowhere are errors, not ambient host
 ;;; names).  A library body is resolved the same way (its own defines and
 ;;; imports only); the difference is only that a body identifier left
-;;; unresolved stays bare and binds at run time in the host rootlet.
+;;; unresolved stays bare and binds at run time in the host rootlet --
+;;; unless the name is bound in an import view gated out at this phase,
+;;; which is a genuine `for' violation and errors at expansion like
+;;; programs (see expand-atom).  Own phase-0 helpers stay bare: the
+;;; self-hosting macro layer calls them from transformers (see
+;;; install-expansion-helper!).
 
 (define (program-library? lib)
   (and lib
@@ -186,10 +191,26 @@
                      ;; catches the reference earlier, at expansion time.
                      (error 'unbound-variable
                             "unbound identifier in program" form)
-                     (values (make-syntax name
-                                          (syntax-context stx)
-                                          (syntax-library stx))
-                             ctx))))))
+                     ;; Library bodies keep the legacy bare emission
+                     ;; (host fallback) for never-imported names -- and for
+                     ;; own phase-0 helpers called from transformers, which
+                     ;; the self-hosting macro layer relies on (bare refs
+                     ;; rebind to the expansion-machinery copies at eval;
+                     ;; see install-expansion-helper!).  But a name bound
+                     ;; in an import view yet gated out at this phase is a
+                     ;; genuine `for' violation: fail at expansion like
+                     ;; programs do instead of rootlet luck (silent success
+                     ;; when the eval environment happens to bind it, a
+                     ;; late confusing error otherwise).
+                     (let ((lib (syntax-library stx)))
+                       (if (and lib (exp-library-use-ref lib form))
+                         (error 'unbound-variable
+                                "unbound identifier at phase"
+                                (context-phase ctx) form)
+                         (values (make-syntax name
+                                              (syntax-context stx)
+                                              (syntax-library stx))
+                                 ctx))))))))
         (values (if (self-evaluating? form)
                     (make-syntax form
                                  (syntax-context stx) (syntax-library stx))

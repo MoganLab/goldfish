@@ -10,6 +10,9 @@
 ;; different bindings, unless one side is the implementation substrate.
 ;; Import errors surface through the expander's runtime entry points
 ;; (load-library!), so they are assertable in-process.
+;; `for' levels are NOT phase-blind: views register with their level and
+;; resolve-identifier consults them at phase >= level (full phase
+;; semantics live in import-phase-test.scm).
 
 ;; Contract: #f if thunk raised nothing, else the guard's rendered
 ;; detail when wrapped, otherwise the raw error template head.
@@ -148,9 +151,13 @@
        => #t)
 
 ;; ===== 4. R7RS `for' level specs =====
-;; (for import-set level ...) chooses the phases an import is visible at.
-;; Resolution is phase-blind today, so the levels are accepted and the
-;; inner set is imported; the shape is validated (at least one level).
+;; (for import-set level ...) chooses the phases an import is visible at:
+;; views register with their level and resolve-identifier consults them
+;; at phase >= level (full gating matrix in import-phase-test.scm).
+;; At the session top level, imports also populate the environment, so a
+;; for-imported name stays usable here; the shape is validated too (at
+;; least one level).  What §6 below locks: inside define-library bodies
+;; a level-gated miss is an expansion-time error, not rootlet luck.
 (import (for (liii os) run expand))
 (check (procedure? mkdir) => #t)
 (import (for (only (liii os) os-temp-dir) expand))
@@ -303,6 +310,50 @@
 (check (detail-mentions? (import-error-message (lambda () (load-library! '(xr nestdup))))
                              "bound more than once with different bindings" "x")
        => #t)
+;; ===== 6. `for' gates inside define-library bodies =====
+;; A level-gated miss in a library body is an expansion-time error (like
+;; programs); only never-imported names keep the bare host fallback.
+(define fixture-ph (string-append fixture-dir "/ph"))
+(catch #t (lambda () (mkdir fixture-ph)) (lambda args #f))
+(define (write-ph-fixture! leaf datum)
+  (call-with-output-file (string-append fixture-ph "/" (symbol->string leaf) ".scm")
+    (lambda (p) (write datum p) (newline p))))
+;; for-expand-only import used at phase 0: was silent rootlet luck for
+;; host-provided names (car), now a clean expansion error.
+(write-ph-fixture! 'foronly
+  '(define-library (ph foronly)
+     (import (for (scheme base) expand))
+     (export f)
+     (define f car)))
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(ph foronly))))
+                             "unbound identifier at phase" "car")
+       => #t)
+;; ... and for names outside the eval environment it previously failed
+;; late with a host error instead of an expansion error.
+(write-ph-fixture! 'foronly2
+  '(define-library (ph foronly2)
+     (import (for (liii check) expand))
+     (export h)
+     (define h check-true)))
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(ph foronly2))))
+                             "unbound identifier at phase" "check-true")
+       => #t)
+;; Legitimate phase-1 use through a transformer is unaffected.
+(write-ph-fixture! 'forok
+  '(define-library (ph forok)
+     (import (scheme base) (for (scheme base) expand))
+     (export my-first)
+     (define-syntax my-first
+       (syntax-rules () ((my-first e) (car e))))))
+(write-ph-fixture! 'foruse
+  '(define-library (ph foruse)
+     (import (scheme base) (ph forok))
+     (export gotf)
+     (define gotf (my-first '(7)))))
+(check (catch #t (lambda () (load-library! '(ph foruse)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (module-ref (lookup-module '(ph foruse)) 'gotf) => 7)
+
 ;; error cases: unknown source, colliding target
 (check (detail-mentions? (import-error-message (lambda () (load-library! '(xr badfrom))))
                              "export has no binding" "nosuch")

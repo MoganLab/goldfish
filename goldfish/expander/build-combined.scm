@@ -31,10 +31,11 @@
 (let* ((form (kernel-library-form))
        (stx (stx-set-library (wrap-expression form) the-base-library))
        (clauses (cddr (syntax-form stx))))
+  ;; parse-library-clauses returns (exports renames imports body); the
+  ;; kernel has no export renames, so only imports and body are used.
   (let* ((res (call-with-values (lambda () (parse-library-clauses clauses)) list))
-         (exports (car res))
-         (imports (cadr res))
-         (body-stxs (caddr res)))
+         (imports (caddr res))
+         (body-stxs (cadddr res)))
     (let ((lib (make-exp-library '(goldfish))))
       (import-into-library! lib imports)
       ;; Self-bootstrap: the kernel body legitimately refers to the host
