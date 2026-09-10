@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当 s 不是随机源时抛出。
+;; type-error 当 s 不是随机源时抛出。
 
 
 (let ((s (make-random-source)))
@@ -52,9 +52,9 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (random-source-state-ref 'not-a-source))
-(check-catch 'wrong-type-arg (random-source-state-ref 123))
-(check-catch 'wrong-type-arg (random-source-state-ref "string"))
+(check-catch 'type-error (random-source-state-ref 'not-a-source))
+(check-catch 'type-error (random-source-state-ref 123))
+(check-catch 'type-error (random-source-state-ref "string"))
 
 
 (check-report)

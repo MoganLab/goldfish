@@ -28,7 +28,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当 n 不是正整数时抛出。
+;; type-error 当 n 不是正整数时抛出。
 
 
 (let ((r (random-integer 10)))
@@ -49,10 +49,10 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (random-integer 0))
-(check-catch 'wrong-type-arg (random-integer -1))
-(check-catch 'wrong-type-arg (random-integer 3.14))
-(check-catch 'wrong-type-arg (random-integer 'not-a-number))
+(check-catch 'type-error (random-integer 0))
+(check-catch 'type-error (random-integer -1))
+(check-catch 'type-error (random-integer 3.14))
+(check-catch 'type-error (random-integer 'not-a-number))
 
 
 (check-report)

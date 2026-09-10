@@ -38,6 +38,6 @@
 (check (list (floor/ 1 5)) => (list 0 1))
 ;; 错误测试
 (check-catch 'division-by-zero (floor/ 10 0))
-(check-catch 'wrong-type-arg (floor/ "10" 5))
-(check-catch 'wrong-type-arg (floor/ 10 "5"))
+(check-catch 'type-error (floor/ "10" 5))
+(check-catch 'type-error (floor/ 10 "5"))
 (check-report)

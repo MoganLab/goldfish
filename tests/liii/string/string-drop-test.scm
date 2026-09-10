@@ -35,7 +35,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当k大于字符串长度或k为负数时
-;; wrong-type-arg 当str不是字符串类型或k不是整数类型时
+;; type-error 当str不是字符串类型或k不是整数类型时
 
 ;;
 ;; 相关实现
@@ -74,10 +74,10 @@
 (check-catch 'out-of-range (string-drop "MathAgape" 20))
 (check-catch 'out-of-range (string-drop "" 1))
 (check-catch 'out-of-range (string-drop "Hello" -1))
-(check-catch 'wrong-type-arg (string-drop 123 4))
-(check-catch 'wrong-type-arg (string-drop "MathAgape" "4"))
-(check-catch 'wrong-type-arg (string-drop "MathAgape" 4.5))
-(check-catch 'wrong-type-arg (string-drop "MathAgape" 'a))
+(check-catch 'type-error (string-drop 123 4))
+(check-catch 'type-error (string-drop "MathAgape" "4"))
+(check-catch 'type-error (string-drop "MathAgape" 4.5))
+(check-catch 'type-error (string-drop "MathAgape" 'a))
 
 (check (string-drop "MathAgape" 8) => "e")
 (check (string-drop "MathAgape" 9) => "")
@@ -121,7 +121,7 @@
 ;; 错误处理
 ;; ----
 ;; out-of-range 当k大于字符串长度或k为负数时
-;; wrong-type-arg 当str不是字符串类型或k不是整数类型时
+;; type-error 当str不是字符串类型或k不是整数类型时
 
 (check (string-drop-right "MathAgape" 4) => "MathA")
 (check (string-drop-right "MathAgape" 0) => "MathAgape")
@@ -153,10 +153,10 @@
 (check-catch 'out-of-range (string-drop-right "MathAgape" 20))
 (check-catch 'out-of-range (string-drop-right "" 1))
 (check-catch 'out-of-range (string-drop-right "Hello" -1))
-(check-catch 'wrong-type-arg (string-drop-right 123 4))
-(check-catch 'wrong-type-arg (string-drop-right "MathAgape" "4"))
-(check-catch 'wrong-type-arg (string-drop-right "MathAgape" 4.5))
-(check-catch 'wrong-type-arg (string-drop-right "MathAgape" 'a))
+(check-catch 'type-error (string-drop-right 123 4))
+(check-catch 'type-error (string-drop-right "MathAgape" "4"))
+(check-catch 'type-error (string-drop-right "MathAgape" 4.5))
+(check-catch 'type-error (string-drop-right "MathAgape" 'a))
 
 (check (string-drop-right "MathAgape" 5) => "Math")
 (check (string-drop-right "MathAgape" 9) => "")

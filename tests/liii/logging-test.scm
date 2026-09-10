@@ -111,4 +111,12 @@
 ;; 恢复默认回调
 (log-set-callback! (lambda (log-entry) (values)))
 
+;; send-log 参数类型错误测试
+(check-catch 'type-error (send-log -1 "bad"))
+(check-catch 'type-error (send-log 8 "bad"))
+(check-catch 'type-error (send-log 3.5 "bad"))
+(check-catch 'type-error (send-log 'invalid "bad"))
+(check-catch 'type-error (send-log INFO 123))
+(check-catch 'type-error (send-log INFO 'not-a-string))
+
 (check-report)

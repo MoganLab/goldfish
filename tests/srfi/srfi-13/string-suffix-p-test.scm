@@ -98,11 +98,11 @@
 (check (string-suffix? ".tmu" "report.tmu") => #t)
 (check (string-suffix? "backup.txt" "file.backup.txt") => #t)
 
-(check-catch 'wrong-type-arg (string-suffix? 123 "hello"))
-(check-catch 'wrong-type-arg (string-suffix? "hello" 123))
-(check-catch 'wrong-type-arg (string-suffix? '(a b c) "hello"))
-(check-catch 'wrong-type-arg (string-suffix? "hello" #\c))
-(check-catch 'wrong-type-arg (string-suffix? "hello" 'symbol))
-(check-catch 'wrong-type-arg (string-suffix? '() "hello"))
+(check-catch 'type-error (string-suffix? 123 "hello"))
+(check-catch 'type-error (string-suffix? "hello" 123))
+(check-catch 'type-error (string-suffix? '(a b c) "hello"))
+(check-catch 'type-error (string-suffix? "hello" #\c))
+(check-catch 'type-error (string-suffix? "hello" 'symbol))
+(check-catch 'type-error (string-suffix? '() "hello"))
 
 (check-report)

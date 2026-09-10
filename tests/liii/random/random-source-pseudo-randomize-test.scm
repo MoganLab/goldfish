@@ -55,16 +55,16 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (random-source-pseudo-randomize! 'not-a-source 0 0)
 ) ;check-catch
 
 
 (let ((s (make-random-source)))
-  (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s -1 0))
-  (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 0 -1))
-  (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 3.14 0))
-  (check-catch 'wrong-type-arg (random-source-pseudo-randomize! s 0 3.14))
+  (check-catch 'type-error (random-source-pseudo-randomize! s -1 0))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 0 -1))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 3.14 0))
+  (check-catch 'type-error (random-source-pseudo-randomize! s 0 3.14))
 ) ;let
 
 

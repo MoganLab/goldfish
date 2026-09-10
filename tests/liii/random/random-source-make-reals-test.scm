@@ -33,7 +33,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当 s 不是随机源或 unit 无效时抛出。
+;; type-error 当 s 不是随机源或 unit 无效时抛出。
 
 
 (let* ((s (make-random-source)) (rand-real (random-source-make-reals s)))
@@ -59,13 +59,13 @@
 ) ;let*
 
 
-(check-catch 'wrong-type-arg (random-source-make-reals 'not-a-source))
+(check-catch 'type-error (random-source-make-reals 'not-a-source))
 
 
 (let ((s (make-random-source)))
-  (check-catch 'wrong-type-arg (random-source-make-reals s 0))
-  (check-catch 'wrong-type-arg (random-source-make-reals s 1))
-  (check-catch 'wrong-type-arg (random-source-make-reals s -0.5))
+  (check-catch 'type-error (random-source-make-reals s 0))
+  (check-catch 'type-error (random-source-make-reals s 1))
+  (check-catch 'type-error (random-source-make-reals s -0.5))
 ) ;let
 
 

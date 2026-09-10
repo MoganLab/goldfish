@@ -65,9 +65,9 @@
 (check (string? (cdr (assq 'SYM *last-msg*))) => #t)
 
 ;; send-log 验证 severity 范围
-(check-catch 'wrong-type-arg (send-log -1 "bad"))
-(check-catch 'wrong-type-arg (send-log 8 "bad"))
-(check-catch 'wrong-type-arg (send-log INFO 123))
+(check-catch 'type-error (send-log -1 "bad"))
+(check-catch 'type-error (send-log 8 "bad"))
+(check-catch 'type-error (send-log INFO 123))
 
 ;; current-log-callback 为 #f 时静默丢弃
 (current-log-callback #f)

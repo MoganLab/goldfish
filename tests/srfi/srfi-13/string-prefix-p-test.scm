@@ -94,11 +94,11 @@
 (check (string-prefix? "🙂" "🙂") => #t)
 (check (string-prefix? "a⚡b" "a⚡btest") => #t)
 
-(check-catch 'wrong-type-arg (string-prefix? 123 "hello"))
-(check-catch 'wrong-type-arg (string-prefix? "hello" 123))
-(check-catch 'wrong-type-arg (string-prefix? '(a b c) "hello"))
-(check-catch 'wrong-type-arg (string-prefix? "hello" #\c))
-(check-catch 'wrong-type-arg (string-prefix? "hello" 'symbol))
-(check-catch 'wrong-type-arg (string-prefix? '() "hello"))
+(check-catch 'type-error (string-prefix? 123 "hello"))
+(check-catch 'type-error (string-prefix? "hello" 123))
+(check-catch 'type-error (string-prefix? '(a b c) "hello"))
+(check-catch 'type-error (string-prefix? "hello" #\c))
+(check-catch 'type-error (string-prefix? "hello" 'symbol))
+(check-catch 'type-error (string-prefix? '() "hello"))
 
 (check-report)

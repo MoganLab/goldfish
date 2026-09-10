@@ -141,4 +141,6 @@
   '("2024" "08" "07")
 ) ;check
 
+(check-catch 'type-error (apply string-tokenize (cons* "hello" #\space 'bad)))
+
 (check-report)

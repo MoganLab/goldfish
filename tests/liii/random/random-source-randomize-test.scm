@@ -29,7 +29,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当 s 不是随机源时抛出。
+;; type-error 当 s 不是随机源时抛出。
 
 
 (let ((s (make-random-source)))
@@ -53,8 +53,8 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg (random-source-randomize! 'not-a-source))
-(check-catch 'wrong-type-arg (random-source-randomize! 123))
+(check-catch 'type-error (random-source-randomize! 'not-a-source))
+(check-catch 'type-error (random-source-randomize! 123))
 
 
 (check-report)

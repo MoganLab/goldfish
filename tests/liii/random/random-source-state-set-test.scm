@@ -26,7 +26,7 @@
 ;;
 ;; 错误处理
 ;; ----
-;; wrong-type-arg 当 s 不是随机源或 state 格式无效时抛出。
+;; type-error 当 s 不是随机源或 state 格式无效时抛出。
 
 
 (let ((s (make-random-source)))
@@ -43,17 +43,17 @@
 ) ;let
 
 
-(check-catch 'wrong-type-arg
+(check-catch 'type-error
   (random-source-state-set! 'not-a-source '(random-source-state 0 0))
 ) ;check-catch
 
 
 (let ((s (make-random-source)))
-  (check-catch 'wrong-type-arg (random-source-state-set! s 'invalid-state))
-  (check-catch 'wrong-type-arg
+  (check-catch 'type-error (random-source-state-set! s 'invalid-state))
+  (check-catch 'type-error
     (random-source-state-set! s '(not-the-right-tag 0 0))
   ) ;check-catch
-  (check-catch 'wrong-type-arg
+  (check-catch 'type-error
     (random-source-state-set! s '(random-source-state))
   ) ;check-catch
 ) ;let
