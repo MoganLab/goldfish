@@ -153,7 +153,6 @@
                                     name
                                     (make-transformer-binding proc)))))))
 
-
 ;;; Macro transformer collection
 ;;; expand-lib-define-syntax records each library macro definition as
 ;;; (name . lowered-core-sexp) while it is expanded.  The install layer

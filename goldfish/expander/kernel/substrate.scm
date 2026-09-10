@@ -141,20 +141,14 @@
   (next-fresh (symbol->string stem)))
 
 ;;; ---------------------------------------------------------------------------
-;;; Promises (r7rs-small).  The host's r7rs mode provides make-promise /
-;;; force / promise?, but its make-promise is value-semantics, so the R7RS
-;;; delay desugar (make-promise (lambda () expr)) would store the thunk as
-;;; the value.  delay / delay-force therefore construct a lazy promise in the
-;;; host's representation directly; the host's force evaluates it once and
-;;; caches (and recursively forces a promise-valued result).
+;;; Promises (r7rs-small).  The host provides none of make-promise /
+;;; force / promise?, so the surface lives here: delay / delay-force
+;;; desugar to make-lazy-promise (lazy from construction), and force
+;;; evaluates once, caches, and recursively forces a promise-valued
+;;; result.
 
 (define (make-lazy-promise thunk)
   (list (cons #f thunk) '+promise+))
-
-;; The host does not provide force (or promise?) in this configuration, so
-;; implement the R7RS semantics for the make-lazy-promise representation
-;; above: evaluate once, cache, and recursively force a promise-valued
-;; result.
 
 (define (force promise)
   (if (and (pair? promise)

@@ -184,7 +184,7 @@
                    (else
                     (error "expand-atom: cannot inline live binding value"
                            form binding))))
-                (else                 (if (program-library? (syntax-library stx))
+                   (else (if (program-library? (syntax-library stx))
                      ;; Same error tag as the host evaluator's unbound
                      ;; reference (s7 signals 'unbound-variable at eval
                      ;; time), so (catch 'unbound-variable ...) / check-catch

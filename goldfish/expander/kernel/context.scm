@@ -279,6 +279,3 @@
     (unless ctx
       (error "free-identifier=?: no expansion context"))
     (eq? (context-resolve ctx id1) (context-resolve ctx id2))))
-
-;;; Library exports
-

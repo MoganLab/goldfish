@@ -8,11 +8,6 @@
 ;;; ordinary macro (defined in lib/syntax-case.scm) and expands through
 ;;; the normal macro path.  eval-transformer is thus the sole eval seam.
 
-(define-public (make-syntax-rules-transformer stx . maybe-ctx)
-  (let ((ctx (if (null? maybe-ctx) (context-empty) (car maybe-ctx))))
-    (let-values (((proc _ _) (eval-transformer stx ctx)))
-      proc)))
-
 ;;; transformer-spec->procedure-form : syntax -> syntax
 ;;; Rewrite a transformer spec into a procedure expression.
 ;;;   (syntax-case _ (lit ...) clause ...)   ; transformer position
@@ -63,6 +58,3 @@
             (error "eval-transformer: transformer must evaluate to a procedure"
                    (syntax->datum stx)))
           (values proc (context-return ctx ctx2) lowered))))))
-
-;;; Library exports
-
