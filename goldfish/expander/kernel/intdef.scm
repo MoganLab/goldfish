@@ -117,46 +117,54 @@
 
 ;;; Output wrappers use the shared empty-source (syntax-objects.scm).
 
+;;; flatten-var-defs : var-defs ctx -> (values flat ctx)
+;;; A plain define contributes (name init); an internal define-values
+;;; (dv (n ...) expr) contributes a collector binding plus one
+;;; (list-ref t i) per name, so the RHS is evaluated exactly once
+;;; (letrec* ordering preserved).  The collector temp allocates from
+;;; the store (deterministic per expansion) via context-alloc-name --
+;;; not the ephemeral fresh stream, which is reserved for call sites
+;;; with no context (user macros, record constructors).
+(define (flatten-var-defs var-defs ctx)
+  (let loop ((ds var-defs) (c ctx) (acc '()))
+    (if (null? ds)
+      (values (reverse acc) c)
+      (let ((d (car ds)))
+        (if (and (pair? d) (eq? (car d) 'dv))
+          (let ((names (cadr d))
+                (val-stx (caddr d)))
+            (let*-values (((t c1)
+                           (context-alloc-name
+                            c (make-syntax 'dv-tmp (stx-ctx-empty) #f))))
+              (loop (cdr ds) c1
+                    (append (let collect ((i 0) (ns names) (rest '()))
+                              (if (null? ns)
+                                rest
+                                (collect (+ i 1) (cdr ns)
+                                        (cons (cons (car ns)
+                                                    `(list-ref ,t ,i))
+                                              rest))))
+                            (list (cons t
+                                        `(call-with-values
+                                           (lambda () ,val-stx)
+                                           (lambda args args))))
+                            acc))))
+          (loop (cdr ds) c (cons (cons (car d) (cdr d)) acc)))))))
+
 (define (expand-body-finalize defs var-defs exprs ctx)
   (if (null? exprs)
       (expand-body-finalize defs var-defs
                             (list (datum->syntax empty-source void-expr)) ctx)
-      (let* ((scp-in (defs-scp-in defs))
-             (ph (context-phase ctx))
-             ;; Flatten var-defs: a plain define contributes (name init);
-             ;; an internal define-values (dv (n ...) expr) contributes a
-             ;; collector binding plus one (list-ref t i) per name, so the
-             ;; RHS is evaluated exactly once (letrec* ordering preserved).
-             (flat
-              (let loop ((ds var-defs) (acc '()))
-                (if (null? ds)
-                  (reverse acc)
-                  (let ((d (car ds)))
-                    (if (and (pair? d) (eq? (car d) 'dv))
-                      (let* ((names (cadr d))
-                             (val-stx (caddr d))
-                             (t (car (generate-temporaries (list 'dv-tmp)))))
-                        (loop (cdr ds)
-                              (append (let collect ((i 0) (ns names) (rest '()))
-                                        (if (null? ns)
-                                          rest
-                                          (collect (+ i 1) (cdr ns)
-                                                  (cons (cons (car ns)
-                                                              `(list-ref ,t ,i))
-                                                        rest))))
-                                      (list (cons t
-                                                  `(call-with-values
-                                                     (lambda () ,val-stx)
-                                                     (lambda args args))))
-                                      acc)))
-                      (loop (cdr ds) (cons (cons (car d) (cdr d)) acc)))))))
-             (all-names (map car flat))
-             (ctx1 (let loop ((ns all-names) (c ctx))
-                     (if (null? ns)
-                       c
-                       (loop (cdr ns)
-                             (context-extend-env c (car ns)
-                                                 (make-lexical-binding (car ns))))))))
+      (let*-values (((flat ctx*) (flatten-var-defs var-defs ctx)))
+        (let* ((scp-in (defs-scp-in defs))
+               (ph (context-phase ctx*))
+               (all-names (map car flat))
+               (ctx1 (let loop ((ns all-names) (c ctx*))
+                       (if (null? ns)
+                         c
+                         (loop (cdr ns)
+                               (context-extend-env c (car ns)
+                                                   (make-lexical-binding (car ns))))))))
         (let*-values (((inits ctx2)
                        (let loop ((ds flat) (c ctx1) (inits '()))
                          (if (null? ds)
@@ -175,14 +183,14 @@
                              (values (reverse out) c)
                              (let*-values (((sexp c1) (expand-expr (car es) c)))
                                (loop (cdr es) c1 (cons sexp out)))))))
-             (let ((body (if (= 1 (length body-sexps))
-                           (car body-sexps)
-                           (datum->syntax empty-source (cons 'begin body-sexps)))))
-               (if (null? flat)
-                 (values body ctx3)
-                 (values (datum->syntax empty-source
-                         `(letrec* ,(map list (map car flat) inits) ,body))
-                        ctx3))))))))
+              (let ((body (if (= 1 (length body-sexps))
+                            (car body-sexps)
+                            (datum->syntax empty-source (cons 'begin body-sexps)))))
+                (if (null? flat)
+                  (values body ctx3)
+                  (values (datum->syntax empty-source
+                          `(letrec* ,(map list (map car flat) inits) ,body))
+                         ctx3)))))))))
 
 ;;; body-def-head : syntax context -> symbol/#f
 ;;; The definition head if the form is an internal definition, else #f.
