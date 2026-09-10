@@ -269,7 +269,7 @@
          (body-stxs (cddr form))
          (ph (context-phase ctx)))
     (let*-values (((scp ctx1) (context-alloc-scope ctx)))
-      (let*-values (((ctx2) (expand-syntax-bindings binding-stxs ctx1 scp ph)))
+      (let*-values (((ctx2) (expand-syntax-bindings binding-stxs ctx1 scp ph #f)))
         (let ((ctx3 (context-reset-use-scopes (context-add-prune-scope ctx2 scp))))
           (let*-values (((sexp ctx4)
                          (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) ctx3)))
@@ -286,41 +286,36 @@
          (body-stxs (cddr form))
          (ph (context-phase ctx)))
     (let*-values (((scp ctx1) (context-alloc-scope ctx)))
-      (let*-values (((ctx2) (expand-syntax-bindings/rec binding-stxs ctx1 scp ph)))
+      (let*-values (((ctx2) (expand-syntax-bindings binding-stxs ctx1 scp ph #t)))
         (let ((ctx3 (context-reset-use-scopes (context-add-prune-scope ctx2 scp))))
           (let*-values (((sexp ctx4)
                          (expand-body (map (lambda (s) (stx-add-scope s scp ph)) body-stxs) ctx3)))
             (values sexp (context-return ctx ctx4))))))))
 
-(define (expand-syntax-bindings/rec binding-stxs ctx scp ph)
-  (if (null? binding-stxs)
-      (values ctx)
-      (let* ((bs-stx (car binding-stxs))
-             (b (syntax-form bs-stx))
-             (id (stx-add-scope (car b) scp ph))
-             (transformer-stx (stx-add-scope (cadr b) scp ph)))
-        (require-identifier id "letrec-syntax: expected identifier")
-        (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
-          (let*-values (((name ctx1) (context-alloc-name ctx0 id)))
-            (let ((ctx2 (context-extend-env (context-bind ctx1 id name)
-                                            name
-                                            (make-transformer-binding proc))))
-              (expand-syntax-bindings/rec (cdr binding-stxs) ctx2 scp ph)))))))
+;;; expand-syntax-bindings : bindings ctx scp phase rec? -> ctx
+;;; Bind let-syntax/letrec-syntax transformers.  rec? adds scp to the
+;;; RHS (recursive macros keep their binding scope); #f leaves the RHS
+;;; alone so it keeps outer bindings.  The distinction is load-bearing
+;;; (paper §3), hence the flag rather than always-add.
 
-(define (expand-syntax-bindings binding-stxs ctx scp ph)
+(define (expand-syntax-bindings binding-stxs ctx scp ph rec?)
   (if (null? binding-stxs)
       (values ctx)
       (let* ((bs-stx (car binding-stxs))
              (b (syntax-form bs-stx))
              (id (stx-add-scope (car b) scp ph))
-             (transformer-stx (cadr b)))
-        (require-identifier id "let-syntax: expected identifier")
+             (transformer-stx (if rec?
+                                  (stx-add-scope (cadr b) scp ph)
+                                  (cadr b))))
+        (require-identifier id (if rec?
+                                   "letrec-syntax: expected identifier"
+                                   "let-syntax: expected identifier"))
         (let*-values (((proc ctx0 _) (eval-transformer transformer-stx ctx)))
           (let*-values (((name ctx1) (context-alloc-name ctx0 id)))
             (let ((ctx2 (context-extend-env (context-bind ctx1 id name)
                                             name
                                             (make-transformer-binding proc))))
-              (expand-syntax-bindings (cdr binding-stxs) ctx2 scp ph)))))))
+              (expand-syntax-bindings (cdr binding-stxs) ctx2 scp ph rec?)))))))
 
 ;;; quasiquote
 ;;; Fully desugar (quasiquote template) into core Scheme list/cons/append

@@ -334,8 +334,14 @@
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
       (let* ((payload (cache-load-checked (install-cache-path path) stamp))
+             ;; A record missing any section (stale writer, era-mixed
+             ;; cache reuse under parallel load) must fall back to cold
+             ;; expansion, never crash the loader: treat it as a miss.
              (cached (and (bundle? payload)
                           (eq? (bundle-kind payload) 'module)
+                          (assq 'bindings (cdddr payload))
+                          (assq 'defs (cdddr payload))
+                          (assq 'macros (cdddr payload))
                           payload)))
         (if cached
           (install-cache-load! lib cached)

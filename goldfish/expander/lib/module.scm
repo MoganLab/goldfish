@@ -1305,7 +1305,7 @@
             ;; library relies on forward references.
             (values (append
                      defs
-                     (list (datum->syntax lib-output-source
+                     (list (datum->syntax empty-source
                              (library-register-expression lib name exports))))
                     ctx1)))))))
 

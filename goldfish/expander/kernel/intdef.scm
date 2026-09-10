@@ -115,16 +115,12 @@
 ;;; relaxation is needed for bootstrap, where source files are mostly
 ;;; definitions).
 
-;;; Output wrapper forms carry no lexical context: every subnode is
-;;; already fully expanded, and a well-formed (empty) scope-set context
-;;; keeps the tree traversable by scope operations (a context record in
-;;; the context slot would crash stx-ctx-at on any later flip/resolve).
-(define body-output-source (make-syntax 'empty (stx-ctx-empty) #f))
+;;; Output wrappers use the shared empty-source (syntax-objects.scm).
 
 (define (expand-body-finalize defs var-defs exprs ctx)
   (if (null? exprs)
       (expand-body-finalize defs var-defs
-                            (list (datum->syntax body-output-source void-expr)) ctx)
+                            (list (datum->syntax empty-source void-expr)) ctx)
       (let* ((scp-in (defs-scp-in defs))
              (ph (context-phase ctx))
              ;; Flatten var-defs: a plain define contributes (name init);
@@ -166,11 +162,11 @@
                          (if (null? ds)
                            (values (reverse inits) c)
                            (let* ((raw (cdar ds))
-                                  (val-stx (stx-add-scope
-                                            (if (syntax? raw)
-                                              raw
-                                              (datum->syntax body-output-source raw))
-                                            scp-in ph)))
+                                   (val-stx (stx-add-scope
+                                             (if (syntax? raw)
+                                               raw
+                                               (datum->syntax empty-source raw))
+                                             scp-in ph)))
                              (let*-values (((init-sexp c1) (expand-expr val-stx c)))
                                (loop (cdr ds) c1 (cons init-sexp inits))))))))
           (let*-values (((body-sexps ctx3)
@@ -179,13 +175,13 @@
                              (values (reverse out) c)
                              (let*-values (((sexp c1) (expand-expr (car es) c)))
                                (loop (cdr es) c1 (cons sexp out)))))))
-            (let ((body (if (= 1 (length body-sexps))
-                          (car body-sexps)
-                          (datum->syntax body-output-source (cons 'begin body-sexps)))))
-              (if (null? flat)
-                (values body ctx3)
-                (values (datum->syntax body-output-source
-                        `(letrec* ,(map list (map car flat) inits) ,body))
+             (let ((body (if (= 1 (length body-sexps))
+                           (car body-sexps)
+                           (datum->syntax empty-source (cons 'begin body-sexps)))))
+               (if (null? flat)
+                 (values body ctx3)
+                 (values (datum->syntax empty-source
+                         `(letrec* ,(map list (map car flat) inits) ,body))
                         ctx3))))))))
 
 ;;; body-def-head : syntax context -> symbol/#f
@@ -197,6 +193,14 @@
 (define (body-def-head stx ctx)
   (let ((h (lib-resolve-head stx ctx)))
     (and (memq h '(define define-syntax define-values begin)) h)))
+
+;;; splice-begin : begin-stx rest-stxs -> stxs
+;;; Splice a (begin a b ...) head into the scan queue.  Shared by the
+;;; intdef and libbody scanners (the driver's datum-level splice is the
+;;; same shape on raw datums and stays local).
+
+(define (splice-begin stx rest-stxs)
+  (append (cdr (syntax-form stx)) rest-stxs))
 
 ;;; scan-def-form : process one detected definition form, returning
 ;;; (values stxs var-defs exprs) for the continued scan.
@@ -220,7 +224,7 @@
        (def-bind! defs (cadr f) (caddr f))
        (values (cdr stxs) var-defs exprs)))
     (else
-     (values (append (cdr (syntax-form form)) (cdr stxs)) var-defs exprs))))
+     (values (splice-begin form (cdr stxs)) var-defs exprs))))
 
 (define-public (parse-internal-define stx)
   (let* ((form (syntax-form stx))

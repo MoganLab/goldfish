@@ -44,7 +44,7 @@
                    (loop (append requeue (cdr stxs))
                          ctx1 var-defs exprs (+ n 1)))))
             ((eq? resolved 'begin)
-             (loop (append (cdr (syntax-form stx)) (cdr stxs))
+             (loop (splice-begin stx (cdr stxs))
                    ctx var-defs exprs (+ n 1)))
             ((eq? resolved 'begin-for-syntax)
              ;; Flat expand-time region: the forms are expanded and
@@ -69,7 +69,7 @@
                     (let-values (((ctx2) (expand-lib-define-syntax result lib ctx1)))
                       (loop (cdr stxs) ctx2 var-defs exprs (+ n 1))))
                    ((eq? resolved2 'begin)
-                    (loop (append (cdr (syntax-form result)) (cdr stxs))
+                    (loop (splice-begin result (cdr stxs))
                           ctx1 var-defs exprs (+ n 1)))
                    (else
                     (loop (cdr stxs) ctx1 var-defs (cons stx exprs) (+ n 1))))))))))))
@@ -78,10 +78,8 @@
 ;;;                           -> (values defs ctx)
 ;;; Expand definition values, then body expressions, with every
 ;;; definition bound.  Emits (define name val) forms followed by the
-;;; initialization expressions.  Output wrappers carry an empty
-;;; scope-set context (see intdef.scm body-output-source).
-
-(define lib-output-source (make-syntax 'empty (stx-ctx-empty) #f))
+;;; initialization expressions.  Output wrappers use the shared
+;;; empty-source (syntax-objects.scm).
 
 (define-public (expand-library-finalize var-defs exprs ctx)
   (set-current-expand-context! ctx)
@@ -97,11 +95,11 @@
                               (val (stx-prune-scopes (cdar ds)
                                                      (context-use-scopes c)
                                                      ph)))
-                         (let*-values (((val-sexp c1) (expand-expr val c)))
-                           (loop (cdr ds) c1
-                                 (cons (datum->syntax lib-output-source
-                                         `(define ,(caar ds) ,val-sexp))
-                                       out))))))))
+                          (let*-values (((val-sexp c1) (expand-expr val c)))
+                            (loop (cdr ds) c1
+                                  (cons (datum->syntax empty-source
+                                          `(define ,(caar ds) ,val-sexp))
+                                        out))))))))
     (let*-values (((expr-sexps ctx2)
                    (let loop ((es exprs) (c ctx1) (out '()))
                      (if (null? es)

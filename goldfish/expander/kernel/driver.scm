@@ -89,6 +89,44 @@
 (define-public (compile-file-into path lib)
   (compile-program-into (call-with-input-file path read-forms) lib))
 
+;;; compile-program-step : stx lib ctx lib-defs body rest
+;;;                            -> (values ctx lib-defs body rest')
+;;; Expand one top-level form (already wrapped with its home library).
+;;; rest' is the forms still to process: normally rest, with an eval-when
+;;; body requeued in front when it carries load/eval situations.
+
+(define (compile-program-step stx lib ctx lib-defs body rest)
+  (let* ((form (syntax-form stx))
+         (head (and (pair? form) (car form))))
+    (if (identifier? head)
+        (let*-values (((name binding) (resolve-identifier head ctx)))
+          (cond
+            ((module-form-binding? binding)
+             (let*-values (((defs ctx1) ((binding-value binding) stx ctx)))
+               (values ctx1 (append (reverse defs) lib-defs) body rest)))
+            ((eq? name 'eval-when)
+             ;; R7RS eval-when: the expand situation runs NOW (so its
+             ;; effects, e.g. (set! *load-path* ...), are visible to
+             ;; subsequent imports / expansion); load/eval situations
+             ;; are deferred to the body like other expressions.
+             (let*-values (((ctx1 requeue) (eval-when-step stx ctx lib)))
+               (values ctx1 lib-defs body
+                       (if (null? requeue) rest (append requeue rest)))))
+            (else
+             ;; Expand each top-level form in order (R7RS 5.1 program
+             ;; semantics): a definition is bound immediately, so a
+             ;; later redefinition does not retroactively capture
+             ;; earlier references (e.g. (define x 1) (define y x)
+             ;; (define x 2) must bind y to 1).  The library-body
+             ;; hoisting used for define-library bodies would resolve
+             ;; y against the final x.
+             (let*-values (((d ctx1)
+                            (expand-library-body (list stx) lib ctx)))
+               (values ctx1 lib-defs (append (reverse d) body) rest)))))
+        (let*-values (((d ctx1)
+                       (expand-library-body (list stx) lib ctx)))
+          (values ctx1 lib-defs (append (reverse d) body) rest)))))
+
 (define (compile-program* exprs ctx . maybe-lib)
   (let ((lib (if (pair? maybe-lib) (car maybe-lib) the-base-library)))
   (let loop ((exprs    exprs)
@@ -109,40 +147,10 @@
       (let ((expr (car exprs)))
         (if (and (pair? expr) (eq? (car expr) 'begin))
           (loop (append (cdr expr) (cdr exprs)) ctx lib-defs body (+ n 1))
-          (let* ((stx  (stx-set-library (wrap-expression expr) lib))
-                 (form (syntax-form stx))
-                 (head (and (pair? form) (car form))))
-            (if (identifier? head)
-              (let*-values (((name binding) (resolve-identifier head ctx)))
-                (cond
-                  ((module-form-binding? binding)
-                   (let*-values (((defs ctx1) ((binding-value binding) stx ctx)))
-                     (loop (cdr exprs) ctx1 (append (reverse defs) lib-defs) body (+ n 1))))
-                  ((eq? name 'eval-when)
-                   ;; R7RS eval-when: the expand situation runs NOW (so its
-                   ;; effects, e.g. (set! *load-path* ...), are visible to
-                   ;; subsequent imports / expansion); load/eval situations
-                   ;; are deferred to the body like other expressions.
-                   (let*-values (((ctx1 requeue) (eval-when-step stx ctx lib)))
-                     (if (null? requeue)
-                         (loop (cdr exprs) ctx1 lib-defs body (+ n 1))
-                         (loop (append requeue (cdr exprs)) ctx1
-                               lib-defs body (+ n 1)))))
-                  (else
-                   ;; Expand each top-level form in order (R7RS 5.1 program
-                   ;; semantics): a definition is bound immediately, so a
-                   ;; later redefinition does not retroactively capture
-                   ;; earlier references (e.g. (define x 1) (define y x)
-                   ;; (define x 2) must bind y to 1).  The library-body
-                   ;; hoisting used for define-library bodies would resolve
-                   ;; y against the final x.
-                   (let*-values (((d ctx1)
-                                  (expand-library-body (list stx) lib ctx)))
-                     (loop (cdr exprs) ctx1 lib-defs
-                           (append (reverse d) body) (+ n 1))))))
-              (let*-values (((d ctx1)
-                             (expand-library-body (list stx) lib ctx)))
-                (loop (cdr exprs) ctx1 lib-defs
-                      (append (reverse d) body) (+ n 1)))))))))))
+          (let*-values (((ctx1 lib-defs1 body1 rest1)
+                         (compile-program-step
+                          (stx-set-library (wrap-expression expr) lib)
+                          lib ctx lib-defs body (cdr exprs))))
+            (loop rest1 ctx1 lib-defs1 body1 (+ n 1)))))))))
 
 

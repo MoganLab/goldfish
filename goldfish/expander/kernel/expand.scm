@@ -534,7 +534,7 @@
                ((binding-value binding) stx ctx))
               ((transformer-binding? binding)
                (expand-macro stx ctx (binding-value binding)))
-              ((memq (syntax-form head) host-forms)
+              ((memq (syntax-form head) s7-host-forms)
                ;; s7 host statement form (with-let etc.): pass through to the
                ;; host evaluator untouched.
                (values stx ctx))
@@ -551,12 +551,15 @@
                            (syntax-context stx) (syntax-library stx))
               ctx2))))
 
-;;; s7 host forms that must NOT be traversed by the expander: their bodies
-;;; are s7 statements (definitions / environment forms) that the expander
-;;; would reject in expression position (e.g. (with-let (unlet) (define ...
-;;; ...)) in (liii case)).  They are passed through to the host evaluator,
-;;; which understands them.  Identifiers are matched by name (these are
-;;; ambient host forms, not user-shadowable bindings in the goldfish libs).
+;;; s7-host-forms: TEMPORARY s7-specific adhoc passthrough (not R7RS).
+;;; These s7 inlet statements must NOT be traversed by the expander: their
+;;; bodies are s7 statements (definitions / environment forms) that the
+;;; expander would reject in expression position (e.g. (with-let (unlet)
+;;; (define ... ...)) in (liii case)).  They are passed through to the host
+;;; evaluator, which understands them.  Identifiers are matched by name
+;;; (these are ambient host forms, not user-shadowable bindings in the
+;;; goldfish libs).  A replacement host without s7 inlets deletes this list
+;;; and every reference to it; see LAYER.md host-ABI contract.
 
-(define host-forms '(with-let sublet unlet))
+(define s7-host-forms '(with-let sublet unlet))
 

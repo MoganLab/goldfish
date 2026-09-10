@@ -325,6 +325,14 @@
        (make-syntax (if (eq? (type-of datum) 'syntax?) 'quote datum) clean-ctx lib)))))
 
 
+;;; empty-source: output wrapper with no lexical context.  Fully-expanded
+;;; subnodes carry no scope info, and a well-formed (empty) scope-set context
+;;; keeps the tree traversable by scope operations (a context record in the
+;;; context slot would crash stx-ctx-at on any later flip/resolve).  Shared
+;;; by intdef/libbody finalizers (formerly two identical copies).
+
+(define empty-source (make-syntax 'empty (stx-ctx-empty) #f))
+
 ;;; generate-temporaries : syntax-list -> (list syntax)
 
 (define-public (generate-temporaries lst)
