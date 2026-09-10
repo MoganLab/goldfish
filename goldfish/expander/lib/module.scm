@@ -126,7 +126,9 @@
 ;;; non-library top-level form falls back to the previous compile-program
 ;;; path.
 
-(define *libraries-being-loaded* '())
+;;; (*libraries-being-loaded*, the runtime/ inlet tables, and the guard
+;;; all live in the unified *library-instances* table now; see
+;;; lib/module-registry.scm.)
 
 ;;; Library-cache capture helpers.
 ;;;
@@ -250,7 +252,7 @@
 ;;; lower.  Shared by cache-defs->ir and optimize-on-load.
 
 (define (syntax-ir-fn)
-  (if (member '(goldfish expander tree-il) *libraries-being-loaded*)
+  (if (instance-loading? '(goldfish expander tree-il))
     #f
     (catch
       #t
@@ -384,10 +386,9 @@
 (define (perlevel-rebuild! recs level saved-records)
   (for-each
     (lambda (r)
-      (let ((n (lib-cache-name r)))
-        (set! *library-registry*
-              (filter (lambda (e) (not (equal? (car e) n)))
-                      *library-registry*))))
+      ;; Drop the bare record clobbered by capture (level-keyed rows
+      ;; compare unequal to the bare name and survive, as before).
+      (instance-record-drop! (lib-cache-name r)))
     recs)
   ;; Re-add pre-existing valid bare instances clobbered by capture
   ;; (capture registers bare as a side effect, overwriting them).
@@ -594,19 +595,9 @@
             (current-expand-env))
       (eval (cons 'begin defs) (rootlet)))))
 
-;;; loading-guard-push! / loading-guard-pop! : key -> void
-;;; Push key onto *libraries-being-loaded* for a load's dynamic extent
-;;; (circular-load detection in load-library!), popping on exit.  The
-;;; four push/filter-pop pairs in load-library-in-unit! share these.
-
-(define (loading-guard-push! key)
-  (set! *libraries-being-loaded*
-        (cons key *libraries-being-loaded*)))
-
-(define (loading-guard-pop! key)
-  (set! *libraries-being-loaded*
-        (filter (lambda (n) (not (equal? n key)))
-                *libraries-being-loaded*)))
+;;; (loading-guard-push!/pop! live in lib/module-registry.scm, operating
+;;; on the unified instance table; the four dynamic-wind pairs in
+;;; load-library-in-unit! share them.)
 
 ;;; load-library-guard : name thunk -> value
 ;;; Wrap a library's load/compile phase so a failure inside it (a
@@ -645,9 +636,8 @@
         (error "import: failed to load library ~a: ~a" lib-name detail)))))
 
 (define (load-library! lib-name . maybe-level)
-  (let ((level (registry-level-arg maybe-level))
-        (key (registry-key (registry-level-arg maybe-level) lib-name)))
-    (when (member key *libraries-being-loaded*)
+  (let ((level (registry-level-arg maybe-level)))
+    (when (instance-loading? lib-name level)
       (error "import: circular library dependency" lib-name))
     (let ((inlet (call-with-fresh-expand-unit
                    (lambda ()
