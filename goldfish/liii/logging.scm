@@ -270,6 +270,7 @@
             ) ;
         (display formatted port)
         (newline port)
+        (flush-output-port port)
       ) ;let*
     ) ;define
 
@@ -314,6 +315,7 @@
                 ) ;
             (display line port)
             (newline port)
+            (flush-output-port port)
           ) ;let*
         ) ;lambda
       ) ;let

@@ -1,4 +1,8 @@
-(import (liii check) (liii string) (liii logging))
+(import (liii check)
+        (liii string)
+        (liii path)
+        (scheme file)
+        (liii logging))
 
 ;; (liii logging) 测试用例
 
@@ -110,6 +114,38 @@
 
 ;; 恢复默认回调
 (log-set-callback! (lambda (log-entry) (values)))
+
+;; default-log-handler 自动 flush 测试
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-default-handler.log")))
+       (p (open-output-file test-log "w")))
+  (default-log-handler '((SEVERITY . 6) (MESSAGE . "default handler flush")) p)
+  ;; 不关闭 p，直接另开 input-file 读取；若已自动 flush，应能立即读到内容
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "default handler flush") => #t))
+  (close-output-port p)
+  (delete-file test-log))
+
+;; make-file-handler 自动 flush 测试
+(let* ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-file-handler.log")))
+       (handler (make-file-handler test-log)))
+  ;; 写入一条日志（端口保持打开，未关闭，未手动调用 log-flush!）
+  (handler '((SEVERITY . 6) (MESSAGE . "file handler flush")))
+  ;; 立即读取验证内容已刷新到文件
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "file handler flush") => #t)
+    (check (string-contains? content "INFO") => #t))
+  ;; 清理
+  (log-set-callback! (lambda (msg) (values)))
+  (delete-file test-log))
+
+;; log-info 配合 log-set-file-handler! 自动 flush 测试
+(let ((test-log (path->string (path-join (path-temp-dir) "goldfish-test-set-file.log"))))
+  (log-set-file-handler! test-log)
+  (log-info "auto flush from log-info")
+  (let ((content (call-with-input-file test-log (lambda (in) (read-string 100 in)))))
+    (check (string-contains? content "auto flush from log-info") => #t))
+  (log-set-callback! (lambda (msg) (values)))
+  (delete-file test-log))
 
 ;; send-log 参数类型错误测试
 (check-catch 'type-error (send-log -1 "bad"))
