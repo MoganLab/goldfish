@@ -212,6 +212,19 @@
              (prefix (xr vals) v-))
      (export gotc)
      (define gotc (list answer2 v-the-answer v-answer2))))
+(write-xr-fixture! 'nestok
+  '(define-library (xr nestok)
+     (import (scheme base)
+             (rename (only (xr vals) the-answer answer2)
+                     (the-answer x) (answer2 x)))
+     (export gotx)
+     (define gotx (+ x 1))))
+(write-xr-fixture! 'nestdup
+  '(define-library (xr nestdup)
+     (import (scheme base)
+             (rename (only (scheme base) car cdr) (car x) (cdr x)))
+     (export gotx)
+     (define gotx 0)))
 (write-xr-fixture! 'badfrom
   '(define-library (xr badfrom)
      (import (scheme base))
@@ -278,6 +291,15 @@
        => 'ok)
 (check (xr-runtime '(xr comp) 'gotc) => '(41 41 41))
 
+;; nested rename over an export alias: same binding collapsing onto one
+;; name is fine (import-view arbitrates both paths uniformly)
+(check (catch #t (lambda () (load-library! '(xr nestok)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr nestok) 'gotx) => 42)
+;; nested rename collapsing two different bindings still errors
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(xr nestdup))))
+                             "bound more than once with different bindings" "x")
+       => #t)
 ;; error cases: unknown source, colliding target
 (check (detail-mentions? (import-error-message (lambda () (load-library! '(xr badfrom))))
                              "export has no binding" "nosuch")

@@ -894,15 +894,46 @@
 ;;;   (only <set> id ...)  (except <set> id ...)
 ;;;   (prefix <set> id)    (rename <set> (from to) ...)
 ;;; Each import set bottoms out in exactly one library.  Depth-1 sets (a
-;;; modifier directly over a library name) take the original fast handlers
-;;; below; a NESTED set (a modifier over another modifier) is reduced by
-;;; import-set-pairs to its source library plus the (visible . original)
-;;; mapping, then resolved through import-view.  import-set-pairs works on
-;;; names only, so an only-import never pulls or resolves names it does not
-;;; select.
+;;; modifier directly over a library name) and NESTED sets (a modifier over
+;;; another modifier) share one pair-mapping core: apply-import-modifier
+;;; takes a modifier kind, its args, and (visible . original) pairs to the
+;;; mapped pairs.  import-set-pairs reduces a nested set to its source
+;;; library plus the mapping, then resolves through import-view; it works
+;;; on names only, so an only-import never pulls or resolves names it does
+;;; not select.  import-view is the single collision arbiter on both paths:
+;;; two visible names landing on one identifier is an error only when the
+;;; bindings differ (R7RS), so a nested rename collapsing same-bound names
+;;; (reachable via export aliases) behaves like its depth-1 spelling.
 
 (define (import-set-modifier? x)
   (and (pair? x) (memq (car x) '(only except prefix rename))))
+
+;;; apply-import-modifier : kind args (list (visible . original))
+;;;                         -> (list (visible . original))
+;;; The pair mapping shared by depth-1 and nested import sets.  Order
+;;; preserving on every kind (the retired depth-1 except/only loops built
+;;; their lists reversed; order is observable only in multi-collision
+;;; error precedence).
+
+(define (apply-import-modifier kind args pairs)
+  (case kind
+    ((plain) pairs)
+    ((only) (filter (lambda (p) (memq (car p) args)) pairs))
+    ((except) (filter (lambda (p) (not (memq (car p) args))) pairs))
+    ((prefix)
+     (let ((pre (car args)))
+       (map (lambda (p)
+              (cons (string->symbol
+                     (string-append (symbol->string pre)
+                                    (symbol->string (car p))))
+                    (cdr p)))
+            pairs)))
+    ((rename)
+     (map (lambda (p)
+            (let ((e (assq (car p) args)))
+              (if e (cons (cadr e) (cdr p)) p)))
+          pairs))
+    (else (error "import: bad import-set kind" kind))))
 
 (define (import-set-pairs spec)
   (if (import-set-modifier? spec)
@@ -912,41 +943,7 @@
       (call-with-values
         (lambda () (import-set-pairs inner))
         (lambda (lib-name pairs)
-          (values lib-name
-                  (case kind
-                    ((only)
-                     (let ((ids rest))
-                       (filter (lambda (p) (memq (car p) ids)) pairs)))
-                    ((except)
-                     (let ((ids rest))
-                       (filter (lambda (p) (not (memq (car p) ids))) pairs)))
-                    ((prefix)
-                     (let ((pre (car rest)))
-                       (map (lambda (p)
-                              (cons (string->symbol
-                                     (string-append (symbol->string pre)
-                                                    (symbol->string (car p))))
-                                    (cdr p)))
-                            pairs)))
-                    ((rename)
-                     (let ((ms rest))
-                       (let ((mapped
-                              (map (lambda (p)
-                                     (let ((e (assq (car p) ms)))
-                                       (if e (cons (cadr e) (cdr p)) p)))
-                                   pairs)))
-                         ;; Renaming two distinct identifiers to one visible
-                         ;; name would import that name twice with different
-                         ;; bindings -- a malformed set.
-                         (let dup-check ((ls mapped))
-                           (if (pair? ls)
-                             (if (assq (caar ls) (cdr ls))
-                               (error "import: ~a bound more than once with different bindings"
-                                      (caar ls))
-                               (dup-check (cdr ls)))
-                             #f))
-                         mapped)))
-                    (else (error "import: bad import-set" spec)))))))
+          (values lib-name (apply-import-modifier kind rest pairs)))))
     ;; A bare library name: its whole export list, identity-mapped.
     (values spec
             (map (lambda (n) (cons n n))
@@ -1017,90 +1014,35 @@
        (when iface
          (add-import-view! lib iface level))))
     ;; Depth-1 set: a modifier directly over a library name, or a bare
-    ;; library name.
-    ((and (pair? spec) (eq? (car spec) 'only))
-     (import-only-into-library! lib spec level))
-    ((and (pair? spec) (eq? (car spec) 'except))
-     (import-except-into-library! lib spec level))
-    ((and (pair? spec) (eq? (car spec) 'prefix))
-     (import-prefix-into-library! lib spec level))
-    ((and (pair? spec) (eq? (car spec) 'rename))
-     (import-rename-into-library! lib spec level))
+    ;; library name -- all through the shared pair core.
+    ((and (pair? spec) (memq (car spec) '(only except prefix rename)))
+     (let* ((kind (car spec))
+            (args (cddr spec))
+            ;; View tags keep their historical shapes (the interface
+            ;; cache keys on them; content is unchanged either way).
+            (tag (if (eq? kind 'prefix)
+                   (cons kind (car args))
+                   (cons kind args))))
+       (import-depth1-into-library! lib kind (cadr spec) args tag level)))
     (else
-     (import-plain-into-library! lib spec level))))
+     (import-depth1-into-library! lib 'plain spec '() 'plain level))))
 
-(define (import-except-into-library! lib spec level)
-  (let* ((lib-name (cadr spec))
-         (ids (cddr spec)))
-    (let ((rec (source-record lib-name level)))
-      (add-import-view! lib
-        (import-view lib-name
-                     (let loop ((ns (lib-record-exports rec)) (acc '()))
-                       (if (null? ns)
-                         acc
-                         (if (memq (car ns) ids)
-                           (loop (cdr ns) acc)
-                           (loop (cdr ns)
-                                 (cons (cons (car ns) (car ns)) acc)))))
-                     (cons 'except ids) #t level)
-        level))))
+;;; import-depth1-into-library! : lib kind lib-name args tag level -> void
+;;; The single depth-1 handler: identity pairs over the source exports,
+;;; mapped by the shared apply-import-modifier core.  An only-import
+;;; selecting nothing (unknown ids) adds an empty view; skip it entirely
+;;; (mirrors import-set-view's null-pairs #f).
 
-(define (import-plain-into-library! lib spec level)
-  (let* ((lib-name spec)
-         (rec (source-record lib-name level)))
-    (add-import-view! lib
-      (import-view lib-name
+(define (import-depth1-into-library! lib kind lib-name args tag level)
+  (let ((rec (source-record lib-name level)))
+    (let ((pairs (apply-import-modifier kind args
                    (map (lambda (n) (cons n n))
-                        (lib-record-exports rec))
-                   'plain #t level)
-      level)))
-
-(define (import-only-into-library! lib spec level)
-  (let* ((lib-name (cadr spec))
-         (ids (cddr spec)))
-    (let ((rec (source-record lib-name level)))
-      (let loop ((ids* ids) (pairs '()))
-        (if (null? ids*)
-          ;; An only-import selecting nothing (unknown ids) adds an empty
-          ;; view; skip it entirely.
-          (if (null? pairs)
-            #t
-            (add-import-view! lib
-              (import-view lib-name pairs (cons 'only ids) #f level)
-              level))
-          (if (memq (car ids*) (lib-record-exports rec))
-            (loop (cdr ids*) (cons (cons (car ids*) (car ids*)) pairs))
-            (loop (cdr ids*) pairs)))))))
-
-(define (import-prefix-into-library! lib spec level)
-  (let* ((lib-name (cadr spec))
-         (prefix (caddr spec)))
-    (let ((rec (source-record lib-name level)))
-      (add-import-view! lib
-        (import-view lib-name
-                     (map (lambda (name)
-                            (cons (string->symbol
-                                   (string-append (symbol->string prefix)
-                                                  (symbol->string name)))
-                                  name))
-                          (lib-record-exports rec))
-                     (cons 'prefix prefix) #t level)
-        level))))
-
-(define (import-rename-into-library! lib spec level)
-  (let* ((lib-name (cadr spec))
-         (renames (cddr spec)))
-    (let ((rec (source-record lib-name level)))
-      (add-import-view! lib
-        (import-view lib-name
-                     (map (lambda (name)
-                            (let ((rename-entry (assq name renames)))
-                              (if rename-entry
-                                (cons (cadr rename-entry) name)
-                                (cons name name))))
-                          (lib-record-exports rec))
-                     (cons 'rename renames) #t level)
-        level))))
+                        (lib-record-exports rec)))))
+      (if (and (null? pairs) (eq? kind 'only))
+        #t
+        (add-import-view! lib
+          (import-view lib-name pairs tag (not (eq? kind 'only)) level)
+          level)))))
 
 ;;; define-library clause parsing: (export id ...) / (import spec ...) / body.
 
