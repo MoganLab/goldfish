@@ -173,9 +173,12 @@
 (define (extract-exports form)
   (let ((form (syntax-form form)))
     (apply append
-           (map (lambda (ef)
-                  (map syntax->datum (cdr (syntax-form ef))))
-                (filter (lambda (cl)
+             (map (lambda (ef)
+                   (map (lambda (e)
+                          (let ((d (syntax->datum e)))
+                            (if (export-rename-spec? d) (caddr d) d)))
+                        (cdr (syntax-form ef))))
+                 (filter (lambda (cl)
                           (and (pair? (syntax-form cl))
                                (identifier? (car (syntax-form cl)))
                                (eq? (syntax-form (car (syntax-form cl))) 'export)))
@@ -199,7 +202,7 @@
 ;;; this path, unlike the boot installs).
 
 ;;; capture-library-cache : syntax exp-library context
-;;;                             -> (values (list name exports bindings macros defs) context)
+;;;                    -> (values (list name exports imports bindings macros defs renames) context)
 ;;; Expand one define-library form (which registers the expand-time record
 ;;; and returns its lowered defs) and capture everything needed to rebuild
 ;;; it without re-expansion: the value bindings (purified), the macro specs
@@ -213,8 +216,14 @@
       (let* ((rec (library-registry-ref name))
              (lib1 (and rec (lib-record-library rec)))
              (exports (extract-exports stx))
-             (imports (let*-values (((e i b) (parse-library-clauses (cddr form))))
-                        (reverse i)))
+             ;; Export renames ride the record so warm restore re-installs
+             ;; the aliases (including aliases of imported macros, whose
+             ;; closures only exist via the restored re-imports).
+             (parsed (call-with-values
+                       (lambda () (parse-library-clauses (cddr form)))
+                       list))
+             (imports (reverse (caddr parsed)))
+             (renames (cadr parsed))
              (bindings (map (lambda (e)
                               (cons (car e) (purify-binding (cdr e))))
                             ;; Only the cacheable binding kinds are stored:
@@ -237,8 +246,8 @@
               (macros (map (lambda (m)
                               (cons (car m) (serialize-cache-sexp (cdr m))))
                             (take-collected-macros)))
-             (def-ir (cache-defs->ir defs ctx1)))
-        (values (list name exports imports bindings macros def-ir) ctx1)))))
+              (def-ir (cache-defs->ir defs ctx1)))
+        (values (list name exports imports bindings macros def-ir renames) ctx1)))))
 
 ;;; syntax-ir-fn : -> procedure/#f
 ;;; Lazily resolve syntax->ir/sexp from (goldfish expander tree-il) (L4).
@@ -292,7 +301,9 @@
           (loop (cdr fs) ctx1 (cons rec acc)))))))
 
 ;;; lib-cache field accessors.  A cache record is
-;;;   (name exports imports bindings macros defs)
+;;;   (name exports imports bindings macros defs [renames])
+;;; renames (a list of (to . from)) is present on records captured with
+;;; export-rename support; older records default to no aliases.
 
 (define (lib-cache-name rec) (car rec))
 (define (lib-cache-exports rec) (cadr rec))
@@ -300,6 +311,8 @@
 (define (lib-cache-bindings rec) (cadddr rec))
 (define (lib-cache-macros rec) (car (cddddr rec)))
 (define (lib-cache-defs rec) (cadr (cddddr rec)))
+(define (lib-cache-renames rec)
+  (if (> (length rec) 6) (list-ref rec 6) '()))
 
 ;;; restore-library-cache : lib-cache -> exp-library
 ;;; Rebuild a library from its cache record: re-import its dependencies
@@ -340,14 +353,24 @@
                        (proc (eval data (current-expand-env))))
                   (exp-library-define! lib mname (make-transformer-binding proc))))
               macros)
-    ;; 4. Exports with no restored body/import binding are an error (they
-    ;;    would have failed at capture time too: expand-define-library
-    ;;    requires every export to resolve from the body or an import).
-    (for-each (lambda (export)
-                (unless (exp-library-ref lib export)
-                  (error "define-library: export has no binding" export name)))
-              exports)
-    lib))
+     ;; 4. Re-install export renames: `from' resolves from the re-imports
+     ;;    (imported macros included) and the restored/ replayed own
+     ;;    definitions, exactly as the cold path aliases them.
+     (for-each (lambda (r)
+                 (let ((binding (exp-library-ref lib (cdr r))))
+                   (unless binding
+                     (error "define-library: export has no binding"
+                            (cdr r) name))
+                   (exp-library-define! lib (car r) binding)))
+               (lib-cache-renames rec))
+     ;; 5. Exports with no restored body/import binding are an error (they
+     ;;    would have failed at capture time too: expand-define-library
+     ;;    requires every export to resolve from the body or an import).
+     (for-each (lambda (export)
+                 (unless (exp-library-ref lib export)
+                   (error "define-library: export has no binding" export name)))
+               exports)
+     lib))
 
 ;;; Per-level instances (moved after the cache section: rebuild calls
 ;;; lib-cache-name and restore-library-cache above).
@@ -525,12 +548,13 @@
          (let ((defs (lib-cache-defs rec)))
            (if (null? defs)
              rec
-              (list (lib-cache-name rec)
-                   (lib-cache-exports rec)
-                   (lib-cache-imports rec)
-                   (lib-cache-bindings rec)
-                   (lib-cache-macros rec)
-                   (compile-defs-cached defs)))))
+               (list (lib-cache-name rec)
+                    (lib-cache-exports rec)
+                    (lib-cache-imports rec)
+                    (lib-cache-bindings rec)
+                    (lib-cache-macros rec)
+                    (compile-defs-cached defs)
+                    (lib-cache-renames rec)))))
        recs))
 
 ;;; load-library-file-cached! : (list lib-cache) -> void
@@ -1110,10 +1134,35 @@
      (list (cons 'begin (append-map-local splice-includes (cdr d)))))
     (else (list d))))
 
+;;; export-rename-spec? : datum -> boolean
+;;; R7RS export spec (rename <from> <to>): re-export `from' under the
+;;; visible name `to'.  Anything else (plain symbols, legacy malformed
+;;; specs) passes through to the historical downstream errors.
+
+(define (export-rename-spec? d)
+  (and (pair? d) (eq? (car d) 'rename)
+       (pair? (cdr d)) (pair? (cddr d)) (null? (cdddr d))
+       (symbol? (cadr d)) (symbol? (caddr d))))
+
+;;; split-export-specs : (list datum) -> (values (list datum) (list (to . from)))
+;;; Visible export names stay in order (a rename contributes its `to');
+;;; rename specs accumulate separately for alias installation.
+
+(define (split-export-specs specs)
+  (let loop ((ss specs) (ids '()) (rs '()))
+    (if (null? ss)
+      (values (reverse ids) (reverse rs))
+      (let ((s (car ss)))
+        (if (export-rename-spec? s)
+          (loop (cdr ss) (cons (caddr s) ids)
+                (cons (cons (caddr s) (cadr s)) rs))
+          (loop (cdr ss) (cons s ids) rs))))))
+
 (define (parse-library-clauses clauses)
   (let loop ((clauses clauses) (exports '()) (imports '()) (body '()))
     (if (null? clauses)
-        (values exports (reverse imports) (reverse body))
+        (let-values (((es rs) (split-export-specs exports)))
+          (values es rs (reverse imports) (reverse body)))
         (let* ((clause (syntax-form (car clauses)))
                (head (syntax->datum (car clause))))
           (cond
@@ -1159,7 +1208,7 @@
   (let* ((form (syntax-form stx))
          (name (syntax->datum (cadr form)))
          (clauses (cddr form)))
-    (let*-values (((exports imports body-stxs) (parse-library-clauses clauses)))
+    (let*-values (((exports renames imports body-stxs) (parse-library-clauses clauses)))
       (let ((lib (make-exp-library name)))
         (import-into-library! lib imports)
         ;; Register BEFORE the body expands: template instantiation
@@ -1182,6 +1231,28 @@
             ;; from.  Exports are NOT copied into the library's own table:
             ;; importers see them through this library's shared export view,
             ;; built on demand from lib-record-exports (see import-view).
+            ;; The sole exception is an export rename (rename <from> <to>),
+            ;; which installs `to' as an alias of `from's binding in the
+            ;; library's own table, so importers, the runtime register
+            ;; expression, and the cache restore all resolve it uniformly.
+            ;; Aliases install BEFORE the export check, which then validates
+            ;; them like every other visible export.
+            (for-each (lambda (r)
+                        (let ((to (car r))
+                              (from (cdr r)))
+                          (let ((binding (exp-library-ref lib from)))
+                            (unless binding
+                              (error "define-library: export has no binding"
+                                     from name))
+                            (let ((prior (exp-library-ref-own lib to)))
+                              (when (and prior (not (eq? prior binding)))
+                                (error "define-library: export rename target already bound"
+                                       to name)))
+                            (exp-library-define! lib to binding)
+                            (when (toplevel-binding? binding)
+                              (set-toplevel-ref-exported!
+                               (binding-value binding) #t)))))
+                      renames)
             (for-each (lambda (export)
                         (let ((binding (exp-library-ref lib export)))
                           (unless binding
@@ -1190,7 +1261,8 @@
                           (when (toplevel-binding? binding)
                             (set-toplevel-ref-exported! (binding-value binding) #t))))
                       exports)
-            (library-registry-set! name (make-lib-record lib exports))
+            (library-registry-set! name
+              (make-lib-record lib (append exports (map car renames))))
             ;; The defs are emitted as sequential top-level defines; a
             ;; forward reference (a define value naming a later define in
             ;; the same body) would unbound-error at eval time.  The host
@@ -1206,7 +1278,8 @@
             (values (append
                      defs
                      (list (datum->syntax empty-source
-                             (library-register-expression lib name exports))))
+                             (library-register-expression lib name
+                               (append exports (map car renames))))))
                     ctx1)))))))
 
 ;;; library-register-expression : exp-library name exports -> sexp

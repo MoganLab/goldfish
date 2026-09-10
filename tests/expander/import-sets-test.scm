@@ -170,4 +170,120 @@
                              "for spec needs an import set and at least one level")
        => #t)
 
+;; ===== 5. R7RS export rename (rename <from> <to>) =====
+;; Re-export `from' under the visible name `to': the alias shares `from's
+;; binding object, so values, macros (own and imported), and the warm
+;; cache restore all resolve it.  Fixtures live under xr/ (same
+;; pid-suffixed root as ct/, same *load-path* entry).
+(define fixture-xr (string-append fixture-dir "/xr"))
+(catch #t (lambda () (mkdir fixture-xr)) (lambda args #f))
+(define (write-xr-fixture! leaf datum)
+  (call-with-output-file (string-append fixture-xr "/" (symbol->string leaf) ".scm")
+    (lambda (p) (write datum p) (newline p))))
+(write-xr-fixture! 'vals
+  '(define-library (xr vals)
+     (import (scheme base))
+     (export the-answer (rename the-answer answer2))
+     (define the-answer 41)))
+(write-xr-fixture! 'macros
+  '(define-library (xr macros)
+     (import (scheme base))
+     (export my-or (rename my-or my-or2))
+     (define-syntax my-or
+       (syntax-rules () ((my-or e) e) ((my-or e e2 ...) (if e e #f))))))
+(write-xr-fixture! 'reexp
+  '(define-library (xr reexp)
+     (import (xr macros))
+     (export (rename my-or2 my-or3))))
+(write-xr-fixture! 'muse
+  '(define-library (xr muse)
+     (import (scheme base) (xr macros))
+     (export got2)
+     (define got2 (my-or2 7))))
+(write-xr-fixture! 'reuse
+  '(define-library (xr reuse)
+     (import (scheme base) (xr reexp))
+     (export got3)
+     (define got3 (my-or3 8))))
+(write-xr-fixture! 'comp
+  '(define-library (xr comp)
+     (import (scheme base)
+             (only (xr vals) answer2)
+             (prefix (xr vals) v-))
+     (export gotc)
+     (define gotc (list answer2 v-the-answer v-answer2))))
+(write-xr-fixture! 'badfrom
+  '(define-library (xr badfrom)
+     (import (scheme base))
+     (export (rename nosuch x))
+     (define x 0)))
+(write-xr-fixture! 'badtarget
+  '(define-library (xr badtarget)
+     (import (scheme base))
+     (export a b (rename b a))
+     (define a 1)
+     (define b 2)))
+
+;; %internal-names are ambient primitives in (goldfish)-importing code.
+(define (xr-runtime name id)
+  (module-ref (lookup-module name) id))
+(define (xr-fixture-path leaf)
+  (string-append fixture-xr "/" (symbol->string leaf) ".scm"))
+;; Direct capture -> restore proof (independent of cache-dir state):
+;; rebuild a fixture from its captured record and resolve the alias in
+;; the rebuilt library.  Value aliases ride the bindings section, but a
+;; macro alias is absent from the macro replay section -- without the
+;; record's rename specs the restore's export check fails.
+(define (xr-restore-ref leaf id)
+  (let ((forms (call-with-input-file (xr-fixture-path leaf) read-forms)))
+    (call-with-values
+      (lambda () (capture-file-cache forms))
+      (lambda (recs ctx)
+        (exp-library-ref (restore-library-cache (car recs)) id)))))
+
+;; value alias: visible under both names, cold and warm
+(check (catch #t (lambda () (load-library! '(xr vals)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (if (memq 'answer2 (lib-record-exports (library-registry-ref '(xr vals)))) #t #f)
+       => #t)
+(check (xr-runtime '(xr vals) 'answer2) => 41)
+(check (xr-runtime '(xr vals) 'the-answer) => 41)
+(check (toplevel-binding? (xr-restore-ref 'vals 'answer2)) => #t)
+;; second load restores from the cache entry: the alias must survive
+(check (catch #t (lambda () (load-library! '(xr vals)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr vals) 'answer2) => 41)
+
+;; own-macro alias, used through an importer, cold and warm
+(check (catch #t (lambda () (load-library! '(xr muse)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr muse) 'got2) => 7)
+(check (transformer-binding? (xr-restore-ref 'macros 'my-or2)) => #t)
+(check (catch #t (lambda () (load-library! '(xr muse)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr muse) 'got2) => 7)
+
+;; imported-macro alias: `from' exists only via the restored re-import,
+;; so the rebuild exercises the record's rename specs
+(check (catch #t (lambda () (load-library! '(xr reuse)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr reuse) 'got3) => 8)
+(check (transformer-binding? (xr-restore-ref 'reexp 'my-or3)) => #t)
+(check (catch #t (lambda () (load-library! '(xr reuse)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr reuse) 'got3) => 8)
+
+;; import sets compose over aliases
+(check (catch #t (lambda () (load-library! '(xr comp)) 'ok) (lambda args 'error))
+       => 'ok)
+(check (xr-runtime '(xr comp) 'gotc) => '(41 41 41))
+
+;; error cases: unknown source, colliding target
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(xr badfrom))))
+                             "export has no binding" "nosuch")
+       => #t)
+(check (detail-mentions? (import-error-message (lambda () (load-library! '(xr badtarget))))
+                             "already bound" "a")
+       => #t)
+
 (check-report)
