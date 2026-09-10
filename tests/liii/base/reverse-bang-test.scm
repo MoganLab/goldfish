@@ -70,7 +70,11 @@
 ) ;let
 
 ;; 异常情况测试
-(check-catch 'wrong-type-arg (reverse! '(1 2 . 3)))
-(check-catch 'wrong-type-arg (reverse! 123))
+(check-catch 'wrong-number-of-args (reverse!))
+(check-catch 'wrong-number-of-args (reverse! '() '()))
+(check-catch 'type-error (reverse! '(1 2 . 3)))
+(check-catch 'type-error (reverse! 123))
+(check-catch 'type-error (reverse! #t))
+(check-catch 'type-error (reverse! 'a))
 
 (check-report)
