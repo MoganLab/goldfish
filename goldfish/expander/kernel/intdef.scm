@@ -41,8 +41,6 @@
         (let ((defs (new-defs)))
           (expand-body-seq stxs defs '() '() saved-ctx)))))
 
-(define body-stop-list '(define define-syntax))
-
 ;;; scan-body-form : expand head macros to detect (macro-generated)
 ;;; definitions WITHOUT recursing into expression bodies.  Returns the form
 ;;; whose head reveals whether it is a definition (body-def-head).  Recursing
@@ -108,16 +106,6 @@
                                                  (context-phase ctx1))))
                     (expand-body-seq (cdr stxs) defs var-defs
                                      (cons deferred exprs) saved-ctx))))))))
-
-(define-public (expand-body-form stx ctx)
-  (let* ((stop-frame (map (lambda (name) (cons name (make-tstop-binding #f)))
-                          body-stop-list))
-         (ctx-stopped (context-with-env ctx (cons stop-frame (context-env ctx)))))
-    (let*-values (((result ctx1) (expand-expr stx ctx-stopped)))
-      (let ((restored (context-with-use-scopes (context-return ctx ctx1)
-                                               (context-use-scopes ctx1))))
-        (set-current-expand-context! restored)
-        (values result restored)))))
 
 ;;; expand-body-finalize : expand deferred forms with every definition
 ;;; bound.  Plain expand-expr, no intro-scope flip: deferred body forms
@@ -201,15 +189,14 @@
                         ctx3))))))))
 
 ;;; body-def-head : syntax context -> symbol/#f
-;;; The definition head (define / define-syntax / begin) if the form is a
-;;; definition form, else #f.
+;;; The definition head if the form is an internal definition, else #f.
+;;; Shared resolver with libbody's lib-resolve-head (same context-resolve
+;;; + syntax checks); only the accepted head set differs (define-values
+;;; is internal-only).
 
 (define (body-def-head stx ctx)
-  (and (syntax? stx)
-       (pair? (syntax-form stx))
-       (identifier? (car (syntax-form stx)))
-       (let ((h (context-resolve ctx (car (syntax-form stx)))))
-         (and (memq h '(define define-syntax define-values begin)) h))))
+  (let ((h (lib-resolve-head stx ctx)))
+    (and (memq h '(define define-syntax define-values begin)) h)))
 
 ;;; scan-def-form : process one detected definition form, returning
 ;;; (values stxs var-defs exprs) for the continued scan.

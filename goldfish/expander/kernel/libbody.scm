@@ -4,8 +4,8 @@
 ;;; library at scan time; their value expressions and body expressions
 ;;; are deferred until all definitions are bound (R7RS 5.5: definitions
 ;;; are visible throughout the body), mirroring the intdef scan/finish
-;;; split.  Macro-generated definitions are detected via
-;;; expand-body-form's define/define-syntax stop frame.
+;;; split.  Macro-generated definitions are detected via scan-head-loop
+;;; (intdef.scm), shared with internal-definition scanning.
 ;;;
 ;;; This is the generic library mechanism behind both the driver's
 ;;; base-library boot (lib/core-macros.scm is ordinary object-level
@@ -38,18 +38,11 @@
              ;; exprs at expand time; load/eval situations re-scan the
              ;; exprs as ordinary library-body forms (definitions get
              ;; recognized, expressions are deferred to finalize).
-             (let* ((form (syntax-form stx))
-                    (sit-datum (map syntax->datum (syntax-form (cadr form))))
-                    (body-exprs (cddr form)))
-               (check-eval-when-situations sit-datum stx)
-               (let*-values (((ctx1)
-                              (if (memq 'expand sit-datum)
-                                (eval-when-expand! body-exprs ctx lib)
-                                (values ctx))))
-                 (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
-                   (loop (append body-exprs (cdr stxs))
-                         ctx1 var-defs exprs (+ n 1))
-                   (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))))))
+             (let*-values (((ctx1 requeue) (eval-when-step stx ctx lib)))
+               (if (null? requeue)
+                   (loop (cdr stxs) ctx1 var-defs exprs (+ n 1))
+                   (loop (append requeue (cdr stxs))
+                         ctx1 var-defs exprs (+ n 1)))))
             ((eq? resolved 'begin)
              (loop (append (cdr (syntax-form stx)) (cdr stxs))
                    ctx var-defs exprs (+ n 1)))
@@ -63,10 +56,10 @@
             (else
              ;; Macro-headed form (e.g. define-macro): expand the head one
              ;; step at a time until the definition kind is revealed, WITHOUT
-             ;; recursing into an expression body (mirrors intdef's
-             ;; scan-head-loop).  Non-definition heads fall through and the
-             ;; form is expanded as a body expression at finish time.
-             (let*-values (((result ctx1) (scan-lib-head stx ctx)))
+             ;; recursing into an expression body (intdef's scan-head-loop,
+             ;; shared).  Non-definition heads fall through and the form is
+             ;; expanded as a body expression at finish time.
+             (let*-values (((result ctx1) (scan-head-loop stx ctx)))
                (let ((resolved2 (lib-resolve-head result ctx1)))
                  (cond
                    ((eq? resolved2 'define)
@@ -80,25 +73,6 @@
                           ctx1 var-defs exprs (+ n 1)))
                    (else
                     (loop (cdr stxs) ctx1 var-defs (cons stx exprs) (+ n 1))))))))))))
-
-;;; scan-lib-head : syntax context -> (values syntax context)
-;;; Expand the head of a top-level library form one macro step at a time
-;;; (the scan phase), stopping at a definition head (define / define-syntax
-;;; / begin) or a non-macro head.  This lets macro-generated definitions
-;;; (e.g. define-macro -> define-syntax) be detected and dispatched by
-;;; expand-library-body without expanding the body as an expression.
-
-(define (scan-lib-head stx ctx)
-  (let ((form (syntax-form stx)))
-    (if (and (pair? form) (identifier? (car form)))
-        (let*-values (((name binding)
-                       (resolve-identifier (car form) ctx)))
-          (if (and binding (transformer-binding? binding))
-              (let*-values (((out ctx1)
-                             (expand-macro-once stx ctx (binding-value binding))))
-                (scan-lib-head out ctx1))
-              (values stx ctx)))
-        (values stx ctx))))
 
 ;;; expand-library-finalize : (list (name . val-stx)) (list syntax) context
 ;;;                           -> (values defs ctx)

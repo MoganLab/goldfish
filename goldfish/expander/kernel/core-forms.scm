@@ -688,27 +688,34 @@
 ;;; a phase-0 artifact cannot name them (such a reference fails loudly
 ;;; at expansion time instead).
 
-(define (core-eval-when stx ctx)
+;;; eval-when-step : stx ctx lib -> (values ctx requeue-stxs)
+;;; Shared parse/check/expand for the three eval-when sites (core-eval-when,
+;;; expand-library-body, compile-program*): runs the expand-time effects and
+;;; returns the body to keep (load/eval present) or '() to drop.  Value
+;;; defines register in the dedicated region library (visible only at
+;;; phase >= 1); macros register in the enclosing library for the
+;;; surrounding phase.
+
+(define (eval-when-step stx ctx lib)
   (let* ((form (syntax-form stx))
          (sit-datum (map syntax->datum (syntax-form (cadr form))))
-         (exprs (cddr form))
-         (do-expand (memq 'expand sit-datum))
-         (do-keep (or (memq 'load sit-datum) (memq 'eval sit-datum))))
+         (body-exprs (cddr form)))
     (check-eval-when-situations sit-datum stx)
-      (let*-values (((ctx1)
-                     (if do-expand
-                       ;; Value defines register in the dedicated region
-                       ;; library (visible only at phase >= 1); macros
-                       ;; register in the enclosing library for the
-                       ;; surrounding phase.  The syntax's library picks
-                       ;; the macro home, so nesting in a program or
-                       ;; another region still works.
-                       (eval-when-expand! exprs ctx (syntax-library stx))
+    (let*-values (((ctx1)
+                   (if (memq 'expand sit-datum)
+                       (eval-when-expand! body-exprs ctx lib)
                        (values ctx))))
-      (if do-keep
-        (let*-values (((sexps ctx2) (expand-list exprs ctx1)))
-          (values (datum->syntax stx (cons 'begin sexps)) ctx2))
-        (values (datum->syntax stx void-expr) ctx1)))))
+      (values ctx1 (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
+                       body-exprs
+                       '())))))
+
+(define (core-eval-when stx ctx)
+  (let*-values (((ctx1 requeue)
+                 (eval-when-step stx ctx (syntax-library stx))))
+    (if (null? requeue)
+        (values (datum->syntax stx void-expr) ctx1)
+        (let*-values (((sexps ctx2) (expand-list requeue ctx1)))
+          (values (datum->syntax stx (cons 'begin sexps)) ctx2)))))
 
 ;;; begin-for-syntax : (begin-for-syntax form ...) -> void
 ;;; Racket-style surface for the flat expand-time region: the forms are

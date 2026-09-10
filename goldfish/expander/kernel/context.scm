@@ -93,6 +93,33 @@
 (define-public (binding-unstop b)
   (if (tstop-binding? b) (binding-value b) b))
 
+;;; Environments map names (symbols) to values: a list of frames, each an
+;;; association list ((name . value) ...).  In practice the expander keeps
+;;; a single frame (env-extend conses onto the head frame); kept here with
+;;; the context that owns it instead of a separate file.
+;;; env-map-values builds the "unstopped" environment for local-expand.
+
+(define-public (env-empty) '())
+
+(define-public (env-lookup env name)
+  (let loop ((frames env))
+    (if (null? frames)
+        #f
+        (let ((entry (assoc name (car frames))))
+          (if entry
+              (cdr entry)
+              (loop (cdr frames)))))))
+
+(define-public (env-extend env name value)
+  (if (null? env)
+      (list (list (cons name value)))
+      (cons (cons (cons name value) (car env)) (cdr env))))
+
+(define-public (env-map-values f env)
+  (map (lambda (frame)
+         (map (lambda (entry) (cons (car entry) (f (cdr entry)))) frame))
+       env))
+
 ;;; Dynamic context for macro transformers.
 
 (define *current-expand-context* #f)

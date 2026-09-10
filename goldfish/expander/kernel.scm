@@ -5,9 +5,6 @@
     *base-library*
     base-library
     binding-unstop
-    body-def-head
-    body-output-source
-    body-stop-list
     bound-identifier=?
     build-lambda-stx
     build-stop-frame
@@ -77,7 +74,6 @@
     expand-atom
     expand-body
     expand-body-finalize
-    expand-body-form
     expand-body-seq
     expand-box
     expand-expr
@@ -109,8 +105,6 @@
     install-core-forms!
     install-primitives!
     lexical-binding?
-    lib-output-source
-    lib-resolve-head
     local-binder
     local-expand
     local-expand-body
@@ -142,10 +136,6 @@
     qq-vector
     require-identifier
     resolve-identifier
-    scan-body-form
-    scan-def-form
-    scan-head-loop
-    scan-lib-head
     self-evaluating?
     set
     set<=?
@@ -521,7 +511,6 @@
     (include "expander/kernel/substrate.scm")
     (include "expander/kernel/exp-library.scm")
     (include "expander/kernel/sets.scm")
-    (include "expander/kernel/env.scm")
     (include "expander/kernel/store.scm")
     (include "expander/kernel/syntax-objects.scm")
     (include "expander/kernel/context.scm")

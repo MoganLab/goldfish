@@ -123,18 +123,11 @@
                    ;; effects, e.g. (set! *load-path* ...), are visible to
                    ;; subsequent imports / expansion); load/eval situations
                    ;; are deferred to the body like other expressions.
-                   (let* ((wform (syntax-form stx))
-                          (sit-datum (map syntax->datum (syntax-form (cadr wform))))
-                          (wbody (cddr wform)))
-                     (check-eval-when-situations sit-datum stx)
-                     (let*-values (((ctx1)
-                                    (if (memq 'expand sit-datum)
-                                      (eval-when-expand! wbody ctx lib)
-                                      (values ctx))))
-                       (if (or (memq 'load sit-datum) (memq 'eval sit-datum))
-                         (loop (append wbody (cdr exprs)) ctx1
-                               lib-defs body (+ n 1))
-                         (loop (cdr exprs) ctx1 lib-defs body (+ n 1))))))
+                   (let*-values (((ctx1 requeue) (eval-when-step stx ctx lib)))
+                     (if (null? requeue)
+                         (loop (cdr exprs) ctx1 lib-defs body (+ n 1))
+                         (loop (append requeue (cdr exprs)) ctx1
+                               lib-defs body (+ n 1)))))
                   (else
                    ;; Expand each top-level form in order (R7RS 5.1 program
                    ;; semantics): a definition is bound immediately, so a
