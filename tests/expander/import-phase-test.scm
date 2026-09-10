@@ -20,7 +20,7 @@
 
 ;; 编译前清产物：旧会话展开的缓存不能代表当前门控语义。
 (define (clear-artifact! src)
-  (let ((base (string-append (compile-cache-dir) "/" (cache-key-path src))))
+  (let ((base (string-append (gfo-dir) "/" (gfo-key src))))
     (for-each (lambda (suffix)
                 (let ((f (string-append base suffix ".gfo")))
                   (when (file-exists? f) (delete-file f))))

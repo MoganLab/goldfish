@@ -21,12 +21,6 @@
 ;; gfo helpers live in goldfish/core/gfo.scm (single source, L2 core-format)
 (load-source-file "core/gfo.scm")
 
-;; compat aliases for previous API
-(define compile-cache-dir gfo-dir)
-(define cache-key-path gfo-key)
-(define ensure-cache-parent! gfo-ensure-parent!)
-(define (compile-write-cache dir cache meta stamp sexp) (gfo-write! cache stamp sexp))
-
 ;;; ---------------------------------------------------------------------------
 ;;; Unified cache backend.
 ;;;
@@ -35,7 +29,7 @@
 ;;; (kind `libraries') -- shares one key scheme, one validity gate, and
 ;;; one dependency protocol:
 ;;;   key   : <path-mirror>[-o<level>].gfo under the versioned cache dir.
-;;;           Every kind carries the optimization-level suffix (boot
+;;;           Every kind carries the optimization (-oN) suffix (boot
 ;;;           installs included: optimized defs must not serve level 0).
 ;;;   stamp : the source content stamp (see gfo-stamp) plus the kernel
 ;;;           artifact stamp.
@@ -195,7 +189,7 @@
 ;;; mirrored under the versioned cache dir, suffixed by level.
 
 (define (cache-file-for path)
-  (string-append (compile-cache-dir) "/" (cache-key-path path)
+  (string-append (gfo-dir) "/" (gfo-key path)
                  (cache-level-suffix) ".gfo"))
 
 ;;; cache-load-checked : gfo-file stamp -> payload/#f
@@ -333,7 +327,7 @@
     (unless file
       (error "install-library-file!: file not found" path))
     (let ((stamp (compile-file-stamp path)))
-      (let* ((payload (cache-load-checked (install-cache-path path) stamp))
+      (let* ((payload (cache-load-checked (cache-file-for path) stamp))
              ;; A record missing any section (stale writer, era-mixed
              ;; cache reuse under parallel load) must fall back to cold
              ;; expansion, never crash the loader: treat it as a miss.
@@ -504,13 +498,10 @@
 (define (bundle-section x tag)
   (assq tag (cdddr x)))
 
-;;; install-cache-path : path -> gfo-file (unified .gfo)
-(define (install-cache-path path) (cache-file-for path))
-
 ;;; install-cache-save! : path stamp (list sexp) (list (name . sexp))
 ;;;                      (list (original . datum)) -> void
 (define (install-cache-save! path stamp defs macros bindings deps)
-  (let ((gfo-file (install-cache-path path))
+  (let ((gfo-file (cache-file-for path))
         (rec (make-bundle 'module
                (cons 'defs (map serialize-cache-sexp defs))
                (cons 'macros
@@ -677,16 +668,8 @@
 ;;; by the source's mtime and size (Guile's ccache uses the same scheme).
 ;;; compile-file keeps its uncached semantics; compile-file-cached is the
 ;;; caching entry point.
-;;; (compile-cache-dir / cache-key-path / compile-file-stamp /
-;;; compile-write-cache is defined up top, before
-;;; the boot installs.)
-
-;;; ccache-level : -> integer
-;;; The optimization level to bake into compile-file-cached artifacts.
-;;; One implementation (cache-level, defined up top with the backend);
-;;; this name stays for compatibility.
-
-(define (ccache-level) (cache-level))
+;;; compile-file-stamp is defined up top with the backend, before
+;;; the boot installs.
 
 ;;; Program-file import deps: bottom libs named by top-level (import ...)
 ;;; forms (flattening begin), so macro providers are fingerprinted too.
@@ -726,7 +709,7 @@
 
 (define (compile-file-cached-in-unit path)
   (let* ((level (cache-level))
-         (gfo-file (cache-file-for (cache-key-path path)))
+         (gfo-file (cache-file-for (gfo-key path)))
          (stamp (compile-file-stamp path))
          (forms (call-with-input-file path read-forms)))
     ;; A program bundle holds one exprs section with the serialized
@@ -779,12 +762,7 @@
 (module-define! the-expander-library 'gfo-format-version gfo-format-version)
 (module-define! the-expander-library 'gfo-load gfo-load)
 (module-define! the-expander-library 'gfo-write! gfo-write!)
-;; legacy aliases for previous API
-(module-define! the-expander-library 'compile-cache-dir compile-cache-dir)
-(module-define! the-expander-library 'cache-key-path cache-key-path)
-(module-define! the-expander-library 'ensure-cache-parent! ensure-cache-parent!)
 (module-define! the-expander-library 'compile-file-stamp compile-file-stamp)
-(module-define! the-expander-library 'compile-write-cache compile-write-cache)
 ;; Serializer shared with the user-library cache (lib/module.scm): a macro
 ;; definition caches its lowered transformer form, exactly as the boot
 ;; library installs do, so user libraries and the boot library build their
@@ -838,10 +816,9 @@
 ;;; them.  (The reference emits the bare name, which the host rootlet /
 ;;; the-expander-library resolves at eval time.)
 
-(define %internal-names-registered!
-  (for-each
-    (lambda (name)
-      (exp-library-define! the-base-library name (make-primitive-binding name)))
+;;; %internal-names: the audited surface below, as data, so the
+;;; end-of-install assert can check every entry resolves.
+(define %internal-names
     '(;; reader
       read read-forms read-line read-string read-char write-roundtrip load
       expand-eval auto-compile-enabled?
@@ -851,10 +828,11 @@
       ;; install
       install-standard-library! install-library-file! install-library-forms!
       compile-file compile-file-into compile-file-cached
-      compile-cache-dir cache-key-path ensure-cache-parent!
-      compile-file-stamp compile-write-cache
+      compile-file-stamp
+      ;; gfo backend canonical names (cache paths/keys for tools/tests)
+      gfo-dir gfo-key
       cacheable-expansion? collect-module-refs
-      install-cache-path install-cache-save! install-cache-load!
+      install-cache-save! install-cache-load!
       ;; kernel entry points (expand-time API not already exported)
       expand expand-stx expand-library-body expand-library-finalize
       initial-context make-exp-library wrap-expression
@@ -893,7 +871,13 @@
       capture-library-cache lib-record-library lib-record-exports
       runtime-registered-add! runtime-registered? register-runtime-module
       make-program-library program-library reset-program-library!
-      make-program-environment eval-in-program-environment)))
+      make-program-environment eval-in-program-environment))
+
+(define %internal-names-registered!
+  (for-each
+    (lambda (name)
+      (exp-library-define! the-base-library name (make-primitive-binding name)))
+    %internal-names))
 
 ;;; Reader variables (*load-path*, *eval-ctx*) are REAL variables, not
 ;;; functions: a primitive binding would make (set! *load-path* ...) fail
@@ -908,3 +892,19 @@
                            (make-toplevel-binding
                              (make-toplevel-ref name #f name #f))))
     '(*load-path* *eval-ctx*)))
+
+;;; Assert the audited surface resolves: every %internal-names entry must
+;;; be visible in the-expander-library buckets or rootlet-bound now that
+;;; installation is complete (module.scm, the last lib file, is installed
+;;; above; note this is bucket membership, not the export list -- most
+;;; lib-layer defines are plain defines).  A stale entry would otherwise
+;;; install a primitive emitting an unresolvable bare reference.  Names
+;;; covered only by the dynamic scan need no listing.
+;;; NOTE (no boot-time assert here, deliberately): the homes a name
+;;; resolves through legitimately differ between a cold expansion (defs
+;;; eval into the inlet) and a warm replay (defs eval elsewhere), so a
+;;; boot-time resolvability check is flaky by construction.  The
+;;; invariant -- every entry usable from (import (goldfish)) programs --
+;;; is checked post-boot by tests/expander/internal-surface-test.scm,
+;;; which reads this list through the inlet (single source of truth).
+(module-define! the-expander-library '%internal-names %internal-names)

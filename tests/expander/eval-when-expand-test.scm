@@ -25,7 +25,7 @@
 ;; 编译前清掉同名临时文件的旧产物：stamp 是秒级 mtime + size，同秒内
 ;; 重写同大小文件会陈旧命中（产品侧隐患，暂以测试防御规避）。
 (define (clear-artifact! src)
-  (let ((base (string-append (compile-cache-dir) "/" (cache-key-path src))))
+  (let ((base (string-append (gfo-dir) "/" (gfo-key src))))
     (for-each (lambda (suffix)
                 (let ((f (string-append base suffix ".gfo")))
                   (when (file-exists? f) (delete-file f))))

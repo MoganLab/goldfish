@@ -74,7 +74,7 @@
       (loop (+ i 1)))))
 
 (define (write-artifact! src rec)
-  (let ((base (string-append (compile-cache-dir) "/" (cache-key-path src))))
+  (let ((base (string-append (gfo-dir) "/" (gfo-key src))))
     (for-each (lambda (suffix)
                 (let ((f (string-append base suffix ".gfo")))
                   (ensure-parent-dir! f)

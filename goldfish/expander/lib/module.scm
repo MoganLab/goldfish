@@ -477,13 +477,8 @@
     lib))
 
 ;;; (collect-cache-module-refs lives in the install.scm backend.)
-
-;;; optimization-level : -> integer
-;;; One implementation (cache-level in the install.scm backend); this
-;;; name stays for compatibility.  Levels follow the -O0/1/2 convention
-;;; (Guile-style; Guile defaults to 2); GOLDFISH_OPT_LEVEL controls it.
-
-(define (optimization-level) (cache-level))
+;;; Levels follow the -O0/1/2 convention (Guile-style; Guile defaults to
+;;; 2); GOLDFISH_OPT_LEVEL controls cache-level in the install backend.
 
 ;;; compile-defs-on-load : (list syntax) context -> (list sexp)
 ;;; Apply the (goldfish compiler) pipeline to a library's defs.  The
@@ -530,7 +525,7 @@
       (list constant-fold simplify-if))))
 
 (define (compile-defs-on-load defs ctx)
-  (let ((level (optimization-level)))
+  (let ((level (cache-level)))
     (if (zero? level)
       (map lower defs)
       (let ((compiler (compiler-module)))
@@ -562,7 +557,7 @@
 ;;; records, core->ir is gone.
 
 (define (compile-defs-cached defs)
-  (let ((level (optimization-level)))
+  (let ((level (cache-level)))
     (if (or (null? defs) (not (vector? (car defs))))
       ;; Lowered fallback defs (bootstrap capture with the compiler
       ;; unavailable / tree-il itself being captured) pass through as-is;
@@ -599,7 +594,7 @@
 ;;; unoptimized.
 
 (define (optimize-on-load program ctx)
-  (let ((level (optimization-level)))
+  (let ((level (cache-level)))
     (if (zero? level)
       (lower program)
       (let ((compiler (compiler-module)))
@@ -743,7 +738,7 @@
         (unless (runtime-registered? lib-name)
           (runtime-registered-add! lib-name)))
       (let ((lib-file (library-file-name lib-name)))
-        (let ((gfo-file (cache-file-for (cache-key-path lib-file))))
+        (let ((gfo-file (cache-file-for (gfo-key lib-file))))
           (let* ((src (and (auto-compile-enabled?)
                            (load-find-module-file lib-file)))
                  ;; A libraries bundle holds one record per
@@ -786,7 +781,7 @@
                              (if (and (auto-compile-enabled?)
                                       (library-file-cacheable? forms))
                                (let* ((stamp (compile-file-stamp file))
-                                      (gfo-file (cache-file-for (cache-key-path lib-file))))
+                                      (gfo-file (cache-file-for (gfo-key lib-file))))
                                 (let*-values (((recs ctx) (capture-file-cache forms)))
                                   (let* ((recs (optimize-lib-cache-recs recs))
                                          (deps (map library-dep-fingerprint
