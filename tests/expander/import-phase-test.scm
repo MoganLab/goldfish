@@ -93,7 +93,9 @@
 (check-catch 'unbound-variable (compile-fresh src5))
 (delete-file src5)
 
-;; ===== 5. 多 level 取最小：run+expand 全程可见 =====
+;; ===== 5. 多 level 取并：run+expand 全程可见 =====
+;; 内层集合在每个 level 各注册一视图（run 视图持久，expand 视图精确），
+;; 此处行为与旧 min 语义一致（0/1 均可见），区别只在 2+ 相位。
 (define src6
   (write-program "forp-6"
     "(import (goldfish))\n"

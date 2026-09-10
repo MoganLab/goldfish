@@ -126,9 +126,10 @@
             ;; Phase-0 references miss, so no session-local gensym
             ;; leaks into a cached artifact.
             ;; Imported views are gated by their R7RS `for' levels
-            ;; (run = everywhere, expand = phase >= 1); own definitions
-            ;; are phase-scoped by kind -- values at phase 0, macro
-            ;; keywords at every phase (see own-binding-visible-at-phase?).
+            ;; (exact phases: run persists everywhere, higher levels at
+            ;; exactly their phase); own definitions are phase-scoped by
+            ;; kind -- values at phase 0, macro keywords at every phase
+            ;; (see own-binding-visible-at-phase?).
             (if lib
                 (let ((found (exp-library-ref-at-phase
                               lib (syntax-form stx) (context-phase ctx))))

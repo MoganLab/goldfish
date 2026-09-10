@@ -971,7 +971,9 @@
 
 ;;; import-level-number : level-datum -> integer
 ;;; R7RS import levels: run = 0, expand/syntax = 1, (meta n) = n.
-;;; Visibility is "at the level and above".
+;;; Visibility is exact-phase: level 0 persists across phases, higher
+;;; levels are visible at exactly their phase (see
+;;; exp-library-use-ref-at-phase).
 
 (define (import-level-number level)
   (cond
@@ -982,32 +984,33 @@
      (cadr level))
     (else (error 'import "bad import level" level))))
 
-;;; import-spec-level : (for set level+) -> integer
-;;; Multiple levels: the minimum -- availability is "level and above",
-;;; so the union of the requested levels is the lowest of them.
+;;; import-spec-levels : (for set level+) -> (list integer)
+;;; Every listed level, deduplicated in order: a multi-level `for'
+;;; registers (and instantiates) the inner set at EACH level (union),
+;;; one view per level for the exact-phase resolution formula.
 
-(define (import-spec-level spec)
-  (let loop ((levels (cddr spec)) (acc #f))
+(define (import-spec-levels spec)
+  (let loop ((levels (cddr spec)) (acc '()))
     (if (null? levels)
-      acc
-      (loop (cdr levels)
-            (let ((n (import-level-number (car levels))))
-              (if acc (min acc n) n))))))
+      (reverse acc)
+      (let ((n (import-level-number (car levels))))
+        (loop (cdr levels)
+              (if (memv n acc) acc (cons n acc)))))))
 
 (define (import-spec-into-library! lib spec)
   (cond
     ((and (pair? spec) (eq? (car spec) 'for))
-     ;; R7RS (for import-set level ...): the levels choose the phases the
-     ;; import is visible at (the view is registered on the importing
-     ;; library with that level; resolve-identifier consults it at phase
-     ;; >= level).  The inner set bottoms out in the same library as a
-     ;; plain import, so dependency loading and cache records are
-     ;; unaffected.
+     ;; R7RS (for import-set level ...): the inner set is imported at
+     ;; EACH listed level (union) -- one view and one instantiation per
+     ;; level for the exact-phase resolution formula.  The inner set
+     ;; bottoms out in the same library as a plain import, so dependency
+     ;; loading and cache records are unaffected.
      (if (and (pair? (cdr spec)) (pair? (cddr spec)))
          (if (and (pair? (cadr spec)) (eq? (car (cadr spec)) 'for))
              (error 'import "for spec wraps an import set, not another for" spec)
-             (import-spec-clause-into-library! lib (cadr spec)
-                                               (import-spec-level spec)))
+             (for-each (lambda (level)
+                         (import-spec-clause-into-library! lib (cadr spec) level))
+                       (import-spec-levels spec)))
          (error 'import "for spec needs an import set and at least one level" spec)))
     (else
      (import-spec-clause-into-library! lib spec 0))))

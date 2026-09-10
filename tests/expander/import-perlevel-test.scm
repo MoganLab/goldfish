@@ -50,6 +50,16 @@
            p)
     (newline p)))
 
+(call-with-output-file (string-append fixture-sub "/formulti.scm")
+  (lambda (p)
+    (write '(define-library (plvl formulti)
+              (import (goldfish) (for (plvl dual) expand (meta 2)))
+              (export fok)
+              (begin
+                (define fok 1)))
+           p)
+    (newline p)))
+
 (if (not (member fixture-dir *load-path*))
   (set! *load-path* (cons fixture-dir *load-path*)))
 
@@ -149,6 +159,33 @@
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 0) b0) #t #f) => #t)
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 1) b1) #t #f) => #t)
 (check (if (eq? (exp-library-ref-at-phase probe 'get-v 2) b2) #t #f) => #t)
+
+;; ===== 3e. 精确相位：{1, 2} 视图在 0 与 3+ 不可见 =====
+;; run 持久之外的 level 只在精确相位可见（阈值模型会在 3+ 误命中）。
+(define probe2 (make-exp-library '(plvl probe2)))
+(add-import-view! probe2 (import-view '(plvl dual) '((get-v . get-v)) #t 1) 1)
+(add-import-view! probe2 (import-view '(plvl dual) '((get-v . get-v)) #t 2) 2)
+(check (exp-library-ref-at-phase probe2 'get-v 0) => #f)
+(check (if (eq? (exp-library-ref-at-phase probe2 'get-v 1) b1) #t #f) => #t)
+(check (if (eq? (exp-library-ref-at-phase probe2 'get-v 2) b2) #t #f) => #t)
+(check (exp-library-ref-at-phase probe2 'get-v 3) => #f)
+
+;; ===== 3f. 多 level `for' 取并：逐层各注册一视图 =====
+;; (for dual expand (meta 2)) 在 formulti 身上留下 level 1 与 2 两个视图
+;;（旧 min 语义只留 level 1）。
+(load-library! '(plvl formulti))
+(define fm-uses (exp-library-uses (car (library-registry-ref '(plvl formulti)))))
+(define (fm-levels name)
+  (let loop ((us fm-uses) (acc '()))
+    (if (null? us)
+      (reverse acc)
+      (loop (cdr us)
+            (if (equal? (exp-library-name (caar us)) name)
+              (cons (cdar us) acc)
+              acc)))))
+(let ((ls (fm-levels '(plvl dual))))
+  (check (length ls) => 2)
+  (check-true (if (and (memv 1 ls) (memv 2 ls)) #t #f)))
 
 ;; ===== 4. 同库豁免：plain + expand 并存不报冲突 =====
 (define (write-program name . texts)

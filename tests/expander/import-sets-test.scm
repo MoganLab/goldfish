@@ -11,8 +11,8 @@
 ;; Import errors surface through the expander's runtime entry points
 ;; (load-library!), so they are assertable in-process.
 ;; `for' levels are NOT phase-blind: views register with their level and
-;; resolve-identifier consults them at phase >= level (full phase
-;; semantics live in import-phase-test.scm).
+;; resolve-identifier consults them at exactly their phase (run persists
+;; everywhere; full phase semantics live in import-phase-test.scm).
 
 ;; Contract: #f if thunk raised nothing, else the guard's rendered
 ;; detail when wrapped, otherwise the raw error template head.
@@ -153,7 +153,8 @@
 ;; ===== 4. R7RS `for' level specs =====
 ;; (for import-set level ...) chooses the phases an import is visible at:
 ;; views register with their level and resolve-identifier consults them
-;; at phase >= level (full gating matrix in import-phase-test.scm).
+;; at exactly their phase (run persists everywhere; full gating matrix
+;; in import-phase-test.scm).
 ;; At the session top level, imports also populate the environment, so a
 ;; for-imported name stays usable here; the shape is validated too (at
 ;; least one level).  What §6 below locks: inside define-library bodies

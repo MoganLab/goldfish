@@ -68,18 +68,20 @@
       #f)))
 
 ;; exp-library-use-ref-at-phase : lib name phase -> binding/#f
-;; Resolution formula: among import views at level <= phase that bind
-;; NAME, the highest level wins; ties resolve newest-first (the most
-;; recent import of a level shadows earlier ones at that level).
-;; A view at level n > phase is simply not a candidate; there is no
-;; fallback across levels.  Level-0 views are candidates at every
-;; phase (substrate rule: plain imports are unrestricted).
+;; Resolution formula (exact phases): a view at level n is a candidate
+;; at phase p iff n = 0 or n = p.  Run imports (level 0) persist across
+;; phases (Racket-consistent cross-phase persistence: transformer bodies
+;; call imported functions); higher levels are visible at exactly their
+;; phase.  Among candidates the highest level wins; ties resolve
+;; newest-first (the most recent import of a level shadows earlier ones
+;; at that level).  There is no fallback across levels.
 (define (exp-library-use-ref-at-phase lib name phase)
   (let scan ((uses (exp-library-uses lib)) (best #f) (best-lvl -1))
     (if (null? uses)
       best
       (let* ((lvl (cdar uses))
-             (b (if (<= lvl phase) (exp-library-ref-own (caar uses) name) #f))
+             (candidate (or (zero? lvl) (= lvl phase)))
+             (b (and candidate (exp-library-ref-own (caar uses) name)))
              (better (and b (> lvl best-lvl))))
         (scan (cdr uses)
               (if better b best)
