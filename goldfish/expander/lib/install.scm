@@ -327,7 +327,10 @@
   (let ((file (load-find-module-file path)))
     (unless file
       (error "install-library-file!: file not found" path))
-    (let ((stamp (compile-file-stamp path)))
+    ;; Stamp the RESOLVED file: stamping the unresolved repo-relative path
+    ;; degrades to (-1 -1) (it never resolves against the process CWD),
+    ;; leaving the pipeline-fingerprint directory as the only invalidation.
+    (let ((stamp (compile-file-stamp file)))
       (let* ((payload (cache-load-checked (cache-file-for path) stamp))
              ;; A record missing any section (stale writer, era-mixed
              ;; cache reuse under parallel load) must fall back to cold
@@ -711,7 +714,7 @@
 
 (define (compile-file-cached-in-unit path)
   (let* ((level (cache-level))
-         (gfo-file (cache-file-for (gfo-key path)))
+         (gfo-file (cache-file-for path))
          (stamp (compile-file-stamp path))
          (forms (call-with-input-file path read-forms)))
     ;; A program bundle holds one exprs section with the serialized

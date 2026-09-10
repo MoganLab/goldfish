@@ -667,7 +667,8 @@
         (unless (runtime-registered? lib-name)
           (runtime-registered-add! lib-name)))
       (let ((lib-file (library-file-name lib-name)))
-        (let ((gfo-file (cache-file-for (gfo-key lib-file))))
+        ;; cache-file-for already applies gfo-key; pass the path directly.
+        (let ((gfo-file (cache-file-for lib-file)))
           (let* ((src (and (auto-compile-enabled?)
                            (load-find-module-file lib-file)))
                  ;; A libraries bundle holds one record per
@@ -710,7 +711,7 @@
                              (if (and (auto-compile-enabled?)
                                       (library-file-cacheable? forms))
                                (let* ((stamp (compile-file-stamp file))
-                                      (gfo-file (cache-file-for (gfo-key lib-file))))
+                                      (gfo-file (cache-file-for lib-file)))
                                 (let*-values (((recs ctx) (capture-file-cache forms)))
                                   (let* ((recs (optimize-lib-cache-recs recs))
                                          (deps (map library-dep-fingerprint
