@@ -8,6 +8,7 @@
 
 (define serialize (module-ref the-expander-library 'serialize-cache-sexp))
 (define gfo-version (module-ref the-expander-library 'gfo-format-version))
+(define compile-file-cached (module-ref the-expander-library 'compile-file-cached))
 
 ;; 深度优先谓词：pred 命中任一节点即 #t（对任意可遍历结构安全）。
 (define (tree-contains? pred v)
@@ -130,5 +131,23 @@
   (delete-file src)
   (when (file-exists? marker) (delete-file marker))
   (when (file-exists? out) (delete-file out)))
+
+;; ===== load-path 相对拼写的程序编译 =====
+;; compile-file-cached 对 stamp/读盘用解析后的路径：load-path 上找得到
+;; 但 CWD 下不存在的文件也能编译（旧代码直接读未解析串而报错）。
+;; 只读缓存下不断言落盘，只断言编译产物成立。
+(let* ((root (string-append (os-temp-dir) "/prog-" (number->string (getpid))))
+       (leaf "rel-hello.scm"))
+  (catch #t (lambda () (mkdir root)) (lambda args #f))
+  (call-with-output-file (string-append root "/" leaf)
+    (lambda (p) (display "(define rel-prog-val 42)" p) (newline p)))
+  (and (not (member root *load-path*))
+       (set! *load-path* (cons root *load-path*)))
+  (let ((prog (catch #t
+                (lambda () (compile-file-cached leaf))
+                (lambda args (list 'error args)))))
+    (check-true (pair? prog))
+    ;; lowering renames the define target; the constant survives
+    (check-true (tree-contains? (lambda (x) (equal? x 42)) prog))))
 
 (check-report)

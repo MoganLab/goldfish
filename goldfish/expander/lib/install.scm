@@ -715,8 +715,14 @@
 (define (compile-file-cached-in-unit path)
   (let* ((level (cache-level))
          (gfo-file (cache-file-for path))
-         (stamp (compile-file-stamp path))
-         (forms (call-with-input-file path read-forms)))
+         ;; Resolve once for stamping/reading: the unresolved spelling
+         ;; degrades to a (-1 -1) stamp when the file is found through the
+         ;; load path instead of the CWD.  The key stays on `path' (stable
+         ;; spellings share entries); a missing file falls back to `path'
+         ;; so the read below errors exactly as before.
+         (file (or (load-find-module-file path) path))
+         (stamp (compile-file-stamp file))
+         (forms (call-with-input-file file read-forms)))
     ;; A program bundle holds one exprs section with the serialized
     ;; lowered program; deserialize rebuilds its embedded syntax
     ;; constants as live records.
