@@ -20,8 +20,9 @@ gensym 各自独立。这是 Racket 的标准行为(required 两次,体跑两次
 
 机制已存在:`call-with-fresh-expand-unit` + 在 inlet 里求值
 缓存产物;registry/runtime/being-loaded 按 level 键(level 0 裸名,
-level ≥ 1 为 (level . name)),同库豁免冲突检查;冷捕获踩掉的
-bare 项按快照恢复;预存 level-0 运行时模块在 load 后恢复。
+level ≥ 1 为 (level . name)),同库豁免冲突检查;level ≥ 1 实例
+不注册运行时模块(loader 丢弃烘焙的注册形式),level-0 模块从
+不被触碰;冷捕获踩掉的 bare 注册表项按快照恢复。
 
 ### 原则二:解析公式(唯一一条)  [已落地]
 
