@@ -163,7 +163,6 @@
                (t (constant-fold tail)))
            (cond
              ((void? t) h)
-             ((and (void? h) (void? t)) (make-void #f))
              (else (make-seq #f h t)))))
         (($let names gensyms vals body)
          (make-let #f names gensyms
@@ -575,30 +574,50 @@
                             #f))
         (inline-walk lc env budget)))
 
+    ;; lookup-known : name env budget -> ir/#f
+    ;; The env lookup shared by inline-walk's symbol and lexical-ref
+    ;; branches: a known substitution (not a marker and not a recursion /
+    ;; lambda sentinel) is returned, spending one effort unit; #f otherwise.
+    (define (lookup-known name env budget)
+      (let ((v (assq name env)))
+        (if (and v (not (eq? (cdr v) *inline-var*))
+                 (not (and (pair? (cdr v))
+                           (memq (car (cdr v))
+                                 (list *inline-rec-var* *inline-lam*)))))
+          (begin (inline-spend-effort! budget 1) (cdr v))
+          #f)))
+
+    ;; beta-unroll : lambda f args env budget -> ir
+    ;; The unroll shared by the recursive and non-recursive call clauses:
+    ;; beta-bind the formals to the (constant) args, rebuild the body as a
+    ;; let, and keep walking it; an unbindable call stays a variable call.
+    (define (beta-unroll lam f args env budget)
+      (let ((bindings (beta-bindings (or (lambda-formals lam) '()) args)))
+        (if bindings
+          (let* ((lc (lambda-body lam))
+                 (body (if (lambda-case? lc)
+                           (lambda-case-body lc)
+                           lc))
+                 (let-form (make-let #f
+                                     (map car bindings)
+                                     (map car bindings)
+                                     (map cadr bindings)
+                                     body)))
+            (inline-spend-effort! budget 2)
+            (inline-deepen! budget)
+            (inline-walk let-form env budget))
+          (make-call #f f args))))
+
     (define (inline-walk ir env budget)
       (if (inline-budget-spent? budget)
         ir
         (cond
           ((symbol? ir)
-           (let ((v (assq ir env)))
-             (cond
-               ((and v (not (eq? (cdr v) *inline-var*))
-                     (not (and (pair? (cdr v))
-                               (memq (car (cdr v))
-                                     (list *inline-rec-var* *inline-lam*)))))
-                (begin (inline-spend-effort! budget 1) (cdr v)))
-               (else ir))))
+           (or (lookup-known ir env budget) ir))
           ((or (const? ir) (void? ir)) ir)
           ((primitive-ref? ir) ir)
           ((lexical-ref? ir)
-           (let ((v (assq (lexical-ref-name ir) env)))
-             (cond
-               ((and v (not (eq? (cdr v) *inline-var*))
-                     (not (and (pair? (cdr v))
-                               (memq (car (cdr v))
-                                     (list *inline-rec-var* *inline-lam*)))))
-                (begin (inline-spend-effort! budget 1) (cdr v)))
-               (else ir))))
+           (or (lookup-known (lexical-ref-name ir) env budget) ir))
           ((lambda? ir)
            (let* ((b (lambda-body ir))
                   (req (or (and (lambda-case? b) (lambda-case-req b)) '()))
@@ -719,38 +738,10 @@
                      ;; argument to fold through), so it stays a variable call.
                      ((and lam rec? (not (inline-budget-spent? budget)))
                       (if (and (pair? args) (every const-arg? args))
-                        (let ((bindings (beta-bindings (or (lambda-formals lam) '()) args)))
-                          (if bindings
-                            (let* ((lc (lambda-body lam))
-                                   (body (if (lambda-case? lc)
-                                             (lambda-case-body lc)
-                                             lc))
-                                   (let-form (make-let #f
-                                                       (map car bindings)
-                                                       (map car bindings)
-                                                       (map cadr bindings)
-                                                       body)))
-                              (inline-spend-effort! budget 2)
-                              (inline-deepen! budget)
-                              (inline-walk let-form env budget))
-                            (make-call #f f args)))
+                        (beta-unroll lam f args env budget)
                         (make-call #f f args)))
                      ((and lam (not rec?) (not (inline-budget-spent? budget)))
-                      (let ((bindings (beta-bindings (or (lambda-formals lam) '()) args)))
-                        (if bindings
-                          (let* ((lc (lambda-body lam))
-                                 (body (if (lambda-case? lc)
-                                           (lambda-case-body lc)
-                                           lc))
-                                 (let-form (make-let #f
-                                                     (map car bindings)
-                                                     (map car bindings)
-                                                     (map cadr bindings)
-                                                     body)))
-                            (inline-spend-effort! budget 2)
-                            (inline-deepen! budget)
-                            (inline-walk let-form env budget))
-                          (make-call #f f args))))
+                      (beta-unroll lam f args env budget))
                      (else
                       (or (try-fold-call-ir f args)
                           (make-call #f f args)))))))))
