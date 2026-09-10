@@ -1184,19 +1184,6 @@ goldfish_print_scheme_error_message (s7_scheme* sc, const char* errmsg) {
 }
 
 static void
-goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefix, const char* errmsg) {
-  if ((errmsg) && (*errmsg)) {
-    string rendered;
-    goldfish_render_scheme_error_message (sc, errmsg, rendered);
-    cerr << prefix;
-    if ((!prefix.empty ()) && (prefix.back () != '\n')) {
-      cerr << '\n';
-    }
-    cerr << rendered;
-  }
-}
-
-static void
 goldfish_eval_code (s7_scheme* sc, string code) {
   string     wrapped_code= "(begin " + code + " )";
   s7_pointer x           = s7_eval_c_string (sc, wrapped_code.c_str ());
