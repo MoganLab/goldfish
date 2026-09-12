@@ -1,5 +1,5 @@
 (define-library (scheme base)
-  (import (goldfish))
+  (import (goldfish) (rename (goldfish) (error host-error)))
   (export
     ;; ------------------------------------------------------------------
     ;; R7RS (scheme base) 导出清单
@@ -80,11 +80,9 @@
     equal?
     eqv?
     error
-    ;; TODO: error-object-irritants 尚未实现
-    ;;       （s7 无 error object 类型；(guard (e ...)) 绑定抛出的第一个值，
-    ;;        与 error-object 语义不一致，需要引入真正的错误对象类型）
-    ;; TODO: error-object-message 尚未实现（同上）
-    ;; TODO: error-object? 尚未实现（同上）
+    error-object?
+    error-object-irritants
+    error-object-message
     even?
     exact
     exact-integer-sqrt
@@ -426,7 +424,33 @@
                    (if (eq? (car caught) 'raised)
                        (let ((var (cdr caught)))
                          (cond clause ... . extra))
-                       (apply values (cdr caught))))))))))
+                        (apply values (cdr caught))))))))))
+
+    ;; R7RS error-object：库内 (error 'type ...) 是 s7 惯用法（首参为
+    ;; 类型符号），保持走宿主原语 host-error（rename 导入，无歧义）；
+    ;; 首参为 string 时走 R7RS 语义——构造 error object 并 raise，
+    ;; guard/with-exception-handler 收到对象本身。
+
+    (define-record-type <error-object>
+      (make-error-object message irritants)
+      error-object?
+      (message %error-object-message)
+      (irritants %error-object-irritants))
+
+    (define (error message . irritants)
+      (if (string? message)
+        (raise (make-error-object message irritants))
+        (apply host-error message irritants)))
+
+    (define (error-object-message obj)
+      (if (error-object? obj)
+        (%error-object-message obj)
+        (host-error 'type-error "error-object-message: not an error object" obj)))
+
+    (define (error-object-irritants obj)
+      (if (error-object? obj)
+        (%error-object-irritants obj)
+        (host-error 'type-error "error-object-irritants: not an error object" obj)))
 
     (define-syntax include
       (lambda (stx)
