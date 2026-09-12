@@ -9,19 +9,9 @@
   (export match match-lambda match-lambda* match-let match-let* match-letrec)
   (begin
 ;;; lib/match.scm
-;;; The canonical portable pattern matcher (Alex Shinn, public domain),
-;;; promoted from examples/match.scm into the self-hosted lib layer.
-;;; Pure syntax-rules; installed by lib/install.scm after core-macros so
-;;; the code its expansion emits (let / and / or / ...) resolves, and
-;;; before module.scm so the module surface can use it too.
-;;;
-;;; Dogfooding: the kernel itself uses this library -- kernel/intdef.scm
-;;; and kernel/evaluator.scm -- since the build re-expands the kernel with
-;;; the lib layer installed (build-aux/combine.scm).
-;;;
-;;; Relying on our syntax-rules: the `_' literal in match's internal
-;;; literal lists (match-two etc.) is what the literal-underscore
-;;; semantics in lib/syntax-runtime.scm was added for.
+;;; The canonical portable pattern matcher (Alex Shinn, public domain).
+;;; Pure syntax-rules.  User code prefers (goldfish match); this library
+;;; remains as the portable/compat surface.
 
 ;;;; match.scm -- portable hygienic pattern matcher -*- coding: utf-8 -*-
 ;;
