@@ -39,5 +39,13 @@
          "~Y-~m-~d ~H:~M:~S")
    => "2024-03-05 13:07:09")
 
+;; process/thread CPU 时钟可用且单调。
+(check (time? (current-time TIME-PROCESS)) => #t)
+(check (time-type (current-time TIME-PROCESS)) => TIME-PROCESS)
+(check (time? (current-time TIME-THREAD)) => #t)
+(check (time-type (current-time TIME-THREAD)) => TIME-THREAD)
+(check (integer? (time-resolution TIME-PROCESS)) => #t)
+(check (integer? (time-resolution TIME-THREAD)) => #t)
+
 (check-report)
 (if (check-failed?) (exit -1))

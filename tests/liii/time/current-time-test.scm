@@ -29,8 +29,8 @@
 (check-true (time? (current-time TIME-UTC)))
 (check-true (time? (current-time TIME-MONOTONIC)))
 (check-true (time? (current-time TIME-TAI)))
-(check-catch 'type-error (time? (current-time TIME-THREAD)))
-(check-catch 'type-error (time? (current-time TIME-PROCESS)))
+(check-true (time? (current-time TIME-PROCESS)))
+(check-true (time? (current-time TIME-THREAD)))
 (check-catch 'type-error (time? (current-time TIME-DURATION)))
 
 
@@ -38,8 +38,8 @@
 (check (time-type (current-time TIME-UTC)) => TIME-UTC)
 (check (time-type (current-time TIME-MONOTONIC)) => TIME-MONOTONIC)
 (check (time-type (current-time TIME-TAI)) => TIME-TAI)
-(check-catch 'type-error (time-type (current-time TIME-THREAD)))
-(check-catch 'type-error (time-type (current-time TIME-PROCESS)))
+(check (time-type (current-time TIME-PROCESS)) => TIME-PROCESS)
+(check (time-type (current-time TIME-THREAD)) => TIME-THREAD)
 (check-catch 'type-error (time-type (current-time TIME-DURATION)))
 
 

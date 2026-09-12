@@ -51,6 +51,10 @@
   (import (rename (scheme time)
             (get-time-of-day glue:get-time-of-day)
             (monotonic-nanosecond glue:monotonic-nanosecond)
+            (process-cpu-nanosecond glue:process-cpu-nanosecond)
+            (thread-cpu-nanosecond glue:thread-cpu-nanosecond)
+            (process-clock-resolution glue:process-clock-resolution)
+            (thread-clock-resolution glue:thread-clock-resolution)
           ) ;rename
     (only (srfi srfi-13) string-pad string-tokenize string-trim-right)
     (only (srfi srfi-8) receive)
@@ -468,7 +472,10 @@
     ) ;define
 
     (define (priv:current-time-process)
-      (error "unimplemented time")
+      (receive (s ns)
+        (floor/ (glue:process-cpu-nanosecond) 1000000000)
+        (make-time TIME-PROCESS ns s)
+      ) ;receive
     ) ;define
 
     (define (priv:current-time-tai)
@@ -479,7 +486,10 @@
     ) ;define
 
     (define (priv:current-time-thread)
-      (error "unimplemented time")
+      (receive (s ns)
+        (floor/ (glue:thread-cpu-nanosecond) 1000000000)
+        (make-time TIME-THREAD ns s)
+      ) ;receive
     ) ;define
 
     (define (priv:current-time-utc)
@@ -491,7 +501,9 @@
          ,priv:current-time-monotonic
          . ,steady-clock-resolution)
         (,TIME-TAI ,priv:current-time-tai . ,system-clock-resolution)
-        (,TIME-UTC ,priv:current-time-utc . ,system-clock-resolution))
+        (,TIME-UTC ,priv:current-time-utc . ,system-clock-resolution)
+        (,TIME-PROCESS ,priv:current-time-process . ,glue:process-clock-resolution)
+        (,TIME-THREAD ,priv:current-time-thread . ,glue:thread-clock-resolution))
     ) ;define
     (define (priv:query-time-dispatch clock-type querier)
       (let ((entry (assq clock-type priv:TIME-DISPATCH)))

@@ -103,7 +103,7 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 
 ### T2 平台能力（非语言；来自 OS/C 标准库，共 ~57 个 `g_*`）
 
-- fs/path/env/process（34）、time（7）、hash/base64（8）、http（8，可选编译）、subprocess/uuid/misc。
+- fs/path/env/process（34）、time（11，含 process/thread CPU 时钟）、hash/base64（8）、http（8，可选编译）、subprocess/uuid/misc。
 
 ### T3 下沉候补（空）
 

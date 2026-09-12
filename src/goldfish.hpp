@@ -23,6 +23,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -195,6 +196,67 @@ f_monotonic_nanosecond (gf::scheme* sc, gf::pointer args) {
   return gf::make_integer (sc, count);
 }
 
+// Process/thread CPU time (SRFI-19 time-process/time-thread).  POSIX.1
+// clock_gettime covers Linux and macOS 10.12+; Windows uses
+// GetProcessTimes/GetThreadTimes (100ns units).  Returns 0 when the
+// clock is unavailable instead of failing the process.
+static gf::int_
+cpu_clock_nanosecond (bool thread) {
+#ifdef _MSC_VER
+  FILETIME creation, exit, kernel, user;
+  HANDLE   handle= thread ? GetCurrentThread () : GetCurrentProcess ();
+  BOOL     ok    = thread ? GetThreadTimes (handle, &creation, &exit, &kernel, &user)
+                            : GetProcessTimes (handle, &creation, &exit, &kernel, &user);
+  if (!ok) return 0;
+  ULARGE_INTEGER ku, uu;
+  ku.LowPart= kernel.dwLowDateTime; ku.HighPart= kernel.dwHighDateTime;
+  uu.LowPart= user.dwLowDateTime; uu.HighPart= user.dwHighDateTime;
+  return (gf::int_) ((ku.QuadPart + uu.QuadPart) * 100);
+#else
+  struct timespec ts;
+  if (clock_gettime (thread ? CLOCK_THREAD_CPUTIME_ID : CLOCK_PROCESS_CPUTIME_ID, &ts) != 0)
+    return 0;
+  return (gf::int_) ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
+
+static gf::int_
+cpu_clock_resolution_ns (bool thread) {
+#ifdef _MSC_VER
+  (void) thread;
+  return 100;
+#else
+  struct timespec ts;
+  if (clock_getres (thread ? CLOCK_THREAD_CPUTIME_ID : CLOCK_PROCESS_CPUTIME_ID, &ts) != 0)
+    return 1;
+  return (gf::int_) ts.tv_sec * 1000000000LL + ts.tv_nsec;
+#endif
+}
+
+static gf::pointer
+f_process_cpu_nanosecond (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::make_integer (sc, cpu_clock_nanosecond (false));
+}
+
+static gf::pointer
+f_thread_cpu_nanosecond (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::make_integer (sc, cpu_clock_nanosecond (true));
+}
+
+static gf::pointer
+f_process_cpu_resolution (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::make_integer (sc, cpu_clock_resolution_ns (false));
+}
+
+static gf::pointer
+f_thread_cpu_resolution (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::make_integer (sc, cpu_clock_resolution_ns (true));
+}
+
 template <typename Clock>
 constexpr int64_t
 clock_resolution_ns () {
@@ -220,10 +282,28 @@ glue_scheme_time (gf::scheme* sc) {
              gf::make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false,
                                      d_monotonic_nanosecond, NULL));
 
+  const char* s_process_cpu_nanosecond= "g_process-cpu-nanosecond";
+  const char* d_process_cpu_nanosecond= "(g_process-cpu-nanosecond): () => integer, returns the process CPU time "
+                                      "in nanoseconds (SRFI-19 time-process clock)";
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_process_cpu_nanosecond),
+             gf::make_typed_function (sc, s_process_cpu_nanosecond, f_process_cpu_nanosecond, 0, 0, false,
+                                     d_process_cpu_nanosecond, NULL));
+
+  const char* s_thread_cpu_nanosecond= "g_thread-cpu-nanosecond";
+  const char* d_thread_cpu_nanosecond= "(g_thread-cpu-nanosecond): () => integer, returns the current thread CPU time "
+                                      "in nanoseconds (SRFI-19 time-thread clock)";
+  gf::define (sc, cur_env, gf::make_symbol (sc, s_thread_cpu_nanosecond),
+             gf::make_typed_function (sc, s_thread_cpu_nanosecond, f_thread_cpu_nanosecond, 0, 0, false,
+                                     d_thread_cpu_nanosecond, NULL));
+
   gf::define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
                                        gf::make_integer (sc, clock_resolution_ns<std::chrono::system_clock> ()));
   gf::define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
                                        gf::make_integer (sc, clock_resolution_ns<std::chrono::steady_clock> ()));
+  gf::define_constant_with_environment (sc, cur_env, "g_process-clock-resolution",
+                                       gf::make_integer (sc, cpu_clock_resolution_ns (false)));
+  gf::define_constant_with_environment (sc, cur_env, "g_thread-clock-resolution",
+                                       gf::make_integer (sc, cpu_clock_resolution_ns (true)));
 }
 
 static gf::pointer

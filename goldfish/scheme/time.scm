@@ -21,8 +21,12 @@
     jiffies-per-second
     get-time-of-day
     monotonic-nanosecond
+    process-cpu-nanosecond
+    thread-cpu-nanosecond
     system-clock-resolution
     steady-clock-resolution
+    process-clock-resolution
+    thread-clock-resolution
   ) ;export
   (begin
 
@@ -32,8 +36,12 @@
 
     (define get-time-of-day g_get-time-of-day)
     (define monotonic-nanosecond g_monotonic-nanosecond)
+    (define process-cpu-nanosecond g_process-cpu-nanosecond)
+    (define thread-cpu-nanosecond g_thread-cpu-nanosecond)
     (define system-clock-resolution g_system-clock-resolution)
     (define steady-clock-resolution g_steady-clock-resolution)
+    (define process-clock-resolution g_process-clock-resolution)
+    (define thread-clock-resolution g_thread-clock-resolution)
 
     (define (current-second)
       (let-values (((sec usec) (get-time-of-day)))

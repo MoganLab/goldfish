@@ -29,8 +29,8 @@
 (check-true (integer? (time-resolution TIME-UTC)))
 (check-true (integer? (time-resolution TIME-MONOTONIC)))
 (check-true (integer? (time-resolution TIME-TAI)))
-(check-catch 'type-error (time-resolution TIME-THREAD))
-(check-catch 'type-error (time-resolution TIME-PROCESS))
+(check-true (integer? (time-resolution TIME-PROCESS)))
+(check-true (integer? (time-resolution TIME-THREAD)))
 (check-catch 'type-error (time-resolution TIME-DURATION))
 
 
