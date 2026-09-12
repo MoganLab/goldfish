@@ -17,8 +17,7 @@
 
 (define (candidate-index-paths)
   ;; 运行目录可能是项目根（手动）或 tools/doc（测试 runner 切目录）；
-  ;; 收集两种布局下真实存在的索引文件（`..` 多段路径不可靠，见 path 实现，
-  ;; 这里用 path-parent 逐级枚举）。
+  ;; 收集两种布局下真实存在的索引文件（CWD 逐级向上枚举）。
   (let* ((cwd (path (getcwd)))
          (up1 (path-parent cwd))
          (up2 (path-parent up1))
