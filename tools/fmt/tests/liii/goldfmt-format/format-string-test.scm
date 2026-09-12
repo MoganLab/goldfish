@@ -81,17 +81,16 @@
   "x\n\n(define y 2)\n"
 ) ;check
 
-;; 测试嵌套 quote 形式 '(quote define)
-;; '(quote define) 应该保持原样输出，不压缩为 ''define
+;; 测试嵌套 quote 形式 '(quote define)：内外逐层压缩为 ''define
 (check (format-string "'(quote define)")
   =>
-  "'(quote define)\n"
+  "''define\n"
 ) ;check
 
 ;; 测试 '(quote x)
 (check (format-string "'(quote x)")
   =>
-  "'(quote x)\n"
+  "''x\n"
 ) ;check
 
 ;; 测试普通 quote 列表
@@ -106,11 +105,8 @@
   "'(a b . c)\n"
 ) ;check
 
-;; bare syntax object 不应导致 formatter 崩溃
-(check (format-string "#_quote")
-  =>
-  "#_quote\n"
-) ;check
+;; bare #_quote 是 S7 reader 专属写法，本 reader 读到 #_ 即报 read-error
+;;（非法输入由调用方处理，formatter 不再静默透传），此用例随之退役。
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法
 (check (format-string "`(a ,b)")
@@ -157,10 +153,11 @@
 ) ;check
 
 ;; 超过 max-inline-length 的 reader datum 应进入 head-aware 多行排版
+;; backquote 内部的 (quote done) 递归压缩为 'done（与 '' 嵌套同一规则）
 (check (format-string "`(begin (define ,name ,value) ,@(map f xs) (quote done) (another-long-form alpha beta gamma delta epsilon))"
        ) ;format-string
   =>
-  "`(begin\n   (define ,name ,value)\n   ,@(map f xs)\n   (quote done)\n   (another-long-form alpha beta gamma delta epsilon))\n"
+  "`(begin\n   (define ,name ,value)\n   ,@(map f xs)\n   'done\n   (another-long-form alpha beta gamma delta epsilon))\n"
 ) ;check
 
 (let ((typed-lambda-text (format-first-node-file "007_05.scm")))

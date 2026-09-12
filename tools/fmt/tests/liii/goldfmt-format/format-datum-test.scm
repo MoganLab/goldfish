@@ -150,40 +150,37 @@
   "'(a b c)"
 ) ;check
 
-(check (format-datum '(set! x (#_quote value)))
+(check (format-datum '(set! x (quote value)))
   =>
   "(set! x 'value)"
 ) ;check
 
-(check (format-datum '(f (#_quote a) (#_quote b))
+(check (format-datum '(f (quote a) (quote b))
        ) ;format-datum
   =>
   "(f 'a 'b)"
 ) ;check
 
-(check (format-datum '(#_quote symbol))
+(check (format-datum (list 'quote 'symbol))
   =>
   "'symbol"
 ) ;check
 
-(check (format-datum '(#_quote (a b c)))
+(check (format-datum (list 'quote '(a b c)))
   =>
   "'(a b c)"
 ) ;check
 
-;; 测试嵌套 quote 形式 '(quote define)
-;; '(quote define) 读取为 (#_quote (quote define))
-;; 内部的 (quote define) 是普通列表，不应被压缩
-;; 所以输出保持为 '(quote define)
-(check (format-datum '(#_quote (quote define)))
+;; 测试嵌套 quote 形式 (quote (quote define))：内外逐层压缩为 ''define
+(check (format-datum (list 'quote '(quote define)))
   =>
-  "'(quote define)"
+  "''define"
 ) ;check
 
-;; 测试 '(quote x) 的格式化
-(check (format-datum '(#_quote (quote x)))
+;; 测试 (quote (quote x)) 的格式化
+(check (format-datum (list 'quote '(quote x)))
   =>
-  "'(quote x)"
+  "''x"
 ) ;check
 
 ;; quasiquote 内部形式应该还原为 ` , ,@ 语法

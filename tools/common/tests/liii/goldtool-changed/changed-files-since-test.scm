@@ -16,7 +16,7 @@
 
 (set! *load-path* (cons "tools/common" *load-path*))
 
-(import (liii check) (liii goldtool-changed) (liii list) (liii os) (liii path))
+(import (liii check) (liii goldtool-changed) (liii list) (except (liii os) remove) (liii path))
 
 (check-set-mode! 'report-failed)
 

@@ -6,7 +6,7 @@
   (liii cpp-fmt)
   (liii goldtool-changed)
   (liii list)
-  (liii os)
+  (except (liii os) remove)
   (liii path)
   (liii string)
 ) ;import

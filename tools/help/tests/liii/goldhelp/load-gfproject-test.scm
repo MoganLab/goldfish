@@ -47,19 +47,19 @@
         (chdir (path->string base-root))
 
         ;; 字段级深度合并：本地只补 description.zh_CN，不应丢失内置 organization/module/en_US
+        ;; load-gfproject 返回 SEXP 视图的 tools alist（symbol 键），直接 assq 提取。
         (path-write-text config-path merge-fixture)
         (let* ((config (load-gfproject))
-               (tools (json-ref config "tools"))
-               (test-tool (json-ref tools "test"))
-               (test-desc (json-ref test-tool "description"))
+               (test-tool (cdr (assq 'test config)))
+               (test-desc (cdr (assq 'description test-tool)))
               ) ;
-          (check (json-ref test-tool "organization") => "liii")
-          (check (json-ref test-tool "module") => "goldtest")
-          (check (json-ref test-desc "en_US")
+          (check (cadr (assq 'organization test-tool)) => 'liii)
+          (check (cadr (assq 'module test-tool)) => 'goldtest)
+          (check (cadr (assq 'en_US test-desc))
             =>
             "Run tests (all *-test.scm files under tests/)"
           ) ;check
-          (check (json-ref test-desc "zh_CN") => "运行测试（本地覆盖）")
+          (check (cadr (assq 'zh_CN test-desc)) => "运行测试（本地覆盖）")
         ) ;let*
 
         ;; 单命令回退：本地把 version.module 覆盖成错误值时，gf version 仍应回退到 lib 实现

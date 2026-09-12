@@ -222,13 +222,13 @@
   ) ;check
 ) ;let
 
-;; 测试语法关键字 #_quote 作为 tag-name
+;; 测试 quote 形式作为 tag-name（S7 侧 #_quote 对象走同一分支，见 quote-form?）
 ;; quote 形式整个作为一个 env，没有 children
-(let ((result (scan '(#_quote x))))
+(let ((result (scan ''x)))
   (check (env? result) => #t)
   (check (env-tag-name result)
     =>
-    "#_quote"
+    "quote"
   ) ;check
   (check (env-depth result) => 0)
   (check (vector-length (env-children result))
@@ -237,7 +237,7 @@
   ) ;check
   (check (env-value result)
     =>
-    '(#_quote x)
+    '(quote x)
   ) ;check
 ) ;let
 

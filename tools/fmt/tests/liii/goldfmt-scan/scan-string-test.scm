@@ -288,7 +288,7 @@
 ) ;let
 
 ;; 测试 scan-string：点对表达式 '(a b . c)
-;; '(a b . c) 读取为 (#_quote (a b . c))
+;; '(a b . c) 读取为 (quote (a b . c))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(a b . c)"CODE")
       ) ;results
@@ -300,7 +300,7 @@
     (check (env? quote-env) => #t)
     (check (env-tag-name quote-env)
       =>
-      "#_quote"
+      "quote"
     ) ;check
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
@@ -311,13 +311,13 @@
     ;; 原始值保留在 value 字段
     (check (env-value quote-env)
       =>
-      '(#_quote (a b . c))
+      '(quote (a b . c))
     ) ;check
   ) ;let
 ) ;let
 
 ;; 测试 scan-string：'(quote define) 这种嵌套 quote 的情况
-;; '(quote define) 读取为 (#_quote (quote define))
+;; '(quote define) 读取为 (quote (quote define))
 ;; quote 形式整个作为一个 env，没有 children
 (let ((results (scan-string #"CODE"'(quote define)"CODE"
                ) ;scan-string
@@ -330,7 +330,7 @@
     (check (env? quote-env) => #t)
     (check (env-tag-name quote-env)
       =>
-      "#_quote"
+      "quote"
     ) ;check
     (check (env-depth quote-env) => 0)
     ;; quote 形式没有 children
@@ -341,7 +341,7 @@
     ;; 原始值保留在 value 字段
     (check (env-value quote-env)
       =>
-      '(#_quote (quote define))
+      '(quote (quote define))
     ) ;check
   ) ;let
 ) ;let
@@ -372,22 +372,8 @@
   ) ;let*
 ) ;let
 
-;; bare syntax object 应该被当作 atom，而不是 pair
-(let ((results (scan-string "#_quote")))
-  (check (vector? results) => #t)
-  (check (vector-length results) => 1)
-  (let ((first (vector-ref results 0)))
-    (check (atom? first) => #t)
-    (check (syntax? (atom-value first))
-      =>
-      #t
-    ) ;check
-    (check (object->string (atom-value first) #f)
-      =>
-      "#_quote"
-    ) ;check
-  ) ;let
-) ;let
+;; bare #_quote 是 S7 reader 专属写法，本 reader 读到 #_ 即报 read-error，
+;; 此用例随之退役（非法输入由调用方处理）。
 
 ;; quasiquote 的内部形式应该被正规化为 reader 语义
 (let ((results (scan-string #"CODE"`(a ,@rest)"CODE")

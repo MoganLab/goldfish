@@ -7,7 +7,7 @@
         (liii path)
         (liii sys)
         (liii list)
-        (liii os)
+        (except (liii os) remove)
         (liii goldtest)
 ) ;import
 
