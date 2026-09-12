@@ -629,8 +629,10 @@
       (%date-zone-offset date)
     ) ;define
 
+    ;; 构造保持宽松（与 SRFI-19 参考实现一致，无区间检查——见
+    ;; tests/liii/time/make-date-test.scm）；区间合法性由下游负责
+    ;; （如 date-year-day 对非法月份报 value-error）。
     (define (make-date nanosecond second minute hour day month year zone-offset)
-      ;; TODO: more guards maybe
       (unless (and (integer? nanosecond)
                 (integer? second)
                 (integer? minute)

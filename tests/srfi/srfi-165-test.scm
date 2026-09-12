@@ -442,4 +442,9 @@
 ) ;show-run
 
 
+;; immutable 变量不可更新（纯函数与破坏性版本一致拒绝）。
+(check-catch 'no-catch (computation-environment-update! env-1 test-var-2 'x))
+(check-catch 'no-catch (computation-environment-update env-1 test-var-2 'x))
+(check (computation-environment-ref env-1 test-var-2) => 42)
+
 (check-report)

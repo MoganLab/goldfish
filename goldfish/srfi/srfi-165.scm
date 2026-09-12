@@ -220,6 +220,7 @@
               new-env
             ) ;begin
             (let ((var (car arg*)) (val (cadr arg*)))
+              (assert-computation-mutable var)
               (if (predefined? var)
                 (begin
                   (environment-cell-set! new-env var (box val))
@@ -233,8 +234,13 @@
       ) ;let
     ) ;define
 
-    ;; TODO: check immutable?
+    (define (assert-computation-mutable var)
+      (when (environment-variable-immutable? var)
+        (error "immutable computation environment variable" var))
+    ) ;define
+
     (define (computation-environment-update! env var val)
+      (assert-computation-mutable var)
       (if (predefined? var)
         (set-box! (environment-cell env var) val)
         (local-ref (environment-local env)
