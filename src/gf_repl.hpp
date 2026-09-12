@@ -16,10 +16,49 @@ struct SymbolInfo {
 };
 static std::vector<SymbolInfo> cached_symbols;
 
-// UNLIMITED history
-// TODO(jinser): 1. programatic value-history procedure api in scheme
-//               2. `,option value-history` meta command
+// Value history ($1, $2, ...): recording can be toggled with
+// `,option value-history on|off`.
 static std::vector<gf::pointer> history_values;
+static bool                     history_enabled= true;
+
+// Programmatic value-history API (REPL session only): (history-length)
+// counts recorded values, (history-ref n) fetches $n (1-based).
+static gf::pointer
+f_history_length (gf::scheme* sc, gf::pointer args) {
+  (void) args;
+  return gf::make_integer (sc, (gf::int_) history_values.size ());
+}
+
+static gf::pointer
+f_history_ref (gf::scheme* sc, gf::pointer args) {
+  gf::pointer n_obj= gf::car (args);
+  if (!gf::is_integer (n_obj)) {
+    return gf::error (sc, gf::make_symbol (sc, "type-error"),
+                      gf::list (sc, gf::make_string (sc, "history-ref: index must be an exact integer"), n_obj));
+  }
+  gf::int_ n= gf::integer (n_obj);
+  if (n < 1 || (size_t) n > history_values.size ()) {
+    return gf::error (sc, gf::make_symbol (sc, "value-error"),
+                      gf::list (sc, gf::make_string (sc, "history-ref: index out of range"), n_obj));
+  }
+  return history_values[(size_t) n - 1];
+}
+
+inline void
+register_history_procedures (gf::scheme* sc) {
+  gf::pointer cur_env= gf::rootlet (sc);
+  gf::pointer length_fn=
+      gf::make_typed_function (sc, "history-length", f_history_length, 0, 0, false,
+                               "(history-length) => integer, number of recorded REPL values", NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, "history-length"), length_fn);
+  gf::pointer ref_fn=
+      gf::make_typed_function (sc, "history-ref", f_history_ref, 1, 0, false,
+                               "(history-ref n) => value, the $n-th recorded REPL value (1-based)", NULL);
+  gf::define (sc, cur_env, gf::make_symbol (sc, "history-ref"), ref_fn);
+  goldfish_eval_through_reader (
+      sc, "(import (goldfish)) (register-program-library-primitive! 'history-length)"
+          " (register-program-library-primitive! 'history-ref)");
+}
 
 inline void
 update_symbol_cache (gf::scheme* sc) {
@@ -68,7 +107,7 @@ ic_goldfish_eval (gf::scheme* sc, const char* code) {
     goldfish_render_scheme_error_message (sc, errmsg, rendered);
     ic_printf ("[error]%s[/]", rendered.c_str ());
   }
-  if (result) {
+  if (result && history_enabled) {
     history_values.push_back (result);
     gf::gc_protect (sc, result);
     std::string name   = "$" + std::to_string (history_values.size ());
@@ -251,6 +290,7 @@ inline bool meta_help (const char*, gf::scheme*, const char*);
 inline bool meta_import (const char*, gf::scheme*, const char*);
 inline bool meta_apropos (const char*, gf::scheme* sc, const char* arg);
 inline bool meta_describe (const char*, gf::scheme* sc, const char* arg);
+inline bool meta_option (const char*, gf::scheme* sc, const char* arg);
 
 const MetaCommand commands[]= {
     {",quit", "exit REPL", true, meta_quit},
@@ -262,6 +302,7 @@ const MetaCommand commands[]= {
     {",a", "search symbols by substring", false, meta_apropos},
     {",describe", "describe symbol", false, meta_describe},
     {",d", "describe symbol", false, meta_describe},
+    {",option", "show or set REPL options", false, meta_option},
 };
 const size_t commands_count= sizeof (commands) / sizeof (commands[0]);
 
@@ -382,6 +423,48 @@ meta_describe (const char*, gf::scheme* sc, const char* arg) {
   return false;
 }
 
+// ,option lists REPL options; `,option value-history on|off' toggles
+// recording of $n values (off stops the history vector from growing).
+inline bool
+meta_option (const char*, gf::scheme*, const char* arg) {
+  while (arg && *arg == ' ')
+    ++arg;
+  if (!arg || !*arg) {
+    ic_printf ("[b]Options:[/]\n[b]%-16s[/] %s (%zu recorded)\n",
+               "value-history", history_enabled ? "on" : "off", history_values.size ());
+    return false;
+  }
+  std::string name (arg);
+  std::string value;
+  size_t      space= name.find (' ');
+  if (space != std::string::npos) {
+    value= name.substr (space + 1);
+    name.erase (space);
+    while (!value.empty () && value[0] == ' ')
+      value.erase (0, 1);
+  }
+  if (name != "value-history") {
+    ic_printf ("[red]Unknown option:[/] %s\n", name.c_str ());
+    return false;
+  }
+  if (value.empty ()) {
+    ic_printf ("[b]%-16s[/] %s (%zu recorded)\n",
+               "value-history", history_enabled ? "on" : "off", history_values.size ());
+  }
+  else if (value == "on") {
+    history_enabled= true;
+    ic_printf ("value-history on\n");
+  }
+  else if (value == "off") {
+    history_enabled= false;
+    ic_printf ("value-history off\n");
+  }
+  else {
+    ic_printf ("[b]Usage:[/] ,option value-history [on|off]\n");
+  }
+  return false;
+}
+
 inline bool
 handle_meta_command (const char* input, gf::scheme* sc) {
   for (const auto& cmd : commands) {
@@ -391,11 +474,15 @@ handle_meta_command (const char* input, gf::scheme* sc) {
     }
     else {
       if (strncmp (input, cmd.name, len) == 0) {
-        // 跳过空格
-        const char* arg= input + len + 1;
-        while (*arg == ' ')
-          ++arg;
-        return cmd.handler (input, sc, input + len + 1);
+        // Bare command (no trailing text): pass nullptr instead of reading
+        // past the NUL terminator.  All handlers accept nullptr/empty.
+        const char* arg= nullptr;
+        if (input[len] != '\0') {
+          arg= input + len;
+          while (*arg == ' ')
+            ++arg;
+        }
+        return cmd.handler (input, sc, arg);
       }
     }
   }
@@ -444,6 +531,7 @@ goldfish_repl (gf::scheme* sc, const string& mode) {
   ic_set_hint_delay (0);
 
   update_symbol_cache (sc);
+  register_history_procedures (sc);
 
   while (true) {
     char* input= ic_readline ("gf");
