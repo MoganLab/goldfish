@@ -92,8 +92,24 @@
       (string-append (executable) " -m liii ")
     ) ;define
 
+    (define (worker-extra-path-args)
+      ;; Test workers (`gf -m liii <file>`) resolve tool libraries through
+      ;; the process working directory.  After switching into tools/<name>/,
+      ;; the sibling tools/common/ (shared by the tool dispatch for
+      ;; (liii goldtool-changed) etc.) is invisible there, so append it by
+      ;; absolute path.  Outside a tool directory the candidate does not
+      ;; exist and nothing is added.
+      (let ((common-dir (test-path-join (getcwd) ".." "common")))
+        (if (path-dir? common-dir)
+          (string-append "-A " (shell-quote common-dir) " ")
+          "")
+      ) ;let
+    ) ;define
+
     (define (run-test-file test-file)
-      (let ((cmd (string-append (goldfish-cmd) test-file)))
+      (let ((cmd (string-append (goldfish-cmd)
+                                (worker-extra-path-args)
+                                test-file)))
         (display "----------->")
         (newline)
         (display cmd)
@@ -177,9 +193,10 @@
               (script (string-append
                         (if writable? "" "export GOLDFISH_CACHE_READONLY=1; ")
                         (string-join
-                         (map (lambda (s)
-                                (string-append "(" (shell-quote (executable))
-                                               " -m liii " (shell-quote (car s))
+                          (map (lambda (s)
+                                 (string-append "(" (shell-quote (executable))
+                                                " -m liii " (worker-extra-path-args)
+                                                (shell-quote (car s))
                                                " > " (shell-quote (cadr s))
                                                " 2>&1; echo $? > " (shell-quote (caddr s)) ") &"))
                               specs)
