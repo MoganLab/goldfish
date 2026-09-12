@@ -255,8 +255,8 @@ inline bool meta_describe (const char*, gf::scheme* sc, const char* arg);
 const MetaCommand commands[]= {
     {",quit", "exit REPL", true, meta_quit},
     {",q", "exit REPL", true, meta_quit},
-    {",help", "show this help", true, meta_help},
-    {",?", "show this help", true, meta_help},
+    {",help", "show this help", false, meta_help},
+    {",?", "show this help", false, meta_help},
     {",import", "import Scheme module", false, meta_import},
     {",apropos", "search symbols by substring", false, meta_apropos},
     {",a", "search symbols by substring", false, meta_apropos},
@@ -270,9 +270,21 @@ meta_quit (const char*, gf::scheme*, const char*) {
   return true;
 }
 
-// TODO: ,help <command>
+// ,help lists all commands; ,help <command> shows one.
 inline bool
-meta_help (const char*, gf::scheme*, const char*) {
+meta_help (const char*, gf::scheme*, const char* arg) {
+  while (arg && *arg == ' ')
+    ++arg;
+  if (arg && *arg) {
+    for (const auto& cmd : commands) {
+      if (strcmp (arg, cmd.name) == 0) {
+        ic_printf ("[b]%-16s[/] %s\n", cmd.name, cmd.help);
+        return false;
+      }
+    }
+    ic_printf ("[red]Unknown meta command:[/] %s\n", arg);
+    return false;
+  }
   ic_printf ("[b]Meta commands:[/]\n");
   for (const auto& cmd : commands) {
     ic_printf ("[b]%-16s[/] %s\n", cmd.name, cmd.help);
