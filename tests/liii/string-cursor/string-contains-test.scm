@@ -28,6 +28,12 @@
 ;; 1. string-contains 是 SRFI-130 中的字符串搜索函数
 ;; 2. 与 (liii string) 中的 string-contains 功能相同，但返回游标而非索引
 ;; 3. 性能：O(n×m)，n 为 s1 长度，m 为 s2 长度
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确搜索
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-contains 函数，返回整数索引
+;; 参见: gf doc liii/string "string-contains"
 
 ;; 基本测试
 (let ((result (string-contains "abcdef" "cd")))
@@ -70,6 +76,12 @@
 
 ;; 测试整数索引限制搜索范围
 (check (string-contains "abcdef" "cd" 3 6) => #f)
+
+;; Emoji 测试
+(let ((result (string-contains "hello😀world" "😀")))
+  (check (string-cursor->index "hello😀world" result) => 5)
+) ;let
+(check (string-contains "abcdef" "😀") => #f)
 
 ;; 测试混合类型报错
 (check-catch 'type-error

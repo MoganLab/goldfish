@@ -29,6 +29,12 @@
 ;; 2. nchars等于字符串长度时返回原字符串
 ;; 3. 适用于ASCII、中文、emoji等各种Unicode字符
 ;; 4. 性能：O(n)，n 为取用的字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确截取
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-take-right 函数
+;; 参见: gf doc liii/string "string-take-right"
 ;;
 ;; 错误处理
 ;; --------

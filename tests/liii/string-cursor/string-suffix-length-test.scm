@@ -28,6 +28,12 @@
 ;; 1. string-suffix-length 是 SRFI-130 中的字符串比较函数
 ;; 2. 与 (liii string) 中的 string-suffix-length 功能相同
 ;; 3. 性能：O(n)，n 为公共后缀长度
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确比较
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-suffix-length 函数
+;; 参见: gf doc liii/string "string-suffix-length"
 
 (check (string-suffix-length "" "") => 0)
 (check (string-suffix-length "abc" "abc") => 3)

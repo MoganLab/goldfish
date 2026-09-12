@@ -28,6 +28,12 @@
 ;; 1. string-cursor->index 是 SRFI-130 中的游标转换函数
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 3. 性能：O(1)，直接读取游标中的索引信息
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确索引转换
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-cursor->index"
 
 ;; 基本测试
 (let* ((s "abcdef")

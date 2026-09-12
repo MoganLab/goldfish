@@ -31,6 +31,12 @@
 ;; 1. 先反转列表顺序，再连接
 ;; 2. 支持可选的 final-string 和 end 参数
 ;; 3. 性能：O(n)，n 为所有字符串总字节长度
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确连接
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-concatenate-reverse 函数
+;; 参见: gf doc liii/string "string-concatenate-reverse"
 
 (check (string-concatenate-reverse '("a" "b" "c")) => "cba")
 (check (string-concatenate-reverse '()) => "")
@@ -38,5 +44,9 @@
 
 ;; Unicode 测试
 (check (string-concatenate-reverse '("a" "b") "中文" 1) => "ba中")
+
+;; Emoji 测试
+(check (string-concatenate-reverse '("hello" "😀") "world") => "😀helloworld")
+(check (string-concatenate-reverse '("🎉" "🚀")) => "🚀🎉")
 
 (check-report)

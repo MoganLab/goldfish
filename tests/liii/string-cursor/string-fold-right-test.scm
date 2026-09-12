@@ -32,6 +32,12 @@
 ;; 2. 适用于 ASCII、中文、emoji 等各种 Unicode 字符
 ;; 3. 空字符串返回 knil
 ;; 4. 性能：O(n)，n 为字符串字符数
+;; 5. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确折叠
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-fold-right 函数
+;; 参见: gf doc liii/string "string-fold-right"
 
 ;; 基本测试 - ASCII，从右到左折叠为顺序列表
 (check (string-fold-right cons '() "abc") => '(#\a #\b #\c))

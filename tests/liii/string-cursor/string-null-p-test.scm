@@ -25,6 +25,12 @@
 ;; 1. 空字符串返回#t
 ;; 2. 包含任意字符（包括中文、emoji）的字符串返回#f
 ;; 3. 性能：O(1)，直接检查长度
+;; 4. 支持 Unicode 字符串的空判断
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-null? 函数
+;; 参见: gf doc liii/string "string-null?"
 
 ;; 基本测试
 (check (string-null? "") => #t)

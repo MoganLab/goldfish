@@ -40,6 +40,12 @@
 ;; 1. 返回新字符串，不修改原字符串
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符位置操作，支持 Unicode
 ;; 3. 性能：O(n)，n 为涉及的字符串总长度
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确替换
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-replace 函数
+;; 参见: gf doc liii/string "string-replace"
 
 (check (string-replace "It's easy to code it up in Scheme." "lots of fun" 5 9)
   =>

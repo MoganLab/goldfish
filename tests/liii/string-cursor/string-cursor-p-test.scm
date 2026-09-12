@@ -25,6 +25,12 @@
 ;; 1. string-cursor? 是 SRFI-130 中的游标谓词函数
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 提供了完整的游标操作支持
 ;; 3. 性能：O(1)
+;; 4. 支持 Unicode 字符串游标的判断
+;;
+;; 相关实现
+;; --------
+;; (liii string-cursor) 独有函数，无 (liii string) 对应版本
+;; 参见: gf doc liii/string-cursor "string-cursor?"
 
 ;; 基本测试
 (let ((s "abc") (c (string-cursor-start "abc")))

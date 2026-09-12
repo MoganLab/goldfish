@@ -30,6 +30,12 @@
 ;; 3. 与 (scheme base) 中的 string-ref 不同，本函数按字符访问而非按字节
 ;; 4. 与 (liii string) 中的 string-ref 功能类似，但支持游标参数
 ;; 5. 性能：O(1)，当传入游标时；O(n) 当传入整数索引时
+;; 6. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确访问
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中提供了 string-ref 函数，使用整数索引
+;; 参见: gf doc liii/string "string-ref"
 
 ;; 测试ASCII
 (let ((s "abc"))

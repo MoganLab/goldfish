@@ -34,6 +34,12 @@
 ;; 1. 返回新字符串，不修改原字符串
 ;; 2. 与 (liii string) 的区别：(liii string-cursor) 按字符过滤，支持 Unicode
 ;; 3. 性能：O(n)，只需遍历一次字符串
+;; 4. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确过滤
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中也提供了 string-filter 函数
+;; 参见: gf doc liii/string "string-filter"
 
 (check (string-filter char-alphabetic? "abc123") => "abc")
 (check (string-filter char-numeric? "abc123") => "123")

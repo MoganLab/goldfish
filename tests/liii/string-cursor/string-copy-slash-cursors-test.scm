@@ -33,6 +33,12 @@
 ;; 3. start 和 end 必须同为整数或同为游标
 ;; 4. 与 (liii string) 中的 string-copy 功能类似，但支持游标参数
 ;; 5. 性能：O(n)，n 为子串字符数
+;; 6. 支持 Unicode 字符（包括多字节字符如中文、Emoji）的正确复制
+;;
+;; 相关实现
+;; --------
+;; (liii string) 库中提供了 string-copy 函数，使用整数索引
+;; 参见: gf doc liii/string "string-copy"
 
 ;; 基本测试
 (let ((s "abcdef"))
