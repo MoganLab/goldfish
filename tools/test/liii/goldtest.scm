@@ -155,12 +155,15 @@
       ) ;if
     ) ;define
 
-    (define (run-test-batch files)
+    (define (run-test-batch files . maybe-writable)
       ;; Run `files' concurrently: one shell script backgrounds every run,
       ;; capturing stdout+stderr and the exit status into temp files, then
       ;; waits for all of them.  The output of a failed file is printed (in
       ;; file order) so failures stay debuggable.
-      (let* ((tag (number->string (getpid)))
+      ;; Workers run cache-readonly by default; pass a true flag for a
+      ;; cache-writing run (used once up front to warm the cache).
+      (let* ((writable? (and (pair? maybe-writable) (car maybe-writable)))
+             (tag (number->string (getpid)))
              (specs (let loop ((fs files) (i 0) (acc '()))
                       (if (null? fs)
                         (reverse acc)
@@ -171,9 +174,9 @@
                                        (string-append "gf-test-" tag "-" (number->string i) ".code"))))
                           (loop (cdr fs) (+ i 1)
                                 (cons (list f out code) acc))))))
-             (script (string-append
-                       "export GOLDFISH_CACHE_READONLY=1; "
-                       (string-join
+              (script (string-append
+                        (if writable? "" "export GOLDFISH_CACHE_READONLY=1; ")
+                        (string-join
                          (map (lambda (s)
                                 (string-append "(" (shell-quote (executable))
                                                " -m liii " (shell-quote (car s))
@@ -227,17 +230,23 @@
 
     (define (run-test-files test-files jobs)
       ;; jobs<=1 keeps the original serial behavior (inline output);
-      ;; jobs>1 runs batches of `jobs' files concurrently.
+      ;; jobs>1 runs batches of `jobs' files concurrently.  The first file
+      ;; runs once up front with cache writes on so readonly batch workers
+      ;; hit a warm cache on cold runs; its result counts normally.
       (if (<= jobs 1)
         (map (lambda (f) (run-test-file f)) test-files)
-        (let loop ((files test-files) (acc '()))
-          (if (null? files)
-            (reverse acc)
-            (let-values (((head tail) (split-list files jobs)))
-              (loop tail (append (reverse (run-test-batch head)) acc))
-            ) ;let-values
-          ) ;if
-        ) ;let
+        (if (null? test-files)
+          '()
+          (let loop ((files (cdr test-files))
+                     (acc (reverse (run-test-batch (list (car test-files)) #t))))
+            (if (null? files)
+              (reverse acc)
+              (let-values (((head tail) (split-list files jobs)))
+                (loop tail (append (reverse (run-test-batch head)) acc))
+              ) ;let-values
+            ) ;if
+          ) ;let
+        ) ;if
       ) ;if
     ) ;define
 
