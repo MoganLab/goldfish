@@ -598,15 +598,12 @@
   (syntax-rules ()
     ((_ v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
-       (match-bound-identifier-memv p (i ...)
-         ;; p already bound: verify the whole list against it
-         (let ([w v])
-           (if (list? w)
-               (match-one w p g+s (sk ...) fk i)
-               fk))
-         ;; p fresh: bind the whole list directly, no per-element loop
-         (if (list? v)
-             (let ([p v]) (sk ... i))
+       ;; simplest case equivalent to (p ...), just match the list
+       ;; (no fast path: sk takes the bound ids as arguments, so p must
+       ;; flow through match-one to extend them)
+       (let ([w v])
+         (if (list? w)
+             (match-one w p g+s (sk ...) fk i)
              fk))
        ;; simple case, match all elements of the list
        (let loop ([ls v] [id-ls '()] ...)
