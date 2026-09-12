@@ -16,7 +16,7 @@
 
 (define-library (liii goldfmt-tokenize)
   (export tokenize tokens->string escape-string-content)
-  (import (liii base) (liii string) (liii unicode))
+  (import (liii base) (scheme base) (liii string) (liii unicode))
 
   (begin
     ;; ; 辅助函数：安全地移除字符串尾部空格

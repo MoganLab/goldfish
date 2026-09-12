@@ -22,8 +22,9 @@
 
 (define-library (liii goldfmt)
   (import (liii base)
+    (scheme base)
     (liii sys)
-    (liii os)
+    (except (liii os) remove)
     (liii path)
     (liii string)
     (liii argparse)

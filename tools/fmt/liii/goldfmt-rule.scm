@@ -26,7 +26,7 @@
     find-node-rules-paths
     find-node-rules-path
   ) ;export
-  (import (liii base) (liii json) (liii os) (liii path) (liii string) (liii sys))
+  (import (liii base) (scheme base) (liii json) (liii os) (liii path) (liii string) (liii sys))
 
   (begin
     (define max-inline-length 80)

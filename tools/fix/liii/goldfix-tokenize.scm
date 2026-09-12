@@ -1,6 +1,6 @@
 (define-library (liii goldfix-tokenize)
   (export tokenize tokenize-lines code-token? line-start-close?)
-  (import (liii base) (liii string) (liii goldfix-record))
+  (import (liii base) (scheme base) (liii string) (liii goldfix-record))
 
   (begin
     (define (whitespace-char? c)

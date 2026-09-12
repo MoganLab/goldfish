@@ -17,6 +17,7 @@
 (define-library (liii goldfmt-scan)
   (export scan scan-string scan-file)
   (import (liii base)
+    (scheme base)
     (liii path)
     (liii raw-string)
     (liii string)

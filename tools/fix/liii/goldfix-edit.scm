@@ -1,6 +1,6 @@
 (define-library (liii goldfix-edit)
   (export apply-edits)
-  (import (liii base) (liii goldfix-record))
+  (import (liii base) (scheme base) (liii goldfix-record))
 
   (begin
     (define (edit-position edit)

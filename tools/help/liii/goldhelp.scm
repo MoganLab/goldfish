@@ -23,7 +23,7 @@
     (liii string)
     (liii argparse)
     (liii path)
-    (liii os)
+    (except (liii os) remove)
     (liii error)
     (liii sys)
     (liii list)

@@ -31,7 +31,7 @@
 ;; 配置文件放在项目根（g_project-root，即 gfproject.scm 所在目录）。
 
 (define-library (liii goldfmt-config)
-  (import (liii base) (liii os) (liii path) (liii string) (liii json) (liii list))
+  (import (liii base) (scheme base) (except (liii os) remove) (liii path) (liii string) (liii json) (liii list))
   (export load-fmt-config
     config-exists?
     lang-suffixes

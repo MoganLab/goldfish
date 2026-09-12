@@ -1,6 +1,7 @@
 (define-library (liii goldfix-repair)
   (export repair-parentheses fix-string parentheses-balanced?)
   (import (liii base)
+    (scheme base)
     (liii goldfix-record)
     (liii goldfix-tokenize)
     (liii goldfix-edit)

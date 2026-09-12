@@ -18,7 +18,7 @@
 ;; 缓存键为文件内容的 SHA-256；缓存目录按 Goldfish 版本隔离。
 
 (define-library (liii goldfmt-cache)
-  (import (liii base) (liii path) (liii hashlib))
+  (import (liii base) (scheme base) (liii path) (liii hashlib))
   (export fmt-cache-base-dir fmt-cache-path fmt-cache-hit? fmt-cache-touch)
   (begin
     (load-source-file "core/gfo.scm")

@@ -32,7 +32,7 @@
 ;; 通用 exclude 匹配（精确 + glob *）与文件收集也在此提供，供各 handler 复用。
 
 (define-library (liii goldfmt-lang)
-  (import (liii base) (liii path) (liii string))
+  (import (liii base) (scheme base) (liii path) (liii string))
   (export register-lang!
     lang-list
     lang-ref

@@ -45,7 +45,7 @@
     good-env?
     assert-env
   ) ;export
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (scheme base))
 
   (begin
     ;; ; 记录类型定义

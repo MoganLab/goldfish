@@ -21,6 +21,7 @@
 
 (define-library (liii scheme-fmt)
   (import (liii base)
+    (scheme base)
     (liii path)
     (liii string)
     (liii goldfmt-cache)

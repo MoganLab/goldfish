@@ -41,7 +41,7 @@
     repair-report-edits
     repair-report-diagnostics
   ) ;export
-  (import (liii base) (liii error))
+  (import (liii base) (liii error) (scheme base))
 
   (begin
     (define-record-type fix-token

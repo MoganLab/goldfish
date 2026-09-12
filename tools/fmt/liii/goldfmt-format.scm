@@ -24,6 +24,7 @@
     can-inline?
   ) ;export
   (import (liii base)
+    (scheme base)
     (liii goldfmt-record)
     (liii goldfmt-rule)
     (liii goldfmt-scan)
@@ -597,7 +598,7 @@
             ((single-arg-symbol-form? datum 'unquote-splicing)
              (string-append ",@" (format-reader-datum-inline (cadr datum)))
             ) ;
-            ((quote-syntax-form? datum)
+            ((quote-form? datum)
              (string-append "'" (format-reader-datum-inline (cadr datum)))
             ) ;
             ((pair? datum) (format-reader-pair-inline datum))
@@ -621,7 +622,7 @@
             ((single-arg-symbol-form? datum 'unquote-splicing)
              (string-append ",@" (format-reader-datum-at (cadr datum) (+ indent 2)))
             ) ;
-            ((quote-syntax-form? datum)
+            ((quote-form? datum)
              (string-append "'" (format-reader-datum-at (cadr datum) (+ indent 1)))
             ) ;
             ((pair? datum) (format-reader-pair-at datum indent))

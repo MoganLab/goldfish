@@ -7,6 +7,7 @@
     parentheses-balanced?
   ) ;export
   (import (liii base)
+    (scheme base)
     (liii sys)
     (liii path)
     (liii string)

@@ -21,6 +21,7 @@
 
 (define-library (liii cpp-fmt)
   (import (liii base)
+    (scheme base)
     (liii sys)
     (liii os)
     (liii path)
