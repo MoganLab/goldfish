@@ -1,0 +1,72 @@
+name: CI build on WASM
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'goldfish/**'
+      - 'json/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'xmake/**'
+      - 'xmake.lua'
+      - '.github/workflows/ci-wasm.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'goldfish/**'
+      - 'json/**'
+      - 'src/**'
+      - 'tests/**'
+      - 'tools/**'
+      - 'xmake/**'
+      - 'xmake.lua'
+      - '.github/workflows/ci-wasm.yml'
+
+env:
+  XMAKE_ROOT: y
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  build:
+    container: debian:trixie
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y git 7zip unzip curl build-essential pkg-config ninja-build
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: git add safe directory
+        run: git config --global --add safe.directory '*'
+
+      - name: de-gitee
+        run: sed -i '/gitee\.com/d' xmake/packages/s/s7/xmake.lua
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.8
+          actions-cache-folder: '.xmake-cache'
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-xrepo-${{ hashFiles('**/xmake.lua') }}
+
+      - name: config
+        run: xmake config -vD -p wasm --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build
+        run: xmake build --yes -vD goldfish
