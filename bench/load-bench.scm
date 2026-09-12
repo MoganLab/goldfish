@@ -3,10 +3,10 @@
         (liii timeit)
         (srfi srfi-1))
 
-;; L2-2 运行期基准：编译开/关下，库函数调用耗时对比。
-;;
-;; 注意：GOLDFISH_OPT_LEVEL 由进程环境决定，本测试在两个模式下
-;; 分别运行，手动对比输出（bin/gf 由外部用环境变量调用）。
+;; 运行期基准：库函数调用耗时（手动运行，不进测试集）。
+;; 用法：./bin/gf -m liii bench/load-bench.scm
+;; 注意：GOLDFISH_OPT_LEVEL 由进程环境决定，在两个模式下
+;; 分别运行，手动对比输出。
 
 (define (gensym-name-of defs prefix)
   (let ((len (string-length prefix)))
