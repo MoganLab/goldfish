@@ -507,11 +507,10 @@
     ((_ v (unquote p) g+s sk fk i)
      (match-one v p g+s sk fk i))
     ((_ v ((unquote-splicing p) . rest) g+s sk fk i)
-     ;; TODO: it is an error to have another unquote-splicing in rest,
-     ;; check this and signal explicitly
-     (match-extract-vars
-      p
-      (match-gen-ellipsis/qq v p rest g+s sk fk i) i ()))
+     (match-verify-no-unquote-splicing rest
+       (match-extract-vars
+        p
+        (match-gen-ellipsis/qq v p rest g+s sk fk i) i ())))
     ((_ v (quasiquote p) g+s sk fk i . depth)
      (match-quasiquote v p g+s sk fk i #f . depth))
     ((_ v (unquote p) g+s sk fk i x . depth)
@@ -597,13 +596,17 @@
 
 (define-syntax match-gen-ellipsis
   (syntax-rules ()
-    ;; TODO: restore fast path when p is not already bound
     ((_ v p () g+s (sk ...) fk i ((id id-ls) ...))
      (match-check-identifier p
-       ;; simplest case equivalent to (p ...), just match the list
-       (let ([w v])
-         (if (list? w)
-             (match-one w p g+s (sk ...) fk i)
+       (match-bound-identifier-memv p (i ...)
+         ;; p already bound: verify the whole list against it
+         (let ([w v])
+           (if (list? w)
+               (match-one w p g+s (sk ...) fk i)
+               fk))
+         ;; p fresh: bind the whole list directly, no per-element loop
+         (if (list? v)
+             (let ([p v]) (sk ... i))
              fk))
        ;; simple case, match all elements of the list
        (let loop ([ls v] [id-ls '()] ...)
@@ -741,6 +744,22 @@
      sk)
     ((_ x sk)
      (match-syntax-error "dotted tail not allowed after ellipsis" x))))
+
+;; Mirror of the above for quasiquote patterns: at most one
+;; unquote-splicing per level (the qq generator measures the tail with
+;; length, so a second splicing or a dotted tail cannot work).
+
+(define-syntax match-verify-no-unquote-splicing
+  (syntax-rules (unquote-splicing)
+    ((_ ((unquote-splicing x) . y) sk)
+     (match-syntax-error
+      "multiple unquote-splicing patterns not allowed at same level"))
+    ((_ (x . y) sk)
+     (match-verify-no-unquote-splicing y sk))
+    ((_ () sk)
+     sk)
+    ((_ x sk)
+     (match-syntax-error "dotted tail not allowed after unquote-splicing" x))))
 
 ;; To implement the tree search, we use two recursive procedures.  TRY
 ;; attempts to match Y once, and on success it calls the normal SK on

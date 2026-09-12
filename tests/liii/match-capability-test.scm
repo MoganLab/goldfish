@@ -1,5 +1,6 @@
 (import (liii check)
-        (liii match))
+        (liii match)
+        (scheme eval))
 
 ;; 验证 (liii match) 的能力边界，评估它能否支撑 nanopass 式编译 pass。
 ;;
@@ -55,5 +56,16 @@
 ;;    此处仅以注释记录（无法在测试内安全捕获展开期错误）。
 
 ;; 7. 多值匹配：WCS match 无 match-values，需手写 call-with-values
+
+;; 8. quasiquote unquote-splicing：同层只允许一个，多了即展开期错误；
+;;    新鲜 (p ...) 直接绑定整表（fast path），非表不匹配。
+(check (match '(1 2 3) (`(1 ,@x) x) (_ #f)) => '(2 3))
+(check (match '(1 2 3) ((x ...) x) (_ #f)) => '(1 2 3))
+(check (match 'notalist ((x ...) 'yes) (_ 'no)) => 'no)
+(define match-qq-env (environment '(liii match) '(scheme base)))
+(check (guard (ex (else 'trapped))
+         (eval '(match '(1 2 3) (`(,@a ,@b) 'bad) (_ 'ok))
+               match-qq-env))
+  => 'trapped)
 
 (check-report)
