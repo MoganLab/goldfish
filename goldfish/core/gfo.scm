@@ -62,7 +62,11 @@
 (define (gfo-pipeline-fingerprint)
   ;; Aggregate sha256 over every pipeline input; the name is mixed in per
   ;; file and a missing file contributes "-".  The s7 version joins the
-  ;; mix so an interpreter change moves the directory too.
+  ;; mix so an interpreter change moves the directory too.  The running
+  ;; binary itself joins as well: cached artifacts bake in compiled code
+  ;; bound against the host primitive table, so any C++ change (new
+  ;; primitives, codegen, build flags) must invalidate them -- reusing a
+  ;; previous binary's cache silently misbehaves.
   (define files
     (append
       (list "liii/boot.scm" "core/gfo.scm" "core/ir.scm"
@@ -77,7 +81,11 @@
                (lambda () (g_sha256-by-file (gfo-locate f)))
                (lambda args #f))))
       (string-append acc f ":" (or h "-") ";")))
-  (let loop ((fs files) (acc (string-append "*s7*:" (*s7* 'version) ";")))
+  (let loop ((fs files) (acc (string-append "*s7*:" (*s7* 'version) ";"
+                                              "bin:" (catch #t
+                                                       (lambda () (g_sha256-by-file (g_executable)))
+                                                       (lambda args "-"))
+                                              ";")))
     (if (null? fs)
       (g_sha256 acc)
       (loop (cdr fs) (feed acc (car fs))))))

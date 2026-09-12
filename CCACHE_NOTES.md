@@ -3,6 +3,7 @@
 ## 布局与失效
 
 - 缓存根按管线指纹分段（见 `LAYER.md` L2）；格式版本见 `goldfish/core/gfo.scm`。
+  指纹含运行中二进制本身的哈希——缓存工件含编译产物，换二进制必须隔离。
 - 程序缓存：key 为源路径哈希，按源文件 `mtime+size` 失效。
 - 库缓存：记录 `(name exports imports bindings macros defs)`；命中要求
   源文件存在且 `mtime+size` 匹配。

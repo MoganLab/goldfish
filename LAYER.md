@@ -40,7 +40,7 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 
 - **文件**：`goldfish/core/gfo.scm` + `goldfish/core/ir.scm`（`L2` 双源：缓存契约与 tree-il IR 定义）。
 - **职责**：`gfo.scm` 负责编译缓存契约——缓存布局、时效戳、读写与回退；`ir.scm` 是权威的 tree-il/核心 IR 定义（record IR + `core-language` 表），供 `L4` expander 直出与 `L5` compiler 共享，避免 `L3->L5` 层违背。两者皆在内核之前加载，只依赖 `L0` 原语与 `liii` 基建。
-- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 引导链与内核工件（boot/core/gfo+ir/prelude/reader/host-abi/kernel-combined/expander/tree-il/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离。
+- **版本目录**：缓存根按管线指纹分段——`ccache/v<hash12>/…`。指纹是 sha256 聚合：s7 版本 + 运行中二进制本身（缓存工件含编译产物，与宿主 primitive 表绑定，二进制任何变更都必须隔离） + 引导链与内核工件（boot/core/gfo+ir/prelude/reader/host-abi/kernel-combined/expander/tree-il/compiler.scm/expander-lib/compiler 全部 .scm）。任何一项变更 → 新目录自然隔离。
 - **不变式**：全系统最早运行的 Scheme 模块，在内核之前加载，只依赖 `L0` 原语，不得使用内核特性；格式必须带版本号，未知版本视为缓存未命中并再生成（永不要求用户清缓存）。当前版本 `0`（开发期），`1` 保留给首个发布格式，发布时开发缓存自然失效。
 
 ## L3 expander-rt
