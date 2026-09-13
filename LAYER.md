@@ -25,10 +25,11 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 ## L0 host —— 三契约
 
 - **对象模型**：vendored s7（`src/s7*` 定制树属本层），值/GC/闭包，冻结不动。
-- **核心语言**：C++ 执行的只有两样——读取路径上的「完全展开后 sexp 子集」，执行路径上的 VM 指令集。C++ 永远不需要解析未展开的源码。
+- **核心语言**：C++ 执行的只有一样——完全展开后的 lowered sexp 子集（权威定义见 `goldfish/core/ir.scm` 的 `core-language` 表，14 个 form），当前由 s7 直接求值（L6 字节码 VM 已移除，不再有第二执行器）。C++ 永远不需要解析未展开的源码。
 - **原语表 `g_*`**：无状态、单一职责的宿主调用，不含业务编排。
 - 每份契约**有计数、有版本**（opcode 数、原语数、格式标签数、格式版本），预算接口面而非文件内容。
-- **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。`src/liii_*.cpp`、`scheme_*.cpp` 是按主题拆分的原语实现文件（属本层原语表，同样只经 `gf.h` 访问 s7）。
+- **文件**：`src/gf.h` / `src/gf.cpp` / `src/gf_glue.hpp` 为唯一可 `#include "s7.h"` 且唯一可直接调用 `s7_*` 的位置；对外仅暴露 `gf::` 命名空间与 `gf::host_version`/`host_date`。`src/liii_*.cpp`、`scheme_*.cpp` 是按主题拆分的原语实现文件（属本层原语表，同样只经 `gf.h` 访问 s7）。
+- **冻结基线**：`tools/freeze-substrate.sh` 生成、`tools/substrate-baseline.txt` 存档——A `gf::` 转发 115（`src/gf_forwards.def`）、B `GF_GLUE` 声明式原语 37、C Scheme 可见 C++ 原语 114（111 个 `g_*` + `iota`/`read`/`version`）、D `core-language` 14。lint 逐行 diff，增长须同 commit 更新基线并说明理由。
 
 ## L1 tiny
 
@@ -82,8 +83,8 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **方向**：`L7->L6->L5->L4->L3->L2->L1->L0` 单向；`L4` 的 `vm` 通过宿主原语回退而非直接依赖 `L6`；`L2` 不感知 `L3` 以上。
 - **示例**：
   - 允许：`L4` 调用 `g_listdir`（`L0`）；`L5` 消费 `L2` 的 gfo 结构。
-  - 禁止：`L1` 依赖 expander；`L5` 出现 `s7_` 或依赖用户态库；非 `L0` 包含 `s7.h`。
-- **机检**：`sh tools/lint-layer.sh` 为开发期便利，覆盖常见违规即可（含 L5/L6 opcode ABI 同步检查）；`xmake.lua` 的文件清单注释按层线性分组，便于审阅。
+  - 禁止：`L1` 依赖 expander；`L5` 出现 `s7_` 或依赖用户态库；非 `L0` 包含 `s7.h` 或直接调用 `s7_*`。
+- **机检**：`sh tools/lint-layer.sh` 执法层违背：除 L0 三文件外禁 `s7.h` 包含、`s7` 类型拼写与 `s7_*` 直接调用；`tools/substrate-baseline.txt` diff 冻结接触面（A/B/C/D 四表）；另含 L5/L6 opcode ABI 同步检查；`xmake.lua` 的文件清单注释按层线性分组，便于审阅。
 
 ## 宿主 ABI 规格（换宿主的交接合同）
 
@@ -101,9 +102,9 @@ L7 loader ─> L5 compiler ─> L4 expander-lib ─> L3 expander-rt ─> L2 core
 - **核心语言**（tree-il 的语法面）：`quote define lambda if begin let let* letrec letrec* set!` 十个 special forms，加 `values call-with-values`（多值派生）与 `module-ref module-set`（跨库引用）——权威定义在 `goldfish/core/ir.scm` 的 `core-language` 表（含到 IR 节点的映射与文法）；其余一切形式按定义皆为调用。校验器 `validate-core-sexp` 供管线变更时执法。
 - 其余为底层语言内建（算术/string/vector/hash-table/port…），按 R7RS-small + 必要扩展对齐，不逐一枚举。
 
-### T2 平台能力（非语言；来自 OS/C 标准库，共 ~57 个 `g_*`）
+### T2 平台能力（非语言；来自 OS/C 标准库，共 111 个 `g_*`，另 `iota`/`read`/`version` 三个非 g_ 名）
 
-- fs/path/env/process（34）、time（11，含 process/thread CPU 时钟）、hash/base64（8）、http（8，可选编译）、subprocess/uuid/misc。
+- GF_GLUE 声明式原语 37（os 17 / path 11 / hashlib 6 / base64 2 / string-split 1）、njson 32、sys/time/process-context 20（含 4 时钟常量）、http 8、reader 7、char 5 + string->utf8。完整名单见 `tools/substrate-baseline.txt` 表 C。
 
 ### T3 下沉候补（空）
 
