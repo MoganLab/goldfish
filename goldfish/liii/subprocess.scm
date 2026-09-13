@@ -24,6 +24,7 @@
     run-allow!
     run-ban!
     run-unban!
+    run-reset!
     run-and
     run-or
     run-sequence
@@ -240,6 +241,15 @@
 
     (define (run-unban! symbol)
       (set! %run-ban-list (filter (lambda (x) (not (eq? x symbol))) %run-ban-list))
+    ) ;define
+
+    (define (run-reset!)
+      ;; Restore default policy state (empty allow list, default ban
+      ;; list, empty command registry): persistent test workers reset
+      ;; this per file so registrations never leak across files.
+      (set! %run-allow-list '())
+      (set! %run-ban-list '(rm))
+      (hash-table-clear! %run-registry)
     ) ;define
 
     (define (%valid-stdout? val)

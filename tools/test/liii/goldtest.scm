@@ -299,16 +299,232 @@
       ;; jobs>1 runs batches of `jobs' files concurrently.
       (if (<= jobs 1)
         (map (lambda (f) (run-test-file f)) test-files)
-        (let loop ((files test-files) (acc '()))
-          (if (null? files)
-            (reverse acc)
-            (let-values (((head tail) (split-list files jobs)))
-              (loop tail (append (reverse (run-test-batch head)) acc))
-            ) ;let-values
-          ) ;if
-        ) ;let
+        (if (and workers-enabled? (find-worker-program))
+          (run-test-worker-batches test-files jobs)
+          (let loop ((files test-files) (acc '()))
+            (if (null? files)
+              (reverse acc)
+              (let-values (((head tail) (split-list files jobs)))
+                (loop tail (append (reverse (run-test-batch head)) acc))
+              ) ;let-values
+            ) ;if
+          ) ;let
+        ) ;if
       ) ;if
     ) ;define
+
+    (define workers-enabled?
+      (let ((v (get-environment-variable "GOLDFISH_TEST_WORKERS")))
+        (and v (not (member v '("0" "no" "false" "off"))) #t)))
+
+    (define worker-chunk-size 32)
+
+    ;; Files that must run one-process-per-file (matched by suffix):
+    ;; (exit 0) network skip-guards would kill a shared worker, and a few
+    ;; tests assert fresh-process expander/loader state.
+    (define worker-isolated-files
+      '("tests/liii/http/http-wait-all-test.scm"
+        "tests/liii/http/http-post-test.scm"
+        "tests/liii/http/http-poll-test.scm"
+        "tests/liii/http/http-ok-p-test.scm"
+        "tests/liii/http/http-head-test.scm"
+        "tests/liii/http/http-get-test.scm"
+        "tests/liii/http/http-async-post-test.scm"
+        "tests/liii/http/http-async-head-test.scm"
+        "tests/liii/http/http-async-get-test.scm"
+        ;; Asserts fresh-process expander surface.
+        "tests/expander/internal-surface-test.scm"
+        ;; Stale import views pinned from partial sources (audit's
+        ;; deliberate-failure loads); needs the view-lifetime fix.
+        "tests/expander/lib-cache-test.scm"
+        "tests/expander/lib-cache-all-libs-test.scm"
+        ;; Order/layout-sensitive in shared processes (proven pairs).
+        "tests/liii/bag/bag-replace-test.scm"
+        "tests/liii/base/copy-test.scm"
+        "tests/liii/queue/list-queue-first-last-test.scm"
+        "tests/liii/vector/vector-map-bang-test.scm"
+        "tests/liii/vector/vector-set-bang-test.scm"
+        ;; Layout-sensitive under worker heap reuse (flake in chunks,
+        ;; stable isolated).
+        "tests/scheme/base/append-test.scm"
+        "tests/scheme/base/assq-test.scm"
+        "tests/scheme/base/bytevector-p-test.scm"
+        "tests/scheme/base/list-p-test.scm"
+        "tests/scheme/base/list-tail-test.scm"
+        ;; Worker-context check failures (mechanism TBD).
+        "tests/compiler/syntax-ir-test.scm"
+        "tests/goldfish/liii/project-test.scm"
+        "tests/liii/expander/expander-test.scm"
+        "tests/srfi/srfi-78-test.scm"))
+
+    (define (worker-isolated? f)
+      (let loop ((ls worker-isolated-files))
+        (if (null? ls)
+          #f
+          (let ((e (car ls)))
+            (if (and (>= (string-length f) (string-length e))
+                     (equal? (substring f (- (string-length f)
+                                             (string-length e)))
+                             e))
+              #t
+              (loop (cdr ls)))))))
+
+    (define (find-worker-program)
+      (let loop ((cands '("tools/test/liii/worker.scm"
+                          "../test/liii/worker.scm")))
+        (if (null? cands)
+          #f
+          (if (file-exists? (car cands))
+            (car cands)
+            (loop (cdr cands))))))
+
+    (define (split-spaces s)
+      (let ((n (string-length s)))
+        (let loop ((i 0) (start 0) (acc '()))
+          (if (>= i n)
+            (reverse (if (> i start) (cons (substring s start i) acc) acc))
+            (if (char=? (string-ref s i) #\space)
+              (loop (+ i 1) (+ i 1)
+                    (if (> i start) (cons (substring s start i) acc) acc))
+              (loop (+ i 1) start acc))))))
+
+    (define (read-all-lines path)
+      (if (not (file-exists? path))
+        '()
+        (let ((p (open-input-file path)))
+          (let loop ((acc '()))
+            (let ((line (read-line p)))
+              (if (eof-object? line)
+                (begin (close-input-port p) (reverse acc))
+                (loop (cons line acc))))))))
+
+    (define (parse-worker-line line)
+      ;; ";;;WORKER <file> <code> <ms>" -> (file code ms) or #f.
+      (if (and (>= (string-length line) 10)
+               (equal? (substring line 0 10) ";;;WORKER "))
+        (let ((toks (split-spaces (substring line 10 (string-length line)))))
+          (if (and (= (length toks) 3)
+                   (string->number (cadr toks))
+                   (string->number (caddr toks)))
+            (list (car toks)
+                  (string->number (cadr toks))
+                  (string->number (caddr toks)))
+            #f))
+        #f))
+
+    (define (worker-done-line? line)
+      (and (>= (string-length line) 15)
+           (equal? (substring line 0 15) ";;;WORKER-DONE ")))
+
+    (define (chunk-list lst n)
+      (let loop ((l lst) (acc '()))
+        (if (null? l)
+          (reverse acc)
+          (let-values (((head tail) (split-list l n)))
+            (loop tail (cons head acc))))))
+
+    (define (worker-chunk-command files worker out)
+      (string-append "GOLDFISH_CHECK_NO_EXIT=1 "
+                     (shell-quote (executable))
+                     " -m liii " (worker-extra-path-args)
+                     (shell-quote worker)
+                     " -- "
+                     (string-join (map shell-quote files) " ")
+                     " > " (shell-quote out) " 2>&1"))
+
+    (define (parse-worker-out out)
+      ;; Alist file -> (code . ms) from ;;;WORKER lines; #t done?
+      (let ((lines (read-all-lines out)))
+        (let loop ((ls lines) (acc '()) (done #f))
+          (if (null? ls)
+            (cons acc done)
+            (let ((e (parse-worker-line (car ls))))
+              (loop (cdr ls)
+                    (if e (cons (cons (car e) (cons (cadr e) (caddr e))) acc)
+                          acc)
+                    (or done (worker-done-line? (car ls)))))))))
+
+    (define (run-worker-wave chunks worker tag idx0)
+      ;; One script, one background worker per chunk, then collect.
+      (let* ((specs (let loop ((cs chunks) (i idx0) (acc '()))
+                      (if (null? cs)
+                        (reverse acc)
+                        (let ((out (test-path-join
+                                     (os-temp-dir)
+                                     (string-append "gf-worker-" tag "-"
+                                                    (number->string i) ".out"))))
+                          (loop (cdr cs) (+ i 1)
+                                (cons (list (car cs) out) acc))))))
+             (script (string-append
+                       (string-join
+                         (map (lambda (s)
+                                (string-append "("
+                                               (worker-chunk-command (car s) worker (cadr s))
+                                               ") &"))
+                              specs)
+                         " ")
+                       " wait"))
+             (script-file (test-path-join (os-temp-dir)
+                            (string-append "gf-worker-" tag "-wave.sh"))))
+        (call-with-output-file script-file
+          (lambda (p) (display script p)))
+        (os-call (string-append "sh " (shell-quote script-file)))
+        (when (file-exists? script-file) (remove script-file))
+        (let ((results
+                (map (lambda (s)
+                       (let* ((files (car s)) (out (cadr s))
+                              (parsed (parse-worker-out out))
+                              (table (car parsed))
+                              (done? (cdr parsed)))
+                         (let ((rs
+                                 (map (lambda (f)
+                                        (let ((e (assoc f table)))
+                                          (if (and done? e)
+                                            (begin (record-timing! f (cddr e))
+                                                   (cons f (cadr e)))
+                                            ;; Worker never reported it:
+                                            ;; fall back to an isolated run.
+                                            (run-test-file f))))
+                                      files)))
+                           (when (let ((bad (filter (lambda (r)
+                                                      (not (zero? (cdr r))))
+                                                    rs)))
+                                   (and (pair? bad) (file-exists? out)))
+                             (newline)
+                             (display "----------->")
+                             (newline)
+                             (display (string-append "worker chunk: "
+                                                     (string-join files " ")))
+                             (newline)
+                             (display (read-all-string out))
+                             (newline))
+                           (when (file-exists? out) (remove out))
+                           rs)))
+                     specs)))
+          (apply append results))))
+
+    (define (run-test-worker-batches test-files jobs)
+      (let* ((tag (number->string (getpid)))
+             (worker (find-worker-program))
+             (isolated (filter worker-isolated? test-files))
+             (chunked (filter (lambda (f) (not (worker-isolated? f)))
+                              test-files))
+             (chunks (chunk-list chunked worker-chunk-size)))
+        (append
+          ;; Isolated files keep the one-process-per-file path.
+          (let loop ((files isolated) (acc '()))
+            (if (null? files)
+              (reverse acc)
+              (let-values (((head tail) (split-list files jobs)))
+                (loop tail (append (reverse (run-test-batch head)) acc)))))
+          ;; Worker chunks ride waves of `jobs' concurrent workers.
+          (let loop ((cs chunks) (i 0) (acc '()))
+            (if (null? cs)
+              (reverse acc)
+              (let-values (((head tail) (split-list cs jobs)))
+                (loop tail (+ i (length head))
+                      (append (reverse (run-worker-wave head worker tag i))
+                              acc))))))))
 
     (define (failed-test-files test-results)
       (map car

@@ -90,7 +90,13 @@
     (define (check-report . msg)
       (if (not (null? msg)) (begin (display (car msg))))
       (srfi-78-check-report)
-      (if (check-failed?) (exit -1))
+      ;; Persistent test workers run many files per process and record
+      ;; per-file results themselves: GOLDFISH_CHECK_NO_EXIT=1 skips the
+      ;; process exit (default off, single-file behavior unchanged).
+      (let ((v (getenv "GOLDFISH_CHECK_NO_EXIT")))
+        (if (and (check-failed?)
+                 (or (not v) (member v '("0" "no" "false" "off"))))
+          (exit -1)))
     ) ;define
   ) ;begin
 ) ;define-library
