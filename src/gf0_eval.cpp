@@ -541,12 +541,18 @@ eval (scheme* sc, pointer x, Env env) {
   return apply_values (sc, proc, argv, x);
 }
 
-static gf::pointer
-f_gf0_eval (scheme* sc, pointer args) {
+static void
+ensure_top (scheme* sc) {
   if (s_top.frames == nullptr) {
     s_top.frames= std::make_shared<std::vector<std::shared_ptr<Frame>>> ();
     s_top.frames->push_back (std::make_shared<Frame> ());
   }
+  (void) sc;
+}
+
+static gf::pointer
+f_gf0_eval (scheme* sc, pointer args) {
+  ensure_top (sc);
   V r= eval (sc, gf::car (args), s_top);
   if (!r.multi) return r.one;
   // Boundary multi TBD (M-VM): s7's spread protocol (splice_in_values
@@ -557,12 +563,34 @@ f_gf0_eval (scheme* sc, pointer args) {
                gf::car (args));
 }
 
+// Seed the session top env from an s7 inlet (e.g. the-expander-library):
+// compiled artifacts reference library bindings by gensym, which only
+// resolve there. Copies (name . value) cells by reference (pinned); gf0
+// set! writes its own frames, never back into the inlet. M2a differential
+// bridge; toplevel cells (M2) retire it.
+static gf::pointer
+f_gf0_import_inlet (scheme* sc, pointer args) {
+  ensure_top (sc);
+  pointer inlet= gf::car (args);
+  pointer alist= gf::let_to_list (sc, inlet);
+  for (; gf::is_pair (alist); alist= gf::cdr (alist)) {
+    pointer e= gf::car (alist);
+    pointer sym= nullptr;
+    pointer val= nullptr;
+    if (gf::is_pair (e) && gf::is_symbol (gf::car (e))) {
+      sym= gf::car (e);
+      pointer tail= gf::cdr (e);
+      val= gf::is_pair (tail) ? gf::car (tail) : tail;
+    }
+    if (sym != nullptr)
+      s_top.frames->back ()->bindings.push_back ({pin (sc, sym), pin (sc, val)});
+  }
+  return gf::unspecified (sc);
+}
+
 static gf::pointer
 f_gf0_eval_values (scheme* sc, pointer args) {
-  if (s_top.frames == nullptr) {
-    s_top.frames= std::make_shared<std::vector<std::shared_ptr<Frame>>> ();
-    s_top.frames->push_back (std::make_shared<Frame> ());
-  }
+  ensure_top (sc);
   V r= eval (sc, gf::car (args), s_top);
   if (!r.multi) {
     std::vector<pointer> one;
@@ -580,6 +608,8 @@ glue_gf0_eval (gf::scheme* sc) {
                        "(g_gf0-eval datum) => value, single-valued reference eval (multi is an error)");
   gf::define_function (sc, "g_gf0-eval-values", gf0::f_gf0_eval_values, 1, 0, false,
                        "(g_gf0-eval-values datum) => list of values from reference eval");
+  gf::define_function (sc, "g_gf0-import-inlet", gf0::f_gf0_import_inlet, 1, 0, false,
+                       "(g_gf0-import-inlet inlet) => unspecified, seed gf0 session env from an s7 inlet");
 }
 
 } // namespace goldfish

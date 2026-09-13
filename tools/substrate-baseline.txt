@@ -178,6 +178,7 @@ g_getpid
 g_get-time-of-day
 g_gf0-eval
 g_gf0-eval-values
+g_gf0-import-inlet
 g_goldfish-library
 g_http-async-get
 g_http-async-head
@@ -271,7 +272,7 @@ g_which
 iota
 read
 version
-count=116
+count=117
 == D core-language ==
 begin
 call-with-values
