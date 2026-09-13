@@ -332,10 +332,6 @@
         "tests/liii/http/http-async-get-test.scm"
         ;; Asserts fresh-process expander surface.
         "tests/expander/internal-surface-test.scm"
-        ;; Stale import views pinned from partial sources (audit's
-        ;; deliberate-failure loads); needs the view-lifetime fix.
-        "tests/expander/lib-cache-test.scm"
-        "tests/expander/lib-cache-all-libs-test.scm"
         ;; Order/layout-sensitive in shared processes (proven pairs).
         "tests/liii/bag/bag-replace-test.scm"
         "tests/liii/base/copy-test.scm"

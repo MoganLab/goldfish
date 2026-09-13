@@ -683,6 +683,14 @@
             (make-lib-record base (map car (exp-library-bindings base)))))
         (unless (runtime-registered? lib-name)
           (runtime-registered-add! lib-name)))
+      ;; Already loaded (expand-time record plus runtime registration:
+      ;; the same loaded definition the import path uses): stay a no-op
+      ;; instead of re-restoring fresh objects over live ones.  Every
+      ;; redundant load-library! would otherwise orphan the import views
+      ;; built from the previous objects, with no repair path.
+      (if (and (library-registry-ref lib-name level)
+               (runtime-registered? lib-name level))
+        #t
       (let* ((lib-file (library-file-name lib-name))
              ;; Resolve once for the stamp and the read: the unresolved
              ;; spelling degrades to a (-1 -1) stamp (mirrors
@@ -745,7 +753,7 @@
                            (let ((bare (library-registry-ref lib-name)))
                              (when bare
                                (library-registry-set! lib-name bare level)))))))))
-                (lambda () (loading-guard-pop! load-key))))))))))
+                (lambda () (loading-guard-pop! load-key)))))))))))
 
 ;;; library-record : name -> (exp-library . exports)
 ;;; Look up a library record, loading the library from file on demand.
