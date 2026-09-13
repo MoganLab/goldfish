@@ -112,6 +112,7 @@ void glue_liii_reader (gf::scheme* sc);
 void bootstrap_scheme_reader (gf::scheme* sc, const char* gf_lib);
 void glue_scheme_base (gf::scheme* sc);
 void glue_scheme_char (gf::scheme* sc);
+void glue_gf0_eval (gf::scheme* sc);
 void glue_liii_hashlib (gf::scheme* sc);
 void glue_liii_os (gf::scheme* sc);
 void glue_liii_path (gf::scheme* sc);
@@ -777,6 +778,7 @@ glue_for_community_edition (gf::scheme* sc) {
   glue_liii_reader (sc);
   glue_scheme_base (sc);
   glue_scheme_char (sc);
+  glue_gf0_eval (sc);
   glue_njson (sc);
 #ifdef GOLDFISH_ENABLE_HTTP
   glue_http (sc);
@@ -793,6 +795,7 @@ display_help () {
   cout << "  version            Display version" << endl;
   cout << "  eval CODE          Evaluate Scheme code" << endl;
   cout << "                     Example: gf eval '(+ 1 2)'" << endl;
+  cout << "  eval-gf0 CODE      Evaluate lowered core with the gf0 reference evaluator (experimental)" << endl;
   cout
       << "                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping"
       << endl;
@@ -1185,6 +1188,27 @@ goldfish_eval_through_reader (gf::scheme* sc, const string& code) {
 static void
 goldfish_eval_code (gf::scheme* sc, string code) {
   gf::pointer x= goldfish_eval_through_reader (sc, code);
+  cout << gf::object_to_c_string (sc, x) << endl;
+}
+
+// gf0 reference evaluator driver: read data forms with the s7 reader and
+// evaluate each with (g_gf0-eval datum), printing results as value lists
+// (call-with-values + list) so multi-values display uniformly. Errors
+// surface through the normal s7 catcher/error-port path.
+static void
+goldfish_eval_gf0_code (gf::scheme* sc, string code) {
+  string escaped;
+  for (char c : code) {
+    if (c == '\\' || c == '"') escaped += '\\';
+    escaped += c;
+  }
+  string expr= "(catch #t (lambda () (let ((p (open-input-string \"" + escaped +
+               "\"))) (let loop ((n 0)) (let ((d (read p))) (if (eof-object? d) "
+               "(begin (close-input-port p) n) "
+               "(begin (display (g_gf0-eval-values d)) "
+               "(newline) (loop (+ n 1)))))))) "
+               "(lambda args (display \"gf0-error: \") (write args) (newline) #f))";
+  gf::pointer x= gf::eval_c_string (sc, expr.c_str ());
   cout << gf::object_to_c_string (sc, x) << endl;
 }
 
@@ -1781,6 +1805,45 @@ repl_for_community_edition (gf::scheme* sc, int argc, char** argv) {
       exit (1);
     }
     goldfish_eval_code (sc, code);
+    errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
+    goldfish_print_scheme_error_message (sc, errmsg);
+    gf::close_output_port (sc, gf::current_error_port (sc));
+    gf::set_current_error_port (sc, old_port);
+    if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+    if ((errmsg) && (*errmsg)) return -1;
+    return 0;
+  }
+
+  // 处理 eval-gf0 子命令（gf0 参考求值器调试入口，见 src/gf0_eval.cpp）
+  if (command == "eval-gf0") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'eval-gf0' requires CODE argument.\n" << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    string code;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      code= arg;
+      break;
+    }
+    if (code.empty ()) {
+      std::cerr << "Error: 'eval-gf0' requires CODE argument.\n" << std::endl;
+      gf::close_output_port (sc, gf::current_error_port (sc));
+      gf::set_current_error_port (sc, old_port);
+      if (gc_loc != -1) gf::gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    goldfish_eval_gf0_code (sc, code);
     errmsg= gf::get_output_string (sc, gf::current_error_port (sc));
     goldfish_print_scheme_error_message (sc, errmsg);
     gf::close_output_port (sc, gf::current_error_port (sc));

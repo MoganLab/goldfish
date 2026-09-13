@@ -140,6 +140,8 @@ target ("goldfish") do
     add_files ("src/scheme_char.cpp")
     -- L1 tiny (bootstrap reader subset, no expander)
     add_files ("src/liii_reader.cpp")
+    -- T0-ahead: gf0 reference evaluator (gf:: only, no s7.h)
+    add_files ("src/gf0_eval.cpp")
     -- L6 vm (gf:: only, per-program, pre-decoded, no Scheme includes)
     -- L7 loader (CLI/REPL/load-path dispatch only)
     add_files ("src/goldfish.cpp")
